@@ -141,9 +141,6 @@ func (b *rawBody) UnmarshalJSON(data []byte) error {
 
 // stubActions answer honestly instead of pretending.
 var stubActions = map[string]string{
-	"ExecuteStatement":                    "PartiQL arrives in Phase 8",
-	"BatchExecuteStatement":               "PartiQL arrives in Phase 8",
-	"ExecuteTransaction":                  "PartiQL arrives in Phase 8",
 	"CreateGlobalTable":                   "there is exactly one region locally",
 	"DescribeGlobalTable":                 "there is exactly one region locally",
 	"DescribeGlobalTableSettings":         "there is exactly one region locally",

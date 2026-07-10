@@ -453,3 +453,73 @@ func TestSDKTableLifecycleAndStubs(t *testing.T) {
 		t.Fatalf("after delete: %v", err)
 	}
 }
+
+func TestSDKPartiQL(t *testing.T) {
+	ctx := context.Background()
+	c := ddbClient(t)
+	makeOrdersTable(t, ctx, c)
+
+	// INSERT with positional parameters.
+	_, err := c.ExecuteStatement(ctx, &awsddb.ExecuteStatementInput{
+		Statement: aws.String(`INSERT INTO "orders" VALUE {'pk': ?, 'sk': ?, 'email': ?, 'total': ?}`),
+		Parameters: []ddbtypes.AttributeValue{
+			&ddbtypes.AttributeValueMemberS{Value: "user#1"},
+			&ddbtypes.AttributeValueMemberS{Value: "order#1"},
+			&ddbtypes.AttributeValueMemberS{Value: "a@b.com"},
+			&ddbtypes.AttributeValueMemberN{Value: "42"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("INSERT: %v", err)
+	}
+
+	// SELECT by full primary key -> GetItem path.
+	sel, err := c.ExecuteStatement(ctx, &awsddb.ExecuteStatementInput{
+		Statement: aws.String(`SELECT * FROM "orders" WHERE "pk" = ? AND "sk" = ?`),
+		Parameters: []ddbtypes.AttributeValue{
+			&ddbtypes.AttributeValueMemberS{Value: "user#1"},
+			&ddbtypes.AttributeValueMemberS{Value: "order#1"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SELECT: %v", err)
+	}
+	if len(sel.Items) != 1 || sel.Items[0]["email"].(*ddbtypes.AttributeValueMemberS).Value != "a@b.com" {
+		t.Fatalf("SELECT returned %+v", sel.Items)
+	}
+
+	// UPDATE SET with a literal.
+	_, err = c.ExecuteStatement(ctx, &awsddb.ExecuteStatementInput{
+		Statement: aws.String(`UPDATE "orders" SET "total" = '99' WHERE "pk" = ? AND "sk" = ?`),
+		Parameters: []ddbtypes.AttributeValue{
+			&ddbtypes.AttributeValueMemberS{Value: "user#1"},
+			&ddbtypes.AttributeValueMemberS{Value: "order#1"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("UPDATE: %v", err)
+	}
+	sel2, _ := c.ExecuteStatement(ctx, &awsddb.ExecuteStatementInput{
+		Statement:  aws.String(`SELECT * FROM "orders" WHERE "pk" = ? AND "sk" = ?`),
+		Parameters: []ddbtypes.AttributeValue{&ddbtypes.AttributeValueMemberS{Value: "user#1"}, &ddbtypes.AttributeValueMemberS{Value: "order#1"}},
+	})
+	if got := sel2.Items[0]["total"].(*ddbtypes.AttributeValueMemberS).Value; got != "99" {
+		t.Fatalf("after UPDATE total = %q, want 99", got)
+	}
+
+	// DELETE, then confirm the row is gone.
+	_, err = c.ExecuteStatement(ctx, &awsddb.ExecuteStatementInput{
+		Statement:  aws.String(`DELETE FROM "orders" WHERE "pk" = ? AND "sk" = ?`),
+		Parameters: []ddbtypes.AttributeValue{&ddbtypes.AttributeValueMemberS{Value: "user#1"}, &ddbtypes.AttributeValueMemberS{Value: "order#1"}},
+	})
+	if err != nil {
+		t.Fatalf("DELETE: %v", err)
+	}
+	sel3, _ := c.ExecuteStatement(ctx, &awsddb.ExecuteStatementInput{
+		Statement:  aws.String(`SELECT * FROM "orders" WHERE "pk" = ? AND "sk" = ?`),
+		Parameters: []ddbtypes.AttributeValue{&ddbtypes.AttributeValueMemberS{Value: "user#1"}, &ddbtypes.AttributeValueMemberS{Value: "order#1"}},
+	})
+	if len(sel3.Items) != 0 {
+		t.Fatalf("row still present after DELETE: %+v", sel3.Items)
+	}
+}
