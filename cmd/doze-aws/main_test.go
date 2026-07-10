@@ -14,6 +14,9 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	awssns "github.com/aws/aws-sdk-go-v2/service/sns"
+	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
+	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	awssts "github.com/aws/aws-sdk-go-v2/service/sts"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -76,19 +79,57 @@ func TestBinaryEndToEnd(t *testing.T) {
 		t.Fatalf("binary never logged its listen address; log so far:\n%s", logTail.String())
 	}
 
-	client := awssts.New(awssts.Options{
-		Region:       awsident.Region,
-		Credentials:  credentials.NewStaticCredentialsProvider(awsident.AccessKeyID, awsident.SecretAccessKey, ""),
-		BaseEndpoint: aws.String("http://" + addr),
-	})
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	endpoint := aws.String("http://" + addr)
+	creds := credentials.NewStaticCredentialsProvider(awsident.AccessKeyID, awsident.SecretAccessKey, "")
+	stsClient := awssts.New(awssts.Options{Region: awsident.Region, Credentials: creds, BaseEndpoint: endpoint})
+	cfg := aws.Config{Region: awsident.Region, Credentials: creds}
+	sqsClient := awssqs.NewFromConfig(cfg, func(o *awssqs.Options) { o.BaseEndpoint = endpoint })
+	snsClient := awssns.NewFromConfig(cfg, func(o *awssns.Options) { o.BaseEndpoint = endpoint })
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	out, err := client.GetCallerIdentity(ctx, &awssts.GetCallerIdentityInput{})
+
+	// STS through the shared endpoint.
+	out, err := stsClient.GetCallerIdentity(ctx, &awssts.GetCallerIdentityInput{})
 	if err != nil {
 		t.Fatalf("GetCallerIdentity against the real binary: %v", err)
 	}
 	if aws.ToString(out.Account) != awsident.AccountID {
 		t.Errorf("Account = %q", aws.ToString(out.Account))
+	}
+
+	// Cross-service: SNS topic fanning out to an SQS queue, all through one port.
+	q, err := sqsClient.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("e2e")})
+	if err != nil {
+		t.Fatalf("CreateQueue: %v", err)
+	}
+	topic, err := snsClient.CreateTopic(ctx, &awssns.CreateTopicInput{Name: aws.String("e2e-topic")})
+	if err != nil {
+		t.Fatalf("CreateTopic: %v", err)
+	}
+	arnOut, err := sqsClient.GetQueueAttributes(ctx, &awssqs.GetQueueAttributesInput{
+		QueueUrl: q.QueueUrl, AttributeNames: []sqstypes.QueueAttributeName{sqstypes.QueueAttributeNameQueueArn},
+	})
+	if err != nil {
+		t.Fatalf("GetQueueAttributes: %v", err)
+	}
+	if _, err := snsClient.Subscribe(ctx, &awssns.SubscribeInput{
+		TopicArn: topic.TopicArn, Protocol: aws.String("sqs"),
+		Endpoint:   aws.String(arnOut.Attributes["QueueArn"]),
+		Attributes: map[string]string{"RawMessageDelivery": "true"},
+	}); err != nil {
+		t.Fatalf("Subscribe: %v", err)
+	}
+	if _, err := snsClient.Publish(ctx, &awssns.PublishInput{
+		TopicArn: topic.TopicArn, Message: aws.String("through the binary"),
+	}); err != nil {
+		t.Fatalf("Publish: %v", err)
+	}
+	recv, err := sqsClient.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{
+		QueueUrl: q.QueueUrl, WaitTimeSeconds: 5,
+	})
+	if err != nil || len(recv.Messages) != 1 || aws.ToString(recv.Messages[0].Body) != "through the binary" {
+		t.Fatalf("fanout through the binary: %v %+v", err, recv.Messages)
 	}
 
 	// Graceful shutdown: SIGTERM must exit 0 after draining.

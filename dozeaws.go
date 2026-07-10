@@ -23,12 +23,15 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/gateway"
+	"github.com/doze-dev/doze-aws/peers"
+	"github.com/doze-dev/doze-aws/sns"
+	"github.com/doze-dev/doze-aws/sqs"
 	"github.com/doze-dev/doze-aws/sts"
 )
 
 // Implemented lists the services this build of doze-aws can serve, in gateway
 // order. It grows phase by phase; gateway.Services is the full roadmap set.
-var Implemented = []string{"sts"}
+var Implemented = []string{"sqs", "sns", "sts"}
 
 // StackConfig configures a Stack.
 type StackConfig struct {
@@ -96,9 +99,18 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 	if cfg.DataDir != "" {
 		dataDir = filepath.Join(cfg.DataDir, name)
 	}
+	// Peers resolve through the gateway registry at call time, so services
+	// find their siblings regardless of construction order.
+	dir := peers.InProcess(st.gw.Handler)
 	switch name {
 	case "sts":
 		s, err := sts.New(sts.Options{DataDir: dataDir, Logf: logf})
+		return s, s, err
+	case "sqs":
+		s, err := sqs.New(sqs.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		return s, s, err
+	case "sns":
+		s, err := sns.New(sns.Options{DataDir: dataDir, Peers: dir, Logf: logf})
 		return s, s, err
 	}
 	return nil, nil, fmt.Errorf("no constructor for %q", name)

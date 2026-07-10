@@ -28,9 +28,9 @@ clients still speak.
 | Service | Status |
 |---|---|
 | STS | ✅ complete |
-| SQS | 🚧 next (porting from doze) |
-| SNS | 🚧 next (porting from doze) |
-| KMS, SSM, Secrets Manager | 🗺 roadmap |
+| SQS | ✅ complete — both protocols, FIFO, DLQ redrive, long polling, move tasks, tags |
+| SNS | ✅ complete — fanout to SQS/webhooks, filter policies, confirmation handshake |
+| KMS, SSM, Secrets Manager | 🚧 next |
 | S3 | 🗺 roadmap |
 | DynamoDB | 🗺 roadmap |
 | EventBridge, Lambda | 🗺 roadmap |
