@@ -17,6 +17,8 @@ jobs:
         include:
           - pkg: ./internal/sigparse/
             target: FuzzParse
+          - pkg: ./internal/awschunk/
+            target: FuzzDecode
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6

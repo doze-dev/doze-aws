@@ -25,6 +25,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/gateway"
 	"github.com/doze-dev/doze-aws/kms"
 	"github.com/doze-dev/doze-aws/peers"
+	"github.com/doze-dev/doze-aws/s3"
 	"github.com/doze-dev/doze-aws/secretsmanager"
 	"github.com/doze-dev/doze-aws/sns"
 	"github.com/doze-dev/doze-aws/sqs"
@@ -34,7 +35,7 @@ import (
 
 // Implemented lists the services this build of doze-aws can serve, in gateway
 // order. It grows phase by phase; gateway.Services is the full roadmap set.
-var Implemented = []string{"sqs", "sns", "sts", "kms", "ssm", "secretsmanager"}
+var Implemented = []string{"s3", "sqs", "sns", "sts", "kms", "ssm", "secretsmanager"}
 
 // StackConfig configures a Stack.
 type StackConfig struct {
@@ -48,8 +49,8 @@ type StackConfig struct {
 	// Logf receives service and gateway log lines; nil discards.
 	Logf func(format string, args ...any)
 	// S3Host is the host under which virtual-hosted-style S3 bucket addressing
-	// is detected (unused until the s3 service lands; reserved in config now
-	// so files written today keep working).
+	// is detected (a request to <bucket>.<S3Host> addresses that bucket).
+	// Path-style always works.
 	S3Host string
 }
 
@@ -106,6 +107,9 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 	// find their siblings regardless of construction order.
 	dir := peers.InProcess(st.gw.Handler)
 	switch name {
+	case "s3":
+		s, err := s3.New(s3.Options{DataDir: dataDir, Host: cfg.S3Host, Peers: dir, Logf: logf})
+		return s, s, err
 	case "sts":
 		s, err := sts.New(sts.Options{DataDir: dataDir, Logf: logf})
 		return s, s, err

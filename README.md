@@ -33,8 +33,8 @@ clients still speak.
 | KMS | ✅ complete — symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto |
 | SSM Parameter Store | ✅ complete — versions, labels, hierarchies, SecureString at-rest encryption |
 | Secrets Manager | ✅ complete — version stages, recovery-window deletion, encrypted at rest |
-| S3 | 🚧 next |
-| DynamoDB | 🗺 roadmap |
+| S3 | ✅ complete — versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website |
+| DynamoDB | 🚧 next |
 | EventBridge, Lambda | 🗺 roadmap |
 
 Per-service operation coverage lives in [docs/api-support](docs/api-support/).
