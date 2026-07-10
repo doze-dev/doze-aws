@@ -16,13 +16,13 @@ import (
 // stored but not driven (documented in docs/api-support/eventbridge.md) — a
 // wall-clock cron isn't useful in an ephemeral local stack. Runs in a single
 // goroutine, so its lastFired map needs no lock.
-func (s *Server) runScheduler() {
+func (s *Server) runScheduler(stop <-chan struct{}) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	lastFired := map[string]time.Time{}
 	for {
 		select {
-		case <-s.stop:
+		case <-stop:
 			return
 		case <-ticker.C:
 			s.fireDueSchedules(lastFired)

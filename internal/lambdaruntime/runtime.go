@@ -145,7 +145,9 @@ func (r *Runner) ensureStarted() error {
 
 // buildCommand resolves the runtime into an exec.Cmd with the Lambda env.
 func (r *Runner) buildCommand(runtimeAPI string) (*exec.Cmd, error) {
-	argv := r.spec.Command
+	// Copy the command: pooled Runners share one Spec, and the argv[0] rewrite
+	// below must not mutate that shared slice's backing array.
+	argv := append([]string(nil), r.spec.Command...)
 	if len(argv) == 0 {
 		mapped, err := runtimeCommand(r.spec.Runtime, r.spec.Handler)
 		if err != nil {

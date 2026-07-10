@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -38,12 +39,14 @@ type Options struct {
 // Server is the EventBridge service: an http.Handler speaking AWS JSON 1.1,
 // and an io.Closer.
 type Server struct {
-	store *Store
-	peers peers.Directory
-	logf  func(format string, args ...any)
-	now   func() time.Time
-	api   awsjson.API
-	stop  chan struct{} // closes the scheduler ticker
+	store    *Store
+	peers    peers.Directory
+	logf     func(format string, args ...any)
+	now      func() time.Time
+	api      awsjson.API
+	stop     chan struct{} // closed once (via stopOnce) to end the scheduler
+	done     chan struct{} // closed by the scheduler goroutine when it exits
+	stopOnce sync.Once
 }
 
 // New opens the store under DataDir (the default bus exists implicitly).
@@ -73,17 +76,24 @@ func New(opts Options) (*Server, error) {
 		s.now = time.Now
 	}
 	s.stop = make(chan struct{})
-	go s.runScheduler()
+	s.done = make(chan struct{})
+	go func() {
+		defer close(s.done)
+		s.runScheduler(s.stop) // the goroutine only touches its arguments, not s.stop
+	}()
 	return s, nil
 }
 
-// Close stops the scheduler and closes the bbolt DB.
+// Close stops the scheduler, waits for it to exit (so nothing touches the store
+// after this), and closes the bbolt DB. Safe to call more than once.
 func (s *Server) Close() error {
-	if s.stop != nil {
+	var err error
+	s.stopOnce.Do(func() {
 		close(s.stop)
-		s.stop = nil
-	}
-	return s.store.db.Close()
+		<-s.done
+		err = s.store.db.Close()
+	})
+	return err
 }
 
 type handler func(s *Server, p map[string]any) (any, *awshttp.APIError)
