@@ -29,6 +29,10 @@ jobs:
             target: FuzzPattern
           - pkg: ./dynamodb/
             target: FuzzPartiQL
+          - pkg: ./kms/
+            target: FuzzOpenBlob
+          - pkg: ./internal/awsquery/
+            target: FuzzMembers
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
