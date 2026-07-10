@@ -64,6 +64,13 @@ tasks:
     cmds:
       - go test ./internal/sigparse/ -run '^$' -fuzz FuzzParse -fuzztime 30s
 
+  soak:
+    desc: 'Cross-service soak under sustained load (SOAK_DURATION, default 2m)'
+    env:
+      SOAK_DURATION: '{{.SOAK_DURATION | default "2m"}}'
+    cmds:
+      - go test -tags soak -run TestSoak -timeout 24h -v ./cmd/doze-aws/
+
   clean:
     desc: Remove build output and local service data
     cmds:
