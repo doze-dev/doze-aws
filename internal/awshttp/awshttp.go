@@ -39,6 +39,15 @@ func AsAPIError(err error) *APIError {
 	return &APIError{Code: "InternalFailure", Status: 500, Message: "internal error"}
 }
 
+// AsAPIErrorOrNil is AsAPIError that passes nil through — for the common
+// `return nil, awshttp.AsAPIErrorOrNil(err)` handler tail.
+func AsAPIErrorOrNil(err error) *APIError {
+	if err == nil {
+		return nil
+	}
+	return AsAPIError(err)
+}
+
 // RequestID returns a fresh request id in UUID shape. AWS request ids are
 // opaque; UUID shape keeps SDK log lines familiar.
 func RequestID() string {

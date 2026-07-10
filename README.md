@@ -30,8 +30,10 @@ clients still speak.
 | STS | ✅ complete |
 | SQS | ✅ complete — both protocols, FIFO, DLQ redrive, long polling, move tasks, tags |
 | SNS | ✅ complete — fanout to SQS/webhooks, filter policies, confirmation handshake |
-| KMS, SSM, Secrets Manager | 🚧 next |
-| S3 | 🗺 roadmap |
+| KMS | ✅ complete — symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto |
+| SSM Parameter Store | ✅ complete — versions, labels, hierarchies, SecureString at-rest encryption |
+| Secrets Manager | ✅ complete — version stages, recovery-window deletion, encrypted at rest |
+| S3 | 🚧 next |
 | DynamoDB | 🗺 roadmap |
 | EventBridge, Lambda | 🗺 roadmap |
 

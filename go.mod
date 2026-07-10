@@ -7,8 +7,11 @@ require (
 	github.com/aws/aws-sdk-go v1.55.8
 	github.com/aws/aws-sdk-go-v2 v1.42.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.28
+	github.com/aws/aws-sdk-go-v2/service/kms v1.54.0
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.43.0
 	github.com/aws/aws-sdk-go-v2/service/sns v1.41.0
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.45.0
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.71.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.44.0
 	github.com/aws/smithy-go v1.27.3
 	go.etcd.io/bbolt v1.5.0

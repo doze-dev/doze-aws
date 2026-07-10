@@ -23,15 +23,18 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/gateway"
+	"github.com/doze-dev/doze-aws/kms"
 	"github.com/doze-dev/doze-aws/peers"
+	"github.com/doze-dev/doze-aws/secretsmanager"
 	"github.com/doze-dev/doze-aws/sns"
 	"github.com/doze-dev/doze-aws/sqs"
+	"github.com/doze-dev/doze-aws/ssm"
 	"github.com/doze-dev/doze-aws/sts"
 )
 
 // Implemented lists the services this build of doze-aws can serve, in gateway
 // order. It grows phase by phase; gateway.Services is the full roadmap set.
-var Implemented = []string{"sqs", "sns", "sts"}
+var Implemented = []string{"sqs", "sns", "sts", "kms", "ssm", "secretsmanager"}
 
 // StackConfig configures a Stack.
 type StackConfig struct {
@@ -111,6 +114,15 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		return s, s, err
 	case "sns":
 		s, err := sns.New(sns.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		return s, s, err
+	case "kms":
+		s, err := kms.New(kms.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		return s, s, err
+	case "ssm":
+		s, err := ssm.New(ssm.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		return s, s, err
+	case "secretsmanager":
+		s, err := secretsmanager.New(secretsmanager.Options{DataDir: dataDir, Peers: dir, Logf: logf})
 		return s, s, err
 	}
 	return nil, nil, fmt.Errorf("no constructor for %q", name)
