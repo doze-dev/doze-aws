@@ -53,8 +53,8 @@ type Server struct {
 	now      func() time.Time
 
 	mu       sync.Mutex
-	runners  map[string]*lambdaruntime.Runner // function name -> runner
-	mappings map[string]*esm                  // mapping UUID -> poller
+	runners  map[string]*lambdaruntime.Pool // function name -> concurrency pool
+	mappings map[string]*esm                // mapping UUID -> poller
 }
 
 // New opens the store under DataDir.
@@ -79,7 +79,7 @@ func New(opts Options) (*Server, error) {
 		endpoint: opts.Endpoint,
 		logf:     logf,
 		now:      opts.Clock,
-		runners:  map[string]*lambdaruntime.Runner{},
+		runners:  map[string]*lambdaruntime.Pool{},
 		mappings: map[string]*esm{},
 	}
 	if s.peers == nil {

@@ -148,14 +148,19 @@ func (s *Server) deliverToArn(arn string, payload []byte) {
 	}
 }
 
-// runnerFor returns (creating if needed) the runner for a function.
-func (s *Server) runnerFor(f *Function) *lambdaruntime.Runner {
+// runnerFor returns (creating if needed) the concurrency pool for a function.
+// The pool's ceiling is the function's reserved concurrency, if set.
+func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if r := s.runners[f.Name]; r != nil {
 		return r
 	}
-	r := lambdaruntime.NewRunner(lambdaruntime.Spec{
+	max := 0 // NewPool defaults it
+	if f.ReservedConcurrency != nil {
+		max = *f.ReservedConcurrency
+	}
+	r := lambdaruntime.NewPool(lambdaruntime.Spec{
 		Name:      f.Name,
 		Handler:   f.Handler,
 		Runtime:   f.Runtime,
@@ -164,7 +169,7 @@ func (s *Server) runnerFor(f *Function) *lambdaruntime.Runner {
 		Env:       f.Env,
 		Timeout:   time.Duration(f.Timeout) * time.Second,
 		Endpoints: s.endpointEnv(),
-	}, s.logf)
+	}, max, s.logf)
 	s.runners[f.Name] = r
 	return r
 }
