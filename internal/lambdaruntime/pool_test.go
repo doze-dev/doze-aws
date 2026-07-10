@@ -54,9 +54,11 @@ func buildSleepBootstrap(t *testing.T) string {
 }
 
 // TestPoolConcurrency proves the pool runs invocations in parallel: three
-// 700ms invocations complete in well under the 2.1s a serial runner would take,
-// and the pool grows to three runners (the definitive proof, independent of
-// process-startup jitter).
+// invocations held in flight together grow the pool to three runners. Size()==3
+// is a deterministic concurrency proof — the pool only grows past one runner
+// when inflight exceeds the current pool size, which can't happen if the
+// invocations serialized (cf. TestPoolSerialStaysSmall). It's independent of
+// wall-clock timing, so it's stable under parallel test load.
 func TestPoolConcurrency(t *testing.T) {
 	if testing.Short() {
 		t.Skip("compiles + runs a lambda process")
@@ -66,34 +68,31 @@ func TestPoolConcurrency(t *testing.T) {
 		Name:    "sleeper",
 		Command: []string{"./bootstrap"},
 		Dir:     dir,
-		Timeout: 5 * time.Second,
+		Timeout: 10 * time.Second,
 	}, 5, nil)
 	defer p.Stop()
 
 	const n = 3
-	start := time.Now()
 	var wg sync.WaitGroup
 	errs := make([]error, n)
 	for i := 0; i < n; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
+			// Each invocation holds a runner for 700ms (the sleep), so all three
+			// overlap — driving inflight to 3 and the pool to 3 runners.
 			_, errs[i] = p.Invoke(context.Background(), []byte(`{}`))
 		}(i)
 	}
 	wg.Wait()
-	elapsed := time.Since(start)
 
 	for i, err := range errs {
 		if err != nil {
 			t.Fatalf("invoke %d: %v", i, err)
 		}
 	}
-	if elapsed > 1600*time.Millisecond {
-		t.Fatalf("3 concurrent 400ms invokes took %v (serial would be ~2.1s+) — not parallel", elapsed)
-	}
 	if sz := p.Size(); sz != n {
-		t.Fatalf("pool size = %d, want %d", sz, n)
+		t.Fatalf("pool size = %d, want %d — invocations did not run concurrently", sz, n)
 	}
 }
 
