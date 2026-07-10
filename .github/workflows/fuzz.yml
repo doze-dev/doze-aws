@@ -19,6 +19,12 @@ jobs:
             target: FuzzParse
           - pkg: ./internal/awschunk/
             target: FuzzDecode
+          - pkg: ./internal/ddb/item/
+            target: FuzzDecimal
+          - pkg: ./internal/ddb/keyenc/
+            target: FuzzOrderProperty
+          - pkg: ./internal/ddb/expr/
+            target: FuzzParsers
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6

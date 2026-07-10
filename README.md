@@ -34,8 +34,8 @@ clients still speak.
 | SSM Parameter Store | ✅ complete — versions, labels, hierarchies, SecureString at-rest encryption |
 | Secrets Manager | ✅ complete — version stages, recovery-window deletion, encrypted at rest |
 | S3 | ✅ complete — versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website |
-| DynamoDB | 🚧 next |
-| EventBridge, Lambda | 🗺 roadmap |
+| DynamoDB | ✅ complete — full expression engine, GSI/LSI, transactions, TTL, paging semantics |
+| EventBridge, Lambda | 🚧 next |
 
 Per-service operation coverage lives in [docs/api-support](docs/api-support/).
 

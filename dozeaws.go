@@ -22,6 +22,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/doze-dev/doze-aws/dynamodb"
 	"github.com/doze-dev/doze-aws/internal/gateway"
 	"github.com/doze-dev/doze-aws/kms"
 	"github.com/doze-dev/doze-aws/peers"
@@ -35,7 +36,7 @@ import (
 
 // Implemented lists the services this build of doze-aws can serve, in gateway
 // order. It grows phase by phase; gateway.Services is the full roadmap set.
-var Implemented = []string{"s3", "sqs", "sns", "sts", "kms", "ssm", "secretsmanager"}
+var Implemented = []string{"s3", "dynamodb", "sqs", "sns", "sts", "kms", "ssm", "secretsmanager"}
 
 // StackConfig configures a Stack.
 type StackConfig struct {
@@ -109,6 +110,9 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 	switch name {
 	case "s3":
 		s, err := s3.New(s3.Options{DataDir: dataDir, Host: cfg.S3Host, Peers: dir, Logf: logf})
+		return s, s, err
+	case "dynamodb":
+		s, err := dynamodb.New(dynamodb.Options{DataDir: dataDir, Peers: dir, Logf: logf})
 		return s, s, err
 	case "sts":
 		s, err := sts.New(sts.Options{DataDir: dataDir, Logf: logf})

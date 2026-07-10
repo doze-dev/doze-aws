@@ -83,10 +83,17 @@ func (a API) Write(w http.ResponseWriter, result any) {
 
 // WriteError renders the JSON-protocol error shape with e's HTTP status.
 func (a API) WriteError(w http.ResponseWriter, e *awshttp.APIError) {
-	body, _ := json.Marshal(map[string]string{
+	payload := map[string]any{
 		"__type":  e.Code,
 		"message": e.Message,
-	})
+	}
+	if len(e.Item) > 0 {
+		payload["Item"] = json.RawMessage(e.Item)
+	}
+	for k, v := range e.Extra {
+		payload[k] = v
+	}
+	body, _ := json.Marshal(payload)
 	w.Header().Set("Content-Type", a.ContentType())
 	w.Header().Set("x-amzn-RequestId", awshttp.RequestID())
 	w.Header().Set("x-amzn-ErrorType", e.Code)

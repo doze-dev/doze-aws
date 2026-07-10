@@ -6,6 +6,7 @@ package awshttp
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -21,6 +22,12 @@ type APIError struct {
 	// SenderFault distinguishes 4xx Sender errors from Receiver faults in the
 	// Query/XML error envelope.
 	SenderFault bool
+	// Item optionally carries a wire-format item inside the error body —
+	// DynamoDB's ReturnValuesOnConditionCheckFailure.
+	Item json.RawMessage
+	// Extra merges additional members into the JSON error body (e.g.
+	// DynamoDB's CancellationReasons).
+	Extra map[string]json.RawMessage
 }
 
 func (e *APIError) Error() string { return e.Code + ": " + e.Message }
