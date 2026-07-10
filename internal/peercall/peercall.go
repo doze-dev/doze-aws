@@ -80,6 +80,37 @@ func SQSDelete(dir peers.Directory, queue, receiptHandle string) error {
 }
 
 // LambdaInvokeAsync fires an Event-type invocation of a function.
+// LambdaInvoke fires a synchronous (RequestResponse) invocation and returns the
+// function's response payload. Used by Secrets Manager rotation, which drives a
+// rotation function step by step.
+func LambdaInvoke(dir peers.Directory, function string, payload []byte) ([]byte, error) {
+	ep, ok := dir.Endpoint("lambda")
+	if !ok {
+		return nil, fmt.Errorf("no lambda peer wired")
+	}
+	req, err := http.NewRequest(http.MethodPost,
+		ep.URL("/2015-03-31/functions/"+url.PathEscape(function)+"/invocations"),
+		bytes.NewReader(payload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("X-Amz-Invocation-Type", "RequestResponse")
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := ep.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if resp.StatusCode/100 != 2 {
+		return body, fmt.Errorf("lambda invoke: %s: %s", resp.Status, body)
+	}
+	if fnErr := resp.Header.Get("X-Amz-Function-Error"); fnErr != "" {
+		return body, fmt.Errorf("rotation function error (%s): %s", fnErr, body)
+	}
+	return body, nil
+}
+
 func LambdaInvokeAsync(dir peers.Directory, function string, payload []byte) error {
 	ep, ok := dir.Endpoint("lambda")
 	if !ok {

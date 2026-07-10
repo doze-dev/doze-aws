@@ -209,7 +209,8 @@ func TestSDKBinaryTagsAndRandomPassword(t *testing.T) {
 		t.Fatalf("GetRandomPassword: %v", err)
 	}
 
-	// Rotation answers honestly until Phase 8.
+	// Rotation is functional (see TestRotateSecretViaLambda); with no rotation
+	// Lambda configured it's a real validation error, not a stub.
 	_, err = c.RotateSecret(ctx, &awssm.RotateSecretInput{SecretId: aws.String("binary")})
-	assertCode(t, err, "InvalidRequestException")
+	assertCode(t, err, "InvalidParameterException")
 }

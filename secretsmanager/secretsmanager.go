@@ -42,6 +42,7 @@ type Options struct {
 // 1.1, and an io.Closer that stops the janitor and closes the store.
 type Server struct {
 	store *Store
+	peers peers.Directory
 	logf  func(format string, args ...any)
 	api   awsjson.API
 	stop  chan struct{}
@@ -67,9 +68,13 @@ func New(opts Options) (*Server, error) {
 	}
 	s := &Server{
 		store: st,
+		peers: opts.Peers,
 		logf:  logf,
 		api:   awsjson.API{TargetPrefix: "secretsmanager", JSONVersion: "1.1"},
 		stop:  make(chan struct{}),
+	}
+	if s.peers == nil {
+		s.peers = peers.None()
 	}
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock

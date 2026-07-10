@@ -22,6 +22,8 @@ var handlers = map[string]handler{
 	"ListSecretVersionIds":     (*Server).listSecretVersionIds,
 	"DescribeSecret":           (*Server).describeSecret,
 	"UpdateSecretVersionStage": (*Server).updateSecretVersionStage,
+	"RotateSecret":             (*Server).rotateSecret,
+	"CancelRotateSecret":       (*Server).cancelRotateSecret,
 	"TagResource":              (*Server).tagResource,
 	"UntagResource":            (*Server).untagResource,
 	"GetRandomPassword":        (*Server).getRandomPassword,
@@ -35,8 +37,6 @@ func init() {
 	// RotateSecret needs the lambda service (Phase 8); replication needs
 	// other regions. Both answer honestly.
 	for name, why := range map[string]string{
-		"RotateSecret":                 "rotation invokes a rotation Lambda; it arrives with the doze-aws lambda service",
-		"CancelRotateSecret":           "rotation invokes a rotation Lambda; it arrives with the doze-aws lambda service",
 		"ReplicateSecretToRegions":     "there is exactly one region locally",
 		"RemoveRegionsFromReplication": "there is exactly one region locally",
 		"StopReplicationToReplica":     "there is exactly one region locally",
@@ -313,6 +313,13 @@ func describe(sec *Secret) map[string]any {
 	}
 	if sec.DeletedAt > 0 {
 		out["DeletedDate"] = float64(sec.DeletedAt)
+	}
+	out["RotationEnabled"] = sec.RotationEnabled
+	if sec.RotationLambdaARN != "" {
+		out["RotationLambdaARN"] = sec.RotationLambdaARN
+	}
+	if sec.LastRotatedDate > 0 {
+		out["LastRotatedDate"] = float64(sec.LastRotatedDate)
 	}
 	return out
 }

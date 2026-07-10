@@ -32,8 +32,12 @@ type Secret struct {
 	Versions    map[string]Version `json:"versions"`
 	Created     int64              `json:"created"`
 	LastChanged int64              `json:"last_changed"`
-	DeletedAt   int64              `json:"deleted_at,omitempty"` // scheduled-deletion time set
-	PurgeAt     int64              `json:"purge_at,omitempty"`   // when the janitor removes it
+
+	RotationEnabled   bool   `json:"rotation_enabled,omitempty"`
+	RotationLambdaARN string `json:"rotation_lambda_arn,omitempty"`
+	LastRotatedDate   int64  `json:"last_rotated_date,omitempty"`
+	DeletedAt         int64  `json:"deleted_at,omitempty"` // scheduled-deletion time set
+	PurgeAt           int64  `json:"purge_at,omitempty"`   // when the janitor removes it
 }
 
 // Version is one secret version. Exactly one of String/Binary was set by the
