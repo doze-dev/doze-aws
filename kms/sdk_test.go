@@ -288,3 +288,53 @@ func TestSDKAliasesAndLifecycle(t *testing.T) {
 		t.Fatal("secp256k1 key creation should fail honestly")
 	}
 }
+
+func TestSDKRotateKeyOnDemand(t *testing.T) {
+	ctx := context.Background()
+	c := kmsClient(t)
+
+	key, err := c.CreateKey(ctx, &awskms.CreateKeyInput{Description: aws.String("rot")})
+	if err != nil {
+		t.Fatalf("CreateKey: %v", err)
+	}
+	keyID := aws.ToString(key.KeyMetadata.KeyId)
+
+	// Encrypt with the original material.
+	enc, err := c.Encrypt(ctx, &awskms.EncryptInput{KeyId: aws.String(keyID), Plaintext: []byte("before rotation")})
+	if err != nil {
+		t.Fatalf("Encrypt: %v", err)
+	}
+
+	// Rotate on demand.
+	if _, err := c.RotateKeyOnDemand(ctx, &awskms.RotateKeyOnDemandInput{KeyId: aws.String(keyID)}); err != nil {
+		t.Fatalf("RotateKeyOnDemand: %v", err)
+	}
+
+	// The pre-rotation ciphertext must still decrypt (old material is retained).
+	dec, err := c.Decrypt(ctx, &awskms.DecryptInput{CiphertextBlob: enc.CiphertextBlob})
+	if err != nil {
+		t.Fatalf("Decrypt after rotation: %v", err)
+	}
+	if string(dec.Plaintext) != "before rotation" {
+		t.Fatalf("decrypted %q, want 'before rotation'", dec.Plaintext)
+	}
+
+	// A fresh encrypt (new material) also round-trips.
+	enc2, err := c.Encrypt(ctx, &awskms.EncryptInput{KeyId: aws.String(keyID), Plaintext: []byte("after rotation")})
+	if err != nil {
+		t.Fatalf("Encrypt after rotation: %v", err)
+	}
+	dec2, _ := c.Decrypt(ctx, &awskms.DecryptInput{CiphertextBlob: enc2.CiphertextBlob})
+	if string(dec2.Plaintext) != "after rotation" {
+		t.Fatalf("post-rotation round-trip failed: %q", dec2.Plaintext)
+	}
+
+	// ListKeyRotations reports the rotation.
+	rots, err := c.ListKeyRotations(ctx, &awskms.ListKeyRotationsInput{KeyId: aws.String(keyID)})
+	if err != nil {
+		t.Fatalf("ListKeyRotations: %v", err)
+	}
+	if len(rots.Rotations) != 1 {
+		t.Fatalf("Rotations = %d, want 1", len(rots.Rotations))
+	}
+}

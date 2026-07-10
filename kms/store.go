@@ -31,18 +31,20 @@ const (
 
 // Key is one customer master key.
 type Key struct {
-	ID          string            `json:"id"` // UUID
-	Material    []byte            `json:"material"`
-	State       string            `json:"state"`
-	Description string            `json:"description"`
-	Created     int64             `json:"created"`               // unix seconds
-	DeletionAt  int64             `json:"deletion_at,omitempty"` // unix seconds, PendingDeletion only
-	RotationOn  bool              `json:"rotation_on"`           // stored flag; on-demand rotation lands in Phase 8
-	Policy      string            `json:"policy,omitempty"`      // round-trip only
-	Tags        map[string]string `json:"tags,omitempty"`
-	KeySpec     string            `json:"key_spec"`  // SYMMETRIC_DEFAULT
-	KeyUsage    string            `json:"key_usage"` // ENCRYPT_DECRYPT
-	MultiRegion bool              `json:"multi_region"`
+	ID           string            `json:"id"` // UUID
+	Material     []byte            `json:"material"`
+	OldMaterials [][]byte          `json:"old_materials,omitempty"` // superseded backing keys, newest first, kept so pre-rotation ciphertexts still decrypt
+	Rotations    []int64           `json:"rotations,omitempty"`     // unix-seconds timestamps of each rotation, newest first
+	State        string            `json:"state"`
+	Description  string            `json:"description"`
+	Created      int64             `json:"created"`               // unix seconds
+	DeletionAt   int64             `json:"deletion_at,omitempty"` // unix seconds, PendingDeletion only
+	RotationOn   bool              `json:"rotation_on"`           // automatic-rotation flag
+	Policy       string            `json:"policy,omitempty"`      // round-trip only
+	Tags         map[string]string `json:"tags,omitempty"`
+	KeySpec      string            `json:"key_spec"`  // SYMMETRIC_DEFAULT
+	KeyUsage     string            `json:"key_usage"` // ENCRYPT_DECRYPT
+	MultiRegion  bool              `json:"multi_region"`
 }
 
 // ARN returns the key's ARN.
@@ -336,22 +338,26 @@ func openBlob(blob []byte) (keyID string, unseal func(*Key, map[string]string) (
 	keyID = string(rest[:idLen])
 	rest = rest[idLen:]
 	return keyID, func(k *Key, context map[string]string) ([]byte, error) {
-		block, err := aes.NewCipher(k.Material)
-		if err != nil {
-			return nil, err
+		// Try the current backing key, then any superseded ones (rotation keeps
+		// old material so ciphertexts predating a rotation still decrypt).
+		aad := canonicalContext(context)
+		for _, mat := range append([][]byte{k.Material}, k.OldMaterials...) {
+			block, err := aes.NewCipher(mat)
+			if err != nil {
+				continue
+			}
+			gcm, err := cipher.NewGCM(block)
+			if err != nil {
+				continue
+			}
+			if len(rest) < gcm.NonceSize() {
+				return nil, bad
+			}
+			if pt, err := gcm.Open(nil, rest[:gcm.NonceSize()], rest[gcm.NonceSize():], aad); err == nil {
+				return pt, nil
+			}
 		}
-		gcm, err := cipher.NewGCM(block)
-		if err != nil {
-			return nil, err
-		}
-		if len(rest) < gcm.NonceSize() {
-			return nil, bad
-		}
-		pt, err := gcm.Open(nil, rest[:gcm.NonceSize()], rest[gcm.NonceSize():], canonicalContext(context))
-		if err != nil {
-			return nil, awshttp.Errf(400, "InvalidCiphertextException", "decryption failed (wrong key or encryption context)")
-		}
-		return pt, nil
+		return nil, awshttp.Errf(400, "InvalidCiphertextException", "decryption failed (wrong key or encryption context)")
 	}, nil
 }
 

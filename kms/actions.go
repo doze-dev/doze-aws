@@ -49,6 +49,8 @@ var handlers = map[string]handler{
 	"GetKeyRotationStatus":                (*Server).getKeyRotationStatus,
 	"EnableKeyRotation":                   (*Server).enableKeyRotation,
 	"DisableKeyRotation":                  (*Server).disableKeyRotation,
+	"RotateKeyOnDemand":                   (*Server).rotateKeyOnDemand,
+	"ListKeyRotations":                    (*Server).listKeyRotations,
 	"UpdateKeyDescription":                (*Server).updateKeyDescription,
 }
 
@@ -60,7 +62,6 @@ func init() {
 		"ImportKeyMaterial", "DeleteImportedKeyMaterial", "GetParametersForImport",
 		"ReplicateKey", "UpdatePrimaryRegion",
 		"CreateGrant", "RetireGrant", "RevokeGrant", "ListGrants", "ListRetirableGrants",
-		"RotateKeyOnDemand", "ListKeyRotations", // Phase 8
 		"DeriveSharedSecret", "VerifyMacForImport",
 	} {
 		handlers[name] = stub(name)
@@ -831,6 +832,49 @@ func (s *Server) setRotation(p map[string]any, on bool) (any, *awshttp.APIError)
 		return nil
 	})
 	return nil, awshttp.AsAPIErrorOrNil(err)
+}
+
+// rotateKeyOnDemand generates fresh backing material for a symmetric key,
+// retiring the old material (kept so pre-rotation ciphertexts still decrypt) and
+// recording the rotation time. New encryptions use the new material.
+func (s *Server) rotateKeyOnDemand(p map[string]any) (any, *awshttp.APIError) {
+	key, err := s.store.Update(pstr(p, "KeyId"), func(k *Key) *awshttp.APIError {
+		if k.KeySpec != "SYMMETRIC_DEFAULT" {
+			return awshttp.Errf(400, "UnsupportedOperationException", "on-demand rotation applies to symmetric keys only")
+		}
+		if k.State != "Enabled" {
+			return awshttp.Errf(400, "KMSInvalidStateException", "key is not enabled")
+		}
+		mat, gerr := generateMaterial(k.KeySpec)
+		if gerr != nil {
+			return awshttp.Errf(500, "KMSInternalException", "generating key material: %v", gerr)
+		}
+		k.OldMaterials = append([][]byte{k.Material}, k.OldMaterials...)
+		k.Material = mat
+		k.Rotations = append([]int64{s.store.now().Unix()}, k.Rotations...)
+		return nil
+	})
+	if e := awshttp.AsAPIErrorOrNil(err); e != nil {
+		return nil, e
+	}
+	return map[string]any{"KeyId": key.ID}, nil
+}
+
+// listKeyRotations returns the key's on-demand rotation history, newest first.
+func (s *Server) listKeyRotations(p map[string]any) (any, *awshttp.APIError) {
+	k, err := s.store.Resolve(pstr(p, "KeyId"))
+	if err != nil {
+		return nil, awshttp.AsAPIError(err)
+	}
+	rotations := make([]map[string]any, 0, len(k.Rotations))
+	for _, ts := range k.Rotations {
+		rotations = append(rotations, map[string]any{
+			"KeyId":        k.ID,
+			"RotationDate": ts,
+			"RotationType": "ON_DEMAND",
+		})
+	}
+	return map[string]any{"Rotations": rotations}, nil
 }
 
 const defaultKeyPolicy = `{"Version":"2012-10-17","Id":"key-default-1","Statement":[{"Sid":"Enable IAM policies","Effect":"Allow","Principal":{"AWS":"arn:aws:iam::000000000000:root"},"Action":"kms:*","Resource":"*"}]}`
