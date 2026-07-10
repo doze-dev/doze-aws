@@ -193,6 +193,7 @@ func (s *Server) completeMultipartUpload(w http.ResponseWriter, r *http.Request,
 	if v.VersionID != "null" {
 		w.Header().Set("x-amz-version-id", v.VersionID)
 	}
+	s.notify(bucket, key, "s3:ObjectCreated:CompleteMultipartUpload", v)
 	writeXML(w, 200, res)
 	return nil
 }

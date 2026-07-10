@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/peercall"
 )
 
 // snsNotification is the JSON envelope SNS delivers (non-raw subscriptions).
@@ -63,6 +64,8 @@ func (srv *Server) deliver(msgID, topicARN, subject, message string, attrs map[s
 		switch sub.Protocol {
 		case "sqs":
 			srv.deliverSQS(sub, msgID, topicARN, subject, message, attrs)
+		case "lambda":
+			srv.deliverLambda(sub, msgID, topicARN, subject, message, attrs)
 		case "http", "https":
 			srv.deliverHTTP(sub, msgID, topicARN, subject, message, attrs)
 		default:
@@ -102,6 +105,27 @@ func (srv *Server) deliverSQS(sub Subscription, msgID, topicARN, subject, messag
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
 		srv.logf("sns: deliver to sqs %q: status %s", queue, resp.Status)
+	}
+}
+
+// deliverLambda invokes a Lambda function (async) with the SNS event shape.
+func (srv *Server) deliverLambda(sub Subscription, msgID, topicARN, subject, message string, attrs map[string]Attr) {
+	fn := lastSegment(sub.Endpoint)
+	record := map[string]any{
+		"EventSource":          "aws:sns",
+		"EventSubscriptionArn": sub.ARN,
+		"Sns": map[string]any{
+			"Type":      "Notification",
+			"MessageId": msgID,
+			"TopicArn":  topicARN,
+			"Subject":   subject,
+			"Message":   message,
+			"Timestamp": srv.now().UTC().Format(time.RFC3339),
+		},
+	}
+	payload, _ := json.Marshal(map[string]any{"Records": []any{record}})
+	if err := peercall.LambdaInvokeAsync(srv.peers, fn, payload); err != nil {
+		srv.logf("sns: deliver to lambda %q: %v", fn, err)
 	}
 }
 

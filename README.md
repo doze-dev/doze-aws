@@ -35,7 +35,11 @@ clients still speak.
 | Secrets Manager | ✅ complete — version stages, recovery-window deletion, encrypted at rest |
 | S3 | ✅ complete — versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website |
 | DynamoDB | ✅ complete — full expression engine, GSI/LSI, transactions, TTL, paging semantics |
-| EventBridge, Lambda | 🚧 next |
+| EventBridge | ✅ complete — full pattern language, SQS/SNS/Lambda targets, input transformers |
+| Lambda | ✅ complete — real process runtime (no Docker), versions, function URLs, SQS event source mappings |
+
+All 10 services talk to each other: EventBridge→SQS/SNS/Lambda, S3
+notifications→SQS/SNS/Lambda, SNS→SQS/Lambda/webhooks, SQS→Lambda.
 
 Per-service operation coverage lives in [docs/api-support](docs/api-support/).
 

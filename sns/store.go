@@ -213,7 +213,7 @@ func (s *Store) Subscribe(topicARN, protocol, endpoint string, attrs map[string]
 		TopicARN:  topicARN,
 		Protocol:  protocol,
 		Endpoint:  endpoint,
-		Confirmed: protocol == "sqs", // SQS needs no confirmation handshake
+		Confirmed: protocol == "sqs" || protocol == "lambda", // SQS/Lambda need no confirmation handshake
 	}
 	applySubAttrs(sub, attrs)
 	if !sub.Confirmed {

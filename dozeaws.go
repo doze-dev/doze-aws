@@ -23,8 +23,10 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/dynamodb"
+	"github.com/doze-dev/doze-aws/eventbridge"
 	"github.com/doze-dev/doze-aws/internal/gateway"
 	"github.com/doze-dev/doze-aws/kms"
+	"github.com/doze-dev/doze-aws/lambda"
 	"github.com/doze-dev/doze-aws/peers"
 	"github.com/doze-dev/doze-aws/s3"
 	"github.com/doze-dev/doze-aws/secretsmanager"
@@ -36,7 +38,7 @@ import (
 
 // Implemented lists the services this build of doze-aws can serve, in gateway
 // order. It grows phase by phase; gateway.Services is the full roadmap set.
-var Implemented = []string{"s3", "dynamodb", "sqs", "sns", "sts", "kms", "ssm", "secretsmanager"}
+var Implemented = []string{"s3", "dynamodb", "sqs", "sns", "sts", "kms", "ssm", "secretsmanager", "eventbridge", "lambda"}
 
 // StackConfig configures a Stack.
 type StackConfig struct {
@@ -131,6 +133,12 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		return s, s, err
 	case "secretsmanager":
 		s, err := secretsmanager.New(secretsmanager.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		return s, s, err
+	case "eventbridge":
+		s, err := eventbridge.New(eventbridge.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		return s, s, err
+	case "lambda":
+		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf})
 		return s, s, err
 	}
 	return nil, nil, fmt.Errorf("no constructor for %q", name)

@@ -55,6 +55,7 @@ func (s *Server) putObject(w http.ResponseWriter, r *http.Request, bucket, key s
 		w.Header().Set("x-amz-checksum-"+strings.ToLower(stored.ChecksumAlg), stored.ChecksumVal)
 		w.Header().Set("x-amz-checksum-type", stored.ChecksumType)
 	}
+	s.notify(bucket, key, "s3:ObjectCreated:Put", stored)
 	w.WriteHeader(200)
 	return nil
 }
@@ -285,6 +286,7 @@ func (s *Server) deleteObject(w http.ResponseWriter, r *http.Request, bucket, ke
 	if affected != "" {
 		w.Header().Set("x-amz-version-id", affected)
 	}
+	s.notify(bucket, key, "s3:ObjectRemoved:Delete", nil)
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
@@ -425,6 +427,7 @@ func (s *Server) copyObject(w http.ResponseWriter, r *http.Request, bucket, key 
 		ETag         string   `xml:"ETag"`
 		LastModified string   `xml:"LastModified"`
 	}
+	s.notify(bucket, key, "s3:ObjectCreated:Copy", stored)
 	writeXML(w, 200, copyResult{XMLNS: s3NS, ETag: quoteETag(stored.ETag), LastModified: iso8601(stored.LastModified)})
 	return nil
 }
