@@ -433,11 +433,12 @@ func TestSDKTableLifecycleAndStubs(t *testing.T) {
 		t.Fatalf("DescribeTimeToLive: %v", err)
 	}
 
-	// Honest stub for PartiQL until Phase 8.
-	_, err = c.ExecuteStatement(ctx, &awsddb.ExecuteStatementInput{Statement: aws.String("SELECT * FROM orders")})
+	// PartiQL is functional (Phase 8) — covered by TestSDKPartiQL. Global tables
+	// remain an honest stub (one region locally).
+	_, err = c.DescribeGlobalTable(ctx, &awsddb.DescribeGlobalTableInput{GlobalTableName: aws.String("orders")})
 	var ae smithy.APIError
 	if !errors.As(err, &ae) || ae.ErrorCode() != "UnsupportedOperationException" {
-		t.Fatalf("ExecuteStatement error = %v", err)
+		t.Fatalf("DescribeGlobalTable error = %v", err)
 	}
 
 	// ListTables + DeleteTable.
