@@ -27,6 +27,8 @@ jobs:
             target: FuzzParsers
           - pkg: ./internal/eventpattern/
             target: FuzzPattern
+          - pkg: ./dynamodb/
+            target: FuzzPartiQL
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
