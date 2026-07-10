@@ -1,0 +1,17 @@
+# Runtime data — service stores are never committed.
+/data/
+*.db
+*.bolt
+
+# Build output.
+/bin/
+/dist/
+/doze-aws
+
+# Go test / coverage artifacts.
+*.test
+*.out
+coverage.*
+
+# Editor / OS noise.
+.DS_Store

@@ -1,0 +1,70 @@
+# Taskfile for doze-aws. Run with `go tool task <name>` (task is a go tool
+# dependency, so no separate install is needed). `go tool task --list` shows all.
+#
+# doze-aws is a standalone module inside a go workspace, so every go command runs
+# with GOWORK=off (set globally below).
+version: '3'
+
+env:
+  GOWORK: off
+
+vars:
+  BINARY: doze-aws
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - go tool task --list
+    silent: true
+
+  build:
+    desc: Build the emulator binary into bin/
+    cmds:
+      - go build -o bin/{{.BINARY}} ./cmd/doze-aws
+
+  run:
+    desc: Build and run the emulator (zero-config on 127.0.0.1:4566)
+    deps: [build]
+    cmds:
+      - ./bin/{{.BINARY}}
+
+  test:
+    desc: Run the whole test suite (unit + SDK contract tests)
+    cmds:
+      - go test ./...
+
+  test:unit:
+    desc: Unit tests only — no servers, no SDK clients (contract tests are gated by -short)
+    cmds:
+      - go test -short ./...
+
+  test:race:
+    desc: Run the whole suite with the race detector
+    cmds:
+      - go test -race ./...
+
+  vet:
+    desc: go vet
+    cmds:
+      - go vet ./...
+
+  fmt:
+    desc: Format all Go files
+    cmds:
+      - gofmt -w .
+
+  tidy:
+    desc: go mod tidy
+    cmds:
+      - go mod tidy
+
+  fuzz:
+    desc: Fuzz the signature parser for 30s
+    cmds:
+      - go test ./internal/sigparse/ -run '^$' -fuzz FuzzParse -fuzztime 30s
+
+  clean:
+    desc: Remove build output and local service data
+    cmds:
+      - rm -rf bin data

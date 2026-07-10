@@ -1,0 +1,22 @@
+# doze-aws configuration. Copy to ./doze-aws.toml (auto-loaded) or point at it
+# with --config. Every key here maps 1:1 to a command-line flag, and flags win
+# over the file. Print your effective configuration with:
+#
+#   doze-aws config print
+
+# host:port for the shared endpoint every enabled service answers on. The
+# default port matches LocalStack's, so existing AWS_ENDPOINT_URL setups work
+# unchanged.
+listen = "127.0.0.1:4566"
+
+# Root data directory; each service owns a subdirectory (data/sts, data/sqs, ...).
+data-dir = "./data"
+
+# Services to enable. Omit to enable everything this build implements.
+# services = ["sts"]
+
+[s3]
+# Base host for virtual-hosted-style bucket addressing (bucket.<host>).
+# Path-style requests work regardless. (Reserved: the s3 service is on the
+# roadmap; the key is accepted today so this file stays valid.)
+host = "localhost"

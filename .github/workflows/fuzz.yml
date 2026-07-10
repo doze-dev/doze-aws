@@ -1,0 +1,33 @@
+name: Fuzz
+
+on:
+  schedule:
+    - cron: '17 3 * * 0' # weekly, Sunday 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pkg: ./internal/sigparse/
+            target: FuzzParse
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Fuzz ${{ matrix.target }}
+        run: go test ${{ matrix.pkg }} -run '^$' -fuzz ${{ matrix.target }} -fuzztime 5m
+      - name: Upload crashers
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crashers-${{ matrix.target }}
+          path: '**/testdata/fuzz/**'
+          if-no-files-found: ignore
