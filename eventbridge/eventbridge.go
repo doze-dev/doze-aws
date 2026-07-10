@@ -3,7 +3,7 @@
 // synchronous delivery to SQS and Lambda targets with Input / InputPath /
 // InputTransformer shaping.
 //
-// Scheduled rules (rate/cron) and archives/replay arrive in Phase 8; API
+// rate(...) scheduled rules are driven by a local ticker; cron(...) and
 // destinations, partner event sources, and the schemas registry are cloud
 // infrastructure and answer honestly.
 //
@@ -43,6 +43,7 @@ type Server struct {
 	logf  func(format string, args ...any)
 	now   func() time.Time
 	api   awsjson.API
+	stop  chan struct{} // closes the scheduler ticker
 }
 
 // New opens the store under DataDir (the default bus exists implicitly).
@@ -71,11 +72,19 @@ func New(opts Options) (*Server, error) {
 	if s.now == nil {
 		s.now = time.Now
 	}
+	s.stop = make(chan struct{})
+	go s.runScheduler()
 	return s, nil
 }
 
-// Close closes the bbolt DB.
-func (s *Server) Close() error { return s.store.db.Close() }
+// Close stops the scheduler and closes the bbolt DB.
+func (s *Server) Close() error {
+	if s.stop != nil {
+		close(s.stop)
+		s.stop = nil
+	}
+	return s.store.db.Close()
+}
 
 type handler func(s *Server, p map[string]any) (any, *awshttp.APIError)
 
