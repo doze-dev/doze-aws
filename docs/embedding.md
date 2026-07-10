@@ -53,6 +53,93 @@ type Options struct {
 func New(Options) (*Server, error) // *Server implements http.Handler + io.Closer
 ```
 
+## A complete example
+
+A self-contained program: embed a stack, serve it, and drive it with the real
+AWS SDK — several services through one endpoint, no Docker, no separate process.
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"net/http/httptest"
+	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
+
+	"github.com/doze-dev/doze-aws"
+	"github.com/doze-dev/doze-aws/awsident"
+)
+
+func main() {
+	ctx := context.Background()
+
+	// 1. Embed the stack (S3 + SQS here) and serve it on one endpoint.
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{
+		DataDir:  "./data",
+		Services: []string{"s3", "sqs"}, // nil = every implemented service
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer stack.Close()
+
+	ts := httptest.NewServer(stack.Handler())
+	defer ts.Close()
+
+	// 2. Point ordinary AWS SDK clients at it. Any credentials work locally.
+	cfg := aws.Config{
+		Region:      awsident.Region, // us-east-1
+		Credentials: credentials.NewStaticCredentialsProvider(awsident.AccessKeyID, awsident.SecretAccessKey, ""),
+	}
+	s3c := awss3.NewFromConfig(cfg, func(o *awss3.Options) {
+		o.BaseEndpoint = aws.String(ts.URL)
+		o.UsePathStyle = true
+	})
+	sqsc := awssqs.NewFromConfig(cfg, func(o *awssqs.Options) {
+		o.BaseEndpoint = aws.String(ts.URL)
+	})
+
+	// 3. Use them exactly as you would against real AWS.
+	if _, err := s3c.CreateBucket(ctx, &awss3.CreateBucketInput{Bucket: aws.String("uploads")}); err != nil {
+		log.Fatal(err)
+	}
+	if _, err := s3c.PutObject(ctx, &awss3.PutObjectInput{
+		Bucket: aws.String("uploads"),
+		Key:    aws.String("hello.txt"),
+		Body:   strings.NewReader("hello world"), // any io.Reader
+	}); err != nil {
+		log.Fatal(err)
+	}
+
+	q, err := sqsc.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("jobs")})
+	if err != nil {
+		log.Fatal(err)
+	}
+	if _, err := sqsc.SendMessage(ctx, &awssqs.SendMessageInput{
+		QueueUrl:    q.QueueUrl,
+		MessageBody: aws.String("uploads/hello.txt"),
+	}); err != nil {
+		log.Fatal(err)
+	}
+
+	out, _ := sqsc.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{QueueUrl: q.QueueUrl})
+	fmt.Println("received:", aws.ToString(out.Messages[0].Body)) // uploads/hello.txt
+}
+```
+
+Both clients hit the one `ts.URL`; the stack's gateway routes each request to the
+right service by its wire signals. Swap `httptest.NewServer` for
+`http.ListenAndServe("127.0.0.1:4566", stack.Handler())` to keep it up as a
+long-running local endpoint (4566 matches LocalStack, so existing
+`AWS_ENDPOINT_URL` setups work unchanged).
+
 ## Wiring services across processes
 
 When services run in separate processes (as doze does, one child per service),
