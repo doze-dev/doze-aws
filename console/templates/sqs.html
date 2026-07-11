@@ -19,6 +19,8 @@
   <section class="detail">
     <div class="det-h">
       <div class="det-title">{{awsIcon "sqs"}} {{.Queue}}
+        {{if .Config.FIFO}}<span class="badge type" title="First-in-first-out: strict ordering per message group{{if .Config.ContentDedup}} · content-based deduplication{{end}}">FIFO</span>{{end}}
+        {{if .IsDLQ}}<span class="badge dlq" title="This queue is a dead-letter target — failed messages from other queues land here (see Fed by)">DLQ</span>{{end}}
         <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/sqs/{{.Queue}}/delete-queue" hx-confirm="Delete queue “{{.Queue}}”?">{{icon "trash"}} Delete</button></div>
       </div>
       <div class="chips">
@@ -44,7 +46,15 @@
               <form x-data hx-post="{{.Prefix}}/sqs/{{.Queue}}/send" hx-target="#message-panel-wrap" hx-select="unset" hx-swap="outerHTML"
                     @htmx:after-request="if($event.detail.successful){requestAnimationFrame(()=>{var m=document.querySelectorAll('#message-panel-wrap .msg');if(m.length)m[m.length-1].classList.add('landed')})}">
                 <div class="field"><label>Message body</label><textarea name="body" data-editor rows="7" placeholder='{"hello":"world"}' required></textarea></div>
-                {{if .Config.FIFO}}<div class="field" style="margin-top:10px"><label>Message group ID</label><input class="input" name="group" value="default" required></div>{{end}}
+                {{if .Config.FIFO}}
+                <div class="fgrid" style="margin-top:10px">
+                  <div class="field"><label>Message group ID</label><input class="input" name="group" value="default" required><span class="hint">ordering is strict within a group</span></div>
+                  <div class="field"><label>Deduplication ID <span class="dim">optional</span></label><input class="input" name="dedup" placeholder="{{if .Config.ContentDedup}}content-based dedup is on{{else}}auto-generated if blank{{end}}"></div>
+                </div>
+                {{else}}
+                <div class="field" style="margin-top:10px;max-width:180px"><label>Delay <span class="dim">seconds, optional</span></label><input class="input" name="delay" type="number" min="0" max="900" placeholder="0"></div>
+                {{end}}
+                {{template "attr_editor" .}}
                 <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:10px">
                   <span class="dim" style="font-size:11.5px"><span class="kbd">⌘⏎</span> sends · lands in the peek</span>
                   <button class="btn" type="submit">{{icon "send"}} Send</button>
@@ -72,6 +82,15 @@
     <div class="msg" x-data="{open:false}">
       <div class="msg-h" style="cursor:pointer" @click="open=!open"><code>{{.MessageID}}</code><span class="dim num" title="{{.SentAt}}">{{ago .SentAt}}</span></div>
       <pre @click="open=!open" style="cursor:pointer">{{.Body}}</pre>
+      {{if or .GroupID .Attrs .SeqNo (and .Receives (ne .Receives "0"))}}
+      <div class="mm-chips">
+        {{if .GroupID}}<span class="mm" title="MessageGroupId">group <b>{{.GroupID}}</b></span>{{end}}
+        {{if .DedupID}}<span class="mm" title="MessageDeduplicationId">dedup <b class="trunc" style="max-width:120px;display:inline-block;vertical-align:bottom">{{.DedupID}}</b></span>{{end}}
+        {{if .SeqNo}}<span class="mm" title="SequenceNumber">seq <b>{{.SeqNo}}</b></span>{{end}}
+        {{if and .Receives (ne .Receives "0")}}<span class="mm warn" title="ApproximateReceiveCount — real receives; peeking never counts">received {{.Receives}}×</span>{{end}}
+        {{range .Attrs}}<span class="mm attr" title="message attribute · {{.Type}}">{{.Name}} = <b>{{.Value}}</b></span>{{end}}
+      </div>
+      {{end}}
     </div>
   {{end}}</div>
   {{else}}<div class="empty"><span class="ic-lg">{{icon "inbox"}}</span><p>No visible messages. Compose one on the right — it lands here.</p></div>{{end}}
@@ -87,6 +106,7 @@
   <div x-show="!edit">
     <div class="table-wrap"><table class="tbl kv"><tbody>
       <tr><td>Type</td><td>{{if .Config.FIFO}}<span class="badge type">FIFO</span>{{else}}Standard{{end}}</td></tr>
+      {{if .Config.FIFO}}<tr><td>Content-based deduplication</td><td>{{if .Config.ContentDedup}}<span class="badge state-on">on</span> <span class="dim">duplicate bodies within 5 minutes are dropped</span>{{else}}<span class="badge state-off">off</span> <span class="dim">sends need a deduplication ID (the console auto-generates one)</span>{{end}}</td></tr>{{end}}
       <tr><td>Visibility timeout</td><td>{{.Config.Visibility}} s</td></tr>
       <tr><td>Message retention</td><td>{{.Config.Retention}} s</td></tr>
       <tr><td>Delivery delay</td><td>{{if .Config.Delay}}{{.Config.Delay}}{{else}}0{{end}} s</td></tr>

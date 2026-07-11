@@ -162,6 +162,7 @@ func (b *backend) s3Sub(ctx context.Context, method, bucket, sub string) ([]byte
 type SQSCreateOpts struct {
 	Name              string
 	FIFO              bool
+	ContentBasedDedup bool   // FIFO: dedup by body hash instead of explicit IDs
 	VisibilityTimeout string // seconds
 	RetentionSeconds  string
 	DelaySeconds      string
@@ -173,6 +174,9 @@ func (b *backend) CreateQueueFull(ctx context.Context, o SQSCreateOpts) error {
 	attrs := map[string]string{}
 	if o.FIFO {
 		attrs["FifoQueue"] = "true"
+		if o.ContentBasedDedup {
+			attrs["ContentBasedDeduplication"] = "true"
+		}
 	}
 	if o.VisibilityTimeout != "" {
 		attrs["VisibilityTimeout"] = o.VisibilityTimeout

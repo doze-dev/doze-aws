@@ -488,6 +488,48 @@ func TestConnectionsView(t *testing.T) {
 	}
 }
 
+// TestSQSMessagingThoroughness: the full publish/create surface — FIFO queue
+// with an auto-created dead-letter queue and content-based dedup, FIFO + DLQ
+// badges, and sends carrying group/dedup/message attributes that the peek
+// then displays.
+func TestSQSMessagingThoroughness(t *testing.T) {
+	h := newConsole(t)
+	create(t, h, "/_console/sqs/create", url.Values{
+		"name": {"orders"}, "fifo": {"on"}, "content_dedup": {"on"},
+		"dlq_mode": {"new"}, "max_receive": {"4"},
+	})
+
+	// The queue page wears the FIFO badge and the composer offers FIFO fields.
+	page := req(t, h, "GET", "/_console/sqs/orders.fifo", nil).Body.String()
+	for _, want := range []string{">FIFO<", "Deduplication ID", "Message group ID", "orders-dlq.fifo"} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("queue page missing %q", want)
+		}
+	}
+	// Config tab reports content-based dedup; the auto-created DLQ is wired.
+	cfg := req(t, h, "GET", "/_console/sqs/orders.fifo?tab=config", nil).Body.String()
+	if !strings.Contains(cfg, "Content-based deduplication") || !strings.Contains(cfg, "orders-dlq.fifo") {
+		t.Fatalf("config tab missing dedup row or DLQ wiring:\n%s", cfg)
+	}
+	// The DLQ itself exists (FIFO, matching the main queue) and wears DLQ badge.
+	dlq := req(t, h, "GET", "/_console/sqs/orders-dlq.fifo", nil).Body.String()
+	if !strings.Contains(dlq, ">DLQ<") {
+		t.Fatalf("auto-created dead-letter queue should wear the DLQ badge:\n%s", dlq)
+	}
+
+	// Send with the full metadata set; the peek shows all of it.
+	req(t, h, "POST", "/_console/sqs/orders.fifo/send", url.Values{
+		"body": {`{"n":1}`}, "group": {"batch-7"}, "dedup": {"dedup-42"},
+		"attrs": {`[{"n":"traceId","t":"String","v":"abc-123"},{"n":"retries","t":"Number","v":"2"}]`},
+	})
+	msgs := req(t, h, "GET", "/_console/sqs/orders.fifo/messages", nil).Body.String()
+	for _, want := range []string{"batch-7", "dedup-42", "traceId", "abc-123", "retries"} {
+		if !strings.Contains(msgs, want) {
+			t.Fatalf("peek missing message metadata %q:\n%s", want, msgs)
+		}
+	}
+}
+
 // TestTrafficRecorder: external calls are captured; console calls are not.
 func TestTrafficRecorder(t *testing.T) {
 	if testing.Short() {

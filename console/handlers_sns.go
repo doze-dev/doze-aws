@@ -69,7 +69,7 @@ func (c *Console) snsSubsPartial(w http.ResponseWriter, r *http.Request, name st
 
 func (c *Console) snsPublish(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("topic")
-	if err := c.be.Publish(r.Context(), topicARNOf(name), r.FormValue("message"), r.FormValue("subject")); err != nil {
+	if err := c.be.Publish(r.Context(), topicARNOf(name), r.FormValue("message"), r.FormValue("subject"), parseMsgAttrs(r.FormValue("attrs"))); err != nil {
 		c.fail(w, err)
 		return
 	}

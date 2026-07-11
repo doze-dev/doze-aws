@@ -826,3 +826,27 @@ a.lo-card:hover { border-color: hsl(var(--accent-blue)); box-shadow: 0 0 0 3px h
 
 /* Table footers (object counts, totals) under S3/DDB listings. */
 .tbl-foot { padding: 8px 2px 0; font-size: 11.5px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+
+/* Message metadata: FIFO fields + user attributes on peeked messages. */
+.mm-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 9px; }
+.mm { font: 10.5px var(--mono); color: hsl(var(--muted-foreground)); background: hsl(var(--muted) / 0.6);
+  border: 1px solid hsl(var(--border)); border-radius: 999px; padding: 2px 9px; }
+.mm b { color: hsl(var(--foreground)); font-weight: 550; }
+.mm.attr { border-color: hsl(var(--accent-blue) / 0.35); background: hsl(var(--accent-blue) / 0.07); }
+.mm.warn { border-color: hsl(var(--warning) / 0.5); color: hsl(var(--warning)); }
+.mm.warn b { color: hsl(var(--warning)); }
+
+/* DLQ badge (a queue that IS a dead-letter target). */
+.badge.dlq { background: hsl(var(--warning) / 0.14); color: hsl(var(--warning)); border-color: hsl(var(--warning) / 0.4); }
+
+/* Attribute editor rows (SQS composer, SNS publish). */
+.attr-row { display: grid; grid-template-columns: 1.2fr 100px 1.6fr 30px; gap: 6px; align-items: center; margin-top: 6px; }
+.attr-row .input { height: 30px; font-size: 12px; }
+
+/* Create-queue DLQ mode picker. */
+.dlq-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.dlq-mode { display: flex; gap: 9px; align-items: flex-start; border: 1.5px solid hsl(var(--border));
+  border-radius: var(--radius); padding: 10px 12px; cursor: pointer; font-size: 12.5px; }
+.dlq-mode.on { border-color: hsl(var(--accent-blue)); background: hsl(var(--accent-blue) / 0.05); }
+.dlq-mode input { margin-top: 2px; accent-color: hsl(var(--accent-blue)); }
+@media (max-width: 900px) { .dlq-modes { grid-template-columns: 1fr; } }

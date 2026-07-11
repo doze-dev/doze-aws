@@ -312,18 +312,38 @@ func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {
 	if fifo && !strings.HasSuffix(name, ".fifo") {
 		name += ".fifo"
 	}
+	dlq := r.FormValue("dlq")
+	if r.FormValue("dlq_mode") == "none" {
+		dlq = ""
+	}
+	flash := "Queue “" + name + "” created"
+	// "Create one alongside": the DLQ must match the main queue's type — a
+	// FIFO queue can only redrive to a FIFO dead-letter queue.
+	if r.FormValue("dlq_mode") == "new" {
+		base := strings.TrimSuffix(name, ".fifo")
+		dlq = base + "-dlq"
+		if fifo {
+			dlq += ".fifo"
+		}
+		if err := c.be.CreateQueueFull(r.Context(), SQSCreateOpts{Name: dlq, FIFO: fifo}); err != nil {
+			c.fail(w, err)
+			return
+		}
+		flash = "Queues “" + name + "” and “" + dlq + "” created and wired"
+	}
 	if err := c.be.CreateQueueFull(r.Context(), SQSCreateOpts{
 		Name: name, FIFO: fifo,
+		ContentBasedDedup: fifo && r.FormValue("content_dedup") == "on",
 		VisibilityTimeout: strings.TrimSpace(r.FormValue("visibility")),
 		RetentionSeconds:  strings.TrimSpace(r.FormValue("retention")),
 		DelaySeconds:      strings.TrimSpace(r.FormValue("delay")),
-		DLQName:           r.FormValue("dlq"),
+		DLQName:           dlq,
 		MaxReceiveCount:   strings.TrimSpace(r.FormValue("max_receive")),
 	}); err != nil {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/sqs/"+name, "Queue “"+name+"” created")
+	c.redirect(w, r, c.prefix+"/sqs/"+name, flash)
 }
 
 func (c *Console) sqsDeleteQueue(w http.ResponseWriter, r *http.Request) {
@@ -341,14 +361,22 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	conn := c.be.Neighbors(r.Context(), "sqs", name)
+	isDLQ := false
+	for _, n := range conn.Upstream {
+		if n.Kind == "redrive" {
+			isDLQ = true
+			break
+		}
+	}
 	c.render(w, r, "sqs_queue", map[string]any{
-		"Queue": name, "Attrs": attrs, "Messages": msgs,
+		"Queue": name, "Attrs": attrs, "Messages": msgs, "IsDLQ": isDLQ,
 		"Available": atoi(attrs["ApproximateNumberOfMessages"]),
 		"InFlight":  atoi(attrs["ApproximateNumberOfMessagesNotVisible"]),
 		"ARN":       QueueARN(name),
 		"URL":       "http://127.0.0.1:4566/000000000000/" + name,
 		"Config":    sqsConfigOf(attrs),
-		"Conn":      c.be.Neighbors(r.Context(), "sqs", name),
+		"Conn":      conn,
 		"Hash":      sqsMsgHash(attrs, msgs),
 		"Tab":       tabOf(r, "messages"),
 		"List":      c.sqsList(r),
@@ -366,8 +394,9 @@ type sqsConfig struct {
 	MaxSize    string
 	Created    string
 	Modified   string
-	FIFO       bool
-	DLQ        string // dead-letter queue name, from the redrive policy
+	FIFO         bool
+	ContentDedup bool   // FIFO: ContentBasedDeduplication
+	DLQ          string // dead-letter queue name, from the redrive policy
 	MaxReceive string
 }
 
@@ -377,7 +406,8 @@ func sqsConfigOf(attrs map[string]string) sqsConfig {
 		Retention:  attrs["MessageRetentionPeriod"],
 		Delay:      attrs["DelaySeconds"],
 		MaxSize:    attrs["MaximumMessageSize"],
-		FIFO:       attrs["FifoQueue"] == "true",
+		FIFO:         attrs["FifoQueue"] == "true",
+		ContentDedup: attrs["ContentBasedDeduplication"] == "true",
 		Created:    epochSecString(attrs["CreatedTimestamp"]),
 		Modified:   epochSecString(attrs["LastModifiedTimestamp"]),
 	}
@@ -442,16 +472,41 @@ func (c *Console) sqsMessages(w http.ResponseWriter, r *http.Request) {
 func (c *Console) sqsSend(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("queue")
 	body := r.FormValue("body")
-	group := strings.TrimSpace(r.FormValue("group"))
-	if strings.HasSuffix(name, ".fifo") && group == "" {
-		group = "default"
+	opts := SendOpts{
+		GroupID: strings.TrimSpace(r.FormValue("group")),
+		DedupID: strings.TrimSpace(r.FormValue("dedup")),
+		Delay:   strings.TrimSpace(r.FormValue("delay")),
+		Attrs:   parseMsgAttrs(r.FormValue("attrs")),
 	}
-	if err := c.be.SendMessage(r.Context(), name, body, group); err != nil {
+	if strings.HasSuffix(name, ".fifo") && opts.GroupID == "" {
+		opts.GroupID = "default"
+	}
+	if err := c.be.SendMessage(r.Context(), name, body, opts); err != nil {
 		c.fail(w, err)
 		return
 	}
 	toast(w, "Message sent")
 	c.sqsMessages(w, r)
+}
+
+// parseMsgAttrs decodes the composer's attribute rows (a JSON array the Alpine
+// editor maintains: [{"n":...,"t":...,"v":...}]). Malformed input yields none.
+func parseMsgAttrs(raw string) []MsgAttr {
+	if strings.TrimSpace(raw) == "" {
+		return nil
+	}
+	var rows []struct{ N, T, V string }
+	if json.Unmarshal([]byte(raw), &rows) != nil {
+		return nil
+	}
+	var attrs []MsgAttr
+	for _, r := range rows {
+		if strings.TrimSpace(r.N) == "" {
+			continue
+		}
+		attrs = append(attrs, MsgAttr{Name: strings.TrimSpace(r.N), Type: r.T, Value: r.V})
+	}
+	return attrs
 }
 
 func (c *Console) sqsPurge(w http.ResponseWriter, r *http.Request) {

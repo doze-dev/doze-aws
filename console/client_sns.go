@@ -1,6 +1,7 @@
 package console
 
 import (
+	"strconv"
 	"context"
 	"encoding/xml"
 	"net/url"
@@ -114,10 +115,24 @@ func (b *backend) Unsubscribe(ctx context.Context, subARN string) error {
 	return err
 }
 
-func (b *backend) Publish(ctx context.Context, topicARN, message, subject string) error {
+func (b *backend) Publish(ctx context.Context, topicARN, message, subject string, attrs []MsgAttr) error {
 	v := url.Values{"Action": {"Publish"}, "TopicArn": {topicARN}, "Message": {message}}
 	if subject != "" {
 		v.Set("Subject", subject)
+	}
+	for i, a := range attrs {
+		p := "MessageAttributes.entry." + strconv.Itoa(i+1)
+		t := a.Type
+		if t == "" {
+			t = "String"
+		}
+		v.Set(p+".Name", a.Name)
+		v.Set(p+".Value.DataType", t)
+		if t == "Binary" {
+			v.Set(p+".Value.BinaryValue", a.Value)
+		} else {
+			v.Set(p+".Value.StringValue", a.Value)
+		}
 	}
 	_, err := b.queryXML(ctx, v)
 	return err

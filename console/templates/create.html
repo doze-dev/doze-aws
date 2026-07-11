@@ -23,20 +23,28 @@
   <section class="detail"><div class="form-page">
     <div class="det-title" style="font-size:18px;margin-bottom:2px">Create queue</div>
     <p class="det-sub" style="margin-bottom:18px">Every setting can also be changed later.</p>
-    <form hx-post="{{.Prefix}}/sqs/create" hx-indicator="#submit-spin">
+    <form hx-post="{{.Prefix}}/sqs/create" hx-indicator="#submit-spin" x-data="{fifo:false, dlq:'new', name:''}">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
-        <div class="field"><label>Queue name</label><input class="input" name="name" placeholder="orders" required pattern="[a-zA-Z0-9_\-.]{1,80}" autocomplete="off" autofocus></div>
-        <div class="opt-row" style="margin-top:6px"><div><div class="opt-l">FIFO queue</div><div class="opt-d">Strict ordering; name gets a .fifo suffix</div></div><label class="switch"><input type="checkbox" name="fifo"><span class="track"></span><span class="thumb"></span></label></div>
+        <div class="field"><label>Queue name</label><input class="input" name="name" x-model="name" placeholder="orders" required pattern="[a-zA-Z0-9_\-.]{1,80}" autocomplete="off" autofocus></div>
+        <div class="opt-row" style="margin-top:6px"><div><div class="opt-l">FIFO queue</div><div class="opt-d">Strict ordering per message group; name gets a .fifo suffix</div></div><label class="switch"><input type="checkbox" name="fifo" x-model="fifo"><span class="track"></span><span class="thumb"></span></label></div>
+        <div class="opt-row" x-show="fifo" x-cloak><div><div class="opt-l">Content-based deduplication</div><div class="opt-d">Drop messages with identical bodies within 5 minutes — no dedup ID needed</div></div><label class="switch"><input type="checkbox" name="content_dedup"><span class="track"></span><span class="thumb"></span></label></div>
       </div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Delivery</h2></div><div class="form-b"><div class="fgrid">
         <div class="field"><label>Visibility <span class="dim">s</span></label><input class="input" name="visibility" type="number" min="0" max="43200" placeholder="30"></div>
         <div class="field"><label>Delay <span class="dim">s</span></label><input class="input" name="delay" type="number" min="0" max="900" placeholder="0"></div>
         <div class="field"><label>Retention <span class="dim">s</span></label><input class="input" name="retention" type="number" min="60" max="1209600" placeholder="345600"></div>
       </div></div></div>
-      <div class="panel form-sec"><div class="panel-h"><h2>Dead-letter queue</h2></div><div class="form-b"><div class="fgrid">
-        <div class="field"><label>Send failed messages to</label><select class="input" name="dlq"><option value="">No dead-letter queue</option>{{range .Queues}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>
-        <div class="field"><label>After this many receives</label><input class="input" name="max_receive" type="number" min="1" max="1000" placeholder="3"></div>
-      </div></div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>Dead-letter queue</h2></div><div class="form-b">
+        <div class="dlq-modes">
+          <label class="dlq-mode" :class="dlq==='new' && 'on'"><input type="radio" name="dlq_mode" value="new" x-model="dlq"><span><b>Create one alongside</b><br><span class="opt-d">makes <span class="mono" x-text="(name||'orders')+(fifo?'-dlq.fifo':'-dlq')"></span> and wires the redrive</span></span></label>
+          <label class="dlq-mode" :class="dlq==='existing' && 'on'"><input type="radio" name="dlq_mode" value="existing" x-model="dlq"><span><b>Use an existing queue</b><br><span class="opt-d">pick a queue below</span></span></label>
+          <label class="dlq-mode" :class="dlq==='none' && 'on'"><input type="radio" name="dlq_mode" value="none" x-model="dlq"><span><b>None</b><br><span class="opt-d">failed messages retry forever</span></span></label>
+        </div>
+        <div class="fgrid" style="margin-top:12px" x-show="dlq!=='none'" x-cloak>
+          <div class="field" x-show="dlq==='existing'"><label>Send failed messages to</label><select class="input" name="dlq" :disabled="dlq!=='existing'"><option value="">— pick a queue —</option>{{range .Queues}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select><span class="hint">a FIFO queue needs a FIFO dead-letter queue</span></div>
+          <div class="field"><label>After this many receives</label><input class="input" name="max_receive" type="number" min="1" max="1000" placeholder="3"></div>
+        </div>
+      </div></div>
       {{template "form_actions" dict "Cancel" (printf "%s/sqs" .Prefix) "Submit" "Create queue"}}
     </form>
   </div></section>

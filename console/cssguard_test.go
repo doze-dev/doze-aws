@@ -29,7 +29,9 @@ func TestTemplateClassesAreStyled(t *testing.T) {
 	css := readAll(t, "static/app.css") + readAll(t, filepath.Join("static", "cm", "codemirror.min.css"))
 
 	actionRe := regexp.MustCompile(`(?s){{.*?}}`)
-	classRe := regexp.MustCompile(`class="([^"]*)"|class='([^']*)'`)
+	// Whitespace before class= keeps Alpine's bound :class="expr" (a JS
+	// expression, not a class list) out of the scan.
+	classRe := regexp.MustCompile(`\sclass="([^"]*)"|\sclass='([^']*)'`)
 
 	seen := map[string][]string{} // class -> templates using it
 	files, err := os.ReadDir("templates")

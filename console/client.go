@@ -262,7 +262,15 @@ type SQSMessage struct {
 	ReceiptHandle string
 	Body          string
 	SentAt        string
+	GroupID       string // FIFO: MessageGroupId
+	DedupID       string // FIFO: MessageDeduplicationId
+	SeqNo         string // FIFO: SequenceNumber
+	Receives      string // ApproximateReceiveCount (real receives; peeks don't count)
+	Attrs         []MsgAttr
 }
+
+// MsgAttr is one user message attribute (metadata alongside the body).
+type MsgAttr struct{ Name, Type, Value string }
 
 func (b *backend) sqs(ctx context.Context, action string, in any) ([]byte, error) {
 	buf, _ := json.Marshal(in)
@@ -323,7 +331,8 @@ func (b *backend) QueueDetail(ctx context.Context, name string) (map[string]stri
 		return nil, nil, err
 	}
 	body, err := b.sqs(ctx, "DozePeek", map[string]any{
-		"QueueUrl": b.queueURL(name), "MaxNumberOfMessages": 10, "AttributeNames": []string{"All"},
+		"QueueUrl": b.queueURL(name), "MaxNumberOfMessages": 10,
+		"AttributeNames": []string{"All"}, "MessageAttributeNames": []string{"All"},
 	})
 	if err != nil {
 		return attrs, nil, err
@@ -334,15 +343,33 @@ func (b *backend) QueueDetail(ctx context.Context, name string) (map[string]stri
 			ReceiptHandle string            `json:"ReceiptHandle"`
 			Body          string            `json:"Body"`
 			Attributes    map[string]string `json:"Attributes"`
+			MessageAttrs  map[string]struct {
+				DataType    string `json:"DataType"`
+				StringValue string `json:"StringValue"`
+			} `json:"MessageAttributes"`
 		} `json:"Messages"`
 	}
 	json.Unmarshal(body, &out)
 	msgs := make([]SQSMessage, 0, len(out.Messages))
 	for _, m := range out.Messages {
-		msgs = append(msgs, SQSMessage{
+		msg := SQSMessage{
 			MessageID: m.MessageID, ReceiptHandle: m.ReceiptHandle, Body: m.Body,
-			SentAt: epochMillisToTime(m.Attributes["SentTimestamp"]),
-		})
+			SentAt:   epochMillisToTime(m.Attributes["SentTimestamp"]),
+			GroupID:  m.Attributes["MessageGroupId"],
+			DedupID:  m.Attributes["MessageDeduplicationId"],
+			SeqNo:    m.Attributes["SequenceNumber"],
+			Receives: m.Attributes["ApproximateReceiveCount"],
+		}
+		names := make([]string, 0, len(m.MessageAttrs))
+		for n := range m.MessageAttrs {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		for _, n := range names {
+			a := m.MessageAttrs[n]
+			msg.Attrs = append(msg.Attrs, MsgAttr{Name: n, Type: a.DataType, Value: a.StringValue})
+		}
+		msgs = append(msgs, msg)
 	}
 	return attrs, msgs, nil
 }
@@ -357,11 +384,44 @@ func (b *backend) DeleteQueue(ctx context.Context, name string) error {
 	return err
 }
 
-func (b *backend) SendMessage(ctx context.Context, name, body, groupID string) error {
+// SendOpts carries everything a message can be published with.
+type SendOpts struct {
+	GroupID string    // FIFO: required group
+	DedupID string    // FIFO: explicit dedup ID; blank auto-generates one
+	Delay   string    // standard queues: per-message DelaySeconds
+	Attrs   []MsgAttr // message attributes (metadata)
+}
+
+func (b *backend) SendMessage(ctx context.Context, name, body string, o SendOpts) error {
 	in := map[string]any{"QueueUrl": b.queueURL(name), "MessageBody": body}
-	if groupID != "" { // FIFO queues require a group; a fresh dedup ID keeps repeat sends distinct
-		in["MessageGroupId"] = groupID
-		in["MessageDeduplicationId"] = fmt.Sprintf("console-%d", time.Now().UnixNano())
+	if o.GroupID != "" {
+		in["MessageGroupId"] = o.GroupID
+		dedup := o.DedupID
+		if dedup == "" { // keep repeat sends distinct even without content-based dedup
+			dedup = fmt.Sprintf("console-%d", time.Now().UnixNano())
+		}
+		in["MessageDeduplicationId"] = dedup
+	}
+	if o.Delay != "" && o.Delay != "0" {
+		in["DelaySeconds"] = atoi(o.Delay)
+	}
+	if len(o.Attrs) > 0 {
+		mattrs := map[string]any{}
+		for _, a := range o.Attrs {
+			if a.Name == "" {
+				continue
+			}
+			t := a.Type
+			if t == "" {
+				t = "String"
+			}
+			if t == "Binary" { // value is base64 on the wire
+				mattrs[a.Name] = map[string]string{"DataType": t, "BinaryValue": a.Value}
+			} else {
+				mattrs[a.Name] = map[string]string{"DataType": t, "StringValue": a.Value}
+			}
+		}
+		in["MessageAttributes"] = mattrs
 	}
 	_, err := b.sqs(ctx, "SendMessage", in)
 	return err

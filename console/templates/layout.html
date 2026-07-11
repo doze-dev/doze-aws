@@ -112,6 +112,27 @@ var r=localStorage.getItem("rail");if(r==="slim")document.documentElement.setAtt
 </a>
 {{end}}
 
+{{/* Message-attribute editor: dynamic name/type/value rows kept in Alpine
+     state, serialized into a hidden "attrs" field as JSON for the handler
+     (parseMsgAttrs). Shared by the SQS composer and SNS publish. */}}
+{{define "attr_editor"}}
+<div class="field" style="margin-top:10px" x-data="{rows:[]}">
+  <label style="display:flex;align-items:center;justify-content:space-between">
+    <span>Message attributes <span class="dim" style="font-weight:400">optional metadata</span></span>
+    <button type="button" class="btn btn-outline btn-sm" @click="rows.push({n:'',t:'String',v:''})">{{icon "plus"}} Add</button>
+  </label>
+  <template x-for="(row,i) in rows" :key="i">
+    <div class="attr-row">
+      <input class="input" placeholder="name" x-model="row.n" spellcheck="false">
+      <select class="input" x-model="row.t"><option>String</option><option>Number</option><option>Binary</option></select>
+      <input class="input" :placeholder="row.t==='Binary' ? 'base64 value' : 'value'" x-model="row.v" spellcheck="false">
+      <button type="button" class="icon-btn sm danger" title="Remove" @click="rows.splice(i,1)">{{icon "x"}}</button>
+    </div>
+  </template>
+  <input type="hidden" name="attrs" :value="JSON.stringify(rows)">
+</div>
+{{end}}
+
 {{define "copychip"}}<span class="copychip">{{if .Label}}<span class="cc-label">{{.Label}}</span>{{end}}<span class="cc-val" title="{{.Value}}">{{.Value}}</span><button type="button" class="copy-btn" data-copy="{{.Value}}" title="Copy">{{icon "copy"}}</button></span>{{end}}
 
 {{define "kvcopy"}}<span class="kv-copy"><span class="trunc" title="{{.}}">{{.}}</span><button type="button" class="copy-btn" data-copy="{{.}}" title="Copy">{{icon "copy"}}</button></span>{{end}}
