@@ -753,8 +753,11 @@ tr:hover .kv-copy .copy-btn, .kv-copy:hover .copy-btn { opacity: 1; }
 .fl-edge.fl-k-dest { stroke: hsl(var(--accent-blue)); }
 
 /* per-resource connections strip */
+/* Panel header row: title cluster left, actions right, one line. */
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
 .conn { display: flex; align-items: stretch; gap: 0; border: 1px solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted) / 0.3); margin: 0 0 4px; overflow: hidden; }
-.conn-col { flex: 1; min-width: 0; padding: 10px 14px; }
+.conn-col { flex: 1; min-width: 0; padding: 12px 16px; }
 .conn-col.conn-out { border-left: 1px solid hsl(var(--border)); }
 .conn-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: hsl(var(--muted-foreground)); margin-bottom: 7px; }
 .conn-chips { display: flex; flex-wrap: wrap; gap: 6px; }

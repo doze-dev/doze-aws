@@ -29,7 +29,7 @@
         (dict "Key" "messages" "Label" (printf "Messages · %d" .Available) "Icon" "inbox" "URL" (printf "%s/sqs/%s" .Prefix .Queue))
         (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sqs/%s?tab=config" .Prefix .Queue)))}}
     </div>
-    <div style="padding:0 20px 4px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn}}</div>
+    <div style="padding:14px 20px 0">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn}}</div>
     <div class="det-b">
       {{if eq .Tab "config"}}
         {{template "sqs_config" .}}
