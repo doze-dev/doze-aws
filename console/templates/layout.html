@@ -9,6 +9,9 @@
 <script>
   // Let Alpine initialise nodes htmx swaps in.
   document.addEventListener("htmx:afterSwap", function(e){ if(window.Alpine) window.Alpine.initTree(e.detail.target); });
+  // The list-page filter inputs bind to this store; without it every
+  // x-show="$store.filter.q…" row evaluates falsy and tables render empty.
+  document.addEventListener("alpine:init", function(){ window.Alpine.store("filter", { q: "" }); });
   // Delegated copy-to-clipboard for every [data-copy] element.
   document.addEventListener("click", function(e){
     var el = e.target.closest("[data-copy]");

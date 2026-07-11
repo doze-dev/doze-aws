@@ -159,6 +159,11 @@ func TestConsoleOverview(t *testing.T) {
 	if js.Code != 200 || !strings.Contains(js.Body.String(), "htmx") {
 		t.Fatalf("htmx not served: %d", js.Code)
 	}
+	// The filter store must be registered: table rows gate on
+	// $store.filter.q, and without the store every row hides (falsy x-show).
+	if !strings.Contains(body, `Alpine.store("filter"`) {
+		t.Fatal("layout missing the Alpine filter store registration")
+	}
 }
 
 func multipartUpload(t *testing.T, h http.Handler, target, filename, content, prefix string) *httptest.ResponseRecorder {
