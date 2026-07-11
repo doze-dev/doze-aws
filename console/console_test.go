@@ -530,6 +530,56 @@ func TestSQSMessagingThoroughness(t *testing.T) {
 	}
 }
 
+// TestDynamoDBExplorer exercises the three read modes — Scan, Query (base key),
+// and PartiQL — each returning the right subset of a seeded table.
+func TestDynamoDBExplorer(t *testing.T) {
+	h := newConsole(t)
+	create(t, h, "/_console/ddb/create", url.Values{
+		"name": {"events"}, "hash_key": {"userId"}, "hash_type": {"S"},
+		"range_key": {"ts"}, "range_type": {"N"},
+	})
+	put := func(uid, ts, kind string) {
+		req(t, h, "POST", "/_console/ddb/events/put", url.Values{
+			"item": {`{"userId":"` + uid + `","ts":` + ts + `,"kind":"` + kind + `"}`},
+		})
+	}
+	put("user-1", "1", "click")
+	put("user-1", "2", "click")
+	put("user-2", "9", "view")
+
+	rows := func(body string) int { return strings.Count(body, `<tr `) }
+
+	// Scan returns everything.
+	scan := req(t, h, "POST", "/_console/ddb/events/explore", url.Values{"mode": {"scan"}}).Body.String()
+	if n := rows(scan); n != 3 {
+		t.Fatalf("scan: got %d rows, want 3", n)
+	}
+	// Query on the partition key returns just that partition.
+	q := req(t, h, "POST", "/_console/ddb/events/explore", url.Values{
+		"mode": {"query"}, "pk": {"user-1"},
+	}).Body.String()
+	if n := rows(q); n != 2 {
+		t.Fatalf("query user-1: got %d rows, want 2", n)
+	}
+	if !strings.Contains(q, "matched") {
+		t.Fatalf("query footer should say 'matched':\n%s", q)
+	}
+	// Query with a sort-key condition narrows further.
+	q2 := req(t, h, "POST", "/_console/ddb/events/explore", url.Values{
+		"mode": {"query"}, "pk": {"user-1"}, "sk_op": {"="}, "sk": {"2"},
+	}).Body.String()
+	if n := rows(q2); n != 1 {
+		t.Fatalf("query user-1 ts=2: got %d rows, want 1", n)
+	}
+	// PartiQL SELECT.
+	pq := req(t, h, "POST", "/_console/ddb/events/explore", url.Values{
+		"mode": {"partiql"}, "statement": {`SELECT * FROM "events" WHERE kind = 'view'`},
+	}).Body.String()
+	if n := rows(pq); n != 1 {
+		t.Fatalf("partiql kind=view: got %d rows, want 1", n)
+	}
+}
+
 // TestTrafficRecorder: external calls are captured; console calls are not.
 func TestTrafficRecorder(t *testing.T) {
 	if testing.Short() {

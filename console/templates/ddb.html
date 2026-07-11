@@ -44,7 +44,7 @@
         </div>
       </div>
       {{else}}
-      {{template "ddb_item_table" .}}
+      {{template "ddb_explorer" .}}
       {{end}}
     </div>
     <div class="overlay" x-show="put" x-cloak @click.self="put=false" @keydown.escape.window="put=false" x-effect="if(put)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
@@ -58,6 +58,86 @@
     <aside class="drawer" x-show="drawer" x-cloak @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
   </section>
 {{template "shell_bottom" .}}{{end}}
+
+{{/* Query explorer: the three ways to read a table, each posting to /explore
+     and swapping the result table below. Scan is the default (matches the
+     old behaviour). Query builds a key condition; PartiQL runs raw SQL. */}}
+{{define "ddb_explorer"}}
+<div x-data="{mode:'scan', skop:''}">
+  <div class="seg">
+    <button type="button" :class="mode==='scan' && 'on'" @click="mode='scan'">{{icon "list"}} Scan</button>
+    <button type="button" :class="mode==='query' && 'on'" @click="mode='query'">{{icon "search"}} Query</button>
+    <button type="button" :class="mode==='partiql' && 'on'" @click="mode='partiql'">{{icon "terminal"}} PartiQL</button>
+  </div>
+
+  {{/* SCAN */}}
+  <form class="explorer-form" x-show="mode==='scan'"
+        hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML">
+    <input type="hidden" name="mode" value="scan">
+    <div class="ex-grid">
+      <div class="field" style="flex:1"><label>Filter expression <span class="dim">optional</span></label>
+        <input class="input mono" name="filter" placeholder="attribute_exists(email) AND #s = :v" spellcheck="false"></div>
+      <div class="field" style="width:90px"><label>Limit</label><input class="input" name="limit" type="number" min="1" value="50"></div>
+      <button class="btn" type="submit">{{icon "list"}} Scan</button>
+    </div>
+    <p class="mini-note">Reads the whole table (up to the limit). Filters run after the read — they save bandwidth, not table capacity.</p>
+  </form>
+
+  {{/* QUERY */}}
+  <form class="explorer-form" x-show="mode==='query'" x-cloak
+        hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML">
+    <input type="hidden" name="mode" value="query">
+    <div class="ex-grid">
+      <div class="field"><label>Index</label>
+        <select class="input" name="index">
+          <option value="">{{.Table.HashKey}}{{if .Table.RangeKey}} / {{.Table.RangeKey}}{{end}} <span>(table)</span></option>
+          {{range .Table.GSIs}}<option value="{{.Name}}">{{.Name}} · {{.HashKey}}{{if .RangeKey}} / {{.RangeKey}}{{end}}</option>{{end}}
+        </select>
+      </div>
+      <div class="field" style="flex:1"><label>Partition key equals</label>
+        <input class="input mono" name="pk" placeholder="user-1" required spellcheck="false"></div>
+    </div>
+    {{if .Table.RangeKey}}
+    <div class="ex-grid" style="margin-top:8px">
+      <div class="field" style="width:150px"><label>Sort key</label>
+        <select class="input" name="sk_op" x-model="skop">
+          <option value="">any</option><option value="=">=</option><option value="begins_with">begins with</option>
+          <option value="<">&lt;</option><option value="<=">&le;</option><option value=">">&gt;</option><option value=">=">&ge;</option>
+          <option value="between">between</option>
+        </select>
+      </div>
+      <div class="field" style="flex:1" x-show="skop && skop!==''" x-cloak><label>&nbsp;</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="input mono" name="sk" placeholder="value" spellcheck="false">
+          <span x-show="skop==='between'" x-cloak class="dim">and</span>
+          <input class="input mono" name="sk2" placeholder="value" spellcheck="false" x-show="skop==='between'" x-cloak>
+        </div>
+      </div>
+    </div>
+    {{end}}
+    <div class="ex-grid" style="margin-top:8px">
+      <div class="field" style="flex:1"><label>Filter expression <span class="dim">optional, on non-key attributes</span></label>
+        <input class="input mono" name="filter" placeholder="#status = :active" spellcheck="false"></div>
+      <div class="field" style="width:90px"><label>Limit</label><input class="input" name="limit" type="number" min="1" value="50"></div>
+      <button class="btn" type="submit">{{icon "search"}} Query</button>
+    </div>
+    <p class="mini-note">Queries hit the index directly — only matching partitions are read. Pick a GSI to query by a different key.</p>
+  </form>
+
+  {{/* PARTIQL */}}
+  <form class="explorer-form" x-show="mode==='partiql'" x-cloak
+        hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML">
+    <input type="hidden" name="mode" value="partiql">
+    <div class="field"><label>PartiQL statement</label>
+      <textarea name="statement" class="input mono" rows="3" spellcheck="false">SELECT * FROM "{{.Table.Name}}" WHERE {{.Table.HashKey}} = 'user-1'</textarea></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+      <span class="dim" style="font-size:11.5px">SELECT reads; INSERT / UPDATE / DELETE also work here.</span>
+      <button class="btn" type="submit">{{icon "terminal"}} Run</button>
+    </div>
+  </form>
+</div>
+{{template "ddb_item_table" .}}
+{{end}}
 
 {{define "ddb_item_table"}}
 <div id="ddb-items">
@@ -77,7 +157,7 @@
     </tr>
   {{end}}</tbody>
 </table></div>
-<div class="tbl-foot">{{len .Items}} item{{if ne (len .Items) 1}}s{{end}} shown{{if .Truncated}} · scan truncated at 50{{end}}</div>
-{{else}}<div class="empty"><span class="ic-lg">{{icon "database"}}</span><p>No items — add one, or write via the SDK.</p></div>{{end}}
+<div class="tbl-foot">{{len .Items}} item{{if ne (len .Items) 1}}s{{end}}{{if eq .Mode "query"}} matched{{else if eq .Mode "partiql"}} returned{{else}} scanned{{end}}{{if .Truncated}} · more available (raise the limit){{end}}</div>
+{{else}}<div class="empty" style="border:0"><span class="ic-lg">{{icon "database"}}</span><p>{{if eq .Mode "query"}}No items match that key.{{else if eq .Mode "partiql"}}No rows returned.{{else}}No items yet — add one, or write via the SDK.{{end}}</p></div>{{end}}
 </div>
 {{end}}

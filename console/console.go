@@ -121,7 +121,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/ddb", c.ddbTables)
 	m.HandleFunc("POST "+p+"/ddb/create", c.ddbCreateTable)
 	m.HandleFunc("GET "+p+"/ddb/{table}", c.ddbTable)
-	m.HandleFunc("GET "+p+"/ddb/{table}/items", c.ddbItems) // HTMX partial
+	m.HandleFunc("POST "+p+"/ddb/{table}/explore", c.ddbExplore) // HTMX partial (scan/query/partiql)
 	m.HandleFunc("POST "+p+"/ddb/{table}/put", c.ddbPutItem)
 	m.HandleFunc("POST "+p+"/ddb/{table}/delete-item", c.ddbDeleteItem)
 	m.HandleFunc("POST "+p+"/ddb/{table}/delete-table", c.ddbDeleteTable)

@@ -1,6 +1,10 @@
 package console
 
-import "net/http"
+import (
+	"net/http"
+	"strconv"
+	"strings"
+)
 
 func (c *Console) ddbTables(w http.ResponseWriter, r *http.Request) {
 	tables, err := c.be.ListTables(r.Context())
@@ -39,24 +43,58 @@ func (c *Console) ddbTable(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	items, truncated, _ := c.be.ScanItems(r.Context(), t, 50)
+	items, truncated, _ := c.be.ScanItems(r.Context(), t, "", 50)
 	tables, _ := c.be.ListTables(r.Context())
 	c.render(w, r, "ddb_table", map[string]any{
-		"Table": t, "Items": items, "Truncated": truncated,
+		"Table": t, "Items": items, "Truncated": truncated, "Mode": "scan",
 		"Tab": tabOf(r, "items"), "List": tables, "Title": name + " · DynamoDB",
 	})
 }
 
-// ddbItems is the HTMX partial refreshing the item table after a mutation.
-func (c *Console) ddbItems(w http.ResponseWriter, r *http.Request) {
+// ddbExplore is the query surface: Scan (optional filter), Query (key
+// condition on the base table or a GSI), or PartiQL. All render the same item
+// table so the drawer/edit/delete flow is identical regardless of mode.
+func (c *Console) ddbExplore(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("table")
 	t, err := c.be.DescribeTable(r.Context(), name)
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
-	items, truncated, _ := c.be.ScanItems(r.Context(), t, 50)
-	c.partial(w, "ddb_item_table", map[string]any{"Table": t, "Items": items, "Truncated": truncated})
+	mode := r.FormValue("mode")
+	limit := 50
+	if l, e := strconv.Atoi(strings.TrimSpace(r.FormValue("limit"))); e == nil && l > 0 {
+		limit = l
+	}
+	data := map[string]any{"Table": t, "Mode": mode}
+	switch mode {
+	case "query":
+		items, truncated, err := c.be.QueryItems(r.Context(), t, QueryOpts{
+			Index: r.FormValue("index"), PKValue: r.FormValue("pk"),
+			SKOp: r.FormValue("sk_op"), SKValue: r.FormValue("sk"), SKValue2: r.FormValue("sk2"),
+			Filter: r.FormValue("filter"), Limit: limit,
+		})
+		if err != nil {
+			c.fail(w, err)
+			return
+		}
+		data["Items"], data["Truncated"] = items, truncated
+	case "partiql":
+		items, err := c.be.PartiQL(r.Context(), t, r.FormValue("statement"))
+		if err != nil {
+			c.fail(w, err)
+			return
+		}
+		data["Items"] = items
+	default: // scan
+		items, truncated, err := c.be.ScanItems(r.Context(), t, r.FormValue("filter"), limit)
+		if err != nil {
+			c.fail(w, err)
+			return
+		}
+		data["Items"], data["Truncated"] = items, truncated
+	}
+	c.partial(w, "ddb_item_table", data)
 }
 
 func (c *Console) ddbPutItem(w http.ResponseWriter, r *http.Request) {
@@ -66,7 +104,7 @@ func (c *Console) ddbPutItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toast(w, "Item saved")
-	c.ddbItems(w, r)
+	c.ddbItemsScan(w, r)
 }
 
 func (c *Console) ddbDeleteItem(w http.ResponseWriter, r *http.Request) {
@@ -76,5 +114,17 @@ func (c *Console) ddbDeleteItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toast(w, "Item deleted")
-	c.ddbItems(w, r)
+	c.ddbItemsScan(w, r)
+}
+
+// ddbItemsScan re-scans and swaps the item table after a mutation.
+func (c *Console) ddbItemsScan(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("table")
+	t, err := c.be.DescribeTable(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	items, truncated, _ := c.be.ScanItems(r.Context(), t, "", 50)
+	c.partial(w, "ddb_item_table", map[string]any{"Table": t, "Items": items, "Truncated": truncated, "Mode": "scan"})
 }

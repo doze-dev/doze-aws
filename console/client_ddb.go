@@ -25,8 +25,11 @@ type Table struct {
 }
 
 type GSI struct {
-	Name    string
-	HashKey string
+	Name      string
+	HashKey   string
+	HashType  string
+	RangeKey  string
+	RangeType string
 }
 
 // Item is one scanned row prepared for display.
@@ -110,7 +113,9 @@ func (b *backend) DescribeTable(ctx context.Context, name string) (*Table, error
 		gi := GSI{Name: g.IndexName}
 		for _, ks := range g.KeySchema {
 			if ks.KeyType == "HASH" {
-				gi.HashKey = ks.AttributeName
+				gi.HashKey, gi.HashType = ks.AttributeName, types[ks.AttributeName]
+			} else {
+				gi.RangeKey, gi.RangeType = ks.AttributeName, types[ks.AttributeName]
 			}
 		}
 		t.GSIs = append(t.GSIs, gi)
@@ -139,20 +144,12 @@ func (b *backend) DeleteTable(ctx context.Context, name string) error {
 
 // ScanItems returns up to limit items prepared for display, plus whether the
 // scan was truncated.
-func (b *backend) ScanItems(ctx context.Context, t *Table, limit int) ([]Item, bool, error) {
-	body, err := b.ddbCall(ctx, "Scan", map[string]any{"TableName": t.Name, "Limit": limit})
-	if err != nil {
-		return nil, false, err
-	}
-	var out struct {
-		Items            []map[string]json.RawMessage `json:"Items"`
-		LastEvaluatedKey map[string]json.RawMessage   `json:"LastEvaluatedKey"`
-	}
-	if err := json.Unmarshal(body, &out); err != nil {
-		return nil, false, err
-	}
-	items := make([]Item, 0, len(out.Items))
-	for _, av := range out.Items {
+// itemsFromAV turns a list of AttributeValue maps into display Items, mapping
+// each to the table's primary key so the row's delete/edit still address the
+// base table (even when the results came from a GSI query).
+func (b *backend) itemsFromAV(t *Table, avs []map[string]json.RawMessage) []Item {
+	items := make([]Item, 0, len(avs))
+	for _, av := range avs {
 		plain := avMapToPlain(av)
 		it := Item{}
 		if v, ok := plain[t.HashKey]; ok {
@@ -163,7 +160,6 @@ func (b *backend) ScanItems(ctx context.Context, t *Table, limit int) ([]Item, b
 				it.SK = plainScalar(v)
 			}
 		}
-		// Preview: non-key attributes, single line, truncated.
 		rest := map[string]any{}
 		for k, v := range plain {
 			if k != t.HashKey && k != t.RangeKey {
@@ -182,17 +178,136 @@ func (b *backend) ScanItems(ctx context.Context, t *Table, limit int) ([]Item, b
 		if full, err := json.MarshalIndent(plain, "", "  "); err == nil {
 			it.JSON = string(full)
 		}
-		// Key AV map for DeleteItem.
-		key := map[string]json.RawMessage{t.HashKey: av[t.HashKey]}
-		if t.RangeKey != "" {
-			key[t.RangeKey] = av[t.RangeKey]
-		}
-		if kj, err := json.Marshal(key); err == nil {
-			it.KeyJSON = string(kj)
+		// Key AV map for DeleteItem — always the base-table primary key.
+		if _, ok := av[t.HashKey]; ok {
+			key := map[string]json.RawMessage{t.HashKey: av[t.HashKey]}
+			if t.RangeKey != "" {
+				if rv, ok := av[t.RangeKey]; ok {
+					key[t.RangeKey] = rv
+				}
+			}
+			if kj, err := json.Marshal(key); err == nil {
+				it.KeyJSON = string(kj)
+			}
 		}
 		items = append(items, it)
 	}
-	return items, len(out.LastEvaluatedKey) > 0, nil
+	return items
+}
+
+// avTyped builds a single-attribute AttributeValue for a key value, honoring
+// the attribute's declared type (S/N/B).
+func avTyped(typ, val string) map[string]string {
+	switch typ {
+	case "N":
+		return map[string]string{"N": val}
+	case "B":
+		return map[string]string{"B": val}
+	default:
+		return map[string]string{"S": val}
+	}
+}
+
+func (b *backend) ScanItems(ctx context.Context, t *Table, filter string, limit int) ([]Item, bool, error) {
+	in := map[string]any{"TableName": t.Name, "Limit": limit}
+	if strings.TrimSpace(filter) != "" {
+		in["FilterExpression"] = filter
+	}
+	body, err := b.ddbCall(ctx, "Scan", in)
+	if err != nil {
+		return nil, false, err
+	}
+	var out struct {
+		Items            []map[string]json.RawMessage `json:"Items"`
+		LastEvaluatedKey map[string]json.RawMessage   `json:"LastEvaluatedKey"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, false, err
+	}
+	return b.itemsFromAV(t, out.Items), len(out.LastEvaluatedKey) > 0, nil
+}
+
+// QueryOpts describes a key-based query against the base table or a GSI.
+type QueryOpts struct {
+	Index    string // GSI name, or "" for the base table
+	PKValue  string
+	SKOp     string // "", "=", "<", "<=", ">", ">=", "begins_with", "between"
+	SKValue  string
+	SKValue2 string // for "between"
+	Filter   string // optional FilterExpression on non-key attributes
+	Limit    int
+}
+
+// QueryItems runs a Query, building the KeyConditionExpression from the chosen
+// index's key schema. Names are aliased (#pk/#sk) to dodge reserved words.
+func (b *backend) QueryItems(ctx context.Context, t *Table, o QueryOpts) ([]Item, bool, error) {
+	pkName, pkType := t.HashKey, t.HashType
+	skName, skType := t.RangeKey, t.RangeType
+	if o.Index != "" {
+		for _, g := range t.GSIs {
+			if g.Name == o.Index {
+				pkName, pkType = g.HashKey, g.HashType
+				skName, skType = g.RangeKey, g.RangeType
+			}
+		}
+	}
+	names := map[string]string{"#pk": pkName}
+	vals := map[string]any{":pk": avTyped(pkType, o.PKValue)}
+	cond := "#pk = :pk"
+	if o.SKOp != "" && skName != "" && o.SKValue != "" {
+		names["#sk"] = skName
+		vals[":sk"] = avTyped(skType, o.SKValue)
+		switch o.SKOp {
+		case "begins_with":
+			cond += " AND begins_with(#sk, :sk)"
+		case "between":
+			vals[":sk2"] = avTyped(skType, o.SKValue2)
+			cond += " AND #sk BETWEEN :sk AND :sk2"
+		default:
+			cond += " AND #sk " + o.SKOp + " :sk"
+		}
+	}
+	limit := o.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	in := map[string]any{
+		"TableName": t.Name, "KeyConditionExpression": cond,
+		"ExpressionAttributeNames": names, "ExpressionAttributeValues": vals, "Limit": limit,
+	}
+	if o.Index != "" {
+		in["IndexName"] = o.Index
+	}
+	if strings.TrimSpace(o.Filter) != "" {
+		in["FilterExpression"] = o.Filter
+	}
+	body, err := b.ddbCall(ctx, "Query", in)
+	if err != nil {
+		return nil, false, err
+	}
+	var out struct {
+		Items            []map[string]json.RawMessage `json:"Items"`
+		LastEvaluatedKey map[string]json.RawMessage   `json:"LastEvaluatedKey"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, false, err
+	}
+	return b.itemsFromAV(t, out.Items), len(out.LastEvaluatedKey) > 0, nil
+}
+
+// PartiQL runs an ExecuteStatement and maps results back to the base table.
+func (b *backend) PartiQL(ctx context.Context, t *Table, statement string) ([]Item, error) {
+	body, err := b.ddbCall(ctx, "ExecuteStatement", map[string]any{"Statement": statement})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Items []map[string]json.RawMessage `json:"Items"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	return b.itemsFromAV(t, out.Items), nil
 }
 
 // PutItemJSON writes an item given as PLAIN JSON (the console's editor speaks

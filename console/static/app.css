@@ -863,3 +863,33 @@ a.lo-card:hover { border-color: hsl(var(--accent-blue)); box-shadow: 0 0 0 3px h
 .sub-add { display: flex; gap: 8px; align-items: center; padding: 10px 13px; border-top: 1px solid hsl(var(--border)); background: hsl(var(--muted) / 0.3); }
 .sub-add > select:first-child { width: 130px; flex: none; }
 .sub-add .input { height: 30px; font-size: 12px; }
+
+/* First-class JSON editor chrome: validity pill + Format + inline error. */
+.cm-jsonbar { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border: 1px solid hsl(var(--input));
+  border-bottom: 0; border-radius: var(--radius) var(--radius) 0 0; background: hsl(var(--muted) / 0.4); }
+.cm-jsonbar + .CodeMirror { border-top-left-radius: 0; border-top-right-radius: 0; }
+.cm-valid { flex: 1; min-width: 0; font: 11px var(--mono); color: hsl(var(--muted-foreground));
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cm-valid.ok { color: hsl(var(--success)); }
+.cm-valid.bad { color: hsl(var(--destructive)); }
+.cm-fmt { flex: none; font: 11px var(--mono); padding: 3px 10px; border-radius: 5px; cursor: pointer;
+  border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: hsl(var(--foreground)); }
+.cm-fmt:hover { border-color: hsl(var(--ring)); }
+.cm-json-gutter { width: 14px; }
+.cm-gutter-err { color: hsl(var(--destructive)); font-size: 11px; padding-left: 3px; }
+.CodeMirror .cm-error-line { background: hsl(var(--destructive) / 0.09); }
+
+/* DynamoDB query explorer: segmented mode switch + query-builder forms. */
+.seg { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) + 2px); background: hsl(var(--muted) / 0.5); margin-bottom: 12px; }
+.seg button { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500;
+  padding: 5px 13px; border: 0; border-radius: var(--radius); background: none; color: hsl(var(--muted-foreground)); cursor: pointer; }
+.seg button .ic { width: 14px; height: 14px; }
+.seg button:hover { color: hsl(var(--foreground)); }
+.seg button.on { background: hsl(var(--card)); color: hsl(var(--foreground)); box-shadow: var(--sh-sm); }
+.explorer-form { border: 1px solid hsl(var(--border)); border-radius: var(--radius); padding: 14px 16px;
+  background: hsl(var(--muted) / 0.25); margin-bottom: 16px; }
+.ex-grid { display: flex; gap: 12px; align-items: flex-end; }
+.ex-grid .btn { flex: none; height: 34px; }
+.ex-grid .field { margin-bottom: 0; }
+@media (max-width: 820px) { .ex-grid { flex-wrap: wrap; } }
