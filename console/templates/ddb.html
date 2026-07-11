@@ -1,60 +1,12 @@
 {{define "ddb_tables"}}{{template "header" .}}
 <div class="ph">
   <div>
-    <h1><span class="svc svc-ddb">{{icon "database"}}</span> DynamoDB</h1>
+    <h1>{{awsIcon "ddb"}} DynamoDB</h1>
     <p class="ph-desc">Tables on this endpoint.</p>
   </div>
   <div class="ph-actions">
     <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter tables…" x-model="$store.filter.q" spellcheck="false"></label>
-    <span x-data="{open:false, sk:false}">
-    <button class="btn" @click="open=true">{{icon "plus"}} Create table</button>
-    <div class="overlay" x-show="open" x-cloak @click.self="open=false" @keydown.escape.window="open=false">
-      <div class="dialog wide anim">
-        <form hx-post="{{.Prefix}}/ddb/create" hx-target="#ddb-table-list" hx-swap="outerHTML"
-              @htmx:after-request="if($event.detail.successful){open=false; $el.reset(); sk=false;}">
-          <div class="dialog-h"><h3>Create table</h3><p>On-demand capacity; indexes can be added via the SDK.</p></div>
-          <div class="dialog-b">
-            <div class="fgrid">
-              <div class="field full">
-                <label>Table name</label>
-                <input class="input" name="name" placeholder="users" required pattern="[a-zA-Z0-9_.\-]{3,255}" autocomplete="off" x-effect="open && $el.focus()">
-              </div>
-              <div class="field">
-                <label>Partition key</label>
-                <input class="input" name="hash_key" placeholder="pk" required>
-              </div>
-              <div class="field">
-                <label>Type</label>
-                <select class="input" name="hash_type">
-                  <option value="S">String</option><option value="N">Number</option><option value="B">Binary</option>
-                </select>
-              </div>
-              <div class="field full">
-                <div class="opt-row" style="border:0;padding:4px 0">
-                  <div class="opt-l">Add sort key</div>
-                  <label class="switch"><input type="checkbox" x-model="sk"><span class="track"></span><span class="thumb"></span></label>
-                </div>
-              </div>
-              <div class="field" x-show="sk">
-                <label>Sort key</label>
-                <input class="input" name="range_key" placeholder="sk" :required="sk" :disabled="!sk">
-              </div>
-              <div class="field" x-show="sk">
-                <label>Type</label>
-                <select class="input" name="range_type" :disabled="!sk">
-                  <option value="S">String</option><option value="N">Number</option><option value="B">Binary</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div class="dialog-f">
-            <button type="button" class="btn btn-outline" @click="open=false">Cancel</button>
-            <button type="submit" class="btn">Create table</button>
-          </div>
-        </form>
-      </div>
-    </div>
-    </span>
+    <a class="btn" href="{{.Prefix}}/ddb/create">{{icon "plus"}} Create table</a>
   </div>
 </div>
 
@@ -83,7 +35,7 @@
     </tr>
   {{end}}</tbody>
 </table></div>
-{{else}}<div class="empty"><span class="ic-lg">{{icon "database"}}</span><p>No tables yet — create your first one.</p></div>{{end}}
+{{else}}<div class="empty">{{awsIcon "ddb"}}<p>No tables yet. Define a key schema and start putting items.</p><a class="btn" href="{{.Prefix}}/ddb/create">{{icon "plus"}} Create table</a></div>{{end}}
 </div>
 {{end}}
 
@@ -95,7 +47,7 @@
 <div class="idband">
   <div class="ph">
     <div>
-      <h1><span class="svc svc-ddb">{{icon "database"}}</span> {{.Table.Name}}</h1>
+      <h1>{{awsIcon "ddb"}} {{.Table.Name}}</h1>
       <div class="chips" style="margin-top:8px">
         {{template "copychip" dict "Label" "arn" "Value" .Table.ARN}}
       </div>

@@ -17,39 +17,39 @@
 
 <div class="stats wide">
   <a class="stat" href="{{.Prefix}}/s3">
-    <div class="stat-top"><span>S3</span><span class="svc svc-s3">{{icon "hard-drive"}}</span></div>
+    <div class="stat-top"><span>S3</span>{{awsIcon "s3"}}</div>
     <div class="stat-n">{{.BucketCount}}</div><div class="stat-l">buckets</div>
   </a>
   <a class="stat" href="{{.Prefix}}/ddb">
-    <div class="stat-top"><span>DynamoDB</span><span class="svc svc-ddb">{{icon "database"}}</span></div>
+    <div class="stat-top"><span>DynamoDB</span>{{awsIcon "ddb"}}</div>
     <div class="stat-n">{{.TableCount}}</div><div class="stat-l">tables</div>
   </a>
   <a class="stat" href="{{.Prefix}}/lambda">
-    <div class="stat-top"><span>Lambda</span><span class="svc svc-lambda">{{icon "zap"}}</span></div>
+    <div class="stat-top"><span>Lambda</span>{{awsIcon "lambda"}}</div>
     <div class="stat-n">{{.FnCount}}</div><div class="stat-l">functions</div>
   </a>
   <a class="stat" href="{{.Prefix}}/sqs">
-    <div class="stat-top"><span>SQS</span><span class="svc svc-sqs">{{icon "inbox"}}</span></div>
+    <div class="stat-top"><span>SQS</span>{{awsIcon "sqs"}}</div>
     <div class="stat-n">{{.QueueCount}}</div><div class="stat-l">queues · {{.MsgTotal}} msgs</div>
   </a>
   <a class="stat" href="{{.Prefix}}/sns">
-    <div class="stat-top"><span>SNS</span><span class="svc svc-sns">{{icon "share"}}</span></div>
+    <div class="stat-top"><span>SNS</span>{{awsIcon "sns"}}</div>
     <div class="stat-n">{{.TopicCount}}</div><div class="stat-l">topics</div>
   </a>
   <a class="stat" href="{{.Prefix}}/eb">
-    <div class="stat-top"><span>EventBridge</span><span class="svc svc-eb">{{icon "route"}}</span></div>
+    <div class="stat-top"><span>EventBridge</span>{{awsIcon "eb"}}</div>
     <div class="stat-n">{{.RuleCount}}</div><div class="stat-l">rules on {{.BusCount}} bus{{if ne .BusCount 1}}es{{end}}</div>
   </a>
   <a class="stat" href="{{.Prefix}}/kms">
-    <div class="stat-top"><span>KMS</span><span class="svc svc-kms">{{icon "key"}}</span></div>
+    <div class="stat-top"><span>KMS</span>{{awsIcon "kms"}}</div>
     <div class="stat-n">{{.KeyCount}}</div><div class="stat-l">keys</div>
   </a>
   <a class="stat" href="{{.Prefix}}/sm">
-    <div class="stat-top"><span>Secrets Manager</span><span class="svc svc-sm">{{icon "lock"}}</span></div>
+    <div class="stat-top"><span>Secrets Manager</span>{{awsIcon "sm"}}</div>
     <div class="stat-n">{{.SecretCount}}</div><div class="stat-l">secrets</div>
   </a>
   <a class="stat" href="{{.Prefix}}/ssm">
-    <div class="stat-top"><span>Parameter Store</span><span class="svc svc-ssm">{{icon "sliders"}}</span></div>
+    <div class="stat-top"><span>Parameter Store</span>{{awsIcon "ssm"}}</div>
     <div class="stat-n">{{.ParamCount}}</div><div class="stat-l">parameters</div>
   </a>
 </div>

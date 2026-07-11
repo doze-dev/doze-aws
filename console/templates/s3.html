@@ -1,42 +1,12 @@
 {{define "s3_buckets"}}{{template "header" .}}
 <div class="ph">
   <div>
-    <h1><span class="svc svc-s3">{{icon "hard-drive"}}</span> S3</h1>
+    <h1>{{awsIcon "s3"}} S3</h1>
     <p class="ph-desc">Object storage buckets on this endpoint.</p>
   </div>
   <div class="ph-actions">
     <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter buckets…" x-model="$store.filter.q" spellcheck="false"></label>
-    <span x-data="{open:false}">
-    <button class="btn" @click="open=true">{{icon "plus"}} Create bucket</button>
-    <div class="overlay" x-show="open" x-cloak @click.self="open=false" @keydown.escape.window="open=false">
-      <div class="dialog anim">
-        <form hx-post="{{.Prefix}}/s3/create" hx-target="#bucket-list" hx-swap="outerHTML"
-              @htmx:after-request="if($event.detail.successful){open=false; $el.reset();}">
-          <div class="dialog-h"><h3>Create bucket</h3><p>3–63 lowercase characters: letters, digits, dots, hyphens.</p></div>
-          <div class="dialog-b">
-            <div class="field">
-              <label>Bucket name</label>
-              <input class="input" name="name" placeholder="my-bucket" required pattern="[a-z0-9.\-]{3,63}" autocomplete="off" x-effect="open && $el.focus()">
-            </div>
-            <div style="margin-top:8px">
-              <div class="opt-row">
-                <div><div class="opt-l">Versioning</div><div class="opt-d">Keep every version of every object</div></div>
-                <label class="switch"><input type="checkbox" name="versioning"><span class="track"></span><span class="thumb"></span></label>
-              </div>
-              <div class="opt-row">
-                <div><div class="opt-l">Object lock</div><div class="opt-d">Enable retention and legal holds (implies versioning)</div></div>
-                <label class="switch"><input type="checkbox" name="object_lock"><span class="track"></span><span class="thumb"></span></label>
-              </div>
-            </div>
-          </div>
-          <div class="dialog-f">
-            <button type="button" class="btn btn-outline" @click="open=false">Cancel</button>
-            <button type="submit" class="btn">Create bucket</button>
-          </div>
-        </form>
-      </div>
-    </div>
-    </span>
+    <a class="btn" href="{{.Prefix}}/s3/create">{{icon "plus"}} Create bucket</a>
   </div>
 </div>
 
@@ -62,6 +32,6 @@
     </tr>
   {{end}}</tbody>
 </table></div>
-{{else}}<div class="empty"><span class="ic-lg">{{icon "hard-drive"}}</span><p>No buckets yet — create your first one.</p></div>{{end}}
+{{else}}<div class="empty">{{awsIcon "s3"}}<p>No buckets yet. Objects need a home — create the first bucket.</p><a class="btn" href="{{.Prefix}}/s3/create">{{icon "plus"}} Create bucket</a></div>{{end}}
 </div>
 {{end}}

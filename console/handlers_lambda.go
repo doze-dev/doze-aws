@@ -8,7 +8,7 @@ func (c *Console) lambdaFns(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "lambda_fns", map[string]any{"Functions": fns})
+	c.render(w, r, "lambda_fns", map[string]any{"Functions": fns})
 }
 
 func (c *Console) lambdaFn(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +18,7 @@ func (c *Console) lambdaFn(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "lambda_fn", map[string]any{"Fn": f, "Tab": tabOf(r, "invoke")})
+	c.render(w, r, "lambda_fn", map[string]any{"Fn": f, "Tab": tabOf(r, "invoke")})
 }
 
 func (c *Console) lambdaInvoke(w http.ResponseWriter, r *http.Request) {

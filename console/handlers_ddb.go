@@ -8,7 +8,7 @@ func (c *Console) ddbTables(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "ddb_tables", map[string]any{"Tables": tables})
+	c.render(w, r, "ddb_tables", map[string]any{"Tables": tables})
 }
 
 func (c *Console) ddbCreateTable(w http.ResponseWriter, r *http.Request) {
@@ -19,9 +19,7 @@ func (c *Console) ddbCreateTable(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Table “"+name+"” created")
-	tables, _ := c.be.ListTables(r.Context())
-	c.partial(w, "ddb_table_list", map[string]any{"Tables": tables})
+	c.redirect(w, r, c.prefix+"/ddb/"+name, "Table “"+name+"” created")
 }
 
 func (c *Console) ddbDeleteTable(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +40,7 @@ func (c *Console) ddbTable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	items, truncated, _ := c.be.ScanItems(r.Context(), t, 50)
-	c.render(w, "ddb_table", map[string]any{
+	c.render(w, r, "ddb_table", map[string]any{
 		"Table": t, "Items": items, "Truncated": truncated,
 		"Tab": tabOf(r, "items"),
 	})

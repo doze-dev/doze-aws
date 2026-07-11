@@ -2,6 +2,7 @@ package console_test
 
 import (
 	"bytes"
+	"html"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -47,13 +48,32 @@ func req(t *testing.T, h http.Handler, method, target string, form url.Values) *
 	return rec
 }
 
+// create POSTs a create form and asserts the 303 redirect, returning the
+// Location the console sent the browser to.
+func create(t *testing.T, h http.Handler, target string, form url.Values) string {
+	t.Helper()
+	rec := req(t, h, "POST", target, form)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("create %s: status %d (want 303)\n%s", target, rec.Code, rec.Body)
+	}
+	loc := rec.Header().Get("Location")
+	if loc == "" {
+		t.Fatalf("create %s: no Location header", target)
+	}
+	return loc
+}
+
 func TestConsoleS3Flow(t *testing.T) {
 	h := newConsole(t)
 
-	// Create a bucket.
-	rec := req(t, h, "POST", "/_console/s3/create", url.Values{"name": {"webassets"}})
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "webassets") {
-		t.Fatalf("create bucket: %d\n%s", rec.Code, rec.Body)
+	// Create a bucket; the console lands on the new bucket with a flash banner.
+	loc := create(t, h, "/_console/s3/create", url.Values{"name": {"webassets"}})
+	if !strings.Contains(loc, "/s3/webassets") || !strings.Contains(loc, "flash=") {
+		t.Fatalf("create bucket location = %q", loc)
+	}
+	page0 := req(t, h, "GET", loc, nil)
+	if page0.Code != 200 || !strings.Contains(page0.Body.String(), "created") {
+		t.Fatalf("bucket page after create missing flash: %d", page0.Code)
 	}
 
 	// Upload a file into a "folder" (the multipart layer basenames the filename,
@@ -92,9 +112,8 @@ func TestConsoleS3Flow(t *testing.T) {
 func TestConsoleSQSFlow(t *testing.T) {
 	h := newConsole(t)
 
-	rec := req(t, h, "POST", "/_console/sqs/create", url.Values{"name": {"jobs"}})
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "jobs") {
-		t.Fatalf("create queue: %d\n%s", rec.Code, rec.Body)
+	if loc := create(t, h, "/_console/sqs/create", url.Values{"name": {"jobs"}}); !strings.Contains(loc, "/sqs/jobs") {
+		t.Fatalf("create queue location = %q", loc)
 	}
 
 	// Send a message; the returned panel shows it.
@@ -124,8 +143,8 @@ func TestConsoleSQSFlow(t *testing.T) {
 
 func TestConsoleOverview(t *testing.T) {
 	h := newConsole(t)
-	req(t, h, "POST", "/_console/s3/create", url.Values{"name": {"bkt"}})
-	req(t, h, "POST", "/_console/sqs/create", url.Values{"name": {"que"}})
+	create(t, h, "/_console/s3/create", url.Values{"name": {"bkt"}})
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"que"}})
 
 	rec := req(t, h, "GET", "/_console/", nil)
 	body := rec.Body.String()
@@ -161,12 +180,11 @@ func TestConsoleDynamoDBFlow(t *testing.T) {
 	h := newConsole(t)
 
 	// Create a table with PK + SK via the dialog's form fields.
-	rec := req(t, h, "POST", "/_console/ddb/create", url.Values{
+	if loc := create(t, h, "/_console/ddb/create", url.Values{
 		"name": {"users"}, "hash_key": {"pk"}, "hash_type": {"S"},
 		"range_key": {"sk"}, "range_type": {"S"},
-	})
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "users") {
-		t.Fatalf("create table: %d\n%s", rec.Code, rec.Body)
+	}); !strings.Contains(loc, "/ddb/users") {
+		t.Fatalf("create table location = %q", loc)
 	}
 
 	// Put an item as PLAIN JSON (the console converts to AttributeValue).
@@ -198,11 +216,9 @@ func TestConsoleDynamoDBFlow(t *testing.T) {
 
 func TestConsoleSNSFlow(t *testing.T) {
 	h := newConsole(t)
-	req(t, h, "POST", "/_console/sqs/create", url.Values{"name": {"sink"}})
-
-	rec := req(t, h, "POST", "/_console/sns/create", url.Values{"name": {"events"}})
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "events") {
-		t.Fatalf("create topic: %d\n%s", rec.Code, rec.Body)
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"sink"}})
+	if loc := create(t, h, "/_console/sns/create", url.Values{"name": {"events"}}); !strings.Contains(loc, "/sns/events") {
+		t.Fatalf("create topic location = %q", loc)
 	}
 
 	// Subscribe the queue, publish, and the message lands in the queue.
@@ -224,13 +240,11 @@ func TestConsoleSNSFlow(t *testing.T) {
 
 func TestConsoleEventBridgeFlow(t *testing.T) {
 	h := newConsole(t)
-	req(t, h, "POST", "/_console/sqs/create", url.Values{"name": {"evsink"}})
-
-	rec := req(t, h, "POST", "/_console/eb/default/create-rule", url.Values{
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"evsink"}})
+	if loc := create(t, h, "/_console/eb/default/create-rule", url.Values{
 		"name": {"on-orders"}, "pattern": {`{"source":["orders"]}`},
-	})
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "on-orders") {
-		t.Fatalf("create rule: %d\n%s", rec.Code, rec.Body)
+	}); !strings.Contains(loc, "/eb/default/rule/on-orders") {
+		t.Fatalf("create rule location = %q", loc)
 	}
 	tgt := req(t, h, "POST", "/_console/eb/default/rule/on-orders/add-target", url.Values{
 		"arn": {"arn:aws:sqs:us-east-1:000000000000:evsink"},
@@ -254,20 +268,17 @@ func TestConsoleEventBridgeFlow(t *testing.T) {
 func TestConsoleKMSFlow(t *testing.T) {
 	h := newConsole(t)
 
-	rec := req(t, h, "POST", "/_console/kms/create", url.Values{
+	loc := create(t, h, "/_console/kms/create", url.Values{
 		"spec": {"SYMMETRIC_DEFAULT"}, "alias": {"app-data"},
 	})
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "app-data") {
-		t.Fatalf("create key: %d\n%s", rec.Code, rec.Body)
+	// The redirect goes straight to the new key page: /_console/kms/<id>?flash=…
+	id := strings.TrimPrefix(loc, "/_console/kms/")
+	if i := strings.IndexAny(id, "?"); i >= 0 {
+		id = id[:i]
 	}
-	// Pull the key id out of the key list link (/_console/kms/<id>).
-	body := rec.Body.String()
-	i := strings.Index(body, "/_console/kms/")
-	if i < 0 {
-		t.Fatal("no key link in list")
+	if id == "" {
+		t.Fatalf("no key id in location %q", loc)
 	}
-	id := body[i+len("/_console/kms/"):]
-	id = id[:strings.IndexAny(id, `"`)]
 
 	// Encrypt/decrypt round-trip through the playground.
 	enc := req(t, h, "POST", "/_console/kms/"+id+"/encrypt", url.Values{"plaintext": {"round-trip-me"}})
@@ -275,7 +286,8 @@ func TestConsoleKMSFlow(t *testing.T) {
 		t.Fatalf("encrypt: %d\n%s", enc.Code, enc.Body)
 	}
 	eb := enc.Body.String()
-	ct := eb[strings.Index(eb, "<pre>")+5 : strings.Index(eb, "</pre>")]
+	// html/template entity-escapes '+' etc. in text nodes; browsers decode them.
+	ct := html.UnescapeString(eb[strings.Index(eb, "<pre>")+5 : strings.Index(eb, "</pre>")])
 	dec := req(t, h, "POST", "/_console/kms/"+id+"/decrypt", url.Values{"ciphertext": {ct}})
 	if dec.Code != 200 || !strings.Contains(dec.Body.String(), "round-trip-me") {
 		t.Fatalf("decrypt: %d\n%s", dec.Code, dec.Body)
@@ -285,11 +297,10 @@ func TestConsoleKMSFlow(t *testing.T) {
 func TestConsoleSSMFlow(t *testing.T) {
 	h := newConsole(t)
 
-	rec := req(t, h, "POST", "/_console/ssm/create", url.Values{
+	if loc := create(t, h, "/_console/ssm/create", url.Values{
 		"name": {"/app/db/host"}, "value": {"localhost:5432"}, "type": {"String"},
-	})
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "/app/db/host") {
-		t.Fatalf("create param: %d\n%s", rec.Code, rec.Body)
+	}); !strings.Contains(loc, "/ssm/param?name=") {
+		t.Fatalf("create param location = %q", loc)
 	}
 	// New version, then the page shows v2 + history.
 	req(t, h, "POST", "/_console/ssm/put", url.Values{"name": {"/app/db/host"}, "value": {"db:5432"}})
@@ -302,11 +313,10 @@ func TestConsoleSSMFlow(t *testing.T) {
 func TestConsoleSecretsFlow(t *testing.T) {
 	h := newConsole(t)
 
-	rec := req(t, h, "POST", "/_console/sm/create", url.Values{
+	if loc := create(t, h, "/_console/sm/create", url.Values{
 		"name": {"prod/db"}, "value": {`{"user":"admin"}`},
-	})
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "prod/db") {
-		t.Fatalf("create secret: %d\n%s", rec.Code, rec.Body)
+	}); !strings.Contains(loc, "/sm/secret?name=") {
+		t.Fatalf("create secret location = %q", loc)
 	}
 	page := req(t, h, "GET", "/_console/sm/secret?name=prod/db", nil)
 	if !strings.Contains(page.Body.String(), "AWSCURRENT") || !strings.Contains(page.Body.String(), "admin") {
@@ -316,8 +326,8 @@ func TestConsoleSecretsFlow(t *testing.T) {
 
 func TestConsoleS3Properties(t *testing.T) {
 	h := newConsole(t)
-	// Create with versioning on via the dialog options.
-	req(t, h, "POST", "/_console/s3/create", url.Values{"name": {"propbkt"}, "versioning": {"on"}})
+	// Create with versioning on via the create-page options.
+	create(t, h, "/_console/s3/create", url.Values{"name": {"propbkt"}, "versioning": {"on"}})
 	page := req(t, h, "GET", "/_console/s3/propbkt?tab=properties", nil)
 	body := page.Body.String()
 	if !strings.Contains(body, "Versioning") || !strings.Contains(body, "state-on") ||
@@ -332,5 +342,30 @@ func TestConsoleLambdaPage(t *testing.T) {
 	page := req(t, h, "GET", "/_console/lambda", nil)
 	if page.Code != 200 || !strings.Contains(page.Body.String(), "_local_") {
 		t.Fatalf("lambda list: %d\n%s", page.Code, page.Body)
+	}
+}
+
+// TestConsoleCreatePages: every create form renders as a full page with its
+// sectioned panels, and the palette API returns the live resource index.
+func TestConsoleCreatePagesAndPalette(t *testing.T) {
+	h := newConsole(t)
+
+	for _, p := range []string{
+		"/_console/s3/create", "/_console/sqs/create", "/_console/ddb/create",
+		"/_console/sns/create", "/_console/eb/create-bus", "/_console/eb/default/create-rule",
+		"/_console/kms/create", "/_console/ssm/create", "/_console/sm/create",
+	} {
+		rec := req(t, h, "GET", p, nil)
+		if rec.Code != 200 || !strings.Contains(rec.Body.String(), "form-page") {
+			t.Fatalf("create page %s: %d", p, rec.Code)
+		}
+	}
+
+	// Seed one resource, then the palette index includes it plus the actions.
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"palq"}})
+	api := req(t, h, "GET", "/_console/api/resources", nil)
+	body := api.Body.String()
+	if api.Code != 200 || !strings.Contains(body, `"palq"`) || !strings.Contains(body, `"u":"/_console/sqs/palq"`) {
+		t.Fatalf("palette api: %d\n%s", api.Code, body)
 	}
 }

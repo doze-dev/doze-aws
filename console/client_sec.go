@@ -106,7 +106,8 @@ func (b *backend) DescribeKey(ctx context.Context, id string) (*Key, error) {
 	return k, nil
 }
 
-func (b *backend) CreateKey(ctx context.Context, spec, usage, alias, description string) error {
+// CreateKey creates a key (plus optional alias) and returns the new key id.
+func (b *backend) CreateKey(ctx context.Context, spec, usage, alias, description string) (string, error) {
 	in := map[string]any{}
 	if spec != "" {
 		in["KeySpec"] = spec
@@ -119,22 +120,22 @@ func (b *backend) CreateKey(ctx context.Context, spec, usage, alias, description
 	}
 	body, err := b.json11(ctx, "TrentService", "CreateKey", in)
 	if err != nil {
-		return err
+		return "", err
 	}
+	var out struct {
+		KeyMetadata struct {
+			KeyId string `json:"KeyId"`
+		} `json:"KeyMetadata"`
+	}
+	json.Unmarshal(body, &out)
 	if alias != "" {
-		var out struct {
-			KeyMetadata struct {
-				KeyId string `json:"KeyId"`
-			} `json:"KeyMetadata"`
-		}
-		json.Unmarshal(body, &out)
 		if _, err := b.json11(ctx, "TrentService", "CreateAlias", map[string]any{
 			"AliasName": "alias/" + alias, "TargetKeyId": out.KeyMetadata.KeyId,
 		}); err != nil {
-			return err
+			return "", err
 		}
 	}
-	return nil
+	return out.KeyMetadata.KeyId, nil
 }
 
 func (b *backend) SetKeyEnabled(ctx context.Context, id string, enable bool) error {

@@ -5,7 +5,7 @@
 <div class="idband">
   <div class="ph">
     <div>
-      <h1><span class="svc svc-sqs">{{icon "inbox"}}</span> {{.Queue}}</h1>
+      <h1>{{awsIcon "sqs"}} {{.Queue}}</h1>
       <div class="chips" style="margin-top:8px">
         {{template "copychip" dict "Label" "arn" "Value" .ARN}}
         {{template "copychip" dict "Label" "url" "Value" .URL}}
@@ -32,10 +32,25 @@
         </form>
       </div>
     </div>
-    <div class="sec-title">Attributes</div>
+    <div class="sec-title">Configuration</div>
     <div class="table-wrap"><table class="tbl kv"><tbody>
-      {{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td class="trunc">{{$v}}</td></tr>{{end}}
+      <tr><td>Type</td><td>{{if .Config.FIFO}}<span class="badge type">FIFO</span>{{else}}Standard{{end}}</td></tr>
+      <tr><td>Visibility timeout</td><td>{{.Config.Visibility}} s</td></tr>
+      <tr><td>Message retention</td><td>{{.Config.Retention}} s</td></tr>
+      {{if .Config.Delay}}<tr><td>Delivery delay</td><td>{{.Config.Delay}} s</td></tr>{{end}}
+      {{if .Config.DLQ}}
+      <tr><td>Dead-letter queue</td><td><a href="{{.Prefix}}/sqs/{{.Config.DLQ}}" style="color:hsl(var(--accent-blue))">{{.Config.DLQ}}</a> <span class="dim">after {{.Config.MaxReceive}} receives</span></td></tr>
+      {{end}}
+      {{if .Config.Created}}<tr><td>Created</td><td>{{.Config.Created}}</td></tr>{{end}}
+      {{if .Config.Modified}}<tr><td>Last modified</td><td>{{.Config.Modified}}</td></tr>{{end}}
     </tbody></table></div>
+
+    <div x-data="{raw:false}" style="margin-top:10px">
+      <button class="btn btn-outline btn-sm" @click="raw=!raw" x-text="raw ? 'Hide raw attributes' : 'Show raw attributes'"></button>
+      <div class="table-wrap" x-show="raw" x-cloak style="margin-top:8px"><table class="tbl kv"><tbody>
+        {{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}
+      </tbody></table></div>
+    </div>
   </div>
 
   <div hx-get="{{.Prefix}}/sqs/{{.Queue}}/messages" hx-trigger="load, every 3s" hx-swap="outerHTML">

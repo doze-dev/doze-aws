@@ -1,12 +1,12 @@
 {{define "s3_objects"}}{{template "header" .}}
-<div x-data="{drawer:false}">
+<div x-data="s3page('{{.Prefix}}', '{{.Bucket}}')">
 <nav class="bc">
   <a href="{{.Prefix}}/s3">{{icon "hard-drive"}} S3</a>{{icon "chevron"}}<span>{{.Bucket}}</span>
 </nav>
 <div class="idband">
   <div class="ph">
     <div>
-      <h1><span class="svc svc-s3">{{icon "hard-drive"}}</span> {{.Bucket}}</h1>
+      <h1>{{awsIcon "s3"}} {{.Bucket}}</h1>
       <div class="chips" style="margin-top:8px">
         {{template "copychip" dict "Label" "arn" "Value" (printf "arn:aws:s3:::%s" .Bucket)}}
         {{template "copychip" dict "Label" "uri" "Value" (printf "s3://%s" .Bucket)}}
@@ -35,7 +35,16 @@
 {{if eq .Tab "properties"}}
   {{template "s3_props" .}}
 {{else}}
+<div class="dropwrap" @dragenter.prevent="drag++" @dragover.prevent @dragleave.prevent="drag--"
+     @drop.prevent="drag=0; uploadFiles($event.dataTransfer.files)">
   {{template "object_table" .}}
+  <div class="dropzone" x-show="drag > 0" x-cloak>
+    <div class="dz-inner">{{icon "upload"}} Drop to upload to <b>{{.Bucket}}{{if .KeyPrefix}}/{{.KeyPrefix}}{{end}}</b></div>
+  </div>
+  <div class="dropzone busy" x-show="busy" x-cloak>
+    <div class="dz-inner">{{icon "upload"}} Uploading <span x-text="busyName"></span>…</div>
+  </div>
+</div>
 {{end}}
 
 <div class="drawer-scrim" x-show="drawer" x-cloak @click="drawer=false"></div>
@@ -43,10 +52,43 @@
   <div id="drawer-inner"></div>
 </aside>
 </div>
+
+<script>
+  function s3page(prefix, bucket) {
+    return {
+      drawer: false, drag: 0, busy: false, busyName: "",
+      currentPrefix() {
+        var t = document.getElementById("object-table");
+        return (t && t.dataset.prefix) || "";
+      },
+      async uploadFiles(files) {
+        if (!files || !files.length) return;
+        var keyPrefix = this.currentPrefix();
+        this.busy = true;
+        var done = 0;
+        for (const f of files) {
+          this.busyName = f.name;
+          const fd = new FormData();
+          fd.append("prefix", keyPrefix);
+          fd.append("file", f);
+          const resp = await fetch(prefix + "/s3/" + bucket + "/upload", { method: "POST", body: fd });
+          if (resp.ok) { done++; }
+          else { window.dispatchEvent(new CustomEvent("toast-error", { detail: "Upload failed: " + f.name })); }
+        }
+        this.busy = false;
+        if (done) {
+          window.dispatchEvent(new CustomEvent("toast", { detail: "Uploaded " + done + " file" + (done > 1 ? "s" : "") }));
+          htmx.ajax("GET", prefix + "/s3/" + bucket + "?partial=1&prefix=" + encodeURIComponent(keyPrefix),
+                    { target: "#object-table", swap: "outerHTML" });
+        }
+      },
+    };
+  }
+</script>
 {{template "footer" .}}{{end}}
 
 {{define "object_table"}}
-<div id="object-table">
+<div id="object-table" data-prefix="{{.KeyPrefix}}">
 <nav class="bc">
   <a hx-get="{{.Prefix}}/s3/{{.Bucket}}?partial=1" hx-target="#object-table" hx-swap="outerHTML" href="{{.Prefix}}/s3/{{.Bucket}}">{{icon "hard-drive"}} {{.Bucket}}</a>
   {{range .Crumbs}}{{icon "chevron"}}
@@ -79,7 +121,7 @@
     {{end}}
   {{end}}</tbody>
 </table></div>
-{{else}}<div class="empty"><span class="ic-lg">{{icon "folder"}}</span><p>This location is empty — upload a file to get started.</p></div>{{end}}
+{{else}}<div class="empty dashed"><span class="ic-lg">{{icon "upload"}}</span><p><b>Drag files anywhere on this page</b> to upload them here,<br>or use the Upload button above.</p></div>{{end}}
 </div>
 {{end}}
 

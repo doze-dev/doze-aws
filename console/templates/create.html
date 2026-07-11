@@ -1,0 +1,356 @@
+{{define "s3_create"}}{{template "header" .}}
+<div class="form-page">
+  <nav class="bc"><a href="{{.Prefix}}/s3">{{awsIcon "s3"}} S3</a>{{icon "chevron"}}<span>Create bucket</span></nav>
+  <h1>Create bucket</h1>
+  <p class="ph-desc">Buckets hold objects. Names are 3–63 lowercase characters: letters, digits, dots, hyphens.</p>
+  <form hx-post="{{.Prefix}}/s3/create" hx-indicator="#submit-spin">
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>General</h2></div>
+      <div class="form-b">
+        <div class="field">
+          <label>Bucket name</label>
+          <input class="input" name="name" placeholder="my-bucket" required pattern="[a-z0-9.\-]{3,63}" autocomplete="off" autofocus>
+        </div>
+      </div>
+    </div>
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>Options</h2></div>
+      <div class="form-b">
+        <div class="opt-row">
+          <div><div class="opt-l">Versioning</div><div class="opt-d">Keep every version of every object; deletes leave markers instead of destroying data</div></div>
+          <label class="switch"><input type="checkbox" name="versioning"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+        <div class="opt-row">
+          <div><div class="opt-l">Object lock</div><div class="opt-d">Retention periods and legal holds. Only settable at creation; implies versioning</div></div>
+          <label class="switch"><input type="checkbox" name="object_lock"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+      </div>
+    </div>
+    {{template "form_actions" dict "Cancel" (printf "%s/s3" .Prefix) "Submit" "Create bucket"}}
+  </form>
+</div>
+{{template "footer" .}}{{end}}
+
+{{define "sqs_create"}}{{template "header" .}}
+<div class="form-page">
+  <nav class="bc"><a href="{{.Prefix}}/sqs">{{awsIcon "sqs"}} SQS</a>{{icon "chevron"}}<span>Create queue</span></nav>
+  <h1>Create queue</h1>
+  <p class="ph-desc">Every setting can also be changed later through the SDK.</p>
+  <form hx-post="{{.Prefix}}/sqs/create" hx-indicator="#submit-spin">
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>General</h2></div>
+      <div class="form-b">
+        <div class="field">
+          <label>Queue name</label>
+          <input class="input" name="name" placeholder="orders" required pattern="[a-zA-Z0-9_\-.]{1,80}" autocomplete="off" autofocus>
+        </div>
+        <div class="opt-row" style="margin-top:6px">
+          <div><div class="opt-l">FIFO queue</div><div class="opt-d">Strict ordering and exactly-once within a message group; the name gets a .fifo suffix</div></div>
+          <label class="switch"><input type="checkbox" name="fifo"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+      </div>
+    </div>
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>Delivery</h2></div>
+      <div class="form-b">
+        <div class="fgrid">
+          <div class="field">
+            <label>Visibility timeout <span class="dim">seconds</span></label>
+            <input class="input" name="visibility" type="number" min="0" max="43200" placeholder="30">
+            <span class="hint">How long a received message stays hidden before it can be received again</span>
+          </div>
+          <div class="field">
+            <label>Delivery delay <span class="dim">seconds</span></label>
+            <input class="input" name="delay" type="number" min="0" max="900" placeholder="0">
+            <span class="hint">Newly sent messages stay invisible this long</span>
+          </div>
+          <div class="field">
+            <label>Retention <span class="dim">seconds</span></label>
+            <input class="input" name="retention" type="number" min="60" max="1209600" placeholder="345600">
+            <span class="hint">Unconsumed messages are dropped after this (default 4 days)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>Dead-letter queue</h2></div>
+      <div class="form-b">
+        <div class="fgrid">
+          <div class="field">
+            <label>Send failed messages to</label>
+            <select class="input" name="dlq">
+              <option value="">No dead-letter queue</option>
+              {{range .Queues}}<option value="{{.Name}}">{{.Name}}</option>{{end}}
+            </select>
+          </div>
+          <div class="field">
+            <label>After this many receives</label>
+            <input class="input" name="max_receive" type="number" min="1" max="1000" placeholder="3">
+          </div>
+        </div>
+      </div>
+    </div>
+    {{template "form_actions" dict "Cancel" (printf "%s/sqs" .Prefix) "Submit" "Create queue"}}
+  </form>
+</div>
+{{template "footer" .}}{{end}}
+
+{{define "ddb_create"}}{{template "header" .}}
+<div class="form-page" x-data="{sk:false}">
+  <nav class="bc"><a href="{{.Prefix}}/ddb">{{awsIcon "ddb"}} DynamoDB</a>{{icon "chevron"}}<span>Create table</span></nav>
+  <h1>Create table</h1>
+  <p class="ph-desc">On-demand capacity. Secondary indexes can be added later via the SDK.</p>
+  <form hx-post="{{.Prefix}}/ddb/create" hx-indicator="#submit-spin">
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>General</h2></div>
+      <div class="form-b">
+        <div class="field">
+          <label>Table name</label>
+          <input class="input" name="name" placeholder="users" required pattern="[a-zA-Z0-9_.\-]{3,255}" autocomplete="off" autofocus>
+        </div>
+      </div>
+    </div>
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>Primary key</h2></div>
+      <div class="form-b">
+        <div class="fgrid">
+          <div class="field">
+            <label>Partition key</label>
+            <input class="input" name="hash_key" placeholder="pk" required>
+          </div>
+          <div class="field">
+            <label>Type</label>
+            <select class="input" name="hash_type">
+              <option value="S">String</option><option value="N">Number</option><option value="B">Binary</option>
+            </select>
+          </div>
+        </div>
+        <div class="opt-row" style="margin-top:6px">
+          <div><div class="opt-l">Sort key</div><div class="opt-d">Adds a second key dimension so one partition can hold ordered items</div></div>
+          <label class="switch"><input type="checkbox" x-model="sk"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+        <div class="fgrid" x-show="sk" x-cloak style="margin-top:10px">
+          <div class="field">
+            <label>Sort key</label>
+            <input class="input" name="range_key" placeholder="sk" :required="sk" :disabled="!sk">
+          </div>
+          <div class="field">
+            <label>Type</label>
+            <select class="input" name="range_type" :disabled="!sk">
+              <option value="S">String</option><option value="N">Number</option><option value="B">Binary</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    {{template "form_actions" dict "Cancel" (printf "%s/ddb" .Prefix) "Submit" "Create table"}}
+  </form>
+</div>
+{{template "footer" .}}{{end}}
+
+{{define "sns_create"}}{{template "header" .}}
+<div class="form-page">
+  <nav class="bc"><a href="{{.Prefix}}/sns">{{awsIcon "sns"}} SNS</a>{{icon "chevron"}}<span>Create topic</span></nav>
+  <h1>Create topic</h1>
+  <p class="ph-desc">Publish once, deliver to every subscription — queues, functions, or webhooks.</p>
+  <form hx-post="{{.Prefix}}/sns/create" hx-indicator="#submit-spin">
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>General</h2></div>
+      <div class="form-b">
+        <div class="field">
+          <label>Topic name</label>
+          <input class="input" name="name" placeholder="order-events" required pattern="[a-zA-Z0-9_\-]{1,256}" autocomplete="off" autofocus>
+        </div>
+      </div>
+    </div>
+    {{template "form_actions" dict "Cancel" (printf "%s/sns" .Prefix) "Submit" "Create topic"}}
+  </form>
+</div>
+{{template "footer" .}}{{end}}
+
+{{define "eb_bus_create"}}{{template "header" .}}
+<div class="form-page">
+  <nav class="bc"><a href="{{.Prefix}}/eb">{{awsIcon "eb"}} EventBridge</a>{{icon "chevron"}}<span>Create event bus</span></nav>
+  <h1>Create event bus</h1>
+  <p class="ph-desc">Rules on a custom bus only match events sent to that bus.</p>
+  <form hx-post="{{.Prefix}}/eb/create-bus" hx-indicator="#submit-spin">
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>General</h2></div>
+      <div class="form-b">
+        <div class="field">
+          <label>Bus name</label>
+          <input class="input" name="name" placeholder="orders-bus" required pattern="[a-zA-Z0-9_\-.]{1,256}" autocomplete="off" autofocus>
+        </div>
+      </div>
+    </div>
+    {{template "form_actions" dict "Cancel" (printf "%s/eb" .Prefix) "Submit" "Create event bus"}}
+  </form>
+</div>
+{{template "footer" .}}{{end}}
+
+{{define "eb_rule_create"}}{{template "header" .}}
+<div class="form-page">
+  <nav class="bc">
+    <a href="{{.Prefix}}/eb">{{awsIcon "eb"}} EventBridge</a>{{icon "chevron"}}
+    <a href="{{.Prefix}}/eb/{{.Bus}}">{{.Bus}}</a>{{icon "chevron"}}<span>Create rule</span>
+  </nav>
+  <h1>Create rule</h1>
+  <p class="ph-desc">A rule matches events on the <b>{{.Bus}}</b> bus by pattern, by schedule, or both.</p>
+  <form hx-post="{{.Prefix}}/eb/{{.Bus}}/create-rule" hx-indicator="#submit-spin">
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>General</h2></div>
+      <div class="form-b">
+        <div class="field">
+          <label>Rule name</label>
+          <input class="input" name="name" placeholder="on-order-created" required pattern="[a-zA-Z0-9_\-.]{1,64}" autocomplete="off" autofocus>
+        </div>
+      </div>
+    </div>
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>Match</h2></div>
+      <div class="form-b">
+        <div class="field" style="margin-bottom:12px">
+          <label>Event pattern <span class="dim">JSON</span></label>
+          <textarea name="pattern" rows="7" spellcheck="false" placeholder='{&#10;  "source": ["orders"],&#10;  "detail-type": ["created"]&#10;}'></textarea>
+          <span class="hint">Prefix, wildcard, numeric, anything-but and $or matchers all work — the full pattern language.</span>
+        </div>
+        <div class="field">
+          <label>Schedule <span class="dim">optional</span></label>
+          <input class="input" name="schedule" placeholder="rate(5 minutes)">
+        </div>
+      </div>
+    </div>
+    {{template "form_actions" dict "Cancel" (printf "%s/eb/%s" .Prefix .Bus) "Submit" "Create rule"}}
+  </form>
+</div>
+{{template "footer" .}}{{end}}
+
+{{define "kms_create"}}{{template "header" .}}
+<div class="form-page">
+  <nav class="bc"><a href="{{.Prefix}}/kms">{{awsIcon "kms"}} KMS</a>{{icon "chevron"}}<span>Create key</span></nav>
+  <h1>Create key</h1>
+  <p class="ph-desc">Symmetric keys encrypt and decrypt; RSA/ECC keys sign and verify; HMAC keys generate MACs.</p>
+  <form hx-post="{{.Prefix}}/kms/create" hx-indicator="#submit-spin">
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>Key type</h2></div>
+      <div class="form-b">
+        <div class="fgrid">
+          <div class="field">
+            <label>Key spec</label>
+            <select class="input" name="spec">
+              <option value="SYMMETRIC_DEFAULT">SYMMETRIC_DEFAULT</option>
+              <option value="RSA_2048">RSA_2048</option>
+              <option value="RSA_3072">RSA_3072</option>
+              <option value="RSA_4096">RSA_4096</option>
+              <option value="ECC_NIST_P256">ECC_NIST_P256</option>
+              <option value="ECC_NIST_P384">ECC_NIST_P384</option>
+              <option value="HMAC_256">HMAC_256</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Usage</label>
+            <select class="input" name="usage">
+              <option value="">Default for spec</option>
+              <option value="ENCRYPT_DECRYPT">ENCRYPT_DECRYPT</option>
+              <option value="SIGN_VERIFY">SIGN_VERIFY</option>
+              <option value="GENERATE_VERIFY_MAC">GENERATE_VERIFY_MAC</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>Identification</h2></div>
+      <div class="form-b">
+        <div class="fgrid">
+          <div class="field">
+            <label>Alias <span class="dim">optional</span></label>
+            <input class="input" name="alias" placeholder="app-data" pattern="[a-zA-Z0-9/_\-]{1,250}" autofocus>
+          </div>
+          <div class="field">
+            <label>Description <span class="dim">optional</span></label>
+            <input class="input" name="description" placeholder="App data encryption">
+          </div>
+        </div>
+      </div>
+    </div>
+    {{template "form_actions" dict "Cancel" (printf "%s/kms" .Prefix) "Submit" "Create key"}}
+  </form>
+</div>
+{{template "footer" .}}{{end}}
+
+{{define "ssm_create"}}{{template "header" .}}
+<div class="form-page">
+  <nav class="bc"><a href="{{.Prefix}}/ssm">{{awsIcon "ssm"}} Parameter Store</a>{{icon "chevron"}}<span>Create parameter</span></nav>
+  <h1>Create parameter</h1>
+  <p class="ph-desc">Use path-style names like <span class="mono">/app/db/host</span> so related config groups together.</p>
+  <form hx-post="{{.Prefix}}/ssm/create" hx-indicator="#submit-spin">
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>General</h2></div>
+      <div class="form-b">
+        <div class="fgrid">
+          <div class="field">
+            <label>Name</label>
+            <input class="input mono" name="name" placeholder="/app/db/host" required autocomplete="off" autofocus>
+          </div>
+          <div class="field">
+            <label>Type</label>
+            <select class="input" name="type">
+              <option value="String">String</option>
+              <option value="SecureString">SecureString — encrypted at rest</option>
+              <option value="StringList">StringList — comma-separated</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>Value</h2></div>
+      <div class="form-b">
+        <textarea name="value" rows="10" required placeholder="localhost:5432" spellcheck="false"></textarea>
+      </div>
+    </div>
+    {{template "form_actions" dict "Cancel" (printf "%s/ssm" .Prefix) "Submit" "Create parameter"}}
+  </form>
+</div>
+{{template "footer" .}}{{end}}
+
+{{define "sm_create"}}{{template "header" .}}
+<div class="form-page">
+  <nav class="bc"><a href="{{.Prefix}}/sm">{{awsIcon "sm"}} Secrets Manager</a>{{icon "chevron"}}<span>Store secret</span></nav>
+  <h1>Store a new secret</h1>
+  <p class="ph-desc">The value is encrypted at rest. JSON key/value pairs are conventional, but any string works.</p>
+  <form hx-post="{{.Prefix}}/sm/create" hx-indicator="#submit-spin">
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>General</h2></div>
+      <div class="form-b">
+        <div class="fgrid">
+          <div class="field">
+            <label>Secret name</label>
+            <input class="input mono" name="name" placeholder="prod/db/credentials" required autocomplete="off" autofocus>
+          </div>
+          <div class="field">
+            <label>Description <span class="dim">optional</span></label>
+            <input class="input" name="description" placeholder="Database credentials">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel form-sec">
+      <div class="panel-h"><h2>Secret value</h2></div>
+      <div class="form-b">
+        <textarea name="value" rows="12" spellcheck="false" required placeholder='{&#10;  "username": "admin",&#10;  "password": "…"&#10;}'></textarea>
+      </div>
+    </div>
+    {{template "form_actions" dict "Cancel" (printf "%s/sm" .Prefix) "Submit" "Store secret"}}
+  </form>
+</div>
+{{template "footer" .}}{{end}}
+
+{{define "form_actions"}}
+<div class="form-actions">
+  <span id="submit-spin" class="dim htmx-indicator">Working…</span>
+  <a class="btn btn-outline" href="{{.Cancel}}">Cancel</a>
+  <button type="submit" class="btn">{{.Submit}}</button>
+</div>
+{{end}}

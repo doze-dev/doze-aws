@@ -15,7 +15,7 @@ func (c *Console) snsTopics(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "sns_topics", map[string]any{"Topics": topics})
+	c.render(w, r, "sns_topics", map[string]any{"Topics": topics})
 }
 
 func (c *Console) snsCreateTopic(w http.ResponseWriter, r *http.Request) {
@@ -24,9 +24,7 @@ func (c *Console) snsCreateTopic(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Topic “"+name+"” created")
-	topics, _ := c.be.ListTopics(r.Context())
-	c.partial(w, "sns_topic_list", map[string]any{"Topics": topics})
+	c.redirect(w, r, c.prefix+"/sns/"+name, "Topic “"+name+"” created")
 }
 
 func (c *Console) snsDeleteTopic(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +48,7 @@ func (c *Console) snsTopic(w http.ResponseWriter, r *http.Request) {
 	subs, _ := c.be.ListSubscriptions(r.Context(), arn)
 	queues, _ := c.be.ListQueues(r.Context())
 	fns, _ := c.be.ListFunctions(r.Context())
-	c.render(w, "sns_topic", map[string]any{
+	c.render(w, r, "sns_topic", map[string]any{
 		"Topic": name, "ARN": arn, "Attrs": attrs, "Subs": subs,
 		"Queues": queues, "Functions": fns,
 	})

@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -17,7 +18,7 @@ import (
 //go:embed templates/*.html
 var templateFS embed.FS
 
-//go:embed static/*
+//go:embed static/* static/aws/*
 var staticFS embed.FS
 
 // Console is the web-UI http.Handler. Mount it under a path prefix (default
@@ -67,6 +68,20 @@ func (c *Console) routes() {
 
 	m.HandleFunc("GET "+p+"/", c.overview)
 	m.HandleFunc("GET "+p, c.overview)
+
+	// Resource index for the command palette.
+	m.HandleFunc("GET "+p+"/api/resources", c.apiResources)
+
+	// Full-page create forms (GET renders the page, POST on the same path submits).
+	m.HandleFunc("GET "+p+"/s3/create", c.createPage("s3_create"))
+	m.HandleFunc("GET "+p+"/sqs/create", c.sqsCreatePage)
+	m.HandleFunc("GET "+p+"/ddb/create", c.createPage("ddb_create"))
+	m.HandleFunc("GET "+p+"/sns/create", c.createPage("sns_create"))
+	m.HandleFunc("GET "+p+"/eb/create-bus", c.createPage("eb_bus_create"))
+	m.HandleFunc("GET "+p+"/eb/{bus}/create-rule", c.ebRuleCreatePage)
+	m.HandleFunc("GET "+p+"/kms/create", c.createPage("kms_create"))
+	m.HandleFunc("GET "+p+"/ssm/create", c.createPage("ssm_create"))
+	m.HandleFunc("GET "+p+"/sm/create", c.createPage("sm_create"))
 
 	// S3.
 	m.HandleFunc("GET "+p+"/s3", c.s3Buckets)
@@ -153,17 +168,39 @@ func (c *Console) routes() {
 	c.mux = m
 }
 
-// render writes a full page (layout + named content template).
-func (c *Console) render(w http.ResponseWriter, page string, data map[string]any) {
+// render writes a full page (layout + named content template). The request is
+// consulted for a ?flash= success banner (set by redirects after creates).
+func (c *Console) render(w http.ResponseWriter, r *http.Request, page string, data map[string]any) {
 	if data == nil {
 		data = map[string]any{}
 	}
 	data["Prefix"] = c.prefix
 	data["Page"] = page
+	if f := r.URL.Query().Get("flash"); f != "" {
+		data["Flash"] = f
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := c.tmpl.ExecuteTemplate(w, page, data); err != nil {
 		http.Error(w, err.Error(), 500)
 	}
+}
+
+// redirect sends the browser to `to` with an optional flash banner — via
+// HX-Redirect for htmx requests, 303 See Other for plain forms.
+func (c *Console) redirect(w http.ResponseWriter, r *http.Request, to, flash string) {
+	if flash != "" {
+		sep := "?"
+		if strings.Contains(to, "?") {
+			sep = "&"
+		}
+		to += sep + "flash=" + url.QueryEscape(flash)
+	}
+	if r.Header.Get("HX-Request") == "true" {
+		w.Header().Set("HX-Redirect", to)
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	http.Redirect(w, r, to, http.StatusSeeOther)
 }
 
 // partial renders a single named template (for HTMX swaps).
@@ -198,6 +235,10 @@ func templateFuncs(prefix string) template.FuncMap {
 		"count":     humanCount,
 		"hasPrefix": strings.HasPrefix,
 		"addOne":    func(n int64) int64 { return n + 1 },
+		// awsIcon renders an official AWS Architecture service icon (embedded).
+		"awsIcon": func(svc string) template.HTML {
+			return template.HTML(`<img class="aws-ic" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)
+		},
 		// dict builds a map for passing several values to a nested template.
 		"dict": func(kv ...any) map[string]any {
 			m := make(map[string]any, len(kv)/2)

@@ -1,6 +1,12 @@
 package console
 
-import "net/http"
+import (
+	"net/http"
+	"net/url"
+)
+
+// urlQuery escapes a value for a query-string component.
+func urlQuery(v string) string { return url.QueryEscape(v) }
 
 // ---- KMS ----
 
@@ -10,19 +16,18 @@ func (c *Console) kmsKeys(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "kms_keys", map[string]any{"Keys": keys})
+	c.render(w, r, "kms_keys", map[string]any{"Keys": keys})
 }
 
 func (c *Console) kmsCreateKey(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.CreateKey(r.Context(),
+	id, err := c.be.CreateKey(r.Context(),
 		r.FormValue("spec"), r.FormValue("usage"),
-		r.FormValue("alias"), r.FormValue("description")); err != nil {
+		r.FormValue("alias"), r.FormValue("description"))
+	if err != nil {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Key created")
-	keys, _ := c.be.ListKeys(r.Context())
-	c.partial(w, "kms_key_list", map[string]any{"Keys": keys})
+	c.redirect(w, r, c.prefix+"/kms/"+id, "Key created")
 }
 
 func (c *Console) kmsKey(w http.ResponseWriter, r *http.Request) {
@@ -31,7 +36,7 @@ func (c *Console) kmsKey(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "kms_key", map[string]any{"Key": key})
+	c.render(w, r, "kms_key", map[string]any{"Key": key})
 }
 
 func (c *Console) kmsKeyPartial(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +130,7 @@ func (c *Console) ssmParams(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "ssm_params", map[string]any{"Params": params})
+	c.render(w, r, "ssm_params", map[string]any{"Params": params})
 }
 
 func (c *Console) ssmCreate(w http.ResponseWriter, r *http.Request) {
@@ -134,9 +139,7 @@ func (c *Console) ssmCreate(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Parameter “"+name+"” created")
-	params, _ := c.be.ListParameters(r.Context())
-	c.partial(w, "ssm_param_list", map[string]any{"Params": params})
+	c.redirect(w, r, c.prefix+"/ssm/param?name="+urlQuery(name), "Parameter “"+name+"” created")
 }
 
 func (c *Console) ssmParam(w http.ResponseWriter, r *http.Request) {
@@ -147,7 +150,7 @@ func (c *Console) ssmParam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	hist, _ := c.be.ParameterHistory(r.Context(), name)
-	c.render(w, "ssm_param", map[string]any{"P": p, "History": hist})
+	c.render(w, r, "ssm_param", map[string]any{"P": p, "History": hist})
 }
 
 func (c *Console) ssmPut(w http.ResponseWriter, r *http.Request) {
@@ -184,7 +187,7 @@ func (c *Console) smSecrets(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "sm_secrets", map[string]any{"Secrets": secrets})
+	c.render(w, r, "sm_secrets", map[string]any{"Secrets": secrets})
 }
 
 func (c *Console) smCreate(w http.ResponseWriter, r *http.Request) {
@@ -193,9 +196,7 @@ func (c *Console) smCreate(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Secret “"+name+"” created")
-	secrets, _ := c.be.ListSecrets(r.Context())
-	c.partial(w, "sm_secret_list", map[string]any{"Secrets": secrets})
+	c.redirect(w, r, c.prefix+"/sm/secret?name="+urlQuery(name), "Secret “"+name+"” created")
 }
 
 func (c *Console) smSecret(w http.ResponseWriter, r *http.Request) {
@@ -205,7 +206,7 @@ func (c *Console) smSecret(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "sm_secret", map[string]any{"S": s})
+	c.render(w, r, "sm_secret", map[string]any{"S": s})
 }
 
 func (c *Console) smPut(w http.ResponseWriter, r *http.Request) {

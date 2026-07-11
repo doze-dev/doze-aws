@@ -8,7 +8,7 @@ func (c *Console) ebBuses(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "eb_buses", map[string]any{"Buses": buses})
+	c.render(w, r, "eb_buses", map[string]any{"Buses": buses})
 }
 
 func (c *Console) ebCreateBus(w http.ResponseWriter, r *http.Request) {
@@ -17,9 +17,7 @@ func (c *Console) ebCreateBus(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Event bus “"+name+"” created")
-	buses, _ := c.be.ListBuses(r.Context())
-	c.partial(w, "eb_bus_list", map[string]any{"Buses": buses})
+	c.redirect(w, r, c.prefix+"/eb/"+name, "Event bus “"+name+"” created")
 }
 
 func (c *Console) ebDeleteBus(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +37,7 @@ func (c *Console) ebBus(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "eb_bus", map[string]any{"Bus": bus, "Rules": rules, "BusARN": busARN(bus)})
+	c.render(w, r, "eb_bus", map[string]any{"Bus": bus, "Rules": rules, "BusARN": busARN(bus)})
 }
 
 func (c *Console) ebRulesPartial(w http.ResponseWriter, r *http.Request, bus string) {
@@ -54,8 +52,7 @@ func (c *Console) ebCreateRule(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Rule “"+name+"” created")
-	c.ebRulesPartial(w, r, bus)
+	c.redirect(w, r, c.prefix+"/eb/"+bus+"/rule/"+name, "Rule “"+name+"” created")
 }
 
 func (c *Console) ebDeleteRule(w http.ResponseWriter, r *http.Request) {
@@ -91,7 +88,7 @@ func (c *Console) ebRule(w http.ResponseWriter, r *http.Request) {
 	}
 	queues, _ := c.be.ListQueues(r.Context())
 	fns, _ := c.be.ListFunctions(r.Context())
-	c.render(w, "eb_rule", map[string]any{
+	c.render(w, r, "eb_rule", map[string]any{
 		"Bus": bus, "Rule": rule, "Queues": queues, "Functions": fns,
 	})
 }

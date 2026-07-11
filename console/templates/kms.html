@@ -1,58 +1,11 @@
 {{define "kms_keys"}}{{template "header" .}}
 <div class="ph">
   <div>
-    <h1><span class="svc svc-kms">{{icon "key"}}</span> KMS</h1>
+    <h1>{{awsIcon "kms"}} KMS</h1>
     <p class="ph-desc">Encryption keys — real local crypto, ciphertexts round-trip.</p>
   </div>
   <div class="ph-actions">
-    <span x-data="{open:false}">
-    <button class="btn" @click="open=true">{{icon "plus"}} Create key</button>
-    <div class="overlay" x-show="open" x-cloak @click.self="open=false" @keydown.escape.window="open=false">
-      <div class="dialog wide anim">
-        <form hx-post="{{.Prefix}}/kms/create" hx-target="#kms-key-list" hx-swap="outerHTML"
-              @htmx:after-request="if($event.detail.successful){open=false; $el.reset();}">
-          <div class="dialog-h"><h3>Create key</h3><p>Symmetric for encrypt/decrypt, RSA/ECC for sign/verify, HMAC for MACs.</p></div>
-          <div class="dialog-b">
-            <div class="fgrid">
-              <div class="field">
-                <label>Key spec</label>
-                <select class="input" name="spec">
-                  <option value="SYMMETRIC_DEFAULT">SYMMETRIC_DEFAULT</option>
-                  <option value="RSA_2048">RSA_2048</option>
-                  <option value="RSA_3072">RSA_3072</option>
-                  <option value="RSA_4096">RSA_4096</option>
-                  <option value="ECC_NIST_P256">ECC_NIST_P256</option>
-                  <option value="ECC_NIST_P384">ECC_NIST_P384</option>
-                  <option value="HMAC_256">HMAC_256</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Usage</label>
-                <select class="input" name="usage">
-                  <option value="">Default for spec</option>
-                  <option value="ENCRYPT_DECRYPT">ENCRYPT_DECRYPT</option>
-                  <option value="SIGN_VERIFY">SIGN_VERIFY</option>
-                  <option value="GENERATE_VERIFY_MAC">GENERATE_VERIFY_MAC</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>Alias <span class="dim">(optional)</span></label>
-                <input class="input" name="alias" placeholder="app-data" pattern="[a-zA-Z0-9/_\-]{1,250}">
-              </div>
-              <div class="field">
-                <label>Description <span class="dim">(optional)</span></label>
-                <input class="input" name="description" placeholder="App data encryption">
-              </div>
-            </div>
-          </div>
-          <div class="dialog-f">
-            <button type="button" class="btn btn-outline" @click="open=false">Cancel</button>
-            <button type="submit" class="btn">Create key</button>
-          </div>
-        </form>
-      </div>
-    </div>
-    </span>
+    <a class="btn" href="{{.Prefix}}/kms/create">{{icon "plus"}} Create key</a>
   </div>
 </div>
 
@@ -74,7 +27,7 @@
     </tr>
   {{end}}</tbody>
 </table></div>
-{{else}}<div class="empty"><span class="ic-lg">{{icon "key"}}</span><p>No keys yet — create your first one.</p></div>{{end}}
+{{else}}<div class="empty">{{awsIcon "kms"}}<p>No keys yet. Create one and encrypt something.</p><a class="btn" href="{{.Prefix}}/kms/create">{{icon "plus"}} Create key</a></div>{{end}}
 </div>
 {{end}}
 
@@ -90,7 +43,7 @@
 <div class="idband">
   <div class="ph">
     <div>
-      <h1><span class="svc svc-kms">{{icon "key"}}</span> {{if .Key.Alias}}{{.Key.Alias}}{{else}}{{.Key.ID}}{{end}}
+      <h1>{{awsIcon "kms"}} {{if .Key.Alias}}{{.Key.Alias}}{{else}}{{.Key.ID}}{{end}}
         <span class="badge {{if .Key.Enabled}}state-on{{else}}state-warn{{end}}">{{.Key.State}}</span>
       </h1>
       <div class="chips" style="margin-top:8px">

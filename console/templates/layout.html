@@ -9,7 +9,7 @@
 <script>
   // Let Alpine initialise nodes htmx swaps in.
   document.addEventListener("htmx:afterSwap", function(e){ if(window.Alpine) window.Alpine.initTree(e.detail.target); });
-  // Delegated copy-to-clipboard for every .copy-btn / [data-copy] element.
+  // Delegated copy-to-clipboard for every [data-copy] element.
   document.addEventListener("click", function(e){
     var el = e.target.closest("[data-copy]");
     if (!el) return;
@@ -17,11 +17,26 @@
       window.dispatchEvent(new CustomEvent("toast", { detail: "Copied" }));
     });
   });
+  // Surface failed htmx requests (htmx doesn't swap 4xx/5xx) as error toasts,
+  // with the AWS error message extracted from the response.
+  document.addEventListener("htmx:responseError", function(e){
+    var raw = (e.detail.xhr.responseText || "Request failed").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    var m = raw.match(/<Message>([^<]+)|"message"\s*:\s*"([^"]+)"/i);
+    var msg = (m && (m[1] || m[2])) || raw;
+    if (msg.length > 140) msg = msg.slice(0, 140) + "…";
+    window.dispatchEvent(new CustomEvent("toast-error", { detail: msg }));
+  });
 </script>
 
-<div class="app" x-data="ui()" x-cloak @toast.window="pushToast($event.detail.value ?? $event.detail)">
+<div class="app" x-data="ui('{{.Prefix}}')" x-cloak
+     @toast.window="pushToast($event.detail.value ?? $event.detail, 'ok')"
+     @toast-error.window="pushToast($event.detail.value ?? $event.detail, 'err')"
+     @keydown.window="paletteKeys($event)">
   <header class="topbar">
     <div class="brand"><span class="dot"></span> doze-aws <span class="sub">console</span></div>
+    <button class="tb-palette" @click="openPalette()">
+      {{icon "search"}} <span>Jump to any resource…</span> <span class="kbd">⌘K</span>
+    </button>
     <div class="tb-spacer"></div>
     <div class="tb-right">
       <span class="chip mono"><span class="live"></span>127.0.0.1:4566</span>
@@ -40,48 +55,85 @@
       </nav>
       <div class="side-label">Storage &amp; database</div>
       <nav>
-        <a href="{{.Prefix}}/s3" class="nav-item {{if hasPrefix .Page "s3"}}on{{end}}"><span class="svc svc-s3">{{icon "hard-drive"}}</span> S3</a>
-        <a href="{{.Prefix}}/ddb" class="nav-item {{if hasPrefix .Page "ddb"}}on{{end}}"><span class="svc svc-ddb">{{icon "database"}}</span> DynamoDB</a>
+        <a href="{{.Prefix}}/s3" class="nav-item {{if hasPrefix .Page "s3"}}on{{end}}">{{awsIcon "s3"}} S3</a>
+        <a href="{{.Prefix}}/ddb" class="nav-item {{if hasPrefix .Page "ddb"}}on{{end}}">{{awsIcon "ddb"}} DynamoDB</a>
       </nav>
       <div class="side-label">Compute</div>
       <nav>
-        <a href="{{.Prefix}}/lambda" class="nav-item {{if hasPrefix .Page "lambda"}}on{{end}}"><span class="svc svc-lambda">{{icon "zap"}}</span> Lambda</a>
+        <a href="{{.Prefix}}/lambda" class="nav-item {{if hasPrefix .Page "lambda"}}on{{end}}">{{awsIcon "lambda"}} Lambda</a>
       </nav>
       <div class="side-label">Application integration</div>
       <nav>
-        <a href="{{.Prefix}}/sqs" class="nav-item {{if hasPrefix .Page "sqs"}}on{{end}}"><span class="svc svc-sqs">{{icon "inbox"}}</span> SQS</a>
-        <a href="{{.Prefix}}/sns" class="nav-item {{if hasPrefix .Page "sns"}}on{{end}}"><span class="svc svc-sns">{{icon "share"}}</span> SNS</a>
-        <a href="{{.Prefix}}/eb" class="nav-item {{if hasPrefix .Page "eb"}}on{{end}}"><span class="svc svc-eb">{{icon "route"}}</span> EventBridge</a>
+        <a href="{{.Prefix}}/sqs" class="nav-item {{if hasPrefix .Page "sqs"}}on{{end}}">{{awsIcon "sqs"}} SQS</a>
+        <a href="{{.Prefix}}/sns" class="nav-item {{if hasPrefix .Page "sns"}}on{{end}}">{{awsIcon "sns"}} SNS</a>
+        <a href="{{.Prefix}}/eb" class="nav-item {{if hasPrefix .Page "eb"}}on{{end}}">{{awsIcon "eb"}} EventBridge</a>
       </nav>
       <div class="side-label">Security &amp; config</div>
       <nav>
-        <a href="{{.Prefix}}/kms" class="nav-item {{if hasPrefix .Page "kms"}}on{{end}}"><span class="svc svc-kms">{{icon "key"}}</span> KMS</a>
-        <a href="{{.Prefix}}/sm" class="nav-item {{if hasPrefix .Page "sm"}}on{{end}}"><span class="svc svc-sm">{{icon "lock"}}</span> Secrets Manager</a>
-        <a href="{{.Prefix}}/ssm" class="nav-item {{if hasPrefix .Page "ssm"}}on{{end}}"><span class="svc svc-ssm">{{icon "sliders"}}</span> Parameter Store</a>
+        <a href="{{.Prefix}}/kms" class="nav-item {{if hasPrefix .Page "kms"}}on{{end}}">{{awsIcon "kms"}} KMS</a>
+        <a href="{{.Prefix}}/sm" class="nav-item {{if hasPrefix .Page "sm"}}on{{end}}">{{awsIcon "sm"}} Secrets Manager</a>
+        <a href="{{.Prefix}}/ssm" class="nav-item {{if hasPrefix .Page "ssm"}}on{{end}}">{{awsIcon "ssm"}} Parameter Store</a>
       </nav>
       <div class="side-foot">{{icon "activity"}} local · v0.1.0</div>
     </aside>
 
     <main class="main">
+      {{if .Flash}}
+      <div class="flash anim" x-data="{show:true}" x-show="show">
+        {{icon "check"}} <span>{{.Flash}}</span>
+        <button class="icon-btn sm" style="margin-left:auto" @click="show=false">{{icon "x"}}</button>
+      </div>
+      {{end}}
 {{end}}
 
 {{define "footer"}}
     </main>
   </div>
 
+  <!-- command palette -->
+  <div class="overlay palette-overlay" x-show="pal.open" x-cloak @click.self="pal.open=false" @keydown.escape.window="pal.open=false">
+    <div class="palette anim">
+      <div class="pal-input">
+        {{icon "search"}}
+        <input x-ref="palq" x-model="pal.q" @input="pal.sel=0"
+               @keydown.arrow-down.prevent="pal.sel=Math.min(pal.sel+1, palFiltered().length-1)"
+               @keydown.arrow-up.prevent="pal.sel=Math.max(pal.sel-1, 0)"
+               @keydown.enter.prevent="palGo()"
+               placeholder="Search buckets, queues, tables, functions, keys…" spellcheck="false">
+        <span class="kbd">esc</span>
+      </div>
+      <div class="pal-list">
+        <template x-for="(it, i) in palFiltered()" :key="it.u + it.n">
+          <a class="pal-item" :class="{sel: i === pal.sel}" :href="it.u" @mouseenter="pal.sel=i">
+            <img class="aws-ic sm" :src="prefix + '/static/aws/' + it.s + '.svg'" x-show="it.s !== 'home'">
+            <span class="pal-name" x-text="it.n"></span>
+            <span class="pal-kind" x-text="it.k"></span>
+          </a>
+        </template>
+        <div class="pal-empty" x-show="pal.items.length && !palFiltered().length">Nothing matches “<span x-text="pal.q"></span>”</div>
+        <div class="pal-empty" x-show="!pal.items.length">Loading resources…</div>
+      </div>
+    </div>
+  </div>
+
   <div class="toasts">
     <template x-for="t in toasts" :key="t.id">
-      <div class="toast anim">{{icon "check"}}<span x-text="t.msg"></span><span class="tclose" @click="dismiss(t.id)">{{icon "x"}}</span></div>
+      <div class="toast anim" :class="t.kind">
+        <span x-show="t.kind==='ok'">{{icon "check"}}</span><span x-show="t.kind==='err'">{{icon "alert"}}</span>
+        <span x-text="t.msg"></span><span class="tclose" @click="dismiss(t.id)">{{icon "x"}}</span>
+      </div>
     </template>
   </div>
 </div>
 
 <script>
-  function ui() {
+  function ui(prefix) {
     return {
+      prefix: prefix,
       toasts: [], seq: 0,
+      pal: { open: false, q: "", items: [], sel: 0 },
       dark: (document.documentElement.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark",
-      pushToast(msg) { const id = ++this.seq; this.toasts.push({ id, msg }); setTimeout(() => this.dismiss(id), 3200); },
+      pushToast(msg, kind) { const id = ++this.seq; this.toasts.push({ id, msg, kind: kind || "ok" }); setTimeout(() => this.dismiss(id), kind === "err" ? 6000 : 3200); },
       dismiss(id) { this.toasts = this.toasts.filter(t => t.id !== id); },
       toggleTheme() {
         const next = this.dark ? "light" : "dark";
@@ -89,9 +141,44 @@
         try { localStorage.setItem("theme", next); } catch (e) {}
         this.dark = !this.dark;
       },
+      paletteKeys(e) {
+        if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); this.openPalette(); }
+        else if (e.key === "/" && !/(INPUT|TEXTAREA|SELECT)/.test(document.activeElement.tagName)) { e.preventDefault(); this.openPalette(); }
+      },
+      openPalette() {
+        this.pal.open = true; this.pal.q = ""; this.pal.sel = 0;
+        this.$nextTick(() => this.$refs.palq.focus());
+        fetch(this.prefix + "/api/resources").then(r => r.json()).then(rs => {
+          const items = (rs || []).map(r => ({ ...r, k: this.kindOf(r.s) }));
+          // Service pages and create actions round out the index.
+          const nav = [
+            ["s3","S3","/s3"],["ddb","DynamoDB","/ddb"],["lambda","Lambda","/lambda"],["sqs","SQS","/sqs"],
+            ["sns","SNS","/sns"],["eb","EventBridge","/eb"],["kms","KMS","/kms"],["sm","Secrets Manager","/sm"],["ssm","Parameter Store","/ssm"],
+          ].map(([s,n,u]) => ({ s, n, u: this.prefix + u, k: "service" }));
+          const acts = [
+            ["s3","Create bucket","/s3/create"],["sqs","Create queue","/sqs/create"],["ddb","Create table","/ddb/create"],
+            ["sns","Create topic","/sns/create"],["eb","Create event bus","/eb/create-bus"],["kms","Create key","/kms/create"],
+            ["ssm","Create parameter","/ssm/create"],["sm","Store secret","/sm/create"],
+          ].map(([s,n,u]) => ({ s, n, u: this.prefix + u, k: "action" }));
+          this.pal.items = [...items, ...nav, ...acts];
+        });
+      },
+      kindOf(s) {
+        return { s3: "bucket", sqs: "queue", ddb: "table", sns: "topic", eb: "bus / rule",
+                 lambda: "function", kms: "key", ssm: "parameter", sm: "secret" }[s] || s;
+      },
+      palFiltered() {
+        const q = this.pal.q.toLowerCase().trim();
+        const all = this.pal.items;
+        if (!q) return all.slice(0, 10);
+        return all.filter(it => (it.n + " " + it.k).toLowerCase().includes(q)).slice(0, 10);
+      },
+      palGo() { const it = this.palFiltered()[this.pal.sel]; if (it) location.href = it.u; },
     };
   }
 </script>
 {{end}}
 
 {{define "copychip"}}<span class="copychip">{{if .Label}}<span class="cc-label">{{.Label}}</span>{{end}}<span class="cc-val" title="{{.Value}}">{{.Value}}</span><button type="button" class="copy-btn" data-copy="{{.Value}}" title="Copy">{{icon "copy"}}</button></span>{{end}}
+
+{{define "kvcopy"}}<span class="kv-copy"><span class="trunc" title="{{.}}">{{.}}</span><button type="button" class="copy-btn" data-copy="{{.}}" title="Copy">{{icon "copy"}}</button></span>{{end}}

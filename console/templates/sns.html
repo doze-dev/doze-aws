@@ -1,32 +1,12 @@
 {{define "sns_topics"}}{{template "header" .}}
 <div class="ph">
   <div>
-    <h1><span class="svc svc-sns">{{icon "share"}}</span> SNS</h1>
+    <h1>{{awsIcon "sns"}} SNS</h1>
     <p class="ph-desc">Pub/sub topics on this endpoint.</p>
   </div>
   <div class="ph-actions">
     <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter topics…" x-model="$store.filter.q" spellcheck="false"></label>
-    <span x-data="{open:false}">
-    <button class="btn" @click="open=true">{{icon "plus"}} Create topic</button>
-    <div class="overlay" x-show="open" x-cloak @click.self="open=false" @keydown.escape.window="open=false">
-      <div class="dialog anim">
-        <form hx-post="{{.Prefix}}/sns/create" hx-target="#sns-topic-list" hx-swap="outerHTML"
-              @htmx:after-request="if($event.detail.successful){open=false; $el.reset();}">
-          <div class="dialog-h"><h3>Create topic</h3><p>Subscribe queues, functions, or webhooks after creating.</p></div>
-          <div class="dialog-b">
-            <div class="field">
-              <label>Topic name</label>
-              <input class="input" name="name" placeholder="order-events" required pattern="[a-zA-Z0-9_\-]{1,256}" autocomplete="off" x-effect="open && $el.focus()">
-            </div>
-          </div>
-          <div class="dialog-f">
-            <button type="button" class="btn btn-outline" @click="open=false">Cancel</button>
-            <button type="submit" class="btn">Create topic</button>
-          </div>
-        </form>
-      </div>
-    </div>
-    </span>
+    <a class="btn" href="{{.Prefix}}/sns/create">{{icon "plus"}} Create topic</a>
   </div>
 </div>
 
@@ -53,7 +33,7 @@
     </tr>
   {{end}}</tbody>
 </table></div>
-{{else}}<div class="empty"><span class="ic-lg">{{icon "share"}}</span><p>No topics yet — create your first one.</p></div>{{end}}
+{{else}}<div class="empty">{{awsIcon "sns"}}<p>No topics yet. Create one to fan messages out to queues, functions, and webhooks.</p><a class="btn" href="{{.Prefix}}/sns/create">{{icon "plus"}} Create topic</a></div>{{end}}
 </div>
 {{end}}
 
@@ -64,7 +44,7 @@
 <div class="idband">
   <div class="ph">
     <div>
-      <h1><span class="svc svc-sns">{{icon "share"}}</span> {{.Topic}}</h1>
+      <h1>{{awsIcon "sns"}} {{.Topic}}</h1>
       <div class="chips" style="margin-top:8px">
         {{template "copychip" dict "Label" "arn" "Value" .ARN}}
       </div>

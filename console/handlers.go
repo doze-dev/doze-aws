@@ -1,10 +1,12 @@
 package console
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // humanBytes formats a byte count like "248.1 KB".
@@ -45,7 +47,7 @@ func (c *Console) overview(w http.ResponseWriter, r *http.Request) {
 	for _, b := range buses {
 		rules += b.Rules
 	}
-	c.render(w, "overview", map[string]any{
+	c.render(w, r, "overview", map[string]any{
 		"BucketCount": len(buckets), "QueueCount": len(queues), "TopicCount": len(topics),
 		"TableCount": len(tables), "FnCount": len(fns), "KeyCount": len(keys),
 		"ParamCount": len(params), "SecretCount": len(secrets),
@@ -62,7 +64,7 @@ func (c *Console) s3Buckets(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "s3_buckets", map[string]any{"Buckets": buckets})
+	c.render(w, r, "s3_buckets", map[string]any{"Buckets": buckets})
 }
 
 func (c *Console) s3CreateBucket(w http.ResponseWriter, r *http.Request) {
@@ -73,9 +75,7 @@ func (c *Console) s3CreateBucket(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	buckets, _ := c.be.ListBuckets(r.Context())
-	toast(w, "Bucket “"+name+"” created")
-	c.partial(w, "bucket_list", map[string]any{"Buckets": buckets})
+	c.redirect(w, r, c.prefix+"/s3/"+name, "Bucket “"+name+"” created")
 }
 
 // s3Versioning toggles versioning from the Properties tab.
@@ -122,7 +122,7 @@ func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data["Props"] = props
-		c.render(w, "s3_objects", data)
+		c.render(w, r, "s3_objects", data)
 		return
 	}
 
@@ -139,7 +139,7 @@ func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 		c.partial(w, "object_table", data)
 		return
 	}
-	c.render(w, "s3_objects", data)
+	c.render(w, r, "s3_objects", data)
 }
 
 func (c *Console) s3GetObject(w http.ResponseWriter, r *http.Request) {
@@ -238,7 +238,7 @@ func (c *Console) sqsQueues(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "sqs_queues", map[string]any{"Queues": queues})
+	c.render(w, r, "sqs_queues", map[string]any{"Queues": queues})
 }
 
 func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {
@@ -258,9 +258,7 @@ func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	queues, _ := c.be.ListQueues(r.Context())
-	toast(w, "Queue “"+name+"” created")
-	c.partial(w, "queue_list", map[string]any{"Queues": queues})
+	c.redirect(w, r, c.prefix+"/sqs/"+name, "Queue “"+name+"” created")
 }
 
 func (c *Console) sqsDeleteQueue(w http.ResponseWriter, r *http.Request) {
@@ -280,13 +278,67 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, "sqs_queue", map[string]any{
+	c.render(w, r, "sqs_queue", map[string]any{
 		"Queue": name, "Attrs": attrs, "Messages": msgs,
 		"Available": atoi(attrs["ApproximateNumberOfMessages"]),
 		"InFlight":  atoi(attrs["ApproximateNumberOfMessagesNotVisible"]),
 		"ARN":       QueueARN(name),
 		"URL":       "http://127.0.0.1:4566/000000000000/" + name,
+		"Config":    sqsConfigOf(attrs),
 	})
+}
+
+// sqsConfig is the curated queue configuration surface (the raw attribute map
+// stays available in a collapsible section).
+type sqsConfig struct {
+	Visibility string
+	Retention  string
+	Delay      string
+	MaxSize    string
+	Created    string
+	Modified   string
+	FIFO       bool
+	DLQ        string // dead-letter queue name, from the redrive policy
+	MaxReceive string
+}
+
+func sqsConfigOf(attrs map[string]string) sqsConfig {
+	cfg := sqsConfig{
+		Visibility: attrs["VisibilityTimeout"],
+		Retention:  attrs["MessageRetentionPeriod"],
+		Delay:      attrs["DelaySeconds"],
+		MaxSize:    attrs["MaximumMessageSize"],
+		FIFO:       attrs["FifoQueue"] == "true",
+		Created:    epochSecString(attrs["CreatedTimestamp"]),
+		Modified:   epochSecString(attrs["LastModifiedTimestamp"]),
+	}
+	if rp := attrs["RedrivePolicy"]; rp != "" {
+		var pol struct {
+			DeadLetterTargetArn string `json:"deadLetterTargetArn"`
+			MaxReceiveCount     any    `json:"maxReceiveCount"`
+		}
+		if json.Unmarshal([]byte(rp), &pol) == nil {
+			if i := strings.LastIndex(pol.DeadLetterTargetArn, ":"); i >= 0 {
+				cfg.DLQ = pol.DeadLetterTargetArn[i+1:]
+			}
+			cfg.MaxReceive = strings.Trim(strings.TrimSpace(fmtAny(pol.MaxReceiveCount)), `"`)
+		}
+	}
+	return cfg
+}
+
+func fmtAny(v any) string {
+	b, _ := json.Marshal(v)
+	return string(b)
+}
+
+// epochSecString formats a unix-seconds string as local time.
+func epochSecString(s string) string {
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil || n == 0 {
+		return ""
+	}
+	return time.Unix(n, 0).Local().Format("2006-01-02 15:04:05")
 }
 
 // sqsMessages is the HTMX-polled partial: the live message list + depth, peeked

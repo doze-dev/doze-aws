@@ -1,64 +1,12 @@
 {{define "sqs_queues"}}{{template "header" .}}
 <div class="ph">
   <div>
-    <h1><span class="svc svc-sqs">{{icon "inbox"}}</span> SQS</h1>
+    <h1>{{awsIcon "sqs"}} SQS</h1>
     <p class="ph-desc">Message queues on this endpoint.</p>
   </div>
   <div class="ph-actions">
     <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter queues…" x-model="$store.filter.q" spellcheck="false"></label>
-    <span x-data="{open:false}">
-    <button class="btn" @click="open=true">{{icon "plus"}} Create queue</button>
-    <div class="overlay" x-show="open" x-cloak @click.self="open=false" @keydown.escape.window="open=false">
-      <div class="dialog wide anim">
-        <form hx-post="{{.Prefix}}/sqs/create" hx-target="#queue-list" hx-swap="outerHTML"
-              @htmx:after-request="if($event.detail.successful){open=false; $el.reset();}">
-          <div class="dialog-h"><h3>Create queue</h3><p>Configure delivery behavior now, or change it later via the SDK.</p></div>
-          <div class="dialog-b">
-            <div class="fgrid">
-              <div class="field full">
-                <label>Queue name</label>
-                <input class="input" name="name" placeholder="orders" required pattern="[a-zA-Z0-9_\-.]{1,80}" autocomplete="off" x-effect="open && $el.focus()">
-              </div>
-              <div class="field">
-                <label>Visibility timeout <span class="dim">(s)</span></label>
-                <input class="input" name="visibility" type="number" min="0" max="43200" placeholder="30">
-              </div>
-              <div class="field">
-                <label>Delivery delay <span class="dim">(s)</span></label>
-                <input class="input" name="delay" type="number" min="0" max="900" placeholder="0">
-              </div>
-              <div class="field">
-                <label>Retention <span class="dim">(s)</span></label>
-                <input class="input" name="retention" type="number" min="60" max="1209600" placeholder="345600">
-              </div>
-              <div class="field">
-                <label>&nbsp;</label>
-                <div class="opt-row" style="padding:4px 0;border:0">
-                  <div class="opt-l">FIFO queue</div>
-                  <label class="switch"><input type="checkbox" name="fifo"><span class="track"></span><span class="thumb"></span></label>
-                </div>
-              </div>
-              <div class="field">
-                <label>Dead-letter queue</label>
-                <select class="input" name="dlq">
-                  <option value="">None</option>
-                  {{range .Queues}}<option value="{{.Name}}">{{.Name}}</option>{{end}}
-                </select>
-              </div>
-              <div class="field">
-                <label>Max receives before DLQ</label>
-                <input class="input" name="max_receive" type="number" min="1" max="1000" placeholder="3">
-              </div>
-            </div>
-          </div>
-          <div class="dialog-f">
-            <button type="button" class="btn btn-outline" @click="open=false">Cancel</button>
-            <button type="submit" class="btn">Create queue</button>
-          </div>
-        </form>
-      </div>
-    </div>
-    </span>
+    <a class="btn" href="{{.Prefix}}/sqs/create">{{icon "plus"}} Create queue</a>
   </div>
 </div>
 
@@ -85,6 +33,6 @@
     </tr>
   {{end}}</tbody>
 </table></div>
-{{else}}<div class="empty"><span class="ic-lg">{{icon "inbox"}}</span><p>No queues yet — create your first one.</p></div>{{end}}
+{{else}}<div class="empty">{{awsIcon "sqs"}}<p>No queues yet. Create one and start passing messages.</p><a class="btn" href="{{.Prefix}}/sqs/create">{{icon "plus"}} Create queue</a></div>{{end}}
 </div>
 {{end}}

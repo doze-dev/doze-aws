@@ -1,7 +1,7 @@
 {{define "lambda_fns"}}{{template "header" .}}
 <div class="ph">
   <div>
-    <h1><span class="svc svc-lambda">{{icon "zap"}}</span> Lambda</h1>
+    <h1>{{awsIcon "lambda"}} Lambda</h1>
     <p class="ph-desc">Functions running as real local processes — no containers.</p>
   </div>
   <div class="ph-actions">
@@ -38,7 +38,7 @@
 <div class="idband">
   <div class="ph">
     <div>
-      <h1><span class="svc svc-lambda">{{icon "zap"}}</span> {{.Fn.Name}} <span class="badge type">{{.Fn.Runtime}}</span></h1>
+      <h1>{{awsIcon "lambda"}} {{.Fn.Name}} <span class="badge type">{{.Fn.Runtime}}</span></h1>
       <div class="chips" style="margin-top:8px">
         {{template "copychip" dict "Label" "arn" "Value" .Fn.ARN}}
       </div>

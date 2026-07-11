@@ -1,0 +1,95 @@
+package console
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/url"
+)
+
+// createPage renders a full-page create form (AWS-console style — no modals).
+func (c *Console) createPage(tmpl string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		c.render(w, r, tmpl, map[string]any{})
+	}
+}
+
+// sqsCreatePage needs the existing queues for the dead-letter-queue picker.
+func (c *Console) sqsCreatePage(w http.ResponseWriter, r *http.Request) {
+	queues, _ := c.be.ListQueues(r.Context())
+	c.render(w, r, "sqs_create", map[string]any{"Queues": queues})
+}
+
+// ebRuleCreatePage is scoped to a bus.
+func (c *Console) ebRuleCreatePage(w http.ResponseWriter, r *http.Request) {
+	c.render(w, r, "eb_rule_create", map[string]any{"Bus": r.PathValue("bus")})
+}
+
+// apiResources feeds the command palette: every resource across every service,
+// as {s: service, n: name, u: url} triples.
+func (c *Console) apiResources(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	type res struct {
+		S string `json:"s"`
+		N string `json:"n"`
+		U string `json:"u"`
+	}
+	var out []res
+	add := func(svc, name, u string) { out = append(out, res{S: svc, N: name, U: c.prefix + u}) }
+
+	if buckets, err := c.be.ListBuckets(ctx); err == nil {
+		for _, b := range buckets {
+			add("s3", b.Name, "/s3/"+b.Name)
+		}
+	}
+	if queues, err := c.be.ListQueues(ctx); err == nil {
+		for _, q := range queues {
+			add("sqs", q.Name, "/sqs/"+q.Name)
+		}
+	}
+	if tables, err := c.be.ListTables(ctx); err == nil {
+		for _, t := range tables {
+			add("ddb", t.Name, "/ddb/"+t.Name)
+		}
+	}
+	if topics, err := c.be.ListTopics(ctx); err == nil {
+		for _, t := range topics {
+			add("sns", t.Name, "/sns/"+t.Name)
+		}
+	}
+	if buses, err := c.be.ListBuses(ctx); err == nil {
+		for _, b := range buses {
+			add("eb", b.Name, "/eb/"+b.Name)
+			if rules, err := c.be.ListRules(ctx, b.Name); err == nil {
+				for _, rl := range rules {
+					add("eb", b.Name+" › "+rl.Name, "/eb/"+b.Name+"/rule/"+rl.Name)
+				}
+			}
+		}
+	}
+	if fns, err := c.be.ListFunctions(ctx); err == nil {
+		for _, f := range fns {
+			add("lambda", f.Name, "/lambda/"+f.Name)
+		}
+	}
+	if keys, err := c.be.ListKeys(ctx); err == nil {
+		for _, k := range keys {
+			label := k.Alias
+			if label == "" {
+				label = k.ID
+			}
+			add("kms", label, "/kms/"+k.ID)
+		}
+	}
+	if params, err := c.be.ListParameters(ctx); err == nil {
+		for _, p := range params {
+			add("ssm", p.Name, "/ssm/param?name="+url.QueryEscape(p.Name))
+		}
+	}
+	if secrets, err := c.be.ListSecrets(ctx); err == nil {
+		for _, s := range secrets {
+			add("sm", s.Name, "/sm/secret?name="+url.QueryEscape(s.Name))
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(out)
+}

@@ -1,31 +1,11 @@
 {{define "eb_buses"}}{{template "header" .}}
 <div class="ph">
   <div>
-    <h1><span class="svc svc-eb">{{icon "route"}}</span> EventBridge</h1>
+    <h1>{{awsIcon "eb"}} EventBridge</h1>
     <p class="ph-desc">Event buses and their routing rules.</p>
   </div>
   <div class="ph-actions">
-    <span x-data="{open:false}">
-    <button class="btn" @click="open=true">{{icon "plus"}} Create bus</button>
-    <div class="overlay" x-show="open" x-cloak @click.self="open=false" @keydown.escape.window="open=false">
-      <div class="dialog anim">
-        <form hx-post="{{.Prefix}}/eb/create-bus" hx-target="#eb-bus-list" hx-swap="outerHTML"
-              @htmx:after-request="if($event.detail.successful){open=false; $el.reset();}">
-          <div class="dialog-h"><h3>Create event bus</h3><p>Rules on a custom bus only match events sent to that bus.</p></div>
-          <div class="dialog-b">
-            <div class="field">
-              <label>Bus name</label>
-              <input class="input" name="name" placeholder="orders-bus" required pattern="[a-zA-Z0-9_\-.]{1,256}" autocomplete="off" x-effect="open && $el.focus()">
-            </div>
-          </div>
-          <div class="dialog-f">
-            <button type="button" class="btn btn-outline" @click="open=false">Cancel</button>
-            <button type="submit" class="btn">Create bus</button>
-          </div>
-        </form>
-      </div>
-    </div>
-    </span>
+    <a class="btn" href="{{.Prefix}}/eb/create-bus">{{icon "plus"}} Create bus</a>
   </div>
 </div>
 
@@ -62,39 +42,13 @@
 <div class="idband">
   <div class="ph">
     <div>
-      <h1><span class="svc svc-eb">{{icon "route"}}</span> {{.Bus}}</h1>
+      <h1>{{awsIcon "eb"}} {{.Bus}}</h1>
       <div class="chips" style="margin-top:8px">
         {{template "copychip" dict "Label" "arn" "Value" .BusARN}}
       </div>
     </div>
-    <div class="ph-actions" x-data="{open:false}">
-      <button class="btn" @click="open=true">{{icon "plus"}} Create rule</button>
-      <div class="overlay" x-show="open" x-cloak @click.self="open=false" @keydown.escape.window="open=false">
-        <div class="dialog wide anim">
-          <form hx-post="{{.Prefix}}/eb/{{.Bus}}/create-rule" hx-target="#eb-rules" hx-swap="outerHTML"
-                @htmx:after-request="if($event.detail.successful){open=false; $el.reset();}">
-            <div class="dialog-h"><h3>Create rule</h3><p>Give an event pattern, a schedule, or both.</p></div>
-            <div class="dialog-b">
-              <div class="field" style="margin-bottom:10px">
-                <label>Rule name</label>
-                <input class="input" name="name" placeholder="on-order-created" required pattern="[a-zA-Z0-9_\-.]{1,64}" x-effect="open && $el.focus()">
-              </div>
-              <div class="field" style="margin-bottom:10px">
-                <label>Event pattern <span class="dim">(JSON)</span></label>
-                <textarea name="pattern" rows="5" spellcheck="false" placeholder='{"source": ["orders"], "detail-type": ["created"]}'></textarea>
-              </div>
-              <div class="field">
-                <label>Schedule <span class="dim">(optional — e.g. rate(5 minutes))</span></label>
-                <input class="input" name="schedule" placeholder="rate(5 minutes)">
-              </div>
-            </div>
-            <div class="dialog-f">
-              <button type="button" class="btn btn-outline" @click="open=false">Cancel</button>
-              <button type="submit" class="btn">Create rule</button>
-            </div>
-          </form>
-        </div>
-      </div>
+    <div class="ph-actions">
+      <a class="btn" href="{{.Prefix}}/eb/{{.Bus}}/create-rule">{{icon "plus"}} Create rule</a>
     </div>
   </div>
 </div>
@@ -138,7 +92,7 @@
         </tr>
       {{end}}</tbody>
     </table>
-    {{else}}<div class="empty" style="border:0"><p>No rules on this bus yet.</p></div>{{end}}
+    {{else}}<div class="empty" style="border:0"><p>No rules on this bus yet — nothing is listening.</p><a class="btn btn-outline btn-sm" href="{{$.Prefix}}/eb/{{$.Bus}}/create-rule">{{icon "plus"}} Create rule</a></div>{{end}}
   </div>
 </div>
 {{end}}
@@ -151,7 +105,7 @@
 <div class="idband">
   <div class="ph">
     <div>
-      <h1><span class="svc svc-eb">{{icon "route"}}</span> {{.Rule.Name}}
+      <h1>{{awsIcon "eb"}} {{.Rule.Name}}
         <span class="badge {{if eq .Rule.State "ENABLED"}}state-on{{else}}state-off{{end}}">{{.Rule.State}}</span>
       </h1>
       <div class="chips" style="margin-top:8px">
