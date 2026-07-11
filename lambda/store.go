@@ -40,6 +40,12 @@ type Function struct {
 	Tags                map[string]string `json:"tags,omitempty"`
 	Layers              []string          `json:"layers,omitempty"`
 
+	// EventInvokeConfig (async): set via PutFunctionEventInvokeConfig; the
+	// presence of any of these means an event-invoke config exists.
+	MaxRetryAttempts   *int `json:"max_retry_attempts,omitempty"`
+	MaxEventAgeSeconds *int `json:"max_event_age_seconds,omitempty"`
+	HasEventInvokeCfg  bool `json:"has_event_invoke_cfg,omitempty"`
+
 	Aliases  map[string]string `json:"aliases,omitempty"` // alias -> version
 	LastMod  int64             `json:"last_mod"`
 	Revision string            `json:"revision"`

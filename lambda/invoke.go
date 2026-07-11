@@ -73,7 +73,11 @@ func (s *Server) runInvoke(ctx context.Context, f *Function, payload []byte) (la
 func (s *Server) invokeAsync(f *Function, payload []byte) {
 	var res lambdaruntime.Result
 	var err error
-	for attempt := 0; attempt < 3; attempt++ { // 1 try + 2 retries, like AWS
+	retries := 2 // AWS default for async invocations
+	if f.MaxRetryAttempts != nil {
+		retries = *f.MaxRetryAttempts
+	}
+	for attempt := 0; attempt <= retries; attempt++ { // 1 try + N retries
 		res, err = s.runInvoke(context.Background(), f, payload)
 		if err == nil && res.FunctionErr == "" {
 			s.routeDestination(f, payload, res, true)

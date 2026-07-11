@@ -248,6 +248,64 @@ func TestIntegrationLambdaDLQ(t *testing.T) {
 	t.Fatal("payload never reached the DLQ")
 }
 
+// TestIntegrationLambdaOnFailureDestination proves the EventInvokeConfig
+// OnFailure destination path (routeDestination): a failing function with an
+// OnFailure SQS destination — set via the now-reachable
+// PutFunctionEventInvokeConfig — delivers a destination record (condition
+// RetriesExhausted, original payload) to the queue once retries are exhausted.
+func TestIntegrationLambdaOnFailureDestination(t *testing.T) {
+	if testing.Short() {
+		t.Skip("compiles + runs a failing lambda across the stack")
+	}
+	ctx := context.Background()
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stack.Close()
+	ts := httptest.NewServer(stack.Handler())
+	defer ts.Close()
+
+	creds := credentials.NewStaticCredentialsProvider(awsident.AccessKeyID, awsident.SecretAccessKey, "")
+	cfg := aws.Config{Region: awsident.Region, Credentials: creds}
+	lam := awslambda.NewFromConfig(cfg, func(o *awslambda.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+	sqs := awssqs.NewFromConfig(cfg, func(o *awssqs.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+
+	dest, _ := sqs.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("onfail")})
+	lam.CreateFunction(ctx, &awslambda.CreateFunctionInput{
+		FunctionName: aws.String("flaky2"), Runtime: lamtypes.RuntimeProvidedal2, Handler: aws.String("bootstrap"),
+		Role: aws.String("arn:aws:iam::000000000000:role/r"),
+		Code: &lamtypes.FunctionCode{S3Bucket: aws.String("_local_"), S3Key: aws.String(buildFailer(t))},
+	})
+	if _, err := lam.PutFunctionEventInvokeConfig(ctx, &awslambda.PutFunctionEventInvokeConfigInput{
+		FunctionName:         aws.String("flaky2"),
+		MaximumRetryAttempts: aws.Int32(0),
+		DestinationConfig: &lamtypes.DestinationConfig{
+			OnFailure: &lamtypes.OnFailure{Destination: aws.String(awsident.ARN("sqs", "onfail"))},
+		},
+	}); err != nil {
+		t.Fatalf("PutFunctionEventInvokeConfig: %v", err)
+	}
+
+	lam.Invoke(ctx, &awslambda.InvokeInput{
+		FunctionName: aws.String("flaky2"), InvocationType: lamtypes.InvocationTypeEvent,
+		Payload: []byte(`{"tag":"route-me"}`),
+	})
+
+	deadline := time.Now().Add(20 * time.Second)
+	for time.Now().Before(deadline) {
+		out, _ := sqs.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{QueueUrl: dest.QueueUrl, WaitTimeSeconds: 1})
+		if len(out.Messages) > 0 {
+			body := aws.ToString(out.Messages[0].Body)
+			if !strings.Contains(body, "route-me") || !strings.Contains(body, "RetriesExhausted") {
+				t.Fatalf("OnFailure destination record = %s", body)
+			}
+			return
+		}
+	}
+	t.Fatal("OnFailure destination never received the record")
+}
+
 // TestIntegrationS3ToSNSToSQS proves a three-service chain: an S3 object-created
 // notification fans out to an SNS topic, which delivers to a subscribed SQS
 // queue.

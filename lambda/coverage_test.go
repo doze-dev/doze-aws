@@ -156,3 +156,40 @@ func TestSDKZipFileCode(t *testing.T) {
 		t.Fatalf("zipped invoke result = %s", out.Payload)
 	}
 }
+
+// TestSDKEventInvokeConfig round-trips the async EventInvokeConfig (destinations
+// + retry/age limits) through Put/Get/List/Delete — the API that makes
+// OnSuccess/OnFailure destinations reachable.
+func TestSDKEventInvokeConfig(t *testing.T) {
+	ctx := context.Background()
+	c, _ := lambdaClient(t)
+	createEcho(t, ctx, c, "eic")
+
+	failArn := "arn:aws:sqs:us-east-1:000000000000:eic-dlq"
+	put, err := c.PutFunctionEventInvokeConfig(ctx, &awslambda.PutFunctionEventInvokeConfigInput{
+		FunctionName:             aws.String("eic"),
+		MaximumRetryAttempts:     aws.Int32(1),
+		MaximumEventAgeInSeconds: aws.Int32(120),
+		DestinationConfig: &lamtypes.DestinationConfig{
+			OnFailure: &lamtypes.OnFailure{Destination: aws.String(failArn)},
+		},
+	})
+	if err != nil || aws.ToInt32(put.MaximumRetryAttempts) != 1 {
+		t.Fatalf("PutFunctionEventInvokeConfig = %+v err=%v", put, err)
+	}
+	got, err := c.GetFunctionEventInvokeConfig(ctx, &awslambda.GetFunctionEventInvokeConfigInput{FunctionName: aws.String("eic")})
+	if err != nil || got.DestinationConfig == nil || got.DestinationConfig.OnFailure == nil ||
+		aws.ToString(got.DestinationConfig.OnFailure.Destination) != failArn {
+		t.Fatalf("GetFunctionEventInvokeConfig = %+v err=%v", got, err)
+	}
+	list, err := c.ListFunctionEventInvokeConfigs(ctx, &awslambda.ListFunctionEventInvokeConfigsInput{FunctionName: aws.String("eic")})
+	if err != nil || len(list.FunctionEventInvokeConfigs) != 1 {
+		t.Fatalf("ListFunctionEventInvokeConfigs = %d err=%v", len(list.FunctionEventInvokeConfigs), err)
+	}
+	if _, err := c.DeleteFunctionEventInvokeConfig(ctx, &awslambda.DeleteFunctionEventInvokeConfigInput{FunctionName: aws.String("eic")}); err != nil {
+		t.Fatalf("DeleteFunctionEventInvokeConfig: %v", err)
+	}
+	if _, err := c.GetFunctionEventInvokeConfig(ctx, &awslambda.GetFunctionEventInvokeConfigInput{FunctionName: aws.String("eic")}); err == nil {
+		t.Fatal("GetFunctionEventInvokeConfig after delete should 404")
+	}
+}

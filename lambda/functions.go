@@ -66,6 +66,10 @@ func (s *Server) routeFunctions(w http.ResponseWriter, r *http.Request, segs []s
 	if len(segs) >= 4 && (segs[3] == "url" || segs[3] == "urls") {
 		return s.routeFunctionURL(w, r, name)
 	}
+	// /functions/{name}/event-invoke-config[/list]  (async destinations/retries)
+	if len(segs) >= 4 && segs[3] == "event-invoke-config" {
+		return s.routeEventInvokeConfig(w, r, name, segs)
+	}
 	return awshttp.Errf(404, "ResourceNotFoundException", "unknown function subresource")
 }
 

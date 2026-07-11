@@ -18,7 +18,8 @@ or binary, used in place for edit-and-reinvoke with no copy.
 | CreateFunction / UpdateFunctionConfiguration / UpdateFunctionCode | F | zip + _local_ packaging; env vars; DLQ/DestinationConfig; layers stored |
 | GetFunction / ListFunctions / DeleteFunction | F | |
 | Invoke (RequestResponse) | F | real process, X-Amz-Function-Error on handler error, Tail log result |
-| Invoke (Event) | F | async with retries → DLQ / OnFailure destination |
+| Invoke (Event) | F | async with configurable retries → DLQ / OnFailure destination |
+| Put/Get/Update/List/DeleteFunctionEventInvokeConfig | F | async destinations (OnSuccess/OnFailure → SQS/SNS/Lambda) + MaximumRetryAttempts (honored) / MaximumEventAgeInSeconds (stored) |
 | Invoke (DryRun) | F | 204 |
 | PublishVersion / aliases (Create/Get/List/Delete) | F | local version numbering |
 | Function URL config (Create/Get/Delete) | F | URL served on the gateway |

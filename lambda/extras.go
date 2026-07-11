@@ -159,6 +159,107 @@ func (s *Server) routeFunctionURL(w http.ResponseWriter, r *http.Request, name s
 	return awshttp.Errf(405, "MethodNotAllowed", "unsupported function-url request")
 }
 
+// ---- event invoke config (async destinations / retries) ----
+
+// eventInvokeReq is the wire body for Put/UpdateFunctionEventInvokeConfig.
+// Pointer fields distinguish "omitted" (leave as-is on Update) from an explicit
+// value; DestinationConfig is captured raw and reused verbatim by
+// routeDestination on async failure/success.
+type eventInvokeReq struct {
+	DestinationConfig        json.RawMessage `json:"DestinationConfig"`
+	MaximumRetryAttempts     *int            `json:"MaximumRetryAttempts"`
+	MaximumEventAgeInSeconds *int            `json:"MaximumEventAgeInSeconds"`
+}
+
+func (s *Server) eventInvokeView(f *Function) map[string]any {
+	v := map[string]any{
+		"FunctionArn": f.ARN() + ":$LATEST",
+		// EventInvokeConfig models LastModified as a unix-timestamp number
+		// (unlike GetFunction, which uses an ISO8601 string).
+		"LastModified": s.now().Unix(),
+	}
+	if f.MaxRetryAttempts != nil {
+		v["MaximumRetryAttempts"] = *f.MaxRetryAttempts
+	}
+	if f.MaxEventAgeSeconds != nil {
+		v["MaximumEventAgeInSeconds"] = *f.MaxEventAgeSeconds
+	}
+	if len(f.Destinations) > 0 {
+		v["DestinationConfig"] = json.RawMessage(f.Destinations)
+	}
+	return v
+}
+
+func (s *Server) routeEventInvokeConfig(w http.ResponseWriter, r *http.Request, name string, segs []string) *awshttp.APIError {
+	// GET /event-invoke-config/list enumerates the (0 or 1) configs.
+	if len(segs) == 5 && segs[4] == "list" && r.Method == http.MethodGet {
+		f, err := s.store.GetFunction(name)
+		if err != nil {
+			return awshttp.AsAPIError(err)
+		}
+		list := []any{}
+		if f.HasEventInvokeCfg {
+			list = append(list, s.eventInvokeView(f))
+		}
+		writeJSON(w, 200, map[string]any{"FunctionEventInvokeConfigs": list})
+		return nil
+	}
+	if len(segs) != 4 {
+		return awshttp.Errf(404, "ResourceNotFoundException", "unknown event-invoke-config path")
+	}
+
+	switch r.Method {
+	// PUT fully replaces the config; POST merges (UpdateFunctionEventInvokeConfig).
+	case http.MethodPut, http.MethodPost:
+		var req eventInvokeReq
+		if aerr := decode(r, &req); aerr != nil {
+			return aerr
+		}
+		replace := r.Method == http.MethodPut
+		f, err := s.store.Update(name, func(f *Function) error {
+			if replace {
+				f.Destinations, f.MaxRetryAttempts, f.MaxEventAgeSeconds = nil, nil, nil
+			}
+			if len(req.DestinationConfig) > 0 {
+				f.Destinations = req.DestinationConfig
+			}
+			if req.MaximumRetryAttempts != nil {
+				f.MaxRetryAttempts = req.MaximumRetryAttempts
+			}
+			if req.MaximumEventAgeInSeconds != nil {
+				f.MaxEventAgeSeconds = req.MaximumEventAgeInSeconds
+			}
+			f.HasEventInvokeCfg = true
+			return nil
+		})
+		if err != nil {
+			return awshttp.AsAPIError(err)
+		}
+		writeJSON(w, 200, s.eventInvokeView(f))
+		return nil
+	case http.MethodGet:
+		f, err := s.store.GetFunction(name)
+		if err != nil {
+			return awshttp.AsAPIError(err)
+		}
+		if !f.HasEventInvokeCfg {
+			return awshttp.Errf(404, "ResourceNotFoundException", "no event invoke config for %s", name)
+		}
+		writeJSON(w, 200, s.eventInvokeView(f))
+		return nil
+	case http.MethodDelete:
+		if _, err := s.store.Update(name, func(f *Function) error {
+			f.Destinations, f.MaxRetryAttempts, f.MaxEventAgeSeconds, f.HasEventInvokeCfg = nil, nil, nil, false
+			return nil
+		}); err != nil {
+			return awshttp.AsAPIError(err)
+		}
+		w.WriteHeader(204)
+		return nil
+	}
+	return awshttp.Errf(405, "MethodNotAllowed", "unsupported event-invoke-config request")
+}
+
 // ---- tags ----
 
 func (s *Server) routeTags(w http.ResponseWriter, r *http.Request, segs []string) *awshttp.APIError {
