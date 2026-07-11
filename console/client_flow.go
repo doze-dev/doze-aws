@@ -405,6 +405,56 @@ func flowLabel(nodes map[string]*FlowNode, ids []string, edges []FlowEdge) strin
 	return "flow"
 }
 
+// Neighbor is one adjacent resource in a Connections view.
+type Neighbor struct {
+	Svc  string
+	Name string
+	Kind string // the edge kind (sub / target / esm / redrive / dlq / dest / notify)
+	URL  string
+}
+
+// Neighborhood is a resource's 1-hop wiring: what feeds it and where it drains.
+type Neighborhood struct {
+	Upstream   []Neighbor // edges INTO this node
+	Downstream []Neighbor // edges OUT of this node
+}
+
+// Neighbors returns the immediate connections of svc:name, built from the full
+// wiring graph. Powers the per-resource "Connections" section.
+func (b *backend) Neighbors(ctx context.Context, svc, name string) Neighborhood {
+	g := b.BuildGraph(ctx)
+	self := nodeID(svc, name)
+	// index nodes across all diagrams + unwired for name/svc lookup
+	byID := map[string]FlowNode{}
+	for _, d := range g.Diagrams {
+		for _, n := range d.Nodes {
+			byID[n.ID] = n
+		}
+	}
+	for _, n := range g.Unwired {
+		byID[n.ID] = n
+	}
+	var nb Neighborhood
+	seen := map[string]bool{}
+	for _, d := range g.Diagrams {
+		for _, e := range d.Edges {
+			if e.From == self && !seen["d"+e.To] {
+				seen["d"+e.To] = true
+				if n, ok := byID[e.To]; ok {
+					nb.Downstream = append(nb.Downstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: b.nodeURL(n.Svc, n.Name)})
+				}
+			}
+			if e.To == self && !seen["u"+e.From] {
+				seen["u"+e.From] = true
+				if n, ok := byID[e.From]; ok {
+					nb.Upstream = append(nb.Upstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: b.nodeURL(n.Svc, n.Name)})
+				}
+			}
+		}
+	}
+	return nb
+}
+
 func (b *backend) nodeURL(svc, name string) string {
 	switch svc {
 	case "s3":

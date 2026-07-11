@@ -19,7 +19,7 @@ func (c *Console) lambdaFn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fns, _ := c.be.ListFunctions(r.Context())
-	c.render(w, r, "lambda_fn", map[string]any{"Fn": f, "Tab": tabOf(r, "invoke"), "List": fns, "Title": name + " · Lambda"})
+	c.render(w, r, "lambda_fn", map[string]any{"Fn": f, "Tab": tabOf(r, "invoke"), "List": fns, "Title": name + " · Lambda", "Conn": c.be.Neighbors(r.Context(), "lambda", name)})
 }
 
 func (c *Console) lambdaInvoke(w http.ResponseWriter, r *http.Request) {

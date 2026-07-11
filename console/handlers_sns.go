@@ -52,6 +52,7 @@ func (c *Console) snsTopic(w http.ResponseWriter, r *http.Request) {
 	c.render(w, r, "sns_topic", map[string]any{
 		"Topic": name, "ARN": arn, "Attrs": attrs, "Subs": subs,
 		"Queues": queues, "Functions": fns, "List": topics, "Title": name + " · SNS",
+		"Conn": c.be.Neighbors(r.Context(), "sns", name),
 	})
 }
 

@@ -30,6 +30,7 @@
         (dict "Key" "send" "Label" "Send" "Icon" "send" "URL" (printf "%s/sqs/%s?tab=send" .Prefix .Queue))
         (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sqs/%s?tab=config" .Prefix .Queue)))}}
     </div>
+    <div style="padding:0 20px 4px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn}}</div>
     <div class="det-b">
       {{if eq .Tab "send"}}
         <div class="panel" style="max-width:640px"><div style="padding:16px">

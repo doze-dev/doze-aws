@@ -22,3 +22,26 @@
   <div class="lp-f"><span class="kbd">j</span><span class="kbd">k</span> move · <span class="kbd">c</span> new · <span class="kbd">/</span> filter</div>
 </aside>
 {{end}}
+
+{{/* Compact 1-hop wiring strip for a resource. dict: Prefix Conn SelfName. */}}
+{{define "connections"}}
+{{if or .Conn.Upstream .Conn.Downstream}}
+<div class="conn">
+  <div class="conn-col">
+    <div class="conn-lbl">Fed by</div>
+    <div class="conn-chips">
+      {{range .Conn.Upstream}}<a class="conn-chip" href="{{$.Prefix}}{{.URL}}"><span class="cc-bar" style="background:hsl(var(--svc-{{.Svc}}))"></span><span class="cc-nm">{{.Name}}</span><span class="cc-k">{{.Kind}}</span></a>{{end}}
+      {{if not .Conn.Upstream}}<span class="conn-none">— nothing</span>{{end}}
+    </div>
+  </div>
+  <div class="conn-mid">{{icon "arrow-right"}}</div>
+  <div class="conn-col conn-out">
+    <div class="conn-lbl">Drains to</div>
+    <div class="conn-chips">
+      {{range .Conn.Downstream}}<a class="conn-chip" href="{{$.Prefix}}{{.URL}}"><span class="cc-bar" style="background:hsl(var(--svc-{{.Svc}}))"></span><span class="cc-nm">{{.Name}}</span><span class="cc-k">{{.Kind}}</span></a>{{end}}
+      {{if not .Conn.Downstream}}<span class="conn-none">— nothing</span>{{end}}
+    </div>
+  </div>
+</div>
+{{end}}
+{{end}}

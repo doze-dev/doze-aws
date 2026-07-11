@@ -347,6 +347,7 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 		"ARN":       QueueARN(name),
 		"URL":       "http://127.0.0.1:4566/000000000000/" + name,
 		"Config":    sqsConfigOf(attrs),
+		"Conn":      c.be.Neighbors(r.Context(), "sqs", name),
 		"Hash":      sqsMsgHash(attrs, msgs),
 		"Tab":       tabOf(r, "messages"),
 		"List":      c.sqsList(r),

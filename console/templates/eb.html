@@ -49,6 +49,7 @@
       </div>
       <nav class="det-sub"><a href="{{.Prefix}}/eb/{{.Bus}}" style="color:hsl(var(--accent-blue))">{{.Bus}}</a> bus</nav>
       <div class="chips" style="margin-top:6px">{{template "copychip" dict "Label" "arn" "Value" .Rule.ARN}}</div>
+      <div style="margin-top:10px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn}}</div>
     </div>
     <div class="det-b"><div class="split">
       <div><div class="sec-title" style="margin-top:0">{{if .Rule.Schedule}}Schedule{{else}}Event pattern{{end}}</div>

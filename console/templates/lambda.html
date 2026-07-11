@@ -27,6 +27,7 @@
         (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/lambda/%s?tab=config" .Prefix .Fn.Name))
         (dict "Key" "triggers" "Label" "Triggers" "Icon" "arrow-right" "URL" (printf "%s/lambda/%s?tab=triggers" .Prefix .Fn.Name)))}}
     </div>
+    <div style="padding:0 20px 4px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn}}</div>
     <div class="det-b">
       {{if eq .Tab "config"}}
       <div class="split">

@@ -92,6 +92,7 @@ func (c *Console) ebRule(w http.ResponseWriter, r *http.Request) {
 	buses, _ := c.be.ListBuses(r.Context())
 	c.render(w, r, "eb_rule", map[string]any{
 		"Bus": bus, "Rule": rule, "Queues": queues, "Functions": fns, "List": buses, "Title": name + " · EventBridge",
+		"Conn": c.be.Neighbors(r.Context(), "eb", name),
 	})
 }
 
