@@ -6,12 +6,15 @@ import (
 )
 
 // lambdaRuntimeHash fingerprints the live process state for 204-skip polling.
+// SleepAt is an absolute deadline, so it's stable through a countdown (the poll
+// keeps 204ing while the client ticks) and only changes when the timer resets
+// on a new invoke — exactly when the badge needs to re-sync.
 func lambdaRuntimeHash(st LambdaRuntimeState) string {
 	warm := "0"
 	if st.Warm {
 		warm = "1"
 	}
-	return contentHash(warm, strconv.Itoa(st.Runners), strconv.Itoa(st.IdleSecs))
+	return contentHash(warm, strconv.Itoa(st.Runners), strconv.Itoa(st.IdleSecs), strconv.FormatInt(st.SleepAt, 10))
 }
 
 func (c *Console) lambdaFns(w http.ResponseWriter, r *http.Request) {

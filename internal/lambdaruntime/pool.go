@@ -30,13 +30,14 @@ type Pool struct {
 	logf func(string, ...any)
 	max  int
 
-	mu        sync.Mutex
-	runners   []*Runner
-	rr        int
-	inflight  int
-	idle      time.Duration
-	idleTimer *time.Timer
-	closed    bool
+	mu           sync.Mutex
+	runners      []*Runner
+	rr           int
+	inflight     int
+	idle         time.Duration
+	idleTimer    *time.Timer
+	idleDeadline time.Time // when the armed timer will scale the pool to zero
+	closed       bool
 }
 
 // NewPool builds a pool. max <= 0 uses DefaultPoolMax.
@@ -78,6 +79,7 @@ func (p *Pool) acquire() *Runner {
 		p.idleTimer.Stop()
 		p.idleTimer = nil
 	}
+	p.idleDeadline = time.Time{}
 	p.inflight++
 	// Grow toward the current concurrency, capped at max. A serial caller keeps
 	// the pool at one runner; N concurrent callers grow it to min(N, max).
@@ -103,6 +105,7 @@ func (p *Pool) release() {
 			p.idleTimer.Stop()
 		}
 		p.idleTimer = time.AfterFunc(p.idle, p.reapIdle)
+		p.idleDeadline = time.Now().Add(p.idle)
 	}
 	p.mu.Unlock()
 }
@@ -120,6 +123,7 @@ func (p *Pool) reapIdle() {
 	p.runners = nil
 	p.rr = 0
 	p.idleTimer = nil
+	p.idleDeadline = time.Time{}
 	p.mu.Unlock()
 	for _, r := range runners {
 		r.Stop()
@@ -137,6 +141,7 @@ func (p *Pool) Stop() {
 		p.idleTimer.Stop()
 		p.idleTimer = nil
 	}
+	p.idleDeadline = time.Time{}
 	runners := p.runners
 	p.runners = nil
 	p.mu.Unlock()
@@ -157,4 +162,16 @@ func (p *Pool) IdleTimeout() time.Duration {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.idle
+}
+
+// SleepDeadline reports when the warm pool will scale to zero and whether a
+// countdown is currently running (true only when warm and idle). It returns
+// the zero time and false when the pool is cold or actively executing.
+func (p *Pool) SleepDeadline() (time.Time, bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if len(p.runners) == 0 || p.idleDeadline.IsZero() {
+		return time.Time{}, false
+	}
+	return p.idleDeadline, true
 }

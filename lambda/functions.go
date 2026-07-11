@@ -241,15 +241,20 @@ func (s *Server) dozeRuntime(w http.ResponseWriter, name string) *awshttp.APIErr
 
 	runners := 0
 	idle := lambdaruntime.DefaultIdleTimeout
+	var sleepAt int64
 	if p != nil {
 		runners = p.Size()
 		idle = p.IdleTimeout()
+		if dl, counting := p.SleepDeadline(); counting {
+			sleepAt = dl.Unix()
+		}
 	}
 	writeJSON(w, 200, map[string]any{
 		"FunctionName":       name,
 		"Warm":               runners > 0,
 		"Runners":            runners,
 		"IdleTimeoutSeconds": int(idle.Seconds()),
+		"SleepAtUnix":        sleepAt, // 0 unless a countdown is running
 	})
 	return nil
 }

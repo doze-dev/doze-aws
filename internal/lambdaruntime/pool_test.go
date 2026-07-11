@@ -135,6 +135,11 @@ func TestPoolScalesToZeroWhenIdle(t *testing.T) {
 		t.Fatalf("after invoke, pool size = %d, want 1 (warm)", sz)
 	}
 
+	// A warm, idle pool reports a countdown deadline in the future.
+	if dl, counting := p.SleepDeadline(); !counting || !dl.After(time.Now()) {
+		t.Fatalf("warm idle pool should report a future sleep deadline, got %v counting=%v", dl, counting)
+	}
+
 	// Wait past the idle window; the reaper scales the pool to zero.
 	deadline := time.Now().Add(3 * time.Second)
 	for p.Size() != 0 {
@@ -142,6 +147,11 @@ func TestPoolScalesToZeroWhenIdle(t *testing.T) {
 			t.Fatalf("idle pool never scaled to zero, size = %d", p.Size())
 		}
 		time.Sleep(20 * time.Millisecond)
+	}
+
+	// A reaped pool reports no countdown.
+	if _, counting := p.SleepDeadline(); counting {
+		t.Fatalf("reaped pool should not report a countdown")
 	}
 
 	// A fresh invoke respawns a runner.

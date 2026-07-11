@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -155,12 +156,33 @@ type LambdaRuntimeState struct {
 	Warm     bool
 	Runners  int
 	IdleSecs int
+	SleepAt  int64 // unix seconds the warm pool will scale to zero; 0 = no countdown
 }
 
 // IdleLabel renders the idle window compactly, e.g. "10m", "90s".
 func (s LambdaRuntimeState) IdleLabel() string {
 	d := (time.Duration(s.IdleSecs) * time.Second).String()
 	return strings.TrimSuffix(d, "0s") // "10m0s" -> "10m"; "45s" untouched
+}
+
+// Counting reports whether a live sleep countdown is running.
+func (s LambdaRuntimeState) Counting() bool { return s.Warm && s.SleepAt > 0 }
+
+// SleepLabel renders the time left until the process sleeps for the initial
+// server render; the client then ticks it every second against SleepAt.
+func (s LambdaRuntimeState) SleepLabel() string {
+	if !s.Counting() {
+		return ""
+	}
+	left := time.Until(time.Unix(s.SleepAt, 0))
+	if left < 0 {
+		left = 0
+	}
+	secs := int(left.Seconds())
+	if secs >= 60 {
+		return fmt.Sprintf("%dm %02ds", secs/60, secs%60)
+	}
+	return fmt.Sprintf("%ds", secs)
 }
 
 // LambdaRuntime reads whether the function currently holds warm processes and
@@ -174,12 +196,13 @@ func (b *backend) LambdaRuntime(ctx context.Context, name string) LambdaRuntimeS
 		return st
 	}
 	var out struct {
-		Warm               bool `json:"Warm"`
-		Runners            int  `json:"Runners"`
-		IdleTimeoutSeconds int  `json:"IdleTimeoutSeconds"`
+		Warm               bool  `json:"Warm"`
+		Runners            int   `json:"Runners"`
+		IdleTimeoutSeconds int   `json:"IdleTimeoutSeconds"`
+		SleepAtUnix        int64 `json:"SleepAtUnix"`
 	}
 	if json.Unmarshal(body, &out) == nil {
-		st.Warm, st.Runners = out.Warm, out.Runners
+		st.Warm, st.Runners, st.SleepAt = out.Warm, out.Runners, out.SleepAtUnix
 		if out.IdleTimeoutSeconds > 0 {
 			st.IdleSecs = out.IdleTimeoutSeconds
 		}

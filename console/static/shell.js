@@ -187,5 +187,23 @@
     if (e.detail.target && (e.detail.target.id === "workspace" || e.detail.target.querySelector && e.detail.target.querySelector("[data-live]"))) setupLive();
   });
 
+  // ---------- sleep countdowns ----------
+  // Elements carrying data-sleep-at="<unix seconds>" tick a child .rt-cd every
+  // second toward that deadline. The console is loopback, so the server's
+  // deadline and the browser clock agree. The 3s live poll re-syncs the
+  // deadline only when it resets (a fresh invoke) — the tick fills the gaps.
+  function fmtLeft(s) {
+    return s >= 60 ? Math.floor(s / 60) + "m " + String(s % 60).padStart(2, "0") + "s" : s + "s";
+  }
+  setInterval(function () {
+    document.querySelectorAll("[data-sleep-at]").forEach(function (host) {
+      var at = parseInt(host.getAttribute("data-sleep-at") || "0", 10);
+      var cd = host.querySelector(".rt-cd");
+      if (!at || !cd) return;
+      var left = at - Math.floor(Date.now() / 1000);
+      cd.textContent = left > 0 ? fmtLeft(left) : "any moment";
+    });
+  }, 1000);
+
   window.dozeShell = { toast: toast, openPalette: openPalette };
 })();
