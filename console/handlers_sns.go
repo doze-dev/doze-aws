@@ -112,7 +112,15 @@ func (c *Console) snsPublish(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) snsSubscribe(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("topic")
-	if err := c.be.Subscribe(r.Context(), topicARNOf(name), r.FormValue("protocol"), r.FormValue("endpoint")); err != nil {
+	// Optional filter policy + raw delivery applied at subscribe time.
+	attrs := map[string]string{}
+	if fp := strings.TrimSpace(r.FormValue("policy")); fp != "" {
+		attrs["FilterPolicy"] = fp
+	}
+	if r.FormValue("raw") == "on" || r.FormValue("raw") == "true" {
+		attrs["RawMessageDelivery"] = "true"
+	}
+	if err := c.be.Subscribe(r.Context(), topicARNOf(name), r.FormValue("protocol"), r.FormValue("endpoint"), attrs); err != nil {
 		c.fail(w, err)
 		return
 	}

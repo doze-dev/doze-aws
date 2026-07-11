@@ -95,12 +95,20 @@
       </div>
     {{end}}</div>
     {{else}}<div class="empty" style="border:0"><p>No subscribers — publishes go nowhere. Add one below.</p></div>{{end}}
-    <form class="sub-add" x-data="{proto:'sqs'}" hx-post="{{.Prefix}}/sns/{{.Topic}}/subscribe" hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
-      <select class="input" name="protocol" x-model="proto" title="Protocol"><option value="sqs">sqs</option><option value="lambda">lambda</option><option value="http">http (webhook)</option></select>
-      <span x-show="proto==='sqs'" style="flex:1"><select class="input" name="endpoint" :disabled="proto!=='sqs'">{{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">{{.Name}}</option>{{end}}</select></span>
-      <span x-show="proto==='lambda'" x-cloak style="flex:1"><select class="input" name="endpoint" :disabled="proto!=='lambda'">{{range .Functions}}<option value="{{.ARN}}">{{.Name}}</option>{{end}}</select></span>
-      <span x-show="proto==='http'" x-cloak style="flex:1"><input class="input" name="endpoint" placeholder="http://localhost:9000/hook" :disabled="proto!=='http'"></span>
-      <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Subscribe</button>
+    <form x-data="{proto:'sqs', adv:false}" hx-post="{{.Prefix}}/sns/{{.Topic}}/subscribe" hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){$el.reset();adv=false}">
+      <div class="sub-add">
+        <select class="input" name="protocol" x-model="proto" title="Protocol"><option value="sqs">sqs</option><option value="lambda">lambda</option><option value="http">http (webhook)</option></select>
+        <span x-show="proto==='sqs'" style="flex:1"><select class="input" name="endpoint" :disabled="proto!=='sqs'">{{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">{{.Name}}</option>{{end}}</select></span>
+        <span x-show="proto==='lambda'" x-cloak style="flex:1"><select class="input" name="endpoint" :disabled="proto!=='lambda'">{{range .Functions}}<option value="{{.ARN}}">{{.Name}}</option>{{end}}</select></span>
+        <span x-show="proto==='http'" x-cloak style="flex:1"><input class="input" name="endpoint" placeholder="http://localhost:9000/hook" :disabled="proto!=='http'"></span>
+        <button type="button" class="icon-btn sm" :class="adv&&'on'" @click="adv=!adv" title="Filter &amp; delivery options">{{icon "sliders"}}</button>
+        <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Subscribe</button>
+      </div>
+      <div class="sub-add-adv" x-show="adv" x-cloak x-effect="if(adv)$nextTick(()=>dozeEditor.refresh($root))">
+        <div class="field"><label>Filter policy <span class="dim">JSON — optional; only matching messages are delivered</span></label>
+          <textarea name="policy" data-editor="json" rows="4" spellcheck="false" placeholder='{"eventType":["OrderPlaced"]}'></textarea></div>
+        <label class="raw-inline" x-show="proto!=='lambda'"><input type="checkbox" name="raw"> Deliver raw messages <span class="dim">(no SNS envelope)</span></label>
+      </div>
     </form>
   </div>
 </div>

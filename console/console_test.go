@@ -1023,9 +1023,15 @@ func TestSNSSubscriptionAttributes(t *testing.T) {
 
 	create(t, h, "/_console/sqs/create", url.Values{"name": {"orders"}, "dlq_mode": {"none"}})
 	create(t, h, "/_console/sns/create", url.Values{"name": {"events"}})
-	req(t, h, "POST", "/_console/sns/events/subscribe", url.Values{
+
+	// Subscribe WITH a filter policy + raw delivery applied at creation time.
+	sub0 := req(t, h, "POST", "/_console/sns/events/subscribe", url.Values{
 		"protocol": {"sqs"}, "endpoint": {"arn:aws:sqs:us-east-1:000000000000:orders"},
-	})
+		"policy": {`{"tier":["gold"]}`}, "raw": {"on"},
+	}).Body.String()
+	if !strings.Contains(sub0, "filtered") || !strings.Contains(sub0, ">raw<") {
+		t.Fatalf("subscribe-time filter/raw not applied:\n%s", sub0)
+	}
 
 	// Set a filter policy.
 	pol := `{"eventType":["OrderPlaced"]}`

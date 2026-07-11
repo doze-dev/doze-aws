@@ -3,6 +3,7 @@ package console
 import (
 	"context"
 	"encoding/xml"
+	"fmt"
 	"net/url"
 	"sort"
 	"strconv"
@@ -144,12 +145,24 @@ func (b *backend) SetSubscriptionAttribute(ctx context.Context, subARN, name, va
 	return err
 }
 
-func (b *backend) Subscribe(ctx context.Context, topicARN, protocol, endpoint string) error {
-	_, err := b.queryXML(ctx, url.Values{
+// Subscribe creates a subscription, optionally with attributes (FilterPolicy,
+// RawMessageDelivery) applied at creation time.
+func (b *backend) Subscribe(ctx context.Context, topicARN, protocol, endpoint string, attrs map[string]string) error {
+	v := url.Values{
 		"Action": {"Subscribe"}, "TopicArn": {topicARN},
 		"Protocol": {protocol}, "Endpoint": {endpoint},
 		"ReturnSubscriptionArn": {"true"},
-	})
+	}
+	i := 1
+	for k, val := range attrs {
+		if val == "" {
+			continue
+		}
+		v.Set(fmt.Sprintf("Attributes.entry.%d.key", i), k)
+		v.Set(fmt.Sprintf("Attributes.entry.%d.value", i), val)
+		i++
+	}
+	_, err := b.queryXML(ctx, v)
 	return err
 }
 

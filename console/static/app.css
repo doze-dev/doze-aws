@@ -866,6 +866,9 @@ a.lo-card:hover { border-color: hsl(var(--accent-blue)); box-shadow: 0 0 0 3px h
 .sub-row:hover .copy-btn, .sub-row:hover .icon-btn { opacity: 1; }
 .sub-add { display: flex; gap: 8px; align-items: center; padding: 10px 13px; border-top: 1px solid hsl(var(--border)); background: hsl(var(--muted) / 0.3); }
 .sub-add > select:first-child { width: 130px; flex: none; }
+.sub-add-adv { padding: 12px 13px 4px; background: hsl(var(--muted) / 0.3); border-top: 1px solid hsl(var(--border)); display: grid; gap: 10px; }
+.sub-add-adv .raw-inline { display: flex; align-items: center; gap: 8px; font-size: 12px; color: hsl(var(--foreground)); cursor: pointer; }
+.icon-btn.on { color: hsl(var(--foreground)); background: hsl(var(--muted)); }
 .sub-item { border-bottom: 1px solid hsl(var(--border)); }
 .sub-item .sub-row { border-bottom: 0; }
 .sub-item:hover .icon-btn.gear { opacity: 1; }
