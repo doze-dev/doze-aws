@@ -1,7 +1,12 @@
 package lambda_test
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -101,5 +106,53 @@ func TestSDKEventSourceMappingCRUD(t *testing.T) {
 	}
 	if _, err := c.DeleteEventSourceMapping(ctx, &awslambda.DeleteEventSourceMappingInput{UUID: m.UUID}); err != nil {
 		t.Fatalf("DeleteEventSourceMapping: %v", err)
+	}
+}
+
+// TestSDKZipFileCode exercises the ZipFile code path (base64 zip → unzip →
+// extracted bootstrap → invoke), the alternative to the _local_ extension every
+// other test uses.
+func TestSDKZipFileCode(t *testing.T) {
+	ctx := context.Background()
+	c, _ := lambdaClient(t)
+
+	// Compile a bootstrap, then pack it into an in-memory zip the way the real
+	// AWS ZipFile upload does.
+	binDir := buildBootstrap(t)
+	raw, err := os.ReadFile(filepath.Join(binDir, "bootstrap"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	hdr := &zip.FileHeader{Name: "bootstrap", Method: zip.Deflate}
+	hdr.SetMode(0o755) // executable, or the runtime can't exec it
+	w, err := zw.CreateHeader(hdr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Write(raw)
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := c.CreateFunction(ctx, &awslambda.CreateFunctionInput{
+		FunctionName: aws.String("zipped"),
+		Runtime:      lamtypes.RuntimeProvidedal2,
+		Handler:      aws.String("bootstrap"),
+		Role:         aws.String("arn:aws:iam::000000000000:role/r"),
+		Code:         &lamtypes.FunctionCode{ZipFile: buf.Bytes()},
+		Timeout:      aws.Int32(10),
+	}); err != nil {
+		t.Fatalf("CreateFunction(ZipFile): %v", err)
+	}
+	out, err := c.Invoke(ctx, &awslambda.InvokeInput{
+		FunctionName: aws.String("zipped"), Payload: []byte(`{"z":1}`),
+	})
+	if err != nil || out.FunctionError != nil {
+		t.Fatalf("Invoke zipped: err=%v funcErr=%v payload=%s", err, out.FunctionError, out.Payload)
+	}
+	if !strings.Contains(string(out.Payload), `"z":1`) {
+		t.Fatalf("zipped invoke result = %s", out.Payload)
 	}
 }

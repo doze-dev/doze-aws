@@ -5,6 +5,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
@@ -145,6 +146,27 @@ func TestSDKObjectLock(t *testing.T) {
 	lh, err := c.GetObjectLegalHold(ctx, &awss3.GetObjectLegalHoldInput{Bucket: aws.String("bklock"), Key: aws.String("k")})
 	if err != nil || lh.LegalHold.Status != s3types.ObjectLockLegalHoldStatusOn {
 		t.Fatalf("GetObjectLegalHold = %v err=%v", lh, err)
+	}
+
+	// Retention (distinct from legal hold): set GOVERNANCE until a future date,
+	// read it back, then prove shortening without bypass is refused.
+	until := time.Unix(4102444800, 0).UTC() // 2100-01-01
+	if _, err := c.PutObjectRetention(ctx, &awss3.PutObjectRetentionInput{
+		Bucket: aws.String("bklock"), Key: aws.String("k"),
+		Retention: &s3types.ObjectLockRetention{Mode: s3types.ObjectLockRetentionModeGovernance, RetainUntilDate: aws.Time(until)},
+	}); err != nil {
+		t.Fatalf("PutObjectRetention: %v", err)
+	}
+	ret, err := c.GetObjectRetention(ctx, &awss3.GetObjectRetentionInput{Bucket: aws.String("bklock"), Key: aws.String("k")})
+	if err != nil || ret.Retention.Mode != s3types.ObjectLockRetentionModeGovernance {
+		t.Fatalf("GetObjectRetention = %v err=%v", ret, err)
+	}
+	// Shortening GOVERNANCE retention without the bypass header must be denied.
+	if _, err := c.PutObjectRetention(ctx, &awss3.PutObjectRetentionInput{
+		Bucket: aws.String("bklock"), Key: aws.String("k"),
+		Retention: &s3types.ObjectLockRetention{Mode: s3types.ObjectLockRetentionModeGovernance, RetainUntilDate: aws.Time(time.Unix(1704067200, 0).UTC())},
+	}); err == nil {
+		t.Fatal("shortening retention without bypass should be denied")
 	}
 }
 

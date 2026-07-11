@@ -154,6 +154,100 @@ func TestIntegrationLambdaSinks(t *testing.T) {
 	waitForMarker(t, marker, "via-eb-QRS")
 }
 
+// failBootstrap reports every invocation as an error to the Runtime API, so the
+// async retry loop exhausts and the DLQ path fires.
+const failBootstrap = `package main
+
+import (
+	"net/http"
+	"os"
+	"strings"
+)
+
+func main() {
+	api := os.Getenv("AWS_LAMBDA_RUNTIME_API")
+	for {
+		resp, err := http.Get("http://" + api + "/2018-06-01/runtime/invocation/next")
+		if err != nil { os.Exit(1) }
+		id := resp.Header.Get("Lambda-Runtime-Aws-Request-Id")
+		resp.Body.Close()
+		http.Post("http://"+api+"/2018-06-01/runtime/invocation/"+id+"/error", "application/json",
+			strings.NewReader(` + "`" + `{"errorMessage":"boom","errorType":"Boom"}` + "`" + `))
+	}
+}
+`
+
+func buildFailer(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "main.go"), []byte(failBootstrap), 0o644)
+	os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module fail\n\ngo 1.26\n"), 0o644)
+	cmd := exec.Command("go", "build", "-o", filepath.Join(dir, "bootstrap"), ".")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "GOWORK=off", "CGO_ENABLED=0")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("build failer: %v\n%s", err, out)
+	}
+	return dir
+}
+
+// TestIntegrationLambdaDLQ proves the async-failure DLQ wiring: a function whose
+// invocations always error, invoked asynchronously, drives the payload to its
+// dead-letter SQS queue once retries are exhausted (exercises invokeAsync's
+// failure branch and deliverToArn across the stack).
+func TestIntegrationLambdaDLQ(t *testing.T) {
+	if testing.Short() {
+		t.Skip("compiles + runs a failing lambda across the stack")
+	}
+	ctx := context.Background()
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stack.Close()
+	ts := httptest.NewServer(stack.Handler())
+	defer ts.Close()
+
+	creds := credentials.NewStaticCredentialsProvider(awsident.AccessKeyID, awsident.SecretAccessKey, "")
+	cfg := aws.Config{Region: awsident.Region, Credentials: creds}
+	lam := awslambda.NewFromConfig(cfg, func(o *awslambda.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+	sqs := awssqs.NewFromConfig(cfg, func(o *awssqs.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+
+	dlq, _ := sqs.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("dlq")})
+	if _, err := lam.CreateFunction(ctx, &awslambda.CreateFunctionInput{
+		FunctionName:     aws.String("flaky"),
+		Runtime:          lamtypes.RuntimeProvidedal2,
+		Handler:          aws.String("bootstrap"),
+		Role:             aws.String("arn:aws:iam::000000000000:role/r"),
+		Code:             &lamtypes.FunctionCode{S3Bucket: aws.String("_local_"), S3Key: aws.String(buildFailer(t))},
+		Timeout:          aws.Int32(10),
+		DeadLetterConfig: &lamtypes.DeadLetterConfig{TargetArn: aws.String(awsident.ARN("sqs", "dlq"))},
+	}); err != nil {
+		t.Fatalf("CreateFunction: %v", err)
+	}
+
+	if _, err := lam.Invoke(ctx, &awslambda.InvokeInput{
+		FunctionName:   aws.String("flaky"),
+		InvocationType: lamtypes.InvocationTypeEvent,
+		Payload:        []byte(`{"tag":"dead-letter-me"}`),
+	}); err != nil {
+		t.Fatalf("async Invoke: %v", err)
+	}
+
+	// After retries exhaust, the original payload lands in the DLQ.
+	deadline := time.Now().Add(20 * time.Second)
+	for time.Now().Before(deadline) {
+		out, _ := sqs.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{QueueUrl: dlq.QueueUrl, WaitTimeSeconds: 1})
+		if len(out.Messages) > 0 {
+			if !strings.Contains(aws.ToString(out.Messages[0].Body), "dead-letter-me") {
+				t.Fatalf("DLQ message = %s", aws.ToString(out.Messages[0].Body))
+			}
+			return
+		}
+	}
+	t.Fatal("payload never reached the DLQ")
+}
+
 // TestIntegrationS3ToSNSToSQS proves a three-service chain: an S3 object-created
 // notification fans out to an SNS topic, which delivers to a subscribed SQS
 // queue.

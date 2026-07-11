@@ -80,6 +80,23 @@ func TestCORSPreflight(t *testing.T) {
 	if resp.StatusCode != http.StatusForbidden {
 		t.Fatalf("DELETE preflight status = %d", resp.StatusCode)
 	}
+
+	// A real (non-preflight) request with a matching Origin gets CORS response
+	// headers decorated onto it (applyCORS), including the exposed headers.
+	c.PutObject(ctx, &awss3.PutObjectInput{Bucket: aws.String("webby"), Key: aws.String("some-key"), Body: strings.NewReader("x")})
+	req, _ = http.NewRequest("GET", ts.URL+"/webby/some-key", nil)
+	req.Header.Set("Origin", "https://app.example.com")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if got := resp.Header.Get("Access-Control-Allow-Origin"); got != "https://app.example.com" {
+		t.Errorf("GET Allow-Origin = %q", got)
+	}
+	if got := resp.Header.Get("Access-Control-Expose-Headers"); got != "ETag" {
+		t.Errorf("GET Expose-Headers = %q", got)
+	}
 }
 
 func TestWebsiteServing(t *testing.T) {
