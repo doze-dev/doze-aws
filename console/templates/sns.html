@@ -52,25 +52,33 @@
 </div>
 {{end}}
 
+{{/* Subscribers: one panel, spoken in the console's resource language — the
+     endpoint's NAME as a service-colored link, never a truncated ARN. The
+     add-row lives at the panel's foot so "add to this list" is literal. */}}
 {{define "sns_subs"}}
 <div id="sns-subs">
-  <div class="panel"><div class="panel-h"><h2>{{icon "link"}} Subscriptions <span class="badge">{{len .Subs}}</span></h2></div>
-    {{if .Subs}}<table class="tbl"><thead><tr><th>Protocol</th><th>Endpoint</th><th style="width:36px"></th></tr></thead><tbody>{{range .Subs}}
-      <tr><td><span class="badge type">{{.Protocol}}</span></td><td class="mono trunc dim" style="font-size:11.5px;max-width:280px" title="{{.Endpoint}}">{{.Endpoint}}</td><td><div class="row-actions"><button class="icon-btn sm danger" title="Unsubscribe" hx-post="{{$.Prefix}}/sns/{{$.Topic}}/unsubscribe" hx-vals='{"arn":"{{.ARN}}"}' hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove this subscription?">{{icon "trash"}}</button></div></td></tr>
-    {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No subscriptions — deliveries go nowhere yet.</p></div>{{end}}
-  </div>
-  <div class="panel" style="margin-top:12px" x-data="{proto:'sqs'}"><div class="panel-h"><h2>{{icon "plus"}} Add subscription</h2></div><div style="padding:14px 16px">
-    <form hx-post="{{.Prefix}}/sns/{{.Topic}}/subscribe" hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
-      <div class="fgrid">
-        <div class="field"><label>Protocol</label><select class="input" name="protocol" x-model="proto"><option value="sqs">sqs</option><option value="lambda">lambda</option><option value="http">http (webhook)</option></select></div>
-        <div class="field"><label>Endpoint</label>
-          <span x-show="proto==='sqs'"><select class="input" name="endpoint" :disabled="proto!=='sqs'">{{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">{{.Name}}</option>{{end}}</select></span>
-          <span x-show="proto==='lambda'" x-cloak><select class="input" name="endpoint" :disabled="proto!=='lambda'">{{range .Functions}}<option value="{{.ARN}}">{{.Name}}</option>{{end}}</select></span>
-          <span x-show="proto==='http'" x-cloak><input class="input" name="endpoint" placeholder="http://localhost:9000/hook" :disabled="proto!=='http'"></span>
-        </div>
+  <div class="panel">
+    <div class="panel-h"><h2>{{icon "link"}} Subscribers <span class="badge">{{len .Subs}}</span></h2>
+      <span class="dim" style="font-size:11.5px">every publish fans out to these</span></div>
+    {{if .Subs}}
+    <div class="sub-rows">{{range .Subs}}
+      <div class="sub-row">
+        <span class="cc-bar" style="background:hsl(var(--svc-{{if .Svc}}{{.Svc}}{{else}}eb{{end}}))"></span>
+        {{if .URL}}<a class="sub-nm" href="{{$.Prefix}}{{.URL}}">{{.Name}}</a>{{else}}<span class="sub-nm">{{.Name}}</span>{{end}}
+        <span class="badge type">{{.Proto}}</span>
+        <span class="sub-arn mono trunc dim" title="{{.Endpoint}}">{{.Endpoint}}</span>
+        <button class="copy-btn" data-copy="{{.Endpoint}}" title="Copy endpoint ARN">{{icon "copy"}}</button>
+        <button class="icon-btn sm danger" title="Unsubscribe {{.Name}}" hx-post="{{$.Prefix}}/sns/{{$.Topic}}/unsubscribe" hx-vals='{"arn":"{{.SubARN}}"}' hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML" hx-confirm="Unsubscribe “{{.Name}}” from this topic?">{{icon "trash"}}</button>
       </div>
-      <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn btn-outline" type="submit">Subscribe</button></div>
+    {{end}}</div>
+    {{else}}<div class="empty" style="border:0"><p>No subscribers — publishes go nowhere. Add one below.</p></div>{{end}}
+    <form class="sub-add" x-data="{proto:'sqs'}" hx-post="{{.Prefix}}/sns/{{.Topic}}/subscribe" hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+      <select class="input" name="protocol" x-model="proto" title="Protocol"><option value="sqs">sqs</option><option value="lambda">lambda</option><option value="http">http (webhook)</option></select>
+      <span x-show="proto==='sqs'" style="flex:1"><select class="input" name="endpoint" :disabled="proto!=='sqs'">{{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">{{.Name}}</option>{{end}}</select></span>
+      <span x-show="proto==='lambda'" x-cloak style="flex:1"><select class="input" name="endpoint" :disabled="proto!=='lambda'">{{range .Functions}}<option value="{{.ARN}}">{{.Name}}</option>{{end}}</select></span>
+      <span x-show="proto==='http'" x-cloak style="flex:1"><input class="input" name="endpoint" placeholder="http://localhost:9000/hook" :disabled="proto!=='http'"></span>
+      <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Subscribe</button>
     </form>
-  </div></div>
+  </div>
 </div>
 {{end}}

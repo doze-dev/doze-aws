@@ -51,10 +51,34 @@ func (c *Console) snsTopic(w http.ResponseWriter, r *http.Request) {
 	fns, _ := c.be.ListFunctions(r.Context())
 	topics, _ := c.be.ListTopics(r.Context())
 	c.render(w, r, "sns_topic", map[string]any{
-		"Topic": name, "ARN": arn, "Attrs": attrs, "Subs": subs,
+		"Topic": name, "ARN": arn, "Attrs": attrs, "Subs": subViews(subs),
 		"Queues": queues, "Functions": fns, "List": topics, "Title": name + " · SNS",
 		"Conn": c.be.Neighbors(r.Context(), "sns", name),
 	})
+}
+
+// subView renders a subscription in the console's resource language: the
+// endpoint's NAME (linked, service-colored) rather than a truncated ARN.
+type subView struct {
+	Proto, Name, URL, Endpoint, SubARN string
+	Svc                                string // service color key; "" for http/webhook
+}
+
+func subViews(subs []Subscription) []subView {
+	views := make([]subView, 0, len(subs))
+	for _, s := range subs {
+		v := subView{Proto: s.Protocol, Endpoint: s.Endpoint, SubARN: s.ARN, Name: s.Endpoint}
+		switch s.Protocol {
+		case "sqs":
+			v.Svc, v.Name = "sqs", arnLeaf(s.Endpoint)
+			v.URL = "/sqs/" + v.Name
+		case "lambda":
+			v.Svc, v.Name = "lambda", strings.TrimPrefix(arnLeaf(s.Endpoint), "function:")
+			v.URL = "/lambda/" + v.Name
+		}
+		views = append(views, v)
+	}
+	return views
 }
 
 func (c *Console) snsSubsPartial(w http.ResponseWriter, r *http.Request, name string) {
@@ -63,7 +87,7 @@ func (c *Console) snsSubsPartial(w http.ResponseWriter, r *http.Request, name st
 	queues, _ := c.be.ListQueues(r.Context())
 	fns, _ := c.be.ListFunctions(r.Context())
 	c.partial(w, "sns_subs", map[string]any{
-		"Topic": name, "ARN": arn, "Subs": subs, "Queues": queues, "Functions": fns,
+		"Topic": name, "ARN": arn, "Subs": subViews(subs), "Queues": queues, "Functions": fns,
 	})
 }
 
@@ -76,21 +100,7 @@ func (c *Console) snsPublish(w http.ResponseWriter, r *http.Request) {
 	// Answer with a delivery receipt: who this message fanned out to, each
 	// linked — the publish→verify loop closes without leaving the page.
 	subs, _ := c.be.ListSubscriptions(r.Context(), topicARNOf(name))
-	type rcpt struct{ Proto, Name, URL string }
-	var rcpts []rcpt
-	for _, s := range subs {
-		switch s.Protocol {
-		case "sqs":
-			n := arnLeaf(s.Endpoint)
-			rcpts = append(rcpts, rcpt{"sqs", n, "/sqs/" + n})
-		case "lambda":
-			n := strings.TrimPrefix(arnLeaf(s.Endpoint), "function:")
-			rcpts = append(rcpts, rcpt{"lambda", n, "/lambda/" + n})
-		default:
-			rcpts = append(rcpts, rcpt{s.Protocol, s.Endpoint, ""})
-		}
-	}
-	c.partial(w, "sns_receipt", map[string]any{"Topic": name, "Rcpts": rcpts})
+	c.partial(w, "sns_receipt", map[string]any{"Topic": name, "Rcpts": subViews(subs)})
 }
 
 func (c *Console) snsSubscribe(w http.ResponseWriter, r *http.Request) {

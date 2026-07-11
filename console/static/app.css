@@ -850,3 +850,16 @@ a.lo-card:hover { border-color: hsl(var(--accent-blue)); box-shadow: 0 0 0 3px h
 .dlq-mode.on { border-color: hsl(var(--accent-blue)); background: hsl(var(--accent-blue) / 0.05); }
 .dlq-mode input { margin-top: 2px; accent-color: hsl(var(--accent-blue)); }
 @media (max-width: 900px) { .dlq-modes { grid-template-columns: 1fr; } }
+
+/* SNS subscribers: named, colored, linked rows + inline add-row footer. */
+.sub-rows { border-top: 1px solid hsl(var(--border)); }
+.sub-row { display: flex; align-items: center; gap: 9px; padding: 8px 13px 8px 0; border-bottom: 1px solid hsl(var(--border)); }
+.sub-row .cc-bar { align-self: stretch; width: 3.5px; flex: none; }
+.sub-row .sub-nm { font-size: 12.5px; font-weight: 550; color: hsl(var(--foreground)); text-decoration: none; }
+.sub-row a.sub-nm:hover { color: hsl(var(--accent-blue)); }
+.sub-row .sub-arn { flex: 1; min-width: 0; font-size: 10.5px; }
+.sub-row .copy-btn, .sub-row .icon-btn { opacity: 0; flex: none; }
+.sub-row:hover .copy-btn, .sub-row:hover .icon-btn { opacity: 1; }
+.sub-add { display: flex; gap: 8px; align-items: center; padding: 10px 13px; border-top: 1px solid hsl(var(--border)); background: hsl(var(--muted) / 0.3); }
+.sub-add > select:first-child { width: 130px; flex: none; }
+.sub-add .input { height: 30px; font-size: 12px; }
