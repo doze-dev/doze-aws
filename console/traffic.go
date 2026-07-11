@@ -3,6 +3,7 @@ package console
 import (
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -49,7 +50,7 @@ func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			r.Body = io.NopCloser(strings.NewReader(string(b)))
 		}
 	}
-	svc, action, resource := classify(r)
+	svc, action, resource := classify(r, body)
 	sw := &statusWriter{ResponseWriter: w, code: 200}
 	start := time.Now()
 	rec.next.ServeHTTP(sw, r)
@@ -118,7 +119,7 @@ var targetService = map[string]string{
 
 // classify infers (service, action, resource) from a request, mirroring the
 // gateway's own routing heuristics closely enough for a readable tail.
-func classify(r *http.Request) (svc, action, resource string) {
+func classify(r *http.Request, capturedBody string) (svc, action, resource string) {
 	if t := r.Header.Get("X-Amz-Target"); t != "" {
 		prefix, act, _ := strings.Cut(t, ".")
 		svc = targetService[prefix]
@@ -148,14 +149,17 @@ func classify(r *http.Request) (svc, action, resource string) {
 		}
 		return "lambda", act, res
 	}
-	// Query protocol (SNS / STS / legacy SQS): Action in form/query.
+	// Query protocol (SNS / STS / legacy SQS): Action in query or form body.
+	// The form body is parsed from the recorder's captured copy — NEVER via
+	// r.ParseForm, which would consume r.Body and starve the gateway's own
+	// body-Action routing (SigV2-era clients put Action in the body).
 	if a := r.URL.Query().Get("Action"); a != "" {
 		return querySvc(a), a, ""
 	}
-	if r.Method == "POST" && strings.Contains(r.Header.Get("Content-Type"), "x-www-form-urlencoded") {
-		if err := r.ParseForm(); err == nil {
-			if a := r.PostForm.Get("Action"); a != "" {
-				return querySvc(a), a, r.PostForm.Get("QueueUrl") + r.PostForm.Get("TopicArn")
+	if r.Method == "POST" && strings.Contains(r.Header.Get("Content-Type"), "x-www-form-urlencoded") && capturedBody != "" {
+		if vals, err := url.ParseQuery(capturedBody); err == nil {
+			if a := vals.Get("Action"); a != "" {
+				return querySvc(a), a, vals.Get("QueueUrl") + vals.Get("TopicArn")
 			}
 		}
 	}

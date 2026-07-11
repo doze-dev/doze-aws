@@ -1,9 +1,37 @@
 package console
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
+
+// TestRecorderPreservesFormBody: the recorder must never consume the request
+// body it wraps. classify once called r.ParseForm() on form-encoded Query
+// requests (SigV2-era SNS/STS/legacy-SQS put Action in the body), draining
+// r.Body so the gateway's own body-Action routing found nothing and every such
+// request fell through to the S3 404/405 fallback.
+func TestRecorderPreservesFormBody(t *testing.T) {
+	var seen string
+	rec := NewRecorder(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		seen = string(b)
+	}))
+	form := "Action=ListTopics&Version=2010-03-31"
+	r := httptest.NewRequest("POST", "/", strings.NewReader(form))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec.ServeHTTP(httptest.NewRecorder(), r)
+	if seen != form {
+		t.Fatalf("recorder consumed the form body: handler saw %q, want %q", seen, form)
+	}
+	// And the classification still names the action from the captured copy.
+	entries := rec.Entries(0)
+	if len(entries) != 1 || entries[0].Action != "ListTopics" || entries[0].Service != "sns" {
+		t.Fatalf("classification lost the body action: %+v", entries)
+	}
+}
 
 // TestRedactSecrets: masked values must not leak, and — regression — redaction
 // must terminate. It once looped forever because the search restarted from 0

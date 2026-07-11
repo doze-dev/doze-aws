@@ -35,11 +35,43 @@ func (c *Console) lambdaFn(w http.ResponseWriter, r *http.Request) {
 	}
 	fns, _ := c.be.ListFunctions(r.Context())
 	rt := c.be.LambdaRuntime(r.Context(), name)
+	conn := c.be.Neighbors(r.Context(), "lambda", name)
 	c.render(w, r, "lambda_fn", map[string]any{
 		"Fn": f, "Tab": tabOf(r, "invoke"), "List": fns, "Title": name + " · Lambda",
-		"Conn": c.be.Neighbors(r.Context(), "lambda", name),
-		"RT":   rt, "RTHash": lambdaRuntimeHash(rt),
+		"Conn": conn, "Diag": lambdaDiagram(f, conn),
+		"RT": rt, "RTHash": lambdaRuntimeHash(rt),
 	})
+}
+
+// diagNode is one neighbor card in the function-overview diagram.
+type diagNode struct{ Svc, Name, URL, Kind string }
+
+// lambdaDiagram shapes a function's 1-hop wiring into the triggers → function
+// → destinations picture: upstream edges become trigger cards, downstream
+// edges become destination cards labeled by their role.
+func lambdaDiagram(f *Function, conn Neighborhood) map[string][]diagNode {
+	kindIn := map[string]string{"esm": "event source", "sub": "subscription", "target": "rule target", "notify": "notification"}
+	var trig, dest []diagNode
+	for _, n := range conn.Upstream {
+		k := kindIn[n.Kind]
+		if k == "" {
+			k = n.Kind
+		}
+		trig = append(trig, diagNode{n.Svc, n.Name, n.URL, n.Svc + " · " + k})
+	}
+	for _, n := range conn.Downstream {
+		label := n.Kind
+		switch {
+		case n.Kind == "dlq":
+			label = "dead-letter"
+		case arnLeaf(f.OnSuccess) == n.Name:
+			label = "on success"
+		case arnLeaf(f.OnFailure) == n.Name:
+			label = "on failure"
+		}
+		dest = append(dest, diagNode{n.Svc, n.Name, n.URL, label})
+	}
+	return map[string][]diagNode{"Trig": trig, "Dest": dest}
 }
 
 // lambdaRuntimeBadge is the polled live partial for a function's process state:

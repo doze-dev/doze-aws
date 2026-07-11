@@ -18,7 +18,7 @@
   {{template "lambda_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Fn.Name)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "lambda"}} {{.Fn.Name}} <span class="badge type">{{.Fn.Runtime}}</span>{{template "lambda_runtime_badge" dict "Prefix" .Prefix "Name" .Fn.Name "RT" .RT "Hash" .RTHash}}
+      <div class="det-title">{{awsIcon "lambda"}} {{.Fn.Name}} <span class="badge type">{{.Fn.Runtime}}</span>
         <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/delete-fn" hx-confirm="Delete function “{{.Fn.Name}}”?">{{icon "trash"}} Delete</button></div>
       </div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .Fn.ARN}}</div>
@@ -27,7 +27,30 @@
         (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/lambda/%s?tab=config" .Prefix .Fn.Name))
         (dict "Key" "triggers" "Label" "Triggers" "Icon" "arrow-right" "URL" (printf "%s/lambda/%s?tab=triggers" .Prefix .Fn.Name)))}}
     </div>
-    <div style="padding:0 20px 4px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn}}</div>
+    {{/* Function overview — the 1-hop picture: triggers → function → destinations.
+         The live process badge lives inside the function card: state sits where
+         the picture is. Replaces the chip strip on this page only. */}}
+    <div style="padding:0 20px 4px">
+      <div class="lam-ov">
+        <div class="lo-col">
+          <div class="lo-h">Triggers</div>
+          {{range .Diag.Trig}}<a class="lo-card" href="{{$.Prefix}}{{.URL}}"><span class="lo-bar" style="background:hsl(var(--svc-{{.Svc}}))"></span><span class="lo-body"><span class="lo-nm">{{.Name}}</span><span class="lo-k">{{.Kind}}</span></span></a>{{end}}
+          {{if not .Diag.Trig}}<div class="lo-card lo-empty"><span class="lo-body"><span class="lo-nm">no triggers</span><span class="lo-k">subscribe via SNS/EventBridge or add an event source mapping</span></span></div>{{end}}
+        </div>
+        <div class="lo-arrow">{{icon "arrow-right"}}</div>
+        <div class="lo-fn">
+          <div class="lo-fname">{{awsIcon "lambda"}} {{.Fn.Name}}</div>
+          <div class="lo-fmeta">{{.Fn.Runtime}} · {{.Fn.MemorySize}} MB · {{.Fn.Timeout}}s</div>
+          <div style="margin-top:8px">{{template "lambda_runtime_badge" dict "Prefix" .Prefix "Name" .Fn.Name "RT" .RT "Hash" .RTHash}}</div>
+        </div>
+        <div class="lo-arrow">{{icon "arrow-right"}}</div>
+        <div class="lo-col">
+          <div class="lo-h">Destinations</div>
+          {{range .Diag.Dest}}<a class="lo-card" href="{{$.Prefix}}{{.URL}}"><span class="lo-bar" style="background:hsl(var(--svc-{{.Svc}}))"></span><span class="lo-body"><span class="lo-nm">{{.Name}}</span><span class="lo-k">{{.Kind}}</span></span></a>{{end}}
+          {{if not .Diag.Dest}}<div class="lo-card lo-empty"><span class="lo-body"><span class="lo-nm">no destinations</span><span class="lo-k">on-success / on-failure / dead-letter land here</span></span></div>{{end}}
+        </div>
+      </div>
+    </div>
     <div class="det-b">
       {{if eq .Tab "config"}}
       <div class="split">
