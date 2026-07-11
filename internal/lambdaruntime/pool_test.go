@@ -115,3 +115,40 @@ func TestPoolSerialStaysSmall(t *testing.T) {
 		t.Fatalf("serial pool grew to %d runners, want 1", sz)
 	}
 }
+
+// TestPoolScalesToZeroWhenIdle proves a warm pool reaps its child process after
+// the idle window, then respawns lazily on the next invoke — so an unused
+// function stops holding memory.
+func TestPoolScalesToZeroWhenIdle(t *testing.T) {
+	if testing.Short() {
+		t.Skip("compiles + runs a lambda process")
+	}
+	dir := buildSleepBootstrap(t)
+	p := NewPool(Spec{Name: "idler", Command: []string{"./bootstrap"}, Dir: dir, Timeout: 5 * time.Second}, 5, nil)
+	defer p.Stop()
+	p.SetIdleTimeout(150 * time.Millisecond)
+
+	if _, err := p.Invoke(context.Background(), []byte(`{}`)); err != nil {
+		t.Fatalf("first invoke: %v", err)
+	}
+	if sz := p.Size(); sz != 1 {
+		t.Fatalf("after invoke, pool size = %d, want 1 (warm)", sz)
+	}
+
+	// Wait past the idle window; the reaper scales the pool to zero.
+	deadline := time.Now().Add(3 * time.Second)
+	for p.Size() != 0 {
+		if time.Now().After(deadline) {
+			t.Fatalf("idle pool never scaled to zero, size = %d", p.Size())
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	// A fresh invoke respawns a runner.
+	if _, err := p.Invoke(context.Background(), []byte(`{}`)); err != nil {
+		t.Fatalf("invoke after reap: %v", err)
+	}
+	if sz := p.Size(); sz != 1 {
+		t.Fatalf("after respawn, pool size = %d, want 1", sz)
+	}
+}
