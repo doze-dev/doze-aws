@@ -81,6 +81,7 @@ func (c *Console) routes() {
 
 	// Resource index for the command palette.
 	m.HandleFunc("GET "+p+"/api/resources", c.apiResources)
+	m.HandleFunc("GET "+p+"/api/counts", c.apiCounts)
 
 	// Create forms render inside the shell (list pane + detail).
 	m.HandleFunc("GET "+p+"/s3/create", c.createPage("s3", "s3_create"))

@@ -26,6 +26,41 @@
     try { localStorage.setItem("theme", next); } catch (e) {}
   });
 
+  // ---------- collapsible rail ----------
+  function railSlim() { return document.documentElement.getAttribute("data-rail") === "slim"; }
+  function setRail(slim) {
+    if (slim) document.documentElement.setAttribute("data-rail", "slim");
+    else document.documentElement.removeAttribute("data-rail");
+    try { localStorage.setItem("rail", slim ? "slim" : "wide"); } catch (e) {}
+  }
+  var railToggle = document.getElementById("rail-toggle");
+  if (railToggle) railToggle.addEventListener("click", function () { setRail(!railSlim()); });
+  // Flyout labels in slim mode: position fixed on hover so the rail's own
+  // scroll/overflow can never clip them.
+  document.addEventListener("mouseover", function (e) {
+    if (!railSlim()) return;
+    var ri = e.target.closest(".rail .ri");
+    if (!ri) return;
+    var fly = ri.querySelector(".ri-fly");
+    if (!fly) return;
+    var r = ri.getBoundingClientRect();
+    fly.style.left = (r.right + 8) + "px";
+    fly.style.top = (r.top + r.height / 2) + "px";
+  });
+  // Live per-service counts, refreshed gently. textContent writes are no-ops
+  // visually when the number hasn't changed, so there's nothing to de-jitter.
+  function refreshCounts() {
+    if (document.hidden) return;
+    fetch(PREFIX + "/api/counts").then(function (r) { return r.json(); }).then(function (counts) {
+      document.querySelectorAll(".rail [data-ct]").forEach(function (el) {
+        var n = counts[el.getAttribute("data-ct")];
+        el.textContent = n == null ? "" : String(n);
+      });
+    }).catch(function () {});
+  }
+  refreshCounts();
+  setInterval(refreshCounts, 5000);
+
   // ---------- toasts ----------
   var seq = 0;
   function toast(msg, kind) {
@@ -157,6 +192,7 @@
     else if (e.key === "k") moveCursor(-1);
     else if (e.key === "Enter" && cursor >= 0) { var r = listRows()[cursor]; if (r) r.click(); }
     else if (e.key === "c") { var nb = document.querySelector(".listpane .new-link"); if (nb) nb.click(); }
+    else if (e.key === "[") { setRail(!railSlim()); }
     else if (e.key === "Escape") { var back = document.querySelector("[data-esc-back]"); if (back) history.back(); }
   });
 

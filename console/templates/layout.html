@@ -7,7 +7,8 @@
      colors) at equal specificity, so it must come later to win the cascade. -->
 <link rel="stylesheet" href="{{.Prefix}}/static/cm/codemirror.min.css">
 <link rel="stylesheet" href="{{.Prefix}}/static/app.css">
-<script>(function(){try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<script>(function(){try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);
+var r=localStorage.getItem("rail");if(r==="slim")document.documentElement.setAttribute("data-rail","slim");}catch(e){}})();</script>
 <script>document.addEventListener("alpine:init",function(){window.Alpine.store("filter",{q:""});});</script>
 <script src="{{.Prefix}}/static/htmx.min.js"></script>
 <script src="{{.Prefix}}/static/idiomorph-ext.min.js"></script>
@@ -34,18 +35,25 @@
 
   <div class="body">
     <nav class="rail" hx-boost="true" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML">
-      <a href="{{.Prefix}}/" class="ri {{if eq .Page "flows"}}on{{end}}" title="Flows — the wiring map (home)">{{icon "route"}}</a>
-      <a href="{{.Prefix}}/traffic" class="ri {{if eq .Page "traffic"}}on{{end}}" title="Traffic — live API calls">{{icon "activity"}}</a>
-      <div class="rail-sep"></div>
-      <a href="{{.Prefix}}/s3" class="ri {{if hasPrefix .Page "s3"}}on{{end}}" title="S3"><span class="svc svc-s3">{{icon "hard-drive"}}</span></a>
-      <a href="{{.Prefix}}/ddb" class="ri {{if hasPrefix .Page "ddb"}}on{{end}}" title="DynamoDB"><span class="svc svc-ddb">{{icon "database"}}</span></a>
-      <a href="{{.Prefix}}/lambda" class="ri {{if hasPrefix .Page "lambda"}}on{{end}}" title="Lambda"><span class="svc svc-lambda">{{icon "zap"}}</span></a>
-      <a href="{{.Prefix}}/sqs" class="ri {{if hasPrefix .Page "sqs"}}on{{end}}" title="SQS"><span class="svc svc-sqs">{{icon "inbox"}}</span></a>
-      <a href="{{.Prefix}}/sns" class="ri {{if hasPrefix .Page "sns"}}on{{end}}" title="SNS"><span class="svc svc-sns">{{icon "share"}}</span></a>
-      <a href="{{.Prefix}}/eb" class="ri {{if hasPrefix .Page "eb"}}on{{end}}" title="EventBridge"><span class="svc svc-eb">{{icon "route"}}</span></a>
-      <a href="{{.Prefix}}/kms" class="ri {{if hasPrefix .Page "kms"}}on{{end}}" title="KMS"><span class="svc svc-kms">{{icon "key"}}</span></a>
-      <a href="{{.Prefix}}/sm" class="ri {{if and (hasPrefix .Page "sm") (not (hasPrefix .Page "sms"))}}on{{end}}" title="Secrets Manager"><span class="svc svc-sm">{{icon "lock"}}</span></a>
-      <a href="{{.Prefix}}/ssm" class="ri {{if hasPrefix .Page "ssm"}}on{{end}}" title="Parameter Store"><span class="svc svc-ssm">{{icon "sliders"}}</span></a>
+      <div class="rgroup">Overview</div>
+      {{template "ri" dict "P" .Prefix "URL" "/" "On" (eq .Page "flows") "Name" "Flows" "Glyph" "route"}}
+      {{template "ri" dict "P" .Prefix "URL" "/traffic" "On" (eq .Page "traffic") "Name" "Traffic" "Glyph" "activity"}}
+      <div class="rgroup">Storage &amp; data</div>
+      {{template "ri" dict "P" .Prefix "URL" "/s3" "On" (hasPrefix .Page "s3") "Name" "S3" "Svc" "s3"}}
+      {{template "ri" dict "P" .Prefix "URL" "/ddb" "On" (hasPrefix .Page "ddb") "Name" "DynamoDB" "Svc" "ddb"}}
+      <div class="rgroup">Messaging &amp; events</div>
+      {{template "ri" dict "P" .Prefix "URL" "/sqs" "On" (hasPrefix .Page "sqs") "Name" "SQS" "Svc" "sqs"}}
+      {{template "ri" dict "P" .Prefix "URL" "/sns" "On" (hasPrefix .Page "sns") "Name" "SNS" "Svc" "sns"}}
+      {{template "ri" dict "P" .Prefix "URL" "/eb" "On" (hasPrefix .Page "eb") "Name" "EventBridge" "Svc" "eb"}}
+      <div class="rgroup">Compute</div>
+      {{template "ri" dict "P" .Prefix "URL" "/lambda" "On" (hasPrefix .Page "lambda") "Name" "Lambda" "Svc" "lambda"}}
+      <div class="rgroup">Config &amp; secrets</div>
+      {{template "ri" dict "P" .Prefix "URL" "/kms" "On" (hasPrefix .Page "kms") "Name" "KMS" "Svc" "kms"}}
+      {{template "ri" dict "P" .Prefix "URL" "/sm" "On" (and (hasPrefix .Page "sm") (not (hasPrefix .Page "sms"))) "Name" "Secrets Manager" "Svc" "sm"}}
+      {{template "ri" dict "P" .Prefix "URL" "/ssm" "On" (hasPrefix .Page "ssm") "Name" "Parameter Store" "Svc" "ssm"}}
+      <button type="button" class="rail-toggle" id="rail-toggle" title="Collapse / expand ([)">
+        <span class="rt-ic">{{icon "chevron"}}</span><span class="ri-nm">Collapse</span>
+      </button>
     </nav>
 
     <div id="workspace" class="workspace" hx-boost="true" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML show:none">
@@ -88,6 +96,16 @@
 
   <div class="toasts" id="toasts"></div>
 </div>
+{{end}}
+
+{{/* ri = one rail item. Svc → AWS icon + live count; Glyph → Lucide (surfaces). */}}
+{{define "ri"}}
+<a href="{{.P}}{{.URL}}" class="ri {{if .On}}on{{end}}">
+  <span class="ri-ic">{{if .Svc}}{{awsIcon .Svc}}{{else}}{{icon .Glyph}}{{end}}</span>
+  <span class="ri-nm">{{.Name}}</span>
+  {{if .Svc}}<span class="ri-ct" data-ct="{{.Svc}}"></span>{{end}}
+  <span class="ri-fly">{{.Name}}</span>
+</a>
 {{end}}
 
 {{define "copychip"}}<span class="copychip">{{if .Label}}<span class="cc-label">{{.Label}}</span>{{end}}<span class="cc-val" title="{{.Value}}">{{.Value}}</span><button type="button" class="copy-btn" data-copy="{{.Value}}" title="Copy">{{icon "copy"}}</button></span>{{end}}

@@ -108,3 +108,38 @@ func (c *Console) apiResources(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(out)
 }
+
+// apiCounts feeds the rail's live per-service resource counts.
+func (c *Console) apiCounts(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	counts := map[string]int{}
+	if v, err := c.be.ListBuckets(ctx); err == nil {
+		counts["s3"] = len(v)
+	}
+	if v, err := c.be.ListQueues(ctx); err == nil {
+		counts["sqs"] = len(v)
+	}
+	if v, err := c.be.ListTables(ctx); err == nil {
+		counts["ddb"] = len(v)
+	}
+	if v, err := c.be.ListTopics(ctx); err == nil {
+		counts["sns"] = len(v)
+	}
+	if v, err := c.be.ListBuses(ctx); err == nil {
+		counts["eb"] = len(v)
+	}
+	if v, err := c.be.ListFunctions(ctx); err == nil {
+		counts["lambda"] = len(v)
+	}
+	if v, err := c.be.ListKeys(ctx); err == nil {
+		counts["kms"] = len(v)
+	}
+	if v, err := c.be.ListParameters(ctx); err == nil {
+		counts["ssm"] = len(v)
+	}
+	if v, err := c.be.ListSecrets(ctx); err == nil {
+		counts["sm"] = len(v)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(counts)
+}
