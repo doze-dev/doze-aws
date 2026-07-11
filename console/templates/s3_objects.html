@@ -1,52 +1,57 @@
 {{define "s3_objects"}}{{template "header" .}}
-<div class="head-row">
-  <h1>📦 {{.Bucket}}</h1>
-  <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/upload" hx-target="#object-table" hx-swap="outerHTML"
-        hx-encoding="multipart/form-data" hx-on::after-request="this.reset()" class="inline-form">
-    <input type="hidden" name="prefix" value="{{.KeyPrefix}}">
-    <input type="file" name="file" required>
-    <button type="submit">Upload</button>
-  </form>
+<div class="ph">
+  <div>
+    <h1><span class="svc svc-s3">{{icon "hard-drive"}}</span> {{.Bucket}}</h1>
+    <p class="ph-desc">Browse and manage objects.</p>
+  </div>
+  <div class="ph-actions">
+    <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/upload" hx-target="#object-table" hx-swap="outerHTML"
+          hx-encoding="multipart/form-data" x-data
+          @change="if($el.file.files.length) htmx.trigger($el,'submit')"
+          @htmx:after-request="$el.reset()">
+      <input type="hidden" name="prefix" value="{{.KeyPrefix}}">
+      <input type="file" name="file" id="s3file" hidden>
+      <button class="btn" type="button" onclick="this.closest('form').querySelector('input[type=file]').click()">{{icon "upload"}} Upload</button>
+    </form>
+  </div>
 </div>
 {{template "object_table" .}}
 {{template "footer" .}}{{end}}
 
 {{define "object_table"}}
 <div id="object-table">
-<nav class="crumbs">
-  <a hx-get="{{.Prefix}}/s3/{{.Bucket}}?partial=1" hx-target="#object-table" hx-swap="outerHTML"
-     href="{{.Prefix}}/s3/{{.Bucket}}">{{.Bucket}}</a>
-  {{range .Crumbs}}<span>/</span>
-    <a hx-get="{{$.Prefix}}/s3/{{$.Bucket}}?partial=1&prefix={{.Prefix}}" hx-target="#object-table" hx-swap="outerHTML"
-       href="{{$.Prefix}}/s3/{{$.Bucket}}?prefix={{.Prefix}}">{{.Name}}</a>
+<nav class="bc">
+  <a hx-get="{{.Prefix}}/s3/{{.Bucket}}?partial=1" hx-target="#object-table" hx-swap="outerHTML" href="{{.Prefix}}/s3/{{.Bucket}}">{{icon "hard-drive"}} {{.Bucket}}</a>
+  {{range .Crumbs}}{{icon "chevron"}}
+    <a hx-get="{{$.Prefix}}/s3/{{$.Bucket}}?partial=1&prefix={{.Prefix}}" hx-target="#object-table" hx-swap="outerHTML" href="{{$.Prefix}}/s3/{{$.Bucket}}?prefix={{.Prefix}}">{{.Name}}</a>
   {{end}}
 </nav>
 {{if .Objects}}
-<div class="table-wrap"><table class="grid">
-  <thead><tr><th>Key</th><th class="right">Size</th><th>Modified</th><th class="right">Actions</th></tr></thead>
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th>Name</th><th class="right">Size</th><th class="right">Modified</th><th style="width:88px"></th></tr></thead>
   <tbody>{{range .Objects}}
     {{if .IsPrefix}}
     <tr class="folder">
-      <td colspan="3"><a hx-get="{{$.Prefix}}/s3/{{$.Bucket}}?partial=1&prefix={{.Key}}"
-            hx-target="#object-table" hx-swap="outerHTML"
-            href="{{$.Prefix}}/s3/{{$.Bucket}}?prefix={{.Key}}">📁 {{trimPrefixKey .Key $.KeyPrefix}}</a></td>
+      <td colspan="3"><a class="cell-name" hx-get="{{$.Prefix}}/s3/{{$.Bucket}}?partial=1&prefix={{.Key}}" hx-target="#object-table" hx-swap="outerHTML" href="{{$.Prefix}}/s3/{{$.Bucket}}?prefix={{.Key}}">{{icon "folder"}} {{trimPrefixKey .Key $.KeyPrefix}}</a></td>
       <td></td>
     </tr>
     {{else}}
     <tr>
-      <td><a href="{{$.Prefix}}/s3/{{$.Bucket}}/object?key={{.Key}}" target="_blank">📄 {{trimPrefixKey .Key $.KeyPrefix}}</a></td>
-      <td class="right dim">{{humanSize .Size}}</td>
-      <td class="dim">{{.LastModified}}</td>
-      <td class="right">
-        <button class="ghost danger" hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/delete"
-                hx-vals='{"key":"{{.Key}}","prefix":"{{$.KeyPrefix}}"}'
-                hx-target="#object-table" hx-swap="outerHTML"
-                hx-confirm="Delete {{.Key}}?">Delete</button>
+      <td><a class="cell-name" href="{{$.Prefix}}/s3/{{$.Bucket}}/object?key={{.Key}}" target="_blank">{{icon "file"}} {{trimPrefixKey .Key $.KeyPrefix}}</a></td>
+      <td class="right dim num">{{humanSize .Size}}</td>
+      <td class="right dim num">{{.LastModified}}</td>
+      <td>
+        <div class="row-actions">
+          <a class="icon-btn" title="Download" href="{{$.Prefix}}/s3/{{$.Bucket}}/object?key={{.Key}}" target="_blank">{{icon "download"}}</a>
+          <button class="icon-btn danger" title="Delete"
+                  hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/delete" hx-vals='{"key":"{{.Key}}","prefix":"{{$.KeyPrefix}}"}'
+                  hx-target="#object-table" hx-swap="outerHTML" hx-confirm="Delete {{.Key}}?">{{icon "trash"}}</button>
+        </div>
       </td>
     </tr>
     {{end}}
   {{end}}</tbody>
 </table></div>
-{{else}}<p class="empty">This location is empty. Upload a file above.</p>{{end}}
+{{else}}<div class="empty"><span class="ic-lg">{{icon "folder"}}</span><p>This location is empty — upload a file to get started.</p></div>{{end}}
 </div>
 {{end}}

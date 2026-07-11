@@ -1,50 +1,55 @@
 {{define "sqs_queue"}}{{template "header" .}}
-<div class="head-row">
-  <h1>✉ {{.Queue}}</h1>
-  <div class="actions">
-    <button class="ghost danger" hx-post="{{.Prefix}}/sqs/{{.Queue}}/purge"
-            hx-target="#message-panel" hx-swap="outerHTML"
-            hx-confirm="Purge ALL messages from {{.Queue}}?">Purge queue</button>
+<nav class="bc">
+  <a href="{{.Prefix}}/sqs">{{icon "inbox"}} SQS</a>{{icon "chevron"}}<span>{{.Queue}}</span>
+</nav>
+<div class="ph">
+  <div>
+    <h1><span class="svc svc-sqs">{{icon "inbox"}}</span> {{.Queue}}</h1>
+    <p class="ph-desc">Inspect and drive this queue.</p>
+  </div>
+  <div class="ph-actions">
+    <button class="btn btn-outline" hx-post="{{.Prefix}}/sqs/{{.Queue}}/purge" hx-target="#message-panel" hx-swap="outerHTML"
+            hx-confirm="Purge ALL messages from {{.Queue}}?">{{icon "trash"}} Purge</button>
   </div>
 </div>
 
 <div class="split">
-  <section>
-    <section class="pad">
-      <h2 style="margin-top:0">Send a message</h2>
-      <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/send" hx-target="#message-panel" hx-swap="outerHTML"
-            hx-on::after-request="this.reset()">
-        <textarea name="body" rows="5" placeholder='{"hello":"world"}' required></textarea>
-        <div style="margin-top:10px"><button type="submit">Send message</button></div>
-      </form>
-    </section>
-    <h2>Attributes</h2>
-    <div class="table-wrap"><table class="grid kv">
-      <tbody>{{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{$v}}</td></tr>{{end}}</tbody>
-    </table></div>
-  </section>
-
-  <section>
-    <div hx-get="{{.Prefix}}/sqs/{{.Queue}}/messages" hx-trigger="load, every 3s" hx-swap="outerHTML">
-      {{template "message_panel" .}}
+  <div>
+    <div class="panel">
+      <div class="panel-h"><h2>{{icon "send"}} Send message</h2></div>
+      <div style="padding:14px 16px">
+        <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/send" hx-target="#message-panel" hx-swap="outerHTML"
+              @htmx:after-request="$el.reset()">
+          <textarea name="body" rows="5" placeholder='{"hello":"world"}' required></textarea>
+          <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn" type="submit">{{icon "send"}} Send</button></div>
+        </form>
+      </div>
     </div>
-  </section>
+    <div class="sec-title">Attributes</div>
+    <div class="table-wrap"><table class="tbl kv"><tbody>
+      {{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td class="trunc">{{$v}}</td></tr>{{end}}
+    </tbody></table></div>
+  </div>
+
+  <div hx-get="{{.Prefix}}/sqs/{{.Queue}}/messages" hx-trigger="load, every 3s" hx-swap="outerHTML">
+    {{template "message_panel" .}}
+  </div>
 </div>
 {{template "footer" .}}{{end}}
 
 {{define "message_panel"}}
-<div id="message-panel" hx-get="{{.Prefix}}/sqs/{{.Queue}}/messages" hx-trigger="every 3s" hx-swap="outerHTML">
-  <div class="panel-head">
-    <h2>Messages <span class="pill">{{.Available}}</span> <span class="dim">· {{.InFlight}} in flight</span></h2>
-    <span class="peek-note" title="Peeked without consuming — unlike the AWS console, refreshing never receives or hides messages">● live peek</span>
+<div id="message-panel" class="panel" hx-get="{{.Prefix}}/sqs/{{.Queue}}/messages" hx-trigger="every 3s" hx-swap="outerHTML">
+  <div class="panel-h">
+    <h2>{{icon "inbox"}} Messages <span class="{{if .Available}}badge{{else}}badge zero{{end}}">{{.Available}}</span> <span class="dim" style="font-weight:400">· {{.InFlight}} in flight</span></h2>
+    <span class="peek" title="Peeked without consuming — refreshing never receives or hides messages, unlike the AWS console">{{icon "eye"}} live peek</span>
   </div>
   {{if .Messages}}
-  <ul class="messages">{{range .Messages}}
-    <li>
-      <div class="msg-meta"><code>{{.MessageID}}</code><span class="dim">{{.SentAt}}</span></div>
-      <pre class="msg-body">{{.Body}}</pre>
-    </li>
-  {{end}}</ul>
-  {{else}}<p class="empty">No visible messages.</p>{{end}}
+  <div class="msgs">{{range .Messages}}
+    <div class="msg">
+      <div class="msg-h"><code>{{.MessageID}}</code><span class="dim num">{{.SentAt}}</span></div>
+      <pre>{{.Body}}</pre>
+    </div>
+  {{end}}</div>
+  {{else}}<div class="empty"><span class="ic-lg">{{icon "inbox"}}</span><p>No visible messages.</p></div>{{end}}
 </div>
 {{end}}

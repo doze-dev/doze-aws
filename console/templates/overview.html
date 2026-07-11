@@ -1,36 +1,41 @@
 {{define "overview"}}{{template "header" .}}
-<h1>Overview</h1>
-<p class="dim" style="margin:0 0 6px">Everything running on your local endpoint.</p>
-<div class="cards">
-  <a class="card" href="{{.Prefix}}/s3">
-    <div class="card-top"><span class="ico ico-s3">S3</span> Storage</div>
-    <div class="card-n">{{.BucketCount}}</div>
-    <div class="card-l">buckets</div>
+<div class="ph">
+  <div>
+    <h1>Overview</h1>
+    <p class="ph-desc">Local AWS services running on your endpoint.</p>
+  </div>
+</div>
+
+<div class="stats">
+  <a class="stat" href="{{.Prefix}}/s3">
+    <div class="stat-top"><span>Storage</span><span class="svc svc-s3">{{icon "hard-drive"}}</span></div>
+    <div class="stat-n">{{.BucketCount}}</div>
+    <div class="stat-l">S3 buckets</div>
   </a>
-  <a class="card" href="{{.Prefix}}/sqs">
-    <div class="card-top"><span class="ico ico-sqs">SQ</span> Queues</div>
-    <div class="card-n">{{.QueueCount}}</div>
-    <div class="card-l">SQS queues</div>
+  <a class="stat" href="{{.Prefix}}/sqs">
+    <div class="stat-top"><span>Queues</span><span class="svc svc-sqs">{{icon "inbox"}}</span></div>
+    <div class="stat-n">{{.QueueCount}}</div>
+    <div class="stat-l">SQS queues</div>
   </a>
-  <div class="card">
-    <div class="card-top"><span class="ico ico-home">⇄</span> Activity</div>
-    <div class="card-n">{{.MsgTotal}}</div>
-    <div class="card-l">messages in flight</div>
+  <div class="stat">
+    <div class="stat-top"><span>Activity</span><span class="svc svc-home">{{icon "activity"}}</span></div>
+    <div class="stat-n">{{.MsgTotal}}</div>
+    <div class="stat-l">messages in flight</div>
   </div>
 </div>
 
 <div class="split">
-  <section class="pad">
-    <h2 style="margin-top:0">Buckets</h2>
-    {{if .Buckets}}<ul class="mini">{{range .Buckets}}
-      <li><a href="{{$.Prefix}}/s3/{{.Name}}"><span class="row-ico">📦</span>{{.Name}}</a><span class="dim">{{.Created}}</span></li>
-    {{end}}</ul>{{else}}<p class="empty">No buckets yet.</p>{{end}}
-  </section>
-  <section class="pad">
-    <h2 style="margin-top:0">Queues</h2>
-    {{if .Queues}}<ul class="mini">{{range .Queues}}
-      <li><a href="{{$.Prefix}}/sqs/{{.Name}}"><span class="row-ico">✉</span>{{.Name}}</a><span class="pill">{{.Available}}</span></li>
-    {{end}}</ul>{{else}}<p class="empty">No queues yet.</p>{{end}}
-  </section>
+  <div class="panel">
+    <div class="panel-h"><h2>{{icon "hard-drive"}} Buckets</h2><a class="btn btn-outline btn-sm" href="{{.Prefix}}/s3">View all</a></div>
+    {{if .Buckets}}<table class="tbl"><tbody>{{range .Buckets}}
+      <tr><td><a class="cell-name" href="{{$.Prefix}}/s3/{{.Name}}">{{icon "folder"}} {{.Name}}</a></td><td class="right dim num">{{.Created}}</td></tr>
+    {{end}}</tbody></table>{{else}}<div class="empty"><span class="ic-lg">{{icon "hard-drive"}}</span><p>No buckets yet</p></div>{{end}}
+  </div>
+  <div class="panel">
+    <div class="panel-h"><h2>{{icon "inbox"}} Queues</h2><a class="btn btn-outline btn-sm" href="{{.Prefix}}/sqs">View all</a></div>
+    {{if .Queues}}<table class="tbl"><tbody>{{range .Queues}}
+      <tr><td><a class="cell-name" href="{{$.Prefix}}/sqs/{{.Name}}">{{icon "inbox"}} {{.Name}}</a></td><td class="right"><span class="{{if .Available}}badge{{else}}badge zero{{end}}">{{.Available}}</span></td></tr>
+    {{end}}</tbody></table>{{else}}<div class="empty"><span class="ic-lg">{{icon "inbox"}}</span><p>No queues yet</p></div>{{end}}
+  </div>
 </div>
 {{template "footer" .}}{{end}}

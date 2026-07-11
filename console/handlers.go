@@ -43,6 +43,7 @@ func (c *Console) s3CreateBucket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	buckets, _ := c.be.ListBuckets(r.Context())
+	toast(w, "Bucket “"+name+"” created")
 	c.partial(w, "bucket_list", map[string]any{"Buckets": buckets})
 }
 
@@ -52,6 +53,7 @@ func (c *Console) s3DeleteBucket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	buckets, _ := c.be.ListBuckets(r.Context())
+	toast(w, "Bucket deleted")
 	c.partial(w, "bucket_list", map[string]any{"Buckets": buckets})
 }
 
@@ -125,6 +127,7 @@ func (c *Console) s3Upload(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	toast(w, "Uploaded "+hdr.Filename)
 	c.swapObjectTable(w, r, bucket, prefix)
 }
 
@@ -136,6 +139,7 @@ func (c *Console) s3DeleteObject(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	toast(w, "Object deleted")
 	c.swapObjectTable(w, r, bucket, prefix)
 }
 
@@ -165,6 +169,7 @@ func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	queues, _ := c.be.ListQueues(r.Context())
+	toast(w, "Queue “"+name+"” created")
 	c.partial(w, "queue_list", map[string]any{"Queues": queues})
 }
 
@@ -174,6 +179,7 @@ func (c *Console) sqsDeleteQueue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	queues, _ := c.be.ListQueues(r.Context())
+	toast(w, "Queue deleted")
 	c.partial(w, "queue_list", map[string]any{"Queues": queues})
 }
 
@@ -214,6 +220,7 @@ func (c *Console) sqsSend(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	toast(w, "Message sent")
 	c.sqsMessages(w, r)
 }
 
@@ -223,6 +230,7 @@ func (c *Console) sqsPurge(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	toast(w, "Queue purged")
 	c.sqsMessages(w, r)
 }
 

@@ -1,33 +1,54 @@
 {{define "s3_buckets"}}{{template "header" .}}
-<div class="head-row">
-  <h1>S3 buckets</h1>
-  <form hx-post="{{.Prefix}}/s3/create" hx-target="#bucket-list" hx-swap="outerHTML"
-        hx-on::after-request="this.reset()" class="inline-form">
-    <input name="name" placeholder="new-bucket-name" required pattern="[a-z0-9.\-]{3,63}"
-           title="3–63 chars, lowercase letters, digits, dots, hyphens">
-    <button type="submit">Create</button>
-  </form>
+<div class="ph">
+  <div>
+    <h1><span class="svc svc-s3">{{icon "hard-drive"}}</span> S3</h1>
+    <p class="ph-desc">Object storage buckets on this endpoint.</p>
+  </div>
+  <div class="ph-actions" x-data="{open:false}">
+    <button class="btn" @click="open=true">{{icon "plus"}} Create bucket</button>
+    <div class="overlay" x-show="open" x-cloak @click.self="open=false" @keydown.escape.window="open=false">
+      <div class="dialog anim">
+        <form hx-post="{{.Prefix}}/s3/create" hx-target="#bucket-list" hx-swap="outerHTML"
+              @htmx:after-request="if($event.detail.successful){open=false; $el.reset();}">
+          <div class="dialog-h"><h3>Create bucket</h3><p>Bucket names are globally unique, 3–63 lowercase characters.</p></div>
+          <div class="dialog-b">
+            <div class="field">
+              <label>Bucket name</label>
+              <input class="input" name="name" placeholder="my-bucket" required pattern="[a-z0-9.\-]{3,63}" autocomplete="off" x-init="$nextTick(()=>{})" x-effect="open && $el.focus()">
+            </div>
+          </div>
+          <div class="dialog-f">
+            <button type="button" class="btn btn-outline" @click="open=false">Cancel</button>
+            <button type="submit" class="btn">Create bucket</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
+
 {{template "bucket_list" .}}
 {{template "footer" .}}{{end}}
 
 {{define "bucket_list"}}
 <div id="bucket-list">
 {{if .Buckets}}
-<div class="table-wrap"><table class="grid">
-  <thead><tr><th>Name</th><th>Created</th><th class="right">Actions</th></tr></thead>
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th>Name</th><th class="right">Created</th><th style="width:60px"></th></tr></thead>
   <tbody>{{range .Buckets}}
-    <tr>
-      <td><a href="{{$.Prefix}}/s3/{{.Name}}"><span class="row-ico">📦</span>{{.Name}}</a></td>
-      <td class="dim">{{.Created}}</td>
-      <td class="right">
-        <button class="ghost danger" hx-post="{{$.Prefix}}/s3/{{.Name}}/delete-bucket"
-                hx-target="#bucket-list" hx-swap="outerHTML"
-                hx-confirm="Delete bucket {{.Name}}? It must be empty.">Delete</button>
+    <tr x-show="!$store.filter.q || '{{.Name}}'.includes($store.filter.q.toLowerCase())">
+      <td><a class="cell-name" href="{{$.Prefix}}/s3/{{.Name}}">{{icon "folder"}} {{.Name}}</a></td>
+      <td class="right dim num">{{.Created}}</td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn danger" title="Delete bucket"
+                  hx-post="{{$.Prefix}}/s3/{{.Name}}/delete-bucket" hx-target="#bucket-list" hx-swap="outerHTML"
+                  hx-confirm="Delete bucket “{{.Name}}”? It must be empty.">{{icon "trash"}}</button>
+        </div>
       </td>
     </tr>
   {{end}}</tbody>
 </table></div>
-{{else}}<p class="empty">No buckets yet. Create one above.</p>{{end}}
+{{else}}<div class="empty"><span class="ic-lg">{{icon "hard-drive"}}</span><p>No buckets yet — create your first one.</p></div>{{end}}
 </div>
 {{end}}

@@ -103,7 +103,7 @@ func TestConsoleSQSFlow(t *testing.T) {
 		if !strings.Contains(m.Body.String(), "UNIQUE-PAYLOAD-42") {
 			t.Fatalf("peek %d lost the message (consumed?):\n%s", i, m.Body)
 		}
-		if !strings.Contains(m.Body.String(), `class="pill">1<`) {
+		if !strings.Contains(m.Body.String(), `class="badge">1<`) {
 			t.Fatalf("peek %d depth not 1:\n%s", i, m.Body)
 		}
 	}

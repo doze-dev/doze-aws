@@ -1,34 +1,55 @@
 {{define "sqs_queues"}}{{template "header" .}}
-<div class="head-row">
-  <h1>SQS queues</h1>
-  <form hx-post="{{.Prefix}}/sqs/create" hx-target="#queue-list" hx-swap="outerHTML"
-        hx-on::after-request="this.reset()" class="inline-form">
-    <input name="name" placeholder="new-queue-name" required pattern="[a-zA-Z0-9_\-]{1,80}"
-           title="up to 80 chars: letters, digits, hyphens, underscores">
-    <button type="submit">Create</button>
-  </form>
+<div class="ph">
+  <div>
+    <h1><span class="svc svc-sqs">{{icon "inbox"}}</span> SQS</h1>
+    <p class="ph-desc">Message queues on this endpoint.</p>
+  </div>
+  <div class="ph-actions" x-data="{open:false}">
+    <button class="btn" @click="open=true">{{icon "plus"}} Create queue</button>
+    <div class="overlay" x-show="open" x-cloak @click.self="open=false" @keydown.escape.window="open=false">
+      <div class="dialog anim">
+        <form hx-post="{{.Prefix}}/sqs/create" hx-target="#queue-list" hx-swap="outerHTML"
+              @htmx:after-request="if($event.detail.successful){open=false; $el.reset();}">
+          <div class="dialog-h"><h3>Create queue</h3><p>Up to 80 characters: letters, digits, hyphens, underscores.</p></div>
+          <div class="dialog-b">
+            <div class="field">
+              <label>Queue name</label>
+              <input class="input" name="name" placeholder="orders" required pattern="[a-zA-Z0-9_\-]{1,80}" autocomplete="off" x-effect="open && $el.focus()">
+            </div>
+          </div>
+          <div class="dialog-f">
+            <button type="button" class="btn btn-outline" @click="open=false">Cancel</button>
+            <button type="submit" class="btn">Create queue</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
+
 {{template "queue_list" .}}
 {{template "footer" .}}{{end}}
 
 {{define "queue_list"}}
 <div id="queue-list">
 {{if .Queues}}
-<div class="table-wrap"><table class="grid">
-  <thead><tr><th>Name</th><th class="right">Available</th><th class="right">In flight</th><th class="right">Actions</th></tr></thead>
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th>Name</th><th class="right">Available</th><th class="right">In flight</th><th style="width:60px"></th></tr></thead>
   <tbody>{{range .Queues}}
-    <tr>
-      <td><a href="{{$.Prefix}}/sqs/{{.Name}}"><span class="row-ico">✉</span>{{.Name}}</a></td>
-      <td class="right"><span class="pill">{{.Available}}</span></td>
-      <td class="right dim">{{.InFlight}}</td>
-      <td class="right">
-        <button class="ghost danger" hx-post="{{$.Prefix}}/sqs/{{.Name}}/delete-queue"
-                hx-target="#queue-list" hx-swap="outerHTML"
-                hx-confirm="Delete queue {{.Name}}?">Delete</button>
+    <tr x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+      <td><a class="cell-name" href="{{$.Prefix}}/sqs/{{.Name}}">{{icon "inbox"}} {{.Name}}</a></td>
+      <td class="right"><span class="{{if .Available}}badge{{else}}badge zero{{end}}">{{.Available}}</span></td>
+      <td class="right dim num">{{.InFlight}}</td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn danger" title="Delete queue"
+                  hx-post="{{$.Prefix}}/sqs/{{.Name}}/delete-queue" hx-target="#queue-list" hx-swap="outerHTML"
+                  hx-confirm="Delete queue “{{.Name}}”?">{{icon "trash"}}</button>
+        </div>
       </td>
     </tr>
   {{end}}</tbody>
 </table></div>
-{{else}}<p class="empty">No queues yet. Create one above.</p>{{end}}
+{{else}}<div class="empty"><span class="ic-lg">{{icon "inbox"}}</span><p>No queues yet — create your first one.</p></div>{{end}}
 </div>
 {{end}}

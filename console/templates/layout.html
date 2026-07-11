@@ -1,31 +1,79 @@
-{{define "header"}}<!-- rendered by header/footer wrappers -->
+{{define "header"}}<!-- header/footer wrap every page -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>doze-aws console</title>
 <link rel="stylesheet" href="{{.Prefix}}/static/app.css">
+<script>(function(){try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <script src="{{.Prefix}}/static/htmx.min.js"></script>
-<div class="app">
+<script defer src="{{.Prefix}}/static/alpine.min.js"></script>
+<script>
+  // Let Alpine initialise nodes htmx swaps in (dropdowns, filtered rows).
+  document.addEventListener("htmx:afterSwap", function(e){ if(window.Alpine) window.Alpine.initTree(e.detail.target); });
+  document.addEventListener("alpine:init", function(){ window.Alpine.store("filter", { q: "" }); });
+</script>
+
+<div class="app" x-data="ui()" x-cloak
+     x-on:keydown.window="if(($event.metaKey||$event.ctrlKey)&&$event.key==='k'){$event.preventDefault(); $refs.search&&$refs.search.focus();}"
+     @toast.window="pushToast($event.detail.value ?? $event.detail)">
   <header class="topbar">
-    <div class="tb-brand"><span class="tb-logo">◆</span> doze-aws <span class="tb-sub">console</span></div>
+    <div class="brand"><span class="dot"></span> doze-aws <span class="sub">console</span></div>
+    <label class="tb-search">
+      {{icon "search"}}
+      <input x-ref="search" type="text" placeholder="Filter resources…" x-model="$store.filter.q" spellcheck="false">
+      <span class="kbd">⌘K</span>
+    </label>
+    <div class="tb-spacer"></div>
     <div class="tb-right">
-      <span class="tb-chip">us-east-1</span>
-      <span class="tb-chip mono">127.0.0.1:4566</span>
+      <span class="chip mono"><span class="live"></span>127.0.0.1:4566</span>
+      <span class="chip">us-east-1</span>
+      <button class="icon-btn" @click="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
+        <span x-show="!dark">{{icon "moon"}}</span><span x-show="dark">{{icon "sun"}}</span>
+      </button>
     </div>
   </header>
+
   <div class="body">
     <aside class="side">
+      <div class="side-label">Platform</div>
       <nav>
-        <a href="{{.Prefix}}/"    class="{{if eq .Page "overview"}}on{{end}}"><span class="ico ico-home">⌂</span> Overview</a>
-        <a href="{{.Prefix}}/s3"  class="{{if eq .Page "s3_buckets"}}on{{end}}{{if eq .Page "s3_objects"}}on{{end}}"><span class="ico ico-s3">S3</span> S3</a>
-        <a href="{{.Prefix}}/sqs" class="{{if eq .Page "sqs_queues"}}on{{end}}{{if eq .Page "sqs_queue"}}on{{end}}"><span class="ico ico-sqs">SQ</span> SQS</a>
+        <a href="{{.Prefix}}/" class="nav-item {{if eq .Page "overview"}}on{{end}}"><span class="svc svc-home">{{icon "dashboard"}}</span> Overview</a>
       </nav>
-      <div class="side-foot">doze-aws · local console</div>
+      <div class="side-label">Services</div>
+      <nav>
+        <a href="{{.Prefix}}/s3" class="nav-item {{if eq .Page "s3_buckets"}}on{{end}}{{if eq .Page "s3_objects"}}on{{end}}"><span class="svc svc-s3">{{icon "hard-drive"}}</span> S3</a>
+        <a href="{{.Prefix}}/sqs" class="nav-item {{if eq .Page "sqs_queues"}}on{{end}}{{if eq .Page "sqs_queue"}}on{{end}}"><span class="svc svc-sqs">{{icon "inbox"}}</span> SQS</a>
+      </nav>
+      <div class="side-foot">{{icon "activity"}} local · v0.1.0</div>
     </aside>
+
     <main class="main">
 {{end}}
 
 {{define "footer"}}
     </main>
   </div>
+
+  <div class="toasts">
+    <template x-for="t in toasts" :key="t.id">
+      <div class="toast anim">{{icon "check"}}<span x-text="t.msg"></span><span class="tclose" @click="dismiss(t.id)">{{icon "x"}}</span></div>
+    </template>
+  </div>
 </div>
+
+<script>
+  function ui() {
+    return {
+      toasts: [], seq: 0,
+      dark: (document.documentElement.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark",
+      pushToast(msg) { const id = ++this.seq; this.toasts.push({ id, msg }); setTimeout(() => this.dismiss(id), 3200); },
+      dismiss(id) { this.toasts = this.toasts.filter(t => t.id !== id); },
+      toggleTheme() {
+        const next = this.dark ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", next);
+        try { localStorage.setItem("theme", next); } catch (e) {}
+        this.dark = !this.dark;
+      },
+    };
+  }
+</script>
 {{end}}

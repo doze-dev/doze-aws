@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -113,6 +114,13 @@ func (c *Console) partial(w http.ResponseWriter, name string, data map[string]an
 	}
 }
 
+// toast asks the client to show a transient notification. htmx turns the
+// HX-Trigger header into a "toast" event whose detail.value the layout's Alpine
+// listener renders. Call before writing the body.
+func toast(w http.ResponseWriter, msg string) {
+	w.Header().Set("HX-Trigger", `{"toast":`+strconv.Quote(msg)+`}`)
+}
+
 func (c *Console) fail(w http.ResponseWriter, err error) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusBadRequest)
@@ -122,6 +130,7 @@ func (c *Console) fail(w http.ResponseWriter, err error) {
 func templateFuncs(prefix string) template.FuncMap {
 	return template.FuncMap{
 		"prefix": func() string { return prefix },
+		"icon":   icon,
 		// trimPrefixKey strips the current folder prefix from a key so the table
 		// shows just the leaf ("photos/2024/a.jpg" under "photos/2024/" -> "a.jpg").
 		"trimPrefixKey": func(key, keyPrefix string) string {
