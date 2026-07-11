@@ -184,6 +184,13 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/kms/{key}/schedule-deletion", c.kmsScheduleDeletion)
 	m.HandleFunc("POST "+p+"/kms/{key}/encrypt", c.kmsEncrypt)
 	m.HandleFunc("POST "+p+"/kms/{key}/decrypt", c.kmsDecrypt)
+	m.HandleFunc("POST "+p+"/kms/{key}/sign", c.kmsSign)
+	m.HandleFunc("POST "+p+"/kms/{key}/verify", c.kmsVerify)
+	m.HandleFunc("POST "+p+"/kms/{key}/mac", c.kmsMac)
+	m.HandleFunc("POST "+p+"/kms/{key}/verify-mac", c.kmsVerifyMac)
+	m.HandleFunc("POST "+p+"/kms/{key}/add-alias", c.kmsAddAlias)
+	m.HandleFunc("POST "+p+"/kms/{key}/delete-alias", c.kmsDeleteAlias)
+	m.HandleFunc("POST "+p+"/kms/{key}/cancel-deletion", c.kmsCancelDeletion)
 
 	// SSM Parameter Store (names contain slashes -> query params).
 	m.HandleFunc("GET "+p+"/ssm", c.ssmParams)
@@ -192,11 +199,15 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/ssm/diff", c.ssmDiff)
 	m.HandleFunc("POST "+p+"/ssm/put", c.ssmPut)
 	m.HandleFunc("POST "+p+"/ssm/delete", c.ssmDelete)
+	m.HandleFunc("POST "+p+"/ssm/label", c.ssmLabel)
 
 	// Secrets Manager (names may contain slashes -> query params).
 	m.HandleFunc("GET "+p+"/sm", c.smSecrets)
 	m.HandleFunc("POST "+p+"/sm/create", c.smCreate)
 	m.HandleFunc("POST "+p+"/sm/restore", c.smRestore)
+	m.HandleFunc("POST "+p+"/sm/rotation", c.smConfigureRotation)
+	m.HandleFunc("POST "+p+"/sm/rotate-now", c.smRotateNow)
+	m.HandleFunc("GET "+p+"/sm/password", c.smPassword)
 	m.HandleFunc("GET "+p+"/sm/secret", c.smSecret)
 	m.HandleFunc("GET "+p+"/sm/diff", c.smDiff)
 	m.HandleFunc("POST "+p+"/sm/put", c.smPut)

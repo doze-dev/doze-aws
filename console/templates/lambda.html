@@ -188,7 +188,7 @@
     <p class="det-sub" style="margin-bottom:18px">Point at a build directory on disk — the <code class="mono">_local_</code> extension runs it in place, so you edit the code and re-invoke without a redeploy.</p>
     <form hx-post="{{.Prefix}}/lambda/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
-        <div class="field"><label>Function name</label><input class="input" name="name" placeholder="resize-images" required pattern="[a-zA-Z0-9_-]{1,64}" autocomplete="off" autofocus></div>
+        <div class="field"><label>Function name</label><input class="input" name="name" placeholder="resize-images" required pattern="[a-zA-Z0-9_\-]{1,64}" autocomplete="off" autofocus></div>
         <div class="fgrid" style="margin-top:10px">
           <div class="field"><label>Runtime</label><select class="input" name="runtime">
             <option value="provided.al2">provided.al2 (Go / any binary)</option>

@@ -30,6 +30,7 @@
         "EditURL" (printf "%s/ssm/param?name=%s&tab=edit" .Prefix .P.Name)
         "VersURL" (printf "%s/ssm/param?name=%s&tab=versions" .Prefix .P.Name)
         "SaveURL" (printf "%s/ssm/put" .Prefix) "SaveField" "name" "SaveVal" .P.Name "SaveLabel" (printf "Save as v%d" (addOne .P.Version))
+        "LabelURL" (printf "%s/ssm/label" .Prefix)
         "Target" "#ssm-detail" "History" .History)}}
     <div class="meta-grid">
       <div class="meta-cellx"><div class="k2">Type</div><div class="v2">{{.P.Type}}</div></div>

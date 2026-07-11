@@ -28,10 +28,13 @@
   </form>
 {{else if eq .Mode "versions"}}
   <div class="table-wrap"><table class="tbl">
-    <thead><tr><th>Version</th><th>Stages</th><th class="right">Actions</th></tr></thead>
+    <thead><tr><th>Version</th>{{if .LabelURL}}<th>Labels</th>{{else}}<th>Stages</th>{{end}}<th class="right">Actions</th></tr></thead>
     <tbody>
     {{if .History}}{{range .History}}
-      <tr><td class="mono" style="font-weight:600">v{{.Version}}</td><td class="mono trunc dim" style="font-size:11px;max-width:280px" title="{{.Value}}">{{.Value}}</td><td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{.Version}}" hx-target="#version-diff" hx-select="unset" hx-swap="innerHTML">Diff vs current</button></td></tr>
+      <tr><td class="mono" style="font-weight:600">v{{.Version}}</td>
+        {{if $.LabelURL}}<td>{{range .Labels}}<span class="badge type" style="margin-right:4px">{{.}}</span>{{end}}<form class="tag-row-form" style="margin-top:4px" hx-post="{{$.LabelURL}}" hx-target="{{$.Target}}" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()"><input type="hidden" name="name" value="{{$.SaveVal}}"><input type="hidden" name="version" value="{{.Version}}"><input class="input" name="label" placeholder="e.g. prod" style="flex:1;font-size:11px;padding:3px 6px" required><button class="icon-btn sm" type="submit" title="Attach label">{{icon "plus"}}</button></form></td>
+        {{else}}<td class="mono trunc dim" style="font-size:11px;max-width:280px" title="{{.Value}}">{{.Value}}</td>{{end}}
+        <td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{.Version}}" hx-target="#version-diff" hx-select="unset" hx-swap="innerHTML">Diff vs current</button></td></tr>
     {{end}}{{end}}
     {{if .Stages}}{{range $id, $st := .Stages}}
       <tr><td class="mono trunc" style="max-width:200px" title="{{$id}}">{{$id}}</td><td>{{range $st}}<span class="badge type" style="margin-right:4px">{{.}}</span>{{end}}</td><td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{$id}}" hx-target="#version-diff" hx-select="unset" hx-swap="innerHTML">Diff vs current</button></td></tr>

@@ -170,7 +170,7 @@
         <div class="field"><label>Secret name</label><input class="input mono" name="name" placeholder="prod/db/credentials" required autocomplete="off" autofocus></div>
         <div class="field"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="Database credentials"></div>
       </div></div></div>
-      <div class="panel form-sec"><div class="panel-h"><h2>Secret value</h2></div><div class="form-b"><textarea name="value" data-editor rows="12" spellcheck="false" required placeholder='{&#10;  "username": "admin"&#10;}'></textarea></div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>Secret value</h2><button type="button" class="btn btn-outline btn-sm" onclick="dozeGenPassword(this,'{{.Prefix}}')">{{icon "key"}} Generate password</button></div><div class="form-b"><textarea name="value" data-editor rows="12" spellcheck="false" required placeholder='{&#10;  "username": "admin"&#10;}'></textarea></div></div>
       {{template "form_actions" dict "Cancel" (printf "%s/sm" .Prefix) "Submit" "Store secret"}}
     </form>
   </div></section>

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/awsident"
 	"sort"
 	"strings"
 	"time"
@@ -22,6 +23,9 @@ type Key struct {
 	Enabled     bool
 	RotationOn  bool
 	Created     string
+	SigAlgos    []string // SIGN_VERIFY keys
+	MacAlgos    []string // GENERATE_VERIFY_MAC keys
+	Aliases     []string
 }
 
 func (b *backend) ListKeys(ctx context.Context) ([]Key, error) {
@@ -75,14 +79,16 @@ func (b *backend) DescribeKey(ctx context.Context, id string) (*Key, error) {
 	}
 	var out struct {
 		KeyMetadata struct {
-			KeyId        string  `json:"KeyId"`
-			Arn          string  `json:"Arn"`
-			Description  string  `json:"Description"`
-			KeySpec      string  `json:"KeySpec"`
-			KeyUsage     string  `json:"KeyUsage"`
-			KeyState     string  `json:"KeyState"`
-			Enabled      bool    `json:"Enabled"`
-			CreationDate float64 `json:"CreationDate"`
+			KeyId             string   `json:"KeyId"`
+			Arn               string   `json:"Arn"`
+			Description       string   `json:"Description"`
+			KeySpec           string   `json:"KeySpec"`
+			KeyUsage          string   `json:"KeyUsage"`
+			KeyState          string   `json:"KeyState"`
+			Enabled           bool     `json:"Enabled"`
+			CreationDate      float64  `json:"CreationDate"`
+			SigningAlgorithms []string `json:"SigningAlgorithms"`
+			MacAlgorithms     []string `json:"MacAlgorithms"`
 		} `json:"KeyMetadata"`
 	}
 	if err := json.Unmarshal(body, &out); err != nil {
@@ -92,6 +98,19 @@ func (b *backend) DescribeKey(ctx context.Context, id string) (*Key, error) {
 	k := &Key{
 		ID: m.KeyId, ARN: m.Arn, Description: m.Description,
 		Spec: m.KeySpec, Usage: m.KeyUsage, State: m.KeyState, Enabled: m.Enabled,
+		SigAlgos: m.SigningAlgorithms, MacAlgos: m.MacAlgorithms,
+	}
+	// Aliases pointing at this key (the list pane and header prefer an alias).
+	if ab, err := b.json11(ctx, "TrentService", "ListAliases", map[string]any{"KeyId": m.KeyId}); err == nil {
+		var al struct {
+			Aliases []struct {
+				AliasName string `json:"AliasName"`
+			} `json:"Aliases"`
+		}
+		json.Unmarshal(ab, &al)
+		for _, a := range al.Aliases {
+			k.Aliases = append(k.Aliases, a.AliasName)
+		}
 	}
 	if m.CreationDate > 0 {
 		k.Created = time.Unix(int64(m.CreationDate), 0).Local().Format("2006-01-02 15:04")
@@ -182,6 +201,79 @@ func (b *backend) KMSEncrypt(ctx context.Context, id, plaintext string) (string,
 }
 
 // KMSDecrypt decrypts base64 ciphertext, returning plaintext.
+// KMSSign signs a message and returns the base64 signature.
+func (b *backend) KMSSign(ctx context.Context, id, algo, message string) (string, error) {
+	body, err := b.json11(ctx, "TrentService", "Sign", map[string]any{
+		"KeyId": id, "SigningAlgorithm": algo, "MessageType": "RAW",
+		"Message": base64.StdEncoding.EncodeToString([]byte(message)),
+	})
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		Signature string `json:"Signature"`
+	}
+	json.Unmarshal(body, &out)
+	return out.Signature, nil
+}
+
+// KMSVerify checks a signature — a non-error return means valid.
+func (b *backend) KMSVerify(ctx context.Context, id, algo, message, signature string) error {
+	_, err := b.json11(ctx, "TrentService", "Verify", map[string]any{
+		"KeyId": id, "SigningAlgorithm": algo, "MessageType": "RAW",
+		"Message":   base64.StdEncoding.EncodeToString([]byte(message)),
+		"Signature": strings.TrimSpace(signature),
+	})
+	return err
+}
+
+// KMSGenerateMac returns the base64 HMAC of a message.
+func (b *backend) KMSGenerateMac(ctx context.Context, id, algo, message string) (string, error) {
+	body, err := b.json11(ctx, "TrentService", "GenerateMac", map[string]any{
+		"KeyId": id, "MacAlgorithm": algo,
+		"Message": base64.StdEncoding.EncodeToString([]byte(message)),
+	})
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		Mac string `json:"Mac"`
+	}
+	json.Unmarshal(body, &out)
+	return out.Mac, nil
+}
+
+// KMSVerifyMac checks an HMAC — a non-error return means valid.
+func (b *backend) KMSVerifyMac(ctx context.Context, id, algo, message, mac string) error {
+	_, err := b.json11(ctx, "TrentService", "VerifyMac", map[string]any{
+		"KeyId": id, "MacAlgorithm": algo,
+		"Message": base64.StdEncoding.EncodeToString([]byte(message)),
+		"Mac":     strings.TrimSpace(mac),
+	})
+	return err
+}
+
+// KMSAddAlias / KMSDeleteAlias / KMSCancelDeletion round out key management.
+func (b *backend) KMSAddAlias(ctx context.Context, id, alias string) error {
+	if !strings.HasPrefix(alias, "alias/") {
+		alias = "alias/" + alias
+	}
+	_, err := b.json11(ctx, "TrentService", "CreateAlias", map[string]any{
+		"AliasName": alias, "TargetKeyId": id,
+	})
+	return err
+}
+
+func (b *backend) KMSDeleteAlias(ctx context.Context, alias string) error {
+	_, err := b.json11(ctx, "TrentService", "DeleteAlias", map[string]any{"AliasName": alias})
+	return err
+}
+
+func (b *backend) KMSCancelDeletion(ctx context.Context, id string) error {
+	_, err := b.json11(ctx, "TrentService", "CancelKeyDeletion", map[string]any{"KeyId": id})
+	return err
+}
+
 func (b *backend) KMSDecrypt(ctx context.Context, ciphertext string) (string, error) {
 	body, err := b.json11(ctx, "TrentService", "Decrypt", map[string]any{
 		"CiphertextBlob": strings.TrimSpace(ciphertext),
@@ -209,6 +301,7 @@ type Parameter struct {
 	Version  int64
 	ARN      string
 	Modified string
+	Labels   []string
 }
 
 func (b *backend) ListParameters(ctx context.Context) ([]Parameter, error) {
@@ -272,17 +365,18 @@ func (b *backend) ParameterHistory(ctx context.Context, name string) ([]Paramete
 	}
 	var out struct {
 		Parameters []struct {
-			Type             string  `json:"Type"`
-			Value            string  `json:"Value"`
-			Version          int64   `json:"Version"`
-			LastModifiedDate float64 `json:"LastModifiedDate"`
+			Type             string   `json:"Type"`
+			Value            string   `json:"Value"`
+			Version          int64    `json:"Version"`
+			LastModifiedDate float64  `json:"LastModifiedDate"`
+			Labels           []string `json:"Labels"`
 		} `json:"Parameters"`
 	}
 	json.Unmarshal(body, &out)
 	hist := make([]Parameter, 0, len(out.Parameters))
 	for _, p := range out.Parameters {
 		hist = append(hist, Parameter{
-			Type: p.Type, Value: p.Value, Version: p.Version, Modified: epochToTime(p.LastModifiedDate),
+			Type: p.Type, Value: p.Value, Version: p.Version, Modified: epochToTime(p.LastModifiedDate), Labels: p.Labels,
 		})
 	}
 	sort.Slice(hist, func(i, j int) bool { return hist[i].Version > hist[j].Version })
@@ -296,6 +390,16 @@ func (b *backend) PutParameter(ctx context.Context, name, value, typ string, ove
 	return err
 }
 
+// LabelParameter attaches a label to a parameter version (or its latest).
+func (b *backend) LabelParameter(ctx context.Context, name, label string, version int) error {
+	in := map[string]any{"Name": name, "Labels": []string{label}}
+	if version > 0 {
+		in["ParameterVersion"] = version
+	}
+	_, err := b.json11(ctx, "AmazonSSM", "LabelParameterVersion", in)
+	return err
+}
+
 func (b *backend) DeleteParameter(ctx context.Context, name string) error {
 	_, err := b.json11(ctx, "AmazonSSM", "DeleteParameter", map[string]any{"Name": name})
 	return err
@@ -304,15 +408,19 @@ func (b *backend) DeleteParameter(ctx context.Context, name string) error {
 // ---- Secrets Manager (JSON 1.1, secretsmanager) ----
 
 type Secret struct {
-	Name        string
-	ARN         string
-	Description string
-	Changed     string
-	Value       string
-	VersionID   string
-	Stages      map[string][]string // version id -> stages
-	Deleted     bool                // pending deletion (restorable)
-	DeletedAt   string
+	Name           string
+	ARN            string
+	Description    string
+	Changed        string
+	Value          string
+	VersionID      string
+	Stages         map[string][]string // version id -> stages
+	Deleted        bool                // pending deletion (restorable)
+	DeletedAt      string
+	RotationOn     bool
+	RotationLambda string
+	RotationDays   int
+	LastRotated    string
 }
 
 func (b *backend) ListSecrets(ctx context.Context) ([]Secret, error) {
@@ -344,6 +452,47 @@ func (b *backend) ListSecrets(ctx context.Context) ([]Secret, error) {
 	return secrets, nil
 }
 
+// GetRandomPassword generates a password via the server (used to fill create /
+// new-version forms).
+func (b *backend) GetRandomPassword(ctx context.Context, length int) (string, error) {
+	if length <= 0 {
+		length = 24
+	}
+	body, err := b.json11(ctx, "secretsmanager", "GetRandomPassword", map[string]any{
+		"PasswordLength": length, "ExcludePunctuation": false,
+	})
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		RandomPassword string `json:"RandomPassword"`
+	}
+	json.Unmarshal(body, &out)
+	return out.RandomPassword, nil
+}
+
+// ConfigureRotation sets or clears the rotation lambda + schedule.
+func (b *backend) ConfigureRotation(ctx context.Context, id, lambdaName string, days int) error {
+	in := map[string]any{"SecretId": id}
+	if lambdaName == "" { // clear rotation
+		_, err := b.json11(ctx, "secretsmanager", "CancelRotateSecret", in)
+		return err
+	}
+	in["RotationLambdaARN"] = "arn:aws:lambda:" + awsident.Region + ":" + awsident.AccountID + ":function:" + lambdaName
+	if days <= 0 {
+		days = 30
+	}
+	in["RotationRules"] = map[string]any{"AutomaticallyAfterDays": days}
+	_, err := b.json11(ctx, "secretsmanager", "RotateSecret", in)
+	return err
+}
+
+// RotateNow triggers an immediate rotation (runs the configured lambda).
+func (b *backend) RotateNow(ctx context.Context, id string) error {
+	_, err := b.json11(ctx, "secretsmanager", "RotateSecret", map[string]any{"SecretId": id})
+	return err
+}
+
 // RestoreSecret cancels a pending deletion within the recovery window.
 func (b *backend) RestoreSecret(ctx context.Context, id string) error {
 	_, err := b.json11(ctx, "secretsmanager", "RestoreSecret", map[string]any{"SecretId": id})
@@ -356,11 +505,17 @@ func (b *backend) GetSecret(ctx context.Context, id string) (*Secret, error) {
 		return nil, err
 	}
 	var desc struct {
-		Name               string              `json:"Name"`
-		ARN                string              `json:"ARN"`
-		Description        string              `json:"Description"`
-		LastChangedDate    float64             `json:"LastChangedDate"`
-		DeletedDate        float64             `json:"DeletedDate"`
+		Name              string  `json:"Name"`
+		ARN               string  `json:"ARN"`
+		Description       string  `json:"Description"`
+		LastChangedDate   float64 `json:"LastChangedDate"`
+		DeletedDate       float64 `json:"DeletedDate"`
+		LastRotatedDate   float64 `json:"LastRotatedDate"`
+		RotationEnabled   bool    `json:"RotationEnabled"`
+		RotationLambdaARN string  `json:"RotationLambdaARN"`
+		RotationRules     struct {
+			AutomaticallyAfterDays int `json:"AutomaticallyAfterDays"`
+		} `json:"RotationRules"`
 		VersionIdsToStages map[string][]string `json:"VersionIdsToStages"`
 	}
 	if err := json.Unmarshal(body, &desc); err != nil {
@@ -370,6 +525,8 @@ func (b *backend) GetSecret(ctx context.Context, id string) (*Secret, error) {
 		Name: desc.Name, ARN: desc.ARN, Description: desc.Description,
 		Changed: epochToTime(desc.LastChangedDate), Stages: desc.VersionIdsToStages,
 		Deleted: desc.DeletedDate > 0, DeletedAt: epochToTime(desc.DeletedDate),
+		RotationOn: desc.RotationEnabled, RotationLambda: arnLeaf(desc.RotationLambdaARN),
+		RotationDays: desc.RotationRules.AutomaticallyAfterDays, LastRotated: epochToTime(desc.LastRotatedDate),
 	}
 	if vb, err := b.json11(ctx, "secretsmanager", "GetSecretValue", map[string]any{"SecretId": id}); err == nil {
 		var val struct {

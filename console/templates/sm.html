@@ -47,8 +47,31 @@
     <div class="meta-grid">
       <div class="meta-cellx"><div class="k2">Last changed</div><div class="v2" title="{{.S.Changed}}">{{ago .S.Changed}}</div></div>
       <div class="meta-cellx"><div class="k2">Versions</div><div class="v2">{{len .S.Stages}}</div></div>
-      <div class="meta-cellx"><div class="k2">Rotation</div><div class="v2">manual</div></div>
+      <div class="meta-cellx"><div class="k2">Rotation</div><div class="v2">{{if .S.RotationOn}}<span class="badge state-on">every {{.S.RotationDays}}d</span>{{else}}manual{{end}}</div></div>
     </div>
+
+    {{if not .S.Deleted}}
+    <div class="sec-title">Rotation</div>
+    <div class="panel"><div class="form-b" x-data="{on: {{if .S.RotationOn}}true{{else}}false{{end}} }">
+      {{if .S.RotationOn}}
+      <div class="pub-receipt" style="margin-bottom:12px"><div class="pr-h">✓ Rotating with <b>{{.S.RotationLambda}}</b> every {{.S.RotationDays}} days{{if .S.LastRotated}} · last rotated {{.S.LastRotated}}{{end}}</div><div class="pr-row dim">doze-aws runs the real 4-step rotation protocol against your local function.</div></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sm/rotate-now" hx-vals='{"name":"{{.S.Name}}"}' hx-target="#sm-detail" hx-select="unset" hx-swap="outerHTML">{{icon "rotate"}} Rotate now</button>
+        <button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/sm/rotation" hx-vals='{"name":"{{.S.Name}}","lambda":""}' hx-target="#sm-detail" hx-select="unset" hx-swap="outerHTML" hx-confirm="Turn off automatic rotation?">Disable rotation</button>
+      </div>
+      {{else}}
+      <form hx-post="{{.Prefix}}/sm/rotation" hx-target="#sm-detail" hx-select="unset" hx-swap="outerHTML">
+        <input type="hidden" name="name" value="{{.S.Name}}">
+        <p class="mini-note" style="margin-top:0">Point at a Lambda that implements the rotation protocol; doze-aws invokes it on the schedule (and on demand).</p>
+        <div class="fgrid">
+          <div class="field"><label>Rotation function</label><select class="input" name="lambda" required><option value="">— pick a function —</option>{{range .Functions}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>
+          <div class="field" style="max-width:130px"><label>Every <span class="dim">days</span></label><input class="input" name="days" type="number" min="1" max="365" value="30"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn btn-outline btn-sm" type="submit">{{icon "rotate"}} Enable rotation</button></div>
+      </form>
+      {{end}}
+    </div></div>
+    {{end}}
   </div>
 </div>
 {{end}}

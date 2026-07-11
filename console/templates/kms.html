@@ -19,26 +19,85 @@
 {{define "kms_key_detail"}}
 <div id="kms-detail">
   <div class="det-h">
-    <div class="det-title">{{awsIcon "kms"}} {{if .Key.Alias}}{{.Key.Alias}}{{else}}{{.Key.ID}}{{end}} <span class="badge {{if .Key.Enabled}}state-on{{else}}state-warn{{end}}">{{.Key.State}}</span>
-      <div class="acts"><button class="btn btn-outline" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/rotate-now" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML">{{icon "rotate"}} Rotate now</button><button class="btn btn-outline danger" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/schedule-deletion" hx-confirm="Schedule this key for deletion? Ciphertexts become undecryptable after the window.">{{icon "trash"}} Schedule deletion</button></div>
+    <div class="det-title">{{awsIcon "kms"}} {{if .Key.Alias}}{{.Key.Alias}}{{else}}{{.Key.ID}}{{end}} <span class="badge {{if eq .Key.State "PendingDeletion"}}dlq{{else if .Key.Enabled}}state-on{{else}}state-warn{{end}}">{{.Key.State}}</span>
+      <div class="acts">
+        {{if eq .Key.State "PendingDeletion"}}
+        <button class="btn" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/cancel-deletion" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML">{{icon "rotate"}} Cancel deletion</button>
+        {{else}}
+        {{if eq .Key.Usage "ENCRYPT_DECRYPT"}}<button class="btn btn-outline" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/rotate-now" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML" title="Generate new backing material now — old ciphertexts still decrypt">{{icon "rotate"}} Rotate now</button>{{end}}
+        <button class="btn btn-outline danger" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/schedule-deletion" hx-confirm="Schedule this key for deletion? Ciphertexts become undecryptable after the window.">{{icon "trash"}} Schedule deletion</button>
+        {{end}}
+      </div>
     </div>
     <div class="chips">{{template "copychip" dict "Label" "key id" "Value" .Key.ID}}{{template "copychip" dict "Label" "arn" "Value" .Key.ARN}}</div>
+    {{if eq .Key.State "PendingDeletion"}}<div class="pub-receipt warn" style="margin-top:12px"><div class="pr-h">⚠ Scheduled for deletion — the key can't sign, verify, encrypt or decrypt until you cancel.</div></div>{{end}}
   </div>
   <div class="det-b"><div class="split">
     <div>
       <div class="panel"><div class="panel-h"><h2>{{icon "settings"}} Key settings</h2></div><div style="padding:4px 16px 10px">
         <div class="opt-row"><div><div class="opt-l">Enabled</div><div class="opt-d">Disabled keys refuse all cryptographic operations</div></div><label class="switch"><input type="checkbox" {{if .Key.Enabled}}checked{{end}} hx-post="{{.Prefix}}/kms/{{.Key.ID}}/toggle-enabled" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label></div>
-        <div class="opt-row"><div><div class="opt-l">Automatic rotation</div><div class="opt-d">New backing material yearly; old ciphertexts still decrypt</div></div><label class="switch"><input type="checkbox" {{if .Key.RotationOn}}checked{{end}} hx-post="{{.Prefix}}/kms/{{.Key.ID}}/toggle-rotation" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label></div>
+        {{if eq .Key.Usage "ENCRYPT_DECRYPT"}}<div class="opt-row"><div><div class="opt-l">Automatic rotation</div><div class="opt-d">New backing material yearly; old ciphertexts still decrypt</div></div><label class="switch"><input type="checkbox" {{if .Key.RotationOn}}checked{{end}} hx-post="{{.Prefix}}/kms/{{.Key.ID}}/toggle-rotation" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label></div>{{end}}
       </div></div>
       <div class="sec-title">Details</div><div class="table-wrap"><table class="tbl kv"><tbody><tr><td>Spec</td><td>{{.Key.Spec}}</td></tr><tr><td>Usage</td><td>{{.Key.Usage}}</td></tr><tr><td>Created</td><td title="{{.Key.Created}}">{{ago .Key.Created}}</td></tr>{{if .Key.Description}}<tr><td>Description</td><td>{{.Key.Description}}</td></tr>{{end}}</tbody></table></div>
+
+      <div class="sec-title">Aliases</div>
+      <div class="panel">
+        {{if .Key.Aliases}}<div class="sub-rows">{{range .Key.Aliases}}
+          <div class="sub-row"><span class="cc-bar" style="background:hsl(var(--svc-kms))"></span><span class="sub-nm mono">{{.}}</span><button class="icon-btn sm danger" title="Remove alias" hx-post="{{$.Prefix}}/kms/{{$.Key.ID}}/delete-alias" hx-vals='{"alias":"{{.}}"}' hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove {{.}}?">{{icon "trash"}}</button></div>
+        {{end}}</div>{{else}}<div class="mini-note" style="padding:12px 14px 2px">No aliases — keys are easier to reference by one.</div>{{end}}
+        <form class="tag-row-form" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/add-alias" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+          <span class="dim mono" style="align-self:center;font-size:12px">alias/</span><input class="input" name="alias" placeholder="my-key" required style="flex:1"><button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Add</button>
+        </form>
+      </div>
     </div>
+
+    {{/* Playground is usage-aware — a key gets exactly the operations it can do. */}}
+    {{if eq .Key.Usage "SIGN_VERIFY"}}
+    <div class="panel"><div class="panel-h"><h2>{{icon "key"}} Sign / verify</h2></div><div style="padding:14px 16px">
+      <form hx-post="{{.Prefix}}/kms/{{.Key.ID}}/sign" hx-target="#kms-crypto-out" hx-select="unset" hx-swap="innerHTML">
+        <div class="field"><label>Message</label><textarea name="message" rows="2" placeholder="sign me" required>hello doze</textarea></div>
+        <div class="fgrid" style="margin-top:8px;align-items:end"><div class="field"><label>Algorithm</label><select class="input" name="algo">{{range .Key.SigAlgos}}<option>{{.}}</option>{{end}}</select></div><div style="display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Sign →</button></div></div>
+      </form>
+      <div id="kms-crypto-out" style="margin-top:12px"></div>
+    </div></div>
+    {{else if eq .Key.Usage "GENERATE_VERIFY_MAC"}}
+    <div class="panel"><div class="panel-h"><h2>{{icon "key"}} HMAC</h2></div><div style="padding:14px 16px">
+      <form hx-post="{{.Prefix}}/kms/{{.Key.ID}}/mac" hx-target="#kms-crypto-out" hx-select="unset" hx-swap="innerHTML">
+        <div class="field"><label>Message</label><textarea name="message" rows="2" placeholder="authenticate me" required>hello doze</textarea></div>
+        <div class="fgrid" style="margin-top:8px;align-items:end"><div class="field"><label>Algorithm</label><select class="input" name="algo">{{range .Key.MacAlgos}}<option>{{.}}</option>{{end}}</select></div><div style="display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Generate MAC →</button></div></div>
+      </form>
+      <div id="kms-crypto-out" style="margin-top:12px"></div>
+    </div></div>
+    {{else}}
     <div class="panel"><div class="panel-h"><h2>{{icon "lock"}} Encrypt / decrypt</h2></div><div style="padding:14px 16px">
       <form hx-post="{{.Prefix}}/kms/{{.Key.ID}}/encrypt" hx-target="#kms-crypto-out" hx-select="unset" hx-swap="innerHTML" style="margin-bottom:12px"><div class="field"><label>Plaintext → ciphertext</label><textarea name="plaintext" rows="2" placeholder="hello, world" required></textarea></div><div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Encrypt</button></div></form>
       <form hx-post="{{.Prefix}}/kms/{{.Key.ID}}/decrypt" hx-target="#kms-crypto-out" hx-select="unset" hx-swap="innerHTML"><div class="field"><label>Ciphertext (base64) → plaintext</label><textarea name="ciphertext" rows="2" placeholder="paste ciphertext…" required></textarea></div><div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Decrypt</button></div></form>
       <div id="kms-crypto-out" style="margin-top:12px"></div>
     </div></div>
+    {{end}}
   </div></div>
 </div>
+{{end}}
+
+{{/* Sign result → one-click Verify (round-trip like encrypt/decrypt). */}}
+{{define "kms_sign_result"}}
+<div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>Signature (base64) · {{.Algo}}</span><button class="copy-btn" data-copy="{{.Signature}}">{{icon "copy"}}</button></div><pre>{{.Signature}}</pre></div>
+<form hx-post="{{.Prefix}}/kms/{{.Key}}/verify" hx-target="#kms-crypto-out" hx-select="unset" hx-swap="beforeend">
+  <input type="hidden" name="message" value="{{.Message}}"><input type="hidden" name="algo" value="{{.Algo}}"><input type="hidden" name="signature" value="{{.Signature}}">
+  <button class="btn btn-outline btn-sm" type="submit">Verify this signature →</button>
+</form>
+{{end}}
+
+{{define "kms_mac_result"}}
+<div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>MAC (base64) · {{.Algo}}</span><button class="copy-btn" data-copy="{{.Mac}}">{{icon "copy"}}</button></div><pre>{{.Mac}}</pre></div>
+<form hx-post="{{.Prefix}}/kms/{{.Key}}/verify-mac" hx-target="#kms-crypto-out" hx-select="unset" hx-swap="beforeend">
+  <input type="hidden" name="message" value="{{.Message}}"><input type="hidden" name="algo" value="{{.Algo}}"><input type="hidden" name="mac" value="{{.Mac}}">
+  <button class="btn btn-outline btn-sm" type="submit">Verify this MAC →</button>
+</form>
+{{end}}
+
+{{define "kms_verdict"}}
+<div class="pub-receipt {{if not .Valid}}warn{{end}}" style="margin-top:10px"><div class="pr-h">{{if .Valid}}✓ {{.What}} valid — the {{.What}} matches this key and message{{else}}✗ {{.What}} does NOT verify{{end}}</div></div>
 {{end}}
 
 {{define "kms_crypto_result"}}<div class="code-out"><div class="co-h"><span>{{.Label}}</span><span style="display:flex;align-items:center;gap:8px">{{if .DecryptURL}}<button class="btn btn-outline btn-sm" hx-post="{{.DecryptURL}}" hx-vals='{"ciphertext":"{{.Value}}"}' hx-target="#kms-crypto-out" hx-select="unset" hx-swap="innerHTML">Decrypt this →</button>{{end}}<button class="copy-btn" data-copy="{{.Value}}">{{icon "copy"}}</button></span></div><pre>{{.Value}}</pre></div>{{end}}

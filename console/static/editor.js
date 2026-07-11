@@ -147,4 +147,24 @@
     },
     upgradeAll: upgradeAll,
   };
+
+  // Fetch a random password from Secrets Manager and drop it into the panel's
+  // editor as a starter JSON secret. Used by the "Generate password" button.
+  window.dozeGenPassword = function (btn, prefix) {
+    var ta = btn.closest(".panel").querySelector("textarea[data-editor]");
+    if (!ta) return;
+    btn.disabled = true;
+    fetch(prefix + "/sm/password").then(function (r) { return r.text(); }).then(function (pw) {
+      var cur = (ta.__cm ? ta.__cm.getValue() : ta.value).trim();
+      var next;
+      try {
+        var obj = cur ? JSON.parse(cur) : {};
+        obj.password = pw;
+        next = JSON.stringify(obj, null, 2);
+      } catch (e) {
+        next = JSON.stringify({ password: pw }, null, 2);
+      }
+      window.dozeEditor.set(ta, next);
+    }).finally(function () { btn.disabled = false; });
+  };
 })();

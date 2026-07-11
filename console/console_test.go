@@ -876,6 +876,106 @@ func TestLambdaLifecycle(t *testing.T) {
 	}
 }
 
+// TestCryptoConfigDepth exercises wave D: usage-aware KMS playground
+// (sign/verify + HMAC round-trips), alias management, SSM version labels,
+// and the Secrets Manager password generator.
+func TestCryptoConfigDepth(t *testing.T) {
+	h := newConsole(t)
+
+	// --- KMS asymmetric: sign then verify the same message round-trips. ---
+	loc := create(t, h, "/_console/kms/create", url.Values{
+		"spec": {"RSA_2048"}, "usage": {"SIGN_VERIFY"}, "alias": {"signer"},
+	})
+	signKey := strings.TrimPrefix(loc, "/_console/kms/")
+	if i := strings.IndexByte(signKey, '?'); i >= 0 {
+		signKey = signKey[:i]
+	}
+	// The detail page offers a Sign/verify panel (not encrypt/decrypt).
+	page := req(t, h, "GET", "/_console/kms/"+signKey, nil).Body.String()
+	if !strings.Contains(page, "Sign / verify") || strings.Contains(page, "Encrypt / decrypt") {
+		t.Fatalf("SIGN_VERIFY key should show the sign panel only:\n%s", page)
+	}
+	signed := req(t, h, "POST", "/_console/kms/"+signKey+"/sign", url.Values{
+		"algo": {"RSASSA_PKCS1_V1_5_SHA_256"}, "message": {"attest this"},
+	}).Body.String()
+	sig := html.UnescapeString(between(signed, "<pre>", "</pre>"))
+	if sig == "" {
+		t.Fatalf("sign produced no signature:\n%s", signed)
+	}
+	good := req(t, h, "POST", "/_console/kms/"+signKey+"/verify", url.Values{
+		"algo": {"RSASSA_PKCS1_V1_5_SHA_256"}, "message": {"attest this"}, "signature": {sig},
+	}).Body.String()
+	if !strings.Contains(good, "valid") || strings.Contains(good, "does NOT") {
+		t.Fatalf("signature over the same message should verify:\n%s", good)
+	}
+	bad := req(t, h, "POST", "/_console/kms/"+signKey+"/verify", url.Values{
+		"algo": {"RSASSA_PKCS1_V1_5_SHA_256"}, "message": {"tampered"}, "signature": {sig},
+	}).Body.String()
+	if !strings.Contains(bad, "does NOT") {
+		t.Fatalf("signature over a different message must not verify:\n%s", bad)
+	}
+
+	// Alias management: add a second alias, then it shows on the key.
+	added := req(t, h, "POST", "/_console/kms/"+signKey+"/add-alias", url.Values{"alias": {"jwt-signer"}}).Body.String()
+	if !strings.Contains(added, "jwt-signer") {
+		t.Fatalf("added alias not listed:\n%s", added)
+	}
+
+	// --- KMS HMAC: generate then verify a MAC round-trips. ---
+	loc = create(t, h, "/_console/kms/create", url.Values{"spec": {"HMAC_256"}, "usage": {"GENERATE_VERIFY_MAC"}})
+	macKey := strings.TrimPrefix(loc, "/_console/kms/")
+	if i := strings.IndexByte(macKey, '?'); i >= 0 {
+		macKey = macKey[:i]
+	}
+	macOut := req(t, h, "POST", "/_console/kms/"+macKey+"/mac", url.Values{
+		"algo": {"HMAC_SHA_256"}, "message": {"authenticate me"},
+	}).Body.String()
+	mac := html.UnescapeString(between(macOut, "<pre>", "</pre>"))
+	if mac == "" {
+		t.Fatalf("HMAC generation produced nothing:\n%s", macOut)
+	}
+	macVerdict := req(t, h, "POST", "/_console/kms/"+macKey+"/verify-mac", url.Values{
+		"algo": {"HMAC_SHA_256"}, "message": {"authenticate me"}, "mac": {mac},
+	}).Body.String()
+	if !strings.Contains(macVerdict, "valid") || strings.Contains(macVerdict, "does NOT") {
+		t.Fatalf("MAC over the same message should verify:\n%s", macVerdict)
+	}
+
+	// --- SSM: attach a label to a version, then it renders on the versions tab. ---
+	create(t, h, "/_console/ssm/create", url.Values{"name": {"/app/db/host"}, "type": {"String"}, "value": {"localhost"}})
+	req(t, h, "POST", "/_console/ssm/put", url.Values{"name": {"/app/db/host"}, "value": {"db.internal"}})
+	req(t, h, "POST", "/_console/ssm/label", url.Values{"name": {"/app/db/host"}, "label": {"prod"}, "version": {"2"}})
+	vers := req(t, h, "GET", "/_console/ssm/param?name=/app/db/host&tab=versions", nil).Body.String()
+	if !strings.Contains(vers, "prod") {
+		t.Fatalf("SSM version label not shown on the versions tab:\n%s", vers)
+	}
+
+	// --- Secrets Manager: the password generator returns a strong string. ---
+	pw := req(t, h, "GET", "/_console/sm/password", nil).Body.String()
+	if len(pw) < 16 {
+		t.Fatalf("generated password too short: %q", pw)
+	}
+	// The create form exposes the generator button.
+	form := req(t, h, "GET", "/_console/sm/create", nil).Body.String()
+	if !strings.Contains(form, "Generate password") {
+		t.Fatalf("SM create form missing the password generator")
+	}
+}
+
+// between returns the text between the first open..close pair, or "".
+func between(s, open, close string) string {
+	i := strings.Index(s, open)
+	if i < 0 {
+		return ""
+	}
+	i += len(open)
+	j := strings.Index(s[i:], close)
+	if j < 0 {
+		return ""
+	}
+	return strings.TrimSpace(s[i : i+j])
+}
+
 // TestTrafficRecorder: external calls are captured; console calls are not.
 func TestTrafficRecorder(t *testing.T) {
 	if testing.Short() {

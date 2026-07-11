@@ -128,6 +128,72 @@ func (c *Console) kmsDecrypt(w http.ResponseWriter, r *http.Request) {
 	c.partial(w, "kms_crypto_result", map[string]any{"Label": "Plaintext", "Value": out})
 }
 
+// kmsSign / kmsVerify — asymmetric signing playground.
+func (c *Console) kmsSign(w http.ResponseWriter, r *http.Request) {
+	key := r.PathValue("key")
+	sig, err := c.be.KMSSign(r.Context(), key, r.FormValue("algo"), r.FormValue("message"))
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "kms_sign_result", map[string]any{
+		"Prefix": c.prefix, "Key": key, "Algo": r.FormValue("algo"),
+		"Message": r.FormValue("message"), "Signature": sig,
+	})
+}
+
+func (c *Console) kmsVerify(w http.ResponseWriter, r *http.Request) {
+	err := c.be.KMSVerify(r.Context(), r.PathValue("key"), r.FormValue("algo"), r.FormValue("message"), r.FormValue("signature"))
+	c.partial(w, "kms_verdict", map[string]any{"Valid": err == nil, "What": "signature"})
+}
+
+// kmsMac / kmsVerifyMac — HMAC playground.
+func (c *Console) kmsMac(w http.ResponseWriter, r *http.Request) {
+	key := r.PathValue("key")
+	mac, err := c.be.KMSGenerateMac(r.Context(), key, r.FormValue("algo"), r.FormValue("message"))
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "kms_mac_result", map[string]any{
+		"Prefix": c.prefix, "Key": key, "Algo": r.FormValue("algo"),
+		"Message": r.FormValue("message"), "Mac": mac,
+	})
+}
+
+func (c *Console) kmsVerifyMac(w http.ResponseWriter, r *http.Request) {
+	err := c.be.KMSVerifyMac(r.Context(), r.PathValue("key"), r.FormValue("algo"), r.FormValue("message"), r.FormValue("mac"))
+	c.partial(w, "kms_verdict", map[string]any{"Valid": err == nil, "What": "MAC"})
+}
+
+func (c *Console) kmsAddAlias(w http.ResponseWriter, r *http.Request) {
+	key := r.PathValue("key")
+	if err := c.be.KMSAddAlias(r.Context(), key, r.FormValue("alias")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Alias added")
+	c.kmsKeyPartial(w, r)
+}
+
+func (c *Console) kmsDeleteAlias(w http.ResponseWriter, r *http.Request) {
+	if err := c.be.KMSDeleteAlias(r.Context(), r.FormValue("alias")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Alias removed")
+	c.kmsKeyPartial(w, r)
+}
+
+func (c *Console) kmsCancelDeletion(w http.ResponseWriter, r *http.Request) {
+	if err := c.be.KMSCancelDeletion(r.Context(), r.PathValue("key")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Deletion cancelled — the key is usable again")
+	c.kmsKeyPartial(w, r)
+}
+
 // ---- SSM Parameter Store ----
 
 func (c *Console) ssmParams(w http.ResponseWriter, r *http.Request) {
@@ -172,6 +238,19 @@ func (c *Console) ssmPut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toast(w, "New version saved")
+	np, _ := c.be.GetParameter(r.Context(), name)
+	hist, _ := c.be.ParameterHistory(r.Context(), name)
+	c.partial(w, "ssm_param_detail", map[string]any{"P": np, "History": hist})
+}
+
+// ssmLabel attaches a label to the parameter's latest version.
+func (c *Console) ssmLabel(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	if err := c.be.LabelParameter(r.Context(), name, r.FormValue("label"), 0); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Label “"+r.FormValue("label")+"” applied")
 	np, _ := c.be.GetParameter(r.Context(), name)
 	hist, _ := c.be.ParameterHistory(r.Context(), name)
 	c.partial(w, "ssm_param_detail", map[string]any{"P": np, "History": hist})
@@ -224,7 +303,56 @@ func (c *Console) smSecret(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	all, _ := c.be.ListSecrets(r.Context())
-	c.render(w, r, "sm_secret", map[string]any{"S": s, "List": all, "Sel": name, "Mode": tabOf(r, "view"), "Title": s.Name + " · Secrets Manager"})
+	fns, _ := c.be.ListFunctions(r.Context())
+	c.render(w, r, "sm_secret", map[string]any{"S": s, "List": all, "Functions": fns, "Sel": name, "Mode": tabOf(r, "view"), "Title": s.Name + " · Secrets Manager"})
+}
+
+// smRotationPartial re-renders the secret detail (rotation strip lives there).
+func (c *Console) smRotationRefresh(w http.ResponseWriter, r *http.Request, name string) {
+	s, err := c.be.GetSecret(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	fns, _ := c.be.ListFunctions(r.Context())
+	c.partial(w, "sm_secret_detail", map[string]any{"S": s, "Functions": fns})
+}
+
+// smConfigureRotation sets or clears the rotation lambda + schedule.
+func (c *Console) smConfigureRotation(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	if err := c.be.ConfigureRotation(r.Context(), name, r.FormValue("lambda"), atoi(r.FormValue("days"))); err != nil {
+		c.fail(w, err)
+		return
+	}
+	if r.FormValue("lambda") == "" {
+		toast(w, "Rotation disabled")
+	} else {
+		toast(w, "Rotation configured")
+	}
+	c.smRotationRefresh(w, r, name)
+}
+
+// smRotateNow triggers an immediate rotation.
+func (c *Console) smRotateNow(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	if err := c.be.RotateNow(r.Context(), name); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Rotation triggered")
+	c.smRotationRefresh(w, r, name)
+}
+
+// smPassword returns a generated password for the create/new-version forms.
+func (c *Console) smPassword(w http.ResponseWriter, r *http.Request) {
+	pw, err := c.be.GetRandomPassword(r.Context(), 24)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(pw))
 }
 
 func (c *Console) smPut(w http.ResponseWriter, r *http.Request) {
@@ -239,7 +367,8 @@ func (c *Console) smPut(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.partial(w, "sm_secret_detail", map[string]any{"S": s})
+	fns, _ := c.be.ListFunctions(r.Context())
+	c.partial(w, "sm_secret_detail", map[string]any{"S": s, "Functions": fns})
 }
 
 func (c *Console) smDelete(w http.ResponseWriter, r *http.Request) {
