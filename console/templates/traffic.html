@@ -30,6 +30,7 @@
       <span class="res" title="{{.Resource}}">{{.Resource}}</span>
       <span class="st {{if .IsErr}}err{{else}}ok{{end}}">{{.Status}}</span>
       <span class="dur">{{.Millis}}ms</span>
+      <button class="copy-btn tr-curl" data-copy="{{.Curl}}" title="Copy as curl — replay this call (secrets stay masked)" @click.stop>{{icon "copy"}}</button>
     </div>
     {{if .Body}}<div class="tr-detail" x-show="open" x-cloak><div style="font-size:10.5px;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em;font-weight:600">Request</div><pre>{{.Body}}</pre></div>{{end}}
   </div>

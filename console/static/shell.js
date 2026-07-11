@@ -120,16 +120,57 @@
     ["ssm","Create parameter","/ssm/create"],["sm","Store secret","/sm/create"]];
   var KIND = { s3:"bucket", sqs:"queue", ddb:"table", sns:"topic", eb:"bus / rule", lambda:"function", kms:"key", ssm:"parameter", sm:"secret" };
 
+  // ---------- recently visited resources ----------
+  // The palette pins your last few resource pages on top: the queue you just
+  // left costs ⌘K ⏎ instead of retyping its name.
+  var SVCSET = { s3:1, ddb:1, lambda:1, sqs:1, sns:1, eb:1, kms:1, ssm:1, sm:1 };
+  function trackVisit() {
+    try {
+      var path = location.pathname;
+      if (path.indexOf(PREFIX + "/") !== 0) return;
+      var rest = path.slice(PREFIX.length + 1).split("/");
+      var svc = rest[0];
+      if (!SVCSET[svc]) return;
+      var name = "", u = path;
+      var qname = new URLSearchParams(location.search).get("name");
+      if ((svc === "ssm" || svc === "sm") && qname) {
+        name = qname;
+        u = path + "?name=" + encodeURIComponent(qname);
+      } else if (rest.length >= 2 && rest[1] && rest[1].indexOf("create") < 0) {
+        name = decodeURIComponent(rest[1]);
+        if (svc === "eb" && rest[2] === "rule" && rest[3]) name += " › " + decodeURIComponent(rest[3]);
+      }
+      if (!name) return;
+      var rec = JSON.parse(localStorage.getItem("recents") || "[]").filter(function (x) { return x.u !== u; });
+      rec.unshift({ s: svc, n: name, u: u });
+      localStorage.setItem("recents", JSON.stringify(rec.slice(0, 6)));
+    } catch (e) {}
+  }
+  document.addEventListener("DOMContentLoaded", trackVisit);
+  document.addEventListener("htmx:pushedIntoHistory", trackVisit);
+
   function openPalette() {
     if (!pal) return;
     pal.hidden = false; palQ.value = ""; palSel = 0;
-    palItems = NAV.map(function (n) { return { s:n[0], n:n[1], u:PREFIX+n[2], k:"service" }; })
+    var here = location.pathname + location.search;
+    var recents = [];
+    try {
+      recents = JSON.parse(localStorage.getItem("recents") || "[]")
+        .filter(function (x) { return x.u !== here; }).slice(0, 5)
+        .map(function (x) { return { s: x.s, n: x.n, u: x.u, k: "recent" }; });
+    } catch (e) {}
+    var fixed = NAV.map(function (n) { return { s:n[0], n:n[1], u:PREFIX+n[2], k:"service" }; })
       .concat([{ s:"", n:"Flows", u:PREFIX+"/", k:"surface" }, { s:"", n:"Traffic", u:PREFIX+"/traffic", k:"surface" }])
       .concat(ACTS.map(function (a) { return { s:a[0], n:a[1], u:PREFIX+a[2], k:"action" }; }));
+    palItems = recents.concat(fixed);
     renderPal();
     palQ.focus();
     fetch(PREFIX + "/api/resources").then(function (r) { return r.json(); }).then(function (rs) {
-      palItems = (rs || []).map(function (r) { r.k = KIND[r.s] || r.s; return r; }).concat(palItems);
+      var seen = {};
+      recents.forEach(function (x) { seen[x.u] = 1; });
+      var fresh = (rs || []).filter(function (r) { return !seen[r.u]; })
+        .map(function (r) { r.k = KIND[r.s] || r.s; return r; });
+      palItems = recents.concat(fresh).concat(fixed);
       renderPal();
     });
   }

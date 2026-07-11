@@ -32,6 +32,28 @@ type TrafficEntry struct {
 	Status   int
 	Millis   float64
 	ReqBody  string // captured for JSON/query bodies (bounded); redacted
+	Method   string
+	Path     string // path + query, for replay
+	Host     string
+	CT       string // Content-Type
+	Target   string // X-Amz-Target
+}
+
+// Curl renders the entry as a replayable curl command. The body is the
+// recorder's redacted copy, so masked secrets stay masked in the repro.
+func (e TrafficEntry) Curl() string {
+	var b strings.Builder
+	b.WriteString("curl -X " + e.Method + " 'http://" + e.Host + e.Path + "'")
+	if e.CT != "" {
+		b.WriteString(" \\\n  -H 'Content-Type: " + e.CT + "'")
+	}
+	if e.Target != "" {
+		b.WriteString(" \\\n  -H 'X-Amz-Target: " + e.Target + "'")
+	}
+	if e.ReqBody != "" {
+		b.WriteString(" \\\n  --data '" + strings.ReplaceAll(e.ReqBody, "'", `'\''`) + "'")
+	}
+	return b.String()
 }
 
 const trafficCap = 500
@@ -58,6 +80,8 @@ func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		At: start, Service: svc, Action: action, Resource: resource,
 		Status: sw.code, Millis: float64(time.Since(start).Microseconds()) / 1000.0,
 		ReqBody: body,
+		Method:  r.Method, Path: r.URL.RequestURI(), Host: r.Host,
+		CT: r.Header.Get("Content-Type"), Target: r.Header.Get("X-Amz-Target"),
 	})
 }
 

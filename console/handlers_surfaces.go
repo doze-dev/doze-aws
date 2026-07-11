@@ -53,6 +53,7 @@ type trafficRow struct {
 	Millis   string
 	IsErr    bool
 	Body     string
+	Curl     string
 	Seq      int64
 }
 
@@ -67,7 +68,7 @@ func (c *Console) trafficEntries(since int64) []trafficRow {
 			Time:    e.At.Local().Format("15:04:05.000"),
 			Service: e.Service, Action: e.Action, Resource: e.Resource,
 			Status: e.Status, Millis: strconv.FormatFloat(e.Millis, 'f', -1, 64),
-			IsErr: e.Status >= 400, Body: e.ReqBody, Seq: e.Seq,
+			IsErr: e.Status >= 400, Body: e.ReqBody, Curl: e.Curl(), Seq: e.Seq,
 		})
 	}
 	return rows

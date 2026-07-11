@@ -515,10 +515,11 @@ func TestTrafficRecorder(t *testing.T) {
 		t.Fatalf("traffic feed missing the external call:\n%s", feed.Body)
 	}
 	// The console's own list call (via its in-process backend, bypassing rec)
-	// must NOT appear.
+	// must NOT appear. Count rendered rows (the action cell), not raw substring
+	// hits — each row also embeds the action inside its copy-as-curl payload.
 	req(t, c, "GET", "/_console/sqs", nil)
 	feed2 := req(t, c, "GET", "/_console/traffic/feed", nil)
-	if strings.Count(feed2.Body.String(), "ListQueues") > 1 {
-		t.Fatalf("console's own calls leaked into the traffic tail")
+	if n := strings.Count(feed2.Body.String(), `<span class="act">ListQueues</span>`); n > 1 {
+		t.Fatalf("console's own calls leaked into the traffic tail (%d rows)", n)
 	}
 }
