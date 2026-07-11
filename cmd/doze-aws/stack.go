@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	dozeaws "github.com/doze-dev/doze-aws"
@@ -14,14 +15,36 @@ import (
 	"github.com/doze-dev/doze-aws/stackfile"
 )
 
-// runApply implements `doze-aws apply [flags] stack.yaml`.
+// runApply implements `doze-aws apply [--var k=v ...] [stack.yaml]`.
 func runApply(args []string) int {
 	var file string
 	var flags []string
-	for _, a := range args {
-		if len(a) > 0 && a[0] != '-' && file == "" {
+	vars := map[string]string{}
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		switch {
+		case a == "--var" || a == "-var":
+			if i+1 >= len(args) {
+				fmt.Fprintln(os.Stderr, "apply: --var needs name=value")
+				return 2
+			}
+			i++
+			k, v, ok := strings.Cut(args[i], "=")
+			if !ok {
+				fmt.Fprintln(os.Stderr, "apply: --var needs name=value, got", args[i])
+				return 2
+			}
+			vars[k] = v
+		case strings.HasPrefix(a, "--var="):
+			k, v, ok := strings.Cut(strings.TrimPrefix(a, "--var="), "=")
+			if !ok {
+				fmt.Fprintln(os.Stderr, "apply: --var needs name=value, got", a)
+				return 2
+			}
+			vars[k] = v
+		case len(a) > 0 && a[0] != '-' && file == "":
 			file = a
-		} else {
+		default:
 			flags = append(flags, a)
 		}
 	}
@@ -38,7 +61,7 @@ func runApply(args []string) int {
 		fmt.Fprintln(os.Stderr, "apply:", err)
 		return 1
 	}
-	s, err := stackfile.Parse(data)
+	s, err := stackfile.ParseWithVars(data, vars)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "apply:", err)
 		return 1

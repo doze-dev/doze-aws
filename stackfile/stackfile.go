@@ -25,6 +25,9 @@ import (
 
 // Stack is the parsed stack.yaml.
 type Stack struct {
+	// Vars feed ${var:name} references; `doze-aws apply --var name=value`
+	// overrides them. Values may themselves use ${env:...}.
+	Vars       map[string]string    `yaml:"vars,omitempty"`
 	Queues     map[string]Queue     `yaml:"queues,omitempty"`
 	Topics     map[string]Topic     `yaml:"topics,omitempty"`
 	Buckets    map[string]Bucket    `yaml:"buckets,omitempty"`
@@ -215,10 +218,18 @@ func parseKey(s string) (hash keyAttr, rng *keyAttr, err error) {
 	return hash, rng, nil
 }
 
-// Parse decodes and validates a stack.yaml.
-func Parse(data []byte) (*Stack, error) {
+// Parse decodes and validates a stack.yaml, resolving ${env:...} and
+// ${var:...} references first.
+func Parse(data []byte) (*Stack, error) { return ParseWithVars(data, nil) }
+
+// ParseWithVars is Parse with --var overrides for ${var:...} references.
+func ParseWithVars(data []byte, overrides map[string]string) (*Stack, error) {
+	expanded, err := expand(data, overrides)
+	if err != nil {
+		return nil, fmt.Errorf("stackfile: %w", err)
+	}
 	var s Stack
-	dec := yaml.NewDecoder(strings.NewReader(string(data)))
+	dec := yaml.NewDecoder(strings.NewReader(string(expanded)))
 	dec.KnownFields(true) // typos fail loudly, like the config loader
 	if err := dec.Decode(&s); err != nil {
 		return nil, fmt.Errorf("stackfile: %w", err)
