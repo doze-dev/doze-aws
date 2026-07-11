@@ -388,28 +388,28 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 // sqsConfig is the curated queue configuration surface (the raw attribute map
 // stays available in a collapsible section).
 type sqsConfig struct {
-	Visibility string
-	Retention  string
-	Delay      string
-	MaxSize    string
-	Created    string
-	Modified   string
+	Visibility   string
+	Retention    string
+	Delay        string
+	MaxSize      string
+	Created      string
+	Modified     string
 	FIFO         bool
 	ContentDedup bool   // FIFO: ContentBasedDeduplication
 	DLQ          string // dead-letter queue name, from the redrive policy
-	MaxReceive string
+	MaxReceive   string
 }
 
 func sqsConfigOf(attrs map[string]string) sqsConfig {
 	cfg := sqsConfig{
-		Visibility: attrs["VisibilityTimeout"],
-		Retention:  attrs["MessageRetentionPeriod"],
-		Delay:      attrs["DelaySeconds"],
-		MaxSize:    attrs["MaximumMessageSize"],
+		Visibility:   attrs["VisibilityTimeout"],
+		Retention:    attrs["MessageRetentionPeriod"],
+		Delay:        attrs["DelaySeconds"],
+		MaxSize:      attrs["MaximumMessageSize"],
 		FIFO:         attrs["FifoQueue"] == "true",
 		ContentDedup: attrs["ContentBasedDeduplication"] == "true",
-		Created:    epochSecString(attrs["CreatedTimestamp"]),
-		Modified:   epochSecString(attrs["LastModifiedTimestamp"]),
+		Created:      epochSecString(attrs["CreatedTimestamp"]),
+		Modified:     epochSecString(attrs["LastModifiedTimestamp"]),
 	}
 	if rp := attrs["RedrivePolicy"]; rp != "" {
 		var pol struct {
