@@ -11,6 +11,8 @@ import (
 	"net/url"
 	"sort"
 	"time"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // ---- Lambda (REST-JSON, /2015-03-31) ----
@@ -46,6 +48,7 @@ type InvokeResult struct {
 	Logs     string
 	Duration string
 	Status   int
+	Async    bool
 }
 
 func (b *backend) ListFunctions(ctx context.Context) ([]Function, error) {
@@ -233,11 +236,15 @@ func (b *backend) DeleteFunction(ctx context.Context, name string) error {
 }
 
 // Invoke runs a synchronous invocation with tail logs, timing it.
-func (b *backend) Invoke(ctx context.Context, name, payload string) (*InvokeResult, error) {
+func (b *backend) Invoke(ctx context.Context, name, payload string, async bool) (*InvokeResult, error) {
 	req, _ := http.NewRequestWithContext(ctx, "POST",
 		b.base+"/2015-03-31/functions/"+url.PathEscape(name)+"/invocations",
 		bytes.NewReader([]byte(payload)))
 	req.Header.Set("X-Amz-Log-Type", "Tail")
+	if async {
+		// Event invocation: fire-and-forget, retries + destinations/DLQ apply.
+		req.Header.Set("X-Amz-Invocation-Type", "Event")
+	}
 	start := time.Now()
 	resp, err := b.c.Do(req)
 	if err != nil {
@@ -264,7 +271,118 @@ func (b *backend) Invoke(ctx context.Context, name, payload string) (*InvokeResu
 	if resp.StatusCode/100 != 2 {
 		return nil, &apiErr{status: resp.StatusCode, body: string(body)}
 	}
+	if async {
+		res.Async = true
+		res.Payload = ""
+	}
 	return res, nil
+}
+
+// CreateFunctionOpts is the create-function form's payload.
+type CreateFunctionOpts struct {
+	Name    string
+	Runtime string
+	Handler string
+	Code    string // local path (the _local_ extension)
+	Timeout int
+	Memory  int
+	Env     map[string]string
+}
+
+func (b *backend) CreateFunction(ctx context.Context, o CreateFunctionOpts) error {
+	in := map[string]any{
+		"FunctionName": o.Name, "Runtime": o.Runtime, "Handler": o.Handler,
+		"Role": "arn:aws:iam::000000000000:role/console",
+		"Code": map[string]string{"S3Bucket": "_local_", "S3Key": o.Code},
+	}
+	if o.Timeout > 0 {
+		in["Timeout"] = o.Timeout
+	}
+	if o.Memory > 0 {
+		in["MemorySize"] = o.Memory
+	}
+	if len(o.Env) > 0 {
+		in["Environment"] = map[string]any{"Variables": o.Env}
+	}
+	buf, _ := json.Marshal(in)
+	req, _ := http.NewRequestWithContext(ctx, "POST", b.base+"/2015-03-31/functions", bytes.NewReader(buf))
+	req.Header.Set("Content-Type", "application/json")
+	_, err := b.do(req)
+	return err
+}
+
+// UpdateConfig edits the most-changed knobs (env, timeout, memory).
+func (b *backend) UpdateConfig(ctx context.Context, name string, timeout, memory int, env map[string]string) error {
+	in := map[string]any{}
+	if timeout > 0 {
+		in["Timeout"] = timeout
+	}
+	if memory > 0 {
+		in["MemorySize"] = memory
+	}
+	in["Environment"] = map[string]any{"Variables": env}
+	buf, _ := json.Marshal(in)
+	req, _ := http.NewRequestWithContext(ctx, "PUT",
+		b.base+"/2015-03-31/functions/"+url.PathEscape(name)+"/configuration", bytes.NewReader(buf))
+	req.Header.Set("Content-Type", "application/json")
+	_, err := b.do(req)
+	return err
+}
+
+// FunctionURL reads the current function URL, or "".
+func (b *backend) FunctionURL(ctx context.Context, name string) string {
+	req, _ := http.NewRequestWithContext(ctx, "GET",
+		b.base+"/2021-10-31/functions/"+url.PathEscape(name)+"/url", nil)
+	body, err := b.do(req)
+	if err != nil {
+		return ""
+	}
+	var out struct {
+		FunctionURL string `json:"FunctionUrl"`
+	}
+	json.Unmarshal(body, &out)
+	return out.FunctionURL
+}
+
+// CreateFunctionURL provisions a function URL (idempotent).
+func (b *backend) CreateFunctionURL(ctx context.Context, name string) (string, error) {
+	req, _ := http.NewRequestWithContext(ctx, "POST",
+		b.base+"/2021-10-31/functions/"+url.PathEscape(name)+"/urls", bytes.NewReader([]byte("{}")))
+	req.Header.Set("Content-Type", "application/json")
+	body, err := b.do(req)
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		FunctionURL string `json:"FunctionUrl"`
+	}
+	json.Unmarshal(body, &out)
+	return out.FunctionURL, nil
+}
+
+// DeleteFunctionURL removes the function URL.
+func (b *backend) DeleteFunctionURL(ctx context.Context, name string) error {
+	req, _ := http.NewRequestWithContext(ctx, "DELETE",
+		b.base+"/2021-10-31/functions/"+url.PathEscape(name)+"/url", nil)
+	_, err := b.do(req)
+	return err
+}
+
+// CreateMapping wires an SQS event source mapping.
+func (b *backend) CreateMapping(ctx context.Context, name, queueName string, batch int) error {
+	in := map[string]any{
+		"FunctionName":   name,
+		"EventSourceArn": awsident.ARN("sqs", queueName),
+	}
+	if batch > 0 {
+		in["BatchSize"] = batch
+	}
+	buf, _ := json.Marshal(in)
+	req, _ := http.NewRequestWithContext(ctx, "POST",
+		b.base+"/2015-03-31/event-source-mappings", bytes.NewReader(buf))
+	req.Header.Set("Content-Type", "application/json")
+	_, err := b.do(req)
+	return err
 }
 
 func (b *backend) DeleteMapping(ctx context.Context, uuid string) error {

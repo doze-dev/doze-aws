@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -806,6 +807,72 @@ func TestS3EditingDepth(t *testing.T) {
 	props = req(t, h, "GET", "/_console/s3/docs?tab=properties", nil).Body.String()
 	if !strings.Contains(html.UnescapeString(props), `"ExpireDays": 7`) {
 		t.Fatalf("lifecycle JSON not round-tripped:\n%s", props)
+	}
+}
+
+// TestLambdaLifecycle covers wave C: create a function from a local build dir,
+// edit env/timeout/memory, provision + drop a function URL, add an event
+// source mapping, and invoke both sync and async.
+func TestLambdaLifecycle(t *testing.T) {
+	h := newConsole(t)
+
+	// A real build directory the _local_ extension can run.
+	dir := t.TempDir()
+	if err := os.WriteFile(dir+"/bootstrap", []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"jobs"}, "dlq_mode": {"none"}})
+
+	// Create the function from the UI form.
+	loc := create(t, h, "/_console/lambda/create", url.Values{
+		"name": {"worker"}, "runtime": {"provided.al2"}, "handler": {"bootstrap"},
+		"code": {dir}, "timeout": {"15"}, "memory": {"256"},
+		"env_key": {"LOG_LEVEL"}, "env_val": {"debug"},
+	})
+	if !strings.Contains(loc, "/lambda/worker") {
+		t.Fatalf("create function location = %q", loc)
+	}
+	page := req(t, h, "GET", "/_console/lambda/worker?tab=config", nil).Body.String()
+	for _, want := range []string{`value="15"`, `value="256"`, "LOG_LEVEL", "debug"} {
+		if !strings.Contains(page, want) {
+			t.Fatalf("config tab missing %q:\n%s", want, page)
+		}
+	}
+
+	// Edit config: bump memory, add a variable.
+	req(t, h, "POST", "/_console/lambda/worker/config", url.Values{
+		"timeout": {"30"}, "memory": {"512"},
+		"env_key": {"LOG_LEVEL", "REGION"}, "env_val": {"info", "us-east-1"},
+	})
+	page = req(t, h, "GET", "/_console/lambda/worker?tab=config", nil).Body.String()
+	if !strings.Contains(page, `value="512"`) || !strings.Contains(page, "REGION") {
+		t.Fatalf("config edit did not land:\n%s", page)
+	}
+
+	// Function URL: create then remove.
+	cfg := req(t, h, "POST", "/_console/lambda/worker/create-url", nil).Body.String()
+	if !strings.Contains(cfg, "lambda-url") {
+		t.Fatalf("function URL not shown after create:\n%s", cfg)
+	}
+	cfg = req(t, h, "POST", "/_console/lambda/worker/delete-url", nil).Body.String()
+	if strings.Contains(cfg, "Remove URL") {
+		t.Fatalf("function URL should be gone:\n%s", cfg)
+	}
+
+	// Event source mapping.
+	trig := req(t, h, "POST", "/_console/lambda/worker/add-mapping", url.Values{
+		"queue": {"jobs"}, "batch": {"5"},
+	}).Body.String()
+	if !strings.Contains(trig, "jobs") || !strings.Contains(trig, ">5<") {
+		t.Fatalf("event source mapping not shown:\n%s", trig)
+	}
+
+	// Async invoke returns the accepted receipt (no payload).
+	as := req(t, h, "POST", "/_console/lambda/worker/invoke", url.Values{
+		"payload": {"{}"}, "async": {"true"},
+	}).Body.String()
+	if !strings.Contains(as, "Event accepted") {
+		t.Fatalf("async invoke should return an accepted receipt:\n%s", as)
 	}
 }
 

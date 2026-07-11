@@ -162,11 +162,17 @@ func (c *Console) routes() {
 
 	// Lambda.
 	m.HandleFunc("GET "+p+"/lambda", c.lambdaFns)
+	m.HandleFunc("GET "+p+"/lambda/create", c.createPage("lambda", "lambda_create"))
+	m.HandleFunc("POST "+p+"/lambda/create", c.lambdaCreate)
 	m.HandleFunc("GET "+p+"/lambda/{fn}", c.lambdaFn)
 	m.HandleFunc("GET "+p+"/lambda/{fn}/runtime", c.lambdaRuntimeBadge) // HTMX partial (polled)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/invoke", c.lambdaInvoke)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-fn", c.lambdaDelete)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-mapping", c.lambdaDeleteMapping)
+	m.HandleFunc("POST "+p+"/lambda/{fn}/add-mapping", c.lambdaAddMapping)
+	m.HandleFunc("POST "+p+"/lambda/{fn}/config", c.lambdaSaveConfig)
+	m.HandleFunc("POST "+p+"/lambda/{fn}/create-url", c.lambdaCreateURL)
+	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-url", c.lambdaDeleteURL)
 
 	// KMS.
 	m.HandleFunc("GET "+p+"/kms", c.kmsKeys)

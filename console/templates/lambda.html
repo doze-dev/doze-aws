@@ -1,5 +1,5 @@
 {{define "lambda_lp"}}
-{{template "lp_head" dict "Svc" "lambda" "Label" "Lambda" "NewURL" ""}}
+{{template "lp_head" dict "Svc" "lambda" "Label" "Lambda" "NewURL" (printf "%s/lambda/create" .Prefix)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/lambda/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{.Runtime}}</span></a>
   {{end}}
@@ -9,8 +9,8 @@
 {{define "lambda_home"}}{{template "shell_top" .}}
   {{template "lambda_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="empty" style="border:0;margin-top:10vh">{{awsIcon "lambda"}}
-    <p>Functions are deployed via the SDK/CLI — the <code class="mono">_local_</code> extension points at a directory on disk.</p>
-    <code class="mono dim" style="font-size:11px;max-width:560px">aws lambda create-function --function-name hello --runtime provided.al2 --handler bootstrap --role arn:aws:iam::000000000000:role/r --code S3Bucket=_local_,S3Key=/path/to/build</code>
+    <p>No functions yet. <b>New</b> points a function at a build directory on disk — edit the code and re-invoke, no zip, no deploy.</p>
+    <a class="btn" href="{{.Prefix}}/lambda/create">{{icon "plus"}} New function</a>
   </div></section>
 {{template "shell_bottom" .}}{{end}}
 
@@ -53,24 +53,21 @@
     </div>
     <div class="det-b">
       {{if eq .Tab "config"}}
-      <div class="split">
-        <div><div class="sec-title" style="margin-top:0">General</div><div class="table-wrap"><table class="tbl kv"><tbody>
-          <tr><td>Runtime</td><td>{{.Fn.Runtime}}</td></tr><tr><td>Handler</td><td>{{.Fn.Handler}}</td></tr><tr><td>Timeout</td><td>{{.Fn.Timeout}} s</td></tr><tr><td>Memory</td><td>{{.Fn.MemorySize}} MB</td></tr><tr><td>Version</td><td>{{.Fn.Version}}</td></tr><tr><td>Code size</td><td>{{humanSize .Fn.CodeSize}}</td></tr>{{if .Fn.DLQ}}<tr><td>Dead-letter queue</td><td>{{template "copychip" dict "Value" .Fn.DLQ}}</td></tr>{{end}}
-          {{if .Fn.OnSuccess}}<tr><td>On success →</td><td>{{template "copychip" dict "Value" .Fn.OnSuccess}}</td></tr>{{end}}
-          {{if .Fn.OnFailure}}<tr><td>On failure →</td><td>{{template "copychip" dict "Value" .Fn.OnFailure}}</td></tr>{{end}}
-        </tbody></table></div></div>
-        <div><div class="sec-title" style="margin-top:0">Environment variables</div>{{if .Fn.Env}}<div class="table-wrap"><table class="tbl kv"><tbody>{{range $k, $v := .Fn.Env}}<tr><td>{{$k}}</td><td class="trunc" title="{{$v}}">{{$v}}</td></tr>{{end}}</tbody></table></div>{{else}}<p class="mini-note">No environment variables.</p>{{end}}</div>
-      </div>
+      {{template "lambda_config" .}}
       {{else if eq .Tab "triggers"}}
       {{template "lambda_triggers" .}}
       {{else}}
       <div class="split">
         <div class="panel"><div class="panel-h"><h2>{{icon "play"}} Test event</h2></div><div style="padding:14px 16px">
-          <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/invoke" hx-target="#invoke-result" hx-select="unset" hx-swap="innerHTML" hx-indicator="#invoke-spin">
+          <form x-data="{async:false}" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/invoke" hx-target="#invoke-result" hx-select="unset" hx-swap="innerHTML" hx-indicator="#invoke-spin">
             <textarea name="payload" data-editor="json" rows="10" placeholder='{"key":"value"}'>{"hello": "world"}</textarea>
-            <div style="margin-top:10px;display:flex;justify-content:flex-end;align-items:center;gap:10px"><span id="invoke-spin" class="dim htmx-indicator" style="font-size:12px">Running…</span><button class="btn" type="submit">{{icon "play"}} Invoke</button></div>
+            <input type="hidden" name="async" :value="async">
+            <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+              <label class="mini-check"><input type="checkbox" x-model="async"> async <span class="dim">(Event — exercises destinations/DLQ)</span></label>
+              <span style="display:flex;align-items:center;gap:10px"><span id="invoke-spin" class="dim htmx-indicator" style="font-size:12px">Running…</span><button class="btn" type="submit"><span x-show="!async">{{icon "play"}} Invoke</span><span x-show="async" x-cloak>{{icon "send"}} Send event</span></button></span>
+            </div>
           </form>
-          <p class="mini-note">Synchronous invoke against the real handler process, with tail logs.</p>
+          <p class="mini-note">Synchronous invoke returns the response + tail logs; async fires an Event and returns immediately (retries + destinations apply, visible in the diagram above).</p>
         </div></div>
         <div id="invoke-result">
           <div class="panel">
@@ -93,8 +90,12 @@
 {{template "shell_bottom" .}}{{end}}
 
 {{define "lambda_result"}}
+{{if .Res.Async}}
+<div class="pub-receipt"><div class="pr-h">✓ Event accepted · queued for async execution</div><div class="pr-row dim">The response isn't returned for async invokes — watch the destination/DLQ, or the diagram above.</div></div>
+{{else}}
 <div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>{{if .Res.FnError}}<span class="co-err">✗ function error</span>{{else}}<span class="co-ok">✓ succeeded</span>{{end}} · {{.Res.Duration}}</span><button class="copy-btn" data-copy="{{.Res.Payload}}">{{icon "copy"}}</button></div><pre>{{.Res.Payload}}</pre></div>
 {{if .Res.Logs}}<div class="code-out"><div class="co-h"><span>logs (tail)</span></div><pre>{{.Res.Logs}}</pre></div>{{end}}
+{{end}}
 {{end}}
 
 {{/* Live process-state badge: warm (holding a child process) vs. idle, plus the
@@ -112,6 +113,103 @@
 <div id="lambda-triggers"><div class="panel"><div class="panel-h"><h2>{{icon "arrow-right"}} Event source mappings <span class="badge">{{len .Fn.Mappings}}</span></h2></div>
   {{if .Fn.Mappings}}<table class="tbl"><thead><tr><th>Source</th><th class="right">Batch size</th><th class="right">State</th><th style="width:36px"></th></tr></thead><tbody>{{range .Fn.Mappings}}
     <tr><td class="mono trunc dim" style="font-size:11.5px;max-width:320px" title="{{.SourceARN}}">{{.SourceARN}}</td><td class="right num">{{.BatchSize}}</td><td class="right"><span class="badge {{if eq .State "Enabled"}}state-on{{else}}state-off{{end}}">{{.State}}</span></td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove trigger" hx-post="{{$.Prefix}}/lambda/{{$.Fn.Name}}/delete-mapping" hx-vals='{"uuid":"{{.UUID}}"}' hx-target="#lambda-triggers" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove this trigger?">{{icon "trash"}}</button></div></td></tr>
-  {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No triggers. Subscribe this function to SNS/EventBridge, or add an event source mapping via the SDK.</p></div>{{end}}
+  {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No triggers yet. Poll an SQS queue below, or subscribe this function to SNS/EventBridge.</p></div>{{end}}
+  <form class="sub-add" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/add-mapping" hx-target="#lambda-triggers" hx-select="unset" hx-swap="outerHTML">
+    <select class="input" name="queue" required style="flex:1"><option value="">— SQS queue to poll —</option>{{range .Queues}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
+    <input class="input" name="batch" type="number" min="1" max="10000" placeholder="batch 10" style="width:110px;flex:none">
+    <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Add trigger</button>
+  </form>
 </div></div>
 {{end}}
+
+{{/* Config tab: editable env / timeout / memory, plus the function URL. */}}
+{{define "lambda_config"}}
+<div id="lambda-config" class="split">
+  <div>
+    <form x-data hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/config" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML">
+      <div class="sec-title" style="margin-top:0">General</div>
+      <div class="panel"><div class="form-b">
+        <div class="table-wrap"><table class="tbl kv"><tbody>
+          <tr><td>Runtime</td><td>{{.Fn.Runtime}}</td></tr><tr><td>Handler</td><td class="mono">{{.Fn.Handler}}</td></tr>
+          <tr><td>Version</td><td>{{.Fn.Version}}</td></tr><tr><td>Code size</td><td>{{humanSize .Fn.CodeSize}}</td></tr>
+        </tbody></table></div>
+        <div class="fgrid" style="margin-top:10px">
+          <div class="field"><label>Timeout <span class="dim">s</span></label><input class="input" name="timeout" type="number" min="1" max="900" value="{{.Fn.Timeout}}"></div>
+          <div class="field"><label>Memory <span class="dim">MB</span></label><input class="input" name="memory" type="number" min="128" max="10240" step="1" value="{{.Fn.MemorySize}}"></div>
+        </div>
+      </div></div>
+      <div class="sec-title">Environment variables</div>
+      {{template "env_editor" dict "Env" .Fn.Env}}
+      <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" type="submit">Save configuration</button></div>
+    </form>
+  </div>
+  <div>
+    <div class="sec-title" style="margin-top:0">Function URL</div>
+    <div class="panel"><div class="form-b">
+      {{if .URL}}
+      <div class="copy-row"><span class="mono" style="font-size:11px" title="{{.URL}}">{{.URL}}</span><button class="icon-btn sm" title="Copy" data-copy="{{.URL}}">{{icon "copy"}}</button></div>
+      <p class="mini-note">A public HTTPS-style endpoint that invokes this function directly — no trigger needed.</p>
+      <div style="display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/delete-url" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove the function URL?">Remove URL</button></div>
+      {{else}}
+      <p class="mini-note" style="margin-top:0">No function URL. Create one to invoke this function over HTTP without a trigger.</p>
+      <div style="display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/create-url" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML">{{icon "link"}} Create function URL</button></div>
+      {{end}}
+    </div></div>
+    {{if or .Fn.DLQ .Fn.OnSuccess .Fn.OnFailure}}
+    <div class="sec-title">Async destinations</div>
+    <div class="table-wrap"><table class="tbl kv"><tbody>
+      {{if .Fn.DLQ}}<tr><td>Dead-letter</td><td>{{template "copychip" dict "Value" .Fn.DLQ}}</td></tr>{{end}}
+      {{if .Fn.OnSuccess}}<tr><td>On success →</td><td>{{template "copychip" dict "Value" .Fn.OnSuccess}}</td></tr>{{end}}
+      {{if .Fn.OnFailure}}<tr><td>On failure →</td><td>{{template "copychip" dict "Value" .Fn.OnFailure}}</td></tr>{{end}}
+    </tbody></table></div>
+    {{end}}
+  </div>
+</div>
+{{end}}
+
+{{/* Reusable env-var rows editor (create form + config edit). */}}
+{{define "env_editor"}}
+<div class="panel" x-data="{rows: {{if .Env}}[{{range $k,$v := .Env}}{k:{{printf "%q" $k}},v:{{printf "%q" $v}}},{{end}}]{{else}}[]{{end}} }"><div class="form-b">
+  <template x-for="(row,i) in rows" :key="i">
+    <div class="attr-row" style="grid-template-columns:1fr 1.4fr 30px">
+      <input class="input" name="env_key" placeholder="KEY" x-model="row.k" spellcheck="false">
+      <input class="input" name="env_val" placeholder="value" x-model="row.v" spellcheck="false">
+      <button type="button" class="icon-btn sm danger" @click="rows.splice(i,1)">{{icon "x"}}</button>
+    </div>
+  </template>
+  <button type="button" class="btn btn-outline btn-sm" style="margin-top:6px" @click="rows.push({k:'',v:''})">{{icon "plus"}} Add variable</button>
+</div></div>
+{{end}}
+
+{{define "lambda_create"}}{{template "shell_top" .}}
+  {{template "lambda_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  <section class="detail"><div class="form-page">
+    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create function</div>
+    <p class="det-sub" style="margin-bottom:18px">Point at a build directory on disk — the <code class="mono">_local_</code> extension runs it in place, so you edit the code and re-invoke without a redeploy.</p>
+    <form hx-post="{{.Prefix}}/lambda/create" hx-indicator="#submit-spin">
+      <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
+        <div class="field"><label>Function name</label><input class="input" name="name" placeholder="resize-images" required pattern="[a-zA-Z0-9_-]{1,64}" autocomplete="off" autofocus></div>
+        <div class="fgrid" style="margin-top:10px">
+          <div class="field"><label>Runtime</label><select class="input" name="runtime">
+            <option value="provided.al2">provided.al2 (Go / any binary)</option>
+            <option value="python3.12">python3.12</option>
+            <option value="nodejs20.x">nodejs20.x</option>
+            <option value="java21">java21</option>
+            <option value="ruby3.3">ruby3.3</option>
+            <option value="dotnet8">dotnet8</option>
+          </select></div>
+          <div class="field"><label>Handler</label><input class="input" name="handler" placeholder="bootstrap" value="bootstrap"></div>
+        </div>
+        <div class="field" style="margin-top:10px"><label>Code path <span class="dim">absolute directory or binary</span></label><input class="input mono" name="code" placeholder="/path/to/build" required spellcheck="false"><span class="hint">The doze <code class="mono">_local_</code> extension — no zip, edit in place</span></div>
+      </div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>Resources</h2></div><div class="form-b"><div class="fgrid">
+        <div class="field"><label>Timeout <span class="dim">s</span></label><input class="input" name="timeout" type="number" min="1" max="900" placeholder="3"></div>
+        <div class="field"><label>Memory <span class="dim">MB</span></label><input class="input" name="memory" type="number" min="128" max="10240" placeholder="512"></div>
+      </div></div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>Environment variables <span class="dim" style="font-weight:400;font-size:12px">optional</span></h2></div>
+        {{template "env_editor" dict "Env" nil}}
+      </div>
+      {{template "form_actions" dict "Cancel" (printf "%s/lambda" .Prefix) "Submit" "Create function"}}
+    </form>
+  </div></section>
+{{template "shell_bottom" .}}{{end}}
