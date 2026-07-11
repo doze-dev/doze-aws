@@ -1,38 +1,46 @@
 {{define "flows"}}{{template "shell_top" .}}
-  <section class="detail" style="border-left:0" data-live="{{.Prefix}}/flows.json" data-live-ms="4000">
+  <section class="detail" style="border-left:0">
     <div class="det-h">
-      <div class="det-title">Flows
-        <div class="acts"><span class="chip"><span class="live"></span> live</span></div>
-      </div>
-      <div class="det-sub">The live wiring between your services — connections are real subscriptions, notifications, targets, mappings and redrive policies.</div>
+      <div class="det-title">Flows <div class="acts"><span class="chip"><span class="live"></span> live</span></div></div>
+      <div class="det-sub">The live wiring between your services — every connection is a real subscription, notification, target, mapping or redrive policy.</div>
     </div>
-    <div class="det-b">
-      {{template "flow_canvas" .}}
-    </div>
+    <div class="det-b">{{template "flow_canvas" .}}</div>
   </section>
 {{template "shell_bottom" .}}{{end}}
 
 {{define "flow_canvas"}}
 <div id="flow-canvas" data-live="{{.Prefix}}/flows.json" data-live-ms="4000" data-hash="{{.Hash}}">
-  <div class="chips" style="margin-bottom:12px">
+  <div class="chips" style="margin-bottom:14px">
+    <span class="chip"><b>{{.Graph.Flows}}</b> flow{{if ne .Graph.Flows 1}}s{{end}}</span>
     <span class="chip"><b>{{len .Graph.Nodes}}</b> resources</span>
     <span class="chip"><b>{{.Graph.Conns}}</b> connections</span>
     {{if .Graph.Unwired}}<span class="chip" style="border-color:hsl(var(--warning)/.4);color:hsl(var(--warning))"><b>{{.Graph.Unwired}}</b> unwired</span>{{end}}
+    <span class="fl-legend">
+      <span><i style="background:hsl(var(--svc-sns))"></i> sub</span>
+      <span><i style="background:hsl(var(--svc-eb))"></i> target</span>
+      <span><i style="background:hsl(var(--svc-lambda))"></i> mapping</span>
+      <span><i style="background:hsl(var(--svc-s3))"></i> notify</span>
+      <span><i style="background:hsl(var(--muted-foreground))"></i> redrive</span>
+    </span>
   </div>
   {{if .Graph.Nodes}}
   <div class="flow-canvas">
-    <svg viewBox="0 0 {{addPad .Graph.W}} {{addPad .Graph.H}}" preserveAspectRatio="xMinYMin meet" style="width:100%;height:{{addPad .Graph.H}}px;max-height:640px">
-      {{$g := .Graph}}
+    <svg viewBox="0 0 {{.Graph.W}} {{.Graph.H}}" preserveAspectRatio="xMinYMin meet" style="width:100%;height:{{.Graph.H}}px;max-height:70vh">
+      {{$g := .Graph}}{{$p := .Prefix}}
+      {{range .Graph.Bands}}
+        <line class="fl-band-line" x1="8" y1="{{.Top}}" x2="{{$g.W}}" y2="{{.Top}}"/>
+        <text class="fl-band-lbl {{if .Unwired}}dim{{end}}" x="12" y="{{sub .Top 8}}">{{.Label}}</text>
+      {{end}}
       {{range .Graph.Edges}}
         {{$f := nodeAt $g .From}}{{$t := nodeAt $g .To}}
-        {{if and $f $t}}<path class="fl-edge {{if .Hot}}hot{{end}}" d="{{edgePath $f $t}}"/>
-        <text class="fl-lbl" x="{{edgeMidX $f $t}}" y="{{edgeMidY $f $t}}">{{.Kind}}</text>{{end}}
+        {{if and $f $t}}<path class="fl-edge fl-k-{{.Kind}} {{if .Hot}}hot{{end}}" d="{{edgePath $f $t}}"/>{{end}}
       {{end}}
       {{range .Graph.Nodes}}
-      <a href="{{$.Prefix}}{{.URL}}" class="fl-node {{if .Unwired}}unwired{{end}}">
-        <rect x="{{nodeX .}}" y="{{nodeY .}}" width="176" height="46" rx="9"/>
-        <text class="t1" x="{{textX .}}" y="{{textY1 .}}">{{svcGlyph .Svc}} {{.Name}}</text>
-        <text class="t2" x="{{textX .}}" y="{{textY2 .}}">{{.Svc}}{{if .Sub}} · {{.Sub}}{{end}}</text>
+      <a href="{{$p}}{{.URL}}" class="fl-node {{if .Unwired}}unwired{{end}}">
+        <rect x="{{.X}}" y="{{.Y}}" width="176" height="46" rx="9"/>
+        <rect x="{{.X}}" y="{{.Y}}" width="4" height="46" rx="2" fill="hsl(var(--svc-{{.Svc}}))"/>
+        <text class="t1" x="{{add .X 16}}" y="{{add .Y 20}}">{{.Name}}</text>
+        <text class="t2" x="{{add .X 16}}" y="{{add .Y 35}}">{{.Svc}}{{if .Sub}} · {{.Sub}}{{end}}</text>
       </a>
       {{end}}
     </svg>

@@ -20,10 +20,17 @@ type FlowNode struct {
 	Svc     string // s3 | sns | sqs | eb | lambda
 	Name    string
 	Sub     string // small caption ("2 msgs", "1 sub")
-	Col     int    // layout column (source→sink left→right)
-	Row     int    // assigned in layout
+	X, Y    int    // absolute layout position (px), assigned per flow band
 	Unwired bool   // no edges touch it
 	URL     string
+}
+
+// FlowBand is one connected flow (or the leftover unconnected resources),
+// rendered as its own visually separated group.
+type FlowBand struct {
+	Label   string
+	Top     int // y of the band's separator/label
+	Unwired bool
 }
 
 type FlowEdge struct {
@@ -36,7 +43,9 @@ type FlowEdge struct {
 type FlowGraph struct {
 	Nodes   []FlowNode
 	Edges   []FlowEdge
+	Bands   []FlowBand
 	Conns   int
+	Flows   int // number of independent connected flows
 	Unwired int
 	W, H    int
 }
@@ -52,9 +61,6 @@ func (g FlowGraph) hash() string {
 	return contentHash(parts...)
 }
 
-// column order: source-ish services on the left, sinks on the right.
-var flowCol = map[string]int{"s3": 0, "eb": 0, "sns": 1, "sqs": 2, "lambda": 3}
-
 func nodeID(svc, name string) string { return svc + ":" + name }
 
 // BuildGraph assembles the wiring map from the live services.
@@ -64,7 +70,7 @@ func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 	add := func(svc, name, sub string) string {
 		id := nodeID(svc, name)
 		if _, ok := nodes[id]; !ok {
-			nodes[id] = &FlowNode{ID: id, Svc: svc, Name: name, Sub: sub, Col: flowCol[svc], URL: b.nodeURL(svc, name)}
+			nodes[id] = &FlowNode{ID: id, Svc: svc, Name: name, Sub: sub, URL: b.nodeURL(svc, name)}
 		}
 		return id
 	}
@@ -149,6 +155,12 @@ func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 				edges = append(edges, FlowEdge{From: nodeID("sqs", src), To: nodeID("lambda", f.Name), Kind: "esm"})
 			}
 		}
+		// lambda OUTGOING: its dead-letter queue makes it a source too
+		if full.DLQ != "" && strings.Contains(full.DLQ, ":sqs:") {
+			dlq := nameFromARN(full.DLQ)
+			ensureNode(nodes, nodeID("sqs", dlq), b)
+			edges = append(edges, FlowEdge{From: nodeID("lambda", f.Name), To: nodeID("sqs", dlq), Kind: "dlq"})
+		}
 	}
 	// edges: SQS redrive → DLQ
 	for _, q := range queues {
@@ -179,41 +191,206 @@ func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 			edges[i].Hot = true
 		}
 	}
-	// mark wired
-	touched := map[string]bool{}
+	return layoutFlows(nodes, edges)
+}
+
+// layout geometry
+const (
+	flColW    = 208 // horizontal step between chain depths
+	flNodeW   = 176
+	flNodeH   = 46
+	flRowH    = 62 // vertical step between siblings in a band
+	flBandGap = 30
+	flTop     = 44 // room for the first band label
+	flPadX    = 20
+)
+
+// layoutFlows groups the graph into independent connected flows and lays each
+// out as its own band: left→right by chain depth, siblings stacked. Unconnected
+// resources collect into a final "Not connected" band.
+func layoutFlows(nodes map[string]*FlowNode, edges []FlowEdge) FlowGraph {
+	ids := make([]string, 0, len(nodes))
+	for id := range nodes {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+
+	// union-find over undirected edges → connected components
+	parent := map[string]string{}
+	var find func(string) string
+	find = func(x string) string {
+		if parent[x] == "" {
+			parent[x] = x
+		}
+		if parent[x] != x {
+			parent[x] = find(parent[x])
+		}
+		return parent[x]
+	}
+	union := func(a, b string) { parent[find(a)] = find(b) }
+	for _, id := range ids {
+		find(id)
+	}
 	for _, e := range edges {
-		touched[e.From] = true
-		touched[e.To] = true
-	}
-	unwired := 0
-	list := make([]FlowNode, 0, len(nodes))
-	for id, n := range nodes {
-		if !touched[id] {
-			n.Unwired = true
-			unwired++
+		if nodes[e.From] != nil && nodes[e.To] != nil {
+			union(e.From, e.To)
 		}
-		list = append(list, *n)
 	}
-	// stable layout: sort by column then name, assign rows per column
+	comps := map[string][]string{}
+	for _, id := range ids {
+		r := find(id)
+		comps[r] = append(comps[r], id)
+	}
+
+	// depth = longest path from a source (in-degree 0) within the component
+	depthMemo := map[string]int{}
+	var depth func(string, map[string]bool) int
+	depth = func(id string, seen map[string]bool) int {
+		if d, ok := depthMemo[id]; ok {
+			return d
+		}
+		if seen[id] {
+			return 0 // break cycles
+		}
+		seen[id] = true
+		best := 0
+		// depth = 1 + max depth of predecessors; compute via reverse — easier to
+		// derive from successors' perspective, so compute forward here:
+		for _, e := range edges {
+			if e.To == id && nodes[e.From] != nil {
+				if d := depth(e.From, seen) + 1; d > best {
+					best = d
+				}
+			}
+		}
+		delete(seen, id)
+		depthMemo[id] = best
+		return best
+	}
+
+	// order components: multi-node flows first (by size desc), singletons last
+	type comp struct {
+		root  string
+		ids   []string
+		multi bool
+	}
+	var list []comp
+	for r, cids := range comps {
+		list = append(list, comp{r, cids, len(cids) > 1})
+	}
 	sort.Slice(list, func(i, j int) bool {
-		if list[i].Col != list[j].Col {
-			return list[i].Col < list[j].Col
+		if list[i].multi != list[j].multi {
+			return list[i].multi
 		}
-		return list[i].Name < list[j].Name
+		if len(list[i].ids) != len(list[j].ids) {
+			return len(list[i].ids) > len(list[j].ids)
+		}
+		return list[i].root < list[j].root
 	})
-	rowByCol := map[int]int{}
-	maxRow := 0
-	for i := range list {
-		list[i].Row = rowByCol[list[i].Col]
-		rowByCol[list[i].Col]++
-		if list[i].Row > maxRow {
-			maxRow = list[i].Row
+
+	var out []FlowNode
+	var bands []FlowBand
+	y := flTop
+	flows := 0
+	maxW := 3 * flColW
+	// unwired singletons rendered as a compact grid at the end
+	var singles []string
+
+	for _, c := range list {
+		if !c.multi {
+			singles = append(singles, c.ids...)
+			continue
+		}
+		flows++
+		bands = append(bands, FlowBand{Label: flowLabel(nodes, c.ids, edges), Top: y - 26})
+		// place: column = depth, row assigned per column
+		rowByCol := map[int]int{}
+		bandRows := 0
+		sort.Slice(c.ids, func(i, j int) bool {
+			di, dj := depth(c.ids[i], map[string]bool{}), depth(c.ids[j], map[string]bool{})
+			if di != dj {
+				return di < dj
+			}
+			return nodes[c.ids[i]].Name < nodes[c.ids[j]].Name
+		})
+		for _, id := range c.ids {
+			col := depth(id, map[string]bool{})
+			row := rowByCol[col]
+			rowByCol[col]++
+			if rowByCol[col] > bandRows {
+				bandRows = rowByCol[col]
+			}
+			n := *nodes[id]
+			n.X = flPadX + col*flColW
+			n.Y = y + row*flRowH
+			out = append(out, n)
+			if n.X+flNodeW > maxW {
+				maxW = n.X + flNodeW
+			}
+		}
+		y += bandRows*flRowH + flBandGap
+	}
+
+	// unconnected resources band
+	if len(singles) > 0 {
+		sort.Slice(singles, func(i, j int) bool { return nodes[singles[i]].Name < nodes[singles[j]].Name })
+		bands = append(bands, FlowBand{Label: "Not connected", Top: y - 26, Unwired: true})
+		perRow := 5
+		for i, id := range singles {
+			n := *nodes[id]
+			n.Unwired = true
+			n.X = flPadX + (i%perRow)*flColW
+			n.Y = y + (i/perRow)*flRowH
+			out = append(out, n)
+			if n.X+flNodeW > maxW {
+				maxW = n.X + flNodeW
+			}
+		}
+		y += ((len(singles)+perRow-1)/perRow)*flRowH + flBandGap
+	}
+
+	return FlowGraph{
+		Nodes: out, Edges: edges, Bands: bands,
+		Conns: len(edges), Flows: flows, Unwired: len(singles),
+		W: maxW + flPadX, H: y + 10,
+	}
+}
+
+// flowLabel names a flow by an upstream source (a node with no incoming edge
+// within the flow), preferring topics/buckets/rules over queues.
+func flowLabel(nodes map[string]*FlowNode, ids []string, edges []FlowEdge) string {
+	inFlow := map[string]bool{}
+	for _, id := range ids {
+		inFlow[id] = true
+	}
+	hasIncoming := map[string]bool{}
+	for _, e := range edges {
+		if inFlow[e.From] && inFlow[e.To] {
+			hasIncoming[e.To] = true
 		}
 	}
-	return FlowGraph{
-		Nodes: list, Edges: edges, Conns: len(edges), Unwired: unwired,
-		W: 4 * 210, H: (maxRow + 1) * 72,
+	rank := map[string]int{"s3": 0, "sns": 1, "eb": 2, "lambda": 3, "sqs": 4}
+	best := ""
+	for _, id := range ids {
+		if hasIncoming[id] {
+			continue // not a source
+		}
+		if best == "" || rank[nodes[id].Svc] < rank[nodes[best].Svc] ||
+			(rank[nodes[id].Svc] == rank[nodes[best].Svc] && nodes[id].Name < nodes[best].Name) {
+			best = id
+		}
 	}
+	if best == "" { // all nodes have incoming (cycle) — fall back to first
+		for _, id := range ids {
+			if best == "" || nodes[id].Name < nodes[best].Name {
+				best = id
+			}
+		}
+	}
+	if n := nodes[best]; n != nil {
+		return n.Name + " flow"
+	}
+	return "flow"
 }
 
 func (b *backend) nodeURL(svc, name string) string {
@@ -237,7 +414,7 @@ func ensureNode(nodes map[string]*FlowNode, id string, b *backend) {
 		return
 	}
 	svc, name, _ := strings.Cut(id, ":")
-	nodes[id] = &FlowNode{ID: id, Svc: svc, Name: name, Col: flowCol[svc], URL: b.nodeURL(svc, name)}
+	nodes[id] = &FlowNode{ID: id, Svc: svc, Name: name, URL: b.nodeURL(svc, name)}
 }
 
 func edgeTargetNode(proto, endpoint string, leaf func(string) string) string {

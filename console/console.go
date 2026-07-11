@@ -252,12 +252,8 @@ func templateFuncs(prefix string) template.FuncMap {
 		"ago":       ago,
 		"list":      func(items ...any) []any { return items },
 		"masked":    maskedValue,
-		"addPad":    func(n int) int { return n + 40 },
-		"nodeX":     func(n FlowNode) int { return 20 + n.Col*210 },
-		"nodeY":     func(n FlowNode) int { return 20 + n.Row*72 },
-		"textX":     func(n FlowNode) int { return 20 + n.Col*210 + 14 },
-		"textY1":    func(n FlowNode) int { return 20 + n.Row*72 + 20 },
-		"textY2":    func(n FlowNode) int { return 20 + n.Row*72 + 35 },
+		"add":       func(a, b int) int { return a + b },
+		"sub":       func(a, b int) int { return a - b },
 		"nodeAt": func(g FlowGraph, id string) *FlowNode {
 			for i := range g.Nodes {
 				if g.Nodes[i].ID == id {
@@ -267,13 +263,18 @@ func templateFuncs(prefix string) template.FuncMap {
 			return nil
 		},
 		"edgePath": func(f, t *FlowNode) string {
-			x1, y1 := 20+f.Col*210+176, 20+f.Row*72+23
-			x2, y2 := 20+t.Col*210, 20+t.Row*72+23
+			// forward: right edge → next left edge. backward (redrive/dlq to a
+			// node at/behind us): drop from the bottom into the target's top.
+			if t.X <= f.X {
+				x1, y1 := f.X+88, f.Y+46
+				x2, y2 := t.X+88, t.Y
+				return fmt.Sprintf("M%d %d C %d %d %d %d %d %d", x1, y1, x1, (y1+y2)/2, x2, (y1+y2)/2, x2, y2)
+			}
+			x1, y1 := f.X+176, f.Y+23
+			x2, y2 := t.X, t.Y+23
 			mx := (x1 + x2) / 2
 			return fmt.Sprintf("M%d %d C %d %d %d %d %d %d", x1, y1, mx, y1, mx, y2, x2, y2)
 		},
-		"edgeMidX": func(f, t *FlowNode) int { return (20 + f.Col*210 + 176 + 20 + t.Col*210) / 2 },
-		"edgeMidY": func(f, t *FlowNode) int { return (20 + f.Row*72 + 20 + t.Row*72) / 2 },
 		"svcGlyph": func(svc string) string {
 			return map[string]string{"s3": "▦", "sqs": "▤", "sns": "▲", "eb": "◇", "lambda": "λ"}[svc]
 		},

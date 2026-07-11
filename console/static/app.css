@@ -681,3 +681,20 @@ tr:hover .kv-copy .copy-btn, .kv-copy:hover .copy-btn { opacity: 1; }
 
 /* hidden attribute must beat .overlay display:grid */
 [hidden]{display:none !important}
+
+/* flows: bands, legend, edge colors, spacing */
+.fl-legend { display: inline-flex; gap: 12px; align-items: center; margin-left: 6px; font-size: 11px; color: hsl(var(--muted-foreground)); }
+.fl-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.fl-legend i { width: 9px; height: 3px; border-radius: 2px; display: inline-block; }
+.flow-canvas { padding: 8px 4px; }
+.fl-band-line { stroke: hsl(var(--border)); stroke-width: 1; stroke-dasharray: 3 4; }
+.fl-band-lbl { fill: hsl(var(--muted-foreground)); font: 600 10.5px system-ui; text-transform: uppercase; letter-spacing: .05em; }
+.fl-band-lbl.dim { opacity: .7; }
+.fl-node text.t1 { fill: hsl(var(--foreground)); font: 600 11.5px system-ui; }
+.fl-edge.fl-k-sub { stroke: hsl(var(--svc-sns)); }
+.fl-edge.fl-k-target { stroke: hsl(var(--svc-eb)); }
+.fl-edge.fl-k-esm { stroke: hsl(var(--svc-lambda)); }
+.fl-edge.fl-k-dlq { stroke: hsl(var(--svc-lambda)); stroke-dasharray: 4 3; }
+.fl-edge.fl-k-notify { stroke: hsl(var(--svc-s3)); }
+.fl-edge.fl-k-redrive { stroke: hsl(var(--muted-foreground)); stroke-dasharray: 4 3; }
+.fl-edge.hot { stroke-width: 2.4; }
