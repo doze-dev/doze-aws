@@ -25,12 +25,13 @@ type FlowNode struct {
 	URL     string
 }
 
-// FlowBand is one connected flow (or the leftover unconnected resources),
-// rendered as its own visually separated group.
-type FlowBand struct {
-	Label   string
-	Top     int // y of the band's separator/label
-	Unwired bool
+// FlowDiagram is one independent connected flow, rendered as its own card with
+// a self-contained SVG (local coordinates).
+type FlowDiagram struct {
+	Label string
+	Nodes []FlowNode // local coordinates within this card's SVG
+	Edges []FlowEdge // edges internal to this flow
+	W, H  int
 }
 
 type FlowEdge struct {
@@ -41,22 +42,22 @@ type FlowEdge struct {
 }
 
 type FlowGraph struct {
-	Nodes   []FlowNode
-	Edges   []FlowEdge
-	Bands   []FlowBand
-	Conns   int
-	Flows   int // number of independent connected flows
-	Unwired int
-	W, H    int
+	Diagrams  []FlowDiagram // one per independent flow
+	Unwired   []FlowNode    // unconnected resources (chips)
+	NodeCount int
+	Conns     int
+	Flows     int
 }
 
 func (g FlowGraph) hash() string {
-	parts := []string{strconv.Itoa(len(g.Nodes)), strconv.Itoa(len(g.Edges))}
-	for _, n := range g.Nodes {
-		parts = append(parts, n.ID+"="+n.Sub)
+	parts := []string{strconv.Itoa(g.Flows), strconv.Itoa(g.Conns)}
+	for _, d := range g.Diagrams {
+		for _, n := range d.Nodes {
+			parts = append(parts, n.ID+"="+n.Sub)
+		}
 	}
-	for _, e := range g.Edges {
-		parts = append(parts, e.From+">"+e.To)
+	for _, n := range g.Unwired {
+		parts = append(parts, n.ID)
 	}
 	return contentHash(parts...)
 }
@@ -288,24 +289,18 @@ func layoutFlows(nodes map[string]*FlowNode, edges []FlowEdge) FlowGraph {
 		return list[i].root < list[j].root
 	})
 
-	var out []FlowNode
-	var bands []FlowBand
-	y := flTop
-	flows := 0
-	maxW := 3 * flColW
-	// unwired singletons rendered as a compact grid at the end
-	var singles []string
+	var diagrams []FlowDiagram
+	var singles []string // unwired singletons
+	nodeCount := 0
 
 	for _, c := range list {
 		if !c.multi {
 			singles = append(singles, c.ids...)
 			continue
 		}
-		flows++
-		bands = append(bands, FlowBand{Label: flowLabel(nodes, c.ids, edges), Top: y - 26})
-		// place: column = depth, row assigned per column
+		// each flow gets its own SVG with LOCAL coordinates (origin at 0,0).
 		rowByCol := map[int]int{}
-		bandRows := 0
+		maxRows, maxCol := 0, 0
 		sort.Slice(c.ids, func(i, j int) bool {
 			di, dj := depth(c.ids[i], map[string]bool{}), depth(c.ids[j], map[string]bool{})
 			if di != dj {
@@ -313,46 +308,54 @@ func layoutFlows(nodes map[string]*FlowNode, edges []FlowEdge) FlowGraph {
 			}
 			return nodes[c.ids[i]].Name < nodes[c.ids[j]].Name
 		})
+		diagNodes := make([]FlowNode, 0, len(c.ids))
 		for _, id := range c.ids {
 			col := depth(id, map[string]bool{})
 			row := rowByCol[col]
 			rowByCol[col]++
-			if rowByCol[col] > bandRows {
-				bandRows = rowByCol[col]
+			if rowByCol[col] > maxRows {
+				maxRows = rowByCol[col]
+			}
+			if col > maxCol {
+				maxCol = col
 			}
 			n := *nodes[id]
 			n.X = flPadX + col*flColW
-			n.Y = y + row*flRowH
-			out = append(out, n)
-			if n.X+flNodeW > maxW {
-				maxW = n.X + flNodeW
+			n.Y = 12 + row*flRowH
+			diagNodes = append(diagNodes, n)
+		}
+		// edges internal to this flow
+		inFlow := map[string]bool{}
+		for _, id := range c.ids {
+			inFlow[id] = true
+		}
+		var diagEdges []FlowEdge
+		for _, e := range edges {
+			if inFlow[e.From] && inFlow[e.To] {
+				diagEdges = append(diagEdges, e)
 			}
 		}
-		y += bandRows*flRowH + flBandGap
+		diagrams = append(diagrams, FlowDiagram{
+			Label: flowLabel(nodes, c.ids, edges), Nodes: diagNodes, Edges: diagEdges,
+			W: flPadX + (maxCol+1)*flColW - (flColW - flNodeW) + flPadX,
+			H: 12 + maxRows*flRowH + 8,
+		})
+		nodeCount += len(c.ids)
 	}
 
-	// unconnected resources band
-	if len(singles) > 0 {
-		sort.Slice(singles, func(i, j int) bool { return nodes[singles[i]].Name < nodes[singles[j]].Name })
-		bands = append(bands, FlowBand{Label: "Not connected", Top: y - 26, Unwired: true})
-		perRow := 5
-		for i, id := range singles {
-			n := *nodes[id]
-			n.Unwired = true
-			n.X = flPadX + (i%perRow)*flColW
-			n.Y = y + (i/perRow)*flRowH
-			out = append(out, n)
-			if n.X+flNodeW > maxW {
-				maxW = n.X + flNodeW
-			}
-		}
-		y += ((len(singles)+perRow-1)/perRow)*flRowH + flBandGap
+	// unconnected resources as chips
+	sort.Slice(singles, func(i, j int) bool { return nodes[singles[i]].Name < nodes[singles[j]].Name })
+	unwired := make([]FlowNode, 0, len(singles))
+	for _, id := range singles {
+		n := *nodes[id]
+		n.Unwired = true
+		unwired = append(unwired, n)
 	}
+	nodeCount += len(unwired)
 
 	return FlowGraph{
-		Nodes: out, Edges: edges, Bands: bands,
-		Conns: len(edges), Flows: flows, Unwired: len(singles),
-		W: maxW + flPadX, H: y + 10,
+		Diagrams: diagrams, Unwired: unwired,
+		NodeCount: nodeCount, Conns: len(edges), Flows: len(diagrams),
 	}
 }
 

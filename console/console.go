@@ -254,10 +254,10 @@ func templateFuncs(prefix string) template.FuncMap {
 		"masked":    maskedValue,
 		"add":       func(a, b int) int { return a + b },
 		"sub":       func(a, b int) int { return a - b },
-		"nodeAt": func(g FlowGraph, id string) *FlowNode {
-			for i := range g.Nodes {
-				if g.Nodes[i].ID == id {
-					return &g.Nodes[i]
+		"nodeAt": func(ns []FlowNode, id string) *FlowNode {
+			for i := range ns {
+				if ns[i].ID == id {
+					return &ns[i]
 				}
 			}
 			return nil
