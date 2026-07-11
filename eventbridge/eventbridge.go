@@ -130,15 +130,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 var stubActions = map[string]string{
-	"CreateArchive":                  "archives/replay arrive in Phase 8",
-	"DeleteArchive":                  "archives/replay arrive in Phase 8",
-	"DescribeArchive":                "archives/replay arrive in Phase 8",
-	"ListArchives":                   "archives/replay arrive in Phase 8",
-	"UpdateArchive":                  "archives/replay arrive in Phase 8",
-	"StartReplay":                    "archives/replay arrive in Phase 8",
-	"CancelReplay":                   "archives/replay arrive in Phase 8",
-	"DescribeReplay":                 "archives/replay arrive in Phase 8",
-	"ListReplays":                    "archives/replay arrive in Phase 8",
 	"CreateApiDestination":           "API destinations call external endpoints via cloud infrastructure",
 	"DeleteApiDestination":           "API destinations call external endpoints via cloud infrastructure",
 	"DescribeApiDestination":         "API destinations call external endpoints via cloud infrastructure",

@@ -31,6 +31,15 @@ var handlers = map[string]handler{
 	"TagResource":           (*Server).tagResource,
 	"UntagResource":         (*Server).untagResource,
 	"ListTagsForResource":   (*Server).listTagsForResource,
+	"CreateArchive":         (*Server).createArchive,
+	"DescribeArchive":       (*Server).describeArchive,
+	"ListArchives":          (*Server).listArchives,
+	"UpdateArchive":         (*Server).updateArchive,
+	"DeleteArchive":         (*Server).deleteArchive,
+	"StartReplay":           (*Server).startReplay,
+	"DescribeReplay":        (*Server).describeReplay,
+	"ListReplays":           (*Server).listReplays,
+	"CancelReplay":          (*Server).cancelReplay,
 }
 
 // ---- param helpers ----
@@ -111,12 +120,25 @@ func (s *Server) putOneEvent(entry map[string]any) map[string]any {
 		return map[string]any{"ErrorCode": "InternalFailure", "ErrorMessage": err.Error()}
 	}
 
+	s.matchAndDispatch(bus, eventJSON, nil)
+	s.captureToArchives(bus, eventJSON)
+	return map[string]any{"EventId": eventID}
+}
+
+// matchAndDispatch delivers an event to every enabled pattern rule on a bus that
+// matches it. filter, when non-nil, restricts delivery to rules whose ARN is in
+// the set (used by StartReplay); nil means all rules.
+func (s *Server) matchAndDispatch(bus string, eventJSON []byte, filter map[string]bool) {
 	rules, rerr := s.store.Rules(bus, "")
 	if rerr != nil {
-		return map[string]any{"ErrorCode": "InternalFailure", "ErrorMessage": rerr.Error()}
+		s.logf("eventbridge: rules(%s): %v", bus, rerr)
+		return
 	}
 	for _, rule := range rules {
 		if rule.State != "ENABLED" || rule.Pattern == "" {
+			continue
+		}
+		if filter != nil && !filter[rule.ARN()] {
 			continue
 		}
 		pat, perr := eventpattern.Parse([]byte(rule.Pattern))
@@ -132,7 +154,6 @@ func (s *Server) putOneEvent(entry map[string]any) map[string]any {
 			s.dispatch(rule, target, eventJSON)
 		}
 	}
-	return map[string]any{"EventId": eventID}
 }
 
 // dispatch delivers one matched event to one target, applying input shaping.
@@ -241,15 +262,20 @@ func (s *Server) putRule(p map[string]any) (any, *awshttp.APIError) {
 		}
 	}
 	if schedule != "" {
-		return nil, awshttp.Errf(400, "UnsupportedOperationException",
-			"ScheduleExpression rules arrive in Phase 8; use an EventPattern rule for now")
+		// rate(...) is driven by the local ticker; cron(...) is accepted and
+		// stored but not driven (a wall-clock cron isn't useful in an ephemeral
+		// local stack). Anything else is malformed.
+		if _, ok := parseRate(schedule); !ok && !strings.HasPrefix(strings.TrimSpace(schedule), "cron(") {
+			return nil, awshttp.Errf(400, "ValidationException",
+				"ScheduleExpression %q is not a valid rate(...) or cron(...) expression", schedule)
+		}
 	}
 	state := pstr(p, "State")
 	if state == "" {
 		state = "ENABLED"
 	}
 	r := Rule{
-		Bus: busOrDefault(p), Name: name, Pattern: pattern,
+		Bus: busOrDefault(p), Name: name, Pattern: pattern, Schedule: schedule,
 		State: state, Desc: pstr(p, "Description"),
 	}
 	if err := s.store.PutRule(r); err != nil {
@@ -271,6 +297,9 @@ func ruleView(r *Rule) map[string]any {
 	}
 	if r.Pattern != "" {
 		out["EventPattern"] = r.Pattern
+	}
+	if r.Schedule != "" {
+		out["ScheduleExpression"] = r.Schedule
 	}
 	if r.Desc != "" {
 		out["Description"] = r.Desc

@@ -45,7 +45,7 @@ type Rule struct {
 	Bus      string            `json:"bus"`
 	Name     string            `json:"name"`
 	Pattern  string            `json:"pattern,omitempty"`  // event pattern JSON
-	Schedule string            `json:"schedule,omitempty"` // stored; ticker in Phase 8
+	Schedule string            `json:"schedule,omitempty"` // rate(...) driven by ticker; cron(...) stored only
 	State    string            `json:"state"`              // ENABLED | DISABLED
 	Desc     string            `json:"desc,omitempty"`
 	Targets  []Target          `json:"targets,omitempty"`

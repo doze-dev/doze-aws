@@ -9,6 +9,7 @@ import (
 	"errors"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -97,6 +98,102 @@ func TestSDKRuleToSQSDelivery(t *testing.T) {
 	}
 }
 
+// TestSDKArchiveAndReplay archives live events, then replays them back through
+// the bus's rules — the second delivery proves the replay is real.
+func TestSDKArchiveAndReplay(t *testing.T) {
+	ctx := context.Background()
+	eb, sqs := startStack(t)
+
+	q, _ := sqs.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("audit")})
+	arn, _ := sqs.GetQueueAttributes(ctx, &awssqs.GetQueueAttributesInput{
+		QueueUrl: q.QueueUrl, AttributeNames: []sqstypes.QueueAttributeName{sqstypes.QueueAttributeNameQueueArn},
+	})
+	queueArn := arn.Attributes["QueueArn"]
+
+	eb.PutRule(ctx, &awseb.PutRuleInput{
+		Name: aws.String("audit-rule"), EventPattern: aws.String(`{"source": ["billing"]}`),
+	})
+	eb.PutTargets(ctx, &awseb.PutTargetsInput{
+		Rule:    aws.String("audit-rule"),
+		Targets: []ebtypes.Target{{Id: aws.String("q"), Arn: aws.String(queueArn)}},
+	})
+
+	// Archive over the default bus.
+	bus, _ := eb.DescribeEventBus(ctx, &awseb.DescribeEventBusInput{})
+	busArn := aws.ToString(bus.Arn)
+	if _, err := eb.CreateArchive(ctx, &awseb.CreateArchiveInput{
+		ArchiveName: aws.String("billing-archive"), EventSourceArn: aws.String(busArn),
+	}); err != nil {
+		t.Fatalf("CreateArchive: %v", err)
+	}
+
+	// Two matching events flow live AND into the archive.
+	start := time.Now().Add(-time.Hour)
+	for _, id := range []string{"inv-1", "inv-2"} {
+		eb.PutEvents(ctx, &awseb.PutEventsInput{Entries: []ebtypes.PutEventsRequestEntry{
+			{Source: aws.String("billing"), DetailType: aws.String("Invoiced"),
+				Detail: aws.String(`{"id":"` + id + `"}`)},
+		}})
+	}
+	// Drain the two live deliveries.
+	drain(ctx, t, sqs, q.QueueUrl, 2)
+
+	desc, err := eb.DescribeArchive(ctx, &awseb.DescribeArchiveInput{ArchiveName: aws.String("billing-archive")})
+	if err != nil || desc.EventCount != 2 {
+		t.Fatalf("archive EventCount = %d (err %v)", desc.EventCount, err)
+	}
+
+	// Replay the window back into the bus — the rule fires again.
+	end := time.Now().Add(time.Hour)
+	rep, err := eb.StartReplay(ctx, &awseb.StartReplayInput{
+		ReplayName:     aws.String("billing-replay"),
+		EventSourceArn: desc.ArchiveArn,
+		EventStartTime: aws.Time(start),
+		EventEndTime:   aws.Time(end),
+		Destination:    &ebtypes.ReplayDestination{Arn: aws.String(busArn)},
+	})
+	if err != nil {
+		t.Fatalf("StartReplay: %v", err)
+	}
+	if rep.State != ebtypes.ReplayStateCompleted {
+		t.Fatalf("replay state = %v", rep.State)
+	}
+
+	// Both archived events are re-delivered.
+	got := drain(ctx, t, sqs, q.QueueUrl, 2)
+	if got != 2 {
+		t.Fatalf("replay delivered %d events, want 2", got)
+	}
+
+	dr, _ := eb.DescribeReplay(ctx, &awseb.DescribeReplayInput{ReplayName: aws.String("billing-replay")})
+	if dr.State != ebtypes.ReplayStateCompleted {
+		t.Fatalf("DescribeReplay state = %v", dr.State)
+	}
+}
+
+// drain receives up to want messages (with a short wait) and deletes them,
+// returning how many it saw.
+func drain(ctx context.Context, t *testing.T, sqs *awssqs.Client, url *string, want int) int {
+	t.Helper()
+	seen := 0
+	for seen < want {
+		recv, err := sqs.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{
+			QueueUrl: url, WaitTimeSeconds: 3, MaxNumberOfMessages: 10,
+		})
+		if err != nil {
+			t.Fatalf("ReceiveMessage: %v", err)
+		}
+		if len(recv.Messages) == 0 {
+			break
+		}
+		for _, m := range recv.Messages {
+			sqs.DeleteMessage(ctx, &awssqs.DeleteMessageInput{QueueUrl: url, ReceiptHandle: m.ReceiptHandle})
+			seen++
+		}
+	}
+	return seen
+}
+
 func TestSDKInputTransformer(t *testing.T) {
 	ctx := context.Background()
 	eb, sqs := startStack(t)
@@ -179,11 +276,22 @@ func TestSDKRulesBusesAndTestPattern(t *testing.T) {
 		t.Fatalf("bad pattern error = %v", err)
 	}
 
-	// Schedule rules answer honestly until Phase 8.
-	_, err = eb.PutRule(ctx, &awseb.PutRuleInput{
+	// rate(...) schedule rules are accepted and round-trip their expression.
+	if _, err := eb.PutRule(ctx, &awseb.PutRuleInput{
 		Name: aws.String("sched"), ScheduleExpression: aws.String("rate(5 minutes)"),
+	}); err != nil {
+		t.Fatalf("schedule rule PutRule: %v", err)
+	}
+	dr, err := eb.DescribeRule(ctx, &awseb.DescribeRuleInput{Name: aws.String("sched")})
+	if err != nil || aws.ToString(dr.ScheduleExpression) != "rate(5 minutes)" {
+		t.Fatalf("schedule rule did not round-trip: expr=%q err=%v", aws.ToString(dr.ScheduleExpression), err)
+	}
+
+	// A malformed schedule is rejected.
+	_, err = eb.PutRule(ctx, &awseb.PutRuleInput{
+		Name: aws.String("badsched"), ScheduleExpression: aws.String("rate(0 minutes)"),
 	})
-	if !errors.As(err, &ae) || ae.ErrorCode() != "UnsupportedOperationException" {
-		t.Fatalf("schedule rule error = %v", err)
+	if !errors.As(err, &ae) || ae.ErrorCode() != "ValidationException" {
+		t.Fatalf("malformed schedule error = %v", err)
 	}
 }
