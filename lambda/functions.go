@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 )
 
 // routeFunctions dispatches /functions[/name[/...]] requests.
@@ -69,6 +70,10 @@ func (s *Server) routeFunctions(w http.ResponseWriter, r *http.Request, segs []s
 	// /functions/{name}/event-invoke-config[/list]  (async destinations/retries)
 	if len(segs) >= 4 && segs[3] == "event-invoke-config" {
 		return s.routeEventInvokeConfig(w, r, name, segs)
+	}
+	// /functions/{name}/doze-runtime  (doze extension: warm/idle process state)
+	if len(segs) == 4 && segs[3] == "doze-runtime" && r.Method == http.MethodGet {
+		return s.dozeRuntime(w, name)
 	}
 	return awshttp.Errf(404, "ResourceNotFoundException", "unknown function subresource")
 }
@@ -218,6 +223,33 @@ func (s *Server) getFunction(w http.ResponseWriter, name string) *awshttp.APIErr
 		"Configuration": s.configView(f),
 		"Code":          map[string]any{"RepositoryType": "S3", "Location": "local://" + f.CodeDir},
 		"Tags":          f.Tags,
+	})
+	return nil
+}
+
+// dozeRuntime reports a function's process state — whether it's warm (holding
+// one or more child processes) and the idle window after which an idle pool
+// scales back to zero. A doze extension: the console surfaces it live so the
+// resource cost of a function is visible.
+func (s *Server) dozeRuntime(w http.ResponseWriter, name string) *awshttp.APIError {
+	if _, err := s.store.GetFunction(name); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	s.mu.Lock()
+	p := s.runners[name]
+	s.mu.Unlock()
+
+	runners := 0
+	idle := lambdaruntime.DefaultIdleTimeout
+	if p != nil {
+		runners = p.Size()
+		idle = p.IdleTimeout()
+	}
+	writeJSON(w, 200, map[string]any{
+		"FunctionName":       name,
+		"Warm":               runners > 0,
+		"Runners":            runners,
+		"IdleTimeoutSeconds": int(idle.Seconds()),
 	})
 	return nil
 }

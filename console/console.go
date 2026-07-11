@@ -149,6 +149,7 @@ func (c *Console) routes() {
 	// Lambda.
 	m.HandleFunc("GET "+p+"/lambda", c.lambdaFns)
 	m.HandleFunc("GET "+p+"/lambda/{fn}", c.lambdaFn)
+	m.HandleFunc("GET "+p+"/lambda/{fn}/runtime", c.lambdaRuntimeBadge) // HTMX partial (polled)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/invoke", c.lambdaInvoke)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-fn", c.lambdaDelete)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-mapping", c.lambdaDeleteMapping)

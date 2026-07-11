@@ -8,8 +8,9 @@
 // where Code.S3Bucket == "_local_" and Code.S3Key is an absolute path to a
 // directory or binary used in place (edit-and-reinvoke, no copy).
 //
-// Runtime = one supervised process per function, serial invocations in this
-// phase (a scale-out pool arrives in Phase 8). See docs/api-support/lambda.md.
+// Runtime = a per-function concurrency pool of supervised processes that grows
+// with demand (capped) and scales back to zero after an idle window, so an
+// unused function holds no processes. See docs/api-support/lambda.md.
 package lambda
 
 import (

@@ -18,7 +18,7 @@
   {{template "lambda_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Fn.Name)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "lambda"}} {{.Fn.Name}} <span class="badge type">{{.Fn.Runtime}}</span>
+      <div class="det-title">{{awsIcon "lambda"}} {{.Fn.Name}} <span class="badge type">{{.Fn.Runtime}}</span>{{template "lambda_runtime_badge" dict "Prefix" .Prefix "Name" .Fn.Name "RT" .RT "Hash" .RTHash}}
         <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/delete-fn" hx-confirm="Delete function “{{.Fn.Name}}”?">{{icon "trash"}} Delete</button></div>
       </div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .Fn.ARN}}</div>
@@ -58,6 +58,7 @@
               <tr><td>Timeout</td><td>{{.Fn.Timeout}} s</td></tr>
               <tr><td>Memory</td><td>{{.Fn.MemorySize}} MB</td></tr>
               <tr><td>Triggers</td><td>{{if .Fn.Mappings}}{{len .Fn.Mappings}} event source mapping{{if ne (len .Fn.Mappings) 1}}s{{end}}{{else}}<span class="dim">none</span>{{end}}</td></tr>
+              <tr><td>Idle window</td><td>{{.RT.IdleLabel}} <span class="dim">then the process scales to zero</span></td></tr>
             </tbody></table>
             <p class="mini-note" style="padding:10px 14px 12px">Invoke on the left to run the function — the response, duration and logs replace this panel. Wiring is shown above.</p>
           </div>
@@ -71,6 +72,16 @@
 {{define "lambda_result"}}
 <div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>{{if .Res.FnError}}<span class="co-err">✗ function error</span>{{else}}<span class="co-ok">✓ succeeded</span>{{end}} · {{.Res.Duration}}</span><button class="copy-btn" data-copy="{{.Res.Payload}}">{{icon "copy"}}</button></div><pre>{{.Res.Payload}}</pre></div>
 {{if .Res.Logs}}<div class="code-out"><div class="co-h"><span>logs (tail)</span></div><pre>{{.Res.Logs}}</pre></div>{{end}}
+{{end}}
+
+{{/* Live process-state badge: warm (holding a child process) vs. idle, plus the
+     scale-to-zero window. Polls itself and morph-swaps in place. */}}
+{{define "lambda_runtime_badge"}}
+<span id="lambda-rt" class="rt-badge {{if .RT.Warm}}rt-warm{{else}}rt-cold{{end}}"
+      data-live="{{.Prefix}}/lambda/{{.Name}}/runtime" data-live-ms="3000" data-hash="{{.Hash}}"
+      title="{{if .RT.Warm}}{{.RT.Runners}} warm process{{if ne .RT.Runners 1}}es{{end}} — scales to zero after {{.RT.IdleLabel}} idle{{else}}No process running — spawns on first invoke, scales back to zero after {{.RT.IdleLabel}} idle{{end}}">
+  <span class="rt-dot"></span>{{if .RT.Warm}}Warm <span class="rt-sub">· sleeps after {{.RT.IdleLabel}} idle</span>{{else}}Idle <span class="rt-sub">· wakes on invoke</span>{{end}}
+</span>
 {{end}}
 
 {{define "lambda_triggers"}}

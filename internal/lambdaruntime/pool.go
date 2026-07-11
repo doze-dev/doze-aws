@@ -151,3 +151,10 @@ func (p *Pool) Size() int {
 	defer p.mu.Unlock()
 	return len(p.runners)
 }
+
+// IdleTimeout returns the pool's scale-to-zero window.
+func (p *Pool) IdleTimeout() time.Duration {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.idle
+}

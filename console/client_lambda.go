@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -147,6 +148,43 @@ func (b *backend) GetFunction(ctx context.Context, name string) (*Function, erro
 		f.OnFailure = eout.DestinationConfig.OnFailure.Destination
 	}
 	return &f, nil
+}
+
+// LambdaRuntimeState is a function's live process state (doze extension).
+type LambdaRuntimeState struct {
+	Warm     bool
+	Runners  int
+	IdleSecs int
+}
+
+// IdleLabel renders the idle window compactly, e.g. "10m", "90s".
+func (s LambdaRuntimeState) IdleLabel() string {
+	d := (time.Duration(s.IdleSecs) * time.Second).String()
+	return strings.TrimSuffix(d, "0s") // "10m0s" -> "10m"; "45s" untouched
+}
+
+// LambdaRuntime reads whether the function currently holds warm processes and
+// the idle window after which they scale to zero. Best-effort: on any error it
+// reports cold with the default 10m window.
+func (b *backend) LambdaRuntime(ctx context.Context, name string) LambdaRuntimeState {
+	st := LambdaRuntimeState{IdleSecs: 600}
+	req, _ := http.NewRequestWithContext(ctx, "GET", b.base+"/2015-03-31/functions/"+url.PathEscape(name)+"/doze-runtime", nil)
+	body, err := b.do(req)
+	if err != nil {
+		return st
+	}
+	var out struct {
+		Warm               bool `json:"Warm"`
+		Runners            int  `json:"Runners"`
+		IdleTimeoutSeconds int  `json:"IdleTimeoutSeconds"`
+	}
+	if json.Unmarshal(body, &out) == nil {
+		st.Warm, st.Runners = out.Warm, out.Runners
+		if out.IdleTimeoutSeconds > 0 {
+			st.IdleSecs = out.IdleTimeoutSeconds
+		}
+	}
+	return st
 }
 
 func (b *backend) DeleteFunction(ctx context.Context, name string) error {
