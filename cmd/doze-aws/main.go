@@ -24,6 +24,7 @@ import (
 	"github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/console"
 	"github.com/doze-dev/doze-aws/internal/config"
+	"github.com/doze-dev/doze-aws/stackfile"
 )
 
 // version is the build version, injected by the release tooling
@@ -53,6 +54,15 @@ func main() {
 			os.Exit(1)
 		}
 		return
+	}
+
+	// `doze-aws apply [stack.yaml]` converges resources; `doze-aws export`
+	// writes the running stack as a stack.yaml.
+	if len(os.Args) > 1 && os.Args[1] == "apply" {
+		os.Exit(runApply(os.Args[2:]))
+	}
+	if len(os.Args) > 1 && os.Args[1] == "export" {
+		os.Exit(runExport(os.Args[2:]))
 	}
 
 	st, err := loadConfig(os.Args[1:])
@@ -114,6 +124,7 @@ func parseFlags(args []string, dst *config.Config) (configPath string) {
 	fs.StringVar(&dst.S3Host, "s3-host", dst.S3Host, "base host for virtual-hosted-style S3 bucket addressing")
 	fs.BoolVar(&dst.Console, "console", dst.Console, "serve the web management console at /_console")
 	fs.DurationVar(&dst.LambdaIdleTimeout, "lambda-idle", dst.LambdaIdleTimeout, "how long a warm Lambda keeps its process before scaling to zero")
+	fs.StringVar(&dst.StackFile, "stack", dst.StackFile, "declarative stack.yaml to apply at boot (default: ./stack.yaml if present)")
 	fs.Parse(args) //nolint:errcheck // flag.ExitOnError exits on a parse error.
 	return *cp
 }
@@ -137,6 +148,30 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		return err
 	}
 	defer stack.Close()
+
+	// Apply the declarative stack file, if one is named or ./stack.yaml exists.
+	stackPath := cfg.StackFile
+	if stackPath == "" {
+		if _, err := os.Stat(config.DefaultStackFile); err == nil {
+			stackPath = config.DefaultStackFile
+		}
+	}
+	if stackPath != "" {
+		data, err := os.ReadFile(stackPath)
+		if err != nil {
+			return fmt.Errorf("stack file: %w", err)
+		}
+		sf, err := stackfile.Parse(data)
+		if err != nil {
+			return err
+		}
+		rep, err := stackfile.Apply(context.Background(), stack.Handler(), sf)
+		if err != nil {
+			return err
+		}
+		created, updated, skipped := rep.Counts()
+		logger.Info("stack applied", "file", stackPath, "created", created, "updated", updated, "in_place", skipped)
+	}
 
 	ln, err := net.Listen("tcp", cfg.ListenAddr)
 	if err != nil {

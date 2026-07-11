@@ -27,6 +27,9 @@ type Config struct {
 	// LambdaIdleTimeout is how long a warm Lambda function keeps its process(es)
 	// before scaling to zero.
 	LambdaIdleTimeout time.Duration
+	// StackFile is a declarative stack.yaml applied at boot (and the default
+	// target of `doze-aws apply`). Empty auto-detects ./stack.yaml.
+	StackFile string
 }
 
 // Default returns a Config suitable for zero-config local development. The
