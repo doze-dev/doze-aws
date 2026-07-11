@@ -43,7 +43,7 @@
       {{else}}
       <div class="split">
         <div class="panel"><div class="panel-h"><h2>{{icon "play"}} Test event</h2></div><div style="padding:14px 16px">
-          <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/invoke" hx-target="#invoke-result" hx-swap="innerHTML" hx-indicator="#invoke-spin">
+          <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/invoke" hx-target="#invoke-result" hx-select="unset" hx-swap="innerHTML" hx-indicator="#invoke-spin">
             <textarea name="payload" data-editor="json" rows="10" placeholder='{"key":"value"}'>{"hello": "world"}</textarea>
             <div style="margin-top:10px;display:flex;justify-content:flex-end;align-items:center;gap:10px"><span id="invoke-spin" class="dim htmx-indicator" style="font-size:12px">Running…</span><button class="btn" type="submit">{{icon "play"}} Invoke</button></div>
           </form>
@@ -88,7 +88,7 @@
 {{define "lambda_triggers"}}
 <div id="lambda-triggers"><div class="panel"><div class="panel-h"><h2>{{icon "arrow-right"}} Event source mappings <span class="badge">{{len .Fn.Mappings}}</span></h2></div>
   {{if .Fn.Mappings}}<table class="tbl"><thead><tr><th>Source</th><th class="right">Batch size</th><th class="right">State</th><th style="width:36px"></th></tr></thead><tbody>{{range .Fn.Mappings}}
-    <tr><td class="mono trunc dim" style="font-size:11.5px;max-width:320px" title="{{.SourceARN}}">{{.SourceARN}}</td><td class="right num">{{.BatchSize}}</td><td class="right"><span class="badge {{if eq .State "Enabled"}}state-on{{else}}state-off{{end}}">{{.State}}</span></td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove trigger" hx-post="{{$.Prefix}}/lambda/{{$.Fn.Name}}/delete-mapping" hx-vals='{"uuid":"{{.UUID}}"}' hx-target="#lambda-triggers" hx-swap="outerHTML" hx-confirm="Remove this trigger?">{{icon "trash"}}</button></div></td></tr>
+    <tr><td class="mono trunc dim" style="font-size:11.5px;max-width:320px" title="{{.SourceARN}}">{{.SourceARN}}</td><td class="right num">{{.BatchSize}}</td><td class="right"><span class="badge {{if eq .State "Enabled"}}state-on{{else}}state-off{{end}}">{{.State}}</span></td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove trigger" hx-post="{{$.Prefix}}/lambda/{{$.Fn.Name}}/delete-mapping" hx-vals='{"uuid":"{{.UUID}}"}' hx-target="#lambda-triggers" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove this trigger?">{{icon "trash"}}</button></div></td></tr>
   {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No triggers. Subscribe this function to SNS/EventBridge, or add an event source mapping via the SDK.</p></div>{{end}}
 </div></div>
 {{end}}

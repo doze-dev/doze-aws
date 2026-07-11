@@ -21,7 +21,7 @@
     <div class="det-b"><div class="split">
       {{template "eb_rule_list" .}}
       <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Send test event</h2></div><div style="padding:14px 16px">
-        <form hx-post="{{.Prefix}}/eb/{{.Bus}}/test-event" hx-target="#eb-rules" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+        <form hx-post="{{.Prefix}}/eb/{{.Bus}}/test-event" hx-target="#eb-rules" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
           <div class="fgrid" style="margin-bottom:10px"><div class="field"><label>Source</label><input class="input" name="source" placeholder="orders" required></div><div class="field"><label>Detail type</label><input class="input" name="detail_type" placeholder="created" required></div></div>
           <div class="field"><label>Detail <span class="dim">JSON</span></label><textarea name="detail" data-editor="json" rows="4" placeholder='{"orderId":"A-1042"}'></textarea></div>
           <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn" type="submit">{{icon "send"}} Publish event</button></div>
@@ -63,11 +63,11 @@
 {{define "eb_targets"}}
 <div id="eb-targets"><div class="panel"><div class="panel-h"><h2>{{icon "arrow-right"}} Targets <span class="badge">{{len .Rule.Targets}}</span></h2></div>
   {{if .Rule.Targets}}<table class="tbl"><thead><tr><th>ARN</th><th style="width:36px"></th></tr></thead><tbody>{{range .Rule.Targets}}
-    <tr><td class="mono trunc dim" style="font-size:11.5px;max-width:300px" title="{{.ARN}}">{{.ARN}}</td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove target" hx-post="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{$.Rule.Name}}/remove-target" hx-vals='{"id":"{{.ID}}"}' hx-target="#eb-targets" hx-swap="outerHTML" hx-confirm="Remove this target?">{{icon "trash"}}</button></div></td></tr>
+    <tr><td class="mono trunc dim" style="font-size:11.5px;max-width:300px" title="{{.ARN}}">{{.ARN}}</td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove target" hx-post="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{$.Rule.Name}}/remove-target" hx-vals='{"id":"{{.ID}}"}' hx-target="#eb-targets" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove this target?">{{icon "trash"}}</button></div></td></tr>
   {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No targets — matching events go nowhere yet.</p></div>{{end}}
 </div>
 <div class="panel" style="margin-top:12px"><div class="panel-h"><h2>{{icon "plus"}} Add target</h2></div><div style="padding:14px 16px">
-  <form hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/add-target" hx-target="#eb-targets" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+  <form hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/add-target" hx-target="#eb-targets" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
     <div class="field"><label>Destination</label><select class="input" name="arn">{{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">SQS · {{.Name}}</option>{{end}}{{range .Functions}}<option value="{{.ARN}}">Lambda · {{.Name}}</option>{{end}}</select></div>
     <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn btn-outline" type="submit">Add target</button></div>
   </form>

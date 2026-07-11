@@ -357,8 +357,13 @@ func (b *backend) DeleteQueue(ctx context.Context, name string) error {
 	return err
 }
 
-func (b *backend) SendMessage(ctx context.Context, name, body string) error {
-	_, err := b.sqs(ctx, "SendMessage", map[string]any{"QueueUrl": b.queueURL(name), "MessageBody": body})
+func (b *backend) SendMessage(ctx context.Context, name, body, groupID string) error {
+	in := map[string]any{"QueueUrl": b.queueURL(name), "MessageBody": body}
+	if groupID != "" { // FIFO queues require a group; a fresh dedup ID keeps repeat sends distinct
+		in["MessageGroupId"] = groupID
+		in["MessageDeduplicationId"] = fmt.Sprintf("console-%d", time.Now().UnixNano())
+	}
+	_, err := b.sqs(ctx, "SendMessage", in)
 	return err
 }
 

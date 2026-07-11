@@ -442,7 +442,11 @@ func (c *Console) sqsMessages(w http.ResponseWriter, r *http.Request) {
 func (c *Console) sqsSend(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("queue")
 	body := r.FormValue("body")
-	if err := c.be.SendMessage(r.Context(), name, body); err != nil {
+	group := strings.TrimSpace(r.FormValue("group"))
+	if strings.HasSuffix(name, ".fifo") && group == "" {
+		group = "default"
+	}
+	if err := c.be.SendMessage(r.Context(), name, body, group); err != nil {
 		c.fail(w, err)
 		return
 	}

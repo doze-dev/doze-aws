@@ -48,7 +48,7 @@
       {{end}}
     </div>
     <div class="overlay" x-show="put" x-cloak @click.self="put=false" @keydown.escape.window="put=false" x-effect="if(put)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
-      <div class="dialog wide anim"><form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/put" hx-target="#ddb-items" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){put=false;$el.reset();}">
+      <div class="dialog wide anim"><form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/put" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){put=false;$el.reset();}">
         <div class="dialog-h"><h3>Add item</h3><p>Plain JSON — types inferred ({{.Table.HashKey}}{{if .Table.RangeKey}}, {{.Table.RangeKey}}{{end}} required).</p></div>
         <div class="dialog-b"><textarea id="ddb-item-editor" name="item" data-editor="json" rows="9" spellcheck="false" required placeholder='{&#10;  "{{.Table.HashKey}}": "user-1",&#10;  "name": "Ada"&#10;}'></textarea></div>
         <div class="dialog-f"><button type="button" class="btn btn-outline" @click="put=false">Cancel</button><button type="submit" class="btn">Save item</button></div>
@@ -73,7 +73,7 @@
                   d.innerHTML='<div class=\'drawer-h\'><span class=\'title\'>Item</span></div><div class=\'drawer-b\'><div class=\'code-out\'><pre></pre></div><div class=\'drawer-actions\' style=\'margin-top:12px\'><button class=\'btn btn-outline\' id=\'dw-edit\'>Edit item</button></div></div>';
                   d.querySelector('pre').textContent=itemJSON;
                   d.querySelector('#dw-edit').onclick=()=>{drawer=false;put=true;$nextTick(()=>dozeEditor.set('#ddb-item-editor',itemJSON));}">{{if .Preview}}{{.Preview}}{{else}}<span style="opacity:.5">keys only</span>{{end}}</td>
-      <td><div class="row-actions"><button class="icon-btn sm danger" title="Delete item" hx-post="{{$.Prefix}}/ddb/{{$.Table.Name}}/delete-item" :hx-vals="JSON.stringify({key: keyJSON})" hx-target="#ddb-items" hx-swap="outerHTML" hx-confirm="Delete this item?">{{icon "trash"}}</button></div></td>
+      <td><div class="row-actions"><button class="icon-btn sm danger" title="Delete item" hx-post="{{$.Prefix}}/ddb/{{$.Table.Name}}/delete-item" :hx-vals="JSON.stringify({key: keyJSON})" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete this item?">{{icon "trash"}}</button></div></td>
     </tr>
   {{end}}</tbody>
 </table></div>

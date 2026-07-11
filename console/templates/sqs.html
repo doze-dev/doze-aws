@@ -27,22 +27,32 @@
       </div>
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "messages" "Label" (printf "Messages · %d" .Available) "Icon" "inbox" "URL" (printf "%s/sqs/%s" .Prefix .Queue))
-        (dict "Key" "send" "Label" "Send" "Icon" "send" "URL" (printf "%s/sqs/%s?tab=send" .Prefix .Queue))
         (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sqs/%s?tab=config" .Prefix .Queue)))}}
     </div>
     <div style="padding:0 20px 4px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn}}</div>
     <div class="det-b">
-      {{if eq .Tab "send"}}
-        <div class="panel" style="max-width:640px"><div style="padding:16px">
-          <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/send" hx-target="#compose-status" hx-swap="innerHTML" @htmx:after-request="if($event.detail.successful)$el.reset()">
-            <div class="field"><label>Message body</label><textarea name="body" data-editor rows="8" placeholder='{"hello":"world"}' required></textarea></div>
-            <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center"><span id="compose-status" class="dim" style="font-size:12px"></span><button class="btn" type="submit">{{icon "send"}} Send message</button></div>
-          </form>
-        </div></div>
-      {{else if eq .Tab "config"}}
+      {{if eq .Tab "config"}}
         {{template "sqs_config" .}}
       {{else}}
-        {{template "message_panel" .}}
+        {{/* The loop on one screen: live peek beside the composer — send a
+             message and watch it land without leaving the view. */}}
+        <div class="sqs-work">
+          <div class="sqs-peek">{{template "message_panel" .}}</div>
+          <div class="panel sqs-compose">
+            <div class="panel-h"><h2>{{icon "send"}} Send a message</h2></div>
+            <div style="padding:14px 16px">
+              <form x-data hx-post="{{.Prefix}}/sqs/{{.Queue}}/send" hx-target="#message-panel-wrap" hx-select="unset" hx-swap="outerHTML"
+                    @htmx:after-request="if($event.detail.successful){requestAnimationFrame(()=>{var m=document.querySelectorAll('#message-panel-wrap .msg');if(m.length)m[m.length-1].classList.add('landed')})}">
+                <div class="field"><label>Message body</label><textarea name="body" data-editor rows="7" placeholder='{"hello":"world"}' required></textarea></div>
+                {{if .Config.FIFO}}<div class="field" style="margin-top:10px"><label>Message group ID</label><input class="input" name="group" value="default" required></div>{{end}}
+                <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+                  <span class="dim" style="font-size:11.5px"><span class="kbd">⌘⏎</span> sends · lands in the peek</span>
+                  <button class="btn" type="submit">{{icon "send"}} Send</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       {{end}}
     </div>
   </section>
@@ -54,7 +64,7 @@
     <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px">Messages <span class="{{if .Available}}badge{{else}}badge zero{{end}}">{{.Available}}</span> <span class="dim" style="font-weight:400;font-size:11.5px">· {{.InFlight}} in flight</span></div>
     <div style="display:flex;align-items:center;gap:10px">
       <span class="peek" title="Peeked without consuming — refreshing never receives or hides messages">{{icon "eye"}} live peek</span>
-      <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sqs/{{.Queue}}/purge" hx-target="#message-panel-wrap" hx-swap="outerHTML" hx-confirm="Purge ALL messages from {{.Queue}}?">Purge</button>
+      <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sqs/{{.Queue}}/purge" hx-target="#message-panel-wrap" hx-select="unset" hx-swap="outerHTML" hx-confirm="Purge ALL messages from {{.Queue}}?">Purge</button>
     </div>
   </div>
   {{if .Messages}}
@@ -64,7 +74,7 @@
       <pre @click="open=!open" style="cursor:pointer">{{.Body}}</pre>
     </div>
   {{end}}</div>
-  {{else}}<div class="empty"><span class="ic-lg">{{icon "inbox"}}</span><p>No visible messages. Switch to <b>Send</b> to add one.</p></div>{{end}}
+  {{else}}<div class="empty"><span class="ic-lg">{{icon "inbox"}}</span><p>No visible messages. Compose one on the right — it lands here.</p></div>{{end}}
 </div>
 {{end}}
 
@@ -85,7 +95,7 @@
     </tbody></table></div>
   </div>
   <div class="panel" x-show="edit" x-cloak>
-    <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/attributes" hx-target="#sqs-config" hx-swap="outerHTML">
+    <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/attributes" hx-target="#sqs-config" hx-select="unset" hx-swap="outerHTML">
       <div class="edit-grid">
         <div class="field"><label>Visibility <span class="dim">s</span></label><input class="input" name="visibility" type="number" min="0" max="43200" value="{{.Config.Visibility}}"></div>
         <div class="field"><label>Retention <span class="dim">s</span></label><input class="input" name="retention" type="number" min="60" max="1209600" value="{{.Config.Retention}}"></div>

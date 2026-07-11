@@ -56,6 +56,10 @@ var r=localStorage.getItem("rail");if(r==="slim")document.documentElement.setAtt
       </button>
     </nav>
 
+    {{/* NOTE: hx-target/hx-select here are INHERITED by every htmx actuator
+         inside the workspace. Any element with its own partial hx-target MUST
+         also set hx-select="unset", or htmx selects #workspace out of the
+         partial response, finds nothing, and swaps in emptiness. */}}
     <div id="workspace" class="workspace" hx-boost="true" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML show:none">
       {{if .Flash}}
       <div class="flash anim" id="flashbar">

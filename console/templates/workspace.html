@@ -17,7 +17,7 @@
 </div>
 
 {{if eq .Mode "edit"}}
-  <form hx-post="{{.SaveURL}}" hx-target="{{.Target}}" hx-swap="outerHTML" x-data="{dirty:false}">
+  <form hx-post="{{.SaveURL}}" hx-target="{{.Target}}" hx-select="unset" hx-swap="outerHTML" x-data="{dirty:false}">
     <input type="hidden" name="{{.SaveField}}" value="{{.SaveVal}}">
     <textarea name="value" data-editor rows="16" spellcheck="false" required @input="dirty=true">{{.Value}}</textarea>
     <div class="det-foot" style="margin-top:12px;border-radius:var(--radius);border:1px solid hsl(var(--border))">
@@ -31,10 +31,10 @@
     <thead><tr><th>Version</th><th>Stages</th><th class="right">Actions</th></tr></thead>
     <tbody>
     {{if .History}}{{range .History}}
-      <tr><td class="mono" style="font-weight:600">v{{.Version}}</td><td class="mono trunc dim" style="font-size:11px;max-width:280px" title="{{.Value}}">{{.Value}}</td><td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{.Version}}" hx-target="#version-diff" hx-swap="innerHTML">Diff vs current</button></td></tr>
+      <tr><td class="mono" style="font-weight:600">v{{.Version}}</td><td class="mono trunc dim" style="font-size:11px;max-width:280px" title="{{.Value}}">{{.Value}}</td><td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{.Version}}" hx-target="#version-diff" hx-select="unset" hx-swap="innerHTML">Diff vs current</button></td></tr>
     {{end}}{{end}}
     {{if .Stages}}{{range $id, $st := .Stages}}
-      <tr><td class="mono trunc" style="max-width:200px" title="{{$id}}">{{$id}}</td><td>{{range $st}}<span class="badge type" style="margin-right:4px">{{.}}</span>{{end}}</td><td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{$id}}" hx-target="#version-diff" hx-swap="innerHTML">Diff vs current</button></td></tr>
+      <tr><td class="mono trunc" style="max-width:200px" title="{{$id}}">{{$id}}</td><td>{{range $st}}<span class="badge type" style="margin-right:4px">{{.}}</span>{{end}}</td><td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{$id}}" hx-target="#version-diff" hx-select="unset" hx-swap="innerHTML">Diff vs current</button></td></tr>
     {{end}}{{end}}
     </tbody>
   </table></div>

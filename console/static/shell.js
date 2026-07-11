@@ -183,6 +183,12 @@
       return;
     }
     if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); openPalette(); return; }
+    // ⌘⏎ submits the composer you're typing in — send, publish, invoke, put.
+    // Works from plain textareas and from inside CodeMirror editors alike.
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      var form = document.activeElement.closest ? document.activeElement.closest("form") : null;
+      if (form && form.querySelector("textarea, .CodeMirror")) { e.preventDefault(); form.requestSubmit(); return; }
+    }
     var tag = document.activeElement.tagName;
     if (/(INPUT|TEXTAREA|SELECT)/.test(tag) || document.activeElement.closest(".CodeMirror")) return;
     if (e.key === "/") {

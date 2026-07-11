@@ -773,3 +773,10 @@ tr:hover .kv-copy .copy-btn, .kv-copy:hover .copy-btn { opacity: 1; }
 .rt-badge .rt-sub { font-weight: 400; opacity: 0.85; }
 .rt-warm { border-color: hsl(var(--success) / 0.4); background: hsl(var(--success) / 0.12); color: hsl(var(--success)); }
 .rt-warm .rt-dot { background: hsl(var(--success)); box-shadow: 0 0 0 3px hsl(var(--success) / 0.18); }
+
+/* SQS workbench: live peek beside the composer — the act/verify loop on one screen. */
+.sqs-work { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 1100px) { .sqs-work { grid-template-columns: 1fr; } }
+.msg.landed { animation: landed 1.8s ease-out; }
+@keyframes landed { 0% { background: hsl(var(--success) / 0.16); } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .msg.landed { animation: none; } }
