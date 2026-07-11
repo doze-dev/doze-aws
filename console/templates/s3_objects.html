@@ -1,22 +1,42 @@
 {{define "s3_objects"}}{{template "header" .}}
 <div x-data="{drawer:false}">
-<div class="ph">
-  <div>
-    <h1><span class="svc svc-s3">{{icon "hard-drive"}}</span> {{.Bucket}}</h1>
-    <p class="ph-desc">Browse and manage objects.</p>
-  </div>
-  <div class="ph-actions">
-    <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/upload" hx-target="#object-table" hx-swap="outerHTML"
-          hx-encoding="multipart/form-data"
-          @change="if($el.file.files.length) htmx.trigger($el,'submit')"
-          @htmx:after-request="$el.reset()">
-      <input type="hidden" name="prefix" value="{{.KeyPrefix}}">
-      <input type="file" name="file" hidden>
-      <button class="btn" type="button" onclick="this.closest('form').querySelector('input[type=file]').click()">{{icon "upload"}} Upload</button>
-    </form>
+<nav class="bc">
+  <a href="{{.Prefix}}/s3">{{icon "hard-drive"}} S3</a>{{icon "chevron"}}<span>{{.Bucket}}</span>
+</nav>
+<div class="idband">
+  <div class="ph">
+    <div>
+      <h1><span class="svc svc-s3">{{icon "hard-drive"}}</span> {{.Bucket}}</h1>
+      <div class="chips" style="margin-top:8px">
+        {{template "copychip" dict "Label" "arn" "Value" (printf "arn:aws:s3:::%s" .Bucket)}}
+        {{template "copychip" dict "Label" "uri" "Value" (printf "s3://%s" .Bucket)}}
+      </div>
+    </div>
+    <div class="ph-actions">
+      {{if eq .Tab "objects"}}
+      <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/upload" hx-target="#object-table" hx-swap="outerHTML"
+            hx-encoding="multipart/form-data"
+            @change="if($el.file.files.length) htmx.trigger($el,'submit')"
+            @htmx:after-request="$el.reset()">
+        <input type="hidden" name="prefix" value="{{.KeyPrefix}}">
+        <input type="file" name="file" hidden>
+        <button class="btn" type="button" onclick="this.closest('form').querySelector('input[type=file]').click()">{{icon "upload"}} Upload</button>
+      </form>
+      {{end}}
+    </div>
   </div>
 </div>
-{{template "object_table" .}}
+
+<div class="tabbar">
+  <a href="{{.Prefix}}/s3/{{.Bucket}}" class="{{if eq .Tab "objects"}}on{{end}}">{{icon "list"}} Objects</a>
+  <a href="{{.Prefix}}/s3/{{.Bucket}}?tab=properties" class="{{if eq .Tab "properties"}}on{{end}}">{{icon "settings"}} Properties</a>
+</div>
+
+{{if eq .Tab "properties"}}
+  {{template "s3_props" .}}
+{{else}}
+  {{template "object_table" .}}
+{{end}}
 
 <div class="drawer-scrim" x-show="drawer" x-cloak @click="drawer=false"></div>
 <aside class="drawer" x-show="drawer" x-cloak @keydown.escape.window="drawer=false">
@@ -63,6 +83,76 @@
 </div>
 {{end}}
 
+{{define "s3_props"}}
+<div id="s3-props" class="split">
+  <div>
+    <div class="panel">
+      <div class="panel-h"><h2>{{icon "settings"}} Bucket settings</h2></div>
+      <div style="padding:4px 16px 10px">
+        <div class="opt-row">
+          <div>
+            <div class="opt-l">Versioning
+              {{if eq .Props.Versioning "Enabled"}}<span class="badge state-on">Enabled</span>
+              {{else if eq .Props.Versioning "Suspended"}}<span class="badge state-warn">Suspended</span>
+              {{else}}<span class="badge state-off">Disabled</span>{{end}}
+            </div>
+            <div class="opt-d">Keep every version of every object in this bucket</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" {{if eq .Props.Versioning "Enabled"}}checked{{end}}
+                   hx-post="{{.Prefix}}/s3/{{.Bucket}}/versioning"
+                   hx-vals='{"enable":"{{if eq .Props.Versioning "Enabled"}}false{{else}}true{{end}}"}'
+                   hx-target="#s3-props" hx-swap="outerHTML">
+            <span class="track"></span><span class="thumb"></span>
+          </label>
+        </div>
+        <div class="opt-row">
+          <div>
+            <div class="opt-l">Object lock
+              {{if .Props.ObjectLock}}<span class="badge state-on">Enabled</span>{{else}}<span class="badge state-off">Disabled</span>{{end}}
+            </div>
+            <div class="opt-d">Retention and legal holds — set at bucket creation, immutable after</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-title">Details</div>
+    <div class="table-wrap"><table class="tbl kv"><tbody>
+      <tr><td>ARN</td><td>{{template "copychip" dict "Value" .Props.ARN}}</td></tr>
+      <tr><td>Region</td><td>{{.Props.Region}}</td></tr>
+    </tbody></table></div>
+
+    {{if .Props.Tags}}
+    <div class="sec-title">Tags</div>
+    <div class="table-wrap"><table class="tbl kv"><tbody>
+      {{range .Props.Tags}}<tr><td>{{.K}}</td><td>{{.V}}</td></tr>{{end}}
+    </tbody></table></div>
+    {{end}}
+  </div>
+
+  <div>
+    <div class="sec-title" style="margin-top:0">Configurations</div>
+    {{range .Props.Configs}}
+    <div class="panel" style="margin-bottom:10px" x-data="{open:false}">
+      <div class="panel-h" {{if .Set}}style="cursor:pointer" @click="open=!open"{{end}}>
+        <h2>{{.Name}}
+          {{if .Set}}<span class="badge state-on">Configured</span>{{else}}<span class="badge state-off">Not set</span>{{end}}
+        </h2>
+        {{if .Set}}<span class="dim" style="font-size:11.5px" x-text="open ? 'Hide' : 'View'"></span>{{end}}
+      </div>
+      {{if .Set}}
+      <div x-show="open" x-cloak class="code-out" style="border:0;border-top:1px solid hsl(var(--border));border-radius:0">
+        <pre>{{.Raw}}</pre>
+      </div>
+      {{end}}
+    </div>
+    {{end}}
+    <p class="mini-note">Configurations are managed via the SDK/CLI — the console shows what is in effect.</p>
+  </div>
+</div>
+{{end}}
+
 {{define "object_meta"}}
 <div class="drawer-h">
   {{icon "file"}}<span class="title" title="{{.Meta.Key}}">{{.Name}}</span>
@@ -82,8 +172,7 @@
   </div>
   <div class="copy-row">
     <span title="{{.Meta.Key}}">s3://{{.Bucket}}/{{.Meta.Key}}</span>
-    <button class="icon-btn sm" title="Copy path"
-            onclick="navigator.clipboard.writeText('s3://{{.Bucket}}/{{.Meta.Key}}');window.dispatchEvent(new CustomEvent('toast',{detail:'Path copied'}))">{{icon "copy"}}</button>
+    <button class="icon-btn sm" title="Copy path" data-copy="s3://{{.Bucket}}/{{.Meta.Key}}">{{icon "copy"}}</button>
   </div>
   <div class="drawer-actions">
     <a class="btn btn-outline" href="{{.URL}}" target="_blank">{{icon "download"}} Download</a>

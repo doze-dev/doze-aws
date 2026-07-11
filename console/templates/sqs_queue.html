@@ -2,14 +2,21 @@
 <nav class="bc">
   <a href="{{.Prefix}}/sqs">{{icon "inbox"}} SQS</a>{{icon "chevron"}}<span>{{.Queue}}</span>
 </nav>
-<div class="ph">
-  <div>
-    <h1><span class="svc svc-sqs">{{icon "inbox"}}</span> {{.Queue}}</h1>
-    <p class="ph-desc">Inspect and drive this queue.</p>
-  </div>
-  <div class="ph-actions">
-    <button class="btn btn-outline" hx-post="{{.Prefix}}/sqs/{{.Queue}}/purge" hx-target="#message-panel" hx-swap="outerHTML"
-            hx-confirm="Purge ALL messages from {{.Queue}}?">{{icon "trash"}} Purge</button>
+<div class="idband">
+  <div class="ph">
+    <div>
+      <h1><span class="svc svc-sqs">{{icon "inbox"}}</span> {{.Queue}}</h1>
+      <div class="chips" style="margin-top:8px">
+        {{template "copychip" dict "Label" "arn" "Value" .ARN}}
+        {{template "copychip" dict "Label" "url" "Value" .URL}}
+      </div>
+    </div>
+    <div class="ph-actions">
+      <button class="btn btn-outline" hx-post="{{.Prefix}}/sqs/{{.Queue}}/purge" hx-target="#message-panel" hx-swap="outerHTML"
+              hx-confirm="Purge ALL messages from {{.Queue}}?">{{icon "trash"}} Purge</button>
+      <button class="btn btn-outline danger" hx-post="{{.Prefix}}/sqs/{{.Queue}}/delete-queue"
+              hx-confirm="Delete queue “{{.Queue}}”?" @htmx:after-request="window.location='{{.Prefix}}/sqs'">{{icon "trash"}} Delete</button>
+    </div>
   </div>
 </div>
 

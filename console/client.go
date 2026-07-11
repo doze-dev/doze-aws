@@ -367,6 +367,34 @@ func (b *backend) PurgeQueue(ctx context.Context, name string) error {
 	return err
 }
 
+// ---- generic wire-protocol helpers ----
+
+// json11 posts an AWS JSON 1.1 request (X-Amz-Target routed). prefix is the
+// service's target prefix (TrentService, AmazonSSM, secretsmanager, AWSEvents).
+func (b *backend) json11(ctx context.Context, prefix, action string, in any) ([]byte, error) {
+	buf, _ := json.Marshal(in)
+	req, _ := http.NewRequestWithContext(ctx, "POST", b.base+"/", bytes.NewReader(buf))
+	req.Header.Set("Content-Type", "application/x-amz-json-1.1")
+	req.Header.Set("X-Amz-Target", prefix+"."+action)
+	return b.do(req)
+}
+
+// ddbCall posts a DynamoDB JSON 1.0 request.
+func (b *backend) ddbCall(ctx context.Context, action string, in any) ([]byte, error) {
+	buf, _ := json.Marshal(in)
+	req, _ := http.NewRequestWithContext(ctx, "POST", b.base+"/", bytes.NewReader(buf))
+	req.Header.Set("Content-Type", "application/x-amz-json-1.0")
+	req.Header.Set("X-Amz-Target", "DynamoDB_20120810."+action)
+	return b.do(req)
+}
+
+// queryXML posts a legacy Query-protocol request (SNS/STS) and returns the XML.
+func (b *backend) queryXML(ctx context.Context, v url.Values) ([]byte, error) {
+	req, _ := http.NewRequestWithContext(ctx, "POST", b.base+"/", strings.NewReader(v.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return b.do(req)
+}
+
 // ---- helpers ----
 
 func escapeKey(key string) string {

@@ -1,0 +1,173 @@
+{{define "kms_keys"}}{{template "header" .}}
+<div class="ph">
+  <div>
+    <h1><span class="svc svc-kms">{{icon "key"}}</span> KMS</h1>
+    <p class="ph-desc">Encryption keys — real local crypto, ciphertexts round-trip.</p>
+  </div>
+  <div class="ph-actions">
+    <span x-data="{open:false}">
+    <button class="btn" @click="open=true">{{icon "plus"}} Create key</button>
+    <div class="overlay" x-show="open" x-cloak @click.self="open=false" @keydown.escape.window="open=false">
+      <div class="dialog wide anim">
+        <form hx-post="{{.Prefix}}/kms/create" hx-target="#kms-key-list" hx-swap="outerHTML"
+              @htmx:after-request="if($event.detail.successful){open=false; $el.reset();}">
+          <div class="dialog-h"><h3>Create key</h3><p>Symmetric for encrypt/decrypt, RSA/ECC for sign/verify, HMAC for MACs.</p></div>
+          <div class="dialog-b">
+            <div class="fgrid">
+              <div class="field">
+                <label>Key spec</label>
+                <select class="input" name="spec">
+                  <option value="SYMMETRIC_DEFAULT">SYMMETRIC_DEFAULT</option>
+                  <option value="RSA_2048">RSA_2048</option>
+                  <option value="RSA_3072">RSA_3072</option>
+                  <option value="RSA_4096">RSA_4096</option>
+                  <option value="ECC_NIST_P256">ECC_NIST_P256</option>
+                  <option value="ECC_NIST_P384">ECC_NIST_P384</option>
+                  <option value="HMAC_256">HMAC_256</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Usage</label>
+                <select class="input" name="usage">
+                  <option value="">Default for spec</option>
+                  <option value="ENCRYPT_DECRYPT">ENCRYPT_DECRYPT</option>
+                  <option value="SIGN_VERIFY">SIGN_VERIFY</option>
+                  <option value="GENERATE_VERIFY_MAC">GENERATE_VERIFY_MAC</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Alias <span class="dim">(optional)</span></label>
+                <input class="input" name="alias" placeholder="app-data" pattern="[a-zA-Z0-9/_\-]{1,250}">
+              </div>
+              <div class="field">
+                <label>Description <span class="dim">(optional)</span></label>
+                <input class="input" name="description" placeholder="App data encryption">
+              </div>
+            </div>
+          </div>
+          <div class="dialog-f">
+            <button type="button" class="btn btn-outline" @click="open=false">Cancel</button>
+            <button type="submit" class="btn">Create key</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    </span>
+  </div>
+</div>
+
+{{template "kms_key_list" .}}
+{{template "footer" .}}{{end}}
+
+{{define "kms_key_list"}}
+<div id="kms-key-list">
+{{if .Keys}}
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th>Alias / Key ID</th><th>Spec</th><th>Usage</th><th class="right">Rotation</th><th class="right">State</th></tr></thead>
+  <tbody>{{range .Keys}}
+    <tr>
+      <td><a class="cell-name" href="{{$.Prefix}}/kms/{{.ID}}">{{icon "key"}} {{if .Alias}}{{.Alias}}{{else}}<span class="mono" style="font-size:11.5px">{{.ID}}</span>{{end}}</a></td>
+      <td><span class="badge type">{{.Spec}}</span></td>
+      <td class="dim" style="font-size:12px">{{.Usage}}</td>
+      <td class="right">{{if .RotationOn}}<span class="badge state-on">on</span>{{else}}<span class="badge state-off">off</span>{{end}}</td>
+      <td class="right"><span class="badge {{if .Enabled}}state-on{{else}}state-warn{{end}}">{{.State}}</span></td>
+    </tr>
+  {{end}}</tbody>
+</table></div>
+{{else}}<div class="empty"><span class="ic-lg">{{icon "key"}}</span><p>No keys yet — create your first one.</p></div>{{end}}
+</div>
+{{end}}
+
+{{define "kms_key"}}{{template "header" .}}
+<nav class="bc">
+  <a href="{{.Prefix}}/kms">{{icon "key"}} KMS</a>{{icon "chevron"}}<span>{{if .Key.Alias}}{{.Key.Alias}}{{else}}{{.Key.ID}}{{end}}</span>
+</nav>
+{{template "kms_key_detail" .}}
+{{template "footer" .}}{{end}}
+
+{{define "kms_key_detail"}}
+<div id="kms-detail">
+<div class="idband">
+  <div class="ph">
+    <div>
+      <h1><span class="svc svc-kms">{{icon "key"}}</span> {{if .Key.Alias}}{{.Key.Alias}}{{else}}{{.Key.ID}}{{end}}
+        <span class="badge {{if .Key.Enabled}}state-on{{else}}state-warn{{end}}">{{.Key.State}}</span>
+      </h1>
+      <div class="chips" style="margin-top:8px">
+        {{template "copychip" dict "Label" "key id" "Value" .Key.ID}}
+        {{template "copychip" dict "Label" "arn" "Value" .Key.ARN}}
+      </div>
+    </div>
+    <div class="ph-actions">
+      <button class="btn btn-outline" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/rotate-now" hx-target="#kms-detail" hx-swap="outerHTML">{{icon "rotate"}} Rotate now</button>
+      <button class="btn btn-outline danger" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/schedule-deletion"
+              hx-confirm="Schedule this key for deletion? Ciphertexts become undecryptable after the window.">{{icon "trash"}} Schedule deletion</button>
+    </div>
+  </div>
+</div>
+
+<div class="split">
+  <div>
+    <div class="panel">
+      <div class="panel-h"><h2>{{icon "settings"}} Key settings</h2></div>
+      <div style="padding:4px 16px 10px">
+        <div class="opt-row">
+          <div><div class="opt-l">Enabled</div><div class="opt-d">Disabled keys refuse all cryptographic operations</div></div>
+          <label class="switch">
+            <input type="checkbox" {{if .Key.Enabled}}checked{{end}}
+                   hx-post="{{.Prefix}}/kms/{{.Key.ID}}/toggle-enabled" hx-target="#kms-detail" hx-swap="outerHTML">
+            <span class="track"></span><span class="thumb"></span>
+          </label>
+        </div>
+        <div class="opt-row">
+          <div><div class="opt-l">Automatic rotation</div><div class="opt-d">New backing material yearly; old ciphertexts still decrypt</div></div>
+          <label class="switch">
+            <input type="checkbox" {{if .Key.RotationOn}}checked{{end}}
+                   hx-post="{{.Prefix}}/kms/{{.Key.ID}}/toggle-rotation" hx-target="#kms-detail" hx-swap="outerHTML">
+            <span class="track"></span><span class="thumb"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-title">Details</div>
+    <div class="table-wrap"><table class="tbl kv"><tbody>
+      <tr><td>Spec</td><td>{{.Key.Spec}}</td></tr>
+      <tr><td>Usage</td><td>{{.Key.Usage}}</td></tr>
+      <tr><td>Created</td><td>{{.Key.Created}}</td></tr>
+      {{if .Key.Description}}<tr><td>Description</td><td>{{.Key.Description}}</td></tr>{{end}}
+    </tbody></table></div>
+  </div>
+
+  <div>
+    <div class="panel">
+      <div class="panel-h"><h2>{{icon "lock"}} Encrypt / decrypt</h2></div>
+      <div style="padding:14px 16px">
+        <form hx-post="{{.Prefix}}/kms/{{.Key.ID}}/encrypt" hx-target="#kms-crypto-out" hx-swap="innerHTML" style="margin-bottom:12px">
+          <div class="field">
+            <label>Plaintext → ciphertext</label>
+            <textarea name="plaintext" rows="2" placeholder="hello, world" required></textarea>
+          </div>
+          <div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Encrypt</button></div>
+        </form>
+        <form hx-post="{{.Prefix}}/kms/{{.Key.ID}}/decrypt" hx-target="#kms-crypto-out" hx-swap="innerHTML">
+          <div class="field">
+            <label>Ciphertext (base64) → plaintext</label>
+            <textarea name="ciphertext" rows="2" placeholder="paste ciphertext…" required></textarea>
+          </div>
+          <div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Decrypt</button></div>
+        </form>
+        <div id="kms-crypto-out" style="margin-top:12px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+{{end}}
+
+{{define "kms_crypto_result"}}
+<div class="code-out">
+  <div class="co-h"><span>{{.Label}}</span><button class="copy-btn" data-copy="{{.Value}}">{{icon "copy"}}</button></div>
+  <pre>{{.Value}}</pre>
+</div>
+{{end}}

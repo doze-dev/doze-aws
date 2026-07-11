@@ -9,14 +9,46 @@
     <span x-data="{open:false}">
     <button class="btn" @click="open=true">{{icon "plus"}} Create queue</button>
     <div class="overlay" x-show="open" x-cloak @click.self="open=false" @keydown.escape.window="open=false">
-      <div class="dialog anim">
+      <div class="dialog wide anim">
         <form hx-post="{{.Prefix}}/sqs/create" hx-target="#queue-list" hx-swap="outerHTML"
               @htmx:after-request="if($event.detail.successful){open=false; $el.reset();}">
-          <div class="dialog-h"><h3>Create queue</h3><p>Up to 80 characters: letters, digits, hyphens, underscores.</p></div>
+          <div class="dialog-h"><h3>Create queue</h3><p>Configure delivery behavior now, or change it later via the SDK.</p></div>
           <div class="dialog-b">
-            <div class="field">
-              <label>Queue name</label>
-              <input class="input" name="name" placeholder="orders" required pattern="[a-zA-Z0-9_\-]{1,80}" autocomplete="off" x-effect="open && $el.focus()">
+            <div class="fgrid">
+              <div class="field full">
+                <label>Queue name</label>
+                <input class="input" name="name" placeholder="orders" required pattern="[a-zA-Z0-9_\-.]{1,80}" autocomplete="off" x-effect="open && $el.focus()">
+              </div>
+              <div class="field">
+                <label>Visibility timeout <span class="dim">(s)</span></label>
+                <input class="input" name="visibility" type="number" min="0" max="43200" placeholder="30">
+              </div>
+              <div class="field">
+                <label>Delivery delay <span class="dim">(s)</span></label>
+                <input class="input" name="delay" type="number" min="0" max="900" placeholder="0">
+              </div>
+              <div class="field">
+                <label>Retention <span class="dim">(s)</span></label>
+                <input class="input" name="retention" type="number" min="60" max="1209600" placeholder="345600">
+              </div>
+              <div class="field">
+                <label>&nbsp;</label>
+                <div class="opt-row" style="padding:4px 0;border:0">
+                  <div class="opt-l">FIFO queue</div>
+                  <label class="switch"><input type="checkbox" name="fifo"><span class="track"></span><span class="thumb"></span></label>
+                </div>
+              </div>
+              <div class="field">
+                <label>Dead-letter queue</label>
+                <select class="input" name="dlq">
+                  <option value="">None</option>
+                  {{range .Queues}}<option value="{{.Name}}">{{.Name}}</option>{{end}}
+                </select>
+              </div>
+              <div class="field">
+                <label>Max receives before DLQ</label>
+                <input class="input" name="max_receive" type="number" min="1" max="1000" placeholder="3">
+              </div>
             </div>
           </div>
           <div class="dialog-f">
@@ -45,7 +77,7 @@
       <td class="right dim num">{{.InFlight}}</td>
       <td>
         <div class="row-actions">
-          <button class="icon-btn danger" title="Delete queue"
+          <button class="icon-btn sm danger" title="Delete queue"
                   hx-post="{{$.Prefix}}/sqs/{{.Name}}/delete-queue" hx-target="#queue-list" hx-swap="outerHTML"
                   hx-confirm="Delete queue “{{.Name}}”?">{{icon "trash"}}</button>
         </div>

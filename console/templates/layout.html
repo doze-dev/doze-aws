@@ -7,13 +7,19 @@
 <script src="{{.Prefix}}/static/htmx.min.js"></script>
 <script defer src="{{.Prefix}}/static/alpine.min.js"></script>
 <script>
-  // Let Alpine initialise nodes htmx swaps in (dropdowns, filtered rows).
+  // Let Alpine initialise nodes htmx swaps in.
   document.addEventListener("htmx:afterSwap", function(e){ if(window.Alpine) window.Alpine.initTree(e.detail.target); });
-  document.addEventListener("alpine:init", function(){ window.Alpine.store("filter", { q: "" }); });
+  // Delegated copy-to-clipboard for every .copy-btn / [data-copy] element.
+  document.addEventListener("click", function(e){
+    var el = e.target.closest("[data-copy]");
+    if (!el) return;
+    navigator.clipboard.writeText(el.getAttribute("data-copy")).then(function(){
+      window.dispatchEvent(new CustomEvent("toast", { detail: "Copied" }));
+    });
+  });
 </script>
 
-<div class="app" x-data="ui()" x-cloak
-     @toast.window="pushToast($event.detail.value ?? $event.detail)">
+<div class="app" x-data="ui()" x-cloak @toast.window="pushToast($event.detail.value ?? $event.detail)">
   <header class="topbar">
     <div class="brand"><span class="dot"></span> doze-aws <span class="sub">console</span></div>
     <div class="tb-spacer"></div>
@@ -32,10 +38,26 @@
       <nav>
         <a href="{{.Prefix}}/" class="nav-item {{if eq .Page "overview"}}on{{end}}"><span class="svc svc-home">{{icon "dashboard"}}</span> Overview</a>
       </nav>
-      <div class="side-label">Services</div>
+      <div class="side-label">Storage &amp; database</div>
       <nav>
-        <a href="{{.Prefix}}/s3" class="nav-item {{if eq .Page "s3_buckets"}}on{{end}}{{if eq .Page "s3_objects"}}on{{end}}"><span class="svc svc-s3">{{icon "hard-drive"}}</span> S3</a>
-        <a href="{{.Prefix}}/sqs" class="nav-item {{if eq .Page "sqs_queues"}}on{{end}}{{if eq .Page "sqs_queue"}}on{{end}}"><span class="svc svc-sqs">{{icon "inbox"}}</span> SQS</a>
+        <a href="{{.Prefix}}/s3" class="nav-item {{if hasPrefix .Page "s3"}}on{{end}}"><span class="svc svc-s3">{{icon "hard-drive"}}</span> S3</a>
+        <a href="{{.Prefix}}/ddb" class="nav-item {{if hasPrefix .Page "ddb"}}on{{end}}"><span class="svc svc-ddb">{{icon "database"}}</span> DynamoDB</a>
+      </nav>
+      <div class="side-label">Compute</div>
+      <nav>
+        <a href="{{.Prefix}}/lambda" class="nav-item {{if hasPrefix .Page "lambda"}}on{{end}}"><span class="svc svc-lambda">{{icon "zap"}}</span> Lambda</a>
+      </nav>
+      <div class="side-label">Application integration</div>
+      <nav>
+        <a href="{{.Prefix}}/sqs" class="nav-item {{if hasPrefix .Page "sqs"}}on{{end}}"><span class="svc svc-sqs">{{icon "inbox"}}</span> SQS</a>
+        <a href="{{.Prefix}}/sns" class="nav-item {{if hasPrefix .Page "sns"}}on{{end}}"><span class="svc svc-sns">{{icon "share"}}</span> SNS</a>
+        <a href="{{.Prefix}}/eb" class="nav-item {{if hasPrefix .Page "eb"}}on{{end}}"><span class="svc svc-eb">{{icon "route"}}</span> EventBridge</a>
+      </nav>
+      <div class="side-label">Security &amp; config</div>
+      <nav>
+        <a href="{{.Prefix}}/kms" class="nav-item {{if hasPrefix .Page "kms"}}on{{end}}"><span class="svc svc-kms">{{icon "key"}}</span> KMS</a>
+        <a href="{{.Prefix}}/sm" class="nav-item {{if hasPrefix .Page "sm"}}on{{end}}"><span class="svc svc-sm">{{icon "lock"}}</span> Secrets Manager</a>
+        <a href="{{.Prefix}}/ssm" class="nav-item {{if hasPrefix .Page "ssm"}}on{{end}}"><span class="svc svc-ssm">{{icon "sliders"}}</span> Parameter Store</a>
       </nav>
       <div class="side-foot">{{icon "activity"}} local · v0.1.0</div>
     </aside>
@@ -71,3 +93,5 @@
   }
 </script>
 {{end}}
+
+{{define "copychip"}}<span class="copychip">{{if .Label}}<span class="cc-label">{{.Label}}</span>{{end}}<span class="cc-val" title="{{.Value}}">{{.Value}}</span><button type="button" class="copy-btn" data-copy="{{.Value}}" title="Copy">{{icon "copy"}}</button></span>{{end}}

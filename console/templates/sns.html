@@ -1,0 +1,164 @@
+{{define "sns_topics"}}{{template "header" .}}
+<div class="ph">
+  <div>
+    <h1><span class="svc svc-sns">{{icon "share"}}</span> SNS</h1>
+    <p class="ph-desc">Pub/sub topics on this endpoint.</p>
+  </div>
+  <div class="ph-actions">
+    <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter topics…" x-model="$store.filter.q" spellcheck="false"></label>
+    <span x-data="{open:false}">
+    <button class="btn" @click="open=true">{{icon "plus"}} Create topic</button>
+    <div class="overlay" x-show="open" x-cloak @click.self="open=false" @keydown.escape.window="open=false">
+      <div class="dialog anim">
+        <form hx-post="{{.Prefix}}/sns/create" hx-target="#sns-topic-list" hx-swap="outerHTML"
+              @htmx:after-request="if($event.detail.successful){open=false; $el.reset();}">
+          <div class="dialog-h"><h3>Create topic</h3><p>Subscribe queues, functions, or webhooks after creating.</p></div>
+          <div class="dialog-b">
+            <div class="field">
+              <label>Topic name</label>
+              <input class="input" name="name" placeholder="order-events" required pattern="[a-zA-Z0-9_\-]{1,256}" autocomplete="off" x-effect="open && $el.focus()">
+            </div>
+          </div>
+          <div class="dialog-f">
+            <button type="button" class="btn btn-outline" @click="open=false">Cancel</button>
+            <button type="submit" class="btn">Create topic</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    </span>
+  </div>
+</div>
+
+{{template "sns_topic_list" .}}
+{{template "footer" .}}{{end}}
+
+{{define "sns_topic_list"}}
+<div id="sns-topic-list">
+{{if .Topics}}
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th>Name</th><th>ARN</th><th class="right">Subscriptions</th><th style="width:60px"></th></tr></thead>
+  <tbody>{{range .Topics}}
+    <tr x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+      <td><a class="cell-name" href="{{$.Prefix}}/sns/{{.Name}}">{{icon "share"}} {{.Name}}</a></td>
+      <td>{{template "copychip" dict "Value" .ARN}}</td>
+      <td class="right"><span class="{{if .Subs}}badge{{else}}badge zero{{end}}">{{.Subs}}</span></td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn sm danger" title="Delete topic"
+                  hx-post="{{$.Prefix}}/sns/{{.Name}}/delete-topic" hx-target="#sns-topic-list" hx-swap="outerHTML"
+                  hx-confirm="Delete topic “{{.Name}}” and its subscriptions?">{{icon "trash"}}</button>
+        </div>
+      </td>
+    </tr>
+  {{end}}</tbody>
+</table></div>
+{{else}}<div class="empty"><span class="ic-lg">{{icon "share"}}</span><p>No topics yet — create your first one.</p></div>{{end}}
+</div>
+{{end}}
+
+{{define "sns_topic"}}{{template "header" .}}
+<nav class="bc">
+  <a href="{{.Prefix}}/sns">{{icon "share"}} SNS</a>{{icon "chevron"}}<span>{{.Topic}}</span>
+</nav>
+<div class="idband">
+  <div class="ph">
+    <div>
+      <h1><span class="svc svc-sns">{{icon "share"}}</span> {{.Topic}}</h1>
+      <div class="chips" style="margin-top:8px">
+        {{template "copychip" dict "Label" "arn" "Value" .ARN}}
+      </div>
+    </div>
+    <div class="ph-actions">
+      <button class="btn btn-outline danger" hx-post="{{.Prefix}}/sns/{{.Topic}}/delete-topic"
+              hx-confirm="Delete topic “{{.Topic}}”?" @htmx:after-request="window.location='{{.Prefix}}/sns'">{{icon "trash"}} Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="split">
+  <div>
+    <div class="panel">
+      <div class="panel-h"><h2>{{icon "send"}} Publish message</h2></div>
+      <div style="padding:14px 16px">
+        <form hx-post="{{.Prefix}}/sns/{{.Topic}}/publish" hx-target="#sns-subs" hx-swap="outerHTML"
+              @htmx:after-request="$el.reset()">
+          <div class="field" style="margin-bottom:10px">
+            <label>Subject <span class="dim">(optional)</span></label>
+            <input class="input" name="subject" placeholder="Order shipped">
+          </div>
+          <div class="field">
+            <label>Message</label>
+            <textarea name="message" rows="5" placeholder='{"orderId":"A-1042"}' required></textarea>
+          </div>
+          <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn" type="submit">{{icon "send"}} Publish</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {{template "sns_subs" .}}
+</div>
+{{template "footer" .}}{{end}}
+
+{{define "sns_subs"}}
+<div id="sns-subs">
+  <div class="panel">
+    <div class="panel-h"><h2>{{icon "link"}} Subscriptions <span class="badge">{{len .Subs}}</span></h2></div>
+    {{if .Subs}}
+    <table class="tbl">
+      <thead><tr><th>Protocol</th><th>Endpoint</th><th style="width:36px"></th></tr></thead>
+      <tbody>{{range .Subs}}
+        <tr>
+          <td><span class="badge type">{{.Protocol}}</span></td>
+          <td class="mono trunc dim" style="font-size:11.5px;max-width:280px" title="{{.Endpoint}}">{{.Endpoint}}</td>
+          <td>
+            <div class="row-actions">
+              <button class="icon-btn sm danger" title="Unsubscribe"
+                      hx-post="{{$.Prefix}}/sns/{{$.Topic}}/unsubscribe" hx-vals='{"arn":"{{.ARN}}"}'
+                      hx-target="#sns-subs" hx-swap="outerHTML" hx-confirm="Remove this subscription?">{{icon "trash"}}</button>
+            </div>
+          </td>
+        </tr>
+      {{end}}</tbody>
+    </table>
+    {{else}}<div class="empty" style="border:0"><p>No subscriptions — deliveries go nowhere yet.</p></div>{{end}}
+  </div>
+
+  <div class="panel" style="margin-top:12px" x-data="{proto:'sqs'}">
+    <div class="panel-h"><h2>{{icon "plus"}} Add subscription</h2></div>
+    <div style="padding:14px 16px">
+      <form hx-post="{{.Prefix}}/sns/{{.Topic}}/subscribe" hx-target="#sns-subs" hx-swap="outerHTML"
+            @htmx:after-request="$el.reset()">
+        <div class="fgrid">
+          <div class="field">
+            <label>Protocol</label>
+            <select class="input" name="protocol" x-model="proto">
+              <option value="sqs">sqs</option>
+              <option value="lambda">lambda</option>
+              <option value="http">http (webhook)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Endpoint</label>
+            <span x-show="proto==='sqs'">
+              <select class="input" name="endpoint" :disabled="proto!=='sqs'">
+                {{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">{{.Name}}</option>{{end}}
+              </select>
+            </span>
+            <span x-show="proto==='lambda'" x-cloak>
+              <select class="input" name="endpoint" :disabled="proto!=='lambda'">
+                {{range .Functions}}<option value="{{.ARN}}">{{.Name}}</option>{{end}}
+              </select>
+            </span>
+            <span x-show="proto==='http'" x-cloak>
+              <input class="input" name="endpoint" placeholder="http://localhost:9000/hook" :disabled="proto!=='http'">
+            </span>
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn btn-outline" type="submit">Subscribe</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+{{end}}

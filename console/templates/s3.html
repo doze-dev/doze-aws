@@ -12,11 +12,21 @@
       <div class="dialog anim">
         <form hx-post="{{.Prefix}}/s3/create" hx-target="#bucket-list" hx-swap="outerHTML"
               @htmx:after-request="if($event.detail.successful){open=false; $el.reset();}">
-          <div class="dialog-h"><h3>Create bucket</h3><p>Bucket names are globally unique, 3–63 lowercase characters.</p></div>
+          <div class="dialog-h"><h3>Create bucket</h3><p>3–63 lowercase characters: letters, digits, dots, hyphens.</p></div>
           <div class="dialog-b">
             <div class="field">
               <label>Bucket name</label>
-              <input class="input" name="name" placeholder="my-bucket" required pattern="[a-z0-9.\-]{3,63}" autocomplete="off" x-init="$nextTick(()=>{})" x-effect="open && $el.focus()">
+              <input class="input" name="name" placeholder="my-bucket" required pattern="[a-z0-9.\-]{3,63}" autocomplete="off" x-effect="open && $el.focus()">
+            </div>
+            <div style="margin-top:8px">
+              <div class="opt-row">
+                <div><div class="opt-l">Versioning</div><div class="opt-d">Keep every version of every object</div></div>
+                <label class="switch"><input type="checkbox" name="versioning"><span class="track"></span><span class="thumb"></span></label>
+              </div>
+              <div class="opt-row">
+                <div><div class="opt-l">Object lock</div><div class="opt-d">Enable retention and legal holds (implies versioning)</div></div>
+                <label class="switch"><input type="checkbox" name="object_lock"><span class="track"></span><span class="thumb"></span></label>
+              </div>
             </div>
           </div>
           <div class="dialog-f">
@@ -44,7 +54,7 @@
       <td class="right dim num">{{.Created}}</td>
       <td>
         <div class="row-actions">
-          <button class="icon-btn danger" title="Delete bucket"
+          <button class="icon-btn sm danger" title="Delete bucket"
                   hx-post="{{$.Prefix}}/s3/{{.Name}}/delete-bucket" hx-target="#bucket-list" hx-swap="outerHTML"
                   hx-confirm="Delete bucket “{{.Name}}”? It must be empty.">{{icon "trash"}}</button>
         </div>

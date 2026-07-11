@@ -28,16 +28,29 @@ func (c *Console) overview(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	buckets, _ := c.be.ListBuckets(ctx)
 	queues, _ := c.be.ListQueues(ctx)
+	topics, _ := c.be.ListTopics(ctx)
+	tables, _ := c.be.ListTables(ctx)
+	fns, _ := c.be.ListFunctions(ctx)
+	keys, _ := c.be.ListKeys(ctx)
+	params, _ := c.be.ListParameters(ctx)
+	secrets, _ := c.be.ListSecrets(ctx)
+	buses, _ := c.be.ListBuses(ctx)
+	ident, _ := c.be.CallerIdentity(ctx)
+
 	msgTotal := 0
 	for _, q := range queues {
 		msgTotal += q.Available + q.InFlight
 	}
+	rules := 0
+	for _, b := range buses {
+		rules += b.Rules
+	}
 	c.render(w, "overview", map[string]any{
-		"BucketCount": len(buckets),
-		"QueueCount":  len(queues),
-		"MsgTotal":    msgTotal,
-		"Buckets":     buckets,
-		"Queues":      queues,
+		"BucketCount": len(buckets), "QueueCount": len(queues), "TopicCount": len(topics),
+		"TableCount": len(tables), "FnCount": len(fns), "KeyCount": len(keys),
+		"ParamCount": len(params), "SecretCount": len(secrets),
+		"BusCount": len(buses), "RuleCount": rules, "MsgTotal": msgTotal,
+		"Identity": ident,
 	})
 }
 
@@ -54,13 +67,32 @@ func (c *Console) s3Buckets(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) s3CreateBucket(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.FormValue("name"))
-	if err := c.be.CreateBucket(r.Context(), name); err != nil {
+	versioning := r.FormValue("versioning") == "on"
+	objectLock := r.FormValue("object_lock") == "on"
+	if err := c.be.CreateBucketFull(r.Context(), name, versioning, objectLock); err != nil {
 		c.fail(w, err)
 		return
 	}
 	buckets, _ := c.be.ListBuckets(r.Context())
 	toast(w, "Bucket “"+name+"” created")
 	c.partial(w, "bucket_list", map[string]any{"Buckets": buckets})
+}
+
+// s3Versioning toggles versioning from the Properties tab.
+func (c *Console) s3Versioning(w http.ResponseWriter, r *http.Request) {
+	bucket := r.PathValue("bucket")
+	enable := r.FormValue("enable") == "true"
+	if err := c.be.SetBucketVersioning(r.Context(), bucket, enable); err != nil {
+		c.fail(w, err)
+		return
+	}
+	if enable {
+		toast(w, "Versioning enabled")
+	} else {
+		toast(w, "Versioning suspended")
+	}
+	props, _ := c.be.GetBucketProps(r.Context(), bucket)
+	c.partial(w, "s3_props", map[string]any{"Bucket": bucket, "Props": props})
 }
 
 func (c *Console) s3DeleteBucket(w http.ResponseWriter, r *http.Request) {
@@ -76,18 +108,32 @@ func (c *Console) s3DeleteBucket(w http.ResponseWriter, r *http.Request) {
 func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 	bucket := r.PathValue("bucket")
 	prefix := r.URL.Query().Get("prefix")
+	tab := tabOf(r, "objects")
+
+	data := map[string]any{
+		"Bucket":    bucket,
+		"KeyPrefix": prefix,
+		"Tab":       tab,
+	}
+	if tab == "properties" {
+		props, err := c.be.GetBucketProps(r.Context(), bucket)
+		if err != nil {
+			c.fail(w, err)
+			return
+		}
+		data["Props"] = props
+		c.render(w, "s3_objects", data)
+		return
+	}
+
 	objs, err := c.be.ListObjects(r.Context(), bucket, prefix)
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
-	data := map[string]any{
-		"Bucket":    bucket,
-		"KeyPrefix": prefix,
-		"Objects":   objs,
-		"Crumbs":    crumbs(prefix),
-		"Parent":    parentPrefix(prefix),
-	}
+	data["Objects"] = objs
+	data["Crumbs"] = crumbs(prefix)
+	data["Parent"] = parentPrefix(prefix)
 	// HTMX navigation within the browser swaps just the table.
 	if r.Header.Get("HX-Request") == "true" && r.URL.Query().Get("partial") == "1" {
 		c.partial(w, "object_table", data)
@@ -197,7 +243,18 @@ func (c *Console) sqsQueues(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {
 	name := strings.TrimSpace(r.FormValue("name"))
-	if err := c.be.CreateQueue(r.Context(), name); err != nil {
+	fifo := r.FormValue("fifo") == "on"
+	if fifo && !strings.HasSuffix(name, ".fifo") {
+		name += ".fifo"
+	}
+	if err := c.be.CreateQueueFull(r.Context(), SQSCreateOpts{
+		Name: name, FIFO: fifo,
+		VisibilityTimeout: strings.TrimSpace(r.FormValue("visibility")),
+		RetentionSeconds:  strings.TrimSpace(r.FormValue("retention")),
+		DelaySeconds:      strings.TrimSpace(r.FormValue("delay")),
+		DLQName:           r.FormValue("dlq"),
+		MaxReceiveCount:   strings.TrimSpace(r.FormValue("max_receive")),
+	}); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -227,6 +284,8 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 		"Queue": name, "Attrs": attrs, "Messages": msgs,
 		"Available": atoi(attrs["ApproximateNumberOfMessages"]),
 		"InFlight":  atoi(attrs["ApproximateNumberOfMessagesNotVisible"]),
+		"ARN":       QueueARN(name),
+		"URL":       "http://127.0.0.1:4566/000000000000/" + name,
 	})
 }
 
