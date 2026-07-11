@@ -156,11 +156,20 @@ func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 				edges = append(edges, FlowEdge{From: nodeID("sqs", src), To: nodeID("lambda", f.Name), Kind: "esm"})
 			}
 		}
-		// lambda OUTGOING: its dead-letter queue makes it a source too
-		if full.DLQ != "" && strings.Contains(full.DLQ, ":sqs:") {
-			dlq := nameFromARN(full.DLQ)
-			ensureNode(nodes, nodeID("sqs", dlq), b)
-			edges = append(edges, FlowEdge{From: nodeID("lambda", f.Name), To: nodeID("sqs", dlq), Kind: "dlq"})
+		// lambda OUTGOING: DLQ + async success/failure destinations make it a
+		// source too (SQS / SNS / Lambda / EventBridge targets).
+		lamID := nodeID("lambda", f.Name)
+		if to := destNode(full.DLQ, nameFromARN); to != "" {
+			ensureNode(nodes, to, b)
+			edges = append(edges, FlowEdge{From: lamID, To: to, Kind: "dlq"})
+		}
+		if to := destNode(full.OnSuccess, nameFromARN); to != "" {
+			ensureNode(nodes, to, b)
+			edges = append(edges, FlowEdge{From: lamID, To: to, Kind: "dest"})
+		}
+		if to := destNode(full.OnFailure, nameFromARN); to != "" {
+			ensureNode(nodes, to, b)
+			edges = append(edges, FlowEdge{From: lamID, To: to, Kind: "dest"})
 		}
 	}
 	// edges: SQS redrive → DLQ
@@ -428,6 +437,23 @@ func edgeTargetNode(proto, endpoint string, leaf func(string) string) string {
 		return nodeID("lambda", leaf(strings.TrimPrefix(leaf(endpoint), "function:")))
 	case proto == "sns" || strings.Contains(endpoint, ":sns:"):
 		return nodeID("sns", leaf(endpoint))
+	}
+	return ""
+}
+
+// destNode maps a destination ARN (SQS/SNS/Lambda/EventBridge) to a graph node.
+func destNode(arn string, leaf func(string) string) string {
+	switch {
+	case arn == "":
+		return ""
+	case strings.Contains(arn, ":sqs:"):
+		return nodeID("sqs", leaf(arn))
+	case strings.Contains(arn, ":sns:"):
+		return nodeID("sns", leaf(arn))
+	case strings.Contains(arn, ":lambda:") || strings.Contains(arn, "function:"):
+		return nodeID("lambda", strings.TrimPrefix(leaf(arn), "function:"))
+	case strings.Contains(arn, ":events:") || strings.Contains(arn, "event-bus/"):
+		return nodeID("eb", leaf(arn))
 	}
 	return ""
 }

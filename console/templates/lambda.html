@@ -32,6 +32,8 @@
       <div class="split">
         <div><div class="sec-title" style="margin-top:0">General</div><div class="table-wrap"><table class="tbl kv"><tbody>
           <tr><td>Runtime</td><td>{{.Fn.Runtime}}</td></tr><tr><td>Handler</td><td>{{.Fn.Handler}}</td></tr><tr><td>Timeout</td><td>{{.Fn.Timeout}} s</td></tr><tr><td>Memory</td><td>{{.Fn.MemorySize}} MB</td></tr><tr><td>Version</td><td>{{.Fn.Version}}</td></tr><tr><td>Code size</td><td>{{humanSize .Fn.CodeSize}}</td></tr>{{if .Fn.DLQ}}<tr><td>Dead-letter queue</td><td>{{template "copychip" dict "Value" .Fn.DLQ}}</td></tr>{{end}}
+          {{if .Fn.OnSuccess}}<tr><td>On success →</td><td>{{template "copychip" dict "Value" .Fn.OnSuccess}}</td></tr>{{end}}
+          {{if .Fn.OnFailure}}<tr><td>On failure →</td><td>{{template "copychip" dict "Value" .Fn.OnFailure}}</td></tr>{{end}}
         </tbody></table></div></div>
         <div><div class="sec-title" style="margin-top:0">Environment variables</div>{{if .Fn.Env}}<div class="table-wrap"><table class="tbl kv"><tbody>{{range $k, $v := .Fn.Env}}<tr><td>{{$k}}</td><td class="trunc" title="{{$v}}">{{$v}}</td></tr>{{end}}</tbody></table></div>{{else}}<p class="mini-note">No environment variables.</p>{{end}}</div>
       </div>

@@ -710,3 +710,4 @@ tr:hover .kv-copy .copy-btn, .kv-copy:hover .copy-btn { opacity: 1; }
 .unwired-chip .uc-bar { width: 4px; height: 34px; border-radius: 8px 0 0 8px; }
 .unwired-chip .uc-nm { font-weight: 550; font-size: 12.5px; }
 .unwired-chip .uc-sv { font: 10px var(--mono); color: hsl(var(--muted-foreground)); }
+.fl-edge.fl-k-dest { stroke: hsl(var(--accent-blue)); }

@@ -26,6 +26,8 @@ type Function struct {
 	CodeSize   int64
 	Version    string
 	DLQ        string
+	OnSuccess  string // async destination ARN
+	OnFailure  string // async destination ARN
 	Mappings   []Mapping
 }
 
@@ -125,6 +127,24 @@ func (b *backend) GetFunction(ctx context.Context, name string) (*Function, erro
 		for _, m := range mout.EventSourceMappings {
 			f.Mappings = append(f.Mappings, Mapping{UUID: m.UUID, SourceARN: m.EventSourceArn, BatchSize: m.BatchSize, State: m.State})
 		}
+	}
+
+	// Async destinations (EventInvokeConfig): OnSuccess / OnFailure.
+	ereq, _ := http.NewRequestWithContext(ctx, "GET", b.base+"/2019-09-25/functions/"+url.PathEscape(name)+"/event-invoke-config", nil)
+	if eb, err := b.do(ereq); err == nil {
+		var eout struct {
+			DestinationConfig struct {
+				OnSuccess struct {
+					Destination string `json:"Destination"`
+				} `json:"OnSuccess"`
+				OnFailure struct {
+					Destination string `json:"Destination"`
+				} `json:"OnFailure"`
+			} `json:"DestinationConfig"`
+		}
+		json.Unmarshal(eb, &eout)
+		f.OnSuccess = eout.DestinationConfig.OnSuccess.Destination
+		f.OnFailure = eout.DestinationConfig.OnFailure.Destination
 	}
 	return &f, nil
 }
