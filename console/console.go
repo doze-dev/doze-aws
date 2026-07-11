@@ -142,6 +142,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/eb/{bus}", c.ebBus)
 	m.HandleFunc("POST "+p+"/eb/{bus}/create-rule", c.ebCreateRule)
 	m.HandleFunc("POST "+p+"/eb/{bus}/test-event", c.ebTestEvent)
+	m.HandleFunc("POST "+p+"/eb/{bus}/match", c.ebMatch) // HTMX partial (live rule matcher)
 	m.HandleFunc("GET "+p+"/eb/{bus}/rule/{rule}", c.ebRule)
 	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/add-target", c.ebAddTarget)
 	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/remove-target", c.ebRemoveTarget)

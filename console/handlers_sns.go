@@ -2,6 +2,7 @@ package console
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
 )
@@ -72,8 +73,24 @@ func (c *Console) snsPublish(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Message published")
-	c.snsSubsPartial(w, r, name)
+	// Answer with a delivery receipt: who this message fanned out to, each
+	// linked — the publish→verify loop closes without leaving the page.
+	subs, _ := c.be.ListSubscriptions(r.Context(), topicARNOf(name))
+	type rcpt struct{ Proto, Name, URL string }
+	var rcpts []rcpt
+	for _, s := range subs {
+		switch s.Protocol {
+		case "sqs":
+			n := arnLeaf(s.Endpoint)
+			rcpts = append(rcpts, rcpt{"sqs", n, "/sqs/" + n})
+		case "lambda":
+			n := strings.TrimPrefix(arnLeaf(s.Endpoint), "function:")
+			rcpts = append(rcpts, rcpt{"lambda", n, "/lambda/" + n})
+		default:
+			rcpts = append(rcpts, rcpt{s.Protocol, s.Endpoint, ""})
+		}
+	}
+	c.partial(w, "sns_receipt", map[string]any{"Topic": name, "Rcpts": rcpts})
 }
 
 func (c *Console) snsSubscribe(w http.ResponseWriter, r *http.Request) {

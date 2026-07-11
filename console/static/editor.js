@@ -35,6 +35,9 @@
         var nextIsJSON = typeof m === "object" && m.json;
         if (curIsJSON !== nextIsJSON) cm.setOption("mode", m);
       }
+      // Re-emit as a bubbling input event so live listeners (debounced htmx
+      // triggers, dirty flags) hear edits made inside the editor.
+      ta.dispatchEvent(new Event("input", { bubbles: true }));
     });
     // Grow with content inside the min/max the CSS sets.
     cm.setSize("100%", null);

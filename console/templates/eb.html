@@ -20,22 +20,35 @@
     </div>
     <div class="det-b"><div class="split">
       {{template "eb_rule_list" .}}
-      <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Send test event</h2></div><div style="padding:14px 16px">
-        <form hx-post="{{.Prefix}}/eb/{{.Bus}}/test-event" hx-target="#eb-rules" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+      <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Test event</h2></div><div style="padding:14px 16px">
+        {{/* As you type, the rules panel shows live match verdicts (the sibling
+             div re-posts the form to /match, debounced). Publish sends it for real. */}}
+        <form id="eb-event-form" hx-post="{{.Prefix}}/eb/{{.Bus}}/test-event" hx-target="#eb-rules" hx-select="unset" hx-swap="outerHTML">
           <div class="fgrid" style="margin-bottom:10px"><div class="field"><label>Source</label><input class="input" name="source" placeholder="orders" required></div><div class="field"><label>Detail type</label><input class="input" name="detail_type" placeholder="created" required></div></div>
           <div class="field"><label>Detail <span class="dim">JSON</span></label><textarea name="detail" data-editor="json" rows="4" placeholder='{"orderId":"A-1042"}'></textarea></div>
-          <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn" type="submit">{{icon "send"}} Publish event</button></div>
+          <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <span class="dim" style="font-size:11.5px">verdicts update as you type · <span class="kbd">⌘⏎</span> publishes</span>
+            <button class="btn" type="submit">{{icon "send"}} Publish event</button>
+          </div>
         </form>
-        <p class="mini-note">Matching rules deliver immediately — check the target queue or function, or the Traffic tab.</p>
+        <div hx-post="{{.Prefix}}/eb/{{.Bus}}/match" hx-include="#eb-event-form" hx-trigger="input from:#eb-event-form delay:350ms" hx-target="#eb-rules" hx-select="unset" hx-swap="outerHTML"></div>
+        <p class="mini-note">Publishing delivers to every matching rule's targets immediately.</p>
       </div></div>
     </div></div>
   </section>
 {{template "shell_bottom" .}}{{end}}
 
 {{define "eb_rule_list"}}
-<div id="eb-rules"><div class="panel"><div class="panel-h"><h2>{{icon "list"}} Rules <span class="badge">{{len .Rules}}</span></h2></div>
-  {{if .Rules}}<table class="tbl"><thead><tr><th>Rule</th><th>Match</th><th class="right">State</th></tr></thead><tbody>{{range .Rules}}
-    <tr><td><a class="cell-name" href="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{.Name}}">{{icon "route"}} {{.Name}}</a></td><td class="mono dim trunc" style="font-size:11px;max-width:220px">{{if .Schedule}}{{.Schedule}}{{else}}pattern{{end}}</td><td class="right"><span class="badge {{if eq .State "ENABLED"}}state-on{{else}}state-off{{end}}">{{.State}}</span></td></tr>
+<div id="eb-rules"><div class="panel"><div class="panel-h"><h2>{{icon "list"}} Rules <span class="badge">{{len .Rules}}</span></h2>
+  {{if .Verdicts}}<span class="dim" style="font-size:11.5px">{{.Hits}} of {{len .Rules}} match this event</span>{{else if .MatchNote}}<span class="dim" style="font-size:11.5px">{{.MatchNote}}</span>{{end}}</div>
+  {{if .Rules}}<table class="tbl"><thead><tr><th>Rule</th><th>Match</th><th class="right">{{if .Verdicts}}Verdict{{else}}State{{end}}</th></tr></thead><tbody>{{range .Rules}}
+    <tr {{if $.Verdicts}}{{if eq (index $.Verdicts .Name) "match"}}class="rule-hit"{{end}}{{end}}>
+      <td><a class="cell-name" href="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{.Name}}">{{icon "route"}} {{.Name}}</a></td>
+      <td class="mono dim trunc" style="font-size:11px;max-width:220px">{{if .Schedule}}{{.Schedule}}{{else}}pattern{{end}}</td>
+      <td class="right">
+        {{if $.Verdicts}}{{$v := index $.Verdicts .Name}}<span class="badge {{if eq $v "match"}}state-on{{else if eq $v "no match"}}state-off{{else}}zero{{end}}">{{$v}}</span>
+        {{else}}<span class="badge {{if eq .State "ENABLED"}}state-on{{else}}state-off{{end}}">{{.State}}</span>{{end}}
+      </td></tr>
   {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No rules yet — nothing is listening.</p><a class="btn btn-outline btn-sm" href="{{$.Prefix}}/eb/{{$.Bus}}/create-rule">{{icon "plus"}} Create rule</a></div>{{end}}
 </div></div>
 {{end}}

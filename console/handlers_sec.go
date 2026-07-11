@@ -112,7 +112,11 @@ func (c *Console) kmsEncrypt(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.partial(w, "kms_crypto_result", map[string]any{"Label": "Ciphertext (base64)", "Value": out})
+	c.partial(w, "kms_crypto_result", map[string]any{
+		"Label": "Ciphertext (base64)", "Value": out,
+		// One-click round-trip: the result card can decrypt itself.
+		"DecryptURL": c.prefix + "/kms/" + r.PathValue("key") + "/decrypt",
+	})
 }
 
 func (c *Console) kmsDecrypt(w http.ResponseWriter, r *http.Request) {

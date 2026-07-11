@@ -21,16 +21,35 @@
     </div>
     <div class="det-b"><div class="split">
       <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Publish message</h2></div><div style="padding:14px 16px">
-        <form hx-post="{{.Prefix}}/sns/{{.Topic}}/publish" hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+        <form hx-post="{{.Prefix}}/sns/{{.Topic}}/publish" hx-target="#sns-receipt" hx-select="unset" hx-swap="outerHTML">
           <div class="field" style="margin-bottom:10px"><label>Subject <span class="dim">optional</span></label><input class="input" name="subject" placeholder="Order shipped"></div>
           <div class="field"><label>Message</label><textarea name="message" data-editor rows="6" placeholder='{"orderId":"A-1042"}' required></textarea></div>
-          <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn" type="submit">{{icon "send"}} Publish</button></div>
+          <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <span class="dim" style="font-size:11.5px"><span class="kbd">⌘⏎</span> publishes</span>
+            <button class="btn" type="submit">{{icon "send"}} Publish</button>
+          </div>
         </form>
+        {{/* The delivery receipt lands here — who got the message, with links. */}}
+        <div id="sns-receipt"></div>
       </div></div>
       {{template "sns_subs" .}}
     </div></div>
   </section>
 {{template "shell_bottom" .}}{{end}}
+
+{{/* Post-publish delivery receipt: closes the publish→verify loop inline.
+     Zero subscribers is the classic silent foot-gun — call it out loudly. */}}
+{{define "sns_receipt"}}
+<div id="sns-receipt" class="pub-receipt {{if not .Rcpts}}warn{{end}}">
+  {{if .Rcpts}}
+    <div class="pr-h">✓ Published · fanned out to {{len .Rcpts}} subscriber{{if ne (len .Rcpts) 1}}s{{end}}</div>
+    {{range .Rcpts}}<div class="pr-row">→ {{if .URL}}<a href="{{$.Prefix}}{{.URL}}">{{.Name}}</a>{{else}}<span>{{.Name}}</span>{{end}} <span class="dim">({{.Proto}})</span></div>{{end}}
+  {{else}}
+    <div class="pr-h">⚠ Published — but this topic has no subscribers. The message went nowhere.</div>
+    <div class="pr-row dim">Add a subscription on the right, then publish again.</div>
+  {{end}}
+</div>
+{{end}}
 
 {{define "sns_subs"}}
 <div id="sns-subs">

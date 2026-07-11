@@ -41,4 +41,4 @@
 </div>
 {{end}}
 
-{{define "kms_crypto_result"}}<div class="code-out"><div class="co-h"><span>{{.Label}}</span><button class="copy-btn" data-copy="{{.Value}}">{{icon "copy"}}</button></div><pre>{{.Value}}</pre></div>{{end}}
+{{define "kms_crypto_result"}}<div class="code-out"><div class="co-h"><span>{{.Label}}</span><span style="display:flex;align-items:center;gap:8px">{{if .DecryptURL}}<button class="btn btn-outline btn-sm" hx-post="{{.DecryptURL}}" hx-vals='{"ciphertext":"{{.Value}}"}' hx-target="#kms-crypto-out" hx-select="unset" hx-swap="innerHTML">Decrypt this →</button>{{end}}<button class="copy-btn" data-copy="{{.Value}}">{{icon "copy"}}</button></span></div><pre>{{.Value}}</pre></div>{{end}}

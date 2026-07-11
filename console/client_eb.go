@@ -102,6 +102,22 @@ func (b *backend) ListRules(ctx context.Context, bus string) ([]Rule, error) {
 	return rules, nil
 }
 
+// TestEventPattern asks the service whether an event matches a rule pattern —
+// the same evaluator that routes real PutEvents traffic.
+func (b *backend) TestEventPattern(ctx context.Context, pattern, event string) (bool, error) {
+	body, err := b.json11(ctx, "AWSEvents", "TestEventPattern", map[string]any{
+		"EventPattern": pattern, "Event": event,
+	})
+	if err != nil {
+		return false, err
+	}
+	var out struct {
+		Result bool `json:"Result"`
+	}
+	json.Unmarshal(body, &out)
+	return out.Result, nil
+}
+
 func (b *backend) GetRule(ctx context.Context, bus, name string) (*Rule, error) {
 	in := map[string]any{"Name": name}
 	if bus != "" && bus != "default" {

@@ -1,6 +1,11 @@
 package console
 
-import "net/http"
+import (
+	"encoding/json"
+	"net/http"
+	"strings"
+	"time"
+)
 
 func (c *Console) ebBuses(w http.ResponseWriter, r *http.Request) {
 	buses, err := c.be.ListBuses(r.Context())
@@ -78,6 +83,51 @@ func (c *Console) ebTestEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	toast(w, "Event published to "+bus)
 	c.ebRulesPartial(w, r, bus)
+}
+
+// ebMatch answers "which rules on this bus catch this event?" live, using the
+// service's own TestEventPattern evaluator — the loop the SDK can't close
+// without a hand-rolled script.
+func (c *Console) ebMatch(w http.ResponseWriter, r *http.Request) {
+	bus := r.PathValue("bus")
+	rules, _ := c.be.ListRules(r.Context(), bus)
+	detail := strings.TrimSpace(r.FormValue("detail"))
+	if detail == "" {
+		detail = "{}"
+	}
+	data := map[string]any{"Bus": bus, "Rules": rules, "Matching": true}
+	if !json.Valid([]byte(detail)) {
+		data["MatchNote"] = "detail isn't valid JSON yet"
+		c.partial(w, "eb_rule_list", data)
+		return
+	}
+	event, _ := json.Marshal(map[string]any{
+		"id": "console-test", "account": "000000000000", "region": "us-east-1",
+		"time": time.Now().UTC().Format(time.RFC3339), "resources": []string{},
+		"source": r.FormValue("source"), "detail-type": r.FormValue("detail_type"),
+		"detail": json.RawMessage(detail),
+	})
+	verdicts := map[string]string{}
+	hits := 0
+	for _, rl := range rules {
+		if rl.Pattern == "" { // schedule rules don't pattern-match
+			verdicts[rl.Name] = "schedule"
+			continue
+		}
+		ok, err := c.be.TestEventPattern(r.Context(), rl.Pattern, string(event))
+		switch {
+		case err != nil:
+			verdicts[rl.Name] = "error"
+		case ok:
+			verdicts[rl.Name] = "match"
+			hits++
+		default:
+			verdicts[rl.Name] = "no match"
+		}
+	}
+	data["Verdicts"] = verdicts
+	data["Hits"] = hits
+	c.partial(w, "eb_rule_list", data)
 }
 
 func (c *Console) ebRule(w http.ResponseWriter, r *http.Request) {

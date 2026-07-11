@@ -800,3 +800,13 @@ a.lo-card:hover { border-color: hsl(var(--accent-blue)); box-shadow: 0 0 0 3px h
 .lo-arrow { display: grid; place-items: center; color: hsl(var(--muted-foreground)); }
 .lo-arrow .ic { width: 17px; height: 17px; }
 @media (max-width: 1000px) { .lam-ov { grid-template-columns: 1fr; } .lo-arrow { transform: rotate(90deg); } }
+.rule-hit td { background: hsl(var(--success) / 0.08); }
+
+/* SNS publish receipt */
+.pub-receipt { margin-top: 12px; border: 1px solid hsl(var(--success) / 0.35); background: hsl(var(--success) / 0.08); border-radius: var(--radius); padding: 10px 13px; font-size: 12.5px; }
+.pub-receipt.warn { border-color: hsl(var(--warning) / 0.45); background: hsl(var(--warning) / 0.09); }
+.pub-receipt .pr-h { font-weight: 600; }
+.pub-receipt.warn .pr-h { color: hsl(var(--warning)); }
+.pub-receipt:not(.warn) .pr-h { color: hsl(var(--success)); }
+.pub-receipt .pr-row { margin-top: 4px; font-family: var(--mono); font-size: 11.5px; }
+.pub-receipt .pr-row a { color: hsl(var(--accent-blue)); }
