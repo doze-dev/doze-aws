@@ -44,12 +44,24 @@
       <div class="split">
         <div class="panel"><div class="panel-h"><h2>{{icon "play"}} Test event</h2></div><div style="padding:14px 16px">
           <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/invoke" hx-target="#invoke-result" hx-swap="innerHTML" hx-indicator="#invoke-spin">
-            <textarea name="payload" data-editor="json" rows="8" placeholder='{"key":"value"}'>{"hello": "world"}</textarea>
+            <textarea name="payload" data-editor="json" rows="10" placeholder='{"key":"value"}'>{"hello": "world"}</textarea>
             <div style="margin-top:10px;display:flex;justify-content:flex-end;align-items:center;gap:10px"><span id="invoke-spin" class="dim htmx-indicator" style="font-size:12px">Running…</span><button class="btn" type="submit">{{icon "play"}} Invoke</button></div>
           </form>
           <p class="mini-note">Synchronous invoke against the real handler process, with tail logs.</p>
         </div></div>
-        <div id="invoke-result"><div class="empty"><span class="ic-lg">{{icon "terminal"}}</span><p>The response, duration, and logs land here.</p></div></div>
+        <div id="invoke-result">
+          <div class="panel">
+            <div class="panel-h"><h2>{{icon "settings"}} At a glance</h2></div>
+            <table class="tbl kv"><tbody>
+              <tr><td>Runtime</td><td>{{.Fn.Runtime}}</td></tr>
+              <tr><td>Handler</td><td class="mono">{{.Fn.Handler}}</td></tr>
+              <tr><td>Timeout</td><td>{{.Fn.Timeout}} s</td></tr>
+              <tr><td>Memory</td><td>{{.Fn.MemorySize}} MB</td></tr>
+              <tr><td>Triggers</td><td>{{if .Fn.Mappings}}{{len .Fn.Mappings}} event source mapping{{if ne (len .Fn.Mappings) 1}}s{{end}}{{else}}<span class="dim">none</span>{{end}}</td></tr>
+            </tbody></table>
+            <p class="mini-note" style="padding:10px 14px 12px">Invoke on the left to run the function — the response, duration and logs replace this panel. Wiring is shown above.</p>
+          </div>
+        </div>
       </div>
       {{end}}
     </div>

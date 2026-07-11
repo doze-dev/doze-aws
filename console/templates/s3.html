@@ -32,6 +32,7 @@
         (dict "Key" "objects" "Label" "Objects" "Icon" "list" "URL" (printf "%s/s3/%s" .Prefix .Bucket))
         (dict "Key" "properties" "Label" "Properties" "Icon" "settings" "URL" (printf "%s/s3/%s?tab=properties" .Prefix .Bucket)))}}
     </div>
+    {{template "connections" dict "Prefix" .Prefix "Conn" .Conn}}
     <div class="det-b">
       {{if eq .Tab "properties"}}
         {{template "s3_props" .}}

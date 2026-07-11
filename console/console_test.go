@@ -464,6 +464,30 @@ func TestFlowsGraph(t *testing.T) {
 	}
 }
 
+// TestConnectionsView: a resource's detail page shows its 1-hop wiring — a
+// queue with a redrive policy drains to its DLQ, which in turn is fed by it.
+func TestConnectionsView(t *testing.T) {
+	h := newConsole(t)
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"dead-letter"}})
+	create(t, h, "/_console/sqs/create", url.Values{
+		"name": {"orders"}, "dlq": {"dead-letter"}, "max_receive": {"5"},
+	})
+
+	// The orders page drains to dead-letter.
+	orders := req(t, h, "GET", "/_console/sqs/orders", nil).Body.String()
+	if !strings.Contains(orders, "Drains to") || !strings.Contains(orders, "dead-letter") {
+		t.Fatalf("orders page missing its DLQ connection:\n%s", orders)
+	}
+	if !strings.Contains(orders, "redrive") {
+		t.Fatalf("orders connection should be labelled by edge kind (redrive):\n%s", orders)
+	}
+	// The dead-letter page is fed by orders (the reverse edge).
+	dl := req(t, h, "GET", "/_console/sqs/dead-letter", nil).Body.String()
+	if !strings.Contains(dl, "Fed by") || !strings.Contains(dl, "orders") {
+		t.Fatalf("dead-letter page missing its upstream connection:\n%s", dl)
+	}
+}
+
 // TestTrafficRecorder: external calls are captured; console calls are not.
 func TestTrafficRecorder(t *testing.T) {
 	if testing.Short() {

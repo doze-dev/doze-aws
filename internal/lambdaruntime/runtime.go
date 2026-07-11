@@ -200,8 +200,17 @@ func runtimeCommand(runtime, handler string) ([]string, error) {
 		return []string{"python3", "-m", "awslambdaric", handler}, nil
 	case strings.HasPrefix(runtime, "nodejs"):
 		return []string{"npx", "--yes", "aws-lambda-ric", handler}, nil
+	case strings.HasPrefix(runtime, "java"):
+		// aws-lambda-java-runtime-interface-client: entrypoint class reads the
+		// handler ("package.Class::method") from argv.
+		return []string{"java", "-cp", "./*:.", "com.amazonaws.services.lambda.runtime.api.client.AWSLambda", handler}, nil
+	case strings.HasPrefix(runtime, "ruby"):
+		return []string{"aws_lambda_ric", handler}, nil
+	case strings.HasPrefix(runtime, "dotnet"):
+		// .NET RIC (Amazon.Lambda.RuntimeSupport) reads "Assembly::Type::Method".
+		return []string{"dotnet", "exec", "/opt/aws-lambda-ric.dll", handler}, nil
 	}
-	return nil, fmt.Errorf("unsupported runtime %q (use provided.*, python3.x, nodejs*, or set an explicit command)", runtime)
+	return nil, fmt.Errorf("unsupported runtime %q (use provided.*, go, python3.x, nodejs*, java*, ruby*, dotnet*, or set an explicit command)", runtime)
 }
 
 // routes serves the Runtime API.

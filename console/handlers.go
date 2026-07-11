@@ -153,6 +153,7 @@ func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 		"List":      c.s3List(r),
 		"Sel":       bucket,
 		"Title":     bucket + " · S3",
+		"Conn":      c.be.Neighbors(r.Context(), "s3", bucket),
 	}
 	if tab == "properties" {
 		props, err := c.be.GetBucketProps(r.Context(), bucket)
