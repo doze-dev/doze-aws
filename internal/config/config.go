@@ -21,6 +21,8 @@ type Config struct {
 	// S3Host is the base host for virtual-hosted-style S3 bucket detection
 	// (reserved until the s3 service lands).
 	S3Host string
+	// Console mounts the web management UI at /_console on the shared endpoint.
+	Console bool
 }
 
 // Default returns a Config suitable for zero-config local development. The
@@ -31,6 +33,7 @@ func Default() Config {
 		ListenAddr: "127.0.0.1:4566",
 		DataDir:    "./data",
 		S3Host:     "localhost",
+		Console:    true,
 	}
 }
 

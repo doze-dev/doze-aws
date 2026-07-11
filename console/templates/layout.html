@@ -1,0 +1,23 @@
+{{define "header"}}<!-- rendered by header/footer wrappers -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>doze-aws console</title>
+<link rel="stylesheet" href="{{.Prefix}}/static/app.css">
+<script src="{{.Prefix}}/static/htmx.min.js"></script>
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><span class="logo">◆</span> doze-aws</div>
+    <nav>
+      <a href="{{.Prefix}}/"    class="{{if eq .Page "overview"}}on{{end}}">Overview</a>
+      <a href="{{.Prefix}}/s3"  class="{{if eq .Page "s3_buckets"}}on{{end}}{{if eq .Page "s3_objects"}}on{{end}}">S3</a>
+      <a href="{{.Prefix}}/sqs" class="{{if eq .Page "sqs_queues"}}on{{end}}{{if eq .Page "sqs_queue"}}on{{end}}">SQS</a>
+    </nav>
+    <div class="side-foot">doze-aws · local console</div>
+  </aside>
+  <main class="main">
+{{end}}
+
+{{define "footer"}}
+  </main>
+</div>
+{{end}}

@@ -1,0 +1,34 @@
+{{define "sqs_queues"}}{{template "header" .}}
+<div class="head-row">
+  <h1>SQS queues</h1>
+  <form hx-post="{{.Prefix}}/sqs/create" hx-target="#queue-list" hx-swap="outerHTML"
+        hx-on::after-request="this.reset()" class="inline-form">
+    <input name="name" placeholder="new-queue-name" required pattern="[a-zA-Z0-9_\-]{1,80}"
+           title="up to 80 chars: letters, digits, hyphens, underscores">
+    <button type="submit">Create</button>
+  </form>
+</div>
+{{template "queue_list" .}}
+{{template "footer" .}}{{end}}
+
+{{define "queue_list"}}
+<div id="queue-list">
+{{if .Queues}}
+<table class="grid">
+  <thead><tr><th>Name</th><th class="right">Available</th><th class="right">In flight</th><th class="right">Actions</th></tr></thead>
+  <tbody>{{range .Queues}}
+    <tr>
+      <td><a href="{{$.Prefix}}/sqs/{{.Name}}">✉ {{.Name}}</a></td>
+      <td class="right"><span class="pill">{{.Available}}</span></td>
+      <td class="right dim">{{.InFlight}}</td>
+      <td class="right">
+        <button class="ghost danger" hx-post="{{$.Prefix}}/sqs/{{.Name}}/delete-queue"
+                hx-target="#queue-list" hx-swap="outerHTML"
+                hx-confirm="Delete queue {{.Name}}?">Delete</button>
+      </td>
+    </tr>
+  {{end}}</tbody>
+</table>
+{{else}}<p class="empty">No queues yet. Create one above.</p>{{end}}
+</div>
+{{end}}

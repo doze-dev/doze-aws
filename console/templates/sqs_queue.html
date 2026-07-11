@@ -1,0 +1,48 @@
+{{define "sqs_queue"}}{{template "header" .}}
+<div class="head-row">
+  <h1>✉ {{.Queue}}</h1>
+  <div class="actions">
+    <button class="ghost danger" hx-post="{{.Prefix}}/sqs/{{.Queue}}/purge"
+            hx-target="#message-panel" hx-swap="outerHTML"
+            hx-confirm="Purge ALL messages from {{.Queue}}?">Purge queue</button>
+  </div>
+</div>
+
+<div class="split">
+  <section>
+    <h2>Send a message</h2>
+    <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/send" hx-target="#message-panel" hx-swap="outerHTML"
+          hx-on::after-request="this.reset()">
+      <textarea name="body" rows="5" placeholder='{"hello":"world"}' required></textarea>
+      <button type="submit">Send</button>
+    </form>
+    <h2>Attributes</h2>
+    <table class="grid kv">
+      <tbody>{{range $k, $v := .Attrs}}<tr><td class="dim">{{$k}}</td><td>{{$v}}</td></tr>{{end}}</tbody>
+    </table>
+  </section>
+
+  <section>
+    <div hx-get="{{.Prefix}}/sqs/{{.Queue}}/messages" hx-trigger="load, every 3s" hx-swap="outerHTML">
+      {{template "message_panel" .}}
+    </div>
+  </section>
+</div>
+{{template "footer" .}}{{end}}
+
+{{define "message_panel"}}
+<div id="message-panel" hx-get="{{.Prefix}}/sqs/{{.Queue}}/messages" hx-trigger="every 3s" hx-swap="outerHTML">
+  <div class="panel-head">
+    <h2>Messages <span class="pill">{{.Available}}</span> <span class="dim">· {{.InFlight}} in flight</span></h2>
+    <span class="peek-note" title="Peeked without consuming — unlike the AWS console, refreshing never receives or hides messages">👁 non-destructive peek</span>
+  </div>
+  {{if .Messages}}
+  <ul class="messages">{{range .Messages}}
+    <li>
+      <div class="msg-meta"><code>{{.MessageID}}</code><span class="dim">{{.SentAt}}</span></div>
+      <pre class="msg-body">{{.Body}}</pre>
+    </li>
+  {{end}}</ul>
+  {{else}}<p class="empty">No visible messages.</p>{{end}}
+</div>
+{{end}}

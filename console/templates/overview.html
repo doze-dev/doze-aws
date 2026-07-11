@@ -1,0 +1,32 @@
+{{define "overview"}}{{template "header" .}}
+<h1>Overview</h1>
+<div class="cards">
+  <a class="card" href="{{.Prefix}}/s3">
+    <div class="card-n">{{.BucketCount}}</div>
+    <div class="card-l">S3 buckets</div>
+  </a>
+  <a class="card" href="{{.Prefix}}/sqs">
+    <div class="card-n">{{.QueueCount}}</div>
+    <div class="card-l">SQS queues</div>
+  </a>
+  <div class="card">
+    <div class="card-n">{{.MsgTotal}}</div>
+    <div class="card-l">messages in flight</div>
+  </div>
+</div>
+
+<div class="split">
+  <section>
+    <h2>Buckets</h2>
+    {{if .Buckets}}<ul class="mini">{{range .Buckets}}
+      <li><a href="{{$.Prefix}}/s3/{{.Name}}">{{.Name}}</a><span class="dim">{{.Created}}</span></li>
+    {{end}}</ul>{{else}}<p class="empty">No buckets yet.</p>{{end}}
+  </section>
+  <section>
+    <h2>Queues</h2>
+    {{if .Queues}}<ul class="mini">{{range .Queues}}
+      <li><a href="{{$.Prefix}}/sqs/{{.Name}}">{{.Name}}</a><span class="pill">{{.Available}}</span></li>
+    {{end}}</ul>{{else}}<p class="empty">No queues yet.</p>{{end}}
+  </section>
+</div>
+{{template "footer" .}}{{end}}

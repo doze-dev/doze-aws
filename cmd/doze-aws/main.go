@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws"
+	"github.com/doze-dev/doze-aws/console"
 	"github.com/doze-dev/doze-aws/internal/config"
 )
 
@@ -111,6 +112,7 @@ func parseFlags(args []string, dst *config.Config) (configPath string) {
 	fs.StringVar(&dst.DataDir, "data-dir", dst.DataDir, "root directory for service data")
 	fs.Var(servicesFlag{&dst.Services}, "services", "comma-separated services to enable (default: all implemented)")
 	fs.StringVar(&dst.S3Host, "s3-host", dst.S3Host, "base host for virtual-hosted-style S3 bucket addressing")
+	fs.BoolVar(&dst.Console, "console", dst.Console, "serve the web management console at /_console")
 	fs.Parse(args) //nolint:errcheck // flag.ExitOnError exits on a parse error.
 	return *cp
 }
@@ -146,7 +148,24 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	// to learn the bound address — keep its shape stable.
 	logger.Info("listening", "addr", ln.Addr().String(), "services", strings.Join(enabled, ","))
 
-	srv := &http.Server{Handler: stack.Handler()}
+	// Mount the web console alongside the AWS gateway on the same endpoint. The
+	// "/_console" prefix can never collide with a valid S3 bucket name (those
+	// forbid underscores), so path-style S3 routing is unaffected.
+	handler := http.Handler(stack.Handler())
+	if cfg.Console {
+		con, err := console.New(console.Options{Gateway: stack.Handler()})
+		if err != nil {
+			return err
+		}
+		mux := http.NewServeMux()
+		mux.Handle("/_console/", con)
+		mux.Handle("/_console", http.RedirectHandler("/_console/", http.StatusFound))
+		mux.Handle("/", stack.Handler())
+		handler = mux
+		logger.Info("console", "url", "http://"+ln.Addr().String()+"/_console/")
+	}
+
+	srv := &http.Server{Handler: handler}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

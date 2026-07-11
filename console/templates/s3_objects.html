@@ -1,0 +1,52 @@
+{{define "s3_objects"}}{{template "header" .}}
+<div class="head-row">
+  <h1>📦 {{.Bucket}}</h1>
+  <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/upload" hx-target="#object-table" hx-swap="outerHTML"
+        hx-encoding="multipart/form-data" hx-on::after-request="this.reset()" class="inline-form">
+    <input type="hidden" name="prefix" value="{{.KeyPrefix}}">
+    <input type="file" name="file" required>
+    <button type="submit">Upload</button>
+  </form>
+</div>
+{{template "object_table" .}}
+{{template "footer" .}}{{end}}
+
+{{define "object_table"}}
+<div id="object-table">
+<nav class="crumbs">
+  <a hx-get="{{.Prefix}}/s3/{{.Bucket}}?partial=1" hx-target="#object-table" hx-swap="outerHTML"
+     href="{{.Prefix}}/s3/{{.Bucket}}">{{.Bucket}}</a>
+  {{range .Crumbs}}<span>/</span>
+    <a hx-get="{{$.Prefix}}/s3/{{$.Bucket}}?partial=1&prefix={{.Prefix}}" hx-target="#object-table" hx-swap="outerHTML"
+       href="{{$.Prefix}}/s3/{{$.Bucket}}?prefix={{.Prefix}}">{{.Name}}</a>
+  {{end}}
+</nav>
+{{if .Objects}}
+<table class="grid">
+  <thead><tr><th>Key</th><th class="right">Size</th><th>Modified</th><th class="right">Actions</th></tr></thead>
+  <tbody>{{range .Objects}}
+    {{if .IsPrefix}}
+    <tr class="folder">
+      <td colspan="3"><a hx-get="{{$.Prefix}}/s3/{{$.Bucket}}?partial=1&prefix={{.Key}}"
+            hx-target="#object-table" hx-swap="outerHTML"
+            href="{{$.Prefix}}/s3/{{$.Bucket}}?prefix={{.Key}}">📁 {{trimPrefixKey .Key $.KeyPrefix}}</a></td>
+      <td></td>
+    </tr>
+    {{else}}
+    <tr>
+      <td><a href="{{$.Prefix}}/s3/{{$.Bucket}}/object?key={{.Key}}" target="_blank">📄 {{trimPrefixKey .Key $.KeyPrefix}}</a></td>
+      <td class="right dim">{{humanSize .Size}}</td>
+      <td class="dim">{{.LastModified}}</td>
+      <td class="right">
+        <button class="ghost danger" hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/delete"
+                hx-vals='{"key":"{{.Key}}","prefix":"{{$.KeyPrefix}}"}'
+                hx-target="#object-table" hx-swap="outerHTML"
+                hx-confirm="Delete {{.Key}}?">Delete</button>
+      </td>
+    </tr>
+    {{end}}
+  {{end}}</tbody>
+</table>
+{{else}}<p class="empty">This location is empty. Upload a file above.</p>{{end}}
+</div>
+{{end}}
