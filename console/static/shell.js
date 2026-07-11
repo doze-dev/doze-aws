@@ -270,18 +270,24 @@
     liveTimers.forEach(clearInterval);
     liveTimers = [];
     document.querySelectorAll("[data-live]").forEach(function (el) {
+      var id = el.id;
       var every = parseInt(el.getAttribute("data-live-ms") || "3000", 10);
-      // Most live regions morph so selection/scroll survive; a small self-
-      // contained element (e.g. a status badge) can opt into a plain outerHTML
-      // swap via data-live-swap to avoid idiomorph nesting its replacement.
-      var swap = el.getAttribute("data-live-swap") || "morph:outerHTML";
       var t = setInterval(function () {
-        if (document.hidden || !document.body.contains(el)) return;
-        var cur = document.getElementById(el.id);
-        if (!cur) return;
+        // Re-query by id every tick: a plain outerHTML swap (composer send,
+        // purge, redrive, delete) REPLACES the element, so a captured reference
+        // would go stale and the poll would silently die. The morph poll itself
+        // re-includes data-live, so a morphed element keeps the same id too.
+        var cur = document.getElementById(id);
+        if (document.hidden || !cur) return;
+        var url = cur.getAttribute("data-live");
+        if (!url) return;
+        // Most live regions morph so selection/scroll survive; a small self-
+        // contained element can opt into a plain outerHTML swap via
+        // data-live-swap to avoid idiomorph nesting its replacement.
+        var swap = cur.getAttribute("data-live-swap") || "morph:outerHTML";
         var hash = cur.getAttribute("data-hash") || "";
-        htmx.ajax("GET", el.getAttribute("data-live") + (el.getAttribute("data-live").indexOf("?") >= 0 ? "&" : "?") + "h=" + hash, {
-          target: "#" + el.id, swap: swap,
+        htmx.ajax("GET", url + (url.indexOf("?") >= 0 ? "&" : "?") + "h=" + hash, {
+          target: "#" + id, swap: swap,
         });
       }, every);
       liveTimers.push(t);
@@ -289,7 +295,27 @@
   }
   document.addEventListener("DOMContentLoaded", setupLive);
   document.addEventListener("htmx:afterSwap", function (e) {
-    if (e.detail.target && (e.detail.target.id === "workspace" || e.detail.target.querySelector && e.detail.target.querySelector("[data-live]"))) setupLive();
+    // Re-arm after a navigation OR after a swap that lands (or contains) a live
+    // region — including one whose target IS the data-live element itself, which
+    // a descendant-only querySelector check would miss.
+    var t = e.detail.target;
+    if (t && (t.id === "workspace" ||
+              (t.matches && t.matches("[data-live]")) ||
+              (t.querySelector && t.querySelector("[data-live]")))) setupLive();
+  });
+  // After each poll, stamp the element's data-hash from the response header — a
+  // morph swap doesn't reliably update the root's attributes, so without this the
+  // poll would keep re-fetching the same change every tick.
+  document.addEventListener("htmx:afterRequest", function (e) {
+    var xhr = e.detail.xhr;
+    if (!xhr) return;
+    var h = xhr.getResponseHeader("HX-Live-Hash");
+    if (!h) return;
+    var path = (e.detail.requestConfig && e.detail.requestConfig.path) || "";
+    document.querySelectorAll("[data-live]").forEach(function (el) {
+      var base = el.getAttribute("data-live");
+      if (base && path.indexOf(base) === 0) el.setAttribute("data-hash", h);
+    });
   });
 
   // ---------- sleep countdowns ----------

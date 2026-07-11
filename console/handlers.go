@@ -38,6 +38,11 @@ func contentHash(parts ...string) string {
 
 // liveUnchanged replies 204 when the poller's hash matches current content.
 func liveUnchanged(w http.ResponseWriter, r *http.Request, hash string) bool {
+	// Echo the current hash in a header so the client can update data-hash even
+	// when a morph swap leaves the root element's attributes untouched (idiomorph
+	// morphs children, not the root's attrs) — otherwise the poll never sees its
+	// own hash advance and 200-loops forever.
+	w.Header().Set("HX-Live-Hash", hash)
 	if q := r.URL.Query().Get("h"); q != "" && q == hash {
 		w.WriteHeader(http.StatusNoContent)
 		return true
