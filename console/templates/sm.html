@@ -1,7 +1,7 @@
 {{define "sm_lp"}}
 {{template "lp_head" dict "Svc" "sm" "Label" "Secrets Manager" "NewURL" (printf "%s/sm/create" .Prefix)}}
   {{range .List}}
-  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sm/secret?name={{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span></a>
+  <a class="li {{if eq .Name $.Sel}}on{{end}} {{if .Deleted}}li-deleted{{end}}" href="{{$.Prefix}}/sm/secret?name={{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span>{{if .Deleted}}<span class="sb">deleted</span>{{end}}</a>
   {{end}}
 {{template "lp_foot" .}}
 {{end}}
@@ -19,9 +19,23 @@
 {{define "sm_secret_detail"}}
 <div id="sm-detail" x-data="{reveal:false}">
   <div class="det-h">
-    <div class="det-title">{{awsIcon "sm"}} {{.S.Name}}<div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/sm/delete" hx-vals='{"name":"{{.S.Name}}"}' hx-confirm="Schedule “{{.S.Name}}” for deletion with a 7-day recovery window?">{{icon "trash"}} Delete</button></div></div>
+    <div class="det-title">{{awsIcon "sm"}} {{.S.Name}}
+      {{if .S.Deleted}}<span class="badge dlq">pending deletion</span>{{end}}
+      <div class="acts">
+        {{if .S.Deleted}}
+        <button class="btn" hx-post="{{.Prefix}}/sm/restore" hx-vals='{"name":"{{.S.Name}}"}'>{{icon "rotate"}} Restore secret</button>
+        {{else}}
+        <button class="btn btn-outline danger" hx-post="{{.Prefix}}/sm/delete" hx-vals='{"name":"{{.S.Name}}"}' hx-confirm="Schedule “{{.S.Name}}” for deletion with a 7-day recovery window?">{{icon "trash"}} Delete</button>
+        {{end}}
+      </div></div>
     {{if .S.Description}}<div class="det-sub">{{.S.Description}}</div>{{end}}
     <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .S.ARN}}<span class="chip">AWSCURRENT</span></div>
+    {{if .S.Deleted}}
+    <div class="pub-receipt warn" style="margin-top:12px">
+      <div class="pr-h">⚠ Scheduled for deletion{{if .S.DeletedAt}} since {{.S.DeletedAt}}{{end}} — the value is locked until the recovery window ends.</div>
+      <div class="pr-row dim">Restore brings it back exactly as it was; do nothing and it purges when the window closes.</div>
+    </div>
+    {{end}}
   </div>
   <div class="det-b">
     {{template "value_workspace" (dict "Prefix" .Prefix "Mode" .Mode "Value" .S.Value "Secure" true "Diff" (printf "%s/sm/diff?name=%s" .Prefix .S.Name)

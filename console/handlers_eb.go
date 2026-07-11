@@ -130,6 +130,27 @@ func (c *Console) ebMatch(w http.ResponseWriter, r *http.Request) {
 	c.partial(w, "eb_rule_list", data)
 }
 
+// ebToggleRule flips a rule between ENABLED and DISABLED.
+func (c *Console) ebToggleRule(w http.ResponseWriter, r *http.Request) {
+	bus, name := r.PathValue("bus"), r.PathValue("rule")
+	rule, err := c.be.GetRule(r.Context(), bus, name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	enable := rule.State != "ENABLED"
+	if err := c.be.SetRuleState(r.Context(), bus, name, enable); err != nil {
+		c.fail(w, err)
+		return
+	}
+	if enable {
+		toast(w, "Rule enabled — matching events deliver again")
+	} else {
+		toast(w, "Rule disabled — events pass it by")
+	}
+	c.redirect(w, r, c.prefix+"/eb/"+bus+"/rule/"+name, "")
+}
+
 func (c *Console) ebRule(w http.ResponseWriter, r *http.Request) {
 	bus, name := r.PathValue("bus"), r.PathValue("rule")
 	rule, err := c.be.GetRule(r.Context(), bus, name)

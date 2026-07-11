@@ -903,3 +903,13 @@ a.lo-card:hover { border-color: hsl(var(--accent-blue)); box-shadow: 0 0 0 3px h
 .gsi-sk { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding-left: 2px; }
 .mini-check { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: hsl(var(--muted-foreground)); white-space: nowrap; flex: none; }
 .mini-check input { accent-color: hsl(var(--accent-blue)); }
+
+/* Redrive task strips + recovery affordances. */
+.mv-task { display: flex; align-items: center; gap: 8px; font: 12px var(--mono); border: 1px solid hsl(var(--border));
+  border-radius: var(--radius); padding: 8px 12px; margin-bottom: 10px; background: hsl(var(--muted) / 0.4); color: hsl(var(--muted-foreground)); }
+.mv-task .ic { width: 13px; height: 13px; }
+.mv-task.ok { border-color: hsl(var(--success) / 0.4); background: hsl(var(--success) / 0.08); color: hsl(var(--success)); }
+.mv-task.bad { border-color: hsl(var(--destructive) / 0.4); background: hsl(var(--destructive) / 0.08); color: hsl(var(--destructive)); }
+.msg .msg-del { opacity: 0; }
+.msg:hover .msg-del { opacity: 1; }
+.listpane .li.li-deleted .nm { color: hsl(var(--muted-foreground)); text-decoration: line-through; text-decoration-color: hsl(var(--muted-foreground) / 0.5); }

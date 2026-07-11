@@ -115,6 +115,8 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/sqs/{queue}/send", c.sqsSend)
 	m.HandleFunc("POST "+p+"/sqs/{queue}/purge", c.sqsPurge)
 	m.HandleFunc("POST "+p+"/sqs/{queue}/attributes", c.sqsSetAttributes)
+	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-message", c.sqsDeleteMessage)
+	m.HandleFunc("POST "+p+"/sqs/{queue}/redrive", c.sqsRedrive)
 	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-queue", c.sqsDeleteQueue)
 
 	// DynamoDB.
@@ -147,6 +149,7 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/add-target", c.ebAddTarget)
 	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/remove-target", c.ebRemoveTarget)
 	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/delete-rule", c.ebDeleteRule)
+	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/toggle", c.ebToggleRule)
 
 	// Lambda.
 	m.HandleFunc("GET "+p+"/lambda", c.lambdaFns)
@@ -178,6 +181,7 @@ func (c *Console) routes() {
 	// Secrets Manager (names may contain slashes -> query params).
 	m.HandleFunc("GET "+p+"/sm", c.smSecrets)
 	m.HandleFunc("POST "+p+"/sm/create", c.smCreate)
+	m.HandleFunc("POST "+p+"/sm/restore", c.smRestore)
 	m.HandleFunc("GET "+p+"/sm/secret", c.smSecret)
 	m.HandleFunc("GET "+p+"/sm/diff", c.smDiff)
 	m.HandleFunc("POST "+p+"/sm/put", c.smPut)

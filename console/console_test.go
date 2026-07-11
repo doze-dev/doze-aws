@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/console"
@@ -612,6 +613,94 @@ func TestDynamoDBCreateWithGSIAndTTL(t *testing.T) {
 	}).Body.String()
 	if n := strings.Count(q, `<tr `); n != 2 {
 		t.Fatalf("GSI query level=warn: got %d rows, want 2:\n%s", n, q)
+	}
+}
+
+// TestFailureLoopRecovery covers wave A: messages land in a DLQ and come BACK
+// (redrive), a single message can be deleted from the peek, the redrive policy
+// is editable post-create, a deleted secret is restorable, and an EventBridge
+// rule can be disabled and re-enabled.
+func TestFailureLoopRecovery(t *testing.T) {
+	h := newConsole(t)
+
+	// --- SQS: build main + dlq, park messages in the dlq, redrive them back.
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"work"}, "dlq_mode": {"new"}})
+	req(t, h, "POST", "/_console/sqs/work-dlq/send", url.Values{"body": {`{"n":1}`}})
+	req(t, h, "POST", "/_console/sqs/work-dlq/send", url.Values{"body": {`{"n":2}`}})
+
+	// The DLQ page offers redrive toward its source.
+	page := req(t, h, "GET", "/_console/sqs/work-dlq", nil).Body.String()
+	if !strings.Contains(page, "Redrive") || !strings.Contains(page, `value="work"`) {
+		t.Fatalf("DLQ page missing redrive toward source:\n%s", page)
+	}
+	req(t, h, "POST", "/_console/sqs/work-dlq/redrive", url.Values{"dest": {"work"}})
+	// The move task drains the DLQ into the source (poll briefly — it's async).
+	var moved bool
+	for range 50 {
+		main := html.UnescapeString(req(t, h, "GET", "/_console/sqs/work/messages", nil).Body.String())
+		if strings.Contains(main, `{"n":1}`) && strings.Contains(main, `{"n":2}`) {
+			moved = true
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !moved {
+		t.Fatalf("redriven messages never arrived on the source queue")
+	}
+
+	// --- Single-message delete from the peek.
+	msgs := req(t, h, "GET", "/_console/sqs/work/messages", nil).Body.String()
+	i := strings.Index(msgs, `"handle":"`)
+	if i < 0 {
+		t.Fatalf("peek rows missing delete handles:\n%s", msgs)
+	}
+	handle := msgs[i+len(`"handle":"`):]
+	handle = handle[:strings.IndexByte(handle, '"')]
+	req(t, h, "POST", "/_console/sqs/work/delete-message", url.Values{"handle": {handle}})
+	after := req(t, h, "GET", "/_console/sqs/work/messages", nil).Body.String()
+	if strings.Count(after, "msg-del") != 1 {
+		t.Fatalf("single delete should leave exactly one message:\n%s", after)
+	}
+
+	// --- Redrive policy edit post-create: retarget + then remove.
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"other-dlq"}, "dlq_mode": {"none"}})
+	req(t, h, "POST", "/_console/sqs/work/attributes", url.Values{"dlq": {"other-dlq"}, "max_receive": {"7"}})
+	cfg := req(t, h, "GET", "/_console/sqs/work?tab=config", nil).Body.String()
+	if !strings.Contains(cfg, "other-dlq") || !strings.Contains(cfg, "7") {
+		t.Fatalf("redrive edit did not land:\n%s", cfg)
+	}
+	req(t, h, "POST", "/_console/sqs/work/attributes", url.Values{"dlq": {"none"}})
+	cfg = req(t, h, "GET", "/_console/sqs/work?tab=config", nil).Body.String()
+	if strings.Contains(cfg, "Dead-letter queue</td>") {
+		t.Fatalf("redrive removal did not land:\n%s", cfg)
+	}
+
+	// --- Secrets: delete → still listed + restorable → restored.
+	create(t, h, "/_console/sm/create", url.Values{"name": {"app/tok"}, "value": {"v1"}})
+	req(t, h, "POST", "/_console/sm/delete", url.Values{"name": {"app/tok"}})
+	detail := req(t, h, "GET", "/_console/sm/secret?name=app/tok", nil).Body.String()
+	if !strings.Contains(detail, "pending deletion") || !strings.Contains(detail, "Restore secret") {
+		t.Fatalf("deleted secret page missing restore affordance:\n%s", detail)
+	}
+	req(t, h, "POST", "/_console/sm/restore", url.Values{"name": {"app/tok"}})
+	detail = req(t, h, "GET", "/_console/sm/secret?name=app/tok", nil).Body.String()
+	if strings.Contains(detail, "pending deletion") {
+		t.Fatalf("restore did not clear the pending state:\n%s", detail)
+	}
+
+	// --- EventBridge: disable then re-enable a rule.
+	req(t, h, "POST", "/_console/eb/default/create-rule", url.Values{
+		"name": {"r1"}, "pattern": {`{"source":["x"]}`},
+	})
+	req(t, h, "POST", "/_console/eb/default/rule/r1/toggle", nil)
+	rp := req(t, h, "GET", "/_console/eb/default/rule/r1", nil).Body.String()
+	if !strings.Contains(rp, "DISABLED") || !strings.Contains(rp, "Enable") {
+		t.Fatalf("rule should be disabled with an Enable button:\n%s", rp)
+	}
+	req(t, h, "POST", "/_console/eb/default/rule/r1/toggle", nil)
+	rp = req(t, h, "GET", "/_console/eb/default/rule/r1", nil).Body.String()
+	if !strings.Contains(rp, "ENABLED") {
+		t.Fatalf("rule should be re-enabled:\n%s", rp)
 	}
 }
 

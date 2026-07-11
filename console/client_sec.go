@@ -311,10 +311,14 @@ type Secret struct {
 	Value       string
 	VersionID   string
 	Stages      map[string][]string // version id -> stages
+	Deleted     bool                // pending deletion (restorable)
+	DeletedAt   string
 }
 
 func (b *backend) ListSecrets(ctx context.Context) ([]Secret, error) {
-	body, err := b.json11(ctx, "secretsmanager", "ListSecrets", map[string]any{})
+	// IncludePlannedDeletion keeps soft-deleted secrets visible — restoring
+	// them is the recovery window's whole purpose.
+	body, err := b.json11(ctx, "secretsmanager", "ListSecrets", map[string]any{"IncludePlannedDeletion": true})
 	if err != nil {
 		return nil, err
 	}
@@ -324,6 +328,7 @@ func (b *backend) ListSecrets(ctx context.Context) ([]Secret, error) {
 			ARN             string  `json:"ARN"`
 			Description     string  `json:"Description"`
 			LastChangedDate float64 `json:"LastChangedDate"`
+			DeletedDate     float64 `json:"DeletedDate"`
 		} `json:"SecretList"`
 	}
 	json.Unmarshal(body, &out)
@@ -332,10 +337,17 @@ func (b *backend) ListSecrets(ctx context.Context) ([]Secret, error) {
 		secrets = append(secrets, Secret{
 			Name: s.Name, ARN: s.ARN, Description: s.Description,
 			Changed: epochToTime(s.LastChangedDate),
+			Deleted: s.DeletedDate > 0, DeletedAt: epochToTime(s.DeletedDate),
 		})
 	}
 	sort.Slice(secrets, func(i, j int) bool { return secrets[i].Name < secrets[j].Name })
 	return secrets, nil
+}
+
+// RestoreSecret cancels a pending deletion within the recovery window.
+func (b *backend) RestoreSecret(ctx context.Context, id string) error {
+	_, err := b.json11(ctx, "secretsmanager", "RestoreSecret", map[string]any{"SecretId": id})
+	return err
 }
 
 func (b *backend) GetSecret(ctx context.Context, id string) (*Secret, error) {
@@ -348,6 +360,7 @@ func (b *backend) GetSecret(ctx context.Context, id string) (*Secret, error) {
 		ARN                string              `json:"ARN"`
 		Description        string              `json:"Description"`
 		LastChangedDate    float64             `json:"LastChangedDate"`
+		DeletedDate        float64             `json:"DeletedDate"`
 		VersionIdsToStages map[string][]string `json:"VersionIdsToStages"`
 	}
 	if err := json.Unmarshal(body, &desc); err != nil {
@@ -356,6 +369,7 @@ func (b *backend) GetSecret(ctx context.Context, id string) (*Secret, error) {
 	s := &Secret{
 		Name: desc.Name, ARN: desc.ARN, Description: desc.Description,
 		Changed: epochToTime(desc.LastChangedDate), Stages: desc.VersionIdsToStages,
+		Deleted: desc.DeletedDate > 0, DeletedAt: epochToTime(desc.DeletedDate),
 	}
 	if vb, err := b.json11(ctx, "secretsmanager", "GetSecretValue", map[string]any{"SecretId": id}); err == nil {
 		var val struct {

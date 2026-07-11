@@ -58,7 +58,10 @@
   <section class="detail">
     <div class="det-h">
       <div class="det-title">{{awsIcon "eb"}} {{.Rule.Name}} <span class="badge {{if eq .Rule.State "ENABLED"}}state-on{{else}}state-off{{end}}">{{.Rule.State}}</span>
-        <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/delete-rule" hx-confirm="Delete rule “{{.Rule.Name}}” and its targets?">{{icon "trash"}} Delete</button></div>
+        <div class="acts">
+          <button class="btn btn-outline" hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/toggle" title="{{if eq .Rule.State "ENABLED"}}Stop this rule matching events{{else}}Resume matching events{{end}}">{{if eq .Rule.State "ENABLED"}}{{icon "x"}} Disable{{else}}{{icon "play"}} Enable{{end}}</button>
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/delete-rule" hx-confirm="Delete rule “{{.Rule.Name}}” and its targets?">{{icon "trash"}} Delete</button>
+        </div>
       </div>
       <nav class="det-sub"><a href="{{.Prefix}}/eb/{{.Bus}}" style="color:hsl(var(--accent-blue))">{{.Bus}}</a> bus</nav>
       <div class="chips" style="margin-top:6px">{{template "copychip" dict "Label" "arn" "Value" .Rule.ARN}}</div>

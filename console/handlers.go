@@ -369,20 +369,19 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	c.render(w, r, "sqs_queue", map[string]any{
-		"Queue": name, "Attrs": attrs, "Messages": msgs, "IsDLQ": isDLQ,
-		"Available": atoi(attrs["ApproximateNumberOfMessages"]),
-		"InFlight":  atoi(attrs["ApproximateNumberOfMessagesNotVisible"]),
-		"ARN":       QueueARN(name),
-		"URL":       "http://127.0.0.1:4566/000000000000/" + name,
-		"Config":    sqsConfigOf(attrs),
-		"Conn":      conn,
-		"Hash":      sqsMsgHash(attrs, msgs),
-		"Tab":       tabOf(r, "messages"),
-		"List":      c.sqsList(r),
-		"Sel":       name,
-		"Title":     name + " · SQS",
-	})
+	data := c.sqsPanelData(r, name, attrs, msgs)
+	data["Attrs"] = attrs
+	data["IsDLQ"] = isDLQ
+	data["ARN"] = QueueARN(name)
+	data["URL"] = "http://127.0.0.1:4566/000000000000/" + name
+	data["Config"] = sqsConfigOf(attrs)
+	data["Conn"] = conn
+	data["Tab"] = tabOf(r, "messages")
+	data["List"] = c.sqsList(r)
+	data["Sel"] = name
+	data["Title"] = name + " · SQS"
+	data["AllQueues"] = data["List"]
+	c.render(w, r, "sqs_queue", data)
 }
 
 // sqsConfig is the curated queue configuration surface (the raw attribute map
@@ -441,12 +440,34 @@ func epochSecString(s string) string {
 }
 
 // sqsMsgHash fingerprints the visible message state for 204-skip polling.
-func sqsMsgHash(attrs map[string]string, msgs []SQSMessage) string {
+// Redrive-task progress is part of the fingerprint so a running move task
+// live-updates its strip.
+func sqsMsgHash(attrs map[string]string, msgs []SQSMessage, tasks []MoveTask) string {
 	parts := []string{attrs["ApproximateNumberOfMessages"], attrs["ApproximateNumberOfMessagesNotVisible"]}
 	for _, m := range msgs {
 		parts = append(parts, m.MessageID)
 	}
+	for _, t := range tasks {
+		parts = append(parts, t.Status, t.Dest, strconv.FormatInt(t.Moved, 10))
+	}
 	return contentHash(parts...)
+}
+
+// sqsPanelData assembles everything the live message panel shows, including
+// the DLQ recovery surface (redrive sources + move-task progress).
+func (c *Console) sqsPanelData(r *http.Request, name string, attrs map[string]string, msgs []SQSMessage) map[string]any {
+	sources := c.be.DLQSources(r.Context(), name)
+	var tasks []MoveTask
+	if len(sources) > 0 {
+		tasks = c.be.MoveTasks(r.Context(), name)
+	}
+	return map[string]any{
+		"Queue": name, "Messages": msgs,
+		"Available": atoi(attrs["ApproximateNumberOfMessages"]),
+		"InFlight":  atoi(attrs["ApproximateNumberOfMessagesNotVisible"]),
+		"Sources":   sources, "Tasks": tasks,
+		"Hash": sqsMsgHash(attrs, msgs, tasks),
+	}
 }
 
 // sqsMessages is the polled live partial: 204 when unchanged, morph otherwise.
@@ -457,16 +478,38 @@ func (c *Console) sqsMessages(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	hash := sqsMsgHash(attrs, msgs)
-	if liveUnchanged(w, r, hash) {
+	data := c.sqsPanelData(r, name, attrs, msgs)
+	if liveUnchanged(w, r, data["Hash"].(string)) {
 		return
 	}
-	c.partial(w, "message_panel", map[string]any{
-		"Queue": name, "Messages": msgs,
-		"Available": atoi(attrs["ApproximateNumberOfMessages"]),
-		"InFlight":  atoi(attrs["ApproximateNumberOfMessagesNotVisible"]),
-		"Hash":      hash,
-	})
+	c.partial(w, "message_panel", data)
+}
+
+// sqsDeleteMessage removes one message from the peek.
+func (c *Console) sqsDeleteMessage(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("queue")
+	if err := c.be.DeleteMessage(r.Context(), name, r.FormValue("handle")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Message deleted")
+	c.sqsMessages(w, r)
+}
+
+// sqsRedrive starts moving every message from this DLQ back to a source.
+func (c *Console) sqsRedrive(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("queue")
+	dest := r.FormValue("dest")
+	if dest == "" {
+		c.fail(w, &apiErr{status: 400, body: "pick a destination queue"})
+		return
+	}
+	if err := c.be.StartRedrive(r.Context(), name, dest); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Redrive started → "+dest)
+	c.sqsMessages(w, r)
 }
 
 func (c *Console) sqsSend(w http.ResponseWriter, r *http.Request) {
@@ -532,6 +575,23 @@ func (c *Console) sqsSetAttributes(w http.ResponseWriter, r *http.Request) {
 	if v := strings.TrimSpace(r.FormValue("delay")); v != "" {
 		attrs["DelaySeconds"] = v
 	}
+	// Redrive policy: "keep" leaves it alone, "none" removes it, a queue name
+	// (re)wires it with the given max-receive count.
+	switch dlq := r.FormValue("dlq"); dlq {
+	case "", "keep":
+	case "none":
+		attrs["RedrivePolicy"] = ""
+	default:
+		maxr := strings.TrimSpace(r.FormValue("max_receive"))
+		if maxr == "" {
+			maxr = "3"
+		}
+		rp, _ := json.Marshal(map[string]string{
+			"deadLetterTargetArn": QueueARN(dlq),
+			"maxReceiveCount":     maxr,
+		})
+		attrs["RedrivePolicy"] = string(rp)
+	}
 	if len(attrs) > 0 {
 		if err := c.be.SetQueueAttributes(r.Context(), name, attrs); err != nil {
 			c.fail(w, err)
@@ -544,8 +604,9 @@ func (c *Console) sqsSetAttributes(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	queues, _ := c.be.ListQueues(r.Context())
 	c.partial(w, "sqs_config", map[string]any{
-		"Queue": name, "Attrs": qattrs, "Config": sqsConfigOf(qattrs),
+		"Queue": name, "Attrs": qattrs, "Config": sqsConfigOf(qattrs), "AllQueues": queues,
 	})
 }
 

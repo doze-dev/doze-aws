@@ -427,6 +427,84 @@ func (b *backend) SendMessage(ctx context.Context, name, body string, o SendOpts
 	return err
 }
 
+// DeleteMessage removes one message by receipt handle (peek handles are
+// valid — the handle encodes the message's sequence key directly).
+func (b *backend) DeleteMessage(ctx context.Context, name, handle string) error {
+	_, err := b.sqs(ctx, "DeleteMessage", map[string]any{
+		"QueueUrl": b.queueURL(name), "ReceiptHandle": handle,
+	})
+	return err
+}
+
+// DLQSources names the queues whose redrive policies point at this queue —
+// the redrive destinations offered when moving messages back.
+func (b *backend) DLQSources(ctx context.Context, name string) []string {
+	body, err := b.sqs(ctx, "ListDeadLetterSourceQueues", map[string]any{"QueueUrl": b.queueURL(name)})
+	if err != nil {
+		return nil
+	}
+	var out struct {
+		QueueUrls []string `json:"queueUrls"`
+	}
+	json.Unmarshal(body, &out)
+	if len(out.QueueUrls) == 0 { // some shapes capitalize differently
+		var alt struct {
+			QueueUrls []string `json:"QueueUrls"`
+		}
+		json.Unmarshal(body, &alt)
+		out.QueueUrls = alt.QueueUrls
+	}
+	names := make([]string, 0, len(out.QueueUrls))
+	for _, u := range out.QueueUrls {
+		names = append(names, u[strings.LastIndex(u, "/")+1:])
+	}
+	sort.Strings(names)
+	return names
+}
+
+// StartRedrive moves every message from a DLQ back to dest.
+func (b *backend) StartRedrive(ctx context.Context, from, dest string) error {
+	_, err := b.sqs(ctx, "StartMessageMoveTask", map[string]any{
+		"SourceArn":      awsident.ARN("sqs", from),
+		"DestinationArn": awsident.ARN("sqs", dest),
+	})
+	return err
+}
+
+// MoveTask is one redrive task's progress.
+type MoveTask struct {
+	Status  string // RUNNING | COMPLETED | FAILED | CANCELLED
+	Dest    string
+	Moved   int64
+	Failure string
+}
+
+func (b *backend) MoveTasks(ctx context.Context, name string) []MoveTask {
+	body, err := b.sqs(ctx, "ListMessageMoveTasks", map[string]any{
+		"SourceArn": awsident.ARN("sqs", name), "MaxResults": 5,
+	})
+	if err != nil {
+		return nil
+	}
+	var out struct {
+		Results []struct {
+			Status                           string `json:"Status"`
+			DestinationArn                   string `json:"DestinationArn"`
+			ApproximateNumberOfMessagesMoved int64  `json:"ApproximateNumberOfMessagesMoved"`
+			FailureReason                    string `json:"FailureReason"`
+		} `json:"Results"`
+	}
+	json.Unmarshal(body, &out)
+	tasks := make([]MoveTask, 0, len(out.Results))
+	for _, r := range out.Results {
+		tasks = append(tasks, MoveTask{
+			Status: r.Status, Dest: arnLeaf(r.DestinationArn),
+			Moved: r.ApproximateNumberOfMessagesMoved, Failure: r.FailureReason,
+		})
+	}
+	return tasks
+}
+
 func (b *backend) PurgeQueue(ctx context.Context, name string) error {
 	_, err := b.sqs(ctx, "PurgeQueue", map[string]any{"QueueUrl": b.queueURL(name)})
 	return err

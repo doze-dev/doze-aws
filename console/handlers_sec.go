@@ -206,6 +206,16 @@ func (c *Console) smCreate(w http.ResponseWriter, r *http.Request) {
 	c.redirect(w, r, c.prefix+"/sm/secret?name="+urlQuery(name), "Secret “"+name+"” created")
 }
 
+// smRestore cancels a pending deletion inside the recovery window.
+func (c *Console) smRestore(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	if err := c.be.RestoreSecret(r.Context(), name); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/sm/secret?name="+url.QueryEscape(name), "Secret “"+name+"” restored")
+}
+
 func (c *Console) smSecret(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
 	s, err := c.be.GetSecret(r.Context(), name)

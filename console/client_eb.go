@@ -102,6 +102,20 @@ func (b *backend) ListRules(ctx context.Context, bus string) ([]Rule, error) {
 	return rules, nil
 }
 
+// SetRuleState enables or disables a rule.
+func (b *backend) SetRuleState(ctx context.Context, bus, name string, enable bool) error {
+	action := "DisableRule"
+	if enable {
+		action = "EnableRule"
+	}
+	in := map[string]any{"Name": name}
+	if bus != "" && bus != "default" {
+		in["EventBusName"] = bus
+	}
+	_, err := b.json11(ctx, "AWSEvents", action, in)
+	return err
+}
+
 // TestEventPattern asks the service whether an event matches a rule pattern —
 // the same evaluator that routes real PutEvents traffic.
 func (b *backend) TestEventPattern(ctx context.Context, pattern, event string) (bool, error) {
