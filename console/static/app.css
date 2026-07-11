@@ -826,6 +826,7 @@ a.lo-card:hover { border-color: hsl(var(--accent-blue)); box-shadow: 0 0 0 3px h
 
 /* Table footers (object counts, totals) under S3/DDB listings. */
 .tbl-foot { padding: 8px 2px 0; font-size: 11.5px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+.load-more td { text-align: center; padding: 8px; background: hsl(var(--muted) / 0.25); }
 
 /* Message metadata: FIFO fields + user attributes on peeked messages. */
 .mm-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 9px; }
@@ -862,6 +863,12 @@ a.lo-card:hover { border-color: hsl(var(--accent-blue)); box-shadow: 0 0 0 3px h
 .sub-row:hover .copy-btn, .sub-row:hover .icon-btn { opacity: 1; }
 .sub-add { display: flex; gap: 8px; align-items: center; padding: 10px 13px; border-top: 1px solid hsl(var(--border)); background: hsl(var(--muted) / 0.3); }
 .sub-add > select:first-child { width: 130px; flex: none; }
+.sub-item { border-bottom: 1px solid hsl(var(--border)); }
+.sub-item .sub-row { border-bottom: 0; }
+.sub-item:hover .icon-btn.gear { opacity: 1; }
+.sub-cfg { padding: 10px 13px 14px; background: hsl(var(--muted) / 0.25); display: grid; gap: 12px; }
+.sub-cfg .raw-toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sub-cfg .raw-toggle .opt-d { font-size: 11px; color: hsl(var(--muted-foreground)); }
 .sub-add .input { height: 30px; font-size: 12px; }
 
 /* First-class JSON editor chrome: validity pill + Format + inline error. */

@@ -163,6 +163,7 @@
       {{if .Fn.OnFailure}}<tr><td>On failure →</td><td>{{template "copychip" dict "Value" .Fn.OnFailure}}</td></tr>{{end}}
     </tbody></table></div>
     {{end}}
+    {{template "tags_panel" dict "Prefix" .Prefix "Svc" "lambda" "ID" .Fn.Name}}
   </div>
 </div>
 {{end}}

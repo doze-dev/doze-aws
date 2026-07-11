@@ -156,5 +156,6 @@
     <button class="btn btn-outline btn-sm" @click="raw=!raw" x-text="raw?'Hide raw attributes':'Show raw attributes'"></button>
     <div class="table-wrap" x-show="raw" x-cloak style="margin-top:8px"><table class="tbl kv"><tbody>{{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}</tbody></table></div>
   </div>
+  {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sqs" "ID" .Queue}}
 </div>
 {{end}}

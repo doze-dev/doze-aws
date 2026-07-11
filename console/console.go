@@ -82,6 +82,9 @@ func (c *Console) routes() {
 	// Resource index for the command palette.
 	m.HandleFunc("GET "+p+"/api/resources", c.apiResources)
 	m.HandleFunc("GET "+p+"/api/counts", c.apiCounts)
+	m.HandleFunc("GET "+p+"/tags/view", c.tagsView)
+	m.HandleFunc("POST "+p+"/tags/set", c.tagsSet)
+	m.HandleFunc("POST "+p+"/tags/remove", c.tagsRemove)
 
 	// Create forms render inside the shell (list pane + detail).
 	m.HandleFunc("GET "+p+"/s3/create", c.createPage("s3", "s3_create"))
@@ -136,6 +139,9 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/ddb/{table}/put", c.ddbPutItem)
 	m.HandleFunc("POST "+p+"/ddb/{table}/delete-item", c.ddbDeleteItem)
 	m.HandleFunc("POST "+p+"/ddb/{table}/delete-table", c.ddbDeleteTable)
+	m.HandleFunc("POST "+p+"/ddb/{table}/ttl", c.ddbSetTTL)
+	m.HandleFunc("POST "+p+"/ddb/{table}/add-gsi", c.ddbAddGSI)
+	m.HandleFunc("POST "+p+"/ddb/{table}/delete-gsi", c.ddbDeleteGSI)
 
 	// SNS.
 	m.HandleFunc("GET "+p+"/sns", c.snsTopics)
@@ -144,6 +150,8 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/sns/{topic}/publish", c.snsPublish)
 	m.HandleFunc("POST "+p+"/sns/{topic}/subscribe", c.snsSubscribe)
 	m.HandleFunc("POST "+p+"/sns/{topic}/unsubscribe", c.snsUnsubscribe)
+	m.HandleFunc("POST "+p+"/sns/{topic}/sub-filter", c.snsSubFilter)
+	m.HandleFunc("POST "+p+"/sns/{topic}/sub-raw", c.snsSubRaw)
 	m.HandleFunc("POST "+p+"/sns/{topic}/delete-topic", c.snsDeleteTopic)
 
 	// EventBridge.

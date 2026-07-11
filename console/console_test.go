@@ -624,6 +624,59 @@ func TestDynamoDBCreateWithGSIAndTTL(t *testing.T) {
 	}
 }
 
+// TestDynamoDBTableEditing covers wave E: TTL and GSIs can be changed after a
+// table exists, and the item browser pages through with a real cursor.
+func TestDynamoDBTableEditing(t *testing.T) {
+	h := newConsole(t)
+	create(t, h, "/_console/ddb/create", url.Values{"name": {"sessions"}, "hash_key": {"id"}, "hash_type": {"S"}})
+
+	// Enable TTL after creation.
+	det := req(t, h, "POST", "/_console/ddb/sessions/ttl", url.Values{"attr": {"expiresAt"}}).Body.String()
+	if !strings.Contains(det, "expiresAt") || !strings.Contains(det, "ENABLED") {
+		t.Fatalf("TTL not shown enabled after set:\n%s", det)
+	}
+
+	// Add a GSI after creation, then it is queryable.
+	det = req(t, h, "POST", "/_console/ddb/sessions/add-gsi", url.Values{
+		"gsi_name": {"by-user"}, "gsi_hash": {"userId"}, "gsi_hash_type": {"S"},
+	}).Body.String()
+	if !strings.Contains(det, "by-user") {
+		t.Fatalf("added GSI not shown:\n%s", det)
+	}
+
+	// Delete the GSI.
+	det = req(t, h, "POST", "/_console/ddb/sessions/delete-gsi", url.Values{"index": {"by-user"}}).Body.String()
+	if strings.Contains(det, "by-user") {
+		t.Fatalf("GSI still present after delete:\n%s", det)
+	}
+
+	// Pagination: three items, page size 1 → first page has a cursor.
+	for _, id := range []string{"s1", "s2", "s3"} {
+		req(t, h, "POST", "/_console/ddb/sessions/put", url.Values{"item": {`{"id":"` + id + `","userId":"u"}`}})
+	}
+	page1 := req(t, h, "POST", "/_console/ddb/sessions/explore", url.Values{
+		"mode": {"scan"}, "limit": {"1"},
+	}).Body.String()
+	if strings.Count(page1, "<tr x-data") != 1 || !strings.Contains(page1, "Load 50 more") {
+		t.Fatalf("first page should have 1 row + a load-more trigger:\n%s", page1)
+	}
+	// Pull the cursor out of the load-more button's hx-vals and load the next page.
+	cur := between(html.UnescapeString(page1), `"cursor":"`, `"`)
+	if cur == "" {
+		t.Fatalf("no pagination cursor in first page:\n%s", page1)
+	}
+	page2 := req(t, h, "POST", "/_console/ddb/sessions/explore", url.Values{
+		"mode": {"scan"}, "limit": {"1"}, "cursor": {cur},
+	}).Body.String()
+	if !strings.Contains(page2, "<tr x-data") {
+		t.Fatalf("second page returned no rows:\n%s", page2)
+	}
+	// The append fragment must NOT re-wrap the whole #ddb-items container.
+	if strings.Contains(page2, `id="ddb-items"`) {
+		t.Fatalf("load-more should return a row fragment, not the full table:\n%s", page2)
+	}
+}
+
 // TestFailureLoopRecovery covers wave A: messages land in a DLQ and come BACK
 // (redrive), a single message can be deleted from the peek, the redrive policy
 // is editable post-create, a deleted secret is restorable, and an EventBridge
@@ -959,6 +1012,91 @@ func TestCryptoConfigDepth(t *testing.T) {
 	form := req(t, h, "GET", "/_console/sm/create", nil).Body.String()
 	if !strings.Contains(form, "Generate password") {
 		t.Fatalf("SM create form missing the password generator")
+	}
+}
+
+// TestSNSSubscriptionAttributes exercises wave E's SNS surface: a subscription's
+// filter policy and raw-delivery flag are set through the console and reflected
+// back on the subscribers panel.
+func TestSNSSubscriptionAttributes(t *testing.T) {
+	h := newConsole(t)
+
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"orders"}, "dlq_mode": {"none"}})
+	create(t, h, "/_console/sns/create", url.Values{"name": {"events"}})
+	req(t, h, "POST", "/_console/sns/events/subscribe", url.Values{
+		"protocol": {"sqs"}, "endpoint": {"arn:aws:sqs:us-east-1:000000000000:orders"},
+	})
+
+	// Set a filter policy.
+	pol := `{"eventType":["OrderPlaced"]}`
+	panel := req(t, h, "POST", "/_console/sns/events/sub-filter", url.Values{
+		"arn": {subARN(t, h, "events")}, "policy": {pol},
+	}).Body.String()
+	if !strings.Contains(panel, "filtered") {
+		t.Fatalf("filter policy not reflected on the panel:\n%s", panel)
+	}
+	if !strings.Contains(html.UnescapeString(panel), "OrderPlaced") {
+		t.Fatalf("filter policy JSON not shown in the editor:\n%s", panel)
+	}
+
+	// Turn on raw delivery.
+	panel = req(t, h, "POST", "/_console/sns/events/sub-raw", url.Values{
+		"arn": {subARN(t, h, "events")}, "raw": {"on"},
+	}).Body.String()
+	if !strings.Contains(panel, ">raw<") {
+		t.Fatalf("raw delivery badge not shown after enabling:\n%s", panel)
+	}
+}
+
+// subARN fetches the (single) subscription ARN of a topic from its detail page.
+func subARN(t *testing.T, h http.Handler, topic string) string {
+	t.Helper()
+	body := req(t, h, "GET", "/_console/sns/"+topic, nil).Body.String()
+	const marker = `/unsubscribe" hx-vals='{"arn":"`
+	i := strings.Index(body, marker)
+	if i < 0 {
+		t.Fatalf("no subscription found on %s page", topic)
+	}
+	rest := body[i+len(marker):]
+	return rest[:strings.IndexByte(rest, '"')]
+}
+
+// TestTagsEverywhere covers wave E's cross-service tag surface: the same editor
+// tags an SQS queue, a DynamoDB table, and a KMS key through the generic routes.
+func TestTagsEverywhere(t *testing.T) {
+	h := newConsole(t)
+
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"jobs"}, "dlq_mode": {"none"}})
+	create(t, h, "/_console/ddb/create", url.Values{"name": {"users"}, "hash_key": {"id"}, "hash_type": {"S"}})
+	kmsLoc := create(t, h, "/_console/kms/create", url.Values{"spec": {"SYMMETRIC_DEFAULT"}})
+	keyID := strings.TrimPrefix(kmsLoc, "/_console/kms/")
+	if i := strings.IndexByte(keyID, '?'); i >= 0 {
+		keyID = keyID[:i]
+	}
+
+	cases := []struct{ svc, id string }{
+		{"sqs", "jobs"}, {"ddb", "users"}, {"kms", keyID},
+	}
+	for _, c := range cases {
+		// Set a tag, then it round-trips back through the editor.
+		set := req(t, h, "POST", "/_console/tags/set", url.Values{
+			"svc": {c.svc}, "id": {c.id}, "key": {"env"}, "value": {"staging"},
+		}).Body.String()
+		if !strings.Contains(set, "env") || !strings.Contains(set, "staging") {
+			t.Fatalf("%s tag not reflected after set:\n%s", c.svc, set)
+		}
+		// The lazy-load view shows it too.
+		view := req(t, h, "GET", "/_console/tags/view?svc="+c.svc+"&id="+url.QueryEscape(c.id), nil).Body.String()
+		if !strings.Contains(view, "staging") {
+			t.Fatalf("%s tag not shown on reload:\n%s", c.svc, view)
+		}
+		// Remove it.
+		rm := req(t, h, "POST", "/_console/tags/remove", url.Values{
+			"svc": {c.svc}, "id": {c.id}, "key": {"env"},
+		}).Body.String()
+		if strings.Contains(rm, "staging") {
+			t.Fatalf("%s tag still present after remove:\n%s", c.svc, rm)
+		}
 	}
 }
 

@@ -18,9 +18,11 @@ type Topic struct {
 }
 
 type Subscription struct {
-	ARN      string
-	Protocol string
-	Endpoint string
+	ARN          string
+	Protocol     string
+	Endpoint     string
+	FilterPolicy string // JSON, "" when none
+	RawDelivery  bool
 }
 
 func (b *backend) ListTopics(ctx context.Context) ([]Topic, error) {
@@ -96,9 +98,50 @@ func (b *backend) ListSubscriptions(ctx context.Context, topicARN string) ([]Sub
 	}
 	subs := make([]Subscription, 0, len(out.Members))
 	for _, m := range out.Members {
-		subs = append(subs, Subscription{ARN: m.SubscriptionArn, Protocol: m.Protocol, Endpoint: m.Endpoint})
+		s := Subscription{ARN: m.SubscriptionArn, Protocol: m.Protocol, Endpoint: m.Endpoint}
+		// Confirmed subscriptions carry a real ARN; pull their filter policy and
+		// raw-delivery flag. Pending ones ("PendingConfirmation") have no attrs.
+		if strings.HasPrefix(s.ARN, "arn:") {
+			if a, err := b.subscriptionAttributes(ctx, s.ARN); err == nil {
+				s.FilterPolicy = a["FilterPolicy"]
+				s.RawDelivery = a["RawMessageDelivery"] == "true"
+			}
+		}
+		subs = append(subs, s)
 	}
 	return subs, nil
+}
+
+// subscriptionAttributes reads one subscription's attribute map.
+func (b *backend) subscriptionAttributes(ctx context.Context, subARN string) (map[string]string, error) {
+	body, err := b.queryXML(ctx, url.Values{"Action": {"GetSubscriptionAttributes"}, "SubscriptionArn": {subARN}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Entries []struct {
+			Key   string `xml:"key"`
+			Value string `xml:"value"`
+		} `xml:"GetSubscriptionAttributesResult>Attributes>entry"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	attrs := map[string]string{}
+	for _, e := range out.Entries {
+		attrs[e.Key] = e.Value
+	}
+	return attrs, nil
+}
+
+// SetSubscriptionAttribute sets one subscription attribute (FilterPolicy,
+// RawMessageDelivery, …). An empty FilterPolicy value clears it.
+func (b *backend) SetSubscriptionAttribute(ctx context.Context, subARN, name, value string) error {
+	_, err := b.queryXML(ctx, url.Values{
+		"Action": {"SetSubscriptionAttributes"}, "SubscriptionArn": {subARN},
+		"AttributeName": {name}, "AttributeValue": {value},
+	})
+	return err
 }
 
 func (b *backend) Subscribe(ctx context.Context, topicARN, protocol, endpoint string) error {

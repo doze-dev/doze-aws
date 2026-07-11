@@ -49,6 +49,7 @@
           <span class="dim mono" style="align-self:center;font-size:12px">alias/</span><input class="input" name="alias" placeholder="my-key" required style="flex:1"><button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Add</button>
         </form>
       </div>
+      {{template "tags_panel" dict "Prefix" .Prefix "Svc" "kms" "ID" .Key.ID}}
     </div>
 
     {{/* Playground is usage-aware — a key gets exactly the operations it can do. */}}

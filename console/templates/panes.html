@@ -24,6 +24,26 @@
 {{end}}
 
 {{/* Compact 1-hop wiring strip for a resource. dict: Prefix Conn SelfName. */}}
+{{/* tags_panel: a titled, lazy-loading tag surface any detail page can drop in.
+     Expects Prefix, Svc (sqs|sns|ddb|lambda|kms|sm|eb), ID (the console id). */}}
+{{define "tags_panel"}}
+<div class="sec-title">Tags</div>
+<div hx-get="{{.Prefix}}/tags/view?svc={{.Svc}}&id={{.ID}}" hx-trigger="load" hx-target="this" hx-select="unset" hx-swap="innerHTML"><div class="panel"><div class="mini-note" style="padding:10px 14px">Loading tags…</div></div></div>
+{{end}}
+
+{{/* tag_editor: the shared key/value editor, posting to the generic /tags routes. */}}
+{{define "tag_editor"}}
+<div id="tag-editor"><div class="panel">
+  {{if .Tags}}<table class="tbl kv"><tbody>
+    {{range .Tags}}<tr><td class="mono">{{.K}}</td><td style="display:flex;align-items:center;justify-content:space-between;gap:8px">{{.V}}<button class="icon-btn sm danger" title="Remove tag" hx-post="{{$.Prefix}}/tags/remove" hx-vals='{"svc":"{{$.Svc}}","id":"{{$.ID}}","key":"{{.K}}"}' hx-target="#tag-editor" hx-select="unset" hx-swap="outerHTML">{{icon "x"}}</button></td></tr>{{end}}
+  </tbody></table>{{else}}<div class="mini-note" style="padding:12px 14px 2px">No tags yet.</div>{{end}}
+  <form class="tag-row-form" hx-post="{{.Prefix}}/tags/set" hx-target="#tag-editor" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+    <input type="hidden" name="svc" value="{{.Svc}}"><input type="hidden" name="id" value="{{.ID}}">
+    <input class="input" name="key" placeholder="Key" required autocomplete="off"><input class="input" name="value" placeholder="Value" autocomplete="off"><button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Add</button>
+  </form>
+</div></div>
+{{end}}
+
 {{define "connections"}}
 {{if or .Conn.Upstream .Conn.Downstream}}
 <div class="conn">

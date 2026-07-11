@@ -3,6 +3,7 @@ package console
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -22,6 +23,8 @@ type Table struct {
 	RangeKey  string
 	RangeType string
 	GSIs      []GSI
+	TTLAttr   string // attribute driving TTL, "" when disabled
+	TTLStatus string // ENABLED | DISABLED | ENABLING | DISABLING
 }
 
 type GSI struct {
@@ -120,7 +123,75 @@ func (b *backend) DescribeTable(ctx context.Context, name string) (*Table, error
 		}
 		t.GSIs = append(t.GSIs, gi)
 	}
+	// TTL lives behind its own call.
+	if ttlBody, err := b.ddbCall(ctx, "DescribeTimeToLive", map[string]any{"TableName": name}); err == nil {
+		var ttl struct {
+			Description struct {
+				Status        string `json:"TimeToLiveStatus"`
+				AttributeName string `json:"AttributeName"`
+			} `json:"TimeToLiveDescription"`
+		}
+		if json.Unmarshal(ttlBody, &ttl) == nil {
+			t.TTLStatus = ttl.Description.Status
+			if t.TTLStatus == "ENABLED" || t.TTLStatus == "ENABLING" {
+				t.TTLAttr = ttl.Description.AttributeName
+			}
+		}
+	}
 	return t, nil
+}
+
+// SetTTL enables TTL on attr (empty attr disables it). UpdateTimeToLive requires
+// the current attribute name when disabling, which we look up first.
+func (b *backend) SetTTL(ctx context.Context, table, attr string) error {
+	spec := map[string]any{"Enabled": attr != ""}
+	if attr != "" {
+		spec["AttributeName"] = attr
+	} else {
+		// Disabling: AWS wants the attribute currently in effect.
+		if t, err := b.DescribeTable(ctx, table); err == nil && t.TTLAttr != "" {
+			spec["AttributeName"] = t.TTLAttr
+		} else {
+			spec["AttributeName"] = "ttl"
+		}
+	}
+	_, err := b.ddbCall(ctx, "UpdateTimeToLive", map[string]any{
+		"TableName": table, "TimeToLiveSpecification": spec,
+	})
+	return err
+}
+
+// AddGSI adds a global secondary index to an existing table. The new key
+// attributes must be declared alongside the index in the same UpdateTable call.
+func (b *backend) AddGSI(ctx context.Context, table string, g GSICreate) error {
+	ks := []map[string]string{{"AttributeName": g.HashKey, "KeyType": "HASH"}}
+	defs := []map[string]string{{"AttributeName": g.HashKey, "AttributeType": g.HashType}}
+	if g.RangeKey != "" {
+		ks = append(ks, map[string]string{"AttributeName": g.RangeKey, "KeyType": "RANGE"})
+		defs = append(defs, map[string]string{"AttributeName": g.RangeKey, "AttributeType": g.RangeType})
+	}
+	_, err := b.ddbCall(ctx, "UpdateTable", map[string]any{
+		"TableName":            table,
+		"AttributeDefinitions": defs,
+		"GlobalSecondaryIndexUpdates": []map[string]any{{
+			"Create": map[string]any{
+				"IndexName": g.Name, "KeySchema": ks,
+				"Projection": map[string]any{"ProjectionType": "ALL"},
+			},
+		}},
+	})
+	return err
+}
+
+// DeleteGSI drops a global secondary index from a table.
+func (b *backend) DeleteGSI(ctx context.Context, table, index string) error {
+	_, err := b.ddbCall(ctx, "UpdateTable", map[string]any{
+		"TableName": table,
+		"GlobalSecondaryIndexUpdates": []map[string]any{{
+			"Delete": map[string]any{"IndexName": index},
+		}},
+	})
+	return err
 }
 
 // GSICreate is one global secondary index requested at table-creation time.
@@ -269,23 +340,54 @@ func avTyped(typ, val string) map[string]string {
 	}
 }
 
-func (b *backend) ScanItems(ctx context.Context, t *Table, filter string, limit int) ([]Item, bool, error) {
+// encodeCursor / decodeCursor turn a DynamoDB LastEvaluatedKey into an opaque
+// string the browser can hand back as ExclusiveStartKey — real pagination.
+func encodeCursor(m map[string]json.RawMessage) string {
+	if len(m) == 0 {
+		return ""
+	}
+	raw, err := json.Marshal(m)
+	if err != nil {
+		return ""
+	}
+	return base64.RawURLEncoding.EncodeToString(raw)
+}
+
+func decodeCursor(s string) map[string]json.RawMessage {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(s)
+	if err != nil {
+		return nil
+	}
+	var m map[string]json.RawMessage
+	if json.Unmarshal(raw, &m) != nil {
+		return nil
+	}
+	return m
+}
+
+func (b *backend) ScanItems(ctx context.Context, t *Table, filter string, limit int, cursor string) ([]Item, string, error) {
 	in := map[string]any{"TableName": t.Name, "Limit": limit}
 	if strings.TrimSpace(filter) != "" {
 		in["FilterExpression"] = filter
 	}
+	if esk := decodeCursor(cursor); esk != nil {
+		in["ExclusiveStartKey"] = esk
+	}
 	body, err := b.ddbCall(ctx, "Scan", in)
 	if err != nil {
-		return nil, false, err
+		return nil, "", err
 	}
 	var out struct {
 		Items            []map[string]json.RawMessage `json:"Items"`
 		LastEvaluatedKey map[string]json.RawMessage   `json:"LastEvaluatedKey"`
 	}
 	if err := json.Unmarshal(body, &out); err != nil {
-		return nil, false, err
+		return nil, "", err
 	}
-	return b.itemsFromAV(t, out.Items), len(out.LastEvaluatedKey) > 0, nil
+	return b.itemsFromAV(t, out.Items), encodeCursor(out.LastEvaluatedKey), nil
 }
 
 // QueryOpts describes a key-based query against the base table or a GSI.
@@ -297,11 +399,12 @@ type QueryOpts struct {
 	SKValue2 string // for "between"
 	Filter   string // optional FilterExpression on non-key attributes
 	Limit    int
+	Cursor   string // opaque pagination cursor (ExclusiveStartKey)
 }
 
 // QueryItems runs a Query, building the KeyConditionExpression from the chosen
 // index's key schema. Names are aliased (#pk/#sk) to dodge reserved words.
-func (b *backend) QueryItems(ctx context.Context, t *Table, o QueryOpts) ([]Item, bool, error) {
+func (b *backend) QueryItems(ctx context.Context, t *Table, o QueryOpts) ([]Item, string, error) {
 	pkName, pkType := t.HashKey, t.HashType
 	skName, skType := t.RangeKey, t.RangeType
 	if o.Index != "" {
@@ -342,18 +445,21 @@ func (b *backend) QueryItems(ctx context.Context, t *Table, o QueryOpts) ([]Item
 	if strings.TrimSpace(o.Filter) != "" {
 		in["FilterExpression"] = o.Filter
 	}
+	if esk := decodeCursor(o.Cursor); esk != nil {
+		in["ExclusiveStartKey"] = esk
+	}
 	body, err := b.ddbCall(ctx, "Query", in)
 	if err != nil {
-		return nil, false, err
+		return nil, "", err
 	}
 	var out struct {
 		Items            []map[string]json.RawMessage `json:"Items"`
 		LastEvaluatedKey map[string]json.RawMessage   `json:"LastEvaluatedKey"`
 	}
 	if err := json.Unmarshal(body, &out); err != nil {
-		return nil, false, err
+		return nil, "", err
 	}
-	return b.itemsFromAV(t, out.Items), len(out.LastEvaluatedKey) > 0, nil
+	return b.itemsFromAV(t, out.Items), encodeCursor(out.LastEvaluatedKey), nil
 }
 
 // PartiQL runs an ExecuteStatement and maps results back to the base table.

@@ -62,12 +62,19 @@ func (c *Console) snsTopic(w http.ResponseWriter, r *http.Request) {
 type subView struct {
 	Proto, Name, URL, Endpoint, SubARN string
 	Svc                                string // service color key; "" for http/webhook
+	FilterPolicy                       string // JSON, "" when none
+	RawDelivery                        bool
+	Pending                            bool // ARN not yet confirmed (http/https)
 }
 
 func subViews(subs []Subscription) []subView {
 	views := make([]subView, 0, len(subs))
 	for _, s := range subs {
-		v := subView{Proto: s.Protocol, Endpoint: s.Endpoint, SubARN: s.ARN, Name: s.Endpoint}
+		v := subView{
+			Proto: s.Protocol, Endpoint: s.Endpoint, SubARN: s.ARN, Name: s.Endpoint,
+			FilterPolicy: s.FilterPolicy, RawDelivery: s.RawDelivery,
+			Pending: !strings.HasPrefix(s.ARN, "arn:"),
+		}
 		switch s.Protocol {
 		case "sqs":
 			v.Svc, v.Name = "sqs", arnLeaf(s.Endpoint)
@@ -120,5 +127,33 @@ func (c *Console) snsUnsubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toast(w, "Subscription removed")
+	c.snsSubsPartial(w, r, name)
+}
+
+// snsSubFilter sets a subscription's filter policy (a message only reaches the
+// subscriber when its attributes match). An empty policy clears the filter.
+func (c *Console) snsSubFilter(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("topic")
+	if err := c.be.SetSubscriptionAttribute(r.Context(), r.FormValue("arn"), "FilterPolicy", strings.TrimSpace(r.FormValue("policy"))); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Filter policy saved")
+	c.snsSubsPartial(w, r, name)
+}
+
+// snsSubRaw toggles raw message delivery (deliver the bare message body instead
+// of the SNS JSON envelope).
+func (c *Console) snsSubRaw(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("topic")
+	value := "false"
+	if r.FormValue("raw") == "on" || r.FormValue("raw") == "true" {
+		value = "true"
+	}
+	if err := c.be.SetSubscriptionAttribute(r.Context(), r.FormValue("arn"), "RawMessageDelivery", value); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Raw delivery "+map[string]string{"true": "on", "false": "off"}[value])
 	c.snsSubsPartial(w, r, name)
 }
