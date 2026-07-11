@@ -374,3 +374,47 @@ func TestConsoleCreatePagesAndPalette(t *testing.T) {
 		t.Fatalf("palette api: %d\n%s", api.Code, body)
 	}
 }
+
+// TestConsoleEditing covers the new edit surfaces: bucket tags, queue
+// attributes, and the prefilled secret/param editors.
+func TestConsoleEditing(t *testing.T) {
+	h := newConsole(t)
+
+	// Bucket tags: add appears in the props partial, remove clears it.
+	create(t, h, "/_console/s3/create", url.Values{"name": {"tagbkt"}})
+	add := req(t, h, "POST", "/_console/s3/tagbkt/add-tag", url.Values{"key": {"env"}, "value": {"dev"}})
+	if add.Code != 200 || !strings.Contains(add.Body.String(), "env") || !strings.Contains(add.Body.String(), "dev") {
+		t.Fatalf("add tag: %d\n%s", add.Code, add.Body)
+	}
+	rm := req(t, h, "POST", "/_console/s3/tagbkt/remove-tag", url.Values{"key": {"env"}})
+	if rm.Code != 200 || strings.Contains(rm.Body.String(), ">dev<") {
+		t.Fatalf("remove tag: %d\n%s", rm.Code, rm.Body)
+	}
+
+	// SQS attributes: edit visibility, the config partial reflects it.
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"editq"}})
+	upd := req(t, h, "POST", "/_console/sqs/editq/attributes", url.Values{"visibility": {"120"}})
+	if upd.Code != 200 || !strings.Contains(upd.Body.String(), "120 s") {
+		t.Fatalf("set attributes: %d\n%s", upd.Code, upd.Body)
+	}
+
+	// Secret editor is prefilled with the current value.
+	create(t, h, "/_console/sm/create", url.Values{"name": {"editsec"}, "value": {`{"pw":"old-value"}`}})
+	page := req(t, h, "GET", "/_console/sm/secret?name=editsec", nil)
+	if !strings.Contains(page.Body.String(), `data-editor`) || !strings.Contains(page.Body.String(), "old-value") {
+		t.Fatalf("secret editor not prefilled:\n%s", page.Body)
+	}
+
+	// Param editor too.
+	create(t, h, "/_console/ssm/create", url.Values{"name": {"/edit/me"}, "value": {"v1-value"}, "type": {"String"}})
+	ppage := req(t, h, "GET", "/_console/ssm/param?name=/edit/me", nil)
+	if !strings.Contains(ppage.Body.String(), `data-editor`) || !strings.Contains(ppage.Body.String(), "v1-value") {
+		t.Fatalf("param editor not prefilled:\n%s", ppage.Body)
+	}
+
+	// CodeMirror ships embedded.
+	cm := req(t, h, "GET", "/_console/static/cm/codemirror.min.js", nil)
+	if cm.Code != 200 || cm.Body.Len() < 100000 {
+		t.Fatalf("codemirror not served: %d (%d bytes)", cm.Code, cm.Body.Len())
+	}
+}

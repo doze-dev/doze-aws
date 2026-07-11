@@ -6,6 +6,13 @@
 <script>(function(){try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <script src="{{.Prefix}}/static/htmx.min.js"></script>
 <script defer src="{{.Prefix}}/static/alpine.min.js"></script>
+<link rel="stylesheet" href="{{.Prefix}}/static/cm/codemirror.min.css">
+<script src="{{.Prefix}}/static/cm/codemirror.min.js"></script>
+<script src="{{.Prefix}}/static/cm/javascript.min.js"></script>
+<script src="{{.Prefix}}/static/cm/yaml.min.js"></script>
+<script src="{{.Prefix}}/static/cm/matchbrackets.min.js"></script>
+<script src="{{.Prefix}}/static/cm/closebrackets.min.js"></script>
+<script src="{{.Prefix}}/static/editor.js"></script>
 <script>
   // Let Alpine initialise nodes htmx swaps in.
   document.addEventListener("htmx:afterSwap", function(e){ if(window.Alpine) window.Alpine.initTree(e.detail.target); });

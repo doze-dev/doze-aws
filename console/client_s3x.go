@@ -119,6 +119,37 @@ func (b *backend) CreateBucketFull(ctx context.Context, name string, versioning,
 	return nil
 }
 
+// PutBucketTags replaces the bucket's tag set (empty deletes the tagging).
+func (b *backend) PutBucketTags(ctx context.Context, bucket string, tags []KV) error {
+	if len(tags) == 0 {
+		req, _ := http.NewRequestWithContext(ctx, "DELETE", b.base+"/"+bucket+"?tagging", nil)
+		_, err := b.do(req)
+		return err
+	}
+	var sb strings.Builder
+	sb.WriteString("<Tagging><TagSet>")
+	for _, t := range tags {
+		sb.WriteString("<Tag><Key>")
+		xml.EscapeText(&sb, []byte(t.K))
+		sb.WriteString("</Key><Value>")
+		xml.EscapeText(&sb, []byte(t.V))
+		sb.WriteString("</Value></Tag>")
+	}
+	sb.WriteString("</TagSet></Tagging>")
+	req, _ := http.NewRequestWithContext(ctx, "PUT", b.base+"/"+bucket+"?tagging", strings.NewReader(sb.String()))
+	req.Header.Set("Content-Type", "application/xml")
+	_, err := b.do(req)
+	return err
+}
+
+// SetQueueAttributes updates a queue's mutable settings.
+func (b *backend) SetQueueAttributes(ctx context.Context, name string, attrs map[string]string) error {
+	_, err := b.sqs(ctx, "SetQueueAttributes", map[string]any{
+		"QueueUrl": b.queueURL(name), "Attributes": attrs,
+	})
+	return err
+}
+
 // s3Sub issues a bucket-subresource request (?versioning, ?tagging, ...).
 func (b *backend) s3Sub(ctx context.Context, method, bucket, sub string) ([]byte, error) {
 	req, _ := http.NewRequestWithContext(ctx, method, b.base+"/"+bucket+"?"+sub, nil)

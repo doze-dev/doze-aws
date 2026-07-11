@@ -509,3 +509,45 @@ h1 .aws-ic, .idband .aws-ic { width: 30px; height: 30px; border-radius: 7px; box
 .kv-copy .trunc { max-width: 260px; }
 .kv-copy .copy-btn { opacity: 0; transition: opacity .1s; }
 tr:hover .kv-copy .copy-btn, .kv-copy:hover .copy-btn { opacity: 1; }
+
+/* ---------- CodeMirror, themed with the console tokens ---------- */
+.CodeMirror {
+  height: auto; min-height: 180px; max-height: 560px;
+  font: 12.5px/1.6 var(--mono); border: 1px solid hsl(var(--input));
+  border-radius: var(--radius); background: hsl(var(--background)); color: hsl(var(--foreground));
+  transition: border-color .12s, box-shadow .12s;
+}
+.form-page .CodeMirror { min-height: 320px; }
+.dialog .CodeMirror { min-height: 220px; max-height: 380px; }
+.CodeMirror-focused { border-color: hsl(var(--ring)); box-shadow: 0 0 0 3px hsl(var(--ring) / 0.2); }
+.CodeMirror-scroll { min-height: inherit; max-height: inherit; }
+.CodeMirror-gutters { background: hsl(var(--muted) / 0.5); border-right: 1px solid hsl(var(--border)); }
+.CodeMirror-linenumber { color: hsl(var(--muted-foreground)); opacity: 0.7; font-size: 11px; }
+.CodeMirror-cursor { border-left-color: hsl(var(--foreground)); }
+.CodeMirror-selected { background: hsl(var(--accent-blue) / 0.18) !important; }
+.CodeMirror-placeholder { color: hsl(var(--muted-foreground)) !important; }
+.CodeMirror-matchingbracket { color: hsl(var(--accent-blue)) !important; font-weight: 700; text-decoration: none !important; }
+
+/* token colors — hue-consistent across light/dark via the token system */
+.cm-s-default .cm-string { color: hsl(145 55% 38%); }
+.cm-s-default .cm-string-2 { color: hsl(145 55% 38%); }
+.cm-s-default .cm-property, .cm-s-default .cm-atom { color: hsl(var(--accent-blue)); }
+.cm-s-default .cm-number { color: hsl(27 85% 45%); }
+.cm-s-default .cm-keyword { color: hsl(291 55% 47%); }
+.cm-s-default .cm-comment { color: hsl(var(--muted-foreground)); font-style: italic; }
+.cm-s-default .cm-meta, .cm-s-default .cm-def { color: hsl(352 65% 50%); }
+.cm-s-default .cm-error { background: hsl(var(--destructive) / 0.15); }
+:root[data-theme="dark"] .cm-s-default .cm-string, :root[data-theme="dark"] .cm-s-default .cm-string-2 { color: hsl(145 50% 58%); }
+:root[data-theme="dark"] .cm-s-default .cm-number { color: hsl(27 90% 60%); }
+:root[data-theme="dark"] .cm-s-default .cm-keyword { color: hsl(291 60% 65%); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cm-s-default .cm-string,
+  :root:not([data-theme="light"]) .cm-s-default .cm-string-2 { color: hsl(145 50% 58%); }
+  :root:not([data-theme="light"]) .cm-s-default .cm-number { color: hsl(27 90% 60%); }
+  :root:not([data-theme="light"]) .cm-s-default .cm-keyword { color: hsl(291 60% 65%); }
+}
+
+/* ---------- inline edit mode (SQS config, tags) ---------- */
+.edit-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 12px 16px; }
+.tag-row-form { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-top: 1px solid hsl(var(--border)); }
+.tag-row-form .input { height: 30px; }

@@ -32,25 +32,7 @@
         </form>
       </div>
     </div>
-    <div class="sec-title">Configuration</div>
-    <div class="table-wrap"><table class="tbl kv"><tbody>
-      <tr><td>Type</td><td>{{if .Config.FIFO}}<span class="badge type">FIFO</span>{{else}}Standard{{end}}</td></tr>
-      <tr><td>Visibility timeout</td><td>{{.Config.Visibility}} s</td></tr>
-      <tr><td>Message retention</td><td>{{.Config.Retention}} s</td></tr>
-      {{if .Config.Delay}}<tr><td>Delivery delay</td><td>{{.Config.Delay}} s</td></tr>{{end}}
-      {{if .Config.DLQ}}
-      <tr><td>Dead-letter queue</td><td><a href="{{.Prefix}}/sqs/{{.Config.DLQ}}" style="color:hsl(var(--accent-blue))">{{.Config.DLQ}}</a> <span class="dim">after {{.Config.MaxReceive}} receives</span></td></tr>
-      {{end}}
-      {{if .Config.Created}}<tr><td>Created</td><td>{{.Config.Created}}</td></tr>{{end}}
-      {{if .Config.Modified}}<tr><td>Last modified</td><td>{{.Config.Modified}}</td></tr>{{end}}
-    </tbody></table></div>
-
-    <div x-data="{raw:false}" style="margin-top:10px">
-      <button class="btn btn-outline btn-sm" @click="raw=!raw" x-text="raw ? 'Hide raw attributes' : 'Show raw attributes'"></button>
-      <div class="table-wrap" x-show="raw" x-cloak style="margin-top:8px"><table class="tbl kv"><tbody>
-        {{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}
-      </tbody></table></div>
-    </div>
+    {{template "sqs_config" .}}
   </div>
 
   <div hx-get="{{.Prefix}}/sqs/{{.Queue}}/messages" hx-trigger="load, every 3s" hx-swap="outerHTML">
@@ -73,5 +55,60 @@
     </div>
   {{end}}</div>
   {{else}}<div class="empty"><span class="ic-lg">{{icon "inbox"}}</span><p>No visible messages.</p></div>{{end}}
+</div>
+{{end}}
+
+{{define "sqs_config"}}
+<div id="sqs-config" x-data="{edit:false, raw:false}">
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>Configuration</span>
+    <button class="icon-btn sm" :title="edit ? 'Cancel' : 'Edit settings'" @click="edit=!edit">
+      <span x-show="!edit">{{icon "pencil"}}</span><span x-show="edit" x-cloak>{{icon "x"}}</span>
+    </button>
+  </div>
+
+  <div x-show="!edit">
+    <div class="table-wrap"><table class="tbl kv"><tbody>
+      <tr><td>Type</td><td>{{if .Config.FIFO}}<span class="badge type">FIFO</span>{{else}}Standard{{end}}</td></tr>
+      <tr><td>Visibility timeout</td><td>{{.Config.Visibility}} s</td></tr>
+      <tr><td>Message retention</td><td>{{.Config.Retention}} s</td></tr>
+      <tr><td>Delivery delay</td><td>{{if .Config.Delay}}{{.Config.Delay}}{{else}}0{{end}} s</td></tr>
+      {{if .Config.DLQ}}
+      <tr><td>Dead-letter queue</td><td><a href="{{.Prefix}}/sqs/{{.Config.DLQ}}" style="color:hsl(var(--accent-blue))">{{.Config.DLQ}}</a> <span class="dim">after {{.Config.MaxReceive}} receives</span></td></tr>
+      {{end}}
+      {{if .Config.Created}}<tr><td>Created</td><td>{{.Config.Created}}</td></tr>{{end}}
+      {{if .Config.Modified}}<tr><td>Last modified</td><td>{{.Config.Modified}}</td></tr>{{end}}
+    </tbody></table></div>
+  </div>
+
+  <div class="panel" x-show="edit" x-cloak>
+    <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/attributes" hx-target="#sqs-config" hx-swap="outerHTML">
+      <div class="edit-grid">
+        <div class="field">
+          <label>Visibility <span class="dim">s</span></label>
+          <input class="input" name="visibility" type="number" min="0" max="43200" value="{{.Config.Visibility}}">
+        </div>
+        <div class="field">
+          <label>Retention <span class="dim">s</span></label>
+          <input class="input" name="retention" type="number" min="60" max="1209600" value="{{.Config.Retention}}">
+        </div>
+        <div class="field">
+          <label>Delay <span class="dim">s</span></label>
+          <input class="input" name="delay" type="number" min="0" max="900" value="{{if .Config.Delay}}{{.Config.Delay}}{{else}}0{{end}}">
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 16px 12px">
+        <button type="button" class="btn btn-outline btn-sm" @click="edit=false">Cancel</button>
+        <button type="submit" class="btn btn-sm">Save settings</button>
+      </div>
+    </form>
+  </div>
+
+  <div style="margin-top:10px">
+    <button class="btn btn-outline btn-sm" @click="raw=!raw" x-text="raw ? 'Hide raw attributes' : 'Show raw attributes'"></button>
+    <div class="table-wrap" x-show="raw" x-cloak style="margin-top:8px"><table class="tbl kv"><tbody>
+      {{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}
+    </tbody></table></div>
+  </div>
 </div>
 {{end}}

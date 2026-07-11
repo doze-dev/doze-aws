@@ -95,6 +95,92 @@ func (c *Console) s3Versioning(w http.ResponseWriter, r *http.Request) {
 	c.partial(w, "s3_props", map[string]any{"Bucket": bucket, "Props": props})
 }
 
+// s3AddTag appends one tag to the bucket's tag set.
+func (c *Console) s3AddTag(w http.ResponseWriter, r *http.Request) {
+	bucket := r.PathValue("bucket")
+	k, v := strings.TrimSpace(r.FormValue("key")), strings.TrimSpace(r.FormValue("value"))
+	if k == "" {
+		c.fail(w, &apiErr{status: 400, body: "tag key is required"})
+		return
+	}
+	props, err := c.be.GetBucketProps(r.Context(), bucket)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	tags := make([]KV, 0, len(props.Tags)+1)
+	for _, t := range props.Tags {
+		if t.K != k {
+			tags = append(tags, t)
+		}
+	}
+	tags = append(tags, KV{K: k, V: v})
+	if err := c.be.PutBucketTags(r.Context(), bucket, tags); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Tag added")
+	c.s3PropsPartial(w, r, bucket)
+}
+
+// s3RemoveTag removes one tag from the bucket's tag set.
+func (c *Console) s3RemoveTag(w http.ResponseWriter, r *http.Request) {
+	bucket := r.PathValue("bucket")
+	k := r.FormValue("key")
+	props, err := c.be.GetBucketProps(r.Context(), bucket)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	tags := make([]KV, 0, len(props.Tags))
+	for _, t := range props.Tags {
+		if t.K != k {
+			tags = append(tags, t)
+		}
+	}
+	if err := c.be.PutBucketTags(r.Context(), bucket, tags); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Tag removed")
+	c.s3PropsPartial(w, r, bucket)
+}
+
+func (c *Console) s3PropsPartial(w http.ResponseWriter, r *http.Request, bucket string) {
+	props, _ := c.be.GetBucketProps(r.Context(), bucket)
+	c.partial(w, "s3_props", map[string]any{"Bucket": bucket, "Props": props})
+}
+
+// sqsSetAttributes edits the queue's mutable delivery settings.
+func (c *Console) sqsSetAttributes(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("queue")
+	attrs := map[string]string{}
+	if v := strings.TrimSpace(r.FormValue("visibility")); v != "" {
+		attrs["VisibilityTimeout"] = v
+	}
+	if v := strings.TrimSpace(r.FormValue("retention")); v != "" {
+		attrs["MessageRetentionPeriod"] = v
+	}
+	if v := strings.TrimSpace(r.FormValue("delay")); v != "" {
+		attrs["DelaySeconds"] = v
+	}
+	if len(attrs) > 0 {
+		if err := c.be.SetQueueAttributes(r.Context(), name, attrs); err != nil {
+			c.fail(w, err)
+			return
+		}
+	}
+	toast(w, "Queue settings saved")
+	qattrs, err := c.be.queueAttrs(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "sqs_config", map[string]any{
+		"Queue": name, "Attrs": qattrs, "Config": sqsConfigOf(qattrs),
+	})
+}
+
 func (c *Console) s3DeleteBucket(w http.ResponseWriter, r *http.Request) {
 	if err := c.be.DeleteBucket(r.Context(), r.PathValue("bucket")); err != nil {
 		c.fail(w, err)

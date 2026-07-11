@@ -91,13 +91,14 @@
 {{end}}
 
 <!-- add-item dialog -->
-<div class="overlay" x-show="put" x-cloak @click.self="put=false" @keydown.escape.window="put=false">
+<div class="overlay" x-show="put" x-cloak @click.self="put=false" @keydown.escape.window="put=false"
+     x-effect="if (put) $nextTick(() => window.dozeEditor && dozeEditor.refresh($el))">
   <div class="dialog wide anim">
     <form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/put" hx-target="#ddb-items" hx-swap="outerHTML"
           @htmx:after-request="if($event.detail.successful){put=false; $el.reset();}">
       <div class="dialog-h"><h3>Add item</h3><p>Plain JSON — types are inferred ({{.Table.HashKey}}{{if .Table.RangeKey}}, {{.Table.RangeKey}}{{end}} required).</p></div>
       <div class="dialog-b">
-        <textarea name="item" rows="9" spellcheck="false" required placeholder='{&#10;  "{{.Table.HashKey}}": "user-1",&#10;  "name": "Ada",&#10;  "logins": 42&#10;}'></textarea>
+        <textarea id="ddb-item-editor" name="item" data-editor="json" rows="9" spellcheck="false" required placeholder='{&#10;  "{{.Table.HashKey}}": "user-1",&#10;  "name": "Ada",&#10;  "logins": 42&#10;}'></textarea>
       </div>
       <div class="dialog-f">
         <button type="button" class="btn btn-outline" @click="put=false">Cancel</button>
@@ -129,8 +130,9 @@
       {{if $.Table.RangeKey}}<td class="mono dim" style="font-size:11.5px">{{.SK}}</td>{{end}}
       <td class="dim mono trunc" style="font-size:11px;max-width:420px;cursor:pointer"
           @click="drawer=true; const d=document.getElementById('drawer-inner');
-                  d.innerHTML='<div class=\'drawer-h\'><span class=\'title\'>Item</span></div><div class=\'drawer-b\'><div class=\'code-out\'><pre></pre></div></div>';
-                  d.querySelector('pre').textContent=itemJSON">{{if .Preview}}{{.Preview}}{{else}}<span style="opacity:.5">keys only</span>{{end}}</td>
+                  d.innerHTML='<div class=\'drawer-h\'><span class=\'title\'>Item</span></div><div class=\'drawer-b\'><div class=\'code-out\'><pre></pre></div><div class=\'drawer-actions\' style=\'margin-top:12px\'><button class=\'btn btn-outline\' id=\'dw-edit\'>Edit item</button></div></div>';
+                  d.querySelector('pre').textContent=itemJSON;
+                  d.querySelector('#dw-edit').onclick = () => { drawer=false; put=true; $nextTick(() => dozeEditor.set('#ddb-item-editor', itemJSON)); }">{{if .Preview}}{{.Preview}}{{else}}<span style="opacity:.5">keys only</span>{{end}}</td>
       <td>
         <div class="row-actions">
           <button class="icon-btn sm danger" title="Delete item"

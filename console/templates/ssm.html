@@ -80,13 +80,14 @@
       </div>
     </div>
 
-    <div class="sec-title">New version</div>
+    <div class="sec-title">Edit value</div>
     <div class="panel"><div style="padding:14px 16px">
       <form hx-post="{{.Prefix}}/ssm/put" hx-target="#ssm-detail" hx-swap="outerHTML">
         <input type="hidden" name="name" value="{{.P.Name}}">
-        <textarea name="value" rows="3" required placeholder="new value…"></textarea>
+        <textarea name="value" data-editor rows="8" spellcheck="false" required>{{.P.Value}}</textarea>
         <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn" type="submit">Save as v{{addOne .P.Version}}</button></div>
       </form>
+      <p class="mini-note">Pre-filled with the current value — edit and save as a new version.</p>
     </div></div>
   </div>
 

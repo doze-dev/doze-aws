@@ -75,14 +75,14 @@
       </div>
     </div>
 
-    <div class="sec-title">New version</div>
+    <div class="sec-title">Edit value</div>
     <div class="panel"><div style="padding:14px 16px">
       <form hx-post="{{.Prefix}}/sm/put" hx-target="#sm-detail" hx-swap="outerHTML">
         <input type="hidden" name="name" value="{{.S.Name}}">
-        <textarea name="value" rows="4" spellcheck="false" required placeholder="new secret value…"></textarea>
-        <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn" type="submit">Store new version</button></div>
+        <textarea name="value" data-editor rows="12" spellcheck="false" required>{{.S.Value}}</textarea>
+        <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn" type="submit">Save as new version</button></div>
       </form>
-      <p class="mini-note">The new version becomes AWSCURRENT; the previous one moves to AWSPREVIOUS.</p>
+      <p class="mini-note">Pre-filled with the current value. Saving makes it AWSCURRENT; the previous version moves to AWSPREVIOUS.</p>
     </div></div>
   </div>
 

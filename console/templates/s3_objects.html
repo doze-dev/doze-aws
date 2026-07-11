@@ -165,12 +165,27 @@
       <tr><td>Region</td><td>{{.Props.Region}}</td></tr>
     </tbody></table></div>
 
-    {{if .Props.Tags}}
     <div class="sec-title">Tags</div>
-    <div class="table-wrap"><table class="tbl kv"><tbody>
-      {{range .Props.Tags}}<tr><td>{{.K}}</td><td>{{.V}}</td></tr>{{end}}
-    </tbody></table></div>
-    {{end}}
+    <div class="panel">
+      {{if .Props.Tags}}
+      <table class="tbl kv"><tbody>
+        {{range .Props.Tags}}<tr>
+          <td>{{.K}}</td>
+          <td style="display:flex;align-items:center;justify-content:space-between;gap:8px">{{.V}}
+            <button class="icon-btn sm danger" title="Remove tag"
+                    hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/remove-tag" hx-vals='{"key":"{{.K}}"}'
+                    hx-target="#s3-props" hx-swap="outerHTML">{{icon "x"}}</button>
+          </td>
+        </tr>{{end}}
+      </tbody></table>
+      {{else}}<div class="mini-note" style="padding:12px 14px 2px">No tags yet.</div>{{end}}
+      <form class="tag-row-form" hx-post="{{.Prefix}}/s3/{{.Bucket}}/add-tag" hx-target="#s3-props" hx-swap="outerHTML"
+            @htmx:after-request="$el.reset()">
+        <input class="input" name="key" placeholder="Key" required style="max-width:150px">
+        <input class="input" name="value" placeholder="Value" style="flex:1">
+        <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Add tag</button>
+      </form>
+    </div>
   </div>
 
   <div>

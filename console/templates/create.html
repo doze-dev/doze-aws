@@ -211,7 +211,7 @@
       <div class="form-b">
         <div class="field" style="margin-bottom:12px">
           <label>Event pattern <span class="dim">JSON</span></label>
-          <textarea name="pattern" rows="7" spellcheck="false" placeholder='{&#10;  "source": ["orders"],&#10;  "detail-type": ["created"]&#10;}'></textarea>
+          <textarea name="pattern" data-editor="json" rows="7" spellcheck="false" placeholder='{&#10;  "source": ["orders"],&#10;  "detail-type": ["created"]&#10;}'></textarea>
           <span class="hint">Prefix, wildcard, numeric, anything-but and $or matchers all work — the full pattern language.</span>
         </div>
         <div class="field">
@@ -307,7 +307,7 @@
     <div class="panel form-sec">
       <div class="panel-h"><h2>Value</h2></div>
       <div class="form-b">
-        <textarea name="value" rows="10" required placeholder="localhost:5432" spellcheck="false"></textarea>
+        <textarea name="value" data-editor rows="10" required placeholder="localhost:5432" spellcheck="false"></textarea>
       </div>
     </div>
     {{template "form_actions" dict "Cancel" (printf "%s/ssm" .Prefix) "Submit" "Create parameter"}}
@@ -339,7 +339,7 @@
     <div class="panel form-sec">
       <div class="panel-h"><h2>Secret value</h2></div>
       <div class="form-b">
-        <textarea name="value" rows="12" spellcheck="false" required placeholder='{&#10;  "username": "admin",&#10;  "password": "…"&#10;}'></textarea>
+        <textarea name="value" data-editor rows="12" spellcheck="false" required placeholder='{&#10;  "username": "admin",&#10;  "password": "…"&#10;}'></textarea>
       </div>
     </div>
     {{template "form_actions" dict "Cancel" (printf "%s/sm" .Prefix) "Submit" "Store secret"}}

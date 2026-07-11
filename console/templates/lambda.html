@@ -90,7 +90,7 @@
     <div style="padding:14px 16px">
       <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/invoke" hx-target="#invoke-result" hx-swap="innerHTML"
             hx-indicator="#invoke-spin">
-        <textarea name="payload" rows="8" spellcheck="false" placeholder='{"key": "value"}'>{"hello": "world"}</textarea>
+        <textarea name="payload" data-editor="json" rows="8" spellcheck="false" placeholder='{"key": "value"}'>{"hello": "world"}</textarea>
         <div style="margin-top:10px;display:flex;justify-content:flex-end;align-items:center;gap:10px">
           <span id="invoke-spin" class="dim htmx-indicator" style="font-size:12px">Running…</span>
           <button class="btn" type="submit">{{icon "play"}} Invoke</button>

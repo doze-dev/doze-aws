@@ -93,6 +93,8 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/s3/{bucket}/upload", c.s3Upload)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/delete", c.s3DeleteObject)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/versioning", c.s3Versioning)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/add-tag", c.s3AddTag)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/remove-tag", c.s3RemoveTag)
 
 	// SQS.
 	m.HandleFunc("GET "+p+"/sqs", c.sqsQueues)
@@ -101,6 +103,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/sqs/{queue}/messages", c.sqsMessages) // HTMX partial (polled)
 	m.HandleFunc("POST "+p+"/sqs/{queue}/send", c.sqsSend)
 	m.HandleFunc("POST "+p+"/sqs/{queue}/purge", c.sqsPurge)
+	m.HandleFunc("POST "+p+"/sqs/{queue}/attributes", c.sqsSetAttributes)
 	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-queue", c.sqsDeleteQueue)
 
 	// DynamoDB.
