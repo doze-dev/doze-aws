@@ -113,6 +113,7 @@ func parseFlags(args []string, dst *config.Config) (configPath string) {
 	fs.Var(servicesFlag{&dst.Services}, "services", "comma-separated services to enable (default: all implemented)")
 	fs.StringVar(&dst.S3Host, "s3-host", dst.S3Host, "base host for virtual-hosted-style S3 bucket addressing")
 	fs.BoolVar(&dst.Console, "console", dst.Console, "serve the web management console at /_console")
+	fs.DurationVar(&dst.LambdaIdleTimeout, "lambda-idle", dst.LambdaIdleTimeout, "how long a warm Lambda keeps its process before scaling to zero")
 	fs.Parse(args) //nolint:errcheck // flag.ExitOnError exits on a parse error.
 	return *cp
 }
@@ -124,9 +125,10 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	}
 
 	stack, err := dozeaws.NewStack(dozeaws.StackConfig{
-		DataDir:  cfg.DataDir,
-		Services: cfg.Services,
-		S3Host:   cfg.S3Host,
+		DataDir:           cfg.DataDir,
+		Services:          cfg.Services,
+		S3Host:            cfg.S3Host,
+		LambdaIdleTimeout: cfg.LambdaIdleTimeout,
 		Logf: func(format string, args ...any) {
 			logger.Info(fmt.Sprintf(format, args...))
 		},

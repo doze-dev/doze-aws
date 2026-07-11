@@ -42,16 +42,20 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// IdleTimeout is how long a warm function keeps its process(es) before
+	// scaling to zero. Zero uses lambdaruntime.DefaultIdleTimeout.
+	IdleTimeout time.Duration
 }
 
 // Server is the Lambda service.
 type Server struct {
-	store    *Store
-	dataDir  string
-	peers    peers.Directory
-	endpoint string
-	logf     func(format string, args ...any)
-	now      func() time.Time
+	store       *Store
+	dataDir     string
+	peers       peers.Directory
+	endpoint    string
+	logf        func(format string, args ...any)
+	now         func() time.Time
+	idleTimeout time.Duration
 
 	mu       sync.Mutex
 	runners  map[string]*lambdaruntime.Pool // function name -> concurrency pool
@@ -74,14 +78,15 @@ func New(opts Options) (*Server, error) {
 		logf = func(string, ...any) {}
 	}
 	s := &Server{
-		store:    newStore(db),
-		dataDir:  opts.DataDir,
-		peers:    opts.Peers,
-		endpoint: opts.Endpoint,
-		logf:     logf,
-		now:      opts.Clock,
-		runners:  map[string]*lambdaruntime.Pool{},
-		mappings: map[string]*esm{},
+		store:       newStore(db),
+		dataDir:     opts.DataDir,
+		peers:       opts.Peers,
+		endpoint:    opts.Endpoint,
+		logf:        logf,
+		now:         opts.Clock,
+		idleTimeout: opts.IdleTimeout,
+		runners:     map[string]*lambdaruntime.Pool{},
+		mappings:    map[string]*esm{},
 	}
 	if s.peers == nil {
 		s.peers = peers.None()

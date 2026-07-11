@@ -6,6 +6,7 @@ package config
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/doze-dev/doze-aws/internal/gateway"
 )
@@ -23,6 +24,9 @@ type Config struct {
 	S3Host string
 	// Console mounts the web management UI at /_console on the shared endpoint.
 	Console bool
+	// LambdaIdleTimeout is how long a warm Lambda function keeps its process(es)
+	// before scaling to zero.
+	LambdaIdleTimeout time.Duration
 }
 
 // Default returns a Config suitable for zero-config local development. The
@@ -30,10 +34,11 @@ type Config struct {
 // unchanged.
 func Default() Config {
 	return Config{
-		ListenAddr: "127.0.0.1:4566",
-		DataDir:    "./data",
-		S3Host:     "localhost",
-		Console:    true,
+		ListenAddr:        "127.0.0.1:4566",
+		DataDir:           "./data",
+		S3Host:            "localhost",
+		Console:           true,
+		LambdaIdleTimeout: 10 * time.Minute,
 	}
 }
 

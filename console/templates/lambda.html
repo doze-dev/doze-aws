@@ -78,8 +78,8 @@
      scale-to-zero window. Polls itself and morph-swaps in place. */}}
 {{define "lambda_runtime_badge"}}
 <span id="lambda-rt" class="rt-badge {{if .RT.Warm}}rt-warm{{else}}rt-cold{{end}}"
-      data-live="{{.Prefix}}/lambda/{{.Name}}/runtime" data-live-ms="3000" data-hash="{{.Hash}}"
-      data-sleep-at="{{if .RT.Counting}}{{.RT.SleepAt}}{{else}}0{{end}}"
+      data-live="{{.Prefix}}/lambda/{{.Name}}/runtime" data-live-ms="3000" data-live-swap="outerHTML" data-hash="{{.Hash}}"
+      data-sleep-left="{{if .RT.Counting}}{{.RT.SleepLeft}}{{else}}-1{{end}}"
       title="{{if .RT.Warm}}{{.RT.Runners}} warm process{{if ne .RT.Runners 1}}es{{end}} — scales to zero after {{.RT.IdleLabel}} idle{{else}}No process running — spawns on first invoke, scales back to zero after {{.RT.IdleLabel}} idle{{end}}">
   <span class="rt-dot"></span>{{if .RT.Warm}}Warm <span class="rt-sub">{{if .RT.Counting}}· sleeps in <span class="rt-cd">{{.RT.SleepLabel}}</span>{{else}}· sleeps after {{.RT.IdleLabel}} idle{{end}}</span>{{else}}Idle <span class="rt-sub">· wakes on invoke</span>{{end}}
 </span>

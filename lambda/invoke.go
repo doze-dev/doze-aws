@@ -174,6 +174,9 @@ func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
 		Timeout:   time.Duration(f.Timeout) * time.Second,
 		Endpoints: s.endpointEnv(),
 	}, max, s.logf)
+	if s.idleTimeout > 0 {
+		r.SetIdleTimeout(s.idleTimeout)
+	}
 	s.runners[f.Name] = r
 	return r
 }

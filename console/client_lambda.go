@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
-	"strings"
 	"time"
 )
 
@@ -159,26 +158,43 @@ type LambdaRuntimeState struct {
 	SleepAt  int64 // unix seconds the warm pool will scale to zero; 0 = no countdown
 }
 
-// IdleLabel renders the idle window compactly, e.g. "10m", "90s".
+// IdleLabel renders the idle window compactly, e.g. "10m", "1h", "45s".
 func (s LambdaRuntimeState) IdleLabel() string {
-	d := (time.Duration(s.IdleSecs) * time.Second).String()
-	return strings.TrimSuffix(d, "0s") // "10m0s" -> "10m"; "45s" untouched
+	secs := s.IdleSecs
+	switch {
+	case secs >= 3600 && secs%3600 == 0:
+		return fmt.Sprintf("%dh", secs/3600)
+	case secs >= 60 && secs%60 == 0:
+		return fmt.Sprintf("%dm", secs/60)
+	default:
+		return fmt.Sprintf("%ds", secs)
+	}
 }
 
 // Counting reports whether a live sleep countdown is running.
 func (s LambdaRuntimeState) Counting() bool { return s.Warm && s.SleepAt > 0 }
 
-// SleepLabel renders the time left until the process sleeps for the initial
-// server render; the client then ticks it every second against SleepAt.
+// SleepLeft is the seconds remaining until the process sleeps, from the
+// server's clock. The client re-bases this against its own clock the moment it
+// receives it, so a skewed browser clock can't drift the countdown.
+func (s LambdaRuntimeState) SleepLeft() int {
+	if !s.Counting() {
+		return 0
+	}
+	left := int(time.Until(time.Unix(s.SleepAt, 0)).Seconds())
+	if left < 0 {
+		left = 0
+	}
+	return left
+}
+
+// SleepLabel renders the initial countdown for the server-side render; the
+// client then ticks it every second.
 func (s LambdaRuntimeState) SleepLabel() string {
 	if !s.Counting() {
 		return ""
 	}
-	left := time.Until(time.Unix(s.SleepAt, 0))
-	if left < 0 {
-		left = 0
-	}
-	secs := int(left.Seconds())
+	secs := s.SleepLeft()
 	if secs >= 60 {
 		return fmt.Sprintf("%dm %02ds", secs/60, secs%60)
 	}

@@ -170,13 +170,17 @@
     liveTimers = [];
     document.querySelectorAll("[data-live]").forEach(function (el) {
       var every = parseInt(el.getAttribute("data-live-ms") || "3000", 10);
+      // Most live regions morph so selection/scroll survive; a small self-
+      // contained element (e.g. a status badge) can opt into a plain outerHTML
+      // swap via data-live-swap to avoid idiomorph nesting its replacement.
+      var swap = el.getAttribute("data-live-swap") || "morph:outerHTML";
       var t = setInterval(function () {
         if (document.hidden || !document.body.contains(el)) return;
         var cur = document.getElementById(el.id);
         if (!cur) return;
         var hash = cur.getAttribute("data-hash") || "";
         htmx.ajax("GET", el.getAttribute("data-live") + (el.getAttribute("data-live").indexOf("?") >= 0 ? "&" : "?") + "h=" + hash, {
-          target: "#" + el.id, swap: "morph:outerHTML",
+          target: "#" + el.id, swap: swap,
         });
       }, every);
       liveTimers.push(t);
@@ -188,19 +192,23 @@
   });
 
   // ---------- sleep countdowns ----------
-  // Elements carrying data-sleep-at="<unix seconds>" tick a child .rt-cd every
-  // second toward that deadline. The console is loopback, so the server's
-  // deadline and the browser clock agree. The 3s live poll re-syncs the
-  // deadline only when it resets (a fresh invoke) — the tick fills the gaps.
+  // A .rt-cd inside an element carrying data-sleep-left="<seconds>" counts down
+  // every second. The server sends seconds-remaining (not an absolute time), and
+  // each fresh element re-bases it against the browser's own clock — so a
+  // browser/server clock skew can't drift the countdown. The 3s live poll swaps
+  // in a fresh element (with a new _deadline) only on a reset; the going-cold
+  // flip is server-authoritative, arriving as a swapped-in grey badge.
   function fmtLeft(s) {
     return s >= 60 ? Math.floor(s / 60) + "m " + String(s % 60).padStart(2, "0") + "s" : s + "s";
   }
   setInterval(function () {
-    document.querySelectorAll("[data-sleep-at]").forEach(function (host) {
-      var at = parseInt(host.getAttribute("data-sleep-at") || "0", 10);
-      var cd = host.querySelector(".rt-cd");
-      if (!at || !cd) return;
-      var left = at - Math.floor(Date.now() / 1000);
+    document.querySelectorAll(".rt-cd").forEach(function (cd) {
+      var host = cd.closest("[data-sleep-left]");
+      if (!host) return;
+      if (host._deadline == null) {
+        host._deadline = Date.now() + parseInt(host.getAttribute("data-sleep-left") || "0", 10) * 1000;
+      }
+      var left = Math.round((host._deadline - Date.now()) / 1000);
       cd.textContent = left > 0 ? fmtLeft(left) : "any moment";
     });
   }, 1000);

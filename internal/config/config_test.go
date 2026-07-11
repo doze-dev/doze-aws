@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDefaultValidates(t *testing.T) {
@@ -65,6 +66,7 @@ func TestWriteTOMLRoundTrips(t *testing.T) {
 	orig := Default()
 	orig.ListenAddr = "0.0.0.0:4566"
 	orig.Services = []string{"sts"}
+	orig.LambdaIdleTimeout = 90 * time.Second
 
 	var buf bytes.Buffer
 	if err := WriteTOML(&buf, orig); err != nil {
@@ -77,7 +79,7 @@ func TestWriteTOMLRoundTrips(t *testing.T) {
 	if err := LoadFile(path, &got); err != nil {
 		t.Fatalf("re-reading WriteTOML output: %v\n%s", err, buf.String())
 	}
-	if got.ListenAddr != orig.ListenAddr || got.DataDir != orig.DataDir || got.S3Host != orig.S3Host || len(got.Services) != 1 {
+	if got.ListenAddr != orig.ListenAddr || got.DataDir != orig.DataDir || got.S3Host != orig.S3Host || len(got.Services) != 1 || got.LambdaIdleTimeout != orig.LambdaIdleTimeout {
 		t.Errorf("round trip: got %+v, want %+v", got, orig)
 	}
 }

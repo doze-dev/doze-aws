@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/doze-dev/doze-aws/dynamodb"
 	"github.com/doze-dev/doze-aws/eventbridge"
@@ -55,6 +56,9 @@ type StackConfig struct {
 	// is detected (a request to <bucket>.<S3Host> addresses that bucket).
 	// Path-style always works.
 	S3Host string
+	// LambdaIdleTimeout is how long a warm Lambda function keeps its process(es)
+	// before scaling to zero. Zero uses the service default (10m).
+	LambdaIdleTimeout time.Duration
 }
 
 // Stack is a running set of services behind one gateway.
@@ -138,7 +142,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := eventbridge.New(eventbridge.Options{DataDir: dataDir, Peers: dir, Logf: logf})
 		return s, s, err
 	case "lambda":
-		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout})
 		return s, s, err
 	}
 	return nil, nil, fmt.Errorf("no constructor for %q", name)
