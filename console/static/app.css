@@ -480,7 +480,9 @@ h1 .aws-ic, .idband .aws-ic { width: 30px; height: 30px; border-radius: 7px; box
 .pal-empty { padding: 22px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 12.5px; }
 
 /* ---------- full-page create forms ---------- */
-.form-page { max-width: 660px; }
+/* Create pages sit directly inside .detail (no det-h/det-b), so they carry
+   the pane padding themselves — otherwise the title glues to the border. */
+.form-page { max-width: 700px; padding: 18px 20px 24px; }
 .form-page h1 { font-size: 20px; font-weight: 640; letter-spacing: -0.02em; margin: 0 0 4px; }
 .form-page .ph-desc { margin-bottom: 20px; }
 .form-sec { margin-bottom: 14px; }
