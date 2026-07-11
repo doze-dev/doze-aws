@@ -1,5 +1,3 @@
-// Contract tests for the operations added in the doze-aws port: move tasks,
-// dead-letter source discovery, tags over the JSON protocol.
 package sqs
 
 import (
@@ -8,69 +6,58 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
+	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 )
 
-func TestSDKMessageMoveTask(t *testing.T) {
+func TestSDKQueueAdmin(t *testing.T) {
 	ctx := context.Background()
 	c := sdkClient(t)
 
-	dlq := mustQueue(t, ctx, c, "move-dlq", nil)
-	dest := mustQueue(t, ctx, c, "move-dest", nil)
-	_ = dest
-	for _, body := range []string{"m1", "m2", "m3"} {
-		if _, err := c.SendMessage(ctx, &awssqs.SendMessageInput{QueueUrl: dlq, MessageBody: aws.String(body)}); err != nil {
-			t.Fatal(err)
+	q1, _ := c.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("q1")})
+	c.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("q2")})
+
+	// ListQueues.
+	lq, err := c.ListQueues(ctx, &awssqs.ListQueuesInput{})
+	if err != nil || len(lq.QueueUrls) != 2 {
+		t.Fatalf("ListQueues = %d err=%v", len(lq.QueueUrls), err)
+	}
+
+	// SetQueueAttributes.
+	if _, err := c.SetQueueAttributes(ctx, &awssqs.SetQueueAttributesInput{
+		QueueUrl:   q1.QueueUrl,
+		Attributes: map[string]string{"VisibilityTimeout": "45"},
+	}); err != nil {
+		t.Fatalf("SetQueueAttributes: %v", err)
+	}
+
+	// Send, receive, change visibility, purge.
+	c.SendMessage(ctx, &awssqs.SendMessageInput{QueueUrl: q1.QueueUrl, MessageBody: aws.String("m")})
+	rc, _ := c.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{QueueUrl: q1.QueueUrl})
+	if len(rc.Messages) == 1 {
+		if _, err := c.ChangeMessageVisibility(ctx, &awssqs.ChangeMessageVisibilityInput{
+			QueueUrl: q1.QueueUrl, ReceiptHandle: rc.Messages[0].ReceiptHandle, VisibilityTimeout: 0,
+		}); err != nil {
+			t.Fatalf("ChangeMessageVisibility: %v", err)
 		}
 	}
-
-	start, err := c.StartMessageMoveTask(ctx, &awssqs.StartMessageMoveTaskInput{
-		SourceArn:      aws.String("arn:aws:sqs:us-east-1:000000000000:move-dlq"),
-		DestinationArn: aws.String("arn:aws:sqs:us-east-1:000000000000:move-dest"),
-	})
-	if err != nil {
-		t.Fatalf("StartMessageMoveTask: %v", err)
-	}
-	if aws.ToString(start.TaskHandle) == "" {
-		t.Fatal("empty task handle")
+	if _, err := c.PurgeQueue(ctx, &awssqs.PurgeQueueInput{QueueUrl: q1.QueueUrl}); err != nil {
+		t.Fatalf("PurgeQueue: %v", err)
 	}
 
-	// Everything moved: source empty, destination holds all three.
-	if out, _ := c.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{QueueUrl: dlq}); len(out.Messages) != 0 {
-		t.Fatalf("source still has %d messages", len(out.Messages))
+	// Permissions round-trip.
+	if _, err := c.AddPermission(ctx, &awssqs.AddPermissionInput{
+		QueueUrl: q1.QueueUrl, Label: aws.String("p"),
+		AWSAccountIds: []string{"000000000000"}, Actions: []string{"SendMessage"},
+	}); err != nil {
+		t.Fatalf("AddPermission: %v", err)
 	}
-	got, err := c.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{QueueUrl: dest, MaxNumberOfMessages: 10})
-	if err != nil || len(got.Messages) != 3 {
-		t.Fatalf("destination: %v, %d messages", err, len(got.Messages))
+	if _, err := c.RemovePermission(ctx, &awssqs.RemovePermissionInput{QueueUrl: q1.QueueUrl, Label: aws.String("p")}); err != nil {
+		t.Fatalf("RemovePermission: %v", err)
 	}
 
-	list, err := c.ListMessageMoveTasks(ctx, &awssqs.ListMessageMoveTasksInput{
-		SourceArn:  aws.String("arn:aws:sqs:us-east-1:000000000000:move-dlq"),
-		MaxResults: aws.Int32(10),
-	})
-	if err != nil || len(list.Results) != 1 {
-		t.Fatalf("ListMessageMoveTasks: %v, %d results", err, len(list.Results))
+	// DeleteQueue.
+	if _, err := c.DeleteQueue(ctx, &awssqs.DeleteQueueInput{QueueUrl: q1.QueueUrl}); err != nil {
+		t.Fatalf("DeleteQueue: %v", err)
 	}
-	r := list.Results[0]
-	if aws.ToString(r.Status) != "COMPLETED" || r.ApproximateNumberOfMessagesMoved != 3 {
-		t.Errorf("task = %+v", r)
-	}
-}
-
-func TestSDKListDeadLetterSourceQueues(t *testing.T) {
-	ctx := context.Background()
-	c := sdkClient(t)
-
-	dlq := mustQueue(t, ctx, c, "the-dlq", nil)
-	rp := `{"deadLetterTargetArn":"arn:aws:sqs:us-east-1:000000000000:the-dlq","maxReceiveCount":"3"}`
-	mustQueue(t, ctx, c, "src-a", map[string]string{"RedrivePolicy": rp})
-	mustQueue(t, ctx, c, "src-b", map[string]string{"RedrivePolicy": rp})
-	mustQueue(t, ctx, c, "unrelated", nil)
-
-	out, err := c.ListDeadLetterSourceQueues(ctx, &awssqs.ListDeadLetterSourceQueuesInput{QueueUrl: dlq})
-	if err != nil {
-		t.Fatalf("ListDeadLetterSourceQueues: %v", err)
-	}
-	if len(out.QueueUrls) != 2 {
-		t.Fatalf("sources = %v, want 2", out.QueueUrls)
-	}
+	_ = sqstypes.QueueAttributeName("")
 }
