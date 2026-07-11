@@ -22,7 +22,7 @@
   {{end}}
 </nav>
 {{if .Objects}}
-<table class="grid">
+<div class="table-wrap"><table class="grid">
   <thead><tr><th>Key</th><th class="right">Size</th><th>Modified</th><th class="right">Actions</th></tr></thead>
   <tbody>{{range .Objects}}
     {{if .IsPrefix}}
@@ -46,7 +46,7 @@
     </tr>
     {{end}}
   {{end}}</tbody>
-</table>
+</table></div>
 {{else}}<p class="empty">This location is empty. Upload a file above.</p>{{end}}
 </div>
 {{end}}

@@ -10,16 +10,18 @@
 
 <div class="split">
   <section>
-    <h2>Send a message</h2>
-    <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/send" hx-target="#message-panel" hx-swap="outerHTML"
-          hx-on::after-request="this.reset()">
-      <textarea name="body" rows="5" placeholder='{"hello":"world"}' required></textarea>
-      <button type="submit">Send</button>
-    </form>
+    <section class="pad">
+      <h2 style="margin-top:0">Send a message</h2>
+      <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/send" hx-target="#message-panel" hx-swap="outerHTML"
+            hx-on::after-request="this.reset()">
+        <textarea name="body" rows="5" placeholder='{"hello":"world"}' required></textarea>
+        <div style="margin-top:10px"><button type="submit">Send message</button></div>
+      </form>
+    </section>
     <h2>Attributes</h2>
-    <table class="grid kv">
-      <tbody>{{range $k, $v := .Attrs}}<tr><td class="dim">{{$k}}</td><td>{{$v}}</td></tr>{{end}}</tbody>
-    </table>
+    <div class="table-wrap"><table class="grid kv">
+      <tbody>{{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{$v}}</td></tr>{{end}}</tbody>
+    </table></div>
   </section>
 
   <section>
@@ -34,7 +36,7 @@
 <div id="message-panel" hx-get="{{.Prefix}}/sqs/{{.Queue}}/messages" hx-trigger="every 3s" hx-swap="outerHTML">
   <div class="panel-head">
     <h2>Messages <span class="pill">{{.Available}}</span> <span class="dim">· {{.InFlight}} in flight</span></h2>
-    <span class="peek-note" title="Peeked without consuming — unlike the AWS console, refreshing never receives or hides messages">👁 non-destructive peek</span>
+    <span class="peek-note" title="Peeked without consuming — unlike the AWS console, refreshing never receives or hides messages">● live peek</span>
   </div>
   {{if .Messages}}
   <ul class="messages">{{range .Messages}}

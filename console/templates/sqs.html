@@ -14,11 +14,11 @@
 {{define "queue_list"}}
 <div id="queue-list">
 {{if .Queues}}
-<table class="grid">
+<div class="table-wrap"><table class="grid">
   <thead><tr><th>Name</th><th class="right">Available</th><th class="right">In flight</th><th class="right">Actions</th></tr></thead>
   <tbody>{{range .Queues}}
     <tr>
-      <td><a href="{{$.Prefix}}/sqs/{{.Name}}">✉ {{.Name}}</a></td>
+      <td><a href="{{$.Prefix}}/sqs/{{.Name}}"><span class="row-ico">✉</span>{{.Name}}</a></td>
       <td class="right"><span class="pill">{{.Available}}</span></td>
       <td class="right dim">{{.InFlight}}</td>
       <td class="right">
@@ -28,7 +28,7 @@
       </td>
     </tr>
   {{end}}</tbody>
-</table>
+</table></div>
 {{else}}<p class="empty">No queues yet. Create one above.</p>{{end}}
 </div>
 {{end}}

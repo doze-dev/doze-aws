@@ -14,11 +14,11 @@
 {{define "bucket_list"}}
 <div id="bucket-list">
 {{if .Buckets}}
-<table class="grid">
+<div class="table-wrap"><table class="grid">
   <thead><tr><th>Name</th><th>Created</th><th class="right">Actions</th></tr></thead>
   <tbody>{{range .Buckets}}
     <tr>
-      <td><a href="{{$.Prefix}}/s3/{{.Name}}">📦 {{.Name}}</a></td>
+      <td><a href="{{$.Prefix}}/s3/{{.Name}}"><span class="row-ico">📦</span>{{.Name}}</a></td>
       <td class="dim">{{.Created}}</td>
       <td class="right">
         <button class="ghost danger" hx-post="{{$.Prefix}}/s3/{{.Name}}/delete-bucket"
@@ -27,7 +27,7 @@
       </td>
     </tr>
   {{end}}</tbody>
-</table>
+</table></div>
 {{else}}<p class="empty">No buckets yet. Create one above.</p>{{end}}
 </div>
 {{end}}
