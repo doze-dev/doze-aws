@@ -149,6 +149,24 @@
   document.addEventListener("DOMContentLoaded", trackVisit);
   document.addEventListener("htmx:pushedIntoHistory", trackVisit);
 
+  // ---------- rail active state ----------
+  // The rail lives outside #workspace, so boosted navigation swaps the page
+  // without repainting the server-rendered `.on` class. Recompute the active
+  // item from the URL after every navigation (and on back/forward).
+  function syncRail() {
+    var here = location.pathname;
+    document.querySelectorAll(".rail .ri").forEach(function (a) {
+      var ip = new URL(a.href, location.origin).pathname;
+      var on = ip.charAt(ip.length - 1) === "/"
+        ? (here === ip || here === ip.slice(0, -1))       // Flows (root)
+        : (here === ip || here.indexOf(ip + "/") === 0);  // a service section
+      a.classList.toggle("on", on);
+    });
+  }
+  document.addEventListener("DOMContentLoaded", syncRail);
+  document.addEventListener("htmx:pushedIntoHistory", syncRail);
+  window.addEventListener("popstate", syncRail);
+
   function openPalette() {
     if (!pal) return;
     pal.hidden = false; palQ.value = ""; palSel = 0;
