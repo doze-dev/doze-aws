@@ -1,7 +1,12 @@
 {{define "ssm_lp"}}
 {{template "lp_head" dict "Svc" "ssm" "Label" "Parameter Store" "NewURL" (printf "%s/ssm/create" .Prefix)}}
-  {{range .List}}
-  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/ssm/param?name={{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm mono" style="font-size:11.5px">{{.Name}}</span>{{if eq .Type "SecureString"}}<span class="sb">🔒</span>{{end}}</a>
+  {{range ssmGroups .List}}
+  <div class="ssm-group" x-data='{names: {{.Names}} }' x-show="!$store.filter.q || names.some(n => n.toLowerCase().includes($store.filter.q.toLowerCase()))">
+    {{if .Dir}}<div class="lp-group mono" title="{{.Dir}}">{{.Dir}}</div>{{end}}
+    {{range .Rows}}
+    <a class="li ssm-leaf {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/ssm/param?name={{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm mono" style="font-size:11.5px">{{.Leaf}}</span>{{if eq .Type "SecureString"}}<span class="sb">🔒</span>{{end}}</a>
+    {{end}}
+  </div>
   {{end}}
 {{template "lp_foot" .}}
 {{end}}

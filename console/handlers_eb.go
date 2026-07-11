@@ -43,7 +43,55 @@ func (c *Console) ebBus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	buses, _ := c.be.ListBuses(r.Context())
-	c.render(w, r, "eb_bus", map[string]any{"Bus": bus, "Rules": rules, "BusARN": busARN(bus), "List": buses, "Title": bus + " · EventBridge"})
+	arcs, _ := c.be.ListArchives(r.Context(), busARN(bus))
+	reps, _ := c.be.ListReplays(r.Context())
+	c.render(w, r, "eb_bus", map[string]any{
+		"Bus": bus, "Rules": rules, "BusARN": busARN(bus), "List": buses,
+		"Archives": arcs, "Replays": reps, "Title": bus + " · EventBridge",
+	})
+}
+
+// ebArchivesPartial re-renders the archives+replays panel after a mutation.
+func (c *Console) ebArchivesPartial(w http.ResponseWriter, r *http.Request, bus string) {
+	arcs, _ := c.be.ListArchives(r.Context(), busARN(bus))
+	reps, _ := c.be.ListReplays(r.Context())
+	c.partial(w, "eb_archives", map[string]any{"Bus": bus, "BusARN": busARN(bus), "Archives": arcs, "Replays": reps})
+}
+
+func (c *Console) ebCreateArchive(w http.ResponseWriter, r *http.Request) {
+	bus := r.PathValue("bus")
+	if err := c.be.CreateArchive(r.Context(), r.FormValue("name"), busARN(bus), r.FormValue("pattern")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Archive created")
+	c.ebArchivesPartial(w, r, bus)
+}
+
+func (c *Console) ebDeleteArchive(w http.ResponseWriter, r *http.Request) {
+	bus := r.PathValue("bus")
+	if err := c.be.DeleteArchive(r.Context(), r.FormValue("name")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Archive deleted")
+	c.ebArchivesPartial(w, r, bus)
+}
+
+func (c *Console) ebReplay(w http.ResponseWriter, r *http.Request) {
+	bus := r.PathValue("bus")
+	arc := r.FormValue("name")
+	// Replay the whole archive: a window from the epoch to now covers every
+	// stored event. The replay name must be unique per run.
+	name := arc + "-replay-" + shortID(arc+time.Now().String())
+	start := int64(946684800) // 2000-01-01, before any local event
+	end := time.Now().Add(time.Hour).Unix()
+	if err := c.be.StartReplay(r.Context(), name, archiveARN(arc), busARN(bus), start, end); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Replaying “"+arc+"” → "+bus)
+	c.ebArchivesPartial(w, r, bus)
 }
 
 func (c *Console) ebRulesPartial(w http.ResponseWriter, r *http.Request, bus string) {

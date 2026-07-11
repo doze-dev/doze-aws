@@ -95,7 +95,19 @@ func (b *backend) ResourceTags(ctx context.Context, svc, id string) ([]KV, error
 			m = out.Tags
 		}
 		err = e
-	default: // sns, eb — Query/XML ListTagsForResource
+	case "eb":
+		var out struct {
+			Tags []struct{ Key, Value string } `json:"Tags"`
+		}
+		body, e := b.json11(ctx, "AWSEvents", "ListTagsForResource", map[string]any{"ResourceARN": b.tagARN(svc, id)})
+		if e == nil {
+			json.Unmarshal(body, &out)
+			for _, t := range out.Tags {
+				m[t.Key] = t.Value
+			}
+		}
+		err = e
+	default: // sns — Query/XML ListTagsForResource
 		m, err = b.queryTags(ctx, b.tagARN(svc, id))
 	}
 	if err != nil {
@@ -132,7 +144,12 @@ func (b *backend) SetResourceTag(ctx context.Context, svc, id, key, value string
 		return err
 	case "lambda":
 		return b.lambdaTagsSet(ctx, b.tagARN(svc, id), map[string]string{key: value})
-	default: // sns, eb
+	case "eb":
+		_, err := b.json11(ctx, "AWSEvents", "TagResource", map[string]any{
+			"ResourceARN": b.tagARN(svc, id), "Tags": []map[string]string{{"Key": key, "Value": value}},
+		})
+		return err
+	default: // sns
 		v := url.Values{"Action": {"TagResource"}, "ResourceArn": {b.tagARN(svc, id)}}
 		v.Set("Tags.member.1.Key", key)
 		v.Set("Tags.member.1.Value", value)
@@ -158,7 +175,12 @@ func (b *backend) RemoveResourceTag(ctx context.Context, svc, id, key string) er
 		return err
 	case "lambda":
 		return b.lambdaTagsRemove(ctx, b.tagARN(svc, id), key)
-	default: // sns, eb
+	case "eb":
+		_, err := b.json11(ctx, "AWSEvents", "UntagResource", map[string]any{
+			"ResourceARN": b.tagARN(svc, id), "TagKeys": []string{key},
+		})
+		return err
+	default: // sns
 		v := url.Values{"Action": {"UntagResource"}, "ResourceArn": {b.tagARN(svc, id)}}
 		v.Set("TagKeys.member.1", key)
 		_, err := b.queryXML(ctx, v)

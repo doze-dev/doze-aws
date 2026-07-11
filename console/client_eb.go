@@ -247,6 +247,105 @@ func (b *backend) PutTestEvent(ctx context.Context, bus, source, detailType, det
 	return nil
 }
 
+// ---- Archives + replay ----
+
+type EBArchive struct {
+	Name      string
+	ARN       string
+	Events    int64
+	Retention int
+	State     string
+	Created   string
+	Pattern   string
+}
+
+type EBReplay struct {
+	Name    string
+	State   string
+	Started string
+}
+
+// ListArchives returns the archives over one bus (by its ARN).
+func (b *backend) ListArchives(ctx context.Context, busARN string) ([]EBArchive, error) {
+	body, err := b.json11(ctx, "AWSEvents", "ListArchives", map[string]any{"EventSourceArn": busARN})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Archives []struct {
+			ArchiveName   string  `json:"ArchiveName"`
+			State         string  `json:"State"`
+			EventCount    int64   `json:"EventCount"`
+			RetentionDays int     `json:"RetentionDays"`
+			CreationTime  float64 `json:"CreationTime"`
+		} `json:"Archives"`
+	}
+	json.Unmarshal(body, &out)
+	arcs := make([]EBArchive, 0, len(out.Archives))
+	for _, a := range out.Archives {
+		arcs = append(arcs, EBArchive{
+			Name: a.ArchiveName, Events: a.EventCount, Retention: a.RetentionDays,
+			State: a.State, Created: epochToTime(a.CreationTime),
+		})
+	}
+	sort.Slice(arcs, func(i, j int) bool { return arcs[i].Name < arcs[j].Name })
+	return arcs, nil
+}
+
+// CreateArchive registers an archive over a bus, optionally pattern-filtered.
+func (b *backend) CreateArchive(ctx context.Context, name, busARN, pattern string) error {
+	in := map[string]any{"ArchiveName": name, "EventSourceArn": busARN}
+	if pattern != "" {
+		in["EventPattern"] = pattern
+	}
+	_, err := b.json11(ctx, "AWSEvents", "CreateArchive", in)
+	return err
+}
+
+func (b *backend) DeleteArchive(ctx context.Context, name string) error {
+	_, err := b.json11(ctx, "AWSEvents", "DeleteArchive", map[string]any{"ArchiveName": name})
+	return err
+}
+
+// StartReplay replays an archive's events back onto its bus over a time window.
+func (b *backend) StartReplay(ctx context.Context, name, archiveARN, busARN string, start, end int64) error {
+	_, err := b.json11(ctx, "AWSEvents", "StartReplay", map[string]any{
+		"ReplayName":     name,
+		"EventSourceArn": archiveARN,
+		"EventStartTime": start,
+		"EventEndTime":   end,
+		"Destination":    map[string]any{"Arn": busARN},
+	})
+	return err
+}
+
+// ListReplays returns recent replays, newest first.
+func (b *backend) ListReplays(ctx context.Context) ([]EBReplay, error) {
+	body, err := b.json11(ctx, "AWSEvents", "ListReplays", map[string]any{})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Replays []struct {
+			ReplayName      string  `json:"ReplayName"`
+			State           string  `json:"State"`
+			ReplayStartTime float64 `json:"ReplayStartTime"`
+		} `json:"Replays"`
+	}
+	json.Unmarshal(body, &out)
+	reps := make([]EBReplay, 0, len(out.Replays))
+	for _, r := range out.Replays {
+		reps = append(reps, EBReplay{Name: r.ReplayName, State: r.State, Started: epochToTime(r.ReplayStartTime)})
+	}
+	sort.Slice(reps, func(i, j int) bool { return reps[i].Name > reps[j].Name })
+	return reps, nil
+}
+
+// archiveARN builds an archive ARN from its name.
+func archiveARN(name string) string {
+	return "arn:aws:events:us-east-1:000000000000:archive/" + name
+}
+
 // prettyJSON re-indents a compact JSON string for display; non-JSON passes through.
 func prettyJSON(s string) string {
 	if s == "" {

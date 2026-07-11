@@ -648,6 +648,9 @@ tr:hover .kv-copy .copy-btn, .kv-copy:hover .copy-btn { opacity: 1; }
 .listpane .li.cursor { outline: 1.5px solid hsl(var(--ring)); outline-offset: -1.5px; border-radius: 4px; }
 .listpane .li .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .listpane .li .sb { flex: 0 0 auto; font-size: 10.5px; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+.lp-group { padding: 7px 12px 3px; font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: hsl(var(--muted-foreground)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ssm-group + .ssm-group { border-top: 1px solid hsl(var(--border) / 0.5); }
+.listpane .li.ssm-leaf { padding-left: 22px; }
 .lp-f { margin-top: auto; padding: 9px 12px; border-top: 1px solid hsl(var(--border)); color: hsl(var(--muted-foreground)); font-size: 10.5px; }
 .lp-empty { padding: 26px 16px; text-align: center; color: hsl(var(--muted-foreground)); font-size: 12px; }
 

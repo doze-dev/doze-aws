@@ -34,9 +34,40 @@
         <div hx-post="{{.Prefix}}/eb/{{.Bus}}/match" hx-include="#eb-event-form" hx-trigger="input from:#eb-event-form delay:350ms" hx-target="#eb-rules" hx-select="unset" hx-swap="outerHTML"></div>
         <p class="mini-note">Publishing delivers to every matching rule's targets immediately.</p>
       </div></div>
-    </div></div>
+    </div>
+    {{template "eb_archives" .}}
+    </div>
   </section>
 {{template "shell_bottom" .}}{{end}}
+
+{{/* Archives capture events for later replay; replays re-inject them through
+     this bus's rules. Local replays run synchronously and complete at once. */}}
+{{define "eb_archives"}}
+<div id="eb-archives" class="split" style="margin-top:14px">
+  <div class="panel"><div class="panel-h"><h2>{{icon "database"}} Archives <span class="badge">{{len .Archives}}</span></h2>
+    <span class="dim" style="font-size:11.5px">every matching event is captured</span></div>
+    {{if .Archives}}<table class="tbl"><thead><tr><th>Archive</th><th>Events</th><th class="right">Actions</th></tr></thead><tbody>{{range .Archives}}
+      <tr><td class="mono" style="font-size:11.5px;font-weight:550">{{.Name}}</td>
+        <td class="dim">{{.Events}}{{if .Retention}} · {{.Retention}}d{{end}}</td>
+        <td class="right"><div class="row-actions" style="justify-content:flex-end">
+          <button class="btn btn-outline btn-sm" hx-post="{{$.Prefix}}/eb/{{$.Bus}}/replay" hx-vals='{"name":"{{.Name}}"}' hx-target="#eb-archives" hx-select="unset" hx-swap="outerHTML" title="Replay every captured event back through this bus">{{icon "rotate"}} Replay</button>
+          <button class="icon-btn sm danger" title="Delete archive" hx-post="{{$.Prefix}}/eb/{{$.Bus}}/delete-archive" hx-vals='{"name":"{{.Name}}"}' hx-target="#eb-archives" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete archive “{{.Name}}” and its captured events?">{{icon "trash"}}</button>
+        </div></td></tr>
+    {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No archives — create one to capture this bus's events for replay.</p></div>{{end}}
+    <form class="tag-row-form" hx-post="{{.Prefix}}/eb/{{.Bus}}/create-archive" hx-target="#eb-archives" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+      <input class="input" name="name" placeholder="orders-archive" required autocomplete="off" style="flex:1">
+      <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Archive</button>
+    </form>
+  </div>
+  <div class="panel"><div class="panel-h"><h2>{{icon "rotate"}} Replays <span class="badge">{{len .Replays}}</span></h2></div>
+    {{if .Replays}}<table class="tbl"><thead><tr><th>Replay</th><th>State</th><th class="right">Started</th></tr></thead><tbody>{{range .Replays}}
+      <tr><td class="mono trunc" style="font-size:11px;max-width:220px" title="{{.Name}}">{{.Name}}</td>
+        <td><span class="badge {{if eq .State "COMPLETED"}}state-on{{else}}zero{{end}}">{{.State}}</span></td>
+        <td class="right dim" style="font-size:11px">{{ago .Started}}</td></tr>
+    {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No replays yet.</p></div>{{end}}
+  </div>
+</div>
+{{end}}
 
 {{define "eb_rule_list"}}
 <div id="eb-rules"><div class="panel"><div class="panel-h"><h2>{{icon "list"}} Rules <span class="badge">{{len .Rules}}</span></h2>
@@ -70,6 +101,8 @@
     <div class="det-b"><div class="split">
       <div><div class="sec-title" style="margin-top:0">{{if .Rule.Schedule}}Schedule{{else}}Event pattern{{end}}</div>
         <div class="code-out"><div class="co-h"><span>{{if .Rule.Schedule}}expression{{else}}pattern.json{{end}}</span><button class="copy-btn" data-copy="{{if .Rule.Schedule}}{{.Rule.Schedule}}{{else}}{{.Rule.Pattern}}{{end}}">{{icon "copy"}}</button></div><pre>{{if .Rule.Schedule}}{{.Rule.Schedule}}{{else}}{{.Rule.Pattern}}{{end}}</pre></div>
+        {{$tid := .Rule.Name}}{{if ne .Bus "default"}}{{$tid = printf "%s/%s" .Bus .Rule.Name}}{{end}}
+        {{template "tags_panel" dict "Prefix" .Prefix "Svc" "eb" "ID" $tid}}
       </div>
       {{template "eb_targets" .}}
     </div></div>

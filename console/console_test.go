@@ -1074,8 +1074,13 @@ func TestTagsEverywhere(t *testing.T) {
 		keyID = keyID[:i]
 	}
 
+	// An EventBridge rule on the default bus (id = rule name).
+	req(t, h, "POST", "/_console/eb/default/create-rule", url.Values{
+		"name": {"tagged-rule"}, "pattern": {`{"source":["x"]}`},
+	})
+
 	cases := []struct{ svc, id string }{
-		{"sqs", "jobs"}, {"ddb", "users"}, {"kms", keyID},
+		{"sqs", "jobs"}, {"ddb", "users"}, {"kms", keyID}, {"eb", "tagged-rule"},
 	}
 	for _, c := range cases {
 		// Set a tag, then it round-trips back through the editor.
@@ -1097,6 +1102,54 @@ func TestTagsEverywhere(t *testing.T) {
 		if strings.Contains(rm, "staging") {
 			t.Fatalf("%s tag still present after remove:\n%s", c.svc, rm)
 		}
+	}
+}
+
+// TestSSMPathTree checks that path-addressed parameters group by their parent
+// path in the list pane, with leaves labelled by their last segment.
+func TestSSMPathTree(t *testing.T) {
+	h := newConsole(t)
+	for _, name := range []string{"/app/db/host", "/app/db/port", "/app/cache/ttl"} {
+		create(t, h, "/_console/ssm/create", url.Values{"name": {name}, "type": {"String"}, "value": {"v"}})
+	}
+	body := req(t, h, "GET", "/_console/ssm", nil).Body.String()
+	// Folder headers for each parent path.
+	for _, dir := range []string{"/app/db", "/app/cache"} {
+		if !strings.Contains(body, ">"+dir+"</div>") {
+			t.Fatalf("list pane missing folder header %q:\n%s", dir, body)
+		}
+	}
+	// Leaves show the last segment, not the full path.
+	for _, leaf := range []string{">host<", ">port<", ">ttl<"} {
+		if !strings.Contains(body, leaf) {
+			t.Fatalf("list pane missing leaf %q", leaf)
+		}
+	}
+}
+
+// TestEBArchivesReplay covers the console archives/replay surface: an archive
+// captures a bus's events, and a replay runs to COMPLETED.
+func TestEBArchivesReplay(t *testing.T) {
+	h := newConsole(t)
+
+	// Archive first, so the subsequent event is captured.
+	arc := req(t, h, "POST", "/_console/eb/default/create-archive", url.Values{"name": {"audit"}}).Body.String()
+	if !strings.Contains(arc, "audit") {
+		t.Fatalf("archive not shown after create:\n%s", arc)
+	}
+	// Publish a test event onto the bus.
+	req(t, h, "POST", "/_console/eb/default/test-event", url.Values{
+		"source": {"billing"}, "detail_type": {"Invoiced"}, "detail": {`{"id":"1"}`},
+	})
+	// The bus page shows the archive with its captured event count.
+	bus := req(t, h, "GET", "/_console/eb/default", nil).Body.String()
+	if !strings.Contains(bus, "audit") {
+		t.Fatalf("archive missing from bus page:\n%s", bus)
+	}
+	// Replay it — the replay completes synchronously.
+	rep := req(t, h, "POST", "/_console/eb/default/replay", url.Values{"name": {"audit"}}).Body.String()
+	if !strings.Contains(rep, "COMPLETED") {
+		t.Fatalf("replay did not complete:\n%s", rep)
 	}
 }
 

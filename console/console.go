@@ -162,6 +162,9 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/eb/{bus}/create-rule", c.ebCreateRule)
 	m.HandleFunc("POST "+p+"/eb/{bus}/test-event", c.ebTestEvent)
 	m.HandleFunc("POST "+p+"/eb/{bus}/match", c.ebMatch) // HTMX partial (live rule matcher)
+	m.HandleFunc("POST "+p+"/eb/{bus}/create-archive", c.ebCreateArchive)
+	m.HandleFunc("POST "+p+"/eb/{bus}/delete-archive", c.ebDeleteArchive)
+	m.HandleFunc("POST "+p+"/eb/{bus}/replay", c.ebReplay)
 	m.HandleFunc("GET "+p+"/eb/{bus}/rule/{rule}", c.ebRule)
 	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/add-target", c.ebAddTarget)
 	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/remove-target", c.ebRemoveTarget)
@@ -322,7 +325,8 @@ func templateFuncs(prefix string) template.FuncMap {
 		"svcGlyph": func(svc string) string {
 			return map[string]string{"s3": "▦", "sqs": "▤", "sns": "▲", "eb": "◇", "lambda": "λ"}[svc]
 		},
-		"addOne": func(n int64) int64 { return n + 1 },
+		"addOne":    func(n int64) int64 { return n + 1 },
+		"ssmGroups": ssmGroups,
 		// awsIcon renders an official AWS Architecture service icon (embedded).
 		"awsIcon": func(svc string) template.HTML {
 			return template.HTML(`<img class="aws-ic" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)
