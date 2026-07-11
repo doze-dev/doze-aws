@@ -357,7 +357,7 @@ func TestConsoleLambdaPage(t *testing.T) {
 	h := newConsole(t)
 	// Without functions the list shows the create hint.
 	page := req(t, h, "GET", "/_console/lambda", nil)
-	if page.Code != 200 || !strings.Contains(page.Body.String(), "_local_") {
+	if page.Code != 200 || !strings.Contains(page.Body.String(), "New function") {
 		t.Fatalf("lambda list: %d\n%s", page.Code, page.Body)
 	}
 }
