@@ -3,13 +3,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{if .Title}}{{.Title}} — {{end}}doze-aws</title>
 <link rel="icon" type="image/svg+xml" href="{{.Prefix}}/static/favicon.svg">
+<!-- Vendor CSS before app.css: app.css re-themes CodeMirror (background, syntax
+     colors) at equal specificity, so it must come later to win the cascade. -->
+<link rel="stylesheet" href="{{.Prefix}}/static/cm/codemirror.min.css">
 <link rel="stylesheet" href="{{.Prefix}}/static/app.css">
 <script>(function(){try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
 <script>document.addEventListener("alpine:init",function(){window.Alpine.store("filter",{q:""});});</script>
 <script src="{{.Prefix}}/static/htmx.min.js"></script>
 <script src="{{.Prefix}}/static/idiomorph-ext.min.js"></script>
 <script defer src="{{.Prefix}}/static/alpine.min.js"></script>
-<link rel="stylesheet" href="{{.Prefix}}/static/cm/codemirror.min.css">
 <script src="{{.Prefix}}/static/cm/codemirror.min.js"></script>
 <script src="{{.Prefix}}/static/cm/javascript.min.js"></script>
 <script src="{{.Prefix}}/static/cm/yaml.min.js"></script>

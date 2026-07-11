@@ -192,14 +192,19 @@ func redact(body string) string {
 }
 
 func redactKey(body, key string) string {
+	const mask = "••••••"
 	// crude but safe: "key":"…"  and  key=…
 	for _, pat := range []string{`"` + key + `":"`, key + "="} {
+		// Resume each search after the previous replacement — the pattern
+		// itself survives the replacement, so restarting from 0 would refind
+		// it forever (a masked value re-masks to itself: infinite loop).
+		from := 0
 		for {
-			i := strings.Index(body, pat)
+			i := strings.Index(body[from:], pat)
 			if i < 0 {
 				break
 			}
-			start := i + len(pat)
+			start := from + i + len(pat)
 			end := start
 			if strings.HasSuffix(pat, `"`) {
 				for end < len(body) && body[end] != '"' {
@@ -210,7 +215,8 @@ func redactKey(body, key string) string {
 					end++
 				}
 			}
-			body = body[:start] + "••••••" + body[end:]
+			body = body[:start] + mask + body[end:]
+			from = start + len(mask)
 		}
 	}
 	return body
