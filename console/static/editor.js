@@ -10,6 +10,7 @@
   "use strict";
 
   function detectMode(text, hint) {
+    if (hint === "sql") return "text/x-sql";
     if (hint === "json" || hint === "yaml") return hint === "json" ? { name: "javascript", json: true } : "yaml";
     var t = (text || "").trimStart();
     if (t.startsWith("{") || t.startsWith("[")) return { name: "javascript", json: true };
@@ -81,6 +82,7 @@
     if (ta.__cm || typeof CodeMirror === "undefined") return;
     var hint = ta.getAttribute("data-editor");
     var isJSON = hint === "json";
+    var explicit = hint === "json" || hint === "yaml" || hint === "sql";
     var opts = {
       mode: detectMode(ta.value, hint),
       lineNumbers: true,
@@ -96,7 +98,7 @@
     ta.__cm = cm;
     cm.on("change", function () {
       cm.save();
-      if (hint !== "json" && hint !== "yaml") {
+      if (!explicit) { // only auto-detect when the caller didn't name a mode
         var m = detectMode(cm.getValue(), null);
         var cur = cm.getOption("mode");
         var curIsJSON = typeof cur === "object" && cur.json;

@@ -580,6 +580,41 @@ func TestDynamoDBExplorer(t *testing.T) {
 	}
 }
 
+// TestDynamoDBCreateWithGSIAndTTL: a GSI declared at create time is queryable
+// by its own key, and TTL is enabled on the named attribute.
+func TestDynamoDBCreateWithGSIAndTTL(t *testing.T) {
+	h := newConsole(t)
+	create(t, h, "/_console/ddb/create", url.Values{
+		"name": {"logs"}, "hash_key": {"id"}, "hash_type": {"S"},
+		"gsi_name": {"by-level"}, "gsi_hash": {"level"}, "gsi_hash_type": {"S"},
+		"gsi_range": {"ts"}, "gsi_range_type": {"N"},
+		"ttl_attr": {"expiresAt"},
+	})
+	// The GSI shows up in the Details tab with its full key schema.
+	details := req(t, h, "GET", "/_console/ddb/logs?tab=details", nil).Body.String()
+	for _, want := range []string{"by-level", "level (S)", "ts (N)"} {
+		if !strings.Contains(details, want) {
+			t.Fatalf("details missing GSI schema %q:\n%s", want, details)
+		}
+	}
+	// Items land, and the GSI is queryable by its own partition key.
+	req(t, h, "POST", "/_console/ddb/logs/put", url.Values{
+		"item": {`{"id":"a","level":"warn","ts":1}`},
+	})
+	req(t, h, "POST", "/_console/ddb/logs/put", url.Values{
+		"item": {`{"id":"b","level":"warn","ts":2}`},
+	})
+	req(t, h, "POST", "/_console/ddb/logs/put", url.Values{
+		"item": {`{"id":"c","level":"info","ts":3}`},
+	})
+	q := req(t, h, "POST", "/_console/ddb/logs/explore", url.Values{
+		"mode": {"query"}, "index": {"by-level"}, "pk": {"warn"},
+	}).Body.String()
+	if n := strings.Count(q, `<tr `); n != 2 {
+		t.Fatalf("GSI query level=warn: got %d rows, want 2:\n%s", n, q)
+	}
+}
+
 // TestTrafficRecorder: external calls are captured; console calls are not.
 func TestTrafficRecorder(t *testing.T) {
 	if testing.Short() {

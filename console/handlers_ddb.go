@@ -17,13 +17,48 @@ func (c *Console) ddbTables(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) ddbCreateTable(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
-	if err := c.be.CreateTable(r.Context(), name,
-		r.FormValue("hash_key"), r.FormValue("hash_type"),
-		r.FormValue("range_key"), r.FormValue("range_type")); err != nil {
+	opts := TableCreateOpts{
+		Name:    name,
+		HashKey: r.FormValue("hash_key"), HashType: r.FormValue("hash_type"),
+		RangeKey: r.FormValue("range_key"), RangeType: r.FormValue("range_type"),
+		TTLAttr: strings.TrimSpace(r.FormValue("ttl_attr")),
+	}
+	// GSI rows are posted as parallel arrays (gsi_name[], gsi_hash[], …); the
+	// Alpine form adds and removes rows, so indices may be sparse — zip by
+	// position and skip any row without a name.
+	names := r.Form["gsi_name"]
+	hks := r.Form["gsi_hash"]
+	hts := r.Form["gsi_hash_type"]
+	rks := r.Form["gsi_range"]
+	rts := r.Form["gsi_range_type"]
+	at := func(s []string, i int) string {
+		if i < len(s) {
+			return s[i]
+		}
+		return ""
+	}
+	for i := range names {
+		if strings.TrimSpace(names[i]) == "" {
+			continue
+		}
+		opts.GSIs = append(opts.GSIs, GSICreate{
+			Name:    strings.TrimSpace(names[i]),
+			HashKey: at(hks, i), HashType: def(at(hts, i), "S"),
+			RangeKey: strings.TrimSpace(at(rks, i)), RangeType: def(at(rts, i), "S"),
+		})
+	}
+	if err := c.be.CreateTable(r.Context(), opts); err != nil {
 		c.fail(w, err)
 		return
 	}
 	c.redirect(w, r, c.prefix+"/ddb/"+name, "Table “"+name+"” created")
+}
+
+func def(v, fallback string) string {
+	if strings.TrimSpace(v) == "" {
+		return fallback
+	}
+	return v
 }
 
 func (c *Console) ddbDeleteTable(w http.ResponseWriter, r *http.Request) {

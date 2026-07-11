@@ -52,15 +52,45 @@
 
 {{define "ddb_create"}}{{template "shell_top" .}}
   {{template "ddb_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  <section class="detail"><div class="form-page" x-data="{sk:false}">
+  <section class="detail"><div class="form-page" x-data="{sk:false, gsis:[], ttl:false}">
     <div class="det-title" style="font-size:18px;margin-bottom:2px">Create table</div>
-    <p class="det-sub" style="margin-bottom:18px">On-demand capacity. Indexes can be added later via the SDK.</p>
+    <p class="det-sub" style="margin-bottom:18px">On-demand capacity. Add secondary indexes and TTL here — or later via the SDK.</p>
     <form hx-post="{{.Prefix}}/ddb/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Table name</label><input class="input" name="name" placeholder="users" required pattern="[a-zA-Z0-9_.\-]{3,255}" autocomplete="off" autofocus></div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Primary key</h2></div><div class="form-b">
         <div class="fgrid"><div class="field"><label>Partition key</label><input class="input" name="hash_key" placeholder="pk" required></div><div class="field"><label>Type</label><select class="input" name="hash_type"><option value="S">String</option><option value="N">Number</option><option value="B">Binary</option></select></div></div>
         <div class="opt-row" style="margin-top:6px"><div><div class="opt-l">Sort key</div><div class="opt-d">A second key dimension for ordered items</div></div><label class="switch"><input type="checkbox" x-model="sk"><span class="track"></span><span class="thumb"></span></label></div>
         <div class="fgrid" x-show="sk" x-cloak style="margin-top:10px"><div class="field"><label>Sort key</label><input class="input" name="range_key" placeholder="sk" :required="sk" :disabled="!sk"></div><div class="field"><label>Type</label><select class="input" name="range_type" :disabled="!sk"><option value="S">String</option><option value="N">Number</option><option value="B">Binary</option></select></div></div>
+      </div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>Global secondary indexes <span class="dim" style="font-weight:400;font-size:12px">optional</span></h2>
+        <button type="button" class="btn btn-outline btn-sm" @click="gsis.push({r:false})">{{icon "plus"}} Add index</button></div>
+        <div class="form-b">
+          <template x-if="!gsis.length"><p class="mini-note" style="margin:0">No indexes. A GSI lets you query by an attribute other than the primary key.</p></template>
+          <template x-for="(g,i) in gsis" :key="i">
+            <div class="gsi-row">
+              <div class="gsi-grid">
+                <div class="field"><label x-show="i===0">Index name</label><input class="input" name="gsi_name" placeholder="by-email" required></div>
+                <div class="field"><label x-show="i===0">Partition key</label><input class="input" name="gsi_hash" placeholder="email" required></div>
+                <div class="field" style="width:96px"><label x-show="i===0">Type</label><select class="input" name="gsi_hash_type"><option value="S">String</option><option value="N">Number</option><option value="B">Binary</option></select></div>
+                <button type="button" class="icon-btn sm danger" title="Remove index" @click="gsis.splice(i,1)">{{icon "x"}}</button>
+              </div>
+              <div class="gsi-sk">
+                <label class="mini-check"><input type="checkbox" x-model="g.r"> sort key</label>
+                <template x-if="g.r">
+                  <span style="display:flex;gap:8px;flex:1">
+                    <input class="input" name="gsi_range" placeholder="sort key" style="flex:1">
+                    <select class="input" name="gsi_range_type" style="width:96px"><option value="S">String</option><option value="N">Number</option><option value="B">Binary</option></select>
+                  </span>
+                </template>
+                <template x-if="!g.r"><input type="hidden" name="gsi_range" value=""><input type="hidden" name="gsi_range_type" value="S"></template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+      <div class="panel form-sec"><div class="panel-h"><h2>Time to live <span class="dim" style="font-weight:400;font-size:12px">optional</span></h2></div><div class="form-b">
+        <div class="opt-row" style="margin-top:0"><div><div class="opt-l">Auto-expire items</div><div class="opt-d">Items are deleted once the epoch-seconds value in the named attribute passes</div></div><label class="switch"><input type="checkbox" x-model="ttl"><span class="track"></span><span class="thumb"></span></label></div>
+        <div class="field" x-show="ttl" x-cloak style="margin-top:10px;max-width:280px"><label>TTL attribute</label><input class="input" name="ttl_attr" placeholder="expiresAt" :required="ttl" :disabled="!ttl"></div>
       </div></div>
       {{template "form_actions" dict "Cancel" (printf "%s/ddb" .Prefix) "Submit" "Create table"}}
     </form>

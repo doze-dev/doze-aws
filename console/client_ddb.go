@@ -123,18 +123,79 @@ func (b *backend) DescribeTable(ctx context.Context, name string) (*Table, error
 	return t, nil
 }
 
-func (b *backend) CreateTable(ctx context.Context, name, hashKey, hashType, rangeKey, rangeType string) error {
-	attrs := []map[string]string{{"AttributeName": hashKey, "AttributeType": hashType}}
-	schema := []map[string]string{{"AttributeName": hashKey, "KeyType": "HASH"}}
-	if rangeKey != "" {
-		attrs = append(attrs, map[string]string{"AttributeName": rangeKey, "AttributeType": rangeType})
-		schema = append(schema, map[string]string{"AttributeName": rangeKey, "KeyType": "RANGE"})
+// GSICreate is one global secondary index requested at table-creation time.
+type GSICreate struct {
+	Name                string
+	HashKey, HashType   string
+	RangeKey, RangeType string
+}
+
+// TableCreateOpts is the full create-table request the console form builds.
+type TableCreateOpts struct {
+	Name                string
+	HashKey, HashType   string
+	RangeKey, RangeType string
+	GSIs                []GSICreate
+	TTLAttr             string // enable TTL on this attribute after creation
+}
+
+func (b *backend) CreateTable(ctx context.Context, o TableCreateOpts) error {
+	// AttributeDefinitions must list every attribute used in any key schema,
+	// exactly once — collect base + GSI key attributes, deduped by name.
+	defs := map[string]string{o.HashKey: o.HashType}
+	if o.RangeKey != "" {
+		defs[o.RangeKey] = o.RangeType
 	}
-	_, err := b.ddbCall(ctx, "CreateTable", map[string]any{
-		"TableName": name, "AttributeDefinitions": attrs, "KeySchema": schema,
+	schema := []map[string]string{{"AttributeName": o.HashKey, "KeyType": "HASH"}}
+	if o.RangeKey != "" {
+		schema = append(schema, map[string]string{"AttributeName": o.RangeKey, "KeyType": "RANGE"})
+	}
+
+	var gsis []map[string]any
+	for _, g := range o.GSIs {
+		if g.Name == "" || g.HashKey == "" {
+			continue
+		}
+		defs[g.HashKey] = g.HashType
+		ks := []map[string]string{{"AttributeName": g.HashKey, "KeyType": "HASH"}}
+		if g.RangeKey != "" {
+			defs[g.RangeKey] = g.RangeType
+			ks = append(ks, map[string]string{"AttributeName": g.RangeKey, "KeyType": "RANGE"})
+		}
+		gsis = append(gsis, map[string]any{
+			"IndexName": g.Name, "KeySchema": ks,
+			"Projection": map[string]string{"ProjectionType": "ALL"},
+		})
+	}
+
+	attrs := make([]map[string]string, 0, len(defs))
+	for name, typ := range defs {
+		attrs = append(attrs, map[string]string{"AttributeName": name, "AttributeType": typ})
+	}
+	sort.Slice(attrs, func(i, j int) bool { return attrs[i]["AttributeName"] < attrs[j]["AttributeName"] })
+
+	in := map[string]any{
+		"TableName": o.Name, "AttributeDefinitions": attrs, "KeySchema": schema,
 		"BillingMode": "PAY_PER_REQUEST",
-	})
-	return err
+	}
+	if len(gsis) > 0 {
+		in["GlobalSecondaryIndexes"] = gsis
+	}
+	if _, err := b.ddbCall(ctx, "CreateTable", in); err != nil {
+		return err
+	}
+
+	// TTL is a follow-up call — CreateTable doesn't carry it.
+	if o.TTLAttr != "" {
+		_, err := b.ddbCall(ctx, "UpdateTimeToLive", map[string]any{
+			"TableName": o.Name,
+			"TimeToLiveSpecification": map[string]any{
+				"Enabled": true, "AttributeName": o.TTLAttr,
+			},
+		})
+		return err
+	}
+	return nil
 }
 
 func (b *backend) DeleteTable(ctx context.Context, name string) error {
