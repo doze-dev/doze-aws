@@ -138,7 +138,16 @@ func (c *Console) s3RemoveTag(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) s3PropsPartial(w http.ResponseWriter, r *http.Request, bucket string) {
 	props, _ := c.be.GetBucketProps(r.Context(), bucket)
-	c.partial(w, "s3_props", map[string]any{"Bucket": bucket, "Props": props})
+	queues, _ := c.be.ListQueues(r.Context())
+	topics, _ := c.be.ListTopics(r.Context())
+	fns, _ := c.be.ListFunctions(r.Context())
+	c.partial(w, "s3_props", map[string]any{
+		"Bucket": bucket, "Props": props,
+		"Rules":  c.be.Notifications(r.Context(), bucket),
+		"Queues": queues, "Topics": topics, "Functions": fns,
+		"CORSJSON":      c.be.GetCORSJSON(r.Context(), bucket),
+		"LifecycleJSON": c.be.GetLifecycleJSON(r.Context(), bucket),
+	})
 }
 
 func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
@@ -162,6 +171,13 @@ func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data["Props"] = props
+		queues, _ := c.be.ListQueues(r.Context())
+		topics, _ := c.be.ListTopics(r.Context())
+		fns, _ := c.be.ListFunctions(r.Context())
+		data["Rules"] = c.be.Notifications(r.Context(), bucket)
+		data["Queues"], data["Topics"], data["Functions"] = queues, topics, fns
+		data["CORSJSON"] = c.be.GetCORSJSON(r.Context(), bucket)
+		data["LifecycleJSON"] = c.be.GetLifecycleJSON(r.Context(), bucket)
 		c.render(w, r, "s3_objects", data)
 		return
 	}
@@ -194,6 +210,20 @@ func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 func (c *Console) s3GetObject(w http.ResponseWriter, r *http.Request) {
 	bucket := r.PathValue("bucket")
 	key := r.URL.Query().Get("key")
+	if vid := r.URL.Query().Get("versionId"); vid != "" {
+		body, ctype, err := c.be.GetObjectVersion(r.Context(), bucket, key, vid)
+		if err != nil {
+			c.fail(w, err)
+			return
+		}
+		if ctype == "" {
+			ctype = "application/octet-stream"
+		}
+		w.Header().Set("Content-Type", ctype)
+		w.Header().Set("Content-Disposition", "attachment; filename=\""+baseName(key)+"\"")
+		w.Write(body)
+		return
+	}
 	body, ctype, err := c.be.GetObject(r.Context(), bucket, key)
 	if err != nil {
 		c.fail(w, err)
@@ -224,10 +254,15 @@ func (c *Console) s3Meta(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	meta.Size = humanBytes(meta.SizeBytes)
+	versioned := false
+	if props, err := c.be.GetBucketProps(r.Context(), bucket); err == nil {
+		versioned = props.Versioning == "Enabled" || props.Versioning == "Suspended"
+	}
 	c.partial(w, "object_meta", map[string]any{
 		"Bucket": bucket, "KeyPrefix": r.URL.Query().Get("prefix"),
-		"Meta": meta, "Name": baseName(key),
-		"URL": c.prefix + "/s3/" + bucket + "/object?key=" + url.QueryEscape(key),
+		"Meta": meta, "Name": baseName(key), "Versioned": versioned,
+		"URL":        c.prefix + "/s3/" + bucket + "/object?key=" + url.QueryEscape(key),
+		"EncodedKey": url.QueryEscape(key),
 	})
 }
 

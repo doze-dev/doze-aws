@@ -913,3 +913,17 @@ a.lo-card:hover { border-color: hsl(var(--accent-blue)); box-shadow: 0 0 0 3px h
 .msg .msg-del { opacity: 0; }
 .msg:hover .msg-del { opacity: 1; }
 .listpane .li.li-deleted .nm { color: hsl(var(--muted-foreground)); text-decoration: line-through; text-decoration-color: hsl(var(--muted-foreground) / 0.5); }
+
+/* Drawer sections (share link, copy/move, versions). */
+.drawer-sec { margin-top: 16px; padding-top: 12px; border-top: 1px solid hsl(var(--border)); }
+.ds-title { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; margin-bottom: 8px; }
+.ds-title .ic { width: 14px; height: 14px; color: hsl(var(--muted-foreground)); }
+.ds-row { display: flex; gap: 8px; align-items: center; }
+.ds-col { display: grid; gap: 8px; }
+.ds-row .input, .ds-col .input { height: 30px; font-size: 12px; }
+.ver-rows { display: grid; gap: 4px; }
+.ver-row { display: flex; align-items: center; gap: 8px; font-size: 11px; padding: 5px 8px; border: 1px solid hsl(var(--border)); border-radius: 6px; }
+.ver-row.cur { border-color: hsl(var(--success) / 0.45); background: hsl(var(--success) / 0.06); }
+.ver-id { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ver-meta { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ver-acts { display: flex; gap: 2px; flex: none; }

@@ -124,13 +124,78 @@
     </div>
   </div>
   <div>
-    <div class="sec-title" style="margin-top:0">Configurations</div>
-    {{range .Props.Configs}}
+    {{template "s3_notify" .}}
+
+    <div class="sec-title">CORS</div>
+    <div class="panel" style="margin-bottom:14px"><div style="padding:12px 14px">
+      <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/cors" hx-target="#s3-props" hx-select="unset" hx-swap="outerHTML">
+        <textarea name="rules" data-editor="json" rows="6" spellcheck="false" placeholder='[
+  {"AllowedOrigins": ["http://localhost:3000"], "AllowedMethods": ["GET", "PUT"]}
+]'>{{.CORSJSON}}</textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <span class="mini-note" style="margin:0;padding:0">A JSON array of rules — the server evaluates real preflights against them.</span>
+          <button class="btn btn-outline btn-sm" type="submit">Save CORS</button>
+        </div>
+      </form>
+    </div></div>
+
+    <div class="sec-title">Lifecycle</div>
+    <div class="panel" style="margin-bottom:14px"><div style="padding:12px 14px">
+      <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/lifecycle" hx-target="#s3-props" hx-select="unset" hx-swap="outerHTML">
+        <textarea name="rules" data-editor="json" rows="6" spellcheck="false" placeholder='[
+  {"Prefix": "tmp/", "ExpireDays": 7},
+  {"NoncurrentDays": 30}
+]'>{{.LifecycleJSON}}</textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <span class="mini-note" style="margin:0;padding:0">ExpireDays deletes objects; NoncurrentDays prunes old versions. The janitor enforces both.</span>
+          <button class="btn btn-outline btn-sm" type="submit">Save lifecycle</button>
+        </div>
+      </form>
+    </div></div>
+
+    <div class="sec-title">Other configurations</div>
+    {{range .Props.Configs}}{{if and (ne .Name "CORS") (ne .Name "Lifecycle") (ne .Name "Notifications")}}
     <div class="panel" style="margin-bottom:10px" x-data="{open:false}">
       <div class="panel-h" {{if .Set}}style="cursor:pointer" @click="open=!open"{{end}}><h2>{{.Name}} {{if .Set}}<span class="badge state-on">Configured</span>{{else}}<span class="badge state-off">Not set</span>{{end}}</h2>{{if .Set}}<span class="dim" style="font-size:11.5px" x-text="open?'Hide':'View'"></span>{{end}}</div>
       {{if .Set}}<div x-show="open" x-cloak class="code-out" style="border:0;border-top:1px solid hsl(var(--border));border-radius:0"><pre>{{.Raw}}</pre></div>{{end}}
     </div>
-    {{end}}
+    {{end}}{{end}}
+  </div>
+</div>
+{{end}}
+
+{{/* Notification editor: the wiring graph's richest edge source, finally
+     writable from the page that renders it. */}}
+{{define "s3_notify"}}
+<div id="s3-notify">
+  <div class="sec-title" style="margin-top:0">Event notifications</div>
+  <div class="panel" style="margin-bottom:14px">
+    {{if .Rules}}
+    <div class="sub-rows">{{range $i, $r := .Rules}}
+      <div class="sub-row">
+        <span class="cc-bar" style="background:hsl(var(--svc-{{if eq $r.Kind "sqs"}}sqs{{else if eq $r.Kind "sns"}}sns{{else}}lambda{{end}}))"></span>
+        <a class="sub-nm" href="{{$.Prefix}}/{{if eq $r.Kind "sns"}}sns{{else if eq $r.Kind "lambda"}}lambda{{else}}sqs{{end}}/{{$r.Name}}">{{$r.Name}}</a>
+        <span class="badge type">{{$r.Kind}}</span>
+        <span class="sub-arn mono trunc dim">{{range $r.Events}}{{.}} {{end}}{{if $r.Prefix}}· prefix {{$r.Prefix}}{{end}}{{if $r.Suffix}}· suffix {{$r.Suffix}}{{end}}</span>
+        <button class="icon-btn sm danger" title="Remove this notification" hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/notify-remove" hx-vals='{"index":"{{$i}}"}' hx-target="#s3-notify" hx-select="unset" hx-swap="outerHTML" hx-confirm="Stop notifying {{$r.Name}}?">{{icon "trash"}}</button>
+      </div>
+    {{end}}</div>
+    {{else}}<div class="empty" style="border:0"><p>No notifications — object events go nowhere yet.</p></div>{{end}}
+    <form class="sub-add" hx-post="{{.Prefix}}/s3/{{.Bucket}}/notify-add" hx-target="#s3-notify" hx-select="unset" hx-swap="outerHTML">
+      <select class="input" name="dest" required>
+        <option value="">— destination —</option>
+        {{range .Queues}}<option value="sqs:{{.Name}}">SQS · {{.Name}}</option>{{end}}
+        {{range .Topics}}<option value="sns:{{.Name}}">SNS · {{.Name}}</option>{{end}}
+        {{range .Functions}}<option value="lambda:{{.Name}}">Lambda · {{.Name}}</option>{{end}}
+      </select>
+      <select class="input" name="event" style="width:170px;flex:none">
+        <option value="s3:ObjectCreated:*">ObjectCreated:*</option>
+        <option value="s3:ObjectRemoved:*">ObjectRemoved:*</option>
+      </select>
+      <input class="input" name="prefix" placeholder="prefix (optional)" style="width:130px;flex:none">
+      <input class="input" name="suffix" placeholder="suffix" style="width:90px;flex:none">
+      <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Wire</button>
+    </form>
   </div>
 </div>
 {{end}}
@@ -151,5 +216,56 @@
     <a class="btn btn-outline" href="{{.URL}}" target="_blank">{{icon "download"}} Download</a>
     <button class="btn btn-outline" @click="drawer=false" hx-post="{{.Prefix}}/s3/{{.Bucket}}/delete" hx-vals='{"key":"{{.Meta.Key}}","prefix":"{{.KeyPrefix}}"}' hx-target="#object-table" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete {{.Meta.Key}}?">{{icon "trash"}} Delete</button>
   </div>
+
+  {{/* Share link: doze-aws enforces presigned expiry, so the durations are real. */}}
+  <div class="drawer-sec">
+    <div class="ds-title">{{icon "link"}} Share link</div>
+    <form class="ds-row" hx-post="{{.Prefix}}/s3/{{.Bucket}}/presign" hx-vals='{"key":"{{.Meta.Key}}"}' hx-target="#share-out" hx-select="unset" hx-swap="innerHTML">
+      <select class="input" name="ttl"><option value="15m">15 minutes</option><option value="1h" selected>1 hour</option><option value="24h">24 hours</option></select>
+      <button class="btn btn-outline btn-sm" type="submit">Generate</button>
+    </form>
+    <div id="share-out"></div>
+  </div>
+
+  {{/* Copy / move: one CopyObject away. */}}
+  <div class="drawer-sec">
+    <div class="ds-title">{{icon "copy"}} Copy / move</div>
+    <form class="ds-col" x-data hx-post="{{.Prefix}}/s3/{{.Bucket}}/copy" hx-vals='{"src":"{{.Meta.Key}}","prefix":"{{.KeyPrefix}}"}' hx-target="#object-table" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful)drawer=false">
+      <input class="input" name="dst" value="{{.Meta.Key}}" spellcheck="false" title="New key — include folders in the path">
+      <div class="ds-row" style="justify-content:flex-end">
+        <button class="btn btn-outline btn-sm" type="submit">Copy</button>
+        <button class="btn btn-outline btn-sm" type="submit" name="move" value="true">Move</button>
+      </div>
+    </form>
+  </div>
+
+  {{if .Versioned}}
+  <div class="drawer-sec" hx-get="{{.Prefix}}/s3/{{.Bucket}}/versions?key={{.EncodedKey}}" hx-trigger="load" hx-target="this" hx-select="unset" hx-swap="innerHTML">
+    <div class="ds-title">{{icon "rotate"}} Versions</div>
+    <p class="mini-note" style="margin:0">loading…</p>
+  </div>
+  {{end}}
 </div>
+{{end}}
+
+{{define "s3_share_link"}}
+<div class="copy-row" style="margin-top:8px"><span class="mono" style="font-size:10.5px" title="{{.URL}}">{{.URL}}</span><button class="icon-btn sm" title="Copy link" data-copy="{{.URL}}">{{icon "copy"}}</button></div>
+<p class="mini-note" style="margin:6px 0 0">Anyone who can reach this endpoint can fetch the object for {{.TTL}} — then the link expires for real.</p>
+{{end}}
+
+{{define "s3_versions"}}
+<div class="ds-title">{{icon "rotate"}} Versions <span class="badge">{{len .Versions}}</span></div>
+{{if .Versions}}
+<div class="ver-rows">{{range .Versions}}
+  <div class="ver-row {{if .IsLatest}}cur{{end}}">
+    <span class="ver-id mono" title="{{.VersionID}}">{{if .DeleteMarker}}⊘ delete marker{{else}}{{.VersionID}}{{end}}</span>
+    <span class="ver-meta dim">{{.LastModified}}{{if not .DeleteMarker}} · {{humanSize .Size}}{{end}}{{if .IsLatest}} · current{{end}}</span>
+    <span class="ver-acts">
+      {{if not .DeleteMarker}}<a class="icon-btn sm" title="Download this version" href="{{$.Prefix}}/s3/{{$.Bucket}}/object?key={{$.EncodedKey}}&versionId={{.VersionID}}" target="_blank">{{icon "download"}}</a>{{end}}
+      {{if and (not .IsLatest) (not .DeleteMarker)}}<button class="icon-btn sm" title="Make this version current again" hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/restore-version" hx-vals='{"key":"{{$.Key}}","versionId":"{{.VersionID}}"}' hx-target="closest .drawer-sec" hx-select="unset" hx-swap="innerHTML">{{icon "rotate"}}</button>{{end}}
+      <button class="icon-btn sm danger" title="Permanently delete this version" hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/delete-version" hx-vals='{"key":"{{$.Key}}","versionId":"{{.VersionID}}"}' hx-target="closest .drawer-sec" hx-select="unset" hx-swap="innerHTML" hx-confirm="Permanently delete this version? This skips the recycle-bin behaviour.">{{icon "trash"}}</button>
+    </span>
+  </div>
+{{end}}</div>
+{{else}}<p class="mini-note" style="margin:0">No version history yet — overwrite or delete the object to grow one.</p>{{end}}
 {{end}}

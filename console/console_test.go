@@ -16,6 +16,13 @@ import (
 )
 
 func newConsole(t *testing.T) http.Handler {
+	c, _ := newConsoleStack(t)
+	return c
+}
+
+// newConsoleStack returns the console AND the raw gateway handler — needed by
+// tests that follow a link back to the AWS endpoint (e.g. presigned URLs).
+func newConsoleStack(t *testing.T) (http.Handler, http.Handler) {
 	t.Helper()
 	if testing.Short() {
 		t.Skip("boots a Stack")
@@ -29,7 +36,7 @@ func newConsole(t *testing.T) http.Handler {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return c
+	return c, stack.Handler()
 }
 
 func req(t *testing.T, h http.Handler, method, target string, form url.Values) *httptest.ResponseRecorder {
@@ -701,6 +708,104 @@ func TestFailureLoopRecovery(t *testing.T) {
 	rp = req(t, h, "GET", "/_console/eb/default/rule/r1", nil).Body.String()
 	if !strings.Contains(rp, "ENABLED") {
 		t.Fatalf("rule should be re-enabled:\n%s", rp)
+	}
+}
+
+// TestS3EditingDepth covers wave B: version history (list, restore, delete),
+// share links that really expire, copy/rename, the notification editor, and
+// the CORS/lifecycle JSON editors round-tripping to the XML wire configs.
+func TestS3EditingDepth(t *testing.T) {
+	h, gw := newConsoleStack(t)
+	create(t, h, "/_console/s3/create", url.Values{"name": {"docs"}, "versioning": {"on"}})
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"events"}, "dlq_mode": {"none"}})
+
+	// Two versions of the same key.
+	multipartUpload(t, h, "/_console/s3/docs/upload", "a.txt", "v1-content", "")
+	multipartUpload(t, h, "/_console/s3/docs/upload", "a.txt", "v2-content", "")
+
+	// Version history shows both, newest marked current.
+	vs := req(t, h, "GET", "/_console/s3/docs/versions?key=a.txt", nil).Body.String()
+	if strings.Count(vs, `ver-id mono`) != 2 || !strings.Contains(vs, "current") {
+		t.Fatalf("expected 2 versions with a current marker:\n%s", vs)
+	}
+	// Grab the OLDEST version id (rows are newest-first; take the last one).
+	oldID := ""
+	for _, chunk := range strings.Split(vs, `"versionId":"`)[1:] {
+		oldID = chunk[:strings.IndexByte(chunk, '"')]
+	}
+	req(t, h, "POST", "/_console/s3/docs/restore-version", url.Values{"key": {"a.txt"}, "versionId": {oldID}})
+	obj := req(t, h, "GET", "/_console/s3/docs/object?key=a.txt", nil)
+	if obj.Body.String() != "v1-content" {
+		t.Fatalf("restore should make v1 current, got %q", obj.Body.String())
+	}
+	// A specific version is fetchable by id.
+	verObj := req(t, h, "GET", "/_console/s3/docs/object?key=a.txt&versionId="+url.QueryEscape(oldID), nil)
+	if verObj.Body.String() != "v1-content" {
+		t.Fatalf("version fetch = %q", verObj.Body.String())
+	}
+
+	// Share link: works now, expires for real.
+	share := req(t, h, "POST", "/_console/s3/docs/presign", url.Values{"key": {"a.txt"}, "ttl": {"15m"}}).Body.String()
+	i := strings.Index(share, "http://")
+	if i < 0 {
+		t.Fatalf("no share link generated:\n%s", share)
+	}
+	end := strings.IndexAny(share[i:], `"<`)
+	link := html.UnescapeString(share[i : i+end])
+	u, err := url.Parse(link)
+	if err != nil {
+		t.Fatalf("share link unparseable: %v", err)
+	}
+	direct := req(t, gw, "GET", u.Path+"?"+u.RawQuery, nil)
+	if direct.Code != 200 || direct.Body.String() != "v1-content" {
+		t.Fatalf("share link should serve the object: %d %q", direct.Code, direct.Body.String())
+	}
+	// Tamper the date to the past — the gateway must refuse.
+	q := u.Query()
+	q.Set("X-Amz-Date", "20200101T000000Z")
+	expired := req(t, gw, "GET", u.Path+"?"+q.Encode(), nil)
+	if expired.Code == 200 {
+		t.Fatalf("expired share link still served (code %d)", expired.Code)
+	}
+
+	// Copy then move.
+	req(t, h, "POST", "/_console/s3/docs/copy", url.Values{"src": {"a.txt"}, "dst": {"b.txt"}})
+	if got := req(t, h, "GET", "/_console/s3/docs/object?key=b.txt", nil).Body.String(); got != "v1-content" {
+		t.Fatalf("copy content = %q", got)
+	}
+	req(t, h, "POST", "/_console/s3/docs/copy", url.Values{"src": {"b.txt"}, "dst": {"c/renamed.txt"}, "move": {"true"}})
+	if code := req(t, h, "GET", "/_console/s3/docs/object?key=b.txt", nil).Code; code == 200 {
+		t.Fatalf("move should delete the source")
+	}
+
+	// Notification editor: wire → visible on properties → remove.
+	req(t, h, "POST", "/_console/s3/docs/notify-add", url.Values{
+		"dest": {"sqs:events"}, "event": {"s3:ObjectCreated:*"}, "prefix": {"in/"},
+	})
+	props := req(t, h, "GET", "/_console/s3/docs?tab=properties", nil).Body.String()
+	if !strings.Contains(props, "Stop notifying") || !strings.Contains(props, "in/") {
+		t.Fatalf("notification not shown on properties:\n%s", props)
+	}
+	req(t, h, "POST", "/_console/s3/docs/notify-remove", url.Values{"index": {"0"}})
+	props = req(t, h, "GET", "/_console/s3/docs?tab=properties", nil).Body.String()
+	if strings.Contains(props, "Stop notifying") {
+		t.Fatalf("notification should be gone:\n%s", props)
+	}
+
+	// CORS + lifecycle JSON round-trips.
+	req(t, h, "POST", "/_console/s3/docs/cors", url.Values{
+		"rules": {`[{"AllowedOrigins":["http://localhost:3000"],"AllowedMethods":["GET","PUT"],"MaxAgeSeconds":300}]`},
+	})
+	props = req(t, h, "GET", "/_console/s3/docs?tab=properties", nil).Body.String()
+	if !strings.Contains(html.UnescapeString(props), "http://localhost:3000") {
+		t.Fatalf("CORS JSON not round-tripped into the editor:\n%s", props)
+	}
+	req(t, h, "POST", "/_console/s3/docs/lifecycle", url.Values{
+		"rules": {`[{"Prefix":"tmp/","ExpireDays":7}]`},
+	})
+	props = req(t, h, "GET", "/_console/s3/docs?tab=properties", nil).Body.String()
+	if !strings.Contains(html.UnescapeString(props), `"ExpireDays": 7`) {
+		t.Fatalf("lifecycle JSON not round-tripped:\n%s", props)
 	}
 }
 

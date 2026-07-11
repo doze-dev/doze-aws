@@ -106,6 +106,15 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/s3/{bucket}/versioning", c.s3Versioning)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/add-tag", c.s3AddTag)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/remove-tag", c.s3RemoveTag)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/presign", c.s3Presign)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/copy", c.s3Copy)
+	m.HandleFunc("GET "+p+"/s3/{bucket}/versions", c.s3Versions)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/restore-version", c.s3RestoreVersion)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/delete-version", c.s3DeleteVersion)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/notify-add", c.s3NotifyAdd)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/notify-remove", c.s3NotifyRemove)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/cors", c.s3SaveCORS)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/lifecycle", c.s3SaveLifecycle)
 
 	// SQS.
 	m.HandleFunc("GET "+p+"/sqs", c.sqsQueues)
@@ -241,7 +250,10 @@ func (c *Console) partial(w http.ResponseWriter, name string, data map[string]an
 // HX-Trigger header into a "toast" event whose detail.value the layout's Alpine
 // listener renders. Call before writing the body.
 func toast(w http.ResponseWriter, msg string) {
-	w.Header().Set("HX-Trigger", `{"toast":`+strconv.Quote(msg)+`}`)
+	// QuoteToASCII (not Quote): HTTP header values are latin-1, so any non-ASCII
+	// rune (arrows, curly quotes, …) must be backslash-u escaped to survive the
+	// header — the browser JSON.parse decodes it back before showing the toast.
+	w.Header().Set("HX-Trigger", `{"toast":`+strconv.QuoteToASCII(msg)+`}`)
 }
 
 func (c *Console) fail(w http.ResponseWriter, err error) {
