@@ -4,7 +4,9 @@
     <h1><span class="svc svc-s3">{{icon "hard-drive"}}</span> S3</h1>
     <p class="ph-desc">Object storage buckets on this endpoint.</p>
   </div>
-  <div class="ph-actions" x-data="{open:false}">
+  <div class="ph-actions">
+    <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter buckets…" x-model="$store.filter.q" spellcheck="false"></label>
+    <span x-data="{open:false}">
     <button class="btn" @click="open=true">{{icon "plus"}} Create bucket</button>
     <div class="overlay" x-show="open" x-cloak @click.self="open=false" @keydown.escape.window="open=false">
       <div class="dialog anim">
@@ -24,6 +26,7 @@
         </form>
       </div>
     </div>
+    </span>
   </div>
 </div>
 

@@ -2,9 +2,25 @@ package console
 
 import (
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 )
+
+// humanBytes formats a byte count like "248.1 KB".
+func humanBytes(n int64) string {
+	const u = "BKMGT"
+	f := float64(n)
+	i := 0
+	for f >= 1024 && i < len(u)-1 {
+		f /= 1024
+		i++
+	}
+	if i == 0 {
+		return strconv.FormatInt(n, 10) + " B"
+	}
+	return trimFloat(f) + " " + string(u[i]) + "B"
+}
 
 // ---- overview ----
 
@@ -101,6 +117,23 @@ func (c *Console) s3GetObject(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", ctype)
 	w.Header().Set("Content-Disposition", disp+"; filename=\""+baseName(key)+"\"")
 	w.Write(body)
+}
+
+// s3Meta renders the object detail drawer: metadata + inline preview + actions.
+func (c *Console) s3Meta(w http.ResponseWriter, r *http.Request) {
+	bucket := r.PathValue("bucket")
+	key := r.URL.Query().Get("key")
+	meta, err := c.be.HeadObject(r.Context(), bucket, key)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	meta.Size = humanBytes(meta.SizeBytes)
+	c.partial(w, "object_meta", map[string]any{
+		"Bucket": bucket, "KeyPrefix": r.URL.Query().Get("prefix"),
+		"Meta": meta, "Name": baseName(key),
+		"URL": c.prefix + "/s3/" + bucket + "/object?key=" + url.QueryEscape(key),
+	})
 }
 
 func (c *Console) s3Upload(w http.ResponseWriter, r *http.Request) {

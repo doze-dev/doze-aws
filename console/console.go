@@ -74,6 +74,7 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/s3/{bucket}/delete-bucket", c.s3DeleteBucket)
 	m.HandleFunc("GET "+p+"/s3/{bucket}", c.s3Objects)
 	m.HandleFunc("GET "+p+"/s3/{bucket}/object", c.s3GetObject)
+	m.HandleFunc("GET "+p+"/s3/{bucket}/meta", c.s3Meta)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/upload", c.s3Upload)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/delete", c.s3DeleteObject)
 

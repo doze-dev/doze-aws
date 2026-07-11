@@ -1,4 +1,5 @@
 {{define "s3_objects"}}{{template "header" .}}
+<div x-data="{drawer:false}">
 <div class="ph">
   <div>
     <h1><span class="svc svc-s3">{{icon "hard-drive"}}</span> {{.Bucket}}</h1>
@@ -6,16 +7,22 @@
   </div>
   <div class="ph-actions">
     <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/upload" hx-target="#object-table" hx-swap="outerHTML"
-          hx-encoding="multipart/form-data" x-data
+          hx-encoding="multipart/form-data"
           @change="if($el.file.files.length) htmx.trigger($el,'submit')"
           @htmx:after-request="$el.reset()">
       <input type="hidden" name="prefix" value="{{.KeyPrefix}}">
-      <input type="file" name="file" id="s3file" hidden>
+      <input type="file" name="file" hidden>
       <button class="btn" type="button" onclick="this.closest('form').querySelector('input[type=file]').click()">{{icon "upload"}} Upload</button>
     </form>
   </div>
 </div>
 {{template "object_table" .}}
+
+<div class="drawer-scrim" x-show="drawer" x-cloak @click="drawer=false"></div>
+<aside class="drawer" x-show="drawer" x-cloak @keydown.escape.window="drawer=false">
+  <div id="drawer-inner"></div>
+</aside>
+</div>
 {{template "footer" .}}{{end}}
 
 {{define "object_table"}}
@@ -28,7 +35,7 @@
 </nav>
 {{if .Objects}}
 <div class="table-wrap"><table class="tbl">
-  <thead><tr><th>Name</th><th class="right">Size</th><th class="right">Modified</th><th style="width:88px"></th></tr></thead>
+  <thead><tr><th>Name</th><th class="right">Size</th><th class="right">Modified</th><th style="width:64px"></th></tr></thead>
   <tbody>{{range .Objects}}
     {{if .IsPrefix}}
     <tr class="folder">
@@ -37,13 +44,13 @@
     </tr>
     {{else}}
     <tr>
-      <td><a class="cell-name" href="{{$.Prefix}}/s3/{{$.Bucket}}/object?key={{.Key}}" target="_blank">{{icon "file"}} {{trimPrefixKey .Key $.KeyPrefix}}</a></td>
+      <td><span class="cell-name link" hx-get="{{$.Prefix}}/s3/{{$.Bucket}}/meta?key={{.Key}}&prefix={{$.KeyPrefix}}" hx-target="#drawer-inner" hx-swap="innerHTML" @click="drawer=true">{{icon "file"}} {{trimPrefixKey .Key $.KeyPrefix}}</span></td>
       <td class="right dim num">{{humanSize .Size}}</td>
       <td class="right dim num">{{.LastModified}}</td>
       <td>
         <div class="row-actions">
-          <a class="icon-btn" title="Download" href="{{$.Prefix}}/s3/{{$.Bucket}}/object?key={{.Key}}" target="_blank">{{icon "download"}}</a>
-          <button class="icon-btn danger" title="Delete"
+          <a class="icon-btn sm" title="Download" href="{{$.Prefix}}/s3/{{$.Bucket}}/object?key={{.Key}}" target="_blank">{{icon "download"}}</a>
+          <button class="icon-btn sm danger" title="Delete"
                   hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/delete" hx-vals='{"key":"{{.Key}}","prefix":"{{$.KeyPrefix}}"}'
                   hx-target="#object-table" hx-swap="outerHTML" hx-confirm="Delete {{.Key}}?">{{icon "trash"}}</button>
         </div>
@@ -53,5 +60,36 @@
   {{end}}</tbody>
 </table></div>
 {{else}}<div class="empty"><span class="ic-lg">{{icon "folder"}}</span><p>This location is empty — upload a file to get started.</p></div>{{end}}
+</div>
+{{end}}
+
+{{define "object_meta"}}
+<div class="drawer-h">
+  {{icon "file"}}<span class="title" title="{{.Meta.Key}}">{{.Name}}</span>
+  <button class="icon-btn" @click="drawer=false" title="Close">{{icon "x"}}</button>
+</div>
+<div class="drawer-b">
+  <div class="preview">
+    {{if .Meta.IsImage}}<img src="{{.URL}}" alt="{{.Name}}">
+    {{else}}<div class="ph-ic">{{icon "file"}}</div>{{end}}
+  </div>
+  <div class="meta-list">
+    <div class="meta-row"><span class="k">Type</span><span class="v">{{if .Meta.ContentType}}{{.Meta.ContentType}}{{else}}—{{end}}</span></div>
+    <div class="meta-row"><span class="k">Size</span><span class="v">{{.Meta.Size}}</span></div>
+    <div class="meta-row"><span class="k">ETag</span><span class="v">{{.Meta.ETag}}</span></div>
+    <div class="meta-row"><span class="k">Last modified</span><span class="v">{{.Meta.LastModified}}</span></div>
+    <div class="meta-row"><span class="k">Storage class</span><span class="v">{{.Meta.StorageClass}}</span></div>
+  </div>
+  <div class="copy-row">
+    <span title="{{.Meta.Key}}">s3://{{.Bucket}}/{{.Meta.Key}}</span>
+    <button class="icon-btn sm" title="Copy path"
+            onclick="navigator.clipboard.writeText('s3://{{.Bucket}}/{{.Meta.Key}}');window.dispatchEvent(new CustomEvent('toast',{detail:'Path copied'}))">{{icon "copy"}}</button>
+  </div>
+  <div class="drawer-actions">
+    <a class="btn btn-outline" href="{{.URL}}" target="_blank">{{icon "download"}} Download</a>
+    <button class="btn btn-outline" @click="drawer=false"
+            hx-post="{{.Prefix}}/s3/{{.Bucket}}/delete" hx-vals='{"key":"{{.Meta.Key}}","prefix":"{{.KeyPrefix}}"}'
+            hx-target="#object-table" hx-swap="outerHTML" hx-confirm="Delete {{.Meta.Key}}?">{{icon "trash"}} Delete</button>
+  </div>
 </div>
 {{end}}

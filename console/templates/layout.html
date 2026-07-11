@@ -13,15 +13,9 @@
 </script>
 
 <div class="app" x-data="ui()" x-cloak
-     x-on:keydown.window="if(($event.metaKey||$event.ctrlKey)&&$event.key==='k'){$event.preventDefault(); $refs.search&&$refs.search.focus();}"
      @toast.window="pushToast($event.detail.value ?? $event.detail)">
   <header class="topbar">
     <div class="brand"><span class="dot"></span> doze-aws <span class="sub">console</span></div>
-    <label class="tb-search">
-      {{icon "search"}}
-      <input x-ref="search" type="text" placeholder="Filter resources…" x-model="$store.filter.q" spellcheck="false">
-      <span class="kbd">⌘K</span>
-    </label>
     <div class="tb-spacer"></div>
     <div class="tb-right">
       <span class="chip mono"><span class="live"></span>127.0.0.1:4566</span>

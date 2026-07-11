@@ -75,6 +75,13 @@ func TestConsoleS3Flow(t *testing.T) {
 		t.Fatalf("get object = %d %q", obj.Code, obj.Body.String())
 	}
 
+	// The detail drawer surfaces object metadata (HeadObject).
+	meta := req(t, h, "GET", "/_console/s3/webassets/meta?key=photos/logo.txt&prefix=photos/", nil)
+	body := meta.Body.String()
+	if meta.Code != 200 || !strings.Contains(body, "Storage class") || !strings.Contains(body, "s3://webassets/photos/logo.txt") {
+		t.Fatalf("object meta drawer = %d\n%s", meta.Code, body)
+	}
+
 	// Delete it via the console.
 	del := req(t, h, "POST", "/_console/s3/webassets/delete", url.Values{"key": {"photos/logo.txt"}, "prefix": {"photos/"}})
 	if del.Code != 200 {

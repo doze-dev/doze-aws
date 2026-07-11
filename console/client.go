@@ -191,6 +191,48 @@ func (b *backend) GetObject(ctx context.Context, bucket, key string) ([]byte, st
 	return body, resp.Header.Get("Content-Type"), nil
 }
 
+// ObjectMeta is the metadata surfaced in the object detail drawer.
+type ObjectMeta struct {
+	Key          string
+	Size         string
+	SizeBytes    int64
+	ContentType  string
+	ETag         string
+	LastModified string
+	StorageClass string
+	IsImage      bool
+	IsText       bool
+}
+
+// HeadObject fetches an object's metadata without its body (S3 HeadObject).
+func (b *backend) HeadObject(ctx context.Context, bucket, key string) (*ObjectMeta, error) {
+	req, _ := http.NewRequestWithContext(ctx, "HEAD", b.base+"/"+bucket+"/"+escapeKey(key), nil)
+	resp, err := b.c.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	resp.Body.Close()
+	if resp.StatusCode/100 != 2 {
+		return nil, &apiErr{status: resp.StatusCode, body: "object not found"}
+	}
+	ct := resp.Header.Get("Content-Type")
+	size, _ := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)
+	sc := resp.Header.Get("x-amz-storage-class")
+	if sc == "" {
+		sc = "STANDARD"
+	}
+	return &ObjectMeta{
+		Key:          key,
+		SizeBytes:    size,
+		ContentType:  ct,
+		ETag:         strings.Trim(resp.Header.Get("ETag"), `"`),
+		LastModified: httpDate(resp.Header.Get("Last-Modified")),
+		StorageClass: sc,
+		IsImage:      strings.HasPrefix(ct, "image/"),
+		IsText:       strings.HasPrefix(ct, "text/") || ct == "application/json",
+	}, nil
+}
+
 func (b *backend) PutObject(ctx context.Context, bucket, key string, body []byte, contentType string) error {
 	req, _ := http.NewRequestWithContext(ctx, "PUT", b.base+"/"+bucket+"/"+escapeKey(key), bytes.NewReader(body))
 	req.Header.Set("x-amz-content-sha256", "UNSIGNED-PAYLOAD")
@@ -342,6 +384,13 @@ func shortTime(s string) string {
 		if t, err := time.Parse(layout, s); err == nil {
 			return t.Local().Format("2006-01-02 15:04")
 		}
+	}
+	return s
+}
+
+func httpDate(s string) string {
+	if t, err := time.Parse(http.TimeFormat, s); err == nil {
+		return t.Local().Format("2006-01-02 15:04:05")
 	}
 	return s
 }
