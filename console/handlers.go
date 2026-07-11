@@ -2,6 +2,8 @@ package console
 
 import (
 	"encoding/json"
+	"fmt"
+	"hash/fnv"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -24,47 +26,36 @@ func humanBytes(n int64) string {
 	return trimFloat(f) + " " + string(u[i]) + "B"
 }
 
-// ---- overview ----
-
-func (c *Console) overview(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	buckets, _ := c.be.ListBuckets(ctx)
-	queues, _ := c.be.ListQueues(ctx)
-	topics, _ := c.be.ListTopics(ctx)
-	tables, _ := c.be.ListTables(ctx)
-	fns, _ := c.be.ListFunctions(ctx)
-	keys, _ := c.be.ListKeys(ctx)
-	params, _ := c.be.ListParameters(ctx)
-	secrets, _ := c.be.ListSecrets(ctx)
-	buses, _ := c.be.ListBuses(ctx)
-	ident, _ := c.be.CallerIdentity(ctx)
-
-	msgTotal := 0
-	for _, q := range queues {
-		msgTotal += q.Available + q.InFlight
+// contentHash fingerprints a live partial so pollers can skip unchanged swaps.
+func contentHash(parts ...string) string {
+	h := fnv.New64a()
+	for _, p := range parts {
+		h.Write([]byte(p))
+		h.Write([]byte{0})
 	}
-	rules := 0
-	for _, b := range buses {
-		rules += b.Rules
+	return fmt.Sprintf("%x", h.Sum64())
+}
+
+// liveUnchanged replies 204 when the poller's hash matches current content.
+func liveUnchanged(w http.ResponseWriter, r *http.Request, hash string) bool {
+	if q := r.URL.Query().Get("h"); q != "" && q == hash {
+		w.WriteHeader(http.StatusNoContent)
+		return true
 	}
-	c.render(w, r, "overview", map[string]any{
-		"BucketCount": len(buckets), "QueueCount": len(queues), "TopicCount": len(topics),
-		"TableCount": len(tables), "FnCount": len(fns), "KeyCount": len(keys),
-		"ParamCount": len(params), "SecretCount": len(secrets),
-		"BusCount": len(buses), "RuleCount": rules, "MsgTotal": msgTotal,
-		"Identity": ident,
-	})
+	return false
 }
 
 // ---- S3 ----
 
+func (c *Console) s3List(r *http.Request) []Bucket {
+	buckets, _ := c.be.ListBuckets(r.Context())
+	return buckets
+}
+
 func (c *Console) s3Buckets(w http.ResponseWriter, r *http.Request) {
-	buckets, err := c.be.ListBuckets(r.Context())
-	if err != nil {
-		c.fail(w, err)
-		return
-	}
-	c.render(w, r, "s3_buckets", map[string]any{"Buckets": buckets})
+	c.render(w, r, "s3_home", map[string]any{
+		"List": c.s3List(r), "Title": "S3",
+	})
 }
 
 func (c *Console) s3CreateBucket(w http.ResponseWriter, r *http.Request) {
@@ -91,8 +82,7 @@ func (c *Console) s3Versioning(w http.ResponseWriter, r *http.Request) {
 	} else {
 		toast(w, "Versioning suspended")
 	}
-	props, _ := c.be.GetBucketProps(r.Context(), bucket)
-	c.partial(w, "s3_props", map[string]any{"Bucket": bucket, "Props": props})
+	c.s3PropsPartial(w, r, bucket)
 }
 
 // s3AddTag appends one tag to the bucket's tag set.
@@ -151,46 +141,6 @@ func (c *Console) s3PropsPartial(w http.ResponseWriter, r *http.Request, bucket 
 	c.partial(w, "s3_props", map[string]any{"Bucket": bucket, "Props": props})
 }
 
-// sqsSetAttributes edits the queue's mutable delivery settings.
-func (c *Console) sqsSetAttributes(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
-	attrs := map[string]string{}
-	if v := strings.TrimSpace(r.FormValue("visibility")); v != "" {
-		attrs["VisibilityTimeout"] = v
-	}
-	if v := strings.TrimSpace(r.FormValue("retention")); v != "" {
-		attrs["MessageRetentionPeriod"] = v
-	}
-	if v := strings.TrimSpace(r.FormValue("delay")); v != "" {
-		attrs["DelaySeconds"] = v
-	}
-	if len(attrs) > 0 {
-		if err := c.be.SetQueueAttributes(r.Context(), name, attrs); err != nil {
-			c.fail(w, err)
-			return
-		}
-	}
-	toast(w, "Queue settings saved")
-	qattrs, err := c.be.queueAttrs(r.Context(), name)
-	if err != nil {
-		c.fail(w, err)
-		return
-	}
-	c.partial(w, "sqs_config", map[string]any{
-		"Queue": name, "Attrs": qattrs, "Config": sqsConfigOf(qattrs),
-	})
-}
-
-func (c *Console) s3DeleteBucket(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeleteBucket(r.Context(), r.PathValue("bucket")); err != nil {
-		c.fail(w, err)
-		return
-	}
-	buckets, _ := c.be.ListBuckets(r.Context())
-	toast(w, "Bucket deleted")
-	c.partial(w, "bucket_list", map[string]any{"Buckets": buckets})
-}
-
 func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 	bucket := r.PathValue("bucket")
 	prefix := r.URL.Query().Get("prefix")
@@ -200,6 +150,9 @@ func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 		"Bucket":    bucket,
 		"KeyPrefix": prefix,
 		"Tab":       tab,
+		"List":      c.s3List(r),
+		"Sel":       bucket,
+		"Title":     bucket + " · S3",
 	}
 	if tab == "properties" {
 		props, err := c.be.GetBucketProps(r.Context(), bucket)
@@ -217,9 +170,18 @@ func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	var total int64
+	files := 0
+	for _, o := range objs {
+		if !o.IsPrefix {
+			total += o.Size
+			files++
+		}
+	}
 	data["Objects"] = objs
 	data["Crumbs"] = crumbs(prefix)
-	data["Parent"] = parentPrefix(prefix)
+	data["FileCount"] = files
+	data["TotalSize"] = humanBytes(total)
 	// HTMX navigation within the browser swaps just the table.
 	if r.Header.Get("HX-Request") == "true" && r.URL.Query().Get("partial") == "1" {
 		c.partial(w, "object_table", data)
@@ -308,23 +270,39 @@ func (c *Console) s3DeleteObject(w http.ResponseWriter, r *http.Request) {
 	c.swapObjectTable(w, r, bucket, prefix)
 }
 
+func (c *Console) s3DeleteBucket(w http.ResponseWriter, r *http.Request) {
+	if err := c.be.DeleteBucket(r.Context(), r.PathValue("bucket")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/s3", "Bucket deleted")
+}
+
 func (c *Console) swapObjectTable(w http.ResponseWriter, r *http.Request, bucket, prefix string) {
 	objs, _ := c.be.ListObjects(r.Context(), bucket, prefix)
+	var total int64
+	files := 0
+	for _, o := range objs {
+		if !o.IsPrefix {
+			total += o.Size
+			files++
+		}
+	}
 	c.partial(w, "object_table", map[string]any{
 		"Bucket": bucket, "KeyPrefix": prefix, "Objects": objs,
-		"Crumbs": crumbs(prefix), "Parent": parentPrefix(prefix),
+		"Crumbs": crumbs(prefix), "FileCount": files, "TotalSize": humanBytes(total),
 	})
 }
 
 // ---- SQS ----
 
+func (c *Console) sqsList(r *http.Request) []Queue {
+	queues, _ := c.be.ListQueues(r.Context())
+	return queues
+}
+
 func (c *Console) sqsQueues(w http.ResponseWriter, r *http.Request) {
-	queues, err := c.be.ListQueues(r.Context())
-	if err != nil {
-		c.fail(w, err)
-		return
-	}
-	c.render(w, r, "sqs_queues", map[string]any{"Queues": queues})
+	c.render(w, r, "sqs_home", map[string]any{"List": c.sqsList(r), "Title": "SQS"})
 }
 
 func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {
@@ -352,9 +330,7 @@ func (c *Console) sqsDeleteQueue(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	queues, _ := c.be.ListQueues(r.Context())
-	toast(w, "Queue deleted")
-	c.partial(w, "queue_list", map[string]any{"Queues": queues})
+	c.redirect(w, r, c.prefix+"/sqs", "Queue deleted")
 }
 
 func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
@@ -371,6 +347,11 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 		"ARN":       QueueARN(name),
 		"URL":       "http://127.0.0.1:4566/000000000000/" + name,
 		"Config":    sqsConfigOf(attrs),
+		"Hash":      sqsMsgHash(attrs, msgs),
+		"Tab":       tabOf(r, "messages"),
+		"List":      c.sqsList(r),
+		"Sel":       name,
+		"Title":     name + " · SQS",
 	})
 }
 
@@ -407,7 +388,7 @@ func sqsConfigOf(attrs map[string]string) sqsConfig {
 			if i := strings.LastIndex(pol.DeadLetterTargetArn, ":"); i >= 0 {
 				cfg.DLQ = pol.DeadLetterTargetArn[i+1:]
 			}
-			cfg.MaxReceive = strings.Trim(strings.TrimSpace(fmtAny(pol.MaxReceiveCount)), `"`)
+			cfg.MaxReceive = strings.Trim(strings.TrimSpace(fmtAny(pol.MaxReceiveCount)), "\"")
 		}
 	}
 	return cfg
@@ -427,8 +408,16 @@ func epochSecString(s string) string {
 	return time.Unix(n, 0).Local().Format("2006-01-02 15:04:05")
 }
 
-// sqsMessages is the HTMX-polled partial: the live message list + depth, peeked
-// non-destructively so repeated refreshes never consume anything.
+// sqsMsgHash fingerprints the visible message state for 204-skip polling.
+func sqsMsgHash(attrs map[string]string, msgs []SQSMessage) string {
+	parts := []string{attrs["ApproximateNumberOfMessages"], attrs["ApproximateNumberOfMessagesNotVisible"]}
+	for _, m := range msgs {
+		parts = append(parts, m.MessageID)
+	}
+	return contentHash(parts...)
+}
+
+// sqsMessages is the polled live partial: 204 when unchanged, morph otherwise.
 func (c *Console) sqsMessages(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("queue")
 	attrs, msgs, err := c.be.QueueDetail(r.Context(), name)
@@ -436,10 +425,15 @@ func (c *Console) sqsMessages(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	hash := sqsMsgHash(attrs, msgs)
+	if liveUnchanged(w, r, hash) {
+		return
+	}
 	c.partial(w, "message_panel", map[string]any{
 		"Queue": name, "Messages": msgs,
 		"Available": atoi(attrs["ApproximateNumberOfMessages"]),
 		"InFlight":  atoi(attrs["ApproximateNumberOfMessagesNotVisible"]),
+		"Hash":      hash,
 	})
 }
 
@@ -462,6 +456,36 @@ func (c *Console) sqsPurge(w http.ResponseWriter, r *http.Request) {
 	}
 	toast(w, "Queue purged")
 	c.sqsMessages(w, r)
+}
+
+// sqsSetAttributes edits the queue's mutable delivery settings.
+func (c *Console) sqsSetAttributes(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("queue")
+	attrs := map[string]string{}
+	if v := strings.TrimSpace(r.FormValue("visibility")); v != "" {
+		attrs["VisibilityTimeout"] = v
+	}
+	if v := strings.TrimSpace(r.FormValue("retention")); v != "" {
+		attrs["MessageRetentionPeriod"] = v
+	}
+	if v := strings.TrimSpace(r.FormValue("delay")); v != "" {
+		attrs["DelaySeconds"] = v
+	}
+	if len(attrs) > 0 {
+		if err := c.be.SetQueueAttributes(r.Context(), name, attrs); err != nil {
+			c.fail(w, err)
+			return
+		}
+	}
+	toast(w, "Queue settings saved")
+	qattrs, err := c.be.queueAttrs(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "sqs_config", map[string]any{
+		"Queue": name, "Attrs": qattrs, "Config": sqsConfigOf(qattrs),
+	})
 }
 
 // ---- small helpers ----
@@ -488,14 +512,6 @@ func baseName(key string) string {
 	return key
 }
 
-func parentPrefix(prefix string) string {
-	p := strings.TrimSuffix(prefix, "/")
-	if i := strings.LastIndex(p, "/"); i >= 0 {
-		return p[:i+1]
-	}
-	return ""
-}
-
 type crumb struct {
 	Name   string
 	Prefix string
@@ -508,17 +524,44 @@ func crumbs(prefix string) []crumb {
 	}
 	parts := strings.Split(strings.TrimSuffix(prefix, "/"), "/")
 	out := make([]crumb, 0, len(parts))
-	acc := ""
+	var acc strings.Builder
 	for _, p := range parts {
-		acc += p + "/"
-		out = append(out, crumb{Name: p, Prefix: acc})
+		acc.WriteString(p)
+		acc.WriteString("/")
+		out = append(out, crumb{Name: p, Prefix: acc.String()})
 	}
 	return out
 }
 
-func itoaSize(n int64) string { return strconv.FormatInt(n, 10) }
-
 func trimFloat(f float64) string {
 	s := strconv.FormatFloat(f, 'f', 1, 64)
 	return strings.TrimSuffix(s, ".0")
+}
+
+// tabOf returns the active tab from ?tab=, defaulting sensibly.
+func tabOf(r *http.Request, def string) string {
+	if t := r.URL.Query().Get("tab"); t != "" {
+		return t
+	}
+	return def
+}
+
+// ago renders a compact relative time from the console's standard layouts.
+func ago(formatted string) string {
+	for _, layout := range []string{"2006-01-02 15:04:05", "2006-01-02 15:04"} {
+		if t, err := time.ParseInLocation(layout, formatted, time.Local); err == nil {
+			d := time.Since(t)
+			switch {
+			case d < time.Minute:
+				return "just now"
+			case d < time.Hour:
+				return strconv.Itoa(int(d.Minutes())) + " min ago"
+			case d < 24*time.Hour:
+				return strconv.Itoa(int(d.Hours())) + " h ago"
+			default:
+				return strconv.Itoa(int(d.Hours()/24)) + " d ago"
+			}
+		}
+	}
+	return formatted
 }

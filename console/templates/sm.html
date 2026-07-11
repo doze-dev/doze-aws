@@ -1,105 +1,40 @@
-{{define "sm_secrets"}}{{template "header" .}}
-<div class="ph">
-  <div>
-    <h1>{{awsIcon "sm"}} Secrets Manager</h1>
-    <p class="ph-desc">Versioned secrets with staging labels and recovery windows.</p>
-  </div>
-  <div class="ph-actions">
-    <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter secrets…" x-model="$store.filter.q" spellcheck="false"></label>
-    <a class="btn" href="{{.Prefix}}/sm/create">{{icon "plus"}} Store secret</a>
-  </div>
-</div>
-
-{{template "sm_secret_list" .}}
-{{template "footer" .}}{{end}}
-
-{{define "sm_secret_list"}}
-<div id="sm-secret-list">
-{{if .Secrets}}
-<div class="table-wrap"><table class="tbl">
-  <thead><tr><th>Name</th><th>Description</th><th class="right">Last changed</th></tr></thead>
-  <tbody>{{range .Secrets}}
-    <tr x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
-      <td><a class="cell-name" href="{{$.Prefix}}/sm/secret?name={{.Name}}">{{icon "lock"}} {{.Name}}</a></td>
-      <td class="dim" style="font-size:12px">{{if .Description}}{{.Description}}{{else}}—{{end}}</td>
-      <td class="right dim num">{{.Changed}}</td>
-    </tr>
-  {{end}}</tbody>
-</table></div>
-{{else}}<div class="empty">{{awsIcon "sm"}}<p>No secrets yet. Store credentials once, read them from any SDK.</p><a class="btn" href="{{.Prefix}}/sm/create">{{icon "plus"}} Store secret</a></div>{{end}}
-</div>
+{{define "sm_lp"}}
+{{template "lp_head" dict "Svc" "sm" "Label" "Secrets Manager" "NewURL" (printf "%s/sm/create" .Prefix)}}
+  {{range .List}}
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sm/secret?name={{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span></a>
+  {{end}}
+{{template "lp_foot" .}}
 {{end}}
 
-{{define "sm_secret"}}{{template "header" .}}
-<nav class="bc">
-  <a href="{{.Prefix}}/sm">{{icon "lock"}} Secrets Manager</a>{{icon "chevron"}}<span>{{.S.Name}}</span>
-</nav>
-{{template "sm_secret_detail" .}}
-{{template "footer" .}}{{end}}
+{{define "sm_home"}}{{template "shell_top" .}}
+  {{template "sm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  {{template "empty_detail" dict "Svc" "sm" "Hint" "Select a secret, or store one to read from any SDK."}}
+{{template "shell_bottom" .}}{{end}}
+
+{{define "sm_secret"}}{{template "shell_top" .}}
+  {{template "sm_lp" (dict "Prefix" .Prefix "List" .List "Sel" .S.Name)}}
+  <section class="detail">{{template "sm_secret_detail" .}}</section>
+{{template "shell_bottom" .}}{{end}}
 
 {{define "sm_secret_detail"}}
-<div id="sm-detail">
-<div class="idband">
-  <div class="ph">
-    <div>
-      <h1>{{awsIcon "sm"}} {{.S.Name}}</h1>
-      {{if .S.Description}}<p class="ph-desc">{{.S.Description}}</p>{{end}}
-      <div class="chips" style="margin-top:8px">
-        {{template "copychip" dict "Label" "arn" "Value" .S.ARN}}
-      </div>
-    </div>
-    <div class="ph-actions">
-      <button class="btn btn-outline danger" hx-post="{{.Prefix}}/sm/delete" hx-vals='{"name":"{{.S.Name}}"}'
-              hx-confirm="Schedule “{{.S.Name}}” for deletion with a 7-day recovery window?">{{icon "trash"}} Delete</button>
+<div id="sm-detail" x-data="{reveal:false}">
+  <div class="det-h">
+    <div class="det-title">{{awsIcon "sm"}} {{.S.Name}}<div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/sm/delete" hx-vals='{"name":"{{.S.Name}}"}' hx-confirm="Schedule “{{.S.Name}}” for deletion with a 7-day recovery window?">{{icon "trash"}} Delete</button></div></div>
+    {{if .S.Description}}<div class="det-sub">{{.S.Description}}</div>{{end}}
+    <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .S.ARN}}<span class="chip">AWSCURRENT</span></div>
+  </div>
+  <div class="det-b">
+    {{template "value_workspace" (dict "Prefix" .Prefix "Mode" .Mode "Value" .S.Value "Secure" true "Diff" (printf "%s/sm/diff?name=%s" .Prefix .S.Name)
+        "ViewURL" (printf "%s/sm/secret?name=%s" .Prefix .S.Name)
+        "EditURL" (printf "%s/sm/secret?name=%s&tab=edit" .Prefix .S.Name)
+        "VersURL" (printf "%s/sm/secret?name=%s&tab=versions" .Prefix .S.Name)
+        "SaveURL" (printf "%s/sm/put" .Prefix) "SaveField" "name" "SaveVal" .S.Name "SaveLabel" "Save as new version"
+        "Target" "#sm-detail" "Stages" .S.Stages)}}
+    <div class="meta-grid">
+      <div class="meta-cellx"><div class="k2">Last changed</div><div class="v2" title="{{.S.Changed}}">{{ago .S.Changed}}</div></div>
+      <div class="meta-cellx"><div class="k2">Versions</div><div class="v2">{{len .S.Stages}}</div></div>
+      <div class="meta-cellx"><div class="k2">Rotation</div><div class="v2">manual</div></div>
     </div>
   </div>
-</div>
-
-<div class="split">
-  <div>
-    <div class="panel" x-data="{show:false}">
-      <div class="panel-h">
-        <h2>{{icon "lock"}} Secret value <span class="badge type">AWSCURRENT</span></h2>
-        <div style="display:flex;gap:4px">
-          <button class="icon-btn sm" :title="show ? 'Hide' : 'Reveal'" @click="show=!show">
-            <span x-show="!show">{{icon "eye"}}</span><span x-show="show" x-cloak>{{icon "eye-off"}}</span>
-          </button>
-          <button class="icon-btn sm" title="Copy value" data-copy="{{.S.Value}}">{{icon "copy"}}</button>
-        </div>
-      </div>
-      <div style="padding:12px 16px">
-        <div class="masked-box">
-          <div class="val" x-show="show" x-cloak>{{.S.Value}}</div>
-          <div class="val dim" x-show="!show">••••••••••••••••••••</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="sec-title">Edit value</div>
-    <div class="panel"><div style="padding:14px 16px">
-      <form hx-post="{{.Prefix}}/sm/put" hx-target="#sm-detail" hx-swap="outerHTML">
-        <input type="hidden" name="name" value="{{.S.Name}}">
-        <textarea name="value" data-editor rows="12" spellcheck="false" required>{{.S.Value}}</textarea>
-        <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn" type="submit">Save as new version</button></div>
-      </form>
-      <p class="mini-note">Pre-filled with the current value. Saving makes it AWSCURRENT; the previous version moves to AWSPREVIOUS.</p>
-    </div></div>
-  </div>
-
-  <div>
-    <div class="sec-title" style="margin-top:0">Versions</div>
-    {{if .S.Stages}}
-    <div class="table-wrap"><table class="tbl">
-      <thead><tr><th>Version ID</th><th class="right">Stages</th></tr></thead>
-      <tbody>{{range $id, $stages := .S.Stages}}
-        <tr>
-          <td class="mono trunc dim" style="font-size:11.5px;max-width:240px" title="{{$id}}">{{$id}}</td>
-          <td class="right">{{range $stages}}<span class="badge type" style="margin-left:4px">{{.}}</span>{{end}}</td>
-        </tr>
-      {{end}}</tbody>
-    </table></div>
-    {{else}}<p class="mini-note">No version metadata.</p>{{end}}
-  </div>
-</div>
 </div>
 {{end}}

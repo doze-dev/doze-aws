@@ -1,0 +1,44 @@
+{{define "flows"}}{{template "shell_top" .}}
+  <section class="detail" style="border-left:0" data-live="{{.Prefix}}/flows.json" data-live-ms="4000">
+    <div class="det-h">
+      <div class="det-title">Flows
+        <div class="acts"><span class="chip"><span class="live"></span> live</span></div>
+      </div>
+      <div class="det-sub">The live wiring between your services — connections are real subscriptions, notifications, targets, mappings and redrive policies.</div>
+    </div>
+    <div class="det-b">
+      {{template "flow_canvas" .}}
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{define "flow_canvas"}}
+<div id="flow-canvas" data-live="{{.Prefix}}/flows.json" data-live-ms="4000" data-hash="{{.Hash}}">
+  <div class="chips" style="margin-bottom:12px">
+    <span class="chip"><b>{{len .Graph.Nodes}}</b> resources</span>
+    <span class="chip"><b>{{.Graph.Conns}}</b> connections</span>
+    {{if .Graph.Unwired}}<span class="chip" style="border-color:hsl(var(--warning)/.4);color:hsl(var(--warning))"><b>{{.Graph.Unwired}}</b> unwired</span>{{end}}
+  </div>
+  {{if .Graph.Nodes}}
+  <div class="flow-canvas">
+    <svg viewBox="0 0 {{addPad .Graph.W}} {{addPad .Graph.H}}" preserveAspectRatio="xMinYMin meet" style="width:100%;height:{{addPad .Graph.H}}px;max-height:640px">
+      {{$g := .Graph}}
+      {{range .Graph.Edges}}
+        {{$f := nodeAt $g .From}}{{$t := nodeAt $g .To}}
+        {{if and $f $t}}<path class="fl-edge {{if .Hot}}hot{{end}}" d="{{edgePath $f $t}}"/>
+        <text class="fl-lbl" x="{{edgeMidX $f $t}}" y="{{edgeMidY $f $t}}">{{.Kind}}</text>{{end}}
+      {{end}}
+      {{range .Graph.Nodes}}
+      <a href="{{$.Prefix}}{{.URL}}" class="fl-node {{if .Unwired}}unwired{{end}}">
+        <rect x="{{nodeX .}}" y="{{nodeY .}}" width="176" height="46" rx="9"/>
+        <text class="t1" x="{{textX .}}" y="{{textY1 .}}">{{svcGlyph .Svc}} {{.Name}}</text>
+        <text class="t2" x="{{textX .}}" y="{{textY2 .}}">{{.Svc}}{{if .Sub}} · {{.Sub}}{{end}}</text>
+      </a>
+      {{end}}
+    </svg>
+  </div>
+  {{else}}
+  <div class="empty" style="margin-top:8vh"><span class="ic-lg">{{icon "route"}}</span><p><b>Nothing is wired up yet.</b><br>Subscribe a queue to a topic, add an EventBridge target, or set an S3 notification to see your first flow.</p></div>
+  {{end}}
+</div>
+{{end}}

@@ -1,0 +1,56 @@
+{{/* The value workspace: full-width View / Edit / Versions.
+     Expects a dict with: Mode Value Secure Diff ViewURL EditURL VersURL
+     SaveURL SaveField SaveVal SaveLabel Target Prefix (History|Stages). */}}
+{{define "value_workspace"}}
+<div class="ws-toolbar">
+  <span class="ws-seg">
+    <a href="{{.ViewURL}}" class="{{if eq .Mode "view"}}on{{end}}">View</a>
+    <a href="{{.EditURL}}" class="{{if eq .Mode "edit"}}on{{end}}">Edit</a>
+    <a href="{{.VersURL}}" class="{{if eq .Mode "versions"}}on{{end}}">Versions</a>
+  </span>
+  {{if eq .Mode "view"}}
+  <span style="display:flex;gap:6px;align-items:center">
+    {{if .Secure}}<button class="btn btn-outline btn-sm" @click="reveal=!reveal" x-text="reveal?'Hide':'Reveal'"></button>{{end}}
+    <button class="btn btn-outline btn-sm" data-copy="{{.Value}}">Copy</button>
+  </span>
+  {{end}}
+</div>
+
+{{if eq .Mode "edit"}}
+  <form hx-post="{{.SaveURL}}" hx-target="{{.Target}}" hx-swap="outerHTML" x-data="{dirty:false}">
+    <input type="hidden" name="{{.SaveField}}" value="{{.SaveVal}}">
+    <textarea name="value" data-editor rows="16" spellcheck="false" required @input="dirty=true">{{.Value}}</textarea>
+    <div class="det-foot" style="margin-top:12px;border-radius:var(--radius);border:1px solid hsl(var(--border))">
+      <span class="dim" style="margin-right:auto;font-size:12px" x-show="dirty">● unsaved changes</span>
+      <a class="btn btn-outline" href="{{.ViewURL}}">Discard</a>
+      <button type="submit" class="btn">{{.SaveLabel}}</button>
+    </div>
+  </form>
+{{else if eq .Mode "versions"}}
+  <div class="table-wrap"><table class="tbl">
+    <thead><tr><th>Version</th><th>Stages</th><th class="right">Actions</th></tr></thead>
+    <tbody>
+    {{if .History}}{{range .History}}
+      <tr><td class="mono" style="font-weight:600">v{{.Version}}</td><td class="mono trunc dim" style="font-size:11px;max-width:280px" title="{{.Value}}">{{.Value}}</td><td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{.Version}}" hx-target="#version-diff" hx-swap="innerHTML">Diff vs current</button></td></tr>
+    {{end}}{{end}}
+    {{if .Stages}}{{range $id, $st := .Stages}}
+      <tr><td class="mono trunc" style="max-width:200px" title="{{$id}}">{{$id}}</td><td>{{range $st}}<span class="badge type" style="margin-right:4px">{{.}}</span>{{end}}</td><td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{$id}}" hx-target="#version-diff" hx-swap="innerHTML">Diff vs current</button></td></tr>
+    {{end}}{{end}}
+    </tbody>
+  </table></div>
+  <div id="version-diff" style="margin-top:12px"></div>
+{{else}}
+  {{if .Secure}}
+  <div class="ws-view"><span x-show="!reveal">{{masked .Value false}}</span><span x-show="reveal" x-cloak>{{masked .Value true}}</span></div>
+  {{else}}
+  <div class="ws-view">{{masked .Value true}}</div>
+  {{end}}
+{{end}}
+{{end}}
+
+{{define "value_diff"}}
+<div class="sec-title" style="margin-top:0">{{.OldLabel}} → {{.NewLabel}}</div>
+<div class="diffbox">
+  {{range .Diff}}<div class="dl {{.Kind}}">{{if eq .Kind "add"}}+ {{else if eq .Kind "del"}}- {{else}}  {{end}}{{.Text}}</div>{{end}}
+</div>
+{{end}}

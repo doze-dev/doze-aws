@@ -7,6 +7,7 @@ package console
 
 import (
 	"embed"
+	"fmt"
 	"html/template"
 	"io"
 	"net/http"
@@ -28,13 +29,18 @@ type Console struct {
 	mux    *http.ServeMux
 	tmpl   *template.Template
 	prefix string
+	rec    *Recorder
 }
 
 // Options configures the console.
 type Options struct {
 	// Gateway is the AWS endpoint handler the console reads and writes through
-	// (typically stack.Handler()).
+	// (typically stack.Handler()). Pass the RAW gateway, not the traffic-wrapped
+	// one, so the console's own calls don't appear in the Traffic tail.
 	Gateway http.Handler
+	// Recorder, if set, feeds the Traffic surface. Wrap the gateway with
+	// NewRecorder for external SDK/CLI calls and pass that recorder here.
+	Recorder *Recorder
 	// Prefix is the URL path the console is mounted under; defaults to
 	// "/_console".
 	Prefix string
@@ -52,7 +58,7 @@ func New(opts Options) (*Console, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Console{be: newBackend(opts.Gateway), tmpl: tmpl, prefix: prefix}
+	c := &Console{be: newBackend(opts.Gateway), tmpl: tmpl, prefix: prefix, rec: opts.Recorder}
 	c.routes()
 	return c, nil
 }
@@ -66,22 +72,26 @@ func (c *Console) routes() {
 	// Static assets (htmx, css) — embedded, served locally (no CDN).
 	m.Handle("GET "+p+"/static/", http.StripPrefix(p+"/", http.FileServerFS(staticFS)))
 
-	m.HandleFunc("GET "+p+"/", c.overview)
-	m.HandleFunc("GET "+p, c.overview)
+	// Flows is the home surface; Traffic is the live API tail.
+	m.HandleFunc("GET "+p+"/", c.flows)
+	m.HandleFunc("GET "+p, c.flows)
+	m.HandleFunc("GET "+p+"/flows.json", c.flowsData) // polled live refresh
+	m.HandleFunc("GET "+p+"/traffic", c.traffic)
+	m.HandleFunc("GET "+p+"/traffic/feed", c.trafficFeed) // polled live tail
 
 	// Resource index for the command palette.
 	m.HandleFunc("GET "+p+"/api/resources", c.apiResources)
 
-	// Full-page create forms (GET renders the page, POST on the same path submits).
-	m.HandleFunc("GET "+p+"/s3/create", c.createPage("s3_create"))
-	m.HandleFunc("GET "+p+"/sqs/create", c.sqsCreatePage)
-	m.HandleFunc("GET "+p+"/ddb/create", c.createPage("ddb_create"))
-	m.HandleFunc("GET "+p+"/sns/create", c.createPage("sns_create"))
-	m.HandleFunc("GET "+p+"/eb/create-bus", c.createPage("eb_bus_create"))
+	// Create forms render inside the shell (list pane + detail).
+	m.HandleFunc("GET "+p+"/s3/create", c.createPage("s3", "s3_create"))
+	m.HandleFunc("GET "+p+"/sqs/create", c.createPage("sqs", "sqs_create"))
+	m.HandleFunc("GET "+p+"/ddb/create", c.createPage("ddb", "ddb_create"))
+	m.HandleFunc("GET "+p+"/sns/create", c.createPage("sns", "sns_create"))
+	m.HandleFunc("GET "+p+"/eb/create-bus", c.createPage("eb", "eb_bus_create"))
 	m.HandleFunc("GET "+p+"/eb/{bus}/create-rule", c.ebRuleCreatePage)
-	m.HandleFunc("GET "+p+"/kms/create", c.createPage("kms_create"))
-	m.HandleFunc("GET "+p+"/ssm/create", c.createPage("ssm_create"))
-	m.HandleFunc("GET "+p+"/sm/create", c.createPage("sm_create"))
+	m.HandleFunc("GET "+p+"/kms/create", c.createPage("kms", "kms_create"))
+	m.HandleFunc("GET "+p+"/ssm/create", c.createPage("ssm", "ssm_create"))
+	m.HandleFunc("GET "+p+"/sm/create", c.createPage("sm", "sm_create"))
 
 	// S3.
 	m.HandleFunc("GET "+p+"/s3", c.s3Buckets)
@@ -158,6 +168,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/ssm", c.ssmParams)
 	m.HandleFunc("POST "+p+"/ssm/create", c.ssmCreate)
 	m.HandleFunc("GET "+p+"/ssm/param", c.ssmParam)
+	m.HandleFunc("GET "+p+"/ssm/diff", c.ssmDiff)
 	m.HandleFunc("POST "+p+"/ssm/put", c.ssmPut)
 	m.HandleFunc("POST "+p+"/ssm/delete", c.ssmDelete)
 
@@ -165,6 +176,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/sm", c.smSecrets)
 	m.HandleFunc("POST "+p+"/sm/create", c.smCreate)
 	m.HandleFunc("GET "+p+"/sm/secret", c.smSecret)
+	m.HandleFunc("GET "+p+"/sm/diff", c.smDiff)
 	m.HandleFunc("POST "+p+"/sm/put", c.smPut)
 	m.HandleFunc("POST "+p+"/sm/delete", c.smDelete)
 
@@ -237,7 +249,35 @@ func templateFuncs(prefix string) template.FuncMap {
 		"icon":      icon,
 		"count":     humanCount,
 		"hasPrefix": strings.HasPrefix,
-		"addOne":    func(n int64) int64 { return n + 1 },
+		"ago":       ago,
+		"list":      func(items ...any) []any { return items },
+		"masked":    maskedValue,
+		"addPad":    func(n int) int { return n + 40 },
+		"nodeX":     func(n FlowNode) int { return 20 + n.Col*210 },
+		"nodeY":     func(n FlowNode) int { return 20 + n.Row*72 },
+		"textX":     func(n FlowNode) int { return 20 + n.Col*210 + 14 },
+		"textY1":    func(n FlowNode) int { return 20 + n.Row*72 + 20 },
+		"textY2":    func(n FlowNode) int { return 20 + n.Row*72 + 35 },
+		"nodeAt": func(g FlowGraph, id string) *FlowNode {
+			for i := range g.Nodes {
+				if g.Nodes[i].ID == id {
+					return &g.Nodes[i]
+				}
+			}
+			return nil
+		},
+		"edgePath": func(f, t *FlowNode) string {
+			x1, y1 := 20+f.Col*210+176, 20+f.Row*72+23
+			x2, y2 := 20+t.Col*210, 20+t.Row*72+23
+			mx := (x1 + x2) / 2
+			return fmt.Sprintf("M%d %d C %d %d %d %d %d %d", x1, y1, mx, y1, mx, y2, x2, y2)
+		},
+		"edgeMidX": func(f, t *FlowNode) int { return (20 + f.Col*210 + 176 + 20 + t.Col*210) / 2 },
+		"edgeMidY": func(f, t *FlowNode) int { return (20 + f.Row*72 + 20 + t.Row*72) / 2 },
+		"svcGlyph": func(svc string) string {
+			return map[string]string{"s3": "▦", "sqs": "▤", "sns": "▲", "eb": "◇", "lambda": "λ"}[svc]
+		},
+		"addOne": func(n int64) int64 { return n + 1 },
 		// awsIcon renders an official AWS Architecture service icon (embedded).
 		"awsIcon": func(svc string) template.HTML {
 			return template.HTML(`<img class="aws-ic" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)
@@ -266,7 +306,7 @@ func templateFuncs(prefix string) template.FuncMap {
 				i++
 			}
 			if i == 0 {
-				return itoaSize(n) + " B"
+				return strconv.FormatInt(n, 10) + " B"
 			}
 			return trimFloat(f) + " " + string(u[i]) + "B"
 		},

@@ -8,7 +8,7 @@ func (c *Console) ebBuses(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, r, "eb_buses", map[string]any{"Buses": buses})
+	c.render(w, r, "eb_home", map[string]any{"List": buses, "Title": "EventBridge"})
 }
 
 func (c *Console) ebCreateBus(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +37,8 @@ func (c *Console) ebBus(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, r, "eb_bus", map[string]any{"Bus": bus, "Rules": rules, "BusARN": busARN(bus)})
+	buses, _ := c.be.ListBuses(r.Context())
+	c.render(w, r, "eb_bus", map[string]any{"Bus": bus, "Rules": rules, "BusARN": busARN(bus), "List": buses, "Title": bus + " · EventBridge"})
 }
 
 func (c *Console) ebRulesPartial(w http.ResponseWriter, r *http.Request, bus string) {
@@ -88,8 +89,9 @@ func (c *Console) ebRule(w http.ResponseWriter, r *http.Request) {
 	}
 	queues, _ := c.be.ListQueues(r.Context())
 	fns, _ := c.be.ListFunctions(r.Context())
+	buses, _ := c.be.ListBuses(r.Context())
 	c.render(w, r, "eb_rule", map[string]any{
-		"Bus": bus, "Rule": rule, "Queues": queues, "Functions": fns,
+		"Bus": bus, "Rule": rule, "Queues": queues, "Functions": fns, "List": buses, "Title": name + " · EventBridge",
 	})
 }
 

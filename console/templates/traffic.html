@@ -1,0 +1,42 @@
+{{define "traffic"}}{{template "shell_top" .}}
+  <section class="detail" style="border-left:0">
+    <div class="det-h">
+      <div class="det-title">Traffic
+        <div class="acts"><span class="chip"><span class="live"></span> live</span></div>
+      </div>
+      <div class="det-sub">Every AWS API call your app makes against this endpoint. The console's own requests are excluded.</div>
+    </div>
+    <div class="det-b">
+      {{if .Enabled}}{{template "traffic_feed" .}}{{else}}<div class="empty"><span class="ic-lg">{{icon "activity"}}</span><p>Traffic capture is off for this session.</p></div>{{end}}
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{define "traffic_feed"}}
+<div id="traffic-feed" data-live="{{.Prefix}}/traffic/feed" data-live-ms="1500" data-hash="{{.Hash}}"
+     x-data="{errOnly:false, svc:''}">
+  <div class="chips" style="margin-bottom:10px">
+    <label class="chip" style="cursor:pointer"><input type="checkbox" x-model="errOnly" style="margin-right:6px;vertical-align:-1px"> only errors</label>
+    <select class="chip" x-model="svc" style="cursor:pointer;background:hsl(var(--card))"><option value="">all services</option><option>s3</option><option>sqs</option><option>sns</option><option>ddb</option><option>lambda</option><option>kms</option><option>eb</option><option>sm</option><option>ssm</option><option>sts</option></select>
+  </div>
+  <div class="table-wrap" style="overflow:hidden">
+  {{if .Entries}}
+  {{range .Entries}}
+  <div x-data="{open:false}" x-show="(!errOnly || {{if .IsErr}}true{{else}}false{{end}}) && (svc==='' || svc==='{{.Service}}')">
+    <div class="tr-row {{if .IsErr}}errrow{{end}}" @click="open=!open">
+      <span class="ts">{{.Time}}</span>
+      <span class="svcb" style="color:hsl(var(--svc-{{.Service}}))">{{.Service}}</span>
+      <span class="act">{{.Action}}</span>
+      <span class="res" title="{{.Resource}}">{{.Resource}}</span>
+      <span class="st {{if .IsErr}}err{{else}}ok{{end}}">{{.Status}}</span>
+      <span class="dur">{{.Millis}}ms</span>
+    </div>
+    {{if .Body}}<div class="tr-detail" x-show="open" x-cloak><div style="font-size:10.5px;color:hsl(var(--muted-foreground));text-transform:uppercase;letter-spacing:.05em;font-weight:600">Request</div><pre>{{.Body}}</pre></div>{{end}}
+  </div>
+  {{end}}
+  {{else}}
+  <div class="empty" style="border:0"><span class="ic-lg">{{icon "activity"}}</span><p>No calls yet. Point an SDK or the CLI at <code class="mono">http://127.0.0.1:4566</code> and watch them stream in.</p></div>
+  {{end}}
+  </div>
+</div>
+{{end}}

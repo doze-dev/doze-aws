@@ -3,6 +3,7 @@ package console
 import (
 	"net/http"
 	"net/url"
+	"strconv"
 )
 
 // urlQuery escapes a value for a query-string component.
@@ -16,7 +17,7 @@ func (c *Console) kmsKeys(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, r, "kms_keys", map[string]any{"Keys": keys})
+	c.render(w, r, "kms_home", map[string]any{"List": keys, "Title": "KMS"})
 }
 
 func (c *Console) kmsCreateKey(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +37,8 @@ func (c *Console) kmsKey(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, r, "kms_key", map[string]any{"Key": key})
+	keys, _ := c.be.ListKeys(r.Context())
+	c.render(w, r, "kms_key", map[string]any{"Key": key, "List": keys, "Title": "KMS"})
 }
 
 func (c *Console) kmsKeyPartial(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +132,7 @@ func (c *Console) ssmParams(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, r, "ssm_params", map[string]any{"Params": params})
+	c.render(w, r, "ssm_home", map[string]any{"List": params, "Title": "Parameter Store"})
 }
 
 func (c *Console) ssmCreate(w http.ResponseWriter, r *http.Request) {
@@ -150,7 +152,8 @@ func (c *Console) ssmParam(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	hist, _ := c.be.ParameterHistory(r.Context(), name)
-	c.render(w, r, "ssm_param", map[string]any{"P": p, "History": hist})
+	all, _ := c.be.ListParameters(r.Context())
+	c.render(w, r, "ssm_param", map[string]any{"P": p, "History": hist, "List": all, "Sel": name, "Mode": tabOf(r, "view"), "Secure": p.Type == "SecureString", "Title": p.Name + " · Parameter Store"})
 }
 
 func (c *Console) ssmPut(w http.ResponseWriter, r *http.Request) {
@@ -187,7 +190,7 @@ func (c *Console) smSecrets(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, r, "sm_secrets", map[string]any{"Secrets": secrets})
+	c.render(w, r, "sm_home", map[string]any{"List": secrets, "Title": "Secrets Manager"})
 }
 
 func (c *Console) smCreate(w http.ResponseWriter, r *http.Request) {
@@ -206,7 +209,8 @@ func (c *Console) smSecret(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, r, "sm_secret", map[string]any{"S": s})
+	all, _ := c.be.ListSecrets(r.Context())
+	c.render(w, r, "sm_secret", map[string]any{"S": s, "List": all, "Sel": name, "Mode": tabOf(r, "view"), "Title": s.Name + " · Secrets Manager"})
 }
 
 func (c *Console) smPut(w http.ResponseWriter, r *http.Request) {
@@ -236,4 +240,39 @@ func (c *Console) smDelete(w http.ResponseWriter, r *http.Request) {
 		toast(w, "Secret scheduled for deletion (7-day recovery)")
 	}
 	w.Header().Set("HX-Redirect", c.prefix+"/sm")
+}
+
+// ssmDiff renders a line diff of a historical parameter version vs current.
+func (c *Console) ssmDiff(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	cur, err := c.be.GetParameter(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	hist, _ := c.be.ParameterHistory(r.Context(), name)
+	old := ""
+	want := r.URL.Query().Get("v")
+	for _, h := range hist {
+		if strconv.FormatInt(h.Version, 10) == want {
+			old = h.Value
+		}
+	}
+	c.partial(w, "value_diff", map[string]any{
+		"Diff": lineDiff(old, cur.Value), "OldLabel": "v" + want, "NewLabel": "current",
+	})
+}
+
+// smDiff renders a line diff of a secret version vs current.
+func (c *Console) smDiff(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	cur, err := c.be.GetSecret(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	old, _ := c.be.GetSecretVersion(r.Context(), name, r.URL.Query().Get("v"))
+	c.partial(w, "value_diff", map[string]any{
+		"Diff": lineDiff(old, cur.Value), "OldLabel": "previous", "NewLabel": "current",
+	})
 }

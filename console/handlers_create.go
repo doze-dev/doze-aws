@@ -6,26 +6,41 @@ import (
 	"net/url"
 )
 
-// createPage renders a full-page create form (AWS-console style — no modals).
-func (c *Console) createPage(tmpl string) http.HandlerFunc {
+// createPage renders a full-page create form inside the workbench shell, with
+// the service's own list pane still visible beside it.
+func (c *Console) createPage(svc, tmpl string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c.render(w, r, tmpl, map[string]any{})
+		data := map[string]any{"Svc": svc, "Title": "Create"}
+		switch svc {
+		case "s3":
+			data["List"] = c.s3List(r)
+		case "sqs":
+			data["List"] = c.sqsList(r)
+			data["Queues"] = c.sqsList(r) // DLQ picker
+		case "ddb":
+			data["List"], _ = c.be.ListTables(r.Context())
+		case "sns":
+			data["List"], _ = c.be.ListTopics(r.Context())
+		case "eb":
+			data["List"], _ = c.be.ListBuses(r.Context())
+		case "kms":
+			data["List"], _ = c.be.ListKeys(r.Context())
+		case "ssm":
+			data["List"], _ = c.be.ListParameters(r.Context())
+		case "sm":
+			data["List"], _ = c.be.ListSecrets(r.Context())
+		}
+		c.render(w, r, tmpl, data)
 	}
-}
-
-// sqsCreatePage needs the existing queues for the dead-letter-queue picker.
-func (c *Console) sqsCreatePage(w http.ResponseWriter, r *http.Request) {
-	queues, _ := c.be.ListQueues(r.Context())
-	c.render(w, r, "sqs_create", map[string]any{"Queues": queues})
 }
 
 // ebRuleCreatePage is scoped to a bus.
 func (c *Console) ebRuleCreatePage(w http.ResponseWriter, r *http.Request) {
-	c.render(w, r, "eb_rule_create", map[string]any{"Bus": r.PathValue("bus")})
+	buses, _ := c.be.ListBuses(r.Context())
+	c.render(w, r, "eb_rule_create", map[string]any{"Bus": r.PathValue("bus"), "Svc": "eb", "List": buses, "Title": "Create rule"})
 }
 
-// apiResources feeds the command palette: every resource across every service,
-// as {s: service, n: name, u: url} triples.
+// apiResources feeds the command palette.
 func (c *Console) apiResources(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	type res struct {

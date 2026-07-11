@@ -368,6 +368,23 @@ func (b *backend) GetSecret(ctx context.Context, id string) (*Secret, error) {
 	return s, nil
 }
 
+// GetSecretVersion fetches a specific version's value (for the Versions diff).
+func (b *backend) GetSecretVersion(ctx context.Context, id, versionID string) (string, error) {
+	in := map[string]any{"SecretId": id}
+	if versionID != "" {
+		in["VersionId"] = versionID
+	}
+	body, err := b.json11(ctx, "secretsmanager", "GetSecretValue", in)
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		SecretString string `json:"SecretString"`
+	}
+	json.Unmarshal(body, &out)
+	return out.SecretString, nil
+}
+
 func (b *backend) CreateSecret(ctx context.Context, name, value, description string) error {
 	in := map[string]any{"Name": name, "SecretString": value}
 	if description != "" {

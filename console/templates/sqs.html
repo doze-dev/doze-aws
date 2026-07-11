@@ -1,38 +1,101 @@
-{{define "sqs_queues"}}{{template "header" .}}
-<div class="ph">
-  <div>
-    <h1>{{awsIcon "sqs"}} SQS</h1>
-    <p class="ph-desc">Message queues on this endpoint.</p>
+{{define "sqs_lp"}}
+{{template "lp_head" dict "Svc" "sqs" "Label" "SQS" "NewURL" (printf "%s/sqs/create" .Prefix)}}
+  {{range .List}}
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sqs/{{.Name}}"
+     x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+    <span class="nm">{{.Name}}</span><span class="sb">{{.Available}}</span>
+  </a>
+  {{end}}
+{{template "lp_foot" .}}
+{{end}}
+
+{{define "sqs_home"}}{{template "shell_top" .}}
+  {{template "sqs_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  {{template "empty_detail" dict "Svc" "sqs" "Hint" "Select a queue, or create one to start passing messages."}}
+{{template "shell_bottom" .}}{{end}}
+
+{{define "sqs_queue"}}{{template "shell_top" .}}
+  {{template "sqs_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Queue)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "sqs"}} {{.Queue}}
+        <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/sqs/{{.Queue}}/delete-queue" hx-confirm="Delete queue “{{.Queue}}”?">{{icon "trash"}} Delete</button></div>
+      </div>
+      <div class="chips">
+        {{template "copychip" dict "Label" "arn" "Value" .ARN}}
+        {{template "copychip" dict "Label" "url" "Value" .URL}}
+      </div>
+      {{template "dtabs" dict "Cur" .Tab "Tabs" (list
+        (dict "Key" "messages" "Label" (printf "Messages · %d" .Available) "Icon" "inbox" "URL" (printf "%s/sqs/%s" .Prefix .Queue))
+        (dict "Key" "send" "Label" "Send" "Icon" "send" "URL" (printf "%s/sqs/%s?tab=send" .Prefix .Queue))
+        (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sqs/%s?tab=config" .Prefix .Queue)))}}
+    </div>
+    <div class="det-b">
+      {{if eq .Tab "send"}}
+        <div class="panel" style="max-width:640px"><div style="padding:16px">
+          <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/send" hx-target="#compose-status" hx-swap="innerHTML" @htmx:after-request="if($event.detail.successful)$el.reset()">
+            <div class="field"><label>Message body</label><textarea name="body" data-editor rows="8" placeholder='{"hello":"world"}' required></textarea></div>
+            <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center"><span id="compose-status" class="dim" style="font-size:12px"></span><button class="btn" type="submit">{{icon "send"}} Send message</button></div>
+          </form>
+        </div></div>
+      {{else if eq .Tab "config"}}
+        {{template "sqs_config" .}}
+      {{else}}
+        {{template "message_panel" .}}
+      {{end}}
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{define "message_panel"}}
+<div id="message-panel-wrap" data-live="{{.Prefix}}/sqs/{{.Queue}}/messages" data-live-ms="3000" data-hash="{{.Hash}}">
+  <div class="panel-head" style="margin-bottom:10px">
+    <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px">Messages <span class="{{if .Available}}badge{{else}}badge zero{{end}}">{{.Available}}</span> <span class="dim" style="font-weight:400;font-size:11.5px">· {{.InFlight}} in flight</span></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="peek" title="Peeked without consuming — refreshing never receives or hides messages">{{icon "eye"}} live peek</span>
+      <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sqs/{{.Queue}}/purge" hx-target="#message-panel-wrap" hx-swap="outerHTML" hx-confirm="Purge ALL messages from {{.Queue}}?">Purge</button>
+    </div>
   </div>
-  <div class="ph-actions">
-    <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter queues…" x-model="$store.filter.q" spellcheck="false"></label>
-    <a class="btn" href="{{.Prefix}}/sqs/create">{{icon "plus"}} Create queue</a>
-  </div>
+  {{if .Messages}}
+  <div class="msgs">{{range .Messages}}
+    <div class="msg" x-data="{open:false}">
+      <div class="msg-h" style="cursor:pointer" @click="open=!open"><code>{{.MessageID}}</code><span class="dim num" title="{{.SentAt}}">{{ago .SentAt}}</span></div>
+      <pre @click="open=!open" style="cursor:pointer">{{.Body}}</pre>
+    </div>
+  {{end}}</div>
+  {{else}}<div class="empty"><span class="ic-lg">{{icon "inbox"}}</span><p>No visible messages. Switch to <b>Send</b> to add one.</p></div>{{end}}
 </div>
+{{end}}
 
-{{template "queue_list" .}}
-{{template "footer" .}}{{end}}
-
-{{define "queue_list"}}
-<div id="queue-list">
-{{if .Queues}}
-<div class="table-wrap"><table class="tbl">
-  <thead><tr><th>Name</th><th class="right">Available</th><th class="right">In flight</th><th style="width:60px"></th></tr></thead>
-  <tbody>{{range .Queues}}
-    <tr x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
-      <td><a class="cell-name" href="{{$.Prefix}}/sqs/{{.Name}}">{{icon "inbox"}} {{.Name}}</a></td>
-      <td class="right"><span class="{{if .Available}}badge{{else}}badge zero{{end}}">{{.Available}}</span></td>
-      <td class="right dim num">{{.InFlight}}</td>
-      <td>
-        <div class="row-actions">
-          <button class="icon-btn sm danger" title="Delete queue"
-                  hx-post="{{$.Prefix}}/sqs/{{.Name}}/delete-queue" hx-target="#queue-list" hx-swap="outerHTML"
-                  hx-confirm="Delete queue “{{.Name}}”?">{{icon "trash"}}</button>
-        </div>
-      </td>
-    </tr>
-  {{end}}</tbody>
-</table></div>
-{{else}}<div class="empty">{{awsIcon "sqs"}}<p>No queues yet. Create one and start passing messages.</p><a class="btn" href="{{.Prefix}}/sqs/create">{{icon "plus"}} Create queue</a></div>{{end}}
+{{define "sqs_config"}}
+<div id="sqs-config" x-data="{edit:false, raw:false}" style="max-width:640px">
+  <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between;margin-top:0">
+    <span>Configuration</span>
+    <button class="icon-btn sm" :title="edit?'Cancel':'Edit settings'" @click="edit=!edit"><span x-show="!edit">{{icon "pencil"}}</span><span x-show="edit" x-cloak>{{icon "x"}}</span></button>
+  </div>
+  <div x-show="!edit">
+    <div class="table-wrap"><table class="tbl kv"><tbody>
+      <tr><td>Type</td><td>{{if .Config.FIFO}}<span class="badge type">FIFO</span>{{else}}Standard{{end}}</td></tr>
+      <tr><td>Visibility timeout</td><td>{{.Config.Visibility}} s</td></tr>
+      <tr><td>Message retention</td><td>{{.Config.Retention}} s</td></tr>
+      <tr><td>Delivery delay</td><td>{{if .Config.Delay}}{{.Config.Delay}}{{else}}0{{end}} s</td></tr>
+      {{if .Config.DLQ}}<tr><td>Dead-letter queue</td><td><a href="{{.Prefix}}/sqs/{{.Config.DLQ}}" style="color:hsl(var(--accent-blue))">{{.Config.DLQ}}</a> <span class="dim">after {{.Config.MaxReceive}} receives</span></td></tr>{{end}}
+      {{if .Config.Created}}<tr><td>Created</td><td title="{{.Config.Created}}">{{ago .Config.Created}}</td></tr>{{end}}
+    </tbody></table></div>
+  </div>
+  <div class="panel" x-show="edit" x-cloak>
+    <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/attributes" hx-target="#sqs-config" hx-swap="outerHTML">
+      <div class="edit-grid">
+        <div class="field"><label>Visibility <span class="dim">s</span></label><input class="input" name="visibility" type="number" min="0" max="43200" value="{{.Config.Visibility}}"></div>
+        <div class="field"><label>Retention <span class="dim">s</span></label><input class="input" name="retention" type="number" min="60" max="1209600" value="{{.Config.Retention}}"></div>
+        <div class="field"><label>Delay <span class="dim">s</span></label><input class="input" name="delay" type="number" min="0" max="900" value="{{if .Config.Delay}}{{.Config.Delay}}{{else}}0{{end}}"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 16px 12px"><button type="button" class="btn btn-outline btn-sm" @click="edit=false">Cancel</button><button type="submit" class="btn btn-sm">Save settings</button></div>
+    </form>
+  </div>
+  <div style="margin-top:10px">
+    <button class="btn btn-outline btn-sm" @click="raw=!raw" x-text="raw?'Hide raw attributes':'Show raw attributes'"></button>
+    <div class="table-wrap" x-show="raw" x-cloak style="margin-top:8px"><table class="tbl kv"><tbody>{{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}</tbody></table></div>
+  </div>
 </div>
 {{end}}

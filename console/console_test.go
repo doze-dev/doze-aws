@@ -141,17 +141,20 @@ func TestConsoleSQSFlow(t *testing.T) {
 	}
 }
 
-func TestConsoleOverview(t *testing.T) {
+func TestConsoleFlowsHome(t *testing.T) {
 	h := newConsole(t)
 	create(t, h, "/_console/s3/create", url.Values{"name": {"bkt"}})
 	create(t, h, "/_console/sqs/create", url.Values{"name": {"que"}})
+	create(t, h, "/_console/sns/create", url.Values{"name": {"topic"}})
+	req(t, h, "POST", "/_console/sns/topic/subscribe", url.Values{"protocol": {"sqs"}, "endpoint": {"arn:aws:sqs:us-east-1:000000000000:que"}})
 
 	rec := req(t, h, "GET", "/_console/", nil)
 	body := rec.Body.String()
-	// The overview is a service directory: every service card + the caller identity.
-	for _, want := range []string{"Overview", "DynamoDB", "EventBridge", "Secrets Manager", "Parameter Store", "000000000000"} {
+	// Home is the wiring map; the subscribed topic → queue is a real edge, and
+	// the unwired bucket is flagged.
+	for _, want := range []string{"Flows", "flow-canvas", "topic", "que", "unwired"} {
 		if !strings.Contains(body, want) {
-			t.Fatalf("overview missing %q: %d\n%s", want, rec.Code, body)
+			t.Fatalf("flows home missing %q: %d\n%s", want, rec.Code, body)
 		}
 	}
 	// htmx must be served locally (embedded), not from a CDN.
@@ -398,23 +401,100 @@ func TestConsoleEditing(t *testing.T) {
 		t.Fatalf("set attributes: %d\n%s", upd.Code, upd.Body)
 	}
 
-	// Secret editor is prefilled with the current value.
+	// The secret View masks values in place (keys stay visible).
 	create(t, h, "/_console/sm/create", url.Values{"name": {"editsec"}, "value": {`{"pw":"old-value"}`}})
-	page := req(t, h, "GET", "/_console/sm/secret?name=editsec", nil)
-	if !strings.Contains(page.Body.String(), `data-editor`) || !strings.Contains(page.Body.String(), "old-value") {
-		t.Fatalf("secret editor not prefilled:\n%s", page.Body)
+	view := req(t, h, "GET", "/_console/sm/secret?name=editsec", nil)
+	// Keys stay visible; the value is masked with dots (reveal is client-side).
+	if !strings.Contains(view.Body.String(), "ws-view") || !strings.Contains(view.Body.String(), "pw") || !strings.Contains(view.Body.String(), "\u2022\u2022") {
+		t.Fatalf("secret view should mask the value:\n%s", view.Body)
+	}
+	// Edit mode prefills the editor with the real value.
+	edit := req(t, h, "GET", "/_console/sm/secret?name=editsec&tab=edit", nil)
+	if !strings.Contains(edit.Body.String(), `data-editor`) || !strings.Contains(edit.Body.String(), "old-value") {
+		t.Fatalf("secret edit not prefilled:\n%s", edit.Body)
+	}
+	// Versions mode + diff against current.
+	req(t, h, "POST", "/_console/sm/put", url.Values{"name": {"editsec"}, "value": {`{"pw":"new-value"}`}})
+	diff := req(t, h, "GET", "/_console/sm/diff?name=editsec&v=", nil)
+	if !strings.Contains(diff.Body.String(), "diffbox") {
+		t.Fatalf("secret diff missing:\n%s", diff.Body)
 	}
 
-	// Param editor too.
+	// Param edit mode prefills too.
 	create(t, h, "/_console/ssm/create", url.Values{"name": {"/edit/me"}, "value": {"v1-value"}, "type": {"String"}})
-	ppage := req(t, h, "GET", "/_console/ssm/param?name=/edit/me", nil)
+	ppage := req(t, h, "GET", "/_console/ssm/param?name=/edit/me&tab=edit", nil)
 	if !strings.Contains(ppage.Body.String(), `data-editor`) || !strings.Contains(ppage.Body.String(), "v1-value") {
-		t.Fatalf("param editor not prefilled:\n%s", ppage.Body)
+		t.Fatalf("param edit not prefilled:\n%s", ppage.Body)
 	}
 
 	// CodeMirror ships embedded.
 	cm := req(t, h, "GET", "/_console/static/cm/codemirror.min.js", nil)
 	if cm.Code != 200 || cm.Body.Len() < 100000 {
 		t.Fatalf("codemirror not served: %d (%d bytes)", cm.Code, cm.Body.Len())
+	}
+}
+
+// TestFlowsGraph: the wiring graph reflects real edges built from the services.
+func TestFlowsGraph(t *testing.T) {
+	h := newConsole(t)
+	create(t, h, "/_console/sqs/create", url.Values{"name": {"jobs"}})
+	create(t, h, "/_console/sns/create", url.Values{"name": {"events"}})
+	req(t, h, "POST", "/_console/sns/events/subscribe", url.Values{"protocol": {"sqs"}, "endpoint": {"arn:aws:sqs:us-east-1:000000000000:jobs"}})
+	create(t, h, "/_console/s3/create", url.Values{"name": {"loosebkt"}})
+
+	// The polled data endpoint returns the canvas with the sub edge + unwired bucket.
+	rec := req(t, h, "GET", "/_console/flows.json", nil)
+	body := rec.Body.String()
+	if !strings.Contains(body, "events") || !strings.Contains(body, "jobs") || !strings.Contains(body, "sub") {
+		t.Fatalf("flows graph missing the SNS→SQS edge:\n%s", body)
+	}
+	if !strings.Contains(body, "unwired") {
+		t.Fatalf("flows graph should flag the unwired bucket:\n%s", body)
+	}
+	// Unchanged poll (matching hash) returns 204.
+	// (extract hash from data-hash attribute)
+	i := strings.Index(body, `data-hash="`)
+	if i >= 0 {
+		hash := body[i+len(`data-hash="`):]
+		hash = hash[:strings.IndexByte(hash, '"')]
+		again := req(t, h, "GET", "/_console/flows.json?h="+hash, nil)
+		if again.Code != 204 {
+			t.Fatalf("unchanged flows poll should 204, got %d", again.Code)
+		}
+	}
+}
+
+// TestTrafficRecorder: external calls are captured; console calls are not.
+func TestTrafficRecorder(t *testing.T) {
+	if testing.Short() {
+		t.Skip("boots a Stack")
+	}
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { stack.Close() })
+	rec := console.NewRecorder(stack.Handler())
+	c, err := console.New(console.Options{Gateway: stack.Handler(), Recorder: rec})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// An external SDK-style call flows through the recorder.
+	r := httptest.NewRequest("POST", "/", strings.NewReader("{}"))
+	r.Header.Set("X-Amz-Target", "AmazonSQS.ListQueues")
+	r.Header.Set("Content-Type", "application/x-amz-json-1.0")
+	rec.ServeHTTP(httptest.NewRecorder(), r)
+
+	feed := req(t, c, "GET", "/_console/traffic/feed", nil)
+	if !strings.Contains(feed.Body.String(), "ListQueues") || !strings.Contains(feed.Body.String(), "sqs") {
+		t.Fatalf("traffic feed missing the external call:\n%s", feed.Body)
+	}
+	// The console's own list call (via its in-process backend, bypassing rec)
+	// must NOT appear.
+	req(t, c, "GET", "/_console/sqs", nil)
+	feed2 := req(t, c, "GET", "/_console/traffic/feed", nil)
+	if strings.Count(feed2.Body.String(), "ListQueues") > 1 {
+		t.Fatalf("console's own calls leaked into the traffic tail")
 	}
 }

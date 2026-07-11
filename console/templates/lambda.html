@@ -1,150 +1,67 @@
-{{define "lambda_fns"}}{{template "header" .}}
-<div class="ph">
-  <div>
-    <h1>{{awsIcon "lambda"}} Lambda</h1>
-    <p class="ph-desc">Functions running as real local processes — no containers.</p>
-  </div>
-  <div class="ph-actions">
-    <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter functions…" x-model="$store.filter.q" spellcheck="false"></label>
-  </div>
-</div>
-
-{{if .Functions}}
-<div class="table-wrap"><table class="tbl">
-  <thead><tr><th>Name</th><th>Runtime</th><th class="right">Timeout</th><th class="right">Memory</th><th class="right">Modified</th></tr></thead>
-  <tbody>{{range .Functions}}
-    <tr x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
-      <td><a class="cell-name" href="{{$.Prefix}}/lambda/{{.Name}}">{{icon "zap"}} {{.Name}}</a></td>
-      <td><span class="badge type">{{.Runtime}}</span></td>
-      <td class="right dim num">{{.Timeout}}s</td>
-      <td class="right dim num">{{.MemorySize}} MB</td>
-      <td class="right dim num">{{.Modified}}</td>
-    </tr>
-  {{end}}</tbody>
-</table></div>
-{{else}}
-<div class="empty">
-  <span class="ic-lg">{{icon "zap"}}</span>
-  <p>No functions yet. Deploy one via the SDK/CLI — the <code class="mono">_local_</code> code extension points at a directory on disk:</p>
-  <code class="mono dim" style="font-size:11.5px">aws lambda create-function --function-name hello --runtime provided.al2 --handler bootstrap --role arn:aws:iam::000000000000:role/r --code S3Bucket=_local_,S3Key=/path/to/build</code>
-</div>
+{{define "lambda_lp"}}
+{{template "lp_head" dict "Svc" "lambda" "Label" "Lambda" "NewURL" ""}}
+  {{range .List}}
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/lambda/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{.Runtime}}</span></a>
+  {{end}}
+{{template "lp_foot" .}}
 {{end}}
-{{template "footer" .}}{{end}}
 
-{{define "lambda_fn"}}{{template "header" .}}
-<nav class="bc">
-  <a href="{{.Prefix}}/lambda">{{icon "zap"}} Lambda</a>{{icon "chevron"}}<span>{{.Fn.Name}}</span>
-</nav>
-<div class="idband">
-  <div class="ph">
-    <div>
-      <h1>{{awsIcon "lambda"}} {{.Fn.Name}} <span class="badge type">{{.Fn.Runtime}}</span></h1>
-      <div class="chips" style="margin-top:8px">
-        {{template "copychip" dict "Label" "arn" "Value" .Fn.ARN}}
+{{define "lambda_home"}}{{template "shell_top" .}}
+  {{template "lambda_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  <section class="detail"><div class="empty" style="border:0;margin-top:10vh">{{awsIcon "lambda"}}
+    <p>Functions are deployed via the SDK/CLI — the <code class="mono">_local_</code> extension points at a directory on disk.</p>
+    <code class="mono dim" style="font-size:11px;max-width:560px">aws lambda create-function --function-name hello --runtime provided.al2 --handler bootstrap --role arn:aws:iam::000000000000:role/r --code S3Bucket=_local_,S3Key=/path/to/build</code>
+  </div></section>
+{{template "shell_bottom" .}}{{end}}
+
+{{define "lambda_fn"}}{{template "shell_top" .}}
+  {{template "lambda_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Fn.Name)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "lambda"}} {{.Fn.Name}} <span class="badge type">{{.Fn.Runtime}}</span>
+        <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/delete-fn" hx-confirm="Delete function “{{.Fn.Name}}”?">{{icon "trash"}} Delete</button></div>
       </div>
+      <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .Fn.ARN}}</div>
+      {{template "dtabs" dict "Cur" .Tab "Tabs" (list
+        (dict "Key" "invoke" "Label" "Test" "Icon" "play" "URL" (printf "%s/lambda/%s" .Prefix .Fn.Name))
+        (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/lambda/%s?tab=config" .Prefix .Fn.Name))
+        (dict "Key" "triggers" "Label" "Triggers" "Icon" "arrow-right" "URL" (printf "%s/lambda/%s?tab=triggers" .Prefix .Fn.Name)))}}
     </div>
-    <div class="ph-actions">
-      <button class="btn btn-outline danger" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/delete-fn"
-              hx-confirm="Delete function “{{.Fn.Name}}”?">{{icon "trash"}} Delete</button>
+    <div class="det-b">
+      {{if eq .Tab "config"}}
+      <div class="split">
+        <div><div class="sec-title" style="margin-top:0">General</div><div class="table-wrap"><table class="tbl kv"><tbody>
+          <tr><td>Runtime</td><td>{{.Fn.Runtime}}</td></tr><tr><td>Handler</td><td>{{.Fn.Handler}}</td></tr><tr><td>Timeout</td><td>{{.Fn.Timeout}} s</td></tr><tr><td>Memory</td><td>{{.Fn.MemorySize}} MB</td></tr><tr><td>Version</td><td>{{.Fn.Version}}</td></tr><tr><td>Code size</td><td>{{humanSize .Fn.CodeSize}}</td></tr>{{if .Fn.DLQ}}<tr><td>Dead-letter queue</td><td>{{template "copychip" dict "Value" .Fn.DLQ}}</td></tr>{{end}}
+        </tbody></table></div></div>
+        <div><div class="sec-title" style="margin-top:0">Environment variables</div>{{if .Fn.Env}}<div class="table-wrap"><table class="tbl kv"><tbody>{{range $k, $v := .Fn.Env}}<tr><td>{{$k}}</td><td class="trunc" title="{{$v}}">{{$v}}</td></tr>{{end}}</tbody></table></div>{{else}}<p class="mini-note">No environment variables.</p>{{end}}</div>
+      </div>
+      {{else if eq .Tab "triggers"}}
+      {{template "lambda_triggers" .}}
+      {{else}}
+      <div class="split">
+        <div class="panel"><div class="panel-h"><h2>{{icon "play"}} Test event</h2></div><div style="padding:14px 16px">
+          <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/invoke" hx-target="#invoke-result" hx-swap="innerHTML" hx-indicator="#invoke-spin">
+            <textarea name="payload" data-editor="json" rows="8" placeholder='{"key":"value"}'>{"hello": "world"}</textarea>
+            <div style="margin-top:10px;display:flex;justify-content:flex-end;align-items:center;gap:10px"><span id="invoke-spin" class="dim htmx-indicator" style="font-size:12px">Running…</span><button class="btn" type="submit">{{icon "play"}} Invoke</button></div>
+          </form>
+          <p class="mini-note">Synchronous invoke against the real handler process, with tail logs.</p>
+        </div></div>
+        <div id="invoke-result"><div class="empty"><span class="ic-lg">{{icon "terminal"}}</span><p>The response, duration, and logs land here.</p></div></div>
+      </div>
+      {{end}}
     </div>
-  </div>
-</div>
-
-<div class="tabbar">
-  <a href="{{.Prefix}}/lambda/{{.Fn.Name}}" class="{{if eq .Tab "invoke"}}on{{end}}">{{icon "play"}} Test</a>
-  <a href="{{.Prefix}}/lambda/{{.Fn.Name}}?tab=config" class="{{if eq .Tab "config"}}on{{end}}">{{icon "settings"}} Configuration</a>
-  <a href="{{.Prefix}}/lambda/{{.Fn.Name}}?tab=triggers" class="{{if eq .Tab "triggers"}}on{{end}}">{{icon "arrow-right"}} Triggers</a>
-</div>
-
-{{if eq .Tab "config"}}
-<div class="split">
-  <div>
-    <div class="sec-title" style="margin-top:0">General</div>
-    <div class="table-wrap"><table class="tbl kv"><tbody>
-      <tr><td>Runtime</td><td>{{.Fn.Runtime}}</td></tr>
-      <tr><td>Handler</td><td>{{.Fn.Handler}}</td></tr>
-      <tr><td>Timeout</td><td>{{.Fn.Timeout}} s</td></tr>
-      <tr><td>Memory</td><td>{{.Fn.MemorySize}} MB</td></tr>
-      <tr><td>Version</td><td>{{.Fn.Version}}</td></tr>
-      <tr><td>Code size</td><td>{{humanSize .Fn.CodeSize}}</td></tr>
-      {{if .Fn.DLQ}}<tr><td>Dead-letter queue</td><td>{{template "copychip" dict "Value" .Fn.DLQ}}</td></tr>{{end}}
-    </tbody></table></div>
-  </div>
-  <div>
-    <div class="sec-title" style="margin-top:0">Environment variables</div>
-    {{if .Fn.Env}}
-    <div class="table-wrap"><table class="tbl kv"><tbody>
-      {{range $k, $v := .Fn.Env}}<tr><td>{{$k}}</td><td class="trunc" title="{{$v}}">{{$v}}</td></tr>{{end}}
-    </tbody></table></div>
-    {{else}}<p class="mini-note">No environment variables.</p>{{end}}
-  </div>
-</div>
-
-{{else if eq .Tab "triggers"}}
-{{template "lambda_triggers" .}}
-
-{{else}}
-<div class="split">
-  <div class="panel">
-    <div class="panel-h"><h2>{{icon "play"}} Test event</h2></div>
-    <div style="padding:14px 16px">
-      <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/invoke" hx-target="#invoke-result" hx-swap="innerHTML"
-            hx-indicator="#invoke-spin">
-        <textarea name="payload" data-editor="json" rows="8" spellcheck="false" placeholder='{"key": "value"}'>{"hello": "world"}</textarea>
-        <div style="margin-top:10px;display:flex;justify-content:flex-end;align-items:center;gap:10px">
-          <span id="invoke-spin" class="dim htmx-indicator" style="font-size:12px">Running…</span>
-          <button class="btn" type="submit">{{icon "play"}} Invoke</button>
-        </div>
-      </form>
-      <p class="mini-note">Synchronous invoke against the real handler process, with tail logs.</p>
-    </div>
-  </div>
-  <div id="invoke-result">
-    <div class="empty"><span class="ic-lg">{{icon "terminal"}}</span><p>The response, duration, and logs land here.</p></div>
-  </div>
-</div>
-{{end}}
-{{template "footer" .}}{{end}}
+  </section>
+{{template "shell_bottom" .}}{{end}}
 
 {{define "lambda_result"}}
-<div class="code-out" style="margin-bottom:10px">
-  <div class="co-h">
-    <span>{{if .Res.FnError}}<span class="co-err">✗ function error</span>{{else}}<span class="co-ok">✓ succeeded</span>{{end}} · {{.Res.Duration}}</span>
-    <button class="copy-btn" data-copy="{{.Res.Payload}}">{{icon "copy"}}</button>
-  </div>
-  <pre>{{.Res.Payload}}</pre>
-</div>
-{{if .Res.Logs}}
-<div class="code-out">
-  <div class="co-h"><span>logs (tail)</span></div>
-  <pre>{{.Res.Logs}}</pre>
-</div>
-{{end}}
+<div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>{{if .Res.FnError}}<span class="co-err">✗ function error</span>{{else}}<span class="co-ok">✓ succeeded</span>{{end}} · {{.Res.Duration}}</span><button class="copy-btn" data-copy="{{.Res.Payload}}">{{icon "copy"}}</button></div><pre>{{.Res.Payload}}</pre></div>
+{{if .Res.Logs}}<div class="code-out"><div class="co-h"><span>logs (tail)</span></div><pre>{{.Res.Logs}}</pre></div>{{end}}
 {{end}}
 
 {{define "lambda_triggers"}}
-<div id="lambda-triggers">
-  <div class="panel">
-    <div class="panel-h"><h2>{{icon "arrow-right"}} Event source mappings <span class="badge">{{len .Fn.Mappings}}</span></h2></div>
-    {{if .Fn.Mappings}}
-    <table class="tbl">
-      <thead><tr><th>Source</th><th class="right">Batch size</th><th class="right">State</th><th style="width:36px"></th></tr></thead>
-      <tbody>{{range .Fn.Mappings}}
-        <tr>
-          <td class="mono trunc dim" style="font-size:11.5px;max-width:320px" title="{{.SourceARN}}">{{.SourceARN}}</td>
-          <td class="right num">{{.BatchSize}}</td>
-          <td class="right"><span class="badge {{if eq .State "Enabled"}}state-on{{else}}state-off{{end}}">{{.State}}</span></td>
-          <td>
-            <div class="row-actions">
-              <button class="icon-btn sm danger" title="Remove trigger"
-                      hx-post="{{$.Prefix}}/lambda/{{$.Fn.Name}}/delete-mapping" hx-vals='{"uuid":"{{.UUID}}"}'
-                      hx-target="#lambda-triggers" hx-swap="outerHTML" hx-confirm="Remove this trigger?">{{icon "trash"}}</button>
-            </div>
-          </td>
-        </tr>
-      {{end}}</tbody>
-    </table>
-    {{else}}<div class="empty" style="border:0"><p>No triggers. Create an event source mapping via the SDK, or subscribe this function to SNS/EventBridge.</p></div>{{end}}
-  </div>
-</div>
+<div id="lambda-triggers"><div class="panel"><div class="panel-h"><h2>{{icon "arrow-right"}} Event source mappings <span class="badge">{{len .Fn.Mappings}}</span></h2></div>
+  {{if .Fn.Mappings}}<table class="tbl"><thead><tr><th>Source</th><th class="right">Batch size</th><th class="right">State</th><th style="width:36px"></th></tr></thead><tbody>{{range .Fn.Mappings}}
+    <tr><td class="mono trunc dim" style="font-size:11.5px;max-width:320px" title="{{.SourceARN}}">{{.SourceARN}}</td><td class="right num">{{.BatchSize}}</td><td class="right"><span class="badge {{if eq .State "Enabled"}}state-on{{else}}state-off{{end}}">{{.State}}</span></td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove trigger" hx-post="{{$.Prefix}}/lambda/{{$.Fn.Name}}/delete-mapping" hx-vals='{"uuid":"{{.UUID}}"}' hx-target="#lambda-triggers" hx-swap="outerHTML" hx-confirm="Remove this trigger?">{{icon "trash"}}</button></div></td></tr>
+  {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No triggers. Subscribe this function to SNS/EventBridge, or add an event source mapping via the SDK.</p></div>{{end}}
+</div></div>
 {{end}}

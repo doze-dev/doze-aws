@@ -1,10 +1,13 @@
-{{define "header"}}<!-- header/footer wrap every page -->
+{{define "shell_top"}}<!-- the workbench shell: topstrip · rail · workspace(list+detail) -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>doze-aws console</title>
+<title>{{if .Title}}{{.Title}} — {{end}}doze-aws</title>
+<link rel="icon" type="image/svg+xml" href="{{.Prefix}}/static/favicon.svg">
 <link rel="stylesheet" href="{{.Prefix}}/static/app.css">
 <script>(function(){try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}})();</script>
+<script>document.addEventListener("alpine:init",function(){window.Alpine.store("filter",{q:""});});</script>
 <script src="{{.Prefix}}/static/htmx.min.js"></script>
+<script src="{{.Prefix}}/static/idiomorph-ext.min.js"></script>
 <script defer src="{{.Prefix}}/static/alpine.min.js"></script>
 <link rel="stylesheet" href="{{.Prefix}}/static/cm/codemirror.min.css">
 <script src="{{.Prefix}}/static/cm/codemirror.min.js"></script>
@@ -13,182 +16,87 @@
 <script src="{{.Prefix}}/static/cm/matchbrackets.min.js"></script>
 <script src="{{.Prefix}}/static/cm/closebrackets.min.js"></script>
 <script src="{{.Prefix}}/static/editor.js"></script>
-<script>
-  // Let Alpine initialise nodes htmx swaps in.
-  document.addEventListener("htmx:afterSwap", function(e){ if(window.Alpine) window.Alpine.initTree(e.detail.target); });
-  // The list-page filter inputs bind to this store; without it every
-  // x-show="$store.filter.q…" row evaluates falsy and tables render empty.
-  document.addEventListener("alpine:init", function(){ window.Alpine.store("filter", { q: "" }); });
-  // Delegated copy-to-clipboard for every [data-copy] element.
-  document.addEventListener("click", function(e){
-    var el = e.target.closest("[data-copy]");
-    if (!el) return;
-    navigator.clipboard.writeText(el.getAttribute("data-copy")).then(function(){
-      window.dispatchEvent(new CustomEvent("toast", { detail: "Copied" }));
-    });
-  });
-  // Surface failed htmx requests (htmx doesn't swap 4xx/5xx) as error toasts,
-  // with the AWS error message extracted from the response.
-  document.addEventListener("htmx:responseError", function(e){
-    var raw = (e.detail.xhr.responseText || "Request failed").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-    var m = raw.match(/<Message>([^<]+)|"message"\s*:\s*"([^"]+)"/i);
-    var msg = (m && (m[1] || m[2])) || raw;
-    if (msg.length > 140) msg = msg.slice(0, 140) + "…";
-    window.dispatchEvent(new CustomEvent("toast-error", { detail: msg }));
-  });
-</script>
+<script src="{{.Prefix}}/static/shell.js" defer></script>
 
-<div class="app" x-data="ui('{{.Prefix}}')" x-cloak
-     @toast.window="pushToast($event.detail.value ?? $event.detail, 'ok')"
-     @toast-error.window="pushToast($event.detail.value ?? $event.detail, 'err')"
-     @keydown.window="paletteKeys($event)">
+<div class="app">
   <header class="topbar">
-    <div class="brand"><span class="dot"></span> doze-aws <span class="sub">console</span></div>
-    <button class="tb-palette" @click="openPalette()">
-      {{icon "search"}} <span>Jump to any resource…</span> <span class="kbd">⌘K</span>
-    </button>
+    <div class="brand"><img src="{{.Prefix}}/static/favicon.svg" alt="" style="width:17px;height:17px"> doze-aws <span class="sub">console</span></div>
+    <button class="tb-palette" id="palette-open">{{icon "search"}} <span>Jump or act…</span> <span class="kbd">⌘K</span></button>
     <div class="tb-spacer"></div>
     <div class="tb-right">
       <span class="chip mono"><span class="live"></span>127.0.0.1:4566</span>
       <span class="chip">us-east-1</span>
-      <button class="icon-btn" @click="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
-        <span x-show="!dark">{{icon "moon"}}</span><span x-show="dark">{{icon "sun"}}</span>
-      </button>
+      <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">{{icon "moon"}}</button>
     </div>
   </header>
 
   <div class="body">
-    <aside class="side">
-      <div class="side-label">Platform</div>
-      <nav>
-        <a href="{{.Prefix}}/" class="nav-item {{if eq .Page "overview"}}on{{end}}"><span class="svc svc-home">{{icon "dashboard"}}</span> Overview</a>
-      </nav>
-      <div class="side-label">Storage &amp; database</div>
-      <nav>
-        <a href="{{.Prefix}}/s3" class="nav-item {{if hasPrefix .Page "s3"}}on{{end}}">{{awsIcon "s3"}} S3</a>
-        <a href="{{.Prefix}}/ddb" class="nav-item {{if hasPrefix .Page "ddb"}}on{{end}}">{{awsIcon "ddb"}} DynamoDB</a>
-      </nav>
-      <div class="side-label">Compute</div>
-      <nav>
-        <a href="{{.Prefix}}/lambda" class="nav-item {{if hasPrefix .Page "lambda"}}on{{end}}">{{awsIcon "lambda"}} Lambda</a>
-      </nav>
-      <div class="side-label">Application integration</div>
-      <nav>
-        <a href="{{.Prefix}}/sqs" class="nav-item {{if hasPrefix .Page "sqs"}}on{{end}}">{{awsIcon "sqs"}} SQS</a>
-        <a href="{{.Prefix}}/sns" class="nav-item {{if hasPrefix .Page "sns"}}on{{end}}">{{awsIcon "sns"}} SNS</a>
-        <a href="{{.Prefix}}/eb" class="nav-item {{if hasPrefix .Page "eb"}}on{{end}}">{{awsIcon "eb"}} EventBridge</a>
-      </nav>
-      <div class="side-label">Security &amp; config</div>
-      <nav>
-        <a href="{{.Prefix}}/kms" class="nav-item {{if hasPrefix .Page "kms"}}on{{end}}">{{awsIcon "kms"}} KMS</a>
-        <a href="{{.Prefix}}/sm" class="nav-item {{if hasPrefix .Page "sm"}}on{{end}}">{{awsIcon "sm"}} Secrets Manager</a>
-        <a href="{{.Prefix}}/ssm" class="nav-item {{if hasPrefix .Page "ssm"}}on{{end}}">{{awsIcon "ssm"}} Parameter Store</a>
-      </nav>
-      <div class="side-foot">{{icon "activity"}} local · v0.1.0</div>
-    </aside>
+    <nav class="rail" hx-boost="true" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML">
+      <a href="{{.Prefix}}/" class="ri {{if eq .Page "flows"}}on{{end}}" title="Flows — the wiring map (home)">{{icon "route"}}</a>
+      <a href="{{.Prefix}}/traffic" class="ri {{if eq .Page "traffic"}}on{{end}}" title="Traffic — live API calls">{{icon "activity"}}</a>
+      <div class="rail-sep"></div>
+      <a href="{{.Prefix}}/s3" class="ri {{if hasPrefix .Page "s3"}}on{{end}}" title="S3"><span class="svc svc-s3">{{icon "hard-drive"}}</span></a>
+      <a href="{{.Prefix}}/ddb" class="ri {{if hasPrefix .Page "ddb"}}on{{end}}" title="DynamoDB"><span class="svc svc-ddb">{{icon "database"}}</span></a>
+      <a href="{{.Prefix}}/lambda" class="ri {{if hasPrefix .Page "lambda"}}on{{end}}" title="Lambda"><span class="svc svc-lambda">{{icon "zap"}}</span></a>
+      <a href="{{.Prefix}}/sqs" class="ri {{if hasPrefix .Page "sqs"}}on{{end}}" title="SQS"><span class="svc svc-sqs">{{icon "inbox"}}</span></a>
+      <a href="{{.Prefix}}/sns" class="ri {{if hasPrefix .Page "sns"}}on{{end}}" title="SNS"><span class="svc svc-sns">{{icon "share"}}</span></a>
+      <a href="{{.Prefix}}/eb" class="ri {{if hasPrefix .Page "eb"}}on{{end}}" title="EventBridge"><span class="svc svc-eb">{{icon "route"}}</span></a>
+      <a href="{{.Prefix}}/kms" class="ri {{if hasPrefix .Page "kms"}}on{{end}}" title="KMS"><span class="svc svc-kms">{{icon "key"}}</span></a>
+      <a href="{{.Prefix}}/sm" class="ri {{if and (hasPrefix .Page "sm") (not (hasPrefix .Page "sms"))}}on{{end}}" title="Secrets Manager"><span class="svc svc-sm">{{icon "lock"}}</span></a>
+      <a href="{{.Prefix}}/ssm" class="ri {{if hasPrefix .Page "ssm"}}on{{end}}" title="Parameter Store"><span class="svc svc-ssm">{{icon "sliders"}}</span></a>
+    </nav>
 
-    <main class="main">
+    <div id="workspace" class="workspace" hx-boost="true" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML show:none">
       {{if .Flash}}
-      <div class="flash anim" x-data="{show:true}" x-show="show">
+      <div class="flash anim" id="flashbar">
         {{icon "check"}} <span>{{.Flash}}</span>
-        <button class="icon-btn sm" style="margin-left:auto" @click="show=false">{{icon "x"}}</button>
+        <button class="icon-btn sm" style="margin-left:auto" onclick="this.closest('.flash').remove()">{{icon "x"}}</button>
       </div>
       {{end}}
+      <div class="panes">
 {{end}}
 
-{{define "footer"}}
-    </main>
+{{define "shell_bottom"}}
+      </div><!-- /panes -->
+    </div><!-- /workspace -->
   </div>
 
-  <!-- command palette -->
-  <div class="overlay palette-overlay" x-show="pal.open" x-cloak @click.self="pal.open=false" @keydown.escape.window="pal.open=false">
+  <!-- command palette (vanilla — survives every swap since it's outside #workspace) -->
+  <div class="overlay palette-overlay" id="palette" hidden>
     <div class="palette anim">
       <div class="pal-input">
         {{icon "search"}}
-        <input x-ref="palq" x-model="pal.q" @input="pal.sel=0"
-               @keydown.arrow-down.prevent="pal.sel=Math.min(pal.sel+1, palFiltered().length-1)"
-               @keydown.arrow-up.prevent="pal.sel=Math.max(pal.sel-1, 0)"
-               @keydown.enter.prevent="palGo()"
-               placeholder="Search buckets, queues, tables, functions, keys…" spellcheck="false">
+        <input id="pal-q" placeholder="Search resources, services, actions…" spellcheck="false" autocomplete="off">
         <span class="kbd">esc</span>
       </div>
-      <div class="pal-list">
-        <template x-for="(it, i) in palFiltered()" :key="it.u + it.n">
-          <a class="pal-item" :class="{sel: i === pal.sel}" :href="it.u" @mouseenter="pal.sel=i">
-            <img class="aws-ic sm" :src="prefix + '/static/aws/' + it.s + '.svg'" x-show="it.s !== 'home'">
-            <span class="pal-name" x-text="it.n"></span>
-            <span class="pal-kind" x-text="it.k"></span>
-          </a>
-        </template>
-        <div class="pal-empty" x-show="pal.items.length && !palFiltered().length">Nothing matches “<span x-text="pal.q"></span>”</div>
-        <div class="pal-empty" x-show="!pal.items.length">Loading resources…</div>
+      <div class="pal-list" id="pal-list"></div>
+    </div>
+  </div>
+
+  <!-- styled confirm (replaces native hx-confirm dialogs) -->
+  <div class="overlay" id="confirm" hidden>
+    <div class="dialog anim" role="alertdialog" aria-modal="true">
+      <div class="dialog-h"><h3 id="confirm-title">Are you sure?</h3><p id="confirm-msg"></p></div>
+      <div class="dialog-f">
+        <button type="button" class="btn btn-outline" id="confirm-no">Cancel</button>
+        <button type="button" class="btn btn-destructive" id="confirm-yes">Confirm</button>
       </div>
     </div>
   </div>
 
-  <div class="toasts">
-    <template x-for="t in toasts" :key="t.id">
-      <div class="toast anim" :class="t.kind">
-        <span x-show="t.kind==='ok'">{{icon "check"}}</span><span x-show="t.kind==='err'">{{icon "alert"}}</span>
-        <span x-text="t.msg"></span><span class="tclose" @click="dismiss(t.id)">{{icon "x"}}</span>
-      </div>
-    </template>
-  </div>
+  <div class="toasts" id="toasts"></div>
 </div>
-
-<script>
-  function ui(prefix) {
-    return {
-      prefix: prefix,
-      toasts: [], seq: 0,
-      pal: { open: false, q: "", items: [], sel: 0 },
-      dark: (document.documentElement.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark",
-      pushToast(msg, kind) { const id = ++this.seq; this.toasts.push({ id, msg, kind: kind || "ok" }); setTimeout(() => this.dismiss(id), kind === "err" ? 6000 : 3200); },
-      dismiss(id) { this.toasts = this.toasts.filter(t => t.id !== id); },
-      toggleTheme() {
-        const next = this.dark ? "light" : "dark";
-        document.documentElement.setAttribute("data-theme", next);
-        try { localStorage.setItem("theme", next); } catch (e) {}
-        this.dark = !this.dark;
-      },
-      paletteKeys(e) {
-        if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); this.openPalette(); }
-        else if (e.key === "/" && !/(INPUT|TEXTAREA|SELECT)/.test(document.activeElement.tagName)) { e.preventDefault(); this.openPalette(); }
-      },
-      openPalette() {
-        this.pal.open = true; this.pal.q = ""; this.pal.sel = 0;
-        this.$nextTick(() => this.$refs.palq.focus());
-        fetch(this.prefix + "/api/resources").then(r => r.json()).then(rs => {
-          const items = (rs || []).map(r => ({ ...r, k: this.kindOf(r.s) }));
-          // Service pages and create actions round out the index.
-          const nav = [
-            ["s3","S3","/s3"],["ddb","DynamoDB","/ddb"],["lambda","Lambda","/lambda"],["sqs","SQS","/sqs"],
-            ["sns","SNS","/sns"],["eb","EventBridge","/eb"],["kms","KMS","/kms"],["sm","Secrets Manager","/sm"],["ssm","Parameter Store","/ssm"],
-          ].map(([s,n,u]) => ({ s, n, u: this.prefix + u, k: "service" }));
-          const acts = [
-            ["s3","Create bucket","/s3/create"],["sqs","Create queue","/sqs/create"],["ddb","Create table","/ddb/create"],
-            ["sns","Create topic","/sns/create"],["eb","Create event bus","/eb/create-bus"],["kms","Create key","/kms/create"],
-            ["ssm","Create parameter","/ssm/create"],["sm","Store secret","/sm/create"],
-          ].map(([s,n,u]) => ({ s, n, u: this.prefix + u, k: "action" }));
-          this.pal.items = [...items, ...nav, ...acts];
-        });
-      },
-      kindOf(s) {
-        return { s3: "bucket", sqs: "queue", ddb: "table", sns: "topic", eb: "bus / rule",
-                 lambda: "function", kms: "key", ssm: "parameter", sm: "secret" }[s] || s;
-      },
-      palFiltered() {
-        const q = this.pal.q.toLowerCase().trim();
-        const all = this.pal.items;
-        if (!q) return all.slice(0, 10);
-        return all.filter(it => (it.n + " " + it.k).toLowerCase().includes(q)).slice(0, 10);
-      },
-      palGo() { const it = this.palFiltered()[this.pal.sel]; if (it) location.href = it.u; },
-    };
-  }
-</script>
 {{end}}
 
 {{define "copychip"}}<span class="copychip">{{if .Label}}<span class="cc-label">{{.Label}}</span>{{end}}<span class="cc-val" title="{{.Value}}">{{.Value}}</span><button type="button" class="copy-btn" data-copy="{{.Value}}" title="Copy">{{icon "copy"}}</button></span>{{end}}
 
 {{define "kvcopy"}}<span class="kv-copy"><span class="trunc" title="{{.}}">{{.}}</span><button type="button" class="copy-btn" data-copy="{{.}}" title="Copy">{{icon "copy"}}</button></span>{{end}}
+
+{{define "empty_detail"}}
+<section class="detail">
+  <div class="empty" style="border:0;margin-top:12vh">
+    {{awsIcon .Svc}}
+    <p>{{.Hint}}</p>
+  </div>
+</section>
+{{end}}

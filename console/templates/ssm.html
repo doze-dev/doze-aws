@@ -1,111 +1,41 @@
-{{define "ssm_params"}}{{template "header" .}}
-<div class="ph">
-  <div>
-    <h1>{{awsIcon "ssm"}} Parameter Store</h1>
-    <p class="ph-desc">Configuration parameters, versioned, with SecureString encryption.</p>
-  </div>
-  <div class="ph-actions">
-    <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter by path…" x-model="$store.filter.q" spellcheck="false"></label>
-    <a class="btn" href="{{.Prefix}}/ssm/create">{{icon "plus"}} Create parameter</a>
-  </div>
-</div>
-
-{{template "ssm_param_list" .}}
-{{template "footer" .}}{{end}}
-
-{{define "ssm_param_list"}}
-<div id="ssm-param-list">
-{{if .Params}}
-<div class="table-wrap"><table class="tbl">
-  <thead><tr><th>Name</th><th>Type</th><th class="right">Version</th><th class="right">Modified</th></tr></thead>
-  <tbody>{{range .Params}}
-    <tr x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
-      <td><a class="cell-name mono" style="font-size:12px" href="{{$.Prefix}}/ssm/param?name={{.Name}}">{{icon "sliders"}} {{.Name}}</a></td>
-      <td><span class="badge type {{if eq .Type "SecureString"}}state-warn{{end}}">{{.Type}}</span></td>
-      <td class="right num">v{{.Version}}</td>
-      <td class="right dim num">{{.Modified}}</td>
-    </tr>
-  {{end}}</tbody>
-</table></div>
-{{else}}<div class="empty">{{awsIcon "ssm"}}<p>No parameters yet. Give your app its first piece of config.</p><a class="btn" href="{{.Prefix}}/ssm/create">{{icon "plus"}} Create parameter</a></div>{{end}}
-</div>
+{{define "ssm_lp"}}
+{{template "lp_head" dict "Svc" "ssm" "Label" "Parameter Store" "NewURL" (printf "%s/ssm/create" .Prefix)}}
+  {{range .List}}
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/ssm/param?name={{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm mono" style="font-size:11.5px">{{.Name}}</span>{{if eq .Type "SecureString"}}<span class="sb">🔒</span>{{end}}</a>
+  {{end}}
+{{template "lp_foot" .}}
 {{end}}
 
-{{define "ssm_param"}}{{template "header" .}}
-<nav class="bc">
-  <a href="{{.Prefix}}/ssm">{{icon "sliders"}} Parameter Store</a>{{icon "chevron"}}<span class="mono" style="font-size:12px">{{.P.Name}}</span>
-</nav>
-{{template "ssm_param_detail" .}}
-{{template "footer" .}}{{end}}
+{{define "ssm_home"}}{{template "shell_top" .}}
+  {{template "ssm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  {{template "empty_detail" dict "Svc" "ssm" "Hint" "Select a parameter, or create one to store config."}}
+{{template "shell_bottom" .}}{{end}}
+
+{{define "ssm_param"}}{{template "shell_top" .}}
+  {{template "ssm_lp" (dict "Prefix" .Prefix "List" .List "Sel" .P.Name)}}
+  <section class="detail">{{template "ssm_param_detail" .}}</section>
+{{template "shell_bottom" .}}{{end}}
 
 {{define "ssm_param_detail"}}
-<div id="ssm-detail">
-<div class="idband">
-  <div class="ph">
-    <div>
-      <h1>{{awsIcon "ssm"}} <span class="mono" style="font-size:17px">{{.P.Name}}</span>
-        <span class="badge type {{if eq .P.Type "SecureString"}}state-warn{{end}}">{{.P.Type}}</span>
-        <span class="badge">v{{.P.Version}}</span>
-      </h1>
-      <div class="chips" style="margin-top:8px">
-        {{template "copychip" dict "Label" "arn" "Value" .P.ARN}}
-      </div>
+<div id="ssm-detail" x-data="{reveal:false}">
+  <div class="det-h">
+    <div class="det-title">{{awsIcon "ssm"}} <span class="mono" style="font-size:16px">{{.P.Name}}</span> <span class="badge type {{if .Secure}}state-warn{{end}}">{{.P.Type}}</span> <span class="badge">v{{.P.Version}}</span>
+      <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/ssm/delete" hx-vals='{"name":"{{.P.Name}}"}' hx-confirm="Delete parameter “{{.P.Name}}” and its history?">{{icon "trash"}} Delete</button></div>
     </div>
-    <div class="ph-actions">
-      <button class="btn btn-outline danger" hx-post="{{.Prefix}}/ssm/delete" hx-vals='{"name":"{{.P.Name}}"}'
-              hx-confirm="Delete parameter “{{.P.Name}}” and its history?">{{icon "trash"}} Delete</button>
+    <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .P.ARN}}</div>
+  </div>
+  <div class="det-b">
+    {{template "value_workspace" (dict "Prefix" .Prefix "Mode" .Mode "Value" .P.Value "Secure" .Secure "Diff" (printf "%s/ssm/diff?name=%s" .Prefix .P.Name)
+        "ViewURL" (printf "%s/ssm/param?name=%s" .Prefix .P.Name)
+        "EditURL" (printf "%s/ssm/param?name=%s&tab=edit" .Prefix .P.Name)
+        "VersURL" (printf "%s/ssm/param?name=%s&tab=versions" .Prefix .P.Name)
+        "SaveURL" (printf "%s/ssm/put" .Prefix) "SaveField" "name" "SaveVal" .P.Name "SaveLabel" (printf "Save as v%d" (addOne .P.Version))
+        "Target" "#ssm-detail" "History" .History)}}
+    <div class="meta-grid">
+      <div class="meta-cellx"><div class="k2">Type</div><div class="v2">{{.P.Type}}</div></div>
+      <div class="meta-cellx"><div class="k2">Version</div><div class="v2">v{{.P.Version}}</div></div>
+      <div class="meta-cellx"><div class="k2">Modified</div><div class="v2" title="{{.P.Modified}}">{{ago .P.Modified}}</div></div>
     </div>
   </div>
-</div>
-
-<div class="split">
-  <div>
-    <div class="panel" x-data="{show: {{if eq .P.Type "SecureString"}}false{{else}}true{{end}} }">
-      <div class="panel-h">
-        <h2>{{icon "braces"}} Current value</h2>
-        <div style="display:flex;gap:4px">
-          {{if eq .P.Type "SecureString"}}
-          <button class="icon-btn sm" :title="show ? 'Hide' : 'Reveal'" @click="show=!show">
-            <span x-show="!show">{{icon "eye"}}</span><span x-show="show" x-cloak>{{icon "eye-off"}}</span>
-          </button>
-          {{end}}
-          <button class="icon-btn sm" title="Copy value" data-copy="{{.P.Value}}">{{icon "copy"}}</button>
-        </div>
-      </div>
-      <div style="padding:12px 16px">
-        <div class="masked-box">
-          <div class="val" x-show="show" x-cloak>{{.P.Value}}</div>
-          <div class="val dim" x-show="!show">••••••••••••</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="sec-title">Edit value</div>
-    <div class="panel"><div style="padding:14px 16px">
-      <form hx-post="{{.Prefix}}/ssm/put" hx-target="#ssm-detail" hx-swap="outerHTML">
-        <input type="hidden" name="name" value="{{.P.Name}}">
-        <textarea name="value" data-editor rows="8" spellcheck="false" required>{{.P.Value}}</textarea>
-        <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn" type="submit">Save as v{{addOne .P.Version}}</button></div>
-      </form>
-      <p class="mini-note">Pre-filled with the current value — edit and save as a new version.</p>
-    </div></div>
-  </div>
-
-  <div>
-    <div class="sec-title" style="margin-top:0">Version history</div>
-    {{if .History}}
-    <div class="table-wrap"><table class="tbl">
-      <thead><tr><th class="right" style="width:70px">Version</th><th>Value</th><th class="right">Modified</th></tr></thead>
-      <tbody>{{range .History}}
-        <tr>
-          <td class="right num" style="font-weight:600">v{{.Version}}</td>
-          <td class="mono trunc dim" style="font-size:11.5px;max-width:240px" title="{{.Value}}">{{.Value}}</td>
-          <td class="right dim num">{{.Modified}}</td>
-        </tr>
-      {{end}}</tbody>
-    </table></div>
-    {{else}}<p class="mini-note">No history yet.</p>{{end}}
-  </div>
-</div>
 </div>
 {{end}}

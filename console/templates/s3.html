@@ -1,37 +1,154 @@
-{{define "s3_buckets"}}{{template "header" .}}
-<div class="ph">
-  <div>
-    <h1>{{awsIcon "s3"}} S3</h1>
-    <p class="ph-desc">Object storage buckets on this endpoint.</p>
-  </div>
-  <div class="ph-actions">
-    <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter buckets…" x-model="$store.filter.q" spellcheck="false"></label>
-    <a class="btn" href="{{.Prefix}}/s3/create">{{icon "plus"}} Create bucket</a>
-  </div>
-</div>
+{{define "s3_lp"}}
+{{template "lp_head" dict "Svc" "s3" "Label" "S3" "NewURL" (printf "%s/s3/create" .Prefix)}}
+  {{range .List}}
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/s3/{{.Name}}"
+     x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+    <span class="nm">{{.Name}}</span>
+  </a>
+  {{end}}
+{{template "lp_foot" .}}
+{{end}}
 
-{{template "bucket_list" .}}
-{{template "footer" .}}{{end}}
+{{define "s3_home"}}{{template "shell_top" .}}
+  {{template "s3_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  {{template "empty_detail" dict "Svc" "s3" "Hint" "Select a bucket, or create one to store objects."}}
+{{template "shell_bottom" .}}{{end}}
 
-{{define "bucket_list"}}
-<div id="bucket-list">
-{{if .Buckets}}
-<div class="table-wrap"><table class="tbl">
-  <thead><tr><th>Name</th><th class="right">Created</th><th style="width:60px"></th></tr></thead>
-  <tbody>{{range .Buckets}}
-    <tr x-show="!$store.filter.q || '{{.Name}}'.includes($store.filter.q.toLowerCase())">
-      <td><a class="cell-name" href="{{$.Prefix}}/s3/{{.Name}}">{{icon "folder"}} {{.Name}}</a></td>
-      <td class="right dim num">{{.Created}}</td>
-      <td>
-        <div class="row-actions">
-          <button class="icon-btn sm danger" title="Delete bucket"
-                  hx-post="{{$.Prefix}}/s3/{{.Name}}/delete-bucket" hx-target="#bucket-list" hx-swap="outerHTML"
-                  hx-confirm="Delete bucket “{{.Name}}”? It must be empty.">{{icon "trash"}}</button>
+{{define "s3_objects"}}{{template "shell_top" .}}
+  {{template "s3_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bucket)}}
+  <section class="detail" x-data="s3page('{{.Prefix}}','{{.Bucket}}')">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "s3"}} {{.Bucket}}
+        <div class="acts">
+          {{if eq .Tab "objects"}}<button class="btn btn-outline" onclick="this.closest('.detail').querySelector('input[type=file]').click()">{{icon "upload"}} Upload</button>{{end}}
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/s3/{{.Bucket}}/delete-bucket" hx-confirm="Delete bucket “{{.Bucket}}”? It must be empty.">{{icon "trash"}} Delete</button>
         </div>
-      </td>
+      </div>
+      <div class="chips">
+        {{template "copychip" dict "Label" "arn" "Value" (printf "arn:aws:s3:::%s" .Bucket)}}
+        {{template "copychip" dict "Label" "uri" "Value" (printf "s3://%s" .Bucket)}}
+      </div>
+      {{template "dtabs" dict "Cur" .Tab "Tabs" (list
+        (dict "Key" "objects" "Label" "Objects" "Icon" "list" "URL" (printf "%s/s3/%s" .Prefix .Bucket))
+        (dict "Key" "properties" "Label" "Properties" "Icon" "settings" "URL" (printf "%s/s3/%s?tab=properties" .Prefix .Bucket)))}}
+    </div>
+    <div class="det-b">
+      {{if eq .Tab "properties"}}
+        {{template "s3_props" .}}
+      {{else}}
+        <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/upload" hx-target="#object-table" hx-swap="outerHTML"
+              hx-encoding="multipart/form-data" style="display:none"
+              @change="if($el.file.files.length) htmx.trigger($el,'submit')" @htmx:after-request="$el.reset()">
+          <input type="hidden" name="prefix" value="{{.KeyPrefix}}"><input type="file" name="file">
+        </form>
+        <div class="dropwrap" @dragenter.prevent="drag++" @dragover.prevent @dragleave.prevent="drag--"
+             @drop.prevent="drag=0; uploadFiles($event.dataTransfer.files)">
+          {{template "object_table" .}}
+          <div class="dropzone" x-show="drag>0" x-cloak><div class="dz-inner">{{icon "upload"}} Drop to upload to <b>{{.Bucket}}{{if .KeyPrefix}}/{{.KeyPrefix}}{{end}}</b></div></div>
+          <div class="dropzone busy" x-show="busy" x-cloak><div class="dz-inner">{{icon "upload"}} Uploading <span x-text="busyName"></span>…</div></div>
+        </div>
+      {{end}}
+    </div>
+    <div class="drawer-scrim" x-show="drawer" x-cloak @click="drawer=false"></div>
+    <aside class="drawer" x-show="drawer" x-cloak @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
+  </section>
+<script>
+  function s3page(prefix, bucket){return{drawer:false,drag:0,busy:false,busyName:"",
+    currentPrefix(){var t=document.getElementById("object-table");return (t&&t.dataset.prefix)||"";},
+    async uploadFiles(files){if(!files||!files.length)return;var kp=this.currentPrefix();this.busy=true;var done=0;
+      for(const f of files){this.busyName=f.name;const fd=new FormData();fd.append("prefix",kp);fd.append("file",f);
+        const r=await fetch(prefix+"/s3/"+bucket+"/upload",{method:"POST",body:fd});
+        if(r.ok)done++;else window.dispatchEvent(new CustomEvent("toast-error",{detail:"Upload failed: "+f.name}));}
+      this.busy=false;if(done){window.dispatchEvent(new CustomEvent("toast",{detail:"Uploaded "+done+" file"+(done>1?"s":"")}));
+        htmx.ajax("GET",prefix+"/s3/"+bucket+"?partial=1&prefix="+encodeURIComponent(kp),{target:"#object-table",swap:"outerHTML"});}}};}
+</script>
+{{template "shell_bottom" .}}{{end}}
+
+{{define "object_table"}}
+<div id="object-table" data-prefix="{{.KeyPrefix}}">
+<nav class="bc">
+  <a hx-get="{{.Prefix}}/s3/{{.Bucket}}?partial=1" hx-target="#object-table" hx-swap="outerHTML" href="{{.Prefix}}/s3/{{.Bucket}}">{{.Bucket}}</a>
+  {{range .Crumbs}}{{icon "chevron"}}<a hx-get="{{$.Prefix}}/s3/{{$.Bucket}}?partial=1&prefix={{.Prefix}}" hx-target="#object-table" hx-swap="outerHTML" href="{{$.Prefix}}/s3/{{$.Bucket}}?prefix={{.Prefix}}">{{.Name}}</a>{{end}}
+</nav>
+{{if .Objects}}
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th>Name</th><th class="right">Size</th><th class="right">Modified</th><th style="width:64px"></th></tr></thead>
+  <tbody>{{range .Objects}}
+    {{if .IsPrefix}}
+    <tr class="folder"><td colspan="3"><a class="cell-name" hx-get="{{$.Prefix}}/s3/{{$.Bucket}}?partial=1&prefix={{.Key}}" hx-target="#object-table" hx-swap="outerHTML" href="{{$.Prefix}}/s3/{{$.Bucket}}?prefix={{.Key}}">{{icon "folder"}} {{trimPrefixKey .Key $.KeyPrefix}}</a></td><td></td></tr>
+    {{else}}
+    <tr>
+      <td><span class="cell-name link" hx-get="{{$.Prefix}}/s3/{{$.Bucket}}/meta?key={{.Key}}&prefix={{$.KeyPrefix}}" hx-target="#drawer-inner" hx-swap="innerHTML" @click="drawer=true">{{icon "file"}} {{trimPrefixKey .Key $.KeyPrefix}}</span></td>
+      <td class="right dim num">{{humanSize .Size}}</td><td class="right dim num" title="{{.LastModified}}">{{ago .LastModified}}</td>
+      <td><div class="row-actions">
+        <a class="icon-btn sm" title="Download" href="{{$.Prefix}}/s3/{{$.Bucket}}/object?key={{.Key}}" target="_blank">{{icon "download"}}</a>
+        <button class="icon-btn sm danger" title="Delete" hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/delete" hx-vals='{"key":"{{.Key}}","prefix":"{{$.KeyPrefix}}"}' hx-target="#object-table" hx-swap="outerHTML" hx-confirm="Delete {{.Key}}?">{{icon "trash"}}</button>
+      </div></td>
     </tr>
+    {{end}}
   {{end}}</tbody>
 </table></div>
-{{else}}<div class="empty">{{awsIcon "s3"}}<p>No buckets yet. Objects need a home — create the first bucket.</p><a class="btn" href="{{.Prefix}}/s3/create">{{icon "plus"}} Create bucket</a></div>{{end}}
+<div class="tbl-foot">{{.FileCount}} object{{if ne .FileCount 1}}s{{end}} here · {{.TotalSize}}</div>
+{{else}}<div class="empty dashed"><span class="ic-lg">{{icon "upload"}}</span><p><b>Drag files anywhere</b> to upload here, or use the Upload button.</p></div>{{end}}
+</div>
+{{end}}
+
+{{define "s3_props"}}
+<div id="s3-props" class="split">
+  <div>
+    <div class="panel"><div class="panel-h"><h2>{{icon "settings"}} Bucket settings</h2></div>
+      <div style="padding:4px 16px 10px">
+        <div class="opt-row">
+          <div><div class="opt-l">Versioning
+            {{if eq .Props.Versioning "Enabled"}}<span class="badge state-on">Enabled</span>{{else if eq .Props.Versioning "Suspended"}}<span class="badge state-warn">Suspended</span>{{else}}<span class="badge state-off">Disabled</span>{{end}}
+          </div><div class="opt-d">Keep every version of every object</div></div>
+          <label class="switch"><input type="checkbox" {{if eq .Props.Versioning "Enabled"}}checked{{end}} hx-post="{{.Prefix}}/s3/{{.Bucket}}/versioning" hx-vals='{"enable":"{{if eq .Props.Versioning "Enabled"}}false{{else}}true{{end}}"}' hx-target="#s3-props" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label>
+        </div>
+        <div class="opt-row"><div><div class="opt-l">Object lock {{if .Props.ObjectLock}}<span class="badge state-on">Enabled</span>{{else}}<span class="badge state-off">Disabled</span>{{end}}</div><div class="opt-d">Set at creation, immutable after</div></div></div>
+      </div>
+    </div>
+    <div class="sec-title">Details</div>
+    <div class="table-wrap"><table class="tbl kv"><tbody>
+      <tr><td>ARN</td><td>{{template "copychip" dict "Value" .Props.ARN}}</td></tr>
+      <tr><td>Region</td><td>{{.Props.Region}}</td></tr>
+    </tbody></table></div>
+    <div class="sec-title">Tags</div>
+    <div class="panel">
+      {{if .Props.Tags}}<table class="tbl kv"><tbody>
+        {{range .Props.Tags}}<tr><td>{{.K}}</td><td style="display:flex;align-items:center;justify-content:space-between;gap:8px">{{.V}}<button class="icon-btn sm danger" title="Remove tag" hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/remove-tag" hx-vals='{"key":"{{.K}}"}' hx-target="#s3-props" hx-swap="outerHTML">{{icon "x"}}</button></td></tr>{{end}}
+      </tbody></table>{{else}}<div class="mini-note" style="padding:12px 14px 2px">No tags yet.</div>{{end}}
+      <form class="tag-row-form" hx-post="{{.Prefix}}/s3/{{.Bucket}}/add-tag" hx-target="#s3-props" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+        <input class="input" name="key" placeholder="Key" required style="max-width:150px"><input class="input" name="value" placeholder="Value" style="flex:1"><button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Add</button>
+      </form>
+    </div>
+  </div>
+  <div>
+    <div class="sec-title" style="margin-top:0">Configurations</div>
+    {{range .Props.Configs}}
+    <div class="panel" style="margin-bottom:10px" x-data="{open:false}">
+      <div class="panel-h" {{if .Set}}style="cursor:pointer" @click="open=!open"{{end}}><h2>{{.Name}} {{if .Set}}<span class="badge state-on">Configured</span>{{else}}<span class="badge state-off">Not set</span>{{end}}</h2>{{if .Set}}<span class="dim" style="font-size:11.5px" x-text="open?'Hide':'View'"></span>{{end}}</div>
+      {{if .Set}}<div x-show="open" x-cloak class="code-out" style="border:0;border-top:1px solid hsl(var(--border));border-radius:0"><pre>{{.Raw}}</pre></div>{{end}}
+    </div>
+    {{end}}
+  </div>
+</div>
+{{end}}
+
+{{define "object_meta"}}
+<div class="drawer-h">{{icon "file"}}<span class="title" title="{{.Meta.Key}}">{{.Name}}</span><button class="icon-btn" @click="drawer=false" title="Close">{{icon "x"}}</button></div>
+<div class="drawer-b">
+  <div class="preview">{{if .Meta.IsImage}}<img src="{{.URL}}" alt="{{.Name}}">{{else}}<div class="ph-ic">{{icon "file"}}</div>{{end}}</div>
+  <div class="meta-list">
+    <div class="meta-row"><span class="k">Type</span><span class="v">{{if .Meta.ContentType}}{{.Meta.ContentType}}{{else}}—{{end}}</span></div>
+    <div class="meta-row"><span class="k">Size</span><span class="v">{{.Meta.Size}}</span></div>
+    <div class="meta-row"><span class="k">ETag</span><span class="v">{{.Meta.ETag}}</span></div>
+    <div class="meta-row"><span class="k">Modified</span><span class="v">{{.Meta.LastModified}}</span></div>
+    <div class="meta-row"><span class="k">Storage class</span><span class="v">{{.Meta.StorageClass}}</span></div>
+  </div>
+  <div class="copy-row"><span title="{{.Meta.Key}}">s3://{{.Bucket}}/{{.Meta.Key}}</span><button class="icon-btn sm" title="Copy path" data-copy="s3://{{.Bucket}}/{{.Meta.Key}}">{{icon "copy"}}</button></div>
+  <div class="drawer-actions">
+    <a class="btn btn-outline" href="{{.URL}}" target="_blank">{{icon "download"}} Download</a>
+    <button class="btn btn-outline" @click="drawer=false" hx-post="{{.Prefix}}/s3/{{.Bucket}}/delete" hx-vals='{"key":"{{.Meta.Key}}","prefix":"{{.KeyPrefix}}"}' hx-target="#object-table" hx-swap="outerHTML" hx-confirm="Delete {{.Meta.Key}}?">{{icon "trash"}} Delete</button>
+  </div>
 </div>
 {{end}}

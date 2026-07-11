@@ -15,7 +15,7 @@ func (c *Console) snsTopics(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, r, "sns_topics", map[string]any{"Topics": topics})
+	c.render(w, r, "sns_home", map[string]any{"List": topics, "Title": "SNS"})
 }
 
 func (c *Console) snsCreateTopic(w http.ResponseWriter, r *http.Request) {
@@ -48,9 +48,10 @@ func (c *Console) snsTopic(w http.ResponseWriter, r *http.Request) {
 	subs, _ := c.be.ListSubscriptions(r.Context(), arn)
 	queues, _ := c.be.ListQueues(r.Context())
 	fns, _ := c.be.ListFunctions(r.Context())
+	topics, _ := c.be.ListTopics(r.Context())
 	c.render(w, r, "sns_topic", map[string]any{
 		"Topic": name, "ARN": arn, "Attrs": attrs, "Subs": subs,
-		"Queues": queues, "Functions": fns,
+		"Queues": queues, "Functions": fns, "List": topics, "Title": name + " · SNS",
 	})
 }
 

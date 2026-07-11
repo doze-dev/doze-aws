@@ -1,177 +1,75 @@
-{{define "eb_buses"}}{{template "header" .}}
-<div class="ph">
-  <div>
-    <h1>{{awsIcon "eb"}} EventBridge</h1>
-    <p class="ph-desc">Event buses and their routing rules.</p>
-  </div>
-  <div class="ph-actions">
-    <a class="btn" href="{{.Prefix}}/eb/create-bus">{{icon "plus"}} Create bus</a>
-  </div>
-</div>
-
-{{template "eb_bus_list" .}}
-{{template "footer" .}}{{end}}
-
-{{define "eb_bus_list"}}
-<div id="eb-bus-list">
-<div class="table-wrap"><table class="tbl">
-  <thead><tr><th>Bus</th><th class="right">Rules</th><th style="width:60px"></th></tr></thead>
-  <tbody>{{range .Buses}}
-    <tr>
-      <td><a class="cell-name" href="{{$.Prefix}}/eb/{{.Name}}">{{icon "route"}} {{.Name}}{{if eq .Name "default"}} <span class="badge type">default</span>{{end}}</a></td>
-      <td class="right"><span class="{{if .Rules}}badge{{else}}badge zero{{end}}">{{.Rules}}</span></td>
-      <td>
-        {{if ne .Name "default"}}
-        <div class="row-actions">
-          <button class="icon-btn sm danger" title="Delete bus"
-                  hx-post="{{$.Prefix}}/eb/{{.Name}}/delete-bus" hx-target="#eb-bus-list" hx-swap="outerHTML"
-                  hx-confirm="Delete bus “{{.Name}}”?">{{icon "trash"}}</button>
-        </div>
-        {{end}}
-      </td>
-    </tr>
-  {{end}}</tbody>
-</table></div>
-</div>
+{{define "eb_lp"}}
+{{template "lp_head" dict "Svc" "eb" "Label" "EventBridge" "NewURL" (printf "%s/eb/create-bus" .Prefix)}}
+  {{range .List}}
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/eb/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}{{if eq .Name "default"}} <span class="badge type" style="font-size:9px">default</span>{{end}}</span><span class="sb">{{.Rules}}</span></a>
+  {{end}}
+{{template "lp_foot" .}}
 {{end}}
 
-{{define "eb_bus"}}{{template "header" .}}
-<nav class="bc">
-  <a href="{{.Prefix}}/eb">{{icon "route"}} EventBridge</a>{{icon "chevron"}}<span>{{.Bus}}</span>
-</nav>
-<div class="idband">
-  <div class="ph">
-    <div>
-      <h1>{{awsIcon "eb"}} {{.Bus}}</h1>
-      <div class="chips" style="margin-top:8px">
-        {{template "copychip" dict "Label" "arn" "Value" .BusARN}}
-      </div>
-    </div>
-    <div class="ph-actions">
-      <a class="btn" href="{{.Prefix}}/eb/{{.Bus}}/create-rule">{{icon "plus"}} Create rule</a>
-    </div>
-  </div>
-</div>
+{{define "eb_home"}}{{template "shell_top" .}}
+  {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  {{template "empty_detail" dict "Svc" "eb" "Hint" "Select an event bus to manage its rules and targets."}}
+{{template "shell_bottom" .}}{{end}}
 
-<div class="split">
-  {{template "eb_rule_list" .}}
-
-  <div class="panel">
-    <div class="panel-h"><h2>{{icon "send"}} Send test event</h2></div>
-    <div style="padding:14px 16px">
-      <form hx-post="{{.Prefix}}/eb/{{.Bus}}/test-event" hx-target="#eb-rules" hx-swap="outerHTML"
-            @htmx:after-request="$el.reset()">
-        <div class="fgrid" style="margin-bottom:10px">
-          <div class="field"><label>Source</label><input class="input" name="source" placeholder="orders" required></div>
-          <div class="field"><label>Detail type</label><input class="input" name="detail_type" placeholder="created" required></div>
-        </div>
-        <div class="field">
-          <label>Detail <span class="dim">(JSON)</span></label>
-          <textarea name="detail" data-editor="json" rows="4" spellcheck="false" placeholder='{"orderId": "A-1042"}'></textarea>
-        </div>
-        <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn" type="submit">{{icon "send"}} Publish event</button></div>
-      </form>
-      <p class="mini-note">Matching rules deliver to their targets immediately — check the target queue or function.</p>
+{{define "eb_bus"}}{{template "shell_top" .}}
+  {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bus)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "eb"}} {{.Bus}}<div class="acts"><a class="btn" href="{{.Prefix}}/eb/{{.Bus}}/create-rule">{{icon "plus"}} Create rule</a></div></div>
+      <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .BusARN}}</div>
     </div>
-  </div>
-</div>
-{{template "footer" .}}{{end}}
+    <div class="det-b"><div class="split">
+      {{template "eb_rule_list" .}}
+      <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Send test event</h2></div><div style="padding:14px 16px">
+        <form hx-post="{{.Prefix}}/eb/{{.Bus}}/test-event" hx-target="#eb-rules" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+          <div class="fgrid" style="margin-bottom:10px"><div class="field"><label>Source</label><input class="input" name="source" placeholder="orders" required></div><div class="field"><label>Detail type</label><input class="input" name="detail_type" placeholder="created" required></div></div>
+          <div class="field"><label>Detail <span class="dim">JSON</span></label><textarea name="detail" data-editor="json" rows="4" placeholder='{"orderId":"A-1042"}'></textarea></div>
+          <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn" type="submit">{{icon "send"}} Publish event</button></div>
+        </form>
+        <p class="mini-note">Matching rules deliver immediately — check the target queue or function, or the Traffic tab.</p>
+      </div></div>
+    </div></div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
 
 {{define "eb_rule_list"}}
-<div id="eb-rules">
-  <div class="panel">
-    <div class="panel-h"><h2>{{icon "list"}} Rules <span class="badge">{{len .Rules}}</span></h2></div>
-    {{if .Rules}}
-    <table class="tbl">
-      <thead><tr><th>Rule</th><th>Match</th><th class="right">State</th></tr></thead>
-      <tbody>{{range .Rules}}
-        <tr>
-          <td><a class="cell-name" href="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{.Name}}">{{icon "route"}} {{.Name}}</a></td>
-          <td class="mono dim trunc" style="font-size:11px;max-width:220px">{{if .Schedule}}{{.Schedule}}{{else}}pattern{{end}}</td>
-          <td class="right"><span class="badge {{if eq .State "ENABLED"}}state-on{{else}}state-off{{end}}">{{.State}}</span></td>
-        </tr>
-      {{end}}</tbody>
-    </table>
-    {{else}}<div class="empty" style="border:0"><p>No rules on this bus yet — nothing is listening.</p><a class="btn btn-outline btn-sm" href="{{$.Prefix}}/eb/{{$.Bus}}/create-rule">{{icon "plus"}} Create rule</a></div>{{end}}
-  </div>
-</div>
+<div id="eb-rules"><div class="panel"><div class="panel-h"><h2>{{icon "list"}} Rules <span class="badge">{{len .Rules}}</span></h2></div>
+  {{if .Rules}}<table class="tbl"><thead><tr><th>Rule</th><th>Match</th><th class="right">State</th></tr></thead><tbody>{{range .Rules}}
+    <tr><td><a class="cell-name" href="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{.Name}}">{{icon "route"}} {{.Name}}</a></td><td class="mono dim trunc" style="font-size:11px;max-width:220px">{{if .Schedule}}{{.Schedule}}{{else}}pattern{{end}}</td><td class="right"><span class="badge {{if eq .State "ENABLED"}}state-on{{else}}state-off{{end}}">{{.State}}</span></td></tr>
+  {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No rules yet — nothing is listening.</p><a class="btn btn-outline btn-sm" href="{{$.Prefix}}/eb/{{$.Bus}}/create-rule">{{icon "plus"}} Create rule</a></div>{{end}}
+</div></div>
 {{end}}
 
-{{define "eb_rule"}}{{template "header" .}}
-<nav class="bc">
-  <a href="{{.Prefix}}/eb">{{icon "route"}} EventBridge</a>{{icon "chevron"}}
-  <a href="{{.Prefix}}/eb/{{.Bus}}">{{.Bus}}</a>{{icon "chevron"}}<span>{{.Rule.Name}}</span>
-</nav>
-<div class="idband">
-  <div class="ph">
-    <div>
-      <h1>{{awsIcon "eb"}} {{.Rule.Name}}
-        <span class="badge {{if eq .Rule.State "ENABLED"}}state-on{{else}}state-off{{end}}">{{.Rule.State}}</span>
-      </h1>
-      <div class="chips" style="margin-top:8px">
-        {{template "copychip" dict "Label" "arn" "Value" .Rule.ARN}}
+{{define "eb_rule"}}{{template "shell_top" .}}
+  {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bus)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "eb"}} {{.Rule.Name}} <span class="badge {{if eq .Rule.State "ENABLED"}}state-on{{else}}state-off{{end}}">{{.Rule.State}}</span>
+        <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/delete-rule" hx-confirm="Delete rule “{{.Rule.Name}}” and its targets?">{{icon "trash"}} Delete</button></div>
       </div>
+      <nav class="det-sub"><a href="{{.Prefix}}/eb/{{.Bus}}" style="color:hsl(var(--accent-blue))">{{.Bus}}</a> bus</nav>
+      <div class="chips" style="margin-top:6px">{{template "copychip" dict "Label" "arn" "Value" .Rule.ARN}}</div>
     </div>
-    <div class="ph-actions">
-      <button class="btn btn-outline danger" hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/delete-rule"
-              hx-confirm="Delete rule “{{.Rule.Name}}” and its targets?">{{icon "trash"}} Delete</button>
-    </div>
-  </div>
-</div>
-
-<div class="split">
-  <div>
-    <div class="sec-title" style="margin-top:0">{{if .Rule.Schedule}}Schedule{{else}}Event pattern{{end}}</div>
-    <div class="code-out">
-      <div class="co-h"><span>{{if .Rule.Schedule}}expression{{else}}pattern.json{{end}}</span>
-        <button class="copy-btn" data-copy="{{if .Rule.Schedule}}{{.Rule.Schedule}}{{else}}{{.Rule.Pattern}}{{end}}">{{icon "copy"}}</button>
+    <div class="det-b"><div class="split">
+      <div><div class="sec-title" style="margin-top:0">{{if .Rule.Schedule}}Schedule{{else}}Event pattern{{end}}</div>
+        <div class="code-out"><div class="co-h"><span>{{if .Rule.Schedule}}expression{{else}}pattern.json{{end}}</span><button class="copy-btn" data-copy="{{if .Rule.Schedule}}{{.Rule.Schedule}}{{else}}{{.Rule.Pattern}}{{end}}">{{icon "copy"}}</button></div><pre>{{if .Rule.Schedule}}{{.Rule.Schedule}}{{else}}{{.Rule.Pattern}}{{end}}</pre></div>
       </div>
-      <pre>{{if .Rule.Schedule}}{{.Rule.Schedule}}{{else}}{{.Rule.Pattern}}{{end}}</pre>
-    </div>
-  </div>
-
-  {{template "eb_targets" .}}
-</div>
-{{template "footer" .}}{{end}}
+      {{template "eb_targets" .}}
+    </div></div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
 
 {{define "eb_targets"}}
-<div id="eb-targets">
-  <div class="panel">
-    <div class="panel-h"><h2>{{icon "arrow-right"}} Targets <span class="badge">{{len .Rule.Targets}}</span></h2></div>
-    {{if .Rule.Targets}}
-    <table class="tbl">
-      <thead><tr><th>ARN</th><th style="width:36px"></th></tr></thead>
-      <tbody>{{range .Rule.Targets}}
-        <tr>
-          <td class="mono trunc dim" style="font-size:11.5px;max-width:300px" title="{{.ARN}}">{{.ARN}}</td>
-          <td>
-            <div class="row-actions">
-              <button class="icon-btn sm danger" title="Remove target"
-                      hx-post="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{$.Rule.Name}}/remove-target" hx-vals='{"id":"{{.ID}}"}'
-                      hx-target="#eb-targets" hx-swap="outerHTML" hx-confirm="Remove this target?">{{icon "trash"}}</button>
-            </div>
-          </td>
-        </tr>
-      {{end}}</tbody>
-    </table>
-    {{else}}<div class="empty" style="border:0"><p>No targets — matching events go nowhere yet.</p></div>{{end}}
-  </div>
-
-  <div class="panel" style="margin-top:12px">
-    <div class="panel-h"><h2>{{icon "plus"}} Add target</h2></div>
-    <div style="padding:14px 16px">
-      <form hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/add-target" hx-target="#eb-targets" hx-swap="outerHTML"
-            @htmx:after-request="$el.reset()">
-        <div class="field">
-          <label>Destination</label>
-          <select class="input" name="arn">
-            {{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">SQS · {{.Name}}</option>{{end}}
-            {{range .Functions}}<option value="{{.ARN}}">Lambda · {{.Name}}</option>{{end}}
-          </select>
-        </div>
-        <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn btn-outline" type="submit">Add target</button></div>
-      </form>
-    </div>
-  </div>
+<div id="eb-targets"><div class="panel"><div class="panel-h"><h2>{{icon "arrow-right"}} Targets <span class="badge">{{len .Rule.Targets}}</span></h2></div>
+  {{if .Rule.Targets}}<table class="tbl"><thead><tr><th>ARN</th><th style="width:36px"></th></tr></thead><tbody>{{range .Rule.Targets}}
+    <tr><td class="mono trunc dim" style="font-size:11.5px;max-width:300px" title="{{.ARN}}">{{.ARN}}</td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove target" hx-post="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{$.Rule.Name}}/remove-target" hx-vals='{"id":"{{.ID}}"}' hx-target="#eb-targets" hx-swap="outerHTML" hx-confirm="Remove this target?">{{icon "trash"}}</button></div></td></tr>
+  {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No targets — matching events go nowhere yet.</p></div>{{end}}
+</div>
+<div class="panel" style="margin-top:12px"><div class="panel-h"><h2>{{icon "plus"}} Add target</h2></div><div style="padding:14px 16px">
+  <form hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/add-target" hx-target="#eb-targets" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+    <div class="field"><label>Destination</label><select class="input" name="arn">{{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">SQS · {{.Name}}</option>{{end}}{{range .Functions}}<option value="{{.ARN}}">Lambda · {{.Name}}</option>{{end}}</select></div>
+    <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn btn-outline" type="submit">Add target</button></div>
+  </form>
+</div></div>
 </div>
 {{end}}

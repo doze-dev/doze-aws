@@ -8,7 +8,7 @@ func (c *Console) ddbTables(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.render(w, r, "ddb_tables", map[string]any{"Tables": tables})
+	c.render(w, r, "ddb_home", map[string]any{"List": tables, "Title": "DynamoDB"})
 }
 
 func (c *Console) ddbCreateTable(w http.ResponseWriter, r *http.Request) {
@@ -40,9 +40,10 @@ func (c *Console) ddbTable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	items, truncated, _ := c.be.ScanItems(r.Context(), t, 50)
+	tables, _ := c.be.ListTables(r.Context())
 	c.render(w, r, "ddb_table", map[string]any{
 		"Table": t, "Items": items, "Truncated": truncated,
-		"Tab": tabOf(r, "items"),
+		"Tab": tabOf(r, "items"), "List": tables, "Title": name + " · DynamoDB",
 	})
 }
 
@@ -76,12 +77,4 @@ func (c *Console) ddbDeleteItem(w http.ResponseWriter, r *http.Request) {
 	}
 	toast(w, "Item deleted")
 	c.ddbItems(w, r)
-}
-
-// tabOf returns the active tab from ?tab=, defaulting sensibly.
-func tabOf(r *http.Request, def string) string {
-	if t := r.URL.Query().Get("tab"); t != "" {
-		return t
-	}
-	return def
 }
