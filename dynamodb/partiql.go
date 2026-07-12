@@ -101,8 +101,22 @@ func (s *Server) runPartiQL(statement string, params []json.RawMessage) (any, *a
 		if aerr != nil {
 			return nil, aerr
 		}
-		reqBody, _ := json.Marshal(map[string]any{"TableName": st.table, "Item": item})
+		t, err := s.store.GetTable(st.table)
+		if err != nil {
+			return nil, awshttp.AsAPIError(err)
+		}
+		// INSERT must fail on an existing key (real PartiQL: DuplicateItemException),
+		// not overwrite — guard with attribute_not_exists on the hash key.
+		reqBody, _ := json.Marshal(map[string]any{
+			"TableName":                st.table,
+			"Item":                     item,
+			"ConditionExpression":      "attribute_not_exists(#pk)",
+			"ExpressionAttributeNames": map[string]string{"#pk": t.Hash.Name},
+		})
 		if _, aerr := s.putItem(reqBody); aerr != nil {
+			if aerr.Code == "ConditionalCheckFailedException" {
+				return nil, awshttp.Errf(400, "DuplicateItemException", "an item with the given key already exists")
+			}
 			return nil, aerr
 		}
 		return map[string]any{"Items": []any{}}, nil
@@ -119,18 +133,29 @@ func (s *Server) runPartiQL(statement string, params []json.RawMessage) (any, *a
 		return map[string]any{"Items": []any{}}, nil
 
 	case stUpdate:
-		key, aerr := st.where.attributeMap(binder)
-		if aerr != nil {
-			return nil, aerr
+		t, err := s.store.GetTable(st.table)
+		if err != nil {
+			return nil, awshttp.AsAPIError(err)
 		}
+		// Bind SET before WHERE so positional '?' parameters match statement
+		// order (SET precedes WHERE in the text).
 		setNames, setVals, setExpr, aerr := st.set.updateExpr(binder)
 		if aerr != nil {
 			return nil, aerr
 		}
+		key, aerr := st.where.attributeMap(binder)
+		if aerr != nil {
+			return nil, aerr
+		}
+		if setNames == nil {
+			setNames = map[string]string{}
+		}
+		setNames["#pk"] = t.Hash.Name
 		reqBody, _ := json.Marshal(map[string]any{
 			"TableName":                 st.table,
 			"Key":                       key,
 			"UpdateExpression":          setExpr,
+			"ConditionExpression":       "attribute_exists(#pk)", // PartiQL UPDATE does not upsert
 			"ExpressionAttributeNames":  setNames,
 			"ExpressionAttributeValues": setVals,
 		})
@@ -152,13 +177,19 @@ func (s *Server) partiqlSelect(st *partiqlStmt, binder *paramBinder) (any, *awsh
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
+	projExpr, projNames := projectionOf(st.columns)
 	whereAttrs := st.where.attrNames()
 	if coversKey(t, whereAttrs) {
 		key, aerr := st.where.attributeMap(binder)
 		if aerr != nil {
 			return nil, aerr
 		}
-		reqBody, _ := json.Marshal(map[string]any{"TableName": st.table, "Key": key})
+		getBody := map[string]any{"TableName": st.table, "Key": key}
+		if projExpr != "" {
+			getBody["ProjectionExpression"] = projExpr
+			getBody["ExpressionAttributeNames"] = projNames
+		}
+		reqBody, _ := json.Marshal(getBody)
 		out, aerr := s.getItem(reqBody)
 		if aerr != nil {
 			return nil, aerr
@@ -189,11 +220,35 @@ func (s *Server) partiqlSelect(st *partiqlStmt, binder *paramBinder) (any, *awsh
 	scanBody := map[string]any{"TableName": st.table}
 	if len(clauses) > 0 {
 		scanBody["FilterExpression"] = strings.Join(clauses, " AND ")
-		scanBody["ExpressionAttributeNames"] = names
 		scanBody["ExpressionAttributeValues"] = vals
+	}
+	if projExpr != "" {
+		scanBody["ProjectionExpression"] = projExpr
+		for n, a := range projNames { // merge projection names with filter names
+			names[n] = a
+		}
+	}
+	if len(names) > 0 {
+		scanBody["ExpressionAttributeNames"] = names
 	}
 	reqBody, _ := json.Marshal(scanBody)
 	return s.scan(reqBody)
+}
+
+// projectionOf builds a ProjectionExpression (and its name map) from a SELECT
+// column list. Returns ("", nil) for a select-all.
+func projectionOf(columns []string) (string, map[string]string) {
+	if len(columns) == 0 {
+		return "", nil
+	}
+	names := make(map[string]string, len(columns))
+	parts := make([]string, len(columns))
+	for i, c := range columns {
+		n := fmt.Sprintf("#c%d", i)
+		names[n] = c
+		parts[i] = n
+	}
+	return strings.Join(parts, ", "), names
 }
 
 // coversKey reports whether the WHERE attributes are exactly the table's primary

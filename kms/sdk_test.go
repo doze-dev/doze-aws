@@ -202,6 +202,34 @@ func TestSDKRSAEncryptAndPSS(t *testing.T) {
 	}
 }
 
+// TestKeyUsageEnforced proves a key can't be used for the wrong operation:
+// signing with an ENCRYPT_DECRYPT key and encrypting with a SIGN_VERIFY key both
+// fail, as they do against real KMS (InvalidKeyUsageException).
+func TestKeyUsageEnforced(t *testing.T) {
+	ctx := context.Background()
+	c := kmsClient(t)
+
+	encKey, _ := c.CreateKey(ctx, &awskms.CreateKeyInput{
+		KeySpec: kmstypes.KeySpecRsa2048, KeyUsage: kmstypes.KeyUsageTypeEncryptDecrypt,
+	})
+	if _, err := c.Sign(ctx, &awskms.SignInput{
+		KeyId: encKey.KeyMetadata.KeyId, Message: []byte("m"),
+		SigningAlgorithm: kmstypes.SigningAlgorithmSpecRsassaPssSha256,
+	}); err == nil {
+		t.Fatal("Sign with an ENCRYPT_DECRYPT key should fail")
+	}
+
+	signKey, _ := c.CreateKey(ctx, &awskms.CreateKeyInput{
+		KeySpec: kmstypes.KeySpecRsa2048, KeyUsage: kmstypes.KeyUsageTypeSignVerify,
+	})
+	if _, err := c.Encrypt(ctx, &awskms.EncryptInput{
+		KeyId: signKey.KeyMetadata.KeyId, Plaintext: []byte("m"),
+		EncryptionAlgorithm: kmstypes.EncryptionAlgorithmSpecRsaesOaepSha256,
+	}); err == nil {
+		t.Fatal("Encrypt with a SIGN_VERIFY key should fail")
+	}
+}
+
 func TestSDKHMAC(t *testing.T) {
 	ctx := context.Background()
 	c := kmsClient(t)

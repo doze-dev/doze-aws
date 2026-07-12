@@ -20,11 +20,12 @@ const (
 
 // partiqlStmt is a parsed statement.
 type partiqlStmt struct {
-	kind   stmtKind
-	table  string
-	where  assignments // WHERE equality conditions (attr = value)
-	set    assignments // UPDATE SET assignments
-	values assignments // INSERT VALUE map entries
+	kind    stmtKind
+	table   string
+	where   assignments // WHERE equality conditions (attr = value)
+	set     assignments // UPDATE SET assignments
+	values  assignments // INSERT VALUE map entries
+	columns []string    // SELECT projection list ("*" or empty means all)
 }
 
 // assignment is one attr = value pair (value is a raw token: "?", a quoted
@@ -140,6 +141,18 @@ func parseSelect(toks []string) (*partiqlStmt, *awshttp.APIError) {
 		return nil, awshttp.Errf(400, "ValidationException", "SELECT requires FROM <table>")
 	}
 	st := &partiqlStmt{kind: stSelect, table: unquoteIdent(toks[from+1])}
+	// Capture the projection list (tokens between SELECT and FROM); "*" or an
+	// empty list means all attributes.
+	for _, tk := range toks[1:from] {
+		if tk == "," {
+			continue
+		}
+		if tk == "*" {
+			st.columns = nil
+			break
+		}
+		st.columns = append(st.columns, unquoteIdent(tk))
+	}
 	if where := indexOfKW(toks, "WHERE"); where >= 0 {
 		conds, aerr := parseConditions(toks[where+1:])
 		if aerr != nil {

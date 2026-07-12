@@ -471,8 +471,8 @@ func TestGSIRecreateNoStaleEntries(t *testing.T) {
 		KeySchema:   []ddbtypes.KeySchemaElement{{AttributeName: aws.String("pk"), KeyType: ddbtypes.KeyTypeHash}},
 		BillingMode: ddbtypes.BillingModePayPerRequest,
 		GlobalSecondaryIndexes: []ddbtypes.GlobalSecondaryIndex{{
-			IndexName: aws.String("g"),
-			KeySchema: []ddbtypes.KeySchemaElement{{AttributeName: aws.String("a"), KeyType: ddbtypes.KeyTypeHash}},
+			IndexName:  aws.String("g"),
+			KeySchema:  []ddbtypes.KeySchemaElement{{AttributeName: aws.String("a"), KeyType: ddbtypes.KeyTypeHash}},
 			Projection: &ddbtypes.Projection{ProjectionType: ddbtypes.ProjectionTypeAll},
 		}},
 	}); err != nil {
@@ -501,8 +501,8 @@ func TestGSIRecreateNoStaleEntries(t *testing.T) {
 		},
 		GlobalSecondaryIndexUpdates: []ddbtypes.GlobalSecondaryIndexUpdate{
 			{Create: &ddbtypes.CreateGlobalSecondaryIndexAction{
-				IndexName: aws.String("g"),
-				KeySchema: []ddbtypes.KeySchemaElement{{AttributeName: aws.String("b"), KeyType: ddbtypes.KeyTypeHash}},
+				IndexName:  aws.String("g"),
+				KeySchema:  []ddbtypes.KeySchemaElement{{AttributeName: aws.String("b"), KeyType: ddbtypes.KeyTypeHash}},
 				Projection: &ddbtypes.Projection{ProjectionType: ddbtypes.ProjectionTypeAll},
 			}},
 		},
@@ -641,5 +641,71 @@ func TestSDKPartiQL(t *testing.T) {
 	})
 	if len(sel3.Items) != 0 {
 		t.Fatalf("row still present after DELETE: %+v", sel3.Items)
+	}
+}
+
+// TestPartiQLSemantics covers the fidelity fixes: INSERT rejects duplicates,
+// UPDATE doesn't upsert, positional '?' binds SET-then-WHERE in statement order,
+// and SELECT honors its projection list.
+func TestPartiQLSemantics(t *testing.T) {
+	ctx := context.Background()
+	c := ddbClient(t)
+	makeOrdersTable(t, ctx, c)
+	s := func(v string) ddbtypes.AttributeValue { return &ddbtypes.AttributeValueMemberS{Value: v} }
+
+	ins := func() error {
+		_, err := c.ExecuteStatement(ctx, &awsddb.ExecuteStatementInput{
+			Statement: aws.String(`INSERT INTO "orders" VALUE {'pk': 'p', 'sk': 's', 'email': 'e@x.com', 'total': '1'}`),
+		})
+		return err
+	}
+	if err := ins(); err != nil {
+		t.Fatalf("first INSERT: %v", err)
+	}
+	// INSERT of an existing key must fail (DuplicateItemException), not overwrite.
+	if err := ins(); err == nil {
+		t.Fatal("duplicate INSERT should fail")
+	}
+
+	// UPDATE of a nonexistent item must not create it.
+	if _, err := c.ExecuteStatement(ctx, &awsddb.ExecuteStatementInput{
+		Statement:  aws.String(`UPDATE "orders" SET "total" = '9' WHERE "pk" = ? AND "sk" = ?`),
+		Parameters: []ddbtypes.AttributeValue{s("ghost"), s("none")},
+	}); err == nil {
+		t.Fatal("UPDATE of a missing item should fail, not upsert")
+	}
+	if got, _ := c.GetItem(ctx, &awsddb.GetItemInput{TableName: aws.String("orders"), Key: map[string]ddbtypes.AttributeValue{
+		"pk": s("ghost"), "sk": s("none"),
+	}}); got.Item != nil {
+		t.Fatal("UPDATE upserted a missing item")
+	}
+
+	// Positional '?' must bind SET first, then WHERE (statement order).
+	if _, err := c.ExecuteStatement(ctx, &awsddb.ExecuteStatementInput{
+		Statement:  aws.String(`UPDATE "orders" SET "email" = ? WHERE "pk" = ? AND "sk" = ?`),
+		Parameters: []ddbtypes.AttributeValue{s("new@x.com"), s("p"), s("s")},
+	}); err != nil {
+		t.Fatalf("parameterized UPDATE: %v", err)
+	}
+	got, _ := c.GetItem(ctx, &awsddb.GetItemInput{TableName: aws.String("orders"), Key: map[string]ddbtypes.AttributeValue{
+		"pk": s("p"), "sk": s("s"),
+	}})
+	if got.Item["email"].(*ddbtypes.AttributeValueMemberS).Value != "new@x.com" {
+		t.Fatalf("SET/WHERE param binding wrong: email = %v", got.Item["email"])
+	}
+
+	// SELECT projection: only the requested attribute comes back.
+	sel, err := c.ExecuteStatement(ctx, &awsddb.ExecuteStatementInput{
+		Statement:  aws.String(`SELECT email FROM "orders" WHERE "pk" = ? AND "sk" = ?`),
+		Parameters: []ddbtypes.AttributeValue{s("p"), s("s")},
+	})
+	if err != nil || len(sel.Items) != 1 {
+		t.Fatalf("projected SELECT: %v %+v", err, sel.Items)
+	}
+	if _, hasEmail := sel.Items[0]["email"]; !hasEmail {
+		t.Fatal("projection dropped the requested attribute")
+	}
+	if _, hasTotal := sel.Items[0]["total"]; hasTotal {
+		t.Fatalf("projection returned unrequested attributes: %+v", sel.Items[0])
 	}
 }

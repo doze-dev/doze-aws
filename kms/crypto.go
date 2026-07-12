@@ -129,6 +129,17 @@ func (k *Key) publicKeyDER() ([]byte, *awshttp.APIError) {
 	return der, nil
 }
 
+// requireUsage rejects a cryptographic operation whose required KeyUsage doesn't
+// match the key's — real KMS raises InvalidKeyUsageException (e.g. Sign with an
+// ENCRYPT_DECRYPT key, or Encrypt with a SIGN_VERIFY key).
+func requireUsage(k *Key, want string) *awshttp.APIError {
+	if k.KeyUsage != want {
+		return awshttp.Errf(400, "InvalidKeyUsageException",
+			"operation requires a key with KeyUsage %s, but key %s has KeyUsage %s", want, k.ID, k.KeyUsage)
+	}
+	return nil
+}
+
 // signingAlgorithms lists the algorithms a key advertises and accepts.
 func (k *Key) signingAlgorithms() []string {
 	si := specs[k.KeySpec]

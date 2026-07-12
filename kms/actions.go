@@ -303,6 +303,9 @@ func (s *Server) encrypt(p map[string]any) (any, *awshttp.APIError) {
 	if aerr := usable(k); aerr != nil {
 		return nil, aerr
 	}
+	if aerr := requireUsage(k, usageEncryptDecrypt); aerr != nil {
+		return nil, aerr
+	}
 	plaintext, aerr := pblob(p, "Plaintext")
 	if aerr != nil {
 		return nil, aerr
@@ -356,6 +359,9 @@ func (s *Server) decrypt(p map[string]any) (any, *awshttp.APIError) {
 		if aerr := usable(k); aerr != nil {
 			return nil, aerr
 		}
+		if aerr := requireUsage(k, usageEncryptDecrypt); aerr != nil {
+			return nil, aerr
+		}
 		pt, aerr := k.rsaDecrypt(alg, blob)
 		if aerr != nil {
 			return nil, aerr
@@ -375,6 +381,9 @@ func (s *Server) decrypt(p map[string]any) (any, *awshttp.APIError) {
 		return nil, awshttp.Errf(400, "InvalidCiphertextException", "the key this ciphertext was encrypted under no longer exists")
 	}
 	if aerr := usable(k); aerr != nil {
+		return nil, aerr
+	}
+	if aerr := requireUsage(k, usageEncryptDecrypt); aerr != nil {
 		return nil, aerr
 	}
 	pt, uerr := unseal(k, pstrmap(p, "EncryptionContext"))
@@ -435,6 +444,9 @@ func (s *Server) dataKey(p map[string]any, withPlaintext bool) (any, *awshttp.AP
 		return nil, awshttp.AsAPIError(err)
 	}
 	if aerr := usable(k); aerr != nil {
+		return nil, aerr
+	}
+	if aerr := requireUsage(k, usageEncryptDecrypt); aerr != nil {
 		return nil, aerr
 	}
 	if k.KeySpec != "SYMMETRIC_DEFAULT" {
@@ -542,6 +554,9 @@ func (s *Server) sign(p map[string]any) (any, *awshttp.APIError) {
 	if aerr := usable(k); aerr != nil {
 		return nil, aerr
 	}
+	if aerr := requireUsage(k, usageSignVerify); aerr != nil {
+		return nil, aerr
+	}
 	message, aerr := pblob(p, "Message")
 	if aerr != nil {
 		return nil, aerr
@@ -563,6 +578,9 @@ func (s *Server) verify(p map[string]any) (any, *awshttp.APIError) {
 		return nil, awshttp.AsAPIError(err)
 	}
 	if aerr := usable(k); aerr != nil {
+		return nil, aerr
+	}
+	if aerr := requireUsage(k, usageSignVerify); aerr != nil {
 		return nil, aerr
 	}
 	message, aerr := pblob(p, "Message")
@@ -622,6 +640,9 @@ func (s *Server) generateMac(p map[string]any) (any, *awshttp.APIError) {
 	if aerr := usable(k); aerr != nil {
 		return nil, aerr
 	}
+	if aerr := requireUsage(k, usageGenerateVerifyMac); aerr != nil {
+		return nil, aerr
+	}
 	message, aerr := pblob(p, "Message")
 	if aerr != nil {
 		return nil, aerr
@@ -643,6 +664,9 @@ func (s *Server) verifyMac(p map[string]any) (any, *awshttp.APIError) {
 		return nil, awshttp.AsAPIError(err)
 	}
 	if aerr := usable(k); aerr != nil {
+		return nil, aerr
+	}
+	if aerr := requireUsage(k, usageGenerateVerifyMac); aerr != nil {
 		return nil, aerr
 	}
 	message, aerr := pblob(p, "Message")
