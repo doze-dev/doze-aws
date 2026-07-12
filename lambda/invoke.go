@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -209,16 +210,25 @@ func (s *Server) restartRunner(name string) {
 	s.mu.Unlock()
 }
 
-// endpointEnv builds the AWS_ENDPOINT_URL* variables handlers use to reach
-// sibling services.
+// endpointEnv builds the AWS_ENDPOINT_URL* variables injected into function
+// processes so handler code using an AWS SDK reaches sibling services.
+//
+// These must be SDK-reachable HTTP endpoints — distinct from how the lambda
+// SERVICE reaches peers (unix sockets, via s.peers). The general
+// AWS_ENDPOINT_URL comes from the embedded listen address (s.endpoint); the
+// per-service AWS_ENDPOINT_URL_<SVC> are passed through from this process's own
+// environment (in the module topology the lambda process is handed real
+// per-service domains). Peer BaseURLs are decorative in-process/unix hosts an
+// SDK can't dial, so they are never used here.
 func (s *Server) endpointEnv() map[string]string {
 	env := map[string]string{}
 	if s.endpoint != "" {
 		env["AWS_ENDPOINT_URL"] = s.endpoint
 	}
-	for _, svc := range []string{"s3", "sqs", "sns", "dynamodb", "kms", "ssm", "secretsmanager", "sts", "eventbridge", "lambda"} {
-		if ep, ok := s.peers.Endpoint(svc); ok {
-			env["AWS_ENDPOINT_URL_"+strings.ToUpper(strings.ReplaceAll(svc, "-", "_"))] = ep.BaseURL
+	for _, svc := range []string{"S3", "SQS", "SNS", "DYNAMODB", "KMS", "SSM", "SECRETSMANAGER", "STS", "EVENTBRIDGE", "LAMBDA"} {
+		key := "AWS_ENDPOINT_URL_" + svc
+		if v := os.Getenv(key); v != "" {
+			env[key] = v
 		}
 	}
 	return env

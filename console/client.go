@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/gateway"
+	"github.com/doze-dev/doze-aws/peers"
 )
 
 // backend is the console's view of the stack: it is just another client of the
@@ -38,9 +40,9 @@ type backend struct {
 
 const graphTTL = 750 * time.Millisecond
 
-func newBackend(gateway http.Handler) *backend {
+func newBackend(dir peers.Directory) *backend {
 	return &backend{
-		c:    &http.Client{Transport: handlerTransport{gateway}, Timeout: 30 * time.Second},
+		c:    &http.Client{Transport: fanoutTransport{dir}, Timeout: 30 * time.Second},
 		base: "http://console.doze-aws.internal",
 	}
 }
@@ -65,38 +67,41 @@ func (b *backend) graphCached(ctx context.Context) FlowGraph {
 	return g
 }
 
-// handlerTransport serves each request by invoking the gateway handler directly.
-type handlerTransport struct{ h http.Handler }
+// fanoutTransport routes each console request to the AWS service that owns it and
+// dials that service's endpoint — an in-process handler when embedded, or a
+// per-service unix socket in the module topology. Routing uses gateway.Route so
+// the console picks exactly the service the real gateway would (one source of
+// truth), which is what lets the same console front both topologies unchanged.
+type fanoutTransport struct {
+	dir peers.Directory
+}
 
-func (t handlerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	rec := &respRecorder{header: http.Header{}, body: &bytes.Buffer{}}
+func (t fanoutTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Buffer the body once: routing may peek a Query-protocol Action, and the
+	// outbound request needs the same bytes.
+	var body []byte
 	if req.Body != nil {
-		defer req.Body.Close()
+		body, _ = io.ReadAll(req.Body)
+		req.Body.Close()
+		req.Body = io.NopCloser(bytes.NewReader(body))
 	}
-	t.h.ServeHTTP(rec, req)
-	code := rec.code
-	if code == 0 {
-		code = 200
+	svc := gateway.Route(req)
+	ep, ok := t.dir.Endpoint(svc)
+	if !ok {
+		return &http.Response{
+			StatusCode: http.StatusServiceUnavailable,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(`{"__type":"ServiceUnavailable","message":"the ` + svc + ` service is not running"}`)),
+			Request:    req,
+		}, nil
 	}
-	return &http.Response{
-		StatusCode: code,
-		Header:     rec.header,
-		Body:       io.NopCloser(rec.body),
-		Request:    req,
-	}, nil
+	out, err := http.NewRequestWithContext(req.Context(), req.Method, ep.URL(req.URL.RequestURI()), bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	out.Header = req.Header.Clone()
+	return ep.Client.Do(out)
 }
-
-type respRecorder struct {
-	code   int
-	header http.Header
-	body   *bytes.Buffer
-}
-
-func (r *respRecorder) Header() http.Header { return r.header }
-func (r *respRecorder) Write(b []byte) (int, error) {
-	return r.body.Write(b)
-}
-func (r *respRecorder) WriteHeader(code int) { r.code = code }
 
 // apiErr carries a non-2xx wire response back to the handlers.
 type apiErr struct {

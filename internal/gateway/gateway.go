@@ -139,7 +139,19 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // route picks the service for a request and names the rule that decided, for
 // error messages and logs.
-func (g *Gateway) route(r *http.Request) (service, why string) {
+func (g *Gateway) route(r *http.Request) (service, why string) { return routeService(r) }
+
+// Route picks the AWS service a request is destined for, using the same rules
+// the gateway dispatches by. Exported so an out-of-process fanout (e.g. the
+// console talking to per-service sockets) routes identically to the in-process
+// gateway — one source of truth, no drift.
+func Route(r *http.Request) string {
+	svc, _ := routeService(r)
+	return svc
+}
+
+// routeService is the pure routing logic shared by the gateway and Route.
+func routeService(r *http.Request) (service, why string) {
 	if target := r.Header.Get("X-Amz-Target"); target != "" {
 		prefix, _, _ := strings.Cut(target, ".")
 		if svc, ok := targetPrefixes[prefix]; ok {
@@ -156,7 +168,7 @@ func (g *Gateway) route(r *http.Request) (service, why string) {
 			return "lambda", "Lambda API path"
 		}
 	}
-	if action := g.peekAction(r); action != "" {
+	if action := peekAction(r); action != "" {
 		if svc, ok := queryActions[action]; ok {
 			return svc, "Query action"
 		}
@@ -166,7 +178,7 @@ func (g *Gateway) route(r *http.Request) (service, why string) {
 
 // peekAction extracts a Query-protocol Action parameter without consuming the
 // request body: form bodies are read and then restored for the handler.
-func (g *Gateway) peekAction(r *http.Request) string {
+func peekAction(r *http.Request) string {
 	if action := r.URL.Query().Get("Action"); action != "" {
 		return action
 	}

@@ -24,6 +24,7 @@ import (
 	"github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/console"
 	"github.com/doze-dev/doze-aws/internal/config"
+	"github.com/doze-dev/doze-aws/peers"
 	"github.com/doze-dev/doze-aws/stackfile"
 )
 
@@ -201,7 +202,13 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		// console reads it for the Traffic tail but drives its own calls
 		// through the RAW gateway so they never appear there.
 		rec := console.NewRecorder(stack.Handler())
-		con, err := console.New(console.Options{Gateway: stack.Handler(), Recorder: rec})
+		// The console drives its own calls straight to each raw service handler
+		// (peers.InProcess over the stack), so they never pass through the
+		// recorder and never appear in the Traffic tail.
+		con, err := console.New(console.Options{
+			Peers:    peers.InProcess(stack.Service),
+			Recorder: rec,
+		})
 		if err != nil {
 			return err
 		}

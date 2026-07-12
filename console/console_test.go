@@ -14,6 +14,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/console"
+	"github.com/doze-dev/doze-aws/peers"
 )
 
 func newConsole(t *testing.T) http.Handler {
@@ -33,7 +34,7 @@ func newConsoleStack(t *testing.T) (http.Handler, http.Handler) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { stack.Close() })
-	c, err := console.New(console.Options{Gateway: stack.Handler()})
+	c, err := console.New(console.Options{Peers: peers.InProcess(stack.Service)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1184,7 +1185,7 @@ func TestTrafficRecorder(t *testing.T) {
 	}
 	t.Cleanup(func() { stack.Close() })
 	rec := console.NewRecorder(stack.Handler())
-	c, err := console.New(console.Options{Gateway: stack.Handler(), Recorder: rec})
+	c, err := console.New(console.Options{Peers: peers.InProcess(stack.Service), Recorder: rec})
 	if err != nil {
 		t.Fatal(err)
 	}

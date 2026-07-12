@@ -29,3 +29,18 @@ func TestEndpointEnvOmitsEndpointWhenUnset(t *testing.T) {
 		t.Fatal("AWS_ENDPOINT_URL should be absent when no endpoint is configured")
 	}
 }
+
+// TestEndpointEnvPassesThroughPerService: in the module topology the lambda
+// process is handed real per-service AWS_ENDPOINT_URL_<SVC> domains; endpointEnv
+// forwards them to function children (rather than the unroutable peer BaseURLs).
+func TestEndpointEnvPassesThroughPerService(t *testing.T) {
+	t.Setenv("AWS_ENDPOINT_URL_SQS", "http://sqs.demo.doze")
+	s, err := New(Options{DataDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	if got := s.endpointEnv()["AWS_ENDPOINT_URL_SQS"]; got != "http://sqs.demo.doze" {
+		t.Fatalf("AWS_ENDPOINT_URL_SQS = %q, want the passed-through domain", got)
+	}
+}

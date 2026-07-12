@@ -14,6 +14,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/peers"
 )
 
 //go:embed templates/*.html
@@ -34,12 +36,16 @@ type Console struct {
 
 // Options configures the console.
 type Options struct {
-	// Gateway is the AWS endpoint handler the console reads and writes through
-	// (typically stack.Handler()). Pass the RAW gateway, not the traffic-wrapped
-	// one, so the console's own calls don't appear in the Traffic tail.
-	Gateway http.Handler
+	// Peers resolves each AWS service to an endpoint the console reads and writes
+	// through. Embedded: peers.InProcess over the stack's service handlers. Module
+	// topology: peers.FromEnv() (per-service unix sockets). The console routes
+	// each request to the owning service via gateway.Route, so one console fronts
+	// either topology unchanged.
+	Peers peers.Directory
 	// Recorder, if set, feeds the Traffic surface. Wrap the gateway with
-	// NewRecorder for external SDK/CLI calls and pass that recorder here.
+	// NewRecorder for external SDK/CLI calls and pass that recorder here. Leave
+	// nil in topologies where the console doesn't sit in the external request
+	// path (the Traffic surface then reports capture off).
 	Recorder *Recorder
 	// Prefix is the URL path the console is mounted under; defaults to
 	// "/_console".
@@ -58,7 +64,7 @@ func New(opts Options) (*Console, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Console{be: newBackend(opts.Gateway), tmpl: tmpl, prefix: prefix, rec: opts.Recorder}
+	c := &Console{be: newBackend(opts.Peers), tmpl: tmpl, prefix: prefix, rec: opts.Recorder}
 	c.routes()
 	return c, nil
 }
