@@ -31,8 +31,7 @@ type Options struct {
 	// whose Host is <bucket>.<Host> addresses that bucket. Path-style always
 	// works. Empty disables vhost detection (path-style only).
 	Host string
-	// Peers is accepted for constructor uniformity; S3 event notifications
-	// (Phase 6) will deliver through it.
+	// Peers is how S3 event notifications reach SNS/SQS/Lambda targets.
 	Peers peers.Directory
 	// Logf receives log lines; nil discards.
 	Logf func(format string, args ...any)

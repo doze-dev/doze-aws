@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"time"
 
 	bolt "go.etcd.io/bbolt"
 )
@@ -197,25 +196,4 @@ func (s *Store) CancelMessageMoveTask(handle string) error {
 		Status: 400,
 		Msg:    "task is not active: local message move tasks complete synchronously",
 	}
-}
-
-// approxAgeOfOldest returns the age of the oldest stored message, for the
-// ApproximateAgeOfOldestMessage attribute move-task progress reporting uses.
-func (s *Store) approxAgeOfOldest(tx *bolt.Tx, queue string) time.Duration {
-	mb := tx.Bucket(msgBucket(queue))
-	if mb == nil {
-		return 0
-	}
-	var oldest int64
-	_ = mb.ForEach(func(_, raw []byte) error {
-		var m Message
-		if json.Unmarshal(raw, &m) == nil && (oldest == 0 || m.Sent < oldest) {
-			oldest = m.Sent
-		}
-		return nil
-	})
-	if oldest == 0 {
-		return 0
-	}
-	return s.now().Sub(time.Unix(0, oldest))
 }

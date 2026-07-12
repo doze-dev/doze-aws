@@ -80,6 +80,30 @@ func TestSDKFunctionManagement(t *testing.T) {
 	}
 }
 
+// TestReservedConcurrencyZeroThrottles: reserved concurrency 0 means "throttle
+// all invocations" in real Lambda, not "use the default pool size".
+func TestReservedConcurrencyZeroThrottles(t *testing.T) {
+	ctx := context.Background()
+	c, _ := lambdaClient(t)
+	createEcho(t, ctx, c, "throttled")
+
+	if _, err := c.PutFunctionConcurrency(ctx, &awslambda.PutFunctionConcurrencyInput{
+		FunctionName: aws.String("throttled"), ReservedConcurrentExecutions: aws.Int32(0),
+	}); err != nil {
+		t.Fatalf("PutFunctionConcurrency: %v", err)
+	}
+	if _, err := c.Invoke(ctx, &awslambda.InvokeInput{FunctionName: aws.String("throttled"), Payload: []byte("{}")}); err == nil {
+		t.Fatal("invoking a function with reserved concurrency 0 should be throttled")
+	}
+	// Removing the reservation restores invocability.
+	if _, err := c.DeleteFunctionConcurrency(ctx, &awslambda.DeleteFunctionConcurrencyInput{FunctionName: aws.String("throttled")}); err != nil {
+		t.Fatalf("DeleteFunctionConcurrency: %v", err)
+	}
+	if _, err := c.Invoke(ctx, &awslambda.InvokeInput{FunctionName: aws.String("throttled"), Payload: []byte("{}")}); err != nil {
+		t.Fatalf("invoke after clearing reservation: %v", err)
+	}
+}
+
 func TestSDKEventSourceMappingCRUD(t *testing.T) {
 	ctx := context.Background()
 	c, _ := lambdaClient(t)

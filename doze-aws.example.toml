@@ -21,6 +21,5 @@ data-dir = "./data"
 
 [s3]
 # Base host for virtual-hosted-style bucket addressing (bucket.<host>).
-# Path-style requests work regardless. (Reserved: the s3 service is on the
-# roadmap; the key is accepted today so this file stays valid.)
+# Path-style requests work regardless.
 host = "localhost"

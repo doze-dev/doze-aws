@@ -90,9 +90,6 @@ type ObjectVersion struct {
 	seqKey []byte // ver: bucket key this record was loaded from (not persisted)
 }
 
-// SeqKey returns the bbolt key the version was loaded from.
-func (v *ObjectVersion) SeqKey() []byte { return v.seqKey }
-
 // Upload is one in-progress multipart upload.
 type Upload struct {
 	ID          string            `json:"id"`

@@ -194,30 +194,6 @@ func (b *backend) Publish(ctx context.Context, topicARN, message, subject string
 	return err
 }
 
-// ---- STS ----
-
-type Identity struct {
-	Account string
-	ARN     string
-	UserID  string
-}
-
-func (b *backend) CallerIdentity(ctx context.Context) (*Identity, error) {
-	body, err := b.queryXML(ctx, url.Values{"Action": {"GetCallerIdentity"}, "Version": {"2011-06-15"}})
-	if err != nil {
-		return nil, err
-	}
-	var out struct {
-		Account string `xml:"GetCallerIdentityResult>Account"`
-		Arn     string `xml:"GetCallerIdentityResult>Arn"`
-		UserID  string `xml:"GetCallerIdentityResult>UserId"`
-	}
-	if err := xml.Unmarshal(body, &out); err != nil {
-		return nil, err
-	}
-	return &Identity{Account: out.Account, ARN: out.Arn, UserID: out.UserID}, nil
-}
-
 // arnLeaf returns the resource name at the end of an ARN.
 func arnLeaf(arn string) string {
 	if i := strings.LastIndex(arn, ":"); i >= 0 {

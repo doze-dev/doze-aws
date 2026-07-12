@@ -142,6 +142,34 @@ func TestSDKDeletionRecoveryWindow(t *testing.T) {
 	assertCode(t, err, "ResourceNotFoundException")
 }
 
+// TestPartialARNLookup: a secret whose name ends in a dash-6char segment must
+// still be reachable by its partial ARN (no random suffix) — the exact-then-
+// stripped lookup must not mis-strip "db-secret" to "db".
+func TestPartialARNLookup(t *testing.T) {
+	ctx := context.Background()
+	c := smClient(t)
+
+	created, err := c.CreateSecret(ctx, &awssm.CreateSecretInput{
+		Name: aws.String("db-secret"), SecretString: aws.String("v1"),
+	})
+	if err != nil {
+		t.Fatalf("CreateSecret: %v", err)
+	}
+	// Look up by the full ARN (carries the random suffix).
+	if _, err := c.GetSecretValue(ctx, &awssm.GetSecretValueInput{SecretId: created.ARN}); err != nil {
+		t.Fatalf("lookup by full ARN: %v", err)
+	}
+	// Look up by a partial ARN (no random suffix) — a documented AWS form.
+	partial := "arn:aws:secretsmanager:us-east-1:000000000000:secret:db-secret"
+	if _, err := c.GetSecretValue(ctx, &awssm.GetSecretValueInput{SecretId: aws.String(partial)}); err != nil {
+		t.Fatalf("lookup by partial ARN: %v", err)
+	}
+	// And by bare name.
+	if _, err := c.GetSecretValue(ctx, &awssm.GetSecretValueInput{SecretId: aws.String("db-secret")}); err != nil {
+		t.Fatalf("lookup by name: %v", err)
+	}
+}
+
 // TestRotationFinishStepStages reproduces the rotation lambda's finishSecret
 // step (move AWSCURRENT from the old version to the pending one) and asserts the
 // version that loses AWSCURRENT inherits AWSPREVIOUS — the transition that must

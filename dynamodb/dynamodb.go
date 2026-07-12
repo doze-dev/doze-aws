@@ -5,8 +5,9 @@
 // writes, batch operations, single-node TransactWriteItems/TransactGetItems
 // with ClientRequestToken idempotency, and TTL enforced by a janitor.
 //
-// Deferred (post-1.0): DynamoDB Streams. PartiQL arrives in Phase 8. Global
-// tables, DAX, and backup/export are cloud infrastructure and answer honestly.
+// PartiQL (ExecuteStatement/BatchExecuteStatement/ExecuteTransaction) is
+// supported. Deferred (post-1.0): DynamoDB Streams. Global tables, DAX, and
+// backup/export are cloud infrastructure and answer honestly.
 //
 // See docs/api-support/dynamodb.md for the operation-by-operation table.
 package dynamodb

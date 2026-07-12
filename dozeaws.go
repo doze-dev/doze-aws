@@ -38,7 +38,7 @@ import (
 )
 
 // Implemented lists the services this build of doze-aws can serve, in gateway
-// order. It grows phase by phase; gateway.Services is the full roadmap set.
+// order (currently the full set gateway.Services knows about).
 var Implemented = []string{"s3", "dynamodb", "sqs", "sns", "sts", "kms", "ssm", "secretsmanager", "eventbridge", "lambda"}
 
 // StackConfig configures a Stack.

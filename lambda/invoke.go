@@ -22,6 +22,11 @@ func (s *Server) invoke(w http.ResponseWriter, r *http.Request, name string) *aw
 	if err != nil {
 		return awshttp.AsAPIError(err)
 	}
+	// Reserved concurrency 0 means "throttle every invocation" in real Lambda,
+	// not "use the default pool size".
+	if f.ReservedConcurrency != nil && *f.ReservedConcurrency == 0 {
+		return awshttp.Errf(429, "TooManyRequestsException", "function %s is throttled (reserved concurrency 0)", name)
+	}
 	payload, _ := io.ReadAll(io.LimitReader(r.Body, 6<<20))
 	if len(payload) == 0 {
 		payload = []byte("{}")
@@ -61,8 +66,14 @@ func (s *Server) invoke(w http.ResponseWriter, r *http.Request, name string) *aw
 	return nil
 }
 
+// errThrottled is returned when a function's reserved concurrency is 0.
+var errThrottled = errors.New("function throttled (reserved concurrency 0)")
+
 // runInvoke ensures the function's runner exists and drives one invocation.
 func (s *Server) runInvoke(ctx context.Context, f *Function, payload []byte) (lambdaruntime.Result, error) {
+	if f.ReservedConcurrency != nil && *f.ReservedConcurrency == 0 {
+		return lambdaruntime.Result{}, errThrottled
+	}
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(f.Timeout+5)*time.Second)
 	defer cancel()
 	// If the pool was stopped underneath us by a concurrent restart (code/config

@@ -34,8 +34,8 @@ var handlers = map[string]handler{
 }
 
 func init() {
-	// RotateSecret needs the lambda service (Phase 8); replication needs
-	// other regions. Both answer honestly.
+	// Replication needs other regions, which don't exist locally; these answer
+	// honestly.
 	for name, why := range map[string]string{
 		"ReplicateSecretToRegions":     "there is exactly one region locally",
 		"RemoveRegionsFromReplication": "there is exactly one region locally",

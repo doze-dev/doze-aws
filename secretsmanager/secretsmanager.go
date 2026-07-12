@@ -4,9 +4,9 @@
 // genuinely encrypted at rest with a per-data-dir AES-256-GCM key the service
 // manages itself (a KMS KeyId is recorded and returned cosmetically).
 //
-// Rotation (RotateSecret invoking a rotation Lambda) arrives in Phase 8 once
-// the lambda service exists; until then it answers a clean error. Cross-region
-// replication is physically meaningless locally and answers honestly.
+// Rotation (RotateSecret) drives the four-step protocol against a configured
+// rotation Lambda via peers. Cross-region replication is physically meaningless
+// locally and answers honestly.
 //
 // See docs/api-support/secretsmanager.md for the support table.
 package secretsmanager
@@ -31,8 +31,7 @@ type Options struct {
 	// DataDir holds the bbolt store (secretsmanager.bolt) and the value
 	// encryption key (secretsmanager.key). Required.
 	DataDir string
-	// Peers is accepted for constructor uniformity; rotation will use it in
-	// Phase 8 to invoke the rotation lambda.
+	// Peers lets RotateSecret invoke the configured rotation lambda.
 	Peers peers.Directory
 	// Logf receives log lines; nil discards.
 	Logf func(format string, args ...any)

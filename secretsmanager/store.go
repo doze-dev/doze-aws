@@ -103,40 +103,46 @@ func (s *Store) open(sealed []byte) ([]byte, error) {
 	return s.gcm.Open(nil, sealed[:s.gcm.NonceSize()], sealed[s.gcm.NonceSize():], nil)
 }
 
-// nameFromID extracts the secret name from a SecretId (name or ARN; ARNs carry
-// a -6char suffix after the name).
-func nameFromID(id string) string {
+// candidateNames returns the stored names a SecretId may resolve to, most
+// specific first. Full ARNs carry a random -XXXXXX suffix; partial ARNs (a
+// documented lookup form) omit it. Trying the exact ARN name segment before the
+// suffix-stripped form supports both and avoids mis-stripping a real name that
+// happens to end in a 6-character dash segment (e.g. "db-secret").
+func candidateNames(id string) []string {
 	if !strings.HasPrefix(id, "arn:") {
-		return id
+		return []string{id}
 	}
-	// arn:aws:secretsmanager:region:acct:secret:<name>-XXXXXX
+	// arn:aws:secretsmanager:region:acct:secret:<name>[-XXXXXX]
 	parts := strings.SplitN(id, ":", 7)
 	if len(parts) != 7 {
-		return id
+		return []string{id}
 	}
 	name := parts[6]
+	cands := []string{name}
 	if i := strings.LastIndex(name, "-"); i > 0 && len(name)-i == 7 {
-		name = name[:i]
+		cands = append(cands, name[:i])
 	}
-	return name
+	return cands
 }
 
 // get loads a secret inside a transaction.
 func (s *Store) get(tx *bolt.Tx, id string) (*Secret, error) {
-	name := nameFromID(id)
 	b := tx.Bucket(secretsBucket)
 	if b == nil {
 		return nil, errSecretNotFound(id)
 	}
-	raw := b.Get([]byte(name))
-	if raw == nil {
-		return nil, errSecretNotFound(id)
+	for _, name := range candidateNames(id) {
+		raw := b.Get([]byte(name))
+		if raw == nil {
+			continue
+		}
+		var sec Secret
+		if err := json.Unmarshal(raw, &sec); err != nil {
+			return nil, err
+		}
+		return &sec, nil
 	}
-	var sec Secret
-	if err := json.Unmarshal(raw, &sec); err != nil {
-		return nil, err
-	}
-	return &sec, nil
+	return nil, errSecretNotFound(id)
 }
 
 func (s *Store) put(tx *bolt.Tx, sec *Secret) error {
