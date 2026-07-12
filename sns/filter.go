@@ -2,76 +2,57 @@ package sns
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/internal/eventpattern"
 )
 
 // matchFilter reports whether a message with the given attributes satisfies a
-// subscription's filter policy. An empty policy always matches. Within an
-// attribute the conditions are OR'd; across attributes they are AND'd — the SNS
-// semantics. Supported conditions: exact string, {"prefix":..}, {"anything-but":
-// [..]}, and the {"exists":true/false} operator.
+// subscription's filter policy. An empty policy always matches. SNS filter
+// policies share EventBridge's pattern language (conditions OR'd within an
+// attribute, attributes AND'd), so the shared eventpattern matcher backs both —
+// giving SNS the full operator set (numeric ranges, prefix/suffix, anything-but,
+// exists, wildcard) rather than a weaker re-implementation.
 func matchFilter(policyJSON string, attrs map[string]Attr) bool {
 	if strings.TrimSpace(policyJSON) == "" {
 		return true
 	}
-	var policy map[string][]json.RawMessage
-	if err := json.Unmarshal([]byte(policyJSON), &policy); err != nil {
+	pat, err := eventpattern.Parse([]byte(policyJSON))
+	if err != nil {
 		return true // a malformed policy shouldn't silently drop everything
 	}
-	for key, conds := range policy {
-		a, present := attrs[key]
-		if !matchKey(conds, a.StringValue, present) {
-			return false
-		}
+	doc := make(map[string]any, len(attrs))
+	for name, a := range attrs {
+		doc[name] = attrMatchValue(a)
 	}
-	return true
+	raw, _ := json.Marshal(doc)
+	ok, err := pat.Match(raw)
+	if err != nil {
+		return true
+	}
+	return ok
 }
 
-func matchKey(conds []json.RawMessage, value string, present bool) bool {
-	for _, c := range conds {
-		// Plain string condition.
-		var s string
-		if json.Unmarshal(c, &s) == nil {
-			if present && s == value {
-				return true
-			}
-			continue
+// attrMatchValue renders an SNS message attribute as the JSON value the pattern
+// matcher compares against: Number as a JSON number (so numeric operators work),
+// String.Array as a JSON array (any-element match), everything else as a string.
+func attrMatchValue(a Attr) any {
+	switch a.DataType {
+	case "Number":
+		if f, err := strconv.ParseFloat(a.StringValue, 64); err == nil {
+			return f
 		}
-		// Operator object.
-		var op map[string]json.RawMessage
-		if json.Unmarshal(c, &op) != nil {
-			continue
+		return a.StringValue
+	case "String.Array":
+		var arr []any
+		if json.Unmarshal([]byte(a.StringValue), &arr) == nil {
+			return arr
 		}
-		if raw, ok := op["exists"]; ok {
-			var want bool
-			_ = json.Unmarshal(raw, &want)
-			if want == present {
-				return true
-			}
-		}
-		if raw, ok := op["prefix"]; ok {
-			var p string
-			if json.Unmarshal(raw, &p) == nil && present && strings.HasPrefix(value, p) {
-				return true
-			}
-		}
-		if raw, ok := op["anything-but"]; ok {
-			var list []string
-			if json.Unmarshal(raw, &list) == nil && present {
-				excluded := false
-				for _, x := range list {
-					if x == value {
-						excluded = true
-						break
-					}
-				}
-				if !excluded {
-					return true
-				}
-			}
-		}
+		return a.StringValue
+	default:
+		return a.StringValue
 	}
-	return false
 }
 
 // MatchPolicy reports whether a message carrying the given string attributes

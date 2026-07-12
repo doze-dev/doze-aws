@@ -451,15 +451,21 @@ func (s *Store) receiveOnce(queue string, max, visibilityOverride int) (out []Me
 			})
 		}
 
+		// Decide the pass in a read-only cursor walk, then apply all mutations
+		// afterward: bbolt's cursor gives undefined results if the bucket is
+		// mutated (Delete/Put) while the cursor is live.
+		var expireKeys [][]byte
+		var dlqMsgs []Message
+		var deliver []Message
 		c := mb.Cursor()
-		for k, raw := c.First(); k != nil && len(out) < max; k, raw = c.Next() {
+		for k, raw := c.First(); k != nil && len(deliver) < max; k, raw = c.Next() {
 			var m Message
 			if json.Unmarshal(raw, &m) != nil {
 				continue
 			}
 			// Retention: drop expired messages.
 			if q.RetentionPeriod > 0 && now.Sub(time.Unix(0, m.Sent)) > time.Duration(q.RetentionPeriod)*time.Second {
-				_ = mb.Delete(k)
+				expireKeys = append(expireKeys, append([]byte(nil), k...))
 				continue
 			}
 			if m.VisibleAt > nowN {
@@ -473,16 +479,7 @@ func (s *Store) receiveOnce(queue string, max, visibilityOverride int) (out []Me
 			}
 			// DLQ redrive: if it has been received too many times, move it.
 			if q.DeadLetterTarget != "" && q.MaxReceiveCount > 0 && m.ReceiveCount >= q.MaxReceiveCount {
-				moved, err := s.moveToDLQ(tx, q.DeadLetterTarget, &m)
-				if err != nil {
-					return err
-				}
-				if moved {
-					_ = mb.Delete(k)
-					dlqHit = append(dlqHit, q.DeadLetterTarget)
-				}
-				// If the DLQ was gone, leave the message in place rather than
-				// deleting it — skip delivery this pass and try again next time.
+				dlqMsgs = append(dlqMsgs, m)
 				continue
 			}
 			// Deliver.
@@ -491,13 +488,32 @@ func (s *Store) receiveOnce(queue string, max, visibilityOverride int) (out []Me
 				m.FirstReceived = nowN
 			}
 			m.VisibleAt = now.Add(time.Duration(vis) * time.Second).UnixNano()
-			if err := putMessage(mb, &m); err != nil {
-				return err
-			}
+			deliver = append(deliver, m)
 			if q.FIFO {
 				lockedGroups[m.GroupID] = true
 			}
-			out = append(out, m)
+		}
+		// Apply mutations now that the cursor is done.
+		for _, k := range expireKeys {
+			_ = mb.Delete(k)
+		}
+		for i := range dlqMsgs {
+			moved, err := s.moveToDLQ(tx, q.DeadLetterTarget, &dlqMsgs[i])
+			if err != nil {
+				return err
+			}
+			if moved {
+				// A moved message no longer exists in the source queue.
+				_ = mb.Delete(seqKey(dlqMsgs[i].Seq))
+				dlqHit = append(dlqHit, q.DeadLetterTarget)
+			}
+			// If the DLQ was gone, leave the message in the source queue.
+		}
+		for i := range deliver {
+			if err := putMessage(mb, &deliver[i]); err != nil {
+				return err
+			}
+			out = append(out, deliver[i])
 		}
 		return nil
 	})

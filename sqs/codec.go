@@ -319,29 +319,60 @@ func writeResult(w http.ResponseWriter, req *request, action string, result any)
 	_ = enc.Flush()
 }
 
+// jsonErrorType maps an internal error code to the modern awsjson error shape
+// name aws-sdk-go-v2 matches on. The Query protocol keeps the legacy code; only
+// the JSON protocol needs the shape name so errors.As(err, &types.XxX{}) works.
+func jsonErrorType(code string) string {
+	switch code {
+	case "AWS.SimpleQueueService.NonExistentQueue":
+		return "QueueDoesNotExist"
+	case "AWS.SimpleQueueService.QueueDeletedRecently":
+		return "QueueDeletedRecently"
+	case "AWS.SimpleQueueService.QueueNameExists", "QueueAlreadyExists":
+		return "QueueNameExists"
+	default:
+		return code
+	}
+}
+
+// errorSenderClass classifies a fault as Sender (4xx) or Receiver (5xx), the way
+// real AWS does — not a hardcoded "Sender".
+func errorSenderClass(status int) string {
+	if status >= 500 {
+		return "Receiver"
+	}
+	return "Sender"
+}
+
 // writeError encodes an apiError in the request's protocol.
 func writeError(w http.ResponseWriter, isJSON bool, err *apiError) {
+	reqID := newID()
 	if isJSON {
+		shape := jsonErrorType(err.Code)
 		w.Header().Set("Content-Type", "application/x-amz-json-1.0")
+		w.Header().Set("x-amzn-RequestId", reqID)
+		w.Header().Set("x-amzn-query-error", err.Code+";"+errorSenderClass(err.Status))
 		w.WriteHeader(err.Status)
 		_ = json.NewEncoder(w).Encode(map[string]string{
-			"__type":  err.Code,
+			"__type":  shape,
 			"message": err.Msg,
 		})
 		return
 	}
 	w.Header().Set("Content-Type", "text/xml")
+	w.Header().Set("x-amzn-RequestId", reqID)
 	w.WriteHeader(err.Status)
 	_, _ = w.Write([]byte(xml.Header))
 	type xmlErr struct {
 		XMLName   xml.Name `xml:"ErrorResponse"`
+		XMLNS     string   `xml:"xmlns,attr"`
 		Type      string   `xml:"Error>Type"`
 		Code      string   `xml:"Error>Code"`
 		Message   string   `xml:"Error>Message"`
 		RequestID string   `xml:"RequestId"`
 	}
 	_ = xml.NewEncoder(w).Encode(xmlErr{
-		Type: "Sender", Code: err.Code, Message: err.Msg, RequestID: newID(),
+		XMLNS: sqsXMLNS, Type: errorSenderClass(err.Status), Code: err.Code, Message: err.Msg, RequestID: reqID,
 	})
 }
 

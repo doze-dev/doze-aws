@@ -3,6 +3,9 @@ package sns
 import (
 	"fmt"
 	"net/url"
+	"strings"
+
+	"github.com/doze-dev/doze-aws/internal/eventpattern"
 )
 
 // dispatch maps an SNS action to its handler.
@@ -149,7 +152,11 @@ func (srv *Server) subscribe(form url.Values, host string) (any, *apiError) {
 	if topicArn == "" || proto == "" || endpoint == "" {
 		return nil, errInvalid("TopicArn, Protocol and Endpoint are required")
 	}
-	sub, err := srv.store.Subscribe(topicArn, proto, endpoint, subscribeAttributes(form))
+	attrs := subscribeAttributes(form)
+	if perr := validateFilterPolicy(attrs["FilterPolicy"]); perr != nil {
+		return nil, perr
+	}
+	sub, err := srv.store.Subscribe(topicArn, proto, endpoint, attrs)
 	if err != nil {
 		return nil, asErr(err)
 	}
@@ -203,8 +210,26 @@ func (srv *Server) subscriptionList(topic string) (any, *apiError) {
 }
 
 func (srv *Server) setSubscriptionAttributes(form url.Values, _ string) (any, *apiError) {
+	if form.Get("AttributeName") == "FilterPolicy" {
+		if perr := validateFilterPolicy(form.Get("AttributeValue")); perr != nil {
+			return nil, perr
+		}
+	}
 	return nil, asErr(srv.store.SetSubscriptionAttribute(
 		form.Get("SubscriptionArn"), form.Get("AttributeName"), form.Get("AttributeValue")))
+}
+
+// validateFilterPolicy rejects a malformed filter policy at subscribe/set time,
+// the way real SNS does, instead of storing an inert policy that silently drops
+// every message.
+func validateFilterPolicy(policyJSON string) *apiError {
+	if strings.TrimSpace(policyJSON) == "" {
+		return nil
+	}
+	if _, err := eventpattern.Parse([]byte(policyJSON)); err != nil {
+		return errInvalid("invalid FilterPolicy: " + err.Error())
+	}
+	return nil
 }
 func (srv *Server) getSubscriptionAttributes(form url.Values, _ string) (any, *apiError) {
 	sub, err := srv.store.GetSubscription(form.Get("SubscriptionArn"))

@@ -2,6 +2,7 @@ package sqs
 
 import (
 	"context"
+	"errors"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -28,6 +29,24 @@ func sdkClient(t *testing.T) *awssqs.Client {
 		Region:      "us-east-1",
 		Credentials: credentials.NewStaticCredentialsProvider("test", "test", ""),
 	}, func(o *awssqs.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+}
+
+// TestSQSTypedError proves the JSON protocol emits an error the aws-sdk-go-v2
+// typed-error machinery matches: errors.As(err, &types.QueueDoesNotExist{}) must
+// succeed, the way it does against real AWS (it failed when __type carried the
+// legacy Query code instead of the modern shape name).
+func TestSQSTypedError(t *testing.T) {
+	ctx := context.Background()
+	c := sdkClient(t)
+
+	_, err := c.GetQueueUrl(ctx, &awssqs.GetQueueUrlInput{QueueName: aws.String("nope")})
+	if err == nil {
+		t.Fatal("GetQueueUrl on a missing queue should error")
+	}
+	var qdne *types.QueueDoesNotExist
+	if !errors.As(err, &qdne) {
+		t.Fatalf("want typed QueueDoesNotExist, got %T: %v", err, err)
+	}
 }
 
 // TestSQSSDK drives the real aws-sdk-go-v2 SQS client (JSON protocol) against the
