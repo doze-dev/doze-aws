@@ -44,7 +44,7 @@ func notFound(err error) bool {
 		return true
 	}
 	b := ae.body
-	for _, marker := range []string{"NonExistent", "NotFound", "ResourceNotFoundException", "NoSuchBucket", "ParameterNotFound"} {
+	for _, marker := range []string{"NonExistent", "DoesNotExist", "NotFound", "ResourceNotFoundException", "NoSuchBucket", "ParameterNotFound"} {
 		if strings.Contains(b, marker) {
 			return true
 		}
