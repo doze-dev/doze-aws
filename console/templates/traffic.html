@@ -12,13 +12,21 @@
   </section>
 {{template "shell_bottom" .}}{{end}}
 
+{{/* The filter state (errOnly/svc) lives on this OUTER wrapper, which the live
+     poll never replaces — only #traffic-feed (the rows) morphs each tick, so the
+     filters and expanded rows survive incoming traffic. */}}
 {{define "traffic_feed"}}
-<div id="traffic-feed" data-live="{{.Prefix}}/traffic/feed" data-live-ms="1500" data-hash="{{.Hash}}"
-     x-data="{errOnly:false, svc:''}">
+<div x-data="{errOnly:false, svc:''}">
   <div class="chips" style="margin-bottom:10px">
     <label class="chip" style="cursor:pointer"><input type="checkbox" x-model="errOnly" style="margin-right:6px;vertical-align:-1px"> only errors</label>
     <select class="chip" x-model="svc" style="cursor:pointer;background:hsl(var(--card))"><option value="">all services</option><option>s3</option><option>sqs</option><option>sns</option><option>ddb</option><option>lambda</option><option>kms</option><option>eb</option><option>sm</option><option>ssm</option><option>sts</option></select>
   </div>
+  {{template "traffic_rows" .}}
+</div>
+{{end}}
+
+{{define "traffic_rows"}}
+<div id="traffic-feed" data-live="{{.Prefix}}/traffic/feed" data-live-ms="1500" data-hash="{{.Hash}}">
   <div class="table-wrap" style="overflow:hidden">
   {{if .Entries}}
   {{range .Entries}}
@@ -36,7 +44,7 @@
   </div>
   {{end}}
   {{else}}
-  <div class="empty" style="border:0"><span class="ic-lg">{{icon "activity"}}</span><p>No calls yet. Point an SDK or the CLI at <code class="mono">http://127.0.0.1:4566</code> and watch them stream in.</p></div>
+  <div class="empty" style="border:0"><span class="ic-lg">{{icon "activity"}}</span><p>No calls yet. Point an SDK or the CLI at <code class="mono">http://{{if .Endpoint}}{{.Endpoint}}{{else}}127.0.0.1:4566{{end}}</code> and watch them stream in.</p></div>
   {{end}}
   </div>
 </div>

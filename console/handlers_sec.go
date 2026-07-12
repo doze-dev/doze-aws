@@ -243,17 +243,19 @@ func (c *Console) ssmPut(w http.ResponseWriter, r *http.Request) {
 	c.partial(w, "ssm_param_detail", map[string]any{"P": np, "History": hist})
 }
 
-// ssmLabel attaches a label to the parameter's latest version.
+// ssmLabel attaches a label to the parameter version the row names (0 = latest).
 func (c *Console) ssmLabel(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
-	if err := c.be.LabelParameter(r.Context(), name, r.FormValue("label"), 0); err != nil {
+	version, _ := strconv.Atoi(r.FormValue("version"))
+	if err := c.be.LabelParameter(r.Context(), name, r.FormValue("label"), version); err != nil {
 		c.fail(w, err)
 		return
 	}
 	toast(w, "Label “"+r.FormValue("label")+"” applied")
 	np, _ := c.be.GetParameter(r.Context(), name)
 	hist, _ := c.be.ParameterHistory(r.Context(), name)
-	c.partial(w, "ssm_param_detail", map[string]any{"P": np, "History": hist})
+	// Keep the user on the Versions tab where they submitted the label.
+	c.partial(w, "ssm_param_detail", map[string]any{"P": np, "History": hist, "Mode": "versions"})
 }
 
 func (c *Console) ssmDelete(w http.ResponseWriter, r *http.Request) {

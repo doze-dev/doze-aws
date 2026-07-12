@@ -82,6 +82,11 @@
   window.addEventListener("toast-error", function (e) { toast(e.detail.value !== undefined ? e.detail.value : e.detail, "err"); });
   document.addEventListener("htmx:responseError", function (e) {
     var raw = (e.detail.xhr.responseText || "Request failed");
+    // The server HTML-escapes error bodies; decode entities first so the message
+    // regex matches and the toast shows real quotes/brackets, not "&#34;".
+    var ta = document.createElement("textarea");
+    ta.innerHTML = raw;
+    raw = ta.value;
     var m = raw.match(/<Message>([^<]+)|"message"\s*:\s*"([^"]+)"/i);
     var msg = (m && (m[1] || m[2])) || raw.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
     if (msg.length > 140) msg = msg.slice(0, 140) + "…";

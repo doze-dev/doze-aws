@@ -57,9 +57,15 @@ func (b *backend) GetBucketProps(ctx context.Context, bucket string) (*BucketPro
 		}
 	}
 
-	// Object lock (404 when not enabled).
-	if _, err := b.s3Sub(ctx, "GET", bucket, "object-lock"); err == nil {
-		p.ObjectLock = true
+	// Object lock: the config request may return 200 with an empty document when
+	// the bucket has no lock, so read ObjectLockEnabled rather than trusting the
+	// status code.
+	if body, err := b.s3Sub(ctx, "GET", bucket, "object-lock"); err == nil {
+		var v struct {
+			Enabled string `xml:"ObjectLockEnabled"`
+		}
+		xml.Unmarshal(body, &v)
+		p.ObjectLock = v.Enabled == "Enabled"
 	}
 
 	// Tags.

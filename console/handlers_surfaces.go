@@ -40,7 +40,9 @@ func (c *Console) trafficFeed(w http.ResponseWriter, r *http.Request) {
 	if liveUnchanged(w, r, hash) {
 		return
 	}
-	c.partial(w, "traffic_feed", map[string]any{"Entries": entries, "Hash": hash})
+	// Poll returns only the rows region (traffic_rows); the filter state lives on
+	// the outer wrapper the poll never touches.
+	c.partial(w, "traffic_rows", map[string]any{"Entries": entries, "Hash": hash, "Endpoint": endpointHost(r)})
 }
 
 // trafficRow is a display-ready traffic entry.

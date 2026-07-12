@@ -428,7 +428,7 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 	data["Attrs"] = attrs
 	data["IsDLQ"] = isDLQ
 	data["ARN"] = QueueARN(name)
-	data["URL"] = "http://127.0.0.1:4566/000000000000/" + name
+	data["URL"] = "http://" + endpointHost(r) + "/000000000000/" + name
 	data["Config"] = sqsConfigOf(attrs)
 	data["Conn"] = conn
 	data["Tab"] = tabOf(r, "messages")

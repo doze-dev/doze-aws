@@ -39,7 +39,7 @@
       {{else}}
         <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/upload" hx-target="#object-table" hx-select="unset" hx-swap="outerHTML"
               hx-encoding="multipart/form-data" style="display:none"
-              @change="if($el.file.files.length) htmx.trigger($el,'submit')" @htmx:after-request="$el.reset()">
+              @change="if($el.file.files.length){$el.prefix.value=currentPrefix(); htmx.trigger($el,'submit')}" @htmx:after-request="$el.reset()">
           <input type="hidden" name="prefix" value="{{.KeyPrefix}}"><input type="file" name="file">
         </form>
         <div class="dropwrap" @dragenter.prevent="drag++" @dragover.prevent @dragleave.prevent="drag--"

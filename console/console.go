@@ -258,6 +258,7 @@ func (c *Console) render(w http.ResponseWriter, r *http.Request, page string, da
 	}
 	data["Prefix"] = c.prefix
 	data["Page"] = page
+	data["Endpoint"] = endpointHost(r)
 	if f := r.URL.Query().Get("flash"); f != "" {
 		data["Flash"] = f
 	}
@@ -283,6 +284,16 @@ func (c *Console) redirect(w http.ResponseWriter, r *http.Request, to, flash str
 		return
 	}
 	http.Redirect(w, r, to, http.StatusSeeOther)
+}
+
+// endpointHost is the host:port the browser reached the console on — the same
+// address an SDK/CLI would target. Used for the endpoint chip and copyable
+// resource URLs so they don't lie about the actual listen address.
+func endpointHost(r *http.Request) string {
+	if r.Host != "" {
+		return r.Host
+	}
+	return "127.0.0.1:4566"
 }
 
 // partial renders a single named template (for HTMX swaps).

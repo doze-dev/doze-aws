@@ -28,7 +28,7 @@ var r=localStorage.getItem("rail");if(r==="slim")document.documentElement.setAtt
     <button class="tb-palette" id="palette-open">{{icon "search"}} <span>Jump or act…</span> <span class="kbd">⌘K</span></button>
     <div class="tb-spacer"></div>
     <div class="tb-right">
-      <span class="chip mono"><span class="live"></span>127.0.0.1:4566</span>
+      <span class="chip mono"><span class="live"></span>{{if .Endpoint}}{{.Endpoint}}{{else}}127.0.0.1:4566{{end}}</span>
       <span class="chip">us-east-1</span>
       <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">{{icon "moon"}}</button>
     </div>
