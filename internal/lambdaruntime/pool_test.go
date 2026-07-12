@@ -96,6 +96,41 @@ func TestPoolConcurrency(t *testing.T) {
 	}
 }
 
+// TestPoolClosedRejectsAcquire proves a stopped pool never hands out (and thus
+// never spawns) a runner — the guard against orphaned processes. No child
+// process is needed, so it runs even in -short mode.
+func TestPoolClosedRejectsAcquire(t *testing.T) {
+	p := NewPool(Spec{Name: "x", Command: []string{"/nonexistent"}, Timeout: time.Second}, 5, nil)
+	p.Stop()
+	if _, err := p.Invoke(context.Background(), []byte(`{}`)); err != ErrPoolClosed {
+		t.Fatalf("Invoke on closed pool = %v, want ErrPoolClosed", err)
+	}
+	if sz := p.Size(); sz != 0 {
+		t.Fatalf("closed pool spawned %d runners", sz)
+	}
+}
+
+// TestPoolInvokeRacesStop hammers Invoke concurrently with Stop; under -race it
+// must not leak runners past Stop nor panic. Run with -short (no real process):
+// acquire/Stop interleaving is exercised without needing a working bootstrap.
+func TestPoolInvokeRacesStop(t *testing.T) {
+	p := NewPool(Spec{Name: "x", Command: []string{"/nonexistent"}, Timeout: 200 * time.Millisecond}, 5, nil)
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, _ = p.Invoke(context.Background(), []byte(`{}`))
+		}()
+	}
+	p.Stop()
+	wg.Wait()
+	// After Stop drains, no runner may remain registered.
+	if sz := p.Size(); sz != 0 {
+		t.Fatalf("runners leaked past Stop: %d", sz)
+	}
+}
+
 // TestPoolSerialStaysSmall proves the pool doesn't over-provision: serial
 // invocations reuse a single runner.
 func TestPoolSerialStaysSmall(t *testing.T) {

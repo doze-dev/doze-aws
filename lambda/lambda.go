@@ -60,6 +60,7 @@ type Server struct {
 	mu       sync.Mutex
 	runners  map[string]*lambdaruntime.Pool // function name -> concurrency pool
 	mappings map[string]*esm                // mapping UUID -> poller
+	pollers  sync.WaitGroup                 // tracks live ESM poller goroutines
 }
 
 // New opens the store under DataDir.
@@ -105,7 +106,9 @@ func New(opts Options) (*Server, error) {
 	return s, nil
 }
 
-// Close stops every runner and poller and closes the store.
+// Close stops every runner and poller and closes the store. It waits for the
+// ESM poller goroutines to actually exit so none can call into sibling services
+// (or log) after Close returns.
 func (s *Server) Close() error {
 	s.mu.Lock()
 	for _, r := range s.runners {
@@ -115,6 +118,7 @@ func (s *Server) Close() error {
 		m.stop()
 	}
 	s.mu.Unlock()
+	s.pollers.Wait()
 	return s.store.db.Close()
 }
 

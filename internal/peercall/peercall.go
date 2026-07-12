@@ -101,7 +101,7 @@ func LambdaInvoke(dir peers.Directory, function string, payload []byte) ([]byte,
 		return nil, err
 	}
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, maxPeerResponse))
 	if resp.StatusCode/100 != 2 {
 		return body, fmt.Errorf("lambda invoke: %s: %s", resp.Status, body)
 	}
@@ -180,9 +180,16 @@ func postJSONResult(ep peers.Endpoint, target, contentType string, payload any) 
 		return nil, err
 	}
 	defer resp.Body.Close()
-	out, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	// Cap generously so a legitimate response never truncates: a 1 MiB limit
+	// silently corrupted a full SQS ReceiveMessage batch (10 × 256 KB), stalling
+	// the ESM poller forever. This sits above every relevant AWS payload limit
+	// (SQS batch ≈ 2.6 MB, Lambda sync response 6 MB).
+	out, _ := io.ReadAll(io.LimitReader(resp.Body, maxPeerResponse))
 	if resp.StatusCode/100 != 2 {
 		return nil, fmt.Errorf("%s: %s: %s", target, resp.Status, out)
 	}
 	return out, nil
 }
+
+// maxPeerResponse bounds an in-process peer response body.
+const maxPeerResponse = 16 << 20

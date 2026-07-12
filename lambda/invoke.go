@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -62,10 +63,15 @@ func (s *Server) invoke(w http.ResponseWriter, r *http.Request, name string) *aw
 
 // runInvoke ensures the function's runner exists and drives one invocation.
 func (s *Server) runInvoke(ctx context.Context, f *Function, payload []byte) (lambdaruntime.Result, error) {
-	runner := s.runnerFor(f)
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(f.Timeout+5)*time.Second)
 	defer cancel()
-	return runner.Invoke(ctx, payload)
+	// If the pool was stopped underneath us by a concurrent restart (code/config
+	// update), retry once against the freshly-created pool.
+	res, err := s.runnerFor(f).Invoke(ctx, payload)
+	if errors.Is(err, lambdaruntime.ErrPoolClosed) {
+		res, err = s.runnerFor(f).Invoke(ctx, payload)
+	}
+	return res, err
 }
 
 // invokeAsync runs an Event invocation and routes failures to the DLQ /

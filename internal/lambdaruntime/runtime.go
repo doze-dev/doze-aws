@@ -118,6 +118,11 @@ func (r *Runner) Invoke(ctx context.Context, payload []byte) (Result, error) {
 func (r *Runner) ensureStarted() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	// A stopped runner must not respawn — otherwise a Stop that races an Invoke
+	// leaves an orphaned process nothing will ever reap.
+	if r.stopped {
+		return ErrPoolClosed
+	}
 	if r.started {
 		return nil
 	}
@@ -224,7 +229,14 @@ func (r *Runner) routes() http.Handler {
 
 // handleNext blocks until an invocation is queued, then hands it to the runtime.
 func (r *Runner) handleNext(w http.ResponseWriter, req *http.Request) {
-	inv := <-r.queue
+	var inv *invocation
+	select {
+	case inv = <-r.queue:
+	case <-req.Context().Done():
+		// The child process's long-poll connection dropped (it was stopped) —
+		// return instead of blocking this goroutine forever on the queue.
+		return
+	}
 	r.mu.Lock()
 	r.current = inv
 	r.pending[inv.id] = inv

@@ -2,9 +2,14 @@ package lambdaruntime
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 )
+
+// ErrPoolClosed is returned by Invoke when the pool has been stopped (e.g. a
+// concurrent restart). Callers may retry against a freshly-created pool.
+var ErrPoolClosed = errors.New("lambda pool closed")
 
 // DefaultPoolMax is the concurrency ceiling for a function with no reserved
 // concurrency configured — how many child processes can run its invocations at
@@ -32,7 +37,7 @@ type Pool struct {
 
 	mu           sync.Mutex
 	runners      []*Runner
-	rr           int
+	busy         map[*Runner]int // in-flight invocations per runner
 	inflight     int
 	idle         time.Duration
 	idleTimer    *time.Timer
@@ -48,7 +53,7 @@ func NewPool(spec Spec, max int, logf func(string, ...any)) *Pool {
 	if logf == nil {
 		logf = func(string, ...any) {}
 	}
-	return &Pool{spec: spec, logf: logf, max: max, idle: DefaultIdleTimeout}
+	return &Pool{spec: spec, logf: logf, max: max, idle: DefaultIdleTimeout, busy: map[*Runner]int{}}
 }
 
 // SetIdleTimeout overrides how long a fully-idle pool stays warm before it
@@ -66,14 +71,23 @@ func (p *Pool) SetIdleTimeout(d time.Duration) {
 // Invoke runs one invocation on a pooled Runner, spawning another (up to Max)
 // when concurrent demand exceeds the current pool size.
 func (p *Pool) Invoke(ctx context.Context, payload []byte) (Result, error) {
-	r := p.acquire()
-	defer p.release()
+	r, err := p.acquire()
+	if err != nil {
+		return Result{}, err
+	}
+	defer p.release(r)
 	return r.Invoke(ctx, payload)
 }
 
-func (p *Pool) acquire() *Runner {
+func (p *Pool) acquire() (*Runner, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	// A stopped pool must never spawn a new child process — that runner would
+	// be invisible to Stop and leak (running stale code) until the whole
+	// server exits.
+	if p.closed {
+		return nil, ErrPoolClosed
+	}
 	// Any demand cancels a pending scale-to-zero.
 	if p.idleTimer != nil {
 		p.idleTimer.Stop()
@@ -90,14 +104,31 @@ func (p *Pool) acquire() *Runner {
 	for len(p.runners) < want {
 		p.runners = append(p.runners, NewRunner(p.spec, p.logf))
 	}
-	r := p.runners[p.rr%len(p.runners)]
-	p.rr++
-	return r
+	// Prefer a runner that isn't currently executing; otherwise the least-busy
+	// one. Round-robin could queue an invocation behind a long-running one while
+	// another runner sits idle, producing a spurious "Task timed out".
+	var chosen *Runner
+	best := -1
+	for _, r := range p.runners {
+		b := p.busy[r]
+		if b == 0 {
+			chosen = r
+			break
+		}
+		if best < 0 || b < best {
+			best, chosen = b, r
+		}
+	}
+	p.busy[chosen]++
+	return chosen, nil
 }
 
-func (p *Pool) release() {
+func (p *Pool) release(r *Runner) {
 	p.mu.Lock()
 	p.inflight--
+	if p.busy[r] > 0 {
+		p.busy[r]--
+	}
 	// Fully idle: arm the scale-to-zero timer. Reset on each drain to zero so
 	// the window measures continuous idleness, not time since the last spawn.
 	if p.inflight == 0 && !p.closed {
@@ -121,7 +152,7 @@ func (p *Pool) reapIdle() {
 	runners := p.runners
 	idle := p.idle
 	p.runners = nil
-	p.rr = 0
+	p.busy = map[*Runner]int{}
 	p.idleTimer = nil
 	p.idleDeadline = time.Time{}
 	p.mu.Unlock()
@@ -144,6 +175,7 @@ func (p *Pool) Stop() {
 	p.idleDeadline = time.Time{}
 	runners := p.runners
 	p.runners = nil
+	p.busy = map[*Runner]int{}
 	p.mu.Unlock()
 	for _, r := range runners {
 		r.Stop()

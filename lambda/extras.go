@@ -319,8 +319,20 @@ func (s *Server) routeMappings(w http.ResponseWriter, r *http.Request, segs []st
 			return s.createMapping(w, r)
 		case http.MethodGet:
 			maps, _ := s.store.ListMappings()
+			// Honor the FunctionName / EventSourceArn filters — returning every
+			// mapping regardless cross-wires triggers when two functions share a
+			// source queue (stackfile apply/export builds its state from this).
+			q := r.URL.Query()
+			wantFn := functionNameFromARN(q.Get("FunctionName"))
+			wantSrc := q.Get("EventSourceArn")
 			views := []any{}
 			for i := range maps {
+				if wantFn != "" && maps[i].FunctionName != wantFn {
+					continue
+				}
+				if wantSrc != "" && maps[i].EventSourceArn != wantSrc {
+					continue
+				}
 				views = append(views, mappingView(&maps[i]))
 			}
 			writeJSON(w, 200, map[string]any{"EventSourceMappings": views})
@@ -433,6 +445,18 @@ func stateFor(enabled bool) string {
 	return "Disabled"
 }
 
+// functionNameFromARN reduces a FunctionName filter (bare name, partial ARN, or
+// full arn:...:function:NAME[:qualifier]) to the bare function name.
+func functionNameFromARN(v string) string {
+	if i := strings.Index(v, ":function:"); i >= 0 {
+		v = v[i+len(":function:"):]
+	}
+	if i := strings.IndexByte(v, ':'); i >= 0 {
+		v = v[:i]
+	}
+	return v
+}
+
 // esm is a running SQS poller for one mapping.
 type esm struct {
 	stopCh chan struct{}
@@ -454,7 +478,9 @@ func (s *Server) startPoller(m *EventSourceMapping) {
 	queue := m.EventSourceArn[strings.LastIndex(m.EventSourceArn, ":")+1:]
 	fnName := m.FunctionName
 	batch := m.BatchSize
+	s.pollers.Add(1)
 	go func() {
+		defer s.pollers.Done()
 		for {
 			select {
 			case <-poller.stopCh:

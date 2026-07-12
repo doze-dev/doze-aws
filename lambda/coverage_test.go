@@ -109,6 +109,42 @@ func TestSDKEventSourceMappingCRUD(t *testing.T) {
 	}
 }
 
+// TestListEventSourceMappingsFilter proves the FunctionName filter actually
+// discriminates: two functions with mappings on the same queue must each list
+// only their own mapping (a bug here cross-wires stackfile apply/export).
+func TestListEventSourceMappingsFilter(t *testing.T) {
+	ctx := context.Background()
+	c, _ := lambdaClient(t)
+	createEcho(t, ctx, c, "fnA")
+	createEcho(t, ctx, c, "fnB")
+
+	src := aws.String("arn:aws:sqs:us-east-1:000000000000:shared")
+	if _, err := c.CreateEventSourceMapping(ctx, &awslambda.CreateEventSourceMappingInput{
+		FunctionName: aws.String("fnA"), EventSourceArn: src, Enabled: aws.Bool(false),
+	}); err != nil {
+		t.Fatalf("map A: %v", err)
+	}
+	if _, err := c.CreateEventSourceMapping(ctx, &awslambda.CreateEventSourceMappingInput{
+		FunctionName: aws.String("fnB"), EventSourceArn: src, Enabled: aws.Bool(false),
+	}); err != nil {
+		t.Fatalf("map B: %v", err)
+	}
+
+	a, err := c.ListEventSourceMappings(ctx, &awslambda.ListEventSourceMappingsInput{FunctionName: aws.String("fnA")})
+	if err != nil || len(a.EventSourceMappings) != 1 {
+		t.Fatalf("filter fnA = %d mappings, want 1 (err %v)", len(a.EventSourceMappings), err)
+	}
+	if aws.ToString(a.EventSourceMappings[0].FunctionArn) == "" ||
+		!strings.HasSuffix(aws.ToString(a.EventSourceMappings[0].FunctionArn), "fnA") {
+		t.Fatalf("filter fnA returned the wrong function: %s", aws.ToString(a.EventSourceMappings[0].FunctionArn))
+	}
+	// Unfiltered still returns both.
+	all, _ := c.ListEventSourceMappings(ctx, &awslambda.ListEventSourceMappingsInput{})
+	if len(all.EventSourceMappings) != 2 {
+		t.Fatalf("unfiltered = %d, want 2", len(all.EventSourceMappings))
+	}
+}
+
 // TestSDKZipFileCode exercises the ZipFile code path (base64 zip → unzip →
 // extracted bootstrap → invoke), the alternative to the _local_ extension every
 // other test uses.
