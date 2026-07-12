@@ -19,6 +19,8 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/internal/schemaver"
+
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 	"github.com/doze-dev/doze-aws/peers"
@@ -55,6 +57,10 @@ func New(opts Options) (*Server, error) {
 	}
 	db, err := bolt.Open(filepath.Join(opts.DataDir, "secretsmanager.bolt"), 0o600, nil)
 	if err != nil {
+		return nil, err
+	}
+	if err := schemaver.Ensure(db, "secretsmanager", schemaver.Current); err != nil {
+		db.Close()
 		return nil, err
 	}
 	st, err := newStore(db, filepath.Join(opts.DataDir, "secretsmanager.key"))

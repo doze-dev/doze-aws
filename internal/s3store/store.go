@@ -27,6 +27,8 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/internal/schemaver"
+
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
@@ -138,6 +140,10 @@ func Open(dataDir string) (*Store, error) {
 	}
 	db, err := bolt.Open(filepath.Join(dataDir, "meta.bolt"), 0o600, nil)
 	if err != nil {
+		return nil, err
+	}
+	if err := schemaver.Ensure(db, "s3", schemaver.Current); err != nil {
+		db.Close()
 		return nil, err
 	}
 	return &Store{db: db, root: dataDir, clock: time.Now, Logf: func(string, ...any) {}}, nil

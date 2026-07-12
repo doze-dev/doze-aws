@@ -16,6 +16,8 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/internal/schemaver"
+
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -48,6 +50,10 @@ func New(opts Options) (*Server, error) {
 	}
 	db, err := bolt.Open(filepath.Join(opts.DataDir, "sns.bolt"), 0o600, nil)
 	if err != nil {
+		return nil, err
+	}
+	if err := schemaver.Ensure(db, "sns", schemaver.Current); err != nil {
+		db.Close()
 		return nil, err
 	}
 	s := &Server{store: newStore(db), peers: opts.Peers, logf: opts.Logf, now: opts.Clock}
