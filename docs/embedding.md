@@ -21,8 +21,15 @@ http.ListenAndServe("127.0.0.1:4566", stack.Handler())
 `StackConfig` selects services (`Services: []string{"s3", "sqs"}`; nil = all
 implemented), the data root, an S3 virtual-hosted base host, and a `Logf`.
 Services inside a stack are wired to each other in-process — no sockets — so
-cross-service features (SNS→SQS, S3 notifications, EventBridge targets, Lambda)
-work with zero configuration.
+service-to-service features (SNS→SQS, S3 notifications, EventBridge targets,
+Lambda event-source mappings) work with zero configuration.
+
+One case does need configuration: if your **Lambda handler code** calls a sibling
+service through an AWS SDK, set `StackConfig.Endpoint` to the stack's
+externally-reachable base URL (e.g. `"http://127.0.0.1:4566"`). It is injected
+into function processes as `AWS_ENDPOINT_URL`. The `doze-aws` binary derives this
+from `--listen` automatically; embedders serving the handler over HTTP should
+pass it explicitly.
 
 ## A single service
 

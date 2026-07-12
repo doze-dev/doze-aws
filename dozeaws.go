@@ -59,6 +59,12 @@ type StackConfig struct {
 	// LambdaIdleTimeout is how long a warm Lambda function keeps its process(es)
 	// before scaling to zero. Zero uses the service default (10m).
 	LambdaIdleTimeout time.Duration
+	// Endpoint is the externally-reachable base URL of this stack's gateway
+	// (e.g. "http://127.0.0.1:4566"). It is injected into Lambda function
+	// processes as AWS_ENDPOINT_URL so handler code using an AWS SDK reaches
+	// sibling services. Leave empty when running fully embedded with no HTTP
+	// listener; service-to-service calls still work via in-process peers.
+	Endpoint string
 }
 
 // Stack is a running set of services behind one gateway.
@@ -142,7 +148,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := eventbridge.New(eventbridge.Options{DataDir: dataDir, Peers: dir, Logf: logf})
 		return s, s, err
 	case "lambda":
-		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout})
+		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, Endpoint: cfg.Endpoint})
 		return s, s, err
 	}
 	return nil, nil, fmt.Errorf("no constructor for %q", name)

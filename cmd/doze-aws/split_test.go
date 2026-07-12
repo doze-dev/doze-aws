@@ -93,3 +93,18 @@ func TestFlagTakesValue(t *testing.T) {
 		}
 	}
 }
+
+func TestReachableEndpoint(t *testing.T) {
+	cases := map[string]string{
+		"127.0.0.1:4566": "http://127.0.0.1:4566",
+		":4566":          "http://127.0.0.1:4566",
+		"0.0.0.0:8080":   "http://127.0.0.1:8080",
+		"localhost:9000": "http://localhost:9000",
+		"":               "",
+	}
+	for in, want := range cases {
+		if got := reachableEndpoint(in); got != want {
+			t.Errorf("reachableEndpoint(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
