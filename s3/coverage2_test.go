@@ -79,6 +79,29 @@ func TestDeleteConfigKeepsBucket(t *testing.T) {
 	}
 }
 
+// TestCopyToSelfRejected: copying an object onto itself without changing
+// metadata is an InvalidRequest, but a self-copy with REPLACE is allowed.
+func TestCopyToSelfRejected(t *testing.T) {
+	ctx := context.Background()
+	c := s3Client(t, startS3(t).URL, true)
+	c.CreateBucket(ctx, &awss3.CreateBucketInput{Bucket: aws.String("selfcp")})
+	c.PutObject(ctx, &awss3.PutObjectInput{Bucket: aws.String("selfcp"), Key: aws.String("k"), Body: strings.NewReader("v")})
+
+	if _, err := c.CopyObject(ctx, &awss3.CopyObjectInput{
+		Bucket: aws.String("selfcp"), Key: aws.String("k"), CopySource: aws.String("/selfcp/k"),
+	}); err == nil {
+		t.Fatal("self-copy without REPLACE should be InvalidRequest")
+	}
+	// With REPLACE it's allowed.
+	if _, err := c.CopyObject(ctx, &awss3.CopyObjectInput{
+		Bucket: aws.String("selfcp"), Key: aws.String("k"), CopySource: aws.String("/selfcp/k"),
+		MetadataDirective: s3types.MetadataDirectiveReplace,
+		Metadata:          map[string]string{"x": "y"},
+	}); err != nil {
+		t.Fatalf("self-copy with REPLACE: %v", err)
+	}
+}
+
 func TestSDKLifecycleWebsiteEncryption(t *testing.T) {
 	ctx := context.Background()
 	c := s3Client(t, startS3(t).URL, true)

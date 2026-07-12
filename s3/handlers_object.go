@@ -348,6 +348,14 @@ func (s *Server) copyObject(w http.ResponseWriter, r *http.Request, bucket, key 
 	if aerr != nil {
 		return aerr
 	}
+	// A copy onto itself is only allowed when it changes metadata (REPLACE) or
+	// another eligible property — otherwise real S3 returns InvalidRequest.
+	if srcBucket == bucket && srcKey == key && srcVersion == "" &&
+		!strings.EqualFold(r.Header.Get("x-amz-metadata-directive"), "REPLACE") &&
+		!strings.EqualFold(r.Header.Get("x-amz-tagging-directive"), "REPLACE") {
+		return awshttp.Errf(400, "InvalidRequest",
+			"this copy request is illegal because it is trying to copy an object to itself without changing the object's metadata, storage class, website redirect location or encryption attributes")
+	}
 	src, err := s.store.GetVersion(srcBucket, srcKey, srcVersion)
 	if err != nil {
 		return awshttp.AsAPIError(err)
