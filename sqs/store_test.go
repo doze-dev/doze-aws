@@ -149,3 +149,70 @@ func TestDLQRedrive(t *testing.T) {
 		t.Fatalf("expected poison in DLQ, got %+v", dl)
 	}
 }
+
+// TestDLQRedriveMissingTargetKeepsMessage: if the DLQ has been deleted, a poison
+// message at MaxReceiveCount must stay in the source queue, not vanish.
+func TestDLQRedriveMissingTargetKeepsMessage(t *testing.T) {
+	s := testStore(t)
+	if _, err := s.CreateQueue("dlq", nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	rp := `{"deadLetterTargetArn":"arn:aws:sqs:us-east-1:000000000000:dlq","maxReceiveCount":"1"}`
+	if _, err := s.CreateQueue("main", map[string]string{"VisibilityTimeout": "0", "RedrivePolicy": rp}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Send("main", "poison", nil, -1, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	// Hit MaxReceiveCount, then delete the DLQ.
+	if got, _ := s.Receive("main", 1, 0, -1); len(got) != 1 {
+		t.Fatal("first receive should return the message")
+	}
+	if err := s.DeleteQueue("dlq"); err != nil {
+		t.Fatal(err)
+	}
+	// The redrive can't complete; the message must remain in main, not be lost.
+	if got, _ := s.Receive("main", 1, 0, -1); len(got) != 0 {
+		t.Fatalf("redrive to a missing DLQ should not deliver from main, got %d", len(got))
+	}
+	depth, err := s.Attributes("main")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if depth["ApproximateNumberOfMessages"] == "0" {
+		t.Fatal("message was silently lost when the DLQ was gone")
+	}
+}
+
+// TestReceiptHandleNoAliasAcrossPurge: a receipt handle captured before a Purge
+// must not delete a different message that later reused the same sequence number.
+func TestReceiptHandleNoAliasAcrossPurge(t *testing.T) {
+	s := testStore(t)
+	if _, err := s.CreateQueue("q", map[string]string{"VisibilityTimeout": "0"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Send("q", "first", nil, -1, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := s.Receive("q", 1, 0, -1)
+	if len(got) != 1 {
+		t.Fatal("receive first")
+	}
+	staleHandle := got[0].Handle()
+
+	// Purge resets the sequence counter; a new message reuses seq 1.
+	if err := s.Purge("q"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Send("q", "second", nil, -1, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	// Deleting with the stale handle must be a no-op, not destroy "second".
+	if err := s.Delete("q", staleHandle); err != nil {
+		t.Fatalf("stale delete should be a silent no-op, got %v", err)
+	}
+	got2, _ := s.Receive("q", 1, 0, -1)
+	if len(got2) != 1 || got2[0].Body != "second" {
+		t.Fatalf("stale handle aliased onto a new message: got %+v", got2)
+	}
+}

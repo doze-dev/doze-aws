@@ -174,7 +174,13 @@ func (s *Store) UpdateTable(name string, fn func(*Table) error) (*Table, error) 
 		if err != nil {
 			return err
 		}
-		before := len(t.Indexes)
+		// Snapshot the index set by name so we can tell exactly which indexes
+		// fn added, removed, or redefined — a positional count breaks when a
+		// delete shifts the slice and never reclaims the removed index's bucket.
+		before := make(map[string]Index, len(t.Indexes))
+		for i := range t.Indexes {
+			before[t.Indexes[i].Name] = t.Indexes[i]
+		}
 		if err := fn(t); err != nil {
 			return err
 		}
@@ -182,16 +188,45 @@ func (s *Store) UpdateTable(name string, fn func(*Table) error) (*Table, error) 
 		if err := tx.Bucket(tablesBucket).Put([]byte(name), raw); err != nil {
 			return err
 		}
-		// Backfill any newly-added indexes.
-		for i := before; i < len(t.Indexes); i++ {
-			if err := s.backfillIndex(tx, t, &t.Indexes[i]); err != nil {
-				return err
+		after := make(map[string]bool, len(t.Indexes))
+		for i := range t.Indexes {
+			after[t.Indexes[i].Name] = true
+			prev, existed := before[t.Indexes[i].Name]
+			// Backfill an index that is new, or was redefined under the same
+			// name (dropping stale entries encoded under the old key schema).
+			if !existed || !sameIndexSchema(prev, t.Indexes[i]) {
+				_ = tx.DeleteBucket(indexBucket(name, t.Indexes[i].Name))
+				if err := s.backfillIndex(tx, t, &t.Indexes[i]); err != nil {
+					return err
+				}
+			}
+		}
+		// Reclaim buckets of indexes fn removed.
+		for nm := range before {
+			if !after[nm] {
+				_ = tx.DeleteBucket(indexBucket(name, nm))
 			}
 		}
 		out = t
 		return nil
 	})
 	return out, err
+}
+
+// sameIndexSchema reports whether two indexes of the same name share a key
+// schema, so an UpdateTable that leaves an index untouched skips a needless
+// (and stale-clearing) rebuild.
+func sameIndexSchema(a, b Index) bool {
+	if a.Hash != b.Hash || a.Projection != b.Projection {
+		return false
+	}
+	if (a.Range == nil) != (b.Range == nil) {
+		return false
+	}
+	if a.Range != nil && *a.Range != *b.Range {
+		return false
+	}
+	return true
 }
 
 // backfillIndex scans the base table and writes entries for one new index.

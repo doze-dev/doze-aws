@@ -405,6 +405,125 @@ func TestSDKBatchAndTransactions(t *testing.T) {
 	}
 }
 
+// TestTransactWriteRejectsDuplicateItem: two operations on the same item must
+// abort the whole request with a ValidationException, not silently apply.
+func TestTransactWriteRejectsDuplicateItem(t *testing.T) {
+	ctx := context.Background()
+	c := ddbClient(t)
+	makeOrdersTable(t, ctx, c)
+
+	_, err := c.TransactWriteItems(ctx, &awsddb.TransactWriteItemsInput{
+		TransactItems: []ddbtypes.TransactWriteItem{
+			{Put: &ddbtypes.Put{TableName: aws.String("orders"), Item: map[string]ddbtypes.AttributeValue{
+				"pk": &ddbtypes.AttributeValueMemberS{Value: "dup"}, "sk": &ddbtypes.AttributeValueMemberS{Value: "a"},
+				"email": &ddbtypes.AttributeValueMemberS{Value: "x@x.com"},
+			}}},
+			{Update: &ddbtypes.Update{TableName: aws.String("orders"), Key: map[string]ddbtypes.AttributeValue{
+				"pk": &ddbtypes.AttributeValueMemberS{Value: "dup"}, "sk": &ddbtypes.AttributeValueMemberS{Value: "a"},
+			}, UpdateExpression: aws.String("SET marked = :t"),
+				ExpressionAttributeValues: map[string]ddbtypes.AttributeValue{":t": &ddbtypes.AttributeValueMemberBOOL{Value: true}}}},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected ValidationException for two operations on one item")
+	}
+	// The item must not have been written.
+	got, _ := c.GetItem(ctx, &awsddb.GetItemInput{TableName: aws.String("orders"), Key: map[string]ddbtypes.AttributeValue{
+		"pk": &ddbtypes.AttributeValueMemberS{Value: "dup"}, "sk": &ddbtypes.AttributeValueMemberS{Value: "a"},
+	}})
+	if got.Item != nil {
+		t.Fatal("rejected transaction leaked a write")
+	}
+}
+
+// TestTransactWriteRejectsKeyMutation: a transaction Update may not modify a key
+// attribute (parity with non-transactional UpdateItem).
+func TestTransactWriteRejectsKeyMutation(t *testing.T) {
+	ctx := context.Background()
+	c := ddbClient(t)
+	makeOrdersTable(t, ctx, c)
+	putOrder(t, ctx, c, "1", "001", "a@x.com", 100)
+
+	_, err := c.TransactWriteItems(ctx, &awsddb.TransactWriteItemsInput{
+		TransactItems: []ddbtypes.TransactWriteItem{
+			{Update: &ddbtypes.Update{TableName: aws.String("orders"), Key: map[string]ddbtypes.AttributeValue{
+				"pk": &ddbtypes.AttributeValueMemberS{Value: "user#1"}, "sk": &ddbtypes.AttributeValueMemberS{Value: "order#001"},
+			}, UpdateExpression: aws.String("SET pk = :x"),
+				ExpressionAttributeValues: map[string]ddbtypes.AttributeValue{":x": &ddbtypes.AttributeValueMemberS{Value: "hacked"}}}},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected cancellation for modifying a key attribute in a transaction")
+	}
+}
+
+// TestGSIRecreateNoStaleEntries: dropping a GSI and recreating it under the same
+// name on a different attribute must not resurrect entries from the old index.
+func TestGSIRecreateNoStaleEntries(t *testing.T) {
+	ctx := context.Background()
+	c := ddbClient(t)
+	if _, err := c.CreateTable(ctx, &awsddb.CreateTableInput{
+		TableName: aws.String("gt"),
+		AttributeDefinitions: []ddbtypes.AttributeDefinition{
+			{AttributeName: aws.String("pk"), AttributeType: ddbtypes.ScalarAttributeTypeS},
+			{AttributeName: aws.String("a"), AttributeType: ddbtypes.ScalarAttributeTypeS},
+		},
+		KeySchema:   []ddbtypes.KeySchemaElement{{AttributeName: aws.String("pk"), KeyType: ddbtypes.KeyTypeHash}},
+		BillingMode: ddbtypes.BillingModePayPerRequest,
+		GlobalSecondaryIndexes: []ddbtypes.GlobalSecondaryIndex{{
+			IndexName: aws.String("g"),
+			KeySchema: []ddbtypes.KeySchemaElement{{AttributeName: aws.String("a"), KeyType: ddbtypes.KeyTypeHash}},
+			Projection: &ddbtypes.Projection{ProjectionType: ddbtypes.ProjectionTypeAll},
+		}},
+	}); err != nil {
+		t.Fatalf("CreateTable: %v", err)
+	}
+	if _, err := c.PutItem(ctx, &awsddb.PutItemInput{TableName: aws.String("gt"), Item: map[string]ddbtypes.AttributeValue{
+		"pk": &ddbtypes.AttributeValueMemberS{Value: "p1"}, "a": &ddbtypes.AttributeValueMemberS{Value: "old"},
+	}}); err != nil {
+		t.Fatalf("PutItem: %v", err)
+	}
+
+	// Drop the GSI.
+	if _, err := c.UpdateTable(ctx, &awsddb.UpdateTableInput{
+		TableName: aws.String("gt"),
+		GlobalSecondaryIndexUpdates: []ddbtypes.GlobalSecondaryIndexUpdate{
+			{Delete: &ddbtypes.DeleteGlobalSecondaryIndexAction{IndexName: aws.String("g")}},
+		},
+	}); err != nil {
+		t.Fatalf("delete GSI: %v", err)
+	}
+	// Recreate a same-named GSI on a different attribute.
+	if _, err := c.UpdateTable(ctx, &awsddb.UpdateTableInput{
+		TableName: aws.String("gt"),
+		AttributeDefinitions: []ddbtypes.AttributeDefinition{
+			{AttributeName: aws.String("b"), AttributeType: ddbtypes.ScalarAttributeTypeS},
+		},
+		GlobalSecondaryIndexUpdates: []ddbtypes.GlobalSecondaryIndexUpdate{
+			{Create: &ddbtypes.CreateGlobalSecondaryIndexAction{
+				IndexName: aws.String("g"),
+				KeySchema: []ddbtypes.KeySchemaElement{{AttributeName: aws.String("b"), KeyType: ddbtypes.KeyTypeHash}},
+				Projection: &ddbtypes.Projection{ProjectionType: ddbtypes.ProjectionTypeAll},
+			}},
+		},
+	}); err != nil {
+		t.Fatalf("recreate GSI: %v", err)
+	}
+	// Querying the new GSI by the OLD attribute value must return nothing —
+	// the stale entry must not have survived.
+	out, err := c.Query(ctx, &awsddb.QueryInput{
+		TableName: aws.String("gt"), IndexName: aws.String("g"),
+		KeyConditionExpression:    aws.String("b = :v"),
+		ExpressionAttributeValues: map[string]ddbtypes.AttributeValue{":v": &ddbtypes.AttributeValueMemberS{Value: "old"}},
+	})
+	if err != nil {
+		t.Fatalf("Query new GSI: %v", err)
+	}
+	if len(out.Items) != 0 {
+		t.Fatalf("stale GSI entry resurfaced: %d items", len(out.Items))
+	}
+}
+
 func TestSDKTableLifecycleAndStubs(t *testing.T) {
 	ctx := context.Background()
 	c := ddbClient(t)

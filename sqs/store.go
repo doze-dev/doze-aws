@@ -473,11 +473,16 @@ func (s *Store) receiveOnce(queue string, max, visibilityOverride int) (out []Me
 			}
 			// DLQ redrive: if it has been received too many times, move it.
 			if q.DeadLetterTarget != "" && q.MaxReceiveCount > 0 && m.ReceiveCount >= q.MaxReceiveCount {
-				if err := s.moveToDLQ(tx, q.DeadLetterTarget, &m); err != nil {
+				moved, err := s.moveToDLQ(tx, q.DeadLetterTarget, &m)
+				if err != nil {
 					return err
 				}
-				_ = mb.Delete(k)
-				dlqHit = append(dlqHit, q.DeadLetterTarget)
+				if moved {
+					_ = mb.Delete(k)
+					dlqHit = append(dlqHit, q.DeadLetterTarget)
+				}
+				// If the DLQ was gone, leave the message in place rather than
+				// deleting it — skip delivery this pass and try again next time.
 				continue
 			}
 			// Deliver.
@@ -547,24 +552,31 @@ func (s *Store) Peek(queue string, max int) ([]Message, error) {
 	return out, err
 }
 
-func (s *Store) moveToDLQ(tx *bolt.Tx, dlq string, m *Message) error {
+// moveToDLQ moves m into the dead-letter queue. It reports whether the move
+// happened: if the DLQ no longer exists it returns (false, nil) so the caller
+// leaves the message in the source queue instead of destroying it (real SQS
+// does not lose the message when redrive can't complete).
+func (s *Store) moveToDLQ(tx *bolt.Tx, dlq string, m *Message) (bool, error) {
 	if _, err := s.getQueue(tx, dlq); err != nil {
-		return nil // DLQ gone; drop silently rather than block the source queue
+		return false, nil // DLQ gone; do not drop the message
 	}
 	db, err := tx.CreateBucketIfNotExists(msgBucket(dlq))
 	if err != nil {
-		return err
+		return false, err
 	}
 	seq, _ := db.NextSequence()
 	moved := *m
 	moved.Seq = seq
 	moved.ReceiveCount = 0
 	moved.VisibleAt = s.now().UnixNano()
-	return putMessage(db, &moved)
+	if err := putMessage(db, &moved); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (s *Store) Delete(queue, handle string) error {
-	seqKey, err := decodeHandle(handle)
+	seqKey, id, err := decodeHandle(handle)
 	if err != nil {
 		return errInvalid("invalid receipt handle")
 	}
@@ -576,12 +588,23 @@ func (s *Store) Delete(queue, handle string) error {
 		if mb == nil {
 			return nil
 		}
+		raw := mb.Get(seqKey)
+		if raw == nil {
+			return nil // already deleted — idempotent, like real SQS
+		}
+		var m Message
+		if err := json.Unmarshal(raw, &m); err != nil {
+			return err
+		}
+		if m.ID != id {
+			return nil // stale handle for a message that has since been replaced
+		}
 		return mb.Delete(seqKey)
 	})
 }
 
 func (s *Store) ChangeVisibility(queue, handle string, timeout int) error {
-	seqKey, err := decodeHandle(handle)
+	seqKey, id, err := decodeHandle(handle)
 	if err != nil {
 		return errInvalid("invalid receipt handle")
 	}
@@ -600,6 +623,9 @@ func (s *Store) ChangeVisibility(queue, handle string, timeout int) error {
 		var m Message
 		if err := json.Unmarshal(raw, &m); err != nil {
 			return err
+		}
+		if m.ID != id {
+			return nil // stale handle; don't disturb the current occupant of this seq
 		}
 		m.VisibleAt = s.now().Add(time.Duration(timeout) * time.Second).UnixNano()
 		return putMessage(mb, &m)
@@ -733,8 +759,10 @@ func seqKey(seq uint64) []byte {
 	return k[:]
 }
 
-// receiptHandle encodes the message's position; Delete/ChangeVisibility decode it.
-func (m *Message) Handle() string { return encodeHandle(seqKey(m.Seq)) }
+// Handle encodes the message's position AND identity; Delete/ChangeVisibility
+// decode both and verify the id so a stale handle can't act on a different
+// message that later reused the same sequence number.
+func (m *Message) Handle() string { return encodeHandle(seqKey(m.Seq), m.ID) }
 
 func atoiDefault(s string, def int) int {
 	if n, err := strconv.Atoi(s); err == nil {

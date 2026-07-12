@@ -12,16 +12,24 @@ import (
 
 func queueARN(name string) string { return awsident.ARN("sqs", name) }
 
-func encodeHandle(seqKey []byte) string {
-	return base64.StdEncoding.EncodeToString(seqKey)
+// encodeHandle builds an opaque receipt handle from the message's sequence key
+// (8 bytes) and its unique id. Binding the id into the handle prevents aliasing:
+// after a Purge or DeleteQueue+CreateQueue resets bbolt's NextSequence, a stale
+// handle's seq can collide with a brand-new message — the id check rejects it so
+// a deferred Delete can never target a different message.
+func encodeHandle(seqKey []byte, id string) string {
+	buf := make([]byte, 0, len(seqKey)+len(id))
+	buf = append(buf, seqKey...)
+	buf = append(buf, id...)
+	return base64.StdEncoding.EncodeToString(buf)
 }
 
-func decodeHandle(h string) ([]byte, error) {
-	b, err := base64.StdEncoding.DecodeString(h)
-	if err != nil || len(b) != 8 {
-		return nil, fmt.Errorf("bad handle")
+func decodeHandle(h string) (seqKey []byte, id string, err error) {
+	b, derr := base64.StdEncoding.DecodeString(h)
+	if derr != nil || len(b) < 8 {
+		return nil, "", fmt.Errorf("bad handle")
 	}
-	return b, nil
+	return b[:8], string(b[8:]), nil
 }
 
 // md5Attributes computes MD5OfMessageAttributes per the AWS algorithm, which the

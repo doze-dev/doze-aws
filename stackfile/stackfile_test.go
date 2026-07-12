@@ -17,25 +17,53 @@ queues:
     content_dedup: true
     dlq: auto
     max_receives: 4
-  audit: {}
+    tags: {team: shop}
+  audit:
+    receive_wait: 5
+    max_size: 65536
 
 tables:
   sessions:
-    key: sessionId:S
+    key: sessionId:S userId:S
     ttl: expiresAt
+    deletion_protection: true
+    tags: {team: shop}
     gsis:
       by-user:
         key: userId:S createdAt:N
+      by-email:
+        key: email:S
+        projection: INCLUDE
+        include: [displayName]
+    lsis:
+      by-created:
+        key: createdAt:N
+        projection: KEYS_ONLY
 
 buckets:
   uploads:
     versioning: true
+    tags: {team: shop}
+    cors:
+      - origins: ["https://app.local"]
+        methods: [GET, PUT]
+        headers: ["*"]
+        expose: [ETag]
+        max_age: 3600
+    lifecycle:
+      - prefix: tmp/
+        expire_days: 7
+        abort_uploads_days: 2
+    website:
+      index: index.html
+      error: 404.html
     notify:
       - events: ["s3:ObjectCreated:*"]
         queue: audit
 
 topics:
   order-events:
+    tags: {team: shop}
     subscriptions:
       - queue: audit
         filter: {kind: [click]}
@@ -47,7 +75,10 @@ functions:
     handler: bootstrap
     code: CODEDIR
     env: {LOG_LEVEL: debug}
+    retries: 1
+    dlq: {queue: audit}
     on_failure: {queue: audit}
+    tags: {team: shop}
     triggers:
       - queue: audit
         batch: 5
@@ -55,20 +86,41 @@ functions:
 rules:
   on-order:
     pattern: {source: [shop.orders]}
-    targets: [queue:audit, lambda:resize]
+    targets:
+      - queue:audit
+      - lambda: resize
+        input_path: $.detail
+      - topic: order-events
+        template: '{"msg": <msg>}'
+        paths: {msg: $.detail.message}
+  nightly:
+    schedule: rate(1 day)
+    enabled: false
+    targets: [queue:audit]
 
 keys:
   app-key:
     rotation: true
+    description: app data key
+    tags: {team: shop}
+  rsa-crypt:
+    spec: RSA_2048
+    usage: ENCRYPT_DECRYPT
 
 secrets:
   app/config:
     value: '{"apiKey":"local"}'
+    description: app config blob
+    tags: {team: shop}
+  app/blob:
+    binary: aGVsbG8=
 
 parameters:
   /app/db/host: localhost
   /app/db/port:
     value: "5432"
+    description: local pg port
+    tags: {team: shop}
 `
 
 func testStack(t *testing.T) *dozeaws.Stack {
@@ -104,6 +156,15 @@ func TestParseValidates(t *testing.T) {
 		{"bad key", "tables:\n  t:\n    key: pk\n", "attr:TYPE"},
 		{"two dests", "topics:\n  t:\n    subscriptions:\n      - {queue: a, lambda: b}\n", "exactly one"},
 		{"bad target", "functions: {}\nrules:\n  r:\n    pattern: {a: [b]}\n    targets: [nope]\n", "queue:name"},
+		{"bad projection", "tables:\n  t:\n    key: pk:S\n    gsis:\n      g: {key: x:S, projection: SOME}\n", "projection"},
+		{"include sans INCLUDE", "tables:\n  t:\n    key: pk:S\n    gsis:\n      g: {key: x:S, include: [a]}\n", "INCLUDE"},
+		{"lsi two keys", "tables:\n  t:\n    key: pk:S\n    lsis:\n      l: {key: 'pk:S sk:N'}\n", "sort key only"},
+		{"cors sans methods", "buckets:\n  b:\n    cors:\n      - origins: ['*']\n", "methods"},
+		{"empty lifecycle", "buckets:\n  b:\n    lifecycle:\n      - prefix: x/\n", "expire_days"},
+		{"paths sans template", "queues:\n  q: {}\nrules:\n  r:\n    pattern: {a: [b]}\n    targets:\n      - queue: q\n        paths: {x: $.y}\n", "template"},
+		{"value and binary", "secrets:\n  s:\n    value: x\n    binary: eA==\n", "mutually exclusive"},
+		{"bad usage", "keys:\n  k:\n    usage: SIGNING\n", "usage"},
+		{"bad retries", "functions:\n  f:\n    code: /tmp\n    retries: 9\n", "retries"},
 	}
 	for _, c := range bad {
 		if _, err := Parse([]byte(c.yaml)); err == nil || !strings.Contains(err.Error(), c.want) {
@@ -154,11 +215,53 @@ func TestApplyConverges(t *testing.T) {
 	if exp.Queues["orders.fifo"].DLQ != "orders-dlq.fifo" {
 		t.Errorf("export lost the redrive wiring: %+v", exp.Queues["orders.fifo"])
 	}
-	if got := exp.Tables["sessions"]; got.Key != "sessionId:S" || got.TTL != "expiresAt" {
+	if got := exp.Tables["sessions"]; got.Key != "sessionId:S userId:S" || got.TTL != "expiresAt" {
 		t.Errorf("export table mismatch: %+v", got)
 	}
 	if got := exp.Tables["sessions"].GSIs["by-user"]; got.Key != "userId:S createdAt:N" {
 		t.Errorf("export GSI mismatch: %+v", got)
+	}
+	if got := exp.Tables["sessions"].GSIs["by-email"]; got.Projection != "INCLUDE" || len(got.Include) != 1 {
+		t.Errorf("export GSI projection mismatch: %+v", got)
+	}
+	if got := exp.Tables["sessions"].LSIs["by-created"]; got.Key != "createdAt:N" || got.Projection != "KEYS_ONLY" {
+		t.Errorf("export LSI mismatch: %+v", got)
+	}
+	if got := exp.Tables["sessions"]; got.DeletionProtection == nil || !*got.DeletionProtection || got.Tags["team"] != "shop" {
+		t.Errorf("export table protection/tags mismatch: %+v", got)
+	}
+	if got := exp.Queues["orders.fifo"]; got.Tags["team"] != "shop" {
+		t.Errorf("export queue tags mismatch: %+v", got)
+	}
+	if got := exp.Queues["audit"]; got.ReceiveWait != 5 || got.MaxSize != 65536 {
+		t.Errorf("export queue receive_wait/max_size mismatch: %+v", got)
+	}
+	if got := exp.Buckets["uploads"]; len(got.CORS) != 1 || got.CORS[0].MaxAge != 3600 ||
+		len(got.Lifecycle) != 1 || got.Lifecycle[0].ExpireDays != 7 ||
+		got.Website == nil || got.Website.Index != "index.html" || got.Tags["team"] != "shop" {
+		t.Errorf("export bucket configs mismatch: %+v", got)
+	}
+	if got := exp.Topics["order-events"]; got.Tags["team"] != "shop" {
+		t.Errorf("export topic tags mismatch: %+v", got)
+	}
+	if got := exp.Functions["resize"]; got.DLQ == nil || got.DLQ.Queue != "audit" ||
+		got.Retries == nil || *got.Retries != 1 || got.Tags["team"] != "shop" {
+		t.Errorf("export function dlq/retries/tags mismatch: %+v", got)
+	}
+	if got := exp.Rules["nightly"]; got.Enabled == nil || *got.Enabled {
+		t.Errorf("export rule enabled mismatch: %+v", got)
+	}
+	if got := exp.Keys["app-key"]; got.Description != "app data key" || got.Tags["team"] != "shop" {
+		t.Errorf("export key description/tags mismatch: %+v", got)
+	}
+	if got := exp.Keys["rsa-crypt"]; got.Spec != "RSA_2048" || got.Usage != "ENCRYPT_DECRYPT" {
+		t.Errorf("export key usage mismatch: %+v", got)
+	}
+	if got := exp.Secrets["app/config"]; got.Description != "app config blob" || got.Tags["team"] != "shop" {
+		t.Errorf("export secret description/tags mismatch: %+v", got)
+	}
+	if got := exp.Parameters["/app/db/port"]; got.Description != "local pg port" || got.Tags["team"] != "shop" {
+		t.Errorf("export parameter description/tags mismatch: %+v", got)
 	}
 	if len(exp.Topics["order-events"].Subscriptions) != 2 {
 		t.Errorf("export subscriptions: %+v", exp.Topics["order-events"])
@@ -172,8 +275,26 @@ func TestApplyConverges(t *testing.T) {
 	if exp.Functions["resize"].OnFailure == nil || exp.Functions["resize"].OnFailure.Queue != "audit" {
 		t.Errorf("export on_failure: %+v", exp.Functions["resize"].OnFailure)
 	}
-	if len(exp.Rules["on-order"].Targets) != 2 {
-		t.Errorf("export rule targets: %+v", exp.Rules["on-order"])
+	if got := exp.Rules["on-order"].Targets; len(got) != 3 {
+		t.Errorf("export rule targets: %+v", got)
+	} else {
+		byKind := map[string]Target{}
+		for _, tgt := range got {
+			switch {
+			case tgt.Queue != "":
+				byKind["queue"] = tgt
+			case tgt.Topic != "":
+				byKind["topic"] = tgt
+			case tgt.Lambda != "":
+				byKind["lambda"] = tgt
+			}
+		}
+		if byKind["lambda"].InputPath != "$.detail" {
+			t.Errorf("export target input_path: %+v", byKind["lambda"])
+		}
+		if byKind["topic"].Template == "" || byKind["topic"].Paths["msg"] != "$.detail.message" {
+			t.Errorf("export target transformer: %+v", byKind["topic"])
+		}
 	}
 	if !exp.Keys["app-key"].Rotation {
 		t.Errorf("export key rotation: %+v", exp.Keys["app-key"])
@@ -206,6 +327,61 @@ func TestApplyConverges(t *testing.T) {
 	for _, a := range rep3.Actions {
 		if a.Op == "created" {
 			t.Errorf("apply(export()) created %s — round trip is not stable", a.Resource)
+		}
+	}
+}
+
+// TestApplyConvergesExistingTable: a table declared with more GSIs / a TTL
+// than it has live gets the missing pieces via UpdateTable, not a skip.
+func TestApplyConvergesExistingTable(t *testing.T) {
+	st := testStack(t)
+	ctx := context.Background()
+
+	v1, err := Parse([]byte("tables:\n  events:\n    key: id:S\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Apply(ctx, st.Handler(), v1); err != nil {
+		t.Fatal(err)
+	}
+
+	v2, err := Parse([]byte("tables:\n  events:\n    key: id:S\n    ttl: expiresAt\n    gsis:\n      by-kind:\n        key: kind:S\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rep, err := Apply(ctx, st.Handler(), v2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var updated bool
+	for _, a := range rep.Actions {
+		if a.Resource == "table/events" && a.Op == "updated" {
+			updated = true
+			if !strings.Contains(a.Detail, "gsi by-kind") || !strings.Contains(a.Detail, "ttl") {
+				t.Errorf("update detail = %q, want gsi + ttl", a.Detail)
+			}
+		}
+	}
+	if !updated {
+		t.Fatalf("existing table was not converged: %+v", rep.Actions)
+	}
+
+	exp, err := Export(ctx, st.Handler())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := exp.Tables["events"]; got.TTL != "expiresAt" || got.GSIs["by-kind"].Key != "kind:S" {
+		t.Errorf("converged table not visible in export: %+v", got)
+	}
+
+	// Third apply: nothing left to converge.
+	rep2, err := Apply(ctx, st.Handler(), v2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range rep2.Actions {
+		if a.Op != "skipped" {
+			t.Errorf("third apply still reports %s %s (%s)", a.Op, a.Resource, a.Detail)
 		}
 	}
 }

@@ -15,6 +15,10 @@ data-dir = "./data"
 # Services to enable. Omit to enable everything this build implements.
 # services = ["sts"]
 
+# Declarative stack file applied at boot (docs/stack-file.md). Omit to
+# auto-detect ./stack.yaml.
+# stack = "stack.yaml"
+
 [s3]
 # Base host for virtual-hosted-style bucket addressing (bucket.<host>).
 # Path-style requests work regardless. (Reserved: the s3 service is on the

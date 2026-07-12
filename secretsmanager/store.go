@@ -253,6 +253,20 @@ func (s *Store) AddVersion(id, token string, str, bin []byte, stages []string) (
 				}
 			}
 		}
+		// Every other explicit staging label (e.g. AWSPENDING) also names at
+		// most one version — strip it from any version that already carries it,
+		// so a retried rotation can't leave two AWSPENDING versions.
+		for _, stage := range stages {
+			if stage == "AWSCURRENT" {
+				continue
+			}
+			for vid, v := range sec.Versions {
+				if contains(v.Stages, stage) {
+					v.Stages = remove(v.Stages, stage)
+					sec.Versions[vid] = v
+				}
+			}
+		}
 		sec.Versions[token] = Version{
 			String: s.seal(str), Binary: s.seal(bin),
 			Stages: stages, Created: s.now().Unix(),

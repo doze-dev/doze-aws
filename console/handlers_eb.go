@@ -30,9 +30,7 @@ func (c *Console) ebDeleteBus(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Event bus deleted")
-	buses, _ := c.be.ListBuses(r.Context())
-	c.partial(w, "eb_bus_list", map[string]any{"Buses": buses})
+	c.redirect(w, r, c.prefix+"/eb", "Event bus deleted")
 }
 
 func (c *Console) ebBus(w http.ResponseWriter, r *http.Request) {

@@ -120,6 +120,49 @@ func TestSDKSecureString(t *testing.T) {
 	}
 }
 
+// TestSecureStringOverwriteKeepsType guards against a Type-less overwrite
+// silently converting a SecureString to String and storing its value in
+// plaintext.
+func TestSecureStringOverwriteKeepsType(t *testing.T) {
+	ctx := context.Background()
+	c := ssmClient(t)
+
+	put(t, c, "/app/sekret", "v1", ssmtypes.ParameterTypeSecureString, false)
+
+	// Overwrite WITHOUT specifying Type — the common "just update the value" call.
+	if _, err := c.PutParameter(ctx, &awsssm.PutParameterInput{
+		Name: aws.String("/app/sekret"), Value: aws.String("v2"), Overwrite: aws.Bool(true),
+	}); err != nil {
+		t.Fatalf("overwrite: %v", err)
+	}
+
+	// The parameter must still be a SecureString and must not leak plaintext.
+	enc, err := c.GetParameter(ctx, &awsssm.GetParameterInput{Name: aws.String("/app/sekret")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if enc.Parameter.Type != ssmtypes.ParameterTypeSecureString {
+		t.Fatalf("type flipped to %s after Type-less overwrite", enc.Parameter.Type)
+	}
+	if aws.ToString(enc.Parameter.Value) == "v2" {
+		t.Fatal("SecureString value stored/returned as plaintext after overwrite")
+	}
+	dec, err := c.GetParameter(ctx, &awsssm.GetParameterInput{
+		Name: aws.String("/app/sekret"), WithDecryption: aws.Bool(true),
+	})
+	if err != nil || aws.ToString(dec.Parameter.Value) != "v2" {
+		t.Fatalf("decrypt after overwrite: %v %q", err, aws.ToString(dec.Parameter.Value))
+	}
+
+	// Explicitly changing the type must be rejected, as in real SSM.
+	if _, err := c.PutParameter(ctx, &awsssm.PutParameterInput{
+		Name: aws.String("/app/sekret"), Value: aws.String("v3"),
+		Type: ssmtypes.ParameterTypeString, Overwrite: aws.Bool(true),
+	}); err == nil {
+		t.Fatal("changing parameter type on overwrite should be rejected")
+	}
+}
+
 func TestSDKByPathAndDescribe(t *testing.T) {
 	ctx := context.Background()
 	c := ssmClient(t)

@@ -49,6 +49,36 @@ func TestSDKCORSAndPreflight(t *testing.T) {
 	}
 }
 
+// TestDeleteConfigKeepsBucket guards against the DELETE dispatch falling through
+// to deleteBucket for subresources it doesn't explicitly list: a config-cleanup
+// call like DeleteBucketEncryption must remove only the config, never the bucket.
+func TestDeleteConfigKeepsBucket(t *testing.T) {
+	ctx := context.Background()
+	c := s3Client(t, startS3(t).URL, true)
+	if _, err := c.CreateBucket(ctx, &awss3.CreateBucketInput{Bucket: aws.String("keepb")}); err != nil {
+		t.Fatalf("CreateBucket: %v", err)
+	}
+	if _, err := c.PutObject(ctx, &awss3.PutObjectInput{
+		Bucket: aws.String("keepb"), Key: aws.String("k"), Body: strings.NewReader("v"),
+	}); err != nil {
+		t.Fatalf("PutObject: %v", err)
+	}
+	if _, err := c.DeleteBucketEncryption(ctx, &awss3.DeleteBucketEncryptionInput{Bucket: aws.String("keepb")}); err != nil {
+		t.Fatalf("DeleteBucketEncryption: %v", err)
+	}
+	// The bucket and its object must survive.
+	if _, err := c.HeadBucket(ctx, &awss3.HeadBucketInput{Bucket: aws.String("keepb")}); err != nil {
+		t.Fatalf("bucket gone after DeleteBucketEncryption: %v", err)
+	}
+	if _, err := c.HeadObject(ctx, &awss3.HeadObjectInput{Bucket: aws.String("keepb"), Key: aws.String("k")}); err != nil {
+		t.Fatalf("object gone after DeleteBucketEncryption: %v", err)
+	}
+	// A no-subresource DELETE on a non-empty bucket must still be rejected.
+	if _, err := c.DeleteBucket(ctx, &awss3.DeleteBucketInput{Bucket: aws.String("keepb")}); err == nil {
+		t.Fatal("DeleteBucket on non-empty bucket should fail with BucketNotEmpty")
+	}
+}
+
 func TestSDKLifecycleWebsiteEncryption(t *testing.T) {
 	ctx := context.Background()
 	c := s3Client(t, startS3(t).URL, true)

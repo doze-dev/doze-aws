@@ -107,19 +107,15 @@ func (s *Store) Put(name, ptype, value, keyID, description, dataType, tier, poli
 	if strings.Contains(name, "//") || strings.HasSuffix(name, "/") {
 		return 0, awshttp.Errf(400, "ValidationException", "parameter name %q is malformed", name)
 	}
+	// Whether the caller explicitly supplied a Type. On overwrite an omitted
+	// Type must inherit the existing parameter's type — defaulting it to
+	// "String" here would silently downgrade a SecureString and store its new
+	// value in plaintext.
+	typeGiven := ptype != ""
 	switch ptype {
-	case "String", "StringList", "SecureString":
-	case "":
-		ptype = "String"
+	case "String", "StringList", "SecureString", "":
 	default:
 		return 0, awshttp.Errf(400, "ValidationException", "Type must be String, StringList or SecureString, got %q", ptype)
-	}
-	if keyID == "" && ptype == "SecureString" {
-		keyID = "alias/aws/ssm"
-	}
-	stored := []byte(value)
-	if ptype == "SecureString" {
-		stored = s.seal(value)
 	}
 
 	var version int64
@@ -136,11 +132,25 @@ func (s *Store) Put(name, ptype, value, keyID, description, dataType, tier, poli
 			if !overwrite {
 				return awshttp.Errf(400, "ParameterAlreadyExists", "parameter %q already exists; pass Overwrite to update it", name)
 			}
-			if p.Type != ptype && ptype != "" {
-				p.Type = ptype
+			// A parameter's type is immutable; real SSM rejects a mismatched
+			// Type and silently keeps the existing type when it is omitted.
+			if typeGiven && ptype != p.Type {
+				return awshttp.Errf(400, "ValidationException", "cannot change type of parameter %q from %s to %s", name, p.Type, ptype)
 			}
 		} else {
-			p = Parameter{Name: name, Type: ptype, DataType: "text"}
+			t := ptype
+			if t == "" {
+				t = "String"
+			}
+			p = Parameter{Name: name, Type: t, DataType: "text"}
+		}
+		// Seal according to the effective (stored) type, not the request type.
+		if p.Type == "SecureString" && p.KeyID == "" && keyID == "" {
+			keyID = "alias/aws/ssm"
+		}
+		stored := []byte(value)
+		if p.Type == "SecureString" {
+			stored = s.seal(value)
 		}
 		if keyID != "" {
 			p.KeyID = keyID

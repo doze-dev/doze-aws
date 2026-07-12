@@ -15,38 +15,70 @@ import (
 	"github.com/doze-dev/doze-aws/stackfile"
 )
 
-// runApply implements `doze-aws apply [--var k=v ...] [stack.yaml]`.
-func runApply(args []string) int {
-	var file string
-	var flags []string
-	vars := map[string]string{}
+// splitApplyArgs separates `apply` arguments into the stack file, the --var
+// overrides, and the pass-through server flags. A `--flag value` pair owns its
+// next token (mirroring the flag package) so the value is never mistaken for
+// the stack-file argument.
+func splitApplyArgs(args []string) (file string, vars map[string]string, flags []string, err error) {
+	vars = map[string]string{}
+	setVar := func(kv string) error {
+		k, v, ok := strings.Cut(kv, "=")
+		if !ok {
+			return fmt.Errorf("--var needs name=value, got %q", kv)
+		}
+		vars[k] = v
+		return nil
+	}
 	for i := 0; i < len(args); i++ {
 		a := args[i]
 		switch {
 		case a == "--var" || a == "-var":
 			if i+1 >= len(args) {
-				fmt.Fprintln(os.Stderr, "apply: --var needs name=value")
-				return 2
+				return "", nil, nil, fmt.Errorf("--var needs name=value")
 			}
 			i++
-			k, v, ok := strings.Cut(args[i], "=")
-			if !ok {
-				fmt.Fprintln(os.Stderr, "apply: --var needs name=value, got", args[i])
-				return 2
+			if err := setVar(args[i]); err != nil {
+				return "", nil, nil, err
 			}
-			vars[k] = v
-		case strings.HasPrefix(a, "--var="):
-			k, v, ok := strings.Cut(strings.TrimPrefix(a, "--var="), "=")
-			if !ok {
-				fmt.Fprintln(os.Stderr, "apply: --var needs name=value, got", a)
-				return 2
+		case strings.HasPrefix(a, "--var="), strings.HasPrefix(a, "-var="):
+			if err := setVar(a[strings.Index(a, "=")+1:]); err != nil {
+				return "", nil, nil, err
 			}
-			vars[k] = v
-		case len(a) > 0 && a[0] != '-' && file == "":
+		case strings.HasPrefix(a, "-") && len(a) > 1:
+			flags = append(flags, a)
+			name, _, hasValue := strings.Cut(strings.TrimLeft(a, "-"), "=")
+			if !hasValue && flagTakesValue(name) && i+1 < len(args) {
+				i++
+				flags = append(flags, args[i])
+			}
+		case file == "" && a != "":
 			file = a
 		default:
-			flags = append(flags, a)
+			return "", nil, nil, fmt.Errorf("unexpected argument %q (the stack file is already %q)", a, file)
 		}
+	}
+	return file, vars, flags, nil
+}
+
+// flagTakesValue reports whether the named server flag consumes a separate
+// value argument — i.e. it is registered and not a boolean flag.
+func flagTakesValue(name string) bool {
+	probe := config.Default()
+	fs, _ := newFlagSet(&probe)
+	f := fs.Lookup(name)
+	if f == nil {
+		return false
+	}
+	b, ok := f.Value.(interface{ IsBoolFlag() bool })
+	return !ok || !b.IsBoolFlag()
+}
+
+// runApply implements `doze-aws apply [--var k=v ...] [stack.yaml]`.
+func runApply(args []string) int {
+	file, vars, flags, err := splitApplyArgs(args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "apply:", err)
+		return 2
 	}
 	if file == "" {
 		file = config.DefaultStackFile

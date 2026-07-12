@@ -67,9 +67,7 @@ func (c *Console) ddbDeleteTable(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Table deleted")
-	tables, _ := c.be.ListTables(r.Context())
-	c.partial(w, "ddb_table_list", map[string]any{"Tables": tables})
+	c.redirect(w, r, c.prefix+"/ddb", "Table deleted")
 }
 
 func (c *Console) ddbTable(w http.ResponseWriter, r *http.Request) {

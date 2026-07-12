@@ -112,10 +112,10 @@ func loadConfig(args []string) (startup, error) {
 	return startup{cfg: c, configFile: configPath}, nil
 }
 
-// parseFlags binds the flags onto dst and parses args, returning the --config
-// path. Because the flags' defaults are dst's current field values, keys
+// newFlagSet binds the flags onto dst and returns the set plus the --config
+// value. Because the flags' defaults are dst's current field values, keys
 // already set from a config file survive unless the flag is explicitly passed.
-func parseFlags(args []string, dst *config.Config) (configPath string) {
+func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs := flag.NewFlagSet("doze-aws", flag.ExitOnError)
 	cp := fs.String("config", "", "path to a TOML config file (default: ./doze-aws.toml if present)")
 	fs.StringVar(&dst.ListenAddr, "listen", dst.ListenAddr, "host:port for the shared endpoint")
@@ -125,6 +125,12 @@ func parseFlags(args []string, dst *config.Config) (configPath string) {
 	fs.BoolVar(&dst.Console, "console", dst.Console, "serve the web management console at /_console")
 	fs.DurationVar(&dst.LambdaIdleTimeout, "lambda-idle", dst.LambdaIdleTimeout, "how long a warm Lambda keeps its process before scaling to zero")
 	fs.StringVar(&dst.StackFile, "stack", dst.StackFile, "declarative stack.yaml to apply at boot (default: ./stack.yaml if present)")
+	return fs, cp
+}
+
+// parseFlags binds the flags onto dst and parses args, returning the --config path.
+func parseFlags(args []string, dst *config.Config) (configPath string) {
+	fs, cp := newFlagSet(dst)
 	fs.Parse(args) //nolint:errcheck // flag.ExitOnError exits on a parse error.
 	return *cp
 }

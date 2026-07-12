@@ -142,6 +142,96 @@ func TestSDKDeletionRecoveryWindow(t *testing.T) {
 	assertCode(t, err, "ResourceNotFoundException")
 }
 
+// TestRotationFinishStepStages reproduces the rotation lambda's finishSecret
+// step (move AWSCURRENT from the old version to the pending one) and asserts the
+// version that loses AWSCURRENT inherits AWSPREVIOUS — the transition that must
+// leave GetSecretValue(AWSPREVIOUS) working.
+func TestRotationFinishStepStages(t *testing.T) {
+	ctx := context.Background()
+	c := smClient(t)
+
+	created, _ := c.CreateSecret(ctx, &awssm.CreateSecretInput{
+		Name: aws.String("rot"), SecretString: aws.String("current"),
+	})
+	curID := aws.ToString(created.VersionId)
+
+	// createSecret step: stage a pending version.
+	pending, err := c.PutSecretValue(ctx, &awssm.PutSecretValueInput{
+		SecretId: aws.String("rot"), SecretString: aws.String("pending"),
+		VersionStages: []string{"AWSPENDING"},
+	})
+	if err != nil {
+		t.Fatalf("stage pending: %v", err)
+	}
+	pendID := aws.ToString(pending.VersionId)
+
+	// finishSecret step: move AWSCURRENT to the pending version.
+	if _, err := c.UpdateSecretVersionStage(ctx, &awssm.UpdateSecretVersionStageInput{
+		SecretId: aws.String("rot"), VersionStage: aws.String("AWSCURRENT"),
+		MoveToVersionId: aws.String(pendID), RemoveFromVersionId: aws.String(curID),
+	}); err != nil {
+		t.Fatalf("finishSecret move: %v", err)
+	}
+
+	// AWSCURRENT now resolves to the pending value.
+	cur, err := c.GetSecretValue(ctx, &awssm.GetSecretValueInput{SecretId: aws.String("rot")})
+	if err != nil || aws.ToString(cur.SecretString) != "pending" {
+		t.Fatalf("AWSCURRENT after finish = %q, %v", aws.ToString(cur.SecretString), err)
+	}
+	// The old version must have inherited AWSPREVIOUS.
+	prev, err := c.GetSecretValue(ctx, &awssm.GetSecretValueInput{
+		SecretId: aws.String("rot"), VersionStage: aws.String("AWSPREVIOUS"),
+	})
+	if err != nil || aws.ToString(prev.SecretString) != "current" {
+		t.Fatalf("AWSPREVIOUS after finish = %q, %v (old version lost all stages)", aws.ToString(prev.SecretString), err)
+	}
+
+	// Trying to strip AWSCURRENT without moving it must be rejected.
+	if _, err := c.UpdateSecretVersionStage(ctx, &awssm.UpdateSecretVersionStageInput{
+		SecretId: aws.String("rot"), VersionStage: aws.String("AWSCURRENT"),
+		RemoveFromVersionId: aws.String(pendID),
+	}); err == nil {
+		t.Fatal("removing AWSCURRENT without a move should be rejected")
+	}
+}
+
+// TestPutSecretValueSinglePending guards against two versions both holding
+// AWSPENDING when a rotation stages a pending version twice.
+func TestPutSecretValueSinglePending(t *testing.T) {
+	ctx := context.Background()
+	c := smClient(t)
+	c.CreateSecret(ctx, &awssm.CreateSecretInput{Name: aws.String("dup"), SecretString: aws.String("v1")})
+
+	c.PutSecretValue(ctx, &awssm.PutSecretValueInput{
+		SecretId: aws.String("dup"), SecretString: aws.String("p1"), VersionStages: []string{"AWSPENDING"},
+	})
+	p2, _ := c.PutSecretValue(ctx, &awssm.PutSecretValueInput{
+		SecretId: aws.String("dup"), SecretString: aws.String("p2"), VersionStages: []string{"AWSPENDING"},
+	})
+
+	// AWSPENDING must resolve deterministically to the latest pending version.
+	got, err := c.GetSecretValue(ctx, &awssm.GetSecretValueInput{
+		SecretId: aws.String("dup"), VersionStage: aws.String("AWSPENDING"),
+	})
+	if err != nil || aws.ToString(got.SecretString) != "p2" {
+		t.Fatalf("AWSPENDING = %q, %v", aws.ToString(got.SecretString), err)
+	}
+	// Exactly one version may carry AWSPENDING.
+	desc, _ := c.DescribeSecret(ctx, &awssm.DescribeSecretInput{SecretId: aws.String("dup")})
+	pendingCount := 0
+	for _, stages := range desc.VersionIdsToStages {
+		for _, st := range stages {
+			if st == "AWSPENDING" {
+				pendingCount++
+			}
+		}
+	}
+	if pendingCount != 1 {
+		t.Fatalf("AWSPENDING held by %d versions, want 1", pendingCount)
+	}
+	_ = p2
+}
+
 func TestSDKStagesAndVersionIds(t *testing.T) {
 	ctx := context.Background()
 	c := smClient(t)

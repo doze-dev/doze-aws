@@ -79,6 +79,10 @@ func exportQueues(ctx context.Context, c *client, s *Stack) error {
 			if ret := atoiDefault(a["MessageRetentionPeriod"], 0); ret != 0 && ret != 345600 {
 				q.Retention = ret
 			}
+			q.ReceiveWait = atoiDefault(a["ReceiveMessageWaitTimeSeconds"], 0)
+			if ms := atoiDefault(a["MaximumMessageSize"], 0); ms != 0 && ms != 262144 {
+				q.MaxSize = ms
+			}
 			if rp := a["RedrivePolicy"]; rp != "" {
 				var pol struct {
 					DeadLetterTargetArn string          `json:"deadLetterTargetArn"`
@@ -91,6 +95,15 @@ func exportQueues(ctx context.Context, c *client, s *Stack) error {
 						q.MaxReceives = 0
 					}
 				}
+			}
+		}
+		if out, err := c.sqs(ctx, "ListQueueTags", map[string]any{"QueueUrl": queueURL(name)}); err == nil {
+			var lt struct {
+				Tags map[string]string `json:"Tags"`
+			}
+			json.Unmarshal(out, &lt)
+			if len(lt.Tags) > 0 {
+				q.Tags = lt.Tags
 			}
 		}
 		s.Queues[name] = q
@@ -115,6 +128,16 @@ func exportTables(ctx context.Context, c *client, s *Stack) error {
 		if err != nil {
 			continue
 		}
+		type indexWire struct {
+			IndexName string
+			KeySchema []struct {
+				AttributeName, KeyType string
+			}
+			Projection struct {
+				ProjectionType   string
+				NonKeyAttributes []string
+			}
+		}
 		var d struct {
 			Table struct {
 				KeySchema []struct {
@@ -123,12 +146,9 @@ func exportTables(ctx context.Context, c *client, s *Stack) error {
 				AttributeDefinitions []struct {
 					AttributeName, AttributeType string
 				}
-				GlobalSecondaryIndexes []struct {
-					IndexName string
-					KeySchema []struct {
-						AttributeName, KeyType string
-					}
-				}
+				GlobalSecondaryIndexes    []indexWire
+				LocalSecondaryIndexes     []indexWire
+				DeletionProtectionEnabled bool
 			}
 		}
 		json.Unmarshal(out, &d)
@@ -151,12 +171,48 @@ func exportTables(ctx context.Context, c *client, s *Stack) error {
 			}
 			return hash
 		}
+		projOf := func(ix indexWire) (string, []string) {
+			if p := ix.Projection.ProjectionType; p != "" && p != "ALL" {
+				return p, ix.Projection.NonKeyAttributes
+			}
+			return "", nil
+		}
 		t := Table{Key: keyOf(d.Table.KeySchema)}
 		for _, g := range d.Table.GlobalSecondaryIndexes {
 			if t.GSIs == nil {
 				t.GSIs = map[string]GSI{}
 			}
-			t.GSIs[g.IndexName] = GSI{Key: keyOf(g.KeySchema)}
+			proj, incl := projOf(g)
+			t.GSIs[g.IndexName] = GSI{Key: keyOf(g.KeySchema), Projection: proj, Include: incl}
+		}
+		for _, l := range d.Table.LocalSecondaryIndexes {
+			if t.LSIs == nil {
+				t.LSIs = map[string]LSI{}
+			}
+			sortKey := ""
+			for _, ks := range l.KeySchema {
+				if ks.KeyType == "RANGE" {
+					sortKey = ks.AttributeName + ":" + types[ks.AttributeName]
+				}
+			}
+			proj, incl := projOf(l)
+			t.LSIs[l.IndexName] = LSI{Key: sortKey, Projection: proj, Include: incl}
+		}
+		if d.Table.DeletionProtectionEnabled {
+			v := true
+			t.DeletionProtection = &v
+		}
+		if out, err := c.ddb(ctx, "ListTagsOfResource", map[string]any{"ResourceArn": tableARN(name)}); err == nil {
+			var lt struct {
+				Tags []struct{ Key, Value string }
+			}
+			json.Unmarshal(out, &lt)
+			for _, tag := range lt.Tags {
+				if t.Tags == nil {
+					t.Tags = map[string]string{}
+				}
+				t.Tags[tag.Key] = tag.Value
+			}
 		}
 		if out, err := c.ddb(ctx, "DescribeTimeToLive", map[string]any{"TableName": name}); err == nil {
 			var ttl struct {
@@ -191,9 +247,63 @@ func exportBuckets(ctx context.Context, c *client, s *Stack) error {
 		if out, err := c.do(ctx, "GET", "/"+name+"?notification", nil, nil); err == nil {
 			b.Notify = parseNotifyXML(string(out))
 		}
+		if out, err := c.do(ctx, "GET", "/"+name+"?cors", nil, nil); err == nil {
+			b.CORS = parseCORSXML(string(out))
+		}
+		if out, err := c.do(ctx, "GET", "/"+name+"?lifecycle", nil, nil); err == nil {
+			b.Lifecycle = parseLifecycleXML(string(out))
+		}
+		if out, err := c.do(ctx, "GET", "/"+name+"?website", nil, nil); err == nil {
+			w := Website{
+				Index: xmlValue(xmlBlock(string(out), "IndexDocument"), "Suffix"),
+				Error: xmlValue(xmlBlock(string(out), "ErrorDocument"), "Key"),
+			}
+			if w.Index != "" || w.Error != "" {
+				b.Website = &w
+			}
+		}
+		if out, err := c.do(ctx, "GET", "/"+name+"?tagging", nil, nil); err == nil {
+			for _, tag := range xmlBlocks(string(out), "Tag") {
+				if b.Tags == nil {
+					b.Tags = map[string]string{}
+				}
+				b.Tags[xmlValue(tag, "Key")] = xmlValue(tag, "Value")
+			}
+		}
 		s.Buckets[name] = b
 	}
 	return nil
+}
+
+func parseCORSXML(x string) []CORSRule {
+	var out []CORSRule
+	for _, block := range xmlBlocks(x, "CORSRule") {
+		r := CORSRule{
+			Origins: xmlValues(block, "AllowedOrigin"),
+			Methods: xmlValues(block, "AllowedMethod"),
+			Headers: xmlValues(block, "AllowedHeader"),
+			Expose:  xmlValues(block, "ExposeHeader"),
+			MaxAge:  atoiDefault(xmlValue(block, "MaxAgeSeconds"), 0),
+		}
+		out = append(out, r)
+	}
+	return out
+}
+
+func parseLifecycleXML(x string) []LifecycleRule {
+	var out []LifecycleRule
+	for _, block := range xmlBlocks(x, "Rule") {
+		r := LifecycleRule{
+			Prefix:          xmlValue(block, "Prefix"),
+			ExpireDays:      atoiDefault(xmlValue(xmlBlock(block, "Expiration"), "Days"), 0),
+			NoncurrentDays:  atoiDefault(xmlValue(block, "NoncurrentDays"), 0),
+			AbortUploadDays: atoiDefault(xmlValue(block, "DaysAfterInitiation"), 0),
+		}
+		if r.ExpireDays > 0 || r.NoncurrentDays > 0 || r.AbortUploadDays > 0 {
+			out = append(out, r)
+		}
+	}
+	return out
 }
 
 // parseNotifyXML extracts notification targets from the S3 XML config.
@@ -268,6 +378,9 @@ func exportFunctions(ctx context.Context, c *client, s *Stack) error {
 			Environment  struct {
 				Variables map[string]string
 			}
+			DeadLetterConfig struct {
+				TargetArn string
+			}
 		}
 	}
 	json.Unmarshal(out, &lst)
@@ -286,6 +399,7 @@ func exportFunctions(ctx context.Context, c *client, s *Stack) error {
 		if fn.MemorySize != 0 && fn.MemorySize != 512 { // 512 is the server default
 			f.Memory = fn.MemorySize
 		}
+		f.DLQ = destFromARN(fn.DeadLetterConfig.TargetArn)
 		// Code location: the _local_ extension reports it via GetFunction.
 		if out, err := c.do(ctx, "GET", "/2015-03-31/functions/"+url.PathEscape(fn.FunctionName), nil, nil); err == nil {
 			var g struct {
@@ -298,16 +412,20 @@ func exportFunctions(ctx context.Context, c *client, s *Stack) error {
 				f.Code = loc
 			}
 		}
-		// Destinations.
+		// Destinations + retry policy.
 		if out, err := c.do(ctx, "GET", "/2019-09-25/functions/"+url.PathEscape(fn.FunctionName)+"/event-invoke-config", nil, nil); err == nil {
 			var eic struct {
 				DestinationConfig struct {
 					OnSuccess, OnFailure struct{ Destination string }
 				}
+				MaximumRetryAttempts *int
 			}
 			json.Unmarshal(out, &eic)
 			f.OnSuccess = destFromARN(eic.DestinationConfig.OnSuccess.Destination)
 			f.OnFailure = destFromARN(eic.DestinationConfig.OnFailure.Destination)
+			if eic.MaximumRetryAttempts != nil && *eic.MaximumRetryAttempts != 2 { // 2 is the default
+				f.Retries = eic.MaximumRetryAttempts
+			}
 		}
 		// Triggers.
 		if out, err := c.do(ctx, "GET", "/2015-03-31/event-source-mappings?FunctionName="+url.QueryEscape(fn.FunctionName), nil, nil); err == nil {
@@ -315,6 +433,7 @@ func exportFunctions(ctx context.Context, c *client, s *Stack) error {
 				EventSourceMappings []struct {
 					EventSourceArn string
 					BatchSize      int
+					State          string
 				}
 			}
 			json.Unmarshal(out, &esm)
@@ -323,7 +442,21 @@ func exportFunctions(ctx context.Context, c *client, s *Stack) error {
 				if m.BatchSize != 0 && m.BatchSize != 10 {
 					tr.Batch = m.BatchSize
 				}
+				if m.State == "Disabled" {
+					v := false
+					tr.Enabled = &v
+				}
 				f.Triggers = append(f.Triggers, tr)
+			}
+		}
+		// Tags.
+		if out, err := c.do(ctx, "GET", "/2017-03-31/tags/"+lambdaARN(fn.FunctionName), nil, nil); err == nil {
+			var lt struct {
+				Tags map[string]string
+			}
+			json.Unmarshal(out, &lt)
+			if len(lt.Tags) > 0 {
+				f.Tags = lt.Tags
 			}
 		}
 		s.Functions[fn.FunctionName] = f
@@ -397,6 +530,18 @@ func exportTopics(ctx context.Context, c *client, s *Stack) error {
 				x = x[j+9:]
 			}
 		}
+		if out, err := c.query(ctx, url.Values{"Action": {"ListTagsForResource"}, "ResourceArn": {arn}}); err == nil {
+			for _, m := range xmlBlocks(string(out), "member") {
+				k, v := xmlValue(m, "Key"), xmlValue(m, "Value")
+				if k == "" {
+					continue
+				}
+				if t.Tags == nil {
+					t.Tags = map[string]string{}
+				}
+				t.Tags[k] = v
+			}
+		}
 		s.Topics[name] = t
 	}
 	return nil
@@ -444,6 +589,7 @@ func exportRules(ctx context.Context, c *client, s *Stack) error {
 				Name               string
 				EventPattern       string
 				ScheduleExpression string
+				State              string
 			}
 		}
 		json.Unmarshal(out, &rules)
@@ -458,23 +604,51 @@ func exportRules(ctx context.Context, c *client, s *Stack) error {
 			if r.EventPattern != "" {
 				rule.Pattern = Doc{JSON: r.EventPattern}
 			}
+			if r.State == "DISABLED" {
+				v := false
+				rule.Enabled = &v
+			}
 			tin := map[string]any{"Rule": r.Name}
 			if bus.Name != "default" {
 				tin["EventBusName"] = bus.Name
 			}
 			if out, err := c.json11(ctx, "AWSEvents", "ListTargetsByRule", tin); err == nil {
 				var ts struct {
-					Targets []struct{ Arn string }
+					Targets []struct {
+						Arn              string
+						Input            string
+						InputPath        string
+						InputTransformer *struct {
+							InputTemplate string
+							InputPathsMap map[string]string
+						}
+					}
 				}
 				json.Unmarshal(out, &ts)
 				for _, t := range ts.Targets {
 					leaf := arnLeaf(t.Arn)
+					tgt := Target{}
 					switch {
 					case strings.Contains(t.Arn, ":sqs:"):
-						rule.Targets = append(rule.Targets, "queue:"+leaf)
+						tgt.Queue = leaf
+					case strings.Contains(t.Arn, ":sns:"):
+						tgt.Topic = leaf
 					case strings.Contains(t.Arn, ":lambda:"):
-						rule.Targets = append(rule.Targets, "lambda:"+strings.TrimPrefix(leaf, "function:"))
+						tgt.Lambda = strings.TrimPrefix(leaf, "function:")
+					default:
+						continue
 					}
+					if t.Input != "" {
+						tgt.Input = Doc{JSON: t.Input}
+					}
+					tgt.InputPath = t.InputPath
+					if t.InputTransformer != nil {
+						tgt.Template = t.InputTransformer.InputTemplate
+						if len(t.InputTransformer.InputPathsMap) > 0 {
+							tgt.Paths = t.InputTransformer.InputPathsMap
+						}
+					}
+					rule.Targets = append(rule.Targets, tgt)
 				}
 			}
 			s.Rules[r.Name] = rule
@@ -503,21 +677,50 @@ func exportKeys(ctx context.Context, c *client, s *Stack) error {
 		k := Key{}
 		if out, err := c.json11(ctx, "TrentService", "DescribeKey", map[string]any{"KeyId": a.TargetKeyId}); err == nil {
 			var d struct {
-				KeyMetadata struct{ KeySpec string }
+				KeyMetadata struct{ KeySpec, KeyUsage, Description string }
 			}
 			json.Unmarshal(out, &d)
 			if d.KeyMetadata.KeySpec != "" && d.KeyMetadata.KeySpec != "SYMMETRIC_DEFAULT" {
 				k.Spec = d.KeyMetadata.KeySpec
 			}
+			// Only export a usage apply wouldn't infer from the spec.
+			if u := d.KeyMetadata.KeyUsage; u != "" && u != inferredUsage(k.Spec) {
+				k.Usage = u
+			}
+			k.Description = d.KeyMetadata.Description
 		}
 		if out, err := c.json11(ctx, "TrentService", "GetKeyRotationStatus", map[string]any{"KeyId": a.TargetKeyId}); err == nil {
 			var rs struct{ KeyRotationEnabled bool }
 			json.Unmarshal(out, &rs)
 			k.Rotation = rs.KeyRotationEnabled
 		}
+		if out, err := c.json11(ctx, "TrentService", "ListResourceTags", map[string]any{"KeyId": a.TargetKeyId}); err == nil {
+			var lt struct {
+				Tags []struct{ TagKey, TagValue string }
+			}
+			json.Unmarshal(out, &lt)
+			for _, tag := range lt.Tags {
+				if k.Tags == nil {
+					k.Tags = map[string]string{}
+				}
+				k.Tags[tag.TagKey] = tag.TagValue
+			}
+		}
 		s.Keys[name] = k
 	}
 	return nil
+}
+
+// inferredUsage mirrors apply's spec → default-usage mapping.
+func inferredUsage(spec string) string {
+	switch {
+	case strings.HasPrefix(spec, "RSA"), strings.HasPrefix(spec, "ECC"):
+		return "SIGN_VERIFY"
+	case strings.HasPrefix(spec, "HMAC"):
+		return "GENERATE_VERIFY_MAC"
+	default:
+		return "ENCRYPT_DECRYPT"
+	}
 }
 
 func exportSecrets(ctx context.Context, c *client, s *Stack) error {
@@ -526,14 +729,25 @@ func exportSecrets(ctx context.Context, c *client, s *Stack) error {
 		return err
 	}
 	var lst struct {
-		SecretList []struct{ Name string }
+		SecretList []struct {
+			Name        string
+			Description string
+			Tags        []struct{ Key, Value string }
+		}
 	}
 	json.Unmarshal(out, &lst)
 	if len(lst.SecretList) > 0 {
 		s.Secrets = map[string]Secret{}
 	}
 	for _, sec := range lst.SecretList {
-		s.Secrets[sec.Name] = Secret{} // values intentionally not exported
+		out := Secret{Description: sec.Description} // values intentionally not exported
+		for _, tag := range sec.Tags {
+			if out.Tags == nil {
+				out.Tags = map[string]string{}
+			}
+			out.Tags[tag.Key] = tag.Value
+		}
+		s.Secrets[sec.Name] = out
 	}
 	return nil
 }
@@ -544,14 +758,14 @@ func exportParameters(ctx context.Context, c *client, s *Stack) error {
 		return err
 	}
 	var lst struct {
-		Parameters []struct{ Name, Type string }
+		Parameters []struct{ Name, Type, Description string }
 	}
 	json.Unmarshal(out, &lst)
 	if len(lst.Parameters) > 0 {
 		s.Parameters = map[string]Parameter{}
 	}
 	for _, p := range lst.Parameters {
-		param := Parameter{Type: p.Type}
+		param := Parameter{Type: p.Type, Description: p.Description}
 		if p.Type == "String" || p.Type == "StringList" {
 			if out, err := c.json11(ctx, "AmazonSSM", "GetParameter", map[string]any{"Name": p.Name}); err == nil {
 				var g struct {
@@ -562,6 +776,20 @@ func exportParameters(ctx context.Context, c *client, s *Stack) error {
 			}
 			if param.Type == "String" {
 				param.Type = "" // the default; keep exports minimal
+			}
+		}
+		if out, err := c.json11(ctx, "AmazonSSM", "ListTagsForResource", map[string]any{
+			"ResourceType": "Parameter", "ResourceId": p.Name,
+		}); err == nil {
+			var lt struct {
+				TagList []struct{ Key, Value string }
+			}
+			json.Unmarshal(out, &lt)
+			for _, tag := range lt.TagList {
+				if param.Tags == nil {
+					param.Tags = map[string]string{}
+				}
+				param.Tags[tag.Key] = tag.Value
 			}
 		}
 		s.Parameters[p.Name] = param
@@ -581,6 +809,35 @@ func atoiDefault(s string, def int) int {
 		return n
 	}
 	return def
+}
+
+// xmlBlock returns the inner text of the first <tag>…</tag> block, or "".
+func xmlBlock(s, tag string) string {
+	blocks := xmlBlocks(s, tag)
+	if len(blocks) == 0 {
+		return ""
+	}
+	return blocks[0]
+}
+
+// xmlBlocks returns the inner text of every <tag>…</tag> block.
+func xmlBlocks(s, tag string) []string {
+	open, close := "<"+tag+">", "</"+tag+">"
+	var out []string
+	for {
+		i := strings.Index(s, open)
+		if i < 0 {
+			break
+		}
+		rest := s[i+len(open):]
+		j := strings.Index(rest, close)
+		if j < 0 {
+			break
+		}
+		out = append(out, rest[:j])
+		s = rest[j+len(close):]
+	}
+	return out
 }
 
 // xmlValues returns every occurrence of <tag>…</tag>.

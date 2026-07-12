@@ -2,7 +2,6 @@ package stackfile
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"html"
@@ -12,6 +11,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // Action is one thing Apply did (or decided not to do).
@@ -111,6 +112,12 @@ func applyQueues(ctx context.Context, c *client, s *Stack, rep *Report) error {
 		if q.Retention > 0 {
 			attrs["MessageRetentionPeriod"] = strconv.Itoa(q.Retention)
 		}
+		if q.ReceiveWait > 0 {
+			attrs["ReceiveMessageWaitTimeSeconds"] = strconv.Itoa(q.ReceiveWait)
+		}
+		if q.MaxSize > 0 {
+			attrs["MaximumMessageSize"] = strconv.Itoa(q.MaxSize)
+		}
 		if q.DLQ != "" {
 			dlq := q.DLQ
 			if dlq == "auto" {
@@ -136,6 +143,9 @@ func applyQueues(ctx context.Context, c *client, s *Stack, rep *Report) error {
 			if len(attrs) > 0 {
 				in["Attributes"] = attrs
 			}
+			if len(q.Tags) > 0 {
+				in["tags"] = q.Tags
+			}
 			if _, err := c.sqs(ctx, "CreateQueue", in); err != nil {
 				return err
 			}
@@ -151,10 +161,19 @@ func applyQueues(ctx context.Context, c *client, s *Stack, rep *Report) error {
 			}); err != nil {
 				return err
 			}
-			rep.add("updated", "queue/"+name, "attributes")
-			return nil
 		}
-		rep.add("skipped", "queue/"+name, "exists")
+		if len(q.Tags) > 0 {
+			if _, err := c.sqs(ctx, "TagQueue", map[string]any{
+				"QueueUrl": queueURL(name), "Tags": q.Tags,
+			}); err != nil {
+				return err
+			}
+		}
+		if len(attrs) > 0 {
+			rep.add("updated", "queue/"+name, "attributes")
+		} else {
+			rep.add("skipped", "queue/"+name, "exists")
+		}
 		return nil
 	}
 	for _, name := range sortedNames(s.Queues) {
@@ -187,8 +206,10 @@ func ensureBareQueue(ctx context.Context, c *client, rep *Report, name string, f
 func applyTables(ctx context.Context, c *client, s *Stack, rep *Report) error {
 	for _, name := range sortedNames(s.Tables) {
 		t := s.Tables[name]
-		if _, err := c.ddb(ctx, "DescribeTable", map[string]any{"TableName": name}); err == nil {
-			rep.add("skipped", "table/"+name, "exists (key schema is immutable)")
+		if out, err := c.ddb(ctx, "DescribeTable", map[string]any{"TableName": name}); err == nil {
+			if err := convergeTable(ctx, c, rep, name, t, out); err != nil {
+				return fmt.Errorf("table %q: %w", name, err)
+			}
 			continue
 		} else if !notFound(err) {
 			return fmt.Errorf("table %q: %w", name, err)
@@ -203,7 +224,8 @@ func applyTables(ctx context.Context, c *client, s *Stack, rep *Report) error {
 		}
 		var gsis []map[string]any
 		for _, gname := range sortedNames(t.GSIs) {
-			gh, gr, _ := parseKey(t.GSIs[gname].Key)
+			g := t.GSIs[gname]
+			gh, gr, _ := parseKey(g.Key)
 			defs[gh.Name] = gh.Type
 			ks := []map[string]string{{"AttributeName": gh.Name, "KeyType": "HASH"}}
 			if gr != nil {
@@ -212,7 +234,21 @@ func applyTables(ctx context.Context, c *client, s *Stack, rep *Report) error {
 			}
 			gsis = append(gsis, map[string]any{
 				"IndexName": gname, "KeySchema": ks,
-				"Projection": map[string]string{"ProjectionType": "ALL"},
+				"Projection": projectionWire(g.Projection, g.Include),
+			})
+		}
+		var lsis []map[string]any
+		for _, lname := range sortedNames(t.LSIs) {
+			l := t.LSIs[lname]
+			lr, _, _ := parseKey(l.Key) // single "attr:TYPE", validated at parse time
+			defs[lr.Name] = lr.Type
+			lsis = append(lsis, map[string]any{
+				"IndexName": lname,
+				"KeySchema": []map[string]string{
+					{"AttributeName": hash.Name, "KeyType": "HASH"},
+					{"AttributeName": lr.Name, "KeyType": "RANGE"},
+				},
+				"Projection": projectionWire(l.Projection, l.Include),
 			})
 		}
 		var attrs []map[string]string
@@ -225,6 +261,15 @@ func applyTables(ctx context.Context, c *client, s *Stack, rep *Report) error {
 		}
 		if len(gsis) > 0 {
 			in["GlobalSecondaryIndexes"] = gsis
+		}
+		if len(lsis) > 0 {
+			in["LocalSecondaryIndexes"] = lsis
+		}
+		if t.DeletionProtection != nil {
+			in["DeletionProtectionEnabled"] = *t.DeletionProtection
+		}
+		if len(t.Tags) > 0 {
+			in["Tags"] = tagList(t.Tags, "Key", "Value")
 		}
 		if _, err := c.ddb(ctx, "CreateTable", in); err != nil {
 			return fmt.Errorf("table %q: %w", name, err)
@@ -241,6 +286,117 @@ func applyTables(ctx context.Context, c *client, s *Stack, rep *Report) error {
 	}
 	return nil
 }
+
+// convergeTable updates what an existing table can cheaply change: missing
+// GSIs (UpdateTable backfills synchronously), TTL, deletion protection, and
+// tags. The key schema and LSIs are create-time-only, so they are left alone.
+func convergeTable(ctx context.Context, c *client, rep *Report, name string, t Table, describe []byte) error {
+	var d struct {
+		Table struct {
+			GlobalSecondaryIndexes    []struct{ IndexName string }
+			DeletionProtectionEnabled bool
+		}
+	}
+	json.Unmarshal(describe, &d)
+	var changes []string
+
+	live := map[string]bool{}
+	for _, g := range d.Table.GlobalSecondaryIndexes {
+		live[g.IndexName] = true
+	}
+	for _, gname := range sortedNames(t.GSIs) {
+		if live[gname] {
+			continue
+		}
+		g := t.GSIs[gname]
+		gh, gr, _ := parseKey(g.Key)
+		defs := []map[string]string{{"AttributeName": gh.Name, "AttributeType": gh.Type}}
+		ks := []map[string]string{{"AttributeName": gh.Name, "KeyType": "HASH"}}
+		if gr != nil {
+			defs = append(defs, map[string]string{"AttributeName": gr.Name, "AttributeType": gr.Type})
+			ks = append(ks, map[string]string{"AttributeName": gr.Name, "KeyType": "RANGE"})
+		}
+		if _, err := c.ddb(ctx, "UpdateTable", map[string]any{
+			"TableName": name, "AttributeDefinitions": defs,
+			"GlobalSecondaryIndexUpdates": []map[string]any{{"Create": map[string]any{
+				"IndexName": gname, "KeySchema": ks,
+				"Projection": projectionWire(g.Projection, g.Include),
+			}}},
+		}); err != nil {
+			return fmt.Errorf("gsi %q: %w", gname, err)
+		}
+		changes = append(changes, "gsi "+gname)
+	}
+
+	if t.DeletionProtection != nil && *t.DeletionProtection != d.Table.DeletionProtectionEnabled {
+		if _, err := c.ddb(ctx, "UpdateTable", map[string]any{
+			"TableName": name, "DeletionProtectionEnabled": *t.DeletionProtection,
+		}); err != nil {
+			return fmt.Errorf("deletion protection: %w", err)
+		}
+		changes = append(changes, "deletion protection")
+	}
+
+	if t.TTL != "" {
+		enabled := false
+		if out, err := c.ddb(ctx, "DescribeTimeToLive", map[string]any{"TableName": name}); err == nil {
+			var ttl struct {
+				TimeToLiveDescription struct{ AttributeName, TimeToLiveStatus string }
+			}
+			json.Unmarshal(out, &ttl)
+			enabled = ttl.TimeToLiveDescription.TimeToLiveStatus == "ENABLED" &&
+				ttl.TimeToLiveDescription.AttributeName == t.TTL
+		}
+		if !enabled {
+			if _, err := c.ddb(ctx, "UpdateTimeToLive", map[string]any{
+				"TableName":               name,
+				"TimeToLiveSpecification": map[string]any{"Enabled": true, "AttributeName": t.TTL},
+			}); err != nil {
+				return fmt.Errorf("ttl: %w", err)
+			}
+			changes = append(changes, "ttl")
+		}
+	}
+
+	if len(t.Tags) > 0 {
+		if _, err := c.ddb(ctx, "TagResource", map[string]any{
+			"ResourceArn": tableARN(name), "Tags": tagList(t.Tags, "Key", "Value"),
+		}); err != nil {
+			return fmt.Errorf("tags: %w", err)
+		}
+	}
+
+	if len(changes) > 0 {
+		rep.add("updated", "table/"+name, strings.Join(changes, ", "))
+	} else {
+		rep.add("skipped", "table/"+name, "exists (key schema is immutable)")
+	}
+	return nil
+}
+
+// projectionWire renders a gsi/lsi projection for CreateTable/UpdateTable.
+func projectionWire(p string, include []string) map[string]any {
+	out := map[string]any{"ProjectionType": "ALL"}
+	if p != "" {
+		out["ProjectionType"] = p
+	}
+	if p == "INCLUDE" {
+		out["NonKeyAttributes"] = include
+	}
+	return out
+}
+
+// tagList renders a tag map as the sorted key/value pair list most AWS APIs
+// take (key and value field names vary by service).
+func tagList(tags map[string]string, keyField, valField string) []map[string]string {
+	var out []map[string]string
+	for _, k := range sortedNames(tags) {
+		out = append(out, map[string]string{keyField: k, valField: tags[k]})
+	}
+	return out
+}
+
+func tableARN(name string) string { return awsident.ARN("dynamodb", "table/"+name) }
 
 // ---- keys (KMS, keyed by alias) ----
 
@@ -278,6 +434,15 @@ func applyKeys(ctx context.Context, c *client, s *Stack, rep *Report) error {
 					in["KeyUsage"] = "GENERATE_VERIFY_MAC"
 				}
 			}
+			if k.Usage != "" {
+				in["KeyUsage"] = k.Usage // an explicit usage beats the spec default
+			}
+			if k.Description != "" {
+				in["Description"] = k.Description
+			}
+			if len(k.Tags) > 0 {
+				in["Tags"] = tagList(k.Tags, "TagKey", "TagValue")
+			}
 			out, err := c.json11(ctx, "TrentService", "CreateKey", in)
 			if err != nil {
 				return fmt.Errorf("key %q: %w", name, err)
@@ -299,6 +464,23 @@ func applyKeys(ctx context.Context, c *client, s *Stack, rep *Report) error {
 		if k.Rotation {
 			if _, err := c.json11(ctx, "TrentService", "EnableKeyRotation", map[string]any{"KeyId": keyID}); err != nil {
 				return fmt.Errorf("key %q rotation: %w", name, err)
+			}
+		}
+		if !created {
+			// Converge the cheap metadata on an existing key.
+			if k.Description != "" {
+				if _, err := c.json11(ctx, "TrentService", "UpdateKeyDescription", map[string]any{
+					"KeyId": keyID, "Description": k.Description,
+				}); err != nil {
+					return fmt.Errorf("key %q description: %w", name, err)
+				}
+			}
+			if len(k.Tags) > 0 {
+				if _, err := c.json11(ctx, "TrentService", "TagResource", map[string]any{
+					"KeyId": keyID, "Tags": tagList(k.Tags, "TagKey", "TagValue"),
+				}); err != nil {
+					return fmt.Errorf("key %q tags: %w", name, err)
+				}
 			}
 		}
 		if created {
@@ -334,15 +516,112 @@ func applyBuckets(ctx context.Context, c *client, s *Stack, rep *Report) error {
 		} else {
 			rep.add("skipped", "bucket/"+name, "exists")
 		}
-		// Versioning is an idempotent upsert either way.
+		// The bucket configs are all idempotent full-replace upserts.
 		if b.Versioning || b.ObjectLock {
 			body := `<VersioningConfiguration><Status>Enabled</Status></VersioningConfiguration>`
 			if _, err := c.do(ctx, "PUT", "/"+name+"?versioning", nil, []byte(body)); err != nil {
 				return fmt.Errorf("bucket %q versioning: %w", name, err)
 			}
 		}
+		if len(b.CORS) > 0 {
+			if _, err := c.do(ctx, "PUT", "/"+name+"?cors", nil, corsXML(b.CORS)); err != nil {
+				return fmt.Errorf("bucket %q cors: %w", name, err)
+			}
+		}
+		if len(b.Lifecycle) > 0 {
+			if _, err := c.do(ctx, "PUT", "/"+name+"?lifecycle", nil, lifecycleXML(b.Lifecycle)); err != nil {
+				return fmt.Errorf("bucket %q lifecycle: %w", name, err)
+			}
+		}
+		if b.Website != nil {
+			if _, err := c.do(ctx, "PUT", "/"+name+"?website", nil, websiteXML(*b.Website)); err != nil {
+				return fmt.Errorf("bucket %q website: %w", name, err)
+			}
+		}
+		if len(b.Tags) > 0 {
+			if _, err := c.do(ctx, "PUT", "/"+name+"?tagging", nil, taggingXML(b.Tags)); err != nil {
+				return fmt.Errorf("bucket %q tags: %w", name, err)
+			}
+		}
 	}
 	return nil
+}
+
+func corsXML(rules []CORSRule) []byte {
+	var sb strings.Builder
+	sb.WriteString("<CORSConfiguration>")
+	for _, r := range rules {
+		sb.WriteString("<CORSRule>")
+		for _, o := range r.Origins {
+			sb.WriteString("<AllowedOrigin>" + xmlEsc(o) + "</AllowedOrigin>")
+		}
+		for _, m := range r.Methods {
+			sb.WriteString("<AllowedMethod>" + xmlEsc(m) + "</AllowedMethod>")
+		}
+		for _, h := range r.Headers {
+			sb.WriteString("<AllowedHeader>" + xmlEsc(h) + "</AllowedHeader>")
+		}
+		for _, e := range r.Expose {
+			sb.WriteString("<ExposeHeader>" + xmlEsc(e) + "</ExposeHeader>")
+		}
+		if r.MaxAge > 0 {
+			sb.WriteString("<MaxAgeSeconds>" + strconv.Itoa(r.MaxAge) + "</MaxAgeSeconds>")
+		}
+		sb.WriteString("</CORSRule>")
+	}
+	sb.WriteString("</CORSConfiguration>")
+	return []byte(sb.String())
+}
+
+func lifecycleXML(rules []LifecycleRule) []byte {
+	var sb strings.Builder
+	sb.WriteString("<LifecycleConfiguration>")
+	for i, r := range rules {
+		sb.WriteString("<Rule><ID>stackfile-" + strconv.Itoa(i+1) + "</ID><Status>Enabled</Status>")
+		if r.Prefix != "" {
+			sb.WriteString("<Prefix>" + xmlEsc(r.Prefix) + "</Prefix>")
+		}
+		if r.ExpireDays > 0 {
+			sb.WriteString("<Expiration><Days>" + strconv.Itoa(r.ExpireDays) + "</Days></Expiration>")
+		}
+		if r.NoncurrentDays > 0 {
+			sb.WriteString("<NoncurrentVersionExpiration><NoncurrentDays>" + strconv.Itoa(r.NoncurrentDays) + "</NoncurrentDays></NoncurrentVersionExpiration>")
+		}
+		if r.AbortUploadDays > 0 {
+			sb.WriteString("<AbortIncompleteMultipartUpload><DaysAfterInitiation>" + strconv.Itoa(r.AbortUploadDays) + "</DaysAfterInitiation></AbortIncompleteMultipartUpload>")
+		}
+		sb.WriteString("</Rule>")
+	}
+	sb.WriteString("</LifecycleConfiguration>")
+	return []byte(sb.String())
+}
+
+func websiteXML(w Website) []byte {
+	var sb strings.Builder
+	sb.WriteString("<WebsiteConfiguration>")
+	if w.Index != "" {
+		sb.WriteString("<IndexDocument><Suffix>" + xmlEsc(w.Index) + "</Suffix></IndexDocument>")
+	}
+	if w.Error != "" {
+		sb.WriteString("<ErrorDocument><Key>" + xmlEsc(w.Error) + "</Key></ErrorDocument>")
+	}
+	sb.WriteString("</WebsiteConfiguration>")
+	return []byte(sb.String())
+}
+
+func taggingXML(tags map[string]string) []byte {
+	var sb strings.Builder
+	sb.WriteString("<Tagging><TagSet>")
+	for _, k := range sortedNames(tags) {
+		sb.WriteString("<Tag><Key>" + xmlEsc(k) + "</Key><Value>" + xmlEsc(tags[k]) + "</Value></Tag>")
+	}
+	sb.WriteString("</TagSet></Tagging>")
+	return []byte(sb.String())
+}
+
+func xmlEsc(s string) string {
+	r := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;")
+	return r.Replace(s)
 }
 
 // ---- functions ----
@@ -384,8 +663,8 @@ func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error
 		if len(f.Command) > 0 {
 			cfg["Command"] = f.Command
 		}
-		if f.DLQOf() != "" {
-			cfg["DeadLetterConfig"] = map[string]string{"TargetArn": f.DLQOf()}
+		if f.DLQ != nil {
+			cfg["DeadLetterConfig"] = map[string]string{"TargetArn": f.DLQ.arn()}
 		}
 
 		if !exists {
@@ -407,8 +686,9 @@ func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error
 			rep.add("updated", "function/"+name, "configuration + code path")
 		}
 
-		// Async destinations (upsert).
-		if f.OnSuccess != nil || f.OnFailure != nil {
+		// Async destinations and retry policy (upsert).
+		if f.OnSuccess != nil || f.OnFailure != nil || f.Retries != nil {
+			eic := map[string]any{}
 			dc := map[string]any{}
 			if f.OnSuccess != nil {
 				dc["OnSuccess"] = map[string]string{"Destination": f.OnSuccess.arn()}
@@ -416,34 +696,59 @@ func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error
 			if f.OnFailure != nil {
 				dc["OnFailure"] = map[string]string{"Destination": f.OnFailure.arn()}
 			}
-			body := mustJSON(map[string]any{"DestinationConfig": dc})
+			if len(dc) > 0 {
+				eic["DestinationConfig"] = dc
+			}
+			if f.Retries != nil {
+				eic["MaximumRetryAttempts"] = *f.Retries
+			}
+			body := mustJSON(eic)
 			if _, err := c.do(ctx, "PUT", "/2019-09-25/functions/"+url.PathEscape(name)+"/event-invoke-config", map[string]string{"Content-Type": "application/json"}, body); err != nil {
 				return fmt.Errorf("function %q destinations: %w", name, err)
 			}
 		}
 
-		// Event source mappings: create the missing ones by source ARN.
+		// Tags merge idempotently.
+		if len(f.Tags) > 0 {
+			body := mustJSON(map[string]any{"Tags": f.Tags})
+			if _, err := c.do(ctx, "POST", "/2017-03-31/tags/"+lambdaARN(name), map[string]string{"Content-Type": "application/json"}, body); err != nil {
+				return fmt.Errorf("function %q tags: %w", name, err)
+			}
+		}
+
+		// Event source mappings: create the missing ones by source ARN and
+		// converge an explicit enabled flag on the ones already wired.
 		if len(f.Triggers) > 0 {
-			existing := map[string]bool{}
+			existing := map[string]string{} // source ARN → mapping UUID
 			if out, err := c.do(ctx, "GET", "/2015-03-31/event-source-mappings?FunctionName="+url.QueryEscape(name), nil, nil); err == nil {
 				var lst struct {
 					EventSourceMappings []struct {
+						UUID           string `json:"UUID"`
 						EventSourceArn string `json:"EventSourceArn"`
 					} `json:"EventSourceMappings"`
 				}
 				json.Unmarshal(out, &lst)
 				for _, m := range lst.EventSourceMappings {
-					existing[m.EventSourceArn] = true
+					existing[m.EventSourceArn] = m.UUID
 				}
 			}
 			for _, tr := range f.Triggers {
 				arn := queueARN(tr.Queue)
-				if existing[arn] {
+				if uuid, ok := existing[arn]; ok {
+					if tr.Enabled != nil {
+						body := mustJSON(map[string]any{"Enabled": *tr.Enabled})
+						if _, err := c.do(ctx, "PUT", "/2015-03-31/event-source-mappings/"+uuid, map[string]string{"Content-Type": "application/json"}, body); err != nil {
+							return fmt.Errorf("function %q trigger %s: %w", name, tr.Queue, err)
+						}
+					}
 					continue
 				}
 				in := map[string]any{"FunctionName": name, "EventSourceArn": arn}
 				if tr.Batch > 0 {
 					in["BatchSize"] = tr.Batch
+				}
+				if tr.Enabled != nil {
+					in["Enabled"] = *tr.Enabled
 				}
 				if _, err := c.do(ctx, "POST", "/2015-03-31/event-source-mappings", map[string]string{"Content-Type": "application/json"}, mustJSON(in)); err != nil {
 					return fmt.Errorf("function %q trigger %s: %w", name, tr.Queue, err)
@@ -454,9 +759,6 @@ func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error
 	}
 	return nil
 }
-
-// DLQOf returns the DLQ destination ARN for a function, if declared.
-func (f Function) DLQOf() string { return "" } // reserved: function-level DLQ is expressed via on_failure
 
 func (d *Dest) arn() string {
 	switch {
@@ -480,6 +782,17 @@ func applyTopics(ctx context.Context, c *client, s *Stack, rep *Report) error {
 			return fmt.Errorf("topic %q: %w", name, err)
 		}
 		arn := topicARN(name)
+
+		if len(t.Tags) > 0 {
+			v := url.Values{"Action": {"TagResource"}, "ResourceArn": {arn}}
+			for i, k := range sortedNames(t.Tags) {
+				v.Set(fmt.Sprintf("Tags.member.%d.Key", i+1), k)
+				v.Set(fmt.Sprintf("Tags.member.%d.Value", i+1), t.Tags[k])
+			}
+			if _, err := c.query(ctx, v); err != nil {
+				return fmt.Errorf("topic %q tags: %w", name, err)
+			}
+		}
 
 		// Existing subscriptions, keyed by protocol+endpoint.
 		existing := map[string]string{} // key → subscription ARN
@@ -610,18 +923,41 @@ func applyRules(ctx context.Context, c *client, s *Stack, rep *Report) error {
 		if r.Schedule != "" {
 			in["ScheduleExpression"] = r.Schedule
 		}
+		state := "ENABLED"
+		if r.Enabled != nil && !*r.Enabled {
+			state = "DISABLED"
+		}
+		in["State"] = state
 		if _, err := c.json11(ctx, "AWSEvents", "PutRule", in); err != nil { // PutRule is an upsert
 			return fmt.Errorf("rule %q: %w", name, err)
 		}
 		if len(r.Targets) > 0 {
 			var targets []map[string]any
 			for i, t := range r.Targets {
-				kind, ref, _ := strings.Cut(t, ":")
-				arn := queueARN(ref)
-				if kind == "lambda" {
-					arn = lambdaARN(ref)
+				arn := ""
+				switch {
+				case t.Queue != "":
+					arn = queueARN(t.Queue)
+				case t.Topic != "":
+					arn = topicARN(t.Topic)
+				case t.Lambda != "":
+					arn = lambdaARN(t.Lambda)
 				}
-				targets = append(targets, map[string]any{"Id": fmt.Sprintf("t%d", i+1), "Arn": arn})
+				tw := map[string]any{"Id": fmt.Sprintf("t%d", i+1), "Arn": arn}
+				if !t.Input.IsZero() {
+					tw["Input"] = t.Input.JSON
+				}
+				if t.InputPath != "" {
+					tw["InputPath"] = t.InputPath
+				}
+				if t.Template != "" {
+					it := map[string]any{"InputTemplate": t.Template}
+					if len(t.Paths) > 0 {
+						it["InputPathsMap"] = t.Paths
+					}
+					tw["InputTransformer"] = it
+				}
+				targets = append(targets, tw)
 			}
 			tin := map[string]any{"Rule": name, "Targets": targets}
 			if bus != "default" {
@@ -691,21 +1027,34 @@ func applyNotifications(ctx context.Context, c *client, s *Stack, rep *Report) e
 func applySecrets(ctx context.Context, c *client, s *Stack, rep *Report) error {
 	for _, name := range sortedNames(s.Secrets) {
 		sec := s.Secrets[name]
+		value := func(in map[string]any) map[string]any {
+			if sec.Binary != "" {
+				in["SecretBinary"] = sec.Binary // already base64, as the wire wants
+			} else {
+				in["SecretString"] = sec.Value
+			}
+			return in
+		}
 		_, err := c.json11(ctx, "secretsmanager", "DescribeSecret", map[string]any{"SecretId": name})
 		switch {
 		case err == nil && !sec.Force:
 			rep.add("skipped", "secret/"+name, "exists — value untouched (set force: true to overwrite)")
 		case err == nil && sec.Force:
-			if _, err := c.json11(ctx, "secretsmanager", "PutSecretValue", map[string]any{
-				"SecretId": name, "SecretString": sec.Value,
-			}); err != nil {
+			if _, err := c.json11(ctx, "secretsmanager", "PutSecretValue", value(map[string]any{
+				"SecretId": name,
+			})); err != nil {
 				return fmt.Errorf("secret %q: %w", name, err)
 			}
 			rep.add("updated", "secret/"+name, "value (force)")
 		case notFound(err):
-			if _, err := c.json11(ctx, "secretsmanager", "CreateSecret", map[string]any{
-				"Name": name, "SecretString": sec.Value,
-			}); err != nil {
+			in := value(map[string]any{"Name": name})
+			if sec.Description != "" {
+				in["Description"] = sec.Description
+			}
+			if len(sec.Tags) > 0 {
+				in["Tags"] = tagList(sec.Tags, "Key", "Value")
+			}
+			if _, err := c.json11(ctx, "secretsmanager", "CreateSecret", in); err != nil {
 				return fmt.Errorf("secret %q: %w", name, err)
 			}
 			rep.add("created", "secret/"+name, "")
@@ -730,16 +1079,23 @@ func applyParameters(ctx context.Context, c *client, s *Stack, rep *Report) erro
 		case err == nil && !p.Force:
 			rep.add("skipped", "parameter/"+name, "exists — value untouched (set force: true to overwrite)")
 		case err == nil && p.Force:
-			if _, err := c.json11(ctx, "AmazonSSM", "PutParameter", map[string]any{
-				"Name": name, "Value": p.Value, "Type": typ, "Overwrite": true,
-			}); err != nil {
+			in := map[string]any{"Name": name, "Value": p.Value, "Type": typ, "Overwrite": true}
+			if p.Description != "" {
+				in["Description"] = p.Description
+			}
+			if _, err := c.json11(ctx, "AmazonSSM", "PutParameter", in); err != nil {
 				return fmt.Errorf("parameter %q: %w", name, err)
 			}
 			rep.add("updated", "parameter/"+name, "value (force)")
 		case notFound(err):
-			if _, err := c.json11(ctx, "AmazonSSM", "PutParameter", map[string]any{
-				"Name": name, "Value": p.Value, "Type": typ,
-			}); err != nil {
+			in := map[string]any{"Name": name, "Value": p.Value, "Type": typ}
+			if p.Description != "" {
+				in["Description"] = p.Description
+			}
+			if len(p.Tags) > 0 {
+				in["Tags"] = tagList(p.Tags, "Key", "Value")
+			}
+			if _, err := c.json11(ctx, "AmazonSSM", "PutParameter", in); err != nil {
 				return fmt.Errorf("parameter %q: %w", name, err)
 			}
 			rep.add("created", "parameter/"+name, "")
@@ -754,5 +1110,3 @@ func mustJSON(v any) []byte {
 	b, _ := json.Marshal(v)
 	return b
 }
-
-var _ = base64.StdEncoding // reserved for future ZipFile support

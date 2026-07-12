@@ -2,6 +2,7 @@
 
 - [getting-started.md](getting-started.md) — run it, point an SDK at it, configure it
 - [cli.md](cli.md) — CLI reference: commands, flags, the `doze-aws.toml` config file, and how clients connect
+- [stack-file.md](stack-file.md) — the declarative `stack.yaml`: every resource and field `apply`/`export` understand
 - [embedding.md](embedding.md) — use doze-aws as a Go library, with a complete example
 - [api-support/](api-support/) — per-service operation support tables (Functional / Cosmetic / Stub)
 - [reports/](reports/) — phase-by-phase build reports

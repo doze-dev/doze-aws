@@ -260,8 +260,26 @@ func (s *Server) bucketLevel(w http.ResponseWriter, r *http.Request, bucket stri
 			return s.deleteBucketDoc(w, bucket, "website")
 		case q.Has("policy"):
 			return s.deleteBucketDoc(w, bucket, "policy")
-		default:
+		case q.Has("encryption"):
+			return s.deleteBucketDoc(w, bucket, "encryption")
+		case q.Has("replication"):
+			return s.deleteBucketDoc(w, bucket, "replication")
+		case q.Has("notification"):
+			return s.deleteBucketDoc(w, bucket, "notification")
+		case q.Has("logging"):
+			return s.deleteBucketDoc(w, bucket, "logging")
+		case q.Has("accelerate"):
+			return s.deleteBucketDoc(w, bucket, "accelerate")
+		case q.Has("requestPayment"):
+			return s.deleteBucketDoc(w, bucket, "requestPayment")
+		case len(q) == 0:
 			return s.deleteBucket(w, bucket)
+		default:
+			// A subresource DELETE we don't model (publicAccessBlock,
+			// ownershipControls, analytics, …). Never fall through to
+			// deleting the whole bucket — real S3 removes only the config.
+			w.WriteHeader(204)
+			return nil
 		}
 	case http.MethodPost:
 		if q.Has("delete") {

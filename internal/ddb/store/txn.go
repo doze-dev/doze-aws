@@ -96,6 +96,11 @@ func (s *Store) TransactWrite(ops []TxWriteOp, token string, requestHash string)
 			skip bool      // condition checks write nothing
 		}
 		plan := make([]planned, len(ops))
+		// A transaction may not touch the same item twice — real DynamoDB
+		// rejects this outright with a ValidationException (not a per-item
+		// cancellation), because sequential apply with phase-1 "old" snapshots
+		// would corrupt index maintenance.
+		seen := map[string]bool{}
 		for i, op := range ops {
 			reasons[i] = CancellationReason{Code: "None"}
 			t, err := getTable(tx, op.Table)
@@ -118,6 +123,11 @@ func (s *Store) TransactWrite(ops []TxWriteOp, token string, requestHash string)
 				key, aerr = primaryKey(t, it)
 				if aerr != nil {
 					reasons[i] = CancellationReason{Code: "ValidationError", Message: aerr.Message}
+					canceled = true
+					continue
+				}
+				if size := item.Size(it); size > item.MaxItemSize {
+					reasons[i] = CancellationReason{Code: "ValidationError", Message: "item size exceeds the 400 KB limit"}
 					canceled = true
 					continue
 				}
@@ -160,6 +170,27 @@ func (s *Store) TransactWrite(ops []TxWriteOp, token string, requestHash string)
 					canceled = true
 					continue
 				}
+				// Key attributes are immutable, and the result must fit 400 KB —
+				// the same guards the non-transactional UpdateItem enforces.
+				keyViolation := false
+				for _, kp := range []*KeyPart{&t.Hash, t.Range} {
+					if kp == nil {
+						continue
+					}
+					if !item.Equal(next[kp.Name], base[kp.Name]) {
+						reasons[i] = CancellationReason{Code: "ValidationError", Message: "the update expression may not modify the key attribute " + kp.Name}
+						canceled, keyViolation = true, true
+						break
+					}
+				}
+				if keyViolation {
+					continue
+				}
+				if size := item.Size(next); size > item.MaxItemSize {
+					reasons[i] = CancellationReason{Code: "ValidationError", Message: "updated item size exceeds the 400 KB limit"}
+					canceled = true
+					continue
+				}
 				plan[i] = planned{t: t, key: key, old: cur, next: next}
 			case op.DeleteKey != nil:
 				key, _, aerr = s.KeyFromWire(t, op.DeleteKey)
@@ -198,6 +229,16 @@ func (s *Store) TransactWrite(ops []TxWriteOp, token string, requestHash string)
 			default:
 				reasons[i] = CancellationReason{Code: "ValidationError", Message: "empty transact item"}
 				canceled = true
+			}
+			// Structural validation: two operations on the same item abort the
+			// whole request (a hard ValidationException, not a cancellation).
+			if len(key) > 0 {
+				dk := op.Table + "\x00" + string(key)
+				if seen[dk] {
+					return awshttp.Errf(400, "ValidationException",
+						"Transaction request cannot include multiple operations on one item")
+				}
+				seen[dk] = true
 			}
 		}
 

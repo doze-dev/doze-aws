@@ -184,7 +184,33 @@ func (s *Store) DeleteObject(bucket, key, versionID string, bypassGovernance boo
 			return nil
 		}
 
-		// Unversioned / suspended: drop the current version outright.
+		if bk.Versioning == "Suspended" {
+			// Suspended: insert a "null" delete marker, replacing any existing
+			// "null" version. Non-null versions written while versioning was
+			// Enabled are preserved (real S3 does not destroy them).
+			if old := findVersion(tx, bucket, key, "null"); old != nil {
+				if aerr := s.lockBlocksDeletion(old, bypassGovernance); aerr != nil {
+					return aerr
+				}
+				if !old.DeleteMarker {
+					dropBlobs = append(dropBlobs, old.Blob)
+				}
+				_ = vb.Delete(old.seqKey)
+			}
+			seq, _ := vb.NextSequence()
+			dm := ObjectVersion{
+				Key: key, VersionID: "null", DeleteMarker: true,
+				LastModified: s.now().Unix(),
+			}
+			if err := vb.Put(verKey(key, seq), mustJSON(dm)); err != nil {
+				return err
+			}
+			_ = cur.Delete([]byte(key))
+			marker, affected = true, "null"
+			return nil
+		}
+
+		// Truly unversioned bucket: drop the current version outright.
 		if v := currentVersion(tx, bucket, key); v != nil {
 			if aerr := s.lockBlocksDeletion(v, bypassGovernance); aerr != nil {
 				return aerr

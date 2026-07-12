@@ -33,9 +33,7 @@ func (c *Console) snsDeleteTopic(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Topic deleted")
-	topics, _ := c.be.ListTopics(r.Context())
-	c.partial(w, "sns_topic_list", map[string]any{"Topics": topics})
+	c.redirect(w, r, c.prefix+"/sns", "Topic deleted")
 }
 
 func (c *Console) snsTopic(w http.ResponseWriter, r *http.Request) {

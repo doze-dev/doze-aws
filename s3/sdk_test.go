@@ -223,6 +223,56 @@ func TestSDKVersioning(t *testing.T) {
 	}
 }
 
+// TestSuspendedVersioningDeleteKeepsVersions guards against a delete in a
+// versioning-Suspended bucket destroying the current version: real S3 inserts a
+// "null" delete marker and preserves non-null versions written while Enabled.
+func TestSuspendedVersioningDeleteKeepsVersions(t *testing.T) {
+	ctx := context.Background()
+	c := s3Client(t, startS3(t).URL, true)
+	c.CreateBucket(ctx, &awss3.CreateBucketInput{Bucket: aws.String("susp")})
+
+	if _, err := c.PutBucketVersioning(ctx, &awss3.PutBucketVersioningInput{
+		Bucket: aws.String("susp"),
+		VersioningConfiguration: &s3types.VersioningConfiguration{Status: s3types.BucketVersioningStatusEnabled},
+	}); err != nil {
+		t.Fatalf("enable versioning: %v", err)
+	}
+	v1, _ := c.PutObject(ctx, &awss3.PutObjectInput{
+		Bucket: aws.String("susp"), Key: aws.String("doc"), Body: strings.NewReader("one"),
+	})
+	c.PutObject(ctx, &awss3.PutObjectInput{
+		Bucket: aws.String("susp"), Key: aws.String("doc"), Body: strings.NewReader("two"),
+	})
+
+	// Suspend versioning, then delete.
+	if _, err := c.PutBucketVersioning(ctx, &awss3.PutBucketVersioningInput{
+		Bucket: aws.String("susp"),
+		VersioningConfiguration: &s3types.VersioningConfiguration{Status: s3types.BucketVersioningStatusSuspended},
+	}); err != nil {
+		t.Fatalf("suspend versioning: %v", err)
+	}
+	del, err := c.DeleteObject(ctx, &awss3.DeleteObjectInput{Bucket: aws.String("susp"), Key: aws.String("doc")})
+	if err != nil || !aws.ToBool(del.DeleteMarker) {
+		t.Fatalf("suspended delete: %v marker=%v", err, aws.ToBool(del.DeleteMarker))
+	}
+	// The key 404s through the delete marker...
+	if _, err := c.GetObject(ctx, &awss3.GetObjectInput{Bucket: aws.String("susp"), Key: aws.String("doc")}); err == nil {
+		t.Fatal("GET after suspended delete should 404")
+	}
+	// ...but the earlier non-null versions must survive.
+	got, err := c.GetObject(ctx, &awss3.GetObjectInput{
+		Bucket: aws.String("susp"), Key: aws.String("doc"), VersionId: v1.VersionId,
+	})
+	if err != nil {
+		t.Fatalf("v1 destroyed by suspended delete: %v", err)
+	}
+	data, _ := io.ReadAll(got.Body)
+	got.Body.Close()
+	if string(data) != "one" {
+		t.Fatalf("v1 body = %q, want \"one\"", data)
+	}
+}
+
 func TestSDKMultipartUpload(t *testing.T) {
 	ctx := context.Background()
 	c := s3Client(t, startS3(t).URL, true)

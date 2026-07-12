@@ -376,6 +376,15 @@ func (s *Server) updateSecretVersionStage(p map[string]any) (any, *awshttp.APIEr
 	}
 	moveTo := pstr(p, "MoveToVersionId")
 	removeFrom := pstr(p, "RemoveFromVersionId")
+	if moveTo == "" && removeFrom == "" {
+		return nil, awshttp.Errf(400, "InvalidParameterException",
+			"either MoveToVersionId or RemoveFromVersionId must be provided")
+	}
+	// AWSCURRENT can't simply be dropped — it must be moved to another version.
+	if stage == "AWSCURRENT" && moveTo == "" {
+		return nil, awshttp.Errf(400, "InvalidParameterException",
+			"you can't remove the AWSCURRENT staging label from a version unless you move it to another version first")
+	}
 	sec, err := s.store.Mutate(pstr(p, "SecretId"), func(sec *Secret) error {
 		if removeFrom != "" {
 			v, ok := sec.Versions[removeFrom]
@@ -383,25 +392,47 @@ func (s *Server) updateSecretVersionStage(p map[string]any) (any, *awshttp.APIEr
 				return awshttp.Errf(400, "InvalidParameterException",
 					"version %s does not carry stage %s", removeFrom, stage)
 			}
+		}
+		if moveTo == "" {
+			// Removal only (non-AWSCURRENT stage).
+			v := sec.Versions[removeFrom]
 			v.Stages = remove(v.Stages, stage)
 			sec.Versions[removeFrom] = v
+			return nil
 		}
-		if moveTo != "" {
-			v, ok := sec.Versions[moveTo]
-			if !ok {
-				return errSecretNotFound(sec.Name + " version " + moveTo)
+		if _, ok := sec.Versions[moveTo]; !ok {
+			return errSecretNotFound(sec.Name + " version " + moveTo)
+		}
+		// The version that currently holds the stage inherits AWSPREVIOUS when
+		// it loses AWSCURRENT (mirrors real Secrets Manager rotation).
+		prevHolder := ""
+		for vid, other := range sec.Versions {
+			if contains(other.Stages, stage) {
+				prevHolder = vid
 			}
-			// A stage names at most one version: strip it elsewhere.
+		}
+		// A stage names at most one version: strip it everywhere, then set it.
+		for vid, other := range sec.Versions {
+			if contains(other.Stages, stage) {
+				other.Stages = remove(other.Stages, stage)
+				sec.Versions[vid] = other
+			}
+		}
+		v := sec.Versions[moveTo]
+		v.Stages = append(v.Stages, stage)
+		sec.Versions[moveTo] = v
+		if stage == "AWSCURRENT" && prevHolder != "" && prevHolder != moveTo {
 			for vid, other := range sec.Versions {
-				if vid != moveTo && contains(other.Stages, stage) {
-					other.Stages = remove(other.Stages, stage)
+				if vid != prevHolder && contains(other.Stages, "AWSPREVIOUS") {
+					other.Stages = remove(other.Stages, "AWSPREVIOUS")
 					sec.Versions[vid] = other
 				}
 			}
-			if !contains(v.Stages, stage) {
-				v.Stages = append(v.Stages, stage)
+			pv := sec.Versions[prevHolder]
+			if !contains(pv.Stages, "AWSPREVIOUS") {
+				pv.Stages = append(pv.Stages, "AWSPREVIOUS")
 			}
-			sec.Versions[moveTo] = v
+			sec.Versions[prevHolder] = pv
 		}
 		return nil
 	})

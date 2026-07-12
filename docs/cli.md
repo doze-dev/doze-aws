@@ -13,7 +13,9 @@ doze-aws
 
 | Command | What it does |
 |---|---|
-| `doze-aws` | Serve the enabled services on the shared endpoint (the default). |
+| `doze-aws` | Serve the enabled services on the shared endpoint (the default). If `./stack.yaml` exists (or `--stack` names a file), it is applied at boot. |
+| `doze-aws apply [--var k=v ...] [file]` | Converge the stack toward a declarative `stack.yaml` (default `./stack.yaml`): create what's missing, cheaply update what exists, never delete. Targets the running server if one is listening, the data dir otherwise. See [stack-file.md](stack-file.md). |
+| `doze-aws export` | Write the running stack (queues, tables, buckets, functions, wiring, …) to stdout as a `stack.yaml`. Secret values are left blank on purpose. |
 | `doze-aws version` | Print the build version and the list of implemented services. |
 | `doze-aws config print [flags]` | Resolve and print the effective configuration (defaults + config file + flags), then exit. Use it to see exactly what a given invocation would run. |
 
@@ -31,6 +33,7 @@ Flags apply to serving and to `config print`.
 | `--data-dir <dir>` | `./data` | Root directory; each service gets its own subdirectory beneath it. |
 | `--services <a,b,…>` | all implemented | Comma-separated subset of services to enable. Unknown names are an error. |
 | `--s3-host <host>` | (none) | Base host for virtual-hosted-style S3 addressing (`<bucket>.<host>`). Path-style always works regardless. |
+| `--stack <path>` | `./stack.yaml` if present | Declarative stack file to apply at boot. See [stack-file.md](stack-file.md). |
 
 ```sh
 # Only S3 + SQS, on a custom port, with data under /tmp/aws
