@@ -63,7 +63,30 @@ func New(opts Options) (*Console, error) {
 	return c, nil
 }
 
-func (c *Console) ServeHTTP(w http.ResponseWriter, r *http.Request) { c.mux.ServeHTTP(w, r) }
+func (c *Console) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// CSRF / DNS-rebinding defense: a state-changing request must originate from
+	// the console itself. Browsers always send Origin on cross-origin (and most
+	// same-origin) POSTs; when present it must match the Host we're serving on.
+	// This blocks a malicious page from driving destructive actions against a
+	// developer's localhost console.
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		if origin := r.Header.Get("Origin"); origin != "" && !originMatchesHost(origin, r.Host) {
+			http.Error(w, "cross-origin request refused", http.StatusForbidden)
+			return
+		}
+	}
+	c.mux.ServeHTTP(w, r)
+}
+
+// originMatchesHost reports whether an Origin header's host authority matches the
+// request Host (the console's own address).
+func originMatchesHost(origin, host string) bool {
+	u, err := url.Parse(origin)
+	if err != nil || u.Host == "" {
+		return false
+	}
+	return u.Host == host
+}
 
 func (c *Console) routes() {
 	m := http.NewServeMux()

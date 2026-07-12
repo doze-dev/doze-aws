@@ -422,7 +422,7 @@ type Neighborhood struct {
 // Neighbors returns the immediate connections of svc:name, built from the full
 // wiring graph. Powers the per-resource "Connections" section.
 func (b *backend) Neighbors(ctx context.Context, svc, name string) Neighborhood {
-	g := b.BuildGraph(ctx)
+	g := b.graphCached(ctx)
 	self := nodeID(svc, name)
 	// index nodes across all diagrams + unwired for name/svc lookup
 	byID := map[string]FlowNode{}

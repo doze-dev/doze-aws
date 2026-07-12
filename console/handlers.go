@@ -237,16 +237,31 @@ func (c *Console) s3GetObject(w http.ResponseWriter, r *http.Request) {
 	if ctype == "" {
 		ctype = "application/octet-stream"
 	}
-	// Inline preview for text/images; download for the rest.
-	inline := strings.HasPrefix(ctype, "text/") || strings.HasPrefix(ctype, "image/") ||
-		ctype == "application/json"
+	// The object's Content-Type is attacker-controlled (set at upload time), and
+	// this handler is served from the console's own origin. Never sniff, and only
+	// preview a safe allowlist inline — text/html and image/svg+xml would execute
+	// script in-origin. Everything else downloads. A sandbox CSP is defense in
+	// depth for the inline cases.
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
 	disp := "attachment"
-	if inline {
+	if inlineSafeContentType(ctype) {
 		disp = "inline"
 	}
 	w.Header().Set("Content-Type", ctype)
 	w.Header().Set("Content-Disposition", disp+"; filename=\""+baseName(key)+"\"")
 	w.Write(body)
+}
+
+// inlineSafeContentType reports whether a content type is safe to render inline
+// on the console origin (no active content — excludes html, svg, xml).
+func inlineSafeContentType(ctype string) bool {
+	switch strings.ToLower(strings.TrimSpace(strings.SplitN(ctype, ";", 2)[0])) {
+	case "text/plain", "text/csv", "text/markdown", "application/json",
+		"image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp", "image/x-icon":
+		return true
+	}
+	return false
 }
 
 // s3Meta renders the object detail drawer: metadata + inline preview + actions.

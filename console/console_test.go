@@ -1208,3 +1208,40 @@ func TestTrafficRecorder(t *testing.T) {
 		t.Fatalf("console's own calls leaked into the traffic tail (%d rows)", n)
 	}
 }
+
+// TestConsoleCSRFAndObjectHeaders covers the console hardening: cross-origin
+// state-changing requests are refused, and S3 objects are served with anti-XSS
+// headers (nosniff + forced download for active content types).
+func TestConsoleCSRFAndObjectHeaders(t *testing.T) {
+	h := newConsole(t)
+
+	// Cross-origin POST is refused.
+	r := httptest.NewRequest("POST", "/_console/s3/create", strings.NewReader(url.Values{"name": {"x"}}.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.Header.Set("Origin", "http://evil.example")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, r)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("cross-origin POST = %d, want 403", rec.Code)
+	}
+
+	// Same-origin POST (Origin matching Host) is allowed.
+	r2 := httptest.NewRequest("POST", "/_console/s3/create", strings.NewReader(url.Values{"name": {"safebucket"}}.Encode()))
+	r2.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r2.Header.Set("Origin", "http://"+r2.Host)
+	rec2 := httptest.NewRecorder()
+	h.ServeHTTP(rec2, r2)
+	if rec2.Code != http.StatusSeeOther {
+		t.Fatalf("same-origin create = %d, want 303", rec2.Code)
+	}
+
+	// Upload an HTML file, then confirm it's served nosniff + attachment.
+	multipartUpload(t, h, "/_console/s3/safebucket/upload", "evil.html", "<script>alert(1)</script>", "")
+	obj := req(t, h, "GET", "/_console/s3/safebucket/object?key=evil.html", nil)
+	if got := obj.Header().Get("X-Content-Type-Options"); got != "nosniff" {
+		t.Fatalf("X-Content-Type-Options = %q, want nosniff", got)
+	}
+	if disp := obj.Header().Get("Content-Disposition"); !strings.HasPrefix(disp, "attachment") {
+		t.Fatalf("html object served as %q, want attachment", disp)
+	}
+}

@@ -8,7 +8,7 @@ import (
 // ---- Flows (home) ----
 
 func (c *Console) flows(w http.ResponseWriter, r *http.Request) {
-	g := c.be.BuildGraph(r.Context())
+	g := c.be.graphCached(r.Context())
 	c.render(w, r, "flows", map[string]any{
 		"Graph": g, "Hash": g.hash(), "Title": "Flows",
 	})
@@ -16,7 +16,7 @@ func (c *Console) flows(w http.ResponseWriter, r *http.Request) {
 
 // flowsData is the polled refresh: 204 when the wiring + counts are unchanged.
 func (c *Console) flowsData(w http.ResponseWriter, r *http.Request) {
-	g := c.be.BuildGraph(r.Context())
+	g := c.be.graphCached(r.Context())
 	if liveUnchanged(w, r, g.hash()) {
 		return
 	}

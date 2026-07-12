@@ -8,9 +8,12 @@
     : "/_console";
 
   // ---------- Alpine glue ----------
-  document.addEventListener("htmx:afterSwap", function (e) {
-    if (window.Alpine) window.Alpine.initTree(e.detail.target);
-    if (window.dozeEditor) window.dozeEditor.upgradeAll(e.detail.target);
+  document.addEventListener("htmx:afterSwap", function () {
+    // e.detail.target is the OLD detached node for outerHTML swaps; upgrade
+    // document-wide instead (both calls are idempotent). Alpine also inits new
+    // nodes via its own MutationObserver, but initTree on the live tree is safe.
+    if (window.Alpine) window.Alpine.initTree(document.body);
+    if (window.dozeEditor) window.dozeEditor.upgradeAll();
     resetListCursor();
   });
 

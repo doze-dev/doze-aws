@@ -130,7 +130,11 @@
   }, true);
 
   document.addEventListener("DOMContentLoaded", function () { upgradeAll(); });
-  document.addEventListener("htmx:afterSwap", function (e) { upgradeAll(e.detail.target); });
+  // For outerHTML swaps htmx reports the OLD (detached) node as e.detail.target,
+  // so upgrading from it never reaches the swapped-in content. upgrade() is
+  // idempotent (skips textareas already carrying a CodeMirror), so a cheap
+  // document-wide pass correctly attaches editors to newly-swapped content.
+  document.addEventListener("htmx:afterSwap", function () { upgradeAll(); });
 
   // Programmatic access (e.g. "Edit item" prefills the put-item editor).
   window.dozeEditor = {

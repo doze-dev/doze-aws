@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -24,13 +25,44 @@ import (
 type backend struct {
 	c    *http.Client
 	base string
+
+	// graphMu guards a short-lived cache of the full wiring graph. BuildGraph
+	// fans out an N+1 crawl over every service; the flows poll and every
+	// resource detail page's Neighbors() call would otherwise rebuild it on each
+	// request. A brief TTL collapses a burst of polls into one crawl while
+	// staying live enough to feel real-time.
+	graphMu   sync.Mutex
+	graphAt   time.Time
+	graphSnap *FlowGraph
 }
+
+const graphTTL = 750 * time.Millisecond
 
 func newBackend(gateway http.Handler) *backend {
 	return &backend{
 		c:    &http.Client{Transport: handlerTransport{gateway}, Timeout: 30 * time.Second},
 		base: "http://console.doze-aws.internal",
 	}
+}
+
+// graphCached returns a recent wiring graph, rebuilding only when the cached one
+// has aged past graphTTL.
+func (b *backend) graphCached(ctx context.Context) FlowGraph {
+	b.graphMu.Lock()
+	if b.graphSnap != nil && time.Since(b.graphAt) < graphTTL {
+		g := *b.graphSnap
+		b.graphMu.Unlock()
+		return g
+	}
+	b.graphMu.Unlock()
+
+	g := b.BuildGraph(ctx)
+
+	b.graphMu.Lock()
+	b.graphSnap = &g
+	b.graphAt = time.Now()
+	b.graphMu.Unlock()
+	return g
 }
 
 // handlerTransport serves each request by invoking the gateway handler directly.
