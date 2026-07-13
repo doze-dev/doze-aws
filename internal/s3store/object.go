@@ -47,7 +47,11 @@ func (s *Store) PutVersion(bucket string, v ObjectVersion, ifNoneMatch, ifMatch 
 			}
 		}
 		key := verKey(v.Key, seq)
-		if err := vb.Put(key, mustJSON(v)); err != nil {
+		raw, merr := marshalJSON(v)
+		if merr != nil {
+			return merr
+		}
+		if err := vb.Put(key, raw); err != nil {
 			return err
 		}
 		v.seqKey = key
@@ -176,7 +180,11 @@ func (s *Store) DeleteObject(bucket, key, versionID string, bypassGovernance boo
 				Key: key, VersionID: newVersionID(), DeleteMarker: true,
 				LastModified: s.now().Unix(),
 			}
-			if err := vb.Put(verKey(key, seq), mustJSON(dm)); err != nil {
+			raw, merr := marshalJSON(dm)
+			if merr != nil {
+				return merr
+			}
+			if err := vb.Put(verKey(key, seq), raw); err != nil {
 				return err
 			}
 			_ = cur.Delete([]byte(key)) // key is now invisible to plain lists
@@ -202,7 +210,11 @@ func (s *Store) DeleteObject(bucket, key, versionID string, bypassGovernance boo
 				Key: key, VersionID: "null", DeleteMarker: true,
 				LastModified: s.now().Unix(),
 			}
-			if err := vb.Put(verKey(key, seq), mustJSON(dm)); err != nil {
+			raw, merr := marshalJSON(dm)
+			if merr != nil {
+				return merr
+			}
+			if err := vb.Put(verKey(key, seq), raw); err != nil {
 				return err
 			}
 			_ = cur.Delete([]byte(key))
@@ -279,7 +291,11 @@ func (s *Store) UpdateVersion(bucket string, v *ObjectVersion, fn func(*ObjectVe
 			return err
 		}
 		*v = fresh
-		return vb.Put(v.seqKey, mustJSON(fresh))
+		raw, err := marshalJSON(fresh)
+		if err != nil {
+			return err
+		}
+		return vb.Put(v.seqKey, raw)
 	})
 }
 

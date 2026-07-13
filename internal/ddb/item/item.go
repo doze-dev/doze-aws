@@ -63,7 +63,9 @@ func FromJSON(raw json.RawMessage) (Value, *awshttp.APIError) {
 	for tag, inner := range m {
 		return fromTagged(Type(tag), inner)
 	}
-	panic("unreachable")
+	// Unreachable given the len(m) == 1 check above, but return an error rather
+	// than panic — a serialization emulator must never crash the process.
+	return Value{}, errValidation("malformed AttributeValue")
 }
 
 func fromTagged(tag Type, inner json.RawMessage) (Value, *awshttp.APIError) {

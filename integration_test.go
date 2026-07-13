@@ -12,6 +12,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	awsddb "github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	ddbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	awseb "github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	ebtypes "github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
 	awslambda "github.com/aws/aws-sdk-go-v2/service/lambda"
@@ -152,6 +154,128 @@ func TestIntegrationLambdaSinks(t *testing.T) {
 		t.Fatalf("PutEvents: %v", err)
 	}
 	waitForMarker(t, marker, "via-eb-QRS")
+}
+
+// TestIntegrationS3ToLambda proves an S3 event notification invokes a Lambda:
+// configure a bucket notification targeting the function, upload an object, and
+// assert the function received an s3:ObjectCreated event carrying the object key.
+func TestIntegrationS3ToLambda(t *testing.T) {
+	if testing.Short() {
+		t.Skip("compiles + runs a lambda across the stack")
+	}
+	ctx := context.Background()
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stack.Close()
+	ts := httptest.NewServer(stack.Handler())
+	defer ts.Close()
+
+	creds := credentials.NewStaticCredentialsProvider(awsident.AccessKeyID, awsident.SecretAccessKey, "")
+	cfg := aws.Config{Region: awsident.Region, Credentials: creds}
+	lam := awslambda.NewFromConfig(cfg, func(o *awslambda.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+	s3c := awss3.NewFromConfig(cfg, func(o *awss3.Options) { o.BaseEndpoint = aws.String(ts.URL); o.UsePathStyle = true })
+
+	marker := filepath.Join(t.TempDir(), "invocations.log")
+	fnARN := "arn:aws:lambda:us-east-1:000000000000:function:sink"
+	if _, err := lam.CreateFunction(ctx, &awslambda.CreateFunctionInput{
+		FunctionName: aws.String("sink"), Runtime: lamtypes.RuntimeProvidedal2, Handler: aws.String("bootstrap"),
+		Role:        aws.String("arn:aws:iam::000000000000:role/r"),
+		Code:        &lamtypes.FunctionCode{S3Bucket: aws.String("_local_"), S3Key: aws.String(buildRecorder(t))},
+		Environment: &lamtypes.Environment{Variables: map[string]string{"MARKER_FILE": marker}},
+	}); err != nil {
+		t.Fatalf("CreateFunction: %v", err)
+	}
+
+	if _, err := s3c.CreateBucket(ctx, &awss3.CreateBucketInput{Bucket: aws.String("uploads")}); err != nil {
+		t.Fatalf("CreateBucket: %v", err)
+	}
+	if _, err := s3c.PutBucketNotificationConfiguration(ctx, &awss3.PutBucketNotificationConfigurationInput{
+		Bucket: aws.String("uploads"),
+		NotificationConfiguration: &s3types.NotificationConfiguration{
+			LambdaFunctionConfigurations: []s3types.LambdaFunctionConfiguration{{
+				LambdaFunctionArn: aws.String(fnARN),
+				Events:            []s3types.Event{"s3:ObjectCreated:*"},
+			}},
+		},
+	}); err != nil {
+		t.Fatalf("PutBucketNotificationConfiguration: %v", err)
+	}
+
+	if _, err := s3c.PutObject(ctx, &awss3.PutObjectInput{
+		Bucket: aws.String("uploads"), Key: aws.String("via-s3-LMN"), Body: strings.NewReader("hi"),
+	}); err != nil {
+		t.Fatalf("PutObject: %v", err)
+	}
+	waitForMarker(t, marker, "via-s3-LMN")
+}
+
+// TestIntegrationDynamoDBStreamToLambda proves a DynamoDB change invokes a
+// Lambda through a stream event-source-mapping: enable a stream, wire an ESM at
+// the stream ARN, put an item, and assert the function received an INSERT record.
+func TestIntegrationDynamoDBStreamToLambda(t *testing.T) {
+	if testing.Short() {
+		t.Skip("compiles + runs a lambda across the stack")
+	}
+	ctx := context.Background()
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stack.Close()
+	ts := httptest.NewServer(stack.Handler())
+	defer ts.Close()
+
+	creds := credentials.NewStaticCredentialsProvider(awsident.AccessKeyID, awsident.SecretAccessKey, "")
+	cfg := aws.Config{Region: awsident.Region, Credentials: creds}
+	lam := awslambda.NewFromConfig(cfg, func(o *awslambda.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+	ddb := awsddb.NewFromConfig(cfg, func(o *awsddb.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+
+	marker := filepath.Join(t.TempDir(), "invocations.log")
+	if _, err := lam.CreateFunction(ctx, &awslambda.CreateFunctionInput{
+		FunctionName: aws.String("sink"), Runtime: lamtypes.RuntimeProvidedal2, Handler: aws.String("bootstrap"),
+		Role:        aws.String("arn:aws:iam::000000000000:role/r"),
+		Code:        &lamtypes.FunctionCode{S3Bucket: aws.String("_local_"), S3Key: aws.String(buildRecorder(t))},
+		Environment: &lamtypes.Environment{Variables: map[string]string{"MARKER_FILE": marker}},
+	}); err != nil {
+		t.Fatalf("CreateFunction: %v", err)
+	}
+
+	// Table with a stream enabled.
+	ct, err := ddb.CreateTable(ctx, &awsddb.CreateTableInput{
+		TableName:            aws.String("events"),
+		BillingMode:         ddbtypes.BillingModePayPerRequest,
+		AttributeDefinitions: []ddbtypes.AttributeDefinition{{AttributeName: aws.String("pk"), AttributeType: ddbtypes.ScalarAttributeTypeS}},
+		KeySchema:           []ddbtypes.KeySchemaElement{{AttributeName: aws.String("pk"), KeyType: ddbtypes.KeyTypeHash}},
+		StreamSpecification: &ddbtypes.StreamSpecification{
+			StreamEnabled: aws.Bool(true), StreamViewType: ddbtypes.StreamViewTypeNewAndOldImages,
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateTable: %v", err)
+	}
+	streamArn := ct.TableDescription.LatestStreamArn
+	if aws.ToString(streamArn) == "" {
+		t.Fatal("CreateTable returned no LatestStreamArn for a stream-enabled table")
+	}
+
+	// Wire the ESM at the stream ARN.
+	if _, err := lam.CreateEventSourceMapping(ctx, &awslambda.CreateEventSourceMappingInput{
+		FunctionName: aws.String("sink"), EventSourceArn: streamArn,
+		BatchSize: aws.Int32(10), Enabled: aws.Bool(true),
+		StartingPosition: lamtypes.EventSourcePositionTrimHorizon,
+	}); err != nil {
+		t.Fatalf("CreateEventSourceMapping(stream): %v", err)
+	}
+
+	if _, err := ddb.PutItem(ctx, &awsddb.PutItemInput{
+		TableName: aws.String("events"),
+		Item:      map[string]ddbtypes.AttributeValue{"pk": &ddbtypes.AttributeValueMemberS{Value: "via-ddb-STREAM"}},
+	}); err != nil {
+		t.Fatalf("PutItem: %v", err)
+	}
+	waitForMarker(t, marker, "via-ddb-STREAM")
 }
 
 // failBootstrap reports every invocation as an error to the Runtime API, so the

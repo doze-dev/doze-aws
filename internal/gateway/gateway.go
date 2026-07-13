@@ -42,9 +42,10 @@ func KnownService(name string) bool {
 
 // targetPrefixes maps X-Amz-Target prefixes to services.
 var targetPrefixes = map[string]string{
-	"AmazonSQS":         "sqs",
-	"DynamoDB_20120810": "dynamodb",
-	"TrentService":      "kms",
+	"AmazonSQS":                "sqs",
+	"DynamoDB_20120810":        "dynamodb",
+	"DynamoDBStreams_20120810": "dynamodb",
+	"TrentService":             "kms",
 	"AmazonSSM":         "ssm",
 	"secretsmanager":    "secretsmanager",
 	"AWSEvents":         "eventbridge",

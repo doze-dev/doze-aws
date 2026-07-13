@@ -67,6 +67,52 @@ func SQSReceive(dir peers.Directory, queue string, max, waitSeconds int) ([]SQSM
 	return out.Messages, nil
 }
 
+// DDBGetShardIterator opens a shard iterator on a DynamoDB stream (used by
+// Lambda event source mappings whose EventSourceArn is a stream ARN).
+func DDBGetShardIterator(dir peers.Directory, streamArn, shardID, iterType string) (string, error) {
+	ep, ok := dir.Endpoint("dynamodb")
+	if !ok {
+		return "", fmt.Errorf("no dynamodb peer wired")
+	}
+	body, err := postJSONResult(ep, "DynamoDBStreams_20120810.GetShardIterator", "application/x-amz-json-1.0",
+		map[string]any{"StreamArn": streamArn, "ShardId": shardID, "ShardIteratorType": iterType})
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		ShardIterator string `json:"ShardIterator"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return "", err
+	}
+	return out.ShardIterator, nil
+}
+
+// DDBGetRecords fetches records from a stream shard iterator, returning the raw
+// record documents and the next iterator to poll.
+func DDBGetRecords(dir peers.Directory, iterator string, limit int) (records []json.RawMessage, next string, err error) {
+	ep, ok := dir.Endpoint("dynamodb")
+	if !ok {
+		return nil, "", fmt.Errorf("no dynamodb peer wired")
+	}
+	body, err := postJSONResult(ep, "DynamoDBStreams_20120810.GetRecords", "application/x-amz-json-1.0",
+		map[string]any{"ShardIterator": iterator, "Limit": limit})
+	if err != nil {
+		return nil, "", err
+	}
+	var out struct {
+		Records           []json.RawMessage `json:"Records"`
+		NextShardIterator string            `json:"NextShardIterator"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, "", err
+	}
+	return out.Records, out.NextShardIterator, nil
+}
+
+// DDBStreamShardID is the single shard doze-aws streams expose.
+const DDBStreamShardID = "shardId-00000000000000000000-00000000"
+
 // SQSDelete acknowledges one received message.
 func SQSDelete(dir peers.Directory, queue, receiptHandle string) error {
 	ep, ok := dir.Endpoint("sqs")

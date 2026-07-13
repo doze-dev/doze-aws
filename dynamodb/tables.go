@@ -236,6 +236,13 @@ func (s *Server) describe(t *store.Table) map[string]any {
 	if len(lsis) > 0 {
 		out["LocalSecondaryIndexes"] = lsis
 	}
+	if viewType, ok := t.StreamViewType(); ok {
+		out["LatestStreamArn"] = t.StreamARN()
+		out["LatestStreamLabel"] = t.StreamLabel()
+		out["StreamSpecification"] = map[string]any{
+			"StreamEnabled": true, "StreamViewType": viewType,
+		}
+	}
 	return out
 }
 

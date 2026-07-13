@@ -328,10 +328,13 @@ func newID() string {
 	return hex.EncodeToString(b[:])
 }
 
-func mustJSON(v any) []byte {
+// marshalJSON serializes an internal store record. These structs are always
+// marshalable in practice, but returning the error (rather than panicking)
+// guarantees a bad input can never crash the whole emulator process.
+func marshalJSON(v any) ([]byte, error) {
 	raw, err := json.Marshal(v)
 	if err != nil {
-		panic(fmt.Sprintf("s3store: marshal %T: %v", v, err))
+		return nil, fmt.Errorf("s3store: marshal %T: %w", v, err)
 	}
-	return raw
+	return raw, nil
 }

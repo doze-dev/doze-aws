@@ -372,9 +372,9 @@ func (s *Server) createMapping(w http.ResponseWriter, r *http.Request) *awshttp.
 	if aerr := decode(r, &req); aerr != nil {
 		return aerr
 	}
-	if !strings.Contains(req.EventSourceArn, ":sqs:") {
+	if !strings.Contains(req.EventSourceArn, ":sqs:") && !isDDBStreamARN(req.EventSourceArn) {
 		return awshttp.Errf(400, "InvalidParameterValueException",
-			"doze-aws event source mappings support SQS sources; got %q", req.EventSourceArn)
+			"doze-aws event source mappings support SQS queues and DynamoDB streams; got %q", req.EventSourceArn)
 	}
 	fnName := req.FunctionName[strings.LastIndex(req.FunctionName, ":")+1:]
 	if _, err := s.store.GetFunction(fnName); err != nil {
@@ -475,57 +475,130 @@ func (s *Server) startPoller(m *EventSourceMapping) {
 	s.mappings[m.UUID] = poller
 	s.mu.Unlock()
 
+	s.pollers.Add(1)
+	if isDDBStreamARN(m.EventSourceArn) {
+		go func() { defer s.pollers.Done(); s.pollDDBStream(poller, m) }()
+		return
+	}
+	go func() { defer s.pollers.Done(); s.pollSQS(poller, m) }()
+}
+
+// isDDBStreamARN reports whether an event-source ARN names a DynamoDB stream.
+func isDDBStreamARN(arn string) bool {
+	return strings.Contains(arn, ":dynamodb:") && strings.Contains(arn, "/stream/")
+}
+
+// sleepOrStop waits d or until the poller is stopped; returns true if stopped.
+func sleepOrStop(poller *esm, d time.Duration) bool {
+	select {
+	case <-poller.stopCh:
+		return true
+	case <-time.After(d):
+		return false
+	}
+}
+
+// pollSQS drives an SQS event source mapping: long-poll, deliver the batch, and
+// delete on successful invocation.
+func (s *Server) pollSQS(poller *esm, m *EventSourceMapping) {
 	queue := m.EventSourceArn[strings.LastIndex(m.EventSourceArn, ":")+1:]
 	fnName := m.FunctionName
 	batch := m.BatchSize
-	s.pollers.Add(1)
-	go func() {
-		defer s.pollers.Done()
-		for {
-			select {
-			case <-poller.stopCh:
-				return
-			default:
-			}
-			msgs, err := peercall.SQSReceive(s.peers, queue, batch, 2)
-			if err != nil {
-				select {
-				case <-poller.stopCh:
-					return
-				case <-time.After(time.Second):
-				}
-				continue
-			}
-			if len(msgs) == 0 {
-				continue
-			}
-			// Deliver the batch as an SQS event record set.
-			records := make([]map[string]any, 0, len(msgs))
-			for _, msg := range msgs {
-				records = append(records, map[string]any{
-					"messageId":      msg.MessageID,
-					"receiptHandle":  msg.ReceiptHandle,
-					"body":           msg.Body,
-					"eventSource":    "aws:sqs",
-					"eventSourceARN": m.EventSourceArn,
-					"awsRegion":      "us-east-1",
-				})
-			}
-			payload, _ := json.Marshal(map[string]any{"Records": records})
-			f, err := s.store.GetFunction(fnName)
-			if err != nil {
-				continue
-			}
-			res, err := s.runInvoke(context.Background(), f, payload)
-			if err == nil && res.FunctionErr == "" {
-				// Success: delete the batch (delete-on-success semantics).
-				for _, msg := range msgs {
-					_ = peercall.SQSDelete(s.peers, queue, msg.ReceiptHandle)
-				}
-			}
-			// On failure, leave the messages for the visibility-timeout retry.
+	for {
+		select {
+		case <-poller.stopCh:
+			return
+		default:
 		}
-	}()
+		msgs, err := peercall.SQSReceive(s.peers, queue, batch, 2)
+		if err != nil {
+			if sleepOrStop(poller, time.Second) {
+				return
+			}
+			continue
+		}
+		if len(msgs) == 0 {
+			continue
+		}
+		records := make([]map[string]any, 0, len(msgs))
+		for _, msg := range msgs {
+			records = append(records, map[string]any{
+				"messageId":      msg.MessageID,
+				"receiptHandle":  msg.ReceiptHandle,
+				"body":           msg.Body,
+				"eventSource":    "aws:sqs",
+				"eventSourceARN": m.EventSourceArn,
+				"awsRegion":      "us-east-1",
+			})
+		}
+		payload, _ := json.Marshal(map[string]any{"Records": records})
+		f, err := s.store.GetFunction(fnName)
+		if err != nil {
+			continue
+		}
+		res, err := s.runInvoke(context.Background(), f, payload)
+		if err == nil && res.FunctionErr == "" {
+			for _, msg := range msgs {
+				_ = peercall.SQSDelete(s.peers, queue, msg.ReceiptHandle)
+			}
+		}
+		// On failure, leave the messages for the visibility-timeout retry.
+	}
+}
+
+// pollDDBStream drives a DynamoDB-stream event source mapping: open a shard
+// iterator at the trim horizon, then GetRecords → invoke the function with the
+// change records, advancing the iterator each round (at-least-once, no ack).
+func (s *Server) pollDDBStream(poller *esm, m *EventSourceMapping) {
+	streamArn := m.EventSourceArn
+	fnName := m.FunctionName
+	batch := m.BatchSize
+	if batch <= 0 {
+		batch = 100
+	}
+	var iter string
+	for iter == "" {
+		if sleepOrStop(poller, 0) {
+			return
+		}
+		it, err := peercall.DDBGetShardIterator(s.peers, streamArn, peercall.DDBStreamShardID, "TRIM_HORIZON")
+		if err != nil {
+			if sleepOrStop(poller, time.Second) {
+				return
+			}
+			continue
+		}
+		iter = it
+	}
+	for {
+		select {
+		case <-poller.stopCh:
+			return
+		default:
+		}
+		recs, next, err := peercall.DDBGetRecords(s.peers, iter, batch)
+		if err != nil {
+			if sleepOrStop(poller, time.Second) {
+				return
+			}
+			continue
+		}
+		if next != "" {
+			iter = next
+		}
+		if len(recs) == 0 {
+			if sleepOrStop(poller, 500*time.Millisecond) {
+				return
+			}
+			continue
+		}
+		payload, _ := json.Marshal(map[string]any{"Records": recs})
+		f, err := s.store.GetFunction(fnName)
+		if err != nil {
+			continue
+		}
+		_, _ = s.runInvoke(context.Background(), f, payload)
+	}
 }
 
 func (s *Server) stopPoller(uuid string) {

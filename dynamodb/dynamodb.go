@@ -5,9 +5,11 @@
 // writes, batch operations, single-node TransactWriteItems/TransactGetItems
 // with ClientRequestToken idempotency, and TTL enforced by a janitor.
 //
-// PartiQL (ExecuteStatement/BatchExecuteStatement/ExecuteTransaction) is
-// supported. Deferred (post-1.0): DynamoDB Streams. Global tables, DAX, and
-// backup/export are cloud infrastructure and answer honestly.
+// PartiQL (ExecuteStatement/BatchExecuteStatement/ExecuteTransaction) and
+// DynamoDB Streams (ListStreams/DescribeStream/GetShardIterator/GetRecords, with
+// a single open shard) are supported; a stream drives a Lambda event-source
+// mapping. Global tables, DAX, and backup/export are cloud infrastructure and
+// answer honestly.
 //
 // See docs/api-support/dynamodb.md for the operation-by-operation table.
 package dynamodb
@@ -16,6 +18,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -105,18 +108,23 @@ func (s *Server) SweepTTLNow() { s.store.SweepTTL() }
 type handler func(s *Server, body []byte) (any, *awshttp.APIError)
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	action, aerr := s.api.Action(r)
-	if aerr != nil {
-		s.api.WriteError(w, aerr)
-		return
+	// The control/data plane (DynamoDB_20120810) and the Streams plane
+	// (DynamoDBStreams_20120810) share this service; dispatch by target prefix.
+	prefix, action, _ := strings.Cut(r.Header.Get("X-Amz-Target"), ".")
+	var h func(*Server, []byte) (any, *awshttp.APIError)
+	switch prefix {
+	case "DynamoDB_20120810":
+		h = handlers[action]
+	case "DynamoDBStreams_20120810":
+		h = streamHandlers[action]
 	}
+
 	var body rawBody
 	if aerr := awsjson.DecodeBody(r, &body); aerr != nil {
 		s.api.WriteError(w, aerr)
 		return
 	}
-	h, ok := handlers[action]
-	if !ok {
+	if h == nil {
 		if reason, stub := stubActions[action]; stub {
 			s.api.WriteError(w, awshttp.Errf(400, "UnsupportedOperationException",
 				"%s is not supported by doze-aws: %s", action, reason))
@@ -166,10 +174,6 @@ var stubActions = map[string]string{
 	"DescribeImport":                      "imports are cloud infrastructure",
 	"ListExports":                         "exports are cloud infrastructure",
 	"ListImports":                         "imports are cloud infrastructure",
-	"DescribeStream":                      "DynamoDB Streams are deferred post-1.0",
-	"GetRecords":                          "DynamoDB Streams are deferred post-1.0",
-	"GetShardIterator":                    "DynamoDB Streams are deferred post-1.0",
-	"ListStreams":                         "DynamoDB Streams are deferred post-1.0",
 	"DescribeKinesisStreamingDestination": "Kinesis streaming needs Kinesis",
 	"EnableKinesisStreamingDestination":   "Kinesis streaming needs Kinesis",
 	"DisableKinesisStreamingDestination":  "Kinesis streaming needs Kinesis",

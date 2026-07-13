@@ -30,7 +30,11 @@ func (s *Store) CreateUpload(bucket string, up Upload) (*Upload, error) {
 		if err != nil {
 			return err
 		}
-		return b.Put([]byte(up.ID), mustJSON(up))
+		raw, err := marshalJSON(up)
+		if err != nil {
+			return err
+		}
+		return b.Put([]byte(up.ID), raw)
 	})
 	if err != nil {
 		return nil, err
@@ -91,7 +95,11 @@ func (s *Store) PutPart(bucket, uploadID string, part Part) error {
 			}
 		}
 		part.LastModified = s.now().Unix()
-		return pb.Put(key, mustJSON(part))
+		raw, err := marshalJSON(part)
+		if err != nil {
+			return err
+		}
+		return pb.Put(key, raw)
 	})
 	if err == nil && replaced != "" {
 		s.DeleteBlob(replaced)

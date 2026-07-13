@@ -97,7 +97,8 @@ func (s *Store) writeItem(tx *bolt.Tx, t *Table, key []byte, old, new item.Item)
 			}
 		}
 	}
-	return nil
+	// Emit a change record for the table's stream (no-op unless enabled).
+	return s.captureStream(tx, t, old, new)
 }
 
 // loadItem fetches the current item for a key within tx (nil when absent or
