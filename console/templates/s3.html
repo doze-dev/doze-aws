@@ -32,7 +32,7 @@
         (dict "Key" "objects" "Label" "Objects" "Icon" "list" "URL" (printf "%s/s3/%s" .Prefix .Bucket))
         (dict "Key" "properties" "Label" "Properties" "Icon" "settings" "URL" (printf "%s/s3/%s?tab=properties" .Prefix .Bucket)))}}
     </div>
-    <div style="padding:14px 20px 0">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn}}</div>
+    <div style="padding:14px 20px 0">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "s3" "Self" .Bucket}}</div>
     <div class="det-b">
       {{if eq .Tab "properties"}}
         {{template "s3_props" .}}
@@ -89,7 +89,7 @@
     {{end}}
   {{end}}</tbody>
 </table></div>
-<div class="tbl-foot">{{.FileCount}} object{{if ne .FileCount 1}}s{{end}} here · {{.TotalSize}}</div>
+<div class="tbl-foot">{{.FootNote}}</div>
 {{else}}<div class="empty dashed"><span class="ic-lg">{{icon "upload"}}</span><p><b>Drag files anywhere</b> to upload here, or use the Upload button.</p></div>{{end}}
 </div>
 {{end}}

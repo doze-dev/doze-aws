@@ -221,6 +221,9 @@ textarea { height: auto; padding: 8px 10px; font-family: var(--mono); font-size:
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 12px; font-weight: 550; }
 .field .hint { font-size: 11.5px; color: hsl(var(--muted-foreground)); }
+/* live humanized echo under duration inputs ("345600" → "= 4 days") */
+.dur-echo { font-size: 11px; color: hsl(var(--muted-foreground)); min-height: 13px; }
+.dur-echo:empty { display: none; }
 .filter { position: relative; }
 .filter .ic { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: hsl(var(--muted-foreground)); pointer-events: none; }
 .filter input { padding-left: 32px; }
@@ -342,10 +345,23 @@ tr:hover .row-actions { opacity: 1; }
 
 /* ---------- messages ---------- */
 .msgs { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
-.msg { border: 1px solid hsl(var(--border)); border-radius: var(--radius); padding: 10px 12px; background: hsl(var(--background)); }
-.msg-h { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; margin-bottom: 7px; }
+.msg { border: 1px solid hsl(var(--border)); border-radius: var(--radius); padding: 8px 12px; background: hsl(var(--background)); }
+.msg-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 11.5px; }
 .msg-h code { font-family: var(--mono); color: hsl(var(--muted-foreground)); }
-.msg pre { margin: 0; font-family: var(--mono); font-size: 11.5px; white-space: pre-wrap; word-break: break-word; max-height: 160px; overflow: auto; }
+/* summary row: what the message IS, not its UUID */
+.msg-line { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.msg-line .chev { font: 10px var(--mono); color: hsl(var(--muted-foreground)); flex: none; transition: transform 0.12s; }
+.msg.open .msg-line .chev { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .msg-line .chev { transition: none; } }
+.msg-line .evt { flex: none; font: 600 10px var(--mono); padding: 1px 8px; border-radius: 999px; border: 1px solid hsl(var(--border)); color: hsl(var(--muted-foreground)); background: hsl(var(--muted) / 0.5); }
+.msg-line .evt.c-s3 { color: hsl(var(--svc-s3)); border-color: hsl(var(--svc-s3) / 0.35); background: hsl(var(--svc-s3) / 0.07); }
+.msg-line .evt.c-sns { color: hsl(var(--svc-sns)); border-color: hsl(var(--svc-sns) / 0.35); background: hsl(var(--svc-sns) / 0.07); }
+.msg-line .evt.c-eb { color: hsl(var(--svc-eb)); border-color: hsl(var(--svc-eb) / 0.35); background: hsl(var(--svc-eb) / 0.07); }
+.msg-line .msum { font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg-detail { margin-top: 8px; border-top: 1px solid hsl(var(--border)); padding-top: 8px; }
+.msg-id { display: flex; align-items: center; gap: 6px; font-size: 11px; color: hsl(var(--muted-foreground)); margin-bottom: 6px; }
+.msg-id .copy-btn { margin-left: auto; }
+.msg pre { margin: 0; font-family: var(--mono); font-size: 11.5px; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
 .peek { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; color: hsl(var(--success)); }
 .peek .ic { width: 14px; height: 14px; }
 
@@ -552,6 +568,15 @@ tr:hover .kv-copy .copy-btn, .kv-copy:hover .copy-btn { opacity: 1; }
 .edit-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 12px 16px; }
 .tag-row-form { display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-top: 1px solid hsl(var(--border)); }
 .tag-row-form .input { height: 30px; }
+/* tag rows: key and value read as a pair; the remove control appears on hover */
+.tag-v { display: flex; align-items: center; gap: 8px; }
+.tag-v .icon-btn { margin-left: auto; opacity: 0; transition: opacity 0.12s; }
+tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .tag-v .icon-btn { transition: none; } }
+/* the Lambda test editor must not push Invoke below the fold — cap and let
+   CodeMirror scroll internally */
+.lam-test .CodeMirror { max-height: 320px; }
+.lam-test .CodeMirror-scroll { max-height: 320px; }
 
 /* ═══════════ workbench shell ═══════════ */
 /* Collapsible rail: 208px (icon + name + live count) ⇄ 56px (icons + flyouts).
@@ -711,6 +736,17 @@ tr:hover .kv-copy .copy-btn, .kv-copy:hover .copy-btn { opacity: 1; }
 .fl-node text.t2 { fill: hsl(var(--muted-foreground)); font: 10px var(--mono); }
 .fl-edge { stroke: hsl(var(--border)); stroke-width: 1.5; fill: none; }
 .fl-edge.hot { stroke: hsl(var(--accent-blue)); }
+/* hover-to-trace: entering a node dims the card and lights its path */
+.fl-node, .fl-edge { transition: opacity 0.15s; }
+.flow-card.focus .fl-node { opacity: 0.25; }
+.flow-card.focus .fl-node.lit { opacity: 1; }
+.flow-card.focus .fl-edge { opacity: 0.1; }
+.flow-card.focus .fl-edge.lit { opacity: 1; stroke-width: 2.2; }
+.fl-elabel { opacity: 0; font: 600 9.5px var(--mono); fill: hsl(var(--muted-foreground));
+  paint-order: stroke; stroke: hsl(var(--card)); stroke-width: 4px; stroke-linejoin: round;
+  transition: opacity 0.15s; pointer-events: none; }
+.flow-card.focus .fl-elabel.lit { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .fl-node, .fl-edge, .fl-elabel { transition: none; } }
 .fl-lbl { fill: hsl(var(--muted-foreground)); font: 9.5px var(--mono); }
 .fl-pulse { fill: hsl(var(--accent-blue)); }
 
@@ -727,6 +763,20 @@ tr:hover .kv-copy .copy-btn, .kv-copy:hover .copy-btn { opacity: 1; }
 .tr-row.errrow { background: hsl(var(--destructive) / 0.05); }
 .tr-detail { padding: 10px 14px; background: hsl(var(--muted) / 0.4); border-bottom: 1px solid hsl(var(--border)); }
 .tr-detail pre { margin: 6px 0 0; font: 11px/1.6 var(--mono); white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow: auto; }
+/* traffic inspector: rows | drawer split, drawer opens on row click */
+.tr-wrap { display: grid; grid-template-columns: 1fr; gap: 0; align-items: start; }
+.tr-wrap.open { grid-template-columns: minmax(0, 1.25fr) minmax(300px, 1fr); }
+.tr-row.sel { background: hsl(var(--accent-blue) / 0.07); box-shadow: inset 2px 0 0 hsl(var(--accent-blue)); }
+.t-drawer { border: 1px solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted) / 0.3); margin-left: 12px; position: sticky; top: 0; max-height: calc(100vh - 190px); overflow-y: auto; }
+.td-h { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid hsl(var(--border)); }
+.td-h .td-title { font-size: 12.5px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-h .copy-btn { margin-left: auto; flex: none; }
+.td-meta { padding: 6px 14px; font: 11.5px var(--mono); color: hsl(var(--muted-foreground)); border-bottom: 1px solid hsl(var(--border)); }
+.td-meta .ok { color: hsl(var(--success)); font-weight: 700; } .td-meta .err { color: hsl(var(--destructive)); font-weight: 700; }
+.td-sec { padding: 10px 14px; border-bottom: 1px solid hsl(var(--border)); }
+.td-sec:last-child { border-bottom: 0; }
+.td-k { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: hsl(var(--muted-foreground)); margin-bottom: 6px; overflow-wrap: anywhere; }
+.td-sec pre { margin: 0; font: 11px/1.6 var(--mono); white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow: auto; }
 
 /* hidden attribute must beat .overlay display:grid */
 [hidden]{display:none !important}
@@ -737,7 +787,9 @@ tr:hover .kv-copy .copy-btn, .kv-copy:hover .copy-btn { opacity: 1; }
 .fl-legend i { width: 9px; height: 3px; border-radius: 2px; display: inline-block; }
 .flow-grid { display: flex; flex-direction: column; gap: 14px; }
 .flow-card { border: 1px solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--card)); box-shadow: var(--sh-sm); overflow: hidden; }
-.flow-card-h { padding: 9px 14px; border-bottom: 1px solid hsl(var(--border)); background: hsl(var(--muted) / 0.4); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.flow-card-h { display: flex; align-items: baseline; gap: 10px; padding: 9px 14px; border-bottom: 1px solid hsl(var(--border)); background: hsl(var(--muted) / 0.4); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+.flow-card-h .fl-chain { font: 600 12px var(--mono); text-transform: none; letter-spacing: 0; }
+.flow-card-h .fl-count { font-weight: 400; text-transform: none; letter-spacing: 0; color: hsl(var(--muted-foreground)); }
 .flow-card.unwired .flow-card-h { background: hsl(var(--warning) / 0.06); }
 .flow-card-b { padding: 6px 12px 12px; overflow-x: auto; }
 .fl-node { cursor: pointer; }
@@ -765,19 +817,19 @@ tr:hover .kv-copy .copy-btn, .kv-copy:hover .copy-btn { opacity: 1; }
 /* Panel header row: title cluster left, actions right, one line. */
 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
-.conn { display: flex; align-items: stretch; gap: 0; border: 1px solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted) / 0.3); margin: 0 0 4px; overflow: hidden; }
-.conn-col { flex: 1; min-width: 0; padding: 12px 16px; }
-.conn-col.conn-out { border-left: 1px solid hsl(var(--border)); }
-.conn-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: hsl(var(--muted-foreground)); margin-bottom: 7px; }
-.conn-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.conn-chip { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px 0 0; border: 1px solid hsl(var(--border)); border-radius: 7px; background: hsl(var(--card)); font-size: 12.5px; }
+/* One-row wiring strip: "Fed by [chips] → self → Drains to [chips]"; an empty
+   side is an inline invitation, not a reserved half. */
+.conn { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border: 1px solid hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted) / 0.3); margin: 0 0 4px; padding: 8px 14px; }
+.conn-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: hsl(var(--muted-foreground)); }
+.conn-chip { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px 0 0; border: 1px solid hsl(var(--border)); border-radius: 7px; background: hsl(var(--card)); font-size: 12.5px; overflow: hidden; }
 .conn-chip:hover { border-color: hsl(var(--ring)); }
-.conn-chip .cc-bar { width: 4px; height: 28px; border-radius: 7px 0 0 7px; }
+.conn-chip .cc-bar { width: 4px; height: 28px; flex: none; }
 .conn-chip .cc-nm { font-weight: 550; }
 .conn-chip .cc-k { font: 10px var(--mono); color: hsl(var(--muted-foreground)); }
-.conn-mid { display: grid; place-items: center; padding: 0 10px; color: hsl(var(--muted-foreground)); background: hsl(var(--card)); border-left: 1px solid hsl(var(--border)); border-right: 1px solid hsl(var(--border)); }
-.conn-mid .ic { width: 16px; height: 16px; }
-.conn-none { font-size: 12px; color: hsl(var(--muted-foreground)); font-style: italic; }
+.conn-self { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: hsl(var(--muted-foreground)); margin: 0 2px; }
+.conn-self b { font-weight: 650; color: hsl(var(--foreground)); }
+.conn-self .ic { width: 14px; height: 14px; }
+.conn-hint { font-size: 12px; color: hsl(var(--muted-foreground)); font-style: italic; }
 
 /* Lambda live process-state badge (warm vs. idle + scale-to-zero window). */
 .rt-badge { display: inline-flex; align-items: center; gap: 6px; margin-left: 4px; padding: 3px 10px;
@@ -905,6 +957,14 @@ a.lo-card:hover { border-color: hsl(var(--accent-blue)); box-shadow: 0 0 0 3px h
 .ex-grid { display: flex; gap: 12px; align-items: flex-end; }
 .ex-grid .btn { flex: none; height: 34px; }
 .ex-grid .field { margin-bottom: 0; }
+/* filter-expression value bindings: one typed input per :token */
+.fv-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.fv-row { display: flex; gap: 8px; align-items: center; }
+.fv-row .fv-tok { font: 12px var(--mono); color: hsl(var(--accent-blue)); min-width: 70px; }
+.fv-row select.input { width: 110px; }
+.fv-row input.input { flex: 1; max-width: 280px; }
+/* item rows open the drawer */
+.ddb-row { cursor: pointer; }
 @media (max-width: 820px) { .ex-grid { flex-wrap: wrap; } }
 
 /* Create-table GSI rows. */

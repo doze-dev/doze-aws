@@ -3,6 +3,8 @@ package console
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -77,22 +79,90 @@ func (c *Console) ddbTable(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	items, next, _ := c.be.ScanItems(r.Context(), t, "", 50, "")
+	items, next, _ := c.be.ScanItems(r.Context(), t, "", nil, nil, 50, "")
 	tables, _ := c.be.ListTables(r.Context())
-	c.render(w, r, "ddb_table", map[string]any{
-		"Table": t, "Items": items, "Next": next, "NextVals": scanNextVals(name, "", next), "Mode": "scan",
+	data := map[string]any{
+		"Table": t, "Items": items, "Next": next, "NextVals": scanNextVals(name, "", next, nil), "Mode": "scan",
 		"Tab": tabOf(r, "items"), "List": tables, "Title": name + " · DynamoDB",
-	})
+	}
+	addItemCols(data, t, items, nil)
+	c.render(w, r, "ddb_table", data)
 }
 
 // scanNextVals builds the hx-vals JSON a "Load more" trigger carries so the next
-// page re-runs the same scan from the pagination cursor.
-func scanNextVals(table, filter, cursor string) string {
+// page re-runs the same scan from the pagination cursor. carry holds extra form
+// fields the re-run must keep (filter bindings, the column set).
+func scanNextVals(table, filter, cursor string, carry map[string]string) string {
 	if cursor == "" {
 		return ""
 	}
-	raw, _ := json.Marshal(map[string]string{"mode": "scan", "filter": filter, "cursor": cursor})
+	m := map[string]string{"mode": "scan", "filter": filter, "cursor": cursor}
+	for k, v := range carry {
+		m[k] = v
+	}
+	raw, _ := json.Marshal(m)
 	return string(raw)
+}
+
+// filterBindings reads the dynamic ":binding" value fields the explorer's
+// filter UI posts (fv::name / ft::name pairs) into typed AttributeValues, and
+// auto-aliases every "#name" token in the expression (the common reason to use
+// # is a reserved word, and #status → status is what people mean locally).
+func filterBindings(r *http.Request, filter string) (map[string]any, map[string]string, map[string]string) {
+	vals := map[string]any{}
+	carry := map[string]string{}
+	r.ParseForm() //nolint:errcheck // best-effort: an unparsable form just yields no bindings
+	for k := range r.Form {
+		if name, ok := strings.CutPrefix(k, "fv:"); ok {
+			typ := r.FormValue("ft:" + name)
+			if typ == "" {
+				typ = "S"
+			}
+			vals[":"+name] = avTyped(typ, r.FormValue(k))
+			carry[k] = r.FormValue(k)
+			carry["ft:"+name] = typ
+		}
+	}
+	names := map[string]string{}
+	for _, tok := range regexpHashTokens.FindAllString(filter, -1) {
+		names[tok] = strings.TrimPrefix(tok, "#")
+	}
+	return vals, names, carry
+}
+
+var regexpHashTokens = regexp.MustCompile(`#\w+`)
+
+// addItemCols promotes the page's attribute keys to real table columns when
+// they fit (≤5 distinct non-key attributes); wider items fall back to the
+// single preview column. cols, when non-nil, pins the set (pagination appends
+// must align with the first page).
+func addItemCols(data map[string]any, t *Table, items []Item, cols []string) {
+	if cols == nil {
+		seen := map[string]bool{}
+		for _, it := range items {
+			for k := range it.Attrs {
+				seen[k] = true
+			}
+		}
+		if len(seen) == 0 || len(seen) > 5 {
+			data["Colspan"] = 3 + boolInt(t.RangeKey != "")
+			return // fall back to the preview column
+		}
+		cols = make([]string, 0, len(seen))
+		for k := range seen {
+			cols = append(cols, k)
+		}
+		sort.Strings(cols)
+	}
+	data["Cols"] = cols
+	data["Colspan"] = 2 + boolInt(t.RangeKey != "") + len(cols)
+}
+
+func boolInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // ddbExplore is the query surface: Scan (optional filter), Query (key
@@ -111,13 +181,20 @@ func (c *Console) ddbExplore(w http.ResponseWriter, r *http.Request) {
 		limit = l
 	}
 	cursor := r.FormValue("cursor")
+	// Pagination appends must keep the first page's column set.
+	var pinnedCols []string
+	if cursor != "" && r.FormValue("cols") != "" {
+		pinnedCols = strings.Split(r.FormValue("cols"), ",")
+	}
 	data := map[string]any{"Table": t, "Mode": mode}
 	switch mode {
 	case "query":
+		fvals, fnames, carry := filterBindings(r, r.FormValue("filter"))
 		opts := QueryOpts{
 			Index: r.FormValue("index"), PKValue: r.FormValue("pk"),
 			SKOp: r.FormValue("sk_op"), SKValue: r.FormValue("sk"), SKValue2: r.FormValue("sk2"),
-			Filter: r.FormValue("filter"), Limit: limit, Cursor: cursor,
+			Filter: r.FormValue("filter"), FilterVals: fvals, FilterNames: fnames,
+			Limit: limit, Cursor: cursor,
 		}
 		items, next, err := c.be.QueryItems(r.Context(), t, opts)
 		if err != nil {
@@ -125,12 +202,20 @@ func (c *Console) ddbExplore(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data["Items"], data["Next"] = items, next
+		addItemCols(data, t, items, pinnedCols)
 		if next != "" {
-			raw, _ := json.Marshal(map[string]string{
+			m := map[string]string{
 				"mode": "query", "index": opts.Index, "pk": opts.PKValue,
 				"sk_op": opts.SKOp, "sk": opts.SKValue, "sk2": opts.SKValue2,
 				"filter": opts.Filter, "cursor": next,
-			})
+			}
+			for k, v := range carry {
+				m[k] = v
+			}
+			if cols, ok := data["Cols"].([]string); ok {
+				m["cols"] = strings.Join(cols, ",")
+			}
+			raw, _ := json.Marshal(m)
 			data["NextVals"] = string(raw)
 		}
 	case "partiql":
@@ -141,14 +226,21 @@ func (c *Console) ddbExplore(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		data["Items"] = items
+		addItemCols(data, t, items, nil)
 	default: // scan
 		filter := r.FormValue("filter")
-		items, next, err := c.be.ScanItems(r.Context(), t, filter, limit, cursor)
+		fvals, fnames, carry := filterBindings(r, filter)
+		items, next, err := c.be.ScanItems(r.Context(), t, filter, fvals, fnames, limit, cursor)
 		if err != nil {
 			c.fail(w, err)
 			return
 		}
-		data["Items"], data["Next"], data["NextVals"] = items, next, scanNextVals(name, filter, next)
+		data["Items"], data["Next"] = items, next
+		addItemCols(data, t, items, pinnedCols)
+		if cols, ok := data["Cols"].([]string); ok {
+			carry["cols"] = strings.Join(cols, ",")
+		}
+		data["NextVals"] = scanNextVals(name, filter, next, carry)
 	}
 	// A cursor means this is a "Load more" — return just the row fragment so it
 	// appends; a fresh query returns the whole table.
@@ -187,10 +279,12 @@ func (c *Console) ddbItemsScan(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	items, next, _ := c.be.ScanItems(r.Context(), t, "", 50, "")
-	c.partial(w, "ddb_item_table", map[string]any{
-		"Table": t, "Items": items, "Next": next, "NextVals": scanNextVals(name, "", next), "Mode": "scan",
-	})
+	items, next, _ := c.be.ScanItems(r.Context(), t, "", nil, nil, 50, "")
+	data := map[string]any{
+		"Table": t, "Items": items, "Next": next, "NextVals": scanNextVals(name, "", next, nil), "Mode": "scan",
+	}
+	addItemCols(data, t, items, nil)
+	c.partial(w, "ddb_item_table", data)
 }
 
 // ddbSetTTL enables or disables TTL on a table.

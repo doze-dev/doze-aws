@@ -232,7 +232,7 @@ func TestSuspendedVersioningDeleteKeepsVersions(t *testing.T) {
 	c.CreateBucket(ctx, &awss3.CreateBucketInput{Bucket: aws.String("susp")})
 
 	if _, err := c.PutBucketVersioning(ctx, &awss3.PutBucketVersioningInput{
-		Bucket: aws.String("susp"),
+		Bucket:                  aws.String("susp"),
 		VersioningConfiguration: &s3types.VersioningConfiguration{Status: s3types.BucketVersioningStatusEnabled},
 	}); err != nil {
 		t.Fatalf("enable versioning: %v", err)
@@ -246,7 +246,7 @@ func TestSuspendedVersioningDeleteKeepsVersions(t *testing.T) {
 
 	// Suspend versioning, then delete.
 	if _, err := c.PutBucketVersioning(ctx, &awss3.PutBucketVersioningInput{
-		Bucket: aws.String("susp"),
+		Bucket:                  aws.String("susp"),
 		VersioningConfiguration: &s3types.VersioningConfiguration{Status: s3types.BucketVersioningStatusSuspended},
 	}); err != nil {
 		t.Fatalf("suspend versioning: %v", err)

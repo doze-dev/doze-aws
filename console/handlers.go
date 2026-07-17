@@ -1,11 +1,13 @@
 package console
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -192,18 +194,9 @@ func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	var total int64
-	files := 0
-	for _, o := range objs {
-		if !o.IsPrefix {
-			total += o.Size
-			files++
-		}
-	}
 	data["Objects"] = objs
 	data["Crumbs"] = crumbs(prefix)
-	data["FileCount"] = files
-	data["TotalSize"] = humanBytes(total)
+	data["FootNote"] = c.s3Foot(r.Context(), bucket, prefix, objs)
 	// HTMX navigation within the browser swaps just the table.
 	if r.Header.Get("HX-Request") == "true" && r.URL.Query().Get("partial") == "1" {
 		c.partial(w, "object_table", data)
@@ -336,18 +329,34 @@ func (c *Console) s3DeleteBucket(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) swapObjectTable(w http.ResponseWriter, r *http.Request, bucket, prefix string) {
 	objs, _ := c.be.ListObjects(r.Context(), bucket, prefix)
-	var total int64
-	files := 0
-	for _, o := range objs {
-		if !o.IsPrefix {
-			total += o.Size
-			files++
-		}
-	}
 	c.partial(w, "object_table", map[string]any{
 		"Bucket": bucket, "KeyPrefix": prefix, "Objects": objs,
-		"Crumbs": crumbs(prefix), "FileCount": files, "TotalSize": humanBytes(total),
+		"Crumbs": crumbs(prefix), "FootNote": c.s3Foot(r.Context(), bucket, prefix, objs),
 	})
+}
+
+// s3Foot writes the object-table footer. Counting only the current level reads
+// as "0 objects" at a bucket root full of folders, so when folders are present
+// it also sums the whole subtree (one extra un-delimited list).
+func (c *Console) s3Foot(ctx context.Context, bucket, prefix string, objs []Object) string {
+	var total int64
+	files, dirs := 0, 0
+	for _, o := range objs {
+		if o.IsPrefix {
+			dirs++
+		} else {
+			files++
+			total += o.Size
+		}
+	}
+	note := plural(files, "object") + " here · " + humanBytes(total)
+	if dirs > 0 {
+		note = plural(dirs, "folder") + " · " + note
+		if tc, ts := c.be.bucketTreeTotals(ctx, bucket, prefix); tc > files {
+			note += " · " + plural(tc, "object") + " · " + humanBytes(ts) + " in the whole tree"
+		}
+	}
+	return note
 }
 
 // ---- SQS ----
@@ -485,6 +494,27 @@ func fmtAny(v any) string {
 	return string(b)
 }
 
+// patternPreview flattens an event pattern's top level into a scannable
+// one-liner for the rules table: {"source":["shop.orders"]} → source=[shop.orders].
+func patternPreview(pattern string) string {
+	var m map[string]json.RawMessage
+	if json.Unmarshal([]byte(pattern), &m) != nil || len(m) == 0 {
+		return "pattern"
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	parts := make([]string, 0, len(keys))
+	for _, k := range keys {
+		v := strings.Join(strings.Fields(string(m[k])), "")
+		v = strings.ReplaceAll(v, `"`, "")
+		parts = append(parts, k+"="+v)
+	}
+	return strings.Join(parts, " ")
+}
+
 // epochSecString formats a unix-seconds string as local time.
 func epochSecString(s string) string {
 	n, err := strconv.ParseInt(s, 10, 64)
@@ -511,6 +541,9 @@ func sqsMsgHash(attrs map[string]string, msgs []SQSMessage, tasks []MoveTask) st
 // sqsPanelData assembles everything the live message panel shows, including
 // the DLQ recovery surface (redrive sources + move-task progress).
 func (c *Console) sqsPanelData(r *http.Request, name string, attrs map[string]string, msgs []SQSMessage) map[string]any {
+	for i := range msgs {
+		msgs[i].Sum = summarize(msgs[i].Body)
+	}
 	sources := c.be.DLQSources(r.Context(), name)
 	var tasks []MoveTask
 	if len(sources) > 0 {

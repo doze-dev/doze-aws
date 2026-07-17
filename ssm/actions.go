@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/awsjson"
 )
 
 var handlers = map[string]handler{
@@ -27,37 +28,6 @@ var handlers = map[string]handler{
 }
 
 // ---- param helpers ----
-
-func pstr(p map[string]any, key string) string {
-	s, _ := p[key].(string)
-	return s
-}
-
-func pbool(p map[string]any, key string) bool {
-	b, _ := p[key].(bool)
-	return b
-}
-
-func pint64(p map[string]any, key string) int64 {
-	if f, ok := p[key].(float64); ok {
-		return int64(f)
-	}
-	return 0
-}
-
-func pstrs(p map[string]any, key string) []string {
-	list, ok := p[key].([]any)
-	if !ok {
-		return nil
-	}
-	var out []string
-	for _, v := range list {
-		if s, ok := v.(string); ok {
-			out = append(out, s)
-		}
-	}
-	return out
-}
 
 func base64of(b []byte) string { return base64.StdEncoding.EncodeToString(b) }
 
@@ -92,7 +62,7 @@ func (s *Server) putParameter(p map[string]any) (any, *awshttp.APIError) {
 	if _, ok := p["Value"]; !ok {
 		return nil, awshttp.Errf(400, "ValidationException", "Value is required")
 	}
-	policies := pstr(p, "Policies")
+	policies := awsjson.Str(p, "Policies")
 	expiresAt, aerr := parseExpiration(policies)
 	if aerr != nil {
 		return nil, aerr
@@ -110,14 +80,14 @@ func (s *Server) putParameter(p map[string]any) (any, *awshttp.APIError) {
 		}
 	}
 	version, aerr := s.store.Put(
-		pstr(p, "Name"), pstr(p, "Type"), pstr(p, "Value"),
-		pstr(p, "KeyId"), pstr(p, "Description"), pstr(p, "DataType"),
-		pstr(p, "Tier"), policies, expiresAt, tags, pbool(p, "Overwrite"),
+		awsjson.Str(p, "Name"), awsjson.Str(p, "Type"), awsjson.Str(p, "Value"),
+		awsjson.Str(p, "KeyId"), awsjson.Str(p, "Description"), awsjson.Str(p, "DataType"),
+		awsjson.Str(p, "Tier"), policies, expiresAt, tags, awsjson.Bool(p, "Overwrite"),
 	)
 	if aerr != nil {
 		return nil, aerr
 	}
-	return map[string]any{"Version": version, "Tier": orDefault(pstr(p, "Tier"), "Standard")}, nil
+	return map[string]any{"Version": version, "Tier": orDefault(awsjson.Str(p, "Tier"), "Standard")}, nil
 }
 
 // parseExpiration extracts the Expiration policy timestamp from a parameter
@@ -149,8 +119,8 @@ func parseExpiration(policies string) (int64, *awshttp.APIError) {
 }
 
 func (s *Server) getParameter(p map[string]any) (any, *awshttp.APIError) {
-	selector := pstr(p, "Name")
-	param, v, value, aerr := s.store.Get(selector, pbool(p, "WithDecryption"))
+	selector := awsjson.Str(p, "Name")
+	param, v, value, aerr := s.store.Get(selector, awsjson.Bool(p, "WithDecryption"))
 	if aerr != nil {
 		return nil, aerr
 	}
@@ -162,10 +132,10 @@ func (s *Server) getParameter(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) getParameters(p map[string]any) (any, *awshttp.APIError) {
-	decrypt := pbool(p, "WithDecryption")
+	decrypt := awsjson.Bool(p, "WithDecryption")
 	params := []paramView{}
 	invalid := []string{}
-	for _, name := range pstrs(p, "Names") {
+	for _, name := range awsjson.Strs(p, "Names") {
 		param, v, value, aerr := s.store.Get(name, decrypt)
 		if aerr != nil {
 			invalid = append(invalid, name)
@@ -177,8 +147,8 @@ func (s *Server) getParameters(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) getParametersByPath(p map[string]any) (any, *awshttp.APIError) {
-	decrypt := pbool(p, "WithDecryption")
-	list, err := s.store.ByPath(pstr(p, "Path"), pbool(p, "Recursive"))
+	decrypt := awsjson.Bool(p, "WithDecryption")
+	list, err := s.store.ByPath(awsjson.Str(p, "Path"), awsjson.Bool(p, "Recursive"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -196,12 +166,12 @@ func (s *Server) getParametersByPath(p map[string]any) (any, *awshttp.APIError) 
 }
 
 func (s *Server) getParameterHistory(p map[string]any) (any, *awshttp.APIError) {
-	name := pstr(p, "Name")
+	name := awsjson.Str(p, "Name")
 	param, _, _, aerr := s.store.Get(name, false)
 	if aerr != nil {
 		return nil, aerr
 	}
-	decrypt := pbool(p, "WithDecryption")
+	decrypt := awsjson.Bool(p, "WithDecryption")
 	type histEntry struct {
 		Name             string   `json:"Name"`
 		Type             string   `json:"Type"`
@@ -233,13 +203,13 @@ func (s *Server) getParameterHistory(p map[string]any) (any, *awshttp.APIError) 
 }
 
 func (s *Server) deleteParameter(p map[string]any) (any, *awshttp.APIError) {
-	return nil, s.store.Delete(pstr(p, "Name"))
+	return nil, s.store.Delete(awsjson.Str(p, "Name"))
 }
 
 func (s *Server) deleteParameters(p map[string]any) (any, *awshttp.APIError) {
 	deleted := []string{}
 	invalid := []string{}
-	for _, name := range pstrs(p, "Names") {
+	for _, name := range awsjson.Strs(p, "Names") {
 		if aerr := s.store.Delete(name); aerr != nil {
 			invalid = append(invalid, name)
 			continue
@@ -298,7 +268,7 @@ func applyFilters(all []Parameter, p map[string]any) ([]Parameter, *awshttp.APIE
 		}
 		key, _ := fm["Key"].(string)
 		option, _ := fm["Option"].(string)
-		values := pstrs(fm, "Values")
+		values := awsjson.Strs(fm, "Values")
 		match := func(param *Parameter) bool { return true }
 		switch key {
 		case "Name":
@@ -335,14 +305,14 @@ func applyFilters(all []Parameter, p map[string]any) ([]Parameter, *awshttp.APIE
 }
 
 func (s *Server) labelParameterVersion(p map[string]any) (any, *awshttp.APIError) {
-	if _, aerr := s.store.Label(pstr(p, "Name"), pint64(p, "ParameterVersion"), pstrs(p, "Labels")); aerr != nil {
+	if _, aerr := s.store.Label(awsjson.Str(p, "Name"), awsjson.Int64(p, "ParameterVersion", 0), awsjson.Strs(p, "Labels")); aerr != nil {
 		return nil, aerr
 	}
-	return map[string]any{"InvalidLabels": []string{}, "ParameterVersion": pint64(p, "ParameterVersion")}, nil
+	return map[string]any{"InvalidLabels": []string{}, "ParameterVersion": awsjson.Int64(p, "ParameterVersion", 0)}, nil
 }
 
 func (s *Server) unlabelParameterVersion(p map[string]any) (any, *awshttp.APIError) {
-	removed, aerr := s.store.Unlabel(pstr(p, "Name"), pint64(p, "ParameterVersion"), pstrs(p, "Labels"))
+	removed, aerr := s.store.Unlabel(awsjson.Str(p, "Name"), awsjson.Int64(p, "ParameterVersion", 0), awsjson.Strs(p, "Labels"))
 	if aerr != nil {
 		return nil, aerr
 	}
@@ -355,11 +325,11 @@ func (s *Server) unlabelParameterVersion(p map[string]any) (any, *awshttp.APIErr
 // resourceName extracts the parameter name from tagging calls, which address
 // parameters by ResourceType=Parameter + ResourceId=<name>.
 func resourceName(p map[string]any) (string, *awshttp.APIError) {
-	if rt := pstr(p, "ResourceType"); rt != "" && rt != "Parameter" {
+	if rt := awsjson.Str(p, "ResourceType"); rt != "" && rt != "Parameter" {
 		return "", awshttp.Errf(400, "InvalidResourceType",
 			"doze-aws supports tagging for ResourceType Parameter only, got %q", rt)
 	}
-	return pstr(p, "ResourceId"), nil
+	return awsjson.Str(p, "ResourceId"), nil
 }
 
 func (s *Server) addTags(p map[string]any) (any, *awshttp.APIError) {
@@ -387,7 +357,7 @@ func (s *Server) removeTags(p map[string]any) (any, *awshttp.APIError) {
 	if aerr != nil {
 		return nil, aerr
 	}
-	return nil, s.store.UpdateTags(name, nil, pstrs(p, "TagKeys"))
+	return nil, s.store.UpdateTags(name, nil, awsjson.Strs(p, "TagKeys"))
 }
 
 func (s *Server) listTags(p map[string]any) (any, *awshttp.APIError) {

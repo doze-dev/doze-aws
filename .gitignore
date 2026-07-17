@@ -15,3 +15,11 @@ coverage.*
 
 # Editor / OS noise.
 .DS_Store
+
+# e2e/ (Playwright/Bun toolchain — bun.lock IS committed).
+e2e/node_modules/
+e2e/.tmp/
+e2e/playwright-report/
+e2e/test-results/
+e2e/blob-report/
+e2e/.bun/

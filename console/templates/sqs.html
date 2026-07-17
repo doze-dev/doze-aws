@@ -31,7 +31,7 @@
         (dict "Key" "messages" "Label" (printf "Messages · %d" .Available) "Icon" "inbox" "URL" (printf "%s/sqs/%s" .Prefix .Queue))
         (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sqs/%s?tab=config" .Prefix .Queue)))}}
     </div>
-    <div style="padding:14px 20px 0">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn}}</div>
+    <div style="padding:14px 20px 0">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "sqs" "Self" .Queue}}</div>
     <div class="det-b">
       {{if eq .Tab "config"}}
         {{template "sqs_config" .}}
@@ -95,11 +95,15 @@
   {{end}}
   {{if .Messages}}
   <div class="msgs">{{range .Messages}}
-    <div class="msg" x-data="{open:false}">
-      <div class="msg-h" style="cursor:pointer" @click="open=!open"><code>{{.MessageID}}</code>
-        <span style="display:flex;align-items:center;gap:8px"><span class="dim num" title="{{.SentAt}}">{{ago .SentAt}}</span>
+    <div class="msg" id="m-{{.MessageID}}" x-data="{open:false}" :class="open && 'open'">
+      <div class="msg-h" style="cursor:pointer" @click="open=!open">
+        <span class="msg-line"><span class="chev">▸</span>{{if .Sum.Kind}}<span class="evt{{if .Sum.Svc}} c-{{.Sum.Svc}}{{end}}">{{.Sum.Kind}}</span>{{end}}<span class="msum">{{.Sum.Line}}</span></span>
+        <span style="display:flex;align-items:center;gap:8px;flex:none"><span class="dim num" title="{{.SentAt}}">{{ago .SentAt}}</span>
         <button class="icon-btn sm danger msg-del" title="Delete this message" @click.stop hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-vals='{"handle":"{{.ReceiptHandle}}"}' hx-target="#message-panel-wrap" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete this one message?">{{icon "trash"}}</button></span></div>
-      <pre @click="open=!open" style="cursor:pointer">{{.Body}}</pre>
+      <div class="msg-detail" x-show="open" x-cloak>
+        <div class="msg-id"><code>{{.MessageID}}</code>{{if .Sum.Note}} · {{.Sum.Note}}{{end}}<button class="copy-btn" data-copy="{{.Sum.Raw}}" title="Copy message body" @click.stop>{{icon "copy"}}</button></div>
+        <pre>{{.Sum.BodyHTML}}</pre>
+      </div>
       {{if or .GroupID .Attrs .SeqNo (and .Receives (ne .Receives "0"))}}
       <div class="mm-chips">
         {{if .GroupID}}<span class="mm" title="MessageGroupId">group <b>{{.GroupID}}</b></span>{{end}}
@@ -135,9 +139,9 @@
   <div class="panel" x-show="edit" x-cloak>
     <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/attributes" hx-target="#sqs-config" hx-select="unset" hx-swap="outerHTML">
       <div class="edit-grid">
-        <div class="field"><label>Visibility <span class="dim">s</span></label><input class="input" name="visibility" type="number" min="0" max="43200" value="{{.Config.Visibility}}"></div>
-        <div class="field"><label>Retention <span class="dim">s</span></label><input class="input" name="retention" type="number" min="60" max="1209600" value="{{.Config.Retention}}"></div>
-        <div class="field"><label>Delay <span class="dim">s</span></label><input class="input" name="delay" type="number" min="0" max="900" value="{{if .Config.Delay}}{{.Config.Delay}}{{else}}0{{end}}"></div>
+        <div class="field" x-data="{v:'{{.Config.Visibility}}'}"><label>Visibility <span class="dim">s</span></label><input class="input" name="visibility" type="number" min="0" max="43200" value="{{.Config.Visibility}}" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
+        <div class="field" x-data="{v:'{{.Config.Retention}}'}"><label>Retention <span class="dim">s</span></label><input class="input" name="retention" type="number" min="60" max="1209600" value="{{.Config.Retention}}" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
+        <div class="field" x-data="{v:'{{.Config.Delay}}'}"><label>Delay <span class="dim">s</span></label><input class="input" name="delay" type="number" min="0" max="900" value="{{if .Config.Delay}}{{.Config.Delay}}{{else}}0{{end}}" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
       </div>
       <div class="edit-grid" style="padding-top:0">
         <div class="field" style="grid-column:span 2"><label>Dead-letter queue</label>

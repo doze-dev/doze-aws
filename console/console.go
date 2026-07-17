@@ -98,15 +98,20 @@ func (c *Console) routes() {
 	m := http.NewServeMux()
 	p := c.prefix
 
-	// Static assets (htmx, css) — embedded, served locally (no CDN).
-	m.Handle("GET "+p+"/static/", http.StripPrefix(p+"/", http.FileServerFS(staticFS)))
+	// Static assets (htmx, css) — embedded, served locally (no CDN). Embedded
+	// files have a zero modtime, so plain FileServerFS gives the browser no
+	// validator at all and every hard reload re-downloads ~700KB (font,
+	// CodeMirror, htmx, Alpine). cacheStatic adds content ETags + max-age.
+	m.Handle("GET "+p+"/static/", http.StripPrefix(p+"/", cacheStatic(http.FileServerFS(staticFS))))
 
 	// Flows is the home surface; Traffic is the live API tail.
 	m.HandleFunc("GET "+p+"/", c.flows)
 	m.HandleFunc("GET "+p, c.flows)
 	m.HandleFunc("GET "+p+"/flows.json", c.flowsData) // polled live refresh
 	m.HandleFunc("GET "+p+"/traffic", c.traffic)
-	m.HandleFunc("GET "+p+"/traffic/feed", c.trafficFeed) // polled live tail
+	m.HandleFunc("GET "+p+"/traffic/feed", c.trafficFeed)    // polled live tail
+	m.HandleFunc("GET "+p+"/traffic/entry", c.trafficEntry)  // inspector drawer
+	m.HandleFunc("POST "+p+"/traffic/clear", c.trafficClear) // empty the ring
 
 	// Resource index for the command palette.
 	m.HandleFunc("GET "+p+"/api/resources", c.apiResources)
@@ -350,8 +355,11 @@ func templateFuncs(prefix string) template.FuncMap {
 			return nil
 		},
 		"edgePath": func(f, t *FlowNode) string {
-			// forward: right edge → next left edge. backward (redrive/dlq to a
-			// node at/behind us): drop from the bottom into the target's top.
+			// forward: orthogonal with rounded corners — right edge, along the
+			// channel between the columns, into the target's left edge. Parallel
+			// edges read as a bus instead of a weave of crossing curves.
+			// backward (redrive/dlq to a node at/behind us): drop from the
+			// bottom into the target's top.
 			if t.X <= f.X {
 				x1, y1 := f.X+88, f.Y+46
 				x2, y2 := t.X+88, t.Y
@@ -359,14 +367,41 @@ func templateFuncs(prefix string) template.FuncMap {
 			}
 			x1, y1 := f.X+176, f.Y+23
 			x2, y2 := t.X, t.Y+23
-			mx := (x1 + x2) / 2
-			return fmt.Sprintf("M%d %d C %d %d %d %d %d %d", x1, y1, mx, y1, mx, y2, x2, y2)
+			// stagger the channel per source row so edges into one target
+			// don't stack on the exact same vertical
+			mx := (x1+x2)/2 + (f.Y/flRowH%3-1)*10
+			if y1 == y2 {
+				return fmt.Sprintf("M%d %d H%d", x1, y1, x2)
+			}
+			r := 8
+			dir := 1
+			if y2 < y1 {
+				dir = -1
+			}
+			return fmt.Sprintf("M%d %d H%d Q%d %d %d %d V%d Q%d %d %d %d H%d",
+				x1, y1, mx-r, mx, y1, mx, y1+dir*r, y2-dir*r, mx, y2, mx+r, y2, x2)
+		},
+		// edgeLabelX/Y place the edge-kind pill at the channel midpoint.
+		"edgeLabelX": func(f, t *FlowNode) int {
+			if t.X <= f.X {
+				return (f.X + t.X + 176) / 2
+			}
+			return (f.X + 176 + t.X) / 2 // the channel x, pre-stagger
+		},
+		"edgeLabelY": func(f, t *FlowNode) int {
+			if t.X <= f.X {
+				return (f.Y + 46 + t.Y) / 2
+			}
+			return (f.Y+23+t.Y+23)/2 + 4
 		},
 		"svcGlyph": func(svc string) string {
 			return map[string]string{"s3": "▦", "sqs": "▤", "sns": "▲", "eb": "◇", "lambda": "λ"}[svc]
 		},
 		"addOne":    func(n int64) int64 { return n + 1 },
 		"ssmGroups": ssmGroups,
+		// patternPreview flattens an event pattern to a scannable one-liner:
+		// {"source":["shop.orders"]} → source=[shop.orders]
+		"patternPreview": patternPreview,
 		// awsIcon renders an official AWS Architecture service icon (embedded).
 		"awsIcon": func(svc string) template.HTML {
 			return template.HTML(`<img class="aws-ic" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)

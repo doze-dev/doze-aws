@@ -658,7 +658,7 @@ func TestDynamoDBTableEditing(t *testing.T) {
 	page1 := req(t, h, "POST", "/_console/ddb/sessions/explore", url.Values{
 		"mode": {"scan"}, "limit": {"1"},
 	}).Body.String()
-	if strings.Count(page1, "<tr x-data") != 1 || !strings.Contains(page1, "Load 50 more") {
+	if strings.Count(page1, "<tr class=\"ddb-row\" x-data") != 1 || !strings.Contains(page1, "Load 50 more") {
 		t.Fatalf("first page should have 1 row + a load-more trigger:\n%s", page1)
 	}
 	// Pull the cursor out of the load-more button's hx-vals and load the next page.
@@ -669,7 +669,7 @@ func TestDynamoDBTableEditing(t *testing.T) {
 	page2 := req(t, h, "POST", "/_console/ddb/sessions/explore", url.Values{
 		"mode": {"scan"}, "limit": {"1"}, "cursor": {cur},
 	}).Body.String()
-	if !strings.Contains(page2, "<tr x-data") {
+	if !strings.Contains(page2, "<tr class=\"ddb-row\" x-data") {
 		t.Fatalf("second page returned no rows:\n%s", page2)
 	}
 	// The append fragment must NOT re-wrap the whole #ddb-items container.

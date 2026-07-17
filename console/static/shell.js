@@ -287,6 +287,7 @@
         // re-includes data-live, so a morphed element keeps the same id too.
         var cur = document.getElementById(id);
         if (document.hidden || !cur) return;
+        if (cur.hasAttribute("data-live-paused")) return; // user hit pause
         var url = cur.getAttribute("data-live");
         if (!url) return;
         // Most live regions morph so selection/scroll survive; a small self-
@@ -347,6 +348,44 @@
       cd.textContent = left > 0 ? fmtLeft(left) : "any moment";
     });
   }, 1000);
+
+  // ---------- flows: hover a node to trace its path ----------
+  // Delegated (the canvas is morph-swapped every poll): entering a node dims
+  // the card and lights the node's edges, their endpoints and the edge-kind
+  // labels; leaving clears.
+  var focusedCard = null;
+  function clearFlowFocus() {
+    if (!focusedCard) return;
+    focusedCard.classList.remove("focus");
+    focusedCard.querySelectorAll(".lit").forEach(function (el) { el.classList.remove("lit"); });
+    focusedCard = null;
+  }
+  document.addEventListener("mouseover", function (e) {
+    if (!e.target.closest) return;
+    var node = e.target.closest("a.fl-node");
+    if (!node) {
+      clearFlowFocus();
+      return;
+    }
+    var card = node.closest(".flow-card");
+    if (!card) return;
+    clearFlowFocus();
+    focusedCard = card;
+    card.classList.add("focus");
+    var id = node.getAttribute("data-node");
+    var lit = {};
+    lit[id] = true;
+    card.querySelectorAll("[data-from]").forEach(function (el) {
+      var f = el.getAttribute("data-from"), t = el.getAttribute("data-to");
+      if (f === id || t === id) {
+        el.classList.add("lit");
+        lit[f] = lit[t] = true;
+      }
+    });
+    card.querySelectorAll("a.fl-node").forEach(function (n) {
+      if (lit[n.getAttribute("data-node")]) n.classList.add("lit");
+    });
+  });
 
   window.dozeShell = { toast: toast, openPalette: openPalette };
 })();

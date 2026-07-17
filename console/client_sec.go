@@ -72,6 +72,20 @@ func (b *backend) ListKeys(ctx context.Context) ([]Key, error) {
 	return keys, nil
 }
 
+// CountKeys is the cheap cardinality probe: one ListKeys call, no per-key
+// describes or alias lookups.
+func (b *backend) CountKeys(ctx context.Context) (int, error) {
+	body, err := b.json11(ctx, "TrentService", "ListKeys", map[string]any{})
+	if err != nil {
+		return 0, err
+	}
+	var out struct {
+		Keys []struct{} `json:"Keys"`
+	}
+	json.Unmarshal(body, &out)
+	return len(out.Keys), nil
+}
+
 func (b *backend) DescribeKey(ctx context.Context, id string) (*Key, error) {
 	body, err := b.json11(ctx, "TrentService", "DescribeKey", map[string]any{"KeyId": id})
 	if err != nil {

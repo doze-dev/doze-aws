@@ -192,8 +192,9 @@ func (s *Store) ListMessageMoveTasks(source string, max int) ([]MoveTask, error)
 // what AWS reports for a finished task.
 func (s *Store) CancelMessageMoveTask(handle string) error {
 	return &apiError{
-		Code:   "ResourceNotFoundException",
-		Status: 400,
-		Msg:    "task is not active: local message move tasks complete synchronously",
+		Code:        "ResourceNotFoundException",
+		Status:      400,
+		Message:     "task is not active: local message move tasks complete synchronously",
+		SenderFault: true,
 	}
 }

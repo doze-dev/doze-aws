@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/awsjson"
 	"github.com/doze-dev/doze-aws/internal/eventpattern"
 )
 
@@ -58,11 +59,11 @@ func (s *Server) captureToArchives(bus string, eventJSON []byte) {
 // ---- archive handlers ----
 
 func (s *Server) createArchive(p map[string]any) (any, *awshttp.APIError) {
-	name := pstr(p, "ArchiveName")
+	name := awsjson.Str(p, "ArchiveName")
 	if name == "" {
 		return nil, awshttp.Errf(400, "ValidationException", "ArchiveName is required")
 	}
-	src := pstr(p, "EventSourceArn")
+	src := awsjson.Str(p, "EventSourceArn")
 	if src == "" {
 		return nil, awshttp.Errf(400, "ValidationException", "EventSourceArn is required")
 	}
@@ -71,8 +72,8 @@ func (s *Server) createArchive(p map[string]any) (any, *awshttp.APIError) {
 		ret = int(n)
 	}
 	a := Archive{
-		Name: name, EventSourceArn: src, Pattern: pstr(p, "EventPattern"),
-		RetentionDays: ret, Desc: pstr(p, "Description"),
+		Name: name, EventSourceArn: src, Pattern: awsjson.Str(p, "EventPattern"),
+		RetentionDays: ret, Desc: awsjson.Str(p, "Description"),
 		State: "ENABLED", CreationTime: s.now().Unix(),
 	}
 	if err := s.store.CreateArchive(a); err != nil {
@@ -104,7 +105,7 @@ func archiveView(a *Archive) map[string]any {
 }
 
 func (s *Server) describeArchive(p map[string]any) (any, *awshttp.APIError) {
-	a, err := s.store.GetArchive(pstr(p, "ArchiveName"))
+	a, err := s.store.GetArchive(awsjson.Str(p, "ArchiveName"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -112,7 +113,7 @@ func (s *Server) describeArchive(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) listArchives(p map[string]any) (any, *awshttp.APIError) {
-	arcs, err := s.store.ListArchives(pstr(p, "NamePrefix"), pstr(p, "EventSourceArn"))
+	arcs, err := s.store.ListArchives(awsjson.Str(p, "NamePrefix"), awsjson.Str(p, "EventSourceArn"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -124,15 +125,15 @@ func (s *Server) listArchives(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) updateArchive(p map[string]any) (any, *awshttp.APIError) {
-	name := pstr(p, "ArchiveName")
+	name := awsjson.Str(p, "ArchiveName")
 	err := s.store.UpdateArchive(name, func(a *Archive) error {
-		if v := pstr(p, "EventPattern"); v != "" {
+		if v := awsjson.Str(p, "EventPattern"); v != "" {
 			if _, e := eventpattern.Parse([]byte(v)); e != nil {
 				return awshttp.Errf(400, "InvalidEventPatternException", "%v", e)
 			}
 			a.Pattern = v
 		}
-		if v := pstr(p, "Description"); v != "" {
+		if v := awsjson.Str(p, "Description"); v != "" {
 			a.Desc = v
 		}
 		if n, ok := pnum(p, "RetentionDays"); ok {
@@ -150,7 +151,7 @@ func (s *Server) updateArchive(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) deleteArchive(p map[string]any) (any, *awshttp.APIError) {
-	name := pstr(p, "ArchiveName")
+	name := awsjson.Str(p, "ArchiveName")
 	if _, err := s.store.GetArchive(name); err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -163,11 +164,11 @@ func (s *Server) deleteArchive(p map[string]any) (any, *awshttp.APIError) {
 // ---- replay handlers ----
 
 func (s *Server) startReplay(p map[string]any) (any, *awshttp.APIError) {
-	name := pstr(p, "ReplayName")
+	name := awsjson.Str(p, "ReplayName")
 	if name == "" {
 		return nil, awshttp.Errf(400, "ValidationException", "ReplayName is required")
 	}
-	archiveArn := pstr(p, "EventSourceArn")
+	archiveArn := awsjson.Str(p, "EventSourceArn")
 	archiveName := archiveFromArn(archiveArn)
 	if _, err := s.store.GetArchive(archiveName); err != nil {
 		return nil, awshttp.AsAPIError(err)
@@ -176,7 +177,7 @@ func (s *Server) startReplay(p map[string]any) (any, *awshttp.APIError) {
 	if dest == nil {
 		return nil, awshttp.Errf(400, "ValidationException", "Destination is required")
 	}
-	busArn := pstr(dest, "Arn")
+	busArn := awsjson.Str(dest, "Arn")
 	bus := busFromArn(busArn)
 	var filter map[string]bool
 	if fa, ok := dest["FilterArns"].([]any); ok && len(fa) > 0 {
@@ -240,7 +241,7 @@ func replayView(r *Replay) map[string]any {
 }
 
 func (s *Server) describeReplay(p map[string]any) (any, *awshttp.APIError) {
-	r, err := s.store.GetReplay(pstr(p, "ReplayName"))
+	r, err := s.store.GetReplay(awsjson.Str(p, "ReplayName"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -248,7 +249,7 @@ func (s *Server) describeReplay(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) listReplays(p map[string]any) (any, *awshttp.APIError) {
-	reps, err := s.store.ListReplays(pstr(p, "NamePrefix"))
+	reps, err := s.store.ListReplays(awsjson.Str(p, "NamePrefix"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -260,7 +261,7 @@ func (s *Server) listReplays(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) cancelReplay(p map[string]any) (any, *awshttp.APIError) {
-	r, err := s.store.GetReplay(pstr(p, "ReplayName"))
+	r, err := s.store.GetReplay(awsjson.Str(p, "ReplayName"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}

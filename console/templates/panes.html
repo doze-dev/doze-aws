@@ -35,7 +35,7 @@
 {{define "tag_editor"}}
 <div id="tag-editor"><div class="panel">
   {{if .Tags}}<table class="tbl kv"><tbody>
-    {{range .Tags}}<tr><td class="mono">{{.K}}</td><td style="display:flex;align-items:center;justify-content:space-between;gap:8px">{{.V}}<button class="icon-btn sm danger" title="Remove tag" hx-post="{{$.Prefix}}/tags/remove" hx-vals='{"svc":"{{$.Svc}}","id":"{{$.ID}}","key":"{{.K}}"}' hx-target="#tag-editor" hx-select="unset" hx-swap="outerHTML">{{icon "x"}}</button></td></tr>{{end}}
+    {{range .Tags}}<tr><td class="mono" style="width:34%">{{.K}}</td><td class="tag-v">{{.V}}<button class="icon-btn sm danger" title="Remove tag" hx-post="{{$.Prefix}}/tags/remove" hx-vals='{"svc":"{{$.Svc}}","id":"{{$.ID}}","key":"{{.K}}"}' hx-target="#tag-editor" hx-select="unset" hx-swap="outerHTML">{{icon "x"}}</button></td></tr>{{end}}
   </tbody></table>{{else}}<div class="mini-note" style="padding:12px 14px 2px">No tags yet.</div>{{end}}
   <form class="tag-row-form" hx-post="{{.Prefix}}/tags/set" hx-target="#tag-editor" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
     <input type="hidden" name="svc" value="{{.Svc}}"><input type="hidden" name="id" value="{{.ID}}">
@@ -44,24 +44,25 @@
 </div></div>
 {{end}}
 
+{{/* connections: a single-row wiring strip — "Fed by [chips] → self → Drains
+     to [chips]". An empty side collapses to an invitation instead of reserving
+     half the strip to say "nothing". dict: Prefix Conn Svc Self. */}}
 {{define "connections"}}
 {{if or .Conn.Upstream .Conn.Downstream}}
 <div class="conn">
-  <div class="conn-col">
-    <div class="conn-lbl">Fed by</div>
-    <div class="conn-chips">
-      {{range .Conn.Upstream}}<a class="conn-chip" href="{{$.Prefix}}{{.URL}}"><span class="cc-bar" style="background:hsl(var(--svc-{{.Svc}}))"></span><span class="cc-nm">{{.Name}}</span><span class="cc-k">{{.Kind}}</span></a>{{end}}
-      {{if not .Conn.Upstream}}<span class="conn-none">— nothing</span>{{end}}
-    </div>
-  </div>
-  <div class="conn-mid">{{icon "arrow-right"}}</div>
-  <div class="conn-col conn-out">
-    <div class="conn-lbl">Drains to</div>
-    <div class="conn-chips">
-      {{range .Conn.Downstream}}<a class="conn-chip" href="{{$.Prefix}}{{.URL}}"><span class="cc-bar" style="background:hsl(var(--svc-{{.Svc}}))"></span><span class="cc-nm">{{.Name}}</span><span class="cc-k">{{.Kind}}</span></a>{{end}}
-      {{if not .Conn.Downstream}}<span class="conn-none">— nothing</span>{{end}}
-    </div>
-  </div>
+  {{if .Conn.Upstream}}
+    <span class="conn-lbl">Fed by</span>
+    {{range .Conn.Upstream}}<a class="conn-chip" href="{{$.Prefix}}{{.URL}}"><span class="cc-bar" style="background:hsl(var(--svc-{{.Svc}}))"></span><span class="cc-nm">{{.Name}}</span><span class="cc-k">{{.Kind}}</span></a>{{end}}
+  {{else}}
+    <span class="conn-hint">nothing feeds this yet</span>
+  {{end}}
+  <span class="conn-self">{{icon "arrow-right"}}<b>{{.Self}}</b>{{icon "arrow-right"}}</span>
+  {{if .Conn.Downstream}}
+    <span class="conn-lbl">Drains to</span>
+    {{range .Conn.Downstream}}<a class="conn-chip" href="{{$.Prefix}}{{.URL}}"><span class="cc-bar" style="background:hsl(var(--svc-{{.Svc}}))"></span><span class="cc-nm">{{.Name}}</span><span class="cc-k">{{.Kind}}</span></a>{{end}}
+  {{else}}
+    <span class="conn-hint">{{if eq .Svc "sqs"}}nothing reads this queue — wire a Lambda trigger to close the loop{{else if eq .Svc "sns"}}no subscriptions yet — add one below{{else if eq .Svc "s3"}}no event notifications — add one under Properties{{else if eq .Svc "eb"}}no targets yet — add one below{{else}}drains nowhere yet{{end}}</span>
+  {{end}}
 </div>
 {{end}}
 {{end}}

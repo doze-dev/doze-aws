@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/doze-dev/doze-aws/internal/awsquery"
 	"github.com/doze-dev/doze-aws/internal/eventpattern"
 )
 
@@ -32,7 +33,17 @@ func asErr(err error) *apiError {
 	if ae, ok := err.(*apiError); ok {
 		return ae
 	}
-	return &apiError{Code: "InternalError", Status: 500, Msg: err.Error()}
+	return &apiError{Code: "InternalError", Status: 500, Message: err.Error()}
+}
+
+// subscribeAttributes reads Attributes.entry.N.key/value (CreateTopic, Subscribe).
+func subscribeAttributes(form url.Values) map[string]string {
+	return awsquery.PairMap(form, "Attributes.entry", "key", "value")
+}
+
+// messageAttributes reads Publish's MessageAttributes.entry.N.* params.
+func messageAttributes(form url.Values) map[string]Attr {
+	return awsquery.MessageAttrs(form, "MessageAttributes.entry")
 }
 
 // ---- result shapes (XML member-wrapped, per SNS Query protocol) ----

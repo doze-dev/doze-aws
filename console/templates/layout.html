@@ -9,7 +9,15 @@
 <link rel="stylesheet" href="{{.Prefix}}/static/app.css">
 <script>(function(){try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);
 var r=localStorage.getItem("rail");if(r==="slim")document.documentElement.setAttribute("data-rail","slim");}catch(e){}})();</script>
-<script>document.addEventListener("alpine:init",function(){window.Alpine.store("filter",{q:""});});</script>
+<script>document.addEventListener("alpine:init",function(){window.Alpine.store("filter",{q:""});});
+/* dozeDur humanizes a seconds field ("345600" → "= 4 days") for the live echo
+   under duration inputs. Inline, not in deferred shell.js — Alpine evaluates
+   x-text before deferred scripts run (same race as the filter store above). */
+window.dozeDur=function(v){var s=parseInt(v,10);if(isNaN(s)||s<60)return"";
+var u=[["day",86400],["hour",3600],["min",60],["s",1]],p=[];
+for(var i=0;i<u.length&&p.length<2;i++){var n=Math.floor(s/u[i][1]);
+if(n>0){p.push(n+" "+u[i][0]+(n>1&&u[i][0]!=="s"?"s":""));s-=n*u[i][1];}}
+return"= "+p.join(" ");};</script>
 <script src="{{.Prefix}}/static/htmx.min.js"></script>
 <script src="{{.Prefix}}/static/idiomorph-ext.min.js"></script>
 <script defer src="{{.Prefix}}/static/alpine.min.js"></script>

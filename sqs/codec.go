@@ -1,18 +1,30 @@
 package sqs
 
+// The SQS wire codec: one decoded request shape over the two protocols SQS
+// speaks — AWS JSON 1.0 (modern SDKs) and the legacy Query protocol (aws-sdk-go
+// v1-era clients). The protocol envelopes themselves come from the shared
+// layers: internal/awsjson for JSON, internal/awsquery for Query/XML.
+
 import (
 	"encoding/base64"
 	"encoding/json"
-	"encoding/xml"
-	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/awsjson"
+	"github.com/doze-dev/doze-aws/internal/awsquery"
 )
 
 const sqsXMLNS = "http://queue.amazonaws.com/doc/2012-11-05/"
+
+// qapi and japi render the two protocols' response envelopes.
+var (
+	qapi = awsquery.API{XMLNS: sqsXMLNS}
+	japi = awsjson.API{TargetPrefix: "AmazonSQS", JSONVersion: "1.0"}
+)
 
 // request is one decoded SQS API call, protocol-agnostic from the handlers'
 // view. params reads scalars and the nested shapes (message attributes, queue
@@ -66,9 +78,22 @@ func (p params) intDefault(name string, def int) int {
 // messageAttrs reads custom message attributes (SendMessage).
 func (p params) messageAttrs() map[string]Attr {
 	if p.form != nil {
-		return queryMessageAttrs(p.form, "")
+		return fromQueryAttrs(awsquery.MessageAttrs(p.form, "MessageAttribute"))
 	}
 	return jsonMessageAttrs(p.obj["MessageAttributes"])
+}
+
+// fromQueryAttrs converts the shared Query codec's attribute shape into SQS's
+// persisted Attr.
+func fromQueryAttrs(in map[string]awsquery.MessageAttr) map[string]Attr {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make(map[string]Attr, len(in))
+	for k, a := range in {
+		out[k] = Attr{DataType: a.DataType, StringValue: a.StringValue, BinaryValue: a.BinaryValue}
+	}
+	return out
 }
 
 func jsonMessageAttrs(raw json.RawMessage) map[string]Attr {
@@ -94,42 +119,10 @@ func jsonMessageAttrs(raw json.RawMessage) map[string]Attr {
 	return out
 }
 
-func queryMessageAttrs(form url.Values, base string) map[string]Attr {
-	out := map[string]Attr{}
-	for i := 1; ; i++ {
-		prefix := fmt.Sprintf("%sMessageAttribute.%d.", base, i)
-		name := form.Get(prefix + "Name")
-		if name == "" {
-			break
-		}
-		a := Attr{
-			DataType:    form.Get(prefix + "Value.DataType"),
-			StringValue: form.Get(prefix + "Value.StringValue"),
-		}
-		if bv := form.Get(prefix + "Value.BinaryValue"); bv != "" {
-			a.BinaryValue, _ = base64.StdEncoding.DecodeString(bv)
-		}
-		out[name] = a
-	}
-	if len(out) == 0 {
-		return nil
-	}
-	return out
-}
-
 // queueAttrs reads the CreateQueue/SetQueueAttributes attribute map.
 func (p params) queueAttrs() map[string]string {
 	if p.form != nil {
-		out := map[string]string{}
-		for i := 1; ; i++ {
-			prefix := fmt.Sprintf("Attribute.%d.", i)
-			name := p.form.Get(prefix + "Name")
-			if name == "" {
-				break
-			}
-			out[name] = p.form.Get(prefix + "Value")
-		}
-		return out
+		return awsquery.PairMap(p.form, "Attribute", "Name", "Value")
 	}
 	if raw, ok := p.obj["Attributes"]; ok {
 		var m map[string]string
@@ -143,16 +136,8 @@ func (p params) queueAttrs() map[string]string {
 // stringList reads a repeated string parameter (e.g. AttributeNames).
 func (p params) stringList(name string) []string {
 	if p.form != nil {
-		var out []string
 		// AWS query lists are name.1, name.2, …
-		for i := 1; ; i++ {
-			v := p.form.Get(fmt.Sprintf("%s.%d", name, i))
-			if v == "" {
-				break
-			}
-			out = append(out, v)
-		}
-		return out
+		return awsquery.Members(p.form, name, true)
 	}
 	if raw, ok := p.obj[name]; ok {
 		var out []string
@@ -183,7 +168,7 @@ func (p params) sendBatchEntries() []sendEntry {
 	var out []sendEntry
 	if p.form != nil {
 		for i := 1; ; i++ {
-			base := fmt.Sprintf("SendMessageBatchRequestEntry.%d.", i)
+			base := "SendMessageBatchRequestEntry." + strconv.Itoa(i) + "."
 			id := p.form.Get(base + "Id")
 			if id == "" {
 				break
@@ -193,7 +178,7 @@ func (p params) sendBatchEntries() []sendEntry {
 				Body:    p.form.Get(base + "MessageBody"),
 				GroupID: p.form.Get(base + "MessageGroupId"),
 				DedupID: p.form.Get(base + "MessageDeduplicationId"),
-				Attrs:   queryMessageAttrs(p.form, base),
+				Attrs:   fromQueryAttrs(awsquery.MessageAttrs(p.form, base+"MessageAttribute")),
 			}
 			if d := p.form.Get(base + "DelaySeconds"); d != "" {
 				if n, err := strconv.Atoi(d); err == nil {
@@ -228,7 +213,7 @@ func (p params) deleteBatchEntries() []delEntry {
 	var out []delEntry
 	if p.form != nil {
 		for i := 1; ; i++ {
-			base := fmt.Sprintf("DeleteMessageBatchRequestEntry.%d.", i)
+			base := "DeleteMessageBatchRequestEntry." + strconv.Itoa(i) + "."
 			id := p.form.Get(base + "Id")
 			if id == "" {
 				break
@@ -285,38 +270,14 @@ func queueNameFromURL(qurl string) string {
 
 // ---- response encoding ----
 
-type respMeta struct {
-	RequestID string `xml:"RequestId" json:"-"`
-}
-
 // writeResult encodes an action result in the request's protocol. result may be
 // nil for actions with an empty body.
 func writeResult(w http.ResponseWriter, req *request, action string, result any) {
 	if req.json {
-		w.Header().Set("Content-Type", "application/x-amz-json-1.0")
-		w.WriteHeader(http.StatusOK)
-		if result == nil {
-			_, _ = w.Write([]byte("{}"))
-			return
-		}
-		_ = json.NewEncoder(w).Encode(result)
+		japi.Write(w, result)
 		return
 	}
-	w.Header().Set("Content-Type", "text/xml")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(xml.Header))
-	enc := xml.NewEncoder(w)
-	resp := xml.StartElement{
-		Name: xml.Name{Local: action + "Response"},
-		Attr: []xml.Attr{{Name: xml.Name{Local: "xmlns"}, Value: sqsXMLNS}},
-	}
-	_ = enc.EncodeToken(resp)
-	if result != nil {
-		_ = enc.EncodeElement(result, xml.StartElement{Name: xml.Name{Local: action + "Result"}})
-	}
-	_ = enc.EncodeElement(respMeta{RequestID: newID()}, xml.StartElement{Name: xml.Name{Local: "ResponseMetadata"}})
-	_ = enc.EncodeToken(resp.End())
-	_ = enc.Flush()
+	qapi.WriteResult(w, action, result)
 }
 
 // jsonErrorType maps an internal error code to the modern awsjson error shape
@@ -346,81 +307,50 @@ func errorSenderClass(status int) string {
 
 // writeError encodes an apiError in the request's protocol.
 func writeError(w http.ResponseWriter, isJSON bool, err *apiError) {
-	reqID := newID()
+	e := *err
+	e.SenderFault = err.Status < 500
 	if isJSON {
-		shape := jsonErrorType(err.Code)
-		w.Header().Set("Content-Type", "application/x-amz-json-1.0")
-		w.Header().Set("x-amzn-RequestId", reqID)
+		// Query-compatible services carry the legacy code in this header while
+		// __type holds the modern shape name.
 		w.Header().Set("x-amzn-query-error", err.Code+";"+errorSenderClass(err.Status))
-		w.WriteHeader(err.Status)
-		_ = json.NewEncoder(w).Encode(map[string]string{
-			"__type":  shape,
-			"message": err.Msg,
-		})
+		e.Code = jsonErrorType(err.Code)
+		japi.WriteError(w, &e)
 		return
 	}
-	w.Header().Set("Content-Type", "text/xml")
-	w.Header().Set("x-amzn-RequestId", reqID)
-	w.WriteHeader(err.Status)
-	_, _ = w.Write([]byte(xml.Header))
-	type xmlErr struct {
-		XMLName   xml.Name `xml:"ErrorResponse"`
-		XMLNS     string   `xml:"xmlns,attr"`
-		Type      string   `xml:"Error>Type"`
-		Code      string   `xml:"Error>Code"`
-		Message   string   `xml:"Error>Message"`
-		RequestID string   `xml:"RequestId"`
-	}
-	_ = xml.NewEncoder(w).Encode(xmlErr{
-		XMLNS: sqsXMLNS, Type: errorSenderClass(err.Status), Code: err.Code, Message: err.Msg, RequestID: reqID,
-	})
+	qapi.WriteError(w, &e)
 }
 
 // parseRequest decodes either protocol into a request. JSON is signalled by the
 // X-Amz-Target header (AmazonSQS.<Action>); otherwise it is the Query protocol.
 func parseRequest(r *http.Request) (*request, *apiError) {
 	host := r.Host
-	if target := r.Header.Get("X-Amz-Target"); target != "" {
-		action := target
-		if i := strings.LastIndex(target, "."); i >= 0 {
-			action = target[i+1:]
+	if r.Header.Get("X-Amz-Target") != "" {
+		action, aerr := japi.Action(r)
+		if aerr != nil {
+			return nil, aerr
 		}
-		body, _ := io.ReadAll(r.Body)
 		var obj map[string]json.RawMessage
-		if len(body) > 0 {
-			if err := json.Unmarshal(body, &obj); err != nil {
-				return nil, &apiError{Code: "InvalidRequest", Status: 400, Msg: "invalid JSON body: " + err.Error()}
-			}
+		if aerr := awsjson.DecodeBody(r, &obj); aerr != nil {
+			return nil, aerr
 		}
 		return &request{action: action, json: true, host: host, p: params{obj: obj}}, nil
 	}
-	if err := r.ParseForm(); err != nil {
-		return nil, &apiError{Code: "InvalidRequest", Status: 400, Msg: err.Error()}
+	vals, err := awsquery.Params(r)
+	if err != nil {
+		return nil, awshttp.AsAPIError(err)
 	}
-	action := r.Form.Get("Action")
+	action := vals.Get("Action")
 	if action == "" {
-		return nil, &apiError{Code: "MissingAction", Status: 400, Msg: "no Action specified"}
+		return nil, &apiError{Code: "MissingAction", Status: 400, Message: "no Action specified", SenderFault: true}
 	}
-	return &request{action: action, json: false, host: host, p: params{form: r.Form}}, nil
+	return &request{action: action, json: false, host: host, p: params{form: vals}}, nil
 }
 
 // tags reads the queue-tag map: CreateQueue/TagQueue "tags"/"Tags" in the JSON
 // protocol, Tag.N.Key/Tag.N.Value in Query.
 func (p params) tags() map[string]string {
 	if p.form != nil {
-		out := map[string]string{}
-		for i := 1; ; i++ {
-			prefix := fmt.Sprintf("Tag.%d.", i)
-			k := p.form.Get(prefix + "Key")
-			if k == "" {
-				break
-			}
-			out[k] = p.form.Get(prefix + "Value")
-		}
-		if len(out) == 0 {
-			return nil
-		}
-		return out
+		return awsquery.PairMap(p.form, "Tag", "Key", "Value")
 	}
 	// CreateQueue uses "tags" (lowercase), TagQueue uses "Tags".
 	for _, key := range []string{"tags", "Tags"} {

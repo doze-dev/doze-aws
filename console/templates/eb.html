@@ -75,7 +75,7 @@
   {{if .Rules}}<table class="tbl"><thead><tr><th>Rule</th><th>Match</th><th class="right">{{if .Verdicts}}Verdict{{else}}State{{end}}</th></tr></thead><tbody>{{range .Rules}}
     <tr {{if $.Verdicts}}{{if eq (index $.Verdicts .Name) "match"}}class="rule-hit"{{end}}{{end}}>
       <td><a class="cell-name" href="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{.Name}}">{{icon "route"}} {{.Name}}</a></td>
-      <td class="mono dim trunc" style="font-size:11px;max-width:220px">{{if .Schedule}}{{.Schedule}}{{else}}pattern{{end}}</td>
+      <td class="mono dim trunc" style="font-size:11px;max-width:220px" {{if not .Schedule}}title="{{.Pattern}}"{{end}}>{{if .Schedule}}{{.Schedule}}{{else}}{{patternPreview .Pattern}}{{end}}</td>
       <td class="right">
         {{if $.Verdicts}}{{$v := index $.Verdicts .Name}}<span class="badge {{if eq $v "match"}}state-on{{else if eq $v "no match"}}state-off{{else}}zero{{end}}">{{$v}}</span>
         {{else}}<span class="badge {{if eq .State "ENABLED"}}state-on{{else}}state-off{{end}}">{{.State}}</span>{{end}}
@@ -96,7 +96,7 @@
       </div>
       <nav class="det-sub"><a href="{{.Prefix}}/eb/{{.Bus}}" style="color:hsl(var(--accent-blue))">{{.Bus}}</a> bus</nav>
       <div class="chips" style="margin-top:6px">{{template "copychip" dict "Label" "arn" "Value" .Rule.ARN}}</div>
-      <div style="margin-top:10px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn}}</div>
+      <div style="margin-top:10px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "eb" "Self" .Rule.Name}}</div>
     </div>
     <div class="det-b"><div class="split">
       <div><div class="sec-title" style="margin-top:0">{{if .Rule.Schedule}}Schedule{{else}}Event pattern{{end}}</div>

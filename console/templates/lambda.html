@@ -58,7 +58,7 @@
       {{template "lambda_triggers" .}}
       {{else}}
       <div class="split">
-        <div class="panel"><div class="panel-h"><h2>{{icon "play"}} Test event</h2></div><div style="padding:14px 16px">
+        <div class="panel lam-test"><div class="panel-h"><h2>{{icon "play"}} Test event</h2></div><div style="padding:14px 16px">
           <form x-data="{async:false}" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/invoke" hx-target="#invoke-result" hx-select="unset" hx-swap="innerHTML" hx-indicator="#invoke-spin">
             <textarea name="payload" data-editor="json" rows="10" placeholder='{"key":"value"}'>{"hello": "world"}</textarea>
             <input type="hidden" name="async" :value="async">

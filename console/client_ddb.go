@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // ---- DynamoDB (JSON 1.0) ----
@@ -39,9 +41,10 @@ type GSI struct {
 type Item struct {
 	PK      string
 	SK      string
-	Preview string // truncated single-line JSON of the non-key attributes
-	JSON    string // full pretty plain-JSON
-	KeyJSON string // the primary-key AV map as JSON (for DeleteItem)
+	Preview string            // truncated single-line JSON of the non-key attributes
+	Attrs   map[string]string // per-attribute display values (feeds real columns)
+	JSON    string            // full pretty plain-JSON
+	KeyJSON string            // the primary-key AV map as JSON (for DeleteItem)
 }
 
 func (b *backend) ListTables(ctx context.Context) ([]Table, error) {
@@ -63,6 +66,20 @@ func (b *backend) ListTables(ctx context.Context) ([]Table, error) {
 		tables = append(tables, *t)
 	}
 	return tables, nil
+}
+
+// CountTables is the cheap cardinality probe: one ListTables call, no
+// per-table describes.
+func (b *backend) CountTables(ctx context.Context) (int, error) {
+	body, err := b.ddbCall(ctx, "ListTables", map[string]any{})
+	if err != nil {
+		return 0, err
+	}
+	var out struct {
+		TableNames []string `json:"TableNames"`
+	}
+	json.Unmarshal(body, &out)
+	return len(out.TableNames), nil
 }
 
 func (b *backend) DescribeTable(ctx context.Context, name string) (*Table, error) {
@@ -293,9 +310,21 @@ func (b *backend) itemsFromAV(t *Table, avs []map[string]json.RawMessage) []Item
 			}
 		}
 		rest := map[string]any{}
+		it.Attrs = map[string]string{}
 		for k, v := range plain {
 			if k != t.HashKey && k != t.RangeKey {
 				rest[k] = v
+				s := plainScalar(v)
+				if len(s) > 48 {
+					s = s[:48] + "…"
+				}
+				// the TTL attribute is a known epoch — show the date it means
+				if k == t.TTLAttr {
+					if sec, err := strconv.ParseInt(s, 10, 64); err == nil && sec > 0 {
+						s += " · " + time.Unix(sec, 0).Local().Format("2006-01-02")
+					}
+				}
+				it.Attrs[k] = s
 			}
 		}
 		if pv, err := json.Marshal(rest); err == nil {
@@ -368,10 +397,16 @@ func decodeCursor(s string) map[string]json.RawMessage {
 	return m
 }
 
-func (b *backend) ScanItems(ctx context.Context, t *Table, filter string, limit int, cursor string) ([]Item, string, error) {
+func (b *backend) ScanItems(ctx context.Context, t *Table, filter string, fvals map[string]any, fnames map[string]string, limit int, cursor string) ([]Item, string, error) {
 	in := map[string]any{"TableName": t.Name, "Limit": limit}
 	if strings.TrimSpace(filter) != "" {
 		in["FilterExpression"] = filter
+		if len(fvals) > 0 {
+			in["ExpressionAttributeValues"] = fvals
+		}
+		if len(fnames) > 0 {
+			in["ExpressionAttributeNames"] = fnames
+		}
 	}
 	if esk := decodeCursor(cursor); esk != nil {
 		in["ExclusiveStartKey"] = esk
@@ -397,9 +432,11 @@ type QueryOpts struct {
 	SKOp     string // "", "=", "<", "<=", ">", ">=", "begins_with", "between"
 	SKValue  string
 	SKValue2 string // for "between"
-	Filter   string // optional FilterExpression on non-key attributes
-	Limit    int
-	Cursor   string // opaque pagination cursor (ExclusiveStartKey)
+	Filter      string            // optional FilterExpression on non-key attributes
+	FilterVals  map[string]any    // :binding → typed AttributeValue for the filter
+	FilterNames map[string]string // #alias → attribute name for the filter
+	Limit       int
+	Cursor      string // opaque pagination cursor (ExclusiveStartKey)
 }
 
 // QueryItems runs a Query, building the KeyConditionExpression from the chosen
@@ -444,6 +481,12 @@ func (b *backend) QueryItems(ctx context.Context, t *Table, o QueryOpts) ([]Item
 	}
 	if strings.TrimSpace(o.Filter) != "" {
 		in["FilterExpression"] = o.Filter
+		for k, v := range o.FilterVals {
+			vals[k] = v // shares the map with :pk/:sk; user bindings named pk lose
+		}
+		for k, v := range o.FilterNames {
+			names[k] = v
+		}
 	}
 	if esk := decodeCursor(o.Cursor); esk != nil {
 		in["ExclusiveStartKey"] = esk

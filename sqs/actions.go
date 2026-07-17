@@ -58,7 +58,7 @@ func asAPIError(err error) *apiError {
 	if ae, ok := err.(*apiError); ok {
 		return ae
 	}
-	return &apiError{Code: "InternalError", Status: 500, Msg: err.Error()}
+	return &apiError{Code: "InternalError", Status: 500, Message: err.Error()}
 }
 
 func hCreateQueue(s *Store, req *request) (any, *apiError) {
@@ -145,7 +145,7 @@ func hSendMessageBatch(s *Store, req *request) (any, *apiError) {
 		m, err := s.Send(queue, e.Body, e.Attrs, delay, e.GroupID, e.DedupID)
 		if err != nil {
 			ae := asAPIError(err)
-			res.Failed = append(res.Failed, batchErr{ID: e.ID, Code: ae.Code, Message: ae.Msg, SenderFault: true})
+			res.Failed = append(res.Failed, batchErr{ID: e.ID, Code: ae.Code, Message: ae.Message, SenderFault: true})
 			continue
 		}
 		res.Successful = append(res.Successful, sendBatchOK{ID: e.ID, MessageID: m.ID, MD5OfBody: m.MD5Body, MD5OfAttrs: m.MD5Attrs})
@@ -228,7 +228,7 @@ func hDeleteMessageBatch(s *Store, req *request) (any, *apiError) {
 	for _, e := range req.p.deleteBatchEntries() {
 		if err := s.Delete(queue, e.ReceiptHandle); err != nil {
 			ae := asAPIError(err)
-			res.Failed = append(res.Failed, batchErr{ID: e.ID, Code: ae.Code, Message: ae.Msg, SenderFault: true})
+			res.Failed = append(res.Failed, batchErr{ID: e.ID, Code: ae.Code, Message: ae.Message, SenderFault: true})
 			continue
 		}
 		res.Successful = append(res.Successful, deleteBatchOK{ID: e.ID})

@@ -13,9 +13,10 @@ import (
 // ---- SNS (Query/XML) ----
 
 type Topic struct {
-	Name string
-	ARN  string
-	Subs int
+	Name    string
+	ARN     string
+	Subs    int
+	SubList []Subscription // the subscriptions behind Subs — BuildGraph reuses them
 }
 
 type Subscription struct {
@@ -44,11 +45,28 @@ func (b *backend) ListTopics(ctx context.Context) ([]Topic, error) {
 		t := Topic{ARN: m.TopicArn, Name: arnLeaf(m.TopicArn)}
 		if subs, err := b.ListSubscriptions(ctx, m.TopicArn); err == nil {
 			t.Subs = len(subs)
+			t.SubList = subs
 		}
 		topics = append(topics, t)
 	}
 	sort.Slice(topics, func(i, j int) bool { return topics[i].Name < topics[j].Name })
 	return topics, nil
+}
+
+// CountTopics is the cheap cardinality probe: one ListTopics call, no
+// per-topic subscription fetches.
+func (b *backend) CountTopics(ctx context.Context) (int, error) {
+	body, err := b.queryXML(ctx, url.Values{"Action": {"ListTopics"}})
+	if err != nil {
+		return 0, err
+	}
+	var out struct {
+		Members []struct{} `xml:"ListTopicsResult>Topics>member"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return 0, err
+	}
+	return len(out.Members), nil
 }
 
 func (b *backend) CreateTopic(ctx context.Context, name string) error {

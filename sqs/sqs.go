@@ -99,7 +99,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	h, ok := handlers[req.action]
 	if !ok {
-		writeError(w, req.json, &apiError{Code: "InvalidAction", Status: 400, Msg: "unsupported action: " + req.action})
+		writeError(w, req.json, &apiError{Code: "InvalidAction", Status: 400, Message: "unsupported action: " + req.action, SenderFault: true})
 		return
 	}
 	result, err := h(s.store, req)

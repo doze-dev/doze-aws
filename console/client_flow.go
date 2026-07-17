@@ -106,16 +106,14 @@ func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 	}
 	buses, _ := b.ListBuses(ctx)
 	for _, bus := range buses {
-		rules, _ := b.ListRules(ctx, bus.Name)
-		for _, rl := range rules {
+		for _, rl := range bus.RuleList { // fetched once inside ListBuses
 			add("eb", rl.Name, "rule")
 		}
 	}
 
-	// edges: SNS subscriptions
+	// edges: SNS subscriptions (carried on the topics from ListTopics)
 	for _, t := range topics {
-		subs, _ := b.ListSubscriptions(ctx, t.ARN)
-		for _, s := range subs {
+		for _, s := range t.SubList {
 			to := edgeTargetNode(s.Protocol, s.Endpoint, nameFromARN)
 			if to == "" {
 				continue
@@ -125,15 +123,11 @@ func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 			edges = append(edges, FlowEdge{From: from, To: to, Kind: "sub"})
 		}
 	}
-	// edges: EventBridge targets
+	// edges: EventBridge targets (rules carried on the buses; only the target
+	// list needs a follow-up call)
 	for _, bus := range buses {
-		rules, _ := b.ListRules(ctx, bus.Name)
-		for _, rl := range rules {
-			full, err := b.GetRule(ctx, bus.Name, rl.Name)
-			if err != nil {
-				continue
-			}
-			for _, tg := range full.Targets {
+		for _, rl := range bus.RuleList {
+			for _, tg := range b.ruleTargets(ctx, bus.Name, rl.Name) {
 				to := edgeTargetNode(protoOfARN(tg.ARN), tg.ARN, nameFromARN)
 				if to == "" {
 					continue
@@ -172,16 +166,11 @@ func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 			edges = append(edges, FlowEdge{From: lamID, To: to, Kind: "dest"})
 		}
 	}
-	// edges: SQS redrive → DLQ
+	// edges: SQS redrive → DLQ (carried on the queues from ListQueues)
 	for _, q := range queues {
-		attrs, err := b.queueAttrs(ctx, q.Name)
-		if err != nil {
-			continue
-		}
-		cfg := sqsConfigOf(attrs)
-		if cfg.DLQ != "" {
-			ensureNode(nodes, nodeID("sqs", cfg.DLQ), b)
-			edges = append(edges, FlowEdge{From: nodeID("sqs", q.Name), To: nodeID("sqs", cfg.DLQ), Kind: "redrive"})
+		if q.DLQ != "" {
+			ensureNode(nodes, nodeID("sqs", q.DLQ), b)
+			edges = append(edges, FlowEdge{From: nodeID("sqs", q.Name), To: nodeID("sqs", q.DLQ), Kind: "redrive"})
 		}
 	}
 	// edges: S3 bucket notifications → SNS/SQS/Lambda
@@ -308,30 +297,81 @@ func layoutFlows(nodes map[string]*FlowNode, edges []FlowEdge) FlowGraph {
 			continue
 		}
 		// each flow gets its own SVG with LOCAL coordinates (origin at 0,0).
-		rowByCol := map[int]int{}
+		// Nodes go into columns by chain depth; rows within a column are
+		// ordered by the barycenter of their neighbors' rows so edges run
+		// roughly parallel instead of crossing.
+		byCol := map[int][]string{}
 		maxRows, maxCol := 0, 0
-		sort.Slice(c.ids, func(i, j int) bool {
-			di, dj := depth(c.ids[i], map[string]bool{}), depth(c.ids[j], map[string]bool{})
-			if di != dj {
-				return di < dj
-			}
-			return nodes[c.ids[i]].Name < nodes[c.ids[j]].Name
-		})
-		diagNodes := make([]FlowNode, 0, len(c.ids))
 		for _, id := range c.ids {
 			col := depth(id, map[string]bool{})
-			row := rowByCol[col]
-			rowByCol[col]++
-			if rowByCol[col] > maxRows {
-				maxRows = rowByCol[col]
-			}
+			byCol[col] = append(byCol[col], id)
 			if col > maxCol {
 				maxCol = col
 			}
-			n := *nodes[id]
-			n.X = flPadX + col*flColW
-			n.Y = 12 + row*flRowH
-			diagNodes = append(diagNodes, n)
+		}
+		rowOf := map[string]int{}
+		for col := 0; col <= maxCol; col++ {
+			sort.Slice(byCol[col], func(i, j int) bool { return nodes[byCol[col][i]].Name < nodes[byCol[col][j]].Name })
+			for row, id := range byCol[col] {
+				rowOf[id] = row
+			}
+		}
+		bary := func(id string, incoming bool) (float64, bool) {
+			sum, n := 0.0, 0
+			for _, e := range edges {
+				if incoming && e.To == id && nodes[e.From] != nil {
+					sum += float64(rowOf[e.From])
+					n++
+				}
+				if !incoming && e.From == id && nodes[e.To] != nil {
+					sum += float64(rowOf[e.To])
+					n++
+				}
+			}
+			if n == 0 {
+				return 0, false
+			}
+			return sum / float64(n), true
+		}
+		reorder := func(col int, incoming bool) {
+			ids := byCol[col]
+			sort.SliceStable(ids, func(i, j int) bool {
+				bi, oki := bary(ids[i], incoming)
+				bj, okj := bary(ids[j], incoming)
+				if oki && okj && bi != bj {
+					return bi < bj
+				}
+				if oki != okj {
+					return okj // unconnected-within-direction nodes sink to the bottom
+				}
+				return rowOf[ids[i]] < rowOf[ids[j]]
+			})
+			for row, id := range ids {
+				rowOf[id] = row
+			}
+		}
+		// sweep right pulling nodes toward their feeders, then left toward
+		// their readers, then right once more to settle
+		for col := 1; col <= maxCol; col++ {
+			reorder(col, true)
+		}
+		for col := maxCol - 1; col >= 0; col-- {
+			reorder(col, false)
+		}
+		for col := 1; col <= maxCol; col++ {
+			reorder(col, true)
+		}
+		diagNodes := make([]FlowNode, 0, len(c.ids))
+		for col := 0; col <= maxCol; col++ {
+			if len(byCol[col]) > maxRows {
+				maxRows = len(byCol[col])
+			}
+			for _, id := range byCol[col] {
+				n := *nodes[id]
+				n.X = flPadX + col*flColW
+				n.Y = 12 + rowOf[id]*flRowH
+				diagNodes = append(diagNodes, n)
+			}
 		}
 		// edges internal to this flow
 		inFlow := map[string]bool{}
@@ -368,41 +408,84 @@ func layoutFlows(nodes map[string]*FlowNode, edges []FlowEdge) FlowGraph {
 	}
 }
 
-// flowLabel names a flow by an upstream source (a node with no incoming edge
-// within the flow), preferring topics/buckets/rules over queues.
+// flowLabel names a flow by its endpoints — the longest source→sink chain
+// through the component ("uploads → resize → audit"), which says what the flow
+// does instead of naming it after one arbitrary member.
 func flowLabel(nodes map[string]*FlowNode, ids []string, edges []FlowEdge) string {
 	inFlow := map[string]bool{}
 	for _, id := range ids {
 		inFlow[id] = true
 	}
 	hasIncoming := map[string]bool{}
+	succ := map[string][]string{}
 	for _, e := range edges {
 		if inFlow[e.From] && inFlow[e.To] {
 			hasIncoming[e.To] = true
+			succ[e.From] = append(succ[e.From], e.To)
 		}
 	}
+	// longest path from a source (memoized; cycles cut by the seen set)
+	memo := map[string][]string{}
+	var chain func(string, map[string]bool) []string
+	chain = func(id string, seen map[string]bool) []string {
+		if c, ok := memo[id]; ok {
+			return c
+		}
+		if seen[id] {
+			return []string{id}
+		}
+		seen[id] = true
+		var longest []string
+		for _, nxt := range succ[id] {
+			if c := chain(nxt, seen); len(c) > len(longest) {
+				longest = c
+			}
+		}
+		delete(seen, id)
+		out := append([]string{id}, longest...)
+		memo[id] = out
+		return out
+	}
+	// the label is the LONGEST source→sink chain; ties break toward the
+	// upstream-most service kind, then name
 	rank := map[string]int{"s3": 0, "sns": 1, "eb": 2, "lambda": 3, "sqs": 4}
-	best := ""
+	var path []string
+	bestSrc := ""
 	for _, id := range ids {
 		if hasIncoming[id] {
 			continue // not a source
 		}
-		if best == "" || rank[nodes[id].Svc] < rank[nodes[best].Svc] ||
-			(rank[nodes[id].Svc] == rank[nodes[best].Svc] && nodes[id].Name < nodes[best].Name) {
-			best = id
+		c := chain(id, map[string]bool{})
+		better := len(c) > len(path) ||
+			(len(c) == len(path) && (bestSrc == "" || rank[nodes[id].Svc] < rank[nodes[bestSrc].Svc] ||
+				(rank[nodes[id].Svc] == rank[nodes[bestSrc].Svc] && nodes[id].Name < nodes[bestSrc].Name)))
+		if better {
+			path, bestSrc = c, id
 		}
 	}
-	if best == "" { // all nodes have incoming (cycle) — fall back to first
+	if len(path) == 0 { // all nodes have incoming (cycle) — fall back to first
 		for _, id := range ids {
-			if best == "" || nodes[id].Name < nodes[best].Name {
-				best = id
+			if bestSrc == "" || nodes[id].Name < nodes[bestSrc].Name {
+				bestSrc = id
 			}
 		}
+		path = chain(bestSrc, map[string]bool{})
 	}
-	if n := nodes[best]; n != nil {
-		return n.Name + " flow"
+	names := make([]string, 0, len(path))
+	for _, id := range path {
+		if n := nodes[id]; n != nil {
+			names = append(names, n.Name)
+		}
 	}
-	return "flow"
+	switch {
+	case len(names) == 0:
+		return "flow"
+	case len(names) == 1:
+		return names[0]
+	case len(names) > 3: // keep the header scannable: ends + an ellipsis
+		return names[0] + " → … → " + names[len(names)-1]
+	}
+	return strings.Join(names, " → ")
 }
 
 // Neighbor is one adjacent resource in a Connections view.

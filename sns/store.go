@@ -10,6 +10,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
 var (
@@ -52,19 +53,15 @@ type Store struct {
 
 func newStore(db *bolt.DB) *Store { return &Store{db: db} }
 
-type apiError struct {
-	Code   string
-	Status int
-	Msg    string
-}
-
-func (e *apiError) Error() string { return e.Code + ": " + e.Msg }
+// apiError is the shared AWS API error type; internal/awsquery renders it
+// onto the wire in the Query error envelope.
+type apiError = awshttp.APIError
 
 func errNotFound(msg string) *apiError {
-	return &apiError{Code: "NotFound", Status: 404, Msg: msg}
+	return &apiError{Code: "NotFound", Status: 404, Message: msg, SenderFault: true}
 }
 func errInvalid(msg string) *apiError {
-	return &apiError{Code: "InvalidParameter", Status: 400, Msg: msg}
+	return &apiError{Code: "InvalidParameter", Status: 400, Message: msg, SenderFault: true}
 }
 
 func topicARN(name string) string { return awsident.ARN("sns", name) }

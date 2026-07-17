@@ -9,6 +9,7 @@
 package awsjson
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -62,6 +63,89 @@ func DecodeBody(r *http.Request, dst any) *awshttp.APIError {
 		return awshttp.Errf(400, "SerializationException", "malformed JSON body: %v", err)
 	}
 	return nil
+}
+
+// ---- request params ----
+//
+// Services whose handlers take the decoded body as a map[string]any (KMS, SSM,
+// Secrets Manager, EventBridge) read parameters through these accessors. All
+// are lenient the way the SDKs' serializers allow: absent keys and wrong types
+// read as the zero value.
+
+// Str returns the string at key, or "" when absent or not a string.
+func Str(p map[string]any, key string) string {
+	s, _ := p[key].(string)
+	return s
+}
+
+// Bool returns the bool at key, or false when absent or not a bool.
+func Bool(p map[string]any, key string) bool {
+	b, _ := p[key].(bool)
+	return b
+}
+
+// Int returns the number at key as an int, or def when absent or not a number.
+func Int(p map[string]any, key string, def int) int {
+	if f, ok := p[key].(float64); ok {
+		return int(f)
+	}
+	return def
+}
+
+// Int64 returns the number at key as an int64, or def when absent or not a
+// number.
+func Int64(p map[string]any, key string, def int64) int64 {
+	if f, ok := p[key].(float64); ok {
+		return int64(f)
+	}
+	return def
+}
+
+// Blob decodes the base64 blob at key (JSON-protocol blobs travel base64).
+// Absent or empty keys return (nil, nil); malformed base64 is a
+// ValidationException.
+func Blob(p map[string]any, key string) ([]byte, *awshttp.APIError) {
+	s, ok := p[key].(string)
+	if !ok || s == "" {
+		return nil, nil
+	}
+	b, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		return nil, awshttp.Errf(400, "ValidationException", "%s is not valid base64", key)
+	}
+	return b, nil
+}
+
+// StrMap returns the string-valued object at key; non-string values are
+// dropped. Absent keys return nil.
+func StrMap(p map[string]any, key string) map[string]string {
+	m, ok := p[key].(map[string]any)
+	if !ok {
+		return nil
+	}
+	out := map[string]string{}
+	for k, v := range m {
+		if s, ok := v.(string); ok {
+			out[k] = s
+		}
+	}
+	return out
+}
+
+// Strs returns the string list at key; non-string elements are dropped.
+// Absent keys return nil.
+func Strs(p map[string]any, key string) []string {
+	list, ok := p[key].([]any)
+	if !ok {
+		return nil
+	}
+	var out []string
+	for _, v := range list {
+		if s, ok := v.(string); ok {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 // Write renders a success response. A nil result writes an empty JSON object

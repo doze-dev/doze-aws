@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/awsjson"
 )
 
 var handlers = map[string]handler{
@@ -50,35 +51,6 @@ func init() {
 
 // ---- param helpers ----
 
-func pstr(p map[string]any, key string) string {
-	s, _ := p[key].(string)
-	return s
-}
-
-func pbool(p map[string]any, key string) bool {
-	b, _ := p[key].(bool)
-	return b
-}
-
-func pint(p map[string]any, key string) int {
-	if f, ok := p[key].(float64); ok {
-		return int(f)
-	}
-	return 0
-}
-
-func pblob(p map[string]any, key string) ([]byte, *awshttp.APIError) {
-	s, ok := p[key].(string)
-	if !ok || s == "" {
-		return nil, nil
-	}
-	b, err := base64.StdEncoding.DecodeString(s)
-	if err != nil {
-		return nil, awshttp.Errf(400, "ValidationException", "%s is not valid base64", key)
-	}
-	return b, nil
-}
-
 func ptaglist(p map[string]any, key string) map[string]string {
 	list, ok := p[key].([]any)
 	if !ok {
@@ -99,10 +71,10 @@ func ptaglist(p map[string]any, key string) map[string]string {
 
 // values extracts SecretString/SecretBinary from a request.
 func values(p map[string]any) (str, bin []byte, aerr *awshttp.APIError) {
-	if s := pstr(p, "SecretString"); s != "" {
+	if s := awsjson.Str(p, "SecretString"); s != "" {
 		str = []byte(s)
 	}
-	bin, aerr = pblob(p, "SecretBinary")
+	bin, aerr = awsjson.Blob(p, "SecretBinary")
 	return str, bin, aerr
 }
 
@@ -114,8 +86,8 @@ func (s *Server) createSecret(p map[string]any) (any, *awshttp.APIError) {
 		return nil, aerr
 	}
 	sec, versionID, err := s.store.Create(
-		pstr(p, "Name"), pstr(p, "Description"), pstr(p, "KmsKeyId"),
-		pstr(p, "ClientRequestToken"), str, bin, ptaglist(p, "Tags"),
+		awsjson.Str(p, "Name"), awsjson.Str(p, "Description"), awsjson.Str(p, "KmsKeyId"),
+		awsjson.Str(p, "ClientRequestToken"), str, bin, ptaglist(p, "Tags"),
 	)
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
@@ -124,14 +96,14 @@ func (s *Server) createSecret(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) getSecretValue(p map[string]any) (any, *awshttp.APIError) {
-	sec, err := s.store.Get(pstr(p, "SecretId"))
+	sec, err := s.store.Get(awsjson.Str(p, "SecretId"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
 	if sec.DeletedAt > 0 {
 		return nil, errDeleted(sec.Name)
 	}
-	vid, v, aerr := sec.Resolve(pstr(p, "VersionId"), pstr(p, "VersionStage"))
+	vid, v, aerr := sec.Resolve(awsjson.Str(p, "VersionId"), awsjson.Str(p, "VersionStage"))
 	if aerr != nil {
 		return nil, aerr
 	}
@@ -207,7 +179,7 @@ func (s *Server) putSecretValue(p map[string]any) (any, *awshttp.APIError) {
 			}
 		}
 	}
-	sec, vid, err := s.store.AddVersion(pstr(p, "SecretId"), pstr(p, "ClientRequestToken"), str, bin, stages)
+	sec, vid, err := s.store.AddVersion(awsjson.Str(p, "SecretId"), awsjson.Str(p, "ClientRequestToken"), str, bin, stages)
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -222,15 +194,15 @@ func (s *Server) updateSecret(p map[string]any) (any, *awshttp.APIError) {
 	if aerr != nil {
 		return nil, aerr
 	}
-	id := pstr(p, "SecretId")
+	id := awsjson.Str(p, "SecretId")
 	sec, err := s.store.Mutate(id, func(sec *Secret) error {
 		if sec.DeletedAt > 0 {
 			return errDeleted(sec.Name)
 		}
-		if d := pstr(p, "Description"); d != "" {
+		if d := awsjson.Str(p, "Description"); d != "" {
 			sec.Description = d
 		}
-		if k := pstr(p, "KmsKeyId"); k != "" {
+		if k := awsjson.Str(p, "KmsKeyId"); k != "" {
 			sec.KMSKeyID = k
 		}
 		return nil
@@ -240,7 +212,7 @@ func (s *Server) updateSecret(p map[string]any) (any, *awshttp.APIError) {
 	}
 	out := map[string]any{"ARN": sec.ARN, "Name": sec.Name}
 	if str != nil || bin != nil {
-		_, vid, err := s.store.AddVersion(id, pstr(p, "ClientRequestToken"), str, bin, nil)
+		_, vid, err := s.store.AddVersion(id, awsjson.Str(p, "ClientRequestToken"), str, bin, nil)
 		if err != nil {
 			return nil, awshttp.AsAPIError(err)
 		}
@@ -250,13 +222,13 @@ func (s *Server) updateSecret(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) deleteSecret(p map[string]any) (any, *awshttp.APIError) {
-	force := pbool(p, "ForceDeleteWithoutRecovery")
-	days := pint(p, "RecoveryWindowInDays")
+	force := awsjson.Bool(p, "ForceDeleteWithoutRecovery")
+	days := awsjson.Int(p, "RecoveryWindowInDays", 0)
 	if force && days > 0 {
 		return nil, awshttp.Errf(400, "InvalidParameterException",
 			"specify either ForceDeleteWithoutRecovery or RecoveryWindowInDays, not both")
 	}
-	sec, err := s.store.Delete(pstr(p, "SecretId"), days, force)
+	sec, err := s.store.Delete(awsjson.Str(p, "SecretId"), days, force)
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -268,7 +240,7 @@ func (s *Server) deleteSecret(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) restoreSecret(p map[string]any) (any, *awshttp.APIError) {
-	sec, err := s.store.Restore(pstr(p, "SecretId"))
+	sec, err := s.store.Restore(awsjson.Str(p, "SecretId"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -325,7 +297,7 @@ func describe(sec *Secret) map[string]any {
 }
 
 func (s *Server) describeSecret(p map[string]any) (any, *awshttp.APIError) {
-	sec, err := s.store.Get(pstr(p, "SecretId"))
+	sec, err := s.store.Get(awsjson.Str(p, "SecretId"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -337,7 +309,7 @@ func (s *Server) listSecrets(p map[string]any) (any, *awshttp.APIError) {
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	includeDeleted := pbool(p, "IncludePlannedDeletion")
+	includeDeleted := awsjson.Bool(p, "IncludePlannedDeletion")
 	out := []map[string]any{}
 	for i := range all {
 		if all[i].DeletedAt > 0 && !includeDeleted {
@@ -349,7 +321,7 @@ func (s *Server) listSecrets(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) listSecretVersionIds(p map[string]any) (any, *awshttp.APIError) {
-	sec, err := s.store.Get(pstr(p, "SecretId"))
+	sec, err := s.store.Get(awsjson.Str(p, "SecretId"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -360,7 +332,7 @@ func (s *Server) listSecretVersionIds(p map[string]any) (any, *awshttp.APIError)
 	}
 	out := []entry{}
 	for vid, v := range sec.Versions {
-		if len(v.Stages) == 0 && !pbool(p, "IncludeDeprecated") {
+		if len(v.Stages) == 0 && !awsjson.Bool(p, "IncludeDeprecated") {
 			continue
 		}
 		out = append(out, entry{VersionId: vid, VersionStages: v.Stages, CreatedDate: float64(v.Created)})
@@ -370,12 +342,12 @@ func (s *Server) listSecretVersionIds(p map[string]any) (any, *awshttp.APIError)
 }
 
 func (s *Server) updateSecretVersionStage(p map[string]any) (any, *awshttp.APIError) {
-	stage := pstr(p, "VersionStage")
+	stage := awsjson.Str(p, "VersionStage")
 	if stage == "" {
 		return nil, awshttp.Errf(400, "ValidationException", "VersionStage is required")
 	}
-	moveTo := pstr(p, "MoveToVersionId")
-	removeFrom := pstr(p, "RemoveFromVersionId")
+	moveTo := awsjson.Str(p, "MoveToVersionId")
+	removeFrom := awsjson.Str(p, "RemoveFromVersionId")
 	if moveTo == "" && removeFrom == "" {
 		return nil, awshttp.Errf(400, "InvalidParameterException",
 			"either MoveToVersionId or RemoveFromVersionId must be provided")
@@ -385,7 +357,7 @@ func (s *Server) updateSecretVersionStage(p map[string]any) (any, *awshttp.APIEr
 		return nil, awshttp.Errf(400, "InvalidParameterException",
 			"you can't remove the AWSCURRENT staging label from a version unless you move it to another version first")
 	}
-	sec, err := s.store.Mutate(pstr(p, "SecretId"), func(sec *Secret) error {
+	sec, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *Secret) error {
 		if removeFrom != "" {
 			v, ok := sec.Versions[removeFrom]
 			if !ok || !contains(v.Stages, stage) {
@@ -444,7 +416,7 @@ func (s *Server) updateSecretVersionStage(p map[string]any) (any, *awshttp.APIEr
 
 func (s *Server) tagResource(p map[string]any) (any, *awshttp.APIError) {
 	tags := ptaglist(p, "Tags")
-	_, err := s.store.Mutate(pstr(p, "SecretId"), func(sec *Secret) error {
+	_, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *Secret) error {
 		if sec.Tags == nil {
 			sec.Tags = map[string]string{}
 		}
@@ -456,7 +428,7 @@ func (s *Server) tagResource(p map[string]any) (any, *awshttp.APIError) {
 
 func (s *Server) untagResource(p map[string]any) (any, *awshttp.APIError) {
 	keys, _ := p["TagKeys"].([]any)
-	_, err := s.store.Mutate(pstr(p, "SecretId"), func(sec *Secret) error {
+	_, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *Secret) error {
 		for _, k := range keys {
 			if name, ok := k.(string); ok {
 				delete(sec.Tags, name)
@@ -468,7 +440,7 @@ func (s *Server) untagResource(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) getRandomPassword(p map[string]any) (any, *awshttp.APIError) {
-	length := pint(p, "PasswordLength")
+	length := awsjson.Int(p, "PasswordLength", 0)
 	if length == 0 {
 		length = 32
 	}
@@ -476,10 +448,10 @@ func (s *Server) getRandomPassword(p map[string]any) (any, *awshttp.APIError) {
 		return nil, awshttp.Errf(400, "InvalidParameterException", "PasswordLength must be 1-4096")
 	}
 	alphabet := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	if !pbool(p, "ExcludePunctuation") && !pbool(p, "ExcludeCharacters") {
+	if !awsjson.Bool(p, "ExcludePunctuation") && !awsjson.Bool(p, "ExcludeCharacters") {
 		alphabet += "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 	}
-	if exclude := pstr(p, "ExcludeCharacters"); exclude != "" {
+	if exclude := awsjson.Str(p, "ExcludeCharacters"); exclude != "" {
 		var b strings.Builder
 		for _, r := range alphabet {
 			if !strings.ContainsRune(exclude, r) {
@@ -498,8 +470,8 @@ func (s *Server) getRandomPassword(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) putResourcePolicy(p map[string]any) (any, *awshttp.APIError) {
-	sec, err := s.store.Mutate(pstr(p, "SecretId"), func(sec *Secret) error {
-		sec.Policy = pstr(p, "ResourcePolicy")
+	sec, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *Secret) error {
+		sec.Policy = awsjson.Str(p, "ResourcePolicy")
 		return nil
 	})
 	if err != nil {
@@ -509,7 +481,7 @@ func (s *Server) putResourcePolicy(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) getResourcePolicy(p map[string]any) (any, *awshttp.APIError) {
-	sec, err := s.store.Get(pstr(p, "SecretId"))
+	sec, err := s.store.Get(awsjson.Str(p, "SecretId"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -521,7 +493,7 @@ func (s *Server) getResourcePolicy(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) deleteResourcePolicy(p map[string]any) (any, *awshttp.APIError) {
-	sec, err := s.store.Mutate(pstr(p, "SecretId"), func(sec *Secret) error {
+	sec, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *Secret) error {
 		sec.Policy = ""
 		return nil
 	})

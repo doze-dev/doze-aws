@@ -29,16 +29,19 @@ type backend struct {
 	base string
 
 	// graphMu guards a short-lived cache of the full wiring graph. BuildGraph
-	// fans out an N+1 crawl over every service; the flows poll and every
-	// resource detail page's Neighbors() call would otherwise rebuild it on each
-	// request. A brief TTL collapses a burst of polls into one crawl while
-	// staying live enough to feel real-time.
-	graphMu   sync.Mutex
-	graphAt   time.Time
-	graphSnap *FlowGraph
+	// fans out a crawl over every service; the flows poll and every resource
+	// detail page's Neighbors() call would otherwise rebuild it on each
+	// request. The TTL must outlive the fastest poller (flows polls at 4s) or
+	// the cache never serves a poll and every tick pays the full crawl.
+	// Console-driven mutations call bustGraph() so their next read is fresh;
+	// changes made by the user's own app show up within a TTL.
+	graphMu    sync.Mutex
+	graphAt    time.Time
+	graphSnap  *FlowGraph
+	graphBuild chan struct{} // non-nil while one goroutine crawls (singleflight)
 }
 
-const graphTTL = 750 * time.Millisecond
+const graphTTL = 5 * time.Second
 
 func newBackend(dir peers.Directory) *backend {
 	return &backend{
@@ -47,24 +50,45 @@ func newBackend(dir peers.Directory) *backend {
 	}
 }
 
-// graphCached returns a recent wiring graph, rebuilding only when the cached one
-// has aged past graphTTL.
+// graphCached returns a recent wiring graph, rebuilding only when the cached
+// one has aged past graphTTL. Concurrent callers during a rebuild wait for the
+// in-flight crawl instead of piling on their own (singleflight).
 func (b *backend) graphCached(ctx context.Context) FlowGraph {
-	b.graphMu.Lock()
-	if b.graphSnap != nil && time.Since(b.graphAt) < graphTTL {
-		g := *b.graphSnap
+	for {
+		b.graphMu.Lock()
+		if b.graphSnap != nil && time.Since(b.graphAt) < graphTTL {
+			g := *b.graphSnap
+			b.graphMu.Unlock()
+			return g
+		}
+		if ch := b.graphBuild; ch != nil {
+			b.graphMu.Unlock()
+			<-ch // a crawl is in flight — take its result on the next loop
+			continue
+		}
+		ch := make(chan struct{})
+		b.graphBuild = ch
 		b.graphMu.Unlock()
+
+		g := b.BuildGraph(ctx)
+
+		b.graphMu.Lock()
+		b.graphSnap = &g
+		b.graphAt = time.Now()
+		b.graphBuild = nil
+		b.graphMu.Unlock()
+		close(ch)
 		return g
 	}
-	b.graphMu.Unlock()
+}
 
-	g := b.BuildGraph(ctx)
-
+// bustGraph drops the cached wiring graph. Every console-driven mutation that
+// can change topology or the node captions (queue depths, sub counts) calls
+// this so the user's own action is visible on the very next poll.
+func (b *backend) bustGraph() {
 	b.graphMu.Lock()
-	b.graphSnap = &g
-	b.graphAt = time.Now()
+	b.graphSnap = nil
 	b.graphMu.Unlock()
-	return g
 }
 
 // fanoutTransport routes each console request to the AWS service that owns it and
@@ -135,7 +159,52 @@ func (b *backend) do(req *http.Request) ([]byte, error) {
 	if resp.StatusCode/100 != 2 {
 		return nil, &apiErr{status: resp.StatusCode, body: string(body)}
 	}
+	if graphMutation(req) {
+		b.bustGraph()
+	}
 	return body, nil
+}
+
+// graphReadActions are wire-action prefixes that never change what the flows
+// graph shows. Everything else on a graph-relevant service busts the cache.
+var graphReadActions = []string{
+	"List", "Get", "Describe", "Test", "Receive", "ChangeMessageVisibility", "DozePeek",
+}
+
+// graphMutation reports whether a successful console-client request could have
+// changed the wiring graph (topology, queue depths, sub counts). Services the
+// graph doesn't draw (DynamoDB, KMS, SSM, Secrets Manager) never count.
+// Query-protocol requests (form-encoded Action bodies) are handled by
+// queryXML, which sees the Action before it is encoded.
+func graphMutation(req *http.Request) bool {
+	if req.Method == http.MethodGet || req.Method == http.MethodHead {
+		return false
+	}
+	if t := req.Header.Get("X-Amz-Target"); t != "" {
+		prefix, action, _ := strings.Cut(t, ".")
+		switch prefix {
+		case "AmazonSQS", "AWSEvents":
+			return !readAction(action)
+		default: // ddb / kms / ssm / sm — not drawn in the graph
+			return false
+		}
+	}
+	if strings.Contains(req.Header.Get("Content-Type"), "x-www-form-urlencoded") {
+		return false // query protocol: queryXML busts with the Action in hand
+	}
+	// Bare REST writes: S3 (PUT/DELETE/POST objects, buckets, notifications)
+	// and Lambda (create/delete/config/mappings/invoke — invokes can land
+	// messages on destination queues).
+	return true
+}
+
+func readAction(action string) bool {
+	for _, p := range graphReadActions {
+		if strings.HasPrefix(action, p) {
+			return true
+		}
+	}
+	return false
 }
 
 func (b *backend) ListBuckets(ctx context.Context) ([]Bucket, error) {
@@ -211,6 +280,38 @@ func (b *backend) ListObjects(ctx context.Context, bucket, prefix string) ([]Obj
 		objs = append(objs, Object{Key: o.Key, Size: o.Size, LastModified: shortTime(o.LastModified)})
 	}
 	return objs, nil
+}
+
+// bucketTreeTotals counts every object under prefix (no delimiter — the whole
+// subtree), for the footer's corrective totals when folders hide the count.
+func (b *backend) bucketTreeTotals(ctx context.Context, bucket, prefix string) (int, int64) {
+	q := url.Values{"list-type": {"2"}}
+	if prefix != "" {
+		q.Set("prefix", prefix)
+	}
+	req, _ := http.NewRequestWithContext(ctx, "GET", b.base+"/"+bucket+"?"+q.Encode(), nil)
+	body, err := b.do(req)
+	if err != nil {
+		return 0, 0
+	}
+	var out struct {
+		Contents []struct {
+			Key  string `xml:"Key"`
+			Size int64  `xml:"Size"`
+		} `xml:"Contents"`
+	}
+	if xml.Unmarshal(body, &out) != nil {
+		return 0, 0
+	}
+	count, total := 0, int64(0)
+	for _, o := range out.Contents {
+		if strings.HasSuffix(o.Key, "/") && o.Size == 0 {
+			continue // folder markers
+		}
+		count++
+		total += o.Size
+	}
+	return count, total
 }
 
 // GetObject returns the object body and its content type, for preview/download.
@@ -290,8 +391,9 @@ func (b *backend) DeleteObject(ctx context.Context, bucket, key string) error {
 
 type Queue struct {
 	Name      string
-	Available int // ApproximateNumberOfMessages
-	InFlight  int // ApproximateNumberOfMessagesNotVisible
+	Available int    // ApproximateNumberOfMessages
+	InFlight  int    // ApproximateNumberOfMessagesNotVisible
+	DLQ       string // redrive target queue name, "" when none (from the same attrs fetch)
 }
 
 type SQSMessage struct {
@@ -304,6 +406,7 @@ type SQSMessage struct {
 	SeqNo         string // FIFO: SequenceNumber
 	Receives      string // ApproximateReceiveCount (real receives; peeks don't count)
 	Attrs         []MsgAttr
+	Sum           MsgSummary // display form, filled by the handler before render
 }
 
 // MsgAttr is one user message attribute (metadata alongside the body).
@@ -337,11 +440,26 @@ func (b *backend) ListQueues(ctx context.Context) ([]Queue, error) {
 		if attrs, err := b.queueAttrs(ctx, name); err == nil {
 			q.Available = atoi(attrs["ApproximateNumberOfMessages"])
 			q.InFlight = atoi(attrs["ApproximateNumberOfMessagesNotVisible"])
+			q.DLQ = sqsConfigOf(attrs).DLQ // BuildGraph reads redrive edges from here
 		}
 		queues = append(queues, q)
 	}
 	sort.Slice(queues, func(i, j int) bool { return queues[i].Name < queues[j].Name })
 	return queues, nil
+}
+
+// CountQueues is the cheap cardinality probe: one ListQueues call, no per-queue
+// attribute fetches. The rail's counts poll must not pay the N+1 price.
+func (b *backend) CountQueues(ctx context.Context) (int, error) {
+	body, err := b.sqs(ctx, "ListQueues", map[string]any{})
+	if err != nil {
+		return 0, err
+	}
+	var out struct {
+		QueueUrls []string `json:"QueueUrls"`
+	}
+	json.Unmarshal(body, &out)
+	return len(out.QueueUrls), nil
 }
 
 func (b *backend) queueAttrs(ctx context.Context, name string) (map[string]string, error) {
@@ -572,7 +690,11 @@ func (b *backend) ddbCall(ctx context.Context, action string, in any) ([]byte, e
 func (b *backend) queryXML(ctx context.Context, v url.Values) ([]byte, error) {
 	req, _ := http.NewRequestWithContext(ctx, "POST", b.base+"/", strings.NewReader(v.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	return b.do(req)
+	body, err := b.do(req)
+	if err == nil && !readAction(v.Get("Action")) {
+		b.bustGraph() // SNS topology/publishes change the graph
+	}
+	return body, err
 }
 
 // ---- helpers ----

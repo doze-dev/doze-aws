@@ -245,9 +245,9 @@ func TestIntegrationDynamoDBStreamToLambda(t *testing.T) {
 	// Table with a stream enabled.
 	ct, err := ddb.CreateTable(ctx, &awsddb.CreateTableInput{
 		TableName:            aws.String("events"),
-		BillingMode:         ddbtypes.BillingModePayPerRequest,
+		BillingMode:          ddbtypes.BillingModePayPerRequest,
 		AttributeDefinitions: []ddbtypes.AttributeDefinition{{AttributeName: aws.String("pk"), AttributeType: ddbtypes.ScalarAttributeTypeS}},
-		KeySchema:           []ddbtypes.KeySchemaElement{{AttributeName: aws.String("pk"), KeyType: ddbtypes.KeyTypeHash}},
+		KeySchema:            []ddbtypes.KeySchemaElement{{AttributeName: aws.String("pk"), KeyType: ddbtypes.KeyTypeHash}},
 		StreamSpecification: &ddbtypes.StreamSpecification{
 			StreamEnabled: aws.Bool(true), StreamViewType: ddbtypes.StreamViewTypeNewAndOldImages,
 		},

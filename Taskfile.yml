@@ -86,7 +86,14 @@ tasks:
     cmds:
       - go test -tags soak -run TestSoak -timeout 24h -v ./cmd/doze-aws/
 
+  test:e2e:
+    desc: 'Playwright browser tests against the console UI (builds+boots a real binary; not part of check)'
+    cmds:
+      - cd e2e && bun install --frozen-lockfile
+      - cd e2e && bunx playwright install --with-deps chromium
+      - cd e2e && bunx playwright test
+
   clean:
     desc: Remove build output and local service data
     cmds:
-      - rm -rf bin data
+      - rm -rf bin data e2e/.tmp

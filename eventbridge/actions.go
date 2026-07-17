@@ -7,6 +7,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/awsjson"
 	"github.com/doze-dev/doze-aws/internal/eventpattern"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 )
@@ -44,13 +45,8 @@ var handlers = map[string]handler{
 
 // ---- param helpers ----
 
-func pstr(p map[string]any, key string) string {
-	s, _ := p[key].(string)
-	return s
-}
-
 func busOrDefault(p map[string]any) string {
-	if b := pstr(p, "EventBusName"); b != "" {
+	if b := awsjson.Str(p, "EventBusName"); b != "" {
 		// Accept both names and ARNs.
 		if i := strings.LastIndex(b, "/"); i >= 0 && strings.HasPrefix(b, "arn:") {
 			return b[i+1:]
@@ -82,9 +78,9 @@ func (s *Server) putEvents(p map[string]any) (any, *awshttp.APIError) {
 
 // putOneEvent validates an entry, matches enabled rules, dispatches targets.
 func (s *Server) putOneEvent(entry map[string]any) map[string]any {
-	source := pstr(entry, "Source")
-	detailType := pstr(entry, "DetailType")
-	detail := pstr(entry, "Detail")
+	source := awsjson.Str(entry, "Source")
+	detailType := awsjson.Str(entry, "DetailType")
+	detail := awsjson.Str(entry, "Detail")
 	if source == "" || detailType == "" {
 		return map[string]any{"ErrorCode": "ValidationException", "ErrorMessage": "Source and DetailType are required"}
 	}
@@ -95,7 +91,7 @@ func (s *Server) putOneEvent(entry map[string]any) map[string]any {
 		return map[string]any{"ErrorCode": "MalformedDetail", "ErrorMessage": "Detail must be valid JSON"}
 	}
 	bus := DefaultBus
-	if b := pstr(entry, "EventBusName"); b != "" {
+	if b := awsjson.Str(entry, "EventBusName"); b != "" {
 		bus = b
 	}
 
@@ -247,12 +243,12 @@ func renderScalar(v any) string {
 // ---- rules ----
 
 func (s *Server) putRule(p map[string]any) (any, *awshttp.APIError) {
-	name := pstr(p, "Name")
+	name := awsjson.Str(p, "Name")
 	if name == "" {
 		return nil, awshttp.Errf(400, "ValidationException", "Name is required")
 	}
-	pattern := pstr(p, "EventPattern")
-	schedule := pstr(p, "ScheduleExpression")
+	pattern := awsjson.Str(p, "EventPattern")
+	schedule := awsjson.Str(p, "ScheduleExpression")
 	if pattern == "" && schedule == "" {
 		return nil, awshttp.Errf(400, "ValidationException", "either EventPattern or ScheduleExpression is required")
 	}
@@ -270,13 +266,13 @@ func (s *Server) putRule(p map[string]any) (any, *awshttp.APIError) {
 				"ScheduleExpression %q is not a valid rate(...) or cron(...) expression", schedule)
 		}
 	}
-	state := pstr(p, "State")
+	state := awsjson.Str(p, "State")
 	if state == "" {
 		state = "ENABLED"
 	}
 	r := Rule{
 		Bus: busOrDefault(p), Name: name, Pattern: pattern, Schedule: schedule,
-		State: state, Desc: pstr(p, "Description"),
+		State: state, Desc: awsjson.Str(p, "Description"),
 	}
 	if err := s.store.PutRule(r); err != nil {
 		return nil, awshttp.AsAPIError(err)
@@ -285,7 +281,7 @@ func (s *Server) putRule(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) deleteRule(p map[string]any) (any, *awshttp.APIError) {
-	return nil, awshttp.AsAPIErrorOrNil(s.store.DeleteRule(busOrDefault(p), pstr(p, "Name")))
+	return nil, awshttp.AsAPIErrorOrNil(s.store.DeleteRule(busOrDefault(p), awsjson.Str(p, "Name")))
 }
 
 func ruleView(r *Rule) map[string]any {
@@ -308,7 +304,7 @@ func ruleView(r *Rule) map[string]any {
 }
 
 func (s *Server) describeRule(p map[string]any) (any, *awshttp.APIError) {
-	r, err := s.store.GetRule(busOrDefault(p), pstr(p, "Name"))
+	r, err := s.store.GetRule(busOrDefault(p), awsjson.Str(p, "Name"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -316,7 +312,7 @@ func (s *Server) describeRule(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) listRules(p map[string]any) (any, *awshttp.APIError) {
-	rules, err := s.store.Rules(busOrDefault(p), pstr(p, "NamePrefix"))
+	rules, err := s.store.Rules(busOrDefault(p), awsjson.Str(p, "NamePrefix"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -328,14 +324,14 @@ func (s *Server) listRules(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) enableRule(p map[string]any) (any, *awshttp.APIError) {
-	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(busOrDefault(p), pstr(p, "Name"), func(r *Rule) error {
+	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(busOrDefault(p), awsjson.Str(p, "Name"), func(r *Rule) error {
 		r.State = "ENABLED"
 		return nil
 	}))
 }
 
 func (s *Server) disableRule(p map[string]any) (any, *awshttp.APIError) {
-	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(busOrDefault(p), pstr(p, "Name"), func(r *Rule) error {
+	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(busOrDefault(p), awsjson.Str(p, "Name"), func(r *Rule) error {
 		r.State = "DISABLED"
 		return nil
 	}))
@@ -352,13 +348,13 @@ func (s *Server) putTargets(p map[string]any) (any, *awshttp.APIError) {
 	for _, tr := range targetsRaw {
 		tm, _ := tr.(map[string]any)
 		t := Target{
-			ID:        pstr(tm, "Id"),
-			ARN:       pstr(tm, "Arn"),
-			Input:     pstr(tm, "Input"),
-			InputPath: pstr(tm, "InputPath"),
+			ID:        awsjson.Str(tm, "Id"),
+			ARN:       awsjson.Str(tm, "Arn"),
+			Input:     awsjson.Str(tm, "Input"),
+			InputPath: awsjson.Str(tm, "InputPath"),
 		}
 		if it, ok := tm["InputTransformer"].(map[string]any); ok {
-			trans := &InputTransformer{Template: pstr(it, "InputTemplate"), PathsMap: map[string]string{}}
+			trans := &InputTransformer{Template: awsjson.Str(it, "InputTemplate"), PathsMap: map[string]string{}}
 			if pm, ok := it["InputPathsMap"].(map[string]any); ok {
 				for k, v := range pm {
 					if sv, ok := v.(string); ok {
@@ -373,7 +369,7 @@ func (s *Server) putTargets(p map[string]any) (any, *awshttp.APIError) {
 		}
 		targets = append(targets, t)
 	}
-	err := s.store.UpdateRule(busOrDefault(p), pstr(p, "Rule"), func(r *Rule) error {
+	err := s.store.UpdateRule(busOrDefault(p), awsjson.Str(p, "Rule"), func(r *Rule) error {
 		for _, nt := range targets {
 			replaced := false
 			for i := range r.Targets {
@@ -397,7 +393,7 @@ func (s *Server) putTargets(p map[string]any) (any, *awshttp.APIError) {
 
 func (s *Server) removeTargets(p map[string]any) (any, *awshttp.APIError) {
 	idsRaw, _ := p["Ids"].([]any)
-	err := s.store.UpdateRule(busOrDefault(p), pstr(p, "Rule"), func(r *Rule) error {
+	err := s.store.UpdateRule(busOrDefault(p), awsjson.Str(p, "Rule"), func(r *Rule) error {
 		for _, idAny := range idsRaw {
 			id, _ := idAny.(string)
 			for i := range r.Targets {
@@ -416,7 +412,7 @@ func (s *Server) removeTargets(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) listTargetsByRule(p map[string]any) (any, *awshttp.APIError) {
-	r, err := s.store.GetRule(busOrDefault(p), pstr(p, "Rule"))
+	r, err := s.store.GetRule(busOrDefault(p), awsjson.Str(p, "Rule"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -441,7 +437,7 @@ func (s *Server) listTargetsByRule(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) listRuleNamesByTarget(p map[string]any) (any, *awshttp.APIError) {
-	arn := pstr(p, "TargetArn")
+	arn := awsjson.Str(p, "TargetArn")
 	rules, err := s.store.Rules(busOrDefault(p), "")
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
@@ -461,7 +457,7 @@ func (s *Server) listRuleNamesByTarget(p map[string]any) (any, *awshttp.APIError
 // ---- buses ----
 
 func (s *Server) createEventBus(p map[string]any) (any, *awshttp.APIError) {
-	name := pstr(p, "Name")
+	name := awsjson.Str(p, "Name")
 	if err := s.store.CreateBus(name, nil); err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -469,11 +465,11 @@ func (s *Server) createEventBus(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) deleteEventBus(p map[string]any) (any, *awshttp.APIError) {
-	return nil, awshttp.AsAPIErrorOrNil(s.store.DeleteBus(pstr(p, "Name")))
+	return nil, awshttp.AsAPIErrorOrNil(s.store.DeleteBus(awsjson.Str(p, "Name")))
 }
 
 func (s *Server) describeEventBus(p map[string]any) (any, *awshttp.APIError) {
-	name := pstr(p, "Name")
+	name := awsjson.Str(p, "Name")
 	if name == "" {
 		name = DefaultBus
 	}
@@ -504,8 +500,8 @@ func (s *Server) listEventBuses(p map[string]any) (any, *awshttp.APIError) {
 // ---- misc ----
 
 func (s *Server) testEventPattern(p map[string]any) (any, *awshttp.APIError) {
-	pattern := pstr(p, "EventPattern")
-	event := pstr(p, "Event")
+	pattern := awsjson.Str(p, "EventPattern")
+	event := awsjson.Str(p, "Event")
 	pat, err := eventpattern.Parse([]byte(pattern))
 	if err != nil {
 		return nil, awshttp.Errf(400, "InvalidEventPatternException", "%v", err)
@@ -519,7 +515,7 @@ func (s *Server) testEventPattern(p map[string]any) (any, *awshttp.APIError) {
 
 // Tags apply to rules (by ARN); buses share the mechanism.
 func (s *Server) tagResource(p map[string]any) (any, *awshttp.APIError) {
-	bus, name, aerr := ruleFromARN(pstr(p, "ResourceARN"))
+	bus, name, aerr := ruleFromARN(awsjson.Str(p, "ResourceARN"))
 	if aerr != nil {
 		return nil, aerr
 	}
@@ -541,7 +537,7 @@ func (s *Server) tagResource(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) untagResource(p map[string]any) (any, *awshttp.APIError) {
-	bus, name, aerr := ruleFromARN(pstr(p, "ResourceARN"))
+	bus, name, aerr := ruleFromARN(awsjson.Str(p, "ResourceARN"))
 	if aerr != nil {
 		return nil, aerr
 	}
@@ -557,7 +553,7 @@ func (s *Server) untagResource(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) listTagsForResource(p map[string]any) (any, *awshttp.APIError) {
-	bus, name, aerr := ruleFromARN(pstr(p, "ResourceARN"))
+	bus, name, aerr := ruleFromARN(awsjson.Str(p, "ResourceARN"))
 	if aerr != nil {
 		return nil, aerr
 	}

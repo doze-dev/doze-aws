@@ -9,9 +9,10 @@ import (
 // ---- EventBridge (JSON 1.1, AWSEvents) ----
 
 type Bus struct {
-	Name  string
-	ARN   string
-	Rules int
+	Name     string
+	ARN      string
+	Rules    int
+	RuleList []Rule // the rules behind Rules — BuildGraph reuses them
 }
 
 type Rule struct {
@@ -46,6 +47,7 @@ func (b *backend) ListBuses(ctx context.Context) ([]Bus, error) {
 		bus := Bus{Name: eb.Name, ARN: eb.Arn}
 		if rules, err := b.ListRules(ctx, eb.Name); err == nil {
 			bus.Rules = len(rules)
+			bus.RuleList = rules
 		}
 		buses = append(buses, bus)
 	}
@@ -60,6 +62,20 @@ func (b *backend) ListBuses(ctx context.Context) ([]Bus, error) {
 		return buses[i].Name < buses[j].Name
 	})
 	return buses, nil
+}
+
+// CountBuses is the cheap cardinality probe: one ListEventBuses call, no
+// per-bus rule fetches.
+func (b *backend) CountBuses(ctx context.Context) (int, error) {
+	body, err := b.json11(ctx, "AWSEvents", "ListEventBuses", map[string]any{})
+	if err != nil {
+		return 0, err
+	}
+	var out struct {
+		EventBuses []struct{} `json:"EventBuses"`
+	}
+	json.Unmarshal(body, &out)
+	return len(out.EventBuses), nil
 }
 
 func (b *backend) CreateBus(ctx context.Context, name string) error {
@@ -130,6 +146,31 @@ func (b *backend) TestEventPattern(ctx context.Context, pattern, event string) (
 	}
 	json.Unmarshal(body, &out)
 	return out.Result, nil
+}
+
+// ruleTargets fetches only a rule's targets — BuildGraph needs the edges but
+// not the DescribeRule half of GetRule.
+func (b *backend) ruleTargets(ctx context.Context, bus, name string) []Target {
+	in := map[string]any{"Rule": name}
+	if bus != "" && bus != "default" {
+		in["EventBusName"] = bus
+	}
+	body, err := b.json11(ctx, "AWSEvents", "ListTargetsByRule", in)
+	if err != nil {
+		return nil
+	}
+	var out struct {
+		Targets []struct {
+			Id  string `json:"Id"`
+			Arn string `json:"Arn"`
+		} `json:"Targets"`
+	}
+	json.Unmarshal(body, &out)
+	targets := make([]Target, 0, len(out.Targets))
+	for _, t := range out.Targets {
+		targets = append(targets, Target{ID: t.Id, ARN: t.Arn})
+	}
+	return targets
 }
 
 func (b *backend) GetRule(ctx context.Context, bus, name string) (*Rule, error) {

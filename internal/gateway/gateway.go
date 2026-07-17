@@ -46,9 +46,9 @@ var targetPrefixes = map[string]string{
 	"DynamoDB_20120810":        "dynamodb",
 	"DynamoDBStreams_20120810": "dynamodb",
 	"TrentService":             "kms",
-	"AmazonSSM":         "ssm",
-	"secretsmanager":    "secretsmanager",
-	"AWSEvents":         "eventbridge",
+	"AmazonSSM":                "ssm",
+	"secretsmanager":           "secretsmanager",
+	"AWSEvents":                "eventbridge",
 }
 
 // scopeServices maps SigV4 signing names to services (they mostly coincide;

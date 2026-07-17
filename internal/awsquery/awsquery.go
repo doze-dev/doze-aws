@@ -19,6 +19,7 @@ package awsquery
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/xml"
 	"fmt"
 	"maps"
@@ -71,9 +72,67 @@ func Members(vals url.Values, prefix string, memberless bool) []string {
 	}
 }
 
+// PairMap decodes a flattened key/value entry list into a map:
+// {prefix}.1.{keyName}, {prefix}.1.{valName}, {prefix}.2.{keyName}, ...
+// It covers the Query protocol's map shapes — SQS Attribute.N.Name/Value and
+// Tag.N.Key/Value, SNS Attributes.entry.N.key/value and Tags.member.N.Key/Value.
+// Returns nil when the list is absent or empty.
+func PairMap(vals url.Values, prefix, keyName, valName string) map[string]string {
+	var out map[string]string
+	for i := 1; ; i++ {
+		base := prefix + "." + strconv.Itoa(i) + "."
+		k := vals.Get(base + keyName)
+		if k == "" {
+			return out
+		}
+		if out == nil {
+			out = map[string]string{}
+		}
+		out[k] = vals.Get(base + valName)
+	}
+}
+
+// MessageAttr is one decoded message attribute from a flattened
+// {prefix}.N.Name / {prefix}.N.Value.* list. SQS (MessageAttribute.N) and SNS
+// (MessageAttributes.entry.N) share the shape: a name, a data type, and a
+// string or base64 binary value.
+type MessageAttr struct {
+	DataType    string
+	StringValue string
+	BinaryValue []byte // decoded from the wire's base64
+}
+
+// MessageAttrs decodes the message-attribute list at prefix. Returns nil when
+// the list is absent or empty.
+func MessageAttrs(vals url.Values, prefix string) map[string]MessageAttr {
+	var out map[string]MessageAttr
+	for i := 1; ; i++ {
+		base := prefix + "." + strconv.Itoa(i) + "."
+		name := vals.Get(base + "Name")
+		if name == "" {
+			return out
+		}
+		a := MessageAttr{
+			DataType:    vals.Get(base + "Value.DataType"),
+			StringValue: vals.Get(base + "Value.StringValue"),
+		}
+		if bv := vals.Get(base + "Value.BinaryValue"); bv != "" {
+			a.BinaryValue, _ = base64.StdEncoding.DecodeString(bv)
+		}
+		if out == nil {
+			out = map[string]MessageAttr{}
+		}
+		out[name] = a
+	}
+}
+
 // API renders responses for one Query service (its xmlns is per-service).
 type API struct {
 	XMLNS string
+	// EmptyResult emits an empty {Action}Result element when WriteResult is
+	// given a nil result. Real SNS always includes the element, and some SDK
+	// deserializers (e.g. TagResource in aws-sdk-go-v2) require the node.
+	EmptyResult bool
 }
 
 // WriteResult writes the standard success envelope. result must be a struct
@@ -108,6 +167,8 @@ func (a API) renderResult(action string, result any, reqID string) ([]byte, erro
 			return nil, err
 		}
 		buf = fmt.Appendf(buf, "\n%s", inner.Bytes())
+	} else if a.EmptyResult {
+		buf = fmt.Appendf(buf, "\n  <%sResult></%sResult>", action, action)
 	}
 	buf = fmt.Appendf(buf, "\n  <ResponseMetadata><RequestId>%s</RequestId></ResponseMetadata>\n</%sResponse>\n", reqID, action)
 	return buf, nil

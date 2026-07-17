@@ -54,6 +54,59 @@ func TestMembers(t *testing.T) {
 	}
 }
 
+func TestPairMap(t *testing.T) {
+	vals := url.Values{
+		"Tag.1.Key":   {"env"},
+		"Tag.1.Value": {"dev"},
+		"Tag.2.Key":   {"team"},
+		"Tag.2.Value": {"core"},
+	}
+	got := PairMap(vals, "Tag", "Key", "Value")
+	if len(got) != 2 || got["env"] != "dev" || got["team"] != "core" {
+		t.Errorf("pair map = %v", got)
+	}
+	if got := PairMap(vals, "Attribute", "Name", "Value"); got != nil {
+		t.Errorf("missing list = %v", got)
+	}
+}
+
+func TestMessageAttrs(t *testing.T) {
+	vals := url.Values{
+		"MessageAttribute.1.Name":              {"color"},
+		"MessageAttribute.1.Value.DataType":    {"String"},
+		"MessageAttribute.1.Value.StringValue": {"red"},
+		"MessageAttribute.2.Name":              {"blob"},
+		"MessageAttribute.2.Value.DataType":    {"Binary"},
+		"MessageAttribute.2.Value.BinaryValue": {"aGk="},
+	}
+	got := MessageAttrs(vals, "MessageAttribute")
+	if len(got) != 2 {
+		t.Fatalf("attrs = %v", got)
+	}
+	if a := got["color"]; a.DataType != "String" || a.StringValue != "red" {
+		t.Errorf("color = %+v", a)
+	}
+	if a := got["blob"]; a.DataType != "Binary" || string(a.BinaryValue) != "hi" {
+		t.Errorf("blob = %+v", a)
+	}
+	if got := MessageAttrs(vals, "MessageAttributes.entry"); got != nil {
+		t.Errorf("missing attrs = %v", got)
+	}
+}
+
+func TestWriteResultEmptyResultElement(t *testing.T) {
+	api := API{XMLNS: "ns", EmptyResult: true}
+	rec := httptest.NewRecorder()
+	api.WriteResult(rec, "TagResource", nil)
+	body := rec.Body.String()
+	if !strings.Contains(body, "<TagResourceResult></TagResourceResult>") {
+		t.Errorf("nil result must render an empty Result element:\n%s", body)
+	}
+	if err := xml.Unmarshal(rec.Body.Bytes(), new(any)); err != nil {
+		t.Errorf("response is not well-formed XML: %v\n%s", err, body)
+	}
+}
+
 type testResult struct {
 	Name  string
 	Count int

@@ -17,7 +17,7 @@
     <div class="det-h">
       <div class="det-title">{{awsIcon "sns"}} {{.Topic}}<div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/sns/{{.Topic}}/delete-topic" hx-confirm="Delete topic “{{.Topic}}”?">{{icon "trash"}} Delete</button></div></div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}</div>
-      <div style="margin-top:10px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn}}</div>
+      <div style="margin-top:10px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "sns" "Self" .Topic}}</div>
     </div>
     <div class="det-b"><div class="split">
       <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Publish message</h2></div><div style="padding:14px 16px">

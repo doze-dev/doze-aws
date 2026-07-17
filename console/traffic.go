@@ -1,6 +1,7 @@
 package console
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
@@ -32,6 +33,8 @@ type TrafficEntry struct {
 	Status   int
 	Millis   float64
 	ReqBody  string // captured for JSON/query bodies (bounded); redacted
+	RespBody string // first 8KB of a text response; redacted
+	RespCT   string // response Content-Type
 	Method   string
 	Path     string // path + query, for replay
 	Host     string
@@ -79,8 +82,9 @@ func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rec.add(TrafficEntry{
 		At: start, Service: svc, Action: action, Resource: resource,
 		Status: sw.code, Millis: float64(time.Since(start).Microseconds()) / 1000.0,
-		ReqBody: body,
-		Method:  r.Method, Path: r.URL.RequestURI(), Host: r.Host,
+		ReqBody:  body,
+		RespBody: redact(sw.captured.String()), RespCT: sw.Header().Get("Content-Type"),
+		Method: r.Method, Path: r.URL.RequestURI(), Host: r.Host,
 		CT: r.Header.Get("Content-Type"), Target: r.Header.Get("X-Amz-Target"),
 	})
 }
@@ -95,6 +99,46 @@ func (rec *Recorder) add(e TrafficEntry) {
 	if rec.head == 0 {
 		rec.full = true
 	}
+}
+
+// LastSeq returns the sequence number of the newest recorded call — the cheap
+// "anything new?" probe the live poll checks before rendering rows.
+func (rec *Recorder) LastSeq() int64 {
+	rec.mu.Lock()
+	defer rec.mu.Unlock()
+	return rec.seq
+}
+
+// Get returns the entry with the given sequence number, if it is still in the
+// ring (the inspector drawer loads entries by seq).
+func (rec *Recorder) Get(seq int64) (TrafficEntry, bool) {
+	rec.mu.Lock()
+	defer rec.mu.Unlock()
+	n := rec.head
+	if rec.full {
+		n = trafficCap
+	}
+	for i := 0; i < n; i++ {
+		e := rec.buf[(rec.head-1-i+trafficCap)%trafficCap]
+		if e.Seq == seq {
+			return e, true
+		}
+		if e.Seq < seq {
+			break
+		}
+	}
+	return TrafficEntry{}, false
+}
+
+// Clear empties the ring. Seq keeps counting up so live-poll hashes stay
+// monotonic across a clear.
+func (rec *Recorder) Clear() {
+	rec.mu.Lock()
+	defer rec.mu.Unlock()
+	rec.buf = make([]TrafficEntry, trafficCap)
+	rec.head = 0
+	rec.full = false
+	rec.seq++ // the tail visibly changed; move the hash
 }
 
 // Entries returns recorded calls, newest first, with Seq > sinceSeq.
@@ -119,9 +163,12 @@ func (rec *Recorder) Entries(sinceSeq int64) []TrafficEntry {
 
 type statusWriter struct {
 	http.ResponseWriter
-	code int
-	done bool
+	code     int
+	done     bool
+	captured strings.Builder // first respCap bytes of a text response, for the inspector
 }
+
+const respCap = 8192
 
 func (s *statusWriter) WriteHeader(c int) {
 	if !s.done {
@@ -132,7 +179,23 @@ func (s *statusWriter) WriteHeader(c int) {
 }
 func (s *statusWriter) Write(b []byte) (int, error) {
 	s.done = true
+	if s.captured.Len() < respCap && textualCT(s.Header().Get("Content-Type")) {
+		room := respCap - s.captured.Len()
+		if len(b) <= room {
+			s.captured.Write(b)
+		} else {
+			s.captured.Write(b[:room])
+			s.captured.WriteString("…")
+		}
+	}
 	return s.ResponseWriter.Write(b)
+}
+
+// textualCT reports whether a response body is worth capturing for display —
+// object downloads and other binary payloads are not.
+func textualCT(ct string) bool {
+	return strings.Contains(ct, "json") || strings.Contains(ct, "xml") ||
+		strings.Contains(ct, "text") || strings.Contains(ct, "x-www-form-urlencoded")
 }
 
 // targetService maps an X-Amz-Target prefix to a service label.
@@ -150,7 +213,7 @@ func classify(r *http.Request, capturedBody string) (svc, action, resource strin
 		if svc == "" {
 			svc = strings.ToLower(prefix)
 		}
-		return svc, act, ""
+		return svc, act, jsonResource(svc, capturedBody)
 	}
 	// Lambda REST paths.
 	if strings.HasPrefix(r.URL.Path, "/2015-03-31/") {
@@ -183,7 +246,7 @@ func classify(r *http.Request, capturedBody string) (svc, action, resource strin
 	if r.Method == "POST" && strings.Contains(r.Header.Get("Content-Type"), "x-www-form-urlencoded") && capturedBody != "" {
 		if vals, err := url.ParseQuery(capturedBody); err == nil {
 			if a := vals.Get("Action"); a != "" {
-				return querySvc(a), a, vals.Get("QueueUrl") + vals.Get("TopicArn")
+				return querySvc(a), a, leafName(vals.Get("QueueUrl") + vals.Get("TopicArn"))
 			}
 		}
 	}
@@ -197,6 +260,56 @@ func classify(r *http.Request, capturedBody string) (svc, action, resource strin
 		act = "ListBuckets"
 	}
 	return "s3", act, p
+}
+
+// jsonResource pulls the resource name out of a JSON-protocol request body —
+// without this, every SendMessage/PutItem row shows an empty resource column.
+func jsonResource(svc, body string) string {
+	if body == "" {
+		return ""
+	}
+	var m map[string]any
+	if json.Unmarshal([]byte(body), &m) != nil {
+		return ""
+	}
+	str := func(k string) string {
+		s, _ := m[k].(string)
+		return s
+	}
+	switch svc {
+	case "sqs":
+		return leafName(str("QueueUrl"))
+	case "ddb":
+		return str("TableName")
+	case "kms":
+		return leafName(str("KeyId"))
+	case "ssm":
+		return str("Name")
+	case "sm":
+		return leafName(str("SecretId"))
+	case "eb":
+		if n := str("Name"); n != "" {
+			return n
+		}
+		if n := str("EventBusName"); n != "" {
+			return n
+		}
+		if n := str("Rule"); n != "" {
+			return n
+		}
+	}
+	return ""
+}
+
+// leafName trims a URL or ARN down to its final path/name segment.
+func leafName(s string) string {
+	if i := strings.LastIndex(s, "/"); i >= 0 {
+		s = s[i+1:]
+	}
+	if i := strings.LastIndex(s, ":"); i >= 0 && strings.HasPrefix(s, "arn:") {
+		s = s[i+1:]
+	}
+	return s
 }
 
 func querySvc(action string) string {

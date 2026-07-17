@@ -30,9 +30,9 @@
         <div class="opt-row" x-show="fifo" x-cloak><div><div class="opt-l">Content-based deduplication</div><div class="opt-d">Drop messages with identical bodies within 5 minutes — no dedup ID needed</div></div><label class="switch"><input type="checkbox" name="content_dedup"><span class="track"></span><span class="thumb"></span></label></div>
       </div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Delivery</h2></div><div class="form-b"><div class="fgrid">
-        <div class="field"><label>Visibility <span class="dim">s</span></label><input class="input" name="visibility" type="number" min="0" max="43200" placeholder="30"></div>
-        <div class="field"><label>Delay <span class="dim">s</span></label><input class="input" name="delay" type="number" min="0" max="900" placeholder="0"></div>
-        <div class="field"><label>Retention <span class="dim">s</span></label><input class="input" name="retention" type="number" min="60" max="1209600" placeholder="345600"></div>
+        <div class="field" x-data="{v:''}"><label>Visibility <span class="dim">s</span></label><input class="input" name="visibility" type="number" min="0" max="43200" placeholder="30" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
+        <div class="field" x-data="{v:''}"><label>Delay <span class="dim">s</span></label><input class="input" name="delay" type="number" min="0" max="900" placeholder="0" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
+        <div class="field" x-data="{v:''}"><label>Retention <span class="dim">s · default 4 days</span></label><input class="input" name="retention" type="number" min="60" max="1209600" placeholder="345600" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
       </div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Dead-letter queue</h2></div><div class="form-b">
         <div class="dlq-modes">

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/awsjson"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 )
 
@@ -14,11 +15,11 @@ import (
 // version stages back through Secrets Manager (PutSecretValue /
 // UpdateSecretVersionStage). Requires a wired lambda peer.
 func (s *Server) rotateSecret(p map[string]any) (any, *awshttp.APIError) {
-	sec, err := s.store.Get(pstr(p, "SecretId"))
+	sec, err := s.store.Get(awsjson.Str(p, "SecretId"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	lambdaARN := pstr(p, "RotationLambdaARN")
+	lambdaARN := awsjson.Str(p, "RotationLambdaARN")
 	if lambdaARN == "" {
 		if rr, ok := p["RotationRules"].(map[string]any); ok {
 			lambdaARN = pstrIn(rr, "RotationLambdaARN")
@@ -58,7 +59,7 @@ func (s *Server) rotateSecret(p map[string]any) (any, *awshttp.APIError) {
 // cancelRotateSecret disables rotation (leaving any in-flight AWSPENDING version
 // as-is, matching AWS).
 func (s *Server) cancelRotateSecret(p map[string]any) (any, *awshttp.APIError) {
-	sec, err := s.store.Mutate(pstr(p, "SecretId"), func(x *Secret) error {
+	sec, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(x *Secret) error {
 		x.RotationEnabled = false
 		return nil
 	})

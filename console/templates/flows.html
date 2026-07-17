@@ -29,16 +29,20 @@
   <div class="flow-grid">
     {{range .Graph.Diagrams}}
     <div class="flow-card">
-      <div class="flow-card-h">{{.Label}}</div>
+      <div class="flow-card-h"><span class="fl-chain">{{.Label}}</span><span class="fl-count">{{len .Nodes}} resources · {{len .Edges}} connection{{if ne (len .Edges) 1}}s{{end}} · hover to trace</span></div>
       <div class="flow-card-b">
         <svg viewBox="0 0 {{.W}} {{.H}}" preserveAspectRatio="xMinYMin meet" style="width:{{.W}}px;max-width:100%;height:auto">
           {{$ns := .Nodes}}
           {{range .Edges}}
             {{$f := nodeAt $ns .From}}{{$t := nodeAt $ns .To}}
-            {{if and $f $t}}<path class="fl-edge fl-k-{{.Kind}} {{if .Hot}}hot{{end}}" d="{{edgePath $f $t}}"/>{{end}}
+            {{if and $f $t}}<path class="fl-edge fl-k-{{.Kind}} {{if .Hot}}hot{{end}}" data-from="{{.From}}" data-to="{{.To}}" d="{{edgePath $f $t}}"><title>{{.Kind}}</title></path>{{end}}
+          {{end}}
+          {{range .Edges}}
+            {{$f := nodeAt $ns .From}}{{$t := nodeAt $ns .To}}
+            {{if and $f $t}}<text class="fl-elabel" data-from="{{.From}}" data-to="{{.To}}" x="{{edgeLabelX $f $t}}" y="{{edgeLabelY $f $t}}" text-anchor="middle">{{.Kind}}</text>{{end}}
           {{end}}
           {{range .Nodes}}
-          <a href="{{$p}}{{.URL}}" class="fl-node">
+          <a href="{{$p}}{{.URL}}" class="fl-node" data-node="{{.ID}}">
             <rect x="{{.X}}" y="{{.Y}}" width="176" height="46" rx="9"/>
             <rect x="{{.X}}" y="{{.Y}}" width="4" height="46" rx="2" fill="hsl(var(--svc-{{.Svc}}))"/>
             <text class="t1" x="{{add .X 16}}" y="{{add .Y 20}}">{{.Name}}</text>

@@ -15,8 +15,9 @@ func (c *Console) createPage(svc, tmpl string) http.HandlerFunc {
 		case "s3":
 			data["List"] = c.s3List(r)
 		case "sqs":
-			data["List"] = c.sqsList(r)
-			data["Queues"] = c.sqsList(r) // DLQ picker
+			queues := c.sqsList(r)
+			data["List"] = queues
+			data["Queues"] = queues // DLQ picker
 		case "ddb":
 			data["List"], _ = c.be.ListTables(r.Context())
 		case "sns":
@@ -109,35 +110,38 @@ func (c *Console) apiResources(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(out)
 }
 
-// apiCounts feeds the rail's live per-service resource counts.
+// apiCounts feeds the rail's live per-service resource counts. It runs every
+// few seconds in every open tab, so it must use the count-only probes — the
+// full List* helpers fan out N+1 describe calls whose results would all be
+// discarded here.
 func (c *Console) apiCounts(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	counts := map[string]int{}
-	if v, err := c.be.ListBuckets(ctx); err == nil {
+	if v, err := c.be.ListBuckets(ctx); err == nil { // single call already
 		counts["s3"] = len(v)
 	}
-	if v, err := c.be.ListQueues(ctx); err == nil {
-		counts["sqs"] = len(v)
+	if n, err := c.be.CountQueues(ctx); err == nil {
+		counts["sqs"] = n
 	}
-	if v, err := c.be.ListTables(ctx); err == nil {
-		counts["ddb"] = len(v)
+	if n, err := c.be.CountTables(ctx); err == nil {
+		counts["ddb"] = n
 	}
-	if v, err := c.be.ListTopics(ctx); err == nil {
-		counts["sns"] = len(v)
+	if n, err := c.be.CountTopics(ctx); err == nil {
+		counts["sns"] = n
 	}
-	if v, err := c.be.ListBuses(ctx); err == nil {
-		counts["eb"] = len(v)
+	if n, err := c.be.CountBuses(ctx); err == nil {
+		counts["eb"] = n
 	}
-	if v, err := c.be.ListFunctions(ctx); err == nil {
+	if v, err := c.be.ListFunctions(ctx); err == nil { // single call already
 		counts["lambda"] = len(v)
 	}
-	if v, err := c.be.ListKeys(ctx); err == nil {
-		counts["kms"] = len(v)
+	if n, err := c.be.CountKeys(ctx); err == nil {
+		counts["kms"] = n
 	}
-	if v, err := c.be.ListParameters(ctx); err == nil {
+	if v, err := c.be.ListParameters(ctx); err == nil { // single call already
 		counts["ssm"] = len(v)
 	}
-	if v, err := c.be.ListSecrets(ctx); err == nil {
+	if v, err := c.be.ListSecrets(ctx); err == nil { // single call already
 		counts["sm"] = len(v)
 	}
 	w.Header().Set("Content-Type", "application/json")

@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+
+	"github.com/doze-dev/doze-aws/internal/awsquery"
 )
 
 func init() {
@@ -44,48 +46,21 @@ func init() {
 func stubHandler(name string) func(*Server, url.Values, string) (any, *apiError) {
 	return func(*Server, url.Values, string) (any, *apiError) {
 		return nil, &apiError{
-			Code:   "InvalidAction",
-			Status: 400,
-			Msg:    fmt.Sprintf("%s is not supported by doze-aws: SMS and mobile-push delivery need carrier/platform infrastructure that does not exist locally", name),
+			Code:    "InvalidAction",
+			Status:  400,
+			Message: fmt.Sprintf("%s is not supported by doze-aws: SMS and mobile-push delivery need carrier/platform infrastructure that does not exist locally", name),
 		}
 	}
 }
 
 // memberTags parses Tags.member.N.Key/Value (CreateTopic, TagResource).
 func memberTags(form url.Values) map[string]string {
-	out := map[string]string{}
-	for i := 1; ; i++ {
-		base := fmt.Sprintf("Tags.member.%d.", i)
-		k := form.Get(base + "Key")
-		if k == "" {
-			break
-		}
-		out[k] = form.Get(base + "Value")
-	}
-	if len(out) == 0 {
-		return nil
-	}
-	return out
+	return awsquery.PairMap(form, "Tags.member", "Key", "Value")
 }
 
 // entryMessageAttributes parses a PublishBatch entry's MessageAttributes.
 func entryMessageAttributes(form url.Values, base string) map[string]Attr {
-	out := map[string]Attr{}
-	for i := 1; ; i++ {
-		prefix := fmt.Sprintf("%sMessageAttributes.entry.%d.", base, i)
-		name := form.Get(prefix + "Name")
-		if name == "" {
-			break
-		}
-		out[name] = Attr{
-			DataType:    form.Get(prefix + "Value.DataType"),
-			StringValue: form.Get(prefix + "Value.StringValue"),
-		}
-	}
-	if len(out) == 0 {
-		return nil
-	}
-	return out
+	return awsquery.MessageAttrs(form, base+"MessageAttributes.entry")
 }
 
 func sortedAttrKeys(m map[string]string) []string {
@@ -137,14 +112,7 @@ func (srv *Server) tagResource(form url.Values, _ string) (any, *apiError) {
 }
 
 func (srv *Server) untagResource(form url.Values, _ string) (any, *apiError) {
-	var keys []string
-	for i := 1; ; i++ {
-		k := form.Get(fmt.Sprintf("TagKeys.member.%d", i))
-		if k == "" {
-			break
-		}
-		keys = append(keys, k)
-	}
+	keys := awsquery.Members(form, "TagKeys", false)
 	if len(keys) == 0 {
 		return nil, errInvalid("at least one tag key is required")
 	}
