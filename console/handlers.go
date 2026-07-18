@@ -7,6 +7,7 @@ import (
 	"hash/fnv"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -437,7 +438,16 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 	data["Attrs"] = attrs
 	data["IsDLQ"] = isDLQ
 	data["ARN"] = QueueARN(name)
-	data["URL"] = "http://" + endpointHost(r) + "/000000000000/" + name
+	// The copyable queue URL: when a fronting router publishes the SDK
+	// endpoint (AWS_ENDPOINT_URL_SQS, possibly path-prefixed — e.g.
+	// http://aws.demo.doze/sqs), build on that so the chip is what an SDK
+	// actually uses; otherwise this process IS the endpoint (standalone
+	// doze-aws) and the request host is correct.
+	if ep := os.Getenv("AWS_ENDPOINT_URL_SQS"); ep != "" {
+		data["URL"] = strings.TrimRight(ep, "/") + "/000000000000/" + name
+	} else {
+		data["URL"] = "http://" + endpointHost(r) + "/000000000000/" + name
+	}
 	data["Config"] = sqsConfigOf(attrs)
 	data["Conn"] = conn
 	data["Tab"] = tabOf(r, "messages")

@@ -324,6 +324,12 @@ func writeError(w http.ResponseWriter, isJSON bool, err *apiError) {
 // X-Amz-Target header (AmazonSQS.<Action>); otherwise it is the Query protocol.
 func parseRequest(r *http.Request) (*request, *apiError) {
 	host := r.Host
+	// A fronting router may serve this service under a path prefix
+	// (aws.demo.doze/sqs); fold it into the host so every generated queue URL
+	// (http://<host>/<account>/<name>) routes back through the same path.
+	if prefix := r.Header.Get("X-Forwarded-Prefix"); prefix != "" && host != "" {
+		host += prefix
+	}
 	if r.Header.Get("X-Amz-Target") != "" {
 		action, aerr := japi.Action(r)
 		if aerr != nil {

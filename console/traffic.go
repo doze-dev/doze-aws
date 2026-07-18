@@ -278,7 +278,10 @@ func jsonResource(svc, body string) string {
 	}
 	switch svc {
 	case "sqs":
-		return leafName(str("QueueUrl"))
+		if u := str("QueueUrl"); u != "" {
+			return leafName(u)
+		}
+		return str("QueueName") // JSON-protocol clients may address by name
 	case "ddb":
 		return str("TableName")
 	case "kms":
