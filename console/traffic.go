@@ -2,6 +2,7 @@ package console
 
 import (
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/gateway"
 	"io"
 	"net/http"
 	"net/url"
@@ -198,22 +199,46 @@ func textualCT(ct string) bool {
 		strings.Contains(ct, "text") || strings.Contains(ct, "x-www-form-urlencoded")
 }
 
-// targetService maps an X-Amz-Target prefix to a service label.
-var targetService = map[string]string{
-	"TrentService": "kms", "AmazonSSM": "ssm", "secretsmanager": "sm",
-	"AWSEvents": "eb", "DynamoDB_20120810": "ddb", "AmazonSQS": "sqs",
+// consoleLabel maps a gateway service name onto the short label the console
+// uses in its nav and traffic tail.
+var consoleLabel = map[string]string{
+	"secretsmanager": "sm",
+	"eventbridge":    "eb",
+	"dynamodb":       "ddb",
+	"cloudformation": "cfn",
+	"apigateway":     "apigw",
 }
 
-// classify infers (service, action, resource) from a request, mirroring the
-// gateway's own routing heuristics closely enough for a readable tail.
+// labelFor resolves a request to the console's service label using the
+// GATEWAY's own routing, not a private copy of it.
+//
+// This used to be a separate set of heuristics, and it drifted: IAM traffic was
+// reported as STS (because the sts rule matched "Role" in CreateRole), and API
+// Gateway traffic as S3 (because /restapis fell through to the path-style
+// catch-all). A debugging tool that misattributes requests is worse than one
+// that shows nothing, so the classification now has a single source of truth.
+func labelFor(r *http.Request) string {
+	svc := gateway.Route(r)
+	if short, ok := consoleLabel[svc]; ok {
+		return short
+	}
+	return svc
+}
+
+// classify infers (service, action, resource) from a request. The SERVICE comes
+// from the gateway; only the action and resource are console-specific.
 func classify(r *http.Request, capturedBody string) (svc, action, resource string) {
+	svc = labelFor(r)
+
 	if t := r.Header.Get("X-Amz-Target"); t != "" {
-		prefix, act, _ := strings.Cut(t, ".")
-		svc = targetService[prefix]
-		if svc == "" {
-			svc = strings.ToLower(prefix)
-		}
+		_, act, _ := strings.Cut(t, ".")
 		return svc, act, jsonResource(svc, capturedBody)
+	}
+	// API Gateway: the control plane is path-routed, and a call to a DEPLOYED
+	// api is the one shape worth naming precisely, since that is what a
+	// developer is usually watching for.
+	if svc == "apigw" {
+		return svc, apigwAction(r), apigwResource(r)
 	}
 	// Lambda REST paths.
 	if strings.HasPrefix(r.URL.Path, "/2015-03-31/") {
@@ -241,16 +266,17 @@ func classify(r *http.Request, capturedBody string) (svc, action, resource strin
 	// r.ParseForm, which would consume r.Body and starve the gateway's own
 	// body-Action routing (SigV2-era clients put Action in the body).
 	if a := r.URL.Query().Get("Action"); a != "" {
-		return querySvc(a), a, ""
+		return svc, a, ""
 	}
 	if r.Method == "POST" && strings.Contains(r.Header.Get("Content-Type"), "x-www-form-urlencoded") && capturedBody != "" {
 		if vals, err := url.ParseQuery(capturedBody); err == nil {
 			if a := vals.Get("Action"); a != "" {
-				return querySvc(a), a, leafName(vals.Get("QueueUrl") + vals.Get("TopicArn"))
+				return svc, a, queryResource(svc, vals)
 			}
 		}
 	}
-	// S3 fallback: path-style /bucket/key.
+	// S3: path-style /bucket/key. Only reached when the gateway itself routed
+	// here, so an unrecognised path can no longer masquerade as an object GET.
 	p := strings.TrimPrefix(r.URL.Path, "/")
 	act := map[string]string{"GET": "GetObject", "PUT": "PutObject", "DELETE": "DeleteObject", "HEAD": "HeadObject", "POST": "PostObject"}[r.Method]
 	if act == "" {
@@ -259,7 +285,78 @@ func classify(r *http.Request, capturedBody string) (svc, action, resource strin
 	if p == "" {
 		act = "ListBuckets"
 	}
-	return "s3", act, p
+	return svc, act, p
+}
+
+// apigwAction names an API Gateway request: the control-plane operation, or an
+// invocation of a deployed API.
+func apigwAction(r *http.Request) string {
+	if apiID, stage, _, ok := executePath(r); ok {
+		_, _ = apiID, stage
+		return "Invoke " + r.Method
+	}
+	segs := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(segs) == 0 || segs[0] == "" {
+		return r.Method
+	}
+	// /restapis/{id}/resources/{id}/methods/{verb}/integration → "integration"
+	noun := segs[len(segs)-1]
+	verb := map[string]string{
+		"POST": "Create", "PUT": "Put", "GET": "Get", "DELETE": "Delete", "PATCH": "Update",
+	}[r.Method]
+	if verb == "" {
+		verb = r.Method
+	}
+	return verb + " " + noun
+}
+
+// apigwResource names what an API Gateway request addressed: the api id, or
+// the invoked path on a deployed api.
+func apigwResource(r *http.Request) string {
+	if apiID, stage, path, ok := executePath(r); ok {
+		return apiID + "/" + stage + path
+	}
+	segs := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(segs) >= 2 && segs[0] == "restapis" {
+		return segs[1]
+	}
+	return ""
+}
+
+// executePath splits a call to a deployed API, in either addressing form.
+func executePath(r *http.Request) (apiID, stage, path string, ok bool) {
+	if rest, found := strings.CutPrefix(r.URL.Path, "/_aws/execute-api/"); found {
+		apiID, remainder, _ := strings.Cut(rest, "/")
+		stage, tail, _ := strings.Cut(remainder, "/")
+		return apiID, stage, "/" + tail, apiID != ""
+	}
+	host := r.Host
+	if i := strings.Index(host, ":"); i >= 0 {
+		host = host[:i]
+	}
+	if label, _, found := strings.Cut(host, ".execute-api."); found && label != "" {
+		stage, tail, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
+		return label, stage, "/" + tail, true
+	}
+	return "", "", "", false
+}
+
+// queryResource pulls the resource name out of a Query-protocol form.
+func queryResource(svc string, vals url.Values) string {
+	switch svc {
+	case "iam":
+		for _, k := range []string{"UserName", "RoleName", "GroupName", "PolicyName", "PolicyArn"} {
+			if v := vals.Get(k); v != "" {
+				return leafName(v)
+			}
+		}
+	case "cfn":
+		if v := vals.Get("StackName"); v != "" {
+			return leafName(v)
+		}
+		return vals.Get("ChangeSetName")
+	}
+	return leafName(vals.Get("QueueUrl") + vals.Get("TopicArn"))
 }
 
 // jsonResource pulls the resource name out of a JSON-protocol request body —
@@ -290,6 +387,11 @@ func jsonResource(svc, body string) string {
 		return str("Name")
 	case "sm":
 		return leafName(str("SecretId"))
+	case "kinesis":
+		if n := str("StreamName"); n != "" {
+			return n
+		}
+		return leafName(str("StreamARN"))
 	case "eb":
 		if n := str("Name"); n != "" {
 			return n
@@ -313,18 +415,6 @@ func leafName(s string) string {
 		s = s[i+1:]
 	}
 	return s
-}
-
-func querySvc(action string) string {
-	switch {
-	case strings.Contains(action, "Topic") || strings.Contains(action, "Subscri") || action == "Publish":
-		return "sns"
-	case strings.Contains(action, "Queue") || strings.Contains(action, "Message"):
-		return "sqs"
-	case strings.Contains(action, "Caller") || strings.Contains(action, "Role") || strings.Contains(action, "Session"):
-		return "sts"
-	}
-	return "aws"
 }
 
 // redact blanks obvious secret-bearing fields in a captured body.
