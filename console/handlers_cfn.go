@@ -47,5 +47,5 @@ func (c *Console) cfnDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.be.bustGraph()
-	c.redirect(w, r, "/cfn", "Deleted "+name)
+	c.redirect(w, r, c.prefix+"/cfn", "Deleted "+name)
 }

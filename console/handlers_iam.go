@@ -42,6 +42,7 @@ func (c *Console) iamPrincipal(w http.ResponseWriter, r *http.Request) {
 		"Attached": attached, "Inline": inline,
 		"Title": name + " · IAM",
 	}
+	data["StarterInline"] = starterPolicy
 	if kind == "user" {
 		data["Keys"], _ = c.be.AccessKeys(r.Context(), name)
 	}
@@ -135,7 +136,7 @@ func (c *Console) iamCreate(w http.ResponseWriter, r *http.Request) {
 	kind := r.FormValue("kind")
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
-		c.redirect(w, r, "/iam/create?kind="+kind, "A name is required")
+		c.redirect(w, r, c.prefix+"/iam/create?kind="+kind, "A name is required")
 		return
 	}
 	var err error
@@ -156,21 +157,21 @@ func (c *Console) iamCreate(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, to, "Created "+name)
+	c.redirect(w, r, c.prefix+to, "Created "+name)
 }
 
 func (c *Console) iamAttach(w http.ResponseWriter, r *http.Request) {
 	kind, name := r.PathValue("kind"), r.PathValue("name")
 	arn := r.FormValue("arn")
 	if arn == "" {
-		c.redirect(w, r, "/iam/"+kind+"/"+name, "Pick a policy to attach")
+		c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "Pick a policy to attach")
 		return
 	}
 	if err := c.be.AttachPolicy(r.Context(), kind, name, arn); err != nil {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/iam/"+kind+"/"+name, "Attached")
+	c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "Attached")
 }
 
 func (c *Console) iamDetach(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +180,7 @@ func (c *Console) iamDetach(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/iam/"+kind+"/"+name, "Detached")
+	c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "Detached")
 }
 
 func (c *Console) iamDeletePrincipal(w http.ResponseWriter, r *http.Request) {
@@ -188,7 +189,7 @@ func (c *Console) iamDeletePrincipal(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/iam", "Deleted "+name)
+	c.redirect(w, r, c.prefix+"/iam", "Deleted "+name)
 }
 
 func (c *Console) iamDeletePolicy(w http.ResponseWriter, r *http.Request) {
@@ -196,7 +197,7 @@ func (c *Console) iamDeletePolicy(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/iam", "Policy deleted")
+	c.redirect(w, r, c.prefix+"/iam", "Policy deleted")
 }
 
 // iamNewKey creates a credential pair. The secret is shown once and then never
@@ -209,7 +210,7 @@ func (c *Console) iamNewKey(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/iam/user/"+name, id+" / "+secret+" — the secret is not retrievable again")
+	c.redirect(w, r, c.prefix+"/iam/user/"+name, id+" / "+secret+" — the secret is not retrievable again")
 }
 
 func (c *Console) iamDeleteKey(w http.ResponseWriter, r *http.Request) {
@@ -218,5 +219,31 @@ func (c *Console) iamDeleteKey(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/iam/user/"+name, "Key deleted")
+	c.redirect(w, r, c.prefix+"/iam/user/"+name, "Key deleted")
+}
+
+// iamPutInline saves an inline policy. Inline policies are how permissions are
+// most often granted locally — one document on one principal, with nothing to
+// attach — so editing one in place is worth more than a separate screen.
+func (c *Console) iamPutInline(w http.ResponseWriter, r *http.Request) {
+	kind, name := r.PathValue("kind"), r.PathValue("name")
+	policyName := strings.TrimSpace(r.FormValue("policy"))
+	if policyName == "" {
+		c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "An inline policy needs a name")
+		return
+	}
+	if err := c.be.PutInlinePolicy(r.Context(), kind, name, policyName, r.FormValue("document")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "Saved "+policyName)
+}
+
+func (c *Console) iamDeleteInline(w http.ResponseWriter, r *http.Request) {
+	kind, name := r.PathValue("kind"), r.PathValue("name")
+	if err := c.be.DeleteInlinePolicy(r.Context(), kind, name, r.FormValue("policy")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "Removed inline policy")
 }

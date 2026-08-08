@@ -109,3 +109,43 @@ func TestIAMAccessKeyLifecycle(t *testing.T) {
 		t.Error("key not listed on the user page")
 	}
 }
+
+// A redirect after a mutation has to land on a real page. Asserting the 303
+// alone passes while the Location drops the console's path prefix and every
+// mutation dead-ends on a 404 — which is exactly what happened.
+func TestMutationRedirectsLandSomewhere(t *testing.T) {
+	c := newConsole(t)
+	postForm(t, c, "/iam/create", url.Values{"kind": {"user"}, "name": {"redir-user"}})
+	postForm(t, c, "/kinesis/create", url.Values{"name": {"redir-stream"}, "shards": {"1"}})
+
+	cases := []struct {
+		path string
+		form url.Values
+	}{
+		{"/iam/create", url.Values{"kind": {"user"}, "name": {"redir-user-2"}}},
+		{"/iam/user/redir-user/attach", url.Values{"arn": {"arn:aws:iam::aws:policy/ReadOnlyAccess"}}},
+		{"/iam/user/redir-user/inline", url.Values{
+			"policy":   {"p"},
+			"document": {`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"s3:*","Resource":"*"}]}`},
+		}},
+		{"/kinesis/redir-stream/retention", url.Values{"hours": {"48"}}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.path, func(t *testing.T) {
+			rec := postForm(t, c, tc.path, tc.form)
+			loc := rec.Header().Get("Location")
+			if loc == "" {
+				t.Fatalf("no redirect (status %d)", rec.Code)
+			}
+			if !strings.HasPrefix(loc, "/_console/") {
+				t.Fatalf("redirect leaves the console: %s", loc)
+			}
+			// Follow it: the destination must actually render.
+			follow := httptest.NewRecorder()
+			c.ServeHTTP(follow, httptest.NewRequest(http.MethodGet, loc, nil))
+			if follow.Code != http.StatusOK {
+				t.Fatalf("redirect to %s = %d", loc, follow.Code)
+			}
+		})
+	}
+}

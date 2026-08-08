@@ -223,15 +223,66 @@
       <div class="panel"><div class="code-out"><pre>{{.P.Trust}}</pre></div></div>
       {{end}}
 
-      {{if .Inline}}
+      {{/* Inline policies are how permissions are most often granted locally:
+           one document on one principal, nothing to attach. Each edits in
+           place — the document is the thing you came to change. */}}
       <div class="sec-title">Inline policies</div>
       {{range .Inline}}
-      <div class="panel">
-        <div class="panel-h"><h2>{{icon "braces"}} {{.Name}}</h2></div>
-        <div class="code-out"><pre>{{.Document}}</pre></div>
+      <div class="panel" x-data="{edit:false}"
+           x-effect="if(edit)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+        <div class="panel-h">
+          <h2>{{icon "braces"}} {{.Name}}</h2>
+          <div class="row-actions" style="opacity:1">
+            <button type="button" class="btn btn-outline btn-sm" @click="edit=!edit"
+                    x-text="edit ? 'Cancel' : 'Edit'"></button>
+            <form hx-post="{{$.Prefix}}/iam/{{$.P.Kind}}/{{$.P.Name}}/inline/delete"
+                  hx-confirm="Remove inline policy “{{.Name}}”?">
+              <input type="hidden" name="policy" value="{{.Name}}">
+              <button class="icon-btn sm danger" title="Remove">{{icon "trash"}}</button>
+            </form>
+          </div>
+        </div>
+        <div x-show="!edit"><div class="code-out"><pre>{{.Document}}</pre></div></div>
+        <div x-show="edit" x-cloak style="padding:14px 16px">
+          <form hx-post="{{$.Prefix}}/iam/{{$.P.Kind}}/{{$.P.Name}}/inline">
+            <input type="hidden" name="policy" value="{{.Name}}">
+            <div class="field">
+              <textarea name="document" data-editor rows="14">{{.Document}}</textarea>
+              <div class="mini-note">Saved as-is after the service parses it; a malformed document is refused rather than stored.</div>
+            </div>
+            <div style="margin-top:10px;display:flex;justify-content:flex-end">
+              <button class="btn" type="submit">{{icon "check"}} Save</button>
+            </div>
+          </form>
+        </div>
       </div>
       {{end}}
-      {{end}}
+
+      {{/* Adding one is the same form with an empty document and a name. */}}
+      <div class="panel" x-data="{open:false}"
+           x-effect="if(open)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+        <div class="panel-h">
+          <h2>{{icon "plus"}} Add an inline policy</h2>
+          <button type="button" class="btn btn-outline btn-sm" @click="open=!open"
+                  x-text="open ? 'Cancel' : 'Add'"></button>
+        </div>
+        <div x-show="open" x-cloak style="padding:14px 16px">
+          <form hx-post="{{.Prefix}}/iam/{{.P.Kind}}/{{.P.Name}}/inline">
+            <div class="field" style="margin-bottom:10px">
+              <label>Policy name</label>
+              <input class="input" name="policy" placeholder="allow-sqs" required autocomplete="off">
+            </div>
+            <div class="field">
+              <label>Document</label>
+              <textarea name="document" data-editor rows="12">{{.StarterInline}}</textarea>
+              <div class="mini-note">A soft-mode run writes one of these for you — the access log generates a policy covering exactly what the code asked for.</div>
+            </div>
+            <div style="margin-top:10px;display:flex;justify-content:flex-end">
+              <button class="btn" type="submit">{{icon "plus"}} Add</button>
+            </div>
+          </form>
+        </div>
+      </div>
 
       {{if eq .P.Kind "user"}}
       <div class="sec-title">Access keys</div>

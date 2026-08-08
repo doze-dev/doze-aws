@@ -540,3 +540,26 @@ func (b *backend) DeleteAccessKey(ctx context.Context, user, keyID string) error
 	})
 	return awsMessage(err)
 }
+
+// PutInlinePolicy creates or replaces a policy embedded in a principal. The
+// service parses the document and refuses a malformed one, so a bad edit comes
+// back as a message rather than being stored and failing later.
+func (b *backend) PutInlinePolicy(ctx context.Context, kind, name, policyName, document string) error {
+	action, key := "PutUserPolicy", "UserName"
+	if kind == "role" {
+		action, key = "PutRolePolicy", "RoleName"
+	}
+	_, err := b.iam(ctx, action, url.Values{
+		key: {name}, "PolicyName": {policyName}, "PolicyDocument": {document},
+	})
+	return awsMessage(err)
+}
+
+func (b *backend) DeleteInlinePolicy(ctx context.Context, kind, name, policyName string) error {
+	action, key := "DeleteUserPolicy", "UserName"
+	if kind == "role" {
+		action, key = "DeleteRolePolicy", "RoleName"
+	}
+	_, err := b.iam(ctx, action, url.Values{key: {name}, "PolicyName": {policyName}})
+	return awsMessage(err)
+}

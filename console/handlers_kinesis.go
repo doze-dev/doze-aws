@@ -267,14 +267,14 @@ func (c *Console) kinesisMerge(w http.ResponseWriter, r *http.Request) {
 	stream := r.PathValue("stream")
 	left, right := r.FormValue("left"), r.FormValue("right")
 	if left == "" || right == "" {
-		c.redirect(w, r, "/kinesis/"+stream+"/details", "Pick two adjacent shards to merge")
+		c.redirect(w, r, c.prefix+"/kinesis/"+stream+"/details", "Pick two adjacent shards to merge")
 		return
 	}
 	if err := c.be.MergeShards(r.Context(), stream, left, right); err != nil {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/kinesis/"+stream, "Merged "+left+" + "+right)
+	c.redirect(w, r, c.prefix+"/kinesis/"+stream, "Merged "+left+" + "+right)
 }
 
 func (c *Console) kinesisScale(w http.ResponseWriter, r *http.Request) {
@@ -284,7 +284,7 @@ func (c *Console) kinesisScale(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/kinesis/"+stream, "Scaled to "+strconv.Itoa(target)+" shards")
+	c.redirect(w, r, c.prefix+"/kinesis/"+stream, "Scaled to "+strconv.Itoa(target)+" shards")
 }
 
 func (c *Console) kinesisMode(w http.ResponseWriter, r *http.Request) {
@@ -299,7 +299,7 @@ func (c *Console) kinesisMode(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/kinesis/"+stream+"/details", "Stream mode set to "+mode)
+	c.redirect(w, r, c.prefix+"/kinesis/"+stream+"/details", "Stream mode set to "+mode)
 }
 
 // kinesisEncryption sets or clears the stream's KMS key. This is metadata:
@@ -319,7 +319,7 @@ func (c *Console) kinesisEncryption(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/kinesis/"+stream+"/details", msg)
+	c.redirect(w, r, c.prefix+"/kinesis/"+stream+"/details", msg)
 }
 
 func (c *Console) kinesisMetrics(w http.ResponseWriter, r *http.Request) {
@@ -332,7 +332,7 @@ func (c *Console) kinesisMetrics(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/kinesis/"+stream+"/details", "Shard-level metrics updated")
+	c.redirect(w, r, c.prefix+"/kinesis/"+stream+"/details", "Shard-level metrics updated")
 }
 
 func (c *Console) kinesisConsumerAdd(w http.ResponseWriter, r *http.Request) {
@@ -346,7 +346,7 @@ func (c *Console) kinesisConsumerAdd(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/kinesis/"+stream+"/details", "Consumer registered")
+	c.redirect(w, r, c.prefix+"/kinesis/"+stream+"/details", "Consumer registered")
 }
 
 func (c *Console) kinesisConsumerDel(w http.ResponseWriter, r *http.Request) {
@@ -360,7 +360,7 @@ func (c *Console) kinesisConsumerDel(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/kinesis/"+stream+"/details", "Consumer deregistered")
+	c.redirect(w, r, c.prefix+"/kinesis/"+stream+"/details", "Consumer deregistered")
 }
 
 func (c *Console) kinesisPolicy(w http.ResponseWriter, r *http.Request) {
@@ -381,7 +381,7 @@ func (c *Console) kinesisPolicy(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/kinesis/"+stream+"/details", msg)
+	c.redirect(w, r, c.prefix+"/kinesis/"+stream+"/details", msg)
 }
 
 // ---- mutations ----
@@ -394,7 +394,7 @@ func (c *Console) kinesisCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.be.bustGraph()
-	c.redirect(w, r, "/kinesis/"+name, "Stream created")
+	c.redirect(w, r, c.prefix+"/kinesis/"+name, "Stream created")
 }
 
 func (c *Console) kinesisDelete(w http.ResponseWriter, r *http.Request) {
@@ -403,7 +403,7 @@ func (c *Console) kinesisDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.be.bustGraph()
-	c.redirect(w, r, "/kinesis", "Stream deleted")
+	c.redirect(w, r, c.prefix+"/kinesis", "Stream deleted")
 }
 
 func (c *Console) kinesisPut(w http.ResponseWriter, r *http.Request) {
@@ -419,7 +419,7 @@ func (c *Console) kinesisPut(w http.ResponseWriter, r *http.Request) {
 	}
 	// Land in the explorer on the shard the key actually routed to — seeing
 	// the record appear where MD5 put it is the point of doing this here.
-	c.redirect(w, r, "/kinesis/"+stream+"/records?shard="+shard+"&start=latest",
+	c.redirect(w, r, c.prefix+"/kinesis/"+stream+"/records?shard="+shard+"&start=latest",
 		"Record put on "+shard)
 }
 
@@ -428,14 +428,14 @@ func (c *Console) kinesisSplit(w http.ResponseWriter, r *http.Request) {
 	shard := r.FormValue("shard")
 	at := r.FormValue("at")
 	if at == "" {
-		c.redirect(w, r, "/kinesis/"+stream, "That shard covers too small a hash range to split")
+		c.redirect(w, r, c.prefix+"/kinesis/"+stream, "That shard covers too small a hash range to split")
 		return
 	}
 	if err := c.be.SplitShard(r.Context(), stream, shard, at); err != nil {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/kinesis/"+stream, "Split "+shard)
+	c.redirect(w, r, c.prefix+"/kinesis/"+stream, "Split "+shard)
 }
 
 func (c *Console) kinesisRetention(w http.ResponseWriter, r *http.Request) {
@@ -445,5 +445,5 @@ func (c *Console) kinesisRetention(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, "/kinesis/"+stream, "Retention set")
+	c.redirect(w, r, c.prefix+"/kinesis/"+stream, "Retention set")
 }

@@ -194,6 +194,8 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/iam/{kind}/{name}/attach", c.iamAttach)
 	m.HandleFunc("POST "+p+"/iam/{kind}/{name}/detach", c.iamDetach)
 	m.HandleFunc("POST "+p+"/iam/{kind}/{name}/delete", c.iamDeletePrincipal)
+	m.HandleFunc("POST "+p+"/iam/{kind}/{name}/inline", c.iamPutInline)
+	m.HandleFunc("POST "+p+"/iam/{kind}/{name}/inline/delete", c.iamDeleteInline)
 	m.HandleFunc("POST "+p+"/iam/user/{name}/keys", c.iamNewKey)
 	m.HandleFunc("POST "+p+"/iam/user/{name}/keys/delete", c.iamDeleteKey)
 
