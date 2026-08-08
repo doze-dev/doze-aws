@@ -54,6 +54,7 @@ return"= "+p.join(" ");};</script>
       {{template "ri" dict "P" .Prefix "URL" "/sqs" "On" (hasPrefix .Page "sqs") "Name" "SQS" "Svc" "sqs"}}
       {{template "ri" dict "P" .Prefix "URL" "/sns" "On" (hasPrefix .Page "sns") "Name" "SNS" "Svc" "sns"}}
       {{template "ri" dict "P" .Prefix "URL" "/eb" "On" (hasPrefix .Page "eb") "Name" "EventBridge" "Svc" "eb"}}
+      {{template "ri" dict "P" .Prefix "URL" "/kinesis" "On" (hasPrefix .Page "kinesis") "Name" "Kinesis" "Svc" "kinesis"}}
       <div class="rgroup">Compute</div>
       {{template "ri" dict "P" .Prefix "URL" "/lambda" "On" (hasPrefix .Page "lambda") "Name" "Lambda" "Svc" "lambda"}}
       <div class="rgroup">Config &amp; secrets</div>

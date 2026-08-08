@@ -61,6 +61,18 @@ func (b *backend) ResourceTags(ctx context.Context, svc, id string) ([]KV, error
 			}
 		}
 		err = e
+	case "kinesis":
+		var out struct {
+			Tags []struct{ Key, Value string } `json:"Tags"`
+		}
+		body, e := b.kinesis(ctx, "ListTagsForStream", map[string]any{"StreamName": id})
+		if e == nil {
+			json.Unmarshal(body, &out)
+			for _, t := range out.Tags {
+				m[t.Key] = t.Value
+			}
+		}
+		err = e
 	case "kms":
 		var out struct {
 			Tags []struct{ TagKey, TagValue string } `json:"Tags"`
@@ -124,6 +136,11 @@ func (b *backend) ResourceTags(ctx context.Context, svc, id string) ([]KV, error
 // SetResourceTag sets (or overwrites) one tag.
 func (b *backend) SetResourceTag(ctx context.Context, svc, id, key, value string) error {
 	switch svc {
+	case "kinesis":
+		_, err := b.kinesis(ctx, "AddTagsToStream", map[string]any{
+			"StreamName": id, "Tags": map[string]string{key: value},
+		})
+		return err
 	case "sqs":
 		_, err := b.sqs(ctx, "TagQueue", map[string]any{"QueueUrl": b.queueURL(id), "Tags": map[string]string{key: value}})
 		return err
@@ -161,6 +178,11 @@ func (b *backend) SetResourceTag(ctx context.Context, svc, id, key, value string
 // RemoveResourceTag deletes one tag by key.
 func (b *backend) RemoveResourceTag(ctx context.Context, svc, id, key string) error {
 	switch svc {
+	case "kinesis":
+		_, err := b.kinesis(ctx, "RemoveTagsFromStream", map[string]any{
+			"StreamName": id, "TagKeys": []string{key},
+		})
+		return err
 	case "sqs":
 		_, err := b.sqs(ctx, "UntagQueue", map[string]any{"QueueUrl": b.queueURL(id), "TagKeys": []string{key}})
 		return err

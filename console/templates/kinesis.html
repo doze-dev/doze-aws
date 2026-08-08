@@ -1,0 +1,167 @@
+{{define "kinesis_lp"}}
+{{template "lp_head" dict "Svc" "kinesis" "Label" "Kinesis" "NewURL" (printf "%s/kinesis/create" .Prefix)}}
+  {{range .List}}
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/kinesis/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{.Shards}}</span></a>
+  {{end}}
+{{template "lp_foot" .}}
+{{end}}
+
+{{define "kinesis_home"}}{{template "shell_top" .}}
+  {{template "kinesis_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  {{template "empty_detail" dict "Svc" "kinesis" "Hint" "Select a stream, or create one to start putting records."}}
+{{template "shell_bottom" .}}{{end}}
+
+{{define "kinesis_stream"}}{{template "shell_top" .}}
+  {{template "kinesis_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Stream)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "kinesis"}} {{.Stream}}
+        <div class="acts">
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/kinesis/{{.Stream}}/delete" hx-confirm="Delete stream “{{.Stream}}”? Its records go with it.">{{icon "trash"}} Delete</button>
+        </div>
+      </div>
+      <div class="chips">
+        {{template "copychip" dict "Label" "arn" "Value" .Summary.ARN}}
+        <span class="chip">{{.Summary.Status}}</span>
+        <span class="chip">{{.Summary.Mode}}</span>
+        <span class="chip">{{.Summary.Retention}}h retention</span>
+      </div>
+      <div style="margin-top:10px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "kinesis" "Self" .Stream}}</div>
+    </div>
+
+    <div class="det-b">
+      {{/* Shards first: the hash-space bar is the whole point. A partition key
+           lands in exactly one of these, and a reshard is visible as a closed
+           parent sitting above its children. */}}
+      <div class="sec-title">Shards <span class="dim">— the 128-bit key space, divided</span></div>
+      <div class="panel">
+        <table class="tbl">
+          <thead><tr><th>Shard</th><th>Hash space</th><th class="num">Records</th><th>Lineage</th><th></th></tr></thead>
+          <tbody>
+          {{range .Shards}}
+            <tr class="{{if eq .ID $.Sel}}on{{end}}{{if .Closed}} dim{{end}}">
+              <td class="mono">
+                <a href="{{$.Prefix}}/kinesis/{{$.Stream}}?shard={{.ID}}">{{.ID}}</a>
+                {{if .Closed}}<span class="chip sm">closed</span>{{end}}
+              </td>
+              <td>
+                <div class="meter" title="{{.StartKey}} … {{.EndKey}}">
+                  <span class="meter-fill" style="width:{{sharePct .Share}}"></span>
+                </div>
+                <span class="dim mono sm">{{sharePct .Share}} of the key space</span>
+              </td>
+              <td class="num">{{.Count}}</td>
+              <td class="dim sm mono">
+                {{if .Adjacent}}merge of {{.Parent}} + {{.Adjacent}}
+                {{else if .Parent}}split of {{.Parent}}
+                {{else}}—{{end}}
+              </td>
+              <td class="right">
+                {{if not .Closed}}
+                <form hx-post="{{$.Prefix}}/kinesis/{{$.Stream}}/split" hx-confirm="Split {{.ID}} in two? The parent closes and two children open.">
+                  <input type="hidden" name="shard" value="{{.ID}}">
+                  <input type="hidden" name="at" value="{{midpoint .StartKey .EndKey}}">
+                  <button class="btn btn-outline btn-sm" type="submit">{{icon "git-branch"}} Split</button>
+                </form>
+                {{end}}
+              </td>
+            </tr>
+          {{else}}
+            <tr><td colspan="5" class="mini-note">No shards.</td></tr>
+          {{end}}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="split">
+        <div class="panel">
+          <div class="panel-h"><h2>{{icon "send"}} Put record</h2></div>
+          <div style="padding:14px 16px">
+            <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/put">
+              <div class="field" style="margin-bottom:10px">
+                <label>Partition key</label>
+                <input class="input" name="partitionKey" placeholder="device-7" value="console" autocomplete="off">
+                <div class="mini-note">MD5 of this key decides the shard — the same key always lands in the same place.</div>
+              </div>
+              <div class="field">
+                <label>Data</label>
+                <textarea name="data" data-editor rows="5" placeholder='{"temp":21.5}' required></textarea>
+              </div>
+              <div style="margin-top:10px;display:flex;justify-content:flex-end">
+                <button class="btn" type="submit">{{icon "send"}} Put</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><h2>{{icon "clock"}} Retention</h2></div>
+          <div style="padding:14px 16px">
+            <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/retention">
+              <div class="field">
+                <label>Hours <span class="dim">24 – 8760</span></label>
+                <input class="input" name="hours" type="number" min="24" max="8760" value="{{.Summary.Retention}}">
+                <div class="mini-note">Records past this age are really reclaimed, on a background sweep.</div>
+              </div>
+              <div style="margin-top:10px;display:flex;justify-content:flex-end">
+                <button class="btn btn-outline" type="submit">{{icon "check"}} Apply</button>
+              </div>
+            </form>
+            <div style="margin-top:14px">
+              {{template "tags_panel" dict "Prefix" .Prefix "Svc" "kinesis" "ID" .Stream}}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {{/* The record browser reads from the trim horizon and never
+           checkpoints, so looking here cannot disturb a running consumer. */}}
+      <div class="sec-title">Records <span class="dim">— {{.Sel}}, from the trim horizon</span></div>
+      <div class="panel">
+        <table class="tbl">
+          <thead><tr><th class="num">Seq</th><th>Partition key</th><th>Arrived</th><th>Data</th><th class="num">Bytes</th></tr></thead>
+          <tbody>
+          {{range .Records}}
+            <tr>
+              <td class="num mono dim">{{.Seq}}</td>
+              <td class="mono">{{.Partition}}</td>
+              <td class="dim sm">{{.Arrived}}</td>
+              <td class="mono sm">{{if .Binary}}<span class="chip sm">base64</span> {{end}}{{.Data}}</td>
+              <td class="num dim">{{.Bytes}}</td>
+            </tr>
+          {{else}}
+            <tr><td colspan="5" class="mini-note">Nothing in this shard yet. Put a record above, or send one with the SDK.</td></tr>
+          {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{define "kinesis_create"}}{{template "shell_top" .}}
+  {{template "kinesis_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  <section class="detail">
+    <div class="det-h"><div class="det-title">{{awsIcon "kinesis"}} New stream</div></div>
+    <div class="det-b">
+      <div class="panel" style="max-width:520px">
+        <div style="padding:16px">
+          <form hx-post="{{.Prefix}}/kinesis/create">
+            <div class="field" style="margin-bottom:12px">
+              <label>Stream name</label>
+              <input class="input" name="name" placeholder="telemetry" required autofocus autocomplete="off">
+            </div>
+            <div class="field">
+              <label>Shards</label>
+              <input class="input" name="shards" type="number" min="1" value="1">
+              <div class="mini-note">Shards divide the key space evenly. One is plenty locally unless you are testing routing or a reshard.</div>
+            </div>
+            <div style="margin-top:14px;display:flex;justify-content:flex-end">
+              <button class="btn" type="submit">{{icon "plus"}} Create stream</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}

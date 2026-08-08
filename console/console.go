@@ -126,6 +126,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/sqs/create", c.createPage("sqs", "sqs_create"))
 	m.HandleFunc("GET "+p+"/ddb/create", c.createPage("ddb", "ddb_create"))
 	m.HandleFunc("GET "+p+"/sns/create", c.createPage("sns", "sns_create"))
+	m.HandleFunc("GET "+p+"/kinesis/create", c.createPage("kinesis", "kinesis_create"))
 	m.HandleFunc("GET "+p+"/eb/create-bus", c.createPage("eb", "eb_bus_create"))
 	m.HandleFunc("GET "+p+"/eb/{bus}/create-rule", c.ebRuleCreatePage)
 	m.HandleFunc("GET "+p+"/kms/create", c.createPage("kms", "kms_create"))
@@ -179,6 +180,15 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/ddb/{table}/delete-gsi", c.ddbDeleteGSI)
 
 	// SNS.
+	// Kinesis.
+	m.HandleFunc("GET "+p+"/kinesis", c.kinesisStreams)
+	m.HandleFunc("POST "+p+"/kinesis/create", c.kinesisCreate)
+	m.HandleFunc("GET "+p+"/kinesis/{stream}", c.kinesisStream)
+	m.HandleFunc("POST "+p+"/kinesis/{stream}/delete", c.kinesisDelete)
+	m.HandleFunc("POST "+p+"/kinesis/{stream}/put", c.kinesisPut)
+	m.HandleFunc("POST "+p+"/kinesis/{stream}/split", c.kinesisSplit)
+	m.HandleFunc("POST "+p+"/kinesis/{stream}/retention", c.kinesisRetention)
+
 	m.HandleFunc("GET "+p+"/sns", c.snsTopics)
 	m.HandleFunc("POST "+p+"/sns/create", c.snsCreateTopic)
 	m.HandleFunc("GET "+p+"/sns/{topic}", c.snsTopic)
@@ -407,6 +417,14 @@ func templateFuncs(prefix string) template.FuncMap {
 		"awsIcon": func(svc string) template.HTML {
 			return template.HTML(`<img class="aws-ic" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)
 		},
+		// sharePct renders a shard's slice of the hash space. The raw bounds are
+		// 39-digit integers; a percentage is the only readable form.
+		"sharePct": func(f float64) string {
+			return strconv.FormatFloat(f*100, 'f', 1, 64) + "%"
+		},
+		// midpoint is the split key halfway through a shard, so the split
+		// control does not ask anyone to type a 128-bit number.
+		"midpoint": MidpointOf,
 		// dict builds a map for passing several values to a nested template.
 		"dict": func(kv ...any) map[string]any {
 			m := make(map[string]any, len(kv)/2)

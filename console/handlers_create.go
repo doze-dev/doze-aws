@@ -12,6 +12,9 @@ func (c *Console) createPage(svc, tmpl string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data := map[string]any{"Svc": svc, "Title": "Create"}
 		switch svc {
+		case "kinesis":
+			streams, _ := c.be.ListStreams(r.Context())
+			data["List"] = streams
 		case "s3":
 			data["List"] = c.s3List(r)
 		case "sqs":
@@ -137,6 +140,9 @@ func (c *Console) apiCounts(w http.ResponseWriter, r *http.Request) {
 	}
 	if n, err := c.be.CountKeys(ctx); err == nil {
 		counts["kms"] = n
+	}
+	if n, err := c.be.CountStreams(ctx); err == nil {
+		counts["kinesis"] = n
 	}
 	if v, err := c.be.ListParameters(ctx); err == nil { // single call already
 		counts["ssm"] = len(v)
