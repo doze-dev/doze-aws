@@ -1029,7 +1029,15 @@ a.lo-card:hover { border-color: hsl(var(--accent-blue)); box-shadow: 0 0 0 3px h
    steps down rather than competing at full table size. */
 .sub { font-size: 11.5px; }
 
+/* A checkbox that lives in a control row beside buttons. It has no label above
+   it, so it has to carry the buttons' height itself or it floats off the row's
+   shared baseline. */
+.chip-toggle { display: inline-flex; align-items: center; gap: 7px; height: 34px; cursor: pointer; user-select: none; }
+.chip-toggle input { margin: 0; }
+
 /* Blocks in a detail body normally get their rhythm from the .sec-title above
    them; where two blocks stack with no heading between, the gap has to come
-   from the adjacency instead. */
-.det-b > .panel + .split, .det-b > .split + .panel, .det-b > .panel + .panel { margin-top: 16px; }
+   from the adjacency instead. Cards, tables and split rows all count;
+   .explorer-form is deliberately absent because it carries its own bottom
+   margin and would otherwise double the gap. */
+.det-b > :is(.panel, .table-wrap, .split) + :is(.panel, .table-wrap, .split) { margin-top: 16px; }

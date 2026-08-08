@@ -470,8 +470,23 @@ func (s *Store) Fetch(stream, shard string, after uint64, limit int) (recs []Rec
 	return recs, next, behind, err
 }
 
+// arrivalOnly decodes just the arrival stamp of a stored record. Seeking by
+// time reads a lot of records it will not return, and a full Record decode
+// would base64-decode every payload on the way past.
+type arrivalOnly struct {
+	ArrivedNs int64 `json:"t"`
+}
+
 // SeqAtOrAfter returns the sequence to start from for an AT_TIMESTAMP
 // iterator: the record before the first one at or after ts.
+//
+// The answer is the highest sequence whose record arrived before ts, so the
+// search runs backward from the tail and stops at the first one that qualifies
+// rather than scanning the whole shard. That is the same record a forward scan
+// would settle on — it keeps overwriting until the last match — but it costs
+// only the records at or after ts, which is the window the caller is about to
+// read anyway. The common case, "show me the last few minutes", stops almost
+// immediately instead of walking millions of records to get there.
 func (s *Store) SeqAtOrAfter(stream, shard string, ts time.Time) (uint64, error) {
 	var after uint64
 	err := s.db.View(func(tx *bolt.Tx) error {
@@ -480,16 +495,19 @@ func (s *Store) SeqAtOrAfter(stream, shard string, ts time.Time) (uint64, error)
 			return nil
 		}
 		target := ts.UnixNano()
-		return b.ForEach(func(_, v []byte) error {
-			var rec Record
+		c := b.Cursor()
+		for k, v := c.Last(); k != nil; k, v = c.Prev() {
+			var rec arrivalOnly
 			if err := json.Unmarshal(v, &rec); err != nil {
 				return err
 			}
 			if rec.ArrivedNs < target {
-				after = rec.Seq
+				after = binary.BigEndian.Uint64(k)
+				return nil
 			}
-			return nil
-		})
+		}
+		// Every surviving record is at or after ts: start below all of them.
+		return nil
 	})
 	return after, err
 }

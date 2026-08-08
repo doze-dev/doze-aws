@@ -11,37 +11,48 @@
   {{template "empty_detail" dict "Svc" "kinesis" "Hint" "Select a stream, or create one to start putting records."}}
 {{template "shell_bottom" .}}{{end}}
 
+{{/* The header is shared by both tabs: identity, state, and where the stream
+     connects, none of which changes with what you are looking at. */}}
+{{define "kinesis_head"}}
+<div class="det-h">
+  <div class="det-title">{{awsIcon "kinesis"}} {{.Stream}}
+    <div class="acts">
+      <button class="btn btn-outline danger" hx-post="{{.Prefix}}/kinesis/{{.Stream}}/delete" hx-confirm="Delete stream “{{.Stream}}”? Its records go with it.">{{icon "trash"}} Delete</button>
+    </div>
+  </div>
+  <div class="chips">
+    {{template "copychip" dict "Label" "arn" "Value" .Summary.ARN}}
+    <span class="chip">{{.Summary.Status}}</span>
+    <span class="chip">{{.Summary.Mode}}</span>
+    <span class="chip">{{.Summary.Retention}}h retention</span>
+  </div>
+  {{template "dtabs" dict "Cur" .Tab "Tabs" (list
+    (dict "Key" "shards" "Label" "Shards" "Icon" "git-branch" "URL" (printf "%s/kinesis/%s" .Prefix .Stream))
+    (dict "Key" "records" "Label" "Records" "Icon" "list" "URL" (printf "%s/kinesis/%s/records" .Prefix .Stream)))}}
+</div>
+{{end}}
+
+{{/* ---- Shards tab: the structural view ---- */}}
+
 {{define "kinesis_stream"}}{{template "shell_top" .}}
   {{template "kinesis_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Stream)}}
   <section class="detail">
-    <div class="det-h">
-      <div class="det-title">{{awsIcon "kinesis"}} {{.Stream}}
-        <div class="acts">
-          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/kinesis/{{.Stream}}/delete" hx-confirm="Delete stream “{{.Stream}}”? Its records go with it.">{{icon "trash"}} Delete</button>
-        </div>
-      </div>
-      <div class="chips">
-        {{template "copychip" dict "Label" "arn" "Value" .Summary.ARN}}
-        <span class="chip">{{.Summary.Status}}</span>
-        <span class="chip">{{.Summary.Mode}}</span>
-        <span class="chip">{{.Summary.Retention}}h retention</span>
-      </div>
-      <div style="margin-top:10px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "kinesis" "Self" .Stream}}</div>
-    </div>
-
+    {{template "kinesis_head" .}}
     <div class="det-b">
-      {{/* Shards first: the hash-space bar is the whole point. A partition key
-           lands in exactly one of these, and a reshard is visible as a closed
-           parent sitting above its children. */}}
+      <div style="margin-bottom:14px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "kinesis" "Self" .Stream}}</div>
+
+      {{/* The hash-space bar is the whole point: a partition key lands in
+           exactly one of these, and a reshard shows as a closed parent sitting
+           above its children. */}}
       <div class="sec-title">Shards <span class="dim">— the 128-bit key space, divided</span></div>
-      <div class="panel">
+      <div class="table-wrap">
         <table class="tbl">
-          <thead><tr><th>Shard</th><th>Hash space</th><th class="num">Records</th><th>Lineage</th><th></th></tr></thead>
+          <thead><tr><th>Shard</th><th>Hash space</th><th class="num">Depth</th><th>Lineage</th><th style="width:150px"></th></tr></thead>
           <tbody>
           {{range .Shards}}
-            <tr class="{{if eq .ID $.Sel}}on{{end}}{{if .Closed}} dim{{end}}">
-              <td class="mono">
-                <a href="{{$.Prefix}}/kinesis/{{$.Stream}}?shard={{.ID}}">{{.ID}}</a>
+            <tr {{if .Closed}}class="dim"{{end}}>
+              <td class="mono sub">
+                <a href="{{$.Prefix}}/kinesis/{{$.Stream}}/records?shard={{.ID}}">{{.ID}}</a>
                 {{if .Closed}}<span class="chip">closed</span>{{end}}
               </td>
               <td>
@@ -50,7 +61,11 @@
                 </div>
                 <span class="dim mono sub">{{sharePct .Share}} of the key space</span>
               </td>
-              <td class="num">{{.Count}}</td>
+              {{/* Kinesis has no count API, so depth costs a read. It loads
+                   after the page so a deep stream still paints at once. */}}
+              <td class="num sub" hx-get="{{$.Prefix}}/kinesis/{{$.Stream}}/shards/{{.ID}}/depth"
+                  hx-trigger="load" hx-target="this" hx-select="unset"
+                  hx-swap="innerHTML"><span class="dim">·</span></td>
               <td class="dim sub mono">
                 {{if .Adjacent}}merge of {{.Parent}} + {{.Adjacent}}
                 {{else if .Parent}}split of {{.Parent}}
@@ -113,31 +128,191 @@
           </div>
         </div>
       </div>
-
-      {{/* The record browser reads from the trim horizon and never
-           checkpoints, so looking here cannot disturb a running consumer. */}}
-      <div class="sec-title">Records <span class="dim">— {{.Sel}}, from the trim horizon</span></div>
-      <div class="panel">
-        <table class="tbl">
-          <thead><tr><th class="num">Seq</th><th>Partition key</th><th>Arrived</th><th>Data</th><th class="num">Bytes</th></tr></thead>
-          <tbody>
-          {{range .Records}}
-            <tr>
-              <td class="num mono dim">{{.Seq}}</td>
-              <td class="mono">{{.Partition}}</td>
-              <td class="dim sub">{{.Arrived}}</td>
-              <td class="mono sub">{{if .Binary}}<span class="chip">base64</span> {{end}}{{.Data}}</td>
-              <td class="num dim">{{.Bytes}}</td>
-            </tr>
-          {{else}}
-            <tr><td colspan="5" class="mini-note">Nothing in this shard yet. Put a record above, or send one with the SDK.</td></tr>
-          {{end}}
-          </tbody>
-        </table>
-      </div>
     </div>
   </section>
 {{template "shell_bottom" .}}{{end}}
+
+{{define "kinesis_depth"}}{{if .Err}}<span class="dim">—</span>{{else}}{{.Count.N}}{{if .Count.Capped}}+{{end}}{{end}}{{end}}
+
+{{/* ---- Records tab: the explorer ---- */}}
+
+{{define "kinesis_records"}}{{template "shell_top" .}}
+  {{template "kinesis_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Stream)}}
+  <section class="detail" x-data="{drawer:false}">
+    {{template "kinesis_head" .}}
+    <div class="det-b">
+      {{template "kinesis_filters" .}}
+      {{template "kinesis_record_table" .}}
+    </div>
+    <div class="drawer-scrim" x-show="drawer" x-cloak @click="drawer=false"></div>
+    <aside class="drawer" x-show="drawer" x-cloak @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{/* The bar splits on the one distinction that matters in a log: the top row
+     decides where the read starts, which Kinesis can do exactly and cheaply;
+     the drawer below narrows what came back, which it cannot. Keeping them
+     apart is why the footer can say what it actually scanned. */}}
+{{define "kinesis_filters"}}
+<form class="explorer-form" x-data="{more:{{if or .Query.Partition .Query.Contains}}true{{else}}false{{end}}}"
+      hx-post="{{.Prefix}}/kinesis/{{.Stream}}/records/query"
+      hx-target="#k-records" hx-select="unset" hx-swap="outerHTML">
+  <div class="ex-grid">
+    <div class="field" style="width:210px"><label>Shard</label>
+      <select class="input mono sub" name="shard">
+        <option value="">all shards</option>
+        {{range .Shards}}<option value="{{.ID}}" {{if eq .ID $.Query.Shard}}selected{{end}}>{{.ID}}{{if .Closed}} (closed){{end}}</option>{{end}}
+      </select>
+    </div>
+    <div class="field" style="width:150px"><label>Start at</label>
+      <select class="input" name="start">
+        {{$s := .Query.StartOpt}}
+        <option value="horizon" {{if or (eq $s "") (eq $s "horizon")}}selected{{end}}>trim horizon</option>
+        <option value="5m"  {{if eq $s "5m"}}selected{{end}}>last 5 minutes</option>
+        <option value="15m" {{if eq $s "15m"}}selected{{end}}>last 15 minutes</option>
+        <option value="1h"  {{if eq $s "1h"}}selected{{end}}>last hour</option>
+        <option value="24h" {{if eq $s "24h"}}selected{{end}}>last 24 hours</option>
+        <option value="latest" {{if eq $s "latest"}}selected{{end}}>tip (new only)</option>
+      </select>
+    </div>
+    <div class="field" style="width:90px"><label>Read</label>
+      <select class="input" name="limit">
+        {{$l := .Query.Limit}}
+        <option {{if eq $l 50}}selected{{end}}>50</option>
+        <option {{if eq $l 100}}selected{{end}}>100</option>
+        <option {{if eq $l 500}}selected{{end}}>500</option>
+      </select>
+    </div>
+    <button class="btn" type="submit">{{icon "list"}} Read</button>
+    {{/* Following is a read that keeps going, so it belongs with the start
+         controls rather than among the filters. */}}
+    <label class="chip chip-toggle" title="Poll forward from the last record read">
+      <input type="checkbox" name="follow" value="1" {{if .Query.Follow}}checked{{end}}> follow
+    </label>
+    <button class="btn btn-outline btn-sm" type="button" @click="more=!more">
+      {{icon "filter"}} <span x-text="more?'Fewer':'Filters'"></span>
+    </button>
+  </div>
+
+  <div class="ex-grid" style="margin-top:10px" x-show="more" x-cloak>
+    <div class="field" style="width:230px"><label>Partition key</label>
+      <input class="input mono sub" name="pk" value="{{.Query.Partition}}" placeholder="device-7" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field" style="flex:1"><label>Data contains</label>
+      <input class="input mono sub" name="contains" value="{{.Query.Contains}}" placeholder="error" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field" style="width:200px"><label>Up to <span class="dim">local time</span></label>
+      <input class="input sub" name="until" type="datetime-local" value="{{.Query.UntilOpt}}">
+    </div>
+  </div>
+
+  <p class="mini-note">
+    Start and shard are pushed into the read. Partition key, data and end time are
+    applied to what comes back — so an empty result means nothing matched
+    <em>in the window read</em>, not that nothing matches in the stream.
+    Naming a partition key is the exception: it routes by MD5 to one shard, so the
+    explorer reads only that shard.
+  </p>
+</form>
+{{end}}
+
+{{define "kinesis_record_table"}}
+<div id="k-records">
+{{/* Following renders the table even with nothing in it: the poll trigger
+     lives in the last row, so an empty result must still carry it or the
+     view would stop watching the moment it started. */}}
+{{if or .Result.Records .Follow}}
+<div class="table-wrap"><table class="tbl">
+  <thead><tr>
+    <th class="num" style="width:90px">Seq</th>
+    {{if not .Query.Shard}}<th style="width:170px">Shard</th>{{end}}
+    <th style="width:150px">Partition key</th>
+    <th style="width:90px">Arrived</th>
+    <th>Data</th>
+    <th class="num" style="width:70px">Bytes</th>
+  </tr></thead>
+  <tbody>{{template "kinesis_record_rows" .}}</tbody>
+</table></div>
+{{template "kinesis_record_foot" .}}
+{{else}}
+<div class="empty" style="border:0"><span class="ic-lg">{{icon "list"}}</span>
+  <p>{{if .Result.Filtered}}Nothing matched in the {{.Result.Scanned}} record{{if ne .Result.Scanned 1}}s{{end}} read.
+     Widen the window or clear a filter.
+     {{else}}Nothing in this window. Put a record, or send one with the SDK.{{end}}</p>
+</div>
+{{template "kinesis_record_foot" .}}
+{{end}}
+</div>
+{{end}}
+
+{{/* The footer is the honesty mechanism: a log read is always partial, so the
+     page states what it looked at rather than implying it saw everything. */}}
+{{define "kinesis_record_foot"}}
+<div class="tbl-foot">
+  showing {{len .Result.Records}} of {{.Result.Scanned}} read
+  {{- if .Query.Routed}} · routed to {{.Query.Shard}} by partition key
+  {{- else if .Query.Shard}} · {{.Query.Shard}}
+  {{- else}} · {{len .Result.Shards}} shard{{if ne (len .Result.Shards) 1}}s{{end}} merged{{end}}
+  {{- if not .Result.Drained}} · more behind{{end}}
+</div>
+{{end}}
+
+{{/* Row fragment — the first page and every appended one. The last row carries
+     the trigger that fetches the next, so the cursor never lives in the URL. */}}
+{{define "kinesis_record_rows"}}
+{{$cols := 6}}{{if .Query.Shard}}{{$cols = 5}}{{end}}
+{{range .Result.Records}}
+  <tr>
+    <td class="num mono dim sub">{{.Seq}}</td>
+    {{if not $.Query.Shard}}<td class="mono dim sub">{{.Shard}}</td>{{end}}
+    <td class="mono sub">{{.Partition}}</td>
+    <td class="dim sub">{{.Arrived}}</td>
+    <td class="mono sub trunc" style="max-width:420px">
+      {{if .Binary}}<span class="chip">base64</span> {{end}}{{.Data}}{{if .Truncated}}<span class="dim">…</span>
+      <button class="btn btn-outline btn-sm" style="margin-left:6px"
+              hx-get="{{$.Prefix}}/kinesis/{{$.Stream}}/record?shard={{.Shard}}&seq={{.Seq}}"
+              hx-target="#drawer-inner" hx-select="unset" hx-swap="innerHTML"
+              @click="drawer=true">{{icon "search"}} Full</button>{{end}}
+    </td>
+    <td class="num dim sub">{{.Bytes}}</td>
+  </tr>
+{{end}}
+{{if .Follow}}
+  {{/* Following polls forward from the cursor and replaces itself with whatever
+       arrived, plus a fresh trigger carrying the advanced cursor. */}}
+  <tr id="k-tail"><td colspan="{{$cols}}" style="text-align:center;padding:6px">
+    <span class="dim sub" hx-post="{{.Prefix}}/kinesis/{{.Stream}}/records/query"
+          hx-vals='{{.NextVals}}' hx-trigger="every 2s"
+          hx-target="closest tr" hx-select="unset" hx-swap="outerHTML">
+      {{icon "activity"}} following — new records appear here
+    </span>
+  </td></tr>
+{{else if and .Result.Cursor (not .Result.Drained)}}
+  <tr><td colspan="{{$cols}}" style="text-align:center;padding:6px">
+    <button type="button" class="btn btn-outline btn-sm"
+            hx-post="{{.Prefix}}/kinesis/{{.Stream}}/records/query"
+            hx-vals='{{.NextVals}}' hx-target="closest tr" hx-select="unset" hx-swap="outerHTML">
+      {{icon "plus"}} Load {{.Query.Limit}} more
+    </button>
+  </td></tr>
+{{end}}
+{{end}}
+
+{{/* One record, whole. The listing truncates, so this is the only place a full
+     payload is sent — and only for the row that asked. */}}
+{{define "kinesis_record_detail"}}
+<div class="drawer-h"><span class="title">Record {{.Rec.Seq}}</span></div>
+<div class="drawer-b">
+  <div class="table-wrap" style="margin-bottom:12px"><table class="tbl kv"><tbody>
+    <tr><td>shard</td><td>{{.Rec.Shard}}</td></tr>
+    <tr><td>partition key</td><td>{{.Rec.Partition}}</td></tr>
+    <tr><td>arrived</td><td>{{.Rec.ArrivedAt}}</td></tr>
+    <tr><td>bytes</td><td>{{.Rec.Bytes}}</td></tr>
+    {{if .Rec.Binary}}<tr><td>encoding</td><td>base64 (not printable)</td></tr>{{end}}
+  </tbody></table></div>
+  <div class="code-out"><pre>{{.Rec.Data}}</pre></div>
+</div>
+{{end}}
 
 {{define "kinesis_create"}}{{template "shell_top" .}}
   {{template "kinesis_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}

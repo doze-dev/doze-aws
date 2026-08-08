@@ -332,6 +332,85 @@ func TestSDKIteratorTypes(t *testing.T) {
 	assertCode(t, err, "ResourceNotFoundException")
 }
 
+// TestAtTimestampBoundaries pins the ends of the AT_TIMESTAMP search. The store
+// finds the start by walking backward from the tail and stopping at the first
+// record older than the target, so the cases that matter are a target past
+// every record (deliver nothing) and one landing mid-shard (deliver the tail).
+func TestAtTimestampBoundaries(t *testing.T) {
+	ctx := context.Background()
+	c := client(t)
+	mustCreate(t, c, "attime", 1)
+	d, _ := c.DescribeStream(ctx, &awskinesis.DescribeStreamInput{StreamName: aws.String("attime")})
+	shard := aws.ToString(d.StreamDescription.Shards[0].ShardId)
+
+	put := func(body string) {
+		t.Helper()
+		if _, err := c.PutRecord(ctx, &awskinesis.PutRecordInput{
+			StreamName: aws.String("attime"), PartitionKey: aws.String("k"),
+			Data: []byte(body),
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	readFrom := func(ts time.Time) []ktypes.Record {
+		t.Helper()
+		it, err := c.GetShardIterator(ctx, &awskinesis.GetShardIteratorInput{
+			StreamName: aws.String("attime"), ShardId: aws.String(shard),
+			ShardIteratorType: ktypes.ShardIteratorTypeAtTimestamp,
+			Timestamp:         aws.Time(ts),
+		})
+		if err != nil {
+			t.Fatalf("GetShardIterator: %v", err)
+		}
+		res, err := c.GetRecords(ctx, &awskinesis.GetRecordsInput{ShardIterator: it.ShardIterator})
+		if err != nil {
+			t.Fatalf("GetRecords: %v", err)
+		}
+		return res.Records
+	}
+
+	put("old-0")
+	put("old-1")
+	// A gap wide enough that a timestamp taken inside it is unambiguously
+	// between the two batches once arrival is carried as float seconds.
+	time.Sleep(20 * time.Millisecond)
+	cut := time.Now()
+	time.Sleep(20 * time.Millisecond)
+	put("new-0")
+	put("new-1")
+
+	if got := readFrom(cut); len(got) != 2 ||
+		string(got[0].Data) != "new-0" || string(got[1].Data) != "new-1" {
+		t.Fatalf("mid-shard AT_TIMESTAMP returned %d records, want the two after the cut", len(got))
+	}
+	// Past the tail: the shard has nothing at or after the target.
+	if got := readFrom(time.Now().Add(time.Hour)); len(got) != 0 {
+		t.Fatalf("future AT_TIMESTAMP returned %d records, want 0", len(got))
+	}
+	// Before the head: every record still qualifies.
+	if got := readFrom(time.Now().Add(-time.Hour)); len(got) != 4 {
+		t.Fatalf("past AT_TIMESTAMP returned %d records, want 4", len(got))
+	}
+	// An empty shard has nothing to walk back through.
+	mustCreate(t, c, "attime-empty", 1)
+	de, _ := c.DescribeStream(ctx, &awskinesis.DescribeStreamInput{StreamName: aws.String("attime-empty")})
+	it, err := c.GetShardIterator(ctx, &awskinesis.GetShardIteratorInput{
+		StreamName: aws.String("attime-empty"), ShardId: de.StreamDescription.Shards[0].ShardId,
+		ShardIteratorType: ktypes.ShardIteratorTypeAtTimestamp,
+		Timestamp:         aws.Time(time.Now().Add(-time.Hour)),
+	})
+	if err != nil {
+		t.Fatalf("GetShardIterator on empty shard: %v", err)
+	}
+	res, err := c.GetRecords(ctx, &awskinesis.GetRecordsInput{ShardIterator: it.ShardIterator})
+	if err != nil {
+		t.Fatalf("GetRecords on empty shard: %v", err)
+	}
+	if len(res.Records) != 0 {
+		t.Fatalf("empty shard returned %d records", len(res.Records))
+	}
+}
+
 // TestSDKSplitShardPreservesOrdering is the reshard contract: the parent closes,
 // its records stay readable to the end, the null iterator signals the close, and
 // ChildShards names where to continue.

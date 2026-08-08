@@ -1,10 +1,18 @@
 package console
 
 // Kinesis console handlers.
+//
+// The stream page is structural — shards, hash space, lineage — and the
+// records live in their own explorer. Keeping them apart is not only tidiness:
+// a stream is a log, so "show me the records" is a query with a start, a
+// window and a cursor, and pretending it is a list that fits under the shard
+// table stops being true the moment anything real is written to it.
 
 import (
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 )
 
 func (c *Console) kinesisStreams(w http.ResponseWriter, r *http.Request) {
@@ -16,51 +24,210 @@ func (c *Console) kinesisStreams(w http.ResponseWriter, r *http.Request) {
 	c.render(w, r, "kinesis_home", map[string]any{"List": streams, "Title": "Kinesis"})
 }
 
-func (c *Console) kinesisStream(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("stream")
+// streamPage gathers what every tab of a stream needs.
+func (c *Console) streamPage(r *http.Request, name string) (map[string]any, error) {
 	summary, err := c.be.StreamSummary(r.Context(), name)
+	if err != nil {
+		return nil, err
+	}
+	shards, err := c.be.ListShards(r.Context(), name)
+	if err != nil {
+		return nil, err
+	}
+	tags, _ := c.be.StreamTags(r.Context(), name)
+	streams, _ := c.be.ListStreams(r.Context())
+	return map[string]any{
+		"Stream": name, "Summary": summary, "Shards": shards, "Tags": tags,
+		"List": streams, "Title": name + " · Kinesis",
+		"Conn": c.be.Neighbors(r.Context(), "kinesis", name),
+	}, nil
+}
+
+func (c *Console) kinesisStream(w http.ResponseWriter, r *http.Request) {
+	data, err := c.streamPage(r, r.PathValue("stream"))
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
-	shards, _ := c.be.ListShards(r.Context(), name)
-	tags, _ := c.be.StreamTags(r.Context(), name)
-	streams, _ := c.be.ListStreams(r.Context())
-
-	// The selected shard defaults to the first open one, since that is where
-	// new records land and therefore what someone is usually looking for.
-	sel := r.URL.Query().Get("shard")
-	if sel == "" {
-		for _, sh := range shards {
-			if !sh.Closed {
-				sel = sh.ID
-				break
-			}
-		}
-		if sel == "" && len(shards) > 0 {
-			sel = shards[0].ID
-		}
-	}
-	var records []KRecord
-	if sel != "" {
-		records, _ = c.be.ReadShard(r.Context(), name, sel, 200)
-	}
-	// Offer a split midpoint for the selected shard, so the split control does
-	// not require anyone to type a 39-digit number.
-	midpoint := ""
-	for _, sh := range shards {
-		if sh.ID == sel && !sh.Closed {
-			midpoint = MidpointOf(sh.StartKey, sh.EndKey)
-		}
-	}
-
-	c.render(w, r, "kinesis_stream", map[string]any{
-		"Stream": name, "Summary": summary, "Shards": shards, "Sel": sel,
-		"Records": records, "Midpoint": midpoint, "Tags": tags,
-		"List": streams, "Title": name + " · Kinesis",
-		"Conn": c.be.Neighbors(r.Context(), "kinesis", name),
-	})
+	data["Tab"] = "shards"
+	c.render(w, r, "kinesis_stream", data)
 }
+
+// kinesisShardDepth answers the lazy per-shard count. Kinesis has no count
+// API, so this reads — which is exactly why it is not on the page's critical
+// path and why it is allowed to answer "1000+".
+func (c *Console) kinesisShardDepth(w http.ResponseWriter, r *http.Request) {
+	n, err := c.be.CountShard(r.Context(), r.PathValue("stream"), r.PathValue("shard"))
+	if err != nil {
+		// A count is decoration; failing it should not blank out the row.
+		c.partial(w, "kinesis_depth", map[string]any{"Err": true})
+		return
+	}
+	c.partial(w, "kinesis_depth", map[string]any{"Count": n})
+}
+
+// ---- the records explorer ----
+
+// windows are the relative start points the explorer offers. Each becomes an
+// AT_TIMESTAMP iterator, which the store resolves by seeking back from the
+// tail, so a short window stays cheap on a deep shard.
+var windows = map[string]time.Duration{
+	"5m": 5 * time.Minute, "15m": 15 * time.Minute,
+	"1h": time.Hour, "24h": 24 * time.Hour,
+}
+
+// recordQuery reads the filter bar. It separates what Kinesis can push down —
+// where to start reading — from what can only be applied to whatever came
+// back, because conflating the two is how an explorer starts lying about
+// empty results.
+func (c *Console) recordQuery(r *http.Request, stream string, shards []Shard) RecordQuery {
+	q := RecordQuery{
+		Stream:    stream,
+		Shard:     r.FormValue("shard"),
+		Partition: strings.TrimSpace(r.FormValue("pk")),
+		Contains:  r.FormValue("contains"),
+	}
+	q.Follow = r.FormValue("follow") == "1"
+	q.Limit, _ = strconv.Atoi(r.FormValue("limit"))
+	if q.Limit <= 0 {
+		q.Limit = 50
+	}
+
+	start := r.FormValue("start")
+	q.StartOpt, q.UntilOpt = start, r.FormValue("until")
+	switch {
+	case start == "latest":
+		q.Start = startAt{Mode: "latest"}
+	case start == "seq" && r.FormValue("seq") != "":
+		q.Start = startAt{Mode: "seq", Seq: r.FormValue("seq")}
+	case windows[start] != 0:
+		q.Start = startAt{Mode: "time", Since: time.Now().Add(-windows[start])}
+	default:
+		q.Start = startAt{Mode: "horizon"}
+	}
+	// A cursor is a resumption — of a "Load more" or of a follow poll — and
+	// always wins over the start control.
+	if cur := r.FormValue("cursor"); cur != "" {
+		q.Start = startAt{Mode: "seq", Seq: cur}
+	} else if q.Follow {
+		// Following the tip has no sequence to resume from until something
+		// arrives, and re-creating a LATEST iterator each poll would sit at a
+		// moving tip and never return anything. An arrival time is an anchor
+		// that holds still, so the first poll takes one and every later poll
+		// carries it forward until a real record supplies a sequence.
+		since := time.Now()
+		if ns, err := strconv.ParseInt(r.FormValue("since"), 10, 64); err == nil {
+			since = time.Unix(0, ns)
+		}
+		if start == "latest" || r.FormValue("since") != "" {
+			q.Start = startAt{Mode: "time", Since: since}
+		}
+	}
+
+	if until := r.FormValue("until"); until != "" {
+		// datetime-local arrives without a zone; read it as local time, which
+		// is what someone typing into the box meant.
+		if t, err := time.ParseInLocation("2006-01-02T15:04", until, time.Local); err == nil {
+			q.Until = t
+		}
+	}
+
+	// A partition key routes by MD5 to exactly one shard, so naming one turns
+	// a post-filter into a shard selection — the one place this explorer can
+	// beat a plain text match.
+	if q.Partition != "" && q.Shard == "" {
+		if id := ShardForKey(shards, q.Partition); id != "" {
+			q.Shard = id
+			q.Routed = true
+		}
+	}
+	return q
+}
+
+// kinesisRecords is the explorer's own view.
+func (c *Console) kinesisRecords(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("stream")
+	data, err := c.streamPage(r, name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	data["Tab"] = "records"
+	data["Title"] = name + " · Records"
+
+	shards, _ := data["Shards"].([]Shard)
+	q := c.recordQuery(r, name, shards)
+	page, err := c.be.ReadRecords(r.Context(), q)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	fillResults(data, q, page)
+	c.render(w, r, "kinesis_records", data)
+}
+
+// kinesisRecordsQuery runs a query from the filter bar or a cursor. A cursor
+// means rows are being appended, so only the rows come back.
+func (c *Console) kinesisRecordsQuery(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("stream")
+	shards, err := c.be.ListShards(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	q := c.recordQuery(r, name, shards)
+	page, err := c.be.ReadRecords(r.Context(), q)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	data := map[string]any{"Prefix": c.prefix, "Stream": name, "Shards": shards}
+	fillResults(data, q, page)
+	if r.FormValue("cursor") != "" {
+		c.partial(w, "kinesis_record_rows", data)
+		return
+	}
+	c.partial(w, "kinesis_record_table", data)
+}
+
+// fillResults puts a page and the query that produced it where the templates
+// expect them, including the values a "Load more" or a follow poll must carry
+// forward so the next read repeats the same query.
+func fillResults(data map[string]any, q RecordQuery, page *RecordPage) {
+	data["Result"] = page
+	data["Query"] = q
+	data["Follow"] = q.Follow
+	carry := map[string]string{
+		"shard": q.Shard, "pk": q.Partition, "contains": q.Contains,
+		"until": q.UntilOpt, "limit": strconv.Itoa(q.Limit), "cursor": page.Cursor,
+	}
+	if q.Follow {
+		carry["follow"] = "1"
+		// Until a record hands over a sequence, the poll keeps its time anchor
+		// so records arriving between polls are not stepped over.
+		if page.Cursor == "" && q.Start.Mode == "time" {
+			carry["since"] = strconv.FormatInt(q.Start.Since.UnixNano(), 10)
+			carry["start"] = "latest"
+		}
+	}
+	data["NextVals"] = jsonVals(carry)
+}
+
+// kinesisRecord expands one record. The listing truncates payloads, so the
+// whole thing is fetched only for the row that asks — a page of 500 records at
+// a megabyte each is not something to hand a browser on the chance someone
+// looks.
+func (c *Console) kinesisRecord(w http.ResponseWriter, r *http.Request) {
+	rec, err := c.be.ReadOne(r.Context(), r.PathValue("stream"),
+		r.FormValue("shard"), r.FormValue("seq"))
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "kinesis_record_detail", map[string]any{"Rec": rec, "Prefix": c.prefix})
+}
+
+// ---- mutations ----
 
 func (c *Console) kinesisCreate(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
@@ -93,9 +260,10 @@ func (c *Console) kinesisPut(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	// Land on the shard the key actually routed to — seeing the record appear
-	// where MD5 put it is the point of doing this from the console.
-	c.redirect(w, r, "/kinesis/"+stream+"?shard="+shard, "Record put on "+shard)
+	// Land in the explorer on the shard the key actually routed to — seeing
+	// the record appear where MD5 put it is the point of doing this here.
+	c.redirect(w, r, "/kinesis/"+stream+"/records?shard="+shard+"&start=latest",
+		"Record put on "+shard)
 }
 
 func (c *Console) kinesisSplit(w http.ResponseWriter, r *http.Request) {
