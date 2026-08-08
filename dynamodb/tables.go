@@ -41,7 +41,12 @@ type createTableReq struct {
 	BillingMode            string          `json:"BillingMode"`
 	DeletionProtection     bool            `json:"DeletionProtectionEnabled"`
 	StreamSpecification    json.RawMessage `json:"StreamSpecification"`
-	Tags                   []struct {
+	SSESpecification       *struct {
+		Enabled        bool   `json:"Enabled"`
+		SSEType        string `json:"SSEType"`
+		KMSMasterKeyID string `json:"KMSMasterKeyId"`
+	} `json:"SSESpecification"`
+	Tags []struct {
 		Key   string `json:"Key"`
 		Value string `json:"Value"`
 	} `json:"Tags"`
@@ -144,6 +149,11 @@ func (s *Server) createTable(body []byte) (any, *awshttp.APIError) {
 	if len(req.StreamSpecification) > 0 {
 		t.StreamSpec = string(req.StreamSpecification)
 	}
+	if sse := req.SSESpecification; sse != nil && sse.Enabled {
+		// DynamoDB reports KMS whatever was asked for: the AWS-owned default
+		// is the only other option and it is not described this way.
+		t.SSEEnabled, t.SSEType, t.SSEKeyID = true, orDefault(sse.SSEType, "KMS"), sse.KMSMasterKeyID
+	}
 	for _, tag := range req.Tags {
 		if t.Tags == nil {
 			t.Tags = map[string]string{}
@@ -236,6 +246,13 @@ func (s *Server) describe(t *store.Table) map[string]any {
 	if len(lsis) > 0 {
 		out["LocalSecondaryIndexes"] = lsis
 	}
+	if t.SSEEnabled {
+		sse := map[string]any{"Status": "ENABLED", "SSEType": orDefault(t.SSEType, "KMS")}
+		if t.SSEKeyID != "" {
+			sse["KMSMasterKeyArn"] = t.SSEKeyID
+		}
+		out["SSEDescription"] = sse
+	}
 	if viewType, ok := t.StreamViewType(); ok {
 		out["LatestStreamArn"] = t.StreamARN()
 		out["LatestStreamLabel"] = t.StreamLabel()
@@ -287,7 +304,12 @@ func (s *Server) updateTable(body []byte) (any, *awshttp.APIError) {
 		AttributeDefinitions []attrDef `json:"AttributeDefinitions"`
 		BillingMode          string    `json:"BillingMode"`
 		DeletionProtection   *bool     `json:"DeletionProtectionEnabled"`
-		GSIUpdates           []struct {
+		SSESpecification     *struct {
+			Enabled        bool   `json:"Enabled"`
+			SSEType        string `json:"SSEType"`
+			KMSMasterKeyID string `json:"KMSMasterKeyId"`
+		} `json:"SSESpecification"`
+		GSIUpdates []struct {
 			Create *gsiWire `json:"Create"`
 			Delete *struct {
 				IndexName string `json:"IndexName"`
@@ -303,6 +325,16 @@ func (s *Server) updateTable(body []byte) (any, *awshttp.APIError) {
 		}
 		if req.DeletionProtection != nil {
 			t.DeletionProtection = *req.DeletionProtection
+		}
+		if sse := req.SSESpecification; sse != nil {
+			// Disabling clears the description entirely, the way DynamoDB
+			// stops reporting SSEDescription once encryption is turned off.
+			t.SSEEnabled = sse.Enabled
+			if sse.Enabled {
+				t.SSEType, t.SSEKeyID = orDefault(sse.SSEType, "KMS"), sse.KMSMasterKeyID
+			} else {
+				t.SSEType, t.SSEKeyID = "", ""
+			}
 		}
 		for _, u := range req.GSIUpdates {
 			if u.Create != nil {

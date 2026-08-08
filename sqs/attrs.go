@@ -44,9 +44,30 @@ func applyAttrs(q *Queue, attrs map[string]string) error {
 			q.DeadLetterTarget = arnQueueName(rp.DeadLetterTargetArn)
 			n, _ := rp.MaxReceiveCount.Int64()
 			q.MaxReceiveCount = int(n)
+		default:
+			// Computed attributes are reported, never stored: accepting one
+			// here would let a caller overwrite the queue's own bookkeeping.
+			if computedAttrs[k] {
+				continue
+			}
+			if q.Attrs == nil {
+				q.Attrs = map[string]string{}
+			}
+			if v == "" {
+				delete(q.Attrs, k)
+				continue
+			}
+			q.Attrs[k] = v
 		}
 	}
 	return nil
+}
+
+// computedAttrs are derived by the queue itself and are read-only.
+var computedAttrs = map[string]bool{
+	"QueueArn": true, "CreatedTimestamp": true, "LastModifiedTimestamp": true,
+	"ApproximateNumberOfMessages": true, "ApproximateNumberOfMessagesNotVisible": true,
+	"ApproximateNumberOfMessagesDelayed": true,
 }
 
 // Attributes returns the GetQueueAttributes view of a queue.
@@ -72,12 +93,21 @@ func (s *Store) Attributes(name string) (map[string]string, error) {
 				return nil
 			})
 		}
+		// Stored attributes first, so the computed ones below always win.
+		for k, v := range q.Attrs {
+			out[k] = v
+		}
 		out["VisibilityTimeout"] = strconv.Itoa(q.VisibilityTimeout)
 		out["DelaySeconds"] = strconv.Itoa(q.DelaySeconds)
 		out["MessageRetentionPeriod"] = strconv.Itoa(q.RetentionPeriod)
 		out["MaximumMessageSize"] = strconv.Itoa(q.MaxMessageSize)
 		out["ReceiveMessageWaitTimeSeconds"] = strconv.Itoa(q.WaitTimeSeconds)
 		out["CreatedTimestamp"] = strconv.FormatInt(q.Created, 10)
+		modified := q.Modified
+		if modified == 0 {
+			modified = q.Created
+		}
+		out["LastModifiedTimestamp"] = strconv.FormatInt(modified, 10)
 		out["ApproximateNumberOfMessages"] = strconv.Itoa(visible)
 		out["ApproximateNumberOfMessagesNotVisible"] = strconv.Itoa(inflight)
 		out["QueueArn"] = queueARN(name)
@@ -110,6 +140,7 @@ func (s *Store) SetAttributes(name string, attrs map[string]string) error {
 		if err := applyAttrs(q, attrs); err != nil {
 			return err
 		}
+		q.Modified = s.now().Unix()
 		return s.putQueue(tx, q)
 	})
 }

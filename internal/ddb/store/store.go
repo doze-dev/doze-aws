@@ -73,7 +73,14 @@ type Table struct {
 	BillingMode        string `json:"billing_mode,omitempty"`
 	DeletionProtection bool   `json:"deletion_protection,omitempty"`
 	StreamSpec         string `json:"stream_spec,omitempty"` // stored, inert (streams post-1.0)
-	ItemCount          int64  `json:"item_count"`
+	// SSE round-trips the table's server-side-encryption setting. Nothing is
+	// enciphered locally, but a table that is asked for encryption and then
+	// reports none is a drift source: Terraform writes the block, reads the
+	// description back, finds it missing, and plans the same change forever.
+	SSEEnabled bool   `json:"sse_enabled,omitempty"`
+	SSEType    string `json:"sse_type,omitempty"`
+	SSEKeyID   string `json:"sse_key_id,omitempty"`
+	ItemCount  int64  `json:"item_count"`
 }
 
 // ARN returns the table ARN.

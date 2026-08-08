@@ -44,7 +44,16 @@ type Queue struct {
 	WaitTimeSeconds   int    `json:"wait_time_seconds"`  // default receive long-poll
 	DeadLetterTarget  string `json:"dead_letter_target"` // target queue name, "" if none
 	MaxReceiveCount   int    `json:"max_receive_count"`
-	Created           int64  `json:"created"` // unix seconds
+	Created           int64  `json:"created"`  // unix seconds
+	Modified          int64  `json:"modified"` // unix seconds
+
+	// Attrs holds every other attribute the queue was given. SQS has a long
+	// tail of settings with no local behaviour — the queue policy, the SSE
+	// pair, RedriveAllowPolicy, the FIFO throughput controls — and dropping
+	// one silently is worse than storing it: Terraform writes an attribute,
+	// reads it back, sees nothing, and never converges. Anything not handled
+	// above round-trips here so an unrecognised attribute cannot go missing.
+	Attrs map[string]string `json:"attrs,omitempty"`
 
 	Tags map[string]string `json:"tags,omitempty"`
 }
