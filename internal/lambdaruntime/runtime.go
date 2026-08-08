@@ -165,6 +165,17 @@ func (r *Runner) buildCommand(runtimeAPI string) (*exec.Cmd, error) {
 	if r.spec.Dir != "" && (strings.HasPrefix(argv[0], "./") || !strings.ContainsRune(argv[0], os.PathSeparator) && fileExists(filepath.Join(r.spec.Dir, argv[0]))) {
 		argv[0] = filepath.Join(r.spec.Dir, strings.TrimPrefix(argv[0], "./"))
 	}
+	// ...and then make it ABSOLUTE, because cmd.Dir is set below and Go
+	// resolves a relative argv[0] against cmd.Dir rather than the parent's
+	// working directory — which would look for the binary inside its own
+	// directory twice over. This bites whenever the data dir is relative (the
+	// default is ./data) and the code came from a zip rather than an in-place
+	// path, i.e. every function deployed by `sam deploy` or `cdk deploy`.
+	if !filepath.IsAbs(argv[0]) && strings.ContainsRune(argv[0], os.PathSeparator) {
+		if abs, err := filepath.Abs(argv[0]); err == nil {
+			argv[0] = abs
+		}
+	}
 	cmd := exec.Command(argv[0], argv[1:]...)
 	cmd.Dir = r.spec.Dir
 	env := os.Environ()
@@ -299,14 +310,27 @@ func (r *Runner) reap() {
 		msg = fmt.Sprintf("the function process exited: %v", err)
 	}
 	r.logf("lambda %s: %s", r.spec.Name, msg)
-	// Fail any invocation the dead process was handling.
+	// A process that dies before it ever fetches work — a missing runtime
+	// interface client, a handler that will not import — leaves the invocation
+	// sitting in the QUEUE rather than in pending. Failing only the pending set
+	// meant those callers waited out the whole timeout and were told "Task
+	// timed out", which hides the actual cause. Fail both.
+	fail := Result{
+		FunctionErr: "Unhandled",
+		Payload:     mustJSON(map[string]string{"errorMessage": msg, "errorType": "Runtime.ExitError"}),
+		Logs:        r.logTail.snapshot(),
+	}
 	for id, inv := range r.pending {
-		inv.done <- Result{
-			FunctionErr: "Unhandled",
-			Payload:     mustJSON(map[string]string{"errorMessage": msg, "errorType": "Runtime.ExitError"}),
-			Logs:        r.logTail.snapshot(),
-		}
+		inv.done <- fail
 		delete(r.pending, id)
+	}
+	for {
+		select {
+		case inv := <-r.queue:
+			inv.done <- fail
+		default:
+			return
+		}
 	}
 }
 
