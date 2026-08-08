@@ -25,6 +25,6 @@ paths (`a.b[0].c`), and unused-reference rejection.
 | DescribeLimits / DescribeEndpoints | F | canned values |
 | ContinuousBackups / ContributorInsights describes+updates | C | fixed status round-trips |
 | PartiQL (ExecuteStatement / BatchExecuteStatement / ExecuteTransaction) | S→F | Phase 8 |
-| Streams (DescribeStream / GetRecords / GetShardIterator / ListStreams) | S | deferred post-1.0 (user decision); StreamSpecification stored inert |
+| Streams (DescribeStream / GetRecords / GetShardIterator / ListStreams) | F | one open shard per stream-enabled table; TRIM_HORIZON / LATEST / AT_ and AFTER_SEQUENCE_NUMBER iterators; Lambda event source mappings poll it |
 | Global tables, DAX, Kinesis destinations | S | multi-region/cloud infrastructure |
 | Backups / exports / imports / PITR restore | S | copy the data directory instead |

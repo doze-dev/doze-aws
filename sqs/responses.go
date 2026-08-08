@@ -175,6 +175,15 @@ type deleteBatchResult struct {
 	Failed     []batchErr      `json:"Failed,omitempty" xml:"BatchResultErrorEntry"`
 }
 
+type visBatchOK struct {
+	ID string `json:"Id" xml:"Id"`
+}
+
+type visBatchResult struct {
+	Successful []visBatchOK `json:"Successful,omitempty" xml:"ChangeMessageVisibilityBatchResultEntry"`
+	Failed     []batchErr   `json:"Failed,omitempty" xml:"BatchResultErrorEntry"`
+}
+
 func sortedKeys(m map[string]string) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {

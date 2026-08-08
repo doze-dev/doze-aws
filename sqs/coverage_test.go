@@ -2,6 +2,8 @@ package sqs
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -124,5 +126,97 @@ func TestDozePeekExtension(t *testing.T) {
 	}
 	if out2 := jsonCall(t, ts.URL, "DozePeek", `{"QueueUrl":"`+qurl+`"}`); !strings.Contains(out2, "m1") {
 		t.Fatalf("DozePeek consumed the message (not idempotent): %s", out2)
+	}
+}
+
+// TestChangeMessageVisibilityBatch covers the operation the botocore diff found
+// missing: the docs claimed tier F while the dispatch table had no entry.
+func TestChangeMessageVisibilityBatch(t *testing.T) {
+	ctx := context.Background()
+	c := sdkClient(t)
+
+	q, err := c.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("batchvis")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range 3 {
+		if _, err := c.SendMessage(ctx, &awssqs.SendMessageInput{
+			QueueUrl: q.QueueUrl, MessageBody: aws.String(fmt.Sprintf("m%d", i)),
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	recv, err := c.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{
+		QueueUrl: q.QueueUrl, MaxNumberOfMessages: 3,
+	})
+	if err != nil || len(recv.Messages) == 0 {
+		t.Fatalf("ReceiveMessage = %v, %v", recv, err)
+	}
+
+	entries := make([]sqstypes.ChangeMessageVisibilityBatchRequestEntry, 0, len(recv.Messages)+1)
+	for i, m := range recv.Messages {
+		entries = append(entries, sqstypes.ChangeMessageVisibilityBatchRequestEntry{
+			Id: aws.String(fmt.Sprintf("e%d", i)), ReceiptHandle: m.ReceiptHandle,
+			VisibilityTimeout: 60,
+		})
+	}
+	// One deliberately bad handle, to prove failures are reported per entry
+	// rather than failing the whole call.
+	entries = append(entries, sqstypes.ChangeMessageVisibilityBatchRequestEntry{
+		Id: aws.String("bogus"), ReceiptHandle: aws.String("not-a-handle"), VisibilityTimeout: 60,
+	})
+
+	out, err := c.ChangeMessageVisibilityBatch(ctx, &awssqs.ChangeMessageVisibilityBatchInput{
+		QueueUrl: q.QueueUrl, Entries: entries,
+	})
+	if err != nil {
+		t.Fatalf("ChangeMessageVisibilityBatch: %v", err)
+	}
+	if len(out.Successful) != len(recv.Messages) {
+		t.Fatalf("Successful = %d, want %d", len(out.Successful), len(recv.Messages))
+	}
+	if len(out.Failed) != 1 || aws.ToString(out.Failed[0].Id) != "bogus" {
+		t.Fatalf("Failed = %+v, want one entry for the bad handle", out.Failed)
+	}
+}
+
+// TestRedrivePolicyMaxReceiveCountIsNumber is a Terraform regression.
+//
+// AWS returns maxReceiveCount as a JSON NUMBER. Terraform writes the redrive
+// policy then polls GetQueueAttributes until what it reads back equals what it
+// wrote — a stringified count never compares equal, so the resource spun for
+// three minutes and then failed.
+func TestRedrivePolicyMaxReceiveCountIsNumber(t *testing.T) {
+	ctx := context.Background()
+	c := sdkClient(t)
+	c.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("dlq")})
+	q, err := c.CreateQueue(ctx, &awssqs.CreateQueueInput{
+		QueueName: aws.String("main"),
+		Attributes: map[string]string{
+			"RedrivePolicy": `{"deadLetterTargetArn":"arn:aws:sqs:us-east-1:000000000000:dlq","maxReceiveCount":4}`,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := c.GetQueueAttributes(ctx, &awssqs.GetQueueAttributesInput{
+		QueueUrl: q.QueueUrl, AttributeNames: []sqstypes.QueueAttributeName{sqstypes.QueueAttributeNameAll},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		DeadLetterTargetArn string          `json:"deadLetterTargetArn"`
+		MaxReceiveCount     json.RawMessage `json:"maxReceiveCount"`
+	}
+	if err := json.Unmarshal([]byte(out.Attributes["RedrivePolicy"]), &got); err != nil {
+		t.Fatalf("RedrivePolicy is not JSON: %v", err)
+	}
+	if string(got.MaxReceiveCount) != "4" {
+		t.Fatalf("maxReceiveCount = %s, want the bare number 4 (a quoted string breaks Terraform)",
+			got.MaxReceiveCount)
+	}
+	if got.DeadLetterTargetArn == "" {
+		t.Fatal("deadLetterTargetArn missing")
 	}
 }

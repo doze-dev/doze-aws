@@ -27,9 +27,22 @@ or binary, used in place for edit-and-reinvoke with no copy.
 | TagResource / UntagResource / ListTags | F | |
 | CreateEventSourceMapping (SQS) | F | polls the queue, delivers batches (batch-size honored), delete-on-success, visibility-timeout retry on failure |
 | Get/List/Update/DeleteEventSourceMapping | F | |
-| DynamoDB/Kinesis event source mappings | S | Streams are deferred; Kinesis is not implemented |
+| DynamoDB/Kinesis event source mappings | F | both are polled for real — one iterator per shard for Kinesis, refreshed on reshard |
 | Container images, SnapStart, provisioned concurrency semantics | S | config accepted where trivial; execution semantics are cloud-only |
+| AddPermission / RemovePermission / GetPolicy | F | the API behind `AWS::Lambda::Permission`; service and account principals, SourceArn/SourceAccount synthesized into ArnLike/StringEquals conditions. Nothing locally gates invocation on the policy — it round-trips for templates |
+| PublishLayerVersion / GetLayerVersion / GetLayerVersionByArn | F | inline ZipFile written under the data dir, or the `_local_` in-place path convention |
+| ListLayers / ListLayerVersions / DeleteLayerVersion | F | newest-first ordering; ListLayers reports each layer's latest version |
+| AddLayerVersionPermission / GetLayerVersionPolicy / RemoveLayerVersionPermission | F | |
+| GetAccountSettings | F | live function count and code size against nominal limits |
 
 Child processes get `AWS_LAMBDA_RUNTIME_API`, `_HANDLER`, the function's env,
 test credentials, and `AWS_ENDPOINT_URL*` pointing back at the doze-aws
 endpoint — so handlers reach every sibling service unmodified.
+
+## Layers, honestly
+
+Layer versions are stored, versioned and served for real, and a function's
+`Layers` list round-trips. What doze-aws does **not** do is overlay a layer into
+`/opt` at invoke time: local functions run as ordinary processes against real
+files on disk, so there is no container filesystem to mount into. Code that
+reads a layer path at runtime needs those files present locally.

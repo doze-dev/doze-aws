@@ -11,29 +11,30 @@ import (
 type handler func(s *Store, req *request) (any, *apiError)
 
 var handlers = map[string]handler{
-	"CreateQueue":                hCreateQueue,
-	"DeleteQueue":                hDeleteQueue,
-	"ListQueues":                 hListQueues,
-	"GetQueueUrl":                hGetQueueURL,
-	"GetQueueAttributes":         hGetQueueAttributes,
-	"SetQueueAttributes":         hSetQueueAttributes,
-	"SendMessage":                hSendMessage,
-	"SendMessageBatch":           hSendMessageBatch,
-	"ReceiveMessage":             hReceiveMessage,
-	"DeleteMessage":              hDeleteMessage,
-	"DeleteMessageBatch":         hDeleteMessageBatch,
-	"ChangeMessageVisibility":    hChangeMessageVisibility,
-	"PurgeQueue":                 hPurgeQueue,
-	"TagQueue":                   hTagQueue,
-	"UntagQueue":                 hUntagQueue,
-	"ListQueueTags":              hListQueueTags,
-	"ListDeadLetterSourceQueues": hListDeadLetterSourceQueues,
-	"AddPermission":              hAddPermission,
-	"RemovePermission":           hRemovePermission,
-	"StartMessageMoveTask":       hStartMessageMoveTask,
-	"ListMessageMoveTasks":       hListMessageMoveTasks,
-	"CancelMessageMoveTask":      hCancelMessageMoveTask,
-	"DozePeek":                   hDozePeek, // non-AWS: read-only inspector peek
+	"CreateQueue":                  hCreateQueue,
+	"DeleteQueue":                  hDeleteQueue,
+	"ListQueues":                   hListQueues,
+	"GetQueueUrl":                  hGetQueueURL,
+	"GetQueueAttributes":           hGetQueueAttributes,
+	"SetQueueAttributes":           hSetQueueAttributes,
+	"SendMessage":                  hSendMessage,
+	"SendMessageBatch":             hSendMessageBatch,
+	"ReceiveMessage":               hReceiveMessage,
+	"DeleteMessage":                hDeleteMessage,
+	"DeleteMessageBatch":           hDeleteMessageBatch,
+	"ChangeMessageVisibility":      hChangeMessageVisibility,
+	"ChangeMessageVisibilityBatch": hChangeMessageVisibilityBatch,
+	"PurgeQueue":                   hPurgeQueue,
+	"TagQueue":                     hTagQueue,
+	"UntagQueue":                   hUntagQueue,
+	"ListQueueTags":                hListQueueTags,
+	"ListDeadLetterSourceQueues":   hListDeadLetterSourceQueues,
+	"AddPermission":                hAddPermission,
+	"RemovePermission":             hRemovePermission,
+	"StartMessageMoveTask":         hStartMessageMoveTask,
+	"ListMessageMoveTasks":         hListMessageMoveTasks,
+	"CancelMessageMoveTask":        hCancelMessageMoveTask,
+	"DozePeek":                     hDozePeek, // non-AWS: read-only inspector peek
 }
 
 func queueURL(host, name string) string {
@@ -242,6 +243,23 @@ func hChangeMessageVisibility(s *Store, req *request) (any, *apiError) {
 		return nil, asAPIError(err)
 	}
 	return nil, nil
+}
+
+// hChangeMessageVisibilityBatch applies per-entry ChangeMessageVisibility
+// semantics: each entry succeeds or fails independently, exactly as AWS
+// reports a partial batch.
+func hChangeMessageVisibilityBatch(s *Store, req *request) (any, *apiError) {
+	queue := targetQueue(req)
+	var res visBatchResult
+	for _, e := range req.p.visibilityBatchEntries() {
+		if err := s.ChangeVisibility(queue, e.ReceiptHandle, e.Timeout); err != nil {
+			ae := asAPIError(err)
+			res.Failed = append(res.Failed, batchErr{ID: e.ID, Code: ae.Code, Message: ae.Message, SenderFault: true})
+			continue
+		}
+		res.Successful = append(res.Successful, visBatchOK{ID: e.ID})
+	}
+	return res, nil
 }
 
 func hPurgeQueue(s *Store, req *request) (any, *apiError) {

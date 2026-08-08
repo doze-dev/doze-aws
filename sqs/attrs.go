@@ -86,9 +86,13 @@ func (s *Store) Attributes(name string) (map[string]string, error) {
 			out["ContentBasedDeduplication"] = strconv.FormatBool(q.ContentBasedDedup)
 		}
 		if q.DeadLetterTarget != "" {
-			rp, _ := json.Marshal(map[string]string{
+			// maxReceiveCount is a NUMBER in AWS's response, not a string.
+			// Terraform sets the policy and then polls GetQueueAttributes until
+			// what it reads back equals what it wrote — a stringified count
+			// never compares equal, so the resource never converges.
+			rp, _ := json.Marshal(map[string]any{
 				"deadLetterTargetArn": queueARN(q.DeadLetterTarget),
-				"maxReceiveCount":     strconv.Itoa(q.MaxReceiveCount),
+				"maxReceiveCount":     q.MaxReceiveCount,
 			})
 			out["RedrivePolicy"] = string(rp)
 		}

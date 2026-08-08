@@ -237,3 +237,46 @@ func waitMsg(t *testing.T, ch chan map[string]any) map[string]any {
 		return nil
 	}
 }
+
+// TestTopicAttributesCarryPolicy is a Terraform regression.
+//
+// A real topic always reports Owner, Policy and EffectiveDeliveryPolicy.
+// Terraform JSON-parses Policy unconditionally on read, so omitting it was not
+// a missing field but an "unexpected end of JSON input" that failed the whole
+// resource.
+func TestTopicAttributesCarryPolicy(t *testing.T) {
+	ctx := context.Background()
+	sns, _ := startStack(t)
+
+	top, err := sns.CreateTopic(ctx, &awssns.CreateTopicInput{Name: aws.String("attrs")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := sns.GetTopicAttributes(ctx, &awssns.GetTopicAttributesInput{TopicArn: top.TopicArn})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"TopicArn", "Owner", "Policy", "EffectiveDeliveryPolicy"} {
+		if out.Attributes[key] == "" {
+			t.Errorf("attribute %s is missing or empty", key)
+		}
+	}
+	// Both documents must actually parse — that is what the client does.
+	var doc struct {
+		Version   string           `json:"Version"`
+		Statement []map[string]any `json:"Statement"`
+	}
+	if err := json.Unmarshal([]byte(out.Attributes["Policy"]), &doc); err != nil {
+		t.Fatalf("Policy does not parse as JSON: %v", err)
+	}
+	if len(doc.Statement) == 0 {
+		t.Fatalf("Policy has no statements: %s", out.Attributes["Policy"])
+	}
+	var delivery map[string]any
+	if err := json.Unmarshal([]byte(out.Attributes["EffectiveDeliveryPolicy"]), &delivery); err != nil {
+		t.Fatalf("EffectiveDeliveryPolicy does not parse as JSON: %v", err)
+	}
+	if out.Attributes["Owner"] != awsident.AccountID {
+		t.Errorf("Owner = %q", out.Attributes["Owner"])
+	}
+}

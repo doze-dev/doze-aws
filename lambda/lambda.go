@@ -151,6 +151,10 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request) *awshttp.APIError
 		return s.routeMappings(w, r, segs)
 	case "tags":
 		return s.routeTags(w, r, segs)
+	case "layers":
+		return s.routeLayers(w, r, segs)
+	case "account-settings":
+		return s.accountSettings(w, r)
 	}
 	return awshttp.Errf(404, "ResourceNotFoundException", "unknown resource %q", segs[1])
 }

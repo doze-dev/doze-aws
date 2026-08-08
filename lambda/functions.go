@@ -11,10 +11,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
+	"github.com/doze-dev/doze-aws/internal/peercall"
 )
 
 // routeFunctions dispatches /functions[/name[/...]] requests.
@@ -51,13 +53,33 @@ func (s *Server) routeFunctions(w http.ResponseWriter, r *http.Request, segs []s
 	if len(segs) == 4 && segs[3] == "code" && r.Method == http.MethodPut {
 		return s.updateCode(w, r, name)
 	}
-	// /functions/{name}/versions (PublishVersion)
-	if len(segs) == 4 && segs[3] == "versions" && r.Method == http.MethodPost {
-		return s.publishVersion(w, name)
+	// /functions/{name}/versions — PublishVersion (POST) and
+	// ListVersionsByFunction (GET). Terraform calls the GET form after every
+	// create to determine the function's latest version.
+	if len(segs) == 4 && segs[3] == "versions" {
+		switch r.Method {
+		case http.MethodPost:
+			return s.publishVersion(w, name)
+		case http.MethodGet:
+			return s.listVersions(w, name)
+		}
 	}
 	// /functions/{name}/aliases
 	if len(segs) >= 4 && segs[3] == "aliases" {
 		return s.routeAliases(w, r, name, segs)
+	}
+	// /functions/{name}/code-signing-config
+	//
+	// Terraform reads this on every function refresh, so an unrouted path
+	// fails the whole resource. Code signing is cloud-only — nothing here
+	// verifies a signature — but reporting "no config" is the honest answer
+	// for a function that has none.
+	if len(segs) == 4 && segs[3] == "code-signing-config" {
+		return s.routeCodeSigning(w, r, name)
+	}
+	// /functions/{name}/policy[/{statementId}]  (AWS::Lambda::Permission)
+	if len(segs) >= 4 && segs[3] == "policy" {
+		return s.routePolicy(w, r, name, segs)
 	}
 	// /functions/{name}/concurrency
 	if len(segs) == 4 && segs[3] == "concurrency" {
@@ -156,18 +178,33 @@ func (s *Server) materializeCode(name string, code codeWire) (codeDir, sha strin
 		}
 		return dir, "local", nil
 	}
-	if code.ZipFile == "" {
-		return "", "", awshttp.Errf(400, "InvalidParameterValueException", "Code.ZipFile or the _local_ extension is required")
-	}
-	raw, err := base64.StdEncoding.DecodeString(code.ZipFile)
-	if err != nil {
-		return "", "", awshttp.Errf(400, "InvalidParameterValueException", "Code.ZipFile is not valid base64")
+	// A real bucket and key means a deploy tool staged the code in S3, which
+	// is exactly what `sam deploy` and `cdk deploy` do. Fetching and unpacking
+	// it is what real Lambda does, so doze-aws does the same.
+	var raw []byte
+	switch {
+	case code.S3Bucket != "" && code.S3Key != "":
+		fetched, err := peercall.S3Get(s.peers, code.S3Bucket, code.S3Key)
+		if err != nil {
+			return "", "", awshttp.Errf(400, "InvalidParameterValueException",
+				"cannot read function code from s3://%s/%s: %v", code.S3Bucket, code.S3Key, err)
+		}
+		raw = fetched
+	case code.ZipFile != "":
+		decoded, err := base64.StdEncoding.DecodeString(code.ZipFile)
+		if err != nil {
+			return "", "", awshttp.Errf(400, "InvalidParameterValueException", "Code.ZipFile is not valid base64")
+		}
+		raw = decoded
+	default:
+		return "", "", awshttp.Errf(400, "InvalidParameterValueException",
+			"Code.ZipFile, Code.S3Bucket/S3Key, or the _local_ extension is required")
 	}
 	sum := sha256.Sum256(raw)
 	dir := filepath.Join(s.dataDir, "code", name)
 	_ = os.RemoveAll(dir)
 	if err := unzip(raw, dir); err != nil {
-		return "", "", awshttp.Errf(400, "InvalidParameterValueException", "Code.ZipFile is not a valid zip: %v", err)
+		return "", "", awshttp.Errf(400, "InvalidParameterValueException", "function code is not a valid zip: %v", err)
 	}
 	return dir, hex.EncodeToString(sum[:]), nil
 }
@@ -351,6 +388,81 @@ func (s *Server) updateCode(w http.ResponseWriter, r *http.Request, name string)
 	s.restartRunner(name)
 	writeJSON(w, 200, s.configView(f))
 	return nil
+}
+
+// routeCodeSigning serves the code-signing config as a faithful round-trip.
+func (s *Server) routeCodeSigning(w http.ResponseWriter, r *http.Request, name string) *awshttp.APIError {
+	f, err := s.store.GetFunction(name)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	switch r.Method {
+	case http.MethodGet:
+		out := map[string]any{"FunctionName": name}
+		if f.CodeSigningConfigArn != "" {
+			out["CodeSigningConfigArn"] = f.CodeSigningConfigArn
+		}
+		writeJSON(w, 200, out)
+		return nil
+	case http.MethodPut:
+		var req struct {
+			CodeSigningConfigArn string `json:"CodeSigningConfigArn"`
+		}
+		if aerr := decode(r, &req); aerr != nil {
+			return aerr
+		}
+		if _, err := s.store.Update(name, func(f *Function) error {
+			f.CodeSigningConfigArn = req.CodeSigningConfigArn
+			return nil
+		}); err != nil {
+			return awshttp.AsAPIError(err)
+		}
+		writeJSON(w, 200, map[string]any{
+			"FunctionName": name, "CodeSigningConfigArn": req.CodeSigningConfigArn,
+		})
+		return nil
+	case http.MethodDelete:
+		if _, err := s.store.Update(name, func(f *Function) error {
+			f.CodeSigningConfigArn = ""
+			return nil
+		}); err != nil {
+			return awshttp.AsAPIError(err)
+		}
+		w.WriteHeader(204)
+		return nil
+	}
+	return awshttp.Errf(405, "MethodNotAllowed", "unsupported code-signing-config request")
+}
+
+// listVersions implements ListVersionsByFunction. $LATEST always exists; any
+// published versions follow it, oldest first, as AWS returns them.
+func (s *Server) listVersions(w http.ResponseWriter, name string) *awshttp.APIError {
+	f, err := s.store.GetFunction(name)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	versions := []any{s.configViewAt(f, "$LATEST")}
+	if latest, ok := f.Aliases["$published"]; ok {
+		for n := 1; ; n++ {
+			v := strconv.Itoa(n)
+			versions = append(versions, s.configViewAt(f, v))
+			if v == latest {
+				break
+			}
+		}
+	}
+	writeJSON(w, 200, map[string]any{"Versions": versions})
+	return nil
+}
+
+// configViewAt renders a function's configuration as it appears at one version.
+func (s *Server) configViewAt(f *Function, version string) map[string]any {
+	view := s.configView(f)
+	view["Version"] = version
+	if version != "$LATEST" {
+		view["FunctionArn"] = f.ARN() + ":" + version
+	}
+	return view
 }
 
 func (s *Server) publishVersion(w http.ResponseWriter, name string) *awshttp.APIError {

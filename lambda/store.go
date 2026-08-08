@@ -46,6 +46,14 @@ type Function struct {
 	MaxEventAgeSeconds *int `json:"max_event_age_seconds,omitempty"`
 	HasEventInvokeCfg  bool `json:"has_event_invoke_cfg,omitempty"`
 
+	// CodeSigningConfigArn round-trips PutFunctionCodeSigningConfig. Nothing
+	// locally verifies signatures; the field exists because clients read it.
+	CodeSigningConfigArn string `json:"code_signing_config_arn,omitempty"`
+
+	// Policy holds the function's resource-policy statements (AddPermission).
+	// Nothing locally gates invocation on it; it round-trips for templates.
+	Policy []PolicyStatement `json:"policy,omitempty"`
+
 	Aliases  map[string]string `json:"aliases,omitempty"` // alias -> version
 	LastMod  int64             `json:"last_mod"`
 	Revision string            `json:"revision"`

@@ -235,6 +235,43 @@ func (p params) deleteBatchEntries() []delEntry {
 	return out
 }
 
+// visEntry is one ChangeMessageVisibilityBatch entry.
+type visEntry struct {
+	ID            string
+	ReceiptHandle string
+	Timeout       int
+}
+
+func (p params) visibilityBatchEntries() []visEntry {
+	var out []visEntry
+	if p.form != nil {
+		for i := 1; ; i++ {
+			base := "ChangeMessageVisibilityBatchRequestEntry." + strconv.Itoa(i) + "."
+			id := p.form.Get(base + "Id")
+			if id == "" {
+				break
+			}
+			timeout, _ := strconv.Atoi(p.form.Get(base + "VisibilityTimeout"))
+			out = append(out, visEntry{
+				ID: id, ReceiptHandle: p.form.Get(base + "ReceiptHandle"), Timeout: timeout,
+			})
+		}
+		return out
+	}
+	var entries []struct {
+		ID                string `json:"Id"`
+		ReceiptHandle     string `json:"ReceiptHandle"`
+		VisibilityTimeout int    `json:"VisibilityTimeout"`
+	}
+	if raw, ok := p.obj["Entries"]; ok {
+		_ = json.Unmarshal(raw, &entries)
+	}
+	for _, e := range entries {
+		out = append(out, visEntry{ID: e.ID, ReceiptHandle: e.ReceiptHandle, Timeout: e.VisibilityTimeout})
+	}
+	return out
+}
+
 // attributeNames reads the requested attribute names (AttributeNames in JSON,
 // AttributeName.N in Query).
 func (p params) attributeNames() []string {

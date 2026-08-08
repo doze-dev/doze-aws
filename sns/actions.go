@@ -2,6 +2,7 @@ package sns
 
 import (
 	"fmt"
+	"github.com/doze-dev/doze-aws/awsident"
 	"net/url"
 	"strings"
 
@@ -128,6 +129,24 @@ func (srv *Server) listTopics(_ url.Values, _ string) (any, *apiError) {
 	return res, nil
 }
 
+// defaultDeliveryPolicy is the document AWS reports when a topic has no
+// explicit delivery policy.
+const defaultDeliveryPolicy = `{"http":{"defaultHealthyRetryPolicy":` +
+	`{"minDelayTarget":20,"maxDelayTarget":20,"numRetries":3,"numMaxDelayRetries":0,` +
+	`"numNoDelayRetries":0,"numMinDelayRetries":0,"backoffFunction":"linear"},` +
+	`"disableSubscriptionOverrides":false}}`
+
+// defaultTopicPolicy mirrors the access policy AWS attaches to a new topic.
+// Nothing locally evaluates it; it exists because clients parse it.
+func defaultTopicPolicy(arn string) string {
+	return `{"Version":"2008-10-17","Id":"__default_policy_ID","Statement":[{` +
+		`"Sid":"__default_statement_ID","Effect":"Allow","Principal":{"AWS":"*"},` +
+		`"Action":["SNS:GetTopicAttributes","SNS:SetTopicAttributes","SNS:AddPermission",` +
+		`"SNS:RemovePermission","SNS:DeleteTopic","SNS:Subscribe","SNS:ListSubscriptionsByTopic",` +
+		`"SNS:Publish"],"Resource":"` + arn + `","Condition":{"StringEquals":` +
+		`{"AWS:SourceOwner":"` + awsident.AccountID + `"}}}]}`
+}
+
 func (srv *Server) getTopicAttributes(form url.Values, _ string) (any, *apiError) {
 	arn := form.Get("TopicArn")
 	if !srv.store.TopicExists(arn) {
@@ -135,10 +154,17 @@ func (srv *Server) getTopicAttributes(form url.Values, _ string) (any, *apiError
 	}
 	subs, _ := srv.store.ListSubscriptions(arn)
 	var res getTopicAttrsResult
+	// Owner, Policy and EffectiveDeliveryPolicy are always present on a real
+	// topic. Terraform JSON-parses Policy unconditionally, so omitting it is an
+	// "unexpected end of JSON input" rather than a missing field.
 	res.Attributes.Entry = []attrEntry{
 		{Key: "TopicArn", Value: arn},
+		{Key: "Owner", Value: awsident.AccountID},
 		{Key: "SubscriptionsConfirmed", Value: fmt.Sprintf("%d", countConfirmed(subs))},
 		{Key: "SubscriptionsPending", Value: fmt.Sprintf("%d", len(subs)-countConfirmed(subs))},
+		{Key: "SubscriptionsDeleted", Value: "0"},
+		{Key: "Policy", Value: defaultTopicPolicy(arn)},
+		{Key: "EffectiveDeliveryPolicy", Value: defaultDeliveryPolicy},
 	}
 	if t, err := srv.store.GetTopic(arn); err == nil {
 		for _, k := range sortedAttrKeys(t.Attrs) {
