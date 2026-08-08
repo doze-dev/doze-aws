@@ -28,7 +28,8 @@
   </div>
   {{template "dtabs" dict "Cur" .Tab "Tabs" (list
     (dict "Key" "shards" "Label" "Shards" "Icon" "git-branch" "URL" (printf "%s/kinesis/%s" .Prefix .Stream))
-    (dict "Key" "records" "Label" "Records" "Icon" "list" "URL" (printf "%s/kinesis/%s/records" .Prefix .Stream)))}}
+    (dict "Key" "records" "Label" "Records" "Icon" "list" "URL" (printf "%s/kinesis/%s/records" .Prefix .Stream))
+    (dict "Key" "details" "Label" "Details" "Icon" "settings" "URL" (printf "%s/kinesis/%s/details" .Prefix .Stream)))}}
 </div>
 {{end}}
 
@@ -313,6 +314,93 @@
   <div class="code-out"><pre>{{.Rec.Data}}</pre></div>
 </div>
 {{end}}
+
+{{/* ---- Details tab: the stream's configuration ---- */}}
+
+{{define "kinesis_details"}}{{template "shell_top" .}}
+  {{template "kinesis_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Stream)}}
+  <section class="detail">
+    {{template "kinesis_head" .}}
+    <div class="det-b">
+
+      <div class="sec-title">Shard layout <span class="dim">— {{.OpenShards}} open shard{{if ne .OpenShards 1}}s{{end}}</span></div>
+      <div class="split">
+
+        <div class="panel">
+          <div class="panel-h"><h2>{{icon "git-branch"}} Merge shards</h2></div>
+          <div style="padding:14px 16px">
+            {{if eq .Summary.Mode "ON_DEMAND"}}
+              <p class="mini-note">Shard layout is managed for you on an on-demand stream. Switch to provisioned to reshard by hand.</p>
+            {{else if .Pairs}}
+            <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/merge"
+                  hx-confirm="Merge these two shards? Both close and one child opens covering their combined range.">
+              <div class="field">
+                <label>Adjacent pair</label>
+                {{/* Only pairs whose ranges actually touch are offered: Kinesis
+                     refuses a merge across a gap, and picking from a list beats
+                     naming two shards and finding out. */}}
+                <select class="input mono sub" name="pair" x-data
+                        @change="$el.form.left.value=$el.value.split('|')[0]; $el.form.right.value=$el.value.split('|')[1]">
+                  {{range .Pairs}}<option value="{{.Left.ID}}|{{.Right.ID}}">{{.Left.ID}} + {{.Right.ID}} → {{sharePct .Share}}</option>{{end}}
+                </select>
+                <input type="hidden" name="left" value="{{(index .Pairs 0).Left.ID}}">
+                <input type="hidden" name="right" value="{{(index .Pairs 0).Right.ID}}">
+                <div class="mini-note">The parents close and stay readable until retention reclaims them; a consumer follows the child.</div>
+              </div>
+              <div style="margin-top:12px;display:flex;justify-content:flex-end">
+                <button class="btn btn-outline" type="submit">{{icon "git-branch"}} Merge</button>
+              </div>
+            </form>
+            {{else}}
+              <p class="mini-note">Nothing to merge — a merge needs two open shards whose hash ranges touch, and this stream has {{if eq .OpenShards 1}}only one open shard{{else}}no adjacent open pair{{end}}.</p>
+            {{end}}
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><h2>{{icon "activity"}} Shard count</h2></div>
+          <div style="padding:14px 16px">
+            {{if eq .Summary.Mode "ON_DEMAND"}}
+              <p class="mini-note">On-demand streams scale themselves; the count is not yours to set.</p>
+            {{else}}
+            <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/scale"
+                  hx-confirm="Rescale the stream? Existing shards close and a new set opens, tiling the key space evenly.">
+              <div class="field">
+                <label>Target shards</label>
+                <input class="input" name="shards" type="number" min="1" value="{{.OpenShards}}">
+                <div class="mini-note">Uniform scaling: the key space is re-tiled evenly. Records already written stay where they are, in shards that close.</div>
+              </div>
+              <div style="margin-top:12px;display:flex;justify-content:flex-end">
+                <button class="btn btn-outline" type="submit">{{icon "check"}} Apply</button>
+              </div>
+            </form>
+            {{end}}
+          </div>
+        </div>
+      </div>
+
+      <div class="sec-title">Capacity mode</div>
+      <div class="panel">
+        <div style="padding:14px 16px">
+          <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/mode">
+            <div class="ex-grid">
+              <div class="field" style="width:220px">
+                <label>Stream mode</label>
+                <select class="input" name="mode">
+                  <option value="PROVISIONED" {{if eq .Summary.Mode "PROVISIONED"}}selected{{end}}>PROVISIONED</option>
+                  <option value="ON_DEMAND" {{if eq .Summary.Mode "ON_DEMAND"}}selected{{end}}>ON_DEMAND</option>
+                </select>
+              </div>
+              <button class="btn btn-outline" type="submit">{{icon "check"}} Set mode</button>
+            </div>
+            <p class="mini-note">Provisioned lets you own the shard layout — split, merge and scale by hand. On-demand hands that back to the service.</p>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
 
 {{define "kinesis_create"}}{{template "shell_top" .}}
   {{template "kinesis_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}

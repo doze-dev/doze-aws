@@ -227,6 +227,70 @@ func (c *Console) kinesisRecord(w http.ResponseWriter, r *http.Request) {
 	c.partial(w, "kinesis_record_detail", map[string]any{"Rec": rec, "Prefix": c.prefix})
 }
 
+// kinesisDetails is the configuration tab: everything about a stream that is
+// set rather than read.
+func (c *Console) kinesisDetails(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("stream")
+	data, err := c.streamPage(r, name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	data["Tab"] = "details"
+	shards, _ := data["Shards"].([]Shard)
+	data["Pairs"] = MergeablePairs(shards)
+	open := 0
+	for _, sh := range shards {
+		if !sh.Closed {
+			open++
+		}
+	}
+	data["OpenShards"] = open
+	c.render(w, r, "kinesis_details", data)
+}
+
+// kinesisMerge folds two adjacent shards back into one. The form offers only
+// pairs the service will accept, so a rejection here means the layout changed
+// under the page rather than that someone picked badly.
+func (c *Console) kinesisMerge(w http.ResponseWriter, r *http.Request) {
+	stream := r.PathValue("stream")
+	left, right := r.FormValue("left"), r.FormValue("right")
+	if left == "" || right == "" {
+		c.redirect(w, r, "/kinesis/"+stream+"/details", "Pick two adjacent shards to merge")
+		return
+	}
+	if err := c.be.MergeShards(r.Context(), stream, left, right); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/kinesis/"+stream, "Merged "+left+" + "+right)
+}
+
+func (c *Console) kinesisScale(w http.ResponseWriter, r *http.Request) {
+	stream := r.PathValue("stream")
+	target, _ := strconv.Atoi(r.FormValue("shards"))
+	if err := c.be.UpdateShardCount(r.Context(), stream, target); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/kinesis/"+stream, "Scaled to "+strconv.Itoa(target)+" shards")
+}
+
+func (c *Console) kinesisMode(w http.ResponseWriter, r *http.Request) {
+	stream := r.PathValue("stream")
+	summary, err := c.be.StreamSummary(r.Context(), stream)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	mode := r.FormValue("mode")
+	if err := c.be.UpdateStreamMode(r.Context(), summary.ARN, mode); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/kinesis/"+stream+"/details", "Stream mode set to "+mode)
+}
+
 // ---- mutations ----
 
 func (c *Console) kinesisCreate(w http.ResponseWriter, r *http.Request) {

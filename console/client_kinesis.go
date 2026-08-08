@@ -639,3 +639,72 @@ func jsonVals(m map[string]string) string {
 	raw, _ := json.Marshal(m)
 	return string(raw)
 }
+
+// ---- shard layout and stream configuration ----
+
+// MergePair is one legal merge: two open shards whose hash ranges touch.
+type MergePair struct {
+	Left, Right Shard
+	// Share is what the merged shard would cover, which is the only reason to
+	// prefer one pair over another.
+	Share float64
+}
+
+// MergeablePairs returns the merges the service would actually accept. Kinesis
+// will only merge two open shards whose ranges are exactly contiguous — a gap
+// would silently drop part of the key space — so the console works out the
+// legal pairs rather than asking anyone to name two shards and find out.
+func MergeablePairs(shards []Shard) []MergePair {
+	open := make([]Shard, 0, len(shards))
+	for _, sh := range shards {
+		if !sh.Closed {
+			open = append(open, sh)
+		}
+	}
+	sort.Slice(open, func(i, j int) bool {
+		a, _ := new(big.Int).SetString(open[i].StartKey, 10)
+		b, _ := new(big.Int).SetString(open[j].StartKey, 10)
+		return a.Cmp(b) < 0
+	})
+	var pairs []MergePair
+	for i := 0; i+1 < len(open); i++ {
+		lHi, ok1 := new(big.Int).SetString(open[i].EndKey, 10)
+		rLo, ok2 := new(big.Int).SetString(open[i+1].StartKey, 10)
+		if !ok1 || !ok2 {
+			continue
+		}
+		if new(big.Int).Add(lHi, big.NewInt(1)).Cmp(rLo) != 0 {
+			continue
+		}
+		pairs = append(pairs, MergePair{
+			Left: open[i], Right: open[i+1],
+			Share: open[i].Share + open[i+1].Share,
+		})
+	}
+	return pairs
+}
+
+func (b *backend) MergeShards(ctx context.Context, stream, left, right string) error {
+	_, err := b.kinesis(ctx, "MergeShards", map[string]any{
+		"StreamName": stream, "ShardToMerge": left, "AdjacentShardToMerge": right,
+	})
+	return err
+}
+
+// UpdateShardCount rescales a provisioned stream. The service refuses this on
+// an ON_DEMAND stream, where the shard count is not ours to set.
+func (b *backend) UpdateShardCount(ctx context.Context, stream string, target int) error {
+	_, err := b.kinesis(ctx, "UpdateShardCount", map[string]any{
+		"StreamName": stream, "TargetShardCount": target,
+		"ScalingType": "UNIFORM_SCALING",
+	})
+	return err
+}
+
+func (b *backend) UpdateStreamMode(ctx context.Context, arn, mode string) error {
+	_, err := b.kinesis(ctx, "UpdateStreamMode", map[string]any{
+		"StreamARN":         arn,
+		"StreamModeDetails": map[string]any{"StreamMode": mode},
+	})
+	return err
+}
