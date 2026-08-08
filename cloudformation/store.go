@@ -60,6 +60,28 @@ type StackRecord struct {
 	// TerminationProtection and Policy round-trip; nothing local enforces them.
 	TerminationProtection bool   `json:"termination_protection,omitempty"`
 	Policy                string `json:"policy,omitempty"`
+	// Capabilities, NotificationARNs, RollbackConfiguration and DisableRollback
+	// are declared on every real deploy — sam and cdk always pass capabilities,
+	// and Terraform tracks all four on aws_cloudformation_stack. Nothing local
+	// acts on them, but a stack that accepts them and then describes itself
+	// without them is a stack Terraform will keep planning to change.
+	Capabilities     []string        `json:"capabilities,omitempty"`
+	NotificationARNs []string        `json:"notification_arns,omitempty"`
+	Rollback         *RollbackConfig `json:"rollback,omitempty"`
+	DisableRollback  bool            `json:"disable_rollback,omitempty"`
+}
+
+// RollbackConfig is the alarm-watch configuration a stack declares. Nothing
+// local watches alarms; it is kept so a describe reports what was set.
+type RollbackConfig struct {
+	MonitoringTimeInMinutes *int              `json:"monitoring_minutes,omitempty"`
+	Triggers                []RollbackTrigger `json:"triggers,omitempty"`
+}
+
+// RollbackTrigger is one alarm a rollback configuration watches.
+type RollbackTrigger struct {
+	Arn  string `json:"arn"`
+	Type string `json:"type"`
 }
 
 // StackOutput is one output, with its export name when it declares one.

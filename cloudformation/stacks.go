@@ -7,6 +7,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -82,6 +83,9 @@ type stackView struct {
 	Parameters                  []parameterView `xml:"Parameters>member,omitempty"`
 	Outputs                     []outputView    `xml:"Outputs>member,omitempty"`
 	Tags                        []tagView       `xml:"Tags>member,omitempty"`
+	Capabilities                []string        `xml:"Capabilities>member,omitempty"`
+	NotificationARNs            []string        `xml:"NotificationARNs>member,omitempty"`
+	RollbackConfiguration       *rollbackView   `xml:"RollbackConfiguration,omitempty"`
 	// DriftInformation is present in real responses and some SDK models
 	// require the node, so it is emitted with the only honest value.
 	DriftInformation driftInfo `xml:"DriftInformation"`
@@ -89,6 +93,72 @@ type stackView struct {
 
 type driftInfo struct {
 	StackDriftStatus string `xml:"StackDriftStatus"`
+}
+
+// rollbackView echoes the RollbackConfiguration a stack was created with.
+// Nothing here watches alarms; the value is reported so a converging tool sees
+// what it set.
+type rollbackView struct {
+	RollbackTriggers        []rollbackTrigger `xml:"RollbackTriggers>member,omitempty"`
+	MonitoringTimeInMinutes *int              `xml:"MonitoringTimeInMinutes,omitempty"`
+}
+
+type rollbackTrigger struct {
+	Arn  string `xml:"Arn"`
+	Type string `xml:"Type"`
+}
+
+// viewRollback renders a stored rollback configuration for a describe.
+func viewRollback(rc *RollbackConfig) *rollbackView {
+	if rc == nil {
+		return nil
+	}
+	v := &rollbackView{MonitoringTimeInMinutes: rc.MonitoringTimeInMinutes}
+	for _, t := range rc.Triggers {
+		v.RollbackTriggers = append(v.RollbackTriggers, rollbackTrigger{Arn: t.Arn, Type: t.Type})
+	}
+	return v
+}
+
+// readRollback pulls RollbackConfiguration off the wire, where it arrives as
+// nested Query members rather than as JSON.
+func readRollback(p params) *RollbackConfig {
+	rc := &RollbackConfig{}
+	if v := p.str("RollbackConfiguration.MonitoringTimeInMinutes"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			rc.MonitoringTimeInMinutes = &n
+		}
+	}
+	for i := 1; ; i++ {
+		base := "RollbackConfiguration.RollbackTriggers.member." + itoa(i)
+		arn := p.str(base + ".Arn")
+		if arn == "" {
+			break
+		}
+		rc.Triggers = append(rc.Triggers, RollbackTrigger{Arn: arn, Type: p.str(base + ".Type")})
+	}
+	if rc.MonitoringTimeInMinutes == nil && len(rc.Triggers) == 0 {
+		return nil
+	}
+	return rc
+}
+
+// readDeployFields folds the declared-but-inert stack settings off the wire.
+// Every real deploy sets at least capabilities, and a stack that accepts them
+// and describes itself without them never stops looking changed.
+func readDeployFields(st *StackRecord, p params) {
+	if caps := p.members("Capabilities"); len(caps) > 0 {
+		st.Capabilities = caps
+	}
+	if arns := p.members("NotificationARNs"); len(arns) > 0 {
+		st.NotificationARNs = arns
+	}
+	if rc := readRollback(p); rc != nil {
+		st.Rollback = rc
+	}
+	if p.str("DisableRollback") != "" {
+		st.DisableRollback = p.bool_("DisableRollback")
+	}
 }
 
 type resourceView struct {
@@ -122,6 +192,10 @@ func viewStack(st *StackRecord) stackView {
 		StackStatus:                 st.Status,
 		StackStatusReason:           st.StatusReason,
 		EnableTerminationProtection: st.TerminationProtection,
+		DisableRollback:             st.DisableRollback,
+		Capabilities:                st.Capabilities,
+		NotificationARNs:            st.NotificationARNs,
+		RollbackConfiguration:       viewRollback(st.Rollback),
 		DriftInformation:            driftInfo{StackDriftStatus: "NOT_CHECKED"},
 	}
 	if st.Updated != 0 && st.Updated != st.Created {
@@ -165,9 +239,29 @@ func hCreateStack(s *Server, p params) (any, *awshttp.APIError) {
 	if aerr != nil {
 		return nil, aerr
 	}
+	if aerr := s.recordDeployFields(st, p); aerr != nil {
+		return nil, aerr
+	}
 	return struct {
 		StackId string `xml:"StackId"`
 	}{st.ID}, nil
+}
+
+// recordDeployFields stores the settings a deploy declares but nothing local
+// acts on, so a describe reports them back.
+func (s *Server) recordDeployFields(st *StackRecord, p params) *awshttp.APIError {
+	before := *st
+	readDeployFields(st, p)
+	if before.DisableRollback == st.DisableRollback &&
+		len(before.Capabilities) == len(st.Capabilities) &&
+		len(before.NotificationARNs) == len(st.NotificationARNs) &&
+		before.Rollback == st.Rollback {
+		return nil
+	}
+	if err := s.store.PutStack(st); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	return nil
 }
 
 func hUpdateStack(s *Server, p params) (any, *awshttp.APIError) {
@@ -195,6 +289,9 @@ func hUpdateStack(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	st, aerr := s.deploy(name, body, merged, p.keyValues("Tags", "Key", "Value"), true)
 	if aerr != nil {
+		return nil, aerr
+	}
+	if aerr := s.recordDeployFields(st, p); aerr != nil {
 		return nil, aerr
 	}
 	return struct {

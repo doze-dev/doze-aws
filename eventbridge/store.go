@@ -23,6 +23,14 @@ const DefaultBus = "default"
 type Bus struct {
 	Name string            `json:"name"`
 	Tags map[string]string `json:"tags,omitempty"`
+	// Declared on the bus and reported back, but inert locally: there is no
+	// dead-letter delivery for failed bus writes, no envelope over the store
+	// and no policy evaluation. Terraform tracks all of these on
+	// aws_cloudwatch_event_bus, so dropping them is drift.
+	Description      string `json:"description,omitempty"`
+	DeadLetterARN    string `json:"dlq_arn,omitempty"`
+	KmsKeyIdentifier string `json:"kms_key,omitempty"`
+	Policy           string `json:"policy,omitempty"`
 }
 
 // Target is one rule target.
@@ -42,14 +50,17 @@ type InputTransformer struct {
 
 // Rule is one rule on a bus.
 type Rule struct {
-	Bus      string            `json:"bus"`
-	Name     string            `json:"name"`
-	Pattern  string            `json:"pattern,omitempty"`  // event pattern JSON
-	Schedule string            `json:"schedule,omitempty"` // rate(...) driven by ticker; cron(...) stored only
-	State    string            `json:"state"`              // ENABLED | DISABLED
-	Desc     string            `json:"desc,omitempty"`
-	Targets  []Target          `json:"targets,omitempty"`
-	Tags     map[string]string `json:"tags,omitempty"`
+	Bus      string `json:"bus"`
+	Name     string `json:"name"`
+	Pattern  string `json:"pattern,omitempty"`  // event pattern JSON
+	Schedule string `json:"schedule,omitempty"` // rate(...) driven by ticker; cron(...) stored only
+	State    string `json:"state"`              // ENABLED | DISABLED
+	Desc     string `json:"desc,omitempty"`
+	// RoleArn is the role EventBridge would assume to deliver. Nothing local
+	// assumes a role, but aws_cloudwatch_event_rule tracks it.
+	RoleArn string            `json:"role_arn,omitempty"`
+	Targets []Target          `json:"targets,omitempty"`
+	Tags    map[string]string `json:"tags,omitempty"`
 }
 
 // ARN returns the rule ARN.
@@ -103,6 +114,31 @@ func (s *Store) CreateBus(name string, tags map[string]string) error {
 		}
 		raw, _ := json.Marshal(Bus{Name: name, Tags: tags})
 		return b.Put([]byte(name), raw)
+	})
+}
+
+// UpdateBus applies a mutation to a stored bus. Used for the settings a bus
+// declares at creation that have no local behaviour but must read back.
+func (s *Store) UpdateBus(name string, fn func(*Bus)) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket(busesBucket)
+		if b == nil {
+			return nil
+		}
+		raw := b.Get([]byte(name))
+		if raw == nil {
+			return nil
+		}
+		var bus Bus
+		if err := json.Unmarshal(raw, &bus); err != nil {
+			return err
+		}
+		fn(&bus)
+		out, err := json.Marshal(bus)
+		if err != nil {
+			return err
+		}
+		return b.Put([]byte(name), out)
 	})
 }
 

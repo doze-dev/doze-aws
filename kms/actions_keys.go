@@ -171,12 +171,25 @@ func (s *Server) updateKeyDescription(p map[string]any) (any, *awshttp.APIError)
 
 // ---- rotation flags ----
 
+// defaultRotationDays matches the AWS default rotation period.
+const defaultRotationDays = 365
+
 func (s *Server) getKeyRotationStatus(p map[string]any) (any, *awshttp.APIError) {
 	k, err := s.store.Resolve(awsjson.Str(p, "KeyId"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	return map[string]any{"KeyRotationEnabled": k.RotationOn}, nil
+	out := map[string]any{"KeyRotationEnabled": k.RotationOn}
+	if k.RotationOn {
+		// AWS reports the period it was given, defaulting to a year. Terraform
+		// tracks rotation_period_in_days, so omitting it reads as a change.
+		days := k.RotationDays
+		if days == 0 {
+			days = defaultRotationDays
+		}
+		out["RotationPeriodInDays"] = days
+	}
+	return out, nil
 }
 
 func (s *Server) enableKeyRotation(p map[string]any) (any, *awshttp.APIError) {
@@ -193,6 +206,11 @@ func (s *Server) setRotation(p map[string]any, on bool) (any, *awshttp.APIError)
 			return awshttp.Errf(400, "UnsupportedOperationException", "rotation applies to symmetric keys only")
 		}
 		k.RotationOn = on
+		if !on {
+			k.RotationDays = 0
+		} else if d := awsjson.Int(p, "RotationPeriodInDays", 0); d > 0 {
+			k.RotationDays = d
+		}
 		return nil
 	})
 	return nil, awshttp.AsAPIErrorOrNil(err)

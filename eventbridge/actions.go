@@ -273,6 +273,7 @@ func (s *Server) putRule(p map[string]any) (any, *awshttp.APIError) {
 	r := Rule{
 		Bus: busOrDefault(p), Name: name, Pattern: pattern, Schedule: schedule,
 		State: state, Desc: awsjson.Str(p, "Description"),
+		RoleArn: awsjson.Str(p, "RoleArn"),
 	}
 	if err := s.store.PutRule(r); err != nil {
 		return nil, awshttp.AsAPIError(err)
@@ -299,6 +300,9 @@ func ruleView(r *Rule) map[string]any {
 	}
 	if r.Desc != "" {
 		out["Description"] = r.Desc
+	}
+	if r.RoleArn != "" {
+		out["RoleArn"] = r.RoleArn
 	}
 	return out
 }
@@ -461,6 +465,18 @@ func (s *Server) createEventBus(p map[string]any) (any, *awshttp.APIError) {
 	if err := s.store.CreateBus(name, nil); err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
+	// Declared on the bus and reported back, though nothing local acts on any
+	// of it: a bus that accepts these and then describes itself without them
+	// is a bus Terraform keeps planning to change.
+	if err := s.store.UpdateBus(name, func(b *Bus) {
+		b.Description = awsjson.Str(p, "Description")
+		b.KmsKeyIdentifier = awsjson.Str(p, "KmsKeyIdentifier")
+		if dlq, ok := p["DeadLetterConfig"].(map[string]any); ok {
+			b.DeadLetterARN, _ = dlq["Arn"].(string)
+		}
+	}); err != nil {
+		return nil, awshttp.AsAPIError(err)
+	}
 	return map[string]any{"EventBusArn": busARN(name)}, nil
 }
 
@@ -479,7 +495,20 @@ func (s *Server) describeEventBus(p map[string]any) (any, *awshttp.APIError) {
 	}
 	for _, b := range buses {
 		if b.Name == name {
-			return map[string]any{"Name": b.Name, "Arn": busARN(b.Name)}, nil
+			out := map[string]any{"Name": b.Name, "Arn": busARN(b.Name)}
+			if b.Description != "" {
+				out["Description"] = b.Description
+			}
+			if b.KmsKeyIdentifier != "" {
+				out["KmsKeyIdentifier"] = b.KmsKeyIdentifier
+			}
+			if b.DeadLetterARN != "" {
+				out["DeadLetterConfig"] = map[string]any{"Arn": b.DeadLetterARN}
+			}
+			if b.Policy != "" {
+				out["Policy"] = b.Policy
+			}
+			return out, nil
 		}
 	}
 	return nil, awshttp.Errf(400, "ResourceNotFoundException", "event bus %s does not exist", name)

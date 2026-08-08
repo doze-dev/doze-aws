@@ -37,10 +37,11 @@ type Key struct {
 	Rotations    []int64           `json:"rotations,omitempty"`     // unix-seconds timestamps of each rotation, newest first
 	State        string            `json:"state"`
 	Description  string            `json:"description"`
-	Created      int64             `json:"created"`               // unix seconds
-	DeletionAt   int64             `json:"deletion_at,omitempty"` // unix seconds, PendingDeletion only
-	RotationOn   bool              `json:"rotation_on"`           // automatic-rotation flag
-	Policy       string            `json:"policy,omitempty"`      // round-trip only
+	Created      int64             `json:"created"`                 // unix seconds
+	DeletionAt   int64             `json:"deletion_at,omitempty"`   // unix seconds, PendingDeletion only
+	RotationOn   bool              `json:"rotation_on"`             // automatic-rotation flag
+	RotationDays int               `json:"rotation_days,omitempty"` // declared period; nothing local schedules on it
+	Policy       string            `json:"policy,omitempty"`        // round-trip only
 	Tags         map[string]string `json:"tags,omitempty"`
 	KeySpec      string            `json:"key_spec"`  // SYMMETRIC_DEFAULT
 	KeyUsage     string            `json:"key_usage"` // ENCRYPT_DECRYPT
