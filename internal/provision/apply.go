@@ -62,6 +62,7 @@ func Apply(ctx context.Context, gateway http.Handler, s *Stack) (*Report, error)
 		{"notifications", func() error { return applyNotifications(ctx, c, s, rep) }},
 		{"secrets", func() error { return applySecrets(ctx, c, s, rep) }},
 		{"parameters", func() error { return applyParameters(ctx, c, s, rep) }},
+		{"apis", func() error { return applyAPIs(ctx, c, s, rep) }},
 	}
 	for _, p := range phases {
 		if err := p.run(); err != nil {

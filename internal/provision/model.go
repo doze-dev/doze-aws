@@ -35,6 +35,25 @@ type Stack struct {
 	Keys       map[string]Key
 	Secrets    map[string]Secret
 	Parameters map[string]Parameter
+	APIs       map[string]API
+}
+
+// API is a REST API fronting Lambda functions.
+//
+// The IR is deliberately route-shaped rather than mirroring API Gateway's
+// resource/method/integration tree: everything that reaches it — a SAM Api
+// event, a CDK construct — is ultimately "this method on this path calls this
+// function", and the tree is rebuilt from the routes at apply time.
+type API struct {
+	Stage  string
+	Routes []Route
+}
+
+// Route is one method+path binding.
+type Route struct {
+	Method string // GET, POST, ANY, …
+	Path   string // /orders/{id}, /{proxy+}
+	Lambda string
 }
 
 type Queue struct {
