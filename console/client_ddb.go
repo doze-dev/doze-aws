@@ -427,11 +427,11 @@ func (b *backend) ScanItems(ctx context.Context, t *Table, filter string, fvals 
 
 // QueryOpts describes a key-based query against the base table or a GSI.
 type QueryOpts struct {
-	Index    string // GSI name, or "" for the base table
-	PKValue  string
-	SKOp     string // "", "=", "<", "<=", ">", ">=", "begins_with", "between"
-	SKValue  string
-	SKValue2 string // for "between"
+	Index       string // GSI name, or "" for the base table
+	PKValue     string
+	SKOp        string // "", "=", "<", "<=", ">", ">=", "begins_with", "between"
+	SKValue     string
+	SKValue2    string            // for "between"
 	Filter      string            // optional FilterExpression on non-key attributes
 	FilterVals  map[string]any    // :binding → typed AttributeValue for the filter
 	FilterNames map[string]string // #alias → attribute name for the filter
