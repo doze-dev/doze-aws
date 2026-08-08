@@ -59,6 +59,25 @@ type Function struct {
 	Revision string            `json:"revision"`
 
 	FunctionURL string `json:"function_url,omitempty"` // when a URL config exists
+
+	// Architectures is what the function was created for. Nothing local runs a
+	// foreign architecture — the handler runs on this machine either way — but
+	// reporting x86_64 for a function created as arm64 is worse than inert: it
+	// is wrong, and aws_lambda_function tracks it.
+	Architectures []string `json:"architectures,omitempty"`
+
+	// Declared configuration with no local behaviour. There is no VPC to join,
+	// no EFS to mount, no X-Ray to trace into, no CloudWatch log format to
+	// honour and no snapshot to restore from. They round-trip because every
+	// one of them is tracked by aws_lambda_function, and a function that
+	// accepts a block and then describes itself without it never converges.
+	EphemeralStorageMB int             `json:"ephemeral_storage_mb,omitempty"`
+	TracingMode        string          `json:"tracing_mode,omitempty"`
+	KMSKeyArn          string          `json:"kms_key_arn,omitempty"`
+	LoggingConfig      json.RawMessage `json:"logging_config,omitempty"`
+	SnapStart          json.RawMessage `json:"snap_start,omitempty"`
+	VpcConfig          json.RawMessage `json:"vpc_config,omitempty"`
+	FileSystemConfigs  json.RawMessage `json:"file_system_configs,omitempty"`
 }
 
 // ARN returns the function ARN.

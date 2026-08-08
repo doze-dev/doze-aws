@@ -177,7 +177,18 @@ func collectMeta(h http.Header) (meta, headers map[string]string) {
 			meta[rest] = vals[0]
 		}
 	}
-	for _, name := range []string{"Cache-Control", "Content-Disposition", "Content-Encoding", "Content-Language", "Expires"} {
+	// The x-amz-* entries here are declared on upload and echoed on read.
+	// Nothing local enciphers an object or serves a redirect, but an object
+	// that accepts the header and then reports nothing is drift for anyone
+	// checking encryption, and a broken static site for anyone using the
+	// redirect.
+	for _, name := range []string{
+		"Cache-Control", "Content-Disposition", "Content-Encoding", "Content-Language", "Expires",
+		"x-amz-website-redirect-location",
+		"x-amz-server-side-encryption",
+		"x-amz-server-side-encryption-aws-kms-key-id",
+		"x-amz-server-side-encryption-bucket-key-enabled",
+	} {
 		if v := h.Get(name); v != "" {
 			if name == "Content-Encoding" {
 				// aws-chunked is transport framing, not object metadata.
@@ -186,6 +197,12 @@ func collectMeta(h http.Header) (meta, headers map[string]string) {
 				if v == "" {
 					continue
 				}
+			}
+			if name == "x-amz-server-side-encryption-bucket-key-enabled" {
+				// S3 answers this as a lowercase boolean. A client that sent
+				// "True" gets "True" back unless it is normalised here, and no
+				// SDK parses that as a bool.
+				v = strings.ToLower(v)
 			}
 			if headers == nil {
 				headers = map[string]string{}

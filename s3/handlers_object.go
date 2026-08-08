@@ -215,6 +215,11 @@ func writeCommonHeaders(w http.ResponseWriter, v *s3store.ObjectVersion) {
 	for name, val := range v.Meta {
 		h.Set("x-amz-meta-"+name, val)
 	}
+	// AWS reports how many tags an object carries so a reader can tell whether
+	// to fetch them at all.
+	if n := len(v.Tags); n > 0 {
+		h.Set("x-amz-tagging-count", strconv.Itoa(n))
+	}
 	if v.RetainMode != "" {
 		h.Set("x-amz-object-lock-mode", v.RetainMode)
 		h.Set("x-amz-object-lock-retain-until-date", time.Unix(v.RetainUntil, 0).UTC().Format(time.RFC3339))

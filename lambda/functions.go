@@ -46,8 +46,20 @@ func (s *Server) routeFunctions(w http.ResponseWriter, r *http.Request, segs []s
 		return s.invoke(w, r, name)
 	}
 	// /functions/{name}/configuration
-	if len(segs) == 4 && segs[3] == "configuration" && r.Method == http.MethodPut {
-		return s.updateConfiguration(w, r, name)
+	if len(segs) == 4 && segs[3] == "configuration" {
+		switch r.Method {
+		case http.MethodPut:
+			return s.updateConfiguration(w, r, name)
+		case http.MethodGet:
+			// GetFunctionConfiguration. Terraform and the CLI both read this
+			// directly rather than going through GetFunction.
+			f, err := s.store.GetFunction(name)
+			if err != nil {
+				return awshttp.AsAPIError(err)
+			}
+			writeJSON(w, 200, s.configView(f))
+			return nil
+		}
 	}
 	// /functions/{name}/code
 	if len(segs) == 4 && segs[3] == "code" && r.Method == http.MethodPut {
@@ -125,6 +137,18 @@ type createFunctionReq struct {
 	DestinationConfig json.RawMessage   `json:"DestinationConfig"`
 	Layers            []string          `json:"Layers"`
 	Tags              map[string]string `json:"Tags"`
+	Architectures     []string          `json:"Architectures"`
+	EphemeralStorage  struct {
+		Size int `json:"Size"`
+	} `json:"EphemeralStorage"`
+	TracingConfig struct {
+		Mode string `json:"Mode"`
+	} `json:"TracingConfig"`
+	KMSKeyArn         string          `json:"KMSKeyArn"`
+	LoggingConfig     json.RawMessage `json:"LoggingConfig"`
+	SnapStart         json.RawMessage `json:"SnapStart"`
+	VpcConfig         json.RawMessage `json:"VpcConfig"`
+	FileSystemConfigs json.RawMessage `json:"FileSystemConfigs"`
 	// doze extension.
 	Command []string `json:"Command"`
 }
@@ -153,6 +177,14 @@ func (s *Server) createFunction(w http.ResponseWriter, r *http.Request) *awshttp
 		DeadLetterArn: req.DeadLetterConfig.TargetArn, Destinations: req.DestinationConfig,
 		Layers: req.Layers, Tags: req.Tags,
 		LastMod: s.now().Unix(), Revision: newRevision(),
+		Architectures:      req.Architectures,
+		EphemeralStorageMB: req.EphemeralStorage.Size,
+		TracingMode:        req.TracingConfig.Mode,
+		KMSKeyArn:          req.KMSKeyArn,
+		LoggingConfig:      req.LoggingConfig,
+		SnapStart:          req.SnapStart,
+		VpcConfig:          req.VpcConfig,
+		FileSystemConfigs:  req.FileSystemConfigs,
 	}
 	if err := s.store.PutFunction(f); err != nil {
 		return awshttp.AsAPIError(err)
@@ -507,7 +539,27 @@ func (s *Server) configView(f *Function) map[string]any {
 		"LastUpdateStatus": "Successful",
 		"PackageType":      "Zip",
 		"RevisionId":       f.Revision,
-		"Architectures":    []string{"x86_64"},
+		"Architectures":    archOf(f),
+	}
+	if f.EphemeralStorageMB > 0 {
+		view["EphemeralStorage"] = map[string]any{"Size": f.EphemeralStorageMB}
+	}
+	if f.TracingMode != "" {
+		view["TracingConfig"] = map[string]any{"Mode": f.TracingMode}
+	}
+	if f.KMSKeyArn != "" {
+		view["KMSKeyArn"] = f.KMSKeyArn
+	}
+	for key, raw := range map[string]json.RawMessage{
+		"LoggingConfig": f.LoggingConfig, "SnapStart": f.SnapStart,
+		"VpcConfig": f.VpcConfig, "FileSystemConfigs": f.FileSystemConfigs,
+	} {
+		if len(raw) > 0 {
+			var v any
+			if json.Unmarshal(raw, &v) == nil {
+				view[key] = v
+			}
+		}
 	}
 	if len(f.Env) > 0 {
 		view["Environment"] = map[string]any{"Variables": f.Env}
@@ -516,6 +568,15 @@ func (s *Server) configView(f *Function) map[string]any {
 		view["DeadLetterConfig"] = map[string]any{"TargetArn": f.DeadLetterArn}
 	}
 	return view
+}
+
+// archOf reports the architectures the function declared, defaulting the way
+// AWS does when none was given.
+func archOf(f *Function) []string {
+	if len(f.Architectures) > 0 {
+		return f.Architectures
+	}
+	return []string{"x86_64"}
 }
 
 // decode reads a JSON body into dst.
