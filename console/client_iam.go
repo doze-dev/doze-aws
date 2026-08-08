@@ -458,3 +458,85 @@ func awsMessage(err error) error {
 	}
 	return err
 }
+
+// ---- mutations ----
+
+// CreateUser makes a user. Locally a user matters mostly as something to hang
+// permissions on and to simulate against.
+func (b *backend) CreateUser(ctx context.Context, name string) error {
+	_, err := b.iam(ctx, "CreateUser", url.Values{"UserName": {name}})
+	return awsMessage(err)
+}
+
+// CreateRole needs a trust policy: a role nothing may assume is not a role.
+func (b *backend) CreateRole(ctx context.Context, name, trust string) error {
+	_, err := b.iam(ctx, "CreateRole", url.Values{
+		"RoleName": {name}, "AssumeRolePolicyDocument": {trust},
+	})
+	return awsMessage(err)
+}
+
+func (b *backend) CreatePolicy(ctx context.Context, name, document string) error {
+	_, err := b.iam(ctx, "CreatePolicy", url.Values{
+		"PolicyName": {name}, "PolicyDocument": {document},
+	})
+	return awsMessage(err)
+}
+
+// AttachPolicy and DetachPolicy are the same operation under two names, split
+// by whether the principal is a user or a role.
+func (b *backend) AttachPolicy(ctx context.Context, kind, name, policyARN string) error {
+	action, key := "AttachUserPolicy", "UserName"
+	if kind == "role" {
+		action, key = "AttachRolePolicy", "RoleName"
+	}
+	_, err := b.iam(ctx, action, url.Values{key: {name}, "PolicyArn": {policyARN}})
+	return awsMessage(err)
+}
+
+func (b *backend) DetachPolicy(ctx context.Context, kind, name, policyARN string) error {
+	action, key := "DetachUserPolicy", "UserName"
+	if kind == "role" {
+		action, key = "DetachRolePolicy", "RoleName"
+	}
+	_, err := b.iam(ctx, action, url.Values{key: {name}, "PolicyArn": {policyARN}})
+	return awsMessage(err)
+}
+
+func (b *backend) DeletePrincipal(ctx context.Context, kind, name string) error {
+	action, key := "DeleteUser", "UserName"
+	if kind == "role" {
+		action, key = "DeleteRole", "RoleName"
+	}
+	_, err := b.iam(ctx, action, url.Values{key: {name}})
+	return awsMessage(err)
+}
+
+func (b *backend) DeleteManagedPolicy(ctx context.Context, arn string) error {
+	_, err := b.iam(ctx, "DeletePolicy", url.Values{"PolicyArn": {arn}})
+	return awsMessage(err)
+}
+
+// NewAccessKey returns the created pair. The secret is shown once, the way AWS
+// does it, because it is not retrievable afterwards.
+func (b *backend) NewAccessKey(ctx context.Context, user string) (id, secret string, err error) {
+	body, err := b.iam(ctx, "CreateAccessKey", url.Values{"UserName": {user}})
+	if err != nil {
+		return "", "", awsMessage(err)
+	}
+	var out struct {
+		ID     string `xml:"CreateAccessKeyResult>AccessKey>AccessKeyId"`
+		Secret string `xml:"CreateAccessKeyResult>AccessKey>SecretAccessKey"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return "", "", err
+	}
+	return out.ID, out.Secret, nil
+}
+
+func (b *backend) DeleteAccessKey(ctx context.Context, user, keyID string) error {
+	_, err := b.iam(ctx, "DeleteAccessKey", url.Values{
+		"UserName": {user}, "AccessKeyId": {keyID},
+	})
+	return awsMessage(err)
+}

@@ -188,6 +188,14 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/iam/{kind}/{name}", c.iamPrincipal)
 	m.HandleFunc("POST "+p+"/iam/simulate", c.iamSimulate)
 	m.HandleFunc("POST "+p+"/iam/generate", c.iamGenerate)
+	m.HandleFunc("GET "+p+"/iam/create", c.iamCreatePage)
+	m.HandleFunc("POST "+p+"/iam/create", c.iamCreate)
+	m.HandleFunc("POST "+p+"/iam/policy/delete", c.iamDeletePolicy)
+	m.HandleFunc("POST "+p+"/iam/{kind}/{name}/attach", c.iamAttach)
+	m.HandleFunc("POST "+p+"/iam/{kind}/{name}/detach", c.iamDetach)
+	m.HandleFunc("POST "+p+"/iam/{kind}/{name}/delete", c.iamDeletePrincipal)
+	m.HandleFunc("POST "+p+"/iam/user/{name}/keys", c.iamNewKey)
+	m.HandleFunc("POST "+p+"/iam/user/{name}/keys/delete", c.iamDeleteKey)
 
 	// API Gateway.
 	m.HandleFunc("GET "+p+"/apigw", c.apigwList)

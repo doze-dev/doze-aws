@@ -3,7 +3,10 @@
      "what does this grant". Mixing them in one flat list loses that. */}}
 {{define "iam_lp"}}
 <aside class="listpane">
-  <div class="lp-h"><span class="l">{{awsIcon "iam"}} IAM</span></div>
+  <div class="lp-h">
+    <span class="l">{{awsIcon "iam"}} IAM</span>
+    <a class="new-link" href="{{.Prefix}}/iam/create">{{icon "plus"}} New</a>
+  </div>
   <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" x-data x-model="$store.filter.q" spellcheck="false"></label>
   <div class="lp-scroll">
     <a class="li {{if eq .Sel "access"}}on{{end}}" href="{{.Prefix}}/iam">
@@ -157,7 +160,12 @@
   {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "Sel" .P.ARN)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "iam"}} {{.P.Name}}</div>
+      <div class="det-title">{{awsIcon "iam"}} {{.P.Name}}
+        <div class="acts">
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/iam/{{.P.Kind}}/{{.P.Name}}/delete"
+                  hx-confirm="Delete {{.P.Kind}} “{{.P.Name}}”?">{{icon "trash"}} Delete</button>
+        </div>
+      </div>
       <div class="chips">
         {{template "copychip" dict "Label" "arn" "Value" .P.ARN}}
         <span class="chip">{{.P.Kind}}</span>
@@ -167,19 +175,48 @@
     <div class="det-b">
       <div class="sec-title">Attached policies</div>
       <div class="table-wrap"><table class="tbl">
-        <thead><tr><th style="width:240px">Name</th><th>ARN</th><th style="width:110px">Source</th></tr></thead>
+        <thead><tr><th style="width:240px">Name</th><th>ARN</th><th style="width:110px">Source</th><th style="width:40px"></th></tr></thead>
         <tbody>
         {{range .Attached}}
           <tr>
             <td class="mono sub">{{if .AWSManaged}}{{.Name}}{{else}}<a href="{{$.Prefix}}/iam/policy?arn={{.ARN}}">{{.Name}}</a>{{end}}</td>
             <td class="mono dim sub trunc" style="max-width:420px">{{.ARN}}</td>
             <td><span class="chip">{{if .AWSManaged}}AWS managed{{else}}customer{{end}}</span></td>
+            <td class="right">
+              <form hx-post="{{$.Prefix}}/iam/{{$.P.Kind}}/{{$.P.Name}}/detach" hx-confirm="Detach {{.Name}}?">
+                <input type="hidden" name="arn" value="{{.ARN}}">
+                <button class="icon-btn sm danger" title="Detach">{{icon "x"}}</button>
+              </form>
+            </td>
           </tr>
         {{else}}
-          <tr><td colspan="3" class="mini-note">No managed policies attached.</td></tr>
+          <tr><td colspan="4" class="mini-note">No managed policies attached.</td></tr>
         {{end}}
         </tbody>
       </table></div>
+
+      {{/* Attaching is the common act on this page, so the control sits with
+           the list it changes rather than behind a separate screen. */}}
+      <div class="panel">
+        <div style="padding:14px 16px">
+          <form hx-post="{{.Prefix}}/iam/{{.P.Kind}}/{{.P.Name}}/attach">
+            <div class="ex-grid">
+              <div class="field" style="flex:1">
+                <label>Attach a policy</label>
+                <select class="input mono sub" name="arn">
+                  {{range .Policies}}<option value="{{.ARN}}">{{.Name}}</option>{{end}}
+                  <option value="arn:aws:iam::aws:policy/AdministratorAccess">AdministratorAccess (AWS managed)</option>
+                  <option value="arn:aws:iam::aws:policy/ReadOnlyAccess">ReadOnlyAccess (AWS managed)</option>
+                  <option value="arn:aws:iam::aws:policy/AmazonS3FullAccess">AmazonS3FullAccess (AWS managed)</option>
+                  <option value="arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole">AWSLambdaBasicExecutionRole (AWS managed)</option>
+                </select>
+                <div class="mini-note">AWS-managed policies are synthesized on demand, so naming one that does not exist yet still works.</div>
+              </div>
+              <button class="btn btn-outline" type="submit">{{icon "plus"}} Attach</button>
+            </div>
+          </form>
+        </div>
+      </div>
 
       {{if eq .P.Kind "role"}}
       <div class="sec-title">Trust policy <span class="dim">— who may assume this role</span></div>
@@ -199,15 +236,32 @@
       {{if eq .P.Kind "user"}}
       <div class="sec-title">Access keys</div>
       <div class="table-wrap"><table class="tbl">
-        <thead><tr><th style="width:260px">Key ID</th><th style="width:110px">Status</th><th>Created</th></tr></thead>
+        <thead><tr><th style="width:260px">Key ID</th><th style="width:110px">Status</th><th>Created</th><th style="width:40px"></th></tr></thead>
         <tbody>
         {{range .Keys}}
-          <tr><td class="mono sub">{{.ID}}</td><td><span class="chip">{{.Status}}</span></td><td class="dim sub">{{.Created}}</td></tr>
+          <tr>
+            <td class="mono sub">{{.ID}}</td><td><span class="chip">{{.Status}}</span></td>
+            <td class="dim sub">{{.Created}}</td>
+            <td class="right">
+              <form hx-post="{{$.Prefix}}/iam/user/{{$.P.Name}}/keys/delete" hx-confirm="Delete key {{.ID}}?">
+                <input type="hidden" name="id" value="{{.ID}}">
+                <button class="icon-btn sm danger" title="Delete key">{{icon "trash"}}</button>
+              </form>
+            </td>
+          </tr>
         {{else}}
-          <tr><td colspan="3" class="mini-note">No access keys. Locally any credentials are accepted unless IAM is enforcing, so a user without keys still works.</td></tr>
+          <tr><td colspan="4" class="mini-note">No access keys. Locally any credentials are accepted unless IAM is enforcing, so a user without keys still works.</td></tr>
         {{end}}
         </tbody>
       </table></div>
+      <div class="panel">
+        <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center">
+          <span class="mini-note" style="margin:0">The secret is shown once when the key is made and is not retrievable afterwards, the same as AWS.</span>
+          <form hx-post="{{.Prefix}}/iam/user/{{.P.Name}}/keys">
+            <button class="btn btn-outline" type="submit">{{icon "plus"}} New access key</button>
+          </form>
+        </div>
+      </div>
       {{end}}
     </div>
   </section>
@@ -221,10 +275,68 @@
     <div class="det-h">
       <div class="det-title">{{awsIcon "iam"}} {{.Name}}</div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}</div>
+      <div class="acts" style="margin-top:8px">
+        <form hx-post="{{.Prefix}}/iam/policy/delete" hx-confirm="Delete policy “{{.Name}}”? Detach it from every principal first.">
+          <input type="hidden" name="arn" value="{{.ARN}}">
+          <button class="btn btn-outline danger">{{icon "trash"}} Delete</button>
+        </form>
+      </div>
     </div>
     <div class="det-b">
       <div class="sec-title">Document <span class="dim">— default version</span></div>
       <div class="panel"><div class="code-out" style="max-height:none"><pre>{{.Document}}</pre></div></div>
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{/* ---- Create ---- */}}
+
+{{define "iam_create"}}{{template "shell_top" .}}
+  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "Sel" "")}}
+  <section class="detail">
+    <div class="det-h"><div class="det-title">{{awsIcon "iam"}} New</div></div>
+    <div class="det-b" x-data="{kind:'{{if .Kind}}{{.Kind}}{{else}}user{{end}}'}">
+      {{/* The three things worth making locally. A group is a way to manage
+           permissions at scale, which is not the local problem. */}}
+      <div class="seg" style="margin-bottom:14px">
+        <button type="button" :class="kind==='user' && 'on'" @click="kind='user'">{{icon "user"}} User</button>
+        <button type="button" :class="kind==='role' && 'on'" @click="kind='role'">{{icon "shield"}} Role</button>
+        <button type="button" :class="kind==='policy' && 'on'" @click="kind='policy'">{{icon "braces"}} Policy</button>
+      </div>
+
+      <div class="panel" style="max-width:720px">
+        <div style="padding:16px">
+          <form hx-post="{{.Prefix}}/iam/create">
+            <input type="hidden" name="kind" :value="kind">
+
+            <div class="field" style="margin-bottom:12px">
+              <label>Name</label>
+              <input class="input" name="name" required autofocus autocomplete="off"
+                     :placeholder="kind==='user' ? 'app-user' : kind==='role' ? 'lambda-exec' : 's3-read'">
+            </div>
+
+            <div class="field" x-show="kind==='role'" x-cloak>
+              <label>Trust policy <span class="dim">who may assume this role</span></label>
+              <textarea name="trust" data-editor rows="10">{{.DefaultTrust}}</textarea>
+              <div class="mini-note">Prefilled for a Lambda execution role, which is what most local roles are. Change the service principal for anything else.</div>
+            </div>
+
+            <div class="field" x-show="kind==='policy'" x-cloak>
+              <label>Policy document</label>
+              <textarea name="document" data-editor rows="12">{{.StarterPolicy}}</textarea>
+              <div class="mini-note">A soft-mode run can write this for you — the access log generates a policy covering exactly what your code asked for.</div>
+            </div>
+
+            <p class="mini-note" x-show="kind==='user'" x-cloak>
+              A user is something to hang permissions on and to simulate against. Locally any credentials are accepted unless IAM is enforcing.
+            </p>
+
+            <div style="margin-top:14px;display:flex;justify-content:flex-end">
+              <button class="btn" type="submit">{{icon "plus"}} <span x-text="'Create ' + kind"></span></button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </section>
 {{template "shell_bottom" .}}{{end}}

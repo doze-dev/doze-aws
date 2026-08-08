@@ -97,3 +97,126 @@ func (c *Console) iamGenerate(w http.ResponseWriter, r *http.Request) {
 	}
 	c.partial(w, "iam_generated", map[string]any{"Document": doc})
 }
+
+// ---- mutations ----
+
+const defaultTrust = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "Service": "lambda.amazonaws.com" },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}`
+
+const starterPolicy = `{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:GetObject"],
+      "Resource": "*"
+    }
+  ]
+}`
+
+func (c *Console) iamCreatePage(w http.ResponseWriter, r *http.Request) {
+	principals, policies := c.iamNav(r)
+	c.render(w, r, "iam_create", map[string]any{
+		"Principals": principals, "Policies": policies,
+		"Kind": r.URL.Query().Get("kind"), "Title": "Create · IAM",
+		"DefaultTrust": defaultTrust, "StarterPolicy": starterPolicy,
+	})
+}
+
+func (c *Console) iamCreate(w http.ResponseWriter, r *http.Request) {
+	kind := r.FormValue("kind")
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		c.redirect(w, r, "/iam/create?kind="+kind, "A name is required")
+		return
+	}
+	var err error
+	var to string
+	switch kind {
+	case "role":
+		trust := r.FormValue("trust")
+		if strings.TrimSpace(trust) == "" {
+			trust = defaultTrust
+		}
+		err, to = c.be.CreateRole(r.Context(), name, trust), "/iam/role/"+name
+	case "policy":
+		err, to = c.be.CreatePolicy(r.Context(), name, r.FormValue("document")), "/iam"
+	default:
+		err, to = c.be.CreateUser(r.Context(), name), "/iam/user/"+name
+	}
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, to, "Created "+name)
+}
+
+func (c *Console) iamAttach(w http.ResponseWriter, r *http.Request) {
+	kind, name := r.PathValue("kind"), r.PathValue("name")
+	arn := r.FormValue("arn")
+	if arn == "" {
+		c.redirect(w, r, "/iam/"+kind+"/"+name, "Pick a policy to attach")
+		return
+	}
+	if err := c.be.AttachPolicy(r.Context(), kind, name, arn); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/iam/"+kind+"/"+name, "Attached")
+}
+
+func (c *Console) iamDetach(w http.ResponseWriter, r *http.Request) {
+	kind, name := r.PathValue("kind"), r.PathValue("name")
+	if err := c.be.DetachPolicy(r.Context(), kind, name, r.FormValue("arn")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/iam/"+kind+"/"+name, "Detached")
+}
+
+func (c *Console) iamDeletePrincipal(w http.ResponseWriter, r *http.Request) {
+	kind, name := r.PathValue("kind"), r.PathValue("name")
+	if err := c.be.DeletePrincipal(r.Context(), kind, name); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/iam", "Deleted "+name)
+}
+
+func (c *Console) iamDeletePolicy(w http.ResponseWriter, r *http.Request) {
+	if err := c.be.DeleteManagedPolicy(r.Context(), r.FormValue("arn")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/iam", "Policy deleted")
+}
+
+// iamNewKey creates a credential pair. The secret is shown once and then never
+// again, exactly as AWS does it, so it is carried in the flash rather than
+// stored anywhere the page could re-read.
+func (c *Console) iamNewKey(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	id, secret, err := c.be.NewAccessKey(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/iam/user/"+name, id+" / "+secret+" — the secret is not retrievable again")
+}
+
+func (c *Console) iamDeleteKey(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+	if err := c.be.DeleteAccessKey(r.Context(), name, r.FormValue("id")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/iam/user/"+name, "Key deleted")
+}
