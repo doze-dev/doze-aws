@@ -172,6 +172,11 @@ func (s *Server) serviceLevel(w http.ResponseWriter, r *http.Request) *awshttp.A
 
 // bucketLevel dispatches bucket-scoped operations by method + query flag.
 func (s *Server) bucketLevel(w http.ResponseWriter, r *http.Request, bucket string, q url.Values) *awshttp.APIError {
+	// A sub-resource this build does not implement must be refused here: every
+	// method below ends in a default arm that is a DIFFERENT operation.
+	if aerr := checkBucketSubresource(q); aerr != nil {
+		return aerr
+	}
 	switch r.Method {
 	case http.MethodHead:
 		return s.headBucket(w, bucket)
@@ -290,6 +295,11 @@ func (s *Server) bucketLevel(w http.ResponseWriter, r *http.Request, bucket stri
 
 // objectLevel dispatches object-scoped operations.
 func (s *Server) objectLevel(w http.ResponseWriter, r *http.Request, bucket, key string, q url.Values) *awshttp.APIError {
+	// See bucketLevel: an unrecognised object sub-resource would otherwise
+	// fall through to putObject or, worse, deleteObject.
+	if aerr := checkObjectSubresource(q); aerr != nil {
+		return aerr
+	}
 	switch r.Method {
 	case http.MethodHead:
 		return s.getObject(w, r, bucket, key, q, true)
