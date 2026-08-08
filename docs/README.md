@@ -2,15 +2,16 @@
 
 - [getting-started.md](getting-started.md) — run it, point an SDK at it, configure it
 - [cli.md](cli.md) — CLI reference: commands, flags, the `doze-aws.toml` config file, and how clients connect
-- [stack-file.md](stack-file.md) — the declarative `stack.yaml`: every resource and field `apply`/`export` understand
+- [cloudformation.md](cloudformation.md) — deploying with the AWS CLI, SAM, CDK or Serverless
 - [embedding.md](embedding.md) — use doze-aws as a Go library, with a complete example
 - [api-support/](api-support/) — per-service operation support tables (Functional / Cosmetic / Stub)
 - [reports/](reports/) — phase-by-phase build reports
 
 ## Design ground rules
 
-- **Lightweight above all.** Runtime dependencies are bbolt and a TOML parser;
-  the AWS SDKs are test-only. Data persists under one deletable directory.
+- **Lightweight above all.** Three runtime dependencies: bbolt, a TOML parser
+  and a YAML parser (for CloudFormation templates); the AWS SDKs are test-only.
+  Data persists under one deletable directory.
 - **Real protocols, both SDK generations.** Every service speaks the actual AWS
   wire protocol and is verified against `aws-sdk-go-v2` and the legacy
   `aws-sdk-go`, with SigV2 and SigV4 accepted.

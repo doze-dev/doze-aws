@@ -36,17 +36,39 @@ clients still speak.
 | S3 | ✅ complete — versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website |
 | DynamoDB | ✅ complete — full expression engine, GSI/LSI, transactions, TTL, paging semantics |
 | EventBridge | ✅ complete — full pattern language, SQS/SNS/Lambda targets, input transformers |
-| Lambda | ✅ complete — real process runtime (no Docker), versions, function URLs, SQS event source mappings |
+| Lambda | ✅ complete — real process runtime (no Docker), versions, layers, function URLs, SQS/DynamoDB/Kinesis event source mappings |
+| Kinesis | ✅ complete — native Go (no JVM), real partition-key routing, resharding with parent/child lineage |
+| IAM | ✅ complete — real policy evaluation, off by default, with least-privilege generation |
+| CloudFormation | ✅ stacks, change sets, deletion — `sam deploy`, `cdk deploy` and Serverless all work |
+| API Gateway | ✅ REST v1 — deployed APIs actually serve into Lambda over a real HTTP endpoint |
 
-All 10 services talk to each other: EventBridge→SQS/SNS/Lambda, S3
-notifications→SQS/SNS/Lambda, SNS→SQS/Lambda/webhooks, SQS→Lambda.
+All 14 services talk to each other: EventBridge→SQS/SNS/Lambda, S3
+notifications→SQS/SNS/Lambda, SNS→SQS/Lambda/webhooks, SQS/DynamoDB
+streams/Kinesis→Lambda, API Gateway→Lambda.
+
+## Deploy with the tooling you already have
+
+There is no doze-specific file format. Point your existing deployment tool at
+the endpoint and it works:
+
+```sh
+aws cloudformation deploy --template-file template.yaml --stack-name shop
+sam deploy --stack-name shop --s3-bucket artifacts
+cdk bootstrap && cdk deploy
+serverless package && aws cloudformation deploy \
+  --template-file .serverless/cloudformation-template-update-stack.json --stack-name sls-dev
+```
+
+Stacks are real: they own their resources, and `delete-stack` (or `cdk destroy`)
+takes them back. See [docs/cloudformation.md](docs/cloudformation.md).
 
 Per-service operation coverage lives in [docs/api-support](docs/api-support/).
 
 ## Design ground rules
 
-- **Lightweight above all.** Runtime dependencies are bbolt and a TOML parser.
-  Data persists across restarts under one directory you can delete.
+- **Lightweight above all.** Three runtime dependencies: bbolt, a TOML parser
+  and a YAML parser. Data persists across restarts under one directory you can
+  delete.
 - **Real protocols, honest boundaries.** Every documented operation of an
   implemented service gets a handler: functional where locally meaningful,
   faithful config round-trips where the effect is cloud-infrastructure-only,

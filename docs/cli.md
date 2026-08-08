@@ -6,16 +6,16 @@ interrupt it (Ctrl-C).
 
 ```sh
 doze-aws
-# msg=listening addr=127.0.0.1:4566 services=s3,dynamodb,sqs,sns,sts,kms,ssm,secretsmanager,eventbridge,lambda
+# msg=listening addr=127.0.0.1:4566 services=s3,dynamodb,sqs,sns,sts,kms,ssm,secretsmanager,eventbridge,lambda,kinesis,iam,cloudformation,apigateway
 ```
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `doze-aws` | Serve the enabled services on the shared endpoint (the default). If `./stack.yaml` exists (or `--stack` names a file), it is applied at boot. |
-| `doze-aws apply [--var k=v ...] [file]` | Converge the stack toward a declarative `stack.yaml` (default `./stack.yaml`): create what's missing, cheaply update what exists, never delete. Targets the running server if one is listening, the data dir otherwise. See [stack-file.md](stack-file.md). |
-| `doze-aws export` | Write the running stack (queues, tables, buckets, functions, wiring, …) to stdout as a `stack.yaml`. Secret values are left blank on purpose. |
+| `doze-aws` | Serve the enabled services on the shared endpoint (the default). If `./template.yaml` exists (or `--template` names a file), it is applied at boot. |
+| `doze-aws apply [--var k=v ...] [file]` | Deploy a CloudFormation or SAM template (default `./template.yaml`): create what's missing, cheaply update what exists, never delete. `--var` supplies template parameters. Targets the running server if one is listening, the data dir otherwise. See [cloudformation.md](cloudformation.md). |
+| `doze-aws export` | Write the running stack (queues, tables, buckets, functions, wiring, …) to stdout as a CloudFormation template. Secret values are left blank on purpose. |
 | `doze-aws version` | Print the build version and the list of implemented services. |
 | `doze-aws config print [flags]` | Resolve and print the effective configuration (defaults + config file + flags), then exit. Use it to see exactly what a given invocation would run. |
 
@@ -33,15 +33,22 @@ Flags apply to serving and to `config print`.
 | `--data-dir <dir>` | `./data` | Root directory; each service gets its own subdirectory beneath it. |
 | `--services <a,b,…>` | all implemented | Comma-separated subset of services to enable. Unknown names are an error. |
 | `--s3-host <host>` | (none) | Base host for virtual-hosted-style S3 addressing (`<bucket>.<host>`). Path-style always works regardless. |
-| `--stack <path>` | `./stack.yaml` if present | Declarative stack file to apply at boot. See [stack-file.md](stack-file.md). |
+| `--template <path>` | `./template.yaml` if present | CloudFormation/SAM template to apply at boot. See [cloudformation.md](cloudformation.md). |
+| `--iam-mode <mode>` | `off` | IAM enforcement: `off` (never denies), `soft` (evaluate and record, never block), `enforce` (real denials). See [api-support/iam.md](api-support/iam.md). |
+| `--console` | on | Serve the web management console at `/_console`. |
+| `--lambda-idle <duration>` | `10m` | How long a warm Lambda keeps its process before scaling to zero. |
 
 ```sh
 # Only S3 + SQS, on a custom port, with data under /tmp/aws
 doze-aws --services s3,sqs --listen 127.0.0.1:9000 --data-dir /tmp/aws
+
+# Watch what IAM would deny, without denying it
+doze-aws --iam-mode soft
 ```
 
 Service names: `s3`, `dynamodb`, `sqs`, `sns`, `sts`, `kms`, `ssm`,
-`secretsmanager`, `eventbridge`, `lambda`.
+`secretsmanager`, `eventbridge`, `lambda`, `kinesis`, `iam`, `cloudformation`,
+`apigateway`.
 
 ## Config file
 
@@ -98,6 +105,8 @@ nothing else to tear down.
 ## See also
 
 - [getting-started.md](getting-started.md) — a first run, end to end.
+- [cloudformation.md](cloudformation.md) — deploying with the AWS CLI, SAM, CDK
+  or Serverless.
 - [embedding.md](embedding.md) — use doze-aws as a Go library instead of a CLI.
 - [api-support/](api-support/) — per-service operation support (Functional /
   Cosmetic / honest Stub).

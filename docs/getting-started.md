@@ -8,7 +8,7 @@ both AWS SDK generations. No Docker, no JVM, no cloud.
 
 ```sh
 doze-aws
-# msg=listening addr=127.0.0.1:4566 services=s3,dynamodb,sqs,sns,sts,kms,ssm,secretsmanager,eventbridge,lambda
+# msg=listening addr=127.0.0.1:4566 services=s3,dynamodb,sqs,sns,sts,kms,ssm,secretsmanager,eventbridge,lambda,kinesis,iam,cloudformation,apigateway
 ```
 
 Point any AWS SDK or the CLI at it:
@@ -72,3 +72,16 @@ Every implemented service documents its operation support in
 [api-support/](api-support/): **F**unctional (real local semantics),
 **C**osmetic (config round-trips, no local effect), or an honest **S**tub for
 what's physically meaningless locally.
+
+## Standing up a stack
+
+doze-aws has no file format of its own. Deploy with whatever you already use —
+the AWS CLI, SAM, CDK or Serverless Framework all work against the endpoint:
+
+```sh
+aws cloudformation deploy --template-file template.yaml --stack-name shop
+```
+
+`doze-aws` also applies `./template.yaml` at boot if one is present, so "clone
+the repo, run doze-aws" is the whole onboarding story. See
+[cloudformation.md](cloudformation.md).
