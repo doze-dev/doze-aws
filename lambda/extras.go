@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 )
@@ -372,9 +373,9 @@ func (s *Server) createMapping(w http.ResponseWriter, r *http.Request) *awshttp.
 	if aerr := decode(r, &req); aerr != nil {
 		return aerr
 	}
-	if !strings.Contains(req.EventSourceArn, ":sqs:") && !isDDBStreamARN(req.EventSourceArn) {
+	if !strings.Contains(req.EventSourceArn, ":sqs:") && !isDDBStreamARN(req.EventSourceArn) && !isKinesisStreamARN(req.EventSourceArn) {
 		return awshttp.Errf(400, "InvalidParameterValueException",
-			"doze-aws event source mappings support SQS queues and DynamoDB streams; got %q", req.EventSourceArn)
+			"doze-aws event source mappings support SQS queues, DynamoDB streams and Kinesis streams; got %q", req.EventSourceArn)
 	}
 	fnName := req.FunctionName[strings.LastIndex(req.FunctionName, ":")+1:]
 	if _, err := s.store.GetFunction(fnName); err != nil {
@@ -476,16 +477,24 @@ func (s *Server) startPoller(m *EventSourceMapping) {
 	s.mu.Unlock()
 
 	s.pollers.Add(1)
-	if isDDBStreamARN(m.EventSourceArn) {
+	switch {
+	case isDDBStreamARN(m.EventSourceArn):
 		go func() { defer s.pollers.Done(); s.pollDDBStream(poller, m) }()
-		return
+	case isKinesisStreamARN(m.EventSourceArn):
+		go func() { defer s.pollers.Done(); s.pollKinesis(poller, m) }()
+	default:
+		go func() { defer s.pollers.Done(); s.pollSQS(poller, m) }()
 	}
-	go func() { defer s.pollers.Done(); s.pollSQS(poller, m) }()
 }
 
 // isDDBStreamARN reports whether an event-source ARN names a DynamoDB stream.
 func isDDBStreamARN(arn string) bool {
 	return strings.Contains(arn, ":dynamodb:") && strings.Contains(arn, "/stream/")
+}
+
+// isKinesisStreamARN reports whether an event-source ARN names a Kinesis stream.
+func isKinesisStreamARN(arn string) bool {
+	return strings.Contains(arn, ":kinesis:") && strings.Contains(arn, ":stream/")
 }
 
 // sleepOrStop waits d or until the poller is stopped; returns true if stopped.
@@ -598,6 +607,116 @@ func (s *Server) pollDDBStream(poller *esm, m *EventSourceMapping) {
 			continue
 		}
 		_, _ = s.runInvoke(context.Background(), f, payload)
+	}
+}
+
+// pollKinesis drives a Kinesis event source mapping. Unlike the single-shard
+// DynamoDB case, a Kinesis stream has many shards and they change under a
+// reshard, so the poller keeps one iterator per shard and re-lists whenever a
+// shard drains (a nil NextShardIterator) — which is exactly how a closed parent
+// hands over to its children.
+func (s *Server) pollKinesis(poller *esm, m *EventSourceMapping) {
+	stream := m.EventSourceArn[strings.LastIndex(m.EventSourceArn, "/")+1:]
+	fnName := m.FunctionName
+	batch := m.BatchSize
+	if batch <= 0 {
+		batch = 100
+	}
+	// iterators maps shard id -> current iterator. A shard leaves the map when
+	// it drains, and the next re-list picks up whatever replaced it.
+	iterators := map[string]string{}
+	refresh := true
+
+	for {
+		select {
+		case <-poller.stopCh:
+			return
+		default:
+		}
+
+		if refresh {
+			shards, err := peercall.KinesisListShards(s.peers, stream)
+			if err != nil {
+				if sleepOrStop(poller, time.Second) {
+					return
+				}
+				continue
+			}
+			for _, id := range shards {
+				if _, known := iterators[id]; known {
+					continue
+				}
+				// New shards start at the trim horizon so a mapping created
+				// after the writes still sees them.
+				it, err := peercall.KinesisGetShardIterator(s.peers, stream, id, "TRIM_HORIZON")
+				if err != nil {
+					continue
+				}
+				iterators[id] = it
+			}
+			refresh = false
+		}
+		if len(iterators) == 0 {
+			if sleepOrStop(poller, time.Second) {
+				return
+			}
+			refresh = true
+			continue
+		}
+
+		idle := true
+		for id, iter := range iterators {
+			recs, next, err := peercall.KinesisGetRecords(s.peers, iter, batch)
+			if err != nil {
+				delete(iterators, id) // stale or expired iterator: re-open it
+				refresh = true
+				continue
+			}
+			if next == "" {
+				// The shard is closed and drained; its children arrive on the
+				// next re-list.
+				delete(iterators, id)
+				refresh = true
+			} else {
+				iterators[id] = next
+			}
+			if len(recs) == 0 {
+				continue
+			}
+			idle = false
+			records := make([]map[string]any, 0, len(recs))
+			for _, rec := range recs {
+				records = append(records, map[string]any{
+					"eventID":           id + ":" + rec.SequenceNumber,
+					"eventName":         "aws:kinesis:record",
+					"eventVersion":      "1.0",
+					"eventSource":       "aws:kinesis",
+					"eventSourceARN":    m.EventSourceArn,
+					"awsRegion":         awsident.Region,
+					"invokeIdentityArn": awsident.GlobalARN("iam", "role/lambda-kinesis-role"),
+					"kinesis": map[string]any{
+						"kinesisSchemaVersion":        "1.0",
+						"partitionKey":                rec.PartitionKey,
+						"sequenceNumber":              rec.SequenceNumber,
+						"data":                        rec.Data,
+						"approximateArrivalTimestamp": rec.ApproximateArrivalTimestamp,
+					},
+				})
+			}
+			payload, _ := json.Marshal(map[string]any{"Records": records})
+			f, err := s.store.GetFunction(fnName)
+			if err != nil {
+				continue
+			}
+			// At-least-once, like the DynamoDB poller: the iterator has already
+			// advanced, so a failed invoke does not replay.
+			_, _ = s.runInvoke(context.Background(), f, payload)
+		}
+		if idle {
+			if sleepOrStop(poller, 500*time.Millisecond) {
+				return
+			}
+		}
 	}
 }
 

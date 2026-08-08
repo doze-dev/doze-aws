@@ -113,6 +113,88 @@ func DDBGetRecords(dir peers.Directory, iterator string, limit int) (records []j
 // DDBStreamShardID is the single shard doze-aws streams expose.
 const DDBStreamShardID = "shardId-00000000000000000000-00000000"
 
+// KinesisRecord is one record read from a Kinesis shard, in the shape a Lambda
+// event source mapping needs to build its event payload.
+type KinesisRecord struct {
+	SequenceNumber              string  `json:"SequenceNumber"`
+	ApproximateArrivalTimestamp float64 `json:"ApproximateArrivalTimestamp"`
+	Data                        []byte  `json:"Data"`
+	PartitionKey                string  `json:"PartitionKey"`
+}
+
+// KinesisListShards returns the shard ids of a stream. A mapping polls every
+// shard, so it needs the list up front and again after a reshard.
+func KinesisListShards(dir peers.Directory, stream string) ([]string, error) {
+	ep, ok := dir.Endpoint("kinesis")
+	if !ok {
+		return nil, fmt.Errorf("no kinesis peer wired")
+	}
+	body, err := postJSONResult(ep, "Kinesis_20131202.ListShards", "application/x-amz-json-1.1",
+		map[string]any{"StreamName": stream})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Shards []struct {
+			ShardID string `json:"ShardId"`
+		} `json:"Shards"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	ids := make([]string, 0, len(out.Shards))
+	for _, sh := range out.Shards {
+		ids = append(ids, sh.ShardID)
+	}
+	return ids, nil
+}
+
+// KinesisGetShardIterator opens a shard iterator on a Kinesis stream.
+func KinesisGetShardIterator(dir peers.Directory, stream, shardID, iterType string) (string, error) {
+	ep, ok := dir.Endpoint("kinesis")
+	if !ok {
+		return "", fmt.Errorf("no kinesis peer wired")
+	}
+	body, err := postJSONResult(ep, "Kinesis_20131202.GetShardIterator", "application/x-amz-json-1.1",
+		map[string]any{"StreamName": stream, "ShardId": shardID, "ShardIteratorType": iterType})
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		ShardIterator string `json:"ShardIterator"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return "", err
+	}
+	return out.ShardIterator, nil
+}
+
+// KinesisGetRecords fetches records from a Kinesis shard iterator. A nil next
+// iterator means the shard is closed and drained — the caller should re-list
+// shards and pick up the children.
+func KinesisGetRecords(dir peers.Directory, iterator string, limit int) (recs []KinesisRecord, next string, err error) {
+	ep, ok := dir.Endpoint("kinesis")
+	if !ok {
+		return nil, "", fmt.Errorf("no kinesis peer wired")
+	}
+	body, err := postJSONResult(ep, "Kinesis_20131202.GetRecords", "application/x-amz-json-1.1",
+		map[string]any{"ShardIterator": iterator, "Limit": limit})
+	if err != nil {
+		return nil, "", err
+	}
+	var out struct {
+		Records           []KinesisRecord `json:"Records"`
+		NextShardIterator *string         `json:"NextShardIterator"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, "", err
+	}
+	if out.NextShardIterator != nil {
+		next = *out.NextShardIterator
+	}
+	return out.Records, next, nil
+}
+
 // SQSDelete acknowledges one received message.
 func SQSDelete(dir peers.Directory, queue, receiptHandle string) error {
 	ep, ok := dir.Endpoint("sqs")
@@ -152,7 +234,7 @@ func LambdaInvoke(dir peers.Directory, function string, payload []byte) ([]byte,
 		return body, fmt.Errorf("lambda invoke: %s: %s", resp.Status, body)
 	}
 	if fnErr := resp.Header.Get("X-Amz-Function-Error"); fnErr != "" {
-		return body, fmt.Errorf("rotation function error (%s): %s", fnErr, body)
+		return body, fmt.Errorf("function error (%s): %s", fnErr, body)
 	}
 	return body, nil
 }
@@ -239,3 +321,30 @@ func postJSONResult(ep peers.Endpoint, target, contentType string, payload any) 
 
 // maxPeerResponse bounds an in-process peer response body.
 const maxPeerResponse = 16 << 20
+
+// S3Get fetches an object from the local S3, path-style. Lambda uses it to
+// materialize function code that a deploy tool uploaded to a staging bucket —
+// which is what `sam deploy` and `cdk deploy` both do.
+func S3Get(dir peers.Directory, bucket, key string) ([]byte, error) {
+	ep, ok := dir.Endpoint("s3")
+	if !ok {
+		return nil, fmt.Errorf("no s3 peer wired")
+	}
+	req, err := http.NewRequest(http.MethodGet, ep.BaseURL+"/"+bucket+"/"+key, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := ep.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode/100 != 2 {
+		return nil, fmt.Errorf("s3 GET %s/%s: %d", bucket, key, resp.StatusCode)
+	}
+	return body, nil
+}
