@@ -15,6 +15,7 @@
 package dozeaws
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,9 +24,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/apigateway"
+	"github.com/doze-dev/doze-aws/cloudformation"
 	"github.com/doze-dev/doze-aws/dynamodb"
 	"github.com/doze-dev/doze-aws/eventbridge"
+	"github.com/doze-dev/doze-aws/iam"
+	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/gateway"
+	"github.com/doze-dev/doze-aws/kinesis"
 	"github.com/doze-dev/doze-aws/kms"
 	"github.com/doze-dev/doze-aws/lambda"
 	"github.com/doze-dev/doze-aws/peers"
@@ -39,7 +45,7 @@ import (
 
 // Implemented lists the services this build of doze-aws can serve, in gateway
 // order (currently the full set gateway.Services knows about).
-var Implemented = []string{"s3", "dynamodb", "sqs", "sns", "sts", "kms", "ssm", "secretsmanager", "eventbridge", "lambda"}
+var Implemented = []string{"s3", "dynamodb", "sqs", "sns", "sts", "kms", "ssm", "secretsmanager", "eventbridge", "lambda", "kinesis", "iam", "cloudformation", "apigateway"}
 
 // StackConfig configures a Stack.
 type StackConfig struct {
@@ -59,6 +65,10 @@ type StackConfig struct {
 	// LambdaIdleTimeout is how long a warm Lambda function keeps its process(es)
 	// before scaling to zero. Zero uses the service default (10m).
 	LambdaIdleTimeout time.Duration
+	// IAMMode selects how far the IAM service goes on the request path:
+	// "off" (the default) never evaluates anything, "soft" evaluates and
+	// records without blocking, "enforce" returns real AccessDenied errors.
+	IAMMode iam.Mode
 	// Endpoint is the externally-reachable base URL of this stack's gateway
 	// (e.g. "http://127.0.0.1:4566"). It is injected into Lambda function
 	// processes as AWS_ENDPOINT_URL so handler code using an AWS SDK reaches
@@ -71,6 +81,9 @@ type StackConfig struct {
 type Stack struct {
 	gw      *gateway.Gateway
 	closers []io.Closer
+	// iam is retained so Handler can install the authorization middleware. It
+	// is nil when the service is disabled, and unused when its mode is off.
+	iam *iam.Server
 }
 
 // NewStack constructs and wires the requested services.
@@ -150,12 +163,67 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 	case "lambda":
 		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, Endpoint: cfg.Endpoint})
 		return s, s, err
+	case "kinesis":
+		s, err := kinesis.New(kinesis.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		return s, s, err
+	case "apigateway":
+		s, err := apigateway.New(apigateway.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		return s, s, err
+	case "cloudformation":
+		// CloudFormation provisions across every other service, so it is the
+		// one service handed the whole gateway. It resolves at request time,
+		// so construction order does not matter.
+		s, err := cloudformation.New(cloudformation.Options{
+			DataDir: dataDir, Gateway: st.gw, Peers: dir, Logf: logf,
+		})
+		return s, s, err
+	case "iam":
+		s, err := iam.New(iam.Options{DataDir: dataDir, Mode: cfg.IAMMode, Peers: dir, Logf: logf})
+		if err == nil {
+			st.iam = s
+		}
+		return s, s, err
 	}
 	return nil, nil, fmt.Errorf("no constructor for %q", name)
 }
 
 // Handler returns the shared-endpoint gateway handler.
-func (s *Stack) Handler() http.Handler { return s.gw }
+//
+// When IAM is enabled in soft or enforce mode the gateway is wrapped in an
+// authorization middleware. In the default off mode the bare gateway is
+// returned, so a deployment that does not want IAM pays nothing for it — not
+// even a wrapper frame per request.
+func (s *Stack) Handler() http.Handler {
+	if s.iam == nil || s.iam.Mode() == iam.ModeOff {
+		return s.gw
+	}
+	return s.authorized(s.gw)
+}
+
+// authorized wraps h with IAM evaluation. The service is resolved with the
+// gateway's own routing rules, so the middleware and the dispatcher can never
+// disagree about which service a request belongs to.
+func (s *Stack) authorized(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		res := s.iam.Authorize(r, gateway.Route(r))
+		if res.Err != nil {
+			writeDenied(w, res.Err)
+			return
+		}
+		h.ServeHTTP(w, r)
+	})
+}
+
+// writeDenied renders an AccessDenied. The requester's protocol is not
+// reliably known at this point, so the JSON error shape is used — both SDK
+// generations surface the code and message from it, even for XML services.
+func writeDenied(w http.ResponseWriter, e *awshttp.APIError) {
+	body, _ := json.Marshal(map[string]string{"__type": e.Code, "message": e.Message})
+	w.Header().Set("Content-Type", "application/x-amz-json-1.1")
+	w.Header().Set("x-amzn-ErrorType", e.Code)
+	w.WriteHeader(e.Status)
+	w.Write(body)
+}
 
 // Service returns one service's handler (bypassing gateway routing), or nil if
 // it isn't enabled — useful for mounting a service on its own listener.

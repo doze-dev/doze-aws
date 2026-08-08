@@ -19,7 +19,7 @@ func TestSplitApplyArgs(t *testing.T) {
 		{name: "file only", args: []string{"infra.yaml"}, file: "infra.yaml", vars: map[string]string{}},
 		{
 			// The regression this exists for: a space-separated flag value must
-			// stay with its flag, not become the stack file.
+			// stay with its flag, not become the template file.
 			name:  "flag with space value",
 			args:  []string{"--data-dir", "./data", "infra.yaml"},
 			file:  "infra.yaml",
@@ -84,7 +84,7 @@ func TestSplitApplyArgs(t *testing.T) {
 
 func TestFlagTakesValue(t *testing.T) {
 	for name, want := range map[string]bool{
-		"data-dir": true, "listen": true, "stack": true, "config": true,
+		"data-dir": true, "listen": true, "template": true, "config": true,
 		"console": false, // boolean
 		"nope":    false, // unregistered
 	} {

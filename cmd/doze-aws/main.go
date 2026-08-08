@@ -23,9 +23,10 @@ import (
 
 	"github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/console"
+	"github.com/doze-dev/doze-aws/iam"
 	"github.com/doze-dev/doze-aws/internal/config"
+	"github.com/doze-dev/doze-aws/internal/provision"
 	"github.com/doze-dev/doze-aws/peers"
-	"github.com/doze-dev/doze-aws/stackfile"
 )
 
 // version is the build version, injected by the release tooling
@@ -125,7 +126,8 @@ func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs.StringVar(&dst.S3Host, "s3-host", dst.S3Host, "base host for virtual-hosted-style S3 bucket addressing")
 	fs.BoolVar(&dst.Console, "console", dst.Console, "serve the web management console at /_console")
 	fs.DurationVar(&dst.LambdaIdleTimeout, "lambda-idle", dst.LambdaIdleTimeout, "how long a warm Lambda keeps its process before scaling to zero")
-	fs.StringVar(&dst.StackFile, "stack", dst.StackFile, "declarative stack.yaml to apply at boot (default: ./stack.yaml if present)")
+	fs.StringVar(&dst.TemplateFile, "template", dst.TemplateFile, "CloudFormation/SAM template to apply at boot (default: ./template.yaml if present)")
+	fs.StringVar(&dst.IAMMode, "iam-mode", dst.IAMMode, "IAM enforcement: off (default), soft (evaluate and record, never block), enforce (deny for real)")
 	return fs, cp
 }
 
@@ -141,12 +143,17 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
+	iamMode, err := iam.ParseMode(cfg.IAMMode)
+	if err != nil {
+		return err
+	}
 
 	stack, err := dozeaws.NewStack(dozeaws.StackConfig{
 		DataDir:           cfg.DataDir,
 		Services:          cfg.Services,
 		S3Host:            cfg.S3Host,
 		LambdaIdleTimeout: cfg.LambdaIdleTimeout,
+		IAMMode:           iamMode,
 		Endpoint:          reachableEndpoint(cfg.ListenAddr),
 		Logf: func(format string, args ...any) {
 			logger.Info(fmt.Sprintf(format, args...))
@@ -157,28 +164,33 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	}
 	defer stack.Close()
 
-	// Apply the declarative stack file, if one is named or ./stack.yaml exists.
-	stackPath := cfg.StackFile
-	if stackPath == "" {
-		if _, err := os.Stat(config.DefaultStackFile); err == nil {
-			stackPath = config.DefaultStackFile
+	// Apply a CloudFormation/SAM template at boot, if one is named or a
+	// conventionally-named one is sitting in the working directory.
+	tmplPath := cfg.TemplateFile
+	if tmplPath == "" {
+		for _, candidate := range config.DefaultTemplateFiles {
+			if _, err := os.Stat(candidate); err == nil {
+				tmplPath = candidate
+				break
+			}
 		}
 	}
-	if stackPath != "" {
-		data, err := os.ReadFile(stackPath)
+	if tmplPath != "" {
+		data, err := os.ReadFile(tmplPath)
 		if err != nil {
-			return fmt.Errorf("stack file: %w", err)
+			return fmt.Errorf("template: %w", err)
 		}
-		sf, err := stackfile.Parse(data)
+		sf, rep, err := loadTemplate(data, tmplPath, nil)
+		if err != nil {
+			return fmt.Errorf("template %s: %w", tmplPath, err)
+		}
+		printTranspileReport(rep)
+		applyRep, err := provision.Apply(context.Background(), stack.Handler(), sf)
 		if err != nil {
 			return err
 		}
-		rep, err := stackfile.Apply(context.Background(), stack.Handler(), sf)
-		if err != nil {
-			return err
-		}
-		created, updated, skipped := rep.Counts()
-		logger.Info("stack applied", "file", stackPath, "created", created, "updated", updated, "in_place", skipped)
+		created, updated, skipped := applyRep.Counts()
+		logger.Info("template applied", "file", tmplPath, "created", created, "updated", updated, "in_place", skipped)
 	}
 
 	ln, err := net.Listen("tcp", cfg.ListenAddr)

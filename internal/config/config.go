@@ -27,9 +27,14 @@ type Config struct {
 	// LambdaIdleTimeout is how long a warm Lambda function keeps its process(es)
 	// before scaling to zero.
 	LambdaIdleTimeout time.Duration
-	// StackFile is a declarative stack.yaml applied at boot (and the default
-	// target of `doze-aws apply`). Empty auto-detects ./stack.yaml.
-	StackFile string
+	// TemplateFile is a CloudFormation/SAM template applied at boot (and the
+	// default target of `doze-aws apply`). Empty auto-detects the conventional
+	// template names.
+	TemplateFile string
+	// IAMMode selects how far IAM goes on the request path: "off" (the
+	// default) never evaluates, "soft" evaluates and records without blocking,
+	// "enforce" returns real AccessDenied errors.
+	IAMMode string
 }
 
 // Default returns a Config suitable for zero-config local development. The
@@ -42,6 +47,7 @@ func Default() Config {
 		S3Host:            "localhost",
 		Console:           true,
 		LambdaIdleTimeout: 10 * time.Minute,
+		IAMMode:           "off",
 	}
 }
 

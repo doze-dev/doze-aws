@@ -5,10 +5,13 @@ go 1.26.0
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/aws/aws-sdk-go v1.55.8
-	github.com/aws/aws-sdk-go-v2 v1.42.1
+	github.com/aws/aws-sdk-go-v2 v1.43.3
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.28
+	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.76.0
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.60.0
 	github.com/aws/aws-sdk-go-v2/service/eventbridge v1.47.0
+	github.com/aws/aws-sdk-go-v2/service/iam v1.57.0
+	github.com/aws/aws-sdk-go-v2/service/kinesis v1.46.2
 	github.com/aws/aws-sdk-go-v2/service/kms v1.54.0
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.97.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.105.0
@@ -17,8 +20,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.45.0
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.71.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.44.0
-	github.com/aws/smithy-go v1.27.3
+	github.com/aws/smithy-go v1.27.6
 	go.etcd.io/bbolt v1.5.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -40,12 +44,13 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/alecthomas/chroma/v2 v2.27.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
-	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.14 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.15 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.32.26 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.30 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.30 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.30 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.34 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.34 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.31 // indirect
+	github.com/aws/aws-sdk-go-v2/service/apigateway v1.42.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.23 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.12.7 // indirect
@@ -141,7 +146,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260630182238-925bb5da69e7 // indirect
 	google.golang.org/grpc v1.82.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	mvdan.cc/sh/moreinterp v0.0.0-20260120230322-19def062a997 // indirect
 	mvdan.cc/sh/v3 v3.13.2-0.20260613075524-2255122b577b // indirect
 )

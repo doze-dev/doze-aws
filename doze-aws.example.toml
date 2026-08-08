@@ -15,9 +15,13 @@ data-dir = "./data"
 # Services to enable. Omit to enable everything this build implements.
 # services = ["sts"]
 
-# Declarative stack file applied at boot (docs/stack-file.md). Omit to
-# auto-detect ./stack.yaml.
-# stack = "stack.yaml"
+# CloudFormation/SAM template applied at boot (docs/cloudformation.md). Omit to
+# auto-detect ./template.yaml.
+# template = "template.yaml"
+
+# IAM enforcement: "off" (the default — never denies), "soft" (evaluate and
+# record without blocking), or "enforce" (real AccessDenied responses).
+# iam-mode = "off"
 
 [s3]
 # Base host for virtual-hosted-style bucket addressing (bucket.<host>).

@@ -7,12 +7,15 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	dozeaws "github.com/doze-dev/doze-aws"
+	"github.com/doze-dev/doze-aws/cloudformation"
 	"github.com/doze-dev/doze-aws/internal/config"
-	"github.com/doze-dev/doze-aws/stackfile"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 // splitApplyArgs separates `apply` arguments into the stack file, the --var
@@ -81,7 +84,17 @@ func runApply(args []string) int {
 		return 2
 	}
 	if file == "" {
-		file = config.DefaultStackFile
+		for _, candidate := range config.DefaultTemplateFiles {
+			if _, err := os.Stat(candidate); err == nil {
+				file = candidate
+				break
+			}
+		}
+	}
+	if file == "" {
+		fmt.Fprintf(os.Stderr, "apply: no template given and none of %s found\n",
+			strings.Join(config.DefaultTemplateFiles, ", "))
+		return 2
 	}
 	st, err := loadConfig(flags)
 	if err != nil {
@@ -93,11 +106,12 @@ func runApply(args []string) int {
 		fmt.Fprintln(os.Stderr, "apply:", err)
 		return 1
 	}
-	s, err := stackfile.ParseWithVars(data, vars)
+	s, cfnRep, err := loadTemplate(data, file, vars)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "apply:", err)
 		return 1
 	}
+	printTranspileReport(cfnRep)
 	gw, closer, live, err := gatewayFor(st.cfg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "apply:", err)
@@ -109,7 +123,7 @@ func runApply(args []string) int {
 	} else {
 		fmt.Fprintf(os.Stderr, "applying %s to the data dir at %s (no server running)\n", file, st.cfg.DataDir)
 	}
-	rep, err := stackfile.Apply(context.Background(), gw, s)
+	rep, err := provision.Apply(context.Background(), gw, s)
 	printReport(rep)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "apply:", err)
@@ -117,7 +131,66 @@ func runApply(args []string) int {
 	}
 	c, u, k := rep.Counts()
 	fmt.Fprintf(os.Stderr, "✓ converged: %d created · %d updated · %d already in place\n", c, u, k)
+	if cfnRep != nil && len(cfnRep.Outputs) > 0 {
+		fmt.Fprintln(os.Stderr, "\nOutputs:")
+		for _, name := range sortedKeys(cfnRep.Outputs) {
+			fmt.Fprintf(os.Stderr, "  %s = %s\n", name, cfnRep.Outputs[name])
+		}
+	}
 	return 0
+}
+
+// loadTemplate parses a CloudFormation or SAM template into the resource graph
+// apply converges. doze-aws once had its own stack.yaml dialect; it was
+// removed, because a format only doze-aws speaks is one nobody wants to learn.
+func loadTemplate(data []byte, file string, vars map[string]string) (*provision.Stack, *cloudformation.Report, error) {
+	tmpl, err := cloudformation.Parse(data)
+	if err != nil {
+		return nil, nil, err
+	}
+	name := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
+	// --var doubles as the template-parameter channel.
+	s, rep, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{
+		StackName:  name,
+		Parameters: vars,
+	})
+	if err != nil {
+		return nil, rep, err
+	}
+	return s, rep, nil
+}
+
+// printTranspileReport shows what the template mapped to — and, critically,
+// what it did not. A silently skipped resource is the failure mode the whole
+// transpiler is designed to avoid, so ignored entries are always printed.
+func printTranspileReport(rep *cloudformation.Report) {
+	if rep == nil {
+		return
+	}
+	kind := "CloudFormation"
+	if rep.SAM {
+		kind = "SAM"
+	}
+	mapped, ignored, rejected := rep.Counts()
+	fmt.Fprintf(os.Stderr, "%s template: %d resources mapped, %d skipped, %d unsupported\n",
+		kind, mapped, ignored, rejected)
+	for _, e := range rep.Entries {
+		switch e.Kind {
+		case cloudformation.Ignored:
+			fmt.Fprintf(os.Stderr, "  ≈ %s (%s) — %s\n", e.LogicalID, e.Type, e.Reason)
+		case cloudformation.Rejected:
+			fmt.Fprintf(os.Stderr, "  ✗ %s (%s) — %s\n", e.LogicalID, e.Type, e.Reason)
+		}
+	}
+}
+
+func sortedKeys(m map[string]string) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
 
 // runExport implements `doze-aws export` — the running stack, as a stack.yaml.
@@ -133,12 +206,14 @@ func runExport(args []string) int {
 		return 1
 	}
 	defer closer()
-	s, err := stackfile.Export(context.Background(), gw)
+	s, err := provision.Export(context.Background(), gw)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "export:", err)
 		return 1
 	}
-	out, err := stackfile.Marshal(s)
+	// The running stack comes back as a CloudFormation template, so what you
+	// export is something the rest of your tooling can read.
+	out, err := cloudformation.Emit(s)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "export:", err)
 		return 1
@@ -147,7 +222,7 @@ func runExport(args []string) int {
 	return 0
 }
 
-func printReport(rep *stackfile.Report) {
+func printReport(rep *provision.Report) {
 	if rep == nil {
 		return
 	}

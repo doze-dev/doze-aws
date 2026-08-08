@@ -28,8 +28,14 @@ func (d tomlDuration) MarshalText() ([]byte, error) { return []byte(d.Duration.S
 // --config flag is given and the file exists.
 const DefaultConfigFile = "doze-aws.toml"
 
-// DefaultStackFile is applied at boot when present and no --stack names one.
-const DefaultStackFile = "stack.yaml"
+// DefaultTemplateFiles are the CloudFormation/SAM template names applied at
+// boot when present and no --template names one. The order follows the
+// conventions those tools already use, so an existing project needs no config.
+var DefaultTemplateFiles = []string{
+	"template.yaml", "template.yml",
+	"cloudformation.yaml", "cloudformation.yml",
+	"template.json",
+}
 
 // fileConfig is the on-disk (TOML) shape of Config. Its keys match the
 // command-line flags one-to-one. Every scalar is a pointer (slices nil-able)
@@ -41,7 +47,7 @@ type fileConfig struct {
 	Services []string    `toml:"services"`
 	S3       *s3File     `toml:"s3"`
 	Lambda   *lambdaFile `toml:"lambda"`
-	Stack    *string     `toml:"stack"`
+	Template *string     `toml:"template"`
 }
 
 type s3File struct {
@@ -87,8 +93,8 @@ func (fc fileConfig) applyTo(cfg *Config) {
 	if fc.Lambda != nil && fc.Lambda.IdleTimeout != nil {
 		cfg.LambdaIdleTimeout = fc.Lambda.IdleTimeout.Duration
 	}
-	if fc.Stack != nil {
-		cfg.StackFile = *fc.Stack
+	if fc.Template != nil {
+		cfg.TemplateFile = *fc.Template
 	}
 }
 

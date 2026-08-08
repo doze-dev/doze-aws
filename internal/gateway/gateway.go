@@ -32,7 +32,7 @@ import (
 // Services is the canonical set of doze-aws service names, in the order they
 // appear in docs and config listings.
 var Services = []string{
-	"s3", "sqs", "sns", "sts", "dynamodb", "kms", "ssm", "secretsmanager", "eventbridge", "lambda",
+	"s3", "sqs", "sns", "sts", "dynamodb", "kms", "ssm", "secretsmanager", "eventbridge", "lambda", "kinesis", "iam", "cloudformation", "apigateway",
 }
 
 // KnownService reports whether name is one of the canonical service names.
@@ -49,6 +49,7 @@ var targetPrefixes = map[string]string{
 	"AmazonSSM":                "ssm",
 	"secretsmanager":           "secretsmanager",
 	"AWSEvents":                "eventbridge",
+	"Kinesis_20131202":         "kinesis",
 }
 
 // scopeServices maps SigV4 signing names to services (they mostly coincide;
@@ -64,6 +65,10 @@ var scopeServices = map[string]string{
 	"secretsmanager": "secretsmanager",
 	"events":         "eventbridge",
 	"lambda":         "lambda",
+	"kinesis":        "kinesis",
+	"iam":            "iam",
+	"cloudformation": "cloudformation",
+	"apigateway":     "apigateway",
 }
 
 // lambdaPathPrefixes are the REST-API version prefixes the Lambda control
@@ -77,6 +82,37 @@ var lambdaPathPrefixes = []string{
 	"/2019-09-30/",
 	"/2020-06-30/",
 	"/2021-10-31/",
+}
+
+// apigatewayPathPrefixes are the REST-API path families the API Gateway
+// control plane serves. Unlike the JSON services it carries no X-Amz-Target,
+// so an unsigned request has to be recognised by path.
+var apigatewayPathPrefixes = []string{
+	"/restapis",
+	"/apikeys",
+	"/usageplans",
+	"/domainnames",
+	"/clientcertificates",
+	"/vpclinks",
+	"/sdktypes",
+	"/account",
+	"/v2/apis", // HTTP API (v2) shares the apigateway signing name
+	"/v2/routes",
+	"/v2/domainnames",
+}
+
+// isExecuteAPI reports whether a request addresses a DEPLOYED API rather than
+// the control plane — either by the /_aws/execute-api/ path or by the
+// virtual-host {apiId}.execute-api.<host> form.
+func isExecuteAPI(r *http.Request) bool {
+	if strings.HasPrefix(r.URL.Path, "/_aws/execute-api/") {
+		return true
+	}
+	host := r.Host
+	if i := strings.Index(host, ":"); i >= 0 {
+		host = host[:i]
+	}
+	return strings.Contains(host, ".execute-api.")
 }
 
 // Gateway is the shared-endpoint router. Register handlers for the services a
@@ -168,6 +204,16 @@ func routeService(r *http.Request) (service, why string) {
 		if strings.HasPrefix(r.URL.Path, prefix) {
 			return "lambda", "Lambda API path"
 		}
+	}
+	for _, prefix := range apigatewayPathPrefixes {
+		if strings.HasPrefix(r.URL.Path, prefix) {
+			return "apigateway", "API Gateway path"
+		}
+	}
+	// A request to a deployed API carries no signature at all, so it must be
+	// recognised by shape before the S3 fallback claims it.
+	if isExecuteAPI(r) {
+		return "apigateway", "execute-api path"
 	}
 	if action := peekAction(r); action != "" {
 		if svc, ok := queryActions[action]; ok {

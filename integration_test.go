@@ -16,6 +16,7 @@ import (
 	ddbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	awseb "github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	ebtypes "github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
+	awskinesis "github.com/aws/aws-sdk-go-v2/service/kinesis"
 	awslambda "github.com/aws/aws-sdk-go-v2/service/lambda"
 	lamtypes "github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
@@ -276,6 +277,64 @@ func TestIntegrationDynamoDBStreamToLambda(t *testing.T) {
 		t.Fatalf("PutItem: %v", err)
 	}
 	waitForMarker(t, marker, "via-ddb-STREAM")
+}
+
+// TestIntegrationKinesisToLambda proves the Kinesis event-source-mapping path
+// across a full stack: create a stream, wire an ESM at the stream ARN, put a
+// record, and assert the function received it with the aws:kinesis event shape.
+func TestIntegrationKinesisToLambda(t *testing.T) {
+	if testing.Short() {
+		t.Skip("compiles + runs a lambda across the stack")
+	}
+	ctx := context.Background()
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stack.Close()
+	ts := httptest.NewServer(stack.Handler())
+	defer ts.Close()
+
+	creds := credentials.NewStaticCredentialsProvider(awsident.AccessKeyID, awsident.SecretAccessKey, "")
+	cfg := aws.Config{Region: awsident.Region, Credentials: creds}
+	lam := awslambda.NewFromConfig(cfg, func(o *awslambda.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+	kin := awskinesis.NewFromConfig(cfg, func(o *awskinesis.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+
+	marker := filepath.Join(t.TempDir(), "invocations.log")
+	if _, err := lam.CreateFunction(ctx, &awslambda.CreateFunctionInput{
+		FunctionName: aws.String("sink"), Runtime: lamtypes.RuntimeProvidedal2, Handler: aws.String("bootstrap"),
+		Role:        aws.String("arn:aws:iam::000000000000:role/r"),
+		Code:        &lamtypes.FunctionCode{S3Bucket: aws.String("_local_"), S3Key: aws.String(buildRecorder(t))},
+		Environment: &lamtypes.Environment{Variables: map[string]string{"MARKER_FILE": marker}},
+	}); err != nil {
+		t.Fatalf("CreateFunction: %v", err)
+	}
+
+	if _, err := kin.CreateStream(ctx, &awskinesis.CreateStreamInput{
+		StreamName: aws.String("telemetry"), ShardCount: aws.Int32(2),
+	}); err != nil {
+		t.Fatalf("CreateStream: %v", err)
+	}
+	streamArn := awsident.ARN("kinesis", "stream/telemetry")
+
+	if _, err := lam.CreateEventSourceMapping(ctx, &awslambda.CreateEventSourceMappingInput{
+		FunctionName: aws.String("sink"), EventSourceArn: aws.String(streamArn),
+		BatchSize: aws.Int32(10), Enabled: aws.Bool(true),
+		StartingPosition: lamtypes.EventSourcePositionTrimHorizon,
+	}); err != nil {
+		t.Fatalf("CreateEventSourceMapping(kinesis): %v", err)
+	}
+
+	if _, err := kin.PutRecord(ctx, &awskinesis.PutRecordInput{
+		StreamName:   aws.String("telemetry"),
+		PartitionKey: aws.String("device-7"),
+		Data:         []byte("via-kinesis-STREAM"),
+	}); err != nil {
+		t.Fatalf("PutRecord: %v", err)
+	}
+	// The recorder writes the raw event payload; the record data is base64 in
+	// the Kinesis event shape, so match on the envelope instead.
+	waitForMarker(t, marker, "aws:kinesis")
 }
 
 // failBootstrap reports every invocation as an error to the Runtime API, so the
