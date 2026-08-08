@@ -182,6 +182,23 @@ func (c *Console) routes() {
 
 	// SNS.
 	// Kinesis.
+	// IAM.
+	m.HandleFunc("GET "+p+"/iam", c.iamHome)
+	m.HandleFunc("GET "+p+"/iam/policy", c.iamPolicy)
+	m.HandleFunc("GET "+p+"/iam/{kind}/{name}", c.iamPrincipal)
+	m.HandleFunc("POST "+p+"/iam/simulate", c.iamSimulate)
+	m.HandleFunc("POST "+p+"/iam/generate", c.iamGenerate)
+
+	// API Gateway.
+	m.HandleFunc("GET "+p+"/apigw", c.apigwList)
+	m.HandleFunc("GET "+p+"/apigw/{api}", c.apigwAPI)
+	m.HandleFunc("POST "+p+"/apigw/{api}/invoke", c.apigwInvoke)
+
+	// CloudFormation.
+	m.HandleFunc("GET "+p+"/cfn", c.cfnStacks)
+	m.HandleFunc("GET "+p+"/cfn/{stack}", c.cfnStack)
+	m.HandleFunc("POST "+p+"/cfn/{stack}/delete", c.cfnDelete)
+
 	m.HandleFunc("GET "+p+"/kinesis", c.kinesisStreams)
 	m.HandleFunc("POST "+p+"/kinesis/create", c.kinesisCreate)
 	m.HandleFunc("GET "+p+"/kinesis/{stream}", c.kinesisStream)
@@ -368,6 +385,10 @@ func templateFuncs(prefix string) template.FuncMap {
 		"hasPrefix": strings.HasPrefix,
 		// has reports membership, for rendering a checked box against a set the
 		// resource already carries.
+		// mul indents the route tree by depth without the template counting
+		// path separators itself.
+		"mul": func(a, b int) int { return a * b },
+		"ge":  func(a, b int) bool { return a >= b },
 		"has": func(set []string, v string) bool {
 			return slices.Contains(set, v)
 		},

@@ -144,6 +144,15 @@ func (c *Console) apiCounts(w http.ResponseWriter, r *http.Request) {
 	if n, err := c.be.CountStreams(ctx); err == nil {
 		counts["kinesis"] = n
 	}
+	if n, err := c.be.CountStacks(ctx); err == nil {
+		counts["cfn"] = n
+	}
+	if n, err := c.be.CountRestAPIs(ctx); err == nil {
+		counts["apigw"] = n
+	}
+	if n, err := c.be.CountPrincipals(ctx); err == nil {
+		counts["iam"] = n
+	}
 	if v, err := c.be.ListParameters(ctx); err == nil { // single call already
 		counts["ssm"] = len(v)
 	}

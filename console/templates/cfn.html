@@ -1,0 +1,117 @@
+{{define "cfn_lp"}}
+{{template "lp_head" dict "Svc" "cfn" "Label" "CloudFormation"}}
+  {{range .List}}
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/cfn/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+    <span class="nm">{{.Name}}</span>
+    <span class="sb">{{if .Failed}}{{icon "alert"}}{{else}}{{len .Outputs}}{{end}}</span>
+  </a>
+  {{end}}
+{{template "lp_foot" .}}
+{{end}}
+
+{{define "cfn_home"}}{{template "shell_top" .}}
+  {{template "cfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  {{template "empty_detail" dict "Svc" "cfn" "Hint" "Select a stack. Stacks appear here when you deploy with sam, cdk, the CloudFormation CLI or Serverless."}}
+{{template "shell_bottom" .}}{{end}}
+
+{{define "cfn_stack"}}{{template "shell_top" .}}
+  {{template "cfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Stack.Name)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "cfn"}} {{.Stack.Name}}
+        <div class="acts">
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/cfn/{{.Stack.Name}}/delete"
+                  hx-confirm="Delete stack “{{.Stack.Name}}”? Everything it created goes with it.">{{icon "trash"}} Delete</button>
+        </div>
+      </div>
+      <div class="chips">
+        <span class="chip {{if .Stack.Failed}}bad{{end}}">{{.Stack.Status}}</span>
+        <span class="chip">created {{.Stack.Created}}</span>
+        {{if .Stack.Updated}}<span class="chip">updated {{.Stack.Updated}}</span>{{end}}
+        {{range .Stack.Capabilities}}<span class="chip">{{.}}</span>{{end}}
+        {{if .Stack.TerminationProtection}}<span class="chip">termination protected</span>{{end}}
+      </div>
+      {{if .Stack.StatusReason}}<p class="mini-note" style="margin-top:6px">{{.Stack.StatusReason}}</p>{{end}}
+      {{template "dtabs" dict "Cur" .Tab "Tabs" (list
+        (dict "Key" "resources" "Label" "Resources" "Icon" "list" "URL" (printf "%s/cfn/%s" .Prefix .Stack.Name))
+        (dict "Key" "events" "Label" "Events" "Icon" "activity" "URL" (printf "%s/cfn/%s?tab=events" .Prefix .Stack.Name))
+        (dict "Key" "template" "Label" "Template" "Icon" "braces" "URL" (printf "%s/cfn/%s?tab=template" .Prefix .Stack.Name)))}}
+    </div>
+
+    <div class="det-b">
+      {{if eq .Tab "events"}}
+        {{/* Newest first: when a deploy fails the reason is at the end of the
+             run, and scrolling to find it is the wrong default. */}}
+        <div class="sec-title">Events <span class="dim">— newest first</span></div>
+        <div class="table-wrap"><table class="tbl">
+          <thead><tr><th style="width:150px">Time</th><th style="width:180px">Logical ID</th><th>Status</th><th>Reason</th></tr></thead>
+          <tbody>
+          {{range .Events}}
+            <tr {{if .Failed}}class="bad-row"{{end}}>
+              <td class="dim sub mono">{{.Time}}</td>
+              <td class="mono sub">{{.LogicalID}}</td>
+              <td><span class="chip {{if .Failed}}bad{{end}}">{{.Status}}</span></td>
+              <td class="dim sub">{{if .Reason}}{{.Reason}}{{else}}—{{end}}</td>
+            </tr>
+          {{else}}
+            <tr><td colspan="4" class="mini-note">No events recorded.</td></tr>
+          {{end}}
+          </tbody>
+        </table></div>
+
+      {{else if eq .Tab "template"}}
+        <div class="sec-title">Template <span class="dim">— as deployed</span></div>
+        <div class="panel"><div class="code-out" style="max-height:none"><pre>{{.Template}}</pre></div></div>
+
+      {{else}}
+        <div class="sec-title">Resources <span class="dim">— what the stack made</span></div>
+        <div class="table-wrap"><table class="tbl">
+          <thead><tr><th style="width:190px">Logical ID</th><th>Type</th><th>Physical ID</th><th style="width:150px">Status</th></tr></thead>
+          <tbody>
+          {{range .Resources}}
+            <tr>
+              <td class="mono sub">{{.LogicalID}}</td>
+              <td class="dim sub mono">{{.Type}}</td>
+              <td class="mono sub trunc" style="max-width:320px">
+                {{/* A stack is most useful as a way into the things it built. */}}
+                {{if .Href}}<a href="{{$.Prefix}}{{.Href}}">{{.PhysicalID}}</a>
+                {{else}}{{if .PhysicalID}}{{.PhysicalID}}{{else}}<span class="dim">—</span>{{end}}{{end}}
+              </td>
+              <td><span class="chip">{{.Status}}</span></td>
+            </tr>
+          {{else}}
+            <tr><td colspan="4" class="mini-note">No resources. A stack in REVIEW_IN_PROGRESS has a change set waiting but has not been executed.</td></tr>
+          {{end}}
+          </tbody>
+        </table></div>
+
+        {{if or .Stack.Params .Stack.Outputs}}
+        <div class="split">
+          <div class="panel">
+            <div class="panel-h"><h2>{{icon "settings"}} Parameters</h2></div>
+            <div style="padding:4px 0">
+              {{if .Stack.Params}}
+              <table class="tbl kv"><tbody>
+                {{range .Stack.Params}}<tr><td>{{.Key}}</td><td>{{.Value}}</td></tr>{{end}}
+              </tbody></table>
+              {{else}}<p class="mini-note" style="padding:10px 16px">The template declares no parameters.</p>{{end}}
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-h"><h2>{{icon "share"}} Outputs</h2></div>
+            <div style="padding:4px 0">
+              {{if .Stack.Outputs}}
+              <table class="tbl kv"><tbody>
+                {{range .Stack.Outputs}}
+                <tr><td>{{.Key}}{{if .Export}}<br><span class="dim sub">export: {{.Export}}</span>{{end}}</td><td>{{.Value}}</td></tr>
+                {{end}}
+              </tbody></table>
+              {{else}}<p class="mini-note" style="padding:10px 16px">The template declares no outputs.</p>{{end}}
+            </div>
+          </div>
+        </div>
+        {{end}}
+      {{end}}
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}

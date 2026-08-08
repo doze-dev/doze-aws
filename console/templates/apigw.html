@@ -1,0 +1,153 @@
+{{define "apigw_lp"}}
+{{template "lp_head" dict "Svc" "apigw" "Label" "API Gateway"}}
+  {{range .List}}
+  <a class="li {{if eq .ID $.Sel}}on{{end}}" href="{{$.Prefix}}/apigw/{{.ID}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+    <span class="nm">{{.Name}}</span><span class="sb mono">{{.ID}}</span>
+  </a>
+  {{end}}
+{{template "lp_foot" .}}
+{{end}}
+
+{{define "apigw_home"}}{{template "shell_top" .}}
+  {{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  {{template "empty_detail" dict "Svc" "apigw" "Hint" "Select an API. APIs appear here when you deploy one with sam, cdk, Serverless or the API Gateway CLI."}}
+{{template "shell_bottom" .}}{{end}}
+
+{{define "apigw_api"}}{{template "shell_top" .}}
+  {{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" .API.ID)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "apigw"}} {{.API.Name}}</div>
+      <div class="chips">
+        {{template "copychip" dict "Label" "id" "Value" .API.ID}}
+        {{range .API.EndpointTypes}}<span class="chip">{{.}}</span>{{end}}
+        {{if .API.APIKeySource}}<span class="chip">key source: {{.API.APIKeySource}}</span>{{end}}
+        {{if .API.DisableExecute}}<span class="chip">execute-api endpoint disabled</span>{{end}}
+      </div>
+      {{if .API.Description}}<p class="mini-note" style="margin-top:6px">{{.API.Description}}</p>{{end}}
+      {{template "dtabs" dict "Cur" .Tab "Tabs" (list
+        (dict "Key" "routes" "Label" "Routes" "Icon" "route" "URL" (printf "%s/apigw/%s" .Prefix .API.ID))
+        (dict "Key" "invoke" "Label" "Invoke" "Icon" "send" "URL" (printf "%s/apigw/%s?tab=invoke" .Prefix .API.ID)))}}
+    </div>
+
+    <div class="det-b">
+      {{if eq .Tab "invoke"}}
+        {{template "apigw_invoke" .}}
+      {{else}}
+        {{/* The route tree with each method's integration on the same row: the
+             question is always "what answers this path", and splitting the
+             method from what it forwards to makes that two lookups. */}}
+        <div class="sec-title">Routes <span class="dim">— path, method, and what it forwards to</span></div>
+        <div class="table-wrap"><table class="tbl">
+          <thead><tr><th style="width:280px">Path</th><th style="width:90px">Method</th><th style="width:120px">Auth</th><th style="width:110px">Integration</th><th>Target</th></tr></thead>
+          <tbody>
+          {{range .Routes}}
+            {{if .Methods}}
+              {{$r := .}}
+              {{range .Methods}}
+              <tr>
+                <td class="mono sub" style="padding-left:{{mul $r.Depth 14}}px">{{$r.Path}}</td>
+                <td><span class="chip mono">{{.HTTPMethod}}</span></td>
+                <td class="dim sub">{{.AuthType}}{{if .APIKeyReq}} · key{{end}}</td>
+                <td class="dim sub mono">{{.Integration.Type}}</td>
+                <td class="mono sub trunc" style="max-width:340px">
+                  {{if .Integration.Href}}<a href="{{$.Prefix}}{{.Integration.Href}}">{{.Integration.Target}}</a>
+                  {{else if .Integration.Target}}{{.Integration.Target}}
+                  {{else}}<span class="dim">—</span>{{end}}
+                </td>
+              </tr>
+              {{end}}
+            {{else}}
+              <tr class="dim">
+                <td class="mono sub" style="padding-left:{{mul .Depth 14}}px">{{.Path}}</td>
+                <td colspan="4" class="mini-note">no methods — this path only exists to hold children</td>
+              </tr>
+            {{end}}
+          {{else}}
+            <tr><td colspan="5" class="mini-note">No resources yet.</td></tr>
+          {{end}}
+          </tbody>
+        </table></div>
+
+        <div class="sec-title">Stages <span class="dim">— a route is only reachable once deployed</span></div>
+        <div class="table-wrap"><table class="tbl">
+          <thead><tr><th style="width:130px">Stage</th><th style="width:150px">Deployment</th><th>Invoke URL</th><th style="width:150px">Created</th></tr></thead>
+          <tbody>
+          {{range .Stages}}
+            <tr>
+              <td class="mono sub">{{.Name}}</td>
+              <td class="dim sub mono">{{.DeploymentID}}</td>
+              <td class="mono sub trunc" style="max-width:420px">{{.InvokeBase}}</td>
+              <td class="dim sub">{{.Created}}</td>
+            </tr>
+          {{else}}
+            <tr><td colspan="4" class="mini-note">No stages. Until the API is deployed to one, nothing serves it — the routes above exist only as a definition.</td></tr>
+          {{end}}
+          </tbody>
+        </table></div>
+      {{end}}
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{/* Send a real request through the deployed stage. Whether an integration
+     answers is the one thing the definition above cannot tell you. */}}
+{{define "apigw_invoke"}}
+{{if .Stages}}
+<form class="explorer-form"
+      hx-post="{{.Prefix}}/apigw/{{.API.ID}}/invoke" hx-target="#apigw-result" hx-select="unset" hx-swap="outerHTML">
+  <div class="ex-grid">
+    <div class="field" style="width:120px"><label>Stage</label>
+      <select class="input" name="stage">
+        {{range .Stages}}<option value="{{.Name}}">{{.Name}}</option>{{end}}
+      </select>
+    </div>
+    <div class="field" style="width:110px"><label>Method</label>
+      <select class="input" name="method">
+        <option>GET</option><option>POST</option><option>PUT</option>
+        <option>PATCH</option><option>DELETE</option><option>HEAD</option>
+      </select>
+    </div>
+    <div class="field" style="flex:1"><label>Path</label>
+      <input class="input mono sub" name="path" value="/" placeholder="/orders/42" spellcheck="false" autocomplete="off">
+    </div>
+    <button class="btn" type="submit">{{icon "send"}} Send</button>
+  </div>
+  <div class="field" style="margin-top:10px">
+    <label>Body <span class="dim">optional</span></label>
+    <textarea name="body" data-editor rows="5" placeholder='{"item":"x"}'></textarea>
+  </div>
+  <p class="mini-note">Goes through the execute-api plane on this endpoint, the same path an outside caller takes — not a simulation of one.</p>
+</form>
+{{template "apigw_result" dict}}
+{{else}}
+<div class="empty" style="border:0"><span class="ic-lg">{{icon "send"}}</span>
+  <p>Nothing to invoke yet — this API has no stages. Deploy it first, then requests can be sent here.</p>
+</div>
+{{end}}
+{{end}}
+
+{{define "apigw_result"}}
+<div id="apigw-result">
+{{if .Err}}
+  <div class="err">{{.Err}}</div>
+{{else if .Res}}
+  <div class="sec-title">Response</div>
+  <div class="panel">
+    <div class="panel-h">
+      <h2><span class="chip {{if ge .Res.Status 400}}bad{{end}}">{{.Res.Status}}</span>
+        <span class="dim mono sub">{{.Res.Method}} {{.Res.URL}}</span></h2>
+      <span class="dim sub">{{.Res.Took}}</span>
+    </div>
+    <div style="padding:0 4px">
+      {{if .Res.Headers}}
+      <table class="tbl kv"><tbody>
+        {{range $k, $v := .Res.Headers}}<tr><td>{{$k}}</td><td>{{$v}}</td></tr>{{end}}
+      </tbody></table>
+      {{end}}
+    </div>
+    <div class="code-out"><pre>{{.Res.Body}}</pre></div>
+  </div>
+{{end}}
+</div>
+{{end}}

@@ -61,6 +61,10 @@ return"= "+p.join(" ");};</script>
       {{template "ri" dict "P" .Prefix "URL" "/kinesis" "On" (hasPrefix .Page "kinesis") "Name" "Kinesis" "Svc" "kinesis"}}
       <div class="rgroup">Compute</div>
       {{template "ri" dict "P" .Prefix "URL" "/lambda" "On" (hasPrefix .Page "lambda") "Name" "Lambda" "Svc" "lambda"}}
+      <div class="rgroup">Provisioning</div>
+      {{template "ri" dict "P" .Prefix "URL" "/cfn" "On" (hasPrefix .Page "cfn") "Name" "CloudFormation" "Svc" "cfn"}}
+      {{template "ri" dict "P" .Prefix "URL" "/apigw" "On" (hasPrefix .Page "apigw") "Name" "API Gateway" "Svc" "apigw"}}
+      {{template "ri" dict "P" .Prefix "URL" "/iam" "On" (hasPrefix .Page "iam") "Name" "IAM" "Svc" "iam"}}
       <div class="rgroup">Config &amp; secrets</div>
       {{template "ri" dict "P" .Prefix "URL" "/kms" "On" (hasPrefix .Page "kms") "Name" "KMS" "Svc" "kms"}}
       {{template "ri" dict "P" .Prefix "URL" "/sm" "On" (and (hasPrefix .Page "sm") (not (hasPrefix .Page "sms"))) "Name" "Secrets Manager" "Svc" "sm"}}

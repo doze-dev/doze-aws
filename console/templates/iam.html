@@ -1,0 +1,230 @@
+{{/* The list pane groups by kind: users and roles are principals you look at
+     to answer "what can this do", policies are documents you look at to answer
+     "what does this grant". Mixing them in one flat list loses that. */}}
+{{define "iam_lp"}}
+<aside class="listpane">
+  <div class="lp-h"><span class="l">{{awsIcon "iam"}} IAM</span></div>
+  <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" x-data x-model="$store.filter.q" spellcheck="false"></label>
+  <div class="lp-scroll">
+    <a class="li {{if eq .Sel "access"}}on{{end}}" href="{{.Prefix}}/iam">
+      <span class="nm">{{icon "activity"}} Access log</span>
+    </a>
+    <div class="side-label">Principals</div>
+    {{range .Principals}}
+    <a class="li {{if eq .ARN $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/{{.Kind}}/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+      <span class="nm">{{.Name}}</span><span class="sb">{{.Kind}}</span>
+    </a>
+    {{end}}
+    <div class="side-label">Customer policies</div>
+    {{range .Policies}}
+    <a class="li {{if eq .ARN $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/policy?arn={{.ARN}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+      <span class="nm">{{.Name}}</span><span class="sb">{{.Attached}}</span>
+    </a>
+    {{else}}
+    <div class="mini-note" style="padding:6px 12px">None written yet.</div>
+    {{end}}
+  </div>
+  <div class="lp-f"><span class="kbd">j</span><span class="kbd">k</span> move · <span class="kbd">/</span> filter</div>
+</aside>
+{{end}}
+
+{{/* ---- Access log: the reason to open IAM locally at all ---- */}}
+
+{{define "iam_home"}}{{template "shell_top" .}}
+  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "Sel" "access")}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "iam"}} Access log</div>
+      <div class="chips">
+        <span class="chip {{if eq .Mode "enforce"}}bad{{end}}">mode: {{.Mode}}</span>
+        <span class="chip">{{len .Events}} recorded</span>
+      </div>
+      <p class="mini-note" style="margin-top:6px">
+        {{if eq .Mode "off"}}IAM is not on the request path, so nothing is being decided and this log stays empty. Start with <span class="mono">--iam soft</span> to record what your code asks for without refusing anything.
+        {{else if eq .Mode "soft"}}Soft mode: every request is recorded and none is refused. Run your tests, then generate the policy they actually needed.
+        {{else}}Enforce mode: a request that is not allowed is refused, exactly as it would be in AWS.{{end}}
+      </p>
+    </div>
+
+    <div class="det-b">
+      <div class="sec-title">What was asked <span class="dim">— denials first</span></div>
+      <div class="table-wrap"><table class="tbl">
+        <thead><tr><th style="width:230px">Principal</th><th style="width:190px">Action</th><th>Resource</th><th style="width:100px">Decision</th><th class="num" style="width:70px">Count</th></tr></thead>
+        <tbody>
+        {{range .Events}}
+          <tr {{if .Denied}}class="bad-row"{{end}}>
+            <td class="mono sub trunc" style="max-width:230px">{{.Principal}}</td>
+            <td class="mono sub">{{.Action}}</td>
+            <td class="mono dim sub trunc" style="max-width:320px">
+              {{if .Resource}}{{.Resource}}{{else}}<span class="dim">not determined</span>{{end}}
+            </td>
+            <td><span class="chip {{if .Denied}}bad{{end}}">{{.Decision}}</span></td>
+            <td class="num dim sub">{{.Count}}</td>
+          </tr>
+        {{else}}
+          <tr><td colspan="5" class="mini-note">Nothing recorded yet. Make some calls with IAM on and they appear here.</td></tr>
+        {{end}}
+        </tbody>
+      </table></div>
+
+      <div class="split">
+        {{/* The payoff of a soft-mode run: the policy the code actually needed,
+             rather than the one someone guessed at. */}}
+        <div class="panel">
+          <div class="panel-h"><h2>{{icon "braces"}} Generate a policy</h2></div>
+          <div style="padding:14px 16px">
+            <form hx-post="{{.Prefix}}/iam/generate" hx-target="#iam-generated" hx-select="unset" hx-swap="outerHTML">
+              <div class="field">
+                <label>Principal <span class="dim">blank covers everything recorded</span></label>
+                <select class="input mono sub" name="principal">
+                  <option value="">all principals</option>
+                  {{range .Principals}}<option value="{{.ARN}}">{{.Name}}</option>{{end}}
+                </select>
+                <div class="mini-note">Covers exactly what was recorded above — least privilege by construction rather than by guesswork.</div>
+              </div>
+              <div style="margin-top:10px;display:flex;justify-content:flex-end">
+                <button class="btn" type="submit" {{if eq .Mode "off"}}disabled title="Nothing is recorded while IAM is off"{{end}}>{{icon "braces"}} Generate</button>
+              </div>
+            </form>
+            {{template "iam_generated" dict}}
+          </div>
+        </div>
+
+        {{/* Ask the question directly instead of provoking a call and reading
+             the answer out of a denial. */}}
+        <div class="panel">
+          <div class="panel-h"><h2>{{icon "search"}} Simulate</h2></div>
+          <div style="padding:14px 16px">
+            <form hx-post="{{.Prefix}}/iam/simulate" hx-target="#iam-sim" hx-select="unset" hx-swap="outerHTML">
+              <div class="field" style="margin-bottom:10px">
+                <label>Principal</label>
+                <select class="input mono sub" name="principal">
+                  {{range .Principals}}<option value="{{.ARN}}">{{.Name}} <span>({{.Kind}})</span></option>{{end}}
+                </select>
+              </div>
+              <div class="field" style="margin-bottom:10px">
+                <label>Actions <span class="dim">comma or space separated</span></label>
+                <input class="input mono sub" name="actions" placeholder="s3:GetObject sqs:SendMessage" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="field">
+                <label>Resource <span class="dim">optional</span></label>
+                <input class="input mono sub" name="resource" placeholder="arn:aws:s3:::my-bucket/*" autocomplete="off" spellcheck="false">
+              </div>
+              <div style="margin-top:10px;display:flex;justify-content:flex-end">
+                <button class="btn btn-outline" type="submit">{{icon "search"}} Evaluate</button>
+              </div>
+            </form>
+            {{template "iam_sim_result" dict}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{define "iam_generated"}}
+<div id="iam-generated">
+{{if .Err}}<div class="err">{{.Err}}</div>
+{{else if .Document}}
+  <div class="code-out" style="margin-top:12px"><pre>{{.Document}}</pre></div>
+{{end}}
+</div>
+{{end}}
+
+{{define "iam_sim_result"}}
+<div id="iam-sim">
+{{if .Err}}<div class="err">{{.Err}}</div>
+{{else if .Results}}
+  <div class="table-wrap" style="margin-top:12px"><table class="tbl">
+    <thead><tr><th>Action</th><th>Resource</th><th style="width:90px">Decision</th></tr></thead>
+    <tbody>
+    {{range .Results}}
+      <tr {{if not .Allowed}}class="bad-row"{{end}}>
+        <td class="mono sub">{{.Action}}</td>
+        <td class="mono dim sub trunc" style="max-width:200px">{{if .Resource}}{{.Resource}}{{else}}*{{end}}</td>
+        <td><span class="chip {{if not .Allowed}}bad{{end}}">{{.Decision}}</span></td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table></div>
+{{end}}
+</div>
+{{end}}
+
+{{/* ---- A principal and its effective permissions ---- */}}
+
+{{define "iam_principal"}}{{template "shell_top" .}}
+  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "Sel" .P.ARN)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "iam"}} {{.P.Name}}</div>
+      <div class="chips">
+        {{template "copychip" dict "Label" "arn" "Value" .P.ARN}}
+        <span class="chip">{{.P.Kind}}</span>
+        <span class="chip">created {{.P.Created}}</span>
+      </div>
+    </div>
+    <div class="det-b">
+      <div class="sec-title">Attached policies</div>
+      <div class="table-wrap"><table class="tbl">
+        <thead><tr><th style="width:240px">Name</th><th>ARN</th><th style="width:110px">Source</th></tr></thead>
+        <tbody>
+        {{range .Attached}}
+          <tr>
+            <td class="mono sub">{{if .AWSManaged}}{{.Name}}{{else}}<a href="{{$.Prefix}}/iam/policy?arn={{.ARN}}">{{.Name}}</a>{{end}}</td>
+            <td class="mono dim sub trunc" style="max-width:420px">{{.ARN}}</td>
+            <td><span class="chip">{{if .AWSManaged}}AWS managed{{else}}customer{{end}}</span></td>
+          </tr>
+        {{else}}
+          <tr><td colspan="3" class="mini-note">No managed policies attached.</td></tr>
+        {{end}}
+        </tbody>
+      </table></div>
+
+      {{if eq .P.Kind "role"}}
+      <div class="sec-title">Trust policy <span class="dim">— who may assume this role</span></div>
+      <div class="panel"><div class="code-out"><pre>{{.P.Trust}}</pre></div></div>
+      {{end}}
+
+      {{if .Inline}}
+      <div class="sec-title">Inline policies</div>
+      {{range .Inline}}
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "braces"}} {{.Name}}</h2></div>
+        <div class="code-out"><pre>{{.Document}}</pre></div>
+      </div>
+      {{end}}
+      {{end}}
+
+      {{if eq .P.Kind "user"}}
+      <div class="sec-title">Access keys</div>
+      <div class="table-wrap"><table class="tbl">
+        <thead><tr><th style="width:260px">Key ID</th><th style="width:110px">Status</th><th>Created</th></tr></thead>
+        <tbody>
+        {{range .Keys}}
+          <tr><td class="mono sub">{{.ID}}</td><td><span class="chip">{{.Status}}</span></td><td class="dim sub">{{.Created}}</td></tr>
+        {{else}}
+          <tr><td colspan="3" class="mini-note">No access keys. Locally any credentials are accepted unless IAM is enforcing, so a user without keys still works.</td></tr>
+        {{end}}
+        </tbody>
+      </table></div>
+      {{end}}
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{/* ---- One managed policy ---- */}}
+
+{{define "iam_policy"}}{{template "shell_top" .}}
+  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "Sel" .ARN)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "iam"}} {{.Name}}</div>
+      <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}</div>
+    </div>
+    <div class="det-b">
+      <div class="sec-title">Document <span class="dim">— default version</span></div>
+      <div class="panel"><div class="code-out" style="max-height:none"><pre>{{.Document}}</pre></div></div>
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}

@@ -1041,3 +1041,9 @@ a.lo-card:hover { border-color: hsl(var(--accent-blue)); box-shadow: 0 0 0 3px h
    .explorer-form is deliberately absent because it carries its own bottom
    margin and would otherwise double the gap. */
 .det-b > :is(.panel, .table-wrap, .split) + :is(.panel, .table-wrap, .split) { margin-top: 16px; }
+
+/* A chip carrying a failed state. Stack events and resource statuses are the
+   one place in the console where "what went wrong" has to be findable at a
+   glance in a long list. */
+.chip.bad { color: hsl(var(--destructive)); border-color: hsl(var(--destructive) / 0.4); background: hsl(var(--destructive) / 0.08); }
+.bad-row td { background: hsl(var(--destructive) / 0.05); }
