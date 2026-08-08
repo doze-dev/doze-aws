@@ -398,6 +398,123 @@
         </div>
       </div>
 
+      {{/* Everything below is stored by the service and echoed back, but has
+           no local effect: there is no envelope over the store, no CloudWatch
+           to publish to, and no policy evaluation. Saying so beats letting the
+           page imply a guarantee doze-aws does not make. */}}
+      <div class="sec-title">Encryption <span class="dim">— recorded, not applied</span></div>
+      <div class="panel">
+        <div style="padding:14px 16px">
+          <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/encryption">
+            <div class="ex-grid">
+              <div class="field" style="width:320px">
+                <label>KMS key</label>
+                <select class="input mono sub" name="key">
+                  <option value="">none — no encryption recorded</option>
+                  {{range .Keys}}<option value="{{.ID}}" {{if eq .ID $.Summary.KeyID}}selected{{end}}>{{if .Alias}}{{.Alias}} · {{end}}{{.ID}}</option>{{end}}
+                </select>
+              </div>
+              <button class="btn btn-outline" type="submit">{{icon "check"}} Apply</button>
+              <span class="chip chip-toggle">{{if eq .Summary.Encryption "KMS"}}KMS{{else}}NONE{{end}}</span>
+            </div>
+            <p class="mini-note">
+              The keys offered are the ones in this KMS. Setting one records the
+              stream's encryption type and key so an SDK reads back what it set —
+              records on disk are not enciphered either way.
+            </p>
+          </form>
+        </div>
+      </div>
+
+      <div class="sec-title">Shard-level metrics <span class="dim">— recorded, not published</span></div>
+      <div class="panel">
+        <div style="padding:14px 16px">
+          <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/metrics">
+            <div class="chips" style="margin-bottom:12px">
+              {{$on := .Summary.Metrics}}
+              {{range .AllMetrics}}
+              <label class="chip chip-toggle">
+                <input type="checkbox" name="metric" value="{{.}}" {{if has $on .}}checked{{end}}> {{.}}
+              </label>
+              {{end}}
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="mini-note" style="margin:0">There is no CloudWatch here, so nothing is emitted — the selection round-trips for code that enables it at deploy time.</span>
+              <button class="btn btn-outline" type="submit">{{icon "check"}} Apply</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="sec-title">Consumers <span class="dim">— enhanced fan-out registrations</span></div>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Name</th><th>ARN</th><th>Status</th><th>Registered</th><th style="width:40px"></th></tr></thead>
+          <tbody>
+          {{range .Consumers}}
+            <tr>
+              <td class="mono sub">{{.Name}}</td>
+              <td class="mono dim sub trunc" style="max-width:320px">{{.ARN}}</td>
+              <td><span class="chip">{{.Status}}</span></td>
+              <td class="dim sub">{{.Created}}</td>
+              <td class="right">
+                <form hx-post="{{$.Prefix}}/kinesis/{{$.Stream}}/consumers/del" hx-confirm="Deregister “{{.Name}}”?">
+                  <input type="hidden" name="name" value="{{.Name}}">
+                  <button class="icon-btn sm danger" title="Deregister">{{icon "trash"}}</button>
+                </form>
+              </td>
+            </tr>
+          {{else}}
+            <tr><td colspan="5" class="mini-note">No consumers registered. Registration is real and lists back; only the SubscribeToShard data plane, which needs HTTP/2 event streams, is unimplemented.</td></tr>
+          {{end}}
+          </tbody>
+        </table>
+      </div>
+      <div class="panel">
+        <div style="padding:14px 16px">
+          <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/consumers/add">
+            <div class="ex-grid">
+              <div class="field" style="width:280px">
+                <label>Register a consumer</label>
+                <input class="input" name="name" placeholder="analytics-worker" required autocomplete="off">
+              </div>
+              <button class="btn btn-outline" type="submit">{{icon "plus"}} Register</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="sec-title">Resource policy <span class="dim">— stored, not enforced</span></div>
+      <div class="panel">
+        <div style="padding:14px 16px">
+          <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/policy">
+            <div class="field">
+              <label>Policy JSON <span class="dim">empty removes it</span></label>
+              <textarea name="policy" data-editor rows="8" placeholder='{"Version":"2012-10-17","Statement":[]}'>{{.Policy}}</textarea>
+            </div>
+            <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+              <span class="mini-note" style="margin:0">Nothing evaluates this locally — it round-trips for templates and SDK code that set it.</span>
+              <button class="btn btn-outline" type="submit">{{icon "check"}} Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {{if .Limits}}
+      <div class="sec-title">Account <span class="dim">— read-only</span></div>
+      <div class="table-wrap">
+        <table class="tbl kv"><tbody>
+          <tr><td>shard limit</td><td>{{.Limits.ShardLimit}}</td></tr>
+          <tr><td>open shards, all streams</td><td>{{.Limits.OpenShardCount}}</td></tr>
+          <tr><td>on-demand streams</td><td>{{.Limits.OnDemandStreams}} / {{.Limits.OnDemandStreamLimit}}</td></tr>
+          <tr><td>max record size</td><td>{{.Limits.MaxRecordSize}} bytes</td></tr>
+          <tr><td>default stream mode</td><td>{{.Limits.DefaultMode}}</td></tr>
+        </tbody></table>
+      </div>
+      <p class="mini-note">These are fixed locally. The service accepts UpdateAccountSettings and UpdateMaxRecordSize so SDK code does not break, but discards them — showing them as controls would promise a change that never happens.</p>
+      {{end}}
+
+
     </div>
   </section>
 {{template "shell_bottom" .}}{{end}}

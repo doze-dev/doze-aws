@@ -31,6 +31,13 @@ type Stream struct {
 	Retention int // hours
 	Created   string
 	Tags      map[string]string
+	// Encryption, KeyID and Metrics are stored by the service but have no
+	// local effect — there is no envelope over the bbolt file and no
+	// CloudWatch to publish to. They round-trip so SDK paths that set them
+	// keep working, and the console says as much rather than implying more.
+	Encryption string
+	KeyID      string
+	Metrics    []string
 }
 
 // Shard is one shard, with the lineage that explains a reshard.
@@ -130,6 +137,11 @@ func (b *backend) StreamSummary(ctx context.Context, name string) (*Stream, erro
 			RetentionPeriodHours    int     `json:"RetentionPeriodHours"`
 			OpenShardCount          int     `json:"OpenShardCount"`
 			StreamCreationTimestamp float64 `json:"StreamCreationTimestamp"`
+			EncryptionType          string  `json:"EncryptionType"`
+			KeyID                   string  `json:"KeyId"`
+			EnhancedMonitoring      []struct {
+				ShardLevelMetrics []string `json:"ShardLevelMetrics"`
+			} `json:"EnhancedMonitoring"`
 		} `json:"StreamDescriptionSummary"`
 	}
 	if err := json.Unmarshal(body, &out); err != nil {
@@ -139,8 +151,10 @@ func (b *backend) StreamSummary(ctx context.Context, name string) (*Stream, erro
 	return &Stream{
 		Name: d.StreamName, ARN: d.StreamARN, Status: d.StreamStatus,
 		Mode: d.StreamModeDetails.StreamMode, Shards: d.OpenShardCount,
-		Retention: d.RetentionPeriodHours,
-		Created:   time.Unix(int64(d.StreamCreationTimestamp), 0).UTC().Format("2006-01-02 15:04:05"),
+		Retention:  d.RetentionPeriodHours,
+		Created:    time.Unix(int64(d.StreamCreationTimestamp), 0).UTC().Format("2006-01-02 15:04:05"),
+		Encryption: d.EncryptionType, KeyID: d.KeyID,
+		Metrics: firstMetrics(d.EnhancedMonitoring),
 	}, nil
 }
 
@@ -707,4 +721,215 @@ func (b *backend) UpdateStreamMode(ctx context.Context, arn, mode string) error 
 		"StreamModeDetails": map[string]any{"StreamMode": mode},
 	})
 	return err
+}
+
+// ---- encryption, monitoring, consumers, policy ----
+//
+// The service stores these faithfully but none of them does anything locally:
+// there is no KMS envelope over the bbolt file, no CloudWatch to publish shard
+// metrics to, and no evaluation of a stream's resource policy. They are worth
+// exposing because SDK and template code sets them and expects to read them
+// back — but the console labels them for what they are rather than implying a
+// local guarantee it cannot make.
+
+// ShardMetrics are the shard-level metrics Kinesis can be asked to publish.
+var ShardMetrics = []string{
+	"IncomingBytes", "IncomingRecords", "OutgoingBytes", "OutgoingRecords",
+	"WriteProvisionedThroughputExceeded", "ReadProvisionedThroughputExceeded",
+	"IteratorAgeMilliseconds",
+}
+
+// firstMetrics pulls the metric list out of the wire's array-of-one shape.
+func firstMetrics(in []struct {
+	ShardLevelMetrics []string `json:"ShardLevelMetrics"`
+}) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	return in[0].ShardLevelMetrics
+}
+
+// Consumer is an enhanced fan-out registration.
+type Consumer struct {
+	Name    string
+	ARN     string
+	Status  string
+	Created string
+}
+
+func (b *backend) StartEncryption(ctx context.Context, stream, keyID string) error {
+	_, err := b.kinesis(ctx, "StartStreamEncryption", map[string]any{
+		"StreamName": stream, "EncryptionType": "KMS", "KeyId": keyID,
+	})
+	return err
+}
+
+func (b *backend) StopEncryption(ctx context.Context, stream string) error {
+	_, err := b.kinesis(ctx, "StopStreamEncryption", map[string]any{
+		"StreamName": stream, "EncryptionType": "KMS",
+	})
+	return err
+}
+
+// SetMetrics moves a stream to exactly the requested metric set. The API only
+// offers enable and disable, so the difference against what is already there
+// is worked out here rather than making someone toggle each one.
+func (b *backend) SetMetrics(ctx context.Context, stream string, desired []string) error {
+	cur, err := b.StreamSummary(ctx, stream)
+	if err != nil {
+		return err
+	}
+	have := map[string]bool{}
+	for _, m := range cur.Metrics {
+		have[m] = true
+	}
+	want := map[string]bool{}
+	for _, m := range desired {
+		want[m] = true
+	}
+	var enable, disable []string
+	for m := range want {
+		if !have[m] {
+			enable = append(enable, m)
+		}
+	}
+	for m := range have {
+		if !want[m] {
+			disable = append(disable, m)
+		}
+	}
+	sort.Strings(enable)
+	sort.Strings(disable)
+	if len(disable) > 0 {
+		if _, err := b.kinesis(ctx, "DisableEnhancedMonitoring", map[string]any{
+			"StreamName": stream, "ShardLevelMetrics": disable,
+		}); err != nil {
+			return err
+		}
+	}
+	if len(enable) > 0 {
+		if _, err := b.kinesis(ctx, "EnableEnhancedMonitoring", map[string]any{
+			"StreamName": stream, "ShardLevelMetrics": enable,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (b *backend) ListConsumers(ctx context.Context, arn string) ([]Consumer, error) {
+	body, err := b.kinesis(ctx, "ListStreamConsumers", map[string]any{"StreamARN": arn})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Consumers []struct {
+			ConsumerName              string  `json:"ConsumerName"`
+			ConsumerARN               string  `json:"ConsumerARN"`
+			ConsumerStatus            string  `json:"ConsumerStatus"`
+			ConsumerCreationTimestamp float64 `json:"ConsumerCreationTimestamp"`
+		} `json:"Consumers"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	cs := make([]Consumer, 0, len(out.Consumers))
+	for _, c := range out.Consumers {
+		cs = append(cs, Consumer{
+			Name: c.ConsumerName, ARN: c.ConsumerARN, Status: c.ConsumerStatus,
+			Created: time.Unix(int64(c.ConsumerCreationTimestamp), 0).UTC().Format("2006-01-02 15:04:05"),
+		})
+	}
+	sort.Slice(cs, func(i, j int) bool { return cs[i].Name < cs[j].Name })
+	return cs, nil
+}
+
+func (b *backend) RegisterConsumer(ctx context.Context, arn, name string) error {
+	_, err := b.kinesis(ctx, "RegisterStreamConsumer", map[string]any{
+		"StreamARN": arn, "ConsumerName": name,
+	})
+	return err
+}
+
+func (b *backend) DeregisterConsumer(ctx context.Context, arn, name string) error {
+	_, err := b.kinesis(ctx, "DeregisterStreamConsumer", map[string]any{
+		"StreamARN": arn, "ConsumerName": name,
+	})
+	return err
+}
+
+// StreamPolicy returns the stream's resource policy, or "" when it has none.
+// A stream without one answers ResourceNotFound, which is an absence rather
+// than a failure.
+func (b *backend) StreamPolicy(ctx context.Context, arn string) (string, error) {
+	body, err := b.kinesis(ctx, "GetResourcePolicy", map[string]any{"ResourceARN": arn})
+	if err != nil {
+		return "", nil
+	}
+	var out struct {
+		Policy string `json:"Policy"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return "", err
+	}
+	return out.Policy, nil
+}
+
+func (b *backend) PutStreamPolicy(ctx context.Context, arn, policy string) error {
+	_, err := b.kinesis(ctx, "PutResourcePolicy", map[string]any{
+		"ResourceARN": arn, "Policy": policy,
+	})
+	return err
+}
+
+func (b *backend) DeleteStreamPolicy(ctx context.Context, arn string) error {
+	_, err := b.kinesis(ctx, "DeleteResourcePolicy", map[string]any{"ResourceARN": arn})
+	return err
+}
+
+// KinesisLimits is the account-wide picture. Every field here is read-only:
+// UpdateAccountSettings and UpdateMaxRecordSize are accepted and discarded, so
+// offering them as controls would promise something that does not happen.
+type KinesisLimits struct {
+	ShardLimit          int
+	OpenShardCount      int
+	OnDemandStreams     int
+	OnDemandStreamLimit int
+	MaxRecordSize       int
+	DefaultMode         string
+}
+
+func (b *backend) KinesisLimits(ctx context.Context) (*KinesisLimits, error) {
+	body, err := b.kinesis(ctx, "DescribeLimits", map[string]any{})
+	if err != nil {
+		return nil, err
+	}
+	var lim struct {
+		ShardLimit               int `json:"ShardLimit"`
+		OpenShardCount           int `json:"OpenShardCount"`
+		OnDemandStreamCount      int `json:"OnDemandStreamCount"`
+		OnDemandStreamCountLimit int `json:"OnDemandStreamCountLimit"`
+	}
+	if err := json.Unmarshal(body, &lim); err != nil {
+		return nil, err
+	}
+	out := &KinesisLimits{
+		ShardLimit: lim.ShardLimit, OpenShardCount: lim.OpenShardCount,
+		OnDemandStreams: lim.OnDemandStreamCount, OnDemandStreamLimit: lim.OnDemandStreamCountLimit,
+	}
+	body, err = b.kinesis(ctx, "DescribeAccountSettings", map[string]any{})
+	if err != nil {
+		return out, nil
+	}
+	var acct struct {
+		MaxRecordSize            int `json:"MaxRecordSize"`
+		DefaultStreamModeDetails struct {
+			StreamMode string `json:"StreamMode"`
+		} `json:"DefaultStreamModeDetails"`
+	}
+	if err := json.Unmarshal(body, &acct); err == nil {
+		out.MaxRecordSize = acct.MaxRecordSize
+		out.DefaultMode = acct.DefaultStreamModeDetails.StreamMode
+	}
+	return out, nil
 }

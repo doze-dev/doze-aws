@@ -246,6 +246,17 @@ func (c *Console) kinesisDetails(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	data["OpenShards"] = open
+
+	// The rest of the tab is configuration the service stores but does not act
+	// on locally; it is fetched here so the page shows what is actually set.
+	summary, _ := data["Summary"].(*Stream)
+	if summary != nil {
+		data["Consumers"], _ = c.be.ListConsumers(r.Context(), summary.ARN)
+		data["Policy"], _ = c.be.StreamPolicy(r.Context(), summary.ARN)
+	}
+	data["AllMetrics"] = ShardMetrics
+	data["Keys"], _ = c.be.ListKeys(r.Context())
+	data["Limits"], _ = c.be.KinesisLimits(r.Context())
 	c.render(w, r, "kinesis_details", data)
 }
 
@@ -289,6 +300,88 @@ func (c *Console) kinesisMode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.redirect(w, r, "/kinesis/"+stream+"/details", "Stream mode set to "+mode)
+}
+
+// kinesisEncryption sets or clears the stream's KMS key. This is metadata:
+// the local store is not encrypted either way, and the page says so.
+func (c *Console) kinesisEncryption(w http.ResponseWriter, r *http.Request) {
+	stream := r.PathValue("stream")
+	key := r.FormValue("key")
+	var err error
+	msg := "Encryption cleared"
+	if key == "" {
+		err = c.be.StopEncryption(r.Context(), stream)
+	} else {
+		err = c.be.StartEncryption(r.Context(), stream, key)
+		msg = "Encryption set to " + key
+	}
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/kinesis/"+stream+"/details", msg)
+}
+
+func (c *Console) kinesisMetrics(w http.ResponseWriter, r *http.Request) {
+	stream := r.PathValue("stream")
+	if err := r.ParseForm(); err != nil {
+		c.fail(w, err)
+		return
+	}
+	if err := c.be.SetMetrics(r.Context(), stream, r.Form["metric"]); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/kinesis/"+stream+"/details", "Shard-level metrics updated")
+}
+
+func (c *Console) kinesisConsumerAdd(w http.ResponseWriter, r *http.Request) {
+	stream := r.PathValue("stream")
+	summary, err := c.be.StreamSummary(r.Context(), stream)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	if err := c.be.RegisterConsumer(r.Context(), summary.ARN, r.FormValue("name")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/kinesis/"+stream+"/details", "Consumer registered")
+}
+
+func (c *Console) kinesisConsumerDel(w http.ResponseWriter, r *http.Request) {
+	stream := r.PathValue("stream")
+	summary, err := c.be.StreamSummary(r.Context(), stream)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	if err := c.be.DeregisterConsumer(r.Context(), summary.ARN, r.FormValue("name")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/kinesis/"+stream+"/details", "Consumer deregistered")
+}
+
+func (c *Console) kinesisPolicy(w http.ResponseWriter, r *http.Request) {
+	stream := r.PathValue("stream")
+	summary, err := c.be.StreamSummary(r.Context(), stream)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	policy := strings.TrimSpace(r.FormValue("policy"))
+	msg := "Resource policy saved"
+	if policy == "" {
+		err, msg = c.be.DeleteStreamPolicy(r.Context(), summary.ARN), "Resource policy removed"
+	} else {
+		err = c.be.PutStreamPolicy(r.Context(), summary.ARN, policy)
+	}
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, "/kinesis/"+stream+"/details", msg)
 }
 
 // ---- mutations ----

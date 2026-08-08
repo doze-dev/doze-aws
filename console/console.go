@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -189,6 +190,11 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/kinesis/{stream}/merge", c.kinesisMerge)
 	m.HandleFunc("POST "+p+"/kinesis/{stream}/scale", c.kinesisScale)
 	m.HandleFunc("POST "+p+"/kinesis/{stream}/mode", c.kinesisMode)
+	m.HandleFunc("POST "+p+"/kinesis/{stream}/encryption", c.kinesisEncryption)
+	m.HandleFunc("POST "+p+"/kinesis/{stream}/metrics", c.kinesisMetrics)
+	m.HandleFunc("POST "+p+"/kinesis/{stream}/consumers/add", c.kinesisConsumerAdd)
+	m.HandleFunc("POST "+p+"/kinesis/{stream}/consumers/del", c.kinesisConsumerDel)
+	m.HandleFunc("POST "+p+"/kinesis/{stream}/policy", c.kinesisPolicy)
 	m.HandleFunc("POST "+p+"/kinesis/{stream}/records/query", c.kinesisRecordsQuery)
 	m.HandleFunc("GET "+p+"/kinesis/{stream}/record", c.kinesisRecord)
 	m.HandleFunc("GET "+p+"/kinesis/{stream}/shards/{shard}/depth", c.kinesisShardDepth)
@@ -360,11 +366,16 @@ func templateFuncs(prefix string) template.FuncMap {
 		"icon":      icon,
 		"count":     humanCount,
 		"hasPrefix": strings.HasPrefix,
-		"ago":       ago,
-		"list":      func(items ...any) []any { return items },
-		"masked":    maskedValue,
-		"add":       func(a, b int) int { return a + b },
-		"sub":       func(a, b int) int { return a - b },
+		// has reports membership, for rendering a checked box against a set the
+		// resource already carries.
+		"has": func(set []string, v string) bool {
+			return slices.Contains(set, v)
+		},
+		"ago":    ago,
+		"list":   func(items ...any) []any { return items },
+		"masked": maskedValue,
+		"add":    func(a, b int) int { return a + b },
+		"sub":    func(a, b int) int { return a - b },
 		"nodeAt": func(ns []FlowNode, id string) *FlowNode {
 			for i := range ns {
 				if ns[i].ID == id {
