@@ -37,8 +37,10 @@ import (
 type Options struct {
 	// DataDir holds the bbolt store (kinesis.bolt). Required.
 	DataDir string
-	// Peers is accepted for constructor uniformity. Kinesis is a sink: Lambda
-	// polls it rather than the other way round, so nothing is dispatched out.
+	// Peers resolves KMS. Kinesis dispatches nothing — Lambda polls it rather
+	// than the other way round — but a stream encrypted with a customer key
+	// has to check that key is still usable, the way AWS does, instead of
+	// accepting writes against one that has been disabled or deleted.
 	Peers peers.Directory
 	// Logf receives log lines; nil discards.
 	Logf func(format string, args ...any)
@@ -57,6 +59,10 @@ type Server struct {
 	api   awsjson.API
 	now   func() time.Time
 	stop  chan struct{}
+	// peers resolves KMS, so a stream encrypted with a customer key can check
+	// that the key is still usable rather than accepting writes against one
+	// that has been disabled or deleted.
+	peers peers.Directory
 }
 
 // New opens the store under DataDir and starts the retention sweeper.
@@ -82,6 +88,7 @@ func New(opts Options) (*Server, error) {
 		api:   awsjson.API{TargetPrefix: "Kinesis_20131202", JSONVersion: "1.1"},
 		now:   time.Now,
 		stop:  make(chan struct{}),
+		peers: opts.Peers,
 	}
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock

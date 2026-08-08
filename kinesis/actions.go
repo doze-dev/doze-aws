@@ -9,6 +9,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
+	"github.com/doze-dev/doze-aws/internal/peercall"
 )
 
 var handlers = map[string]handler{
@@ -448,6 +449,11 @@ func hStartEncryption(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	if keyID == "" {
 		return nil, errValidation("KeyId is required")
 	}
+	// Turning encryption on against a key that cannot be used is the failure
+	// worth catching early: AWS refuses it here rather than at the first put.
+	if aerr := s.requireUsableKey(keyID); aerr != nil {
+		return nil, aerr
+	}
 	_, err := s.store.Update(stream, func(st *Stream) error {
 		st.EncryptionType, st.KeyID = "KMS", keyID
 		return nil
@@ -593,4 +599,45 @@ func hDeleteResourcePolicy(s *Server, p map[string]any) (any, *awshttp.APIError)
 		return nil
 	})
 	return nil, awshttp.AsAPIErrorOrNil(uerr)
+}
+
+// requireUsableKey checks the customer key behind an encrypted stream. AWS
+// fails the write rather than storing records it could not encrypt, and the
+// distinction between a missing, disabled and half-deleted key is what tells
+// someone which thing to go and fix.
+//
+// The check runs once per API call rather than once per record, so a batch put
+// costs the same as a single one. A stack assembled without KMS wired skips it
+// entirely: the absence of the service is not the same as a bad key.
+func (s *Server) requireUsableKey(keyID string) *awshttp.APIError {
+	if keyID == "" || s.peers == nil {
+		return nil
+	}
+	state, ok, err := peercall.KMSDescribeKey(s.peers, keyID)
+	if err != nil || !ok {
+		// KMS unreachable is not the stream's fault; refusing writes here would
+		// turn a missing peer into data loss.
+		return nil
+	}
+	if !state.Found {
+		return errKMSNotFound(keyID)
+	}
+	switch state.State {
+	case "Enabled":
+		return nil
+	case "PendingDeletion", "PendingImport", "Unavailable":
+		return errKMSInvalidState(keyID, state.State)
+	default:
+		return errKMSDisabled(keyID)
+	}
+}
+
+// keyForStream returns the customer key a stream writes under, or "" when it
+// is not encrypted.
+func (s *Server) keyForStream(stream string) string {
+	st, err := s.store.Get(stream)
+	if err != nil || st.EncryptionType != "KMS" {
+		return ""
+	}
+	return st.KeyID
 }

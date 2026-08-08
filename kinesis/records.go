@@ -31,6 +31,11 @@ func hPutRecord(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	if aerr != nil {
 		return nil, aerr
 	}
+	// A stream that writes under a customer key must not accept records it
+	// could not have encrypted.
+	if aerr := s.requireUsableKey(s.keyForStream(stream)); aerr != nil {
+		return nil, aerr
+	}
 	data, aerr := awsjson.Blob(p, "Data")
 	if aerr != nil {
 		return nil, aerr
@@ -59,6 +64,11 @@ func hPutRecords(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	raw, ok := p["Records"].([]any)
 	if !ok || len(raw) == 0 {
 		return nil, errValidation("Records must contain at least one record")
+	}
+	// A stream that writes under a customer key must not accept records it
+	// could not have encrypted.
+	if aerr := s.requireUsableKey(s.keyForStream(stream)); aerr != nil {
+		return nil, aerr
 	}
 	entries := make([]PutEntry, 0, len(raw))
 	for i, item := range raw {
@@ -161,6 +171,11 @@ func hGetRecords(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	}
 	cur, aerr := decodeIterator(tok, s.now())
 	if aerr != nil {
+		return nil, aerr
+	}
+	// Reading an encrypted stream decrypts, so an unusable key fails the read
+	// the same way it fails a write.
+	if aerr := s.requireUsableKey(s.keyForStream(cur.Stream)); aerr != nil {
 		return nil, aerr
 	}
 	limit := awsjson.Int(p, "Limit", 0)

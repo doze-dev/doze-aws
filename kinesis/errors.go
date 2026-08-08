@@ -86,3 +86,28 @@ func (n *notifier) signal(stream string) {
 		delete(n.chans, stream)
 	}
 }
+
+// ---- KMS-backed encryption ----
+//
+// A stream configured with a customer key depends on that key staying usable.
+// AWS surfaces the difference between a key that does not exist, one that is
+// switched off, and one on its way out, because each needs a different fix —
+// and producers are expected to handle them rather than discover later that
+// nothing was written. The codes below are the ones the SDKs match on.
+
+func errKMSNotFound(keyID string) *apiError {
+	return awshttp.Errf(400, "KMSNotFoundException",
+		"Invalid KeyId %q: the key was not found in this account.", keyID)
+}
+
+func errKMSDisabled(keyID string) *apiError {
+	return awshttp.Errf(400, "KMSDisabledException",
+		"The request was rejected because the specified KMS key %q is not enabled.", keyID)
+}
+
+// errKMSInvalidState covers a key that exists but is in a state that cannot be
+// used — most often scheduled for deletion.
+func errKMSInvalidState(keyID, state string) *apiError {
+	return awshttp.Errf(400, "KMSInvalidStateException",
+		"The state of the KMS key %q is %s, which is not valid for this request.", keyID, state)
+}

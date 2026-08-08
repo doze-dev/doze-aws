@@ -114,7 +114,47 @@ func (s *Store) Resolve(ident string) (*Key, error) {
 		out = k
 		return nil
 	})
+	if err != nil && isAWSManagedAlias(ident) {
+		// Every real account already has these; they appear the first time a
+		// service asks for one. Templates and Terraform reach for
+		// alias/aws/<service> constantly, so a local KMS that does not know
+		// them turns the most ordinary configuration there is into an error.
+		return s.ensureAWSManaged(ident)
+	}
 	return out, err
+}
+
+// awsManagedPrefix marks the keys AWS creates and owns on an account's behalf.
+const awsManagedPrefix = "alias/aws/"
+
+// isAWSManagedAlias reports whether an identifier names an AWS-managed key,
+// in either alias or alias-ARN form.
+func isAWSManagedAlias(ident string) bool {
+	if i := strings.Index(ident, ":alias/"); strings.HasPrefix(ident, "arn:") && i >= 0 {
+		ident = "alias/" + ident[i+len(":alias/"):]
+	}
+	return strings.HasPrefix(ident, awsManagedPrefix) && len(ident) > len(awsManagedPrefix)
+}
+
+// ensureAWSManaged materialises an AWS-managed key on first use, the way an
+// account does. It is idempotent: a concurrent caller that got there first
+// wins and its key is returned.
+func (s *Store) ensureAWSManaged(ident string) (*Key, error) {
+	if i := strings.Index(ident, ":alias/"); strings.HasPrefix(ident, "arn:") && i >= 0 {
+		ident = "alias/" + ident[i+len(":alias/"):]
+	}
+	name := strings.TrimPrefix(ident, "alias/")
+	svc := strings.TrimPrefix(name, "aws/")
+	k, err := s.CreateKey("SYMMETRIC_DEFAULT", "ENCRYPT_DECRYPT",
+		"Default key that protects my "+svc+" data when no other key is defined", "", nil)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.SetAlias(name, k.ID, false, false); err != nil {
+		// Someone else created it between the miss and here.
+		return s.Resolve(ident)
+	}
+	return k, nil
 }
 
 func (s *Store) resolve(tx *bolt.Tx, ident string) (*Key, error) {

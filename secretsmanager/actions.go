@@ -9,6 +9,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
+	"github.com/doze-dev/doze-aws/internal/peercall"
 )
 
 var handlers = map[string]handler{
@@ -83,6 +84,9 @@ func values(p map[string]any) (str, bin []byte, aerr *awshttp.APIError) {
 func (s *Server) createSecret(p map[string]any) (any, *awshttp.APIError) {
 	str, bin, aerr := values(p)
 	if aerr != nil {
+		return nil, aerr
+	}
+	if aerr := s.requireUsableKey(awsjson.Str(p, "KmsKeyId")); aerr != nil {
 		return nil, aerr
 	}
 	sec, versionID, err := s.store.Create(
@@ -192,6 +196,9 @@ func (s *Server) putSecretValue(p map[string]any) (any, *awshttp.APIError) {
 func (s *Server) updateSecret(p map[string]any) (any, *awshttp.APIError) {
 	str, bin, aerr := values(p)
 	if aerr != nil {
+		return nil, aerr
+	}
+	if aerr := s.requireUsableKey(awsjson.Str(p, "KmsKeyId")); aerr != nil {
 		return nil, aerr
 	}
 	id := awsjson.Str(p, "SecretId")
@@ -506,4 +513,30 @@ func (s *Server) deleteResourcePolicy(p map[string]any) (any, *awshttp.APIError)
 func (s *Server) validateResourcePolicy(p map[string]any) (any, *awshttp.APIError) {
 	// No IAM locally: any syntactically-plausible JSON policy validates.
 	return map[string]any{"PolicyValidationPassed": true, "ValidationErrors": []any{}}, nil
+}
+
+// requireUsableKey checks a customer key before a secret is bound to it.
+// Secrets Manager encrypts with the key on every write, so a key that does not
+// resolve or cannot be used is a configuration error worth reporting when it
+// is set rather than at some later read.
+//
+// An unwired or unreachable KMS is not treated as a bad key: a stack assembled
+// without KMS should not have its secrets start refusing writes.
+func (s *Server) requireUsableKey(keyID string) *awshttp.APIError {
+	if keyID == "" {
+		return nil
+	}
+	state, ok, err := peercall.KMSDescribeKey(s.peers, keyID)
+	if err != nil || !ok {
+		return nil
+	}
+	if !state.Found {
+		return awshttp.Errf(400, "InvalidParameterException",
+			"The KMS key %q does not exist.", keyID)
+	}
+	if state.State != "Enabled" {
+		return awshttp.Errf(400, "InvalidRequestException",
+			"The KMS key %q is %s and cannot be used to protect a secret.", keyID, state.State)
+	}
+	return nil
 }

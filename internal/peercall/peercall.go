@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/peers"
@@ -347,4 +348,62 @@ func S3Get(dir peers.Directory, bucket, key string) ([]byte, error) {
 		return nil, fmt.Errorf("s3 GET %s/%s: %d", bucket, key, resp.StatusCode)
 	}
 	return body, nil
+}
+
+// KMSKeyState is what a service that encrypts with a customer key needs to
+// know before it accepts one: whether the key resolves at all, and whether it
+// is in a state that can be used.
+type KMSKeyState struct {
+	KeyID string
+	State string // "Enabled", "Disabled", "PendingDeletion", ...
+	Found bool
+}
+
+// Usable reports whether encryption with this key would succeed.
+func (k KMSKeyState) Usable() bool { return k.Found && k.State == "Enabled" }
+
+// KMSDescribeKey resolves a key through the local KMS. A service holding a
+// customer key is expected to fail loudly when that key stops being usable —
+// AWS answers KMSNotFound/KMSDisabled/KMSInvalidState rather than carrying on
+// — so the caller needs the difference between "no such key", "not usable
+// right now", and "KMS is not wired at all".
+//
+// A directory with no KMS peer yields ok=false rather than an error: a stack
+// assembled without KMS should not have its other services start refusing
+// writes.
+func KMSDescribeKey(dir peers.Directory, keyID string) (state KMSKeyState, ok bool, err error) {
+	ep, wired := dir.Endpoint("kms")
+	if !wired {
+		return KMSKeyState{}, false, nil
+	}
+	out, err := postJSONResult(ep, "TrentService.DescribeKey", "application/x-amz-json-1.1",
+		map[string]any{"KeyId": keyID})
+	if err != nil {
+		// KMS answers NotFoundException for a key that does not exist; that is
+		// an answer, not a failure to reach it.
+		if strings.Contains(err.Error(), "NotFoundException") {
+			return KMSKeyState{KeyID: keyID}, true, nil
+		}
+		return KMSKeyState{}, false, err
+	}
+	var resp struct {
+		KeyMetadata struct {
+			KeyID    string `json:"KeyId"`
+			KeyState string `json:"KeyState"`
+			Enabled  bool   `json:"Enabled"`
+		} `json:"KeyMetadata"`
+	}
+	if err := json.Unmarshal(out, &resp); err != nil {
+		return KMSKeyState{}, false, err
+	}
+	m := resp.KeyMetadata
+	st := m.KeyState
+	if st == "" {
+		// Older shapes report usability only as a boolean.
+		st = "Disabled"
+		if m.Enabled {
+			st = "Enabled"
+		}
+	}
+	return KMSKeyState{KeyID: m.KeyID, State: st, Found: true}, true, nil
 }
