@@ -1020,5 +1020,16 @@ a.lo-card:hover { border-color: hsl(var(--accent-blue)); box-shadow: 0 0 0 3px h
 /* meter — a proportion bar. Used for a Kinesis shard's slice of the 128-bit
    key space, where the raw bounds are 39-digit integers and only the relative
    width is legible. */
-.meter{height:6px;border-radius:3px;background:hsl(var(--line));overflow:hidden;max-width:320px}
-.meter-fill{display:block;height:100%;border-radius:3px;background:hsl(var(--svc-kinesis,var(--accent)))}
+/* The track is tinted from the foreground rather than a surface token so the
+   unfilled remainder stays legible on both the light and dark card. */
+.meter { height: 6px; border-radius: 3px; background: hsl(var(--muted-foreground) / 0.22); overflow: hidden; max-width: 320px; }
+.meter-fill { display: block; height: 100%; border-radius: 3px; background: hsl(var(--svc-kinesis, var(--accent))); }
+
+/* A caption sitting under a meter or beside an id is secondary to it, so it
+   steps down rather than competing at full table size. */
+.sub { font-size: 11.5px; }
+
+/* Blocks in a detail body normally get their rhythm from the .sec-title above
+   them; where two blocks stack with no heading between, the gap has to come
+   from the adjacency instead. */
+.det-b > .panel + .split, .det-b > .split + .panel, .det-b > .panel + .panel { margin-top: 16px; }

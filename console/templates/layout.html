@@ -1,4 +1,8 @@
-{{define "shell_top"}}<!-- the workbench shell: topstrip · rail · workspace(list+detail) -->
+{{define "shell_top"}}<!DOCTYPE html>
+<!-- the workbench shell: topstrip · rail · workspace(list+detail).
+     The doctype has to lead: without it the browser falls into quirks mode,
+     where a table does not inherit font-size from body and every .tbl cell
+     silently renders at the 16px default instead of the 13px the page sets. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{if .Title}}{{.Title}} — {{end}}doze-aws</title>

@@ -419,9 +419,7 @@ func templateFuncs(prefix string) template.FuncMap {
 		},
 		// sharePct renders a shard's slice of the hash space. The raw bounds are
 		// 39-digit integers; a percentage is the only readable form.
-		"sharePct": func(f float64) string {
-			return strconv.FormatFloat(f*100, 'f', 1, 64) + "%"
-		},
+		"sharePct": pct,
 		// midpoint is the split key halfway through a shard, so the split
 		// control does not ask anyone to type a 128-bit number.
 		"midpoint": MidpointOf,

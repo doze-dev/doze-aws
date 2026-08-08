@@ -42,16 +42,16 @@
             <tr class="{{if eq .ID $.Sel}}on{{end}}{{if .Closed}} dim{{end}}">
               <td class="mono">
                 <a href="{{$.Prefix}}/kinesis/{{$.Stream}}?shard={{.ID}}">{{.ID}}</a>
-                {{if .Closed}}<span class="chip sm">closed</span>{{end}}
+                {{if .Closed}}<span class="chip">closed</span>{{end}}
               </td>
               <td>
                 <div class="meter" title="{{.StartKey}} … {{.EndKey}}">
                   <span class="meter-fill" style="width:{{sharePct .Share}}"></span>
                 </div>
-                <span class="dim mono sm">{{sharePct .Share}} of the key space</span>
+                <span class="dim mono sub">{{sharePct .Share}} of the key space</span>
               </td>
               <td class="num">{{.Count}}</td>
-              <td class="dim sm mono">
+              <td class="dim sub mono">
                 {{if .Adjacent}}merge of {{.Parent}} + {{.Adjacent}}
                 {{else if .Parent}}split of {{.Parent}}
                 {{else}}—{{end}}
@@ -125,8 +125,8 @@
             <tr>
               <td class="num mono dim">{{.Seq}}</td>
               <td class="mono">{{.Partition}}</td>
-              <td class="dim sm">{{.Arrived}}</td>
-              <td class="mono sm">{{if .Binary}}<span class="chip sm">base64</span> {{end}}{{.Data}}</td>
+              <td class="dim sub">{{.Arrived}}</td>
+              <td class="mono sub">{{if .Binary}}<span class="chip">base64</span> {{end}}{{.Data}}</td>
               <td class="num dim">{{.Bytes}}</td>
             </tr>
           {{else}}
