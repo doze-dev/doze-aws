@@ -96,6 +96,12 @@ func (s *Store) now() time.Time { return s.clock() }
 
 // ---- queue lifecycle ----
 
+// lookupIn binds a transaction into a queueLookup, so attribute validation can
+// ask whether a queue it has been pointed at actually exists.
+func (s *Store) lookupIn(tx *bolt.Tx) queueLookup {
+	return func(name string) (*Queue, error) { return s.getQueue(tx, name) }
+}
+
 func (s *Store) getQueue(tx *bolt.Tx, name string) (*Queue, error) {
 	b := tx.Bucket(metaBucket)
 	if b == nil {
@@ -146,7 +152,7 @@ func (s *Store) CreateQueue(name string, attrs map[string]string, tags map[strin
 				Created:           s.now().Unix(),
 			}
 		}
-		if err := applyAttrs(q, attrs); err != nil {
+		if err := applyAttrs(q, attrs, s.lookupIn(tx)); err != nil {
 			return err
 		}
 		for k, v := range tags {

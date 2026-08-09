@@ -16,3 +16,14 @@ func errQueueMissing(name string) *apiError {
 func errInvalid(msg string) *apiError {
 	return &apiError{Code: "InvalidParameterValue", Status: 400, Message: msg, SenderFault: true}
 }
+
+// errInvalidAttrValue is the attribute-specific refusal: a value that parses
+// but falls outside the range SQS accepts. Distinct from errInvalid because
+// SQS answers a well-formed-but-out-of-range attribute with its own code, and
+// an SDK branching on that code should see the same thing here as in AWS.
+func errInvalidAttrValue(attr, msg string) *apiError {
+	return &apiError{
+		Code: "InvalidAttributeValue", Status: 400, SenderFault: true,
+		Message: "Value for parameter " + attr + " is invalid. Reason: " + msg + ".",
+	}
+}

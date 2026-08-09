@@ -58,13 +58,15 @@ func TestRetentionSweep(t *testing.T) {
 	now := base
 	s.clock = func() time.Time { return now }
 
-	if _, err := s.CreateQueue("q", map[string]string{"MessageRetentionPeriod": "1"}, nil); err != nil {
+	// 60s is the shortest retention SQS accepts. The clock here is fake, so a
+	// realistic value costs the test nothing — it just advances further.
+	if _, err := s.CreateQueue("q", map[string]string{"MessageRetentionPeriod": "60"}, nil); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := s.Send("q", "old", nil, -1, "", ""); err != nil {
 		t.Fatal(err)
 	}
-	now = base.Add(2 * time.Second) // past retention
+	now = base.Add(61 * time.Second) // past retention
 	s.Sweep()
 	if c := bucketCount(s, msgBucket("q")); c != 0 {
 		t.Fatalf("expected expired message swept, %d remain", c)

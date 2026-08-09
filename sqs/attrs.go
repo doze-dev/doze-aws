@@ -11,8 +11,40 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+// attrRange is the interval SQS accepts for a numeric attribute. A value
+// outside it is refused rather than clamped: accepting it here and having AWS
+// refuse it on deploy is the divergence that costs the most, because it only
+// shows up in the environment where it is expensive.
+var attrRange = map[string][2]int{
+	"VisibilityTimeout":             {0, 43200},
+	"DelaySeconds":                  {0, 900},
+	"MessageRetentionPeriod":        {60, 1209600},
+	"MaximumMessageSize":            {1024, 262144},
+	"ReceiveMessageWaitTimeSeconds": {0, 20},
+}
+
+// atoiAttr parses a numeric attribute strictly and range-checks it. The old
+// behaviour — parse, ignore the error, keep the previous value — turned a
+// typo into a silent no-op that answered 200.
+func atoiAttr(attr, v string) (int, error) {
+	n, err := strconv.Atoi(strings.TrimSpace(v))
+	if err != nil {
+		return 0, errInvalidAttrValue(attr, "must be an integer")
+	}
+	if r, ok := attrRange[attr]; ok && (n < r[0] || n > r[1]) {
+		return 0, errInvalidAttrValue(attr,
+			"must be between "+strconv.Itoa(r[0])+" and "+strconv.Itoa(r[1]))
+	}
+	return n, nil
+}
+
+// queueLookup resolves a queue by name so redrive can be validated against
+// what actually exists. Passing nil skips the checks that need it, which is
+// what the pure attribute tests do.
+type queueLookup func(name string) (*Queue, error)
+
 // applyAttrs folds an SQS attribute map into a queue definition.
-func applyAttrs(q *Queue, attrs map[string]string) error {
+func applyAttrs(q *Queue, attrs map[string]string, lookup queueLookup) error {
 	for k, v := range attrs {
 		switch k {
 		case "FifoQueue":
@@ -20,30 +52,43 @@ func applyAttrs(q *Queue, attrs map[string]string) error {
 		case "ContentBasedDeduplication":
 			q.ContentBasedDedup = v == "true"
 		case "VisibilityTimeout":
-			q.VisibilityTimeout = atoiDefault(v, q.VisibilityTimeout)
+			n, err := atoiAttr(k, v)
+			if err != nil {
+				return err
+			}
+			q.VisibilityTimeout = n
 		case "DelaySeconds":
-			q.DelaySeconds = atoiDefault(v, q.DelaySeconds)
+			n, err := atoiAttr(k, v)
+			if err != nil {
+				return err
+			}
+			q.DelaySeconds = n
 		case "MessageRetentionPeriod":
-			q.RetentionPeriod = atoiDefault(v, q.RetentionPeriod)
+			n, err := atoiAttr(k, v)
+			if err != nil {
+				return err
+			}
+			q.RetentionPeriod = n
 		case "MaximumMessageSize":
-			q.MaxMessageSize = atoiDefault(v, q.MaxMessageSize)
+			n, err := atoiAttr(k, v)
+			if err != nil {
+				return err
+			}
+			q.MaxMessageSize = n
 		case "ReceiveMessageWaitTimeSeconds":
-			q.WaitTimeSeconds = atoiDefault(v, q.WaitTimeSeconds)
+			n, err := atoiAttr(k, v)
+			if err != nil {
+				return err
+			}
+			q.WaitTimeSeconds = n
 		case "RedrivePolicy":
 			if v == "" {
 				q.DeadLetterTarget, q.MaxReceiveCount = "", 0
 				continue
 			}
-			var rp struct {
-				DeadLetterTargetArn string      `json:"deadLetterTargetArn"`
-				MaxReceiveCount     json.Number `json:"maxReceiveCount"`
+			if err := applyRedrive(q, v, lookup); err != nil {
+				return err
 			}
-			if err := json.Unmarshal([]byte(v), &rp); err != nil {
-				return errInvalid("invalid RedrivePolicy: " + err.Error())
-			}
-			q.DeadLetterTarget = arnQueueName(rp.DeadLetterTargetArn)
-			n, _ := rp.MaxReceiveCount.Int64()
-			q.MaxReceiveCount = int(n)
 		default:
 			// Computed attributes are reported, never stored: accepting one
 			// here would let a caller overwrite the queue's own bookkeeping.
@@ -137,7 +182,7 @@ func (s *Store) SetAttributes(name string, attrs map[string]string) error {
 		if err != nil {
 			return err
 		}
-		if err := applyAttrs(q, attrs); err != nil {
+		if err := applyAttrs(q, attrs, s.lookupIn(tx)); err != nil {
 			return err
 		}
 		q.Modified = s.now().Unix()
@@ -145,11 +190,56 @@ func (s *Store) SetAttributes(name string, attrs map[string]string) error {
 	})
 }
 
-func atoiDefault(s string, def int) int {
-	if n, err := strconv.Atoi(s); err == nil {
-		return n
+// applyRedrive validates a RedrivePolicy before storing it. Every check here
+// is one SQS performs at SetQueueAttributes time, and every one of them was a
+// way to configure a dead-letter queue that this store accepted and AWS would
+// not — which is the expensive direction, because the deploy is where you find
+// out.
+//
+// The failure was also silent rather than loud: a target that does not exist
+// leaves moveToDLQ correctly declining to drop the message, so the queue
+// redelivers forever, the dead-letter queue never fills, and
+// GetQueueAttributes echoes the policy back as though it had taken.
+func applyRedrive(q *Queue, v string, lookup queueLookup) error {
+	var rp struct {
+		DeadLetterTargetArn string          `json:"deadLetterTargetArn"`
+		MaxReceiveCount     json.RawMessage `json:"maxReceiveCount"`
 	}
-	return def
+	if err := json.Unmarshal([]byte(v), &rp); err != nil {
+		return errInvalid("invalid RedrivePolicy: " + err.Error())
+	}
+	if strings.TrimSpace(rp.DeadLetterTargetArn) == "" {
+		return errInvalidAttrValue("RedrivePolicy", "deadLetterTargetArn is required")
+	}
+	// AWS writes maxReceiveCount as a number and accepts it quoted; Terraform
+	// and the console send the quoted form, so both have to work.
+	count, err := strconv.Atoi(strings.Trim(strings.TrimSpace(string(rp.MaxReceiveCount)), `"`))
+	if err != nil {
+		return errInvalidAttrValue("RedrivePolicy", "maxReceiveCount must be an integer")
+	}
+	if count < 1 || count > 1000 {
+		return errInvalidAttrValue("RedrivePolicy", "maxReceiveCount must be between 1 and 1000")
+	}
+
+	target := arnQueueName(rp.DeadLetterTargetArn)
+	if target == q.Name {
+		return errInvalidAttrValue("RedrivePolicy", "a queue cannot be its own dead-letter queue")
+	}
+	if lookup != nil {
+		dlq, err := lookup(target)
+		if err != nil {
+			return errInvalidAttrValue("RedrivePolicy", "dead-letter target does not exist: "+target)
+		}
+		// A FIFO source needs a FIFO dead-letter queue and a standard source a
+		// standard one: ordering and deduplication have to survive the move,
+		// and a standard queue cannot carry them.
+		if dlq.FIFO != q.FIFO {
+			return errInvalidAttrValue("RedrivePolicy",
+				"dead-letter queue must be the same type as the source queue (FIFO or standard)")
+		}
+	}
+	q.DeadLetterTarget, q.MaxReceiveCount = target, count
+	return nil
 }
 
 // arnQueueName extracts the queue name (last colon segment) from an ARN.
