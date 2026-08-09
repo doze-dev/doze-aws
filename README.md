@@ -17,6 +17,11 @@ export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_REGION=us-east-1
 aws sts get-caller-identity
 ```
 
+`127.0.0.1:4566` is a permanent address — the port is LocalStack's on purpose,
+and it will never require the `doze` CLI. Local DNS names like
+`aws.<stack>.doze` are additive on top of it, and switching between them does
+not strand what you already created. → **[Endpoints — the contract](docs/endpoints.md)**
+
 ## What it is
 
 doze-aws emulates the AWS services a development stack leans on, implemented

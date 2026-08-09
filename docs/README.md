@@ -1,6 +1,7 @@
 # doze-aws documentation
 
 - [getting-started.md](getting-started.md) — run it, point an SDK at it, configure it
+- [endpoints.md](endpoints.md) — the addresses doze-aws answers on, and which are promised
 - [cli.md](cli.md) — CLI reference: commands, flags, the `doze-aws.toml` config file, and how clients connect
 - [cloudformation.md](cloudformation.md) — deploying with the AWS CLI, SAM, CDK or Serverless
 - [embedding.md](embedding.md) — use doze-aws as a Go library, with a complete example
