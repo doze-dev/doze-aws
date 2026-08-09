@@ -23,3 +23,7 @@ e2e/playwright-report/
 e2e/test-results/
 e2e/blob-report/
 e2e/.bun/
+
+# Fetched AWS service models — the audit spec, cached not vendored (15M).
+# dzaudit refetches on demand: go run ./cmd/dzaudit coverage
+.audit-models/
