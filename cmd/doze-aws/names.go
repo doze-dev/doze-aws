@@ -15,6 +15,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -22,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"syscall"
 
 	names "github.com/doze-dev/doze-names"
 )
@@ -37,6 +39,8 @@ type zone struct {
 	lease *names.Lease
 	srv   *names.Server
 	extra net.Listener
+	// portless is true when the name answers on :80, so the URL needs no port.
+	portless bool
 }
 
 // joinZone claims aws.doze and starts serving the zone if nobody else is.
@@ -67,20 +71,41 @@ func joinZone(ctx context.Context, logger *slog.Logger) *zone {
 	return z
 }
 
-// listen returns an extra listener on the apex address, or nil if there is
-// none to bind. Reasons it may be nil are all ordinary: the name is held by
-// another process, dns-setup has not been run so the address is not aliased,
-// or something else holds the port.
-func (z *zone) listen(logger *slog.Logger) net.Listener {
+// listen returns an extra listener on the apex address.
+//
+// Port 80 is tried first, because http://aws.doze with no port is the whole
+// point of the name — but macOS refuses a privileged port on a SPECIFIC
+// address even though it allows one on the wildcard, so this usually fails
+// there and falls back to the configured port. A name that answers on
+// :<port> is worth more than a name that answers nowhere.
+//
+// The port-less form needs a wildcard-bound, Host-routed front door shared
+// between the binaries, the way doze core already fronts aws.<stack>.doze.
+func (z *zone) listen(logger *slog.Logger, fallbackPort string) net.Listener {
 	if z == nil || z.lease == nil {
 		return nil
 	}
-	addr := net.JoinHostPort(z.lease.IP.String(), strconv.Itoa(apexPort))
+	ip := z.lease.IP.String()
+	apex := net.JoinHostPort(ip, strconv.Itoa(apexPort))
+	if ln, err := net.Listen("tcp", apex); err == nil {
+		z.extra, z.portless = ln, true
+		return ln
+	} else if !errors.Is(err, syscall.EACCES) && !errors.Is(err, syscall.EPERM) {
+		// Anything but a privilege refusal is worth saying out loud: the
+		// address is not aliased, or something else already holds it.
+		logger.Info("zone: could not serve the name on :80",
+			"name", z.lease.Name.Host, "addr", apex, "err", err,
+			"hint", "run `doze-aws dns-setup` once to alias the loopback pool")
+	}
+
+	if fallbackPort == "" {
+		return nil
+	}
+	addr := net.JoinHostPort(ip, fallbackPort)
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		logger.Info("zone: name claimed but not served",
-			"name", z.lease.Name.Host, "addr", addr, "err", err,
-			"hint", "run `doze-aws dns-setup` once to alias the loopback pool")
+			"name", z.lease.Name.Host, "addr", addr, "err", err)
 		return nil
 	}
 	z.extra = ln
@@ -93,7 +118,14 @@ func (z *zone) url() string {
 	if z == nil || z.lease == nil || z.extra == nil {
 		return ""
 	}
-	return "http://" + z.lease.Name.Host
+	if z.portless {
+		return "http://" + z.lease.Name.Host
+	}
+	_, port, err := net.SplitHostPort(z.extra.Addr().String())
+	if err != nil {
+		return ""
+	}
+	return "http://" + z.lease.Name.Host + ":" + port
 }
 
 // close releases the name and stops serving the zone. The registry would prune

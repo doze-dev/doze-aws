@@ -250,7 +250,8 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	// configured address above is the contract and is never affected.
 	z := joinZone(ctx, logger)
 	defer z.close()
-	extra := z.listen(logger)
+	_, cfgPort, _ := net.SplitHostPort(ln.Addr().String())
+	extra := z.listen(logger, cfgPort)
 	if url := z.url(); url != "" {
 		logger.Info("listening", "addr", extra.Addr().String(), "name", url)
 	}
