@@ -15,15 +15,12 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
-	"strconv"
-	"syscall"
 
 	names "github.com/doze-dev/doze-names"
 )
@@ -38,9 +35,9 @@ const apexPort = 80
 type zone struct {
 	lease *names.Lease
 	srv   *names.Server
+	front *names.Ingress
 	extra net.Listener
-	// portless is true when the name answers on :80, so the URL needs no port.
-	portless bool
+	reg   *names.Registry
 }
 
 // joinZone claims aws.doze and starts serving the zone if nobody else is.
@@ -65,9 +62,13 @@ func joinZone(ctx context.Context, logger *slog.Logger) *zone {
 		}
 	}
 
-	z.srv = names.Serve(ctx, reg, func(format string, args ...any) {
-		logger.Debug(fmt.Sprintf(format, args...))
-	})
+	z.reg = reg
+	logf := func(format string, args ...any) { logger.Debug(fmt.Sprintf(format, args...)) }
+	z.srv = names.Serve(ctx, reg, logf)
+	// The shared front door is what makes the name port-less. macOS will not
+	// let an unprivileged process hold :80 on a specific address, only on the
+	// wildcard, so one listener fronts every peer's names by Host header.
+	z.front = names.ServeIngress(ctx, reg, logf)
 	return z
 }
 
@@ -81,51 +82,37 @@ func joinZone(ctx context.Context, logger *slog.Logger) *zone {
 //
 // The port-less form needs a wildcard-bound, Host-routed front door shared
 // between the binaries, the way doze core already fronts aws.<stack>.doze.
-func (z *zone) listen(logger *slog.Logger, fallbackPort string) net.Listener {
-	if z == nil || z.lease == nil {
+func (z *zone) listen(logger *slog.Logger, port string) net.Listener {
+	if z == nil || z.lease == nil || port == "" {
 		return nil
 	}
-	ip := z.lease.IP.String()
-	apex := net.JoinHostPort(ip, strconv.Itoa(apexPort))
-	if ln, err := net.Listen("tcp", apex); err == nil {
-		z.extra, z.portless = ln, true
-		return ln
-	} else if !errors.Is(err, syscall.EACCES) && !errors.Is(err, syscall.EPERM) {
-		// Anything but a privilege refusal is worth saying out loud: the
-		// address is not aliased, or something else already holds it.
-		logger.Info("zone: could not serve the name on :80",
-			"name", z.lease.Name.Host, "addr", apex, "err", err,
-			"hint", "run `doze-aws dns-setup` once to alias the loopback pool")
-	}
-
-	if fallbackPort == "" {
-		return nil
-	}
-	addr := net.JoinHostPort(ip, fallbackPort)
+	// The service binds its own address on its ordinary port; :80 is not
+	// attempted here, because macOS refuses a privileged port on a specific
+	// address. The front door supplies the port-less form.
+	addr := net.JoinHostPort(z.lease.IP.String(), port)
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		logger.Info("zone: name claimed but not served",
-			"name", z.lease.Name.Host, "addr", addr, "err", err)
+			"name", z.lease.Name.Host, "addr", addr, "err", err,
+			"hint", "run `doze-aws dns-setup` once to alias the loopback pool")
 		return nil
 	}
 	z.extra = ln
+	// Publish where the front door should send this name.
+	if err := z.lease.Route(addr); err != nil {
+		logger.Debug("zone: could not publish the route", "err", err)
+	}
 	return ln
 }
 
-// url is what to tell the user to connect to, empty when the name is not being
-// served.
+// url is what to tell the user to connect to — port-less when the front door
+// is up, with the port when it is not, so the line printed at startup is one
+// that actually works.
 func (z *zone) url() string {
 	if z == nil || z.lease == nil || z.extra == nil {
 		return ""
 	}
-	if z.portless {
-		return "http://" + z.lease.Name.Host
-	}
-	_, port, err := net.SplitHostPort(z.extra.Addr().String())
-	if err != nil {
-		return ""
-	}
-	return "http://" + z.lease.Name.Host + ":" + port
+	return z.reg.URLFor(z.lease.Name.Host)
 }
 
 // close releases the name and stops serving the zone. The registry would prune
@@ -144,6 +131,7 @@ func (z *zone) close() {
 	if z.srv != nil {
 		z.srv.Close()
 	}
+	z.front.Close()
 }
 
 // serveExtra runs srv on an additional listener until it closes.

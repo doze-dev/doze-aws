@@ -27,7 +27,7 @@ you are insulated from all of this.
 |---|---|---|
 | `http://127.0.0.1:4566` | always — standalone or embedded | **stable** |
 | `http://aws.<stack>.doze` | under the `doze` CLI with `defaults { domains = true }` | **stable** (doze ≥ v0.1.3) |
-| `http://aws.doze:4566` | standalone, after `doze-aws dns-setup` | **available** |
+| `http://aws.doze` | standalone, after `doze-aws dns-setup` | **available** (macOS) |
 
 The middle one is per-stack, so several projects can run their own local AWS at
 once without colliding — verified end to end: the name resolves through doze's
@@ -53,13 +53,17 @@ DNS for it, including names other doze binaries registered.
 ```sh
 doze-aws dns-setup      # once per machine; any doze binary can run it
 doze-aws
-export AWS_ENDPOINT_URL=http://aws.doze:4566
+export AWS_ENDPOINT_URL=http://aws.doze
 ```
 
-The port is there because macOS refuses a privileged port on a *specific*
-address — only on the wildcard — so a standalone process cannot hold `:80` on
-its own loopback address. The port-less form needs a shared front door, which
-is the next piece of work. Services above 1024 are unaffected.
+No port, and the same URL a doze stack serves. Port 80 comes from a **shared
+front door**: one wildcard listener, held by whichever doze binary got there
+first, routing by Host header to whichever one registered the name. macOS
+refuses a privileged port on a *specific* address and allows it only on the
+wildcard, which is why it cannot come from the name's own address.
+
+The front door preserves the Host, so a queue created through `aws.doze`
+reports an `aws.doze` URL rather than the address it was proxied to.
 
 `.doze` is a **peer** zone rather than one binary's: whichever of `doze`,
 `doze-aws` or `doze-kafka` starts first serves it for all of them, and if that
@@ -142,6 +146,6 @@ the names keep working when any individual stack goes down.
 
 - `127.0.0.1:4566` — will not change. Depend on it.
 - `aws.<stack>.doze` — will not change while `domains` is enabled.
-- `aws.doze:4566` — stable on macOS once `dns-setup` has run. Not yet on Linux;
-  see the platform caveat above, and prefer `127.0.0.1:4566` in anything that
-  has to run on both. The port-less `http://aws.doze` is not available yet.
+- `aws.doze` — stable on macOS once `dns-setup` has run. Not yet on Linux; see
+  the platform caveat above, and prefer `127.0.0.1:4566` in anything that has
+  to run on both.
