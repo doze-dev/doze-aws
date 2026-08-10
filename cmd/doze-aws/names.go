@@ -15,12 +15,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
+	"syscall"
 
 	names "github.com/doze-dev/doze-names"
 )
@@ -38,6 +40,9 @@ type zone struct {
 	front *names.Ingress
 	extra net.Listener
 	reg   *names.Registry
+	// cfgAddr is the configured listen address — the contract, and the answer
+	// to every "then what still works?" below.
+	cfgAddr string
 }
 
 // joinZone claims aws.doze and starts serving the zone if nobody else is.
@@ -63,7 +68,9 @@ func joinZone(ctx context.Context, logger *slog.Logger) *zone {
 	}
 
 	z.reg = reg
-	logf := func(format string, args ...any) { logger.Debug(fmt.Sprintf(format, args...)) }
+	// Info, not Debug: these lines are few, they happen at startup, and they are
+	// the only warning that a name is not going to work.
+	logf := func(format string, args ...any) { logger.Info(fmt.Sprintf(format, args...)) }
 	z.srv = names.Serve(ctx, reg, logf)
 	// The shared front door is what makes the name port-less. macOS will not
 	// let an unprivileged process hold :80 on a specific address, only on the
@@ -82,7 +89,10 @@ func joinZone(ctx context.Context, logger *slog.Logger) *zone {
 //
 // The port-less form needs a wildcard-bound, Host-routed front door shared
 // between the binaries, the way doze core already fronts aws.<stack>.doze.
-func (z *zone) listen(logger *slog.Logger, port string) net.Listener {
+func (z *zone) listen(logger *slog.Logger, cfgAddr, port string) net.Listener {
+	if z != nil {
+		z.cfgAddr = cfgAddr
+	}
 	if z == nil || z.lease == nil || port == "" {
 		return nil
 	}
@@ -92,9 +102,15 @@ func (z *zone) listen(logger *slog.Logger, port string) net.Listener {
 	addr := net.JoinHostPort(z.lease.IP.String(), port)
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		logger.Info("zone: name claimed but not served",
+		// Both causes leave the name resolving to an address that answers
+		// nothing, so say which one it is — the remedies are opposites.
+		hint := "run `doze-aws dns-setup` once to alias the loopback pool"
+		if errors.Is(err, syscall.EADDRINUSE) {
+			hint = "something else already holds " + addr + "; free it, or that name will not work"
+		}
+		logger.Warn("zone: the name resolves but nothing serves it",
 			"name", z.lease.Name.Host, "addr", addr, "err", err,
-			"hint", "run `doze-aws dns-setup` once to alias the loopback pool")
+			"still_works", "http://"+z.cfgAddr, "hint", hint)
 		return nil
 	}
 	z.extra = ln

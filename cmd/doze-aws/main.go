@@ -251,7 +251,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	z := joinZone(ctx, logger)
 	defer z.close()
 	_, cfgPort, _ := net.SplitHostPort(ln.Addr().String())
-	extra := z.listen(logger, cfgPort)
+	extra := z.listen(logger, ln.Addr().String(), cfgPort)
 	if url := z.url(); url != "" {
 		logger.Info("listening", "addr", extra.Addr().String(), "name", url)
 	}

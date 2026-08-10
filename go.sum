@@ -157,6 +157,8 @@ github.com/doze-dev/doze-names v0.0.0-20260810101552-f06b08b79001 h1:OKDYbBr4qjs
 github.com/doze-dev/doze-names v0.0.0-20260810101552-f06b08b79001/go.mod h1:mMmncxtG5bBQlGZILYjU/u4oQckRy14Di4vXdw9T4xg=
 github.com/doze-dev/doze-names v0.0.0-20260810102201-5ad247a8ddef h1:nAI5dkPAO3BS9JE5MXEMZSep6GVsdbaIFW55YgMTc0M=
 github.com/doze-dev/doze-names v0.0.0-20260810102201-5ad247a8ddef/go.mod h1:mMmncxtG5bBQlGZILYjU/u4oQckRy14Di4vXdw9T4xg=
+github.com/doze-dev/doze-names v0.0.0-20260810105444-84d4b48dc4e2 h1:HtS4ZQJNRaJiVIkhyaLtgfg8/qZbTkarxsPQReS63u8=
+github.com/doze-dev/doze-names v0.0.0-20260810105444-84d4b48dc4e2/go.mod h1:mMmncxtG5bBQlGZILYjU/u4oQckRy14Di4vXdw9T4xg=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/elliotchance/orderedmap/v3 v3.1.0 h1:j4DJ5ObEmMBt/lcwIecKcoRxIQUEnw0L804lXYDt/pg=
