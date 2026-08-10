@@ -58,6 +58,14 @@ func main() {
 		return
 	}
 
+	// `doze-aws dns-setup` prepares the machine for .doze names. It is the same
+	// work `doze dns-setup` does and is idempotent, so whichever binary you
+	// happen to have installed can do it — that is the point of the zone being
+	// shared rather than owned.
+	if len(os.Args) > 1 && os.Args[1] == "dns-setup" {
+		os.Exit(runDNSSetup(os.Args[2:]))
+	}
+
 	// `doze-aws apply [stack.yaml]` converges resources; `doze-aws export`
 	// writes the running stack as a stack.yaml.
 	if len(os.Args) > 1 && os.Args[1] == "apply" {
@@ -237,8 +245,19 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	// Join .doze: claim aws.doze, serve the zone if no peer is, and take an
+	// extra listener on the name's own address. All of it is additive — the
+	// configured address above is the contract and is never affected.
+	z := joinZone(ctx, logger)
+	defer z.close()
+	extra := z.listen(logger)
+	if url := z.url(); url != "" {
+		logger.Info("listening", "addr", extra.Addr().String(), "name", url)
+	}
+
 	errc := make(chan error, 1)
 	go func() { errc <- srv.Serve(ln) }()
+	serveExtra(srv, extra, logger)
 
 	select {
 	case err := <-errc:

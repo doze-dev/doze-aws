@@ -27,7 +27,7 @@ you are insulated from all of this.
 |---|---|---|
 | `http://127.0.0.1:4566` | always — standalone or embedded | **stable** |
 | `http://aws.<stack>.doze` | under the `doze` CLI with `defaults { domains = true }` | **stable** (doze ≥ v0.1.3) |
-| `http://aws.doze` | either, once it lands | *in progress* |
+| `http://aws.doze` | standalone, after `doze-aws dns-setup` | **available** |
 
 The middle one is per-stack, so several projects can run their own local AWS at
 once without colliding — verified end to end: the name resolves through doze's
@@ -44,26 +44,32 @@ single-stack setup and a standalone process can share one name.
 
 `doze-kafka` follows the same pattern (`kafka.doze`).
 
-## Standalone has no DNS today
+## Standalone names
 
-Worth stating plainly, because it is the gap `aws.doze` exists to close.
+`doze-aws` on its own now serves `.doze` itself — no doze CLI required. It
+claims `aws.doze`, and if nothing else is already serving the zone it answers
+DNS for it, including names other doze binaries registered.
 
-Run `doze-aws` on its own and the only address is `127.0.0.1:4566`. Every part
-of the `.doze` machinery currently lives in the doze daemon — the resolver
-process, the `/etc/resolver/doze` drop-in, and the name registry the resolver
-reads. With no doze CLI installed nothing is listening, so no `.doze` name
-resolves, including `aws.doze`.
+```sh
+doze-aws dns-setup      # once per machine; any doze binary can run it
+doze-aws
+export AWS_ENDPOINT_URL=http://aws.doze
+```
 
-The fix is not for doze-aws to depend on the CLI. `.doze` is becoming a **peer
-protocol**: a shared registry under `~/.doze` that any of `doze`, `doze-aws` or
-`doze-kafka` writes to, and a resolver that whichever one starts first binds and
-then answers *every* peer's names from. Whichever binary you installed can also
-run the one-time machine setup. Install order stops mattering, and no binary is
-required for the others to have names.
+`.doze` is a **peer** zone rather than one binary's: whichever of `doze`,
+`doze-aws` or `doze-kafka` starts first serves it for all of them, and if that
+one exits another takes over. Install order does not matter and none of them is
+a prerequisite for the others.
 
-Each name also gets its own loopback address, so `aws.doze` binds its own
-`:80` rather than sharing one — which is what makes `http://aws.doze` the same
-URL standalone and under the CLI.
+Without `dns-setup` the name is claimed but not served — doze-aws logs one line
+saying so and carries on. The configured address is unaffected, which is the
+whole point of it being a contract:
+
+```
+zone: name claimed but not served  name=aws.doze addr=127.0.0.2:80
+  err="bind: can't assign requested address"
+  hint="run `doze-aws dns-setup` once to alias the loopback pool"
+```
 
 **Platform caveat:** `.doze` resolution is macOS-only today. macOS routes a
 whole TLD via `/etc/resolver/doze`; Linux has no equivalent, and doze does not
@@ -131,5 +137,6 @@ the names keep working when any individual stack goes down.
 
 - `127.0.0.1:4566` — will not change. Depend on it.
 - `aws.<stack>.doze` — will not change while `domains` is enabled.
-- `aws.doze` — the *intent* is stable; the implementation is not landed yet, so
-  do not put it in CI until this page says stable.
+- `aws.doze` — stable on macOS once `dns-setup` has run. Not yet on Linux; see
+  the platform caveat above, and prefer `127.0.0.1:4566` in anything that has
+  to run on both.
