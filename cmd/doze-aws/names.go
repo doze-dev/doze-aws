@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"syscall"
+	"time"
 
 	names "github.com/doze-dev/doze-names"
 )
@@ -128,7 +129,23 @@ func (z *zone) url() string {
 	if z == nil || z.lease == nil || z.extra == nil {
 		return ""
 	}
-	return z.reg.URLFor(z.lease.Name.Host)
+	// Wait briefly for a front door to appear before deciding how to print the
+	// URL. Ours binds in a goroutine that races this line, and a peer's entry
+	// may land a moment after we start — losing either race advertises a
+	// port-ful URL for a name that is in fact port-less, which is how this read
+	// on Linux while :80 was bound the whole time.
+	//
+	// The wait only runs while the answer is still the pessimistic one, so the
+	// common case — already fronted — costs nothing.
+	deadline := time.Now().Add(500 * time.Millisecond)
+	host := z.lease.Name.Host
+	for {
+		u := z.reg.URLFor(host)
+		if u == "http://"+host || time.Now().After(deadline) {
+			return u
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
 }
 
 // close releases the name and stops serving the zone. The registry would prune
