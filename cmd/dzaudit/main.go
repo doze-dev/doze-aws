@@ -9,6 +9,7 @@
 //
 //	dzaudit list dynamodb            # every constrained input, by operation
 //	dzaudit list --op CreateTable dynamodb
+//	dzaudit cases --op CreateTable dynamodb   # violating values, ready to send
 //	dzaudit summary lambda           # how much of the surface is constrained
 //	dzaudit coverage                 # which services have a usable model
 //
@@ -44,7 +45,7 @@ type finding struct {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: dzaudit [list|summary|coverage] [flags] <service>")
+		fmt.Fprintln(os.Stderr, "usage: dzaudit [list|cases|summary|coverage] [flags] <service>")
 		os.Exit(2)
 	}
 	// The subcommand comes first, so flags are parsed from what follows it —
@@ -81,6 +82,8 @@ func run(args []string, cache, opFilter string) error {
 		return list(m, found, opFilter)
 	case "summary":
 		return summary(m, found)
+	case "cases":
+		return emitCases(os.Stdout, m, found, opFilter)
 	}
 	return fmt.Errorf("unknown command %q", cmd)
 }
