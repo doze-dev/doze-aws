@@ -34,3 +34,33 @@ validation passes.
 Dead-letter redrive (maxReceiveCount → DLQ move) and retention expiry run on
 the receive path plus a background janitor, so write-only queues are reclaimed
 too.
+
+## Input validation
+
+Separate from the tiers above. A tier says the operation is implemented; this
+says whether doze-aws **refuses what SQS refuses**. The two are different
+promises, and the second is the one that decides whether code passing here also
+passes on deploy.
+
+| Input | Status |
+|---|---|
+| `RedrivePolicy` — target exists | ✅ refused if the queue does not exist |
+| `RedrivePolicy` — FIFO↔FIFO, standard↔standard | ✅ refused if the types differ |
+| `RedrivePolicy` — `maxReceiveCount` 1–1000 | ✅ range enforced, quoted or bare |
+| `RedrivePolicy` — self-reference | ✅ a queue cannot be its own DLQ |
+| `VisibilityTimeout` 0–43200 | ✅ |
+| `DelaySeconds` 0–900 | ✅ |
+| `MessageRetentionPeriod` 60–1209600 | ✅ |
+| `MaximumMessageSize` 1024–262144 | ✅ |
+| `ReceiveMessageWaitTimeSeconds` 0–20 | ✅ |
+| Non-numeric attribute values | ✅ refused (previously silently ignored) |
+| **Queue name charset/length** | ❌ `bad name!` is accepted; AWS allows alphanumeric, `-`, `_`, ≤80 |
+| Everything else | not yet audited |
+
+Enforced cases are covered by `sqs/rejection_parity_test.go`, which asserts the
+error **code** an SDK sees, not just that something failed.
+
+Note SQS's own AWS service model carries no `@range`, `@length` or `@pattern`
+traits at all — its constraints live only in prose — so this table is hand-derived
+rather than generated. That is also why the bugs surfaced here first: nothing had
+ever cross-checked them.

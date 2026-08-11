@@ -30,22 +30,38 @@ generations (aws-sdk-go v1 and aws-sdk-go-v2 / boto3-era and modern), both
 signature versions (SigV2 and SigV4), and the legacy Query protocols older
 clients still speak.
 
-| Service | Status |
-|---|---|
-| STS | ✅ complete |
-| SQS | ✅ complete — both protocols, FIFO, DLQ redrive, long polling, move tasks, tags |
-| SNS | ✅ complete — fanout to SQS/webhooks, filter policies, confirmation handshake |
-| KMS | ✅ complete — symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto |
-| SSM Parameter Store | ✅ complete — versions, labels, hierarchies, SecureString at-rest encryption |
-| Secrets Manager | ✅ complete — version stages, recovery-window deletion, encrypted at rest |
-| S3 | ✅ complete — versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website |
-| DynamoDB | ✅ complete — full expression engine, GSI/LSI, transactions, TTL, paging semantics |
-| EventBridge | ✅ complete — full pattern language, SQS/SNS/Lambda targets, input transformers |
-| Lambda | ✅ complete — real process runtime (no Docker), versions, layers, function URLs, SQS/DynamoDB/Kinesis event source mappings |
-| Kinesis | ✅ complete — native Go (no JVM), real partition-key routing, resharding with parent/child lineage |
-| IAM | ✅ complete — real policy evaluation, off by default, with least-privilege generation |
-| CloudFormation | ✅ stacks, change sets, deletion — `sam deploy`, `cdk deploy` and Serverless all work |
-| API Gateway | ✅ REST v1 — deployed APIs actually serve into Lambda over a real HTTP endpoint |
+| Service | Operations | Input validation |
+|---|---|---|
+| STS | ✅ | not yet audited |
+| SQS | ✅ both protocols, FIFO, DLQ redrive, long polling, move tasks, tags | **audited**: attributes, redrive · gap: queue-name charset |
+| SNS | ✅ fanout to SQS/webhooks, filter policies, confirmation handshake | gap: `Subscribe` accepts any protocol |
+| KMS | ✅ symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto | not yet audited |
+| SSM Parameter Store | ✅ versions, labels, hierarchies, SecureString at-rest encryption | not yet audited |
+| Secrets Manager | ✅ version stages, recovery-window deletion, encrypted at rest | not yet audited |
+| S3 | ✅ versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website | partial: bucket naming checks case/length · gap: IP-form names accepted |
+| DynamoDB | ✅ full expression engine, GSI/LSI, transactions, TTL, paging semantics | not yet audited |
+| EventBridge | ✅ full pattern language, SQS/SNS/Lambda targets, input transformers | not yet audited |
+| Lambda | ✅ real process runtime (no Docker), versions, layers, function URLs, SQS/DynamoDB/Kinesis event source mappings | gap: `MemorySize` unchecked (AWS: 128–32768) |
+| Kinesis | ✅ native Go (no JVM), real partition-key routing, resharding with parent/child lineage | spot-checked only |
+| IAM | ✅ real policy evaluation, off by default, with least-privilege generation | not yet audited |
+| CloudFormation | ✅ stacks, change sets, deletion — `sam deploy`, `cdk deploy` and Serverless all work | not yet audited |
+| API Gateway | ✅ REST v1 — deployed APIs actually serve into Lambda over a real HTTP endpoint | not yet audited |
+
+**Why two columns.** A ✅ means every documented operation of that service has a
+real handler, verified against both AWS SDK generations. It does **not** mean
+doze-aws refuses everything AWS refuses, and those are different promises. An
+emulator that is too permissive is the more dangerous kind: your code passes
+here and fails on deploy, which is the one place the cost is real.
+
+The right-hand column says where that has actually been checked. "Not yet
+audited" means exactly that — no claim either way, not a known failure. The
+audit is in progress and its state lives in [`docs/api-support/`](docs/api-support/),
+one page per service; `cmd/dzaudit` derives the checklist from AWS's own service
+models, and each service gets a rejection-parity suite as it lands
+(`sqs/rejection_parity_test.go` is the first).
+
+If a gap above bites you, it is a bug worth reporting — the goal is an empty
+right-hand column.
 
 All 14 services talk to each other: EventBridge→SQS/SNS/Lambda, S3
 notifications→SQS/SNS/Lambda, SNS→SQS/Lambda/webhooks, SQS/DynamoDB
