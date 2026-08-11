@@ -22,7 +22,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.71.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.44.0
 	github.com/aws/smithy-go v1.27.6
-	github.com/doze-dev/doze-names v0.0.0-20260810105444-84d4b48dc4e2
+	github.com/doze-dev/doze-names v0.0.0-20260811203824-59a9141a92d9
 	go.etcd.io/bbolt v1.5.0
 	gopkg.in/yaml.v3 v3.0.1
 )
