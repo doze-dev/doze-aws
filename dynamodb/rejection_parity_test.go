@@ -107,14 +107,8 @@ func loadCases(t *testing.T, file string) []auditCase {
 // that starts being enforced also fails, with a note to delete it, so the list
 // cannot rot into a lie about what is broken.
 var knownGaps = map[string]bool{
-	// Each of these accepts a value AWS refuses. Found by the first run of
-	// this suite; none is a regression, all are unwritten validation.
-	"BillingMode/not one of PAY_PER_REQUEST, PROVISIONED":                                     true,
-	"GlobalTableSettingsReplicationMode/not one of ENABLED, DISABLED, ENABLED_WITH_OVERRIDES": true,
-	"GlobalTableSourceArn/longer than the maximum length of 1024":                             true,
-	"GlobalTableSourceArn/shorter than the minimum length of 1":                               true,
-	"TableClass/not one of STANDARD_INFREQUENT_ACCESS, STANDARD":                              true,
-	"TableName/longer than the maximum length of 1024":                                        true,
+	// Empty, and that is the goal. An entry here is a constraint AWS enforces
+	// and doze-aws does not; anything not listed fails the moment it appears.
 }
 
 func TestCreateTableRejectsWhatTheModelForbids(t *testing.T) {
