@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -214,6 +215,145 @@ func TestMaxWaitOutlastsEveryInternalBound(t *testing.T) {
 			t.Errorf("MaxWait(%v) = %v, which is shorter than the runtime's own "+
 				"worst case %v — a caller using it would race the runtime and win",
 				timeout, got, internal)
+		}
+	}
+}
+
+// echoMemBootstrap answers with the memory size it was told it has, so the
+// test can prove the configured value actually reaches the process.
+const echoMemBootstrap = `package main
+
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+)
+
+func main() {
+	api := os.Getenv("AWS_LAMBDA_RUNTIME_API")
+	for {
+		resp, err := http.Get("http://" + api + "/2018-06-01/runtime/invocation/next")
+		if err != nil { os.Exit(1) }
+		reqID := resp.Header.Get("Lambda-Runtime-Aws-Request-Id")
+		io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+		fmt.Println("handler ran")
+		http.Post("http://"+api+"/2018-06-01/runtime/invocation/"+reqID+"/response",
+			"application/json", bytes.NewReader([]byte(fmt.Sprintf(` + "`" + `{"mem":%q}` + "`" + `,
+				os.Getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE")))))
+	}
+}
+`
+
+// TestConfiguredMemoryReachesTheFunction closes a gap that made MemorySize
+// decorative: the runner hardcoded AWS_LAMBDA_FUNCTION_MEMORY_SIZE=512, so a
+// handler that sizes a pool or a GC budget from it read the same number
+// whatever the function was configured with.
+//
+// It is the same failure the DynamoDB audit is built around, one layer down —
+// a value accepted, validated, stored, and then ignored.
+func TestConfiguredMemoryReachesTheFunction(t *testing.T) {
+	if testing.Short() {
+		t.Skip("compiles + runs a lambda process")
+	}
+	dir := buildBootstrapSource(t, echoMemBootstrap)
+	r := NewRunner(Spec{
+		Name: "sized", Command: []string{"./bootstrap"}, Dir: dir,
+		Timeout: 5 * time.Second, MemorySize: 1024,
+	}, nil)
+	defer r.Stop()
+
+	res, err := r.Invoke(context.Background(), []byte(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out struct {
+		Mem string `json:"mem"`
+	}
+	if err := json.Unmarshal(res.Payload, &out); err != nil {
+		t.Fatalf("payload %s: %v", res.Payload, err)
+	}
+	if out.Mem != "1024" {
+		t.Errorf("function saw AWS_LAMBDA_FUNCTION_MEMORY_SIZE=%q, want \"1024\"", out.Mem)
+	}
+}
+
+// TestLogsCarryTheAWSReportLines pins the log framing real Lambda emits and
+// doze-aws did not, which left `--log-type Tail` returning only whatever the
+// handler printed and anything parsing REPORT finding nothing at all.
+//
+// It also asserts the half that motivated the split: Init Duration appears on
+// the cold invocation and is absent from the warm one, exactly as AWS reports
+// it — so "why was that slow" is answerable from the log alone.
+func TestLogsCarryTheAWSReportLines(t *testing.T) {
+	if testing.Short() {
+		t.Skip("compiles + runs a lambda process")
+	}
+	dir := buildBootstrapSource(t, echoMemBootstrap)
+	r := NewRunner(Spec{
+		Name: "reporter", Command: []string{"./bootstrap"}, Dir: dir,
+		Timeout: 5 * time.Second, MemorySize: 256,
+	}, nil)
+	defer r.Stop()
+
+	cold, err := r.Invoke(context.Background(), []byte(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	logs := string(cold.Logs)
+	for _, want := range []string{
+		"START RequestId: ", "END RequestId: ", "REPORT RequestId: ",
+		"Billed Duration:", "Memory Size: 256 MB", "Init Duration:",
+	} {
+		if !strings.Contains(logs, want) {
+			t.Errorf("cold logs missing %q\n%s", want, logs)
+		}
+	}
+	if cold.Init <= 0 {
+		t.Errorf("cold invocation reported Init=%v, want > 0", cold.Init)
+	}
+
+	warm, err := r.Invoke(context.Background(), []byte(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if warm.Init != 0 {
+		t.Errorf("warm invocation reported Init=%v, want 0", warm.Init)
+	}
+	// The warm REPORT must not claim an init that did not happen. Only the tail
+	// after this invocation's START is this invocation's record.
+	wl := string(warm.Logs)
+	if i := strings.LastIndex(wl, "START RequestId: "); i >= 0 {
+		if strings.Contains(wl[i:], "Init Duration:") {
+			t.Errorf("warm invocation's REPORT carries an Init Duration:\n%s", wl[i:])
+		}
+	}
+	if warm.Exec <= 0 {
+		t.Errorf("warm invocation reported Exec=%v, want > 0", warm.Exec)
+	}
+}
+
+// TestRequestIDIsAUUID pins the shape AWS uses for X-Amzn-RequestId, which
+// newID did not produce: it emitted 60 characters and repeated its own first
+// six bytes at the end, so IDs looked correlated and no UUID parser accepted
+// them.
+func TestRequestIDIsAUUID(t *testing.T) {
+	re := regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+	seen := map[string]bool{}
+	for i := 0; i < 200; i++ {
+		id := newID()
+		if !re.MatchString(id) {
+			t.Fatalf("newID() = %q (%d chars), want a v4 UUID", id, len(id))
+		}
+		if seen[id] {
+			t.Fatalf("newID() repeated %q", id)
+		}
+		seen[id] = true
+		// The old bug: the tail echoed the head.
+		if strings.HasPrefix(id, id[len(id)-12:]) {
+			t.Errorf("newID() = %q repeats its opening bytes at the end", id)
 		}
 	}
 }

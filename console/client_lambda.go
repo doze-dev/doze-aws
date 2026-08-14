@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -46,9 +47,19 @@ type InvokeResult struct {
 	Payload  string
 	FnError  string
 	Logs     string
-	Duration string
+	Duration string // round trip as the console measured it
 	Status   int
 	Async    bool
+
+	// Init and Exec come off the REPORT line the runtime writes, which is the
+	// same place a CLI user reads them from — the console is not given a
+	// private channel for numbers everyone else has to parse.
+	//
+	// Init is empty on a warm invocation, because AWS omits Init Duration
+	// there and an empty cell is the honest way to say "no cold start".
+	Init string
+	Exec string
+	Cold bool
 }
 
 func (b *backend) ListFunctions(ctx context.Context) ([]Function, error) {
@@ -266,6 +277,8 @@ func (b *backend) Invoke(ctx context.Context, name, payload string, async bool) 
 	if lr := resp.Header.Get("X-Amz-Log-Result"); lr != "" {
 		if logs, err := base64.StdEncoding.DecodeString(lr); err == nil {
 			res.Logs = string(logs)
+			res.Init, res.Exec = parseReport(res.Logs)
+			res.Cold = res.Init != ""
 		}
 	}
 	if resp.StatusCode/100 != 2 {
@@ -389,4 +402,32 @@ func (b *backend) DeleteMapping(ctx context.Context, uuid string) error {
 	req, _ := http.NewRequestWithContext(ctx, "DELETE", b.base+"/2015-03-31/event-source-mappings/"+url.PathEscape(uuid), nil)
 	_, err := b.do(req)
 	return err
+}
+
+// parseReport pulls Duration and Init Duration out of the last REPORT line.
+//
+// The last one, specifically: the log tail is the runner's ring buffer, shared
+// by every invocation that container has served, so an earlier cold start's
+// REPORT is still sitting in there. Reading the first match would report a
+// warm call as cold, which is precisely the confusion this split exists to
+// remove.
+func parseReport(logs string) (initMS, execMS string) {
+	i := strings.LastIndex(logs, "REPORT RequestId: ")
+	if i < 0 {
+		return "", ""
+	}
+	line := logs[i:]
+	if j := strings.IndexByte(line, '\n'); j >= 0 {
+		line = line[:j]
+	}
+	for _, field := range strings.Split(line, "\t") {
+		field = strings.TrimSpace(field)
+		switch {
+		case strings.HasPrefix(field, "Duration: "):
+			execMS = strings.TrimSuffix(strings.TrimPrefix(field, "Duration: "), " ms")
+		case strings.HasPrefix(field, "Init Duration: "):
+			initMS = strings.TrimSuffix(strings.TrimPrefix(field, "Init Duration: "), " ms")
+		}
+	}
+	return initMS, execMS
 }

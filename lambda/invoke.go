@@ -187,14 +187,15 @@ func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
 		max = *f.ReservedConcurrency
 	}
 	r := lambdaruntime.NewPool(lambdaruntime.Spec{
-		Name:      f.Name,
-		Handler:   f.Handler,
-		Runtime:   f.Runtime,
-		Command:   f.Command,
-		Dir:       f.CodeDir,
-		Env:       f.Env,
-		Timeout:   time.Duration(f.Timeout) * time.Second,
-		Endpoints: s.endpointEnv(),
+		Name:       f.Name,
+		Handler:    f.Handler,
+		Runtime:    f.Runtime,
+		Command:    f.Command,
+		Dir:        f.CodeDir,
+		Env:        f.Env,
+		Timeout:    time.Duration(f.Timeout) * time.Second,
+		MemorySize: f.MemorySize,
+		Endpoints:  s.endpointEnv(),
 	}, max, s.logf)
 	if s.idleTimeout > 0 {
 		r.SetIdleTimeout(s.idleTimeout)

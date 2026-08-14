@@ -18,11 +18,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -30,14 +32,15 @@ import (
 
 // Spec describes how to run one function.
 type Spec struct {
-	Name      string
-	Handler   string
-	Runtime   string            // provided.*, go, python3.x, nodejs*
-	Command   []string          // explicit command (doze extension) — wins over Runtime mapping
-	Dir       string            // working directory
-	Env       map[string]string // function environment
-	Timeout   time.Duration
-	Endpoints map[string]string // AWS_ENDPOINT_URL_* injected so handlers reach sibling services
+	Name       string
+	Handler    string
+	Runtime    string            // provided.*, go, python3.x, nodejs*
+	Command    []string          // explicit command (doze extension) — wins over Runtime mapping
+	Dir        string            // working directory
+	Env        map[string]string // function environment
+	Timeout    time.Duration
+	MemorySize int               // MB, as configured; 0 falls back to Lambda's own default
+	Endpoints  map[string]string // AWS_ENDPOINT_URL_* injected so handlers reach sibling services
 }
 
 // Result is one invocation's outcome.
@@ -45,6 +48,19 @@ type Result struct {
 	Payload     []byte
 	FunctionErr string // non-empty on a handler error (X-Amz-Function-Error)
 	Logs        []byte // tail of stdout/stderr
+
+	// Init is how long the function took to become ready, and is only set on a
+	// cold start — a warm runner reports zero, the way AWS omits Init Duration
+	// from a warm invocation's REPORT line.
+	//
+	// Splitting it out is the visible half of not charging cold start to the
+	// function's timeout: the console can say "412ms of that was starting the
+	// process, 18ms was your handler", which is the distinction people actually
+	// need when a local invoke feels slow.
+	Init time.Duration
+	// Exec is time from the function fetching the work to it answering — the
+	// part a timeout applies to.
+	Exec time.Duration
 }
 
 // invocation is queued work for the runtime loop.
@@ -58,6 +74,13 @@ type invocation struct {
 	// dispatched closes when handleNext hands this invocation to the function,
 	// which is the moment the timeout starts applying.
 	dispatched chan struct{}
+	// cold records whether this invocation was the one that waited for a
+	// process to come up, so Init is reported for it and not for the warm
+	// invocations that follow.
+	cold bool
+	// queuedAt and startedAt bracket the two phases.
+	queuedAt  time.Time
+	startedAt time.Time
 }
 
 // initBudget bounds how long a function may take to come up and fetch its
@@ -74,6 +97,9 @@ const initBudget = 10 * time.Second
 
 // defaultTimeout matches Lambda's own default when a function does not set one.
 const defaultTimeout = 3 * time.Second
+
+// defaultMemoryMB matches Lambda's default allocation.
+const defaultMemoryMB = 128
 
 // graceAfterDeadline lets the child report its own timeout — which carries the
 // function's stack — before Invoke gives up and reports a generic one.
@@ -131,6 +157,12 @@ func NewRunner(spec Spec, logf func(string, ...any)) *Runner {
 
 // Invoke runs the function synchronously (serial: one in flight at a time).
 func (r *Runner) Invoke(ctx context.Context, payload []byte) (Result, error) {
+	// Warm or cold has to be decided BEFORE ensureStarted, because that is the
+	// call that spawns the process — after it, every invocation looks started.
+	r.mu.Lock()
+	cold := !r.started
+	r.mu.Unlock()
+
 	if err := r.ensureStarted(); err != nil {
 		return Result{}, err
 	}
@@ -139,6 +171,8 @@ func (r *Runner) Invoke(ctx context.Context, payload []byte) (Result, error) {
 		payload:    payload,
 		done:       make(chan Result, 1),
 		dispatched: make(chan struct{}),
+		cold:       cold,
+		queuedAt:   time.Now(),
 	}
 	select {
 	case r.queue <- inv:
@@ -171,12 +205,55 @@ func (r *Runner) Invoke(ctx context.Context, payload []byte) (Result, error) {
 	// carries the function's stack rather than this generic message.
 	select {
 	case res := <-inv.done:
-		return res, nil
+		return r.withTiming(res, inv), nil
 	case <-time.After(r.spec.Timeout + graceAfterDeadline):
-		return Result{FunctionErr: "Unhandled", Payload: []byte(`{"errorMessage":"Task timed out"}`)}, nil
+		return r.withTiming(Result{FunctionErr: "Unhandled",
+			Payload: []byte(`{"errorMessage":"Task timed out"}`)}, inv), nil
 	case <-ctx.Done():
 		return Result{}, ctx.Err()
 	}
+}
+
+// withTiming fills in the init/exec split. It is only ever called after
+// inv.dispatched has been observed closed, so startedAt is published.
+func (r *Runner) withTiming(res Result, inv *invocation) Result {
+	if inv.startedAt.IsZero() {
+		return res // never dispatched: nothing meaningful to split
+	}
+	res.Exec = time.Since(inv.startedAt)
+	if inv.cold {
+		res.Init = inv.startedAt.Sub(inv.queuedAt)
+	}
+	r.report(res, inv)
+	res.Logs = r.logTail.snapshot()
+	return res
+}
+
+// report closes the invocation in the log stream the way AWS does.
+//
+// Max Memory Used is deliberately absent rather than invented: the runner does
+// not measure the child's RSS, and a plausible-looking number nobody computed
+// is worse than a missing field — someone would size a function from it.
+func (r *Runner) report(res Result, inv *invocation) {
+	ms := float64(res.Exec) / float64(time.Millisecond)
+	billed := int64(math.Ceil(ms))
+	var b strings.Builder
+	fmt.Fprintf(&b, "END RequestId: %s\n", inv.id)
+	fmt.Fprintf(&b, "REPORT RequestId: %s\tDuration: %.2f ms\tBilled Duration: %d ms\tMemory Size: %d MB",
+		inv.id, ms, billed, r.memoryMB())
+	if res.Init > 0 {
+		fmt.Fprintf(&b, "\tInit Duration: %.2f ms", float64(res.Init)/float64(time.Millisecond))
+	}
+	b.WriteString("\n")
+	_, _ = r.logTail.Write([]byte(b.String()))
+}
+
+// memoryMB is the function's configured size, or Lambda's default when unset.
+func (r *Runner) memoryMB() int {
+	if r.spec.MemorySize > 0 {
+		return r.spec.MemorySize
+	}
+	return defaultMemoryMB
 }
 
 // ensureStarted lazily binds the listener and spawns the child.
@@ -249,7 +326,7 @@ func (r *Runner) buildCommand(runtimeAPI string) (*exec.Cmd, error) {
 		"_HANDLER="+r.spec.Handler,
 		"AWS_LAMBDA_FUNCTION_NAME="+r.spec.Name,
 		"AWS_LAMBDA_FUNCTION_VERSION=$LATEST",
-		"AWS_LAMBDA_FUNCTION_MEMORY_SIZE=512",
+		"AWS_LAMBDA_FUNCTION_MEMORY_SIZE="+strconv.Itoa(r.memoryMB()),
 		"AWS_REGION=us-east-1",
 		"AWS_DEFAULT_REGION=us-east-1",
 		"AWS_ACCESS_KEY_ID=test",
@@ -322,9 +399,17 @@ func (r *Runner) handleNext(w http.ResponseWriter, req *http.Request) {
 	// also means the deadline the child computes from the header below is the
 	// same one Invoke enforces, instead of one already partly spent.
 	inv.deadline = time.Now().Add(r.spec.Timeout)
+	inv.startedAt = inv.deadline.Add(-r.spec.Timeout)
 	deadline := inv.deadline
 	r.mu.Unlock()
+	// Closing after the write publishes startedAt to whoever observes the
+	// close — that happens-before is what makes reading it in Invoke safe.
 	close(inv.dispatched)
+
+	// Real Lambda brackets every invocation in its log stream. doze-aws emitted
+	// none of it, so `aws lambda invoke --log-type Tail` came back with only
+	// whatever the handler printed, and anything parsing REPORT found nothing.
+	fmt.Fprintf(r.logTail, "START RequestId: %s Version: $LATEST\n", inv.id)
 
 	w.Header().Set("Lambda-Runtime-Aws-Request-Id", inv.id)
 	w.Header().Set("Lambda-Runtime-Deadline-Ms", fmt.Sprintf("%d", deadline.UnixMilli()))

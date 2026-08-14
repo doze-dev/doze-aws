@@ -1185,3 +1185,22 @@ a.lo-card:hover { border-color: var(--accent); }
 .td-refused { border-left: 2px solid var(--destructive); background: color-mix(in srgb, var(--destructive) 6%, transparent); }
 .td-refused .td-k { color: var(--destructive); }
 .td-why { margin: 0 0 6px; padding: 0 14px; font-size: 12px; line-height: 1.5; }
+
+/* ---------- fact strip ---------- */
+/* Configuration that must survive an htmx swap. It used to live inside the
+   result panel, so the first invoke deleted the very numbers you were about to
+   compare the result against. */
+.factstrip { display: flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); margin-bottom: 14px; }
+.factstrip .fact { padding: 8px 14px; border-right: 1px solid var(--border); min-width: 96px; }
+.factstrip .fact:last-child { border-right: 0; }
+.fx-k { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+.fx-v { font-size: 13px; margin-top: 1px; }
+
+/* ---------- invoke timing ---------- */
+.timing { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.tm { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 9px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.tm-k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+.tm-v { font-size: 12.5px; }
+.tm-cold { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border: 1px solid var(--warning); border-radius: var(--radius); color: var(--warning); font-size: 11.5px; font-weight: 600; }
+.tm-cold .ic { width: 13px; height: 13px; }
+.lam-await { padding: 14px 16px; }

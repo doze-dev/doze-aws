@@ -52,6 +52,17 @@
       </div>
     </div>
     <div class="det-b">
+      {{if eq .Tab "invoke"}}{{end}}
+      {{if not (or (eq .Tab "config") (eq .Tab "triggers"))}}
+      <div class="factstrip">
+        <div class="fact"><div class="fx-k">Runtime</div><div class="fx-v">{{.Fn.Runtime}}</div></div>
+        <div class="fact"><div class="fx-k">Handler</div><div class="fx-v mono">{{.Fn.Handler}}</div></div>
+        <div class="fact"><div class="fx-k">Memory</div><div class="fx-v num">{{.Fn.MemorySize}} MB</div></div>
+        <div class="fact"><div class="fx-k">Timeout</div><div class="fx-v num">{{.Fn.Timeout}} s</div></div>
+        <div class="fact"><div class="fx-k">Triggers</div><div class="fx-v num">{{len .Fn.Mappings}}</div></div>
+        <div class="fact"><div class="fx-k">Idle window</div><div class="fx-v">{{.RT.IdleLabel}}</div></div>
+      </div>
+      {{end}}
       {{if eq .Tab "config"}}
       {{template "lambda_config" .}}
       {{else if eq .Tab "triggers"}}
@@ -70,17 +81,8 @@
           <p class="mini-note">Synchronous invoke returns the response + tail logs; async fires an Event and returns immediately (retries + destinations apply, visible in the diagram above).</p>
         </div></div>
         <div id="invoke-result">
-          <div class="panel">
-            <div class="panel-h"><h2>{{icon "settings"}} At a glance</h2></div>
-            <table class="tbl kv"><tbody>
-              <tr><td>Runtime</td><td>{{.Fn.Runtime}}</td></tr>
-              <tr><td>Handler</td><td class="mono">{{.Fn.Handler}}</td></tr>
-              <tr><td>Timeout</td><td>{{.Fn.Timeout}} s</td></tr>
-              <tr><td>Memory</td><td>{{.Fn.MemorySize}} MB</td></tr>
-              <tr><td>Triggers</td><td>{{if .Fn.Mappings}}{{len .Fn.Mappings}} event source mapping{{if ne (len .Fn.Mappings) 1}}s{{end}}{{else}}<span class="dim">none</span>{{end}}</td></tr>
-              <tr><td>Idle window</td><td>{{.RT.IdleLabel}} <span class="dim">then the process scales to zero</span></td></tr>
-            </tbody></table>
-            <p class="mini-note" style="padding:10px 14px 12px">Invoke on the left to run the function — the response, duration and logs replace this panel. Wiring is shown above.</p>
+          <div class="panel lam-await">
+            <p class="mini-note">Run the function to see its response, the time it took and the log tail. The configuration above stays put.</p>
           </div>
         </div>
       </div>
@@ -93,8 +95,19 @@
 {{if .Res.Async}}
 <div class="pub-receipt"><div class="pr-h">✓ Event accepted · queued for async execution</div><div class="pr-row dim">The response isn't returned for async invokes — watch the destination/DLQ, or the diagram above.</div></div>
 {{else}}
-<div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>{{if .Res.FnError}}<span class="co-err">✗ function error</span>{{else}}<span class="co-ok">✓ succeeded</span>{{end}} · {{.Res.Duration}}</span><button class="copy-btn" data-copy="{{.Res.Payload}}">{{icon "copy"}}</button></div><pre>{{.Res.Payload}}</pre></div>
-{{if .Res.Logs}}<div class="code-out"><div class="co-h"><span>logs (tail)</span></div><pre>{{.Res.Logs}}</pre></div>{{end}}
+<div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>{{if .Res.FnError}}<span class="co-err">✗ function error</span>{{else}}<span class="co-ok">✓ succeeded</span>{{end}}</span><button class="copy-btn" data-copy="{{.Res.Payload}}">{{icon "copy"}}</button></div><pre>{{.Res.Payload}}</pre></div>
+
+{{/* The timing split is the thing AWS's console cannot show you: init is the
+     process coming up, execution is your handler. A slow local invoke is
+     almost always the former, and until now the two were one number. */}}
+<div class="timing">
+  {{if .Res.Cold}}<span class="tm-cold" title="This invoke waited for the function's process to start. The next one will not.">{{icon "power"}} cold start</span>{{end}}
+  {{if .Res.Init}}<span class="tm"><span class="tm-k">init</span><span class="tm-v num">{{.Res.Init}} ms</span></span>{{end}}
+  {{if .Res.Exec}}<span class="tm"><span class="tm-k">execution</span><span class="tm-v num">{{.Res.Exec}} ms</span></span>{{end}}
+  <span class="tm"><span class="tm-k">round trip</span><span class="tm-v num">{{.Res.Duration}}</span></span>
+</div>
+
+{{if .Res.Logs}}<div class="code-out"><div class="co-h"><span>logs (tail)</span><button class="copy-btn" data-copy="{{.Res.Logs}}">{{icon "copy"}}</button></div><pre>{{.Res.Logs}}</pre></div>{{end}}
 {{end}}
 {{end}}
 
