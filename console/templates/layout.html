@@ -11,7 +11,7 @@
      colors) at equal specificity, so it must come later to win the cascade. -->
 <link rel="stylesheet" href="{{.Prefix}}/static/cm/codemirror.min.css">
 <link rel="stylesheet" href="{{.Prefix}}/static/app.css">
-<script>(function(){try{var t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);
+<script>(function(){try{var t=localStorage.getItem("theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t);
 var r=localStorage.getItem("rail");if(r==="slim")document.documentElement.setAttribute("data-rail","slim");}catch(e){}})();</script>
 <script>document.addEventListener("alpine:init",function(){window.Alpine.store("filter",{q:""});});
 /* dozeDur humanizes a seconds field ("345600" → "= 4 days") for the live echo
@@ -42,7 +42,11 @@ return"= "+p.join(" ");};</script>
     <div class="tb-right">
       <span class="chip mono"><span class="live"></span>{{if .Endpoint}}{{.Endpoint}}{{else}}127.0.0.1:4566{{end}}</span>
       <span class="chip">us-east-1</span>
-      <button class="icon-btn" id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">{{icon "moon"}}</button>
+      <div class="appearance" id="appearance" role="group" aria-label="Appearance">
+        <button type="button" data-mode="light" title="Light" aria-label="Light">{{icon "sun"}}</button>
+        <button type="button" data-mode="system" title="Match system" aria-label="Match system">{{icon "monitor"}}</button>
+        <button type="button" data-mode="dark" title="Dark" aria-label="Dark">{{icon "moon"}}</button>
+      </div>
     </div>
   </header>
 

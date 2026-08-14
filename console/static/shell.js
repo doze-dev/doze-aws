@@ -17,17 +17,34 @@
     resetListCursor();
   });
 
-  // ---------- theme ----------
-  var toggle = document.getElementById("theme-toggle");
-  function isDark() {
-    return (document.documentElement.getAttribute("data-theme") ||
-      (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) === "dark";
+  // ---------- appearance ----------
+  // Three states, not two. "system" is the absence of data-theme, which is what
+  // lets the media query in app.css answer — so following the OS costs no JS at
+  // all once the attribute is cleared, including on the pre-paint script.
+  var seg = document.getElementById("appearance");
+  function currentMode() {
+    try { return localStorage.getItem("theme") || "system"; } catch (e) { return "system"; }
   }
-  if (toggle) toggle.addEventListener("click", function () {
-    var next = isDark() ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", next);
-    try { localStorage.setItem("theme", next); } catch (e) {}
-  });
+  function applyMode(mode) {
+    if (mode === "system") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", mode);
+    try {
+      if (mode === "system") localStorage.removeItem("theme");
+      else localStorage.setItem("theme", mode);
+    } catch (e) {}
+    if (!seg) return;
+    var buttons = seg.querySelectorAll("button");
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].setAttribute("aria-pressed", String(buttons[i].dataset.mode === mode));
+    }
+  }
+  if (seg) {
+    seg.addEventListener("click", function (e) {
+      var b = e.target.closest("button[data-mode]");
+      if (b) applyMode(b.dataset.mode);
+    });
+    applyMode(currentMode());
+  }
 
   // ---------- collapsible rail ----------
   function railSlim() { return document.documentElement.getAttribute("data-rail") === "slim"; }
