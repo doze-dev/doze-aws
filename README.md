@@ -33,15 +33,15 @@ clients still speak.
 | Service | Operations | Input validation |
 |---|---|---|
 | STS | ✅ | not yet audited |
-| SQS | ✅ both protocols, FIFO, DLQ redrive, long polling, move tasks, tags | **audited**: attributes, redrive · gap: queue-name charset |
-| SNS | ✅ fanout to SQS/webhooks, filter policies, confirmation handshake | gap: `Subscribe` accepts any protocol |
+| SQS | ✅ both protocols, FIFO, DLQ redrive, long polling, move tasks, tags | **audited**: attributes, redrive, queue-name charset · no known gaps |
+| SNS | ✅ fanout to SQS/webhooks, filter policies, confirmation handshake | **audited**: `Subscribe` protocol · no known gaps |
 | KMS | ✅ symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto | not yet audited |
 | SSM Parameter Store | ✅ versions, labels, hierarchies, SecureString at-rest encryption | not yet audited |
 | Secrets Manager | ✅ version stages, recovery-window deletion, encrypted at rest | not yet audited |
-| S3 | ✅ versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website | partial: bucket naming checks case/length · gap: IP-form names accepted |
-| DynamoDB | ✅ full expression engine, GSI/LSI, transactions, TTL, paging semantics | not yet audited |
+| S3 | ✅ versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website | **audited**: bucket naming (case, charset, length, IP-form) · rest not yet audited |
+| DynamoDB | ✅ full expression engine, GSI/LSI, transactions, TTL, paging semantics | **fully audited**: 333/333 across all 27 dispatched operations · no known gaps |
 | EventBridge | ✅ full pattern language, SQS/SNS/Lambda targets, input transformers | not yet audited |
-| Lambda | ✅ real process runtime (no Docker), versions, layers, function URLs, SQS/DynamoDB/Kinesis event source mappings | gap: `MemorySize` unchecked (AWS: 128–32768) |
+| Lambda | ✅ real process runtime (no Docker), versions, layers, function URLs, SQS/DynamoDB/Kinesis event source mappings | **audited**: `MemorySize`, `Timeout` · rest not yet audited |
 | Kinesis | ✅ native Go (no JVM), real partition-key routing, resharding with parent/child lineage | spot-checked only |
 | IAM | ✅ real policy evaluation, off by default, with least-privilege generation | not yet audited |
 | CloudFormation | ✅ stacks, change sets, deletion — `sam deploy`, `cdk deploy` and Serverless all work | not yet audited |
@@ -58,7 +58,7 @@ audited" means exactly that — no claim either way, not a known failure. The
 audit is in progress and its state lives in [`docs/api-support/`](docs/api-support/),
 one page per service; `cmd/dzaudit` derives the checklist from AWS's own service
 models, and each service gets a rejection-parity suite as it lands
-(`sqs/rejection_parity_test.go` is the first).
+(`*/rejection_parity_test.go`).
 
 If a gap above bites you, it is a bug worth reporting — the goal is an empty
 right-hand column.
