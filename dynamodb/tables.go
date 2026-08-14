@@ -4,9 +4,7 @@ package dynamodb
 
 import (
 	"encoding/json"
-	"slices"
 	"sort"
-	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/ddb/store"
@@ -138,9 +136,6 @@ func (s *Server) createTable(body []byte) (any, *awshttp.APIError) {
 	var req createTableReq
 	if err := json.Unmarshal(body, &req); err != nil {
 		return nil, awshttp.Errf(400, "SerializationException", "%v", err)
-	}
-	if aerr := validateCreateTable(body); aerr != nil {
-		return nil, aerr
 	}
 	hash, rng, aerr := keyParts(req.KeySchema, req.AttributeDefinitions, "table")
 	if aerr != nil {
@@ -529,62 +524,5 @@ func orDefault(s, def string) string {
 	return s
 }
 
-// Constraints DynamoDB places on CreateTable's own inputs, taken from AWS's
-// service model (`dzaudit list --op CreateTable dynamodb`).
-//
-// They are checked against the raw body rather than the decoded request
-// because most of these members have no local effect and so were never
-// decoded — which is precisely why they were accepted. A member doze-aws
-// ignores still has to be refused when it is invalid, or code that would fail
-// on deploy passes here.
-var createTableEnums = map[string][]string{
-	"BillingMode":                        {"PAY_PER_REQUEST", "PROVISIONED"},
-	"TableClass":                         {"STANDARD", "STANDARD_INFREQUENT_ACCESS"},
-	"GlobalTableSettingsReplicationMode": {"ENABLED", "DISABLED", "ENABLED_WITH_OVERRIDES"},
-}
-
-var createTableLengths = map[string][2]int{
-	"TableName":            {1, 1024},
-	"GlobalTableSourceArn": {1, 1024},
-}
-
-// validateCreateTable refuses what the model says DynamoDB refuses.
-func validateCreateTable(body []byte) *awshttp.APIError {
-	var raw map[string]any
-	if err := json.Unmarshal(body, &raw); err != nil {
-		return nil // the caller's own decode reports this
-	}
-	for member, allowed := range createTableEnums {
-		v, ok := raw[member].(string)
-		if !ok {
-			continue // absent, or not a string: not this check's business
-		}
-		if !slices.Contains(allowed, v) {
-			return awshttp.Errf(400, "ValidationException",
-				"1 validation error detected: Value '%s' at '%s' failed to satisfy constraint: "+
-					"Member must satisfy enum value set: [%s]",
-				v, lowerFirst(member), strings.Join(allowed, ", "))
-		}
-	}
-	for member, r := range createTableLengths {
-		v, ok := raw[member].(string)
-		if !ok {
-			continue
-		}
-		if len(v) < r[0] || len(v) > r[1] {
-			return awshttp.Errf(400, "ValidationException",
-				"1 validation error detected: Value at '%s' failed to satisfy constraint: "+
-					"Member must have length between %d and %d",
-				lowerFirst(member), r[0], r[1])
-		}
-	}
-	return nil
-}
-
-// lowerFirst renders a member the way AWS names it in a validation message.
-func lowerFirst(s string) string {
-	if s == "" {
-		return s
-	}
-	return strings.ToLower(s[:1]) + s[1:]
-}
+// CreateTable's input validation lives in validate.go, with the model-derived
+// constraint table it runs.

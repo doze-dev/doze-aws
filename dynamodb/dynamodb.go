@@ -133,6 +133,16 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.api.WriteError(w, awshttp.Errf(400, "InvalidAction", "unknown DynamoDB action %q", action))
 		return
 	}
+	// Model-derived input validation runs before the handler, for every
+	// operation at once. Doing it here rather than inside each handler is what
+	// makes the audit's coverage a property of the dispatch table instead of a
+	// thing each new handler has to remember.
+	if aerr := validate(body.raw, constraintTables[action]); aerr != nil {
+		s.logf("dynamodb: %s -> %s", action, aerr.Code)
+		s.api.WriteError(w, aerr)
+		return
+	}
+
 	result, aerr := h(s, body.raw)
 	if aerr != nil {
 		s.logf("dynamodb: %s -> %s", action, aerr.Code)

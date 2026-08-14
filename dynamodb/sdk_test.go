@@ -471,7 +471,7 @@ func TestGSIRecreateNoStaleEntries(t *testing.T) {
 		KeySchema:   []ddbtypes.KeySchemaElement{{AttributeName: aws.String("pk"), KeyType: ddbtypes.KeyTypeHash}},
 		BillingMode: ddbtypes.BillingModePayPerRequest,
 		GlobalSecondaryIndexes: []ddbtypes.GlobalSecondaryIndex{{
-			IndexName:  aws.String("g"),
+			IndexName:  aws.String("gsi"),
 			KeySchema:  []ddbtypes.KeySchemaElement{{AttributeName: aws.String("a"), KeyType: ddbtypes.KeyTypeHash}},
 			Projection: &ddbtypes.Projection{ProjectionType: ddbtypes.ProjectionTypeAll},
 		}},
@@ -488,7 +488,7 @@ func TestGSIRecreateNoStaleEntries(t *testing.T) {
 	if _, err := c.UpdateTable(ctx, &awsddb.UpdateTableInput{
 		TableName: aws.String("gt"),
 		GlobalSecondaryIndexUpdates: []ddbtypes.GlobalSecondaryIndexUpdate{
-			{Delete: &ddbtypes.DeleteGlobalSecondaryIndexAction{IndexName: aws.String("g")}},
+			{Delete: &ddbtypes.DeleteGlobalSecondaryIndexAction{IndexName: aws.String("gsi")}},
 		},
 	}); err != nil {
 		t.Fatalf("delete GSI: %v", err)
@@ -501,7 +501,7 @@ func TestGSIRecreateNoStaleEntries(t *testing.T) {
 		},
 		GlobalSecondaryIndexUpdates: []ddbtypes.GlobalSecondaryIndexUpdate{
 			{Create: &ddbtypes.CreateGlobalSecondaryIndexAction{
-				IndexName:  aws.String("g"),
+				IndexName:  aws.String("gsi"),
 				KeySchema:  []ddbtypes.KeySchemaElement{{AttributeName: aws.String("b"), KeyType: ddbtypes.KeyTypeHash}},
 				Projection: &ddbtypes.Projection{ProjectionType: ddbtypes.ProjectionTypeAll},
 			}},
@@ -512,7 +512,7 @@ func TestGSIRecreateNoStaleEntries(t *testing.T) {
 	// Querying the new GSI by the OLD attribute value must return nothing —
 	// the stale entry must not have survived.
 	out, err := c.Query(ctx, &awsddb.QueryInput{
-		TableName: aws.String("gt"), IndexName: aws.String("g"),
+		TableName: aws.String("gt"), IndexName: aws.String("gsi"),
 		KeyConditionExpression:    aws.String("b = :v"),
 		ExpressionAttributeValues: map[string]ddbtypes.AttributeValue{":v": &ddbtypes.AttributeValueMemberS{Value: "old"}},
 	})
