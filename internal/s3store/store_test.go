@@ -269,3 +269,31 @@ func md5hex(s string) string {
 	h, _ := hexSum(s)
 	return h
 }
+
+// TestBucketNameRejectsIPForm closes the gap docs/api-support/s3.md carried as
+// "❌ 10.0.0.1 is accepted". The instructive part is that validation here was
+// not missing — it checked case, charset and length and then stopped, which is
+// harder to spot by reading than an absent check.
+func TestBucketNameRejectsIPForm(t *testing.T) {
+	cases := []struct {
+		name string
+		ok   bool
+	}{
+		{"my-bucket", true},
+		{"logs.example.com", true},
+		{"10.0.0.1", false},
+		{"255.255.255.255", false},
+		{"0.0.0.0", false},
+		// Stricter than net.ParseIP on purpose: these are not IPv4 addresses,
+		// so S3 accepts them as names.
+		{"10.0.0.256", true},
+		{"1.2.3", true},
+		{"1.2.3.4.5", true},
+		{"01.02.03.04", false},
+	}
+	for _, c := range cases {
+		if got := validBucketName(c.name); got != c.ok {
+			t.Errorf("validBucketName(%q) = %v, want %v", c.name, got, c.ok)
+		}
+	}
+}

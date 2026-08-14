@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -293,7 +294,43 @@ func validBucketName(name string) bool {
 			return false
 		}
 	}
-	return name[0] != '-' && name[0] != '.' && name[len(name)-1] != '-' && name[len(name)-1] != '.'
+	if name[0] == '-' || name[0] == '.' || name[len(name)-1] == '-' || name[len(name)-1] == '.' {
+		return false
+	}
+	// S3 refuses a name formatted as an IPv4 address, because it would be
+	// ambiguous with the virtual-hosted endpoint. This is the check the
+	// validation audit found missing: the rest of the rule was here, so
+	// "10.0.0.1" passed the charset and the length and got a bucket that AWS
+	// would never have created. Validation that stops partway is harder to
+	// spot by reading than validation that is absent.
+	return !looksLikeIPv4(name)
+}
+
+// looksLikeIPv4 reports whether every dot-separated label is a decimal number
+// in 0..255 and there are exactly four of them — S3's own rule, which is
+// stricter than net.ParseIP (it rejects "10.0.0.1" but accepts "10.0.0.256"
+// as a perfectly good bucket name).
+func looksLikeIPv4(name string) bool {
+	parts := strings.Split(name, ".")
+	if len(parts) != 4 {
+		return false
+	}
+	for _, p := range parts {
+		if p == "" || len(p) > 3 {
+			return false
+		}
+		n := 0
+		for i := 0; i < len(p); i++ {
+			if p[i] < '0' || p[i] > '9' {
+				return false
+			}
+			n = n*10 + int(p[i]-'0')
+		}
+		if n > 255 {
+			return false
+		}
+	}
+	return true
 }
 
 // ---- version keys ----
