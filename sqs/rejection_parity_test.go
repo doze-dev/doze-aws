@@ -17,6 +17,7 @@ package sqs
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -197,5 +198,54 @@ func TestRedriveAcceptsUnquotedMaxReceiveCount(t *testing.T) {
 		Attributes: map[string]string{"RedrivePolicy": redrive("b", "5")},
 	}); err != nil {
 		t.Fatalf("bare-number maxReceiveCount refused: %v", err)
+	}
+}
+
+// TestQueueNameCharset closes the gap docs/api-support/sqs.md carried as
+// "❌ `bad name!` is accepted". SQS's model states no pattern or length for
+// QueueName — the rule is prose only, which is exactly why nothing had ever
+// cross-checked it — so these expectations are hand-derived from the API
+// reference and asserted by the error CODE an SDK branches on.
+func TestQueueNameCharset(t *testing.T) {
+	ctx := context.Background()
+	c := sdkClient(t)
+
+	cases := []struct {
+		name  string
+		queue string
+		ok    bool
+	}{
+		{"plain", "orders", true},
+		{"hyphen and underscore", "my-orders_2", true},
+		{"fifo suffix", "ordersq.fifo", true},
+		{"at the length limit", strings.Repeat("a", 80), true},
+		{"space", "bad name", false},
+		{"bang", "bad!", false},
+		{"slash", "a/b", false},
+		{"a period that is not the fifo suffix", "orders.v2", false},
+		{"one over the length limit", strings.Repeat("a", 81), false},
+		{"fifo whose suffix pushes it over", strings.Repeat("a", 76) + ".fifo", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			in := &awssqs.CreateQueueInput{QueueName: aws.String(tc.queue)}
+			if strings.HasSuffix(tc.queue, ".fifo") {
+				in.Attributes = map[string]string{"FifoQueue": "true"}
+			}
+			_, err := c.CreateQueue(ctx, in)
+			if tc.ok {
+				if err != nil {
+					t.Fatalf("CreateQueue(%q) = %v, want accepted", tc.queue, err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("CreateQueue(%q) was accepted; AWS refuses it", tc.queue)
+			}
+			var ae smithy.APIError
+			if !errors.As(err, &ae) || ae.ErrorCode() != "InvalidParameterValue" {
+				t.Errorf("code = %v, want InvalidParameterValue", err)
+			}
+		})
 	}
 }

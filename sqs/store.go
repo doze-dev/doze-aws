@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -134,6 +135,9 @@ func (s *Store) putQueue(tx *bolt.Tx, q *Queue) error {
 func (s *Store) CreateQueue(name string, attrs map[string]string, tags map[string]string) (*Queue, error) {
 	if name == "" {
 		return nil, errInvalid("queue name is required")
+	}
+	if err := validQueueName(name); err != nil {
+		return nil, err
 	}
 	fifoAttr := attrs["FifoQueue"] == "true"
 	if strings.HasSuffix(name, ".fifo") != fifoAttr && (fifoAttr || strings.HasSuffix(name, ".fifo")) {
@@ -309,4 +313,37 @@ func newID() string {
 	b[6] = (b[6] & 0x0f) | 0x40
 	b[8] = (b[8] & 0x3f) | 0x80
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+}
+
+// queueNameMax is SQS's limit, and it counts the ".fifo" suffix — a FIFO queue
+// therefore gets 75 characters of name, not 80.
+const queueNameMax = 80
+
+// validQueueName enforces the charset and length SQS documents:
+// "A queue name can have up to 80 characters. Valid values: alphanumeric
+// characters, hyphens (-), and underscores (_)."
+//
+// Hand-derived rather than generated, because SQS's own service model carries
+// no @length or @pattern trait for QueueName — its constraints live only in
+// prose, which is exactly why nothing had ever cross-checked them. The period
+// is legal in one place only: the ".fifo" suffix, which CreateQueue checks
+// against the FifoQueue attribute separately.
+func validQueueName(name string) *apiError {
+	body := strings.TrimSuffix(name, ".fifo")
+	if len(name) > queueNameMax {
+		return errInvalid("queue name is longer than " + strconv.Itoa(queueNameMax) +
+			" characters (the .fifo suffix counts toward the limit)")
+	}
+	if body == "" {
+		return errInvalid("queue name is required")
+	}
+	for _, r := range body {
+		switch {
+		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '-', r == '_':
+		default:
+			return errInvalid("queue name may contain only alphanumeric characters, " +
+				"hyphens and underscores, and got " + strconv.QuoteRune(r))
+		}
+	}
+	return nil
 }
