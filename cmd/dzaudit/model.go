@@ -186,6 +186,17 @@ func (c constraint) String() string {
 	return c.Kind
 }
 
+// Full is String without the elision. `list` prints for a human and shortens a
+// thirteen-member enum to a count; the emitted cases are read by programs, and
+// a constraint a consumer cannot reconstruct is not a constraint it can check.
+// The two renderings differ only for enums, and only above the display cutoff.
+func (c constraint) Full() string {
+	if c.Kind == "enum" {
+		return "enum " + strings.Join(c.Values, "|")
+	}
+	return c.String()
+}
+
 func trimNum(f float64) string { return strings.TrimSuffix(fmt.Sprintf("%.0f", f), ".0") }
 
 // constraintsOf reads the constraint traits off a trait map.

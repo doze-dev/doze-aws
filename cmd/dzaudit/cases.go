@@ -117,7 +117,7 @@ func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 				Path:            f.Path,
 				Why:             v.Why,
 				Value:           v.Value,
-				Constraint:      f.Constraint.String(),
+				Constraint:      f.Constraint.Full(),
 				RequiredMembers: required[f.Op],
 			})
 		}
