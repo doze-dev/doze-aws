@@ -49,10 +49,51 @@ type Result struct {
 
 // invocation is queued work for the runtime loop.
 type invocation struct {
-	id       string
-	payload  []byte
+	id      string
+	payload []byte
+	// deadline is set when the function FETCHES the work, not when it was
+	// queued — see handleNext.
 	deadline time.Time
 	done     chan Result
+	// dispatched closes when handleNext hands this invocation to the function,
+	// which is the moment the timeout starts applying.
+	dispatched chan struct{}
+}
+
+// initBudget bounds how long a function may take to come up and fetch its
+// first invocation. AWS gives init its own allowance (10s) separate from the
+// function timeout, and this is the same idea: a cold start is not the
+// function running slowly, so it must not be charged to the function's clock —
+// but it cannot be unbounded either, or a handler that hangs before ever
+// polling would block the caller forever.
+//
+// A process that DIES during init does not wait this out: reap fails the
+// queued invocations immediately with the exit error, which is a far more
+// useful message than a timeout.
+const initBudget = 10 * time.Second
+
+// defaultTimeout matches Lambda's own default when a function does not set one.
+const defaultTimeout = 3 * time.Second
+
+// graceAfterDeadline lets the child report its own timeout — which carries the
+// function's stack — before Invoke gives up and reports a generic one.
+const graceAfterDeadline = time.Second
+
+// MaxWait is the longest Invoke can take for a function with this timeout: a
+// cold start, then the function's own budget and the grace.
+//
+// A caller that imposes its own deadline must not set it shorter than this. A
+// shorter one races the runtime and wins for the wrong reason: the caller sees
+// "context deadline exceeded" and reports a 500 transport error, where AWS
+// reports a 200 with a function-timeout payload. That is a worse answer AND a
+// different one, and it was the second cause of the flake in
+// TestDeployedAPIInvokesLambda — fixing only the runtime's own clock left this
+// one still measuring from before the process had started.
+func MaxWait(timeout time.Duration) time.Duration {
+	if timeout <= 0 {
+		timeout = defaultTimeout
+	}
+	return initBudget + timeout + graceAfterDeadline
 }
 
 // Runner supervises one function's process and Runtime API listener.
@@ -77,7 +118,7 @@ func NewRunner(spec Spec, logf func(string, ...any)) *Runner {
 		logf = func(string, ...any) {}
 	}
 	if spec.Timeout <= 0 {
-		spec.Timeout = 3 * time.Second
+		spec.Timeout = defaultTimeout
 	}
 	return &Runner{
 		spec:    spec,
@@ -94,20 +135,44 @@ func (r *Runner) Invoke(ctx context.Context, payload []byte) (Result, error) {
 		return Result{}, err
 	}
 	inv := &invocation{
-		id:       newID(),
-		payload:  payload,
-		deadline: time.Now().Add(r.spec.Timeout),
-		done:     make(chan Result, 1),
+		id:         newID(),
+		payload:    payload,
+		done:       make(chan Result, 1),
+		dispatched: make(chan struct{}),
 	}
 	select {
 	case r.queue <- inv:
 	case <-ctx.Done():
 		return Result{}, ctx.Err()
 	}
+
+	// Waiting happens in two phases, because the function's timeout must not be
+	// spent on getting the function ready.
+	//
+	// A single timer started here charges the child's cold start — process
+	// spawn, interpreter boot, the runtime client connecting back — and any
+	// wait behind another invocation to the function's own budget. On a loaded
+	// machine that alone can exceed a default 3s timeout, which is what made
+	// TestDeployedAPIInvokesLambda fail under a full test run and pass on its
+	// own. AWS does not bill or bound init that way, and neither should this.
+	select {
+	case res := <-inv.done:
+		return res, nil // finished, or reap failed it, before we even waited
+	case <-inv.dispatched:
+		// The function has the work. Now its clock is the one that matters.
+	case <-time.After(initBudget):
+		return Result{FunctionErr: "Unhandled",
+			Payload: []byte(`{"errorMessage":"Task timed out during init"}`)}, nil
+	case <-ctx.Done():
+		return Result{}, ctx.Err()
+	}
+
+	// The grace second lets the child report its own timeout first, which
+	// carries the function's stack rather than this generic message.
 	select {
 	case res := <-inv.done:
 		return res, nil
-	case <-time.After(r.spec.Timeout + time.Second):
+	case <-time.After(r.spec.Timeout + graceAfterDeadline):
 		return Result{FunctionErr: "Unhandled", Payload: []byte(`{"errorMessage":"Task timed out"}`)}, nil
 	case <-ctx.Done():
 		return Result{}, ctx.Err()
@@ -251,10 +316,18 @@ func (r *Runner) handleNext(w http.ResponseWriter, req *http.Request) {
 	r.mu.Lock()
 	r.current = inv
 	r.pending[inv.id] = inv
+	// The timeout clock starts HERE — the moment the function fetches the work
+	// — not when Invoke queued it. What came before is cold start and queue
+	// wait, which are the platform's time, not the function's. Setting it here
+	// also means the deadline the child computes from the header below is the
+	// same one Invoke enforces, instead of one already partly spent.
+	inv.deadline = time.Now().Add(r.spec.Timeout)
+	deadline := inv.deadline
 	r.mu.Unlock()
+	close(inv.dispatched)
 
 	w.Header().Set("Lambda-Runtime-Aws-Request-Id", inv.id)
-	w.Header().Set("Lambda-Runtime-Deadline-Ms", fmt.Sprintf("%d", inv.deadline.UnixMilli()))
+	w.Header().Set("Lambda-Runtime-Deadline-Ms", fmt.Sprintf("%d", deadline.UnixMilli()))
 	w.Header().Set("Lambda-Runtime-Invoked-Function-Arn",
 		"arn:aws:lambda:us-east-1:000000000000:function:"+r.spec.Name)
 	w.Header().Set("Content-Type", "application/json")

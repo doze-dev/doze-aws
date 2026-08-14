@@ -75,7 +75,11 @@ func (s *Server) runInvoke(ctx context.Context, f *Function, payload []byte) (la
 	if f.ReservedConcurrency != nil && *f.ReservedConcurrency == 0 {
 		return lambdaruntime.Result{}, errThrottled
 	}
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(f.Timeout+5)*time.Second)
+	// The backstop has to be at least as long as the runtime's own bound, or it
+	// fires first and turns a function timeout into a transport error. Deriving
+	// it from MaxWait keeps the two from drifting apart again.
+	ctx, cancel := context.WithTimeout(ctx,
+		lambdaruntime.MaxWait(time.Duration(f.Timeout)*time.Second))
 	defer cancel()
 	// If the pool was stopped underneath us by a concurrent restart (code/config
 	// update), retry once against the freshly-created pool.
