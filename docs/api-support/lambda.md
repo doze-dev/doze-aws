@@ -46,3 +46,24 @@ Layer versions are stored, versioned and served for real, and a function's
 `/opt` at invoke time: local functions run as ordinary processes against real
 files on disk, so there is no container filesystem to mount into. Code that
 reads a layer path at runtime needs those files present locally.
+
+## Input validation
+
+Separate from the tiers above. A tier says the operation is implemented; this
+says whether doze-aws **refuses what Lambda refuses**.
+
+| Input | Status |
+|---|---|
+| `MemorySize` — 128..32768 | ✅ both bounds, on create and update |
+| `Timeout` — 1..5400 | ✅ both bounds, on create and update |
+| Everything else | not yet audited |
+
+`MemorySize` is the instructive one. doze-aws does not allocate memory per
+function, so the value has no local effect and nothing had ever looked at it —
+which is precisely why any number was accepted. A member the emulator ignores
+still has to be refused when it is invalid, or a function CloudFormation would
+reject deploys clean here and fails in the account.
+
+Bounds come from Lambda's own service model (`dzaudit list --op CreateFunction
+lambda`), not from the documentation prose. Covered by
+`lambda/rejection_parity_test.go`.

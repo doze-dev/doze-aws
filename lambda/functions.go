@@ -164,6 +164,9 @@ func (s *Server) createFunction(w http.ResponseWriter, r *http.Request) *awshttp
 	if _, err := s.store.GetFunction(req.FunctionName); err == nil {
 		return awshttp.Errf(409, "ResourceConflictException", "Function already exist: %s", req.FunctionName)
 	}
+	if aerr := validSizing(req.MemorySize, req.Timeout); aerr != nil {
+		return aerr
+	}
 	codeDir, sha, aerr := s.materializeCode(req.FunctionName, req.Code)
 	if aerr != nil {
 		return aerr
@@ -358,6 +361,9 @@ func (s *Server) deleteFunction(w http.ResponseWriter, name string) *awshttp.API
 func (s *Server) updateConfiguration(w http.ResponseWriter, r *http.Request, name string) *awshttp.APIError {
 	var req createFunctionReq
 	if aerr := decode(r, &req); aerr != nil {
+		return aerr
+	}
+	if aerr := validSizing(req.MemorySize, req.Timeout); aerr != nil {
 		return aerr
 	}
 	f, err := s.store.Update(name, func(f *Function) error {
@@ -643,4 +649,37 @@ func itoa(n int) string {
 		n /= 10
 	}
 	return string(buf[i:])
+}
+
+// Bounds Lambda states for a function's sizing, from its own service model
+// (`dzaudit list --op CreateFunction lambda`). Zero means "not supplied" on
+// both members — Lambda defaults them, so an absent value is not an
+// out-of-range one.
+//
+// MemorySize was the gap the audit named: doze-aws does not allocate memory
+// per function, so the value has no local effect and nothing had ever looked
+// at it. A member the emulator ignores still has to be refused when it is
+// invalid, or a function that CloudFormation would reject deploys clean here
+// and fails in the account.
+const (
+	memoryMinMB = 128
+	memoryMaxMB = 32768
+	timeoutMinS = 1
+	timeoutMaxS = 5400
+)
+
+func validSizing(memoryMB, timeoutS int) *awshttp.APIError {
+	if memoryMB != 0 && (memoryMB < memoryMinMB || memoryMB > memoryMaxMB) {
+		return awshttp.Errf(400, "InvalidParameterValueException",
+			"1 validation error detected: Value '%d' at 'memorySize' failed to satisfy constraint: "+
+				"Member must have value greater than or equal to %d and less than or equal to %d",
+			memoryMB, memoryMinMB, memoryMaxMB)
+	}
+	if timeoutS != 0 && (timeoutS < timeoutMinS || timeoutS > timeoutMaxS) {
+		return awshttp.Errf(400, "InvalidParameterValueException",
+			"1 validation error detected: Value '%d' at 'timeout' failed to satisfy constraint: "+
+				"Member must have value greater than or equal to %d and less than or equal to %d",
+			timeoutS, timeoutMinS, timeoutMaxS)
+	}
+	return nil
 }
