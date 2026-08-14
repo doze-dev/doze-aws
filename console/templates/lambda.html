@@ -34,7 +34,7 @@
       <div class="lam-ov">
         <div class="lo-col">
           <div class="lo-h">Triggers</div>
-          {{range .Diag.Trig}}<a class="lo-card" href="{{$.Prefix}}{{.URL}}"><span class="lo-bar" style="background:hsl(var(--svc-{{.Svc}}))"></span><span class="lo-body"><span class="lo-nm">{{.Name}}</span><span class="lo-k">{{.Kind}}</span></span></a>{{end}}
+          {{range .Diag.Trig}}<a class="lo-card" href="{{$.Prefix}}{{.URL}}"><span class="lo-bar" style="background:var(--svc-{{.Svc}})"></span><span class="lo-body"><span class="lo-nm">{{.Name}}</span><span class="lo-k">{{.Kind}}</span></span></a>{{end}}
           {{if not .Diag.Trig}}<div class="lo-card lo-empty"><span class="lo-body"><span class="lo-nm">no triggers</span><span class="lo-k">subscribe via SNS/EventBridge or add an event source mapping</span></span></div>{{end}}
         </div>
         <div class="lo-arrow">{{icon "arrow-right"}}</div>
@@ -46,7 +46,7 @@
         <div class="lo-arrow">{{icon "arrow-right"}}</div>
         <div class="lo-col">
           <div class="lo-h">Destinations</div>
-          {{range .Diag.Dest}}<a class="lo-card" href="{{$.Prefix}}{{.URL}}"><span class="lo-bar" style="background:hsl(var(--svc-{{.Svc}}))"></span><span class="lo-body"><span class="lo-nm">{{.Name}}</span><span class="lo-k">{{.Kind}}</span></span></a>{{end}}
+          {{range .Diag.Dest}}<a class="lo-card" href="{{$.Prefix}}{{.URL}}"><span class="lo-bar" style="background:var(--svc-{{.Svc}})"></span><span class="lo-body"><span class="lo-nm">{{.Name}}</span><span class="lo-k">{{.Kind}}</span></span></a>{{end}}
           {{if not .Diag.Dest}}<div class="lo-card lo-empty"><span class="lo-body"><span class="lo-nm">no destinations</span><span class="lo-k">on-success / on-failure / dead-letter land here</span></span></div>{{end}}
         </div>
       </div>

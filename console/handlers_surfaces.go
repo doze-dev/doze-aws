@@ -6,25 +6,6 @@ import (
 	"strings"
 )
 
-// ---- Flows (home) ----
-
-func (c *Console) flows(w http.ResponseWriter, r *http.Request) {
-	g := c.be.graphCached(r.Context())
-	c.render(w, r, "flows", map[string]any{
-		"Graph": g, "Hash": g.hash(), "Title": "Flows",
-	})
-}
-
-// flowsData is the polled refresh: 204 when the wiring + counts are unchanged.
-func (c *Console) flowsData(w http.ResponseWriter, r *http.Request) {
-	g := c.be.graphCached(r.Context())
-	h := g.hash()
-	if liveUnchanged(w, r, h) {
-		return
-	}
-	c.partial(w, "flow_canvas", map[string]any{"Graph": g, "Hash": h})
-}
-
 // ---- Traffic ----
 
 func (c *Console) traffic(w http.ResponseWriter, r *http.Request) {
@@ -98,6 +79,10 @@ type trafficRow struct {
 	Body     string
 	Curl     string
 	Seq      int64
+	// Refused is the parsed reason a 4xx/5xx was refused, or nil. Carried on
+	// the row rather than looked up in the drawer because the reason belongs
+	// where you are already scanning for the failure.
+	Refused *Refusal
 }
 
 func (c *Console) trafficEntries(since int64) []trafficRow {
@@ -112,6 +97,7 @@ func (c *Console) trafficEntries(since int64) []trafficRow {
 			Service: e.Service, Action: e.Action, Resource: e.Resource,
 			Status: e.Status, Millis: strconv.FormatFloat(e.Millis, 'f', -1, 64),
 			IsErr: e.Status >= 400, Body: e.ReqBody, Curl: e.Curl(), Seq: e.Seq,
+			Refused: e.Failure(),
 		})
 	}
 	return rows

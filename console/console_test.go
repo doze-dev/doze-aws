@@ -151,34 +151,6 @@ func TestConsoleSQSFlow(t *testing.T) {
 	}
 }
 
-func TestConsoleFlowsHome(t *testing.T) {
-	h := newConsole(t)
-	create(t, h, "/_console/s3/create", url.Values{"name": {"bkt"}})
-	create(t, h, "/_console/sqs/create", url.Values{"name": {"que"}})
-	create(t, h, "/_console/sns/create", url.Values{"name": {"topic"}})
-	req(t, h, "POST", "/_console/sns/topic/subscribe", url.Values{"protocol": {"sqs"}, "endpoint": {"arn:aws:sqs:us-east-1:000000000000:que"}})
-
-	rec := req(t, h, "GET", "/_console/", nil)
-	body := rec.Body.String()
-	// Home is the wiring map; the subscribed topic → queue is a real edge, and
-	// the unwired bucket is flagged.
-	for _, want := range []string{"Flows", "flow-canvas", "topic", "que", "unwired"} {
-		if !strings.Contains(body, want) {
-			t.Fatalf("flows home missing %q: %d\n%s", want, rec.Code, body)
-		}
-	}
-	// htmx must be served locally (embedded), not from a CDN.
-	js := req(t, h, "GET", "/_console/static/htmx.min.js", nil)
-	if js.Code != 200 || !strings.Contains(js.Body.String(), "htmx") {
-		t.Fatalf("htmx not served: %d", js.Code)
-	}
-	// The filter store must be registered: table rows gate on
-	// $store.filter.q, and without the store every row hides (falsy x-show).
-	if !strings.Contains(body, `Alpine.store("filter"`) {
-		t.Fatal("layout missing the Alpine filter store registration")
-	}
-}
-
 func multipartUpload(t *testing.T, h http.Handler, target, filename, content, prefix string) *httptest.ResponseRecorder {
 	t.Helper()
 	var buf bytes.Buffer
@@ -441,36 +413,6 @@ func TestConsoleEditing(t *testing.T) {
 	cm := req(t, h, "GET", "/_console/static/cm/codemirror.min.js", nil)
 	if cm.Code != 200 || cm.Body.Len() < 100000 {
 		t.Fatalf("codemirror not served: %d (%d bytes)", cm.Code, cm.Body.Len())
-	}
-}
-
-// TestFlowsGraph: the wiring graph reflects real edges built from the services.
-func TestFlowsGraph(t *testing.T) {
-	h := newConsole(t)
-	create(t, h, "/_console/sqs/create", url.Values{"name": {"jobs"}})
-	create(t, h, "/_console/sns/create", url.Values{"name": {"events"}})
-	req(t, h, "POST", "/_console/sns/events/subscribe", url.Values{"protocol": {"sqs"}, "endpoint": {"arn:aws:sqs:us-east-1:000000000000:jobs"}})
-	create(t, h, "/_console/s3/create", url.Values{"name": {"loosebkt"}})
-
-	// The polled data endpoint returns the canvas with the sub edge + unwired bucket.
-	rec := req(t, h, "GET", "/_console/flows.json", nil)
-	body := rec.Body.String()
-	if !strings.Contains(body, "events") || !strings.Contains(body, "jobs") || !strings.Contains(body, "sub") {
-		t.Fatalf("flows graph missing the SNS→SQS edge:\n%s", body)
-	}
-	if !strings.Contains(body, "unwired") {
-		t.Fatalf("flows graph should flag the unwired bucket:\n%s", body)
-	}
-	// Unchanged poll (matching hash) returns 204.
-	// (extract hash from data-hash attribute)
-	i := strings.Index(body, `data-hash="`)
-	if i >= 0 {
-		hash := body[i+len(`data-hash="`):]
-		hash = hash[:strings.IndexByte(hash, '"')]
-		again := req(t, h, "GET", "/_console/flows.json?h="+hash, nil)
-		if again.Code != 204 {
-			t.Fatalf("unchanged flows poll should 204, got %d", again.Code)
-		}
 	}
 }
 
@@ -1245,4 +1187,88 @@ func TestConsoleCSRFAndObjectHeaders(t *testing.T) {
 	if disp := obj.Header().Get("Content-Disposition"); !strings.HasPrefix(disp, "attachment") {
 		t.Fatalf("html object served as %q, want attachment", disp)
 	}
+}
+
+// TestSurfacesRenderWithoutTemplateErrors guards a gap this suite had:
+// html/template writes its error INTO the output stream rather than failing
+// the request, so a surface can return 200 while its body reads
+//
+//	template: traffic.html:48: can't evaluate field Failure in type ...
+//
+// That shipped once. Every other test here asserts on a substring emitted
+// before the bad action, so the suite stayed green while the page was broken
+// in a browser.
+//
+// The rule is cheap and total: no rendered surface may contain a template
+// error marker. The wire is exercised with a REAL refusal in the ring, because
+// the row and drawer both branch on it and an empty tail exercises neither —
+// which is exactly the state that hid the bug.
+func TestSurfacesRenderWithoutTemplateErrors(t *testing.T) {
+	if testing.Short() {
+		t.Skip("boots a Stack")
+	}
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { stack.Close() })
+
+	rec := console.NewRecorder(stack.Handler())
+	c, err := console.New(console.Options{
+		Peers:    peers.InProcess(stack.Service),
+		Recorder: rec,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A genuine refusal, through the recorded path, so the ring holds one.
+	bad := httptest.NewRequest("POST", "/", strings.NewReader(
+		`{"TableName":"t","AttributeDefinitions":[{"AttributeName":"pk","AttributeType":"S"}],`+
+			`"KeySchema":[{"AttributeName":"pk","KeyType":"HASH"}],"BillingMode":"NOPE"}`))
+	bad.Header.Set("X-Amz-Target", "DynamoDB_20120810.CreateTable")
+	bad.Header.Set("Content-Type", "application/x-amz-json-1.0")
+	rec.ServeHTTP(httptest.NewRecorder(), bad)
+
+	for _, path := range []string{
+		"/_console/", "/_console/traffic", "/_console/connect",
+		"/_console/s3", "/_console/sqs", "/_console/sns", "/_console/ddb",
+		"/_console/lambda", "/_console/eb", "/_console/kinesis",
+		"/_console/kms", "/_console/sm", "/_console/ssm", "/_console/iam",
+		"/_console/cfn", "/_console/apigw",
+	} {
+		t.Run(path, func(t *testing.T) {
+			body := req(t, c, "GET", path, nil).Body.String()
+			for _, marker := range []string{"template:", "can't evaluate", "<no value>"} {
+				if strings.Contains(body, marker) {
+					t.Errorf("%s rendered a template error containing %q\n%s",
+						path, marker, excerpt(body, marker))
+				}
+			}
+		})
+	}
+
+	// And the refusal reason really reaches the row, which is the feature the
+	// broken action was trying to deliver.
+	home := req(t, c, "GET", "/_console/", nil).Body.String()
+	if !strings.Contains(home, "ValidationException") {
+		t.Error("the wire did not show the refusal reason for a 400")
+	}
+}
+
+// excerpt pulls the neighbourhood of a marker out of a rendered page, so a
+// failure points at the broken action instead of dumping the whole surface.
+func excerpt(body, marker string) string {
+	i := strings.Index(body, marker)
+	if i < 0 {
+		return ""
+	}
+	lo, hi := i-120, i+200
+	if lo < 0 {
+		lo = 0
+	}
+	if hi > len(body) {
+		hi = len(body)
+	}
+	return "  ..." + body[lo:hi] + "..."
 }

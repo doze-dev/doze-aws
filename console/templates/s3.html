@@ -157,7 +157,7 @@
     {{range .Props.Configs}}{{if and (ne .Name "CORS") (ne .Name "Lifecycle") (ne .Name "Notifications")}}
     <div class="panel" style="margin-bottom:10px" x-data="{open:false}">
       <div class="panel-h" {{if .Set}}style="cursor:pointer" @click="open=!open"{{end}}><h2>{{.Name}} {{if .Set}}<span class="badge state-on">Configured</span>{{else}}<span class="badge state-off">Not set</span>{{end}}</h2>{{if .Set}}<span class="dim" style="font-size:11.5px" x-text="open?'Hide':'View'"></span>{{end}}</div>
-      {{if .Set}}<div x-show="open" x-cloak class="code-out" style="border:0;border-top:1px solid hsl(var(--border));border-radius:0"><pre>{{.Raw}}</pre></div>{{end}}
+      {{if .Set}}<div x-show="open" x-cloak class="code-out" style="border:0;border-top:1px solid var(--border);border-radius:0"><pre>{{.Raw}}</pre></div>{{end}}
     </div>
     {{end}}{{end}}
   </div>
@@ -173,7 +173,7 @@
     {{if .Rules}}
     <div class="sub-rows">{{range $i, $r := .Rules}}
       <div class="sub-row">
-        <span class="cc-bar" style="background:hsl(var(--svc-{{if eq $r.Kind "sqs"}}sqs{{else if eq $r.Kind "sns"}}sns{{else}}lambda{{end}}))"></span>
+        <span class="cc-bar" style="background:var(--svc-{{if eq $r.Kind "sqs"}}sqs{{else if eq $r.Kind "sns"}}sns{{else}}lambda{{end}})"></span>
         <a class="sub-nm" href="{{$.Prefix}}/{{if eq $r.Kind "sns"}}sns{{else if eq $r.Kind "lambda"}}lambda{{else}}sqs{{end}}/{{$r.Name}}">{{$r.Name}}</a>
         <span class="badge type">{{$r.Kind}}</span>
         <span class="sub-arn mono trunc dim">{{range $r.Events}}{{.}} {{end}}{{if $r.Prefix}}· prefix {{$r.Prefix}}{{end}}{{if $r.Suffix}}· suffix {{$r.Suffix}}{{end}}</span>

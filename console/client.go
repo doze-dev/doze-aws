@@ -29,10 +29,13 @@ type backend struct {
 	base string
 
 	// graphMu guards a short-lived cache of the full wiring graph. BuildGraph
-	// fans out a crawl over every service; the flows poll and every resource
-	// detail page's Neighbors() call would otherwise rebuild it on each
-	// request. The TTL must outlive the fastest poller (flows polls at 4s) or
-	// the cache never serves a poll and every tick pays the full crawl.
+	// fans out a crawl over every service, and every resource detail page's
+	// Neighbors() call would otherwise rebuild it per request.
+	//
+	// The Flows page that used to poll this is gone — its graph reads better
+	// on the resources themselves ("what triggers this function", "who drains
+	// this queue") than as one diagram nobody interprets. BuildGraph stays
+	// because that is the same edge set, rendered in context.
 	// Console-driven mutations call bustGraph() so their next read is fresh;
 	// changes made by the user's own app show up within a TTL.
 	graphMu    sync.Mutex

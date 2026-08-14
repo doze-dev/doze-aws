@@ -1,0 +1,124 @@
+{{define "connect"}}{{template "shell_top" .}}
+  <section class="detail" style="border-left:0">
+    <div class="det-h">
+      <div class="det-title">Connect
+        <div class="acts"><span class="chip mono">{{.URL}}</span></div>
+      </div>
+      <div class="det-sub">Point your tooling at this endpoint. Every block below is the same fact in a different dialect, built from the address you actually reached the console on.</div>
+    </div>
+    <div class="det-b">
+
+      <div class="cn-grid">
+        <div class="cn-col">
+          <div class="sec-title">AWS CLI profile</div>
+          <p class="mini-note">A named profile keeps every later command short, and leaves your real AWS credentials untouched.</p>
+          <div class="code-out">
+            <div class="co-h"><span>~/.aws/config</span><button class="copy-btn" data-copy="[profile doze]
+region = {{.Region}}
+output = json
+endpoint_url = {{.URL}}">{{icon "copy"}}</button></div>
+            <pre>[profile doze]
+region = {{.Region}}
+output = json
+endpoint_url = {{.URL}}</pre>
+          </div>
+          <div class="code-out" style="margin-top:10px">
+            <div class="co-h"><span>~/.aws/credentials</span><button class="copy-btn" data-copy="[doze]
+aws_access_key_id = {{.Key}}
+aws_secret_access_key = {{.Secret}}">{{icon "copy"}}</button></div>
+            <pre>[doze]
+aws_access_key_id = {{.Key}}
+aws_secret_access_key = {{.Secret}}</pre>
+          </div>
+          <div class="code-out" style="margin-top:10px">
+            <div class="co-h"><span>then</span><button class="copy-btn" data-copy="aws --profile doze s3 ls">{{icon "copy"}}</button></div>
+            <pre>aws --profile doze s3 ls
+aws --profile doze sqs list-queues</pre>
+          </div>
+          <p class="mini-note"><code class="mono">endpoint_url</code> in a profile needs AWS CLI v2.13 or newer. On anything older, use the environment block instead.</p>
+        </div>
+
+        <div class="cn-col">
+          <div class="sec-title">Environment</div>
+          <p class="mini-note">No files touched. Every AWS SDK reads these, so it works for one-off shells and CI alike.</p>
+          <div class="code-out">
+            <div class="co-h"><span>shell</span><button class="copy-btn" data-copy="export AWS_ENDPOINT_URL={{.URL}}
+export AWS_ACCESS_KEY_ID={{.Key}}
+export AWS_SECRET_ACCESS_KEY={{.Secret}}
+export AWS_REGION={{.Region}}">{{icon "copy"}}</button></div>
+            <pre>export AWS_ENDPOINT_URL={{.URL}}
+export AWS_ACCESS_KEY_ID={{.Key}}
+export AWS_SECRET_ACCESS_KEY={{.Secret}}
+export AWS_REGION={{.Region}}</pre>
+          </div>
+
+          <div class="sec-title" style="margin-top:16px">Terraform</div>
+          <div class="code-out">
+            <div class="co-h"><span>provider.tf</span><button class="copy-btn" data-copy='provider "aws" {
+  region                      = "{{.Region}}"
+  access_key                  = "{{.Key}}"
+  secret_key                  = "{{.Secret}}"
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+  s3_use_path_style           = true
+
+  endpoints {
+    s3       = "{{.URL}}"
+    sqs      = "{{.URL}}"
+    sns      = "{{.URL}}"
+    dynamodb = "{{.URL}}"
+    lambda   = "{{.URL}}"
+  }
+}'>{{icon "copy"}}</button></div>
+            <pre>provider "aws" {
+  region                      = "{{.Region}}"
+  access_key                  = "{{.Key}}"
+  secret_key                  = "{{.Secret}}"
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+  s3_use_path_style           = true
+
+  endpoints {
+    s3       = "{{.URL}}"
+    sqs      = "{{.URL}}"
+    sns      = "{{.URL}}"
+    dynamodb = "{{.URL}}"
+    lambda   = "{{.URL}}"
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec-title" style="margin-top:18px">Deploy with what you already have</div>
+      <p class="mini-note">There is no doze-specific file format. These read the environment above and need no further setup.</p>
+      <div class="code-out">
+        <div class="co-h"><span>deploy</span><button class="copy-btn" data-copy="aws cloudformation deploy --template-file template.yaml --stack-name shop
+sam deploy --stack-name shop --s3-bucket artifacts
+cdk bootstrap &amp;&amp; cdk deploy">{{icon "copy"}}</button></div>
+        <pre>aws cloudformation deploy --template-file template.yaml --stack-name shop
+sam deploy --stack-name shop --s3-bucket artifacts
+cdk bootstrap &amp;&amp; cdk deploy</pre>
+      </div>
+
+      <div class="sec-title" style="margin-top:18px">Check it works</div>
+      <div class="cn-verify">
+        <button class="btn" hx-post="{{.Prefix}}/connect/verify" hx-target="#cn-result" hx-select="unset" hx-swap="innerHTML">
+          {{icon "play"}} Run get-caller-identity
+        </button>
+        <div id="cn-result" class="cn-result"><span class="mini-note">Runs STS GetCallerIdentity against this stack. It will not appear on the wire — that tail is deliberately your app's traffic only.</span></div>
+      </div>
+
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{define "connect_result"}}
+{{if .Err}}
+  <span class="cn-bad">{{icon "alert"}} {{.Err}}</span>
+{{else}}
+  <span class="cn-ok">{{icon "check"}} Connected</span>
+  <span class="mono cn-arn">{{.ARN}}</span>
+  <span class="mini-note">account {{.Account}}</span>
+{{end}}
+{{end}}

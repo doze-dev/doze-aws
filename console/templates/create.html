@@ -177,7 +177,7 @@
 {{template "shell_bottom" .}}{{end}}
 
 {{define "form_actions"}}
-<div class="det-foot" style="margin-top:6px;border:1px solid hsl(var(--border));border-radius:var(--radius);position:sticky;bottom:12px">
+<div class="det-foot" style="margin-top:6px;border:1px solid var(--border);border-radius:var(--radius);position:sticky;bottom:12px">
   <span id="submit-spin" class="dim htmx-indicator" style="margin-right:auto">Working…</span>
   <a class="btn btn-outline" href="{{.Cancel}}">Cancel</a>
   <button type="submit" class="btn">{{.Submit}}</button>

@@ -1,10 +1,10 @@
 {{define "traffic"}}{{template "shell_top" .}}
   <section class="detail" style="border-left:0">
     <div class="det-h">
-      <div class="det-title">Traffic
+      <div class="det-title">The wire
         <div class="acts"><span class="chip"><span class="live"></span> live</span></div>
       </div>
-      <div class="det-sub">Every AWS API call your app makes against this endpoint. The console's own requests are excluded.</div>
+      <div class="det-sub">Every AWS API call your app makes against this endpoint, newest first. The console's own requests are excluded, so this is your app talking — nothing else.</div>
     </div>
     <div class="det-b">
       {{if .Enabled}}{{template "traffic_feed" .}}{{else}}<div class="empty"><span class="ic-lg">{{icon "activity"}}</span><p>Traffic capture is off for this session.</p></div>{{end}}
@@ -19,7 +19,7 @@
 <div x-data="{errOnly:false, svc:'', sel:null, paused:false}">
   <div class="chips" style="margin-bottom:10px">
     <label class="chip" style="cursor:pointer"><input type="checkbox" x-model="errOnly" style="margin-right:6px;vertical-align:-1px"> only errors</label>
-    <select class="chip" x-model="svc" style="cursor:pointer;background:hsl(var(--card))"><option value="">all services</option><option>s3</option><option>sqs</option><option>sns</option><option>ddb</option><option>lambda</option><option>kms</option><option>eb</option><option>sm</option><option>ssm</option><option>sts</option></select>
+    <select class="chip" x-model="svc" style="cursor:pointer;background:var(--card)"><option value="">all services</option><option>s3</option><option>sqs</option><option>sns</option><option>ddb</option><option>lambda</option><option>kms</option><option>eb</option><option>sm</option><option>ssm</option><option>sts</option></select>
     <button type="button" class="chip" style="cursor:pointer" x-text="paused ? '▶ resume' : '⏸ pause'"
             @click="paused=!paused; const f=document.getElementById('traffic-feed'); if(paused){f.setAttribute('data-live-paused','1')}else{f.removeAttribute('data-live-paused')}"></button>
     <button type="button" class="chip" style="cursor:pointer" hx-post="{{.Prefix}}/traffic/clear" hx-target="#traffic-feed" hx-select="unset" hx-swap="outerHTML" @click="sel=null">{{icon "trash"}} clear</button>
@@ -41,10 +41,11 @@
          hx-get="{{$.Prefix}}/traffic/entry?seq={{.Seq}}" hx-target="#t-drawer-inner" hx-select="unset" hx-swap="innerHTML"
          @click="sel = (sel==={{.Seq}} ? null : {{.Seq}})">
       <span class="ts">{{.Time}}</span>
-      <span class="svcb" style="color:hsl(var(--svc-{{.Service}}))">{{.Service}}</span>
+      <span class="svcb" style="color:var(--svc-{{.Service}})">{{.Service}}</span>
       <span class="act">{{.Action}}</span>
       <span class="res" title="{{.Resource}}">{{.Resource}}</span>
       <span class="st {{if .IsErr}}err{{else}}ok{{end}}">{{.Status}}</span>
+      <span class="tr-why">{{with .Refused}}<span title="{{.Message}}">{{.Code}}</span>{{end}}</span>
       <span class="dur">{{.Millis}}ms</span>
       <button class="copy-btn tr-curl" data-copy="{{.Curl}}" title="Copy as curl — replay this call (secrets stay masked)" @click.stop>{{icon "copy"}}</button>
     </div>
@@ -60,10 +61,17 @@
 {{/* The inspector drawer: the full request/response pair for one call. */}}
 {{define "traffic_drawer"}}
 <div class="td-h">
-  <span class="td-title"><b style="color:hsl(var(--svc-{{.E.Service}}))">{{.E.Service}}</b> {{.E.Action}}{{if .E.Resource}} · <span class="mono">{{.E.Resource}}</span>{{end}}</span>
+  <span class="td-title"><b style="color:var(--svc-{{.E.Service}})">{{.E.Service}}</b> {{.E.Action}}{{if .E.Resource}} · <span class="mono">{{.E.Resource}}</span>{{end}}</span>
   <button class="copy-btn" data-copy="{{.E.Curl}}" title="Copy as curl">{{icon "copy"}} curl</button>
 </div>
 <div class="td-meta"><span class="{{if ge .E.Status 400}}err{{else}}ok{{end}}">{{.E.Status}}</span> · {{.Millis}}ms · {{.Time}}</div>
+{{with .E.Failure}}
+<div class="td-sec td-refused">
+  <div class="td-k">Refused · {{.Code}}</div>
+  <p class="td-why">{{.Message}}</p>
+  <p class="mini-note">doze-aws refuses this because AWS does. The rule comes from AWS's own service model, so a call that fails here would have failed on deploy.</p>
+</div>
+{{end}}
 <div class="td-sec">
   <div class="td-k">Request · {{.E.Method}} {{.E.Path}}{{if .E.Target}} · {{.E.Target}}{{end}}</div>
   {{if .Req}}<pre>{{.Req}}</pre>{{else}}<p class="mini-note">No body captured{{if .E.CT}} ({{.E.CT}}){{end}}.</p>{{end}}

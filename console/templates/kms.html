@@ -43,7 +43,7 @@
       <div class="sec-title">Aliases</div>
       <div class="panel">
         {{if .Key.Aliases}}<div class="sub-rows">{{range .Key.Aliases}}
-          <div class="sub-row"><span class="cc-bar" style="background:hsl(var(--svc-kms))"></span><span class="sub-nm mono">{{.}}</span><button class="icon-btn sm danger" title="Remove alias" hx-post="{{$.Prefix}}/kms/{{$.Key.ID}}/delete-alias" hx-vals='{"alias":"{{.}}"}' hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove {{.}}?">{{icon "trash"}}</button></div>
+          <div class="sub-row"><span class="cc-bar" style="background:var(--svc-kms)"></span><span class="sub-nm mono">{{.}}</span><button class="icon-btn sm danger" title="Remove alias" hx-post="{{$.Prefix}}/kms/{{$.Key.ID}}/delete-alias" hx-vals='{"alias":"{{.}}"}' hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove {{.}}?">{{icon "trash"}}</button></div>
         {{end}}</div>{{else}}<div class="mini-note" style="padding:12px 14px 2px">No aliases — keys are easier to reference by one.</div>{{end}}
         <form class="tag-row-form" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/add-alias" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
           <span class="dim mono" style="align-self:center;font-size:12px">alias/</span><input class="input" name="alias" placeholder="my-key" required style="flex:1"><button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Add</button>

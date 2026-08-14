@@ -2,6 +2,7 @@ package console
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"github.com/doze-dev/doze-aws/internal/gateway"
 	"io"
 	"net/http"
@@ -454,4 +455,76 @@ func redactKey(body, key string) string {
 		}
 	}
 	return body
+}
+
+// Refusal is why a call was refused, pulled off the response body.
+type Refusal struct {
+	Code    string
+	Message string
+}
+
+// Failure pulls the error code and message out of a refused call's response,
+// or nil when the call succeeded or the body is not a shape we understand —
+// which is what lets a template say {{with .Failure}}.
+//
+// This is the console saying something the real AWS console cannot. AWS hands
+// you "ValidationException" and stops; doze-aws refuses against a table
+// derived from AWS's own service model, so the reason is in the body and worth
+// putting in front of the reader instead of leaving them to scroll a payload.
+//
+// Both wire protocols are handled because both are in daily use here: the
+// awsJson services answer with {"__type":..,"message":..} and the query/XML
+// ones with an <ErrorResponse><Error>. Anything else returns ok=false and the
+// drawer just shows the raw body, which is the honest fallback.
+func (e TrafficEntry) Failure() *Refusal {
+	if e.Status < 400 || e.RespBody == "" {
+		return nil
+	}
+	body := strings.TrimSpace(e.RespBody)
+
+	if strings.HasPrefix(body, "{") {
+		var j struct {
+			Type    string `json:"__type"`
+			Code    string `json:"code"`
+			Message string `json:"message"`
+			Msg     string `json:"Message"`
+		}
+		if err := json.Unmarshal([]byte(body), &j); err != nil {
+			return nil
+		}
+		code := firstNonEmpty(j.Type, j.Code)
+		// awsJson types arrive fully qualified: com.amazon.coral#Validation...
+		if i := strings.LastIndexAny(code, "#/"); i >= 0 {
+			code = code[i+1:]
+		}
+		message := firstNonEmpty(j.Message, j.Msg)
+		if code == "" && message == "" {
+			return nil
+		}
+		return &Refusal{Code: code, Message: message}
+	}
+
+	if strings.HasPrefix(body, "<") {
+		var x struct {
+			Code    string `xml:"Error>Code"`
+			Message string `xml:"Error>Message"`
+		}
+		if err := xml.Unmarshal([]byte(body), &x); err != nil {
+			return nil
+		}
+		if x.Code == "" && x.Message == "" {
+			return nil
+		}
+		return &Refusal{Code: x.Code, Message: x.Message}
+	}
+	return nil
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
 }

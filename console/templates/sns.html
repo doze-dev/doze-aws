@@ -66,7 +66,7 @@
     <div class="sub-rows">{{range .Subs}}
       <div class="sub-item" x-data="{open:false}">
         <div class="sub-row">
-          <span class="cc-bar" style="background:hsl(var(--svc-{{if .Svc}}{{.Svc}}{{else}}eb{{end}}))"></span>
+          <span class="cc-bar" style="background:var(--svc-{{if .Svc}}{{.Svc}}{{else}}eb{{end}})"></span>
           {{if .URL}}<a class="sub-nm" href="{{$.Prefix}}{{.URL}}">{{.Name}}</a>{{else}}<span class="sub-nm">{{.Name}}</span>{{end}}
           <span class="badge type">{{.Proto}}</span>
           {{if .FilterPolicy}}<span class="badge" title="Only matching messages are delivered">filtered</span>{{end}}

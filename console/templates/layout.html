@@ -52,9 +52,9 @@ return"= "+p.join(" ");};</script>
 
   <div class="body">
     <nav class="rail" hx-boost="true" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML">
-      <div class="rgroup">Overview</div>
-      {{template "ri" dict "P" .Prefix "URL" "/" "On" (eq .Page "flows") "Name" "Flows" "Glyph" "route"}}
-      {{template "ri" dict "P" .Prefix "URL" "/traffic" "On" (eq .Page "traffic") "Name" "Traffic" "Glyph" "activity"}}
+      <div class="rgroup">Observe</div>
+      {{template "ri" dict "P" .Prefix "URL" "/" "On" (eq .Page "traffic") "Name" "The wire" "Glyph" "activity"}}
+      {{template "ri" dict "P" .Prefix "URL" "/connect" "On" (eq .Page "connect") "Name" "Connect" "Glyph" "terminal"}}
       <div class="rgroup">Storage &amp; data</div>
       {{template "ri" dict "P" .Prefix "URL" "/s3" "On" (hasPrefix .Page "s3") "Name" "S3" "Svc" "s3"}}
       {{template "ri" dict "P" .Prefix "URL" "/ddb" "On" (hasPrefix .Page "ddb") "Name" "DynamoDB" "Svc" "ddb"}}

@@ -105,11 +105,13 @@ func (c *Console) routes() {
 	// CodeMirror, htmx, Alpine). cacheStatic adds content ETags + max-age.
 	m.Handle("GET "+p+"/static/", http.StripPrefix(p+"/", cacheStatic(http.FileServerFS(staticFS))))
 
-	// Flows is the home surface; Traffic is the live API tail.
-	m.HandleFunc("GET "+p+"/", c.flows)
-	m.HandleFunc("GET "+p, c.flows)
-	m.HandleFunc("GET "+p+"/flows.json", c.flowsData) // polled live refresh
+	// The wire is the home surface: the question people open this to answer is
+	// "what did my app just do", not "what resources exist".
+	m.HandleFunc("GET "+p+"/", c.traffic)
+	m.HandleFunc("GET "+p, c.traffic)
 	m.HandleFunc("GET "+p+"/traffic", c.traffic)
+	m.HandleFunc("GET "+p+"/connect", c.connect)
+	m.HandleFunc("POST "+p+"/connect/verify", c.connectVerify)
 	m.HandleFunc("GET "+p+"/traffic/feed", c.trafficFeed)    // polled live tail
 	m.HandleFunc("GET "+p+"/traffic/entry", c.trafficEntry)  // inspector drawer
 	m.HandleFunc("POST "+p+"/traffic/clear", c.trafficClear) // empty the ring

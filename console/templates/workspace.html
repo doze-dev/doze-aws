@@ -20,7 +20,7 @@
   <form hx-post="{{.SaveURL}}" hx-target="{{.Target}}" hx-select="unset" hx-swap="outerHTML" x-data="{dirty:false}">
     <input type="hidden" name="{{.SaveField}}" value="{{.SaveVal}}">
     <textarea name="value" data-editor rows="16" spellcheck="false" required @input="dirty=true">{{.Value}}</textarea>
-    <div class="det-foot" style="margin-top:12px;border-radius:var(--radius);border:1px solid hsl(var(--border))">
+    <div class="det-foot" style="margin-top:12px;border-radius:var(--radius);border:1px solid var(--border)">
       <span class="dim" style="margin-right:auto;font-size:12px" x-show="dirty">● unsaved changes</span>
       <a class="btn btn-outline" href="{{.ViewURL}}">Discard</a>
       <button type="submit" class="btn">{{.SaveLabel}}</button>
