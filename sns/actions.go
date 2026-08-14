@@ -8,6 +8,8 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awsquery"
 	"github.com/doze-dev/doze-aws/internal/eventpattern"
+	"sort"
+	"strconv"
 )
 
 // dispatch maps an SNS action to its handler.
@@ -189,6 +191,9 @@ func (srv *Server) subscribe(form url.Values, host string) (any, *apiError) {
 	if topicArn == "" || proto == "" || endpoint == "" {
 		return nil, errInvalid("TopicArn, Protocol and Endpoint are required")
 	}
+	if perr := validProtocol(proto); perr != nil {
+		return nil, perr
+	}
 	attrs := subscribeAttributes(form)
 	if perr := validateFilterPolicy(attrs["FilterPolicy"]); perr != nil {
 		return nil, perr
@@ -330,4 +335,33 @@ func (srv *Server) publishBatch(form url.Values, _ string) (any, *apiError) {
 		res.Successful.Member = append(res.Successful.Member, pbSuccess{ID: id, MessageID: mid})
 	}
 	return res, nil
+}
+
+// snsProtocols is the set SNS accepts for Subscribe. Hand-derived: SNS's own
+// service model types Protocol as a plain string with no enum trait, so this
+// list comes from the API reference rather than from `dzaudit list`.
+//
+// Membership here means "AWS accepts it", not "doze-aws delivers to it".
+// Refusing a protocol AWS refuses is the promise this file is keeping; the
+// delivery gap for the cloud-only transports is a separate, documented one —
+// and conflating them would mean refusing a subscription that works in AWS.
+var snsProtocols = map[string]bool{
+	"http": true, "https": true, // delivered
+	"sqs":    true, // delivered
+	"lambda": true, // delivered
+	"email":  true, "email-json": true, "sms": true,
+	"application": true, "firehose": true,
+}
+
+func validProtocol(p string) *apiError {
+	if snsProtocols[p] {
+		return nil
+	}
+	valid := make([]string, 0, len(snsProtocols))
+	for k := range snsProtocols {
+		valid = append(valid, k)
+	}
+	sort.Strings(valid)
+	return errInvalid("Invalid parameter: Protocol - " + strconv.Quote(p) +
+		" is not a supported protocol (expected one of " + strings.Join(valid, ", ") + ")")
 }
