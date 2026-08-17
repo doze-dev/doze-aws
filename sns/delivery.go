@@ -2,6 +2,7 @@ package sns
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/peercall"
+	"github.com/doze-dev/doze-aws/internal/trace"
+	"github.com/doze-dev/doze-aws/peers"
 )
 
 // snsNotification is the JSON envelope SNS delivers (non-raw subscriptions).
@@ -51,7 +54,7 @@ func (srv *Server) envelope(msgID, topicARN, subject, message string, attrs map[
 // deliver fans a published message out to every confirmed, filter-matching
 // subscription of the topic. Delivery is synchronous (simpler and
 // deterministic for local dev).
-func (srv *Server) deliver(msgID, topicARN, subject, message string, attrs map[string]Attr) {
+func (srv *Server) deliver(ctx context.Context, msgID, topicARN, subject, message string, attrs map[string]Attr) {
 	subs, err := srv.store.subsForTopic(topicARN)
 	if err != nil {
 		srv.logf("sns: deliver: %v", err)
@@ -63,9 +66,9 @@ func (srv *Server) deliver(msgID, topicARN, subject, message string, attrs map[s
 		}
 		switch sub.Protocol {
 		case "sqs":
-			srv.deliverSQS(sub, msgID, topicARN, subject, message, attrs)
+			srv.deliverSQS(ctx, sub, msgID, topicARN, subject, message, attrs)
 		case "lambda":
-			srv.deliverLambda(sub, msgID, topicARN, subject, message, attrs)
+			srv.deliverLambda(ctx, sub, msgID, topicARN, subject, message, attrs)
 		case "http", "https":
 			srv.deliverHTTP(sub, msgID, topicARN, subject, message, attrs)
 		default:
@@ -76,7 +79,7 @@ func (srv *Server) deliver(msgID, topicARN, subject, message string, attrs map[s
 	}
 }
 
-func (srv *Server) deliverSQS(sub Subscription, msgID, topicARN, subject, message string, attrs map[string]Attr) {
+func (srv *Server) deliverSQS(ctx context.Context, sub Subscription, msgID, topicARN, subject, message string, attrs map[string]Attr) {
 	ep, ok := srv.peers.Endpoint("sqs")
 	if !ok {
 		srv.logf("sns: subscription %s targets SQS but no SQS peer is wired", sub.ARN)
@@ -94,22 +97,32 @@ func (srv *Server) deliverSQS(sub Subscription, msgID, topicARN, subject, messag
 		payload["MessageBody"] = string(body)
 	}
 	body, _ := json.Marshal(payload)
-	req, _ := http.NewRequest(http.MethodPost, ep.URL("/"), bytes.NewReader(body))
+	// Built here rather than via peercall.SQSSend because the payload shape is
+	// SNS's own (raw delivery vs envelope), so the step is recorded explicitly.
+	err := trace.Step(ctx, trace.Event{Service: "sqs", Action: "SendMessage", Resource: queue, Via: "sns:" + lastSegment(topicARN)},
+		func(ctx context.Context) error { return srv.postToSQS(ctx, ep, body) })
+	if err != nil {
+		srv.logf("sns: deliver to %s: %v", queue, err)
+	}
+}
+
+func (srv *Server) postToSQS(ctx context.Context, ep peers.Endpoint, body []byte) error {
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, ep.URL("/"), bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/x-amz-json-1.0")
 	req.Header.Set("X-Amz-Target", "AmazonSQS.SendMessage")
 	resp, err := ep.Client.Do(req)
 	if err != nil {
-		srv.logf("sns: deliver to sqs %q: %v", queue, err)
-		return
+		return err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
-		srv.logf("sns: deliver to sqs %q: status %s", queue, resp.Status)
+		return fmt.Errorf("status %s", resp.Status)
 	}
+	return nil
 }
 
 // deliverLambda invokes a Lambda function (async) with the SNS event shape.
-func (srv *Server) deliverLambda(sub Subscription, msgID, topicARN, subject, message string, attrs map[string]Attr) {
+func (srv *Server) deliverLambda(ctx context.Context, sub Subscription, msgID, topicARN, subject, message string, attrs map[string]Attr) {
 	fn := lastSegment(sub.Endpoint)
 	record := map[string]any{
 		"EventSource":          "aws:sns",
@@ -124,7 +137,7 @@ func (srv *Server) deliverLambda(sub Subscription, msgID, topicARN, subject, mes
 		},
 	}
 	payload, _ := json.Marshal(map[string]any{"Records": []any{record}})
-	if err := peercall.LambdaInvokeAsync(srv.peers, fn, payload); err != nil {
+	if err := peercall.LambdaInvokeAsync(ctx, srv.peers, fn, payload); err != nil {
 		srv.logf("sns: deliver to lambda %q: %v", fn, err)
 	}
 }

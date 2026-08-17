@@ -1,6 +1,7 @@
 package eventbridge
 
 import (
+	"context"
 	"encoding/json"
 	"strconv"
 	"strings"
@@ -84,7 +85,9 @@ func (s *Server) fireScheduled(rule Rule) {
 		return
 	}
 	for _, target := range rule.Targets {
-		s.dispatch(rule, target, eventJSON)
+		// A scheduled rule has no caller: the timer fired, so there is nothing
+		// to attribute this to and it belongs on the wire as a root.
+		s.dispatch(context.Background(), rule, target, eventJSON)
 	}
 }
 

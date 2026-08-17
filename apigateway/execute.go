@@ -265,7 +265,7 @@ func (s *Server) invokeLambdaProxy(w http.ResponseWriter, r *http.Request, api *
 		writeExecuteError(w, 500, "Internal server error", err.Error())
 		return
 	}
-	out, err := peercall.LambdaInvoke(s.peers, fn, payload)
+	out, err := peercall.LambdaInvoke(r.Context(), s.peers, fn, payload)
 	if err != nil {
 		writeExecuteError(w, 502, "Internal server error",
 			"invoking "+fn+": "+err.Error())

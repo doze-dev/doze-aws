@@ -1,6 +1,7 @@
 package eventbridge
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -58,7 +59,7 @@ func (s *Server) captureToArchives(bus string, eventJSON []byte) {
 
 // ---- archive handlers ----
 
-func (s *Server) createArchive(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) createArchive(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	name := awsjson.Str(p, "ArchiveName")
 	if name == "" {
 		return nil, awshttp.Errf(400, "ValidationException", "ArchiveName is required")
@@ -104,7 +105,7 @@ func archiveView(a *Archive) map[string]any {
 	return out
 }
 
-func (s *Server) describeArchive(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) describeArchive(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	a, err := s.store.GetArchive(awsjson.Str(p, "ArchiveName"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
@@ -112,7 +113,7 @@ func (s *Server) describeArchive(p map[string]any) (any, *awshttp.APIError) {
 	return archiveView(a), nil
 }
 
-func (s *Server) listArchives(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) listArchives(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arcs, err := s.store.ListArchives(awsjson.Str(p, "NamePrefix"), awsjson.Str(p, "EventSourceArn"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
@@ -124,7 +125,7 @@ func (s *Server) listArchives(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{"Archives": list}, nil
 }
 
-func (s *Server) updateArchive(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) updateArchive(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	name := awsjson.Str(p, "ArchiveName")
 	err := s.store.UpdateArchive(name, func(a *Archive) error {
 		if v := awsjson.Str(p, "EventPattern"); v != "" {
@@ -150,7 +151,7 @@ func (s *Server) updateArchive(p map[string]any) (any, *awshttp.APIError) {
 	}, nil
 }
 
-func (s *Server) deleteArchive(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) deleteArchive(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	name := awsjson.Str(p, "ArchiveName")
 	if _, err := s.store.GetArchive(name); err != nil {
 		return nil, awshttp.AsAPIError(err)
@@ -163,7 +164,7 @@ func (s *Server) deleteArchive(p map[string]any) (any, *awshttp.APIError) {
 
 // ---- replay handlers ----
 
-func (s *Server) startReplay(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) startReplay(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	name := awsjson.Str(p, "ReplayName")
 	if name == "" {
 		return nil, awshttp.Errf(400, "ValidationException", "ReplayName is required")
@@ -195,7 +196,7 @@ func (s *Server) startReplay(p map[string]any) (any, *awshttp.APIError) {
 	// Local replays run synchronously: re-inject each windowed event through the
 	// destination bus's rules (optionally restricted to the filter rule ARNs).
 	count, last, err := s.store.ReplayEvents(archiveName, start, end, func(ev []byte) {
-		s.matchAndDispatch(bus, ev, filter)
+		s.matchAndDispatch(ctx, bus, ev, filter)
 	})
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
@@ -240,7 +241,7 @@ func replayView(r *Replay) map[string]any {
 	return out
 }
 
-func (s *Server) describeReplay(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) describeReplay(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	r, err := s.store.GetReplay(awsjson.Str(p, "ReplayName"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
@@ -248,7 +249,7 @@ func (s *Server) describeReplay(p map[string]any) (any, *awshttp.APIError) {
 	return replayView(r), nil
 }
 
-func (s *Server) listReplays(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) listReplays(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	reps, err := s.store.ListReplays(awsjson.Str(p, "NamePrefix"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
@@ -260,7 +261,7 @@ func (s *Server) listReplays(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{"Replays": list}, nil
 }
 
-func (s *Server) cancelReplay(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) cancelReplay(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	r, err := s.store.GetReplay(awsjson.Str(p, "ReplayName"))
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)

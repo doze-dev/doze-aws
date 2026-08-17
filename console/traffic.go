@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"github.com/doze-dev/doze-aws/internal/gateway"
+	"github.com/doze-dev/doze-aws/internal/trace"
 	"io"
 	"net/http"
 	"net/url"
@@ -42,7 +43,17 @@ type TrafficEntry struct {
 	Host     string
 	CT       string // Content-Type
 	Target   string // X-Amz-Target
+
+	// Parent is the Seq of the call that caused this one, for internal work
+	// the gateway never saw. Zero for anything a client asked for directly.
+	Parent int64
+	// Via names what emitted the work, e.g. "s3:ObjectCreated:Put".
+	Via string
 }
+
+// IsCascade reports whether this entry is internal work rather than a call a
+// client made.
+func (e TrafficEntry) IsCascade() bool { return e.Parent != 0 }
 
 // Curl renders the entry as a replayable curl command. The body is the
 // recorder's redacted copy, so masked secrets stay masked in the repro.
@@ -80,8 +91,15 @@ func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	svc, action, resource := classify(r, body)
 	sw := &statusWriter{ResponseWriter: w, code: 200}
 	start := time.Now()
+
+	// Reserve this call's sequence number BEFORE handing off, because the work
+	// it sets off has to name it as a parent while that work is still running.
+	// Recording afterwards would mean the children knew no id to point at.
+	seq := rec.reserve()
+	r = r.WithContext(trace.With(r.Context(), rec, trace.Cause(seq)))
+
 	rec.next.ServeHTTP(sw, r)
-	rec.add(TrafficEntry{
+	rec.addAt(seq, TrafficEntry{
 		At: start, Service: svc, Action: action, Resource: resource,
 		Status: sw.code, Millis: float64(time.Since(start).Microseconds()) / 1000.0,
 		ReqBody:  body,
@@ -91,16 +109,54 @@ func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (rec *Recorder) add(e TrafficEntry) {
+// reserve allocates a sequence number ahead of the work it identifies.
+func (rec *Recorder) reserve() int64 {
 	rec.mu.Lock()
 	defer rec.mu.Unlock()
 	rec.seq++
-	e.Seq = rec.seq
+	return rec.seq
+}
+
+func (rec *Recorder) add(e TrafficEntry) {
+	rec.addAt(rec.reserve(), e)
+}
+
+func (rec *Recorder) addAt(seq int64, e TrafficEntry) {
+	rec.mu.Lock()
+	defer rec.mu.Unlock()
+	e.Seq = seq
 	rec.buf[rec.head] = e
 	rec.head = (rec.head + 1) % trafficCap
 	if rec.head == 0 {
 		rec.full = true
 	}
+}
+
+// ReserveCascade allocates an id for work about to run, satisfying trace.Sink.
+func (rec *Recorder) ReserveCascade() trace.Cause { return trace.Cause(rec.reserve()) }
+
+// EmitCascade records internal work caused by a recorded call, satisfying
+// trace.Sink.
+//
+// These entries share the ring with external calls deliberately: they age out
+// together, and the wire is one ordered stream rather than two lists a reader
+// has to correlate by timestamp.
+func (rec *Recorder) EmitCascade(e trace.Event) {
+	// The id was reserved before the work ran, so children could name it.
+	rec.addAt(int64(e.Self), TrafficEntry{
+		At: e.At, Service: e.Service, Action: e.Action, Resource: e.Resource,
+		Millis: e.Millis, Parent: int64(e.Cause), Via: e.Via,
+		Status: cascadeStatus(e.Err), RespBody: e.Err,
+	})
+}
+
+// cascadeStatus maps a delivery outcome onto the status column the wire
+// already understands, so a failed fan-out reads like any other failure.
+func cascadeStatus(err string) int {
+	if err != "" {
+		return 500
+	}
+	return 200
 }
 
 // LastSeq returns the sequence number of the newest recorded call — the cheap

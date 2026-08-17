@@ -1,6 +1,7 @@
 package secretsmanager
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"maps"
@@ -526,7 +527,7 @@ func (s *Server) requireUsableKey(keyID string) *awshttp.APIError {
 	if keyID == "" {
 		return nil
 	}
-	state, ok, err := peercall.KMSDescribeKey(s.peers, keyID)
+	state, ok, err := peercall.KMSDescribeKey(context.Background(), s.peers, keyID)
 	if err != nil || !ok {
 		return nil
 	}

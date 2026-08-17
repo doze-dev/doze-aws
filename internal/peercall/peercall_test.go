@@ -1,6 +1,7 @@
 package peercall
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -40,17 +41,17 @@ type lastReq struct{ target, path, body string }
 
 func TestSQSSendReceiveDelete(t *testing.T) {
 	dir, last := recordingPeer(t)
-	if err := SQSSend(dir, "jobs", "payload", map[string]string{"k": "v"}); err != nil {
+	if err := SQSSend(context.Background(), dir, "jobs", "payload", map[string]string{"k": "v"}); err != nil {
 		t.Fatalf("SQSSend: %v", err)
 	}
 	if last.target != "AmazonSQS.SendMessage" || !strings.Contains(last.body, "payload") {
 		t.Fatalf("send req = %+v", last)
 	}
-	msgs, err := SQSReceive(dir, "jobs", 1, 0)
+	msgs, err := SQSReceive(context.Background(), dir, "jobs", 1, 0)
 	if err != nil || len(msgs) != 1 || msgs[0].Body != "hi" {
 		t.Fatalf("SQSReceive = %+v err=%v", msgs, err)
 	}
-	if err := SQSDelete(dir, "jobs", msgs[0].ReceiptHandle); err != nil {
+	if err := SQSDelete(context.Background(), dir, "jobs", msgs[0].ReceiptHandle); err != nil {
 		t.Fatalf("SQSDelete: %v", err)
 	}
 	if last.target != "AmazonSQS.DeleteMessage" || !strings.Contains(last.body, "rh-1") {
@@ -60,21 +61,21 @@ func TestSQSSendReceiveDelete(t *testing.T) {
 
 func TestLambdaInvokeSyncAndAsync(t *testing.T) {
 	dir, last := recordingPeer(t)
-	out, err := LambdaInvoke(dir, "fn", []byte(`{"x":1}`))
+	out, err := LambdaInvoke(context.Background(), dir, "fn", []byte(`{"x":1}`))
 	if err != nil || string(out) != `{"x":1}` {
 		t.Fatalf("LambdaInvoke = %q err=%v", out, err)
 	}
 	if !strings.Contains(last.path, "/functions/fn/invocations") {
 		t.Fatalf("invoke path = %q", last.path)
 	}
-	if err := LambdaInvokeAsync(dir, "fn", []byte(`{}`)); err != nil {
+	if err := LambdaInvokeAsync(context.Background(), dir, "fn", []byte(`{}`)); err != nil {
 		t.Fatalf("LambdaInvokeAsync: %v", err)
 	}
 }
 
 func TestSNSPublish(t *testing.T) {
 	dir, last := recordingPeer(t)
-	if err := SNSPublish(dir, "arn:aws:sns:us-east-1:000000000000:topic", "hello"); err != nil {
+	if err := SNSPublish(context.Background(), dir, "arn:aws:sns:us-east-1:000000000000:topic", "hello"); err != nil {
 		t.Fatalf("SNSPublish: %v", err)
 	}
 	if !strings.Contains(last.body, "Action=Publish") {
@@ -84,13 +85,13 @@ func TestSNSPublish(t *testing.T) {
 
 func TestNoPeerWiredErrors(t *testing.T) {
 	none := peers.None()
-	if err := SQSSend(none, "q", "b", nil); err == nil {
+	if err := SQSSend(context.Background(), none, "q", "b", nil); err == nil {
 		t.Fatal("SQSSend with no peer should error")
 	}
-	if _, err := LambdaInvoke(none, "fn", nil); err == nil {
+	if _, err := LambdaInvoke(context.Background(), none, "fn", nil); err == nil {
 		t.Fatal("LambdaInvoke with no peer should error")
 	}
-	if err := SNSPublish(none, "arn", "m"); err == nil {
+	if err := SNSPublish(context.Background(), none, "arn", "m"); err == nil {
 		t.Fatal("SNSPublish with no peer should error")
 	}
 }

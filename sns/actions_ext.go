@@ -5,6 +5,7 @@ package sns
 // the mobile-push/SMS surface that is physically meaningless locally.
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"sort"
@@ -13,7 +14,7 @@ import (
 )
 
 func init() {
-	extra := map[string]func(*Server, url.Values, string) (any, *apiError){
+	extra := map[string]func(*Server, context.Context, url.Values, string) (any, *apiError){
 		"SetTopicAttributes":      (*Server).setTopicAttributes,
 		"TagResource":             (*Server).tagResource,
 		"UntagResource":           (*Server).untagResource,
@@ -43,8 +44,8 @@ func init() {
 	}
 }
 
-func stubHandler(name string) func(*Server, url.Values, string) (any, *apiError) {
-	return func(*Server, url.Values, string) (any, *apiError) {
+func stubHandler(name string) func(*Server, context.Context, url.Values, string) (any, *apiError) {
+	return func(*Server, context.Context, url.Values, string) (any, *apiError) {
 		return nil, &apiError{
 			Code:    "InvalidAction",
 			Status:  400,
@@ -72,7 +73,7 @@ func sortedAttrKeys(m map[string]string) []string {
 	return out
 }
 
-func (srv *Server) setTopicAttributes(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) setTopicAttributes(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	name, value := form.Get("AttributeName"), form.Get("AttributeValue")
 	if name == "" {
 		return nil, errInvalid("AttributeName is required")
@@ -96,7 +97,7 @@ type tagMember struct {
 	Value string `xml:"Value"`
 }
 
-func (srv *Server) tagResource(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) tagResource(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	tags := memberTags(form)
 	if len(tags) == 0 {
 		return nil, errInvalid("at least one tag is required")
@@ -111,7 +112,7 @@ func (srv *Server) tagResource(form url.Values, _ string) (any, *apiError) {
 	}))
 }
 
-func (srv *Server) untagResource(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) untagResource(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	keys := awsquery.Members(form, "TagKeys", false)
 	if len(keys) == 0 {
 		return nil, errInvalid("at least one tag key is required")
@@ -123,7 +124,7 @@ func (srv *Server) untagResource(form url.Values, _ string) (any, *apiError) {
 	}))
 }
 
-func (srv *Server) listTagsForResource(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) listTagsForResource(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	t, err := srv.store.GetTopic(form.Get("ResourceArn"))
 	if err != nil {
 		return nil, asErr(err)
@@ -137,21 +138,21 @@ func (srv *Server) listTagsForResource(form url.Values, _ string) (any, *apiErro
 
 // addPermission / removePermission are Tier C: no IAM locally, so the calls
 // succeed and change nothing.
-func (srv *Server) addPermission(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) addPermission(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	if !srv.store.TopicExists(form.Get("TopicArn")) {
 		return nil, errNotFound("topic does not exist: " + form.Get("TopicArn"))
 	}
 	return nil, nil
 }
 
-func (srv *Server) removePermission(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) removePermission(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	if !srv.store.TopicExists(form.Get("TopicArn")) {
 		return nil, errNotFound("topic does not exist: " + form.Get("TopicArn"))
 	}
 	return nil, nil
 }
 
-func (srv *Server) putDataProtectionPolicy(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) putDataProtectionPolicy(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	return nil, asErr(srv.store.UpdateTopic(form.Get("ResourceArn"), func(t *Topic) {
 		t.DataProtectionPolicy = form.Get("DataProtectionPolicy")
 	}))
@@ -161,7 +162,7 @@ type dataProtectionResult struct {
 	DataProtectionPolicy string `xml:"DataProtectionPolicy"`
 }
 
-func (srv *Server) getDataProtectionPolicy(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) getDataProtectionPolicy(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	t, err := srv.store.GetTopic(form.Get("ResourceArn"))
 	if err != nil {
 		return nil, asErr(err)

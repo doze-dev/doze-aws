@@ -1,6 +1,7 @@
 package secretsmanager
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 
@@ -40,7 +41,7 @@ func (s *Server) rotateSecret(p map[string]any) (any, *awshttp.APIError) {
 			"SecretId":           sec.ARN,
 			"ClientRequestToken": token,
 		})
-		if _, err := peercall.LambdaInvoke(s.peers, fn, payload); err != nil {
+		if _, err := peercall.LambdaInvoke(context.Background(), s.peers, fn, payload); err != nil {
 			return nil, awshttp.Errf(500, "InternalServiceError", "rotation step %s failed: %v", step, err)
 		}
 	}

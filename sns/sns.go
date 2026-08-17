@@ -110,7 +110,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, &apiError{Code: "InvalidAction", Status: 400, Message: "unsupported action: " + action, SenderFault: true})
 		return
 	}
-	result, aerr := h(s, form, r.Host)
+	result, aerr := h(s, r.Context(), form, r.Host)
 	if aerr != nil {
 		s.logf("sns: %s -> %s", action, aerr.Code)
 		writeError(w, aerr)

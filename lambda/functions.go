@@ -3,6 +3,7 @@ package lambda
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -219,7 +220,7 @@ func (s *Server) materializeCode(name string, code codeWire) (codeDir, sha strin
 	var raw []byte
 	switch {
 	case code.S3Bucket != "" && code.S3Key != "":
-		fetched, err := peercall.S3Get(s.peers, code.S3Bucket, code.S3Key)
+		fetched, err := peercall.S3Get(context.Background(), s.peers, code.S3Bucket, code.S3Key)
 		if err != nil {
 			return "", "", awshttp.Errf(400, "InvalidParameterValueException",
 				"cannot read function code from s3://%s/%s: %v", code.S3Bucket, code.S3Key, err)

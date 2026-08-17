@@ -6,6 +6,7 @@ package s3
 // best-effort and asynchronous — it never blocks or fails the object operation.
 
 import (
+	"context"
 	"encoding/json"
 	"encoding/xml"
 	"net/url"
@@ -44,7 +45,7 @@ type targetConfig struct {
 
 // notify fires notifications for one object event. eventName is e.g.
 // "s3:ObjectCreated:Put" or "s3:ObjectRemoved:Delete".
-func (s *Server) notify(bucket, key, eventName string, v *s3store.ObjectVersion) {
+func (s *Server) notify(ctx context.Context, bucket, key, eventName string, v *s3store.ObjectVersion) {
 	bk, err := s.store.GetBucket(bucket)
 	if err != nil || bk.Notification == "" {
 		return
@@ -60,7 +61,11 @@ func (s *Server) notify(bucket, key, eventName string, v *s3store.ObjectVersion)
 		if !eventMatches(t.Events, eventName) || !filterMatches(t, key) {
 			return
 		}
-		go s.deliverNotification(arn, string(payload))
+		// WithoutCancel, not the request context itself: delivery outlives the
+		// PutObject that triggered it, and inheriting cancellation would drop
+		// notifications the moment the client got its 200. The trace values
+		// survive, which is the part that has to.
+		go s.deliverNotification(context.WithoutCancel(ctx), arn, string(payload))
 	}
 	for _, t := range cfg.Queues {
 		deliver(t, t.Queue)
@@ -108,20 +113,20 @@ func (s *Server) eventRecord(bucket, key, eventName string, v *s3store.ObjectVer
 }
 
 // deliverNotification routes a payload to an SQS/SNS/Lambda ARN via peers.
-func (s *Server) deliverNotification(arn, payload string) {
+func (s *Server) deliverNotification(ctx context.Context, arn, payload string) {
 	switch {
 	case strings.Contains(arn, ":sqs:"):
 		queue := arn[strings.LastIndex(arn, ":")+1:]
-		if err := peercall.SQSSend(s.peers, queue, payload, nil); err != nil {
+		if err := peercall.SQSSend(ctx, s.peers, queue, payload, nil); err != nil {
 			s.logf("s3: notify sqs %s: %v", queue, err)
 		}
 	case strings.Contains(arn, ":sns:"):
-		if err := peercall.SNSPublish(s.peers, arn, payload); err != nil {
+		if err := peercall.SNSPublish(ctx, s.peers, arn, payload); err != nil {
 			s.logf("s3: notify sns: %v", err)
 		}
 	case strings.Contains(arn, ":lambda:"):
 		fn := arn[strings.LastIndex(arn, ":")+1:]
-		if err := peercall.LambdaInvokeAsync(s.peers, fn, []byte(payload)); err != nil {
+		if err := peercall.LambdaInvokeAsync(ctx, s.peers, fn, []byte(payload)); err != nil {
 			s.logf("s3: notify lambda %s: %v", fn, err)
 		}
 	}

@@ -159,16 +159,16 @@ func (s *Server) deliverToArn(arn string, payload []byte) {
 	switch {
 	case strings.Contains(arn, ":sqs:"):
 		queue := arn[strings.LastIndex(arn, ":")+1:]
-		if err := peercall.SQSSend(s.peers, queue, string(payload), nil); err != nil {
+		if err := peercall.SQSSend(context.Background(), s.peers, queue, string(payload), nil); err != nil {
 			s.logf("lambda: deliver to sqs %s: %v", queue, err)
 		}
 	case strings.Contains(arn, ":sns:"):
-		if err := peercall.SNSPublish(s.peers, arn, string(payload)); err != nil {
+		if err := peercall.SNSPublish(context.Background(), s.peers, arn, string(payload)); err != nil {
 			s.logf("lambda: deliver to sns: %v", err)
 		}
 	case strings.Contains(arn, ":lambda:"):
 		fn := arn[strings.LastIndex(arn, ":")+1:]
-		if err := peercall.LambdaInvokeAsync(s.peers, fn, payload); err != nil {
+		if err := peercall.LambdaInvokeAsync(context.Background(), s.peers, fn, payload); err != nil {
 			s.logf("lambda: deliver to lambda %s: %v", fn, err)
 		}
 	}

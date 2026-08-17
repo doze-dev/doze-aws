@@ -5,6 +5,7 @@ package kinesis
 // X-Amz-Target through.
 
 import (
+	"context"
 	"sort"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -613,7 +614,7 @@ func (s *Server) requireUsableKey(keyID string) *awshttp.APIError {
 	if keyID == "" || s.peers == nil {
 		return nil
 	}
-	state, ok, err := peercall.KMSDescribeKey(s.peers, keyID)
+	state, ok, err := peercall.KMSDescribeKey(context.Background(), s.peers, keyID)
 	if err != nil || !ok {
 		// KMS unreachable is not the stream's fault; refusing writes here would
 		// turn a missing peer into data loss.

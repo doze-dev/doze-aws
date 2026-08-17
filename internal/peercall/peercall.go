@@ -6,6 +6,7 @@ package peercall
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,11 +15,12 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
 // SQSSend sends one message to a queue by name (SQS JSON protocol).
-func SQSSend(dir peers.Directory, queue, body string, attrs map[string]string) error {
+func SQSSend(ctx context.Context, dir peers.Directory, queue, body string, attrs map[string]string) error {
 	ep, ok := dir.Endpoint("sqs")
 	if !ok {
 		return fmt.Errorf("no sqs peer wired")
@@ -34,7 +36,10 @@ func SQSSend(dir peers.Directory, queue, body string, attrs map[string]string) e
 		}
 		payload["MessageAttributes"] = ma
 	}
-	return postJSON(ep, "AmazonSQS.SendMessage", "application/x-amz-json-1.0", payload)
+	return trace.Step(ctx, trace.Event{Service: "sqs", Action: "SendMessage", Resource: queue},
+		func(ctx context.Context) error {
+			return postJSON(ctx, ep, "AmazonSQS.SendMessage", "application/x-amz-json-1.0", payload)
+		})
 }
 
 // SQSReceive long-polls a queue for up to max messages (used by Lambda event
@@ -45,7 +50,7 @@ type SQSMessage struct {
 	Body          string `json:"Body"`
 }
 
-func SQSReceive(dir peers.Directory, queue string, max, waitSeconds int) ([]SQSMessage, error) {
+func SQSReceive(ctx context.Context, dir peers.Directory, queue string, max, waitSeconds int) ([]SQSMessage, error) {
 	ep, ok := dir.Endpoint("sqs")
 	if !ok {
 		return nil, fmt.Errorf("no sqs peer wired")
@@ -55,7 +60,7 @@ func SQSReceive(dir peers.Directory, queue string, max, waitSeconds int) ([]SQSM
 		"MaxNumberOfMessages": max,
 		"WaitTimeSeconds":     waitSeconds,
 	}
-	body, err := postJSONResult(ep, "AmazonSQS.ReceiveMessage", "application/x-amz-json-1.0", payload)
+	body, err := postJSONResult(ctx, ep, "AmazonSQS.ReceiveMessage", "application/x-amz-json-1.0", payload)
 	if err != nil {
 		return nil, err
 	}
@@ -70,12 +75,12 @@ func SQSReceive(dir peers.Directory, queue string, max, waitSeconds int) ([]SQSM
 
 // DDBGetShardIterator opens a shard iterator on a DynamoDB stream (used by
 // Lambda event source mappings whose EventSourceArn is a stream ARN).
-func DDBGetShardIterator(dir peers.Directory, streamArn, shardID, iterType string) (string, error) {
+func DDBGetShardIterator(ctx context.Context, dir peers.Directory, streamArn, shardID, iterType string) (string, error) {
 	ep, ok := dir.Endpoint("dynamodb")
 	if !ok {
 		return "", fmt.Errorf("no dynamodb peer wired")
 	}
-	body, err := postJSONResult(ep, "DynamoDBStreams_20120810.GetShardIterator", "application/x-amz-json-1.0",
+	body, err := postJSONResult(ctx, ep, "DynamoDBStreams_20120810.GetShardIterator", "application/x-amz-json-1.0",
 		map[string]any{"StreamArn": streamArn, "ShardId": shardID, "ShardIteratorType": iterType})
 	if err != nil {
 		return "", err
@@ -91,12 +96,12 @@ func DDBGetShardIterator(dir peers.Directory, streamArn, shardID, iterType strin
 
 // DDBGetRecords fetches records from a stream shard iterator, returning the raw
 // record documents and the next iterator to poll.
-func DDBGetRecords(dir peers.Directory, iterator string, limit int) (records []json.RawMessage, next string, err error) {
+func DDBGetRecords(ctx context.Context, dir peers.Directory, iterator string, limit int) (records []json.RawMessage, next string, err error) {
 	ep, ok := dir.Endpoint("dynamodb")
 	if !ok {
 		return nil, "", fmt.Errorf("no dynamodb peer wired")
 	}
-	body, err := postJSONResult(ep, "DynamoDBStreams_20120810.GetRecords", "application/x-amz-json-1.0",
+	body, err := postJSONResult(ctx, ep, "DynamoDBStreams_20120810.GetRecords", "application/x-amz-json-1.0",
 		map[string]any{"ShardIterator": iterator, "Limit": limit})
 	if err != nil {
 		return nil, "", err
@@ -125,12 +130,12 @@ type KinesisRecord struct {
 
 // KinesisListShards returns the shard ids of a stream. A mapping polls every
 // shard, so it needs the list up front and again after a reshard.
-func KinesisListShards(dir peers.Directory, stream string) ([]string, error) {
+func KinesisListShards(ctx context.Context, dir peers.Directory, stream string) ([]string, error) {
 	ep, ok := dir.Endpoint("kinesis")
 	if !ok {
 		return nil, fmt.Errorf("no kinesis peer wired")
 	}
-	body, err := postJSONResult(ep, "Kinesis_20131202.ListShards", "application/x-amz-json-1.1",
+	body, err := postJSONResult(ctx, ep, "Kinesis_20131202.ListShards", "application/x-amz-json-1.1",
 		map[string]any{"StreamName": stream})
 	if err != nil {
 		return nil, err
@@ -151,12 +156,12 @@ func KinesisListShards(dir peers.Directory, stream string) ([]string, error) {
 }
 
 // KinesisGetShardIterator opens a shard iterator on a Kinesis stream.
-func KinesisGetShardIterator(dir peers.Directory, stream, shardID, iterType string) (string, error) {
+func KinesisGetShardIterator(ctx context.Context, dir peers.Directory, stream, shardID, iterType string) (string, error) {
 	ep, ok := dir.Endpoint("kinesis")
 	if !ok {
 		return "", fmt.Errorf("no kinesis peer wired")
 	}
-	body, err := postJSONResult(ep, "Kinesis_20131202.GetShardIterator", "application/x-amz-json-1.1",
+	body, err := postJSONResult(ctx, ep, "Kinesis_20131202.GetShardIterator", "application/x-amz-json-1.1",
 		map[string]any{"StreamName": stream, "ShardId": shardID, "ShardIteratorType": iterType})
 	if err != nil {
 		return "", err
@@ -173,12 +178,12 @@ func KinesisGetShardIterator(dir peers.Directory, stream, shardID, iterType stri
 // KinesisGetRecords fetches records from a Kinesis shard iterator. A nil next
 // iterator means the shard is closed and drained — the caller should re-list
 // shards and pick up the children.
-func KinesisGetRecords(dir peers.Directory, iterator string, limit int) (recs []KinesisRecord, next string, err error) {
+func KinesisGetRecords(ctx context.Context, dir peers.Directory, iterator string, limit int) (recs []KinesisRecord, next string, err error) {
 	ep, ok := dir.Endpoint("kinesis")
 	if !ok {
 		return nil, "", fmt.Errorf("no kinesis peer wired")
 	}
-	body, err := postJSONResult(ep, "Kinesis_20131202.GetRecords", "application/x-amz-json-1.1",
+	body, err := postJSONResult(ctx, ep, "Kinesis_20131202.GetRecords", "application/x-amz-json-1.1",
 		map[string]any{"ShardIterator": iterator, "Limit": limit})
 	if err != nil {
 		return nil, "", err
@@ -197,12 +202,12 @@ func KinesisGetRecords(dir peers.Directory, iterator string, limit int) (recs []
 }
 
 // SQSDelete acknowledges one received message.
-func SQSDelete(dir peers.Directory, queue, receiptHandle string) error {
+func SQSDelete(ctx context.Context, dir peers.Directory, queue, receiptHandle string) error {
 	ep, ok := dir.Endpoint("sqs")
 	if !ok {
 		return fmt.Errorf("no sqs peer wired")
 	}
-	return postJSON(ep, "AmazonSQS.DeleteMessage", "application/x-amz-json-1.0", map[string]any{
+	return postJSON(ctx, ep, "AmazonSQS.DeleteMessage", "application/x-amz-json-1.0", map[string]any{
 		"QueueUrl":      "http://sqs.doze-aws.internal/" + awsident.AccountID + "/" + queue,
 		"ReceiptHandle": receiptHandle,
 	})
@@ -212,12 +217,23 @@ func SQSDelete(dir peers.Directory, queue, receiptHandle string) error {
 // LambdaInvoke fires a synchronous (RequestResponse) invocation and returns the
 // function's response payload. Used by Secrets Manager rotation, which drives a
 // rotation function step by step.
-func LambdaInvoke(dir peers.Directory, function string, payload []byte) ([]byte, error) {
+func LambdaInvoke(ctx context.Context, dir peers.Directory, function string, payload []byte) ([]byte, error) {
+	var out []byte
+	err := trace.Step(ctx, trace.Event{Service: "lambda", Action: "Invoke", Resource: function},
+		func(ctx context.Context) error {
+			var e error
+			out, e = lambdaInvoke(ctx, dir, function, payload)
+			return e
+		})
+	return out, err
+}
+
+func lambdaInvoke(ctx context.Context, dir peers.Directory, function string, payload []byte) ([]byte, error) {
 	ep, ok := dir.Endpoint("lambda")
 	if !ok {
 		return nil, fmt.Errorf("no lambda peer wired")
 	}
-	req, err := http.NewRequest(http.MethodPost,
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		ep.URL("/2015-03-31/functions/"+url.PathEscape(function)+"/invocations"),
 		bytes.NewReader(payload))
 	if err != nil {
@@ -240,12 +256,17 @@ func LambdaInvoke(dir peers.Directory, function string, payload []byte) ([]byte,
 	return body, nil
 }
 
-func LambdaInvokeAsync(dir peers.Directory, function string, payload []byte) error {
+func LambdaInvokeAsync(ctx context.Context, dir peers.Directory, function string, payload []byte) error {
+	return trace.Step(ctx, trace.Event{Service: "lambda", Action: "Invoke (async)", Resource: function},
+		func(ctx context.Context) error { return lambdaInvokeAsync(ctx, dir, function, payload) })
+}
+
+func lambdaInvokeAsync(ctx context.Context, dir peers.Directory, function string, payload []byte) error {
 	ep, ok := dir.Endpoint("lambda")
 	if !ok {
 		return fmt.Errorf("no lambda peer wired")
 	}
-	req, err := http.NewRequest(http.MethodPost,
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		ep.URL("/2015-03-31/functions/"+url.PathEscape(function)+"/invocations"),
 		bytes.NewReader(payload))
 	if err != nil {
@@ -266,7 +287,12 @@ func LambdaInvokeAsync(dir peers.Directory, function string, payload []byte) err
 }
 
 // SNSPublish publishes a message to a topic by ARN (Query protocol).
-func SNSPublish(dir peers.Directory, topicARN, message string) error {
+func SNSPublish(ctx context.Context, dir peers.Directory, topicARN, message string) error {
+	return trace.Step(ctx, trace.Event{Service: "sns", Action: "Publish", Resource: arnTail(topicARN)},
+		func(ctx context.Context) error { return snsPublish(ctx, dir, topicARN, message) })
+}
+
+func snsPublish(ctx context.Context, dir peers.Directory, topicARN, message string) error {
 	ep, ok := dir.Endpoint("sns")
 	if !ok {
 		return fmt.Errorf("no sns peer wired")
@@ -276,7 +302,12 @@ func SNSPublish(dir peers.Directory, topicARN, message string) error {
 		"TopicArn": {topicARN},
 		"Message":  {message},
 	}
-	resp, err := ep.Client.PostForm(ep.URL("/"), form)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ep.URL("/"), strings.NewReader(form.Encode()))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp, err := ep.Client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -288,17 +319,20 @@ func SNSPublish(dir peers.Directory, topicARN, message string) error {
 	return nil
 }
 
-func postJSON(ep peers.Endpoint, target, contentType string, payload any) error {
-	_, err := postJSONResult(ep, target, contentType, payload)
+func postJSON(ctx context.Context, ep peers.Endpoint, target, contentType string, payload any) error {
+	_, err := postJSONResult(ctx, ep, target, contentType, payload)
 	return err
 }
 
-func postJSONResult(ep peers.Endpoint, target, contentType string, payload any) ([]byte, error) {
+func postJSONResult(ctx context.Context, ep peers.Endpoint, target, contentType string, payload any) ([]byte, error) {
 	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(http.MethodPost, ep.URL("/"), bytes.NewReader(body))
+	// WithContext, not a bare request: in the embedded topology the peer's
+	// handler is invoked with this very request, so the trace values ride
+	// along and a cascade can be more than one hop deep.
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, ep.URL("/"), bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -326,12 +360,12 @@ const maxPeerResponse = 16 << 20
 // S3Get fetches an object from the local S3, path-style. Lambda uses it to
 // materialize function code that a deploy tool uploaded to a staging bucket —
 // which is what `sam deploy` and `cdk deploy` both do.
-func S3Get(dir peers.Directory, bucket, key string) ([]byte, error) {
+func S3Get(ctx context.Context, dir peers.Directory, bucket, key string) ([]byte, error) {
 	ep, ok := dir.Endpoint("s3")
 	if !ok {
 		return nil, fmt.Errorf("no s3 peer wired")
 	}
-	req, err := http.NewRequest(http.MethodGet, ep.BaseURL+"/"+bucket+"/"+key, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ep.BaseURL+"/"+bucket+"/"+key, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -371,12 +405,12 @@ func (k KMSKeyState) Usable() bool { return k.Found && k.State == "Enabled" }
 // A directory with no KMS peer yields ok=false rather than an error: a stack
 // assembled without KMS should not have its other services start refusing
 // writes.
-func KMSDescribeKey(dir peers.Directory, keyID string) (state KMSKeyState, ok bool, err error) {
+func KMSDescribeKey(ctx context.Context, dir peers.Directory, keyID string) (state KMSKeyState, ok bool, err error) {
 	ep, wired := dir.Endpoint("kms")
 	if !wired {
 		return KMSKeyState{}, false, nil
 	}
-	out, err := postJSONResult(ep, "TrentService.DescribeKey", "application/x-amz-json-1.1",
+	out, err := postJSONResult(ctx, ep, "TrentService.DescribeKey", "application/x-amz-json-1.1",
 		map[string]any{"KeyId": keyID})
 	if err != nil {
 		// KMS answers NotFoundException for a key that does not exist; that is
@@ -406,4 +440,13 @@ func KMSDescribeKey(dir peers.Directory, keyID string) (state KMSKeyState, ok bo
 		}
 	}
 	return KMSKeyState{KeyID: m.KeyID, State: st, Found: true}, true, nil
+}
+
+// arnTail is the last colon-separated segment of an ARN — the topic or queue
+// name, which is what a reader recognises.
+func arnTail(arn string) string {
+	if i := strings.LastIndex(arn, ":"); i >= 0 {
+		return arn[i+1:]
+	}
+	return arn
 }

@@ -519,7 +519,7 @@ func (s *Server) pollSQS(poller *esm, m *EventSourceMapping) {
 			return
 		default:
 		}
-		msgs, err := peercall.SQSReceive(s.peers, queue, batch, 2)
+		msgs, err := peercall.SQSReceive(context.Background(), s.peers, queue, batch, 2)
 		if err != nil {
 			if sleepOrStop(poller, time.Second) {
 				return
@@ -548,7 +548,7 @@ func (s *Server) pollSQS(poller *esm, m *EventSourceMapping) {
 		res, err := s.runInvoke(context.Background(), f, payload)
 		if err == nil && res.FunctionErr == "" {
 			for _, msg := range msgs {
-				_ = peercall.SQSDelete(s.peers, queue, msg.ReceiptHandle)
+				_ = peercall.SQSDelete(context.Background(), s.peers, queue, msg.ReceiptHandle)
 			}
 		}
 		// On failure, leave the messages for the visibility-timeout retry.
@@ -570,7 +570,7 @@ func (s *Server) pollDDBStream(poller *esm, m *EventSourceMapping) {
 		if sleepOrStop(poller, 0) {
 			return
 		}
-		it, err := peercall.DDBGetShardIterator(s.peers, streamArn, peercall.DDBStreamShardID, "TRIM_HORIZON")
+		it, err := peercall.DDBGetShardIterator(context.Background(), s.peers, streamArn, peercall.DDBStreamShardID, "TRIM_HORIZON")
 		if err != nil {
 			if sleepOrStop(poller, time.Second) {
 				return
@@ -585,7 +585,7 @@ func (s *Server) pollDDBStream(poller *esm, m *EventSourceMapping) {
 			return
 		default:
 		}
-		recs, next, err := peercall.DDBGetRecords(s.peers, iter, batch)
+		recs, next, err := peercall.DDBGetRecords(context.Background(), s.peers, iter, batch)
 		if err != nil {
 			if sleepOrStop(poller, time.Second) {
 				return
@@ -635,7 +635,7 @@ func (s *Server) pollKinesis(poller *esm, m *EventSourceMapping) {
 		}
 
 		if refresh {
-			shards, err := peercall.KinesisListShards(s.peers, stream)
+			shards, err := peercall.KinesisListShards(context.Background(), s.peers, stream)
 			if err != nil {
 				if sleepOrStop(poller, time.Second) {
 					return
@@ -648,7 +648,7 @@ func (s *Server) pollKinesis(poller *esm, m *EventSourceMapping) {
 				}
 				// New shards start at the trim horizon so a mapping created
 				// after the writes still sees them.
-				it, err := peercall.KinesisGetShardIterator(s.peers, stream, id, "TRIM_HORIZON")
+				it, err := peercall.KinesisGetShardIterator(context.Background(), s.peers, stream, id, "TRIM_HORIZON")
 				if err != nil {
 					continue
 				}
@@ -666,7 +666,7 @@ func (s *Server) pollKinesis(poller *esm, m *EventSourceMapping) {
 
 		idle := true
 		for id, iter := range iterators {
-			recs, next, err := peercall.KinesisGetRecords(s.peers, iter, batch)
+			recs, next, err := peercall.KinesisGetRecords(context.Background(), s.peers, iter, batch)
 			if err != nil {
 				delete(iterators, id) // stale or expired iterator: re-open it
 				refresh = true

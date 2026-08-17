@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1341,5 +1342,112 @@ func TestS3ListingCrossesThePageBoundary(t *testing.T) {
 	// And the rows themselves have to be there, not just the count.
 	if got := strings.Count(body, "key-01004"); got == 0 {
 		t.Error("the object past the first page was not rendered")
+	}
+}
+
+// TestWireShowsTheCascade is the test for the one thing this console can do
+// that neither the AWS console nor CloudTrail can: show what an API call
+// caused, not just that it happened.
+//
+// One PutObject fires a bucket notification, which publishes to a topic, which
+// fans out to two queues. None of those three calls crosses the gateway — they
+// happen inside the process — so before tracing they were invisible, and the
+// wire showed a lone PutObject with no hint that anything followed.
+//
+// The assertions are about SHAPE, because that is the claim: the publish
+// descends from the put, and the sends descend from the publish rather than
+// from the put. Getting the second level right is what needed each step's id
+// reserved before its work ran.
+func TestWireShowsTheCascade(t *testing.T) {
+	if testing.Short() {
+		t.Skip("boots a Stack")
+	}
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { stack.Close() })
+	rec := console.NewRecorder(stack.Handler())
+	c, err := console.New(console.Options{Peers: peers.InProcess(stack.Service), Recorder: rec})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	gw := func(method, target, ct, body string, hdrs map[string]string) {
+		t.Helper()
+		r := httptest.NewRequest(method, target, strings.NewReader(body))
+		if ct != "" {
+			r.Header.Set("Content-Type", ct)
+		}
+		for k, v := range hdrs {
+			r.Header.Set(k, v)
+		}
+		w := httptest.NewRecorder()
+		rec.ServeHTTP(w, r)
+		if w.Code >= 400 {
+			t.Fatalf("%s %s = %d: %s", method, target, w.Code, w.Body.String())
+		}
+	}
+	form := "application/x-www-form-urlencoded"
+
+	for _, q := range []string{"orders-q", "audit-q"} {
+		gw("POST", "/", form, "Action=CreateQueue&QueueName="+q, nil)
+	}
+	gw("POST", "/", form, "Action=CreateTopic&Name=uploads", nil)
+	topic := "arn:aws:sns:us-east-1:000000000000:uploads"
+	for _, q := range []string{"orders-q", "audit-q"} {
+		gw("POST", "/", form, "Action=Subscribe&TopicArn="+url.QueryEscape(topic)+
+			"&Protocol=sqs&Endpoint="+url.QueryEscape("arn:aws:sqs:us-east-1:000000000000:"+q), nil)
+	}
+	gw("PUT", "/inbox", "", "", nil)
+	gw("PUT", "/inbox?notification", "application/xml",
+		"<NotificationConfiguration><TopicConfiguration><Topic>"+topic+
+			"</Topic><Event>s3:ObjectCreated:*</Event></TopicConfiguration></NotificationConfiguration>", nil)
+
+	gw("PUT", "/inbox/order.json", "application/json", `{"order":1}`, nil)
+
+	// The notification is delivered on its own goroutine; give it a moment.
+	deadline := time.Now().Add(3 * time.Second)
+	var body string
+	for time.Now().Before(deadline) {
+		body = req(t, c, "GET", "/_console/", nil).Body.String()
+		if strings.Count(body, "SendMessage") >= 2 {
+			break
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+
+	// Read each row's own depth: scanning the whole document for a depth
+	// attribute and then the action would always find the first row's.
+	depthOf := func(action, resource string) int {
+		for _, row := range strings.Split(body, `data-depth="`)[1:] {
+			end := strings.Index(row, `"`)
+			if end < 0 {
+				continue
+			}
+			d, _ := strconv.Atoi(row[:end])
+			// Bound the search to this row, so the next row's action cannot
+			// answer for this one.
+			if next := strings.Index(row, "tr-row"); next > 0 {
+				row = row[:next]
+			}
+			if strings.Contains(row, ">"+action+"<") && strings.Contains(row, ">"+resource+"<") {
+				return d
+			}
+		}
+		return -1
+	}
+
+	if got := depthOf("PutObject", "inbox/order.json"); got != 0 {
+		t.Errorf("the PutObject is at depth %d, want 0 — it is the cause, not a consequence", got)
+	}
+	if got := depthOf("Publish", "uploads"); got != 1 {
+		t.Errorf("the topic publish is at depth %d, want 1 (caused by the put)", got)
+	}
+	for _, q := range []string{"orders-q", "audit-q"} {
+		if got := depthOf("SendMessage", q); got != 2 {
+			t.Errorf("the send to %s is at depth %d, want 2 — it descends from the publish, "+
+				"not from the put", q, got)
+		}
 	}
 }

@@ -1228,3 +1228,11 @@ a.lo-card:hover { border-color: var(--accent); }
    wrong for a document. */
 .preview.txt { display: block; place-items: initial; min-height: 0; max-height: 260px; overflow: auto; background: var(--muted); }
 .obj-pre { margin: 0; padding: 10px 12px; font: 11.5px/1.55 var(--mono); white-space: pre-wrap; word-break: break-word; }
+
+/* ---------- the wire: caused work ---------- */
+/* Internal work the gateway never saw — a bucket notification, a topic
+   fan-out — nested under the call that caused it. Quieter than a real request
+   because it is a consequence, not something anyone asked for directly. */
+.tr-row.tr-child { background: color-mix(in srgb, var(--muted) 45%, transparent); }
+.tr-row.tr-child .act { color: var(--muted-foreground); }
+.tr-branch { color: var(--muted-foreground); margin-right: 4px; opacity: .7; }

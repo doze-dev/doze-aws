@@ -11,6 +11,7 @@
 package eventbridge
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -102,7 +103,7 @@ func (s *Server) Close() error {
 	return err
 }
 
-type handler func(s *Server, p map[string]any) (any, *awshttp.APIError)
+type handler func(s *Server, ctx context.Context, p map[string]any) (any, *awshttp.APIError)
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	action, aerr := s.api.Action(r)
@@ -125,7 +126,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.api.WriteError(w, awshttp.Errf(400, "InvalidAction", "unknown EventBridge action %q", action))
 		return
 	}
-	result, aerr := h(s, params)
+	result, aerr := h(s, r.Context(), params)
 	if aerr != nil {
 		s.logf("eventbridge: %s -> %s", action, aerr.Code)
 		s.api.WriteError(w, aerr)

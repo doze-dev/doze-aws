@@ -1,6 +1,7 @@
 package sns
 
 import (
+	"context"
 	"fmt"
 	"github.com/doze-dev/doze-aws/awsident"
 	"net/url"
@@ -13,7 +14,7 @@ import (
 )
 
 // dispatch maps an SNS action to its handler.
-var dispatch = map[string]func(*Server, url.Values, string) (any, *apiError){
+var dispatch = map[string]func(*Server, context.Context, url.Values, string) (any, *apiError){
 	"CreateTopic":               (*Server).createTopic,
 	"DeleteTopic":               (*Server).deleteTopic,
 	"ListTopics":                (*Server).listTopics,
@@ -107,7 +108,7 @@ type publishBatchResult struct {
 
 // ---- handlers ----
 
-func (srv *Server) createTopic(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) createTopic(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	t, err := srv.store.CreateTopic(form.Get("Name"), subscribeAttributes(form), memberTags(form))
 	if err != nil {
 		return nil, asErr(err)
@@ -115,11 +116,11 @@ func (srv *Server) createTopic(form url.Values, _ string) (any, *apiError) {
 	return createTopicResult{TopicArn: t.ARN}, nil
 }
 
-func (srv *Server) deleteTopic(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) deleteTopic(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	return nil, asErr(srv.store.DeleteTopic(form.Get("TopicArn")))
 }
 
-func (srv *Server) listTopics(_ url.Values, _ string) (any, *apiError) {
+func (srv *Server) listTopics(ctx context.Context, _ url.Values, _ string) (any, *apiError) {
 	topics, err := srv.store.ListTopics()
 	if err != nil {
 		return nil, asErr(err)
@@ -149,7 +150,7 @@ func defaultTopicPolicy(arn string) string {
 		`{"AWS:SourceOwner":"` + awsident.AccountID + `"}}}]}`
 }
 
-func (srv *Server) getTopicAttributes(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) getTopicAttributes(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	arn := form.Get("TopicArn")
 	if !srv.store.TopicExists(arn) {
 		return nil, errNotFound("topic does not exist: " + arn)
@@ -186,7 +187,7 @@ func countConfirmed(subs []Subscription) int {
 	return n
 }
 
-func (srv *Server) subscribe(form url.Values, host string) (any, *apiError) {
+func (srv *Server) subscribe(ctx context.Context, form url.Values, host string) (any, *apiError) {
 	topicArn, proto, endpoint := form.Get("TopicArn"), form.Get("Protocol"), form.Get("Endpoint")
 	if topicArn == "" || proto == "" || endpoint == "" {
 		return nil, errInvalid("TopicArn, Protocol and Endpoint are required")
@@ -212,7 +213,7 @@ func (srv *Server) subscribe(form url.Values, host string) (any, *apiError) {
 	return subscribeResult{SubscriptionArn: arn}, nil
 }
 
-func (srv *Server) confirmSubscription(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) confirmSubscription(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	sub, err := srv.store.ConfirmByToken(form.Get("Token"))
 	if err != nil {
 		return nil, asErr(err)
@@ -220,15 +221,15 @@ func (srv *Server) confirmSubscription(form url.Values, _ string) (any, *apiErro
 	return confirmResult{SubscriptionArn: sub.ARN}, nil
 }
 
-func (srv *Server) unsubscribe(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) unsubscribe(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	return nil, asErr(srv.store.Unsubscribe(form.Get("SubscriptionArn")))
 }
 
-func (srv *Server) listSubscriptions(_ url.Values, _ string) (any, *apiError) {
+func (srv *Server) listSubscriptions(ctx context.Context, _ url.Values, _ string) (any, *apiError) {
 	return srv.subscriptionList("")
 }
 
-func (srv *Server) listSubscriptionsByTopic(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) listSubscriptionsByTopic(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	return srv.subscriptionList(form.Get("TopicArn"))
 }
 
@@ -251,7 +252,7 @@ func (srv *Server) subscriptionList(topic string) (any, *apiError) {
 	return res, nil
 }
 
-func (srv *Server) setSubscriptionAttributes(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) setSubscriptionAttributes(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	if form.Get("AttributeName") == "FilterPolicy" {
 		if perr := validateFilterPolicy(form.Get("AttributeValue")); perr != nil {
 			return nil, perr
@@ -273,7 +274,7 @@ func validateFilterPolicy(policyJSON string) *apiError {
 	}
 	return nil
 }
-func (srv *Server) getSubscriptionAttributes(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) getSubscriptionAttributes(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	sub, err := srv.store.GetSubscription(form.Get("SubscriptionArn"))
 	if err != nil {
 		return nil, asErr(err)
@@ -305,7 +306,7 @@ func boolStr(b bool) string {
 	return "false"
 }
 
-func (srv *Server) publish(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) publish(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	topicArn := form.Get("TopicArn")
 	if topicArn == "" {
 		topicArn = form.Get("TargetArn")
@@ -314,11 +315,11 @@ func (srv *Server) publish(form url.Values, _ string) (any, *apiError) {
 		return nil, errNotFound("topic does not exist: " + topicArn)
 	}
 	id := newID()
-	srv.deliver(id, topicArn, form.Get("Subject"), form.Get("Message"), messageAttributes(form))
+	srv.deliver(ctx, id, topicArn, form.Get("Subject"), form.Get("Message"), messageAttributes(form))
 	return publishResult{MessageID: id}, nil
 }
 
-func (srv *Server) publishBatch(form url.Values, _ string) (any, *apiError) {
+func (srv *Server) publishBatch(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	topicArn := form.Get("TopicArn")
 	if !srv.store.TopicExists(topicArn) {
 		return nil, errNotFound("topic does not exist: " + topicArn)
@@ -331,7 +332,7 @@ func (srv *Server) publishBatch(form url.Values, _ string) (any, *apiError) {
 			break
 		}
 		mid := newID()
-		srv.deliver(mid, topicArn, form.Get(base+"Subject"), form.Get(base+"Message"), entryMessageAttributes(form, base))
+		srv.deliver(ctx, mid, topicArn, form.Get(base+"Subject"), form.Get(base+"Message"), entryMessageAttributes(form, base))
 		res.Successful.Member = append(res.Successful.Member, pbSuccess{ID: id, MessageID: mid})
 	}
 	return res, nil
