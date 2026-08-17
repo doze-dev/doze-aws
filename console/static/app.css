@@ -1204,3 +1204,20 @@ a.lo-card:hover { border-color: var(--accent); }
 .tm-cold { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border: 1px solid var(--warning); border-radius: var(--radius); color: var(--warning); font-size: 11.5px; font-weight: 600; }
 .tm-cold .ic { width: 13px; height: 13px; }
 .lam-await { padding: 14px 16px; }
+
+/* ---------- receive countdown ---------- */
+/* A receive count only means something against the dead-letter threshold, so
+   the chip escalates as the message approaches it: quiet while there is room,
+   warning one receive out, destructive once it has arrived. */
+.mm.rc-none { color: var(--muted-foreground); }
+.mm.rc-ok   { color: var(--muted-foreground); }
+.mm.rc-warn { color: var(--warning); border-color: var(--warning); }
+.mm.rc-bad  { color: var(--destructive); border-color: var(--destructive); background: color-mix(in srgb, var(--destructive) 7%, transparent); }
+
+/* ---------- read cost ---------- */
+/* How much a filter threw away. Quiet when the read was efficient; loud when
+   most of what it paid for was discarded, because that is a query waiting to
+   be written. */
+.rs { color: var(--muted-foreground); }
+.rs-warn { color: var(--warning); }
+.rs-bad { color: var(--destructive); font-weight: 600; }

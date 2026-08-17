@@ -397,7 +397,7 @@ func decodeCursor(s string) map[string]json.RawMessage {
 	return m
 }
 
-func (b *backend) ScanItems(ctx context.Context, t *Table, filter string, fvals map[string]any, fnames map[string]string, limit int, cursor string) ([]Item, string, error) {
+func (b *backend) ScanItems(ctx context.Context, t *Table, filter string, fvals map[string]any, fnames map[string]string, limit int, cursor string) ([]Item, string, ReadStats, error) {
 	in := map[string]any{"TableName": t.Name, "Limit": limit}
 	if strings.TrimSpace(filter) != "" {
 		in["FilterExpression"] = filter
@@ -413,16 +413,42 @@ func (b *backend) ScanItems(ctx context.Context, t *Table, filter string, fvals 
 	}
 	body, err := b.ddbCall(ctx, "Scan", in)
 	if err != nil {
-		return nil, "", err
+		return nil, "", ReadStats{}, err
 	}
 	var out struct {
 		Items            []map[string]json.RawMessage `json:"Items"`
 		LastEvaluatedKey map[string]json.RawMessage   `json:"LastEvaluatedKey"`
+		Count            int                          `json:"Count"`
+		ScannedCount     int                          `json:"ScannedCount"`
 	}
 	if err := json.Unmarshal(body, &out); err != nil {
-		return nil, "", err
+		return nil, "", ReadStats{}, err
 	}
-	return b.itemsFromAV(t, out.Items), encodeCursor(out.LastEvaluatedKey), nil
+	stats := ReadStats{Count: out.Count, ScannedCount: out.ScannedCount}
+	return b.itemsFromAV(t, out.Items), encodeCursor(out.LastEvaluatedKey), stats, nil
+}
+
+// ReadStats is what a read cost, as DynamoDB reports it.
+//
+// Count and ScannedCount are the same number until a filter is involved, and
+// then the gap between them is the whole point: a filter runs AFTER the read,
+// so "3 returned, 40,000 scanned" is a table scan you are paying for in full
+// and a query you have not written yet. The console said "3 scanned", which
+// was both wrong and the opposite of the warning.
+type ReadStats struct {
+	Count        int
+	ScannedCount int
+}
+
+// Filtered reports whether the read examined more rows than it returned.
+func (s ReadStats) Filtered() bool { return s.ScannedCount > s.Count }
+
+// Wasted is the proportion of scanned rows the filter threw away, 0-100.
+func (s ReadStats) Wasted() int {
+	if s.ScannedCount <= 0 || s.ScannedCount <= s.Count {
+		return 0
+	}
+	return (s.ScannedCount - s.Count) * 100 / s.ScannedCount
 }
 
 // QueryOpts describes a key-based query against the base table or a GSI.
@@ -441,7 +467,7 @@ type QueryOpts struct {
 
 // QueryItems runs a Query, building the KeyConditionExpression from the chosen
 // index's key schema. Names are aliased (#pk/#sk) to dodge reserved words.
-func (b *backend) QueryItems(ctx context.Context, t *Table, o QueryOpts) ([]Item, string, error) {
+func (b *backend) QueryItems(ctx context.Context, t *Table, o QueryOpts) ([]Item, string, ReadStats, error) {
 	pkName, pkType := t.HashKey, t.HashType
 	skName, skType := t.RangeKey, t.RangeType
 	if o.Index != "" {
@@ -493,16 +519,19 @@ func (b *backend) QueryItems(ctx context.Context, t *Table, o QueryOpts) ([]Item
 	}
 	body, err := b.ddbCall(ctx, "Query", in)
 	if err != nil {
-		return nil, "", err
+		return nil, "", ReadStats{}, err
 	}
 	var out struct {
 		Items            []map[string]json.RawMessage `json:"Items"`
 		LastEvaluatedKey map[string]json.RawMessage   `json:"LastEvaluatedKey"`
+		Count            int                          `json:"Count"`
+		ScannedCount     int                          `json:"ScannedCount"`
 	}
 	if err := json.Unmarshal(body, &out); err != nil {
-		return nil, "", err
+		return nil, "", ReadStats{}, err
 	}
-	return b.itemsFromAV(t, out.Items), encodeCursor(out.LastEvaluatedKey), nil
+	stats := ReadStats{Count: out.Count, ScannedCount: out.ScannedCount}
+	return b.itemsFromAV(t, out.Items), encodeCursor(out.LastEvaluatedKey), stats, nil
 }
 
 // PartiQL runs an ExecuteStatement and maps results back to the base table.

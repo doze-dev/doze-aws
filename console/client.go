@@ -412,6 +412,32 @@ type SQSMessage struct {
 	Sum           MsgSummary // display form, filled by the handler before render
 }
 
+// ReceiveState says how close this message is to being dead-lettered, which is
+// the question a receive count is actually asked. Returns "" when the message
+// has never been received, so the chip stays off the common case.
+//
+// The rule lives here rather than in the template because it is the sort of
+// off-by-one that is easy to get wrong and impossible to see: "bad" means this
+// message has already hit the threshold and the next failed receive moves it,
+// "warn" means one more receive reaches it.
+func (m SQSMessage) ReceiveState(maxReceive int) string {
+	n := atoi(m.Receives)
+	if n == 0 {
+		return ""
+	}
+	if maxReceive <= 0 {
+		return "none" // no dead-letter queue configured: a count, not a countdown
+	}
+	switch {
+	case n >= maxReceive:
+		return "bad"
+	case n+1 >= maxReceive:
+		return "warn"
+	default:
+		return "ok"
+	}
+}
+
 // MsgAttr is one user message attribute (metadata alongside the body).
 type MsgAttr struct{ Name, Type, Value string }
 

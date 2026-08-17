@@ -204,7 +204,16 @@
   <thead><tr><th>{{.Table.HashKey}}</th>{{if .Table.RangeKey}}<th>{{.Table.RangeKey}}</th>{{end}}{{if .Cols}}{{range .Cols}}<th class="mono" style="font-weight:500">{{.}}</th>{{end}}{{else}}<th>Attributes</th>{{end}}<th style="width:36px"></th></tr></thead>
   <tbody>{{template "ddb_item_rows" .}}</tbody>
 </table></div>
-<div class="tbl-foot">{{len .Items}} item{{if ne (len .Items) 1}}s{{end}}{{if eq .Mode "query"}} matched{{else if eq .Mode "partiql"}} returned{{else}} scanned{{end}}{{if .Next}} · load more below{{end}}</div>
+{{/* Returned and scanned are the same number until a filter is involved, and
+     then the gap is the finding: a filter runs AFTER the read, so a small
+     result off a large scan is a table scan you paid for in full. This used to
+     say "{{len .Items}} scanned", which reported the post-filter count under
+     the pre-filter word — the one reading that mattered, stated backwards. */}}
+<div class="tbl-foot">
+  {{len .Items}} item{{if ne (len .Items) 1}}s{{end}}{{if eq .Mode "query"}} matched{{else if eq .Mode "partiql"}} returned{{else}} returned{{end}}
+  {{with .Stats}}{{if .Filtered}}<span class="rs {{if ge .Wasted 90}}rs-bad{{else if ge .Wasted 50}}rs-warn{{end}}" title="ScannedCount {{.ScannedCount}} vs Count {{.Count}} — the filter is applied after the read, so every scanned item was paid for.">· {{.ScannedCount}} scanned, {{.Wasted}}% discarded by the filter</span>{{end}}{{end}}
+  {{if .Next}} · load more below{{end}}
+</div>
 {{else}}<div class="empty" style="border:0"><span class="ic-lg">{{icon "database"}}</span><p>{{if eq .Mode "query"}}No items match that key.{{else if eq .Mode "partiql"}}No rows returned.{{else}}No items yet — add one, or write via the SDK.{{end}}</p></div>{{end}}
 </div>
 {{end}}

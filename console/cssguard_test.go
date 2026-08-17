@@ -92,3 +92,44 @@ func readAll(t *testing.T, path string) string {
 	}
 	return string(b)
 }
+
+// TestTemplateTokensAreDefined guards the other half of the styling contract.
+// TestTemplateClassesAreStyled catches a class with no rules; this catches an
+// inline style reaching for a custom property that does not exist.
+//
+// It has already happened twice in one week, both times from renaming a token
+// in the stylesheet: --accent-blue became --accent and two templates kept the
+// old name, and the hsl()-to-hex change left eleven templates passing hex into
+// hsl(). Neither failed a test, neither failed a build, and both rendered as a
+// silently inherited colour — the most expensive kind of wrong, because it
+// looks deliberate.
+func TestTemplateTokensAreDefined(t *testing.T) {
+	css := readAll(t, "static/app.css")
+	defined := map[string]bool{}
+	for _, m := range regexp.MustCompile(`(--[a-z0-9-]+)\s*:`).FindAllStringSubmatch(css, -1) {
+		defined[m[1]] = true
+	}
+
+	files, err := os.ReadDir("templates")
+	if err != nil {
+		t.Fatal(err)
+	}
+	varRe := regexp.MustCompile(`var\((--[a-z0-9-]+)`)
+	for _, f := range files {
+		if !strings.HasSuffix(f.Name(), ".html") {
+			continue
+		}
+		src := readAll(t, filepath.Join("templates", f.Name()))
+		for _, m := range varRe.FindAllStringSubmatch(src, -1) {
+			tok := m[1]
+			// Service tokens can be built by interpolation (--svc-{{.Svc}});
+			// those resolve at render time and the prefix is what matters.
+			if strings.HasPrefix(tok, "--svc-") {
+				continue
+			}
+			if !defined[tok] {
+				t.Errorf("%s uses var(%s), which app.css does not define", f.Name(), tok)
+			}
+		}
+	}
+}

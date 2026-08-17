@@ -1272,3 +1272,32 @@ func excerpt(body, marker string) string {
 	}
 	return "  ..." + body[lo:hi] + "..."
 }
+
+// TestReceiveStateCountsDownToTheDLQ pins the off-by-one in the rule that
+// decides when a message is about to be dead-lettered. "bad" has to mean it
+// has ALREADY reached the threshold — one more failed receive moves it — and
+// "warn" that it is one receive away, because a chip that turns red only after
+// the message is gone is telling you something you can no longer act on.
+func TestReceiveStateCountsDownToTheDLQ(t *testing.T) {
+	cases := []struct {
+		receives   string
+		maxReceive int
+		want       string
+	}{
+		{"0", 3, ""},     // never received: no chip at all
+		{"", 3, ""},      // absent attribute
+		{"1", 3, "ok"},   // room to spare
+		{"2", 3, "warn"}, // one more receive reaches the threshold
+		{"3", 3, "bad"},  // at it
+		{"4", 3, "bad"},  // past it
+		{"1", 0, "none"}, // no DLQ configured: a count, not a countdown
+		{"1", 1, "bad"},  // threshold of one is reached on the first receive
+	}
+	for _, c := range cases {
+		m := console.SQSMessage{Receives: c.receives}
+		if got := m.ReceiveState(c.maxReceive); got != c.want {
+			t.Errorf("ReceiveState(receives=%q, max=%d) = %q, want %q",
+				c.receives, c.maxReceive, got, c.want)
+		}
+	}
+}

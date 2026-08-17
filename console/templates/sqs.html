@@ -71,7 +71,7 @@
 {{define "message_panel"}}
 <div id="message-panel-wrap" data-live="{{.Prefix}}/sqs/{{.Queue}}/messages" data-live-ms="3000" data-hash="{{.Hash}}">
   <div class="panel-head" style="margin-bottom:10px">
-    <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px">Messages <span class="{{if .Available}}badge{{else}}badge zero{{end}}">{{.Available}}</span> <span class="dim" style="font-weight:400;font-size:11.5px">· {{.InFlight}} in flight</span></div>
+    <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px">Messages <span class="{{if .Available}}badge{{else}}badge zero{{end}}">{{.Available}}</span> <span class="dim" style="font-weight:400;font-size:11.5px">· {{.InFlight}} in flight{{if .Delayed}} · {{.Delayed}} delayed{{end}}</span></div>
     <div style="display:flex;align-items:center;gap:10px">
       <span class="peek" title="Peeked without consuming — refreshing never receives or hides messages">{{icon "eye"}} live peek</span>
       {{if and .Sources .Available}}
@@ -109,7 +109,7 @@
         {{if .GroupID}}<span class="mm" title="MessageGroupId">group <b>{{.GroupID}}</b></span>{{end}}
         {{if .DedupID}}<span class="mm" title="MessageDeduplicationId">dedup <b class="trunc" style="max-width:120px;display:inline-block;vertical-align:bottom">{{.DedupID}}</b></span>{{end}}
         {{if .SeqNo}}<span class="mm" title="SequenceNumber">seq <b>{{.SeqNo}}</b></span>{{end}}
-        {{if and .Receives (ne .Receives "0")}}<span class="mm warn" title="ApproximateReceiveCount — real receives; peeking never counts">received {{.Receives}}×</span>{{end}}
+        {{$rc := .ReceiveState $.MaxReceive}}{{if $rc}}<span class="mm rc-{{$rc}}" title="ApproximateReceiveCount — real receives; peeking never counts.{{if $.MaxReceive}} At {{$.MaxReceive}} this message moves to the dead-letter queue.{{end}}">received {{.Receives}}{{if $.MaxReceive}} of {{$.MaxReceive}}{{else}}×{{end}}</span>{{end}}
         {{range .Attrs}}<span class="mm attr" title="message attribute · {{.Type}}">{{.Name}} = <b>{{.Value}}</b></span>{{end}}
       </div>
       {{end}}
@@ -132,7 +132,7 @@
       <tr><td>Visibility timeout</td><td>{{.Config.Visibility}} s</td></tr>
       <tr><td>Message retention</td><td>{{.Config.Retention}} s</td></tr>
       <tr><td>Delivery delay</td><td>{{if .Config.Delay}}{{.Config.Delay}}{{else}}0{{end}} s</td></tr>
-      {{if .Config.DLQ}}<tr><td>Dead-letter queue</td><td><a href="{{.Prefix}}/sqs/{{.Config.DLQ}}" style="color:var(--accent-blue)">{{.Config.DLQ}}</a> <span class="dim">after {{.Config.MaxReceive}} receives</span></td></tr>{{end}}
+      {{if .Config.DLQ}}<tr><td>Dead-letter queue</td><td><a href="{{.Prefix}}/sqs/{{.Config.DLQ}}" style="color:var(--accent)">{{.Config.DLQ}}</a> <span class="dim">after {{.Config.MaxReceive}} receives</span></td></tr>{{end}}
       {{if .Config.Created}}<tr><td>Created</td><td title="{{.Config.Created}}">{{ago .Config.Created}}</td></tr>{{end}}
     </tbody></table></div>
   </div>

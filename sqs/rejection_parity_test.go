@@ -249,3 +249,58 @@ func TestQueueNameCharset(t *testing.T) {
 		})
 	}
 }
+
+// TestDelayedIsNotInFlight separates two states doze-aws used to collapse.
+//
+// A message can be invisible because a consumer is working on it, or because
+// it has never been delivered and is still serving DelaySeconds. SQS counts
+// those separately, and the difference is not cosmetic: anything scaling
+// consumers off ApproximateNumberOfMessagesNotVisible would scale up for work
+// nobody is doing.
+func TestDelayedIsNotInFlight(t *testing.T) {
+	ctx := context.Background()
+	c := sdkClient(t)
+
+	out, err := c.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("states")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	url := out.QueueUrl
+
+	// One available, one delayed, one in flight.
+	for _, body := range []string{"available", "inflight"} {
+		if _, err := c.SendMessage(ctx, &awssqs.SendMessageInput{
+			QueueUrl: url, MessageBody: aws.String(body),
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := c.SendMessage(ctx, &awssqs.SendMessageInput{
+		QueueUrl: url, MessageBody: aws.String("delayed"), DelaySeconds: 900,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	// Receive exactly one, and hold it: that is the only in-flight message.
+	got, err := c.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{
+		QueueUrl: url, MaxNumberOfMessages: 1, VisibilityTimeout: 300,
+	})
+	if err != nil || len(got.Messages) != 1 {
+		t.Fatalf("ReceiveMessage = %d messages, err %v", len(got.Messages), err)
+	}
+
+	attrs, err := c.GetQueueAttributes(ctx, &awssqs.GetQueueAttributesInput{
+		QueueUrl: url, AttributeNames: []types.QueueAttributeName{"All"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ name, want string }{
+		{"ApproximateNumberOfMessages", "1"},
+		{"ApproximateNumberOfMessagesNotVisible", "1"},
+		{"ApproximateNumberOfMessagesDelayed", "1"},
+	} {
+		if got := attrs.Attributes[c.name]; got != c.want {
+			t.Errorf("%s = %q, want %q\n  all: %v", c.name, got, c.want, attrs.Attributes)
+		}
+	}
+}

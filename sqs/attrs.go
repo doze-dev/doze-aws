@@ -123,15 +123,28 @@ func (s *Store) Attributes(name string) (map[string]string, error) {
 		if err != nil {
 			return err
 		}
-		visible, inflight := 0, 0
+		// Three states, not two. A message can be invisible for two different
+		// reasons and SQS counts them separately: NotVisible means a consumer
+		// has it and is working on it, Delayed means it has never been
+		// delivered and is still serving its DelaySeconds.
+		//
+		// Lumping them together made a delayed message look like one being
+		// processed, which is the opposite conclusion — anything scaling
+		// consumers off NotVisible would scale up for work nobody is doing.
+		// ReceiveCount is what tells them apart: a delayed message has never
+		// been received.
+		visible, inflight, delayed := 0, 0, 0
 		now := s.now().UnixNano()
 		if mb := tx.Bucket(msgBucket(name)); mb != nil {
 			_ = mb.ForEach(func(_, raw []byte) error {
 				var m Message
 				if json.Unmarshal(raw, &m) == nil {
-					if m.VisibleAt <= now {
+					switch {
+					case m.VisibleAt <= now:
 						visible++
-					} else {
+					case m.ReceiveCount == 0:
+						delayed++
+					default:
 						inflight++
 					}
 				}
@@ -155,6 +168,7 @@ func (s *Store) Attributes(name string) (map[string]string, error) {
 		out["LastModifiedTimestamp"] = strconv.FormatInt(modified, 10)
 		out["ApproximateNumberOfMessages"] = strconv.Itoa(visible)
 		out["ApproximateNumberOfMessagesNotVisible"] = strconv.Itoa(inflight)
+		out["ApproximateNumberOfMessagesDelayed"] = strconv.Itoa(delayed)
 		out["QueueArn"] = queueARN(name)
 		if q.FIFO {
 			out["FifoQueue"] = "true"

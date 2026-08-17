@@ -563,7 +563,15 @@ func (c *Console) sqsPanelData(r *http.Request, name string, attrs map[string]st
 		"Queue": name, "Messages": msgs,
 		"Available": atoi(attrs["ApproximateNumberOfMessages"]),
 		"InFlight":  atoi(attrs["ApproximateNumberOfMessagesNotVisible"]),
-		"Sources":   sources, "Tasks": tasks,
+		// Delayed is the third state, and leaving it out made the other two
+		// look wrong: send with DelaySeconds and the message is in none of the
+		// numbers on screen until its timer expires.
+		"Delayed": atoi(attrs["ApproximateNumberOfMessagesDelayed"]),
+		// MaxReceive is what turns a receive count into a warning. "received
+		// 2x" means nothing on its own; "2 of 3 before the DLQ" is the thing
+		// you are actually watching for.
+		"MaxReceive": atoi(redrivePolicyMaxReceive(attrs["RedrivePolicy"])),
+		"Sources":    sources, "Tasks": tasks,
 		"Hash": sqsMsgHash(attrs, msgs, tasks),
 	}
 }
@@ -784,4 +792,20 @@ func ago(formatted string) string {
 		}
 	}
 	return formatted
+}
+
+// redrivePolicyMaxReceive digs maxReceiveCount out of the RedrivePolicy JSON.
+// It is a string because SQS renders the number quoted in some paths and bare
+// in others, and both are in the wild.
+func redrivePolicyMaxReceive(policy string) string {
+	if policy == "" {
+		return ""
+	}
+	var pol struct {
+		MaxReceiveCount any `json:"maxReceiveCount"`
+	}
+	if err := json.Unmarshal([]byte(policy), &pol); err != nil {
+		return ""
+	}
+	return strings.Trim(strings.TrimSpace(fmtAny(pol.MaxReceiveCount)), `"`)
 }

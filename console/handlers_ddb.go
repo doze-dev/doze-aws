@@ -79,11 +79,12 @@ func (c *Console) ddbTable(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	items, next, _ := c.be.ScanItems(r.Context(), t, "", nil, nil, 50, "")
+	items, next, stats, _ := c.be.ScanItems(r.Context(), t, "", nil, nil, 50, "")
 	tables, _ := c.be.ListTables(r.Context())
 	data := map[string]any{
 		"Table": t, "Items": items, "Next": next, "NextVals": scanNextVals(name, "", next, nil), "Mode": "scan",
-		"Tab": tabOf(r, "items"), "List": tables, "Title": name + " · DynamoDB",
+		"Stats": stats,
+		"Tab":   tabOf(r, "items"), "List": tables, "Title": name + " · DynamoDB",
 	}
 	addItemCols(data, t, items, nil)
 	c.render(w, r, "ddb_table", data)
@@ -196,12 +197,12 @@ func (c *Console) ddbExplore(w http.ResponseWriter, r *http.Request) {
 			Filter: r.FormValue("filter"), FilterVals: fvals, FilterNames: fnames,
 			Limit: limit, Cursor: cursor,
 		}
-		items, next, err := c.be.QueryItems(r.Context(), t, opts)
+		items, next, stats, err := c.be.QueryItems(r.Context(), t, opts)
 		if err != nil {
 			c.fail(w, err)
 			return
 		}
-		data["Items"], data["Next"] = items, next
+		data["Items"], data["Next"], data["Stats"] = items, next, stats
 		addItemCols(data, t, items, pinnedCols)
 		if next != "" {
 			m := map[string]string{
@@ -230,12 +231,12 @@ func (c *Console) ddbExplore(w http.ResponseWriter, r *http.Request) {
 	default: // scan
 		filter := r.FormValue("filter")
 		fvals, fnames, carry := filterBindings(r, filter)
-		items, next, err := c.be.ScanItems(r.Context(), t, filter, fvals, fnames, limit, cursor)
+		items, next, stats, err := c.be.ScanItems(r.Context(), t, filter, fvals, fnames, limit, cursor)
 		if err != nil {
 			c.fail(w, err)
 			return
 		}
-		data["Items"], data["Next"] = items, next
+		data["Items"], data["Next"], data["Stats"] = items, next, stats
 		addItemCols(data, t, items, pinnedCols)
 		if cols, ok := data["Cols"].([]string); ok {
 			carry["cols"] = strings.Join(cols, ",")
@@ -279,9 +280,10 @@ func (c *Console) ddbItemsScan(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	items, next, _ := c.be.ScanItems(r.Context(), t, "", nil, nil, 50, "")
+	items, next, stats, _ := c.be.ScanItems(r.Context(), t, "", nil, nil, 50, "")
 	data := map[string]any{
 		"Table": t, "Items": items, "Next": next, "NextVals": scanNextVals(name, "", next, nil), "Mode": "scan",
+		"Stats": stats,
 	}
 	addItemCols(data, t, items, nil)
 	c.partial(w, "ddb_item_table", data)
