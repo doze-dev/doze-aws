@@ -249,72 +249,122 @@ func (b *backend) DeleteBucket(ctx context.Context, name string) error {
 
 // ListObjects browses one "directory" level using the delimiter, so the UI can
 // present folders like a filesystem instead of a flat key dump.
-func (b *backend) ListObjects(ctx context.Context, bucket, prefix string) ([]Object, error) {
-	q := url.Values{"list-type": {"2"}, "delimiter": {"/"}}
-	if prefix != "" {
-		q.Set("prefix", prefix)
-	}
-	req, _ := http.NewRequestWithContext(ctx, "GET", b.base+"/"+bucket+"?"+q.Encode(), nil)
-	body, err := b.do(req)
-	if err != nil {
-		return nil, err
-	}
-	var out struct {
-		Contents []struct {
-			Key          string `xml:"Key"`
-			Size         int64  `xml:"Size"`
-			LastModified string `xml:"LastModified"`
-		} `xml:"Contents"`
-		CommonPrefixes []struct {
-			Prefix string `xml:"Prefix"`
-		} `xml:"CommonPrefixes"`
-	}
-	if err := xml.Unmarshal(body, &out); err != nil {
-		return nil, err
-	}
-	objs := make([]Object, 0, len(out.Contents)+len(out.CommonPrefixes))
-	for _, p := range out.CommonPrefixes {
-		objs = append(objs, Object{Key: p.Prefix, IsPrefix: true})
-	}
-	for _, o := range out.Contents {
-		if o.Key == prefix { // the folder marker itself
-			continue
+// listCap bounds how many keys one listing will walk.
+//
+// S3 caps a single response at 1000 keys and hands back a continuation token.
+// The console used to ignore the token, so a prefix with more than a thousand
+// objects showed the first thousand and said "1000 objects here" — a total
+// that was not one, over a read that had stopped early. Following the token
+// fixes the listing; the cap keeps a pathological bucket from turning one page
+// render into a hundred round trips, and the caller is told when it was hit so
+// the page can say so rather than round the number down in silence.
+const listCap = 5000
+
+// ListObjects walks one level of a bucket, following continuation tokens.
+//
+// The bool reports whether the listing stopped at listCap with more still to
+// come. It is deliberately a return value rather than a silent truncation: the
+// difference between "these are the objects" and "these are the first few
+// thousand" is exactly what the footer has to get right.
+func (b *backend) ListObjects(ctx context.Context, bucket, prefix string) ([]Object, bool, error) {
+	var objs []Object
+	token := ""
+	for {
+		q := url.Values{"list-type": {"2"}, "delimiter": {"/"}}
+		if prefix != "" {
+			q.Set("prefix", prefix)
 		}
-		objs = append(objs, Object{Key: o.Key, Size: o.Size, LastModified: shortTime(o.LastModified)})
+		if token != "" {
+			q.Set("continuation-token", token)
+		}
+		req, _ := http.NewRequestWithContext(ctx, "GET", b.base+"/"+bucket+"?"+q.Encode(), nil)
+		body, err := b.do(req)
+		if err != nil {
+			return nil, false, err
+		}
+		var out struct {
+			Contents []struct {
+				Key          string `xml:"Key"`
+				Size         int64  `xml:"Size"`
+				LastModified string `xml:"LastModified"`
+			} `xml:"Contents"`
+			CommonPrefixes []struct {
+				Prefix string `xml:"Prefix"`
+			} `xml:"CommonPrefixes"`
+			IsTruncated           bool   `xml:"IsTruncated"`
+			NextContinuationToken string `xml:"NextContinuationToken"`
+		}
+		if err := xml.Unmarshal(body, &out); err != nil {
+			return nil, false, err
+		}
+		for _, p := range out.CommonPrefixes {
+			objs = append(objs, Object{Key: p.Prefix, IsPrefix: true})
+		}
+		for _, o := range out.Contents {
+			if o.Key == prefix { // the folder marker itself
+				continue
+			}
+			objs = append(objs, Object{Key: o.Key, Size: o.Size, LastModified: shortTime(o.LastModified)})
+		}
+		if !out.IsTruncated || out.NextContinuationToken == "" {
+			return objs, false, nil
+		}
+		if len(objs) >= listCap {
+			return objs, true, nil
+		}
+		token = out.NextContinuationToken
 	}
-	return objs, nil
 }
 
-// bucketTreeTotals counts every object under prefix (no delimiter — the whole
-// subtree), for the footer's corrective totals when folders hide the count.
-func (b *backend) bucketTreeTotals(ctx context.Context, bucket, prefix string) (int, int64) {
-	q := url.Values{"list-type": {"2"}}
-	if prefix != "" {
-		q.Set("prefix", prefix)
-	}
-	req, _ := http.NewRequestWithContext(ctx, "GET", b.base+"/"+bucket+"?"+q.Encode(), nil)
-	body, err := b.do(req)
-	if err != nil {
-		return 0, 0
-	}
-	var out struct {
-		Contents []struct {
-			Key  string `xml:"Key"`
-			Size int64  `xml:"Size"`
-		} `xml:"Contents"`
-	}
-	if xml.Unmarshal(body, &out) != nil {
-		return 0, 0
-	}
-	count, total := 0, int64(0)
-	for _, o := range out.Contents {
-		if strings.HasSuffix(o.Key, "/") && o.Size == 0 {
-			continue // folder markers
+// bucketTreeTotals counts every object under a prefix, across pages.
+//
+// Returns (count, bytes, atLeast). atLeast is true when the walk stopped at
+// listCap, which turns "N objects in the whole tree" into "at least N" — the
+// same distinction the level listing makes, for the same reason: a total that
+// quietly stopped counting is worse than no total.
+func (b *backend) bucketTreeTotals(ctx context.Context, bucket, prefix string) (int, int64, bool) {
+	count, total, scanned := 0, int64(0), 0
+	token := ""
+	for {
+		q := url.Values{"list-type": {"2"}}
+		if prefix != "" {
+			q.Set("prefix", prefix)
 		}
-		count++
-		total += o.Size
+		if token != "" {
+			q.Set("continuation-token", token)
+		}
+		req, _ := http.NewRequestWithContext(ctx, "GET", b.base+"/"+bucket+"?"+q.Encode(), nil)
+		body, err := b.do(req)
+		if err != nil {
+			return count, total, false
+		}
+		var out struct {
+			Contents []struct {
+				Key  string `xml:"Key"`
+				Size int64  `xml:"Size"`
+			} `xml:"Contents"`
+			IsTruncated           bool   `xml:"IsTruncated"`
+			NextContinuationToken string `xml:"NextContinuationToken"`
+		}
+		if xml.Unmarshal(body, &out) != nil {
+			return count, total, false
+		}
+		for _, o := range out.Contents {
+			scanned++
+			if strings.HasSuffix(o.Key, "/") && o.Size == 0 {
+				continue // folder markers
+			}
+			count++
+			total += o.Size
+		}
+		if !out.IsTruncated || out.NextContinuationToken == "" {
+			return count, total, false
+		}
+		if scanned >= listCap {
+			return count, total, true
+		}
+		token = out.NextContinuationToken
 	}
-	return count, total
 }
 
 // GetObject returns the object body and its content type, for preview/download.

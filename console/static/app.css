@@ -1221,3 +1221,10 @@ a.lo-card:hover { border-color: var(--accent); }
 .rs { color: var(--muted-foreground); }
 .rs-warn { color: var(--warning); }
 .rs-bad { color: var(--destructive); font-weight: 600; }
+
+/* ---------- object text preview ---------- */
+/* Text and JSON objects get their contents, not a grey file icon. Left-aligned
+   and scrollable, because the preview box centres an image and that is exactly
+   wrong for a document. */
+.preview.txt { display: block; place-items: initial; min-height: 0; max-height: 260px; overflow: auto; background: var(--muted); }
+.obj-pre { margin: 0; padding: 10px 12px; font: 11.5px/1.55 var(--mono); white-space: pre-wrap; word-break: break-word; }

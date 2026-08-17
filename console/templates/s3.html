@@ -203,7 +203,12 @@
 {{define "object_meta"}}
 <div class="drawer-h">{{icon "file"}}<span class="title" title="{{.Meta.Key}}">{{.Name}}</span><button class="icon-btn" @click="drawer=false" title="Close">{{icon "x"}}</button></div>
 <div class="drawer-b">
+  {{if .Preview}}
+  <div class="preview txt"><pre class="obj-pre">{{.Preview}}</pre></div>
+  {{if .PreviewCut}}<p class="mini-note">First 64 KB shown — download for the rest.</p>{{end}}
+  {{else}}
   <div class="preview">{{if .Meta.IsImage}}<img src="{{.URL}}" alt="{{.Name}}">{{else}}<div class="ph-ic">{{icon "file"}}</div>{{end}}</div>
+  {{end}}
   <div class="meta-list">
     <div class="meta-row"><span class="k">Type</span><span class="v">{{if .Meta.ContentType}}{{.Meta.ContentType}}{{else}}—{{end}}</span></div>
     <div class="meta-row"><span class="k">Size</span><span class="v">{{.Meta.Size}}</span></div>

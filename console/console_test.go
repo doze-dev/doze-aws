@@ -2,6 +2,7 @@ package console_test
 
 import (
 	"bytes"
+	"fmt"
 	"html"
 	"mime/multipart"
 	"net/http"
@@ -1299,5 +1300,46 @@ func TestReceiveStateCountsDownToTheDLQ(t *testing.T) {
 			t.Errorf("ReceiveState(receives=%q, max=%d) = %q, want %q",
 				c.receives, c.maxReceive, got, c.want)
 		}
+	}
+}
+
+// TestS3ListingCrossesThePageBoundary is the regression for a listing that
+// stopped at S3's 1000-key page and then reported the number it happened to
+// stop at as a total.
+//
+// The service was right — it set IsTruncated and handed back a continuation
+// token. The console dropped both, so a bucket with 1,100 objects rendered
+// 1,000 rows under the words "1000 objects here", and the hundred it never
+// asked for were indistinguishable from not existing.
+func TestS3ListingCrossesThePageBoundary(t *testing.T) {
+	if testing.Short() {
+		t.Skip("boots a Stack")
+	}
+	c, gw := newConsoleStack(t)
+
+	if rec := req(t, c, "POST", "/_console/s3/create", url.Values{"name": {"big"}}); rec.Code >= 400 {
+		t.Fatalf("create bucket: %d", rec.Code)
+	}
+	// One more than a single S3 page, so the second page carries the remainder.
+	const n = 1005
+	for i := 0; i < n; i++ {
+		r := httptest.NewRequest("PUT", fmt.Sprintf("/big/key-%05d", i), strings.NewReader("x"))
+		w := httptest.NewRecorder()
+		gw.ServeHTTP(w, r)
+		if w.Code >= 400 {
+			t.Fatalf("put %d: %d", i, w.Code)
+		}
+	}
+
+	body := req(t, c, "GET", "/_console/s3/big", nil).Body.String()
+	if strings.Contains(body, "1000 objects here") {
+		t.Error("footer reported the page size as a total — the continuation token was dropped")
+	}
+	if want := fmt.Sprintf("%d objects here", n); !strings.Contains(body, want) {
+		t.Errorf("footer does not say %q\n  got: %s", want, between(body, `tbl-foot">`, "<"))
+	}
+	// And the rows themselves have to be there, not just the count.
+	if got := strings.Count(body, "key-01004"); got == 0 {
+		t.Error("the object past the first page was not rendered")
 	}
 }

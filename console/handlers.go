@@ -190,14 +190,14 @@ func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	objs, err := c.be.ListObjects(r.Context(), bucket, prefix)
+	objs, capped, err := c.be.ListObjects(r.Context(), bucket, prefix)
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
 	data["Objects"] = objs
 	data["Crumbs"] = crumbs(prefix)
-	data["FootNote"] = c.s3Foot(r.Context(), bucket, prefix, objs)
+	data["FootNote"] = c.s3Foot(r.Context(), bucket, prefix, objs, capped)
 	// HTMX navigation within the browser swaps just the table.
 	if r.Header.Get("HX-Request") == "true" && r.URL.Query().Get("partial") == "1" {
 		c.partial(w, "object_table", data)
@@ -259,6 +259,11 @@ func inlineSafeContentType(ctype string) bool {
 }
 
 // s3Meta renders the object detail drawer: metadata + inline preview + actions.
+// previewCap bounds the object body the drawer will read and ship to the
+// browser. Large enough for a config, a fixture or an event payload; small
+// enough that opening a log file by accident is not a page freeze.
+const previewCap = 64 << 10
+
 func (c *Console) s3Meta(w http.ResponseWriter, r *http.Request) {
 	bucket := r.PathValue("bucket")
 	key := r.URL.Query().Get("key")
@@ -272,9 +277,31 @@ func (c *Console) s3Meta(w http.ResponseWriter, r *http.Request) {
 	if props, err := c.be.GetBucketProps(r.Context(), bucket); err == nil {
 		versioned = props.Versioning == "Enabled" || props.Versioning == "Suspended"
 	}
+	// A dev bucket is mostly JSON and text, and those got a grey file icon
+	// while images got a real preview. HeadObject has classified them as text
+	// all along — nothing rendered it. Read a bounded window rather than the
+	// whole object: "text/plain" is also what a 200 MB log arrives as.
+	preview, truncated := "", false
+	if meta.IsText {
+		if body, _, err := c.be.GetObject(r.Context(), bucket, key); err == nil {
+			if len(body) > previewCap {
+				body, truncated = body[:previewCap], true
+			}
+			preview = string(body)
+			if strings.Contains(meta.ContentType, "json") && !truncated {
+				// Only pretty-print a whole document; half of one will not parse
+				// and the raw text is more useful than an error.
+				if pretty := prettyJSON(preview); pretty != "" {
+					preview = pretty
+				}
+			}
+		}
+	}
+
 	c.partial(w, "object_meta", map[string]any{
 		"Bucket": bucket, "KeyPrefix": r.URL.Query().Get("prefix"),
 		"Meta": meta, "Name": baseName(key), "Versioned": versioned,
+		"Preview": preview, "PreviewCut": truncated,
 		"URL":        c.prefix + "/s3/" + bucket + "/object?key=" + url.QueryEscape(key),
 		"EncodedKey": url.QueryEscape(key),
 	})
@@ -329,17 +356,23 @@ func (c *Console) s3DeleteBucket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) swapObjectTable(w http.ResponseWriter, r *http.Request, bucket, prefix string) {
-	objs, _ := c.be.ListObjects(r.Context(), bucket, prefix)
+	objs, capped, _ := c.be.ListObjects(r.Context(), bucket, prefix)
 	c.partial(w, "object_table", map[string]any{
 		"Bucket": bucket, "KeyPrefix": prefix, "Objects": objs,
-		"Crumbs": crumbs(prefix), "FootNote": c.s3Foot(r.Context(), bucket, prefix, objs),
+		"Crumbs": crumbs(prefix), "FootNote": c.s3Foot(r.Context(), bucket, prefix, objs, capped),
 	})
 }
 
 // s3Foot writes the object-table footer. Counting only the current level reads
 // as "0 objects" at a bucket root full of folders, so when folders are present
 // it also sums the whole subtree (one extra un-delimited list).
-func (c *Console) s3Foot(ctx context.Context, bucket, prefix string, objs []Object) string {
+// s3Foot describes what the listing actually contains.
+//
+// capped says the walk stopped before the end, and the wording changes with
+// it: "1,000 objects here" is a total, "first 5,000 objects · more behind" is
+// not, and saying the first when the second is true is how a page reports a
+// number nobody can act on.
+func (c *Console) s3Foot(ctx context.Context, bucket, prefix string, objs []Object, capped bool) string {
 	var total int64
 	files, dirs := 0, 0
 	for _, o := range objs {
@@ -351,10 +384,17 @@ func (c *Console) s3Foot(ctx context.Context, bucket, prefix string, objs []Obje
 		}
 	}
 	note := plural(files, "object") + " here · " + humanBytes(total)
+	if capped {
+		note = "first " + plural(files, "object") + " · " + humanBytes(total) + " · more behind"
+	}
 	if dirs > 0 {
 		note = plural(dirs, "folder") + " · " + note
-		if tc, ts := c.be.bucketTreeTotals(ctx, bucket, prefix); tc > files {
-			note += " · " + plural(tc, "object") + " · " + humanBytes(ts) + " in the whole tree"
+		if tc, ts, atLeast := c.be.bucketTreeTotals(ctx, bucket, prefix); tc > files {
+			prefixWord := ""
+			if atLeast {
+				prefixWord = "at least "
+			}
+			note += " · " + prefixWord + plural(tc, "object") + " · " + humanBytes(ts) + " in the whole tree"
 		}
 	}
 	return note
