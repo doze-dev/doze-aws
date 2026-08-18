@@ -27,3 +27,8 @@ e2e/.bun/
 # Fetched AWS service models — the audit spec, cached not vendored (15M).
 # dzaudit refetches on demand: go run ./cmd/dzaudit coverage
 .audit-models/
+
+# The dzaudit binary, if you build it in the repo root. `go build ./cmd/dzaudit`
+# writes it here, and an 8.5 MB platform-specific artifact was committed twice
+# before anyone noticed. Run it with `go run ./cmd/dzaudit` instead.
+/dzaudit
