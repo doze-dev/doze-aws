@@ -37,7 +37,7 @@ clients still speak.
 | SNS | ✅ fanout to SQS/webhooks, filter policies, confirmation handshake | **audited**: `Subscribe` protocol · no known gaps |
 | KMS | ✅ symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto | not yet audited |
 | SSM Parameter Store | ✅ versions, labels, hierarchies, SecureString at-rest encryption | not yet audited |
-| Secrets Manager | ✅ version stages, recovery-window deletion, encrypted at rest | not yet audited |
+| Secrets Manager | ✅ version stages, recovery-window deletion, encrypted at rest | **fully audited**: 132/132 across 19 of 20 dispatched operations · no known gaps |
 | S3 | ✅ versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website | **audited**: bucket naming (case, charset, length, IP-form) · rest not yet audited |
 | DynamoDB | ✅ full expression engine, GSI/LSI, transactions, TTL, paging semantics | **fully audited**: 333/333 across all 27 dispatched operations · no known gaps |
 | EventBridge | ✅ full pattern language, SQS/SNS/Lambda targets, input transformers | not yet audited |

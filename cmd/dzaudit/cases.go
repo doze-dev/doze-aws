@@ -26,6 +26,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -83,11 +84,24 @@ func violations(c constraint) []struct {
 		}
 		return out
 	case "pattern":
-		// A string chosen to be outside the common AWS name patterns
-		// (alphanumerics, dash, underscore, dot). Not proof against every
-		// possible pattern — a runner that sees this accepted should check the
-		// pattern by hand rather than assume a gap.
-		return []v{{"does not match " + c.Pattern, "!! not valid !!"}}
+		// Derived, not guessed. The previous version returned a fixed
+		// "!! not valid !!" and hoped it fell outside the pattern, which for
+		// Secrets Manager's filter values it did not — that charset allows
+		// spaces and exclamation marks, so the service correctly accepted the
+		// case and the runner reported a gap that was not there. A generator
+		// that manufactures fake gaps is worse than one that emits nothing.
+		re, err := regexp.Compile(c.Pattern)
+		if err != nil {
+			return nil // an unparseable pattern cannot be reasoned about
+		}
+		for _, cand := range patternViolators {
+			if !re.MatchString(cand) {
+				return []v{{"does not match " + c.Pattern, cand}}
+			}
+		}
+		// Nothing on hand breaks it. Emitting a case anyway would report the
+		// service as permissive for accepting a value that is in fact valid.
+		return nil
 	case "enum":
 		return []v{{"not one of " + strings.Join(c.Values, ", "), "__DOZE_NOT_A_MEMBER__"}}
 	case "required":
@@ -164,4 +178,17 @@ func targetFor(serviceID, proto, op string) string {
 		return ""
 	}
 	return shortName(serviceID) + "." + op
+}
+
+// patternViolators are candidate strings for breaking a @pattern, tried in
+// order from least likely to appear in any AWS charset. Control characters come
+// first because no AWS name pattern admits them; the printable oddities follow
+// for the rare pattern that does.
+var patternViolators = []string{
+	"\x00\x01",
+	"\u00ab\u00bb", // guillemets: non-ASCII, outside every AWS name charset seen
+	"\n\t",
+	"<>\"\\",
+	"!! not valid !!",
+	" ",
 }

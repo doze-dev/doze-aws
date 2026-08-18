@@ -1,6 +1,7 @@
 package main
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -92,6 +93,43 @@ func TestBaselineListsOnlyTopLevelRequireds(t *testing.T) {
 	for _, g := range got {
 		if strings.ContainsAny(g, ".[{") {
 			t.Errorf("%q is nested and cannot be a baseline member", g)
+		}
+	}
+}
+
+// TestPatternViolationsActuallyViolate is the gap that let a fake gap through.
+//
+// The generator used to return a fixed "!! not valid !!" for every @pattern and
+// hope it fell outside. Secrets Manager's filter-value charset allows spaces and
+// exclamation marks, so the service accepted the case, correctly, and the audit
+// reported a missing check that was not missing. The property test covered range
+// and length and not this.
+func TestPatternViolationsActuallyViolate(t *testing.T) {
+	patterns := []string{
+		`^[a-zA-Z0-9_.-]+$`,                 // the common AWS name charset
+		`^\!?[a-zA-Z0-9 :_@\/\+\=\.\-\!]*$`, // Secrets Manager filter values
+		`^0|([1-9]\d{0,38})$`,               // Kinesis explicit hash key
+		`^arn:aws[a-zA-Z-]*:[a-z0-9-]+:.*$`, // an ARN shape
+		`[\s\S]*`,                           // matches everything
+	}
+	for _, p := range patterns {
+		re := regexp.MustCompile(p)
+		got := violations(constraint{Kind: "pattern", Pattern: p})
+		if len(got) == 0 {
+			// Legitimate only when nothing can violate it.
+			if !re.MatchString("\x00\x01") {
+				t.Errorf("pattern %q: emitted no case, but a violator exists", p)
+			}
+			continue
+		}
+		s, ok := got[0].Value.(string)
+		if !ok {
+			t.Errorf("pattern %q: value is %T, want string", p, got[0].Value)
+			continue
+		}
+		if re.MatchString(s) {
+			t.Errorf("pattern %q: emitted %q, which MATCHES it — that case reports a "+
+				"gap the service does not have", p, s)
 		}
 	}
 }

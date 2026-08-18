@@ -24,3 +24,23 @@ cosmetically.
 | ValidateResourcePolicy | C | always passes |
 | RotateSecret / CancelRotateSecret | S→F | Phase 8: RotateSecret will invoke the configured rotation lambda (4-step protocol) once the lambda service exists |
 | ReplicateSecretToRegions / RemoveRegionsFromReplication / StopReplicationToReplica | S | exactly one region locally |
+
+## Input validation
+
+Separate from the tiers above. A tier says the operation is implemented; this
+says whether doze-aws **refuses what Secrets Manager refuses**.
+
+**132/132 model-derived constraints enforced across 19 of the 20 dispatched
+operations, with `knownGaps` empty.** Before this table, 54 were enforced by
+hand-written checks and 78 were not.
+
+Generated rather than hand-derived: `dzaudit cases secrets-manager` emits a
+violating value per constrained input, `testdata/cases_secretsmanager.json`
+commits them, and `rejection_parity_test.go` replays every one from a baseline
+it first proves the service accepts.
+
+`RotateSecret`'s 20 cases are skipped with a reason recorded in the test:
+rotation invokes a Lambda, and the audit boots this service alone. Three
+operations — `ReplicateSecretToRegions`, `RemoveRegionsFromReplication`,
+`StopReplicationToReplica` — have no handler and so cannot be audited at all;
+an operation that refuses every request tells you nothing about its validation.
