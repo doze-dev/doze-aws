@@ -31,6 +31,7 @@ import (
 	"github.com/doze-dev/doze-aws/iam"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/gateway"
+	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/kinesis"
 	"github.com/doze-dev/doze-aws/kms"
 	"github.com/doze-dev/doze-aws/lambda"
@@ -84,6 +85,9 @@ type Stack struct {
 	// iam is retained so Handler can install the authorization middleware. It
 	// is nil when the service is disabled, and unused when its mode is off.
 	iam *iam.Server
+	// lambda is retained so its event-source pollers can be given a trace sink
+	// after the recorder exists.
+	lambda *lambda.Server
 }
 
 // NewStack constructs and wires the requested services.
@@ -162,6 +166,9 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		return s, s, err
 	case "lambda":
 		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, Endpoint: cfg.Endpoint})
+		if err == nil {
+			st.lambda = s // retained so its pollers can be given a trace sink
+		}
 		return s, s, err
 	case "kinesis":
 		s, err := kinesis.New(kinesis.Options{DataDir: dataDir, Peers: dir, Logf: logf})
@@ -228,6 +235,17 @@ func writeDenied(w http.ResponseWriter, e *awshttp.APIError) {
 // Service returns one service's handler (bypassing gateway routing), or nil if
 // it isn't enabled — useful for mounting a service on its own listener.
 func (s *Stack) Service(name string) http.Handler { return s.gw.Handler(name) }
+
+// SetTraceSink tells services that do their own polling where to report the
+// work a queued message caused.
+//
+// It is a setter rather than a config field because the recorder wraps the
+// assembled stack — it cannot exist before the services it will observe.
+func (s *Stack) SetTraceSink(sink trace.Sink) {
+	if s.lambda != nil {
+		s.lambda.SetTraceSink(sink)
+	}
+}
 
 // Close shuts every service down, releasing stores and background janitors.
 func (s *Stack) Close() error {

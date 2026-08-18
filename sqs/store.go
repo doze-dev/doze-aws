@@ -77,9 +77,15 @@ type Message struct {
 	VisibleAt     int64           `json:"visible_at"` // unixnano; <= now => visible
 	ReceiveCount  int             `json:"receive_count"`
 	FirstReceived int64           `json:"first_received"` // unixnano, 0 if never
-	GroupID       string          `json:"group_id,omitempty"`
-	DedupID       string          `json:"dedup_id,omitempty"`
-	Seq           uint64          `json:"seq"`
+	// SysAttrs are SQS's own message system attributes — currently just
+	// AWSTraceHeader. They are deliberately NOT part of Attrs: system
+	// attributes are excluded from MD5OfMessageAttributes and are returned
+	// alongside SentTimestamp rather than with the user's attributes, so
+	// storing them together would corrupt both.
+	SysAttrs map[string]string `json:"sys_attrs,omitempty"`
+	GroupID  string            `json:"group_id,omitempty"`
+	DedupID  string            `json:"dedup_id,omitempty"`
+	Seq      uint64            `json:"seq"`
 }
 
 // Store is the bbolt-backed SQS state.
@@ -204,7 +210,7 @@ func (s *Store) ListQueues(prefix string) ([]string, error) {
 // ---- messages ----
 
 // Send enqueues a message. delay<0 means "use the queue default".
-func (s *Store) Send(queue, body string, attrs map[string]Attr, delay int, groupID, dedupID string) (*Message, error) {
+func (s *Store) Send(queue, body string, attrs map[string]Attr, delay int, groupID, dedupID string, sysAttrs map[string]string) (*Message, error) {
 	var out *Message
 	enqueued := false
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -253,6 +259,7 @@ func (s *Store) Send(queue, body string, attrs map[string]Attr, delay int, group
 			VisibleAt: now.Add(time.Duration(delay) * time.Second).UnixNano(),
 			GroupID:   groupID,
 			DedupID:   dedupID,
+			SysAttrs:  sysAttrs,
 			Seq:       seq,
 		}
 		if err := putMessage(mb, m); err != nil {

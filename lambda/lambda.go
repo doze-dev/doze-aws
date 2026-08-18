@@ -15,6 +15,8 @@ package lambda
 
 import (
 	"net/http"
+
+	"github.com/doze-dev/doze-aws/internal/trace"
 	"os"
 	"path/filepath"
 	"strings"
@@ -51,6 +53,11 @@ type Options struct {
 
 // Server is the Lambda service.
 type Server struct {
+	// sink receives cascade events from the event-source pollers. It arrives
+	// after construction because the recorder wraps the assembled stack, so it
+	// cannot exist when the services are built.
+	sink trace.Sink
+
 	store       *Store
 	dataDir     string
 	peers       peers.Directory
@@ -158,3 +165,7 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request) *awshttp.APIError
 	}
 	return awshttp.Errf(404, "ResourceNotFoundException", "unknown resource %q", segs[1])
 }
+
+// SetTraceSink tells the pollers where to report the work a queued message
+// caused. Safe to leave unset: tracing is then a no-op.
+func (s *Server) SetTraceSink(sink trace.Sink) { s.sink = sink }

@@ -15,7 +15,7 @@ func TestPeekShowsAllFifoMessagesReadOnly(t *testing.T) {
 	for _, m := range []struct{ body, group, dedup string }{
 		{"a1", "g1", "d1"}, {"a2", "g1", "d2"}, {"b1", "g2", "d3"},
 	} {
-		if _, err := s.Send("orders.fifo", m.body, nil, -1, m.group, m.dedup); err != nil {
+		if _, err := s.Send("orders.fifo", m.body, nil, -1, m.group, m.dedup, nil); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -47,7 +47,7 @@ func TestSendReceiveDeleteVisibility(t *testing.T) {
 	if _, err := s.CreateQueue("q", map[string]string{"VisibilityTimeout": "1"}, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Send("q", "hello", nil, -1, "", ""); err != nil {
+	if _, err := s.Send("q", "hello", nil, -1, "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 	got, err := s.Receive("q", 1, 0, -1)
@@ -82,7 +82,7 @@ func TestFIFOOrderingAndGroupLock(t *testing.T) {
 	}
 	// Two groups; messages interleaved on send.
 	send := func(group, body, dedup string) {
-		if _, err := s.Send("q.fifo", body, nil, -1, group, dedup); err != nil {
+		if _, err := s.Send("q.fifo", body, nil, -1, group, dedup, nil); err != nil {
 			t.Fatalf("send %s: %v", body, err)
 		}
 	}
@@ -111,10 +111,10 @@ func TestFIFODedup(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Same body twice within the window → only one enqueued (content-based dedup).
-	if _, err := s.Send("d.fifo", "same", nil, -1, "g", ""); err != nil {
+	if _, err := s.Send("d.fifo", "same", nil, -1, "g", "", nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Send("d.fifo", "same", nil, -1, "g", ""); err != nil {
+	if _, err := s.Send("d.fifo", "same", nil, -1, "g", "", nil); err != nil {
 		t.Fatal(err)
 	}
 	got, _ := s.Receive("d.fifo", 10, 0, -1)
@@ -132,7 +132,7 @@ func TestDLQRedrive(t *testing.T) {
 	if _, err := s.CreateQueue("main", map[string]string{"VisibilityTimeout": "0", "RedrivePolicy": rp}, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Send("main", "poison", nil, -1, "", ""); err != nil {
+	if _, err := s.Send("main", "poison", nil, -1, "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 	// Receive it maxReceiveCount times (visibility 0 → immediately receivable).
@@ -161,7 +161,7 @@ func TestDLQRedriveMissingTargetKeepsMessage(t *testing.T) {
 	if _, err := s.CreateQueue("main", map[string]string{"VisibilityTimeout": "0", "RedrivePolicy": rp}, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Send("main", "poison", nil, -1, "", ""); err != nil {
+	if _, err := s.Send("main", "poison", nil, -1, "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 	// Hit MaxReceiveCount, then delete the DLQ.
@@ -191,7 +191,7 @@ func TestReceiptHandleNoAliasAcrossPurge(t *testing.T) {
 	if _, err := s.CreateQueue("q", map[string]string{"VisibilityTimeout": "0"}, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Send("q", "first", nil, -1, "", ""); err != nil {
+	if _, err := s.Send("q", "first", nil, -1, "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 	got, _ := s.Receive("q", 1, 0, -1)
@@ -204,7 +204,7 @@ func TestReceiptHandleNoAliasAcrossPurge(t *testing.T) {
 	if err := s.Purge("q"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Send("q", "second", nil, -1, "", ""); err != nil {
+	if _, err := s.Send("q", "second", nil, -1, "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 	// Deleting with the stale handle must be a no-op, not destroy "second".

@@ -30,19 +30,19 @@ func TestDedupGCAndExpiry(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Distinct dedup ids; the first is well inside the window.
-	if _, err := s.Send("d.fifo", "a", nil, -1, "g1", "d1"); err != nil {
+	if _, err := s.Send("d.fifo", "a", nil, -1, "g1", "d1", nil); err != nil {
 		t.Fatal(err)
 	}
 	// Past the dedup window: a new send GCs the stale d1 entry.
 	now = base.Add(time.Duration(dedupWindow+10) * time.Second)
-	if _, err := s.Send("d.fifo", "b", nil, -1, "g2", "d2"); err != nil {
+	if _, err := s.Send("d.fifo", "b", nil, -1, "g2", "d2", nil); err != nil {
 		t.Fatal(err)
 	}
 	if c := bucketCount(s, dedupBucket("d.fifo")); c != 1 {
 		t.Fatalf("dedup bucket = %d entries, want 1 (d1 should be GC'd)", c)
 	}
 	// Re-sending d1's id now (window elapsed) must enqueue, not dedup.
-	if _, err := s.Send("d.fifo", "a", nil, -1, "g1", "d1"); err != nil {
+	if _, err := s.Send("d.fifo", "a", nil, -1, "g1", "d1", nil); err != nil {
 		t.Fatal(err)
 	}
 	if c := bucketCount(s, msgBucket("d.fifo")); c != 3 {
@@ -63,7 +63,7 @@ func TestRetentionSweep(t *testing.T) {
 	if _, err := s.CreateQueue("q", map[string]string{"MessageRetentionPeriod": "60"}, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.Send("q", "old", nil, -1, "", ""); err != nil {
+	if _, err := s.Send("q", "old", nil, -1, "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 	now = base.Add(61 * time.Second) // past retention
@@ -83,7 +83,7 @@ func TestLongPollWakesPromptly(t *testing.T) {
 	}
 	go func() {
 		time.Sleep(150 * time.Millisecond)
-		_, _ = s.Send("q", "late", nil, -1, "", "")
+		_, _ = s.Send("q", "late", nil, -1, "", "", nil)
 	}()
 	start := time.Now()
 	got, err := s.Receive("q", 1, 10, -1) // 10s long-poll

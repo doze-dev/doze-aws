@@ -1,6 +1,8 @@
 package console
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
 	"github.com/doze-dev/doze-aws/internal/gateway"
@@ -18,12 +20,13 @@ import (
 // in-process client bypasses it (it talks to the raw gateway), so the tail only
 // shows the app's traffic — the answer to "what did my app just do?".
 type Recorder struct {
-	next http.Handler
-	mu   sync.Mutex
-	buf  []TrafficEntry
-	head int
-	seq  int64
-	full bool
+	next  http.Handler
+	runID string
+	mu    sync.Mutex
+	buf   []TrafficEntry
+	head  int
+	seq   int64
+	full  bool
 }
 
 // TrafficEntry is one recorded call.
@@ -76,7 +79,23 @@ const trafficCap = 500
 
 // NewRecorder wraps the AWS gateway handler with traffic capture.
 func NewRecorder(next http.Handler) *Recorder {
-	return &Recorder{next: next, buf: make([]TrafficEntry, trafficCap)}
+	return &Recorder{next: next, buf: make([]TrafficEntry, trafficCap), runID: newRunID()}
+}
+
+// RunID names this process's numbering, satisfying trace.Runner.
+//
+// Sequence numbers restart at zero when doze-aws does, so a message that
+// outlived a restart carries a parent id that now belongs to a different call.
+// Comparing the run is what stops the wire drawing a confident line between two
+// unrelated things.
+func (rec *Recorder) RunID() string { return rec.runID }
+
+func newRunID() string {
+	var b [8]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "run"
+	}
+	return hex.EncodeToString(b[:])
 }
 
 func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {

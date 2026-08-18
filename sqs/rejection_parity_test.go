@@ -304,3 +304,110 @@ func TestDelayedIsNotInFlight(t *testing.T) {
 		}
 	}
 }
+
+// TestSystemAttributesStayOutOfMessageAttributes covers the property that lets
+// a trace header ride on a message without the application noticing.
+//
+// SQS keeps message SYSTEM attributes apart from the user's: they come back
+// with SentTimestamp rather than in MessageAttributes, and — the part that
+// would break a client if it were wrong — they are excluded from
+// MD5OfMessageAttributes. An SDK verifies that digest, so folding the header in
+// with the user's attributes would make every traced message look corrupted.
+func TestSystemAttributesStayOutOfMessageAttributes(t *testing.T) {
+	ctx := context.Background()
+	c := sdkClient(t)
+
+	out, err := c.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("traced")})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	userAttrs := map[string]types.MessageAttributeValue{
+		"kind": {DataType: aws.String("String"), StringValue: aws.String("order")},
+	}
+	// Send the same user attributes twice, once with a system attribute, and
+	// compare the digests: the header must not move them.
+	plain, err := c.SendMessage(ctx, &awssqs.SendMessageInput{
+		QueueUrl: out.QueueUrl, MessageBody: aws.String("a"), MessageAttributes: userAttrs,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	traced, err := c.SendMessage(ctx, &awssqs.SendMessageInput{
+		QueueUrl: out.QueueUrl, MessageBody: aws.String("b"), MessageAttributes: userAttrs,
+		MessageSystemAttributes: map[string]types.MessageSystemAttributeValue{
+			"AWSTraceHeader": {DataType: aws.String("String"), StringValue: aws.String("Root=r;Parent=9")},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if aws.ToString(plain.MD5OfMessageAttributes) != aws.ToString(traced.MD5OfMessageAttributes) {
+		t.Errorf("the system attribute changed MD5OfMessageAttributes: %q vs %q\n"+
+			"  an SDK verifies that digest, so every traced message would look corrupted",
+			aws.ToString(plain.MD5OfMessageAttributes), aws.ToString(traced.MD5OfMessageAttributes))
+	}
+
+	// And it comes back where AWS puts it: with the system attributes.
+	got, err := c.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{
+		QueueUrl: out.QueueUrl, MaxNumberOfMessages: 10, VisibilityTimeout: 0,
+		MessageSystemAttributeNames: []types.MessageSystemAttributeName{"All"},
+		MessageAttributeNames:       []string{"All"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var seen bool
+	for _, m := range got.Messages {
+		if aws.ToString(m.Body) != "b" {
+			continue
+		}
+		seen = true
+		if h := m.Attributes["AWSTraceHeader"]; h != "Root=r;Parent=9" {
+			t.Errorf("AWSTraceHeader came back as %q, want the value that was sent", h)
+		}
+		if _, leaked := m.MessageAttributes["AWSTraceHeader"]; leaked {
+			t.Error("the trace header leaked into the application's MessageAttributes")
+		}
+	}
+	if !seen {
+		t.Fatal("the traced message was never received")
+	}
+}
+
+// TestModernSDKGetsSystemAttributes guards the rename that broke them.
+//
+// AWS deprecated AttributeNames in favour of MessageSystemAttributeNames, and
+// doze-aws read only the old spelling — so a current aws-sdk-go-v2 client
+// asking for "All" received no system attributes at all. Not the trace header:
+// ApproximateReceiveCount and SentTimestamp too, which is the sort of thing a
+// consumer's retry logic quietly depends on.
+func TestModernSDKGetsSystemAttributes(t *testing.T) {
+	ctx := context.Background()
+	c := sdkClient(t)
+
+	out, err := c.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("sysattrs")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.SendMessage(ctx, &awssqs.SendMessageInput{
+		QueueUrl: out.QueueUrl, MessageBody: aws.String("x"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := c.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{
+		QueueUrl:                    out.QueueUrl,
+		MaxNumberOfMessages:         1,
+		MessageSystemAttributeNames: []types.MessageSystemAttributeName{"All"},
+	})
+	if err != nil || len(got.Messages) != 1 {
+		t.Fatalf("ReceiveMessage = %d messages, err %v", len(got.Messages), err)
+	}
+	for _, want := range []string{"ApproximateReceiveCount", "SentTimestamp"} {
+		if got.Messages[0].Attributes[want] == "" {
+			t.Errorf("%s is missing when asked for via MessageSystemAttributeNames\n  got: %v",
+				want, got.Messages[0].Attributes)
+		}
+	}
+}

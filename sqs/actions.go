@@ -128,7 +128,8 @@ func hSendMessage(s *Store, req *request) (any, *apiError) {
 		delay = n
 	}
 	m, err := s.Send(targetQueue(req), req.p.str("MessageBody"), req.p.messageAttrs(),
-		delay, req.p.str("MessageGroupId"), req.p.str("MessageDeduplicationId"))
+		delay, req.p.str("MessageGroupId"), req.p.str("MessageDeduplicationId"),
+		req.p.systemAttrs())
 	if err != nil {
 		return nil, asAPIError(err)
 	}
@@ -143,7 +144,7 @@ func hSendMessageBatch(s *Store, req *request) (any, *apiError) {
 		if e.Delay != nil {
 			delay = *e.Delay
 		}
-		m, err := s.Send(queue, e.Body, e.Attrs, delay, e.GroupID, e.DedupID)
+		m, err := s.Send(queue, e.Body, e.Attrs, delay, e.GroupID, e.DedupID, nil)
 		if err != nil {
 			ae := asAPIError(err)
 			res.Failed = append(res.Failed, batchErr{ID: e.ID, Code: ae.Code, Message: ae.Message, SenderFault: true})
@@ -290,6 +291,13 @@ func systemAttrs(m Message, names []string) kvAttrs {
 	}
 	if m.DedupID != "" {
 		add("MessageDeduplicationId", m.DedupID)
+	}
+	// System attributes the sender set. AWSTraceHeader is the only one AWS
+	// defines, and it comes back here rather than with the user's message
+	// attributes — which is what lets a consumer continue a trace without the
+	// header ever appearing in the application's own attribute map.
+	for k, v := range m.SysAttrs {
+		add(k, v)
 	}
 	if len(out) == 0 {
 		return nil

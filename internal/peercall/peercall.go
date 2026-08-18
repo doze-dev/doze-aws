@@ -38,6 +38,16 @@ func SQSSend(ctx context.Context, dir peers.Directory, queue, body string, attrs
 	}
 	return trace.Step(ctx, trace.Event{Service: "sqs", Action: "SendMessage", Resource: queue},
 		func(ctx context.Context) error {
+			// The cause rides on the message, because the causal chain has to
+			// survive the queue: whoever drains this has no request context and
+			// the message is the only thing that still knows what caused it.
+			// AWSTraceHeader is a system attribute, so it stays out of the
+			// application's own attributes and out of their MD5.
+			if h := trace.Header(ctx); h != "" {
+				payload["MessageSystemAttributes"] = map[string]any{
+					"AWSTraceHeader": map[string]string{"DataType": "String", "StringValue": h},
+				}
+			}
 			return postJSON(ctx, ep, "AmazonSQS.SendMessage", "application/x-amz-json-1.0", payload)
 		})
 }
@@ -45,10 +55,14 @@ func SQSSend(ctx context.Context, dir peers.Directory, queue, body string, attrs
 // SQSReceive long-polls a queue for up to max messages (used by Lambda event
 // source mappings).
 type SQSMessage struct {
-	MessageID     string `json:"MessageId"`
-	ReceiptHandle string `json:"ReceiptHandle"`
-	Body          string `json:"Body"`
+	MessageID     string            `json:"MessageId"`
+	ReceiptHandle string            `json:"ReceiptHandle"`
+	Body          string            `json:"Body"`
+	Attributes    map[string]string `json:"Attributes"`
 }
+
+// TraceHeader is the causal link the sender left on this message, or "".
+func (m SQSMessage) TraceHeader() string { return m.Attributes["AWSTraceHeader"] }
 
 func SQSReceive(ctx context.Context, dir peers.Directory, queue string, max, waitSeconds int) ([]SQSMessage, error) {
 	ep, ok := dir.Endpoint("sqs")
@@ -59,6 +73,9 @@ func SQSReceive(ctx context.Context, dir peers.Directory, queue string, max, wai
 		"QueueUrl":            "http://sqs.doze-aws.internal/" + awsident.AccountID + "/" + queue,
 		"MaxNumberOfMessages": max,
 		"WaitTimeSeconds":     waitSeconds,
+		// Ask for the trace header the sender may have left, so a poller can
+		// continue the chain the message came from.
+		"AttributeNames": []string{"AWSTraceHeader"},
 	}
 	body, err := postJSONResult(ctx, ep, "AmazonSQS.ReceiveMessage", "application/x-amz-json-1.0", payload)
 	if err != nil {

@@ -19,20 +19,32 @@
 // no locking, and makes "not traced" the natural default for any code path
 // without a request behind it.
 //
-// # What is not traced, and why that is honest
+// # Across a queue
 //
-// Only synchronous fan-out from a request is linked. A poller — an SQS event
-// source mapping, a DynamoDB stream reader — runs on its own goroutine with no
-// request context, so the invoke it eventually performs has no parent here and
-// appears as a root. That is a real gap rather than a rendering choice: the
-// causal chain genuinely breaks at a queue, because the message outlives the
-// request that sent it. AWS closes that gap by carrying a trace header on the
-// message itself, and doing the same is the next step, not something to fake by
-// guessing which recent request probably caused which later delivery.
+// Synchronous fan-out is linked by the request context. That is not enough on
+// its own: a message outlives the request that sent it, so an SQS event source
+// mapping picking it up later has no context to inherit and the chain would end
+// at the queue — which is the most common shape there is, S3 to SQS to Lambda.
+//
+// So the cause travels ON the message, in the AWSTraceHeader system attribute,
+// which is exactly what X-Ray does and why that attribute exists. A poller
+// reads it back and continues the chain, and because it is a SYSTEM attribute
+// it stays out of the application's own attributes and out of their MD5.
+//
+// # What is still not traced
+//
+// DynamoDB streams and Kinesis have no equivalent per-record place to put a
+// header, so an invoke driven by one of those appears as a root. A message sent
+// by something other than doze-aws carries no header and does the same. Both
+// are honest outcomes: a root means "nothing told us what caused this", not
+// "nothing did".
 package trace
 
 import (
 	"context"
+	"fmt"
+	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -138,4 +150,64 @@ func Step(ctx context.Context, e Event, fn func(context.Context) error) error {
 	}
 	c.sink.EmitCascade(e)
 	return err
+}
+
+// ---- propagation across a queue ----
+
+// A cause is only meaningful inside the process that issued it: ids restart at
+// zero when doze-aws does. A message that outlived a restart would otherwise
+// carry a number that now belongs to somebody else's call, and the wire would
+// draw a confident, wrong line between two unrelated things. So the run is
+// named alongside the parent, and a mismatched run is ignored rather than
+// trusted.
+//
+// The shape mirrors X-Ray's AWSTraceHeader — Root and Parent — because that is
+// the field this travels in and the format anything else reading it expects.
+const headerFormat = "Root=%s;Parent=%d"
+
+var headerRE = regexp.MustCompile(`^Root=([^;]+);Parent=(\d+)$`)
+
+// Runner identifies the process that issued a cause. A Sink implements it so a
+// consumer can tell its own ids from a previous run's.
+type Runner interface {
+	RunID() string
+}
+
+// Header renders the current cause for travel on a message, or "" when there is
+// nothing to propagate.
+func Header(ctx context.Context) string {
+	c, ok := ctx.Value(key{}).(carrier)
+	if !ok || c.cause == 0 {
+		return ""
+	}
+	r, ok := c.sink.(Runner)
+	if !ok {
+		return ""
+	}
+	return fmt.Sprintf(headerFormat, r.RunID(), c.cause)
+}
+
+// Continue rebuilds a traced context from a header carried on a message.
+//
+// This is the seam a poller uses: it has no request context of its own, so the
+// message is the only thing that knows what caused it. A header from another
+// run is dropped, which shows the delivery as a root — the same honest outcome
+// as no header at all.
+func Continue(ctx context.Context, s Sink, header string) context.Context {
+	if s == nil || header == "" {
+		return ctx
+	}
+	m := headerRE.FindStringSubmatch(header)
+	if m == nil {
+		return ctx
+	}
+	r, ok := s.(Runner)
+	if !ok || m[1] != r.RunID() {
+		return ctx
+	}
+	parent, err := strconv.ParseInt(m[2], 10, 64)
+	if err != nil || parent == 0 {
+		return ctx
+	}
+	return With(ctx, s, Cause(parent))
 }

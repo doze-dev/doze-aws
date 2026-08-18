@@ -3,6 +3,7 @@ package lambda
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -10,7 +11,9 @@ import (
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/peercall"
+	"github.com/doze-dev/doze-aws/internal/trace"
 )
 
 // ---- aliases ----
@@ -529,6 +532,12 @@ func (s *Server) pollSQS(poller *esm, m *EventSourceMapping) {
 		if len(msgs) == 0 {
 			continue
 		}
+		// Continue the chain the messages came from. A batch can in principle
+		// mix causes; the first message's header is used, because one invoke
+		// has one parent and inventing a second edge would be a guess. In
+		// practice a batch is one producer's work.
+		ctx := trace.Continue(context.Background(), s.sink, msgs[0].TraceHeader())
+
 		records := make([]map[string]any, 0, len(msgs))
 		for _, msg := range msgs {
 			records = append(records, map[string]any{
@@ -545,7 +554,22 @@ func (s *Server) pollSQS(poller *esm, m *EventSourceMapping) {
 		if err != nil {
 			continue
 		}
-		res, err := s.runInvoke(context.Background(), f, payload)
+		// The invoke is recorded as work the original request caused, which is
+		// what makes the chain hold across the queue: the message carried the
+		// cause, so this shows up under the call that produced it rather than
+		// as an unexplained root.
+		var res lambdaruntime.Result
+		err = trace.Step(ctx, trace.Event{
+			Service: "lambda", Action: "Invoke (event source)", Resource: fnName,
+			Via: "sqs:" + queue,
+		}, func(ctx context.Context) error {
+			var e error
+			res, e = s.runInvoke(ctx, f, payload)
+			if e == nil && res.FunctionErr != "" {
+				return fmt.Errorf("%s", res.FunctionErr)
+			}
+			return e
+		})
 		if err == nil && res.FunctionErr == "" {
 			for _, msg := range msgs {
 				_ = peercall.SQSDelete(context.Background(), s.peers, queue, msg.ReceiptHandle)

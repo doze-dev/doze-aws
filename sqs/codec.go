@@ -8,6 +8,7 @@ package sqs
 import (
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -272,11 +273,24 @@ func (p params) visibilityBatchEntries() []visEntry {
 	return out
 }
 
-// attributeNames reads the requested attribute names (AttributeNames in JSON,
-// AttributeName.N in Query).
+// attributeNames reads the requested message system attribute names.
+//
+// Both spellings are accepted because AWS renamed this field: AttributeNames
+// is deprecated in favour of MessageSystemAttributeNames, and current SDKs send
+// the new one. Reading only the old name meant a modern aws-sdk-go-v2 client
+// asking for "All" got nothing back — no ApproximateReceiveCount, no
+// SentTimestamp — while an older client got everything, which is the kind of
+// divergence that looks like a client bug for a long time before anyone
+// suspects the emulator.
 func (p params) attributeNames() []string {
 	if p.form != nil {
+		if n := p.stringList("MessageSystemAttributeName"); len(n) > 0 {
+			return n
+		}
 		return p.stringList("AttributeName")
+	}
+	if n := p.stringList("MessageSystemAttributeNames"); len(n) > 0 {
+		return n
 	}
 	return p.stringList("AttributeNames")
 }
@@ -414,3 +428,45 @@ func (p params) tagKeys() []string {
 	}
 	return p.stringList("TagKeys")
 }
+
+// systemAttrs reads SendMessage's MessageSystemAttribute entries.
+//
+// AWS defines exactly one today, AWSTraceHeader, and doze-aws accepts only
+// that one for the same reason it validates everything else: taking a name AWS
+// would refuse means code that works here fails on deploy. The values live
+// apart from user attributes because SQS excludes them from
+// MD5OfMessageAttributes and returns them with SentTimestamp and friends.
+func (p params) systemAttrs() map[string]string {
+	out := map[string]string{}
+	// Query protocol: MessageSystemAttribute.entry.N.Name / .Value.StringValue
+	for i := 1; ; i++ {
+		name := p.str(fmt.Sprintf("MessageSystemAttribute.entry.%d.Name", i))
+		if name == "" {
+			break
+		}
+		v := p.str(fmt.Sprintf("MessageSystemAttribute.entry.%d.Value.StringValue", i))
+		if name == sysAttrTraceHeader && v != "" {
+			out[name] = v
+		}
+	}
+	// JSON protocol: {"MessageSystemAttributes":{"AWSTraceHeader":{"StringValue":..}}}
+	if raw, ok := p.obj["MessageSystemAttributes"]; ok {
+		var m map[string]struct {
+			StringValue string `json:"StringValue"`
+		}
+		if json.Unmarshal(raw, &m) == nil {
+			for k, v := range m {
+				if k == sysAttrTraceHeader && v.StringValue != "" {
+					out[k] = v.StringValue
+				}
+			}
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// sysAttrTraceHeader is the one message system attribute AWS defines.
+const sysAttrTraceHeader = "AWSTraceHeader"

@@ -125,7 +125,7 @@ func TestPersistenceAcrossReopen(t *testing.T) {
 	if _, err := s1.store.CreateQueue("durable", nil, nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s1.store.Send("durable", "survives", nil, -1, "", ""); err != nil {
+	if _, err := s1.store.Send("durable", "survives", nil, -1, "", "", nil); err != nil {
 		t.Fatal(err)
 	}
 	if err := s1.Close(); err != nil {

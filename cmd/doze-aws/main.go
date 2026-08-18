@@ -222,6 +222,9 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		// console reads it for the Traffic tail but drives its own calls
 		// through the RAW gateway so they never appear there.
 		rec := console.NewRecorder(stack.Handler())
+		// Pollers have no request behind them, so they are handed the recorder
+		// directly — it is how a queued message's cause reaches the wire.
+		stack.SetTraceSink(rec)
 		// The console drives its own calls straight to each raw service handler
 		// (peers.InProcess over the stack), so they never pass through the
 		// recorder and never appear in the Traffic tail.
