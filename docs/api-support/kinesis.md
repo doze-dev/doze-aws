@@ -79,3 +79,47 @@ stream poller.
 
 Because doze-aws also implements DynamoDB, a KCL application's lease table works
 against the same endpoint.
+
+## Input validation
+
+Separate from the tiers above. A tier says the operation is implemented; this
+says whether doze-aws **refuses what Kinesis refuses**.
+
+**356/356 model-derived constraints enforced across 32 of the 35 dispatched
+operations, with `knownGaps` empty.** Before this table, 137 were enforced by
+hand-written checks and 219 were not.
+
+Generated rather than hand-derived: `dzaudit cases kinesis` emits a violating
+value per constrained input, `kinesis/testdata/cases_kinesis.json` commits them,
+and `kinesis/rejection_parity_test.go` replays every one from a baseline it
+first proves the service accepts.
+
+### What is not covered, and why
+
+| Operation | Cases | Why |
+|---|---|---|
+| `GetRecords` | 11 | needs a live shard iterator, which expires and is consumed by the read |
+| `SplitShard` | 17 | reshapes the fixture stream every other operation addresses |
+| `MergeShards` | 15 | reshapes the fixture stream every other operation addresses |
+
+43 cases in total. They are skipped **with a reason recorded in the test**
+rather than dropped, because a case nobody ran is not a case that passed. The
+harness also counts unbuildable cases separately from enforced ones, so a hole
+in the audit can never read as coverage.
+
+`SubscribeToShard` and `UpdateStreamWarmThroughput` are refused by name with a
+reason, so their 26 cases cannot be audited at all — an operation that refuses
+every request, including a valid one, tells you nothing about its validation.
+
+### One behaviour change
+
+An invalid `StreamName` or `ExplicitHashKey` now answers **`ValidationException`**
+rather than `InvalidArgumentException`. Both carry a `@pattern` in the service
+model, and AWS rejects a model-constraint violation at the protocol layer,
+before the service sees it — the message is verbatim AWS's shape:
+
+    1 validation error detected: Value 'bad name!' at 'streamName' failed to
+    satisfy constraint: Member must satisfy regular expression pattern: ...
+
+`InvalidArgumentException` remains what Kinesis answers for an argument that is
+well formed but wrong, such as a numeric hash key outside the shard's range.

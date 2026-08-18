@@ -216,13 +216,18 @@ func TestSDKExplicitHashKeyOverridesPartitionKey(t *testing.T) {
 		t.Fatalf("ExplicitHashKey ignored: landed on %s, want %s", got, want)
 	}
 
+	// ValidationException, not InvalidArgumentException: ExplicitHashKey carries
+	// a pattern in the service model, and AWS rejects a model-constraint
+	// violation at the protocol layer before the service sees it.
+	// InvalidArgumentException is what Kinesis returns for an argument that is
+	// well formed but wrong — a numeric hash key outside the shard's range, say.
 	_, err = c.PutRecord(ctx, &awskinesis.PutRecordInput{
 		StreamName:      aws.String("hashed"),
 		PartitionKey:    aws.String("k"),
 		ExplicitHashKey: aws.String("not-a-number"),
 		Data:            []byte("x"),
 	})
-	assertCode(t, err, "InvalidArgumentException")
+	assertCode(t, err, "ValidationException")
 }
 
 func TestSDKPutRecordsAndOrdering(t *testing.T) {
@@ -627,10 +632,16 @@ func TestSDKValidation(t *testing.T) {
 	ctx := context.Background()
 	c := client(t)
 
+	// StreamName has a @pattern in the model, so this is a protocol-level
+	// refusal: "1 validation error detected: Value 'bad name!' at 'streamName'
+	// failed to satisfy constraint: Member must satisfy regular expression
+	// pattern". doze-aws used to answer InvalidArgumentException from its own
+	// hand-rolled check, which is the code Kinesis uses for a different class
+	// of problem.
 	_, err := c.CreateStream(ctx, &awskinesis.CreateStreamInput{
 		StreamName: aws.String("bad name!"), ShardCount: aws.Int32(1),
 	})
-	assertCode(t, err, "InvalidArgumentException")
+	assertCode(t, err, "ValidationException")
 
 	mustCreate(t, c, "v", 1)
 	_, err = c.PutRecord(ctx, &awskinesis.PutRecordInput{

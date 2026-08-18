@@ -42,7 +42,7 @@ clients still speak.
 | DynamoDB | ✅ full expression engine, GSI/LSI, transactions, TTL, paging semantics | **fully audited**: 333/333 across all 27 dispatched operations · no known gaps |
 | EventBridge | ✅ full pattern language, SQS/SNS/Lambda targets, input transformers | not yet audited |
 | Lambda | ✅ real process runtime (no Docker), versions, layers, function URLs, SQS/DynamoDB/Kinesis event source mappings | **audited**: `MemorySize`, `Timeout` · rest not yet audited |
-| Kinesis | ✅ native Go (no JVM), real partition-key routing, resharding with parent/child lineage | spot-checked only |
+| Kinesis | ✅ native Go (no JVM), real partition-key routing, resharding with parent/child lineage | **fully audited**: 356/356 across 32 of 35 dispatched operations · no known gaps |
 | IAM | ✅ real policy evaluation, off by default, with least-privilege generation | not yet audited |
 | CloudFormation | ✅ stacks, change sets, deletion — `sam deploy`, `cdk deploy` and Serverless all work | not yet audited |
 | API Gateway | ✅ REST v1 — deployed APIs actually serve into Lambda over a real HTTP endpoint | not yet audited |
