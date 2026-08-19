@@ -25,9 +25,9 @@
     "operation": "BatchExecuteStatement",
     "target": "DynamoDB_20120810.BatchExecuteStatement",
     "path": "Statements[].ReturnValuesOnConditionCheckFailure",
-    "why": "not one of ALL_OLD, NONE",
+    "why": "not one of NONE, ALL_OLD",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum ALL_OLD|NONE",
+    "constraint": "enum NONE|ALL_OLD",
     "required_members": [
       "Statements"
     ]
@@ -157,9 +157,9 @@
     "operation": "BatchWriteItem",
     "target": "DynamoDB_20120810.BatchWriteItem",
     "path": "ReturnConsumedCapacity",
-    "why": "not one of NONE, INDEXES, TOTAL",
+    "why": "not one of INDEXES, TOTAL, NONE",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum NONE|INDEXES|TOTAL",
+    "constraint": "enum INDEXES|TOTAL|NONE",
     "required_members": [
       "RequestItems"
     ]
@@ -246,7 +246,7 @@
     "target": "DynamoDB_20120810.CreateTable",
     "path": "GlobalSecondaryIndexes[].IndexName",
     "why": "does not match ^[a-zA-Z0-9_.-]+$",
-    "value": "!! not valid !!",
+    "value": "\u0000\u0001",
     "constraint": "pattern ^[a-zA-Z0-9_.-]+$",
     "required_members": [
       "TableName"
@@ -454,9 +454,9 @@
     "operation": "CreateTable",
     "target": "DynamoDB_20120810.CreateTable",
     "path": "KeySchema[].KeyType",
-    "why": "not one of RANGE, HASH",
+    "why": "not one of HASH, RANGE",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum RANGE|HASH",
+    "constraint": "enum HASH|RANGE",
     "required_members": [
       "TableName"
     ]
@@ -477,7 +477,7 @@
     "target": "DynamoDB_20120810.CreateTable",
     "path": "LocalSecondaryIndexes[].IndexName",
     "why": "does not match ^[a-zA-Z0-9_.-]+$",
-    "value": "!! not valid !!",
+    "value": "\u0000\u0001",
     "constraint": "pattern ^[a-zA-Z0-9_.-]+$",
     "required_members": [
       "TableName"
@@ -564,9 +564,9 @@
     "operation": "CreateTable",
     "target": "DynamoDB_20120810.CreateTable",
     "path": "LocalSecondaryIndexes[].Projection.ProjectionType",
-    "why": "not one of KEYS_ONLY, INCLUDE, ALL",
+    "why": "not one of ALL, KEYS_ONLY, INCLUDE",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum KEYS_ONLY|INCLUDE|ALL",
+    "constraint": "enum ALL|KEYS_ONLY|INCLUDE",
     "required_members": [
       "TableName"
     ]
@@ -641,9 +641,9 @@
     "operation": "CreateTable",
     "target": "DynamoDB_20120810.CreateTable",
     "path": "StreamSpecification.StreamViewType",
-    "why": "not one of NEW_IMAGE, OLD_IMAGE, NEW_AND_OLD_IMAGES, KEYS_ONLY",
+    "why": "not one of OLD_IMAGE, NEW_AND_OLD_IMAGES, KEYS_ONLY, NEW_IMAGE",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum NEW_IMAGE|OLD_IMAGE|NEW_AND_OLD_IMAGES|KEYS_ONLY",
+    "constraint": "enum OLD_IMAGE|NEW_AND_OLD_IMAGES|KEYS_ONLY|NEW_IMAGE",
     "required_members": [
       "TableName"
     ]
@@ -652,9 +652,9 @@
     "operation": "CreateTable",
     "target": "DynamoDB_20120810.CreateTable",
     "path": "TableClass",
-    "why": "not one of STANDARD_INFREQUENT_ACCESS, STANDARD",
+    "why": "not one of STANDARD, STANDARD_INFREQUENT_ACCESS",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum STANDARD_INFREQUENT_ACCESS|STANDARD",
+    "constraint": "enum STANDARD|STANDARD_INFREQUENT_ACCESS",
     "required_members": [
       "TableName"
     ]
@@ -773,9 +773,9 @@
     "operation": "CreateTable",
     "target": "DynamoDB_20120810.CreateTable",
     "path": "VectorIndexes[].DistanceFunction",
-    "why": "not one of EUCLIDEAN, COSINE, DOT_PRODUCT",
+    "why": "not one of COSINE, DOT_PRODUCT, EUCLIDEAN",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum EUCLIDEAN|COSINE|DOT_PRODUCT",
+    "constraint": "enum COSINE|DOT_PRODUCT|EUCLIDEAN",
     "required_members": [
       "TableName"
     ]
@@ -796,7 +796,7 @@
     "target": "DynamoDB_20120810.CreateTable",
     "path": "VectorIndexes[].IndexName",
     "why": "does not match ^[a-zA-Z0-9_.-]+$",
-    "value": "!! not valid !!",
+    "value": "\u0000\u0001",
     "constraint": "pattern ^[a-zA-Z0-9_.-]+$",
     "required_members": [
       "TableName"
@@ -850,9 +850,9 @@
     "operation": "CreateTable",
     "target": "DynamoDB_20120810.CreateTable",
     "path": "VectorIndexes[].Projection.ProjectionType",
-    "why": "not one of KEYS_ONLY, INCLUDE, ALL",
+    "why": "not one of ALL, KEYS_ONLY, INCLUDE",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum KEYS_ONLY|INCLUDE|ALL",
+    "constraint": "enum ALL|KEYS_ONLY|INCLUDE",
     "required_members": [
       "TableName"
     ]
@@ -939,9 +939,9 @@
     "operation": "DeleteItem",
     "target": "DynamoDB_20120810.DeleteItem",
     "path": "Expected{}.ComparisonOperator",
-    "why": "not one of NOT_CONTAINS, BEGINS_WITH, NE, IN, LE, LT, GE, GT, NOT_NULL, NULL, EQ, BETWEEN, CONTAINS",
+    "why": "not one of GT, NOT_NULL, NULL, CONTAINS, BEGINS_WITH, EQ, NE, LE, LT, GE, BETWEEN, NOT_CONTAINS, IN",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum NOT_CONTAINS|BEGINS_WITH|NE|IN|LE|LT|GE|GT|NOT_NULL|NULL|EQ|BETWEEN|CONTAINS",
+    "constraint": "enum GT|NOT_NULL|NULL|CONTAINS|BEGINS_WITH|EQ|NE|LE|LT|GE|BETWEEN|NOT_CONTAINS|IN",
     "required_members": [
       "Key",
       "TableName"
@@ -999,9 +999,9 @@
     "operation": "DeleteItem",
     "target": "DynamoDB_20120810.DeleteItem",
     "path": "ReturnValues",
-    "why": "not one of UPDATED_NEW, NONE, ALL_OLD, UPDATED_OLD, ALL_NEW",
+    "why": "not one of ALL_OLD, UPDATED_OLD, ALL_NEW, UPDATED_NEW, NONE",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum UPDATED_NEW|NONE|ALL_OLD|UPDATED_OLD|ALL_NEW",
+    "constraint": "enum ALL_OLD|UPDATED_OLD|ALL_NEW|UPDATED_NEW|NONE",
     "required_members": [
       "Key",
       "TableName"
@@ -1126,7 +1126,7 @@
     "target": "DynamoDB_20120810.DescribeContributorInsights",
     "path": "IndexName",
     "why": "does not match ^[a-zA-Z0-9_.-]+$",
-    "value": "!! not valid !!",
+    "value": "\u0000\u0001",
     "constraint": "pattern ^[a-zA-Z0-9_.-]+$",
     "required_members": [
       "TableName"
@@ -1518,7 +1518,7 @@
     "target": "DynamoDB_20120810.ListTables",
     "path": "ExclusiveStartTableName",
     "why": "does not match ^[a-zA-Z0-9_.-]+$",
-    "value": "!! not valid !!",
+    "value": "\u0000\u0001",
     "constraint": "pattern ^[a-zA-Z0-9_.-]+$"
   },
   {
@@ -1602,9 +1602,9 @@
     "operation": "PutItem",
     "target": "DynamoDB_20120810.PutItem",
     "path": "Expected{}.ComparisonOperator",
-    "why": "not one of EQ, BETWEEN, CONTAINS, NOT_CONTAINS, BEGINS_WITH, NE, IN, LE, LT, GE, GT, NOT_NULL, NULL",
+    "why": "not one of NE, LE, LT, GE, BETWEEN, NOT_CONTAINS, IN, GT, NOT_NULL, NULL, CONTAINS, BEGINS_WITH, EQ",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum EQ|BETWEEN|CONTAINS|NOT_CONTAINS|BEGINS_WITH|NE|IN|LE|LT|GE|GT|NOT_NULL|NULL",
+    "constraint": "enum NE|LE|LT|GE|BETWEEN|NOT_CONTAINS|IN|GT|NOT_NULL|NULL|CONTAINS|BEGINS_WITH|EQ",
     "required_members": [
       "Item",
       "TableName"
@@ -1650,9 +1650,9 @@
     "operation": "PutItem",
     "target": "DynamoDB_20120810.PutItem",
     "path": "ReturnItemCollectionMetrics",
-    "why": "not one of SIZE, NONE",
+    "why": "not one of NONE, SIZE",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum SIZE|NONE",
+    "constraint": "enum NONE|SIZE",
     "required_members": [
       "Item",
       "TableName"
@@ -1756,7 +1756,7 @@
     "target": "DynamoDB_20120810.Query",
     "path": "IndexName",
     "why": "does not match ^[a-zA-Z0-9_.-]+$",
-    "value": "!! not valid !!",
+    "value": "\u0000\u0001",
     "constraint": "pattern ^[a-zA-Z0-9_.-]+$",
     "required_members": [
       "TableName"
@@ -1788,9 +1788,9 @@
     "operation": "Query",
     "target": "DynamoDB_20120810.Query",
     "path": "KeyConditions{}.ComparisonOperator",
-    "why": "not one of NE, IN, LE, LT, GE, GT, NOT_NULL, NULL, EQ, BETWEEN, CONTAINS, NOT_CONTAINS, BEGINS_WITH",
+    "why": "not one of EQ, NE, LE, LT, GE, BETWEEN, NOT_CONTAINS, IN, GT, NOT_NULL, NULL, CONTAINS, BEGINS_WITH",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum NE|IN|LE|LT|GE|GT|NOT_NULL|NULL|EQ|BETWEEN|CONTAINS|NOT_CONTAINS|BEGINS_WITH",
+    "constraint": "enum EQ|NE|LE|LT|GE|BETWEEN|NOT_CONTAINS|IN|GT|NOT_NULL|NULL|CONTAINS|BEGINS_WITH",
     "required_members": [
       "TableName"
     ]
@@ -1821,9 +1821,9 @@
     "operation": "Query",
     "target": "DynamoDB_20120810.Query",
     "path": "QueryFilter{}.ComparisonOperator",
-    "why": "not one of NE, IN, LE, LT, GE, GT, NOT_NULL, NULL, EQ, BETWEEN, CONTAINS, NOT_CONTAINS, BEGINS_WITH",
+    "why": "not one of NOT_CONTAINS, IN, GT, NOT_NULL, NULL, CONTAINS, BEGINS_WITH, EQ, NE, LE, LT, GE, BETWEEN",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum NE|IN|LE|LT|GE|GT|NOT_NULL|NULL|EQ|BETWEEN|CONTAINS|NOT_CONTAINS|BEGINS_WITH",
+    "constraint": "enum NOT_CONTAINS|IN|GT|NOT_NULL|NULL|CONTAINS|BEGINS_WITH|EQ|NE|LE|LT|GE|BETWEEN",
     "required_members": [
       "TableName"
     ]
@@ -1909,9 +1909,9 @@
     "operation": "Scan",
     "target": "DynamoDB_20120810.Scan",
     "path": "ConditionalOperator",
-    "why": "not one of OR, AND",
+    "why": "not one of AND, OR",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum OR|AND",
+    "constraint": "enum AND|OR",
     "required_members": [
       "TableName"
     ]
@@ -1932,7 +1932,7 @@
     "target": "DynamoDB_20120810.Scan",
     "path": "IndexName",
     "why": "does not match ^[a-zA-Z0-9_.-]+$",
-    "value": "!! not valid !!",
+    "value": "\u0000\u0001",
     "constraint": "pattern ^[a-zA-Z0-9_.-]+$",
     "required_members": [
       "TableName"
@@ -1986,9 +1986,9 @@
     "operation": "Scan",
     "target": "DynamoDB_20120810.Scan",
     "path": "ScanFilter{}.ComparisonOperator",
-    "why": "not one of CONTAINS, NOT_CONTAINS, BEGINS_WITH, NE, IN, LE, LT, GE, GT, NOT_NULL, NULL, EQ, BETWEEN",
+    "why": "not one of IN, GT, NOT_NULL, NULL, CONTAINS, BEGINS_WITH, EQ, NE, LE, LT, GE, BETWEEN, NOT_CONTAINS",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum CONTAINS|NOT_CONTAINS|BEGINS_WITH|NE|IN|LE|LT|GE|GT|NOT_NULL|NULL|EQ|BETWEEN",
+    "constraint": "enum IN|GT|NOT_NULL|NULL|CONTAINS|BEGINS_WITH|EQ|NE|LE|LT|GE|BETWEEN|NOT_CONTAINS",
     "required_members": [
       "TableName"
     ]
@@ -2303,9 +2303,9 @@
     "operation": "TransactWriteItems",
     "target": "DynamoDB_20120810.TransactWriteItems",
     "path": "ReturnConsumedCapacity",
-    "why": "not one of TOTAL, NONE, INDEXES",
+    "why": "not one of INDEXES, TOTAL, NONE",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum TOTAL|NONE|INDEXES",
+    "constraint": "enum INDEXES|TOTAL|NONE",
     "required_members": [
       "TransactItems"
     ]
@@ -2771,7 +2771,7 @@
     "target": "DynamoDB_20120810.UpdateContributorInsights",
     "path": "IndexName",
     "why": "does not match ^[a-zA-Z0-9_.-]+$",
-    "value": "!! not valid !!",
+    "value": "\u0000\u0001",
     "constraint": "pattern ^[a-zA-Z0-9_.-]+$",
     "required_members": [
       "ContributorInsightsAction",
@@ -2842,9 +2842,9 @@
     "operation": "UpdateItem",
     "target": "DynamoDB_20120810.UpdateItem",
     "path": "AttributeUpdates{}.Action",
-    "why": "not one of DELETE, ADD, PUT",
+    "why": "not one of ADD, PUT, DELETE",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum DELETE|ADD|PUT",
+    "constraint": "enum ADD|PUT|DELETE",
     "required_members": [
       "Key",
       "TableName"
@@ -2866,9 +2866,9 @@
     "operation": "UpdateItem",
     "target": "DynamoDB_20120810.UpdateItem",
     "path": "Expected{}.ComparisonOperator",
-    "why": "not one of IN, LE, LT, GE, GT, NOT_NULL, NULL, EQ, BETWEEN, CONTAINS, NOT_CONTAINS, BEGINS_WITH, NE",
+    "why": "not one of LT, GE, BETWEEN, NOT_CONTAINS, IN, GT, NOT_NULL, NULL, CONTAINS, BEGINS_WITH, EQ, NE, LE",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum IN|LE|LT|GE|GT|NOT_NULL|NULL|EQ|BETWEEN|CONTAINS|NOT_CONTAINS|BEGINS_WITH|NE",
+    "constraint": "enum LT|GE|BETWEEN|NOT_CONTAINS|IN|GT|NOT_NULL|NULL|CONTAINS|BEGINS_WITH|EQ|NE|LE",
     "required_members": [
       "Key",
       "TableName"
@@ -2926,9 +2926,9 @@
     "operation": "UpdateItem",
     "target": "DynamoDB_20120810.UpdateItem",
     "path": "ReturnValues",
-    "why": "not one of UPDATED_NEW, NONE, ALL_OLD, UPDATED_OLD, ALL_NEW",
+    "why": "not one of NONE, ALL_OLD, UPDATED_OLD, ALL_NEW, UPDATED_NEW",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum UPDATED_NEW|NONE|ALL_OLD|UPDATED_OLD|ALL_NEW",
+    "constraint": "enum NONE|ALL_OLD|UPDATED_OLD|ALL_NEW|UPDATED_NEW",
     "required_members": [
       "Key",
       "TableName"
@@ -2938,9 +2938,9 @@
     "operation": "UpdateItem",
     "target": "DynamoDB_20120810.UpdateItem",
     "path": "ReturnValuesOnConditionCheckFailure",
-    "why": "not one of NONE, ALL_OLD",
+    "why": "not one of ALL_OLD, NONE",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum NONE|ALL_OLD",
+    "constraint": "enum ALL_OLD|NONE",
     "required_members": [
       "Key",
       "TableName"
@@ -3053,7 +3053,7 @@
     "target": "DynamoDB_20120810.UpdateTable",
     "path": "GlobalSecondaryIndexUpdates[].Create.IndexName",
     "why": "does not match ^[a-zA-Z0-9_.-]+$",
-    "value": "!! not valid !!",
+    "value": "\u0000\u0001",
     "constraint": "pattern ^[a-zA-Z0-9_.-]+$",
     "required_members": [
       "TableName"
@@ -3141,7 +3141,7 @@
     "target": "DynamoDB_20120810.UpdateTable",
     "path": "GlobalSecondaryIndexUpdates[].Delete.IndexName",
     "why": "does not match ^[a-zA-Z0-9_.-]+$",
-    "value": "!! not valid !!",
+    "value": "\u0000\u0001",
     "constraint": "pattern ^[a-zA-Z0-9_.-]+$",
     "required_members": [
       "TableName"
@@ -3185,7 +3185,7 @@
     "target": "DynamoDB_20120810.UpdateTable",
     "path": "GlobalSecondaryIndexUpdates[].Update.IndexName",
     "why": "does not match ^[a-zA-Z0-9_.-]+$",
-    "value": "!! not valid !!",
+    "value": "\u0000\u0001",
     "constraint": "pattern ^[a-zA-Z0-9_.-]+$",
     "required_members": [
       "TableName"
@@ -3250,9 +3250,9 @@
     "operation": "UpdateTable",
     "target": "DynamoDB_20120810.UpdateTable",
     "path": "GlobalTableSettingsReplicationMode",
-    "why": "not one of ENABLED, DISABLED, ENABLED_WITH_OVERRIDES",
+    "why": "not one of ENABLED_WITH_OVERRIDES, ENABLED, DISABLED",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum ENABLED|DISABLED|ENABLED_WITH_OVERRIDES",
+    "constraint": "enum ENABLED_WITH_OVERRIDES|ENABLED|DISABLED",
     "required_members": [
       "TableName"
     ]
@@ -3393,9 +3393,9 @@
     "operation": "UpdateTable",
     "target": "DynamoDB_20120810.UpdateTable",
     "path": "SSESpecification.SSEType",
-    "why": "not one of AES256, KMS",
+    "why": "not one of KMS, AES256",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum AES256|KMS",
+    "constraint": "enum KMS|AES256",
     "required_members": [
       "TableName"
     ]
@@ -3415,9 +3415,9 @@
     "operation": "UpdateTable",
     "target": "DynamoDB_20120810.UpdateTable",
     "path": "StreamSpecification.StreamViewType",
-    "why": "not one of NEW_AND_OLD_IMAGES, KEYS_ONLY, NEW_IMAGE, OLD_IMAGE",
+    "why": "not one of NEW_IMAGE, OLD_IMAGE, NEW_AND_OLD_IMAGES, KEYS_ONLY",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum NEW_AND_OLD_IMAGES|KEYS_ONLY|NEW_IMAGE|OLD_IMAGE",
+    "constraint": "enum NEW_IMAGE|OLD_IMAGE|NEW_AND_OLD_IMAGES|KEYS_ONLY",
     "required_members": [
       "TableName"
     ]
@@ -3492,9 +3492,9 @@
     "operation": "UpdateTable",
     "target": "DynamoDB_20120810.UpdateTable",
     "path": "VectorIndexUpdates[].Create.DistanceFunction",
-    "why": "not one of COSINE, DOT_PRODUCT, EUCLIDEAN",
+    "why": "not one of DOT_PRODUCT, EUCLIDEAN, COSINE",
     "value": "__DOZE_NOT_A_MEMBER__",
-    "constraint": "enum COSINE|DOT_PRODUCT|EUCLIDEAN",
+    "constraint": "enum DOT_PRODUCT|EUCLIDEAN|COSINE",
     "required_members": [
       "TableName"
     ]
@@ -3515,7 +3515,7 @@
     "target": "DynamoDB_20120810.UpdateTable",
     "path": "VectorIndexUpdates[].Create.IndexName",
     "why": "does not match ^[a-zA-Z0-9_.-]+$",
-    "value": "!! not valid !!",
+    "value": "\u0000\u0001",
     "constraint": "pattern ^[a-zA-Z0-9_.-]+$",
     "required_members": [
       "TableName"
@@ -3592,7 +3592,7 @@
     "target": "DynamoDB_20120810.UpdateTable",
     "path": "VectorIndexUpdates[].Delete.IndexName",
     "why": "does not match ^[a-zA-Z0-9_.-]+$",
-    "value": "!! not valid !!",
+    "value": "\u0000\u0001",
     "constraint": "pattern ^[a-zA-Z0-9_.-]+$",
     "required_members": [
       "TableName"
