@@ -181,10 +181,10 @@ func descend(cur map[string]any, segs []string, prefix []string) []site {
 }
 
 // check applies one constraint at one site, returning the error AWS would.
-func (c Constraint) check(s site) *awshttp.APIError {
+func (c Constraint) check(s site, code string) *awshttp.APIError {
 	if c.Kind == KindRequired {
 		if !s.present || s.val == nil {
-			return validationErr("Value null at '%s' failed to satisfy constraint: "+
+			return validationErr(code, "Value null at '%s' failed to satisfy constraint: "+
 				"Member must not be null", s.disp)
 		}
 		return nil
@@ -200,7 +200,7 @@ func (c Constraint) check(s site) *awshttp.APIError {
 			return nil
 		}
 		if !slices.Contains(c.Enum, str) {
-			return validationErr("Value '%s' at '%s' failed to satisfy constraint: "+
+			return validationErr(code, "Value '%s' at '%s' failed to satisfy constraint: "+
 				"Member must satisfy enum value set: [%s]",
 				str, s.disp, strings.Join(c.Enum, ", "))
 		}
@@ -210,11 +210,11 @@ func (c Constraint) check(s site) *awshttp.APIError {
 			return nil
 		}
 		if float64(n) < c.Min {
-			return validationErr("Value at '%s' failed to satisfy constraint: "+
+			return validationErr(code, "Value at '%s' failed to satisfy constraint: "+
 				"Member must have length greater than or equal to %d", s.disp, int(c.Min))
 		}
 		if float64(n) > c.Max {
-			return validationErr("Value at '%s' failed to satisfy constraint: "+
+			return validationErr(code, "Value at '%s' failed to satisfy constraint: "+
 				"Member must have length less than or equal to %d", s.disp, int(c.Max))
 		}
 	case KindRange:
@@ -223,12 +223,12 @@ func (c Constraint) check(s site) *awshttp.APIError {
 			return nil
 		}
 		if f < c.Min {
-			return validationErr("Value '%s' at '%s' failed to satisfy constraint: "+
+			return validationErr(code, "Value '%s' at '%s' failed to satisfy constraint: "+
 				"Member must have value greater than or equal to %d",
 				trimNum(f), s.disp, int(c.Min))
 		}
 		if f > c.Max {
-			return validationErr("Value '%s' at '%s' failed to satisfy constraint: "+
+			return validationErr(code, "Value '%s' at '%s' failed to satisfy constraint: "+
 				"Member must have value less than or equal to %d",
 				trimNum(f), s.disp, int(c.Max))
 		}
@@ -238,7 +238,7 @@ func (c Constraint) check(s site) *awshttp.APIError {
 			return nil
 		}
 		if !c.Pat.MatchString(str) {
-			return validationErr("Value '%s' at '%s' failed to satisfy constraint: "+
+			return validationErr(code, "Value '%s' at '%s' failed to satisfy constraint: "+
 				"Member must satisfy regular expression pattern: %s", str, s.disp, c.Pat.String())
 		}
 	}
@@ -275,9 +275,14 @@ func Validate(body []byte, table []Constraint) *awshttp.APIError {
 // several services have by the time they dispatch. Re-marshalling just to
 // re-parse would be the only alternative.
 func ValidateMap(raw map[string]any, table []Constraint) *awshttp.APIError {
+	return ValidateMapAs(raw, table, CodeJSON)
+}
+
+// ValidateMapAs is ValidateMap with the error code the service's protocol uses.
+func ValidateMapAs(raw map[string]any, table []Constraint, code string) *awshttp.APIError {
 	for _, c := range table {
 		for _, s := range sites(raw, c.Path) {
-			if err := c.check(s); err != nil {
+			if err := c.check(s, code); err != nil {
 				return err
 			}
 		}
@@ -285,18 +290,37 @@ func ValidateMap(raw map[string]any, table []Constraint) *awshttp.APIError {
 	return nil
 }
 
-func validationErr(format string, args ...any) *awshttp.APIError {
-	return awshttp.Errf(400, "ValidationException", "%s",
+// The two protocol families name this error differently, and clients branch on
+// the code: the awsJson services answer ValidationException, the Query ones
+// (STS, SNS, EC2) answer ValidationError. Same message, different envelope.
+const (
+	CodeJSON  = "ValidationException"
+	CodeQuery = "ValidationError"
+)
+
+func validationErr(code, format string, args ...any) *awshttp.APIError {
+	if code == "" {
+		code = CodeJSON
+	}
+	return awshttp.Errf(400, code, "%s",
 		"1 validation error detected: "+fmt.Sprintf(format, args...))
 }
 
-// toNumber accepts the shapes a JSON number arrives in.
+// toNumber accepts the shapes a number arrives in.
+//
+// A numeric string counts, because the Query protocol has no types: every value
+// in a form is a string, and the model's own @range trait is what says a member
+// is a number. Refusing to read it would leave every range constraint on a
+// Query service silently unchecked.
 func toNumber(v any) (float64, bool) {
 	switch n := v.(type) {
 	case float64:
 		return n, true
 	case json.Number:
 		f, err := n.Float64()
+		return f, err == nil
+	case string:
+		f, err := strconv.ParseFloat(n, 64)
 		return f, err == nil
 	}
 	return 0, false
@@ -317,4 +341,109 @@ func lowerFirst(s string) string {
 		return s
 	}
 	return strings.ToLower(s[:1]) + s[1:]
+}
+
+// ---- the query protocol ----
+
+// FromQuery un-flattens Query-protocol form values into the nested shape the
+// constraint paths describe, so one walker serves both protocol families.
+//
+// The Query protocol spells a list as prefix.member.1, prefix.member.2 and a
+// structure as parent.child, which is the same information as a JSON body with
+// the nesting written into the key. Rebuilding the nesting is strictly cheaper
+// than teaching every constraint path a second spelling — and it means the test
+// harness that builds violating requests works unchanged too.
+//
+// Values stay strings. Everything in a form is a string, and the model's own
+// trait is what says whether a member is a number; see toNumber.
+func FromQuery(vals map[string][]string) map[string]any {
+	root := map[string]any{}
+	for key, vs := range vals {
+		if len(vs) == 0 {
+			continue
+		}
+		insertQuery(root, strings.Split(key, "."), vs[0])
+	}
+	return root
+}
+
+// insertQuery walks one flattened key into the tree, creating containers as it
+// goes. "member" is skipped: it is the protocol's list marker, not a member
+// name, and the index that follows is what selects the element.
+func insertQuery(cur map[string]any, segs []string, val string) {
+	for i := 0; i < len(segs); i++ {
+		seg := segs[i]
+
+		// prefix.member.N or prefix.N — a list index follows.
+		if seg == "member" && i+1 < len(segs) {
+			continue
+		}
+		if idx, err := strconv.Atoi(seg); err == nil && idx >= 1 {
+			// The parent key already holds the list; this segment selects an
+			// element, so it is handled by the branch below rather than here.
+			_ = idx
+			continue
+		}
+
+		last := i == len(segs)-1
+		// Look ahead: a list marker or index after this segment makes it a list.
+		isList := false
+		for j := i + 1; j < len(segs); j++ {
+			if segs[j] == "member" {
+				continue
+			}
+			if _, err := strconv.Atoi(segs[j]); err == nil {
+				isList = true
+			}
+			break
+		}
+
+		switch {
+		case last:
+			cur[seg] = val
+		case isList:
+			lst, _ := cur[seg].([]any)
+			// One element is enough: a constraint applies to every element, so
+			// checking the first is checking the rule.
+			if len(lst) == 0 {
+				lst = []any{}
+			}
+			rest := segs[i+1:]
+			// Skip the marker and index to see whether elements are scalars.
+			k := 0
+			for k < len(rest) && (rest[k] == "member" || isIndex(rest[k])) {
+				k++
+			}
+			if k == len(rest) {
+				if len(lst) == 0 {
+					lst = append(lst, val)
+				}
+				cur[seg] = lst
+				return
+			}
+			var elem map[string]any
+			if len(lst) > 0 {
+				elem, _ = lst[0].(map[string]any)
+			}
+			if elem == nil {
+				elem = map[string]any{}
+				lst = append(lst, elem)
+			}
+			cur[seg] = lst
+			insertQuery(elem, rest[k:], val)
+			return
+		default:
+			next, _ := cur[seg].(map[string]any)
+			if next == nil {
+				next = map[string]any{}
+				cur[seg] = next
+			}
+			cur = next
+		}
+	}
+}
+
+func isIndex(s string) bool {
+	n, err := strconv.Atoi(s)
+	return err == nil && n >= 1
 }

@@ -17,6 +17,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsquery"
+	"github.com/doze-dev/doze-aws/internal/modelcheck"
 )
 
 // xmlns is the STS Query API namespace, fixed since 2011.
@@ -93,6 +94,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h, ok := handlers[action]
 	if !ok {
 		s.api.WriteError(w, awshttp.Errf(400, "InvalidAction", "unknown STS action %q", action))
+		return
+	}
+
+	// Model-derived input validation, before the handler. The Query protocol
+	// flattens nesting into the key, so the form is rebuilt into the shape the
+	// constraint paths describe first.
+	if aerr := modelcheck.ValidateMapAs(modelcheck.FromQuery(vals), constraintTables[action], modelcheck.CodeQuery); aerr != nil {
+		s.api.WriteError(w, aerr)
 		return
 	}
 	result, apiErr := h(s, params{vals})

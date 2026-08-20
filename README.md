@@ -32,7 +32,7 @@ clients still speak.
 
 | Service | Operations | Input validation |
 |---|---|---|
-| STS | ✅ | not yet audited |
+| STS | ✅ | **fully audited**: 108/108 across 7 of 8 dispatched operations · no known gaps |
 | SQS | ✅ both protocols, FIFO, DLQ redrive, long polling, move tasks, tags | **audited**: attributes, redrive, queue-name charset · no known gaps |
 | SNS | ✅ fanout to SQS/webhooks, filter policies, confirmation handshake | **audited**: `Subscribe` protocol · no known gaps |
 | KMS | ✅ symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto | not yet audited |
