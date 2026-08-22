@@ -34,7 +34,7 @@ clients still speak.
 |---|---|---|
 | STS | ✅ | **fully audited**: 108/108 across 7 of 8 dispatched operations · no known gaps |
 | SQS | ✅ both protocols, FIFO, DLQ redrive, long polling, move tasks, tags | **audited**: attributes, redrive, queue-name charset · no known gaps |
-| SNS | ✅ fanout to SQS/webhooks, filter policies, confirmation handshake | **audited**: `Subscribe` protocol · no known gaps |
+| SNS | ✅ fanout to SQS/webhooks, filter policies, confirmation handshake | **fully audited**: 53/53 across 18 of 19 dispatched operations · no known gaps |
 | KMS | ✅ symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto | not yet audited |
 | SSM Parameter Store | ✅ versions, labels, hierarchies, SecureString at-rest encryption | not yet audited |
 | Secrets Manager | ✅ version stages, recovery-window deletion, encrypted at rest | **fully audited**: 132/132 across 19 of 20 dispatched operations · no known gaps |

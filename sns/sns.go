@@ -18,6 +18,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsquery"
+	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 
 	"github.com/doze-dev/doze-aws/peers"
@@ -110,6 +111,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, &apiError{Code: "InvalidAction", Status: 400, Message: "unsupported action: " + action, SenderFault: true})
 		return
 	}
+	// Model-derived input validation, before the handler. Query flattens
+	// nesting into the key, so the form is rebuilt into the shape the
+	// constraint paths describe first.
+	if aerr := modelcheck.ValidateMapAs(modelcheck.FromQuery(form), constraintTables[action], modelcheck.CodeQuery); aerr != nil {
+		writeError(w, aerr)
+		return
+	}
+
 	result, aerr := h(s, r.Context(), form, r.Host)
 	if aerr != nil {
 		s.logf("sns: %s -> %s", action, aerr.Code)

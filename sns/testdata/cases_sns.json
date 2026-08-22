@@ -1,0 +1,576 @@
+[
+  {
+    "operation": "AddPermission",
+    "path": "AWSAccountId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AWSAccountId",
+      "ActionName",
+      "Label",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "AddPermission",
+    "path": "ActionName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AWSAccountId",
+      "ActionName",
+      "Label",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "AddPermission",
+    "path": "Label",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AWSAccountId",
+      "ActionName",
+      "Label",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "AddPermission",
+    "path": "TopicArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AWSAccountId",
+      "ActionName",
+      "Label",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "ConfirmSubscription",
+    "path": "Token",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Token",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "ConfirmSubscription",
+    "path": "TopicArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Token",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "CreateTopic",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateTopic",
+    "path": "Tags[].Key",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateTopic",
+    "path": "Tags[].Key",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateTopic",
+    "path": "Tags[].Key",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateTopic",
+    "path": "Tags[].Value",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateTopic",
+    "path": "Tags[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DeleteTopic",
+    "path": "TopicArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "GetDataProtectionPolicy",
+    "path": "ResourceArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceArn"
+    ]
+  },
+  {
+    "operation": "GetSubscriptionAttributes",
+    "path": "SubscriptionArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "SubscriptionArn"
+    ]
+  },
+  {
+    "operation": "GetTopicAttributes",
+    "path": "TopicArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "ListSubscriptionsByTopic",
+    "path": "TopicArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "ListTagsForResource",
+    "path": "ResourceArn",
+    "why": "longer than the maximum length of 1011",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..1011",
+    "required_members": [
+      "ResourceArn"
+    ]
+  },
+  {
+    "operation": "ListTagsForResource",
+    "path": "ResourceArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceArn"
+    ]
+  },
+  {
+    "operation": "ListTagsForResource",
+    "path": "ResourceArn",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1011",
+    "required_members": [
+      "ResourceArn"
+    ]
+  },
+  {
+    "operation": "Publish",
+    "path": "Message",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Message"
+    ]
+  },
+  {
+    "operation": "Publish",
+    "path": "MessageAttributes{}.DataType",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Message"
+    ]
+  },
+  {
+    "operation": "PublishBatch",
+    "path": "PublishBatchRequestEntries",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "PublishBatchRequestEntries",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "PublishBatch",
+    "path": "PublishBatchRequestEntries[].Id",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "PublishBatchRequestEntries",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "PublishBatch",
+    "path": "PublishBatchRequestEntries[].Message",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "PublishBatchRequestEntries",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "PublishBatch",
+    "path": "PublishBatchRequestEntries[].MessageAttributes{}.DataType",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "PublishBatchRequestEntries",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "PublishBatch",
+    "path": "TopicArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "PublishBatchRequestEntries",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "PutDataProtectionPolicy",
+    "path": "DataProtectionPolicy",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "DataProtectionPolicy",
+      "ResourceArn"
+    ]
+  },
+  {
+    "operation": "PutDataProtectionPolicy",
+    "path": "ResourceArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "DataProtectionPolicy",
+      "ResourceArn"
+    ]
+  },
+  {
+    "operation": "RemovePermission",
+    "path": "Label",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Label",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "RemovePermission",
+    "path": "TopicArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Label",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "SetSubscriptionAttributes",
+    "path": "AttributeName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AttributeName",
+      "SubscriptionArn"
+    ]
+  },
+  {
+    "operation": "SetSubscriptionAttributes",
+    "path": "SubscriptionArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AttributeName",
+      "SubscriptionArn"
+    ]
+  },
+  {
+    "operation": "SetTopicAttributes",
+    "path": "AttributeName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AttributeName",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "SetTopicAttributes",
+    "path": "TopicArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AttributeName",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "Subscribe",
+    "path": "Protocol",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Protocol",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "Subscribe",
+    "path": "TopicArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Protocol",
+      "TopicArn"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "ResourceArn",
+    "why": "longer than the maximum length of 1011",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..1011",
+    "required_members": [
+      "ResourceArn",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "ResourceArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceArn",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "ResourceArn",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1011",
+    "required_members": [
+      "ResourceArn",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "Tags",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceArn",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "Tags[].Key",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "ResourceArn",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "Tags[].Key",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceArn",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "Tags[].Key",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "ResourceArn",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "Tags[].Value",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "ResourceArn",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "Tags[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceArn",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "Unsubscribe",
+    "path": "SubscriptionArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "SubscriptionArn"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "path": "ResourceArn",
+    "why": "longer than the maximum length of 1011",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..1011",
+    "required_members": [
+      "ResourceArn",
+      "TagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "path": "ResourceArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceArn",
+      "TagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "path": "ResourceArn",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1011",
+    "required_members": [
+      "ResourceArn",
+      "TagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "path": "TagKeys",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceArn",
+      "TagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "path": "TagKeys[]",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "ResourceArn",
+      "TagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "path": "TagKeys[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "ResourceArn",
+      "TagKeys"
+    ]
+  }
+]

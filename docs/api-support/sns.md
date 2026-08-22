@@ -57,3 +57,33 @@ cross-checked it.
 
 Covered by `sns/rejection_parity_test.go`, which asserts the error **code** an
 SDK sees, not just that something failed.
+
+### Model-derived validation
+
+The `Subscribe` protocol check above was hand-derived. This is the generated
+audit that covers the rest.
+
+**53/53 model-derived constraints enforced across 18 of the 19 dispatched
+operations, with `knownGaps` empty.** Before this table, 27 were enforced and
+26 were not.
+
+`dzaudit cases sns` emits a violating value per constrained input,
+`testdata/cases_sns.json` commits them, and `rejection_parity_test.go` replays
+every one from a baseline it first proves the service accepts. 35 further cases
+fall on the 21 stub operations — SMS, mobile push and the platform-endpoint
+surface — which refuse every request including a valid one, so replaying a
+mutation against them proves nothing.
+
+Two fixtures are worth noting because the alternative was skipping the
+operations. `ConfirmSubscription` needs a real token, and an SQS subscription is
+auto-confirmed and never issues one — so the fixture also subscribes an
+`http` endpoint against a recording server and captures the token SNS posts to
+it. `SetSubscriptionAttributes` and friends need a subscription ARN that exists,
+which the fixture creates rather than invents.
+
+SNS also exercises the Query protocol's **map** spelling, which STS did not:
+`MessageAttributes` travels as a numbered list of Name/Value pairs
+(`MessageAttributes.entry.1.Value.DataType`) where the model calls it a map
+(`MessageAttributes{}.DataType`). `modelcheck.FromQuery` collapses those entries
+back into a map — without it the walker looks for a map, finds a list, and every
+constraint underneath passes without being checked.

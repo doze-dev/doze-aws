@@ -364,7 +364,62 @@ func FromQuery(vals map[string][]string) map[string]any {
 		}
 		insertQuery(root, strings.Split(key, "."), vs[0])
 	}
+	collapseEntries(root)
 	return root
+}
+
+// collapseEntries turns the Query protocol's spelling of a MAP back into one.
+//
+// A map arrives as a numbered list of pairs — MessageAttributes.entry.1.Name
+// and .entry.1.Value.DataType — which the positional pass above rebuilds as a
+// list of {Name, Value} structures. The model calls that member a map
+// (MessageAttributes{}.DataType), so without this the walker looks for a map,
+// finds a list, and every constraint underneath passes vacuously.
+func collapseEntries(node map[string]any) {
+	for k, v := range node {
+		switch t := v.(type) {
+		case map[string]any:
+			collapseEntries(t)
+		case []any:
+			if m, ok := entriesToMap(t); ok {
+				node[k] = m
+				collapseEntries(m)
+				continue
+			}
+			for _, el := range t {
+				if em, ok := el.(map[string]any); ok {
+					collapseEntries(em)
+				}
+			}
+		}
+	}
+}
+
+// entriesToMap converts [{Name:k, Value:v}, ...] into {k: v}, covering both
+// spellings in use: Name/Value (SNS message attributes, SQS attributes) and
+// key/value (SNS topic attributes).
+func entriesToMap(list []any) (map[string]any, bool) {
+	out := map[string]any{}
+	for _, el := range list {
+		em, ok := el.(map[string]any)
+		if !ok || len(em) != 2 {
+			return nil, false
+		}
+		name, val, found := "", any(nil), false
+		for _, pair := range [][2]string{{"Name", "Value"}, {"key", "value"}} {
+			n, hasN := em[pair[0]].(string)
+			v, hasV := em[pair[1]]
+			if hasN && hasV {
+				name, val, found = n, v, true
+				break
+			}
+		}
+		if !found || name == "" {
+			return nil, false
+		}
+		out[name] = val
+	}
+	return out, len(out) > 0
 }
 
 // insertQuery walks one flattened key into the tree, creating containers as it
@@ -374,8 +429,11 @@ func insertQuery(cur map[string]any, segs []string, val string) {
 	for i := 0; i < len(segs); i++ {
 		seg := segs[i]
 
-		// prefix.member.N or prefix.N — a list index follows.
-		if seg == "member" && i+1 < len(segs) {
+		// prefix.member.N, prefix.entry.N or prefix.N — a list index follows.
+		// "entry" is the Query protocol's marker for a MAP, which arrives as a
+		// numbered list of Name/Value pairs and is collapsed back into a map by
+		// collapseEntries once the tree is built.
+		if (seg == "member" || seg == "entry") && i+1 < len(segs) {
 			continue
 		}
 		if idx, err := strconv.Atoi(seg); err == nil && idx >= 1 {
@@ -389,7 +447,7 @@ func insertQuery(cur map[string]any, segs []string, val string) {
 		// Look ahead: a list marker or index after this segment makes it a list.
 		isList := false
 		for j := i + 1; j < len(segs); j++ {
-			if segs[j] == "member" {
+			if segs[j] == "member" || segs[j] == "entry" {
 				continue
 			}
 			if _, err := strconv.Atoi(segs[j]); err == nil {
@@ -411,7 +469,7 @@ func insertQuery(cur map[string]any, segs []string, val string) {
 			rest := segs[i+1:]
 			// Skip the marker and index to see whether elements are scalars.
 			k := 0
-			for k < len(rest) && (rest[k] == "member" || isIndex(rest[k])) {
+			for k < len(rest) && (rest[k] == "member" || rest[k] == "entry" || isIndex(rest[k])) {
 				k++
 			}
 			if k == len(rest) {

@@ -56,3 +56,54 @@ func TestRangeReadsANumericString(t *testing.T) {
 		t.Errorf("a non-numeric value produced a range error: %v", err)
 	}
 }
+
+// TestFromQueryCollapsesEntryMaps covers the Query protocol's spelling of a
+// map: a numbered list of Name/Value pairs. The model calls the member a map
+// (MessageAttributes{}.DataType), so if this rebuilt a list instead, the walker
+// would look for a map, find a list, and pass every constraint underneath
+// without checking one of them.
+func TestFromQueryCollapsesEntryMaps(t *testing.T) {
+	got := FromQuery(map[string][]string{
+		"Message":                                     {"hello"},
+		"MessageAttributes.entry.1.Name":              {"kind"},
+		"MessageAttributes.entry.1.Value.DataType":    {"String"},
+		"MessageAttributes.entry.1.Value.StringValue": {"order"},
+	})
+	attrs, ok := got["MessageAttributes"].(map[string]any)
+	if !ok {
+		t.Fatalf("MessageAttributes is %T, want a map: %#v", got["MessageAttributes"], got)
+	}
+	kind, ok := attrs["kind"].(map[string]any)
+	if !ok {
+		t.Fatalf("the entry did not key on its Name: %#v", attrs)
+	}
+	if kind["DataType"] != "String" {
+		t.Errorf("DataType = %v, want String", kind["DataType"])
+	}
+
+	// And the constraint the model states actually reaches it.
+	table := []Constraint{{Path: "MessageAttributes{}.DataType", Kind: KindEnum,
+		Enum: []string{"String", "Number", "Binary"}}}
+	if err := ValidateMapAs(got, table, CodeQuery); err != nil {
+		t.Errorf("a valid DataType was refused: %v", err)
+	}
+	bad := FromQuery(map[string][]string{
+		"MessageAttributes.entry.1.Name":           {"kind"},
+		"MessageAttributes.entry.1.Value.DataType": {"NotAType"},
+	})
+	if err := ValidateMapAs(bad, table, CodeQuery); err == nil {
+		t.Error("an invalid DataType was accepted — the map was not reachable")
+	}
+}
+
+// TestKeyValueEntriesCollapseToo covers the other spelling in use.
+func TestKeyValueEntriesCollapseToo(t *testing.T) {
+	got := FromQuery(map[string][]string{
+		"Attributes.entry.1.key":   {"DisplayName"},
+		"Attributes.entry.1.value": {"orders"},
+	})
+	attrs, ok := got["Attributes"].(map[string]any)
+	if !ok || attrs["DisplayName"] != "orders" {
+		t.Errorf("key/value entries did not collapse: %#v", got["Attributes"])
+	}
+}
