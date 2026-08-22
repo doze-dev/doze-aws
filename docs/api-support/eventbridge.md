@@ -23,3 +23,43 @@ delivers to targets.
 | CancelReplay | S | local replays complete synchronously, so there is never a running replay to cancel |
 | API destinations + Connections | S | call external HTTP endpoints via cloud infrastructure |
 | Partner event sources, global endpoints, cross-account permissions, schemas registry | S | cloud infrastructure |
+
+## Input validation
+
+Separate from the tiers above. A tier says the operation is implemented; this
+says whether doze-aws **refuses what EventBridge refuses**.
+
+**284/284 model-derived constraints enforced across all 28 dispatched
+operations, with `knownGaps` empty.** Removing the constraint table makes 191 of
+those 284 cases slip through, so it is doing work the hand-written checks were
+not.
+
+Generated with `dzaudit cases eventbridge`, committed to
+`testdata/cases_eventbridge.json`, and replayed case by case in
+`rejection_parity_test.go` from a baseline the test first proves the service
+accepts. The remaining model cases fall on operations with no handler — API
+destinations, connections, partner sources, the schema registry — which cannot
+be audited at all.
+
+### Targets carry fifteen nested parameter blocks
+
+`PutTargets` is the widest input in the service: a target may carry
+`EcsParameters`, `BatchParameters`, `RunCommandParameters`, `HttpParameters`,
+`RedshiftDataParameters`, `SageMakerPipelineParameters`, `InputTransformer` and
+more, each with its own required members and constraints. A case at
+`Targets[].EcsParameters.Group` needs the whole chain above it to be *valid*, or
+the request is refused for the missing chain rather than for the mutation. So
+the harness carries an exemplar per container and probes each one against the
+baseline before any case runs — `Targets[].RunCommandParameters` was caught this
+way, missing its required `RunCommandTargets`.
+
+### CancelReplay has no acceptable baseline
+
+doze-aws replays an archive synchronously inside `StartReplay`, so a replay is
+`COMPLETED` the instant it exists and none is ever cancellable; every
+`CancelReplay` request is refused, valid ones included. Rather than skip its
+four cases, the harness requires the baseline to fail with exactly
+`IllegalStatusException` — which proves it cleared validation — and then
+requires every mutation to fail with `ValidationException` specifically. That
+is stricter than the usual path, where any 4xx after a single mutation is
+attributed to the mutation.
