@@ -1,0 +1,193 @@
+package cloudformation
+
+// CloudFormation's model-derived input validation: the constraint tables,
+// walked by internal/modelcheck.
+//
+// CloudFormation speaks the Query protocol, so the form is un-flattened into
+// the nested shape the paths describe (modelcheck.FromQuery) before the walk.
+// Generated from AWS's own service model with `dzaudit cases cloudformation`,
+// and replayed case by case in cloudformation/rejection_parity_test.go.
+
+import (
+	"regexp"
+
+	"github.com/doze-dev/doze-aws/internal/modelcheck"
+)
+
+var constraintTables = map[string][]modelcheck.Constraint{
+	"CancelUpdateStack": {
+		{Path: "ClientRequestToken", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
+		{Path: "StackName", Kind: modelcheck.KindRequired},
+	},
+	"CreateChangeSet": {
+		{Path: "Capabilities[]", Kind: modelcheck.KindEnum, Enum: []string{"CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"}},
+		{Path: "ChangeSetName", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z][-a-zA-Z0-9]*$`)},
+		{Path: "ChangeSetName", Kind: modelcheck.KindRequired},
+		{Path: "ChangeSetType", Kind: modelcheck.KindEnum, Enum: []string{"CREATE", "UPDATE", "IMPORT"}},
+		{Path: "ClientToken", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+		{Path: "DeploymentConfig.Mode", Kind: modelcheck.KindEnum, Enum: []string{"STANDARD", "EXPRESS"}},
+		{Path: "DeploymentMode", Kind: modelcheck.KindEnum, Enum: []string{"REVERT_DRIFT"}},
+		{Path: "Description", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+		{Path: "OnStackFailure", Kind: modelcheck.KindEnum, Enum: []string{"DO_NOTHING", "ROLLBACK", "DELETE"}},
+		{Path: "ResourceTypes[]", Kind: modelcheck.KindLength, Min: 1, Max: 256},
+		{Path: "ResourcesToImport[].LogicalResourceId", Kind: modelcheck.KindRequired},
+		{Path: "ResourcesToImport[].ResourceIdentifier", Kind: modelcheck.KindRequired},
+		{Path: "ResourcesToImport[].ResourceIdentifier{}", Kind: modelcheck.KindLength, Min: 1, Max: 2048},
+		{Path: "ResourcesToImport[].ResourceType", Kind: modelcheck.KindLength, Min: 1, Max: 256},
+		{Path: "ResourcesToImport[].ResourceType", Kind: modelcheck.KindRequired},
+		{Path: "RoleARN", Kind: modelcheck.KindLength, Min: 20, Max: 2048},
+		{Path: "RollbackConfiguration.MonitoringTimeInMinutes", Kind: modelcheck.KindRange, Min: 0, Max: 180},
+		{Path: "RollbackConfiguration.RollbackTriggers[].Arn", Kind: modelcheck.KindRequired},
+		{Path: "RollbackConfiguration.RollbackTriggers[].Type", Kind: modelcheck.KindRequired},
+		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+		{Path: "StackName", Kind: modelcheck.KindRequired},
+		{Path: "Tags[].Key", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+		{Path: "Tags[].Key", Kind: modelcheck.KindRequired},
+		{Path: "Tags[].Value", Kind: modelcheck.KindLength, Min: 1, Max: 256},
+		{Path: "Tags[].Value", Kind: modelcheck.KindRequired},
+		{Path: "TemplateBody", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "TemplateURL", Kind: modelcheck.KindLength, Min: 1, Max: 5120},
+	},
+	"CreateStack": {
+		{Path: "Capabilities[]", Kind: modelcheck.KindEnum, Enum: []string{"CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"}},
+		{Path: "ClientRequestToken", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
+		{Path: "DeploymentConfig.Mode", Kind: modelcheck.KindEnum, Enum: []string{"STANDARD", "EXPRESS"}},
+		{Path: "OnFailure", Kind: modelcheck.KindEnum, Enum: []string{"DELETE", "DO_NOTHING", "ROLLBACK"}},
+		{Path: "ResourceTypes[]", Kind: modelcheck.KindLength, Min: 1, Max: 256},
+		{Path: "RoleARN", Kind: modelcheck.KindLength, Min: 20, Max: 2048},
+		{Path: "RollbackConfiguration.MonitoringTimeInMinutes", Kind: modelcheck.KindRange, Min: 0, Max: 180},
+		{Path: "RollbackConfiguration.RollbackTriggers[].Arn", Kind: modelcheck.KindRequired},
+		{Path: "RollbackConfiguration.RollbackTriggers[].Type", Kind: modelcheck.KindRequired},
+		{Path: "StackName", Kind: modelcheck.KindRequired},
+		{Path: "StackPolicyBody", Kind: modelcheck.KindLength, Min: 1, Max: 16384},
+		{Path: "StackPolicyURL", Kind: modelcheck.KindLength, Min: 1, Max: 5120},
+		{Path: "Tags[].Key", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+		{Path: "Tags[].Key", Kind: modelcheck.KindRequired},
+		{Path: "Tags[].Value", Kind: modelcheck.KindLength, Min: 1, Max: 256},
+		{Path: "Tags[].Value", Kind: modelcheck.KindRequired},
+		{Path: "TemplateBody", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "TemplateURL", Kind: modelcheck.KindLength, Min: 1, Max: 5120},
+		{Path: "TimeoutInMinutes", Kind: modelcheck.KindRange, Min: 1, Max: modelcheck.NoMax},
+	},
+	"DeleteChangeSet": {
+		{Path: "ChangeSetName", Kind: modelcheck.KindLength, Min: 1, Max: 1600},
+		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z][-a-zA-Z0-9]*|arn:[-a-zA-Z0-9:/]*$`)},
+		{Path: "ChangeSetName", Kind: modelcheck.KindRequired},
+		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+	},
+	"DeleteStack": {
+		{Path: "ClientRequestToken", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
+		{Path: "DeletionMode", Kind: modelcheck.KindEnum, Enum: []string{"STANDARD", "FORCE_DELETE_STACK"}},
+		{Path: "DeploymentConfig.Mode", Kind: modelcheck.KindEnum, Enum: []string{"STANDARD", "EXPRESS"}},
+		{Path: "RoleARN", Kind: modelcheck.KindLength, Min: 20, Max: 2048},
+		{Path: "StackName", Kind: modelcheck.KindRequired},
+	},
+	"DescribeChangeSet": {
+		{Path: "ChangeSetName", Kind: modelcheck.KindLength, Min: 1, Max: 1600},
+		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z][-a-zA-Z0-9]*|arn:[-a-zA-Z0-9:/]*$`)},
+		{Path: "ChangeSetName", Kind: modelcheck.KindRequired},
+		{Path: "NextToken", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+	},
+	"DescribeStackEvents": {
+		{Path: "NextToken", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+		{Path: "StackName", Kind: modelcheck.KindRequired},
+	},
+	"DescribeStackResource": {
+		{Path: "LogicalResourceId", Kind: modelcheck.KindRequired},
+		{Path: "StackName", Kind: modelcheck.KindRequired},
+	},
+	"DescribeStacks": {
+		{Path: "NextToken", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+	},
+	"ExecuteChangeSet": {
+		{Path: "ChangeSetName", Kind: modelcheck.KindLength, Min: 1, Max: 1600},
+		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z][-a-zA-Z0-9]*|arn:[-a-zA-Z0-9:/]*$`)},
+		{Path: "ChangeSetName", Kind: modelcheck.KindRequired},
+		{Path: "ClientRequestToken", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
+		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+	},
+	"GetStackPolicy": {
+		{Path: "StackName", Kind: modelcheck.KindRequired},
+	},
+	"GetTemplate": {
+		{Path: "ChangeSetName", Kind: modelcheck.KindLength, Min: 1, Max: 1600},
+		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z][-a-zA-Z0-9]*|arn:[-a-zA-Z0-9:/]*$`)},
+		{Path: "TemplateStage", Kind: modelcheck.KindEnum, Enum: []string{"Original", "Processed"}},
+	},
+	"GetTemplateSummary": {
+		{Path: "CallAs", Kind: modelcheck.KindEnum, Enum: []string{"SELF", "DELEGATED_ADMIN"}},
+		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+		{Path: "StackSetName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z][-a-zA-Z0-9]*(?::[a-zA-Z0-9]{8}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{12})?$`)},
+		{Path: "TemplateBody", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "TemplateURL", Kind: modelcheck.KindLength, Min: 1, Max: 5120},
+	},
+	"ListChangeSets": {
+		{Path: "NextToken", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+		{Path: "StackName", Kind: modelcheck.KindRequired},
+	},
+	"ListExports": {
+		{Path: "NextToken", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+	},
+	"ListImports": {
+		{Path: "ExportName", Kind: modelcheck.KindRequired},
+		{Path: "NextToken", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+	},
+	"ListStackResources": {
+		{Path: "NextToken", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+		{Path: "StackName", Kind: modelcheck.KindRequired},
+	},
+	"ListStacks": {
+		{Path: "NextToken", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+		{Path: "StackStatusFilter[]", Kind: modelcheck.KindEnum, Enum: []string{"CREATE_FAILED", "CREATE_COMPLETE", "ROLLBACK_COMPLETE", "DELETE_COMPLETE", "IMPORT_ROLLBACK_FAILED", "ROLLBACK_IN_PROGRESS", "DELETE_FAILED", "UPDATE_IN_PROGRESS", "UPDATE_COMPLETE", "UPDATE_FAILED", "UPDATE_ROLLBACK_FAILED", "UPDATE_ROLLBACK_COMPLETE", "IMPORT_ROLLBACK_IN_PROGRESS", "UPDATE_ROLLBACK_IN_PROGRESS", "CREATE_IN_PROGRESS", "ROLLBACK_FAILED", "DELETE_IN_PROGRESS", "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS", "REVIEW_IN_PROGRESS", "IMPORT_IN_PROGRESS", "IMPORT_ROLLBACK_COMPLETE", "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS", "IMPORT_COMPLETE"}},
+	},
+	"SetStackPolicy": {
+		{Path: "StackName", Kind: modelcheck.KindRequired},
+		{Path: "StackPolicyBody", Kind: modelcheck.KindLength, Min: 1, Max: 16384},
+		{Path: "StackPolicyURL", Kind: modelcheck.KindLength, Min: 1, Max: 5120},
+	},
+	"UpdateStack": {
+		{Path: "Capabilities[]", Kind: modelcheck.KindEnum, Enum: []string{"CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"}},
+		{Path: "ClientRequestToken", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
+		{Path: "DeploymentConfig.Mode", Kind: modelcheck.KindEnum, Enum: []string{"STANDARD", "EXPRESS"}},
+		{Path: "ResourceTypes[]", Kind: modelcheck.KindLength, Min: 1, Max: 256},
+		{Path: "RoleARN", Kind: modelcheck.KindLength, Min: 20, Max: 2048},
+		{Path: "RollbackConfiguration.MonitoringTimeInMinutes", Kind: modelcheck.KindRange, Min: 0, Max: 180},
+		{Path: "RollbackConfiguration.RollbackTriggers[].Arn", Kind: modelcheck.KindRequired},
+		{Path: "RollbackConfiguration.RollbackTriggers[].Type", Kind: modelcheck.KindRequired},
+		{Path: "StackName", Kind: modelcheck.KindRequired},
+		{Path: "StackPolicyBody", Kind: modelcheck.KindLength, Min: 1, Max: 16384},
+		{Path: "StackPolicyDuringUpdateBody", Kind: modelcheck.KindLength, Min: 1, Max: 16384},
+		{Path: "StackPolicyDuringUpdateURL", Kind: modelcheck.KindLength, Min: 1, Max: 5120},
+		{Path: "StackPolicyURL", Kind: modelcheck.KindLength, Min: 1, Max: 5120},
+		{Path: "Tags[].Key", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+		{Path: "Tags[].Key", Kind: modelcheck.KindRequired},
+		{Path: "Tags[].Value", Kind: modelcheck.KindLength, Min: 1, Max: 256},
+		{Path: "Tags[].Value", Kind: modelcheck.KindRequired},
+		{Path: "TemplateBody", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "TemplateURL", Kind: modelcheck.KindLength, Min: 1, Max: 5120},
+	},
+	"UpdateTerminationProtection": {
+		{Path: "EnableTerminationProtection", Kind: modelcheck.KindRequired},
+		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+		{Path: "StackName", Kind: modelcheck.KindRequired},
+	},
+	"ValidateTemplate": {
+		{Path: "TemplateBody", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "TemplateURL", Kind: modelcheck.KindLength, Min: 1, Max: 5120},
+	},
+}

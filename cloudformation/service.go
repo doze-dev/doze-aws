@@ -31,6 +31,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsquery"
+	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 	"github.com/doze-dev/doze-aws/peers"
 )
@@ -181,6 +182,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.api.WriteError(w, awshttp.Errf(400, "InvalidAction", "unknown CloudFormation action %q", action))
 		return
 	}
+	// Model-derived input validation runs before the handler, for every
+	// operation at once — coverage is then a property of the dispatch table
+	// rather than something each handler has to remember.
+	if aerr := modelcheck.ValidateMapAs(modelcheck.FromQuery(vals), constraintTables[action], modelcheck.CodeQuery); aerr != nil {
+		s.api.WriteError(w, aerr)
+		return
+	}
+
 	result, apiErr := h(s, params{vals})
 	if apiErr != nil {
 		s.logf("cloudformation: %s -> %s", action, apiErr.Code)

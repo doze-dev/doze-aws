@@ -73,3 +73,44 @@ see [../cloudformation.md](../cloudformation.md#naming).
 - [../cloudformation.md](../cloudformation.md) — templates, intrinsics, SAM,
   CDK and Serverless.
 - [../cli.md](../cli.md) — `doze-aws apply` and `doze-aws export`.
+
+## Input validation
+
+Separate from the tiers above. A tier says the operation is implemented; this
+says whether doze-aws **refuses what CloudFormation refuses**.
+
+**182/182 model-derived constraints enforced across 22 of the 23 dispatched
+operations, with `knownGaps` empty.** Removing the constraint table makes 151 of
+those 182 cases slip through, so it is doing work the hand-written checks were
+not. The twenty-third, `DescribeStackResources`, has no constrained members in
+the model at all — nothing to enforce rather than nothing enforced.
+
+Generated with `dzaudit cases cloudformation`, committed to
+`testdata/cases_cloudformation.json`, and replayed case by case in
+`rejection_parity_test.go` from a baseline the test first proves the service
+accepts. CloudFormation speaks the Query protocol, so the harness builds the
+nested shape the model's paths describe and flattens it into form keys on the
+way out — the same translation `modelcheck.FromQuery` performs in the other
+direction on the service side.
+
+Unlike every other audit here, this one stands up a whole doze-aws stack rather
+than the one handler: a stack provisions for real, so each of the 182 cases
+creates an actual SQS queue in the sibling service.
+
+### Two operations have no acceptable baseline, for opposite reasons
+
+`CancelUpdateStack` refuses everything, because doze-aws applies a stack
+synchronously inside `CreateStack`/`UpdateStack` and no stack is ever
+mid-update. Its four cases still run: the baseline must be refused with "has no
+update in progress", which proves it cleared validation, and every mutation must
+then be refused with a message the validator wrote. The Query protocol spells
+*every* refusal `ValidationError`, state errors included, so on this operation
+the error code proves nothing and only the message can carry it.
+
+`ExecuteChangeSet` needs a change set that actually has a change, and executing
+one moves the stack out from under the next case. Each case therefore builds its
+own change set from a template that **adds** a resource. It has to add rather
+than edit: doze-aws diffs change sets by resource identity — added, removed, or
+a renamed physical id — so a property-only edit registers as no change at all and
+the change set lands in FAILED. That is a real limitation worth knowing before
+trusting a local `cdk diff`.
