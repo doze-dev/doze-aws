@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -470,3 +471,24 @@ func (p params) systemAttrs() map[string]string {
 
 // sysAttrTraceHeader is the one message system attribute AWS defines.
 const sysAttrTraceHeader = "AWSTraceHeader"
+
+// asMap renders the request's parameters as the nested shape the model's
+// constraint paths describe, whichever protocol carried them.
+//
+// SQS is the only service here that speaks both, so this is where the two
+// converge: the JSON body is already that shape, and the Query form is
+// un-flattened into it. Validating one and not the other would leave half the
+// clients unchecked — and the Query half is the older, likelier-to-be-wrong one.
+func (p params) asMap() map[string]any {
+	if p.form != nil {
+		return modelcheck.FromQuery(p.form)
+	}
+	out := make(map[string]any, len(p.obj))
+	for k, raw := range p.obj {
+		var v any
+		if json.Unmarshal(raw, &v) == nil {
+			out[k] = v
+		}
+	}
+	return out
+}

@@ -65,3 +65,32 @@ Note SQS's own AWS service model carries no `@range`, `@length` or `@pattern`
 traits at all — its constraints live only in prose — so this table is hand-derived
 rather than generated. That is also why the bugs surfaced here first: nothing had
 ever cross-checked them.
+
+### Model-derived validation
+
+The checks above are hand-derived, because SQS's own service model states almost
+nothing about queue names, visibility timeouts or redrive policies — those rules
+exist only in prose. This is the generated audit that covers what the model
+*does* state.
+
+**48/48 model-derived constraints enforced across 21 of the 22 dispatched
+operations, with `knownGaps` empty.** Before this table, 22 were enforced and
+26 were not.
+
+Both protocols are covered by one table: the request is rendered into a
+protocol-neutral shape (`params.asMap`) before the walk, and the error code
+follows the caller's protocol — `ValidationError` for Query, `ValidationException`
+for JSON.
+
+`CancelMessageMoveTask`'s single case is skipped with the reason recorded in the
+test: local message moves complete synchronously, so there is never an active
+task to cancel and the baseline is refused however it is built.
+
+#### What this audit caught
+
+`ReceiveMessage`'s deprecated `AttributeNames` is the **QueueAttributeName**
+enum, which does not contain `AWSTraceHeader`; the header belongs under
+`MessageSystemAttributeNames`. doze-aws's own SQS event-source poller had been
+asking for it under the wrong field since cascade tracing was written, and only
+worked because nothing validated it — real AWS would have refused the call, and
+with it the trace propagation that makes S3 → SQS → Lambda a single chain.

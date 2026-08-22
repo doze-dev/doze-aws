@@ -33,7 +33,7 @@ clients still speak.
 | Service | Operations | Input validation |
 |---|---|---|
 | STS | ✅ | **fully audited**: 108/108 across 7 of 8 dispatched operations · no known gaps |
-| SQS | ✅ both protocols, FIFO, DLQ redrive, long polling, move tasks, tags | **audited**: attributes, redrive, queue-name charset · no known gaps |
+| SQS | ✅ both protocols, FIFO, DLQ redrive, long polling, move tasks, tags | **fully audited**: 48/48 model-derived across 21 of 22 dispatched operations, plus hand-derived attribute and queue-name checks · no known gaps |
 | SNS | ✅ fanout to SQS/webhooks, filter policies, confirmation handshake | **fully audited**: 53/53 across 18 of 19 dispatched operations · no known gaps |
 | KMS | ✅ symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto | not yet audited |
 | SSM Parameter Store | ✅ versions, labels, hierarchies, SecureString at-rest encryption | not yet audited |

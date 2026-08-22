@@ -1,0 +1,587 @@
+[
+  {
+    "operation": "AddPermission",
+    "target": "AmazonSQS.AddPermission",
+    "path": "AWSAccountIds",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AWSAccountIds",
+      "Actions",
+      "Label",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "AddPermission",
+    "target": "AmazonSQS.AddPermission",
+    "path": "Actions",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AWSAccountIds",
+      "Actions",
+      "Label",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "AddPermission",
+    "target": "AmazonSQS.AddPermission",
+    "path": "Label",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AWSAccountIds",
+      "Actions",
+      "Label",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "AddPermission",
+    "target": "AmazonSQS.AddPermission",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AWSAccountIds",
+      "Actions",
+      "Label",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "CancelMessageMoveTask",
+    "target": "AmazonSQS.CancelMessageMoveTask",
+    "path": "TaskHandle",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "TaskHandle"
+    ]
+  },
+  {
+    "operation": "ChangeMessageVisibility",
+    "target": "AmazonSQS.ChangeMessageVisibility",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl",
+      "ReceiptHandle",
+      "VisibilityTimeout"
+    ]
+  },
+  {
+    "operation": "ChangeMessageVisibility",
+    "target": "AmazonSQS.ChangeMessageVisibility",
+    "path": "ReceiptHandle",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl",
+      "ReceiptHandle",
+      "VisibilityTimeout"
+    ]
+  },
+  {
+    "operation": "ChangeMessageVisibility",
+    "target": "AmazonSQS.ChangeMessageVisibility",
+    "path": "VisibilityTimeout",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl",
+      "ReceiptHandle",
+      "VisibilityTimeout"
+    ]
+  },
+  {
+    "operation": "ChangeMessageVisibilityBatch",
+    "target": "AmazonSQS.ChangeMessageVisibilityBatch",
+    "path": "Entries",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "ChangeMessageVisibilityBatch",
+    "target": "AmazonSQS.ChangeMessageVisibilityBatch",
+    "path": "Entries[].Id",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "ChangeMessageVisibilityBatch",
+    "target": "AmazonSQS.ChangeMessageVisibilityBatch",
+    "path": "Entries[].ReceiptHandle",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "ChangeMessageVisibilityBatch",
+    "target": "AmazonSQS.ChangeMessageVisibilityBatch",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "CreateQueue",
+    "target": "AmazonSQS.CreateQueue",
+    "path": "QueueName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueName"
+    ]
+  },
+  {
+    "operation": "DeleteMessage",
+    "target": "AmazonSQS.DeleteMessage",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl",
+      "ReceiptHandle"
+    ]
+  },
+  {
+    "operation": "DeleteMessage",
+    "target": "AmazonSQS.DeleteMessage",
+    "path": "ReceiptHandle",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl",
+      "ReceiptHandle"
+    ]
+  },
+  {
+    "operation": "DeleteMessageBatch",
+    "target": "AmazonSQS.DeleteMessageBatch",
+    "path": "Entries",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "DeleteMessageBatch",
+    "target": "AmazonSQS.DeleteMessageBatch",
+    "path": "Entries[].Id",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "DeleteMessageBatch",
+    "target": "AmazonSQS.DeleteMessageBatch",
+    "path": "Entries[].ReceiptHandle",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "DeleteMessageBatch",
+    "target": "AmazonSQS.DeleteMessageBatch",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "DeleteQueue",
+    "target": "AmazonSQS.DeleteQueue",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "GetQueueAttributes",
+    "target": "AmazonSQS.GetQueueAttributes",
+    "path": "AttributeNames[]",
+    "why": "not one of All, CreatedTimestamp, LastModifiedTimestamp, ReceiveMessageWaitTimeSeconds, SqsManagedSseEnabled, MaximumMessageSize, MessageRetentionPeriod, ApproximateNumberOfMessages, ApproximateNumberOfMessagesNotVisible, ContentBasedDeduplication, KmsDataKeyReusePeriodSeconds, DeduplicationScope, RedriveAllowPolicy, Policy, VisibilityTimeout, QueueArn, RedrivePolicy, FifoQueue, KmsMasterKeyId, FifoThroughputLimit, ApproximateNumberOfMessagesDelayed, DelaySeconds",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum All|CreatedTimestamp|LastModifiedTimestamp|ReceiveMessageWaitTimeSeconds|SqsManagedSseEnabled|MaximumMessageSize|MessageRetentionPeriod|ApproximateNumberOfMessages|ApproximateNumberOfMessagesNotVisible|ContentBasedDeduplication|KmsDataKeyReusePeriodSeconds|DeduplicationScope|RedriveAllowPolicy|Policy|VisibilityTimeout|QueueArn|RedrivePolicy|FifoQueue|KmsMasterKeyId|FifoThroughputLimit|ApproximateNumberOfMessagesDelayed|DelaySeconds",
+    "required_members": [
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "GetQueueAttributes",
+    "target": "AmazonSQS.GetQueueAttributes",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "GetQueueUrl",
+    "target": "AmazonSQS.GetQueueUrl",
+    "path": "QueueName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueName"
+    ]
+  },
+  {
+    "operation": "ListDeadLetterSourceQueues",
+    "target": "AmazonSQS.ListDeadLetterSourceQueues",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "ListMessageMoveTasks",
+    "target": "AmazonSQS.ListMessageMoveTasks",
+    "path": "SourceArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "SourceArn"
+    ]
+  },
+  {
+    "operation": "ListQueueTags",
+    "target": "AmazonSQS.ListQueueTags",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "PurgeQueue",
+    "target": "AmazonSQS.PurgeQueue",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "ReceiveMessage",
+    "target": "AmazonSQS.ReceiveMessage",
+    "path": "AttributeNames[]",
+    "why": "not one of SqsManagedSseEnabled, MaximumMessageSize, MessageRetentionPeriod, ApproximateNumberOfMessages, ApproximateNumberOfMessagesNotVisible, ContentBasedDeduplication, KmsDataKeyReusePeriodSeconds, DeduplicationScope, RedriveAllowPolicy, Policy, VisibilityTimeout, QueueArn, RedrivePolicy, FifoQueue, KmsMasterKeyId, FifoThroughputLimit, ApproximateNumberOfMessagesDelayed, DelaySeconds, All, CreatedTimestamp, LastModifiedTimestamp, ReceiveMessageWaitTimeSeconds",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum SqsManagedSseEnabled|MaximumMessageSize|MessageRetentionPeriod|ApproximateNumberOfMessages|ApproximateNumberOfMessagesNotVisible|ContentBasedDeduplication|KmsDataKeyReusePeriodSeconds|DeduplicationScope|RedriveAllowPolicy|Policy|VisibilityTimeout|QueueArn|RedrivePolicy|FifoQueue|KmsMasterKeyId|FifoThroughputLimit|ApproximateNumberOfMessagesDelayed|DelaySeconds|All|CreatedTimestamp|LastModifiedTimestamp|ReceiveMessageWaitTimeSeconds",
+    "required_members": [
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "ReceiveMessage",
+    "target": "AmazonSQS.ReceiveMessage",
+    "path": "MessageSystemAttributeNames[]",
+    "why": "not one of SenderId, SentTimestamp, ApproximateFirstReceiveTimestamp, SequenceNumber, MessageGroupId, AWSTraceHeader, DeadLetterQueueSourceArn, ApproximateReceiveCount, MessageDeduplicationId, All",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum SenderId|SentTimestamp|ApproximateFirstReceiveTimestamp|SequenceNumber|MessageGroupId|AWSTraceHeader|DeadLetterQueueSourceArn|ApproximateReceiveCount|MessageDeduplicationId|All",
+    "required_members": [
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "ReceiveMessage",
+    "target": "AmazonSQS.ReceiveMessage",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "RemovePermission",
+    "target": "AmazonSQS.RemovePermission",
+    "path": "Label",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Label",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "RemovePermission",
+    "target": "AmazonSQS.RemovePermission",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Label",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "SendMessage",
+    "target": "AmazonSQS.SendMessage",
+    "path": "MessageAttributes{}.DataType",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "MessageBody",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "SendMessage",
+    "target": "AmazonSQS.SendMessage",
+    "path": "MessageBody",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "MessageBody",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "SendMessage",
+    "target": "AmazonSQS.SendMessage",
+    "path": "MessageSystemAttributes{}.DataType",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "MessageBody",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "SendMessage",
+    "target": "AmazonSQS.SendMessage",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "MessageBody",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "SendMessageBatch",
+    "target": "AmazonSQS.SendMessageBatch",
+    "path": "Entries",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "SendMessageBatch",
+    "target": "AmazonSQS.SendMessageBatch",
+    "path": "Entries[].Id",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "SendMessageBatch",
+    "target": "AmazonSQS.SendMessageBatch",
+    "path": "Entries[].MessageAttributes{}.DataType",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "SendMessageBatch",
+    "target": "AmazonSQS.SendMessageBatch",
+    "path": "Entries[].MessageBody",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "SendMessageBatch",
+    "target": "AmazonSQS.SendMessageBatch",
+    "path": "Entries[].MessageSystemAttributes{}.DataType",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "SendMessageBatch",
+    "target": "AmazonSQS.SendMessageBatch",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Entries",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "SetQueueAttributes",
+    "target": "AmazonSQS.SetQueueAttributes",
+    "path": "Attributes",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Attributes",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "SetQueueAttributes",
+    "target": "AmazonSQS.SetQueueAttributes",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Attributes",
+      "QueueUrl"
+    ]
+  },
+  {
+    "operation": "StartMessageMoveTask",
+    "target": "AmazonSQS.StartMessageMoveTask",
+    "path": "SourceArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "SourceArn"
+    ]
+  },
+  {
+    "operation": "TagQueue",
+    "target": "AmazonSQS.TagQueue",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagQueue",
+    "target": "AmazonSQS.TagQueue",
+    "path": "Tags",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "UntagQueue",
+    "target": "AmazonSQS.UntagQueue",
+    "path": "QueueUrl",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl",
+      "TagKeys"
+    ]
+  },
+  {
+    "operation": "UntagQueue",
+    "target": "AmazonSQS.UntagQueue",
+    "path": "TagKeys",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "QueueUrl",
+      "TagKeys"
+    ]
+  }
+]

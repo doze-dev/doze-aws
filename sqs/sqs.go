@@ -10,6 +10,7 @@
 package sqs
 
 import (
+	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -100,6 +101,20 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h, ok := handlers[req.action]
 	if !ok {
 		writeError(w, req.json, &apiError{Code: "InvalidAction", Status: 400, Message: "unsupported action: " + req.action, SenderFault: true})
+		return
+	}
+
+	// Model-derived input validation, before the handler and for both
+	// protocols. The code differs by protocol family, so it follows the
+	// request rather than being fixed per service.
+	code := modelcheck.CodeQuery
+	if req.json {
+		code = modelcheck.CodeJSON
+	}
+	if aerr := modelcheck.ValidateMapAs(req.p.asMap(), constraintTables[req.action], code); aerr != nil {
+		writeError(w, req.json, &apiError{
+			Code: aerr.Code, Status: aerr.Status, Message: aerr.Message, SenderFault: true,
+		})
 		return
 	}
 	result, err := h(s.store, req)

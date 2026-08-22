@@ -75,7 +75,14 @@ func SQSReceive(ctx context.Context, dir peers.Directory, queue string, max, wai
 		"WaitTimeSeconds":     waitSeconds,
 		// Ask for the trace header the sender may have left, so a poller can
 		// continue the chain the message came from.
-		"AttributeNames": []string{"AWSTraceHeader"},
+		//
+		// MessageSystemAttributeNames, not AttributeNames: the latter is the
+		// deprecated QueueAttributeName enum and does not contain
+		// AWSTraceHeader, so real AWS refuses it. This asked for the wrong field
+		// from the day the cascade was written and only worked because doze-aws
+		// had no validation for it yet — which is precisely the failure the
+		// audit exists to catch, found here by auditing SQS.
+		"MessageSystemAttributeNames": []string{"AWSTraceHeader"},
 	}
 	body, err := postJSONResult(ctx, ep, "AmazonSQS.ReceiveMessage", "application/x-amz-json-1.0", payload)
 	if err != nil {
