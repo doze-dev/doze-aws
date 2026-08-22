@@ -36,7 +36,7 @@ clients still speak.
 | SQS | ✅ both protocols, FIFO, DLQ redrive, long polling, move tasks, tags | **fully audited**: 48/48 model-derived across 21 of 22 dispatched operations, plus hand-derived attribute and queue-name checks · no known gaps |
 | SNS | ✅ fanout to SQS/webhooks, filter policies, confirmation handshake | **fully audited**: 53/53 across 18 of 19 dispatched operations · no known gaps |
 | KMS | ✅ symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto | **fully audited**: 263/263 across all 36 dispatched operations · no known gaps |
-| SSM Parameter Store | ✅ versions, labels, hierarchies, SecureString at-rest encryption | not yet audited |
+| SSM Parameter Store | ✅ versions, labels, hierarchies, SecureString at-rest encryption | **fully audited**: 100/100 across all 13 dispatched operations · no known gaps |
 | Secrets Manager | ✅ version stages, recovery-window deletion, encrypted at rest | **fully audited**: 132/132 across 19 of 20 dispatched operations · no known gaps |
 | S3 | ✅ versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website | **audited**: bucket naming (case, charset, length, IP-form) · rest not yet audited |
 | DynamoDB | ✅ full expression engine, GSI/LSI, transactions, TTL, paging semantics | **fully audited**: 333/333 across all 27 dispatched operations · no known gaps |

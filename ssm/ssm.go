@@ -25,6 +25,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
+	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -128,6 +129,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.api.WriteError(w, awshttp.Errf(400, "InvalidAction", "unknown SSM action %q", action))
 		return
 	}
+	// Model-derived input validation runs before the handler, for every
+	// operation at once — coverage is then a property of the dispatch table
+	// rather than something each handler has to remember.
+	if aerr := modelcheck.ValidateMap(params, constraintTables[action]); aerr != nil {
+		s.api.WriteError(w, aerr)
+		return
+	}
+
 	result, aerr := h(s, params)
 	if aerr != nil {
 		s.logf("ssm: %s -> %s", action, aerr.Code)

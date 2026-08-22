@@ -1,0 +1,1137 @@
+[
+ {
+  "operation": "AddTagsToResource",
+  "target": "AmazonSSM.AddTagsToResource",
+  "path": "ResourceId",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "Tags"
+  ]
+ },
+ {
+  "operation": "AddTagsToResource",
+  "target": "AmazonSSM.AddTagsToResource",
+  "path": "ResourceType",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "Tags"
+  ]
+ },
+ {
+  "operation": "AddTagsToResource",
+  "target": "AmazonSSM.AddTagsToResource",
+  "path": "ResourceType",
+  "why": "not one of Automation, Association, CloudConnector, Document, ManagedInstance, MaintenanceWindow, Parameter, PatchBaseline, OpsMetadata, OpsItem",
+  "value": "__DOZE_NOT_A_MEMBER__",
+  "constraint": "enum Automation|Association|CloudConnector|Document|ManagedInstance|MaintenanceWindow|Parameter|PatchBaseline|OpsMetadata|OpsItem",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "Tags"
+  ]
+ },
+ {
+  "operation": "AddTagsToResource",
+  "target": "AmazonSSM.AddTagsToResource",
+  "path": "Tags",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "Tags"
+  ]
+ },
+ {
+  "operation": "AddTagsToResource",
+  "target": "AmazonSSM.AddTagsToResource",
+  "path": "Tags[].Key",
+  "why": "does not match ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+  "value": "\u0000\u0001",
+  "constraint": "pattern ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "Tags"
+  ]
+ },
+ {
+  "operation": "AddTagsToResource",
+  "target": "AmazonSSM.AddTagsToResource",
+  "path": "Tags[].Key",
+  "why": "longer than the maximum length of 128",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..128",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "Tags"
+  ]
+ },
+ {
+  "operation": "AddTagsToResource",
+  "target": "AmazonSSM.AddTagsToResource",
+  "path": "Tags[].Key",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..128",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "Tags"
+  ]
+ },
+ {
+  "operation": "AddTagsToResource",
+  "target": "AmazonSSM.AddTagsToResource",
+  "path": "Tags[].Key",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "Tags"
+  ]
+ },
+ {
+  "operation": "AddTagsToResource",
+  "target": "AmazonSSM.AddTagsToResource",
+  "path": "Tags[].Value",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "Tags"
+  ]
+ },
+ {
+  "operation": "AddTagsToResource",
+  "target": "AmazonSSM.AddTagsToResource",
+  "path": "Tags[].Value",
+  "why": "longer than the maximum length of 256",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 0..256",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "Tags"
+  ]
+ },
+ {
+  "operation": "AddTagsToResource",
+  "target": "AmazonSSM.AddTagsToResource",
+  "path": "Tags[].Value",
+  "why": "does not match ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+  "value": "\u0000\u0001",
+  "constraint": "pattern ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "Tags"
+  ]
+ },
+ {
+  "operation": "DeleteParameter",
+  "target": "AmazonSSM.DeleteParameter",
+  "path": "Name",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Name"
+  ]
+ },
+ {
+  "operation": "DeleteParameter",
+  "target": "AmazonSSM.DeleteParameter",
+  "path": "Name",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Name"
+  ]
+ },
+ {
+  "operation": "DeleteParameter",
+  "target": "AmazonSSM.DeleteParameter",
+  "path": "Name",
+  "why": "longer than the maximum length of 2048",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Name"
+  ]
+ },
+ {
+  "operation": "DeleteParameters",
+  "target": "AmazonSSM.DeleteParameters",
+  "path": "Names",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Names"
+  ]
+ },
+ {
+  "operation": "DeleteParameters",
+  "target": "AmazonSSM.DeleteParameters",
+  "path": "Names[]",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Names"
+  ]
+ },
+ {
+  "operation": "DeleteParameters",
+  "target": "AmazonSSM.DeleteParameters",
+  "path": "Names[]",
+  "why": "longer than the maximum length of 2048",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Names"
+  ]
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "Filters[].Key",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "Filters[].Key",
+  "why": "not one of Name, Type, KeyId",
+  "value": "__DOZE_NOT_A_MEMBER__",
+  "constraint": "enum Name|Type|KeyId"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "Filters[].Values",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "Filters[].Values[]",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..1024"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "Filters[].Values[]",
+  "why": "longer than the maximum length of 1024",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..1024"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "MaxResults",
+  "why": "above the maximum of 50",
+  "value": 51,
+  "constraint": "range 1..50"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "MaxResults",
+  "why": "below the minimum of 1",
+  "value": 0,
+  "constraint": "range 1..50"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "ParameterFilters[].Key",
+  "why": "longer than the maximum length of 132",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..132"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "ParameterFilters[].Key",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..132"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "ParameterFilters[].Key",
+  "why": "does not match ^tag:.+|Name|Type|KeyId|Path|Label|Tier|DataType$",
+  "value": "\u0000\u0001",
+  "constraint": "pattern ^tag:.+|Name|Type|KeyId|Path|Label|Tier|DataType$"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "ParameterFilters[].Key",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "ParameterFilters[].Option",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..10"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "ParameterFilters[].Option",
+  "why": "longer than the maximum length of 10",
+  "value": "aaaaaaaaaaa",
+  "constraint": "length 1..10"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "ParameterFilters[].Values[]",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..1024"
+ },
+ {
+  "operation": "DescribeParameters",
+  "target": "AmazonSSM.DescribeParameters",
+  "path": "ParameterFilters[].Values[]",
+  "why": "longer than the maximum length of 1024",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..1024"
+ },
+ {
+  "operation": "GetParameter",
+  "target": "AmazonSSM.GetParameter",
+  "path": "Name",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Name"
+  ]
+ },
+ {
+  "operation": "GetParameter",
+  "target": "AmazonSSM.GetParameter",
+  "path": "Name",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Name"
+  ]
+ },
+ {
+  "operation": "GetParameter",
+  "target": "AmazonSSM.GetParameter",
+  "path": "Name",
+  "why": "longer than the maximum length of 2048",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Name"
+  ]
+ },
+ {
+  "operation": "GetParameterHistory",
+  "target": "AmazonSSM.GetParameterHistory",
+  "path": "MaxResults",
+  "why": "below the minimum of 1",
+  "value": 0,
+  "constraint": "range 1..50",
+  "required_members": [
+   "Name"
+  ]
+ },
+ {
+  "operation": "GetParameterHistory",
+  "target": "AmazonSSM.GetParameterHistory",
+  "path": "MaxResults",
+  "why": "above the maximum of 50",
+  "value": 51,
+  "constraint": "range 1..50",
+  "required_members": [
+   "Name"
+  ]
+ },
+ {
+  "operation": "GetParameterHistory",
+  "target": "AmazonSSM.GetParameterHistory",
+  "path": "Name",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Name"
+  ]
+ },
+ {
+  "operation": "GetParameterHistory",
+  "target": "AmazonSSM.GetParameterHistory",
+  "path": "Name",
+  "why": "longer than the maximum length of 2048",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Name"
+  ]
+ },
+ {
+  "operation": "GetParameterHistory",
+  "target": "AmazonSSM.GetParameterHistory",
+  "path": "Name",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Name"
+  ]
+ },
+ {
+  "operation": "GetParameters",
+  "target": "AmazonSSM.GetParameters",
+  "path": "Names",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Names"
+  ]
+ },
+ {
+  "operation": "GetParameters",
+  "target": "AmazonSSM.GetParameters",
+  "path": "Names[]",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Names"
+  ]
+ },
+ {
+  "operation": "GetParameters",
+  "target": "AmazonSSM.GetParameters",
+  "path": "Names[]",
+  "why": "longer than the maximum length of 2048",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Names"
+  ]
+ },
+ {
+  "operation": "GetParametersByPath",
+  "target": "AmazonSSM.GetParametersByPath",
+  "path": "MaxResults",
+  "why": "above the maximum of 10",
+  "value": 11,
+  "constraint": "range 1..10",
+  "required_members": [
+   "Path"
+  ]
+ },
+ {
+  "operation": "GetParametersByPath",
+  "target": "AmazonSSM.GetParametersByPath",
+  "path": "MaxResults",
+  "why": "below the minimum of 1",
+  "value": 0,
+  "constraint": "range 1..10",
+  "required_members": [
+   "Path"
+  ]
+ },
+ {
+  "operation": "GetParametersByPath",
+  "target": "AmazonSSM.GetParametersByPath",
+  "path": "ParameterFilters[].Key",
+  "why": "does not match ^tag:.+|Name|Type|KeyId|Path|Label|Tier|DataType$",
+  "value": "\u0000\u0001",
+  "constraint": "pattern ^tag:.+|Name|Type|KeyId|Path|Label|Tier|DataType$",
+  "required_members": [
+   "Path"
+  ]
+ },
+ {
+  "operation": "GetParametersByPath",
+  "target": "AmazonSSM.GetParametersByPath",
+  "path": "ParameterFilters[].Key",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..132",
+  "required_members": [
+   "Path"
+  ]
+ },
+ {
+  "operation": "GetParametersByPath",
+  "target": "AmazonSSM.GetParametersByPath",
+  "path": "ParameterFilters[].Key",
+  "why": "longer than the maximum length of 132",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..132",
+  "required_members": [
+   "Path"
+  ]
+ },
+ {
+  "operation": "GetParametersByPath",
+  "target": "AmazonSSM.GetParametersByPath",
+  "path": "ParameterFilters[].Key",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Path"
+  ]
+ },
+ {
+  "operation": "GetParametersByPath",
+  "target": "AmazonSSM.GetParametersByPath",
+  "path": "ParameterFilters[].Option",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..10",
+  "required_members": [
+   "Path"
+  ]
+ },
+ {
+  "operation": "GetParametersByPath",
+  "target": "AmazonSSM.GetParametersByPath",
+  "path": "ParameterFilters[].Option",
+  "why": "longer than the maximum length of 10",
+  "value": "aaaaaaaaaaa",
+  "constraint": "length 1..10",
+  "required_members": [
+   "Path"
+  ]
+ },
+ {
+  "operation": "GetParametersByPath",
+  "target": "AmazonSSM.GetParametersByPath",
+  "path": "ParameterFilters[].Values[]",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..1024",
+  "required_members": [
+   "Path"
+  ]
+ },
+ {
+  "operation": "GetParametersByPath",
+  "target": "AmazonSSM.GetParametersByPath",
+  "path": "ParameterFilters[].Values[]",
+  "why": "longer than the maximum length of 1024",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..1024",
+  "required_members": [
+   "Path"
+  ]
+ },
+ {
+  "operation": "GetParametersByPath",
+  "target": "AmazonSSM.GetParametersByPath",
+  "path": "Path",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Path"
+  ]
+ },
+ {
+  "operation": "GetParametersByPath",
+  "target": "AmazonSSM.GetParametersByPath",
+  "path": "Path",
+  "why": "longer than the maximum length of 2048",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Path"
+  ]
+ },
+ {
+  "operation": "GetParametersByPath",
+  "target": "AmazonSSM.GetParametersByPath",
+  "path": "Path",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Path"
+  ]
+ },
+ {
+  "operation": "LabelParameterVersion",
+  "target": "AmazonSSM.LabelParameterVersion",
+  "path": "Labels",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Labels",
+   "Name"
+  ]
+ },
+ {
+  "operation": "LabelParameterVersion",
+  "target": "AmazonSSM.LabelParameterVersion",
+  "path": "Labels[]",
+  "why": "longer than the maximum length of 100",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..100",
+  "required_members": [
+   "Labels",
+   "Name"
+  ]
+ },
+ {
+  "operation": "LabelParameterVersion",
+  "target": "AmazonSSM.LabelParameterVersion",
+  "path": "Labels[]",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..100",
+  "required_members": [
+   "Labels",
+   "Name"
+  ]
+ },
+ {
+  "operation": "LabelParameterVersion",
+  "target": "AmazonSSM.LabelParameterVersion",
+  "path": "Name",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Labels",
+   "Name"
+  ]
+ },
+ {
+  "operation": "LabelParameterVersion",
+  "target": "AmazonSSM.LabelParameterVersion",
+  "path": "Name",
+  "why": "longer than the maximum length of 2048",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Labels",
+   "Name"
+  ]
+ },
+ {
+  "operation": "LabelParameterVersion",
+  "target": "AmazonSSM.LabelParameterVersion",
+  "path": "Name",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Labels",
+   "Name"
+  ]
+ },
+ {
+  "operation": "ListTagsForResource",
+  "target": "AmazonSSM.ListTagsForResource",
+  "path": "ResourceId",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "ResourceId",
+   "ResourceType"
+  ]
+ },
+ {
+  "operation": "ListTagsForResource",
+  "target": "AmazonSSM.ListTagsForResource",
+  "path": "ResourceType",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "ResourceId",
+   "ResourceType"
+  ]
+ },
+ {
+  "operation": "ListTagsForResource",
+  "target": "AmazonSSM.ListTagsForResource",
+  "path": "ResourceType",
+  "why": "not one of Parameter, PatchBaseline, OpsMetadata, OpsItem, Automation, Association, CloudConnector, Document, ManagedInstance, MaintenanceWindow",
+  "value": "__DOZE_NOT_A_MEMBER__",
+  "constraint": "enum Parameter|PatchBaseline|OpsMetadata|OpsItem|Automation|Association|CloudConnector|Document|ManagedInstance|MaintenanceWindow",
+  "required_members": [
+   "ResourceId",
+   "ResourceType"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "AllowedPattern",
+  "why": "longer than the maximum length of 1024",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 0..1024",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "DataType",
+  "why": "longer than the maximum length of 128",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 0..128",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Description",
+  "why": "longer than the maximum length of 1024",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 0..1024",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "KeyId",
+  "why": "does not match ^([a-zA-Z0-9:/_-]+)$",
+  "value": "\u0000\u0001",
+  "constraint": "pattern ^([a-zA-Z0-9:/_-]+)$",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "KeyId",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..256",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "KeyId",
+  "why": "longer than the maximum length of 256",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..256",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Name",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Name",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Name",
+  "why": "longer than the maximum length of 2048",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Policies",
+  "why": "longer than the maximum length of 4096",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..4096",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Policies",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..4096",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Tags[].Key",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Tags[].Key",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..128",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Tags[].Key",
+  "why": "longer than the maximum length of 128",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..128",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Tags[].Key",
+  "why": "does not match ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+  "value": "\u0000\u0001",
+  "constraint": "pattern ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Tags[].Value",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Tags[].Value",
+  "why": "longer than the maximum length of 256",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 0..256",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Tags[].Value",
+  "why": "does not match ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+  "value": "\u0000\u0001",
+  "constraint": "pattern ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Tier",
+  "why": "not one of Advanced, Intelligent-Tiering, Standard",
+  "value": "__DOZE_NOT_A_MEMBER__",
+  "constraint": "enum Advanced|Intelligent-Tiering|Standard",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Type",
+  "why": "not one of String, StringList, SecureString",
+  "value": "__DOZE_NOT_A_MEMBER__",
+  "constraint": "enum String|StringList|SecureString",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "PutParameter",
+  "target": "AmazonSSM.PutParameter",
+  "path": "Value",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Name",
+   "Value"
+  ]
+ },
+ {
+  "operation": "RemoveTagsFromResource",
+  "target": "AmazonSSM.RemoveTagsFromResource",
+  "path": "ResourceId",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "TagKeys"
+  ]
+ },
+ {
+  "operation": "RemoveTagsFromResource",
+  "target": "AmazonSSM.RemoveTagsFromResource",
+  "path": "ResourceType",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "TagKeys"
+  ]
+ },
+ {
+  "operation": "RemoveTagsFromResource",
+  "target": "AmazonSSM.RemoveTagsFromResource",
+  "path": "ResourceType",
+  "why": "not one of Document, ManagedInstance, MaintenanceWindow, Parameter, PatchBaseline, OpsMetadata, OpsItem, Automation, Association, CloudConnector",
+  "value": "__DOZE_NOT_A_MEMBER__",
+  "constraint": "enum Document|ManagedInstance|MaintenanceWindow|Parameter|PatchBaseline|OpsMetadata|OpsItem|Automation|Association|CloudConnector",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "TagKeys"
+  ]
+ },
+ {
+  "operation": "RemoveTagsFromResource",
+  "target": "AmazonSSM.RemoveTagsFromResource",
+  "path": "TagKeys",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "TagKeys"
+  ]
+ },
+ {
+  "operation": "RemoveTagsFromResource",
+  "target": "AmazonSSM.RemoveTagsFromResource",
+  "path": "TagKeys[]",
+  "why": "longer than the maximum length of 128",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..128",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "TagKeys"
+  ]
+ },
+ {
+  "operation": "RemoveTagsFromResource",
+  "target": "AmazonSSM.RemoveTagsFromResource",
+  "path": "TagKeys[]",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..128",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "TagKeys"
+  ]
+ },
+ {
+  "operation": "RemoveTagsFromResource",
+  "target": "AmazonSSM.RemoveTagsFromResource",
+  "path": "TagKeys[]",
+  "why": "does not match ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+  "value": "\u0000\u0001",
+  "constraint": "pattern ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+  "required_members": [
+   "ResourceId",
+   "ResourceType",
+   "TagKeys"
+  ]
+ },
+ {
+  "operation": "UnlabelParameterVersion",
+  "target": "AmazonSSM.UnlabelParameterVersion",
+  "path": "Labels",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Labels",
+   "Name",
+   "ParameterVersion"
+  ]
+ },
+ {
+  "operation": "UnlabelParameterVersion",
+  "target": "AmazonSSM.UnlabelParameterVersion",
+  "path": "Labels[]",
+  "why": "longer than the maximum length of 100",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..100",
+  "required_members": [
+   "Labels",
+   "Name",
+   "ParameterVersion"
+  ]
+ },
+ {
+  "operation": "UnlabelParameterVersion",
+  "target": "AmazonSSM.UnlabelParameterVersion",
+  "path": "Labels[]",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..100",
+  "required_members": [
+   "Labels",
+   "Name",
+   "ParameterVersion"
+  ]
+ },
+ {
+  "operation": "UnlabelParameterVersion",
+  "target": "AmazonSSM.UnlabelParameterVersion",
+  "path": "Name",
+  "why": "shorter than the minimum length of 1",
+  "value": "",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Labels",
+   "Name",
+   "ParameterVersion"
+  ]
+ },
+ {
+  "operation": "UnlabelParameterVersion",
+  "target": "AmazonSSM.UnlabelParameterVersion",
+  "path": "Name",
+  "why": "longer than the maximum length of 2048",
+  "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "constraint": "length 1..2048",
+  "required_members": [
+   "Labels",
+   "Name",
+   "ParameterVersion"
+  ]
+ },
+ {
+  "operation": "UnlabelParameterVersion",
+  "target": "AmazonSSM.UnlabelParameterVersion",
+  "path": "Name",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Labels",
+   "Name",
+   "ParameterVersion"
+  ]
+ },
+ {
+  "operation": "UnlabelParameterVersion",
+  "target": "AmazonSSM.UnlabelParameterVersion",
+  "path": "ParameterVersion",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Labels",
+   "Name",
+   "ParameterVersion"
+  ]
+ }
+]
