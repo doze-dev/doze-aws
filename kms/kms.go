@@ -29,6 +29,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
+	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -120,6 +121,15 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h, ok := handlers[action]
 	if !ok {
 		s.api.WriteError(w, awshttp.Errf(400, "InvalidAction", "unknown KMS action %q", action))
+		return
+	}
+
+	// Model-derived input validation runs before the handler, for every
+	// operation at once — coverage is then a property of the dispatch table
+	// rather than something each handler has to remember.
+	if aerr := modelcheck.ValidateMap(params, constraintTables[action]); aerr != nil {
+		s.logf("kms: %s -> %s", action, aerr.Code)
+		s.api.WriteError(w, aerr)
 		return
 	}
 	result, aerr := h(s, params)

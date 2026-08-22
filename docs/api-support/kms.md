@@ -29,3 +29,33 @@ returns genuine SPKI DER — signatures verify outside KMS.
 | RotateKeyOnDemand / ListKeyRotations | S | Phase 8 |
 | Grants (Create/Retire/Revoke/List) | S | grants are IAM machinery |
 | Custom key stores, ImportKeyMaterial, multi-region replication, DeriveSharedSecret | S | cloud-infrastructure-only |
+
+## Input validation
+
+Separate from the tiers above. A tier says the operation is implemented; this
+says whether doze-aws **refuses what KMS refuses**.
+
+**263/263 model-derived constraints enforced across all 36 dispatched
+operations, with `knownGaps` empty.** Removing the table makes the audit fail,
+so it is doing work the hand-written checks were not.
+
+Generated with `dzaudit cases kms`, committed to `testdata/cases_kms.json`, and
+replayed case by case in `rejection_parity_test.go` from a baseline the test
+first proves the service accepts. 209 further cases fall on operations with no
+handler — custom key stores, multi-region replication, imported key material —
+which cannot be audited at all.
+
+### The fixtures are real cryptographic material
+
+KMS needs more setup than any other service here, and none of it can be faked.
+`Decrypt` needs ciphertext this key actually produced, `Verify` needs a
+signature over the message it is given, `VerifyMac` needs a real MAC. An
+invented blob is refused as invalid — a refusal for the wrong reason, which
+reads exactly like a pass. So the fixture creates three keys (symmetric,
+RSA_2048 for sign/verify, HMAC_256 for MACs) and then performs the operations
+whose *output* the later baselines consume.
+
+Three operations also get a throwaway key rather than the fixture's:
+`ScheduleKeyDeletion`, `CancelKeyDeletion` and `DisableKey` would otherwise
+disable the key every cryptographic baseline after them alphabetically depends
+on.
