@@ -191,7 +191,10 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 		scope.Refs[id] = refValue(r.Type, name)
 		scope.Atts[id] = attributes(r.Type, name)
 		work = append(work, pending{r, name})
-		rep.Entries = append(rep.Entries, Entry{LogicalID: id, Type: r.Type, Kind: Mapped, Name: name})
+		rep.Entries = append(rep.Entries, Entry{
+			LogicalID: id, Type: r.Type, Kind: Mapped, Name: name,
+			Props: fingerprint(r.Properties),
+		})
 	}
 
 	// ---- pass two: evaluate and map ----

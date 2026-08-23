@@ -120,7 +120,12 @@ func hCreateChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 }
 
 // diffChanges compares what the template would produce against what the stack
-// already owns. It is resource-level, which is all a change set displays.
+// already owns. It is resource-level, which is all a change set displays — but
+// resource *identity* is not enough. Changing a queue's VisibilityTimeout
+// leaves the logical id, the type and the physical name all the same, and a
+// change set that saw no difference would land in FAILED with "the submitted
+// information didn't contain changes" — telling a local `cdk deploy` there was
+// nothing to do when there was.
 func diffChanges(existing *StackRecord, rep *Report) []Change {
 	current := map[string]StackResource{}
 	if existing != nil {
@@ -144,6 +149,14 @@ func diffChanges(existing *StackRecord, rep *Report) []Change {
 			out = append(out, Change{
 				Action: "Modify", LogicalID: e.LogicalID, Type: e.Type,
 				PhysicalID: e.Name, Replacement: "True",
+			})
+		case prev.Props != "" && prev.Props != e.Props:
+			// Same resource, edited properties. An empty stored fingerprint is
+			// a record written before this existed, and means "unknown" rather
+			// than "changed".
+			out = append(out, Change{
+				Action: "Modify", LogicalID: e.LogicalID, Type: e.Type,
+				PhysicalID: e.Name,
 			})
 		}
 	}

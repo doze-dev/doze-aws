@@ -108,9 +108,14 @@ then be refused with a message the validator wrote. The Query protocol spells
 the error code proves nothing and only the message can carry it.
 
 `ExecuteChangeSet` needs a change set that actually has a change, and executing
-one moves the stack out from under the next case. Each case therefore builds its
-own change set from a template that **adds** a resource. It has to add rather
-than edit: doze-aws diffs change sets by resource identity — added, removed, or
-a renamed physical id — so a property-only edit registers as no change at all and
-the change set lands in FAILED. That is a real limitation worth knowing before
-trusting a local `cdk diff`.
+one moves the stack out from under the next case, so each case builds its own
+from an edited template.
+
+Writing that harness turned up a real bug. Change sets diffed by resource
+*identity* — logical id, type, physical name — so editing a queue's
+`VisibilityTimeout` matched on all three and the set landed in FAILED carrying
+"the submitted information didn't contain changes", the phrase the AWS CLI
+special-cases. A local `cdk deploy` was told there was nothing to do. Resources
+now carry a fingerprint of their declared properties and an edit registers as a
+Modify; an unchanged template still reports no changes, which
+`TestChangeSetSeesAPropertyOnlyEdit` checks in both directions.

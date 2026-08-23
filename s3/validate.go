@@ -66,10 +66,10 @@ type xmlList struct {
 // routes are ordered most-specific first: more required markers wins, then a
 // longer path. Without that, PUT /{Bucket}/{Key+} would claim ?acl.
 var routes = []route{
-	{Op: "GetObjectAttributes", Method: "GET", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, NeedHeaders: []string{"x-amz-object-attributes"}, Marks: map[string]string{"attributes": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-max-parts": "MaxParts", "x-amz-object-attributes": "ObjectAttributes", "x-amz-part-number-marker": "PartNumberMarker", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5"}, HeaderList: map[string]bool{"ObjectAttributes": true}},
 	{Op: "CreateMultipartUpload", Method: "POST", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"uploads": ""}, Header: map[string]string{"x-amz-acl": "ACL", "x-amz-server-side-encryption-bucket-key-enabled": "BucketKeyEnabled", "Cache-Control": "CacheControl", "x-amz-checksum-algorithm": "ChecksumAlgorithm", "x-amz-checksum-type": "ChecksumType", "Content-Disposition": "ContentDisposition", "Content-Encoding": "ContentEncoding", "Content-Language": "ContentLanguage", "Content-Type": "ContentType", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "Expires": "Expires", "x-amz-grant-full-control": "GrantFullControl", "x-amz-grant-read": "GrantRead", "x-amz-grant-read-acp": "GrantReadACP", "x-amz-grant-write-acp": "GrantWriteACP", "x-amz-object-lock-legal-hold": "ObjectLockLegalHoldStatus", "x-amz-object-lock-mode": "ObjectLockMode", "x-amz-object-lock-retain-until-date": "ObjectLockRetainUntilDate", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5", "x-amz-server-side-encryption-context": "SSEKMSEncryptionContext", "x-amz-server-side-encryption-aws-kms-key-id": "SSEKMSKeyId", "x-amz-server-side-encryption": "ServerSideEncryption", "x-amz-storage-class": "StorageClass", "x-amz-tagging": "Tagging", "x-amz-website-redirect-location": "WebsiteRedirectLocation"}},
 	{Op: "DeleteObjectTagging", Method: "DELETE", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"tagging": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
 	{Op: "GetObjectAcl", Method: "GET", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"acl": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer"}},
+	{Op: "GetObjectAttributes", Method: "GET", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"attributes": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-max-parts": "MaxParts", "x-amz-object-attributes": "ObjectAttributes", "x-amz-part-number-marker": "PartNumberMarker", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5"}, HeaderList: map[string]bool{"ObjectAttributes": true}},
 	{Op: "GetObjectLegalHold", Method: "GET", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"legal-hold": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer"}},
 	{Op: "GetObjectRetention", Method: "GET", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"retention": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer"}},
 	{Op: "GetObjectTagging", Method: "GET", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"tagging": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer"}},
@@ -114,6 +114,7 @@ var routes = []route{
 	{Op: "PutBucketVersioning", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"versioning": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-mfa": "MFA"}, Payload: "VersioningConfiguration", XMLNames: map[string]string{"VersioningConfiguration.MFADelete": "MfaDelete"}},
 	{Op: "PutBucketWebsite", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"website": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner"}, Payload: "WebsiteConfiguration", XMLLists: map[string]xmlList{"WebsiteConfiguration.RoutingRules": {Element: "RoutingRule"}}},
 	{Op: "PutObjectLockConfiguration", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"object-lock": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer", "x-amz-bucket-object-lock-token": "Token"}, Payload: "ObjectLockConfiguration"},
+	{Op: "ListDirectoryBuckets", Method: "GET", Segs: []string{}, Labels: []string{}, Marks: map[string]string{"x-id": "ListDirectoryBuckets"}, Query: map[string]string{"continuation-token": "ContinuationToken", "max-directory-buckets": "MaxDirectoryBuckets"}},
 	{Op: "UploadPartCopy", Method: "PUT", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, NeedHeaders: []string{"x-amz-copy-source"}, NeedQuery: []string{"partNumber", "uploadId"}, Query: map[string]string{"partNumber": "PartNumber", "uploadId": "UploadId"}, Header: map[string]string{"x-amz-copy-source": "CopySource", "x-amz-copy-source-if-match": "CopySourceIfMatch", "x-amz-copy-source-if-modified-since": "CopySourceIfModifiedSince", "x-amz-copy-source-if-none-match": "CopySourceIfNoneMatch", "x-amz-copy-source-if-unmodified-since": "CopySourceIfUnmodifiedSince", "x-amz-copy-source-range": "CopySourceRange", "x-amz-copy-source-server-side-encryption-customer-algorithm": "CopySourceSSECustomerAlgorithm", "x-amz-copy-source-server-side-encryption-customer-key": "CopySourceSSECustomerKey", "x-amz-copy-source-server-side-encryption-customer-key-MD5": "CopySourceSSECustomerKeyMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-source-expected-bucket-owner": "ExpectedSourceBucketOwner", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5"}},
 	{Op: "UploadPart", Method: "PUT", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, NeedQuery: []string{"partNumber", "uploadId"}, Query: map[string]string{"partNumber": "PartNumber", "uploadId": "UploadId"}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "x-amz-checksum-crc32": "ChecksumCRC32", "x-amz-checksum-crc32c": "ChecksumCRC32C", "x-amz-checksum-crc64nvme": "ChecksumCRC64NVME", "x-amz-checksum-md5": "ChecksumMD5", "x-amz-checksum-sha1": "ChecksumSHA1", "x-amz-checksum-sha256": "ChecksumSHA256", "x-amz-checksum-sha512": "ChecksumSHA512", "x-amz-checksum-xxhash128": "ChecksumXXHASH128", "x-amz-checksum-xxhash3": "ChecksumXXHASH3", "x-amz-checksum-xxhash64": "ChecksumXXHASH64", "Content-Length": "ContentLength", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5"}, Payload: "Body"},
 	{Op: "AbortMultipartUpload", Method: "DELETE", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, NeedQuery: []string{"uploadId"}, Query: map[string]string{"uploadId": "UploadId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-if-match-initiated-time": "IfMatchInitiatedTime", "x-amz-request-payer": "RequestPayer"}},
@@ -129,7 +130,35 @@ var routes = []route{
 	{Op: "HeadBucket", Method: "HEAD", Segs: []string{""}, Labels: []string{"Bucket"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
 	{Op: "ListObjects", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Query: map[string]string{"delimiter": "Delimiter", "encoding-type": "EncodingType", "marker": "Marker", "max-keys": "MaxKeys", "prefix": "Prefix"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-optional-object-attributes": "OptionalObjectAttributes", "x-amz-request-payer": "RequestPayer"}, HeaderList: map[string]bool{"OptionalObjectAttributes": true}},
 	{Op: "ListBuckets", Method: "GET", Segs: []string{}, Labels: []string{}, Query: map[string]string{"bucket-region": "BucketRegion", "continuation-token": "ContinuationToken", "max-buckets": "MaxBuckets", "prefix": "Prefix"}},
-	{Op: "ListDirectoryBuckets", Method: "GET", Segs: []string{}, Labels: []string{}, Query: map[string]string{"continuation-token": "ContinuationToken", "max-directory-buckets": "MaxDirectoryBuckets"}},
+}
+
+// markerKeys are every sub-resource marker the route table knows. A request
+// carrying one of these can only be an operation that declares it — the whole
+// reason subresource.go exists is that the natural fall-through lands on a
+// DIFFERENT operation, and "list the bucket" is a plausible-looking answer to a
+// request that asked about an object's legal hold.
+var markerKeys = map[string]bool{
+	"accelerate":     true,
+	"acl":            true,
+	"attributes":     true,
+	"cors":           true,
+	"delete":         true,
+	"legal-hold":     true,
+	"lifecycle":      true,
+	"list-type":      true,
+	"location":       true,
+	"logging":        true,
+	"notification":   true,
+	"object-lock":    true,
+	"policy":         true,
+	"replication":    true,
+	"requestPayment": true,
+	"retention":      true,
+	"tagging":        true,
+	"uploads":        true,
+	"versioning":     true,
+	"versions":       true,
+	"website":        true,
 }
 
 var constraintTables = map[string][]modelcheck.Constraint{

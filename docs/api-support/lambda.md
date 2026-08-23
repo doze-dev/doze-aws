@@ -73,9 +73,9 @@ lambda`), not from the documentation prose. Covered by
 Separate from the tiers above. A tier says the operation is implemented; this
 says whether doze-aws **refuses what Lambda refuses**.
 
-**599/608 model-derived constraints enforced across all 46 routed operations
+**612/621 model-derived constraints enforced across all 47 routed operations
 with constrained input, with `knownGaps` empty.** Removing the constraint table
-makes 446 of them slip through — the largest share of any service here, because
+makes 452 of them slip through — the largest share of any service here, because
 Lambda's inputs are the widest: `CreateFunction` alone carries 76 constraints.
 The remaining nine cannot be put on this wire; see below.
 
@@ -110,9 +110,11 @@ added later cannot quietly acquire a case that tests nothing.
 
 ### Not audited
 
-`UpdateAlias` is the one gap in the routed surface worth naming:
-`/aliases/{Name}` handles GET and DELETE but not the PUT the operation needs, so
-it is not implemented rather than unvalidated. Everything else absent from the
-audit is absent from doze-aws: capacity providers, durable executions, code
-signing configs as first-class resources, and the rest of the cloud-only
-surface.
+Everything absent from the audit is absent from doze-aws: capacity providers,
+durable executions, code signing configs as first-class resources, and the rest
+of the cloud-only surface.
+
+`UpdateAlias` used to be on this list — `/aliases/{Name}` answered GET and
+DELETE, and the PUT the operation uses fell through to a 405. Repointing an
+alias at a new version is the ordinary way a Lambda deploy goes live, so the gap
+was on the main path. It is implemented now.

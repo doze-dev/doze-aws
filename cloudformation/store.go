@@ -100,6 +100,11 @@ type StackResource struct {
 	PhysicalID string `json:"physical_id"`
 	Status     string `json:"status"`
 	Reason     string `json:"reason,omitempty"`
+	// Props fingerprints the declared properties this resource was created
+	// from. Empty on records written before change sets could see property
+	// edits, and treated as "unknown" rather than "changed" so an existing
+	// stack does not report a modification it never had.
+	Props string `json:"props,omitempty"`
 }
 
 // StackEvent is one synthesized progress event. Deploy tools poll these until
@@ -112,6 +117,11 @@ type StackEvent struct {
 	PhysicalID string `json:"physical_id,omitempty"`
 	Status     string `json:"status"`
 	Reason     string `json:"reason,omitempty"`
+	// Props fingerprints the declared properties this resource was created
+	// from. Empty on records written before change sets could see property
+	// edits, and treated as "unknown" rather than "changed" so an existing
+	// stack does not report a modification it never had.
+	Props string `json:"props,omitempty"`
 }
 
 // ChangeSetRecord is a pending change set.

@@ -335,6 +335,14 @@
   "method": "DELETE",
   "uri": "/2017-03-31/tags/{Resource}"
  },
+ "UpdateAlias": {
+  "bind": {
+   "FunctionName": "label",
+   "Name": "label"
+  },
+  "method": "PUT",
+  "uri": "/2015-03-31/functions/{FunctionName}/aliases/{Name}"
+ },
  "UpdateEventSourceMapping": {
   "bind": {
    "UUID": "label"

@@ -246,51 +246,7 @@ func loadRoutes(t *testing.T) map[string]*binding {
 // knownGaps are constraints AWS enforces and doze-aws does not, as of the last
 // run. Listed rather than tolerated silently.
 var knownGaps = map[string]bool{
-	// An object-only sub-resource marker arriving on a bucket-level path
-	// matches no route, so nothing validates it — and doze-aws answers it rather
-	// than refusing it. GET /bucket?legal-hold should be an error.
-	"GetObjectAttributes/Key/required member omitted":              true,
-	"GetObjectAttributes/Key/shorter than the minimum length of 1": true,
-	"GetObjectLegalHold/Key/required member omitted":               true,
-	"GetObjectLegalHold/Key/shorter than the minimum length of 1":  true,
-	"GetObjectRetention/Key/required member omitted":               true,
-	"GetObjectRetention/Key/shorter than the minimum length of 1":  true,
-	"PutObjectLegalHold/Key/required member omitted":               true,
-	"PutObjectLegalHold/Key/shorter than the minimum length of 1":  true,
-	"PutObjectRetention/Key/required member omitted":               true,
-	"PutObjectRetention/Key/shorter than the minimum length of 1":  true,
-
-	// Omitting the member that identifies the operation makes the request a
-	// different, valid one on the wire — PUT /b/k without ?uploadId is PutObject —
-	// but unlike the label cases the harness cannot derive that, because the
-	// distinguishing member is a query parameter or header rather than a path
-	// segment.
-	"AbortMultipartUpload/UploadId/required member omitted":        true,
-	"CopyObject/CopySource/required member omitted":                true,
-	"GetObjectAttributes/ObjectAttributes/required member omitted": true,
-	"UploadPart/PartNumber/required member omitted":                true,
-	"UploadPart/UploadId/required member omitted":                  true,
-	"UploadPartCopy/CopySource/required member omitted":            true,
-	"UploadPartCopy/PartNumber/required member omitted":            true,
-	"UploadPartCopy/UploadId/required member omitted":              true,
-
-	// ListDirectoryBuckets and ListBuckets are both GET /, distinguished only by
-	// the advisory x-id parameter the matcher ignores, so ListBuckets claims the
-	// route and these constraints are never reached.
-	"ListDirectoryBuckets/ContinuationToken/longer than the maximum length of 1024": true,
-	"ListDirectoryBuckets/MaxDirectoryBuckets/above the maximum of 1000":            true,
-	"ListDirectoryBuckets/MaxDirectoryBuckets/below the minimum of 0":               true,
-
-	// Emptying a structure inside the XML document leaves a bare <IndexDocument/>,
-	// which the generic parser reads as an empty string rather than an empty
-	// structure, so the required member inside it is never looked for.
-	"DeleteObjects/Delete.Objects[].Key/required member omitted":                                                     true,
-	"PutBucketReplication/ReplicationConfiguration.Rules[].Destination.Bucket/required member omitted":               true,
-	"PutBucketReplication/ReplicationConfiguration.Rules[].ExistingObjectReplication.Status/required member omitted": true,
-	"PutBucketWebsite/WebsiteConfiguration.ErrorDocument.Key/required member omitted":                                true,
-	"PutBucketWebsite/WebsiteConfiguration.IndexDocument.Suffix/required member omitted":                             true,
-	"PutBucketWebsite/WebsiteConfiguration.RedirectAllRequestsTo.HostName/required member omitted":                   true,
-	"PutBucketWebsite/WebsiteConfiguration.RoutingRules[].Redirect/required member omitted":                          true,
+	// Empty, and that is the goal.
 }
 
 // unexpressibleOn reports whether a case cannot be put on this wire at all —
@@ -301,6 +257,16 @@ func unexpressibleOn(c auditCase, bind map[string]*binding) (string, bool) {
 			if b := s[i]; b < 0x20 && b != '\t' || b == 0x7f {
 				return "a header cannot carry a control character", true
 			}
+		}
+	}
+	// Omitting a member that IDENTIFIES the operation makes the request a
+	// different, valid one — PUT /b/k without ?uploadId is a PutObject, and
+	// without x-amz-copy-source a CopyObject is one too. Same phenomenon as the
+	// shortened path below, but carried by a header or query parameter rather
+	// than a path segment, so it is derived from the route table instead.
+	if (c.Value == nil || c.Value == "") && identifies(c.Operation, c.Path) {
+		if other, ok := fallbackRoute(c.Operation, c.Path); ok {
+			return fmt.Sprintf("without %s the request is %s", wireName(c), other), true
 		}
 	}
 	if c.HTTP.Bind[c.Path] != "label" {
@@ -336,6 +302,77 @@ func unexpressibleOn(c auditCase, bind map[string]*binding) (string, bool) {
 		if op != c.Operation && b.Method == c.HTTP.Method && other == shorter &&
 			sameMarks(marks, otherMarks) {
 			return fmt.Sprintf("%s %s%s is %s", b.Method, shorter, markSuffix(otherMarks), op), true
+		}
+	}
+	return "", false
+}
+
+// wireName is how a member is spelled on the wire.
+func wireName(c auditCase) string {
+	bind := c.HTTP.Bind[c.Path]
+	if i := strings.Index(bind, ":"); i >= 0 {
+		return bind[i+1:]
+	}
+	return c.Path
+}
+
+// identifies reports whether a member is part of the operation's identity in
+// the route table, rather than merely part of its input.
+func identifies(op, member string) bool {
+	rt := routeOf(op)
+	for _, h := range rt.NeedHeaders {
+		if h == memberWire(rt.Header, member) {
+			return true
+		}
+	}
+	for _, q := range rt.NeedQuery {
+		if q == memberWire(rt.Query, member) {
+			return true
+		}
+	}
+	return false
+}
+
+func memberWire(m map[string]string, member string) string {
+	for wire, name := range m {
+		if name == member {
+			return wire
+		}
+	}
+	return ""
+}
+
+func routeOf(op string) route {
+	for _, rt := range routes {
+		if rt.Op == op {
+			return rt
+		}
+	}
+	return route{}
+}
+
+// fallbackRoute names the operation a request becomes once the identifying
+// member is gone: same method, same path shape, same markers, but asking for
+// nothing the request no longer carries.
+func fallbackRoute(op, member string) (string, bool) {
+	rt := routeOf(op)
+	for _, other := range routes {
+		if other.Op == op || other.Method != rt.Method ||
+			len(other.Segs) != len(rt.Segs) || len(other.Marks) != len(rt.Marks) {
+			continue
+		}
+		same := true
+		for k, v := range rt.Marks {
+			if other.Marks[k] != v {
+				same = false
+				break
+			}
+		}
+		if !same {
+			continue
+		}
+		if len(other.NeedHeaders) < len(rt.NeedHeaders) || len(other.NeedQuery) < len(rt.NeedQuery) {
+			return other.Op, true
 		}
 	}
 	return "", false

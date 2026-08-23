@@ -27,6 +27,22 @@ const codeREST = "InvalidRequest"
 // most-specific first, so the first whose method, path shape and sub-resource
 // markers all match wins.
 func matchRoute(method, path string, query map[string][]string, headers http.Header) (route, map[string]string, bool) {
+	// Two passes. The first requires every path segment to be there; only if
+	// nothing matches does the second allow a greedy {Key+} to be empty.
+	//
+	// The order matters both ways. Without the second pass, GET /bucket?retention
+	// matches nothing — there is no bucket-level retention operation — so it is
+	// never validated, and doze-aws answers a request that should be refused for
+	// a missing key. With the second pass running first, DELETE /bucket?tagging
+	// would be claimed by DeleteObjectTagging with an empty key and a legitimate
+	// DeleteBucketTagging would be refused.
+	if rt, labels, ok := matchExact(method, path, query, headers, false); ok {
+		return rt, labels, true
+	}
+	return matchExact(method, path, query, headers, true)
+}
+
+func matchExact(method, path string, query map[string][]string, headers http.Header, emptyKey bool) (route, map[string]string, bool) {
 	// Interior empty segments are kept: "//key" is a request whose bucket is
 	// empty, and dropping it would make every @required label pass vacuously.
 	// A single trailing empty is dropped, because "/bucket/" is how a bucket
@@ -42,12 +58,20 @@ func matchRoute(method, path string, query map[string][]string, headers http.Hea
 		if rt.Method != method {
 			continue
 		}
-		if rt.Greedy {
+		switch {
+		case rt.Greedy && emptyKey:
+			// The greedy label swallows nothing: the caller left the key out.
+			if len(segs) != len(rt.Segs)-1 {
+				continue
+			}
+		case rt.Greedy:
 			if len(segs) < len(rt.Segs) {
 				continue
 			}
-		} else if len(segs) != len(rt.Segs) {
-			continue
+		default:
+			if len(segs) != len(rt.Segs) {
+				continue
+			}
 		}
 		marked := true
 		for k, want := range rt.Marks {
@@ -55,6 +79,20 @@ func matchRoute(method, path string, query map[string][]string, headers http.Hea
 			if !ok || (want != "" && (len(v) == 0 || v[0] != want)) {
 				marked = false
 				break
+			}
+		}
+		if !marked {
+			continue
+		}
+		// A marker the route does not declare belongs to a different operation.
+		// Without this, ListObjects — which declares none — claims
+		// GET /bucket?legal-hold and answers with a bucket listing.
+		for k := range query {
+			if markerKeys[k] && rt.Marks[k] == "" {
+				if _, declared := rt.Marks[k]; !declared {
+					marked = false
+					break
+				}
 			}
 		}
 		if !marked {
@@ -75,7 +113,7 @@ func matchRoute(method, path string, query map[string][]string, headers http.Hea
 		if !marked {
 			continue
 		}
-		labels, ok := bindLabels(rt, segs)
+		labels, ok := bindLabels(rt, segs, emptyKey)
 		if !ok {
 			continue
 		}
@@ -86,10 +124,14 @@ func matchRoute(method, path string, query map[string][]string, headers http.Hea
 
 // bindLabels fills the route's labels from the path segments. A greedy label
 // takes every remaining segment, slashes included — that is what {Key+} means.
-func bindLabels(rt route, segs []string) (map[string]string, bool) {
+func bindLabels(rt route, segs []string, emptyKey bool) (map[string]string, bool) {
 	out := map[string]string{}
 	for i, want := range rt.Segs {
 		last := i == len(rt.Segs)-1
+		if rt.Greedy && last && emptyKey {
+			out[rt.Labels[i]] = ""
+			continue
+		}
 		if want != "" {
 			if segs[i] != want {
 				return nil, false
@@ -134,7 +176,7 @@ func validateControl(r *http.Request) (body []byte, aerr *awshttp.APIError) {
 	input := map[string]any{}
 	if len(body) > 0 {
 		if doc, err := xmlToMap(body); err == nil {
-			input[rt.Payload] = normalizeXML(doc, rt.Payload, rt)
+			input[rt.Payload] = normalizeXML(doc, rt.Payload, rt, table)
 		}
 	}
 	for name, value := range labels {
@@ -271,7 +313,14 @@ func (n *node) value() any {
 // list arrives as <TagSet><Tag/><Tag/></TagSet> — a map, not a list, so
 // "Tagging.TagSet[].Key" would never match. And a renamed member arrives under
 // its wire tag: S3 sends <Rule> for LifecycleConfiguration.Rules.
-func normalizeXML(v any, path string, rt route) any {
+func normalizeXML(v any, path string, rt route, table []modelcheck.Constraint) any {
+	if s, isText := v.(string); isText && s == "" && hasMembers(path, table) {
+		// An element written empty is an empty STRUCTURE, not an empty string.
+		// Removing Suffix leaves <IndexDocument></IndexDocument>, and reading
+		// that back as text means the required member inside it is never looked
+		// for — the omission the case is about would pass.
+		return map[string]any{}
+	}
 	m, ok := v.(map[string]any)
 	if !ok {
 		return v
@@ -282,17 +331,29 @@ func normalizeXML(v any, path string, rt route) any {
 		child := path + "." + member
 		list, isList := rt.XMLLists[child]
 		if !isList {
-			out[member] = normalizeXML(raw, child, rt)
+			out[member] = normalizeXML(raw, child, rt, table)
 			continue
 		}
 		els := listElements(raw, list)
 		norm := make([]any, len(els))
 		for i, el := range els {
-			norm[i] = normalizeXML(el, child+"[]", rt)
+			norm[i] = normalizeXML(el, child+"[]", rt, table)
 		}
 		out[member] = norm
 	}
 	return out
+}
+
+// hasMembers reports whether the model puts anything inside this path — which
+// is what makes it a structure rather than a value.
+func hasMembers(path string, table []modelcheck.Constraint) bool {
+	prefix := path + "."
+	for _, c := range table {
+		if strings.HasPrefix(c.Path, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 // listElements pulls a list's members out of the document. A flattened list is

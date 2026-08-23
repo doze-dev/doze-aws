@@ -51,9 +51,8 @@ type auditCase struct {
 // stack, so a fixed "changed" template stops being a change after the first
 // case.
 //
-// It has to *add* a resource rather than edit one: doze-aws diffs change sets
-// by resource identity (added, removed, renamed physical id), so a property-only
-// edit registers as no change at all.
+// A property edit is enough: change sets compare a fingerprint of the declared
+// properties, not just resource identity.
 func changedTemplate(n int) string {
 	return fmt.Sprintf(`
 AWSTemplateFormatVersion: "2010-09-09"
@@ -62,16 +61,13 @@ Resources:
     Type: AWS::SQS::Queue
     Properties:
       QueueName: audit-queue
-  Extra%d:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: audit-extra-%d
+      VisibilityTimeout: %d
 Outputs:
   QueueUrl:
     Value: !Ref Q
     Export:
       Name: !Sub "${AWS::StackName}-queue"
-`, n, n)
+`, 30+n)
 }
 
 const auditTemplate = `

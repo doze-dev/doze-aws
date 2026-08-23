@@ -164,6 +164,7 @@ func baselines(f fx) map[string]map[string]any {
 
 		"CreateAlias": {"FunctionName": fnName, "Name": "made-by-baseline", "FunctionVersion": f.version},
 		"GetAlias":    {"FunctionName": fnName, "Name": alias},
+		"UpdateAlias": {"FunctionName": fnName, "Name": alias, "FunctionVersion": f.version},
 		"ListAliases": fn,
 		"DeleteAlias": {"FunctionName": fnName, "Name": "made-by-baseline"},
 

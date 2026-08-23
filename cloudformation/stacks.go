@@ -348,6 +348,7 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 		st.Resources = append(st.Resources, StackResource{
 			LogicalID: e.LogicalID, Type: e.Type, PhysicalID: e.Name,
 			Status: statusVerb(isUpdate) + "_COMPLETE",
+			Props:  e.Props,
 		})
 	}
 	for name, value := range rep.Outputs {

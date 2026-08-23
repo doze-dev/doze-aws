@@ -253,3 +253,58 @@ func TestSDKEventInvokeConfig(t *testing.T) {
 		t.Fatal("GetFunctionEventInvokeConfig after delete should 404")
 	}
 }
+
+// TestSDKUpdateAliasMovesIt covers UpdateAlias, which had no handler at all:
+// /aliases/{Name} answered GET and DELETE, and a PUT — the verb the operation
+// uses — fell through to a 405. Promoting a version by repointing an alias is
+// the ordinary way a Lambda deploy goes live, so the gap was on the main path.
+func TestSDKUpdateAliasMovesIt(t *testing.T) {
+	ctx := context.Background()
+	c, _ := lambdaClient(t)
+
+	name := "aliasmove"
+	if _, err := c.CreateFunction(ctx, &awslambda.CreateFunctionInput{
+		FunctionName: aws.String(name),
+		Runtime:      lamtypes.RuntimeProvidedal2,
+		Handler:      aws.String("bootstrap"),
+		Role:         aws.String("arn:aws:iam::000000000000:role/r"),
+		Code:         &lamtypes.FunctionCode{S3Bucket: aws.String("_local_"), S3Key: aws.String(buildBootstrap(t))},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	v1, err := c.PublishVersion(ctx, &awslambda.PublishVersionInput{FunctionName: aws.String(name)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	v2, err := c.PublishVersion(ctx, &awslambda.PublishVersionInput{FunctionName: aws.String(name)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.CreateAlias(ctx, &awslambda.CreateAliasInput{
+		FunctionName: aws.String(name), Name: aws.String("live"),
+		FunctionVersion: v1.Version,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	out, err := c.UpdateAlias(ctx, &awslambda.UpdateAliasInput{
+		FunctionName: aws.String(name), Name: aws.String("live"),
+		FunctionVersion: v2.Version,
+	})
+	if err != nil {
+		t.Fatalf("UpdateAlias: %v", err)
+	}
+	if got := aws.ToString(out.FunctionVersion); got != aws.ToString(v2.Version) {
+		t.Fatalf("UpdateAlias returned version %q, want %q", got, aws.ToString(v2.Version))
+	}
+	// And it must have stuck, not just been echoed back.
+	got, err := c.GetAlias(ctx, &awslambda.GetAliasInput{
+		FunctionName: aws.String(name), Name: aws.String("live"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := aws.ToString(got.FunctionVersion); v != aws.ToString(v2.Version) {
+		t.Fatalf("alias still points at %q, want %q", v, aws.ToString(v2.Version))
+	}
+}

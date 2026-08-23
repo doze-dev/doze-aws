@@ -71,6 +71,36 @@ func (s *Server) routeAliases(w http.ResponseWriter, r *http.Request, name strin
 			}
 			writeJSON(w, 200, aliasView(f, alias, ver))
 			return nil
+		case http.MethodPut:
+			// UpdateAlias. Only FunctionVersion is honoured: Description and
+			// RoutingConfig are stored nowhere, because an alias here is the
+			// version it points at and nothing else.
+			var req struct {
+				FunctionVersion string `json:"FunctionVersion"`
+			}
+			if aerr := decode(r, &req); aerr != nil {
+				return aerr
+			}
+			f, err := s.store.GetFunction(name)
+			if err != nil {
+				return awshttp.AsAPIError(err)
+			}
+			ver, ok := f.Aliases[alias]
+			if !ok {
+				return awshttp.Errf(404, "ResourceNotFoundException", "alias %s not found", alias)
+			}
+			if req.FunctionVersion != "" {
+				ver = req.FunctionVersion
+			}
+			f, err = s.store.Update(name, func(f *Function) error {
+				f.Aliases[alias] = ver
+				return nil
+			})
+			if err != nil {
+				return awshttp.AsAPIError(err)
+			}
+			writeJSON(w, 200, aliasView(f, alias, ver))
+			return nil
 		case http.MethodDelete:
 			s.store.Update(name, func(f *Function) error {
 				delete(f.Aliases, alias)

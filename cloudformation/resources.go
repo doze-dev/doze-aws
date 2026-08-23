@@ -17,6 +17,9 @@ package cloudformation
 // appears in the report, so nobody discovers the gap in production instead.
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -76,6 +79,51 @@ type Entry struct {
 	Name string
 	// Reason explains an ignored or rejected resource.
 	Reason string
+	// Props fingerprints the resource's declared properties, so a change set
+	// can tell an edited resource from an untouched one. Resource identity —
+	// added, removed, renamed — is not enough: changing a queue's
+	// VisibilityTimeout leaves every identity the same, and a change set that
+	// reported "no changes" for it would make a local `cdk diff` lie.
+	Props string
+}
+
+// fingerprint hashes a resource's declared properties. It is deliberately over
+// the template text rather than the resolved values: resolving needs the whole
+// scope, and a fingerprint that changes when the template changes is the safe
+// direction to be wrong in — it shows a change that resolves identically, where
+// the alternative hides one that does not.
+func fingerprint(props map[string]any) string {
+	if len(props) == 0 {
+		return ""
+	}
+	raw, err := json.Marshal(canonical(props))
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:8])
+}
+
+// canonical rewrites a decoded template value into something json.Marshal
+// encodes deterministically. Go already sorts map keys; this exists so nested
+// maps of any concrete type are reduced to the same shape.
+func canonical(v any) any {
+	switch t := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(t))
+		for k, val := range t {
+			out[k] = canonical(val)
+		}
+		return out
+	case []any:
+		out := make([]any, len(t))
+		for i, val := range t {
+			out[i] = canonical(val)
+		}
+		return out
+	default:
+		return fmt.Sprint(v)
+	}
 }
 
 // nameProperty names the property that carries an explicit physical name for
