@@ -69,6 +69,7 @@ func call(t *testing.T, ts *httptest.Server, b *httpBinding, body map[string]any
 	t.Helper()
 	uri := b.URI
 	query := url.Values{}
+	headers := map[string]string{}
 	payload := map[string]any{}
 
 	for name, v := range body {
@@ -79,11 +80,17 @@ func call(t *testing.T, ts *httptest.Server, b *httpBinding, body map[string]any
 			uri = strings.Replace(uri, "{"+name+"}", url.PathEscape(fmt.Sprint(deref(v))), 1)
 			uri = strings.Replace(uri, "{"+name+"+}", fmt.Sprint(deref(v)), 1)
 		case strings.HasPrefix(bind, "query:"):
-			query.Set(strings.TrimPrefix(bind, "query:"), fmt.Sprint(deref(v)))
+			param := strings.TrimPrefix(bind, "query:")
+			// A list-valued query member is repeated, not joined: ?tagKeys=a&tagKeys=b.
+			if list, isList := v.([]any); isList {
+				for _, el := range list {
+					query.Add(param, fmt.Sprint(el))
+				}
+				continue
+			}
+			query.Set(param, fmt.Sprint(deref(v)))
 		case strings.HasPrefix(bind, "header:"):
-			// No case here reaches a header-bound member; if one ever does,
-			// silently dropping it would make the case meaningless.
-			t.Fatalf("member %q is header-bound and the harness does not send headers", name)
+			headers[strings.TrimPrefix(bind, "header:")] = fmt.Sprint(deref(v))
 		default:
 			payload[name] = v
 		}
@@ -110,6 +117,9 @@ func call(t *testing.T, ts *httptest.Server, b *httpBinding, body map[string]any
 	}
 	req, _ := http.NewRequest(b.Method, ts.URL+uri, rdr)
 	req.Header.Set("Content-Type", "application/json")
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 	req.Header.Set("Authorization",
 		"AWS4-HMAC-SHA256 Credential=test/20200101/us-east-1/apigateway/aws4_request, SignedHeaders=host, Signature=x")
 	resp, err := http.DefaultClient.Do(req)
@@ -150,23 +160,69 @@ func loadCases(t *testing.T) []auditCase {
 	return cs
 }
 
+// loadRoutes reads every implemented operation's binding, including those with
+// no constraints. The cases cannot supply this: an operation with nothing to
+// violate produces none, and the shortening check below needs the whole set.
+func loadRoutes(t *testing.T) map[string]*httpBinding {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join("testdata", "routes_apigateway.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var m map[string]*httpBinding
+	if err := json.Unmarshal(raw, &m); err != nil {
+		t.Fatal(err)
+	}
+	return m
+}
+
 // knownGaps are constraints AWS enforces and doze-aws does not, as of the last
 // run. Listed rather than tolerated silently.
 var knownGaps = map[string]bool{
 	// Empty, and that is the goal.
 }
 
-// unexpressible are cases that cannot be put on this wire at all. Omitting the
-// LAST label of a URI does not produce an invalid request — it produces a
-// shorter path, which is a different and entirely valid operation. There is
-// nothing for the service to refuse, so these are recorded with the reason
-// rather than counted as gaps: a gap says AWS enforces something we do not, and
-// AWS does not enforce this either.
-var unexpressible = map[string]string{
-	"GetRestApi/restApiId/required member omitted":       "GET /restapis is GetRestApis",
-	"GetResource/resourceId/required member omitted":     "GET /restapis/{id}/resources is GetResources",
-	"GetDeployment/deploymentId/required member omitted": "GET /restapis/{id}/deployments is GetDeployments",
-	"GetStage/stageName/required member omitted":         "GET /restapis/{id}/stages is GetStages",
+// unexpressibleOn reports whether a case cannot be put on this wire at all.
+//
+// Emptying the LAST label of a URI does not produce an invalid request: it
+// produces a shorter path, and if another operation's template is exactly that
+// path, the request simply becomes that operation. GET /2015-03-31/functions
+// is ListFunctions, not a GetFunction missing its name. There is nothing for
+// the service to refuse and AWS does not refuse it either, so these are counted
+// separately rather than as gaps.
+//
+// Derived from the bindings rather than listed by hand, so an operation added
+// to the audit later cannot quietly acquire a case that tests nothing.
+func unexpressibleOn(c auditCase, bind map[string]*httpBinding) (string, bool) {
+	// A header cannot carry a control character: HTTP forbids it, and Go's
+	// transport refuses to send the request at all, so the service never sees
+	// the value. AWS's own SDK is bound by the same rule.
+	if s, isStr := c.Value.(string); isStr && strings.HasPrefix(c.HTTP.Bind[c.Path], "header:") {
+		for i := 0; i < len(s); i++ {
+			if b := s[i]; b < 0x20 && b != '\t' || b == 0x7f {
+				return "a header cannot carry a control character", true
+			}
+		}
+	}
+	if c.HTTP.Bind[c.Path] != "label" {
+		return "", false
+	}
+	// Only an empty value shortens the path: any other violation still fills
+	// the segment, and the request stays the operation it was.
+	if c.Value != nil && c.Value != "" {
+		return "", false
+	}
+	segs := strings.Split(strings.Trim(c.HTTP.URI, "/"), "/")
+	if segs[len(segs)-1] != "{"+c.Path+"}" {
+		return "", false
+	}
+	shorter := "/" + strings.Join(segs[:len(segs)-1], "/")
+	for op, b := range bind {
+		if op != c.Operation && b.Method == c.HTTP.Method && b.URI == shorter {
+			return fmt.Sprintf("%s %s is %s", b.Method, shorter, op), true
+		}
+	}
+	return "", false
 }
 
 func TestAPIGatewayRejectsWhatTheModelForbids(t *testing.T) {
@@ -181,6 +237,14 @@ func TestAPIGatewayRejectsWhatTheModelForbids(t *testing.T) {
 	for _, c := range loadCases(t) {
 		byOp[c.Operation] = append(byOp[c.Operation], c)
 		bind[c.Operation] = c.HTTP
+	}
+	// The shortening check needs every implemented operation, not only the ones
+	// with cases.
+	all := loadRoutes(t)
+	for op, b := range all {
+		if _, ok := bind[op]; !ok {
+			bind[op] = b
+		}
 	}
 	ops := make([]string, 0, len(byOp))
 	for op := range byOp {
@@ -223,7 +287,7 @@ func TestAPIGatewayRejectsWhatTheModelForbids(t *testing.T) {
 
 			for _, c := range byOp[op] {
 				total++
-				if why, ok := unexpressible[op+"/"+c.Path+"/"+c.Why]; ok {
+				if why, ok := unexpressibleOn(c, bind); ok {
 					unwireable++
 					t.Logf("cannot express %s/%s on the wire: %s", op, c.Path, why)
 					continue

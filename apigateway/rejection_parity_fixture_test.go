@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -182,10 +183,16 @@ func exemplars() map[string]any {
 // takes everything under it.
 func prepare(t *testing.T, ts *httptest.Server, f fx, op, mutating string, body map[string]any, n int) {
 	t.Helper()
+	// set fills a precondition, unless the case is ABOUT that field or about
+	// something inside it. Overwriting a container because the case is on a
+	// member inside it would replace the violating value with a valid one, and
+	// the case would silently test nothing.
 	set := func(k, v string) {
-		if mutating != k {
-			body[k] = v
+		if mutating == k || strings.HasPrefix(mutating, k+".") ||
+			strings.HasPrefix(mutating, k+"[") || strings.HasPrefix(mutating, k+"{") {
+			return
 		}
+		body[k] = v
 	}
 	// newResource builds a resource with a POST method, integration and 201
 	// responses, so any of those links can be consumed without touching the

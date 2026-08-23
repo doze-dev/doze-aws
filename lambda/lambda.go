@@ -136,6 +136,14 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Model-derived input validation runs before the router, for every routed
+	// operation at once — coverage is then a property of the route table rather
+	// than something each handler has to remember.
+	if _, aerr := validateControl(r); aerr != nil {
+		s.logf("lambda: %s %s -> %s", r.Method, r.URL.Path, aerr.Code)
+		writeError(w, aerr)
+		return
+	}
 	// Lambda's REST API routes by method + path. Dispatch on the path shape.
 	if aerr := s.route(w, r); aerr != nil {
 		s.logf("lambda: %s %s -> %s", r.Method, r.URL.Path, aerr.Code)

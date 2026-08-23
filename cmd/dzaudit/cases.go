@@ -281,3 +281,26 @@ func traitString(raw json.RawMessage, fallback string) string {
 	}
 	return s
 }
+
+// emitRoutes writes every operation's REST binding, including the operations
+// with no constraints at all.
+//
+// `cases` cannot answer this: an operation with nothing to violate produces no
+// cases, so it vanishes. That matters, because a runner needs the WHOLE set to
+// tell an invalid request from a different valid one — omitting the last label
+// of GET /restapis/{restApiId} gives GET /restapis, which is GetRestApis, an
+// operation with no constrained input and therefore no cases. Without it the
+// runner reads that case as a validation gap.
+func emitRoutes(w io.Writer, m *model) error {
+	_, _, ops := m.service()
+	sort.Strings(ops)
+	out := map[string]*httpBinding{}
+	for _, opID := range ops {
+		if b := m.httpFor(opID); b != nil {
+			out[shortName(opID)] = b
+		}
+	}
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "  ")
+	return enc.Encode(out)
+}

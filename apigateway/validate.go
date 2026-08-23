@@ -26,8 +26,12 @@ type route struct {
 	Segs   []string
 	Labels []string
 	// Query maps a query-string parameter to the input member it carries, for
-	// the members the model binds with @httpQuery.
-	Query map[string]string
+	// the members the model binds with @httpQuery, and QueryList names the ones
+	// that arrive as a repeated parameter rather than a single value.
+	Query     map[string]string
+	QueryList map[string]bool
+	// Header maps a header name to the input member it carries.
+	Header map[string]string
 }
 
 // routes are ordered most-specific first, so a longer template wins over a

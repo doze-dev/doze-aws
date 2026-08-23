@@ -1,4 +1,4 @@
-package apigateway
+package lambda
 
 // Resolving a request to an operation, and validating it.
 //
@@ -20,9 +20,10 @@ import (
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 )
 
-// codeREST is what API Gateway calls a refused input. Not ValidationException,
-// which is the awsJson spelling, and not ValidationError, which is Query's.
-const codeREST = "BadRequestException"
+// codeREST is what Lambda calls a refused input — the code its own handlers
+// already use. Not ValidationException, which is the awsJson spelling, and not
+// BadRequestException, which is API Gateway's.
+const codeREST = "InvalidParameterValueException"
 
 // matchRoute finds the operation a request addresses and pulls out its path
 // labels. Routes are ordered most-specific first, so the first match wins.
@@ -64,7 +65,7 @@ func validateControl(r *http.Request) (body []byte, aerr *awshttp.APIError) {
 		body, err = io.ReadAll(io.LimitReader(r.Body, 16<<20))
 		r.Body.Close()
 		if err != nil {
-			return nil, errBadRequest("read request body: %v", err)
+			return nil, awshttp.Errf(400, "InvalidRequestContentException", "read request body: %v", err)
 		}
 		r.Body = io.NopCloser(bytes.NewReader(body))
 	}

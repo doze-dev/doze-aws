@@ -67,3 +67,52 @@ reject deploys clean here and fails in the account.
 Bounds come from Lambda's own service model (`dzaudit list --op CreateFunction
 lambda`), not from the documentation prose. Covered by
 `lambda/rejection_parity_test.go`.
+
+## Input validation
+
+Separate from the tiers above. A tier says the operation is implemented; this
+says whether doze-aws **refuses what Lambda refuses**.
+
+**599/608 model-derived constraints enforced across all 46 routed operations
+with constrained input, with `knownGaps` empty.** Removing the constraint table
+makes 446 of them slip through — the largest share of any service here, because
+Lambda's inputs are the widest: `CreateFunction` alone carries 76 constraints.
+The remaining nine cannot be put on this wire; see below.
+
+Generated with `dzaudit cases lambda`, committed to `testdata/cases_lambda.json`,
+and replayed case by case in `rejection_parity_test.go` from a baseline the test
+first proves the service accepts. Lambda speaks restJson1, so `validate.go`
+carries a route table beside the constraint tables — the operation is the method
+and the path, and has to be resolved before anything can be looked up.
+
+### The fixture is expensive, and each case gets its own
+
+A function needs real deployable code, and a version, alias, layer, permission
+or event source mapping needs a function first. The bootstrap is compiled once
+and every throwaway function points at the same directory — the audit is about
+what the service refuses, not what the handler prints. `Invoke`'s baseline is
+the exception that needs it to genuinely run.
+
+### Nine cases cannot be expressed
+
+Seven omit the **last** label of a URI, which does not produce an invalid
+request — it produces a shorter path, which is a different valid operation. `GET
+/2015-03-31/functions` is `ListFunctions`, not a `GetFunction` missing its name.
+The same is true for `GetAlias`, `GetEventSourceMapping` and `GetLayerVersion`.
+
+Two are `@httpHeader` members — `Invoke`'s `TenantId` and
+`DurableExecutionName` — whose pattern violation is a control character. HTTP
+forbids that in a header value, and Go's transport refuses to send the request
+at all, so the service never sees it. AWS's own SDK is bound by the same rule.
+
+Both are derived from the bindings rather than listed by hand, so an operation
+added later cannot quietly acquire a case that tests nothing.
+
+### Not audited
+
+`UpdateAlias` is the one gap in the routed surface worth naming:
+`/aliases/{Name}` handles GET and DELETE but not the PUT the operation needs, so
+it is not implemented rather than unvalidated. Everything else absent from the
+audit is absent from doze-aws: capacity providers, durable executions, code
+signing configs as first-class resources, and the rest of the cloud-only
+surface.

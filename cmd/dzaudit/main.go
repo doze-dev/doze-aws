@@ -45,7 +45,7 @@ type finding struct {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: dzaudit [list|cases|summary|coverage] [flags] <service>")
+		fmt.Fprintln(os.Stderr, "usage: dzaudit [list|cases|routes|summary|coverage] [flags] <service>")
 		os.Exit(2)
 	}
 	// The subcommand comes first, so flags are parsed from what follows it —
@@ -84,6 +84,8 @@ func run(args []string, cache, opFilter string) error {
 		return summary(m, found)
 	case "cases":
 		return emitCases(os.Stdout, m, found, opFilter)
+	case "routes":
+		return emitRoutes(os.Stdout, m)
 	}
 	return fmt.Errorf("unknown command %q", cmd)
 }

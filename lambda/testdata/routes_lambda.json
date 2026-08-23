@@ -1,0 +1,375 @@
+{
+ "AddPermission": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier"
+  },
+  "method": "POST",
+  "uri": "/2015-03-31/functions/{FunctionName}/policy"
+ },
+ "CreateAlias": {
+  "bind": {
+   "FunctionName": "label"
+  },
+  "method": "POST",
+  "uri": "/2015-03-31/functions/{FunctionName}/aliases"
+ },
+ "CreateEventSourceMapping": {
+  "bind": {},
+  "method": "POST",
+  "uri": "/2015-03-31/event-source-mappings"
+ },
+ "CreateFunction": {
+  "bind": {},
+  "method": "POST",
+  "uri": "/2015-03-31/functions"
+ },
+ "CreateFunctionUrlConfig": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier"
+  },
+  "method": "POST",
+  "uri": "/2021-10-31/functions/{FunctionName}/url"
+ },
+ "DeleteAlias": {
+  "bind": {
+   "FunctionName": "label",
+   "Name": "label"
+  },
+  "method": "DELETE",
+  "uri": "/2015-03-31/functions/{FunctionName}/aliases/{Name}"
+ },
+ "DeleteEventSourceMapping": {
+  "bind": {
+   "UUID": "label"
+  },
+  "method": "DELETE",
+  "uri": "/2015-03-31/event-source-mappings/{UUID}"
+ },
+ "DeleteFunction": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier"
+  },
+  "method": "DELETE",
+  "uri": "/2015-03-31/functions/{FunctionName}"
+ },
+ "DeleteFunctionCodeSigningConfig": {
+  "bind": {
+   "FunctionName": "label"
+  },
+  "method": "DELETE",
+  "uri": "/2020-06-30/functions/{FunctionName}/code-signing-config"
+ },
+ "DeleteFunctionConcurrency": {
+  "bind": {
+   "FunctionName": "label"
+  },
+  "method": "DELETE",
+  "uri": "/2017-10-31/functions/{FunctionName}/concurrency"
+ },
+ "DeleteFunctionEventInvokeConfig": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier"
+  },
+  "method": "DELETE",
+  "uri": "/2019-09-25/functions/{FunctionName}/event-invoke-config"
+ },
+ "DeleteFunctionUrlConfig": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier"
+  },
+  "method": "DELETE",
+  "uri": "/2021-10-31/functions/{FunctionName}/url"
+ },
+ "DeleteLayerVersion": {
+  "bind": {
+   "LayerName": "label",
+   "VersionNumber": "label"
+  },
+  "method": "DELETE",
+  "uri": "/2018-10-31/layers/{LayerName}/versions/{VersionNumber}"
+ },
+ "GetAccountSettings": {
+  "bind": {},
+  "method": "GET",
+  "uri": "/2016-08-19/account-settings"
+ },
+ "GetAlias": {
+  "bind": {
+   "FunctionName": "label",
+   "Name": "label"
+  },
+  "method": "GET",
+  "uri": "/2015-03-31/functions/{FunctionName}/aliases/{Name}"
+ },
+ "GetEventSourceMapping": {
+  "bind": {
+   "UUID": "label"
+  },
+  "method": "GET",
+  "uri": "/2015-03-31/event-source-mappings/{UUID}"
+ },
+ "GetFunction": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier"
+  },
+  "method": "GET",
+  "uri": "/2015-03-31/functions/{FunctionName}"
+ },
+ "GetFunctionCodeSigningConfig": {
+  "bind": {
+   "FunctionName": "label"
+  },
+  "method": "GET",
+  "uri": "/2020-06-30/functions/{FunctionName}/code-signing-config"
+ },
+ "GetFunctionConcurrency": {
+  "bind": {
+   "FunctionName": "label"
+  },
+  "method": "GET",
+  "uri": "/2019-09-30/functions/{FunctionName}/concurrency"
+ },
+ "GetFunctionConfiguration": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier"
+  },
+  "method": "GET",
+  "uri": "/2015-03-31/functions/{FunctionName}/configuration"
+ },
+ "GetFunctionEventInvokeConfig": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier"
+  },
+  "method": "GET",
+  "uri": "/2019-09-25/functions/{FunctionName}/event-invoke-config"
+ },
+ "GetFunctionUrlConfig": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier"
+  },
+  "method": "GET",
+  "uri": "/2021-10-31/functions/{FunctionName}/url"
+ },
+ "GetLayerVersion": {
+  "bind": {
+   "LayerName": "label",
+   "VersionNumber": "label"
+  },
+  "method": "GET",
+  "uri": "/2018-10-31/layers/{LayerName}/versions/{VersionNumber}"
+ },
+ "GetPolicy": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier"
+  },
+  "method": "GET",
+  "uri": "/2015-03-31/functions/{FunctionName}/policy"
+ },
+ "Invoke": {
+  "bind": {
+   "ClientContext": "header:X-Amz-Client-Context",
+   "DurableExecutionName": "header:X-Amz-Durable-Execution-Name",
+   "FunctionName": "label",
+   "InvocationType": "header:X-Amz-Invocation-Type",
+   "LogType": "header:X-Amz-Log-Type",
+   "Payload": "payload",
+   "Qualifier": "query:Qualifier",
+   "TenantId": "header:X-Amz-Tenant-Id"
+  },
+  "method": "POST",
+  "uri": "/2015-03-31/functions/{FunctionName}/invocations"
+ },
+ "ListAliases": {
+  "bind": {
+   "FunctionName": "label",
+   "FunctionVersion": "query:FunctionVersion",
+   "Marker": "query:Marker",
+   "MaxItems": "query:MaxItems"
+  },
+  "method": "GET",
+  "uri": "/2015-03-31/functions/{FunctionName}/aliases"
+ },
+ "ListEventSourceMappings": {
+  "bind": {
+   "EventSourceArn": "query:EventSourceArn",
+   "FunctionName": "query:FunctionName",
+   "Marker": "query:Marker",
+   "MaxItems": "query:MaxItems"
+  },
+  "method": "GET",
+  "uri": "/2015-03-31/event-source-mappings"
+ },
+ "ListFunctionEventInvokeConfigs": {
+  "bind": {
+   "FunctionName": "label",
+   "Marker": "query:Marker",
+   "MaxItems": "query:MaxItems"
+  },
+  "method": "GET",
+  "uri": "/2019-09-25/functions/{FunctionName}/event-invoke-config/list"
+ },
+ "ListFunctionUrlConfigs": {
+  "bind": {
+   "FunctionName": "label",
+   "Marker": "query:Marker",
+   "MaxItems": "query:MaxItems"
+  },
+  "method": "GET",
+  "uri": "/2021-10-31/functions/{FunctionName}/urls"
+ },
+ "ListFunctions": {
+  "bind": {
+   "FunctionVersion": "query:FunctionVersion",
+   "Marker": "query:Marker",
+   "MasterRegion": "query:MasterRegion",
+   "MaxItems": "query:MaxItems"
+  },
+  "method": "GET",
+  "uri": "/2015-03-31/functions"
+ },
+ "ListLayerVersions": {
+  "bind": {
+   "CompatibleArchitecture": "query:CompatibleArchitecture",
+   "CompatibleRuntime": "query:CompatibleRuntime",
+   "LayerName": "label",
+   "Marker": "query:Marker",
+   "MaxItems": "query:MaxItems"
+  },
+  "method": "GET",
+  "uri": "/2018-10-31/layers/{LayerName}/versions"
+ },
+ "ListLayers": {
+  "bind": {
+   "CompatibleArchitecture": "query:CompatibleArchitecture",
+   "CompatibleRuntime": "query:CompatibleRuntime",
+   "Marker": "query:Marker",
+   "MaxItems": "query:MaxItems"
+  },
+  "method": "GET",
+  "uri": "/2018-10-31/layers"
+ },
+ "ListTags": {
+  "bind": {
+   "Resource": "label"
+  },
+  "method": "GET",
+  "uri": "/2017-03-31/tags/{Resource}"
+ },
+ "ListVersionsByFunction": {
+  "bind": {
+   "FunctionName": "label",
+   "Marker": "query:Marker",
+   "MaxItems": "query:MaxItems"
+  },
+  "method": "GET",
+  "uri": "/2015-03-31/functions/{FunctionName}/versions"
+ },
+ "PublishLayerVersion": {
+  "bind": {
+   "LayerName": "label"
+  },
+  "method": "POST",
+  "uri": "/2018-10-31/layers/{LayerName}/versions"
+ },
+ "PublishVersion": {
+  "bind": {
+   "FunctionName": "label"
+  },
+  "method": "POST",
+  "uri": "/2015-03-31/functions/{FunctionName}/versions"
+ },
+ "PutFunctionCodeSigningConfig": {
+  "bind": {
+   "FunctionName": "label"
+  },
+  "method": "PUT",
+  "uri": "/2020-06-30/functions/{FunctionName}/code-signing-config"
+ },
+ "PutFunctionConcurrency": {
+  "bind": {
+   "FunctionName": "label"
+  },
+  "method": "PUT",
+  "uri": "/2017-10-31/functions/{FunctionName}/concurrency"
+ },
+ "PutFunctionEventInvokeConfig": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier"
+  },
+  "method": "PUT",
+  "uri": "/2019-09-25/functions/{FunctionName}/event-invoke-config"
+ },
+ "RemovePermission": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier",
+   "RevisionId": "query:RevisionId",
+   "StatementId": "label"
+  },
+  "method": "DELETE",
+  "uri": "/2015-03-31/functions/{FunctionName}/policy/{StatementId}"
+ },
+ "TagResource": {
+  "bind": {
+   "Resource": "label"
+  },
+  "method": "POST",
+  "uri": "/2017-03-31/tags/{Resource}"
+ },
+ "UntagResource": {
+  "bind": {
+   "Resource": "label",
+   "TagKeys": "query:tagKeys"
+  },
+  "method": "DELETE",
+  "uri": "/2017-03-31/tags/{Resource}"
+ },
+ "UpdateEventSourceMapping": {
+  "bind": {
+   "UUID": "label"
+  },
+  "method": "PUT",
+  "uri": "/2015-03-31/event-source-mappings/{UUID}"
+ },
+ "UpdateFunctionCode": {
+  "bind": {
+   "FunctionName": "label"
+  },
+  "method": "PUT",
+  "uri": "/2015-03-31/functions/{FunctionName}/code"
+ },
+ "UpdateFunctionConfiguration": {
+  "bind": {
+   "FunctionName": "label"
+  },
+  "method": "PUT",
+  "uri": "/2015-03-31/functions/{FunctionName}/configuration"
+ },
+ "UpdateFunctionEventInvokeConfig": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier"
+  },
+  "method": "POST",
+  "uri": "/2019-09-25/functions/{FunctionName}/event-invoke-config"
+ },
+ "UpdateFunctionUrlConfig": {
+  "bind": {
+   "FunctionName": "label",
+   "Qualifier": "query:Qualifier"
+  },
+  "method": "PUT",
+  "uri": "/2021-10-31/functions/{FunctionName}/url"
+ }
+}

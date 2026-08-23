@@ -1,0 +1,265 @@
+{
+ "CreateDeployment": {
+  "bind": {
+   "restApiId": "label"
+  },
+  "method": "POST",
+  "uri": "/restapis/{restApiId}/deployments"
+ },
+ "CreateResource": {
+  "bind": {
+   "parentId": "label",
+   "restApiId": "label"
+  },
+  "method": "POST",
+  "uri": "/restapis/{restApiId}/resources/{parentId}"
+ },
+ "CreateRestApi": {
+  "bind": {},
+  "method": "POST",
+  "uri": "/restapis"
+ },
+ "CreateStage": {
+  "bind": {
+   "restApiId": "label"
+  },
+  "method": "POST",
+  "uri": "/restapis/{restApiId}/stages"
+ },
+ "DeleteDeployment": {
+  "bind": {
+   "deploymentId": "label",
+   "restApiId": "label"
+  },
+  "method": "DELETE",
+  "uri": "/restapis/{restApiId}/deployments/{deploymentId}"
+ },
+ "DeleteIntegration": {
+  "bind": {
+   "httpMethod": "label",
+   "resourceId": "label",
+   "restApiId": "label"
+  },
+  "method": "DELETE",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration"
+ },
+ "DeleteIntegrationResponse": {
+  "bind": {
+   "httpMethod": "label",
+   "resourceId": "label",
+   "restApiId": "label",
+   "statusCode": "label"
+  },
+  "method": "DELETE",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}"
+ },
+ "DeleteMethod": {
+  "bind": {
+   "httpMethod": "label",
+   "resourceId": "label",
+   "restApiId": "label"
+  },
+  "method": "DELETE",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}"
+ },
+ "DeleteMethodResponse": {
+  "bind": {
+   "httpMethod": "label",
+   "resourceId": "label",
+   "restApiId": "label",
+   "statusCode": "label"
+  },
+  "method": "DELETE",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}"
+ },
+ "DeleteResource": {
+  "bind": {
+   "resourceId": "label",
+   "restApiId": "label"
+  },
+  "method": "DELETE",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}"
+ },
+ "DeleteRestApi": {
+  "bind": {
+   "restApiId": "label"
+  },
+  "method": "DELETE",
+  "uri": "/restapis/{restApiId}"
+ },
+ "DeleteStage": {
+  "bind": {
+   "restApiId": "label",
+   "stageName": "label"
+  },
+  "method": "DELETE",
+  "uri": "/restapis/{restApiId}/stages/{stageName}"
+ },
+ "GetDeployment": {
+  "bind": {
+   "deploymentId": "label",
+   "embed": "query:embed",
+   "restApiId": "label"
+  },
+  "method": "GET",
+  "uri": "/restapis/{restApiId}/deployments/{deploymentId}"
+ },
+ "GetDeployments": {
+  "bind": {
+   "limit": "query:limit",
+   "position": "query:position",
+   "restApiId": "label"
+  },
+  "method": "GET",
+  "uri": "/restapis/{restApiId}/deployments"
+ },
+ "GetIntegration": {
+  "bind": {
+   "httpMethod": "label",
+   "resourceId": "label",
+   "restApiId": "label"
+  },
+  "method": "GET",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration"
+ },
+ "GetIntegrationResponse": {
+  "bind": {
+   "httpMethod": "label",
+   "resourceId": "label",
+   "restApiId": "label",
+   "statusCode": "label"
+  },
+  "method": "GET",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}"
+ },
+ "GetMethod": {
+  "bind": {
+   "httpMethod": "label",
+   "resourceId": "label",
+   "restApiId": "label"
+  },
+  "method": "GET",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}"
+ },
+ "GetMethodResponse": {
+  "bind": {
+   "httpMethod": "label",
+   "resourceId": "label",
+   "restApiId": "label",
+   "statusCode": "label"
+  },
+  "method": "GET",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}"
+ },
+ "GetResource": {
+  "bind": {
+   "embed": "query:embed",
+   "resourceId": "label",
+   "restApiId": "label"
+  },
+  "method": "GET",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}"
+ },
+ "GetResources": {
+  "bind": {
+   "embed": "query:embed",
+   "limit": "query:limit",
+   "position": "query:position",
+   "restApiId": "label"
+  },
+  "method": "GET",
+  "uri": "/restapis/{restApiId}/resources"
+ },
+ "GetRestApi": {
+  "bind": {
+   "restApiId": "label"
+  },
+  "method": "GET",
+  "uri": "/restapis/{restApiId}"
+ },
+ "GetRestApis": {
+  "bind": {
+   "limit": "query:limit",
+   "position": "query:position"
+  },
+  "method": "GET",
+  "uri": "/restapis"
+ },
+ "GetStage": {
+  "bind": {
+   "restApiId": "label",
+   "stageName": "label"
+  },
+  "method": "GET",
+  "uri": "/restapis/{restApiId}/stages/{stageName}"
+ },
+ "GetStages": {
+  "bind": {
+   "deploymentId": "query:deploymentId",
+   "restApiId": "label"
+  },
+  "method": "GET",
+  "uri": "/restapis/{restApiId}/stages"
+ },
+ "PutIntegration": {
+  "bind": {
+   "httpMethod": "label",
+   "resourceId": "label",
+   "restApiId": "label"
+  },
+  "method": "PUT",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration"
+ },
+ "PutIntegrationResponse": {
+  "bind": {
+   "httpMethod": "label",
+   "resourceId": "label",
+   "restApiId": "label",
+   "statusCode": "label"
+  },
+  "method": "PUT",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}"
+ },
+ "PutMethod": {
+  "bind": {
+   "httpMethod": "label",
+   "resourceId": "label",
+   "restApiId": "label"
+  },
+  "method": "PUT",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}"
+ },
+ "PutMethodResponse": {
+  "bind": {
+   "httpMethod": "label",
+   "resourceId": "label",
+   "restApiId": "label",
+   "statusCode": "label"
+  },
+  "method": "PUT",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}"
+ },
+ "UpdateResource": {
+  "bind": {
+   "resourceId": "label",
+   "restApiId": "label"
+  },
+  "method": "PATCH",
+  "uri": "/restapis/{restApiId}/resources/{resourceId}"
+ },
+ "UpdateRestApi": {
+  "bind": {
+   "restApiId": "label"
+  },
+  "method": "PATCH",
+  "uri": "/restapis/{restApiId}"
+ },
+ "UpdateStage": {
+  "bind": {
+   "restApiId": "label",
+   "stageName": "label"
+  },
+  "method": "PATCH",
+  "uri": "/restapis/{restApiId}/stages/{stageName}"
+ }
+}
