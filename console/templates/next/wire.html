@@ -1,0 +1,58 @@
+{{define "shell"}}{{template "top" .}}
+  <div class="ph">
+    <div class="ph-t">
+      <h1>The wire</h1>
+      <span class="kind">time · live</span>
+    </div>
+    <div class="readout">
+      <span><b>{{len .Rows}}</b> calls</span>
+      <span><b>{{.Served}}</b> served</span>
+      {{if .Bad}}<span class="warn"><b>{{.Bad}}</b> not served</span>{{end}}
+      {{if not .Live}}<span class="warn">capture off</span>{{end}}
+    </div>
+  </div>
+  <div class="sub">
+    <span>caused work nested under its cause</span>
+    <span>bar ▇ work · ⟋ waiting, excluded from scale</span>
+  </div>
+  {{template "wire_rows" .}}
+  <div class="note">
+    Every row is a real call your app made against this stack. <b>Colour is the verb, not the noun</b> —
+    a green row was served, amber means doze-aws refused it and can name the constraint from AWS's own
+    service model, violet means IAM denied it and can name the statement, red means the emulator itself
+    broke. Three different events that every other cloud console renders identically.
+  </div>
+{{template "bottom" .}}{{end}}
+
+{{define "wire_rows"}}
+<div class="rows" id="rows" hx-get="{{prefix}}/wire/feed" hx-trigger="every 2s" hx-swap="outerHTML">
+  {{range .Rows}}
+    <div class="row {{.State}}" style="padding-left:{{depthPad .Depth}}px">
+      <span class="t">{{.Time}}</span>
+      <span class="m">
+        {{if .Cascade}}<span class="lead">└</span>{{end}}
+        <span class="act">{{.Action}}</span>
+        {{if .Resource}}<span class="res">{{.Resource}}</span>{{end}}
+        {{if .Via}}<span class="via">via {{.Via}}</span>{{end}}
+      </span>
+      <span class="st {{.State}}">{{.Status}}</span>
+      <span class="bar{{if not .Comparable}} waiting{{end}}">
+        <i class="{{.State}}" style="width:{{if .Comparable}}{{barPct .Millis $.Max}}{{else}}100{{end}}%"></i>
+      </span>
+      <span class="ms">{{msText .Millis}}</span>
+      {{if .Refused}}
+        <div class="why {{.State}}">
+          <b>{{if eq .State "denied"}}Denied{{else}}Refused{{end}} — {{.Refused.Code}}</b>
+          <span>{{.Refused.Message}}</span>
+        </div>
+      {{end}}
+    </div>
+  {{else}}
+    <div class="empty">
+      <b>Nothing on the wire yet.</b>
+      Point an SDK at <code>127.0.0.1:4566</code> and run something.<br>
+      Every call it makes lands here, with the work each call caused nested underneath it.
+    </div>
+  {{end}}
+</div>
+{{end}}

@@ -1,0 +1,313 @@
+/* next.css — the second console's design language.
+
+   The first console's premise is stated at the top of app.css: "Chroma belongs
+   to the SERVICES." That premise exists because fourteen services have to be
+   told apart at 16px. This surface discards it, because service is no longer
+   the address — physics is — which frees the entire chromatic budget.
+
+   New premise: COLOUR THE VERB, NOT THE NOUN. Five states own the colour:
+   served, refused, denied, error, live. Refused / denied / error are three
+   different events (an input constraint decided / a policy decided / the
+   emulator broke) and doze-aws is the only thing that can tell them apart, so
+   they get three colours rather than one red.
+
+   Ground is a COOL slate. That is not taste: flint's own stylesheet records the
+   measurement — "it is the hue that fails at low lightness, not the amount" —
+   so a ground near hue 200 can carry more chroma than a neutral and still read
+   clean, where a warm tint at the same lightness reads as mud.
+
+   Depth is a 1px hairline, never a shadow. One radius: 2px. Both carried over
+   from app.css deliberately: they were right. */
+
+/* The console has embedded InterVariable since the beginning and has never once
+   rendered in it — there is no @font-face rule anywhere in the repo, so it has
+   always fallen back to system-ui while carrying 352KB of dead weight in a
+   binary pitched at "~15 MB". This is that rule. */
+@font-face {
+  font-family: "InterVar";
+  src: url("InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  --ground:      #eff3f4;
+  --surface:     #ffffff;
+  --surface-2:   #f6f9f9;
+  --surface-3:   #e8eef0;
+  --line:        #dbe3e6;
+  --line-strong: #bfcbd0;
+  --ink:         #101619;
+  --ink-2:       #465358;
+  --ink-3:       #74858c;
+
+  --served:  #0f8a5f;
+  --refused: #8f6108;
+  --denied:  #7a3fb0;
+  --error:   #c33b2d;
+  --live:    #0c7b92;
+
+  --served-wash:  #e2f4ec;
+  --refused-wash: #f8eed8;
+  --denied-wash:  #f0e8f8;
+  --error-wash:   #fae7e4;
+  --live-wash:    #dff0f4;
+
+  --sans: "InterVar", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:      #0a0f12;
+    --surface:     #111a1e;
+    --surface-2:   #162126;
+    --surface-3:   #1d2b31;
+    --line:        #1f2e34;
+    --line-strong: #33474f;
+    --ink:         #dee8ec;
+    --ink-2:       #93a5ac;
+    --ink-3:       #6a7e86;
+
+    --served:  #40c48f;
+    --refused: #e0a63c;
+    --denied:  #b482e4;
+    --error:   #f2705f;
+    --live:    #3ec5e0;
+
+    --served-wash:  #0e2a21;
+    --refused-wash: #2e2413;
+    --denied-wash:  #241a30;
+    --error-wash:   #301715;
+    --live-wash:    #0d2830;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app { display: flex; flex-direction: column; height: 100vh; }
+
+/* ---------- chrome ---------- */
+
+.top {
+  display: flex; align-items: center; gap: 14px;
+  height: 42px; padding: 0 14px; flex: none;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.brand { font-family: var(--sans); font-weight: 700; font-size: 13.5px; letter-spacing: -0.01em; }
+.brand span { color: var(--live); }
+.top .ep { display: flex; align-items: center; gap: 6px; color: var(--ink-3); }
+.top .ep i { width: 6px; height: 6px; border-radius: 50%; background: var(--served); display: block; }
+.top .right { margin-left: auto; display: flex; gap: 14px; align-items: center; color: var(--ink-3); }
+.top a { color: var(--ink-3); text-decoration: none; border-bottom: 1px solid transparent; }
+.top a:hover { color: var(--ink); border-bottom-color: var(--line-strong); }
+
+.main { display: grid; grid-template-columns: 194px 1fr; flex: 1; min-height: 0; }
+
+/* ---------- rail: grouped by PHYSICS, not by AWS's catalogue ---------- */
+
+.rail {
+  border-right: 1px solid var(--line);
+  background: var(--surface-2);
+  overflow-y: auto; padding: 12px 0;
+  font-family: var(--mono); font-size: 11.5px;
+}
+.rg {
+  font-size: 9px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-3); padding: 14px 14px 6px;
+}
+.rail .rg:first-child { padding-top: 0; }
+.ri {
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 5px 14px; color: var(--ink-2);
+  text-decoration: none; border-left: 2px solid transparent;
+}
+.ri:hover { background: var(--surface-3); color: var(--ink); }
+.ri.on { background: var(--surface-3); color: var(--ink); border-left-color: var(--live); }
+.ri .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ri .mt { margin-left: auto; color: var(--ink-3); font-size: 10px; flex: none; font-variant-numeric: tabular-nums; }
+.ri.warn .mt { color: var(--refused); }
+.rempty { padding: 3px 14px 6px; color: var(--ink-3); font-size: 10.5px; font-style: italic; }
+
+.pane { overflow-y: auto; min-width: 0; }
+
+/* ---------- pane head + physics readout ---------- */
+
+.ph { padding: 15px 20px 13px; border-bottom: 1px solid var(--line); }
+.ph-t { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 5px; }
+.ph-t h1 { margin: 0; font-family: var(--mono); font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+.kind { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.readout {
+  display: flex; gap: 18px; flex-wrap: wrap;
+  font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.readout b { color: var(--ink); font-weight: 500; }
+.readout .warn { color: var(--refused); }
+
+.sub {
+  padding: 11px 20px 8px; border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  font-family: var(--mono); font-size: 9px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-3);
+  display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+
+/* ---------- the wire ---------- */
+
+.rows { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+.row {
+  display: grid;
+  grid-template-columns: 76px 1fr 58px 78px 58px;
+  gap: 10px; align-items: baseline;
+  padding: 5px 20px 5px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+}
+.row:hover { background: var(--surface-2); }
+.row .t { color: var(--ink-3); font-size: 10.5px; }
+.row .m { min-width: 0; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.row .act { color: var(--ink); font-weight: 500; }
+.row .res { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
+.row .via { color: var(--ink-3); font-size: 10.5px; }
+.row .lead { color: var(--line-strong); }
+.row .st { font-size: 10.5px; text-align: right; }
+.row .ms { text-align: right; color: var(--ink-3); font-size: 10.5px; }
+
+.row.refused { background: var(--refused-wash); }
+.row.denied  { background: var(--denied-wash); }
+.row.error   { background: var(--error-wash); }
+.row.refused .act { color: var(--refused); }
+.row.denied  .act { color: var(--denied); }
+.row.error   .act { color: var(--error); }
+.st.served  { color: var(--served); }
+.st.refused { color: var(--refused); }
+.st.denied  { color: var(--denied); }
+.st.error   { color: var(--error); }
+
+/* the bar: a call's duration, scaled to the slowest COMPARABLE call. A long
+   poll is not slow, it is waiting — it draws hatched and never sets the scale. */
+.bar { display: flex; height: 6px; align-self: center; background: var(--surface-3); }
+.bar i { display: block; height: 100%; background: var(--live); }
+.bar i.refused { background: var(--refused); }
+.bar i.denied  { background: var(--denied); }
+.bar i.error   { background: var(--error); }
+.bar.waiting {
+  background: repeating-linear-gradient(-45deg, var(--line-strong) 0 2px, transparent 2px 4px);
+}
+.bar.waiting i { background: none; }
+
+/* why a call was refused or denied, where you are already scanning */
+.why {
+  grid-column: 1 / -1; margin: 4px 0 2px 76px;
+  padding: 8px 11px; background: var(--surface);
+  border-left: 2px solid currentColor;
+  font-size: 11px; line-height: 1.5;
+}
+.why.refused { color: var(--refused); }
+.why.denied  { color: var(--denied); }
+.why.error   { color: var(--error); }
+.why b { display: block; color: var(--ink); font-weight: 600; margin-bottom: 2px; }
+.why span { color: var(--ink-2); }
+
+.empty {
+  padding: 60px 20px; text-align: center; color: var(--ink-3);
+  font-family: var(--mono); font-size: 12px; line-height: 1.9;
+}
+.empty b { display: block; color: var(--ink); font-size: 14px; margin-bottom: 8px; font-weight: 600; }
+.empty code {
+  background: var(--surface-2); border: 1px solid var(--line);
+  padding: 1px 5px; border-radius: var(--r); color: var(--ink-2);
+}
+
+/* ---------- PIPE ---------- */
+
+.pipe { padding: 20px; }
+.flow { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
+.cl { display: flex; flex-direction: column; gap: 6px; min-width: 108px; }
+.cl-lab {
+  font-family: var(--mono); font-size: 9px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 2px;
+}
+.chip {
+  font-family: var(--mono); font-size: 11px;
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 4px 8px; color: var(--ink-2); background: var(--surface-2);
+  white-space: nowrap; text-decoration: none; display: block;
+}
+a.chip:hover { border-color: var(--live); color: var(--ink); }
+.chip .k { color: var(--ink-3); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; }
+.chip.none { border-style: dashed; color: var(--ink-3); }
+
+.gbox { border: 1px solid var(--line); border-radius: var(--r); padding: 14px; background: var(--surface-2); }
+.gauge {
+  display: flex; height: 26px; border: 1px solid var(--line);
+  background: var(--surface); border-radius: var(--r); overflow: hidden;
+}
+.gauge i { display: block; height: 100%; }
+.gauge i.vis { background: var(--live); }
+.gauge i.fly { background: var(--refused); }
+.gauge i.del { background: var(--line-strong); }
+.glegend {
+  display: flex; gap: 16px; flex-wrap: wrap; margin-top: 9px;
+  font-family: var(--mono); font-size: 10.5px; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.glegend i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; }
+.glegend b { color: var(--ink); font-weight: 500; }
+
+.overflow {
+  margin-top: 12px; padding: 9px 12px; border-radius: var(--r);
+  border: 1px solid var(--refused); background: var(--refused-wash);
+  font-family: var(--mono); font-size: 11.5px; color: var(--refused);
+}
+.overflow b { color: var(--ink); font-weight: 600; }
+
+.head { margin-top: 22px; }
+.peek {
+  font-family: var(--mono); font-size: 10.5px; color: var(--live);
+  margin-bottom: 9px;
+}
+.msg {
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 9px 12px; margin-bottom: 7px; background: var(--surface-2);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.msg-t { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; margin-bottom: 3px; }
+.msg-t .s { color: var(--ink); font-weight: 500; }
+.msg-t .mt { margin-left: auto; color: var(--ink-3); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+.msg-t .mt.hot { color: var(--refused); }
+.msg-b {
+  color: var(--ink-3); font-size: 10.5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.note {
+  font-family: var(--mono); font-size: 10.5px; color: var(--ink-3);
+  line-height: 1.6; padding: 14px 20px 24px; max-width: 78ch;
+}
+.note b { color: var(--ink-2); }
+
+@media (max-width: 760px) {
+  .main { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .flow { grid-template-columns: 1fr; }
+  .row { grid-template-columns: 60px 1fr 48px 40px; }
+  .row .bar { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

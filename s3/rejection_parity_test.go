@@ -351,11 +351,24 @@ func routeOf(op string) route {
 	return route{}
 }
 
-// fallbackRoute names the operation a request becomes once the identifying
-// member is gone: same method, same path shape, same markers, but asking for
-// nothing the request no longer carries.
+// fallbackRoute names the operation a request actually becomes once the
+// identifying member is gone. "Actually" is the whole point: a candidate that
+// requires the omitted member, or requires something this request never
+// carried, would not match either — naming it would put a confident, wrong
+// reason next to a case nobody tested.
 func fallbackRoute(op, member string) (string, bool) {
 	rt := routeOf(op)
+	gone := memberWire(rt.Header, member) + memberWire(rt.Query, member)
+	have := map[string]bool{}
+	for _, h := range rt.NeedHeaders {
+		have[h] = true
+	}
+	for _, q := range rt.NeedQuery {
+		have[q] = true
+	}
+	delete(have, gone)
+
+	best := ""
 	for _, other := range routes {
 		if other.Op == op || other.Method != rt.Method ||
 			len(other.Segs) != len(rt.Segs) || len(other.Marks) != len(rt.Marks) {
@@ -371,11 +384,25 @@ func fallbackRoute(op, member string) (string, bool) {
 		if !same {
 			continue
 		}
-		if len(other.NeedHeaders) < len(rt.NeedHeaders) || len(other.NeedQuery) < len(rt.NeedQuery) {
-			return other.Op, true
+		// Everything it asks for must still be on the request.
+		satisfied := true
+		for _, need := range append(append([]string{}, other.NeedHeaders...), other.NeedQuery...) {
+			if !have[need] {
+				satisfied = false
+				break
+			}
+		}
+		if !satisfied {
+			continue
+		}
+		// The most specific one wins: with uploadId still present, PUT /b/k is
+		// UploadPart rather than PutObject.
+		if best == "" || len(other.NeedHeaders)+len(other.NeedQuery) >
+			len(routeOf(best).NeedHeaders)+len(routeOf(best).NeedQuery) {
+			best = other.Op
 		}
 	}
-	return "", false
+	return best, best != ""
 }
 
 // sameMarks compares two URI query strings ignoring x-id, which AWS's SDK sends
