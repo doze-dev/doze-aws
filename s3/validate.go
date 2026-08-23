@@ -1,0 +1,537 @@
+package s3
+
+// S3's model-derived input validation: the constraint tables, walked by
+// internal/modelcheck, and the route table that says which operation a request
+// is.
+//
+// S3 speaks restXml, and identifies an operation by three things at once: the
+// method, the path shape, and a query-string sub-resource marker. That is the
+// same hazard subresource.go exists to guard — an unrecognised marker falling
+// through to a different operation — so the markers here come from AWS's own
+// model rather than from a hand-kept list, and the constraints they select are
+// generated in the same pass. Replayed case by case in
+// s3/rejection_parity_test.go.
+
+import (
+	"regexp"
+
+	"github.com/doze-dev/doze-aws/internal/modelcheck"
+)
+
+// route is one operation's binding. Segs is the path template with an empty
+// string where a label goes; Labels names it.
+type route struct {
+	Op     string
+	Method string
+	Segs   []string
+	Labels []string
+	// Greedy marks a trailing {Key+} label, which swallows every remaining
+	// segment rather than exactly one.
+	Greedy bool
+	// Marks are the query-string sub-resources that identify the operation:
+	// "acl", "tagging", "list-type=2". An empty value means the key alone.
+	Marks map[string]string
+	// NeedHeaders are headers whose presence is part of the operation's
+	// identity, not just its input. PUT /{Bucket}/{Key+} is CopyObject when
+	// x-amz-copy-source is there and PutObject when it is not; POST on the same
+	// path is CompleteMultipartUpload only when ?uploadId is there.
+	NeedHeaders []string
+	NeedQuery   []string
+	// Query maps a query parameter to the input member it carries; QueryList
+	// names those that arrive as a repeated parameter.
+	Query     map[string]string
+	QueryList map[string]bool
+	// Header maps a header name to the input member it carries, and HeaderList
+	// names the ones that arrive comma-separated in a single header rather than
+	// as one value.
+	Header     map[string]string
+	HeaderList map[string]bool
+	// Payload is the member carrying the XML document body, if any.
+	Payload string
+	// XMLLists and XMLNames describe the document's wire shape, keyed by member
+	// path so they line up with the constraint paths. Nothing in an XML document
+	// says whether one <Tag> is a scalar or a one-element list, and S3 spells
+	// LifecycleConfiguration.Rules as <Rule>, so both have to come from the model.
+	XMLLists map[string]xmlList
+	XMLNames map[string]string
+}
+
+// xmlList is one list's wire spelling: the tag its members wear, and whether
+// the wrapper element is elided.
+type xmlList struct {
+	Element   string
+	Flattened bool
+}
+
+// routes are ordered most-specific first: more required markers wins, then a
+// longer path. Without that, PUT /{Bucket}/{Key+} would claim ?acl.
+var routes = []route{
+	{Op: "GetObjectAttributes", Method: "GET", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, NeedHeaders: []string{"x-amz-object-attributes"}, Marks: map[string]string{"attributes": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-max-parts": "MaxParts", "x-amz-object-attributes": "ObjectAttributes", "x-amz-part-number-marker": "PartNumberMarker", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5"}, HeaderList: map[string]bool{"ObjectAttributes": true}},
+	{Op: "CreateMultipartUpload", Method: "POST", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"uploads": ""}, Header: map[string]string{"x-amz-acl": "ACL", "x-amz-server-side-encryption-bucket-key-enabled": "BucketKeyEnabled", "Cache-Control": "CacheControl", "x-amz-checksum-algorithm": "ChecksumAlgorithm", "x-amz-checksum-type": "ChecksumType", "Content-Disposition": "ContentDisposition", "Content-Encoding": "ContentEncoding", "Content-Language": "ContentLanguage", "Content-Type": "ContentType", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "Expires": "Expires", "x-amz-grant-full-control": "GrantFullControl", "x-amz-grant-read": "GrantRead", "x-amz-grant-read-acp": "GrantReadACP", "x-amz-grant-write-acp": "GrantWriteACP", "x-amz-object-lock-legal-hold": "ObjectLockLegalHoldStatus", "x-amz-object-lock-mode": "ObjectLockMode", "x-amz-object-lock-retain-until-date": "ObjectLockRetainUntilDate", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5", "x-amz-server-side-encryption-context": "SSEKMSEncryptionContext", "x-amz-server-side-encryption-aws-kms-key-id": "SSEKMSKeyId", "x-amz-server-side-encryption": "ServerSideEncryption", "x-amz-storage-class": "StorageClass", "x-amz-tagging": "Tagging", "x-amz-website-redirect-location": "WebsiteRedirectLocation"}},
+	{Op: "DeleteObjectTagging", Method: "DELETE", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"tagging": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "GetObjectAcl", Method: "GET", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"acl": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer"}},
+	{Op: "GetObjectLegalHold", Method: "GET", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"legal-hold": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer"}},
+	{Op: "GetObjectRetention", Method: "GET", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"retention": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer"}},
+	{Op: "GetObjectTagging", Method: "GET", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"tagging": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer"}},
+	{Op: "PutObjectAcl", Method: "PUT", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"acl": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-acl": "ACL", "x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-grant-full-control": "GrantFullControl", "x-amz-grant-read": "GrantRead", "x-amz-grant-read-acp": "GrantReadACP", "x-amz-grant-write": "GrantWrite", "x-amz-grant-write-acp": "GrantWriteACP", "x-amz-request-payer": "RequestPayer"}, Payload: "AccessControlPolicy", XMLLists: map[string]xmlList{"AccessControlPolicy.Grants": {Element: "Grant"}}, XMLNames: map[string]string{"AccessControlPolicy.Grants": "AccessControlList", "AccessControlPolicy.Grants[].Grantee.Type": "xsi:type"}},
+	{Op: "PutObjectLegalHold", Method: "PUT", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"legal-hold": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer"}, Payload: "LegalHold"},
+	{Op: "PutObjectRetention", Method: "PUT", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"retention": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-bypass-governance-retention": "BypassGovernanceRetention", "x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer"}, Payload: "Retention"},
+	{Op: "PutObjectTagging", Method: "PUT", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Marks: map[string]string{"tagging": ""}, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer"}, Payload: "Tagging", XMLLists: map[string]xmlList{"Tagging.TagSet": {Element: "Tag"}}},
+	{Op: "DeleteBucketCors", Method: "DELETE", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"cors": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "DeleteBucketLifecycle", Method: "DELETE", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"lifecycle": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "DeleteBucketPolicy", Method: "DELETE", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"policy": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "DeleteBucketReplication", Method: "DELETE", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"replication": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "DeleteBucketTagging", Method: "DELETE", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"tagging": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "DeleteBucketWebsite", Method: "DELETE", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"website": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "DeleteObjects", Method: "POST", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"delete": ""}, Header: map[string]string{"x-amz-bypass-governance-retention": "BypassGovernanceRetention", "x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-mfa": "MFA", "x-amz-request-payer": "RequestPayer"}, Payload: "Delete", XMLLists: map[string]xmlList{"Delete.Objects": {Element: "member", Flattened: true}}, XMLNames: map[string]string{"Delete.Objects": "Object"}},
+	{Op: "GetBucketAccelerateConfiguration", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"accelerate": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer"}},
+	{Op: "GetBucketAcl", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"acl": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "GetBucketCors", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"cors": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "GetBucketLifecycleConfiguration", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"lifecycle": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "GetBucketLocation", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"location": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "GetBucketLogging", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"logging": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "GetBucketNotificationConfiguration", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"notification": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "GetBucketPolicy", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"policy": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "GetBucketReplication", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"replication": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "GetBucketRequestPayment", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"requestPayment": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "GetBucketTagging", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"tagging": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "GetBucketVersioning", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"versioning": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "GetBucketWebsite", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"website": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "GetObjectLockConfiguration", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"object-lock": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "ListMultipartUploads", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"uploads": ""}, Query: map[string]string{"delimiter": "Delimiter", "encoding-type": "EncodingType", "key-marker": "KeyMarker", "max-uploads": "MaxUploads", "prefix": "Prefix", "upload-id-marker": "UploadIdMarker"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer"}},
+	{Op: "ListObjectVersions", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"versions": ""}, Query: map[string]string{"delimiter": "Delimiter", "encoding-type": "EncodingType", "key-marker": "KeyMarker", "max-keys": "MaxKeys", "prefix": "Prefix", "version-id-marker": "VersionIdMarker"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-optional-object-attributes": "OptionalObjectAttributes", "x-amz-request-payer": "RequestPayer"}, HeaderList: map[string]bool{"OptionalObjectAttributes": true}},
+	{Op: "ListObjectsV2", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"list-type": "2"}, Query: map[string]string{"continuation-token": "ContinuationToken", "delimiter": "Delimiter", "encoding-type": "EncodingType", "fetch-owner": "FetchOwner", "max-keys": "MaxKeys", "prefix": "Prefix", "start-after": "StartAfter"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-optional-object-attributes": "OptionalObjectAttributes", "x-amz-request-payer": "RequestPayer"}, HeaderList: map[string]bool{"OptionalObjectAttributes": true}},
+	{Op: "PutBucketAccelerateConfiguration", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"accelerate": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "x-amz-expected-bucket-owner": "ExpectedBucketOwner"}, Payload: "AccelerateConfiguration"},
+	{Op: "PutBucketAcl", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"acl": ""}, Header: map[string]string{"x-amz-acl": "ACL", "x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-grant-full-control": "GrantFullControl", "x-amz-grant-read": "GrantRead", "x-amz-grant-read-acp": "GrantReadACP", "x-amz-grant-write": "GrantWrite", "x-amz-grant-write-acp": "GrantWriteACP"}, Payload: "AccessControlPolicy", XMLLists: map[string]xmlList{"AccessControlPolicy.Grants": {Element: "Grant"}}, XMLNames: map[string]string{"AccessControlPolicy.Grants": "AccessControlList", "AccessControlPolicy.Grants[].Grantee.Type": "xsi:type"}},
+	{Op: "PutBucketCors", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"cors": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner"}, Payload: "CORSConfiguration", XMLLists: map[string]xmlList{"CORSConfiguration.CORSRules": {Element: "member", Flattened: true}, "CORSConfiguration.CORSRules[].AllowedHeaders": {Element: "member", Flattened: true}, "CORSConfiguration.CORSRules[].AllowedMethods": {Element: "member", Flattened: true}, "CORSConfiguration.CORSRules[].AllowedOrigins": {Element: "member", Flattened: true}, "CORSConfiguration.CORSRules[].ExposeHeaders": {Element: "member", Flattened: true}}, XMLNames: map[string]string{"CORSConfiguration.CORSRules": "CORSRule", "CORSConfiguration.CORSRules[].AllowedHeaders": "AllowedHeader", "CORSConfiguration.CORSRules[].AllowedMethods": "AllowedMethod", "CORSConfiguration.CORSRules[].AllowedOrigins": "AllowedOrigin", "CORSConfiguration.CORSRules[].ExposeHeaders": "ExposeHeader"}},
+	{Op: "PutBucketLifecycleConfiguration", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"lifecycle": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-transition-default-minimum-object-size": "TransitionDefaultMinimumObjectSize"}, Payload: "LifecycleConfiguration", XMLLists: map[string]xmlList{"LifecycleConfiguration.Rules": {Element: "member", Flattened: true}, "LifecycleConfiguration.Rules[].NoncurrentVersionTransitions": {Element: "member", Flattened: true}, "LifecycleConfiguration.Rules[].Transitions": {Element: "member", Flattened: true}}, XMLNames: map[string]string{"LifecycleConfiguration.Rules": "Rule", "LifecycleConfiguration.Rules[].NoncurrentVersionTransitions": "NoncurrentVersionTransition", "LifecycleConfiguration.Rules[].Transitions": "Transition"}},
+	{Op: "PutBucketLogging", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"logging": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner"}, Payload: "BucketLoggingStatus", XMLLists: map[string]xmlList{"BucketLoggingStatus.LoggingEnabled.TargetGrants": {Element: "Grant"}}},
+	{Op: "PutBucketNotificationConfiguration", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"notification": ""}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-skip-destination-validation": "SkipDestinationValidation"}, Payload: "NotificationConfiguration", XMLLists: map[string]xmlList{"NotificationConfiguration.LambdaFunctionConfigurations": {Element: "member", Flattened: true}, "NotificationConfiguration.LambdaFunctionConfigurations[].Events": {Element: "member", Flattened: true}, "NotificationConfiguration.QueueConfigurations": {Element: "member", Flattened: true}, "NotificationConfiguration.QueueConfigurations[].Events": {Element: "member", Flattened: true}, "NotificationConfiguration.TopicConfigurations": {Element: "member", Flattened: true}, "NotificationConfiguration.TopicConfigurations[].Events": {Element: "member", Flattened: true}}, XMLNames: map[string]string{"NotificationConfiguration.LambdaFunctionConfigurations": "CloudFunctionConfiguration", "NotificationConfiguration.LambdaFunctionConfigurations[].Events": "Event", "NotificationConfiguration.LambdaFunctionConfigurations[].Filter.Key": "S3Key", "NotificationConfiguration.LambdaFunctionConfigurations[].LambdaFunctionArn": "CloudFunction", "NotificationConfiguration.QueueConfigurations": "QueueConfiguration", "NotificationConfiguration.QueueConfigurations[].Events": "Event", "NotificationConfiguration.QueueConfigurations[].Filter.Key": "S3Key", "NotificationConfiguration.QueueConfigurations[].QueueArn": "Queue", "NotificationConfiguration.TopicConfigurations": "TopicConfiguration", "NotificationConfiguration.TopicConfigurations[].Events": "Event", "NotificationConfiguration.TopicConfigurations[].Filter.Key": "S3Key", "NotificationConfiguration.TopicConfigurations[].TopicArn": "Topic"}},
+	{Op: "PutBucketPolicy", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"policy": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "x-amz-confirm-remove-self-bucket-access": "ConfirmRemoveSelfBucketAccess", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner"}, Payload: "Policy"},
+	{Op: "PutBucketReplication", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"replication": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-bucket-object-lock-token": "Token"}, Payload: "ReplicationConfiguration", XMLLists: map[string]xmlList{"ReplicationConfiguration.Rules": {Element: "member", Flattened: true}}, XMLNames: map[string]string{"ReplicationConfiguration.Rules": "Rule"}},
+	{Op: "PutBucketRequestPayment", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"requestPayment": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner"}, Payload: "RequestPaymentConfiguration"},
+	{Op: "PutBucketTagging", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"tagging": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner"}, Payload: "Tagging", XMLLists: map[string]xmlList{"Tagging.TagSet": {Element: "Tag"}}},
+	{Op: "PutBucketVersioning", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"versioning": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-mfa": "MFA"}, Payload: "VersioningConfiguration", XMLNames: map[string]string{"VersioningConfiguration.MFADelete": "MfaDelete"}},
+	{Op: "PutBucketWebsite", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"website": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner"}, Payload: "WebsiteConfiguration", XMLLists: map[string]xmlList{"WebsiteConfiguration.RoutingRules": {Element: "RoutingRule"}}},
+	{Op: "PutObjectLockConfiguration", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Marks: map[string]string{"object-lock": ""}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer", "x-amz-bucket-object-lock-token": "Token"}, Payload: "ObjectLockConfiguration"},
+	{Op: "UploadPartCopy", Method: "PUT", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, NeedHeaders: []string{"x-amz-copy-source"}, NeedQuery: []string{"partNumber", "uploadId"}, Query: map[string]string{"partNumber": "PartNumber", "uploadId": "UploadId"}, Header: map[string]string{"x-amz-copy-source": "CopySource", "x-amz-copy-source-if-match": "CopySourceIfMatch", "x-amz-copy-source-if-modified-since": "CopySourceIfModifiedSince", "x-amz-copy-source-if-none-match": "CopySourceIfNoneMatch", "x-amz-copy-source-if-unmodified-since": "CopySourceIfUnmodifiedSince", "x-amz-copy-source-range": "CopySourceRange", "x-amz-copy-source-server-side-encryption-customer-algorithm": "CopySourceSSECustomerAlgorithm", "x-amz-copy-source-server-side-encryption-customer-key": "CopySourceSSECustomerKey", "x-amz-copy-source-server-side-encryption-customer-key-MD5": "CopySourceSSECustomerKeyMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-source-expected-bucket-owner": "ExpectedSourceBucketOwner", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5"}},
+	{Op: "UploadPart", Method: "PUT", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, NeedQuery: []string{"partNumber", "uploadId"}, Query: map[string]string{"partNumber": "PartNumber", "uploadId": "UploadId"}, Header: map[string]string{"x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "x-amz-checksum-crc32": "ChecksumCRC32", "x-amz-checksum-crc32c": "ChecksumCRC32C", "x-amz-checksum-crc64nvme": "ChecksumCRC64NVME", "x-amz-checksum-md5": "ChecksumMD5", "x-amz-checksum-sha1": "ChecksumSHA1", "x-amz-checksum-sha256": "ChecksumSHA256", "x-amz-checksum-sha512": "ChecksumSHA512", "x-amz-checksum-xxhash128": "ChecksumXXHASH128", "x-amz-checksum-xxhash3": "ChecksumXXHASH3", "x-amz-checksum-xxhash64": "ChecksumXXHASH64", "Content-Length": "ContentLength", "Content-MD5": "ContentMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5"}, Payload: "Body"},
+	{Op: "AbortMultipartUpload", Method: "DELETE", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, NeedQuery: []string{"uploadId"}, Query: map[string]string{"uploadId": "UploadId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-if-match-initiated-time": "IfMatchInitiatedTime", "x-amz-request-payer": "RequestPayer"}},
+	{Op: "CompleteMultipartUpload", Method: "POST", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, NeedQuery: []string{"uploadId"}, Query: map[string]string{"uploadId": "UploadId"}, Header: map[string]string{"x-amz-checksum-crc32": "ChecksumCRC32", "x-amz-checksum-crc32c": "ChecksumCRC32C", "x-amz-checksum-crc64nvme": "ChecksumCRC64NVME", "x-amz-checksum-md5": "ChecksumMD5", "x-amz-checksum-sha1": "ChecksumSHA1", "x-amz-checksum-sha256": "ChecksumSHA256", "x-amz-checksum-sha512": "ChecksumSHA512", "x-amz-checksum-type": "ChecksumType", "x-amz-checksum-xxhash128": "ChecksumXXHASH128", "x-amz-checksum-xxhash3": "ChecksumXXHASH3", "x-amz-checksum-xxhash64": "ChecksumXXHASH64", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "If-Match": "IfMatch", "If-None-Match": "IfNoneMatch", "x-amz-mp-object-size": "MpuObjectSize", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5"}, Payload: "MultipartUpload", XMLLists: map[string]xmlList{"MultipartUpload.Parts": {Element: "member", Flattened: true}}, XMLNames: map[string]string{"MultipartUpload": "CompleteMultipartUpload", "MultipartUpload.Parts": "Part"}},
+	{Op: "ListParts", Method: "GET", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, NeedQuery: []string{"uploadId"}, Query: map[string]string{"max-parts": "MaxParts", "part-number-marker": "PartNumberMarker", "uploadId": "UploadId"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5"}},
+	{Op: "CopyObject", Method: "PUT", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, NeedHeaders: []string{"x-amz-copy-source"}, Header: map[string]string{"x-amz-acl": "ACL", "x-amz-object-annotation-directive": "AnnotationDirective", "x-amz-server-side-encryption-bucket-key-enabled": "BucketKeyEnabled", "Cache-Control": "CacheControl", "x-amz-checksum-algorithm": "ChecksumAlgorithm", "Content-Disposition": "ContentDisposition", "Content-Encoding": "ContentEncoding", "Content-Language": "ContentLanguage", "Content-Type": "ContentType", "x-amz-copy-source": "CopySource", "x-amz-copy-source-if-match": "CopySourceIfMatch", "x-amz-copy-source-if-modified-since": "CopySourceIfModifiedSince", "x-amz-copy-source-if-none-match": "CopySourceIfNoneMatch", "x-amz-copy-source-if-unmodified-since": "CopySourceIfUnmodifiedSince", "x-amz-copy-source-server-side-encryption-customer-algorithm": "CopySourceSSECustomerAlgorithm", "x-amz-copy-source-server-side-encryption-customer-key": "CopySourceSSECustomerKey", "x-amz-copy-source-server-side-encryption-customer-key-MD5": "CopySourceSSECustomerKeyMD5", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-source-expected-bucket-owner": "ExpectedSourceBucketOwner", "Expires": "Expires", "x-amz-grant-full-control": "GrantFullControl", "x-amz-grant-read": "GrantRead", "x-amz-grant-read-acp": "GrantReadACP", "x-amz-grant-write-acp": "GrantWriteACP", "If-Match": "IfMatch", "If-None-Match": "IfNoneMatch", "x-amz-metadata-directive": "MetadataDirective", "x-amz-object-lock-legal-hold": "ObjectLockLegalHoldStatus", "x-amz-object-lock-mode": "ObjectLockMode", "x-amz-object-lock-retain-until-date": "ObjectLockRetainUntilDate", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5", "x-amz-server-side-encryption-context": "SSEKMSEncryptionContext", "x-amz-server-side-encryption-aws-kms-key-id": "SSEKMSKeyId", "x-amz-server-side-encryption": "ServerSideEncryption", "x-amz-storage-class": "StorageClass", "x-amz-tagging": "Tagging", "x-amz-tagging-directive": "TaggingDirective", "x-amz-website-redirect-location": "WebsiteRedirectLocation"}},
+	{Op: "DeleteObject", Method: "DELETE", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Query: map[string]string{"versionId": "VersionId"}, Header: map[string]string{"x-amz-bypass-governance-retention": "BypassGovernanceRetention", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "If-Match": "IfMatch", "x-amz-if-match-last-modified-time": "IfMatchLastModifiedTime", "x-amz-if-match-size": "IfMatchSize", "x-amz-mfa": "MFA", "x-amz-request-payer": "RequestPayer"}},
+	{Op: "GetObject", Method: "GET", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Query: map[string]string{"partNumber": "PartNumber", "response-cache-control": "ResponseCacheControl", "response-content-disposition": "ResponseContentDisposition", "response-content-encoding": "ResponseContentEncoding", "response-content-language": "ResponseContentLanguage", "response-content-type": "ResponseContentType", "response-expires": "ResponseExpires", "versionId": "VersionId"}, Header: map[string]string{"x-amz-checksum-mode": "ChecksumMode", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "If-Match": "IfMatch", "If-Modified-Since": "IfModifiedSince", "If-None-Match": "IfNoneMatch", "If-Unmodified-Since": "IfUnmodifiedSince", "Range": "Range", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5"}},
+	{Op: "HeadObject", Method: "HEAD", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Query: map[string]string{"partNumber": "PartNumber", "response-cache-control": "ResponseCacheControl", "response-content-disposition": "ResponseContentDisposition", "response-content-encoding": "ResponseContentEncoding", "response-content-language": "ResponseContentLanguage", "response-content-type": "ResponseContentType", "response-expires": "ResponseExpires", "versionId": "VersionId"}, Header: map[string]string{"x-amz-checksum-mode": "ChecksumMode", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "If-Match": "IfMatch", "If-Modified-Since": "IfModifiedSince", "If-None-Match": "IfNoneMatch", "If-Unmodified-Since": "IfUnmodifiedSince", "Range": "Range", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5"}},
+	{Op: "PutObject", Method: "PUT", Segs: []string{"", ""}, Labels: []string{"Bucket", "Key"}, Greedy: true, Header: map[string]string{"x-amz-acl": "ACL", "x-amz-server-side-encryption-bucket-key-enabled": "BucketKeyEnabled", "Cache-Control": "CacheControl", "x-amz-sdk-checksum-algorithm": "ChecksumAlgorithm", "x-amz-checksum-crc32": "ChecksumCRC32", "x-amz-checksum-crc32c": "ChecksumCRC32C", "x-amz-checksum-crc64nvme": "ChecksumCRC64NVME", "x-amz-checksum-md5": "ChecksumMD5", "x-amz-checksum-sha1": "ChecksumSHA1", "x-amz-checksum-sha256": "ChecksumSHA256", "x-amz-checksum-sha512": "ChecksumSHA512", "x-amz-checksum-xxhash128": "ChecksumXXHASH128", "x-amz-checksum-xxhash3": "ChecksumXXHASH3", "x-amz-checksum-xxhash64": "ChecksumXXHASH64", "Content-Disposition": "ContentDisposition", "Content-Encoding": "ContentEncoding", "Content-Language": "ContentLanguage", "Content-Length": "ContentLength", "Content-MD5": "ContentMD5", "Content-Type": "ContentType", "x-amz-expected-bucket-owner": "ExpectedBucketOwner", "Expires": "Expires", "x-amz-grant-full-control": "GrantFullControl", "x-amz-grant-read": "GrantRead", "x-amz-grant-read-acp": "GrantReadACP", "x-amz-grant-write-acp": "GrantWriteACP", "If-Match": "IfMatch", "If-None-Match": "IfNoneMatch", "x-amz-object-lock-legal-hold": "ObjectLockLegalHoldStatus", "x-amz-object-lock-mode": "ObjectLockMode", "x-amz-object-lock-retain-until-date": "ObjectLockRetainUntilDate", "x-amz-request-payer": "RequestPayer", "x-amz-server-side-encryption-customer-algorithm": "SSECustomerAlgorithm", "x-amz-server-side-encryption-customer-key": "SSECustomerKey", "x-amz-server-side-encryption-customer-key-MD5": "SSECustomerKeyMD5", "x-amz-server-side-encryption-context": "SSEKMSEncryptionContext", "x-amz-server-side-encryption-aws-kms-key-id": "SSEKMSKeyId", "x-amz-server-side-encryption": "ServerSideEncryption", "x-amz-storage-class": "StorageClass", "x-amz-tagging": "Tagging", "x-amz-website-redirect-location": "WebsiteRedirectLocation", "x-amz-write-offset-bytes": "WriteOffsetBytes"}, Payload: "Body"},
+	{Op: "CreateBucket", Method: "PUT", Segs: []string{""}, Labels: []string{"Bucket"}, Header: map[string]string{"x-amz-acl": "ACL", "x-amz-bucket-namespace": "BucketNamespace", "x-amz-grant-full-control": "GrantFullControl", "x-amz-grant-read": "GrantRead", "x-amz-grant-read-acp": "GrantReadACP", "x-amz-grant-write": "GrantWrite", "x-amz-grant-write-acp": "GrantWriteACP", "x-amz-bucket-object-lock-enabled": "ObjectLockEnabledForBucket", "x-amz-object-ownership": "ObjectOwnership"}, Payload: "CreateBucketConfiguration", XMLLists: map[string]xmlList{"CreateBucketConfiguration.Tags": {Element: "Tag"}}},
+	{Op: "DeleteBucket", Method: "DELETE", Segs: []string{""}, Labels: []string{"Bucket"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "HeadBucket", Method: "HEAD", Segs: []string{""}, Labels: []string{"Bucket"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner"}},
+	{Op: "ListObjects", Method: "GET", Segs: []string{""}, Labels: []string{"Bucket"}, Query: map[string]string{"delimiter": "Delimiter", "encoding-type": "EncodingType", "marker": "Marker", "max-keys": "MaxKeys", "prefix": "Prefix"}, Header: map[string]string{"x-amz-expected-bucket-owner": "ExpectedBucketOwner", "x-amz-optional-object-attributes": "OptionalObjectAttributes", "x-amz-request-payer": "RequestPayer"}, HeaderList: map[string]bool{"OptionalObjectAttributes": true}},
+	{Op: "ListBuckets", Method: "GET", Segs: []string{}, Labels: []string{}, Query: map[string]string{"bucket-region": "BucketRegion", "continuation-token": "ContinuationToken", "max-buckets": "MaxBuckets", "prefix": "Prefix"}},
+	{Op: "ListDirectoryBuckets", Method: "GET", Segs: []string{}, Labels: []string{}, Query: map[string]string{"continuation-token": "ContinuationToken", "max-directory-buckets": "MaxDirectoryBuckets"}},
+}
+
+var constraintTables = map[string][]modelcheck.Constraint{
+	"AbortMultipartUpload": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+		{Path: "UploadId", Kind: modelcheck.KindRequired},
+	},
+	"CompleteMultipartUpload": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumType", Kind: modelcheck.KindEnum, Enum: []string{"COMPOSITE", "FULL_OBJECT"}},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+		{Path: "UploadId", Kind: modelcheck.KindRequired},
+	},
+	"CopyObject": {
+		{Path: "ACL", Kind: modelcheck.KindEnum, Enum: []string{"public-read-write", "authenticated-read", "aws-exec-read", "bucket-owner-read", "bucket-owner-full-control", "private", "public-read"}},
+		{Path: "AnnotationDirective", Kind: modelcheck.KindEnum, Enum: []string{"COPY", "EXCLUDE"}},
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"XXHASH128", "CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3"}},
+		{Path: "CopySource", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^\/?.+\/.+$`)},
+		{Path: "CopySource", Kind: modelcheck.KindRequired},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "MetadataDirective", Kind: modelcheck.KindEnum, Enum: []string{"COPY", "REPLACE"}},
+		{Path: "ObjectLockLegalHoldStatus", Kind: modelcheck.KindEnum, Enum: []string{"ON", "OFF"}},
+		{Path: "ObjectLockMode", Kind: modelcheck.KindEnum, Enum: []string{"GOVERNANCE", "COMPLIANCE"}},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+		{Path: "ServerSideEncryption", Kind: modelcheck.KindEnum, Enum: []string{"AES256", "aws:fsx", "aws:backup", "aws:kms", "aws:kms:dsse"}},
+		{Path: "StorageClass", Kind: modelcheck.KindEnum, Enum: []string{"GLACIER", "GLACIER_IR", "ONEZONE_IA", "INTELLIGENT_TIERING", "AWS_BACKUP_LOW_COST_WARM", "STANDARD_IA", "DEEP_ARCHIVE", "OUTPOSTS", "EXPRESS_ONEZONE", "FSX_ONTAP", "AWS_BACKUP_WARM", "STANDARD", "SNOW", "FSX_OPENZFS", "REDUCED_REDUNDANCY"}},
+		{Path: "TaggingDirective", Kind: modelcheck.KindEnum, Enum: []string{"REPLACE", "COPY"}},
+	},
+	"CreateBucket": {
+		{Path: "ACL", Kind: modelcheck.KindEnum, Enum: []string{"private", "public-read", "public-read-write", "authenticated-read"}},
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "BucketNamespace", Kind: modelcheck.KindEnum, Enum: []string{"account-regional", "global"}},
+		{Path: "CreateBucketConfiguration.Bucket.DataRedundancy", Kind: modelcheck.KindEnum, Enum: []string{"SingleLocalZone", "SingleAvailabilityZone"}},
+		{Path: "CreateBucketConfiguration.Bucket.Type", Kind: modelcheck.KindEnum, Enum: []string{"Directory"}},
+		{Path: "CreateBucketConfiguration.Location.Type", Kind: modelcheck.KindEnum, Enum: []string{"AvailabilityZone", "LocalZone"}},
+		{Path: "CreateBucketConfiguration.LocationConstraint", Kind: modelcheck.KindEnum, Enum: []string{"af-south-1", "ap-northeast-3", "ap-southeast-2", "mx-central-1", "us-west-1", "us-west-2", "ap-south-1", "ca-central-1", "eu-central-1", "ap-northeast-2", "ap-southeast-5", "eu-west-3", "me-central-1", "ap-southeast-4", "ap-southeast-6", "eu-central-2", "eu-south-2", "il-central-1", "us-gov-west-1", "ap-east-1", "ap-northeast-1", "eu-west-1", "eu-west-2", "me-south-1", "us-east-2", "us-gov-east-1", "ap-south-2", "cn-north-1", "eu-north-1", "ap-southeast-1", "cn-northwest-1", "ap-east-2", "ap-southeast-3", "ap-southeast-7", "ca-west-1", "EU", "eu-south-1", "sa-east-1"}},
+		{Path: "CreateBucketConfiguration.Tags[].Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "CreateBucketConfiguration.Tags[].Key", Kind: modelcheck.KindRequired},
+		{Path: "CreateBucketConfiguration.Tags[].Value", Kind: modelcheck.KindRequired},
+		{Path: "ObjectOwnership", Kind: modelcheck.KindEnum, Enum: []string{"BucketOwnerPreferred", "ObjectWriter", "BucketOwnerEnforced"}},
+	},
+	"CreateMultipartUpload": {
+		{Path: "ACL", Kind: modelcheck.KindEnum, Enum: []string{"authenticated-read", "aws-exec-read", "bucket-owner-read", "bucket-owner-full-control", "private", "public-read", "public-read-write"}},
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3", "XXHASH128"}},
+		{Path: "ChecksumType", Kind: modelcheck.KindEnum, Enum: []string{"COMPOSITE", "FULL_OBJECT"}},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "ObjectLockLegalHoldStatus", Kind: modelcheck.KindEnum, Enum: []string{"ON", "OFF"}},
+		{Path: "ObjectLockMode", Kind: modelcheck.KindEnum, Enum: []string{"GOVERNANCE", "COMPLIANCE"}},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+		{Path: "ServerSideEncryption", Kind: modelcheck.KindEnum, Enum: []string{"AES256", "aws:fsx", "aws:backup", "aws:kms", "aws:kms:dsse"}},
+		{Path: "StorageClass", Kind: modelcheck.KindEnum, Enum: []string{"INTELLIGENT_TIERING", "AWS_BACKUP_LOW_COST_WARM", "STANDARD_IA", "DEEP_ARCHIVE", "OUTPOSTS", "EXPRESS_ONEZONE", "FSX_ONTAP", "AWS_BACKUP_WARM", "STANDARD", "SNOW", "FSX_OPENZFS", "REDUCED_REDUNDANCY", "GLACIER", "GLACIER_IR", "ONEZONE_IA"}},
+	},
+	"DeleteBucket": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"DeleteBucketCors": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"DeleteBucketLifecycle": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"DeleteBucketPolicy": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"DeleteBucketReplication": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"DeleteBucketTagging": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"DeleteBucketWebsite": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"DeleteObject": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"DeleteObjectTagging": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+	},
+	"DeleteObjects": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3", "XXHASH128", "CRC32", "CRC32C"}},
+		{Path: "Delete", Kind: modelcheck.KindRequired},
+		{Path: "Delete.Objects", Kind: modelcheck.KindRequired},
+		{Path: "Delete.Objects[].Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Delete.Objects[].Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"GetBucketAccelerateConfiguration": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"GetBucketAcl": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"GetBucketCors": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"GetBucketLifecycleConfiguration": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"GetBucketLocation": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"GetBucketLogging": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"GetBucketNotificationConfiguration": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"GetBucketPolicy": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"GetBucketReplication": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"GetBucketRequestPayment": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"GetBucketTagging": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"GetBucketVersioning": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"GetBucketWebsite": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"GetObject": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumMode", Kind: modelcheck.KindEnum, Enum: []string{"ENABLED"}},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"GetObjectAcl": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"GetObjectAttributes": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "ObjectAttributes", Kind: modelcheck.KindRequired},
+		{Path: "ObjectAttributes[]", Kind: modelcheck.KindEnum, Enum: []string{"ETag", "Checksum", "ObjectParts", "StorageClass", "ObjectSize"}},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"GetObjectLegalHold": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"GetObjectLockConfiguration": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"GetObjectRetention": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"GetObjectTagging": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"HeadBucket": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+	},
+	"HeadObject": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumMode", Kind: modelcheck.KindEnum, Enum: []string{"ENABLED"}},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"ListBuckets": {
+		{Path: "MaxBuckets", Kind: modelcheck.KindRange, Min: 1, Max: 10000},
+	},
+	"ListDirectoryBuckets": {
+		{Path: "ContinuationToken", Kind: modelcheck.KindLength, Min: 0, Max: 1024},
+		{Path: "MaxDirectoryBuckets", Kind: modelcheck.KindRange, Min: 0, Max: 1000},
+	},
+	"ListMultipartUploads": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "EncodingType", Kind: modelcheck.KindEnum, Enum: []string{"url"}},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"ListObjectVersions": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "EncodingType", Kind: modelcheck.KindEnum, Enum: []string{"url"}},
+		{Path: "OptionalObjectAttributes[]", Kind: modelcheck.KindEnum, Enum: []string{"RestoreStatus"}},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"ListObjects": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "EncodingType", Kind: modelcheck.KindEnum, Enum: []string{"url"}},
+		{Path: "OptionalObjectAttributes[]", Kind: modelcheck.KindEnum, Enum: []string{"RestoreStatus"}},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"ListObjectsV2": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "EncodingType", Kind: modelcheck.KindEnum, Enum: []string{"url"}},
+		{Path: "OptionalObjectAttributes[]", Kind: modelcheck.KindEnum, Enum: []string{"RestoreStatus"}},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"ListParts": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+		{Path: "UploadId", Kind: modelcheck.KindRequired},
+	},
+	"PutBucketAccelerateConfiguration": {
+		{Path: "AccelerateConfiguration", Kind: modelcheck.KindRequired},
+		{Path: "AccelerateConfiguration.Status", Kind: modelcheck.KindEnum, Enum: []string{"Enabled", "Suspended"}},
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3", "XXHASH128", "CRC32"}},
+	},
+	"PutBucketAcl": {
+		{Path: "ACL", Kind: modelcheck.KindEnum, Enum: []string{"private", "public-read", "public-read-write", "authenticated-read"}},
+		{Path: "AccessControlPolicy.Grants[].Grantee.Type", Kind: modelcheck.KindRequired},
+		{Path: "AccessControlPolicy.Grants[].Permission", Kind: modelcheck.KindEnum, Enum: []string{"WRITE", "WRITE_ACP", "READ", "READ_ACP", "FULL_CONTROL"}},
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3", "XXHASH128"}},
+	},
+	"PutBucketCors": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "CORSConfiguration", Kind: modelcheck.KindRequired},
+		{Path: "CORSConfiguration.CORSRules", Kind: modelcheck.KindRequired},
+		{Path: "CORSConfiguration.CORSRules[].AllowedMethods", Kind: modelcheck.KindRequired},
+		{Path: "CORSConfiguration.CORSRules[].AllowedOrigins", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3", "XXHASH128"}},
+	},
+	"PutBucketLifecycleConfiguration": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3", "XXHASH128"}},
+		{Path: "LifecycleConfiguration.Rules", Kind: modelcheck.KindRequired},
+		{Path: "LifecycleConfiguration.Rules[].Status", Kind: modelcheck.KindEnum, Enum: []string{"Enabled", "Disabled"}},
+		{Path: "LifecycleConfiguration.Rules[].Status", Kind: modelcheck.KindRequired},
+		{Path: "TransitionDefaultMinimumObjectSize", Kind: modelcheck.KindEnum, Enum: []string{"all_storage_classes_128K", "varies_by_storage_class"}},
+	},
+	"PutBucketLogging": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "BucketLoggingStatus", Kind: modelcheck.KindRequired},
+		{Path: "BucketLoggingStatus.LoggingEnabled.TargetBucket", Kind: modelcheck.KindRequired},
+		{Path: "BucketLoggingStatus.LoggingEnabled.TargetPrefix", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3", "XXHASH128"}},
+	},
+	"PutBucketNotificationConfiguration": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "NotificationConfiguration", Kind: modelcheck.KindRequired},
+		{Path: "NotificationConfiguration.LambdaFunctionConfigurations[].Events", Kind: modelcheck.KindRequired},
+		{Path: "NotificationConfiguration.LambdaFunctionConfigurations[].LambdaFunctionArn", Kind: modelcheck.KindRequired},
+		{Path: "NotificationConfiguration.QueueConfigurations[].Events", Kind: modelcheck.KindRequired},
+		{Path: "NotificationConfiguration.QueueConfigurations[].QueueArn", Kind: modelcheck.KindRequired},
+		{Path: "NotificationConfiguration.TopicConfigurations[].Events", Kind: modelcheck.KindRequired},
+		{Path: "NotificationConfiguration.TopicConfigurations[].TopicArn", Kind: modelcheck.KindRequired},
+	},
+	"PutBucketPolicy": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"SHA256", "XXHASH64", "XXHASH3", "XXHASH128", "CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5"}},
+		{Path: "Policy", Kind: modelcheck.KindRequired},
+	},
+	"PutBucketReplication": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"XXHASH3", "XXHASH128", "CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64"}},
+		{Path: "ReplicationConfiguration", Kind: modelcheck.KindRequired},
+		{Path: "ReplicationConfiguration.Role", Kind: modelcheck.KindRequired},
+		{Path: "ReplicationConfiguration.Rules", Kind: modelcheck.KindRequired},
+		{Path: "ReplicationConfiguration.Rules[].Destination", Kind: modelcheck.KindRequired},
+		{Path: "ReplicationConfiguration.Rules[].Destination.Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ReplicationConfiguration.Rules[].ExistingObjectReplication.Status", Kind: modelcheck.KindRequired},
+		{Path: "ReplicationConfiguration.Rules[].Status", Kind: modelcheck.KindEnum, Enum: []string{"Enabled", "Disabled"}},
+		{Path: "ReplicationConfiguration.Rules[].Status", Kind: modelcheck.KindRequired},
+	},
+	"PutBucketRequestPayment": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"XXHASH3", "XXHASH128", "CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64"}},
+		{Path: "RequestPaymentConfiguration", Kind: modelcheck.KindRequired},
+		{Path: "RequestPaymentConfiguration.Payer", Kind: modelcheck.KindEnum, Enum: []string{"Requester", "BucketOwner"}},
+		{Path: "RequestPaymentConfiguration.Payer", Kind: modelcheck.KindRequired},
+	},
+	"PutBucketTagging": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"SHA256", "XXHASH64", "XXHASH3", "XXHASH128", "CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5"}},
+		{Path: "Tagging", Kind: modelcheck.KindRequired},
+		{Path: "Tagging.TagSet", Kind: modelcheck.KindRequired},
+		{Path: "Tagging.TagSet[].Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Tagging.TagSet[].Key", Kind: modelcheck.KindRequired},
+		{Path: "Tagging.TagSet[].Value", Kind: modelcheck.KindRequired},
+	},
+	"PutBucketVersioning": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3", "XXHASH128", "CRC32", "CRC32C"}},
+		{Path: "VersioningConfiguration", Kind: modelcheck.KindRequired},
+		{Path: "VersioningConfiguration.MFADelete", Kind: modelcheck.KindEnum, Enum: []string{"Enabled", "Disabled"}},
+		{Path: "VersioningConfiguration.Status", Kind: modelcheck.KindEnum, Enum: []string{"Enabled", "Suspended"}},
+	},
+	"PutBucketWebsite": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"XXHASH128", "CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3"}},
+		{Path: "WebsiteConfiguration", Kind: modelcheck.KindRequired},
+		{Path: "WebsiteConfiguration.ErrorDocument.Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "WebsiteConfiguration.ErrorDocument.Key", Kind: modelcheck.KindRequired},
+		{Path: "WebsiteConfiguration.IndexDocument.Suffix", Kind: modelcheck.KindRequired},
+		{Path: "WebsiteConfiguration.RedirectAllRequestsTo.HostName", Kind: modelcheck.KindRequired},
+		{Path: "WebsiteConfiguration.RedirectAllRequestsTo.Protocol", Kind: modelcheck.KindEnum, Enum: []string{"http", "https"}},
+		{Path: "WebsiteConfiguration.RoutingRules[].Redirect", Kind: modelcheck.KindRequired},
+	},
+	"PutObject": {
+		{Path: "ACL", Kind: modelcheck.KindEnum, Enum: []string{"authenticated-read", "aws-exec-read", "bucket-owner-read", "bucket-owner-full-control", "private", "public-read", "public-read-write"}},
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"XXHASH128", "CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3"}},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "ObjectLockLegalHoldStatus", Kind: modelcheck.KindEnum, Enum: []string{"OFF", "ON"}},
+		{Path: "ObjectLockMode", Kind: modelcheck.KindEnum, Enum: []string{"GOVERNANCE", "COMPLIANCE"}},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+		{Path: "ServerSideEncryption", Kind: modelcheck.KindEnum, Enum: []string{"aws:fsx", "aws:backup", "aws:kms", "aws:kms:dsse", "AES256"}},
+		{Path: "StorageClass", Kind: modelcheck.KindEnum, Enum: []string{"FSX_OPENZFS", "REDUCED_REDUNDANCY", "GLACIER", "GLACIER_IR", "ONEZONE_IA", "INTELLIGENT_TIERING", "AWS_BACKUP_LOW_COST_WARM", "STANDARD_IA", "DEEP_ARCHIVE", "OUTPOSTS", "EXPRESS_ONEZONE", "FSX_ONTAP", "AWS_BACKUP_WARM", "STANDARD", "SNOW"}},
+	},
+	"PutObjectAcl": {
+		{Path: "ACL", Kind: modelcheck.KindEnum, Enum: []string{"aws-exec-read", "bucket-owner-read", "bucket-owner-full-control", "private", "public-read", "public-read-write", "authenticated-read"}},
+		{Path: "AccessControlPolicy.Grants[].Grantee.Type", Kind: modelcheck.KindRequired},
+		{Path: "AccessControlPolicy.Grants[].Permission", Kind: modelcheck.KindEnum, Enum: []string{"WRITE_ACP", "READ", "READ_ACP", "FULL_CONTROL", "WRITE"}},
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3", "XXHASH128", "CRC32", "CRC32C", "SHA1"}},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"PutObjectLegalHold": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"XXHASH64", "XXHASH3", "XXHASH128", "CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256"}},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "LegalHold.Status", Kind: modelcheck.KindEnum, Enum: []string{"OFF", "ON"}},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"PutObjectLockConfiguration": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3", "XXHASH128"}},
+		{Path: "ObjectLockConfiguration.ObjectLockEnabled", Kind: modelcheck.KindEnum, Enum: []string{"Enabled"}},
+		{Path: "ObjectLockConfiguration.Rule.DefaultRetention.Mode", Kind: modelcheck.KindEnum, Enum: []string{"GOVERNANCE", "COMPLIANCE"}},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+	},
+	"PutObjectRetention": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3", "XXHASH128", "CRC32"}},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+		{Path: "Retention.Mode", Kind: modelcheck.KindEnum, Enum: []string{"GOVERNANCE", "COMPLIANCE"}},
+	},
+	"PutObjectTagging": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"SHA256", "XXHASH64", "XXHASH3", "XXHASH128", "CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5"}},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+		{Path: "Tagging", Kind: modelcheck.KindRequired},
+		{Path: "Tagging.TagSet", Kind: modelcheck.KindRequired},
+		{Path: "Tagging.TagSet[].Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Tagging.TagSet[].Key", Kind: modelcheck.KindRequired},
+		{Path: "Tagging.TagSet[].Value", Kind: modelcheck.KindRequired},
+	},
+	"UploadPart": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"SHA256", "XXHASH64", "XXHASH3", "XXHASH128", "CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5"}},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "PartNumber", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+		{Path: "UploadId", Kind: modelcheck.KindRequired},
+	},
+	"UploadPartCopy": {
+		{Path: "Bucket", Kind: modelcheck.KindRequired},
+		{Path: "CopySource", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^\/?.+\/.+$`)},
+		{Path: "CopySource", Kind: modelcheck.KindRequired},
+		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Key", Kind: modelcheck.KindRequired},
+		{Path: "PartNumber", Kind: modelcheck.KindRequired},
+		{Path: "RequestPayer", Kind: modelcheck.KindEnum, Enum: []string{"requester"}},
+		{Path: "UploadId", Kind: modelcheck.KindRequired},
+	},
+}

@@ -219,6 +219,14 @@ type httpBinding struct {
 	// Bind maps a top-level input member to where it goes: "label",
 	// "query:<name>", "header:<name>", "payload", or absent, meaning the body.
 	Bind map[string]string `json:"bind,omitempty"`
+	// XMLLists gives every list inside the input its wire spelling, for the
+	// restXml services where the document shape cannot be read off the path.
+	XMLLists map[string]xmlList `json:"xml_lists,omitempty"`
+	// XMLNames records members whose element name differs from the member
+	// name, keyed by member path. S3 spells LifecycleConfiguration.Rules as
+	// <Rule>; without this a document could not be read back into the member
+	// names the constraints are written against.
+	XMLNames map[string]string `json:"xml_names,omitempty"`
 }
 
 // httpFor reads an operation's REST binding out of the model. Returns nil when
@@ -241,6 +249,7 @@ func (m *model) httpFor(opID string) *httpBinding {
 		return nil
 	}
 	b := &httpBinding{Method: h.Method, URI: h.URI, Bind: map[string]string{}}
+	b.XMLLists, b.XMLNames = m.xmlShape(opID)
 	if op.Input == nil {
 		return b
 	}
@@ -303,4 +312,85 @@ func emitRoutes(w io.Writer, m *model) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(out)
+}
+
+// xmlLists records, for every list inside an operation's input, the element
+// name restXml wraps its members in and whether that wrapper is elided.
+//
+// A path like "Tagging.TagSet[]" says nothing about the wire: on the wire that
+// is <TagSet><Tag>…</Tag><Tag>…</Tag></TagSet>, and nothing in the document
+// itself distinguishes a one-element list from a structure with one member. So
+// the element name has to come from the model, or a runner reading the XML back
+// has to guess — and guessing wrong on a single-element list is silent.
+func (m *model) xmlShape(opID string) (map[string]xmlList, map[string]string) {
+	op, ok := m.Shapes[opID]
+	if !ok || op.Input == nil {
+		return nil, nil
+	}
+	lists, names := map[string]xmlList{}, map[string]string{}
+	m.walkXML(op.Input.Target, "", 0, map[string]bool{}, lists, names)
+	if len(lists) == 0 {
+		lists = nil
+	}
+	if len(names) == 0 {
+		names = nil
+	}
+	return lists, names
+}
+
+// xmlList is one list's wire spelling. Keyed by the MEMBER path, so it lines up
+// with the constraint paths, and carrying the wire names separately — S3's
+// LifecycleConfiguration.Rules is spelled <Rule> on the wire, and a runner that
+// keyed by the wire name would never match the constraint.
+type xmlList struct {
+	// Element is the tag each member is wrapped in — "Tag", or "member" when
+	// the model does not rename it.
+	Element string `json:"element"`
+	// Flattened means there is no wrapper element at all: the members appear
+	// directly under the parent, repeated.
+	Flattened bool `json:"flattened,omitempty"`
+}
+
+func (m *model) walkXML(shapeID, path string, depth int, seen map[string]bool, out map[string]xmlList, names map[string]string) {
+	if depth > maxDepth || seen[shapeID+"@"+path] {
+		return
+	}
+	seen[shapeID+"@"+path] = true
+	s, ok := m.Shapes[shapeID]
+	if !ok {
+		return
+	}
+	switch s.Type {
+	case "structure":
+		for name, mem := range s.Members {
+			child := join(path, name)
+			if wire := xmlNameOf(mem.Traits, name); wire != name {
+				names[child] = wire
+			}
+			if list, isList := m.Shapes[mem.Target]; isList && (list.Type == "list" || list.Type == "set") && list.Member != nil {
+				out[child] = xmlList{
+					Element:   xmlNameOf(list.Member.Traits, "member"),
+					Flattened: has(mem.Traits, "smithy.api#xmlFlattened"),
+				}
+			}
+			m.walkXML(mem.Target, child, depth+1, seen, out, names)
+		}
+	case "list", "set":
+		if s.Member != nil {
+			m.walkXML(s.Member.Target, path+"[]", depth+1, seen, out, names)
+		}
+	case "map":
+		if s.Value != nil {
+			m.walkXML(s.Value.Target, path+"{}", depth+1, seen, out, names)
+		}
+	}
+}
+
+// xmlNameOf reads @xmlName, which renames an element on the wire without
+// renaming the member.
+func xmlNameOf(traits map[string]json.RawMessage, fallback string) string {
+	if raw, ok := traits["smithy.api#xmlName"]; ok {
+		return traitString(raw, fallback)
+	}
+	return fallback
 }

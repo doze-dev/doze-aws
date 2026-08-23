@@ -38,7 +38,7 @@ clients still speak.
 | KMS | ✅ symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto | **fully audited**: 263/263 across all 36 dispatched operations · no known gaps |
 | SSM Parameter Store | ✅ versions, labels, hierarchies, SecureString at-rest encryption | **fully audited**: 100/100 across all 13 dispatched operations · no known gaps |
 | Secrets Manager | ✅ version stages, recovery-window deletion, encrypted at rest | **fully audited**: 132/132 across 19 of 20 dispatched operations · no known gaps |
-| S3 | ✅ versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website | **audited**: bucket naming (case, charset, length, IP-form) · rest not yet audited |
+| S3 | ✅ versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website | **audited**: 199/275 across all 64 routed operations · 48 not expressible on the wire · **28 known gaps, each listed with its cause** |
 | DynamoDB | ✅ full expression engine, GSI/LSI, transactions, TTL, paging semantics | **fully audited**: 333/333 across all 27 dispatched operations · no known gaps |
 | EventBridge | ✅ full pattern language, SQS/SNS/Lambda targets, input transformers | **fully audited**: 284/284 across all 28 dispatched operations · no known gaps |
 | Lambda | ✅ real process runtime (no Docker), versions, layers, function URLs, SQS/DynamoDB/Kinesis event source mappings | **fully audited**: 599/608 across all 46 routed operations with constrained input · 9 not expressible on the wire · no known gaps |

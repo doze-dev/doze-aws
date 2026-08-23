@@ -147,6 +147,15 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.applyCORS(w, r, bucket, origin)
 	}
 
+	// Model-derived input validation runs before the dispatch, for every routed
+	// operation at once — coverage is then a property of the route table rather
+	// than something each handler has to remember.
+	if _, verr := validateControl(r); verr != nil {
+		s.logf("s3: %s %s -> %s", r.Method, r.URL.Path, verr.Code)
+		writeS3Error(w, verr)
+		return
+	}
+
 	var aerr *awshttp.APIError
 	switch {
 	case bucket == "":
