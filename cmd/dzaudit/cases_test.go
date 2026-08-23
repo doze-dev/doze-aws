@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"regexp"
 	"strings"
 	"testing"
@@ -131,5 +132,63 @@ func TestPatternViolationsActuallyViolate(t *testing.T) {
 			t.Errorf("pattern %q: emitted %q, which MATCHES it — that case reports a "+
 				"gap the service does not have", p, s)
 		}
+	}
+}
+
+// TestHTTPBindingIsReadFromTheModel covers the REST protocols, where a case
+// cannot be replayed without knowing which members go in the URI, the query
+// string and the body. Getting this wrong is silent: a member left in the body
+// that belongs in the path produces a 404, which reads exactly like a
+// validation refusal.
+func TestHTTPBindingIsReadFromTheModel(t *testing.T) {
+	m := &model{Shapes: map[string]shape{
+		"ns#GetThing": {
+			Type:  "operation",
+			Input: &ref{Target: "ns#GetThingInput"},
+			Traits: map[string]json.RawMessage{
+				"smithy.api#http": json.RawMessage(`{"method":"GET","uri":"/things/{thingId}","code":200}`),
+			},
+		},
+		"ns#GetThingInput": {Type: "structure", Members: map[string]member{
+			"thingId":  {Target: "smithy.api#String", Traits: map[string]json.RawMessage{"smithy.api#httpLabel": json.RawMessage(`{}`)}},
+			"limit":    {Target: "smithy.api#Integer", Traits: map[string]json.RawMessage{"smithy.api#httpQuery": json.RawMessage(`"max"`)}},
+			"token":    {Target: "smithy.api#String", Traits: map[string]json.RawMessage{"smithy.api#httpHeader": json.RawMessage(`"X-Token"`)}},
+			"body":     {Target: "smithy.api#String", Traits: map[string]json.RawMessage{"smithy.api#httpPayload": json.RawMessage(`{}`)}},
+			"ordinary": {Target: "smithy.api#String"},
+		}},
+	}}
+
+	b := m.httpFor("ns#GetThing")
+	if b == nil {
+		t.Fatal("no binding read for an operation carrying @http")
+	}
+	if b.Method != "GET" || b.URI != "/things/{thingId}" {
+		t.Fatalf("method/uri = %s %s", b.Method, b.URI)
+	}
+	for member, want := range map[string]string{
+		"thingId": "label",
+		"limit":   "query:max", // the trait's argument, not the member name
+		"token":   "header:X-Token",
+		"body":    "payload",
+	} {
+		if got := b.Bind[member]; got != want {
+			t.Errorf("bind[%s] = %q, want %q", member, got, want)
+		}
+	}
+	if got, ok := b.Bind["ordinary"]; ok {
+		t.Errorf("an unbound member should be absent (it goes in the body), got %q", got)
+	}
+}
+
+// TestNoHTTPBindingWithoutTheTrait keeps the awsJson and awsQuery services
+// unchanged: they have no @http trait and must emit no binding at all, rather
+// than an empty one a runner might treat as REST.
+func TestNoHTTPBindingWithoutTheTrait(t *testing.T) {
+	m := &model{Shapes: map[string]shape{
+		"ns#Op": {Type: "operation", Input: &ref{Target: "ns#In"}},
+		"ns#In": {Type: "structure"},
+	}}
+	if b := m.httpFor("ns#Op"); b != nil {
+		t.Fatalf("binding emitted for an operation with no @http trait: %+v", b)
 	}
 }

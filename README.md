@@ -45,7 +45,7 @@ clients still speak.
 | Kinesis | ✅ native Go (no JVM), real partition-key routing, resharding with parent/child lineage | **fully audited**: 356/356 across 32 of 35 dispatched operations · no known gaps |
 | IAM | ✅ real policy evaluation, off by default, with least-privilege generation | **fully audited**: 702/702 across 89 of 93 dispatched operations · no known gaps |
 | CloudFormation | ✅ stacks, change sets, deletion — `sam deploy`, `cdk deploy` and Serverless all work | **fully audited**: 182/182 across 22 of 23 dispatched operations · no known gaps |
-| API Gateway | ✅ REST v1 — deployed APIs actually serve into Lambda over a real HTTP endpoint | not yet audited |
+| API Gateway | ✅ REST v1 — deployed APIs actually serve into Lambda over a real HTTP endpoint | **fully audited**: 91/95 across all 30 routed operations with constrained input · 4 not expressible on the wire · no known gaps |
 
 **Why two columns.** A ✅ means every documented operation of that service has a
 real handler, verified against both AWS SDK generations. It does **not** mean

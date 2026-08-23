@@ -108,6 +108,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.serveExecute(w, r, apiID+"/"+rest)
 		return
 	}
+	// Model-derived input validation runs before the router, for every routed
+	// operation at once — coverage is then a property of the route table rather
+	// than something each handler has to remember.
+	if _, aerr := validateControl(r); aerr != nil {
+		s.logf("apigateway: %s %s -> %s", r.Method, r.URL.Path, aerr.Code)
+		writeError(w, aerr)
+		return
+	}
 	if aerr := s.routeControl(w, r); aerr != nil {
 		s.logf("apigateway: %s %s -> %s", r.Method, r.URL.Path, aerr.Code)
 		writeError(w, aerr)

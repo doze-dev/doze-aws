@@ -98,3 +98,62 @@ but the v2 control plane (`/v2/apis/...`) is not served.
 - [../cloudformation.md](../cloudformation.md) — SAM `Api` events and the
   `AWS::ApiGateway::*` resource types.
 - [lambda.md](lambda.md) — the function runtime behind a proxy integration.
+
+## Input validation
+
+Separate from the tiers above. A tier says the operation is implemented; this
+says whether doze-aws **refuses what API Gateway refuses**.
+
+**91/95 model-derived constraints enforced across all 30 routed operations that
+have constrained input, with `knownGaps` empty.** Removing the constraint table
+makes 24 of them slip through. The remaining four cannot be put on this wire at
+all — see below.
+
+Generated with `dzaudit cases api-gateway`, committed to
+`testdata/cases_apigateway.json`, and replayed case by case in
+`rejection_parity_test.go` from a baseline the test first proves the service
+accepts.
+
+### The operation has to be worked out before it can be validated
+
+Every other service here names its operation on the wire — a target header, or
+an `Action` parameter — so validation is a map lookup. API Gateway names it
+nowhere: the operation **is** the method and the path. So `validate.go` carries
+a route table alongside the constraint tables, and both are generated from the
+same model bindings. A route and the constraints it selects therefore cannot
+drift: if AWS says `CreateResource` is `POST
+/restapis/{restApiId}/resources/{parentId}`, that is what the matcher looks for
+and what the harness sends.
+
+Routes are ordered most-specific first, so `/methods/{m}/integration` wins over
+`/methods/{m}`. Nothing but the generator enforces that order, and getting it
+wrong would be invisible — the wrong constraint table simply has fewer rules, so
+a shadowed route reads as a permissive service rather than a broken matcher. So
+`TestEveryRouteMatchesItsOwnTemplate` builds a concrete path from every route's
+own template and asserts it resolves back to that route.
+
+### An omitted path label is an empty segment, not an absent field
+
+This was a real gap, found by the audit. restJson1 binds `restApiId` and its
+kin into the URI, so a caller who omits one sends `GET /restapis//resources` —
+the member is not missing from a body, it arrives as an empty string. The
+validator recorded it as present, which meant **every `@required` path label
+passed vacuously**: a label is never absent from the map the router builds. Now
+an empty label is treated as omitted, and the seven affected cases are enforced.
+
+### Four cases cannot be expressed on this wire
+
+Omitting the **last** label of a URI does not produce an invalid request. It
+produces a shorter path, which is a different and entirely valid operation:
+`GET /restapis` is `GetRestApis`, not a broken `GetRestApi`. The same is true
+for `GetResource`, `GetDeployment` and `GetStage`. There is nothing for the
+service to refuse, and AWS does not refuse it either, so these are listed in
+`unexpressible` with the reason and counted separately — a gap means AWS
+enforces something doze-aws does not, and this is not that.
+
+### Not audited
+
+The operations doze-aws answers with 501 (authorizers, models, request
+validators, documentation, gateway responses) and everything outside `/restapis`
+(API keys, usage plans, domain names, VPC links) have no handler to validate
+input. `GetRestApis` is routed but has no constrained input in the model at all.

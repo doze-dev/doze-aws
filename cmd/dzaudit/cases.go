@@ -51,6 +51,10 @@ type Case struct {
 	// RequiredMembers are the operation's top-level required inputs — what a
 	// baseline has to supply for the case to mean anything.
 	RequiredMembers []string `json:"required_members,omitempty"`
+	// HTTP is the REST binding: which members go in the URI, the query string,
+	// the headers and the body. Nil for the protocols where the request is a
+	// header plus one encoded body.
+	HTTP *httpBinding `json:"http,omitempty"`
 }
 
 // violations turns one constraint into the values that break it. A range gives
@@ -112,7 +116,7 @@ func violations(c constraint) []struct {
 
 // emitCases writes the cases for a service as JSON.
 func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
-	id, proto, _ := m.service()
+	id, proto, ops := m.service()
 	if !strings.HasPrefix(proto, "awsJson") {
 		fmt.Fprintf(w, "// %s speaks %s, not awsJson.\n"+
 			"// The request is more than a target header and a JSON body there, so cases\n"+
@@ -121,6 +125,14 @@ func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 	}
 
 	required := requiredByOp(found)
+	// The REST binding is per operation, so it is read once and shared rather
+	// than re-derived for each of an operation's cases.
+	bindings := map[string]*httpBinding{}
+	for _, opID := range ops {
+		if b := m.httpFor(opID); b != nil {
+			bindings[shortName(opID)] = b
+		}
+	}
 	var cases []Case
 	for _, f := range found {
 		// A required member is its own case; it is not also a value violation.
@@ -133,6 +145,7 @@ func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 				Value:           v.Value,
 				Constraint:      f.Constraint.Full(),
 				RequiredMembers: required[f.Op],
+				HTTP:            bindings[f.Op],
 			})
 		}
 	}
@@ -191,4 +204,80 @@ var patternViolators = []string{
 	"<>\"\\",
 	"!! not valid !!",
 	" ",
+}
+
+// httpBinding is how a REST-protocol operation puts its input on the wire. The
+// awsJson and awsQuery services do not need it — the whole request there is a
+// header plus one encoded body — but restJson1 and restXml spread a single
+// operation's input across the method, the URI, the query string, headers and
+// the body, and a runner cannot replay a case without knowing which is which.
+type httpBinding struct {
+	Method string `json:"method"`
+	// URI is the template as the model spells it, labels and all:
+	// "/restapis/{restApiId}/resources/{resourceId}".
+	URI string `json:"uri"`
+	// Bind maps a top-level input member to where it goes: "label",
+	// "query:<name>", "header:<name>", "payload", or absent, meaning the body.
+	Bind map[string]string `json:"bind,omitempty"`
+}
+
+// httpFor reads an operation's REST binding out of the model. Returns nil when
+// the operation has no @http trait, which is every operation of an awsJson or
+// awsQuery service.
+func (m *model) httpFor(opID string) *httpBinding {
+	op, ok := m.Shapes[opID]
+	if !ok {
+		return nil
+	}
+	raw, ok := op.Traits["smithy.api#http"]
+	if !ok {
+		return nil
+	}
+	var h struct {
+		Method string `json:"method"`
+		URI    string `json:"uri"`
+	}
+	if json.Unmarshal(raw, &h) != nil || h.Method == "" {
+		return nil
+	}
+	b := &httpBinding{Method: h.Method, URI: h.URI, Bind: map[string]string{}}
+	if op.Input == nil {
+		return b
+	}
+	in, ok := m.Shapes[op.Input.Target]
+	if !ok {
+		return b
+	}
+	for name, mem := range in.Members {
+		switch {
+		case has(mem.Traits, "smithy.api#httpLabel"):
+			b.Bind[name] = "label"
+		case has(mem.Traits, "smithy.api#httpPayload"):
+			b.Bind[name] = "payload"
+		case has(mem.Traits, "smithy.api#httpQuery"):
+			b.Bind[name] = "query:" + traitString(mem.Traits["smithy.api#httpQuery"], name)
+		case has(mem.Traits, "smithy.api#httpHeader"):
+			b.Bind[name] = "header:" + traitString(mem.Traits["smithy.api#httpHeader"], name)
+		}
+	}
+	if len(b.Bind) == 0 {
+		b.Bind = nil
+	}
+	return b
+}
+
+func has(traits map[string]json.RawMessage, id string) bool {
+	_, ok := traits[id]
+	return ok
+}
+
+// traitString reads a trait whose value is a bare string — @httpQuery("name")
+// and @httpHeader("X-Name"). Falls back to the member name, which is what
+// Smithy does for a trait with no argument.
+func traitString(raw json.RawMessage, fallback string) string {
+	var s string
+	if len(raw) == 0 || json.Unmarshal(raw, &s) != nil || s == "" {
+		return fallback
+	}
+	return s
 }
