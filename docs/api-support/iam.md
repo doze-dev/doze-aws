@@ -141,3 +141,50 @@ same default-version and delete-guard rules as AWS.
 
 - [../cloudformation.md](../cloudformation.md) — deploying with the AWS CLI, SAM, CDK or Serverless.
 - [cli.md](../cli.md) — the `--iam-mode` flag.
+
+## Input validation
+
+Separate from the tiers above. A tier says the operation is implemented; this
+says whether doze-aws **refuses what IAM refuses**.
+
+**702/702 model-derived constraints enforced across 89 of the 93 dispatched
+operations, with `knownGaps` empty.** Removing the constraint table makes 319 of
+those 702 cases slip through, so it is doing work the hand-written checks were
+not.
+
+Of the four with no cases, `GetAccountSummary` and `GetAccountPasswordPolicy`
+take no constrained input, and `DozeAccessLog` and `DozeGeneratePolicy` are
+doze-aws's own additions — they are not in AWS's model, so the model has nothing
+to say about them.
+
+Generated with `dzaudit cases iam`, committed to `testdata/cases_iam.json`, and
+replayed case by case in `rejection_parity_test.go` from a baseline the test
+first proves the service accepts. IAM speaks the Query protocol, so the harness
+builds the nested shape the model's paths describe and flattens it into form
+keys on the way out.
+
+### Nearly every operation needs its own resource
+
+This is the widest audit here, and almost all of the harness is `prepare`. IAM
+is a graph of named things that reference each other, and most of its operations
+either create a name that must not already exist or consume one that must:
+
+- A group `DeleteGroup` deletes is a group the next `DeleteGroup` case cannot.
+- `UpdateUser` and `UpdateGroup` **rename**, so the old name is gone afterwards.
+- A user is capped at two access keys and a managed policy at five versions, so
+  `CreateAccessKey` and `CreatePolicyVersion` exhaust a shared fixture within a
+  handful of cases.
+- An instance profile holds at most one role.
+- Every `Untag*` needs a tag to be there, and takes it.
+
+Operations also run in alphabetical order, which is nothing like the order that
+would make them work. So rather than one fixture that erodes as the suite runs,
+each mutating case builds and addresses its own resource — and where the case is
+*about* the field `prepare` would set, `prepare` leaves it alone, or the harness
+would overwrite the violating value with a valid one and the case would prove
+nothing.
+
+Two names are read back from the response rather than recomputed in the test:
+the access key id, and the role name `CreateServiceLinkedRole` generates. A test
+that re-derives the service's own naming rule cannot catch that rule being
+wrong.
