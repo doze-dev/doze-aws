@@ -57,6 +57,7 @@ func (c *Console) trafficEntry(w http.ResponseWriter, r *http.Request) {
 		"E": e, "Req": req, "Resp": resp,
 		"Millis": strconv.FormatFloat(e.Millis, 'f', -1, 64),
 		"Time":   e.At.Local().Format("15:04:05.000"),
+		"State":  callState(e.Status, e.Failure()),
 	})
 }
 
@@ -77,6 +78,10 @@ type trafficRow struct {
 	Status   int
 	Millis   string
 	IsErr    bool
+	// State is which of the four outcomes this call had: served, refused,
+	// denied or error. IsErr survives beside it because the "errors only"
+	// filter is a single boolean and does not care which kind.
+	State    string
 	Body     string
 	Curl     string
 	Seq      int64
@@ -150,12 +155,34 @@ func (c *Console) trafficEntries(since int64) []trafficRow {
 }
 
 func rowOf(e TrafficEntry, depth int) trafficRow {
+	ref := e.Failure()
 	return trafficRow{
 		Time:    e.At.Local().Format("15:04:05.000"),
 		Service: e.Service, Action: e.Action, Resource: e.Resource,
 		Status: e.Status, Millis: strconv.FormatFloat(e.Millis, 'f', -1, 64),
 		IsErr: e.Status >= 400, Body: e.ReqBody, Curl: e.Curl(), Seq: e.Seq,
-		Refused: e.Failure(),
+		Refused: ref, State: callState(e.Status, ref),
 		Depth:   depth, Cascade: e.IsCascade(), Via: e.Via,
 	}
+}
+
+// callState separates the three ways a call fails to be served. They are
+// genuinely different events and they send you to different places: a REFUSAL
+// means the request was malformed and the constraint that caught it is named on
+// the row; a DENIAL means the request was fine and a policy said no; an ERROR
+// means doze-aws itself broke, which is a bug here rather than in the caller.
+func callState(status int, ref *Refusal) string {
+	switch {
+	case status >= 500:
+		return "error"
+	case status == 403:
+		return "denied"
+	case ref != nil && (strings.Contains(ref.Code, "AccessDenied") ||
+		strings.Contains(ref.Code, "NotAuthorized") ||
+		strings.Contains(ref.Code, "AuthorizationError")):
+		return "denied"
+	case status >= 400:
+		return "refused"
+	}
+	return "served"
 }

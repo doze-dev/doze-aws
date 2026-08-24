@@ -18,6 +18,19 @@
    picks explicitly — so "system" is the ABSENCE of the attribute, and costs no
    script once cleared. No build step. */
 
+/* InterVariable has been embedded and cache-headered since the beginning, and
+   "InterVar" is named below — but there was no @font-face rule anywhere in the
+   repo, so the console has always fallen back to system-ui while carrying 352KB
+   of dead weight in a binary whose pitch is "~15 MB at rest". This is that rule.
+   (The font-weight: 550 further down is the second tell: 550 only resolves
+   against a variable font.) */
+@font-face {
+  font-family: "InterVar";
+  src: url("InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root {
   /* chrome — Carbon */
   --background: #f5f5f5;
@@ -35,6 +48,7 @@
   --destructive-foreground: #ffffff;
   --success: #1a7f4b;
   --warning: #8a5200;
+  --denied: #6b3fa0;
   --border: #dddddd;
   --input: #d2d2d2;
   --ring: #202020;
@@ -95,6 +109,7 @@
     --destructive-foreground: #141414;
     --success: #35b06e;
     --warning: #f5ce4b;
+    --denied: #b482e4;
     --border: #333333;
     --input: #3d3d3d;
     --ring: #f0f0f0;
@@ -142,7 +157,7 @@
   --primary: #202020; --primary-foreground: #ffffff;
   --secondary: #e4e4e4; --secondary-foreground: #202020; --accent: #202020;
   --destructive: #c0281c; --destructive-foreground: #ffffff;
-  --success: #1a7f4b; --warning: #8a5200;
+  --success: #1a7f4b; --warning: #8a5200; --denied: #6b3fa0;
   --border: #dddddd; --input: #d2d2d2; --ring: #202020;
   --svc-s3: #12a05f;
   --svc-ssm: #5ea60c;
@@ -186,7 +201,7 @@
   --primary: #f0f0f0; --primary-foreground: #141414;
   --secondary: #2e2e2e; --secondary-foreground: #f0f0f0; --accent: #f0f0f0;
   --destructive: #e4695c; --destructive-foreground: #141414;
-  --success: #35b06e; --warning: #f5ce4b;
+  --success: #35b06e; --warning: #f5ce4b; --denied: #b482e4;
   --border: #333333; --input: #3d3d3d; --ring: #f0f0f0;
   --svc-s3: #2fd68a;
   --svc-ssm: #96e03a;
@@ -1236,3 +1251,20 @@ a.lo-card:hover { border-color: var(--accent); }
 .tr-row.tr-child { background: color-mix(in srgb, var(--muted) 45%, transparent); }
 .tr-row.tr-child .act { color: var(--muted-foreground); }
 .tr-branch { color: var(--muted-foreground); margin-right: 4px; opacity: .7; }
+
+
+/* The wire tells three failures apart, because doze-aws can. A REFUSAL is an
+   input constraint from AWS's own service model deciding; a DENIAL is an IAM
+   statement deciding; an ERROR is the emulator itself breaking. Every cloud
+   console paints all three the same red, which is why "it went red" tells you
+   nothing about where to look. */
+.tr-row.refused { background: color-mix(in srgb, var(--warning) 9%, var(--card)); }
+.tr-row.denied  { background: color-mix(in srgb, var(--denied) 9%, var(--card)); }
+.tr-row.error   { background: color-mix(in srgb, var(--destructive) 9%, var(--card)); }
+.st.served  { color: var(--success); }
+.st.refused { color: var(--warning); }
+.st.denied  { color: var(--denied); }
+.st.error   { color: var(--destructive); }
+.tr-row.refused .tr-why { color: var(--warning); }
+.tr-row.denied  .tr-why { color: var(--denied); }
+.tr-row.error   .tr-why { color: var(--destructive); }

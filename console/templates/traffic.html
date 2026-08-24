@@ -37,14 +37,14 @@
   {{if .Entries}}
   {{range .Entries}}
   <div x-data x-show="(!errOnly || {{if .IsErr}}true{{else}}false{{end}}) && (svc==='' || svc==='{{.Service}}')">
-    <div class="tr-row {{if .IsErr}}errrow{{end}}{{if .Cascade}} tr-child{{end}}" data-depth="{{.Depth}}" :class="sel==={{.Seq}} && 'sel'"
+    <div class="tr-row {{if .IsErr}}{{.State}}{{end}}{{if .Cascade}} tr-child{{end}}" data-depth="{{.Depth}}" :class="sel==={{.Seq}} && 'sel'"
          hx-get="{{$.Prefix}}/traffic/entry?seq={{.Seq}}" hx-target="#t-drawer-inner" hx-select="unset" hx-swap="innerHTML"
          @click="sel = (sel==={{.Seq}} ? null : {{.Seq}})">
       <span class="ts">{{.Time}}</span>
       <span class="svcb" style="color:var(--svc-{{.Service}});padding-left:{{mul .Depth 14}}px">{{if .Cascade}}<span class="tr-branch" title="caused by the call above">└</span>{{end}}{{.Service}}</span>
       <span class="act">{{.Action}}</span>
       <span class="res" title="{{.Resource}}">{{.Resource}}</span>
-      <span class="st {{if .IsErr}}err{{else}}ok{{end}}">{{.Status}}</span>
+      <span class="st {{.State}}">{{.Status}}</span>
       <span class="tr-why">{{with .Refused}}<span title="{{.Message}}">{{.Code}}</span>{{end}}</span>
       <span class="dur">{{.Millis}}ms</span>
       <button class="copy-btn tr-curl" data-copy="{{.Curl}}" title="Copy as curl — replay this call (secrets stay masked)" @click.stop>{{icon "copy"}}</button>
@@ -67,9 +67,15 @@
 <div class="td-meta"><span class="{{if ge .E.Status 400}}err{{else}}ok{{end}}">{{.E.Status}}</span> · {{.Millis}}ms · {{.Time}}</div>
 {{with .E.Failure}}
 <div class="td-sec td-refused">
-  <div class="td-k">Refused · {{.Code}}</div>
+  <div class="td-k">{{if eq $.State "denied"}}Denied{{else if eq $.State "error"}}Failed{{else}}Refused{{end}} · {{.Code}}</div>
   <p class="td-why">{{.Message}}</p>
+  {{if eq $.State "denied"}}
+  <p class="mini-note">A policy decided this, not the input. The request was well-formed; IAM evaluated it and said no — so the fix is the policy, not the call.</p>
+  {{else if eq $.State "error"}}
+  <p class="mini-note">This one is doze-aws failing, not refusing. A 5xx here is a bug in the emulator rather than in the caller, and is worth reporting.</p>
+  {{else}}
   <p class="mini-note">doze-aws refuses this because AWS does. The rule comes from AWS's own service model, so a call that fails here would have failed on deploy.</p>
+  {{end}}
 </div>
 {{end}}
 <div class="td-sec">
