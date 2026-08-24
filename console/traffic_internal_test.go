@@ -108,7 +108,7 @@ func TestClassifyUsesGatewayRouting(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		svc, act, res := classify(c.req, c.body)
+		svc, act, res := classify(c.req, c.body, nil)
 		if svc != c.wantSvc {
 			t.Errorf("%s: service = %q, want %q", c.name, svc, c.wantSvc)
 		}

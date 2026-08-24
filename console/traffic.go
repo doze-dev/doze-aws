@@ -22,11 +22,42 @@ import (
 type Recorder struct {
 	next  http.Handler
 	runID string
+	ops   OpResolver
 	mu    sync.Mutex
 	buf   []TrafficEntry
 	head  int
 	seq   int64
 	full  bool
+}
+
+// OpResolver names the AWS operation a request addresses, keyed by the
+// console's service label. Three services route by PATH rather than by an
+// X-Amz-Target header or an Action parameter, so their operation cannot be read
+// off the request without the service's own route table: S3, Lambda and API
+// Gateway.
+//
+// It is injected rather than imported because the console must stay free of the
+// service packages — it runs as a separate process over unix sockets in the
+// module topology, where those packages are not linked in at all. Without a
+// resolver the classifier falls back to the old method-mapped guess, which is
+// wrong but never worse than before.
+type OpResolver map[string]func(*http.Request) string
+
+// SetOpResolver installs the per-service operation resolvers. Call it before
+// serving; it is not safe to change once traffic is flowing.
+func (rec *Recorder) SetOpResolver(ops OpResolver) { rec.ops = ops }
+
+// op resolves the operation name for a path-routed service, or "" when there is
+// no resolver or the request matches no route.
+func (rec *Recorder) op(svc string, r *http.Request) string {
+	if rec == nil || rec.ops == nil {
+		return ""
+	}
+	f, ok := rec.ops[svc]
+	if !ok || f == nil {
+		return ""
+	}
+	return f(r)
 }
 
 // TrafficEntry is one recorded call.
@@ -107,7 +138,7 @@ func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			r.Body = io.NopCloser(strings.NewReader(string(b)))
 		}
 	}
-	svc, action, resource := classify(r, body)
+	svc, action, resource := classify(r, body, rec)
 	sw := &statusWriter{ResponseWriter: w, code: 200}
 	start := time.Now()
 
@@ -303,7 +334,7 @@ func labelFor(r *http.Request) string {
 
 // classify infers (service, action, resource) from a request. The SERVICE comes
 // from the gateway; only the action and resource are console-specific.
-func classify(r *http.Request, capturedBody string) (svc, action, resource string) {
+func classify(r *http.Request, capturedBody string, rec *Recorder) (svc, action, resource string) {
 	svc = labelFor(r)
 
 	if t := r.Header.Get("X-Amz-Target"); t != "" {
@@ -314,13 +345,22 @@ func classify(r *http.Request, capturedBody string) (svc, action, resource strin
 	// api is the one shape worth naming precisely, since that is what a
 	// developer is usually watching for.
 	if svc == "apigw" {
+		if op := rec.op(svc, r); op != "" {
+			return svc, op, apigwResource(r)
+		}
 		return svc, apigwAction(r), apigwResource(r)
 	}
 	// Lambda REST paths.
 	if strings.HasPrefix(r.URL.Path, "/2015-03-31/") {
 		parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-		act := "Invoke"
 		res := ""
+		if len(parts) >= 3 && parts[1] == "functions" {
+			res = parts[2]
+		}
+		if op := rec.op("lambda", r); op != "" {
+			return "lambda", op, res
+		}
+		act := "Invoke"
 		if len(parts) >= 3 && parts[1] == "functions" {
 			res = parts[2]
 			if r.Method == "DELETE" {
@@ -354,7 +394,14 @@ func classify(r *http.Request, capturedBody string) (svc, action, resource strin
 	// S3: path-style /bucket/key. Only reached when the gateway itself routed
 	// here, so an unrecognised path can no longer masquerade as an object GET.
 	p := strings.TrimPrefix(r.URL.Path, "/")
-	act := map[string]string{"GET": "GetObject", "PUT": "PutObject", "DELETE": "DeleteObject", "HEAD": "HeadObject", "POST": "PostObject"}[r.Method]
+	// The route table first: it is what the validator uses to decide which
+	// operation this IS, and a wire that disagrees with the validator is a wire
+	// that lies. The method map below is the fallback for topologies with no
+	// resolver injected, and for requests that match no route at all.
+	act := rec.op("s3", r)
+	if act == "" {
+		act = map[string]string{"GET": "GetObject", "PUT": "PutObject", "DELETE": "DeleteObject", "HEAD": "HeadObject", "POST": "PostObject"}[r.Method]
+	}
 	if act == "" {
 		act = r.Method
 	}

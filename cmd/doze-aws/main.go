@@ -222,6 +222,12 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		// console reads it for the Traffic tail but drives its own calls
 		// through the RAW gateway so they never appear there.
 		rec := console.NewRecorder(stack.Handler())
+		// S3, Lambda and API Gateway name their operation by PATH. Without these
+		// the wire falls back to mapping the HTTP method, which collapses all 64
+		// S3 operations onto five strings — GetBucketVersioning shown as
+		// GetObject. These are the same route tables the validators use, so the
+		// wire and the validator name an operation identically.
+		rec.SetOpResolver(dozeaws.OperationResolvers())
 		// Pollers have no request behind them, so they are handed the recorder
 		// directly — it is how a queued message's cause reaches the wire.
 		stack.SetTraceSink(rec)

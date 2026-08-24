@@ -258,3 +258,23 @@ func (s *Stack) Close() error {
 	s.closers = nil
 	return firstErr
 }
+
+// OperationResolvers maps each path-routed service onto the function that names
+// the AWS operation a request addresses.
+//
+// S3, Lambda and API Gateway carry their operation in the PATH rather than in an
+// X-Amz-Target header or an Action parameter, so naming one means consulting
+// that service's own route table. This hands those tables to a consumer that
+// must not import the service packages — the console, which in the module
+// topology runs as a separate process over unix sockets.
+//
+// Returning it from here rather than from the console keeps the dependency
+// pointing the right way: this package already imports every service, and the
+// console imports none of them.
+func OperationResolvers() map[string]func(*http.Request) string {
+	return map[string]func(*http.Request) string{
+		"s3":     s3.OperationFor,
+		"lambda": lambda.OperationFor,
+		"apigw":  apigateway.OperationFor,
+	}
+}

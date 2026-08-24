@@ -134,3 +134,14 @@ func routeFor(op string) route {
 	}
 	return route{}
 }
+
+// OperationFor reports the Lambda operation a request addresses, or "" when no
+// route matches. Exported for the console's traffic classifier — see the note
+// on s3.OperationFor.
+func OperationFor(r *http.Request) string {
+	op, _, ok := matchRoute(r.Method, r.URL.Path)
+	if !ok {
+		return ""
+	}
+	return op
+}

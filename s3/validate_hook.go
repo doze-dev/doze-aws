@@ -396,3 +396,20 @@ func memberFor(tag, path string, rt route) string {
 	}
 	return tag
 }
+
+// OperationFor reports the S3 operation a request addresses, or "" when no
+// route matches.
+//
+// Exported for the console's traffic classifier, which otherwise names S3
+// operations by mapping the HTTP method — collapsing all 64 of them onto five
+// strings, so GetBucketVersioning is displayed as GetObject. The route table is
+// already the source of truth for which operation a request IS (the validator
+// picks the constraint set with it), and a wire that names it differently from
+// the validator is a wire that lies about what happened.
+func OperationFor(r *http.Request) string {
+	rt, _, ok := matchRoute(r.Method, r.URL.Path, r.URL.Query(), r.Header)
+	if !ok {
+		return ""
+	}
+	return rt.Op
+}
