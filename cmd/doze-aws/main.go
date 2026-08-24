@@ -241,27 +241,12 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		if err != nil {
 			return err
 		}
-		// The second console: same backend, same recorder, its own prefix. It is a
-		// parallel surface for evaluating the redesign against real traffic, not a
-		// replacement — both are mounted so they can be compared side by side on
-		// identical state.
-		nxt, err := console.NewNext(console.Options{
-			Peers:    peers.InProcess(stack.Service),
-			Recorder: rec,
-			Prefix:   "/_next",
-		})
-		if err != nil {
-			return err
-		}
 		mux := http.NewServeMux()
 		mux.Handle("/_console/", con)
 		mux.Handle("/_console", http.RedirectHandler("/_console/", http.StatusFound))
-		mux.Handle("/_next/", nxt)
-		mux.Handle("/_next", http.RedirectHandler("/_next/", http.StatusFound))
 		mux.Handle("/", rec)
 		handler = mux
 		logger.Info("console", "url", "http://"+ln.Addr().String()+"/_console/")
-		logger.Info("console (next)", "url", "http://"+ln.Addr().String()+"/_next/")
 	}
 
 	srv := &http.Server{Handler: handler}
