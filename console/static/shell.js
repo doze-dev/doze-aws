@@ -366,5 +366,65 @@
     });
   }, 1000);
 
+  // ---------- slow-request bar ----------
+  // The button spinner answers "did my click land". It does not answer "is this
+  // still going" for the two operations slow enough to read as a hang: a
+  // DynamoDB scan and an SQS redrive. 300ms is the threshold because anything
+  // faster reads as a flash of chrome rather than as progress.
+  var reqBar = null, reqTimer = null, reqDepth = 0;
+  function bar() {
+    if (!reqBar) {
+      reqBar = document.createElement("div");
+      reqBar.className = "reqbar";
+      document.body.appendChild(reqBar);
+    }
+    return reqBar;
+  }
+  document.addEventListener("htmx:beforeRequest", function (e) {
+    if ((e.detail.requestConfig || {}).verb === "get") return;
+    reqDepth++;
+    if (reqTimer) return;
+    reqTimer = setTimeout(function () { bar().classList.add("on"); }, 300);
+  });
+  document.addEventListener("htmx:afterRequest", function (e) {
+    if ((e.detail.requestConfig || {}).verb === "get") return;
+    if (--reqDepth > 0) return;
+    reqDepth = 0;
+    clearTimeout(reqTimer); reqTimer = null;
+    if (reqBar) reqBar.classList.remove("on");
+  });
+
+  // ---------- double-submit guard ----------
+  // htmx:beforeSend, NOT beforeRequest: the payload is serialized between the
+  // two, and a control disabled before serialization drops out of the body.
+  //
+  // hx-disabled-elt="this" is not usable here — it is inheritable, but "this"
+  // resolves to the ancestor CARRYING the attribute, not to the actuator, so a
+  // body-level declaration would disable the wrapper and leave the button live.
+  function submitControls(elt) {
+    if (!elt || !elt.tagName) return [];
+    if (elt.tagName === "BUTTON" || elt.tagName === "INPUT") return [elt];
+    return Array.prototype.slice.call(
+      elt.querySelectorAll('button[type="submit"], button:not([type]), input[type="submit"]'));
+  }
+  document.addEventListener("htmx:beforeSend", function (e) {
+    if ((e.detail.requestConfig || {}).verb === "get") return;
+    var elt = e.detail.elt;
+    var ctrls = submitControls(elt).filter(function (c) { return !c.disabled; });
+    if (!ctrls.length) return;
+    ctrls.forEach(function (c) { c.disabled = true; });
+    elt._dozeLocked = ctrls;
+  });
+  function unlock(e) {
+    var elt = e.detail && e.detail.elt;
+    if (!elt || !elt._dozeLocked) return;
+    // Guard against a swap having replaced the button underneath us.
+    elt._dozeLocked.forEach(function (c) { if (document.contains(c)) c.disabled = false; });
+    elt._dozeLocked = null;
+  }
+  document.addEventListener("htmx:afterRequest", unlock);
+  document.addEventListener("htmx:sendError", unlock);
+  document.addEventListener("htmx:timeout", unlock);
+
   window.dozeShell = { toast: toast, openPalette: openPalette };
 })();

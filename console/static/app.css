@@ -632,6 +632,50 @@ h1 .aws-ic, .idband .aws-ic { width: 30px; height: 30px; border-radius: var(--ra
 .htmx-indicator { opacity: 0; transition: opacity .15s; font-size: 12px; }
 .htmx-request .htmx-indicator, .htmx-request.htmx-indicator { opacity: 1; }
 
+/* Loading feedback, everywhere, without touching a template.
+
+   htmx sets .htmx-request on the ELEMENT THAT TRIGGERED the request whenever no
+   hx-indicator names a different target — and for a form submit that element is
+   the <form>. So a button spinner is reachable from CSS alone, which is the only
+   reason this covers ~107 mutations instead of the 11 that had an indicator.
+
+   The 11 existing hx-indicator sites still win: naming a target opts the
+   actuator out of the default, so create.html's shared #submit-spin is
+   untouched. */
+button.htmx-request, .icon-btn.htmx-request,
+form.htmx-request button[type="submit"] {
+  color: transparent !important;
+  position: relative;
+  pointer-events: none;
+}
+button.htmx-request::after, .icon-btn.htmx-request::after,
+form.htmx-request button[type="submit"]::after {
+  content: ""; position: absolute; inset: 0; margin: auto;
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: var(--foreground);
+  animation: spin .6s linear infinite;
+}
+button.htmx-request::after, form.htmx-request button[type="submit"]::after { color: var(--primary-foreground); }
+.btn-outline.htmx-request::after, .icon-btn.htmx-request::after { border-top-color: var(--foreground); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* A request slow enough to read as a hang gets a second signal. shell.js only
+   shows this after 300ms, so the common fast mutation never flashes it. */
+.reqbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 60;
+  background: var(--accent); transform: scaleX(0); transform-origin: 0 50%;
+  opacity: 0; pointer-events: none;
+}
+.reqbar.on { opacity: 1; animation: reqbar 8s cubic-bezier(.15,.85,.3,1) forwards; }
+@keyframes reqbar { 0% { transform: scaleX(0); } 60% { transform: scaleX(.85); } 100% { transform: scaleX(.97); } }
+
+@media (prefers-reduced-motion: reduce) {
+  button.htmx-request::after, .icon-btn.htmx-request::after,
+  form.htmx-request button[type="submit"]::after { animation: none; border-top-color: currentColor; opacity: .6; }
+  .reqbar.on { animation: none; transform: scaleX(.5); }
+}
+
 /* ---------- S3 dropzone ---------- */
 .dropwrap { position: relative; min-height: 200px; }
 .dropzone {
