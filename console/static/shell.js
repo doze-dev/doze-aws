@@ -77,7 +77,9 @@
     fetch(PREFIX + "/api/counts").then(function (r) { return r.json(); }).then(function (counts) {
       document.querySelectorAll(".rail [data-ct]").forEach(function (el) {
         var n = counts[el.getAttribute("data-ct")];
-        el.textContent = n == null ? "" : String(n);
+        // A zero renders as nothing. Thirteen grey zeros on a fresh stack say
+        // "empty" thirteen times; blank says "here is what you have".
+        el.textContent = n ? String(n) : "";
       });
     }).catch(function () {});
   }

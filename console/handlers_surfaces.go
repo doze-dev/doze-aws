@@ -10,9 +10,86 @@ import (
 // ---- Traffic ----
 
 func (c *Console) traffic(w http.ResponseWriter, r *http.Request) {
+	// The wire is registered as a SUBTREE ("GET {prefix}/"), so without this
+	// check every mistyped or stale URL under the console silently rendered the
+	// home page with "The wire" lit in the rail — the console answering "where
+	// am I" with a confident lie. Anything that is not the wire's own path is a
+	// miss, and says so.
+	if p := strings.TrimSuffix(r.URL.Path, "/"); p != strings.TrimSuffix(c.prefix, "/") && p != c.prefix+"/traffic" {
+		c.notFound(w, r)
+		return
+	}
 	c.render(w, r, "traffic", map[string]any{
 		"Entries": c.trafficEntries(0), "Enabled": c.rec != nil, "Title": "Traffic",
 	})
+}
+
+// notFound renders a miss at 404, with the closest real section guessed from
+// the path. A stale bookmark is the common cause, so naming a destination beats
+// naming the failure.
+func (c *Console) notFound(w http.ResponseWriter, r *http.Request) {
+	miss := strings.TrimPrefix(r.URL.Path, c.prefix)
+	seg := strings.Trim(miss, "/")
+	if i := strings.Index(seg, "/"); i > 0 {
+		seg = seg[:i]
+	}
+	guess, guessName := c.guessSection(seg)
+	w.WriteHeader(http.StatusNotFound)
+	c.render(w, r, "notfound", map[string]any{
+		"Title": "Not found", "Miss": miss, "Guess": guess, "GuessName": guessName,
+	})
+}
+
+// guessSection turns a missed path segment into a destination. It matches three
+// ways, in order: the section key, a common noun for what the section holds, and
+// a shared prefix — which is what catches an ordinary typo like /lamda.
+func (c *Console) guessSection(seg string) (url, name string) {
+	seg = strings.ToLower(seg)
+	if seg == "" {
+		return "", ""
+	}
+	if key, ok := sectionNouns[strings.TrimSuffix(seg, "s")]; ok {
+		for _, s := range railSections {
+			if s.Key == key {
+				return c.prefix + "/" + s.Key, s.Name
+			}
+		}
+	}
+	for _, s := range railSections {
+		if s.Key == seg {
+			return c.prefix + "/" + s.Key, s.Name
+		}
+	}
+	if len(seg) >= 3 {
+		for _, s := range railSections {
+			if strings.HasPrefix(s.Key, seg[:3]) || strings.HasPrefix(strings.ToLower(s.Name), seg[:3]) {
+				return c.prefix + "/" + s.Key, s.Name
+			}
+		}
+	}
+	return "", ""
+}
+
+// sectionNouns maps what a person calls the thing onto the service that holds
+// it. Someone who lands on /queues was not guessing at a service name.
+var sectionNouns = map[string]string{
+	"queue": "sqs", "topic": "sns", "subscription": "sns",
+	"bucket": "s3", "object": "s3", "table": "ddb", "item": "ddb",
+	"function": "lambda", "fn": "lambda", "stream": "kinesis", "shard": "kinesis",
+	"rule": "eb", "bus": "eb", "event": "eb",
+	"secret": "sm", "parameter": "ssm", "param": "ssm", "key": "kms",
+	"stack": "cfn", "api": "apigw", "route": "apigw",
+	"role": "iam", "user": "iam", "policy": "iam", "principal": "iam",
+}
+
+// railSections is the console's own list of destinations, used to turn a miss
+// into a suggestion. Ordered as the rail is.
+var railSections = []struct{ Key, Name string }{
+	{"s3", "S3"}, {"ddb", "DynamoDB"},
+	{"sqs", "SQS"}, {"sns", "SNS"}, {"eb", "EventBridge"}, {"kinesis", "Kinesis"},
+	{"lambda", "Lambda"}, {"apigw", "API Gateway"},
+	{"kms", "KMS"}, {"sm", "Secrets Manager"}, {"ssm", "Parameter Store"},
+	{"iam", "IAM"}, {"cfn", "CloudFormation"}, {"connect", "Connect"},
 }
 
 func (c *Console) trafficFeed(w http.ResponseWriter, r *http.Request) {

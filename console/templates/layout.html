@@ -52,27 +52,41 @@ return"= "+p.join(" ");};</script>
 
   <div class="body">
     <nav class="rail" hx-boost="true" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML">
-      <div class="rgroup">Observe</div>
+      {{/* Grouped by what you are doing, not by AWS's product taxonomy.
+           "Provisioning" was a heading from the docs holding three services, only
+           one of which provisions anything: API Gateway is a traffic surface with
+           an Invoke tab and no create form, and /iam lands on the access log, which
+           is a debugging surface wearing the same glyph as the wire. Remove those
+           two and the group had one member left, which is what a leftovers bin
+           looks like.
+
+           The first block has no heading on purpose. The wire and Connect are not
+           resources, and Connect is the one page a new user needs — it was filed
+           under Observe, which is where you look at what happened, not where you
+           learn how to point an SDK at it. */}}
       {{template "ri" dict "P" .Prefix "URL" "/" "On" (eq .Page "traffic") "Name" "The wire" "Glyph" "activity"}}
       {{template "ri" dict "P" .Prefix "URL" "/connect" "On" (eq .Page "connect") "Name" "Connect" "Glyph" "terminal"}}
       <div class="rgroup">Storage &amp; data</div>
       {{template "ri" dict "P" .Prefix "URL" "/s3" "On" (hasPrefix .Page "s3") "Name" "S3" "Svc" "s3"}}
       {{template "ri" dict "P" .Prefix "URL" "/ddb" "On" (hasPrefix .Page "ddb") "Name" "DynamoDB" "Svc" "ddb"}}
-      <div class="rgroup">Messaging &amp; events</div>
+      <div class="rgroup">Messaging</div>
       {{template "ri" dict "P" .Prefix "URL" "/sqs" "On" (hasPrefix .Page "sqs") "Name" "SQS" "Svc" "sqs"}}
       {{template "ri" dict "P" .Prefix "URL" "/sns" "On" (hasPrefix .Page "sns") "Name" "SNS" "Svc" "sns"}}
       {{template "ri" dict "P" .Prefix "URL" "/eb" "On" (hasPrefix .Page "eb") "Name" "EventBridge" "Svc" "eb"}}
       {{template "ri" dict "P" .Prefix "URL" "/kinesis" "On" (hasPrefix .Page "kinesis") "Name" "Kinesis" "Svc" "kinesis"}}
-      <div class="rgroup">Compute</div>
+      <div class="rgroup">Compute &amp; APIs</div>
       {{template "ri" dict "P" .Prefix "URL" "/lambda" "On" (hasPrefix .Page "lambda") "Name" "Lambda" "Svc" "lambda"}}
-      <div class="rgroup">Provisioning</div>
-      {{template "ri" dict "P" .Prefix "URL" "/cfn" "On" (hasPrefix .Page "cfn") "Name" "CloudFormation" "Svc" "cfn"}}
       {{template "ri" dict "P" .Prefix "URL" "/apigw" "On" (hasPrefix .Page "apigw") "Name" "API Gateway" "Svc" "apigw"}}
-      {{template "ri" dict "P" .Prefix "URL" "/iam" "On" (hasPrefix .Page "iam") "Name" "IAM" "Svc" "iam"}}
       <div class="rgroup">Config &amp; secrets</div>
       {{template "ri" dict "P" .Prefix "URL" "/kms" "On" (hasPrefix .Page "kms") "Name" "KMS" "Svc" "kms"}}
       {{template "ri" dict "P" .Prefix "URL" "/sm" "On" (and (hasPrefix .Page "sm") (not (hasPrefix .Page "sms"))) "Name" "Secrets Manager" "Svc" "sm"}}
       {{template "ri" dict "P" .Prefix "URL" "/ssm" "On" (hasPrefix .Page "ssm") "Name" "Parameter Store" "Svc" "ssm"}}
+      {{/* Facts about the whole stack rather than about one resource: what is
+           allowed here, and what was deployed here. Both read-mostly, neither
+           populated by hand. */}}
+      <div class="rgroup">Stack-wide</div>
+      {{template "ri" dict "P" .Prefix "URL" "/iam" "On" (hasPrefix .Page "iam") "Name" "IAM" "Svc" "iam"}}
+      {{template "ri" dict "P" .Prefix "URL" "/cfn" "On" (hasPrefix .Page "cfn") "Name" "CloudFormation" "Svc" "cfn"}}
       <button type="button" class="rail-toggle" id="rail-toggle" title="Collapse / expand ([)">
         <span class="rt-ic">{{icon "chevron"}}</span><span class="ri-nm">Collapse</span>
       </button>
@@ -167,3 +181,17 @@ return"= "+p.join(" ");};</script>
   </div>
 </section>
 {{end}}
+
+{{define "notfound"}}{{template "shell_top" .}}
+<section class="detail">
+  <div class="det-h"><div><h1 class="det-title">Not found</h1>
+    <p class="det-sub">Nothing is served at <span class="mono">{{.Miss}}</span>.</p></div></div>
+  <div class="det-b">
+    <div class="empty">
+      <b>That address does not exist.</b>
+      {{if .Guess}}Did you mean <a href="{{.Guess}}">{{.GuessName}}</a>?<br>{{end}}
+      Press <span class="kbd">⌘K</span> to jump to anything, or go back to <a href="{{.Prefix}}/">the wire</a>.
+    </div>
+  </div>
+</section>
+{{template "shell_bottom" .}}{{end}}
