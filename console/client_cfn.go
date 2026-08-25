@@ -211,33 +211,42 @@ func (b *backend) StackResources(ctx context.Context, name string) ([]StackResou
 // resourceLink maps a CloudFormation resource type to the console page for the
 // thing it created. A stack is most useful as a way into its resources, so a
 // row that can be followed is worth more than one that only names an id.
+// resourceLink turns a CloudFormation resource into a console link. The
+// CFN-type knowledge stays here — it is CloudFormation's vocabulary, not the
+// console's — but the path comes from the shared resolver, so a stack's
+// resource list gains every service the resolver knows and cannot drift from
+// the links the rest of the console renders.
 func resourceLink(cfnType, physicalID string) (svc, href string) {
 	if physicalID == "" {
 		return "", ""
 	}
-	switch cfnType {
-	case "AWS::S3::Bucket":
-		return "s3", "/s3/" + physicalID
-	case "AWS::DynamoDB::Table", "AWS::DynamoDB::GlobalTable":
-		return "ddb", "/ddb/" + physicalID
-	case "AWS::SQS::Queue":
-		return "sqs", "/sqs/" + lastSegment(physicalID)
-	case "AWS::SNS::Topic":
-		return "sns", "/sns/" + lastSegment(physicalID)
-	case "AWS::Kinesis::Stream":
-		return "kinesis", "/kinesis/" + physicalID
-	case "AWS::Lambda::Function", "AWS::Serverless::Function":
-		return "lambda", "/lambda/" + physicalID
-	case "AWS::KMS::Key":
-		return "kms", "/kms/" + physicalID
-	case "AWS::SecretsManager::Secret":
-		return "sm", "/sm/" + lastSegment(physicalID)
-	case "AWS::SSM::Parameter":
-		return "ssm", "/ssm/" + strings.TrimPrefix(physicalID, "/")
-	case "AWS::Events::EventBus":
-		return "eb", "/eb/" + lastSegment(physicalID)
+	key, ok := cfnTypeService[cfnType]
+	if !ok {
+		return "", ""
 	}
-	return "", ""
+	ref := resourceURL(key, physicalID)
+	return ref.Svc, ref.Path
+}
+
+var cfnTypeService = map[string]string{
+	"AWS::S3::Bucket":                  "s3",
+	"AWS::DynamoDB::Table":             "ddb",
+	"AWS::DynamoDB::GlobalTable":       "ddb",
+	"AWS::SQS::Queue":                  "sqs",
+	"AWS::SNS::Topic":                  "sns",
+	"AWS::Kinesis::Stream":             "kinesis",
+	"AWS::Lambda::Function":            "lambda",
+	"AWS::Serverless::Function":        "lambda",
+	"AWS::KMS::Key":                    "kms",
+	"AWS::SecretsManager::Secret":      "sm",
+	"AWS::SSM::Parameter":              "ssm",
+	"AWS::Events::EventBus":            "eb",
+	"AWS::Events::Rule":                "eb",
+	"AWS::ApiGateway::RestApi":         "apigw",
+	"AWS::Serverless::Api":             "apigw",
+	"AWS::IAM::Role":                   "iam",
+	"AWS::IAM::User":                   "iam",
+	"AWS::CloudFormation::Stack":       "cfn",
 }
 
 // lastSegment takes the resource name out of an ARN or queue URL.

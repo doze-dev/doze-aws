@@ -68,21 +68,17 @@ func nodeID(svc, name string) string { return svc + ":" + name }
 func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 	nodes := map[string]*FlowNode{}
 	var edges []FlowEdge
-	add := func(svc, name, sub string) string {
-		id := nodeID(svc, name)
-		if _, ok := nodes[id]; !ok {
-			nodes[id] = &FlowNode{ID: id, Svc: svc, Name: name, Sub: sub, URL: b.nodeURL(svc, name)}
+	// Nodes are keyed on the resolver's Key, not on the display name. That is
+	// what stops two buses each holding a rule called "orders" from collapsing
+	// into one node — which they did, and then linked to /eb/default/rule/orders
+	// regardless of which bus either lived on.
+	add := func(svc, id, sub string) string {
+		ref := resourceURL(svc, id)
+		nid := nodeID(svc, ref.Key)
+		if _, ok := nodes[nid]; !ok {
+			nodes[nid] = &FlowNode{ID: nid, Svc: svc, Name: ref.Name, Sub: sub, URL: ref.Path}
 		}
-		return id
-	}
-	nameFromARN := func(arn string) string {
-		if i := strings.LastIndex(arn, ":"); i >= 0 {
-			return arn[i+1:]
-		}
-		if i := strings.LastIndex(arn, "/"); i >= 0 {
-			return arn[i+1:]
-		}
-		return arn
+		return nid
 	}
 
 	// nodes: buckets, queues, topics, rules, functions
@@ -107,33 +103,43 @@ func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 	buses, _ := b.ListBuses(ctx)
 	for _, bus := range buses {
 		for _, rl := range bus.RuleList { // fetched once inside ListBuses
-			add("eb", rl.Name, "rule")
+			add("eb", bus.Name+"/"+rl.Name, "rule")
 		}
+	}
+	// Tables and streams are graph nodes now. They were left out, so a Lambda
+	// fed by either had no visible source and the resource pages had nothing to
+	// draw — a gap that read as "the console does not model this" when the
+	// emulator models it fully.
+	tables, _ := b.ListTables(ctx)
+	for _, t := range tables {
+		add("ddb", t.Name, plural(int(t.ItemCount), "item"))
+	}
+	streams, _ := b.ListStreams(ctx)
+	for _, st := range streams {
+		add("kinesis", st.Name, plural(st.Shards, "shard"))
 	}
 
 	// edges: SNS subscriptions (carried on the topics from ListTopics)
 	for _, t := range topics {
-		for _, s := range t.SubList {
-			to := edgeTargetNode(s.Protocol, s.Endpoint, nameFromARN)
+		for _, sub := range t.SubList {
+			to := ensureNode(nodes, resourceFromARN(sub.Endpoint))
 			if to == "" {
 				continue
 			}
-			from := nodeID("sns", t.Name)
-			ensureNode(nodes, to, b)
-			edges = append(edges, FlowEdge{From: from, To: to, Kind: "sub"})
+			edges = append(edges, FlowEdge{From: nodeID("sns", t.Name), To: to, Kind: "sub"})
 		}
 	}
 	// edges: EventBridge targets (rules carried on the buses; only the target
 	// list needs a follow-up call)
 	for _, bus := range buses {
 		for _, rl := range bus.RuleList {
+			ruleKey := resourceURL("eb", bus.Name+"/"+rl.Name).Key
 			for _, tg := range b.ruleTargets(ctx, bus.Name, rl.Name) {
-				to := edgeTargetNode(protoOfARN(tg.ARN), tg.ARN, nameFromARN)
+				to := ensureNode(nodes, resourceFromARN(tg.ARN))
 				if to == "" {
 					continue
 				}
-				ensureNode(nodes, to, b)
-				edges = append(edges, FlowEdge{From: nodeID("eb", rl.Name), To: to, Kind: "target"})
+				edges = append(edges, FlowEdge{From: nodeID("eb", ruleKey), To: to, Kind: "target"})
 			}
 		}
 	}
@@ -144,42 +150,39 @@ func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 			continue
 		}
 		for _, m := range full.Mappings {
-			src := nameFromARN(m.SourceARN)
-			if strings.Contains(m.SourceARN, ":sqs:") {
-				ensureNode(nodes, nodeID("sqs", src), b)
-				edges = append(edges, FlowEdge{From: nodeID("sqs", src), To: nodeID("lambda", f.Name), Kind: "esm"})
+			// This tested :sqs: only, so a Lambda fed by a DynamoDB stream or a
+			// Kinesis stream drew no edge and appeared in the wiring strip as
+			// nothing at all — even though lambda/extras.go validates and polls
+			// both. Kinesis's strip could therefore never populate, which read
+			// as a dead feature rather than a missing one.
+			if from := ensureNode(nodes, resourceFromARN(m.SourceARN)); from != "" {
+				edges = append(edges, FlowEdge{From: from, To: nodeID("lambda", f.Name), Kind: "esm"})
 			}
 		}
 		// lambda OUTGOING: DLQ + async success/failure destinations make it a
 		// source too (SQS / SNS / Lambda / EventBridge targets).
 		lamID := nodeID("lambda", f.Name)
-		if to := destNode(full.DLQ, nameFromARN); to != "" {
-			ensureNode(nodes, to, b)
-			edges = append(edges, FlowEdge{From: lamID, To: to, Kind: "dlq"})
-		}
-		if to := destNode(full.OnSuccess, nameFromARN); to != "" {
-			ensureNode(nodes, to, b)
-			edges = append(edges, FlowEdge{From: lamID, To: to, Kind: "dest"})
-		}
-		if to := destNode(full.OnFailure, nameFromARN); to != "" {
-			ensureNode(nodes, to, b)
-			edges = append(edges, FlowEdge{From: lamID, To: to, Kind: "dest"})
+		for _, d := range []struct {
+			arn, kind string
+		}{{full.DLQ, "dlq"}, {full.OnSuccess, "dest"}, {full.OnFailure, "dest"}} {
+			if to := ensureNode(nodes, resourceFromARN(d.arn)); to != "" {
+				edges = append(edges, FlowEdge{From: lamID, To: to, Kind: d.kind})
+			}
 		}
 	}
 	// edges: SQS redrive → DLQ (carried on the queues from ListQueues)
 	for _, q := range queues {
 		if q.DLQ != "" {
-			ensureNode(nodes, nodeID("sqs", q.DLQ), b)
-			edges = append(edges, FlowEdge{From: nodeID("sqs", q.Name), To: nodeID("sqs", q.DLQ), Kind: "redrive"})
+			to := ensureNode(nodes, resourceURL("sqs", q.DLQ))
+			edges = append(edges, FlowEdge{From: nodeID("sqs", q.Name), To: to, Kind: "redrive"})
 		}
 	}
 	// edges: S3 bucket notifications → SNS/SQS/Lambda
 	for _, bk := range buckets {
-		for _, e := range b.bucketNotifications(ctx, bk.Name, nameFromARN) {
-			ensureNode(nodes, e.To, b)
-			e.From = nodeID("s3", bk.Name)
-			e.Kind = "notify"
-			edges = append(edges, e)
+		for _, ref := range b.bucketNotifications(ctx, bk.Name) {
+			if to := ensureNode(nodes, ref); to != "" {
+				edges = append(edges, FlowEdge{From: nodeID("s3", bk.Name), To: to, Kind: "notify"})
+			}
 		}
 	}
 
@@ -538,28 +541,26 @@ func (b *backend) Neighbors(ctx context.Context, svc, name string) Neighborhood 
 	return nb
 }
 
-func (b *backend) nodeURL(svc, name string) string {
-	switch svc {
-	case "s3":
-		return "/s3/" + name
-	case "sqs":
-		return "/sqs/" + name
-	case "sns":
-		return "/sns/" + name
-	case "lambda":
-		return "/lambda/" + name
-	case "eb":
-		return "/eb/default/rule/" + name
-	}
-	return "/"
-}
+// nodeURL is the resolver, kept as a method so existing callers read the same.
+// It used to hardcode /eb/default/rule/ — so a rule on any other bus linked to a
+// page that does not exist — and returned "/" for anything it did not know,
+// which sent an unresolvable neighbour to the wire. An empty path now means
+// "render the name, do not link it", which is the honest answer.
+func (b *backend) nodeURL(svc, name string) string { return resourceURL(svc, name).Path }
 
-func ensureNode(nodes map[string]*FlowNode, id string, b *backend) {
-	if _, ok := nodes[id]; ok {
-		return
+// ensureNode adds a node for a resolved ref. It takes the ref rather than
+// re-splitting the id, because an id now carries a qualified key (an eb rule is
+// "bus/rule") and Cut(id, ":") cannot tell that back apart into a display name
+// and a path.
+func ensureNode(nodes map[string]*FlowNode, ref resourceRef) string {
+	if !ref.OK() {
+		return ""
 	}
-	svc, name, _ := strings.Cut(id, ":")
-	nodes[id] = &FlowNode{ID: id, Svc: svc, Name: name, URL: b.nodeURL(svc, name)}
+	id := nodeID(ref.Svc, ref.Key)
+	if _, ok := nodes[id]; !ok {
+		nodes[id] = &FlowNode{ID: id, Svc: ref.Svc, Name: ref.Name, URL: ref.Path}
+	}
+	return id
 }
 
 func edgeTargetNode(proto, endpoint string, leaf func(string) string) string {
@@ -604,7 +605,10 @@ func protoOfARN(arn string) string {
 }
 
 // bucketNotifications reads a bucket's S3 event-notification config.
-func (b *backend) bucketNotifications(ctx context.Context, bucket string, leaf func(string) string) []FlowEdge {
+// bucketNotifications returns the refs a bucket notifies, leaving node creation
+// to the caller — the resolver already knows how to turn each ARN into a name
+// and a path, so there is nothing left for a leaf function to do.
+func (b *backend) bucketNotifications(ctx context.Context, bucket string) []resourceRef {
 	body, err := b.s3Sub(ctx, "GET", bucket, "notification")
 	if err != nil {
 		return nil
@@ -623,17 +627,17 @@ func (b *backend) bucketNotifications(ctx context.Context, bucket string, leaf f
 	if xml.Unmarshal(body, &out) != nil {
 		return nil
 	}
-	var edges []FlowEdge
+	var refs []resourceRef
 	for _, t := range out.Topic {
-		edges = append(edges, FlowEdge{To: nodeID("sns", leaf(t.Arn))})
+		refs = append(refs, resourceFromARN(t.Arn))
 	}
 	for _, q := range out.Queue {
-		edges = append(edges, FlowEdge{To: nodeID("sqs", leaf(q.Arn))})
+		refs = append(refs, resourceFromARN(q.Arn))
 	}
 	for _, l := range out.Lambda {
-		edges = append(edges, FlowEdge{To: nodeID("lambda", leaf(l.Arn))})
+		refs = append(refs, resourceFromARN(l.Arn))
 	}
-	return edges
+	return refs
 }
 
 func plural(n int, unit string) string {

@@ -73,13 +73,14 @@ func subViews(subs []Subscription) []subView {
 			FilterPolicy: s.FilterPolicy, RawDelivery: s.RawDelivery,
 			Pending: !strings.HasPrefix(s.ARN, "arn:"),
 		}
-		switch s.Protocol {
-		case "sqs":
-			v.Svc, v.Name = "sqs", arnLeaf(s.Endpoint)
-			v.URL = "/sqs/" + v.Name
-		case "lambda":
-			v.Svc, v.Name = "lambda", strings.TrimPrefix(arnLeaf(s.Endpoint), "function:")
-			v.URL = "/lambda/" + v.Name
+		// sns.html states the rule this implements: the endpoint's NAME as a
+		// service-coloured link, never a truncated ARN. It used to know about
+		// two protocols; the shared resolver knows about all of them, so an SNS
+		// topic subscribed to another topic, or a Kinesis stream, now reads the
+		// same way an SQS queue always did. http/email have no page and keep an
+		// empty Svc, which the template already handles.
+		if ref := resourceFromARN(s.Endpoint); ref.OK() {
+			v.Svc, v.Name, v.URL = ref.Svc, ref.Name, ref.Path
 		}
 		views = append(views, v)
 	}
