@@ -368,7 +368,7 @@ a.stat:hover { border-color: var(--ring); }
 .panel-h h2 { font-size: 13px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 8px; }
 .panel-b { padding: 6px 6px; }
 .split { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
-@media (max-width: 960px) { .split, .stats { grid-template-columns: 1fr; } }
+@container pane (max-width: 480px) { .split { grid-template-columns: 1fr; } }
 
 /* ---------- section title ---------- */
 .sec-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); margin: 22px 0 10px; }
@@ -586,7 +586,7 @@ select.input {
 /* ---------- misc ---------- */
 .mini-note { font-size: 11.5px; color: var(--muted-foreground); padding: 8px 2px; }
 .stats.wide { grid-template-columns: repeat(4, 1fr); }
-@media (max-width: 1000px) { .stats.wide { grid-template-columns: repeat(2, 1fr); } }
+
 .id-panel { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin: -8px 0 18px; }
 
 /* ---------- official AWS service icons ---------- */
@@ -635,7 +635,7 @@ h1 .aws-ic, .idband .aws-ic { width: 30px; height: 30px; border-radius: var(--ra
 /* ---------- full-page create forms ---------- */
 /* Create pages sit directly inside .detail (no det-h/det-b), so they carry
    the pane padding themselves — otherwise the title glues to the border. */
-.form-page { max-width: 700px; padding: 18px 20px 24px; }
+.form-page { max-width: 700px; padding: 18px 20px 24px; container-type: inline-size; container-name: pane; }
 .form-page h1 { font-size: 20px; font-weight: 640; letter-spacing: -0.02em; margin: 0 0 4px; }
 .form-page .ph-desc { margin-bottom: 20px; }
 .form-sec { margin-bottom: 14px; }
@@ -765,6 +765,30 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 }
 :root[data-rail="slim"] .rail { width: 56px; padding-left: 6px; padding-right: 6px; }
 @media (prefers-reduced-motion: reduce) { .rail { transition: none; } }
+
+/* The shell yields. Below these widths the chrome was taking 440px that never
+   moved, so at a 768px viewport the detail pane was 328px and at 600px it was
+   160px — narrower than a single table column.
+
+   1180 = rail + list pane + ~740 of workable detail. The rail's names are the
+   cheapest 152px in the shell: the icons stay, and the hover flyout already
+   carries the label. This is a floor rather than an override — an explicit
+   [data-rail="wide"] still wins, because expanding the rail at 1100px is a
+   deliberate act. */
+@media (max-width: 1180px) {
+  :root:not([data-rail="wide"]) .rail { width: 56px; padding-left: 6px; padding-right: 6px; }
+  :root:not([data-rail="wide"]) .rail .rgroup { height: 9px; padding: 8px 0 0; overflow: hidden; visibility: hidden; }
+  :root:not([data-rail="wide"]) .rail .ri { justify-content: center; padding: 0; }
+  :root:not([data-rail="wide"]) .rail .ri-nm, :root:not([data-rail="wide"]) .rail .ri-ct { display: none; }
+  :root:not([data-rail="wide"]) .rail .ri:hover .ri-fly { display: block; }
+}
+
+/* 900: the list pane stops being a column and becomes a strip. 168px still
+   shows ~20 characters instead of ~28, and hands 64px to the detail pane, which
+   at this width is where every one of them is needed. */
+@media (max-width: 900px) {
+  .listpane { width: 168px; flex: 0 0 168px; }
+}
 .rail .rgroup {
   font-size: 9.5px; font-weight: 650; letter-spacing: .12em; text-transform: uppercase;
   color: color-mix(in srgb, var(--muted-foreground) 80%, transparent); padding: 12px 10px 4px; white-space: nowrap;
@@ -862,7 +886,22 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .det-sub { color: var(--muted-foreground); font-size: 12px; margin-top: 2px; }
 .det-h .chips { margin-top: 8px; }
 .det-h .tabbar { margin: 12px 0 0; }
-.det-b { padding: 14px 20px 40px; flex: 1; }
+/* The responsive container is the PANE, not the viewport.
+
+   Every grid below sits inside a column whose width is the viewport minus the
+   rail and the list pane — 440px of chrome that never yields. So a viewport
+   query governing them is measuring the wrong box: .lam-ov broke at a 1000px
+   viewport, by which point its own column was 560px and had been five-across
+   and unusable for a while. Worse, connect and the wire render with no list
+   pane at all, so one number could never be right for both.
+
+   The container is .det-b and .form-page rather than .detail on purpose:
+   container-type implies contain:layout, which makes the element the
+   containing block for position:fixed descendants — and .drawer, .drawer-scrim
+   and .overlay are direct children of .detail. Containing it would pin the
+   drawer to the pane edge instead of the window and trap its z-index. If a
+   drawer is ever moved inside .det-b, this breaks silently. */
+.det-b { padding: 14px 20px 40px; flex: 1; container-type: inline-size; container-name: pane; }
 .det-foot {
   position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: 8px; align-items: center;
   padding: 11px 20px; border-top: 1px solid var(--border); background: var(--card);
@@ -960,7 +999,8 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 
 /* SQS workbench: live peek beside the composer — the act/verify loop on one screen. */
 .sqs-work { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
-@media (max-width: 1100px) { .sqs-work { grid-template-columns: 1fr; } }
+/* the composer column is minmax(300px,1fr), so below ~620 the peek half stops being readable */
+@container pane (max-width: 620px) { .sqs-work { grid-template-columns: 1fr; } }
 .msg.landed { animation: landed 1.8s ease-out; }
 @keyframes landed { 0% { background: color-mix(in srgb, var(--success) 16%, transparent); } 100% { background: transparent; } }
 @media (prefers-reduced-motion: reduce) { .msg.landed { animation: none; } }
@@ -983,7 +1023,8 @@ a.lo-card:hover { border-color: var(--accent); }
 .lo-fmeta { font: 11px var(--mono); color: var(--muted-foreground); margin-top: 3px; }
 .lo-arrow { display: grid; place-items: center; color: var(--muted-foreground); }
 .lo-arrow .ic { width: 17px; height: 17px; }
-@media (max-width: 1000px) { .lam-ov { grid-template-columns: 1fr; } .lo-arrow { transform: rotate(90deg); } }
+/* five columns: triggers, arrow, function, arrow, destinations */
+@container pane (max-width: 520px) { .lam-ov { grid-template-columns: 1fr; } .lo-arrow { transform: rotate(90deg); } }
 .rule-hit td { background: color-mix(in srgb, var(--success) 8%, transparent); }
 
 /* SNS publish receipt */
@@ -1023,7 +1064,7 @@ a.lo-card:hover { border-color: var(--accent); }
   border-radius: var(--radius); padding: 10px 12px; cursor: pointer; font-size: 12.5px; }
 .dlq-mode.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, transparent); }
 .dlq-mode input { margin-top: 2px; accent-color: var(--accent); }
-@media (max-width: 900px) { .dlq-modes { grid-template-columns: 1fr; } }
+@container pane (max-width: 420px) { .dlq-modes { grid-template-columns: 1fr; } }
 
 /* SNS subscribers: named, colored, linked rows + inline add-row footer. */
 .sub-rows { border-top: 1px solid var(--border); }
@@ -1083,7 +1124,7 @@ a.lo-card:hover { border-color: var(--accent); }
 .fv-row input.input { flex: 1; max-width: 280px; }
 /* item rows open the drawer */
 .ddb-row { cursor: pointer; }
-@media (max-width: 820px) { .ex-grid { flex-wrap: wrap; } }
+@container pane (max-width: 340px) { .ex-grid { flex-wrap: wrap; } }
 
 /* Create-table GSI rows. */
 .gsi-row { padding: 8px 0; border-top: 1px solid var(--border); }
@@ -1170,7 +1211,8 @@ a.lo-card:hover { border-color: var(--accent); }
 
 /* ---------- connect ---------- */
 .cn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-@media (max-width: 900px) { .cn-grid { grid-template-columns: 1fr; } }
+/* connect has no list pane, so this one was firing 232px early as a viewport query */
+@container pane (max-width: 460px) { .cn-grid { grid-template-columns: 1fr; } }
 .cn-col { min-width: 0; }
 .cn-verify { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .cn-result { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 24px; }

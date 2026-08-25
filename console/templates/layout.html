@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="{{.Prefix}}/static/cm/codemirror.min.css">
 <link rel="stylesheet" href="{{.Prefix}}/static/app.css">
 <script>(function(){try{var t=localStorage.getItem("theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t);
-var r=localStorage.getItem("rail");if(r==="slim")document.documentElement.setAttribute("data-rail","slim");}catch(e){}})();</script>
+var r=localStorage.getItem("rail");if(r==="slim"||r==="wide")document.documentElement.setAttribute("data-rail",r);}catch(e){}})();</script>
 <script>document.addEventListener("alpine:init",function(){window.Alpine.store("filter",{q:""});});
 /* dozeDur humanizes a seconds field ("345600" → "= 4 days") for the live echo
    under duration inputs. Inline, not in deferred shell.js — Alpine evaluates

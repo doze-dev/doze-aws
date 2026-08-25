@@ -49,8 +49,11 @@
   // ---------- collapsible rail ----------
   function railSlim() { return document.documentElement.getAttribute("data-rail") === "slim"; }
   function setRail(slim) {
+    // "wide" is written explicitly rather than clearing the attribute, because
+    // below 1180px the stylesheet auto-slims the rail as a FLOOR — and someone
+    // who expanded it at 1100px meant it, so their choice has to be able to win.
     if (slim) document.documentElement.setAttribute("data-rail", "slim");
-    else document.documentElement.removeAttribute("data-rail");
+    else document.documentElement.setAttribute("data-rail", "wide");
     try { localStorage.setItem("rail", slim ? "slim" : "wide"); } catch (e) {}
   }
   var railToggle = document.getElementById("rail-toggle");
