@@ -112,7 +112,9 @@
 {{define "eb_targets"}}
 <div id="eb-targets"><div class="panel"><div class="panel-h"><h2>{{icon "arrow-right"}} Targets <span class="badge">{{len .Rule.Targets}}</span></h2></div>
   {{if .Rule.Targets}}<table class="tbl"><thead><tr><th>ARN</th><th style="width:36px"></th></tr></thead><tbody>{{range .Rule.Targets}}
-    <tr><td class="mono trunc dim" style="font-size:11.5px;max-width:300px" title="{{.ARN}}">{{.ARN}}</td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove target" hx-post="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{$.Rule.Name}}/remove-target" hx-vals='{"id":"{{.ID}}"}' hx-target="#eb-targets" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove this target?">{{icon "trash"}}</button></div></td></tr>
+    <tr>{{/* sns.html writes the rule down: the endpoint's NAME as a service-coloured
+         link, never a truncated ARN. EventBridge was the surface breaking it. */}}
+      <td title="{{.ARN}}">{{with resolve .ARN}}{{if .Path}}<a class="conn-chip" href="{{$.Prefix}}{{.Path}}"><span class="cc-bar" style="background:var(--svc-{{.Svc}})"></span><span class="cc-nm">{{.Name}}</span></a>{{else}}<span class="mono trunc dim">{{.Name}}</span>{{end}}{{end}}</td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove target" hx-post="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{$.Rule.Name}}/remove-target" hx-vals='{"id":"{{.ID}}"}' hx-target="#eb-targets" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove this target?">{{icon "trash"}}</button></div></td></tr>
   {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No targets — matching events go nowhere yet.</p></div>{{end}}
 </div>
 <div class="panel" style="margin-top:12px"><div class="panel-h"><h2>{{icon "plus"}} Add target</h2></div><div style="padding:14px 16px">

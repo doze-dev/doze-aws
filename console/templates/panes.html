@@ -48,7 +48,18 @@
      to [chips]". An empty side collapses to an invitation instead of reserving
      half the strip to say "nothing". dict: Prefix Conn Svc Self. */}}
 {{define "connections"}}
-{{if or .Conn.Upstream .Conn.Downstream}}
+{{/* No guard on emptiness. The strip used to be wrapped in
+     {{if or .Conn.Upstream .Conn.Downstream}}, so a resource wired to NOTHING
+     showed nothing at all — and the copy written for exactly that case ("nothing
+     reads this queue — wire a Lambda trigger to close the loop") could only
+     appear when the OTHER side already had an edge. A correct implementation
+     was sitting behind a condition that stopped it running in the one situation
+     it was written for.
+
+     Safe to drop only because every service that renders this strip is now a
+     node in the graph — DynamoDB and Kinesis included. On a service the graph
+     does not model, "nothing feeds this" would be a confident lie rather than a
+     fact. */}}
 <div class="conn">
   {{if .Conn.Upstream}}
     <span class="conn-lbl">Fed by</span>
@@ -64,7 +75,6 @@
     <span class="conn-hint">{{if eq .Svc "sqs"}}nothing reads this queue — wire a Lambda trigger to close the loop{{else if eq .Svc "sns"}}no subscriptions yet — add one below{{else if eq .Svc "s3"}}no event notifications — add one under Properties{{else if eq .Svc "eb"}}no targets yet — add one below{{else}}drains nowhere yet{{end}}</span>
   {{end}}
 </div>
-{{end}}
 {{end}}
 
 {{/* fail_inline is what a failed console action looks like. It is deliberately

@@ -42,8 +42,16 @@
          @click="sel = (sel==={{.Seq}} ? null : {{.Seq}})">
       <span class="ts">{{.Time}}</span>
       <span class="svcb" style="--svc-ink:var(--svc-{{.Service}}-ink);padding-left:{{mul .Depth 14}}px">{{if .Cascade}}<span class="tr-branch" title="caused by the call above">└</span>{{end}}{{.Service}}</span>
-      <span class="act">{{.Action}}</span>
-      <span class="res" title="{{.Resource}}">{{.Resource}}</span>
+      <span class="act">{{.Action}}{{with .Via}}<span class="tr-via" title="what emitted this work">via {{.}}</span>{{end}}</span>
+      {{/* The three hx-* attributes here are load-bearing. The row sets
+           hx-target="#t-drawer-inner" and hx-select="unset", and htmx
+           inheritance hands both to any link inside it — so a boosted click
+           would swap the whole page into the 380px inspector drawer.
+           @click.stop keeps the row's own drawer toggle from firing too. */}}
+      <span class="res" title="{{.Resource}}">{{if .Ref.Path}}<a class="res-link"
+           href="{{$.Prefix}}{{.Ref.Path}}"
+           hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML"
+           @click.stop>{{.Resource}}</a>{{else}}{{.Resource}}{{end}}</span>
       <span class="st {{.State}}">{{.Status}}</span>
       <span class="tr-why">{{with .Refused}}<span title="{{.Message}}">{{.Code}}</span>{{end}}</span>
       <span class="dur">{{.Millis}}ms</span>
@@ -70,7 +78,7 @@
   <div class="td-k">{{if eq $.State "denied"}}Denied{{else if eq $.State "error"}}Failed{{else}}Refused{{end}} · {{.Code}}</div>
   <p class="td-why">{{.Message}}</p>
   {{if eq $.State "denied"}}
-  <p class="mini-note">A policy decided this, not the input. The request was well-formed; IAM evaluated it and said no — so the fix is the policy, not the call.</p>
+  <p class="mini-note">A policy decided this, not the input. The request was well-formed; IAM evaluated it and said no — so the fix is the policy, not the call. <a href="{{$.Prefix}}/iam">Access log and policy generator →</a></p>
   {{else if eq $.State "error"}}
   <p class="mini-note">This one is doze-aws failing, not refusing. A 5xx here is a bug in the emulator rather than in the caller, and is worth reporting.</p>
   {{else}}

@@ -447,6 +447,10 @@ func templateFuncs(prefix string) template.FuncMap {
 		// {"source":["shop.orders"]} → source=[shop.orders]
 		"patternPreview": patternPreview,
 		// awsIcon renders an official AWS Architecture service icon (embedded).
+		// resolve turns an ARN, a queue URL or a bare identifier into a link.
+		// One resolver, so a target renders the same wherever it appears.
+		"resolve":  func(id string) resourceRef { return resourceFromARN(id) },
+		"resolveIn": resourceURL,
 		"awsIcon": func(svc string) template.HTML {
 			return template.HTML(`<img class="aws-ic" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)
 		},

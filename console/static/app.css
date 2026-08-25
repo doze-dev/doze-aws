@@ -954,6 +954,9 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .tr-row .ts { color: var(--muted-foreground); flex: 0 0 90px; }
 .tr-row .svcb { flex: 0 0 64px; font-weight: 700; }
 .tr-row .act { flex: 0 0 170px; font-weight: 500; }
+.tr-row .tr-via { color: var(--muted-foreground); font-size: 10.5px; margin-left: 6px; }
+.tr-row .res-link { color: inherit; text-decoration: none; border-bottom: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
+.tr-row .res-link:hover { color: var(--foreground); border-bottom-color: currentColor; }
 .tr-row .res { flex: 1; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tr-row .st { flex: 0 0 auto; font-weight: 700; }
 .tr-row .st.ok { color: var(--success); } .tr-row .st.err { color: var(--destructive); }

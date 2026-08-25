@@ -175,6 +175,8 @@ type trafficRow struct {
 	Cascade bool
 	// Via names what emitted it, when that is not obvious from the action.
 	Via string
+	// Ref points at the resource's page, when the resource resolves to one.
+	Ref resourceRef
 }
 
 // trafficEntries renders the ring as the wire shows it: newest first, with the
@@ -240,6 +242,10 @@ func rowOf(e TrafficEntry, depth int) trafficRow {
 		IsErr: e.Status >= 400, Body: e.ReqBody, Curl: e.Curl(), Seq: e.Seq,
 		Refused: ref, State: callState(e.Status, ref),
 		Depth:   depth, Cascade: e.IsCascade(), Via: e.Via,
+		// Every row names a resource and none of them was a link, on the
+		// console's busiest surface. Pure string work, so it costs nothing at
+		// five hundred rows a poll.
+		Ref: resourceURL(e.Service, e.Resource),
 	}
 }
 
