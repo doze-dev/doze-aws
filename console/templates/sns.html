@@ -43,14 +43,39 @@
 
 {{/* Post-publish delivery receipt: closes the publish→verify loop inline.
      Zero subscribers is the classic silent foot-gun — call it out loudly. */}}
+{{/* The receipt used to count subscriptions, not recipients: every subscriber
+     was listed as one, with no filter policy evaluated, so three of four
+     filtered out still reported four. It now asks the service which would
+     actually receive the message and, for the others, which key said no. */}}
 {{define "sns_receipt"}}
-<div id="sns-receipt" class="pub-receipt {{if not .Rcpts}}warn{{end}}">
-  {{if .Rcpts}}
-    <div class="pr-h">✓ Published · fanned out to {{len .Rcpts}} subscriber{{if ne (len .Rcpts) 1}}s{{end}}</div>
+<div id="sns-receipt" class="pub-receipt {{if and (not .Got) (not .NoMatch)}}warn{{end}}">
+  {{if .NoMatch}}
+    {{/* Publish succeeded; only the explanation is unavailable. */}}
+    <div class="pr-h">✓ Published to {{len .Rcpts}} subscription{{if ne (len .Rcpts) 1}}s{{end}}</div>
     {{range .Rcpts}}<div class="pr-row">→ {{if .URL}}<a href="{{$.Prefix}}{{.URL}}">{{.Name}}</a>{{else}}<span>{{.Name}}</span>{{end}} <span class="dim">({{.Proto}})</span></div>{{end}}
+  {{else if .Got}}
+    <div class="pr-h">✓ Published · delivered to {{len .Got}} of {{.Total}} subscriber{{if ne .Total 1}}s{{end}}</div>
+    {{range .Got}}<div class="pr-row">→ {{if .Ref.Path}}<a href="{{$.Prefix}}{{.Ref.Path}}">{{.Ref.Name}}</a>{{else}}<span>{{.Endpoint}}</span>{{end}} <span class="dim">({{.Protocol}})</span></div>{{end}}
+  {{else if .Total}}
+    <div class="pr-h">⚠ Published — but every subscription filtered this message out. It went nowhere.</div>
   {{else}}
     <div class="pr-h">⚠ Published — but this topic has no subscribers. The message went nowhere.</div>
     <div class="pr-row dim">Add a subscription on the right, then publish again.</div>
+  {{end}}
+
+  {{if .Filtered}}
+    <div class="pr-sep">filtered out ({{len .Filtered}})</div>
+    {{range .Filtered}}
+      <div class="pr-row no">
+        ✗ {{if .Ref.Path}}<a href="{{$.Prefix}}{{.Ref.Path}}">{{.Ref.Name}}</a>{{else}}<span>{{.Endpoint}}</span>{{end}}
+        {{range .Reasons}}<span class="pr-why">{{if eq .Key "$or"}}no <b>$or</b> branch matched{{else}}<b>{{.Key}}</b> {{if .Present}}is “{{.Actual}}”{{else}}is not present{{end}} — policy wants {{.Expected}}{{end}}</span>{{end}}
+      </div>
+    {{end}}
+  {{end}}
+
+  {{if .Pending}}
+    <div class="pr-sep">awaiting confirmation ({{len .Pending}})</div>
+    {{range .Pending}}<div class="pr-row no">✗ <span>{{.Endpoint}}</span> <span class="pr-why">not yet confirmed — not delivering</span></div>{{end}}
   {{end}}
 </div>
 {{end}}

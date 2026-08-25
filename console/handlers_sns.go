@@ -99,14 +99,45 @@ func (c *Console) snsSubsPartial(w http.ResponseWriter, r *http.Request, name st
 
 func (c *Console) snsPublish(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("topic")
-	if err := c.be.Publish(r.Context(), topicARNOf(name), r.FormValue("message"), r.FormValue("subject"), parseMsgAttrs(r.FormValue("attrs"))); err != nil {
+	arn := topicARNOf(name)
+	attrs := parseMsgAttrs(r.FormValue("attrs"))
+	if err := c.be.Publish(r.Context(), arn, r.FormValue("message"), r.FormValue("subject"), attrs); err != nil {
 		c.fail(w, err)
 		return
 	}
-	// Answer with a delivery receipt: who this message fanned out to, each
-	// linked — the publish→verify loop closes without leaving the page.
-	subs, _ := c.be.ListSubscriptions(r.Context(), topicARNOf(name))
-	c.partial(w, "sns_receipt", map[string]any{"Topic": name, "Rcpts": subViews(subs)})
+	// The receipt used to list every subscription as a recipient without
+	// evaluating a single filter policy, so three of four filtered out still
+	// reported four. Asking the service means the receipt and the delivery
+	// agree by construction rather than by a second implementation.
+	//
+	// Matching AFTER the publish, with the attributes that were published: a
+	// subscription added between the two calls cannot make the receipt claim
+	// something that did not happen. A race is still possible in principle and
+	// the window is microseconds on a local stack — closing it properly would
+	// need a publish-and-report action, which is not worth a new wire verb.
+	matches, err := c.be.MatchSubscriptions(r.Context(), arn, attrs)
+	if err != nil {
+		// The publish succeeded; only the explanation is missing. Fall back to
+		// the old shape rather than reporting a failure that did not happen.
+		subs, _ := c.be.ListSubscriptions(r.Context(), arn)
+		c.partial(w, "sns_receipt", map[string]any{"Topic": name, "Rcpts": subViews(subs), "NoMatch": true})
+		return
+	}
+	var got, filtered, pending []SubMatch
+	for _, m := range matches {
+		switch {
+		case m.Pending:
+			pending = append(pending, m)
+		case m.Matched:
+			got = append(got, m)
+		default:
+			filtered = append(filtered, m)
+		}
+	}
+	c.partial(w, "sns_receipt", map[string]any{
+		"Topic": name, "Got": got, "Filtered": filtered, "Pending": pending,
+		"Total": len(matches),
+	})
 }
 
 func (c *Console) snsSubscribe(w http.ResponseWriter, r *http.Request) {

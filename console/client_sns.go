@@ -189,11 +189,10 @@ func (b *backend) Unsubscribe(ctx context.Context, subARN string) error {
 	return err
 }
 
-func (b *backend) Publish(ctx context.Context, topicARN, message, subject string, attrs []MsgAttr) error {
-	v := url.Values{"Action": {"Publish"}, "TopicArn": {topicARN}, "Message": {message}}
-	if subject != "" {
-		v.Set("Subject", subject)
-	}
+// setMsgAttrs writes the MessageAttributes.entry.N block. Factored out because
+// Publish and MatchSubscriptions must serialise attributes identically — the
+// preview is only worth anything if it is evaluating the same message.
+func setMsgAttrs(v url.Values, attrs []MsgAttr) {
 	for i, a := range attrs {
 		p := "MessageAttributes.entry." + strconv.Itoa(i+1)
 		t := a.Type
@@ -208,6 +207,14 @@ func (b *backend) Publish(ctx context.Context, topicARN, message, subject string
 			v.Set(p+".Value.StringValue", a.Value)
 		}
 	}
+}
+
+func (b *backend) Publish(ctx context.Context, topicARN, message, subject string, attrs []MsgAttr) error {
+	v := url.Values{"Action": {"Publish"}, "TopicArn": {topicARN}, "Message": {message}}
+	if subject != "" {
+		v.Set("Subject", subject)
+	}
+	setMsgAttrs(v, attrs)
 	_, err := b.queryXML(ctx, v)
 	return err
 }
@@ -218,4 +225,59 @@ func arnLeaf(arn string) string {
 		return arn[i+1:]
 	}
 	return arn
+}
+
+// SubMatch is one subscription's verdict for a message about to be published.
+type SubMatch struct {
+	ARN      string
+	Protocol string
+	Endpoint string
+	Matched  bool
+	Pending  bool
+	Reasons  []SubMatchReason
+	// Ref resolves the endpoint to a console page, so a filtered-out subscriber
+	// is one click from the filter that rejected it.
+	Ref resourceRef
+}
+
+// SubMatchReason names one policy key that refused the message.
+type SubMatchReason struct {
+	Key      string
+	Expected string
+	Actual   string
+	Present  bool
+}
+
+// MatchSubscriptions asks which subscriptions would receive a message carrying
+// these attributes, and why the others would not.
+//
+// The console cannot evaluate this itself: it reaches services over the wire and
+// imports no service package, and re-implementing SNS's filter language beside
+// the real one is exactly how a preview starts disagreeing with delivery.
+func (b *backend) MatchSubscriptions(ctx context.Context, topicARN string, attrs []MsgAttr) ([]SubMatch, error) {
+	v := url.Values{"Action": {"DozeMatchSubscriptions"}, "TopicArn": {topicARN}}
+	setMsgAttrs(v, attrs)
+	body, err := b.queryXML(ctx, v)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Members []struct {
+			SubscriptionArn, Protocol, Endpoint string
+			Matched, Pending                    bool
+			Reasons                             []SubMatchReason `xml:"Reasons>member"`
+		} `xml:"DozeMatchSubscriptionsResult>Subscriptions>member"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	res := make([]SubMatch, 0, len(out.Members))
+	for _, m := range out.Members {
+		res = append(res, SubMatch{
+			ARN: m.SubscriptionArn, Protocol: m.Protocol, Endpoint: m.Endpoint,
+			Matched: m.Matched, Pending: m.Pending, Reasons: m.Reasons,
+			Ref: resourceFromARN(m.Endpoint),
+		})
+	}
+	return res, nil
 }

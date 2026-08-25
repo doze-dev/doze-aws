@@ -1046,6 +1046,10 @@ a.lo-card:hover { border-color: var(--accent); }
 
 /* SNS publish receipt */
 .pub-receipt { margin-top: 12px; border: 1px solid color-mix(in srgb, var(--success) 35%, transparent); background: color-mix(in srgb, var(--success) 8%, transparent); border-radius: var(--radius); padding: 10px 13px; font-size: 12.5px; }
+.pr-sep { margin: 8px 0 4px; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); border-top: 1px solid var(--border); padding-top: 6px; }
+.pr-row.no { color: var(--muted-foreground); }
+.pr-why { margin-left: 6px; font-size: 11.5px; color: var(--muted-foreground); }
+.pr-why b { color: var(--foreground); font-weight: 550; }
 .pub-receipt.warn { border-color: color-mix(in srgb, var(--warning) 45%, transparent); background: color-mix(in srgb, var(--warning) 9%, transparent); }
 .pub-receipt .pr-h { font-weight: 600; }
 .pub-receipt.warn .pr-h { color: var(--warning); }

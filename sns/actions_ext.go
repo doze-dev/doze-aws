@@ -23,6 +23,8 @@ func init() {
 		"RemovePermission":        (*Server).removePermission,
 		"PutDataProtectionPolicy": (*Server).putDataProtectionPolicy,
 		"GetDataProtectionPolicy": (*Server).getDataProtectionPolicy,
+		// doze-only: who would actually receive this, and why not.
+		"DozeMatchSubscriptions": (*Server).dozeMatchSubscriptions,
 	}
 	for name, h := range extra {
 		dispatch[name] = h

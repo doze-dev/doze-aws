@@ -33,6 +33,11 @@ var queryActions = map[string]string{
 	"ListTopics":                         "sns",
 	"OptInPhoneNumber":                   "sns",
 	"Publish":                            "sns",
+	// doze-only. This entry is not optional: SNS arrives over the Query protocol
+	// with the action in the form body and no X-Amz-Target, so this map is the
+	// only thing that can route it — and the miss path falls through to S3, which
+	// fails confusingly rather than loudly.
+	"DozeMatchSubscriptions":             "sns",
 	"PublishBatch":                       "sns",
 	"PutDataProtectionPolicy":            "sns",
 	"RemovePermission":                   "sns",
