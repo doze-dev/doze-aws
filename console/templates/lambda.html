@@ -2,16 +2,18 @@
 {{template "lp_head" dict "Svc" "lambda" "Label" "Lambda" "NewURL" (printf "%s/lambda/create" .Prefix)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/lambda/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{.Runtime}}</span></a>
-  {{end}}
+  {{else}}{{template "lp_empty" dict "Svc" "lambda" "Prefix" $.Prefix}}
+    {{end}}
 {{template "lp_foot" .}}
 {{end}}
 
 {{define "lambda_home"}}{{template "shell_top" .}}
   {{template "lambda_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  <section class="detail"><div class="empty" style="border:0;margin-top:10vh">{{awsIcon "lambda"}}
-    <p>No functions yet. <b>New</b> points a function at a build directory on disk — edit the code and re-invoke, no zip, no deploy.</p>
-    <a class="btn" href="{{.Prefix}}/lambda/create">{{icon "plus"}} New function</a>
-  </div></section>
+  {{/* This was the only real first-run state in the console and it was written
+       by hand here. It is now the shared one — if empty_detail cannot reproduce
+       what this said, the abstraction is wrong and should be revised rather
+       than the copy flattened to fit it. */}}
+  {{template "empty_detail" dict "Svc" "lambda" "Prefix" .Prefix "Empty" (not .List)}}
 {{template "shell_bottom" .}}{{end}}
 
 {{define "lambda_fn"}}{{template "shell_top" .}}

@@ -173,11 +173,17 @@ return"= "+p.join(" ");};</script>
 
 {{define "kvcopy"}}<span class="kv-copy"><span class="trunc" title="{{.}}">{{.}}</span><button type="button" class="copy-btn" data-copy="{{.}}" title="Copy">{{icon "copy"}}</button></span>{{end}}
 
+{{/* empty_detail answers two different questions with two different answers.
+     It used to answer both with one sentence — "Select a bucket, or create one
+     to store objects" — which is addressed to someone who has buckets and shown
+     to someone who has none. dict: Svc, Empty. */}}
 {{define "empty_detail"}}
+{{$c := emptyCopy .Svc}}
 <section class="detail">
-  <div class="empty" style="border:0;margin-top:12vh">
+  <div class="empty empty-detail">
     {{awsIcon .Svc}}
-    <p>{{.Hint}}</p>
+    <p>{{if .Empty}}{{$c.None}}{{else}}{{$c.Unsel}}{{end}}</p>
+    {{if and .Empty $c.CTA}}<a class="btn" href="{{$.Prefix}}{{$c.CTAPath}}">{{icon "plus"}} {{$c.CTA}}</a>{{end}}
   </div>
 </section>
 {{end}}

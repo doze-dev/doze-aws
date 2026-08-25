@@ -15,9 +15,31 @@
     {{if .NewURL}}<a class="new-link" href="{{.NewURL}}">{{icon "plus"}} New</a>{{end}}
   </div>
   <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" x-data x-model="$store.filter.q" spellcheck="false"></label>
-  <div class="lp-scroll">
+  <div class="lp-scroll" x-data>
+{{end}}
+
+{{/* lp_empty is the list pane's half of the answer: what is missing, in two
+     lines, because the pane is 232px wide. The long copy and the primary button
+     live in the detail pane. .lp-empty has been styled since before this was
+     written and referenced by nothing — someone designed this state and never
+     rendered it. dict: Svc, Prefix. */}}
+{{define "lp_empty"}}
+{{$c := emptyCopy .Svc}}
+<div class="lp-empty">
+  {{$c.Short}}
+  {{if $c.CTA}}<a class="lp-empty-cta" href="{{.Prefix}}{{$c.CTAPath}}">{{$c.CTA}} &rarr;</a>{{end}}
+</div>
+{{end}}
+
+{{/* lp_nofilter is the state nobody had named: rows exist, the filter matched
+     none of them, and the pane went blank with no server involvement at all —
+     which reads as broken rather than as empty. Alpine-only, using the same
+     store the rows themselves filter on. dict: Names (JSON array of names). */}}
+{{define "lp_nofilter"}}
+<div class="lp-empty lp-nomatch" hidden>Nothing matches that filter.</div>
 {{end}}
 {{define "lp_foot"}}
+    {{template "lp_nofilter" .}}
   </div>
   <div class="lp-f"><span class="kbd">j</span><span class="kbd">k</span> move · <span class="kbd">c</span> new · <span class="kbd">/</span> filter</div>
 </aside>

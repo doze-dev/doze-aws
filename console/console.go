@@ -450,6 +450,9 @@ func templateFuncs(prefix string) template.FuncMap {
 		// resolve turns an ARN, a queue URL or a bare identifier into a link.
 		// One resolver, so a target renders the same wherever it appears.
 		"resolve":  func(id string) resourceRef { return resourceFromARN(id) },
+		// emptyCopy hands a template a service's empty-state voice. The copy lives
+		// in copy.go so the thirteen read as one person wrote them.
+		"emptyCopy": emptyFor,
 		"resolveIn": resourceURL,
 		"awsIcon": func(svc string) template.HTML {
 			return template.HTML(`<img class="aws-ic" src="` + prefix + `/static/aws/` + svc + `.svg" alt="" loading="lazy">`)

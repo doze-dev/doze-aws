@@ -2,13 +2,14 @@
 {{template "lp_head" dict "Svc" "sns" "Label" "SNS" "NewURL" (printf "%s/sns/create" .Prefix)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sns/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{.Subs}}</span></a>
-  {{end}}
+  {{else}}{{template "lp_empty" dict "Svc" "sns" "Prefix" $.Prefix}}
+    {{end}}
 {{template "lp_foot" .}}
 {{end}}
 
 {{define "sns_home"}}{{template "shell_top" .}}
   {{template "sns_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  {{template "empty_detail" dict "Svc" "sns" "Hint" "Select a topic, or create one to fan messages out."}}
+  {{template "empty_detail" dict "Svc" "sns" "Prefix" $.Prefix "Empty" (not .List)}}
 {{template "shell_bottom" .}}{{end}}
 
 {{define "sns_topic"}}{{template "shell_top" .}}

@@ -5,13 +5,14 @@
     <span class="nm">{{.Name}}</span>
     <span class="sb">{{if .Failed}}{{icon "alert"}}{{else}}{{len .Outputs}}{{end}}</span>
   </a>
+  {{else}}{{template "lp_empty" dict "Svc" "cfn" "Prefix" $.Prefix}}
   {{end}}
 {{template "lp_foot" .}}
 {{end}}
 
 {{define "cfn_home"}}{{template "shell_top" .}}
   {{template "cfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  {{template "empty_detail" dict "Svc" "cfn" "Hint" "Select a stack. Stacks appear here when you deploy with sam, cdk, the CloudFormation CLI or Serverless."}}
+  {{template "empty_detail" dict "Svc" "cfn" "Prefix" $.Prefix "Empty" (not .List)}}
 {{template "shell_bottom" .}}{{end}}
 
 {{define "cfn_stack"}}{{template "shell_top" .}}

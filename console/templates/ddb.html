@@ -5,13 +5,14 @@
      x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
     <span class="nm">{{.Name}}</span><span class="sb">{{count .ItemCount}}</span>
   </a>
+  {{else}}{{template "lp_empty" dict "Svc" "ddb" "Prefix" $.Prefix}}
   {{end}}
 {{template "lp_foot" .}}
 {{end}}
 
 {{define "ddb_home"}}{{template "shell_top" .}}
   {{template "ddb_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  {{template "empty_detail" dict "Svc" "ddb" "Hint" "Select a table, or create one to start storing items."}}
+  {{template "empty_detail" dict "Svc" "ddb" "Prefix" $.Prefix "Empty" (not .List)}}
 {{template "shell_bottom" .}}{{end}}
 
 {{define "ddb_table"}}{{template "shell_top" .}}

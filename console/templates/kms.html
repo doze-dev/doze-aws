@@ -2,13 +2,14 @@
 {{template "lp_head" dict "Svc" "kms" "Label" "KMS" "NewURL" (printf "%s/kms/create" .Prefix)}}
   {{range .List}}
   <a class="li {{if eq .ID $.Sel}}on{{end}}" href="{{$.Prefix}}/kms/{{.ID}}" x-data x-show="!$store.filter.q || '{{if .Alias}}{{.Alias}}{{else}}{{.ID}}{{end}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{if .Alias}}{{.Alias}}{{else}}<span class="mono" style="font-size:11px">{{.ID}}</span>{{end}}</span><span class="sb">{{if .RotationOn}}↻{{end}}</span></a>
-  {{end}}
+  {{else}}{{template "lp_empty" dict "Svc" "kms" "Prefix" $.Prefix}}
+    {{end}}
 {{template "lp_foot" .}}
 {{end}}
 
 {{define "kms_home"}}{{template "shell_top" .}}
   {{template "kms_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  {{template "empty_detail" dict "Svc" "kms" "Hint" "Select a key, or create one and encrypt something."}}
+  {{template "empty_detail" dict "Svc" "kms" "Prefix" $.Prefix "Empty" (not .List)}}
 {{template "shell_bottom" .}}{{end}}
 
 {{define "kms_key"}}{{template "shell_top" .}}

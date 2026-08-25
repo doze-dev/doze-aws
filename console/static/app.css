@@ -885,6 +885,12 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .listpane .li.ssm-leaf { padding-left: 22px; }
 .lp-f { margin-top: auto; padding: 9px 12px; border-top: 1px solid var(--border); color: var(--muted-foreground); font-size: 10.5px; }
 .lp-empty { padding: 26px 16px; text-align: center; color: var(--muted-foreground); font-size: 12px; }
+.lp-empty { color: var(--muted-foreground); font-size: 12px; line-height: 1.5; }
+.lp-empty-cta { display: block; margin-top: 8px; color: var(--foreground); font-weight: 550; text-decoration: none; }
+.lp-empty-cta:hover { text-decoration: underline; }
+.lp-nomatch { font-style: italic; }
+.empty-detail { border: 0; margin-top: 12vh; }
+.empty-detail .btn { margin-top: 14px; }
 
 .detail { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-y: auto; }
 .det-h { padding: 14px 20px 0; }

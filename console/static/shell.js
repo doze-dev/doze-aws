@@ -491,5 +491,27 @@
   document.addEventListener("htmx:sendError", unlock);
   document.addEventListener("htmx:timeout", unlock);
 
+  // ---------- filter matched nothing ----------
+  // The fourth empty state, and the only one that looked like a bug: rows exist,
+  // the filter matches none of them, and the pane goes blank with no server
+  // involvement at all. Counting what is actually visible rather than
+  // re-implementing the match means this cannot disagree with the rows.
+  function syncNoMatch() {
+    document.querySelectorAll(".listpane").forEach(function (pane) {
+      var note = pane.querySelector(".lp-nomatch");
+      if (!note) return;
+      var input = pane.querySelector(".filter input");
+      var q = input ? input.value.trim() : "";
+      var rows = pane.querySelectorAll(".lp-scroll .li");
+      var visible = 0;
+      rows.forEach(function (r) { if (r.offsetParent !== null) visible++; });
+      note.hidden = !(q && rows.length && visible === 0);
+    });
+  }
+  document.addEventListener("input", function (e) {
+    if (e.target.closest && e.target.closest(".listpane .filter")) setTimeout(syncNoMatch, 0);
+  });
+  document.addEventListener("htmx:afterSwap", function () { setTimeout(syncNoMatch, 0); });
+
   window.dozeShell = { toast: toast, openPalette: openPalette };
 })();

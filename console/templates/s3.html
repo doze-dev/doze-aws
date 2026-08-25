@@ -5,13 +5,14 @@
      x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
     <span class="nm">{{.Name}}</span>
   </a>
+  {{else}}{{template "lp_empty" dict "Svc" "s3" "Prefix" $.Prefix}}
   {{end}}
 {{template "lp_foot" .}}
 {{end}}
 
 {{define "s3_home"}}{{template "shell_top" .}}
   {{template "s3_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  {{template "empty_detail" dict "Svc" "s3" "Hint" "Select a bucket, or create one to store objects."}}
+  {{template "empty_detail" dict "Svc" "s3" "Prefix" $.Prefix "Empty" (not .List)}}
 {{template "shell_bottom" .}}{{end}}
 
 {{define "s3_objects"}}{{template "shell_top" .}}

@@ -2,13 +2,14 @@
 {{template "lp_head" dict "Svc" "kinesis" "Label" "Kinesis" "NewURL" (printf "%s/kinesis/create" .Prefix)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/kinesis/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{.Shards}}</span></a>
-  {{end}}
+  {{else}}{{template "lp_empty" dict "Svc" "kinesis" "Prefix" $.Prefix}}
+    {{end}}
 {{template "lp_foot" .}}
 {{end}}
 
 {{define "kinesis_home"}}{{template "shell_top" .}}
   {{template "kinesis_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  {{template "empty_detail" dict "Svc" "kinesis" "Hint" "Select a stream, or create one to start putting records."}}
+  {{template "empty_detail" dict "Svc" "kinesis" "Prefix" $.Prefix "Empty" (not .List)}}
 {{template "shell_bottom" .}}{{end}}
 
 {{/* The header is shared by both tabs: identity, state, and where the stream

@@ -4,13 +4,14 @@
   <a class="li {{if eq .ID $.Sel}}on{{end}}" href="{{$.Prefix}}/apigw/{{.ID}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
     <span class="nm">{{.Name}}</span><span class="sb mono">{{.ID}}</span>
   </a>
+  {{else}}{{template "lp_empty" dict "Svc" "apigw" "Prefix" $.Prefix}}
   {{end}}
 {{template "lp_foot" .}}
 {{end}}
 
 {{define "apigw_home"}}{{template "shell_top" .}}
   {{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  {{template "empty_detail" dict "Svc" "apigw" "Hint" "Select an API. APIs appear here when you deploy one with sam, cdk, Serverless or the API Gateway CLI."}}
+  {{template "empty_detail" dict "Svc" "apigw" "Prefix" $.Prefix "Empty" (not .List)}}
 {{template "shell_bottom" .}}{{end}}
 
 {{define "apigw_api"}}{{template "shell_top" .}}

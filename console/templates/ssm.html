@@ -5,6 +5,7 @@
     {{if .Dir}}<div class="lp-group mono" title="{{.Dir}}">{{.Dir}}</div>{{end}}
     {{range .Rows}}
     <a class="li ssm-leaf {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/ssm/param?name={{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm mono" style="font-size:11.5px">{{.Leaf}}</span>{{if eq .Type "SecureString"}}<span class="sb">🔒</span>{{end}}</a>
+    {{else}}{{template "lp_empty" dict "Svc" "ssm" "Prefix" $.Prefix}}
     {{end}}
   </div>
   {{end}}
@@ -13,7 +14,7 @@
 
 {{define "ssm_home"}}{{template "shell_top" .}}
   {{template "ssm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  {{template "empty_detail" dict "Svc" "ssm" "Hint" "Select a parameter, or create one to store config."}}
+  {{template "empty_detail" dict "Svc" "ssm" "Prefix" $.Prefix "Empty" (not .List)}}
 {{template "shell_bottom" .}}{{end}}
 
 {{define "ssm_param"}}{{template "shell_top" .}}
