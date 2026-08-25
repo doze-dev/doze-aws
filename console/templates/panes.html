@@ -119,3 +119,55 @@
   {{end}}
 </div>
 {{end}}
+
+{{/* The deck: what needs attention, and what exists. It sits above the wire
+     rather than on a page of its own — a synoptic view you have to navigate to
+     is the thing that got the flows page deleted, and the wire answers "what
+     just happened" while answering neither "what exists" nor "what is wrong".
+
+     It also degrades in the direction that matters. The board and the attention
+     line come from list calls, not from the ring, so when capture is off the
+     deck is the ONLY thing on the home page with anything in it. */}}
+{{define "deck"}}
+<div id="deck" data-live="{{.Prefix}}/deck" data-live-ms="3000" data-hash="{{.Hash}}">
+  {{if .FirstRun}}
+    <div class="deck-first">
+      <b>Nothing has happened here yet.</b>
+      <p>Point an SDK at <span class="copychip mono" data-copy="{{.Endpoint}}">{{.Endpoint}}</span> and every call it makes appears below, with the work each call caused nested underneath it.</p>
+      <div class="deck-first-acts">
+        <a class="btn" href="{{.Prefix}}/connect">{{icon "terminal"}} How to connect</a>
+        <span class="dim">or make something:</span>
+        <a href="{{.Prefix}}/s3/create">bucket</a>
+        <a href="{{.Prefix}}/sqs/create">queue</a>
+        <a href="{{.Prefix}}/lambda/create">function</a>
+      </div>
+    </div>
+  {{else}}
+    <div class="deck-line">
+      {{if .Attention}}
+        {{range .Attention}}<a class="dk-att" href="{{$.Prefix}}/{{.Slug}}">{{icon "alert"}} {{.Text}}</a>{{end}}
+      {{end}}
+      {{if .Unwired}}
+        <span class="dk-unwired" title="{{range .Unwired}}{{.Name}} {{end}}">{{len .Unwired}} wired to nothing</span>
+      {{end}}
+      {{if and (not .Attention) (not .Unwired)}}
+        <span class="dk-quiet">Nothing needs attention</span>
+      {{end}}
+      <span class="dk-rate">{{if .Recorder}}{{.Rate}}{{else}}capture off{{end}}</span>
+    </div>
+    {{if .Services}}
+    <div class="deck-board">
+      {{range .Services}}
+      <a class="dk-svc{{if .Warn}} warn{{end}}" href="{{$.Prefix}}/{{.Svc}}">
+        {{awsIcon .Svc}}
+        <span class="dk-b">
+          <span class="dk-l">{{.Label}}</span>
+          {{if .State}}<span class="dk-s">{{.State}}</span>{{end}}
+        </span>
+      </a>
+      {{end}}
+    </div>
+    {{end}}
+  {{end}}
+</div>
+{{end}}

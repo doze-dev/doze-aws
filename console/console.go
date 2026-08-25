@@ -112,6 +112,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/traffic", c.traffic)
 	m.HandleFunc("GET "+p+"/connect", c.connect)
 	m.HandleFunc("POST "+p+"/connect/verify", c.connectVerify)
+	m.HandleFunc("GET "+p+"/deck", c.deck)                    // the stack at a glance
 	m.HandleFunc("GET "+p+"/traffic/feed", c.trafficFeed)    // polled live tail
 	m.HandleFunc("GET "+p+"/traffic/entry", c.trafficEntry)  // inspector drawer
 	m.HandleFunc("POST "+p+"/traffic/clear", c.trafficClear) // empty the ring

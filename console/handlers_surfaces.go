@@ -1,6 +1,8 @@
 package console
 
 import (
+	"fmt"
+	"hash/fnv"
 	"net/http"
 	"sort"
 	"strconv"
@@ -21,6 +23,7 @@ func (c *Console) traffic(w http.ResponseWriter, r *http.Request) {
 	}
 	c.render(w, r, "traffic", map[string]any{
 		"Entries": c.trafficEntries(0), "Enabled": c.rec != nil, "Title": "Traffic",
+		"Deck": c.deckData(r),
 	})
 }
 
@@ -158,10 +161,10 @@ type trafficRow struct {
 	// State is which of the four outcomes this call had: served, refused,
 	// denied or error. IsErr survives beside it because the "errors only"
 	// filter is a single boolean and does not care which kind.
-	State    string
-	Body     string
-	Curl     string
-	Seq      int64
+	State string
+	Body  string
+	Curl  string
+	Seq   int64
 	// Refused is the parsed reason a 4xx/5xx was refused, or nil. Carried on
 	// the row rather than looked up in the drawer because the reason belongs
 	// where you are already scanning for the failure.
@@ -241,7 +244,7 @@ func rowOf(e TrafficEntry, depth int) trafficRow {
 		Status: e.Status, Millis: strconv.FormatFloat(e.Millis, 'f', -1, 64),
 		IsErr: e.Status >= 400, Body: e.ReqBody, Curl: e.Curl(), Seq: e.Seq,
 		Refused: ref, State: callState(e.Status, ref),
-		Depth:   depth, Cascade: e.IsCascade(), Via: e.Via,
+		Depth: depth, Cascade: e.IsCascade(), Via: e.Via,
 		// Every row names a resource and none of them was a link, on the
 		// console's busiest surface. Pure string work, so it costs nothing at
 		// five hundred rows a poll.
@@ -268,4 +271,75 @@ func callState(status int, ref *Refusal) string {
 		return "refused"
 	}
 	return "served"
+}
+
+// ---- The deck ----
+
+// deckView is the stack in two rows: what needs attention, and what exists.
+type deckView struct {
+	Prefix    string
+	Services  []glanceService
+	Attention []glanceAttention
+	Unwired   []glanceUnwired
+	Rate      string
+	Recorder  bool
+	// FirstRun is a property of the STACK, not a memory of the user: nothing
+	// exists and nothing has ever been recorded. Both halves are needed —
+	// someone who cleared the wire is not new, and someone who deleted
+	// everything and is watching traffic is not new either. It self-heals: one
+	// API call or one bucket ends it forever, which is why it needs no
+	// persistence to detect.
+	FirstRun bool
+	Endpoint string
+	Hash     string
+}
+
+func (c *Console) deckData(r *http.Request) deckView {
+	g := c.glanceSnapshot(r.Context())
+	v := deckView{
+		Prefix: c.prefix, Services: g.Services, Attention: g.Attention,
+		Unwired: g.Unwired, Rate: g.Rate, Recorder: g.Recorder,
+		Endpoint: endpointHost(r),
+	}
+	// Suppress unwired entirely when NOTHING is wired. On a stack where no
+	// resource is connected to any other, "6 wired to nothing" is not an
+	// attention signal, it is a description of a stack nobody has wired yet.
+	if g.Nodes > 0 && len(g.Unwired) == g.Nodes {
+		v.Unwired = nil
+	}
+	total := 0
+	for _, s := range g.Services {
+		total += s.Calls
+	}
+	v.FirstRun = len(g.Services) == 0 && (c.rec == nil || c.rec.LastSeq() == 0)
+	v.Hash = deckHash(g)
+	return v
+}
+
+// deckHash is the live-poll probe. The spark buckets are included deliberately:
+// on an idle stack — exactly when the 204 matters — they are all zero and the
+// hash is stable, and when there IS traffic the wire below is already morphing.
+func deckHash(g glanceResponse) string {
+	h := fnv.New64a()
+	for _, s := range g.Services {
+		fmt.Fprintf(h, "%s|%s|%s|%v|%v;", s.Svc, s.Label, s.State, s.Warn, s.Spark)
+	}
+	for _, a := range g.Attention {
+		fmt.Fprintf(h, "a:%s;", a.Slug)
+	}
+	fmt.Fprintf(h, "u:%d;r:%s", len(g.Unwired), g.Rate)
+	return strconv.FormatUint(h.Sum64(), 36)
+}
+
+func (c *Console) deck(w http.ResponseWriter, r *http.Request) {
+	v := c.deckData(r)
+	if liveUnchanged(w, r, v.Hash) {
+		return
+	}
+	// partial takes a map; the deck is a struct because it has enough shape to
+	// deserve one. One line of adaptation beats loosening the helper.
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := c.tmpl.ExecuteTemplate(w, "deck", v); err != nil {
+		http.Error(w, err.Error(), 500)
+	}
 }

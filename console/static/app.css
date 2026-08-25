@@ -1320,3 +1320,37 @@ a.lo-card:hover { border-color: var(--accent); }
 .tr-row.refused .tr-why { color: var(--warning); }
 .tr-row.denied  .tr-why { color: var(--denied); }
 .tr-row.error   .tr-why { color: var(--destructive); }
+
+
+/* ---------- the deck ---------- */
+#deck { border-bottom: 1px solid var(--border); background: var(--card); }
+.deck-line {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 8px 20px; font-size: 12px;
+}
+.dk-att { display: inline-flex; align-items: center; gap: 6px; color: var(--warning); text-decoration: none; font-weight: 550; }
+.dk-att:hover { text-decoration: underline; }
+.dk-att .ic { width: 13px; height: 13px; }
+/* Unwired is muted, never a warning. An unwired bucket on a fresh stack is
+   normal; painting it amber would cry wolf on day one. */
+.dk-unwired { color: var(--muted-foreground); cursor: help; border-bottom: 1px dotted var(--border); }
+.dk-quiet { color: var(--muted-foreground); }
+.dk-rate { margin-left: auto; color: var(--muted-foreground); font-family: var(--mono); font-size: 11px; }
+
+.deck-board { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 20px 10px; }
+.dk-svc {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 5px 9px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--background); text-decoration: none; color: var(--foreground);
+}
+.dk-svc:hover { border-color: var(--ring); }
+.dk-svc.warn { border-color: var(--warning); background: color-mix(in srgb, var(--warning) 6%, transparent); }
+.dk-b { display: flex; flex-direction: column; line-height: 1.25; }
+.dk-l { font-size: 11.5px; font-weight: 550; }
+.dk-s { font-size: 10.5px; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+
+.deck-first { padding: 20px; max-width: 70ch; }
+.deck-first b { display: block; font-size: 14px; margin-bottom: 6px; }
+.deck-first p { margin: 0 0 12px; color: var(--muted-foreground); font-size: 13px; line-height: 1.6; }
+.deck-first-acts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; }
+.deck-first-acts a:not(.btn) { color: var(--foreground); }

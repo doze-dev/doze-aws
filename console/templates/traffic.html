@@ -6,8 +6,18 @@
       </div>
       <div class="det-sub">Every AWS API call your app makes against this endpoint, newest first. The console's own requests are excluded, so this is your app talking — nothing else.</div>
     </div>
+    {{template "deck" .Deck}}
     <div class="det-b">
-      {{if .Enabled}}{{template "traffic_feed" .}}{{else}}<div class="empty"><span class="ic-lg">{{icon "activity"}}</span><p>Traffic capture is off for this session.</p></div>{{end}}
+      {{if .Enabled}}{{template "traffic_feed" .}}{{else}}
+        {{/* Capture off used to be one grey sentence and a dead end. The deck
+             above still has the board and the attention line — they come from
+             list calls, not the ring — so this only has to explain itself. */}}
+        <div class="empty"><span class="ic-lg">{{icon "activity"}}</span>
+          <b>Traffic capture is off in this topology.</b>
+          The console is not in the external request path here, so it cannot see your app's calls. Everything else on this page still works.
+          <div style="margin-top:10px"><a href="{{.Prefix}}/connect">How to connect →</a></div>
+        </div>
+      {{end}}
     </div>
   </section>
 {{template "shell_bottom" .}}{{end}}
@@ -60,7 +70,7 @@
   </div>
   {{end}}
   {{else}}
-  <div class="empty" style="border:0"><span class="ic-lg">{{icon "activity"}}</span><p>No calls yet. Point an SDK or the CLI at <code class="mono">http://{{if .Endpoint}}{{.Endpoint}}{{else}}127.0.0.1:4566{{end}}</code> and watch them stream in.</p></div>
+  <div class="empty" style="border:0"><span class="ic-lg">{{icon "activity"}}</span><p>No calls yet. Point an SDK or the CLI at <code class="mono">http://{{if .Endpoint}}{{.Endpoint}}{{else}}127.0.0.1:4566{{end}}</code> and watch them stream in. <a href="{{$.Prefix}}/connect">How to connect &rarr;</a></p></div>
   {{end}}
   </div>
 </div>

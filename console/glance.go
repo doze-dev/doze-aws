@@ -1,6 +1,7 @@
 package console
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -47,6 +48,17 @@ type glanceResponse struct {
 	Rate      string            `json:"rate,omitempty"` // "42/min"
 	Rate60    []int             `json:"rate60,omitempty"`
 	Recorder  bool              `json:"recorder"` // false = capture off, wire is empty by design
+	// Unwired and Nodes are additive: the wiring graph computes both on every
+	// call and, until now, discarded them. "Nothing touches this resource" is
+	// the highest-signal thing a local stack can tell you and it had no home.
+	Unwired []glanceUnwired `json:"unwired,omitempty"`
+	Nodes   int             `json:"nodes,omitempty"`
+}
+
+type glanceUnwired struct {
+	Svc  string `json:"svc"`
+	Name string `json:"name"`
+	Slug string `json:"slug,omitempty"`
 }
 
 const (
@@ -56,7 +68,18 @@ const (
 )
 
 func (c *Console) apiGlance(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(c.glanceSnapshot(r.Context()))
+}
+
+// glanceSnapshot is the whole stack in one pass. Split out of apiGlance so the
+// same computation can be rendered as JSON for the terminal dashboard and as
+// HTML for the console's own deck — the alternative is two things that drift.
+//
+// Additions here must stay ADDITIVE: the sibling doze TUI decodes this into its
+// own struct and ignores fields it does not know, so new fields are free and
+// changed ones are not.
+func (c *Console) glanceSnapshot(ctx context.Context) glanceResponse {
 	resp := glanceResponse{}
 
 	// The wire + per-service call sparklines, from the in-memory ring.
@@ -101,7 +124,13 @@ func (c *Console) apiGlance(w http.ResponseWriter, r *http.Request) {
 		resp.Rate = fmt.Sprintf("%d/min", total)
 	}
 
-	svc := func(key, label, state string, warn bool) {
+	// A service with nothing in it is omitted. The rail already lists all
+	// thirteen with counts; a board repeating "0 buckets · 0 queues · 0 topics"
+	// is noise, and it made "is this stack empty" unanswerable from here.
+	svc := func(key string, n int, label, state string, warn bool) {
+		if n == 0 {
+			return
+		}
 		resp.Services = append(resp.Services, glanceService{
 			Svc: key, Label: label, State: state, Warn: warn,
 			Spark: perSvc[key], Calls: perSvcTotal[key],
@@ -110,7 +139,7 @@ func (c *Console) apiGlance(w http.ResponseWriter, r *http.Request) {
 
 	// s3
 	buckets, _ := c.be.ListBuckets(ctx)
-	svc("s3", plural(len(buckets), "bucket"), "", false)
+	svc("s3", len(buckets), plural(len(buckets), "bucket"), "", false)
 
 	// sqs — depths and dead letters come from the same attrs fetch
 	queues, _ := c.be.ListQueues(ctx)
@@ -142,7 +171,7 @@ func (c *Console) apiGlance(w http.ResponseWriter, r *http.Request) {
 		}
 		state += "dlq " + strconv.Itoa(dlqDepth) + " ⚠"
 	}
-	svc("sqs", plural(len(queues), "queue"), state, dlqDepth > 0)
+	svc("sqs", len(queues), plural(len(queues), "queue"), state, dlqDepth > 0)
 	if dlqDepth > 0 {
 		resp.Attention = append(resp.Attention, glanceAttention{
 			Text: worstDLQ + " holds " + plural(dlqDepth, "message"),
@@ -156,7 +185,7 @@ func (c *Console) apiGlance(w http.ResponseWriter, r *http.Request) {
 	for _, t := range topics {
 		subs += t.Subs
 	}
-	svc("sns", plural(len(topics), "topic"), plural(subs, "subscription"), false)
+	svc("sns", len(topics), plural(len(topics), "topic"), plural(subs, "subscription"), false)
 
 	// dynamodb
 	tables, _ := c.be.ListTables(ctx)
@@ -164,7 +193,7 @@ func (c *Console) apiGlance(w http.ResponseWriter, r *http.Request) {
 	for _, t := range tables {
 		items += t.ItemCount
 	}
-	svc("ddb", plural(len(tables), "table"), plural(int(items), "item"), false)
+	svc("ddb", len(tables), plural(len(tables), "table"), plural(int(items), "item"), false)
 
 	// eventbridge
 	buses, _ := c.be.ListBuses(ctx)
@@ -172,7 +201,14 @@ func (c *Console) apiGlance(w http.ResponseWriter, r *http.Request) {
 	for _, b := range buses {
 		rules += b.Rules
 	}
-	svc("eb", plural(len(buses), "bus")+" · "+plural(rules, "rule"), "", false)
+	// The default bus always exists — nobody made it — so counting it makes a
+	// fresh stack look populated. EventBridge is on the board when there is
+	// something in it: another bus, or a rule.
+	ebN := rules
+	if len(buses) > 1 {
+		ebN += len(buses) - 1
+	}
+	svc("eb", ebN, plural(len(buses), "bus")+" · "+plural(rules, "rule"), "", false)
 
 	// lambda — the scale-to-zero story belongs on the board
 	fns, _ := c.be.ListFunctions(ctx)
@@ -190,11 +226,11 @@ func (c *Console) apiGlance(w http.ResponseWriter, r *http.Request) {
 	if lamState == "" && len(fns) > 0 {
 		lamState = "cold · wakes on invoke"
 	}
-	svc("lambda", plural(len(fns), "function"), lamState, false)
+	svc("lambda", len(fns), plural(len(fns), "function"), lamState, false)
 
 	// kms / ssm / secrets — cheap counts
 	if n, err := c.be.CountKeys(ctx); err == nil {
-		svc("kms", plural(n, "key"), "", false)
+		svc("kms", n, plural(n, "key"), "", false)
 	}
 	params, _ := c.be.ListParameters(ctx)
 	secure := 0
@@ -207,12 +243,37 @@ func (c *Console) apiGlance(w http.ResponseWriter, r *http.Request) {
 	if secure > 0 {
 		st = plural(secure, "SecureString")
 	}
-	svc("ssm", plural(len(params), "param"), st, false)
+	svc("ssm", len(params), plural(len(params), "param"), st, false)
 	secrets, _ := c.be.ListSecrets(ctx)
-	svc("sm", plural(len(secrets), "secret"), "", false)
+	svc("sm", len(secrets), plural(len(secrets), "secret"), "", false)
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(resp)
+	// The board stopped at nine services while apiCounts already counted
+	// thirteen, so a stack whose only resources were streams or stacks looked
+	// empty from here.
+	if n, err := c.be.CountStreams(ctx); err == nil && n > 0 {
+		svc("kinesis", n, plural(n, "stream"), "", false)
+	}
+	if n, err := c.be.CountStacks(ctx); err == nil && n > 0 {
+		svc("cfn", n, plural(n, "stack"), "", false)
+	}
+	if n, err := c.be.CountRestAPIs(ctx); err == nil && n > 0 {
+		svc("apigw", n, plural(n, "API"), "", false)
+	}
+	if n, err := c.be.CountPrincipals(ctx); err == nil && n > 0 {
+		svc("iam", n, plural(n, "principal"), "", false)
+	}
+
+	// Unwired: resources nothing is wired to. Computed by layoutFlows on every
+	// Neighbors() call and thrown away since the flows page was deleted.
+	if g := c.be.graphCached(ctx); g.NodeCount > 0 {
+		resp.Nodes = g.NodeCount
+		for _, n := range g.Unwired {
+			resp.Unwired = append(resp.Unwired, glanceUnwired{
+				Svc: n.Svc, Name: n.Name, Slug: strings.TrimPrefix(n.URL, "/"),
+			})
+		}
+	}
+	return resp
 }
 
 // shortDur renders a countdown compactly: "6m", "45s", "1h2m".
