@@ -598,11 +598,18 @@ type Refusal struct {
 // awsJson services answer with {"__type":..,"message":..} and the query/XML
 // ones with an <ErrorResponse><Error>. Anything else returns ok=false and the
 // drawer just shows the raw body, which is the honest fallback.
-func (e TrafficEntry) Failure() *Refusal {
-	if e.Status < 400 || e.RespBody == "" {
+func (e TrafficEntry) Failure() *Refusal { return parseRefusal(e.Status, e.RespBody) }
+
+// parseRefusal pulls the refusal out of an AWS error body, in either wire
+// protocol. Split out of Failure so the console's OWN failed calls can be
+// rendered the same way the wire renders a client's — the reason a request was
+// refused reads identically whichever side made it, and there is no sense
+// having two decoders that can disagree.
+func parseRefusal(status int, respBody string) *Refusal {
+	if status < 400 || respBody == "" {
 		return nil
 	}
-	body := strings.TrimSpace(e.RespBody)
+	body := strings.TrimSpace(respBody)
 
 	if strings.HasPrefix(body, "{") {
 		var j struct {

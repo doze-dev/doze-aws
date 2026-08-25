@@ -506,6 +506,14 @@ tr:hover .row-actions { opacity: 1; }
 .peek .ic { width: 14px; height: 14px; }
 
 .err { color: var(--destructive); background: color-mix(in srgb, var(--destructive) 8%, transparent); border: 1px solid color-mix(in srgb, var(--destructive) 35%, transparent); border-radius: var(--radius); padding: 10px 13px; margin: 8px 0; font-size: 12.5px; }
+.err-h { font-weight: 640; display: flex; align-items: baseline; gap: 8px; }
+.err-code { font: 500 11px var(--mono); opacity: .85; }
+.err-msg { margin: 4px 0 0; color: var(--foreground); }
+.err-why { margin: 6px 0 0; font-size: 12px; color: var(--muted-foreground); }
+.err-why a { color: inherit; text-underline-offset: 2px; }
+.err-refused { border-color: var(--warning); color: var(--warning); background: color-mix(in srgb, var(--warning) 7%, transparent); }
+.err-denied  { border-color: var(--denied);  color: var(--denied);  background: color-mix(in srgb, var(--denied) 7%, transparent); }
+.err-error   { border-color: var(--destructive); color: var(--destructive); background: color-mix(in srgb, var(--destructive) 7%, transparent); }
 
 @keyframes pop { from { opacity: 0; transform: translateY(6px) scale(0.98); } to { opacity: 1; transform: none; } }
 .anim { animation: pop .14s ease; }

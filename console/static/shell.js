@@ -100,7 +100,67 @@
   }
   window.addEventListener("toast", function (e) { toast(e.detail.value !== undefined ? e.detail.value : e.detail, "ok"); });
   window.addEventListener("toast-error", function (e) { toast(e.detail.value !== undefined ? e.detail.value : e.detail, "err"); });
+  // ---------- inline errors ----------
+  // c.fail sends 400 with an HX-Doze-Error header. htmx's default for 4xx is
+  // swap:false, so that body would never reach the DOM — but beforeSwap fires
+  // regardless of shouldSwap, which is the hook that lets us place it ourselves,
+  // next to the control that failed, without letting it near the success target
+  // the request was aimed at.
+  function clearErr(root) {
+    (root || document).querySelectorAll(".err[data-doze-err]").forEach(function (el) { el.remove(); });
+  }
+  // The ladder, most specific first. A surface opts in with data-err-slot;
+  // otherwise a form takes it at the end, and failing that the nearest
+  // meaningful block gets it.
+  function errSlot(elt) {
+    if (!elt || !elt.closest) return null;
+    var opt = elt.closest("[data-err-slot]");
+    if (opt) {
+      var sel = opt.getAttribute("data-err-slot");
+      var t = sel ? document.querySelector(sel) : opt;
+      if (t) return { host: t, how: "append" };
+    }
+    var form = elt.closest("form");
+    if (form) return { host: form, how: "append" };
+    var block = elt.closest(".panel, .det-b, .sub-item, .form-page");
+    if (block) return { host: block, how: "prepend" };
+    return null;
+  }
+  function placeError(elt, html) {
+    var slot = errSlot(elt);
+    if (!slot) return false;
+    clearErr(slot.host);
+    var box = document.createElement("div");
+    box.innerHTML = html;
+    var node = box.firstElementChild;
+    if (!node) return false;
+    node.setAttribute("data-doze-err", "1");
+    if (slot.how === "prepend") slot.host.insertBefore(node, slot.host.firstChild);
+    else slot.host.appendChild(node);
+    node.scrollIntoView({ block: "nearest" });
+    try { node.focus(); } catch (e) {}
+    return true;
+  }
+  document.addEventListener("htmx:beforeRequest", function (e) {
+    var slot = errSlot(e.detail.elt);
+    if (slot) clearErr(slot.host);
+  });
+  document.addEventListener("htmx:beforeSwap", function (e) {
+    var x = e.detail.xhr;
+    if (!x || x.getResponseHeader("HX-Doze-Error") !== "1") return;
+    // Never let an error reach the success target.
+    e.detail.shouldSwap = false;
+    // isError stays true on purpose: detail.successful must remain false, or
+    // every @htmx:after-request="if(successful) ..." in the templates fires on a
+    // failure and resets a form the user still needs.
+    if (placeError(e.detail.requestConfig.elt, x.responseText)) x._dozeHandled = true;
+  });
+
   document.addEventListener("htmx:responseError", function (e) {
+    // Placed inline already? Then a toast would be a duplicate. This stays as the
+    // fallback for network errors, 5xx, and any surface the ladder could not find
+    // a home in — so it is strictly never worse than before.
+    if (e.detail.xhr && e.detail.xhr._dozeHandled) return;
     var raw = (e.detail.xhr.responseText || "Request failed");
     // The server HTML-escapes error bodies; decode entities first so the message
     // regex matches and the toast shows real quotes/brackets, not "&#34;".

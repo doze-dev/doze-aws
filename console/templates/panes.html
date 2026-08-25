@@ -66,3 +66,24 @@
 </div>
 {{end}}
 {{end}}
+
+{{/* fail_inline is what a failed console action looks like. It is deliberately
+     the same vocabulary the wire's inspector uses — refused / denied / failed,
+     and a line about where the fix lives — because a request refused by
+     doze-aws reads the same whether your code made it or this page did. */}}
+{{define "fail_inline"}}
+<div class="err err-{{.State}}" role="alert" tabindex="-1">
+  <div class="err-h">
+    {{if eq .State "denied"}}Denied{{else if eq .State "error"}}Failed{{else}}Refused{{end}}
+    {{if .Code}}<span class="err-code">{{.Code}}</span>{{end}}
+  </div>
+  {{if .Message}}<p class="err-msg">{{.Message}}</p>{{end}}
+  {{if eq .State "denied"}}
+  <p class="err-why">A policy decided this, not the input — the request was well formed. The fix is the policy. <a href="{{prefix}}/iam">Access log →</a></p>
+  {{else if eq .State "error"}}
+  <p class="err-why">This is doze-aws failing rather than refusing. A 5xx here is a bug in the emulator, not in the call, and is worth reporting.</p>
+  {{else if .Code}}
+  <p class="err-why">doze-aws refuses this because AWS does — the rule comes from AWS's own service model, so the same call would have failed on deploy.</p>
+  {{end}}
+</div>
+{{end}}

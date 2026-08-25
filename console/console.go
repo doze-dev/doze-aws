@@ -6,6 +6,7 @@
 package console
 
 import (
+	"errors"
 	"embed"
 	"html/template"
 	"io"
@@ -382,10 +383,43 @@ func toast(w http.ResponseWriter, msg string) {
 	w.Header().Set("HX-Trigger", `{"toast":`+strconv.QuoteToASCII(msg)+`}`)
 }
 
+// fail renders a console-driven call's failure the way the wire renders a
+// client's: the code, the message, and a line about where the fix lives.
+//
+// The status stays 400 and no htmx config changes. htmx's default for 4xx is
+// swap:false, so this body would never reach the DOM on its own — but
+// htmx:beforeSwap fires anyway, even when shouldSwap is false, so shell.js can
+// place it next to the control that failed. The header is what tells it to.
+// Doing it that way is why none of the ~180 call sites had to change, and why
+// an error can never clobber a success target it was not addressed to.
 func (c *Console) fail(w http.ResponseWriter, err error) {
+	w.Header().Set("HX-Doze-Error", "1")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusBadRequest)
-	io.WriteString(w, `<div class="err">`+template.HTMLEscapeString(err.Error())+`</div>`)
+	if err := c.tmpl.ExecuteTemplate(w, "fail_inline", failView(err)); err != nil {
+		io.WriteString(w, `<div class="err">`+template.HTMLEscapeString(err.Error())+`</div>`)
+	}
+}
+
+// failReason is what the user is shown when a console action fails.
+type failReason struct {
+	Code    string
+	Message string
+	State   string // served | refused | denied | error — same vocabulary as the wire
+}
+
+// failView decodes an error into the same shape the wire's inspector uses. An
+// error that is not an AWS refusal (a form validation, a bad parameter) still
+// gets a Message, so the template has one branch rather than two.
+func failView(err error) failReason {
+	var ae *apiErr
+	if errors.As(err, &ae) {
+		if r := parseRefusal(ae.status, ae.body); r != nil {
+			return failReason{Code: r.Code, Message: r.Message, State: callState(ae.status, r)}
+		}
+		return failReason{Message: strings.TrimSpace(ae.body), State: callState(ae.status, nil)}
+	}
+	return failReason{Message: err.Error(), State: "refused"}
 }
 
 func templateFuncs(prefix string) template.FuncMap {

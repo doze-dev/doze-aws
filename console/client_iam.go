@@ -12,7 +12,6 @@ package console
 import (
 	"context"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"net/url"
 	"sort"
@@ -445,19 +444,16 @@ func (b *backend) Simulate(ctx context.Context, principalARN string, actions []s
 
 // awsMessage reduces an AWS error envelope to the message it carries. The
 // services answer with a usable sentence; the XML around it is noise.
-func awsMessage(err error) error {
-	var e *apiErr
-	if !errors.As(err, &e) {
-		return err
-	}
-	var out struct {
-		Message string `xml:"Error>Message"`
-	}
-	if xml.Unmarshal([]byte(e.body), &out) == nil && out.Message != "" {
-		return fmt.Errorf("%s", out.Message)
-	}
-	return err
-}
+// awsMessage used to flatten an *apiErr into a bare message, which read better
+// in a toast and cost the error code — and every IAM mutation goes through here,
+// so IAM was the one service whose failures could never name what refused them.
+//
+// It now returns the error unchanged. parseRefusal already pulls both the code
+// and the message out of this exact XML shape, and c.fail runs it, so keeping
+// the *apiErr intact is what lets an IAM failure render like every other one.
+// Kept as a named function rather than deleted at thirteen call sites so the
+// reason survives next to them.
+func awsMessage(err error) error { return err }
 
 // ---- mutations ----
 
