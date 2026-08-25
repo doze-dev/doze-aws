@@ -41,7 +41,7 @@
          hx-get="{{$.Prefix}}/traffic/entry?seq={{.Seq}}" hx-target="#t-drawer-inner" hx-select="unset" hx-swap="innerHTML"
          @click="sel = (sel==={{.Seq}} ? null : {{.Seq}})">
       <span class="ts">{{.Time}}</span>
-      <span class="svcb" style="color:var(--svc-{{.Service}});padding-left:{{mul .Depth 14}}px">{{if .Cascade}}<span class="tr-branch" title="caused by the call above">└</span>{{end}}{{.Service}}</span>
+      <span class="svcb" style="--svc-ink:var(--svc-{{.Service}}-ink);padding-left:{{mul .Depth 14}}px">{{if .Cascade}}<span class="tr-branch" title="caused by the call above">└</span>{{end}}{{.Service}}</span>
       <span class="act">{{.Action}}</span>
       <span class="res" title="{{.Resource}}">{{.Resource}}</span>
       <span class="st {{.State}}">{{.Status}}</span>
@@ -61,7 +61,7 @@
 {{/* The inspector drawer: the full request/response pair for one call. */}}
 {{define "traffic_drawer"}}
 <div class="td-h">
-  <span class="td-title"><b style="color:var(--svc-{{.E.Service}})">{{.E.Service}}</b> {{.E.Action}}{{if .E.Resource}} · <span class="mono">{{.E.Resource}}</span>{{end}}</span>
+  <span class="td-title"><b style="--svc-ink:var(--svc-{{.E.Service}}-ink)">{{.E.Service}}</b> {{.E.Action}}{{if .E.Resource}} · <span class="mono">{{.E.Resource}}</span>{{end}}</span>
   <button class="copy-btn" data-copy="{{.E.Curl}}" title="Copy as curl">{{icon "copy"}} curl</button>
 </div>
 <div class="td-meta"><span class="{{if ge .E.Status 400}}err{{else}}ok{{end}}">{{.E.Status}}</span> · {{.Millis}}ms · {{.Time}}</div>

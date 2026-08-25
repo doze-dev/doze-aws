@@ -481,9 +481,22 @@ tr:hover .row-actions { opacity: 1; }
 .msg.open .msg-line .chev { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) { .msg-line .chev { transition: none; } }
 .msg-line .evt { flex: none; font: 600 10px var(--mono); padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted-foreground); background: color-mix(in srgb, var(--muted) 50%, transparent); }
-.msg-line .evt.c-s3 { color: var(--svc-s3-ink); border-color: color-mix(in srgb, var(--svc-s3) 35%, transparent); background: color-mix(in srgb, var(--svc-s3) 7.0%, transparent); }
-.msg-line .evt.c-sns { color: var(--svc-sns-ink); border-color: color-mix(in srgb, var(--svc-sns) 35%, transparent); background: color-mix(in srgb, var(--svc-sns) 7.0%, transparent); }
-.msg-line .evt.c-eb { color: var(--svc-eb-ink); border-color: color-mix(in srgb, var(--svc-eb) 35%, transparent); background: color-mix(in srgb, var(--svc-eb) 7.0%, transparent); }
+/* The pairing is structural, and it is why only three services were ever
+   correct here: a rule per service meant the other eleven were never going to
+   get one. --svc-ink carries the WORD, --svc-mark carries the edge and the
+   wash, and the template supplies both. */
+.msg-line .evt[style] {
+  color: var(--svc-ink, var(--muted-foreground));
+  border-color: color-mix(in srgb, var(--svc-mark, var(--border)) 35%, transparent);
+  background: color-mix(in srgb, var(--svc-mark, var(--muted)) 7.0%, transparent);
+}
+
+/* The wire paints a service NAME, not a 16px mark, in both places below. The
+   icon tier clears 3:1, which is right for a glyph and a hairline and is not
+   enough for 11.5px bold text — this file says so at the top and these two were
+   the sites breaking it. */
+.tr-row .svcb { color: var(--svc-ink, var(--muted-foreground)); }
+.td-title b   { color: var(--svc-ink, var(--foreground)); }
 .msg-line .msum { font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .msg-detail { margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
 .msg-id { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted-foreground); margin-bottom: 6px; }
