@@ -203,17 +203,25 @@
   // ---------- command palette ----------
   var pal = document.getElementById("palette"), palQ = document.getElementById("pal-q"), palList = document.getElementById("pal-list");
   var palItems = [], palSel = 0;
-  var NAV = [["s3","S3","/s3"],["ddb","DynamoDB","/ddb"],["lambda","Lambda","/lambda"],["sqs","SQS","/sqs"],
-    ["sns","SNS","/sns"],["eb","EventBridge","/eb"],["kms","KMS","/kms"],["sm","Secrets Manager","/sm"],["ssm","Parameter Store","/ssm"]];
-  var ACTS = [["s3","Create bucket","/s3/create"],["sqs","Create queue","/sqs/create"],["ddb","Create table","/ddb/create"],
-    ["sns","Create topic","/sns/create"],["eb","Create event bus","/eb/create-bus"],["kms","Create key","/kms/create"],
-    ["ssm","Create parameter","/ssm/create"],["sm","Store secret","/sm/create"]];
-  var KIND = { s3:"bucket", sqs:"queue", ddb:"table", sns:"topic", eb:"bus / rule", lambda:"function", kms:"key", ssm:"parameter", sm:"secret" };
+  // The catalogue comes from the server. These were four hand-maintained arrays
+  // — NAV, ACTS, KIND and SVCSET — each covering nine of thirteen services, and
+  // one of them still listed "Flows", a page deleted commits earlier. Anything
+  // hand-kept beside a router drifts from it.
+  var CAT = { nav: [], acts: [], kinds: {} };
+  fetch(PREFIX + "/api/palette").then(function (r) { return r.json(); })
+    .then(function (c) { if (c) CAT = c; })
+    .catch(function () {});
 
   // ---------- recently visited resources ----------
   // The palette pins your last few resource pages on top: the queue you just
   // left costs ⌘K ⏎ instead of retyping its name.
-  var SVCSET = { s3:1, ddb:1, lambda:1, sqs:1, sns:1, eb:1, kms:1, ssm:1, sm:1 };
+  // SVCSET gates which pages count as a "resource" for recents. Derived from the
+  // catalogue rather than listed again — it used to name nine services, so a
+  // visit to a Kinesis stream or an IAM role was never remembered.
+  var SVCSET = {};
+  fetch(PREFIX + "/api/palette").then(function (r) { return r.json(); })
+    .then(function (c) { (c.nav || []).forEach(function (n) { if (n.s) SVCSET[n.s] = 1; }); })
+    .catch(function () {});
   function trackVisit() {
     try {
       var path = location.pathname;
@@ -267,9 +275,7 @@
         .filter(function (x) { return x.u !== here; }).slice(0, 5)
         .map(function (x) { return { s: x.s, n: x.n, u: x.u, k: "recent" }; });
     } catch (e) {}
-    var fixed = NAV.map(function (n) { return { s:n[0], n:n[1], u:PREFIX+n[2], k:"service" }; })
-      .concat([{ s:"", n:"Flows", u:PREFIX+"/", k:"surface" }, { s:"", n:"Traffic", u:PREFIX+"/traffic", k:"surface" }])
-      .concat(ACTS.map(function (a) { return { s:a[0], n:a[1], u:PREFIX+a[2], k:"action" }; }));
+    var fixed = (CAT.nav || []).concat(CAT.acts || []);
     palItems = recents.concat(fixed);
     renderPal();
     palQ.focus();
@@ -277,15 +283,48 @@
       var seen = {};
       recents.forEach(function (x) { seen[x.u] = 1; });
       var fresh = (rs || []).filter(function (r) { return !seen[r.u]; })
-        .map(function (r) { r.k = KIND[r.s] || r.s; return r; });
+        .map(function (r) { r.k = (CAT.kinds || {})[r.s] || r.s; return r; });
       palItems = recents.concat(fresh).concat(fixed);
       renderPal();
     });
   }
+  // Ordered-subsequence match, so "emd" finds "emails-dlq". Exact substring
+  // still ranks first, so literal typing always wins over a lucky subsequence.
+  function subseq(hay, q) {
+    var i = 0;
+    for (var j = 0; j < hay.length && i < q.length; j++) if (hay[j] === q[i]) i++;
+    return i === q.length;
+  }
   function palFiltered() {
     var q = palQ.value.toLowerCase().trim();
     if (!q) return palItems.slice(0, 10);
-    return palItems.filter(function (it) { return (it.n + " " + it.k).toLowerCase().indexOf(q) >= 0; }).slice(0, 10);
+    // Searching the service key too means typing "sqs" finds the queues.
+    var exact = [], fuzzy = [];
+    palItems.forEach(function (it) {
+      var hay = (it.n + " " + (it.k || "") + " " + (it.s || "")).toLowerCase();
+      if (hay.indexOf(q) >= 0) exact.push(it);
+      else if (subseq(hay, q)) fuzzy.push(it);
+    });
+    return exact.concat(fuzzy).slice(0, 10);
+  }
+
+  // An ARN pasted out of a stack trace resolves to its page. The parse lives in
+  // Go — it is the same table every link in the console is built from, and a
+  // second copy here is a second thing that can be wrong.
+  var resolveTimer = null;
+  function maybeResolve() {
+    var q = palQ.value.trim();
+    clearTimeout(resolveTimer);
+    if (q.indexOf("arn:") !== 0 && q.indexOf("://") < 0) return;
+    resolveTimer = setTimeout(function () {
+      fetch(PREFIX + "/api/resolve?id=" + encodeURIComponent(q))
+        .then(function (r) { return r.json(); })
+        .then(function (ref) {
+          if (!ref || !ref.u || palQ.value.trim() !== q) return;
+          palItems = [{ s: ref.s, n: ref.n, u: ref.u, k: ref.k || "resource" }].concat(palItems);
+          renderPal();
+        }).catch(function () {});
+    }, 180);
   }
   function renderPal() {
     var items = palFiltered();
@@ -307,7 +346,7 @@
   function closePalette() { if (pal) pal.hidden = true; }
   var opener = document.getElementById("palette-open");
   if (opener) opener.addEventListener("click", openPalette);
-  if (palQ) palQ.addEventListener("input", function () { palSel = 0; renderPal(); });
+  if (palQ) palQ.addEventListener("input", function () { palSel = 0; renderPal(); maybeResolve(); });
   if (pal) pal.addEventListener("click", function (e) { if (e.target === pal) closePalette(); });
 
   // ---------- keyboard ----------

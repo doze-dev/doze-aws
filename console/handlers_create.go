@@ -109,6 +109,29 @@ func (c *Console) apiResources(w http.ResponseWriter, r *http.Request) {
 			add("sm", s.Name, "/sm/secret?name="+url.QueryEscape(s.Name))
 		}
 	}
+
+	// Kinesis, CloudFormation, API Gateway and IAM were absent, so four of
+	// thirteen services had working pages that ⌘K could not reach.
+	if streams, err := c.be.ListStreams(ctx); err == nil {
+		for _, st := range streams {
+			add("kinesis", st.Name, "/kinesis/"+st.Name)
+		}
+	}
+	if stacks, err := c.be.ListStacks(ctx); err == nil {
+		for _, st := range stacks {
+			add("cfn", st.Name, "/cfn/"+st.Name)
+		}
+	}
+	if apis, err := c.be.ListRestAPIs(ctx); err == nil {
+		for _, a := range apis {
+			add("apigw", a.Name, "/apigw/"+a.ID)
+		}
+	}
+	if ps, err := c.be.ListPrincipals(ctx); err == nil {
+		for _, pr := range ps {
+			add("iam", pr.Name, "/iam/"+pr.Kind+"/"+pr.Name)
+		}
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(out)
 }
@@ -161,4 +184,59 @@ func (c *Console) apiCounts(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(counts)
+}
+
+// apiPalette serves the catalogue the command palette navigates by. It used to
+// be four hand-maintained arrays in shell.js — NAV, ACTS, KIND and SVCSET —
+// which is how four of thirteen services became unreachable from ⌘K and how a
+// deleted page stayed in the list. Generated from the same catalogue the rail
+// renders, so the two cannot disagree again.
+func (c *Console) apiPalette(w http.ResponseWriter, r *http.Request) {
+	type item struct {
+		S string `json:"s,omitempty"` // service key, for colour
+		N string `json:"n"`           // label
+		U string `json:"u"`           // url
+		K string `json:"k,omitempty"` // kind
+	}
+	out := struct {
+		Nav   []item            `json:"nav"`
+		Acts  []item            `json:"acts"`
+		Kinds map[string]string `json:"kinds"`
+	}{Kinds: map[string]string{}}
+
+	for _, e := range surfaces {
+		u := c.prefix + "/"
+		if e.Key != "traffic" {
+			u = c.prefix + "/" + e.Key
+		}
+		out.Nav = append(out.Nav, item{N: e.Label, U: u, K: "surface"})
+	}
+	for _, e := range catalog {
+		out.Nav = append(out.Nav, item{S: e.Key, N: e.Label, U: c.prefix + "/" + e.Key, K: "service"})
+		out.Kinds[e.Key] = e.Noun
+		if e.CreatePath != "" {
+			out.Acts = append(out.Acts, item{S: e.Key, N: e.CreateLabel, U: c.prefix + e.CreatePath, K: "create"})
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(out)
+}
+
+// apiResolve turns an ARN, a queue URL or a bare identifier into a console
+// page. The table lives in Go, so pasting an ARN out of a stack trace into ⌘K
+// and landing on its page costs one call rather than a fourth copy of the
+// parser in JavaScript.
+func (c *Console) apiResolve(w http.ResponseWriter, r *http.Request) {
+	ref := resourceFromARN(r.URL.Query().Get("id"))
+	out := struct {
+		S string `json:"s,omitempty"`
+		N string `json:"n,omitempty"`
+		U string `json:"u,omitempty"`
+		K string `json:"k,omitempty"`
+	}{}
+	if ref.OK() {
+		out.S, out.N, out.U, out.K = ref.Svc, ref.Name, c.prefix+ref.Path, nounFor(ref.Svc)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(out)
 }

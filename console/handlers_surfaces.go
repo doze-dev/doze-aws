@@ -52,21 +52,19 @@ func (c *Console) guessSection(seg string) (url, name string) {
 		return "", ""
 	}
 	if key, ok := sectionNouns[strings.TrimSuffix(seg, "s")]; ok {
-		for _, s := range railSections {
-			if s.Key == key {
-				return c.prefix + "/" + s.Key, s.Name
-			}
+		if e, ok := catalogOf(key); ok {
+			return c.prefix + "/" + e.Key, e.Label
 		}
 	}
-	for _, s := range railSections {
-		if s.Key == seg {
-			return c.prefix + "/" + s.Key, s.Name
+	for _, e := range append(append([]svcEntry{}, catalog...), surfaces...) {
+		if e.Key == seg {
+			return c.prefix + "/" + e.Key, e.Label
 		}
 	}
 	if len(seg) >= 3 {
-		for _, s := range railSections {
-			if strings.HasPrefix(s.Key, seg[:3]) || strings.HasPrefix(strings.ToLower(s.Name), seg[:3]) {
-				return c.prefix + "/" + s.Key, s.Name
+		for _, e := range append(append([]svcEntry{}, catalog...), surfaces...) {
+			if strings.HasPrefix(e.Key, seg[:3]) || strings.HasPrefix(strings.ToLower(e.Label), seg[:3]) {
+				return c.prefix + "/" + e.Key, e.Label
 			}
 		}
 	}
@@ -85,15 +83,6 @@ var sectionNouns = map[string]string{
 	"role": "iam", "user": "iam", "policy": "iam", "principal": "iam",
 }
 
-// railSections is the console's own list of destinations, used to turn a miss
-// into a suggestion. Ordered as the rail is.
-var railSections = []struct{ Key, Name string }{
-	{"s3", "S3"}, {"ddb", "DynamoDB"},
-	{"sqs", "SQS"}, {"sns", "SNS"}, {"eb", "EventBridge"}, {"kinesis", "Kinesis"},
-	{"lambda", "Lambda"}, {"apigw", "API Gateway"},
-	{"kms", "KMS"}, {"sm", "Secrets Manager"}, {"ssm", "Parameter Store"},
-	{"iam", "IAM"}, {"cfn", "CloudFormation"}, {"connect", "Connect"},
-}
 
 func (c *Console) trafficFeed(w http.ResponseWriter, r *http.Request) {
 	// Cheap probe first: the idle tick (the common case) must not copy and

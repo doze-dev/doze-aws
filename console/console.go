@@ -119,6 +119,8 @@ func (c *Console) routes() {
 
 	// Resource index for the command palette.
 	m.HandleFunc("GET "+p+"/api/resources", c.apiResources)
+	m.HandleFunc("GET "+p+"/api/palette", c.apiPalette)
+	m.HandleFunc("GET "+p+"/api/resolve", c.apiResolve)
 	m.HandleFunc("GET "+p+"/api/counts", c.apiCounts)
 	m.HandleFunc("GET "+p+"/api/glance", c.apiGlance) // one-call feed for the doze dash page
 	m.HandleFunc("GET "+p+"/tags/view", c.tagsView)
