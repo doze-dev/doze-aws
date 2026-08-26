@@ -552,5 +552,102 @@
   });
   document.addEventListener("htmx:afterSwap", function () { setTimeout(syncNoMatch, 0); });
 
+  // ---------- after an in-place navigation ----------
+  // c.redirect now swaps #workspace instead of reloading the window. Five things
+  // a full page load used to do for free have to be done here.
+  var lastPath = location.pathname;
+  function serviceOf(p) {
+    var seg = p.replace(PREFIX, "").split("/").filter(Boolean);
+    return seg.length ? seg[0] : "";
+  }
+  document.addEventListener("htmx:afterSettle", function (e) {
+    if (location.pathname === lastPath) return;
+    var from = lastPath, to = location.pathname;
+    lastPath = to;
+
+    // 1. The filter box is a GLOBAL Alpine store, so a full reload used to clear
+    //    it. In place it survives — navigate S3 -> SQS with "log" typed and
+    //    every queue is hidden, which looks like a broken page rather than an
+    //    active filter. Clear it when the service changes, keep it when only the
+    //    selected resource does.
+    if (serviceOf(from) !== serviceOf(to)) {
+      try { if (window.Alpine) window.Alpine.store("filter").q = ""; } catch (err) {}
+      document.querySelectorAll(".listpane .filter input").forEach(function (i) { i.value = ""; });
+    }
+    // 2. Focus lands on <body> after a swap, so keyboard flow dies and a screen
+    //    reader announces nothing. Move it to the page title and say where we are.
+    var t = document.querySelector(".det-title");
+    if (t) {
+      t.setAttribute("tabindex", "-1");
+      try { t.focus({ preventScroll: true }); } catch (err) {}
+      announce(t.textContent.trim());
+    }
+    // 3. #workspace carries hx-swap="... show:none", so htmx never scrolls.
+    //    Right for a same-page re-render, wrong when the resource changed.
+    if (from !== to) window.scrollTo(0, 0);
+    // 4 and 5 need nothing: dozeEditor.upgradeAll and setupLive already re-arm
+    //    on afterSwap, and CodeMirror instances in the discarded subtree hold no
+    //    document-level listeners, so they are collectable.
+  });
+
+  // The flash banner only reaches the page on the non-htmx fallback path now,
+  // where it arrives as ?flash= in the URL. Two problems came with that and both
+  // outlive the transport change: it never dismissed itself, and the parameter
+  // stayed in the address bar, so a refresh or a back navigation re-showed a
+  // success that had already happened.
+  function tidyFlash() {
+    var bar = document.getElementById("flashbar");
+    if (bar) setTimeout(function () { bar.remove(); }, 8000);
+    if (location.search.indexOf("flash=") >= 0) {
+      try {
+        var u = new URL(location.href);
+        u.searchParams.delete("flash");
+        history.replaceState(history.state, "", u.pathname + u.search + u.hash);
+      } catch (err) {}
+    }
+  }
+  document.addEventListener("DOMContentLoaded", tidyFlash);
+  document.addEventListener("htmx:afterSettle", tidyFlash);
+
+  // A polite live region, so an in-place navigation is announced the way a page
+  // load was.
+  var liveRegion = null;
+  function announce(msg) {
+    if (!msg) return;
+    if (!liveRegion) {
+      liveRegion = document.createElement("div");
+      liveRegion.setAttribute("aria-live", "polite");
+      liveRegion.setAttribute("aria-atomic", "true");
+      liveRegion.className = "sr-only";
+      document.body.appendChild(liveRegion);
+    }
+    liveRegion.textContent = "";
+    setTimeout(function () { liveRegion.textContent = msg; }, 60);
+  }
+
+  // The flash now arrives as a trigger rather than in the URL.
+  window.addEventListener("doze:flash", function (e) {
+    var msg = e.detail && (e.detail.value !== undefined ? e.detail.value : e.detail);
+    if (msg) toast(String(msg), "ok");
+  });
+  // A value that cannot be retrieved again does not get three seconds.
+  window.addEventListener("doze:flash-sticky", function (e) {
+    var msg = String(e.detail && (e.detail.value !== undefined ? e.detail.value : e.detail) || "");
+    if (!msg) return;
+    var host = document.getElementById("workspace") || document.body;
+    var el = document.createElement("div");
+    el.className = "flash flash-sticky anim";
+    el.setAttribute("role", "status");
+    el.innerHTML = '<span class="fl-msg"></span>' +
+      '<button class="copy-btn" title="Copy">copy</button>' +
+      '<button class="icon-btn fl-x" title="Dismiss">&times;</button>';
+    el.querySelector(".fl-msg").textContent = msg;
+    el.querySelector(".copy-btn").addEventListener("click", function () {
+      navigator.clipboard && navigator.clipboard.writeText(msg);
+    });
+    el.querySelector(".fl-x").addEventListener("click", function () { el.remove(); });
+    host.insertBefore(el, host.firstChild);
+  });
+
   window.dozeShell = { toast: toast, openPalette: openPalette };
 })();

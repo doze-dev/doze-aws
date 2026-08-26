@@ -210,7 +210,8 @@ func (c *Console) iamNewKey(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/iam/user/"+name, id+" / "+secret+" — the secret is not retrievable again")
+	// The one flash that must survive being read: AWS never shows this again.
+	c.redirectSticky(w, r, c.prefix+"/iam/user/"+name, id+" / "+secret+" — the secret is not retrievable again")
 }
 
 func (c *Console) iamDeleteKey(w http.ResponseWriter, r *http.Request) {

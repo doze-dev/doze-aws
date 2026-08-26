@@ -338,7 +338,20 @@ func (c *Console) render(w http.ResponseWriter, r *http.Request, page string, da
 
 // redirect sends the browser to `to` with an optional flash banner — via
 // HX-Redirect for htmx requests, 303 See Other for plain forms.
+// redirectSticky is for a value the user must read before it leaves the screen.
+// There is exactly one: a new access key's secret, which AWS never shows again.
+// A 3.2s toast would destroy it, so this one gets a banner that stays until
+// dismissed — and a copy button, since the whole point is that it is
+// unrecoverable.
+func (c *Console) redirectSticky(w http.ResponseWriter, r *http.Request, to, flash string) {
+	c.redirectMode(w, r, to, flash, true)
+}
+
 func (c *Console) redirect(w http.ResponseWriter, r *http.Request, to, flash string) {
+	c.redirectMode(w, r, to, flash, false)
+}
+
+func (c *Console) redirectMode(w http.ResponseWriter, r *http.Request, to, flash string, sticky bool) {
 	if flash != "" {
 		sep := "?"
 		if strings.Contains(to, "?") {
@@ -347,11 +360,55 @@ func (c *Console) redirect(w http.ResponseWriter, r *http.Request, to, flash str
 		to += sep + "flash=" + url.QueryEscape(flash)
 	}
 	if r.Header.Get("HX-Request") == "true" {
-		w.Header().Set("HX-Redirect", to)
+		// HX-Redirect is a full window.location navigation: it throws away the
+		// scroll position, the filter box, any open drawer, and re-fetches the
+		// whole page — for forty-five mutations, nineteen of which redirect to
+		// the page the user is already on.
+		//
+		// HX-Location swaps in place and still goes through htmx's history
+		// machinery, so back/forward keep working. The flash rides an HX-Trigger
+		// beside it rather than in the URL, which is what stops a refresh
+		// re-showing a stale success banner. Both headers are processed before
+		// the HX-Location early return.
+		//
+		// Changing the transport rather than the call sites is deliberate: all
+		// forty-five improve without touching one of them, and the non-htmx path
+		// below is untouched, so the mutation sweep still sees what it saw.
+		if flash != "" {
+			kind := "doze:flash"
+			if sticky {
+				kind = "doze:flash-sticky"
+			}
+			w.Header().Set("HX-Trigger", `{"`+kind+`":`+strconv.QuoteToASCII(flash)+`}`)
+		}
+		w.Header().Set("HX-Location", `{"path":`+strconv.QuoteToASCII(stripFlash(to))+
+			`,"target":"#workspace","select":"#workspace","swap":"outerHTML"}`)
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 	http.Redirect(w, r, to, http.StatusSeeOther)
+}
+
+// stripFlash removes the flash query parameter. On the htmx path the message
+// travels as a trigger, so leaving it in the URL would mean a refresh or a back
+// navigation re-showing a success that already happened.
+func stripFlash(to string) string {
+	i := strings.Index(to, "flash=")
+	if i < 0 {
+		return to
+	}
+	cut := i - 1 // the ? or & that introduced it
+	if cut < 0 {
+		return to
+	}
+	rest := ""
+	if j := strings.IndexByte(to[i:], '&'); j >= 0 {
+		rest = to[i+j:]
+		if to[cut] == '?' {
+			rest = "?" + rest[1:]
+		}
+	}
+	return to[:cut] + rest
 }
 
 // endpointHost is the host:port the browser reached the console on — the same
