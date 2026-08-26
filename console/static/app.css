@@ -1363,3 +1363,26 @@ a.lo-card:hover { border-color: var(--accent); }
 
 .flash-sticky { display: flex; align-items: center; gap: 10px; }
 .flash-sticky .fl-msg { flex: 1; font-family: var(--mono); font-size: 12px; }
+
+/* ---------- Tier 4: the accessibility floor ---------- */
+
+/* Six families of controls were opacity:0 until hover. Hover does not exist on
+   a touch device and does not exist for a keyboard, so these were not merely
+   hard to find — they were unreachable. Revealing on :focus-within covers the
+   keyboard; the hover:none query covers touch, where they should simply always
+   show. Only .tag-v had this right. */
+.row-actions:focus-within, .tr-row:focus-within .tr-curl,
+.kv-copy:focus-within .copy-btn, .sub-row:focus-within .copy-btn,
+.sub-row:focus-within .icon-btn, .msg:focus-within .msg-del,
+.row-actions .btn:focus-visible, .tr-curl:focus-visible,
+.kv-copy .copy-btn:focus-visible, .sub-row .copy-btn:focus-visible,
+.sub-row .icon-btn:focus-visible, .msg-del:focus-visible { opacity: 1; }
+
+@media (hover: none) {
+  .row-actions, .tr-curl, .kv-copy .copy-btn,
+  .sub-row .copy-btn, .sub-row .icon-btn, .msg-del, .tag-v .icon-btn { opacity: 1; }
+}
+
+/* A div carrying hx-get is a button as far as the user is concerned. Give it
+   the affordance to match — see the delegated Enter/Space handler in shell.js. */
+[role="button"]:not(button):not(a) { cursor: pointer; }

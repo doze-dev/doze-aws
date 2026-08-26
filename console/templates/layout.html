@@ -112,7 +112,7 @@ return"= "+p.join(" ");};</script>
   </div>
 
   <!-- command palette (vanilla — survives every swap since it's outside #workspace) -->
-  <div class="overlay palette-overlay" id="palette" hidden>
+  <div class="overlay palette-overlay" id="palette" role="dialog" aria-modal="true" aria-label="Jump or act" hidden>
     <div class="palette anim">
       <div class="pal-input">
         {{icon "search"}}

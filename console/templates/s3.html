@@ -52,7 +52,7 @@
       {{end}}
     </div>
     <div class="drawer-scrim" x-show="drawer" x-cloak @click="drawer=false"></div>
-    <aside class="drawer" x-show="drawer" x-cloak @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
+    <aside class="drawer" role="dialog" aria-modal="true" aria-label="object details" x-show="drawer" x-cloak x-effect="window.dozeTrap && dozeTrap($el, drawer)" @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
   </section>
 <script>
   function s3page(prefix, bucket){return{drawer:false,drag:0,busy:false,busyName:"",
@@ -80,7 +80,7 @@
     <tr class="folder"><td colspan="3"><a class="cell-name" hx-get="{{$.Prefix}}/s3/{{$.Bucket}}?partial=1&prefix={{.Key}}" hx-target="#object-table" hx-select="unset" hx-swap="outerHTML" href="{{$.Prefix}}/s3/{{$.Bucket}}?prefix={{.Key}}">{{icon "folder"}} {{trimPrefixKey .Key $.KeyPrefix}}</a></td><td></td></tr>
     {{else}}
     <tr>
-      <td><span class="cell-name link" hx-get="{{$.Prefix}}/s3/{{$.Bucket}}/meta?key={{.Key}}&prefix={{$.KeyPrefix}}" hx-target="#drawer-inner" hx-select="unset" hx-swap="innerHTML" @click="drawer=true">{{icon "file"}} {{trimPrefixKey .Key $.KeyPrefix}}</span></td>
+      <td><span class="cell-name link" role="button" tabindex="0" hx-get="{{$.Prefix}}/s3/{{$.Bucket}}/meta?key={{.Key}}&prefix={{$.KeyPrefix}}" hx-target="#drawer-inner" hx-select="unset" hx-swap="innerHTML" @click="drawer=true">{{icon "file"}} {{trimPrefixKey .Key $.KeyPrefix}}</span></td>
       <td class="right dim num">{{humanSize .Size}}</td><td class="right dim num" title="{{.LastModified}}">{{ago .LastModified}}</td>
       <td><div class="row-actions">
         <a class="icon-btn sm" title="Download" href="{{$.Prefix}}/s3/{{$.Bucket}}/object?key={{.Key}}" target="_blank">{{icon "download"}}</a>
@@ -157,7 +157,7 @@
     <div class="sec-title">Other configurations</div>
     {{range .Props.Configs}}{{if and (ne .Name "CORS") (ne .Name "Lifecycle") (ne .Name "Notifications")}}
     <div class="panel" style="margin-bottom:10px" x-data="{open:false}">
-      <div class="panel-h" {{if .Set}}style="cursor:pointer" @click="open=!open"{{end}}><h2>{{.Name}} {{if .Set}}<span class="badge state-on">Configured</span>{{else}}<span class="badge state-off">Not set</span>{{end}}</h2>{{if .Set}}<span class="dim" style="font-size:11.5px" x-text="open?'Hide':'View'"></span>{{end}}</div>
+      <div class="panel-h" {{if .Set}}role="button" tabindex="0" :aria-expanded="open" style="cursor:pointer" @click="open=!open"{{end}}><h2>{{.Name}} {{if .Set}}<span class="badge state-on">Configured</span>{{else}}<span class="badge state-off">Not set</span>{{end}}</h2>{{if .Set}}<span class="dim" style="font-size:11.5px" x-text="open?'Hide':'View'"></span>{{end}}</div>
       {{if .Set}}<div x-show="open" x-cloak class="code-out" style="border:0;border-top:1px solid var(--border);border-radius:0"><pre>{{.Raw}}</pre></div>{{end}}
     </div>
     {{end}}{{end}}

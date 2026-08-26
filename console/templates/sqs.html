@@ -97,7 +97,7 @@
   {{if .Messages}}
   <div class="msgs">{{range .Messages}}
     <div class="msg" id="m-{{.MessageID}}" x-data="{open:false}" :class="open && 'open'">
-      <div class="msg-h" style="cursor:pointer" @click="open=!open">
+      <div class="msg-h" role="button" tabindex="0" :aria-expanded="open" style="cursor:pointer" @click="open=!open">
         <span class="msg-line"><span class="chev">▸</span>{{if .Sum.Kind}}<span class="evt"{{if .Sum.Svc}} style="--svc-ink:var(--svc-{{.Sum.Svc}}-ink);--svc-mark:var(--svc-{{.Sum.Svc}})"{{end}}>{{.Sum.Kind}}</span>{{end}}<span class="msum">{{.Sum.Line}}</span></span>
         <span style="display:flex;align-items:center;gap:8px;flex:none"><span class="dim num" title="{{.SentAt}}">{{ago .SentAt}}</span>
         <button class="icon-btn sm danger msg-del" title="Delete this message" @click.stop hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-vals='{"handle":"{{.ReceiptHandle}}"}' hx-target="#message-panel-wrap" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete this one message?">{{icon "trash"}}</button></span></div>

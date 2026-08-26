@@ -47,7 +47,7 @@
   {{if .Entries}}
   {{range .Entries}}
   <div x-data x-show="(!errOnly || {{if .IsErr}}true{{else}}false{{end}}) && (svc==='' || svc==='{{.Service}}')">
-    <div class="tr-row {{if .IsErr}}{{.State}}{{end}}{{if .Cascade}} tr-child{{end}}" data-depth="{{.Depth}}" :class="sel==={{.Seq}} && 'sel'"
+    <div class="tr-row {{if .IsErr}}{{.State}}{{end}}{{if .Cascade}} tr-child{{end}}" role="button" tabindex="0" aria-label="Inspect {{.Action}} {{.Resource}}" data-depth="{{.Depth}}" :class="sel==={{.Seq}} && 'sel'"
          hx-get="{{$.Prefix}}/traffic/entry?seq={{.Seq}}" hx-target="#t-drawer-inner" hx-select="unset" hx-swap="innerHTML"
          @click="sel = (sel==={{.Seq}} ? null : {{.Seq}})">
       <span class="ts">{{.Time}}</span>

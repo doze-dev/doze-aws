@@ -188,16 +188,21 @@
     var q = e.detail.question;
     if (!q || !confirmBox) return;
     e.preventDefault();
-    document.getElementById("confirm-msg").textContent = q;
+    document.getElementById("confirm-title").textContent = q;
+    var detail = (e.detail.elt && e.detail.elt.getAttribute("data-confirm-detail")) || "";
+    var msgEl = document.getElementById("confirm-msg");
+    msgEl.textContent = detail;
+    msgEl.hidden = !detail;
     confirmBox.hidden = false;
     var yes = document.getElementById("confirm-yes"), no = document.getElementById("confirm-no");
-    function close() { confirmBox.hidden = true; yes.onclick = no.onclick = confirmBox.onclick = null; document.removeEventListener("keydown", onKey); }
+    function close() { if (window.dozeTrap) dozeTrap(confirmBox, false); confirmBox.hidden = true; yes.onclick = no.onclick = confirmBox.onclick = null; document.removeEventListener("keydown", onKey); }
     function onKey(ev) { if (ev.key === "Escape") close(); }
     yes.onclick = function () { close(); e.detail.issueRequest(true); };
     no.onclick = close;
     confirmBox.onclick = function (ev) { if (ev.target === confirmBox) close(); };
     document.addEventListener("keydown", onKey);
     yes.focus();
+    if (window.dozeTrap) dozeTrap(document.getElementById("confirm"), true);
   });
 
   // ---------- command palette ----------
@@ -279,6 +284,7 @@
     palItems = recents.concat(fixed);
     renderPal();
     palQ.focus();
+    if (window.dozeTrap) dozeTrap(document.getElementById("palette"), true);
     fetch(PREFIX + "/api/resources").then(function (r) { return r.json(); }).then(function (rs) {
       var seen = {};
       recents.forEach(function (x) { seen[x.u] = 1; });
@@ -343,7 +349,8 @@
       palList.appendChild(a);
     });
   }
-  function closePalette() { if (pal) pal.hidden = true; }
+  function closePalette() {
+    if (window.dozeTrap) dozeTrap(document.getElementById("palette"), false); if (pal) pal.hidden = true; }
   var opener = document.getElementById("palette-open");
   if (opener) opener.addEventListener("click", openPalette);
   if (palQ) palQ.addEventListener("input", function () { palSel = 0; renderPal(); maybeResolve(); });
@@ -649,5 +656,81 @@
     host.insertBefore(el, host.firstChild);
   });
 
+  // ---------- div-buttons ----------
+  // A div carrying hx-get is a button to the user and nothing to a keyboard.
+  // The wire was the worst case: its rows are divs, so the console's flagship
+  // surface was mouse-only. <button> is not available — .tr-row contains a
+  // copy-as-curl button, and nested interactives are invalid HTML that
+  // browsers hoist apart — so rows get role and tabindex in the template and
+  // one delegated handler here. .click() fires both the hx-get and the Alpine
+  // @click, so selection and the drawer fetch work with no per-surface code.
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    var t = e.target;
+    if (!t || !t.matches || !t.matches('[role="button"]:not(button):not(a)')) return;
+    e.preventDefault();
+    t.click();
+  });
+  // ---------- focus trap ----------
+  // The drawers and the confirm dialog already handled Escape and a scrim
+  // click; what none of them did was focus. Tab escaped into the page behind,
+  // and nothing restored focus on close — so a keyboard user opening a drawer
+  // was silently dropped into a document they could not see.
+  var trapped = null, trapReturn = null;
+  function focusables(el) {
+    return Array.prototype.filter.call(
+      el.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])'),
+      function (e) { return e.offsetParent !== null; });
+  }
+  function onTrapKey(e) {
+    if (e.key !== "Tab" || !trapped) return;
+    var f = focusables(trapped);
+    if (!f.length) return;
+    var first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+  window.dozeTrap = function (el, open) {
+    if (open) {
+      if (trapped === el) return;
+      trapReturn = document.activeElement;
+      trapped = el;
+      document.addEventListener("keydown", onTrapKey, true);
+      setTimeout(function () { var f = focusables(el); (f[0] || el).focus(); }, 0);
+    } else if (trapped === el) {
+      trapped = null;
+      document.removeEventListener("keydown", onTrapKey, true);
+      if (trapReturn && document.contains(trapReturn)) trapReturn.focus();
+      trapReturn = null;
+    }
+  };
+  // ---------- form labels ----------
+  // 130 labels, none with a for= and only 19 wrapping their control, and
+  // exactly one id= on an input in all the templates. So a screen reader had
+  // nothing to announce for most fields, and clicking a label focused nothing.
+  //
+  // Doing this in the template would mean a {{define "field"}} that renders the
+  // control itself — html/template has no block-passing — which is enumerating
+  // every input variant and rewriting 110 sites for the same result. This pass
+  // fixes all of them at once. It is JS-dependent accessibility, which is
+  // normally a compromise; here the console is already non-functional without
+  // JS, since htmx drives every mutation.
+  var fieldSeq = 0;
+  function linkLabels(root) {
+    (root || document).querySelectorAll(".field").forEach(function (f) {
+      var lab = f.querySelector("label");
+      var ctl = f.querySelector("input,select,textarea");
+      if (!lab || !ctl || lab.htmlFor || lab.contains(ctl)) return;
+      if (!ctl.id) ctl.id = "f" + (++fieldSeq);
+      lab.htmlFor = ctl.id;
+      var hint = f.querySelector(".dim,.hint,.mini-note");
+      if (hint) {
+        if (!hint.id) hint.id = ctl.id + "-h";
+        ctl.setAttribute("aria-describedby", hint.id);
+      }
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function () { linkLabels(); });
+  document.addEventListener("htmx:afterSwap", function (e) { linkLabels(e.target); });
   window.dozeShell = { toast: toast, openPalette: openPalette };
 })();

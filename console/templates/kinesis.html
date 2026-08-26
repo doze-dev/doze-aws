@@ -147,7 +147,7 @@
       {{template "kinesis_record_table" .}}
     </div>
     <div class="drawer-scrim" x-show="drawer" x-cloak @click="drawer=false"></div>
-    <aside class="drawer" x-show="drawer" x-cloak @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
+    <aside class="drawer" role="dialog" aria-modal="true" aria-label="record details" x-show="drawer" x-cloak x-effect="window.dozeTrap && dozeTrap($el, drawer)" @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
   </section>
 {{template "shell_bottom" .}}{{end}}
 
@@ -283,7 +283,7 @@
   {{/* Following polls forward from the cursor and replaces itself with whatever
        arrived, plus a fresh trigger carrying the advanced cursor. */}}
   <tr id="k-tail"><td colspan="{{$cols}}" style="text-align:center;padding:6px">
-    <span class="dim sub" hx-post="{{.Prefix}}/kinesis/{{.Stream}}/records/query"
+    <span class="dim sub" role="button" tabindex="0" hx-post="{{.Prefix}}/kinesis/{{.Stream}}/records/query"
           hx-vals='{{.NextVals}}' hx-trigger="every 2s"
           hx-target="closest tr" hx-select="unset" hx-swap="outerHTML">
       {{icon "activity"}} following — new records appear here

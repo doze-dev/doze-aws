@@ -34,7 +34,7 @@
       {{template "ddb_explorer" .}}
       {{end}}
     </div>
-    <div class="overlay" x-show="put" x-cloak @click.self="put=false" @keydown.escape.window="put=false" x-effect="if(put)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+    <div class="overlay" role="dialog" aria-modal="true" aria-label="Add item" x-effect="window.dozeTrap && dozeTrap($el, put)" x-show="put" x-cloak @click.self="put=false" @keydown.escape.window="put=false" x-effect="if(put)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
       <div class="dialog wide anim"><form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/put" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){put=false;$el.reset();}">
         <div class="dialog-h"><h3>Add item</h3><p>Plain JSON — types inferred ({{.Table.HashKey}}{{if .Table.RangeKey}}, {{.Table.RangeKey}}{{end}} required).</p></div>
         <div class="dialog-b"><textarea id="ddb-item-editor" name="item" data-editor="json" rows="9" spellcheck="false" required placeholder='{&#10;  "{{.Table.HashKey}}": "user-1",&#10;  "name": "Ada"&#10;}'></textarea></div>
@@ -42,7 +42,7 @@
       </form></div>
     </div>
     <div class="drawer-scrim" x-show="drawer" x-cloak @click="drawer=false"></div>
-    <aside class="drawer" x-show="drawer" x-cloak @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
+    <aside class="drawer" role="dialog" aria-modal="true" aria-label="item details" x-show="drawer" x-cloak x-effect="window.dozeTrap && dozeTrap($el, drawer)" @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
   </section>
 {{template "shell_bottom" .}}{{end}}
 
@@ -223,7 +223,7 @@
      for each "Load more" (the trigger row replaces itself with the next page). */}}
 {{define "ddb_item_rows"}}
 {{range .Items}}
-  <tr class="ddb-row" x-data='{itemJSON: {{printf "%q" .JSON}}, keyJSON: {{printf "%q" .KeyJSON}}}'
+  <tr class="ddb-row" role="button" tabindex="0" x-data='{itemJSON: {{printf "%q" .JSON}}, keyJSON: {{printf "%q" .KeyJSON}}}'
       @click="drawer=true; const d=document.getElementById('drawer-inner');
               d.innerHTML='<div class=\'drawer-h\'><span class=\'title\'>Item</span></div><div class=\'drawer-b\'><div class=\'code-out\'><pre></pre></div><div class=\'drawer-actions\' style=\'margin-top:12px\'><button class=\'btn btn-outline\' id=\'dw-edit\'>Edit item</button></div></div>';
               d.querySelector('pre').textContent=itemJSON;
