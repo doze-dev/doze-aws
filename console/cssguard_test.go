@@ -133,3 +133,101 @@ func TestTemplateTokensAreDefined(t *testing.T) {
 		}
 	}
 }
+
+// The type scale is closed, and this is what keeps it that way.
+//
+// Tokens in vanilla CSS with no build step buy exactly two things: a name, and
+// something a test can enforce. Without this the fifteen font sizes and ten
+// weights come back — 12.5px reappears in the first hot-fix and nobody notices,
+// because a half-pixel difference is invisible one rule at a time and only
+// legible as a census.
+func TestTypeScaleIsClosed(t *testing.T) {
+	// Strip comments first. The prose in this file talks ABOUT sizes and
+	// weights — the @font-face note names "font-weight: 550" — and a census
+	// that reads its own documentation reports the documentation.
+	css := regexp.MustCompile(`(?s)/\*.*?\*/`).ReplaceAllString(readAll(t, "static/app.css"), " ")
+
+	// font: shorthand hides sizes from this census and silently resets weight,
+	// style and line-height to their initial values. "font: inherit" means
+	// something else and is allowed.
+	for _, m := range regexp.MustCompile(`(?m)(^|[;{\s])font:\s*([^;}]+)`).FindAllStringSubmatch(css, -1) {
+		if strings.TrimSpace(m[2]) != "inherit" {
+			t.Errorf("font shorthand %q — use longhands, or this census cannot see the size", strings.TrimSpace(m[2]))
+		}
+	}
+
+	sizes := map[string]bool{"10px": true, "11px": true, "12px": true, "13px": true,
+		"14px": true, "16px": true, "18px": true, "20px": true}
+	for _, m := range regexp.MustCompile(`font-size:\s*([^;}]+)`).FindAllStringSubmatch(css, -1) {
+		v := strings.TrimSpace(m[1])
+		if strings.HasPrefix(v, "var(") || strings.HasPrefix(v, "inherit") {
+			continue
+		}
+		if !sizes[v] {
+			t.Errorf("font-size: %s is off the scale (10/11/12/13/14/16/18/20)", v)
+		}
+	}
+
+	weights := map[string]bool{"400": true, "500": true, "550": true, "600": true, "700": true,
+		"100 900": true /* the variable-font @font-face range */}
+	for _, m := range regexp.MustCompile(`font-weight:\s*([^;}]+)`).FindAllStringSubmatch(css, -1) {
+		v := strings.TrimSpace(m[1])
+		if strings.HasPrefix(v, "var(") || v == "inherit" || v == "bold" || v == "normal" {
+			continue
+		}
+		if !weights[v] {
+			t.Errorf("font-weight: %s is off the scale (400/500/550/600/700)", v)
+		}
+	}
+}
+
+// inlineBudget is a RATCHET, not a ceiling. Going over fails, and so does going
+// under — with the new number to write down. That is what makes it tighten
+// instead of rot: a budget that only ever caps is a number nobody revisits.
+//
+// A style attribute carrying only custom properties is exempt, because that is
+// data (a service colour, a depth) rather than layout, and moving the dynamic
+// ones to custom properties is the point rather than a workaround.
+//
+// Deliberately NOT chased to zero: `width` on a table column is a fact about
+// that table stated in the most local place available, and converting eighty of
+// those to classes would make the markup worse and the stylesheet longer.
+var inlineBudget = map[string]int{
+	"kinesis.html": 50, "iam.html": 44, "ddb.html": 36, "create.html": 34,
+	"s3.html": 33, "lambda.html": 29, "eb.html": 28, "kms.html": 24,
+	"sqs.html": 23, "apigw.html": 18, "sns.html": 12, "traffic.html": 12,
+	"workspace.html": 12, "cfn.html": 11, "sm.html": 6, "connect.html": 6,
+	"layout.html": 5, "panes.html": 5, "ssm.html": 2,
+}
+
+func TestInlineStyleBudget(t *testing.T) {
+	files, err := os.ReadDir("templates")
+	if err != nil {
+		t.Fatal(err)
+	}
+	styleRe := regexp.MustCompile(`style="([^"]*)"`)
+	for _, f := range files {
+		if !strings.HasSuffix(f.Name(), ".html") {
+			continue
+		}
+		src := readAll(t, filepath.Join("templates", f.Name()))
+		n := 0
+		for _, m := range styleRe.FindAllStringSubmatch(src, -1) {
+			for _, decl := range strings.Split(m[1], ";") {
+				if d := strings.TrimSpace(decl); d != "" && !strings.HasPrefix(d, "--") {
+					n++
+					break
+				}
+			}
+		}
+		want, listed := inlineBudget[f.Name()]
+		switch {
+		case !listed && n > 0:
+			t.Errorf("%s has %d inline styles and no budget — add %q: %d to inlineBudget", f.Name(), n, f.Name(), n)
+		case n > want:
+			t.Errorf("%s has %d inline styles, budget %d — put it in a class", f.Name(), n, want)
+		case listed && n < want:
+			t.Errorf("%s is down to %d inline styles; lower its budget to %d so the ratchet holds", f.Name(), n, n)
+		}
+	}
+}
