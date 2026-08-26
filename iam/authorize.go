@@ -38,8 +38,14 @@ type AccessEvent struct {
 	// from the request. Recorded honestly so a generated policy can say so
 	// rather than pretending to be resource-scoped.
 	ResourceKnown bool
-	Count         int
-	Last          int64
+	// MatchedBy names the statement that decided. Evaluate returns it and this
+	// dropped it on the floor, so the access log — the surface whose whole job
+	// is explaining what was allowed and what was not — structurally could not
+	// say WHY. Empty means nothing matched, which is not the same as a Deny
+	// having matched.
+	MatchedBy string
+	Count     int
+	Last      int64
 }
 
 // key identifies an event for deduplication.
@@ -65,9 +71,13 @@ func (r *recorder) record(e AccessEvent) {
 	if prev, ok := r.events[k]; ok {
 		prev.Count++
 		prev.Last = r.now().Unix()
-		// A later deny on the same tuple is the more interesting verdict.
+		// A later deny on the same tuple is the more interesting verdict. The
+		// statement that decided has to travel WITH it: leaving the old
+		// MatchedBy in place would caption this deny with the reason for a
+		// previous allow.
 		if e.Decision != Allowed {
 			prev.Decision = e.Decision
+			prev.MatchedBy = e.MatchedBy
 		}
 		return
 	}
@@ -162,7 +172,7 @@ func (s *Server) Authorize(r *http.Request, service string) Result {
 
 	s.rec.record(AccessEvent{
 		Principal: principal, Action: action, Resource: resource,
-		Decision: decision, ResourceKnown: resource != "",
+		Decision: decision, ResourceKnown: resource != "", MatchedBy: by,
 	})
 
 	res := Result{Decision: decision, Principal: principal, Action: action, Resource: resource, MatchedBy: by}
@@ -276,6 +286,7 @@ func hDozeAccessLog(s *Server, p params) (any, *awshttp.APIError) {
 		Resource      string `xml:"Resource,omitempty"`
 		Decision      string `xml:"Decision"`
 		ResourceKnown bool   `xml:"ResourceKnown"`
+		MatchedBy     string `xml:"MatchedBy,omitempty"`
 		Count         int    `xml:"Count"`
 		LastUsed      string `xml:"LastUsed"`
 	}
@@ -285,7 +296,7 @@ func hDozeAccessLog(s *Server, p params) (any, *awshttp.APIError) {
 		out = append(out, entry{
 			Principal: e.Principal, Action: e.Action, Resource: e.Resource,
 			Decision: e.Decision.String(), ResourceKnown: e.ResourceKnown,
-			Count: e.Count, LastUsed: iso(e.Last),
+			MatchedBy: e.MatchedBy, Count: e.Count, LastUsed: iso(e.Last),
 		})
 	}
 	return struct {

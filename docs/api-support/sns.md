@@ -41,7 +41,7 @@ says whether doze-aws **refuses what SNS refuses**.
 |---|---|
 | `Subscribe` — `Protocol` | ✅ refused outside `http`, `https`, `email`, `email-json`, `sms`, `sqs`, `application`, `lambda`, `firehose` |
 | `Subscribe` — `TopicArn`, `Endpoint` required | ✅ |
-| Everything else | not yet audited |
+| Everything else | see **Model-derived validation** below — 53/53 enforced, no known gaps |
 
 Note the accepted set is what **AWS** accepts, not what doze-aws delivers to.
 `email`, `sms`, `application` and `firehose` are stored and logged rather than

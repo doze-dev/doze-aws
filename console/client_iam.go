@@ -57,6 +57,10 @@ type AccessEvent struct {
 	Resource  string
 	Decision  string
 	Known     bool
+	// MatchedBy names the statement that decided. The permissions-boundary case
+	// arrives here as the literal string "permissions boundary", which is a
+	// distinction the AWS console does not draw.
+	MatchedBy string
 	Count     int
 	Last      string
 	Denied    bool
@@ -68,6 +72,12 @@ type SimResult struct {
 	Resource string
 	Decision string
 	Allowed  bool
+	// MatchedBy names the statement that decided — the Sid, or PolicyID[i], or
+	// statement[i]. iam/simulate.go calls it "the part that makes a simulation
+	// actionable rather than just a verdict", and it was being discarded here.
+	// Empty means nothing matched, which is a DIFFERENT answer from an explicit
+	// Deny and has to read differently.
+	MatchedBy string
 }
 
 func (b *backend) iam(ctx context.Context, action string, extra url.Values) ([]byte, error) {
@@ -361,6 +371,7 @@ func (b *backend) AccessLog(ctx context.Context) (string, []AccessEvent, error) 
 			Resource  string `xml:"Resource"`
 			Decision  string `xml:"Decision"`
 			Known     bool   `xml:"ResourceKnown"`
+			MatchedBy string `xml:"MatchedBy"`
 			Count     int    `xml:"Count"`
 			LastUsed  string `xml:"LastUsed"`
 		} `xml:"DozeAccessLogResult>Entries>member"`
@@ -372,7 +383,7 @@ func (b *backend) AccessLog(ctx context.Context) (string, []AccessEvent, error) 
 	for _, e := range out.Entries {
 		evs = append(evs, AccessEvent{
 			Principal: e.Principal, Action: e.Action, Resource: e.Resource,
-			Decision: e.Decision, Known: e.Known, Count: e.Count,
+			Decision: e.Decision, Known: e.Known, MatchedBy: e.MatchedBy, Count: e.Count,
 			Last: shortTime(e.LastUsed), Denied: !strings.EqualFold(e.Decision, "allowed"),
 		})
 	}
@@ -427,6 +438,9 @@ func (b *backend) Simulate(ctx context.Context, principalARN string, actions []s
 			Action   string `xml:"EvalActionName"`
 			Resource string `xml:"EvalResourceName"`
 			Decision string `xml:"EvalDecision"`
+			Matched  []struct {
+				SourcePolicyId string `xml:"SourcePolicyId"`
+			} `xml:"MatchedStatements>member"`
 		} `xml:"SimulatePrincipalPolicyResult>EvaluationResults>member"`
 	}
 	if err := xml.Unmarshal(body, &out); err != nil {
@@ -434,10 +448,14 @@ func (b *backend) Simulate(ctx context.Context, principalARN string, actions []s
 	}
 	res := make([]SimResult, 0, len(out.Results))
 	for _, r := range out.Results {
-		res = append(res, SimResult{
+		sr := SimResult{
 			Action: r.Action, Resource: r.Resource, Decision: r.Decision,
 			Allowed: strings.EqualFold(r.Decision, "allowed"),
-		})
+		}
+		if len(r.Matched) > 0 {
+			sr.MatchedBy = r.Matched[0].SourcePolicyId
+		}
+		res = append(res, sr)
 	}
 	return res, nil
 }

@@ -52,32 +52,19 @@ reads a layer path at runtime needs those files present locally.
 Separate from the tiers above. A tier says the operation is implemented; this
 says whether doze-aws **refuses what Lambda refuses**.
 
-| Input | Status |
-|---|---|
-| `MemorySize` — 128..32768 | ✅ both bounds, on create and update |
-| `Timeout` — 1..5400 | ✅ both bounds, on create and update |
-| Everything else | not yet audited |
-
-`MemorySize` is the instructive one. doze-aws does not allocate memory per
-function, so the value has no local effect and nothing had ever looked at it —
-which is precisely why any number was accepted. A member the emulator ignores
-still has to be refused when it is invalid, or a function CloudFormation would
-reject deploys clean here and fails in the account.
-
-Bounds come from Lambda's own service model (`dzaudit list --op CreateFunction
-lambda`), not from the documentation prose. Covered by
-`lambda/rejection_parity_test.go`.
-
-## Input validation
-
-Separate from the tiers above. A tier says the operation is implemented; this
-says whether doze-aws **refuses what Lambda refuses**.
-
 **612/621 model-derived constraints enforced across all 47 routed operations
 with constrained input, with `knownGaps` empty.** Removing the constraint table
 makes 452 of them slip through — the largest share of any service here, because
 Lambda's inputs are the widest: `CreateFunction` alone carries 76 constraints.
 The remaining nine cannot be put on this wire; see below.
+
+### A member the emulator ignores still has to be refused
+
+`MemorySize` is the instructive one, and it was the first gap this service's
+audit found. doze-aws does not allocate memory per function, so the value had no
+local effect and nothing had ever looked at it — which is precisely why any
+number was accepted. A function CloudFormation would reject deployed clean here
+and failed in the account.
 
 Generated with `dzaudit cases lambda`, committed to `testdata/cases_lambda.json`,
 and replayed case by case in `rejection_parity_test.go` from a baseline the test

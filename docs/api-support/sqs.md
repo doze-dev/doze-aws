@@ -56,7 +56,7 @@ passes on deploy.
 | Non-numeric attribute values | ✅ refused (previously silently ignored) |
 | Queue name — charset | ✅ alphanumeric, `-`, `_` only (a period is legal only as the `.fifo` suffix) |
 | Queue name — length ≤80 | ✅ the `.fifo` suffix counts toward the limit |
-| Everything else | not yet audited |
+| Everything else | see **Model-derived validation** below — 48/48 enforced, no known gaps |
 
 Enforced cases are covered by `sqs/rejection_parity_test.go`, which asserts the
 error **code** an SDK sees, not just that something failed.
