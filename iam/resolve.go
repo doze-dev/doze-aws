@@ -46,6 +46,7 @@ var actionPrefixes = map[string]string{
 	"lambda":         "lambda",
 	"kinesis":        "kinesis",
 	"iam":            "iam",
+	"stepfunctions":  "states",
 }
 
 // resourceField names the request parameter holding the resource identifier
@@ -93,6 +94,15 @@ var resourceRules = map[string]resourceRule{
 	}},
 	"eventbridge": {fields: []string{"Name", "EventBusName"}, toARN: func(v string) string {
 		return awsident.ARN("events", "rule/"+v)
+	}},
+	// Step Functions spells its members lowercase-initial, unlike every other
+	// service here. Matching is exact, so "StateMachineArn" would resolve to an
+	// empty resource and only ever match a policy saying "Resource": "*".
+	"stepfunctions": {fields: []string{"stateMachineArn", "activityArn", "executionArn", "resourceArn", "name"}, toARN: func(v string) string {
+		if strings.HasPrefix(v, "arn:") {
+			return v
+		}
+		return awsident.ARN("states", "stateMachine:"+v)
 	}},
 }
 
