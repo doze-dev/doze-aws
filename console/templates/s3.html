@@ -44,6 +44,19 @@
               @change="if($el.file.files.length){$el.prefix.value=currentPrefix(); htmx.trigger($el,'submit')}" @htmx:after-request="$el.reset()">
           <input type="hidden" name="prefix" value="{{.KeyPrefix}}"><input type="file" name="file">
         </form>
+        {{/* A folder in S3 is a prefix, so the form says where this one will
+             land — and carries the prefix you are currently browsing, which is
+             how folders nest. */}}
+        <form class="newfolder" x-show="newFolder" x-cloak
+              hx-post="{{.Prefix}}/s3/{{.Bucket}}/folder" hx-target="#object-table" hx-select="unset" hx-swap="outerHTML"
+              @htmx:after-request="if($event.detail.successful){newFolder=false; $el.reset()}">
+          <input type="hidden" name="prefix" value="{{.KeyPrefix}}">
+          <span class="nf-at">{{.Bucket}}/{{.KeyPrefix}}</span>
+          <input class="input" name="name" placeholder="folder name" required spellcheck="false"
+                 x-effect="if(newFolder) $nextTick(()=>$el.focus())">
+          <button type="submit" class="btn btn-sm">Create</button>
+          <button type="button" class="btn btn-outline btn-sm" @click="newFolder=false">Cancel</button>
+        </form>
         <div class="dropwrap" @dragenter.prevent="drag++" @dragover.prevent @dragleave.prevent="drag--"
              @drop.prevent="drag=0; uploadFiles($event.dataTransfer.files)">
           {{template "object_table" .}}

@@ -43,7 +43,10 @@
   var GUTTER = "cm-json-gutter";
 
   // attachJsonChrome adds the validity toolbar and wires live linting.
-  function attachJsonChrome(cm) {
+  // declared=false means the editor never claimed to hold JSON, so the bar only
+  // appears when the content actually looks like it. A plaintext secret must not
+  // be told it is invalid JSON — it was never claiming to be.
+  function attachJsonChrome(cm, declared) {
     var wrap = cm.getWrapperElement();
     var bar = document.createElement("div");
     bar.className = "cm-jsonbar";
@@ -57,10 +60,17 @@
     });
 
     var errLine = -1;
+    // Looks like an attempt at JSON: a leading { or [. Enough to decide whether
+    // to offer Format and report validity, without requiring it to parse first —
+    // half-typed JSON is exactly when the error marker earns its keep.
+    function looksJSON(t) { var c = t.trim()[0]; return c === "{" || c === "["; }
     function validate() {
       cm.clearGutter(GUTTER);
       if (errLine >= 0) { cm.removeLineClass(errLine, "background", "cm-error-line"); errLine = -1; }
       var text = cm.getValue();
+      var show = declared || looksJSON(text);
+      bar.hidden = !show;
+      if (!show) return;
       var err = jsonError(text);
       if (!text.trim()) { pill.className = "cm-valid"; pill.textContent = ""; return; }
       if (!err) { pill.className = "cm-valid ok"; pill.textContent = "✓ valid JSON"; return; }
@@ -93,7 +103,7 @@
       indentWithTabs: false,
       placeholder: ta.placeholder || "",
     };
-    if (isJSON) opts.gutters = ["CodeMirror-linenumbers", GUTTER];
+    opts.gutters = ["CodeMirror-linenumbers", GUTTER];
     var cm = CodeMirror.fromTextArea(ta, opts);
     ta.__cm = cm;
     cm.on("change", function () {
@@ -110,7 +120,11 @@
       ta.dispatchEvent(new Event("input", { bubbles: true }));
     });
     cm.setSize("100%", null);
-    if (isJSON) attachJsonChrome(cm);
+    // Attached for every editor, not only those declaring JSON. A secret or an
+    // SSM parameter holding a JSON document is the common case, and it had no
+    // Format button, no validity pill and no error line — the three things that
+    // make a JSON textarea bearable.
+    attachJsonChrome(cm, isJSON);
   }
 
   function upgradeAll(root) {
