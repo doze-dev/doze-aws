@@ -17,11 +17,12 @@
 
 {{define "s3_objects"}}{{template "shell_top" .}}
   {{template "s3_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bucket)}}
-  <section class="detail" x-data="s3page('{{.Prefix}}','{{.Bucket}}')">
+  <section class="detail" x-data="s3page('{{.Prefix}}','{{.Bucket}}')" x-init="syncPrefix()"
+             @htmx:after-swap.window="syncPrefix()">
     <div class="det-h">
       <div class="det-title">{{awsIcon "s3"}} {{.Bucket}}
         <div class="acts">
-          {{if eq .Tab "objects"}}<button class="btn btn-outline" @click="newFolder=!newFolder">{{icon "plus"}} New folder</button>
+          {{if eq .Tab "objects"}}<button class="btn btn-outline" @click="syncPrefix(); newFolder=!newFolder">{{icon "plus"}} New folder</button>
             <button class="btn btn-outline" onclick="this.closest('.detail').querySelector('input[type=file]').click()">{{icon "upload"}} Upload</button>{{end}}
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/s3/{{.Bucket}}/delete-bucket" hx-confirm="Delete bucket “{{.Bucket}}”? It must be empty.">{{icon "trash"}} Delete</button>
         </div>
@@ -47,11 +48,16 @@
         {{/* A folder in S3 is a prefix, so the form says where this one will
              land — and carries the prefix you are currently browsing, which is
              how folders nest. */}}
+        {{/* The form lives OUTSIDE #object-table, which htmx swaps whole when you
+             open a folder — so its rendered prefix goes stale the moment you
+             navigate, and a folder created inside invoices/ would land at the
+             bucket root. Read the prefix off the table at submit time, the same
+             way the upload form does. */}}
         <form class="newfolder" x-show="newFolder" x-cloak
               hx-post="{{.Prefix}}/s3/{{.Bucket}}/folder" hx-target="#object-table" hx-select="unset" hx-swap="outerHTML"
+              @htmx:config-request="$event.detail.parameters.prefix = currentPrefix()"
               @htmx:after-request="if($event.detail.successful){newFolder=false; $el.reset()}">
-          <input type="hidden" name="prefix" value="{{.KeyPrefix}}">
-          <span class="nf-at">{{.Bucket}}/{{.KeyPrefix}}</span>
+          <span class="nf-at">{{.Bucket}}/<span x-text="curPrefix"></span></span>
           <input class="input" name="name" placeholder="folder name" required spellcheck="false"
                  x-effect="if(newFolder) $nextTick(()=>$el.focus())">
           <button type="submit" class="btn btn-sm">Create</button>
@@ -69,8 +75,13 @@
     <aside class="drawer" role="dialog" aria-modal="true" aria-label="object details" x-show="drawer" x-cloak x-effect="window.dozeTrap && dozeTrap($el, drawer)" @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
   </section>
 <script>
-  function s3page(prefix, bucket){return{drawer:false,drag:0,busy:false,busyName:"",newFolder:false,
+  function s3page(prefix, bucket){return{drawer:false,drag:0,busy:false,busyName:"",newFolder:false,curPrefix:"",
     currentPrefix(){var t=document.getElementById("object-table");return (t&&t.dataset.prefix)||"";},
+    /* curPrefix mirrors currentPrefix() into Alpine state. A method reading a
+       dataset is invisible to Alpine's reactivity, so a label bound to it never
+       updates when htmx swaps the table — which is how the New folder form kept
+       saying "drop/" while you were three folders deep. */
+    syncPrefix(){this.curPrefix=this.currentPrefix();},
     async uploadFiles(files){if(!files||!files.length)return;var kp=this.currentPrefix();this.busy=true;var done=0;
       for(const f of files){this.busyName=f.name;const fd=new FormData();fd.append("prefix",kp);fd.append("file",f);
         const r=await fetch(prefix+"/s3/"+bucket+"/upload",{method:"POST",body:fd});
