@@ -16,6 +16,11 @@ func (c *Console) snsTopics(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	if len(topics) > 0 {
+		r.SetPathValue("topic", topics[0].Name)
+		c.snsTopic(w, r)
+		return
+	}
 	c.render(w, r, "sns_home", map[string]any{"List": topics, "Title": "SNS"})
 }
 

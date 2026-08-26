@@ -147,6 +147,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/s3/{bucket}/object", c.s3GetObject)
 	m.HandleFunc("GET "+p+"/s3/{bucket}/meta", c.s3Meta)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/upload", c.s3Upload)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/folder", c.s3NewFolder)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/delete", c.s3DeleteObject)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/versioning", c.s3Versioning)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/add-tag", c.s3AddTag)

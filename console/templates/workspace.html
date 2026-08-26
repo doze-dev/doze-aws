@@ -17,11 +17,45 @@
 </div>
 
 {{if eq .Mode "edit"}}
-  <form hx-post="{{.SaveURL}}" hx-target="{{.Target}}" hx-select="unset" hx-swap="outerHTML" x-data="{dirty:false}">
+  {{/* Two ways to write the same secret, the way the AWS console offers them:
+       build it as key/value rows, or paste the document. The textarea is the
+       single source of truth — it is what submits — and the rows are a view
+       over it, so switching modes cannot lose anything.
+
+       The key/value tab is OFFERED only when the value can actually be
+       represented that way: a flat JSON object of scalars. Paste something
+       nested, an array, or plain text and the tab disappears rather than
+       silently flattening a structure the builder cannot round-trip. */}}
+  <form hx-post="{{.SaveURL}}" hx-target="{{.Target}}" hx-select="unset" hx-swap="outerHTML"
+        x-data="kvEditor({{printf "%q" .Value}})" x-init="init($refs.ta)">
     <input type="hidden" name="{{.SaveField}}" value="{{.SaveVal}}">
-    <textarea name="value" data-editor rows="16" spellcheck="false" required @input="dirty=true">{{.Value}}</textarea>
+
+    <div class="kv-modes" x-show="representable || mode==='kv'">
+      <span class="ws-seg">
+        <a href="#" @click.prevent="toKV()" :class="mode==='kv' && 'on'">Key/value</a>
+        <a href="#" @click.prevent="toText()" :class="mode==='text' && 'on'">Plaintext</a>
+      </span>
+      <span class="dim kv-note" x-show="mode==='kv'" x-cloak>Saved as a JSON object.</span>
+    </div>
+    <div class="kv-modes" x-show="!representable && mode==='text'" x-cloak>
+      <span class="dim kv-note">Key/value is unavailable: this value is not a flat JSON object, so rows could not round-trip it.</span>
+    </div>
+
+    <div x-show="mode==='kv'" x-cloak class="kv-rows">
+      <template x-for="(row, i) in rows" :key="i">
+        <div class="kv-row">
+          <input class="input kv-k" placeholder="key" x-model="row.k" @input="sync()" spellcheck="false">
+          <input class="input kv-v" placeholder="value" x-model="row.v" @input="sync()" spellcheck="false">
+          <button type="button" class="icon-btn" title="Remove" @click="rows.splice(i,1); sync()">{{icon "x"}}</button>
+        </div>
+      </template>
+      <button type="button" class="btn btn-outline btn-sm" @click="rows.push({k:'',v:''}); sync()">{{icon "plus"}} Add pair</button>
+    </div>
+
+    <textarea x-ref="ta" x-show="mode==='text'" x-cloak
+              name="value" data-editor rows="16" spellcheck="false" required @input="onText()">{{.Value}}</textarea>
     <div class="det-foot" style="margin-top:12px;border-radius:var(--radius);border:1px solid var(--border)">
-      <span class="dim" style="margin-right:auto;font-size:12px" x-show="dirty">● unsaved changes</span>
+      <span class="dim" style="margin-right:auto;font-size:12px" x-show="dirty" x-cloak>● unsaved changes</span>
       <a class="btn btn-outline" href="{{.ViewURL}}">Discard</a>
       <button type="submit" class="btn">{{.SaveLabel}}</button>
     </div>

@@ -3,6 +3,7 @@ package console
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"net/http"
@@ -61,8 +62,14 @@ func (c *Console) s3List(r *http.Request) []Bucket {
 }
 
 func (c *Console) s3Buckets(w http.ResponseWriter, r *http.Request) {
+	list := c.s3List(r)
+	if len(list) > 0 {
+		r.SetPathValue("bucket", list[0].Name)
+		c.s3Objects(w, r)
+		return
+	}
 	c.render(w, r, "s3_home", map[string]any{
-		"List": c.s3List(r), "Title": "S3",
+		"List": list, "Title": "S3",
 	})
 }
 
@@ -307,6 +314,31 @@ func (c *Console) s3Meta(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// s3NewFolder creates a folder the only way S3 has one: a zero-byte object
+// whose key ends in "/". There is no folder API because there are no folders —
+// the console's own listing derives them from CommonPrefixes — but a prefix
+// with nothing under it is invisible, so without this you cannot make a place
+// to put something before you have the something.
+func (c *Console) s3NewFolder(w http.ResponseWriter, r *http.Request) {
+	bucket := r.PathValue("bucket")
+	prefix := r.FormValue("prefix")
+	name := strings.Trim(strings.TrimSpace(r.FormValue("name")), "/")
+	switch {
+	case name == "":
+		c.fail(w, errors.New("Name the folder — it becomes part of every key inside it."))
+		return
+	case strings.Contains(name, "/"):
+		c.fail(w, errors.New("One level at a time: “"+name+"” contains a slash. Create the parent, then open it and create the child."))
+		return
+	}
+	if err := c.be.PutObject(r.Context(), bucket, prefix+name+"/", nil, "application/x-directory"); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Folder “"+name+"” created — open it to upload into it")
+	c.swapObjectTable(w, r, bucket, prefix)
+}
+
 func (c *Console) s3Upload(w http.ResponseWriter, r *http.Request) {
 	bucket := r.PathValue("bucket")
 	prefix := r.FormValue("prefix")
@@ -408,7 +440,13 @@ func (c *Console) sqsList(r *http.Request) []Queue {
 }
 
 func (c *Console) sqsQueues(w http.ResponseWriter, r *http.Request) {
-	c.render(w, r, "sqs_home", map[string]any{"List": c.sqsList(r), "Title": "SQS"})
+	list := c.sqsList(r)
+	if len(list) > 0 {
+		r.SetPathValue("queue", list[0].Name)
+		c.sqsQueue(w, r)
+		return
+	}
+	c.render(w, r, "sqs_home", map[string]any{"List": list, "Title": "SQS"})
 }
 
 func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {

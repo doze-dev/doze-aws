@@ -21,6 +21,11 @@ func (c *Console) kinesisStreams(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	if len(streams) > 0 {
+		r.SetPathValue("stream", streams[0].Name)
+		c.kinesisStream(w, r)
+		return
+	}
 	c.render(w, r, "kinesis_home", map[string]any{"List": streams, "Title": "Kinesis"})
 }
 

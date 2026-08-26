@@ -1425,3 +1425,16 @@ a.lo-card:hover { border-color: var(--accent); }
 [role="button"]:not(button):not(a) { cursor: pointer; }
 
 
+
+/* A folder in S3 is a prefix, so the form says where it will land. */
+.newfolder { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.newfolder .nf-at { font-family: var(--mono); font-size: 12px; color: var(--muted-foreground); }
+.newfolder .input { width: 220px; }
+
+/* ---------- key/value secret editor ---------- */
+.kv-modes { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+.kv-note { font-size: 12px; }
+.kv-rows { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.kv-row { display: flex; gap: 6px; width: 100%; align-items: center; }
+.kv-row .kv-k { flex: 0 0 34%; font-family: var(--mono); }
+.kv-row .kv-v { flex: 1; font-family: var(--mono); }

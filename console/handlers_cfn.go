@@ -10,6 +10,11 @@ func (c *Console) cfnStacks(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	if len(stacks) > 0 {
+		r.SetPathValue("stack", stacks[0].Name)
+		c.cfnStack(w, r)
+		return
+	}
 	c.render(w, r, "cfn_home", map[string]any{"List": stacks, "Title": "CloudFormation"})
 }
 

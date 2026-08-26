@@ -10,6 +10,11 @@ func (c *Console) apigwList(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	if len(apis) > 0 {
+		r.SetPathValue("api", apis[0].ID)
+		c.apigwAPI(w, r)
+		return
+	}
 	c.render(w, r, "apigw_home", map[string]any{"List": apis, "Title": "API Gateway"})
 }
 

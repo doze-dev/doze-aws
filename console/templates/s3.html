@@ -21,7 +21,8 @@
     <div class="det-h">
       <div class="det-title">{{awsIcon "s3"}} {{.Bucket}}
         <div class="acts">
-          {{if eq .Tab "objects"}}<button class="btn btn-outline" onclick="this.closest('.detail').querySelector('input[type=file]').click()">{{icon "upload"}} Upload</button>{{end}}
+          {{if eq .Tab "objects"}}<button class="btn btn-outline" @click="newFolder=!newFolder">{{icon "plus"}} New folder</button>
+            <button class="btn btn-outline" onclick="this.closest('.detail').querySelector('input[type=file]').click()">{{icon "upload"}} Upload</button>{{end}}
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/s3/{{.Bucket}}/delete-bucket" hx-confirm="Delete bucket “{{.Bucket}}”? It must be empty.">{{icon "trash"}} Delete</button>
         </div>
       </div>
@@ -55,7 +56,7 @@
     <aside class="drawer" role="dialog" aria-modal="true" aria-label="object details" x-show="drawer" x-cloak x-effect="window.dozeTrap && dozeTrap($el, drawer)" @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
   </section>
 <script>
-  function s3page(prefix, bucket){return{drawer:false,drag:0,busy:false,busyName:"",
+  function s3page(prefix, bucket){return{drawer:false,drag:0,busy:false,busyName:"",newFolder:false,
     currentPrefix(){var t=document.getElementById("object-table");return (t&&t.dataset.prefix)||"";},
     async uploadFiles(files){if(!files||!files.length)return;var kp=this.currentPrefix();this.busy=true;var done=0;
       for(const f of files){this.busyName=f.name;const fd=new FormData();fd.append("prefix",kp);fd.append("file",f);

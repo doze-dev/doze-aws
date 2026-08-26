@@ -24,6 +24,11 @@ func (c *Console) lambdaFns(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	if len(fns) > 0 {
+		r.SetPathValue("fn", fns[0].Name)
+		c.lambdaFn(w, r)
+		return
+	}
 	c.render(w, r, "lambda_home", map[string]any{"List": fns, "Title": "Lambda"})
 }
 

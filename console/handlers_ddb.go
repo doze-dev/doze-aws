@@ -15,6 +15,11 @@ func (c *Console) ddbTables(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	if len(tables) > 0 {
+		r.SetPathValue("table", tables[0].Name)
+		c.ddbTable(w, r)
+		return
+	}
 	c.render(w, r, "ddb_home", map[string]any{"List": tables, "Title": "DynamoDB"})
 }
 

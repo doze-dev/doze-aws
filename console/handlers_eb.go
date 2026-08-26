@@ -13,6 +13,11 @@ func (c *Console) ebBuses(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	if len(buses) > 0 {
+		r.SetPathValue("bus", buses[0].Name)
+		c.ebBus(w, r)
+		return
+	}
 	c.render(w, r, "eb_home", map[string]any{"List": buses, "Title": "EventBridge"})
 }
 

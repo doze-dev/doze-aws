@@ -14,6 +14,42 @@
 <script>(function(){try{var t=localStorage.getItem("theme");if(t&&t!=="system")document.documentElement.setAttribute("data-theme",t);
 var r=localStorage.getItem("rail");if(r==="slim"||r==="wide")document.documentElement.setAttribute("data-rail",r);}catch(e){}})();</script>
 <script>document.addEventListener("alpine:init",function(){window.Alpine.store("filter",{q:""});});
+/* kvEditor backs the secret editor's key/value builder. Inline rather than in
+   deferred shell.js because Alpine evaluates x-data before deferred scripts
+   run — the same race as the filter store above, and it fails harder here: a
+   call site can be guarded, an x-data cannot.
+
+   The textarea is the source of truth: it is what submits, and CodeMirror is
+   attached to it. The rows are a projection, rebuilt on entry to key/value mode
+   and serialized back on every keystroke, so the two cannot disagree about what
+   will be saved. */
+window.kvEditor=function(initial){return{
+  mode:"text", rows:[], dirty:false, representable:false, ta:null,
+  /* Strict on purpose: a flat object of scalars. A nested object or an array
+     can only be shown as rows by discarding structure the builder could not put
+     back, so the tab disappears instead and the note says why. */
+  parse:function(text){var t=(text||"").trim();if(!t||t[0]!=="{")return null;
+    var o;try{o=JSON.parse(t);}catch(e){return null;}
+    if(o===null||typeof o!=="object"||Array.isArray(o))return null;
+    var out=[];for(var k in o){if(!Object.prototype.hasOwnProperty.call(o,k))continue;
+      var v=o[k];if(v!==null&&typeof v==="object")return null;
+      out.push({k:k,v:v===null?"":String(v)});}
+    return out;},
+  init:function(ta){this.ta=ta;var rows=this.parse(initial);this.representable=rows!==null;
+    if(this.representable){this.rows=rows;this.mode="kv";}},
+  read:function(){return this.ta&&this.ta.__cm?this.ta.__cm.getValue():(this.ta?this.ta.value:"");},
+  onText:function(){this.dirty=true;this.representable=this.parse(this.read())!==null;},
+  toKV:function(){var rows=this.parse(this.read());if(rows===null)return;this.rows=rows;this.mode="kv";},
+  toText:function(){this.mode="text";var self=this;
+    /* CodeMirror measures wrong while hidden; refresh once it is visible. */
+    setTimeout(function(){if(window.dozeEditor)dozeEditor.refresh(self.ta.parentNode);},0);},
+  sync:function(){this.dirty=true;var o={};
+    this.rows.forEach(function(r){if(r.k)o[r.k]=r.v;});
+    var json=JSON.stringify(o,null,2);
+    if(window.dozeEditor)dozeEditor.set(this.ta,json);else if(this.ta)this.ta.value=json;
+    this.representable=true;},
+};};
+
 /* dozeDur humanizes a seconds field ("345600" → "= 4 days") for the live echo
    under duration inputs. Inline, not in deferred shell.js — Alpine evaluates
    x-text before deferred scripts run (same race as the filter store above). */

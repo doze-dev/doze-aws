@@ -17,6 +17,11 @@ func (c *Console) kmsKeys(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	if len(keys) > 0 {
+		r.SetPathValue("key", keys[0].ID)
+		c.kmsKey(w, r)
+		return
+	}
 	c.render(w, r, "kms_home", map[string]any{"List": keys, "Title": "KMS"})
 }
 
