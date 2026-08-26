@@ -1438,3 +1438,10 @@ a.lo-card:hover { border-color: var(--accent); }
 .kv-row { display: flex; gap: 6px; width: 100%; align-items: center; }
 .kv-row .kv-k { flex: 0 0 34%; font-family: var(--mono); }
 .kv-row .kv-v { flex: 1; font-family: var(--mono); }
+
+/* Zero-results: a heading and the way out, per Cloudscape — the pane that went
+   blank is not where the filter box is. */
+.lp-nomatch b { display: block; font-style: normal; color: var(--foreground); margin-bottom: 6px; }
+.lp-nomatch .lp-empty-cta { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; }
+.dk-when { color: var(--muted-foreground); font-family: var(--mono); font-size: 11px; }
+.dk-refresh { flex: none; }

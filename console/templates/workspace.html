@@ -46,7 +46,7 @@
         <div class="kv-row">
           <input class="input kv-k" placeholder="key" x-model="row.k" @input="sync()" spellcheck="false">
           <input class="input kv-v" placeholder="value" x-model="row.v" @input="sync()" spellcheck="false">
-          <button type="button" class="icon-btn" title="Remove" @click="rows.splice(i,1); sync()">{{icon "x"}}</button>
+          <button type="button" class="icon-btn" title="Remove" @click="rows.splice(i,1); if(!rows.length)rows.push({k:'',v:''}); sync()">{{icon "x"}}</button>
         </div>
       </template>
       <button type="button" class="btn btn-outline btn-sm" @click="rows.push({k:'',v:''}); sync()">{{icon "plus"}} Add pair</button>

@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // ---- Traffic ----
@@ -82,7 +83,6 @@ var sectionNouns = map[string]string{
 	"stack": "cfn", "api": "apigw", "route": "apigw",
 	"role": "iam", "user": "iam", "policy": "iam", "principal": "iam",
 }
-
 
 func (c *Console) trafficFeed(w http.ResponseWriter, r *http.Request) {
 	// Cheap probe first: the idle tick (the common case) must not copy and
@@ -281,6 +281,9 @@ type deckView struct {
 	FirstRun bool
 	Endpoint string
 	Hash     string
+	// Updated is when this snapshot was taken. A deck that polls silently gives
+	// no way to tell "nothing is happening" from "nothing is arriving".
+	Updated string
 }
 
 func (c *Console) deckData(r *http.Request) deckView {
@@ -302,6 +305,7 @@ func (c *Console) deckData(r *http.Request) deckView {
 	}
 	v.FirstRun = len(g.Services) == 0 && (c.rec == nil || c.rec.LastSeq() == 0)
 	v.Hash = deckHash(g)
+	v.Updated = time.Now().Format("15:04:05")
 	return v
 }
 

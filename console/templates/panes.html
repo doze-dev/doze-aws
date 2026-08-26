@@ -36,7 +36,10 @@
      which reads as broken rather than as empty. Alpine-only, using the same
      store the rows themselves filter on. dict: Names (JSON array of names). */}}
 {{define "lp_nofilter"}}
-<div class="lp-empty lp-nomatch" hidden>Nothing matches that filter.</div>
+<div class="lp-empty lp-nomatch" hidden>
+  <b>No matches</b>
+  <button type="button" class="lp-empty-cta" onclick="dozeShell.clearFilter(this)">Clear filter</button>
+</div>
 {{end}}
 {{define "lp_foot"}}
     {{template "lp_nofilter" .}}
@@ -154,6 +157,9 @@
         <span class="dk-quiet">Nothing needs attention</span>
       {{end}}
       <span class="dk-rate">{{if .Recorder}}{{.Rate}}{{else}}capture off{{end}}</span>
+      <span class="dk-when" aria-live="polite">updated {{.Updated}}</span>
+      <button type="button" class="icon-btn dk-refresh" title="Refresh now" aria-label="Refresh the stack overview"
+              hx-get="{{.Prefix}}/deck" hx-target="#deck" hx-swap="outerHTML">{{icon "refresh"}}</button>
     </div>
     {{if .Services}}
     <div class="deck-board">

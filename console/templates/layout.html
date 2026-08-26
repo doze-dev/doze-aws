@@ -36,7 +36,12 @@ window.kvEditor=function(initial){return{
       out.push({k:k,v:v===null?"":String(v)});}
     return out;},
   init:function(ta){this.ta=ta;var rows=this.parse(initial);this.representable=rows!==null;
-    if(this.representable){this.rows=rows;this.mode="kv";}},
+    if(this.representable){this.rows=rows;this.mode="kv";}
+    /* Never show a builder with no rows: an empty attribute editor offers
+       nothing to type into and no hint that you could. An empty secret opens
+       ready to write. */
+    if(!(initial||"").trim()){this.rows=[{k:"",v:""}];this.representable=true;this.mode="kv";}
+    if(this.mode==="kv"&&!this.rows.length){this.rows=[{k:"",v:""}];}},
   read:function(){return this.ta&&this.ta.__cm?this.ta.__cm.getValue():(this.ta?this.ta.value:"");},
   onText:function(){this.dirty=true;this.representable=this.parse(this.read())!==null;},
   toKV:function(){var rows=this.parse(this.read());if(rows===null)return;this.rows=rows;this.mode="kv";},

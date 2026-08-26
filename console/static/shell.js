@@ -554,10 +554,31 @@
       note.hidden = !(q && rows.length && visible === 0);
     });
   }
-  document.addEventListener("input", function (e) {
-    if (e.target.closest && e.target.closest(".listpane .filter")) setTimeout(syncNoMatch, 0);
-  });
-  document.addEventListener("htmx:afterSwap", function () { setTimeout(syncNoMatch, 0); });
+  // React to the rows actually changing visibility rather than to the keystroke
+  // that will eventually cause it. Alpine applies x-show after the input event,
+  // so anything scheduled off the keystroke reads the state as it was before
+  // filtering — which is why this checked and always found rows still visible.
+  // An observer on the display attribute is correct by construction, and it also
+  // covers rows hidden by anything other than typing.
+  var noMatchQueued = false;
+  function queueNoMatch() {
+    if (noMatchQueued) return;
+    noMatchQueued = true;
+    requestAnimationFrame(function () { noMatchQueued = false; syncNoMatch(); });
+  }
+  function watchPanes() {
+    document.querySelectorAll(".listpane .lp-scroll").forEach(function (scroll) {
+      if (scroll.__noMatchObserved) return;
+      scroll.__noMatchObserved = true;
+      new MutationObserver(queueNoMatch).observe(scroll, {
+        subtree: true, childList: true, attributes: true, attributeFilter: ["style", "class"],
+      });
+    });
+    queueNoMatch();
+  }
+  document.addEventListener("DOMContentLoaded", watchPanes);
+  document.addEventListener("htmx:afterSwap", watchPanes);
+  watchPanes();
 
   // ---------- after an in-place navigation ----------
   // c.redirect now swaps #workspace instead of reloading the window. Five things
@@ -732,5 +753,16 @@
   }
   document.addEventListener("DOMContentLoaded", function () { linkLabels(); });
   document.addEventListener("htmx:afterSwap", function (e) { linkLabels(e.target); });
-  window.dozeShell = { toast: toast, openPalette: openPalette };
+  // Clearing has to go through the same store the rows filter on, not just the
+  // input, or the rows stay hidden while the box looks empty.
+  function clearFilter(from) {
+    var pane = from && from.closest ? from.closest(".listpane") : document.querySelector(".listpane");
+    var input = pane && pane.querySelector(".filter input");
+    if (input) input.value = "";
+    try { if (window.Alpine) window.Alpine.store("filter").q = ""; } catch (e) {}
+    if (input) input.dispatchEvent(new Event("input", { bubbles: true }));
+    if (input) input.focus();
+  }
+
+  window.dozeShell = { toast: toast, openPalette: openPalette, clearFilter: clearFilter };
 })();
