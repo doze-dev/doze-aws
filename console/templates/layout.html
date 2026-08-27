@@ -75,6 +75,28 @@ return"= "+p.join(" ");};</script>
 <script src="{{.Prefix}}/static/editor.js"></script>
 <script src="{{.Prefix}}/static/shell.js" defer></script>
 
+{{/* An explicit <body>, and it carries hx-ext.
+
+     This template had no body tag — the browser synthesized one — and
+     idiomorph-ext.min.js was loaded but never activated, because htmx only
+     applies an extension it finds by walking UP from the swap's context
+     element. shell.js drives the live regions through htmx.ajax() with no
+     source element, so that context is document.body; an hx-ext on the inner
+     <div class="body"> is a DESCENDANT of it and is never seen.
+
+     The effect was silent and total: every "morph:outerHTML" in shell.js:424
+     fell through to htmx's defaultSwapStyle, which is innerHTML, so each live
+     region's own wrapper was swapped INSIDE itself the first time its content
+     changed — two #message-panel-wrap elements, one nested in the other,
+     duplicate ids and all. Reproduced in a browser before and after this line:
+     wrap 1→2 / nested 0→1 without it, 1 and 0 with it.
+
+     So none of the selection-, scroll- and focus-preservation that morphing
+     exists to provide has ever actually run. That also explains the
+     data-live-swap="outerHTML" opt-out on #lambda-rt, whose comment blames
+     "idiomorph nesting its replacement" — it was the innerHTML fallback
+     nesting it, and idiomorph was never in the picture. */}}
+<body hx-ext="morph">
 <div class="app">
   <header class="topbar">
     <div class="brand"><img src="{{.Prefix}}/static/favicon.svg" alt="" style="width:17px;height:17px"> doze-aws <span class="sub">console</span></div>
@@ -177,6 +199,7 @@ return"= "+p.join(" ");};</script>
 
   <div class="toasts" id="toasts"></div>
 </div>
+</body>
 {{end}}
 
 {{/* ri = one rail item. Svc → AWS icon + live count; Glyph → Lucide (surfaces). */}}
