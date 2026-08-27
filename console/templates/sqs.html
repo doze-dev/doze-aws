@@ -185,9 +185,9 @@
     <div class="table-wrap"><table class="tbl kv"><tbody>
       <tr><td>Type</td><td>{{if .Config.FIFO}}<span class="badge type">FIFO</span>{{else}}Standard{{end}}</td></tr>
       {{if .Config.FIFO}}<tr><td>Content-based deduplication</td><td>{{if .Config.ContentDedup}}<span class="badge state-on">on</span> <span class="dim">duplicate bodies within 5 minutes are dropped</span>{{else}}<span class="badge state-off">off</span> <span class="dim">sends need a deduplication ID (the console auto-generates one)</span>{{end}}</td></tr>{{end}}
-      <tr><td>Visibility timeout</td><td>{{.Config.Visibility}} s</td></tr>
-      <tr><td>Message retention</td><td>{{.Config.Retention}} s</td></tr>
-      <tr><td>Delivery delay</td><td>{{if .Config.Delay}}{{.Config.Delay}}{{else}}0{{end}} s</td></tr>
+      <tr><td>Visibility timeout</td><td>{{secs .Config.Visibility}}</td></tr>
+      <tr><td>Message retention</td><td>{{secs .Config.Retention}}</td></tr>
+      <tr><td>Delivery delay</td><td>{{if .Config.Delay}}{{secs .Config.Delay}}{{else}}0s{{end}}</td></tr>
       {{if .Config.DLQ}}<tr><td>Dead-letter queue</td><td><a href="{{.Prefix}}/sqs/{{.Config.DLQ}}" style="color:var(--accent)">{{.Config.DLQ}}</a> <span class="dim">after {{.Config.MaxReceive}} receives</span></td></tr>{{end}}
       {{if .Config.Created}}<tr><td>Created</td><td title="{{.Config.Created}}">{{ago .Config.Created}}</td></tr>{{end}}
     </tbody></table></div>
@@ -215,6 +215,42 @@
   <div style="margin-top:10px">
     <button class="btn btn-outline btn-sm" @click="raw=!raw" x-text="raw?'Hide raw attributes':'Show raw attributes'"></button>
     <div class="table-wrap" x-show="raw" x-cloak style="margin-top:8px"><table class="tbl kv"><tbody>{{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}</tbody></table></div>
+  </div>
+  {{/* Queue policy — AddPermission / RemovePermission.
+
+       Tier C, and more strictly so than the docs table alone conveys: verified
+       against the running emulator, AddPermission returns 200 and writes
+       NOTHING. No Policy attribute appears afterwards. So there is deliberately
+       no table of granted permissions here — a table that can never have a row
+       is worse than no table, and the first draft of this panel had one.
+
+       Both operations are still reachable, because that is the point of an
+       emulator: a deploy script that calls AddPermission must not fail here,
+       the call must show up on the wire like any other, and you must be able to
+       see that it was accepted. What the panel must not do is imply the grant
+       took effect. */}}
+  <div class="sec-title">Queue policy <span class="tier tier-c" title="Accepted and answered 200, but doze-aws stores nothing and evaluates nothing">accepted, not stored</span></div>
+  <div class="panel">
+    <div class="mini-note perm-none">
+      doze-aws answers these calls so your deploy path works, and keeps nothing:
+      there is no IAM in front of a local queue, so a grant here changes who can
+      reach this queue not at all. Both calls appear on the wire.
+    </div>
+    <form class="tag-row-form" hx-post="{{.Prefix}}/sqs/{{.Queue}}/permission"
+          hx-target="#sqs-config" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+      <input class="input" name="label" placeholder="Label" required autocomplete="off">
+      <input class="input" name="account" placeholder="000000000000" autocomplete="off">
+      <select class="input" name="action">
+        <option>SendMessage</option><option>ReceiveMessage</option><option>DeleteMessage</option>
+        <option>ChangeMessageVisibility</option><option>GetQueueAttributes</option><option>*</option>
+      </select>
+      <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Grant</button>
+    </form>
+    <form class="tag-row-form" hx-post="{{.Prefix}}/sqs/{{.Queue}}/permission/delete"
+          hx-target="#sqs-config" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+      <input class="input" name="label" placeholder="Label to revoke" required autocomplete="off">
+      <button class="btn btn-ghost btn-sm" type="submit">Revoke</button>
+    </form>
   </div>
   {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sqs" "ID" .Queue}}
 </div>

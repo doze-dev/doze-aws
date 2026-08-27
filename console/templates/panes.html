@@ -194,3 +194,23 @@
   {{end}}
 </div>
 {{end}}
+
+{{/* tag_rows: repeatable tag key/value inputs for a CREATE form, where there
+     is no resource to POST against yet — so unlike tag_editor (which mutates an
+     existing resource through /tags/set) these are parallel named inputs that
+     ride the create form's own submit, decoded by tagsFromRows.
+
+     Same shape as lambda's env_editor, deliberately: a third encoding for
+     name/value pairs would be a third thing to get wrong. */}}
+{{define "tag_rows"}}
+<div x-data="{rows:[]}">
+  <template x-for="(row, i) in rows" :key="i">
+    <div class="attr-row">
+      <input class="input" name="tag_key" placeholder="Key" x-model="row.k" autocomplete="off">
+      <input class="input" name="tag_val" placeholder="Value" x-model="row.v" autocomplete="off">
+      <button type="button" class="icon-btn danger" @click="rows.splice(i,1)" aria-label="Remove tag">{{icon "trash"}}</button>
+    </div>
+  </template>
+  <button type="button" class="btn btn-outline btn-sm" @click="rows.push({k:'',v:''})">{{icon "plus"}} Add tag</button>
+</div>
+{{end}}

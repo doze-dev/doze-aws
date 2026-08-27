@@ -482,6 +482,15 @@ func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {
 		DelaySeconds:      strings.TrimSpace(r.FormValue("delay")),
 		DLQName:           dlq,
 		MaxReceiveCount:   strings.TrimSpace(r.FormValue("max_receive")),
+
+		ReceiveWaitSeconds: strings.TrimSpace(r.FormValue("receive_wait")),
+		MaxMessageBytes:    strings.TrimSpace(r.FormValue("max_bytes")),
+		Policy:             strings.TrimSpace(r.FormValue("policy")),
+		KMSKeyID:           strings.TrimSpace(r.FormValue("kms_key")),
+		SSEEnabled:         r.FormValue("sse") == "on",
+		DedupScope:         strings.TrimSpace(r.FormValue("dedup_scope")),
+		ThroughputLimit:    strings.TrimSpace(r.FormValue("throughput_limit")),
+		Tags:               tagsFromRows(r),
 	}); err != nil {
 		c.fail(w, err)
 		return
@@ -783,6 +792,13 @@ func (c *Console) sqsSetAttributes(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	toast(w, "Queue settings saved")
+	c.sqsConfigPartial(w, r, name)
+}
+
+// sqsConfigPartial re-renders the Configuration tab. Shared by the settings
+// form and by the permission controls, which change the same tab from a
+// different corner of it.
+func (c *Console) sqsConfigPartial(w http.ResponseWriter, r *http.Request, name string) {
 	qattrs, err := c.be.queueAttrs(r.Context(), name)
 	if err != nil {
 		c.fail(w, err)
@@ -791,6 +807,7 @@ func (c *Console) sqsSetAttributes(w http.ResponseWriter, r *http.Request) {
 	queues, _ := c.be.ListQueues(r.Context())
 	c.partial(w, "sqs_config", map[string]any{
 		"Queue": name, "Attrs": qattrs, "Config": sqsConfigOf(qattrs), "AllQueues": queues,
+		"Prefix": c.prefix, "Perms": sqsPermissionsOf(qattrs["Policy"]),
 	})
 }
 

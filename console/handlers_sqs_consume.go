@@ -2,10 +2,14 @@ package console
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // The Consume tab.
@@ -175,4 +179,173 @@ func atoiDefault(s string, def int) int {
 		return def
 	}
 	return n
+}
+
+// tagsFromRows reads the shared tag row-editor's parallel inputs. The same
+// name/value pair shape parseEnvRows uses for Lambda environment variables, so
+// a create form can carry tags without inventing a third encoding.
+func tagsFromRows(r *http.Request) map[string]string {
+	keys, vals := r.Form["tag_key"], r.Form["tag_val"]
+	if len(keys) == 0 {
+		return nil
+	}
+	out := map[string]string{}
+	for i, k := range keys {
+		k = strings.TrimSpace(k)
+		if k == "" {
+			continue
+		}
+		v := ""
+		if i < len(vals) {
+			v = vals[i]
+		}
+		out[k] = v
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// sqsSendBatch publishes several messages in one call — the composer's
+// "send N" mode. SendMessageBatch was implemented by the emulator and had no
+// way in from the console, which meant the only way to produce a burst was to
+// press Send repeatedly and get a different timing profile than a real batch.
+func (c *Console) sqsSendBatch(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("queue")
+	var bodies []string
+	for _, b := range r.Form["body"] {
+		if strings.TrimSpace(b) != "" {
+			bodies = append(bodies, b)
+		}
+	}
+	// "Repeat this body N times" is the common case when what you want is
+	// depth rather than distinct payloads.
+	if n := atoiDefault(r.FormValue("repeat"), 0); n > 1 && len(bodies) == 1 {
+		for i := 1; i < min(n, 10); i++ {
+			bodies = append(bodies, bodies[0])
+		}
+	}
+	if len(bodies) == 0 {
+		c.fail(w, errors.New("a batch needs at least one message body"))
+		return
+	}
+	failed, err := c.be.SendMessageBatch(r.Context(), name, bodies,
+		r.FormValue("delay"), r.FormValue("group"))
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, batchNote(len(bodies), failed, "sent"))
+	c.sqsMessages(w, r)
+}
+
+// sqsAddPermission and sqsRemovePermission write the queue's resource policy.
+// Both are tier C locally — accepted, no local effect — and the UI says so
+// next to the control rather than letting the button imply enforcement.
+func (c *Console) sqsAddPermission(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("queue")
+	label := strings.TrimSpace(r.FormValue("label"))
+	if label == "" {
+		c.fail(w, errors.New("a permission needs a label"))
+		return
+	}
+	acct := strings.TrimSpace(r.FormValue("account"))
+	if acct == "" {
+		acct = awsident.AccountID
+	}
+	action := strings.TrimSpace(r.FormValue("action"))
+	if action == "" {
+		action = "SendMessage"
+	}
+	if err := c.be.AddPermission(r.Context(), name, label, acct, action); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Permission “"+label+"” added")
+	c.sqsConfigPartial(w, r, name)
+}
+
+func (c *Console) sqsRemovePermission(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("queue")
+	if err := c.be.RemovePermission(r.Context(), name, r.FormValue("label")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Permission removed")
+	c.sqsConfigPartial(w, r, name)
+}
+
+// sqsCancelMove stops an in-progress redrive. Locally the move already
+// completed synchronously, so this reliably answers "task is not active" —
+// which is exactly what AWS says about a finished task. The button makes the
+// real call and shows the real answer rather than pretending either way.
+func (c *Console) sqsCancelMove(w http.ResponseWriter, r *http.Request) {
+	if err := c.be.CancelMessageMoveTask(r.Context(), r.FormValue("handle")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Move task cancelled")
+	c.sqsMessages(w, r)
+}
+
+// sqsPermission is one statement of the queue's resource policy, rendered as a
+// row you can remove.
+type sqsPermission struct {
+	Label   string
+	Account string
+	Action  string
+}
+
+// sqsPermissionsOf reads back what AddPermission wrote. The policy is a normal
+// IAM document, and AddPermission's statements carry the Label as the Sid —
+// which is how RemovePermission finds them again.
+func sqsPermissionsOf(policy string) []sqsPermission {
+	if strings.TrimSpace(policy) == "" {
+		return nil
+	}
+	var doc struct {
+		Statement []struct {
+			Sid       string `json:"Sid"`
+			Principal any    `json:"Principal"`
+			Action    any    `json:"Action"`
+		} `json:"Statement"`
+	}
+	if json.Unmarshal([]byte(policy), &doc) != nil {
+		return nil
+	}
+	out := make([]sqsPermission, 0, len(doc.Statement))
+	for _, st := range doc.Statement {
+		if st.Sid == "" {
+			continue
+		}
+		out = append(out, sqsPermission{
+			Label: st.Sid, Account: flattenPolicyValue(st.Principal), Action: flattenPolicyValue(st.Action),
+		})
+	}
+	return out
+}
+
+// flattenPolicyValue renders the string-or-list-or-object shapes an IAM
+// document uses for a single display cell. Deliberately lossy and display-only:
+// nothing here is parsed back into a policy.
+func flattenPolicyValue(v any) string {
+	switch t := v.(type) {
+	case string:
+		return t
+	case []any:
+		parts := make([]string, 0, len(t))
+		for _, e := range t {
+			parts = append(parts, flattenPolicyValue(e))
+		}
+		return strings.Join(parts, ", ")
+	case map[string]any:
+		parts := make([]string, 0, len(t))
+		for _, e := range t {
+			parts = append(parts, flattenPolicyValue(e))
+		}
+		sort.Strings(parts)
+		return strings.Join(parts, ", ")
+	}
+	return ""
 }

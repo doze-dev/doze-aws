@@ -178,6 +178,18 @@ type SQSCreateOpts struct {
 	DelaySeconds      string
 	DLQName           string // existing queue name for the redrive policy
 	MaxReceiveCount   string
+
+	// Everything below was accepted by CreateQueue and unreachable from the
+	// console, so a queue made here could not be given the settings a queue
+	// made by your own code routinely has.
+	ReceiveWaitSeconds string // ReceiveMessageWaitTimeSeconds — long polling
+	MaxMessageBytes    string // MaximumMessageSize
+	Policy             string // an IAM policy document; C-tier locally
+	KMSKeyID           string // KmsMasterKeyId
+	SSEEnabled         bool   // SqsManagedSseEnabled
+	DedupScope         string // FIFO: queue | messageGroup
+	ThroughputLimit    string // FIFO: perQueue | perMessageGroupId
+	Tags               map[string]string
 }
 
 func (b *backend) CreateQueueFull(ctx context.Context, o SQSCreateOpts) error {
@@ -208,7 +220,36 @@ func (b *backend) CreateQueueFull(ctx context.Context, o SQSCreateOpts) error {
 		})
 		attrs["RedrivePolicy"] = string(rp)
 	}
+	if o.ReceiveWaitSeconds != "" && o.ReceiveWaitSeconds != "0" {
+		attrs["ReceiveMessageWaitTimeSeconds"] = o.ReceiveWaitSeconds
+	}
+	if o.MaxMessageBytes != "" {
+		attrs["MaximumMessageSize"] = o.MaxMessageBytes
+	}
+	if o.Policy != "" {
+		attrs["Policy"] = o.Policy
+	}
+	if o.KMSKeyID != "" {
+		attrs["KmsMasterKeyId"] = o.KMSKeyID
+	}
+	if o.SSEEnabled {
+		attrs["SqsManagedSseEnabled"] = "true"
+	}
+	// FIFO-only, and interlocked: perMessageGroupId throughput REQUIRES
+	// messageGroup dedup scope. Sending both as given lets the service state
+	// the rule rather than the console second-guessing it.
+	if o.FIFO {
+		if o.DedupScope != "" {
+			attrs["DeduplicationScope"] = o.DedupScope
+		}
+		if o.ThroughputLimit != "" {
+			attrs["FifoThroughputLimit"] = o.ThroughputLimit
+		}
+	}
 	in := map[string]any{"QueueName": o.Name}
+	if len(o.Tags) > 0 {
+		in["tags"] = o.Tags
+	}
 	if len(attrs) > 0 {
 		in["Attributes"] = attrs
 	}

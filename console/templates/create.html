@@ -45,6 +45,40 @@
           <div class="field"><label>After this many receives</label><input class="input" name="max_receive" type="number" min="1" max="1000" placeholder="3"></div>
         </div>
       </div></div>
+      {{/* Advanced: everything CreateQueue accepts that this form could not
+           reach. A queue made here could not be given the settings a queue made
+           by your own code routinely has — long polling above all, which is the
+           difference between a consumer that spins and one that waits.
+
+           Collapsed, because these are the settings you come looking for rather
+           than the ones you meet on the way past. */}}
+      <details class="panel form-sec adv-sec">
+        <summary class="panel-h"><h2>Advanced</h2><span class="dim">long polling, size, encryption, policy, tags</span></summary>
+        <div class="form-b">
+          <div class="fgrid">
+            <div class="field" x-data="{v:0}"><label>Receive wait <span class="dim">s · long polling</span></label>
+              <input class="input" name="receive_wait" type="number" min="0" max="20" placeholder="0" x-model="v">
+              <span class="hint" x-text="v>0 ? (&apos;consumers wait up to &apos;+v+&apos;s for a message instead of returning empty&apos;) : &apos;0 = short polling: a receive returns immediately, empty or not&apos;"></span></div>
+            <div class="field"><label>Max message size <span class="dim">bytes</span></label>
+              <input class="input" name="max_bytes" type="number" min="1024" max="262144" placeholder="262144"></div>
+          </div>
+          <div class="fgrid" x-show="fifo" x-cloak>
+            <div class="field"><label>Deduplication scope</label>
+              <select class="input" name="dedup_scope"><option value="">queue (default)</option><option value="messageGroup">messageGroup</option></select></div>
+            <div class="field"><label>Throughput limit</label>
+              <select class="input" name="throughput_limit"><option value="">perQueue (default)</option><option value="perMessageGroupId">perMessageGroupId</option></select>
+              <span class="hint">perMessageGroupId requires the messageGroup dedup scope</span></div>
+          </div>
+          <div class="opt-row"><div><div class="opt-l">SQS-managed encryption</div><div class="opt-d">SqsManagedSseEnabled — accepted and stored locally, not enforced</div></div><label class="switch"><input type="checkbox" name="sse"><span class="track"></span><span class="thumb"></span></label></div>
+          <div class="field"><label>KMS key ID <span class="dim">optional</span></label>
+            <input class="input mono" name="kms_key" placeholder="alias/aws/sqs" autocomplete="off"></div>
+          <div class="field"><label>Access policy <span class="dim">JSON, optional</span></label>
+            <textarea name="policy" rows="5" data-editor="json" placeholder=&#39;{&#34;Version&#34;:&#34;2012-10-17&#34;,&#34;Statement&#34;:[]}&#39;></textarea>
+            <span class="hint">stored and returned; doze-aws does not evaluate queue policies</span></div>
+          <div class="field"><label>Tags</label>
+            {{template "tag_rows" .}}</div>
+        </div>
+      </details>
       {{template "form_actions" dict "Cancel" (printf "%s/sqs" .Prefix) "Submit" "Create queue"}}
     </form>
   </div></section>

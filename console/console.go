@@ -172,10 +172,14 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/sqs/{queue}/attributes", c.sqsSetAttributes)
 	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-message", c.sqsDeleteMessage)
 	m.HandleFunc("POST "+p+"/sqs/{queue}/redrive", c.sqsRedrive)
-	m.HandleFunc("POST "+p+"/sqs/{queue}/receive", c.sqsReceive)                  // a REAL receive, not a peek
-	m.HandleFunc("POST "+p+"/sqs/{queue}/visibility", c.sqsChangeVisibility)      // re-hide or release one
-	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-batch", c.sqsDeleteBatch)         // DeleteMessageBatch
-	m.HandleFunc("POST "+p+"/sqs/{queue}/visibility-batch", c.sqsVisibilityBatch) // ChangeMessageVisibilityBatch
+	m.HandleFunc("POST "+p+"/sqs/{queue}/receive", c.sqsReceive)                    // a REAL receive, not a peek
+	m.HandleFunc("POST "+p+"/sqs/{queue}/visibility", c.sqsChangeVisibility)        // re-hide or release one
+	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-batch", c.sqsDeleteBatch)           // DeleteMessageBatch
+	m.HandleFunc("POST "+p+"/sqs/{queue}/visibility-batch", c.sqsVisibilityBatch)   // ChangeMessageVisibilityBatch
+	m.HandleFunc("POST "+p+"/sqs/{queue}/send-batch", c.sqsSendBatch)               // SendMessageBatch
+	m.HandleFunc("POST "+p+"/sqs/{queue}/permission", c.sqsAddPermission)           // AddPermission (C-tier)
+	m.HandleFunc("POST "+p+"/sqs/{queue}/permission/delete", c.sqsRemovePermission) // RemovePermission (C-tier)
+	m.HandleFunc("POST "+p+"/sqs/{queue}/cancel-move", c.sqsCancelMove)             // CancelMessageMoveTask
 	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-queue", c.sqsDeleteQueue)
 
 	// DynamoDB.

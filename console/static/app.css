@@ -1513,3 +1513,25 @@ a.lo-card:hover { border-color: var(--accent); }
 .rcv-acts { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .rcv-acts form { display: contents; }
 .rcv-warn { margin: 10px 0 0; }
+
+/* A collapsed form section. summary carries .panel-h, so it keeps the panel
+   heading treatment and gains a disclosure triangle. */
+.adv-sec > summary { cursor: pointer; display: flex; align-items: baseline; gap: 8px; }
+.adv-sec > summary::-webkit-details-marker { display: none; }
+.adv-sec > summary::before { content: "\25B8"; color: var(--muted-foreground); font-size: 11px; }
+.adv-sec[open] > summary::before { content: "\25BE"; }
+.adv-sec .form-b > * + * { margin-top: 12px; }
+
+/* A fidelity badge: what doze-aws actually does with this control. The F/C/S
+   tiers come from docs/api-support/*.md, and C is the one worth surfacing —
+   "accepted, changes nothing" is invisible otherwise, and a control that looks
+   enforced but is not is the most expensive kind of wrong. */
+.tier {
+  display: inline-flex; align-items: center; font-size: 10px; font-weight: 600;
+  text-transform: none; letter-spacing: 0; padding: 1px 6px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--muted-foreground); background: var(--muted);
+  margin-left: 6px; vertical-align: middle;
+}
+.tier-c { color: var(--warn-ink, var(--muted-foreground)); }
+.perm-k { width: 30%; }
+.perm-none { padding: 12px 14px 2px; }

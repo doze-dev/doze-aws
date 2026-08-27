@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"sort"
 	"strconv"
+	"time"
 )
 
 // The consuming half of SQS.
@@ -163,4 +164,82 @@ func parseSQSMessages(body []byte) []SQSMessage {
 
 func clampInt(v, lo, hi int) int {
 	return max(lo, min(hi, v))
+}
+
+// SendMessageBatch publishes up to ten messages per call, chunked the same way
+// the receipt-handle batches are. Same reason: ten is a wire limit, and a
+// person composing a burst of test messages should not have to know it.
+func (b *backend) SendMessageBatch(ctx context.Context, name string, bodies []string, delay string, groupID string) ([]BatchFailure, error) {
+	var failed []BatchFailure
+	for start := 0; start < len(bodies); start += 10 {
+		end := min(start+10, len(bodies))
+		entries := make([]map[string]any, 0, end-start)
+		for i, body := range bodies[start:end] {
+			e := map[string]any{"Id": "m" + strconv.Itoa(start+i), "MessageBody": body}
+			if delay != "" && delay != "0" {
+				e["DelaySeconds"] = atoi(delay)
+			}
+			if groupID != "" {
+				e["MessageGroupId"] = groupID
+				// A FIFO batch without per-entry dedup ids relies on the queue
+				// having content-based dedup, and two identical test bodies in
+				// one batch would then collapse into one message. Giving each
+				// entry its own id keeps "I sent five" meaning five.
+				e["MessageDeduplicationId"] = strconv.FormatInt(time.Now().UnixNano(), 36) + strconv.Itoa(start+i)
+			}
+			entries = append(entries, e)
+		}
+		body, err := b.sqs(ctx, "SendMessageBatch", map[string]any{
+			"QueueUrl": b.queueURL(name), "Entries": entries,
+		})
+		if err != nil {
+			return failed, err
+		}
+		var out struct {
+			Failed []struct {
+				ID      string `json:"Id"`
+				Code    string `json:"Code"`
+				Message string `json:"Message"`
+			} `json:"Failed"`
+		}
+		json.Unmarshal(body, &out)
+		for _, f := range out.Failed {
+			failed = append(failed, BatchFailure{ID: f.ID, Code: f.Code, Message: f.Message})
+		}
+	}
+	return failed, nil
+}
+
+// AddPermission and RemovePermission write the queue's resource policy.
+//
+// Both are tier C in docs/api-support/sqs.md: "no IAM locally: succeeds,
+// changes nothing". They are exposed anyway, and labelled as cosmetic in the
+// UI, because the point of an emulator is that your code's calls behave — a
+// deploy script that calls AddPermission should not fail here, and you should
+// be able to see that it was accepted.
+func (b *backend) AddPermission(ctx context.Context, name, label, accountID, action string) error {
+	_, err := b.sqs(ctx, "AddPermission", map[string]any{
+		"QueueUrl": b.queueURL(name), "Label": label,
+		"AWSAccountIds": []string{accountID}, "Actions": []string{action},
+	})
+	return err
+}
+
+func (b *backend) RemovePermission(ctx context.Context, name, label string) error {
+	_, err := b.sqs(ctx, "RemovePermission", map[string]any{
+		"QueueUrl": b.queueURL(name), "Label": label,
+	})
+	return err
+}
+
+// CancelMessageMoveTask stops an in-progress redrive.
+//
+// Locally this always answers "task is not active", because doze-aws completes
+// a move synchronously — the volumes are small enough that there is no window
+// to cancel in. That answer matches what AWS says about a task that has already
+// finished, so the button is honest rather than fake: it makes the real call
+// and shows the real refusal.
+func (b *backend) CancelMessageMoveTask(ctx context.Context, taskHandle string) error {
+	_, err := b.sqs(ctx, "CancelMessageMoveTask", map[string]any{"TaskHandle": taskHandle})
+	return err
 }
