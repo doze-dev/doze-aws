@@ -231,3 +231,107 @@ func TestInlineStyleBudget(t *testing.T) {
 		}
 	}
 }
+
+// TestCompoundClassesAreStyled closes the hole TestTemplateClassesAreStyled
+// leaves open: a modifier class that only ever exists as part of a compound
+// selector.
+//
+// It shipped a real bug. `class="btn btn-outline danger"` appeared on 13 Delete
+// buttons across 12 templates. `danger` passed the single-token check because
+// .icon-btn.danger and .menu-item.danger both exist — but .btn-outline.danger
+// did not, so every Delete rendered as a plain grey outline with no destructive
+// colour at all. Nothing failed; the button just looked like every other button.
+//
+// The rule: if a class NEVER appears as a bare `.tok` rule in the stylesheet,
+// it is a modifier. A modifier is only styled if the element also carries a
+// class it is actually compounded with somewhere in the CSS.
+func TestCompoundClassesAreStyled(t *testing.T) {
+	css := regexp.MustCompile(`(?s)/\*.*?\*/`).ReplaceAllString(readAll(t, "static/app.css"), " ")
+
+	// Bare rule: `.tok` standing on its own — nothing selector-ish glued to
+	// EITHER side. Checking only the trailing side is what let this bug ship
+	// once already: in `.icon-btn.danger:hover` the `:` after `.danger` looks
+	// like a clean break, so `danger` read as bare when it is compounded.
+	// Pseudo-classes and descendants still count as bare — .btn:hover and
+	// .btn .ic both style a plain .btn element.
+	bare := func(tok string) bool {
+		return regexp.MustCompile(`(^|[^a-zA-Z0-9_.\-])\.` + regexp.QuoteMeta(tok) + `([^a-zA-Z0-9_.\-]|$)`).MatchString(css)
+	}
+	// Partners: every class X such that .X.tok or .tok.X appears in the CSS.
+	partners := func(tok string) map[string]bool {
+		out := map[string]bool{}
+		q := regexp.QuoteMeta(tok)
+		for _, re := range []string{`\.([a-zA-Z0-9_-]+)\.` + q + `\b`, `\.` + q + `\.([a-zA-Z0-9_-]+)`} {
+			for _, m := range regexp.MustCompile(re).FindAllStringSubmatch(css, -1) {
+				out[m[1]] = true
+			}
+		}
+		return out
+	}
+
+	actionRe := regexp.MustCompile(`(?s){{.*?}}`)
+	classRe := regexp.MustCompile(`\sclass="([^"]*)"|\sclass='([^']*)'`)
+	files, err := os.ReadDir("templates")
+	if err != nil {
+		t.Fatal(err)
+	}
+	type site struct{ file, attr string }
+	bad := map[string][]site{} // "tok in file" -> sites, deduped per file
+	for _, f := range files {
+		if !strings.HasSuffix(f.Name(), ".html") {
+			continue
+		}
+		src := actionRe.ReplaceAllString(readAll(t, filepath.Join("templates", f.Name())), " ")
+		for _, m := range classRe.FindAllStringSubmatch(src, -1) {
+			toks := strings.Fields(m[1] + m[2])
+			if len(toks) < 2 {
+				continue
+			}
+			for _, tok := range toks {
+				if bare(tok) {
+					continue
+				}
+				p := partners(tok)
+				if len(p) == 0 {
+					continue // unstyled outright — the single-token test owns this
+				}
+				matched := false
+				for _, other := range toks {
+					if other != tok && p[other] {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					key := tok
+					if len(bad[key]) == 0 || bad[key][len(bad[key])-1].file != f.Name() {
+						bad[key] = append(bad[key], site{f.Name(), strings.Join(toks, " ")})
+					}
+				}
+			}
+		}
+	}
+
+	var keys []string
+	for k := range bad {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, tok := range keys {
+		var where []string
+		for _, s := range bad[tok] {
+			where = append(where, s.file+` (class="`+s.attr+`")`)
+		}
+		t.Errorf("modifier .%s is only ever compounded with %v in the CSS, but is used without any of them in %s — add the missing compound rule",
+			tok, sortedKeys(partners(tok)), strings.Join(where, ", "))
+	}
+}
+
+func sortedKeys(m map[string]bool) []string {
+	var out []string
+	for k := range m {
+		out = append(out, "."+k)
+	}
+	sort.Strings(out)
+	return out
+}
