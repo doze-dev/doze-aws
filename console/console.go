@@ -249,6 +249,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/sns/{topic}", c.snsTopic)
 	m.HandleFunc("POST "+p+"/sns/{topic}/publish", c.snsPublish)
 	m.HandleFunc("POST "+p+"/sns/{topic}/subscribe", c.snsSubscribe)
+	m.HandleFunc("POST "+p+"/sns/{topic}/confirm", c.snsConfirm) // ConfirmSubscription
 	m.HandleFunc("POST "+p+"/sns/{topic}/unsubscribe", c.snsUnsubscribe)
 	m.HandleFunc("POST "+p+"/sns/{topic}/sub-filter", c.snsSubFilter)
 	m.HandleFunc("POST "+p+"/sns/{topic}/sub-raw", c.snsSubRaw)

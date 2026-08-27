@@ -34,6 +34,7 @@ var uncovered = map[string][]string{
 	// Complete — see exempt for the deliberate omissions.
 	"sqs":     {},
 	"kinesis": {},
+	"sns":     {},
 }
 
 // exempt is for operations that are deliberately not called, with the reason.

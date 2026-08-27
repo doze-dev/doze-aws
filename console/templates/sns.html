@@ -26,8 +26,14 @@
           <div class="field" style="margin-bottom:10px"><label>Subject <span class="dim">optional</span></label><input class="input" name="subject" placeholder="Order shipped"></div>
           <div class="field"><label>Message</label><textarea name="message" data-editor rows="6" placeholder='{"orderId":"A-1042"}' required></textarea></div>
           {{template "attr_editor" .}}
-          <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px">
-            <span class="dim" style="font-size:11.5px"><span class="kbd">⌘⏎</span> publishes</span>
+          {{/* Count > 1 switches this form to PublishBatch — a different API,
+               not a loop. SNS reports per-ENTRY failures, so a batch tells you
+               which MESSAGE was refused; repeated Publish calls can only tell
+               you which call was. */}}
+          <div class="pub-actions">
+            <span class="dim pub-hint"><span class="kbd">⌘⏎</span> publishes</span>
+            <label class="put-count"><span class="dim">Count</span>
+              <input class="input" type="number" name="count" value="1" min="1" max="10"></label>
             <button class="btn" type="submit">{{icon "send"}} Publish</button>
           </div>
         </form>
@@ -36,6 +42,28 @@
       </div></div>
       {{template "sns_subs" .}}
     </div>
+    {{/* Every subscription in the stack, not just this topic's. It answers the
+         question the panel above cannot — "this queue is receiving something,
+         from where?" — and it is the only place a subscription to a topic that
+         no longer exists becomes visible. Collapsed, because it is a lookup
+         rather than something you read on the way past. */}}
+    {{if .AllSubs}}
+    <details class="panel form-sec adv-sec allsubs">
+      <summary class="panel-h"><h2>All subscriptions</h2><span class="dim">{{len .AllSubs}} across every topic</span></summary>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Topic</th><th>Protocol</th><th>Endpoint</th></tr></thead>
+          <tbody>{{range .AllSubs}}
+            <tr{{if eq .Topic $.Topic}} class="on"{{end}}>
+              <td class="mono sub"><a href="{{$.Prefix}}/sns/{{.Topic}}">{{.Topic}}</a></td>
+              <td><span class="chip">{{.Protocol}}</span></td>
+              <td class="mono dim sub trunc">{{.Endpoint}}</td>
+            </tr>{{end}}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {{end}}
     {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sns" "ID" .Topic}}
     </div>
   </section>
@@ -85,6 +113,26 @@
      add-row lives at the panel's foot so "add to this list" is literal. */}}
 {{define "sns_subs"}}
 <div id="sns-subs">
+  {{/* Confirm a pending subscription.
+
+       HTTP and email subscriptions arrive PendingConfirmation: SNS posts a
+       token to the endpoint and waits to be handed it back. Until that
+       happens the subscription EXISTS, lists here, and receives nothing —
+       which reads exactly like a delivery bug, and is why this needs a
+       control rather than a CLI incantation. */}}
+  {{if .Pending}}
+  <div class="panel confirm-panel">
+    <div class="panel-h"><h2>{{icon "clock"}} Pending confirmation <span class="badge">{{.Pending}}</span></h2></div>
+    <div class="mini-note perm-none">
+      A subscription stays pending until the token SNS posted to the endpoint is
+      handed back. Until then it is listed and receives nothing.
+    </div>
+    <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{.Topic}}/confirm" hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML">
+      <input class="input mono" name="token" placeholder="Confirmation token" required autocomplete="off">
+      <button class="btn btn-outline btn-sm" type="submit">Confirm</button>
+    </form>
+  </div>
+  {{end}}
   <div class="panel">
     <div class="panel-h"><h2>{{icon "link"}} Subscribers <span class="badge">{{len .Subs}}</span></h2>
       <span class="dim" style="font-size:11.5px">every publish fans out to these</span></div>

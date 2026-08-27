@@ -1540,3 +1540,8 @@ a.lo-card:hover { border-color: var(--accent); }
 .put-count { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 550; }
 .put-count .input { width: 82px; }
 .put-batch-note { margin-top: 8px; }
+
+.pub-actions { margin-top: 10px; display: flex; align-items: end; justify-content: flex-end; gap: 10px; }
+.pub-hint { font-size: 12px; margin-right: auto; }
+.confirm-panel { margin-bottom: 10px; }
+.allsubs tr.on td { background: color-mix(in srgb, var(--muted) 60%, transparent); }

@@ -1,7 +1,9 @@
 package console
 
 import (
+	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -57,6 +59,14 @@ func (c *Console) snsTopic(w http.ResponseWriter, r *http.Request) {
 		"Topic": name, "ARN": arn, "Attrs": attrs, "Subs": subViews(subs),
 		"Queues": queues, "Functions": fns, "List": topics, "Title": name + " · SNS",
 		"Conn": c.be.Neighbors(r.Context(), "sns", name),
+		// A pending subscription is listed and silent, which is the confusing
+		// part; the confirm control only appears when there is one to confirm.
+		"Pending": pendingCount(subs),
+		// Cross-topic view: which subscriptions exist anywhere. It answers the
+		// question the per-topic list cannot — "this endpoint is receiving
+		// something, from where?" — and is the only place an orphaned
+		// subscription to a deleted topic becomes visible.
+		"AllSubs": c.allSubs(r),
 	})
 }
 
@@ -99,6 +109,7 @@ func (c *Console) snsSubsPartial(w http.ResponseWriter, r *http.Request, name st
 	fns, _ := c.be.ListFunctions(r.Context())
 	c.partial(w, "sns_subs", map[string]any{
 		"Topic": name, "ARN": arn, "Subs": subViews(subs), "Queues": queues, "Functions": fns,
+		"Prefix": c.prefix, "Pending": pendingCount(subs),
 	})
 }
 
@@ -106,7 +117,31 @@ func (c *Console) snsPublish(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("topic")
 	arn := topicARNOf(name)
 	attrs := parseMsgAttrs(r.FormValue("attrs"))
-	if err := c.be.Publish(r.Context(), arn, r.FormValue("message"), r.FormValue("subject"), attrs); err != nil {
+	// A count above one is PublishBatch — a different API, not a loop, because
+	// SNS reports per-ENTRY failures. One route dispatches on the field rather
+	// than the form rewriting its own hx-post: htmx reads those attributes when
+	// it processes the element, so mutating them later is unreliable.
+	if n := atoiDefault(r.FormValue("count"), 1); n > 1 {
+		msgs := make([]string, 0, min(n, 10))
+		for i := 0; i < min(n, 10); i++ {
+			msgs = append(msgs, r.FormValue("message"))
+		}
+		failed, code, err := c.be.PublishBatch(r.Context(), arn, msgs, r.FormValue("subject"))
+		if err != nil {
+			c.fail(w, err)
+			return
+		}
+		note := strconv.Itoa(len(msgs)-failed) + " published"
+		if failed > 0 {
+			note += ", " + strconv.Itoa(failed) + " refused (" + code + ")"
+		}
+		toast(w, note)
+		// Falls through to the same receipt a single publish renders, rather
+		// than redirecting. The receipt IS the point of this form — who
+		// actually received it, filters evaluated — and a batch of identical
+		// messages has exactly the same answer. Redirecting instead would make
+		// the batch path the one that tells you least.
+	} else if err := c.be.Publish(r.Context(), arn, r.FormValue("message"), r.FormValue("subject"), attrs); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -199,4 +234,55 @@ func (c *Console) snsSubRaw(w http.ResponseWriter, r *http.Request) {
 	}
 	toast(w, "Raw delivery "+map[string]string{"true": "on", "false": "off"}[value])
 	c.snsSubsPartial(w, r, name)
+}
+
+// snsConfirm completes a pending subscription.
+//
+// An HTTP or email subscription arrives PendingConfirmation: SNS posts a token
+// to the endpoint and waits to be handed it back. Until then the subscription
+// exists, lists, and receives nothing — which reads exactly like a delivery bug
+// and is why this needed a surface rather than a CLI.
+func (c *Console) snsConfirm(w http.ResponseWriter, r *http.Request) {
+	topic := r.PathValue("topic")
+	token := strings.TrimSpace(r.FormValue("token"))
+	if token == "" {
+		c.fail(w, errors.New("Paste the token SNS posted to your endpoint — it is what proves the endpoint wanted this subscription."))
+		return
+	}
+	if err := c.be.ConfirmSubscription(r.Context(), topicARNOf(topic), token); err != nil {
+		c.fail(w, err)
+		return
+	}
+	// Re-renders the panel it changed rather than redirecting to the page it is
+	// already on — the same shape as sub-filter and sub-raw. It also keeps the
+	// mutation sweep honest: a route that can only succeed with a real pending
+	// token cannot be driven to a redirect by a fixture, and classifying it as
+	// redirect-capable would leave a permanent false failure.
+	toast(w, "Subscription confirmed")
+	c.snsSubsPartial(w, r, topic)
+}
+
+// pendingCount is how many of a topic's subscriptions are still awaiting
+// confirmation. AWS reports these with the literal ARN "PendingConfirmation"
+// rather than a status field, which is easy to miss when reading a list.
+func pendingCount(subs []Subscription) int {
+	n := 0
+	for _, s := range subs {
+		if strings.Contains(s.ARN, "PendingConfirmation") {
+			n++
+		}
+	}
+	return n
+}
+
+// allSubs lists every subscription in the stack. Errors are swallowed: this is
+// a supplementary panel, and failing the topic page because a cross-topic
+// listing hiccuped would trade the thing you asked for against the thing you
+// did not.
+func (c *Console) allSubs(r *http.Request) []Subscription {
+	subs, err := c.be.AllSubscriptions(r.Context())
+	if err != nil {
+		return nil
+	}
+	return subs
 }

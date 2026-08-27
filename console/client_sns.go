@@ -25,6 +25,9 @@ type Subscription struct {
 	Endpoint     string
 	FilterPolicy string // JSON, "" when none
 	RawDelivery  bool
+	// Topic is set only by AllSubscriptions, where a row has to say which
+	// topic it belongs to; the per-topic list already knows.
+	Topic string
 }
 
 func (b *backend) ListTopics(ctx context.Context) ([]Topic, error) {
@@ -280,4 +283,82 @@ func (b *backend) MatchSubscriptions(ctx context.Context, topicARN string, attrs
 		})
 	}
 	return res, nil
+}
+
+// PublishBatch sends up to ten messages to a topic in one call.
+//
+// It is not a loop over Publish: SNS fans each entry out to every subscription
+// and answers with per-entry failures, so a batch tells you which MESSAGE was
+// refused rather than which call was. Chunked to ten, SNS's limit.
+func (b *backend) PublishBatch(ctx context.Context, topicARN string, messages []string, subject string) (failed int, firstErr string, err error) {
+	for start := 0; start < len(messages); start += 10 {
+		end := min(start+10, len(messages))
+		v := url.Values{"Action": {"PublishBatch"}, "TopicArn": {topicARN}}
+		for i, m := range messages[start:end] {
+			n := strconv.Itoa(i + 1)
+			v.Set("PublishBatchRequestEntries.member."+n+".Id", "m"+strconv.Itoa(start+i))
+			v.Set("PublishBatchRequestEntries.member."+n+".Message", m)
+			if subject != "" {
+				v.Set("PublishBatchRequestEntries.member."+n+".Subject", subject)
+			}
+		}
+		body, e := b.queryXML(ctx, v)
+		if e != nil {
+			return failed, firstErr, e
+		}
+		var out struct {
+			Failed []struct {
+				Code string `xml:"Code"`
+			} `xml:"PublishBatchResult>Failed>member"`
+		}
+		xml.Unmarshal(body, &out)
+		failed += len(out.Failed)
+		if firstErr == "" && len(out.Failed) > 0 {
+			firstErr = out.Failed[0].Code
+		}
+	}
+	return failed, firstErr, nil
+}
+
+// ConfirmSubscription completes a pending subscription.
+//
+// HTTP and email subscriptions arrive PendingConfirmation: SNS posts a token to
+// the endpoint and waits for it to be handed back. Locally that leaves a
+// subscription that exists, appears in the list, and silently receives nothing
+// — which looks exactly like a delivery bug and is the reason this needed a
+// surface. Paste the token, the subscription goes live.
+func (b *backend) ConfirmSubscription(ctx context.Context, topicARN, token string) error {
+	_, err := b.queryXML(ctx, url.Values{
+		"Action": {"ConfirmSubscription"}, "TopicArn": {topicARN}, "Token": {token},
+	})
+	return err
+}
+
+// AllSubscriptions lists every subscription in the account, not just one
+// topic's. It answers the question the per-topic list cannot: "this queue is
+// receiving something — from where?"
+func (b *backend) AllSubscriptions(ctx context.Context) ([]Subscription, error) {
+	body, err := b.queryXML(ctx, url.Values{"Action": {"ListSubscriptions"}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Members []struct {
+			SubscriptionArn string `xml:"SubscriptionArn"`
+			TopicArn        string `xml:"TopicArn"`
+			Protocol        string `xml:"Protocol"`
+			Endpoint        string `xml:"Endpoint"`
+		} `xml:"ListSubscriptionsResult>Subscriptions>member"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	subs := make([]Subscription, 0, len(out.Members))
+	for _, m := range out.Members {
+		subs = append(subs, Subscription{
+			ARN: m.SubscriptionArn, Protocol: m.Protocol, Endpoint: m.Endpoint,
+			Topic: arnLeaf(m.TopicArn),
+		})
+	}
+	return subs, nil
 }
