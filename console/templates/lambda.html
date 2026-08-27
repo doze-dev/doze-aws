@@ -24,6 +24,23 @@
         <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/delete-fn" hx-confirm="Delete function “{{.Fn.Name}}”?">{{icon "trash"}} Delete</button></div>
       </div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .Fn.ARN}}</div>
+      {{/* The summary sits ABOVE the tab bar, which is where AWS keeps it
+           ("General configuration", always visible, tabs underneath). It used
+           to live inside det-b gated on `not (config or triggers)`, so the
+           runtime, handler, memory and timeout — the facts you check a config
+           change AGAINST — vanished the moment you opened Configuration.
+
+           Ungated now, so switching tabs no longer costs you the identifying
+           facts. Removed alongside it: a `{{if eq .Tab "invoke"}}{{end}}` with
+           an empty body, which did nothing. */}}
+      <div class="factstrip">
+        <div class="fact"><div class="fx-k">Runtime</div><div class="fx-v">{{.Fn.Runtime}}</div></div>
+        <div class="fact"><div class="fx-k">Handler</div><div class="fx-v mono">{{.Fn.Handler}}</div></div>
+        <div class="fact"><div class="fx-k">Memory</div><div class="fx-v num">{{.Fn.MemorySize}} MB</div></div>
+        <div class="fact"><div class="fx-k">Timeout</div><div class="fx-v num">{{.Fn.Timeout}} s</div></div>
+        <div class="fact"><div class="fx-k">Triggers</div><div class="fx-v num">{{len .Fn.Mappings}}</div></div>
+        <div class="fact"><div class="fx-k">Idle window</div><div class="fx-v">{{.RT.IdleLabel}}</div></div>
+      </div>
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "invoke" "Label" "Test" "Icon" "play" "URL" (printf "%s/lambda/%s" .Prefix .Fn.Name))
         (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/lambda/%s?tab=config" .Prefix .Fn.Name))
@@ -54,17 +71,6 @@
       </div>
     </div>
     <div class="det-b">
-      {{if eq .Tab "invoke"}}{{end}}
-      {{if not (or (eq .Tab "config") (eq .Tab "triggers"))}}
-      <div class="factstrip">
-        <div class="fact"><div class="fx-k">Runtime</div><div class="fx-v">{{.Fn.Runtime}}</div></div>
-        <div class="fact"><div class="fx-k">Handler</div><div class="fx-v mono">{{.Fn.Handler}}</div></div>
-        <div class="fact"><div class="fx-k">Memory</div><div class="fx-v num">{{.Fn.MemorySize}} MB</div></div>
-        <div class="fact"><div class="fx-k">Timeout</div><div class="fx-v num">{{.Fn.Timeout}} s</div></div>
-        <div class="fact"><div class="fx-k">Triggers</div><div class="fx-v num">{{len .Fn.Mappings}}</div></div>
-        <div class="fact"><div class="fx-k">Idle window</div><div class="fx-v">{{.RT.IdleLabel}}</div></div>
-      </div>
-      {{end}}
       {{if eq .Tab "config"}}
       {{template "lambda_config" .}}
       {{else if eq .Tab "triggers"}}
