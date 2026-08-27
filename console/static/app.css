@@ -909,6 +909,13 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 }
 .lp-h .aws-ic { width: 22px; height: 22px; border-radius: var(--radius); }
 .lp-h .l { display: flex; align-items: center; gap: 8px; }
+/* The parens are CSS, not template text, so the slot's textContent stays a bare
+   number — the out-of-band patch writes "4", not "(4)", and cannot get the
+   punctuation wrong. Muted and normal-weight against the 600 heading: the name
+   is the heading, the count is an annotation on it. */
+.lp-h .lp-ct { font-weight: 400; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.lp-h .lp-ct::before { content: "("; }
+.lp-h .lp-ct::after { content: ")"; }
 .new-link {
   display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600;
   color: var(--muted-foreground); border: 1px solid var(--border); border-radius: var(--radius); padding: 3px 8px;

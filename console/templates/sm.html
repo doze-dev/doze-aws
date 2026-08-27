@@ -1,5 +1,5 @@
 {{define "sm_lp"}}
-{{template "lp_head" dict "Svc" "sm" "Label" "Secrets Manager" "NewURL" (printf "%s/sm/create" .Prefix)}}
+{{template "lp_head" dict "Svc" "sm" "Label" "Secrets Manager" "NewURL" (printf "%s/sm/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}} {{if .Deleted}}li-deleted{{end}}" href="{{$.Prefix}}/sm/secret?name={{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span>{{if .Deleted}}<span class="sb">deleted</span>{{end}}</a>
   {{else}}{{template "lp_empty" dict "Svc" "sm" "Prefix" $.Prefix}}

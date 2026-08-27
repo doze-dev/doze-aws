@@ -11,7 +11,18 @@
 {{define "lp_head"}}
 <aside class="listpane">
   <div class="lp-h">
-    <span class="l">{{awsIcon .Svc}} {{.Label}}</span>
+    {{/* The count in the heading is what the AWS console does everywhere
+         ("Instances (50)"), and its absence here was odd in a specific way:
+         the rail said "SQS 4" two inches to the left while this heading said
+         plain "SQS", so the same number was present and missing on one screen.
+
+         Shown even when zero, unlike the rail badge. A zero in the rail is one
+         of thirteen and says "empty" thirteen times; a zero here is the answer
+         to the question you asked by opening the page.
+
+         The id is the slot the out-of-band patch writes — see the ri template
+         in layout.html for why chrome outside the swap target needs one. */}}
+    <span class="l">{{awsIcon .Svc}} {{.Label}} <span class="lp-ct" id="lph-{{.Svc}}">{{.Count}}</span></span>
     {{if .NewURL}}<a class="new-link" href="{{.NewURL}}">{{icon "plus"}} New</a>{{end}}
   </div>
   <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" x-data x-model="$store.filter.q" spellcheck="false"></label>

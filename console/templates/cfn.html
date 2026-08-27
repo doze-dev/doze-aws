@@ -1,5 +1,5 @@
 {{define "cfn_lp"}}
-{{template "lp_head" dict "Svc" "cfn" "Label" "CloudFormation"}}
+{{template "lp_head" dict "Svc" "cfn" "Label" "CloudFormation" "Count" (len .List)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/cfn/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
     <span class="nm">{{.Name}}</span>

@@ -1,5 +1,5 @@
 {{define "s3_lp"}}
-{{template "lp_head" dict "Svc" "s3" "Label" "S3" "NewURL" (printf "%s/s3/create" .Prefix)}}
+{{template "lp_head" dict "Svc" "s3" "Label" "S3" "NewURL" (printf "%s/s3/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/s3/{{.Name}}"
      x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">

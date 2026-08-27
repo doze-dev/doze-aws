@@ -1,5 +1,5 @@
 {{define "apigw_lp"}}
-{{template "lp_head" dict "Svc" "apigw" "Label" "API Gateway"}}
+{{template "lp_head" dict "Svc" "apigw" "Label" "API Gateway" "Count" (len .List)}}
   {{range .List}}
   <a class="li {{if eq .ID $.Sel}}on{{end}}" href="{{$.Prefix}}/apigw/{{.ID}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
     <span class="nm">{{.Name}}</span><span class="sb mono">{{.ID}}</span>

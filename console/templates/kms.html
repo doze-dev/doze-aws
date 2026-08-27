@@ -1,5 +1,5 @@
 {{define "kms_lp"}}
-{{template "lp_head" dict "Svc" "kms" "Label" "KMS" "NewURL" (printf "%s/kms/create" .Prefix)}}
+{{template "lp_head" dict "Svc" "kms" "Label" "KMS" "NewURL" (printf "%s/kms/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
   <a class="li {{if eq .ID $.Sel}}on{{end}}" href="{{$.Prefix}}/kms/{{.ID}}" x-data x-show="!$store.filter.q || '{{if .Alias}}{{.Alias}}{{else}}{{.ID}}{{end}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{if .Alias}}{{.Alias}}{{else}}<span class="mono" style="font-size:11px">{{.ID}}</span>{{end}}</span><span class="sb">{{if .RotationOn}}↻{{end}}</span></a>
   {{else}}{{template "lp_empty" dict "Svc" "kms" "Prefix" $.Prefix}}
