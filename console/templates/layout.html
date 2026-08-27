@@ -130,26 +130,26 @@ return"= "+p.join(" ");};</script>
       {{template "ri" dict "P" .Prefix "URL" "/" "On" (eq .Page "traffic") "Name" "The wire" "Glyph" "activity"}}
       {{template "ri" dict "P" .Prefix "URL" "/connect" "On" (eq .Page "connect") "Name" "Connect" "Glyph" "terminal"}}
       <div class="rgroup">Storage &amp; data</div>
-      {{template "ri" dict "P" .Prefix "URL" "/s3" "On" (hasPrefix .Page "s3") "Name" "S3" "Svc" "s3"}}
-      {{template "ri" dict "P" .Prefix "URL" "/ddb" "On" (hasPrefix .Page "ddb") "Name" "DynamoDB" "Svc" "ddb"}}
+      {{template "ri" dict "P" .Prefix "URL" "/s3" "On" (hasPrefix .Page "s3") "Name" "S3" "Svc" "s3" "Ct" (index $.Counts "s3")}}
+      {{template "ri" dict "P" .Prefix "URL" "/ddb" "On" (hasPrefix .Page "ddb") "Name" "DynamoDB" "Svc" "ddb" "Ct" (index $.Counts "ddb")}}
       <div class="rgroup">Messaging</div>
-      {{template "ri" dict "P" .Prefix "URL" "/sqs" "On" (hasPrefix .Page "sqs") "Name" "SQS" "Svc" "sqs"}}
-      {{template "ri" dict "P" .Prefix "URL" "/sns" "On" (hasPrefix .Page "sns") "Name" "SNS" "Svc" "sns"}}
-      {{template "ri" dict "P" .Prefix "URL" "/eb" "On" (hasPrefix .Page "eb") "Name" "EventBridge" "Svc" "eb"}}
-      {{template "ri" dict "P" .Prefix "URL" "/kinesis" "On" (hasPrefix .Page "kinesis") "Name" "Kinesis" "Svc" "kinesis"}}
+      {{template "ri" dict "P" .Prefix "URL" "/sqs" "On" (hasPrefix .Page "sqs") "Name" "SQS" "Svc" "sqs" "Ct" (index $.Counts "sqs")}}
+      {{template "ri" dict "P" .Prefix "URL" "/sns" "On" (hasPrefix .Page "sns") "Name" "SNS" "Svc" "sns" "Ct" (index $.Counts "sns")}}
+      {{template "ri" dict "P" .Prefix "URL" "/eb" "On" (hasPrefix .Page "eb") "Name" "EventBridge" "Svc" "eb" "Ct" (index $.Counts "eb")}}
+      {{template "ri" dict "P" .Prefix "URL" "/kinesis" "On" (hasPrefix .Page "kinesis") "Name" "Kinesis" "Svc" "kinesis" "Ct" (index $.Counts "kinesis")}}
       <div class="rgroup">Compute &amp; APIs</div>
-      {{template "ri" dict "P" .Prefix "URL" "/lambda" "On" (hasPrefix .Page "lambda") "Name" "Lambda" "Svc" "lambda"}}
-      {{template "ri" dict "P" .Prefix "URL" "/apigw" "On" (hasPrefix .Page "apigw") "Name" "API Gateway" "Svc" "apigw"}}
+      {{template "ri" dict "P" .Prefix "URL" "/lambda" "On" (hasPrefix .Page "lambda") "Name" "Lambda" "Svc" "lambda" "Ct" (index $.Counts "lambda")}}
+      {{template "ri" dict "P" .Prefix "URL" "/apigw" "On" (hasPrefix .Page "apigw") "Name" "API Gateway" "Svc" "apigw" "Ct" (index $.Counts "apigw")}}
       <div class="rgroup">Config &amp; secrets</div>
-      {{template "ri" dict "P" .Prefix "URL" "/kms" "On" (hasPrefix .Page "kms") "Name" "KMS" "Svc" "kms"}}
-      {{template "ri" dict "P" .Prefix "URL" "/sm" "On" (and (hasPrefix .Page "sm") (not (hasPrefix .Page "sms"))) "Name" "Secrets Manager" "Svc" "sm"}}
-      {{template "ri" dict "P" .Prefix "URL" "/ssm" "On" (hasPrefix .Page "ssm") "Name" "Parameter Store" "Svc" "ssm"}}
+      {{template "ri" dict "P" .Prefix "URL" "/kms" "On" (hasPrefix .Page "kms") "Name" "KMS" "Svc" "kms" "Ct" (index $.Counts "kms")}}
+      {{template "ri" dict "P" .Prefix "URL" "/sm" "On" (and (hasPrefix .Page "sm") (not (hasPrefix .Page "sms"))) "Name" "Secrets Manager" "Svc" "sm" "Ct" (index $.Counts "sm")}}
+      {{template "ri" dict "P" .Prefix "URL" "/ssm" "On" (hasPrefix .Page "ssm") "Name" "Parameter Store" "Svc" "ssm" "Ct" (index $.Counts "ssm")}}
       {{/* Facts about the whole stack rather than about one resource: what is
            allowed here, and what was deployed here. Both read-mostly, neither
            populated by hand. */}}
       <div class="rgroup">Stack-wide</div>
-      {{template "ri" dict "P" .Prefix "URL" "/iam" "On" (hasPrefix .Page "iam") "Name" "IAM" "Svc" "iam"}}
-      {{template "ri" dict "P" .Prefix "URL" "/cfn" "On" (hasPrefix .Page "cfn") "Name" "CloudFormation" "Svc" "cfn"}}
+      {{template "ri" dict "P" .Prefix "URL" "/iam" "On" (hasPrefix .Page "iam") "Name" "IAM" "Svc" "iam" "Ct" (index $.Counts "iam")}}
+      {{template "ri" dict "P" .Prefix "URL" "/cfn" "On" (hasPrefix .Page "cfn") "Name" "CloudFormation" "Svc" "cfn" "Ct" (index $.Counts "cfn")}}
       <button type="button" class="rail-toggle" id="rail-toggle" title="Collapse / expand ([)">
         <span class="rt-ic">{{icon "chevron"}}</span><span class="ri-nm">Collapse</span>
       </button>
@@ -207,7 +207,23 @@ return"= "+p.join(" ");};</script>
 <a href="{{.P}}{{.URL}}" class="ri {{if .On}}on{{end}}">
   <span class="ri-ic">{{if .Svc}}{{awsIcon .Svc}}{{else}}{{icon .Glyph}}{{end}}</span>
   <span class="ri-nm">{{.Name}}</span>
-  {{if .Svc}}<span class="ri-ct" data-ct="{{.Svc}}"></span>{{end}}
+  {{/* The count is server-rendered AND out-of-band. Rendered, so it is right
+       before the first paint rather than blank until the 5s poll lands. Out of
+       band, because the rail lives outside #workspace and every navigation and
+       every redirect-after-mutation selects #workspace — so the rail is never
+       in the swap, and a queue you just created used to sit uncounted for up
+       to five seconds (forever, if the tab was in the background).
+
+       htmx applies hx-swap-oob from the WHOLE response before hx-select
+       narrows it, which is what lets a #workspace-selected navigation still
+       repaint chrome outside the workspace. Verified in the vendored 2.0.4:
+       swap() calls the OOB pass first, then `if (o.select) { ... }`.
+
+       A zero renders as nothing, as it did when shell.js wrote it: thirteen
+       grey zeros on a fresh stack say "empty" thirteen times, blank says
+       "here is what you have". data-ct stays — the poll still writes it, and
+       it remains the backstop for mutations made by the user's own app. */}}
+  {{if .Svc}}<span class="ri-ct" id="ct-{{.Svc}}" data-ct="{{.Svc}}" hx-swap-oob="true">{{if .Ct}}{{.Ct}}{{end}}</span>{{end}}
   <span class="ri-fly">{{.Name}}</span>
 </a>
 {{end}}

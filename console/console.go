@@ -328,6 +328,10 @@ func (c *Console) render(w http.ResponseWriter, r *http.Request, page string, da
 	data["Prefix"] = c.prefix
 	data["Page"] = page
 	data["Endpoint"] = endpointHost(r)
+	// The rail's counts ship with the markup instead of arriving up to five
+	// seconds later on a poll. Cheap enough to do on every render — see
+	// serviceCounts in live.go for the measurement.
+	data["Counts"] = c.serviceCounts(r.Context())
 	if f := r.URL.Query().Get("flash"); f != "" {
 		data["Flash"] = f
 	}

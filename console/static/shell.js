@@ -70,12 +70,28 @@
     fly.style.left = (r.right + 8) + "px";
     fly.style.top = (r.top + r.height / 2) + "px";
   });
-  // Live per-service counts, refreshed gently. textContent writes are no-ops
-  // visually when the number hasn't changed, so there's nothing to de-jitter.
+  // Live per-service counts. The poll's job is now much narrower than it was:
+  // the rail is server-rendered and every navigation repaints it out of band
+  // (see the ri template), so this exists ONLY to catch mutations the console
+  // did not make — a queue filled by your app, a table an SDK wrote to. The
+  // push path is the latency fix; this is the completeness fix.
+  //
+  // patchedAt is the one race worth guarding. A poll already in flight when a
+  // mutation lands carries the count from BEFORE it, and would walk a freshly
+  // patched badge backwards for one interval. An out-of-band patch is by
+  // construction newer than any request that was already open, so a just-
+  // patched badge is left alone rather than raced. Same number, same probe —
+  // an overlap is a redundant identical write, not a conflict.
+  var patchedAt = Object.create(null);
+  document.body.addEventListener("htmx:oobAfterSwap", function (e) {
+    var t = e.detail && e.detail.target;
+    if (t && t.id) patchedAt[t.id] = Date.now();
+  });
   function refreshCounts() {
     if (document.hidden) return;
     fetch(PREFIX + "/api/counts").then(function (r) { return r.json(); }).then(function (counts) {
       document.querySelectorAll(".rail [data-ct]").forEach(function (el) {
+        if (Date.now() - (patchedAt[el.id] || 0) < 2500) return; // the patch is newer
         var n = counts[el.getAttribute("data-ct")];
         // A zero renders as nothing. Thirteen grey zeros on a fresh stack say
         // "empty" thirteen times; blank says "here is what you have".
@@ -83,8 +99,17 @@
       });
     }).catch(function () {});
   }
-  refreshCounts();
   setInterval(refreshCounts, 5000);
+  // No refreshCounts() on load any more — the markup already carries the
+  // counts, and calling it here only raced the server-rendered values with a
+  // second fetch of the same numbers.
+  //
+  // The early return on document.hidden had no counterpart, so a tab left in
+  // the background came back showing whatever it had when you switched away
+  // and waited up to another five seconds to catch up.
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) refreshCounts();
+  });
 
   // ---------- toasts ----------
   var seq = 0;
