@@ -678,29 +678,59 @@
     setTimeout(function () { liveRegion.textContent = msg; }, 60);
   }
 
-  // The flash now arrives as a trigger rather than in the URL.
-  window.addEventListener("doze:flash", function (e) {
-    var msg = e.detail && (e.detail.value !== undefined ? e.detail.value : e.detail);
-    if (msg) toast(String(msg), "ok");
-  });
-  // A value that cannot be retrieved again does not get three seconds.
-  window.addEventListener("doze:flash-sticky", function (e) {
-    var msg = String(e.detail && (e.detail.value !== undefined ? e.detail.value : e.detail) || "");
-    if (!msg) return;
+  // The flash arrives as a trigger rather than in the URL, and lands as a
+  // banner at the top of the workspace — AWS's flashbar — rather than a corner
+  // toast. A toast was the wrong container for this: it carries the RESULT of
+  // something you just did, and 3.2 seconds is routinely less time than it
+  // takes to look up from the button you pressed. The banner stays until you
+  // dismiss it or navigate away.
+  //
+  // Rendering is deferred to the next settle rather than done inline, and that
+  // is not defensive coding — it is required. A mutation that redirects sends
+  // HX-Trigger and HX-Location on the SAME response; htmx fires the trigger
+  // first, then issues the follow-up GET whose outerHTML swap replaces
+  // #workspace wholesale. A banner inserted when the event fires is destroyed
+  // by that swap a moment later. So the message is queued and painted once the
+  // page it belongs to has settled.
+  //
+  // The timer is the other half: a partial mutation flashes WITHOUT navigating,
+  // so no settle is coming and the queue would sit there unpainted.
+  var pendingFlash = null;
+  function paintFlash() {
+    if (!pendingFlash) return;
+    var f = pendingFlash;
+    pendingFlash = null;
     var host = document.getElementById("workspace") || document.body;
+    // One at a time. Stacking is AWS's behaviour, but AWS's messages come from
+    // many sources; ours all come from the thing you just clicked, so a stack
+    // is just the same success said twice.
+    var prev = host.querySelector(":scope > .flash");
+    if (prev) prev.remove();
     var el = document.createElement("div");
-    el.className = "flash flash-sticky anim";
+    el.className = "flash anim" + (f.sticky ? " flash-sticky" : "");
     el.setAttribute("role", "status");
     el.innerHTML = '<span class="fl-msg"></span>' +
-      '<button class="copy-btn" title="Copy">copy</button>' +
+      (f.sticky ? '<button class="copy-btn" title="Copy">copy</button>' : "") +
       '<button class="icon-btn fl-x" title="Dismiss">&times;</button>';
-    el.querySelector(".fl-msg").textContent = msg;
-    el.querySelector(".copy-btn").addEventListener("click", function () {
-      navigator.clipboard && navigator.clipboard.writeText(msg);
-    });
+    el.querySelector(".fl-msg").textContent = f.msg;
+    if (f.sticky) {
+      el.querySelector(".copy-btn").addEventListener("click", function () {
+        navigator.clipboard && navigator.clipboard.writeText(f.msg);
+      });
+    }
     el.querySelector(".fl-x").addEventListener("click", function () { el.remove(); });
     host.insertBefore(el, host.firstChild);
-  });
+  }
+  function queueFlash(e, sticky) {
+    var msg = String(e.detail && (e.detail.value !== undefined ? e.detail.value : e.detail) || "");
+    if (!msg) return;
+    pendingFlash = { msg: msg, sticky: sticky };
+    setTimeout(paintFlash, 120); // no navigation coming — paint it anyway
+  }
+  window.addEventListener("doze:flash", function (e) { queueFlash(e, false); });
+  // A value that cannot be retrieved again also gets a copy button.
+  window.addEventListener("doze:flash-sticky", function (e) { queueFlash(e, true); });
+  document.addEventListener("htmx:afterSettle", paintFlash);
 
   // ---------- div-buttons ----------
   // A div carrying hx-get is a button to the user and nothing to a keyboard.
