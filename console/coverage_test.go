@@ -35,6 +35,8 @@ var uncovered = map[string][]string{
 	"sqs":     {},
 	"kinesis": {},
 	"sns":     {},
+	// BatchGetSecretValue is the one exemption — see exempt.
+	"secretsmanager": {},
 }
 
 // exempt is for operations that are deliberately not called, with the reason.
@@ -45,6 +47,12 @@ var exempt = map[string]map[string]string{
 		"GetQueueUrl": "the console builds the URL from base + account + name " +
 			"(backend.queueURL), which is exact and saves a round trip on every " +
 			"render. Calling it would be a request whose answer we already know.",
+	},
+	"secretsmanager": {
+		"BatchGetSecretValue": "the console shows one secret at a time, so a " +
+			"batch read would fetch plaintext values it does not display. For a " +
+			"secrets store that is a worse trade than a round trip: the fewer " +
+			"places a value is fetched into, the fewer places it can leak.",
 	},
 	"kinesis": {
 		"DescribeStream": "the console reads DescribeStreamSummary + ListShards " +

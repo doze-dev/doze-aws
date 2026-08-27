@@ -317,6 +317,8 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/sm", c.smSecrets)
 	m.HandleFunc("POST "+p+"/sm/create", c.smCreate)
 	m.HandleFunc("POST "+p+"/sm/restore", c.smRestore)
+	m.HandleFunc("POST "+p+"/sm/promote", c.smPromote)   // UpdateSecretVersionStage — the rollback
+	m.HandleFunc("POST "+p+"/sm/update", c.smUpdateMeta) // UpdateSecret
 	m.HandleFunc("POST "+p+"/sm/rotation", c.smConfigureRotation)
 	m.HandleFunc("POST "+p+"/sm/rotate-now", c.smRotateNow)
 	m.HandleFunc("GET "+p+"/sm/password", c.smPassword)

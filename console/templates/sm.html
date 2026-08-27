@@ -29,7 +29,23 @@
         <button class="btn btn-outline danger" hx-post="{{.Prefix}}/sm/delete" hx-vals='{"name":"{{.S.Name}}"}' hx-confirm="Schedule “{{.S.Name}}” for deletion with a 7-day recovery window?">{{icon "trash"}} Delete</button>
         {{end}}
       </div></div>
-    {{if .S.Description}}<div class="det-sub">{{.S.Description}}</div>{{end}}
+    {{/* Description and KMS key are editable in place, through UpdateSecret
+         rather than PutSecretValue. Routing them through PutSecretValue would
+         mint a new secret VERSION every time someone fixed a typo in a
+         description, which is how a version history stops meaning anything. */}}
+    <div x-data="{editing:false}">
+      <div class="det-sub" x-show="!editing">
+        {{if .S.Description}}{{.S.Description}}{{else}}<span class="dim">No description</span>{{end}}
+        <button type="button" class="icon-btn sm" title="Edit details" @click="editing=true">{{icon "pencil"}}</button>
+      </div>
+      <form x-show="editing" x-cloak class="tag-row-form" hx-post="{{.Prefix}}/sm/update">
+        <input type="hidden" name="name" value="{{.S.Name}}">
+        <input class="input" name="description" value="{{.S.Description}}" placeholder="What this secret is for" autocomplete="off">
+        <input class="input mono" name="kms_key" placeholder="KMS key id, optional" autocomplete="off">
+        <button class="btn btn-outline btn-sm" type="submit">Save</button>
+        <button type="button" class="btn btn-ghost btn-sm" @click="editing=false">Cancel</button>
+      </form>
+    </div>
     <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .S.ARN}}<span class="chip">AWSCURRENT</span></div>
     {{if .S.Deleted}}
     <div class="pub-receipt warn" style="margin-top:12px">
@@ -44,6 +60,7 @@
         "EditURL" (printf "%s/sm/secret?name=%s&tab=edit" .Prefix .S.Name)
         "VersURL" (printf "%s/sm/secret?name=%s&tab=versions" .Prefix .S.Name)
         "SaveURL" (printf "%s/sm/put" .Prefix) "SaveField" "name" "SaveVal" .S.Name "SaveLabel" "Save as new version"
+        "PromoteURL" (printf "%s/sm/promote" .Prefix)
         "Target" "#sm-detail" "Stages" .S.Stages)}}
     <div class="meta-grid">
       <div class="meta-cellx"><div class="k2">Last changed</div><div class="v2" title="{{.S.Changed}}">{{ago .S.Changed}}</div></div>

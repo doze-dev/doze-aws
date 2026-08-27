@@ -1545,3 +1545,7 @@ a.lo-card:hover { border-color: var(--accent); }
 .pub-hint { font-size: 12px; margin-right: auto; }
 .confirm-panel { margin-bottom: 10px; }
 .allsubs tr.on td { background: color-mix(in srgb, var(--muted) 60%, transparent); }
+
+.ver-id { max-width: 200px; }
+.ver-stage { margin-right: 4px; }
+.inline-form { display: inline; }

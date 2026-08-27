@@ -71,7 +71,20 @@
         <td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{.Version}}" hx-target="#version-diff" hx-select="unset" hx-swap="innerHTML">Diff vs current</button></td></tr>
     {{end}}{{end}}
     {{if .Stages}}{{range $id, $st := .Stages}}
-      <tr><td class="mono trunc" style="max-width:200px" title="{{$id}}">{{$id}}</td><td>{{range $st}}<span class="badge type" style="margin-right:4px">{{.}}</span>{{end}}</td><td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{$id}}" hx-target="#version-diff" hx-select="unset" hx-swap="innerHTML">Diff vs current</button></td></tr>
+      <tr><td class="mono trunc ver-id" title="{{$id}}">{{$id}}</td>
+        <td>{{range $st}}<span class="badge type ver-stage">{{.}}</span>{{end}}{{if not $st}}<span class="dim">deprecated</span>{{end}}</td>
+        <td class="right">
+          {{/* Rollback. Secrets Manager has no undo: PutSecretValue makes a new
+               version current and demotes the old one, and going back means
+               moving the AWSCURRENT label yourself — a two-version-id CLI call,
+               which is why it does not get done under pressure. */}}
+          {{if and $.PromoteURL (not (has $st "AWSCURRENT"))}}
+          <form class="inline-form" hx-post="{{$.PromoteURL}}" hx-confirm="Make this version current? The one that is current now becomes AWSPREVIOUS.">
+            <input type="hidden" name="name" value="{{$.SaveVal}}"><input type="hidden" name="version" value="{{$id}}">
+            <button class="btn btn-outline btn-sm" type="submit">{{icon "rotate"}} Make current</button>
+          </form>
+          {{end}}
+          <button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{$id}}" hx-target="#version-diff" hx-select="unset" hx-swap="innerHTML">Diff vs current</button></td></tr>
     {{end}}{{end}}
     </tbody>
   </table></div>

@@ -603,3 +603,67 @@ func epochToTime(f float64) string {
 	}
 	return time.Unix(int64(f), 0).Local().Format("2006-01-02 15:04")
 }
+
+// PromoteSecretVersion moves AWSCURRENT to an older version — the rollback.
+//
+// This is the operation you want at 3am and the console could not do at all.
+// Secrets Manager has no "undo": PutSecretValue makes a new version current and
+// demotes the old one to AWSPREVIOUS, and going back means moving the stage
+// label yourself. Doing that from the CLI needs both version ids in hand, which
+// is why it never got done under pressure.
+//
+// RemoveFromVersionId is required by AWS when the stage is already attached
+// somewhere, and omitting it is the usual way this call fails.
+func (b *backend) PromoteSecretVersion(ctx context.Context, id, toVersion, fromVersion string) error {
+	in := map[string]any{
+		"SecretId": id, "VersionStage": "AWSCURRENT", "MoveToVersionId": toVersion,
+	}
+	if fromVersion != "" {
+		in["RemoveFromVersionId"] = fromVersion
+	}
+	_, err := b.json11(ctx, "secretsmanager", "UpdateSecretVersionStage", in)
+	return err
+}
+
+// UpdateSecretMeta changes a secret's description and KMS key without writing a
+// new version. PutSecretValue creates a version every time; changing the
+// description through it would leave a version history full of entries where
+// nothing about the secret changed.
+func (b *backend) UpdateSecretMeta(ctx context.Context, id, description, kmsKeyID string) error {
+	in := map[string]any{"SecretId": id, "Description": description}
+	if kmsKeyID != "" {
+		in["KmsKeyId"] = kmsKeyID
+	}
+	_, err := b.json11(ctx, "secretsmanager", "UpdateSecret", in)
+	return err
+}
+
+// SecretVersionIDs lists every version, INCLUDING the deprecated ones that
+// carry no stage label any more.
+//
+// DescribeSecret's VersionIdsToStages — what the versions tab used — only shows
+// versions that still hold a stage, so the history appeared to be two entries
+// deep however many times a secret had been rotated. The deprecated versions
+// are the history.
+func (b *backend) SecretVersionIDs(ctx context.Context, id string) (map[string][]string, error) {
+	body, err := b.json11(ctx, "secretsmanager", "ListSecretVersionIds", map[string]any{
+		"SecretId": id, "IncludeDeprecated": true,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Versions []struct {
+			VersionID     string   `json:"VersionId"`
+			VersionStages []string `json:"VersionStages"`
+		} `json:"Versions"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	stages := make(map[string][]string, len(out.Versions))
+	for _, v := range out.Versions {
+		stages[v.VersionID] = v.VersionStages
+	}
+	return stages, nil
+}

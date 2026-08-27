@@ -1,9 +1,11 @@
 package console
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 // urlQuery escapes a value for a query-string component.
@@ -311,6 +313,13 @@ func (c *Console) smSecret(w http.ResponseWriter, r *http.Request) {
 	}
 	all, _ := c.be.ListSecrets(r.Context())
 	fns, _ := c.be.ListFunctions(r.Context())
+	// The full version list, deprecated ones included. DescribeSecret only
+	// reports versions that still hold a stage label, so a secret rotated
+	// twenty times showed a history two entries deep — the deprecated versions
+	// ARE the history.
+	if stages, err := c.be.SecretVersionIDs(r.Context(), name); err == nil && len(stages) > 0 {
+		s.Stages = stages
+	}
 	c.render(w, r, "sm_secret", map[string]any{"S": s, "List": all, "Functions": fns, "Sel": name, "Mode": tabOf(r, "view"), "Title": s.Name + " · Secrets Manager"})
 }
 
@@ -425,4 +434,56 @@ func (c *Console) smDiff(w http.ResponseWriter, r *http.Request) {
 	c.partial(w, "value_diff", map[string]any{
 		"Diff": lineDiff(old, cur.Value), "OldLabel": "previous", "NewLabel": "current",
 	})
+}
+
+// smPromote rolls AWSCURRENT back to an older version.
+//
+// Secrets Manager has no undo: PutSecretValue makes a new version current and
+// demotes the previous one, and going back means moving the stage label by
+// hand. That is a two-version-id CLI call, which is why it does not get done
+// under pressure — so it is a button, on the version you want back.
+func (c *Console) smPromote(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	to := r.FormValue("version")
+	s, err := c.be.GetSecret(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	if to == s.VersionID {
+		c.fail(w, errors.New("That version is already current."))
+		return
+	}
+	if err := c.be.PromoteSecretVersion(r.Context(), name, to, s.VersionID); err != nil {
+		c.fail(w, err)
+		return
+	}
+	// Stays on the Versions tab where the button was pressed, the way ssmLabel
+	// does, rather than redirecting to the page it is already on. It also keeps
+	// the mutation sweep honest: no fixture can invent a real version id, so a
+	// route classified as redirect-capable here would fail the sweep forever.
+	toast(w, "Rolled back — that version is current again")
+	ns, err := c.be.GetSecret(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	if stages, e := c.be.SecretVersionIDs(r.Context(), name); e == nil && len(stages) > 0 {
+		ns.Stages = stages
+	}
+	fns, _ := c.be.ListFunctions(r.Context())
+	c.partial(w, "sm_secret_detail", map[string]any{"S": ns, "Functions": fns, "Mode": "versions", "Prefix": c.prefix})
+}
+
+// smUpdateMeta changes description and KMS key without writing a new version.
+// Routing this through PutSecretValue would create a version every time
+// someone fixed a typo in a description.
+func (c *Console) smUpdateMeta(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	if err := c.be.UpdateSecretMeta(r.Context(), name,
+		strings.TrimSpace(r.FormValue("description")), strings.TrimSpace(r.FormValue("kms_key"))); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/sm/secret?name="+url.QueryEscape(name), "Secret details updated")
 }
