@@ -28,6 +28,28 @@
         {{template "copychip" dict "Label" "arn" "Value" .ARN}}
         {{template "copychip" dict "Label" "url" "Value" .URL}}
       </div>
+      {{/* The summary container: the identifying facts, above the tabs, always
+           visible — AWS's "General configuration" block. This page previously
+           went title -> two ARN chips -> tabs, so the things you actually want
+           to know about a queue (is it FIFO, how long is the visibility
+           timeout, where do failures go) were either buried in the
+           Configuration tab or nowhere.
+
+           A dash for an absent value rather than a blank cell, which is
+           Cloudscape's rule and a good one: blank reads as "not loaded", "-"
+           reads as "there is nothing here".
+
+           Visible and In flight carry slot ids, so the out-of-band tail keeps
+           them honest as messages arrive — the same patch that updates the tab
+           and the list row. */}}
+      <div class="factstrip">
+        <div class="fact"><div class="fx-k">Type</div><div class="fx-v">{{if .Config.FIFO}}FIFO{{else}}Standard{{end}}</div></div>
+        <div class="fact"><div class="fx-k">Visible</div><div class="fx-v num" id="sum-sqs-{{slug .Queue}}-visible">{{.Available}}</div></div>
+        <div class="fact"><div class="fx-k">In flight</div><div class="fx-v num" id="sum-sqs-{{slug .Queue}}-inflight">{{.InFlight}}</div></div>
+        <div class="fact"><div class="fx-k">Visibility timeout</div><div class="fx-v">{{secs .Config.Visibility}}</div></div>
+        <div class="fact"><div class="fx-k">Retention</div><div class="fx-v">{{secs .Config.Retention}}</div></div>
+        <div class="fact"><div class="fx-k">Dead-letter</div><div class="fx-v">{{if .Config.DLQ}}<a href="{{.Prefix}}/sqs/{{.Config.DLQ}}">{{.Config.DLQ}}</a>{{if .Config.MaxReceive}} <span class="dim">after {{.Config.MaxReceive}}</span>{{end}}{{else}}—{{end}}</div></div>
+      </div>
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "messages" "Label" "Messages" "Icon" "inbox" "CtID" (printf "tabct-sqs-%s-messages" (slug .Queue)) "Ct" .Available "URL" (printf "%s/sqs/%s" .Prefix .Queue))
         (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sqs/%s?tab=config" .Prefix .Queue)))}}
@@ -144,6 +166,8 @@
      one commit. */}}
 <span hidden hx-swap-oob="innerHTML:#lr-sqs-{{slug .Queue}}">{{.Available}}</span>
 <span hidden hx-swap-oob="innerHTML:#tabct-sqs-{{slug .Queue}}-messages">{{.Available}}</span>
+<span hidden hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-visible">{{.Available}}</span>
+<span hidden hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-inflight">{{.InFlight}}</span>
 {{end}}
 
 {{define "sqs_config"}}

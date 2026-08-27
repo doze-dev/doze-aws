@@ -1,6 +1,10 @@
 package console
 
-import "context"
+import (
+	"context"
+	"strconv"
+	"strings"
+)
 
 // serviceCounts is the stack's census, keyed by console service key.
 //
@@ -100,4 +104,53 @@ func resSlug(s string) string {
 		return string(b)
 	}
 	return string(b) + "-" + contentHash(s)[:8]
+}
+
+// humanSecs renders a seconds-valued queue attribute the way a person says it.
+//
+// SQS reports these as strings of seconds, so a four-day retention arrives as
+// "345600" and rendered straight it says "345600 s" — technically the value and
+// practically unreadable, which is how a summary row starts looking unfinished.
+//
+// Deliberately the same shape as window.dozeDur in layout.html, which writes
+// the live echo under duration INPUTS ("= 4 days"). The number a form promises
+// while you type and the number the summary shows afterwards should not be
+// phrased differently.
+//
+// Empty renders as an em dash, per Cloudscape's empty-value rule: a blank cell
+// reads as "not loaded", a dash reads as "there is nothing here".
+func humanSecs(s string) string {
+	if strings.TrimSpace(s) == "" {
+		return "—"
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(s))
+	if err != nil || n < 60 {
+		if err != nil {
+			return s
+		}
+		return strconv.Itoa(n) + "s"
+	}
+	units := []struct {
+		name string
+		secs int
+	}{{"day", 86400}, {"hour", 3600}, {"min", 60}, {"s", 1}}
+	var parts []string
+	for _, u := range units {
+		if len(parts) == 2 {
+			break
+		}
+		if q := n / u.secs; q > 0 {
+			label := u.name
+			if q > 1 && label != "s" {
+				label += "s"
+			}
+			if label == "s" {
+				parts = append(parts, strconv.Itoa(q)+label)
+			} else {
+				parts = append(parts, strconv.Itoa(q)+" "+label)
+			}
+			n -= q * u.secs
+		}
+	}
+	return strings.Join(parts, " ")
 }

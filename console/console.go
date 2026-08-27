@@ -503,6 +503,7 @@ func templateFuncs(prefix string) template.FuncMap {
 			return slices.Contains(set, v)
 		},
 		"slug":   resSlug,
+		"secs":   humanSecs,
 		"ago":    ago,
 		"list":   func(items ...any) []any { return items },
 		"masked": maskedValue,

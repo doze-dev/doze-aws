@@ -31,3 +31,19 @@ func TestResSlugIsSelectorSafe(t *testing.T) {
 		t.Errorf("resSlug(%q) = %q — an already-safe name should pass through unchanged", "plain", resSlug("plain"))
 	}
 }
+
+func TestHumanSecs(t *testing.T) {
+	for _, tc := range []struct{ in, want string }{
+		{"345600", "4 days"}, // the SQS retention default, which rendered as "345600 s"
+		{"30", "30s"},
+		{"0", "0s"},
+		{"3600", "1 hour"},
+		{"5400", "1 hour 30 mins"},
+		{"", "—"},
+		{"not-a-number", "not-a-number"}, // pass through rather than invent
+	} {
+		if got := humanSecs(tc.in); got != tc.want {
+			t.Errorf("humanSecs(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
