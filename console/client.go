@@ -565,7 +565,15 @@ func (b *backend) QueueDetail(ctx context.Context, name string) (map[string]stri
 		return nil, nil, err
 	}
 	body, err := b.sqs(ctx, "DozePeek", map[string]any{
-		"QueueUrl": b.queueURL(name), "MaxNumberOfMessages": 10,
+		// 50, not 10. The peek is the list you watch a message land in, and at
+		// 10 a send into a queue holding more than that changed no visible row
+		// — the counts moved and the list did not, which reads as the send
+		// having failed. hDozePeek honours whatever it is asked for (its 10 is
+		// only a default), so this was a console-side limit, not a service one.
+		//
+		// 50 rather than 200: every one of these renders a card, and the panel
+		// re-renders on a 3s poll.
+		"QueueUrl": b.queueURL(name), "MaxNumberOfMessages": 50,
 		"AttributeNames": []string{"All"}, "MessageAttributeNames": []string{"All"},
 	})
 	if err != nil {

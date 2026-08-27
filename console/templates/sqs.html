@@ -62,13 +62,35 @@
       {{else if eq .Tab "consume"}}
         {{template "sqs_consume" .}}
       {{else}}
-        {{/* The loop on one screen: live peek beside the composer — send a
-             message and watch it land without leaving the view. */}}
+        {{/* The loop, docked rather than split.
+
+             The idea has always been right and beats the AWS console, which
+             sends from a different screen: send a message and watch it land
+             without leaving the view. A permanent side-by-side split was the
+             wrong shape for it. Reading is constant and sending is occasional,
+             so a fixed third of the width went to the rarer action; the list
+             was squeezed to ~480px and message summaries truncated; and past a
+             screenful of messages the composer scrolled away, so the "watch it
+             land" the layout existed for stopped working exactly when there
+             was enough traffic to want it.
+
+             A queue is a stream you post into, so it gets the shape every
+             messaging tool uses: full-width list, composer docked at the foot,
+             collapsed until you want it. New messages now land directly above
+             where you are typing, which is a stronger version of the same
+             loop, and the layout stops changing between this tab and the
+             others. */}}
         <div class="sqs-work">
           <div class="sqs-peek">{{template "message_panel" .}}</div>
-          <div class="panel sqs-compose">
-            <div class="panel-h"><h2>{{icon "send"}} Send a message</h2></div>
-            <div style="padding:14px 16px">
+          <div class="composer-dock" x-data="{open:false}">
+            <button type="button" class="dock-bar" x-show="!open"
+                    @click="open=true; $nextTick(() => { window.dozeEditor && dozeEditor.refresh($el.parentNode); var e=$el.parentNode.querySelector('textarea[name=body]'); e && e.__cm && e.__cm.focus(); })">
+              {{icon "send"}} <span>Send a message</span> <span class="kbd">⌘⏎</span>
+            </button>
+            <div class="panel sqs-compose" x-show="open" x-cloak>
+              <div class="panel-h"><h2>{{icon "send"}} Send a message</h2>
+                <button type="button" class="icon-btn sm" title="Close" @click="open=false">{{icon "x"}}</button></div>
+              <div class="form-b">
               <form x-data hx-post="{{.Prefix}}/sqs/{{.Queue}}/send" hx-target="#message-panel-wrap" hx-select="unset" hx-swap="outerHTML"
                     @htmx:after-request="if($event.detail.successful){requestAnimationFrame(()=>{var m=document.querySelectorAll('#message-panel-wrap .msg');if(m.length)m[m.length-1].classList.add('landed')})}">
                 <div class="field"><label>Message body</label><textarea name="body" data-editor rows="7" placeholder='{"hello":"world"}' required></textarea></div>
@@ -81,11 +103,12 @@
                 <div class="field" style="margin-top:10px;max-width:180px"><label>Delay <span class="dim">seconds, optional</span></label><input class="input" name="delay" type="number" min="0" max="900" placeholder="0"></div>
                 {{end}}
                 {{template "attr_editor" .}}
-                <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:10px">
-                  <span class="dim" style="font-size:11.5px"><span class="kbd">⌘⏎</span> sends · lands in the peek</span>
+                <div class="send-foot">
+                  <span class="dim send-hint"><span class="kbd">⌘⏎</span> sends · lands in the peek</span>
                   <button class="btn" type="submit">{{icon "send"}} Send</button>
                 </div>
               </form>
+              </div>
             </div>
           </div>
         </div>

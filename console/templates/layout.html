@@ -233,8 +233,8 @@ return"= "+p.join(" ");};</script>
      (parseMsgAttrs). Shared by the SQS composer and SNS publish. */}}
 {{define "attr_editor"}}
 <div class="field" style="margin-top:10px" x-data="{rows:[]}">
-  <label style="display:flex;align-items:center;justify-content:space-between">
-    <span>Message attributes <span class="dim" style="font-weight:400">optional metadata</span></span>
+  <label class="attr-label">
+    <span>Message attributes <span class="dim attr-sub">optional metadata</span></span>
     <button type="button" class="btn btn-outline btn-sm" @click="rows.push({n:'',t:'String',v:''})">{{icon "plus"}} Add</button>
   </label>
   <template x-for="(row,i) in rows" :key="i">

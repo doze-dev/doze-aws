@@ -1089,9 +1089,36 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .rt-warm .rt-dot { background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 18%, transparent); }
 
 /* SQS workbench: live peek beside the composer — the act/verify loop on one screen. */
-.sqs-work { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); gap: 16px; align-items: start; }
-/* the composer column is minmax(300px,1fr), so below ~620 the peek half stops being readable */
-@container pane (max-width: 620px) { .sqs-work { grid-template-columns: 1fr; } }
+/* The composer is docked at the foot of the list, not beside it.
+
+   .detail is the scrolling ancestor (overflow-y: auto), so sticky bottom:0
+   parks this against the bottom of the visible pane while messages scroll
+   under it. That is what makes "watch it land" true at any scroll position,
+   which the side-by-side version stopped being once you were a screenful down.
+
+   The bar and the panel are the same dock: collapsed it is one row, expanded
+   it is the form. No grid, so this tab now lays out like Consume and
+   Configuration instead of being the one page with two columns. */
+.sqs-work { display: block; }
+.composer-dock {
+  position: sticky; bottom: 0; z-index: 2; margin-top: 12px;
+  padding-bottom: 14px; background: var(--background);
+}
+.dock-bar {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 10px 14px; font: inherit; font-size: 13px; color: var(--muted-foreground);
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  cursor: text; text-align: left;
+}
+.dock-bar:hover { border-color: var(--ring, var(--foreground)); color: var(--foreground); }
+.dock-bar .ic { width: 15px; height: 15px; flex: none; }
+.dock-bar .kbd { margin-left: auto; }
+/* The editor starts at a couple of lines and grows with what you paste
+   (height:auto), rather than reserving a box taller than three message cards
+   for a payload that is usually one line. */
+.sqs-compose .CodeMirror { min-height: 92px; }
+.sqs-compose .panel-h { display: flex; align-items: center; justify-content: space-between; }
+
 .msg.landed { animation: landed 1.8s ease-out; }
 @keyframes landed { 0% { background: color-mix(in srgb, var(--success) 16%, transparent); } 100% { background: transparent; } }
 @media (prefers-reduced-motion: reduce) { .msg.landed { animation: none; } }
@@ -1138,7 +1165,14 @@ a.lo-card:hover { border-color: var(--accent); }
 .load-more td { text-align: center; padding: 8px; background: color-mix(in srgb, var(--muted) 25%, transparent); }
 
 /* Message metadata: FIFO fields + user attributes on peeked messages. */
-.mm-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 9px; }
+/* The chip row is INSIDE .msg, which already pads 8px 12px. This carried its
+   own "padding: 0 12px 9px" as though it did not — so the chips sat 12px
+   further right than the chevron above them, took ZERO pixels of gap from the
+   summary line (measured, not guessed), and left 17px below against 8px above.
+   The row read as stuck to the line above and indented from nothing.
+
+   Inherit the card's inset; own only the gap. */
+.mm-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .mm { font-size: 11px; font-family: var(--mono); color: var(--muted-foreground); background: color-mix(in srgb, var(--muted) 60%, transparent);
   border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; }
 .mm b { color: var(--foreground); font-weight: 550; }
@@ -1549,3 +1583,14 @@ a.lo-card:hover { border-color: var(--accent); }
 .ver-id { max-width: 200px; }
 .ver-stage { margin-right: 4px; }
 .inline-form { display: inline; }
+
+/* Both rows wrap as whole parts rather than breaking a phrase in half. The
+   docked composer is full width so they rarely need to, but the attribute
+   editor is shared with SNS publish, which is still narrow. */
+.attr-label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.attr-label > span { min-width: 0; }
+.attr-sub { font-weight: 400; }
+.send-foot { margin-top: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.send-hint { font-size: 11px; } /* 11.5px was off the closed scale — it only
+   escaped notice because it lived in an inline style, which TestTypeScaleIsClosed
+   cannot see. Moving it into the stylesheet is what surfaced it. */
