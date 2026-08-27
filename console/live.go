@@ -64,3 +64,40 @@ func (c *Console) serviceCounts(ctx context.Context) map[string]int {
 	}
 	return counts
 }
+
+// resSlug makes a resource name safe to put in a DOM id AND safe to address
+// with a CSS selector.
+//
+// The second half is the one that bites. htmx builds an out-of-band target by
+// string concatenation — "#" + id — so a FIFO queue named "orders.fifo" would
+// produce "#lr-sqs-orders.fifo", which parses as the element #lr-sqs-orders
+// that also has class .fifo. Nothing matches, and htmx's miss is SILENT: its
+// querySelectorAllExt returns an empty array rather than null, so the patch is
+// dropped with no error event and no swap. A live count that quietly stops
+// updating for exactly the queues whose names carry a dot is a worse bug than
+// one that throws.
+//
+// Anything outside [A-Za-z0-9_-] becomes "_", and a short fingerprint of the
+// original is appended so two names that collapse to the same mangling —
+// "a.b" and "a-b" — cannot land on each other's slot.
+func resSlug(s string) string {
+	if s == "" {
+		return ""
+	}
+	b := make([]byte, 0, len(s)+9)
+	safe := true
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z', c >= '0' && c <= '9', c == '-', c == '_':
+			b = append(b, c)
+		default:
+			b = append(b, '_')
+			safe = false
+		}
+	}
+	if safe {
+		return string(b)
+	}
+	return string(b) + "-" + contentHash(s)[:8]
+}

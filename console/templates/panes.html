@@ -1,9 +1,15 @@
 {{/* Shared list-pane chrome. Each service supplies its own rows via the
      "rows" block passed as the dot's .Rows (already-rendered). Simpler: each
      service defines its own listpane partial; this holds only the tab bar. */}}
+{{/* A tab may carry a count, and when it does the number is an addressable
+     SLOT rather than text baked into the label. SQS used to build its label
+     with (printf "Messages · %d"), which froze the number at render time — and
+     the tab bar sits in .det-h, OUTSIDE the polled #message-panel-wrap, so the
+     tab said "Messages · 3" while the panel two inches below said 5. A label
+     cannot be patched; an element with an id can. */}}
 {{define "dtabs"}}
 <div class="tabbar">
-  {{range .Tabs}}<a href="{{.URL}}" class="{{if eq .Key $.Cur}}on{{end}}">{{if .Icon}}{{icon .Icon}} {{end}}{{.Label}}</a>{{end}}
+  {{range .Tabs}}<a href="{{.URL}}" class="{{if eq .Key $.Cur}}on{{end}}">{{if .Icon}}{{icon .Icon}} {{end}}{{.Label}}{{if .CtID}} <span class="tab-ct" id="{{.CtID}}">{{.Ct}}</span>{{end}}</a>{{end}}
 </div>
 {{end}}
 

@@ -596,6 +596,11 @@ tr:hover .row-actions { opacity: 1; }
 .tabbar a:hover { color: var(--foreground); }
 .tabbar a.on { color: var(--foreground); border-bottom-color: var(--foreground); }
 .tabbar a .ic { width: 14px; height: 14px; }
+/* A tab that carries a count renders it as a slot, not as label text, so the
+   out-of-band patch can address it. Muted and tabular against the tab label:
+   the label names the tab, the number annotates it. */
+.tabbar a .tab-ct { color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.tabbar a.on .tab-ct { color: var(--foreground); }
 
 /* ---------- switch ---------- */
 .switch { position: relative; display: inline-flex; width: 34px; height: 19px; flex: 0 0 34px; cursor: pointer; }
