@@ -417,6 +417,31 @@ func (c *Console) kinesisPut(w http.ResponseWriter, r *http.Request) {
 	if key == "" {
 		key = "console"
 	}
+	// A count above one is a different API, not a loop. PutRecords distributes
+	// across shards in one round trip and answers with per-record failures,
+	// which is the thing repeated single puts cannot show you.
+	if n := atoiDefault(r.FormValue("count"), 1); n > 1 {
+		recs := make([]KinesisRecordIn, 0, n)
+		for i := 1; i <= min(n, 500); i++ {
+			// Suffixing the key is what makes the batch actually spread: one
+			// partition key is one shard, so 200 records under "console" would
+			// demonstrate nothing about distribution.
+			recs = append(recs, KinesisRecordIn{
+				PartitionKey: key + "-" + strconv.Itoa(i), Data: r.FormValue("data"),
+			})
+		}
+		failed, code, err := c.be.PutRecords(r.Context(), stream, recs)
+		if err != nil {
+			c.fail(w, err)
+			return
+		}
+		note := strconv.Itoa(len(recs)-failed) + " records put"
+		if failed > 0 {
+			note += ", " + strconv.Itoa(failed) + " refused (" + code + ")"
+		}
+		c.redirect(w, r, c.prefix+"/kinesis/"+stream+"/records?start=latest", note)
+		return
+	}
 	shard, err := c.be.PutRecord(r.Context(), stream, key, r.FormValue("data"))
 	if err != nil {
 		c.fail(w, err)

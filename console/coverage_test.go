@@ -31,8 +31,9 @@ import (
 // exempt with a reason. Deleting an entry without doing one of those makes the
 // test fail, which is the point.
 var uncovered = map[string][]string{
-	// SQS is complete — see exempt for the one deliberate omission.
-	"sqs": {},
+	// Complete — see exempt for the deliberate omissions.
+	"sqs":     {},
+	"kinesis": {},
 }
 
 // exempt is for operations that are deliberately not called, with the reason.
@@ -43,6 +44,17 @@ var exempt = map[string]map[string]string{
 		"GetQueueUrl": "the console builds the URL from base + account + name " +
 			"(backend.queueURL), which is exact and saves a round trip on every " +
 			"render. Calling it would be a request whose answer we already know.",
+	},
+	"kinesis": {
+		"DescribeStream": "the console reads DescribeStreamSummary + ListShards " +
+			"instead. AWS caps DescribeStream's inline shard list and paginates it " +
+			"with HasMoreShards; doze-aws returns every shard and always says " +
+			"false. Writing the console against the emulator's generosity would " +
+			"make it wrong against the service it imitates.",
+		"DescribeStreamConsumer": "ListStreamConsumers already returns all four " +
+			"fields it would (name, ARN, status, creation time), and the consumers " +
+			"table shows them. Describing one would be a second call for data " +
+			"already on screen.",
 	},
 }
 

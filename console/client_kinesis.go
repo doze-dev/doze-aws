@@ -933,3 +933,55 @@ func (b *backend) KinesisLimits(ctx context.Context) (*KinesisLimits, error) {
 	}
 	return out, nil
 }
+
+// PutRecords writes a batch in one call.
+//
+// The console could only ever put one record at a time, which is a different
+// thing from a batch on a sharded stream: PutRecords distributes across shards
+// in a single round trip and reports per-record failures, and "did my batch
+// partially fail" is a question you cannot ask by pressing Put five times.
+//
+// Capped at Kinesis's 500 records per call. Chunking is here rather than in the
+// page for the same reason SQS's ten is: it is a wire limit, not an intent.
+func (b *backend) PutRecords(ctx context.Context, stream string, records []KinesisRecordIn) (failed int, firstErr string, err error) {
+	for start := 0; start < len(records); start += 500 {
+		end := min(start+500, len(records))
+		entries := make([]map[string]any, 0, end-start)
+		for _, r := range records[start:end] {
+			entries = append(entries, map[string]any{
+				"PartitionKey": r.PartitionKey,
+				"Data":         base64.StdEncoding.EncodeToString([]byte(r.Data)),
+			})
+		}
+		body, e := b.kinesis(ctx, "PutRecords", map[string]any{
+			"StreamName": stream, "Records": entries,
+		})
+		if e != nil {
+			return failed, firstErr, e
+		}
+		var out struct {
+			FailedRecordCount int `json:"FailedRecordCount"`
+			Records           []struct {
+				ErrorCode    string `json:"ErrorCode"`
+				ErrorMessage string `json:"ErrorMessage"`
+			} `json:"Records"`
+		}
+		json.Unmarshal(body, &out)
+		failed += out.FailedRecordCount
+		if firstErr == "" {
+			for _, r := range out.Records {
+				if r.ErrorCode != "" {
+					firstErr = r.ErrorCode
+					break
+				}
+			}
+		}
+	}
+	return failed, firstErr, nil
+}
+
+// KinesisRecordIn is one record of a PutRecords batch.
+type KinesisRecordIn struct {
+	PartitionKey string
+	Data         string
+}

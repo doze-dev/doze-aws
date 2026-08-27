@@ -104,9 +104,19 @@
                 <label>Data</label>
                 <textarea name="data" data-editor rows="5" placeholder='{"temp":21.5}' required></textarea>
               </div>
-              <div style="margin-top:10px;display:flex;justify-content:flex-end">
+              {{/* Count > 1 switches this to PutRecords. A batch on a sharded
+                   stream is not the same thing as pressing Put n times: it
+                   distributes across shards in ONE round trip and reports
+                   per-record failures, and "did my batch partially fail" is a
+                   question repeated single puts cannot ask. */}}
+              <div class="put-actions">
+                <label class="put-count">
+                  <span class="dim">Count</span>
+                  <input class="input" type="number" name="count" value="1" min="1" max="500" x-data x-ref="n">
+                </label>
                 <button class="btn" type="submit">{{icon "send"}} Put</button>
               </div>
+              <div class="mini-note put-batch-note">More than one uses PutRecords, and appends <span class="mono">-1</span>, <span class="mono">-2</span> … to the partition key so the batch actually spreads across shards.</div>
             </form>
           </div>
         </div>
