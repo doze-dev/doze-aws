@@ -916,11 +916,26 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .lp-h .lp-ct { font-weight: 400; color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
 .lp-h .lp-ct::before { content: "("; }
 .lp-h .lp-ct::after { content: ")"; }
+/* The one constructive action on a service page, at the weight AWS gives it.
+   It used to render in the LOWEST tier available — muted text inside a hairline
+   border — which put "create the thing this page is for" below every neutral
+   control on screen, and (since Delete is the one coloured thing in the detail
+   header) left the destructive action as the most prominent thing on the page.
+
+   The place was already right: AWS's filled primary is not on the details page
+   — that header is three bordered buttons — it is on the LIST page, which is
+   exactly where this sits. Only the weight was wrong.
+
+   --primary is our near-black, not AWS's #006CE0. That is deliberate: the brief
+   was AWS's structure at our density, not AWS's palette. This buys the tier
+   without repainting the console. */
 .new-link {
   display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600;
-  color: var(--muted-foreground); border: 1px solid var(--border); border-radius: var(--radius); padding: 3px 8px;
+  color: var(--primary-foreground); background: var(--primary);
+  border: 1px solid transparent; border-radius: var(--radius); padding: 3px 8px;
+  transition: opacity .12s;
 }
-.new-link:hover { color: var(--foreground); background: var(--muted); }
+.new-link:hover { opacity: 0.9; }
 .new-link .ic { width: 12px; height: 12px; }
 .listpane .filter { margin: 0 10px 8px; display: block; }
 .listpane .filter input { width: 100%; height: 30px; }
