@@ -136,9 +136,14 @@
      htmx applies these before hx-select narrows the response, which is what
      lets a fragment aimed at #message-panel-wrap touch anything outside it. A
      slot absent from the current page matches nothing and is dropped in
-     silence, so the panel ships both unconditionally. */}}
-<span hx-swap-oob="innerHTML:#lr-sqs-{{slug .Queue}}">{{.Available}}</span>
-<span hx-swap-oob="innerHTML:#tabct-sqs-{{slug .Queue}}-messages">{{.Available}}</span>
+     silence, so the panel ships both unconditionally.
+
+     hidden, because htmx only extracts out-of-band elements during a SWAP. On
+     a full page load nothing consumes them, so they render as literal text —
+     a stray "3 3" under the message list, which is how it shipped for exactly
+     one commit. */}}
+<span hidden hx-swap-oob="innerHTML:#lr-sqs-{{slug .Queue}}">{{.Available}}</span>
+<span hidden hx-swap-oob="innerHTML:#tabct-sqs-{{slug .Queue}}-messages">{{.Available}}</span>
 {{end}}
 
 {{define "sqs_config"}}
