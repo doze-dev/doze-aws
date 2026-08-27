@@ -6,8 +6,8 @@
 package console
 
 import (
-	"errors"
 	"embed"
+	"errors"
 	"html/template"
 	"io"
 	"net/http"
@@ -112,7 +112,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/traffic", c.traffic)
 	m.HandleFunc("GET "+p+"/connect", c.connect)
 	m.HandleFunc("POST "+p+"/connect/verify", c.connectVerify)
-	m.HandleFunc("GET "+p+"/deck", c.deck)                    // the stack at a glance
+	m.HandleFunc("GET "+p+"/deck", c.deck)                   // the stack at a glance
 	m.HandleFunc("GET "+p+"/traffic/feed", c.trafficFeed)    // polled live tail
 	m.HandleFunc("GET "+p+"/traffic/entry", c.trafficEntry)  // inspector drawer
 	m.HandleFunc("POST "+p+"/traffic/clear", c.trafficClear) // empty the ring
@@ -172,6 +172,10 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/sqs/{queue}/attributes", c.sqsSetAttributes)
 	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-message", c.sqsDeleteMessage)
 	m.HandleFunc("POST "+p+"/sqs/{queue}/redrive", c.sqsRedrive)
+	m.HandleFunc("POST "+p+"/sqs/{queue}/receive", c.sqsReceive)                  // a REAL receive, not a peek
+	m.HandleFunc("POST "+p+"/sqs/{queue}/visibility", c.sqsChangeVisibility)      // re-hide or release one
+	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-batch", c.sqsDeleteBatch)         // DeleteMessageBatch
+	m.HandleFunc("POST "+p+"/sqs/{queue}/visibility-batch", c.sqsVisibilityBatch) // ChangeMessageVisibilityBatch
 	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-queue", c.sqsDeleteQueue)
 
 	// DynamoDB.
@@ -502,12 +506,12 @@ func templateFuncs(prefix string) template.FuncMap {
 		"has": func(set []string, v string) bool {
 			return slices.Contains(set, v)
 		},
-		"slug":   resSlug,
-		"secs":   humanSecs,
-		"ago":    ago,
-		"list":   func(items ...any) []any { return items },
-		"masked": maskedValue,
-		"add":    func(a, b int) int { return a + b },
+		"slug":      resSlug,
+		"secs":      humanSecs,
+		"ago":       ago,
+		"list":      func(items ...any) []any { return items },
+		"masked":    maskedValue,
+		"add":       func(a, b int) int { return a + b },
 		"addOne":    func(n int64) int64 { return n + 1 },
 		"ssmGroups": ssmGroups,
 		// patternPreview flattens an event pattern to a scannable one-liner:
@@ -516,7 +520,7 @@ func templateFuncs(prefix string) template.FuncMap {
 		// awsIcon renders an official AWS Architecture service icon (embedded).
 		// resolve turns an ARN, a queue URL or a bare identifier into a link.
 		// One resolver, so a target renders the same wherever it appears.
-		"resolve":  func(id string) resourceRef { return resourceFromARN(id) },
+		"resolve": func(id string) resourceRef { return resourceFromARN(id) },
 		// emptyCopy hands a template a service's empty-state voice. The copy lives
 		// in copy.go so the thirteen read as one person wrote them.
 		"emptyCopy": emptyFor,

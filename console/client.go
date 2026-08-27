@@ -571,41 +571,10 @@ func (b *backend) QueueDetail(ctx context.Context, name string) (map[string]stri
 	if err != nil {
 		return attrs, nil, err
 	}
-	var out struct {
-		Messages []struct {
-			MessageID     string            `json:"MessageId"`
-			ReceiptHandle string            `json:"ReceiptHandle"`
-			Body          string            `json:"Body"`
-			Attributes    map[string]string `json:"Attributes"`
-			MessageAttrs  map[string]struct {
-				DataType    string `json:"DataType"`
-				StringValue string `json:"StringValue"`
-			} `json:"MessageAttributes"`
-		} `json:"Messages"`
-	}
-	json.Unmarshal(body, &out)
-	msgs := make([]SQSMessage, 0, len(out.Messages))
-	for _, m := range out.Messages {
-		msg := SQSMessage{
-			MessageID: m.MessageID, ReceiptHandle: m.ReceiptHandle, Body: m.Body,
-			SentAt:   epochMillisToTime(m.Attributes["SentTimestamp"]),
-			GroupID:  m.Attributes["MessageGroupId"],
-			DedupID:  m.Attributes["MessageDeduplicationId"],
-			SeqNo:    m.Attributes["SequenceNumber"],
-			Receives: m.Attributes["ApproximateReceiveCount"],
-		}
-		names := make([]string, 0, len(m.MessageAttrs))
-		for n := range m.MessageAttrs {
-			names = append(names, n)
-		}
-		sort.Strings(names)
-		for _, n := range names {
-			a := m.MessageAttrs[n]
-			msg.Attrs = append(msg.Attrs, MsgAttr{Name: n, Type: a.DataType, Value: a.StringValue})
-		}
-		msgs = append(msgs, msg)
-	}
-	return attrs, msgs, nil
+	// Decoding lives in parseSQSMessages, shared with ReceiveMessages, so a
+	// peek and a real receive cannot drift into showing the same message two
+	// different ways.
+	return attrs, parseSQSMessages(body), nil
 }
 
 func (b *backend) CreateQueue(ctx context.Context, name string) error {

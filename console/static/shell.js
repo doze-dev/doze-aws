@@ -498,7 +498,12 @@
         host._deadline = Date.now() + parseInt(host.getAttribute("data-sleep-left") || "0", 10) * 1000;
       }
       var left = Math.round((host._deadline - Date.now()) / 1000);
-      cd.textContent = left > 0 ? fmtLeft(left) : "any moment";
+      // The expired wording belongs to the caller. "any moment" is right for
+      // a function about to go cold, and wrong for a message whose visibility
+      // timeout has lapsed, which is "visible again" — same timer, different
+      // fact.
+      cd.textContent = left > 0 ? fmtLeft(left)
+        : (host.getAttribute("data-sleep-done") || "any moment");
     });
   }, 1000);
 

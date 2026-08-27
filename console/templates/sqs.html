@@ -52,12 +52,15 @@
       </div>
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "messages" "Label" "Messages" "Icon" "inbox" "CtID" (printf "tabct-sqs-%s-messages" (slug .Queue)) "Ct" .Available "URL" (printf "%s/sqs/%s" .Prefix .Queue))
+        (dict "Key" "consume" "Label" "Consume" "Icon" "play" "URL" (printf "%s/sqs/%s?tab=consume" .Prefix .Queue))
         (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sqs/%s?tab=config" .Prefix .Queue)))}}
     </div>
     <div style="padding:14px 20px 0">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "sqs" "Self" .Queue}}</div>
     <div class="det-b">
       {{if eq .Tab "config"}}
         {{template "sqs_config" .}}
+      {{else if eq .Tab "consume"}}
+        {{template "sqs_consume" .}}
       {{else}}
         {{/* The loop on one screen: live peek beside the composer — send a
              message and watch it land without leaving the view. */}}
@@ -164,10 +167,12 @@
      a full page load nothing consumes them, so they render as literal text —
      a stray "3 3" under the message list, which is how it shipped for exactly
      one commit. */}}
-<span hidden hx-swap-oob="innerHTML:#lr-sqs-{{slug .Queue}}">{{.Available}}</span>
-<span hidden hx-swap-oob="innerHTML:#tabct-sqs-{{slug .Queue}}-messages">{{.Available}}</span>
-<span hidden hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-visible">{{.Available}}</span>
-<span hidden hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-inflight">{{.InFlight}}</span>
+<template>
+<span hx-swap-oob="innerHTML:#lr-sqs-{{slug .Queue}}">{{.Available}}</span>
+<span hx-swap-oob="innerHTML:#tabct-sqs-{{slug .Queue}}-messages">{{.Available}}</span>
+<span hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-visible">{{.Available}}</span>
+<span hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-inflight">{{.InFlight}}</span>
+</template>
 {{end}}
 
 {{define "sqs_config"}}
@@ -212,5 +217,108 @@
     <div class="table-wrap" x-show="raw" x-cloak style="margin-top:8px"><table class="tbl kv"><tbody>{{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}</tbody></table></div>
   </div>
   {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sqs" "ID" .Queue}}
+</div>
+{{end}}
+
+{{/* The Consume tab — a REAL receive, with the invisible thing made visible.
+
+     Everything else the console does with a queue is non-destructive: the peek
+     reads without consuming, deliberately. That is a genuine edge over the AWS
+     console, whose "poll for messages" quietly receives them. But it also meant
+     the behaviour most worth debugging locally — a message vanishing on
+     receive, its receive count climbing toward the redrive threshold, and it
+     reappearing when the timeout lapses — could not be reproduced here at all.
+
+     So this tab receives for real and puts the timer on screen. The warning
+     above the button is not decoration: someone who has used the Messages tab
+     has been trained by it that looking is free, and this is the one place
+     where it isn't. */}}
+{{define "sqs_consume"}}
+<div class="panel">
+  <div class="panel-h"><h2>{{icon "play"}} Receive messages</h2></div>
+  <div class="form-b">
+    <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/receive" hx-target="#sqs-consumed" hx-select="unset" hx-swap="outerHTML">
+      <div class="rcv-grid">
+        <div class="field"><label>Max messages</label>
+          <input class="input" type="number" name="max" value="10" min="1" max="10"></div>
+        <div class="field"><label>Visibility timeout <span class="dim">seconds, optional</span></label>
+          <input class="input" type="number" name="visibility" min="0" max="43200"
+                 placeholder="{{.Config.Visibility}} (queue default)"></div>
+        <div class="field"><label>Wait <span class="dim">long poll, 0–20s</span></label>
+          <input class="input" type="number" name="wait" value="0" min="0" max="20"></div>
+        <button class="btn" type="submit">{{icon "play"}} Receive</button>
+      </div>
+      <p class="dim rcv-warn">
+        This consumes. Received messages are hidden from other consumers until the
+        visibility timeout lapses or you delete them, and each receive increments
+        the message's receive count{{if .MaxReceive}} — at {{.MaxReceive}} it goes to the dead-letter queue{{end}}.
+      </p>
+    </form>
+  </div>
+</div>
+{{template "sqs_consumed" dict "Prefix" .Prefix "Queue" .Queue "Received" (list) "EffVis" .Config.Visibility "MaxReceive" .MaxReceive "Note" "" "Available" .Available "InFlight" .InFlight}}
+{{end}}
+
+{{/* The received batch. Selection is plain Alpine state on this wrapper — no
+     dozeSel gymnastics needed, because unlike #message-panel-wrap this panel is
+     not live-polled, so nothing morphs it out from under the selection. */}}
+{{define "sqs_consumed"}}
+<div id="sqs-consumed" x-data="{sel:[]}">
+  {{if .Note}}<div class="rcv-note">{{.Note}}</div>{{end}}
+  {{if .Received}}
+  <div class="bulkbar" x-show="sel.length" x-cloak>
+    <span class="bb-n"><span x-text="sel.length"></span> selected</span>
+    <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/delete-batch" hx-target="#sqs-consumed" hx-select="unset" hx-swap="outerHTML">
+      <input type="hidden" name="ids" :value="JSON.stringify(sel)">
+      <button class="btn btn-outline danger btn-sm" type="submit">{{icon "trash"}} Delete selected</button>
+    </form>
+    <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/visibility-batch" hx-target="#sqs-consumed" hx-select="unset" hx-swap="outerHTML">
+      <input type="hidden" name="ids" :value="JSON.stringify(sel)">
+      <input type="hidden" name="seconds" value="0">
+      <button class="btn btn-outline btn-sm" type="submit">{{icon "rotate"}} Release selected</button>
+    </form>
+    <button type="button" class="btn btn-ghost btn-sm" @click="sel=[]">Clear</button>
+  </div>
+  <div class="rcv-list" data-sleep-left="{{.EffVis}}" data-sleep-done="visible again">
+    {{range .Received}}
+    <div class="rcv-row">
+      <label class="rcv-pick">
+        <input type="checkbox" value="{{.ReceiptHandle}}" x-model="sel" aria-label="Select this message">
+      </label>
+      <div class="rcv-body">
+        <div class="rcv-sum">{{if .Sum.Kind}}<span class="evt"{{if .Sum.Svc}} style="--svc-ink:var(--svc-{{.Sum.Svc}}-ink);--svc-mark:var(--svc-{{.Sum.Svc}})"{{end}}>{{.Sum.Kind}}</span> {{end}}{{.Sum.Line}}</div>
+        <div class="rcv-meta dim">
+          received {{.Receives}}×{{if $.MaxReceive}} of {{$.MaxReceive}}{{end}}
+          · hidden for <span class="rt-cd"></span>
+        </div>
+      </div>
+      <div class="rcv-acts">
+        <form hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/visibility" hx-target="#sqs-consumed" hx-select="unset" hx-swap="outerHTML">
+          <input type="hidden" name="handle" value="{{.ReceiptHandle}}">
+          <input type="hidden" name="seconds" value="0">
+          <button class="btn btn-ghost btn-sm" type="submit" title="Make visible again immediately">Release</button>
+        </form>
+        <form hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-target="#sqs-consumed" hx-select="unset" hx-swap="outerHTML">
+          <input type="hidden" name="handle" value="{{.ReceiptHandle}}">
+          <button class="btn btn-outline danger btn-sm" type="submit" title="Acknowledge — removes it for good">{{icon "trash"}} Delete</button>
+        </form>
+      </div>
+    </div>
+    {{end}}
+  </div>
+  {{else}}
+  <div class="empty"><span class="ic-lg">{{icon "inbox"}}</span>
+    <p>Nothing received yet. Press Receive above — anything it returns is hidden from other consumers while you look at it.</p></div>
+  {{end}}
+{{/* A receive moves messages from visible to in flight — the very thing this
+     tab demonstrates — so the numbers outside this panel have to move with it.
+     Same tail as message_panel, same slots. hidden, because htmx only extracts
+     out-of-band elements during a swap and a full page load is not one. */}}
+<template>
+<span hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-visible">{{.Available}}</span>
+<span hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-inflight">{{.InFlight}}</span>
+<span hx-swap-oob="innerHTML:#lr-sqs-{{slug .Queue}}">{{.Available}}</span>
+<span hx-swap-oob="innerHTML:#tabct-sqs-{{slug .Queue}}-messages">{{.Available}}</span>
+</template>
 </div>
 {{end}}
