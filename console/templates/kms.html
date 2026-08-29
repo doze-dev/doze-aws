@@ -104,7 +104,11 @@
              two calls the alias does not exist, and anything resolving it in
              that window fails. UpdateAlias moves it in one step. */}}
         <form class="tag-row-form" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/update-alias" @htmx:after-request="$el.reset()">
-          <input class="input mono" name="alias" placeholder="alias/existing-name" required autocomplete="off">
+          {{/* A distinct field name, not a second name="alias" beside the
+               add-alias form. Two adjacent forms with the same field name is
+               ambiguous to anything addressing them — a test, a screen reader
+               walking the labels, or a person reading the page. */}}
+          <input class="input mono" name="existing_alias" placeholder="alias/existing-name" required autocomplete="off">
           <button class="btn btn-ghost btn-sm" type="submit" title="Point an existing alias at this key">Repoint here</button>
         </form>
         <form class="tag-row-form" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/add-alias" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">

@@ -29,7 +29,12 @@ export default defineConfig({
   webServer: {
     command:
       'sh -c "cd .. && GOWORK=off go build -o e2e/.tmp/bin/doze-aws ./cmd/doze-aws && ' +
-      'cd e2e/.tmp && mkdir -p data && ' +
+      // A FRESH data dir every run. It used to persist, so resources piled up
+      // across runs and tests began interfering with each other — the failing
+      // set shifted between identical runs, and three KMS tests "failed" purely
+      // from accumulated state. A suite whose result depends on how many times
+      // it has been run before cannot tell you anything.
+      'cd e2e/.tmp && rm -rf data && mkdir -p data && ' +
       `./bin/doze-aws --listen 127.0.0.1:${PORT} --data-dir data --console"`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,

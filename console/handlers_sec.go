@@ -548,7 +548,7 @@ func (c *Console) kmsReEncrypt(w http.ResponseWriter, r *http.Request) {
 // absent, and anything resolving it in that window fails.
 func (c *Console) kmsUpdateAlias(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("key")
-	alias := strings.TrimSpace(r.FormValue("alias"))
+	alias := strings.TrimSpace(r.FormValue("existing_alias"))
 	if alias == "" {
 		c.fail(w, errors.New("Name the alias to repoint at this key."))
 		return
