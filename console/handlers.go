@@ -783,6 +783,7 @@ func (c *Console) sqsSetAttributes(w http.ResponseWriter, r *http.Request) {
 		"sse":              "SqsManagedSseEnabled",
 		"dedup_scope":      "DeduplicationScope",
 		"throughput_limit": "FifoThroughputLimit",
+		"content_dedup":    "ContentBasedDeduplication",
 		"policy":           "Policy",
 	} {
 		if v := strings.TrimSpace(r.FormValue(form)); v != "" {

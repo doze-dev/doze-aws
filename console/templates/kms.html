@@ -39,7 +39,19 @@
         <div class="opt-row"><div><div class="opt-l">Enabled</div><div class="opt-d">Disabled keys refuse all cryptographic operations</div></div><label class="switch"><input type="checkbox" {{if .Key.Enabled}}checked{{end}} hx-post="{{.Prefix}}/kms/{{.Key.ID}}/toggle-enabled" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label></div>
         {{if eq .Key.Usage "ENCRYPT_DECRYPT"}}<div class="opt-row"><div><div class="opt-l">Automatic rotation</div><div class="opt-d">New backing material yearly; old ciphertexts still decrypt</div></div><label class="switch"><input type="checkbox" {{if .Key.RotationOn}}checked{{end}} hx-post="{{.Prefix}}/kms/{{.Key.ID}}/toggle-rotation" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label></div>{{end}}
       </div></div>
-      <div class="sec-title">Details</div><div class="table-wrap"><table class="tbl kv"><tbody><tr><td>Spec</td><td>{{.Key.Spec}}</td></tr><tr><td>Usage</td><td>{{.Key.Usage}}</td></tr><tr><td>Created</td><td title="{{.Key.Created}}">{{ago .Key.Created}}</td></tr>{{if .Key.Description}}<tr><td>Description</td><td>{{.Key.Description}}</td></tr>{{end}}</tbody></table></div>
+      <div class="sec-title">Details</div><div class="table-wrap"><table class="tbl kv"><tbody><tr><td>Spec</td><td>{{.Key.Spec}}</td></tr><tr><td>Usage</td><td>{{.Key.Usage}}</td></tr><tr><td>Created</td><td title="{{.Key.Created}}">{{ago .Key.Created}}</td></tr></tbody></table></div>
+      {{/* The description was set-once: the create form offered it and nothing
+           could change it, though UpdateKeyDescription has always existed. A
+           key's description is the only human-readable thing about it — the id
+           is a UUID and the alias is optional — so being unable to correct one
+           is worse than it sounds. */}}
+      <div class="sec-title">Description</div>
+      <div class="panel">
+        <form class="tag-row-form" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/description">
+          <input class="input" name="description" value="{{.Key.Description}}" placeholder="What this key is for" autocomplete="off">
+          <button class="btn btn-outline btn-sm" type="submit">Save</button>
+        </form>
+      </div>
 
       <div class="sec-title">Aliases</div>
       <div class="panel">

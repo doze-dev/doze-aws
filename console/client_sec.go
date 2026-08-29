@@ -667,3 +667,17 @@ func (b *backend) SecretVersionIDs(ctx context.Context, id string) (map[string][
 	}
 	return stages, nil
 }
+
+// UpdateKeyDescription renames a key's description after creation.
+//
+// The description was set-once: the create form offered it and nothing could
+// change it afterwards, though UpdateKeyDescription has always been there. A
+// key's description is the only human-readable thing about it — the id is a
+// UUID and the alias is optional — so being unable to correct one is worse
+// than it sounds.
+func (b *backend) UpdateKeyDescription(ctx context.Context, keyID, description string) error {
+	_, err := b.json11(ctx, "TrentService", "UpdateKeyDescription", map[string]any{
+		"KeyId": keyID, "Description": description,
+	})
+	return err
+}

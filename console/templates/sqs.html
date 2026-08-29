@@ -269,6 +269,13 @@
       </div>
       {{if .Config.FIFO}}
       <div class="edit-grid edit-grid-tight">
+        <div class="field"><label>Content-based deduplication</label>
+          <select class="input" name="content_dedup">
+            <option value="">— leave as is —</option>
+            <option value="true" {{if .Config.ContentDedup}}selected{{end}}>enabled</option>
+            <option value="false" {{if not .Config.ContentDedup}}selected{{end}}>disabled</option>
+          </select>
+          <span class="hint">dedup by body hash within 5 minutes, instead of an explicit ID</span></div>
         <div class="field"><label>Deduplication scope</label>
           <select class="input" name="dedup_scope">
             <option value="">— leave as is —</option>

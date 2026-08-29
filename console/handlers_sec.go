@@ -487,3 +487,14 @@ func (c *Console) smUpdateMeta(w http.ResponseWriter, r *http.Request) {
 	}
 	c.redirect(w, r, c.prefix+"/sm/secret?name="+url.QueryEscape(name), "Secret details updated")
 }
+
+// kmsDescribe updates a key's description. See UpdateKeyDescription for why
+// this was worth a route.
+func (c *Console) kmsDescription(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("key")
+	if err := c.be.UpdateKeyDescription(r.Context(), id, strings.TrimSpace(r.FormValue("description"))); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/kms/"+id, "Description updated")
+}
