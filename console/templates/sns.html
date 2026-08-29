@@ -20,8 +20,32 @@
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}</div>
       <div style="margin-top:10px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "sns" "Self" .Topic}}</div>
     </div>
-    <div class="det-b"><div class="split">
-      <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Publish message</h2></div><div style="padding:14px 16px">
+    {{/* Same shape as the SQS queue page, for the same reason.
+
+         .split gave the publish form half the pane permanently. But the CONTENT
+         of a topic is its subscribers — endpoints, protocols, filter policies,
+         all of which want width — and publishing is an occasional action. The
+         form was squeezing the thing you came to read.
+
+         So: subscribers full width, publish docked at the foot, and the
+         delivery receipt in the flow directly above the dock, which is where
+         you are already looking when you press Publish. Note .split is shared
+         by nine templates, so this is scoped to this page rather than done to
+         the grid. */}}
+    <div class="det-b has-dock">
+      {{template "sns_subs" .}}
+      {{/* The receipt lands here — who actually got the message, filters
+           evaluated — directly above the composer you just pressed. */}}
+      <div id="sns-receipt"></div>
+      <div class="composer-dock" x-data="{open:false}" :class="open && 'dock-open'">
+        <button type="button" class="dock-bar" x-show="!open"
+                @click="open=true; $nextTick(() => { window.dozeEditor && dozeEditor.refresh($el.parentNode); var e=$el.parentNode.querySelector('textarea[name=message]'); e && e.__cm && e.__cm.focus(); })">
+          {{icon "send"}} <span>Publish a message</span> <span class="kbd">⌘⏎</span>
+        </button>
+        <div class="panel sqs-compose" x-show="open" x-cloak>
+          <div class="panel-h"><h2>{{icon "send"}} Publish message</h2>
+            <button type="button" class="icon-btn sm" title="Close" @click="open=false">{{icon "x"}}</button></div>
+          <div class="form-b">
         <form hx-post="{{.Prefix}}/sns/{{.Topic}}/publish" hx-target="#sns-receipt" hx-select="unset" hx-swap="outerHTML">
           <div class="field" style="margin-bottom:10px"><label>Subject <span class="dim">optional</span></label><input class="input" name="subject" placeholder="Order shipped"></div>
           <div class="field"><label>Message</label><textarea name="message" data-editor rows="6" placeholder='{"orderId":"A-1042"}' required></textarea></div>
@@ -37,11 +61,10 @@
             <button class="btn" type="submit">{{icon "send"}} Publish</button>
           </div>
         </form>
-        {{/* The delivery receipt lands here — who got the message, with links. */}}
-        <div id="sns-receipt"></div>
-      </div></div>
-      {{template "sns_subs" .}}
-    </div>
+          </div>
+        </div>
+      </div>
+      </div>
     {{/* Every subscription in the stack, not just this topic's. It answers the
          question the panel above cannot — "this queue is receiving something,
          from where?" — and it is the only place a subscription to a topic that

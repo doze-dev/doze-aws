@@ -1100,10 +1100,34 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
    it is the form. No grid, so this tab now lays out like Consume and
    Configuration instead of being the one page with two columns. */
 .sqs-work { display: block; }
+/* sticky bottom:0 alone is a trap on a SHORT page. It parks the element at the
+   bottom of the viewport, and when the content above is shorter than the
+   viewport that position is ABOVE where the element would naturally sit — so
+   it lifts off the flow and paints over whatever is under it. On SNS that meant
+   the dock covering the delivery receipt it is supposed to sit below (measured:
+   dock top 301, receipt top 354). SQS hid the bug because a message list is
+   always taller than the pane.
+
+   The fix is to make the natural position already be the bottom: .det-b.has-dock
+   fills the pane's height and margin-top:auto pushes the dock to its foot. Then
+   sticky has nothing to lift on a short page, and still does its job on a long
+   one where the dock's natural position is below the fold. */
+.det-b.has-dock { display: flex; flex-direction: column; flex: 1; }
+.det-b.has-dock > .composer-dock { margin-top: auto; }
 .composer-dock {
   position: sticky; bottom: 0; z-index: 2; margin-top: 12px;
   padding-bottom: 14px; background: var(--background);
 }
+/* Sticky is for the COLLAPSED bar — a thin thing that should always be within
+   reach. It is wrong for the expanded panel, and the difference is not cosmetic:
+   sticky bottom:0 aligns an element's BOTTOM with the viewport's, so a 419px
+   panel gets pulled up until its top is 300px higher, painting over whatever is
+   above it. On SNS that was the delivery receipt — the one thing you press
+   Publish to read. Measured before the fix: dock top 301, receipt top 354.
+   
+   Open, it goes back into normal flow and pushes content instead of covering
+   it. */
+.composer-dock.dock-open { position: static; }
 .dock-bar {
   display: flex; align-items: center; gap: 8px; width: 100%;
   padding: 10px 14px; font: inherit; font-size: 13px; color: var(--muted-foreground);

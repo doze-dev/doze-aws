@@ -56,7 +56,11 @@
         (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sqs/%s?tab=config" .Prefix .Queue)))}}
     </div>
     <div style="padding:14px 20px 0">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "sqs" "Self" .Queue}}</div>
-    <div class="det-b">
+    {{/* has-dock only on Messages: it makes .det-b a full-height flex column so
+         the composer's natural position is the foot of the pane, which is what
+         stops sticky lifting it over the content on a short page. Consume and
+         Configuration have no dock and should not get the stretch. */}}
+    <div class="det-b{{if not (or (eq .Tab "config") (eq .Tab "consume"))}} has-dock{{end}}">
       {{if eq .Tab "config"}}
         {{template "sqs_config" .}}
       {{else if eq .Tab "consume"}}
@@ -82,7 +86,7 @@
              others. */}}
         <div class="sqs-work">
           <div class="sqs-peek">{{template "message_panel" .}}</div>
-          <div class="composer-dock" x-data="{open:false}">
+          <div class="composer-dock" x-data="{open:false}" :class="open && 'dock-open'">
             <button type="button" class="dock-bar" x-show="!open"
                     @click="open=true; $nextTick(() => { window.dozeEditor && dozeEditor.refresh($el.parentNode); var e=$el.parentNode.querySelector('textarea[name=body]'); e && e.__cm && e.__cm.focus(); })">
               {{icon "send"}} <span>Send a message</span> <span class="kbd">⌘⏎</span>
