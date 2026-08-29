@@ -509,7 +509,14 @@ func jsonResource(svc, body string) string {
 	case "ssm":
 		return str("Name")
 	case "sm":
-		return leafName(str("SecretId"))
+		if id := str("SecretId"); id != "" {
+			return leafName(id)
+		}
+		// CreateSecret is the one operation that addresses by Name — there is
+		// no SecretId yet, because this call is what mints it. Without this
+		// fallback a created secret's row showed no resource at all, and the
+		// name existed on the wire only inside the copy-as-curl attribute.
+		return str("Name")
 	case "kinesis":
 		if n := str("StreamName"); n != "" {
 			return n

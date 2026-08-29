@@ -1116,7 +1116,11 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .det-b.has-dock > .composer-dock { margin-top: auto; }
 .composer-dock {
   position: sticky; bottom: 0; z-index: 2; margin-top: 12px;
-  padding-bottom: 14px; background: var(--background);
+  /* padding-top, not just margin: while the list scrolls, rows pass UNDER the
+     sticky bar, and margin scrolls away with the flow. The padding is painted
+     in the dock's own background, so a row sliding beneath gets 8px of ground
+     before the bar's border instead of touching it. */
+  padding-top: 8px; padding-bottom: 14px; background: var(--background);
 }
 /* Sticky is for the COLLAPSED bar — a thin thing that should always be within
    reach. It is wrong for the expanded panel, and the difference is not cosmetic:

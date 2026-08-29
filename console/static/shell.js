@@ -112,7 +112,17 @@
   });
 
   // ---------- toasts ----------
+  // The feedback sequence survives navigation. It seeds from sessionStorage
+  // because a plain counter restarts at zero on every page load — so anything
+  // holding a cursor across a navigation (the e2e fixture does) would wait for
+  // seq 2 while the fresh page hands out seq 1 again, forever.
   var seq = 0;
+  try { seq = Number(sessionStorage.getItem("dozeFeedbackSeq")) || 0; } catch (e) {}
+  function nextSeq() {
+    seq++;
+    try { sessionStorage.setItem("dozeFeedbackSeq", String(seq)); } catch (e) {}
+    return seq;
+  }
   function toast(msg, kind) {
     var box = document.getElementById("toasts");
     if (!box) return;
@@ -127,7 +137,7 @@
     // suite actually lost: its second waitForToast resolved against the first
     // toast, and the reload that followed aborted the request whose toast it
     // thought it had seen.
-    var id = ++seq;
+    var id = nextSeq();
     el.dataset.seq = String(id);
     box.appendChild(el);
     setTimeout(function () { el.remove(); }, kind === "err" ? 6000 : 3200);
@@ -581,6 +591,23 @@
     e.preventDefault();
     if (window.htmx) { htmx.process(f); htmx.trigger(f, "submit"); }
   });
+  // The same race, button flavour. A bare hx-post BUTTON (no form — the
+  // one-click "Decrypt this →" shape) has no native fallback, so a click in
+  // the unbound window is a silent no-op: the button simply does nothing and
+  // there is no navigation to even notice. defaultPrevented cannot tell the
+  // cases apart here (htmx does not preventDefault plain clicks), so this
+  // checks htmx's own processed marker — internal data with an initHash —
+  // and rescues only elements htmx has genuinely not seen.
+  document.addEventListener("click", function (e) {
+    if (!window.htmx || !e.target || !e.target.closest) return;
+    var c = e.target.closest("[hx-post],[hx-get],[hx-put],[hx-patch],[hx-delete]");
+    if (!c || c.tagName === "FORM") return;
+    if (c.form || c.closest("form")) return; // form members ride the submit guard
+    var d = c["htmx-internal-data"];
+    if (d && d.initHash) return; // bound: htmx's own listener already fired
+    htmx.process(c);
+    htmx.trigger(c, "click");
+  });
 
   // ---------- double-submit guard ----------
   // htmx:beforeSend, NOT beforeRequest: the payload is serialized between the
@@ -766,6 +793,10 @@
     // form path — and they were rendering the same thing under different
     // identities, so anything addressing #flashbar only worked on one of them.
     el.id = "flashbar";
+    // Same monotonic sequence as toasts. A toast and a flashbar are the same
+    // thing — feedback for an action — delivered in two shapes, and anything
+    // waiting for "the next piece of feedback" needs one counter across both.
+    el.dataset.seq = String(nextSeq());
     el.className = "flash anim" + (f.sticky ? " flash-sticky" : "");
     el.setAttribute("role", "status");
     el.innerHTML = '<span class="fl-msg"></span>' +

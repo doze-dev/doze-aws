@@ -82,8 +82,12 @@ export const test = base.extend<ConsoleFixtures>({
       // Consumption tracking has neither race.
       const state = page as unknown as { __lastToastSeq?: number };
       const consumed = state.__lastToastSeq ?? 0;
+      // A mutation's feedback arrives as a corner toast OR as the flashbar —
+      // redirect-style results moved to the banner when toasts proved too
+      // short to read. Both carry the same monotonic data-seq, so "the next
+      // piece of feedback" is one wait across both shapes.
       const locator = page
-        .locator(kind === 'err' ? '.toast.err' : '.toast:not(.err)')
+        .locator(kind === 'err' ? '.toast.err' : '.toast:not(.err), #flashbar')
         .last();
       let seq = 0;
       await expect(async () => {
@@ -91,6 +95,9 @@ export const test = base.extend<ConsoleFixtures>({
         expect(seq).toBeGreaterThan(consumed);
       }).toPass({ timeout: 8000 });
       state.__lastToastSeq = seq;
+      // Toast text is span #2; the flashbar's is .fl-msg.
+      const flMsg = locator.locator('.fl-msg');
+      if (await flMsg.count()) return (await flMsg.textContent()) ?? '';
       return (await locator.locator('span').nth(1).textContent()) ?? '';
     });
   },

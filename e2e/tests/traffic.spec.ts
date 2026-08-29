@@ -109,7 +109,9 @@ test.describe('raw gateway calls are recorded', () => {
     await expect(row.locator('.svcb')).toHaveText('sqs');
     // The inspector is a drawer now, not an inline expand: clicking the row
     // fetches /traffic/entry into #t-drawer-inner.
-    await row.click();
+    // Not row.click(): the row centre is the resource LINK now, and clicking
+    // it navigates to the queue page instead of opening the inspector.
+    await row.locator('.act').click();
     await expect(page.locator('#t-drawer-inner pre').first()).toContainText(queueName);
   });
 });
@@ -188,7 +190,7 @@ test.describe('secret redaction', () => {
     await waitWireQuiet(page);
     const row = trafficRow(page, secretName);
     await expect(row.locator('.svcb')).toHaveText('sm');
-    await row.click();
+    await row.locator('.act').click();
     await expect(page.locator('#t-drawer-inner pre').first()).toBeVisible();
     const body = await page.locator('#t-drawer-inner').textContent();
     expect(body).not.toContain(marker);

@@ -7,15 +7,21 @@ import { createBucket } from '../fixtures/api';
 // the confirm/toast tests — this spec is about the chrome, not S3.
 
 test.describe('theme', () => {
-  test('toggles and persists across reload', async ({ page }) => {
+  test('selects a mode and persists across reload', async ({ page }) => {
+    // #theme-toggle was a two-state flip; the control is the three-button
+    // #appearance group now (light / system / dark), where "system" is the
+    // ABSENCE of data-theme so the OS preference can answer via CSS alone.
     await page.goto('');
     const html = page.locator('html');
-    const before = await html.getAttribute('data-theme');
-    await page.locator('#theme-toggle').click();
-    const after = await html.getAttribute('data-theme');
-    expect(after).not.toBe(before);
+    await page.locator('#appearance button[data-mode="dark"]').click();
+    await expect(html).toHaveAttribute('data-theme', 'dark');
     await page.reload();
-    await expect(html).toHaveAttribute('data-theme', after!);
+    await expect(html).toHaveAttribute('data-theme', 'dark');
+    // Back to system: the attribute goes away entirely rather than flipping.
+    await page.locator('#appearance button[data-mode="system"]').click();
+    await expect(html).not.toHaveAttribute('data-theme');
+    await page.reload();
+    await expect(html).not.toHaveAttribute('data-theme');
   });
 });
 
