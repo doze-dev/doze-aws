@@ -1365,7 +1365,15 @@ a.lo-card:hover { border-color: var(--accent); }
 /* Configuration that must survive an htmx swap. It used to live inside the
    result panel, so the first invoke deleted the very numbers you were about to
    compare the result against. */
-.factstrip { display: flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); margin-bottom: 14px; }
+/* margin-top is not optional here. This sits directly under .det-h's chips row,
+   which has margin-top:8px and no margin below — so with only a bottom margin
+   the strip butted flush against the chips and its 1px border met the
+   copychip's, reading as one thick doubled rule rather than two boxes.
+   Measured: the header rhythm was 8 / 0 / 14.
+
+   8 / 10 / 14 now: title and chips are tightly related, the summary is its own
+   block, the tab bar is a section boundary. */
+.factstrip { display: flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); margin-top: 10px; margin-bottom: 14px; }
 .factstrip .fact { padding: 8px 14px; border-right: 1px solid var(--border); min-width: 96px; }
 .factstrip .fact:last-child { border-right: 0; }
 .fx-k { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
