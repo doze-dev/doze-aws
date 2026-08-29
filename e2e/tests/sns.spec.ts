@@ -84,7 +84,10 @@ test.describe('SNS console', () => {
     // by the time this partial swaps in, the message already sits in the
     // subscriber queue.
     const receipt = page.locator('#sns-receipt');
-    await expect(receipt).toContainText('fanned out to 1 subscriber');
+    // The receipt stopped saying "fanned out to N" and started saying
+    // "delivered to N of M" when it began evaluating filter policies for real
+    // — a count of subscriptions is not a count of deliveries.
+    await expect(receipt).toContainText('delivered to 1 of 1 subscriber');
     await expect(receipt).toContainText(queue);
 
     await page.goto(`sqs/${queue}`);
@@ -174,8 +177,12 @@ test.describe('SNS console', () => {
     await publish(markerEnvelope);
     await page.goto(`sqs/${queue}`);
     await waitForLive('#message-panel-wrap', (text) => text.includes(markerEnvelope));
+    // The peek no longer shows the envelope's raw "Type": "Notification" —
+    // summarize() RECOGNISES an SNS envelope and renders it as an "sns · topic"
+    // chip with the inner message unwrapped. The chip is itself the proof the
+    // envelope arrived: it can only appear when there is one to recognise.
     const envelopeMsg = page.locator('.msg', { hasText: markerEnvelope });
-    await expect(envelopeMsg).toContainText('Notification');
+    await expect(envelopeMsg.locator('.evt')).toContainText('sns');
 
     // Flip raw delivery on for this subscription.
     await page.goto(`sns/${topic}`);
@@ -193,8 +200,10 @@ test.describe('SNS console', () => {
     await publish(markerRaw);
     await page.goto(`sqs/${queue}`);
     await waitForLive('#message-panel-wrap', (text) => text.includes(markerRaw));
+    // A raw delivery has no envelope, so there is nothing for the summariser
+    // to recognise — no sns chip, just the payload.
     const rawMsg = page.locator('.msg', { hasText: markerRaw });
-    await expect(rawMsg).not.toContainText('Notification');
+    await expect(rawMsg.locator('.evt', { hasText: 'sns' })).toHaveCount(0);
 
     // The toggle's effect is also visible (and persists across reload) as
     // the "raw" badge on the subscription row, independent of message shape.

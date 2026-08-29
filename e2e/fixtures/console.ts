@@ -71,20 +71,26 @@ export const test = base.extend<ConsoleFixtures>({
   waitForToast: async ({ page }, use) => {
     await use(async (opts) => {
       const kind = opts?.kind ?? 'ok';
-      // Wait for a toast NEWER than any currently showing. Toasts live 3.2s,
-      // so two actions back to back made the old version resolve against the
-      // FIRST action's toast — and a reload right after aborted the second
-      // action's request mid-flight. Toasts carry data-seq for exactly this.
-      const maxSeq = await page
-        .locator('.toast')
-        .evaluateAll((els) => Math.max(0, ...els.map((e) => Number((e as HTMLElement).dataset.seq ?? 0))));
+      // Wait for a toast this fixture has not RETURNED yet. Toasts carry a
+      // monotonic data-seq; the fixture remembers the last one it consumed.
+      //
+      // Sampling "the newest toast currently showing" fails in both
+      // directions: two actions back to back resolve the second wait against
+      // the first toast (which aborted an in-flight request when a reload
+      // followed), and a toast that lands BEFORE the wait is called gets
+      // counted into the baseline, deadlocking the wait against itself.
+      // Consumption tracking has neither race.
+      const state = page as unknown as { __lastToastSeq?: number };
+      const consumed = state.__lastToastSeq ?? 0;
       const locator = page
         .locator(kind === 'err' ? '.toast.err' : '.toast:not(.err)')
         .last();
+      let seq = 0;
       await expect(async () => {
-        const seq = Number(await locator.getAttribute('data-seq'));
-        expect(seq).toBeGreaterThan(maxSeq);
+        seq = Number(await locator.getAttribute('data-seq'));
+        expect(seq).toBeGreaterThan(consumed);
       }).toPass({ timeout: 8000 });
+      state.__lastToastSeq = seq;
       return (await locator.locator('span').nth(1).textContent()) ?? '';
     });
   },

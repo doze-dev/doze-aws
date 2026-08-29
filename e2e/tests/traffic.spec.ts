@@ -36,8 +36,27 @@ async function rawAwsJson(
 // text anywhere inside it — including its collapsed `.tr-detail` body, whose
 // text is present in the DOM (just display:none via x-show) so .textContent()
 // / hasText matching sees it without needing to click the row open.
+
+// The feed polls every 1.5s and a changed tick REPLACES the rows, so a click
+// racing a swap lands on a node that leaves the DOM before htmx acts on it.
+// Wait for one quiet tick — same hash across a full poll interval — before
+// interacting with a row.
+async function waitWireQuiet(page: import('@playwright/test').Page) {
+  const feed = page.locator('#traffic-feed');
+  await expect(async () => {
+    const before = await feed.getAttribute('data-hash');
+    await page.waitForTimeout(1700);
+    expect(await feed.getAttribute('data-hash')).toBe(before);
+  }).toPass({ timeout: 15000 });
+}
+
 function trafficRow(page: import('@playwright/test').Page, text: string) {
-  return page.locator('#traffic-feed [x-data]', { hasText: text }).first();
+  // .tr-row, not [x-data]: the rows carry no x-data of their own (the Alpine
+  // scope lives on the feed wrapper), so the old selector matched ONE big
+  // wrapper for any text. Field assertions inside it worked by accident —
+  // first row in document order — but clicking it clicked the wrapper's
+  // centre, which is not the row, and the inspector never opened.
+  return page.locator('#traffic-feed .tr-row', { hasText: text }).first();
 }
 
 test.describe('console actions stay out of Traffic', () => {
@@ -84,10 +103,14 @@ test.describe('raw gateway calls are recorded', () => {
     await page.goto('traffic');
     await waitForLive('#traffic-feed', (text) => text.includes(queueName));
 
+    await waitWireQuiet(page);
     const row = trafficRow(page, queueName);
     await expect(row.locator('.act')).toHaveText('CreateQueue');
     await expect(row.locator('.svcb')).toHaveText('sqs');
-    await expect(row.locator('.tr-detail pre')).toContainText(queueName);
+    // The inspector is a drawer now, not an inline expand: clicking the row
+    // fetches /traffic/entry into #t-drawer-inner.
+    await row.click();
+    await expect(page.locator('#t-drawer-inner pre').first()).toContainText(queueName);
   });
 });
 
@@ -162,9 +185,12 @@ test.describe('secret redaction', () => {
     await page.goto('traffic');
     await waitForLive('#traffic-feed', (text) => text.includes(secretName));
 
+    await waitWireQuiet(page);
     const row = trafficRow(page, secretName);
     await expect(row.locator('.svcb')).toHaveText('sm');
-    const body = await row.locator('.tr-detail pre').textContent();
+    await row.click();
+    await expect(page.locator('#t-drawer-inner pre').first()).toBeVisible();
+    const body = await page.locator('#t-drawer-inner').textContent();
     expect(body).not.toContain(marker);
     expect(body).toContain('••••••'); // •••••• mask (redactKey's `mask` const)
     expect(body).toContain(secretName); // the non-secret Name field survives untouched

@@ -558,6 +558,30 @@
     if (reqBar) reqBar.classList.remove("on");
   });
 
+  // ---------- late-form guard ----------
+  // A form carrying hx-post must never fall through to its native submit.
+  //
+  // There is a window between htmx inserting swapped-in content and binding
+  // its listeners. A click landing inside it takes the browser's default path,
+  // and for these forms — no action, no method — the default is a GET
+  // NAVIGATION to the current URL with the fields as query params: the page
+  // reloads, unsaved state evaporates, and the request the button promised
+  // never happens. The KMS one-click verify lost this race on every suite run
+  // (trace showed GET /kms/{id}?signature=... where a POST should have been),
+  // and any human on a slow enough machine can lose it too.
+  //
+  // Bound forms are untouched: htmx's own handler runs first and calls
+  // preventDefault, so defaultPrevented tells the two cases apart. An unbound
+  // form is bound on the spot and its submit replayed, so the click still does
+  // what it said rather than becoming a no-op.
+  document.addEventListener("submit", function (e) {
+    var f = e.target;
+    if (!f || !f.matches || !f.matches("form[hx-post],form[hx-get],form[hx-put],form[hx-patch],form[hx-delete]")) return;
+    if (e.defaultPrevented) return; // htmx got there; nothing to rescue
+    e.preventDefault();
+    if (window.htmx) { htmx.process(f); htmx.trigger(f, "submit"); }
+  });
+
   // ---------- double-submit guard ----------
   // htmx:beforeSend, NOT beforeRequest: the payload is serialized between the
   // two, and a control disabled before serialization drops out of the body.
