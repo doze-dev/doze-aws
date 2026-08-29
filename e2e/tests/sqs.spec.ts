@@ -104,6 +104,22 @@ test.describe('DLQ created alongside', () => {
   });
 });
 
+
+// The composer is docked at the foot of the message list and collapsed until
+// used. Opening it is now part of composing, so every test that sends goes
+// through here rather than reaching straight for the Send button.
+//
+// It also has to wait for CodeMirror: the editor is refreshed on expand
+// (it mis-measures while hidden), and filling it before that lands in a
+// textarea the user cannot see.
+async function openComposer(page: import('@playwright/test').Page) {
+  const bar = page.locator('.dock-bar');
+  if (await bar.isVisible().catch(() => false)) {
+    await bar.click();
+    await expect(page.locator('.sqs-compose')).toBeVisible();
+  }
+}
+
 test.describe('composer', () => {
   test('sends a message with string + binary attributes on a standard queue', async ({
     page,
@@ -120,6 +136,7 @@ test.describe('composer', () => {
     // The Add button sits inside a <label> alongside descriptive text, so its
     // computed accessible name is the whole label ("Message attributes
     // optional metadata"), not "Add" — scope by class instead of role/name.
+    await openComposer(page);
     const addBtn = page.locator('.sqs-compose button.btn-outline.btn-sm');
     await addBtn.click();
     await addBtn.click();
@@ -134,7 +151,8 @@ test.describe('composer', () => {
     await rows.nth(1).locator('select').selectOption('Binary');
     await rows.nth(1).locator('input').nth(1).fill('aGVsbG8=');
 
-    await page.getByRole('button', { name: 'Send' }).click();
+    await openComposer(page);
+    await page.locator('.sqs-compose').getByRole('button', { name: 'Send' }).click();
 
     const msg = page.locator('.msg', { hasText: body });
     await expect(msg).toBeVisible();
@@ -166,10 +184,12 @@ test.describe('composer', () => {
 
     const group = 'e2e-group-1';
     const dedup = `e2e-dedup-${Date.now()}`;
+    await openComposer(page);
     await page.locator('input[name=group]').fill(group);
     await page.locator('input[name=dedup]').fill(dedup);
 
-    await page.getByRole('button', { name: 'Send' }).click();
+    await openComposer(page);
+    await page.locator('.sqs-compose').getByRole('button', { name: 'Send' }).click();
 
     const msg = page.locator('.msg', { hasText: body });
     await expect(msg).toBeVisible();
@@ -189,11 +209,13 @@ test.describe('message + queue lifecycle', () => {
     const keepBody = `{"keep":"${Date.now()}"}`;
     const delBody = `{"del":"${Date.now()}"}`;
     await setEditor('textarea[name=body][data-editor]', keepBody);
-    await page.getByRole('button', { name: 'Send' }).click();
+    await openComposer(page);
+    await page.locator('.sqs-compose').getByRole('button', { name: 'Send' }).click();
     await expect(page.locator('.msg', { hasText: keepBody })).toBeVisible();
 
     await setEditor('textarea[name=body][data-editor]', delBody);
-    await page.getByRole('button', { name: 'Send' }).click();
+    await openComposer(page);
+    await page.locator('.sqs-compose').getByRole('button', { name: 'Send' }).click();
     const delMsg = page.locator('.msg', { hasText: delBody });
     await expect(delMsg).toBeVisible();
 
@@ -212,10 +234,15 @@ test.describe('message + queue lifecycle', () => {
     await page.goto(`sqs/${name}`);
 
     await setEditor('textarea[name=body][data-editor]', `{"purge-me":1}`);
-    await page.getByRole('button', { name: 'Send' }).click();
+    await openComposer(page);
+    await page.locator('.sqs-compose').getByRole('button', { name: 'Send' }).click();
     await expect(page.locator('.msg')).toHaveCount(1);
 
-    await page.getByRole('button', { name: 'Purge' }).click();
+    // exact, because getByRole's name match is a SUBSTRING and the message
+    // rows are role="button" with the body in their accessible name — so the
+    // fixture body {"purge-me":1} matches a locator looking for "Purge".
+    await page.locator('#message-panel-wrap')
+      .getByRole('button', { name: 'Purge', exact: true }).click();
     await confirmDialog('accept');
 
     await expect(page.locator('#message-panel-wrap .empty')).toContainText('No visible messages');
@@ -241,10 +268,12 @@ test.describe('DLQ redrive', () => {
     const bodyB = `{"n":"redrive-b-${Date.now()}"}`;
     await page.goto(`sqs/${dlq}`);
     await setEditor('textarea[name=body][data-editor]', bodyA);
-    await page.getByRole('button', { name: 'Send' }).click();
+    await openComposer(page);
+    await page.locator('.sqs-compose').getByRole('button', { name: 'Send' }).click();
     await expect(page.locator('.msg', { hasText: bodyA })).toBeVisible();
     await setEditor('textarea[name=body][data-editor]', bodyB);
-    await page.getByRole('button', { name: 'Send' }).click();
+    await openComposer(page);
+    await page.locator('.sqs-compose').getByRole('button', { name: 'Send' }).click();
     await expect(page.locator('.msg', { hasText: bodyB })).toBeVisible();
 
     // The DLQ page offers a redrive button back toward its one source.
@@ -273,16 +302,16 @@ test.describe('attribute edit', () => {
     const name = await createQueue(request, uniqueName('e2e-sqs-attredit'), { visibility: 30 });
     await page.goto(`sqs/${name}?tab=config`);
 
-    await expect(page.locator('.tbl.kv tr', { hasText: 'Visibility timeout' })).toContainText('30 s');
+    await expect(page.locator('.tbl.kv tr', { hasText: 'Visibility timeout' })).toContainText('30s');
 
     await page.getByTitle('Edit settings').click();
     await page.locator('input[name=visibility]').fill('77');
     await page.getByRole('button', { name: 'Save settings' }).click();
 
-    await expect(page.locator('.tbl.kv tr', { hasText: 'Visibility timeout' })).toContainText('77 s');
+    await expect(page.locator('.tbl.kv tr', { hasText: 'Visibility timeout' })).toContainText('77s');
 
     await page.reload();
-    await expect(page.locator('.tbl.kv tr', { hasText: 'Visibility timeout' })).toContainText('77 s');
+    await expect(page.locator('.tbl.kv tr', { hasText: 'Visibility timeout' })).toContainText('77s');
   });
 });
 

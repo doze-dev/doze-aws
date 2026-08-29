@@ -39,6 +39,10 @@ func TestHumanSecs(t *testing.T) {
 		{"0", "0s"},
 		{"3600", "1 hour"},
 		{"5400", "1 hour 30 mins"},
+		// Below an hour the raw seconds ARE the readable form — you typed them
+		// in seconds and want them back in seconds.
+		{"77", "77s"},
+		{"1800", "1800s"},
 		{"", "—"},
 		{"not-a-number", "not-a-number"}, // pass through rather than invent
 	} {

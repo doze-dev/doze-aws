@@ -28,6 +28,9 @@ async function waitToastGone(page: Page) {
 // attached. Each service also gates the panel behind a different tab/query
 // param: SQS needs `?tab=config`, DDB needs `?tab=details`, KMS needs none.
 
+// The editor is a draft: rows live in Alpine, nothing reaches the service until
+// Save, and Cancel restores. So the assertions changed shape with it — the old
+// version expected a per-row "Tag saved" toast and a <tr> per tag.
 async function addAndRemoveTag(
   page: import('@playwright/test').Page,
   waitForToast: (opts?: { kind?: 'ok' | 'err' }) => Promise<string>,
@@ -37,24 +40,40 @@ async function addAndRemoveTag(
   const tagEditor = page.locator('#tag-editor');
   await expect(tagEditor).toBeVisible();
 
-  // Add the tag via the shared tag-row-form.
-  await tagEditor.locator('.tag-row-form input[name="key"]').fill(tagKey);
-  await tagEditor.locator('.tag-row-form input[name="value"]').fill(tagValue);
-  await tagEditor.locator('.tag-row-form').getByRole('button', { name: 'Add' }).click();
+  // Add a row and fill it. Nothing has reached the service yet.
+  await tagEditor.getByRole('button', { name: 'Add tag' }).click();
+  const newRow = tagEditor.locator('.tag-row').last();
+  await newRow.locator('input[name="tag_key"]').fill(tagKey);
+  await newRow.locator('input[name="tag_val"]').fill(tagValue);
+
+  // Save is gated on dirty, so it is only clickable once something changed.
+  const save = tagEditor.getByRole('button', { name: 'Save changes' });
+  await expect(save).toBeEnabled();
+  await save.click();
   const addToast = await waitForToast();
-  expect(addToast).toMatch(/Tag saved/);
+  expect(addToast).toMatch(/Tags saved/);
   await waitToastGone(page);
 
-  // Verify it round-tripped into the rendered tag list (not just the toast).
-  const row = tagEditor.locator('tr', { hasText: tagKey });
-  await expect(row).toBeVisible();
-  await expect(row).toContainText(tagValue);
+  // Round-tripped: the row comes back from the service, not from local state.
+  //
+  // Read the VALUE, not a [value="..."] attribute selector. Alpine's x-model
+  // assigns the input's value PROPERTY and never writes the attribute, so an
+  // attribute selector matches nothing however correct the page is.
+  const keyValues = () =>
+    tagEditor.locator('input[name="tag_key"]').evaluateAll((els) =>
+      els.map((e) => (e as HTMLInputElement).value)
+    );
+  await expect.poll(keyValues).toContain(tagKey);
 
-  // Remove it and verify it's gone from the rendered list.
-  await row.getByRole('button', { name: 'Remove tag' }).click();
+  const rowIndex = (await keyValues()).indexOf(tagKey);
+  await expect(tagEditor.locator('input[name="tag_val"]').nth(rowIndex)).toHaveValue(tagValue);
+
+  // Remove it and save again — removal is part of the same draft.
+  await tagEditor.locator('.tag-row').nth(rowIndex).getByRole('button', { name: 'Remove this tag' }).click();
+  await tagEditor.getByRole('button', { name: 'Save changes' }).click();
   const removeToast = await waitForToast();
-  expect(removeToast).toMatch(/Tag removed/);
-  await expect(tagEditor.locator('tr', { hasText: tagKey })).toHaveCount(0);
+  expect(removeToast).toMatch(/removed/);
+  await expect.poll(keyValues).not.toContain(tagKey);
 }
 
 test.describe('shared tag editor', () => {
@@ -67,7 +86,7 @@ test.describe('shared tag editor', () => {
     const queue = await createQueue(request, uniqueName('e2e-tags-sqs'));
     const tagKey = uniqueName('e2e-tag-key');
 
-    await page.goto(`sqs/${queue}?tab=config`);
+    await page.goto(`sqs/${queue}?tab=tags`);
     await addAndRemoveTag(page, waitForToast, tagKey, 'sqs-value');
   });
 
@@ -80,7 +99,7 @@ test.describe('shared tag editor', () => {
     const table = await createTable(request, uniqueName('e2e-tags-ddb'));
     const tagKey = uniqueName('e2e-tag-key');
 
-    await page.goto(`ddb/${table}?tab=details`);
+    await page.goto(`ddb/${table}?tab=tags`);
     await addAndRemoveTag(page, waitForToast, tagKey, 'ddb-value');
   });
 

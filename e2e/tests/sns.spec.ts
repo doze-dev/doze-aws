@@ -70,7 +70,7 @@ test.describe('SNS console', () => {
     await subscribeQueue(request, topic, queue);
 
     const marker = uniqueName('marker');
-    await page.goto(`sns/${topic}`);
+    await page.goto(`sns/${topic}?tab=publish`);
 
     await setEditor('textarea[name="message"]', JSON.stringify({ marker }));
     const publishForm = page.locator('form:has(textarea[name="message"])');
@@ -120,7 +120,7 @@ test.describe('SNS console', () => {
     // Publish fresh from a reloaded page each time so the message/attr
     // editors never carry state over from the previous publish.
     async function publish(marker: string, eventType: string) {
-      await page.goto(`sns/${topic}`);
+      await page.goto(`sns/${topic}?tab=publish`);
       await setEditor('textarea[name="message"]', JSON.stringify({ marker }));
       const publishForm = page.locator('form:has(textarea[name="message"])');
       await publishForm.locator('button', { hasText: 'Add' }).click();
@@ -161,7 +161,7 @@ test.describe('SNS console', () => {
     await subscribeQueue(request, topic, queue);
 
     async function publish(marker: string) {
-      await page.goto(`sns/${topic}`);
+      await page.goto(`sns/${topic}?tab=publish`);
       await setEditor('textarea[name="message"]', JSON.stringify({ marker }));
       const publishForm = page.locator('form:has(textarea[name="message"])');
       await publishForm.locator('button[type=submit]').click();

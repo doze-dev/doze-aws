@@ -381,9 +381,10 @@ func TestConsoleEditing(t *testing.T) {
 	// SQS attributes: edit visibility, the config partial reflects it.
 	create(t, h, "/_console/sqs/create", url.Values{"name": {"editq"}})
 	upd := req(t, h, "POST", "/_console/sqs/editq/attributes", url.Values{"visibility": {"120"}})
-	// Durations render the way a person says them ("2 mins"), matching the
-	// dozeDur echo under the duration inputs — see humanSecs.
-	if upd.Code != 200 || !strings.Contains(upd.Body.String(), "2 mins") {
+	// Below an hour humanSecs leaves the raw seconds alone: a visibility timeout
+	// is a number you TYPED in seconds and want to read back in seconds. "1 min
+	// 17s" for 77 is worse than "77s", and that is where the threshold moved.
+	if upd.Code != 200 || !strings.Contains(upd.Body.String(), "120s") {
 		t.Fatalf("set attributes: %d\n%s", upd.Code, upd.Body)
 	}
 

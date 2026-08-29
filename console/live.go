@@ -125,8 +125,12 @@ func humanSecs(s string) string {
 	if strings.TrimSpace(s) == "" {
 		return "—"
 	}
+	// Humanise only where it earns its keep. "4 days" beats "345600 s"; "1 min
+	// 17s" is worse than "77s", because a visibility timeout is a number you
+	// TYPED in seconds and want to read back in seconds. An hour is the point
+	// where the raw figure stops being legible at a glance.
 	n, err := strconv.Atoi(strings.TrimSpace(s))
-	if err != nil || n < 60 {
+	if err != nil || n < 3600 {
 		if err != nil {
 			return s
 		}
