@@ -32,10 +32,11 @@ import (
 // test fail, which is the point.
 var uncovered = map[string][]string{
 	// Complete — see exempt for the deliberate omissions.
-	"sqs":     {},
-	"kinesis": {},
-	"sns":     {},
-	"kms":     {},
+	"sqs":         {},
+	"kinesis":     {},
+	"sns":         {},
+	"kms":         {},
+	"eventbridge": {},
 	// BatchGetSecretValue is the one exemption — see exempt.
 	"secretsmanager": {},
 }

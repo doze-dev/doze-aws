@@ -272,6 +272,11 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/eb/{bus}/create-archive", c.ebCreateArchive)
 	m.HandleFunc("POST "+p+"/eb/{bus}/delete-archive", c.ebDeleteArchive)
 	m.HandleFunc("POST "+p+"/eb/{bus}/replay", c.ebReplay)
+	m.HandleFunc("GET  "+p+"/eb/{bus}/archive/{archive}", c.ebArchive)              // DescribeArchive
+	m.HandleFunc("POST "+p+"/eb/{bus}/archive/{archive}/update", c.ebUpdateArchive) // UpdateArchive
+	m.HandleFunc("GET  "+p+"/eb/{bus}/replay/{replay}", c.ebReplayDetail)           // DescribeReplay
+	m.HandleFunc("GET  "+p+"/eb/{bus}/detail", c.ebBusDetail)                       // DescribeEventBus
+	m.HandleFunc("POST "+p+"/eb/{bus}/rules-by-target", c.ebRulesByTarget)          // ListRuleNamesByTarget
 	m.HandleFunc("GET "+p+"/eb/{bus}/rule/{rule}", c.ebRule)
 	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/add-target", c.ebAddTarget)
 	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/remove-target", c.ebRemoveTarget)

@@ -41,6 +41,7 @@
   </section>
 {{template "shell_bottom" .}}{{end}}
 
+
 {{/* Archives capture events for later replay; replays re-inject them through
      this bus's rules. Local replays run synchronously and complete at once. */}}
 {{define "eb_archives"}}
@@ -48,7 +49,9 @@
   <div class="panel"><div class="panel-h"><h2>{{icon "database"}} Archives <span class="badge">{{len .Archives}}</span></h2>
     <span class="dim" style="font-size:11.5px">every matching event is captured</span></div>
     {{if .Archives}}<table class="tbl"><thead><tr><th>Archive</th><th>Events</th><th class="right">Actions</th></tr></thead><tbody>{{range .Archives}}
-      <tr><td class="mono" style="font-size:11.5px;font-weight:550">{{.Name}}</td>
+      <tr><td class="mono eb-arc-name"><button type="button" class="linkish"
+             hx-get="{{$.Prefix}}/eb/{{$.Bus}}/archive/{{.Name}}" hx-target="#eb-detail" hx-select="unset" hx-swap="innerHTML"
+             title="Show its event pattern — the reason an archive has captured nothing">{{.Name}}</button></td>
         <td class="dim">{{.Events}}{{if .Retention}} · {{.Retention}}d{{end}}</td>
         <td class="right"><div class="row-actions" style="justify-content:flex-end">
           <button class="btn btn-outline btn-sm" hx-post="{{$.Prefix}}/eb/{{$.Bus}}/replay" hx-vals='{"name":"{{.Name}}"}' hx-target="#eb-archives" hx-select="unset" hx-swap="outerHTML" title="Replay every captured event back through this bus">{{icon "rotate"}} Replay</button>
@@ -62,11 +65,30 @@
   </div>
   <div class="panel"><div class="panel-h"><h2>{{icon "rotate"}} Replays <span class="badge">{{len .Replays}}</span></h2></div>
     {{if .Replays}}<table class="tbl"><thead><tr><th>Replay</th><th>State</th><th class="right">Started</th></tr></thead><tbody>{{range .Replays}}
-      <tr><td class="mono trunc" style="font-size:11px;max-width:220px" title="{{.Name}}">{{.Name}}</td>
+      <tr><td class="mono trunc eb-rep-name" title="{{.Name}}"><button type="button" class="linkish"
+             hx-get="{{$.Prefix}}/eb/{{$.Bus}}/replay/{{.Name}}" hx-target="#eb-detail" hx-select="unset" hx-swap="innerHTML"
+             title="Show its window and state reason — why a COMPLETED replay delivered nothing">{{.Name}}</button></td>
         <td><span class="badge {{if eq .State "COMPLETED"}}state-on{{else}}zero{{end}}">{{.State}}</span></td>
         <td class="right dim" style="font-size:11px">{{ago .Started}}</td></tr>
     {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No replays yet.</p></div>{{end}}
   </div>
+      {{/* Reverse lookup and the bus's own record. A rule's target list answers
+           "where does this go"; ListRuleNamesByTarget answers "what sends
+           here", which is the question you have while standing on a queue
+           receiving something you did not expect. */}}
+      <div class="sec-title">Trace a target back</div>
+      <div class="panel">
+        <form class="tag-row-form" hx-post="{{.Prefix}}/eb/{{.Bus}}/rules-by-target" hx-target="#eb-by-target" hx-select="unset" hx-swap="outerHTML">
+          <input class="input mono" name="target" placeholder="arn:aws:sqs:us-east-1:000000000000:orders" required autocomplete="off">
+          <button class="btn btn-outline btn-sm" type="submit">Which rules fire into this?</button>
+        </form>
+        <form class="tag-row-form" hx-get="{{.Prefix}}/eb/{{.Bus}}/detail" hx-target="#eb-detail" hx-select="unset" hx-swap="innerHTML">
+          <span class="dim send-hint">The bus's own record, including its resource policy</span>
+          <button class="btn btn-ghost btn-sm" type="submit">Describe this bus</button>
+        </form>
+      </div>
+      <div id="eb-by-target"></div>
+      <div id="eb-detail" class="eb-detail"></div>
 </div>
 {{end}}
 
@@ -124,5 +146,58 @@
     <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn btn-outline" type="submit">Add target</button></div>
   </form>
 </div></div>
+</div>
+{{end}}
+
+{{/* DescribeArchive — the pattern is the whole explanation for an archive that
+     has captured nothing, and only the describe carries it. The list has the
+     count and not the reason. */}}
+{{define "eb_archive_detail"}}
+<div id="eb-archive-detail" class="panel">
+  <div class="panel-h"><h2>{{.A.Name}}</h2>
+    <span class="dim">{{.A.Events}} event{{if ne .A.Events 1}}s{{end}} · {{.A.Retention}} day retention · {{.A.State}}</span></div>
+  <div class="form-b">
+    {{if .Reason}}<p class="mini-note">{{.Reason}}</p>{{end}}
+    {{/* Editable, because the alternative to fixing a wrong pattern is deleting
+         the archive — which discards everything it has already captured. */}}
+    <form hx-post="{{.Prefix}}/eb/{{.Bus}}/archive/{{.A.Name}}/update" hx-target="#eb-archive-detail" hx-select="unset" hx-swap="outerHTML">
+      <div class="field"><label>Event pattern <span class="dim">JSON — what this archive captures</span></label>
+        <textarea name="pattern" data-editor="json" rows="4" spellcheck="false">{{.A.Pattern}}</textarea></div>
+      <div class="field"><label>Retention <span class="dim">days</span></label>
+        <input class="input" name="retention" type="number" min="0" value="{{.A.Retention}}"></div>
+      <div class="send-foot"><button class="btn btn-sm" type="submit">Save archive</button></div>
+    </form>
+  </div>
+</div>
+{{end}}
+
+{{/* A plain key/value detail block, shared by DescribeReplay and
+     DescribeEventBus — both answer with a handful of fields and nothing else. */}}
+{{define "eb_kv_detail"}}
+<div class="panel">
+  <div class="panel-h"><h2>{{.Title}}</h2></div>
+  <table class="tbl kv"><tbody>
+    {{range $k, $v := .Fields}}{{if $v}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}{{end}}
+  </tbody></table>
+</div>
+{{end}}
+
+{{/* ListRuleNamesByTarget — the reverse lookup. A rule's target list answers
+     "where does this go"; this answers "what sends here", which is the question
+     you actually have while standing on a queue receiving something odd. */}}
+{{define "eb_rules_by_target"}}
+<div id="eb-by-target">
+  {{if .Names}}
+  <div class="panel">
+    <div class="panel-h"><h2>Rules firing into this target</h2><span class="dim">{{len .Names}}</span></div>
+    <table class="tbl"><tbody>
+      {{range .Names}}<tr><td><a href="{{$.Prefix}}/eb/{{$.Bus}}/rule/{{.}}">{{.}}</a></td></tr>{{end}}
+    </tbody></table>
+  </div>
+  {{else}}
+  <div class="panel"><div class="mini-note perm-none">
+    No rule on this bus targets <span class="mono">{{.Target}}</span>. If something is arriving there, it is arriving another way.
+  </div></div>
+  {{end}}
 </div>
 {{end}}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"sort"
+	"strconv"
 )
 
 // ---- EventBridge (JSON 1.1, AWSEvents) ----
@@ -401,4 +402,111 @@ func prettyJSON(s string) string {
 		return s
 	}
 	return string(out)
+}
+
+// The describe operations, and archive updating.
+//
+// ListArchives and ListReplays return a summary; the describes carry the fields
+// that say WHY something is the shape it is — an archive's event pattern, a
+// replay's window and where it stopped, a bus's policy. Those are the fields
+// you want when the answer is "nothing was archived" or "the replay delivered
+// nothing", and neither list call carries them.
+
+// DescribeArchive adds the pattern and the state reason to what the list knows.
+// The pattern is the whole explanation for an archive with zero events.
+func (b *backend) DescribeArchive(ctx context.Context, name string) (EBArchive, string, error) {
+	body, err := b.json11(ctx, "AWSEvents", "DescribeArchive", map[string]any{"ArchiveName": name})
+	if err != nil {
+		return EBArchive{}, "", err
+	}
+	var out struct {
+		ArchiveName   string  `json:"ArchiveName"`
+		ArchiveArn    string  `json:"ArchiveArn"`
+		EventPattern  string  `json:"EventPattern"`
+		State         string  `json:"State"`
+		StateReason   string  `json:"StateReason"`
+		EventCount    int64   `json:"EventCount"`
+		RetentionDays int     `json:"RetentionDays"`
+		CreationTime  float64 `json:"CreationTime"`
+	}
+	json.Unmarshal(body, &out)
+	return EBArchive{
+		Name: out.ArchiveName, ARN: out.ArchiveArn, Events: out.EventCount,
+		Retention: out.RetentionDays, State: out.State, Pattern: out.EventPattern,
+		Created: epochSecString(strconv.FormatInt(int64(out.CreationTime), 10)),
+	}, out.StateReason, nil
+}
+
+// UpdateArchive changes an existing archive's pattern or retention. Without it
+// an archive's filter is fixed at creation, and getting it wrong means deleting
+// the archive — which discards everything it has already captured.
+func (b *backend) UpdateArchive(ctx context.Context, name, pattern string, retentionDays int) error {
+	in := map[string]any{"ArchiveName": name}
+	if pattern != "" {
+		in["EventPattern"] = pattern
+	}
+	if retentionDays > 0 {
+		in["RetentionDays"] = retentionDays
+	}
+	_, err := b.json11(ctx, "AWSEvents", "UpdateArchive", in)
+	return err
+}
+
+// DescribeReplay carries the window and the state reason — the fields that
+// explain a replay that finished having delivered nothing, which the list's
+// "COMPLETED" does not.
+func (b *backend) DescribeReplay(ctx context.Context, name string) (map[string]string, error) {
+	body, err := b.json11(ctx, "AWSEvents", "DescribeReplay", map[string]any{"ReplayName": name})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		ReplayName      string  `json:"ReplayName"`
+		State           string  `json:"State"`
+		StateReason     string  `json:"StateReason"`
+		EventSourceArn  string  `json:"EventSourceArn"`
+		EventStartTime  float64 `json:"EventStartTime"`
+		EventEndTime    float64 `json:"EventEndTime"`
+		ReplayStartTime float64 `json:"ReplayStartTime"`
+		ReplayEndTime   float64 `json:"ReplayEndTime"`
+	}
+	json.Unmarshal(body, &out)
+	sec := func(f float64) string { return epochSecString(strconv.FormatInt(int64(f), 10)) }
+	return map[string]string{
+		"State": out.State, "Reason": out.StateReason, "Source": arnLeaf(out.EventSourceArn),
+		"Window from": sec(out.EventStartTime), "Window to": sec(out.EventEndTime),
+		"Replayed from": sec(out.ReplayStartTime), "Replayed to": sec(out.ReplayEndTime),
+	}, nil
+}
+
+// DescribeEventBus carries the bus's resource policy, which nothing else shows.
+func (b *backend) DescribeEventBus(ctx context.Context, name string) (map[string]string, error) {
+	body, err := b.json11(ctx, "AWSEvents", "DescribeEventBus", map[string]any{"Name": name})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Name   string `json:"Name"`
+		Arn    string `json:"Arn"`
+		Policy string `json:"Policy"`
+	}
+	json.Unmarshal(body, &out)
+	return map[string]string{"Name": out.Name, "Arn": out.Arn, "Policy": out.Policy}, nil
+}
+
+// RuleNamesByTarget is the reverse lookup: which rules fire into this ARN.
+// The forward direction is a rule's target list; this is the question you
+// actually ask, standing on a queue that is receiving something unexpected.
+func (b *backend) RuleNamesByTarget(ctx context.Context, targetARN, busName string) ([]string, error) {
+	body, err := b.json11(ctx, "AWSEvents", "ListRuleNamesByTarget", map[string]any{
+		"TargetArn": targetARN, "EventBusName": busName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		RuleNames []string `json:"RuleNames"`
+	}
+	json.Unmarshal(body, &out)
+	return out.RuleNames, nil
 }

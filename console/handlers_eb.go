@@ -2,6 +2,7 @@ package console
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -271,4 +272,73 @@ func shortID(s string) string {
 		h >>= 4
 	}
 	return string(out)
+}
+
+// ebArchiveDetail is DescribeArchive plus the editor for what it shows.
+//
+// The list says an archive has zero events; the pattern says why, and only
+// DescribeArchive carries it. Updating that pattern matters because the
+// alternative is deleting the archive, which discards everything already
+// captured.
+func (c *Console) ebArchive(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("archive")
+	arc, reason, err := c.be.DescribeArchive(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "eb_archive_detail", map[string]any{
+		"Prefix": c.prefix, "Bus": r.PathValue("bus"), "A": arc, "Reason": reason,
+	})
+}
+
+func (c *Console) ebUpdateArchive(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("archive")
+	if err := c.be.UpdateArchive(r.Context(), name,
+		strings.TrimSpace(r.FormValue("pattern")), atoiDefault(r.FormValue("retention"), 0)); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Archive updated")
+	c.ebArchive(w, r)
+}
+
+// ebReplayDetail explains a replay that reports COMPLETED having delivered
+// nothing — the window and the state reason, neither of which the list carries.
+func (c *Console) ebReplayDetail(w http.ResponseWriter, r *http.Request) {
+	fields, err := c.be.DescribeReplay(r.Context(), r.PathValue("replay"))
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "eb_kv_detail", map[string]any{"Title": "Replay " + r.PathValue("replay"), "Fields": fields})
+}
+
+// ebBusDetail carries the bus's resource policy, which nothing else shows.
+func (c *Console) ebBusDetail(w http.ResponseWriter, r *http.Request) {
+	fields, err := c.be.DescribeEventBus(r.Context(), r.PathValue("bus"))
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "eb_kv_detail", map[string]any{"Title": "Bus " + r.PathValue("bus"), "Fields": fields})
+}
+
+// ebRulesByTarget is the reverse lookup — which rules fire into this ARN. The
+// forward direction is a rule's target list; this is the question you ask while
+// standing on a queue that is receiving something you did not expect.
+func (c *Console) ebRulesByTarget(w http.ResponseWriter, r *http.Request) {
+	target := strings.TrimSpace(r.FormValue("target"))
+	if target == "" {
+		c.fail(w, errors.New("Paste the ARN of the queue, function or stream you want traced back."))
+		return
+	}
+	names, err := c.be.RuleNamesByTarget(r.Context(), target, r.PathValue("bus"))
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "eb_rules_by_target", map[string]any{
+		"Prefix": c.prefix, "Bus": r.PathValue("bus"), "Target": target, "Names": names,
+	})
 }
