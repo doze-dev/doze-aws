@@ -1650,9 +1650,13 @@ a.lo-card:hover { border-color: var(--accent); }
 .fx-v .warn { color: var(--warning); }
 
 /* ---------- tag editor ---------- */
-.tag-k { width: 34%; }
-.tag-x { width: 40px; text-align: right; }
-.tag-none { padding: 12px 14px; }
+/* Rows in a grid with real gaps, so nothing sits against the panel's border.
+   The previous version put these inputs in .tbl cells (padding: 0 12px, fixed
+   34px height), where a full-height input touches the cell edge top and bottom
+   by construction. */
+.tag-rows { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+.tag-row { display: grid; grid-template-columns: 1fr 1.4fr 30px; gap: 8px; align-items: center; }
+.tag-none { padding: 2px 0 0; }
 .tag-foot { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
 /* The dirty note pushes the buttons right, so Save sits where a form%s primary
    action belongs rather than next to Add. */

@@ -89,18 +89,27 @@
      unchanged form and Cancel is not offered when there is nothing to undo. */}}
 {{define "tag_editor"}}
 <div id="tag-editor" x-data="dozeTags({{tagsJSON .Tags}})">
+  {{/* Rows, not a table.
+
+       These were <td>s in a .tbl, which is styled for READ-ONLY key/value
+       display: padding 0 12px and a fixed 34px height, so a full-height input
+       dropped into one touched the cell's border top and bottom and the row's
+       border-bottom sat flush against it. Tabular styling for a form.
+
+       .attr-row already solved this for message attributes — a grid with real
+       gaps. Same shape here. */}}
   <form class="panel" hx-post="{{.Prefix}}/tags/save" hx-target="#tag-editor" hx-select="unset" hx-swap="outerHTML">
     <input type="hidden" name="svc" value="{{.Svc}}"><input type="hidden" name="id" value="{{.ID}}">
-    <table class="tbl kv"><tbody>
+    <div class="tag-rows">
       <template x-for="(row, i) in rows" :key="i">
-        <tr>
-          <td class="tag-k"><input class="input mono" name="tag_key" x-model="row.k" @input="dirty=true" placeholder="Key" autocomplete="off"></td>
-          <td><input class="input" name="tag_val" x-model="row.v" @input="dirty=true" placeholder="Value" autocomplete="off"></td>
-          <td class="tag-x"><button type="button" class="icon-btn sm danger" title="Remove this tag" @click="rows.splice(i,1); dirty=true">{{icon "trash"}}</button></td>
-        </tr>
+        <div class="tag-row">
+          <input class="input mono" name="tag_key" x-model="row.k" @input="dirty=true" placeholder="Key" autocomplete="off">
+          <input class="input" name="tag_val" x-model="row.v" @input="dirty=true" placeholder="Value" autocomplete="off">
+          <button type="button" class="icon-btn sm danger" title="Remove this tag" @click="rows.splice(i,1); dirty=true">{{icon "trash"}}</button>
+        </div>
       </template>
-      <tr x-show="!rows.length"><td colspan="3" class="mini-note tag-none">No tags yet.</td></tr>
-    </tbody></table>
+      <div class="mini-note tag-none" x-show="!rows.length" x-cloak>No tags yet.</div>
+    </div>
     <div class="tag-foot">
       <button type="button" class="btn btn-outline btn-sm" @click="rows.push({k:'',v:''}); dirty=true">{{icon "plus"}} Add tag</button>
       <span class="dim tag-dirty" x-show="dirty" x-cloak>Unsaved changes</span>
