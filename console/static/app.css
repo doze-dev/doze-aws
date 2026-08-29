@@ -1662,3 +1662,7 @@ a.lo-card:hover { border-color: var(--accent); }
    action belongs rather than next to Add. */
 .tag-dirty { margin-left: auto; font-size: 11px; }
 .tag-foot .btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* Continuation rows of an edit form: the first .edit-grid supplies the top
+   padding, the rest should not repeat it. */
+.edit-grid-tight { padding-top: 0; }

@@ -239,6 +239,55 @@
         </div>
         <div class="field"><label>After receives</label><input class="input" name="max_receive" type="number" min="1" max="1000" value="{{if .Config.MaxReceive}}{{.Config.MaxReceive}}{{else}}3{{end}}"></div>
       </div>
+      {{/* Everything else SetQueueAttributes accepts.
+
+           The create form could set twelve attributes and this editor could
+           change four of them, so eight were choose-once-at-create — including
+           ReceiveMessageWaitTimeSeconds, which is the setting you most want to
+           reach for when a consumer is spinning, and the one you are least
+           likely to have thought about while typing a queue name.
+
+           SetQueueAttributes is F-tier and takes all of these; the gap was
+           entirely in this form. */}}
+      <div class="edit-grid edit-grid-tight">
+        <div class="field" x-data="{v:'{{index .Attrs "ReceiveMessageWaitTimeSeconds"}}'}">
+          <label>Receive wait <span class="dim">s · long polling</span></label>
+          <input class="input" name="receive_wait" type="number" min="0" max="20" value="{{index .Attrs "ReceiveMessageWaitTimeSeconds"}}" x-model="v">
+          <span class="hint" x-text="v > 0 ? 'consumers wait up to ' + v + 's for a message' : '0 = short polling: a receive returns immediately, empty or not'"></span></div>
+        <div class="field"><label>Max message size <span class="dim">bytes</span></label>
+          <input class="input" name="max_bytes" type="number" min="1024" max="262144" value="{{index .Attrs "MaximumMessageSize"}}"></div>
+      </div>
+      <div class="edit-grid edit-grid-tight">
+        <div class="field"><label>KMS key ID <span class="dim">optional</span></label>
+          <input class="input mono" name="kms_key" value="{{index .Attrs "KmsMasterKeyId"}}" placeholder="alias/aws/sqs" autocomplete="off"></div>
+        <div class="field"><label>SQS-managed encryption</label>
+          <select class="input" name="sse">
+            <option value="">— leave as is —</option>
+            <option value="true" {{if eq (index .Attrs "SqsManagedSseEnabled") "true"}}selected{{end}}>enabled</option>
+            <option value="false" {{if eq (index .Attrs "SqsManagedSseEnabled") "false"}}selected{{end}}>disabled</option>
+          </select></div>
+      </div>
+      {{if .Config.FIFO}}
+      <div class="edit-grid edit-grid-tight">
+        <div class="field"><label>Deduplication scope</label>
+          <select class="input" name="dedup_scope">
+            <option value="">— leave as is —</option>
+            <option value="queue" {{if eq (index .Attrs "DeduplicationScope") "queue"}}selected{{end}}>queue</option>
+            <option value="messageGroup" {{if eq (index .Attrs "DeduplicationScope") "messageGroup"}}selected{{end}}>messageGroup</option>
+          </select></div>
+        <div class="field"><label>Throughput limit</label>
+          <select class="input" name="throughput_limit">
+            <option value="">— leave as is —</option>
+            <option value="perQueue" {{if eq (index .Attrs "FifoThroughputLimit") "perQueue"}}selected{{end}}>perQueue</option>
+            <option value="perMessageGroupId" {{if eq (index .Attrs "FifoThroughputLimit") "perMessageGroupId"}}selected{{end}}>perMessageGroupId</option>
+          </select>
+          <span class="hint">perMessageGroupId requires the messageGroup dedup scope</span></div>
+      </div>
+      {{end}}
+      <div class="edit-grid edit-grid-tight">
+        <div class="field"><label>Access policy <span class="dim">JSON — stored, not evaluated locally</span></label>
+          <textarea name="policy" data-editor="json" rows="4" spellcheck="false">{{index .Attrs "Policy"}}</textarea></div>
+      </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 16px 12px"><button type="button" class="btn btn-outline btn-sm" @click="edit=false">Cancel</button><button type="submit" class="btn btn-sm">Save settings</button></div>
     </form>
   </div>

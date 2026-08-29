@@ -768,6 +768,27 @@ func (c *Console) sqsSetAttributes(w http.ResponseWriter, r *http.Request) {
 	if v := strings.TrimSpace(r.FormValue("delay")); v != "" {
 		attrs["DelaySeconds"] = v
 	}
+	// The rest of what SetQueueAttributes accepts. These were settable at
+	// create and not afterwards, which made eight of the twelve a decision you
+	// had to get right while typing a queue name.
+	//
+	// Blank means "leave as is" rather than "clear it": these fields are
+	// pre-filled from the current value, so an empty one is a field the user
+	// did not touch. Sending "" would quietly reset a KMS key or a policy
+	// somebody set deliberately.
+	for form, attr := range map[string]string{
+		"receive_wait":     "ReceiveMessageWaitTimeSeconds",
+		"max_bytes":        "MaximumMessageSize",
+		"kms_key":          "KmsMasterKeyId",
+		"sse":              "SqsManagedSseEnabled",
+		"dedup_scope":      "DeduplicationScope",
+		"throughput_limit": "FifoThroughputLimit",
+		"policy":           "Policy",
+	} {
+		if v := strings.TrimSpace(r.FormValue(form)); v != "" {
+			attrs[attr] = v
+		}
+	}
 	// Redrive policy: "keep" leaves it alone, "none" removes it, a queue name
 	// (re)wires it with the given max-receive count.
 	switch dlq := r.FormValue("dlq"); dlq {
