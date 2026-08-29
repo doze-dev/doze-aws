@@ -1582,7 +1582,22 @@ a.lo-card:hover { border-color: var(--accent); }
 
 /* A collapsed form section. summary carries .panel-h, so it keeps the panel
    heading treatment and gains a disclosure triangle. */
-.adv-sec > summary { cursor: pointer; display: flex; align-items: baseline; gap: 8px; }
+/* .panel-h is justify-content: space-between, and ::before adds a THIRD flex
+   item — so the triangle went hard left, the heading got pushed to the middle
+   and "N across every topic" to the right. A centred section heading in a
+   left-aligned page reads as a mistake, because it is one.
+
+   flex-start plus margin-left:auto on the trailing note puts the triangle
+   beside the heading where a disclosure marker belongs, and keeps the note at
+   the far edge. */
+/* .form-sec only carries margin-BOTTOM, which is enough inside a create form
+   where every sibling has it, and not enough on the SNS topic page where this
+   follows a plain .panel that has none. There the two borders met at 0px and
+   read as one rule — caught by notes/flush-borders.js on the very page this
+   layout was rebuilt on, which is the whole reason that sweep exists. */
+.adv-sec { margin-top: 12px; }
+.adv-sec > summary { cursor: pointer; display: flex; align-items: baseline; gap: 8px; justify-content: flex-start; }
+.adv-sec > summary > .dim { margin-left: auto; }
 .adv-sec > summary::-webkit-details-marker { display: none; }
 .adv-sec > summary::before { content: "\25B8"; color: var(--muted-foreground); font-size: 11px; }
 .adv-sec[open] > summary::before { content: "\25BE"; }

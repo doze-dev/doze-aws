@@ -34,6 +34,29 @@
          the grid. */}}
     <div class="det-b has-dock">
       {{template "sns_subs" .}}
+    {{/* Every subscription in the stack, not just this topic's. It answers the
+         question the panel above cannot — "this queue is receiving something,
+         from where?" — and it is the only place a subscription to a topic that
+         no longer exists becomes visible. Collapsed, because it is a lookup
+         rather than something you read on the way past. */}}
+    {{if .AllSubs}}
+    <details class="panel form-sec adv-sec allsubs">
+      <summary class="panel-h"><h2>All subscriptions</h2><span class="dim">{{len .AllSubs}} across every topic</span></summary>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead><tr><th>Topic</th><th>Protocol</th><th>Endpoint</th></tr></thead>
+          <tbody>{{range .AllSubs}}
+            <tr{{if eq .Topic $.Topic}} class="on"{{end}}>
+              <td class="mono sub"><a href="{{$.Prefix}}/sns/{{.Topic}}">{{.Topic}}</a></td>
+              <td><span class="chip">{{.Protocol}}</span></td>
+              <td class="mono dim sub trunc">{{.Endpoint}}</td>
+            </tr>{{end}}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {{end}}
+    {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sns" "ID" .Topic}}
       {{/* The receipt lands here — who actually got the message, filters
            evaluated — directly above the composer you just pressed. */}}
       <div id="sns-receipt"></div>
@@ -64,40 +87,9 @@
           </div>
         </div>
       </div>
-      </div>
-    {{/* Every subscription in the stack, not just this topic's. It answers the
-         question the panel above cannot — "this queue is receiving something,
-         from where?" — and it is the only place a subscription to a topic that
-         no longer exists becomes visible. Collapsed, because it is a lookup
-         rather than something you read on the way past. */}}
-    {{if .AllSubs}}
-    <details class="panel form-sec adv-sec allsubs">
-      <summary class="panel-h"><h2>All subscriptions</h2><span class="dim">{{len .AllSubs}} across every topic</span></summary>
-      <div class="table-wrap">
-        <table class="tbl">
-          <thead><tr><th>Topic</th><th>Protocol</th><th>Endpoint</th></tr></thead>
-          <tbody>{{range .AllSubs}}
-            <tr{{if eq .Topic $.Topic}} class="on"{{end}}>
-              <td class="mono sub"><a href="{{$.Prefix}}/sns/{{.Topic}}">{{.Topic}}</a></td>
-              <td><span class="chip">{{.Protocol}}</span></td>
-              <td class="mono dim sub trunc">{{.Endpoint}}</td>
-            </tr>{{end}}
-          </tbody>
-        </table>
-      </div>
-    </details>
-    {{end}}
-    {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sns" "ID" .Topic}}
     </div>
   </section>
 {{template "shell_bottom" .}}{{end}}
-
-{{/* Post-publish delivery receipt: closes the publish→verify loop inline.
-     Zero subscribers is the classic silent foot-gun — call it out loudly. */}}
-{{/* The receipt used to count subscriptions, not recipients: every subscriber
-     was listed as one, with no filter policy evaluated, so three of four
-     filtered out still reported four. It now asks the service which would
-     actually receive the message and, for the others, which key said no. */}}
 {{define "sns_receipt"}}
 <div id="sns-receipt" class="pub-receipt {{if and (not .Got) (not .NoMatch)}}warn{{end}}">
   {{if .NoMatch}}
