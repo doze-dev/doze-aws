@@ -25,11 +25,14 @@
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .Table.ARN}}</div>
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "items" "Label" "Items" "Icon" "list" "URL" (printf "%s/ddb/%s" .Prefix .Table.Name))
-        (dict "Key" "details" "Label" "Details" "Icon" "settings" "URL" (printf "%s/ddb/%s?tab=details" .Prefix .Table.Name)))}}
+        (dict "Key" "details" "Label" "Details" "Icon" "settings" "URL" (printf "%s/ddb/%s?tab=details" .Prefix .Table.Name))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/ddb/%s?tab=tags" .Prefix .Table.Name)))}}
     </div>
     <div class="det-b">
       {{if eq .Tab "details"}}
       {{template "ddb_details" .}}
+      {{else if eq .Tab "tags"}}
+      {{template "tags_panel" dict "Prefix" .Prefix "Svc" "ddb" "ID" .Table.Name}}
       {{else}}
       {{template "ddb_explorer" .}}
       {{end}}
@@ -72,8 +75,6 @@
       </form>
       {{end}}
     </div></div>
-
-    {{template "tags_panel" dict "Prefix" .Prefix "Svc" "ddb" "ID" .Table.Name}}
   </div>
 
   <div>

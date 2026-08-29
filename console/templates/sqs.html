@@ -53,7 +53,8 @@
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "messages" "Label" "Messages" "Icon" "inbox" "CtID" (printf "tabct-sqs-%s-messages" (slug .Queue)) "Ct" .Available "URL" (printf "%s/sqs/%s" .Prefix .Queue))
         (dict "Key" "consume" "Label" "Consume" "Icon" "play" "URL" (printf "%s/sqs/%s?tab=consume" .Prefix .Queue))
-        (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sqs/%s?tab=config" .Prefix .Queue)))}}
+        (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sqs/%s?tab=config" .Prefix .Queue))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/sqs/%s?tab=tags" .Prefix .Queue)))}}
     </div>
     <div style="padding:14px 20px 0">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "sqs" "Self" .Queue}}</div>
     {{/* has-dock only on Messages: it makes .det-b a full-height flex column so
@@ -65,6 +66,8 @@
         {{template "sqs_config" .}}
       {{else if eq .Tab "consume"}}
         {{template "sqs_consume" .}}
+      {{else if eq .Tab "tags"}}
+      {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sqs" "ID" .Queue}}
       {{else}}
         {{/* The loop, docked rather than split.
 
@@ -279,7 +282,6 @@
       <button class="btn btn-ghost btn-sm" type="submit">Revoke</button>
     </form>
   </div>
-  {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sqs" "ID" .Queue}}
 </div>
 {{end}}
 

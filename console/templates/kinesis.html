@@ -30,7 +30,8 @@
   {{template "dtabs" dict "Cur" .Tab "Tabs" (list
     (dict "Key" "shards" "Label" "Shards" "Icon" "git-branch" "URL" (printf "%s/kinesis/%s" .Prefix .Stream))
     (dict "Key" "records" "Label" "Records" "Icon" "list" "URL" (printf "%s/kinesis/%s/records" .Prefix .Stream))
-    (dict "Key" "details" "Label" "Details" "Icon" "settings" "URL" (printf "%s/kinesis/%s/details" .Prefix .Stream)))}}
+    (dict "Key" "details" "Label" "Details" "Icon" "settings" "URL" (printf "%s/kinesis/%s/details" .Prefix .Stream))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/kinesis/%s/tags" .Prefix .Stream)))}}
 </div>
 {{end}}
 
@@ -135,7 +136,6 @@
               </div>
             </form>
             <div style="margin-top:14px">
-              {{template "tags_panel" dict "Prefix" .Prefix "Svc" "kinesis" "ID" .Stream}}
             </div>
           </div>
         </div>
@@ -553,6 +553,17 @@
           </form>
         </div>
       </div>
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{/* ---- Tags tab ---- */}}
+{{define "kinesis_tags"}}{{template "shell_top" .}}
+  {{template "kinesis_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Stream)}}
+  <section class="detail">
+    {{template "kinesis_head" .}}
+    <div class="det-b">
+      {{template "tags_panel" dict "Prefix" .Prefix "Svc" "kinesis" "ID" .Stream}}
     </div>
   </section>
 {{template "shell_bottom" .}}{{end}}

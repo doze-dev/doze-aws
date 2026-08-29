@@ -477,3 +477,17 @@ func (c *Console) kinesisRetention(w http.ResponseWriter, r *http.Request) {
 	}
 	c.redirect(w, r, c.prefix+"/kinesis/"+stream, "Retention set")
 }
+
+// kinesisTags is the Tags tab. Kinesis expresses its tabs as real routes rather
+// than ?tab=, so this needs one of its own — the other services' Tags tab is a
+// query parameter on a page that already exists.
+func (c *Console) kinesisTags(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("stream")
+	data, err := c.streamPage(r, name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	data["Tab"] = "tags"
+	c.render(w, r, "kinesis_tags", data)
+}

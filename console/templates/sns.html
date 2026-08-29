@@ -43,6 +43,7 @@
            schedule, and they were competing with the thing you came for. */}}
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "subs" "Label" "Subscriptions" "Icon" "link" "CtID" (printf "tabct-sns-%s-subs" (slug .Topic)) "Ct" (len .Subs) "URL" (printf "%s/sns/%s" .Prefix .Topic))
+        (dict "Key" "publish" "Label" "Publish" "Icon" "send" "URL" (printf "%s/sns/%s?tab=publish" .Prefix .Topic))
         (dict "Key" "details" "Label" "Details" "Icon" "settings" "URL" (printf "%s/sns/%s?tab=details" .Prefix .Topic))
         (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/sns/%s?tab=tags" .Prefix .Topic)))}}
     </div>
@@ -84,20 +85,24 @@
       {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sns" "ID" .Topic}}
     </div>
 
-    {{else}}
-    <div class="det-b has-dock">
-      {{template "sns_subs" .}}
-      {{/* The receipt lands directly above the composer you just pressed. */}}
-      <div id="sns-receipt"></div>
-      <div class="composer-dock" x-data="{open:false}" :class="open && 'dock-open'">
-        <button type="button" class="dock-bar" x-show="!open"
-                @click="open=true; $nextTick(() => { window.dozeEditor && dozeEditor.refresh($el.parentNode); var e=$el.parentNode.querySelector('textarea[name=message]'); e && e.__cm && e.__cm.focus(); })">
-          {{icon "send"}} <span>Publish a message</span> <span class="kbd">⌘⏎</span>
-        </button>
-        <div class="panel sqs-compose" x-show="open" x-cloak>
-          <div class="panel-h"><h2>{{icon "send"}} Publish message</h2>
-            <button type="button" class="icon-btn sm" title="Close" @click="open=false">{{icon "x"}}</button></div>
-          <div class="form-b">
+    {{else if eq .Tab "publish"}}
+    {{/* Publish is its own tab, and the dock it replaces was me over-applying
+         a pattern from SQS.
+
+         There, the composer sits beside the message list because publishing
+         makes something LAND in it — you watch the row appear. Here nothing
+         lands: the subscribers list is unchanged by a publish, and the feedback
+         is the delivery receipt. With no list to watch, adjacency bought
+         nothing and cost the page a permanent band along its foot.
+
+         So the loop lives here instead, self-contained: compose, publish, and
+         the receipt appears directly below with who actually received it and
+         which filter policies rejected it. */}}
+    <div class="det-b">
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "send"}} Publish message</h2>
+          <span class="dim">fans out to {{len .Subs}} subscriber{{if ne (len .Subs) 1}}s{{end}}</span></div>
+        <div class="form-b">
         <form hx-post="{{.Prefix}}/sns/{{.Topic}}/publish" hx-target="#sns-receipt" hx-select="unset" hx-swap="outerHTML">
           <div class="field" style="margin-bottom:10px"><label>Subject <span class="dim">optional</span></label><input class="input" name="subject" placeholder="Order shipped"></div>
           <div class="field"><label>Message</label><textarea name="message" data-editor rows="6" placeholder='{"orderId":"A-1042"}' required></textarea></div>
@@ -113,10 +118,17 @@
             <button class="btn" type="submit">{{icon "send"}} Publish</button>
           </div>
         </form>
-          </div>
         </div>
       </div>
+      {{/* The receipt lands directly under the form that produced it. */}}
+      <div id="sns-receipt"></div>
     </div>
+
+    {{else}}
+    <div class="det-b">
+      {{template "sns_subs" .}}
+    </div>
+
     {{end}}
   </section>
 {{template "shell_bottom" .}}{{end}}

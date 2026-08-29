@@ -44,7 +44,8 @@
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "invoke" "Label" "Test" "Icon" "play" "URL" (printf "%s/lambda/%s" .Prefix .Fn.Name))
         (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/lambda/%s?tab=config" .Prefix .Fn.Name))
-        (dict "Key" "triggers" "Label" "Triggers" "Icon" "arrow-right" "URL" (printf "%s/lambda/%s?tab=triggers" .Prefix .Fn.Name)))}}
+        (dict "Key" "triggers" "Label" "Triggers" "Icon" "arrow-right" "URL" (printf "%s/lambda/%s?tab=triggers" .Prefix .Fn.Name))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/lambda/%s?tab=tags" .Prefix .Fn.Name)))}}
     </div>
     {{/* Function overview — the 1-hop picture: triggers → function → destinations.
          The live process badge lives inside the function card: state sits where
@@ -75,6 +76,8 @@
       {{template "lambda_config" .}}
       {{else if eq .Tab "triggers"}}
       {{template "lambda_triggers" .}}
+      {{else if eq .Tab "tags"}}
+      {{template "tags_panel" dict "Prefix" .Prefix "Svc" "lambda" "ID" .Fn.Name}}
       {{else}}
       <div class="split">
         <div class="panel lam-test"><div class="panel-h"><h2>{{icon "play"}} Test event</h2></div><div style="padding:14px 16px">
@@ -184,7 +187,6 @@
       {{if .Fn.OnFailure}}<tr><td>On failure →</td><td>{{template "copychip" dict "Value" .Fn.OnFailure}}</td></tr>{{end}}
     </tbody></table></div>
     {{end}}
-    {{template "tags_panel" dict "Prefix" .Prefix "Svc" "lambda" "ID" .Fn.Name}}
   </div>
 </div>
 {{end}}

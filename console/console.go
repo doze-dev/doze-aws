@@ -229,6 +229,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/kinesis/{stream}", c.kinesisStream)
 	m.HandleFunc("GET "+p+"/kinesis/{stream}/records", c.kinesisRecords)
 	m.HandleFunc("GET "+p+"/kinesis/{stream}/details", c.kinesisDetails)
+	m.HandleFunc("GET "+p+"/kinesis/{stream}/tags", c.kinesisTags)
 	m.HandleFunc("POST "+p+"/kinesis/{stream}/merge", c.kinesisMerge)
 	m.HandleFunc("POST "+p+"/kinesis/{stream}/scale", c.kinesisScale)
 	m.HandleFunc("POST "+p+"/kinesis/{stream}/mode", c.kinesisMode)
