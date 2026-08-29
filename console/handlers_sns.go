@@ -57,6 +57,7 @@ func (c *Console) snsTopic(w http.ResponseWriter, r *http.Request) {
 	topics, _ := c.be.ListTopics(r.Context())
 	c.render(w, r, "sns_topic", map[string]any{
 		"Topic": name, "ARN": arn, "Attrs": attrs, "Subs": subViews(subs),
+		"Tab":    tabOf(r, "subs"),
 		"Queues": queues, "Functions": fns, "List": topics, "Title": name + " · SNS",
 		"Conn": c.be.Neighbors(r.Context(), "sns", name),
 		// A pending subscription is listed and silent, which is the confusing

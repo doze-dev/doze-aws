@@ -19,19 +19,28 @@
       <div class="det-title">{{awsIcon "sns"}} {{.Topic}}<div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/sns/{{.Topic}}/delete-topic" hx-confirm="Delete topic “{{.Topic}}”?">{{icon "trash"}} Delete</button></div></div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}</div>
       <div style="margin-top:10px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "sns" "Self" .Topic}}</div>
+      {{/* Tabs, for the reason the SQS queue page has them: without them a
+           topic page is four equal-weight cards stacked down one scroll —
+           subscribers, a cross-topic lookup, tags, and a composer — with
+           nothing saying which is the point. Four bands of identical treatment
+           is a pile, not a hierarchy, and the thin content of a small topic
+           makes it worse rather than better.
+
+           Subscriptions is the page. Configuration is where the metadata goes,
+           so it stops competing with it. */}}
+      {{template "dtabs" dict "Cur" .Tab "Tabs" (list
+        (dict "Key" "subs" "Label" "Subscriptions" "Icon" "link" "CtID" (printf "tabct-sns-%s-subs" (slug .Topic)) "Ct" (len .Subs) "URL" (printf "%s/sns/%s" .Prefix .Topic))
+        (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sns/%s?tab=config" .Prefix .Topic)))}}
     </div>
-    {{/* Same shape as the SQS queue page, for the same reason.
-
-         .split gave the publish form half the pane permanently. But the CONTENT
-         of a topic is its subscribers — endpoints, protocols, filter policies,
-         all of which want width — and publishing is an occasional action. The
-         form was squeezing the thing you came to read.
-
-         So: subscribers full width, publish docked at the foot, and the
-         delivery receipt in the flow directly above the dock, which is where
-         you are already looking when you press Publish. Note .split is shared
-         by nine templates, so this is scoped to this page rather than done to
-         the grid. */}}
+    {{if eq .Tab "config"}}
+    <div class="det-b">
+      <div class="sec-title">Topic attributes</div>
+      <div class="table-wrap"><table class="tbl kv"><tbody>
+        {{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}
+      </tbody></table></div>
+      {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sns" "ID" .Topic}}
+    </div>
+    {{else}}
     <div class="det-b has-dock">
       {{template "sns_subs" .}}
     {{/* Every subscription in the stack, not just this topic's. It answers the
@@ -56,7 +65,6 @@
       </div>
     </details>
     {{end}}
-    {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sns" "ID" .Topic}}
       {{/* The receipt lands here — who actually got the message, filters
            evaluated — directly above the composer you just pressed. */}}
       <div id="sns-receipt"></div>
@@ -88,6 +96,7 @@
         </div>
       </div>
     </div>
+    {{end}}
   </section>
 {{template "shell_bottom" .}}{{end}}
 {{define "sns_receipt"}}
