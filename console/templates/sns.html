@@ -18,39 +18,52 @@
     <div class="det-h">
       <div class="det-title">{{awsIcon "sns"}} {{.Topic}}<div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/sns/{{.Topic}}/delete-topic" hx-confirm="Delete topic “{{.Topic}}”?">{{icon "trash"}} Delete</button></div></div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}</div>
-      <div style="margin-top:10px">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "sns" "Self" .Topic}}</div>
-      {{/* Tabs, for the reason the SQS queue page has them: without them a
-           topic page is four equal-weight cards stacked down one scroll —
-           subscribers, a cross-topic lookup, tags, and a composer — with
-           nothing saying which is the point. Four bands of identical treatment
-           is a pile, not a hierarchy, and the thin content of a small topic
-           makes it worse rather than better.
+      {{/* The summary strip: the facts you check a topic against, above the
+           tabs and visible on all of them. Confirmed / pending is the pair that
+           matters — a pending subscription is listed, silent, and looks exactly
+           like a delivery bug until you notice the count. */}}
+      <div class="factstrip">
+        <div class="fact"><div class="fx-k">Subscriptions</div><div class="fx-v num" id="sum-sns-{{slug .Topic}}-subs">{{len .Subs}}</div></div>
+        <div class="fact"><div class="fx-k">Pending</div><div class="fx-v num">{{if .Pending}}<span class="warn">{{.Pending}}</span>{{else}}0{{end}}</div></div>
+        <div class="fact"><div class="fx-k">Owner</div><div class="fx-v mono">{{index .Attrs "Owner"}}</div></div>
+        <div class="fact"><div class="fx-k">Type</div><div class="fx-v">{{if index .Attrs "FifoTopic"}}FIFO{{else}}Standard{{end}}</div></div>
+      </div>
+      <div class="conn-slot">{{template "connections" dict "Prefix" .Prefix "Conn" .Conn "Svc" "sns" "Self" .Topic}}</div>
+      {{/* One tab per question, and nothing stacked underneath another.
 
-           Subscriptions is the page. Configuration is where the metadata goes,
-           so it stops competing with it. */}}
+           Before this the page was every surface a topic owns on a single
+           scroll — subscribers, a cross-topic lookup, tags, a composer — four
+           bands of identical treatment with nothing saying which was the point.
+           Adding a tab bar is not decoration; it is the thing that lets each
+           surface have the page to itself.
+
+           Tags is its own tab rather than a panel at the bottom of another,
+           which is what the AWS console does (its details pages end in a Tags
+           tab) and is right on its own terms: tags are edited on their own
+           schedule, and they were competing with the thing you came for. */}}
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "subs" "Label" "Subscriptions" "Icon" "link" "CtID" (printf "tabct-sns-%s-subs" (slug .Topic)) "Ct" (len .Subs) "URL" (printf "%s/sns/%s" .Prefix .Topic))
-        (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/sns/%s?tab=config" .Prefix .Topic)))}}
+        (dict "Key" "details" "Label" "Details" "Icon" "settings" "URL" (printf "%s/sns/%s?tab=details" .Prefix .Topic))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/sns/%s?tab=tags" .Prefix .Topic)))}}
     </div>
-    {{if eq .Tab "config"}}
+
+    {{if eq .Tab "details"}}
     <div class="det-b">
       <div class="sec-title">Topic attributes</div>
       <div class="table-wrap"><table class="tbl kv"><tbody>
         {{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}
       </tbody></table></div>
-      {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sns" "ID" .Topic}}
-    </div>
-    {{else}}
-    <div class="det-b has-dock">
-      {{template "sns_subs" .}}
-    {{/* Every subscription in the stack, not just this topic's. It answers the
-         question the panel above cannot — "this queue is receiving something,
-         from where?" — and it is the only place a subscription to a topic that
-         no longer exists becomes visible. Collapsed, because it is a lookup
-         rather than something you read on the way past. */}}
-    {{if .AllSubs}}
-    <details class="panel form-sec adv-sec allsubs">
-      <summary class="panel-h"><h2>All subscriptions</h2><span class="dim">{{len .AllSubs}} across every topic</span></summary>
+      {{/* Every subscription in the stack, not just this topic's.
+           It is here rather than on the Subscriptions tab because it is a
+           different SCOPE — a lookup across topics, not a property of this one.
+
+           Its value is saving you from opening every topic in turn, and that is
+           all: an earlier version of this comment claimed it was the only place
+           an orphaned subscription surfaces, which I checked and is false.
+           Deleting a topic deletes its subscriptions (verified: 3 -> 2, no
+           dangling rows), so orphans cannot exist to be found. */}}
+      {{if .AllSubs}}
+      <div class="sec-title">All subscriptions <span class="dim">{{len .AllSubs}} across every topic</span></div>
       <div class="table-wrap">
         <table class="tbl">
           <thead><tr><th>Topic</th><th>Protocol</th><th>Endpoint</th></tr></thead>
@@ -63,10 +76,18 @@
           </tbody>
         </table>
       </div>
-    </details>
-    {{end}}
-      {{/* The receipt lands here — who actually got the message, filters
-           evaluated — directly above the composer you just pressed. */}}
+      {{end}}
+    </div>
+
+    {{else if eq .Tab "tags"}}
+    <div class="det-b">
+      {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sns" "ID" .Topic}}
+    </div>
+
+    {{else}}
+    <div class="det-b has-dock">
+      {{template "sns_subs" .}}
+      {{/* The receipt lands directly above the composer you just pressed. */}}
       <div id="sns-receipt"></div>
       <div class="composer-dock" x-data="{open:false}" :class="open && 'dock-open'">
         <button type="button" class="dock-bar" x-show="!open"

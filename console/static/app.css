@@ -1641,3 +1641,10 @@ a.lo-card:hover { border-color: var(--accent); }
 .send-hint { font-size: 11px; } /* 11.5px was off the closed scale — it only
    escaped notice because it lived in an inline style, which TestTypeScaleIsClosed
    cannot see. Moving it into the stylesheet is what surfaced it. */
+
+/* The wiring strip sat on an inline style in every service page; here it gets
+   the class it always needed. */
+.conn-slot { margin-top: 10px; }
+/* A count that means "look at this" — a pending subscription is listed, silent,
+   and indistinguishable from a delivery bug until you notice it. */
+.fx-v .warn { color: var(--warning); }
