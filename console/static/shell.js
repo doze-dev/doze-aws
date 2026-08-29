@@ -121,8 +121,15 @@
     el.innerHTML = '<span class="t-ic">' + (kind === "err" ? "⚠" : "✓") + '</span><span></span><span class="tclose">✕</span>';
     el.children[1].textContent = msg;
     el.querySelector(".tclose").onclick = function () { el.remove(); };
-    box.appendChild(el);
+    // The sequence was already counted and never exposed. Stamping it lets
+    // anything watching toasts wait for a NEW one, rather than matching a
+    // previous toast still inside its 3.2s lifetime — which is a race the e2e
+    // suite actually lost: its second waitForToast resolved against the first
+    // toast, and the reload that followed aborted the request whose toast it
+    // thought it had seen.
     var id = ++seq;
+    el.dataset.seq = String(id);
+    box.appendChild(el);
     setTimeout(function () { el.remove(); }, kind === "err" ? 6000 : 3200);
   }
   window.addEventListener("toast", function (e) { toast(e.detail.value !== undefined ? e.detail.value : e.detail, "ok"); });
@@ -451,10 +458,18 @@
         if (cur.hasAttribute("data-live-paused")) return; // user hit pause
         var url = cur.getAttribute("data-live");
         if (!url) return;
-        // Most live regions morph so selection/scroll survive; a small self-
-        // contained element can opt into a plain outerHTML swap via
-        // data-live-swap to avoid idiomorph nesting its replacement.
-        var swap = cur.getAttribute("data-live-swap") || "morph:outerHTML";
+        // Plain outerHTML, not morph — a deliberate retreat, recorded so the
+        // next person does not re-fight it. Morphing here never worked: for
+        // the whole life of this feature hx-ext was absent so "morph" fell
+        // back to innerHTML and nested each region inside itself on first
+        // change. Activating it on <body> broke UNRELATED swaps (idiomorph
+        // claims every style it does not recognise as inline, which is also
+        // how an OOB span's attributes leaked into its target), and scoping
+        // it to the regions made idiomorph consume the element outright. A
+        // full replace costs scroll position inside a region on the ticks
+        // where content actually changed — the 204 no-change path, which is
+        // most ticks, swaps nothing at all.
+        var swap = cur.getAttribute("data-live-swap") || "outerHTML";
         var hash = cur.getAttribute("data-hash") || "";
         htmx.ajax("GET", url + (url.indexOf("?") >= 0 ? "&" : "?") + "h=" + hash, {
           target: "#" + id, swap: swap,

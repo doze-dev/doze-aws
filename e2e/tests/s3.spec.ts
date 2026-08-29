@@ -303,6 +303,12 @@ test.describe('CORS and lifecycle editors', () => {
     );
     await page.locator('form[hx-post$="/cors"]').getByRole('button', { name: 'Save CORS' }).click();
     await waitForToast();
+    // The toast fires BEFORE the response swaps #s3-props, and the swap
+    // replaces BOTH textareas. Editing the lifecycle field on the toast alone
+    // raced that swap: the write landed in the old node, the swap discarded
+    // it, and the click submitted an empty form. The re-rendered CORS field
+    // coming back PREFILLED is the signal that the swap has settled.
+    await expect(page.locator(corsSel)).toHaveValue(/localhost:3000/);
 
     await setEditor(lifecycleSel, '[{"Prefix":"tmp/","ExpireDays":7}]');
     await page

@@ -97,7 +97,15 @@ return"= "+p.join(" ");};</script>
      data-live-swap="outerHTML" opt-out on #lambda-rt, whose comment blames
      "idiomorph nesting its replacement" — it was the innerHTML fallback
      nesting it, and idiomorph was never in the picture. */}}
-<body hx-ext="morph">
+{{/* NO hx-ext here, and that is load-bearing. idiomorph's isInlineSwap
+     answers TRUE for every swap style it does not recognise (o(style) returns
+     undefined, and undefined?.morphStyle == null holds) — so with the
+     extension on <body>, EVERY swap on the page changed semantics: fragments
+     stopped being unwrapped, an out-of-band span's own attributes leaked into
+     its target, and hx-swap="beforeend" appended nothing at all. The KMS
+     one-click verify broke exactly that way. The extension lives on the four
+     data-live regions instead, which are the only elements that morph. */}}
+<body>
 <div class="app">
   <header class="topbar">
     <div class="brand"><img src="{{.Prefix}}/static/favicon.svg" alt="" style="width:17px;height:17px"> doze-aws <span class="sub">console</span></div>

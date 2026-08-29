@@ -37,7 +37,12 @@ export default defineConfig({
       'cd e2e/.tmp && rm -rf data && mkdir -p data && ' +
       `./bin/doze-aws --listen 127.0.0.1:${PORT} --data-dir data --console"`,
     url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
+    // Never reuse. The data dir is wiped in the boot command, so a reused
+    // server KEEPS its state and the wipe never runs — resources accumulated
+    // across runs until drawer-open flows started failing nondeterministically
+    // (a different S3 test each run). A rebuild costs ~5s; a flaky suite costs
+    // every diagnosis that trusts it.
+    reuseExistingServer: false,
     timeout: 60_000,
     stdout: 'pipe',
     stderr: 'pipe',

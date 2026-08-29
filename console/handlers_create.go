@@ -33,6 +33,15 @@ func (c *Console) createPage(svc, tmpl string) http.HandlerFunc {
 			data["List"], _ = c.be.ListParameters(r.Context())
 		case "sm":
 			data["List"], _ = c.be.ListSecrets(r.Context())
+		case "lambda":
+			// Missing from this switch since the lambda create page was added,
+			// and it became a 500-in-disguise when lp_head started rendering
+			// (len .List) in its heading: len of an untyped nil panics the
+			// template mid-render, so the page shipped its <head> and died
+			// before the form. The status was still 200 — html/template has
+			// already written by the time it fails — which is why a status
+			// sweep called this page fine.
+			data["List"], _ = c.be.ListFunctions(r.Context())
 		}
 		c.render(w, r, tmpl, data)
 	}

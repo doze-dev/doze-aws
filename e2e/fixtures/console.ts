@@ -71,10 +71,20 @@ export const test = base.extend<ConsoleFixtures>({
   waitForToast: async ({ page }, use) => {
     await use(async (opts) => {
       const kind = opts?.kind ?? 'ok';
+      // Wait for a toast NEWER than any currently showing. Toasts live 3.2s,
+      // so two actions back to back made the old version resolve against the
+      // FIRST action's toast — and a reload right after aborted the second
+      // action's request mid-flight. Toasts carry data-seq for exactly this.
+      const maxSeq = await page
+        .locator('.toast')
+        .evaluateAll((els) => Math.max(0, ...els.map((e) => Number((e as HTMLElement).dataset.seq ?? 0))));
       const locator = page
         .locator(kind === 'err' ? '.toast.err' : '.toast:not(.err)')
         .last();
-      await expect(locator).toBeVisible({ timeout: 8000 });
+      await expect(async () => {
+        const seq = Number(await locator.getAttribute('data-seq'));
+        expect(seq).toBeGreaterThan(maxSeq);
+      }).toPass({ timeout: 8000 });
       return (await locator.locator('span').nth(1).textContent()) ?? '';
     });
   },

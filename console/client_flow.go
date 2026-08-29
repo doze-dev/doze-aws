@@ -527,26 +527,26 @@ func (b *backend) Neighbors(ctx context.Context, svc, name string) Neighborhood 
 			if e.From == self && !seen["d"+e.To] {
 				seen["d"+e.To] = true
 				if n, ok := byID[e.To]; ok {
-					nb.Downstream = append(nb.Downstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: b.nodeURL(n.Svc, n.Name)})
+					// n.URL, not nodeURL(n.Svc, n.Name): the node's URL was
+					// resolved from its QUALIFIED key when the graph was built,
+					// and the display name is lossy — an eb rule's name is
+					// "orders" while its key is "default/orders", so
+					// re-resolving from the name minted /eb/orders, a bus page
+					// for a bus that does not exist. Every rule chip in every
+					// wiring strip linked there.
+					nb.Downstream = append(nb.Downstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: n.URL})
 				}
 			}
 			if e.To == self && !seen["u"+e.From] {
 				seen["u"+e.From] = true
 				if n, ok := byID[e.From]; ok {
-					nb.Upstream = append(nb.Upstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: b.nodeURL(n.Svc, n.Name)})
+					nb.Upstream = append(nb.Upstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: n.URL})
 				}
 			}
 		}
 	}
 	return nb
 }
-
-// nodeURL is the resolver, kept as a method so existing callers read the same.
-// It used to hardcode /eb/default/rule/ — so a rule on any other bus linked to a
-// page that does not exist — and returned "/" for anything it did not know,
-// which sent an unresolvable neighbour to the wire. An empty path now means
-// "render the name, do not link it", which is the honest answer.
-func (b *backend) nodeURL(svc, name string) string { return resourceURL(svc, name).Path }
 
 // ensureNode adds a node for a resolved ref. It takes the ref rather than
 // re-splitting the id, because an id now carries a qualified key (an eb rule is

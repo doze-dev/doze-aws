@@ -104,15 +104,17 @@ test.describe('lifecycle', () => {
     await expect(page.locator('.det-title')).toContainText(fnName);
     await expect(page.locator('.badge.type')).toContainText('provided.al2');
 
-    // "At a glance" panel — populated before any invoke has happened.
-    const glance = page.locator('#invoke-result');
-    await expect(glance.locator('.tbl.kv tr', { hasText: 'Runtime' })).toContainText(
-      'provided.al2'
-    );
-    await expect(glance.locator('.tbl.kv tr', { hasText: 'Handler' })).toContainText('bootstrap');
-    await expect(glance.locator('.tbl.kv tr', { hasText: 'Timeout' })).toContainText('20 s');
-    await expect(glance.locator('.tbl.kv tr', { hasText: 'Memory' })).toContainText('256 MB');
-    await expect(glance.locator('.tbl.kv tr', { hasText: 'Triggers' })).toContainText('none');
+    // The at-a-glance facts moved out of #invoke-result into the summary strip
+    // above the tabs (the v2 "General configuration" treatment), where they
+    // stay visible on every tab instead of only before the first invoke.
+    // Triggers reads "0" now, not "none" — it is a count.
+    const fact = (label: string) =>
+      page.locator('.factstrip .fact', { has: page.locator('.fx-k', { hasText: label }) });
+    await expect(fact('Runtime')).toContainText('provided.al2');
+    await expect(fact('Handler')).toContainText('bootstrap');
+    await expect(fact('Timeout')).toContainText('20 s');
+    await expect(fact('Memory')).toContainText('256 MB');
+    await expect(fact('Triggers')).toContainText('0');
 
     // No process has run yet — the runtime badge reads Idle/cold.
     const badge = page.locator('#lambda-rt');
@@ -133,9 +135,12 @@ test.describe('lifecycle', () => {
 
     const result = page.locator('#invoke-result');
     // Cold start: spawning the process for the first time gets extra budget.
-    await expect(result.locator('.co-h')).toContainText('succeeded', { timeout: 20000 });
-    await expect(result.locator('.co-h')).toContainText(/\d/); // a duration is shown
-    await expect(result.locator('.co-h')).toContainText(/\d+(\.\d+)?(ms|s)/);
+    await expect(result.locator('.co-h').first()).toContainText('succeeded', { timeout: 20000 });
+    // The duration left the status header in the v2 timing split: init and
+    // execution are separate .tm rows now, because a slow LOCAL invoke is
+    // usually the process coming up, not the handler — and one blended number
+    // hid exactly that.
+    await expect(result.locator('.tm-v').first()).toContainText(/\d+ ms/);
     await expect(result.locator('pre').first()).toContainText('"hello": "world"');
     await expect(result.locator('pre').first()).toContainText('"requestId"');
 
@@ -151,7 +156,7 @@ test.describe('lifecycle', () => {
     // a respawn per invoke.
     await setEditor(payloadSelector, JSON.stringify({ hello: 'again' }));
     await page.getByRole('button', { name: 'Invoke' }).click();
-    await expect(result.locator('.co-h')).toContainText('succeeded', { timeout: 10000 });
+    await expect(result.locator('.co-h').first()).toContainText('succeeded', { timeout: 10000 });
     await expect(result.locator('pre').first()).toContainText('"hello": "again"');
     await expect(badge).toHaveClass(/rt-warm/);
     await expect(badge).toContainText('Warm');
@@ -213,9 +218,12 @@ test.describe('lifecycle', () => {
 
     // The "at a glance" panel on the Test tab also reflects the new trigger.
     await page.goto(`lambda/${fnName}`);
+    // Trigger counts live in the summary strip now, as a bare count; the
+    // trigger DETAIL (which queue, what kind) is the overview diagram column.
     await expect(
-      page.locator('#invoke-result .tbl.kv tr', { hasText: 'Triggers' })
-    ).toContainText('1 event source mapping');
+      page.locator('.factstrip .fact', { has: page.locator('.fx-k', { hasText: 'Triggers' }) })
+    ).toContainText('1');
+    await expect(page.locator('.lam-ov .lo-card', { hasText: queueName })).toBeVisible();
 
     // Send a message straight to the queue (bypassing the console's own SQS
     // send UI, which sqs.spec.ts already covers) and prove the poller picked
@@ -276,7 +284,7 @@ test.describe('lifecycle', () => {
     await expect(result).toContainText('Event accepted', { timeout: 10000 });
     await expect(result).toContainText('queued for async execution');
     // No synchronous payload/duration panel for an async invoke.
-    await expect(result.locator('.co-h')).toHaveCount(0);
+    await expect(result.locator('.co-h').first()).toHaveCount(0);
 
     // It still actually ran — just asynchronously, off the request.
     await waitForLogMarker(marker);
