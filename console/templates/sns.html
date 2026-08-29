@@ -54,6 +54,61 @@
       <div class="table-wrap"><table class="tbl kv"><tbody>
         {{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}
       </tbody></table></div>
+      {{/* The C-tier surfaces, together and labelled.
+
+           These are operations doze-aws accepts and does not act on, and they
+           are exposed for the reason the emulator exists: a deploy script that
+           calls SetTopicAttributes or AddPermission must not fail here, and you
+           must be able to see the call was accepted. The badge is doing the
+           honest work — without it a control implies an effect it has not got.
+
+           SQS's queue-policy panel is the same shape for the same reason; SNS
+           had these operations and no surface for any of them, which was an
+           inconsistency rather than a decision. */}}
+      <div class="sec-title">Attributes you can set
+        <span class="tier tier-c" title="Stored and returned by GetTopicAttributes; nothing about the topic behaves differently">stored, not enforced</span></div>
+      <div class="panel">
+        <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{.Topic}}/attribute">
+          <select class="input" name="name">
+            <option>DisplayName</option><option>Policy</option><option>DeliveryPolicy</option>
+          </select>
+          <input class="input" name="value" placeholder="Value" autocomplete="off">
+          <button class="btn btn-outline btn-sm" type="submit">Set</button>
+        </form>
+      </div>
+
+      <div class="sec-title">Access policy
+        <span class="tier tier-c" title="Answered 200; there is no IAM in front of a local topic for a grant to affect">accepted, not enforced</span></div>
+      <div class="panel">
+        <div class="mini-note perm-none">
+          A grant here changes who can reach this topic not at all — there is no
+          IAM in front of a local one. The call is answered and appears on the wire.
+        </div>
+        <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{.Topic}}/permission">
+          <input class="input" name="label" placeholder="Label" required autocomplete="off">
+          <input class="input" name="account" placeholder="000000000000" autocomplete="off">
+          <select class="input" name="action">
+            <option>Publish</option><option>Subscribe</option><option>GetTopicAttributes</option><option>*</option>
+          </select>
+          <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Grant</button>
+        </form>
+        <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{.Topic}}/permission/delete">
+          <input class="input" name="label" placeholder="Label to revoke" required autocomplete="off">
+          <button class="btn btn-ghost btn-sm" type="submit">Revoke</button>
+        </form>
+      </div>
+
+      <div class="sec-title">Data protection policy
+        <span class="tier tier-c" title="Round-tripped verbatim and never applied to a message">stored, never applied</span></div>
+      <div class="panel">
+        <form class="form-b" hx-post="{{.Prefix}}/sns/{{.Topic}}/data-protection">
+          <div class="field"><textarea name="policy" data-editor="json" rows="4"
+            placeholder='{"Name":"redact","Statement":[]}'>{{.DataPolicy}}</textarea>
+            <span class="hint">stored and handed back; nothing is redacted locally however this reads</span></div>
+          <div class="send-foot"><button class="btn btn-sm" type="submit">Store policy</button></div>
+        </form>
+      </div>
+
       {{/* Every subscription in the stack, not just this topic's.
            It is here rather than on the Subscriptions tab because it is a
            different SCOPE — a lookup across topics, not a property of this one.

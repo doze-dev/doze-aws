@@ -251,7 +251,11 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/sns/{topic}", c.snsTopic)
 	m.HandleFunc("POST "+p+"/sns/{topic}/publish", c.snsPublish)
 	m.HandleFunc("POST "+p+"/sns/{topic}/subscribe", c.snsSubscribe)
-	m.HandleFunc("POST "+p+"/sns/{topic}/confirm", c.snsConfirm) // ConfirmSubscription
+	m.HandleFunc("POST "+p+"/sns/{topic}/confirm", c.snsConfirm)
+	m.HandleFunc("POST "+p+"/sns/{topic}/attribute", c.snsSetAttribute)             // SetTopicAttributes (C)
+	m.HandleFunc("POST "+p+"/sns/{topic}/permission", c.snsAddPermission)           // AddPermission (C)
+	m.HandleFunc("POST "+p+"/sns/{topic}/permission/delete", c.snsRemovePermission) // RemovePermission (C)
+	m.HandleFunc("POST "+p+"/sns/{topic}/data-protection", c.snsDataProtection)     // PutDataProtectionPolicy (C) // ConfirmSubscription
 	m.HandleFunc("POST "+p+"/sns/{topic}/unsubscribe", c.snsUnsubscribe)
 	m.HandleFunc("POST "+p+"/sns/{topic}/sub-filter", c.snsSubFilter)
 	m.HandleFunc("POST "+p+"/sns/{topic}/sub-raw", c.snsSubRaw)

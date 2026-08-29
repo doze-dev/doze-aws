@@ -362,3 +362,61 @@ func (b *backend) AllSubscriptions(ctx context.Context) ([]Subscription, error) 
 	}
 	return subs, nil
 }
+
+// The C-tier surfaces: accepted, stored where the ledger says stored, and
+// never enforced. They are exposed for the reason an emulator exists — a
+// deploy script that calls them must not fail here, and you must be able to see
+// that the call was accepted — and they are labelled so the control cannot
+// imply an effect it has not got.
+
+// SetTopicAttribute writes one topic attribute. C→F in the ledger: stored and
+// returned by GetTopicAttributes, with no change to how anything behaves.
+func (b *backend) SetTopicAttribute(ctx context.Context, topicARN, name, value string) error {
+	_, err := b.queryXML(ctx, url.Values{
+		"Action": {"SetTopicAttributes"}, "TopicArn": {topicARN},
+		"AttributeName": {name}, "AttributeValue": {value},
+	})
+	return err
+}
+
+// AddTopicPermission and RemoveTopicPermission write the topic's access policy.
+// C-tier: there is no IAM in front of a local topic, so a grant changes who can
+// reach it not at all.
+func (b *backend) AddTopicPermission(ctx context.Context, topicARN, label, accountID, action string) error {
+	_, err := b.queryXML(ctx, url.Values{
+		"Action": {"AddPermission"}, "TopicArn": {topicARN}, "Label": {label},
+		"AWSAccountId.member.1": {accountID}, "ActionName.member.1": {action},
+	})
+	return err
+}
+
+func (b *backend) RemoveTopicPermission(ctx context.Context, topicARN, label string) error {
+	_, err := b.queryXML(ctx, url.Values{
+		"Action": {"RemovePermission"}, "TopicArn": {topicARN}, "Label": {label},
+	})
+	return err
+}
+
+// PutDataProtectionPolicy and DataProtectionPolicy round-trip the data
+// protection policy. C-tier: stored and handed back, never applied to a
+// message, so nothing is actually redacted locally.
+func (b *backend) PutDataProtectionPolicy(ctx context.Context, topicARN, doc string) error {
+	_, err := b.queryXML(ctx, url.Values{
+		"Action": {"PutDataProtectionPolicy"}, "ResourceArn": {topicARN}, "DataProtectionPolicy": {doc},
+	})
+	return err
+}
+
+func (b *backend) DataProtectionPolicy(ctx context.Context, topicARN string) string {
+	body, err := b.queryXML(ctx, url.Values{
+		"Action": {"GetDataProtectionPolicy"}, "ResourceArn": {topicARN},
+	})
+	if err != nil {
+		return ""
+	}
+	var out struct {
+		Doc string `xml:"GetDataProtectionPolicyResult>DataProtectionPolicy"`
+	}
+	xml.Unmarshal(body, &out)
+	return out.Doc
+}

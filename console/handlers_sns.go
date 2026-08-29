@@ -67,7 +67,8 @@ func (c *Console) snsTopic(w http.ResponseWriter, r *http.Request) {
 		// question the per-topic list cannot — "this endpoint is receiving
 		// something, from where?" — and is the only place an orphaned
 		// subscription to a deleted topic becomes visible.
-		"AllSubs": c.allSubs(r),
+		"AllSubs":    c.allSubs(r),
+		"DataPolicy": c.be.DataProtectionPolicy(r.Context(), arn),
 	})
 }
 
@@ -286,4 +287,68 @@ func (c *Console) allSubs(r *http.Request) []Subscription {
 		return nil
 	}
 	return subs
+}
+
+// snsSetAttribute writes one topic attribute — DisplayName, Policy,
+// DeliveryPolicy. C-tier, and the UI says so beside the control: the value is
+// stored and returned by GetTopicAttributes and changes nothing about how the
+// topic behaves.
+func (c *Console) snsSetAttribute(w http.ResponseWriter, r *http.Request) {
+	topic := r.PathValue("topic")
+	name := strings.TrimSpace(r.FormValue("name"))
+	if name == "" {
+		c.fail(w, errors.New("Name the attribute to set — DisplayName, Policy or DeliveryPolicy."))
+		return
+	}
+	if err := c.be.SetTopicAttribute(r.Context(), topicARNOf(topic), name, r.FormValue("value")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/sns/"+topic+"?tab=details", "Attribute “"+name+"” stored")
+}
+
+// snsAddPermission / snsRemovePermission write the topic's access policy.
+// Same shape and the same caveat as the SQS queue policy: accepted, and there
+// is no IAM in front of a local topic for it to affect.
+func (c *Console) snsAddPermission(w http.ResponseWriter, r *http.Request) {
+	topic := r.PathValue("topic")
+	label := strings.TrimSpace(r.FormValue("label"))
+	if label == "" {
+		c.fail(w, errors.New("A permission needs a label — it is how RemovePermission finds it again."))
+		return
+	}
+	acct := strings.TrimSpace(r.FormValue("account"))
+	if acct == "" {
+		acct = awsident.AccountID
+	}
+	action := strings.TrimSpace(r.FormValue("action"))
+	if action == "" {
+		action = "Publish"
+	}
+	if err := c.be.AddTopicPermission(r.Context(), topicARNOf(topic), label, acct, action); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/sns/"+topic+"?tab=details", "Permission “"+label+"” added")
+}
+
+func (c *Console) snsRemovePermission(w http.ResponseWriter, r *http.Request) {
+	topic := r.PathValue("topic")
+	if err := c.be.RemoveTopicPermission(r.Context(), topicARNOf(topic), r.FormValue("label")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/sns/"+topic+"?tab=details", "Permission removed")
+}
+
+// snsDataProtection stores the data protection policy. C-tier and worth saying
+// out loud: it is handed back verbatim and never applied to a message, so
+// nothing is redacted locally however the policy reads.
+func (c *Console) snsDataProtection(w http.ResponseWriter, r *http.Request) {
+	topic := r.PathValue("topic")
+	if err := c.be.PutDataProtectionPolicy(r.Context(), topicARNOf(topic), r.FormValue("policy")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/sns/"+topic+"?tab=details", "Data protection policy stored")
 }
