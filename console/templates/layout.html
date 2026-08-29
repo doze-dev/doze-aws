@@ -189,7 +189,12 @@ return"= "+p.join(" ");};</script>
 
   <!-- styled confirm (replaces native hx-confirm dialogs) -->
   <div class="overlay" id="confirm" hidden>
-    <div class="dialog anim" role="alertdialog" aria-modal="true">
+    {{/* alertdialog wants both: a stable label and the specific question.
+         confirm-title is the label ("Are you sure?"), confirm-msg the question
+         shell.js fills in — which is also what makes the question visible,
+         since the heading is static. */}}
+    <div class="dialog anim" role="alertdialog" aria-modal="true"
+         aria-labelledby="confirm-title" aria-describedby="confirm-msg">
       <div class="dialog-h"><h3 id="confirm-title">Are you sure?</h3><p id="confirm-msg"></p></div>
       <div class="dialog-f">
         <button type="button" class="btn btn-outline" id="confirm-no">Cancel</button>

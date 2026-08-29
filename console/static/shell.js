@@ -213,11 +213,19 @@
     var q = e.detail.question;
     if (!q || !confirmBox) return;
     e.preventDefault();
-    document.getElementById("confirm-title").textContent = q;
-    var detail = (e.detail.elt && e.detail.elt.getAttribute("data-confirm-detail")) || "";
+    // The QUESTION goes in the message, and the title stays the static "Are you
+    // sure?" the markup ships with. Making the question the title instead left
+    // #confirm-msg fed only by a data-confirm-detail attribute that no template
+    // sets — so every confirm dialog rendered with an empty, hidden message and
+    // the question as its heading.
+    //
+    // That has been true since the keyboard-accessibility pass and nothing
+    // caught it, because the e2e suite that asserts it was not being run.
+    // aria-labelledby still points at the title, which is now a stable label
+    // rather than a sentence that changes per button.
     var msgEl = document.getElementById("confirm-msg");
-    msgEl.textContent = detail;
-    msgEl.hidden = !detail;
+    msgEl.textContent = q;
+    msgEl.hidden = false;
     confirmBox.hidden = false;
     var yes = document.getElementById("confirm-yes"), no = document.getElementById("confirm-no");
     function close() { if (window.dozeTrap) dozeTrap(confirmBox, false); confirmBox.hidden = true; yes.onclick = no.onclick = confirmBox.onclick = null; document.removeEventListener("keydown", onKey); }
@@ -654,8 +662,10 @@
   // stayed in the address bar, so a refresh or a back navigation re-showed a
   // success that had already happened.
   function tidyFlash() {
-    var bar = document.getElementById("flashbar");
-    if (bar) setTimeout(function () { bar.remove(); }, 8000);
+    // No auto-remove. Both banners carry a dismiss button and both live inside
+    // #workspace, so navigating away clears them; a timer on top of that only
+    // takes the message away while you are still reading it, which is the
+    // complaint that moved these off toasts in the first place.
     if (location.search.indexOf("flash=") >= 0) {
       try {
         var u = new URL(location.href);
@@ -712,6 +722,11 @@
     var prev = host.querySelector(":scope > .flash");
     if (prev) prev.remove();
     var el = document.createElement("div");
+    // Same id as the server-rendered banner in layout.html. There are two ways
+    // a flash reaches the page — this one for htmx, and ?flash= for the plain
+    // form path — and they were rendering the same thing under different
+    // identities, so anything addressing #flashbar only worked on one of them.
+    el.id = "flashbar";
     el.className = "flash anim" + (f.sticky ? " flash-sticky" : "");
     el.setAttribute("role", "status");
     el.innerHTML = '<span class="fl-msg"></span>' +
