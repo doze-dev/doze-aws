@@ -1648,3 +1648,13 @@ a.lo-card:hover { border-color: var(--accent); }
 /* A count that means "look at this" — a pending subscription is listed, silent,
    and indistinguishable from a delivery bug until you notice it. */
 .fx-v .warn { color: var(--warning); }
+
+/* ---------- tag editor ---------- */
+.tag-k { width: 34%; }
+.tag-x { width: 40px; text-align: right; }
+.tag-none { padding: 12px 14px; }
+.tag-foot { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
+/* The dirty note pushes the buttons right, so Save sits where a form%s primary
+   action belongs rather than next to Add. */
+.tag-dirty { margin-left: auto; font-size: 11px; }
+.tag-foot .btn[disabled] { opacity: .45; cursor: not-allowed; }

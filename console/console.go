@@ -126,6 +126,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/tags/view", c.tagsView)
 	m.HandleFunc("POST "+p+"/tags/set", c.tagsSet)
 	m.HandleFunc("POST "+p+"/tags/remove", c.tagsRemove)
+	m.HandleFunc("POST "+p+"/tags/save", c.tagsSave) // the whole set, explicitly
 
 	// Create forms render inside the shell (list pane + detail).
 	m.HandleFunc("GET "+p+"/s3/create", c.createPage("s3", "s3_create"))
@@ -514,6 +515,7 @@ func templateFuncs(prefix string) template.FuncMap {
 			return slices.Contains(set, v)
 		},
 		"slug":      resSlug,
+		"tagsJSON":  tagsJSON,
 		"secs":      humanSecs,
 		"ago":       ago,
 		"list":      func(items ...any) []any { return items },

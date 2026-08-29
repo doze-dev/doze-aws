@@ -2,6 +2,8 @@ package console
 
 import (
 	"context"
+	"encoding/json"
+	"html/template"
 	"strconv"
 	"strings"
 )
@@ -153,4 +155,28 @@ func humanSecs(s string) string {
 		}
 	}
 	return strings.Join(parts, " ")
+}
+
+// tagsJSON renders a tag list as the JSON literal an x-data attribute needs.
+//
+// template.JS rather than a string: the value is being placed inside an HTML
+// attribute that Alpine will evaluate as JavaScript, and html/template escapes
+// a plain string for HTML text rather than for a JS expression — which turns a
+// quote in a tag value into &#34; and the x-data into a syntax error. Marshal
+// already produces valid JS for this shape, and the values it carries are tag
+// keys and values that came from the service.
+func tagsJSON(tags []KV) template.JS {
+	type kv struct {
+		K string `json:"k"`
+		V string `json:"v"`
+	}
+	out := make([]kv, 0, len(tags))
+	for _, t := range tags {
+		out = append(out, kv{K: t.K, V: t.V})
+	}
+	b, err := json.Marshal(out)
+	if err != nil {
+		return template.JS("[]")
+	}
+	return template.JS(b)
 }
