@@ -103,7 +103,7 @@
         {{/* Repoint, not delete-and-recreate. Those are different: between the
              two calls the alias does not exist, and anything resolving it in
              that window fails. UpdateAlias moves it in one step. */}}
-        <form class="tag-row-form" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/update-alias" @htmx:after-request="$el.reset()">
+        <form class="tag-row-form" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/update-alias" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
           {{/* A distinct field name, not a second name="alias" beside the
                add-alias form. Two adjacent forms with the same field name is
                ambiguous to anything addressing them — a test, a screen reader

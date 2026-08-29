@@ -74,7 +74,7 @@ test.describe('DLQ created alongside', () => {
       await expect(page.locator('.badge.dlq')).toContainText('DLQ', { timeout: 500 });
     }).toPass({ timeout: 5000 });
     await expect(page.locator('.conn-lbl', { hasText: 'Fed by' })).toBeVisible();
-    await expect(page.locator('.conn-chips .conn-chip', { hasText: name })).toBeVisible();
+    await expect(page.locator('.conn .conn-chip', { hasText: name })).toBeVisible();
   });
 
   test('FIFO queue: -dlq.fifo queue is created, FIFO, and wired', async ({

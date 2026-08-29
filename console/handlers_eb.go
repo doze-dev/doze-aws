@@ -215,7 +215,12 @@ func (c *Console) ebRule(w http.ResponseWriter, r *http.Request) {
 	buses, _ := c.be.ListBuses(r.Context())
 	c.render(w, r, "eb_rule", map[string]any{
 		"Bus": bus, "Rule": rule, "Queues": queues, "Functions": fns, "List": buses, "Title": name + " · EventBridge",
-		"Conn": c.be.Neighbors(r.Context(), "eb", name),
+		// bus/rule, not rule. The graph keys an EventBridge rule by both —
+		// client_flow.go builds the node as bus.Name+"/"+rl.Name, because two
+		// buses may each hold a rule called "orders" — so looking it up by the
+		// bare rule name never matched. Every rule page reported "nothing feeds
+		// this yet" and "no targets yet" however many targets the rule had.
+		"Conn": c.be.Neighbors(r.Context(), "eb", bus+"/"+name),
 	})
 }
 

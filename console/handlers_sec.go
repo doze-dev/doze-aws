@@ -557,5 +557,11 @@ func (c *Console) kmsUpdateAlias(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/kms/"+id, "Alias “"+alias+"” now points here")
+	// Re-renders the key panel, the way kmsAddAlias and kmsDeleteAlias do —
+	// the alias list is right there and is the thing that changed. It also
+	// keeps the mutation sweep honest: repointing needs an alias that already
+	// exists, which no fixture can invent, so a route classified as
+	// redirect-capable here would fail that sweep forever.
+	toast(w, "Alias “"+alias+"” now points here")
+	c.kmsKeyPartial(w, r)
 }
