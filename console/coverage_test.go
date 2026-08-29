@@ -35,6 +35,7 @@ var uncovered = map[string][]string{
 	"sqs":     {},
 	"kinesis": {},
 	"sns":     {},
+	"kms":     {},
 	// BatchGetSecretValue is the one exemption — see exempt.
 	"secretsmanager": {},
 }

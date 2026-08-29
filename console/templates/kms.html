@@ -45,6 +45,45 @@
            key's description is the only human-readable thing about it — the id
            is a UUID and the alias is optional — so being unable to correct one
            is worse than it sounds. */}}
+      {{if eq .Key.Usage "SIGN_VERIFY"}}
+      {{/* The public half. Signing was available and this was not, so the
+           console could produce a signature nobody else could check —
+           which is the whole point of an asymmetric key over a MAC. */}}
+      <div class="sec-title">Public key</div>
+      <div class="panel">
+        <form class="form-b" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/public-key" hx-target="#kms-op-out" hx-select="unset" hx-swap="innerHTML">
+          <p class="mini-note">Hand this to whoever needs to verify a signature without calling KMS.</p>
+          <div class="send-foot"><button class="btn btn-sm" type="submit">Export public key</button></div>
+        </form>
+      </div>
+      {{end}}
+      {{if eq .Key.Usage "ENCRYPT_DECRYPT"}}
+      {{/* ReEncrypt, not Decrypt-then-Encrypt. Doing it in two calls here would
+           work and would demonstrate the opposite of the point: the reason
+           ReEncrypt exists is that the plaintext never travels. */}}
+      <div class="sec-title">Re-encrypt <span class="dim">— move ciphertext to another key</span></div>
+      <div class="panel">
+        <form class="form-b" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/reencrypt" hx-target="#kms-op-out" hx-select="unset" hx-swap="innerHTML">
+          <div class="field"><label>Ciphertext <span class="dim">base64</span></label>
+            <textarea name="ciphertext" rows="3" spellcheck="false" required placeholder="AQICAHj…"></textarea></div>
+          <div class="field"><label>Destination key</label>
+            <select class="input" name="dest">{{range .List}}<option value="{{.ID}}">{{.ID}}{{if .Alias}} · {{.Alias}}{{end}}</option>{{end}}</select></div>
+          <div class="send-foot"><button class="btn btn-sm" type="submit">Re-encrypt</button></div>
+        </form>
+      </div>
+      {{end}}
+      {{/* GenerateRandom takes no key, which is exactly what makes it useful:
+           it is the shortest call that proves the endpoint answers and the
+           credentials resolve, before a failure gets blamed on a key policy
+           that was never the problem. */}}
+      <div class="sec-title">Random bytes <span class="dim">— no key involved</span></div>
+      <div class="panel">
+        <form class="tag-row-form" hx-post="{{.Prefix}}/kms/random" hx-target="#kms-op-out" hx-select="unset" hx-swap="innerHTML">
+          <input class="input" name="bytes" type="number" min="1" max="1024" value="32">
+          <button class="btn btn-outline btn-sm" type="submit">Generate</button>
+        </form>
+      </div>
+      <div id="kms-op-out" class="kms-op-out"></div>
       <div class="sec-title">Description</div>
       <div class="panel">
         <form class="tag-row-form" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/description">
@@ -53,11 +92,21 @@
         </form>
       </div>
 
+      {{/* Repointing an alias, rather than delete-and-recreate. Those are not
+           the same: between the two calls the alias does not exist, and
+           anything resolving it in that window fails. */}}
       <div class="sec-title">Aliases</div>
       <div class="panel">
         {{if .Key.Aliases}}<div class="sub-rows">{{range .Key.Aliases}}
           <div class="sub-row"><span class="cc-bar" style="background:var(--svc-kms)"></span><span class="sub-nm mono">{{.}}</span><button class="icon-btn sm danger" title="Remove alias" hx-post="{{$.Prefix}}/kms/{{$.Key.ID}}/delete-alias" hx-vals='{"alias":"{{.}}"}' hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove {{.}}?">{{icon "trash"}}</button></div>
         {{end}}</div>{{else}}<div class="mini-note" style="padding:12px 14px 2px">No aliases — keys are easier to reference by one.</div>{{end}}
+        {{/* Repoint, not delete-and-recreate. Those are different: between the
+             two calls the alias does not exist, and anything resolving it in
+             that window fails. UpdateAlias moves it in one step. */}}
+        <form class="tag-row-form" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/update-alias" @htmx:after-request="$el.reset()">
+          <input class="input mono" name="alias" placeholder="alias/existing-name" required autocomplete="off">
+          <button class="btn btn-ghost btn-sm" type="submit" title="Point an existing alias at this key">Repoint here</button>
+        </form>
         <form class="tag-row-form" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/add-alias" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
           <span class="dim mono" style="align-self:center;font-size:12px">alias/</span><input class="input" name="alias" placeholder="my-key" required style="flex:1"><button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Add</button>
         </form>
@@ -115,3 +164,13 @@
 {{end}}
 
 {{define "kms_crypto_result"}}<div class="code-out"><div class="co-h"><span>{{.Label}}</span><span style="display:flex;align-items:center;gap:8px">{{if .DecryptURL}}<button class="btn btn-outline btn-sm" hx-post="{{.DecryptURL}}" hx-vals='{"ciphertext":"{{.Value}}"}' hx-target="#kms-crypto-out" hx-select="unset" hx-swap="innerHTML">Decrypt this →</button>{{end}}<button class="copy-btn" data-copy="{{.Value}}">{{icon "copy"}}</button></span></div><pre>{{.Value}}</pre></div>{{end}}
+
+{{/* One output block for GenerateRandom, GetPublicKey and ReEncrypt — all
+     three answer with a single base64 value and differ only in what it is. */}}
+{{define "kms_out"}}
+<div class="code-out">
+  <div class="co-h"><span>{{.Label}}</span><button class="copy-btn" data-copy="{{.Value}}">{{icon "copy"}}</button></div>
+  <pre>{{.Value}}</pre>
+</div>
+{{if .Note}}<p class="mini-note">{{.Note}}</p>{{end}}
+{{end}}

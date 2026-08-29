@@ -307,7 +307,11 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/kms/{key}/mac", c.kmsMac)
 	m.HandleFunc("POST "+p+"/kms/{key}/verify-mac", c.kmsVerifyMac)
 	m.HandleFunc("POST "+p+"/kms/{key}/add-alias", c.kmsAddAlias)
-	m.HandleFunc("POST "+p+"/kms/{key}/description", c.kmsDescription) // UpdateKeyDescription
+	m.HandleFunc("POST "+p+"/kms/{key}/description", c.kmsDescription)  // UpdateKeyDescription
+	m.HandleFunc("POST "+p+"/kms/random", c.kmsRandom)                  // GenerateRandom — no key needed
+	m.HandleFunc("POST "+p+"/kms/{key}/public-key", c.kmsPublicKey)     // GetPublicKey
+	m.HandleFunc("POST "+p+"/kms/{key}/reencrypt", c.kmsReEncrypt)      // ReEncrypt
+	m.HandleFunc("POST "+p+"/kms/{key}/update-alias", c.kmsUpdateAlias) // UpdateAlias
 	m.HandleFunc("POST "+p+"/kms/{key}/delete-alias", c.kmsDeleteAlias)
 	m.HandleFunc("POST "+p+"/kms/{key}/cancel-deletion", c.kmsCancelDeletion)
 

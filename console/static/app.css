@@ -1666,3 +1666,5 @@ a.lo-card:hover { border-color: var(--accent); }
 /* Continuation rows of an edit form: the first .edit-grid supplies the top
    padding, the rest should not repeat it. */
 .edit-grid-tight { padding-top: 0; }
+
+.kms-op-out:not(:empty) { margin: 12px 0; }

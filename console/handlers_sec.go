@@ -498,3 +498,64 @@ func (c *Console) kmsDescription(w http.ResponseWriter, r *http.Request) {
 	}
 	c.redirect(w, r, c.prefix+"/kms/"+id, "Description updated")
 }
+
+// kmsRandom asks the service for bytes. No key involved, which is what makes it
+// the quickest check that the endpoint answers and credentials resolve.
+func (c *Console) kmsRandom(w http.ResponseWriter, r *http.Request) {
+	n := atoiDefault(r.FormValue("bytes"), 32)
+	if n < 1 || n > 1024 {
+		n = 32
+	}
+	out, err := c.be.GenerateRandom(r.Context(), n)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "kms_out", map[string]any{"Label": "Random bytes (base64)", "Value": out})
+}
+
+// kmsPublicKey exports the verifying half of an asymmetric key.
+func (c *Console) kmsPublicKey(w http.ResponseWriter, r *http.Request) {
+	out, err := c.be.PublicKey(r.Context(), r.PathValue("key"))
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "kms_out", map[string]any{"Label": "Public key (base64 DER)", "Value": out})
+}
+
+// kmsReEncrypt moves ciphertext to another key. The plaintext never returns to
+// the caller, which is the whole reason the operation exists and the reason
+// this is not Decrypt followed by Encrypt.
+func (c *Console) kmsReEncrypt(w http.ResponseWriter, r *http.Request) {
+	dest := strings.TrimSpace(r.FormValue("dest"))
+	if dest == "" {
+		c.fail(w, errors.New("Choose the key to re-encrypt to."))
+		return
+	}
+	out, err := c.be.ReEncrypt(r.Context(), strings.TrimSpace(r.FormValue("ciphertext")), dest)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "kms_out", map[string]any{
+		"Label": "Ciphertext under " + dest, "Value": out,
+		"Note": "The plaintext never came back to this page — that is what ReEncrypt is for.",
+	})
+}
+
+// kmsUpdateAlias repoints an alias. Delete-and-recreate would leave it briefly
+// absent, and anything resolving it in that window fails.
+func (c *Console) kmsUpdateAlias(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("key")
+	alias := strings.TrimSpace(r.FormValue("alias"))
+	if alias == "" {
+		c.fail(w, errors.New("Name the alias to repoint at this key."))
+		return
+	}
+	if err := c.be.UpdateAlias(r.Context(), alias, id); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/kms/"+id, "Alias “"+alias+"” now points here")
+}

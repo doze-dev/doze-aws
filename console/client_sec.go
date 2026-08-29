@@ -681,3 +681,71 @@ func (b *backend) UpdateKeyDescription(ctx context.Context, keyID, description s
 	})
 	return err
 }
+
+// GenerateRandom returns bytes from the service rather than from the console.
+//
+// It looks like a toy and is not: it is the one KMS call that needs no key, so
+// it is what you reach for to check the endpoint is answering and your
+// credentials resolve, before blaming a key policy for a failure that is really
+// a misconfigured endpoint.
+func (b *backend) GenerateRandom(ctx context.Context, bytes int) (string, error) {
+	body, err := b.json11(ctx, "TrentService", "GenerateRandom", map[string]any{
+		"NumberOfBytes": bytes,
+	})
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		Plaintext string `json:"Plaintext"`
+	}
+	json.Unmarshal(body, &out)
+	return out.Plaintext, nil
+}
+
+// PublicKey exports the public half of an asymmetric key.
+//
+// The console could sign and verify and could not hand you the key a peer needs
+// to verify independently — which is the entire point of signing with an
+// asymmetric key rather than a MAC.
+func (b *backend) PublicKey(ctx context.Context, keyID string) (string, error) {
+	body, err := b.json11(ctx, "TrentService", "GetPublicKey", map[string]any{"KeyId": keyID})
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		PublicKey string `json:"PublicKey"`
+	}
+	json.Unmarshal(body, &out)
+	return out.PublicKey, nil
+}
+
+// ReEncrypt moves ciphertext from one key to another without the plaintext ever
+// coming back to the caller. Doing it as Decrypt-then-Encrypt in the console
+// would work and would be the wrong demonstration: the reason ReEncrypt exists
+// is that the plaintext does not travel.
+func (b *backend) ReEncrypt(ctx context.Context, ciphertext, destKeyID string) (string, error) {
+	body, err := b.json11(ctx, "TrentService", "ReEncrypt", map[string]any{
+		"CiphertextBlob": ciphertext, "DestinationKeyId": destKeyID,
+	})
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		CiphertextBlob string `json:"CiphertextBlob"`
+	}
+	json.Unmarshal(body, &out)
+	return out.CiphertextBlob, nil
+}
+
+// UpdateAlias repoints an existing alias at another key. Without it the console
+// could only delete and re-create, which is a different thing: an alias is
+// briefly absent in between, and anything resolving it at that moment fails.
+func (b *backend) UpdateAlias(ctx context.Context, alias, targetKeyID string) error {
+	if !strings.HasPrefix(alias, "alias/") {
+		alias = "alias/" + alias
+	}
+	_, err := b.json11(ctx, "TrentService", "UpdateAlias", map[string]any{
+		"AliasName": alias, "TargetKeyId": targetKeyID,
+	})
+	return err
+}
