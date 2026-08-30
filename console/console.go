@@ -305,6 +305,15 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-mapping", c.lambdaDeleteMapping)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/add-mapping", c.lambdaAddMapping)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/config", c.lambdaSaveConfig)
+	m.HandleFunc("POST "+p+"/lambda/{fn}/code", c.lambdaUpdateCode)          // UpdateFunctionCode
+	m.HandleFunc("POST "+p+"/lambda/{fn}/reset-async", c.lambdaResetAsync)   // DeleteFunctionEventInvokeConfig
+	m.HandleFunc("POST "+p+"/lambda/layers/publish", c.lambdaLayerPublish)   // PublishLayerVersion
+	m.HandleFunc("POST "+p+"/lambda/layers/versions", c.lambdaLayerVersions) // HTMX partial (ListLayerVersions)
+	m.HandleFunc("POST "+p+"/lambda/layers/version", c.lambdaLayerVersion)   // HTMX partial (GetLayerVersion)
+	m.HandleFunc("POST "+p+"/lambda/layers/find", c.lambdaLayerFind)         // HTMX partial (GetLayerVersionByArn)
+	m.HandleFunc("POST "+p+"/lambda/layers/delete", c.lambdaLayerDelete)     // DeleteLayerVersion
+	m.HandleFunc("POST "+p+"/lambda/layers/grant", c.lambdaLayerGrant)       // AddLayerVersionPermission
+	m.HandleFunc("POST "+p+"/lambda/layers/revoke", c.lambdaLayerRevoke)     // RemoveLayerVersionPermission
 	m.HandleFunc("POST "+p+"/lambda/{fn}/create-url", c.lambdaCreateURL)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-url", c.lambdaDeleteURL)
 

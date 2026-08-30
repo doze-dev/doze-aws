@@ -9,12 +9,120 @@
 
 {{define "lambda_home"}}{{template "shell_top" .}}
   {{template "lambda_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  {{if and (not .List) (not .Layers)}}
   {{/* This was the only real first-run state in the console and it was written
        by hand here. It is now the shared one — if empty_detail cannot reproduce
        what this said, the abstraction is wrong and should be revised rather
        than the copy flattened to fit it. */}}
-  {{template "empty_detail" dict "Svc" "lambda" "Prefix" .Prefix "Empty" (not .List)}}
+  {{template "empty_detail" dict "Svc" "lambda" "Prefix" .Prefix "Empty" true}}
+  {{else}}
+  <section class="detail"><div class="det-b">
+    {{with .Acct}}
+    <div class="sec-title" style="margin-top:0">Account <span class="dim">&mdash; live usage against the nominal limits</span></div>
+    <div class="factstrip">
+      <div class="fact"><div class="fx-k">Functions</div><div class="fx-v num">{{.FunctionCount}}</div></div>
+      <div class="fact"><div class="fx-k">Code stored</div><div class="fx-v">{{humanSize .TotalCodeSize}} <span class="dim">of {{humanSize .TotalCodeLimit}}</span></div></div>
+      <div class="fact"><div class="fx-k">Concurrency limit</div><div class="fx-v num">{{count .ConcurrentLimit}}</div></div>
+    </div>
+    {{end}}
+
+    <div class="sec-title">Layers <span class="dim">&mdash; shared code, versioned; attach by ARN in a function's configuration</span></div>
+    {{template "lambda_layers" .}}
+
+    <div class="split" style="margin-top:14px">
+      <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Publish a layer version</h2></div><div class="form-b">
+        <form hx-post="{{.Prefix}}/lambda/layers/publish" hx-target="#lam-layers" hx-select="unset" hx-swap="outerHTML">
+          <div class="fgrid">
+            <div class="field"><label>Layer name</label><input class="input mono" name="name" placeholder="shared-utils" required pattern="[a-zA-Z0-9_\-]{1,64}" spellcheck="false"></div>
+            <div class="field"><label>Compatible runtimes <span class="dim">optional, comma-sep</span></label><input class="input mono" name="runtimes" placeholder="python3.12, nodejs20.x" spellcheck="false"></div>
+          </div>
+          <div class="field" style="margin-top:8px"><label>Content path <span class="dim">a zip or directory on this machine, used in place</span></label><input class="input mono" name="path" placeholder="/path/to/layer.zip" required spellcheck="false"></div>
+          <div class="field" style="margin-top:8px"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="what this layer carries"></div>
+          <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Publish version</button></div>
+        </form>
+        <p class="mini-note">Publishing an existing name adds the next version; nothing already deployed changes.</p>
+      </div></div>
+      <div class="panel"><div class="panel-h"><h2>{{icon "search"}} Look up by ARN</h2></div><div class="form-b">
+        <form hx-post="{{.Prefix}}/lambda/layers/find" hx-target="#layer-out" hx-select="unset" hx-swap="innerHTML">
+          <div class="field"><label>Layer version ARN</label><input class="input mono" name="arn" placeholder="arn:aws:lambda:us-east-1:000000000000:layer:shared-utils:3" required spellcheck="false"></div>
+          <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Resolve</button></div>
+        </form>
+        <p class="mini-note">The ARN-addressed read a template or another account hands you.</p>
+      </div></div>
+    </div>
+    <div id="layer-out"></div>
+  </div></section>
+  {{end}}
 {{template "shell_bottom" .}}{{end}}
+
+{{/* The layer registry table. Each name expands to its version list below;
+     the version list expands to a full version view with its permissions. */}}
+{{define "lambda_layers"}}
+<div id="lam-layers">
+{{if .Layers}}
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th>Layer</th><th style="width:90px">Latest</th><th>Compatible runtimes</th><th style="width:130px">Published</th></tr></thead>
+  <tbody>
+  {{range .Layers}}
+    <tr>
+      <td class="mono sub"><a href="javascript:void(0)" hx-post="{{$.Prefix}}/lambda/layers/versions" hx-vals='{"layer":"{{.Name}}"}' hx-target="#layer-out" hx-select="unset" hx-swap="innerHTML" title="List versions">{{.Name}}</a></td>
+      <td class="sub num">v{{.Version}}</td>
+      <td class="dim sub mono">{{if .Runtimes}}{{range $i, $rt := .Runtimes}}{{if $i}}, {{end}}{{$rt}}{{end}}{{else}}any{{end}}</td>
+      <td class="dim sub mono">{{.Created}}</td>
+    </tr>
+  {{end}}
+  </tbody>
+</table></div>
+{{else}}<p class="mini-note">No layers yet. A layer is shared code functions pull in by ARN &mdash; publish one below, or via the SDK.</p>{{end}}
+</div>
+{{end}}
+
+{{define "lambda_layer_versions"}}
+<div class="panel sub-panel"><div class="panel-h"><h2>{{icon "layers"}} {{.Name}} &mdash; versions</h2></div>
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th style="width:80px">Version</th><th>Description</th><th style="width:130px">Published</th><th style="width:70px"></th></tr></thead>
+  <tbody>
+  {{range .Versions}}
+    <tr>
+      <td class="sub num"><a href="javascript:void(0)" hx-post="{{$.Prefix}}/lambda/layers/version" hx-vals='{"layer":"{{.Name}}","version":"{{.Version}}"}' hx-target="#layer-out" hx-select="unset" hx-swap="innerHTML" title="Version detail">v{{.Version}}</a></td>
+      <td class="dim sub">{{if .Description}}{{.Description}}{{else}}&mdash;{{end}}</td>
+      <td class="dim sub mono">{{.Created}}</td>
+      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete version {{.Version}}" hx-post="{{$.Prefix}}/lambda/layers/delete" hx-vals='{"layer":"{{.Name}}","version":"{{.Version}}"}' hx-target="#lam-layers" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete {{.Name}} v{{.Version}}? Functions already configured with it keep running.">{{icon "trash"}}</button></div></td>
+    </tr>
+  {{else}}
+    <tr><td colspan="4" class="mini-note">No versions &mdash; every version of this layer has been deleted.</td></tr>
+  {{end}}
+  </tbody>
+</table></div></div>
+{{end}}
+
+{{/* One layer version in full: the content block GetLayerVersion returns and
+     the cross-account permissions on it. */}}
+{{define "lambda_layer_detail"}}
+<div class="panel sub-panel"><div class="panel-h"><h2>{{icon "layers"}} {{.L.Name}} v{{.L.Version}}</h2></div>
+<div class="table-wrap"><table class="tbl kv"><tbody>
+  <tr><td>ARN</td><td>{{template "copychip" dict "Value" .L.ARN}}</td></tr>
+  <tr><td>Description</td><td>{{if .L.Description}}{{.L.Description}}{{else}}<span class="dim">&mdash;</span>{{end}}</td></tr>
+  <tr><td>Compatible runtimes</td><td class="mono">{{if .L.Runtimes}}{{range $i, $rt := .L.Runtimes}}{{if $i}}, {{end}}{{$rt}}{{end}}{{else}}<span class="dim">any</span>{{end}}</td></tr>
+  <tr><td>Size</td><td>{{humanSize .L.CodeSize}}</td></tr>
+  <tr><td>Content</td><td class="mono" style="font-size:11px">{{if .L.Location}}{{.L.Location}}{{else}}<span class="dim">none &mdash; metadata-only version</span>{{end}}</td></tr>
+  <tr><td>Published</td><td class="mono">{{.L.Created}}</td></tr>
+</tbody></table></div>
+<div class="form-b">
+  <div class="sec-title" style="margin-top:0">Permissions <span class="dim">&mdash; who else may GetLayerVersion</span></div>
+  {{if .L.Policy}}<div class="code-out"><pre>{{.L.Policy}}</pre></div>
+  {{else}}<p class="mini-note">Private &mdash; no statements. Only this account can use the version.</p>{{end}}
+  <form class="ex-grid" style="margin-top:10px;align-items:end" hx-post="{{.Prefix}}/lambda/layers/grant" hx-vals='{"layer":"{{.L.Name}}","version":"{{.L.Version}}"}' hx-target="#layer-out" hx-select="unset" hx-swap="innerHTML">
+    <div class="field" style="width:150px"><label>Statement id</label><input class="input mono" name="sid" placeholder="share-1" required spellcheck="false"></div>
+    <div class="field" style="flex:1"><label>Principal <span class="dim">account id, or *</span></label><input class="input mono" name="principal" placeholder="123456789012" required spellcheck="false"></div>
+    <button class="btn btn-outline btn-sm" type="submit">Grant</button>
+  </form>
+  <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/lambda/layers/revoke" hx-vals='{"layer":"{{.L.Name}}","version":"{{.L.Version}}"}' hx-target="#layer-out" hx-select="unset" hx-swap="innerHTML">
+    <div class="field" style="flex:1"><label>Revoke statement id</label><input class="input mono" name="sid" placeholder="share-1" required spellcheck="false"></div>
+    <button class="btn btn-outline btn-sm danger" type="submit">Revoke</button>
+  </form>
+</div></div>
+{{end}}
 
 {{define "lambda_fn"}}{{template "shell_top" .}}
   {{template "lambda_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Fn.Name)}}
@@ -154,9 +262,15 @@
       <div class="sec-title" style="margin-top:0">General</div>
       <div class="panel"><div class="form-b">
         <div class="table-wrap"><table class="tbl kv"><tbody>
-          <tr><td>Runtime</td><td>{{.Fn.Runtime}}</td></tr><tr><td>Handler</td><td class="mono">{{.Fn.Handler}}</td></tr>
           <tr><td>Version</td><td>{{.Fn.Version}}</td></tr><tr><td>Code size</td><td>{{humanSize .Fn.CodeSize}}</td></tr>
         </tbody></table></div>
+        <div class="fgrid" style="margin-top:10px">
+          <div class="field"><label>Runtime</label><select class="input" name="runtime">
+            {{$cur := .Fn.Runtime}}<option value="{{$cur}}">{{$cur}}</option>
+            {{range (list "provided.al2" "python3.12" "nodejs20.x" "java21" "ruby3.3" "dotnet8")}}{{if ne . $cur}}<option value="{{.}}">{{.}}</option>{{end}}{{end}}
+          </select></div>
+          <div class="field"><label>Handler</label><input class="input mono" name="handler" value="{{.Fn.Handler}}" spellcheck="false"></div>
+        </div>
         <div class="fgrid" style="margin-top:10px">
           <div class="field"><label>Timeout <span class="dim">s</span></label><input class="input" name="timeout" type="number" min="1" max="900" value="{{.Fn.Timeout}}"></div>
           <div class="field"><label>Memory <span class="dim">MB</span></label><input class="input" name="memory" type="number" min="128" max="10240" step="1" value="{{.Fn.MemorySize}}"></div>
@@ -179,6 +293,15 @@
       <div style="display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/create-url" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML">{{icon "link"}} Create function URL</button></div>
       {{end}}
     </div></div>
+    <div class="sec-title">Code</div>
+    <div class="panel"><div class="form-b">
+      <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/code" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML">
+        <div class="field"><label>New code path <span class="dim">zip or directory on this machine, run in place</span></label>
+          <input class="input mono" name="path" placeholder="/path/to/code" required spellcheck="false"></div>
+        <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Update code</button></div>
+      </form>
+      <p class="mini-note">The running container is retired; the next invoke cold-starts on the new code.</p>
+    </div></div>
     {{if or .Fn.DLQ .Fn.OnSuccess .Fn.OnFailure}}
     <div class="sec-title">Async destinations</div>
     <div class="table-wrap"><table class="tbl kv"><tbody>
@@ -186,6 +309,9 @@
       {{if .Fn.OnSuccess}}<tr><td>On success →</td><td>{{template "copychip" dict "Value" .Fn.OnSuccess}}</td></tr>{{end}}
       {{if .Fn.OnFailure}}<tr><td>On failure →</td><td>{{template "copychip" dict "Value" .Fn.OnFailure}}</td></tr>{{end}}
     </tbody></table></div>
+    {{if or .Fn.OnSuccess .Fn.OnFailure}}
+    <div class="fr-btn"><button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/reset-async" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML" hx-confirm="Reset the async invoke policy? Retries, event age and destinations go back to defaults.">Reset async policy</button></div>
+    {{end}}
     {{end}}
   </div>
 </div>

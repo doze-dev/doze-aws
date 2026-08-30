@@ -1,6 +1,7 @@
 package console
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,12 +25,147 @@ func (c *Console) lambdaFns(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	data := map[string]any{"List": fns, "Title": "Lambda"}
 	if len(fns) > 0 {
-		r.SetPathValue("fn", fns[0].Name)
-		c.lambdaFn(w, r)
+		// The service-wide surfaces live on the home pane (the SSM pattern):
+		// account usage against the nominal limits, and the layers registry —
+		// a whole subsystem the emulator implements that had no UI at all.
+		data["Acct"], _ = c.be.LambdaAccount(r.Context())
+	}
+	layers, _ := c.be.ListLambdaLayers(r.Context())
+	data["Layers"] = layers
+	c.render(w, r, "lambda_home", data)
+}
+
+// lambdaLayerVersions renders one layer's version list (ListLayerVersions).
+func (c *Console) lambdaLayerVersions(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("layer")
+	versions, err := c.be.LayerVersions(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
 		return
 	}
-	c.render(w, r, "lambda_home", map[string]any{"List": fns, "Title": "Lambda"})
+	c.partial(w, "lambda_layer_versions", map[string]any{"Name": name, "Versions": versions})
+}
+
+// lambdaLayerVersion renders one version in full — content and permissions
+// (GetLayerVersion + GetLayerVersionPolicy).
+func (c *Console) lambdaLayerVersion(w http.ResponseWriter, r *http.Request) {
+	v, err := strconv.ParseInt(r.FormValue("version"), 10, 64)
+	if err != nil {
+		c.fail(w, fmt.Errorf("version must be a number"))
+		return
+	}
+	info, err := c.be.LayerVersion(r.Context(), r.FormValue("layer"), v)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "lambda_layer_detail", map[string]any{"L": info})
+}
+
+// lambdaLayerFind resolves a pasted layer-version ARN (GetLayerVersionByArn).
+func (c *Console) lambdaLayerFind(w http.ResponseWriter, r *http.Request) {
+	info, err := c.be.LayerVersionByARN(r.Context(), strings.TrimSpace(r.FormValue("arn")))
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "lambda_layer_detail", map[string]any{"L": info})
+}
+
+// lambdaLayerPublish publishes a new layer version (PublishLayerVersion) and
+// re-renders the registry.
+func (c *Console) lambdaLayerPublish(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimSpace(r.FormValue("name"))
+	var runtimes []string
+	for _, rt := range strings.Split(r.FormValue("runtimes"), ",") {
+		if rt = strings.TrimSpace(rt); rt != "" {
+			runtimes = append(runtimes, rt)
+		}
+	}
+	err := c.be.PublishLayer(r.Context(), name, strings.TrimSpace(r.FormValue("description")),
+		strings.TrimSpace(r.FormValue("path")), runtimes)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Layer version published")
+	c.lambdaLayersPartial(w, r)
+}
+
+// lambdaLayerDelete deletes one version (DeleteLayerVersion); functions
+// already configured with it keep running, as in AWS.
+func (c *Console) lambdaLayerDelete(w http.ResponseWriter, r *http.Request) {
+	v, _ := strconv.ParseInt(r.FormValue("version"), 10, 64)
+	if err := c.be.DeleteLayerVersion(r.Context(), r.FormValue("layer"), v); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Layer version deleted")
+	c.lambdaLayersPartial(w, r)
+}
+
+// lambdaLayerGrant / lambdaLayerRevoke edit a version's resource policy
+// (AddLayerVersionPermission / RemoveLayerVersionPermission), re-rendering the
+// version detail so the policy block reflects the change.
+func (c *Console) lambdaLayerGrant(w http.ResponseWriter, r *http.Request) {
+	v, _ := strconv.ParseInt(r.FormValue("version"), 10, 64)
+	if err := c.be.AddLayerPermission(r.Context(), r.FormValue("layer"), v,
+		strings.TrimSpace(r.FormValue("sid")), strings.TrimSpace(r.FormValue("principal"))); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Permission added")
+	c.lambdaLayerVersion(w, r)
+}
+
+func (c *Console) lambdaLayerRevoke(w http.ResponseWriter, r *http.Request) {
+	v, _ := strconv.ParseInt(r.FormValue("version"), 10, 64)
+	if err := c.be.RemoveLayerPermission(r.Context(), r.FormValue("layer"), v, r.FormValue("sid")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Permission removed")
+	c.lambdaLayerVersion(w, r)
+}
+
+// lambdaLayersPartial re-renders the layers registry after a mutation.
+func (c *Console) lambdaLayersPartial(w http.ResponseWriter, r *http.Request) {
+	layers, err := c.be.ListLambdaLayers(r.Context())
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "lambda_layers", map[string]any{"Layers": layers})
+}
+
+// lambdaUpdateCode points the function at new code (UpdateFunctionCode).
+func (c *Console) lambdaUpdateCode(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("fn")
+	path := strings.TrimSpace(r.FormValue("path"))
+	if path == "" {
+		c.fail(w, fmt.Errorf("a code path is required"))
+		return
+	}
+	if err := c.be.UpdateCode(r.Context(), name, path); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Code updated — the runner restarts on next invoke")
+	c.lambdaConfigPartial(w, r, name)
+}
+
+// lambdaResetAsync discards the async invoke policy back to defaults
+// (DeleteFunctionEventInvokeConfig).
+func (c *Console) lambdaResetAsync(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("fn")
+	if err := c.be.ResetEventInvokeConfig(r.Context(), name); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Async invoke policy reset to defaults")
+	c.lambdaConfigPartial(w, r, name)
 }
 
 func (c *Console) lambdaFn(w http.ResponseWriter, r *http.Request) {
@@ -148,7 +284,9 @@ func (c *Console) lambdaCreate(w http.ResponseWriter, r *http.Request) {
 func (c *Console) lambdaSaveConfig(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("fn")
 	if err := c.be.UpdateConfig(r.Context(), name,
-		atoi(r.FormValue("timeout")), atoi(r.FormValue("memory")), parseEnvRows(r)); err != nil {
+		atoi(r.FormValue("timeout")), atoi(r.FormValue("memory")),
+		strings.TrimSpace(r.FormValue("runtime")), strings.TrimSpace(r.FormValue("handler")),
+		parseEnvRows(r)); err != nil {
 		c.fail(w, err)
 		return
 	}

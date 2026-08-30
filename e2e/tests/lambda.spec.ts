@@ -310,3 +310,59 @@ test.describe('lifecycle', () => {
     await expect(page.locator('.li', { hasText: fnName })).toHaveCount(0);
   });
 });
+
+// Layers are lambda-wide, so they live on the service HOME pane (with the
+// account-usage strip), not under any function. Content is required — the
+// fixture dir (built in beforeAll) serves as a perfectly good layer body.
+test.describe('layers registry', () => {
+  test('publish, versions, detail, permissions, delete', async ({ page, request, uniqueName, waitForToast, confirmDialog }) => {
+    const layer = uniqueName('e2e-layer');
+    // Arrange v1 via the publish route: with fullyParallel workers this test
+    // can land on a brand-new account, where the home pane shows the
+    // first-run empty state (no layers registry) until something exists.
+    await postForm(request, 'lambda/layers/publish', {
+      name: layer, runtimes: 'python3.12', description: 'first cut', path: FIXTURE_DIR,
+    });
+    await page.goto('lambda');
+    await expect(page.locator('#lam-layers tr', { hasText: layer })).toContainText('v1');
+
+    // Publish v2 through the form.
+    const form = page.locator('form:has(button:has-text("Publish version"))');
+    await form.locator('input[name="name"]').fill(layer);
+    await form.locator('input[name="path"]').fill(FIXTURE_DIR);
+    await form.getByRole('button', { name: 'Publish version' }).click();
+    let toast = await waitForToast();
+    expect(toast).toContain('Layer version published');
+    await expect(page.locator('#lam-layers tr', { hasText: layer })).toContainText('v2');
+
+    // Drill down: name → versions, version → detail.
+    await page.locator('#lam-layers a', { hasText: layer }).click();
+    const out = page.locator('#layer-out');
+    await expect(out.locator('tbody tr')).toHaveCount(2);
+    await out.locator('a', { hasText: 'v2' }).click();
+    await expect(out.locator('.panel-h h2')).toContainText(`${layer} v2`);
+    await expect(out).toContainText('Private — no statements');
+
+    // Grant renders the policy; revoke returns it to private.
+    await out.locator('input[name="sid"]').first().fill('share-1');
+    await out.locator('input[name="principal"]').fill('123456789012');
+    await out.getByRole('button', { name: 'Grant' }).click();
+    toast = await waitForToast();
+    expect(toast).toContain('Permission added');
+    await expect(out.locator('.code-out')).toContainText('share-1');
+    await out.locator('form:has(button:has-text("Revoke")) input[name="sid"]').fill('share-1');
+    await out.getByRole('button', { name: 'Revoke' }).click();
+    toast = await waitForToast();
+    expect(toast).toContain('Permission removed');
+    await expect(out).toContainText('Private — no statements');
+
+    // Delete v2 from the (re-opened) version list; the registry re-renders
+    // with v1 as the latest.
+    await page.locator('#lam-layers a', { hasText: layer }).click();
+    await out.locator('tr', { hasText: 'v2' }).locator('button[title="Delete version 2"]').click();
+    await confirmDialog('accept');
+    toast = await waitForToast();
+    expect(toast).toContain('Layer version deleted');
+    await expect(page.locator('#lam-layers tr', { hasText: layer })).toContainText('v1');
+  });
+});

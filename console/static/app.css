@@ -1717,3 +1717,7 @@ a.lo-card:hover { border-color: var(--accent); }
    (a change set exists to be executed or discarded), unlike the hover-revealed
    destructive icons on inventory tables. */
 .cs-acts { display: flex; justify-content: flex-end; gap: 6px; align-items: center; }
+/* Shared small-layout utilities the lambda layers/CFN sub-panels use: a panel
+   that follows content, and a right-aligned form action row. */
+.sub-panel { margin-top: 12px; }
+.fr-btn { display: flex; justify-content: flex-end; margin-top: 10px; }

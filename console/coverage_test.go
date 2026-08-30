@@ -42,6 +42,7 @@ var uncovered = map[string][]string{
 	"secretsmanager": {},
 	// DescribeEndpoints is the one exemption — see exempt.
 	"dynamodb": {},
+	"lambda":   {},
 	// ListStackResources is the one exemption — see exempt.
 	"cloudformation": {},
 }

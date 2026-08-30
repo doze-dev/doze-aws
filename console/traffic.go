@@ -350,32 +350,23 @@ func classify(r *http.Request, capturedBody string, rec *Recorder) (svc, action,
 		}
 		return svc, apigwAction(r), apigwResource(r)
 	}
-	// Lambda REST paths.
-	if strings.HasPrefix(r.URL.Path, "/2015-03-31/") {
+	// Lambda REST paths. Three API version dates, not one: functions live
+	// under /2015-03-31/, layers under /2018-10-31/, event-invoke-config under
+	// /2019-09-25/. The old check knew only the first, so a layer call fell
+	// through this branch entirely and the S3 fallback below named it — a
+	// PublishLayerVersion showed on the wire as a PutObject.
+	if strings.HasPrefix(r.URL.Path, "/2015-03-31/") ||
+		strings.HasPrefix(r.URL.Path, "/2018-10-31/") ||
+		strings.HasPrefix(r.URL.Path, "/2019-09-25/") {
 		parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 		res := ""
-		if len(parts) >= 3 && parts[1] == "functions" {
+		if len(parts) >= 3 && (parts[1] == "functions" || parts[1] == "layers") {
 			res = parts[2]
 		}
 		if op := rec.op("lambda", r); op != "" {
 			return "lambda", op, res
 		}
-		act := "Invoke"
-		if len(parts) >= 3 && parts[1] == "functions" {
-			res = parts[2]
-			if r.Method == "DELETE" {
-				act = "DeleteFunction"
-			} else if r.Method == "GET" {
-				act = "GetFunction"
-			} else if len(parts) >= 4 && parts[3] == "invocations" {
-				act = "Invoke"
-			} else if r.Method == "POST" {
-				act = "CreateFunction"
-			}
-		} else if len(parts) >= 2 && parts[1] == "functions" {
-			act = "ListFunctions"
-		}
-		return "lambda", act, res
+		return "lambda", lambdaRESTAction(r, parts), res
 	}
 	// Query protocol (SNS / STS / legacy SQS): Action in query or form body.
 	// The form body is parsed from the recorder's captured copy — NEVER via
@@ -409,6 +400,75 @@ func classify(r *http.Request, capturedBody string, rec *Recorder) (svc, action,
 		act = "ListBuckets"
 	}
 	return svc, act, p
+}
+
+// lambdaRESTAction names a Lambda REST request from its method + path shape —
+// the fallback for topologies with no route resolver injected. Lambda routes
+// by path, so the operation name exists nowhere in the request; this table is
+// the wire page's only way to say PublishLayerVersion instead of POST.
+func lambdaRESTAction(r *http.Request, parts []string) string {
+	m := r.Method
+	sub := func(i int) string {
+		if len(parts) > i {
+			return parts[i]
+		}
+		return ""
+	}
+	switch sub(1) {
+	case "functions":
+		switch sub(3) {
+		case "invocations":
+			return "Invoke"
+		case "configuration":
+			return map[string]string{"PUT": "UpdateFunctionConfiguration", "GET": "GetFunctionConfiguration"}[m]
+		case "code":
+			return "UpdateFunctionCode"
+		case "url":
+			return map[string]string{"POST": "CreateFunctionUrlConfig", "GET": "GetFunctionUrlConfig", "DELETE": "DeleteFunctionUrlConfig"}[m]
+		case "event-invoke-config":
+			return map[string]string{"PUT": "PutFunctionEventInvokeConfig", "POST": "PutFunctionEventInvokeConfig", "GET": "GetFunctionEventInvokeConfig", "DELETE": "DeleteFunctionEventInvokeConfig"}[m]
+		case "aliases":
+			if sub(4) != "" {
+				return map[string]string{"GET": "GetAlias", "PUT": "UpdateAlias", "DELETE": "DeleteAlias"}[m]
+			}
+			return map[string]string{"POST": "CreateAlias", "GET": "ListAliases"}[m]
+		case "versions":
+			return map[string]string{"POST": "PublishVersion", "GET": "ListVersionsByFunction"}[m]
+		case "policy":
+			return map[string]string{"POST": "AddPermission", "GET": "GetPolicy", "DELETE": "RemovePermission"}[m]
+		case "":
+			if sub(2) == "" {
+				return map[string]string{"GET": "ListFunctions", "POST": "CreateFunction"}[m]
+			}
+			return map[string]string{"GET": "GetFunction", "DELETE": "DeleteFunction"}[m]
+		}
+	case "event-source-mappings":
+		if sub(2) != "" {
+			return map[string]string{"GET": "GetEventSourceMapping", "PUT": "UpdateEventSourceMapping", "DELETE": "DeleteEventSourceMapping"}[m]
+		}
+		return map[string]string{"POST": "CreateEventSourceMapping", "GET": "ListEventSourceMappings"}[m]
+	case "tags":
+		return map[string]string{"GET": "ListTags", "POST": "TagResource", "DELETE": "UntagResource"}[m]
+	case "layers":
+		if sub(2) == "" {
+			if r.URL.Query().Get("Arn") != "" {
+				return "GetLayerVersionByArn"
+			}
+			return "ListLayers"
+		}
+		if sub(3) == "versions" {
+			if sub(4) == "" {
+				return map[string]string{"POST": "PublishLayerVersion", "GET": "ListLayerVersions"}[m]
+			}
+			if sub(5) == "policy" {
+				return map[string]string{"POST": "AddLayerVersionPermission", "GET": "GetLayerVersionPolicy", "DELETE": "RemoveLayerVersionPermission"}[m]
+			}
+			return map[string]string{"GET": "GetLayerVersion", "DELETE": "DeleteLayerVersion"}[m]
+		}
+	case "account-settings":
+		return "GetAccountSettings"
+	}
+	return m
 }
 
 // apigwAction names an API Gateway request: the control-plane operation, or an

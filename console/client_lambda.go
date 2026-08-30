@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -325,13 +326,19 @@ func (b *backend) CreateFunction(ctx context.Context, o CreateFunctionOpts) erro
 }
 
 // UpdateConfig edits the most-changed knobs (env, timeout, memory).
-func (b *backend) UpdateConfig(ctx context.Context, name string, timeout, memory int, env map[string]string) error {
+func (b *backend) UpdateConfig(ctx context.Context, name string, timeout, memory int, runtime, handler string, env map[string]string) error {
 	in := map[string]any{}
 	if timeout > 0 {
 		in["Timeout"] = timeout
 	}
 	if memory > 0 {
 		in["MemorySize"] = memory
+	}
+	if runtime != "" {
+		in["Runtime"] = runtime
+	}
+	if handler != "" {
+		in["Handler"] = handler
 	}
 	in["Environment"] = map[string]any{"Variables": env}
 	buf, _ := json.Marshal(in)
@@ -430,4 +437,238 @@ func parseReport(logs string) (initMS, execMS string) {
 		}
 	}
 	return initMS, execMS
+}
+
+// ---- code + configuration updates, account settings, layers ----
+
+// UpdateCode points a function at new code (UpdateFunctionCode). The path uses
+// the _local_ convention the create form already speaks: a directory (or zip)
+// on this machine, run in place — no upload step to pretend at.
+func (b *backend) UpdateCode(ctx context.Context, name, path string) error {
+	buf, _ := json.Marshal(map[string]any{"S3Bucket": "_local_", "S3Key": path})
+	req, _ := http.NewRequestWithContext(ctx, "PUT",
+		b.base+"/2015-03-31/functions/"+url.PathEscape(name)+"/code", bytes.NewReader(buf))
+	req.Header.Set("Content-Type", "application/json")
+	_, err := b.do(req)
+	return err
+}
+
+// LambdaAccount is GetAccountSettings: live usage against the nominal limits.
+type LambdaAccount struct {
+	FunctionCount   int
+	TotalCodeSize   int64
+	TotalCodeLimit  int64
+	ConcurrentLimit int64
+}
+
+func (b *backend) LambdaAccount(ctx context.Context) (*LambdaAccount, error) {
+	req, _ := http.NewRequestWithContext(ctx, "GET", b.base+"/2015-03-31/account-settings", nil)
+	body, err := b.do(req)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		AccountLimit struct {
+			TotalCodeSize        int64 `json:"TotalCodeSize"`
+			ConcurrentExecutions int   `json:"ConcurrentExecutions"`
+		} `json:"AccountLimit"`
+		AccountUsage struct {
+			TotalCodeSize int64 `json:"TotalCodeSize"`
+			FunctionCount int   `json:"FunctionCount"`
+		} `json:"AccountUsage"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	return &LambdaAccount{
+		FunctionCount: out.AccountUsage.FunctionCount, TotalCodeSize: out.AccountUsage.TotalCodeSize,
+		TotalCodeLimit: out.AccountLimit.TotalCodeSize, ConcurrentLimit: int64(out.AccountLimit.ConcurrentExecutions),
+	}, nil
+}
+
+// LayerInfo is one layer version, as the console shows it. For a layer listing
+// it describes the latest version.
+type LayerInfo struct {
+	Name        string
+	Version     int64
+	ARN         string // the versioned LayerVersionArn
+	Description string
+	Runtimes    []string
+	CodeSize    int64
+	Location    string // local content path — the honest "download" locally
+	Created     string
+	Policy      string // pretty JSON, "" when none
+}
+
+// layerWire is the JSON shape a layer version arrives in.
+type layerWire struct {
+	LayerVersionArn    string   `json:"LayerVersionArn"`
+	Version            int64    `json:"Version"`
+	Description        string   `json:"Description"`
+	CreatedDate        string   `json:"CreatedDate"`
+	CompatibleRuntimes []string `json:"CompatibleRuntimes"`
+	Content            struct {
+		CodeSize int64  `json:"CodeSize"`
+		Location string `json:"Location"`
+	} `json:"Content"`
+}
+
+func (w layerWire) toInfo(name string) LayerInfo {
+	return LayerInfo{
+		Name: name, Version: w.Version, ARN: w.LayerVersionArn,
+		Description: w.Description, Runtimes: w.CompatibleRuntimes,
+		CodeSize: w.Content.CodeSize, Location: w.Content.Location,
+		Created: shortTime(w.CreatedDate),
+	}
+}
+
+// ListLambdaLayers lists every layer with its latest version (ListLayers).
+func (b *backend) ListLambdaLayers(ctx context.Context) ([]LayerInfo, error) {
+	req, _ := http.NewRequestWithContext(ctx, "GET", b.base+"/2018-10-31/layers", nil)
+	body, err := b.do(req)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Layers []struct {
+			LayerName             string    `json:"LayerName"`
+			LatestMatchingVersion layerWire `json:"LatestMatchingVersion"`
+		} `json:"Layers"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	layers := make([]LayerInfo, 0, len(out.Layers))
+	for _, l := range out.Layers {
+		layers = append(layers, l.LatestMatchingVersion.toInfo(l.LayerName))
+	}
+	return layers, nil
+}
+
+// LayerVersions lists one layer's versions, newest first (ListLayerVersions).
+func (b *backend) LayerVersions(ctx context.Context, name string) ([]LayerInfo, error) {
+	req, _ := http.NewRequestWithContext(ctx, "GET",
+		b.base+"/2018-10-31/layers/"+url.PathEscape(name)+"/versions", nil)
+	body, err := b.do(req)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		LayerVersions []layerWire `json:"LayerVersions"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	versions := make([]LayerInfo, 0, len(out.LayerVersions))
+	for _, v := range out.LayerVersions {
+		versions = append(versions, v.toInfo(name))
+	}
+	return versions, nil
+}
+
+// LayerVersion reads one version in full — content block and resource policy
+// included (GetLayerVersion + GetLayerVersionPolicy; the policy 404s when no
+// statement has ever been added, which reads as "private", not an error).
+func (b *backend) LayerVersion(ctx context.Context, name string, version int64) (*LayerInfo, error) {
+	req, _ := http.NewRequestWithContext(ctx, "GET",
+		b.base+"/2018-10-31/layers/"+url.PathEscape(name)+"/versions/"+strconv.FormatInt(version, 10), nil)
+	body, err := b.do(req)
+	if err != nil {
+		return nil, err
+	}
+	var w layerWire
+	if err := json.Unmarshal(body, &w); err != nil {
+		return nil, err
+	}
+	info := w.toInfo(name)
+	preq, _ := http.NewRequestWithContext(ctx, "GET",
+		b.base+"/2018-10-31/layers/"+url.PathEscape(name)+"/versions/"+strconv.FormatInt(version, 10)+"/policy", nil)
+	if pb, perr := b.do(preq); perr == nil {
+		var pol struct {
+			Policy string `json:"Policy"`
+		}
+		if json.Unmarshal(pb, &pol) == nil && pol.Policy != "" {
+			info.Policy = prettyJSON(pol.Policy)
+		}
+	}
+	return &info, nil
+}
+
+// LayerVersionByARN resolves a pasted layer-version ARN (GetLayerVersionByArn
+// — the one operation in the family addressed by query rather than path).
+func (b *backend) LayerVersionByARN(ctx context.Context, arn string) (*LayerInfo, error) {
+	req, _ := http.NewRequestWithContext(ctx, "GET",
+		b.base+"/2018-10-31/layers?find=LayerVersion&Arn="+url.QueryEscape(arn), nil)
+	body, err := b.do(req)
+	if err != nil {
+		return nil, err
+	}
+	var w layerWire
+	if err := json.Unmarshal(body, &w); err != nil {
+		return nil, err
+	}
+	name := arn
+	if i := strings.Index(arn, ":layer:"); i >= 0 {
+		name = strings.SplitN(arn[i+len(":layer:"):], ":", 2)[0]
+	}
+	info := w.toInfo(name)
+	return &info, nil
+}
+
+// PublishLayer publishes a new version (PublishLayerVersion), content by the
+// _local_ path convention. Content is required — the API refuses a version
+// with nothing in it, and so does the form.
+func (b *backend) PublishLayer(ctx context.Context, name, desc, path string, runtimes []string) error {
+	in := map[string]any{
+		"Description": desc,
+		"Content":     map[string]any{"S3Bucket": "_local_", "S3Key": path},
+	}
+	if len(runtimes) > 0 {
+		in["CompatibleRuntimes"] = runtimes
+	}
+	buf, _ := json.Marshal(in)
+	req, _ := http.NewRequestWithContext(ctx, "POST",
+		b.base+"/2018-10-31/layers/"+url.PathEscape(name)+"/versions", bytes.NewReader(buf))
+	req.Header.Set("Content-Type", "application/json")
+	_, err := b.do(req)
+	return err
+}
+
+// DeleteLayerVersion removes one version; other versions and the functions
+// already configured with this one are untouched, as in AWS.
+func (b *backend) DeleteLayerVersion(ctx context.Context, name string, version int64) error {
+	req, _ := http.NewRequestWithContext(ctx, "DELETE",
+		b.base+"/2018-10-31/layers/"+url.PathEscape(name)+"/versions/"+strconv.FormatInt(version, 10), nil)
+	_, err := b.do(req)
+	return err
+}
+
+// AddLayerPermission grants an account GetLayerVersion on one version
+// (AddLayerVersionPermission — the action is fixed by the API).
+func (b *backend) AddLayerPermission(ctx context.Context, name string, version int64, sid, principal string) error {
+	buf, _ := json.Marshal(map[string]any{
+		"StatementId": sid, "Action": "lambda:GetLayerVersion", "Principal": principal,
+	})
+	req, _ := http.NewRequestWithContext(ctx, "POST",
+		b.base+"/2018-10-31/layers/"+url.PathEscape(name)+"/versions/"+strconv.FormatInt(version, 10)+"/policy", bytes.NewReader(buf))
+	req.Header.Set("Content-Type", "application/json")
+	_, err := b.do(req)
+	return err
+}
+
+// RemoveLayerPermission revokes one statement (RemoveLayerVersionPermission).
+func (b *backend) RemoveLayerPermission(ctx context.Context, name string, version int64, sid string) error {
+	req, _ := http.NewRequestWithContext(ctx, "DELETE",
+		b.base+"/2018-10-31/layers/"+url.PathEscape(name)+"/versions/"+strconv.FormatInt(version, 10)+"/policy/"+url.PathEscape(sid), nil)
+	_, err := b.do(req)
+	return err
+}
+
+// ResetEventInvokeConfig discards the async invoke policy — retries,
+// event age, destinations — back to defaults (DeleteFunctionEventInvokeConfig).
+func (b *backend) ResetEventInvokeConfig(ctx context.Context, name string) error {
+	req, _ := http.NewRequestWithContext(ctx, "DELETE",
+		b.base+"/2019-09-25/functions/"+url.PathEscape(name)+"/event-invoke-config", nil)
+	_, err := b.do(req)
+	return err
 }
