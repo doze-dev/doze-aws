@@ -17,7 +17,8 @@
 
 {{define "ddb_table"}}{{template "shell_top" .}}
   {{template "ddb_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Table.Name)}}
-  <section class="detail" x-data="{drawer:false, put:false}">
+  <section class="detail" x-data="{drawer:false, put:false, upd:false, updKey:'', sel:[]}"
+           @htmx:after-swap="if($event.target.id==='ddb-items') sel=[]">
     <div class="det-h">
       <div class="det-title">{{awsIcon "ddb"}} {{.Table.Name}}
         <div class="acts"><button class="btn" @click="put=true">{{icon "plus"}} Add item</button><button class="btn btn-outline danger" hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/delete-table" hx-confirm="Delete table “{{.Table.Name}}” and ALL its items?">{{icon "trash"}} Delete</button></div>
@@ -42,6 +43,24 @@
         <div class="dialog-h"><h3>Add item</h3><p>Plain JSON — types inferred ({{.Table.HashKey}}{{if .Table.RangeKey}}, {{.Table.RangeKey}}{{end}} required).</p></div>
         <div class="dialog-b"><textarea id="ddb-item-editor" name="item" data-editor="json" rows="9" spellcheck="false" required placeholder='{&#10;  "{{.Table.HashKey}}": "user-1",&#10;  "name": "Ada"&#10;}'></textarea></div>
         <div class="dialog-f"><button type="button" class="btn btn-outline" @click="put=false">Cancel</button><button type="submit" class="btn">Save item</button></div>
+      </form></div>
+    </div>
+    {{/* UpdateItem — the edit DynamoDB actually has: an expression against one
+         item's attributes, never a wholesale replace. The :bindings get typed
+         value rows exactly like the explorer's filter expressions (same
+         template, same fv:/ft: wire shape, same server-side parsing). */}}
+    <div class="overlay" role="dialog" aria-modal="true" aria-label="Update item" x-effect="window.dozeTrap && dozeTrap($el, upd)" x-show="upd" x-cloak @click.self="upd=false" @keydown.escape.window="upd=false">
+      <div class="dialog wide anim"><form x-data="{f:''}" hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/update-item" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){upd=false;$el.reset();f='';}">
+        <input type="hidden" name="key" :value="updKey">
+        <div class="dialog-h"><h3>Update item</h3><p>SET, REMOVE, ADD and DELETE clauses edit attributes in place; the rest of the item is untouched.</p></div>
+        <div class="dialog-b">
+          <div class="field"><label>Item key</label><div class="code-out"><pre x-text="updKey"></pre></div></div>
+          <div class="field" style="margin-top:10px"><label>Update expression</label>
+            <input class="input mono" name="expr" x-model="f" placeholder="SET #status = :s, logins = logins + :one REMOVE draft" required spellcheck="false"></div>
+          {{template "ddb_filter_vals" .}}
+          <p class="mini-note">Every <span class="mono">:binding</span> gets a typed value row above; <span class="mono">#aliases</span> resolve to the same-named attribute.</p>
+        </div>
+        <div class="dialog-f"><button type="button" class="btn btn-outline" @click="upd=false">Cancel</button><button type="submit" class="btn">Update item</button></div>
       </form></div>
     </div>
     <div class="drawer-scrim" x-show="drawer" x-cloak @click="drawer=false"></div>
@@ -111,6 +130,7 @@
   <div class="seg">
     <button type="button" :class="mode==='scan' && 'on'" @click="mode='scan'">{{icon "list"}} Scan</button>
     <button type="button" :class="mode==='query' && 'on'" @click="mode='query'">{{icon "search"}} Query</button>
+    <button type="button" :class="mode==='get' && 'on'" @click="mode='get'">{{icon "key"}} Get</button>
     <button type="button" :class="mode==='partiql' && 'on'" @click="mode='partiql'">{{icon "terminal"}} PartiQL</button>
   </div>
 
@@ -170,6 +190,21 @@
     <p class="mini-note">Queries hit the index directly — only matching partitions are read. Pick a GSI to query by a different key.</p>
   </form>
 
+  {{/* GET — the point read: the whole primary key in, zero or one item out. */}}
+  <form class="explorer-form" x-show="mode==='get'" x-cloak
+        hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML">
+    <input type="hidden" name="mode" value="get">
+    <div class="ex-grid">
+      <div class="field" style="flex:1"><label>{{.Table.HashKey}} <span class="dim">partition key</span></label>
+        <input class="input mono" name="pk" placeholder="user-1" required spellcheck="false"></div>
+      {{if .Table.RangeKey}}<div class="field" style="flex:1"><label>{{.Table.RangeKey}} <span class="dim">sort key</span></label>
+        <input class="input mono" name="sk" placeholder="value" required spellcheck="false"></div>{{end}}
+      <label class="bb-txn bb-inform"><input type="checkbox" name="consistent" value="1"> consistent</label>
+      <button class="btn" type="submit">{{icon "key"}} Get item</button>
+    </div>
+    <p class="mini-note">GetItem reads exactly one item and needs the whole primary key{{if .Table.RangeKey}} — both parts{{end}}. A consistent read skips replication lag; in real AWS it costs double.</p>
+  </form>
+
   {{/* PARTIQL */}}
   <form class="explorer-form" x-show="mode==='partiql'" x-cloak
         hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML">
@@ -181,6 +216,26 @@
       <button class="btn" type="submit">{{icon "terminal"}} Run</button>
     </div>
   </form>
+</div>
+
+{{/* The batch/transact pairs need a multi-select to be reachable at all.
+     Plain buttons are the best-effort batch APIs; the one switch upgrades
+     both to their transactional siblings, which is the actual difference
+     between the pairs — not what they do, but what they promise. */}}
+<div class="bulkbar" x-data="{txn:false}" x-show="sel.length" x-cloak>
+  <span class="bb-n"><span x-text="sel.length"></span> selected</span>
+  <form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/batch-get" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML">
+    <input type="hidden" name="keys" :value="JSON.stringify(sel)">
+    <input type="hidden" name="snapshot" :value="txn?'1':''">
+    <button class="btn btn-outline btn-sm" type="submit">{{icon "refresh"}} Re-read selected</button>
+  </form>
+  <form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/batch-delete" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete the selected items?">
+    <input type="hidden" name="keys" :value="JSON.stringify(sel)">
+    <input type="hidden" name="atomic" :value="txn?'1':''">
+    <button class="btn btn-outline danger btn-sm" type="submit">{{icon "trash"}} Delete selected</button>
+  </form>
+  <label class="bb-txn"><input type="checkbox" x-model="txn"> transactional <span class="dim" x-text="txn ? '— one consistent snapshot; deletes all-or-nothing' : '— re-reads batch, deletes best-effort'"></span></label>
+  <button type="button" class="btn btn-ghost btn-sm" @click="sel=[]">Clear</button>
 </div>
 {{template "ddb_item_table" .}}
 {{end}}
@@ -203,7 +258,7 @@
 <div id="ddb-items">
 {{if .Items}}
 <div class="table-wrap"><table class="tbl">
-  <thead><tr><th>{{.Table.HashKey}}</th>{{if .Table.RangeKey}}<th>{{.Table.RangeKey}}</th>{{end}}{{if .Cols}}{{range .Cols}}<th class="mono" style="font-weight:500">{{.}}</th>{{end}}{{else}}<th>Attributes</th>{{end}}<th style="width:36px"></th></tr></thead>
+  <thead><tr><th class="ck-col"><input type="checkbox" aria-label="Select all on this page" @change="const on=$event.target.checked;$event.target.closest('table').querySelectorAll('tbody input.rowck').forEach(c=>{if(c.checked!==on)c.click()})"></th><th>{{.Table.HashKey}}</th>{{if .Table.RangeKey}}<th>{{.Table.RangeKey}}</th>{{end}}{{if .Cols}}{{range .Cols}}<th class="mono" style="font-weight:500">{{.}}</th>{{end}}{{else}}<th>Attributes</th>{{end}}<th style="width:36px"></th></tr></thead>
   <tbody>{{template "ddb_item_rows" .}}</tbody>
 </table></div>
 {{/* Returned and scanned are the same number until a filter is involved, and
@@ -212,11 +267,11 @@
      say "{{len .Items}} scanned", which reported the post-filter count under
      the pre-filter word — the one reading that mattered, stated backwards. */}}
 <div class="tbl-foot">
-  {{len .Items}} item{{if ne (len .Items) 1}}s{{end}}{{if eq .Mode "query"}} matched{{else if eq .Mode "partiql"}} returned{{else}} returned{{end}}
+  {{len .Items}} item{{if ne (len .Items) 1}}s{{end}}{{if eq .Mode "query"}} matched{{else if eq .Mode "batchget"}} re-read (BatchGetItem){{else if eq .Mode "transactget"}} read in one snapshot (TransactGetItems){{else}} returned{{end}}
   {{with .Stats}}{{if .Filtered}}<span class="rs {{if ge .Wasted 90}}rs-bad{{else if ge .Wasted 50}}rs-warn{{end}}" title="ScannedCount {{.ScannedCount}} vs Count {{.Count}} — the filter is applied after the read, so every scanned item was paid for.">· {{.ScannedCount}} scanned, {{.Wasted}}% discarded by the filter</span>{{end}}{{end}}
   {{if .Next}} · load more below{{end}}
 </div>
-{{else}}<div class="empty" style="border:0"><span class="ic-lg">{{icon "database"}}</span><p>{{if eq .Mode "query"}}No items match that key.{{else if eq .Mode "partiql"}}No rows returned.{{else}}No items yet — add one, or write via the SDK.{{end}}</p></div>{{end}}
+{{else}}<div class="empty" style="border:0"><span class="ic-lg">{{icon "database"}}</span><p>{{if eq .Mode "query"}}No items match that key.{{else if eq .Mode "get"}}No item with that key.{{else if eq .Mode "batchget"}}None of the selected keys exist any more.{{else if eq .Mode "transactget"}}None of the selected keys exist any more.{{else if eq .Mode "partiql"}}No rows returned.{{else}}No items yet — add one, or write via the SDK.{{end}}</p></div>{{end}}
 </div>
 {{end}}
 
@@ -226,9 +281,11 @@
 {{range .Items}}
   <tr class="ddb-row" role="button" tabindex="0" x-data='{itemJSON: {{printf "%q" .JSON}}, keyJSON: {{printf "%q" .KeyJSON}}}'
       @click="drawer=true; const d=document.getElementById('drawer-inner');
-              d.innerHTML='<div class=\'drawer-h\'><span class=\'title\'>Item</span></div><div class=\'drawer-b\'><div class=\'code-out\'><pre></pre></div><div class=\'drawer-actions\' style=\'margin-top:12px\'><button class=\'btn btn-outline\' id=\'dw-edit\'>Edit item</button></div></div>';
+              d.innerHTML='<div class=\'drawer-h\'><span class=\'title\'>Item</span></div><div class=\'drawer-b\'><div class=\'code-out\'><pre></pre></div><div class=\'drawer-actions\' style=\'margin-top:12px\'><button class=\'btn btn-outline\' id=\'dw-edit\'>Edit item</button><button class=\'btn btn-outline\' id=\'dw-upd\'>Update attributes</button></div></div>';
               d.querySelector('pre').textContent=itemJSON;
-              d.querySelector('#dw-edit').onclick=()=>{drawer=false;put=true;$nextTick(()=>dozeEditor.set('#ddb-item-editor',itemJSON));}">
+              d.querySelector('#dw-edit').onclick=()=>{drawer=false;put=true;$nextTick(()=>dozeEditor.set('#ddb-item-editor',itemJSON));};
+              d.querySelector('#dw-upd').onclick=()=>{drawer=false;upd=true;updKey=keyJSON;}">
+    <td @click.stop><input type="checkbox" class="rowck" value="{{.KeyJSON}}" x-model="sel" aria-label="Select this item"></td>
     <td class="mono" style="font-size:11.5px;font-weight:550">{{.PK}}</td>
     {{if $.Table.RangeKey}}<td class="mono dim" style="font-size:11.5px">{{.SK}}</td>{{end}}
     {{if $.Cols}}{{$it := .}}{{range $.Cols}}<td class="mono dim trunc" style="font-size:11px;max-width:220px">{{index $it.Attrs .}}</td>{{end}}

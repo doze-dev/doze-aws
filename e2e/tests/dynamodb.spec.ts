@@ -159,6 +159,85 @@ test.describe('explorer modes', () => {
   });
 });
 
+test.describe('point reads, batch ops, and in-place updates', () => {
+  test('Get mode, update expression, and bulk delete (batch + transactional)', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+    waitForToast,
+  }) => {
+    const table = uniqueName('e2e-ddb-batch');
+    await postForm(request, 'ddb/create', {
+      name: table,
+      hash_key: 'pk',
+      hash_type: 'S',
+      range_key: 'sk',
+      range_type: 'S',
+    });
+    for (let i = 1; i <= 4; i++) {
+      await postForm(request, `ddb/${table}/put`, {
+        item: JSON.stringify({ pk: `u-${i}`, sk: `s-${i}`, logins: i }),
+      });
+    }
+    await page.goto(`ddb/${table}`);
+    const rows = page.locator('#ddb-items tbody tr:not(.load-more)');
+    await expect(rows).toHaveCount(4);
+
+    // Get mode: the point read needs both key parts and returns exactly one.
+    await page.locator('.seg button', { hasText: 'Get' }).click();
+    const getForm = page.locator('.explorer-form:visible');
+    await getForm.locator('input[name=pk]').fill('u-2');
+    await getForm.locator('input[name=sk]').fill('s-2');
+    await getForm.locator('button[type=submit]').click();
+    await expect(rows).toHaveCount(1);
+    await expect(page.locator('#ddb-items')).toContainText('u-2');
+
+    // Update expression via the drawer: SET arithmetic edits in place.
+    await rows.first().click();
+    await page.locator('#dw-upd').click();
+    const dlg = page.locator('.overlay[aria-label="Update item"]');
+    await expect(dlg).toBeVisible();
+    await expect(dlg.locator('pre')).toContainText('u-2'); // key prefilled
+    await dlg.locator('input[name=expr]').fill('SET logins = logins + :n');
+    // The :binding sprouts a typed value row, same contract as filter values.
+    await dlg.locator('.fv-row select').selectOption('N');
+    await dlg.locator('.fv-row input').fill('100');
+    await dlg.getByRole('button', { name: 'Update item' }).click();
+    const updToast = await waitForToast();
+    expect(updToast).toMatch(/Item updated/);
+    // The table re-scans after the update; the new value is visible.
+    await expect(page.locator('#ddb-items')).toContainText('102');
+
+    // Multi-select: the bulk bar appears only once something is picked.
+    const bar = page.locator('.bulkbar');
+    await expect(bar).toBeHidden();
+    await page.locator('tbody input.rowck').nth(0).click();
+    await page.locator('tbody input.rowck').nth(1).click();
+    await expect(bar).toBeVisible();
+    await expect(bar.locator('.bb-n')).toContainText('2');
+
+    // Plain bulk delete = BatchWriteItem.
+    await drainToasts(page);
+    await bar.getByRole('button', { name: 'Delete selected' }).click();
+    await confirmDialog('accept');
+    const batchToast = await waitForToast();
+    expect(batchToast).toMatch(/2 items deleted/);
+    await expect(rows).toHaveCount(2);
+
+    // Transactional bulk delete = TransactWriteItems (all-or-nothing).
+    await page.locator('thead .ck-col input').click(); // select-all
+    await expect(bar.locator('.bb-n')).toContainText('2');
+    await bar.locator('label.bb-txn input').click();
+    await drainToasts(page);
+    await bar.getByRole('button', { name: 'Delete selected' }).click();
+    await confirmDialog('accept');
+    const txToast = await waitForToast();
+    expect(txToast).toMatch(/2 items deleted/);
+    await expect(page.locator('#ddb-items')).toContainText('No items yet');
+  });
+});
+
 test.describe('pagination', () => {
   test('"load more" appends rows instead of resetting the page', async ({
     page,

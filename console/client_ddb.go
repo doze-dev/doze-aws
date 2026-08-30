@@ -676,3 +676,192 @@ func plainScalar(v any) string {
 		return string(bytes.TrimSpace(b))
 	}
 }
+
+// ---- point reads, batch reads, batch deletes, and in-place updates ----
+
+// keyAV builds the typed primary-key AttributeValue map from the explorer's
+// string inputs, using the table's declared key types.
+func keyAV(t *Table, pk, sk string) map[string]any {
+	key := map[string]any{t.HashKey: avTyped(t.HashType, pk)}
+	if t.RangeKey != "" {
+		key[t.RangeKey] = avTyped(t.RangeType, sk)
+	}
+	return key
+}
+
+// GetItem is the point read: the whole primary key in, zero or one item out.
+func (b *backend) GetItem(ctx context.Context, t *Table, pk, sk string, consistent bool) ([]Item, error) {
+	in := map[string]any{"TableName": t.Name, "Key": keyAV(t, pk, sk)}
+	if consistent {
+		in["ConsistentRead"] = true
+	}
+	body, err := b.ddbCall(ctx, "GetItem", in)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Item map[string]json.RawMessage `json:"Item"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	if out.Item == nil {
+		return nil, nil
+	}
+	return b.itemsFromAV(t, []map[string]json.RawMessage{out.Item}), nil
+}
+
+// parseKeys decodes the selection's KeyJSON strings (each row carries its own
+// primary key as an AttributeValue map) back into wire-shaped keys.
+func parseKeys(keys []string) ([]map[string]json.RawMessage, error) {
+	out := make([]map[string]json.RawMessage, 0, len(keys))
+	for _, k := range keys {
+		var m map[string]json.RawMessage
+		if err := json.Unmarshal([]byte(k), &m); err != nil {
+			return nil, fmt.Errorf("invalid item key: %w", err)
+		}
+		out = append(out, m)
+	}
+	return out, nil
+}
+
+// BatchGetItems re-reads the selected keys. Plain mode is BatchGetItem in
+// chunks of 100 (its wire limit), retrying UnprocessedKeys. Snapshot mode is
+// TransactGetItems — every key read at one consistent instant — and caps at
+// 100 items total, because a snapshot cannot be faked across chunks.
+func (b *backend) BatchGetItems(ctx context.Context, t *Table, keys []string, snapshot bool) ([]Item, error) {
+	avKeys, err := parseKeys(keys)
+	if err != nil {
+		return nil, err
+	}
+	if snapshot {
+		if len(avKeys) > 100 {
+			return nil, fmt.Errorf("a transactional read holds at most 100 items; %d selected", len(avKeys))
+		}
+		tx := make([]map[string]any, 0, len(avKeys))
+		for _, k := range avKeys {
+			tx = append(tx, map[string]any{"Get": map[string]any{"TableName": t.Name, "Key": k}})
+		}
+		body, err := b.ddbCall(ctx, "TransactGetItems", map[string]any{"TransactItems": tx})
+		if err != nil {
+			return nil, err
+		}
+		var out struct {
+			Responses []struct {
+				Item map[string]json.RawMessage `json:"Item"`
+			} `json:"Responses"`
+		}
+		if err := json.Unmarshal(body, &out); err != nil {
+			return nil, err
+		}
+		avs := make([]map[string]json.RawMessage, 0, len(out.Responses))
+		for _, r := range out.Responses {
+			if r.Item != nil {
+				avs = append(avs, r.Item)
+			}
+		}
+		return b.itemsFromAV(t, avs), nil
+	}
+	var avs []map[string]json.RawMessage
+	for start := 0; start < len(avKeys); start += 100 {
+		pending := avKeys[start:min(start+100, len(avKeys))]
+		for tries := 0; len(pending) > 0; tries++ {
+			if tries == 5 {
+				return nil, fmt.Errorf("%d keys still unprocessed after 5 attempts", len(pending))
+			}
+			body, err := b.ddbCall(ctx, "BatchGetItem", map[string]any{
+				"RequestItems": map[string]any{t.Name: map[string]any{"Keys": pending}},
+			})
+			if err != nil {
+				return nil, err
+			}
+			var out struct {
+				Responses       map[string][]map[string]json.RawMessage `json:"Responses"`
+				UnprocessedKeys map[string]struct {
+					Keys []map[string]json.RawMessage `json:"Keys"`
+				} `json:"UnprocessedKeys"`
+			}
+			if err := json.Unmarshal(body, &out); err != nil {
+				return nil, err
+			}
+			avs = append(avs, out.Responses[t.Name]...)
+			pending = out.UnprocessedKeys[t.Name].Keys
+		}
+	}
+	return b.itemsFromAV(t, avs), nil
+}
+
+// BatchDeleteItems deletes the selected keys. Plain mode is BatchWriteItem in
+// chunks of 25 (its wire limit) — best-effort, each chunk independent. Atomic
+// mode is a single TransactWriteItems: every delete commits or none do, which
+// is why it refuses more than the transaction limit instead of chunking.
+func (b *backend) BatchDeleteItems(ctx context.Context, table string, keys []string, atomic bool) (int, error) {
+	avKeys, err := parseKeys(keys)
+	if err != nil {
+		return 0, err
+	}
+	if atomic {
+		if len(avKeys) > 100 {
+			return 0, fmt.Errorf("a transaction holds at most 100 items; %d selected", len(avKeys))
+		}
+		tx := make([]map[string]any, 0, len(avKeys))
+		for _, k := range avKeys {
+			tx = append(tx, map[string]any{"Delete": map[string]any{"TableName": table, "Key": k}})
+		}
+		if _, err := b.ddbCall(ctx, "TransactWriteItems", map[string]any{"TransactItems": tx}); err != nil {
+			return 0, err
+		}
+		return len(avKeys), nil
+	}
+	deleted := 0
+	for start := 0; start < len(avKeys); start += 25 {
+		chunk := avKeys[start:min(start+25, len(avKeys))]
+		pending := make([]any, 0, len(chunk))
+		for _, k := range chunk {
+			pending = append(pending, map[string]any{"DeleteRequest": map[string]any{"Key": k}})
+		}
+		for tries := 0; len(pending) > 0; tries++ {
+			if tries == 5 {
+				return deleted, fmt.Errorf("%d deletes still unprocessed after 5 attempts", len(pending))
+			}
+			body, err := b.ddbCall(ctx, "BatchWriteItem", map[string]any{
+				"RequestItems": map[string]any{table: pending},
+			})
+			if err != nil {
+				return deleted, err
+			}
+			var out struct {
+				UnprocessedItems map[string][]json.RawMessage `json:"UnprocessedItems"`
+			}
+			if err := json.Unmarshal(body, &out); err != nil {
+				return deleted, err
+			}
+			deleted += len(pending) - len(out.UnprocessedItems[table])
+			pending = pending[:0]
+			for _, raw := range out.UnprocessedItems[table] {
+				pending = append(pending, raw)
+			}
+		}
+	}
+	return deleted, nil
+}
+
+// UpdateItemExpr applies an UpdateExpression to one item in place — the edit
+// DynamoDB actually has, as opposed to the whole-item replace PutItem does.
+// Values and name aliases arrive pre-parsed by the same bindings helper the
+// explorer's filter expressions use.
+func (b *backend) UpdateItemExpr(ctx context.Context, table, keyJSON, expr string, vals map[string]any, names map[string]string) error {
+	var key map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(keyJSON), &key); err != nil {
+		return fmt.Errorf("invalid item key: %w", err)
+	}
+	in := map[string]any{"TableName": table, "Key": key, "UpdateExpression": expr}
+	if len(vals) > 0 {
+		in["ExpressionAttributeValues"] = vals
+	}
+	if len(names) > 0 {
+		in["ExpressionAttributeNames"] = names
+	}
+	_, err := b.ddbCall(ctx, "UpdateItem", in)
+	return err
+}

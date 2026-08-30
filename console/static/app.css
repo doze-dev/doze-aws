@@ -1684,3 +1684,12 @@ a.lo-card:hover { border-color: var(--accent); }
 /* The × inside a label badge — same affordance as a removable chip. */
 .lbl-x { background: none; border: 0; padding: 0 0 0 4px; font: inherit; color: inherit; cursor: pointer; opacity: .6; }
 .lbl-x:hover { opacity: 1; }
+
+/* The transactional switch on the DynamoDB bulk bar (and the consistent-read
+   toggle on the Get form): a small inline checkbox whose caption states the
+   promise being bought, since the buttons themselves don't change. */
+.bb-txn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
+.bb-txn .dim { font-size: 11px; white-space: normal; }
+/* In an end-aligned ex-grid row the checkbox label aligns to the inputs. */
+.bb-inform { align-self: end; padding-bottom: 7px; }
+.ck-col { width: 26px; }

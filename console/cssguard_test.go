@@ -24,6 +24,7 @@ func TestTemplateClassesAreStyled(t *testing.T) {
 		"rt-cold":     "idle state IS the .rt-badge base look; only rt-warm adds rules",
 		"sqs-peek":    "grid cell wrapper — the .sqs-work grid places it; no styles of its own",
 		"sqs-compose": "grid cell wrapper — the .sqs-work grid places it; no styles of its own",
+		"rowck":       "selection hook — the ddb select-all checkbox finds page rows by it",
 	}
 
 	css := readAll(t, "static/app.css") + readAll(t, filepath.Join("static", "cm", "codemirror.min.css"))
@@ -193,7 +194,7 @@ func TestTypeScaleIsClosed(t *testing.T) {
 // that table stated in the most local place available, and converting eighty of
 // those to classes would make the markup worse and the stylesheet longer.
 var inlineBudget = map[string]int{
-	"kinesis.html": 49, "iam.html": 44, "ddb.html": 36, "create.html": 34,
+	"kinesis.html": 49, "iam.html": 44, "ddb.html": 39, "create.html": 34,
 	"s3.html": 33, "lambda.html": 29, "eb.html": 26, "kms.html": 24,
 	"sqs.html": 20, "apigw.html": 18, "sns.html": 8, "traffic.html": 12,
 	"workspace.html": 9, "cfn.html": 11, "sm.html": 6, "connect.html": 6,

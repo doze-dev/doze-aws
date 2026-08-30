@@ -2,6 +2,7 @@ package console
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
 	"sort"
@@ -151,7 +152,7 @@ func addItemCols(data map[string]any, t *Table, items []Item, cols []string) {
 			}
 		}
 		if len(seen) == 0 || len(seen) > 5 {
-			data["Colspan"] = 3 + boolInt(t.RangeKey != "")
+			data["Colspan"] = 4 + boolInt(t.RangeKey != "")
 			return // fall back to the preview column
 		}
 		cols = make([]string, 0, len(seen))
@@ -161,7 +162,7 @@ func addItemCols(data map[string]any, t *Table, items []Item, cols []string) {
 		sort.Strings(cols)
 	}
 	data["Cols"] = cols
-	data["Colspan"] = 2 + boolInt(t.RangeKey != "") + len(cols)
+	data["Colspan"] = 3 + boolInt(t.RangeKey != "") + len(cols)
 }
 
 func boolInt(b bool) int {
@@ -224,6 +225,15 @@ func (c *Console) ddbExplore(w http.ResponseWriter, r *http.Request) {
 			raw, _ := json.Marshal(m)
 			data["NextVals"] = string(raw)
 		}
+	case "get":
+		// The point read. Requires the WHOLE primary key — the form enforces it.
+		items, err := c.be.GetItem(r.Context(), t, r.FormValue("pk"), r.FormValue("sk"), r.FormValue("consistent") != "")
+		if err != nil {
+			c.fail(w, err)
+			return
+		}
+		data["Items"] = items
+		addItemCols(data, t, items, nil)
 	case "partiql":
 		// PartiQL results are targeted; no cursor paging in the console.
 		items, err := c.be.PartiQL(r.Context(), t, r.FormValue("statement"))
@@ -345,4 +355,79 @@ func (c *Console) ddbDetailPartial(w http.ResponseWriter, r *http.Request, name 
 		return
 	}
 	c.partial(w, "ddb_details", map[string]any{"Table": t})
+}
+
+// selectedKeys decodes the bulk bar's selection — a JSON array of per-row
+// KeyJSON strings — refusing an empty selection outright.
+func selectedKeys(r *http.Request) ([]string, error) {
+	var keys []string
+	if err := json.Unmarshal([]byte(r.FormValue("keys")), &keys); err != nil || len(keys) == 0 {
+		return nil, fmt.Errorf("no items selected")
+	}
+	return keys, nil
+}
+
+// ddbBatchGet re-reads the selected keys and swaps the fresh values in as the
+// item table — BatchGetItem normally, TransactGetItems when the transactional
+// switch asks for one consistent snapshot.
+func (c *Console) ddbBatchGet(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("table")
+	t, err := c.be.DescribeTable(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	keys, err := selectedKeys(r)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	snapshot := r.FormValue("snapshot") != ""
+	items, err := c.be.BatchGetItems(r.Context(), t, keys, snapshot)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	mode := "batchget"
+	if snapshot {
+		mode = "transactget"
+	}
+	data := map[string]any{"Table": t, "Items": items, "Mode": mode}
+	addItemCols(data, t, items, nil)
+	c.partial(w, "ddb_item_table", data)
+}
+
+// ddbBatchDelete deletes the selected keys — BatchWriteItem in chunks, or one
+// all-or-nothing TransactWriteItems — then re-scans the table.
+func (c *Console) ddbBatchDelete(w http.ResponseWriter, r *http.Request) {
+	keys, err := selectedKeys(r)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	n, err := c.be.BatchDeleteItems(r.Context(), r.PathValue("table"), keys, r.FormValue("atomic") != "")
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, plural(n, "item")+" deleted")
+	c.ddbItemsScan(w, r)
+}
+
+// ddbUpdateItem applies an update expression to one item in place. The
+// expression's :bindings arrive through the same fv:/ft: value rows the
+// explorer's filter expressions use, and #aliases resolve the same way.
+func (c *Console) ddbUpdateItem(w http.ResponseWriter, r *http.Request) {
+	expr := strings.TrimSpace(r.FormValue("expr"))
+	if expr == "" {
+		c.fail(w, fmt.Errorf("an update expression is required"))
+		return
+	}
+	fvals, fnames, _ := filterBindings(r, expr)
+	if err := c.be.UpdateItemExpr(r.Context(), r.PathValue("table"), r.FormValue("key"), expr, fvals, fnames); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Item updated")
+	c.ddbItemsScan(w, r)
 }

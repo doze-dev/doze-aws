@@ -40,6 +40,8 @@ var uncovered = map[string][]string{
 	"ssm":         {},
 	// BatchGetSecretValue is the one exemption — see exempt.
 	"secretsmanager": {},
+	// DescribeEndpoints is the one exemption — see exempt.
+	"dynamodb": {},
 }
 
 // exempt is for operations that are deliberately not called, with the reason.
@@ -56,6 +58,12 @@ var exempt = map[string]map[string]string{
 			"batch read would fetch plaintext values it does not display. For a " +
 			"secrets store that is a worse trade than a round trip: the fewer " +
 			"places a value is fetched into, the fewer places it can leak.",
+	},
+	"dynamodb": {
+		"DescribeEndpoints": "returns a canned endpoint list — where to connect. " +
+			"The console proves that answer on every page it renders: it is " +
+			"already talking to the endpoint the operation would describe, so a " +
+			"surface for it would display a fact the connection itself asserts.",
 	},
 	"ssm": {
 		"GetParameters": "the batch get by explicit names. The console reads " +
