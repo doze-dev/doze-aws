@@ -37,6 +37,7 @@ var uncovered = map[string][]string{
 	"sns":         {},
 	"kms":         {},
 	"eventbridge": {},
+	"ssm":         {},
 	// BatchGetSecretValue is the one exemption — see exempt.
 	"secretsmanager": {},
 }
@@ -55,6 +56,14 @@ var exempt = map[string]map[string]string{
 			"batch read would fetch plaintext values it does not display. For a " +
 			"secrets store that is a worse trade than a round trip: the fewer " +
 			"places a value is fetched into, the fewer places it can leak.",
+	},
+	"ssm": {
+		"GetParameters": "the batch get by explicit names. The console reads " +
+			"parameters one at a time, and the multi-parameter view it does have " +
+			"— a path listing — rides GetParametersByPath. Fetching a list of " +
+			"values (SecureStrings included) for a view that does not exist is " +
+			"the BatchGetSecretValue trade again: fewer fetch sites beats fewer " +
+			"round trips for a store that holds secrets.",
 	},
 	"kinesis": {
 		"DescribeStream": "the console reads DescribeStreamSummary + ListShards " +

@@ -405,6 +405,16 @@ func (b *backend) PutParameter(ctx context.Context, name, value, typ string, ove
 }
 
 // LabelParameter attaches a label to a parameter version (or its latest).
+// UnlabelParameter detaches a label from a version. Labels were add-only from
+// the console — a mistyped "prod" could only be buried under a second label,
+// never removed, though the API has always taken both directions.
+func (b *backend) UnlabelParameter(ctx context.Context, name, label string, version int) error {
+	_, err := b.json11(ctx, "AmazonSSM", "UnlabelParameterVersion", map[string]any{
+		"Name": name, "Labels": []string{label}, "ParameterVersion": version,
+	})
+	return err
+}
+
 func (b *backend) LabelParameter(ctx context.Context, name, label string, version int) error {
 	in := map[string]any{"Name": name, "Labels": []string{label}}
 	if version > 0 {
@@ -748,4 +758,54 @@ func (b *backend) UpdateAlias(ctx context.Context, alias, targetKeyID string) er
 		"AliasName": alias, "TargetKeyId": targetKeyID,
 	})
 	return err
+}
+
+// ParametersByPath lists everything under a path prefix, recursively, using
+// the service's own tree query. The console's list-pane tree is built
+// client-side from DescribeParameters; this is the API your code would use,
+// and the enumeration step behind "delete this whole path".
+func (b *backend) ParametersByPath(ctx context.Context, path string) ([]Parameter, error) {
+	body, err := b.json11(ctx, "AmazonSSM", "GetParametersByPath", map[string]any{
+		"Path": path, "Recursive": true, "WithDecryption": false,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Parameters []struct {
+			Name    string `json:"Name"`
+			Type    string `json:"Type"`
+			Value   string `json:"Value"`
+			Version int64  `json:"Version"`
+		} `json:"Parameters"`
+	}
+	json.Unmarshal(body, &out)
+	ps := make([]Parameter, 0, len(out.Parameters))
+	for _, p := range out.Parameters {
+		ps = append(ps, Parameter{Name: p.Name, Type: p.Type, Value: p.Value, Version: p.Version})
+	}
+	return ps, nil
+}
+
+// DeleteParameters removes up to fifty parameters per call and reports which
+// of them did not exist — a batch API with partial results, like the SQS ones,
+// and worth the same honesty about what actually happened.
+func (b *backend) DeleteParameters(ctx context.Context, names []string) (deleted, invalid []string, err error) {
+	for start := 0; start < len(names); start += 50 {
+		end := min(start+50, len(names))
+		body, e := b.json11(ctx, "AmazonSSM", "DeleteParameters", map[string]any{
+			"Names": names[start:end],
+		})
+		if e != nil {
+			return deleted, invalid, e
+		}
+		var out struct {
+			DeletedParameters []string `json:"DeletedParameters"`
+			InvalidParameters []string `json:"InvalidParameters"`
+		}
+		json.Unmarshal(body, &out)
+		deleted = append(deleted, out.DeletedParameters...)
+		invalid = append(invalid, out.InvalidParameters...)
+	}
+	return deleted, invalid, nil
 }

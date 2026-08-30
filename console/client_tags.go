@@ -85,6 +85,20 @@ func (b *backend) ResourceTags(ctx context.Context, svc, id string) ([]KV, error
 			}
 		}
 		err = e
+	case "ssm":
+		var out struct {
+			TagList []struct{ Key, Value string } `json:"TagList"`
+		}
+		body, e := b.json11(ctx, "AmazonSSM", "ListTagsForResource", map[string]any{
+			"ResourceType": "Parameter", "ResourceId": id,
+		})
+		if e == nil {
+			json.Unmarshal(body, &out)
+			for _, t := range out.TagList {
+				m[t.Key] = t.Value
+			}
+		}
+		err = e
 	case "sm":
 		var out struct {
 			Tags []struct{ Key, Value string } `json:"Tags"`
@@ -159,6 +173,12 @@ func (b *backend) SetResourceTag(ctx context.Context, svc, id, key, value string
 			"SecretId": id, "Tags": []map[string]string{{"Key": key, "Value": value}},
 		})
 		return err
+	case "ssm":
+		_, err := b.json11(ctx, "AmazonSSM", "AddTagsToResource", map[string]any{
+			"ResourceType": "Parameter", "ResourceId": id,
+			"Tags": []map[string]string{{"Key": key, "Value": value}},
+		})
+		return err
 	case "lambda":
 		return b.lambdaTagsSet(ctx, b.tagARN(svc, id), map[string]string{key: value})
 	case "eb":
@@ -194,6 +214,11 @@ func (b *backend) RemoveResourceTag(ctx context.Context, svc, id, key string) er
 		return err
 	case "sm":
 		_, err := b.json11(ctx, "secretsmanager", "UntagResource", map[string]any{"SecretId": id, "TagKeys": []string{key}})
+		return err
+	case "ssm":
+		_, err := b.json11(ctx, "AmazonSSM", "RemoveTagsFromResource", map[string]any{
+			"ResourceType": "Parameter", "ResourceId": id, "TagKeys": []string{key},
+		})
 		return err
 	case "lambda":
 		return b.lambdaTagsRemove(ctx, b.tagARN(svc, id), key)

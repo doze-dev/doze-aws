@@ -328,6 +328,9 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/ssm/put", c.ssmPut)
 	m.HandleFunc("POST "+p+"/ssm/delete", c.ssmDelete)
 	m.HandleFunc("POST "+p+"/ssm/label", c.ssmLabel)
+	m.HandleFunc("POST "+p+"/ssm/unlabel", c.ssmUnlabel)        // UnlabelParameterVersion
+	m.HandleFunc("POST "+p+"/ssm/path", c.ssmPath)              // GetParametersByPath
+	m.HandleFunc("POST "+p+"/ssm/delete-path", c.ssmDeletePath) // DeleteParameters
 
 	// Secrets Manager (names may contain slashes -> query params).
 	m.HandleFunc("GET "+p+"/sm", c.smSecrets)

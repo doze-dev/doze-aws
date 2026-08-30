@@ -14,8 +14,54 @@
 
 {{define "ssm_home"}}{{template "shell_top" .}}
   {{template "ssm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  {{template "empty_detail" dict "Svc" "ssm" "Prefix" $.Prefix "Empty" (not .List)}}
+  {{if not .List}}
+  {{template "empty_detail" dict "Svc" "ssm" "Prefix" $.Prefix "Empty" true}}
+  {{else}}
+  {{/* With parameters present, the home pane earns its keep instead of asking
+       you to pick something: path tools. GetParametersByPath is the tree query
+       your code would use, and DeleteParameters is the batch behind the delete
+       — a path-shaped store's one natural bulk operation is "everything under
+       this prefix", which no per-parameter surface can express. */}}
+  <section class="detail"><div class="det-b">
+    <div class="sec-title">Query a path</div>
+    <div class="panel">
+      <form class="tag-row-form" hx-post="{{.Prefix}}/ssm/path" hx-target="#ssm-path-out" hx-select="unset" hx-swap="innerHTML">
+        <input class="input mono" name="path" placeholder="/app/prod" required autocomplete="off" spellcheck="false">
+        <button class="btn btn-outline btn-sm" type="submit">List everything under it</button>
+      </form>
+      <div class="mini-note perm-none">Recursive, using GetParametersByPath — the same query your code makes. SecureString values stay undecrypted.</div>
+    </div>
+    <div id="ssm-path-out"></div>
+  </div></section>
+  {{end}}
 {{template "shell_bottom" .}}{{end}}
+
+{{/* The path query's answer, with the batch delete it enables. */}}
+{{define "ssm_path_result"}}
+{{if .Params}}
+<div class="panel">
+  <div class="panel-h"><h2>{{.Path}}</h2><span class="dim">{{len .Params}} parameter{{if ne (len .Params) 1}}s{{end}}</span></div>
+  <div class="table-wrap"><table class="tbl">
+    <thead><tr><th>Name</th><th>Type</th><th>Value</th><th class="num">v</th></tr></thead>
+    <tbody>{{range .Params}}
+      <tr>
+        <td class="mono sub"><a href="{{$.Prefix}}/ssm/param?name={{.Name}}">{{.Name}}</a></td>
+        <td><span class="chip">{{.Type}}</span></td>
+        <td class="mono dim sub trunc">{{if eq .Type "SecureString"}}••••••{{else}}{{.Value}}{{end}}</td>
+        <td class="num dim">{{.Version}}</td>
+      </tr>{{end}}
+    </tbody>
+  </table></div>
+  <form class="tag-row-form" hx-post="{{.Prefix}}/ssm/delete-path"
+        hx-confirm="Delete all {{len .Params}} parameters under {{.Path}}? Their history goes with them.">
+    <input type="hidden" name="path" value="{{.Path}}">
+    <button class="btn btn-outline danger btn-sm" type="submit">{{icon "trash"}} Delete everything under {{.Path}}</button>
+  </form>
+</div>
+{{else}}
+<div class="panel"><div class="mini-note perm-none">Nothing under <span class="mono">{{.Path}}</span>.</div></div>
+{{end}}
+{{end}}
 
 {{define "ssm_param"}}{{template "shell_top" .}}
   {{template "ssm_lp" (dict "Prefix" .Prefix "List" .List "Sel" .P.Name)}}
@@ -35,8 +81,8 @@
         "ViewURL" (printf "%s/ssm/param?name=%s" .Prefix .P.Name)
         "EditURL" (printf "%s/ssm/param?name=%s&tab=edit" .Prefix .P.Name)
         "VersURL" (printf "%s/ssm/param?name=%s&tab=versions" .Prefix .P.Name)
-        "SaveURL" (printf "%s/ssm/put" .Prefix) "SaveField" "name" "SaveVal" .P.Name "SaveLabel" (printf "Save as v%d" (addOne .P.Version))
-        "LabelURL" (printf "%s/ssm/label" .Prefix)
+        "TagsURL" (printf "%s/ssm/param?name=%s&tab=tags" .Prefix .P.Name) "TagsSvc" "ssm" "SaveURL" (printf "%s/ssm/put" .Prefix) "SaveField" "name" "SaveVal" .P.Name "SaveLabel" (printf "Save as v%d" (addOne .P.Version))
+        "LabelURL" (printf "%s/ssm/label" .Prefix) "UnlabelURL" (printf "%s/ssm/unlabel" .Prefix)
         "Target" "#ssm-detail" "History" .History)}}
     <div class="meta-grid">
       <div class="meta-cellx"><div class="k2">Type</div><div class="v2">{{.P.Type}}</div></div>

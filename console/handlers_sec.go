@@ -265,6 +265,21 @@ func (c *Console) ssmLabel(w http.ResponseWriter, r *http.Request) {
 	c.partial(w, "ssm_param_detail", map[string]any{"P": np, "History": hist, "Mode": "versions"})
 }
 
+// ssmUnlabel detaches one label from one version — the other half of
+// ssmLabel, which existed alone, making every label permanent.
+func (c *Console) ssmUnlabel(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	version, _ := strconv.Atoi(r.FormValue("version"))
+	if err := c.be.UnlabelParameter(r.Context(), name, r.FormValue("label"), version); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Label “"+r.FormValue("label")+"” removed")
+	np, _ := c.be.GetParameter(r.Context(), name)
+	hist, _ := c.be.ParameterHistory(r.Context(), name)
+	c.partial(w, "ssm_param_detail", map[string]any{"P": np, "History": hist, "Mode": "versions"})
+}
+
 func (c *Console) ssmDelete(w http.ResponseWriter, r *http.Request) {
 	if err := c.be.DeleteParameter(r.Context(), r.FormValue("name")); err != nil {
 		c.fail(w, err)
@@ -564,4 +579,54 @@ func (c *Console) kmsUpdateAlias(w http.ResponseWriter, r *http.Request) {
 	// redirect-capable here would fail that sweep forever.
 	toast(w, "Alias “"+alias+"” now points here")
 	c.kmsKeyPartial(w, r)
+}
+
+// ssmPath answers "what lives under this prefix" with the service's own tree
+// query, and offers to delete all of it in one batch. GetParametersByPath is
+// the enumeration your code would use; DeleteParameters is the batch behind
+// the button — both were implemented and unreachable, and together they make
+// the one bulk operation a path-shaped store actually wants.
+func (c *Console) ssmPath(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimSpace(r.FormValue("path"))
+	if path == "" || !strings.HasPrefix(path, "/") {
+		c.fail(w, errors.New("Give a path starting with / — the tree query is prefix-based."))
+		return
+	}
+	params, err := c.be.ParametersByPath(r.Context(), path)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "ssm_path_result", map[string]any{"Prefix": c.prefix, "Path": path, "Params": params})
+}
+
+// ssmDeletePath deletes everything a path query returned. Enumerate again at
+// delete time rather than trusting the form — a parameter created between the
+// listing and the click should be deleted with its siblings, not survive
+// because it was not on screen.
+func (c *Console) ssmDeletePath(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimSpace(r.FormValue("path"))
+	params, err := c.be.ParametersByPath(r.Context(), path)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	if len(params) == 0 {
+		c.fail(w, errors.New("Nothing under "+path+" any more."))
+		return
+	}
+	names := make([]string, 0, len(params))
+	for _, p := range params {
+		names = append(names, p.Name)
+	}
+	deleted, invalid, err := c.be.DeleteParameters(r.Context(), names)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	note := plural(len(deleted), "parameter") + " deleted"
+	if len(invalid) > 0 {
+		note += ", " + strconv.Itoa(len(invalid)) + " already gone"
+	}
+	c.redirect(w, r, c.prefix+"/ssm", note)
 }

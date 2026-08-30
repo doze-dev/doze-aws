@@ -1680,3 +1680,7 @@ a.lo-card:hover { border-color: var(--accent); }
 .eb-arc-name { font-size: 11px; font-weight: 550; }
 .eb-rep-name { font-size: 11px; max-width: 220px; }
 .eb-detail:not(:empty) { margin-top: 12px; }
+
+/* The × inside a label badge — same affordance as a removable chip. */
+.lbl-x { background: none; border: 0; padding: 0 0 0 4px; font: inherit; color: inherit; cursor: pointer; opacity: .6; }
+.lbl-x:hover { opacity: 1; }

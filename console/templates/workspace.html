@@ -7,6 +7,7 @@
     <a href="{{.ViewURL}}" class="{{if eq .Mode "view"}}on{{end}}">View</a>
     <a href="{{.EditURL}}" class="{{if eq .Mode "edit"}}on{{end}}">Edit</a>
     <a href="{{.VersURL}}" class="{{if eq .Mode "versions"}}on{{end}}">Versions</a>
+    {{if .TagsURL}}<a href="{{.TagsURL}}" class="{{if eq .Mode "tags"}}on{{end}}">Tags</a>{{end}}
   </span>
   {{if eq .Mode "view"}}
   <span style="display:flex;gap:6px;align-items:center">
@@ -66,7 +67,7 @@
     <tbody>
     {{if .History}}{{range .History}}
       <tr><td class="mono" style="font-weight:600">v{{.Version}}</td>
-        {{if $.LabelURL}}<td>{{range .Labels}}<span class="badge type" style="margin-right:4px">{{.}}</span>{{end}}<form class="tag-row-form" style="margin-top:4px" hx-post="{{$.LabelURL}}" hx-target="{{$.Target}}" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()"><input type="hidden" name="name" value="{{$.SaveVal}}"><input type="hidden" name="version" value="{{.Version}}"><input class="input" name="label" placeholder="e.g. prod" style="flex:1;font-size:11px;padding:3px 6px" required><button class="icon-btn sm" type="submit" title="Attach label">{{icon "plus"}}</button></form></td>
+        {{if $.LabelURL}}<td>{{$row := .}}{{range .Labels}}<span class="badge type ver-stage">{{.}}{{if $.UnlabelURL}}<button type="button" class="lbl-x" title="Remove this label" hx-post="{{$.UnlabelURL}}" hx-vals='{"name":"{{$.SaveVal}}","version":"{{$row.Version}}","label":"{{.}}"}' hx-target="{{$.Target}}" hx-select="unset" hx-swap="outerHTML">&times;</button>{{end}}</span>{{end}}<form class="tag-row-form" style="margin-top:4px" hx-post="{{$.LabelURL}}" hx-target="{{$.Target}}" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()"><input type="hidden" name="name" value="{{$.SaveVal}}"><input type="hidden" name="version" value="{{.Version}}"><input class="input" name="label" placeholder="e.g. prod" style="flex:1;font-size:11px;padding:3px 6px" required><button class="icon-btn sm" type="submit" title="Attach label">{{icon "plus"}}</button></form></td>
         {{else}}<td class="mono trunc dim" style="font-size:11px;max-width:280px" title="{{.Value}}">{{.Value}}</td>{{end}}
         <td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{.Version}}" hx-target="#version-diff" hx-select="unset" hx-swap="innerHTML">Diff vs current</button></td></tr>
     {{end}}{{end}}
@@ -89,6 +90,10 @@
     </tbody>
   </table></div>
   <div id="version-diff" style="margin-top:12px"></div>
+{{else if eq .Mode "tags"}}
+  {{/* Tags as a workspace mode, matching the tab every other service has —
+       this page's tab bar IS the ws-seg, so the tab lives here. */}}
+  {{template "tags_panel" dict "Prefix" .Prefix "Svc" .TagsSvc "ID" .SaveVal}}
 {{else}}
   {{if .Secure}}
   <div class="ws-view"><span x-show="!reveal">{{masked .Value false}}</span><span x-show="reveal" x-cloak>{{masked .Value true}}</span></div>

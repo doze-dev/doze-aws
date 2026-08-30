@@ -61,6 +61,7 @@
         "VersURL" (printf "%s/sm/secret?name=%s&tab=versions" .Prefix .S.Name)
         "SaveURL" (printf "%s/sm/put" .Prefix) "SaveField" "name" "SaveVal" .S.Name "SaveLabel" "Save as new version"
         "PromoteURL" (printf "%s/sm/promote" .Prefix)
+        "TagsURL" (printf "%s/sm/secret?name=%s&tab=tags" .Prefix .S.Name) "TagsSvc" "sm"
         "Target" "#sm-detail" "Stages" .S.Stages)}}
     <div class="meta-grid">
       <div class="meta-cellx"><div class="k2">Last changed</div><div class="v2" title="{{.S.Changed}}">{{ago .S.Changed}}</div></div>
@@ -90,7 +91,6 @@
       {{end}}
     </div></div>
     {{end}}
-    {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sm" "ID" .S.Name}}
   </div>
 </div>
 {{end}}
