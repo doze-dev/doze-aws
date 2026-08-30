@@ -913,7 +913,17 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
   padding: 12px 12px 8px; font-weight: 600; font-size: 14px; letter-spacing: -0.01em;
 }
 .lp-h .aws-ic { width: 22px; height: 22px; border-radius: var(--radius); }
-.lp-h .l { display: flex; align-items: center; gap: 8px; }
+/* min-width:0 + nowrap/ellipsis: a long service name (CloudFormation) was
+   pushing the New button past the pane edge, clipping it to "+ Ne…". The name
+   gives way; the action stays whole. */
+.lp-h .l { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+/* The NAME truncates; the count and the New button do not. Ellipsizing the
+   whole .l swallowed the count first ("CloudFormation" ate its own "(3)"),
+   which un-did the counts-in-headings guarantee for exactly the services
+   with long names. */
+.lp-h .lp-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lp-h .lp-ct { flex-shrink: 0; }
+.lp-h .new-link { flex-shrink: 0; }
 /* The parens are CSS, not template text, so the slot's textContent stays a bare
    number — the out-of-band patch writes "4", not "(4)", and cannot get the
    punctuation wrong. Muted and normal-weight against the 600 heading: the name
@@ -1693,3 +1703,17 @@ a.lo-card:hover { border-color: var(--accent); }
 /* In an end-aligned ex-grid row the checkbox label aligns to the inputs. */
 .bb-inform { align-self: end; padding-bottom: 7px; }
 .ck-col { width: 26px; }
+
+/* CloudFormation: the change-set diff's Add rows get the success treatment
+   .chip.bad already gives Remove rows; the validate verdict and the resource
+   drill-down panel each need a hook. */
+.chip.ok { color: var(--success); border-color: color-mix(in srgb, var(--success) 40%, transparent); background: color-mix(in srgb, var(--success) 8%, transparent); }
+.cfn-valid { color: var(--success); }
+.cfn-valid svg { vertical-align: -2px; }
+.cfn-res-detail { margin-top: 12px; }
+.hdr-btns { display: flex; gap: 6px; }
+
+/* Change-set row actions stay visible — Execute is the row's PRIMARY action
+   (a change set exists to be executed or discarded), unlike the hover-revealed
+   destructive icons on inventory tables. */
+.cs-acts { display: flex; justify-content: flex-end; gap: 6px; align-items: center; }

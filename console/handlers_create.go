@@ -33,6 +33,8 @@ func (c *Console) createPage(svc, tmpl string) http.HandlerFunc {
 			data["List"], _ = c.be.ListParameters(r.Context())
 		case "sm":
 			data["List"], _ = c.be.ListSecrets(r.Context())
+		case "cfn":
+			data["List"], _ = c.be.ListStacks(r.Context())
 		case "lambda":
 			// Missing from this switch since the lambda create page was added,
 			// and it became a 500-in-disguise when lp_head started rendering

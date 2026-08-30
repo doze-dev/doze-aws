@@ -1,5 +1,5 @@
 {{define "cfn_lp"}}
-{{template "lp_head" dict "Svc" "cfn" "Label" "CloudFormation" "Count" (len .List)}}
+{{template "lp_head" dict "Svc" "cfn" "Label" "CloudFormation" "Count" (len .List) "NewURL" (printf "%s/cfn/create" .Prefix)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/cfn/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
     <span class="nm">{{.Name}}</span>
@@ -12,7 +12,38 @@
 
 {{define "cfn_home"}}{{template "shell_top" .}}
   {{template "cfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
-  {{template "empty_detail" dict "Svc" "cfn" "Prefix" $.Prefix "Empty" (not .List)}}
+  {{if not .List}}
+  {{template "empty_detail" dict "Svc" "cfn" "Prefix" $.Prefix "Empty" true}}
+  {{else}}
+  <section class="detail"><div class="det-b">
+    <div class="sec-title" style="margin-top:0">Exports <span class="dim">&mdash; the registry Fn::ImportValue resolves against</span></div>
+    {{if .Exports}}
+    <div class="table-wrap"><table class="tbl">
+      <thead><tr><th>Name</th><th>Value</th><th style="width:170px">Exported by</th><th>Imported by</th></tr></thead>
+      <tbody>
+      {{range .Exports}}
+        <tr>
+          <td class="mono sub">{{.Name}}</td>
+          <td class="mono sub trunc" style="max-width:260px">{{.Value}}</td>
+          <td class="sub"><a href="{{$.Prefix}}/cfn/{{.Stack}}">{{.Stack}}</a></td>
+          {{/* The importer list is the blast radius: who breaks if this value
+               changes. Its absence is as useful as its presence. */}}
+          <td class="sub">{{if .Importers}}{{range .Importers}}<a class="badge type" href="{{$.Prefix}}/cfn/{{.}}">{{.}}</a> {{end}}{{else}}<span class="dim">nothing &mdash; safe to change</span>{{end}}</td>
+        </tr>
+      {{end}}
+      </tbody>
+    </table></div>
+    {{else}}<p class="mini-note">No stack exports an output yet. An output with an Export name lands here, and other stacks can Fn::ImportValue it.</p>{{end}}
+
+    {{if .Deleted}}
+    <div class="sec-title">Deleted stacks <span class="dim">&mdash; the record the stack list no longer shows</span></div>
+    <div class="table-wrap"><table class="tbl">
+      <thead><tr><th>Name</th><th style="width:170px">Status</th><th style="width:150px">Created</th></tr></thead>
+      <tbody>{{range .Deleted}}<tr><td class="mono sub">{{.Name}}</td><td><span class="chip">{{.Status}}</span></td><td class="dim sub mono">{{.Created}}</td></tr>{{end}}</tbody>
+    </table></div>
+    {{end}}
+  </div></section>
+  {{end}}
 {{template "shell_bottom" .}}{{end}}
 
 {{define "cfn_stack"}}{{template "shell_top" .}}
@@ -21,6 +52,7 @@
     <div class="det-h">
       <div class="det-title">{{awsIcon "cfn"}} {{.Stack.Name}}
         <div class="acts">
+          <a class="btn" href="{{.Prefix}}/cfn/{{.Stack.Name}}?tab=update">{{icon "pencil"}} Update</a>
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/cfn/{{.Stack.Name}}/delete"
                   hx-confirm="Delete stack “{{.Stack.Name}}”? Everything it created goes with it.">{{icon "trash"}} Delete</button>
         </div>
@@ -36,7 +68,8 @@
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "resources" "Label" "Resources" "Icon" "list" "URL" (printf "%s/cfn/%s" .Prefix .Stack.Name))
         (dict "Key" "events" "Label" "Events" "Icon" "activity" "URL" (printf "%s/cfn/%s?tab=events" .Prefix .Stack.Name))
-        (dict "Key" "template" "Label" "Template" "Icon" "braces" "URL" (printf "%s/cfn/%s?tab=template" .Prefix .Stack.Name)))}}
+        (dict "Key" "template" "Label" "Template" "Icon" "braces" "URL" (printf "%s/cfn/%s?tab=template" .Prefix .Stack.Name))
+        (dict "Key" "changesets" "Label" "Change sets" "Icon" "git-branch" "URL" (printf "%s/cfn/%s?tab=changesets" .Prefix .Stack.Name)))}}
     </div>
 
     <div class="det-b">
@@ -64,6 +97,82 @@
         <div class="sec-title">Template <span class="dim">— as deployed</span></div>
         <div class="panel"><div class="code-out" style="max-height:none"><pre>{{.Template}}</pre></div></div>
 
+      {{else if eq .Tab "changesets"}}
+        <div class="sec-title">Change sets <span class="dim">&mdash; review before you deploy</span></div>
+        {{if .ChangeSets}}
+        <div class="table-wrap"><table class="tbl">
+          <thead><tr><th>Name</th><th>Status</th><th>Execution</th><th style="width:130px">Created</th><th style="width:150px"></th></tr></thead>
+          <tbody>
+          {{range .ChangeSets}}
+            <tr>
+              <td class="mono sub"><a href="{{$.Prefix}}/cfn/{{$.Stack.Name}}?tab=changesets&cs={{.Name}}">{{.Name}}</a></td>
+              <td><span class="chip {{if eq .Status "FAILED"}}bad{{end}}">{{.Status}}</span></td>
+              <td><span class="chip">{{.ExecutionStatus}}</span></td>
+              <td class="dim sub mono">{{.Created}}</td>
+              <td><div class="cs-acts">
+                {{if .Executable}}<button class="btn btn-sm" hx-post="{{$.Prefix}}/cfn/{{$.Stack.Name}}/changeset/{{.Name}}/execute" hx-confirm="Execute change set “{{.Name}}”? The reviewed template deploys.">{{icon "zap"}} Execute</button>{{end}}
+                <button class="icon-btn sm danger" title="Delete change set {{.Name}}" hx-post="{{$.Prefix}}/cfn/{{$.Stack.Name}}/changeset/{{.Name}}/delete" hx-confirm="Delete change set “{{.Name}}”? The diff is discarded; the stack is untouched.">{{icon "trash"}}</button>
+              </div></td>
+            </tr>
+          {{end}}
+          </tbody>
+        </table></div>
+        {{else}}<div class="empty" style="border:0"><span class="ic-lg">{{icon "git-branch"}}</span><p>No change sets. Update the stack with &ldquo;create a change set instead&rdquo; to preview a deploy&rsquo;s resource-level diff before running it.</p></div>{{end}}
+
+        {{with .CS}}
+        <div class="sec-title">{{.Name}} <span class="dim">&mdash; what executing would do</span></div>
+        {{if .StatusReason}}<p class="mini-note">{{.StatusReason}}</p>{{end}}
+        {{if .Changes}}
+        <div class="table-wrap"><table class="tbl">
+          <thead><tr><th style="width:90px">Action</th><th style="width:190px">Logical ID</th><th>Type</th><th>Physical ID</th><th style="width:110px">Replacement</th></tr></thead>
+          <tbody>
+          {{range .Changes}}
+            <tr>
+              <td><span class="chip {{if eq .Action "Remove"}}bad{{else if eq .Action "Add"}}ok{{end}}">{{.Action}}</span></td>
+              <td class="mono sub">{{.LogicalID}}</td>
+              <td class="dim sub mono">{{.Type}}</td>
+              <td class="mono sub trunc" style="max-width:260px">{{if .PhysicalID}}{{.PhysicalID}}{{else}}<span class="dim">&mdash;</span>{{end}}</td>
+              <td class="sub">{{if eq .Replacement "True"}}<span class="chip bad">replaced</span>{{else}}<span class="dim">in place</span>{{end}}</td>
+            </tr>
+          {{end}}
+          </tbody>
+        </table></div>
+        {{end}}
+        {{if .Params}}
+        <div class="sec-title">Parameters <span class="dim">&mdash; as the change set would apply them</span></div>
+        <div class="table-wrap"><table class="tbl kv"><tbody>
+          {{range .Params}}<tr><td>{{.Key}}</td><td>{{.Value}}</td></tr>{{end}}
+        </tbody></table></div>
+        {{end}}
+        {{end}}
+
+      {{else if eq .Tab "update"}}
+        <div class="form-page" style="padding-top:4px">
+        {{/* The same wire path a deploy tool takes: UpdateStack directly, or
+             CreateChangeSet when the review switch asks for the diff first.
+             An empty parameter keeps the current value — the emulator merges
+             with the stack's existing set, so blank means unchanged. */}}
+        <form hx-post="{{.Prefix}}/cfn/{{.Stack.Name}}/update" hx-indicator="#submit-spin" x-data="{useprev:false, review:false}" x-effect="if(!useprev)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+          <div class="panel form-sec"><div class="panel-h"><h2>Template</h2></div><div class="form-b">
+            <div class="opt-row"><div><div class="opt-l">Use previous template</div><div class="opt-d">Change only parameters; the template stays as deployed</div></div><label class="switch"><input type="checkbox" name="useprev" x-model="useprev"><span class="track"></span><span class="thumb"></span></label></div>
+            <div class="field" x-show="!useprev" style="margin-top:10px"><label>Template <span class="dim">JSON or YAML</span></label>
+              <textarea name="template" data-editor rows="14" spellcheck="false">{{.Template}}</textarea></div>
+          </div></div>
+          <div class="panel form-sec"><div class="panel-h"><h2>Parameters</h2>
+            <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/cfn/summary" hx-include="closest form" hx-target="#cfn-params" hx-select="unset" hx-swap="innerHTML">Reload from template</button>
+          </div><div class="form-b" id="cfn-params">
+            {{if .Stack.Params}}{{range .Stack.Params}}
+            <div class="field"><label>{{.Key}} <span class="dim">current value shown</span></label><input class="input mono" name="param:{{.Key}}" value="{{.Value}}" spellcheck="false"></div>
+            {{end}}{{else}}<p class="mini-note">The deployed template declares no parameters. If the new template does, reload from template above.</p>{{end}}
+          </div></div>
+          <div class="panel form-sec"><div class="panel-h"><h2>How to deploy</h2></div><div class="form-b">
+            <div class="opt-row"><div><div class="opt-l">Create a change set instead</div><div class="opt-d">Review the resource-level diff before anything deploys</div></div><label class="switch"><input type="checkbox" name="review" x-model="review"><span class="track"></span><span class="thumb"></span></label></div>
+            <div class="field" x-show="review" x-cloak style="margin-top:10px"><label>Change set name</label><input class="input mono" name="changeset" value="{{.CSDefault}}" pattern="[a-zA-Z][a-zA-Z0-9\-]*" spellcheck="false"></div>
+          </div></div>
+          {{template "form_actions" dict "Cancel" (printf "%s/cfn/%s" .Prefix .Stack.Name) "Submit" "Update stack"}}
+        </form>
+        </div>
+
       {{else}}
         <div class="sec-title">Resources <span class="dim">— what the stack made</span></div>
         <div class="table-wrap"><table class="tbl">
@@ -71,7 +180,7 @@
           <tbody>
           {{range .Resources}}
             <tr>
-              <td class="mono sub">{{.LogicalID}}</td>
+              <td class="mono sub"><a href="javascript:void(0)" hx-post="{{$.Prefix}}/cfn/{{$.Stack.Name}}/resource" hx-vals='{"logical":"{{.LogicalID}}"}' hx-target="#cfn-res-out" hx-select="unset" hx-swap="innerHTML" title="Resource detail">{{.LogicalID}}</a></td>
               <td class="dim sub mono">{{.Type}}</td>
               <td class="mono sub trunc" style="max-width:320px">
                 {{/* A stack is most useful as a way into the things it built. */}}
@@ -85,6 +194,7 @@
           {{end}}
           </tbody>
         </table></div>
+        <div id="cfn-res-out"></div>
 
         {{if or .Stack.Params .Stack.Outputs}}
         <div class="split">
@@ -116,3 +226,43 @@
     </div>
   </section>
 {{template "shell_bottom" .}}{{end}}
+
+{{/* Validation verdict: a rejected template is this surface's product, not an
+     error state — the same parse runs at deploy time, so seeing it here is
+     seeing it early. */}}
+{{define "cfn_validate_result"}}
+{{if .OK}}
+<p class="mini-note cfn-valid">{{icon "check"}} Template is valid.{{with .Desc}} {{.}}{{end}}{{if .Params}} Declares {{len .Params}} parameter{{if ne (len .Params) 1}}s{{end}}: {{range $i, $p := .Params}}{{if $i}}, {{end}}<span class="mono">{{$p.Key}}</span>{{end}}.{{end}}</p>
+{{else}}
+<div class="err err-refused" role="alert"><div class="err-h">Rejected</div><p class="err-msg">{{.Err}}</p></div>
+{{end}}
+{{end}}
+
+{{/* The parameter form, generated from what the template itself declares
+     (GetTemplateSummary). A blank input means "template default" on create
+     and "keep the current value" on update. */}}
+{{define "cfn_params"}}
+{{if .Err}}
+<div class="err err-refused" role="alert"><div class="err-h">Rejected</div><p class="err-msg">{{.Err}}</p></div>
+{{else}}{{with .Info}}
+{{if .Description}}<p class="mini-note">{{.Description}}</p>{{end}}
+{{range .Params}}
+<div class="field"><label>{{.Key}} <span class="dim">{{.Type}}{{with .Description}} &mdash; {{.}}{{end}}</span></label>
+  <input class="input mono" name="param:{{.Key}}"{{if .NoEcho}} type="password"{{end}}{{if .Default}} placeholder="default: {{.Default}}"{{end}} spellcheck="false"></div>
+{{else}}<p class="mini-note">This template declares no parameters.</p>{{end}}
+{{if .ResourceTypes}}<p class="mini-note">Creates: {{range $i, $t := .ResourceTypes}}{{if $i}}, {{end}}<span class="mono">{{$t}}</span>{{end}}</p>{{end}}
+{{end}}{{end}}
+{{end}}
+
+{{/* Single-resource drill-down: what the table shows plus the status reason
+     and timestamp it does not. */}}
+{{define "cfn_resource_detail"}}
+<div class="panel cfn-res-detail"><div class="panel-h"><h2>{{icon "search"}} {{.R.LogicalID}}</h2></div>
+<table class="tbl kv"><tbody>
+  <tr><td>Type</td><td class="mono">{{.R.Type}}</td></tr>
+  <tr><td>Physical ID</td><td class="mono">{{if .R.PhysicalID}}{{.R.PhysicalID}}{{else}}<span class="dim">&mdash;</span>{{end}}</td></tr>
+  <tr><td>Status</td><td><span class="chip">{{.R.Status}}</span></td></tr>
+  <tr><td>Status reason</td><td>{{if .R.Reason}}{{.R.Reason}}{{else}}<span class="dim">&mdash;</span>{{end}}</td></tr>
+  <tr><td>Last updated</td><td class="mono">{{.R.Updated}}</td></tr>
+</tbody></table></div>
+{{end}}

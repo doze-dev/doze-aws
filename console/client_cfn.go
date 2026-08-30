@@ -229,24 +229,24 @@ func resourceLink(cfnType, physicalID string) (svc, href string) {
 }
 
 var cfnTypeService = map[string]string{
-	"AWS::S3::Bucket":                  "s3",
-	"AWS::DynamoDB::Table":             "ddb",
-	"AWS::DynamoDB::GlobalTable":       "ddb",
-	"AWS::SQS::Queue":                  "sqs",
-	"AWS::SNS::Topic":                  "sns",
-	"AWS::Kinesis::Stream":             "kinesis",
-	"AWS::Lambda::Function":            "lambda",
-	"AWS::Serverless::Function":        "lambda",
-	"AWS::KMS::Key":                    "kms",
-	"AWS::SecretsManager::Secret":      "sm",
-	"AWS::SSM::Parameter":              "ssm",
-	"AWS::Events::EventBus":            "eb",
-	"AWS::Events::Rule":                "eb",
-	"AWS::ApiGateway::RestApi":         "apigw",
-	"AWS::Serverless::Api":             "apigw",
-	"AWS::IAM::Role":                   "iam",
-	"AWS::IAM::User":                   "iam",
-	"AWS::CloudFormation::Stack":       "cfn",
+	"AWS::S3::Bucket":             "s3",
+	"AWS::DynamoDB::Table":        "ddb",
+	"AWS::DynamoDB::GlobalTable":  "ddb",
+	"AWS::SQS::Queue":             "sqs",
+	"AWS::SNS::Topic":             "sns",
+	"AWS::Kinesis::Stream":        "kinesis",
+	"AWS::Lambda::Function":       "lambda",
+	"AWS::Serverless::Function":   "lambda",
+	"AWS::KMS::Key":               "kms",
+	"AWS::SecretsManager::Secret": "sm",
+	"AWS::SSM::Parameter":         "ssm",
+	"AWS::Events::EventBus":       "eb",
+	"AWS::Events::Rule":           "eb",
+	"AWS::ApiGateway::RestApi":    "apigw",
+	"AWS::Serverless::Api":        "apigw",
+	"AWS::IAM::Role":              "iam",
+	"AWS::IAM::User":              "iam",
+	"AWS::CloudFormation::Stack":  "cfn",
 }
 
 // lastSegment takes the resource name out of an ARN or queue URL.
@@ -302,4 +302,360 @@ func (b *backend) StackTemplate(ctx context.Context, name string) (string, error
 func (b *backend) DeleteStack(ctx context.Context, name string) error {
 	_, err := b.cfn(ctx, "DeleteStack", url.Values{"StackName": {name}})
 	return err
+}
+
+// ---- deploys, change sets, exports: the control plane ----
+
+// TemplateParam is one parameter a template declares, as GetTemplateSummary
+// or ValidateTemplate reports it.
+type TemplateParam struct {
+	Key, Type, Default, Description string
+	NoEcho                          bool
+}
+
+// TemplateSummaryInfo is what GetTemplateSummary extracts from a template
+// body before anything is deployed: the questions the deploy will ask.
+type TemplateSummaryInfo struct {
+	Description   string
+	Params        []TemplateParam
+	ResourceTypes []string
+}
+
+type templateParamWire struct {
+	ParameterKey  string `xml:"ParameterKey"`
+	ParameterType string `xml:"ParameterType"`
+	DefaultValue  string `xml:"DefaultValue"`
+	Description   string `xml:"Description"`
+	NoEcho        bool   `xml:"NoEcho"`
+}
+
+func (w templateParamWire) toParam() TemplateParam {
+	return TemplateParam{Key: w.ParameterKey, Type: w.ParameterType,
+		Default: w.DefaultValue, Description: w.Description, NoEcho: w.NoEcho}
+}
+
+// ValidateStackTemplate runs the template through the emulator's real parser
+// without deploying anything. The error IS the product here: it is the same
+// rejection a deploy would hit, seen before the deploy.
+func (b *backend) ValidateStackTemplate(ctx context.Context, body string) (string, []TemplateParam, error) {
+	res, err := b.cfn(ctx, "ValidateTemplate", url.Values{"TemplateBody": {body}})
+	if err != nil {
+		return "", nil, err
+	}
+	var out struct {
+		Description string              `xml:"ValidateTemplateResult>Description"`
+		Params      []templateParamWire `xml:"ValidateTemplateResult>Parameters>member"`
+	}
+	if err := xml.Unmarshal(res, &out); err != nil {
+		return "", nil, err
+	}
+	params := make([]TemplateParam, 0, len(out.Params))
+	for _, p := range out.Params {
+		params = append(params, p.toParam())
+	}
+	return out.Description, params, nil
+}
+
+// TemplateSummary asks a template body (or, with body empty, a deployed
+// stack's stored template) what it declares — the parameter list drives the
+// create and update forms.
+func (b *backend) TemplateSummary(ctx context.Context, body, stack string) (*TemplateSummaryInfo, error) {
+	v := url.Values{}
+	if body != "" {
+		v.Set("TemplateBody", body)
+	} else {
+		v.Set("StackName", stack)
+	}
+	res, err := b.cfn(ctx, "GetTemplateSummary", v)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Description   string              `xml:"GetTemplateSummaryResult>Description"`
+		Params        []templateParamWire `xml:"GetTemplateSummaryResult>Parameters>member"`
+		ResourceTypes []string            `xml:"GetTemplateSummaryResult>ResourceTypes>member"`
+	}
+	if err := xml.Unmarshal(res, &out); err != nil {
+		return nil, err
+	}
+	info := &TemplateSummaryInfo{Description: out.Description, ResourceTypes: out.ResourceTypes}
+	for _, p := range out.Params {
+		info.Params = append(info.Params, p.toParam())
+	}
+	return info, nil
+}
+
+// paramValues encodes a parameter map in the Query protocol's member shape.
+func paramValues(v url.Values, params map[string]string) {
+	i := 0
+	for _, k := range sortedKeysOf(params) {
+		i++
+		v.Set(fmt.Sprintf("Parameters.member.%d.ParameterKey", i), k)
+		v.Set(fmt.Sprintf("Parameters.member.%d.ParameterValue", i), params[k])
+	}
+}
+
+func sortedKeysOf(m map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+// CreateStack deploys a template. The emulator provisions synchronously, so
+// the stack comes back terminal — no polling loop.
+func (b *backend) CreateStack(ctx context.Context, name, body string, params map[string]string) error {
+	v := url.Values{"StackName": {name}, "TemplateBody": {body}}
+	paramValues(v, params)
+	_, err := b.cfn(ctx, "CreateStack", v)
+	return err
+}
+
+// UpdateStack redeploys. An empty body means UsePreviousTemplate — change
+// only the parameters, keep the template that is already there.
+func (b *backend) UpdateStack(ctx context.Context, name, body string, params map[string]string) error {
+	v := url.Values{"StackName": {name}}
+	if body == "" {
+		v.Set("UsePreviousTemplate", "true")
+	} else {
+		v.Set("TemplateBody", body)
+	}
+	paramValues(v, params)
+	_, err := b.cfn(ctx, "UpdateStack", v)
+	return err
+}
+
+// ChangeSet is one change set, summary or detail (the change list and
+// parameters only arrive on a describe).
+type ChangeSet struct {
+	Name, ID, Status, StatusReason, ExecutionStatus, Created string
+	Changes                                                  []StackChange
+	Params                                                   []KeyVal
+}
+
+// StackChange is one resource-level line of a change set's diff.
+type StackChange struct {
+	Action, LogicalID, Type, PhysicalID, Replacement string
+}
+
+// Executable reports whether this set can still be executed.
+func (c ChangeSet) Executable() bool { return c.ExecutionStatus == "AVAILABLE" }
+
+// CreateChangeSet computes the diff without applying it. The change-set type
+// (CREATE vs UPDATE) is inferred by the emulator from whether the stack
+// exists, exactly as the deploy tools rely on.
+func (b *backend) CreateChangeSet(ctx context.Context, stack, name, body string, params map[string]string) error {
+	v := url.Values{"StackName": {stack}, "ChangeSetName": {name}}
+	if body != "" {
+		v.Set("TemplateBody", body)
+	}
+	paramValues(v, params)
+	_, err := b.cfn(ctx, "CreateChangeSet", v)
+	return err
+}
+
+// ListChangeSets lists a stack's change sets, newest first.
+func (b *backend) ListChangeSets(ctx context.Context, stack string) ([]ChangeSet, error) {
+	res, err := b.cfn(ctx, "ListChangeSets", url.Values{"StackName": {stack}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Sets []struct {
+			ChangeSetName   string `xml:"ChangeSetName"`
+			ChangeSetId     string `xml:"ChangeSetId"`
+			Status          string `xml:"Status"`
+			StatusReason    string `xml:"StatusReason"`
+			ExecutionStatus string `xml:"ExecutionStatus"`
+			CreationTime    string `xml:"CreationTime"`
+		} `xml:"ListChangeSetsResult>Summaries>member"`
+	}
+	if err := xml.Unmarshal(res, &out); err != nil {
+		return nil, err
+	}
+	sets := make([]ChangeSet, 0, len(out.Sets))
+	for _, s := range out.Sets {
+		sets = append(sets, ChangeSet{
+			Name: s.ChangeSetName, ID: s.ChangeSetId, Status: s.Status,
+			StatusReason: s.StatusReason, ExecutionStatus: s.ExecutionStatus,
+			Created: shortTime(s.CreationTime),
+		})
+	}
+	sort.Slice(sets, func(i, j int) bool { return sets[i].Created > sets[j].Created })
+	return sets, nil
+}
+
+// ChangeSetDetail describes one change set: its status pair and the
+// resource-level Add/Modify/Remove list.
+func (b *backend) ChangeSetDetail(ctx context.Context, stack, name string) (*ChangeSet, error) {
+	res, err := b.cfn(ctx, "DescribeChangeSet",
+		url.Values{"StackName": {stack}, "ChangeSetName": {name}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Name            string `xml:"DescribeChangeSetResult>ChangeSetName"`
+		ID              string `xml:"DescribeChangeSetResult>ChangeSetId"`
+		Status          string `xml:"DescribeChangeSetResult>Status"`
+		StatusReason    string `xml:"DescribeChangeSetResult>StatusReason"`
+		ExecutionStatus string `xml:"DescribeChangeSetResult>ExecutionStatus"`
+		CreationTime    string `xml:"DescribeChangeSetResult>CreationTime"`
+		Params          []struct {
+			Key   string `xml:"ParameterKey"`
+			Value string `xml:"ParameterValue"`
+		} `xml:"DescribeChangeSetResult>Parameters>member"`
+		Changes []struct {
+			RC struct {
+				Action      string `xml:"Action"`
+				LogicalID   string `xml:"LogicalResourceId"`
+				PhysicalID  string `xml:"PhysicalResourceId"`
+				Type        string `xml:"ResourceType"`
+				Replacement string `xml:"Replacement"`
+			} `xml:"ResourceChange"`
+		} `xml:"DescribeChangeSetResult>Changes>member"`
+	}
+	if err := xml.Unmarshal(res, &out); err != nil {
+		return nil, err
+	}
+	cs := &ChangeSet{
+		Name: out.Name, ID: out.ID, Status: out.Status,
+		StatusReason: out.StatusReason, ExecutionStatus: out.ExecutionStatus,
+		Created: shortTime(out.CreationTime),
+	}
+	for _, p := range out.Params {
+		cs.Params = append(cs.Params, KeyVal{p.Key, p.Value})
+	}
+	for _, ch := range out.Changes {
+		cs.Changes = append(cs.Changes, StackChange{
+			Action: ch.RC.Action, LogicalID: ch.RC.LogicalID,
+			Type: ch.RC.Type, PhysicalID: ch.RC.PhysicalID, Replacement: ch.RC.Replacement,
+		})
+	}
+	return cs, nil
+}
+
+// ExecuteChangeSet applies the reviewed diff.
+func (b *backend) ExecuteChangeSet(ctx context.Context, stack, name string) error {
+	_, err := b.cfn(ctx, "ExecuteChangeSet",
+		url.Values{"StackName": {stack}, "ChangeSetName": {name}})
+	return err
+}
+
+// DeleteChangeSet discards a reviewed-and-rejected diff.
+func (b *backend) DeleteChangeSet(ctx context.Context, stack, name string) error {
+	_, err := b.cfn(ctx, "DeleteChangeSet",
+		url.Values{"StackName": {stack}, "ChangeSetName": {name}})
+	return err
+}
+
+// StackExport is one row of the cross-stack export registry.
+type StackExport struct {
+	Name, Value, Stack string
+}
+
+// ListExports reads the export registry Fn::ImportValue resolves against.
+func (b *backend) ListExports(ctx context.Context) ([]StackExport, error) {
+	res, err := b.cfn(ctx, "ListExports", nil)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Exports []struct {
+			Name             string `xml:"Name"`
+			Value            string `xml:"Value"`
+			ExportingStackId string `xml:"ExportingStackId"`
+		} `xml:"ListExportsResult>Exports>member"`
+	}
+	if err := xml.Unmarshal(res, &out); err != nil {
+		return nil, err
+	}
+	exports := make([]StackExport, 0, len(out.Exports))
+	for _, e := range out.Exports {
+		// The ARN is arn:…:stack/<name>/<id>; the name is the useful part.
+		stack := e.ExportingStackId
+		if i := strings.Index(stack, ":stack/"); i >= 0 {
+			stack = strings.SplitN(stack[i+len(":stack/"):], "/", 2)[0]
+		}
+		exports = append(exports, StackExport{Name: e.Name, Value: e.Value, Stack: stack})
+	}
+	return exports, nil
+}
+
+// ListImports names the stacks whose templates import an export — the
+// blast-radius question before changing or removing it.
+func (b *backend) ListImports(ctx context.Context, export string) ([]string, error) {
+	res, err := b.cfn(ctx, "ListImports", url.Values{"ExportName": {export}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Imports []string `xml:"ListImportsResult>Imports>member"`
+	}
+	if err := xml.Unmarshal(res, &out); err != nil {
+		return nil, err
+	}
+	return out.Imports, nil
+}
+
+// DeletedStacks is the record DescribeStacks no longer shows: stacks in
+// DELETE_COMPLETE, reachable through ListStacks' status filter.
+func (b *backend) DeletedStacks(ctx context.Context) ([]Stack, error) {
+	res, err := b.cfn(ctx, "ListStacks",
+		url.Values{"StackStatusFilter.member.1": {"DELETE_COMPLETE"}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Stacks []struct {
+			StackName    string `xml:"StackName"`
+			StackId      string `xml:"StackId"`
+			StackStatus  string `xml:"StackStatus"`
+			CreationTime string `xml:"CreationTime"`
+		} `xml:"ListStacksResult>StackSummaries>member"`
+	}
+	if err := xml.Unmarshal(res, &out); err != nil {
+		return nil, err
+	}
+	stacks := make([]Stack, 0, len(out.Stacks))
+	for _, s := range out.Stacks {
+		stacks = append(stacks, Stack{Name: s.StackName, ID: s.StackId,
+			Status: s.StackStatus, Created: shortTime(s.CreationTime)})
+	}
+	return stacks, nil
+}
+
+// StackResourceInfo is the single-resource drill-down: what the resources
+// table shows, plus the status reason and timestamp it does not.
+type StackResourceInfo struct {
+	LogicalID, PhysicalID, Type, Status, Reason, Updated string
+}
+
+// StackResource1 describes one resource by logical id (DescribeStackResource,
+// the singular describe).
+func (b *backend) StackResource1(ctx context.Context, stack, logicalID string) (*StackResourceInfo, error) {
+	res, err := b.cfn(ctx, "DescribeStackResource",
+		url.Values{"StackName": {stack}, "LogicalResourceId": {logicalID}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		D struct {
+			LogicalResourceId    string `xml:"LogicalResourceId"`
+			PhysicalResourceId   string `xml:"PhysicalResourceId"`
+			ResourceType         string `xml:"ResourceType"`
+			ResourceStatus       string `xml:"ResourceStatus"`
+			ResourceStatusReason string `xml:"ResourceStatusReason"`
+			Timestamp            string `xml:"Timestamp"`
+		} `xml:"DescribeStackResourceResult>StackResourceDetail"`
+	}
+	if err := xml.Unmarshal(res, &out); err != nil {
+		return nil, err
+	}
+	return &StackResourceInfo{
+		LogicalID: out.D.LogicalResourceId, PhysicalID: out.D.PhysicalResourceId,
+		Type: out.D.ResourceType, Status: out.D.ResourceStatus,
+		Reason: out.D.ResourceStatusReason, Updated: shortTime(out.D.Timestamp),
+	}, nil
 }

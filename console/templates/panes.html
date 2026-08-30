@@ -28,7 +28,7 @@
 
          The id is the slot the out-of-band patch writes — see the ri template
          in layout.html for why chrome outside the swap target needs one. */}}
-    <span class="l">{{awsIcon .Svc}} {{.Label}} <span class="lp-ct" id="lph-{{.Svc}}">{{.Count}}</span></span>
+    <span class="l">{{awsIcon .Svc}} <span class="lp-name" title="{{.Label}}">{{.Label}}</span> <span class="lp-ct" id="lph-{{.Svc}}">{{.Count}}</span></span>
     {{if .NewURL}}<a class="new-link" href="{{.NewURL}}">{{icon "plus"}} New</a>{{end}}
   </div>
   <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" x-data x-model="$store.filter.q" spellcheck="false"></label>

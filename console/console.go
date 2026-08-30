@@ -224,8 +224,16 @@ func (c *Console) routes() {
 
 	// CloudFormation.
 	m.HandleFunc("GET "+p+"/cfn", c.cfnStacks)
+	m.HandleFunc("GET "+p+"/cfn/create", c.createPage("cfn", "cfn_create"))
+	m.HandleFunc("POST "+p+"/cfn/create", c.cfnCreate)
+	m.HandleFunc("POST "+p+"/cfn/validate", c.cfnValidate) // HTMX partial (ValidateTemplate)
+	m.HandleFunc("POST "+p+"/cfn/summary", c.cfnSummary)   // HTMX partial (GetTemplateSummary)
 	m.HandleFunc("GET "+p+"/cfn/{stack}", c.cfnStack)
 	m.HandleFunc("POST "+p+"/cfn/{stack}/delete", c.cfnDelete)
+	m.HandleFunc("POST "+p+"/cfn/{stack}/update", c.cfnUpdate)
+	m.HandleFunc("POST "+p+"/cfn/{stack}/changeset/{cs}/execute", c.cfnExecuteCS)
+	m.HandleFunc("POST "+p+"/cfn/{stack}/changeset/{cs}/delete", c.cfnDeleteCS)
+	m.HandleFunc("POST "+p+"/cfn/{stack}/resource", c.cfnResource) // HTMX partial (DescribeStackResource)
 
 	m.HandleFunc("GET "+p+"/kinesis", c.kinesisStreams)
 	m.HandleFunc("POST "+p+"/kinesis/create", c.kinesisCreate)

@@ -217,3 +217,38 @@
   <button type="submit" class="btn">{{.Submit}}</button>
 </div>
 {{end}}
+
+{{define "cfn_create"}}{{template "shell_top" .}}
+  {{template "cfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  <section class="detail"><div class="form-page">
+    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create stack</div>
+    <p class="det-sub" style="margin-bottom:18px">Paste a template, answer what it asks, deploy &mdash; or make a change set and review the diff first.</p>
+    <form hx-post="{{.Prefix}}/cfn/create" hx-indicator="#submit-spin" x-data="{review:false}">
+      <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
+        <div class="field"><label>Stack name</label><input class="input" name="name" placeholder="my-stack" required pattern="[a-zA-Z][a-zA-Z0-9\-]{0,127}" autocomplete="off" autofocus></div>
+      </div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>Template</h2>
+        {{/* Validate runs the emulator's real parser (ValidateTemplate); Load
+             parameters reads the declarations (GetTemplateSummary) and builds
+             the form below from them. Both post the whole form so the template
+             body rides along. */}}
+        <div class="hdr-btns">
+          <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/cfn/validate" hx-include="closest form" hx-target="#cfn-validate-out" hx-select="unset" hx-swap="innerHTML">{{icon "check"}} Validate</button>
+          <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/cfn/summary" hx-include="closest form" hx-target="#cfn-params" hx-select="unset" hx-swap="innerHTML">{{icon "settings"}} Load parameters</button>
+        </div>
+      </div><div class="form-b">
+        <div class="field"><label>Template body <span class="dim">JSON or YAML</span></label>
+          <textarea name="template" data-editor rows="14" spellcheck="false" required placeholder="Resources:&#10;  Queue:&#10;    Type: AWS::SQS::Queue"></textarea></div>
+        <div id="cfn-validate-out"></div>
+      </div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>Parameters</h2></div><div class="form-b" id="cfn-params">
+        <p class="mini-note">Load parameters (above) asks the template what it declares and builds this form from the answer. A blank input takes the template&rsquo;s default.</p>
+      </div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>How to deploy</h2></div><div class="form-b">
+        <div class="opt-row"><div><div class="opt-l">Create a change set instead</div><div class="opt-d">The stack materialises in REVIEW_IN_PROGRESS; nothing deploys until you execute the reviewed diff</div></div><label class="switch"><input type="checkbox" name="review" x-model="review"><span class="track"></span><span class="thumb"></span></label></div>
+        <div class="field" x-show="review" x-cloak style="margin-top:10px"><label>Change set name</label><input class="input mono" name="changeset" value="console-review" pattern="[a-zA-Z][a-zA-Z0-9\-]*" spellcheck="false"></div>
+      </div></div>
+      {{template "form_actions" dict "Cancel" (printf "%s/cfn" .Prefix) "Submit" "Create stack"}}
+    </form>
+  </div></section>
+{{template "shell_bottom" .}}{{end}}

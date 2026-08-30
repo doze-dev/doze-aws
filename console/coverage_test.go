@@ -42,12 +42,22 @@ var uncovered = map[string][]string{
 	"secretsmanager": {},
 	// DescribeEndpoints is the one exemption — see exempt.
 	"dynamodb": {},
+	// ListStackResources is the one exemption — see exempt.
+	"cloudformation": {},
 }
 
 // exempt is for operations that are deliberately not called, with the reason.
 // This is a different claim from uncovered: uncovered says "not yet", exempt
 // says "and here is why it never will be".
 var exempt = map[string]map[string]string{
+	"cloudformation": {
+		"ListStackResources": "the paginated twin of DescribeStackResources, " +
+			"which the resources tab already reads and which locally returns " +
+			"every resource in one response. The list variant exists for stacks " +
+			"past the describe call's 100-resource cap; a second call site " +
+			"rendering the same rows would exercise the wire without showing " +
+			"anything new.",
+	},
 	"sqs": {
 		"GetQueueUrl": "the console builds the URL from base + account + name " +
 			"(backend.queueURL), which is exact and saves a round trip on every " +

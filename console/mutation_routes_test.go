@@ -196,6 +196,7 @@ var fixtures = map[string]string{
 	"{key}":    "", // filled at run time from the seeded key
 	"{bus}":    "fixture-bus",
 	"{stack}":  "fixture-stack",
+	"{cs}":     "fixture-cs",
 	"{api}":    "fixture-api",
 	"{rule}":   "fixture-rule",
 	"{kind}":   "user",
@@ -209,6 +210,13 @@ var fixtures = map[string]string{
 var discovered = map[string]string{}
 
 func shardID(n int) string { return fmt.Sprintf("shardId-%012d", n) }
+
+// cfnTemplate1/2 differ by one resource, so a change set between them has a
+// real diff — an identical pair would land the set in FAILED ("didn't contain
+// changes") and the execute route could never redirect.
+const cfnTemplate1 = `{"Resources":{"FixtureQueue":{"Type":"AWS::SQS::Queue","Properties":{"QueueName":"fixture-cfn-q"}}}}`
+
+const cfnTemplate2 = `{"Resources":{"FixtureQueue":{"Type":"AWS::SQS::Queue","Properties":{"QueueName":"fixture-cfn-q"}},"FixtureTopic":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":"fixture-cfn-t"}}}}`
 
 // policyDoc is a syntactically valid policy; nothing here evaluates it.
 const policyDoc = `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"s3:*","Resource":"*"}]}`
@@ -245,6 +253,13 @@ func seedFixtures(t *testing.T, c http.Handler) {
 		// cannot be deleted, which is the whole point of it.
 		{"/iam/create", url.Values{
 			"kind": {"policy"}, "name": {"fixture-policy"}, "document": {policyDoc},
+		}},
+		// The stack, then a change set over it with a genuine one-resource
+		// diff. Once the execute subtest deploys template2 the re-seeded set
+		// lands in FAILED (empty diff) — harmless, nothing later executes it.
+		{"/cfn/create", url.Values{"name": {"fixture-stack"}, "template": {cfnTemplate1}}},
+		{"/cfn/fixture-stack/update", url.Values{
+			"review": {"1"}, "changeset": {"fixture-cs"}, "template": {cfnTemplate2},
 		}},
 		{"/eb/fixture-bus/create-rule", url.Values{
 			"name": {"fixture-rule"}, "pattern": {`{"source":["demo"]}`},
@@ -358,6 +373,7 @@ func mutationForm() url.Values {
 		"item":    {`{"pk":{"S":"x"}}`},
 		"pattern": {`{"source":["demo"]}`},
 		"type":    {"String"}, "description": {"fixture"},
+		"template": {cfnTemplate1},
 		"hash_key": {"pk"}, "hash_type": {"S"},
 		"spec": {"SYMMETRIC_DEFAULT"}, "usage": {"ENCRYPT_DECRYPT"},
 		"alias": {"fixture-alias"}, "label": {"fixture-label"},
