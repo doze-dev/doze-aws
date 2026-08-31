@@ -232,7 +232,7 @@
   <section class="detail"><div class="form-page">
     <div class="det-title" style="font-size:18px;margin-bottom:2px">Create stack</div>
     <p class="det-sub" style="margin-bottom:18px">Paste a template, answer what it asks, deploy &mdash; or make a change set and review the diff first.</p>
-    <form hx-post="{{.Prefix}}/cfn/create" hx-indicator="#submit-spin" x-data="{review:false}">
+    <form hx-post="{{.Prefix}}/cfn/create" hx-indicator="#submit-spin" x-data="{review:false}" data-err-slot="#cfn-validate-out">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
         <div class="field"><label>Stack name</label><input class="input" name="name" placeholder="my-stack" required pattern="[a-zA-Z][a-zA-Z0-9\-]{0,127}" autocomplete="off" autofocus></div>
       </div></div>

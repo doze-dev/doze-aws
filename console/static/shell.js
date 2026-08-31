@@ -165,7 +165,24 @@
       if (t) return { host: t, how: "append" };
     }
     var form = elt.closest("form");
-    if (form) return { host: form, how: "append" };
+    if (form) {
+      // The opt-in also works DOWNWARD: a form's builder can carry
+      // data-err-slot and receive the refusal next to the document that
+      // caused it, instead of below the fold at the form's end. closest()
+      // above only ascends, so without this rung a descendant slot is
+      // unreachable from the submitting form.
+      // Of the form's slots, the first VISIBLE one: a mode-switched form
+      // (the IAM create page holds a trust builder and a policy builder,
+      // one hidden) must not swallow the error into a display:none block.
+      var downs = form.querySelectorAll("[data-err-slot]");
+      for (var di = 0; di < downs.length; di++) {
+        if (downs[di].offsetParent === null) continue;
+        var dsel = downs[di].getAttribute("data-err-slot");
+        var dt = dsel ? document.querySelector(dsel) : downs[di];
+        if (dt) return { host: dt, how: "append" };
+      }
+      return { host: form, how: "append" };
+    }
     var block = elt.closest(".panel, .det-b, .sub-item, .form-page");
     if (block) return { host: block, how: "prepend" };
     return null;

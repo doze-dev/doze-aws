@@ -212,7 +212,7 @@
      TestEventPattern check row). */}}
 
 {{define "pattern_builder"}}
-<div class="pb" x-data="patternBuilder({{printf "%q" .Value}})" x-init="init($refs.ta)"
+<div class="pb" data-err-slot x-data="patternBuilder({{printf "%q" .Value}})" x-init="init($refs.ta)"
      x-effect="if(mode==='json')$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
   <div class="kv-modes" x-show="representable || mode==='builder'">
     <span class="ws-seg">

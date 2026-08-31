@@ -207,3 +207,34 @@ test.describe('policy builder', () => {
     await expect(page.locator('#flashbar')).toContainText(`Created ${name}`);
   });
 });
+
+// data-err-slot: a refused document's error lands INSIDE the builder, next to
+// what caused it — not below the fold at the form's end — and clears on the
+// next attempt instead of stacking.
+test('a refused policy document errors next to the builder and clears on retry', async ({
+  page,
+  uniqueName,
+}) => {
+  await page.goto('iam/create?kind=policy');
+  await page.locator('.seg button', { hasText: 'Policy' }).click();
+  const pb = page.locator('.field:has(textarea[name="document"]) .pb');
+  await expect(pb.locator('.pb-stmt')).toBeVisible();
+  await pb.locator('.ws-seg a', { hasText: 'JSON' }).click();
+  await page.evaluate(() => {
+    const ta = document.querySelector('.field textarea[name="document"]');
+    window.dozeEditor.set(ta, '{"Version":"2012-10-17","Statement":[]}');
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  const name = uniqueName('e2e-errslot');
+  await page.locator('input[name="name"]').fill(name);
+  await page.getByRole('button', { name: 'Create policy' }).click();
+  await expect(pb.locator('[data-doze-err]')).toContainText('policy document has no Statement');
+
+  await page.evaluate(() => {
+    const ta = document.querySelector('.field textarea[name="document"]');
+    window.dozeEditor.set(ta, JSON.stringify({ Version: '2012-10-17', Statement: [{ Effect: 'Allow', Action: 's3:*', Resource: '*' }] }));
+  });
+  await page.getByRole('button', { name: 'Create policy' }).click();
+  await expect(page.locator('#flashbar')).toContainText(`Created ${name}`);
+  await expect(page.locator('[data-doze-err]')).toHaveCount(0);
+});

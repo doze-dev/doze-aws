@@ -451,7 +451,7 @@
      Key/Label/Ph/W). Same contract as every builder: textarea submits, rows
      project, unrepresentable stays JSON. */}}
 {{define "rows_builder"}}
-<div class="pb" x-data='rowsBuilder({{printf "%q" .Value}}, {{.Spec}})' x-init="init($refs.ta)"
+<div class="pb" data-err-slot x-data='rowsBuilder({{printf "%q" .Value}}, {{.Spec}})' x-init="init($refs.ta)"
      x-effect="if(mode==='json')$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
   <div class="kv-modes" x-show="representable || mode==='rows'">
     <span class="ws-seg">

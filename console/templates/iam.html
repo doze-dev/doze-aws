@@ -783,7 +783,7 @@
      implements). dict: Prefix, Field, Value, Rows, UID, Check. */}}
 
 {{define "policy_builder"}}
-<div class="pb" x-data="policyBuilder({{printf "%q" .Value}})" x-init="init($refs.ta)"
+<div class="pb" data-err-slot x-data="policyBuilder({{printf "%q" .Value}})" x-init="init($refs.ta)"
      x-effect="if(mode==='json')$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
   <div class="kv-modes" x-show="representable || mode==='builder'">
     <span class="ws-seg">
