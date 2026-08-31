@@ -1751,3 +1751,8 @@ a.lo-card:hover { border-color: var(--accent); }
 .pb-check { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
 .pb-check .input { flex: 1; font-size: 12px; }
 .pb { display: block; }
+/* Rule-row editors (CORS / lifecycle): a header of column labels over
+   flex-weighted input rows. */
+.rb-head { display: flex; gap: 6px; font-size: 11px; font-weight: 600; color: var(--muted-foreground); margin-bottom: 4px; padding-right: 32px; }
+.rb-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+.rb-row .input { font-size: 11px; padding: 4px 6px; min-width: 0; }

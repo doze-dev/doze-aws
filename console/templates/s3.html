@@ -186,9 +186,14 @@
     <div class="sec-title">CORS</div>
     <div class="panel" style="margin-bottom:14px"><div style="padding:12px 14px">
       <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/cors" hx-target="#s3-props" hx-select="unset" hx-swap="outerHTML">
-        <textarea name="rules" data-editor="json" rows="6" spellcheck="false" placeholder='[
-  {"AllowedOrigins": ["http://localhost:3000"], "AllowedMethods": ["GET", "PUT"]}
-]'>{{.CORSJSON}}</textarea>
+        {{template "rows_builder" dict "Field" "rules" "Value" .CORSJSON "Rows" 6
+          "Spec" `[{"key":"AllowedOrigins","kind":"list"},{"key":"AllowedMethods","kind":"list"},{"key":"AllowedHeaders","kind":"list"},{"key":"ExposeHeaders","kind":"list"},{"key":"MaxAgeSeconds","kind":"num"}]`
+          "Cols" (list
+            (dict "Key" "AllowedOrigins" "Label" "Origins" "Ph" "http://localhost:3000, …" "W" 3)
+            (dict "Key" "AllowedMethods" "Label" "Methods" "Ph" "GET, PUT" "W" 2)
+            (dict "Key" "AllowedHeaders" "Label" "Headers" "Ph" "*" "W" 2)
+            (dict "Key" "ExposeHeaders" "Label" "Expose" "Ph" "ETag" "W" 2)
+            (dict "Key" "MaxAgeSeconds" "Label" "Max age" "Ph" "300" "W" 1))}}
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
           <span class="mini-note" style="margin:0;padding:0">A JSON array of rules — the server evaluates real preflights against them.</span>
           <button class="btn btn-outline btn-sm" type="submit">Save CORS</button>
@@ -199,10 +204,14 @@
     <div class="sec-title">Lifecycle</div>
     <div class="panel" style="margin-bottom:14px"><div style="padding:12px 14px">
       <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/lifecycle" hx-target="#s3-props" hx-select="unset" hx-swap="outerHTML">
-        <textarea name="rules" data-editor="json" rows="6" spellcheck="false" placeholder='[
-  {"Prefix": "tmp/", "ExpireDays": 7},
-  {"NoncurrentDays": 30}
-]'>{{.LifecycleJSON}}</textarea>
+        {{template "rows_builder" dict "Field" "rules" "Value" .LifecycleJSON "Rows" 6
+          "Spec" `[{"key":"ID","kind":"text"},{"key":"Prefix","kind":"text"},{"key":"Status","kind":"text"},{"key":"ExpireDays","kind":"num"},{"key":"NoncurrentDays","kind":"num"}]`
+          "Cols" (list
+            (dict "Key" "ID" "Label" "Id" "Ph" "optional" "W" 1)
+            (dict "Key" "Prefix" "Label" "Prefix" "Ph" "tmp/" "W" 2)
+            (dict "Key" "Status" "Label" "Status" "Ph" "Enabled" "W" 1)
+            (dict "Key" "ExpireDays" "Label" "Expire (d)" "Ph" "7" "W" 1)
+            (dict "Key" "NoncurrentDays" "Label" "Noncurrent (d)" "Ph" "30" "W" 1))}}
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
           <span class="mini-note" style="margin:0;padding:0">ExpireDays deletes objects; NoncurrentDays prunes old versions. The janitor enforces both.</span>
           <button class="btn btn-outline btn-sm" type="submit">Save lifecycle</button>
@@ -435,4 +444,36 @@
 {{define "s3_name_check"}}
 {{if .Taken}}<p class="mini-note" style="color:var(--destructive)">&ldquo;{{.Name}}&rdquo; already exists &mdash; creating it would be refused.</p>
 {{else}}<p class="mini-note cfn-valid">{{icon "check"}} &ldquo;{{.Name}}&rdquo; is available.</p>{{end}}
+{{end}}
+
+{{/* rows_builder: the flat-rule editors (CORS, lifecycle). dict: Field,
+     Value, Rows, Spec (the JS field spec, JSON), Cols (list of dicts
+     Key/Label/Ph/W). Same contract as every builder: textarea submits, rows
+     project, unrepresentable stays JSON. */}}
+{{define "rows_builder"}}
+<div class="pb" x-data='rowsBuilder({{printf "%q" .Value}}, {{.Spec}})' x-init="init($refs.ta)"
+     x-effect="if(mode==='json')$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+  <div class="kv-modes" x-show="representable || mode==='rows'">
+    <span class="ws-seg">
+      <a href="#" @click.prevent="toRows()" :class="mode==='rows' && 'on'">Rules</a>
+      <a href="#" @click.prevent="toText()" :class="mode==='json' && 'on'">JSON</a>
+    </span>
+  </div>
+  <div class="kv-modes" x-show="!representable && mode==='json'" x-cloak>
+    <span class="dim kv-note">Rules view unavailable: the JSON holds something rows could not round-trip.</span>
+  </div>
+  <div x-show="mode==='rows'" x-cloak>
+    <div class="rb-head">{{range .Cols}}<span style="flex:{{.W}}">{{.Label}}</span>{{end}}<span style="width:26px"></span></div>
+    <template x-for="(row, i) in rows" :key="i">
+      <div class="rb-row">
+        {{range .Cols}}<input class="input mono" style="flex:{{.W}}" placeholder="{{.Ph}}" x-model="row.{{.Key}}" @input="sync()" spellcheck="false">{{end}}
+        <button type="button" class="icon-btn sm danger" title="Remove rule" @click="dropRow(i)">{{icon "x"}}</button>
+      </div>
+    </template>
+    <button type="button" class="btn btn-ghost btn-sm" style="margin-top:6px" @click="addRow()">{{icon "plus"}} Add rule</button>
+  </div>
+  <div x-show="mode==='json'" x-cloak>
+    <textarea x-ref="ta" name="{{.Field}}" data-editor="json" rows="{{.Rows}}" spellcheck="false" @input="onText()">{{.Value}}</textarea>
+  </div>
+</div>
 {{end}}

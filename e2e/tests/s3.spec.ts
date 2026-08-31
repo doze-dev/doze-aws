@@ -445,3 +445,31 @@ test.describe('bucket policy', () => {
     await expect(page.locator(`.panel:has(form[hx-post$="/s3/${bucket}/policy"]) .badge.state-on`)).toBeVisible();
   });
 });
+
+// CORS and lifecycle ride the generic rule-rows builder: labeled columns
+// over the JSON textarea, which is still what submits.
+test.describe('rule-rows builders', () => {
+  test('CORS and lifecycle save from rows and round-trip', async ({ page, request, uniqueName, waitForToast }) => {
+    const bucket = uniqueName('e2e-s3-rules');
+    await createBucket(request, bucket);
+    await page.goto(`s3/${bucket}?tab=properties`);
+
+    const cors = page.locator('.panel:has(form[hx-post$="/cors"]) .pb');
+    await expect(cors.locator('.rb-row').first()).toBeVisible();
+    await cors.locator('.rb-row input').first().fill('http://localhost:3000');
+    await cors.locator('.rb-row input').nth(1).fill('GET, PUT');
+    await page.locator('form[hx-post$="/cors"] button[type=submit]').click();
+    let toast = await waitForToast();
+    expect(toast).toContain('CORS rules saved');
+    // The swapped-in panel re-projects the stored rules into rows.
+    await expect(page.locator('.panel:has(form[hx-post$="/cors"]) .rb-row input').first()).toHaveValue('http://localhost:3000');
+
+    const lc = page.locator('.panel:has(form[hx-post$="/lifecycle"]) .pb');
+    await lc.locator('.rb-row input').nth(1).fill('tmp/');
+    await lc.locator('.rb-row input').nth(3).fill('7');
+    await page.locator('form[hx-post$="/lifecycle"] button[type=submit]').click();
+    toast = await waitForToast();
+    expect(toast).toContain('Lifecycle rules saved');
+    await expect(page.locator('.panel:has(form[hx-post$="/lifecycle"]) .rb-row input').nth(1)).toHaveValue('tmp/');
+  });
+});

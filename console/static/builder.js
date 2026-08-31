@@ -30,3 +30,108 @@
     };
   };
 })();
+
+  /* rowsBuilder backs the flat-rule editors (S3 CORS and lifecycle): a JSON
+     ARRAY of flat objects, projected as one row per rule. The schemas are
+     doze-invented and unambiguous, so representability is simple: every key
+     must be in the field spec and every value must match its kind. The
+     textarea stays the source of truth, as everywhere.
+
+     fields: [{key, kind}] with kind "text" | "num" | "list" (comma-joined in
+     the row). Serialization omits empties, matching the server's omitempty. */
+  window.rowsBuilder = function (initial, fields) {
+    function blank() {
+      var r = {};
+      fields.forEach(function (f) { r[f.key] = ""; });
+      return r;
+    }
+    return {
+      mode: "json", rows: [], representable: false, dirty: false, ta: null,
+      fields: fields,
+      parse: function (text) {
+        var t = (text || "").trim();
+        if (!t) return [];
+        if (t[0] !== "[") return null;
+        var arr;
+        try { arr = JSON.parse(t); } catch (e) { return null; }
+        if (!Array.isArray(arr)) return null;
+        var byKey = {};
+        fields.forEach(function (f) { byKey[f.key] = f; });
+        var rows = [];
+        for (var i = 0; i < arr.length; i++) {
+          var o = arr[i];
+          if (o === null || typeof o !== "object" || Array.isArray(o)) return null;
+          var row = blank();
+          for (var k in o) {
+            if (!Object.prototype.hasOwnProperty.call(o, k)) continue;
+            var f = byKey[k], v = o[k];
+            if (!f) return null;
+            if (f.kind === "list") {
+              if (!Array.isArray(v) || !v.every(function (x) { return typeof x === "string"; })) return null;
+              row[k] = v.join(", ");
+            } else if (f.kind === "num") {
+              if (typeof v !== "number") return null;
+              row[k] = String(v);
+            } else {
+              if (typeof v !== "string") return null;
+              row[k] = v;
+            }
+          }
+          rows.push(row);
+        }
+        return rows;
+      },
+      serialize: function () {
+        var out = [];
+        this.rows.forEach(function (row) {
+          var o = {}, any = false;
+          fields.forEach(function (f) {
+            var v = (row[f.key] || "").trim();
+            if (!v) return;
+            if (f.kind === "list") {
+              var l = v.split(",").map(function (x) { return x.trim(); }).filter(Boolean);
+              if (l.length) { o[f.key] = l; any = true; }
+            } else if (f.kind === "num") {
+              var n = parseFloat(v);
+              if (!isNaN(n) && n !== 0) { o[f.key] = n; any = true; }
+            } else {
+              o[f.key] = v; any = true;
+            }
+          });
+          if (any) out.push(o);
+        });
+        return JSON.stringify(out, null, 2);
+      },
+      init: function (ta) {
+        // Parse the factory's initial string, never the ref: under an htmx
+        // swap Alpine can run x-init before $refs resolves, and every other
+        // factory here already follows that rule.
+        this.ta = ta;
+        var rows = this.parse(initial);
+        this.representable = rows !== null;
+        if (rows !== null) { this.rows = rows; this.mode = "rows"; }
+        if (this.representable && !this.rows.length) this.rows = [blank()];
+      },
+      read: function () { return this.ta && this.ta.__cm ? this.ta.__cm.getValue() : (this.ta ? this.ta.value : ""); },
+      onText: function () { this.dirty = true; this.representable = this.parse(this.read()) !== null; },
+      toRows: function () {
+        var rows = this.parse(this.read());
+        if (rows === null) return;
+        this.rows = rows.length ? rows : [blank()];
+        this.mode = "rows";
+      },
+      toText: function () {
+        this.mode = "json";
+        var self = this;
+        setTimeout(function () { if (window.dozeEditor) dozeEditor.refresh(self.ta.parentNode); }, 0);
+      },
+      sync: function () {
+        this.dirty = true;
+        var json = this.serialize();
+        if (window.dozeEditor) dozeEditor.set(this.ta, json); else if (this.ta) this.ta.value = json;
+        this.representable = true;
+      },
+      addRow: function () { this.rows.push(blank()); },
+      dropRow: function (i) { this.rows.splice(i, 1); if (!this.rows.length) this.rows.push(blank()); this.sync(); },
+    };
+  };
