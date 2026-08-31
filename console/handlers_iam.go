@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // iamNav gathers what the list pane needs on every IAM page.
@@ -540,4 +542,62 @@ func (c *Console) iamJoinGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.redirect(w, r, c.prefix+"/iam/user/"+name, name+" added to "+group)
+}
+
+// ---- STS: minting credentials against the local account ----
+
+// iamSTS is the credentials page: every way STS hands out a key set.
+func (c *Console) iamSTS(w http.ResponseWriter, r *http.Request) {
+	principals, policies, navGroups, navProfiles := c.iamNav(r)
+	c.render(w, r, "iam_sts", map[string]any{
+		"Principals": principals, "Policies": policies, "NavGroups": navGroups, "NavProfiles": navProfiles,
+		"Title": "STS · IAM",
+	})
+}
+
+// iamSTSMint runs the chosen mint and renders the credential set.
+func (c *Console) iamSTSMint(w http.ResponseWriter, r *http.Request) {
+	mode := r.FormValue("mode")
+	v := url.Values{}
+	set := func(param, field string) {
+		if s := strings.TrimSpace(r.FormValue(field)); s != "" {
+			v.Set(param, s)
+		}
+	}
+	set("DurationSeconds", "duration")
+	switch mode {
+	case "assume-role", "web-identity", "saml":
+		if role := strings.TrimSpace(r.FormValue("role")); role != "" {
+			v.Set("RoleArn", "arn:aws:iam::"+awsident.AccountID+":role/"+role)
+		}
+		set("RoleSessionName", "session")
+	}
+	switch mode {
+	case "federation":
+		set("Name", "name")
+	case "root":
+		set("TargetPrincipal", "target")
+		set("TaskPolicyArn.arn", "task")
+	case "web-identity":
+		set("WebIdentityToken", "token")
+	case "saml":
+		set("SAMLAssertion", "assertion")
+		set("PrincipalArn", "provider")
+	}
+	creds, err := c.be.MintCredentials(r.Context(), mode, v)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "iam_sts_creds", map[string]any{"C": creds})
+}
+
+// iamSTSKeyInfo answers which account a pasted key id belongs to.
+func (c *Console) iamSTSKeyInfo(w http.ResponseWriter, r *http.Request) {
+	account, err := c.be.AccessKeyAccount(r.Context(), strings.TrimSpace(r.FormValue("id")))
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "iam_sts_keyinfo", map[string]any{"Account": account})
 }

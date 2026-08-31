@@ -15,6 +15,9 @@
     <a class="li {{if eq .Sel "account"}}on{{end}}" href="{{.Prefix}}/iam/account">
       <span class="nm">{{icon "settings"}} Account</span>
     </a>
+    <a class="li {{if eq .Sel "sts"}}on{{end}}" href="{{.Prefix}}/iam/sts">
+      <span class="nm">{{icon "key"}} STS credentials</span>
+    </a>
     <div class="side-label">Principals</div>
     {{range .Principals}}
     <a class="li {{if eq .ARN $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/{{.Kind}}/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
@@ -670,4 +673,84 @@
 
 {{define "iam_auth_details"}}
 <div class="panel sub-panel"><div class="code-out" style="max-height:420px"><pre>{{.Raw}}</pre></div></div>
+{{end}}
+
+{{/* ---- STS: every way the token service hands out a key set ---- */}}
+
+{{define "iam_sts"}}{{template "shell_top" .}}
+  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" "sts")}}
+  <section class="detail">
+    <div class="det-h"><div class="det-title">{{awsIcon "iam"}} STS credentials</div>
+      <p class="mini-note" style="margin-top:6px">Minted against the local account — paste the export line into a shell and that shell IS the principal. With IAM enforcing, this is how you test what a role can actually do.</p>
+    </div>
+    <div class="det-b">
+      <div class="panel" style="max-width:760px"><div class="form-b" x-data="{m:'assume-role'}">
+        <div class="seg" style="margin-bottom:12px">
+          <button type="button" :class="m==='assume-role' && 'on'" @click="m='assume-role'">Assume role</button>
+          <button type="button" :class="m==='session' && 'on'" @click="m='session'">Session token</button>
+          <button type="button" :class="m==='federation' && 'on'" @click="m='federation'">Federation</button>
+          <button type="button" :class="m==='root' && 'on'" @click="m='root'">Root</button>
+          <button type="button" :class="m==='web-identity' && 'on'" @click="m='web-identity'">Web identity</button>
+          <button type="button" :class="m==='saml' && 'on'" @click="m='saml'">SAML</button>
+        </div>
+        <form hx-post="{{.Prefix}}/iam/sts/mint" hx-target="#sts-out" hx-select="unset" hx-swap="innerHTML">
+          <input type="hidden" name="mode" :value="m">
+          <div class="fgrid" x-show="m==='assume-role' || m==='web-identity' || m==='saml'">
+            <div class="field"><label>Role</label>
+              <select class="input" name="role">{{range .Principals}}{{if eq .Kind "role"}}<option>{{.Name}}</option>{{end}}{{end}}</select></div>
+            <div class="field"><label>Session name</label><input class="input mono" name="session" value="console-session" pattern="[\w+=,.@\-]+" spellcheck="false"></div>
+          </div>
+          <div class="field" x-show="m==='federation'" x-cloak style="margin-top:8px"><label>Federated user name</label>
+            <input class="input mono" name="name" placeholder="analyst-42" spellcheck="false"></div>
+          <div class="fgrid" x-show="m==='root'" x-cloak style="margin-top:8px">
+            <div class="field"><label>Target principal <span class="dim">account id</span></label><input class="input mono" name="target" value="000000000000" spellcheck="false"></div>
+            <div class="field"><label>Task policy ARN</label><input class="input mono" name="task" value="arn:aws:iam::aws:policy/root-task/IAMAuditRootUserCredentials" spellcheck="false"></div>
+          </div>
+          <div class="field" x-show="m==='web-identity'" x-cloak style="margin-top:8px"><label>Web identity token <span class="dim">JWT — accepted unverified locally; sub/aud/iss reflect into the response</span></label>
+            <textarea class="input mono" name="token" rows="3" spellcheck="false" placeholder="eyJhbGciOi..."></textarea></div>
+          <div x-show="m==='saml'" x-cloak style="margin-top:8px">
+            <div class="field"><label>Principal ARN <span class="dim">the SAML provider</span></label>
+              <input class="input mono" name="provider" placeholder="arn:aws:iam::000000000000:saml-provider/corp-idp" spellcheck="false"></div>
+            <div class="field" style="margin-top:8px"><label>SAML assertion <span class="dim">base64 — accepted unverified locally</span></label>
+              <textarea class="input mono" name="assertion" rows="3" spellcheck="false"></textarea></div>
+          </div>
+          <div class="ex-grid" style="margin-top:10px;align-items:end">
+            <div class="field" style="width:150px"><label>Duration <span class="dim">s</span></label>
+              <input class="input" name="duration" type="number" min="900" :max="m==='root' ? 900 : 43200" :value="m==='root' ? 900 : 3600"></div>
+            <button class="btn" type="submit">{{icon "key"}} Mint credentials</button>
+          </div>
+        </form>
+        <div id="sts-out"></div>
+      </div></div>
+
+      <div class="panel" style="max-width:760px;margin-top:14px"><div class="panel-h"><h2>{{icon "search"}} Whose key is this?</h2></div><div class="form-b">
+        <form class="ex-grid" style="align-items:end" hx-post="{{.Prefix}}/iam/sts/key-info" hx-target="#keyinfo-out" hx-select="unset" hx-swap="innerHTML">
+          <div class="field" style="flex:1"><label>Access key id</label><input class="input mono" name="id" placeholder="AKIA… / ASIA…" required spellcheck="false"></div>
+          <button class="btn btn-outline btn-sm" type="submit">Look up</button>
+        </form>
+        <div id="keyinfo-out"></div>
+        <p class="mini-note">GetAccessKeyInfo maps a key id to its account — locally every key belongs to the one account, which is the honest answer.</p>
+      </div></div>
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{define "iam_sts_creds"}}
+{{with .C}}
+<div class="panel sub-panel"><div class="panel-h"><h2>{{icon "check"}} Minted</h2><span class="dim sub">expires {{.Expiration}}</span></div>
+<div class="table-wrap"><table class="tbl kv"><tbody>
+  <tr><td>Access key id</td><td>{{template "copychip" dict "Value" .AccessKeyID}}</td></tr>
+  <tr><td>Secret</td><td>{{template "copychip" dict "Value" .SecretAccessKey}}</td></tr>
+  <tr><td>Session token</td><td class="mono trunc" style="max-width:420px;font-size:10.5px">{{.SessionToken}}</td></tr>
+  {{if .Identity}}<tr><td>Identity</td><td class="mono" style="font-size:11px">{{.Identity}}</td></tr>{{end}}
+</tbody></table></div>
+<div class="form-b">
+  <div class="copy-row"><span class="mono" style="font-size:10.5px" title="{{.Env}}">{{.Env}}</span><button class="icon-btn sm" title="Copy exports" data-copy="{{.Env}}">{{icon "copy"}}</button></div>
+  <p class="mini-note">Paste into a shell and every AWS call from it authenticates as this principal.</p>
+</div></div>
+{{end}}
+{{end}}
+
+{{define "iam_sts_keyinfo"}}
+<p class="mini-note cfn-valid">{{icon "check"}} Belongs to account <span class="mono">{{.Account}}</span>.</p>
 {{end}}

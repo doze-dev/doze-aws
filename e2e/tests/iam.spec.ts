@@ -109,3 +109,23 @@ test.describe('IAM console', () => {
     await expect(page.locator('.badge', { hasText: alias })).toBeVisible();
   });
 });
+
+// STS: the credentials page — the last service on the burn-down.
+test.describe('STS credentials', () => {
+  test('assume a role, get the export line; key lookup answers', async ({ page, request, uniqueName }) => {
+    const role = uniqueName('e2e-sts-role');
+    await postForm(request, 'iam/create', { kind: 'role', name: role });
+
+    await page.goto('iam/sts');
+    await page.locator('select[name="role"]').selectOption(role);
+    await page.getByRole('button', { name: 'Mint credentials' }).click();
+    const out = page.locator('#sts-out');
+    await expect(out.locator('.panel', { hasText: 'Minted' })).toBeVisible();
+    await expect(out).toContainText(`assumed-role/${role}`);
+    await expect(out).toContainText('export AWS_ACCESS_KEY_ID');
+
+    await page.locator('input[name="id"]').fill('AKIAEXAMPLE1234567890');
+    await page.getByRole('button', { name: 'Look up' }).click();
+    await expect(page.locator('#keyinfo-out')).toContainText('000000000000');
+  });
+});
