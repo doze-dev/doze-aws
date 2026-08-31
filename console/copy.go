@@ -122,12 +122,12 @@ var emptyCopyBySvc = map[string]emptyCopy{
 	// arrive in them by being deployed. Their copy says so rather than offering
 	// a button that does not exist.
 	"cfn": {
-		Short:   "No stacks yet — they arrive by deploying",
+		Short: "No stacks yet — they arrive by deploying",
 		None:  "No stacks yet. Stacks appear here when you deploy — sam deploy, cdk deploy, Serverless, or the CloudFormation CLI all land in this list.",
 		Unsel: "Select a stack to see its resources, its events, and the template it was deployed from.",
 	},
 	"apigw": {
-		Short:   "No APIs yet — they arrive by deploying",
+		Short: "No APIs yet — they arrive by deploying",
 		None:  "No APIs yet. APIs appear here when you deploy one with sam, cdk, Serverless or the API Gateway CLI — and once deployed, they serve real HTTP into your functions.",
 		Unsel: "Select an API to see its routes and stages, or to send a request through it.",
 	},

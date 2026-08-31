@@ -33,11 +33,11 @@ type matchReason struct {
 }
 
 type matchMember struct {
-	SubscriptionArn string `xml:"SubscriptionArn"`
-	Protocol        string `xml:"Protocol"`
-	Endpoint        string `xml:"Endpoint"`
-	Matched         bool   `xml:"Matched"`
-	Pending         bool   `xml:"Pending"`
+	SubscriptionArn string        `xml:"SubscriptionArn"`
+	Protocol        string        `xml:"Protocol"`
+	Endpoint        string        `xml:"Endpoint"`
+	Matched         bool          `xml:"Matched"`
+	Pending         bool          `xml:"Pending"`
 	Reasons         []matchReason `xml:"Reasons>member,omitempty"`
 }
 
