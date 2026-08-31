@@ -1,5 +1,5 @@
 {{define "ssm_lp"}}
-{{template "lp_head" dict "Svc" "ssm" "Label" "Parameter Store" "NewURL" (printf "%s/ssm/create" .Prefix) "Count" (len .List)}}
+{{template "lp_head" dict "Svc" "ssm" "Prefix" .Prefix "Label" "Parameter Store" "NewURL" (printf "%s/ssm/create" .Prefix) "Count" (len .List)}}
   {{range ssmGroups .List}}
   <div class="ssm-group" x-data='{names: {{.Names}} }' x-show="!$store.filter.q || names.some(n => n.toLowerCase().includes($store.filter.q.toLowerCase()))">
     {{if .Dir}}<div class="lp-group mono" title="{{.Dir}}">{{.Dir}}</div>{{end}}

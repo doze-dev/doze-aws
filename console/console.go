@@ -124,6 +124,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/api/counts", c.apiCounts)
 	m.HandleFunc("GET "+p+"/api/glance", c.apiGlance) // one-call feed for the doze dash page
 	m.HandleFunc("GET "+p+"/tags/view", c.tagsView)
+	m.HandleFunc("GET "+p+"/info/{svc}", c.svcInfo) // HTMX partial (the fidelity ledger)
 	m.HandleFunc("POST "+p+"/tags/set", c.tagsSet)
 	m.HandleFunc("POST "+p+"/tags/remove", c.tagsRemove)
 	m.HandleFunc("POST "+p+"/tags/save", c.tagsSave) // the whole set, explicitly

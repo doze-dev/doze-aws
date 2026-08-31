@@ -29,6 +29,7 @@
          The id is the slot the out-of-band patch writes — see the ri template
          in layout.html for why chrome outside the swap target needs one. */}}
     <span class="l">{{awsIcon .Svc}} <span class="lp-name" title="{{.Label}}">{{.Label}}</span> <span class="lp-ct" id="lph-{{.Svc}}">{{.Count}}</span></span>
+    {{template "info_button" dict "Svc" .Svc "Prefix" .Prefix}}
     {{if .NewURL}}<a class="new-link" href="{{.NewURL}}">{{icon "plus"}} New</a>{{end}}
   </div>
   <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" x-data x-model="$store.filter.q" spellcheck="false"></label>
@@ -264,4 +265,44 @@
     <button type="button" class="icon-btn sm" title="Copy command" @click="copyCmd()">{{icon "copy"}}</button>
   </div>
 </div>
+{{end}}
+
+{{/* The fidelity Info affordance: what of this service is REAL here. The
+     ledger records functional vs cosmetic vs stub per operation — a table
+     real AWS cannot offer, because real AWS never has to answer "is this
+     call real". Lazy: the panel loads on first open. The dot is the service
+     key. */}}
+{{define "info_button"}}
+<span x-data="{info:false}">
+  <button type="button" class="info-btn" title="What of {{.Svc}} is real here — the fidelity ledger" @click="info=true">{{icon "info"}}</button>
+  <div class="overlay" role="dialog" aria-modal="true" aria-label="service fidelity" x-effect="window.dozeTrap && dozeTrap($el, info)" x-show="info" x-cloak @click.self="info=false" @keydown.escape.window="info=false">
+    <div class="dialog wide anim">
+      <div class="dialog-h"><h3>Fidelity</h3><p>What the emulator genuinely implements (functional), accepts without local effect (cosmetic), and refuses honestly (stub).</p></div>
+      <div class="dialog-b info-body" hx-get="{{.Prefix}}/info/{{.Svc}}" hx-trigger="intersect once" hx-target="this" hx-select="unset" hx-swap="innerHTML"><p class="mini-note">loading…</p></div>
+      <div class="dialog-f"><button type="button" class="btn btn-outline" @click="info=false">Close</button></div>
+    </div>
+  </div>
+</span>
+{{end}}
+
+{{define "info_panel"}}
+<div class="chips" style="margin-bottom:10px">
+  <span class="chip"><span class="badge state-on">F</span>&nbsp;{{.F}} functional</span>
+  {{if .C}}<span class="chip"><span class="badge state-warn">C</span>&nbsp;{{.C}} cosmetic</span>{{end}}
+  {{if .S}}<span class="chip"><span class="badge state-off">S</span>&nbsp;{{.S}} stub</span>{{end}}
+</div>
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th style="width:60px">Tier</th><th style="width:280px">Operations</th><th>Notes</th></tr></thead>
+  <tbody>
+  {{range .Rows}}
+    <tr>
+      <td><span class="badge {{if eq .Tier "F"}}state-on{{else if eq .Tier "C"}}state-warn{{else}}state-off{{end}}" title="{{.TierLabel}}">{{.Tier}}</span></td>
+      <td class="mono sub" style="overflow-wrap:anywhere">{{.Ops}}</td>
+      <td class="dim sub">{{if .Note}}{{.Note}}{{else}}&mdash;{{end}}</td>
+    </tr>
+  {{else}}
+    <tr><td colspan="3" class="mini-note">No ledger for this service.</td></tr>
+  {{end}}
+  </tbody>
+</table></div>
 {{end}}

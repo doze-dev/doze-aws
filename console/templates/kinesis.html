@@ -1,5 +1,5 @@
 {{define "kinesis_lp"}}
-{{template "lp_head" dict "Svc" "kinesis" "Label" "Kinesis" "NewURL" (printf "%s/kinesis/create" .Prefix) "Count" (len .List)}}
+{{template "lp_head" dict "Svc" "kinesis" "Prefix" .Prefix "Label" "Kinesis" "NewURL" (printf "%s/kinesis/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/kinesis/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{.Shards}}</span></a>
   {{else}}{{template "lp_empty" dict "Svc" "kinesis" "Prefix" $.Prefix}}

@@ -5,6 +5,7 @@
 <aside class="listpane">
   <div class="lp-h">
     <span class="l">{{awsIcon "iam"}} IAM</span>
+    {{template "info_button" dict "Svc" "iam" "Prefix" .Prefix}}
     <a class="new-link" href="{{.Prefix}}/iam/create">{{icon "plus"}} New</a>
   </div>
   <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" x-data x-model="$store.filter.q" spellcheck="false"></label>

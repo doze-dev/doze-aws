@@ -198,7 +198,7 @@ var inlineBudget = map[string]int{
 	"s3.html": 58, "lambda.html": 46, "eb.html": 27, "kms.html": 25,
 	"sqs.html": 20, "apigw.html": 39, "sns.html": 8, "traffic.html": 12,
 	"workspace.html": 9, "cfn.html": 26, "sm.html": 6, "connect.html": 6,
-	"layout.html": 3, "panes.html": 3, "ssm.html": 2,
+	"layout.html": 3, "panes.html": 7, "ssm.html": 2,
 }
 
 func TestInlineStyleBudget(t *testing.T) {

@@ -180,3 +180,22 @@ test.describe('htmx-boosted navigation', () => {
     await page.waitForURL(/\/sqs$/);
   });
 });
+
+test.describe('fidelity info panel', () => {
+  test('opens from the pane header and renders the ledger tiers', async ({ page }) => {
+    await page.goto('sqs');
+    await page.locator('.info-btn').click();
+    const body = page.locator('.info-body');
+    await expect(body.locator('table')).toBeVisible();
+    // The ledger's own rows, tiers spelled as chips.
+    await expect(body).toContainText('functional');
+    await expect(body).toContainText('SendMessage');
+    await expect(page.locator('.dialog-h', { hasText: 'Fidelity' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(body).toBeHidden();
+    // The console key maps onto the ledger filename where they differ.
+    await page.goto('ddb');
+    await page.locator('.info-btn').click();
+    await expect(page.locator('.info-body')).toContainText('TransactWriteItems');
+  });
+});

@@ -1765,3 +1765,9 @@ a.lo-card:hover { border-color: var(--accent); }
 .cli-btn .ic { width: 12px; height: 12px; }
 .cli-out { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; }
 .cli-out pre { flex: 1; min-width: 0; margin: 0; font-family: var(--mono); font-size: 11px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; background: color-mix(in srgb, var(--muted) 40%, transparent); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; }
+
+/* The fidelity Info button: quiet in the pane header, next to the count. */
+.info-btn { display: inline-flex; align-items: center; border: 0; background: none; color: var(--muted-foreground); cursor: pointer; padding: 2px; }
+.info-btn:hover { color: var(--foreground); }
+.info-btn .ic { width: 14px; height: 14px; }
+.info-body { max-height: 420px; overflow-y: auto; }

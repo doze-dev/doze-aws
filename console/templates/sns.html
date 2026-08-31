@@ -1,5 +1,5 @@
 {{define "sns_lp"}}
-{{template "lp_head" dict "Svc" "sns" "Label" "SNS" "NewURL" (printf "%s/sns/create" .Prefix) "Count" (len .List)}}
+{{template "lp_head" dict "Svc" "sns" "Prefix" .Prefix "Label" "SNS" "NewURL" (printf "%s/sns/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sns/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{.Subs}}</span></a>
   {{else}}{{template "lp_empty" dict "Svc" "sns" "Prefix" $.Prefix}}

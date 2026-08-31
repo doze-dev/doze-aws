@@ -1,5 +1,5 @@
 {{define "sqs_lp"}}
-{{template "lp_head" dict "Svc" "sqs" "Label" "SQS" "NewURL" (printf "%s/sqs/create" .Prefix) "Count" (len .List)}}
+{{template "lp_head" dict "Svc" "sqs" "Prefix" .Prefix "Label" "SQS" "NewURL" (printf "%s/sqs/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sqs/{{.Name}}"
      x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
