@@ -1125,3 +1125,25 @@ func (b *backend) BucketExists(ctx context.Context, name string) bool {
 	_, err := b.do(req)
 	return err == nil
 }
+
+// BucketPolicyDoc reads the bucket policy as pretty JSON, "" when none.
+func (b *backend) BucketPolicyDoc(ctx context.Context, bucket string) string {
+	body, err := b.s3Sub(ctx, "GET", bucket, "policy")
+	if err != nil || len(body) == 0 {
+		return ""
+	}
+	return prettyJSON(string(body))
+}
+
+// PutBucketPolicyDoc replaces the bucket policy; empty deletes it. Stored and
+// returned, not evaluated — the tier the ledger records, and the surface says.
+func (b *backend) PutBucketPolicyDoc(ctx context.Context, bucket, doc string) error {
+	if strings.TrimSpace(doc) == "" {
+		_, err := b.s3Sub(ctx, "DELETE", bucket, "policy")
+		return err
+	}
+	req, _ := http.NewRequestWithContext(ctx, "PUT", b.base+"/"+bucket+"?policy", strings.NewReader(doc))
+	req.Header.Set("Content-Type", "application/json")
+	_, err := b.do(req)
+	return err
+}

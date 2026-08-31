@@ -210,6 +210,22 @@
       </form>
     </div></div>
 
+    {{template "iam_actions_datalist" .SeenActions}}
+    {{/* The bucket policy, in the same builder IAM documents get everywhere
+         else — it was read-only raw text under "Other configurations". */}}
+    <div class="sec-title">Bucket policy</div>
+    <div class="panel" style="margin-bottom:14px" x-data="{open:false}" x-effect="if(open)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+      <div class="panel-h"><h2>{{icon "braces"}} {{if .BucketPolicy}}<span class="badge state-on">Configured</span>{{else}}<span class="badge state-off">Not set</span>{{end}}</h2>
+        <button type="button" class="btn btn-outline btn-sm" @click="open=!open" x-text="open ? 'Close' : 'Edit'"></button></div>
+      <div x-show="open" x-cloak style="padding:14px 16px">
+        <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/policy" hx-target="#s3-props" hx-select="unset" hx-swap="outerHTML">
+          {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .BucketPolicy "Rows" 12 "UID" "bucketpol" "Check" false}}
+          <div class="fr-btn"><button class="btn" type="submit">Save bucket policy</button></div>
+        </form>
+        <p class="mini-note">Stored and returned; not evaluated locally. Save an empty document to remove it.</p>
+      </div>
+    </div>
+
     <div class="sec-title">Static website</div>
     <div class="panel" style="margin-bottom:14px"><div style="padding:12px 14px">
       {{if .Website.Set}}
@@ -234,7 +250,7 @@
     <div hx-post="{{.Prefix}}/s3/{{.Bucket}}/uploads" hx-trigger="load" hx-target="this" hx-select="unset" hx-swap="innerHTML"><p class="mini-note">loading&hellip;</p></div>
 
     <div class="sec-title">Other configurations</div>
-    {{range .Props.Configs}}{{if and (ne .Name "CORS") (ne .Name "Lifecycle") (ne .Name "Notifications") (ne .Name "Website")}}
+    {{range .Props.Configs}}{{if and (ne .Name "CORS") (ne .Name "Lifecycle") (ne .Name "Notifications") (ne .Name "Website") (ne .Name "Policy")}}
     <div class="panel" style="margin-bottom:10px" x-data="{open:false}">
       <div class="panel-h" {{if .Set}}role="button" tabindex="0" :aria-expanded="open" style="cursor:pointer" @click="open=!open"{{end}}><h2>{{.Name}} {{if .Set}}<span class="badge state-on">Configured</span>{{else}}<span class="badge state-off">Not set</span>{{end}}</h2>{{if .Set}}<span class="dim" style="font-size:11.5px" x-text="open?'Hide':'View'"></span>{{end}}</div>
       {{if .Set}}<div x-show="open" x-cloak class="code-out" style="border:0;border-top:1px solid var(--border);border-radius:0"><pre>{{.Raw}}</pre></div>{{end}}

@@ -422,3 +422,26 @@ test.describe('batch and config surfaces', () => {
     expect(dToast).toContain('Website hosting disabled');
   });
 });
+
+// The bucket policy rides the shared IAM policy builder — saved through the
+// rows, removed by saving empty, tier stated honestly in the toast.
+test.describe('bucket policy', () => {
+  test('saves from the builder and removes on empty', async ({ page, request, uniqueName, waitForToast }) => {
+    const bucket = uniqueName('e2e-s3-pol');
+    await createBucket(request, bucket);
+    await page.goto(`s3/${bucket}?tab=properties`);
+    const panel = page.locator(`.panel:has(form[hx-post$="/s3/${bucket}/policy"])`);
+    await expect(panel.locator('.badge.state-off')).toBeVisible();
+    await panel.getByRole('button', { name: 'Edit' }).click();
+    await expect(panel.locator('.pb-stmt')).toBeVisible();
+    // A resource policy: principal * plus one action, built via rows.
+    await panel.locator('.pb-psel').first().selectOption('any');
+    const add = panel.locator('.pb-add[list="iam-actions"]');
+    await add.fill('s3:GetObject');
+    await add.press('Enter');
+    await panel.getByRole('button', { name: 'Save bucket policy' }).click();
+    let toast = await waitForToast();
+    expect(toast).toContain('Bucket policy saved');
+    await expect(page.locator(`.panel:has(form[hx-post$="/s3/${bucket}/policy"]) .badge.state-on`)).toBeVisible();
+  });
+});

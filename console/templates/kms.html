@@ -13,6 +13,7 @@
 {{template "shell_bottom" .}}{{end}}
 
 {{define "kms_key"}}{{template "shell_top" .}}
+  {{template "iam_actions_datalist" .SeenActions}}
   {{template "kms_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Key.ID)}}
   <section class="detail">{{template "kms_key_detail" .}}</section>
 {{template "shell_bottom" .}}{{end}}
@@ -40,6 +41,23 @@
         {{if eq .Key.Usage "ENCRYPT_DECRYPT"}}<div class="opt-row"><div><div class="opt-l">Automatic rotation</div><div class="opt-d">New backing material yearly; old ciphertexts still decrypt</div></div><label class="switch"><input type="checkbox" {{if .Key.RotationOn}}checked{{end}} hx-post="{{.Prefix}}/kms/{{.Key.ID}}/toggle-rotation" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label></div>{{end}}
       </div></div>
       <div class="sec-title">Details</div><div class="table-wrap"><table class="tbl kv"><tbody><tr><td>Spec</td><td>{{.Key.Spec}}</td></tr><tr><td>Usage</td><td>{{.Key.Usage}}</td></tr><tr><td>Created</td><td title="{{.Key.Created}}">{{ago .Key.Created}}</td></tr></tbody></table></div>
+
+      {{/* The key's resource policy: stored and returned, not evaluated
+           (there is no cross-account locally to gate) — the surface exists so
+           what round-trips through the SDK round-trips here, in the same
+           builder IAM documents get everywhere else. */}}
+      <div class="sec-title">Key policy</div>
+      <div class="panel" x-data="{open:false}" x-effect="if(open)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+        <div class="panel-h"><h2>{{icon "braces"}} Resource policy</h2>
+          <button type="button" class="btn btn-outline btn-sm" @click="open=!open" x-text="open ? 'Close' : 'Edit'"></button></div>
+        <div x-show="open" x-cloak style="padding:14px 16px">
+          <form hx-post="{{.Prefix}}/kms/{{.Key.ID}}/policy" hx-target="#kms-detail" hx-select="unset" hx-swap="outerHTML">
+            {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .KeyPolicy "Rows" 12 "UID" "keypol" "Check" false}}
+            <div class="fr-btn"><button class="btn" type="submit">Save key policy</button></div>
+          </form>
+          <p class="mini-note">Stored and returned; nothing local evaluates it — enforcement here is IAM's, not the key's.</p>
+        </div>
+      </div>
       {{/* The description was set-once: the create form offered it and nothing
            could change it, though UpdateKeyDescription has always existed. A
            key's description is the only human-readable thing about it — the id

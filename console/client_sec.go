@@ -809,3 +809,30 @@ func (b *backend) DeleteParameters(ctx context.Context, names []string) (deleted
 	}
 	return deleted, invalid, nil
 }
+
+// KeyPolicy reads the key's resource policy (GetKeyPolicy, the "default"
+// policy — the only name KMS has ever allowed).
+func (b *backend) KeyPolicy(ctx context.Context, keyID string) (string, error) {
+	body, err := b.json11(ctx, "TrentService", "GetKeyPolicy", map[string]any{
+		"KeyId": keyID, "PolicyName": "default",
+	})
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		Policy string `json:"Policy"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return "", err
+	}
+	return prettyJSON(out.Policy), nil
+}
+
+// PutKeyPolicy replaces it (stored and returned; nothing local evaluates it —
+// the surface exists so what round-trips through the SDK round-trips here).
+func (b *backend) PutKeyPolicy(ctx context.Context, keyID, doc string) error {
+	_, err := b.json11(ctx, "TrentService", "PutKeyPolicy", map[string]any{
+		"KeyId": keyID, "PolicyName": "default", "Policy": doc,
+	})
+	return err
+}

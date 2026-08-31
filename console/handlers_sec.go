@@ -45,7 +45,9 @@ func (c *Console) kmsKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	keys, _ := c.be.ListKeys(r.Context())
-	c.render(w, r, "kms_key", map[string]any{"Key": key, "List": keys, "Title": "KMS"})
+	pol, _ := c.be.KeyPolicy(r.Context(), key.ID)
+	c.render(w, r, "kms_key", map[string]any{"Key": key, "List": keys, "Title": "KMS",
+		"KeyPolicy": pol, "SeenActions": c.seenActions(r)})
 }
 
 func (c *Console) kmsKeyPartial(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +56,8 @@ func (c *Console) kmsKeyPartial(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.partial(w, "kms_key_detail", map[string]any{"Key": key})
+	pol, _ := c.be.KeyPolicy(r.Context(), key.ID)
+	c.partial(w, "kms_key_detail", map[string]any{"Key": key, "KeyPolicy": pol})
 }
 
 func (c *Console) kmsToggleEnabled(w http.ResponseWriter, r *http.Request) {
@@ -629,4 +632,19 @@ func (c *Console) ssmDeletePath(w http.ResponseWriter, r *http.Request) {
 		note += ", " + strconv.Itoa(len(invalid)) + " already gone"
 	}
 	c.redirect(w, r, c.prefix+"/ssm", note)
+}
+
+// kmsSavePolicy replaces the key's resource policy from the builder.
+func (c *Console) kmsSavePolicy(w http.ResponseWriter, r *http.Request) {
+	doc := strings.TrimSpace(r.FormValue("document"))
+	if doc == "" {
+		c.fail(w, errors.New("a key policy cannot be empty — KMS always has one"))
+		return
+	}
+	if err := c.be.PutKeyPolicy(r.Context(), r.PathValue("key"), doc); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Key policy saved — stored and returned; nothing local evaluates it")
+	c.kmsKeyPartial(w, r)
 }

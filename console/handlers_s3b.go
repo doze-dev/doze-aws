@@ -352,3 +352,19 @@ func (c *Console) s3CheckName(w http.ResponseWriter, r *http.Request) {
 		"Name": name, "Taken": name != "" && c.be.BucketExists(r.Context(), name),
 	})
 }
+
+// s3SavePolicy replaces the bucket policy from the builder; empty deletes it.
+func (c *Console) s3SavePolicy(w http.ResponseWriter, r *http.Request) {
+	bucket := r.PathValue("bucket")
+	doc := strings.TrimSpace(r.FormValue("document"))
+	if err := c.be.PutBucketPolicyDoc(r.Context(), bucket, doc); err != nil {
+		c.fail(w, err)
+		return
+	}
+	if doc == "" {
+		toast(w, "Bucket policy removed")
+	} else {
+		toast(w, "Bucket policy saved — stored and returned; nothing local evaluates it")
+	}
+	c.s3PropsPartial(w, r, bucket)
+}

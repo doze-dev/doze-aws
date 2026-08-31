@@ -165,8 +165,10 @@ func (c *Console) s3PropsPartial(w http.ResponseWriter, r *http.Request, bucket 
 	c.partial(w, "s3_props", map[string]any{
 		"Bucket": bucket, "Props": props,
 		"Lock": lock, "Website": c.be.BucketWebsite(r.Context(), bucket),
-		"Rules":  c.be.Notifications(r.Context(), bucket),
-		"Queues": queues, "Topics": topics, "Functions": fns,
+		"BucketPolicy": c.be.BucketPolicyDoc(r.Context(), bucket),
+		"SeenActions":  c.seenActions(r),
+		"Rules":        c.be.Notifications(r.Context(), bucket),
+		"Queues":       queues, "Topics": topics, "Functions": fns,
 		"CORSJSON":      c.be.GetCORSJSON(r.Context(), bucket),
 		"LifecycleJSON": c.be.GetLifecycleJSON(r.Context(), bucket),
 	})
@@ -208,6 +210,8 @@ func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 		}
 		data["Lock"] = lock
 		data["Website"] = c.be.BucketWebsite(r.Context(), bucket)
+		data["BucketPolicy"] = c.be.BucketPolicyDoc(r.Context(), bucket)
+		data["SeenActions"] = c.seenActions(r)
 		// GetBucketLocation: the region answer from the API itself rather
 		// than the constant the props struct carries.
 		data["Props"].(*BucketProps).Region = c.be.BucketLocation(r.Context(), bucket)

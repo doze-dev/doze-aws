@@ -171,6 +171,7 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/s3/{bucket}/notify-add", c.s3NotifyAdd)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/notify-remove", c.s3NotifyRemove)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/cors", c.s3SaveCORS)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/policy", c.s3SavePolicy) // HTMX partial (PutBucketPolicy)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/lifecycle", c.s3SaveLifecycle)
 
 	// SQS.
@@ -369,6 +370,7 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/kms/create", c.kmsCreateKey)
 	m.HandleFunc("GET "+p+"/kms/{key}", c.kmsKey)
 	m.HandleFunc("POST "+p+"/kms/{key}/toggle-enabled", c.kmsToggleEnabled)
+	m.HandleFunc("POST "+p+"/kms/{key}/policy", c.kmsSavePolicy) // HTMX partial (PutKeyPolicy)
 	m.HandleFunc("POST "+p+"/kms/{key}/toggle-rotation", c.kmsToggleRotation)
 	m.HandleFunc("POST "+p+"/kms/{key}/rotate-now", c.kmsRotateNow)
 	m.HandleFunc("POST "+p+"/kms/{key}/schedule-deletion", c.kmsScheduleDeletion)
