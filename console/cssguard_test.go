@@ -195,7 +195,7 @@ func TestTypeScaleIsClosed(t *testing.T) {
 // those to classes would make the markup worse and the stylesheet longer.
 var inlineBudget = map[string]int{
 	"kinesis.html": 49, "iam.html": 102, "ddb.html": 39, "create.html": 41,
-	"s3.html": 54, "lambda.html": 46, "eb.html": 26, "kms.html": 25,
+	"s3.html": 54, "lambda.html": 46, "eb.html": 27, "kms.html": 25,
 	"sqs.html": 20, "apigw.html": 39, "sns.html": 8, "traffic.html": 12,
 	"workspace.html": 9, "cfn.html": 26, "sm.html": 6, "connect.html": 6,
 	"layout.html": 3, "panes.html": 3, "ssm.html": 2,

@@ -321,6 +321,7 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/sns/{topic}/delete-topic", c.snsDeleteTopic)
 
 	// EventBridge.
+	m.HandleFunc("POST "+p+"/eb/test-pattern", c.ebTestPattern) // HTMX partial (TestEventPattern)
 	m.HandleFunc("GET "+p+"/eb", c.ebBuses)
 	m.HandleFunc("POST "+p+"/eb/create-bus", c.ebCreateBus)
 	m.HandleFunc("POST "+p+"/eb/{bus}/delete-bus", c.ebDeleteBus)

@@ -222,3 +222,38 @@ test.describe('EventBridge', () => {
     });
   });
 });
+
+// The pattern builder on the rule-create page: rows build the pattern, the
+// service's own TestEventPattern answers before any event has to flow, and
+// the round-trip through the JSON tab is byte-identical.
+test.describe('pattern builder', () => {
+  test('build from rows, test both verdicts, round-trip', async ({ page }) => {
+    await page.goto('eb/default/create-rule');
+    const pb = page.locator('.pb');
+    await expect(pb.locator('.pb-stmt')).toBeVisible();
+    await pb.locator('input[placeholder^="field"]').fill('source');
+    await pb.locator('.pb-cond input.mono').fill('orders');
+    await pb.locator('.pb-cond button', { hasText: 'Add' }).click();
+
+    await pb.locator('.pb-check input').fill('{"source":["orders"],"detail-type":["t"],"detail":{}}');
+    await pb.locator('.pb-check button').click();
+    await expect(page.locator('[id^="pat-out"]')).toContainText('MATCHES');
+    await pb.locator('.pb-check input').fill('{"source":["billing"],"detail-type":["t"],"detail":{}}');
+    await pb.locator('.pb-check button').click();
+    await expect(page.locator('[id^="pat-out"]')).toContainText('No match');
+
+    const tricky = { detail: { cpu: [{ numeric: ['>', 0, '<=', 100] }], state: ['running', { prefix: 'pend' }] } };
+    await pb.locator('.ws-seg a', { hasText: 'JSON' }).click();
+    await page.evaluate((d) => {
+      const ta = document.querySelector('textarea[name="pattern"]');
+      window.dozeEditor.set(ta, JSON.stringify(d, null, 2));
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    }, tricky);
+    const before = await page.evaluate(() => document.querySelector('textarea[name="pattern"]').__cm.getValue());
+    await pb.locator('.ws-seg a', { hasText: 'Builder' }).click();
+    await expect(pb.locator('.pb-stmt').first()).toBeVisible();
+    await pb.locator('.ws-seg a', { hasText: 'JSON' }).click();
+    const after = await page.evaluate(() => document.querySelector('textarea[name="pattern"]').__cm.getValue());
+    expect(after).toBe(before);
+  });
+});

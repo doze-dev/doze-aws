@@ -267,7 +267,8 @@
         <div class="sub-cfg" x-show="open" x-cloak x-effect="if(open)$nextTick(()=>dozeEditor.refresh($root))">
           <form hx-post="{{$.Prefix}}/sns/{{$.Topic}}/sub-filter" hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML">
             <input type="hidden" name="arn" value="{{.SubARN}}">
-            <div class="field"><label>Filter policy <span class="dim">JSON — empty clears it</span></label><textarea name="policy" data-editor="json" rows="5" spellcheck="false" placeholder='{"eventType": ["OrderPlaced"]}'>{{.FilterPolicy}}</textarea></div>
+            <div class="field"><label>Filter policy <span class="dim">empty clears it; same pattern language as EventBridge</span></label>
+            {{template "pattern_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" .FilterPolicy "Rows" 5 "UID" (printf "snsf-%s" .SubARN) "Test" true}}</div>
             <div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn btn-outline btn-sm" type="submit">Save filter</button></div>
           </form>
           {{if ne .Proto "lambda"}}

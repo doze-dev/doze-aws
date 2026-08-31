@@ -347,3 +347,14 @@ func (c *Console) ebRulesByTarget(w http.ResponseWriter, r *http.Request) {
 		"Prefix": c.prefix, "Bus": r.PathValue("bus"), "Target": target, "Names": names,
 	})
 }
+
+// ebTestPattern answers whether a sample event matches a draft pattern — the
+// service's own TestEventPattern, wired to the builder's check row.
+func (c *Console) ebTestPattern(w http.ResponseWriter, r *http.Request) {
+	ok, err := c.be.TestEventPattern(r.Context(), r.FormValue("pattern"), r.FormValue("event"))
+	if err != nil {
+		c.partial(w, "eb_pattern_verdict", map[string]any{"Err": err.Error()})
+		return
+	}
+	c.partial(w, "eb_pattern_verdict", map[string]any{"Match": ok, "Ran": true})
+}

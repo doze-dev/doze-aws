@@ -161,8 +161,8 @@
     {{/* Editable, because the alternative to fixing a wrong pattern is deleting
          the archive — which discards everything it has already captured. */}}
     <form hx-post="{{.Prefix}}/eb/{{.Bus}}/archive/{{.A.Name}}/update" hx-target="#eb-archive-detail" hx-select="unset" hx-swap="outerHTML">
-      <div class="field"><label>Event pattern <span class="dim">JSON — what this archive captures</span></label>
-        <textarea name="pattern" data-editor="json" rows="4" spellcheck="false">{{.A.Pattern}}</textarea></div>
+      <div class="field"><label>Event pattern <span class="dim">what this archive captures</span></label>
+        {{template "pattern_builder" dict "Prefix" .Prefix "Field" "pattern" "Value" .A.Pattern "Rows" 4 "UID" (printf "arch-%s" .A.Name) "Test" true}}</div>
       <div class="field"><label>Retention <span class="dim">days</span></label>
         <input class="input" name="retention" type="number" min="0" value="{{.A.Retention}}"></div>
       <div class="send-foot"><button class="btn btn-sm" type="submit">Save archive</button></div>
@@ -200,4 +200,83 @@
   </div></div>
   {{end}}
 </div>
+{{end}}
+
+{{/* ---- The event-pattern builder ----
+
+     One pattern language backs EventBridge patterns and SNS filter policies
+     (the shared eventpattern matcher), so one builder serves both. Same
+     contract as the policy builder: the textarea submits, rows project it,
+     the unrepresentable ($or, unknown operators) stays JSON.
+     dict: Prefix, Field, Value, Rows, UID, Test (bool — offer the
+     TestEventPattern check row). */}}
+
+{{define "pattern_builder"}}
+<div class="pb" x-data="patternBuilder({{printf "%q" .Value}})" x-init="init($refs.ta)"
+     x-effect="if(mode==='json')$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+  <div class="kv-modes" x-show="representable || mode==='builder'">
+    <span class="ws-seg">
+      <a href="#" @click.prevent="toBuilder()" :class="mode==='builder' && 'on'">Builder</a>
+      <a href="#" @click.prevent="toText()" :class="mode==='json' && 'on'">JSON</a>
+    </span>
+    <span class="dim kv-note" x-show="mode==='builder'" x-cloak>Fields AND together; conditions within a field OR.</span>
+  </div>
+  <div class="kv-modes" x-show="!representable && mode==='json'" x-cloak>
+    <span class="dim kv-note">Builder unavailable: the pattern holds something rows could not round-trip ($or, or an unknown operator), so it stays JSON.</span>
+  </div>
+
+  <div x-show="mode==='builder'" x-cloak>
+    <template x-for="(r, ri) in rows" :key="ri">
+      <div class="pb-stmt">
+        <div class="pb-head">
+          <input class="input mono pb-sid" placeholder="field — dots descend, e.g. detail.state" x-model="r.path" @input="sync()" spellcheck="false">
+          <button type="button" class="icon-btn sm danger" title="Remove this field" @click="dropRow(ri)">{{icon "trash"}}</button>
+        </div>
+        <div class="pb-row">
+          <div class="pb-chips">
+            <template x-for="(c, ci) in r.conds" :key="ci">
+              <span class="badge type ver-stage"><span class="mono" x-text="condLabel(c)"></span><button type="button" class="lbl-x" @click="dropCond(r, ci)">&times;</button></span>
+            </template>
+          </div>
+        </div>
+        <div class="pb-row pb-cond">
+          <select class="input" x-model="r.draftType">
+            <template x-for="t in condTypes"><option :value="t.k" x-text="t.label"></option></template>
+          </select>
+          <input class="input mono" x-model="r.draftVal" spellcheck="false"
+                 :placeholder="r.draftType==='numeric' ? '> 0 <= 100' : r.draftType==='exists' ? 'true / false' : r.draftType==='cidr' ? '10.0.0.0/8' : 'value'"
+                 @keydown.enter.prevent="commitCond(r)">
+          <button type="button" class="btn btn-outline btn-sm" @click="commitCond(r)">{{icon "plus"}} Add</button>
+        </div>
+      </div>
+    </template>
+    <button type="button" class="btn btn-outline btn-sm" @click="addRow()">{{icon "plus"}} Add field</button>
+  </div>
+
+  <div x-show="mode==='json'" x-cloak>
+    <textarea x-ref="ta" name="{{.Field}}" data-editor="json" rows="{{.Rows}}" spellcheck="false" @input="onText()">{{.Value}}</textarea>
+  </div>
+
+  {{if .Test}}
+  {{/* TestEventPattern against the CURRENT draft: paste what the producer
+       would send, learn whether this pattern would catch it — before a single
+       event has to flow. */}}
+  <div class="pb-check" x-data="{ev:''}">
+    <input class="input mono" placeholder='{"source":["orders"],"detail-type":["OrderPlaced"],"detail":{}}' x-model="ev" spellcheck="false">
+    <button type="button" class="btn btn-outline btn-sm"
+            hx-post="{{.Prefix}}/eb/test-pattern" hx-target="#pat-out-{{.UID}}" hx-select="unset" hx-swap="innerHTML"
+            @htmx:config-request="$event.detail.parameters.pattern = read(); $event.detail.parameters.event = ev">{{icon "search"}} Test an event</button>
+  </div>
+  <div id="pat-out-{{.UID}}"></div>
+  {{end}}
+</div>
+{{end}}
+
+{{define "eb_pattern_verdict"}}
+{{if .Err}}<div class="err">{{.Err}}</div>
+{{else if .Ran}}
+<p class="mini-note {{if .Match}}cfn-valid{{end}}" style="margin:8px 0 0">
+  {{if .Match}}{{icon "check"}} The pattern MATCHES this event — a rule with it would fire.{{else}}✕ No match — a rule with this pattern would let the event pass by.{{end}}
+</p>
+{{end}}
 {{end}}

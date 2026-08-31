@@ -157,7 +157,8 @@
     <form hx-post="{{.Prefix}}/eb/{{.Bus}}/create-rule" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Rule name</label><input class="input" name="name" placeholder="on-order-created" required pattern="[a-zA-Z0-9_\-.]{1,64}" autocomplete="off" autofocus></div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Match</h2></div><div class="form-b">
-        <div class="field" style="margin-bottom:12px"><label>Event pattern <span class="dim">JSON</span></label><textarea name="pattern" data-editor="json" rows="7" placeholder='{"source":["orders"]}'></textarea></div>
+        <div class="field" style="margin-bottom:12px"><label>Event pattern</label>
+        {{template "pattern_builder" dict "Prefix" .Prefix "Field" "pattern" "Value" "" "Rows" 7 "UID" "rule-create" "Test" true}}</div>
         <div class="field"><label>Schedule <span class="dim">optional</span></label><input class="input" name="schedule" placeholder="rate(5 minutes)"></div>
       </div></div>
       {{template "form_actions" dict "Cancel" (printf "%s/eb/%s" .Prefix .Bus) "Submit" "Create rule"}}
