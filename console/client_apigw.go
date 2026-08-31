@@ -18,6 +18,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // RestAPI is one REST API.
@@ -80,8 +82,17 @@ type APIStage struct {
 	InvokeBase string
 }
 
+// apigwSign stamps the SigV4-shaped credential scope the gateway routes
+// unprefixed paths by. /restapis is recognised by path; /tags/{arn} is not —
+// a real SDK's signature names the service, so the console's does too.
+func apigwSign(req *http.Request) {
+	req.Header.Set("Authorization",
+		"AWS4-HMAC-SHA256 Credential=test/20260101/"+awsident.Region+"/apigateway/aws4_request")
+}
+
 func (b *backend) apigwGet(ctx context.Context, path string, out any) error {
 	req, _ := http.NewRequestWithContext(ctx, "GET", b.base+path, nil)
+	apigwSign(req)
 	body, err := b.do(req)
 	if err != nil {
 		return err
@@ -304,4 +315,278 @@ func (b *backend) InvokeAPI(ctx context.Context, apiID, stage, method, path, bod
 		}
 	}
 	return out, nil
+}
+
+// ---- control-plane mutations: the build-an-API path ----
+
+// apigwJSON sends one control-plane request with a JSON body (or none).
+func (b *backend) apigwJSON(ctx context.Context, method, path string, in any) ([]byte, error) {
+	var body io.Reader
+	if in != nil {
+		buf, _ := json.Marshal(in)
+		body = bytes.NewReader(buf)
+	}
+	req, _ := http.NewRequestWithContext(ctx, method, b.base+path, body)
+	apigwSign(req)
+	if in != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	return b.do(req)
+}
+
+// patchOps encodes API Gateway's JSON-patch dialect.
+func patchOps(ops map[string]string) map[string]any {
+	list := make([]map[string]string, 0, len(ops))
+	for _, p := range sortedKeysOf(ops) {
+		list = append(list, map[string]string{"op": "replace", "path": p, "value": ops[p]})
+	}
+	return map[string]any{"patchOperations": list}
+}
+
+// CreateRestAPI makes an empty API — a root resource and nothing else.
+func (b *backend) CreateRestAPI(ctx context.Context, name, description string) (string, error) {
+	body, err := b.apigwJSON(ctx, "POST", "/restapis",
+		map[string]any{"name": name, "description": description})
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal(body, &out); err != nil {
+		return "", err
+	}
+	return out.ID, nil
+}
+
+// UpdateRestAPI renames or re-describes an API (UpdateRestApi, PATCH).
+func (b *backend) UpdateRestAPI(ctx context.Context, id string, ops map[string]string) error {
+	_, err := b.apigwJSON(ctx, "PATCH", "/restapis/"+url.PathEscape(id), patchOps(ops))
+	return err
+}
+
+// DeleteRestAPI removes the API and everything under it.
+func (b *backend) DeleteRestAPI(ctx context.Context, id string) error {
+	_, err := b.apigwJSON(ctx, "DELETE", "/restapis/"+url.PathEscape(id), nil)
+	return err
+}
+
+// CreateAPIResource adds one path part under a parent (CreateResource).
+func (b *backend) CreateAPIResource(ctx context.Context, apiID, parentID, pathPart string) error {
+	_, err := b.apigwJSON(ctx, "POST",
+		"/restapis/"+url.PathEscape(apiID)+"/resources/"+url.PathEscape(parentID),
+		map[string]any{"pathPart": pathPart})
+	return err
+}
+
+// DeleteAPIResource removes a resource and, with it, its subtree.
+func (b *backend) DeleteAPIResource(ctx context.Context, apiID, resourceID string) error {
+	_, err := b.apigwJSON(ctx, "DELETE",
+		"/restapis/"+url.PathEscape(apiID)+"/resources/"+url.PathEscape(resourceID), nil)
+	return err
+}
+
+// RenameAPIResource changes a resource's path part (UpdateResource, PATCH).
+func (b *backend) RenameAPIResource(ctx context.Context, apiID, resourceID, pathPart string) error {
+	_, err := b.apigwJSON(ctx, "PATCH",
+		"/restapis/"+url.PathEscape(apiID)+"/resources/"+url.PathEscape(resourceID),
+		patchOps(map[string]string{"/pathPart": pathPart}))
+	return err
+}
+
+func methodPath(apiID, resourceID, verb string) string {
+	return "/restapis/" + url.PathEscape(apiID) + "/resources/" + url.PathEscape(resourceID) +
+		"/methods/" + url.PathEscape(verb)
+}
+
+// PutAPIMethod declares a verb on a resource (PutMethod). A re-put keeps the
+// integration, so editing auth does not unwire the backend.
+func (b *backend) PutAPIMethod(ctx context.Context, apiID, resourceID, verb, authType string, apiKey bool) error {
+	_, err := b.apigwJSON(ctx, "PUT", methodPath(apiID, resourceID, verb),
+		map[string]any{"authorizationType": authType, "apiKeyRequired": apiKey})
+	return err
+}
+
+// DeleteAPIMethod removes the verb, integration and all.
+func (b *backend) DeleteAPIMethod(ctx context.Context, apiID, resourceID, verb string) error {
+	_, err := b.apigwJSON(ctx, "DELETE", methodPath(apiID, resourceID, verb), nil)
+	return err
+}
+
+// PutAPIIntegration wires a method to its backend (PutIntegration). A Lambda
+// target is spelled as the proxy-invocation URI AWS uses; HTTP targets pass
+// the URL through; MOCK needs nothing.
+func (b *backend) PutAPIIntegration(ctx context.Context, apiID, resourceID, verb, typ, target string) error {
+	in := map[string]any{"type": typ}
+	switch typ {
+	case "AWS_PROXY", "AWS":
+		in["uri"] = "arn:aws:apigateway:" + awsident.Region + ":lambda:path/2015-03-31/functions/" +
+			awsident.ARN("lambda", "function:"+target) + "/invocations"
+		in["integrationHttpMethod"] = "POST"
+	case "HTTP", "HTTP_PROXY":
+		in["uri"] = target
+		in["integrationHttpMethod"] = verb
+	}
+	_, err := b.apigwJSON(ctx, "PUT", methodPath(apiID, resourceID, verb)+"/integration", in)
+	return err
+}
+
+// DeleteAPIIntegration unwires the backend; the method stays.
+func (b *backend) DeleteAPIIntegration(ctx context.Context, apiID, resourceID, verb string) error {
+	_, err := b.apigwJSON(ctx, "DELETE", methodPath(apiID, resourceID, verb)+"/integration", nil)
+	return err
+}
+
+// PutAPIMethodResponse / PutAPIIntegrationResponse declare one status code on
+// each half of the response contract (PutMethodResponse /
+// PutIntegrationResponse) — the pair AWS's own console writes together when
+// you add a response.
+func (b *backend) PutAPIMethodResponse(ctx context.Context, apiID, resourceID, verb, status string) error {
+	_, err := b.apigwJSON(ctx, "PUT", methodPath(apiID, resourceID, verb)+"/responses/"+url.PathEscape(status),
+		map[string]any{})
+	return err
+}
+
+func (b *backend) DeleteAPIMethodResponse(ctx context.Context, apiID, resourceID, verb, status string) error {
+	_, err := b.apigwJSON(ctx, "DELETE", methodPath(apiID, resourceID, verb)+"/responses/"+url.PathEscape(status), nil)
+	return err
+}
+
+func (b *backend) PutAPIIntegrationResponse(ctx context.Context, apiID, resourceID, verb, status, template string) error {
+	in := map[string]any{}
+	if template != "" {
+		in["responseTemplates"] = map[string]string{"application/json": template}
+	}
+	_, err := b.apigwJSON(ctx, "PUT",
+		methodPath(apiID, resourceID, verb)+"/integration/responses/"+url.PathEscape(status), in)
+	return err
+}
+
+func (b *backend) DeleteAPIIntegrationResponse(ctx context.Context, apiID, resourceID, verb, status string) error {
+	_, err := b.apigwJSON(ctx, "DELETE",
+		methodPath(apiID, resourceID, verb)+"/integration/responses/"+url.PathEscape(status), nil)
+	return err
+}
+
+// MethodDetail is the full picture of one verb: method, both response halves,
+// and the integration (GetMethod / GetIntegration / GetMethodResponse /
+// GetIntegrationResponse feed it).
+type MethodDetail struct {
+	Verb, AuthType   string
+	APIKeyReq        bool
+	Integration      APIIntegration
+	MethodResponses  []string
+	IntegrationResps []APIIntegrationResp
+	ResourceID, Path string
+}
+
+// APIIntegrationResp is one integration response row.
+type APIIntegrationResp struct {
+	Status, Template string
+}
+
+// APIMethodDetail reads one method in full.
+func (b *backend) APIMethodDetail(ctx context.Context, apiID, resourceID, verb string) (*MethodDetail, error) {
+	var m struct {
+		HTTPMethod        string `json:"httpMethod"`
+		AuthorizationType string `json:"authorizationType"`
+		APIKeyRequired    bool   `json:"apiKeyRequired"`
+		MethodResponses   map[string]struct {
+			StatusCode string `json:"statusCode"`
+		} `json:"methodResponses"`
+		MethodIntegration struct {
+			Type                 string `json:"type"`
+			HTTPMethod           string `json:"httpMethod"`
+			URI                  string `json:"uri"`
+			TimeoutInMillis      int    `json:"timeoutInMillis"`
+			IntegrationResponses map[string]struct {
+				StatusCode        string            `json:"statusCode"`
+				ResponseTemplates map[string]string `json:"responseTemplates"`
+			} `json:"integrationResponses"`
+		} `json:"methodIntegration"`
+	}
+	if err := b.apigwGet(ctx, methodPath(apiID, resourceID, verb), &m); err != nil {
+		return nil, err
+	}
+	d := &MethodDetail{
+		Verb: m.HTTPMethod, AuthType: m.AuthorizationType, APIKeyReq: m.APIKeyRequired,
+		ResourceID: resourceID,
+	}
+	mi := m.MethodIntegration
+	d.Integration = APIIntegration{Type: mi.Type, HTTPMethod: mi.HTTPMethod, URI: mi.URI, Timeout: mi.TimeoutInMillis}
+	d.Integration.Target, d.Integration.Svc, d.Integration.Href = integrationTarget(mi.Type, mi.URI)
+	for s := range m.MethodResponses {
+		d.MethodResponses = append(d.MethodResponses, s)
+	}
+	sort.Strings(d.MethodResponses)
+	for s, ir := range mi.IntegrationResponses {
+		d.IntegrationResps = append(d.IntegrationResps, APIIntegrationResp{
+			Status: s, Template: ir.ResponseTemplates["application/json"],
+		})
+	}
+	sort.Slice(d.IntegrationResps, func(i, j int) bool { return d.IntegrationResps[i].Status < d.IntegrationResps[j].Status })
+	return d, nil
+}
+
+// APIDeployment is one immutable deployment snapshot.
+type APIDeployment struct {
+	ID, Description, Created string
+}
+
+// APIDeployments lists an API's deployments (GetDeployments).
+func (b *backend) APIDeployments(ctx context.Context, apiID string) ([]APIDeployment, error) {
+	var out struct {
+		Item []struct {
+			ID          string  `json:"id"`
+			Description string  `json:"description"`
+			CreatedDate float64 `json:"createdDate"`
+		} `json:"item"`
+	}
+	if err := b.apigwGet(ctx, "/restapis/"+url.PathEscape(apiID)+"/deployments", &out); err != nil {
+		return nil, err
+	}
+	deps := make([]APIDeployment, 0, len(out.Item))
+	for _, d := range out.Item {
+		deps = append(deps, APIDeployment{ID: d.ID, Description: d.Description, Created: epochTime(d.CreatedDate)})
+	}
+	sort.Slice(deps, func(i, j int) bool { return deps[i].Created > deps[j].Created })
+	return deps, nil
+}
+
+// CreateAPIDeployment snapshots the current definition and (optionally, with
+// a stage name) points a stage at it — the step that makes edits callable.
+func (b *backend) CreateAPIDeployment(ctx context.Context, apiID, stage, description string) error {
+	in := map[string]any{"description": description}
+	if stage != "" {
+		in["stageName"] = stage
+	}
+	_, err := b.apigwJSON(ctx, "POST", "/restapis/"+url.PathEscape(apiID)+"/deployments", in)
+	return err
+}
+
+// DeleteAPIDeployment removes one snapshot (DeleteDeployment). A stage still
+// pointing at it keeps serving; only the record goes.
+func (b *backend) DeleteAPIDeployment(ctx context.Context, apiID, depID string) error {
+	_, err := b.apigwJSON(ctx, "DELETE", "/restapis/"+url.PathEscape(apiID)+"/deployments/"+url.PathEscape(depID), nil)
+	return err
+}
+
+// CreateAPIStage points a named stage at an existing deployment (CreateStage).
+func (b *backend) CreateAPIStage(ctx context.Context, apiID, name, deploymentID, description string) error {
+	_, err := b.apigwJSON(ctx, "POST", "/restapis/"+url.PathEscape(apiID)+"/stages",
+		map[string]any{"stageName": name, "deploymentId": deploymentID, "description": description})
+	return err
+}
+
+// UpdateAPIStage repoints or re-describes a stage (UpdateStage, PATCH).
+func (b *backend) UpdateAPIStage(ctx context.Context, apiID, name string, ops map[string]string) error {
+	_, err := b.apigwJSON(ctx, "PATCH",
+		"/restapis/"+url.PathEscape(apiID)+"/stages/"+url.PathEscape(name), patchOps(ops))
+	return err
+}
+
+// DeleteAPIStage removes the stage; its deployments stay.
+func (b *backend) DeleteAPIStage(ctx context.Context, apiID, name string) error {
+	_, err := b.apigwJSON(ctx, "DELETE", "/restapis/"+url.PathEscape(apiID)+"/stages/"+url.PathEscape(name), nil)
+	return err
 }

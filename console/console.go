@@ -219,8 +219,27 @@ func (c *Console) routes() {
 
 	// API Gateway.
 	m.HandleFunc("GET "+p+"/apigw", c.apigwList)
+	m.HandleFunc("GET "+p+"/apigw/create", c.createPage("apigw", "apigw_create"))
+	m.HandleFunc("POST "+p+"/apigw/create", c.apigwCreate)
 	m.HandleFunc("GET "+p+"/apigw/{api}", c.apigwAPI)
 	m.HandleFunc("POST "+p+"/apigw/{api}/invoke", c.apigwInvoke)
+	m.HandleFunc("POST "+p+"/apigw/{api}/update", c.apigwUpdate)
+	m.HandleFunc("POST "+p+"/apigw/{api}/delete", c.apigwDelete)
+	m.HandleFunc("POST "+p+"/apigw/{api}/add-resource", c.apigwAddResource)       // HTMX partial (CreateResource)
+	m.HandleFunc("POST "+p+"/apigw/{api}/delete-resource", c.apigwDeleteResource) // HTMX partial (DeleteResource)
+	m.HandleFunc("POST "+p+"/apigw/{api}/rename-resource", c.apigwRenameResource) // HTMX partial (UpdateResource)
+	m.HandleFunc("POST "+p+"/apigw/{api}/put-method", c.apigwPutMethod)           // HTMX partial (PutMethod)
+	m.HandleFunc("POST "+p+"/apigw/{api}/delete-method", c.apigwDeleteMethod)     // HTMX partial (DeleteMethod)
+	m.HandleFunc("POST "+p+"/apigw/{api}/method", c.apigwMethodPanel)             // HTMX partial (GetMethod)
+	m.HandleFunc("POST "+p+"/apigw/{api}/put-integration", c.apigwPutIntegration) // HTMX partial (PutIntegration)
+	m.HandleFunc("POST "+p+"/apigw/{api}/delete-integration", c.apigwDeleteIntegration)
+	m.HandleFunc("POST "+p+"/apigw/{api}/put-response", c.apigwPutResponse) // method + integration halves
+	m.HandleFunc("POST "+p+"/apigw/{api}/delete-response", c.apigwDeleteResponse)
+	m.HandleFunc("POST "+p+"/apigw/{api}/deploy", c.apigwDeploy) // CreateDeployment
+	m.HandleFunc("POST "+p+"/apigw/{api}/delete-deployment", c.apigwDeleteDeployment)
+	m.HandleFunc("POST "+p+"/apigw/{api}/create-stage", c.apigwCreateStage)
+	m.HandleFunc("POST "+p+"/apigw/{api}/update-stage", c.apigwUpdateStage)
+	m.HandleFunc("POST "+p+"/apigw/{api}/delete-stage", c.apigwDeleteStage)
 
 	// CloudFormation.
 	m.HandleFunc("GET "+p+"/cfn", c.cfnStacks)

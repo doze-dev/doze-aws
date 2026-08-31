@@ -41,8 +41,9 @@ var uncovered = map[string][]string{
 	// BatchGetSecretValue is the one exemption — see exempt.
 	"secretsmanager": {},
 	// DescribeEndpoints is the one exemption — see exempt.
-	"dynamodb": {},
-	"lambda":   {},
+	"dynamodb":   {},
+	"lambda":     {},
+	"apigateway": {},
 	// ListStackResources is the one exemption — see exempt.
 	"cloudformation": {},
 }
@@ -151,6 +152,14 @@ func fTierOps(t *testing.T, path string) []string {
 		for _, tok := range strings.FieldsFunc(cell, func(r rune) bool { return r == '/' || r == ',' }) {
 			tok = strings.TrimSpace(tok)
 			if tok == "" {
+				continue
+			}
+			// A bare verb is a fragment of a bundled row ("Put/Get/Update/
+			// List/DeleteFunctionEventInvokeConfig"), never an operation — only
+			// the token carrying the full name checks anything. Left in, the
+			// fragments got "covered" by whatever stray literal said "Get".
+			// (Publish IS a real op — SNS — so it is not in the set.)
+			if verbFragments[tok] {
 				continue
 			}
 			if !opToken.MatchString(tok) {
@@ -268,4 +277,9 @@ func TestExemptionsAreReal(t *testing.T) {
 			}
 		}
 	}
+}
+
+// verbFragments are the bare verbs a bundled ledger row splits into.
+var verbFragments = map[string]bool{
+	"Put": true, "Get": true, "Update": true, "List": true, "Delete": true, "Create": true,
 }

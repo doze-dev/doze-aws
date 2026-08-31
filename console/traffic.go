@@ -482,15 +482,64 @@ func apigwAction(r *http.Request) string {
 	if len(segs) == 0 || segs[0] == "" {
 		return r.Method
 	}
-	// /restapis/{id}/resources/{id}/methods/{verb}/integration → "integration"
-	noun := segs[len(segs)-1]
-	verb := map[string]string{
-		"POST": "Create", "PUT": "Put", "GET": "Get", "DELETE": "Delete", "PATCH": "Update",
-	}[r.Method]
-	if verb == "" {
-		verb = r.Method
+	// This used to synthesize "Delete integration"-style verb+noun labels —
+	// close, but not the operation's NAME, so the wire showed words no AWS
+	// doc contains. The path shape maps cleanly onto the real names.
+	m, sub := r.Method, func(i int) string {
+		if len(segs) > i {
+			return segs[i]
+		}
+		return ""
 	}
-	return verb + " " + noun
+	switch sub(0) {
+	case "tags":
+		return map[string]string{"GET": "GetTags", "PUT": "TagResource", "DELETE": "UntagResource"}[m]
+	case "account":
+		return "GetAccount"
+	case "restapis":
+		if sub(1) == "" {
+			return map[string]string{"GET": "GetRestApis", "POST": "CreateRestApi"}[m]
+		}
+		switch sub(2) {
+		case "":
+			return map[string]string{"GET": "GetRestApi", "PATCH": "UpdateRestApi", "DELETE": "DeleteRestApi"}[m]
+		case "resources":
+			if sub(3) == "" {
+				return "GetResources"
+			}
+			switch sub(4) {
+			case "":
+				return map[string]string{"GET": "GetResource", "POST": "CreateResource",
+					"PATCH": "UpdateResource", "DELETE": "DeleteResource"}[m]
+			case "methods":
+				switch sub(6) {
+				case "":
+					return map[string]string{"GET": "GetMethod", "PUT": "PutMethod", "DELETE": "DeleteMethod"}[m]
+				case "responses":
+					return map[string]string{"GET": "GetMethodResponse", "PUT": "PutMethodResponse",
+						"DELETE": "DeleteMethodResponse"}[m]
+				case "integration":
+					if sub(7) == "responses" {
+						return map[string]string{"GET": "GetIntegrationResponse", "PUT": "PutIntegrationResponse",
+							"DELETE": "DeleteIntegrationResponse"}[m]
+					}
+					return map[string]string{"GET": "GetIntegration", "PUT": "PutIntegration",
+						"DELETE": "DeleteIntegration"}[m]
+				}
+			}
+		case "deployments":
+			if sub(3) == "" {
+				return map[string]string{"GET": "GetDeployments", "POST": "CreateDeployment"}[m]
+			}
+			return map[string]string{"GET": "GetDeployment", "DELETE": "DeleteDeployment"}[m]
+		case "stages":
+			if sub(3) == "" {
+				return map[string]string{"GET": "GetStages", "POST": "CreateStage"}[m]
+			}
+			return map[string]string{"GET": "GetStage", "PATCH": "UpdateStage", "DELETE": "DeleteStage"}[m]
+		}
+	}
+	return m + " " + segs[len(segs)-1]
 }
 
 // apigwResource names what an API Gateway request addressed: the api id, or

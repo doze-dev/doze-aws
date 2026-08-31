@@ -1,5 +1,5 @@
 {{define "apigw_lp"}}
-{{template "lp_head" dict "Svc" "apigw" "Label" "API Gateway" "Count" (len .List)}}
+{{template "lp_head" dict "Svc" "apigw" "Label" "API Gateway" "Count" (len .List) "NewURL" (printf "%s/apigw/create" .Prefix)}}
   {{range .List}}
   <a class="li {{if eq .ID $.Sel}}on{{end}}" href="{{$.Prefix}}/apigw/{{.ID}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
     <span class="nm">{{.Name}}</span><span class="sb mono">{{.ID}}</span>
@@ -16,9 +16,14 @@
 
 {{define "apigw_api"}}{{template "shell_top" .}}
   {{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" .API.ID)}}
-  <section class="detail">
+  <section class="detail" x-data="{addRes:null, addM:null, ren:null}">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "apigw"}} {{.API.Name}}</div>
+      <div class="det-title">{{awsIcon "apigw"}} {{.API.Name}}
+        <div class="acts">
+          <a class="btn" href="{{.Prefix}}/apigw/{{.API.ID}}?tab=stages">{{icon "send"}} Deploy</a>
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/delete" hx-confirm="Delete API “{{.API.Name}}” and every resource, stage and deployment under it?">{{icon "trash"}} Delete</button>
+        </div>
+      </div>
       <div class="chips">
         {{template "copychip" dict "Label" "id" "Value" .API.ID}}
         {{range .API.EndpointTypes}}<span class="chip">{{.}}</span>{{end}}
@@ -28,68 +33,250 @@
       {{if .API.Description}}<p class="mini-note" style="margin-top:6px">{{.API.Description}}</p>{{end}}
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "routes" "Label" "Routes" "Icon" "route" "URL" (printf "%s/apigw/%s" .Prefix .API.ID))
-        (dict "Key" "invoke" "Label" "Invoke" "Icon" "send" "URL" (printf "%s/apigw/%s?tab=invoke" .Prefix .API.ID)))}}
+        (dict "Key" "stages" "Label" "Stages" "Icon" "git-branch" "URL" (printf "%s/apigw/%s?tab=stages" .Prefix .API.ID))
+        (dict "Key" "invoke" "Label" "Invoke" "Icon" "send" "URL" (printf "%s/apigw/%s?tab=invoke" .Prefix .API.ID))
+        (dict "Key" "settings" "Label" "Settings" "Icon" "settings" "URL" (printf "%s/apigw/%s?tab=settings" .Prefix .API.ID))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/apigw/%s?tab=tags" .Prefix .API.ID)))}}
     </div>
 
     <div class="det-b">
       {{if eq .Tab "invoke"}}
         {{template "apigw_invoke" .}}
+      {{else if eq .Tab "stages"}}
+        {{template "apigw_stages" .}}
+      {{else if eq .Tab "settings"}}
+        <div class="panel" style="max-width:560px"><div class="panel-h"><h2>{{icon "settings"}} API settings</h2></div><div class="form-b">
+          <form hx-post="{{.Prefix}}/apigw/{{.API.ID}}/update">
+            <div class="field"><label>Name</label><input class="input" name="name" value="{{.API.Name}}" required></div>
+            <div class="field" style="margin-top:8px"><label>Description</label><input class="input" name="description" value="{{.API.Description}}"></div>
+            <div class="fr-btn"><button class="btn" type="submit">Save settings</button></div>
+          </form>
+        </div></div>
+      {{else if eq .Tab "tags"}}
+        {{template "tags_panel" dict "Prefix" .Prefix "Svc" "apigw" "ID" .API.ID}}
       {{else}}
-        {{/* The route tree with each method's integration on the same row: the
-             question is always "what answers this path", and splitting the
-             method from what it forwards to makes that two lookups. */}}
-        <div class="sec-title">Routes <span class="dim">— path, method, and what it forwards to</span></div>
-        <div class="table-wrap"><table class="tbl">
-          <thead><tr><th style="width:280px">Path</th><th style="width:90px">Method</th><th style="width:120px">Auth</th><th style="width:110px">Integration</th><th>Target</th></tr></thead>
-          <tbody>
-          {{range .Routes}}
-            {{if .Methods}}
-              {{$r := .}}
-              {{range .Methods}}
-              <tr>
-                <td class="mono sub" style="padding-left:{{mul $r.Depth 14}}px">{{$r.Path}}</td>
-                <td><span class="chip mono">{{.HTTPMethod}}</span></td>
-                <td class="dim sub">{{.AuthType}}{{if .APIKeyReq}} · key{{end}}</td>
-                <td class="dim sub mono">{{.Integration.Type}}</td>
-                <td class="mono sub trunc" style="max-width:340px">
-                  {{if .Integration.Href}}<a href="{{$.Prefix}}{{.Integration.Href}}">{{.Integration.Target}}</a>
-                  {{else if .Integration.Target}}{{.Integration.Target}}
-                  {{else}}<span class="dim">—</span>{{end}}
-                </td>
-              </tr>
-              {{end}}
-            {{else}}
-              <tr class="dim">
-                <td class="mono sub" style="padding-left:{{mul .Depth 14}}px">{{.Path}}</td>
-                <td colspan="4" class="mini-note">no methods — this path only exists to hold children</td>
-              </tr>
-            {{end}}
-          {{else}}
-            <tr><td colspan="5" class="mini-note">No resources yet.</td></tr>
-          {{end}}
-          </tbody>
-        </table></div>
+        <div class="sec-title">Routes <span class="dim">— path, method, and what it forwards to; a method's verb opens its full detail</span></div>
+        {{template "apigw_routes" .}}
+        <div id="method-out"></div>
 
-        <div class="sec-title">Stages <span class="dim">— a route is only reachable once deployed</span></div>
-        <div class="table-wrap"><table class="tbl">
-          <thead><tr><th style="width:130px">Stage</th><th style="width:150px">Deployment</th><th>Invoke URL</th><th style="width:150px">Created</th></tr></thead>
-          <tbody>
-          {{range .Stages}}
-            <tr>
-              <td class="mono sub">{{.Name}}</td>
-              <td class="dim sub mono">{{.DeploymentID}}</td>
-              <td class="mono sub trunc" style="max-width:420px">{{.InvokeBase}}</td>
-              <td class="dim sub">{{.Created}}</td>
-            </tr>
-          {{else}}
-            <tr><td colspan="4" class="mini-note">No stages. Until the API is deployed to one, nothing serves it — the routes above exist only as a definition.</td></tr>
-          {{end}}
-          </tbody>
-        </table></div>
+        {{/* The three small structural edits, as dialogs (the ddb Update
+             pattern): row buttons stash the target in section state. */}}
+        <div class="overlay" role="dialog" aria-modal="true" aria-label="Add resource" x-effect="window.dozeTrap && dozeTrap($el, addRes)" x-show="addRes" x-cloak @click.self="addRes=null" @keydown.escape.window="addRes=null">
+          <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{.API.ID}}/add-resource" hx-target="#apigw-routes" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){addRes=null;$el.reset();}">
+            <input type="hidden" name="parent" :value="addRes && addRes.id">
+            <div class="dialog-h"><h3>Add resource</h3><p>One path part under <span class="mono" x-text="addRes && addRes.path"></span>.</p></div>
+            <div class="dialog-b"><div class="field"><label>Path part</label><input class="input mono" name="part" placeholder="orders" required spellcheck="false" pattern="[a-zA-Z0-9._\-\{\}]+"></div>
+            <p class="mini-note"><span class="mono">{name}</span> makes it a path parameter.</p></div>
+            <div class="dialog-f"><button type="button" class="btn btn-outline" @click="addRes=null">Cancel</button><button type="submit" class="btn">Add resource</button></div>
+          </form></div>
+        </div>
+        <div class="overlay" role="dialog" aria-modal="true" aria-label="Add method" x-effect="window.dozeTrap && dozeTrap($el, addM)" x-show="addM" x-cloak @click.self="addM=null" @keydown.escape.window="addM=null">
+          <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{.API.ID}}/put-method" hx-target="#apigw-routes" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){addM=null;$el.reset();}">
+            <input type="hidden" name="resource" :value="addM && addM.id">
+            <div class="dialog-h"><h3>Add method</h3><p>On <span class="mono" x-text="addM && addM.path"></span>. The verb exists first; its integration is wired from the method panel.</p></div>
+            <div class="dialog-b">
+              <div class="fgrid">
+                <div class="field"><label>Verb</label><select class="input" name="verb"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option><option>ANY</option></select></div>
+                <div class="field"><label>Authorization</label><select class="input" name="auth"><option>NONE</option><option>AWS_IAM</option></select></div>
+              </div>
+              <label class="bb-txn" style="margin-top:10px"><input type="checkbox" name="apikey" value="1"> require an API key</label>
+            </div>
+            <div class="dialog-f"><button type="button" class="btn btn-outline" @click="addM=null">Cancel</button><button type="submit" class="btn">Add method</button></div>
+          </form></div>
+        </div>
+        <div class="overlay" role="dialog" aria-modal="true" aria-label="Rename resource" x-effect="window.dozeTrap && dozeTrap($el, ren)" x-show="ren" x-cloak @click.self="ren=null" @keydown.escape.window="ren=null">
+          <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{.API.ID}}/rename-resource" hx-target="#apigw-routes" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){ren=null;$el.reset();}">
+            <input type="hidden" name="resource" :value="ren && ren.id">
+            <div class="dialog-h"><h3>Rename resource</h3><p>Changes the last path part of <span class="mono" x-text="ren && ren.path"></span>; children move with it.</p></div>
+            <div class="dialog-b"><div class="field"><label>New path part</label><input class="input mono" name="part" required spellcheck="false" pattern="[a-zA-Z0-9._\-\{\}]+"></div></div>
+            <div class="dialog-f"><button type="button" class="btn btn-outline" @click="ren=null">Cancel</button><button type="submit" class="btn">Rename</button></div>
+          </form></div>
+        </div>
       {{end}}
     </div>
   </section>
 {{template "shell_bottom" .}}{{end}}
+
+{{/* The editable route tree. Resource rows carry the structural actions;
+     method rows link to the full method panel below the table. */}}
+{{define "apigw_routes"}}
+<div id="apigw-routes">
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th style="width:280px">Path</th><th style="width:90px">Method</th><th style="width:120px">Auth</th><th style="width:110px">Integration</th><th>Target</th><th style="width:110px"></th></tr></thead>
+  <tbody>
+  {{range .Routes}}
+    {{$r := .}}
+    <tr>
+      <td class="mono sub" style="padding-left:{{mul .Depth 14}}px"><b>{{.Path}}</b></td>
+      <td colspan="4">{{if not .Methods}}<span class="mini-note">no methods — holds children</span>{{end}}</td>
+      <td><div class="cs-acts">
+        <button type="button" class="icon-btn sm" title="Add child resource under {{.Path}}" @click='addRes={id:{{printf "%q" .ID}}, path:{{printf "%q" .Path}}}'>{{icon "plus"}}</button>
+        <button type="button" class="icon-btn sm" title="Add method on {{.Path}}" @click='addM={id:{{printf "%q" .ID}}, path:{{printf "%q" .Path}}}'>{{icon "zap"}}</button>
+        {{if ne .Path "/"}}
+        <button type="button" class="icon-btn sm" title="Rename {{.Path}}" @click='ren={id:{{printf "%q" .ID}}, path:{{printf "%q" .Path}}}'>{{icon "pencil"}}</button>
+        <button class="icon-btn sm danger" title="Delete {{.Path}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-resource" hx-vals='{"resource":"{{.ID}}"}' hx-target="#apigw-routes" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete {{.Path}} and everything under it?">{{icon "trash"}}</button>
+        {{end}}
+      </div></td>
+    </tr>
+    {{range .Methods}}
+    <tr>
+      <td></td>
+      <td><a href="javascript:void(0)" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/method" hx-vals='{"resource":"{{$r.ID}}","verb":"{{.HTTPMethod}}","path":"{{$r.Path}}"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML" title="Method detail"><span class="chip mono">{{.HTTPMethod}}</span></a></td>
+      <td class="dim sub">{{.AuthType}}{{if .APIKeyReq}} · key{{end}}</td>
+      <td class="dim sub mono">{{if .Integration.Type}}{{.Integration.Type}}{{else}}<span class="chip bad">unwired</span>{{end}}</td>
+      <td class="mono sub trunc" style="max-width:340px">
+        {{if .Integration.Href}}<a href="{{$.Prefix}}{{.Integration.Href}}">{{.Integration.Target}}</a>
+        {{else if .Integration.Target}}{{.Integration.Target}}
+        {{else}}<span class="dim">—</span>{{end}}
+      </td>
+      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete {{.HTTPMethod}} on {{$r.Path}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-method" hx-vals='{"resource":"{{$r.ID}}","verb":"{{.HTTPMethod}}"}' hx-target="#apigw-routes" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete {{.HTTPMethod}} on {{$r.Path}}? Its integration goes with it.">{{icon "trash"}}</button></div></td>
+    </tr>
+    {{end}}
+  {{else}}
+    <tr><td colspan="6" class="mini-note">No resources yet.</td></tr>
+  {{end}}
+  </tbody>
+</table></div>
+<p class="mini-note">Edits change the DEFINITION only — callers see them after the next deploy (the Deploy button, or the Stages tab).</p>
+</div>
+{{end}}
+
+{{/* One method in full: integration and both halves of the response
+     contract, each editable in place. */}}
+{{define "apigw_method"}}
+<div class="panel sub-panel"><div class="panel-h"><h2>{{icon "zap"}} {{.M.Verb}} <span class="mono dim">{{.M.Path}}</span></h2>
+  <span class="dim sub">{{.M.AuthType}}{{if .M.APIKeyReq}} · API key required{{end}}</span></div>
+<div class="form-b">
+  <div class="split">
+    <div>
+      <div class="sec-title" style="margin-top:0">Integration <span class="dim">— what answers this method</span></div>
+      {{if .M.Integration.Type}}
+      <div class="table-wrap"><table class="tbl kv"><tbody>
+        <tr><td>Type</td><td class="mono">{{.M.Integration.Type}}</td></tr>
+        <tr><td>Target</td><td class="mono" style="font-size:11px">{{if .M.Integration.Href}}<a href="{{.Prefix}}{{.M.Integration.Href}}">{{.M.Integration.Target}}</a>{{else}}{{.M.Integration.Target}}{{end}}</td></tr>
+      </tbody></table></div>
+      <div class="fr-btn"><button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/delete-integration" hx-vals='{"resource":"{{.M.ResourceID}}","verb":"{{.M.Verb}}","path":"{{.M.Path}}"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML" hx-confirm="Remove the integration? The method stays, but nothing answers it.">Remove integration</button></div>
+      {{else}}<p class="mini-note">Unwired — the method exists but nothing answers it. Wire a backend:</p>{{end}}
+      <form x-data="{t:'AWS_PROXY'}" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/put-integration" hx-vals='{"resource":"{{.M.ResourceID}}","verb":"{{.M.Verb}}","path":"{{.M.Path}}"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML">
+        <div class="field" style="margin-top:8px"><label>Type</label>
+          <select class="input" name="type" x-model="t">
+            <option value="AWS_PROXY">AWS_PROXY — Lambda, whole request through</option>
+            <option value="AWS">AWS — Lambda, templates apply</option>
+            <option value="HTTP_PROXY">HTTP_PROXY — forward to a URL</option>
+            <option value="HTTP">HTTP — forward, templates apply</option>
+            <option value="MOCK">MOCK — answer from templates alone</option>
+          </select></div>
+        <div class="field" style="margin-top:8px" x-show="t!=='MOCK'">
+          <label x-text="t.startsWith('AWS') ? 'Lambda function' : 'URL'"></label>
+          <input class="input mono" name="target" :placeholder="t.startsWith('AWS') ? 'my-function' : 'https://internal.example/orders'" spellcheck="false" list="apigw-fns">
+          <datalist id="apigw-fns">{{range .Functions}}<option value="{{.Name}}"></option>{{end}}</datalist>
+        </div>
+        <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Save integration</button></div>
+      </form>
+    </div>
+    <div>
+      <div class="sec-title" style="margin-top:0">Method responses <span class="dim">— the contract callers see</span></div>
+      <div class="chips">
+        {{range .M.MethodResponses}}
+        <span class="badge type ver-stage">{{.}}<button type="button" class="lbl-x" title="Remove {{.}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-response" hx-vals='{"resource":"{{$.M.ResourceID}}","verb":"{{$.M.Verb}}","path":"{{$.M.Path}}","status":"{{.}}","half":"method"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML">&times;</button></span>
+        {{else}}<span class="mini-note">none declared</span>{{end}}
+      </div>
+      <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/put-response" hx-vals='{"resource":"{{.M.ResourceID}}","verb":"{{.M.Verb}}","path":"{{.M.Path}}","half":"method"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML">
+        <div class="field" style="width:110px"><label>Status</label><input class="input mono" name="status" placeholder="200" required pattern="[1-5][0-9]{2}"></div>
+        <button class="btn btn-outline btn-sm" type="submit">Declare</button>
+      </form>
+
+      <div class="sec-title">Integration responses <span class="dim">— how backend answers map to it</span></div>
+      {{if .M.IntegrationResps}}
+      <div class="table-wrap"><table class="tbl">
+        <thead><tr><th style="width:80px">Status</th><th>Template</th><th style="width:40px"></th></tr></thead>
+        <tbody>{{range .M.IntegrationResps}}
+        <tr><td class="mono sub">{{.Status}}</td><td class="dim sub mono trunc" style="max-width:220px">{{if .Template}}{{.Template}}{{else}}passthrough{{end}}</td>
+          <td><div class="cs-acts"><button class="icon-btn sm danger" title="Remove {{.Status}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-response" hx-vals='{"resource":"{{$.M.ResourceID}}","verb":"{{$.M.Verb}}","path":"{{$.M.Path}}","status":"{{.Status}}","half":"integration"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML">{{icon "trash"}}</button></div></td></tr>
+        {{end}}</tbody>
+      </table></div>
+      {{else}}<p class="mini-note">none — proxy integrations pass the backend's answer straight through</p>{{end}}
+      <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/put-response" hx-vals='{"resource":"{{.M.ResourceID}}","verb":"{{.M.Verb}}","path":"{{.M.Path}}","half":"integration"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML">
+        <div class="field" style="width:110px"><label>Status</label><input class="input mono" name="status" placeholder="200" required pattern="[1-5][0-9]{2}"></div>
+        <div class="field" style="flex:1"><label>Response template <span class="dim">optional, application/json</span></label><input class="input mono" name="template" placeholder='{"ok": true}' spellcheck="false"></div>
+        <button class="btn btn-outline btn-sm" type="submit">Map</button>
+      </form>
+    </div>
+  </div>
+</div></div>
+{{end}}
+
+{{/* Stages tab: deploy (snapshot + point a stage), the stages serving now,
+     and the immutable deployment history. */}}
+{{define "apigw_stages"}}
+<div class="split">
+  <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Deploy</h2></div><div class="form-b">
+    <form hx-post="{{.Prefix}}/apigw/{{.API.ID}}/deploy">
+      <div class="fgrid">
+        <div class="field"><label>Stage</label><input class="input mono" name="stage" placeholder="dev" required pattern="[a-zA-Z0-9_\-]+" spellcheck="false"></div>
+        <div class="field"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="what changed"></div>
+      </div>
+      <div class="fr-btn"><button class="btn" type="submit">Deploy API</button></div>
+    </form>
+    <p class="mini-note">Snapshots the current definition and points the stage at it — an existing stage moves to the new snapshot, a new name is created. This is the step that makes edits callable.</p>
+  </div></div>
+  <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Stage from an old deployment</h2></div><div class="form-b">
+    {{if .Deployments}}
+    <form hx-post="{{.Prefix}}/apigw/{{.API.ID}}/create-stage">
+      <div class="fgrid">
+        <div class="field"><label>Stage name</label><input class="input mono" name="name" placeholder="rollback" required pattern="[a-zA-Z0-9_\-]+" spellcheck="false"></div>
+        <div class="field"><label>Deployment</label><select class="input mono" name="deployment">{{range .Deployments}}<option value="{{.ID}}">{{.ID}} · {{.Created}}</option>{{end}}</select></div>
+      </div>
+      <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Create stage</button></div>
+    </form>
+    <p class="mini-note">Deployments are immutable — pointing a fresh stage at an old one is the rollback story.</p>
+    {{else}}<p class="mini-note">No deployments yet — nothing to point a stage at.</p>{{end}}
+  </div></div>
+</div>
+
+<div class="sec-title">Stages <span class="dim">— what is serving right now</span></div>
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th style="width:110px">Stage</th><th style="width:220px">Deployment</th><th>Invoke URL</th><th style="width:130px">Created</th><th style="width:60px"></th></tr></thead>
+  <tbody>
+  {{range .Stages}}
+    <tr>
+      <td class="mono sub">{{.Name}}</td>
+      <td>
+        {{/* Repointing IS UpdateStage; the select submits on change. */}}
+        <form hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/update-stage" hx-trigger="change">
+          <input type="hidden" name="name" value="{{.Name}}">
+          <select class="input mono" name="deployment" style="font-size:11px">
+            {{$cur := .DeploymentID}}{{range $.Deployments}}<option value="{{.ID}}" {{if eq .ID $cur}}selected{{end}}>{{.ID}}</option>{{end}}
+          </select>
+        </form>
+      </td>
+      <td class="mono sub trunc" style="max-width:340px">{{template "copychip" dict "Value" .InvokeBase}}</td>
+      <td class="dim sub">{{.Created}}</td>
+      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete stage {{.Name}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-stage" hx-vals='{"name":"{{.Name}}"}' hx-confirm="Delete stage “{{.Name}}”? Callers using its URL get 404s; the deployment stays.">{{icon "trash"}}</button></div></td>
+    </tr>
+  {{else}}
+    <tr><td colspan="5" class="mini-note">No stages. Until the API is deployed to one, the routes exist only as a definition.</td></tr>
+  {{end}}
+  </tbody>
+</table></div>
+
+<div class="sec-title">Deployments <span class="dim">— immutable snapshots, newest first</span></div>
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th style="width:220px">Id</th><th>Description</th><th style="width:130px">Created</th><th style="width:60px"></th></tr></thead>
+  <tbody>
+  {{range .Deployments}}
+    <tr>
+      <td class="mono sub">{{.ID}}</td>
+      <td class="dim sub">{{if .Description}}{{.Description}}{{else}}—{{end}}</td>
+      <td class="dim sub">{{.Created}}</td>
+      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete deployment {{.ID}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-deployment" hx-vals='{"deployment":"{{.ID}}"}' hx-confirm="Delete deployment {{.ID}}? A stage still pointing at it keeps serving; only the record goes.">{{icon "trash"}}</button></div></td>
+    </tr>
+  {{else}}
+    <tr><td colspan="4" class="mini-note">No deployments yet.</td></tr>
+  {{end}}
+  </tbody>
+</table></div>
+{{end}}
 
 {{/* Send a real request through the deployed stage. Whether an integration
      answers is the one thing the definition above cannot tell you. */}}

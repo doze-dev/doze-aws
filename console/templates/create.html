@@ -252,3 +252,18 @@
     </form>
   </div></section>
 {{template "shell_bottom" .}}{{end}}
+
+{{define "apigw_create"}}{{template "shell_top" .}}
+  {{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  <section class="detail"><div class="form-page">
+    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create REST API</div>
+    <p class="det-sub" style="margin-bottom:18px">An empty API with a root resource. Build the route tree, wire integrations, then deploy to a stage.</p>
+    <form hx-post="{{.Prefix}}/apigw/create" hx-indicator="#submit-spin">
+      <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
+        <div class="field"><label>API name</label><input class="input" name="name" placeholder="orders-api" required autocomplete="off" autofocus></div>
+        <div class="field" style="margin-top:8px"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="what this API fronts"></div>
+      </div></div>
+      {{template "form_actions" dict "Cancel" (printf "%s/apigw" .Prefix) "Submit" "Create API"}}
+    </form>
+  </div></section>
+{{template "shell_bottom" .}}{{end}}

@@ -197,7 +197,7 @@ var fixtures = map[string]string{
 	"{bus}":    "fixture-bus",
 	"{stack}":  "fixture-stack",
 	"{cs}":     "fixture-cs",
-	"{api}":    "fixture-api",
+	"{api}":    "", // discovered — API Gateway ids are generated
 	"{rule}":   "fixture-rule",
 	"{kind}":   "user",
 	"{name}":   "fixture-user",
@@ -276,6 +276,15 @@ func seedFixtures(t *testing.T, c http.Handler) {
 	for _, s := range seeds {
 		postForm(t, c, s.path, s.form)
 	}
+	// The API Gateway fixture is id-addressed and the sweep's own delete
+	// route consumes it, so it is probed and re-created (with the fresh id
+	// re-discovered from the create redirect) rather than written down.
+	if fixtures["{api}"] == "" || !pageOK(c, "/apigw/"+fixtures["{api}"]) {
+		rec := postForm(t, c, "/apigw/create", url.Values{"name": {"fixture-api"}})
+		if m := apigwID.FindStringSubmatch(flashOf(rec)); m != nil {
+			fixtures["{api}"] = m[1]
+		}
+	}
 	// The KMS routes take a key id in the path. An alias would carry a slash
 	// and never match the route pattern, so the id comes from where the create
 	// redirect points.
@@ -295,6 +304,17 @@ func seedFixtures(t *testing.T, c http.Handler) {
 		}
 	}
 }
+
+// pageOK reports whether a console GET renders 200 — the existence probe for
+// discovered fixtures that a delete route may have consumed.
+func pageOK(c http.Handler, path string) bool {
+	rec := httptest.NewRecorder()
+	c.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/_console"+path, nil))
+	return rec.Code == http.StatusOK
+}
+
+// apigwID matches the generated id in the create redirect's target.
+var apigwID = regexp.MustCompile(`/apigw/([a-z0-9]{6,})`)
 
 // keyID matches the UUID a KMS key is named by.
 var keyID = regexp.MustCompile(`([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})`)
@@ -341,6 +361,10 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 	case "/kinesis/{stream}/split":
 		return map[string]string{"{stream}": "fixture-split"},
 			url.Values{"shard": {shardID(0)}, "at": {splitPoint}}
+	case "/apigw/{api}/update-stage":
+		// The stage the deploy subtest created; mutationForm's generic name
+		// would PATCH a stage that does not exist.
+		return nil, url.Values{"name": {"dev"}, "deployment": {"repointed"}}
 	case "/lambda/create":
 		// A function needs somewhere real to read its code from, even though
 		// nothing here invokes it.
@@ -373,7 +397,8 @@ func mutationForm() url.Values {
 		"item":    {`{"pk":{"S":"x"}}`},
 		"pattern": {`{"source":["demo"]}`},
 		"type":    {"String"}, "description": {"fixture"},
-		"template": {cfnTemplate1},
+		"template":   {cfnTemplate1},
+		"deployment": {"nonesuch"}, "part": {"fixture-part"},
 		"hash_key": {"pk"}, "hash_type": {"S"},
 		"spec": {"SYMMETRIC_DEFAULT"}, "usage": {"ENCRYPT_DECRYPT"},
 		"alias": {"fixture-alias"}, "label": {"fixture-label"},
