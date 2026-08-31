@@ -362,3 +362,63 @@ test.describe('invalid bucket name', () => {
     expect(await res.text()).toMatch(/not valid|InvalidBucketName/i);
   });
 });
+
+// The batch and config surfaces added by the coverage pass: multi-select with
+// DeleteObjects behind it, the HeadBucket availability probe on the create
+// form, and static website hosting on the properties tab.
+test.describe('batch and config surfaces', () => {
+  test('multi-select bulk delete, name check, website hosting', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+    waitForToast,
+  }) => {
+    const bucket = uniqueName('e2e-s3-batch');
+    await createBucket(request, bucket);
+    for (const n of ['x.txt', 'y.txt', 'z.txt']) {
+      await request.post(`http://127.0.0.1:14566/_console/s3/${bucket}/upload`, {
+        multipart: {
+          prefix: '',
+          file: { name: n, mimeType: 'text/plain', buffer: Buffer.from(`body of ${n}`) },
+        },
+      });
+    }
+
+    await page.goto(`s3/${bucket}`);
+    const bar = page.locator('.bulkbar');
+    await expect(bar).toBeHidden();
+    await page.locator('tbody input.rowck').nth(0).click();
+    await page.locator('tbody input.rowck').nth(1).click();
+    await expect(bar).toBeVisible();
+    await expect(bar.locator('.bb-n')).toContainText('2');
+
+    await bar.getByRole('button', { name: 'Delete selected' }).click();
+    await confirmDialog('accept');
+    const toast = await waitForToast();
+    expect(toast).toContain('2 objects deleted');
+    await expect(page.locator('#object-table tbody tr')).toHaveCount(1);
+
+    // The availability probe: taken vs free, before the create is attempted.
+    await page.goto('s3/create');
+    await page.locator('input[name="name"]').fill(bucket);
+    await page.getByRole('button', { name: 'Check availability' }).click();
+    await expect(page.locator('#s3-name-out')).toContainText('already exists');
+    await page.locator('input[name="name"]').fill(uniqueName('e2e-s3-free'));
+    await page.getByRole('button', { name: 'Check availability' }).click();
+    await expect(page.locator('#s3-name-out')).toContainText('is available');
+
+    // Website hosting: enable renders the config, disable clears it.
+    await page.goto(`s3/${bucket}?tab=properties`);
+    const site = page.locator('.panel', { has: page.locator('input[name="index"]') });
+    await site.locator('input[name="index"]').fill('index.html');
+    await site.getByRole('button', { name: 'Enable' }).click();
+    const wToast = await waitForToast();
+    expect(wToast).toContain('Website hosting enabled');
+    await expect(page.locator('#s3-props')).toContainText('Index document');
+    await page.locator('#s3-props').getByRole('button', { name: 'Disable' }).click();
+    await confirmDialog('accept');
+    const dToast = await waitForToast();
+    expect(dToast).toContain('Website hosting disabled');
+  });
+});

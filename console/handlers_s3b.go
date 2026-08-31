@@ -1,8 +1,11 @@
 package console
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 	"time"
 )
@@ -172,4 +175,180 @@ func (c *Console) s3SaveLifecycle(w http.ResponseWriter, r *http.Request) {
 	}
 	toast(w, "Lifecycle rules saved — the janitor enforces them")
 	c.s3PropsPartial(w, r, bucket)
+}
+
+// ---- bulk delete, combine, multipart uploads, website, object lock ----
+
+// s3BulkDelete deletes the selected keys in one DeleteObjects call.
+func (c *Console) s3BulkDelete(w http.ResponseWriter, r *http.Request) {
+	bucket := r.PathValue("bucket")
+	var keys []string
+	if err := json.Unmarshal([]byte(r.FormValue("keys")), &keys); err != nil || len(keys) == 0 {
+		c.fail(w, errors.New("no objects selected"))
+		return
+	}
+	n, err := c.be.BulkDeleteObjects(r.Context(), bucket, keys)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, plural(n, "object")+" deleted")
+	c.swapObjectTable(w, r, bucket, r.FormValue("prefix"))
+}
+
+// s3Combine concatenates the selected objects, in name order, into one new
+// object — UploadPartCopy per source, no byte leaving the service.
+func (c *Console) s3Combine(w http.ResponseWriter, r *http.Request) {
+	bucket := r.PathValue("bucket")
+	var keys []string
+	if err := json.Unmarshal([]byte(r.FormValue("keys")), &keys); err != nil || len(keys) < 2 {
+		c.fail(w, errors.New("select at least two objects to combine"))
+		return
+	}
+	sort.Strings(keys)
+	dest := strings.TrimSpace(r.FormValue("dest"))
+	if dest == "" {
+		c.fail(w, errors.New("name the combined object"))
+		return
+	}
+	if err := c.be.CombineObjects(r.Context(), bucket, r.FormValue("prefix")+dest, keys); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Combined "+plural(len(keys), "object")+" into "+dest)
+	c.swapObjectTable(w, r, bucket, r.FormValue("prefix"))
+}
+
+// s3MPUploads renders the in-progress multipart uploads — storage that exists
+// and bills but which no object listing shows — each with its parts.
+func (c *Console) s3MPUploads(w http.ResponseWriter, r *http.Request) {
+	bucket := r.PathValue("bucket")
+	ups, err := c.be.ListMPUploads(r.Context(), bucket)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	type upView struct {
+		MultipartUpload
+		Parts []PartInfo
+		Size  int64
+	}
+	views := make([]upView, 0, len(ups))
+	for _, u := range ups {
+		parts, _ := c.be.ListUploadParts(r.Context(), bucket, u.Key, u.UploadID)
+		v := upView{MultipartUpload: u, Parts: parts}
+		for _, p := range parts {
+			v.Size += p.Size
+		}
+		views = append(views, v)
+	}
+	c.partial(w, "s3_mp_uploads", map[string]any{"Bucket": bucket, "Uploads": views})
+}
+
+// s3AbortUpload discards one in-progress upload and frees its parts.
+func (c *Console) s3AbortUpload(w http.ResponseWriter, r *http.Request) {
+	bucket := r.PathValue("bucket")
+	if err := c.be.AbortMPUpload(r.Context(), bucket, r.FormValue("key"), r.FormValue("upload")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Upload aborted — its parts are freed")
+	c.s3MPUploads(w, r)
+}
+
+// s3Website enables or disables static website hosting.
+func (c *Console) s3Website(w http.ResponseWriter, r *http.Request) {
+	bucket := r.PathValue("bucket")
+	if r.FormValue("disable") != "" {
+		if err := c.be.DeleteBucketWebsite(r.Context(), bucket); err != nil {
+			c.fail(w, err)
+			return
+		}
+		toast(w, "Website hosting disabled")
+	} else {
+		index := strings.TrimSpace(r.FormValue("index"))
+		if err := c.be.PutBucketWebsite(r.Context(), bucket, index, strings.TrimSpace(r.FormValue("error"))); err != nil {
+			c.fail(w, err)
+			return
+		}
+		toast(w, "Website hosting enabled — "+index+" serves at the root")
+	}
+	c.s3PropsPartial(w, r, bucket)
+}
+
+// s3LockConfig sets the bucket's default object-lock retention rule.
+func (c *Console) s3LockConfig(w http.ResponseWriter, r *http.Request) {
+	bucket := r.PathValue("bucket")
+	if err := c.be.PutObjectLockConfig(r.Context(), bucket,
+		r.FormValue("mode"), atoi(r.FormValue("days"))); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Default retention saved — new objects inherit it")
+	c.s3PropsPartial(w, r, bucket)
+}
+
+// metaAgain re-renders the object drawer after a per-object mutation.
+func (c *Console) metaAgain(w http.ResponseWriter, r *http.Request, key string) {
+	r.URL.RawQuery = "key=" + url.QueryEscape(key) + "&prefix=" + url.QueryEscape(r.FormValue("prefix"))
+	c.s3Meta(w, r)
+}
+
+// s3ObjTagsSave replaces one object's tag set (empty deletes the tagging).
+func (c *Console) s3ObjTagsSave(w http.ResponseWriter, r *http.Request) {
+	bucket, key := r.PathValue("bucket"), r.FormValue("key")
+	r.ParseForm() //nolint:errcheck // best-effort, as elsewhere
+	var tags []KV
+	for i, k := range r.Form["tag_key"] {
+		if k = strings.TrimSpace(k); k == "" {
+			continue
+		}
+		v := ""
+		if i < len(r.Form["tag_val"]) {
+			v = r.Form["tag_val"][i]
+		}
+		tags = append(tags, KV{K: k, V: v})
+	}
+	if err := c.be.PutObjectTags(r.Context(), bucket, key, tags); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Object tags saved")
+	c.metaAgain(w, r, key)
+}
+
+// s3Retention locks one object until a date; s3LegalHold flips the hold flag.
+func (c *Console) s3Retention(w http.ResponseWriter, r *http.Request) {
+	bucket, key := r.PathValue("bucket"), r.FormValue("key")
+	until := r.FormValue("until") + "T00:00:00Z"
+	if err := c.be.PutObjectRetention(r.Context(), bucket, key, r.FormValue("mode"), until); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Retention set — deletes are refused until it lapses")
+	c.metaAgain(w, r, key)
+}
+
+func (c *Console) s3LegalHold(w http.ResponseWriter, r *http.Request) {
+	bucket, key := r.PathValue("bucket"), r.FormValue("key")
+	on := r.FormValue("on") != ""
+	if err := c.be.PutObjectLegalHold(r.Context(), bucket, key, on); err != nil {
+		c.fail(w, err)
+		return
+	}
+	if on {
+		toast(w, "Legal hold ON — the object cannot be deleted while it stands")
+	} else {
+		toast(w, "Legal hold released")
+	}
+	c.metaAgain(w, r, key)
+}
+
+// s3CheckName answers the create form's availability question (HeadBucket)
+// before a create that would be refused.
+func (c *Console) s3CheckName(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimSpace(r.FormValue("name"))
+	c.partial(w, "s3_name_check", map[string]any{
+		"Name": name, "Taken": name != "" && c.be.BucketExists(r.Context(), name),
+	})
 }

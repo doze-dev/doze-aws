@@ -156,8 +156,15 @@ func (c *Console) s3PropsPartial(w http.ResponseWriter, r *http.Request, bucket 
 	queues, _ := c.be.ListQueues(r.Context())
 	topics, _ := c.be.ListTopics(r.Context())
 	fns, _ := c.be.ListFunctions(r.Context())
+	lock := &LockConfig{}
+	if props != nil && props.ObjectLock {
+		if lc, err := c.be.ObjectLockConfig(r.Context(), bucket); err == nil {
+			lock = lc
+		}
+	}
 	c.partial(w, "s3_props", map[string]any{
 		"Bucket": bucket, "Props": props,
+		"Lock": lock, "Website": c.be.BucketWebsite(r.Context(), bucket),
 		"Rules":  c.be.Notifications(r.Context(), bucket),
 		"Queues": queues, "Topics": topics, "Functions": fns,
 		"CORSJSON":      c.be.GetCORSJSON(r.Context(), bucket),
@@ -193,6 +200,17 @@ func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 		data["Queues"], data["Topics"], data["Functions"] = queues, topics, fns
 		data["CORSJSON"] = c.be.GetCORSJSON(r.Context(), bucket)
 		data["LifecycleJSON"] = c.be.GetLifecycleJSON(r.Context(), bucket)
+		lock := &LockConfig{}
+		if props.ObjectLock {
+			if lc, err := c.be.ObjectLockConfig(r.Context(), bucket); err == nil {
+				lock = lc
+			}
+		}
+		data["Lock"] = lock
+		data["Website"] = c.be.BucketWebsite(r.Context(), bucket)
+		// GetBucketLocation: the region answer from the API itself rather
+		// than the constant the props struct carries.
+		data["Props"].(*BucketProps).Region = c.be.BucketLocation(r.Context(), bucket)
 		c.render(w, r, "s3_objects", data)
 		return
 	}
@@ -305,13 +323,30 @@ func (c *Console) s3Meta(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	c.partial(w, "object_meta", map[string]any{
+	data := map[string]any{
 		"Bucket": bucket, "KeyPrefix": r.URL.Query().Get("prefix"),
 		"Meta": meta, "Name": baseName(key), "Versioned": versioned,
 		"Preview": preview, "PreviewCut": truncated,
 		"URL":        c.prefix + "/s3/" + bucket + "/object?key=" + url.QueryEscape(key),
 		"EncodedKey": url.QueryEscape(key),
-	})
+	}
+	// The tag set (GetObjectTagging) and the attributes read (the part count
+	// is the one fact HeadObject cannot report). Lock state only when the
+	// bucket has object lock — the subresources 400 otherwise.
+	data["ObjTags"], _ = c.be.ObjectTags(r.Context(), bucket, key)
+	if attrs, err := c.be.ObjectAttributes(r.Context(), bucket, key); err == nil {
+		data["Attrs"] = attrs
+	}
+	if props, err := c.be.GetBucketProps(r.Context(), bucket); err == nil && props.ObjectLock {
+		data["Locked"] = true
+		if hold, err := c.be.ObjectLegalHold(r.Context(), bucket, key); err == nil {
+			data["LegalHold"] = hold
+		}
+		if ret, err := c.be.ObjectRetention(r.Context(), bucket, key); err == nil && ret.Mode != "" {
+			data["Retention"] = ret
+		}
+	}
+	c.partial(w, "object_meta", data)
 }
 
 // s3NewFolder creates a folder the only way S3 has one: a zero-byte object
@@ -359,11 +394,22 @@ func (c *Console) s3Upload(w http.ResponseWriter, r *http.Request) {
 	}
 	key := prefix + hdr.Filename
 	ctype := hdr.Header.Get("Content-Type")
-	if err := c.be.PutObject(r.Context(), bucket, key, data, ctype); err != nil {
+	// Past the threshold the console uploads the way an SDK would — create,
+	// UploadPart chunks, complete — so a big drag-and-drop exercises the real
+	// multipart path instead of one giant PUT no client library ever sends.
+	put := c.be.PutObject
+	if hdr.Size > multipartThreshold {
+		put = c.be.PutObjectMultipart
+	}
+	if err := put(r.Context(), bucket, key, data, ctype); err != nil {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Uploaded "+hdr.Filename)
+	if hdr.Size > multipartThreshold {
+		toast(w, "Uploaded "+hdr.Filename+" in "+plural((int(hdr.Size)+multipartPartSize-1)/multipartPartSize, "part"))
+	} else {
+		toast(w, "Uploaded "+hdr.Filename)
+	}
 	c.swapObjectTable(w, r, bucket, prefix)
 }
 

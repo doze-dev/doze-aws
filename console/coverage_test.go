@@ -44,6 +44,7 @@ var uncovered = map[string][]string{
 	"dynamodb":   {},
 	"lambda":     {},
 	"apigateway": {},
+	"s3":         {},
 	// ListStackResources is the one exemption — see exempt.
 	"cloudformation": {},
 }

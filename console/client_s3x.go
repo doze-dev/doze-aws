@@ -1,6 +1,7 @@
 package console
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"encoding/xml"
@@ -636,4 +637,491 @@ func (b *backend) GetObjectVersion(ctx context.Context, bucket, key, versionID s
 		return nil, "", &apiErr{status: resp.StatusCode, body: string(body)}
 	}
 	return body, resp.Header.Get("Content-Type"), nil
+}
+
+// ---- bulk delete, multipart, object tags/attributes/lock, website ----
+
+// objURL builds an object-addressed URL with an optional subresource query.
+func (b *backend) objURL(bucket, key, sub string) string {
+	u := b.base + "/" + bucket + "/" + escapeKey(key)
+	if sub != "" {
+		u += "?" + sub
+	}
+	return u
+}
+
+// BulkDeleteObjects deletes up to 1000 keys in one call (DeleteObjects, the
+// batch behind every "delete selected"). Returns how many the service
+// reported deleted.
+func (b *backend) BulkDeleteObjects(ctx context.Context, bucket string, keys []string) (int, error) {
+	var sb strings.Builder
+	sb.WriteString("<Delete>")
+	for _, k := range keys {
+		sb.WriteString("<Object><Key>")
+		xml.EscapeText(&sb, []byte(k))
+		sb.WriteString("</Key></Object>")
+	}
+	sb.WriteString("</Delete>")
+	req, _ := http.NewRequestWithContext(ctx, "POST", b.base+"/"+bucket+"?delete", strings.NewReader(sb.String()))
+	req.Header.Set("Content-Type", "application/xml")
+	body, err := b.do(req)
+	if err != nil {
+		return 0, err
+	}
+	var out struct {
+		Deleted []struct {
+			Key string `xml:"Key"`
+		} `xml:"Deleted"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return 0, err
+	}
+	return len(out.Deleted), nil
+}
+
+// MultipartUpload is one in-progress upload — storage that exists and bills
+// but which no object listing shows.
+type MultipartUpload struct {
+	Key, UploadID, Initiated string
+}
+
+// ListMPUploads lists a bucket's in-progress multipart uploads.
+func (b *backend) ListMPUploads(ctx context.Context, bucket string) ([]MultipartUpload, error) {
+	req, _ := http.NewRequestWithContext(ctx, "GET", b.base+"/"+bucket+"?uploads", nil)
+	body, err := b.do(req)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Uploads []struct {
+			Key       string `xml:"Key"`
+			UploadID  string `xml:"UploadId"`
+			Initiated string `xml:"Initiated"`
+		} `xml:"Upload"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	ups := make([]MultipartUpload, 0, len(out.Uploads))
+	for _, u := range out.Uploads {
+		ups = append(ups, MultipartUpload{Key: u.Key, UploadID: u.UploadID, Initiated: shortTime(u.Initiated)})
+	}
+	return ups, nil
+}
+
+// PartInfo is one uploaded part of an in-progress upload.
+type PartInfo struct {
+	Number int
+	Size   int64
+	ETag   string
+}
+
+// ListUploadParts lists the parts an upload has so far (ListParts).
+func (b *backend) ListUploadParts(ctx context.Context, bucket, key, uploadID string) ([]PartInfo, error) {
+	req, _ := http.NewRequestWithContext(ctx, "GET",
+		b.objURL(bucket, key, "uploadId="+url.QueryEscape(uploadID)), nil)
+	body, err := b.do(req)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Parts []struct {
+			PartNumber int    `xml:"PartNumber"`
+			Size       int64  `xml:"Size"`
+			ETag       string `xml:"ETag"`
+		} `xml:"Part"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	parts := make([]PartInfo, 0, len(out.Parts))
+	for _, p := range out.Parts {
+		parts = append(parts, PartInfo{Number: p.PartNumber, Size: p.Size, ETag: p.ETag})
+	}
+	return parts, nil
+}
+
+// AbortMPUpload discards an in-progress upload and frees its parts.
+func (b *backend) AbortMPUpload(ctx context.Context, bucket, key, uploadID string) error {
+	req, _ := http.NewRequestWithContext(ctx, "DELETE",
+		b.objURL(bucket, key, "uploadId="+url.QueryEscape(uploadID)), nil)
+	_, err := b.do(req)
+	return err
+}
+
+// createMPUpload starts a multipart upload and returns its id.
+func (b *backend) createMPUpload(ctx context.Context, bucket, key, contentType string) (string, error) {
+	req, _ := http.NewRequestWithContext(ctx, "POST", b.objURL(bucket, key, "uploads"), nil)
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+	body, err := b.do(req)
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		UploadID string `xml:"UploadId"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return "", err
+	}
+	return out.UploadID, nil
+}
+
+// completeMPUpload stitches uploaded parts into the final object.
+func (b *backend) completeMPUpload(ctx context.Context, bucket, key, uploadID string, etags []string) error {
+	var sb strings.Builder
+	sb.WriteString("<CompleteMultipartUpload>")
+	for i, etag := range etags {
+		fmt.Fprintf(&sb, "<Part><PartNumber>%d</PartNumber><ETag>%s</ETag></Part>", i+1, etag)
+	}
+	sb.WriteString("</CompleteMultipartUpload>")
+	req, _ := http.NewRequestWithContext(ctx, "POST",
+		b.objURL(bucket, key, "uploadId="+url.QueryEscape(uploadID)), strings.NewReader(sb.String()))
+	req.Header.Set("Content-Type", "application/xml")
+	_, err := b.do(req)
+	return err
+}
+
+// multipartThreshold is where the console's own uploads switch to the
+// multipart path; partSize is the chunk they cut. Real AWS enforces a 5 MB
+// minimum part (except the last) — matched here so what works locally works
+// there.
+const (
+	multipartThreshold = 8 << 20
+	multipartPartSize  = 5 << 20
+)
+
+// PutObjectMultipart uploads a large body the way an SDK would: create, part
+// by part (UploadPart), complete. The console calls it automatically past the
+// threshold, so a big drag-and-drop exercises the real path.
+func (b *backend) PutObjectMultipart(ctx context.Context, bucket, key string, body []byte, contentType string) error {
+	uploadID, err := b.createMPUpload(ctx, bucket, key, contentType)
+	if err != nil {
+		return err
+	}
+	var etags []string
+	for i, off := 1, 0; off < len(body); i, off = i+1, off+multipartPartSize {
+		end := off + multipartPartSize
+		if end > len(body) {
+			end = len(body)
+		}
+		req, _ := http.NewRequestWithContext(ctx, "PUT",
+			b.objURL(bucket, key, fmt.Sprintf("partNumber=%d&uploadId=%s", i, url.QueryEscape(uploadID))),
+			bytes.NewReader(body[off:end]))
+		res, err := b.c.Do(req)
+		if err != nil {
+			b.AbortMPUpload(ctx, bucket, key, uploadID)
+			return err
+		}
+		etag := res.Header.Get("ETag")
+		io.Copy(io.Discard, res.Body)
+		res.Body.Close()
+		if res.StatusCode/100 != 2 {
+			b.AbortMPUpload(ctx, bucket, key, uploadID)
+			return fmt.Errorf("part %d refused: %s", i, res.Status)
+		}
+		etags = append(etags, etag)
+	}
+	if err := b.completeMPUpload(ctx, bucket, key, uploadID, etags); err != nil {
+		b.AbortMPUpload(ctx, bucket, key, uploadID)
+		return err
+	}
+	return nil
+}
+
+// CombineObjects concatenates existing objects into one, in the given order,
+// without a byte leaving the service (UploadPartCopy per source). The
+// multipart rule applies for real: every piece except the last must be at
+// least 5 MB, and the service refuses the complete otherwise.
+func (b *backend) CombineObjects(ctx context.Context, bucket, destKey string, keys []string) error {
+	uploadID, err := b.createMPUpload(ctx, bucket, destKey, "")
+	if err != nil {
+		return err
+	}
+	var etags []string
+	for i, k := range keys {
+		req, _ := http.NewRequestWithContext(ctx, "PUT",
+			b.objURL(bucket, destKey, fmt.Sprintf("partNumber=%d&uploadId=%s", i+1, url.QueryEscape(uploadID))), nil)
+		req.Header.Set("x-amz-copy-source", "/"+bucket+"/"+escapeKey(k))
+		body, err := b.do(req)
+		if err != nil {
+			b.AbortMPUpload(ctx, bucket, destKey, uploadID)
+			return err
+		}
+		var out struct {
+			ETag string `xml:"ETag"`
+		}
+		xml.Unmarshal(body, &out)
+		etags = append(etags, out.ETag)
+	}
+	if err := b.completeMPUpload(ctx, bucket, destKey, uploadID, etags); err != nil {
+		b.AbortMPUpload(ctx, bucket, destKey, uploadID)
+		return err
+	}
+	return nil
+}
+
+// ObjectTags reads one object's tag set (GetObjectTagging).
+func (b *backend) ObjectTags(ctx context.Context, bucket, key string) ([]KV, error) {
+	req, _ := http.NewRequestWithContext(ctx, "GET", b.objURL(bucket, key, "tagging"), nil)
+	body, err := b.do(req)
+	if err != nil {
+		return nil, err
+	}
+	var t struct {
+		Tags []struct {
+			Key   string `xml:"Key"`
+			Value string `xml:"Value"`
+		} `xml:"TagSet>Tag"`
+	}
+	if err := xml.Unmarshal(body, &t); err != nil {
+		return nil, err
+	}
+	var tags []KV
+	for _, tag := range t.Tags {
+		tags = append(tags, KV{K: tag.Key, V: tag.Value})
+	}
+	return tags, nil
+}
+
+// PutObjectTags replaces an object's tag set; empty deletes the tagging
+// subresource outright (DeleteObjectTagging), as the bucket editor does.
+func (b *backend) PutObjectTags(ctx context.Context, bucket, key string, tags []KV) error {
+	if len(tags) == 0 {
+		req, _ := http.NewRequestWithContext(ctx, "DELETE", b.objURL(bucket, key, "tagging"), nil)
+		_, err := b.do(req)
+		return err
+	}
+	var sb strings.Builder
+	sb.WriteString("<Tagging><TagSet>")
+	for _, t := range tags {
+		sb.WriteString("<Tag><Key>")
+		xml.EscapeText(&sb, []byte(t.K))
+		sb.WriteString("</Key><Value>")
+		xml.EscapeText(&sb, []byte(t.V))
+		sb.WriteString("</Value></Tag>")
+	}
+	sb.WriteString("</TagSet></Tagging>")
+	req, _ := http.NewRequestWithContext(ctx, "PUT", b.objURL(bucket, key, "tagging"), strings.NewReader(sb.String()))
+	req.Header.Set("Content-Type", "application/xml")
+	_, err := b.do(req)
+	return err
+}
+
+// ObjAttributes is GetObjectAttributes: the metadata-only read that can also
+// name a multipart object's part count — the one fact HeadObject omits.
+type ObjAttributes struct {
+	ETag, StorageClass string
+	Size               int64
+	Parts              int
+}
+
+func (b *backend) ObjectAttributes(ctx context.Context, bucket, key string) (*ObjAttributes, error) {
+	req, _ := http.NewRequestWithContext(ctx, "GET", b.objURL(bucket, key, "attributes"), nil)
+	req.Header.Set("x-amz-object-attributes", "ETag,ObjectSize,StorageClass,ObjectParts")
+	body, err := b.do(req)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		ETag         string `xml:"ETag"`
+		ObjectSize   int64  `xml:"ObjectSize"`
+		StorageClass string `xml:"StorageClass"`
+		ObjectParts  struct {
+			TotalPartsCount int `xml:"TotalPartsCount"`
+		} `xml:"ObjectParts"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	parts := out.ObjectParts.TotalPartsCount
+	if parts == 0 {
+		// The local service does not keep part records past the complete, but
+		// a multipart ETag carries the count as its "-N" suffix — the same
+		// place the AWS docs tell you to read it from.
+		if i := strings.LastIndex(out.ETag, "-"); i >= 0 {
+			if n, err := strconv.Atoi(strings.Trim(out.ETag[i+1:], `"`)); err == nil {
+				parts = n
+			}
+		}
+	}
+	return &ObjAttributes{ETag: out.ETag, Size: out.ObjectSize,
+		StorageClass: out.StorageClass, Parts: parts}, nil
+}
+
+// ---- object lock: the bucket default and the per-object overrides ----
+
+// LockConfig is the bucket's object-lock configuration.
+type LockConfig struct {
+	Enabled bool
+	Mode    string // GOVERNANCE | COMPLIANCE, "" = no default retention
+	Days    int
+}
+
+func (b *backend) ObjectLockConfig(ctx context.Context, bucket string) (*LockConfig, error) {
+	body, err := b.s3Sub(ctx, "GET", bucket, "object-lock")
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Enabled string `xml:"ObjectLockEnabled"`
+		Rule    struct {
+			DefaultRetention struct {
+				Mode  string `xml:"Mode"`
+				Days  int    `xml:"Days"`
+				Years int    `xml:"Years"`
+			} `xml:"DefaultRetention"`
+		} `xml:"Rule"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	days := out.Rule.DefaultRetention.Days
+	if out.Rule.DefaultRetention.Years > 0 {
+		days = out.Rule.DefaultRetention.Years * 365
+	}
+	return &LockConfig{Enabled: out.Enabled == "Enabled", Mode: out.Rule.DefaultRetention.Mode, Days: days}, nil
+}
+
+// PutObjectLockConfig sets the bucket's default retention rule.
+func (b *backend) PutObjectLockConfig(ctx context.Context, bucket, mode string, days int) error {
+	body := `<ObjectLockConfiguration><ObjectLockEnabled>Enabled</ObjectLockEnabled>`
+	if mode != "" && days > 0 {
+		body += fmt.Sprintf(`<Rule><DefaultRetention><Mode>%s</Mode><Days>%d</Days></DefaultRetention></Rule>`, mode, days)
+	}
+	body += `</ObjectLockConfiguration>`
+	req, _ := http.NewRequestWithContext(ctx, "PUT", b.base+"/"+bucket+"?object-lock", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/xml")
+	_, err := b.do(req)
+	return err
+}
+
+// RetentionInfo is one object's retention state.
+type RetentionInfo struct {
+	Mode, Until string
+}
+
+func (b *backend) ObjectRetention(ctx context.Context, bucket, key string) (*RetentionInfo, error) {
+	req, _ := http.NewRequestWithContext(ctx, "GET", b.objURL(bucket, key, "retention"), nil)
+	body, err := b.do(req)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Mode            string `xml:"Mode"`
+		RetainUntilDate string `xml:"RetainUntilDate"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	return &RetentionInfo{Mode: out.Mode, Until: shortTime(out.RetainUntilDate)}, nil
+}
+
+// PutObjectRetention locks one object until a date (GOVERNANCE can be
+// shortened with the bypass; COMPLIANCE cannot — as in AWS).
+func (b *backend) PutObjectRetention(ctx context.Context, bucket, key, mode, until string) error {
+	body := `<Retention><Mode>` + mode + `</Mode><RetainUntilDate>` + until + `</RetainUntilDate></Retention>`
+	req, _ := http.NewRequestWithContext(ctx, "PUT", b.objURL(bucket, key, "retention"), strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/xml")
+	req.Header.Set("x-amz-bypass-governance-retention", "true")
+	_, err := b.do(req)
+	return err
+}
+
+// ObjectLegalHold reads the ON/OFF flag; PutObjectLegalHold flips it.
+func (b *backend) ObjectLegalHold(ctx context.Context, bucket, key string) (bool, error) {
+	req, _ := http.NewRequestWithContext(ctx, "GET", b.objURL(bucket, key, "legal-hold"), nil)
+	body, err := b.do(req)
+	if err != nil {
+		return false, err
+	}
+	var out struct {
+		Status string `xml:"Status"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return false, err
+	}
+	return out.Status == "ON", nil
+}
+
+func (b *backend) PutObjectLegalHold(ctx context.Context, bucket, key string, on bool) error {
+	status := "OFF"
+	if on {
+		status = "ON"
+	}
+	req, _ := http.NewRequestWithContext(ctx, "PUT", b.objURL(bucket, key, "legal-hold"),
+		strings.NewReader(`<LegalHold><Status>`+status+`</Status></LegalHold>`))
+	req.Header.Set("Content-Type", "application/xml")
+	_, err := b.do(req)
+	return err
+}
+
+// ---- static website hosting ----
+
+// WebsiteConfig is the bucket's website hosting document, if any.
+type WebsiteConfig struct {
+	Set          bool
+	Index, Error string
+}
+
+func (b *backend) BucketWebsite(ctx context.Context, bucket string) *WebsiteConfig {
+	body, err := b.s3Sub(ctx, "GET", bucket, "website")
+	if err != nil || len(body) == 0 {
+		return &WebsiteConfig{}
+	}
+	var out struct {
+		Index struct {
+			Suffix string `xml:"Suffix"`
+		} `xml:"IndexDocument"`
+		Error struct {
+			Key string `xml:"Key"`
+		} `xml:"ErrorDocument"`
+	}
+	if xml.Unmarshal(body, &out) != nil || out.Index.Suffix == "" {
+		return &WebsiteConfig{}
+	}
+	return &WebsiteConfig{Set: true, Index: out.Index.Suffix, Error: out.Error.Key}
+}
+
+func (b *backend) PutBucketWebsite(ctx context.Context, bucket, index, errDoc string) error {
+	body := `<WebsiteConfiguration><IndexDocument><Suffix>` + index + `</Suffix></IndexDocument>`
+	if errDoc != "" {
+		body += `<ErrorDocument><Key>` + errDoc + `</Key></ErrorDocument>`
+	}
+	body += `</WebsiteConfiguration>`
+	req, _ := http.NewRequestWithContext(ctx, "PUT", b.base+"/"+bucket+"?website", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/xml")
+	_, err := b.do(req)
+	return err
+}
+
+func (b *backend) DeleteBucketWebsite(ctx context.Context, bucket string) error {
+	req, _ := http.NewRequestWithContext(ctx, "DELETE", b.base+"/"+bucket+"?website", nil)
+	_, err := b.do(req)
+	return err
+}
+
+// BucketLocation is GetBucketLocation — the region answer, which locally is
+// the conventional one.
+func (b *backend) BucketLocation(ctx context.Context, bucket string) string {
+	body, err := b.s3Sub(ctx, "GET", bucket, "location")
+	if err != nil {
+		return awsident.Region
+	}
+	var out struct {
+		Value string `xml:",chardata"`
+	}
+	if xml.Unmarshal(body, &out) != nil || strings.TrimSpace(out.Value) == "" {
+		return awsident.Region // an empty LocationConstraint means us-east-1, per the API
+	}
+	return strings.TrimSpace(out.Value)
+}
+
+// BucketExists is HeadBucket — the availability pre-check the create form
+// offers before a create that would be refused.
+func (b *backend) BucketExists(ctx context.Context, name string) bool {
+	req, _ := http.NewRequestWithContext(ctx, "HEAD", b.base+"/"+url.PathEscape(name), nil)
+	_, err := b.do(req)
+	return err == nil
 }

@@ -110,8 +110,11 @@ func (t fanoutTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req.Body != nil {
 		body, _ = io.ReadAll(req.Body)
 		req.Body.Close()
-		req.Body = io.NopCloser(bytes.NewReader(body))
 	}
+	// Client-made requests may carry a nil Body; the gateway's routing peek
+	// assumes the server-side invariant (Body never nil) and panics on the
+	// difference. Hand it the invariant it expects.
+	req.Body = io.NopCloser(bytes.NewReader(body))
 	svc := gateway.Route(req)
 	ep, ok := t.dir.Endpoint(svc)
 	if !ok {

@@ -1721,3 +1721,6 @@ a.lo-card:hover { border-color: var(--accent); }
    that follows content, and a right-aligned form action row. */
 .sub-panel { margin-top: 12px; }
 .fr-btn { display: flex; justify-content: flex-end; margin-top: 10px; }
+/* The bulk bar's combine form: input and button on one line. */
+.bb-combine { display: inline-flex; gap: 6px; align-items: center; }
+.bb-combine .input { width: 160px; font-size: 12px; padding: 4px 8px; }

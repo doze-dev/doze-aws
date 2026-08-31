@@ -391,10 +391,7 @@ func classify(r *http.Request, capturedBody string, rec *Recorder) (svc, action,
 	// resolver injected, and for requests that match no route at all.
 	act := rec.op("s3", r)
 	if act == "" {
-		act = map[string]string{"GET": "GetObject", "PUT": "PutObject", "DELETE": "DeleteObject", "HEAD": "HeadObject", "POST": "PostObject"}[r.Method]
-	}
-	if act == "" {
-		act = r.Method
+		act = s3RESTAction(r, p)
 	}
 	if p == "" {
 		act = "ListBuckets"
@@ -467,6 +464,88 @@ func lambdaRESTAction(r *http.Request, parts []string) string {
 		}
 	case "account-settings":
 		return "GetAccountSettings"
+	}
+	return m
+}
+
+// s3RESTAction names an S3 request from its method and subresource query —
+// the fallback for topologies with no route resolver injected. The old map
+// knew five object verbs, so a versioning read showed as GetObject and a
+// multipart complete as PostObject.
+func s3RESTAction(r *http.Request, p string) string {
+	m, q := r.Method, r.URL.Query()
+	obj := strings.Contains(p, "/") // bucket/key vs bare bucket
+	// Subresources, spelled out in full — composed names would label the
+	// wire fine but be invisible to grep, and the coverage ratchet greps.
+	type mv = map[string]string
+	subs := []struct {
+		sub            string
+		bucket, object mv
+	}{
+		{"tagging",
+			mv{"GET": "GetBucketTagging", "PUT": "PutBucketTagging", "DELETE": "DeleteBucketTagging"},
+			mv{"GET": "GetObjectTagging", "PUT": "PutObjectTagging", "DELETE": "DeleteObjectTagging"}},
+		{"cors", mv{"GET": "GetBucketCors", "PUT": "PutBucketCors", "DELETE": "DeleteBucketCors"}, nil},
+		{"website", mv{"GET": "GetBucketWebsite", "PUT": "PutBucketWebsite", "DELETE": "DeleteBucketWebsite"}, nil},
+		{"versioning", mv{"GET": "GetBucketVersioning", "PUT": "PutBucketVersioning"}, nil},
+		{"policy", mv{"GET": "GetBucketPolicy", "PUT": "PutBucketPolicy", "DELETE": "DeleteBucketPolicy"}, nil},
+		{"lifecycle", mv{"GET": "GetBucketLifecycleConfiguration", "PUT": "PutBucketLifecycleConfiguration", "DELETE": "DeleteBucketLifecycle"}, nil},
+		{"encryption", mv{"GET": "GetBucketEncryption", "PUT": "PutBucketEncryption", "DELETE": "DeleteBucketEncryption"}, nil},
+		{"notification", mv{"GET": "GetBucketNotificationConfiguration", "PUT": "PutBucketNotificationConfiguration"}, nil},
+		{"location", mv{"GET": "GetBucketLocation"}, nil},
+		{"retention", nil, mv{"GET": "GetObjectRetention", "PUT": "PutObjectRetention"}},
+		{"legal-hold", nil, mv{"GET": "GetObjectLegalHold", "PUT": "PutObjectLegalHold"}},
+		{"object-lock", mv{"GET": "GetObjectLockConfiguration", "PUT": "PutObjectLockConfiguration"}, nil},
+		{"attributes", nil, mv{"GET": "GetObjectAttributes"}},
+	}
+	for _, e := range subs {
+		if !q.Has(e.sub) {
+			continue
+		}
+		t := e.bucket
+		if (obj && e.object != nil) || t == nil {
+			t = e.object
+		}
+		if a := t[m]; a != "" {
+			return a
+		}
+		return m
+	}
+	switch {
+	case q.Has("uploads"):
+		if m == "POST" {
+			return "CreateMultipartUpload"
+		}
+		return "ListMultipartUploads"
+	case q.Has("uploadId"):
+		switch m {
+		case "PUT":
+			if r.Header.Get("x-amz-copy-source") != "" {
+				return "UploadPartCopy"
+			}
+			return "UploadPart"
+		case "POST":
+			return "CompleteMultipartUpload"
+		case "DELETE":
+			return "AbortMultipartUpload"
+		}
+		return "ListParts"
+	case q.Has("versions"):
+		return "ListObjectVersions"
+	case q.Has("delete"):
+		return "DeleteObjects"
+	}
+	if obj {
+		if m == "PUT" && r.Header.Get("x-amz-copy-source") != "" {
+			return "CopyObject"
+		}
+		if a := map[string]string{"GET": "GetObject", "PUT": "PutObject", "DELETE": "DeleteObject", "HEAD": "HeadObject", "POST": "PostObject"}[m]; a != "" {
+			return a
+		}
+		return m
+	}
+	if a := map[string]string{"GET": "ListObjectsV2", "PUT": "CreateBucket", "DELETE": "DeleteBucket", "HEAD": "HeadBucket"}[m]; a != "" {
+		return a
 	}
 	return m
 }

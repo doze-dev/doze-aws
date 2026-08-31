@@ -8,7 +8,10 @@
     <div class="det-title" style="font-size:18px;margin-bottom:2px">Create bucket</div>
     <p class="det-sub" style="margin-bottom:18px">Buckets hold objects. Names are 3–63 lowercase characters.</p>
     <form hx-post="{{.Prefix}}/s3/create" hx-indicator="#submit-spin">
-      <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Bucket name</label><input class="input" name="name" placeholder="my-bucket" required pattern="[a-z0-9.\-]{3,63}" autocomplete="off" autofocus></div></div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Bucket name</label>
+        <div class="ex-grid"><input class="input" style="flex:1" name="name" placeholder="my-bucket" required pattern="[a-z0-9.\-]{3,63}" autocomplete="off" autofocus>
+        <button type="button" class="btn btn-outline" hx-post="{{.Prefix}}/s3/check-name" hx-include="closest form" hx-target="#s3-name-out" hx-select="unset" hx-swap="innerHTML">Check availability</button></div>
+        <div id="s3-name-out"></div></div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Options</h2></div><div class="form-b">
         <div class="opt-row"><div><div class="opt-l">Versioning</div><div class="opt-d">Keep every version of every object</div></div><label class="switch"><input type="checkbox" name="versioning"><span class="track"></span><span class="thumb"></span></label></div>
         <div class="opt-row"><div><div class="opt-l">Object lock</div><div class="opt-d">Retention and legal holds; implies versioning</div></div><label class="switch"><input type="checkbox" name="object_lock"><span class="track"></span><span class="thumb"></span></label></div>

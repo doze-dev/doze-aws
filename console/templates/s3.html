@@ -18,7 +18,7 @@
 {{define "s3_objects"}}{{template "shell_top" .}}
   {{template "s3_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bucket)}}
   <section class="detail" x-data="s3page('{{.Prefix}}','{{.Bucket}}')" x-init="syncPrefix()"
-             @htmx:after-swap.window="syncPrefix()">
+             @htmx:after-swap.window="syncPrefix(); if($event.detail.target && $event.detail.target.id==='object-table') sel=[]">
     <div class="det-h">
       <div class="det-title">{{awsIcon "s3"}} {{.Bucket}}
         <div class="acts">
@@ -75,7 +75,7 @@
     <aside class="drawer" role="dialog" aria-modal="true" aria-label="object details" x-show="drawer" x-cloak x-effect="window.dozeTrap && dozeTrap($el, drawer)" @keydown.escape.window="drawer=false"><div id="drawer-inner"></div></aside>
   </section>
 <script>
-  function s3page(prefix, bucket){return{drawer:false,drag:0,busy:false,busyName:"",newFolder:false,curPrefix:"",
+  function s3page(prefix, bucket){return{drawer:false,drag:0,busy:false,busyName:"",newFolder:false,curPrefix:"",sel:[],
     currentPrefix(){var t=document.getElementById("object-table");return (t&&t.dataset.prefix)||"";},
     /* curPrefix mirrors currentPrefix() into Alpine state. A method reading a
        dataset is invisible to Alpine's reactivity, so a label bound to it never
@@ -98,13 +98,34 @@
   {{range .Crumbs}}{{icon "chevron"}}<a hx-get="{{$.Prefix}}/s3/{{$.Bucket}}?partial=1&prefix={{.Prefix}}" hx-target="#object-table" hx-select="unset" hx-swap="outerHTML" href="{{$.Prefix}}/s3/{{$.Bucket}}?prefix={{.Prefix}}">{{.Name}}</a>{{end}}
 </nav>
 {{if .Objects}}
+{{/* The batch APIs need a multi-select to be reachable: DeleteObjects for the
+     bulk delete, and UploadPartCopy behind Combine — concatenating the
+     selected objects (name order) into one, without a byte leaving the
+     service. Folders don't select; a prefix is not an object. */}}
+<div class="bulkbar" x-show="sel.length" x-cloak>
+  <span class="bb-n"><span x-text="sel.length"></span> selected</span>
+  <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/delete-batch" hx-target="#object-table" hx-select="unset" hx-swap="outerHTML"
+        @htmx:config-request="$event.detail.parameters.prefix = currentPrefix()"
+        hx-confirm="Delete the selected objects?">
+    <input type="hidden" name="keys" :value="JSON.stringify(sel)">
+    <button class="btn btn-outline danger btn-sm" type="submit">{{icon "trash"}} Delete selected</button>
+  </form>
+  <form class="bb-combine" x-show="sel.length>1" hx-post="{{.Prefix}}/s3/{{.Bucket}}/combine" hx-target="#object-table" hx-select="unset" hx-swap="outerHTML"
+        @htmx:config-request="$event.detail.parameters.prefix = currentPrefix()">
+    <input type="hidden" name="keys" :value="JSON.stringify(sel)">
+    <input class="input" name="dest" placeholder="combined.log" required spellcheck="false">
+    <button class="btn btn-outline btn-sm" type="submit" title="Every piece except the last must be at least 5 MB — the multipart part rule applies for real">Combine into &rarr;</button>
+  </form>
+  <button type="button" class="btn btn-ghost btn-sm" @click="sel=[]">Clear</button>
+</div>
 <div class="table-wrap"><table class="tbl">
-  <thead><tr><th>Name</th><th class="right">Size</th><th class="right">Modified</th><th style="width:64px"></th></tr></thead>
+  <thead><tr><th class="ck-col"><input type="checkbox" aria-label="Select all objects on this page" @change="const on=$event.target.checked;$event.target.closest('table').querySelectorAll('tbody input.rowck').forEach(c=>{if(c.checked!==on)c.click()})"></th><th>Name</th><th class="right">Size</th><th class="right">Modified</th><th style="width:64px"></th></tr></thead>
   <tbody>{{range .Objects}}
     {{if .IsPrefix}}
-    <tr class="folder"><td colspan="3"><a class="cell-name" hx-get="{{$.Prefix}}/s3/{{$.Bucket}}?partial=1&prefix={{.Key}}" hx-target="#object-table" hx-select="unset" hx-swap="outerHTML" href="{{$.Prefix}}/s3/{{$.Bucket}}?prefix={{.Key}}">{{icon "folder"}} {{trimPrefixKey .Key $.KeyPrefix}}</a></td><td></td></tr>
+    <tr class="folder"><td></td><td colspan="3"><a class="cell-name" hx-get="{{$.Prefix}}/s3/{{$.Bucket}}?partial=1&prefix={{.Key}}" hx-target="#object-table" hx-select="unset" hx-swap="outerHTML" href="{{$.Prefix}}/s3/{{$.Bucket}}?prefix={{.Key}}">{{icon "folder"}} {{trimPrefixKey .Key $.KeyPrefix}}</a></td><td></td></tr>
     {{else}}
     <tr>
+      <td><input type="checkbox" class="rowck" value="{{.Key}}" x-model="sel" aria-label="Select {{.Key}}"></td>
       <td><span class="cell-name link" role="button" tabindex="0" hx-get="{{$.Prefix}}/s3/{{$.Bucket}}/meta?key={{.Key}}&prefix={{$.KeyPrefix}}" hx-target="#drawer-inner" hx-select="unset" hx-swap="innerHTML" @click="drawer=true">{{icon "file"}} {{trimPrefixKey .Key $.KeyPrefix}}</span></td>
       <td class="right dim num">{{humanSize .Size}}</td><td class="right dim num" title="{{.LastModified}}">{{ago .LastModified}}</td>
       <td><div class="row-actions">
@@ -132,6 +153,16 @@
           <label class="switch"><input type="checkbox" {{if eq .Props.Versioning "Enabled"}}checked{{end}} hx-post="{{.Prefix}}/s3/{{.Bucket}}/versioning" hx-vals='{"enable":"{{if eq .Props.Versioning "Enabled"}}false{{else}}true{{end}}"}' hx-target="#s3-props" hx-select="unset" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label>
         </div>
         <div class="opt-row"><div><div class="opt-l">Object lock {{if .Props.ObjectLock}}<span class="badge state-on">Enabled</span>{{else}}<span class="badge state-off">Disabled</span>{{end}}</div><div class="opt-d">Set at creation, immutable after</div></div></div>
+        {{if .Props.ObjectLock}}
+        {{/* The bucket default (PutObjectLockConfiguration); per-object
+             retention and legal holds live in the object drawer. */}}
+        <form class="ex-grid" style="align-items:end;padding:2px 0 8px" hx-post="{{.Prefix}}/s3/{{.Bucket}}/lock-config" hx-target="#s3-props" hx-select="unset" hx-swap="outerHTML">
+          <div class="field" style="width:150px"><label>Default retention</label>
+            <select class="input" name="mode"><option value="" {{if not .Lock.Mode}}selected{{end}}>none</option><option {{if eq .Lock.Mode "GOVERNANCE"}}selected{{end}}>GOVERNANCE</option><option {{if eq .Lock.Mode "COMPLIANCE"}}selected{{end}}>COMPLIANCE</option></select></div>
+          <div class="field" style="width:90px"><label>Days</label><input class="input" name="days" type="number" min="0" value="{{.Lock.Days}}"></div>
+          <button class="btn btn-outline btn-sm" type="submit">Save</button>
+        </form>
+        {{end}}
       </div>
     </div>
     <div class="sec-title">Details</div>
@@ -179,8 +210,31 @@
       </form>
     </div></div>
 
+    <div class="sec-title">Static website</div>
+    <div class="panel" style="margin-bottom:14px"><div style="padding:12px 14px">
+      {{if .Website.Set}}
+      <div class="table-wrap"><table class="tbl kv"><tbody>
+        <tr><td>Index document</td><td class="mono">{{.Website.Index}}</td></tr>
+        <tr><td>Error document</td><td class="mono">{{if .Website.Error}}{{.Website.Error}}{{else}}&mdash;{{end}}</td></tr>
+      </tbody></table></div>
+      <div class="fr-btn"><button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/s3/{{.Bucket}}/website" hx-vals='{"disable":"1"}' hx-target="#s3-props" hx-select="unset" hx-swap="outerHTML" hx-confirm="Disable website hosting? Requests to the site stop resolving.">Disable</button></div>
+      {{else}}
+      <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/website" hx-target="#s3-props" hx-select="unset" hx-swap="outerHTML">
+        <div class="ex-grid" style="align-items:end">
+          <div class="field" style="flex:1"><label>Index document</label><input class="input mono" name="index" placeholder="index.html" required spellcheck="false"></div>
+          <div class="field" style="flex:1"><label>Error document <span class="dim">optional</span></label><input class="input mono" name="error" placeholder="error.html" spellcheck="false"></div>
+          <button class="btn btn-outline btn-sm" type="submit">Enable</button>
+        </div>
+      </form>
+      <p class="mini-note">Serves the bucket as a website: / resolves to the index document, misses to the error document.</p>
+      {{end}}
+    </div></div>
+
+    <div class="sec-title">Multipart uploads <span class="dim">&mdash; in progress; storage no listing shows</span></div>
+    <div hx-post="{{.Prefix}}/s3/{{.Bucket}}/uploads" hx-trigger="load" hx-target="this" hx-select="unset" hx-swap="innerHTML"><p class="mini-note">loading&hellip;</p></div>
+
     <div class="sec-title">Other configurations</div>
-    {{range .Props.Configs}}{{if and (ne .Name "CORS") (ne .Name "Lifecycle") (ne .Name "Notifications")}}
+    {{range .Props.Configs}}{{if and (ne .Name "CORS") (ne .Name "Lifecycle") (ne .Name "Notifications") (ne .Name "Website")}}
     <div class="panel" style="margin-bottom:10px" x-data="{open:false}">
       <div class="panel-h" {{if .Set}}role="button" tabindex="0" :aria-expanded="open" style="cursor:pointer" @click="open=!open"{{end}}><h2>{{.Name}} {{if .Set}}<span class="badge state-on">Configured</span>{{else}}<span class="badge state-off">Not set</span>{{end}}</h2>{{if .Set}}<span class="dim" style="font-size:11.5px" x-text="open?'Hide':'View'"></span>{{end}}</div>
       {{if .Set}}<div x-show="open" x-cloak class="code-out" style="border:0;border-top:1px solid var(--border);border-radius:0"><pre>{{.Raw}}</pre></div>{{end}}
@@ -241,6 +295,7 @@
     <div class="meta-row"><span class="k">ETag</span><span class="v">{{.Meta.ETag}}</span></div>
     <div class="meta-row"><span class="k">Modified</span><span class="v">{{.Meta.LastModified}}</span></div>
     <div class="meta-row"><span class="k">Storage class</span><span class="v">{{.Meta.StorageClass}}</span></div>
+    {{with .Attrs}}{{if gt .Parts 0}}<div class="meta-row"><span class="k">Parts</span><span class="v">{{.Parts}} &mdash; uploaded multipart</span></div>{{end}}{{end}}
   </div>
   <div class="copy-row"><span title="{{.Meta.Key}}">s3://{{.Bucket}}/{{.Meta.Key}}</span><button class="icon-btn sm" title="Copy path" data-copy="s3://{{.Bucket}}/{{.Meta.Key}}">{{icon "copy"}}</button></div>
   <div class="drawer-actions">
@@ -269,6 +324,43 @@
       </div>
     </form>
   </div>
+
+  {{/* Object tags (Get/PutObjectTagging; empty deletes the subresource). */}}
+  <div class="drawer-sec">
+    <div class="ds-title">{{icon "tag"}} Tags</div>
+    <form class="ds-col" x-data='{rows: [{{range .ObjTags}}{k:{{printf "%q" .K}},v:{{printf "%q" .V}}},{{end}}]}'
+          hx-post="{{.Prefix}}/s3/{{.Bucket}}/object-tags" hx-vals='{"key":"{{.Meta.Key}}","prefix":"{{.KeyPrefix}}"}' hx-target="#drawer-inner" hx-select="unset" hx-swap="innerHTML">
+      <template x-for="(row,i) in rows" :key="i">
+        <div class="attr-row" style="grid-template-columns:1fr 1.2fr 30px">
+          <input class="input" name="tag_key" placeholder="key" x-model="row.k" spellcheck="false">
+          <input class="input" name="tag_val" placeholder="value" x-model="row.v" spellcheck="false">
+          <button type="button" class="icon-btn sm danger" @click="rows.splice(i,1)">{{icon "x"}}</button>
+        </div>
+      </template>
+      <div class="ds-row" style="justify-content:space-between">
+        <button type="button" class="btn btn-ghost btn-sm" @click="rows.push({k:'',v:''})">{{icon "plus"}} Add tag</button>
+        <button class="btn btn-outline btn-sm" type="submit">Save tags</button>
+      </div>
+    </form>
+  </div>
+
+  {{if .Locked}}
+  {{/* Per-object lock: the legal-hold flag and a retention date. Both are
+       refusals the delete button will then honestly deliver. */}}
+  <div class="drawer-sec">
+    <div class="ds-title">{{icon "key"}} Object lock</div>
+    <div class="ds-row" style="justify-content:space-between">
+      <span class="dim" style="font-size:12px">Legal hold {{if .LegalHold}}<span class="badge state-on">ON</span>{{else}}<span class="badge state-off">off</span>{{end}}</span>
+      <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/s3/{{.Bucket}}/legal-hold" hx-vals='{"key":"{{.Meta.Key}}","prefix":"{{.KeyPrefix}}"{{if not .LegalHold}},"on":"1"{{end}}}' hx-target="#drawer-inner" hx-select="unset" hx-swap="innerHTML">{{if .LegalHold}}Release{{else}}Hold{{end}}</button>
+    </div>
+    {{with .Retention}}<p class="mini-note" style="margin:6px 0 0">Retained under {{.Mode}} until {{.Until}}.</p>{{end}}
+    <form class="ds-row" style="margin-top:6px" hx-post="{{.Prefix}}/s3/{{.Bucket}}/retention" hx-vals='{"key":"{{.Meta.Key}}","prefix":"{{.KeyPrefix}}"}' hx-target="#drawer-inner" hx-select="unset" hx-swap="innerHTML">
+      <select class="input" name="mode"><option>GOVERNANCE</option><option>COMPLIANCE</option></select>
+      <input class="input" name="until" type="date" required>
+      <button class="btn btn-outline btn-sm" type="submit">Retain</button>
+    </form>
+  </div>
+  {{end}}
 
   {{if .Versioned}}
   <div class="drawer-sec" hx-get="{{.Prefix}}/s3/{{.Bucket}}/versions?key={{.EncodedKey}}" hx-trigger="load" hx-target="this" hx-select="unset" hx-swap="innerHTML">
@@ -299,4 +391,32 @@
   </div>
 {{end}}</div>
 {{else}}<p class="mini-note" style="margin:0">No version history yet — overwrite or delete the object to grow one.</p>{{end}}
+{{end}}
+
+{{/* In-progress multipart uploads: each with the parts it holds so far and
+     an abort that frees them. The one S3 surface where invisible storage
+     becomes visible. */}}
+{{define "s3_mp_uploads"}}
+{{if .Uploads}}
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th>Key</th><th style="width:100px">Parts</th><th>Upload id</th><th style="width:130px">Started</th><th style="width:60px"></th></tr></thead>
+  <tbody>
+  {{range .Uploads}}
+    <tr>
+      <td class="mono sub">{{.Key}}</td>
+      <td class="sub num">{{len .Parts}}{{if .Parts}} · {{humanSize .Size}}{{end}}</td>
+      <td class="dim sub mono trunc" style="max-width:200px">{{.UploadID}}</td>
+      <td class="dim sub mono">{{.Initiated}}</td>
+      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Abort this upload" hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/abort-upload" hx-vals='{"key":"{{.Key}}","upload":"{{.UploadID}}"}' hx-target="closest div" hx-select="unset" hx-swap="innerHTML" hx-confirm="Abort the upload of {{.Key}}? Its {{len .Parts}} uploaded parts are discarded.">{{icon "trash"}}</button></div></td>
+    </tr>
+  {{end}}
+  </tbody>
+</table></div>
+{{else}}<p class="mini-note">None in progress. An upload that was started but never completed or aborted would sit here, holding its parts.</p>{{end}}
+{{end}}
+
+{{/* The create form's availability probe (HeadBucket). */}}
+{{define "s3_name_check"}}
+{{if .Taken}}<p class="mini-note" style="color:var(--destructive)">&ldquo;{{.Name}}&rdquo; already exists &mdash; creating it would be refused.</p>
+{{else}}<p class="mini-note cfn-valid">{{icon "check"}} &ldquo;{{.Name}}&rdquo; is available.</p>{{end}}
 {{end}}
