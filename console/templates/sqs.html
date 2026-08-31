@@ -108,6 +108,7 @@
                 </div>
                 {{else}}
                 <div class="field" style="margin-top:10px;max-width:180px"><label>Delay <span class="dim">seconds, optional</span></label><input class="input" name="delay" type="number" min="0" max="900" placeholder="0"></div>
+                {{template "cli" (printf "sqs send-message --queue-url http://ENDPOINT/000000000000/%s --message-body $body [--delay-seconds $delay] [--message-group-id $group]" .Queue)}}
                 {{end}}
                 {{template "attr_editor" .}}
                 <div class="send-foot">

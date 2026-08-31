@@ -248,3 +248,20 @@
   <button type="button" class="btn btn-outline btn-sm" @click="rows.push({k:'',v:''})">{{icon "plus"}} Add tag</button>
 </div>
 {{end}}
+
+{{/* Copy-as-CLI: a form annotates itself with the aws command it is about to
+     be, rendered live from the current field values by cliPreview (builder.js
+     documents the microformat). The tooltip is the honesty clause: the shown
+     command is the form's PRIMARY call; console conveniences layered around
+     it (a second call for a toggle, attribute rows) are not encoded. The dot
+     is the template string. */}}
+{{define "cli"}}
+<div class="cli" x-data="cliPreview({{printf "%q" .}})">
+  <button type="button" class="cli-btn" :class="open&&'on'" @click="open=!open; if(open)refresh()"
+          title="The aws CLI call this form maps to — run it against this endpoint and it does what submitting would">{{icon "terminal"}} cli</button>
+  <div class="cli-out" x-show="open" x-cloak>
+    <pre x-text="cmd"></pre>
+    <button type="button" class="icon-btn sm" title="Copy command" @click="copyCmd()">{{icon "copy"}}</button>
+  </div>
+</div>
+{{end}}

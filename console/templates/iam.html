@@ -260,6 +260,7 @@
               </div>
               <button class="btn btn-outline" type="submit">{{icon "plus"}} Attach</button>
             </div>
+            {{template "cli" (printf "iam attach-%s-policy --%s-name %s --policy-arn $arn" .P.Kind .P.Kind .P.Name)}}
           </form>
         </div>
       </div>
@@ -730,6 +731,9 @@
             <div class="field" style="width:150px"><label>Duration <span class="dim">s</span></label>
               <input class="input" name="duration" type="number" min="900" :max="m==='root' ? 900 : 43200" :value="m==='root' ? 900 : 3600"></div>
             <button class="btn" type="submit">{{icon "key"}} Mint credentials</button>
+          </div>
+          <div x-show="m==='assume-role'">
+            {{template "cli" "sts assume-role --role-arn arn:aws:iam::000000000000:role/$role --role-session-name $session [--duration-seconds $duration]"}}
           </div>
         </form>
         <div id="sts-out"></div>

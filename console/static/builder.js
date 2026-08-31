@@ -135,3 +135,61 @@
       dropRow: function (i) { this.rows.splice(i, 1); if (!this.rows.length) this.rows.push(blank()); this.sync(); },
     };
   };
+
+  /* cliPreview backs the copy-as-CLI affordance: a form annotates itself with
+     the aws command it is about to be, and this renders that command LIVE
+     from the form's current values. The microformat:
+       $field        - the field's value, shell-quoted (empty stays empty)
+       $field>text   - the literal text when the field is truthy (checkboxes)
+       [ ... ]       - dropped whole when any $field inside resolves empty
+       ENDPOINT      - the host the browser reached the console on, which is
+                       the same listener the CLI would target
+     Groups are lifted out to markers before any values go in, so a value
+     containing '$' or ']' cannot re-trigger parsing. */
+  window.cliPreview = function (tmpl) {
+    return {
+      open: false, cmd: "",
+      q: function (v) {
+        return /^[A-Za-z0-9_.:\/@=,*+-]+$/.test(v) ? v : "'" + v.replace(/'/g, "'\\''") + "'";
+      },
+      fieldVal: function (form, name) {
+        var el = form && form.elements[name];
+        if (!el) return "";
+        if (el.type === "checkbox") return el.checked ? (el.value || "true") : "";
+        return el.__cm ? el.__cm.getValue() : el.value;
+      },
+      subst: function (str, form, state) {
+        var self = this;
+        return str.replace(/\$([A-Za-z_][\w-]*)(>[^\s\]]+)?/g, function (m, name, lit) {
+          var v = self.fieldVal(form, name);
+          if (!v) { state.empty = true; return ""; }
+          return lit ? lit.slice(1) : self.q(v);
+        });
+      },
+      refresh: function () {
+        var form = this.$el.closest("form");
+        var s = tmpl.replace(/ENDPOINT/g, location.host);
+        var groups = [];
+        s = s.replace(/\[([^\]]*)\]/g, function (m, body) {
+          groups.push(body);
+          return "@@G" + (groups.length - 1) + "@@";
+        });
+        var outer = { empty: false };
+        s = this.subst(s, form, outer);
+        var self = this;
+        s = s.replace(/@@G(\d+)@@/g, function (m, i) {
+          var st = { empty: false };
+          var sub = self.subst(groups[+i], form, st);
+          return st.empty ? "" : sub;
+        });
+        this.cmd = ("aws --endpoint-url http://" + location.host + " " + s).replace(/\s+/g, " ").trim();
+      },
+      copyCmd: function () {
+        if (navigator.clipboard) navigator.clipboard.writeText(this.cmd);
+      },
+      init: function () {
+        var self = this, form = this.$el.closest("form");
+        if (form) form.addEventListener("input", function () { if (self.open) self.refresh(); });
+      },
+    };
+  };

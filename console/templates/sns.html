@@ -161,6 +161,7 @@
         <form hx-post="{{.Prefix}}/sns/{{.Topic}}/publish" hx-target="#sns-receipt" hx-select="unset" hx-swap="outerHTML">
           <div class="field" style="margin-bottom:10px"><label>Subject <span class="dim">optional</span></label><input class="input" name="subject" placeholder="Order shipped"></div>
           <div class="field"><label>Message</label><textarea name="message" data-editor rows="6" placeholder='{"orderId":"A-1042"}' required></textarea></div>
+          {{template "cli" (printf "sns publish --topic-arn arn:aws:sns:us-east-1:000000000000:%s --message $message [--subject $subject]" .Topic)}}
           {{template "attr_editor" .}}
           {{/* Count > 1 switches this form to PublishBatch — a different API,
                not a loop. SNS reports per-ENTRY failures, so a batch tells you

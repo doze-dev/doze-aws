@@ -333,3 +333,21 @@ test.describe('delete queue', () => {
     await expect(page.locator('.li', { hasText: name })).toHaveCount(0);
   });
 });
+
+// Copy-as-CLI: the send form shows the aws command it is about to be,
+// substituted live from the current field values against this endpoint.
+test('the composer renders its own aws CLI command live', async ({ page, request, uniqueName, setEditor }) => {
+  const queue = uniqueName('e2e-sqs-cli');
+  await createQueue(request, queue);
+  await page.goto(`sqs/${queue}`);
+  await openComposer(page);
+  await page.locator('.cli-btn').first().click();
+  const pre = page.locator('.cli-out pre').first();
+  await expect(pre).toContainText(`sqs send-message --queue-url http://127.0.0.1:14566/000000000000/${queue}`);
+  await expect(pre).not.toContainText('--delay-seconds');
+  await setEditor('textarea[name="body"]', '{"hello":"cli"}');
+  await page.locator('input[name="delay"]').fill('45');
+  await expect(pre).toContainText(`--message-body '{"hello":"cli"}'`);
+  await expect(pre).toContainText('--delay-seconds 45');
+  await expect(pre).toContainText('--endpoint-url http://127.0.0.1:14566');
+});

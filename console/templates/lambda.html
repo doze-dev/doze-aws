@@ -191,6 +191,7 @@
         <div class="panel lam-test"><div class="panel-h"><h2>{{icon "play"}} Test event</h2></div><div style="padding:14px 16px">
           <form x-data="{async:false}" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/invoke" hx-target="#invoke-result" hx-select="unset" hx-swap="innerHTML" hx-indicator="#invoke-spin">
             <textarea name="payload" data-editor="json" rows="10" placeholder='{"key":"value"}'>{"hello": "world"}</textarea>
+          {{template "cli" (printf "lambda invoke --function-name %s --payload $payload --cli-binary-format raw-in-base64-out /dev/stdout" .Fn.Name)}}
             <input type="hidden" name="async" :value="async">
             <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px">
               <label class="mini-check"><input type="checkbox" x-model="async"> async <span class="dim">(Event — exercises destinations/DLQ)</span></label>

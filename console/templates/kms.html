@@ -155,7 +155,8 @@
     </div></div>
     {{else}}
     <div class="panel"><div class="panel-h"><h2>{{icon "lock"}} Encrypt / decrypt</h2></div><div style="padding:14px 16px">
-      <form hx-post="{{.Prefix}}/kms/{{.Key.ID}}/encrypt" hx-target="#kms-crypto-out" hx-select="unset" hx-swap="innerHTML" style="margin-bottom:12px"><div class="field"><label>Plaintext → ciphertext</label><textarea name="plaintext" rows="2" placeholder="hello, world" required></textarea></div><div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Encrypt</button></div></form>
+      <form hx-post="{{.Prefix}}/kms/{{.Key.ID}}/encrypt" hx-target="#kms-crypto-out" hx-select="unset" hx-swap="innerHTML" style="margin-bottom:12px"><div class="field"><label>Plaintext → ciphertext</label><textarea name="plaintext" rows="2" placeholder="hello, world" required></textarea></div>
+      {{template "cli" (printf "kms encrypt --key-id %s --plaintext $plaintext --cli-binary-format raw-in-base64-out" .Key.ID)}}<div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Encrypt</button></div></form>
       <form hx-post="{{.Prefix}}/kms/{{.Key.ID}}/decrypt" hx-target="#kms-crypto-out" hx-select="unset" hx-swap="innerHTML"><div class="field"><label>Ciphertext (base64) → plaintext</label><textarea name="ciphertext" rows="2" placeholder="paste ciphertext…" required></textarea></div><div style="margin-top:8px;display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" type="submit">Decrypt</button></div></form>
       <div id="kms-crypto-out" style="margin-top:12px"></div>
     </div></div>

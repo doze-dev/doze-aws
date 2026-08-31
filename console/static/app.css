@@ -1756,3 +1756,12 @@ a.lo-card:hover { border-color: var(--accent); }
 .rb-head { display: flex; gap: 6px; font-size: 11px; font-weight: 600; color: var(--muted-foreground); margin-bottom: 4px; padding-right: 32px; }
 .rb-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
 .rb-row .input { font-size: 11px; padding: 4px 6px; min-width: 0; }
+
+/* Copy-as-CLI: a quiet terminal chip that unfolds into the command. It sits
+   inside forms, so the readout wraps rather than widening anything. */
+.cli { margin-top: 8px; }
+.cli-btn { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-family: var(--mono); border: 1px solid var(--border); border-radius: var(--radius); background: none; color: var(--muted-foreground); padding: 2px 8px; cursor: pointer; }
+.cli-btn.on, .cli-btn:hover { color: var(--foreground); border-color: var(--ring); }
+.cli-btn .ic { width: 12px; height: 12px; }
+.cli-out { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; }
+.cli-out pre { flex: 1; min-width: 0; margin: 0; font-family: var(--mono); font-size: 11px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; background: color-mix(in srgb, var(--muted) 40%, transparent); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; }

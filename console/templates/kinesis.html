@@ -104,6 +104,7 @@
               <div class="field">
                 <label>Data</label>
                 <textarea name="data" data-editor rows="5" placeholder='{"temp":21.5}' required></textarea>
+                {{template "cli" (printf "kinesis put-record --stream-name %s --partition-key $partitionKey --data $data --cli-binary-format raw-in-base64-out" .Stream)}}
               </div>
               {{/* Count > 1 switches this to PutRecords. A batch on a sharded
                    stream is not the same thing as pressing Put n times: it
