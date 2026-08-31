@@ -12,12 +12,27 @@
     <a class="li {{if eq .Sel "access"}}on{{end}}" href="{{.Prefix}}/iam">
       <span class="nm">{{icon "activity"}} Access log</span>
     </a>
+    <a class="li {{if eq .Sel "account"}}on{{end}}" href="{{.Prefix}}/iam/account">
+      <span class="nm">{{icon "settings"}} Account</span>
+    </a>
     <div class="side-label">Principals</div>
     {{range .Principals}}
     <a class="li {{if eq .ARN $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/{{.Kind}}/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
       <span class="nm">{{.Name}}</span><span class="sb">{{.Kind}}</span>
     </a>
     {{end}}
+    {{if .NavGroups}}<div class="side-label">Groups</div>
+    {{range .NavGroups}}
+    <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/group/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+      <span class="nm">{{.Name}}</span><span class="sb">group</span>
+    </a>
+    {{end}}{{end}}
+    {{if .NavProfiles}}<div class="side-label">Instance profiles</div>
+    {{range .NavProfiles}}
+    <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/profile/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+      <span class="nm">{{.Name}}</span><span class="sb">profile</span>
+    </a>
+    {{end}}{{end}}
     <div class="side-label">Customer policies</div>
     {{range .Policies}}
     <a class="li {{if eq .ARN $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/policy?arn={{.ARN}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
@@ -34,7 +49,7 @@
 {{/* ---- Access log: the reason to open IAM locally at all ---- */}}
 
 {{define "iam_home"}}{{template "shell_top" .}}
-  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "Sel" "access")}}
+  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" "access")}}
   <section class="detail">
     <div class="det-h">
       <div class="det-title">{{awsIcon "iam"}} Access log</div>
@@ -99,12 +114,24 @@
         <div class="panel">
           <div class="panel-h"><h2>{{icon "search"}} Simulate</h2></div>
           <div style="padding:14px 16px">
-            <form hx-post="{{.Prefix}}/iam/simulate" hx-target="#iam-sim" hx-select="unset" hx-swap="outerHTML">
-              <div class="field" style="margin-bottom:10px">
+            <form hx-post="{{.Prefix}}/iam/simulate" hx-target="#iam-sim" hx-select="unset" hx-swap="outerHTML"
+                  x-data="{draft:false}" x-effect="if(draft)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+              <div class="seg" style="margin-bottom:10px">
+                <button type="button" :class="!draft && 'on'" @click="draft=false">Principal</button>
+                <button type="button" :class="draft && 'on'" @click="draft=true">Draft policy</button>
+              </div>
+              <div class="field" style="margin-bottom:10px" x-show="!draft">
                 <label>Principal</label>
-                <select class="input mono sub" name="principal">
+                <select class="input mono sub" name="principal" :disabled="draft">
                   {{range .Principals}}<option value="{{.ARN}}">{{.Name}} <span>({{.Kind}})</span></option>{{end}}
                 </select>
+              </div>
+              {{/* SimulateCustomPolicy: check a document that exists nowhere
+                   yet — the one thing the principal simulator cannot do. */}}
+              <div class="field" style="margin-bottom:10px" x-show="draft" x-cloak>
+                <label>Draft policy document</label>
+                <textarea name="document" data-editor rows="8" spellcheck="false" x-bind:disabled="!draft"></textarea>
+                <div class="mini-note">Evaluated as-if attached — check a policy BEFORE creating it.</div>
               </div>
               <div class="field" style="margin-bottom:10px">
                 <label>Actions <span class="dim">comma or space separated</span></label>
@@ -139,6 +166,7 @@
 <div id="iam-sim">
 {{if .Err}}<div class="err">{{.Err}}</div>
 {{else if .Results}}
+  {{if .CtxKeys}}<p class="mini-note" style="margin:10px 0 0">Condition keys referenced: {{range $i, $k := .CtxKeys}}{{if $i}}, {{end}}<span class="mono">{{$k}}</span>{{end}} — the simulation supplies the runtime set; anything else evaluates false.</p>{{end}}
   <div class="table-wrap" style="margin-top:12px"><table class="tbl">
     <thead><tr><th>Action</th><th>Resource</th><th style="width:90px">Decision</th><th style="width:190px">Matched by</th></tr></thead>
     <tbody>
@@ -162,7 +190,7 @@
 {{/* ---- A principal and its effective permissions ---- */}}
 
 {{define "iam_principal"}}{{template "shell_top" .}}
-  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "Sel" .P.ARN)}}
+  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" .P.ARN)}}
   <section class="detail">
     <div class="det-h">
       <div class="det-title">{{awsIcon "iam"}} {{.P.Name}}
@@ -225,8 +253,52 @@
 
       {{if eq .P.Kind "role"}}
       <div class="sec-title">Trust policy <span class="dim">— who may assume this role</span></div>
-      <div class="panel"><div class="code-out"><pre>{{.P.Trust}}</pre></div></div>
+      {{/* Editable at last (UpdateAssumeRolePolicy) — the trust was set at
+           create and frozen ever after. */}}
+      <div class="panel" x-data="{edit:false}" x-effect="if(edit)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+        <div class="panel-h"><h2>{{icon "braces"}} Document</h2>
+          <button type="button" class="btn btn-outline btn-sm" @click="edit=!edit" x-text="edit ? 'Cancel' : 'Edit'"></button></div>
+        <div x-show="!edit"><div class="code-out"><pre>{{.P.Trust}}</pre></div></div>
+        <div x-show="edit" x-cloak style="padding:14px 16px">
+          <form hx-post="{{.Prefix}}/iam/role/{{.P.Name}}/trust">
+            <textarea name="document" data-editor rows="10">{{.P.Trust}}</textarea>
+            <div class="fr-btn"><button class="btn" type="submit">Save trust policy</button></div>
+          </form>
+        </div>
+      </div>
+
+      <div class="sec-title">Role settings</div>
+      <div class="panel"><div class="form-b">
+        <form hx-post="{{.Prefix}}/iam/role/{{.P.Name}}/meta">
+          <div class="ex-grid" style="align-items:end">
+            <div class="field" style="flex:1"><label>Description</label><input class="input" name="description" value="{{.Description}}"></div>
+            <div class="field" style="width:150px"><label>Max session <span class="dim">s</span></label><input class="input" name="session" type="number" min="3600" max="43200" value="{{if .MaxSession}}{{.MaxSession}}{{else}}3600{{end}}"></div>
+            <button class="btn btn-outline btn-sm" type="submit">Save</button>
+          </div>
+        </form>
+      </div></div>
+
+      <div class="sec-title">Instance profiles <span class="dim">— how EC2-shaped things would carry this role</span></div>
+      <div class="chips" style="margin-bottom:8px">
+        {{range .RoleProfiles}}<a class="badge type" href="{{$.Prefix}}/iam/profile/{{.Name}}">{{.Name}}</a>{{else}}<span class="mini-note">In no instance profile.</span>{{end}}
+      </div>
       {{end}}
+
+      {{if eq .P.Kind "user"}}
+      <div class="sec-title">Groups <span class="dim">— permissions this user inherits</span></div>
+      <div class="chips" style="margin-bottom:8px">
+        {{range .Groups}}<a class="badge type" href="{{$.Prefix}}/iam/group/{{.}}">{{.}}</a>{{else}}<span class="mini-note">In no group.</span>{{end}}
+      </div>
+      {{if .AllGroups}}
+      <form class="ex-grid" style="align-items:end;margin-bottom:4px" hx-post="{{.Prefix}}/iam/user/{{.P.Name}}/join-group">
+        <div class="field" style="width:220px"><label>Add to group</label>
+          <select class="input" name="group">{{range .AllGroups}}<option>{{.Name}}</option>{{end}}</select></div>
+        <button class="btn btn-outline btn-sm" type="submit">Add</button>
+      </form>
+      {{end}}
+      {{end}}
+
+      {{template "tags_panel" dict "Prefix" .Prefix "Svc" (printf "iam-%s" .P.Kind) "ID" .P.Name}}
 
       {{/* Inline policies are how permissions are most often granted locally:
            one document on one principal, nothing to attach. Each edits in
@@ -292,18 +364,30 @@
       {{if eq .P.Kind "user"}}
       <div class="sec-title">Access keys</div>
       <div class="table-wrap"><table class="tbl">
-        <thead><tr><th style="width:260px">Key ID</th><th style="width:110px">Status</th><th>Created</th><th style="width:40px"></th></tr></thead>
+        <thead><tr><th style="width:240px">Key ID</th><th style="width:100px">Status</th><th style="width:130px">Last used</th><th>Created</th><th style="width:80px"></th></tr></thead>
         <tbody>
         {{range .Keys}}
           <tr>
-            <td class="mono sub">{{.ID}}</td><td><span class="chip">{{.Status}}</span></td>
+            <td class="mono sub">{{.ID}}</td><td><span class="chip {{if ne .Status "Active"}}bad{{end}}">{{.Status}}</span></td>
+            <td class="dim sub">{{if .LastUsed}}{{.LastUsed}}{{else}}never{{end}}</td>
             <td class="dim sub">{{.Created}}</td>
-            <td class="right">
+            <td class="right"><div class="cs-acts">
+              {{/* Deactivating is the revoke-without-deleting step of a
+                   rotation (UpdateAccessKey). */}}
+              <form hx-post="{{$.Prefix}}/iam/user/{{$.P.Name}}/keys/toggle">
+                <input type="hidden" name="id" value="{{.ID}}">
+                {{if eq .Status "Active"}}
+                <button class="icon-btn sm" title="Deactivate — requests signed with it are refused">{{icon "x"}}</button>
+                {{else}}
+                <input type="hidden" name="active" value="1">
+                <button class="icon-btn sm" title="Re-activate">{{icon "check"}}</button>
+                {{end}}
+              </form>
               <form hx-post="{{$.Prefix}}/iam/user/{{$.P.Name}}/keys/delete" hx-confirm="Delete key {{.ID}}?">
                 <input type="hidden" name="id" value="{{.ID}}">
                 <button class="icon-btn sm danger" title="Delete key">{{icon "trash"}}</button>
               </form>
-            </td>
+            </div></td>
           </tr>
         {{else}}
           <tr><td colspan="4" class="mini-note">No access keys. Locally any credentials are accepted unless IAM is enforcing, so a user without keys still works.</td></tr>
@@ -326,7 +410,7 @@
 {{/* ---- One managed policy ---- */}}
 
 {{define "iam_policy"}}{{template "shell_top" .}}
-  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "Sel" .ARN)}}
+  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" .ARN)}}
   <section class="detail">
     <div class="det-h">
       <div class="det-title">{{awsIcon "iam"}} {{.Name}}</div>
@@ -341,6 +425,60 @@
     <div class="det-b">
       <div class="sec-title">Document <span class="dim">— default version</span></div>
       <div class="panel"><div class="code-out" style="max-height:none"><pre>{{.Document}}</pre></div></div>
+
+      {{with .Entities}}{{if or .Users .Roles .Groups}}
+      <div class="sec-title">Attached to <span class="dim">— the blast radius of an edit</span></div>
+      <div class="chips" style="margin-bottom:4px">
+        {{range .Users}}<a class="badge type" href="{{$.Prefix}}/iam/user/{{.}}">{{.}}</a>{{end}}
+        {{range .Roles}}<a class="badge type" href="{{$.Prefix}}/iam/role/{{.}}">{{.}}</a>{{end}}
+        {{range .Groups}}<a class="badge type" href="{{$.Prefix}}/iam/group/{{.}}">{{.}}</a>{{end}}
+      </div>
+      {{end}}{{end}}
+
+      {{/* Versions: a managed policy edits by PUBLISHING, and rolls back by
+           re-pointing the default — never by mutating in place. */}}
+      <div class="sec-title">Versions</div>
+      <div class="table-wrap"><table class="tbl">
+        <thead><tr><th style="width:90px">Version</th><th style="width:110px"></th><th>Created</th><th style="width:150px"></th></tr></thead>
+        <tbody>
+        {{range .Versions}}
+          <tr>
+            <td class="mono sub">{{.ID}}</td>
+            <td>{{if .Default}}<span class="badge state-on">default</span>{{end}}</td>
+            <td class="dim sub">{{.Created}}</td>
+            <td><div class="cs-acts">
+              {{if not .Default}}
+              <form hx-post="{{$.Prefix}}/iam/policy/set-default" hx-confirm="Make {{.ID}} the default? Every attachment evaluates it from the next request on.">
+                <input type="hidden" name="arn" value="{{$.ARN}}"><input type="hidden" name="version" value="{{.ID}}">
+                <button class="btn btn-outline btn-sm" type="submit">Make default</button>
+              </form>
+              <form hx-post="{{$.Prefix}}/iam/policy/delete-version" hx-confirm="Delete version {{.ID}}?">
+                <input type="hidden" name="arn" value="{{$.ARN}}"><input type="hidden" name="version" value="{{.ID}}">
+                <button class="icon-btn sm danger" title="Delete version {{.ID}}">{{icon "trash"}}</button>
+              </form>
+              {{end}}
+            </div></td>
+          </tr>
+        {{end}}
+        </tbody>
+      </table></div>
+
+      <div class="panel" x-data="{open:false}" x-effect="if(open)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+        <div class="panel-h"><h2>{{icon "plus"}} New version</h2>
+          <button type="button" class="btn btn-outline btn-sm" @click="open=!open" x-text="open ? 'Cancel' : 'Edit as new version'"></button></div>
+        <div x-show="open" x-cloak style="padding:14px 16px">
+          <form hx-post="{{.Prefix}}/iam/policy/new-version">
+            <input type="hidden" name="arn" value="{{.ARN}}">
+            <textarea name="document" data-editor rows="12">{{.Document}}</textarea>
+            <div class="ds-row" style="justify-content:space-between;margin-top:10px">
+              <label class="bb-txn"><input type="checkbox" name="default" value="1" checked> set as default</label>
+              <button class="btn" type="submit">Publish version</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {{template "tags_panel" dict "Prefix" .Prefix "Svc" "iam-policy" "ID" .ARN}}
     </div>
   </section>
 {{template "shell_bottom" .}}{{end}}
@@ -348,16 +486,18 @@
 {{/* ---- Create ---- */}}
 
 {{define "iam_create"}}{{template "shell_top" .}}
-  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "Sel" "")}}
+  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" "")}}
   <section class="detail">
     <div class="det-h"><div class="det-title">{{awsIcon "iam"}} New</div></div>
     <div class="det-b" x-data="{kind:'{{if .Kind}}{{.Kind}}{{else}}user{{end}}'}">
-      {{/* The three things worth making locally. A group is a way to manage
-           permissions at scale, which is not the local problem. */}}
+      {{/* Everything IAM can hold. */}}
       <div class="seg" style="margin-bottom:14px">
         <button type="button" :class="kind==='user' && 'on'" @click="kind='user'">{{icon "user"}} User</button>
         <button type="button" :class="kind==='role' && 'on'" @click="kind='role'">{{icon "shield"}} Role</button>
         <button type="button" :class="kind==='policy' && 'on'" @click="kind='policy'">{{icon "braces"}} Policy</button>
+        <button type="button" :class="kind==='group' && 'on'" @click="kind='group'">{{icon "user"}} Group</button>
+        <button type="button" :class="kind==='profile' && 'on'" @click="kind='profile'">{{icon "box"}} Instance profile</button>
+        <button type="button" :class="kind==='slr' && 'on'" @click="kind='slr'">{{icon "link"}} Service-linked</button>
       </div>
 
       <div class="panel" style="max-width:720px">
@@ -366,10 +506,13 @@
             <input type="hidden" name="kind" :value="kind">
 
             <div class="field" style="margin-bottom:12px">
-              <label>Name</label>
+              <label x-text="kind==='slr' ? 'AWS service' : 'Name'"></label>
               <input class="input" name="name" required autofocus autocomplete="off"
-                     :placeholder="kind==='user' ? 'app-user' : kind==='role' ? 'lambda-exec' : 's3-read'">
+                     :placeholder="kind==='user' ? 'app-user' : kind==='role' ? 'lambda-exec' : kind==='policy' ? 's3-read' : kind==='group' ? 'developers' : kind==='profile' ? 'web-servers' : 'autoscaling.amazonaws.com'">
             </div>
+            <p class="mini-note" x-show="kind==='group'" x-cloak>A group holds users; policies attached to it apply to every member.</p>
+            <p class="mini-note" x-show="kind==='profile'" x-cloak>An instance profile is how an EC2-shaped thing carries a role; add the role from the profile's page.</p>
+            <p class="mini-note" x-show="kind==='slr'" x-cloak>The service owns the role and its name (CreateServiceLinkedRole); you name only the service.</p>
 
             <div class="field" x-show="kind==='role'" x-cloak>
               <label>Trust policy <span class="dim">who may assume this role</span></label>
@@ -396,3 +539,135 @@
     </div>
   </section>
 {{template "shell_bottom" .}}{{end}}
+
+{{/* ---- One group: members, policies, tags ---- */}}
+
+{{define "iam_group"}}{{template "shell_top" .}}
+  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" .G.Name)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "iam"}} {{.G.Name}} <span class="badge type">group</span>
+        <div class="acts">
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/iam/group/{{.G.Name}}/delete" hx-confirm="Delete group “{{.G.Name}}”? Members keep their own permissions; they lose the group's.">{{icon "trash"}} Delete</button>
+        </div>
+      </div>
+      <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .G.ARN}}<span class="chip">created {{.G.Created}}</span></div>
+    </div>
+    <div class="det-b">
+      <div class="sec-title">Members <span class="dim">— every policy on this group applies to each of them</span></div>
+      <div class="chips" style="margin-bottom:8px">
+        {{range .G.Members}}<span class="badge type ver-stage"><a href="{{$.Prefix}}/iam/user/{{.}}" style="color:inherit">{{.}}</a><button type="button" class="lbl-x" title="Remove {{.}} from the group" hx-post="{{$.Prefix}}/iam/group/{{$.G.Name}}/member" hx-vals='{"user":"{{.}}","remove":"1"}' hx-confirm="Remove {{.}} from {{$.G.Name}}?">&times;</button></span>
+        {{else}}<span class="mini-note">No members yet.</span>{{end}}
+      </div>
+      <form class="ex-grid" style="align-items:end" hx-post="{{.Prefix}}/iam/group/{{.G.Name}}/member">
+        <div class="field" style="width:220px"><label>Add member</label>
+          <select class="input" name="user">{{range .Principals}}{{if eq .Kind "user"}}<option>{{.Name}}</option>{{end}}{{end}}</select></div>
+        <button class="btn btn-outline btn-sm" type="submit">Add</button>
+      </form>
+
+      <div class="sec-title">Attached policies</div>
+      <div class="table-wrap"><table class="tbl">
+        <thead><tr><th style="width:240px">Name</th><th>ARN</th><th style="width:40px"></th></tr></thead>
+        <tbody>
+        {{range .Attached}}
+          <tr>
+            <td class="mono sub">{{if .AWSManaged}}{{.Name}}{{else}}<a href="{{$.Prefix}}/iam/policy?arn={{.ARN}}">{{.Name}}</a>{{end}}</td>
+            <td class="mono dim sub trunc" style="max-width:420px">{{.ARN}}</td>
+            <td class="right"><form hx-post="{{$.Prefix}}/iam/group/{{$.G.Name}}/detach" hx-confirm="Detach {{.Name}}?"><input type="hidden" name="arn" value="{{.ARN}}"><button class="icon-btn sm danger" title="Detach">{{icon "x"}}</button></form></td>
+          </tr>
+        {{else}}<tr><td colspan="3" class="mini-note">No managed policies attached.</td></tr>{{end}}
+        </tbody>
+      </table></div>
+      <form class="ex-grid" style="align-items:end" hx-post="{{.Prefix}}/iam/group/{{.G.Name}}/attach">
+        <div class="field" style="flex:1"><label>Attach a policy</label>
+          <select class="input mono sub" name="arn">{{range .Policies}}<option value="{{.ARN}}">{{.Name}}</option>{{end}}
+            <option value="arn:aws:iam::aws:policy/ReadOnlyAccess">ReadOnlyAccess (AWS managed)</option></select></div>
+        <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Attach</button>
+      </form>
+
+      <div class="sec-title">Rename</div>
+      <form class="ex-grid" style="align-items:end;max-width:420px" hx-post="{{.Prefix}}/iam/group/{{.G.Name}}/rename" hx-confirm="Rename the group? References by name elsewhere do not follow.">
+        <div class="field" style="flex:1"><label>New name</label><input class="input" name="new" value="{{.G.Name}}" required></div>
+        <button class="btn btn-outline btn-sm" type="submit">Rename</button>
+      </form>
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{/* ---- One instance profile: the roles it carries ---- */}}
+
+{{define "iam_profile"}}{{template "shell_top" .}}
+  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" .IP.Name)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "iam"}} {{.IP.Name}} <span class="badge type">instance profile</span>
+        <div class="acts">
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/iam/profile/{{.IP.Name}}/delete" hx-confirm="Delete instance profile “{{.IP.Name}}”? Remove its role first if one is attached.">{{icon "trash"}} Delete</button>
+        </div>
+      </div>
+      <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .IP.ARN}}<span class="chip">created {{.IP.Created}}</span></div>
+    </div>
+    <div class="det-b">
+      <div class="sec-title">Role <span class="dim">— what an instance with this profile becomes</span></div>
+      <div class="chips" style="margin-bottom:8px">
+        {{range .IP.Roles}}<span class="badge type ver-stage"><a href="{{$.Prefix}}/iam/role/{{.}}" style="color:inherit">{{.}}</a><button type="button" class="lbl-x" title="Remove {{.}}" hx-post="{{$.Prefix}}/iam/profile/{{$.IP.Name}}/role" hx-vals='{"role":"{{.}}","remove":"1"}' hx-confirm="Remove role {{.}} from the profile?">&times;</button></span>
+        {{else}}<span class="mini-note">Empty — an instance with this profile has no permissions.</span>{{end}}
+      </div>
+      {{if not .IP.Roles}}
+      <form class="ex-grid" style="align-items:end" hx-post="{{.Prefix}}/iam/profile/{{.IP.Name}}/role">
+        <div class="field" style="width:240px"><label>Add role</label>
+          <select class="input" name="role">{{range .Principals}}{{if eq .Kind "role"}}<option>{{.Name}}</option>{{end}}{{end}}</select></div>
+        <button class="btn btn-outline btn-sm" type="submit">Add</button>
+      </form>
+      <p class="mini-note">A profile holds at most one role, as in AWS.</p>
+      {{end}}
+      {{template "tags_panel" dict "Prefix" .Prefix "Svc" "iam-profile" "ID" .IP.Name}}
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{/* ---- The account itself ---- */}}
+
+{{define "iam_account"}}{{template "shell_top" .}}
+  {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" "account")}}
+  <section class="detail">
+    <div class="det-h"><div class="det-title">{{awsIcon "iam"}} Account</div></div>
+    <div class="det-b">
+      {{with .Summary}}
+      <div class="sec-title" style="margin-top:0">Summary <span class="dim">— GetAccountSummary, live</span></div>
+      <div class="factstrip">
+        <div class="fact"><div class="fx-k">Users</div><div class="fx-v num">{{.Users}}</div></div>
+        <div class="fact"><div class="fx-k">Roles</div><div class="fx-v num">{{.Roles}}</div></div>
+        <div class="fact"><div class="fx-k">Groups</div><div class="fx-v num">{{.Groups}}</div></div>
+        <div class="fact"><div class="fx-k">Policies</div><div class="fx-v num">{{.Policies}}</div></div>
+      </div>
+      {{end}}
+
+      <div class="sec-title">Account alias <span class="dim">— the name sign-in URLs would carry</span></div>
+      <div class="chips" style="margin-bottom:8px">
+        {{range .Aliases}}<span class="badge type ver-stage">{{.}}<button type="button" class="lbl-x" title="Remove alias" hx-post="{{$.Prefix}}/iam/account/alias" hx-vals='{"delete":"{{.}}"}'>&times;</button></span>
+        {{else}}<span class="mini-note">None set.</span>{{end}}
+      </div>
+      <form class="ex-grid" style="align-items:end;max-width:420px" hx-post="{{.Prefix}}/iam/account/alias">
+        <div class="field" style="flex:1"><label>Set alias</label><input class="input mono" name="alias" placeholder="my-team" required pattern="[a-z0-9][a-z0-9\-]*" spellcheck="false"></div>
+        <button class="btn btn-outline btn-sm" type="submit">Set</button>
+      </form>
+
+      {{if .PasswordPolicy}}
+      <div class="sec-title">Password policy</div>
+      <p class="mini-note">{{.PasswordPolicy}} — read-only: nothing local logs in with a password, so this is a fact, not a control.</p>
+      {{end}}
+
+      <div class="sec-title">Authorization details <span class="dim">— the whole IAM database in one read</span></div>
+      <div hx-post="{{.Prefix}}/iam/account/details" hx-trigger="click from:find button" hx-target="#iam-auth-out" hx-select="unset" hx-swap="innerHTML">
+        <button type="button" class="btn btn-outline btn-sm">{{icon "download"}} Load the export</button>
+        <p class="mini-note">GetAccountAuthorizationDetails: every user, role, group and policy with documents attached — what an auditor pulls first.</p>
+      </div>
+      <div id="iam-auth-out"></div>
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{define "iam_auth_details"}}
+<div class="panel sub-panel"><div class="code-out" style="max-height:420px"><pre>{{.Raw}}</pre></div></div>
+{{end}}

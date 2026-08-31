@@ -39,6 +39,11 @@ func (b *backend) tagARN(svc, id string) string {
 
 // ResourceTags reads a resource's tags as a sorted key/value list.
 func (b *backend) ResourceTags(ctx context.Context, svc, id string) ([]KV, error) {
+	// IAM entities carry their kind in the svc key ("iam-user" etc.) and go
+	// through the ListXxxTags family directly.
+	if kind, ok := strings.CutPrefix(svc, "iam-"); ok {
+		return b.IAMTags(ctx, kind, id)
+	}
 	m := map[string]string{}
 	var err error
 	switch svc {
@@ -159,6 +164,9 @@ func (b *backend) ResourceTags(ctx context.Context, svc, id string) ([]KV, error
 
 // SetResourceTag sets (or overwrites) one tag.
 func (b *backend) SetResourceTag(ctx context.Context, svc, id, key, value string) error {
+	if kind, ok := strings.CutPrefix(svc, "iam-"); ok {
+		return b.SetIAMTag(ctx, kind, id, key, value)
+	}
 	switch svc {
 	case "kinesis":
 		_, err := b.kinesis(ctx, "AddTagsToStream", map[string]any{
@@ -211,6 +219,9 @@ func (b *backend) SetResourceTag(ctx context.Context, svc, id, key, value string
 
 // RemoveResourceTag deletes one tag by key.
 func (b *backend) RemoveResourceTag(ctx context.Context, svc, id, key string) error {
+	if kind, ok := strings.CutPrefix(svc, "iam-"); ok {
+		return b.RemoveIAMTag(ctx, kind, id, key)
+	}
 	switch svc {
 	case "kinesis":
 		_, err := b.kinesis(ctx, "RemoveTagsFromStream", map[string]any{

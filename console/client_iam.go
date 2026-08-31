@@ -13,9 +13,13 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // Principal is a user or a role.
@@ -85,7 +89,15 @@ func (b *backend) iam(ctx context.Context, action string, extra url.Values) ([]b
 	for k, vals := range extra {
 		v[k] = vals
 	}
-	return b.queryXML(ctx, v)
+	// Signed with the SigV4-shaped credential scope: the gateway's Query
+	// action table stops short of IAM's long tail (the context-keys pair,
+	// instance-profile tags), and a real SDK's signature names the service
+	// anyway — so the console's does too.
+	req, _ := http.NewRequestWithContext(ctx, "POST", b.base+"/", strings.NewReader(v.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Authorization",
+		"AWS4-HMAC-SHA256 Credential=test/20260101/"+awsident.Region+"/iam/aws4_request")
+	return b.do(req)
 }
 
 // prettyPolicy reformats a policy document for display. IAM returns documents
@@ -179,8 +191,11 @@ func (b *backend) Principal(ctx context.Context, kind, name string) (*Principal,
 // AttachedPolicies lists the managed policies on a principal.
 func (b *backend) AttachedPolicies(ctx context.Context, kind, name string) ([]PolicyRef, error) {
 	action, key := "ListAttachedUserPolicies", "UserName"
-	if kind == "role" {
+	switch kind {
+	case "role":
 		action, key = "ListAttachedRolePolicies", "RoleName"
+	case "group":
+		action, key = "ListAttachedGroupPolicies", "GroupName"
 	}
 	body, err := b.iam(ctx, action, url.Values{key: {name}})
 	if err != nil {
@@ -501,8 +516,11 @@ func (b *backend) CreatePolicy(ctx context.Context, name, document string) error
 // by whether the principal is a user or a role.
 func (b *backend) AttachPolicy(ctx context.Context, kind, name, policyARN string) error {
 	action, key := "AttachUserPolicy", "UserName"
-	if kind == "role" {
+	switch kind {
+	case "role":
 		action, key = "AttachRolePolicy", "RoleName"
+	case "group":
+		action, key = "AttachGroupPolicy", "GroupName"
 	}
 	_, err := b.iam(ctx, action, url.Values{key: {name}, "PolicyArn": {policyARN}})
 	return awsMessage(err)
@@ -510,8 +528,11 @@ func (b *backend) AttachPolicy(ctx context.Context, kind, name, policyARN string
 
 func (b *backend) DetachPolicy(ctx context.Context, kind, name, policyARN string) error {
 	action, key := "DetachUserPolicy", "UserName"
-	if kind == "role" {
+	switch kind {
+	case "role":
 		action, key = "DetachRolePolicy", "RoleName"
+	case "group":
+		action, key = "DetachGroupPolicy", "GroupName"
 	}
 	_, err := b.iam(ctx, action, url.Values{key: {name}, "PolicyArn": {policyARN}})
 	return awsMessage(err)
@@ -576,4 +597,650 @@ func (b *backend) DeleteInlinePolicy(ctx context.Context, kind, name, policyName
 	}
 	_, err := b.iam(ctx, action, url.Values{key: {name}, "PolicyName": {policyName}})
 	return awsMessage(err)
+}
+
+// ---- groups, instance profiles, entity updates: wave one of the burn-down ----
+
+// IAMGroup is one group, with its member count resolved for the listing.
+type IAMGroup struct {
+	Name, ARN, Created string
+	Members            []string
+}
+
+// ListIAMGroups lists every group (ListGroups), members unresolved.
+func (b *backend) ListIAMGroups(ctx context.Context) ([]IAMGroup, error) {
+	body, err := b.iam(ctx, "ListGroups", nil)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Groups []struct {
+			GroupName  string `xml:"GroupName"`
+			Arn        string `xml:"Arn"`
+			CreateDate string `xml:"CreateDate"`
+		} `xml:"ListGroupsResult>Groups>member"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	groups := make([]IAMGroup, 0, len(out.Groups))
+	for _, g := range out.Groups {
+		groups = append(groups, IAMGroup{Name: g.GroupName, ARN: g.Arn, Created: shortTime(g.CreateDate)})
+	}
+	sort.Slice(groups, func(i, j int) bool { return groups[i].Name < groups[j].Name })
+	return groups, nil
+}
+
+// GetIAMGroup reads one group with its members (GetGroup returns both).
+func (b *backend) GetIAMGroup(ctx context.Context, name string) (*IAMGroup, error) {
+	body, err := b.iam(ctx, "GetGroup", url.Values{"GroupName": {name}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Group struct {
+			GroupName  string `xml:"GroupName"`
+			Arn        string `xml:"Arn"`
+			CreateDate string `xml:"CreateDate"`
+		} `xml:"GetGroupResult>Group"`
+		Users []struct {
+			UserName string `xml:"UserName"`
+		} `xml:"GetGroupResult>Users>member"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	g := &IAMGroup{Name: out.Group.GroupName, ARN: out.Group.Arn, Created: shortTime(out.Group.CreateDate)}
+	for _, u := range out.Users {
+		g.Members = append(g.Members, u.UserName)
+	}
+	sort.Strings(g.Members)
+	return g, nil
+}
+
+func (b *backend) CreateIAMGroup(ctx context.Context, name string) error {
+	_, err := b.iam(ctx, "CreateGroup", url.Values{"GroupName": {name}})
+	return err
+}
+
+func (b *backend) DeleteIAMGroup(ctx context.Context, name string) error {
+	_, err := b.iam(ctx, "DeleteGroup", url.Values{"GroupName": {name}})
+	return err
+}
+
+// RenameIAMGroup is UpdateGroup's useful half locally.
+func (b *backend) RenameIAMGroup(ctx context.Context, name, newName string) error {
+	_, err := b.iam(ctx, "UpdateGroup", url.Values{"GroupName": {name}, "NewGroupName": {newName}})
+	return err
+}
+
+func (b *backend) AddUserToGroup(ctx context.Context, group, user string) error {
+	_, err := b.iam(ctx, "AddUserToGroup", url.Values{"GroupName": {group}, "UserName": {user}})
+	return err
+}
+
+func (b *backend) RemoveUserFromGroup(ctx context.Context, group, user string) error {
+	_, err := b.iam(ctx, "RemoveUserFromGroup", url.Values{"GroupName": {group}, "UserName": {user}})
+	return err
+}
+
+// GroupsForUser answers the membership question from the user's side.
+func (b *backend) GroupsForUser(ctx context.Context, user string) ([]string, error) {
+	body, err := b.iam(ctx, "ListGroupsForUser", url.Values{"UserName": {user}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Groups []struct {
+			GroupName string `xml:"GroupName"`
+		} `xml:"ListGroupsForUserResult>Groups>member"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	var names []string
+	for _, g := range out.Groups {
+		names = append(names, g.GroupName)
+	}
+	sort.Strings(names)
+	return names, nil
+}
+
+// InstanceProfile is one instance profile with the roles it carries.
+type InstanceProfile struct {
+	Name, ARN, Created string
+	Roles              []string
+}
+
+func decodeProfiles(body []byte, path string) ([]InstanceProfile, error) {
+	// Both listing shapes share the member element; only the wrapper differs,
+	// so the caller names the result path and this decodes the members.
+	type profWire struct {
+		InstanceProfileName string `xml:"InstanceProfileName"`
+		Arn                 string `xml:"Arn"`
+		CreateDate          string `xml:"CreateDate"`
+		Roles               []struct {
+			RoleName string `xml:"RoleName"`
+		} `xml:"Roles>member"`
+	}
+	var la struct {
+		A []profWire `xml:"ListInstanceProfilesResult>InstanceProfiles>member"`
+		B []profWire `xml:"ListInstanceProfilesForRoleResult>InstanceProfiles>member"`
+	}
+	if err := xml.Unmarshal(body, &la); err != nil {
+		return nil, err
+	}
+	wires := la.A
+	if path == "role" {
+		wires = la.B
+	}
+	profiles := make([]InstanceProfile, 0, len(wires))
+	for _, p := range wires {
+		ip := InstanceProfile{Name: p.InstanceProfileName, ARN: p.Arn, Created: shortTime(p.CreateDate)}
+		for _, r := range p.Roles {
+			ip.Roles = append(ip.Roles, r.RoleName)
+		}
+		profiles = append(profiles, ip)
+	}
+	sort.Slice(profiles, func(i, j int) bool { return profiles[i].Name < profiles[j].Name })
+	return profiles, nil
+}
+
+func (b *backend) ListInstanceProfiles(ctx context.Context) ([]InstanceProfile, error) {
+	body, err := b.iam(ctx, "ListInstanceProfiles", nil)
+	if err != nil {
+		return nil, err
+	}
+	return decodeProfiles(body, "all")
+}
+
+func (b *backend) ProfilesForRole(ctx context.Context, role string) ([]InstanceProfile, error) {
+	body, err := b.iam(ctx, "ListInstanceProfilesForRole", url.Values{"RoleName": {role}})
+	if err != nil {
+		return nil, err
+	}
+	return decodeProfiles(body, "role")
+}
+
+func (b *backend) CreateInstanceProfile(ctx context.Context, name string) error {
+	_, err := b.iam(ctx, "CreateInstanceProfile", url.Values{"InstanceProfileName": {name}})
+	return err
+}
+
+func (b *backend) DeleteInstanceProfile(ctx context.Context, name string) error {
+	_, err := b.iam(ctx, "DeleteInstanceProfile", url.Values{"InstanceProfileName": {name}})
+	return err
+}
+
+// GetInstanceProfile reads one profile — the existence check the add-role
+// form's error path leans on.
+func (b *backend) GetInstanceProfile(ctx context.Context, name string) (*InstanceProfile, error) {
+	body, err := b.iam(ctx, "GetInstanceProfile", url.Values{"InstanceProfileName": {name}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		P struct {
+			InstanceProfileName string `xml:"InstanceProfileName"`
+			Arn                 string `xml:"Arn"`
+			CreateDate          string `xml:"CreateDate"`
+			Roles               []struct {
+				RoleName string `xml:"RoleName"`
+			} `xml:"Roles>member"`
+		} `xml:"GetInstanceProfileResult>InstanceProfile"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	ip := &InstanceProfile{Name: out.P.InstanceProfileName, ARN: out.P.Arn, Created: shortTime(out.P.CreateDate)}
+	for _, r := range out.P.Roles {
+		ip.Roles = append(ip.Roles, r.RoleName)
+	}
+	return ip, nil
+}
+
+func (b *backend) AddRoleToProfile(ctx context.Context, profile, role string) error {
+	_, err := b.iam(ctx, "AddRoleToInstanceProfile", url.Values{"InstanceProfileName": {profile}, "RoleName": {role}})
+	return err
+}
+
+func (b *backend) RemoveRoleFromProfile(ctx context.Context, profile, role string) error {
+	_, err := b.iam(ctx, "RemoveRoleFromInstanceProfile", url.Values{"InstanceProfileName": {profile}, "RoleName": {role}})
+	return err
+}
+
+// ---- entity updates the create forms never offered ----
+
+// RenamePrincipal renames a user or group-of-one-name; roles cannot be
+// renamed in IAM, matching AWS (UpdateUser carries NewUserName).
+func (b *backend) RenameUser(ctx context.Context, name, newName string) error {
+	_, err := b.iam(ctx, "UpdateUser", url.Values{"UserName": {name}, "NewUserName": {newName}})
+	return err
+}
+
+// UpdateRoleMeta writes a role's description and/or session duration
+// (UpdateRole); UpdateRoleDescriptionOnly uses the older single-field op the
+// SDK still ships.
+func (b *backend) UpdateRoleMeta(ctx context.Context, name, description string, maxSession int) error {
+	v := url.Values{"RoleName": {name}, "Description": {description}}
+	if maxSession > 0 {
+		v.Set("MaxSessionDuration", strconv.Itoa(maxSession))
+	}
+	_, err := b.iam(ctx, "UpdateRole", v)
+	return err
+}
+
+func (b *backend) UpdateRoleDescriptionOnly(ctx context.Context, name, description string) error {
+	_, err := b.iam(ctx, "UpdateRoleDescription", url.Values{"RoleName": {name}, "Description": {description}})
+	return err
+}
+
+// UpdateTrustPolicy replaces a role's assume-role document
+// (UpdateAssumeRolePolicy) — the study-3 leftover: the trust was set at
+// create and frozen ever after.
+func (b *backend) UpdateTrustPolicy(ctx context.Context, role, document string) error {
+	_, err := b.iam(ctx, "UpdateAssumeRolePolicy", url.Values{"RoleName": {role}, "PolicyDocument": {document}})
+	return err
+}
+
+// SetAccessKeyActive flips a key between Active and Inactive (UpdateAccessKey)
+// — the revoke-without-deleting step every rotation runbook has.
+func (b *backend) SetAccessKeyActive(ctx context.Context, user, keyID string, active bool) error {
+	status := "Inactive"
+	if active {
+		status = "Active"
+	}
+	_, err := b.iam(ctx, "UpdateAccessKey", url.Values{"UserName": {user}, "AccessKeyId": {keyID}, "Status": {status}})
+	return err
+}
+
+// AccessKeyLastUsed reads when a key last authenticated something
+// (GetAccessKeyLastUsed) — "" means never.
+func (b *backend) AccessKeyLastUsed(ctx context.Context, keyID string) string {
+	body, err := b.iam(ctx, "GetAccessKeyLastUsed", url.Values{"AccessKeyId": {keyID}})
+	if err != nil {
+		return ""
+	}
+	var out struct {
+		LastUsedDate string `xml:"GetAccessKeyLastUsedResult>AccessKeyLastUsed>LastUsedDate"`
+	}
+	if xml.Unmarshal(body, &out) != nil || out.LastUsedDate == "" {
+		return ""
+	}
+	return shortTime(out.LastUsedDate)
+}
+
+// GetIAMUser / GetIAMRole are the singular reads (GetUser / GetRole); the
+// principal page had been filtering the list.
+func (b *backend) GetIAMUser(ctx context.Context, name string) error {
+	_, err := b.iam(ctx, "GetUser", url.Values{"UserName": {name}})
+	return err
+}
+
+func (b *backend) GetIAMRole(ctx context.Context, name string) (description string, maxSession int, err error) {
+	body, err := b.iam(ctx, "GetRole", url.Values{"RoleName": {name}})
+	if err != nil {
+		return "", 0, err
+	}
+	var out struct {
+		Description        string `xml:"GetRoleResult>Role>Description"`
+		MaxSessionDuration int    `xml:"GetRoleResult>Role>MaxSessionDuration"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return "", 0, err
+	}
+	return out.Description, out.MaxSessionDuration, nil
+}
+
+// CreateServiceLinkedRole / DeleteServiceLinkedRole: the role variant a
+// service owns; the console offers it beside the ordinary kinds.
+func (b *backend) CreateServiceLinkedRole(ctx context.Context, service string) error {
+	_, err := b.iam(ctx, "CreateServiceLinkedRole", url.Values{"AWSServiceName": {service}})
+	return err
+}
+
+func (b *backend) DeleteServiceLinkedRole(ctx context.Context, role string) error {
+	_, err := b.iam(ctx, "DeleteServiceLinkedRole", url.Values{"RoleName": {role}})
+	return err
+}
+
+// ---- policy versions, entity tags, custom simulation: wave two ----
+
+// PolicyVersion is one version of a managed policy.
+type PolicyVersion struct {
+	ID, Created string
+	Default     bool
+}
+
+func (b *backend) PolicyVersions(ctx context.Context, arn string) ([]PolicyVersion, error) {
+	body, err := b.iam(ctx, "ListPolicyVersions", url.Values{"PolicyArn": {arn}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Versions []struct {
+			VersionId        string `xml:"VersionId"`
+			IsDefaultVersion bool   `xml:"IsDefaultVersion"`
+			CreateDate       string `xml:"CreateDate"`
+		} `xml:"ListPolicyVersionsResult>Versions>member"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	versions := make([]PolicyVersion, 0, len(out.Versions))
+	for _, v := range out.Versions {
+		versions = append(versions, PolicyVersion{ID: v.VersionId, Default: v.IsDefaultVersion, Created: shortTime(v.CreateDate)})
+	}
+	sort.Slice(versions, func(i, j int) bool { return versions[i].ID > versions[j].ID })
+	return versions, nil
+}
+
+// CreatePolicyVersion publishes an edited document as the next version,
+// optionally making it the default in the same call.
+func (b *backend) CreatePolicyVersion(ctx context.Context, arn, document string, setDefault bool) error {
+	v := url.Values{"PolicyArn": {arn}, "PolicyDocument": {document}}
+	if setDefault {
+		v.Set("SetAsDefault", "true")
+	}
+	_, err := b.iam(ctx, "CreatePolicyVersion", v)
+	return err
+}
+
+func (b *backend) DeletePolicyVersion(ctx context.Context, arn, versionID string) error {
+	_, err := b.iam(ctx, "DeletePolicyVersion", url.Values{"PolicyArn": {arn}, "VersionId": {versionID}})
+	return err
+}
+
+// SetDefaultPolicyVersion is the rollback: an old version becomes what every
+// attachment evaluates from the next request on.
+func (b *backend) SetDefaultPolicyVersion(ctx context.Context, arn, versionID string) error {
+	_, err := b.iam(ctx, "SetDefaultPolicyVersion", url.Values{"PolicyArn": {arn}, "VersionId": {versionID}})
+	return err
+}
+
+// PolicyEntities names everything a managed policy is attached to
+// (ListEntitiesForPolicy) — the blast radius before an edit or delete.
+type PolicyEntities struct {
+	Users, Roles, Groups []string
+}
+
+func (b *backend) PolicyEntities(ctx context.Context, arn string) (*PolicyEntities, error) {
+	body, err := b.iam(ctx, "ListEntitiesForPolicy", url.Values{"PolicyArn": {arn}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Users []struct {
+			UserName string `xml:"UserName"`
+		} `xml:"ListEntitiesForPolicyResult>PolicyUsers>member"`
+		Roles []struct {
+			RoleName string `xml:"RoleName"`
+		} `xml:"ListEntitiesForPolicyResult>PolicyRoles>member"`
+		Groups []struct {
+			GroupName string `xml:"GroupName"`
+		} `xml:"ListEntitiesForPolicyResult>PolicyGroups>member"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	e := &PolicyEntities{}
+	for _, u := range out.Users {
+		e.Users = append(e.Users, u.UserName)
+	}
+	for _, r := range out.Roles {
+		e.Roles = append(e.Roles, r.RoleName)
+	}
+	for _, g := range out.Groups {
+		e.Groups = append(e.Groups, g.GroupName)
+	}
+	return e, nil
+}
+
+// iamTagOps maps a console tag-kind onto its op family, each name spelled
+// out in full — composed names would call the right actions and be invisible
+// to the coverage ratchet's grep.
+var iamTagOps = map[string]struct{ list, tag, untag, field string }{
+	"user":    {"ListUserTags", "TagUser", "UntagUser", "UserName"},
+	"role":    {"ListRoleTags", "TagRole", "UntagRole", "RoleName"},
+	"policy":  {"ListPolicyTags", "TagPolicy", "UntagPolicy", "PolicyArn"},
+	"profile": {"ListInstanceProfileTags", "TagInstanceProfile", "UntagInstanceProfile", "InstanceProfileName"},
+}
+
+// IAMTags / SetIAMTag / RemoveIAMTag are ListXxxTags / TagXxx / UntagXxx for
+// users, roles, managed policies and instance profiles.
+func (b *backend) IAMTags(ctx context.Context, kind, id string) ([]KV, error) {
+	p, ok := iamTagOps[kind]
+	if !ok {
+		return nil, fmt.Errorf("unknown iam tag kind %q", kind)
+	}
+	body, err := b.iam(ctx, p.list, url.Values{p.field: {id}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Tags []struct {
+			Key   string `xml:"Key"`
+			Value string `xml:"Value"`
+		} `xml:"Tags>member"`
+	}
+	// The wrapper element name varies by op; a lax decode over the whole
+	// document keys off the unique Tags>member path instead.
+	type anyWrap struct {
+		Tags []struct {
+			Key   string `xml:"Key"`
+			Value string `xml:"Value"`
+		} `xml:"Tags>member"`
+	}
+	var lu struct {
+		U anyWrap `xml:"ListUserTagsResult"`
+		R anyWrap `xml:"ListRoleTagsResult"`
+		P anyWrap `xml:"ListPolicyTagsResult"`
+		I anyWrap `xml:"ListInstanceProfileTagsResult"`
+	}
+	if err := xml.Unmarshal(body, &lu); err != nil {
+		return nil, err
+	}
+	out.Tags = append(out.Tags, lu.U.Tags...)
+	out.Tags = append(out.Tags, lu.R.Tags...)
+	out.Tags = append(out.Tags, lu.P.Tags...)
+	out.Tags = append(out.Tags, lu.I.Tags...)
+	var tags []KV
+	for _, t := range out.Tags {
+		tags = append(tags, KV{K: t.Key, V: t.Value})
+	}
+	sort.Slice(tags, func(i, j int) bool { return tags[i].K < tags[j].K })
+	return tags, nil
+}
+
+func (b *backend) SetIAMTag(ctx context.Context, kind, id, key, value string) error {
+	p, ok := iamTagOps[kind]
+	if !ok {
+		return fmt.Errorf("unknown iam tag kind %q", kind)
+	}
+	v := url.Values{p.field: {id}}
+	v.Set("Tags.member.1.Key", key)
+	v.Set("Tags.member.1.Value", value)
+	_, err := b.iam(ctx, p.tag, v)
+	return err
+}
+
+func (b *backend) RemoveIAMTag(ctx context.Context, kind, id, key string) error {
+	p, ok := iamTagOps[kind]
+	if !ok {
+		return fmt.Errorf("unknown iam tag kind %q", kind)
+	}
+	v := url.Values{p.field: {id}}
+	v.Set("TagKeys.member.1", key)
+	_, err := b.iam(ctx, p.untag, v)
+	return err
+}
+
+// SimulateCustom evaluates a DRAFT policy document — one that exists nowhere
+// yet — against actions and a resource (SimulateCustomPolicy). Checking a
+// policy before creating it is the one thing the principal simulator cannot
+// do.
+func (b *backend) SimulateCustom(ctx context.Context, document string, actions []string, resource string) ([]SimResult, error) {
+	v := url.Values{"PolicyInputList.member.1": {document}}
+	for i, a := range actions {
+		v.Set(fmt.Sprintf("ActionNames.member.%d", i+1), a)
+	}
+	if resource != "" {
+		v.Set("ResourceArns.member.1", resource)
+	}
+	body, err := b.iam(ctx, "SimulateCustomPolicy", v)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Results []struct {
+			Action   string `xml:"EvalActionName"`
+			Resource string `xml:"EvalResourceName"`
+			Decision string `xml:"EvalDecision"`
+		} `xml:"SimulateCustomPolicyResult>EvaluationResults>member"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	res := make([]SimResult, 0, len(out.Results))
+	for _, r := range out.Results {
+		res = append(res, SimResult{
+			Action: r.Action, Resource: r.Resource, Decision: r.Decision,
+			Allowed: strings.EqualFold(r.Decision, "allowed"),
+		})
+	}
+	return res, nil
+}
+
+// ContextKeysForCustomPolicy names the condition keys a draft document
+// references (GetContextKeysForCustomPolicy) — what the simulation would need
+// values for.
+func (b *backend) ContextKeysForCustomPolicy(ctx context.Context, document string) ([]string, error) {
+	body, err := b.iam(ctx, "GetContextKeysForCustomPolicy",
+		url.Values{"PolicyInputList.member.1": {document}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Keys []string `xml:"GetContextKeysForCustomPolicyResult>ContextKeyNames>member"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	sort.Strings(out.Keys)
+	return out.Keys, nil
+}
+
+// ContextKeysForPrincipal is the same question asked of everything already
+// attached to a principal (GetContextKeysForPrincipalPolicy).
+func (b *backend) ContextKeysForPrincipal(ctx context.Context, principalARN string) ([]string, error) {
+	body, err := b.iam(ctx, "GetContextKeysForPrincipalPolicy",
+		url.Values{"PolicySourceArn": {principalARN}})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Keys []string `xml:"GetContextKeysForPrincipalPolicyResult>ContextKeyNames>member"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	sort.Strings(out.Keys)
+	return out.Keys, nil
+}
+
+// ---- the account itself: wave three ----
+
+// IAMSummary is GetAccountSummary's map, reduced to the rows worth showing.
+type IAMSummary struct {
+	Users, Roles, Groups, Policies int
+}
+
+func (b *backend) IAMAccountSummary(ctx context.Context) (*IAMSummary, error) {
+	body, err := b.iam(ctx, "GetAccountSummary", nil)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Entries []struct {
+			Key   string `xml:"key"`
+			Value int    `xml:"value"`
+		} `xml:"GetAccountSummaryResult>SummaryMap>entry"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	s := &IAMSummary{}
+	for _, e := range out.Entries {
+		switch e.Key {
+		case "Users":
+			s.Users = e.Value
+		case "Roles":
+			s.Roles = e.Value
+		case "Groups":
+			s.Groups = e.Value
+		case "Policies":
+			s.Policies = e.Value
+		}
+	}
+	return s, nil
+}
+
+// AccountAliases lists the account's aliases (at most one, as in AWS).
+func (b *backend) AccountAliases(ctx context.Context) ([]string, error) {
+	body, err := b.iam(ctx, "ListAccountAliases", nil)
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Aliases []string `xml:"ListAccountAliasesResult>AccountAliases>member"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	return out.Aliases, nil
+}
+
+func (b *backend) CreateAccountAlias(ctx context.Context, alias string) error {
+	_, err := b.iam(ctx, "CreateAccountAlias", url.Values{"AccountAlias": {alias}})
+	return err
+}
+
+func (b *backend) DeleteAccountAlias(ctx context.Context, alias string) error {
+	_, err := b.iam(ctx, "DeleteAccountAlias", url.Values{"AccountAlias": {alias}})
+	return err
+}
+
+// PasswordPolicy is GetAccountPasswordPolicy, rendered read-only — nothing
+// local logs in with a password, so the policy is a fact, not a control.
+func (b *backend) PasswordPolicy(ctx context.Context) (string, error) {
+	body, err := b.iam(ctx, "GetAccountPasswordPolicy", nil)
+	if err != nil {
+		return "", err
+	}
+	var out struct {
+		MinimumPasswordLength int  `xml:"GetAccountPasswordPolicyResult>PasswordPolicy>MinimumPasswordLength"`
+		RequireSymbols        bool `xml:"GetAccountPasswordPolicyResult>PasswordPolicy>RequireSymbols"`
+		RequireNumbers        bool `xml:"GetAccountPasswordPolicyResult>PasswordPolicy>RequireNumbers"`
+	}
+	if err := xml.Unmarshal(body, &out); err != nil {
+		return "", err
+	}
+	desc := fmt.Sprintf("minimum length %d", out.MinimumPasswordLength)
+	if out.RequireSymbols {
+		desc += ", symbols required"
+	}
+	if out.RequireNumbers {
+		desc += ", numbers required"
+	}
+	return desc, nil
+}
+
+// AuthorizationDetails is the whole IAM database in one read
+// (GetAccountAuthorizationDetails) — the audit export, pretty-printed.
+func (b *backend) AuthorizationDetails(ctx context.Context) (string, error) {
+	body, err := b.iam(ctx, "GetAccountAuthorizationDetails", nil)
+	if err != nil {
+		return "", err
+	}
+	return string(body), nil
 }

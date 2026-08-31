@@ -45,6 +45,7 @@ var uncovered = map[string][]string{
 	"lambda":     {},
 	"apigateway": {},
 	"s3":         {},
+	"iam":        {},
 	// ListStackResources is the one exemption — see exempt.
 	"cloudformation": {},
 }

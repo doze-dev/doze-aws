@@ -236,6 +236,19 @@ func seedFixtures(t *testing.T, c http.Handler) {
 		{"/sns/create", url.Values{"name": {"fixture-topic"}}},
 		{"/kinesis/create", url.Values{"name": {"fixture-stream"}, "shards": {"1"}}},
 		{"/iam/create", url.Values{"kind": {"user"}, "name": {"fixture-user"}}},
+		{"/iam/create", url.Values{"kind": {"user"}, "name": {"fixture-renameme"}}},
+		{"/iam/create", url.Values{"kind": {"role"}, "name": {"fixture-role"}}},
+		{"/iam/create", url.Values{"kind": {"group"}, "name": {"fixture-group"}}},
+		{"/iam/create", url.Values{"kind": {"profile"}, "name": {"fixture-profile"}}},
+		// A DEDICATED policy for the version routes — the policy-delete
+		// subtest consumes fixture-policy, which sorts before delete-version.
+		// Its non-default second version is what delete-version may delete
+		// (the default refuses). Versions pile up one per seed run; the
+		// emulator has no five-version cap to trip.
+		{"/iam/create", url.Values{
+			"kind": {"policy"}, "name": {"fixture-vpolicy"}, "document": {policyDoc},
+		}},
+
 		{"/eb/create-bus", url.Values{"name": {"fixture-bus"}}},
 		{"/sm/create", url.Values{"name": {"fixture-secret"}, "value": {"v"}}},
 		{"/ssm/create", url.Values{"name": {"/fixture/param"}, "type": {"String"}, "value": {"v"}}},
@@ -296,6 +309,23 @@ func seedFixtures(t *testing.T, c http.Handler) {
 			fixtures["{key}"] = m[1]
 		}
 	}
+	// The version-routes policy gets its second (non-default) version ONCE —
+	// per-seed would hit the five-version cap before the new-version subtest
+	// gets its turn.
+	if discovered["vpolicySeeded"] == "" {
+		postForm(t, c, "/iam/policy/new-version", url.Values{
+			"arn": {"arn:aws:iam::000000000000:policy/fixture-vpolicy"}, "document": {policyDoc},
+		})
+		discovered["vpolicySeeded"] = "yes"
+	}
+	// A second user + key pair for the toggle route (see overrideFor).
+	if discovered["accessKey2"] == "" {
+		postForm(t, c, "/iam/create", url.Values{"kind": {"user"}, "name": {"fixture-keyuser"}})
+		rec := postForm(t, c, "/iam/user/fixture-keyuser/keys", nil)
+		if id := accessKeyID.FindString(flashOf(rec)); id != "" {
+			discovered["accessKey2"] = id
+		}
+	}
 	// An access key id is only ever legible in the response that creates it.
 	if discovered["accessKey"] == "" {
 		rec := postForm(t, c, "/iam/user/fixture-user/keys", nil)
@@ -346,6 +376,32 @@ func fillParams(route string, override map[string]string) string {
 // a value that only exists once something has been created.
 func overrideFor(route string) (path map[string]string, form url.Values) {
 	switch route {
+	case "/iam/group/{name}/member":
+		return map[string]string{"{name}": "fixture-group"}, url.Values{"user": {"fixture-user"}}
+	case "/iam/group/{name}/rename":
+		return map[string]string{"{name}": "fixture-group"}, url.Values{"new": {"fixture-group"}}
+	case "/iam/user/{name}/join-group":
+		return nil, url.Values{"group": {"fixture-group"}}
+	case "/iam/user/{name}/rename":
+		return map[string]string{"{name}": "fixture-renameme"}, url.Values{"new": {"fixture-renamed"}}
+	case "/iam/user/{name}/keys/toggle":
+		// A key on a user nothing else touches: the keys/delete subtest
+		// consumes fixture-user's discovered key before toggle's turn.
+		return map[string]string{"{name}": "fixture-keyuser"},
+			url.Values{"id": {discovered["accessKey2"]}, "active": {"1"}}
+	case "/iam/profile/{name}/role":
+		return map[string]string{"{name}": "fixture-profile"}, url.Values{"role": {"fixture-role"}}
+	case "/iam/role/{name}/trust", "/iam/role/{name}/meta":
+		return map[string]string{"{name}": "fixture-role"}, nil
+	case "/iam/policy/new-version", "/iam/policy/set-default", "/iam/policy/delete-version":
+		v := url.Values{"arn": {"arn:aws:iam::000000000000:policy/fixture-vpolicy"}, "document": {policyDoc}}
+		if route == "/iam/policy/set-default" {
+			v.Set("version", "v1")
+		}
+		if route == "/iam/policy/delete-version" {
+			v.Set("version", "v2")
+		}
+		return nil, v
 	case "/iam/{kind}/{name}/delete":
 		return map[string]string{"{name}": "fixture-doomed"}, nil
 	case "/iam/policy/delete":
