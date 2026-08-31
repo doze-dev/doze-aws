@@ -129,3 +129,81 @@ test.describe('STS credentials', () => {
     await expect(page.locator('#keyinfo-out')).toContainText('000000000000');
   });
 });
+
+// The policy builder: rows over the JSON textarea, with the fidelity rules
+// the plan demanded as tests — single-element lists stay bare strings, a bare
+// Statement object stays bare, and toggling Builder↔JSON must be a byte-level
+// no-op on a document the rows can represent.
+test.describe('policy builder', () => {
+  const tricky = {
+    Version: '2012-10-17',
+    Statement: {
+      Effect: 'Allow',
+      Action: 's3:GetObject',
+      Resource: ['arn:aws:s3:::a/*', 'arn:aws:s3:::b/*'],
+      Condition: { 'ForAnyValue:StringLikeIfExists': { 'aws:SourceIp': '10.*' } },
+    },
+  };
+
+  test('round-trips the trap shapes byte-identically', async ({ page }) => {
+    await page.goto('iam/create?kind=policy');
+    await page.locator('.seg button', { hasText: 'Policy' }).click();
+    const pb = page.locator('.field:has(textarea[name="document"]) .pb');
+    await pb.locator('.ws-seg a', { hasText: 'JSON' }).click();
+    await page.evaluate((d) => {
+      const ta = document.querySelector('.field textarea[name="document"]');
+      window.dozeEditor.set(ta, JSON.stringify(d, null, 2));
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    }, tricky);
+    const before = await page.evaluate(() =>
+      document.querySelector('.field textarea[name="document"]').__cm.getValue());
+    await pb.locator('.ws-seg a', { hasText: 'Builder' }).click();
+    await expect(pb.locator('.pb-stmt')).toHaveCount(1);
+    await pb.locator('.ws-seg a', { hasText: 'JSON' }).click();
+    const after = await page.evaluate(() =>
+      document.querySelector('.field textarea[name="document"]').__cm.getValue());
+    // Semantically identical is not enough: a builder that re-shapes a
+    // document the user never edited writes noise into their diff.
+    expect(JSON.parse(after)).toEqual(tricky);
+    expect(JSON.parse(after).Statement.Action).toBe('s3:GetObject'); // still bare
+    expect(Array.isArray(JSON.parse(after).Statement)).toBe(false); // still a bare object
+    expect(after).toBe(before);
+  });
+
+  test('a policy built purely from rows creates and simulates', async ({ page, uniqueName }) => {
+    const name = uniqueName('e2e-pb');
+    await page.goto('iam/create?kind=policy');
+    await page.locator('.seg button', { hasText: 'Policy' }).click();
+    const pb = page.locator('.field:has(textarea[name="document"]) .pb');
+    await expect(pb.locator('.pb-stmt')).toBeVisible();
+
+    // Add an action through the chip input; check the draft inline.
+    const add = pb.locator('.pb-add[list="iam-actions"]').first();
+    await add.fill('kinesis:PutRecord');
+    await add.press('Enter');
+    await pb.locator('.pb-check input').fill('kinesis:PutRecord iam:DeleteUser');
+    await pb.locator('.pb-check button').click();
+    const out = page.locator('#pb-out-create-pol');
+    await expect(out.locator('.chip', { hasText: 'kinesis:PutRecord' })).toContainText('allowed');
+    await expect(out.locator('.chip.bad', { hasText: 'iam:DeleteUser' })).toContainText('implicitDeny');
+
+    // An unknown condition operator hides the builder instead of flattening.
+    await pb.locator('.ws-seg a', { hasText: 'JSON' }).click();
+    await page.evaluate(() => {
+      const ta = document.querySelector('.field textarea[name="document"]');
+      window.dozeEditor.set(ta, JSON.stringify({ Statement: [{ Effect: 'Allow', Action: 's3:*', Resource: '*', Condition: { NoSuchOp: { 'aws:username': 'x' } } }] }));
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await expect(pb.locator('.kv-note', { hasText: 'Builder unavailable' })).toBeVisible();
+
+    // Back to a representable doc and submit — the textarea is what posts.
+    await page.evaluate(() => {
+      const ta = document.querySelector('.field textarea[name="document"]');
+      window.dozeEditor.set(ta, JSON.stringify({ Version: '2012-10-17', Statement: [{ Effect: 'Allow', Action: 'kinesis:PutRecord', Resource: '*' }] }));
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.locator('input[name="name"]').fill(name);
+    await page.getByRole('button', { name: 'Create policy' }).click();
+    await expect(page.locator('#flashbar')).toContainText(`Created ${name}`);
+  });
+});

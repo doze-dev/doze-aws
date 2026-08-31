@@ -215,6 +215,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/iam/policy", c.iamPolicy)
 	m.HandleFunc("GET "+p+"/iam/{kind}/{name}", c.iamPrincipal)
 	m.HandleFunc("POST "+p+"/iam/simulate", c.iamSimulate)
+	m.HandleFunc("POST "+p+"/iam/simulate-inline", c.iamSimInline) // HTMX partial (the builder's live check)
 	m.HandleFunc("POST "+p+"/iam/generate", c.iamGenerate)
 	m.HandleFunc("GET "+p+"/iam/create", c.iamCreatePage)
 	m.HandleFunc("GET "+p+"/iam/account", c.iamAccount)

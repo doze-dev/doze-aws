@@ -1724,3 +1724,30 @@ a.lo-card:hover { border-color: var(--accent); }
 /* The bulk bar's combine form: input and button on one line. */
 .bb-combine { display: inline-flex; gap: 6px; align-items: center; }
 .bb-combine .input { width: 160px; font-size: 12px; padding: 4px 8px; }
+
+/* ---------- The IAM policy builder ---------- */
+/* One card per statement; rows inside share a label column. The builder is a
+   PROJECTION of the JSON textarea below it — the visual weight stays light so
+   it reads as a lens, not a replacement. */
+.pb-stmt { border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); padding: 10px 12px; margin-bottom: 10px; }
+.pb-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.pb-effect { width: 92px; font-weight: 600; }
+.pb-effect.pb-deny { color: var(--destructive); }
+.pb-sid { flex: 1; font-size: 12px; }
+.pb-row { display: flex; gap: 8px; align-items: flex-start; margin-top: 6px; }
+.pb-l { width: 92px; flex-shrink: 0; font-size: 11px; font-weight: 600; color: var(--muted-foreground); padding-top: 6px; display: flex; gap: 6px; align-items: center; }
+/* "not" flips Action→NotAction (etc.) — a mode, not a button-shaped verb, so
+   it renders as a small toggle that lights when the inversion is on. */
+.pb-not { font-size: 10px; border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; background: none; color: var(--muted-foreground); cursor: pointer; }
+.pb-not.on { background: var(--destructive); border-color: var(--destructive); color: var(--primary-foreground); }
+.pb-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; flex: 1; min-width: 0; }
+.pb-add { border: 1px dashed var(--border); border-radius: var(--radius); background: none; padding: 3px 8px; font-size: 12px; min-width: 160px; color: inherit; }
+.pb-add:focus { outline: none; border-color: var(--ring); border-style: solid; }
+.pb-psel { width: auto; font-size: 12px; padding: 3px 6px; }
+.pb-sub { margin-left: 100px; }
+.pb-cond { flex-wrap: wrap; margin-left: 100px; }
+.pb-cond .input { font-size: 11px; padding: 4px 6px; width: auto; }
+.pb-cond input.mono { flex: 1; min-width: 120px; }
+.pb-check { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+.pb-check .input { flex: 1; font-size: 12px; }
+.pb { display: block; }

@@ -161,6 +161,15 @@
 {{if .Err}}<div class="err">{{.Err}}</div>
 {{else if .Document}}
   <div class="code-out" style="margin-top:12px"><pre>{{.Document}}</pre></div>
+  {{/* The document used to dead-end here as read-only text. Least privilege
+       by construction deserves to become a policy in one step. */}}
+  <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/iam/create">
+    <input type="hidden" name="kind" value="policy">
+    <input type="hidden" name="document" value="{{.Document}}">
+    <div class="field" style="flex:1"><label>Save as a customer policy</label>
+      <input class="input" name="name" placeholder="app-least-privilege" required autocomplete="off"></div>
+    <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Create policy</button>
+  </form>
 {{end}}
 </div>
 {{end}}
@@ -193,6 +202,7 @@
 {{/* ---- A principal and its effective permissions ---- */}}
 
 {{define "iam_principal"}}{{template "shell_top" .}}
+  {{template "iam_actions_datalist" .SeenActions}}
   {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" .P.ARN)}}
   <section class="detail">
     <div class="det-h">
@@ -264,7 +274,7 @@
         <div x-show="!edit"><div class="code-out"><pre>{{.P.Trust}}</pre></div></div>
         <div x-show="edit" x-cloak style="padding:14px 16px">
           <form hx-post="{{.Prefix}}/iam/role/{{.P.Name}}/trust">
-            <textarea name="document" data-editor rows="10">{{.P.Trust}}</textarea>
+            {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .P.Trust "Rows" 10 "UID" "trust" "Check" false}}
             <div class="fr-btn"><button class="btn" type="submit">Save trust policy</button></div>
           </form>
         </div>
@@ -327,7 +337,7 @@
           <form hx-post="{{$.Prefix}}/iam/{{$.P.Kind}}/{{$.P.Name}}/inline">
             <input type="hidden" name="policy" value="{{.Name}}">
             <div class="field">
-              <textarea name="document" data-editor rows="14">{{.Document}}</textarea>
+              {{template "policy_builder" dict "Prefix" $.Prefix "Field" "document" "Value" .Document "Rows" 14 "UID" (printf "inline-%s" .Name) "Check" true}}
               <div class="mini-note">Saved as-is after the service parses it; a malformed document is refused rather than stored.</div>
             </div>
             <div style="margin-top:10px;display:flex;justify-content:flex-end">
@@ -354,7 +364,7 @@
             </div>
             <div class="field">
               <label>Document</label>
-              <textarea name="document" data-editor rows="12">{{.StarterInline}}</textarea>
+              {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .StarterInline "Rows" 12 "UID" "inline-add" "Check" true}}
               <div class="mini-note">A soft-mode run writes one of these for you — the access log generates a policy covering exactly what the code asked for.</div>
             </div>
             <div style="margin-top:10px;display:flex;justify-content:flex-end">
@@ -413,6 +423,7 @@
 {{/* ---- One managed policy ---- */}}
 
 {{define "iam_policy"}}{{template "shell_top" .}}
+  {{template "iam_actions_datalist" .SeenActions}}
   {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" .ARN)}}
   <section class="detail">
     <div class="det-h">
@@ -472,7 +483,7 @@
         <div x-show="open" x-cloak style="padding:14px 16px">
           <form hx-post="{{.Prefix}}/iam/policy/new-version">
             <input type="hidden" name="arn" value="{{.ARN}}">
-            <textarea name="document" data-editor rows="12">{{.Document}}</textarea>
+            {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .Document "Rows" 12 "UID" "newver" "Check" true}}
             <div class="ds-row" style="justify-content:space-between;margin-top:10px">
               <label class="bb-txn"><input type="checkbox" name="default" value="1" checked> set as default</label>
               <button class="btn" type="submit">Publish version</button>
@@ -489,6 +500,7 @@
 {{/* ---- Create ---- */}}
 
 {{define "iam_create"}}{{template "shell_top" .}}
+  {{template "iam_actions_datalist" .SeenActions}}
   {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" "")}}
   <section class="detail">
     <div class="det-h"><div class="det-title">{{awsIcon "iam"}} New</div></div>
@@ -519,13 +531,13 @@
 
             <div class="field" x-show="kind==='role'" x-cloak>
               <label>Trust policy <span class="dim">who may assume this role</span></label>
-              <textarea name="trust" data-editor rows="10">{{.DefaultTrust}}</textarea>
+              {{template "policy_builder" dict "Prefix" .Prefix "Field" "trust" "Value" .DefaultTrust "Rows" 10 "UID" "create-trust" "Check" false}}
               <div class="mini-note">Prefilled for a Lambda execution role, which is what most local roles are. Change the service principal for anything else.</div>
             </div>
 
             <div class="field" x-show="kind==='policy'" x-cloak>
               <label>Policy document</label>
-              <textarea name="document" data-editor rows="12">{{.StarterPolicy}}</textarea>
+              {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .StarterPolicy "Rows" 12 "UID" "create-pol" "Check" true}}
               <div class="mini-note">A soft-mode run can write this for you — the access log generates a policy covering exactly what your code asked for.</div>
             </div>
 
@@ -753,4 +765,146 @@
 
 {{define "iam_sts_keyinfo"}}
 <p class="mini-note cfn-valid">{{icon "check"}} Belongs to account <span class="mono">{{.Account}}</span>.</p>
+{{end}}
+
+{{/* ---- The policy builder ----
+
+     kvEditor's contract with a richer row: the JSON textarea stays the source
+     of truth and keeps submitting; the rows are a projection rebuilt on entry
+     and re-serialized on every change; a document the rows cannot represent
+     hides the builder rather than lossily flattening it. policy.js carries
+     the parse/serialize pair and the fidelity rules (bare-string single
+     lists, bare Statement objects, only the operators the evaluator
+     implements). dict: Prefix, Field, Value, Rows, UID, Check. */}}
+
+{{define "policy_builder"}}
+<div class="pb" x-data="policyBuilder({{printf "%q" .Value}})" x-init="init($refs.ta)"
+     x-effect="if(mode==='json')$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+  <div class="kv-modes" x-show="representable || mode==='builder'">
+    <span class="ws-seg">
+      <a href="#" @click.prevent="toBuilder()" :class="mode==='builder' && 'on'">Builder</a>
+      <a href="#" @click@click.prevent="toText()" :class="mode==='json' && 'on'">JSON</a>
+    </span>
+    <span class="dim kv-note" x-show="mode==='builder'" x-cloak>A view of the JSON — both stay in step.</span>
+  </div>
+  <div class="kv-modes" x-show="!representable && mode==='json'" x-cloak>
+    <span class="dim kv-note">Builder unavailable: the document holds something rows could not round-trip, so it stays JSON.</span>
+  </div>
+
+  <div x-show="mode==='builder'" x-cloak>
+    <template x-for="(st, si) in stmts" :key="si">
+      <div class="pb-stmt">
+        <div class="pb-head">
+          <select class="input pb-effect" x-model="st.effect" @change="sync()" :class="st.effect==='Deny' && 'pb-deny'"><option>Allow</option><option>Deny</option></select>
+          <input class="input mono pb-sid" placeholder="Sid — optional" x-model="st.sid" @input="sync()" spellcheck="false">
+          <button type="button" class="icon-btn sm danger" title="Remove this statement" @click="removeStatement(si)">{{icon "trash"}}</button>
+        </div>
+
+        <div class="pb-row">
+          <span class="pb-l"><span x-text="st.notAction ? 'NotAction' : 'Actions'"></span>
+            <button type="button" class="pb-not" :class="st.notAction && 'on'" title="Match everything EXCEPT these" @click="st.notAction=!st.notAction; sync()">not</button></span>
+          <div class="pb-chips">
+            <template x-for="(a, ai) in st.actions" :key="ai">
+              <span class="badge type ver-stage"><span x-text="a"></span><button type="button" class="lbl-x" @click="dropChip(st.actions, ai)">&times;</button></span>
+            </template>
+            <input class="pb-add mono" list="iam-actions" placeholder="s3:GetObject" spellcheck="false"
+                   x-model="st.actionDraft" @keydown.enter.prevent="commitDraft(st,'action')" @change="commitDraft(st,'action')" @blur="commitDraft(st,'action')">
+          </div>
+        </div>
+
+        <div class="pb-row">
+          <span class="pb-l"><span x-text="st.notResource ? 'NotResource' : 'Resources'"></span>
+            <button type="button" class="pb-not" :class="st.notResource && 'on'" title="Match everything EXCEPT these" @click="st.notResource=!st.notResource; sync()">not</button></span>
+          <div class="pb-chips">
+            <template x-for="(rr, ri) in st.resources" :key="ri">
+              <span class="badge type ver-stage"><span x-text="rr"></span><button type="button" class="lbl-x" @click="dropChip(st.resources, ri)">&times;</button></span>
+            </template>
+            <input class="pb-add mono" placeholder="arn:aws:s3:::bucket/* or *" spellcheck="false"
+                   x-model="st.resourceDraft" @keydown.enter.prevent="commitDraft(st,'resource')" @blur="commitDraft(st,'resource')">
+          </div>
+        </div>
+
+        <div class="pb-row">
+          <span class="pb-l">Principal</span>
+          <div class="pb-chips">
+            <select class="input pb-psel" x-model="st.pmode" @change="if(st.pmode==='typed'&&!st.prows.length)addPrincipalRow(st); sync()">
+              <option value="none">— none —</option><option value="any">* (anyone)</option><option value="typed">by type</option>
+            </select>
+            <button type="button" class="pb-not" x-show="st.pmode!=='none'" :class="st.pnot && 'on'" title="NotPrincipal" @click="st.pnot=!st.pnot; sync()">not</button>
+          </div>
+        </div>
+        <template x-for="(pr, pi) in st.prows" :key="pi">
+          <div class="pb-row pb-sub" x-show="st.pmode==='typed'">
+            <select class="input pb-psel" x-model="pr.type" @change="sync()">
+              <template x-for="pt in principalTypes"><option x-text="pt"></option></template>
+            </select>
+            <input class="input mono" placeholder="arn:aws:iam::000000000000:user/x, comma-separated" x-model="pr.vals" @input="sync()" spellcheck="false">
+            <button type="button" class="icon-btn sm danger" @click="st.prows.splice(pi,1); if(!st.prows.length)st.pmode='none'; sync()">{{icon "x"}}</button>
+          </div>
+        </template>
+        <div class="pb-row pb-sub" x-show="st.pmode==='typed'">
+          <button type="button" class="btn btn-ghost btn-sm" @click="addPrincipalRow(st)">{{icon "plus"}} Principal type</button>
+        </div>
+
+        <template x-for="(cd, ci) in st.conds" :key="ci">
+          <div class="pb-row pb-cond">
+            <select class="input" x-model="cd.mod" @change="sync()" title="How a multi-valued context key is compared">
+              <option value="">each</option><option value="ForAllValues:">ForAllValues:</option><option value="ForAnyValue:">ForAnyValue:</option>
+            </select>
+            <select class="input" x-model="cd.op" @change="sync()">
+              <template x-for="op in operators"><option x-text="op"></option></template>
+            </select>
+            <label class="bb-txn" title="Passes when the key is absent entirely"><input type="checkbox" x-model="cd.ifExists" @change="sync()"> IfExists</label>
+            <input class="input mono" list="iam-context-keys" placeholder="aws:SourceIp" x-model="cd.key" @input="sync()" spellcheck="false">
+            <input class="input mono" placeholder="values, comma-separated" x-model="cd.vals" @input="sync()" spellcheck="false">
+            <button type="button" class="icon-btn sm danger" @click="st.conds.splice(ci,1); sync()">{{icon "x"}}</button>
+          </div>
+        </template>
+        <div class="pb-row pb-sub">
+          <button type="button" class="btn btn-ghost btn-sm" @click="addCond(st)">{{icon "plus"}} Condition</button>
+        </div>
+      </div>
+    </template>
+    <button type="button" class="btn btn-outline btn-sm" @click="addStatement()">{{icon "plus"}} Add statement</button>
+  </div>
+
+  {{/* The wrapper, not the textarea, carries x-show: CodeMirror renders its
+       editor as a SIBLING of the textarea, so hiding only the textarea left
+       the editor pane visible under the builder rows. */}}
+  <div x-show="mode==='json'" x-cloak>
+    <textarea x-ref="ta" name="{{.Field}}" data-editor rows="{{.Rows}}" spellcheck="false" @input="onText()">{{.Value}}</textarea>
+  </div>
+
+  {{if .Check}}
+  {{/* SimulateCustomPolicy against the CURRENT draft — the live "what does
+       this actually allow" the plan promised the builder. No nested <form>:
+       the button reads the textarea at request time. */}}
+  <div class="pb-check" x-data="{acts:''}">
+    <input class="input mono" placeholder="s3:GetObject sqs:SendMessage" x-model="acts" spellcheck="false">
+    <button type="button" class="btn btn-outline btn-sm"
+            hx-post="{{.Prefix}}/iam/simulate-inline" hx-target="#pb-out-{{.UID}}" hx-select="unset" hx-swap="innerHTML"
+            @htmx:config-request="$event.detail.parameters.document = read(); $event.detail.parameters.actions = acts">{{icon "search"}} Check this draft</button>
+  </div>
+  <div id="pb-out-{{.UID}}"></div>
+  {{end}}
+</div>
+{{end}}
+
+{{define "iam_sim_inline"}}
+{{if .Err}}<div class="err">{{.Err}}</div>
+{{else}}
+<div class="chips" style="margin-top:8px">
+  {{range .Results}}<span class="chip {{if not .Allowed}}bad{{end}}"><span class="mono">{{.Action}}</span> → {{.Decision}}</span>{{end}}
+</div>
+{{if .CtxKeys}}<p class="mini-note" style="margin:6px 0 0">This check supplies NO context, so conditions on {{range $i, $k := .CtxKeys}}{{if $i}}, {{end}}<span class="mono">{{$k}}</span>{{end}} evaluate false here — at request time the service fills them in.</p>{{end}}
+{{end}}
+{{end}}
+
+{{define "iam_actions_datalist"}}
+<datalist id="iam-actions">{{range .}}<option value="{{.}}"></option>{{end}}</datalist>
+<datalist id="iam-context-keys">
+  <option value="aws:PrincipalAccount"></option><option value="aws:PrincipalArn"></option>
+  <option value="aws:RequestedRegion"></option><option value="aws:SecureTransport"></option>
+  <option value="aws:username"></option><option value="aws:SourceIp"></option><option value="aws:UserAgent"></option>
+</datalist>
 {{end}}

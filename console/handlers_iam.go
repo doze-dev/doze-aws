@@ -5,6 +5,7 @@ package console
 import (
 	"net/http"
 	"net/url"
+	"sort"
 	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -58,6 +59,7 @@ func (c *Console) iamPrincipal(w http.ResponseWriter, r *http.Request) {
 		"Title": name + " · IAM",
 	}
 	data["StarterInline"] = starterPolicy
+	data["SeenActions"] = c.seenActions(r)
 	if kind == "user" {
 		// The singular read plus the facts the listing cannot carry: group
 		// membership and when each key last authenticated something.
@@ -103,6 +105,7 @@ func (c *Console) iamPolicy(w http.ResponseWriter, r *http.Request) {
 		"Principals": principals, "Policies": policies, "NavGroups": navGroups, "NavProfiles": navProfiles,
 		"Title": name + " · IAM",
 	}
+	data["SeenActions"] = c.seenActions(r)
 	data["Versions"], _ = c.be.PolicyVersions(r.Context(), arn)
 	data["Entities"], _ = c.be.PolicyEntities(r.Context(), arn)
 	c.render(w, r, "iam_policy", data)
@@ -182,6 +185,7 @@ func (c *Console) iamCreatePage(w http.ResponseWriter, r *http.Request) {
 		"Principals": principals, "Policies": policies, "NavGroups": navGroups, "NavProfiles": navProfiles,
 		"Kind": r.URL.Query().Get("kind"), "Title": "Create · IAM",
 		"DefaultTrust": defaultTrust, "StarterPolicy": starterPolicy,
+		"SeenActions": c.seenActions(r),
 	})
 }
 
@@ -600,4 +604,52 @@ func (c *Console) iamSTSKeyInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.partial(w, "iam_sts_keyinfo", map[string]any{"Account": account})
+}
+
+// seenActions feeds the builder's action autocomplete: the actions the access
+// log has actually recorded, plus each service's wildcard. The recorded
+// traffic IS the catalog locally — more useful than AWS's static list, since
+// every entry is something this stack has genuinely been asked for.
+func (c *Console) seenActions(r *http.Request) []string {
+	set := map[string]bool{}
+	for _, p := range []string{"s3", "sqs", "sns", "sts", "dynamodb", "kms", "ssm",
+		"secretsmanager", "events", "lambda", "kinesis", "iam", "cloudformation", "apigateway"} {
+		set[p+":*"] = true
+	}
+	if _, events, err := c.be.AccessLog(r.Context()); err == nil {
+		for _, e := range events {
+			if e.Action != "" && strings.Contains(e.Action, ":") {
+				set[e.Action] = true
+			}
+		}
+	}
+	actions := make([]string, 0, len(set))
+	for a := range set {
+		actions = append(actions, a)
+	}
+	sort.Strings(actions)
+	return actions
+}
+
+// iamSimInline evaluates the builder's draft against one or more actions and
+// renders an id-free result block (the home simulator owns #iam-sim).
+func (c *Console) iamSimInline(w http.ResponseWriter, r *http.Request) {
+	doc := strings.TrimSpace(r.FormValue("document"))
+	actions := strings.FieldsFunc(r.FormValue("actions"), func(ru rune) bool {
+		return ru == ',' || ru == ' ' || ru == '\n' || ru == '\r' || ru == '\t'
+	})
+	if doc == "" || len(actions) == 0 {
+		c.partial(w, "iam_sim_inline", map[string]any{"Err": "Name at least one action, like s3:GetObject."})
+		return
+	}
+	res, err := c.be.SimulateCustom(r.Context(), doc, actions, r.FormValue("resource"))
+	if err != nil {
+		c.partial(w, "iam_sim_inline", map[string]any{"Err": err.Error()})
+		return
+	}
+	// A draft's conditions evaluate against an EMPTY context here, so a deny
+	// on a conditioned statement needs its reason spelled out — the condition
+	// keys with no values are the reason.
+	keys, _ := c.be.ContextKeysForCustomPolicy(r.Context(), doc)
+	c.partial(w, "iam_sim_inline", map[string]any{"Results": res, "CtxKeys": keys})
 }
