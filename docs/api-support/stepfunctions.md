@@ -21,14 +21,14 @@ definition with four mistakes takes one round trip to understand.
 | Operation | Tier | Notes |
 |---|---|---|
 | CreateStateMachine | F | STANDARD and EXPRESS accepted; idempotent on an identical definition, so an unchanged `cdk deploy` succeeds; JSONata definitions and task resources outside the local integration set are refused here, not on first execution |
-| DescribeStateMachine / ListStateMachines | F | |
+| DescribeStateMachine / ListStateMachines | F | describe answers AWS's defaults for logging, tracing and encryption when none were given; list paginates with `maxResults` and `nextToken`, and a stale token is `InvalidToken` |
 | UpdateStateMachine | F | running executions keep their frozen definition |
 | DeleteStateMachine | F | synchronous — AWS parks the machine in DELETING until executions drain; locally it disappears at once, and the call is idempotent so a repeated `cdk destroy` does not fail |
 | ValidateStateMachineDefinition | F | the analyser exposed directly; every diagnostic in document order, none returned early |
-| CreateActivity / DescribeActivity / DeleteActivity / ListActivities | F | control plane only; polling arrives with GetActivityTask |
-| TagResource / UntagResource / ListTagsForResource | F | tags are a `[{key,value}]` list, as on AWS, not the `{k:v}` map Lambda and DynamoDB use |
+| CreateActivity / DescribeActivity / DeleteActivity / ListActivities | F | control plane only, paginated; polling arrives with GetActivityTask |
+| TagResource / UntagResource / ListTagsForResource | F | tags are a `[{key,value}]` list, as on AWS, not the `{k:v}` map Lambda and DynamoDB use; an ARN nothing holds is `ResourceNotFound`, not an empty list |
 | StartExecution | F | Standard only; same name + still RUNNING + same input returns the original execution rather than conflicting; an EXPRESS machine answers UnsupportedOperationException until Express lands |
-| DescribeExecution / ListExecutions | F | status filter, pagination |
+| DescribeExecution / ListExecutions | F | status filter, `maxResults` and `nextToken`; `traceHeader` comes back only when StartExecution was given one |
 | StopExecution | F | |
 | DescribeStateMachineForExecution | F | answers from the execution's frozen snapshot — what it is running, not what the machine says today |
 | GetExecutionHistory | F | global event ids with per-frame `previousEventId` chains; `reverseOrder`; pagination; payloads are JSON-encoded strings, as the SDK types expect |
@@ -85,6 +85,36 @@ Differences from AWS, listed rather than hidden:
 - **Deferred for now:** Express, `.sync` and `.sync:2`, activities, JSONata,
   versions and aliases, generic `aws-sdk:` integrations. Each answers
   `UnsupportedOperationException` naming what it is waiting on.
+
+## Verified against
+
+Three SDKs and one deploy tool, in tests that run on every push:
+
+- **aws-sdk-go-v2** (`sdk_test.go`, `sdk_errors_test.go`): every functional
+  operation, and every typed error the service can answer matched through
+  the SDK's own exception types — a near-miss spelling decodes as a generic
+  error no program can branch on, which is what those tests exist to catch.
+- **aws-sdk-go v1** (`sdkv1_test.go`): the older wire encoding round-trips.
+- **@aws-sdk/client-sfn** (`e2e/tests/stepfunctions-sdk.spec.ts`): what the
+  JavaScript types promise — timestamps decode as `Date`, payloads in
+  history are strings, lists paginate, staged operations surface as a 400
+  service exception. The SDK's endpoint ruleset prefixes `sync-` onto the
+  host for StartSyncExecution and TestState, so those two cannot reach an
+  IP endpoint from JavaScript until the DNS work lands.
+- **CDK** (`cloudformation/sfn_apply_test.go`, and a real `cdk deploy` of a
+  LambdaInvoke → Choice → SqsSendMessage / SnsPublish → Wait → Parallel →
+  Map chain, a `.waitForTaskToken` machine and an EXPRESS one): both
+  spellings the CDK emits — `Fn::Join`ed ARNs inside `DefinitionString`,
+  and `DefinitionSubstitutions` from `DefinitionBody.fromString` — resolve
+  to the real function, queue and topic; a second unchanged deploy is
+  "no changes"; destroy leaves no machines behind.
+
+That pass found and fixed a join that read an earlier Parallel's settled
+branches (a Map after a Parallel answered trailing nulls), list operations
+ignoring `maxResults`, tag operations succeeding on an ARN nothing held, an
+internal trace chain leaking as `traceHeader`, and — outside this service —
+a CloudFormation mapping that dropped `S3Bucket` from a raw Lambda function's
+`Code`, which is how the CDK ships every asset.
 
 ## Input validation
 

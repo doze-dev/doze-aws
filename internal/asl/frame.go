@@ -134,6 +134,16 @@ type Frame struct {
 	// previous event. A spawned child starts from its parent's state-started
 	// event id.
 	PrevEventID int64 `json:"prevEventId,omitempty"`
+
+	// SpawnGen counts the Parallel/Map states this frame has spawned children
+	// for, and Gen is the generation a child was spawned in. Settled children
+	// stay in the frame list — they are history, and a restart needs them —
+	// so a second Parallel on the same frame must not see the first one's
+	// branches when it joins. Before this stamp it did: a Map after a
+	// Parallel joined with trailing nulls, and a Map after a caught branch
+	// failure failed with that branch's error.
+	SpawnGen int `json:"spawnGen,omitempty"`
+	Gen      int `json:"gen,omitempty"`
 }
 
 // RetryCount is $$.State.RetryCount: how many retries the current state has
@@ -190,22 +200,32 @@ func (ex *Exec) Frame(id int) *Frame {
 // Root returns the root frame.
 func (ex *Exec) Root() *Frame { return ex.Frame(1) }
 
-// Children returns the frames spawned by the given parent, in spawn order.
+// Children returns the frames the parent spawned for its CURRENT
+// Parallel/Map state, in spawn order. Children of an earlier state on the
+// same frame are still in the list but belong to a previous generation.
 func (ex *Exec) Children(parent int) []*Frame {
+	p := ex.Frame(parent)
+	if p == nil {
+		return nil
+	}
 	var out []*Frame
 	for _, f := range ex.Frames {
-		if f.Parent == parent {
+		if f.Parent == parent && f.Gen == p.SpawnGen {
 			out = append(out, f)
 		}
 	}
 	return out
 }
 
+// BeginSpawn opens a new generation of children on the frame. Parallel and
+// Map call it once, before spawning, so the join sees only these.
+func (f *Frame) BeginSpawn() { f.SpawnGen++ }
+
 // Spawn allocates a child frame under parent. The caller sets MapItem and
 // flips PENDING to RUNNABLE as concurrency allows.
 func (ex *Exec) Spawn(parent *Frame, branch int, def []DefHop, input json.RawMessage, status FrameStatus) *Frame {
 	f := &Frame{
-		ID: ex.NextFrame, Parent: parent.ID, Branch: branch,
+		ID: ex.NextFrame, Parent: parent.ID, Branch: branch, Gen: parent.SpawnGen,
 		Def: def, Status: status, Input: input,
 		PrevEventID: parent.PrevEventID,
 	}

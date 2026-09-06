@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -162,20 +163,27 @@ func (s *Server) describeStateMachine(ctx context.Context, p map[string]any) (an
 		return nil, errMachineNotFound(arn)
 	}
 	out := map[string]any{
-		"stateMachineArn":        m.ARN,
-		"name":                   m.Name,
-		"definition":             m.Definition,
-		"roleArn":                m.RoleARN,
-		"type":                   m.Type,
-		"status":                 m.Status,
-		"creationDate":           epoch(m.CreatedAt),
-		"revisionId":             m.RevisionID,
-		"stateMachineRevisionId": m.RevisionID,
+		"stateMachineArn": m.ARN,
+		"name":            m.Name,
+		"definition":      m.Definition,
+		"roleArn":         m.RoleARN,
+		"type":            m.Type,
+		"status":          m.Status,
+		"creationDate":    epoch(m.CreatedAt),
+		"revisionId":      m.RevisionID,
 	}
-	putRaw(out, "loggingConfiguration", m.LoggingConfiguration)
-	putRaw(out, "tracingConfiguration", m.TracingConfiguration)
-	putRaw(out, "encryptionConfiguration", m.EncryptionConfiguration)
+	putConfigs(out, m)
 	return out, nil
+}
+
+// putConfigs answers the three configuration blocks the way AWS does: what
+// the caller stored, or AWS's defaults when they passed none — logging off,
+// tracing disabled, an AWS-owned key. A describe with the blocks missing
+// reads as a different machine to a tool that diffs against them.
+func putConfigs(out map[string]any, m *StateMachine) {
+	putRawDefault(out, "loggingConfiguration", m.LoggingConfiguration, map[string]any{"level": "OFF", "includeExecutionData": false})
+	putRawDefault(out, "tracingConfiguration", m.TracingConfiguration, map[string]any{"enabled": false})
+	putRawDefault(out, "encryptionConfiguration", m.EncryptionConfiguration, map[string]any{"type": "AWS_OWNED_KEY"})
 }
 
 func (s *Server) updateStateMachine(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
@@ -206,9 +214,8 @@ func (s *Server) updateStateMachine(ctx context.Context, p map[string]any) (any,
 		return nil, errMachineNotFound(arn)
 	}
 	return map[string]any{
-		"updateDate":             epoch(s.store.now()),
-		"revisionId":             m.RevisionID,
-		"stateMachineRevisionId": m.RevisionID,
+		"updateDate": epoch(s.store.now()),
+		"revisionId": m.RevisionID,
 	}, nil
 }
 
@@ -240,7 +247,36 @@ func (s *Server) listStateMachines(ctx context.Context, p map[string]any) (any, 
 			"creationDate":    epoch(m.CreatedAt),
 		})
 	}
-	return map[string]any{"stateMachines": items}, nil
+	return page(p, "stateMachines", items)
+}
+
+// page applies maxResults and nextToken to a fully built list, answering the
+// items under key plus a nextToken when more remain. The token is the offset
+// of the next item, which is opaque enough for a local list and lets a bad
+// one be refused as InvalidToken the way AWS refuses a stale cursor. Before
+// this the three list operations ignored both parameters, and a caller
+// paging with maxResults=1 got everything in one answer — which an SDK
+// paginator tolerates and a test written against AWS does not.
+func page(p map[string]any, key string, items []any) (any, *awshttp.APIError) {
+	limit := awsjson.Int(p, "maxResults", 0)
+	if limit < 0 || limit > 1000 {
+		limit = 0
+	}
+	start := 0
+	if tok := awsjson.Str(p, "nextToken"); tok != "" {
+		n, err := strconv.Atoi(tok)
+		if err != nil || n < 0 || n > len(items) {
+			return nil, awshttp.Errf(400, "InvalidToken", "Invalid Token: '%s'", tok)
+		}
+		start = n
+	}
+	items = items[start:]
+	out := map[string]any{key: items}
+	if limit > 0 && len(items) > limit {
+		out[key] = items[:limit]
+		out["nextToken"] = strconv.Itoa(start + limit)
+	}
+	return out, nil
 }
 
 // validateDefinition backs ValidateStateMachineDefinition, which is the
@@ -250,7 +286,7 @@ func (s *Server) listStateMachines(ctx context.Context, p map[string]any) (any, 
 func (s *Server) validateDefinition(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	_, rep := asl.ValidateDefinition([]byte(awsjson.Str(p, "definition")))
 	if rep.OK() {
-		return map[string]any{"result": "OK", "diagnostics": []any{}}, nil
+		return map[string]any{"result": "OK", "diagnostics": []any{}, "truncated": false}, nil
 	}
 	diags := make([]any, 0, len(rep.Diagnostics))
 	for _, d := range rep.Diagnostics {
@@ -261,7 +297,7 @@ func (s *Server) validateDefinition(ctx context.Context, p map[string]any) (any,
 			"location": d.Where,
 		})
 	}
-	return map[string]any{"result": "FAIL", "diagnostics": diags}, nil
+	return map[string]any{"result": "FAIL", "diagnostics": diags, "truncated": false}, nil
 }
 
 func (s *Server) createActivity(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
@@ -320,7 +356,7 @@ func (s *Server) listActivities(ctx context.Context, p map[string]any) (any, *aw
 			"activityArn": a.ARN, "name": a.Name, "creationDate": epoch(a.CreatedAt),
 		})
 	}
-	return map[string]any{"activities": items}, nil
+	return page(p, "activities", items)
 }
 
 // epoch renders a stored millisecond timestamp the way awsJson expects a
@@ -346,6 +382,14 @@ func putRaw(out map[string]any, key string, raw json.RawMessage) {
 	var v any
 	if json.Unmarshal(raw, &v) == nil {
 		out[key] = v
+	}
+}
+
+// putRawDefault is putRaw with a value for when nothing was stored.
+func putRawDefault(out map[string]any, key string, raw json.RawMessage, def any) {
+	putRaw(out, key, raw)
+	if _, ok := out[key]; !ok {
+		out[key] = def
 	}
 }
 

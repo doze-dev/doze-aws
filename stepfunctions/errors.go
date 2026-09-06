@@ -41,6 +41,10 @@ func errInvalidARN(arn string) *awshttp.APIError {
 	return awshttp.Errf(400, "InvalidArn", "Invalid Arn: '%s'", arn)
 }
 
+func errResourceNotFound(arn string) *awshttp.APIError {
+	return awshttp.Errf(400, "ResourceNotFound", "Resource not found: '%s'", arn)
+}
+
 func errInvalidName(detail string) *awshttp.APIError {
 	return awshttp.Errf(400, "InvalidName", "Invalid Name: '%s'", detail)
 }

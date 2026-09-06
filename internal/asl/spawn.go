@@ -18,6 +18,7 @@ func advanceParallel(s *State, ex *Exec, f *Frame, input, ctxObj any, env Env, n
 		}
 	}
 	branchInput := encodeDoc(eff)
+	f.BeginSpawn()
 	spawn := EffSpawn{Parent: f.ID}
 	for i := range s.Branches {
 		hop := append(append([]DefHop{}, f.Def...), DefHop{State: s.Name, Branch: i})
@@ -71,6 +72,7 @@ func advanceMap(s *State, ex *Exec, f *Frame, input, ctxObj any, env Env, notes 
 	}
 
 	hop := append(append([]DefHop{}, f.Def...), DefHop{State: s.Name, Branch: -1})
+	f.BeginSpawn()
 	spawn := EffSpawn{Parent: f.ID}
 	for i, item := range list {
 		itemRaw := encodeDoc(item)
@@ -171,19 +173,21 @@ func toleranceOf(s *State, total int) (int, bool) {
 }
 
 // PromotePending flips PENDING children RUNNABLE while the parent's
-// MaxConcurrency allows. The engine calls it as siblings settle.
-func PromotePending(d *Definition, ex *Exec, parent *Frame) {
+// MaxConcurrency allows, and returns the ones it started. The engine calls
+// it as siblings settle and records MapIterationStarted for each — the event
+// belongs to the moment an iteration begins, not to the spawn.
+func PromotePending(d *Definition, ex *Exec, parent *Frame) []*Frame {
 	sub, err := d.Sub(parent.Def)
 	if err != nil {
-		return
+		return nil
 	}
 	s := sub.States[parent.State]
 	if s == nil || s.MaxConcurrency == nil {
-		return
+		return nil
 	}
 	limit := int(*s.MaxConcurrency)
 	if limit <= 0 {
-		return
+		return nil
 	}
 	active := 0
 	for _, c := range ex.Children(parent.ID) {
@@ -191,15 +195,18 @@ func PromotePending(d *Definition, ex *Exec, parent *Frame) {
 			active++
 		}
 	}
+	var started []*Frame
 	for _, c := range ex.Children(parent.ID) {
 		if active >= limit {
-			return
+			break
 		}
 		if c.Status == FramePending {
 			c.Status = FrameRunnable
+			started = append(started, c)
 			active++
 		}
 	}
+	return started
 }
 
 // AbandonSiblings marks the parent's surviving children failed — the engine

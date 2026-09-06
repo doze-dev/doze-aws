@@ -53,8 +53,12 @@ type Execution struct {
 	// means none.
 	Deadline int64 `json:"deadline,omitempty"`
 	// TraceHeader is the causal chain captured at StartExecution, so steps a
-	// resumed execution causes still hang off the call that started it.
+	// resumed execution causes still hang off the call that started it. It
+	// is doze-aws's own and never answered on the wire.
 	TraceHeader string `json:"trace_header,omitempty"`
+	// XRayHeader is the traceHeader the caller passed to StartExecution, if
+	// any — the X-Ray one, which DescribeExecution echoes the way AWS does.
+	XRayHeader string `json:"xray_header,omitempty"`
 
 	Exec        *asl.Exec `json:"exec"`
 	NextEventID int64     `json:"next_event_id"`

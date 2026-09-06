@@ -8,6 +8,8 @@
     "test:e2e:headed": "playwright test --headed"
   },
   "devDependencies": {
+    "@aws-sdk/client-sfn": "^3.1127.0",
+    "@aws-sdk/client-sqs": "^3.1127.0",
     "@playwright/test": "^1.49.0",
     "typescript": "^5.7.0"
   }

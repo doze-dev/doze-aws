@@ -93,6 +93,7 @@ func (s *Server) startExecution(ctx context.Context, p map[string]any) (any, *aw
 		Definition: m.Definition, RoleARN: m.RoleARN, RevisionID: m.RevisionID, Type: m.Type,
 		Status: "RUNNING", StartedAt: now.UnixMilli(), Input: input,
 		TraceHeader: trace.Header(ctx),
+		XRayHeader:  awsjson.Str(p, "traceHeader"),
 		Exec: asl.StartExec(arn, execName, m.ARN, m.Name, m.RoleARN,
 			json.RawMessage(input), now),
 		NextEventID: 1,
@@ -214,8 +215,10 @@ func (s *Server) describeExecution(ctx context.Context, p map[string]any) (any, 
 	if e.Cause != "" {
 		out["cause"] = e.Cause
 	}
-	if e.TraceHeader != "" {
-		out["traceHeader"] = e.TraceHeader
+	// Only the caller's X-Ray header comes back; doze-aws's own causal chain
+	// is not an AWS value and was leaking here as one.
+	if e.XRayHeader != "" {
+		out["traceHeader"] = e.XRayHeader
 	}
 	return out, nil
 }
@@ -293,7 +296,7 @@ func (s *Server) listExecutions(ctx context.Context, p map[string]any) (any, *aw
 		}
 		items = append(items, item)
 	}
-	return map[string]any{"executions": items}, nil
+	return page(p, "executions", items)
 }
 
 // executionOf resolves the executionArn parameter to its record.

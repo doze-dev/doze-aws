@@ -286,11 +286,20 @@ func (g *engine) spawnEvents(r *run, e asl.EffSpawn) {
 				continue
 			}
 			c.PrevEventID = parent.PrevEventID
-			g.event(r, c, "MapIterationStarted", "mapIterationStartedEventDetails", map[string]any{
-				"name": s.Name, "index": c.Branch,
-			})
+			// An iteration held back by MaxConcurrency has not started;
+			// its event lands when PromotePending lets it run.
+			if c.Status != asl.FramePending {
+				g.iterationStarted(r, c, s.Name)
+			}
 		}
 	}
+}
+
+// iterationStarted records MapIterationStarted on the iteration's own chain.
+func (g *engine) iterationStarted(r *run, c *asl.Frame, state string) {
+	g.event(r, c, "MapIterationStarted", "mapIterationStartedEventDetails", map[string]any{
+		"name": state, "index": c.Branch,
+	})
 }
 
 // childSettled runs the join protocol when a Parallel branch or Map item
@@ -307,13 +316,20 @@ func (g *engine) childSettled(r *run, frameID int) {
 	}
 	s := r.stateOf(parent, parent.State)
 	if s != nil && s.Type == asl.Map {
+		// The iteration's outcome chains on the iteration — its
+		// previousEventId is the item's last event — while the parent's
+		// chain stays at MapStateStarted for MapStateSucceeded to follow.
 		typ, key := "MapIterationSucceeded", "mapIterationSucceededEventDetails"
 		if f.Status == asl.FrameFailed {
 			typ, key = "MapIterationFailed", "mapIterationFailedEventDetails"
 		}
-		g.event(r, parent, typ, key, map[string]any{"name": parent.State, "index": f.Branch})
+		g.event(r, f, typ, key, map[string]any{"name": parent.State, "index": f.Branch})
 	}
-	asl.PromotePending(r.def, r.e.Exec, parent)
+	for _, c := range asl.PromotePending(r.def, r.e.Exec, parent) {
+		if s != nil && s.Type == asl.Map {
+			g.iterationStarted(r, c, s.Name)
+		}
+	}
 	res, done := asl.JoinReady(r.def, r.e.Exec, parent)
 	if !done {
 		g.persist(r)

@@ -477,10 +477,21 @@ func (m *mapper) function(name string, props map[string]any) error {
 		}
 	}
 
-	// Code location: the _local_ convention is the only one that can work
-	// locally, since there is no build step here.
+	// Code location. A raw AWS::Lambda::Function names its code as
+	// {S3Bucket, S3Key}, which is what the CDK emits after uploading an
+	// asset to its bootstrap bucket — the bucket has to travel, as the
+	// s3:// reference the provisioner fetches, or the key is taken for a
+	// local path and a real `cdk deploy` fails on "code path … does not
+	// exist" with the zip sitting in S3. The _local_ bucket is the escape
+	// hatch for a directory on disk, and keeps the key as that path.
 	if code := propMap(props, "Code"); code != nil {
-		f.Code = firstNonEmpty(propStr(code, "S3Key"), propStr(code, "ImageUri"))
+		bucket, key := propStr(code, "S3Bucket"), propStr(code, "S3Key")
+		switch {
+		case bucket != "" && bucket != "_local_" && key != "":
+			f.Code = "s3://" + bucket + "/" + key
+		default:
+			f.Code = firstNonEmpty(key, propStr(code, "ImageUri"))
+		}
 	}
 	if uri := props["CodeUri"]; uri != nil { // SAM
 		f.Code = fmt.Sprint(uri)
