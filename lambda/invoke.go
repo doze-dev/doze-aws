@@ -18,11 +18,14 @@ import (
 )
 
 // invoke handles POST /functions/{name}/invocations.
-func (s *Server) invoke(w http.ResponseWriter, r *http.Request, name string) *awshttp.APIError {
-	f, err := s.store.GetFunction(name)
-	if err != nil {
-		return awshttp.AsAPIError(err)
+func (s *Server) invoke(w http.ResponseWriter, r *http.Request, name, qualifier string) *awshttp.APIError {
+	f, version, aerr := s.resolve(name, qualifier)
+	if aerr != nil {
+		return aerr
 	}
+	// The version that ran, as AWS reports it: the number behind an alias,
+	// $LATEST otherwise.
+	w.Header().Set("X-Amz-Executed-Version", version)
 	// Reserved concurrency 0 means "throttle every invocation" in real Lambda,
 	// not "use the default pool size".
 	if f.ReservedConcurrency != nil && *f.ReservedConcurrency == 0 {
@@ -48,6 +51,9 @@ func (s *Server) invoke(w http.ResponseWriter, r *http.Request, name string) *aw
 	}
 
 	in := lambdaruntime.Input{Payload: payload, TraceID: r.Header.Get("X-Amzn-Trace-Id")}
+	if qualifier != "" {
+		in.InvokedARN = f.ARN() + ":" + qualifier
+	}
 	if cc := r.Header.Get("X-Amz-Client-Context"); cc != "" {
 		// The header is base64 JSON; the function receives the JSON.
 		if raw, err := base64.StdEncoding.DecodeString(cc); err == nil {
@@ -234,10 +240,20 @@ func loggingEnv(f *Function) map[string]string {
 
 // runnerFor returns (creating if needed) the concurrency pool for a function.
 // The pool's ceiling is the function's reserved concurrency, if set.
+// Pools are keyed by name and version: version 2 and $LATEST run different
+// code from different directories, so they cannot share a process.
+func poolKey(f *Function) string {
+	if f.Version == "" || f.Version == "$LATEST" {
+		return f.Name
+	}
+	return f.Name + ":" + f.Version
+}
+
 func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if r := s.runners[f.Name]; r != nil {
+	key := poolKey(f)
+	if r := s.runners[key]; r != nil {
 		return r
 	}
 	max := 0 // NewPool defaults it
@@ -256,14 +272,16 @@ func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
 		MemorySize:   f.MemorySize,
 		Endpoints:    s.endpointEnv(),
 		LogSink:      sink,
+		Version:      f.Version,
+		LayerDirs:    s.layerDirs(f),
 		ShimDir:      s.shimDir,
 		Interpreters: s.interps,
 	}, max, s.logf)
 	if s.idleTimeout > 0 {
 		r.SetIdleTimeout(s.idleTimeout)
 	}
-	s.runners[f.Name] = r
-	s.sinks[f.Name] = sink
+	s.runners[key] = r
+	s.sinks[key] = sink
 	return r
 }
 
@@ -280,6 +298,23 @@ func (s *Server) restartRunner(name string) {
 		delete(s.sinks, name)
 	}
 	s.mu.Unlock()
+}
+
+// stopPools stops every pool for a function (the name) or one version
+// ("name:3"): a deleted function or version must not keep a process.
+func (s *Server) stopPools(key string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for k, r := range s.runners {
+		if k == key || strings.HasPrefix(k, key+":") {
+			r.Stop()
+			delete(s.runners, k)
+			if sink := s.sinks[k]; sink != nil {
+				sink.Close()
+				delete(s.sinks, k)
+			}
+		}
+	}
 }
 
 // endpointEnv builds the AWS_ENDPOINT_URL* variables injected into function

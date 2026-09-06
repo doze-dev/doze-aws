@@ -32,19 +32,25 @@ func (s *Server) routeFunctions(w http.ResponseWriter, r *http.Request, segs []s
 		}
 		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on functions")
 	}
-	name := segs[2]
+	// The name segment may be a name, name:qualifier, or an ARN with or
+	// without a qualifier; ?Qualifier= is the other spelling. The bare name
+	// addresses the record, the qualifier picks the version.
+	name, qualifier := splitQualifier(segs[2])
+	if q := r.URL.Query().Get("Qualifier"); q != "" {
+		qualifier = q
+	}
 	// /functions/{name}
 	if len(segs) == 3 {
 		switch r.Method {
 		case http.MethodGet:
-			return s.getFunction(w, name)
+			return s.getFunction(w, name, qualifier)
 		case http.MethodDelete:
-			return s.deleteFunction(w, name)
+			return s.deleteFunction(w, name, qualifier)
 		}
 	}
 	// /functions/{name}/invocations
 	if len(segs) == 4 && segs[3] == "invocations" {
-		return s.invoke(w, r, name)
+		return s.invoke(w, r, name, qualifier)
 	}
 	// /functions/{name}/configuration
 	if len(segs) == 4 && segs[3] == "configuration" {
@@ -54,9 +60,9 @@ func (s *Server) routeFunctions(w http.ResponseWriter, r *http.Request, segs []s
 		case http.MethodGet:
 			// GetFunctionConfiguration. Terraform and the CLI both read this
 			// directly rather than going through GetFunction.
-			f, err := s.store.GetFunction(name)
-			if err != nil {
-				return awshttp.AsAPIError(err)
+			f, _, aerr := s.resolve(name, qualifier)
+			if aerr != nil {
+				return aerr
 			}
 			writeJSON(w, 200, s.configView(f))
 			return nil
@@ -72,7 +78,7 @@ func (s *Server) routeFunctions(w http.ResponseWriter, r *http.Request, segs []s
 	if len(segs) == 4 && segs[3] == "versions" {
 		switch r.Method {
 		case http.MethodPost:
-			return s.publishVersion(w, name)
+			return s.publishVersion(w, r, name)
 		case http.MethodGet:
 			return s.listVersions(w, name)
 		}
@@ -164,6 +170,9 @@ func (s *Server) createFunction(w http.ResponseWriter, r *http.Request) *awshttp
 	}
 	if _, err := s.store.GetFunction(req.FunctionName); err == nil {
 		return awshttp.Errf(409, "ResourceConflictException", "Function already exist: %s", req.FunctionName)
+	}
+	if aerr := s.checkLayers(req.Layers); aerr != nil {
+		return aerr
 	}
 	if aerr := validSizing(req.MemorySize, req.Timeout); aerr != nil {
 		return aerr
@@ -288,10 +297,10 @@ func unzip(data []byte, dir string) error {
 	return nil
 }
 
-func (s *Server) getFunction(w http.ResponseWriter, name string) *awshttp.APIError {
-	f, err := s.store.GetFunction(name)
-	if err != nil {
-		return awshttp.AsAPIError(err)
+func (s *Server) getFunction(w http.ResponseWriter, name, qualifier string) *awshttp.APIError {
+	f, _, aerr := s.resolve(name, qualifier)
+	if aerr != nil {
+		return aerr
 	}
 	writeJSON(w, 200, map[string]any{
 		"Configuration": s.configView(f),
@@ -346,16 +355,30 @@ func (s *Server) listFunctions(w http.ResponseWriter) *awshttp.APIError {
 	return nil
 }
 
-func (s *Server) deleteFunction(w http.ResponseWriter, name string) *awshttp.APIError {
+func (s *Server) deleteFunction(w http.ResponseWriter, name, qualifier string) *awshttp.APIError {
+	if qualifier != "" && qualifier != "$LATEST" {
+		// DeleteFunction with a version qualifier deletes that version alone.
+		n, err := strconv.Atoi(qualifier)
+		if err != nil {
+			return awshttp.Errf(400, "InvalidParameterValueException", "Qualifier must be a version number to delete: %s", qualifier)
+		}
+		if _, err := s.store.GetVersion(name, n); err != nil {
+			return awshttp.AsAPIError(err)
+		}
+		if err := s.store.DeleteVersion(name, n); err != nil {
+			return awshttp.AsAPIError(err)
+		}
+		s.stopPools(name + ":" + qualifier)
+		_ = os.RemoveAll(filepath.Join(s.dataDir, "versions", name, qualifier))
+		w.WriteHeader(204)
+		return nil
+	}
 	if err := s.store.DeleteFunction(name); err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	s.mu.Lock()
-	if r := s.runners[name]; r != nil {
-		r.Stop()
-		delete(s.runners, name)
-	}
-	s.mu.Unlock()
+	_ = s.store.DeleteVersions(name)
+	_ = os.RemoveAll(filepath.Join(s.dataDir, "versions", name))
+	s.stopPools(name)
 	w.WriteHeader(204)
 	return nil
 }
@@ -366,6 +389,9 @@ func (s *Server) updateConfiguration(w http.ResponseWriter, r *http.Request, nam
 		return aerr
 	}
 	if aerr := validSizing(req.MemorySize, req.Timeout); aerr != nil {
+		return aerr
+	}
+	if aerr := s.checkLayers(req.Layers); aerr != nil {
 		return aerr
 	}
 	f, err := s.store.Update(name, func(f *Function) error {
@@ -387,6 +413,9 @@ func (s *Server) updateConfiguration(w http.ResponseWriter, r *http.Request, nam
 		}
 		if req.Command != nil {
 			f.Command = req.Command
+		}
+		if req.Layers != nil {
+			f.Layers = req.Layers
 		}
 		if req.DeadLetterConfig.TargetArn != "" {
 			f.DeadLetterArn = req.DeadLetterConfig.TargetArn
@@ -475,61 +504,6 @@ func (s *Server) routeCodeSigning(w http.ResponseWriter, r *http.Request, name s
 	return awshttp.Errf(405, "MethodNotAllowed", "unsupported code-signing-config request")
 }
 
-// listVersions implements ListVersionsByFunction. $LATEST always exists; any
-// published versions follow it, oldest first, as AWS returns them.
-func (s *Server) listVersions(w http.ResponseWriter, name string) *awshttp.APIError {
-	f, err := s.store.GetFunction(name)
-	if err != nil {
-		return awshttp.AsAPIError(err)
-	}
-	versions := []any{s.configViewAt(f, "$LATEST")}
-	if latest, ok := f.Aliases["$published"]; ok {
-		for n := 1; ; n++ {
-			v := strconv.Itoa(n)
-			versions = append(versions, s.configViewAt(f, v))
-			if v == latest {
-				break
-			}
-		}
-	}
-	writeJSON(w, 200, map[string]any{"Versions": versions})
-	return nil
-}
-
-// configViewAt renders a function's configuration as it appears at one version.
-func (s *Server) configViewAt(f *Function, version string) map[string]any {
-	view := s.configView(f)
-	view["Version"] = version
-	if version != "$LATEST" {
-		view["FunctionArn"] = f.ARN() + ":" + version
-	}
-	return view
-}
-
-func (s *Server) publishVersion(w http.ResponseWriter, name string) *awshttp.APIError {
-	f, err := s.store.GetFunction(name)
-	if err != nil {
-		return awshttp.AsAPIError(err)
-	}
-	// A monotonically increasing published version number, kept in an alias
-	// map for simplicity (local versioning is cosmetic beyond the number).
-	next := "1"
-	if v, ok := f.Aliases["$published"]; ok {
-		next = incVersion(v)
-	}
-	s.store.Update(name, func(f *Function) error {
-		if f.Aliases == nil {
-			f.Aliases = map[string]string{}
-		}
-		f.Aliases["$published"] = next
-		return nil
-	})
-	view := s.configView(f)
-	view["Version"] = next
-	writeJSON(w, 201, view)
-	return nil
-}
-
 // configView renders a FunctionConfiguration.
 func (s *Server) configView(f *Function) map[string]any {
 	view := map[string]any{
@@ -575,6 +549,10 @@ func (s *Server) configView(f *Function) map[string]any {
 	}
 	if f.DeadLetterArn != "" {
 		view["DeadLetterConfig"] = map[string]any{"TargetArn": f.DeadLetterArn}
+	}
+	// A published version's ARN carries its number, as AWS reports it.
+	if f.Version != "" && f.Version != "$LATEST" {
+		view["FunctionArn"] = f.ARN() + ":" + f.Version
 	}
 	return view
 }
@@ -628,16 +606,6 @@ func orStr(v, def string) string {
 		return def
 	}
 	return v
-}
-
-func incVersion(v string) string {
-	n := 0
-	for _, c := range v {
-		if c >= '0' && c <= '9' {
-			n = n*10 + int(c-'0')
-		}
-	}
-	return itoa(n + 1)
 }
 
 func itoa(n int) string {

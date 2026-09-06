@@ -119,6 +119,20 @@ func isExecuteAPI(r *http.Request) bool {
 	return strings.Contains(host, ".execute-api.")
 }
 
+// IsFunctionURL reports whether a request addresses a Lambda function URL
+// rather than the control plane — by the /_aws/lambda-url/ path, or by the
+// virtual-host {id}.lambda-url.<region>.on.aws form a function URL is.
+func IsFunctionURL(r *http.Request) bool {
+	if strings.HasPrefix(r.URL.Path, "/_aws/lambda-url/") {
+		return true
+	}
+	host := r.Host
+	if i := strings.Index(host, ":"); i >= 0 {
+		host = host[:i]
+	}
+	return strings.Contains(host, ".lambda-url.")
+}
+
 // Gateway is the shared-endpoint router. Register handlers for the services a
 // deployment enables; requests for everything else get a clean error.
 type Gateway struct {
@@ -218,6 +232,9 @@ func routeService(r *http.Request) (service, why string) {
 	// recognised by shape before the S3 fallback claims it.
 	if isExecuteAPI(r) {
 		return "apigateway", "execute-api path"
+	}
+	if IsFunctionURL(r) {
+		return "lambda", "function URL"
 	}
 	if action := peekAction(r); action != "" {
 		if svc, ok := queryActions[action]; ok {

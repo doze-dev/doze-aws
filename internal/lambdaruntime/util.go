@@ -41,6 +41,9 @@ func (r *ringBuffer) snapshot() []byte {
 // and ran 60 characters instead of 36. Anything parsing X-Amzn-RequestId as a
 // UUID rejected it, and the repetition made two IDs look related when they
 // were not.
+// NewRequestID mints a request id in the shape AWS uses.
+func NewRequestID() string { return newID() }
+
 func newID() string {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {

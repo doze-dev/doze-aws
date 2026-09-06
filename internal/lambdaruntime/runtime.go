@@ -53,6 +53,8 @@ type Spec struct {
 	ShimDir string
 	// Interpreters overrides where each runtime family's executable is.
 	Interpreters Interpreters
+	// LayerDirs are the function's layers, unpacked, in the order listed.
+	LayerDirs []string
 }
 
 // Input is one invocation's request.

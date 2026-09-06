@@ -73,6 +73,9 @@ func (r *Runner) childEnv(runtimeAPI, stream string) []string {
 	for k, v := range r.spec.Env {
 		set[k] = v
 	}
+	// Layers go on the search paths after the function's own variables, so
+	// a PYTHONPATH the function sets keeps precedence over a layer's.
+	layerEnv(r.spec.LayerDirs, r.spec.Runtime, set)
 	env := os.Environ()
 	keys := make([]string, 0, len(set))
 	for k := range set {

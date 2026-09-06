@@ -58,7 +58,10 @@ type Function struct {
 	LastMod  int64             `json:"last_mod"`
 	Revision string            `json:"revision"`
 
-	FunctionURL string `json:"function_url,omitempty"` // when a URL config exists
+	FunctionURL string          `json:"function_url,omitempty"` // when a URL config exists
+	URLId       string          `json:"url_id,omitempty"`       // the 32-character id the URL carries
+	URLAuthType string          `json:"url_auth,omitempty"`     // NONE or AWS_IAM (accepted, not enforced)
+	URLCors     json.RawMessage `json:"url_cors,omitempty"`
 
 	// Architectures is what the function was created for. Nothing local runs a
 	// foreign architecture — the handler runs on this machine either way — but

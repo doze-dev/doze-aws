@@ -32,3 +32,12 @@ func buildIn(t *testing.T, dir string) string {
 }
 
 func sprintf(format string, args ...any) string { return fmt.Sprintf(format, args...) }
+
+// skipWithoutPython skips a test that runs a Python handler when no
+// interpreter is on PATH.
+func skipWithoutPython(t *testing.T) {
+	t.Helper()
+	if _, err := exec.LookPath("python3"); err != nil {
+		t.Skip("no python3 on PATH")
+	}
+}

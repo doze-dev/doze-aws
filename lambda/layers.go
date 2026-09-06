@@ -5,12 +5,13 @@ package lambda
 //
 // Layers are genuinely emulatable — a layer version is a name, a version
 // number, some metadata and a content blob — and templates reference them
-// routinely, so they are implemented rather than stubbed. What doze-aws does
-// NOT do is unpack a layer into a function's /opt at invoke time: local
-// functions run as ordinary processes against real files, so there is nothing
-// to overlay. The attachment round-trips on the function's Layers field.
+// routinely, so they are implemented rather than stubbed. A layer is unpacked
+// when published, and a function that lists it is launched with the layer's
+// python/, nodejs/, ruby/, bin/ and lib/ directories on the search paths its
+// runtime honours — the effect /opt has on AWS, without a mount.
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -25,6 +26,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/peercall"
 )
 
 var layerBucket = []byte("layers")
@@ -42,6 +44,9 @@ type LayerVersion struct {
 	CodeSHA256         string   `json:"code_sha256,omitempty"`
 	// ContentPath is where the layer archive was written under the data dir.
 	ContentPath string `json:"content_path,omitempty"`
+	// ExtractedDir is the archive unpacked — the tree a function is launched
+	// with on its search paths.
+	ExtractedDir string `json:"extracted_dir,omitempty"`
 	// Policy is the layer version's resource policy statements.
 	Policy []PolicyStatement `json:"policy,omitempty"`
 }
@@ -326,26 +331,62 @@ func (s *Server) publishLayerVersion(w http.ResponseWriter, r *http.Request, nam
 		LicenseInfo:        req.LicenseInfo,
 	}
 
-	// An inline archive is written to the data dir so GetLayerVersion can hand
-	// back a location that actually resolves.
-	if len(req.Content.ZipFile) > 0 {
-		dir := filepath.Join(s.dataDir, "layers", name)
+	// The archive is written to the data dir so GetLayerVersion can hand back
+	// a location that resolves, and unpacked beside it so a function can be
+	// launched with the layer's python/, nodejs/, ruby/, bin/ and lib/ on its
+	// search paths — which is what /opt is for on AWS.
+	dir := filepath.Join(s.dataDir, "layers", name)
+	archive := req.Content.ZipFile
+	switch {
+	case len(archive) > 0:
+	case req.Content.S3Bucket == "_local_" || (req.Content.S3Bucket == "" && req.Content.S3Key != ""):
+		// The _local_ convention: the key names a path already on disk — a
+		// directory laid out like an unpacked layer, or a zip.
+		info, err := os.Stat(req.Content.S3Key)
+		if err != nil {
+			return awshttp.Errf(400, "InvalidParameterValueException", "local layer path does not exist: %s", req.Content.S3Key)
+		}
+		l.ContentPath = req.Content.S3Key
+		l.CodeSize = info.Size()
+		if info.IsDir() {
+			l.ExtractedDir = req.Content.S3Key
+		} else if raw, err := os.ReadFile(req.Content.S3Key); err == nil {
+			archive = raw
+		}
+	case req.Content.S3Bucket != "" && req.Content.S3Key != "":
+		// A deploy tool staged the layer in S3, as `cdk deploy` does.
+		fetched, err := peercall.S3Get(context.Background(), s.peers, req.Content.S3Bucket, req.Content.S3Key)
+		if err != nil {
+			return awshttp.Errf(400, "InvalidParameterValueException",
+				"cannot read layer content from s3://%s/%s: %v", req.Content.S3Bucket, req.Content.S3Key, err)
+		}
+		archive = fetched
+	}
+	if len(archive) > 0 {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return awshttp.AsAPIError(err)
 		}
 		path := filepath.Join(dir, fmt.Sprintf("%d.zip", version))
-		if err := os.WriteFile(path, req.Content.ZipFile, 0o644); err != nil {
+		if err := os.WriteFile(path, archive, 0o644); err != nil {
 			return awshttp.AsAPIError(err)
 		}
-		l.ContentPath = path
-		l.CodeSize = int64(len(req.Content.ZipFile))
-		l.CodeSHA256 = sha256Base64(req.Content.ZipFile)
-	} else if req.Content.S3Key != "" {
-		// The _local_ bucket convention: the key names a path already on disk.
-		l.ContentPath = req.Content.S3Key
-		if fi, err := os.Stat(req.Content.S3Key); err == nil {
-			l.CodeSize = fi.Size()
+		extracted := filepath.Join(dir, fmt.Sprintf("%d", version))
+		if err := unzip(archive, extracted); err != nil {
+			return awshttp.Errf(400, "InvalidParameterValueException", "layer content is not a valid zip: %v", err)
 		}
+		// A layer's bin/ is meant to be run; a zip written without mode bits
+		// would leave it unrunnable, which is never what was meant.
+		if entries, err := os.ReadDir(filepath.Join(extracted, "bin")); err == nil {
+			for _, e := range entries {
+				if !e.IsDir() {
+					_ = os.Chmod(filepath.Join(extracted, "bin", e.Name()), 0o755)
+				}
+			}
+		}
+		l.ContentPath = path
+		l.ExtractedDir = extracted
+		l.CodeSize = int64(len(archive))
+		l.CodeSHA256 = sha256Base64(archive)
 	}
 
 	if err := s.store.PutLayerVersion(l); err != nil {
@@ -540,4 +581,39 @@ func (s *Server) accountSettings(w http.ResponseWriter, r *http.Request) *awshtt
 		},
 	})
 	return nil
+}
+
+// checkLayers refuses a function that lists a layer version nothing
+// published, as AWS does at create time — a missing layer is a deploy error,
+// not a first-invoke surprise.
+func (s *Server) checkLayers(arns []string) *awshttp.APIError {
+	for _, arn := range arns {
+		name, version, ok := parseLayerARN(arn)
+		if !ok {
+			return awshttp.Errf(400, "InvalidParameterValueException", "Layer ARN %q is malformed: expected arn:aws:lambda:<region>:<account>:layer:<name>:<version>", arn)
+		}
+		if _, err := s.store.GetLayerVersion(name, version); err != nil {
+			return awshttp.Errf(400, "InvalidParameterValueException", "Layer version %s does not exist", arn)
+		}
+	}
+	return nil
+}
+
+// layerDirs resolves a function's layers to their unpacked directories, in
+// order. A layer published before unpacking existed, or a _local_ zip, has
+// no directory and contributes nothing.
+func (s *Server) layerDirs(f *Function) []string {
+	var dirs []string
+	for _, arn := range f.Layers {
+		name, version, ok := parseLayerARN(arn)
+		if !ok {
+			continue
+		}
+		l, err := s.store.GetLayerVersion(name, version)
+		if err != nil || l.ExtractedDir == "" {
+			continue
+		}
+		dirs = append(dirs, l.ExtractedDir)
+	}
+	return dirs
 }

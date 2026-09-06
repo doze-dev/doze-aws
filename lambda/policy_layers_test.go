@@ -5,6 +5,7 @@ package lambda_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 
@@ -113,11 +114,12 @@ func TestSDKAddPermissionAccountPrincipal(t *testing.T) {
 func TestSDKLayerLifecycle(t *testing.T) {
 	ctx := context.Background()
 	c, _ := lambdaClient(t)
+	layerZip := zipOf(t, map[string]string{"python/shared/__init__.py": "", "python/shared/deps.py": "VERSION = 1\n"})
 
 	published, err := c.PublishLayerVersion(ctx, &awslambda.PublishLayerVersionInput{
 		LayerName:          aws.String("shared-deps"),
 		Description:        aws.String("common libraries"),
-		Content:            &lamtypes.LayerVersionContentInput{ZipFile: []byte("fake-zip-content")},
+		Content:            &lamtypes.LayerVersionContentInput{ZipFile: layerZip},
 		CompatibleRuntimes: []lamtypes.Runtime{lamtypes.RuntimeProvidedal2, lamtypes.RuntimePython313},
 	})
 	if err != nil {
@@ -130,7 +132,7 @@ func TestSDKLayerLifecycle(t *testing.T) {
 	if got := aws.ToString(published.LayerVersionArn); got != wantARN {
 		t.Fatalf("LayerVersionArn = %q, want %q", got, wantARN)
 	}
-	if published.Content == nil || published.Content.CodeSize != int64(len("fake-zip-content")) {
+	if published.Content == nil || published.Content.CodeSize != int64(len(layerZip)) {
 		t.Fatalf("Content = %+v", published.Content)
 	}
 	if len(published.CompatibleRuntimes) != 2 {
@@ -140,7 +142,7 @@ func TestSDKLayerLifecycle(t *testing.T) {
 	// A second publish increments.
 	second, err := c.PublishLayerVersion(ctx, &awslambda.PublishLayerVersionInput{
 		LayerName: aws.String("shared-deps"),
-		Content:   &lamtypes.LayerVersionContentInput{ZipFile: []byte("v2")},
+		Content:   &lamtypes.LayerVersionContentInput{ZipFile: zipOf(t, map[string]string{"v2.txt": "v2"})},
 	})
 	if err != nil || second.Version != 2 {
 		t.Fatalf("second publish = %d, %v", second.Version, err)
@@ -202,7 +204,7 @@ func TestSDKLayerVersionPolicy(t *testing.T) {
 
 	c.PublishLayerVersion(ctx, &awslambda.PublishLayerVersionInput{
 		LayerName: aws.String("shared"),
-		Content:   &lamtypes.LayerVersionContentInput{ZipFile: []byte("z")},
+		Content:   &lamtypes.LayerVersionContentInput{ZipFile: zipOf(t, map[string]string{"z.txt": "z"})},
 	})
 	if _, err := c.AddLayerVersionPermission(ctx, &awslambda.AddLayerVersionPermissionInput{
 		LayerName: aws.String("shared"), VersionNumber: aws.Int64(1),
@@ -301,5 +303,52 @@ func TestSDKListVersionsAndCodeSigning(t *testing.T) {
 	}
 	if aws.ToString(cs.FunctionName) != "versioned" {
 		t.Fatalf("FunctionName = %q", aws.ToString(cs.FunctionName))
+	}
+}
+
+// TestLayersReachTheFunction: a layer's python/ tree is importable by a
+// Python function that lists it, and a bin/ tool is on its PATH. A layer
+// nothing published is refused at create time, as on AWS.
+func TestLayersReachTheFunction(t *testing.T) {
+	if testing.Short() {
+		t.Skip("runs interpreters")
+	}
+	skipWithoutPython(t)
+	ctx := context.Background()
+	c, _ := lambdaClient(t)
+	layer, err := c.PublishLayerVersion(ctx, &awslambda.PublishLayerVersionInput{
+		LayerName: aws.String("helpers"),
+		Content: &lamtypes.LayerVersionContentInput{ZipFile: zipOf(t, map[string]string{
+			"python/helpers/__init__.py": "",
+			"python/helpers/greet.py":    "def hello(who):\n    return \"hello \" + who\n",
+			"bin/shout":                  "#!/bin/sh\necho SHOUT $1\n",
+		})},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var invalid *lamtypes.InvalidParameterValueException
+	if _, err := c.CreateFunction(ctx, &awslambda.CreateFunctionInput{
+		FunctionName: aws.String("layered"), Runtime: lamtypes.RuntimePython312, Handler: aws.String("h.handler"),
+		Role:   aws.String("arn:aws:iam::000000000000:role/x"),
+		Code:   &lamtypes.FunctionCode{ZipFile: zipOf(t, map[string]string{"h.py": "def handler(e, c):\n    return 1\n"})},
+		Layers: []string{"arn:aws:lambda:us-east-1:000000000000:layer:helpers:99"},
+	}); !errors.As(err, &invalid) {
+		t.Fatalf("a missing layer version should be refused at create: %v", err)
+	}
+	if _, err := c.CreateFunction(ctx, &awslambda.CreateFunctionInput{
+		FunctionName: aws.String("layered"), Runtime: lamtypes.RuntimePython312, Handler: aws.String("h.handler"),
+		Role:   aws.String("arn:aws:iam::000000000000:role/x"),
+		Code:   &lamtypes.FunctionCode{ZipFile: zipOf(t, map[string]string{"h.py": "import os, subprocess\nfrom helpers.greet import hello\ndef handler(e, c):\n    out = subprocess.run([\"shout\", \"x\"], capture_output=True, text=True).stdout.strip()\n    return {\"greet\": hello(\"ada\"), \"shout\": out, \"dirs\": os.environ.get(\"LAMBDA_LAYERS_DIRS\", \"\") != \"\"}\n"})},
+		Layers: []string{aws.ToString(layer.LayerVersionArn)},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	out, err := c.Invoke(ctx, &awslambda.InvokeInput{FunctionName: aws.String("layered"), Payload: []byte(`{}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.FunctionError != nil || !strings.Contains(string(out.Payload), `"greet": "hello ada"`) || !strings.Contains(string(out.Payload), `"shout": "SHOUT x"`) || !strings.Contains(string(out.Payload), `"dirs": true`) {
+		t.Errorf("the layer did not reach the function: %s", out.Payload)
 	}
 }

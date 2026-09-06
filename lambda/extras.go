@@ -157,42 +157,6 @@ func (s *Server) routeConcurrency(w http.ResponseWriter, r *http.Request, name s
 	return awshttp.Errf(405, "MethodNotAllowed", "unsupported concurrency request")
 }
 
-// ---- function URLs ----
-
-func (s *Server) routeFunctionURL(w http.ResponseWriter, r *http.Request, name string) *awshttp.APIError {
-	switch r.Method {
-	case http.MethodPost, http.MethodPut:
-		f, err := s.store.Update(name, func(f *Function) error {
-			if f.FunctionURL == "" {
-				f.FunctionURL = "http://" + name + ".lambda-url.local/"
-			}
-			return nil
-		})
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		writeJSON(w, 201, map[string]any{
-			"FunctionUrl": f.FunctionURL, "FunctionArn": f.ARN(), "AuthType": "NONE",
-		})
-		return nil
-	case http.MethodGet:
-		f, err := s.store.GetFunction(name)
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		if f.FunctionURL == "" {
-			return awshttp.Errf(404, "ResourceNotFoundException", "no function URL config for %s", name)
-		}
-		writeJSON(w, 200, map[string]any{"FunctionUrl": f.FunctionURL, "FunctionArn": f.ARN(), "AuthType": "NONE"})
-		return nil
-	case http.MethodDelete:
-		s.store.Update(name, func(f *Function) error { f.FunctionURL = ""; return nil })
-		w.WriteHeader(204)
-		return nil
-	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported function-url request")
-}
-
 // ---- event invoke config (async destinations / retries) ----
 
 // eventInvokeReq is the wire body for Put/UpdateFunctionEventInvokeConfig.

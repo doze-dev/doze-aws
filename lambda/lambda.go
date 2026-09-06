@@ -28,6 +28,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/gateway"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/peers"
 )
@@ -159,6 +160,12 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// A function URL is the data plane: an unsigned HTTP request the gateway
+	// routed here by its host or path, not a control-plane operation.
+	if gateway.IsFunctionURL(r) {
+		s.serveFunctionURL(w, r)
+		return
+	}
 	// Model-derived input validation runs before the router, for every routed
 	// operation at once — coverage is then a property of the route table rather
 	// than something each handler has to remember.

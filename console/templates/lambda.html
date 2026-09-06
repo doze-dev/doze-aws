@@ -299,7 +299,7 @@
     <div class="panel"><div class="form-b">
       {{if .URL}}
       <div class="copy-row"><span class="mono" style="font-size:11px" title="{{.URL}}">{{.URL}}</span><button class="icon-btn sm" title="Copy" data-copy="{{.URL}}">{{icon "copy"}}</button></div>
-      <p class="mini-note">A public HTTPS-style endpoint that invokes this function directly — no trigger needed.</p>
+      <p class="mini-note">Served by this endpoint: a plain HTTP request becomes the payload-format-2.0 event, no trigger needed. The {id}.lambda-url.us-east-1.on.aws host form routes here too.</p>
       <div style="display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/delete-url" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove the function URL?">Remove URL</button></div>
       {{else}}
       <p class="mini-note" style="margin-top:0">No function URL. Create one to invoke this function over HTTP without a trigger.</p>

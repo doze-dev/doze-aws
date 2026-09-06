@@ -274,23 +274,36 @@ test.describe('lifecycle', () => {
     const createToast = await waitForToast();
     expect(createToast).toContain('Function URL created');
 
-    // doze-aws shapes this as a real AWS function-URL string
-    // (http://{name}.lambda-url.local/) for UI/API parity, but — unlike the
-    // AWS builtins' shared :80 ingress documented for the `core` daemon —
-    // this standalone doze-aws server has no Host-routed listener for
-    // *.lambda-url.local (confirmed: no handler anywhere keys off r.Host).
-    // It exists purely as a config-surface value here, so this test asserts
-    // the URL is shown/removed correctly rather than actually invoking it
-    // over HTTP, which nothing in this codebase serves yet.
+    // With a reachable endpoint the URL is the gateway's path form,
+    // /_aws/lambda-url/{id}/ (the {id}.lambda-url.<region>.on.aws host form
+    // routes too, for a client that can set Host). It is served: a plain
+    // HTTP request becomes the payload-format-2.0 event, and the fixture's
+    // bare echo comes back as a 200 JSON body.
     const urlText = page.locator('.copy-row .mono');
-    await expect(urlText).toHaveText(new RegExp(`http://${fnName}\\.lambda-url\\.local/`));
+    await expect(urlText).toHaveText(/^http:\/\/127\.0\.0\.1:\d+\/_aws\/lambda-url\/[a-z0-9]{32}\/$/);
+    const url = (await urlText.textContent())!.trim();
     await waitToastGone(page);
+
+    const res = await page.request.post(`${url}orders/7?x=1`, {
+      headers: { 'content-type': 'application/json' },
+      data: { via: 'url' },
+    });
+    expect(res.status()).toBe(200);
+    expect(res.headers()['x-amzn-requestid']).toBeTruthy();
+    const body = await res.json();
+    expect(body.echoed.version).toBe('2.0');
+    expect(body.echoed.rawPath).toBe('/orders/7');
+    expect(body.echoed.requestContext.http.method).toBe('POST');
+    expect(body.echoed.queryStringParameters).toEqual({ x: '1' });
+    expect(body.echoed.body).toBe('{"via":"url"}');
 
     await page.getByRole('button', { name: 'Remove URL' }).click();
     await page.locator('#confirm-yes').click();
     const removeToast = await waitForToast();
     expect(removeToast).toContain('Function URL removed');
     await expect(page.getByText('No function URL.')).toBeVisible();
+    // Removing the config stops serving.
+    expect((await page.request.get(url)).status()).toBe(404);
   });
 
   test('async (Event) invoke returns an accepted receipt, not a result', async ({
