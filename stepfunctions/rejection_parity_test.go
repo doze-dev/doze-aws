@@ -19,7 +19,9 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/doze-dev/doze-aws/internal/auditkit"
 )
@@ -41,7 +43,19 @@ type fixture struct {
 	execARN     string
 	stopExecARN string
 	activityARN string
+	// The completion pass's fixtures: a published version and an alias on
+	// it, an EXPRESS machine for StartSyncExecution, and a finished
+	// Distributed Map execution whose Map Run the three MapRun operations
+	// address.
+	versionARN string
+	aliasARN   string
+	expressARN string
+	mapRunARN  string
+	mapExecARN string
 }
+
+const auditMapDef = `{"StartAt":"M","States":{"M":{"Type":"Map","End":true,"ItemProcessor":{"ProcessorConfig":{"Mode":"DISTRIBUTED"},
+  "StartAt":"P","States":{"P":{"Type":"Pass","End":true}}}}}}`
 
 const auditDef = `{"StartAt":"W","States":{"W":{"Type":"Wait","Seconds":30000,"Next":"S"},"S":{"Type":"Succeed"}}}`
 
@@ -110,6 +124,48 @@ func setUpFixture(t *testing.T, ts *httptest.Server) fixture {
 		t.Fatalf("fixture CreateActivity = %d: %s", code, body)
 	}
 	f.activityARN = activityARN("auditact")
+
+	must := func(target string, in map[string]any) map[string]any {
+		t.Helper()
+		code, body := call(t, ts, "AWSStepFunctions."+target, in)
+		if code != http.StatusOK {
+			t.Fatalf("fixture %s = %d: %s", target, code, body)
+		}
+		var out map[string]any
+		json.Unmarshal([]byte(body), &out)
+		return out
+	}
+	f.versionARN, _ = must("PublishStateMachineVersion", map[string]any{"stateMachineArn": f.machineARN})["stateMachineVersionArn"].(string)
+	f.aliasARN, _ = must("CreateStateMachineAlias", map[string]any{
+		"name": "live", "routingConfiguration": []any{map[string]any{"stateMachineVersionArn": f.versionARN, "weight": 100}},
+	})["stateMachineAliasArn"].(string)
+	f.expressARN, _ = must("CreateStateMachine", map[string]any{
+		"name": "auditexpress", "definition": `{"StartAt":"S","States":{"S":{"Type":"Succeed"}}}`, "type": "EXPRESS",
+		"roleArn": "arn:aws:iam::000000000000:role/StepFunctions",
+	})["stateMachineArn"].(string)
+
+	// A Distributed Map run to completion: the Map Run it leaves is what the
+	// three MapRun operations address.
+	mapMachine, _ := must("CreateStateMachine", map[string]any{
+		"name": "auditmap", "definition": auditMapDef, "roleArn": "arn:aws:iam::000000000000:role/StepFunctions",
+	})["stateMachineArn"].(string)
+	f.mapExecARN, _ = must("StartExecution", map[string]any{"stateMachineArn": mapMachine, "name": "mapped", "input": "[1,2]"})["executionArn"].(string)
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		d := must("DescribeExecution", map[string]any{"executionArn": f.mapExecARN})
+		if d["status"] != "RUNNING" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("fixture: the Distributed Map execution never finished")
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	runs, _ := must("ListMapRuns", map[string]any{"executionArn": f.mapExecARN})["mapRuns"].([]any)
+	if len(runs) != 1 {
+		t.Fatalf("fixture: expected one Map Run, got %v", runs)
+	}
+	f.mapRunARN, _ = runs[0].(map[string]any)["mapRunArn"].(string)
 	return f
 }
 
@@ -147,6 +203,31 @@ func baselines(f fixture) map[string]map[string]any {
 		"GetExecutionHistory":              exec,
 		"ListExecutions":                   mach,
 		"StopExecution":                    {"executionArn": f.stopExecARN},
+
+		"StartSyncExecution": {"stateMachineArn": f.expressARN, "input": "{}"},
+		// A Task under test, so a mocked case (the exemplar) is legal.
+		"TestState": {"definition": `{"Type":"Task","Resource":"arn:aws:states:::lambda:invoke","Parameters":{"FunctionName":"f"},"End":true}`, "input": "{}"},
+		// The fixture activity has nothing queued: the poll answers empty
+		// once activityPollTimeout elapses, which the test shortens.
+		"GetActivityTask": {"activityArn": f.activityARN},
+
+		"PublishStateMachineVersion": mach,
+		"ListStateMachineVersions":   mach,
+		// Deleting a version that was never published succeeds; the fixture
+		// version stays, since the alias routes to it.
+		"DeleteStateMachineVersion": {"stateMachineVersionArn": f.machineARN + ":999"},
+		"CreateStateMachineAlias": {"name": "live", "routingConfiguration": []any{
+			map[string]any{"stateMachineVersionArn": f.versionARN, "weight": 100}}},
+		"DescribeStateMachineAlias": {"stateMachineAliasArn": f.aliasARN},
+		"UpdateStateMachineAlias": {"stateMachineAliasArn": f.aliasARN, "routingConfiguration": []any{
+			map[string]any{"stateMachineVersionArn": f.versionARN, "weight": 100}}},
+		// prepare re-creates the alias this consumes before every send.
+		"DeleteStateMachineAlias": {"stateMachineAliasArn": f.machineARN + ":doomed"},
+		"ListStateMachineAliases": mach,
+
+		"DescribeMapRun": {"mapRunArn": f.mapRunARN},
+		"ListMapRuns":    {"executionArn": f.mapExecARN},
+		"UpdateMapRun":   {"mapRunArn": f.mapRunARN, "maxConcurrency": 5},
 	}
 }
 
@@ -157,6 +238,12 @@ func exemplars(f fixture) map[string]any {
 		"loggingConfiguration":    map[string]any{"level": "OFF"},
 		"tracingConfiguration":    map[string]any{"enabled": false},
 		"tags[]":                  []any{map[string]any{"key": "probe", "value": "v"}},
+		// TestState's mock is only legal on a Task, Map or Parallel; the
+		// baseline tests a Succeed, so a mocked case fails for that reason
+		// first — hence the mock exemplar rides with a Task definition.
+		"mock":               map[string]any{"result": "{}"},
+		"mock.errorOutput":   map[string]any{"error": "E", "cause": "c"},
+		"stateConfiguration": map[string]any{"retrierRetryCount": 0},
 	}
 }
 
@@ -167,6 +254,26 @@ func exemplars(f fixture) map[string]any {
 func prepare(t *testing.T, ts *httptest.Server, op, mutating string, body map[string]any, n int) {
 	t.Helper()
 	_ = fmt.Sprint(n)
+	if op == "DeleteStateMachineAlias" {
+		// The one non-idempotent baseline: an alias is gone once deleted and
+		// AWS answers ResourceNotFound, so the doomed alias is re-created
+		// before each send. The version it routes to is the fixture's.
+		alias, _ := body["stateMachineAliasArn"].(string)
+		machine := strings.TrimSuffix(alias, ":doomed")
+		_, versions := call(t, ts, "AWSStepFunctions.ListStateMachineVersions", map[string]any{"stateMachineArn": machine})
+		var vs struct {
+			Versions []struct {
+				ARN string `json:"stateMachineVersionArn"`
+			} `json:"stateMachineVersions"`
+		}
+		json.Unmarshal([]byte(versions), &vs)
+		if len(vs.Versions) > 0 {
+			call(t, ts, "AWSStepFunctions.CreateStateMachineAlias", map[string]any{
+				"name": "doomed", "routingConfiguration": []any{
+					map[string]any{"stateMachineVersionArn": vs.Versions[0].ARN, "weight": 100}},
+			})
+		}
+	}
 }
 
 // knownGaps are constraints AWS enforces and doze-aws does not, as of the
@@ -181,6 +288,7 @@ var needState = map[string]string{
 	"SendTaskSuccess":   "needs a live task token, and redeeming it consumes it",
 	"SendTaskFailure":   "needs a live task token, and redeeming it consumes it",
 	"SendTaskHeartbeat": "needs a live task token from a parked task",
+	"RedriveExecution":  "consumes the failed execution it addresses: the first redrive puts it back to RUNNING and every later one is refused",
 }
 
 func loadCases(t *testing.T) []auditCase {
@@ -203,6 +311,12 @@ func TestStepFunctionsRejectsWhatTheModelForbids(t *testing.T) {
 	if testing.Short() {
 		t.Skip("boots a store")
 	}
+	// GetActivityTask's baseline polls an empty queue: 60 seconds per case
+	// would be the whole run. The poll deadline is what the cases exercise,
+	// not the wait.
+	saved := activityPollTimeout
+	activityPollTimeout = 50 * time.Millisecond
+	t.Cleanup(func() { activityPollTimeout = saved })
 	ts := sfnServer(t)
 	f := setUpFixture(t, ts)
 	base := baselines(f)
