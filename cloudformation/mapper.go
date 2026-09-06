@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/internal/provision"
+	"github.com/doze-dev/doze-aws/provision"
 )
 
 // mapper accumulates the stack while walking resources, deferring the

@@ -8,6 +8,10 @@
 // converge on CloudFormation templates, so that is the front end, and this
 // package is what a template compiles down to.
 //
+// It is public because doze-modules' aws module is a second front end: its
+// HCL blocks decode straight into a Stack and hand it to Apply. Stack and the
+// resource types are therefore an API — add fields, do not rename them.
+//
 // Design choices, deliberately:
 //   - Resources are named and wired by NAME, not ARN — inside one local
 //     account and region names are unambiguous.

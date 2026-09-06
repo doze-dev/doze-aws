@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
-	"github.com/doze-dev/doze-aws/internal/provision"
+	"github.com/doze-dev/doze-aws/provision"
 )
 
 var handlers = map[string]handler{

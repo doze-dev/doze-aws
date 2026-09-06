@@ -1,7 +1,7 @@
 package cloudformation
 
 // Supporting machinery for the stack service: template fetching from S3,
-// event synthesis, and errors. Resource teardown lives in internal/provision,
+// event synthesis, and errors. Resource teardown lives in provision,
 // beside the Apply it inverts.
 
 import (
@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
-	"github.com/doze-dev/doze-aws/internal/provision"
+	"github.com/doze-dev/doze-aws/provision"
 )
 
 func unix(sec int64) time.Time { return time.Unix(sec, 0) }

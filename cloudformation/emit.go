@@ -17,7 +17,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/doze-dev/doze-aws/internal/provision"
+	"github.com/doze-dev/doze-aws/provision"
 )
 
 // Emit renders a resource graph as a CloudFormation template in YAML.

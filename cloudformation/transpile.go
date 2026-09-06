@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/internal/provision"
+	"github.com/doze-dev/doze-aws/provision"
 )
 
 // Report is the outcome of a transpile: what was mapped, ignored and rejected.
