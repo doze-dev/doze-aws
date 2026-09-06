@@ -444,7 +444,10 @@ func TestHeartbeatTimeout(t *testing.T) {
 	for _, call := range []func(map[string]any) *awshttp.APIError{
 		func(p map[string]any) *awshttp.APIError { _, a := s.sendTaskSuccess(context.Background(), p); return a },
 		func(p map[string]any) *awshttp.APIError { _, a := s.sendTaskFailure(context.Background(), p); return a },
-		func(p map[string]any) *awshttp.APIError { _, a := s.sendTaskHeartbeat(context.Background(), p); return a },
+		func(p map[string]any) *awshttp.APIError {
+			_, a := s.sendTaskHeartbeat(context.Background(), p)
+			return a
+		},
 	} {
 		if aerr := call(map[string]any{"taskToken": token, "output": "{}"}); aerr == nil || aerr.Code != "TaskTimedOut" {
 			t.Errorf("after the timeout, SendTask* = %v, want TaskTimedOut", aerr)

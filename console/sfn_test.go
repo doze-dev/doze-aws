@@ -86,7 +86,7 @@ func TestConsoleStepFunctionsFlow(t *testing.T) {
 		t.Errorf("machine graph should carry no execution overlay:\n%s", graph)
 	}
 	overlaid := req(t, h, "GET", "/_console/sfn/order-flow/execution/run-1?tab=graph", nil).Body.String()
-	for _, want := range []string{`id="sfn-graph"`, `data-live-paused`, `gn-pass gn-start gn-succeeded" data-state="Prep"`, `gn-succeeded" data-state="Done"`, `id="sfn-history"`, `<tr class="" data-state="Prep"`} {
+	for _, want := range []string{`id="sfn-graph"`, `data-live-paused`, `gn-pass gn-start gn-succeeded" data-state="Prep"`, `gn-succeeded" data-state="Done"`, `id="sfn-history"`, `sfn-x" data-state="Prep"`, `class="sfn-det"`} {
 		if !strings.Contains(overlaid, want) {
 			t.Errorf("execution graph is missing %q:\n%s", want, overlaid)
 		}
