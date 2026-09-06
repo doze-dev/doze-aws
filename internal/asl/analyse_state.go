@@ -21,7 +21,7 @@ var fieldsByType = map[StateType]map[string]bool{
 	Succeed:  {},
 	Fail:     {"Error": true, "ErrorPath": true, "Cause": true, "CausePath": true},
 	Parallel: {"Branches": true, "Parameters": true, "ResultSelector": true, "ResultPath": true, "Retry": true, "Catch": true, "Assign": true},
-	Map:      {"ItemProcessor": true, "Iterator": true, "ItemsPath": true, "ItemSelector": true, "Parameters": true, "MaxConcurrency": true, "MaxConcurrencyPath": true, "ItemReader": true, "ItemBatcher": true, "ResultWriter": true, "ResultSelector": true, "ResultPath": true, "Retry": true, "Catch": true, "ToleratedFailureCount": true, "ToleratedFailurePercentage": true, "Assign": true},
+	Map:      {"ItemProcessor": true, "Iterator": true, "ItemsPath": true, "ItemSelector": true, "Parameters": true, "MaxConcurrency": true, "MaxConcurrencyPath": true, "ItemReader": true, "ItemBatcher": true, "ResultWriter": true, "ResultSelector": true, "ResultPath": true, "Retry": true, "Catch": true, "ToleratedFailureCount": true, "ToleratedFailurePercentage": true, "Label": true, "Assign": true},
 }
 
 func analyseState(d *Definition, s *State, at string, r *Report) {

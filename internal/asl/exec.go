@@ -61,6 +61,9 @@ func Advance(d *Definition, ex *Exec, f *Frame, env Env) (Effect, []Note, error)
 		if fail != nil {
 			return failFrame(f, s, fail, notes)
 		}
+		if fail := assignPaths(f, s.Assign, eff, ctxObj, env); fail != nil {
+			return failFrame(f, s, fail, notes)
+		}
 		return exitState(f, s, "", output, env, notes)
 	case Fail:
 		return advanceFail(s, f, input, ctxObj, notes)
@@ -98,6 +101,9 @@ func Wake(d *Definition, ex *Exec, f *Frame, env Env) (Effect, []Note, error) {
 		}
 		output, fail := selectPath(eff, ctxObj, s.OutputPath, "OutputPath")
 		if fail != nil {
+			return failFrame(f, s, fail, nil)
+		}
+		if fail := assignPaths(f, s.Assign, eff, ctxObj, env); fail != nil {
 			return failFrame(f, s, fail, nil)
 		}
 		next := s.Next
@@ -228,6 +234,11 @@ func Deliver(d *Definition, ex *Exec, f *Frame, r TaskResult, env Env) (Effect, 
 	if s.Dialect() == JSONata {
 		return jsonataDeliver(s, ex, f, result, ctxObj, env)
 	}
+	// Assign sees the raw result — the value ResultSelector has not shaped —
+	// which is what AWS gives it on Task, Parallel and Map.
+	if fail := assignPaths(f, s.Assign, result, ctxObj, env); fail != nil {
+		return deliverFailure(s, ex, f, fail, env, nil)
+	}
 	if len(s.ResultSelector) > 0 {
 		var fail *Failure
 		result, fail = evalTemplate(s.ResultSelector, result, ctxObj, env)
@@ -279,6 +290,10 @@ func deliverFailure(s *State, ex *Exec, f *Frame, fail *Failure, env Env, notes 
 		if mFail != nil {
 			return failFrame(f, s, mFail, notes)
 		}
+		// A Catcher's Assign sees the error output.
+		if aFail := assignPaths(f, c.Assign, errObj, buildContext(ex, f, ""), env); aFail != nil {
+			return failFrame(f, s, aFail, notes)
+		}
 		notes = append(notes, Note{
 			Kind: NoteCaught, Frame: f.ID, State: s.Name, Type: s.Type,
 			Data: encodeDoc(errObj),
@@ -287,7 +302,7 @@ func deliverFailure(s *State, ex *Exec, f *Frame, fail *Failure, env Env, notes 
 		f.Input = encodeDoc(merged)
 		f.Status = FrameRunnable
 		f.Attempts, f.RetryIdx = nil, 0
-		f.TaskInput, f.Token = nil, ""
+		f.TaskInput, f.Token, f.WaitExec, f.MapRun = nil, "", "", ""
 		f.WakeAt, f.Deadline, f.HeartbeatAt, f.HeartbeatS, f.TimeoutS, f.Limit = 0, 0, 0, 0, 0, 0
 		f.EnteredAt = env.Now.UnixMilli()
 		return EffContinue{}, notes, nil
@@ -318,6 +333,9 @@ func advancePass(s *State, f *Frame, input, ctxObj any, env Env, notes []Note) (
 	if fail != nil {
 		return failFrame(f, s, fail, notes)
 	}
+	if fail := assignPaths(f, s.Assign, eff, ctxObj, env); fail != nil {
+		return failFrame(f, s, fail, notes)
+	}
 	next := s.Next
 	if s.Terminal() {
 		next = ""
@@ -330,13 +348,22 @@ func advanceChoice(s *State, f *Frame, input, ctxObj any, env Env, notes []Note)
 	if fail != nil {
 		return failFrame(f, s, fail, notes)
 	}
-	next, fail := chooseNext(s, eff, ctxObj)
+	next, rule, fail := chooseRule(s, eff, ctxObj)
 	if fail != nil {
 		return failFrame(f, s, fail, notes)
 	}
 	output, fail := selectPath(eff, ctxObj, s.OutputPath, "OutputPath")
 	if fail != nil {
 		return failFrame(f, s, fail, notes)
+	}
+	// The state's Assign, then the taken rule's, both against the input.
+	if fail := assignPaths(f, s.Assign, eff, ctxObj, env); fail != nil {
+		return failFrame(f, s, fail, notes)
+	}
+	if rule != nil {
+		if fail := assignPaths(f, rule.Assign, eff, ctxObj, env); fail != nil {
+			return failFrame(f, s, fail, notes)
+		}
 	}
 	return exitState(f, s, next, output, env, notes)
 }
@@ -462,7 +489,7 @@ func exitState(f *Frame, s *State, next string, output any, env Env, notes []Not
 	f.Input = raw
 	f.Status = FrameRunnable
 	f.Attempts, f.RetryIdx = nil, 0
-	f.TaskInput, f.Token = nil, ""
+	f.TaskInput, f.Token, f.WaitExec, f.MapRun = nil, "", "", ""
 	f.WakeAt, f.Deadline, f.HeartbeatAt, f.HeartbeatS, f.TimeoutS, f.Limit = 0, 0, 0, 0, 0, 0
 	f.EnteredAt = env.Now.UnixMilli()
 	return EffContinue{}, notes, nil
@@ -508,6 +535,14 @@ func buildContext(ex *Exec, f *Frame, token string) any {
 			"Index": f.Branch,
 			"Value": decodeDoc(f.MapItem),
 		}}
+	}
+	if len(f.Vars) > 0 {
+		// JSONPath variable references ($name) resolve through here.
+		vars := make(map[string]any, len(f.Vars))
+		for name, raw := range f.Vars {
+			vars[name] = decodeDoc(raw)
+		}
+		ctx[variablesKey] = vars
 	}
 	return ctx
 }

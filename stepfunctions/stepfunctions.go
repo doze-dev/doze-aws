@@ -165,9 +165,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 var notYet = map[string]string{}
 
 // stubActions are operations doze-aws does not intend to implement, with the
-// reason. Distinct from notYet: these are not coming.
-var stubActions = map[string]string{
-	"DescribeMapRun": "Distributed Map is cloud-scale fan-out over an S3 item reader",
-	"ListMapRuns":    "Distributed Map is cloud-scale fan-out over an S3 item reader",
-	"UpdateMapRun":   "Distributed Map is cloud-scale fan-out over an S3 item reader",
-}
+// reason. Distinct from notYet: these are not coming. Empty — Distributed
+// Map, the one family that lived here, runs locally now: items from S3 or
+// the state's input, each as its own execution under a Map Run record.
+var stubActions = map[string]string{}

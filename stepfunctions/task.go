@@ -141,10 +141,6 @@ func failResult(name, cause string) asl.TaskResult {
 // analyser stays faithful to ASL — ValidateStateMachineDefinition accepts
 // what AWS accepts — but create refuses honestly, at create time.
 func refuseUnrunnable(d *asl.Definition) *awshttp.APIError {
-	if at := jsonpathAssign(d); at != "" {
-		return errNotYet("Assign on JSONPath state "+at,
-			"this build evaluates Assign and $variables in JSONata states; JSONPath variables arrive later")
-	}
 	return refuseResources(d)
 }
 

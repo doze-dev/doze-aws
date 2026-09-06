@@ -34,6 +34,12 @@ func advanceMap(s *State, ex *Exec, f *Frame, input, ctxObj any, env Env, notes 
 	if fail != nil {
 		return deliverFailure(s, ex, f, fail, env, notes)
 	}
+	// A Distributed Map with an ItemReader takes its items from S3, which is
+	// the engine's to fetch; the state's own input is not a list then.
+	if s.Processor().Distributed() && len(s.ItemReader) > 0 {
+		eff, notes2, err := startMapRun(s, ex, f, nil, true)
+		return eff, append(notes, notes2...), err
+	}
 	items := eff
 	if s.ItemsPath != "" {
 		items, fail = pathValue(s.ItemsPath, "ItemsPath", eff, ctxObj)
@@ -45,6 +51,10 @@ func advanceMap(s *State, ex *Exec, f *Frame, input, ctxObj any, env Env, notes 
 	if !isList {
 		return deliverFailure(s, ex, f, Failf(ErrRuntime,
 			"a Map state's items must be an array"), env, notes)
+	}
+	if s.Processor().Distributed() {
+		eff, notes2, err := startMapRun(s, ex, f, list, false)
+		return eff, append(notes, notes2...), err
 	}
 
 	limit := 0 // 0 = unlimited

@@ -50,8 +50,19 @@ func encodeDoc(v any) json.RawMessage {
 // object for a $$ path. ok is false when the path selects nothing.
 func resolve(p Path, data, ctxObj any) (any, bool) {
 	cur := data
-	if p.Root == RootContext {
+	switch p.Root {
+	case RootContext:
 		cur = ctxObj
+	case RootVariable:
+		// The frame's variables ride inside the context object (buildContext),
+		// so a $name path needs nothing the callers do not already pass.
+		ctx, _ := ctxObj.(map[string]any)
+		vars, _ := ctx[variablesKey].(map[string]any)
+		v, present := vars[p.Variable]
+		if !present {
+			return nil, false
+		}
+		cur = v
 	}
 	for _, seg := range p.Segments {
 		if seg.IsIndex {

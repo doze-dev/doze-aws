@@ -18,19 +18,26 @@ import (
 // chooseNext evaluates a Choice state's rules in order and returns the name
 // of the state to transition to.
 func chooseNext(s *State, data, ctxObj any) (string, *Failure) {
+	next, _, fail := chooseRule(s, data, ctxObj)
+	return next, fail
+}
+
+// chooseRule is chooseNext that also says which rule matched (nil for the
+// Default), so the caller can run that rule's Assign.
+func chooseRule(s *State, data, ctxObj any) (string, *ChoiceRule, *Failure) {
 	for _, rule := range s.Choices {
 		ok, f := evalRule(rule, data, ctxObj)
 		if f != nil {
-			return "", f
+			return "", nil, f
 		}
 		if ok {
-			return rule.Next, nil
+			return rule.Next, rule, nil
 		}
 	}
 	if s.Default != "" {
-		return s.Default, nil
+		return s.Default, nil, nil
 	}
-	return "", Failf(ErrNoChoiceMatched, "no rule of Choice state %q matched and there is no Default", s.Name)
+	return "", nil, Failf(ErrNoChoiceMatched, "no rule of Choice state %q matched and there is no Default", s.Name)
 }
 
 func evalRule(r *ChoiceRule, data, ctxObj any) (bool, *Failure) {

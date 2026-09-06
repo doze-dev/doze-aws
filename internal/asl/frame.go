@@ -119,6 +119,7 @@ type Frame struct {
 	Limit    int    `json:"limit,omitempty"`
 	Token    string `json:"token,omitempty"`    // PARKED on a task token
 	WaitExec string `json:"waitExec,omitempty"` // PARKED on a child execution's store key
+	MapRun   string `json:"mapRun,omitempty"`   // PARKED on a Distributed Map's Map Run ARN
 
 	// Attempts counts retries per Retrier of the current state, index-parallel
 	// to the state's Retry array. Reset on every state transition. RetryIdx

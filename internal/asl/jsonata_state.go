@@ -269,7 +269,7 @@ func jsonataCatch(s *State, ex *Exec, f *Frame, c *Catcher, errObj map[string]an
 	f.Input = encodeDoc(output)
 	f.Status = FrameRunnable
 	f.Attempts, f.RetryIdx = nil, 0
-	f.TaskInput, f.Token = nil, ""
+	f.TaskInput, f.Token, f.WaitExec, f.MapRun = nil, "", "", ""
 	f.WakeAt, f.Deadline, f.HeartbeatAt, f.HeartbeatS, f.TimeoutS, f.Limit = 0, 0, 0, 0, 0, 0
 	f.EnteredAt = env.Now.UnixMilli()
 	return EffContinue{}, notes, nil
@@ -315,6 +315,32 @@ func jsonataMap(sc *jsonataScope, s *State, ex *Exec, f *Frame, input any, env E
 			"MaxConcurrency must not be negative, got %v", limit), env, notes)
 	}
 	f.Limit = int(limit)
+
+	// Distributed: the items (selected here, since the selector is a JSONata
+	// expression) go to the engine as child executions. An ItemReader is
+	// the engine's to read, in which case Items is not consulted.
+	if s.Processor().Distributed() {
+		if len(s.ItemReader) > 0 {
+			eff, notes2, err := startMapRun(s, ex, f, nil, true)
+			return eff, append(notes, notes2...), err
+		}
+		selected := make([]any, 0, len(list))
+		for i, item := range list {
+			childInput := item
+			if len(s.ItemSelector) > 0 {
+				probe := &Frame{ID: f.ID, State: s.Name, Branch: i, MapItem: encodeDoc(item), EnteredAt: f.EnteredAt}
+				itemScope := &jsonataScope{input: sc.input, context: buildContext(ex, probe, ""), vars: sc.vars, env: env}
+				v, _, fail := itemScope.value(s.ItemSelector)
+				if fail != nil {
+					return deliverFailure(s, ex, f, fail, env, notes)
+				}
+				childInput = v
+			}
+			selected = append(selected, childInput)
+		}
+		eff, notes2, err := startMapRun(s, ex, f, selected, false)
+		return eff, append(notes, notes2...), err
+	}
 
 	hop := append(append([]DefHop{}, f.Def...), DefHop{State: s.Name, Branch: -1})
 	f.BeginSpawn()

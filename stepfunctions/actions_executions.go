@@ -101,6 +101,8 @@ type launchSpec struct {
 	TraceHeader          string
 	XRayHeader           string
 	StartedBy            string // the parent execution's ARN, for AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID
+	MapRunARN            string // a Distributed Map child: the run it belongs to
+	MapIndex             int    // and which item it is
 }
 
 // launch writes a Standard execution's record and its ExecutionStarted event
@@ -122,6 +124,8 @@ func (s *Server) launch(spec launchSpec) (*Execution, *awshttp.APIError) {
 		VersionARN:  spec.VersionARN,
 		AliasARN:    spec.AliasARN,
 		StartedBy:   spec.StartedBy,
+		MapRunARN:   spec.MapRunARN,
+		MapIndex:    spec.MapIndex,
 		Exec: asl.StartExec(arn, spec.Name, m.ARN, m.Name, m.RoleARN,
 			json.RawMessage(spec.Input), now),
 		NextEventID: 1,
@@ -226,6 +230,7 @@ func (s *Server) describeExecution(ctx context.Context, p map[string]any) (any, 
 		"inputDetails":    map[string]any{"included": true},
 	}
 	s.putRedrive(out, e)
+	putMapRun(out, e)
 	putQualifiers(out, e)
 	if e.StoppedAt != 0 {
 		out["stopDate"] = epoch(e.StoppedAt)
@@ -288,6 +293,19 @@ func (s *Server) stopExecution(ctx context.Context, p map[string]any) (any, *aws
 
 func (s *Server) listExecutions(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "stateMachineArn")
+	// A Map Run's children are listed through it, not through the machine:
+	// on AWS they are executions of the same machine that a plain list does
+	// not show, and mapRunArn is the only way to see them.
+	mapRunARN := awsjson.Str(p, "mapRunArn")
+	if arn == "" && mapRunARN != "" {
+		mr, err := s.store.GetMapRun(mapRunARN)
+		if err != nil || mr == nil {
+			return nil, errMapRunNotFound(mapRunARN)
+		}
+		arn = mr.MachineARN
+	} else if arn == "" {
+		return nil, errValidation("1 validation error detected: Value null at 'stateMachineArn' failed to satisfy constraint: Member must not be null")
+	}
 	machineName, qualifier, ok := splitMachineARN(arn)
 	if !ok {
 		return nil, errInvalidARN(arn)
@@ -319,6 +337,9 @@ func (s *Server) listExecutions(ctx context.Context, p map[string]any) (any, *aw
 		}
 		if (redriveFilter == "REDRIVEN" && e.RedriveCount == 0) || (redriveFilter == "NOT_REDRIVEN" && e.RedriveCount > 0) {
 			continue
+		}
+		if e.MapRunARN != mapRunARN {
+			continue // children only under their run, everything else only without one
 		}
 		if (versionARN != "" && e.VersionARN != versionARN) || (aliasARN != "" && e.AliasARN != aliasARN) {
 			continue

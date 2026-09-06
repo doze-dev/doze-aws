@@ -71,6 +71,10 @@ type Execution struct {
 	RedriveCount int    `json:"redrive_count,omitempty"`
 	RedriveDate  int64  `json:"redrive_date,omitempty"`
 	RedriveToken string `json:"redrive_token,omitempty"` // the last clientToken, for idempotent retries
+	// MapRunARN and MapIndex mark a child execution of a Distributed Map:
+	// which run it belongs to and which item it is.
+	MapRunARN string `json:"map_run_arn,omitempty"`
+	MapIndex  int    `json:"map_index,omitempty"`
 
 	// Volatile marks an Express or TestState execution: kept in memory,
 	// never written to bbolt, gone when its caller has read it.

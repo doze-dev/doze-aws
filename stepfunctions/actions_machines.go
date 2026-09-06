@@ -52,6 +52,10 @@ var handlers = map[string]handler{
 	"TestState":          (*Server).testState,
 	"RedriveExecution":   (*Server).redriveExecution,
 
+	"DescribeMapRun": (*Server).describeMapRun,
+	"ListMapRuns":    (*Server).listMapRuns,
+	"UpdateMapRun":   (*Server).updateMapRun,
+
 	"PublishStateMachineVersion": (*Server).publishStateMachineVersion,
 	"DeleteStateMachineVersion":  (*Server).deleteStateMachineVersion,
 	"ListStateMachineVersions":   (*Server).listStateMachineVersions,
@@ -81,41 +85,6 @@ func checkName(name string) *awshttp.APIError {
 
 func machineARN(name string) string  { return awsident.ARN("states", "stateMachine:"+name) }
 func activityARN(name string) string { return awsident.ARN("states", "activity:"+name) }
-
-// jsonpathAssign names the first JSONPath-dialect state carrying an Assign
-// (or a Catch or Choice rule with one), or "" if there is none. Branches and
-// ItemProcessors are walked in document order.
-func jsonpathAssign(d *asl.Definition) string {
-	for _, name := range d.Order {
-		s := d.States[name]
-		if s.Dialect() == asl.JSONPath {
-			if len(s.Assign) > 0 {
-				return name
-			}
-			for _, c := range s.Catch {
-				if len(c.Assign) > 0 {
-					return name
-				}
-			}
-			for _, rule := range s.Choices {
-				if len(rule.Assign) > 0 {
-					return name
-				}
-			}
-		}
-		for _, b := range s.Branches {
-			if at := jsonpathAssign(b); at != "" {
-				return at
-			}
-		}
-		if p := s.Processor(); p != nil {
-			if at := jsonpathAssign(p); at != "" {
-				return at
-			}
-		}
-	}
-	return ""
-}
 
 // nameFromARN pulls the resource name out of an ARN of the shape
 // arn:aws:states:<region>:<account>:<kind>:<name>. Returns "" for anything that

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"math"
 	mathrand "math/rand"
 	"sync"
@@ -47,6 +48,8 @@ const (
 	dlvSendTask
 	dlvHeartbeat
 	dlvActivityStarted // a worker claimed an activity task; records who
+	dlvMapItems        // an ItemReader's items arrived (or failed to)
+	dlvMapResults      // a ResultWriter finished (or failed to)
 )
 
 // delivery is one event headed for the driver. reply, when non-nil, is
@@ -63,7 +66,8 @@ type delivery struct {
 	// the frame has moved on (a late worker racing a timeout's retry) is
 	// detectably stale and dropped.
 	attempt int
-	worker  string // dlvActivityStarted: the poller's workerName
+	worker  string            // dlvActivityStarted: the poller's workerName
+	items   []json.RawMessage // dlvMapItems: what the ItemReader produced
 	reply   chan struct{}
 }
 
@@ -194,6 +198,7 @@ func (g *engine) ensure(key string) *run {
 	// frame parked on a child that finished while nobody was listening is
 	// delivered now.
 	g.resumeChildWaits(r)
+	g.resumeMapRuns(r)
 	return r
 }
 
@@ -281,6 +286,12 @@ func (g *engine) apply(r *run, eff asl.Effect) {
 		}
 		g.persist(r)
 		g.dispatch(r, e)
+	case asl.EffMapRun:
+		if g.testMock(r, e.Frame) {
+			return
+		}
+		g.persist(r)
+		g.startMapRun(r, e)
 	case asl.EffSpawn:
 		if g.testMock(r, e.Parent) {
 			return
@@ -457,8 +468,15 @@ func (g *engine) finalize(r *run, status string, output []byte, errName, cause s
 	g.persist(r)
 	delete(g.runs, r.key)
 	// A parent parked on this execution hears of it before a volatile record
-	// is dropped.
+	// is dropped; a Map Run this execution belongs to counts it; a stopped
+	// parent takes its Map Runs down with it.
 	g.childFinished(r.e)
+	if r.e.MapRunARN != "" {
+		g.mapChildFinished(r.e)
+	}
+	if status == "ABORTED" || status == "TIMED_OUT" {
+		g.abortMapRuns(r)
+	}
 	g.finished(r)
 }
 
@@ -485,6 +503,32 @@ func (g *engine) applyDelivery(d delivery) {
 		}
 		f.HeartbeatAt = g.srv.store.now()
 		g.persist(r)
+	case dlvMapItems:
+		f := r.e.Exec.Frame(d.frame)
+		if f == nil || f.Status != asl.FrameParked || f.MapRun != "" {
+			return // stale: the state moved on, or the run already started
+		}
+		if d.result.Failure != nil {
+			g.deliver(r, f, d.result)
+			return
+		}
+		if cfg, ok := asl.MapRunConfigOf(r.def, f); ok {
+			g.beginMapRun(r, f, cfg, d.items)
+		}
+	case dlvMapResults:
+		f := r.e.Exec.Frame(d.frame)
+		if f == nil || f.Status != asl.FrameParked || f.MapRun == "" {
+			return
+		}
+		if d.result.Failure == nil {
+			g.event(r, f, "MapRunSucceeded", "", nil)
+			g.event(r, f, "MapStateSucceeded", "", nil)
+		} else {
+			g.event(r, f, "MapRunFailed", "mapRunFailedEventDetails", map[string]any{"error": d.result.Failure.Name, "cause": d.result.Failure.Cause})
+			g.event(r, f, "MapStateFailed", "", nil)
+		}
+		f.MapRun = ""
+		g.deliver(r, f, d.result)
 	case dlvTaskReturn, dlvSendTask:
 		f := r.e.Exec.Frame(d.frame)
 		if f == nil || (f.Status != asl.FrameCalling && f.Status != asl.FrameParked) {

@@ -38,7 +38,7 @@ func Redrive(d *Definition, ex *Exec) int {
 		f.Status = FrameRunnable
 		f.Failure = nil
 		f.Attempts, f.RetryIdx = nil, 0
-		f.TaskInput, f.Token, f.WaitExec = nil, "", ""
+		f.TaskInput, f.Token, f.WaitExec, f.MapRun = nil, "", "", ""
 		f.WakeAt, f.Deadline, f.HeartbeatAt, f.HeartbeatS = 0, 0, 0, 0
 		reset++
 	}

@@ -57,7 +57,17 @@ type Definition struct {
 	// iteration is random, and a validation report that lists errors in a
 	// different order on every run is a report nobody can diff.
 	Order []string
+
+	// ProcessorMode and ProcessorExecutionType are an ItemProcessor's
+	// ProcessorConfig: INLINE (the default) runs items as frames of the
+	// parent; DISTRIBUTED runs each as its own execution, STANDARD or
+	// EXPRESS, under a Map Run.
+	ProcessorMode          string
+	ProcessorExecutionType string
 }
+
+// Distributed reports whether this ItemProcessor runs as a Map Run.
+func (d *Definition) Distributed() bool { return d != nil && d.ProcessorMode == "DISTRIBUTED" }
 
 // State is every state type in one struct.
 //
@@ -149,6 +159,7 @@ type State struct {
 	ResultWriter               json.RawMessage
 	ToleratedFailureCount      *float64
 	ToleratedFailurePercentage *float64
+	Label                      string // a Map Run label, part of its ARN on AWS
 
 	// Error handling, on Task, Parallel and Map.
 	Retry []*Retrier

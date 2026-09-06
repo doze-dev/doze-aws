@@ -34,7 +34,13 @@ func (g *engine) loop(ctx context.Context) {
 		case <-g.stop:
 			return
 		case key := <-g.nudges:
-			g.drive(g.ensure(key))
+			r := g.ensure(key)
+			if r != nil {
+				// A nudge on a live run is also how UpdateMapRun asks for
+				// more children to launch.
+				g.resumeMapRuns(r)
+			}
+			g.drive(r)
 		case d := <-g.deliveries:
 			g.applyDelivery(d)
 		case <-tick.C:

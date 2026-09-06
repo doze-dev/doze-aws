@@ -46,18 +46,26 @@ func parseSubDefinition(raw []byte, at string, inherit QueryLanguage) (*Definiti
 		TimeoutSeconds *float64                   `json:"TimeoutSeconds"`
 		Version        string                     `json:"Version"`
 		QueryLanguage  string                     `json:"QueryLanguage"`
+		// ProcessorConfig is only meaningful on an ItemProcessor; the CDK
+		// writes {"Mode":"INLINE"} on every Map it synthesises.
+		ProcessorConfig struct {
+			Mode          string `json:"Mode"`
+			ExecutionType string `json:"ExecutionType"`
+		} `json:"ProcessorConfig"`
 	}
 	if err := json.Unmarshal(raw, &doc); err != nil {
 		return nil, wrap(at, err)
 	}
 
 	d := &Definition{
-		Comment:        doc.Comment,
-		StartAt:        doc.StartAt,
-		TimeoutSeconds: doc.TimeoutSeconds,
-		Version:        doc.Version,
-		QueryLanguage:  QueryLanguage(doc.QueryLanguage),
-		States:         make(map[string]*State, len(doc.States)),
+		Comment:                doc.Comment,
+		StartAt:                doc.StartAt,
+		TimeoutSeconds:         doc.TimeoutSeconds,
+		Version:                doc.Version,
+		QueryLanguage:          QueryLanguage(doc.QueryLanguage),
+		States:                 make(map[string]*State, len(doc.States)),
+		ProcessorMode:          doc.ProcessorConfig.Mode,
+		ProcessorExecutionType: doc.ProcessorConfig.ExecutionType,
 	}
 	if d.QueryLanguage == "" {
 		d.QueryLanguage = inherit
@@ -131,6 +139,7 @@ func parseState(raw []byte, name string, inherit QueryLanguage) (*State, error) 
 		ItemReader                 json.RawMessage `json:"ItemReader"`
 		ItemBatcher                json.RawMessage `json:"ItemBatcher"`
 		ResultWriter               json.RawMessage `json:"ResultWriter"`
+		Label                      string          `json:"Label"`
 		ToleratedFailureCount      *float64        `json:"ToleratedFailureCount"`
 		ToleratedFailurePercentage *float64        `json:"ToleratedFailurePercentage"`
 
@@ -176,7 +185,7 @@ func parseState(raw []byte, name string, inherit QueryLanguage) (*State, error) 
 		Cause: doc.Cause, CausePath: doc.CausePath,
 		ItemsPath: doc.ItemsPath, Items: doc.Items, ItemSelector: doc.ItemSelector,
 		MaxConcurrencyPath: doc.MaxConcurrencyPath,
-		ItemReader:         doc.ItemReader, ItemBatcher: doc.ItemBatcher, ResultWriter: doc.ResultWriter,
+		ItemReader:         doc.ItemReader, ItemBatcher: doc.ItemBatcher, ResultWriter: doc.ResultWriter, Label: doc.Label,
 		ToleratedFailureCount:      doc.ToleratedFailureCount,
 		ToleratedFailurePercentage: doc.ToleratedFailurePercentage,
 	}

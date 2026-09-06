@@ -30,7 +30,15 @@ const (
 	RootInput Root = iota
 	// RootContext is "$$" — the execution context object.
 	RootContext
+	// RootVariable is "$name" — a variable written by an earlier state's
+	// Assign; the name is the path's Variable.
+	RootVariable
 )
+
+// variablesKey is where buildContext carries the frame's variables inside
+// the context object, so a $name path resolves wherever a $$ path does.
+// Not an AWS field; a definition that spells it out gets nothing useful.
+const variablesKey = "\x00vars"
 
 // Segment is one step of a path: a field name or an array index.
 type Segment struct {
@@ -43,6 +51,8 @@ type Segment struct {
 type Path struct {
 	Root     Root
 	Segments []Segment
+	// Variable is the name after $ for a RootVariable path.
+	Variable string
 	// Raw is the path as written, for error messages that quote it back.
 	Raw string
 }
@@ -60,6 +70,14 @@ func ParsePath(s string) (Path, error) {
 		return p, fmt.Errorf("a reference path may not be empty")
 	case strings.HasPrefix(s, "$$"):
 		p.Root, s = RootContext, s[2:]
+	case len(s) > 1 && s[0] == '$' && isVariableStart(s[1]):
+		// $name — a variable. The name runs to the first '.' or '['.
+		p.Root = RootVariable
+		end := 1
+		for end < len(s) && s[end] != '.' && s[end] != '[' {
+			end++
+		}
+		p.Variable, s = s[1:end], s[end:]
 	case strings.HasPrefix(s, "$"):
 		p.Root, s = RootInput, s[1:]
 	default:
@@ -180,6 +198,9 @@ func ValidateReferencePath(s string) error {
 	if p.Root == RootContext {
 		return fmt.Errorf("the context object ($$) is read-only and cannot be a target: %q", s)
 	}
+	if p.Root == RootVariable {
+		return fmt.Errorf("a variable ($%s) is written by Assign, not by a path target: %q", p.Variable, s)
+	}
 	return nil
 }
 
@@ -187,4 +208,11 @@ func ValidateReferencePath(s string) error {
 // the ".$" suffixed key convention, where {"a.$": "$.b"} copies $.b into a.
 func IsPathExpr(v string) bool {
 	return strings.HasPrefix(v, "$")
+}
+
+// isVariableStart reports whether a byte after "$" begins a variable name
+// rather than a path segment: a letter or underscore, as AWS's variable
+// names are.
+func isVariableStart(c byte) bool {
+	return c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
