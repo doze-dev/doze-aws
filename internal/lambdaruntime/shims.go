@@ -240,4 +240,3 @@ func dotnetEntry(dir string) string {
 	}
 	return ""
 }
-

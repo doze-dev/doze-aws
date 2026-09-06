@@ -25,8 +25,8 @@ func TestRuntimeCommand(t *testing.T) {
 	in := Interpreters{"python": filepath.Join(fake, "python3"), "nodejs": filepath.Join(fake, "node"), "ruby": filepath.Join(fake, "ruby"), "java": filepath.Join(fake, "java"), "dotnet": filepath.Join(fake, "dotnet")}
 	cases := []struct {
 		runtime, handler string
-		want            []string
-		wantErr         string
+		want             []string
+		wantErr          string
 	}{
 		{"", "", []string{"./bootstrap"}, ""},
 		{"go", "main", []string{"./main"}, ""},
