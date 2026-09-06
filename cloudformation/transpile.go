@@ -199,16 +199,17 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 
 	// ---- pass two: evaluate and map ----
 	stack := &provision.Stack{
-		Queues:     map[string]provision.Queue{},
-		Topics:     map[string]provision.Topic{},
-		Buckets:    map[string]provision.Bucket{},
-		Tables:     map[string]provision.Table{},
-		Functions:  map[string]provision.Function{},
-		Rules:      map[string]provision.Rule{},
-		Keys:       map[string]provision.Key{},
-		Secrets:    map[string]provision.Secret{},
-		Parameters: map[string]provision.Parameter{},
-		APIs:       map[string]provision.API{},
+		Queues:        map[string]provision.Queue{},
+		Topics:        map[string]provision.Topic{},
+		Buckets:       map[string]provision.Bucket{},
+		Tables:        map[string]provision.Table{},
+		Functions:     map[string]provision.Function{},
+		Rules:         map[string]provision.Rule{},
+		Keys:          map[string]provision.Key{},
+		Secrets:       map[string]provision.Secret{},
+		Parameters:    map[string]provision.Parameter{},
+		APIs:          map[string]provision.API{},
+		StateMachines: map[string]provision.StateMachine{},
 	}
 	m := &mapper{scope: scope, stack: stack, template: t}
 	for _, p := range work {

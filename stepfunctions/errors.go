@@ -49,6 +49,18 @@ func errValidation(format string, args ...any) *awshttp.APIError {
 	return awshttp.Errf(400, "ValidationException", format, args...)
 }
 
+func errExecutionNotFound(arn string) *awshttp.APIError {
+	return awshttp.Errf(400, "ExecutionDoesNotExist", "Execution Does Not Exist: '%s'", arn)
+}
+
+func errExecutionExists(arn string) *awshttp.APIError {
+	return awshttp.Errf(400, "ExecutionAlreadyExists", "Execution Already Exists: '%s'", arn)
+}
+
+func errInvalidExecutionInput(detail string) *awshttp.APIError {
+	return awshttp.Errf(400, "InvalidExecutionInput", "Invalid State Machine Execution Input: '%s'", detail)
+}
+
 // errNotYet is the honest stub. Step Functions is being built in stages, and an
 // operation that is registered but incomplete would be worse than one that says
 // so — a caller can branch on this, where a wrong answer silently corrupts a

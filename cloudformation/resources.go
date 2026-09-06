@@ -130,40 +130,42 @@ func canonical(v any) any {
 // each mapped type. When a template sets it, that name is used; otherwise the
 // logical ID is.
 var nameProperty = map[string]string{
-	"AWS::SQS::Queue":                 "QueueName",
-	"AWS::SNS::Topic":                 "TopicName",
-	"AWS::S3::Bucket":                 "BucketName",
-	"AWS::DynamoDB::Table":            "TableName",
-	"AWS::DynamoDB::GlobalTable":      "TableName",
-	"AWS::Lambda::Function":           "FunctionName",
-	"AWS::Serverless::Function":       "FunctionName",
-	"AWS::Events::Rule":               "Name",
-	"AWS::Events::EventBus":           "Name",
-	"AWS::KMS::Key":                   "", // keys are addressed by alias
-	"AWS::KMS::Alias":                 "AliasName",
-	"AWS::SecretsManager::Secret":     "Name",
-	"AWS::SSM::Parameter":             "Name",
-	"AWS::Kinesis::Stream":            "Name",
-	"AWS::Serverless::SimpleTable":    "TableName",
-	"AWS::SNS::Subscription":          "",
-	"AWS::Lambda::EventSourceMapping": "",
-	"AWS::Lambda::Permission":         "",
-	"AWS::S3::BucketPolicy":           "",
-	"AWS::SQS::QueuePolicy":           "",
-	"AWS::SNS::TopicPolicy":           "",
-	"AWS::Lambda::LayerVersion":       "LayerName",
-	"AWS::Lambda::Alias":              "Name",
-	"AWS::Lambda::Version":            "",
-	"AWS::Lambda::Url":                "",
-	"AWS::Serverless::Api":            "Name",
-	"AWS::Serverless::HttpApi":        "Name",
-	"AWS::ApiGateway::RestApi":        "Name",
-	"AWS::ApiGatewayV2::Api":          "Name",
-	"AWS::ApiGateway::Deployment":     "",
-	"AWS::ApiGateway::Stage":          "StageName",
-	"AWS::ApiGateway::Resource":       "",
-	"AWS::ApiGateway::Method":         "",
-	"AWS::ApiGateway::Account":        "",
+	"AWS::SQS::Queue":                  "QueueName",
+	"AWS::SNS::Topic":                  "TopicName",
+	"AWS::S3::Bucket":                  "BucketName",
+	"AWS::DynamoDB::Table":             "TableName",
+	"AWS::DynamoDB::GlobalTable":       "TableName",
+	"AWS::Lambda::Function":            "FunctionName",
+	"AWS::Serverless::Function":        "FunctionName",
+	"AWS::Events::Rule":                "Name",
+	"AWS::Events::EventBus":            "Name",
+	"AWS::KMS::Key":                    "", // keys are addressed by alias
+	"AWS::KMS::Alias":                  "AliasName",
+	"AWS::SecretsManager::Secret":      "Name",
+	"AWS::SSM::Parameter":              "Name",
+	"AWS::Kinesis::Stream":             "Name",
+	"AWS::Serverless::SimpleTable":     "TableName",
+	"AWS::StepFunctions::StateMachine": "StateMachineName",
+	"AWS::Serverless::StateMachine":    "Name",
+	"AWS::SNS::Subscription":           "",
+	"AWS::Lambda::EventSourceMapping":  "",
+	"AWS::Lambda::Permission":          "",
+	"AWS::S3::BucketPolicy":            "",
+	"AWS::SQS::QueuePolicy":            "",
+	"AWS::SNS::TopicPolicy":            "",
+	"AWS::Lambda::LayerVersion":        "LayerName",
+	"AWS::Lambda::Alias":               "Name",
+	"AWS::Lambda::Version":             "",
+	"AWS::Lambda::Url":                 "",
+	"AWS::Serverless::Api":             "Name",
+	"AWS::Serverless::HttpApi":         "Name",
+	"AWS::ApiGateway::RestApi":         "Name",
+	"AWS::ApiGatewayV2::Api":           "Name",
+	"AWS::ApiGateway::Deployment":      "",
+	"AWS::ApiGateway::Stage":           "StageName",
+	"AWS::ApiGateway::Resource":        "",
+	"AWS::ApiGateway::Method":          "",
+	"AWS::ApiGateway::Account":         "",
 }
 
 // IsMappable reports whether doze-aws models a resource type.
@@ -206,6 +208,9 @@ func refValue(typ, name string) string {
 		return awsident.ARN("secretsmanager", "secret:"+name)
 	case "AWS::Kinesis::Stream":
 		return name
+	case "AWS::StepFunctions::StateMachine", "AWS::Serverless::StateMachine":
+		// Ref on a state machine is its ARN, not its name.
+		return awsident.ARN("states", "stateMachine:"+name)
 	}
 	// Buckets, tables, functions, rules and parameters all Ref to their name.
 	return name
@@ -273,6 +278,11 @@ func attributes(typ, name string) map[string]string {
 		}
 	case "AWS::Lambda::LayerVersion":
 		return map[string]string{"LayerVersionArn": awsident.ARN("lambda", "layer:"+name+":1")}
+	case "AWS::StepFunctions::StateMachine", "AWS::Serverless::StateMachine":
+		return map[string]string{
+			"Arn":  awsident.ARN("states", "stateMachine:"+name),
+			"Name": name,
+		}
 	}
 	return map[string]string{}
 }

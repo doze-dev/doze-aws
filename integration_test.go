@@ -21,6 +21,8 @@ import (
 	lamtypes "github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
+	awssfn "github.com/aws/aws-sdk-go-v2/service/sfn"
+	sfntypes "github.com/aws/aws-sdk-go-v2/service/sfn/types"
 	awssns "github.com/aws/aws-sdk-go-v2/service/sns"
 	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 
@@ -562,4 +564,169 @@ func s3PutBucketNotifyToTopic(t *testing.T, ctx context.Context, c *awss3.Client
 	}); err != nil {
 		t.Fatalf("PutBucketNotificationConfiguration: %v", err)
 	}
+}
+
+// sfnWorkerBootstrap is a Lambda handler for the Step Functions cascade test:
+// it echoes its event back wrapped in {"echoed": ...}, and reports a handler
+// error with a custom errorType when the event mentions "boom" — which is
+// what proves Catch matches on the error NAME, not on a folded string.
+const sfnWorkerBootstrap = `package main
+
+import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
+	"os"
+	"strings"
+)
+
+func main() {
+	api := os.Getenv("AWS_LAMBDA_RUNTIME_API")
+	for {
+		resp, err := http.Get("http://" + api + "/2018-06-01/runtime/invocation/next")
+		if err != nil {
+			os.Exit(1)
+		}
+		id := resp.Header.Get("Lambda-Runtime-Aws-Request-Id")
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if strings.Contains(string(body), "boom") {
+			http.Post("http://"+api+"/2018-06-01/runtime/invocation/"+id+"/error",
+				"application/json",
+				bytes.NewReader([]byte("{\"errorType\":\"MyCustomError\",\"errorMessage\":\"asked to fail\"}")))
+			continue
+		}
+		var v any
+		json.Unmarshal(body, &v)
+		out, _ := json.Marshal(map[string]any{"echoed": v})
+		http.Post("http://"+api+"/2018-06-01/runtime/invocation/"+id+"/response",
+			"application/json", bytes.NewReader(out))
+	}
+}
+`
+
+func buildSFNWorker(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "main.go"), []byte(sfnWorkerBootstrap), 0o644)
+	os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module worker\n\ngo 1.26\n"), 0o644)
+	cmd := exec.Command("go", "build", "-o", filepath.Join(dir, "bootstrap"), ".")
+	cmd.Dir = dir
+	cmd.Env = append(os.Environ(), "GOWORK=off", "CGO_ENABLED=0")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("build sfn worker: %v\n%s", err, out)
+	}
+	return dir
+}
+
+// TestIntegrationStepFunctionsCascade proves the go-live task integrations
+// end to end: a state machine invokes a real Lambda process, routes its
+// result into SQS, and a handler error is caught by its errorType.
+func TestIntegrationStepFunctionsCascade(t *testing.T) {
+	if testing.Short() {
+		t.Skip("compiles + runs a lambda across the stack")
+	}
+	ctx := context.Background()
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stack.Close()
+	ts := httptest.NewServer(stack.Handler())
+	defer ts.Close()
+
+	creds := credentials.NewStaticCredentialsProvider(awsident.AccessKeyID, awsident.SecretAccessKey, "")
+	cfg := aws.Config{Region: awsident.Region, Credentials: creds}
+	lam := awslambda.NewFromConfig(cfg, func(o *awslambda.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+	sqs := awssqs.NewFromConfig(cfg, func(o *awssqs.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+	sfn := awssfn.NewFromConfig(cfg, func(o *awssfn.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+
+	if _, err := lam.CreateFunction(ctx, &awslambda.CreateFunctionInput{
+		FunctionName: aws.String("sfnworker"), Runtime: lamtypes.RuntimeProvidedal2, Handler: aws.String("bootstrap"),
+		Role: aws.String("arn:aws:iam::000000000000:role/r"),
+		Code: &lamtypes.FunctionCode{S3Bucket: aws.String("_local_"), S3Key: aws.String(buildSFNWorker(t))},
+	}); err != nil {
+		t.Fatalf("CreateFunction: %v", err)
+	}
+	q, err := sqs.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("sfn-out")})
+	if err != nil {
+		t.Fatalf("CreateQueue: %v", err)
+	}
+
+	def := `{
+	  "StartAt": "Work",
+	  "States": {
+	    "Work": {"Type": "Task",
+	      "Resource": "arn:aws:lambda:us-east-1:000000000000:function:sfnworker",
+	      "ResultPath": "$.result",
+	      "Catch": [{"ErrorEquals": ["MyCustomError"], "ResultPath": "$.err", "Next": "Fallback"}],
+	      "Next": "Notify"},
+	    "Notify": {"Type": "Task",
+	      "Resource": "arn:aws:states:::sqs:sendMessage",
+	      "Parameters": {"QueueUrl": "` + aws.ToString(q.QueueUrl) + `", "MessageBody.$": "$.result"},
+	      "End": true},
+	    "Fallback": {"Type": "Pass", "Parameters": {"caught.$": "$.err.Error"}, "End": true}
+	  }
+	}`
+	m, err := sfn.CreateStateMachine(ctx, &awssfn.CreateStateMachineInput{
+		Name: aws.String("cascade"), Definition: aws.String(def),
+		RoleArn: aws.String("arn:aws:iam::000000000000:role/StepFunctions"),
+	})
+	if err != nil {
+		t.Fatalf("CreateStateMachine: %v", err)
+	}
+
+	// The success path: Lambda echoes, the echo lands in SQS.
+	started, err := sfn.StartExecution(ctx, &awssfn.StartExecutionInput{
+		StateMachineArn: m.StateMachineArn, Name: aws.String("go"), Input: aws.String(`{"n": 7}`),
+	})
+	if err != nil {
+		t.Fatalf("StartExecution: %v", err)
+	}
+	waitForExec(t, sfn, aws.ToString(started.ExecutionArn), sfntypes.ExecutionStatusSucceeded)
+
+	got, err := sqs.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{
+		QueueUrl: q.QueueUrl, MaxNumberOfMessages: 1, WaitTimeSeconds: 5,
+	})
+	if err != nil || len(got.Messages) == 0 {
+		t.Fatalf("no message reached the queue: %v", err)
+	}
+	if body := aws.ToString(got.Messages[0].Body); !strings.Contains(body, `"echoed"`) || !strings.Contains(body, `"n":7`) {
+		t.Errorf("queue message = %s, want the lambda's echo", body)
+	}
+
+	// The failure path: the handler's errorType routes through Catch.
+	failed, err := sfn.StartExecution(ctx, &awssfn.StartExecutionInput{
+		StateMachineArn: m.StateMachineArn, Name: aws.String("boom"), Input: aws.String(`{"cmd": "boom"}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	desc := waitForExec(t, sfn, aws.ToString(failed.ExecutionArn), sfntypes.ExecutionStatusSucceeded)
+	if out := aws.ToString(desc.Output); out != `{"caught":"MyCustomError"}` {
+		t.Errorf("catch output = %s, want the handler's errorType routed through Catch", out)
+	}
+}
+
+func waitForExec(t *testing.T, c *awssfn.Client, arn string, want sfntypes.ExecutionStatus) *awssfn.DescribeExecutionOutput {
+	t.Helper()
+	ctx := context.Background()
+	deadline := time.Now().Add(20 * time.Second)
+	for time.Now().Before(deadline) {
+		desc, err := c.DescribeExecution(ctx, &awssfn.DescribeExecutionInput{ExecutionArn: aws.String(arn)})
+		if err != nil {
+			t.Fatalf("DescribeExecution: %v", err)
+		}
+		if desc.Status == want {
+			return desc
+		}
+		if desc.Status != sfntypes.ExecutionStatusRunning {
+			t.Fatalf("execution settled as %s (error=%s cause=%s), want %s",
+				desc.Status, aws.ToString(desc.Error), aws.ToString(desc.Cause), want)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	t.Fatalf("execution never reached %s", want)
+	return nil
 }

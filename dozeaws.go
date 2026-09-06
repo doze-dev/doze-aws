@@ -89,6 +89,9 @@ type Stack struct {
 	// lambda is retained so its event-source pollers can be given a trace sink
 	// after the recorder exists.
 	lambda *lambda.Server
+	// stepfunctions is retained for the same reason: its engine advances
+	// executions from a scheduler goroutine, which has no request context.
+	stepfunctions *stepfunctions.Server
 }
 
 // NewStack constructs and wires the requested services.
@@ -164,6 +167,9 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		return s, s, err
 	case "stepfunctions":
 		s, err := stepfunctions.New(stepfunctions.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		if err == nil {
+			st.stepfunctions = s // retained so the engine can be given a trace sink
+		}
 		return s, s, err
 	case "eventbridge":
 		s, err := eventbridge.New(eventbridge.Options{DataDir: dataDir, Peers: dir, Logf: logf})
@@ -248,6 +254,9 @@ func (s *Stack) Service(name string) http.Handler { return s.gw.Handler(name) }
 func (s *Stack) SetTraceSink(sink trace.Sink) {
 	if s.lambda != nil {
 		s.lambda.SetTraceSink(sink)
+	}
+	if s.stepfunctions != nil {
+		s.stepfunctions.SetTraceSink(sink)
 	}
 }
 

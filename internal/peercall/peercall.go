@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
@@ -464,6 +465,149 @@ func KMSDescribeKey(ctx context.Context, dir peers.Directory, keyID string) (sta
 		}
 	}
 	return KMSKeyState{KeyID: m.KeyID, State: st, Found: true}, true, nil
+}
+
+// LambdaResult is a synchronous invocation with its outcomes kept apart —
+// transport failure, service error, handler error and success are four
+// different things to a caller that must map each onto an error NAME. Step
+// Functions' Catch matches on that name, and folding them into one string
+// (what LambdaInvoke does, and what Secrets Manager rotation depends on) is
+// the most commonly wrong thing in a local SFN implementation.
+type LambdaResult struct {
+	Payload       []byte
+	FunctionError string // X-Amz-Function-Error, "" on success
+	ErrorCode     string // the service's error code on a non-2xx answer
+	StatusCode    int
+}
+
+// LambdaInvokeDetailed invokes synchronously; the returned error is transport
+// only — every Lambda-side outcome is in the LambdaResult.
+func LambdaInvokeDetailed(ctx context.Context, dir peers.Directory, function string, payload []byte) (LambdaResult, error) {
+	var out LambdaResult
+	err := trace.Step(ctx, trace.Event{Service: "lambda", Action: "Invoke", Resource: function},
+		func(ctx context.Context) error {
+			ep, ok := dir.Endpoint("lambda")
+			if !ok {
+				return fmt.Errorf("no lambda peer wired")
+			}
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+				ep.URL("/2015-03-31/functions/"+url.PathEscape(function)+"/invocations"),
+				bytes.NewReader(payload))
+			if err != nil {
+				return err
+			}
+			req.Header.Set("X-Amz-Invocation-Type", "RequestResponse")
+			req.Header.Set("Content-Type", "application/json")
+			resp, err := ep.Client.Do(req)
+			if err != nil {
+				return err
+			}
+			defer resp.Body.Close()
+			body, _ := io.ReadAll(io.LimitReader(resp.Body, maxPeerResponse))
+			out = LambdaResult{
+				Payload:       body,
+				FunctionError: resp.Header.Get("X-Amz-Function-Error"),
+				StatusCode:    resp.StatusCode,
+			}
+			if resp.StatusCode/100 != 2 {
+				out.ErrorCode = resp.Header.Get("X-Amzn-Errortype")
+				if out.ErrorCode == "" {
+					var e struct {
+						Type string `json:"__type"`
+					}
+					json.Unmarshal(body, &e)
+					out.ErrorCode = e.Type
+				}
+			}
+			return nil
+		})
+	return out, err
+}
+
+// SQSSendDetailed sends one message and returns what the SendMessage API
+// answers — a Step Functions sqs:sendMessage task's output is exactly that
+// response.
+func SQSSendDetailed(ctx context.Context, dir peers.Directory, queue, body string, attrs map[string]string) (messageID, md5OfBody string, err error) {
+	ep, ok := dir.Endpoint("sqs")
+	if !ok {
+		return "", "", fmt.Errorf("no sqs peer wired")
+	}
+	payload := map[string]any{
+		"QueueUrl":    "http://sqs.doze-aws.internal/" + awsident.AccountID + "/" + queue,
+		"MessageBody": body,
+	}
+	if len(attrs) > 0 {
+		ma := map[string]any{}
+		for k, v := range attrs {
+			ma[k] = map[string]string{"DataType": "String", "StringValue": v}
+		}
+		payload["MessageAttributes"] = ma
+	}
+	err = trace.Step(ctx, trace.Event{Service: "sqs", Action: "SendMessage", Resource: queue},
+		func(ctx context.Context) error {
+			if h := trace.Header(ctx); h != "" {
+				payload["MessageSystemAttributes"] = map[string]any{
+					"AWSTraceHeader": map[string]string{"DataType": "String", "StringValue": h},
+				}
+			}
+			out, err := postJSONResult(ctx, ep, "AmazonSQS.SendMessage", "application/x-amz-json-1.0", payload)
+			if err != nil {
+				return err
+			}
+			var resp struct {
+				MessageID        string `json:"MessageId"`
+				MD5OfMessageBody string `json:"MD5OfMessageBody"`
+			}
+			if err := json.Unmarshal(out, &resp); err != nil {
+				return err
+			}
+			messageID, md5OfBody = resp.MessageID, resp.MD5OfMessageBody
+			return nil
+		})
+	return messageID, md5OfBody, err
+}
+
+// SNSPublishDetailed publishes and returns the MessageId the Publish API
+// answered with (Query protocol, XML response).
+func SNSPublishDetailed(ctx context.Context, dir peers.Directory, topicARN, message, subject string) (messageID string, err error) {
+	ep, ok := dir.Endpoint("sns")
+	if !ok {
+		return "", fmt.Errorf("no sns peer wired")
+	}
+	err = trace.Step(ctx, trace.Event{Service: "sns", Action: "Publish", Resource: arnTail(topicARN)},
+		func(ctx context.Context) error {
+			form := url.Values{
+				"Action":   {"Publish"},
+				"TopicArn": {topicARN},
+				"Message":  {message},
+			}
+			if subject != "" {
+				form.Set("Subject", subject)
+			}
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, ep.URL("/"), strings.NewReader(form.Encode()))
+			if err != nil {
+				return err
+			}
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			resp, err := ep.Client.Do(req)
+			if err != nil {
+				return err
+			}
+			defer resp.Body.Close()
+			body, _ := io.ReadAll(io.LimitReader(resp.Body, maxPeerResponse))
+			if resp.StatusCode/100 != 2 {
+				return fmt.Errorf("sns publish: %s: %s", resp.Status, body)
+			}
+			var out struct {
+				MessageID string `xml:"PublishResult>MessageId"`
+			}
+			if err := xml.Unmarshal(body, &out); err != nil {
+				return err
+			}
+			messageID = out.MessageID
+			return nil
+		})
+	return messageID, err
 }
 
 // arnTail is the last colon-separated segment of an ARN — the topic or queue

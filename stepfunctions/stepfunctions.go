@@ -7,17 +7,22 @@
 // service around it: the awsJson1.0 wire, bbolt persistence, and the layer that
 // turns a Task's resource ARN into a call on a sibling.
 //
-// Stage 1 implements the control plane. State machines and activities can be
-// created, described, updated, listed, deleted and tagged, and a definition is
-// genuinely validated — a broken one is refused here rather than on deploy,
-// which is the whole point of validating locally. Execution arrives in stage 2;
-// StartExecution answers an honest UnsupportedOperationException until then
-// rather than accepting work it would silently drop.
+// The control plane creates, describes, updates, lists, deletes and tags state
+// machines and activities, and genuinely validates a definition — a broken one
+// is refused here rather than on deploy, which is the whole point of validating
+// locally. Standard executions run on a single driver goroutine (engine.go,
+// scheduler.go) that owns every interpreter step and every bbolt write, with
+// Task calls on transient workers that never touch the store. Frames are the
+// schedule: a restart re-issues whatever each frame's status names. Express,
+// activities, redrive and TestState answer an honest
+// UnsupportedOperationException from notYet rather than accepting work they
+// would silently drop.
 //
 // See docs/api-support/stepfunctions.md for the operation-by-operation table.
 package stepfunctions
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -29,6 +34,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
+	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -48,10 +54,12 @@ type Options struct {
 // Server is the Step Functions service: an http.Handler speaking AWS JSON 1.0,
 // and an io.Closer.
 type Server struct {
-	store *Store
-	peers peers.Directory
-	logf  func(format string, args ...any)
-	api   awsjson.API
+	store  *Store
+	peers  peers.Directory
+	logf   func(format string, args ...any)
+	api    awsjson.API
+	sink   trace.Sink
+	engine *engine
 }
 
 // New opens the store under DataDir.
@@ -86,13 +94,26 @@ func New(opts Options) (*Server, error) {
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock
 	}
+	s.engine = newEngine(s)
 	return s, nil
 }
 
-// Close closes the store.
-func (s *Server) Close() error { return s.store.db.Close() }
+// Close drains the engine — the driver goroutine and every task worker —
+// before closing the store. The ordering is the point: only the driver
+// writes execution state, so once it has exited, nothing can touch a closed
+// bbolt.
+func (s *Server) Close() error {
+	s.engine.close()
+	return s.store.db.Close()
+}
 
-type handler func(s *Server, p map[string]any) (any, *awshttp.APIError)
+// SetTraceSink tells the engine where to report the steps a resumed execution
+// causes. Request-driven work inherits its sink from the request context; the
+// engine drives executions from a scheduler goroutine, which has no request,
+// so it needs the sink handed to it the way lambda's pollers do.
+func (s *Server) SetTraceSink(sink trace.Sink) { s.sink = sink }
+
+type handler func(s *Server, ctx context.Context, p map[string]any) (any, *awshttp.APIError)
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	action, aerr := s.api.Action(r)
@@ -127,7 +148,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.api.WriteError(w, aerr)
 		return
 	}
-	result, aerr := h(s, params)
+	result, aerr := h(s, r.Context(), params)
 	if aerr != nil {
 		s.logf("stepfunctions: %s -> %s", action, aerr.Code)
 		s.api.WriteError(w, aerr)
@@ -142,19 +163,19 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // "not yet" and names why — a caller can tell a staged gap from a typo, and an
 // SDK sees UnsupportedOperationException rather than a mystery.
 var notYet = map[string]string{
-	"StartExecution":                   "executions arrive in the next stage; the control plane is complete",
-	"StartSyncExecution":               "executions arrive in the next stage; the control plane is complete",
-	"DescribeExecution":                "executions arrive in the next stage",
-	"StopExecution":                    "executions arrive in the next stage",
-	"ListExecutions":                   "executions arrive in the next stage",
-	"GetExecutionHistory":              "executions arrive in the next stage",
-	"DescribeStateMachineForExecution": "executions arrive in the next stage",
-	"GetActivityTask":                  "activity polling arrives with executions",
-	"SendTaskSuccess":                  "task tokens arrive with executions",
-	"SendTaskFailure":                  "task tokens arrive with executions",
-	"SendTaskHeartbeat":                "task tokens arrive with executions",
-	"RedriveExecution":                 "executions arrive in the next stage",
-	"TestState":                        "running a state in isolation needs the interpreter's eval half",
+	"StartSyncExecution": "Express executions arrive after Standard ones",
+	"GetActivityTask":    "activity polling arrives after task tokens",
+	"RedriveExecution":   "redrive arrives after execution history",
+	"TestState":          "running a state in isolation needs the sync- host prefix, which arrives with Express",
+
+	"CreateStateMachineAlias":    "versions and aliases arrive after go-live",
+	"DescribeStateMachineAlias":  "versions and aliases arrive after go-live",
+	"UpdateStateMachineAlias":    "versions and aliases arrive after go-live",
+	"DeleteStateMachineAlias":    "versions and aliases arrive after go-live",
+	"ListStateMachineAliases":    "versions and aliases arrive after go-live",
+	"ListStateMachineVersions":   "versions and aliases arrive after go-live",
+	"PublishStateMachineVersion": "versions and aliases arrive after go-live",
+	"DeleteStateMachineVersion":  "versions and aliases arrive after go-live",
 }
 
 // stubActions are operations doze-aws does not intend to implement, with the

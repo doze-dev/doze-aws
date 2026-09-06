@@ -1,6 +1,8 @@
 package stepfunctions
 
 import (
+	"context"
+
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 )
@@ -8,7 +10,7 @@ import (
 // Tagging. Keyed by resource ARN and shared by state machines and activities,
 // because the operations take an ARN and do not care what it points at.
 
-func (s *Server) tagResource(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) tagResource(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "resourceArn")
 	if arn == "" {
 		return nil, errInvalidARN(arn)
@@ -26,7 +28,7 @@ func (s *Server) tagResource(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{}, nil
 }
 
-func (s *Server) untagResource(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) untagResource(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "resourceArn")
 	if arn == "" {
 		return nil, errInvalidARN(arn)
@@ -44,7 +46,7 @@ func (s *Server) untagResource(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{}, nil
 }
 
-func (s *Server) listTagsForResource(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) listTagsForResource(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "resourceArn")
 	if arn == "" {
 		return nil, errInvalidARN(arn)

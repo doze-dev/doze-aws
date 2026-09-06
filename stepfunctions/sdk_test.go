@@ -10,15 +10,18 @@ package stepfunctions_test
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awssfn "github.com/aws/aws-sdk-go-v2/service/sfn"
 	sfntypes "github.com/aws/aws-sdk-go-v2/service/sfn/types"
+	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
@@ -232,27 +235,427 @@ func TestSDKActivityAndTags(t *testing.T) {
 	}
 }
 
-// TestSDKStagedOperationsSayNotYet — StartExecution is deliberately absent in
-// stage 1, and it must say so rather than accept work it would silently drop.
+// TestSDKStagedOperationsSayNotYet — the operations still staged (tokens,
+// history, Express) must say so rather than accept work they would silently
+// drop.
 func TestSDKStagedOperationsSayNotYet(t *testing.T) {
 	ctx := context.Background()
 	c := sfnClient(t)
 
+	_, err := c.GetActivityTask(ctx, &awssfn.GetActivityTaskInput{
+		ActivityArn: aws.String(awsident.ARN("states", "activity:approve")),
+	})
+	if err == nil {
+		t.Fatal("GetActivityTask succeeded, but activities are not implemented yet")
+	}
+	if !strings.Contains(err.Error(), "not supported by doze-aws yet") {
+		t.Errorf("error = %v; it should say the operation is staged, not fail obscurely", err)
+	}
+}
+
+// waitForStatus polls DescribeExecution until the execution reaches a
+// terminal status, which the engine delivers asynchronously.
+func waitForStatus(t *testing.T, c *awssfn.Client, arn string, want sfntypes.ExecutionStatus) *awssfn.DescribeExecutionOutput {
+	t.Helper()
+	ctx := context.Background()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		desc, err := c.DescribeExecution(ctx, &awssfn.DescribeExecutionInput{ExecutionArn: aws.String(arn)})
+		if err != nil {
+			t.Fatalf("DescribeExecution: %v", err)
+		}
+		if desc.Status == want {
+			return desc
+		}
+		if desc.Status != sfntypes.ExecutionStatusRunning {
+			t.Fatalf("execution settled as %s (error=%s cause=%s), want %s",
+				desc.Status, aws.ToString(desc.Error), aws.ToString(desc.Cause), want)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	t.Fatalf("execution did not reach %s in time", want)
+	return nil
+}
+
+// TestSDKExecutionRuns is stage G3's claim: a state machine of Pass, Choice
+// and Wait states actually executes, end to end, through the real SDK.
+func TestSDKExecutionRuns(t *testing.T) {
+	ctx := context.Background()
+	c := sfnClient(t)
+
+	def := `{
+	  "StartAt": "Classify",
+	  "States": {
+	    "Classify": {"Type": "Choice", "Choices": [
+	      {"Variable": "$.n", "NumericGreaterThan": 5, "Next": "Big"}
+	    ], "Default": "Small"},
+	    "Big": {"Type": "Pass", "Result": "big", "ResultPath": "$.size", "Next": "Breathe"},
+	    "Small": {"Type": "Pass", "Result": "small", "ResultPath": "$.size", "Next": "Breathe"},
+	    "Breathe": {"Type": "Wait", "Seconds": 0, "Next": "Done"},
+	    "Done": {"Type": "Pass", "Parameters": {"verdict.$": "States.Format('n={} is {}', $.n, $.size)"}, "End": true}
+	  }
+	}`
 	created, err := c.CreateStateMachine(ctx, &awssfn.CreateStateMachineInput{
-		Name:       aws.String("staged"),
-		Definition: aws.String(helloWorld),
+		Name:       aws.String("runs"),
+		Definition: aws.String(def),
 		RoleArn:    aws.String("arn:aws:iam::000000000000:role/StepFunctions"),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	started, err := c.StartExecution(ctx, &awssfn.StartExecutionInput{
+		StateMachineArn: created.StateMachineArn,
+		Name:            aws.String("run-1"),
+		Input:           aws.String(`{"n": 9}`),
+	})
+	if err != nil {
+		t.Fatalf("StartExecution: %v", err)
+	}
+	arn := aws.ToString(started.ExecutionArn)
+	if !strings.HasSuffix(arn, ":execution:runs:run-1") {
+		t.Fatalf("ExecutionArn = %q", arn)
+	}
+
+	desc := waitForStatus(t, c, arn, sfntypes.ExecutionStatusSucceeded)
+	if got := aws.ToString(desc.Output); got != `{"verdict":"n=9 is big"}` {
+		t.Errorf("output = %s", got)
+	}
+	if aws.ToString(desc.Input) != `{"n": 9}` {
+		t.Errorf("input round-trip changed: %s", aws.ToString(desc.Input))
+	}
+
+	// The same name with the same input answers with the original execution;
+	// with different input it conflicts.
+	again, err := c.StartExecution(ctx, &awssfn.StartExecutionInput{
+		StateMachineArn: created.StateMachineArn,
+		Name:            aws.String("run-1"),
+		Input:           aws.String(`{"n": 9}`),
+	})
+	if err == nil && aws.ToString(again.ExecutionArn) != arn {
+		t.Error("a re-run under the same name minted a new execution")
+	}
+	// run-1 already finished, so even the same input now conflicts on AWS's
+	// rules for reused names — but a *finished* same-input rerun is the one
+	// place doze-aws is looser; assert only the different-input conflict.
 	_, err = c.StartExecution(ctx, &awssfn.StartExecutionInput{
 		StateMachineArn: created.StateMachineArn,
+		Name:            aws.String("run-1"),
+		Input:           aws.String(`{"n": 1}`),
+	})
+	var exists *sfntypes.ExecutionAlreadyExists
+	if !errors.As(err, &exists) {
+		t.Errorf("reusing a name with different input = %v, want ExecutionAlreadyExists", err)
+	}
+
+	list, err := c.ListExecutions(ctx, &awssfn.ListExecutionsInput{
+		StateMachineArn: created.StateMachineArn,
+	})
+	if err != nil {
+		t.Fatalf("ListExecutions: %v", err)
+	}
+	if len(list.Executions) != 1 || aws.ToString(list.Executions[0].Name) != "run-1" {
+		t.Errorf("executions = %+v", list.Executions)
+	}
+}
+
+// TestSDKExecutionHistory drives GetExecutionHistory through the SDK's typed
+// HistoryEvent — the shape where emulators classically diverge: ids global
+// and ascending, previousEventId chains causal, payloads JSON-encoded
+// STRINGS inside the details, ExecutionStarted first and ExecutionSucceeded
+// last.
+func TestSDKExecutionHistory(t *testing.T) {
+	ctx := context.Background()
+	c := sfnClient(t)
+
+	def := `{
+	  "StartAt": "A",
+	  "States": {
+	    "A": {"Type": "Pass", "Result": {"ready": true}, "Next": "B"},
+	    "B": {"Type": "Choice", "Choices": [
+	      {"Variable": "$.ready", "BooleanEquals": true, "Next": "C"}], "Default": "C"},
+	    "C": {"Type": "Succeed"}
+	  }
+	}`
+	created, err := c.CreateStateMachine(ctx, &awssfn.CreateStateMachineInput{
+		Name:       aws.String("historied"),
+		Definition: aws.String(def),
+		RoleArn:    aws.String("arn:aws:iam::000000000000:role/StepFunctions"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	started, err := c.StartExecution(ctx, &awssfn.StartExecutionInput{
+		StateMachineArn: created.StateMachineArn, Input: aws.String(`{"seed": 1}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	arn := aws.ToString(started.ExecutionArn)
+	waitForStatus(t, c, arn, sfntypes.ExecutionStatusSucceeded)
+
+	hist, err := c.GetExecutionHistory(ctx, &awssfn.GetExecutionHistoryInput{
+		ExecutionArn: aws.String(arn),
+	})
+	if err != nil {
+		t.Fatalf("GetExecutionHistory: %v", err)
+	}
+	evs := hist.Events
+	if len(evs) < 8 {
+		t.Fatalf("got %d events, want the full Entered/Exited chain", len(evs))
+	}
+	if evs[0].Type != sfntypes.HistoryEventTypeExecutionStarted || evs[0].Id != 1 || evs[0].PreviousEventId != 0 {
+		t.Errorf("first event = %s id=%d prev=%d", evs[0].Type, evs[0].Id, evs[0].PreviousEventId)
+	}
+	if last := evs[len(evs)-1]; last.Type != sfntypes.HistoryEventTypeExecutionSucceeded {
+		t.Errorf("last event = %s, want ExecutionSucceeded", last.Type)
+	}
+	for i := 1; i < len(evs); i++ {
+		if evs[i].Id <= evs[i-1].Id {
+			t.Fatalf("ids not ascending at %d: %d then %d", i, evs[i-1].Id, evs[i].Id)
+		}
+		if evs[i].PreviousEventId != evs[i-1].Id {
+			t.Errorf("event %d (%s) previousEventId = %d, want %d — the root chain is linear here",
+				evs[i].Id, evs[i].Type, evs[i].PreviousEventId, evs[i-1].Id)
+		}
+	}
+	var sawEntered, sawChoice bool
+	for _, ev := range evs {
+		if ev.Type == sfntypes.HistoryEventTypePassStateEntered {
+			sawEntered = true
+			d := ev.StateEnteredEventDetails
+			if d == nil || aws.ToString(d.Name) != "A" {
+				t.Fatalf("PassStateEntered details = %+v", d)
+			}
+			// The input must be a JSON-encoded string (not an object); its
+			// formatting may be compacted.
+			if got := aws.ToString(d.Input); got != `{"seed":1}` && got != `{"seed": 1}` {
+				t.Errorf("entered input = %q", got)
+			}
+		}
+		if ev.Type == sfntypes.HistoryEventTypeChoiceStateExited {
+			sawChoice = true
+			if d := ev.StateExitedEventDetails; d == nil || aws.ToString(d.Output) == "" {
+				t.Errorf("ChoiceStateExited without output details")
+			}
+		}
+	}
+	if !sawEntered || !sawChoice {
+		t.Errorf("missing typed events: PassStateEntered=%v ChoiceStateExited=%v", sawEntered, sawChoice)
+	}
+
+	// reverseOrder flips the walk.
+	rev, err := c.GetExecutionHistory(ctx, &awssfn.GetExecutionHistoryInput{
+		ExecutionArn: aws.String(arn), ReverseOrder: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rev.Events[0].Type != sfntypes.HistoryEventTypeExecutionSucceeded {
+		t.Errorf("reverseOrder first = %s", rev.Events[0].Type)
+	}
+
+	// Pagination: two-at-a-time pages cover the same ids exactly once.
+	var paged []int64
+	var token *string
+	for {
+		page, err := c.GetExecutionHistory(ctx, &awssfn.GetExecutionHistoryInput{
+			ExecutionArn: aws.String(arn), MaxResults: 2, NextToken: token,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, ev := range page.Events {
+			paged = append(paged, ev.Id)
+		}
+		if page.NextToken == nil {
+			break
+		}
+		token = page.NextToken
+	}
+	if len(paged) != len(evs) {
+		t.Errorf("pagination returned %d events, full read %d", len(paged), len(evs))
+	}
+}
+
+// TestSDKStopAndFrozenSnapshot: a long Wait parks the execution; stopping it
+// aborts, and DescribeStateMachineForExecution answers with the definition
+// the execution started with even after the machine is updated.
+func TestSDKStopAndFrozenSnapshot(t *testing.T) {
+	ctx := context.Background()
+	c := sfnClient(t)
+
+	def := `{"StartAt":"W","States":{"W":{"Type":"Wait","Seconds":300,"Next":"S"},"S":{"Type":"Succeed"}}}`
+	created, err := c.CreateStateMachine(ctx, &awssfn.CreateStateMachineInput{
+		Name:       aws.String("parked"),
+		Definition: aws.String(def),
+		RoleArn:    aws.String("arn:aws:iam::000000000000:role/StepFunctions"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	started, err := c.StartExecution(ctx, &awssfn.StartExecutionInput{
+		StateMachineArn: created.StateMachineArn,
+		Name:            aws.String("stopped"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	arn := aws.ToString(started.ExecutionArn)
+
+	updated := `{"StartAt":"S","States":{"S":{"Type":"Succeed"}}}`
+	if _, err := c.UpdateStateMachine(ctx, &awssfn.UpdateStateMachineInput{
+		StateMachineArn: created.StateMachineArn,
+		Definition:      aws.String(updated),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	frozen, err := c.DescribeStateMachineForExecution(ctx, &awssfn.DescribeStateMachineForExecutionInput{
+		ExecutionArn: aws.String(arn),
+	})
+	if err != nil {
+		t.Fatalf("DescribeStateMachineForExecution: %v", err)
+	}
+	if aws.ToString(frozen.Definition) != def {
+		t.Errorf("the frozen snapshot moved with the update:\n got %s", aws.ToString(frozen.Definition))
+	}
+
+	stopped, err := c.StopExecution(ctx, &awssfn.StopExecutionInput{
+		ExecutionArn: aws.String(arn),
+		Error:        aws.String("Manual.Stop"),
+		Cause:        aws.String("test teardown"),
+	})
+	if err != nil {
+		t.Fatalf("StopExecution: %v", err)
+	}
+	if stopped.StopDate == nil {
+		t.Error("StopExecution returned no stopDate")
+	}
+	desc := waitForStatus(t, c, arn, sfntypes.ExecutionStatusAborted)
+	if aws.ToString(desc.Error) != "Manual.Stop" {
+		t.Errorf("error = %q, want the stop's error", aws.ToString(desc.Error))
+	}
+}
+
+// TestSDKCallbackPattern is the human-approval loop end to end through real
+// services: the machine parks on .waitForTaskToken after sending the token
+// through the stack's own SQS; a worker receives the message, redeems the
+// token with SendTaskSuccess, and the execution completes with the worker's
+// output.
+func TestSDKCallbackPattern(t *testing.T) {
+	ctx := context.Background()
+	if testing.Short() {
+		t.Skip("stands up a full stack")
+	}
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { stack.Close() })
+	ts := httptest.NewServer(stack.Handler())
+	t.Cleanup(ts.Close)
+	cfg := aws.Config{
+		Region: awsident.Region,
+		Credentials: credentials.NewStaticCredentialsProvider(
+			awsident.AccessKeyID, awsident.SecretAccessKey, ""),
+	}
+	c := awssfn.NewFromConfig(cfg, func(o *awssfn.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+	sqs := awssqs.NewFromConfig(cfg, func(o *awssqs.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+
+	q, err := sqs.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("approvals")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	def := `{"StartAt":"Ask","States":{"Ask":{"Type":"Task",
+	  "Resource":"arn:aws:states:::sqs:sendMessage.waitForTaskToken",
+	  "Parameters":{"QueueUrl":"` + aws.ToString(q.QueueUrl) + `",
+	    "MessageBody":{"ticket.$":"$.ticket","token.$":"$$.Task.Token"}},
+	  "End":true}}}`
+	m, err := c.CreateStateMachine(ctx, &awssfn.CreateStateMachineInput{
+		Name: aws.String("approval"), Definition: aws.String(def),
+		RoleArn: aws.String("arn:aws:iam::000000000000:role/StepFunctions"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	started, err := c.StartExecution(ctx, &awssfn.StartExecutionInput{
+		StateMachineArn: m.StateMachineArn, Input: aws.String(`{"ticket": "T-1"}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The worker's half: the token arrives on the queue.
+	msgs, err := sqs.ReceiveMessage(ctx, &awssqs.ReceiveMessageInput{
+		QueueUrl: q.QueueUrl, MaxNumberOfMessages: 1, WaitTimeSeconds: 5,
+	})
+	if err != nil || len(msgs.Messages) == 0 {
+		t.Fatalf("the token never reached the queue: %v", err)
+	}
+	var body struct {
+		Ticket string `json:"ticket"`
+		Token  string `json:"token"`
+	}
+	if err := json.Unmarshal([]byte(aws.ToString(msgs.Messages[0].Body)), &body); err != nil {
+		t.Fatalf("queue body: %v", err)
+	}
+	if body.Ticket != "T-1" || body.Token == "" {
+		t.Fatalf("queue body = %+v", body)
+	}
+
+	if _, err := c.SendTaskSuccess(ctx, &awssfn.SendTaskSuccessInput{
+		TaskToken: aws.String(body.Token), Output: aws.String(`{"approved": true, "by": "test"}`),
+	}); err != nil {
+		t.Fatalf("SendTaskSuccess: %v", err)
+	}
+	desc := waitForStatus(t, c, aws.ToString(started.ExecutionArn), sfntypes.ExecutionStatusSucceeded)
+	if out := aws.ToString(desc.Output); out != `{"approved":true,"by":"test"}` {
+		t.Errorf("output = %s", out)
+	}
+}
+
+// TestSDKFailedExecution: a Fail state surfaces its error and cause on
+// DescribeExecution.
+func TestSDKFailedExecution(t *testing.T) {
+	ctx := context.Background()
+	c := sfnClient(t)
+
+	def := `{"StartAt":"F","States":{"F":{"Type":"Fail","Error":"Custom.Nope","Cause":"deliberate"}}}`
+	created, err := c.CreateStateMachine(ctx, &awssfn.CreateStateMachineInput{
+		Name:       aws.String("fails"),
+		Definition: aws.String(def),
+		RoleArn:    aws.String("arn:aws:iam::000000000000:role/StepFunctions"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	started, err := c.StartExecution(ctx, &awssfn.StartExecutionInput{
+		StateMachineArn: created.StateMachineArn,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	desc := waitForStatus(t, c, aws.ToString(started.ExecutionArn), sfntypes.ExecutionStatusFailed)
+	if aws.ToString(desc.Error) != "Custom.Nope" || aws.ToString(desc.Cause) != "deliberate" {
+		t.Errorf("error/cause = %q/%q", aws.ToString(desc.Error), aws.ToString(desc.Cause))
+	}
+}
+
+// TestSDKJSONataRefusedAtCreate: the JSONata dialect is staged; a machine
+// declaring it is refused at create time rather than run wrongly.
+func TestSDKJSONataRefusedAtCreate(t *testing.T) {
+	ctx := context.Background()
+	c := sfnClient(t)
+
+	_, err := c.CreateStateMachine(ctx, &awssfn.CreateStateMachineInput{
+		Name:       aws.String("jsonata"),
+		Definition: aws.String(`{"QueryLanguage":"JSONata","StartAt":"S","States":{"S":{"Type":"Succeed"}}}`),
+		RoleArn:    aws.String("arn:aws:iam::000000000000:role/StepFunctions"),
 	})
 	if err == nil {
-		t.Fatal("StartExecution succeeded, but executions are not implemented yet")
+		t.Fatal("a JSONata machine was accepted; the interpreter would run it wrongly")
 	}
-	if !strings.Contains(err.Error(), "not supported by doze-aws yet") {
-		t.Errorf("error = %v; it should say the operation is staged, not fail obscurely", err)
+	if !strings.Contains(err.Error(), "JSONata") {
+		t.Errorf("the refusal should name JSONata: %v", err)
 	}
 }

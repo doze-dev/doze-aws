@@ -26,16 +26,28 @@ import (
 
 // Stack is the desired state of a set of local AWS resources.
 type Stack struct {
-	Queues     map[string]Queue
-	Topics     map[string]Topic
-	Buckets    map[string]Bucket
-	Tables     map[string]Table
-	Functions  map[string]Function
-	Rules      map[string]Rule
-	Keys       map[string]Key
-	Secrets    map[string]Secret
-	Parameters map[string]Parameter
-	APIs       map[string]API
+	Queues        map[string]Queue
+	Topics        map[string]Topic
+	Buckets       map[string]Bucket
+	Tables        map[string]Table
+	Functions     map[string]Function
+	Rules         map[string]Rule
+	Keys          map[string]Key
+	Secrets       map[string]Secret
+	Parameters    map[string]Parameter
+	APIs          map[string]API
+	StateMachines map[string]StateMachine
+}
+
+// StateMachine is a Step Functions state machine: its definition text (ASL),
+// the role it claims, and its type. The definition travels as the exact text
+// the template carried — Step Functions itself round-trips it byte-identical,
+// and deploy tools diff on that.
+type StateMachine struct {
+	Definition string
+	RoleARN    string
+	Type       string // STANDARD | EXPRESS; empty means STANDARD
+	Tags       map[string]string
 }
 
 // API is a REST API fronting Lambda functions.

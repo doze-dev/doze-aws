@@ -34,6 +34,21 @@ func Emit(s *provision.Stack) ([]byte, error) {
 		}
 	}
 
+	for _, name := range sortedNames(s.StateMachines) {
+		sm := s.StateMachines[name]
+		props := map[string]any{
+			"StateMachineName": name,
+			"DefinitionString": sm.Definition,
+		}
+		if sm.RoleARN != "" {
+			props["RoleArn"] = sm.RoleARN
+		}
+		if sm.Type != "" && sm.Type != "STANDARD" {
+			props["StateMachineType"] = sm.Type
+		}
+		add("StateMachine", name, "AWS::StepFunctions::StateMachine", props)
+	}
+
 	for _, name := range sortedNames(s.Queues) {
 		q := s.Queues[name]
 		props := map[string]any{"QueueName": name}

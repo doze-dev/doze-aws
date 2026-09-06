@@ -134,3 +134,5 @@ func topicARN(name string) string { return awsident.ARN("sns", name) }
 func lambdaARN(name string) string {
 	return "arn:aws:lambda:" + awsident.Region + ":" + awsident.AccountID + ":function:" + name
 }
+
+func stateMachineARN(name string) string { return awsident.ARN("states", "stateMachine:"+name) }

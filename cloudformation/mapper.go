@@ -8,6 +8,7 @@ package cloudformation
 // every field it accepts does something.
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -51,6 +52,8 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		return m.secret(name, props)
 	case "AWS::SSM::Parameter":
 		return m.parameter(name, props)
+	case "AWS::StepFunctions::StateMachine":
+		return m.stateMachine(name, props)
 	case "AWS::Kinesis::Stream":
 		// Streams have no stack-file section yet; the resource is accepted and
 		// reported so a template referencing one still transpiles.
@@ -83,6 +86,47 @@ func (m *mapper) applyDeferred() error {
 		if err := fn(); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// ---- Step Functions ----
+
+// stateMachine maps AWS::StepFunctions::StateMachine (and, via the SAM
+// transform, AWS::Serverless::StateMachine). The definition arrives either as
+// DefinitionString or as a Definition object; DefinitionSubstitutions is
+// applied here, AFTER intrinsics have been evaluated — CDK emits it on
+// essentially every deploy, with values like !GetAtt Worker.Arn, and a
+// substitution left unapplied compiles cleanly and fails at runtime looking
+// like an interpreter bug.
+func (m *mapper) stateMachine(name string, props map[string]any) error {
+	definition := propStr(props, "DefinitionString")
+	if definition == "" {
+		if def := propMap(props, "Definition"); def != nil {
+			raw, err := json.Marshal(def)
+			if err != nil {
+				return fmt.Errorf("Definition does not marshal: %w", err)
+			}
+			definition = string(raw)
+		}
+	}
+	if definition == "" {
+		if propStr(props, "DefinitionUri") != "" {
+			return fmt.Errorf("DefinitionUri points at a file or bucket; inline the definition (DefinitionString or Definition) for a local deploy")
+		}
+		return fmt.Errorf("a state machine needs DefinitionString or Definition")
+	}
+	if subs := propMap(props, "DefinitionSubstitutions"); len(subs) > 0 {
+		for k, v := range subs {
+			definition = strings.ReplaceAll(definition, "${"+k+"}", fmt.Sprint(v))
+		}
+	}
+	typ := propStr(props, "StateMachineType")
+	m.stack.StateMachines[name] = provision.StateMachine{
+		Definition: definition,
+		RoleARN:    propStr(props, "RoleArn"),
+		Type:       typ,
+		Tags:       propTags(props),
 	}
 	return nil
 }

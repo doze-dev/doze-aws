@@ -1,6 +1,7 @@
 package stepfunctions
 
 import (
+	"context"
 	"encoding/json"
 	"regexp"
 	"strings"
@@ -33,6 +34,17 @@ var handlers = map[string]handler{
 	"TagResource":         (*Server).tagResource,
 	"UntagResource":       (*Server).untagResource,
 	"ListTagsForResource": (*Server).listTagsForResource,
+
+	"StartExecution":                   (*Server).startExecution,
+	"DescribeExecution":                (*Server).describeExecution,
+	"StopExecution":                    (*Server).stopExecution,
+	"ListExecutions":                   (*Server).listExecutions,
+	"DescribeStateMachineForExecution": (*Server).describeStateMachineForExecution,
+	"GetExecutionHistory":              (*Server).getExecutionHistory,
+
+	"SendTaskSuccess":   (*Server).sendTaskSuccess,
+	"SendTaskFailure":   (*Server).sendTaskFailure,
+	"SendTaskHeartbeat": (*Server).sendTaskHeartbeat,
 }
 
 // nameRule is the character set AWS allows in a state machine or activity name.
@@ -55,6 +67,26 @@ func checkName(name string) *awshttp.APIError {
 func machineARN(name string) string  { return awsident.ARN("states", "stateMachine:"+name) }
 func activityARN(name string) string { return awsident.ARN("states", "activity:"+name) }
 
+func usesJSONata(d *asl.Definition) bool {
+	if d.QueryLanguage == asl.JSONata {
+		return true
+	}
+	for _, s := range d.States {
+		if s.QueryLanguage == asl.JSONata {
+			return true
+		}
+		for _, b := range s.Branches {
+			if usesJSONata(b) {
+				return true
+			}
+		}
+		if p := s.Processor(); p != nil && usesJSONata(p) {
+			return true
+		}
+	}
+	return false
+}
+
 // nameFromARN pulls the resource name out of an ARN of the shape
 // arn:aws:states:<region>:<account>:<kind>:<name>. Returns "" for anything that
 // is not one, so the caller can answer InvalidArn rather than looking up "".
@@ -69,7 +101,7 @@ func nameFromARN(arn, kind string) string {
 	return strings.Join(parts[6:], ":")
 }
 
-func (s *Server) createStateMachine(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) createStateMachine(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	name := awsjson.Str(p, "name")
 	if aerr := checkName(name); aerr != nil {
 		return nil, aerr
@@ -78,8 +110,12 @@ func (s *Server) createStateMachine(p map[string]any) (any, *awshttp.APIError) {
 
 	// The whole reason to validate locally: a definition AWS would refuse is
 	// refused here, with the same diagnostics, before it reaches a deploy.
-	if _, rep := asl.ValidateDefinition([]byte(definition)); !rep.OK() {
+	d, rep := asl.ValidateDefinition([]byte(definition))
+	if !rep.OK() {
 		return nil, errInvalidDefinition(rep.Error())
+	}
+	if aerr := refuseUnrunnable(d); aerr != nil {
+		return nil, aerr
 	}
 
 	typ := awsjson.Str(p, "type")
@@ -112,7 +148,7 @@ func (s *Server) createStateMachine(p map[string]any) (any, *awshttp.APIError) {
 	}, nil
 }
 
-func (s *Server) describeStateMachine(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) describeStateMachine(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "stateMachineArn")
 	name := nameFromARN(arn, "stateMachine")
 	if name == "" {
@@ -142,7 +178,7 @@ func (s *Server) describeStateMachine(p map[string]any) (any, *awshttp.APIError)
 	return out, nil
 }
 
-func (s *Server) updateStateMachine(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) updateStateMachine(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "stateMachineArn")
 	name := nameFromARN(arn, "stateMachine")
 	if name == "" {
@@ -150,8 +186,12 @@ func (s *Server) updateStateMachine(p map[string]any) (any, *awshttp.APIError) {
 	}
 	var definition, roleARN *string
 	if raw, ok := p["definition"].(string); ok {
-		if _, rep := asl.ValidateDefinition([]byte(raw)); !rep.OK() {
+		d, rep := asl.ValidateDefinition([]byte(raw))
+		if !rep.OK() {
 			return nil, errInvalidDefinition(rep.Error())
+		}
+		if aerr := refuseUnrunnable(d); aerr != nil {
+			return nil, aerr
 		}
 		definition = &raw
 	}
@@ -172,7 +212,7 @@ func (s *Server) updateStateMachine(p map[string]any) (any, *awshttp.APIError) {
 	}, nil
 }
 
-func (s *Server) deleteStateMachine(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) deleteStateMachine(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "stateMachineArn")
 	name := nameFromARN(arn, "stateMachine")
 	if name == "" {
@@ -186,7 +226,7 @@ func (s *Server) deleteStateMachine(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{}, nil
 }
 
-func (s *Server) listStateMachines(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) listStateMachines(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	machines, aerr := s.store.ListMachines()
 	if aerr != nil {
 		return nil, aerr
@@ -207,7 +247,7 @@ func (s *Server) listStateMachines(p map[string]any) (any, *awshttp.APIError) {
 // analyser exposed directly. It is free once the analyser exists, and it is the
 // operation the CDK and the CLI both use to check a definition without creating
 // anything.
-func (s *Server) validateDefinition(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) validateDefinition(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	_, rep := asl.ValidateDefinition([]byte(awsjson.Str(p, "definition")))
 	if rep.OK() {
 		return map[string]any{"result": "OK", "diagnostics": []any{}}, nil
@@ -224,7 +264,7 @@ func (s *Server) validateDefinition(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{"result": "FAIL", "diagnostics": diags}, nil
 }
 
-func (s *Server) createActivity(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) createActivity(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	name := awsjson.Str(p, "name")
 	if aerr := checkName(name); aerr != nil {
 		return nil, aerr
@@ -241,7 +281,7 @@ func (s *Server) createActivity(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{"activityArn": a.ARN, "creationDate": epoch(a.CreatedAt)}, nil
 }
 
-func (s *Server) describeActivity(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) describeActivity(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "activityArn")
 	name := nameFromARN(arn, "activity")
 	if name == "" {
@@ -257,7 +297,7 @@ func (s *Server) describeActivity(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{"activityArn": a.ARN, "name": a.Name, "creationDate": epoch(a.CreatedAt)}, nil
 }
 
-func (s *Server) deleteActivity(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) deleteActivity(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "activityArn")
 	name := nameFromARN(arn, "activity")
 	if name == "" {
@@ -269,7 +309,7 @@ func (s *Server) deleteActivity(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{}, nil
 }
 
-func (s *Server) listActivities(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) listActivities(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	acts, aerr := s.store.ListActivities()
 	if aerr != nil {
 		return nil, aerr

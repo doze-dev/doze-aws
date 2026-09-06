@@ -128,6 +128,25 @@ func parseState(raw []byte, name string) (*State, error) {
 		return nil, fmt.Errorf("state %q: %w", name, err)
 	}
 
+	// An explicit null is meaningful for the three document-shaping paths —
+	// `"InputPath": null` discards the document where an absent InputPath means
+	// "$" — but encoding/json leaves the pointer nil either way. A pointer to
+	// the empty string is the in-AST spelling of "the key was null": no valid
+	// path is empty, so the two cannot collide, and checkPaths already treats
+	// it as legal.
+	var presence map[string]json.RawMessage
+	if json.Unmarshal(raw, &presence) == nil {
+		nullPath := func(key string, dst **string) {
+			if v, ok := presence[key]; ok && *dst == nil && bytes.Equal(bytes.TrimSpace(v), []byte("null")) {
+				empty := ""
+				*dst = &empty
+			}
+		}
+		nullPath("InputPath", &doc.InputPath)
+		nullPath("OutputPath", &doc.OutputPath)
+		nullPath("ResultPath", &doc.ResultPath)
+	}
+
 	s := &State{
 		Name: name, Type: StateType(doc.Type), Comment: doc.Comment,
 		Next: doc.Next, End: doc.End, QueryLanguage: QueryLanguage(doc.QueryLanguage),

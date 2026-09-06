@@ -12,6 +12,8 @@ package cloudformation
 // doze-aws does not serve yet. Those are refused by name during mapping rather
 // than quietly producing a function nothing can reach.
 
+import "fmt"
+
 // applySAMTransform normalises serverless resources in place. It runs before
 // classification, so afterwards the ordinary registry handles everything.
 //
@@ -34,13 +36,41 @@ func applySAMTransform(t *Template) error {
 		// than creating a function that cannot run.
 		delete(r.Properties, "InlineCode")
 	}
+	for _, id := range t.Order() {
+		r := t.Resources[id]
+		if r.Type != "AWS::Serverless::StateMachine" {
+			continue
+		}
+		// SAM's StateMachine is the plain resource under different property
+		// names. Events would need EventBridge/API wiring into executions,
+		// which does not exist locally — refused by name, not dropped.
+		if _, has := r.Properties["Events"]; has {
+			return fmt.Errorf("resource %s: Events on a Serverless StateMachine are not supported locally; start executions directly or from a Lambda", id)
+		}
+		r.Type = "AWS::StepFunctions::StateMachine"
+		renameProp(r.Properties, "Name", "StateMachineName")
+		renameProp(r.Properties, "Role", "RoleArn")
+		renameProp(r.Properties, "Type", "StateMachineType")
+		// Policies build IAM the local stack does not enforce on deploys.
+		delete(r.Properties, "Policies")
+		delete(r.Properties, "Logging")
+		delete(r.Properties, "Tracing")
+	}
 	return nil
+}
+
+func renameProp(props map[string]any, from, to string) {
+	if v, ok := props[from]; ok {
+		if _, taken := props[to]; !taken {
+			props[to] = v
+		}
+		delete(props, from)
+	}
 }
 
 // unsupportedSAM names serverless resource types doze-aws cannot model, with
 // the reason, so the registry can refuse them precisely.
 var unsupportedSAM = map[string]string{
-	"AWS::Serverless::StateMachine": "doze-aws has no Step Functions yet",
 	"AWS::Serverless::Application":  "nested applications need the Serverless Application Repository",
 	"AWS::Serverless::LayerVersion": "layer versions are created through the Lambda API, not the stack file",
 }
