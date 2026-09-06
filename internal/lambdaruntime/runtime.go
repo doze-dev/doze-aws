@@ -18,6 +18,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -50,6 +51,8 @@ type Spec struct {
 	LogSink LogSink
 	// ShimDir is where the embedded runtime clients live (LAMBDA_RUNTIME_DIR).
 	ShimDir string
+	// Interpreters overrides where each runtime family's executable is.
+	Interpreters Interpreters
 }
 
 // Input is one invocation's request.
@@ -212,7 +215,16 @@ func (r *Runner) InvokeInput(ctx context.Context, in Input) (Result, error) {
 	r.mu.Unlock()
 
 	if err := r.ensureStarted(); err != nil {
-		return Result{}, err
+		if errors.Is(err, ErrPoolClosed) {
+			return Result{}, err
+		}
+		// A function that cannot be launched — no interpreter, a package
+		// without its runtime client — is a function error, the way a broken
+		// init is on AWS: a 200 with Runtime.* in the payload, not a 500 the
+		// SDK retries three times before showing anyone.
+		r.logf("lambda %s: %v", r.spec.Name, err)
+		return Result{FunctionErr: "Unhandled", RequestID: newID(),
+			Payload: mustJSON(map[string]string{"errorMessage": err.Error(), "errorType": "Runtime.LaunchError"})}, nil
 	}
 	inv := &invocation{
 		id:         newID(),
@@ -349,13 +361,9 @@ func (r *Runner) ensureStarted() error {
 func (r *Runner) buildCommand(runtimeAPI string) (*exec.Cmd, error) {
 	// Copy the command: pooled Runners share one Spec, and the argv[0] rewrite
 	// below must not mutate that shared slice's backing array.
-	argv := append([]string(nil), r.spec.Command...)
-	if len(argv) == 0 {
-		mapped, err := runtimeCommand(r.spec.Runtime, r.spec.Handler)
-		if err != nil {
-			return nil, err
-		}
-		argv = mapped
+	argv, err := r.command()
+	if err != nil {
+		return nil, err
 	}
 	// Resolve a relative bootstrap/binary against the code dir so the child's
 	// working directory can't affect whether it's found.
@@ -388,34 +396,6 @@ func (r *Runner) buildCommand(runtimeAPI string) (*exec.Cmd, error) {
 	cmd.Stdout = r.out
 	cmd.Stderr = r.out
 	return cmd, nil
-}
-
-// runtimeCommand maps a runtime identifier to a launch command.
-func runtimeCommand(runtime, handler string) ([]string, error) {
-	switch {
-	case runtime == "" || strings.HasPrefix(runtime, "go") || strings.HasPrefix(runtime, "provided"):
-		// provided.*, go and the retired go1.x run a self-contained
-		// bootstrap/binary.
-		bin := handler
-		if bin == "" {
-			bin = "bootstrap"
-		}
-		return []string{"./" + strings.TrimPrefix(bin, "./")}, nil
-	case strings.HasPrefix(runtime, "python"):
-		return []string{"python3", "-m", "awslambdaric", handler}, nil
-	case strings.HasPrefix(runtime, "nodejs"):
-		return []string{"npx", "--yes", "aws-lambda-ric", handler}, nil
-	case strings.HasPrefix(runtime, "java"):
-		// aws-lambda-java-runtime-interface-client: entrypoint class reads the
-		// handler ("package.Class::method") from argv.
-		return []string{"java", "-cp", "./*:.", "com.amazonaws.services.lambda.runtime.api.client.AWSLambda", handler}, nil
-	case strings.HasPrefix(runtime, "ruby"):
-		return []string{"aws_lambda_ric", handler}, nil
-	case strings.HasPrefix(runtime, "dotnet"):
-		// .NET RIC (Amazon.Lambda.RuntimeSupport) reads "Assembly::Type::Method".
-		return []string{"dotnet", "exec", "/opt/aws-lambda-ric.dll", handler}, nil
-	}
-	return nil, fmt.Errorf("unsupported runtime %q (use provided.*, go, python3.x, nodejs*, java*, ruby*, dotnet*, or set an explicit command)", runtime)
 }
 
 // routes serves the Runtime API.

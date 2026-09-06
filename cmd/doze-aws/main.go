@@ -163,6 +163,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		S3Host:            cfg.S3Host,
 		LambdaIdleTimeout: cfg.LambdaIdleTimeout,
 		LambdaQuiet:       cfg.LambdaQuiet,
+		LambdaRuntimes:    cfg.LambdaRuntimes,
 		IAMMode:           iamMode,
 		Endpoint:          reachableEndpoint(cfg.ListenAddr),
 		Logf: func(format string, args ...any) {

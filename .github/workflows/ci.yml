@@ -37,6 +37,19 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+      # The interpreters the embedded Lambda runtime clients run on. Tests
+      # that need one skip when it is absent, so a leg without them still
+      # passes — but then the shims are not being tested, which is why every
+      # leg installs all three.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
       - name: Unit tests
         run: go test -short ./...
       - name: Full suite (race)

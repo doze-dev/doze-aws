@@ -390,3 +390,35 @@ test.describe('layers registry', () => {
     await expect(page.locator('#lam-layers tr', { hasText: layer })).toContainText('v1');
   });
 });
+
+test.describe('python runtime', () => {
+  test('a python3.12 function runs on the host interpreter through the embedded client', async ({
+    page,
+    uniqueName,
+    setEditor,
+  }) => {
+    const fnName = uniqueName('lam-py');
+    const dir = path.resolve(__dirname, '../fixtures/lambda-handler-py');
+
+    await page.goto('lambda/create');
+    await page.locator('input[name="name"]').fill(fnName);
+    await page.locator('select[name="runtime"]').selectOption('python3.12');
+    await page.locator('input[name="handler"]').fill('handler.handler');
+    await page.locator('input[name="code"]').fill(dir);
+    await page.getByRole('button', { name: 'Create function' }).click();
+    await page.waitForURL(new RegExp(`/lambda/${fnName}(\\?|$)`));
+
+    await setEditor('textarea[name=payload][data-editor]', JSON.stringify({ who: 'ada' }));
+    await page.getByRole('button', { name: 'Invoke' }).click();
+    const result = page.locator('#invoke-result');
+    await expect(result.locator('.co-h').first()).toContainText('succeeded', { timeout: 20000 });
+    await expect(result.locator('pre').first()).toContainText('"who": "ada"');
+    await expect(result.locator('pre').first()).toContainText('"remaining_ok": true');
+    // The tail shows the print, attributed to this invocation.
+    await expect(result.locator('pre').last()).toContainText('py handled');
+
+    await page.goto(`lambda/${fnName}?tab=logs`);
+    await expect(page.locator('#log-tail')).toContainText('python fixture init');
+    await expect(page.locator('#log-tail')).toContainText('py handled');
+  });
+});

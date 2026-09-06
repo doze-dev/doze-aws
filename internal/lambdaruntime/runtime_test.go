@@ -12,28 +12,39 @@ import (
 	"time"
 )
 
+// TestRuntimeCommand: the launch command per runtime family. Interpreted
+// runtimes launch the embedded client with an interpreter found on PATH
+// (or configured), provided.* and go launch the bootstrap, and an unknown
+// runtime says so rather than failing at first invoke.
 func TestRuntimeCommand(t *testing.T) {
+	shims, _ := Materialize(t.TempDir())
+	fake := t.TempDir()
+	for _, name := range []string{"python3", "node", "ruby", "java", "dotnet"} {
+		os.WriteFile(filepath.Join(fake, name), []byte("#!/bin/sh\n"), 0o755)
+	}
+	in := Interpreters{"python": filepath.Join(fake, "python3"), "nodejs": filepath.Join(fake, "node"), "ruby": filepath.Join(fake, "ruby"), "java": filepath.Join(fake, "java"), "dotnet": filepath.Join(fake, "dotnet")}
 	cases := []struct {
-		runtime string
-		handler string
-		want    []string
-		wantErr bool
+		runtime, handler string
+		want            []string
+		wantErr         string
 	}{
-		{"", "", []string{"./bootstrap"}, false},
-		{"go", "main", []string{"./main"}, false},
-		{"provided.al2", "bootstrap", []string{"./bootstrap"}, false},
-		{"python3.12", "app.handler", []string{"python3", "-m", "awslambdaric", "app.handler"}, false},
-		{"nodejs20.x", "index.handler", []string{"npx", "--yes", "aws-lambda-ric", "index.handler"}, false},
-		{"java21", "example.Handler::run", []string{"java", "-cp", "./*:.", "com.amazonaws.services.lambda.runtime.api.client.AWSLambda", "example.Handler::run"}, false},
-		{"ruby3.3", "app.LambdaFunction::Handler.process", []string{"aws_lambda_ric", "app.LambdaFunction::Handler.process"}, false},
-		{"dotnet8", "Assembly::Type::Method", []string{"dotnet", "exec", "/opt/aws-lambda-ric.dll", "Assembly::Type::Method"}, false},
-		{"cobol", "x", nil, true},
+		{"", "", []string{"./bootstrap"}, ""},
+		{"go", "main", []string{"./main"}, ""},
+		{"go1.x", "main", []string{"./main"}, ""},
+		{"provided.al2023", "bootstrap", []string{"./bootstrap"}, ""},
+		{"python3.12", "app.handler", []string{in["python"], filepath.Join(shims, "bootstrap.py"), "app.handler"}, ""},
+		{"nodejs20.x", "index.handler", []string{in["nodejs"], filepath.Join(shims, "bootstrap.mjs"), "index.handler"}, ""},
+		{"ruby3.3", "app.handler", []string{in["ruby"], filepath.Join(shims, "bootstrap.rb"), "app.handler"}, ""},
+		{"java21", "example.Handler::run", nil, "aws-lambda-java-runtime-interface-client"},
+		{"dotnet8", "Assembly::Type::Method", nil, "Amazon.Lambda.RuntimeSupport"},
+		{"cobol", "x", nil, "unsupported runtime"},
 	}
 	for _, c := range cases {
-		got, err := runtimeCommand(c.runtime, c.handler)
-		if c.wantErr {
-			if err == nil {
-				t.Errorf("runtime %q: expected error, got %v", c.runtime, got)
+		r := NewRunner(Spec{Runtime: c.runtime, Handler: c.handler, Dir: t.TempDir(), ShimDir: shims, Interpreters: in}, nil)
+		got, err := r.command()
+		if c.wantErr != "" {
+			if err == nil || !strings.Contains(err.Error(), c.wantErr) {
+				t.Errorf("runtime %q: want an error naming %q, got %v / %v", c.runtime, c.wantErr, got, err)
 			}
 			continue
 		}
@@ -44,6 +55,16 @@ func TestRuntimeCommand(t *testing.T) {
 		if strings.Join(got, " ") != strings.Join(c.want, " ") {
 			t.Errorf("runtime %q: got %v, want %v", c.runtime, got, c.want)
 		}
+	}
+	// An explicit Command wins over the mapping.
+	r := NewRunner(Spec{Runtime: "python3.12", Command: []string{"./my-runner", "x"}}, nil)
+	if got, _ := r.command(); strings.Join(got, " ") != "./my-runner x" {
+		t.Errorf("Command should win: %v", got)
+	}
+	// A missing interpreter names the config key.
+	r = NewRunner(Spec{Runtime: "ruby3.3", ShimDir: shims, Interpreters: Interpreters{"ruby": "/nonexistent/ruby"}}, nil)
+	if _, err := r.command(); err == nil || !strings.Contains(err.Error(), "[lambda.runtimes] ruby") {
+		t.Errorf("a bad override should say so: %v", err)
 	}
 }
 

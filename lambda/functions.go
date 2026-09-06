@@ -172,6 +172,7 @@ func (s *Server) createFunction(w http.ResponseWriter, r *http.Request) *awshttp
 	if aerr != nil {
 		return aerr
 	}
+	s.warnRuntime(req.FunctionName, req.Runtime, codeDir, req.Command)
 	f := &Function{
 		Name: req.FunctionName, Runtime: req.Runtime, Handler: req.Handler,
 		Role: req.Role, Description: req.Description,
@@ -370,6 +371,7 @@ func (s *Server) updateConfiguration(w http.ResponseWriter, r *http.Request, nam
 	f, err := s.store.Update(name, func(f *Function) error {
 		if req.Runtime != "" {
 			f.Runtime = req.Runtime
+			s.warnRuntime(name, req.Runtime, f.CodeDir, f.Command)
 		}
 		if req.Handler != "" {
 			f.Handler = req.Handler

@@ -35,3 +35,10 @@ host = "localhost"
 # to this log as `lambda[<name>] <line>` and kept by the logs service; quiet
 # stops the echo only.
 # quiet = false
+# Where each runtime family's interpreter is, when it is not the one on
+# PATH (python3, node, ruby, java, dotnet). Python, Node and Ruby functions run
+# through doze-aws's embedded runtime clients on that interpreter; nothing
+# else needs installing.
+# [lambda.runtimes]
+# python = "/opt/homebrew/bin/python3.12"
+# nodejs = "/Users/me/.nvm/versions/node/v20.11.0/bin/node"

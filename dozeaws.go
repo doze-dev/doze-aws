@@ -70,6 +70,8 @@ type StackConfig struct {
 	LambdaIdleTimeout time.Duration
 	// LambdaQuiet stops function output from being echoed to Logf.
 	LambdaQuiet bool
+	// LambdaRuntimes overrides the interpreter per runtime family.
+	LambdaRuntimes map[string]string
 	// IAMMode selects how far the IAM service goes on the request path:
 	// "off" (the default) never evaluates anything, "soft" evaluates and
 	// records without blocking, "enforce" returns real AccessDenied errors.
@@ -181,7 +183,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := eventbridge.New(eventbridge.Options{DataDir: dataDir, Peers: dir, Logf: logf})
 		return s, s, err
 	case "lambda":
-		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, QuietFunctions: cfg.LambdaQuiet, Endpoint: cfg.Endpoint})
+		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, QuietFunctions: cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes, Endpoint: cfg.Endpoint})
 		if err == nil {
 			st.lambda = s // retained so its pollers can be given a trace sink
 		}

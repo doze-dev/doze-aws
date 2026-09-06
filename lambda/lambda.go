@@ -52,6 +52,9 @@ type Options struct {
 	// QuietFunctions stops function output from being echoed to Logf. The
 	// lines still reach the logs service when it is enabled.
 	QuietFunctions bool
+	// Runtimes overrides the interpreter per runtime family ("python",
+	// "nodejs", "ruby", "java", "dotnet"); the PATH is searched otherwise.
+	Runtimes map[string]string
 }
 
 // Server is the Lambda service.
@@ -68,7 +71,9 @@ type Server struct {
 	logf        func(format string, args ...any)
 	now         func() time.Time
 	idleTimeout time.Duration
-	echo        bool // function output to Logf
+	echo        bool                       // function output to Logf
+	shimDir     string                     // the embedded runtime clients, materialised
+	interps     lambdaruntime.Interpreters // configured interpreter overrides
 
 	mu       sync.Mutex
 	runners  map[string]*lambdaruntime.Pool // function name -> concurrency pool
@@ -83,6 +88,12 @@ func New(opts Options) (*Server, error) {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return nil, err
 		}
+	}
+	// The embedded runtime clients, written where a function process can
+	// read them (LAMBDA_RUNTIME_DIR).
+	shimDir, err := lambdaruntime.Materialize(filepath.Join(opts.DataDir, "shims"))
+	if err != nil {
+		return nil, err
 	}
 	db, err := bolt.Open(filepath.Join(opts.DataDir, "lambda.bolt"), 0o600, nil)
 	if err != nil {
@@ -105,6 +116,8 @@ func New(opts Options) (*Server, error) {
 		now:         opts.Clock,
 		idleTimeout: opts.IdleTimeout,
 		echo:        !opts.QuietFunctions,
+		interps:     lambdaruntime.Interpreters(opts.Runtimes),
+		shimDir:     shimDir,
 		runners:     map[string]*lambdaruntime.Pool{},
 		sinks:       map[string]*logSink{},
 		mappings:    map[string]*esm{},

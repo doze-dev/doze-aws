@@ -188,6 +188,50 @@ func (s *Server) deliverToArn(arn string, payload []byte) {
 	}
 }
 
+// warnRuntime says at create time what the first invoke would otherwise
+// discover: the interpreter this runtime needs is not here, or the package
+// lacks the client it needs. AWS accepts the create either way, so this is a
+// warning in the log, not a refusal — the invoke answers the same message.
+func (s *Server) warnRuntime(name, runtime, codeDir string, command []string) {
+	if len(command) > 0 {
+		return // an explicit Command is the caller's own runner
+	}
+	if err := lambdaruntime.CheckRuntime(runtime, codeDir, s.interps); err != nil {
+		s.logf("lambda %s: %v — the first invoke will fail with this", name, err)
+	}
+}
+
+// loggingEnv turns a function's LoggingConfig into the variables the runtime
+// clients read: AWS_LAMBDA_LOG_FORMAT and AWS_LAMBDA_LOG_LEVEL, unless the
+// function's own environment already sets them.
+func loggingEnv(f *Function) map[string]string {
+	env := map[string]string{}
+	for k, v := range f.Env {
+		env[k] = v
+	}
+	if len(f.LoggingConfig) == 0 {
+		return env
+	}
+	var lc struct {
+		LogFormat           string `json:"LogFormat"`
+		ApplicationLogLevel string `json:"ApplicationLogLevel"`
+	}
+	if json.Unmarshal(f.LoggingConfig, &lc) != nil {
+		return env
+	}
+	if lc.LogFormat != "" {
+		if _, set := env["AWS_LAMBDA_LOG_FORMAT"]; !set {
+			env["AWS_LAMBDA_LOG_FORMAT"] = lc.LogFormat
+		}
+	}
+	if lc.ApplicationLogLevel != "" {
+		if _, set := env["AWS_LAMBDA_LOG_LEVEL"]; !set {
+			env["AWS_LAMBDA_LOG_LEVEL"] = lc.ApplicationLogLevel
+		}
+	}
+	return env
+}
+
 // runnerFor returns (creating if needed) the concurrency pool for a function.
 // The pool's ceiling is the function's reserved concurrency, if set.
 func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
@@ -202,16 +246,18 @@ func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
 	}
 	sink := newLogSink(f.Name, s.peers, s.logf, s.echo)
 	r := lambdaruntime.NewPool(lambdaruntime.Spec{
-		Name:       f.Name,
-		Handler:    f.Handler,
-		Runtime:    f.Runtime,
-		Command:    f.Command,
-		Dir:        f.CodeDir,
-		Env:        f.Env,
-		Timeout:    time.Duration(f.Timeout) * time.Second,
-		MemorySize: f.MemorySize,
-		Endpoints:  s.endpointEnv(),
-		LogSink:    sink,
+		Name:         f.Name,
+		Handler:      f.Handler,
+		Runtime:      f.Runtime,
+		Command:      f.Command,
+		Dir:          f.CodeDir,
+		Env:          loggingEnv(f),
+		Timeout:      time.Duration(f.Timeout) * time.Second,
+		MemorySize:   f.MemorySize,
+		Endpoints:    s.endpointEnv(),
+		LogSink:      sink,
+		ShimDir:      s.shimDir,
+		Interpreters: s.interps,
 	}, max, s.logf)
 	if s.idleTimeout > 0 {
 		r.SetIdleTimeout(s.idleTimeout)

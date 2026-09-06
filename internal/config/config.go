@@ -31,6 +31,9 @@ type Config struct {
 	// processes) from being echoed to the doze-aws log. The lines still reach
 	// the logs service.
 	LambdaQuiet bool
+	// LambdaRuntimes overrides the interpreter per runtime family: python,
+	// nodejs, ruby, java, dotnet. The PATH is searched otherwise.
+	LambdaRuntimes map[string]string
 	// TemplateFile is a CloudFormation/SAM template applied at boot (and the
 	// default target of `doze-aws apply`). Empty auto-detects the conventional
 	// template names.
