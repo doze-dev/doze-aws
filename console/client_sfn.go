@@ -113,7 +113,7 @@ func (b *backend) DescribeStateMachine(ctx context.Context, arn string) (StateMa
 	return StateMachine{
 		Name: out.Name, ARN: out.ARN, Type: out.Type, Status: out.Status,
 		Definition: prettyJSON(out.Definition), RoleARN: out.RoleARN,
-		Created: epochToTime(out.CreationDate), Updated: epochToTime(out.UpdateDate),
+		Created: epochToTime(out.CreationDate), Updated: epochToTime(max(out.UpdateDate, out.CreationDate)),
 		Revision: out.RevisionID, States: countStates(out.Definition),
 	}, nil
 }
