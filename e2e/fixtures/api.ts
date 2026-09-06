@@ -128,6 +128,25 @@ export async function createKey(
 }
 
 /**
+ * A Step Functions state machine. The API requires a role ARN (nothing
+ * local evaluates it), so the console form's default is sent unless given.
+ */
+export async function createStateMachine(
+  request: APIRequestContext,
+  name: string,
+  definition: string,
+  opts?: { role?: string; type?: 'STANDARD' | 'EXPRESS' }
+) {
+  await postForm(request, 'sfn/create', {
+    name,
+    definition,
+    role: opts?.role ?? 'arn:aws:iam::000000000000:role/stepfunctions',
+    type: opts?.type ?? 'STANDARD',
+  });
+  return name;
+}
+
+/**
  * Minimal Lambda create — most specs need a real invokable function, which
  * requires a runtime-appropriate code path (see e2e/fixtures/lambda-handler/
  * and lambda.spec.ts for the `_local_` fixture handler). This wrapper is for
