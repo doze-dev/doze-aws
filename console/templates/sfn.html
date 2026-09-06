@@ -251,18 +251,32 @@
 <div id="sfn-history" data-live="{{.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}/history" data-live-ms="1500" data-hash="{{.Hash}}"{{if ne .Exec.Status "RUNNING"}} data-live-paused="1"{{end}}>
   <div class="panel">
     <div class="panel-h"><h2>{{icon "list"}} History <span class="badge">{{len .Events}}</span></h2>{{template "sfn_status" .Exec.Status}}</div>
-    {{if .Events}}<table class="tbl sfn-hist"><thead><tr><th class="right">#</th><th>Event</th><th>State</th><th>When</th><th>Detail</th></tr></thead><tbody>{{range .Events}}
-      <tr class="{{if .IsErr}}bad-row{{end}}" data-state="{{.State}}" x-data="{open:false}">
-        <td class="right dim mono">{{.ID}}</td>
-        <td class="mono">{{.Type}}</td>
-        <td class="mono">{{.State}}</td>
-        <td class="dim" title="{{.When}}">{{ago .When}}</td>
-        <td>
-          {{if .Error}}<span class="badge state-bad type">{{.Error}}</span> <span class="dim">{{.Cause}}</span>
-          {{else if .Payload}}<button type="button" class="link-btn dim" @click="open=!open" x-text="open?'hide':'show'"></button><pre class="code-block" x-show="open" x-cloak>{{.Payload}}</pre>{{end}}
-        </td>
+    {{/* Fixed column widths, so a row that opens never moves the columns
+         beside it; the payload opens as a band under its row, where a long
+         line scrolls inside its own box instead of widening the table. */}}
+    {{if .Events}}<table class="tbl sfn-hist">
+      <colgroup><col class="sfn-c-id"><col class="sfn-c-ev"><col class="sfn-c-st"><col class="sfn-c-res"><col class="sfn-c-time"><col class="sfn-c-el"></colgroup>
+      <thead><tr><th class="right">#</th><th>Event</th><th>State</th><th>Resource</th><th>Time</th><th class="right">Elapsed</th></tr></thead>
+      {{range .Events}}<tbody class="sfn-ev sfn-ev-{{.Kind}}" x-data="{open:false}">
+      <tr class="{{if .IsErr}}bad-row{{end}}{{if .HasDetail}} sfn-x{{end}}" data-state="{{.State}}"{{if .HasDetail}} @click="open=!open" :class="open&&'open'" role="button" tabindex="0" @keydown.enter.prevent="open=!open" @keydown.space.prevent="open=!open" aria-label="Toggle the detail of event {{.ID}}"{{end}}>
+        <td class="right dim num">{{.ID}}</td>
+        <td class="trunc"><span class="sfn-ev-type"><span class="chev">{{if .HasDetail}}▶{{end}}</span><span class="sfn-dot"></span>{{.Type}}</span>{{if .Error}}<div class="sfn-err trunc" title="{{.Error}}{{with .Cause}} — {{.}}{{end}}"><b>{{.Error}}</b>{{with .Cause}} <span class="dim">{{.}}</span>{{end}}</div>{{end}}</td>
+        <td class="mono trunc" title="{{.State}}">{{.State}}</td>
+        <td class="mono dim trunc" title="{{.Resource}}">{{.Resource}}</td>
+        <td class="mono dim num" title="{{.When}}">{{.Clock}}</td>
+        <td class="right num"><span class="mono">{{.Elapsed}}</span>{{with .Delta}}<span class="dim sfn-delta">Δ {{.}}</span>{{end}}</td>
       </tr>
-    {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No events yet.</p></div>{{end}}
+      {{if .HasDetail}}<tr class="sfn-det" x-show="open" x-cloak><td colspan="6">
+        <div class="sfn-det-grid">
+          {{if .Error}}<div class="sfn-det-sec sfn-det-err"><div class="sfn-det-h">Error</div><div class="sfn-det-body"><b class="mono">{{.Error}}</b>{{with .Cause}}<div class="sfn-cause">{{.}}</div>{{end}}</div></div>{{end}}
+          {{with .Input}}<div class="sfn-det-sec"><div class="sfn-det-h">Input <button type="button" class="copy-btn" data-copy="{{.}}" title="Copy">{{icon "copy"}}</button></div><pre class="code-block">{{.}}</pre></div>{{end}}
+          {{with .Params}}<div class="sfn-det-sec"><div class="sfn-det-h">Parameters <button type="button" class="copy-btn" data-copy="{{.}}" title="Copy">{{icon "copy"}}</button></div><pre class="code-block">{{.}}</pre></div>{{end}}
+          {{with .Output}}<div class="sfn-det-sec"><div class="sfn-det-h">Output <button type="button" class="copy-btn" data-copy="{{.}}" title="Copy">{{icon "copy"}}</button></div><pre class="code-block">{{.}}</pre></div>{{end}}
+          {{with .Token}}<div class="sfn-det-sec sfn-det-token"><div class="sfn-det-h">Task token <button type="button" class="copy-btn" data-copy="{{.}}" title="Copy">{{icon "copy"}}</button></div><div class="sfn-det-body mono trunc" title="{{.}}">{{.}}</div></div>{{end}}
+        </div>
+      </td></tr>{{end}}
+      </tbody>{{end}}
+    </table>{{else}}<div class="empty flat"><p>No events yet.</p></div>{{end}}
   </div>
   {{if .MapRuns}}{{template "sfn_mapruns" .}}{{end}}
   {{if eq .Exec.Status "RUNNING"}}

@@ -1,92 +1,110 @@
 /* Pan and zoom for the Step Functions graph, and the click that ties a node
  * to its history rows.
  *
- * The SVG is rendered at its natural size and moved with a CSS transform on
- * the element — translate then scale, origin top-left — because that keeps
- * the mapping from a pointer to a graph coordinate a single line. The view
- * is remembered per SVG id: the execution page redraws the graph every poll
- * while it is RUNNING, and a redraw that snapped back to fit-to-width would
- * make the picture impossible to look at.
+ * The interaction is d3-zoom (static/d3-zoom.min.js): wheel and trackpad
+ * zoom about the pointer, drag to pan, pinch on touch, double-click to zoom
+ * in, and animated transitions for fit and focus. The SVG fills its pane
+ * and the <g class="gv"> inside it carries the transform, so the mapping
+ * from pointer to graph coordinate is d3's, not ours.
+ *
+ * The view is remembered per SVG id: the execution page redraws the graph
+ * every poll while it is RUNNING, and a redraw that snapped back to
+ * fit-to-width would make the picture impossible to look at. A redraw
+ * re-applies the remembered transform without animation.
  */
 (function () {
   "use strict";
 
-  var views = {}; // svg id → {s, tx, ty, h}; survives the live region's swaps
-  var MIN = 0.2, MAX = 3;
+  var views = {}; // svg id → {t: zoomTransform, h: pane height}
+  var MIN = 0.15, MAX = 4, PAD = 16;
 
-  function apply(svg, v) {
-    svg.style.transform = "translate(" + v.tx + "px," + v.ty + "px) scale(" + v.s + ")";
+  function size(svg) {
+    return { w: parseFloat(svg.getAttribute("data-w")) || 1, h: parseFloat(svg.getAttribute("data-h")) || 1 };
   }
 
-  // Fit to width, capped at 1:1 — a three-state machine should not be blown
-  // up to fill a 900px pane. The wrap's height follows the graph when the
-  // graph is short, so a small machine does not sit in a large empty field.
-  function fit(wrap, svg) {
-    var w = parseFloat(svg.getAttribute("width")) || 1;
-    var h = parseFloat(svg.getAttribute("height")) || 1;
-    var s = Math.min(1, (wrap.clientWidth - 24) / w);
-    return { s: s, tx: Math.max(12, (wrap.clientWidth - w * s) / 2), ty: 12, h: Math.max(160, Math.min(480, h * s + 24)) };
+  // Fit the whole graph in the pane, capped at 1:1 — a three-state machine
+  // should not be blown up to fill a 900px pane. The pane's height follows
+  // the graph when the graph is short, so a small machine does not sit in a
+  // large empty field.
+  function fitTransform(wrap, svg) {
+    var g = size(svg);
+    var pw = wrap.clientWidth, ph = wrap.clientHeight;
+    var s = Math.min(1, (pw - 2 * PAD) / g.w, (ph - 2 * PAD) / g.h);
+    return d3.zoomIdentity.translate(Math.max(PAD, (pw - g.w * s) / 2), Math.max(PAD, (ph - g.h * s) / 2)).scale(s);
   }
 
-  function zoomAt(svg, v, factor, mx, my) {
-    var s = Math.min(MAX, Math.max(MIN, v.s * factor));
-    // Keep the graph point under the pointer where it is.
-    var gx = (mx - v.tx) / v.s, gy = (my - v.ty) / v.s;
-    v.s = s; v.tx = mx - gx * s; v.ty = my - gy * s;
-    apply(svg, v);
+  function paneHeight(wrap, svg) {
+    var g = size(svg);
+    var s = Math.min(1, (wrap.clientWidth - 2 * PAD) / g.w);
+    return Math.max(160, Math.min(480, g.h * s + 2 * PAD));
+  }
+
+  // Centre a node in the pane at a readable scale, animated.
+  function focusOn(wrap, sel, zoom, node) {
+    var m = /translate\(([-\d.]+)[ ,]([-\d.]+)\)/.exec(node.getAttribute("transform") || "");
+    if (!m) return;
+    var r = node.querySelector(".gn-r");
+    var w = parseFloat(r && r.getAttribute("width")) || 120, h = parseFloat(r && r.getAttribute("height")) || 44;
+    var cx = parseFloat(m[1]) + w / 2, cy = parseFloat(m[2]) + h / 2;
+    var s = Math.max(1, Math.min(MAX, sel.property("__zoom").k));
+    var t = d3.zoomIdentity.translate(wrap.clientWidth / 2 - cx * s, wrap.clientHeight / 2 - cy * s).scale(s);
+    sel.transition().duration(450).call(zoom.transform, t);
   }
 
   function setup(wrap) {
     var svg = wrap.querySelector("svg.graph");
     if (!svg || wrap.__graph) return;
     wrap.__graph = true;
-    var v = views[svg.id] || fit(wrap, svg);
-    views[svg.id] = v;
-    wrap.style.height = v.h + "px";
-    apply(svg, v);
+    var view = views[svg.id];
+    wrap.style.height = (view ? view.h : paneHeight(wrap, svg)) + "px";
 
-    var drag = null;
-    wrap.addEventListener("pointerdown", function (e) {
-      if (e.button !== 0 || e.target.closest(".graph-tools")) return;
-      // The bottom-right corner is the CSS resize handle, not a pan.
-      var r = wrap.getBoundingClientRect();
-      if (r.right - e.clientX < 18 && r.bottom - e.clientY < 18) return;
-      drag = { x: e.clientX, y: e.clientY, tx: v.tx, ty: v.ty, moved: false };
-      wrap.setPointerCapture(e.pointerId);
-      wrap.classList.add("dragging");
+    var sel = d3.select(svg), inner = sel.select("g.gv");
+    var zoom = d3.zoom()
+      .scaleExtent([MIN, MAX])
+      // The toolbar is not a gesture, and neither is the CSS resize handle
+      // in the bottom-right corner of the pane.
+      .filter(function (e) {
+        if (e.target.closest && e.target.closest(".graph-tools")) return false;
+        if (e.type === "mousedown" || e.type === "pointerdown") {
+          var b = wrap.getBoundingClientRect();
+          if (b.right - e.clientX < 18 && b.bottom - e.clientY < 18) return false;
+          if (e.button !== 0) return false;
+        }
+        return !e.ctrlKey || e.type === "wheel"; // ctrl+wheel is a pinch on trackpads
+      })
+      .on("start", function () { wrap.classList.add("dragging"); })
+      .on("zoom", function (e) {
+        inner.attr("transform", e.transform);
+        views[svg.id] = { t: e.transform, h: wrap.clientHeight };
+      })
+      .on("end", function () { wrap.classList.remove("dragging"); views[svg.id].h = wrap.clientHeight; });
+    sel.call(zoom).on("dblclick.zoom", function (e) {
+      // Double-click zooms in about the pointer, animated; d3's default
+      // does the same but ignores the scale cap on the way.
+      var b = svg.getBoundingClientRect(), px = e.clientX - b.left, py = e.clientY - b.top;
+      var p = d3.zoomTransform(svg).invert([px, py]);
+      var k = Math.min(MAX, d3.zoomTransform(svg).k * 1.6);
+      sel.transition().duration(300).call(zoom.transform, d3.zoomIdentity.translate(px - p[0] * k, py - p[1] * k).scale(k));
     });
-    wrap.addEventListener("pointermove", function (e) {
-      if (!drag) return;
-      var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-      if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
-      v.tx = drag.tx + dx; v.ty = drag.ty + dy;
-      apply(svg, v);
-    });
-    function endDrag() {
-      v.h = wrap.clientHeight; // a resize by the corner handle survives the next swap
-      if (!drag) return;
-      var moved = drag.moved;
-      drag = null;
-      wrap.classList.remove("dragging");
-      if (moved) wrap.__suppressClick = true; // a pan is not a click
-    }
-    wrap.addEventListener("pointerup", endDrag);
-    wrap.addEventListener("pointercancel", endDrag);
-    wrap.addEventListener("wheel", function (e) {
-      e.preventDefault();
-      var r = wrap.getBoundingClientRect();
-      zoomAt(svg, v, e.deltaY > 0 ? 0.9 : 1.1, e.clientX - r.left, e.clientY - r.top);
-    }, { passive: false });
+    // A remembered view is restored as it was; a first view is fitted.
+    sel.call(zoom.transform, view ? view.t : fitTransform(wrap, svg));
 
     wrap.addEventListener("click", function (e) {
-      if (wrap.__suppressClick) { wrap.__suppressClick = false; return; }
       var act = e.target.closest("[data-graph-act]");
       if (act) {
-        var a = act.getAttribute("data-graph-act");
-        if (a === "fit") { var f = fit(wrap, svg); v.s = f.s; v.tx = f.tx; v.ty = f.ty; apply(svg, v); }
-        else zoomAt(svg, v, a === "in" ? 1.25 : 0.8, wrap.clientWidth / 2, wrap.clientHeight / 2);
+        switch (act.getAttribute("data-graph-act")) {
+          case "fit": sel.transition().duration(350).call(zoom.transform, fitTransform(wrap, svg)); break;
+          case "in": sel.transition().duration(200).call(zoom.scaleBy, 1.3); break;
+          case "out": sel.transition().duration(200).call(zoom.scaleBy, 1 / 1.3); break;
+          case "focus":
+            var n = svg.querySelector(".gn-running[data-state]") || svg.querySelector(".gn-failed[data-state]");
+            if (n) { focusOn(wrap, sel, zoom, n); select(n.getAttribute("data-state"), true); }
+            break;
+        }
         return;
       }
+      // d3-zoom swallows the click that ends a drag, so a plain click here
+      // is a real click on a node.
       var node = e.target.closest(".gn[data-state]");
       if (node) select(node.getAttribute("data-state"));
     });
@@ -94,6 +112,11 @@
       var node = e.target.closest && e.target.closest(".gn[data-state]");
       if (node && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); select(node.getAttribute("data-state")); }
     });
+    // The pane can be resized by its corner handle; the graph re-fits only
+    // if it was never touched, otherwise the view is the user's.
+    if (window.ResizeObserver) {
+      new ResizeObserver(function () { if (views[svg.id]) views[svg.id].h = wrap.clientHeight; }).observe(wrap);
+    }
   }
 
   // Selecting a node highlights every history row for that state and
@@ -101,8 +124,8 @@
   // the node simply takes the selection ring. The selection is kept here,
   // not in the DOM, so the next poll's redraw paints it again.
   var selected = null;
-  function select(name) {
-    selected = selected === name ? null : name;
+  function select(name, keep) {
+    selected = keep ? name : (selected === name ? null : name);
     paint();
     if (selected === null) return;
     var row = document.querySelector('tr[data-state="' + CSS.escape(name) + '"]');
@@ -118,6 +141,7 @@
   }
 
   function setupAll() {
+    if (!window.d3) return;
     document.querySelectorAll("[data-graph]").forEach(setup);
     if (selected !== null) paint();
   }

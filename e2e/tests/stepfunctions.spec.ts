@@ -88,6 +88,49 @@ test.describe('Step Functions console', () => {
       await expect(row).toBeVisible();
       await expect(row.locator('.badge[data-status]')).toHaveText('SUCCEEDED');
     });
+
+    await test.step('a history row opens into a band without moving the columns', async () => {
+      await page.goto(`sfn/${machine}/execution/run-1`);
+      const head = page.locator('.sfn-hist thead th');
+      const before = await head.evaluateAll((ths) => ths.map((th) => th.getBoundingClientRect().width));
+      const entered = page.locator('.sfn-hist tr.sfn-x', { hasText: 'PassStateEntered' });
+      await entered.click();
+      const band = page.locator('.sfn-hist tr.sfn-det:visible');
+      await expect(band).toHaveCount(1);
+      await expect(band).toContainText('"orderId": "A-1"');
+      const after = await head.evaluateAll((ths) => ths.map((th) => th.getBoundingClientRect().width));
+      expect(after).toEqual(before);
+      // Time and elapsed read as a clock and a span, not "1 h ago".
+      await expect(entered.locator('td').nth(4)).toHaveText(/^\d\d:\d\d:\d\d\.\d{3}$/);
+      await expect(entered.locator('td').nth(5)).toContainText('+');
+      await entered.click();
+      await expect(page.locator('.sfn-hist tr.sfn-det:visible')).toHaveCount(0);
+    });
+
+    await test.step('the graph pans, zooms about the pointer, and fits', async () => {
+      await page.goto(`sfn/${machine}/execution/run-1?tab=graph`);
+      const view = page.locator('svg.graph g.gv');
+      await expect(view).toHaveAttribute('transform', /scale\(/);
+      const fitted = await view.getAttribute('transform');
+      const wrap = page.locator('.graph-wrap');
+      const box = (await wrap.boundingBox())!;
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.wheel(0, -300);
+      await expect(view).not.toHaveAttribute('transform', fitted!);
+      const zoomed = await view.getAttribute('transform');
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width / 2 - 80, box.y + box.height / 2 - 40, { steps: 6 });
+      await page.mouse.up();
+      await expect(view).not.toHaveAttribute('transform', zoomed!);
+      // The drag that just ended is not a click on the node under it.
+      await expect(page.locator('.gn.gn-sel')).toHaveCount(0);
+      await page.locator('[data-graph-act="fit"]').click();
+      await expect(view).toHaveAttribute('transform', fitted!);
+      // A click on a state selects it and lights its history rows.
+      await page.locator('.gn[data-state="Prepare"]').click();
+      await expect(page.locator('.gn[data-state="Prepare"]')).toHaveClass(/gn-sel/);
+      await expect(page.locator('.sfn-hist tr.hl[data-state="Prepare"]').first()).toBeVisible();
+    });
   });
 
   test('stopping a running execution ends it ABORTED with the given error', async ({

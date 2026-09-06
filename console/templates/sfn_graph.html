@@ -24,9 +24,10 @@
   {{else}}
   <div class="graph-wrap" data-graph>
     <div class="graph-tools">
-      <button type="button" class="icon-btn sm" data-graph-act="in" title="Zoom in">+</button>
+      <button type="button" class="icon-btn sm" data-graph-act="in" title="Zoom in (or scroll, pinch, double-click)">+</button>
       <button type="button" class="icon-btn sm" data-graph-act="out" title="Zoom out">−</button>
-      <button type="button" class="icon-btn sm" data-graph-act="fit" title="Fit to width">{{icon "monitor"}}</button>
+      <button type="button" class="icon-btn sm" data-graph-act="fit" title="Fit the whole graph">{{icon "monitor"}}</button>
+      {{if .Exec}}<button type="button" class="icon-btn sm" data-graph-act="focus" title="Go to the state in progress">{{icon "zap"}}</button>{{end}}
     </div>
     {{template "sfn_graph_svg" .Graph}}
   </div>
@@ -39,10 +40,14 @@
      arrowhead is one marker every edge points at, in currentColor, so the
      edge's class colours its head too. */}}
 {{define "sfn_graph_svg"}}
-<svg class="graph" id="sfn-graph-svg" xmlns="http://www.w3.org/2000/svg" width="{{.Width}}" height="{{.Height}}" viewBox="0 0 {{.Width}} {{.Height}}" role="img" aria-label="State machine graph">
+{{/* The SVG fills its pane; the graph's natural size travels as data-w/h
+     and the <g class="gv"> carries the pan-and-zoom transform d3-zoom
+     computes (graph.js). */}}
+<svg class="graph" id="sfn-graph-svg" xmlns="http://www.w3.org/2000/svg" data-w="{{.Width}}" data-h="{{.Height}}" role="img" aria-label="State machine graph">
   <defs>
     <marker id="ge-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker>
   </defs>
+  <g class="gv">
   {{range .Edges}}<g class="ge ge-{{.Kind}}{{if .Back}} ge-back{{end}}"><polyline points="{{.Path}}" marker-end="url(#ge-arrow)"/>{{if .Label}}<text class="ge-label" x="{{.LX}}" y="{{.LY}}">{{.Label}}</text>{{end}}</g>
   {{end}}
   {{range .Nodes}}<g class="gn gn-{{.Kind}}{{if .Container}} gn-box{{end}}{{if .Start}} gn-start{{end}}{{with .Status}} gn-{{.}}{{end}}" data-state="{{.Name}}" transform="translate({{.X}} {{.Y}})" tabindex="0" role="button">
@@ -54,5 +59,6 @@
     {{if .Retries}}<text class="gn-ct" x="{{.Right}}" y="34">↻{{.Retries}}</text>{{end}}
   </g>
   {{end}}
+  </g>
 </svg>
 {{end}}
