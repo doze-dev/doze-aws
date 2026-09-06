@@ -49,7 +49,9 @@ var uncovered = map[string][]string{
 	"sts":        {},
 	// ListStackResources is the one exemption — see exempt.
 	"cloudformation": {},
-	// Activities and SendTaskHeartbeat are the exemptions — see exempt.
+	// Complete, all 37 — the activities page is the worker, the task-result
+	// form carries the heartbeat, and versions, aliases, Express, TestState,
+	// redrive and Map Runs each have their panel. No exemptions.
 	"stepfunctions": {},
 }
 
@@ -57,24 +59,6 @@ var uncovered = map[string][]string{
 // This is a different claim from uncovered: uncovered says "not yet", exempt
 // says "and here is why it never will be".
 var exempt = map[string]map[string]string{
-	"stepfunctions": {
-		"CreateActivity": "an activity is a queue a worker polls with " +
-			"GetActivityTask, and that polling is not in this build yet. A " +
-			"console surface for creating one would offer a resource nothing " +
-			"can consume; the four activity operations arrive together with " +
-			"the worker side.",
-		"DescribeActivity": "see CreateActivity — the activity surface lands " +
-			"with GetActivityTask.",
-		"DeleteActivity": "see CreateActivity — the activity surface lands " +
-			"with GetActivityTask.",
-		"ListActivities": "see CreateActivity — the activity surface lands " +
-			"with GetActivityTask.",
-		"SendTaskHeartbeat": "a heartbeat is what a long-running worker sends " +
-			"to keep its token alive; a person at a console redeems the token " +
-			"or does not. The task-result form is the callback, and a button " +
-			"that only postpones a timeout would be a control with no decision " +
-			"behind it.",
-	},
 	"cloudformation": {
 		"ListStackResources": "the paginated twin of DescribeStackResources, " +
 			"which the resources tab already reads and which locally returns " +

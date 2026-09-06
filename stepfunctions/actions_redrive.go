@@ -45,13 +45,15 @@ func (s *Server) redriveExecution(ctx context.Context, p map[string]any) (any, *
 		return nil, aerr
 	}
 	now := s.store.now()
-	if ok, why := redrivable(e, now); !ok {
-		return nil, errNotRedrivable(why)
-	}
 	// clientToken makes a retried call idempotent: the same token on an
-	// execution already redriven with it answers the earlier redrive.
+	// execution already redriven with it answers the earlier redrive — checked
+	// before redrivability, since the first redrive put the execution back to
+	// RUNNING and a retry must not be refused for that.
 	if tok := awsjson.Str(p, "clientToken"); tok != "" && tok == e.RedriveToken {
 		return map[string]any{"redriveDate": epoch(e.RedriveDate)}, nil
+	}
+	if ok, why := redrivable(e, now); !ok {
+		return nil, errNotRedrivable(why)
 	}
 	def, perr := asl.Parse([]byte(e.Definition))
 	if perr != nil {

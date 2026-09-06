@@ -8,9 +8,9 @@ import { BASE_URL } from '../playwright.config';
 // this is the third SDK, and the one CDK users hold. What it pins is what the
 // SDK's TYPES promise: dates are Dates, payloads are JSON strings, errors are
 // the typed exception classes a program branches on, pagination yields
-// nextToken. StartSyncExecution and TestState are absent on purpose: the SDK's
-// endpoint ruleset prefixes `sync-` onto the host, which an IP endpoint cannot
-// resolve — the ledger says so.
+// nextToken. StartSyncExecution and TestState go through a second client with
+// disableHostPrefix: the SDK's endpoint ruleset prefixes `sync-` onto the
+// host, which the sync-aws.doze name serves but an IP endpoint cannot.
 
 const endpoint = BASE_URL.replace(/\/_console\/$/, '');
 const cfg = {
@@ -20,6 +20,7 @@ const cfg = {
   maxAttempts: 1,
 };
 const c = new sfn.SFNClient(cfg);
+const sync = new sfn.SFNClient({ ...cfg, disableHostPrefix: true });
 const sqs = new SQSClient(cfg);
 const ROLE = 'arn:aws:iam::000000000000:role/StepFunctions';
 const uniq = (p: string) => `${p}-${Math.random().toString(16).slice(2, 8)}`;
@@ -228,7 +229,218 @@ test.describe('Step Functions via @aws-sdk/client-sfn', () => {
     expect(d2.error).toBe('Human.Rejected');
   });
 
-  test('errors and staged operations are typed the way the SDK expects', async () => {
+  test('versions and aliases: publish is idempotent, an alias routes by weight, deletes are guarded', async () => {
+    const name = uniq('sdk-ver');
+    const { stateMachineArn: arn } = await c.send(new sfn.CreateStateMachineCommand({ name, definition: FLOW, roleArn: ROLE }));
+    const v1 = await c.send(new sfn.PublishStateMachineVersionCommand({ stateMachineArn: arn, description: 'first' }));
+    expect(v1.stateMachineVersionArn).toBe(`${arn}:1`);
+    expect(v1.creationDate).toBeInstanceOf(Date);
+    // The same revision publishes to the same version.
+    const again = await c.send(new sfn.PublishStateMachineVersionCommand({ stateMachineArn: arn }));
+    expect(again.stateMachineVersionArn).toBe(v1.stateMachineVersionArn);
+    // A changed definition, published in the same call, is version 2.
+    const changed = FLOW.replace('"ready":true', '"ready":false');
+    const upd = await c.send(new sfn.UpdateStateMachineCommand({ stateMachineArn: arn, definition: changed, publish: true }));
+    expect(upd.stateMachineVersionArn).toBe(`${arn}:2`);
+    const versions = await c.send(new sfn.ListStateMachineVersionsCommand({ stateMachineArn: arn }));
+    expect(versions.stateMachineVersions!.map((v) => v.stateMachineVersionArn)).toEqual([`${arn}:2`, `${arn}:1`]);
+
+    const alias = await c.send(new sfn.CreateStateMachineAliasCommand({
+      name: 'live', routingConfiguration: [{ stateMachineVersionArn: `${arn}:1`, weight: 100 }],
+    }));
+    expect(alias.stateMachineAliasArn).toBe(`${arn}:live`);
+    // The version an alias routes to cannot be deleted.
+    await expect(c.send(new sfn.DeleteStateMachineVersionCommand({ stateMachineVersionArn: `${arn}:1` }))).rejects.toBeInstanceOf(sfn.ConflictException);
+    // Weights must sum to 100.
+    await expect(c.send(new sfn.UpdateStateMachineAliasCommand({
+      stateMachineAliasArn: alias.stateMachineAliasArn,
+      routingConfiguration: [{ stateMachineVersionArn: `${arn}:1`, weight: 60 }, { stateMachineVersionArn: `${arn}:2`, weight: 30 }],
+    }))).rejects.toBeInstanceOf(sfn.ValidationException);
+
+    // An execution on the alias records the version it ran and the alias.
+    const run = await c.send(new sfn.StartExecutionCommand({ stateMachineArn: alias.stateMachineAliasArn, input: '{"mode":"go","items":[1]}' }));
+    const d = await settle(run.executionArn!);
+    expect(d.status).toBe('SUCCEEDED');
+    expect(d.stateMachineAliasArn).toBe(alias.stateMachineAliasArn);
+    expect(d.stateMachineVersionArn).toBe(`${arn}:1`);
+    // Version 1 has the original definition, whatever the machine says now.
+    const frozen = await c.send(new sfn.DescribeStateMachineForExecutionCommand({ executionArn: run.executionArn }));
+    expect(frozen.definition).toContain('"ready":true');
+
+    const aliases = await c.send(new sfn.ListStateMachineAliasesCommand({ stateMachineArn: arn }));
+    expect(aliases.stateMachineAliases!.map((a) => a.stateMachineAliasArn)).toEqual([alias.stateMachineAliasArn]);
+    await c.send(new sfn.DeleteStateMachineAliasCommand({ stateMachineAliasArn: alias.stateMachineAliasArn }));
+    await c.send(new sfn.DeleteStateMachineVersionCommand({ stateMachineVersionArn: `${arn}:1` }));
+    await expect(c.send(new sfn.DescribeStateMachineAliasCommand({ stateMachineAliasArn: alias.stateMachineAliasArn }))).rejects.toBeInstanceOf(sfn.ResourceNotFound);
+  });
+
+  test('express: StartSyncExecution and TestState answer inside the call', async () => {
+    const name = uniq('sdk-express');
+    const { stateMachineArn: arn } = await c.send(new sfn.CreateStateMachineCommand({ name, definition: FLOW, roleArn: ROLE, type: 'EXPRESS' }));
+    // StartExecution on an EXPRESS machine is fire-and-forget: it answers an
+    // :express: ARN that nothing can describe afterwards, as on AWS.
+    const async = await c.send(new sfn.StartExecutionCommand({ stateMachineArn: arn, input: '{"mode":"go","items":[]}' }));
+    expect(async.executionArn).toContain(':express:');
+    await expect(c.send(new sfn.DescribeExecutionCommand({ executionArn: async.executionArn }))).rejects.toBeInstanceOf(sfn.ExecutionDoesNotExist);
+
+    const ok = await sync.send(new sfn.StartSyncExecutionCommand({ stateMachineArn: arn, input: '{"mode":"go","items":[1,2]}' }));
+    expect(ok.status).toBe('SUCCEEDED');
+    expect(ok.startDate).toBeInstanceOf(Date);
+    expect(ok.stopDate).toBeInstanceOf(Date);
+    expect(ok.executionArn).toContain(':express:');
+    expect(JSON.parse(ok.output!).each).toEqual([1, 2]);
+    expect(ok.billingDetails?.billedDurationInMilliseconds).toBeGreaterThanOrEqual(100);
+    expect(ok.billingDetails?.billedMemoryUsedInMB).toBe(64);
+
+    const failed = await sync.send(new sfn.StartSyncExecutionCommand({ stateMachineArn: arn, input: '{"mode":"fail"}' }));
+    expect(failed.status).toBe('FAILED');
+    expect(failed.error).toBe('Custom.Failure');
+    expect(failed.cause).toBe('asked to');
+    // Express executions are not listable after the fact, as on AWS.
+    await expect(c.send(new sfn.ListExecutionsCommand({ stateMachineArn: arn }))).rejects.toBeInstanceOf(sfn.StateMachineTypeNotSupported);
+
+    // TestState runs one state in isolation, with inspection data.
+    const tested = await sync.send(new sfn.TestStateCommand({
+      definition: JSON.stringify({ Type: 'Pass', Parameters: { 'who.$': '$.name', at: 'test' }, End: true }),
+      input: '{"name":"ada"}',
+      inspectionLevel: 'DEBUG',
+    }));
+    expect(tested.status).toBe('SUCCEEDED');
+    expect(JSON.parse(tested.output!)).toEqual({ who: 'ada', at: 'test' });
+    expect(tested.inspectionData?.afterInputPath).toBe('{"name":"ada"}');
+    expect(JSON.parse(tested.inspectionData!.afterParameters!)).toEqual({ who: 'ada', at: 'test' });
+    // A mocked Task answers the mock without calling anything.
+    const mocked = await sync.send(new sfn.TestStateCommand({
+      definition: JSON.stringify({ Type: 'Task', Resource: 'arn:aws:states:::lambda:invoke', Parameters: { FunctionName: 'absent' }, End: true }),
+      input: '{}',
+      mock: { result: '{"Payload":{"answer":42}}' },
+    }));
+    expect(mocked.status).toBe('SUCCEEDED');
+    expect(JSON.parse(mocked.output!).Payload.answer).toBe(42);
+    const caught = await sync.send(new sfn.TestStateCommand({
+      definition: JSON.stringify({ Type: 'Task', Resource: 'arn:aws:states:::lambda:invoke', Parameters: { FunctionName: 'absent' }, Catch: [{ ErrorEquals: ['States.ALL'], Next: 'Recover' }], End: true }),
+      input: '{}',
+      mock: { errorOutput: { error: 'Lambda.Unknown', cause: 'mocked' } },
+    }));
+    expect(caught.status).toBe('CAUGHT_ERROR');
+    expect(caught.nextState).toBe('Recover');
+    expect(caught.error).toBe('Lambda.Unknown');
+  });
+
+  test('activities: a worker polls, works and answers', async () => {
+    const act = await c.send(new sfn.CreateActivityCommand({ name: uniq('sdk-act') }));
+    const definition = JSON.stringify({
+      StartAt: 'Work',
+      States: { Work: { Type: 'Task', Resource: act.activityArn, HeartbeatSeconds: 60, End: true } },
+    });
+    const name = uniq('sdk-actm');
+    const { stateMachineArn: arn } = await c.send(new sfn.CreateStateMachineCommand({ name, definition, roleArn: ROLE }));
+    const run = await c.send(new sfn.StartExecutionCommand({ stateMachineArn: arn, input: '{"job":7}' }));
+
+    const task = await c.send(new sfn.GetActivityTaskCommand({ activityArn: act.activityArn, workerName: 'w1' }));
+    expect(task.taskToken).toBeTruthy();
+    expect(JSON.parse(task.input!)).toEqual({ job: 7 });
+    await c.send(new sfn.SendTaskHeartbeatCommand({ taskToken: task.taskToken }));
+    await c.send(new sfn.SendTaskSuccessCommand({ taskToken: task.taskToken, output: '{"job":7,"done":true}' }));
+    const d = await settle(run.executionArn!);
+    expect(d.status).toBe('SUCCEEDED');
+    expect(JSON.parse(d.output!)).toEqual({ job: 7, done: true });
+    const kinds = (await history(run.executionArn!)).map((e) => e.type);
+    expect(kinds).toEqual(expect.arrayContaining(['ActivityScheduled', 'ActivityStarted', 'ActivitySucceeded']));
+    const started = (await history(run.executionArn!)).find((e) => e.type === 'ActivityStarted');
+    expect(started?.activityStartedEventDetails?.workerName).toBe('w1');
+
+    // An idle poll holds for 60 s on AWS and here; the Go tests cover it with
+    // a shortened timeout. Deleting the activity is enough to end this one.
+    await c.send(new sfn.DeleteActivityCommand({ activityArn: act.activityArn }));
+    await expect(c.send(new sfn.GetActivityTaskCommand({ activityArn: act.activityArn }))).rejects.toBeInstanceOf(sfn.ActivityDoesNotExist);
+  });
+
+  test('redrive: a failed execution resumes from the state that failed', async () => {
+    const name = uniq('sdk-redrive');
+    const { stateMachineArn: arn } = await c.send(new sfn.CreateStateMachineCommand({ name, definition: FLOW, roleArn: ROLE }));
+    const run = await c.send(new sfn.StartExecutionCommand({ stateMachineArn: arn, input: '{"mode":"fail"}' }));
+    const failed = await settle(run.executionArn!);
+    expect(failed.status).toBe('FAILED');
+    expect(failed.redriveStatus).toBe('REDRIVABLE');
+
+    const redriven = await c.send(new sfn.RedriveExecutionCommand({ executionArn: run.executionArn, clientToken: 'once' }));
+    expect(redriven.redriveDate).toBeInstanceOf(Date);
+    // The same token repeats the same answer; a running execution is refused.
+    await c.send(new sfn.RedriveExecutionCommand({ executionArn: run.executionArn, clientToken: 'once' }));
+    // The Fail state fails again — redrive reruns from the failure, so the
+    // outcome is the same FAILED, now with a redrive count.
+    const after = await settle(run.executionArn!);
+    expect(after.status).toBe('FAILED');
+    expect(after.redriveCount).toBe(1);
+    expect(after.redriveDate).toBeInstanceOf(Date);
+    const kinds = (await history(run.executionArn!)).map((e) => e.type);
+    expect(kinds).toContain('ExecutionRedriven');
+
+    const filtered = await c.send(new sfn.ListExecutionsCommand({ stateMachineArn: arn, redriveFilter: 'REDRIVEN' }));
+    expect(filtered.executions!.map((e) => e.executionArn)).toEqual([run.executionArn]);
+    // A succeeded execution is not redrivable.
+    const good = await c.send(new sfn.StartExecutionCommand({ stateMachineArn: arn, input: '{"mode":"go","items":[]}' }));
+    await settle(good.executionArn!);
+    await expect(c.send(new sfn.RedriveExecutionCommand({ executionArn: good.executionArn }))).rejects.toBeInstanceOf(sfn.ExecutionNotRedrivable);
+  });
+
+  test('distributed map: a Map Run with child executions, JSONata in the processor', async () => {
+    const definition = JSON.stringify({
+      StartAt: 'Fan',
+      States: {
+        Fan: {
+          Type: 'Map', End: true, Label: 'items', MaxConcurrency: 2, ToleratedFailureCount: 1,
+          ItemProcessor: {
+            ProcessorConfig: { Mode: 'DISTRIBUTED', ExecutionType: 'STANDARD' },
+            StartAt: 'Double',
+            States: {
+              Double: { Type: 'Pass', QueryLanguage: 'JSONata', Output: '{% $states.input * 2 %}', Next: 'Check' },
+              Check: {
+                Type: 'Choice', QueryLanguage: 'JSONata',
+                Choices: [{ Condition: '{% $states.input > 6 %}', Next: 'TooBig' }],
+                Default: 'Fine',
+              },
+              Fine: { Type: 'Succeed' },
+              TooBig: { Type: 'Fail', Error: 'TooBig' },
+            },
+          },
+        },
+      },
+    });
+    const name = uniq('sdk-dmap');
+    const { stateMachineArn: arn } = await c.send(new sfn.CreateStateMachineCommand({ name, definition, roleArn: ROLE }));
+    const run = await c.send(new sfn.StartExecutionCommand({ stateMachineArn: arn, input: '[1,2,3,4]' }));
+    const d = await settle(run.executionArn!);
+    // One child fails (8 > 6), within the tolerated count.
+    expect(d.status).toBe('SUCCEEDED');
+
+    const runs = await c.send(new sfn.ListMapRunsCommand({ executionArn: run.executionArn }));
+    expect(runs.mapRuns).toHaveLength(1);
+    const mapRunArn = runs.mapRuns![0].mapRunArn!;
+    expect(mapRunArn).toContain(':mapRun:');
+    const mr = await c.send(new sfn.DescribeMapRunCommand({ mapRunArn }));
+    expect(mr.status).toBe('SUCCEEDED');
+    expect(mr.maxConcurrency).toBe(2);
+    expect(mr.toleratedFailureCount).toBe(1);
+    expect(mr.itemCounts?.total).toBe(4);
+    expect(mr.itemCounts?.succeeded).toBe(3);
+    expect(mr.itemCounts?.failed).toBe(1);
+    expect(mr.executionCounts?.total).toBe(4);
+    expect(mr.startDate).toBeInstanceOf(Date);
+
+    const children = await c.send(new sfn.ListExecutionsCommand({ mapRunArn }));
+    expect(children.executions).toHaveLength(4);
+    const failedChild = children.executions!.find((e) => e.status === 'FAILED');
+    expect(failedChild).toBeTruthy();
+    const child = await c.send(new sfn.DescribeExecutionCommand({ executionArn: failedChild!.executionArn }));
+    expect(child.mapRunArn).toBe(mapRunArn);
+    expect(child.error).toBe('TooBig');
+    await expect(c.send(new sfn.UpdateMapRunCommand({ mapRunArn, maxConcurrency: 5 }))).resolves.toBeTruthy();
+    expect((await c.send(new sfn.DescribeMapRunCommand({ mapRunArn }))).maxConcurrency).toBe(5);
+  });
+
+  test('errors are typed the way the SDK expects', async () => {
     const ghost = 'arn:aws:states:us-east-1:000000000000:stateMachine:ghost';
     await expect(c.send(new sfn.DescribeStateMachineCommand({ stateMachineArn: ghost }))).rejects.toBeInstanceOf(sfn.StateMachineDoesNotExist);
     await expect(c.send(new sfn.DescribeStateMachineCommand({ stateMachineArn: 'nope' }))).rejects.toBeInstanceOf(sfn.InvalidArn);
@@ -238,18 +450,12 @@ test.describe('Step Functions via @aws-sdk/client-sfn', () => {
     await expect(c.send(new sfn.DescribeExecutionCommand({ executionArn: 'arn:aws:states:us-east-1:000000000000:execution:ghost:run' }))).rejects.toBeInstanceOf(sfn.ExecutionDoesNotExist);
     await expect(c.send(new sfn.SendTaskSuccessCommand({ taskToken: 'never', output: '{}' }))).rejects.toBeInstanceOf(sfn.TaskDoesNotExist);
 
-    // Staged and refused operations answer a 400 the SDK surfaces as a
-    // service exception, with a message that names why.
-    for (const cmd of [
-      new sfn.GetActivityTaskCommand({ activityArn: 'arn:aws:states:us-east-1:000000000000:activity:x' }),
-      new sfn.RedriveExecutionCommand({ executionArn: 'arn:aws:states:us-east-1:000000000000:execution:m:e' }),
-      new sfn.ListStateMachineAliasesCommand({ stateMachineArn: ghost }),
-      new sfn.ListMapRunsCommand({ executionArn: 'arn:aws:states:us-east-1:000000000000:execution:m:e' }),
-    ]) {
-      const err = await c.send(cmd).catch((e) => e);
-      expect(err.name).toBe('UnsupportedOperationException');
-      expect(err.$metadata?.httpStatusCode).toBe(400);
-      expect(err.message).toMatch(/not supported by doze-aws/);
-    }
+    // Nothing is staged: every operation on a missing resource answers its
+    // typed not-found, never a generic 400.
+    await expect(c.send(new sfn.GetActivityTaskCommand({ activityArn: 'arn:aws:states:us-east-1:000000000000:activity:x' }))).rejects.toBeInstanceOf(sfn.ActivityDoesNotExist);
+    await expect(c.send(new sfn.RedriveExecutionCommand({ executionArn: 'arn:aws:states:us-east-1:000000000000:execution:m:e' }))).rejects.toBeInstanceOf(sfn.ExecutionDoesNotExist);
+    await expect(c.send(new sfn.ListStateMachineAliasesCommand({ stateMachineArn: ghost }))).rejects.toBeInstanceOf(sfn.StateMachineDoesNotExist);
+    await expect(c.send(new sfn.ListMapRunsCommand({ executionArn: 'arn:aws:states:us-east-1:000000000000:execution:m:e' }))).rejects.toBeInstanceOf(sfn.ExecutionDoesNotExist);
+    await expect(c.send(new sfn.DescribeMapRunCommand({ mapRunArn: 'arn:aws:states:us-east-1:000000000000:mapRun:m/e:x' }))).rejects.toBeInstanceOf(sfn.ResourceNotFound);
   });
 });

@@ -29,6 +29,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 )
 
 // redirectFloor is how many routes this sweep is known to drive as far as a
@@ -204,6 +205,12 @@ var fixtures = map[string]string{
 	"{shard}":   shardID(0),
 	"{machine}": "fixture-machine",
 	"{exec}":    "fixture-exec",
+	"{alias}":   "fixture-alias",
+	// A version nothing holds: DeleteStateMachineVersion on an absent
+	// version succeeds, as on AWS, and the seeded alias pins version 1 so
+	// deleting THAT would be refused — a refusal is not a redirect.
+	"{n}":        "999",
+	"{activity}": "fixture-activity",
 }
 
 // discovered holds values that cannot be written down in advance because they
@@ -227,6 +234,10 @@ const sfnDefinition = `{"StartAt":"A","States":{"A":{"Type":"Pass","Next":"B"},"
 
 // sfnRole satisfies the model's required roleArn; nothing local evaluates it.
 const sfnRole = "arn:aws:iam::000000000000:role/stepfunctions"
+
+// sfnSlowDefinition waits long enough to be stopped mid-state, which is what
+// makes its execution REDRIVABLE — a finished Pass → Succeed never is.
+const sfnSlowDefinition = `{"StartAt":"W","States":{"W":{"Type":"Wait","Seconds":300,"End":true}}}`
 
 // policyDoc is a syntactically valid policy; nothing here evaluates it.
 const policyDoc = `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"s3:*","Resource":"*"}]}`
@@ -293,6 +304,16 @@ func seedFixtures(t *testing.T, c http.Handler) {
 		// stopping a finished execution answers with when it stopped.
 		{"/sfn/create", url.Values{"name": {"fixture-machine"}, "type": {"STANDARD"}, "role": {sfnRole}, "definition": {sfnDefinition}}},
 		{"/sfn/fixture-machine/start", url.Values{"name": {"fixture-exec"}}},
+		// A version for the alias to route to (publishing an unchanged
+		// revision answers the existing version, so this never piles up),
+		// the alias itself (idempotent on the same routing), and an activity.
+		{"/sfn/fixture-machine/publish", url.Values{"description": {"fixture"}}},
+		{"/sfn/fixture-machine/alias/create", url.Values{"name": {"fixture-alias"}, "v1": {"1"}, "w1": {"100"}}},
+		{"/sfn/activities/create", url.Values{"name": {"fixture-activity"}}},
+		// The redrive route needs an execution that stopped short: a Wait,
+		// started and then aborted (see below, after the seeds).
+		{"/sfn/create", url.Values{"name": {"fixture-slow"}, "type": {"STANDARD"}, "role": {sfnRole}, "definition": {sfnSlowDefinition}}},
+		{"/sfn/fixture-slow/start", url.Values{"name": {"fixture-halted"}}},
 		// Reshaping closes the shards it operates on, so merge and split each
 		// get a stream nothing else in the sweep touches.
 		{"/kinesis/create", url.Values{"name": {"fixture-merge"}, "shards": {"2"}}},
@@ -305,6 +326,19 @@ func seedFixtures(t *testing.T, c http.Handler) {
 	for _, s := range seeds {
 		postForm(t, c, s.path, s.form)
 	}
+	// Abort the slow execution once it is parked in its Wait — stopping it
+	// before the engine has entered a state leaves nothing to redrive. The
+	// history is polled the way the page polls it; a re-seed after the
+	// redrive subtest finds it RUNNING again and aborts it again.
+	for i := 0; i < 40; i++ {
+		rec := httptest.NewRecorder()
+		c.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/_console/sfn/fixture-slow/execution/fixture-halted/history", nil))
+		if strings.Contains(rec.Body.String(), "WaitStateEntered") {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	postForm(t, c, "/sfn/fixture-slow/execution/fixture-halted/stop", url.Values{"error": {"Fixture"}})
 	// The API Gateway fixture is id-addressed and the sweep's own delete
 	// route consumes it, so it is probed and re-created (with the fresh id
 	// re-discovered from the create redirect) rather than written down.
@@ -438,6 +472,16 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 		return nil, url.Values{"name": {"fixture-made-machine"}, "type": {"STANDARD"}, "role": {sfnRole}, "definition": {sfnDefinition}}
 	case "/sfn/{machine}/definition":
 		return nil, url.Values{"definition": {sfnDefinition}}
+	case "/sfn/{machine}/alias/create":
+		// A second alias on the seeded version; the seeded one is the
+		// delete and update routes' to consume.
+		return nil, url.Values{"name": {"fixture-made-alias"}, "v1": {"1"}, "w1": {"100"}}
+	case "/sfn/{machine}/alias/{alias}/update":
+		return nil, url.Values{"v1": {"1"}, "w1": {"100"}, "description": {"fixture, updated"}}
+	case "/sfn/{machine}/execution/{exec}/redrive":
+		// The finished fixture execution SUCCEEDED, which is the one status
+		// that can never be redriven; the aborted Wait can.
+		return map[string]string{"{machine}": "fixture-slow", "{exec}": "fixture-halted"}, nil
 	case "/apigw/{api}/update-stage":
 		// The stage the deploy subtest created; mutationForm's generic name
 		// would PATCH a stage that does not exist.

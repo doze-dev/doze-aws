@@ -1863,3 +1863,36 @@ a.lo-card:hover { border-color: var(--accent); }
 
 /* A clicked node lights its rows in the history table underneath. */
 .sfn-hist tr.hl > td { background: color-mix(in srgb, var(--warning) 12%, transparent); }
+
+/* ---------- step functions: versions, express, map runs, activities ---------- */
+/* The list pane's Activities pseudo-row: a row that is not a machine, so it
+   reads dimmer than one and sits apart from the rows above it. */
+.listpane .li.lp-pseudo { margin-top: 6px; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); color: var(--muted-foreground); font-weight: 500; }
+.listpane .li.lp-pseudo .nm { display: inline-flex; align-items: center; gap: 6px; }
+.listpane .li.lp-pseudo.on { color: var(--foreground); }
+/* One-line forms: publish, create activity, set concurrency, the test-state
+   selects. Inputs share the line; the button sits at the end. */
+.sfn-inline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sfn-inline > .input { flex: 1 1 200px; }
+.sfn-inline > .field { flex: 1 1 160px; }
+/* Alias routing rows: "v [3] [70] %" — a version and a weight, one or two. */
+.sfn-routes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sfn-route { display: inline-flex; align-items: center; gap: 4px; }
+.sfn-route .input { height: 28px; width: 64px; padding: 0 8px; font-size: 12px; }
+.sfn-route select.input { width: 72px; }
+/* Map Run panels: the count table is a strip, not a list — one row, seven
+   right-aligned numbers, and the controls under it. */
+.sfn-maprun .chips { padding: 8px 16px 0; }
+.sfn-counts thead th { height: 24px; font-size: 10px; }
+.sfn-counts td { height: 30px; font-size: 13px; }
+.sfn-maprun .sfn-inline { justify-content: space-between; }
+/* Test-state result and the inspection pipeline under it. */
+.sfn-test-result { padding: 0 16px 14px; }
+.sfn-test-result .code-block, .sfn-inspect .code-block { margin: 0; max-height: 240px; overflow: auto; }
+.sfn-inspect td:first-child { width: 180px; vertical-align: top; padding-top: 8px; }
+.sfn-inspect td { height: auto; padding-top: 6px; padding-bottom: 6px; }
+/* Panels that carry chips and fact strips directly (version detail, sync
+   result, a taken task) pad them the way the page header does. */
+#sfn-version-out .chips, #sfn-sync-result .chips, #sfn-activity-task .chips { padding: 10px 16px 0; }
+#sfn-sync-result .factstrip, #sfn-version-out .code-block, #sfn-activity-task .code-block, #sfn-sync-result .split, #sfn-sync-result .err, #sfn-sync-result .sec-title, #sfn-activity-task .sec-title, #sfn-activity-task .empty, #sfn-sync-result .mini-note { margin-left: 16px; margin-right: 16px; }
+#sfn-version-out:not(:empty) { margin-top: 16px; }

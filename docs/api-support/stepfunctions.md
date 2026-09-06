@@ -32,7 +32,7 @@ definition with four mistakes takes one round trip to understand.
 | CreateActivity / DescribeActivity / DeleteActivity / ListActivities | F | control plane, paginated |
 | GetActivityTask | F | long-poll, 60 s as on AWS; an activity Task state queues its input for the next worker, which answers through the SendTask* calls |
 | TagResource / UntagResource / ListTagsForResource | F | tags are a `[{key,value}]` list, as on AWS, not the `{k:v}` map Lambda and DynamoDB use; an ARN nothing holds is `ResourceNotFound`, not an empty list |
-| StartExecution | F | machine, version or alias ARN; same name + still RUNNING + same input returns the original execution rather than conflicting; an EXPRESS machine answers `StateMachineTypeNotSupported` and points at StartSyncExecution |
+| StartExecution | F | machine, version or alias ARN; same name + still RUNNING + same input returns the original execution rather than conflicting; on an EXPRESS machine it is fire-and-forget, answering an ARN nothing can describe afterwards, as on AWS |
 | StartSyncExecution | F | Express: runs to completion inside the call, five-minute cap, `billingDetails` and the `includedData` switch; reachable at `sync-aws.doze`, the host prefix every SDK's endpoint ruleset applies |
 | TestState | F | one state in isolation, with `inspectionData` per `inspectionLevel`, `mock` results and errors, and `stateConfiguration`; the `sync-` host again |
 | DescribeExecution / ListExecutions | F | status, `redriveFilter` and `mapRunArn` filters, `maxResults` and `nextToken`; `traceHeader` comes back only when StartExecution was given one; an EXPRESS machine's executions are not listable, as on AWS |
