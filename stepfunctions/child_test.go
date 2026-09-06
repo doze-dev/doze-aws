@@ -132,6 +132,12 @@ func TestChildSyncSurvivesRestart(t *testing.T) {
 		e, _ := s.store.GetExecution("parent", "run")
 		return e != nil && e.Exec.Root().WaitExec != ""
 	}, "the parent never parked on its child")
+	// The child's Wait must have persisted its wake time before the clock
+	// moves, or it computes a fresh 30 s from the advanced clock on restart.
+	waitFor(t, func() bool {
+		e, _ := s.store.GetExecution("child", "slow")
+		return e != nil && e.Exec.Root().Status == "SLEEPING"
+	}, "the child never went to sleep")
 	if err := s.Close(); err != nil {
 		t.Fatal(err)
 	}

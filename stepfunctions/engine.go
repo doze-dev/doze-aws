@@ -112,8 +112,10 @@ func newEngine(srv *Server) *engine {
 // returns may the bbolt store be closed.
 func (g *engine) close() {
 	g.stopOnce.Do(func() {
-		g.cancel()
+		// stop before cancel: a worker whose call the cancellation fails
+		// must find the driver already refusing deliveries.
 		close(g.stop)
+		g.cancel()
 		<-g.done
 		g.wg.Wait()
 		// A StartSyncExecution still waiting learns the engine is gone.
@@ -417,6 +419,13 @@ func (g *engine) dispatch(r *run, call asl.EffCallTask) {
 		defer g.wg.Done()
 		ctx := trace.Continue(g.workerCtx, g.srv.sink, header)
 		res := g.srv.performTask(ctx, call.Resource, call.Input)
+		if g.workerCtx.Err() != nil {
+			// Shutdown cancelled the call. That is not a task failure: the
+			// frame is persisted CALLING (or parked on its token), and the
+			// restart re-dispatches it. Delivering the cancellation would
+			// fail the execution for good during an ordinary stop.
+			return
+		}
 		if call.Token != "" && res.Failure == nil {
 			// A token task's send succeeded; the real result arrives via
 			// SendTaskSuccess. Only a failed send is worth delivering.
