@@ -32,7 +32,7 @@ import (
 // Services is the canonical set of doze-aws service names, in the order they
 // appear in docs and config listings.
 var Services = []string{
-	"s3", "sqs", "sns", "sts", "dynamodb", "kms", "ssm", "secretsmanager", "eventbridge", "lambda", "kinesis", "iam", "cloudformation", "apigateway", "stepfunctions",
+	"s3", "sqs", "sns", "sts", "dynamodb", "kms", "ssm", "secretsmanager", "eventbridge", "lambda", "kinesis", "iam", "cloudformation", "apigateway", "stepfunctions", "logs",
 }
 
 // KnownService reports whether name is one of the canonical service names.
@@ -51,6 +51,7 @@ var targetPrefixes = map[string]string{
 	"AWSEvents":                "eventbridge",
 	"Kinesis_20131202":         "kinesis",
 	"AWSStepFunctions":         "stepfunctions",
+	"Logs_20140328":            "logs",
 }
 
 // scopeServices maps SigV4 signing names to services (they mostly coincide;
@@ -71,6 +72,7 @@ var scopeServices = map[string]string{
 	"iam":            "iam",
 	"cloudformation": "cloudformation",
 	"apigateway":     "apigateway",
+	"logs":           "logs",
 }
 
 // lambdaPathPrefixes are the REST-API version prefixes the Lambda control

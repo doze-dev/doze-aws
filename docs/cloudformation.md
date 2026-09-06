@@ -47,9 +47,8 @@ Every resource lands in exactly one bucket, and every one is reported:
 | **unsupported** | The type belongs to a service doze-aws does not serve. The template **fails** rather than deploying half of itself. |
 
 ```
-CloudFormation template: 3 resources mapped, 2 skipped, 0 unsupported
+CloudFormation template: 4 resources mapped, 1 skipped, 0 unsupported
   ≈ Role (AWS::IAM::Role) — no IAM evaluation during apply
-  ≈ Logs (AWS::Logs::LogGroup) — there is no CloudWatch Logs locally
 ```
 
 The "skipped" tier is a deliberate exception to the project's no-silent-no-op
@@ -153,8 +152,10 @@ Mapped:
 | `AWS::StepFunctions::StateMachineVersion` | publishes the machine's revision on every deploy; an unchanged definition keeps its version. Its `Ref` is a placeholder only an alias in the same template can consume, because the version number is not known until the machine is published |
 | `AWS::StepFunctions::StateMachineAlias` | `Name`, `Description`, and the version named by `RoutingConfiguration` or `DeploymentPreference`; every alias routes all of its traffic to the version this deploy publishes, which is where a gradual deployment ends up. `Ref` and `Arn` are the real alias ARN |
 | `AWS::StepFunctions::Activity` | `Name` and tags; `Ref` and `Arn` are the activity ARN a Task's `Resource` names |
+| `AWS::Logs::LogGroup` | `LogGroupName` (the logical id when absent), `RetentionInDays`, tags; `Ref` is the name and `Arn` ends in `:*` as CloudWatch Logs reports it. Lambda creates `/aws/lambda/<fn>` itself on the first line, so a template needs one only to set retention |
 
-Skipped with a reason: `AWS::IAM::*`, `AWS::Logs::*`, `AWS::CloudWatch::*`,
+Skipped with a reason: `AWS::IAM::*`, `AWS::Logs::LogStream`,
+`AWS::Logs::SubscriptionFilter`, `AWS::CloudWatch::*`,
 `AWS::ECR::Repository`, `AWS::CDK::Metadata`,
 `AWS::CloudFormation::WaitCondition*`.
 

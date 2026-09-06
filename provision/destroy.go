@@ -77,6 +77,7 @@ func Destroy(ctx context.Context, gateway http.Handler, s *Stack) (*DestroyRepor
 		{"apis", func() error { return destroyAPIs(ctx, c, s, rep) }},
 		{"parameters", func() error { return destroyParameters(ctx, c, s, rep) }},
 		{"secrets", func() error { return destroySecrets(ctx, c, s, rep) }},
+		{"loggroups", func() error { return destroyLogGroups(ctx, c, s, rep) }},
 		{"rules", func() error { return destroyRules(ctx, c, s, rep) }},
 		{"topics", func() error { return destroyTopics(ctx, c, s, rep) }},
 		{"functions", func() error { return destroyFunctions(ctx, c, s, rep) }},

@@ -216,6 +216,7 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 		APIs:          map[string]provision.API{},
 		StateMachines: map[string]provision.StateMachine{},
 		Activities:    map[string]provision.Activity{},
+		LogGroups:     map[string]provision.LogGroup{},
 	}
 	m := &mapper{scope: scope, stack: stack, template: t}
 	for _, p := range work {

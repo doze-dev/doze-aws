@@ -35,7 +35,6 @@ var ignoredTypes = map[string]string{
 	"AWS::IAM::User":                           "no IAM evaluation during apply",
 	"AWS::IAM::Group":                          "no IAM evaluation during apply",
 	"AWS::IAM::ServiceLinkedRole":              "no IAM evaluation during apply",
-	"AWS::Logs::LogGroup":                      "there is no CloudWatch Logs locally",
 	"AWS::Logs::LogStream":                     "there is no CloudWatch Logs locally",
 	"AWS::Logs::SubscriptionFilter":            "there is no CloudWatch Logs locally",
 	"AWS::CloudWatch::Alarm":                   "there is no CloudWatch locally",
@@ -149,6 +148,7 @@ var nameProperty = map[string]string{
 	"AWS::StepFunctions::Activity":            "Name",
 	"AWS::StepFunctions::StateMachineVersion": "",
 	"AWS::StepFunctions::StateMachineAlias":   "Name",
+	"AWS::Logs::LogGroup":                     "LogGroupName",
 	"AWS::Serverless::StateMachine":           "Name",
 	"AWS::SNS::Subscription":                  "",
 	"AWS::Lambda::EventSourceMapping":         "",
@@ -367,6 +367,9 @@ func attributes(typ, name string) map[string]string {
 		return map[string]string{"Arn": awsident.ARN("states", "stateMachineVersion:"+name)}
 	case "AWS::StepFunctions::StateMachineAlias":
 		return map[string]string{"Arn": awsident.ARN("states", "stateMachineAlias:"+name)}
+	case "AWS::Logs::LogGroup":
+		// Ref is the name; Arn ends in :* as CloudWatch Logs reports it.
+		return map[string]string{"Arn": awsident.ARN("logs", "log-group:"+name+":*")}
 	}
 	return map[string]string{}
 }
@@ -449,8 +452,6 @@ func ghostIdentity(typ, name string) (string, map[string]string) {
 		atts["GroupName"] = name
 	case "AWS::IAM::InstanceProfile":
 		// Ref on an instance profile is its name, but GetAtt Arn is common.
-	case "AWS::Logs::LogGroup":
-		atts["LogGroupName"] = name
 	case "AWS::ECR::Repository":
 		atts["RepositoryName"] = name
 		atts["RepositoryUri"] = awsident.AccountID + ".dkr.ecr." + awsident.Region + ".localhost/" + name

@@ -35,6 +35,7 @@ import (
 	"github.com/doze-dev/doze-aws/kinesis"
 	"github.com/doze-dev/doze-aws/kms"
 	"github.com/doze-dev/doze-aws/lambda"
+	"github.com/doze-dev/doze-aws/logs"
 	"github.com/doze-dev/doze-aws/peers"
 	"github.com/doze-dev/doze-aws/s3"
 	"github.com/doze-dev/doze-aws/secretsmanager"
@@ -47,7 +48,7 @@ import (
 
 // Implemented lists the services this build of doze-aws can serve, in gateway
 // order (currently the full set gateway.Services knows about).
-var Implemented = []string{"s3", "dynamodb", "sqs", "sns", "sts", "kms", "ssm", "secretsmanager", "eventbridge", "lambda", "kinesis", "iam", "cloudformation", "apigateway", "stepfunctions"}
+var Implemented = []string{"s3", "dynamodb", "sqs", "sns", "sts", "kms", "ssm", "secretsmanager", "eventbridge", "lambda", "kinesis", "iam", "cloudformation", "apigateway", "stepfunctions", "logs"}
 
 // StackConfig configures a Stack.
 type StackConfig struct {
@@ -166,6 +167,9 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		return s, s, err
 	case "secretsmanager":
 		s, err := secretsmanager.New(secretsmanager.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		return s, s, err
+	case "logs":
+		s, err := logs.New(logs.Options{DataDir: dataDir, Peers: dir, Logf: logf})
 		return s, s, err
 	case "stepfunctions":
 		s, err := stepfunctions.New(stepfunctions.Options{DataDir: dataDir, Peers: dir, Logf: logf})

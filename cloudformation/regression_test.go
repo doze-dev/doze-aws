@@ -86,7 +86,7 @@ Outputs:
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, rep, err := Transpile(parsed, TranspileOptions{})
+	sf, rep, err := Transpile(parsed, TranspileOptions{})
 	if err != nil {
 		t.Fatalf("references to ignored resources must resolve: %v", err)
 	}
@@ -100,13 +100,18 @@ Outputs:
 	if got := rep.Outputs["RepoUri"]; !strings.Contains(got, "assets") {
 		t.Errorf("RepoUri = %q", got)
 	}
-	// With no explicit name, the logical ID stands in.
+	// With no explicit name, the logical ID stands in. A log group is mapped
+	// now, not ignored: the logs service exists.
 	if got := rep.Outputs["LogGroup"]; got != "Logs" {
 		t.Errorf("LogGroup = %q", got)
 	}
-	// They are still reported as skipped, not silently mapped.
-	if _, ignored, _ := rep.Counts(); ignored != 3 {
-		t.Errorf("ignored = %d, want 3", ignored)
+	if _, ok := sf.LogGroups["Logs"]; !ok {
+		t.Errorf("the log group should be mapped: %+v", sf.LogGroups)
+	}
+	// The role and the repository are still reported as skipped, not
+	// silently mapped.
+	if _, ignored, _ := rep.Counts(); ignored != 2 {
+		t.Errorf("ignored = %d, want 2", ignored)
 	}
 }
 

@@ -1,0 +1,1733 @@
+[
+  {
+    "operation": "CreateLogGroup",
+    "target": "Logs_20140328.CreateLogGroup",
+    "path": "kmsKeyId",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "CreateLogGroup",
+    "target": "Logs_20140328.CreateLogGroup",
+    "path": "logGroupClass",
+    "why": "not one of STANDARD, INFREQUENT_ACCESS, DELIVERY",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum STANDARD|INFREQUENT_ACCESS|DELIVERY",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "CreateLogGroup",
+    "target": "Logs_20140328.CreateLogGroup",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "CreateLogGroup",
+    "target": "Logs_20140328.CreateLogGroup",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "CreateLogGroup",
+    "target": "Logs_20140328.CreateLogGroup",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "CreateLogGroup",
+    "target": "Logs_20140328.CreateLogGroup",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "CreateLogGroup",
+    "target": "Logs_20140328.CreateLogGroup",
+    "path": "tags{}",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "CreateLogGroup",
+    "target": "Logs_20140328.CreateLogGroup",
+    "path": "tags{}",
+    "why": "does not match ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "CreateLogStream",
+    "target": "Logs_20140328.CreateLogStream",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "CreateLogStream",
+    "target": "Logs_20140328.CreateLogStream",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "CreateLogStream",
+    "target": "Logs_20140328.CreateLogStream",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "CreateLogStream",
+    "target": "Logs_20140328.CreateLogStream",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "CreateLogStream",
+    "target": "Logs_20140328.CreateLogStream",
+    "path": "logStreamName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "CreateLogStream",
+    "target": "Logs_20140328.CreateLogStream",
+    "path": "logStreamName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "CreateLogStream",
+    "target": "Logs_20140328.CreateLogStream",
+    "path": "logStreamName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "DeleteLogGroup",
+    "target": "Logs_20140328.DeleteLogGroup",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteLogGroup",
+    "target": "Logs_20140328.DeleteLogGroup",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteLogGroup",
+    "target": "Logs_20140328.DeleteLogGroup",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteLogGroup",
+    "target": "Logs_20140328.DeleteLogGroup",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteLogStream",
+    "target": "Logs_20140328.DeleteLogStream",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "DeleteLogStream",
+    "target": "Logs_20140328.DeleteLogStream",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "DeleteLogStream",
+    "target": "Logs_20140328.DeleteLogStream",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "DeleteLogStream",
+    "target": "Logs_20140328.DeleteLogStream",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "DeleteLogStream",
+    "target": "Logs_20140328.DeleteLogStream",
+    "path": "logStreamName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "DeleteLogStream",
+    "target": "Logs_20140328.DeleteLogStream",
+    "path": "logStreamName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "DeleteLogStream",
+    "target": "Logs_20140328.DeleteLogStream",
+    "path": "logStreamName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "DeleteRetentionPolicy",
+    "target": "Logs_20140328.DeleteRetentionPolicy",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteRetentionPolicy",
+    "target": "Logs_20140328.DeleteRetentionPolicy",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteRetentionPolicy",
+    "target": "Logs_20140328.DeleteRetentionPolicy",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteRetentionPolicy",
+    "target": "Logs_20140328.DeleteRetentionPolicy",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "accountIdentifiers[]",
+    "why": "shorter than the minimum length of 12",
+    "value": "",
+    "constraint": "length 12..12"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "accountIdentifiers[]",
+    "why": "longer than the maximum length of 12",
+    "value": "aaaaaaaaaaaaa",
+    "constraint": "length 12..12"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "accountIdentifiers[]",
+    "why": "does not match ^\\d{12}$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^\\d{12}$"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "limit",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..50"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "limit",
+    "why": "above the maximum of 50",
+    "value": 51,
+    "constraint": "range 1..50"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "logGroupClass",
+    "why": "not one of STANDARD, INFREQUENT_ACCESS, DELIVERY",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum STANDARD|INFREQUENT_ACCESS|DELIVERY"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "logGroupIdentifiers[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "logGroupIdentifiers[]",
+    "why": "does not match ^[\\w#+=/:,.@-]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\w#+=/:,.@-]*$"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "logGroupIdentifiers[]",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..2048"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "logGroupNamePattern",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..512"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "logGroupNamePattern",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]*$"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "logGroupNamePrefix",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "logGroupNamePrefix",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "logGroupNamePrefix",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$"
+  },
+  {
+    "operation": "DescribeLogGroups",
+    "target": "Logs_20140328.DescribeLogGroups",
+    "path": "nextToken",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..-"
+  },
+  {
+    "operation": "DescribeLogStreams",
+    "target": "Logs_20140328.DescribeLogStreams",
+    "path": "limit",
+    "why": "above the maximum of 50",
+    "value": 51,
+    "constraint": "range 1..50"
+  },
+  {
+    "operation": "DescribeLogStreams",
+    "target": "Logs_20140328.DescribeLogStreams",
+    "path": "limit",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..50"
+  },
+  {
+    "operation": "DescribeLogStreams",
+    "target": "Logs_20140328.DescribeLogStreams",
+    "path": "logGroupIdentifier",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048"
+  },
+  {
+    "operation": "DescribeLogStreams",
+    "target": "Logs_20140328.DescribeLogStreams",
+    "path": "logGroupIdentifier",
+    "why": "does not match ^[\\w#+=/:,.@-]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\w#+=/:,.@-]*$"
+  },
+  {
+    "operation": "DescribeLogStreams",
+    "target": "Logs_20140328.DescribeLogStreams",
+    "path": "logGroupIdentifier",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..2048"
+  },
+  {
+    "operation": "DescribeLogStreams",
+    "target": "Logs_20140328.DescribeLogStreams",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$"
+  },
+  {
+    "operation": "DescribeLogStreams",
+    "target": "Logs_20140328.DescribeLogStreams",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "DescribeLogStreams",
+    "target": "Logs_20140328.DescribeLogStreams",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "DescribeLogStreams",
+    "target": "Logs_20140328.DescribeLogStreams",
+    "path": "logStreamNamePrefix",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "DescribeLogStreams",
+    "target": "Logs_20140328.DescribeLogStreams",
+    "path": "logStreamNamePrefix",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "DescribeLogStreams",
+    "target": "Logs_20140328.DescribeLogStreams",
+    "path": "nextToken",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..-"
+  },
+  {
+    "operation": "DescribeLogStreams",
+    "target": "Logs_20140328.DescribeLogStreams",
+    "path": "orderBy",
+    "why": "not one of LogStreamName, LastEventTime",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum LogStreamName|LastEventTime"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "endTime",
+    "why": "below the minimum of 0",
+    "value": -1,
+    "constraint": "range 0..-"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "filterPattern",
+    "why": "longer than the maximum length of 1024",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..1024"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "limit",
+    "why": "above the maximum of 10000",
+    "value": 10001,
+    "constraint": "range 1..10000"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "limit",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..10000"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "logGroupIdentifier",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "logGroupIdentifier",
+    "why": "does not match ^[\\w#+=/:,.@-]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\w#+=/:,.@-]*$"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "logGroupIdentifier",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..2048"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "logStreamNamePrefix",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "logStreamNamePrefix",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "logStreamNames[]",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "logStreamNames[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "nextToken",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..-"
+  },
+  {
+    "operation": "FilterLogEvents",
+    "target": "Logs_20140328.FilterLogEvents",
+    "path": "startTime",
+    "why": "below the minimum of 0",
+    "value": -1,
+    "constraint": "range 0..-"
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "endTime",
+    "why": "below the minimum of 0",
+    "value": -1,
+    "constraint": "range 0..-",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "limit",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..10000",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "limit",
+    "why": "above the maximum of 10000",
+    "value": 10001,
+    "constraint": "range 1..10000",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "logGroupIdentifier",
+    "why": "does not match ^[\\w#+=/:,.@-]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\w#+=/:,.@-]*$",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "logGroupIdentifier",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "logGroupIdentifier",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "logStreamName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "logStreamName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "logStreamName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "nextToken",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..-",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "GetLogEvents",
+    "target": "Logs_20140328.GetLogEvents",
+    "path": "startTime",
+    "why": "below the minimum of 0",
+    "value": -1,
+    "constraint": "range 0..-",
+    "required_members": [
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "accountIdentifiers[]",
+    "why": "longer than the maximum length of 12",
+    "value": "aaaaaaaaaaaaa",
+    "constraint": "length 12..12"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "accountIdentifiers[]",
+    "why": "shorter than the minimum length of 12",
+    "value": "",
+    "constraint": "length 12..12"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "accountIdentifiers[]",
+    "why": "does not match ^\\d{12}$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^\\d{12}$"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "dataSources[].name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "fieldIndexNames[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "fieldIndexNames[]",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "fieldIndexNames[]",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "limit",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..1000"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "limit",
+    "why": "above the maximum of 1000",
+    "value": 1001,
+    "constraint": "range 1..1000"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "logGroupClass",
+    "why": "not one of STANDARD, INFREQUENT_ACCESS, DELIVERY",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum STANDARD|INFREQUENT_ACCESS|DELIVERY"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "logGroupNamePattern",
+    "why": "does not match ^(\\^?[\\.\\-_\\/#A-Za-z0-9]{3,24})(\\|\\^?[\\.\\-_\\/#A-Za-z0-9]{3,24}){0,4}$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^(\\^?[\\.\\-_\\/#A-Za-z0-9]{3,24})(\\|\\^?[\\.\\-_\\/#A-Za-z0-9]{3,24}){0,4}$"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "logGroupNamePattern",
+    "why": "longer than the maximum length of 129",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 3..129"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "logGroupNamePattern",
+    "why": "shorter than the minimum length of 3",
+    "value": "",
+    "constraint": "length 3..129"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "logGroupTags[].key",
+    "why": "does not match ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+)$"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "logGroupTags[].key",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "logGroupTags[].key",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "logGroupTags[].key",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "logGroupTags[].values[]",
+    "why": "does not match ^!?\\*?([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)\\*?$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^!?\\*?([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)\\*?$"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "logGroupTags[].values[]",
+    "why": "longer than the maximum length of 259",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..259"
+  },
+  {
+    "operation": "ListLogGroups",
+    "target": "Logs_20140328.ListLogGroups",
+    "path": "nextToken",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..-"
+  },
+  {
+    "operation": "ListTagsForResource",
+    "target": "Logs_20140328.ListTagsForResource",
+    "path": "resourceArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceArn"
+    ]
+  },
+  {
+    "operation": "ListTagsForResource",
+    "target": "Logs_20140328.ListTagsForResource",
+    "path": "resourceArn",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1011",
+    "required_members": [
+      "resourceArn"
+    ]
+  },
+  {
+    "operation": "ListTagsForResource",
+    "target": "Logs_20140328.ListTagsForResource",
+    "path": "resourceArn",
+    "why": "longer than the maximum length of 1011",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..1011",
+    "required_members": [
+      "resourceArn"
+    ]
+  },
+  {
+    "operation": "ListTagsForResource",
+    "target": "Logs_20140328.ListTagsForResource",
+    "path": "resourceArn",
+    "why": "does not match ^[\\w+=/:,.@-]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\w+=/:,.@-]*$",
+    "required_members": [
+      "resourceArn"
+    ]
+  },
+  {
+    "operation": "ListTagsLogGroup",
+    "target": "Logs_20140328.ListTagsLogGroup",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "ListTagsLogGroup",
+    "target": "Logs_20140328.ListTagsLogGroup",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "ListTagsLogGroup",
+    "target": "Logs_20140328.ListTagsLogGroup",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "ListTagsLogGroup",
+    "target": "Logs_20140328.ListTagsLogGroup",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "entity.attributes{}",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "entity.attributes{}",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "entity.keyAttributes{}",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "entity.keyAttributes{}",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "logEvents",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "logEvents[].message",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "logEvents[].message",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..-",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "logEvents[].timestamp",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "logEvents[].timestamp",
+    "why": "below the minimum of 0",
+    "value": -1,
+    "constraint": "range 0..-",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "logStreamName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "logStreamName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "logStreamName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutLogEvents",
+    "target": "Logs_20140328.PutLogEvents",
+    "path": "sequenceToken",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..-",
+    "required_members": [
+      "logEvents",
+      "logGroupName",
+      "logStreamName"
+    ]
+  },
+  {
+    "operation": "PutRetentionPolicy",
+    "target": "Logs_20140328.PutRetentionPolicy",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "retentionInDays"
+    ]
+  },
+  {
+    "operation": "PutRetentionPolicy",
+    "target": "Logs_20140328.PutRetentionPolicy",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName",
+      "retentionInDays"
+    ]
+  },
+  {
+    "operation": "PutRetentionPolicy",
+    "target": "Logs_20140328.PutRetentionPolicy",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "retentionInDays"
+    ]
+  },
+  {
+    "operation": "PutRetentionPolicy",
+    "target": "Logs_20140328.PutRetentionPolicy",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "logGroupName",
+      "retentionInDays"
+    ]
+  },
+  {
+    "operation": "PutRetentionPolicy",
+    "target": "Logs_20140328.PutRetentionPolicy",
+    "path": "retentionInDays",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName",
+      "retentionInDays"
+    ]
+  },
+  {
+    "operation": "TagLogGroup",
+    "target": "Logs_20140328.TagLogGroup",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "TagLogGroup",
+    "target": "Logs_20140328.TagLogGroup",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "TagLogGroup",
+    "target": "Logs_20140328.TagLogGroup",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "TagLogGroup",
+    "target": "Logs_20140328.TagLogGroup",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "TagLogGroup",
+    "target": "Logs_20140328.TagLogGroup",
+    "path": "tags",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "TagLogGroup",
+    "target": "Logs_20140328.TagLogGroup",
+    "path": "tags{}",
+    "why": "does not match ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "TagLogGroup",
+    "target": "Logs_20140328.TagLogGroup",
+    "path": "tags{}",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "target": "Logs_20140328.TagResource",
+    "path": "resourceArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceArn",
+      "tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "target": "Logs_20140328.TagResource",
+    "path": "resourceArn",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1011",
+    "required_members": [
+      "resourceArn",
+      "tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "target": "Logs_20140328.TagResource",
+    "path": "resourceArn",
+    "why": "longer than the maximum length of 1011",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..1011",
+    "required_members": [
+      "resourceArn",
+      "tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "target": "Logs_20140328.TagResource",
+    "path": "resourceArn",
+    "why": "does not match ^[\\w+=/:,.@-]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\w+=/:,.@-]*$",
+    "required_members": [
+      "resourceArn",
+      "tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "target": "Logs_20140328.TagResource",
+    "path": "tags",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceArn",
+      "tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "target": "Logs_20140328.TagResource",
+    "path": "tags{}",
+    "why": "does not match ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]*)$",
+    "required_members": [
+      "resourceArn",
+      "tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "target": "Logs_20140328.TagResource",
+    "path": "tags{}",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "resourceArn",
+      "tags"
+    ]
+  },
+  {
+    "operation": "UntagLogGroup",
+    "target": "Logs_20140328.UntagLogGroup",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "UntagLogGroup",
+    "target": "Logs_20140328.UntagLogGroup",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "UntagLogGroup",
+    "target": "Logs_20140328.UntagLogGroup",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "UntagLogGroup",
+    "target": "Logs_20140328.UntagLogGroup",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "UntagLogGroup",
+    "target": "Logs_20140328.UntagLogGroup",
+    "path": "tags",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "UntagLogGroup",
+    "target": "Logs_20140328.UntagLogGroup",
+    "path": "tags[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "UntagLogGroup",
+    "target": "Logs_20140328.UntagLogGroup",
+    "path": "tags[]",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "UntagLogGroup",
+    "target": "Logs_20140328.UntagLogGroup",
+    "path": "tags[]",
+    "why": "does not match ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+)$",
+    "required_members": [
+      "logGroupName",
+      "tags"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "target": "Logs_20140328.UntagResource",
+    "path": "resourceArn",
+    "why": "longer than the maximum length of 1011",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..1011",
+    "required_members": [
+      "resourceArn",
+      "tagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "target": "Logs_20140328.UntagResource",
+    "path": "resourceArn",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1011",
+    "required_members": [
+      "resourceArn",
+      "tagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "target": "Logs_20140328.UntagResource",
+    "path": "resourceArn",
+    "why": "does not match ^[\\w+=/:,.@-]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\w+=/:,.@-]*$",
+    "required_members": [
+      "resourceArn",
+      "tagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "target": "Logs_20140328.UntagResource",
+    "path": "resourceArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceArn",
+      "tagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "target": "Logs_20140328.UntagResource",
+    "path": "tagKeys",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceArn",
+      "tagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "target": "Logs_20140328.UntagResource",
+    "path": "tagKeys[]",
+    "why": "does not match ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^([\\p{L}\\p{Z}\\p{N}_.:/=+\\-@]+)$",
+    "required_members": [
+      "resourceArn",
+      "tagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "target": "Logs_20140328.UntagResource",
+    "path": "tagKeys[]",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "resourceArn",
+      "tagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "target": "Logs_20140328.UntagResource",
+    "path": "tagKeys[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "resourceArn",
+      "tagKeys"
+    ]
+  }
+]

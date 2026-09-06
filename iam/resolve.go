@@ -47,6 +47,7 @@ var actionPrefixes = map[string]string{
 	"kinesis":        "kinesis",
 	"iam":            "iam",
 	"stepfunctions":  "states",
+	"logs":           "logs",
 }
 
 // resourceField names the request parameter holding the resource identifier

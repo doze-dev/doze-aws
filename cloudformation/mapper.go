@@ -64,6 +64,9 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		return m.stateMachineVersion(r.LogicalID, props)
 	case "AWS::StepFunctions::StateMachineAlias":
 		return m.stateMachineAlias(name, props)
+	case "AWS::Logs::LogGroup":
+		m.stack.LogGroups[name] = provision.LogGroup{RetentionDays: propInt(props, "RetentionInDays"), Tags: propTags(props)}
+		return nil
 	case "AWS::Kinesis::Stream":
 		// Streams have no stack-file section yet; the resource is accepted and
 		// reported so a template referencing one still transpiles.

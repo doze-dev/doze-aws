@@ -720,6 +720,11 @@ func jsonResource(svc, body string) string {
 		if n := str("Rule"); n != "" {
 			return n
 		}
+	case "logs":
+		if n := str("logGroupName"); n != "" {
+			return n
+		}
+		return leafName(str("logGroupIdentifier"))
 	}
 	return ""
 }

@@ -42,6 +42,15 @@ type Stack struct {
 	APIs          map[string]API
 	StateMachines map[string]StateMachine
 	Activities    map[string]Activity
+	LogGroups     map[string]LogGroup
+}
+
+// LogGroup is a CloudWatch Logs log group: a name, an optional retention in
+// days, and tags. Lambda creates /aws/lambda/<fn> itself on the first line,
+// so a template only needs one when it sets retention or names the group.
+type LogGroup struct {
+	RetentionDays int
+	Tags          map[string]string
 }
 
 // StateMachine is a Step Functions state machine: its definition text (ASL),

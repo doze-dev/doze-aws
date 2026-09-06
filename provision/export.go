@@ -40,6 +40,9 @@ func Export(ctx context.Context, gateway http.Handler) (*Stack, error) {
 	if err := exportSecrets(ctx, c, s); err != nil {
 		return nil, err
 	}
+	if err := exportLogGroups(ctx, c, s); err != nil {
+		return nil, err
+	}
 	if err := exportParameters(ctx, c, s); err != nil {
 		return nil, err
 	}

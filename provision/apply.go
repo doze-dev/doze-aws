@@ -60,6 +60,7 @@ func Apply(ctx context.Context, gateway http.Handler, s *Stack) (*Report, error)
 		{"topics", func() error { return applyTopics(ctx, c, s, rep) }},
 		{"rules", func() error { return applyRules(ctx, c, s, rep) }},
 		{"notifications", func() error { return applyNotifications(ctx, c, s, rep) }},
+		{"loggroups", func() error { return applyLogGroups(ctx, c, s, rep) }},
 		{"secrets", func() error { return applySecrets(ctx, c, s, rep) }},
 		{"parameters", func() error { return applyParameters(ctx, c, s, rep) }},
 		{"apis", func() error { return applyAPIs(ctx, c, s, rep) }},
