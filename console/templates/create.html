@@ -228,7 +228,7 @@
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
         <div class="field"><label>Name</label><input class="input" name="name" placeholder="order-flow" required pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off" autofocus></div>
         <div class="field stack"><label>Type</label>
-          <select class="input" name="type"><option value="STANDARD">STANDARD — durable, every step in the history</option><option value="EXPRESS">EXPRESS — accepted now; executions arrive with Express support</option></select></div>
+          <select class="input" name="type"><option value="STANDARD">STANDARD — durable, every step in the history</option><option value="EXPRESS">EXPRESS — runs synchronously from the Start tab; no execution history</option></select></div>
         <div class="field stack"><label>Role ARN <span class="dim">the API requires one; nothing evaluates it locally</span></label><input class="input mono" name="role" value="arn:aws:iam::000000000000:role/stepfunctions" required autocomplete="off" spellcheck="false"></div>
       </div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Definition</h2>

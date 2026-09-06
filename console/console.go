@@ -362,7 +362,7 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/task-result", c.sfnTaskResult) // HTMX partial (SendTaskSuccess / SendTaskFailure)
 	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/heartbeat", c.sfnHeartbeat)    // HTMX partial (SendTaskHeartbeat)
 	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/redrive", c.sfnRedrive)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/maprun", c.sfnMapRunUpdate)          // HTMX partial (UpdateMapRun)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/maprun", c.sfnMapRunUpdate)           // HTMX partial (UpdateMapRun)
 	m.HandleFunc("GET "+p+"/sfn/{machine}/execution/{exec}/maprun-children", c.sfnMapRunChildren) // HTMX partial (ListExecutions by mapRunArn)
 	m.HandleFunc("POST "+p+"/sfn/{machine}/start-sync", c.sfnStartSync)                           // HTMX partial (StartSyncExecution)
 	m.HandleFunc("POST "+p+"/sfn/{machine}/test-state", c.sfnTestState)                           // HTMX partial (TestState)
@@ -377,8 +377,8 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/sfn/activities", c.sfnActivities)
 	m.HandleFunc("POST "+p+"/sfn/activities/create", c.sfnActivityCreate)
 	m.HandleFunc("POST "+p+"/sfn/activities/task-result", c.sfnActivityTaskResult) // HTMX partial (SendTaskSuccess / SendTaskFailure)
-	m.HandleFunc("POST "+p+"/sfn/activities/heartbeat", c.sfnHeartbeat)             // HTMX partial (SendTaskHeartbeat)
-	m.HandleFunc("POST "+p+"/sfn/activities/{activity}/take", c.sfnActivityTake)    // HTMX partial (GetActivityTask)
+	m.HandleFunc("POST "+p+"/sfn/activities/heartbeat", c.sfnHeartbeat)            // HTMX partial (SendTaskHeartbeat)
+	m.HandleFunc("POST "+p+"/sfn/activities/{activity}/take", c.sfnActivityTake)   // HTMX partial (GetActivityTask)
 	m.HandleFunc("POST "+p+"/sfn/activities/{activity}/delete", c.sfnActivityDelete)
 
 	// Lambda.

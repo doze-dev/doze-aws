@@ -146,6 +146,58 @@ export async function createStateMachine(
   return name;
 }
 
+/** Starts an execution of a machine through the console's own form. */
+export async function startExecution(
+  request: APIRequestContext,
+  machine: string,
+  name: string,
+  opts?: { input?: string; target?: string }
+) {
+  await postForm(request, `sfn/${machine}/start`, {
+    name,
+    input: opts?.input,
+    target: opts?.target,
+  });
+  return name;
+}
+
+/** Publishes a version of a machine — the definition as it stands, frozen. */
+export async function publishVersion(
+  request: APIRequestContext,
+  machine: string,
+  description?: string
+) {
+  await postForm(request, `sfn/${machine}/publish`, { description });
+}
+
+/**
+ * Creates an alias routing to one or two versions. Weights are the
+ * service's to check (one version needs none; two must sum to 100).
+ */
+export async function createAlias(
+  request: APIRequestContext,
+  machine: string,
+  name: string,
+  routes: Array<{ version: number; weight?: number }>,
+  description?: string
+) {
+  await postForm(request, `sfn/${machine}/alias/create`, {
+    name,
+    description,
+    v1: routes[0]?.version,
+    w1: routes[0]?.weight,
+    v2: routes[1]?.version,
+    w2: routes[1]?.weight,
+  });
+  return name;
+}
+
+/** An activity: a queue a Task state parks on until a worker answers. */
+export async function createActivity(request: APIRequestContext, name: string) {
+  await postForm(request, 'sfn/activities/create', { name });
+  return `arn:aws:states:us-east-1:000000000000:activity:${name}`;
+}
+
 /**
  * Minimal Lambda create — most specs need a real invokable function, which
  * requires a runtime-appropriate code path (see e2e/fixtures/lambda-handler/

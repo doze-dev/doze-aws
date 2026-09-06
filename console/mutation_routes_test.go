@@ -37,7 +37,7 @@ import (
 // dropping below it means something regressed. It also stops the capability
 // analysis below from making the sweep vacuous — if it ever classified every
 // handler as partial-only, "all capable routes verified" would pass trivially.
-const redirectFloor = 45
+const redirectFloor = 89
 
 // splitPoint is 2^127 — the midpoint of the hash space, so it falls strictly
 // inside the single shard of a freshly created stream.
