@@ -46,6 +46,7 @@ clients still speak.
 | IAM | ✅ real policy evaluation, off by default, with least-privilege generation | **fully audited**: 702/702 across 89 of 93 dispatched operations · no known gaps |
 | CloudFormation | ✅ stacks, change sets, deletion — `sam deploy`, `cdk deploy` and Serverless all work | **fully audited**: 182/182 across 22 of 23 dispatched operations · no known gaps |
 | API Gateway | ✅ REST v1 — deployed APIs actually serve into Lambda over a real HTTP endpoint | **fully audited**: 91/95 across all 30 routed operations with constrained input · 4 not expressible on the wire · no known gaps |
+| Step Functions | ✅ Standard workflows: full ASL with intrinsics, Retry/Catch, Parallel, inline Map, task tokens; Lambda/SQS/SNS integrations | **fully audited**: 130/130 across 19 of 22 dispatched operations · 13 cases need a live task token · no known gaps |
 
 **Why two columns.** A ✅ means every documented operation of that service has a
 real handler, verified against both AWS SDK generations. It does **not** mean
@@ -63,9 +64,10 @@ models, and each service gets a rejection-parity suite as it lands
 If a gap above bites you, it is a bug worth reporting — the goal is an empty
 right-hand column.
 
-All 14 services talk to each other: EventBridge→SQS/SNS/Lambda, S3
+All 15 services talk to each other: EventBridge→SQS/SNS/Lambda, S3
 notifications→SQS/SNS/Lambda, SNS→SQS/Lambda/webhooks, SQS/DynamoDB
-streams/Kinesis→Lambda, API Gateway→Lambda.
+streams/Kinesis→Lambda, API Gateway→Lambda, Step Functions→Lambda/SQS/SNS
+and back through task tokens.
 
 ## Deploy with the tooling you already have
 

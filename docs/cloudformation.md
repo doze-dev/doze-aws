@@ -149,6 +149,7 @@ Mapped:
 | `AWS::ApiGateway::Deployment`, `::Stage`, `::Resource`, `::Method`, `::Account` | recognised; the resource tree is rebuilt from routes at apply time |
 | `AWS::Lambda::Permission`, `::Version`, `::Alias`, `::Url`, `::LayerVersion` | recognised and referenceable |
 | `AWS::S3::BucketPolicy`, `AWS::SQS::QueuePolicy`, `AWS::SNS::TopicPolicy` | recognised; no local policy evaluation |
+| `AWS::StepFunctions::StateMachine` | `DefinitionString` or `Definition`, `DefinitionSubstitutions` applied after intrinsics (what the CDK emits), type, role, tags; `DefinitionUri` is refused — inline the definition for a local deploy |
 
 Skipped with a reason: `AWS::IAM::*`, `AWS::Logs::*`, `AWS::CloudWatch::*`,
 `AWS::ECR::Repository`, `AWS::CDK::Metadata`,
@@ -185,7 +186,7 @@ supplies defaults that an explicit property overrides.
 | `Events` of type `EventBridgeRule` / `CloudWatchEvent` | an EventBridge rule |
 | `Events` of type `Api` / `HttpApi` | a route on a REST API, deployed and callable — see [api-support/apigateway.md](api-support/apigateway.md) |
 | `AWS::Serverless::Api`, `::HttpApi` | an API the function's routes attach to |
-| `AWS::Serverless::StateMachine` | refused — no Step Functions yet |
+| `AWS::Serverless::StateMachine` | a state machine; `Policies`, `Logging` and `Tracing` are dropped, and `Events` is refused by name — start executions directly or from a Lambda |
 
 A SAM `Api` event becomes a `method + path -> function` route. Several functions
 may bind to the same API, and the API is deployed to SAM's default `Prod` stage

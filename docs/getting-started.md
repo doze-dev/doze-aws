@@ -8,7 +8,7 @@ both AWS SDK generations. No Docker, no JVM, no cloud.
 
 ```sh
 doze-aws
-# msg=listening addr=127.0.0.1:4566 services=s3,dynamodb,sqs,sns,sts,kms,ssm,secretsmanager,eventbridge,lambda,kinesis,iam,cloudformation,apigateway
+# msg=listening addr=127.0.0.1:4566 services=s3,dynamodb,sqs,sns,sts,kms,ssm,secretsmanager,eventbridge,lambda,kinesis,iam,cloudformation,apigateway,stepfunctions
 ```
 
 Point any AWS SDK or the CLI at it:

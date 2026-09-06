@@ -6,7 +6,7 @@ interrupt it (Ctrl-C).
 
 ```sh
 doze-aws
-# msg=listening addr=127.0.0.1:4566 services=s3,dynamodb,sqs,sns,sts,kms,ssm,secretsmanager,eventbridge,lambda,kinesis,iam,cloudformation,apigateway
+# msg=listening addr=127.0.0.1:4566 services=s3,dynamodb,sqs,sns,sts,kms,ssm,secretsmanager,eventbridge,lambda,kinesis,iam,cloudformation,apigateway,stepfunctions
 ```
 
 ## Commands
@@ -48,7 +48,7 @@ doze-aws --iam-mode soft
 
 Service names: `s3`, `dynamodb`, `sqs`, `sns`, `sts`, `kms`, `ssm`,
 `secretsmanager`, `eventbridge`, `lambda`, `kinesis`, `iam`, `cloudformation`,
-`apigateway`.
+`apigateway`, `stepfunctions`.
 
 ## Config file
 
