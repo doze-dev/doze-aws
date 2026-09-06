@@ -146,6 +146,9 @@ var nameProperty = map[string]string{
 	"AWS::Kinesis::Stream":             "Name",
 	"AWS::Serverless::SimpleTable":     "TableName",
 	"AWS::StepFunctions::StateMachine": "StateMachineName",
+	"AWS::StepFunctions::Activity":            "Name",
+	"AWS::StepFunctions::StateMachineVersion": "",
+	"AWS::StepFunctions::StateMachineAlias":   "Name",
 	"AWS::Serverless::StateMachine":    "Name",
 	"AWS::SNS::Subscription":           "",
 	"AWS::Lambda::EventSourceMapping":  "",
@@ -211,9 +214,81 @@ func refValue(typ, name string) string {
 	case "AWS::StepFunctions::StateMachine", "AWS::Serverless::StateMachine":
 		// Ref on a state machine is its ARN, not its name.
 		return awsident.ARN("states", "stateMachine:"+name)
+	case "AWS::StepFunctions::Activity":
+		return awsident.ARN("states", "activity:"+name)
+	case "AWS::StepFunctions::StateMachineVersion":
+		// The version number is only known once the machine is published, so
+		// the Ref is a placeholder the alias mapping resolves by logical id.
+		return awsident.ARN("states", "stateMachineVersion:"+name)
+	case "AWS::StepFunctions::StateMachineAlias":
+		// Completed by aliasRefs once the machine is known: the alias ARN is
+		// the machine's with the alias name appended.
+		return awsident.ARN("states", "stateMachineAlias:"+name)
 	}
 	// Buckets, tables, functions, rules and parameters all Ref to their name.
 	return name
+}
+
+// aliasRefs completes the Ref and Arn of every StateMachineAlias, which pass
+// one cannot know: an alias ARN is its machine's ARN plus the alias name, and
+// the machine is two hops away — alias → version → StateMachineArn — through
+// unevaluated intrinsics.
+func aliasRefs(scope *Scope, resources map[string]*Resource, names map[string]string) {
+	for id, r := range resources {
+		if r.Type != "AWS::StepFunctions::StateMachineAlias" {
+			continue
+		}
+		machine := machineOfAlias(r.Properties, resources, names)
+		if machine == "" {
+			continue // the mapper reports the unresolvable reference
+		}
+		arn := awsident.ARN("states", "stateMachine:"+machine+":"+names[id])
+		scope.Refs[id] = arn
+		scope.Atts[id] = map[string]string{"Arn": arn}
+	}
+}
+
+func machineOfAlias(props map[string]any, resources map[string]*Resource, names map[string]string) string {
+	var versionRef any
+	if rc, ok := props["RoutingConfiguration"].([]any); ok && len(rc) > 0 {
+		if first, ok := rc[0].(map[string]any); ok {
+			versionRef = first["StateMachineVersionArn"]
+		}
+	}
+	if dp, ok := props["DeploymentPreference"].(map[string]any); ok && versionRef == nil {
+		versionRef = dp["StateMachineVersionArn"]
+	}
+	versionID := logicalOfIntrinsic(versionRef)
+	version, ok := resources[versionID]
+	if !ok || version.Type != "AWS::StepFunctions::StateMachineVersion" {
+		return ""
+	}
+	machineRef := version.Properties["StateMachineArn"]
+	if s, ok := machineRef.(string); ok {
+		return nameFromARN(s)
+	}
+	return names[logicalOfIntrinsic(machineRef)]
+}
+
+// logicalOfIntrinsic reads the logical id out of a raw {Ref} or {Fn::GetAtt}.
+func logicalOfIntrinsic(v any) string {
+	m, ok := v.(map[string]any)
+	if !ok {
+		return ""
+	}
+	if ref, ok := m["Ref"].(string); ok {
+		return ref
+	}
+	switch att := m["Fn::GetAtt"].(type) {
+	case []any:
+		if len(att) > 0 {
+			s, _ := att[0].(string)
+			return s
+		}
+	case string:
+		return strings.SplitN(att, ".", 2)[0]
+	}
+	return ""
 }
 
 // attributes are the Fn::GetAtt values doze-aws can answer for a resource.
@@ -283,6 +358,15 @@ func attributes(typ, name string) map[string]string {
 			"Arn":  awsident.ARN("states", "stateMachine:"+name),
 			"Name": name,
 		}
+	case "AWS::StepFunctions::Activity":
+		return map[string]string{
+			"Arn":  awsident.ARN("states", "activity:"+name),
+			"Name": name,
+		}
+	case "AWS::StepFunctions::StateMachineVersion":
+		return map[string]string{"Arn": awsident.ARN("states", "stateMachineVersion:"+name)}
+	case "AWS::StepFunctions::StateMachineAlias":
+		return map[string]string{"Arn": awsident.ARN("states", "stateMachineAlias:"+name)}
 	}
 	return map[string]string{}
 }

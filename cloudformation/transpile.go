@@ -196,6 +196,11 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 			Props: fingerprint(r.Properties),
 		})
 	}
+	names := map[string]string{}
+	for _, p := range work {
+		names[p.res.LogicalID] = p.name
+	}
+	aliasRefs(scope, t.Resources, names)
 
 	// ---- pass two: evaluate and map ----
 	stack := &provision.Stack{
@@ -210,6 +215,7 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 		Parameters:    map[string]provision.Parameter{},
 		APIs:          map[string]provision.API{},
 		StateMachines: map[string]provision.StateMachine{},
+		Activities:    map[string]provision.Activity{},
 	}
 	m := &mapper{scope: scope, stack: stack, template: t}
 	for _, p := range work {

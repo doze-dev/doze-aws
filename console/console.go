@@ -360,6 +360,26 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/sfn/{machine}/execution/{exec}/graph", c.sfnGraph)     // HTMX partial (polled GetExecutionHistory over DescribeStateMachineForExecution)
 	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/stop", c.sfnStop)
 	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/task-result", c.sfnTaskResult) // HTMX partial (SendTaskSuccess / SendTaskFailure)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/heartbeat", c.sfnHeartbeat)    // HTMX partial (SendTaskHeartbeat)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/redrive", c.sfnRedrive)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/maprun", c.sfnMapRunUpdate)          // HTMX partial (UpdateMapRun)
+	m.HandleFunc("GET "+p+"/sfn/{machine}/execution/{exec}/maprun-children", c.sfnMapRunChildren) // HTMX partial (ListExecutions by mapRunArn)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/start-sync", c.sfnStartSync)                           // HTMX partial (StartSyncExecution)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/test-state", c.sfnTestState)                           // HTMX partial (TestState)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/publish", c.sfnPublish)
+	m.HandleFunc("GET "+p+"/sfn/{machine}/version/{n}", c.sfnVersion) // HTMX partial (DescribeStateMachine on a version ARN)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/version/{n}/delete", c.sfnVersionDelete)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/alias/create", c.sfnAliasCreate)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/alias/{alias}/update", c.sfnAliasUpdate)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/alias/{alias}/delete", c.sfnAliasDelete)
+	// Activities are machine-independent, so they live beside the machines
+	// rather than under one. The literal segment wins over {machine}.
+	m.HandleFunc("GET "+p+"/sfn/activities", c.sfnActivities)
+	m.HandleFunc("POST "+p+"/sfn/activities/create", c.sfnActivityCreate)
+	m.HandleFunc("POST "+p+"/sfn/activities/task-result", c.sfnActivityTaskResult) // HTMX partial (SendTaskSuccess / SendTaskFailure)
+	m.HandleFunc("POST "+p+"/sfn/activities/heartbeat", c.sfnHeartbeat)             // HTMX partial (SendTaskHeartbeat)
+	m.HandleFunc("POST "+p+"/sfn/activities/{activity}/take", c.sfnActivityTake)    // HTMX partial (GetActivityTask)
+	m.HandleFunc("POST "+p+"/sfn/activities/{activity}/delete", c.sfnActivityDelete)
 
 	// Lambda.
 	m.HandleFunc("GET "+p+"/lambda", c.lambdaFns)

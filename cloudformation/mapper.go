@@ -22,6 +22,9 @@ type mapper struct {
 	stack    *provision.Stack
 	template *Template
 	deferred []func() error
+	// versions maps a StateMachineVersion logical id to its machine name, so
+	// an alias can resolve the placeholder ARN the version Refs to.
+	versions map[string]string
 }
 
 func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
@@ -54,6 +57,13 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		return m.parameter(name, props)
 	case "AWS::StepFunctions::StateMachine":
 		return m.stateMachine(name, props)
+	case "AWS::StepFunctions::Activity":
+		m.stack.Activities[name] = provision.Activity{Tags: propTags(props)}
+		return nil
+	case "AWS::StepFunctions::StateMachineVersion":
+		return m.stateMachineVersion(r.LogicalID, props)
+	case "AWS::StepFunctions::StateMachineAlias":
+		return m.stateMachineAlias(name, props)
 	case "AWS::Kinesis::Stream":
 		// Streams have no stack-file section yet; the resource is accepted and
 		// reported so a template referencing one still transpiles.
@@ -129,6 +139,81 @@ func (m *mapper) stateMachine(name string, props map[string]any) error {
 		Tags:       propTags(props),
 	}
 	return nil
+}
+
+// stateMachineVersion maps AWS::StepFunctions::StateMachineVersion: the
+// machine it names gets a version published on every apply. The version's
+// own Ref is a placeholder (see ref) that only an alias in the same template
+// consumes, so the mapping remembers which machine the logical id stands for.
+func (m *mapper) stateMachineVersion(logical string, props map[string]any) error {
+	machine := nameFromARN(propStr(props, "StateMachineArn"))
+	if machine == "" {
+		return fmt.Errorf("StateMachineArn is required")
+	}
+	if m.versions == nil {
+		m.versions = map[string]string{}
+	}
+	m.versions[logical] = machine
+	m.deferred = append(m.deferred, func() error {
+		sm, ok := m.stack.StateMachines[machine]
+		if !ok {
+			return fmt.Errorf("version %q references unknown state machine %q", logical, machine)
+		}
+		sm.Publish = true
+		m.stack.StateMachines[machine] = sm
+		return nil
+	})
+	return nil
+}
+
+// stateMachineAlias maps AWS::StepFunctions::StateMachineAlias. The alias
+// names its version through RoutingConfiguration or DeploymentPreference,
+// both of which carry a version's Ref; the machine comes from that. Weighted
+// or gradual routing collapses to "all traffic to the version this deploy
+// publishes", which is where CloudFormation's own deployment ends up.
+func (m *mapper) stateMachineAlias(name string, props map[string]any) error {
+	var versionRef string
+	for _, item := range propList(props, "RoutingConfiguration") {
+		if rc, ok := item.(map[string]any); ok && versionRef == "" {
+			versionRef = propStr(rc, "StateMachineVersionArn")
+		}
+	}
+	if dp := propMap(props, "DeploymentPreference"); dp != nil && versionRef == "" {
+		versionRef = propStr(dp, "StateMachineVersionArn")
+	}
+	if versionRef == "" {
+		return fmt.Errorf("an alias needs a StateMachineVersionArn in RoutingConfiguration or DeploymentPreference")
+	}
+	description := propStr(props, "Description")
+	m.deferred = append(m.deferred, func() error {
+		machine := m.machineOfVersionRef(versionRef)
+		if machine == "" {
+			return fmt.Errorf("alias %q references version %q, which is not a StateMachineVersion in this template", name, versionRef)
+		}
+		sm, ok := m.stack.StateMachines[machine]
+		if !ok {
+			return fmt.Errorf("alias %q references unknown state machine %q", name, machine)
+		}
+		if sm.Aliases == nil {
+			sm.Aliases = map[string]provision.StateMachineAlias{}
+		}
+		sm.Aliases[name] = provision.StateMachineAlias{Description: description}
+		sm.Publish = true
+		m.stack.StateMachines[machine] = sm
+		return nil
+	})
+	return nil
+}
+
+// machineOfVersionRef resolves the placeholder a StateMachineVersion's Ref
+// produces (arn:…:stateMachineVersion:<logical id>) back to its machine.
+func (m *mapper) machineOfVersionRef(ref string) string {
+	const marker = ":stateMachineVersion:"
+	i := strings.LastIndex(ref, marker)
+	if i < 0 {
+		return ""
+	}
+	return m.versions[ref[i+len(marker):]]
 }
 
 // ---- SQS ----

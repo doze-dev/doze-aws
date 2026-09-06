@@ -28,6 +28,9 @@ type StateMachine struct {
 	Updated    string
 	Revision   string
 	States     int // top-level states, counted from the definition
+	// Description is a version's — DescribeStateMachine on a version ARN
+	// carries the text it was published with; the machine itself has none.
+	Description string
 }
 
 // Execution is one run of a machine.
@@ -43,6 +46,29 @@ type Execution struct {
 	Output     string
 	Error      string
 	Cause      string
+	// What Describe adds past the list: whether it can be redriven and how
+	// often it has been, and the version, alias or Map Run it belongs to.
+	RedriveStatus string // REDRIVABLE | NOT_REDRIVABLE
+	RedriveReason string
+	RedriveCount  int
+	RedriveDate   string
+	VersionARN    string
+	AliasARN      string
+	MapRunARN     string
+}
+
+// Redrivable is what decides whether the execution page offers the button.
+func (e Execution) Redrivable() bool { return e.RedriveStatus == "REDRIVABLE" }
+
+// StartedVia names the version or alias an execution ran through, or "".
+func (e Execution) StartedVia() string {
+	switch {
+	case e.AliasARN != "":
+		return "alias " + qualifierOf(e.AliasARN)
+	case e.VersionARN != "":
+		return "version " + qualifierOf(e.VersionARN)
+	}
+	return ""
 }
 
 // HistoryEvent is one GetExecutionHistory row, flattened for a table: the
@@ -108,14 +134,34 @@ func (b *backend) DescribeStateMachine(ctx context.Context, arn string) (StateMa
 		CreationDate float64 `json:"creationDate"`
 		UpdateDate   float64 `json:"updateDate"`
 		RevisionID   string  `json:"revisionId"`
+		Description  string  `json:"description"`
 	}
 	json.Unmarshal(body, &out)
 	return StateMachine{
 		Name: out.Name, ARN: out.ARN, Type: out.Type, Status: out.Status,
 		Definition: prettyJSON(out.Definition), RoleARN: out.RoleARN,
 		Created: epochToTime(out.CreationDate), Updated: epochToTime(max(out.UpdateDate, out.CreationDate)),
-		Revision: out.RevisionID, States: countStates(out.Definition),
+		Revision: out.RevisionID, States: countStates(out.Definition), Description: out.Description,
 	}, nil
+}
+
+// stateNames lists a definition's top-level states in name order, for the
+// test-a-state select. Sorted rather than in document order: a Go map has
+// no order to keep, and a select with a predictable order is easier to
+// scan than one that follows the author's.
+func stateNames(definition string) []string {
+	var def struct {
+		States map[string]json.RawMessage `json:"States"`
+	}
+	if json.Unmarshal([]byte(definition), &def) != nil {
+		return nil
+	}
+	names := make([]string, 0, len(def.States))
+	for n := range def.States {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // countStates counts the top-level States of a definition, for the fact strip.
@@ -236,6 +282,17 @@ func (b *backend) ListExecutions(ctx context.Context, machineARN, status string)
 	if status != "" {
 		in["statusFilter"] = status
 	}
+	return b.listExecutions(ctx, in)
+}
+
+// ListMapRunExecutions lists the child executions of one Map Run. They are
+// executions of the same machine that the plain list hides — on AWS as
+// here — and mapRunArn, sent INSTEAD of the machine ARN, is the only way in.
+func (b *backend) ListMapRunExecutions(ctx context.Context, mapRunARN string) ([]Execution, error) {
+	return b.listExecutions(ctx, map[string]any{"mapRunArn": mapRunARN, "maxResults": 1000})
+}
+
+func (b *backend) listExecutions(ctx context.Context, in map[string]any) ([]Execution, error) {
 	body, err := b.sfnCall(ctx, "ListExecutions", in)
 	if err != nil {
 		return nil, err
@@ -248,6 +305,8 @@ func (b *backend) ListExecutions(ctx context.Context, machineARN, status string)
 			Status     string  `json:"status"`
 			StartDate  float64 `json:"startDate"`
 			StopDate   float64 `json:"stopDate"`
+			VersionARN string  `json:"stateMachineVersionArn"`
+			AliasARN   string  `json:"stateMachineAliasArn"`
 		} `json:"executions"`
 	}
 	json.Unmarshal(body, &out)
@@ -256,6 +315,7 @@ func (b *backend) ListExecutions(ctx context.Context, machineARN, status string)
 		execs = append(execs, Execution{
 			Name: e.Name, ARN: e.ARN, MachineARN: e.MachineARN, Machine: arnLeaf(e.MachineARN),
 			Status: e.Status, Started: epochToTime(e.StartDate), Stopped: epochToTime(e.StopDate),
+			VersionARN: e.VersionARN, AliasARN: e.AliasARN,
 		})
 	}
 	// Newest first: the one you just started is the one you are looking for.
@@ -279,12 +339,23 @@ func (b *backend) DescribeExecution(ctx context.Context, arn string) (Execution,
 		Output     string  `json:"output"`
 		Error      string  `json:"error"`
 		Cause      string  `json:"cause"`
+
+		RedriveStatus string  `json:"redriveStatus"`
+		RedriveReason string  `json:"redriveStatusReason"`
+		RedriveCount  int     `json:"redriveCount"`
+		RedriveDate   float64 `json:"redriveDate"`
+		VersionARN    string  `json:"stateMachineVersionArn"`
+		AliasARN      string  `json:"stateMachineAliasArn"`
+		MapRunARN     string  `json:"mapRunArn"`
 	}
 	json.Unmarshal(body, &out)
 	return Execution{
 		Name: out.Name, ARN: out.ARN, MachineARN: out.MachineARN, Machine: arnLeaf(out.MachineARN),
 		Status: out.Status, Started: epochToTime(out.StartDate), Stopped: epochToTime(out.StopDate),
 		Input: prettyJSON(out.Input), Output: prettyJSON(out.Output), Error: out.Error, Cause: out.Cause,
+		RedriveStatus: out.RedriveStatus, RedriveReason: out.RedriveReason,
+		RedriveCount: out.RedriveCount, RedriveDate: epochToTime(out.RedriveDate),
+		VersionARN: out.VersionARN, AliasARN: out.AliasARN, MapRunARN: out.MapRunARN,
 	}, nil
 }
 

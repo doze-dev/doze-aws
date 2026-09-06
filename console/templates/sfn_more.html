@@ -1,0 +1,266 @@
+{{/* Step Functions, the second half: versions and aliases, Express and
+     TestState, Map Runs, activities. sfn.html holds the two pages and the
+     live regions; these are the panels those pages compose. */}}
+
+{{/* The Versions & aliases tab. Publish freezes the definition as it stands;
+     an alias points at one or two versions by weight. Every form here
+     redirects back to this tab, so the tables are always the truth after a
+     change rather than a patch of it. */}}
+{{define "sfn_versions_tab"}}
+<div class="panel">
+  <div class="panel-h"><h2>{{icon "git-branch"}} Versions <span class="badge">{{len .Versions}}</span></h2><span class="dim">revision {{.Machine.Revision}} is what Publish freezes</span></div>
+  <form class="form-b sfn-inline" hx-post="{{.Prefix}}/sfn/{{.Name}}/publish" hx-indicator="#publish-spin">
+    <input class="input" name="description" placeholder="Description — optional, kept on the version" maxlength="256" autocomplete="off">
+    <span id="publish-spin" class="dim htmx-indicator">Working…</span>
+    <button class="btn btn-sm" type="submit">{{icon "plus"}} Publish version</button>
+  </form>
+  {{if .Versions}}<table class="tbl"><thead><tr><th class="right">Version</th><th>Description</th><th>Created</th><th class="right"></th></tr></thead><tbody>{{range .Versions}}
+    <tr>
+      <td class="right mono"><button type="button" class="link-btn" hx-get="{{$.Prefix}}/sfn/{{$.Name}}/version/{{.Number}}" hx-target="#sfn-version-out" hx-select="unset" hx-swap="innerHTML" title="{{.ARN}}">v{{.Number}}</button></td>
+      <td>{{if .Description}}{{.Description}}{{else}}<span class="dim">—</span>{{end}}</td>
+      <td class="dim" title="{{.Created}}">{{ago .Created}}</td>
+      <td class="right"><button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/{{$.Name}}/version/{{.Number}}/delete" hx-confirm="Delete version {{.Number}}? An alias still routing to it refuses." aria-label="Delete version {{.Number}}">{{icon "trash"}}</button></td>
+    </tr>
+  {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No versions yet — Publish freezes the definition as it stands, so an alias can point at it while you keep editing.</p></div>{{end}}
+</div>
+<div id="sfn-version-out"></div>
+
+<div class="panel">
+  <div class="panel-h"><h2>{{icon "tag"}} Aliases <span class="badge">{{len .Aliases}}</span></h2><span class="dim">a name callers pin; you move where it points</span></div>
+  {{if .Aliases}}<table class="tbl"><thead><tr><th>Alias</th><th>Routing</th><th>Description</th><th>Updated</th><th class="right"></th></tr></thead><tbody>{{range .Aliases}}
+    <tr x-data="{edit:false}">
+      <td class="mono" title="{{.ARN}}">{{.Name}}</td>
+      <td>
+        <span x-show="!edit" class="mono">{{.RoutingText}}</span>
+        {{/* The inline edit: the same two rows the create form has, posted
+             to Update. Description is left out on purpose — the model
+             treats an absent description as "keep it". */}}
+        <form x-show="edit" x-cloak class="sfn-routes" hx-post="{{$.Prefix}}/sfn/{{$.Name}}/alias/{{.Name}}/update">
+          {{range $i, $r := .Routing}}
+          <span class="sfn-route"><span class="dim">v</span><input class="input mono" name="v{{add $i 1}}" value="{{$r.Version}}" size="3" inputmode="numeric" required><input class="input mono" name="w{{add $i 1}}" value="{{$r.Weight}}" size="3" inputmode="numeric"><span class="dim">%</span></span>
+          {{end}}
+          {{if eq (len .Routing) 1}}<span class="sfn-route"><span class="dim">v</span><input class="input mono" name="v2" placeholder="—" size="3" inputmode="numeric"><input class="input mono" name="w2" placeholder="0" size="3" inputmode="numeric"><span class="dim">%</span></span>{{end}}
+          <button class="btn btn-sm" type="submit">Save</button>
+          <button type="button" class="btn btn-outline btn-sm" @click="edit=false">Cancel</button>
+        </form>
+      </td>
+      <td>{{if .Description}}{{.Description}}{{else}}<span class="dim">—</span>{{end}}</td>
+      <td class="dim" title="{{.Updated}}">{{ago .Updated}}</td>
+      <td class="right">
+        <button type="button" class="icon-btn" @click="edit=!edit" title="Edit routing" aria-label="Edit routing of {{.Name}}">{{icon "pencil"}}</button>
+        <button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/{{$.Name}}/alias/{{.Name}}/delete" hx-confirm="Delete alias “{{.Name}}”? Its versions stay; anything starting executions through the alias will find nothing." aria-label="Delete alias {{.Name}}">{{icon "trash"}}</button>
+      </td>
+    </tr>
+  {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No aliases. An alias is a name — PROD, canary — that StartExecution accepts in place of the machine and that routes to one or two versions by weight.</p></div>{{end}}
+</div>
+
+<div class="panel" x-data="{two:false}">
+  <div class="panel-h"><h2>{{icon "plus"}} Create alias</h2><span class="dim">{{if .Versions}}one version, or two with weights summing to 100{{else}}publish a version first — an alias has to point at one{{end}}</span></div>
+  <form class="form-b" hx-post="{{.Prefix}}/sfn/{{.Name}}/alias/create" hx-indicator="#alias-spin">
+    <div class="field"><label>Name <span class="dim">not a number — that would read as a version</span></label><input class="input mono" name="name" placeholder="PROD" required pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off"></div>
+    <div class="field stack"><label>Description <span class="dim">optional</span></label><input class="input" name="description" maxlength="256" autocomplete="off"></div>
+    <div class="field stack"><label>Routing</label>
+      <div class="sfn-routes">
+        <span class="sfn-route"><span class="dim">v</span><select class="input mono" name="v1" required>{{range .Versions}}<option value="{{.Number}}">{{.Number}}</option>{{end}}</select><input class="input mono" name="w1" placeholder="100" size="3" inputmode="numeric"><span class="dim">%</span></span>
+        <span class="sfn-route" x-show="two" x-cloak><span class="dim">v</span><select class="input mono" name="v2"><option value="">—</option>{{range .Versions}}<option value="{{.Number}}">{{.Number}}</option>{{end}}</select><input class="input mono" name="w2" placeholder="0" size="3" inputmode="numeric"><span class="dim">%</span></span>
+        <button type="button" class="btn btn-outline btn-sm" @click="two=!two" x-text="two?'One version':'Split across two'"></button>
+      </div>
+    </div>
+    {{template "cli" (printf "stepfunctions create-state-machine-alias --name $name --routing-configuration stateMachineVersionArn=%s:$v1,weight=$w1 [--description $description]" .ARN)}}
+    <div class="send-foot">
+      <span id="alias-spin" class="dim htmx-indicator">Working…</span>
+      <button class="btn btn-sm" type="submit"{{if not .Versions}} disabled{{end}}>Create alias</button>
+    </div>
+  </form>
+</div>
+{{end}}
+
+{{/* One version's snapshot: DescribeStateMachine on the version ARN answers
+     the frozen definition, which is the reason to click one. */}}
+{{define "sfn_version_detail"}}
+<div class="panel">
+  <div class="panel-h"><h2>{{icon "git-branch"}} Version {{.Version}}</h2><span class="dim">revision {{.Machine.Revision}} · {{if .Machine.Description}}{{.Machine.Description}} · {{end}}published {{ago .Machine.Created}}</span></div>
+  <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .Machine.ARN}}</div>
+  <pre class="code-block">{{.Machine.Definition}}</pre>
+</div>
+{{end}}
+
+{{/* The Express result: the whole run in one answer. There is no execution
+     page because there is no execution record — the panel says so rather
+     than offering a link that would 404. */}}
+{{define "sfn_sync_result"}}
+<div class="panel" id="sfn-sync-result">
+  <div class="panel-h"><h2>{{icon "zap"}} Result</h2>{{template "sfn_status" .Result.Status}}</div>
+  <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .Result.ARN}}</div>
+  <div class="factstrip">
+    <div class="fact"><div class="fx-k">Name</div><div class="fx-v mono">{{.Result.Name}}</div></div>
+    <div class="fact"><div class="fx-k">Started</div><div class="fx-v" title="{{.Result.Started}}">{{ago .Result.Started}}</div></div>
+    <div class="fact"><div class="fx-k">Billed</div><div class="fx-v num">{{.Result.BilledMs}} ms · {{.Result.BilledMB}} MB</div></div>
+  </div>
+  {{if .Result.Error}}<div class="err err-refused"><div class="err-h mono">{{.Result.Error}}</div><p class="err-msg">{{.Result.Cause}}</p></div>
+  {{else}}<div class="split">
+    <div><div class="sec-title">Input</div><pre class="code-block">{{.Result.Input}}</pre></div>
+    <div><div class="sec-title">Output</div><pre class="code-block">{{.Result.Output}}</pre></div>
+  </div>{{end}}
+  <p class="mini-note">Express executions leave no record: no history, no execution page. This panel is the whole of it — as on AWS, where only a log group would remember.</p>
+</div>
+{{end}}
+
+{{/* Test a state: one state of the editor's current text, run for real,
+     with where it would go next. A Task can have its integration mocked;
+     DEBUG and TRACE add the input/output pipeline the state applied. The
+     form includes the editor above it, so an unsaved edit is testable. */}}
+{{define "sfn_test_panel"}}
+<div class="panel" x-data="{mock:'none'}">
+  <div class="panel-h"><h2>{{icon "play"}} Test a state</h2><span class="dim">runs one state of the definition above — as edited, saved or not</span></div>
+  <form class="form-b" hx-post="{{.Prefix}}/sfn/{{.Name}}/test-state" hx-include="#sfn-def-editor" hx-target="#sfn-test-out" hx-select="unset" hx-swap="innerHTML" hx-indicator="#test-spin" data-err-slot="#sfn-test-out">
+    <div class="sfn-inline">
+      <div class="field"><label>State</label><select class="input mono" name="state" required>{{range .StateNames}}<option value="{{.}}">{{.}}</option>{{end}}</select></div>
+      <div class="field"><label>Inspection <span class="dim">DEBUG adds the path pipeline, TRACE the request too</span></label><select class="input" name="level"><option value="INFO">INFO</option><option value="DEBUG">DEBUG</option><option value="TRACE">TRACE</option></select></div>
+      <div class="field"><label>Mock <span class="dim">Task, Map or Parallel only</span></label><select class="input" name="mock" x-model="mock"><option value="none">none — call the real resource</option><option value="result">a result</option><option value="error">an error</option></select></div>
+    </div>
+    <div class="field stack"><label>Input <span class="dim">JSON — what the state receives; empty means {}</span></label><textarea name="input" data-editor="json" rows="4" spellcheck="false" placeholder='{"orderId":"A-1042"}'></textarea></div>
+    <div class="field stack" x-show="mock==='result'" x-cloak><label>Mock result <span class="dim">JSON the Task would have returned</span></label><textarea name="mock_result" data-editor="json" rows="3" spellcheck="false" placeholder='{"ok":true}'></textarea></div>
+    <div class="field stack" x-show="mock==='error'" x-cloak><label>Mock error</label><input class="input mono" name="mock_error" placeholder="Lambda.ServiceException"></div>
+    <div class="field" x-show="mock==='error'" x-cloak><label>Cause</label><input class="input" name="mock_cause" placeholder="throttled"></div>
+    {{template "cli" "stepfunctions test-state --definition $definition --state-name $state --input $input --inspection-level $level"}}
+    <div class="send-foot">
+      <span id="test-spin" class="dim htmx-indicator">Working…</span>
+      <button class="btn btn-sm" type="submit">{{icon "play"}} Run state</button>
+    </div>
+  </form>
+  <div id="sfn-test-out"></div>
+</div>
+{{end}}
+
+{{define "sfn_test_result"}}
+<div class="sfn-test-result">
+  <div class="factstrip">
+    <div class="fact"><div class="fx-k">State</div><div class="fx-v mono">{{.State}}</div></div>
+    <div class="fact"><div class="fx-k">Status</div><div class="fx-v">{{template "sfn_status" .Result.Status}}</div></div>
+    <div class="fact"><div class="fx-k">Next</div><div class="fx-v mono">{{if .Result.NextState}}{{.Result.NextState}}{{else}}<span class="dim">end</span>{{end}}</div></div>
+  </div>
+  {{if .Result.Error}}<div class="err err-refused"><div class="err-h mono">{{.Result.Error}}</div><p class="err-msg">{{.Result.Cause}}</p></div>
+  {{else}}<div class="sec-title">Output</div><pre class="code-block">{{if .Result.Output}}{{.Result.Output}}{{else}}—{{end}}</pre>{{end}}
+  {{if .Result.Inspection}}
+  <div class="sec-title">Inspection <span class="dim">{{.Level}} — the pipeline, in the order the state applied it</span></div>
+  <table class="tbl kv sfn-inspect"><tbody>{{range .Result.Inspection}}<tr><td>{{.Key}}</td><td><pre class="code-block">{{.Value}}</pre></td></tr>{{end}}</tbody></table>
+  {{end}}
+</div>
+{{end}}
+
+{{/* Map Runs, under the history of the execution that started them. One
+     small panel per run: counts by outcome, status, concurrency with its
+     inline edit, and a link that lists the children — executions of the
+     same machine the plain list hides. Lives inside the history's live
+     region, so the counts move with the events. */}}
+{{define "sfn_mapruns"}}
+{{range .MapRuns}}
+<div class="panel sfn-maprun">
+  <div class="panel-h"><h2>{{icon "layers"}} Map Run{{with .Label}} <span class="mono">{{.}}</span>{{end}}</h2>
+    <span class="badge {{if eq .Status "RUNNING"}}state-warn{{else if eq .Status "SUCCEEDED"}}state-on{{else if eq .Status "ABORTED"}}state-off{{else}}state-bad{{end}}" data-maprun-status="{{.Status}}">{{.Status}}</span></div>
+  <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}</div>
+  <table class="tbl sfn-counts"><thead><tr><th class="right">pending</th><th class="right">running</th><th class="right">succeeded</th><th class="right">failed</th><th class="right">timed out</th><th class="right">aborted</th><th class="right">total</th></tr></thead>
+    <tbody><tr>
+      <td class="right num">{{.Counts.Pending}}</td>
+      <td class="right num">{{if .Counts.Running}}<span class="warn">{{.Counts.Running}}</span>{{else}}0{{end}}</td>
+      <td class="right num">{{.Counts.Succeeded}}</td>
+      <td class="right num">{{if .Counts.Failed}}<span class="bad">{{.Counts.Failed}}</span>{{else}}0{{end}}</td>
+      <td class="right num">{{.Counts.TimedOut}}</td>
+      <td class="right num">{{.Counts.Aborted}}</td>
+      <td class="right num">{{.Counts.Total}}</td>
+    </tr></tbody></table>
+  <div class="form-b sfn-inline">
+    <form class="sfn-inline" hx-post="{{$.Prefix}}/sfn/{{$.Machine}}/execution/{{$.Name}}/maprun" hx-target="#sfn-history" hx-select="unset" hx-swap="outerHTML">
+      <input type="hidden" name="arn" value="{{.ARN}}">
+      <label class="dim">Max concurrency <span title="0 means unlimited">(0 = unlimited)</span></label>
+      <input class="input mono" name="max" value="{{.MaxConcurrency}}" size="4" inputmode="numeric" required>
+      <button class="btn btn-outline btn-sm" type="submit"{{if ne .Status "RUNNING"}} disabled title="The run has finished"{{end}}>Set concurrency</button>
+    </form>
+    <span class="dim">tolerates {{.TolCount}} failures / {{.TolPct}}%{{if .RedriveCount}} · redriven {{.RedriveCount}}×{{end}}</span>
+    <button type="button" class="btn btn-outline btn-sm" hx-get="{{$.Prefix}}/sfn/{{$.Machine}}/execution/{{$.Name}}/maprun-children?arn={{.ARN}}" hx-target="#sfn-map-children" hx-select="unset" hx-swap="innerHTML">{{icon "list"}} Child executions</button>
+  </div>
+</div>
+{{end}}
+{{end}}
+
+{{define "sfn_map_children"}}
+<div class="panel">
+  <div class="panel-h"><h2>{{icon "list"}} Child executions{{with .Label}} <span class="mono">{{.}}</span>{{end}} <span class="badge">{{len .Execs}}</span></h2><span class="dim">one per item — listed through the Map Run, never through the machine</span></div>
+  {{if .Execs}}<table class="tbl"><thead><tr><th>Execution</th><th>Started</th><th>Stopped</th><th class="right">Status</th></tr></thead><tbody>{{range .Execs}}
+    <tr>
+      <td><a class="cell-name" href="{{$.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}">{{icon "route"}} {{.Name}}</a></td>
+      <td class="dim" title="{{.Started}}">{{ago .Started}}</td>
+      <td class="dim" title="{{.Stopped}}">{{if .Stopped}}{{ago .Stopped}}{{else}}—{{end}}</td>
+      <td class="right">{{template "sfn_status" .Status}}</td>
+    </tr>
+  {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No children yet — the run has not launched an item.</p></div>{{end}}
+</div>
+{{end}}
+
+{{/* The activities page. Create one, see them, take a task from one and
+     answer it — the whole worker loop, by hand. */}}
+{{define "sfn_activities"}}{{template "shell_top" .}}
+  {{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "@activities" "ActCount" .ActCount)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "sfn"}} Activities <span class="badge">{{len .Activities}}</span></div>
+      <p class="det-sub">An activity is a queue with no code behind it. A Task whose Resource is the activity ARN parks with a token; a worker polls GetActivityTask, does the work, and answers with SendTaskSuccess or SendTaskFailure. Here, the worker can be you.</p>
+    </div>
+    <div class="det-b">
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "plus"}} Create activity</h2></div>
+        <form class="form-b sfn-inline" hx-post="{{.Prefix}}/sfn/activities/create" hx-indicator="#act-spin">
+          <input class="input mono" name="name" placeholder="approve-order" required pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off" autofocus>
+          <span id="act-spin" class="dim htmx-indicator">Working…</span>
+          <button class="btn btn-sm" type="submit">Create</button>
+        </form>
+        {{template "cli" "stepfunctions create-activity --name $name"}}
+      </div>
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "inbox"}} Activities</h2><span class="dim">Take a task waits two seconds for one to be queued, then says so</span></div>
+        {{if .Activities}}<table class="tbl"><thead><tr><th>Name</th><th>ARN</th><th>Created</th><th class="right"></th></tr></thead><tbody>{{range .Activities}}
+          <tr>
+            <td class="mono">{{.Name}}</td>
+            <td>{{template "copychip" dict "Label" "" "Value" .ARN}}</td>
+            <td class="dim" title="{{.Created}}">{{ago .Created}}</td>
+            <td class="right">
+              <button type="button" class="btn btn-outline btn-sm" hx-post="{{$.Prefix}}/sfn/activities/{{.Name}}/take" hx-target="#sfn-task-out" hx-select="unset" hx-swap="innerHTML" hx-indicator="#take-spin-{{slug .Name}}" data-err-slot="#sfn-task-out">{{icon "download"}} Take a task</button>
+              <span id="take-spin-{{slug .Name}}" class="dim htmx-indicator">polling…</span>
+              <button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/activities/{{.Name}}/delete" hx-confirm="Delete activity “{{.Name}}”? A Task state naming it will fail to schedule." aria-label="Delete activity {{.Name}}">{{icon "trash"}}</button>
+            </td>
+          </tr>
+        {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No activities. Create one, then name its ARN as a Task's Resource — the execution parks there until a worker answers.</p></div>{{end}}
+      </div>
+      <div id="sfn-task-out"></div>
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{/* What Take a task answers: the task, with the token already in the
+     result form — or the empty poll, said plainly. */}}
+{{define "sfn_activity_task"}}
+<div class="panel" id="sfn-activity-task">
+  {{if .Task}}
+  <div class="panel-h"><h2>{{icon "download"}} Task from {{.Activity.Name}}</h2><span class="dim">claimed — the execution waits on this form now, and its HeartbeatSeconds clock is running</span></div>
+  <div class="chips">{{template "copychip" dict "Label" "token" "Value" .Task.Token}}</div>
+  <div class="sec-title">Input</div>
+  <pre class="code-block">{{.Task.Input}}</pre>
+  {{template "sfn_task_form" dict "Prefix" .Prefix
+      "Action" (printf "%s/sfn/activities/task-result" .Prefix)
+      "Heartbeat" (printf "%s/sfn/activities/heartbeat" .Prefix)
+      "Target" "#sfn-activity-task" "Swap" "outerHTML" "Token" .Task.Token "Activity" .Activity.Name
+      "TokenHint" "filled in from the task you took"}}
+  {{else}}
+  <div class="panel-h"><h2>{{icon "inbox"}} Nothing queued on {{.Activity.Name}}</h2></div>
+  <div class="empty flat"><p>No task arrived within two seconds. A Task state with <span class="mono">"Resource": "{{.Activity.ARN}}"</span> queues one the moment an execution reaches it.</p></div>
+  {{end}}
+</div>
+{{end}}
+
+{{define "sfn_activity_done"}}
+<div class="panel">
+  <div class="panel-h"><h2>{{icon "check"}} {{if .Success}}Task succeeded{{else}}Task failed{{end}}</h2><span class="dim">{{if .Success}}the execution moves on with your output{{else}}Retry and Catch on the Task decide what happens next{{end}}</span></div>
+  <div class="empty flat"><p>The token is spent. {{with .Activity}}Take another from <span class="mono">{{.}}</span> if more are queued.{{end}}</p></div>
+</div>
+{{end}}

@@ -4,11 +4,16 @@
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sfn/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{if eq .Type "EXPRESS"}}express{{else}}standard{{end}}</span></a>
   {{else}}{{template "lp_empty" dict "Svc" "sfn" "Prefix" $.Prefix}}
     {{end}}
+  {{/* Activities belong to no machine, so they are a row under the machines
+       rather than one of them — dim, last, and outside the filter, the way
+       a footer link is. The count is the pseudo-row's only number; the
+       create page passes none and shows none. */}}
+  <a class="li lp-pseudo {{if eq "@activities" $.Sel}}on{{end}}" href="{{$.Prefix}}/sfn/activities" x-data><span class="nm">{{icon "inbox"}} Activities</span>{{with .ActCount}}<span class="sb">{{.}}</span>{{end}}</a>
 {{template "lp_foot" .}}
 {{end}}
 
 {{define "sfn_home"}}{{template "shell_top" .}}
-  {{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  {{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "" "ActCount" .ActCount)}}
   {{template "empty_detail" dict "Svc" "sfn" "Prefix" $.Prefix "Empty" (not .List)}}
 {{template "shell_bottom" .}}{{end}}
 
@@ -18,7 +23,7 @@
 {{define "sfn_status"}}<span class="badge {{if eq . "RUNNING"}}state-warn{{else if eq . "SUCCEEDED"}}state-on{{else if eq . "ABORTED"}}state-off{{else}}state-bad{{end}}" data-status="{{.}}">{{.}}</span>{{end}}
 
 {{define "sfn_machine"}}{{template "shell_top" .}}
-  {{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Name)}}
+  {{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Name "ActCount" .ActCount)}}
   <section class="detail">
     <div class="det-h">
       <div class="det-title">{{awsIcon "sfn"}} {{.Name}} <span class="badge type">{{.Machine.Type}}</span>
@@ -37,6 +42,7 @@
         (dict "Key" "start" "Label" "Start execution" "Icon" "send" "URL" (printf "%s/sfn/%s?tab=start" .Prefix .Name))
         (dict "Key" "graph" "Label" "Graph" "Icon" "route" "URL" (printf "%s/sfn/%s?tab=graph" .Prefix .Name))
         (dict "Key" "definition" "Label" "Definition" "Icon" "settings" "URL" (printf "%s/sfn/%s?tab=definition" .Prefix .Name))
+        (dict "Key" "versions" "Label" "Versions & aliases" "Icon" "git-branch" "URL" (printf "%s/sfn/%s?tab=versions" .Prefix .Name))
         (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/sfn/%s?tab=tags" .Prefix .Name)))}}
     </div>
 
@@ -51,7 +57,7 @@
       <div class="panel">
         <div class="panel-h"><h2>{{icon "settings"}} Definition</h2><span class="dim">revision {{.Machine.Revision}} · {{if .Machine.RoleARN}}<span class="mono">{{.Machine.RoleARN}}</span>{{else}}no role{{end}}</span></div>
         <form class="form-b" hx-post="{{.Prefix}}/sfn/{{.Name}}/definition" hx-indicator="#submit-spin" data-err-slot="#sfn-def-out">
-          <div class="field"><textarea name="definition" data-editor="json" rows="18" spellcheck="false" required>{{.Machine.Definition}}</textarea></div>
+          <div class="field"><textarea id="sfn-def-editor" name="definition" data-editor="json" rows="18" spellcheck="false" required>{{.Machine.Definition}}</textarea></div>
           <div id="sfn-def-out"></div>
           <div class="send-foot">
             <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sfn/validate" hx-include="closest form" hx-target="#sfn-def-out" hx-select="unset" hx-swap="innerHTML">{{icon "check"}} Validate</button>
@@ -60,6 +66,12 @@
           </div>
         </form>
       </div>
+      {{template "sfn_test_panel" .}}
+    </div>
+
+    {{else if eq .Tab "versions"}}
+    <div class="det-b">
+      {{template "sfn_versions_tab" .}}
     </div>
 
     {{else if eq .Tab "graph"}}
@@ -74,20 +86,44 @@
 
     {{else if eq .Tab "start"}}
     <div class="det-b">
+      {{/* One form, two submits. A Standard machine's execution has a page,
+           so Start redirects to it. An Express execution has no record — on
+           AWS or here — so the honest control is the synchronous run, whose
+           answer IS the result, rendered where the form was. The "Run as"
+           select is the same field either way: a version or alias qualifier
+           the handler appends to this machine's ARN. */}}
       <div class="panel">
-        <div class="panel-h"><h2>{{icon "send"}} Start execution</h2><span class="dim">lands you on its history as it runs</span></div>
+        <div class="panel-h"><h2>{{icon "send"}} Start execution</h2><span class="dim">{{if .Express}}runs to completion and answers here — Express executions keep no history to visit{{else}}lands you on its history as it runs{{end}}</span></div>
         <div class="form-b">
-        <form hx-post="{{.Prefix}}/sfn/{{.Name}}/start" hx-indicator="#submit-spin">
+        <form hx-post="{{.Prefix}}/sfn/{{.Name}}/{{if .Express}}start-sync{{else}}start{{end}}" hx-indicator="#submit-spin"{{if .Express}} hx-target="#sfn-sync-out" hx-select="unset" hx-swap="innerHTML" data-err-slot="#sfn-sync-out"{{end}}>
           <div class="field"><label>Name <span class="dim">optional — one is generated</span></label><input class="input mono" name="name" placeholder="order-1042" pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off"></div>
+          <div class="field stack"><label>Run as <span class="dim">the machine as it stands, or a frozen version, or whatever an alias routes to</span></label>
+            <select class="input" name="target">
+              <option value="">{{.Name}} — current definition</option>
+              {{range .Aliases}}<option value="{{.Name}}">alias {{.Name}} → {{.RoutingText}}</option>{{end}}
+              {{range .Versions}}<option value="{{.Number}}">version {{.Number}}{{with .Description}} — {{.}}{{end}}</option>{{end}}
+            </select></div>
           <div class="field stack"><label>Input <span class="dim">JSON — the first state's input; empty means {}</span></label><textarea name="input" data-editor="json" rows="6" spellcheck="false" placeholder='{"orderId":"A-1042"}'></textarea></div>
-          {{template "cli" (printf "stepfunctions start-execution --state-machine-arn %s [--name $name] [--input $input]" .ARN)}}
+          {{template "cli" (printf "stepfunctions %s --state-machine-arn %s[:$target] [--name $name] [--input $input]" (or (and .Express "start-sync-execution") "start-execution") .ARN)}}
           <div class="pub-actions">
             <span class="dim pub-hint"><span class="kbd">⌘⏎</span> starts</span>
             <span id="submit-spin" class="dim htmx-indicator">Working…</span>
-            <button class="btn" type="submit">{{icon "send"}} Start</button>
+            <button class="btn" type="submit">{{icon "send"}} {{if .Express}}Run synchronously{{else}}Start{{end}}</button>
           </div>
         </form>
         </div>
+      </div>
+      {{if .Express}}<div id="sfn-sync-out"></div>{{end}}
+    </div>
+
+    {{else if .Express}}
+    <div class="det-b">
+      {{/* ListExecutions refuses an EXPRESS machine — there is nothing to
+           list. Not the Standard empty state, which would promise rows that
+           can never appear. */}}
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "list"}} Executions</h2><span class="badge type">EXPRESS</span></div>
+        <div class="empty flat"><p>Express executions leave no record — no list, no history, no page. Run one synchronously and read the result where you started it.</p><a class="btn btn-outline btn-sm" href="{{$.Prefix}}/sfn/{{.Name}}?tab=start">{{icon "send"}} Run one</a></div>
       </div>
     </div>
 
@@ -139,19 +175,27 @@
 {{end}}
 
 {{define "sfn_execution"}}{{template "shell_top" .}}
-  {{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Machine)}}
+  {{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Machine "ActCount" .ActCount)}}
   <section class="detail">
     <div class="det-h">
       <div class="det-title"><a class="dim" href="{{.Prefix}}/sfn/{{.Machine}}">{{awsIcon "sfn"}} {{.Machine}}</a> <span class="dim">/</span> {{.Name}}
         <div class="acts">
+          {{/* Redrive is offered exactly when DescribeExecution says
+               REDRIVABLE: finished other than SUCCEEDED, Standard, within
+               14 days. The reason it is not is in the fact strip below, so
+               a missing button is never a mystery. */}}
+          {{if .Exec.Redrivable}}<button class="btn btn-outline" hx-post="{{.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}/redrive" hx-confirm="Redrive “{{.Name}}”? The states that finished stay finished; the failed, aborted or timed-out ones run again with the input they had.">{{icon "rotate"}} Redrive</button>{{end}}
           {{if eq .Exec.Status "RUNNING"}}<button class="btn btn-outline danger" hx-post="{{.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}/stop" hx-confirm="Stop execution “{{.Name}}”? It ends ABORTED; a parked task token stays unredeemable.">{{icon "x"}} Stop</button>{{end}}
         </div></div>
-      <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}</div>
+      <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}{{with .Exec.MapRunARN}}{{template "copychip" dict "Label" "map run" "Value" .}}{{end}}</div>
       <div class="factstrip">
         <div class="fact"><div class="fx-k">Status</div><div class="fx-v" id="sum-sfn-exec-status">{{template "sfn_status" .Exec.Status}}</div></div>
         <div class="fact"><div class="fx-k">Started</div><div class="fx-v" title="{{.Exec.Started}}">{{ago .Exec.Started}}</div></div>
         <div class="fact"><div class="fx-k">Stopped</div><div class="fx-v" title="{{.Exec.Stopped}}">{{if .Exec.Stopped}}{{ago .Exec.Stopped}}{{else}}—{{end}}</div></div>
         {{if .Exec.Error}}<div class="fact"><div class="fx-k">Error</div><div class="fx-v mono"><span class="bad" title="{{.Exec.Cause}}">{{.Exec.Error}}</span></div></div>{{end}}
+        {{with .Exec.StartedVia}}<div class="fact"><div class="fx-k">Started via</div><div class="fx-v mono">{{.}}</div></div>{{end}}
+        {{if .Exec.RedriveCount}}<div class="fact"><div class="fx-k">Redriven</div><div class="fx-v num" id="sum-sfn-exec-redrives" title="last {{.Exec.RedriveDate}}">{{.Exec.RedriveCount}}× · {{ago .Exec.RedriveDate}}</div></div>
+        {{else if and (ne .Exec.Status "RUNNING") (ne .Exec.Status "SUCCEEDED") (not .Exec.Redrivable)}}<div class="fact"><div class="fx-k">Redrive</div><div class="fx-v dim" title="{{.Exec.RedriveReason}}">not possible</div></div>{{end}}
       </div>
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "history" "Label" "History" "Icon" "list" "URL" (printf "%s/sfn/%s/execution/%s" .Prefix .Machine .Name))
@@ -176,6 +220,7 @@
            one hash — both go quiet together when the execution stops. */}}
       {{template "sfn_graph_live" .}}
       {{template "sfn_history" .}}
+      <div id="sfn-map-children"></div>
     </div>
 
     {{else if eq .Tab "definition"}}
@@ -190,6 +235,9 @@
     {{else}}
     <div class="det-b">
       {{template "sfn_history" .}}
+      {{/* The Map Run children list lands here — OUTSIDE the live region,
+           so a poll that replaces the history does not take it with it. */}}
+      <div id="sfn-map-children"></div>
     </div>
     {{end}}
   </section>
@@ -216,21 +264,39 @@
       </tr>
     {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No events yet.</p></div>{{end}}
   </div>
+  {{if .MapRuns}}{{template "sfn_mapruns" .}}{{end}}
   {{if eq .Exec.Status "RUNNING"}}
-  <div class="panel" x-data="{outcome:'success'}">
+  <div class="panel">
     <div class="panel-h"><h2>{{icon "send"}} Send task result</h2><span class="dim">for a state parked on .waitForTaskToken — you are the worker</span></div>
-    <form class="form-b" hx-post="{{.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}/task-result" hx-target="#sfn-history" hx-select="unset" hx-swap="outerHTML">
-      <div class="field"><label>Task token <span class="dim">from the parameters the Task sent — a TaskScheduled row above</span></label><input class="input mono" name="token" required autocomplete="off" spellcheck="false"></div>
-      <div class="field stack"><span class="ws-seg">
-        <a href="#" @click.prevent="outcome='success'" :class="outcome==='success'&&'on'">Success</a>
-        <a href="#" @click.prevent="outcome='failure'" :class="outcome==='failure'&&'on'">Failure</a></span>
-        <input type="hidden" name="outcome" :value="outcome"></div>
-      <div class="field" x-show="outcome==='success'"><label>Output <span class="dim">JSON — empty means {}</span></label><textarea name="output" data-editor="json" rows="3" spellcheck="false" placeholder='{"approved":true}'></textarea></div>
-      <div class="field" x-show="outcome==='failure'" x-cloak><label>Error <span class="dim">the name Retry and Catch match on</span></label><input class="input mono" name="error" placeholder="ApprovalDenied"></div>
-      <div class="field" x-show="outcome==='failure'" x-cloak><label>Cause</label><input class="input" name="cause" placeholder="rejected by reviewer"></div>
-      <div class="send-foot"><button class="btn btn-sm" type="submit">Send</button></div>
-    </form>
+    {{template "sfn_task_form" dict "Prefix" .Prefix
+        "Action" (printf "%s/sfn/%s/execution/%s/task-result" .Prefix .Machine .Name)
+        "Heartbeat" (printf "%s/sfn/%s/execution/%s/heartbeat" .Prefix .Machine .Name)
+        "Target" "#sfn-history" "Swap" "outerHTML" "Token" "" "Activity" ""
+        "TokenHint" "from the parameters the Task sent — a TaskScheduled row above"}}
   </div>
   {{end}}
 </div>
+{{end}}
+
+{{/* The task-result form, shared by the history panel (token pasted) and
+     the activities page (token filled in by Take a task). Success sends an
+     output, Failure an error and cause; Heartbeat only resets the
+     HeartbeatSeconds clock and swaps nothing. dict: Prefix, Action,
+     Heartbeat, Target, Swap, Token, TokenHint, Activity. */}}
+{{define "sfn_task_form"}}
+<form class="form-b" x-data="{outcome:'success'}" hx-post="{{.Action}}" hx-target="{{.Target}}" hx-select="unset" hx-swap="{{.Swap}}">
+  {{with .Activity}}<input type="hidden" name="activity" value="{{.}}">{{end}}
+  <div class="field"><label>Task token <span class="dim">{{.TokenHint}}</span></label><input class="input mono" name="token" value="{{.Token}}" required autocomplete="off" spellcheck="false"></div>
+  <div class="field stack"><span class="ws-seg">
+    <a href="#" @click.prevent="outcome='success'" :class="outcome==='success'&&'on'">Success</a>
+    <a href="#" @click.prevent="outcome='failure'" :class="outcome==='failure'&&'on'">Failure</a></span>
+    <input type="hidden" name="outcome" :value="outcome"></div>
+  <div class="field" x-show="outcome==='success'"><label>Output <span class="dim">JSON — empty means {}</span></label><textarea name="output" data-editor="json" rows="3" spellcheck="false" placeholder='{"approved":true}'></textarea></div>
+  <div class="field" x-show="outcome==='failure'" x-cloak><label>Error <span class="dim">the name Retry and Catch match on</span></label><input class="input mono" name="error" placeholder="ApprovalDenied"></div>
+  <div class="field" x-show="outcome==='failure'" x-cloak><label>Cause</label><input class="input" name="cause" placeholder="rejected by reviewer"></div>
+  <div class="send-foot">
+    <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Heartbeat}}" hx-include="closest form" hx-swap="none" title="Reset the task's HeartbeatSeconds clock without answering">{{icon "activity"}} Heartbeat</button>
+    <button class="btn btn-sm" type="submit">Send</button>
+  </div>
+</form>
 {{end}}

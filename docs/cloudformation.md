@@ -150,6 +150,9 @@ Mapped:
 | `AWS::Lambda::Permission`, `::Version`, `::Alias`, `::Url`, `::LayerVersion` | recognised and referenceable |
 | `AWS::S3::BucketPolicy`, `AWS::SQS::QueuePolicy`, `AWS::SNS::TopicPolicy` | recognised; no local policy evaluation |
 | `AWS::StepFunctions::StateMachine` | `DefinitionString` or `Definition`, `DefinitionSubstitutions` applied after intrinsics (what the CDK emits), type, role, tags; `DefinitionUri` is refused — inline the definition for a local deploy |
+| `AWS::StepFunctions::StateMachineVersion` | publishes the machine's revision on every deploy; an unchanged definition keeps its version. Its `Ref` is a placeholder only an alias in the same template can consume, because the version number is not known until the machine is published |
+| `AWS::StepFunctions::StateMachineAlias` | `Name`, `Description`, and the version named by `RoutingConfiguration` or `DeploymentPreference`; every alias routes all of its traffic to the version this deploy publishes, which is where a gradual deployment ends up. `Ref` and `Arn` are the real alias ARN |
+| `AWS::StepFunctions::Activity` | `Name` and tags; `Ref` and `Arn` are the activity ARN a Task's `Resource` names |
 
 Skipped with a reason: `AWS::IAM::*`, `AWS::Logs::*`, `AWS::CloudWatch::*`,
 `AWS::ECR::Repository`, `AWS::CDK::Metadata`,

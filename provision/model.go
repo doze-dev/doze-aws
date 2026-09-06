@@ -41,6 +41,7 @@ type Stack struct {
 	Parameters    map[string]Parameter
 	APIs          map[string]API
 	StateMachines map[string]StateMachine
+	Activities    map[string]Activity
 }
 
 // StateMachine is a Step Functions state machine: its definition text (ASL),
@@ -52,6 +53,27 @@ type StateMachine struct {
 	RoleARN    string
 	Type       string // STANDARD | EXPRESS; empty means STANDARD
 	Tags       map[string]string
+	// Publish records a version of the definition on every apply — what an
+	// AWS::StepFunctions::StateMachineVersion in the template asks for.
+	// Publishing an unchanged revision returns the version it already has,
+	// so a repeated deploy does not pile up versions.
+	Publish bool
+	// Aliases, by name, each routing all of its traffic to the version this
+	// apply published. CloudFormation's DeploymentPreference shifts an alias
+	// between two versions over minutes; locally the shift is instant, which
+	// is the outcome a deploy converges to anyway.
+	Aliases map[string]StateMachineAlias
+}
+
+// StateMachineAlias is a named pointer at a state machine's current version.
+type StateMachineAlias struct {
+	Description string
+}
+
+// Activity is a Step Functions activity: a named queue a worker polls with
+// GetActivityTask. It has no configuration beyond its name and tags.
+type Activity struct {
+	Tags map[string]string
 }
 
 // API is a REST API fronting Lambda functions.

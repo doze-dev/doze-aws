@@ -28,7 +28,7 @@ func (c *Console) sfnMachines(w http.ResponseWriter, r *http.Request) {
 		c.sfnMachine(w, r)
 		return
 	}
-	c.render(w, r, "sfn_home", map[string]any{"List": sms, "Title": "Step Functions"})
+	c.render(w, r, "sfn_home", map[string]any{"List": sms, "Title": "Step Functions", "ActCount": c.sfnActivityCount(r)})
 }
 
 func (c *Console) sfnCreate(w http.ResponseWriter, r *http.Request) {
@@ -79,14 +79,24 @@ func (c *Console) sfnMachine(w http.ResponseWriter, r *http.Request) {
 	}
 	sms, _ := c.be.ListStateMachines(r.Context())
 	data := map[string]any{
-		"Machine": sm, "Name": name, "ARN": sm.ARN, "List": sms,
+		"Machine": sm, "Name": name, "ARN": sm.ARN, "List": sms, "ActCount": c.sfnActivityCount(r),
 		"Tab": tabOf(r, "executions"), "Title": name + " · Step Functions",
+		"Express": sm.Type == "EXPRESS",
 	}
 	for k, v := range c.sfnExecutionsData(r, name) {
 		data[k] = v
 	}
-	if data["Tab"] == "graph" {
+	switch data["Tab"] {
+	case "graph":
 		data["Graph"], data["GraphErr"] = graphOf(sm.Definition, nil, false)
+	case "definition":
+		data["StateNames"] = stateNames(sm.Definition)
+	case "versions", "start":
+		// The Start tab's "Run as" select lists the same versions and
+		// aliases the tab manages.
+		for k, v := range c.sfnVersionsData(r, name) {
+			data[k] = v
+		}
 	}
 	c.render(w, r, "sfn_machine", data)
 }
@@ -121,12 +131,19 @@ func (c *Console) sfnExecutions(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) sfnStart(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("machine")
-	arn, err := c.be.StartExecution(r.Context(), stateMachineARNOf(name), r.FormValue("name"), r.FormValue("input"))
+	arn, err := c.be.StartExecution(r.Context(), startTargetOf(r, name), r.FormValue("name"), r.FormValue("input"))
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
-	_, exec := parseExecutionARN(arn)
+	machine, exec := parseExecutionARN(arn)
+	if machine == "" {
+		// An Express execution's ARN says :express:, and there is no record
+		// behind it to visit — AWS keeps none either. The Start tab offers
+		// the synchronous run for exactly this reason.
+		c.redirect(w, r, c.prefix+"/sfn/"+name+"?tab=start", "Express execution started — it leaves no record; run it synchronously to see the result")
+		return
+	}
 	c.redirect(w, r, c.prefix+"/sfn/"+name+"/execution/"+exec, "Execution “"+exec+"” started")
 }
 
@@ -149,7 +166,7 @@ func (c *Console) sfnExecution(w http.ResponseWriter, r *http.Request) {
 	}
 	sms, _ := c.be.ListStateMachines(r.Context())
 	data := map[string]any{
-		"Exec": ex, "Machine": machine, "Name": name, "ARN": arn, "List": sms,
+		"Exec": ex, "Machine": machine, "Name": name, "ARN": arn, "List": sms, "ActCount": c.sfnActivityCount(r),
 		"Tab": tabOf(r, "history"), "Title": name + " · " + machine + " · Step Functions",
 	}
 	switch data["Tab"] {
@@ -178,8 +195,13 @@ func (c *Console) sfnHistoryData(r *http.Request, machine, name string) map[stri
 	if n := len(evs); n > 0 {
 		parts = append(parts, strconv.FormatInt(evs[n-1].ID, 10))
 	}
+	// A Distributed Map's runs render under the history and move while it
+	// does — counts, status, concurrency — so they are part of what the
+	// region hashes. One region, one poll.
+	runs, runParts := c.sfnMapRunsFor(r, arn)
+	parts = append(parts, runParts...)
 	return map[string]any{
-		"Machine": machine, "Name": name, "Exec": ex, "Events": evs,
+		"Machine": machine, "Name": name, "Exec": ex, "Events": evs, "MapRuns": runs,
 		"Hash": contentHash(parts...),
 	}
 }

@@ -9,9 +9,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 func applyStateMachines(ctx context.Context, c *client, s *Stack, rep *Report) error {
+	if err := applyActivities(ctx, c, s, rep); err != nil {
+		return err
+	}
 	for _, name := range sortedNames(s.StateMachines) {
 		sm := s.StateMachines[name]
 		in := map[string]any{
@@ -32,23 +37,88 @@ func applyStateMachines(ctx context.Context, c *client, s *Stack, rep *Report) e
 		_, err := c.sfn(ctx, "CreateStateMachine", in)
 		if err == nil {
 			rep.add("created", "statemachine/"+name, "")
+		} else {
+			var ae *apiErr
+			if !asAPIErr(err, &ae) || !strings.Contains(ae.body, "StateMachineAlreadyExists") {
+				return fmt.Errorf("state machine %q: %w", name, err)
+			}
+			upd := map[string]any{
+				"stateMachineArn": stateMachineARN(name),
+				"definition":      sm.Definition,
+			}
+			if sm.RoleARN != "" {
+				upd["roleArn"] = sm.RoleARN
+			}
+			if _, err := c.sfn(ctx, "UpdateStateMachine", upd); err != nil {
+				return fmt.Errorf("state machine %q update: %w", name, err)
+			}
+			rep.add("updated", "statemachine/"+name, "definition")
+		}
+		if err := applyVersionAndAliases(ctx, c, name, sm, rep); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// applyVersionAndAliases publishes the machine's current revision when the
+// stack asks for a version, then points every alias at it. Publishing is
+// idempotent on an unchanged revision, and an alias converges through
+// UpdateStateMachineAlias, so a repeated deploy changes nothing.
+func applyVersionAndAliases(ctx context.Context, c *client, name string, sm StateMachine, rep *Report) error {
+	if !sm.Publish && len(sm.Aliases) == 0 {
+		return nil
+	}
+	out, err := c.sfn(ctx, "PublishStateMachineVersion", map[string]any{"stateMachineArn": stateMachineARN(name)})
+	if err != nil {
+		return fmt.Errorf("state machine %q publish: %w", name, err)
+	}
+	var published struct {
+		ARN string `json:"stateMachineVersionArn"`
+	}
+	json.Unmarshal(out, &published)
+	rep.add("published", "statemachine/"+name, published.ARN)
+
+	for _, alias := range sortedNames(sm.Aliases) {
+		routing := []map[string]any{{"stateMachineVersionArn": published.ARN, "weight": 100}}
+		in := map[string]any{"name": alias, "routingConfiguration": routing}
+		if d := sm.Aliases[alias].Description; d != "" {
+			in["description"] = d
+		}
+		if _, err := c.sfn(ctx, "CreateStateMachineAlias", in); err == nil {
+			rep.add("created", "statemachine/"+name+"/alias/"+alias, published.ARN)
 			continue
+		} else {
+			var ae *apiErr
+			if !asAPIErr(err, &ae) || !strings.Contains(ae.body, "ConflictException") {
+				return fmt.Errorf("state machine %q alias %q: %w", name, alias, err)
+			}
 		}
-		var ae *apiErr
-		if !asAPIErr(err, &ae) || !strings.Contains(ae.body, "StateMachineAlreadyExists") {
-			return fmt.Errorf("state machine %q: %w", name, err)
+		upd := map[string]any{"stateMachineAliasArn": stateMachineARN(name) + ":" + alias, "routingConfiguration": routing}
+		if d := sm.Aliases[alias].Description; d != "" {
+			upd["description"] = d
 		}
-		upd := map[string]any{
-			"stateMachineArn": stateMachineARN(name),
-			"definition":      sm.Definition,
+		if _, err := c.sfn(ctx, "UpdateStateMachineAlias", upd); err != nil {
+			return fmt.Errorf("state machine %q alias %q update: %w", name, alias, err)
 		}
-		if sm.RoleARN != "" {
-			upd["roleArn"] = sm.RoleARN
+		rep.add("updated", "statemachine/"+name+"/alias/"+alias, published.ARN)
+	}
+	return nil
+}
+
+// applyActivities creates each activity; CreateActivity on an existing name
+// answers the existing activity, so this converges without a lookup.
+func applyActivities(ctx context.Context, c *client, s *Stack, rep *Report) error {
+	for _, name := range sortedNames(s.Activities) {
+		a := s.Activities[name]
+		in := map[string]any{"name": name}
+		if len(a.Tags) > 0 {
+			in["tags"] = tagList(a.Tags, "key", "value")
 		}
-		if _, err := c.sfn(ctx, "UpdateStateMachine", upd); err != nil {
-			return fmt.Errorf("state machine %q update: %w", name, err)
+		if _, err := c.sfn(ctx, "CreateActivity", in); err != nil {
+			return fmt.Errorf("activity %q: %w", name, err)
 		}
-		rep.add("updated", "statemachine/"+name, "definition")
+		rep.add("created", "activity/"+name, "")
 	}
 	return nil
 }
@@ -85,19 +155,91 @@ func exportStateMachines(ctx context.Context, c *client, s *Stack) error {
 		if s.StateMachines == nil {
 			s.StateMachines = map[string]StateMachine{}
 		}
-		s.StateMachines[m.Name] = StateMachine{
-			Definition: d.Definition, RoleARN: d.RoleArn, Type: d.Type,
+		sm := StateMachine{Definition: d.Definition, RoleARN: d.RoleArn, Type: d.Type}
+		if err := exportVersionAndAliases(ctx, c, m.Arn, &sm); err != nil {
+			return fmt.Errorf("state machine %q: %w", m.Name, err)
 		}
+		s.StateMachines[m.Name] = sm
+	}
+	return exportActivities(ctx, c, s)
+}
+
+// exportVersionAndAliases marks a machine with published versions as one to
+// publish, and carries its aliases by name — their routing is not exported,
+// because the apply side always points an alias at the version it publishes.
+func exportVersionAndAliases(ctx context.Context, c *client, arn string, sm *StateMachine) error {
+	out, err := c.sfn(ctx, "ListStateMachineVersions", map[string]any{"stateMachineArn": arn})
+	if err != nil {
+		return fmt.Errorf("list versions: %w", err)
+	}
+	var versions struct {
+		Versions []json.RawMessage `json:"stateMachineVersions"`
+	}
+	json.Unmarshal(out, &versions)
+	sm.Publish = len(versions.Versions) > 0
+
+	out, err = c.sfn(ctx, "ListStateMachineAliases", map[string]any{"stateMachineArn": arn})
+	if err != nil {
+		return fmt.Errorf("list aliases: %w", err)
+	}
+	var aliases struct {
+		Aliases []struct {
+			ARN string `json:"stateMachineAliasArn"`
+		} `json:"stateMachineAliases"`
+	}
+	json.Unmarshal(out, &aliases)
+	for _, a := range aliases.Aliases {
+		desc, err := c.sfn(ctx, "DescribeStateMachineAlias", map[string]any{"stateMachineAliasArn": a.ARN})
+		if err != nil {
+			return fmt.Errorf("describe alias %q: %w", a.ARN, err)
+		}
+		var d struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		}
+		json.Unmarshal(desc, &d)
+		if sm.Aliases == nil {
+			sm.Aliases = map[string]StateMachineAlias{}
+		}
+		sm.Aliases[d.Name] = StateMachineAlias{Description: d.Description}
 	}
 	return nil
 }
 
+func exportActivities(ctx context.Context, c *client, s *Stack) error {
+	out, err := c.sfn(ctx, "ListActivities", map[string]any{})
+	if err != nil {
+		return fmt.Errorf("list activities: %w", err)
+	}
+	var list struct {
+		Activities []struct {
+			Name string `json:"name"`
+		} `json:"activities"`
+	}
+	json.Unmarshal(out, &list)
+	for _, a := range list.Activities {
+		if s.Activities == nil {
+			s.Activities = map[string]Activity{}
+		}
+		s.Activities[a.Name] = Activity{}
+	}
+	return nil
+}
+
+// destroyStateMachines deletes each machine — the service deletes its
+// versions and aliases with it, as AWS does — and then the activities.
 func destroyStateMachines(ctx context.Context, c *client, s *Stack, rep *DestroyReport) error {
 	for _, name := range sortedNames(s.StateMachines) {
 		_, err := c.sfn(ctx, "DeleteStateMachine", map[string]any{
 			"stateMachineArn": stateMachineARN(name),
 		})
 		record(rep, "statemachine/"+name, err)
+	}
+	for _, name := range sortedNames(s.Activities) {
+		_, err := c.sfn(ctx, "DeleteActivity", map[string]any{
+			"activityArn": awsident.ARN("states", "activity:"+name),
+		})
+		record(rep, "activity/"+name, err)
 	}
 	return nil
 }
