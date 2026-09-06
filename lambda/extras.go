@@ -485,18 +485,36 @@ func stateFor(enabled bool) string {
 // a failure is logged rather than discarded.
 func (s *Server) invokeFromSource(f *Function, payload []byte, via string) {
 	ctx := trace.With(context.Background(), s.sink, 0)
-	err := trace.Step(ctx, trace.Event{
+	err := trace.StepDetail(ctx, trace.Event{
 		Service: "lambda", Action: "Invoke (event source)", Resource: f.Name, Via: via,
-	}, func(ctx context.Context) error {
+	}, func(ctx context.Context) (string, string, error) {
 		res, e := s.runInvoke(ctx, f, payload)
 		if e == nil && res.FunctionErr != "" {
-			return fmt.Errorf("%s: %s", res.FunctionErr, res.Payload)
+			e = fmt.Errorf("%s: %s", res.FunctionErr, res.Payload)
 		}
-		return e
+		return invocationTail(res), logsURL(f.Name, res.RequestID), e
 	})
 	if err != nil {
 		s.logf("lambda %s: %s invocation failed: %v", f.Name, via, err)
 	}
+}
+
+// invocationTail is the lines of one invocation, cut from the ring tail at
+// its START line — what a wire row shows for a delivery.
+func invocationTail(res lambdaruntime.Result) string {
+	tail := string(res.Logs)
+	if i := strings.Index(tail, "START RequestId: "+res.RequestID); i >= 0 {
+		tail = tail[i:]
+	}
+	if len(tail) > 4096 {
+		tail = tail[len(tail)-4096:]
+	}
+	return strings.TrimSpace(tail)
+}
+
+// logsURL is the console's Logs tab for one invocation, prefix-relative.
+func logsURL(fn, requestID string) string {
+	return "/lambda/" + fn + "?tab=logs&rid=" + requestID
 }
 
 // arnTail is the resource part after the last '/' or ':'.
@@ -617,16 +635,16 @@ func (s *Server) pollSQS(poller *esm, m *EventSourceMapping) {
 		// cause, so this shows up under the call that produced it rather than
 		// as an unexplained root.
 		var res lambdaruntime.Result
-		err = trace.Step(ctx, trace.Event{
+		err = trace.StepDetail(ctx, trace.Event{
 			Service: "lambda", Action: "Invoke (event source)", Resource: fnName,
 			Via: "sqs:" + queue,
-		}, func(ctx context.Context) error {
+		}, func(ctx context.Context) (string, string, error) {
 			var e error
 			res, e = s.runInvoke(ctx, f, payload)
 			if e == nil && res.FunctionErr != "" {
-				return fmt.Errorf("%s", res.FunctionErr)
+				e = fmt.Errorf("%s", res.FunctionErr)
 			}
-			return e
+			return invocationTail(res), logsURL(fnName, res.RequestID), e
 		})
 		if err == nil && res.FunctionErr == "" {
 			for _, msg := range msgs {

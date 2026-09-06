@@ -1,0 +1,99 @@
+{{/* CloudWatch Logs: the lines a function printed, where a person reads them.
+
+     log_tail is the shared partial — the Logs tab on a function's page and
+     the group page both render it as a live region that polls on the history
+     pane's cadence and answers 204 while nothing new arrived. Lines are in
+     time order, newest at the bottom; a request-id chip narrows the view to
+     one invocation; the filter box is FilterLogEvents' filterPattern, the
+     same thing `sam logs --filter` takes. */}}
+
+{{define "log_tail"}}
+<div id="log-tail" class="log-tail" data-live="{{.LiveURL}}" data-live-ms="1500" data-hash="{{.Hash}}" x-data="{paused:false}">
+  <div class="log-tools">
+    <form class="log-filter" hx-get="{{.BaseURL}}" hx-target="#log-tail" hx-select="unset" hx-swap="outerHTML">
+      {{if .RID}}<input type="hidden" name="rid" value="{{.RID}}">{{end}}
+      <label class="filter">{{icon "search"}}<input type="text" name="q" value="{{.Query}}" placeholder="filter pattern — ERROR, &quot;out of memory&quot;, { $.level = &quot;error&quot; }" spellcheck="false" autocomplete="off"></label>
+      <button class="btn btn-outline btn-sm" type="submit">Filter</button>
+    </form>
+    {{if .RID}}<a class="chip log-rid-chip" href="#" hx-get="{{.BaseURL}}" hx-vals='{"q":"{{.Query}}"}' hx-target="#log-tail" hx-select="unset" hx-swap="outerHTML" title="Showing one invocation — click to show every line">request {{.RID}} ✕</a>{{end}}
+    <button type="button" class="chip log-pause" x-text="paused ? '▶ resume' : '⏸ pause'"
+            @click="paused=!paused; const f=$el.closest('#log-tail'); if(paused){f.setAttribute('data-live-paused','1')}else{f.removeAttribute('data-live-paused')}"></button>
+    <span class="dim log-count">{{len .Lines}} line{{if ne (len .Lines) 1}}s{{end}}{{if .Query}} matching{{end}} · last hour</span>
+  </div>
+  {{if .Missing}}
+  <div class="empty flat"><p>Nothing printed yet. The group <span class="mono">{{.Group}}</span> appears the first time the function writes a line.</p></div>
+  {{else if not .Lines}}
+  <div class="empty flat"><p>No lines{{if .Query}} match <span class="mono">{{.Query}}</span>{{else}} in the last hour{{end}}.</p></div>
+  {{else}}
+  <div class="log-lines" data-log-scroll>{{range .Lines}}
+    <div class="log-line log-{{.Kind}}" data-rid="{{.RequestID}}">
+      <span class="log-when mono">{{.When}}</span>
+      {{if .RequestID}}<a class="log-rid mono" href="#" hx-get="{{$.BaseURL}}" hx-vals='{"rid":"{{.RequestID}}","q":"{{$.Query}}"}' hx-target="#log-tail" hx-select="unset" hx-swap="outerHTML" title="{{.RequestID}} — click to show only this invocation">{{.Short}}</a>{{else}}<span class="log-rid mono dim" title="init output, before the first invocation">init</span>{{end}}
+      <span class="log-msg">{{.Message}}</span>
+    </div>{{end}}
+  </div>
+  {{end}}
+</div>
+{{end}}
+
+{{define "logs_lp"}}
+{{template "lp_head" dict "Svc" "logs" "Prefix" .Prefix "Label" "CloudWatch Logs" "NewURL" "" "Count" (len .List)}}
+  {{range .List}}
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/logs/group?name={{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm mono log-group-name" title="{{.Name}}">{{.Name}}</span>{{if .RetentionDays}}<span class="sb dim">{{.RetentionDays}}d</span>{{end}}</a>
+  {{else}}{{template "lp_empty" dict "Svc" "logs" "Prefix" $.Prefix}}
+  {{end}}
+{{template "lp_foot" .}}
+{{end}}
+
+{{define "logs_home"}}{{template "shell_top" .}}
+  {{template "logs_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  {{template "empty_detail" dict "Svc" "logs" "Prefix" $.Prefix "Empty" (not .List)}}
+{{template "shell_bottom" .}}{{end}}
+
+{{define "logs_group"}}{{template "shell_top" .}}
+  {{template "logs_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Sel)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "logs"}} <span class="mono log-title">{{.G.Name}}</span>
+        {{if .G.RetentionDays}}<span class="badge type">{{.G.RetentionDays}}d retention</span>{{else}}<span class="badge">default retention</span>{{end}}
+        <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/logs/delete" hx-vals='{"name":"{{.G.Name}}"}' hx-confirm="Delete log group “{{.G.Name}}” and everything in it?">{{icon "trash"}} Delete</button></div>
+      </div>
+      <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .G.ARN}}{{template "copychip" dict "Label" "tail" "Value" (printf "aws logs tail %s --follow" .G.Name)}}</div>
+      {{template "dtabs" dict "Cur" .Tab "Tabs" (list
+        (dict "Key" "tail" "Label" "Tail" "Icon" "list" "URL" (printf "%s/logs/group?name=%s" .Prefix .Sel))
+        (dict "Key" "streams" "Label" "Streams" "Icon" "layers" "URL" (printf "%s/logs/group?name=%s&tab=streams" .Prefix .Sel))
+        (dict "Key" "settings" "Label" "Settings" "Icon" "settings" "URL" (printf "%s/logs/group?name=%s&tab=settings" .Prefix .Sel))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/logs/group?name=%s&tab=tags" .Prefix .Sel)))}}
+    </div>
+    <div class="det-b">
+      {{if eq .Tab "streams"}}
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "layers"}} Streams <span class="badge">{{len .Streams}}</span></h2><span class="dim">one per function process, newest activity first</span></div>
+        {{if .Streams}}<table class="tbl"><thead><tr><th>Stream</th><th>Created</th><th>Last event</th><th></th></tr></thead><tbody>{{range .Streams}}
+          <tr><td class="mono trunc" title="{{.Name}}">{{.Name}}</td><td class="dim">{{.Created}}</td><td class="dim">{{if .LastEvent}}{{.LastEvent}}{{else}}—{{end}}</td><td class="right"><button class="btn btn-outline btn-sm danger" hx-post="{{$.Prefix}}/logs/delete-stream" hx-vals='{"name":"{{$.G.Name}}","stream":"{{.Name}}"}' hx-confirm="Delete this stream and its lines?">{{icon "trash"}}</button></td></tr>
+        {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No streams yet.</p></div>{{end}}
+      </div>
+      {{else if eq .Tab "tags"}}
+      {{template "tags_panel" dict "Prefix" .Prefix "Svc" "logs" "ID" .G.Name}}
+      {{else if eq .Tab "settings"}}
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "settings"}} Retention</h2><span class="dim">how long lines are kept before the sweeper drops them</span></div>
+        <form class="form-b" hx-post="{{.Prefix}}/logs/retention">
+          <input type="hidden" name="name" value="{{.G.Name}}">
+          <div class="field"><label>Retention <span class="dim">the values AWS accepts; 0 restores the stack's default (a day)</span></label>
+            <select class="input" name="days">
+              <option value="0"{{if not .G.RetentionDays}} selected{{end}}>default</option>
+              {{range $d := list 1 3 5 7 14 30 60 90 120 150 180 365}}<option value="{{$d}}"{{if eq $.G.RetentionDays $d}} selected{{end}}>{{$d}} days</option>{{end}}
+            </select></div>
+          <button class="btn" type="submit">Save</button>
+        </form>
+      </div>
+      {{else}}
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "list"}} Tail</h2><span class="dim">what <span class="mono">aws logs tail {{.G.Name}} --follow</span> prints</span></div>
+        {{template "log_tail" .Tail}}
+      </div>
+      {{end}}
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}

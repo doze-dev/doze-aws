@@ -31,6 +31,8 @@ func (b *backend) tagARN(svc, id string) string {
 		return awsident.ARN("events", "rule/"+id)
 	case "sfn":
 		return awsident.ARN("states", "stateMachine:"+id)
+	case "logs":
+		return awsident.ARN("logs", "log-group:"+id)
 	case "apigw":
 		// API Gateway ARNs carry no account and a path-shaped resource.
 		return "arn:aws:apigateway:" + awsident.Region + "::/restapis/" + id
@@ -138,6 +140,16 @@ func (b *backend) ResourceTags(ctx context.Context, svc, id string) ([]KV, error
 		}
 		err = b.apigwGet(ctx, "/tags/"+url.PathEscape(b.tagARN(svc, id)), &out)
 		m = out.Tags
+	case "logs":
+		var out struct {
+			Tags map[string]string `json:"tags"`
+		}
+		body, e := b.json11(ctx, "Logs_20140328", "ListTagsForResource", map[string]any{"resourceArn": b.tagARN(svc, id)})
+		if e == nil {
+			json.Unmarshal(body, &out)
+			m = out.Tags
+		}
+		err = e
 	case "eb":
 		var out struct {
 			Tags []struct{ Key, Value string } `json:"Tags"`
@@ -231,6 +243,11 @@ func (b *backend) SetResourceTag(ctx context.Context, svc, id, key, value string
 			"resourceArn": b.tagARN(svc, id), "tags": []map[string]string{{"key": key, "value": value}},
 		})
 		return err
+	case "logs":
+		_, err := b.json11(ctx, "Logs_20140328", "TagResource", map[string]any{
+			"resourceArn": b.tagARN(svc, id), "tags": map[string]string{key: value},
+		})
+		return err
 	default: // sns
 		v := url.Values{"Action": {"TagResource"}, "ResourceArn": {b.tagARN(svc, id)}}
 		v.Set("Tags.member.1.Key", key)
@@ -281,6 +298,11 @@ func (b *backend) RemoveResourceTag(ctx context.Context, svc, id, key string) er
 		return err
 	case "sfn":
 		_, err := b.sfnCall(ctx, "UntagResource", map[string]any{
+			"resourceArn": b.tagARN(svc, id), "tagKeys": []string{key},
+		})
+		return err
+	case "logs":
+		_, err := b.json11(ctx, "Logs_20140328", "UntagResource", map[string]any{
 			"resourceArn": b.tagARN(svc, id), "tagKeys": []string{key},
 		})
 		return err

@@ -97,6 +97,11 @@ var emptyCopyBySvc = map[string]emptyCopy{
 		CTA:     "New state machine",
 		CTAPath: "/sfn/create",
 	},
+	"logs": {
+		Short: "No log groups yet",
+		None:  "No log groups yet. A function writes one under /aws/lambda/<name> the first time it prints, and `aws logs tail --follow` reads the same lines you see here.",
+		Unsel: "Select a log group to tail it, filter it, or read one invocation's lines.",
+	},
 	"kms": {
 		Short:   "No keys yet",
 		None:    "No keys yet. Keys here do real cryptography — encrypt, sign and HMAC against actual key material, so a signature that verifies here verifies on deploy.",

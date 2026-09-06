@@ -44,6 +44,8 @@ var catalog = []svcEntry{
 	{Key: "apigw", Label: "API Gateway", Group: "Compute & APIs", Noun: "API"},
 	{Key: "sfn", Label: "Step Functions", Group: "Compute & APIs", Noun: "state machine",
 		CreatePath: "/sfn/create", CreateLabel: "Create state machine"},
+	{Key: "logs", Label: "CloudWatch Logs", Group: "Compute & APIs", Noun: "log group",
+		CreatePath: "/logs/create", CreateLabel: "Create log group"},
 
 	{Key: "kms", Label: "KMS", Group: "Config & secrets", Noun: "key",
 		CreatePath: "/kms/create", CreateLabel: "Create key"},

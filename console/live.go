@@ -62,6 +62,9 @@ func (c *Console) serviceCounts(ctx context.Context) map[string]int {
 	if n, err := c.be.CountStateMachines(ctx); err == nil {
 		counts["sfn"] = n
 	}
+	if groups, err := c.be.ListLogGroups(ctx); err == nil {
+		counts["logs"] = len(groups)
+	}
 	if n, err := c.be.CountPrincipals(ctx); err == nil {
 		counts["iam"] = n
 	}

@@ -7,6 +7,7 @@ package peercall
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -244,46 +245,78 @@ func SQSDelete(ctx context.Context, dir peers.Directory, queue, receiptHandle st
 // rotation function step by step.
 func LambdaInvoke(ctx context.Context, dir peers.Directory, function string, payload []byte) ([]byte, error) {
 	var out []byte
-	err := trace.Step(ctx, trace.Event{Service: "lambda", Action: "Invoke", Resource: function},
-		func(ctx context.Context) error {
+	err := trace.StepDetail(ctx, trace.Event{Service: "lambda", Action: "Invoke", Resource: function},
+		func(ctx context.Context) (string, string, error) {
 			var e error
-			out, e = lambdaInvoke(ctx, dir, function, payload)
-			return e
+			var tail, rid string
+			out, tail, rid, e = lambdaInvoke(ctx, dir, function, payload)
+			return tail, logsTabURL(function, rid), e
 		})
 	return out, err
 }
 
-func lambdaInvoke(ctx context.Context, dir peers.Directory, function string, payload []byte) ([]byte, error) {
+// logsTabURL is the console's Logs tab for one invocation (or the whole
+// function when the id is unknown), prefix-relative.
+func logsTabURL(function, rid string) string {
+	u := "/lambda/" + function + "?tab=logs"
+	if rid != "" {
+		u += "&rid=" + rid
+	}
+	return u
+}
+
+// logTail decodes the X-Amz-Log-Result header a Tail invoke answers.
+func logTail(resp *http.Response) string {
+	raw, err := base64.StdEncoding.DecodeString(resp.Header.Get("X-Amz-Log-Result"))
+	if err != nil {
+		return ""
+	}
+	tail := string(raw)
+	if rid := resp.Header.Get("X-Amzn-RequestId"); rid != "" {
+		if i := strings.Index(tail, "START RequestId: "+rid); i >= 0 {
+			tail = tail[i:]
+		}
+	}
+	return strings.TrimSpace(tail)
+}
+
+func lambdaInvoke(ctx context.Context, dir peers.Directory, function string, payload []byte) (body []byte, tail, rid string, err error) {
 	ep, ok := dir.Endpoint("lambda")
 	if !ok {
-		return nil, fmt.Errorf("no lambda peer wired")
+		return nil, "", "", fmt.Errorf("no lambda peer wired")
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		ep.URL("/2015-03-31/functions/"+url.PathEscape(function)+"/invocations"),
 		bytes.NewReader(payload))
 	if err != nil {
-		return nil, err
+		return nil, "", "", err
 	}
 	req.Header.Set("X-Amz-Invocation-Type", "RequestResponse")
+	req.Header.Set("X-Amz-Log-Type", "Tail")
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := ep.Client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, "", "", err
 	}
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, maxPeerResponse))
+	body, _ = io.ReadAll(io.LimitReader(resp.Body, maxPeerResponse))
+	tail, rid = logTail(resp), resp.Header.Get("X-Amzn-RequestId")
 	if resp.StatusCode/100 != 2 {
-		return body, fmt.Errorf("lambda invoke: %s: %s", resp.Status, body)
+		return body, tail, rid, fmt.Errorf("lambda invoke: %s: %s", resp.Status, body)
 	}
 	if fnErr := resp.Header.Get("X-Amz-Function-Error"); fnErr != "" {
-		return body, fmt.Errorf("function error (%s): %s", fnErr, body)
+		return body, tail, rid, fmt.Errorf("function error (%s): %s", fnErr, body)
 	}
-	return body, nil
+	return body, tail, rid, nil
 }
 
 func LambdaInvokeAsync(ctx context.Context, dir peers.Directory, function string, payload []byte) error {
-	return trace.Step(ctx, trace.Event{Service: "lambda", Action: "Invoke (async)", Resource: function},
-		func(ctx context.Context) error { return lambdaInvokeAsync(ctx, dir, function, payload) })
+	// An async invoke answers before the function runs, so the row links to
+	// the function's Logs tab rather than carrying a tail of its own.
+	return trace.StepDetail(ctx, trace.Event{Service: "lambda", Action: "Invoke (async)", Resource: function},
+		func(ctx context.Context) (string, string, error) {
+			return "", logsTabURL(function, ""), lambdaInvokeAsync(ctx, dir, function, payload)
+		})
 }
 
 func lambdaInvokeAsync(ctx context.Context, dir peers.Directory, function string, payload []byte) error {

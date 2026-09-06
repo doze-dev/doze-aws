@@ -387,6 +387,17 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/lambda/create", c.lambdaCreate)
 	m.HandleFunc("GET "+p+"/lambda/{fn}", c.lambdaFn)
 	m.HandleFunc("GET "+p+"/lambda/{fn}/runtime", c.lambdaRuntimeBadge) // HTMX partial (polled)
+	m.HandleFunc("GET "+p+"/lambda/{fn}/logs", c.lambdaLogs)            // HTMX partial (polled FilterLogEvents)
+
+	// CloudWatch Logs: groups by name in the query, since names carry slashes.
+	m.HandleFunc("GET "+p+"/logs", c.logsHome)
+	m.HandleFunc("GET "+p+"/logs/create", c.createPage("logs", "logs_create"))
+	m.HandleFunc("POST "+p+"/logs/create", c.logsCreate)
+	m.HandleFunc("POST "+p+"/logs/delete-stream", c.logsDeleteStream)
+	m.HandleFunc("GET "+p+"/logs/group", c.logsGroup)
+	m.HandleFunc("GET "+p+"/logs/tail", c.logsTail) // HTMX partial (polled FilterLogEvents)
+	m.HandleFunc("POST "+p+"/logs/retention", c.logsRetention)
+	m.HandleFunc("POST "+p+"/logs/delete", c.logsDelete)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/invoke", c.lambdaInvoke)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-fn", c.lambdaDelete)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-mapping", c.lambdaDeleteMapping)

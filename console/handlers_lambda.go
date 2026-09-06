@@ -179,12 +179,16 @@ func (c *Console) lambdaFn(w http.ResponseWriter, r *http.Request) {
 	rt := c.be.LambdaRuntime(r.Context(), name)
 	conn := c.be.Neighbors(r.Context(), "lambda", name)
 	queues, _ := c.be.ListQueues(r.Context())
-	c.render(w, r, "lambda_fn", map[string]any{
+	data := map[string]any{
 		"Fn": f, "Tab": tabOf(r, "invoke"), "List": fns, "Title": name + " · Lambda",
 		"Conn": conn, "Diag": lambdaDiagram(f, conn),
 		"RT": rt, "RTHash": lambdaRuntimeHash(rt),
 		"URL": c.be.FunctionURL(r.Context(), name), "Queues": queues,
-	})
+	}
+	if data["Tab"] == "logs" {
+		data["Tail"] = c.logTailData(r, "/aws/lambda/"+name, c.prefix+"/lambda/"+name+"/logs")
+	}
+	c.render(w, r, "lambda_fn", data)
 }
 
 // diagNode is one neighbor card in the function-overview diagram.
@@ -244,7 +248,7 @@ func (c *Console) lambdaInvoke(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.partial(w, "lambda_result", map[string]any{"Res": res, "Fn": name})
+	c.partial(w, "lambda_result", map[string]any{"Res": res, "Fn": name, "Name": name})
 }
 
 // parseEnvRows turns the env editor's parallel arrays into a map.

@@ -273,6 +273,7 @@ func seedFixtures(t *testing.T, c http.Handler) {
 		{"/eb/create-bus", url.Values{"name": {"fixture-bus"}}},
 		{"/sm/create", url.Values{"name": {"fixture-secret"}, "value": {"v"}}},
 		{"/ssm/create", url.Values{"name": {"/fixture/param"}, "type": {"String"}, "value": {"v"}}},
+		{"/logs/create", url.Values{"name": {"/fixture/logs"}, "days": {"7"}}},
 		{"/ddb/create", url.Values{
 			"name": {"fixture-table"}, "hash_key": {"pk"}, "hash_type": {"S"},
 		}},
@@ -486,6 +487,12 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 		// The stage the deploy subtest created; mutationForm's generic name
 		// would PATCH a stage that does not exist.
 		return nil, url.Values{"name": {"dev"}, "deployment": {"repointed"}}
+	case "/logs/retention":
+		// The group the create route makes is deleted by the delete route
+		// before this runs (alphabetical order), so it addresses the seed.
+		return nil, url.Values{"name": {"/fixture/logs"}, "days": {"14"}}
+	case "/logs/delete-stream":
+		return nil, url.Values{"name": {"/fixture/logs"}, "stream": {"never-written"}}
 	case "/lambda/create":
 		// A function needs somewhere real to read its code from, even though
 		// nothing here invokes it.

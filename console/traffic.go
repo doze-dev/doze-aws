@@ -83,6 +83,10 @@ type TrafficEntry struct {
 	Parent int64
 	// Via names what emitted the work, e.g. "s3:ObjectCreated:Put".
 	Via string
+	// Detail is what the work left behind — a Lambda invocation's log tail —
+	// and DetailURL the console page it continues at, prefix-relative.
+	Detail    string
+	DetailURL string
 }
 
 // IsCascade reports whether this entry is internal work rather than a call a
@@ -197,6 +201,7 @@ func (rec *Recorder) EmitCascade(e trace.Event) {
 		At: e.At, Service: e.Service, Action: e.Action, Resource: e.Resource,
 		Millis: e.Millis, Parent: int64(e.Cause), Via: e.Via,
 		Status: cascadeStatus(e.Err), RespBody: e.Err,
+		Detail: e.Detail, DetailURL: e.DetailURL,
 	})
 }
 

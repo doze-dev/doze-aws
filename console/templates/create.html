@@ -322,3 +322,18 @@
     </form>
   </div></section>
 {{template "shell_bottom" .}}{{end}}
+
+{{define "logs_create"}}{{template "shell_top" .}}
+  {{template "logs_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  <section class="detail"><div class="form-page">
+    <div class="det-title fp-title">Create log group</div><p class="det-sub fp-sub">A function makes its own group (<span class="mono">/aws/lambda/&lt;name&gt;</span>) the first time it prints. Create one here for an application that writes with PutLogEvents, or to set retention before a function exists.</p>
+    <form hx-post="{{.Prefix}}/logs/create" hx-indicator="#submit-spin">
+      <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="fgrid">
+        <div class="field"><label>Name</label><input class="input mono" name="name" placeholder="/app/api" required autocomplete="off" autofocus spellcheck="false"></div>
+        <div class="field"><label>Retention <span class="dim">the values AWS accepts</span></label><select class="input" name="days"><option value="0">default (a day)</option>{{range $d := list 1 3 5 7 14 30 60 90 120 150 180 365}}<option value="{{$d}}">{{$d}} days</option>{{end}}</select></div>
+      </div></div></div>
+      {{template "cli" "logs create-log-group --log-group-name $name"}}
+      {{template "form_actions" dict "Cancel" (printf "%s/logs" .Prefix) "Submit" "Create log group"}}
+    </form>
+  </div></section>
+{{template "shell_bottom" .}}{{end}}

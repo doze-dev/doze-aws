@@ -106,6 +106,7 @@
   --svc-eb: #00a799;
   --svc-apigw: #00997a;
   --svc-sfn: #d6247a;
+  --svc-logs: #c13b6a;
   --svc-sts: #6b7688;
 
   /* ink tier — the same hue at text contrast. Reach for this whenever a
@@ -125,6 +126,7 @@
   --svc-eb-ink: #00857a;
   --svc-apigw-ink: #00866b;
   --svc-sfn-ink: #b81f68;
+  --svc-logs-ink: #a4315a;
   --svc-sts-ink: #6b7688;
 
   --syn-str: #0f8851; --syn-num: #b85e0d; --syn-kw: #a83bf0; --syn-meta: #5c5c5c;
@@ -214,6 +216,7 @@
   --svc-eb: #00a799;
   --svc-apigw: #00997a;
   --svc-sfn: #d6247a;
+  --svc-logs: #c13b6a;
   --svc-sts: #6b7688;
 
   /* ink tier — the same hue at text contrast. Reach for this whenever a
@@ -233,6 +236,7 @@
   --svc-eb-ink: #00857a;
   --svc-apigw-ink: #00866b;
   --svc-sfn-ink: #b81f68;
+  --svc-logs-ink: #a4315a;
   --svc-sts-ink: #6b7688;
 
   --syn-str: #0f8851; --syn-num: #b85e0d; --syn-kw: #a83bf0; --syn-meta: #5c5c5c;
@@ -1937,3 +1941,26 @@ a.lo-card:hover { border-color: var(--accent); }
 #sfn-version-out .chips, #sfn-sync-result .chips, #sfn-activity-task .chips { padding: 10px 16px 0; }
 #sfn-sync-result .factstrip, #sfn-version-out .code-block, #sfn-activity-task .code-block, #sfn-sync-result .split, #sfn-sync-result .err, #sfn-sync-result .sec-title, #sfn-activity-task .sec-title, #sfn-activity-task .empty, #sfn-sync-result .mini-note { margin-left: 16px; margin-right: 16px; }
 #sfn-version-out:not(:empty) { margin-top: 16px; }
+
+/* ---------- CloudWatch Logs: the tail ---------- */
+/* Lines in time order, newest at the bottom, each with a clock and the
+   request id that printed it. The brackets the runtime writes (START, END,
+   REPORT) read dimmer than the function's own lines; an error line reads red. */
+.log-tail { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 12px; }
+.log-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.log-filter { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 260px; }
+.log-filter .filter { flex: 1; }
+.log-pause, .log-rid-chip { cursor: pointer; }
+.log-count { font-size: 12px; }
+.log-lines { font-family: var(--mono); font-size: 12px; line-height: 1.5; max-height: 520px; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in srgb, var(--muted) 30%, transparent); padding: 6px 0; }
+.log-line { display: grid; grid-template-columns: 96px 76px 1fr; gap: 10px; padding: 1px 10px; align-items: baseline; }
+.log-line:hover { background: color-mix(in srgb, var(--muted) 60%, transparent); }
+.log-when { color: var(--muted-foreground); font-variant-numeric: tabular-nums; }
+.log-rid { color: var(--muted-foreground); text-decoration: none; }
+a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
+.log-msg { white-space: pre-wrap; word-break: break-word; min-width: 0; }
+.log-start .log-msg, .log-end .log-msg, .log-report .log-msg { color: var(--muted-foreground); }
+.log-start { border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); margin-top: 2px; padding-top: 3px; }
+.log-err .log-msg { color: var(--destructive); }
+.log-group-name { font-size: 12px; }
+.log-title { font-size: 16px; }

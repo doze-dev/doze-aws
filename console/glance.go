@@ -274,6 +274,9 @@ func (c *Console) glanceSnapshot(ctx context.Context) glanceResponse {
 		}
 		svc("sfn", len(sms), plural(len(sms), "state machine"), st, false)
 	}
+	if groups, err := c.be.ListLogGroups(ctx); err == nil && len(groups) > 0 {
+		svc("logs", len(groups), plural(len(groups), "log group"), "", false)
+	}
 	if n, err := c.be.CountPrincipals(ctx); err == nil && n > 0 {
 		svc("iam", n, plural(n, "principal"), "", false)
 	}

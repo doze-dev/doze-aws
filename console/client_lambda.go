@@ -61,6 +61,8 @@ type InvokeResult struct {
 	Init string
 	Exec string
 	Cold bool
+	// RequestID is the id the function saw, which its log lines carry.
+	RequestID string
 }
 
 func (b *backend) ListFunctions(ctx context.Context) ([]Function, error) {
@@ -267,10 +269,11 @@ func (b *backend) Invoke(ctx context.Context, name, payload string, async bool) 
 	elapsed := time.Since(start)
 
 	res := &InvokeResult{
-		Status:   resp.StatusCode,
-		FnError:  resp.Header.Get("X-Amz-Function-Error"),
-		Duration: elapsed.Round(time.Millisecond).String(),
-		Payload:  prettyJSON(string(body)),
+		Status:    resp.StatusCode,
+		FnError:   resp.Header.Get("X-Amz-Function-Error"),
+		RequestID: resp.Header.Get("X-Amzn-RequestId"),
+		Duration:  elapsed.Round(time.Millisecond).String(),
+		Payload:   prettyJSON(string(body)),
 	}
 	if res.Payload == "" {
 		res.Payload = string(body)

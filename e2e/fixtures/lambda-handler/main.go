@@ -106,4 +106,7 @@ func logInvocation(id string, event json.RawMessage) {
 	}
 	f.Write(line)
 	f.Write([]byte("\n"))
+	// And to stdout, the way a real handler logs: this is the line the
+	// console's Logs tab and `aws logs tail` show for the invocation.
+	fmt.Printf("handled %s: %s\n", id, event)
 }

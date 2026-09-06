@@ -240,6 +240,30 @@ test.describe('lifecycle', () => {
     // event shape) — confirm the message body made it all the way through.
     expect(JSON.stringify(rec.event)).toContain('"eventSource":"aws:sqs"');
     expect(JSON.stringify(rec.event)).toContain(marker);
+
+    // The same invocation's stdout is in the Logs tab — without anyone
+    // pressing Invoke. That is the point of the tab: every trigger, not
+    // just the test panel.
+    await page.goto(`lambda/${fnName}?tab=logs`);
+    const tail = page.locator('#log-tail');
+    await expect(tail).toContainText(marker, { timeout: 10_000 });
+    await expect(tail).toContainText('START RequestId:');
+    await expect(tail).toContainText('REPORT RequestId:');
+    // A request-id chip narrows the tail to that invocation.
+    const logLine = tail.locator('.log-line', { hasText: marker });
+    const rid = await logLine.getAttribute('data-rid');
+    expect(rid).toBeTruthy();
+    await logLine.locator('a.log-rid').click();
+    await expect(page.locator('#log-tail .log-rid-chip')).toContainText(rid!);
+    await expect(page.locator('#log-tail .log-line')).toHaveCount(await page.locator('#log-tail .log-line').count());
+    for (const l of await page.locator('#log-tail .log-line').all()) {
+      expect(await l.getAttribute('data-rid')).toBe(rid);
+    }
+    // The filter box is a real filter pattern.
+    await page.locator('#log-tail input[name="q"]').fill('REPORT');
+    await page.locator('#log-tail button:has-text("Filter")').click();
+    await expect(page.locator('#log-tail .log-line')).toHaveCount(1);
+    await expect(page.locator('#log-tail .log-line')).toContainText('REPORT RequestId:');
   });
 
   test('creates and removes a function URL', async ({ page, waitForToast }) => {

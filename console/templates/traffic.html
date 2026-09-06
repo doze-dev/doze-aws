@@ -104,6 +104,10 @@
   <div class="td-k">Response{{if .E.RespCT}} · {{.E.RespCT}}{{end}}</div>
   {{if .Resp}}<pre>{{.Resp}}</pre>{{else}}<p class="mini-note">Empty or binary response.</p>{{end}}
 </div>
+{{if or .E.Detail .E.DetailURL}}<div class="td-sec">
+  <div class="td-k">Logs{{if .E.DetailURL}} · <a href="{{.Prefix}}{{.E.DetailURL}}">open this invocation in the Logs tab</a>{{end}}</div>
+  {{if .E.Detail}}<pre>{{.E.Detail}}</pre>{{else}}<p class="mini-note">The function ran after this call returned; its lines are in the Logs tab.</p>{{end}}
+</div>{{end}}
 {{end}}
 
 {{define "traffic_drawer_gone"}}

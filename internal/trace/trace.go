@@ -67,6 +67,11 @@ type Event struct {
 	At       time.Time
 	Millis   float64
 	Err      string // non-empty when the delivery failed
+	// Detail is what the work left behind that a reader would open the row
+	// for: a Lambda invocation's log tail, with a link the console can follow.
+	Detail string
+	// DetailURL is a console path the detail continues at, prefix-relative.
+	DetailURL string
 }
 
 // Sink receives cascade events. Implementations must be safe for concurrent
@@ -142,6 +147,30 @@ func Step(ctx context.Context, e Event, fn func(context.Context) error) error {
 	start := time.Now()
 	err := fn(With(ctx, c.sink, self))
 	e.Millis = float64(time.Since(start)) / float64(time.Millisecond)
+	if err != nil {
+		e.Err = err.Error()
+	}
+	if e.At.IsZero() {
+		e.At = start
+	}
+	c.sink.EmitCascade(e)
+	return err
+}
+
+// StepDetail is Step for work that leaves something worth reading — fn
+// returns it with a console path, and both ride on the event.
+func StepDetail(ctx context.Context, e Event, fn func(context.Context) (detail, url string, err error)) error {
+	c, ok := ctx.Value(key{}).(carrier)
+	if !ok {
+		_, _, err := fn(ctx)
+		return err
+	}
+	self := c.sink.ReserveCascade()
+	e.Self, e.Cause = self, c.cause
+	start := time.Now()
+	detail, url, err := fn(With(ctx, c.sink, self))
+	e.Millis = float64(time.Since(start)) / float64(time.Millisecond)
+	e.Detail, e.DetailURL = detail, url
 	if err != nil {
 		e.Err = err.Error()
 	}

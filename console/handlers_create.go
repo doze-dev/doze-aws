@@ -36,6 +36,8 @@ func (c *Console) createPage(svc, tmpl string) http.HandlerFunc {
 			data["List"], _ = c.be.ListKeys(r.Context())
 		case "ssm":
 			data["List"], _ = c.be.ListParameters(r.Context())
+		case "logs":
+			data["List"], _ = c.be.ListLogGroups(r.Context())
 		case "sm":
 			data["List"], _ = c.be.ListSecrets(r.Context())
 		case "cfn":

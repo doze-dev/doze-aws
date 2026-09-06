@@ -53,12 +53,24 @@ var uncovered = map[string][]string{
 	// form carries the heartbeat, and versions, aliases, Express, TestState,
 	// redrive and Map Runs each have their panel. No exemptions.
 	"stepfunctions": {},
+	// Seven exemptions, each a twin of a call the console already makes —
+	// see exempt.
+	"logs": {},
 }
 
 // exempt is for operations that are deliberately not called, with the reason.
 // This is a different claim from uncovered: uncovered says "not yet", exempt
 // says "and here is why it never will be".
 var exempt = map[string]map[string]string{
+	"logs": {
+		"ListLogGroups":    "the newer twin of DescribeLogGroups, which the list pane reads; it adds account-wide and pattern filters a single local account never needs",
+		"GetLogEvents":     "one stream forwards or backwards; FilterLogEvents with a stream name, which the tail makes, reads the same lines and is what the CLI calls",
+		"PutLogEvents":     "Lambda writes it for every invocation; a console form that writes lines nothing printed would be a lie about what ran",
+		"CreateLogStream":  "a stream is created by the first PutLogEvents on it, which is how every stream here comes to exist",
+		"TagLogGroup":      "the deprecated spelling of TagResource, which the tags panel calls",
+		"UntagLogGroup":    "the deprecated spelling of UntagResource, which the tags panel calls",
+		"ListTagsLogGroup": "the deprecated spelling of ListTagsForResource, which the tags panel calls",
+	},
 	"cloudformation": {
 		"ListStackResources": "the paginated twin of DescribeStackResources, " +
 			"which the resources tab already reads and which locally returns " +

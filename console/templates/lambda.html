@@ -153,6 +153,7 @@
         (dict "Key" "invoke" "Label" "Test" "Icon" "play" "URL" (printf "%s/lambda/%s" .Prefix .Fn.Name))
         (dict "Key" "config" "Label" "Configuration" "Icon" "settings" "URL" (printf "%s/lambda/%s?tab=config" .Prefix .Fn.Name))
         (dict "Key" "triggers" "Label" "Triggers" "Icon" "arrow-right" "URL" (printf "%s/lambda/%s?tab=triggers" .Prefix .Fn.Name))
+        (dict "Key" "logs" "Label" "Logs" "Icon" "list" "URL" (printf "%s/lambda/%s?tab=logs" .Prefix .Fn.Name))
         (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/lambda/%s?tab=tags" .Prefix .Fn.Name)))}}
     </div>
     {{/* Function overview — the 1-hop picture: triggers → function → destinations.
@@ -184,6 +185,8 @@
       {{template "lambda_config" .}}
       {{else if eq .Tab "triggers"}}
       {{template "lambda_triggers" .}}
+      {{else if eq .Tab "logs"}}
+      {{template "lambda_logs" .}}
       {{else if eq .Tab "tags"}}
       {{template "tags_panel" dict "Prefix" .Prefix "Svc" "lambda" "ID" .Fn.Name}}
       {{else}}
@@ -227,8 +230,17 @@
   <span class="tm"><span class="tm-k">round trip</span><span class="tm-v num">{{.Res.Duration}}</span></span>
 </div>
 
-{{if .Res.Logs}}<div class="code-out"><div class="co-h"><span>logs (tail)</span><button class="copy-btn" data-copy="{{.Res.Logs}}">{{icon "copy"}}</button></div><pre>{{.Res.Logs}}</pre></div>{{end}}
+{{if .Res.Logs}}<div class="code-out"><div class="co-h"><span>logs (tail){{if .Res.RequestID}} · <a href="{{.Prefix}}/lambda/{{.Name}}?tab=logs&rid={{.Res.RequestID}}" title="Every line this invocation printed, in the Logs tab">open this invocation's logs</a>{{end}}</span><button class="copy-btn" data-copy="{{.Res.Logs}}">{{icon "copy"}}</button></div><pre>{{.Res.Logs}}</pre></div>{{end}}
 {{end}}
+{{end}}
+
+{{/* The Logs tab: the function's log group as a live tail. Arriving with
+     ?rid= from an invoke result narrows it to that invocation. */}}
+{{define "lambda_logs"}}
+<div class="panel">
+  <div class="panel-h"><h2>{{icon "list"}} Logs</h2><span class="dim"><span class="mono">/aws/lambda/{{.Fn.Name}}</span> · what <span class="mono">aws logs tail /aws/lambda/{{.Fn.Name}} --follow</span> prints · every trigger, not just the test panel</span></div>
+  {{template "log_tail" .Tail}}
+</div>
 {{end}}
 
 {{/* Live process-state badge: warm (holding a child process) vs. idle, plus the
