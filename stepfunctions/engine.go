@@ -35,6 +35,8 @@ type run struct {
 	// transaction.
 	pending []histEvent
 	tokens  []tokenOp
+	// test is set on a TestState run: the state under test and its outcome.
+	test *testRun
 }
 
 type deliveryKind int
@@ -44,6 +46,7 @@ const (
 	dlvTaskReturn
 	dlvSendTask
 	dlvHeartbeat
+	dlvActivityStarted // a worker claimed an activity task; records who
 )
 
 // delivery is one event headed for the driver. reply, when non-nil, is
@@ -60,6 +63,7 @@ type delivery struct {
 	// the frame has moved on (a late worker racing a timeout's retry) is
 	// detectably stale and dropped.
 	attempt int
+	worker  string // dlvActivityStarted: the poller's workerName
 	reply   chan struct{}
 }
 
@@ -75,6 +79,12 @@ type engine struct {
 	cancel     context.CancelFunc
 	workerCtx  context.Context // cancelled on close; aborts in-flight peercalls
 	wg         sync.WaitGroup  // transient task workers
+	// activities wakes GetActivityTask long-polls when the driver queues a
+	// task; the queue itself is in bbolt, this is only the doorbell.
+	activities activityHub
+	// waiters are the StartSyncExecution and TestState callers blocked on a
+	// volatile run finishing (express.go).
+	waiters waiters
 }
 
 func newEngine(srv *Server) *engine {
@@ -88,6 +98,7 @@ func newEngine(srv *Server) *engine {
 		done:       make(chan struct{}),
 		cancel:     cancel,
 		workerCtx:  ctx,
+		activities: activityHub{gens: map[string]chan struct{}{}},
 	}
 	go g.loop(ctx)
 	return g
@@ -101,6 +112,8 @@ func (g *engine) close() {
 		close(g.stop)
 		<-g.done
 		g.wg.Wait()
+		// A StartSyncExecution still waiting learns the engine is gone.
+		g.waiters.releaseAll()
 	})
 }
 
@@ -173,7 +186,14 @@ func (g *engine) ensure(key string) *run {
 		return nil
 	}
 	r := &run{key: key, def: def, e: e}
+	if e.Test != nil {
+		r.test = e.Test.run()
+	}
 	g.runs[key] = r
+	// Loaded from the store — a restart, or a parent waking for a child. A
+	// frame parked on a child that finished while nobody was listening is
+	// delivered now.
+	g.resumeChildWaits(r)
 	return r
 }
 
@@ -189,10 +209,13 @@ func (g *engine) drive(r *run) {
 			g.persist(r)
 			return
 		}
-		eff, notes, err := asl.Advance(r.def, r.e.Exec, f, g.env())
+		eff, notes, err := asl.Advance(r.def, r.e.Exec, f, g.envFor(r))
 		g.recordNotes(r, notes)
 		if err != nil {
 			g.finalize(r, "FAILED", nil, "States.Runtime", err.Error())
+			return
+		}
+		if g.testStep(r, eff, notes) {
 			return
 		}
 		g.apply(r, eff)
@@ -233,6 +256,22 @@ func (g *engine) apply(r *run, eff asl.Effect) {
 		g.persist(r)
 		g.childSettled(r, e.Frame)
 	case asl.EffCallTask:
+		g.recordTestTask(r, e)
+		if g.testMock(r, e.Frame) {
+			return
+		}
+		if isChildStart(e.Resource) {
+			// Starting an execution is a store write on this goroutine, and
+			// waiting for it is a row the child's finalize consults.
+			g.startChild(r, e)
+			return
+		}
+		if asl.IsActivityARN(e.Resource) {
+			// Nothing to call: the task waits in the activity queue for a
+			// worker, and its result arrives the way a token task's does.
+			g.scheduleActivity(r, e)
+			return
+		}
 		// Persist BEFORE the call goes out: a worker whose answer arrives
 		// instantly must find the frame already CALLING (or the token already
 		// redeemable), and a crash between here and the send re-dispatches.
@@ -243,6 +282,9 @@ func (g *engine) apply(r *run, eff asl.Effect) {
 		g.persist(r)
 		g.dispatch(r, e)
 	case asl.EffSpawn:
+		if g.testMock(r, e.Parent) {
+			return
+		}
 		g.spawnEvents(r, e)
 		g.persist(r)
 		// A Map over zero items has no child to settle; the join decides now.
@@ -414,6 +456,10 @@ func (g *engine) finalize(r *run, status string, output []byte, errName, cause s
 	}
 	g.persist(r)
 	delete(g.runs, r.key)
+	// A parent parked on this execution hears of it before a volatile record
+	// is dropped.
+	g.childFinished(r.e)
+	g.finished(r)
 }
 
 // applyDelivery routes one delivery to its run.
@@ -430,6 +476,8 @@ func (g *engine) applyDelivery(d delivery) {
 	switch d.kind {
 	case dlvStop:
 		g.finalize(r, "ABORTED", nil, d.errName, d.cause)
+	case dlvActivityStarted:
+		g.activityStarted(r, d.frame, d.worker)
 	case dlvHeartbeat:
 		f := r.e.Exec.Frame(d.frame)
 		if f == nil || f.Status != asl.FrameParked {
@@ -472,10 +520,14 @@ func (g *engine) deliver(r *run, f *asl.Frame, res asl.TaskResult) {
 		}
 	}
 	hadToken := f.Token
-	eff, notes, err := asl.Deliver(r.def, r.e.Exec, f, res, g.env())
+	g.recordTestResult(r, res)
+	eff, notes, err := asl.Deliver(r.def, r.e.Exec, f, res, g.envFor(r))
 	g.recordNotes(r, notes)
 	if err != nil {
 		g.finalize(r, "FAILED", nil, "States.Runtime", err.Error())
+		return
+	}
+	if g.testStep(r, eff, notes) {
 		return
 	}
 	// The token dies with the frame's park: a state exit or catch clears

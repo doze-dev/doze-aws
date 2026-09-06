@@ -107,12 +107,18 @@ type Frame struct {
 	TaskInput json.RawMessage `json:"taskInput,omitempty"`
 
 	// Suspension bookkeeping, all epoch milliseconds.
-	WakeAt      int64  `json:"wakeAt,omitempty"`      // SLEEPING / RETRY_WAIT
-	Deadline    int64  `json:"deadline,omitempty"`    // CALLING/PARKED: TimeoutSeconds cutoff, 0 = none
-	HeartbeatAt int64  `json:"heartbeatAt,omitempty"` // PARKED: last heartbeat (park time to start)
-	HeartbeatS  int64  `json:"heartbeatS,omitempty"`  // PARKED: HeartbeatSeconds, 0 = none
-	Token       string `json:"token,omitempty"`       // PARKED on a task token
-	WaitExec    string `json:"waitExec,omitempty"`    // PARKED on a child execution's store key
+	WakeAt      int64 `json:"wakeAt,omitempty"`      // SLEEPING / RETRY_WAIT
+	Deadline    int64 `json:"deadline,omitempty"`    // CALLING/PARKED: TimeoutSeconds cutoff, 0 = none
+	HeartbeatAt int64 `json:"heartbeatAt,omitempty"` // PARKED: last heartbeat (park time to start)
+	HeartbeatS  int64 `json:"heartbeatS,omitempty"`  // PARKED: HeartbeatSeconds, 0 = none
+	// TimeoutS is the seconds a JSONata Task's TimeoutSeconds expression
+	// evaluated to on entry, so a retry re-dispatch does not re-evaluate it.
+	TimeoutS float64 `json:"timeoutS,omitempty"`
+	// Limit is the MaxConcurrency a JSONata Map evaluated on entry, for the
+	// same reason: PromotePending needs it after the expression is gone.
+	Limit    int    `json:"limit,omitempty"`
+	Token    string `json:"token,omitempty"`    // PARKED on a task token
+	WaitExec string `json:"waitExec,omitempty"` // PARKED on a child execution's store key
 
 	// Attempts counts retries per Retrier of the current state, index-parallel
 	// to the state's Retry array. Reset on every state transition. RetryIdx
@@ -127,6 +133,15 @@ type Frame struct {
 
 	EnteredAt int64    `json:"enteredAt,omitempty"` // for $$.State.EnteredTime
 	Failure   *Failure `json:"failure,omitempty"`   // set on FAILED
+
+	// Vars is the frame's variable scope, written by Assign and read as
+	// `$name` in JSONata expressions. A frame IS a scope: the root frame holds
+	// the execution's variables, and a Parallel branch or Map iteration starts
+	// with a copy of its parent's and never writes back — AWS's rule that an
+	// inner scope reads outer variables but cannot assign into them. A Catch on
+	// the Parallel/Map state itself runs on the parent frame, so its Assign
+	// lands in the outer scope, as AWS documents.
+	Vars map[string]json.RawMessage `json:"vars,omitempty"`
 
 	// PrevEventID is the id of the last history event in THIS frame's causal
 	// chain. Nested Parallel/Map history is why it is per-frame: a history
@@ -228,6 +243,7 @@ func (ex *Exec) Spawn(parent *Frame, branch int, def []DefHop, input json.RawMes
 		ID: ex.NextFrame, Parent: parent.ID, Branch: branch, Gen: parent.SpawnGen,
 		Def: def, Status: status, Input: input,
 		PrevEventID: parent.PrevEventID,
+		Vars:        copyVars(parent.Vars),
 	}
 	ex.NextFrame++
 	ex.Frames = append(ex.Frames, f)

@@ -69,7 +69,7 @@ func (g *engine) fireDue() {
 				if f.WakeAt == 0 || now < f.WakeAt {
 					continue
 				}
-				eff, notes, err := asl.Wake(r.def, r.e.Exec, f, g.env())
+				eff, notes, err := asl.Wake(r.def, r.e.Exec, f, g.envFor(r))
 				g.recordNotes(r, notes)
 				if err != nil {
 					g.finalize(r, "FAILED", nil, "States.Runtime", err.Error())

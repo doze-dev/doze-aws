@@ -20,6 +20,9 @@ var (
 	bucketMachines   = []byte("machines")
 	bucketActivities = []byte("activities")
 	bucketTags       = []byte("tags")
+	// Versions and aliases: layout documented in store_versions.go.
+	bucketVersions = []byte("versions")
+	bucketAliases  = []byte("aliases")
 )
 
 // StateMachine is a stored state machine.
@@ -59,10 +62,12 @@ type Activity struct {
 type Store struct {
 	db    *bolt.DB
 	clock func() time.Time
+	// vol holds Express and TestState executions, which never reach bbolt.
+	vol *volatile
 }
 
 func newStore(db *bolt.DB) *Store {
-	return &Store{db: db, clock: time.Now}
+	return &Store{db: db, clock: time.Now, vol: newVolatile()}
 }
 
 func (s *Store) now() int64 { return s.clock().UnixMilli() }

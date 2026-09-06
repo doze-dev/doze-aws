@@ -158,25 +158,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.api.Write(w, result)
 }
 
-// notYet are operations this build will implement in a later stage. They are
-// listed rather than left to fall through to InvalidAction, so the message says
-// "not yet" and names why — a caller can tell a staged gap from a typo, and an
-// SDK sees UnsupportedOperationException rather than a mystery.
-var notYet = map[string]string{
-	"StartSyncExecution": "Express executions arrive after Standard ones",
-	"GetActivityTask":    "activity polling arrives after task tokens",
-	"RedriveExecution":   "redrive arrives after execution history",
-	"TestState":          "running a state in isolation needs the sync- host prefix, which arrives with Express",
-
-	"CreateStateMachineAlias":    "versions and aliases arrive after go-live",
-	"DescribeStateMachineAlias":  "versions and aliases arrive after go-live",
-	"UpdateStateMachineAlias":    "versions and aliases arrive after go-live",
-	"DeleteStateMachineAlias":    "versions and aliases arrive after go-live",
-	"ListStateMachineAliases":    "versions and aliases arrive after go-live",
-	"ListStateMachineVersions":   "versions and aliases arrive after go-live",
-	"PublishStateMachineVersion": "versions and aliases arrive after go-live",
-	"DeleteStateMachineVersion":  "versions and aliases arrive after go-live",
-}
+// notYet is where operations waited while the service was built in stages,
+// each with the reason, so a caller could tell a staged gap from a typo. It
+// is empty: every operation in the model is handled or refused for good.
+// The mechanism stays, because the next model refresh may add one.
+var notYet = map[string]string{}
 
 // stubActions are operations doze-aws does not intend to implement, with the
 // reason. Distinct from notYet: these are not coming.

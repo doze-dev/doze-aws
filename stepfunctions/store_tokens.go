@@ -13,12 +13,19 @@ type TokenRef struct {
 	ExecKey  string `json:"exec_key"`
 	Frame    int    `json:"frame"`
 	IssuedAt int64  `json:"issued_at"`
+	// Queue is the activityqueue key holding this token's unclaimed task,
+	// "" for a .waitForTaskToken task or once a worker has claimed it. It
+	// is what lets a timeout that kills the token also drop the queue entry
+	// in the same transaction, so a worker never receives a dead task.
+	Queue string `json:"queue,omitempty"`
 }
 
-// tokenOp is one buffered token write: Ref nil means delete.
+// tokenOp is one buffered token write: Ref nil means delete. Task, when set,
+// also enqueues the activity task the token belongs to.
 type tokenOp struct {
 	Token string
 	Ref   *TokenRef
+	Task  *ActivityTask
 }
 
 // GetToken resolves a token, nil when unknown (never issued, already

@@ -36,19 +36,15 @@ func parseExecARN(arn string) (machineName, execName string) {
 
 func (s *Server) startExecution(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "stateMachineArn")
-	machineName := nameFromARN(arn, "stateMachine")
-	if machineName == "" {
-		return nil, errInvalidARN(arn)
-	}
-	m, aerr := s.store.GetMachine(machineName)
+	// A version or alias ARN resolves to the snapshot it runs; m then carries
+	// that definition, with its ARN and Name still the machine's own.
+	m, versionARN, aliasARN, aerr := s.startTarget(arn)
 	if aerr != nil {
 		return nil, aerr
 	}
-	if m == nil {
-		return nil, errMachineNotFound(arn)
-	}
+	machineName := m.Name
 	if m.Type == "EXPRESS" {
-		return nil, errNotYet("StartExecution", "Express executions arrive after Standard ones")
+		return s.startExpress(ctx, m, p, versionARN, aliasARN)
 	}
 
 	execName := awsjson.Str(p, "name")
@@ -82,20 +78,52 @@ func (s *Server) startExecution(ctx context.Context, p map[string]any) (any, *aw
 		return nil, errExecutionExists(existing.ARN)
 	}
 
+	e, aerr := s.launch(launchSpec{
+		Machine: m, VersionARN: versionARN, AliasARN: aliasARN, Name: execName, Input: input,
+		TraceHeader: trace.Header(ctx), XRayHeader: awsjson.Str(p, "traceHeader"),
+	})
+	if aerr != nil {
+		return nil, aerr
+	}
+	return map[string]any{
+		"executionArn": e.ARN,
+		"startDate":    epoch(e.StartedAt),
+	}, nil
+}
+
+// launchSpec is everything a Standard execution starts from. StartExecution
+// fills it from the request; a states:startExecution Task fills it from its
+// Parameters, on the driver, with the parent's trace as the cause.
+type launchSpec struct {
+	Machine              *StateMachine
+	VersionARN, AliasARN string
+	Name, Input          string
+	TraceHeader          string
+	XRayHeader           string
+	StartedBy            string // the parent execution's ARN, for AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID
+}
+
+// launch writes a Standard execution's record and its ExecutionStarted event
+// in one transaction and nudges the driver.
+func (s *Server) launch(spec launchSpec) (*Execution, *awshttp.APIError) {
+	m := spec.Machine
 	def, perr := asl.Parse([]byte(m.Definition))
 	if perr != nil {
 		return nil, awshttp.Errf(500, "InternalFailure", "the stored definition no longer parses: %v", perr)
 	}
 	now := s.store.clock()
-	arn = execARN(machineName, execName)
+	arn := execARN(m.Name, spec.Name)
 	e := &Execution{
-		ARN: arn, MachineARN: m.ARN, Name: execName,
+		ARN: arn, MachineARN: m.ARN, Name: spec.Name,
 		Definition: m.Definition, RoleARN: m.RoleARN, RevisionID: m.RevisionID, Type: m.Type,
-		Status: "RUNNING", StartedAt: now.UnixMilli(), Input: input,
-		TraceHeader: trace.Header(ctx),
-		XRayHeader:  awsjson.Str(p, "traceHeader"),
-		Exec: asl.StartExec(arn, execName, m.ARN, m.Name, m.RoleARN,
-			json.RawMessage(input), now),
+		Status: "RUNNING", StartedAt: now.UnixMilli(), Input: spec.Input,
+		TraceHeader: spec.TraceHeader,
+		XRayHeader:  spec.XRayHeader,
+		VersionARN:  spec.VersionARN,
+		AliasARN:    spec.AliasARN,
+		StartedBy:   spec.StartedBy,
+		Exec: asl.StartExec(arn, spec.Name, m.ARN, m.Name, m.RoleARN,
+			json.RawMessage(spec.Input), now),
 		NextEventID: 1,
 	}
 	if def.TimeoutSeconds != nil {
@@ -118,10 +146,7 @@ func (s *Server) startExecution(ctx context.Context, p map[string]any) (any, *aw
 		return nil, asAPIError(err)
 	}
 	s.engine.nudge(e.Key())
-	return map[string]any{
-		"executionArn": e.ARN,
-		"startDate":    epoch(e.StartedAt),
-	}, nil
+	return e, nil
 }
 
 func (s *Server) getExecutionHistory(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
@@ -199,9 +224,9 @@ func (s *Server) describeExecution(ctx context.Context, p map[string]any) (any, 
 		"startDate":       epoch(e.StartedAt),
 		"input":           e.Input,
 		"inputDetails":    map[string]any{"included": true},
-		"redriveCount":    0,
-		"redriveStatus":   "NOT_REDRIVABLE",
 	}
+	s.putRedrive(out, e)
+	putQualifiers(out, e)
 	if e.StoppedAt != 0 {
 		out["stopDate"] = epoch(e.StoppedAt)
 	}
@@ -263,25 +288,39 @@ func (s *Server) stopExecution(ctx context.Context, p map[string]any) (any, *aws
 
 func (s *Server) listExecutions(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "stateMachineArn")
-	machineName := nameFromARN(arn, "stateMachine")
-	if machineName == "" {
+	machineName, qualifier, ok := splitMachineARN(arn)
+	if !ok {
 		return nil, errInvalidARN(arn)
 	}
 	if m, aerr := s.store.GetMachine(machineName); aerr != nil {
 		return nil, aerr
 	} else if m == nil {
 		return nil, errMachineNotFound(arn)
+	} else if m.Type == "EXPRESS" {
+		return nil, errTypeNotSupported("ListExecutions on an EXPRESS state machine")
+	}
+	// A version or alias ARN narrows the list to what was started through it.
+	versionARN, aliasARN, aerr := s.executionQualifier(arn, machineName, qualifier)
+	if aerr != nil {
+		return nil, aerr
 	}
 	execs, err := s.store.ListExecutionsFor(machineName)
 	if err != nil {
 		return nil, asAPIError(err)
 	}
 	filter := awsjson.Str(p, "statusFilter")
+	redriveFilter := awsjson.Str(p, "redriveFilter")
 	// Newest first, the way the console and the CLI expect to read them.
 	sort.Slice(execs, func(i, j int) bool { return execs[i].StartedAt > execs[j].StartedAt })
 	items := make([]any, 0, len(execs))
 	for _, e := range execs {
 		if filter != "" && e.Status != filter {
+			continue
+		}
+		if (redriveFilter == "REDRIVEN" && e.RedriveCount == 0) || (redriveFilter == "NOT_REDRIVEN" && e.RedriveCount > 0) {
+			continue
+		}
+		if (versionARN != "" && e.VersionARN != versionARN) || (aliasARN != "" && e.AliasARN != aliasARN) {
 			continue
 		}
 		item := map[string]any{
@@ -294,6 +333,7 @@ func (s *Server) listExecutions(ctx context.Context, p map[string]any) (any, *aw
 		if e.StoppedAt != 0 {
 			item["stopDate"] = epoch(e.StoppedAt)
 		}
+		putQualifiers(item, e)
 		items = append(items, item)
 	}
 	return page(p, "executions", items)
@@ -302,6 +342,11 @@ func (s *Server) listExecutions(ctx context.Context, p map[string]any) (any, *aw
 // executionOf resolves the executionArn parameter to its record.
 func (s *Server) executionOf(p map[string]any) (*Execution, *awshttp.APIError) {
 	arn := awsjson.Str(p, "executionArn")
+	if isExpressARN(arn) {
+		// An Express execution has no describable record — AWS keeps none,
+		// and answers as if it never existed.
+		return nil, errExecutionNotFound(arn)
+	}
 	machineName, execName := parseExecARN(arn)
 	if machineName == "" {
 		return nil, errInvalidARN(arn)

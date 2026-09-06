@@ -35,6 +35,7 @@
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "executions" "Label" "Executions" "Icon" "list" "CtID" (printf "tabct-sfn-%s-execs" (slug .Name)) "Ct" (len .Execs) "URL" (printf "%s/sfn/%s" .Prefix .Name))
         (dict "Key" "start" "Label" "Start execution" "Icon" "send" "URL" (printf "%s/sfn/%s?tab=start" .Prefix .Name))
+        (dict "Key" "graph" "Label" "Graph" "Icon" "route" "URL" (printf "%s/sfn/%s?tab=graph" .Prefix .Name))
         (dict "Key" "definition" "Label" "Definition" "Icon" "settings" "URL" (printf "%s/sfn/%s?tab=definition" .Prefix .Name))
         (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/sfn/%s?tab=tags" .Prefix .Name)))}}
     </div>
@@ -59,6 +60,11 @@
           </div>
         </form>
       </div>
+    </div>
+
+    {{else if eq .Tab "graph"}}
+    <div class="det-b">
+      {{template "sfn_graph" .}}
     </div>
 
     {{else if eq .Tab "tags"}}
@@ -149,6 +155,7 @@
       </div>
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "history" "Label" "History" "Icon" "list" "URL" (printf "%s/sfn/%s/execution/%s" .Prefix .Machine .Name))
+        (dict "Key" "graph" "Label" "Graph" "Icon" "route" "URL" (printf "%s/sfn/%s/execution/%s?tab=graph" .Prefix .Machine .Name))
         (dict "Key" "io" "Label" "Input & output" "Icon" "braces" "URL" (printf "%s/sfn/%s/execution/%s?tab=io" .Prefix .Machine .Name))
         (dict "Key" "definition" "Label" "Definition" "Icon" "settings" "URL" (printf "%s/sfn/%s/execution/%s?tab=definition" .Prefix .Machine .Name)))}}
     </div>
@@ -160,6 +167,15 @@
         <div class="panel"><div class="panel-h"><h2>Output</h2>{{if .Exec.Error}}<span class="dim">none — the execution failed</span>{{end}}</div>
           {{if .Exec.Error}}<div class="err err-refused"><div class="err-h mono">{{.Exec.Error}}</div><p class="err-msg">{{.Exec.Cause}}</p></div>{{else if .Exec.Output}}<pre class="code-block">{{.Exec.Output}}</pre>{{else}}<div class="empty flat"><p>Not finished yet.</p></div>{{end}}</div>
       </div>
+    </div>
+
+    {{else if eq .Tab "graph"}}
+    <div class="det-b">
+      {{/* The graph over the frozen definition, and the history under it: a
+           click on a node lands on the rows for that state. Two live regions,
+           one hash — both go quiet together when the execution stops. */}}
+      {{template "sfn_graph_live" .}}
+      {{template "sfn_history" .}}
     </div>
 
     {{else if eq .Tab "definition"}}
@@ -188,7 +204,7 @@
   <div class="panel">
     <div class="panel-h"><h2>{{icon "list"}} History <span class="badge">{{len .Events}}</span></h2>{{template "sfn_status" .Exec.Status}}</div>
     {{if .Events}}<table class="tbl sfn-hist"><thead><tr><th class="right">#</th><th>Event</th><th>State</th><th>When</th><th>Detail</th></tr></thead><tbody>{{range .Events}}
-      <tr class="{{if .IsErr}}bad-row{{end}}" x-data="{open:false}">
+      <tr class="{{if .IsErr}}bad-row{{end}}" data-state="{{.State}}" x-data="{open:false}">
         <td class="right dim mono">{{.ID}}</td>
         <td class="mono">{{.Type}}</td>
         <td class="mono">{{.State}}</td>

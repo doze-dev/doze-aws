@@ -90,6 +90,10 @@ type State struct {
 
 	// Data flow, JSONata dialect. Arguments replaces Parameters, Output
 	// replaces ResultSelector plus ResultPath, and Assign writes variables.
+	//
+	// Any of the three may hold a literal JSON value, a `{% … %}` expression
+	// string, or an object/array with expressions nested anywhere inside —
+	// which is why they stay raw: jsonata_eval.go walks them at run time.
 	Arguments json.RawMessage
 	Output    json.RawMessage
 	Assign    json.RawMessage
@@ -97,20 +101,26 @@ type State struct {
 	// Pass
 	Result json.RawMessage
 
-	// Task
+	// Task. The scalar seconds fields come in two spellings: a number, held
+	// in the pointer, or (JSONata only) a `{% … %}` string, held in the Expr
+	// twin. The parser splits them so the JSONPath code never sees a string
+	// where it expects a number.
 	Resource             string
 	Credentials          json.RawMessage
 	TimeoutSecondsState  *float64
+	TimeoutSecondsExpr   string
 	TimeoutSecondsPath   string
 	HeartbeatSeconds     *float64
+	HeartbeatSecondsExpr string
 	HeartbeatSecondsPath string
 
 	// Choice
 	Choices []*ChoiceRule
 	Default string
 
-	// Wait — exactly one of these four.
+	// Wait — exactly one of these four (SecondsExpr counts as Seconds).
 	Seconds       *float64
+	SecondsExpr   string
 	SecondsPath   string
 	Timestamp     string
 	TimestampPath string
@@ -124,12 +134,15 @@ type State struct {
 	// Parallel
 	Branches []*Definition
 
-	// Map
+	// Map. Items is the JSONata replacement for ItemsPath: a literal array
+	// or an expression that yields one.
 	ItemProcessor              *Definition
 	Iterator                   *Definition // the retired spelling of ItemProcessor
 	ItemsPath                  string
+	Items                      json.RawMessage
 	ItemSelector               json.RawMessage
 	MaxConcurrency             *float64
+	MaxConcurrencyExpr         string
 	MaxConcurrencyPath         string
 	ItemReader                 json.RawMessage
 	ItemBatcher                json.RawMessage
@@ -140,6 +153,12 @@ type State struct {
 	// Error handling, on Task, Parallel and Map.
 	Retry []*Retrier
 	Catch []*Catcher
+
+	// dialect is the query language in force for the state, resolved by the
+	// parser from the state's own QueryLanguage and the enclosing machine's.
+	// Held on the state so the interpreter answers Dialect() without the
+	// definition in hand — deliverFailure, for one, has only the state.
+	dialect QueryLanguage
 
 	// Name is the key this state was listed under. Carried on the state so a
 	// validation error or a history event can name itself without the caller
@@ -180,8 +199,10 @@ type ChoiceRule struct {
 	Not *ChoiceRule
 
 	// Condition is the JSONata dialect's replacement for the whole comparison
-	// vocabulary below.
+	// vocabulary below. Assign on a rule runs when that rule is the one
+	// taken, after the state's own Assign.
 	Condition json.RawMessage
+	Assign    json.RawMessage
 
 	// Comparison is the operator name and its operand, e.g. "StringEquals" and
 	// "hello". Held generically rather than as sixty typed fields, because the
@@ -228,4 +249,25 @@ func (d *Definition) Lang(s *State) QueryLanguage {
 		return d.QueryLanguage
 	}
 	return JSONPath
+}
+
+// Lang is the state's query language given the language in force around it:
+// its own if it set one, else the enclosing one, else JSONPath.
+func (s *State) Lang(enclosing QueryLanguage) QueryLanguage {
+	if s.QueryLanguage != "" {
+		return s.QueryLanguage
+	}
+	if enclosing != "" {
+		return enclosing
+	}
+	return JSONPath
+}
+
+// Dialect is the query language the state runs under. A state built by hand
+// rather than parsed has none recorded, and runs as JSONPath.
+func (s *State) Dialect() QueryLanguage {
+	if s.dialect == "" {
+		return JSONPath
+	}
+	return s.dialect
 }

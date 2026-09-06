@@ -135,6 +135,9 @@ func taskFamily(resource string) (prefix, resourceType, resourceAPI string) {
 	if strings.HasPrefix(base, "arn:aws:lambda:") {
 		return "LambdaFunction", "", ""
 	}
+	if asl.IsActivityARN(base) {
+		return "Activity", "", ""
+	}
 	rest := strings.TrimPrefix(base, "arn:aws:states:::")
 	svc, api, _ := strings.Cut(rest, ":")
 	return "Task", svc, api
@@ -171,6 +174,10 @@ func (g *engine) taskScheduledEvents(r *run, f *asl.Frame, call asl.EffCallTask)
 // taskSuccessEvent emits the family's Succeeded event.
 func (g *engine) taskSuccessEvent(r *run, f *asl.Frame, resource string, output []byte) {
 	prefix, resourceType, resourceAPI := taskFamily(resource)
+	if prefix == "Activity" {
+		g.activitySucceededEvent(r, f, output)
+		return
+	}
 	if prefix == "LambdaFunction" {
 		g.event(r, f, "LambdaFunctionSucceeded", "lambdaFunctionSucceededEventDetails", map[string]any{
 			"output": string(output), "outputDetails": notTruncated(),
@@ -186,6 +193,10 @@ func (g *engine) taskSuccessEvent(r *run, f *asl.Frame, resource string, output 
 // taskFailureEvent emits the family's Failed or TimedOut event.
 func (g *engine) taskFailureEvent(r *run, f *asl.Frame, resource, errName, cause string) {
 	prefix, resourceType, resourceAPI := taskFamily(resource)
+	if prefix == "Activity" {
+		g.activityFailureEvent(r, f, errName, cause)
+		return
+	}
 	timedOut := errName == asl.ErrTimeout || errName == asl.ErrHeartbeatTimeout
 	if prefix == "LambdaFunction" {
 		typ, key := "LambdaFunctionFailed", "lambdaFunctionFailedEventDetails"

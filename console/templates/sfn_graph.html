@@ -1,0 +1,58 @@
+{{/* The state-machine graph: the picture AWS draws on the machine page and
+     colours in on the execution page. Coordinates come from sfngraph — the
+     template places, it does not lay out — and every colour is a class, so
+     the same SVG reads in both themes and the CSS budget stays at zero. */}}
+
+{{/* sfn_graph_live is the execution page's wrapper: a live region that
+     redraws while the execution is RUNNING and goes quiet after, exactly
+     like sfn_history. graph.js keeps the pan and zoom across the redraw. */}}
+{{define "sfn_graph_live"}}
+<div id="sfn-graph" data-live="{{.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}/graph" data-live-ms="1500" data-hash="{{.Hash}}"{{if ne .Exec.Status "RUNNING"}} data-live-paused="1"{{end}}>
+  {{template "sfn_graph" .}}
+</div>
+{{end}}
+
+{{define "sfn_graph"}}
+<div class="panel">
+  <div class="panel-h"><h2>{{icon "route"}} Graph</h2>
+    {{if .Exec}}<span class="graph-legend">
+      <span class="gl gl-succeeded">succeeded</span><span class="gl gl-failed">failed</span><span class="gl gl-caught">caught</span><span class="gl gl-running">in progress</span><span class="gl gl-cancelled">cancelled</span><span class="gl gl-idle">not entered</span>
+    </span>{{else if .Graph}}<span class="dim">{{len .Graph.Nodes}} states · drag to pan, wheel to zoom</span>{{end}}
+  </div>
+  {{if .GraphErr}}
+  <div class="empty flat"><p>The definition does not parse, so there is nothing to draw: <span class="mono">{{.GraphErr}}</span></p></div>
+  {{else}}
+  <div class="graph-wrap" data-graph>
+    <div class="graph-tools">
+      <button type="button" class="icon-btn sm" data-graph-act="in" title="Zoom in">+</button>
+      <button type="button" class="icon-btn sm" data-graph-act="out" title="Zoom out">−</button>
+      <button type="button" class="icon-btn sm" data-graph-act="fit" title="Fit to width">{{icon "monitor"}}</button>
+    </div>
+    {{template "sfn_graph_svg" .Graph}}
+  </div>
+  {{end}}
+</div>
+{{end}}
+
+{{/* The SVG proper. Edges before nodes so arrows pass under boxes; nodes in
+     sfngraph's order so a container is painted before what it holds. The
+     arrowhead is one marker every edge points at, in currentColor, so the
+     edge's class colours its head too. */}}
+{{define "sfn_graph_svg"}}
+<svg class="graph" id="sfn-graph-svg" xmlns="http://www.w3.org/2000/svg" width="{{.Width}}" height="{{.Height}}" viewBox="0 0 {{.Width}} {{.Height}}" role="img" aria-label="State machine graph">
+  <defs>
+    <marker id="ge-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker>
+  </defs>
+  {{range .Edges}}<g class="ge ge-{{.Kind}}{{if .Back}} ge-back{{end}}"><polyline points="{{.Path}}" marker-end="url(#ge-arrow)"/>{{if .Label}}<text class="ge-label" x="{{.LX}}" y="{{.LY}}">{{.Label}}</text>{{end}}</g>
+  {{end}}
+  {{range .Nodes}}<g class="gn gn-{{.Kind}}{{if .Container}} gn-box{{end}}{{if .Start}} gn-start{{end}}{{with .Status}} gn-{{.}}{{end}}" data-state="{{.Name}}" transform="translate({{.X}} {{.Y}})" tabindex="0" role="button">
+    <title>{{.Name}} · {{.Type}}{{with .Status}} · {{.}}{{end}}{{if gt .Entered 1}} · entered {{.Entered}}×{{end}}{{if .Retries}} · {{.Retries}} retr{{if eq .Retries 1}}y{{else}}ies{{end}}{{end}}</title>
+    <rect class="gn-r" width="{{.W}}" height="{{.H}}" rx="4"/>
+    {{if eq .Kind "choice"}}<path class="gn-glyph" d="M11 22l7-7 7 7-7 7z"/><text class="gn-name" x="30" y="19">{{.Label}}</text><text class="gn-type" x="30" y="34">{{.Type}}</text>
+    {{else}}<text class="gn-name" x="12" y="19">{{.Label}}</text><text class="gn-type" x="12" y="34">{{.Type}}</text>{{end}}
+    {{if gt .Entered 1}}<text class="gn-ct" x="{{.Right}}" y="16">{{.Entered}}×</text>{{end}}
+    {{if .Retries}}<text class="gn-ct" x="{{.Right}}" y="34">↻{{.Retries}}</text>{{end}}
+  </g>
+  {{end}}
+</svg>
+{{end}}

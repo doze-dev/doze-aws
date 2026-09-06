@@ -30,6 +30,15 @@ func Parse(raw []byte) (*Definition, error) {
 // parseDefinition parses a machine or a sub-machine. at names the enclosing
 // state for error messages ("in Map state Process"), empty at the top level.
 func parseDefinition(raw []byte, at string) (*Definition, error) {
+	return parseSubDefinition(raw, at, "")
+}
+
+// parseSubDefinition is parseDefinition for a Parallel branch or Map
+// ItemProcessor, which inherits the enclosing machine's QueryLanguage when it
+// declares none of its own — the way AWS resolves the dialect for states inside
+// a branch. Recording the inherited value here means every Definition answers
+// Lang(s) on its own, with no walk back up to the root.
+func parseSubDefinition(raw []byte, at string, inherit QueryLanguage) (*Definition, error) {
 	var doc struct {
 		Comment        string                     `json:"Comment"`
 		StartAt        string                     `json:"StartAt"`
@@ -50,6 +59,9 @@ func parseDefinition(raw []byte, at string) (*Definition, error) {
 		QueryLanguage:  QueryLanguage(doc.QueryLanguage),
 		States:         make(map[string]*State, len(doc.States)),
 	}
+	if d.QueryLanguage == "" {
+		d.QueryLanguage = inherit
+	}
 
 	order, err := objectKeys(raw, "States")
 	if err != nil {
@@ -58,7 +70,7 @@ func parseDefinition(raw []byte, at string) (*Definition, error) {
 	d.Order = order
 
 	for _, name := range order {
-		s, err := parseState(doc.States[name], name)
+		s, err := parseState(doc.States[name], name, d.QueryLanguage)
 		if err != nil {
 			return nil, err
 		}
@@ -67,7 +79,7 @@ func parseDefinition(raw []byte, at string) (*Definition, error) {
 	return d, nil
 }
 
-func parseState(raw []byte, name string) (*State, error) {
+func parseState(raw []byte, name string, inherit QueryLanguage) (*State, error) {
 	var doc struct {
 		Type          string `json:"Type"`
 		Comment       string `json:"Comment"`
@@ -89,18 +101,18 @@ func parseState(raw []byte, name string) (*State, error) {
 
 		Resource             string          `json:"Resource"`
 		Credentials          json.RawMessage `json:"Credentials"`
-		TimeoutSeconds       *float64        `json:"TimeoutSeconds"`
+		TimeoutSeconds       json.RawMessage `json:"TimeoutSeconds"`
 		TimeoutSecondsPath   string          `json:"TimeoutSecondsPath"`
-		HeartbeatSeconds     *float64        `json:"HeartbeatSeconds"`
+		HeartbeatSeconds     json.RawMessage `json:"HeartbeatSeconds"`
 		HeartbeatSecondsPath string          `json:"HeartbeatSecondsPath"`
 
 		Choices []json.RawMessage `json:"Choices"`
 		Default string            `json:"Default"`
 
-		Seconds       *float64 `json:"Seconds"`
-		SecondsPath   string   `json:"SecondsPath"`
-		Timestamp     string   `json:"Timestamp"`
-		TimestampPath string   `json:"TimestampPath"`
+		Seconds       json.RawMessage `json:"Seconds"`
+		SecondsPath   string          `json:"SecondsPath"`
+		Timestamp     string          `json:"Timestamp"`
+		TimestampPath string          `json:"TimestampPath"`
 
 		Error     string `json:"Error"`
 		ErrorPath string `json:"ErrorPath"`
@@ -112,8 +124,9 @@ func parseState(raw []byte, name string) (*State, error) {
 		ItemProcessor              json.RawMessage `json:"ItemProcessor"`
 		Iterator                   json.RawMessage `json:"Iterator"`
 		ItemsPath                  string          `json:"ItemsPath"`
+		Items                      json.RawMessage `json:"Items"`
 		ItemSelector               json.RawMessage `json:"ItemSelector"`
-		MaxConcurrency             *float64        `json:"MaxConcurrency"`
+		MaxConcurrency             json.RawMessage `json:"MaxConcurrency"`
 		MaxConcurrencyPath         string          `json:"MaxConcurrencyPath"`
 		ItemReader                 json.RawMessage `json:"ItemReader"`
 		ItemBatcher                json.RawMessage `json:"ItemBatcher"`
@@ -155,18 +168,37 @@ func parseState(raw []byte, name string) (*State, error) {
 		Arguments: doc.Arguments, Output: doc.Output, Assign: doc.Assign,
 		Result:   doc.Result,
 		Resource: doc.Resource, Credentials: doc.Credentials,
-		TimeoutSecondsState: doc.TimeoutSeconds, TimeoutSecondsPath: doc.TimeoutSecondsPath,
-		HeartbeatSeconds: doc.HeartbeatSeconds, HeartbeatSecondsPath: doc.HeartbeatSecondsPath,
-		Default: doc.Default,
-		Seconds: doc.Seconds, SecondsPath: doc.SecondsPath,
-		Timestamp: doc.Timestamp, TimestampPath: doc.TimestampPath,
+		TimeoutSecondsPath: doc.TimeoutSecondsPath, HeartbeatSecondsPath: doc.HeartbeatSecondsPath,
+		Default:     doc.Default,
+		SecondsPath: doc.SecondsPath,
+		Timestamp:   doc.Timestamp, TimestampPath: doc.TimestampPath,
 		Error: doc.Error, ErrorPath: doc.ErrorPath,
 		Cause: doc.Cause, CausePath: doc.CausePath,
-		ItemsPath: doc.ItemsPath, ItemSelector: doc.ItemSelector,
-		MaxConcurrency: doc.MaxConcurrency, MaxConcurrencyPath: doc.MaxConcurrencyPath,
-		ItemReader: doc.ItemReader, ItemBatcher: doc.ItemBatcher, ResultWriter: doc.ResultWriter,
+		ItemsPath: doc.ItemsPath, Items: doc.Items, ItemSelector: doc.ItemSelector,
+		MaxConcurrencyPath: doc.MaxConcurrencyPath,
+		ItemReader:         doc.ItemReader, ItemBatcher: doc.ItemBatcher, ResultWriter: doc.ResultWriter,
 		ToleratedFailureCount:      doc.ToleratedFailureCount,
 		ToleratedFailurePercentage: doc.ToleratedFailurePercentage,
+	}
+	s.dialect = s.Lang(inherit)
+
+	// The seconds-shaped fields take a number in both dialects and a `{% … %}`
+	// string in JSONata. Split here, so the JSONPath interpreter keeps its
+	// *float64 and the analyser can refuse a string on a JSONPath state.
+	for _, f := range []struct {
+		key  string
+		raw  json.RawMessage
+		num  **float64
+		expr *string
+	}{
+		{"TimeoutSeconds", doc.TimeoutSeconds, &s.TimeoutSecondsState, &s.TimeoutSecondsExpr},
+		{"HeartbeatSeconds", doc.HeartbeatSeconds, &s.HeartbeatSeconds, &s.HeartbeatSecondsExpr},
+		{"Seconds", doc.Seconds, &s.Seconds, &s.SecondsExpr},
+		{"MaxConcurrency", doc.MaxConcurrency, &s.MaxConcurrency, &s.MaxConcurrencyExpr},
+	} {
+		if err := numberOrExpr(f.raw, f.num, f.expr); err != nil {
+			return nil, fmt.Errorf("state %q: %s must be a number or a JSONata expression string", name, f.key)
+		}
 	}
 
 	for i, rawRule := range doc.Choices {
@@ -177,21 +209,21 @@ func parseState(raw []byte, name string) (*State, error) {
 		s.Choices = append(s.Choices, rule)
 	}
 	for i, rawBranch := range doc.Branches {
-		b, err := parseDefinition(rawBranch, fmt.Sprintf("state %q branch %d", name, i))
+		b, err := parseSubDefinition(rawBranch, fmt.Sprintf("state %q branch %d", name, i), s.Lang(inherit))
 		if err != nil {
 			return nil, err
 		}
 		s.Branches = append(s.Branches, b)
 	}
 	if len(doc.ItemProcessor) > 0 {
-		p, err := parseDefinition(doc.ItemProcessor, fmt.Sprintf("state %q ItemProcessor", name))
+		p, err := parseSubDefinition(doc.ItemProcessor, fmt.Sprintf("state %q ItemProcessor", name), s.Lang(inherit))
 		if err != nil {
 			return nil, err
 		}
 		s.ItemProcessor = p
 	}
 	if len(doc.Iterator) > 0 {
-		p, err := parseDefinition(doc.Iterator, fmt.Sprintf("state %q Iterator", name))
+		p, err := parseSubDefinition(doc.Iterator, fmt.Sprintf("state %q Iterator", name), s.Lang(inherit))
 		if err != nil {
 			return nil, err
 		}
@@ -230,6 +262,7 @@ func parseRule(raw []byte, at string) (*ChoiceRule, error) {
 		return nil, err
 	}
 	r.Condition = doc["Condition"]
+	r.Assign = doc["Assign"]
 
 	for _, combinator := range []struct {
 		key string
@@ -338,4 +371,22 @@ func wrap(at string, err error) error {
 		return err
 	}
 	return fmt.Errorf("%s: %w", at, err)
+}
+
+// numberOrExpr reads a field that is a number in JSONPath and may be a
+// `{% … %}` string in JSONata. null and absent both leave the pair empty.
+func numberOrExpr(raw json.RawMessage, num **float64, expr *string) error {
+	raw = bytes.TrimSpace(raw)
+	if len(raw) == 0 || bytes.Equal(raw, []byte("null")) {
+		return nil
+	}
+	if raw[0] == '"' {
+		return json.Unmarshal(raw, expr)
+	}
+	var n float64
+	if err := json.Unmarshal(raw, &n); err != nil {
+		return err
+	}
+	*num = &n
+	return nil
 }

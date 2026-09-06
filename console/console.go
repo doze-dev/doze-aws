@@ -357,6 +357,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/sfn/{machine}/executions", c.sfnExecutions) // HTMX partial (polled ListExecutions)
 	m.HandleFunc("GET "+p+"/sfn/{machine}/execution/{exec}", c.sfnExecution)
 	m.HandleFunc("GET "+p+"/sfn/{machine}/execution/{exec}/history", c.sfnHistory) // HTMX partial (polled GetExecutionHistory)
+	m.HandleFunc("GET "+p+"/sfn/{machine}/execution/{exec}/graph", c.sfnGraph)     // HTMX partial (polled GetExecutionHistory over DescribeStateMachineForExecution)
 	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/stop", c.sfnStop)
 	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/task-result", c.sfnTaskResult) // HTMX partial (SendTaskSuccess / SendTaskFailure)
 

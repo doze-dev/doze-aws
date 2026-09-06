@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/console/sfngraph"
+	"github.com/doze-dev/doze-aws/internal/asl"
 )
 
 // ---- Step Functions ----
@@ -82,6 +85,9 @@ func (c *Console) sfnMachine(w http.ResponseWriter, r *http.Request) {
 	for k, v := range c.sfnExecutionsData(r, name) {
 		data[k] = v
 	}
+	if data["Tab"] == "graph" {
+		data["Graph"], data["GraphErr"] = graphOf(sm.Definition, nil, false)
+	}
 	c.render(w, r, "sfn_machine", data)
 }
 
@@ -149,6 +155,10 @@ func (c *Console) sfnExecution(w http.ResponseWriter, r *http.Request) {
 	switch data["Tab"] {
 	case "definition":
 		data["Definition"], _ = c.be.ExecutionDefinition(r.Context(), arn)
+	case "graph":
+		for k, v := range c.sfnGraphData(r, machine, name) {
+			data[k] = v
+		}
 	default:
 		for k, v := range c.sfnHistoryData(r, machine, name) {
 			data[k] = v
@@ -210,4 +220,54 @@ func (c *Console) sfnTaskResult(w http.ResponseWriter, r *http.Request) {
 	}
 	toast(w, msg)
 	c.partial(w, "sfn_history", c.sfnHistoryData(r, r.PathValue("machine"), r.PathValue("exec")))
+}
+
+// ---- the graph ----
+//
+// The machine page draws its definition; the execution page draws the
+// definition the execution froze and colours it with the history. Layout is
+// sfngraph's — the handler only parses and hands over.
+
+// graphOf lays out a definition and, given a history, overlays it. A
+// definition that does not parse yields the error for the panel to show
+// rather than a blank picture: the machine was accepted with it, so the
+// person reading the page did not write it just now.
+func graphOf(definition string, evs []HistoryEvent, running bool) (*sfngraph.Graph, string) {
+	def, err := asl.Parse([]byte(definition))
+	if err != nil {
+		return nil, err.Error()
+	}
+	g := sfngraph.Layout(def)
+	if evs != nil {
+		events := make([]sfngraph.Event, 0, len(evs))
+		for _, ev := range evs {
+			events = append(events, sfngraph.Event{ID: ev.ID, PrevID: ev.PrevID, Type: ev.Type, State: ev.State})
+		}
+		sfngraph.Overlay(g, events, running)
+	}
+	return g, ""
+}
+
+// sfnGraphData is the execution graph panel plus the history under it — the
+// graph tab shows both, because a node click lands on its history rows. The
+// hash is the history's: the picture changes exactly when the events do.
+func (c *Console) sfnGraphData(r *http.Request, machine, name string) map[string]any {
+	data := c.sfnHistoryData(r, machine, name)
+	definition, _ := c.be.ExecutionDefinition(r.Context(), executionARNOf(machine, name))
+	ex := data["Exec"].(Execution)
+	evs := data["Events"].([]HistoryEvent)
+	if evs == nil {
+		evs = []HistoryEvent{}
+	}
+	data["Graph"], data["GraphErr"] = graphOf(definition, evs, ex.Status == "RUNNING")
+	return data
+}
+
+// sfnGraph is the polled graph partial: 204 when unchanged.
+func (c *Console) sfnGraph(w http.ResponseWriter, r *http.Request) {
+	data := c.sfnGraphData(r, r.PathValue("machine"), r.PathValue("exec"))
+	if liveUnchanged(w, r, data["Hash"].(string)) {
+		return
+	}
+	c.partial(w, "sfn_graph_live", data)
 }

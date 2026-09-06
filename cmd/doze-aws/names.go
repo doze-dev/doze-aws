@@ -37,6 +37,7 @@ const apexPort = 80
 // zone is doze-aws's participation in .doze.
 type zone struct {
 	lease *names.Lease
+	sync  *names.Lease // sync-aws.doze, the Step Functions host-prefix name
 	srv   *names.Server
 	front *names.Ingress
 	extra net.Listener
@@ -57,6 +58,18 @@ func joinZone(ctx context.Context, logger *slog.Logger) *zone {
 	switch {
 	case err == nil:
 		z.lease = lease
+		// Step Functions' StartSyncExecution and TestState are the two AWS
+		// operations with a host prefix: every SDK sends them to
+		// sync-<endpoint host>, and the endpoint ruleset applies the prefix
+		// even to a custom endpoint. sync-aws.doze at the same address is
+		// what makes them resolve; the resolver answers only registered
+		// names, so it has to be claimed, not assumed.
+		sync := names.Name{Host: "sync-" + lease.Name.Host, Tier: names.TierApex}
+		if l, err := reg.ClaimAt(sync, lease.IP); err == nil {
+			z.sync = l
+		} else {
+			logger.Debug("zone: could not claim the sync- name", "err", err)
+		}
 	default:
 		if held, ok := names.Held(err); ok {
 			// First-come, and the holder keeps it. Saying which process has it
@@ -157,6 +170,9 @@ func (z *zone) close() {
 	}
 	if z.extra != nil {
 		_ = z.extra.Close()
+	}
+	if z.sync != nil {
+		_ = z.sync.Release()
 	}
 	if z.lease != nil {
 		_ = z.lease.Release()

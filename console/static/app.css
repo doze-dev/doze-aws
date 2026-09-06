@@ -1793,3 +1793,73 @@ a.lo-card:hover { border-color: var(--accent); }
 .info-btn:hover { color: var(--foreground); }
 .info-btn .ic { width: 14px; height: 14px; }
 .info-body { max-height: 420px; overflow-y: auto; }
+
+/* ======================================================================
+   Step Functions graph (sfn_graph.html, graph.js)
+
+   The AWS execution graph's vocabulary, on this palette: green exited,
+   red failed, amber still going, grey cut off by an abort, and an outline
+   with no fill for a state the execution never reached. A caught error is
+   amber-outlined-red — it failed, and the workflow went on anyway. Every
+   colour comes through a class on the <g>, so the SVG itself is theme-blind.
+   ====================================================================== */
+.graph-wrap { position: relative; overflow: hidden; height: 480px; min-height: 160px; resize: vertical; background: color-mix(in srgb, var(--muted) 35%, transparent); border-top: 1px solid var(--border); cursor: grab; touch-action: none; user-select: none; }
+.graph-wrap.dragging { cursor: grabbing; }
+.graph-tools { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; gap: 4px; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 2px; }
+.graph-tools .icon-btn { font-size: 14px; font-weight: 600; }
+.graph { display: block; transform-origin: 0 0; overflow: visible; }
+.graph text { pointer-events: none; }
+
+.ge { fill: none; stroke: var(--muted-foreground); stroke-width: 1.5; color: var(--muted-foreground); }
+/* The arrowhead takes the colour of the edge it ends, where the browser can
+   say so (context-stroke); elsewhere it falls back to the neutral edge colour. */
+.graph marker path { fill: var(--muted-foreground); fill: context-stroke; stroke: none; }
+.ge-choice, .ge-default { stroke: var(--foreground); color: var(--foreground); }
+.ge-catch { stroke: var(--destructive); color: var(--destructive); stroke-dasharray: 4 3; }
+.ge-back { stroke-dasharray: 3 3; }
+.ge-label { fill: var(--muted-foreground); stroke: none; font-size: 10px; font-family: var(--mono); }
+.ge-catch .ge-label { fill: var(--destructive); }
+
+.gn { cursor: pointer; outline: none; }
+.gn-r { fill: var(--card); stroke: var(--border); stroke-width: 1.25; }
+.gn:hover .gn-r, .gn:focus-visible .gn-r, .gn.gn-sel .gn-r { stroke: var(--ring); stroke-width: 1.75; }
+.gn-name { fill: var(--foreground); font-size: 12px; font-weight: 600; }
+.gn-type { fill: var(--muted-foreground); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; }
+.gn-ct { fill: var(--muted-foreground); font-size: 10px; font-family: var(--mono); text-anchor: end; }
+.gn-glyph { fill: none; stroke: var(--muted-foreground); stroke-width: 1.5; }
+.gn-start .gn-r { stroke-width: 2; }
+/* Containers: a tinted field with the title in its header strip, so the
+   branches inside read as inside. Their fill is deliberately faint — three
+   levels of nesting should still be three levels, not one grey. */
+.gn-box .gn-r { fill: color-mix(in srgb, var(--muted) 45%, transparent); stroke-dasharray: 5 3; rx: 6; }
+.gn-choice .gn-r { fill: color-mix(in srgb, var(--muted) 60%, var(--card)); }
+.gn-succeed .gn-r { rx: 22; }
+.gn-fail .gn-r { rx: 22; stroke: color-mix(in srgb, var(--destructive) 50%, var(--border)); }
+
+/* Overlay states — the palette the .badge state-* classes use, so the
+   execution status pill and the boxes under it agree. */
+.gn-succeeded .gn-r { fill: color-mix(in srgb, var(--success) 14%, var(--card)); stroke: color-mix(in srgb, var(--success) 45%, var(--border)); }
+.gn-succeeded .gn-type, .gn-succeeded .gn-ct { fill: var(--success); }
+.gn-failed .gn-r { fill: color-mix(in srgb, var(--destructive) 12%, var(--card)); stroke: color-mix(in srgb, var(--destructive) 55%, var(--border)); }
+.gn-failed .gn-type, .gn-failed .gn-ct { fill: var(--destructive); }
+.gn-caught .gn-r { fill: color-mix(in srgb, var(--warning) 12%, var(--card)); stroke: color-mix(in srgb, var(--destructive) 55%, var(--border)); }
+.gn-caught .gn-type, .gn-caught .gn-ct { fill: var(--destructive); }
+.gn-cancelled .gn-r { fill: var(--muted); stroke: var(--border); }
+.gn-cancelled .gn-name { fill: var(--muted-foreground); }
+.gn-running .gn-r { fill: color-mix(in srgb, var(--warning) 14%, var(--card)); stroke: var(--warning); stroke-width: 1.75; animation: gn-pulse 1.6s ease-in-out infinite; }
+.gn-running .gn-type, .gn-running .gn-ct { fill: var(--warning); }
+@keyframes gn-pulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .gn-running .gn-r { animation: none; } }
+
+.graph-legend { display: inline-flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--muted-foreground); }
+.gl { display: inline-flex; align-items: center; gap: 5px; }
+.gl::before { content: ""; width: 10px; height: 10px; border-radius: 2px; border: 1px solid var(--border); background: var(--card); }
+.gl-succeeded::before { background: color-mix(in srgb, var(--success) 14%, var(--card)); border-color: color-mix(in srgb, var(--success) 45%, var(--border)); }
+.gl-failed::before { background: color-mix(in srgb, var(--destructive) 12%, var(--card)); border-color: color-mix(in srgb, var(--destructive) 55%, var(--border)); }
+.gl-caught::before { background: color-mix(in srgb, var(--warning) 12%, var(--card)); border-color: color-mix(in srgb, var(--destructive) 55%, var(--border)); }
+.gl-running::before { background: color-mix(in srgb, var(--warning) 14%, var(--card)); border-color: var(--warning); }
+.gl-cancelled::before { background: var(--muted); }
+.gl-idle::before { background: var(--card); }
+
+/* A clicked node lights its rows in the history table underneath. */
+.sfn-hist tr.hl > td { background: color-mix(in srgb, var(--warning) 12%, transparent); }

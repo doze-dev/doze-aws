@@ -74,6 +74,33 @@ func TestConsoleStepFunctionsFlow(t *testing.T) {
 		t.Errorf("io tab should show input and output:\n%s", io)
 	}
 
+	// The graph tab draws every state on the machine page, and colours the
+	// ones the execution went through on the execution page.
+	graph := req(t, h, "GET", "/_console/sfn/order-flow?tab=graph", nil).Body.String()
+	for _, want := range []string{`<svg class="graph"`, `data-state="Prep"`, `data-state="Done"`, `gn-pass`, `gn-succeed`} {
+		if !strings.Contains(graph, want) {
+			t.Errorf("machine graph is missing %q:\n%s", want, graph)
+		}
+	}
+	if strings.Contains(graph, "gn-succeeded") || strings.Contains(graph, "graph-legend") {
+		t.Errorf("machine graph should carry no execution overlay:\n%s", graph)
+	}
+	overlaid := req(t, h, "GET", "/_console/sfn/order-flow/execution/run-1?tab=graph", nil).Body.String()
+	for _, want := range []string{`id="sfn-graph"`, `data-live-paused`, `gn-pass gn-start gn-succeeded" data-state="Prep"`, `gn-succeeded" data-state="Done"`, `id="sfn-history"`, `<tr class="" data-state="Prep"`} {
+		if !strings.Contains(overlaid, want) {
+			t.Errorf("execution graph is missing %q:\n%s", want, overlaid)
+		}
+	}
+	// The polled partial answers 204 to its own hash and 200 to a stale one.
+	live := req(t, h, "GET", "/_console/sfn/order-flow/execution/run-1/graph", nil)
+	if live.Code != 200 || !strings.Contains(live.Body.String(), `data-state="Prep"`) {
+		t.Errorf("graph partial: %d\n%s", live.Code, live.Body)
+	}
+	hash := live.Header().Get("HX-Live-Hash")
+	if rec := req(t, h, "GET", "/_console/sfn/order-flow/execution/run-1/graph?h="+hash, nil); rec.Code != 204 {
+		t.Errorf("unchanged graph should answer 204, got %d", rec.Code)
+	}
+
 	// The frozen definition survives an edit to the machine.
 	edited := strings.Replace(definition, `"ready":true`, `"ready":false`, 1)
 	if rec := req(t, h, "POST", "/_console/sfn/order-flow/definition", url.Values{"definition": {edited}}); rec.Code != 303 {

@@ -235,24 +235,6 @@ func TestSDKActivityAndTags(t *testing.T) {
 	}
 }
 
-// TestSDKStagedOperationsSayNotYet — the operations still staged (tokens,
-// history, Express) must say so rather than accept work they would silently
-// drop.
-func TestSDKStagedOperationsSayNotYet(t *testing.T) {
-	ctx := context.Background()
-	c := sfnClient(t)
-
-	_, err := c.GetActivityTask(ctx, &awssfn.GetActivityTaskInput{
-		ActivityArn: aws.String(awsident.ARN("states", "activity:approve")),
-	})
-	if err == nil {
-		t.Fatal("GetActivityTask succeeded, but activities are not implemented yet")
-	}
-	if !strings.Contains(err.Error(), "not supported by doze-aws yet") {
-		t.Errorf("error = %v; it should say the operation is staged, not fail obscurely", err)
-	}
-}
-
 // waitForStatus polls DescribeExecution until the execution reaches a
 // terminal status, which the engine delivers asynchronously.
 func waitForStatus(t *testing.T, c *awssfn.Client, arn string, want sfntypes.ExecutionStatus) *awssfn.DescribeExecutionOutput {
@@ -638,24 +620,5 @@ func TestSDKFailedExecution(t *testing.T) {
 	desc := waitForStatus(t, c, aws.ToString(started.ExecutionArn), sfntypes.ExecutionStatusFailed)
 	if aws.ToString(desc.Error) != "Custom.Nope" || aws.ToString(desc.Cause) != "deliberate" {
 		t.Errorf("error/cause = %q/%q", aws.ToString(desc.Error), aws.ToString(desc.Cause))
-	}
-}
-
-// TestSDKJSONataRefusedAtCreate: the JSONata dialect is staged; a machine
-// declaring it is refused at create time rather than run wrongly.
-func TestSDKJSONataRefusedAtCreate(t *testing.T) {
-	ctx := context.Background()
-	c := sfnClient(t)
-
-	_, err := c.CreateStateMachine(ctx, &awssfn.CreateStateMachineInput{
-		Name:       aws.String("jsonata"),
-		Definition: aws.String(`{"QueryLanguage":"JSONata","StartAt":"S","States":{"S":{"Type":"Succeed"}}}`),
-		RoleArn:    aws.String("arn:aws:iam::000000000000:role/StepFunctions"),
-	})
-	if err == nil {
-		t.Fatal("a JSONata machine was accepted; the interpreter would run it wrongly")
-	}
-	if !strings.Contains(err.Error(), "JSONata") {
-		t.Errorf("the refusal should name JSONata: %v", err)
 	}
 }

@@ -14,14 +14,14 @@ import (
 // present but not listed for the state's type is reported — a Wait state with a
 // Resource is a copy-paste that would otherwise be silently ignored at runtime.
 var fieldsByType = map[StateType]map[string]bool{
-	Pass:     {"Result": true, "Parameters": true, "ResultPath": true},
-	Task:     {"Resource": true, "Parameters": true, "ResultSelector": true, "ResultPath": true, "Retry": true, "Catch": true, "TimeoutSeconds": true, "TimeoutSecondsPath": true, "HeartbeatSeconds": true, "HeartbeatSecondsPath": true, "Credentials": true},
-	Choice:   {"Choices": true, "Default": true},
-	Wait:     {"Seconds": true, "SecondsPath": true, "Timestamp": true, "TimestampPath": true},
+	Pass:     {"Result": true, "Parameters": true, "ResultPath": true, "Assign": true},
+	Task:     {"Resource": true, "Parameters": true, "ResultSelector": true, "ResultPath": true, "Retry": true, "Catch": true, "TimeoutSeconds": true, "TimeoutSecondsPath": true, "HeartbeatSeconds": true, "HeartbeatSecondsPath": true, "Credentials": true, "Assign": true},
+	Choice:   {"Choices": true, "Default": true, "Assign": true},
+	Wait:     {"Seconds": true, "SecondsPath": true, "Timestamp": true, "TimestampPath": true, "Assign": true},
 	Succeed:  {},
 	Fail:     {"Error": true, "ErrorPath": true, "Cause": true, "CausePath": true},
-	Parallel: {"Branches": true, "Parameters": true, "ResultSelector": true, "ResultPath": true, "Retry": true, "Catch": true},
-	Map:      {"ItemProcessor": true, "Iterator": true, "ItemsPath": true, "ItemSelector": true, "Parameters": true, "MaxConcurrency": true, "MaxConcurrencyPath": true, "ItemReader": true, "ItemBatcher": true, "ResultWriter": true, "ResultSelector": true, "ResultPath": true, "Retry": true, "Catch": true, "ToleratedFailureCount": true, "ToleratedFailurePercentage": true},
+	Parallel: {"Branches": true, "Parameters": true, "ResultSelector": true, "ResultPath": true, "Retry": true, "Catch": true, "Assign": true},
+	Map:      {"ItemProcessor": true, "Iterator": true, "ItemsPath": true, "ItemSelector": true, "Parameters": true, "MaxConcurrency": true, "MaxConcurrencyPath": true, "ItemReader": true, "ItemBatcher": true, "ResultWriter": true, "ResultSelector": true, "ResultPath": true, "Retry": true, "Catch": true, "ToleratedFailureCount": true, "ToleratedFailurePercentage": true, "Assign": true},
 }
 
 func analyseState(d *Definition, s *State, at string, r *Report) {
@@ -34,10 +34,25 @@ func analyseState(d *Definition, s *State, at string, r *Report) {
 		r.addf(at, "unknown state type %q; expected one of Pass, Task, Choice, Wait, Succeed, Fail, Parallel, Map", s.Type)
 		return
 	}
+	// The dialect decides the field table. A machine that says JSONata may
+	// not set a state back to JSONPath — AWS allows the upgrade per state,
+	// not the downgrade.
+	lang := s.Dialect()
+	if s.QueryLanguage == JSONPath && d.QueryLanguage == JSONata {
+		r.addf(at, "QueryLanguage may not be JSONPath inside a JSONata state machine")
+	}
+	if lang == JSONata {
+		allowed = jsonataFieldsByType[s.Type]
+	}
 
 	checkTransition(d, s, at, r)
-	checkPaths(s, at, r)
-	checkMisplacedFields(s, allowed, at, r)
+	if lang == JSONPath {
+		checkPaths(s, at, r)
+		checkJSONPathDialect(s, at, r)
+	} else {
+		checkJSONataState(d, s, at, r)
+	}
+	checkMisplacedFields(s, allowed, lang, at, r)
 
 	switch s.Type {
 	case Task:
@@ -49,6 +64,9 @@ func analyseState(d *Definition, s *State, at string, r *Report) {
 			r.addf(at, "Choice requires a non-empty Choices array")
 		}
 		for i, rule := range s.Choices {
+			if lang == JSONata {
+				break // checkJSONataState covered the rules
+			}
 			analyseRule(d, rule, fmt.Sprintf("%s.Choices[%d]", at, i), true, r)
 		}
 		if s.Default != "" {
@@ -154,7 +172,7 @@ func checkTarget(d *Definition, name, at string, r *Report) {
 func checkWait(s *State, at string, r *Report) {
 	set := 0
 	for _, present := range []bool{
-		s.Seconds != nil, s.SecondsPath != "", s.Timestamp != "", s.TimestampPath != "",
+		s.Seconds != nil || s.SecondsExpr != "", s.SecondsPath != "", s.Timestamp != "", s.TimestampPath != "",
 	} {
 		if present {
 			set++
@@ -212,7 +230,7 @@ func checkPaths(s *State, at string, r *Report) {
 // checkMisplacedFields reports a field that belongs to a different state type.
 // Runtime would ignore it; ignoring it is how a Task's Retry ends up on the
 // Choice state above it and nobody notices until production.
-func checkMisplacedFields(s *State, allowed map[string]bool, at string, r *Report) {
+func checkMisplacedFields(s *State, allowed map[string]bool, lang QueryLanguage, at string, r *Report) {
 	for _, f := range []struct {
 		name    string
 		present bool
@@ -236,8 +254,27 @@ func checkMisplacedFields(s *State, allowed map[string]bool, at string, r *Repor
 		{"Parameters", len(s.Parameters) > 0},
 		{"MaxConcurrency", s.MaxConcurrency != nil},
 		{"HeartbeatSeconds", s.HeartbeatSeconds != nil},
+		{"Arguments", len(s.Arguments) > 0},
+		{"Output", len(s.Output) > 0},
+		{"Assign", len(s.Assign) > 0},
+		{"Items", len(s.Items) > 0},
+		// The rest are JSONPath fields the JSONPath tables never listed —
+		// InputPath belongs to every JSONPath state, the Path twins are
+		// validated by checkPaths — and are here only so a JSONata state
+		// carrying one is refused by name.
+		{"InputPath", lang == JSONata && s.InputPath != nil},
+		{"OutputPath", lang == JSONata && s.OutputPath != nil},
+		{"TimeoutSecondsPath", lang == JSONata && s.TimeoutSecondsPath != ""},
+		{"HeartbeatSecondsPath", lang == JSONata && s.HeartbeatSecondsPath != ""},
+		{"MaxConcurrencyPath", lang == JSONata && s.MaxConcurrencyPath != ""},
+		{"ErrorPath", lang == JSONata && s.ErrorPath != ""},
+		{"CausePath", lang == JSONata && s.CausePath != ""},
 	} {
-		if f.present && !allowed[f.name] {
+		switch {
+		case !f.present || allowed[f.name]:
+		case lang == JSONata && jsonpathOnlyFields[f.name], lang == JSONPath && jsonataOnlyFields[f.name]:
+			r.addf(at, "%s", notSupported(f.name, lang))
+		default:
 			r.addf(at, "%s is not a field of a %s state", f.name, s.Type)
 		}
 	}

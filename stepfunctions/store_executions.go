@@ -59,13 +59,41 @@ type Execution struct {
 	// XRayHeader is the traceHeader the caller passed to StartExecution, if
 	// any — the X-Ray one, which DescribeExecution echoes the way AWS does.
 	XRayHeader string `json:"xray_header,omitempty"`
+	// VersionARN and AliasARN record how StartExecution was addressed — a
+	// version ARN, or an alias that picked one — for DescribeExecution and
+	// ListExecutions to echo. Both empty for an execution of the bare machine.
+	VersionARN string `json:"version_arn,omitempty"`
+	AliasARN   string `json:"alias_arn,omitempty"`
+
+	// StartedBy is the parent execution's ARN when a states:startExecution
+	// Task started this one. Redrive bookkeeping lives beside it.
+	StartedBy    string `json:"started_by,omitempty"`
+	RedriveCount int    `json:"redrive_count,omitempty"`
+	RedriveDate  int64  `json:"redrive_date,omitempty"`
+	RedriveToken string `json:"redrive_token,omitempty"` // the last clientToken, for idempotent retries
+
+	// Volatile marks an Express or TestState execution: kept in memory,
+	// never written to bbolt, gone when its caller has read it.
+	Volatile bool `json:"volatile,omitempty"`
+	// Test is set on a TestState run — the state under test and its mock —
+	// for the driver to find when it loads the run; TestOutcome is what the
+	// run reports back (express.go, actions_teststate.go).
+	Test        *TestSpec    `json:"test_spec,omitempty"`
+	TestOutcome *TestOutcome `json:"test,omitempty"`
 
 	Exec        *asl.Exec `json:"exec"`
 	NextEventID int64     `json:"next_event_id"`
 }
 
 // Key is the store key of this execution, also used as the engine's run key.
-func (e *Execution) Key() string { return execKey(machineOfExecARN(e.ARN), e.Name) }
+// An Express execution keys on name plus id, because AWS lets two Express
+// executions share a name and only the id tells them apart.
+func (e *Execution) Key() string {
+	if machine, name, id := parseExpressARN(e.ARN); id != "" {
+		return execKey(machine, name+"/"+id)
+	}
+	return execKey(machineOfExecARN(e.ARN), e.Name)
+}
 
 func execKey(machineName, execName string) string {
 	return machineName + "\x00" + execName
@@ -97,6 +125,10 @@ func (s *Store) SaveTransition(e *Execution, events []histEvent, tokens []tokenO
 		return err
 	}
 	key := e.Key()
+	if e.Volatile {
+		s.vol.save(key, raw, events)
+		return nil
+	}
 	return s.db.Update(func(tx *bolt.Tx) error {
 		eb, err := tx.CreateBucketIfNotExists(bucketExecutions)
 		if err != nil {
@@ -126,17 +158,9 @@ func (s *Store) SaveTransition(e *Execution, events []histEvent, tokens []tokenO
 				return err
 			}
 			for _, op := range tokens {
-				if op.Ref == nil {
-					if err := tb.Delete([]byte(op.Token)); err != nil {
-						return err
-					}
-					continue
-				}
-				rawRef, err := json.Marshal(op.Ref)
-				if err != nil {
-					return err
-				}
-				if err := tb.Put([]byte(op.Token), rawRef); err != nil {
+				// An activity token also owns a queue row (store_activities.go);
+				// the two are written and dropped together.
+				if err := applyTokenOp(tx, tb, op); err != nil {
 					return err
 				}
 			}
@@ -152,6 +176,9 @@ func histKey(execKey string, id int64) string {
 // HistoryPage reads events for one execution with id > afterID, at most
 // limit, in ascending id order. more says a further page exists.
 func (s *Store) HistoryPage(execKey string, afterID int64, limit int) (events []histEvent, more bool, err error) {
+	if evs, more, ok := s.vol.history(execKey, afterID, limit); ok {
+		return evs, more, nil
+	}
 	prefix := []byte(execKey + "\x00")
 	start := []byte(histKey(execKey, afterID+1))
 	err = s.db.View(func(tx *bolt.Tx) error {
@@ -178,6 +205,9 @@ func (s *Store) HistoryPage(execKey string, afterID int64, limit int) (events []
 
 // GetExecution reads one execution, nil when absent.
 func (s *Store) GetExecution(machineName, execName string) (*Execution, error) {
+	if e, ok := s.vol.get(execKey(machineName, execName)); ok {
+		return e, nil
+	}
 	var e Execution
 	found, err := s.get(bucketExecutions, []byte(execKey(machineName, execName)), &e)
 	if err != nil || !found {

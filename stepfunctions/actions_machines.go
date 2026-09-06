@@ -46,6 +46,20 @@ var handlers = map[string]handler{
 	"SendTaskSuccess":   (*Server).sendTaskSuccess,
 	"SendTaskFailure":   (*Server).sendTaskFailure,
 	"SendTaskHeartbeat": (*Server).sendTaskHeartbeat,
+	"GetActivityTask":   (*Server).getActivityTask,
+
+	"StartSyncExecution": (*Server).startSyncExecution,
+	"TestState":          (*Server).testState,
+	"RedriveExecution":   (*Server).redriveExecution,
+
+	"PublishStateMachineVersion": (*Server).publishStateMachineVersion,
+	"DeleteStateMachineVersion":  (*Server).deleteStateMachineVersion,
+	"ListStateMachineVersions":   (*Server).listStateMachineVersions,
+	"CreateStateMachineAlias":    (*Server).createStateMachineAlias,
+	"DescribeStateMachineAlias":  (*Server).describeStateMachineAlias,
+	"UpdateStateMachineAlias":    (*Server).updateStateMachineAlias,
+	"DeleteStateMachineAlias":    (*Server).deleteStateMachineAlias,
+	"ListStateMachineAliases":    (*Server).listStateMachineAliases,
 }
 
 // nameRule is the character set AWS allows in a state machine or activity name.
@@ -68,24 +82,39 @@ func checkName(name string) *awshttp.APIError {
 func machineARN(name string) string  { return awsident.ARN("states", "stateMachine:"+name) }
 func activityARN(name string) string { return awsident.ARN("states", "activity:"+name) }
 
-func usesJSONata(d *asl.Definition) bool {
-	if d.QueryLanguage == asl.JSONata {
-		return true
-	}
-	for _, s := range d.States {
-		if s.QueryLanguage == asl.JSONata {
-			return true
-		}
-		for _, b := range s.Branches {
-			if usesJSONata(b) {
-				return true
+// jsonpathAssign names the first JSONPath-dialect state carrying an Assign
+// (or a Catch or Choice rule with one), or "" if there is none. Branches and
+// ItemProcessors are walked in document order.
+func jsonpathAssign(d *asl.Definition) string {
+	for _, name := range d.Order {
+		s := d.States[name]
+		if s.Dialect() == asl.JSONPath {
+			if len(s.Assign) > 0 {
+				return name
+			}
+			for _, c := range s.Catch {
+				if len(c.Assign) > 0 {
+					return name
+				}
+			}
+			for _, rule := range s.Choices {
+				if len(rule.Assign) > 0 {
+					return name
+				}
 			}
 		}
-		if p := s.Processor(); p != nil && usesJSONata(p) {
-			return true
+		for _, b := range s.Branches {
+			if at := jsonpathAssign(b); at != "" {
+				return at
+			}
+		}
+		if p := s.Processor(); p != nil {
+			if at := jsonpathAssign(p); at != "" {
+				return at
+			}
 		}
 	}
-	return false
+	return ""
 }
 
 // nameFromARN pulls the resource name out of an ARN of the shape
@@ -119,6 +148,10 @@ func (s *Server) createStateMachine(ctx context.Context, p map[string]any) (any,
 		return nil, aerr
 	}
 
+	publish, versionDescription, aerr := publishParams(p)
+	if aerr != nil {
+		return nil, aerr
+	}
 	typ := awsjson.Str(p, "type")
 	if typ == "" {
 		typ = "STANDARD"
@@ -143,17 +176,26 @@ func (s *Server) createStateMachine(ctx context.Context, p map[string]any) (any,
 			return nil, asAPIError(err)
 		}
 	}
-	return map[string]any{
+	out := map[string]any{
 		"stateMachineArn": stored.ARN,
 		"creationDate":    epoch(stored.CreatedAt),
-	}, nil
+	}
+	if publish {
+		if aerr := s.publishInto(out, stored, versionDescription); aerr != nil {
+			return nil, aerr
+		}
+	}
+	return out, nil
 }
 
 func (s *Server) describeStateMachine(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "stateMachineArn")
-	name := nameFromARN(arn, "stateMachine")
-	if name == "" {
+	name, qualifier, ok := splitMachineARN(arn)
+	if !ok {
 		return nil, errInvalidARN(arn)
+	}
+	if qualifier != "" {
+		return s.describeQualified(arn, name, qualifier)
 	}
 	m, aerr := s.store.GetMachine(name)
 	if aerr != nil {
@@ -188,9 +230,13 @@ func putConfigs(out map[string]any, m *StateMachine) {
 
 func (s *Server) updateStateMachine(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "stateMachineArn")
-	name := nameFromARN(arn, "stateMachine")
-	if name == "" {
-		return nil, errInvalidARN(arn)
+	name, aerr := unqualifiedMachine(arn)
+	if aerr != nil {
+		return nil, aerr
+	}
+	publish, versionDescription, aerr := publishParams(p)
+	if aerr != nil {
+		return nil, aerr
 	}
 	var definition, roleARN *string
 	if raw, ok := p["definition"].(string); ok {
@@ -213,21 +259,31 @@ func (s *Server) updateStateMachine(ctx context.Context, p map[string]any) (any,
 	if m == nil {
 		return nil, errMachineNotFound(arn)
 	}
-	return map[string]any{
+	out := map[string]any{
 		"updateDate": epoch(s.store.now()),
 		"revisionId": m.RevisionID,
-	}, nil
+	}
+	if publish {
+		if aerr := s.publishInto(out, m, versionDescription); aerr != nil {
+			return nil, aerr
+		}
+	}
+	return out, nil
 }
 
 func (s *Server) deleteStateMachine(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	arn := awsjson.Str(p, "stateMachineArn")
-	name := nameFromARN(arn, "stateMachine")
-	if name == "" {
-		return nil, errInvalidARN(arn)
+	name, aerr := unqualifiedMachine(arn)
+	if aerr != nil {
+		return nil, aerr
 	}
 	// AWS deletes idempotently: removing one that is already gone succeeds, so
 	// a repeated `cdk destroy` does not fail on the second run.
 	if aerr := s.store.DeleteMachine(name); aerr != nil {
+		return nil, aerr
+	}
+	// AWS deletes a machine's versions and aliases with it.
+	if aerr := s.store.DeleteVersionsAndAliases(name); aerr != nil {
 		return nil, aerr
 	}
 	return map[string]any{}, nil

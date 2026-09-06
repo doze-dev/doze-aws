@@ -2,6 +2,7 @@ package asl
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -37,6 +38,12 @@ func Advance(d *Definition, ex *Exec, f *Frame, env Env) (Effect, []Note, error)
 	notes := []Note{{Kind: NoteEntered, Frame: f.ID, State: s.Name, Type: s.Type, Data: f.Input}}
 	input := decodeDoc(f.Input)
 	ctxObj := buildContext(ex, f, "")
+
+	// The dialect seam: a JSONata state takes its own path from here, and the
+	// JSONPath pipeline below never sees one.
+	if s.Dialect() == JSONata {
+		return advanceJSONata(s, ex, f, input, ctxObj, env, notes)
+	}
 
 	switch s.Type {
 	case Pass:
@@ -82,6 +89,9 @@ func Wake(d *Definition, ex *Exec, f *Frame, env Env) (Effect, []Note, error) {
 		f.WakeAt = 0
 		input := decodeDoc(f.Input)
 		ctxObj := buildContext(ex, f, "")
+		if s.Dialect() == JSONata {
+			return jsonataWake(s, f, input, ctxObj, env, nil)
+		}
 		eff, fail := selectPath(input, ctxObj, s.InputPath, "InputPath")
 		if fail != nil {
 			return failFrame(f, s, fail, nil)
@@ -104,7 +114,7 @@ func Wake(d *Definition, ex *Exec, f *Frame, env Env) (Effect, []Note, error) {
 		if f.Token != "" {
 			f.Status = FrameParked
 		}
-		f.Deadline = taskDeadline(s, env)
+		f.Deadline = taskDeadline(s, f, env)
 		return EffCallTask{
 			Frame: f.ID, Resource: s.Resource, Input: f.TaskInput,
 			Token: f.Token, Deadline: f.Deadline,
@@ -114,22 +124,28 @@ func Wake(d *Definition, ex *Exec, f *Frame, env Env) (Effect, []Note, error) {
 }
 
 // TaskParks reports whether a Task's resource parks the frame on a token —
-// the .waitForTaskToken pattern. The full resource table lives in the service
-// (stepfunctions/task.go); the interpreter needs only this one bit, and a
-// shared test keeps the two in agreement.
+// the .waitForTaskToken pattern, and an activity ARN, whose result can only
+// ever arrive from a worker via SendTaskSuccess. The full resource table
+// lives in the service (stepfunctions/task.go); the interpreter needs only
+// this one bit, and a shared test keeps the two in agreement.
 func TaskParks(resource string) bool {
-	return hasSuffix(resource, ".waitForTaskToken")
+	return hasSuffix(resource, ".waitForTaskToken") || IsActivityARN(resource)
+}
+
+// IsActivityARN recognises arn:aws:states:<region>:<account>:activity:<name>.
+func IsActivityARN(resource string) bool {
+	return strings.HasPrefix(resource, "arn:aws:states:") && strings.Contains(resource, ":activity:")
 }
 
 func advanceTask(s *State, ex *Exec, f *Frame, input, ctxObj any, env Env, notes []Note) (Effect, []Note, error) {
 	eff, fail := selectPath(input, ctxObj, s.InputPath, "InputPath")
 	if fail != nil {
-		return deliverFailure(s, f, fail, env, notes)
+		return deliverFailure(s, ex, f, fail, env, notes)
 	}
 	token := ""
 	if TaskParks(s.Resource) {
 		if env.NewToken == nil {
-			return deliverFailure(s, f, Failf(ErrRuntime,
+			return deliverFailure(s, ex, f, Failf(ErrRuntime,
 				".waitForTaskToken is not available to this execution type"), env, notes)
 		}
 		token = env.NewToken()
@@ -142,12 +158,12 @@ func advanceTask(s *State, ex *Exec, f *Frame, input, ctxObj any, env Env, notes
 	if len(s.Parameters) > 0 {
 		taskInput, fail = evalTemplate(s.Parameters, eff, ctxObj, env)
 		if fail != nil {
-			return deliverFailure(s, f, fail, env, notes)
+			return deliverFailure(s, ex, f, fail, env, notes)
 		}
 	}
 	f.TaskInput = encodeDoc(taskInput)
 	f.Token = token
-	f.Deadline = taskDeadline(s, env)
+	f.Deadline = taskDeadline(s, f, env)
 	if hb := taskHeartbeat(s); hb > 0 {
 		f.HeartbeatS = hb
 		f.HeartbeatAt = env.Now.UnixMilli()
@@ -163,11 +179,18 @@ func advanceTask(s *State, ex *Exec, f *Frame, input, ctxObj any, env Env, notes
 }
 
 // taskDeadline reads TimeoutSeconds into an epoch-millis cutoff, 0 for none.
-func taskDeadline(s *State, env Env) int64 {
-	if s.TimeoutSecondsState == nil || *s.TimeoutSecondsState <= 0 {
+// A JSONata state evaluated its TimeoutSeconds expression on entry and left
+// the seconds on the frame, so a retry re-dispatch reuses them rather than
+// re-evaluating.
+func taskDeadline(s *State, f *Frame, env Env) int64 {
+	secs := f.TimeoutS
+	if s.TimeoutSecondsState != nil {
+		secs = *s.TimeoutSecondsState
+	}
+	if secs <= 0 {
 		return 0
 	}
-	return env.Now.Add(time.Duration(*s.TimeoutSecondsState * float64(time.Second))).UnixMilli()
+	return env.Now.Add(time.Duration(secs * float64(time.Second))).UnixMilli()
 }
 
 func taskHeartbeat(s *State) int64 {
@@ -196,26 +219,29 @@ func Deliver(d *Definition, ex *Exec, f *Frame, r TaskResult, env Env) (Effect, 
 	}
 
 	if r.Failure != nil {
-		return deliverFailure(s, f, r.Failure, env, nil)
+		return deliverFailure(s, ex, f, r.Failure, env, nil)
 	}
 
 	// Success: ResultSelector → ResultPath into the raw input → OutputPath.
 	ctxObj := buildContext(ex, f, "")
 	result := decodeDoc(r.Output)
+	if s.Dialect() == JSONata {
+		return jsonataDeliver(s, ex, f, result, ctxObj, env)
+	}
 	if len(s.ResultSelector) > 0 {
 		var fail *Failure
 		result, fail = evalTemplate(s.ResultSelector, result, ctxObj, env)
 		if fail != nil {
-			return deliverFailure(s, f, fail, env, nil)
+			return deliverFailure(s, ex, f, fail, env, nil)
 		}
 	}
 	merged, fail := injectPath(decodeDoc(f.Input), result, s.ResultPath)
 	if fail != nil {
-		return deliverFailure(s, f, fail, env, nil)
+		return deliverFailure(s, ex, f, fail, env, nil)
 	}
 	output, fail := selectPath(merged, ctxObj, s.OutputPath, "OutputPath")
 	if fail != nil {
-		return deliverFailure(s, f, fail, env, nil)
+		return deliverFailure(s, ex, f, fail, env, nil)
 	}
 	next := s.Next
 	if s.Terminal() {
@@ -226,7 +252,7 @@ func Deliver(d *Definition, ex *Exec, f *Frame, r TaskResult, env Env) (Effect, 
 
 // deliverFailure routes a failure through the state's Retry, then Catch, then
 // fails the frame — the order the spec fixes.
-func deliverFailure(s *State, f *Frame, fail *Failure, env Env, notes []Note) (Effect, []Note, error) {
+func deliverFailure(s *State, ex *Exec, f *Frame, fail *Failure, env Env, notes []Note) (Effect, []Note, error) {
 	if idx, delay, ok := nextRetry(s, f, fail, env); ok {
 		if f.Attempts == nil {
 			f.Attempts = make([]int, len(s.Retry))
@@ -246,6 +272,9 @@ func deliverFailure(s *State, f *Frame, fail *Failure, env Env, notes []Note) (E
 		if fail.Cause != "" {
 			errObj["Cause"] = fail.Cause
 		}
+		if s.Dialect() == JSONata {
+			return jsonataCatch(s, ex, f, c, errObj, env, notes)
+		}
 		merged, mFail := injectPath(decodeDoc(f.Input), errObj, c.ResultPath)
 		if mFail != nil {
 			return failFrame(f, s, mFail, notes)
@@ -259,7 +288,7 @@ func deliverFailure(s *State, f *Frame, fail *Failure, env Env, notes []Note) (E
 		f.Status = FrameRunnable
 		f.Attempts, f.RetryIdx = nil, 0
 		f.TaskInput, f.Token = nil, ""
-		f.WakeAt, f.Deadline, f.HeartbeatAt, f.HeartbeatS = 0, 0, 0, 0
+		f.WakeAt, f.Deadline, f.HeartbeatAt, f.HeartbeatS, f.TimeoutS, f.Limit = 0, 0, 0, 0, 0, 0
 		f.EnteredAt = env.Now.UnixMilli()
 		return EffContinue{}, notes, nil
 	}
@@ -434,7 +463,7 @@ func exitState(f *Frame, s *State, next string, output any, env Env, notes []Not
 	f.Status = FrameRunnable
 	f.Attempts, f.RetryIdx = nil, 0
 	f.TaskInput, f.Token = nil, ""
-	f.WakeAt, f.Deadline, f.HeartbeatAt, f.HeartbeatS = 0, 0, 0, 0
+	f.WakeAt, f.Deadline, f.HeartbeatAt, f.HeartbeatS, f.TimeoutS, f.Limit = 0, 0, 0, 0, 0, 0
 	f.EnteredAt = env.Now.UnixMilli()
 	return EffContinue{}, notes, nil
 }

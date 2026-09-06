@@ -9,12 +9,12 @@ package asl
 func advanceParallel(s *State, ex *Exec, f *Frame, input, ctxObj any, env Env, notes []Note) (Effect, []Note, error) {
 	eff, fail := selectPath(input, ctxObj, s.InputPath, "InputPath")
 	if fail != nil {
-		return deliverFailure(s, f, fail, env, notes)
+		return deliverFailure(s, ex, f, fail, env, notes)
 	}
 	if len(s.Parameters) > 0 {
 		eff, fail = evalTemplate(s.Parameters, eff, ctxObj, env)
 		if fail != nil {
-			return deliverFailure(s, f, fail, env, notes)
+			return deliverFailure(s, ex, f, fail, env, notes)
 		}
 	}
 	branchInput := encodeDoc(eff)
@@ -32,18 +32,18 @@ func advanceParallel(s *State, ex *Exec, f *Frame, input, ctxObj any, env Env, n
 func advanceMap(s *State, ex *Exec, f *Frame, input, ctxObj any, env Env, notes []Note) (Effect, []Note, error) {
 	eff, fail := selectPath(input, ctxObj, s.InputPath, "InputPath")
 	if fail != nil {
-		return deliverFailure(s, f, fail, env, notes)
+		return deliverFailure(s, ex, f, fail, env, notes)
 	}
 	items := eff
 	if s.ItemsPath != "" {
 		items, fail = pathValue(s.ItemsPath, "ItemsPath", eff, ctxObj)
 		if fail != nil {
-			return deliverFailure(s, f, fail, env, notes)
+			return deliverFailure(s, ex, f, fail, env, notes)
 		}
 	}
 	list, isList := items.([]any)
 	if !isList {
-		return deliverFailure(s, f, Failf(ErrRuntime,
+		return deliverFailure(s, ex, f, Failf(ErrRuntime,
 			"a Map state's items must be an array"), env, notes)
 	}
 
@@ -54,11 +54,11 @@ func advanceMap(s *State, ex *Exec, f *Frame, input, ctxObj any, env Env, notes 
 	if s.MaxConcurrencyPath != "" {
 		v, fail := pathValue(s.MaxConcurrencyPath, "MaxConcurrencyPath", eff, ctxObj)
 		if fail != nil {
-			return deliverFailure(s, f, fail, env, notes)
+			return deliverFailure(s, ex, f, fail, env, notes)
 		}
 		n, isNum := toFloat(v)
 		if !isNum || n < 0 {
-			return deliverFailure(s, f, Failf(ErrRuntime,
+			return deliverFailure(s, ex, f, Failf(ErrRuntime,
 				"MaxConcurrencyPath must select a non-negative number"), env, notes)
 		}
 		limit = int(n)
@@ -84,7 +84,7 @@ func advanceMap(s *State, ex *Exec, f *Frame, input, ctxObj any, env Env, notes 
 			itemCtx := buildContext(ex, probe, "")
 			selected, fail := evalTemplate(selector, eff, itemCtx, env)
 			if fail != nil {
-				return deliverFailure(s, f, fail, env, notes)
+				return deliverFailure(s, ex, f, fail, env, notes)
 			}
 			childInput = encodeDoc(selected)
 		}
@@ -182,10 +182,15 @@ func PromotePending(d *Definition, ex *Exec, parent *Frame) []*Frame {
 		return nil
 	}
 	s := sub.States[parent.State]
-	if s == nil || s.MaxConcurrency == nil {
+	if s == nil {
 		return nil
 	}
-	limit := int(*s.MaxConcurrency)
+	// A JSONata Map evaluated its MaxConcurrency expression on entry and
+	// left the value on the frame; a literal is read from the state.
+	limit := parent.Limit
+	if s.MaxConcurrency != nil {
+		limit = int(*s.MaxConcurrency)
+	}
 	if limit <= 0 {
 		return nil
 	}
