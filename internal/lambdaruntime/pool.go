@@ -71,12 +71,17 @@ func (p *Pool) SetIdleTimeout(d time.Duration) {
 // Invoke runs one invocation on a pooled Runner, spawning another (up to Max)
 // when concurrent demand exceeds the current pool size.
 func (p *Pool) Invoke(ctx context.Context, payload []byte) (Result, error) {
+	return p.InvokeInput(ctx, Input{Payload: payload})
+}
+
+// InvokeInput is Invoke with the request's context headers.
+func (p *Pool) InvokeInput(ctx context.Context, in Input) (Result, error) {
 	r, err := p.acquire()
 	if err != nil {
 		return Result{}, err
 	}
 	defer p.release(r)
-	return r.Invoke(ctx, payload)
+	return r.InvokeInput(ctx, in)
 }
 
 func (p *Pool) acquire() (*Runner, error) {

@@ -479,6 +479,34 @@ func stateFor(enabled bool) string {
 	return "Disabled"
 }
 
+// invokeFromSource runs an event-source invocation that has no cause of its
+// own — a stream record carries no trace header — as a root on the wire, so
+// a DynamoDB or Kinesis delivery is visible where it used to be silent, and
+// a failure is logged rather than discarded.
+func (s *Server) invokeFromSource(f *Function, payload []byte, via string) {
+	ctx := trace.With(context.Background(), s.sink, 0)
+	err := trace.Step(ctx, trace.Event{
+		Service: "lambda", Action: "Invoke (event source)", Resource: f.Name, Via: via,
+	}, func(ctx context.Context) error {
+		res, e := s.runInvoke(ctx, f, payload)
+		if e == nil && res.FunctionErr != "" {
+			return fmt.Errorf("%s: %s", res.FunctionErr, res.Payload)
+		}
+		return e
+	})
+	if err != nil {
+		s.logf("lambda %s: %s invocation failed: %v", f.Name, via, err)
+	}
+}
+
+// arnTail is the resource part after the last '/' or ':'.
+func arnTail(arn string) string {
+	if i := strings.LastIndexAny(arn, "/:"); i >= 0 {
+		return arn[i+1:]
+	}
+	return arn
+}
+
 // functionNameFromARN reduces a FunctionName filter (bare name, partial ARN, or
 // full arn:...:function:NAME[:qualifier]) to the bare function name.
 func functionNameFromARN(v string) string {
@@ -660,7 +688,9 @@ func (s *Server) pollDDBStream(poller *esm, m *EventSourceMapping) {
 		if err != nil {
 			continue
 		}
-		_, _ = s.runInvoke(context.Background(), f, payload)
+		// A stream record carries no cause, so the invoke is a root on the
+		// wire — visible, where it used to be silent.
+		s.invokeFromSource(f, payload, "dynamodb:"+arnTail(m.EventSourceArn))
 	}
 }
 
@@ -764,7 +794,7 @@ func (s *Server) pollKinesis(poller *esm, m *EventSourceMapping) {
 			}
 			// At-least-once, like the DynamoDB poller: the iterator has already
 			// advanced, so a failed invoke does not replay.
-			_, _ = s.runInvoke(context.Background(), f, payload)
+			s.invokeFromSource(f, payload, "kinesis:"+arnTail(m.EventSourceArn))
 		}
 		if idle {
 			if sleepOrStop(poller, 500*time.Millisecond) {

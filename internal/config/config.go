@@ -27,6 +27,10 @@ type Config struct {
 	// LambdaIdleTimeout is how long a warm Lambda function keeps its process(es)
 	// before scaling to zero.
 	LambdaIdleTimeout time.Duration
+	// LambdaQuiet stops function output (stdout and stderr of the function
+	// processes) from being echoed to the doze-aws log. The lines still reach
+	// the logs service.
+	LambdaQuiet bool
 	// TemplateFile is a CloudFormation/SAM template applied at boot (and the
 	// default target of `doze-aws apply`). Empty auto-detects the conventional
 	// template names.

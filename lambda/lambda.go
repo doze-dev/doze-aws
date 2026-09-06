@@ -49,6 +49,9 @@ type Options struct {
 	// IdleTimeout is how long a warm function keeps its process(es) before
 	// scaling to zero. Zero uses lambdaruntime.DefaultIdleTimeout.
 	IdleTimeout time.Duration
+	// QuietFunctions stops function output from being echoed to Logf. The
+	// lines still reach the logs service when it is enabled.
+	QuietFunctions bool
 }
 
 // Server is the Lambda service.
@@ -65,9 +68,11 @@ type Server struct {
 	logf        func(format string, args ...any)
 	now         func() time.Time
 	idleTimeout time.Duration
+	echo        bool // function output to Logf
 
 	mu       sync.Mutex
 	runners  map[string]*lambdaruntime.Pool // function name -> concurrency pool
+	sinks    map[string]*logSink            // function name -> its log sink, closed with the pool
 	mappings map[string]*esm                // mapping UUID -> poller
 	pollers  sync.WaitGroup                 // tracks live ESM poller goroutines
 }
@@ -99,7 +104,9 @@ func New(opts Options) (*Server, error) {
 		logf:        logf,
 		now:         opts.Clock,
 		idleTimeout: opts.IdleTimeout,
+		echo:        !opts.QuietFunctions,
 		runners:     map[string]*lambdaruntime.Pool{},
+		sinks:       map[string]*logSink{},
 		mappings:    map[string]*esm{},
 	}
 	if s.peers == nil {
@@ -126,6 +133,9 @@ func (s *Server) Close() error {
 	s.mu.Lock()
 	for _, r := range s.runners {
 		r.Stop()
+	}
+	for _, k := range s.sinks {
+		k.Close()
 	}
 	for _, m := range s.mappings {
 		m.stop()

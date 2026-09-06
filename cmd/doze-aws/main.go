@@ -134,6 +134,7 @@ func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs.StringVar(&dst.S3Host, "s3-host", dst.S3Host, "base host for virtual-hosted-style S3 bucket addressing")
 	fs.BoolVar(&dst.Console, "console", dst.Console, "serve the web management console at /_console")
 	fs.DurationVar(&dst.LambdaIdleTimeout, "lambda-idle", dst.LambdaIdleTimeout, "how long a warm Lambda keeps its process before scaling to zero")
+	fs.BoolVar(&dst.LambdaQuiet, "lambda-quiet", dst.LambdaQuiet, "do not echo Lambda function output to this log")
 	fs.StringVar(&dst.TemplateFile, "template", dst.TemplateFile, "CloudFormation/SAM template to apply at boot (default: ./template.yaml if present)")
 	fs.StringVar(&dst.IAMMode, "iam-mode", dst.IAMMode, "IAM enforcement: off (default), soft (evaluate and record, never block), enforce (deny for real)")
 	return fs, cp
@@ -161,6 +162,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		Services:          cfg.Services,
 		S3Host:            cfg.S3Host,
 		LambdaIdleTimeout: cfg.LambdaIdleTimeout,
+		LambdaQuiet:       cfg.LambdaQuiet,
 		IAMMode:           iamMode,
 		Endpoint:          reachableEndpoint(cfg.ListenAddr),
 		Logf: func(format string, args ...any) {

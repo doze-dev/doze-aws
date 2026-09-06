@@ -47,10 +47,20 @@ func (s *Server) invoke(w http.ResponseWriter, r *http.Request, name string) *aw
 		return nil
 	}
 
-	res, err := s.runInvoke(context.Background(), f, payload)
+	in := lambdaruntime.Input{Payload: payload, TraceID: r.Header.Get("X-Amzn-Trace-Id")}
+	if cc := r.Header.Get("X-Amz-Client-Context"); cc != "" {
+		// The header is base64 JSON; the function receives the JSON.
+		if raw, err := base64.StdEncoding.DecodeString(cc); err == nil {
+			in.ClientContext = string(raw)
+		}
+	}
+	res, err := s.runInvokeInput(context.Background(), f, in)
 	if err != nil {
 		return awshttp.Errf(500, "ServiceException", "invoke: %v", err)
 	}
+	// The id the function saw, which its log lines carry — what a console
+	// or a test uses to find this invocation's output.
+	w.Header().Set("X-Amzn-RequestId", res.RequestID)
 	if res.FunctionErr != "" {
 		w.Header().Set("X-Amz-Function-Error", res.FunctionErr)
 	}
@@ -72,6 +82,10 @@ var errThrottled = errors.New("function throttled (reserved concurrency 0)")
 
 // runInvoke ensures the function's runner exists and drives one invocation.
 func (s *Server) runInvoke(ctx context.Context, f *Function, payload []byte) (lambdaruntime.Result, error) {
+	return s.runInvokeInput(ctx, f, lambdaruntime.Input{Payload: payload})
+}
+
+func (s *Server) runInvokeInput(ctx context.Context, f *Function, in lambdaruntime.Input) (lambdaruntime.Result, error) {
 	if f.ReservedConcurrency != nil && *f.ReservedConcurrency == 0 {
 		return lambdaruntime.Result{}, errThrottled
 	}
@@ -83,9 +97,9 @@ func (s *Server) runInvoke(ctx context.Context, f *Function, payload []byte) (la
 	defer cancel()
 	// If the pool was stopped underneath us by a concurrent restart (code/config
 	// update), retry once against the freshly-created pool.
-	res, err := s.runnerFor(f).Invoke(ctx, payload)
+	res, err := s.runnerFor(f).InvokeInput(ctx, in)
 	if errors.Is(err, lambdaruntime.ErrPoolClosed) {
-		res, err = s.runnerFor(f).Invoke(ctx, payload)
+		res, err = s.runnerFor(f).InvokeInput(ctx, in)
 	}
 	return res, err
 }
@@ -186,6 +200,7 @@ func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
 	if f.ReservedConcurrency != nil {
 		max = *f.ReservedConcurrency
 	}
+	sink := newLogSink(f.Name, s.peers, s.logf, s.echo)
 	r := lambdaruntime.NewPool(lambdaruntime.Spec{
 		Name:       f.Name,
 		Handler:    f.Handler,
@@ -196,11 +211,13 @@ func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
 		Timeout:    time.Duration(f.Timeout) * time.Second,
 		MemorySize: f.MemorySize,
 		Endpoints:  s.endpointEnv(),
+		LogSink:    sink,
 	}, max, s.logf)
 	if s.idleTimeout > 0 {
 		r.SetIdleTimeout(s.idleTimeout)
 	}
 	s.runners[f.Name] = r
+	s.sinks[f.Name] = sink
 	return r
 }
 
@@ -211,6 +228,10 @@ func (s *Server) restartRunner(name string) {
 	if r := s.runners[name]; r != nil {
 		r.Stop()
 		delete(s.runners, name)
+	}
+	if k := s.sinks[name]; k != nil {
+		k.Close()
+		delete(s.sinks, name)
 	}
 	s.mu.Unlock()
 }

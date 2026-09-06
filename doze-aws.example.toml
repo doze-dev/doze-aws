@@ -27,3 +27,11 @@ data-dir = "./data"
 # Base host for virtual-hosted-style bucket addressing (bucket.<host>).
 # Path-style requests work regardless.
 host = "localhost"
+
+[lambda]
+# How long a warm function keeps its process(es) before scaling to zero.
+# idle-timeout = "10m"
+# Function output (stdout and stderr of the function processes) is echoed
+# to this log as `lambda[<name>] <line>` and kept by the logs service; quiet
+# stops the echo only.
+# quiet = false

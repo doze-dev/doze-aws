@@ -56,6 +56,7 @@ type s3File struct {
 
 type lambdaFile struct {
 	IdleTimeout *tomlDuration `toml:"idle-timeout"`
+	Quiet       *bool         `toml:"quiet"`
 }
 
 // LoadFile reads a TOML config file and overlays it onto cfg. Unknown keys are
@@ -93,6 +94,9 @@ func (fc fileConfig) applyTo(cfg *Config) {
 	if fc.Lambda != nil && fc.Lambda.IdleTimeout != nil {
 		cfg.LambdaIdleTimeout = fc.Lambda.IdleTimeout.Duration
 	}
+	if fc.Lambda != nil && fc.Lambda.Quiet != nil {
+		cfg.LambdaQuiet = *fc.Lambda.Quiet
+	}
 	if fc.Template != nil {
 		cfg.TemplateFile = *fc.Template
 	}
@@ -106,7 +110,7 @@ func WriteTOML(w io.Writer, cfg Config) error {
 		Listen:  &cfg.ListenAddr,
 		DataDir: &cfg.DataDir,
 		S3:      &s3File{Host: &cfg.S3Host},
-		Lambda:  &lambdaFile{IdleTimeout: &tomlDuration{cfg.LambdaIdleTimeout}},
+		Lambda:  &lambdaFile{IdleTimeout: &tomlDuration{cfg.LambdaIdleTimeout}, Quiet: &cfg.LambdaQuiet},
 	}
 	if len(cfg.Services) > 0 {
 		fc.Services = cfg.Services

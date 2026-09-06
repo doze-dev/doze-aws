@@ -15,6 +15,8 @@ package lambdaruntime
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,7 +26,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -41,6 +42,27 @@ type Spec struct {
 	Timeout    time.Duration
 	MemorySize int               // MB, as configured; 0 falls back to Lambda's own default
 	Endpoints  map[string]string // AWS_ENDPOINT_URL_* injected so handlers reach sibling services
+	// Version is the qualifier this runner serves — "$LATEST" when empty. It
+	// names the log stream and AWS_LAMBDA_FUNCTION_VERSION.
+	Version string
+	// LogSink receives every line the process writes, attributed to its
+	// request. nil keeps only the ring tail.
+	LogSink LogSink
+	// ShimDir is where the embedded runtime clients live (LAMBDA_RUNTIME_DIR).
+	ShimDir string
+}
+
+// Input is one invocation's request.
+type Input struct {
+	Payload []byte
+	// ClientContext is the decoded X-Amz-Client-Context JSON, handed to the
+	// function as Lambda-Runtime-Client-Context.
+	ClientContext string
+	// InvokedARN is the ARN the caller used, qualifier included; empty means
+	// the unqualified function ARN.
+	InvokedARN string
+	// TraceID is the X-Ray trace header for Lambda-Runtime-Trace-Id.
+	TraceID string
 }
 
 // Result is one invocation's outcome.
@@ -48,6 +70,7 @@ type Result struct {
 	Payload     []byte
 	FunctionErr string // non-empty on a handler error (X-Amz-Function-Error)
 	Logs        []byte // tail of stdout/stderr
+	RequestID   string // the id the function saw, and the one its log lines carry
 
 	// Init is how long the function took to become ready, and is only set on a
 	// cold start — a warm runner reports zero, the way AWS omits Init Duration
@@ -65,8 +88,8 @@ type Result struct {
 
 // invocation is queued work for the runtime loop.
 type invocation struct {
-	id      string
-	payload []byte
+	id    string
+	input Input
 	// deadline is set when the function FETCHES the work, not when it was
 	// queued — see handleNext.
 	deadline time.Time
@@ -134,8 +157,28 @@ type Runner struct {
 	current *invocation
 	pending map[string]*invocation
 	logTail *ringBuffer
+	out     *lineSplitter // the child's stdout and stderr, one writer
+	stream  string        // the log stream this process writes
 	started bool
 	stopped bool
+}
+
+// currentID is the request id output is attributed to: the invocation the
+// function last fetched, or "" before the first.
+func (r *Runner) currentID() string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.current == nil {
+		return ""
+	}
+	return r.current.id
+}
+
+// Stream is the log stream name of the running process, "" before it starts.
+func (r *Runner) Stream() string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.stream
 }
 
 // NewRunner builds a runner (the process starts on first Invoke).
@@ -157,6 +200,11 @@ func NewRunner(spec Spec, logf func(string, ...any)) *Runner {
 
 // Invoke runs the function synchronously (serial: one in flight at a time).
 func (r *Runner) Invoke(ctx context.Context, payload []byte) (Result, error) {
+	return r.InvokeInput(ctx, Input{Payload: payload})
+}
+
+// InvokeInput is Invoke with the request's context headers.
+func (r *Runner) InvokeInput(ctx context.Context, in Input) (Result, error) {
 	// Warm or cold has to be decided BEFORE ensureStarted, because that is the
 	// call that spawns the process — after it, every invocation looks started.
 	r.mu.Lock()
@@ -168,7 +216,7 @@ func (r *Runner) Invoke(ctx context.Context, payload []byte) (Result, error) {
 	}
 	inv := &invocation{
 		id:         newID(),
-		payload:    payload,
+		input:      in,
 		done:       make(chan Result, 1),
 		dispatched: make(chan struct{}),
 		cold:       cold,
@@ -195,7 +243,7 @@ func (r *Runner) Invoke(ctx context.Context, payload []byte) (Result, error) {
 	case <-inv.dispatched:
 		// The function has the work. Now its clock is the one that matters.
 	case <-time.After(initBudget):
-		return Result{FunctionErr: "Unhandled",
+		return Result{FunctionErr: "Unhandled", RequestID: inv.id,
 			Payload: []byte(`{"errorMessage":"Task timed out during init"}`)}, nil
 	case <-ctx.Done():
 		return Result{}, ctx.Err()
@@ -217,6 +265,7 @@ func (r *Runner) Invoke(ctx context.Context, payload []byte) (Result, error) {
 // withTiming fills in the init/exec split. It is only ever called after
 // inv.dispatched has been observed closed, so startedAt is published.
 func (r *Runner) withTiming(res Result, inv *invocation) Result {
+	res.RequestID = inv.id
 	if inv.startedAt.IsZero() {
 		return res // never dispatched: nothing meaningful to split
 	}
@@ -229,7 +278,8 @@ func (r *Runner) withTiming(res Result, inv *invocation) Result {
 	return res
 }
 
-// report closes the invocation in the log stream the way AWS does.
+// report closes the invocation in the log stream the way AWS does, then
+// flushes the sink so the lines are queryable by the time Invoke returns.
 //
 // Max Memory Used is deliberately absent rather than invented: the runner does
 // not measure the child's RSS, and a plausible-looking number nobody computed
@@ -238,14 +288,16 @@ func (r *Runner) report(res Result, inv *invocation) {
 	ms := float64(res.Exec) / float64(time.Millisecond)
 	billed := int64(math.Ceil(ms))
 	var b strings.Builder
-	fmt.Fprintf(&b, "END RequestId: %s\n", inv.id)
 	fmt.Fprintf(&b, "REPORT RequestId: %s\tDuration: %.2f ms\tBilled Duration: %d ms\tMemory Size: %d MB",
 		inv.id, ms, billed, r.memoryMB())
 	if res.Init > 0 {
 		fmt.Fprintf(&b, "\tInit Duration: %.2f ms", float64(res.Init)/float64(time.Millisecond))
 	}
-	b.WriteString("\n")
-	_, _ = r.logTail.Write([]byte(b.String()))
+	r.out.Line(inv.id, "END RequestId: "+inv.id)
+	r.out.Line(inv.id, b.String())
+	if r.spec.LogSink != nil {
+		r.spec.LogSink.Flush()
+	}
 }
 
 // memoryMB is the function's configured size, or Lambda's default when unset.
@@ -275,6 +327,9 @@ func (r *Runner) ensureStarted() error {
 	r.ln = ln
 	go http.Serve(ln, r.routes()) //nolint:errcheck // stops when ln closes
 
+	// One stream per process, one writer for both of its output pipes.
+	r.stream = streamName(r.version(), time.Now())
+	r.out = newLineSplitter(r.logTail, r.spec.LogSink, r.stream, r.currentID)
 	cmd, err := r.buildCommand(ln.Addr().String())
 	if err != nil {
 		ln.Close()
@@ -318,37 +373,29 @@ func (r *Runner) buildCommand(runtimeAPI string) (*exec.Cmd, error) {
 			argv[0] = abs
 		}
 	}
+	// A zip written by some deploy tools drops the mode bits; a bootstrap
+	// that is not executable fails with a message nobody connects to that.
+	if filepath.IsAbs(argv[0]) {
+		if info, err := os.Stat(argv[0]); err == nil && info.Mode().IsRegular() && info.Mode()&0o111 == 0 {
+			_ = os.Chmod(argv[0], info.Mode()|0o755)
+		}
+	}
 	cmd := exec.Command(argv[0], argv[1:]...)
 	cmd.Dir = r.spec.Dir
-	env := os.Environ()
-	env = append(env,
-		"AWS_LAMBDA_RUNTIME_API="+runtimeAPI,
-		"_HANDLER="+r.spec.Handler,
-		"AWS_LAMBDA_FUNCTION_NAME="+r.spec.Name,
-		"AWS_LAMBDA_FUNCTION_VERSION=$LATEST",
-		"AWS_LAMBDA_FUNCTION_MEMORY_SIZE="+strconv.Itoa(r.memoryMB()),
-		"AWS_REGION=us-east-1",
-		"AWS_DEFAULT_REGION=us-east-1",
-		"AWS_ACCESS_KEY_ID=test",
-		"AWS_SECRET_ACCESS_KEY=test",
-	)
-	for k, v := range r.spec.Endpoints {
-		env = append(env, k+"="+v)
-	}
-	for k, v := range r.spec.Env {
-		env = append(env, k+"="+v)
-	}
-	cmd.Env = env
-	cmd.Stdout = r.logTail
-	cmd.Stderr = r.logTail
+	cmd.Env = r.childEnv(runtimeAPI, r.stream)
+	// The same writer for both pipes is what makes os/exec serialise them
+	// onto one stream instead of copying each through its own goroutine.
+	cmd.Stdout = r.out
+	cmd.Stderr = r.out
 	return cmd, nil
 }
 
 // runtimeCommand maps a runtime identifier to a launch command.
 func runtimeCommand(runtime, handler string) ([]string, error) {
 	switch {
-	case runtime == "" || runtime == "go" || strings.HasPrefix(runtime, "provided"):
-		// provided.* and Go run a self-contained bootstrap/binary.
+	case runtime == "" || strings.HasPrefix(runtime, "go") || strings.HasPrefix(runtime, "provided"):
+		// provided.*, go and the retired go1.x run a self-contained
+		// bootstrap/binary.
 		bin := handler
 		if bin == "" {
 			bin = "bootstrap"
@@ -409,15 +456,35 @@ func (r *Runner) handleNext(w http.ResponseWriter, req *http.Request) {
 	// Real Lambda brackets every invocation in its log stream. doze-aws emitted
 	// none of it, so `aws lambda invoke --log-type Tail` came back with only
 	// whatever the handler printed, and anything parsing REPORT found nothing.
-	fmt.Fprintf(r.logTail, "START RequestId: %s Version: $LATEST\n", inv.id)
+	r.out.Line(inv.id, "START RequestId: "+inv.id+" Version: "+r.version())
 
+	arn := inv.input.InvokedARN
+	if arn == "" {
+		arn = FunctionARN(r.spec.Name)
+	}
 	w.Header().Set("Lambda-Runtime-Aws-Request-Id", inv.id)
 	w.Header().Set("Lambda-Runtime-Deadline-Ms", fmt.Sprintf("%d", deadline.UnixMilli()))
-	w.Header().Set("Lambda-Runtime-Invoked-Function-Arn",
-		"arn:aws:lambda:us-east-1:000000000000:function:"+r.spec.Name)
+	w.Header().Set("Lambda-Runtime-Invoked-Function-Arn", arn)
+	w.Header().Set("Lambda-Runtime-Trace-Id", traceID(inv.input.TraceID))
+	if inv.input.ClientContext != "" {
+		w.Header().Set("Lambda-Runtime-Client-Context", inv.input.ClientContext)
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	w.Write(inv.payload)
+	w.Write(inv.input.Payload)
+}
+
+// traceID is the X-Ray header the runtime clients read into _X_AMZN_TRACE_ID:
+// the caller's when it sent one, otherwise a fresh unsampled root, since the
+// SDKs' tracing hooks treat an absent header as an error to log.
+func traceID(given string) string {
+	if given != "" {
+		return given
+	}
+	var b [12]byte
+	_, _ = rand.Read(b[:])
+	return fmt.Sprintf("Root=1-%08x-%s;Parent=%s;Sampled=0",
+		time.Now().Unix(), hex.EncodeToString(b[:]), hex.EncodeToString(b[:8]))
 }
 
 // handleInvocationResult routes /{id}/response and /{id}/error.
@@ -437,8 +504,10 @@ func (r *Runner) handleInvocationResult(w http.ResponseWriter, req *http.Request
 		w.WriteHeader(400)
 		return
 	}
-	res := Result{Payload: body, Logs: r.logTail.snapshot()}
+	res := Result{Payload: body, Logs: r.logTail.snapshot(), RequestID: id}
 	if kind == "error" {
+		// AWS's header is "Unhandled" whatever Lambda-Runtime-Function-Error-Type
+		// said; the clients log the type themselves.
 		res.FunctionErr = "Unhandled"
 	}
 	inv.done <- res
@@ -468,6 +537,11 @@ func (r *Runner) reap() {
 		msg = fmt.Sprintf("the function process exited: %v", err)
 	}
 	r.logf("lambda %s: %s", r.spec.Name, msg)
+	// A last line with no newline — what a crash leaves — reaches the sink.
+	r.out.flushPartial()
+	if r.spec.LogSink != nil {
+		r.spec.LogSink.Flush()
+	}
 	// A process that dies before it ever fetches work — a missing runtime
 	// interface client, a handler that will not import — leaves the invocation
 	// sitting in the QUEUE rather than in pending. Failing only the pending set
@@ -479,13 +553,17 @@ func (r *Runner) reap() {
 		Logs:        r.logTail.snapshot(),
 	}
 	for id, inv := range r.pending {
-		inv.done <- fail
+		f := fail
+		f.RequestID = id
+		inv.done <- f
 		delete(r.pending, id)
 	}
 	for {
 		select {
 		case inv := <-r.queue:
-			inv.done <- fail
+			f := fail
+			f.RequestID = inv.id
+			inv.done <- f
 		default:
 			return
 		}
