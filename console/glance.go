@@ -259,6 +259,21 @@ func (c *Console) glanceSnapshot(ctx context.Context) glanceResponse {
 	if n, err := c.be.CountRestAPIs(ctx); err == nil && n > 0 {
 		svc("apigw", n, plural(n, "API"), "", false)
 	}
+	// Step Functions: a running execution is the state worth a glance, since
+	// one that is stuck on a task token looks exactly like one that is busy.
+	if sms, err := c.be.ListStateMachines(ctx); err == nil && len(sms) > 0 {
+		running := 0
+		for _, m := range sms {
+			if execs, err := c.be.ListExecutions(ctx, m.ARN, "RUNNING"); err == nil {
+				running += len(execs)
+			}
+		}
+		st := ""
+		if running > 0 {
+			st = plural(running, "running execution")
+		}
+		svc("sfn", len(sms), plural(len(sms), "state machine"), st, false)
+	}
 	if n, err := c.be.CountPrincipals(ctx); err == nil && n > 0 {
 		svc("iam", n, plural(n, "principal"), "", false)
 	}

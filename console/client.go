@@ -736,6 +736,17 @@ func (b *backend) json11(ctx context.Context, prefix, action string, in any) ([]
 	return b.do(req)
 }
 
+// json10 posts an AWS JSON 1.0 request. Step Functions is the one service in
+// the stack on 1.0 with its own target prefix (AWSStepFunctions); DynamoDB has
+// ddbCall below for the same protocol with a dated prefix.
+func (b *backend) json10(ctx context.Context, prefix, action string, in any) ([]byte, error) {
+	buf, _ := json.Marshal(in)
+	req, _ := http.NewRequestWithContext(ctx, "POST", b.base+"/", bytes.NewReader(buf))
+	req.Header.Set("Content-Type", "application/x-amz-json-1.0")
+	req.Header.Set("X-Amz-Target", prefix+"."+action)
+	return b.do(req)
+}
+
 // ddbCall posts a DynamoDB JSON 1.0 request.
 func (b *backend) ddbCall(ctx context.Context, action string, in any) ([]byte, error) {
 	buf, _ := json.Marshal(in)

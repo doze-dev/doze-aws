@@ -18,7 +18,7 @@ func TestEverySurfaceRenders(t *testing.T) {
 	paths := []string{
 		"/", "/traffic",
 		"/s3", "/ddb", "/sqs", "/sns", "/eb", "/kinesis",
-		"/lambda", "/cfn", "/apigw", "/iam", "/kms", "/sm", "/ssm",
+		"/lambda", "/cfn", "/apigw", "/sfn", "/iam", "/kms", "/sm", "/ssm",
 	}
 	for _, p := range paths {
 		t.Run(p, func(t *testing.T) {

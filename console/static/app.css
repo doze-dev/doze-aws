@@ -105,6 +105,7 @@
   --svc-kinesis: #0a9edb;
   --svc-eb: #00a799;
   --svc-apigw: #00997a;
+  --svc-sfn: #d6247a;
   --svc-sts: #6b7688;
 
   /* ink tier — the same hue at text contrast. Reach for this whenever a
@@ -123,6 +124,7 @@
   --svc-kinesis-ink: #087eaf;
   --svc-eb-ink: #00857a;
   --svc-apigw-ink: #00866b;
+  --svc-sfn-ink: #b81f68;
   --svc-sts-ink: #6b7688;
 
   --syn-str: #0f8851; --syn-num: #b85e0d; --syn-kw: #a83bf0; --syn-meta: #5c5c5c;
@@ -164,6 +166,7 @@
     --svc-kinesis: #45c8ff;
     --svc-eb: #2fe0cd;
     --svc-apigw: #2fd4b0;
+    --svc-sfn: #ff6fa8;
     --svc-sts: #93a0b5;
 
     /* ink tier — the same hue at text contrast. Reach for this whenever a
@@ -182,6 +185,7 @@
     --svc-kinesis-ink: #45c8ff;
     --svc-eb-ink: #2fe0cd;
     --svc-apigw-ink: #2fd4b0;
+    --svc-sfn-ink: #ff6fa8;
     --svc-sts-ink: #93a0b5;
 
     --syn-str: #2fd68a; --syn-num: #ffa04a; --syn-kw: #c476ff; --syn-meta: #a6a6a6;
@@ -209,6 +213,7 @@
   --svc-kinesis: #0a9edb;
   --svc-eb: #00a799;
   --svc-apigw: #00997a;
+  --svc-sfn: #d6247a;
   --svc-sts: #6b7688;
 
   /* ink tier — the same hue at text contrast. Reach for this whenever a
@@ -227,6 +232,7 @@
   --svc-kinesis-ink: #087eaf;
   --svc-eb-ink: #00857a;
   --svc-apigw-ink: #00866b;
+  --svc-sfn-ink: #b81f68;
   --svc-sts-ink: #6b7688;
 
   --syn-str: #0f8851; --syn-num: #b85e0d; --syn-kw: #a83bf0; --syn-meta: #5c5c5c;
@@ -253,6 +259,7 @@
   --svc-kinesis: #45c8ff;
   --svc-eb: #2fe0cd;
   --svc-apigw: #2fd4b0;
+  --svc-sfn: #ff6fa8;
   --svc-sts: #93a0b5;
 
   /* ink tier — the same hue at text contrast. Reach for this whenever a
@@ -271,6 +278,7 @@
   --svc-kinesis-ink: #45c8ff;
   --svc-eb-ink: #2fe0cd;
   --svc-apigw-ink: #2fd4b0;
+  --svc-sfn-ink: #ff6fa8;
   --svc-sts-ink: #93a0b5;
 
   --syn-str: #2fd68a; --syn-num: #ffa04a; --syn-kw: #c476ff; --syn-meta: #a6a6a6;
@@ -637,7 +645,15 @@ select.input {
 .badge.state-on { background: color-mix(in srgb, var(--success) 14.0%, transparent); color: var(--success); border-color: color-mix(in srgb, var(--success) 28.0%, transparent); }
 .badge.state-off { background: var(--muted); color: var(--muted-foreground); }
 .badge.state-warn { background: color-mix(in srgb, var(--warning) 14.0%, transparent); color: var(--warning); border-color: color-mix(in srgb, var(--warning) 30%, transparent); }
+.badge.state-bad { background: color-mix(in srgb, var(--destructive) 10%, transparent); color: var(--destructive); border-color: color-mix(in srgb, var(--destructive) 30%, transparent); }
 .badge.type { font-family: var(--mono); font-size: 11px; font-weight: 600; }
+
+/* ---------- step functions ---------- */
+.fx-v .bad { color: var(--destructive); }
+.sfn-hist td { vertical-align: top; }
+.sfn-hist .code-block { margin: 6px 0 0; max-height: 240px; overflow: auto; }
+.link-btn { background: none; border: 0; padding: 0; font: inherit; font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; color: var(--muted-foreground); }
+.link-btn:hover { color: var(--foreground); }
 
 /* ---------- masked value ---------- */
 .masked-box { display: flex; align-items: center; gap: 8px; }
@@ -698,6 +714,12 @@ h1 .aws-ic, .idband .aws-ic { width: 30px; height: 30px; border-radius: var(--ra
 .form-page { max-width: 700px; padding: 18px 20px 24px; container-type: inline-size; container-name: pane; }
 .form-page h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 4px; }
 .form-page .ph-desc { margin-bottom: 20px; }
+/* The create-form heading pair, as a class rather than the inline pair the
+   older forms carry — new forms should not add to that budget. */
+.form-page .fp-title { font-size: 18px; margin-bottom: 2px; }
+.form-page .fp-sub { margin-bottom: 18px; }
+.field.stack { margin-top: 10px; }
+.empty.flat { border: 0; }
 .form-sec { margin-bottom: 14px; }
 .form-b { padding: 14px 16px; }
 .form-b .opt-row:first-child { padding-top: 4px; }

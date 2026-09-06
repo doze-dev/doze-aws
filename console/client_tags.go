@@ -29,6 +29,8 @@ func (b *backend) tagARN(svc, id string) string {
 		return awsident.ARN("lambda", "function:"+id)
 	case "eb":
 		return awsident.ARN("events", "rule/"+id)
+	case "sfn":
+		return awsident.ARN("states", "stateMachine:"+id)
 	case "apigw":
 		// API Gateway ARNs carry no account and a path-shaped resource.
 		return "arn:aws:apigateway:" + awsident.Region + "::/restapis/" + id
@@ -148,6 +150,22 @@ func (b *backend) ResourceTags(ctx context.Context, svc, id string) ([]KV, error
 			}
 		}
 		err = e
+	case "sfn":
+		// Lowercase members, and a [{key,value}] list rather than a map.
+		var out struct {
+			Tags []struct {
+				Key   string `json:"key"`
+				Value string `json:"value"`
+			} `json:"tags"`
+		}
+		body, e := b.sfnCall(ctx, "ListTagsForResource", map[string]any{"resourceArn": b.tagARN(svc, id)})
+		if e == nil {
+			json.Unmarshal(body, &out)
+			for _, t := range out.Tags {
+				m[t.Key] = t.Value
+			}
+		}
+		err = e
 	default: // sns — Query/XML ListTagsForResource
 		m, err = b.queryTags(ctx, b.tagARN(svc, id))
 	}
@@ -208,6 +226,11 @@ func (b *backend) SetResourceTag(ctx context.Context, svc, id, key, value string
 			"ResourceARN": b.tagARN(svc, id), "Tags": []map[string]string{{"Key": key, "Value": value}},
 		})
 		return err
+	case "sfn":
+		_, err := b.sfnCall(ctx, "TagResource", map[string]any{
+			"resourceArn": b.tagARN(svc, id), "tags": []map[string]string{{"key": key, "value": value}},
+		})
+		return err
 	default: // sns
 		v := url.Values{"Action": {"TagResource"}, "ResourceArn": {b.tagARN(svc, id)}}
 		v.Set("Tags.member.1.Key", key)
@@ -254,6 +277,11 @@ func (b *backend) RemoveResourceTag(ctx context.Context, svc, id, key string) er
 	case "eb":
 		_, err := b.json11(ctx, "AWSEvents", "UntagResource", map[string]any{
 			"ResourceARN": b.tagARN(svc, id), "TagKeys": []string{key},
+		})
+		return err
+	case "sfn":
+		_, err := b.sfnCall(ctx, "UntagResource", map[string]any{
+			"resourceArn": b.tagARN(svc, id), "tagKeys": []string{key},
 		})
 		return err
 	default: // sns

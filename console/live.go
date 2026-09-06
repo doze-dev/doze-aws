@@ -59,6 +59,9 @@ func (c *Console) serviceCounts(ctx context.Context) map[string]int {
 	if n, err := c.be.CountRestAPIs(ctx); err == nil {
 		counts["apigw"] = n
 	}
+	if n, err := c.be.CountStateMachines(ctx); err == nil {
+		counts["sfn"] = n
+	}
 	if n, err := c.be.CountPrincipals(ctx); err == nil {
 		counts["iam"] = n
 	}

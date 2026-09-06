@@ -187,21 +187,23 @@ func canRedirect(name string, bodies map[string]string, seen map[string]bool) bo
 // A parameter with no fixture still gets a value: the handler then fails to
 // find it, which exercises the error path — also a place redirects happen.
 var fixtures = map[string]string{
-	"{bucket}": "fixture-bucket",
-	"{queue}":  "fixture-queue",
-	"{topic}":  "fixture-topic",
-	"{table}":  "fixture-table",
-	"{stream}": "fixture-stream",
-	"{fn}":     "fixture-fn",
-	"{key}":    "", // filled at run time from the seeded key
-	"{bus}":    "fixture-bus",
-	"{stack}":  "fixture-stack",
-	"{cs}":     "fixture-cs",
-	"{api}":    "", // discovered — API Gateway ids are generated
-	"{rule}":   "fixture-rule",
-	"{kind}":   "user",
-	"{name}":   "fixture-user",
-	"{shard}":  shardID(0),
+	"{bucket}":  "fixture-bucket",
+	"{queue}":   "fixture-queue",
+	"{topic}":   "fixture-topic",
+	"{table}":   "fixture-table",
+	"{stream}":  "fixture-stream",
+	"{fn}":      "fixture-fn",
+	"{key}":     "", // filled at run time from the seeded key
+	"{bus}":     "fixture-bus",
+	"{stack}":   "fixture-stack",
+	"{cs}":      "fixture-cs",
+	"{api}":     "", // discovered — API Gateway ids are generated
+	"{rule}":    "fixture-rule",
+	"{kind}":    "user",
+	"{name}":    "fixture-user",
+	"{shard}":   shardID(0),
+	"{machine}": "fixture-machine",
+	"{exec}":    "fixture-exec",
 }
 
 // discovered holds values that cannot be written down in advance because they
@@ -217,6 +219,14 @@ func shardID(n int) string { return fmt.Sprintf("shardId-%012d", n) }
 const cfnTemplate1 = `{"Resources":{"FixtureQueue":{"Type":"AWS::SQS::Queue","Properties":{"QueueName":"fixture-cfn-q"}}}}`
 
 const cfnTemplate2 = `{"Resources":{"FixtureQueue":{"Type":"AWS::SQS::Queue","Properties":{"QueueName":"fixture-cfn-q"}},"FixtureTopic":{"Type":"AWS::SNS::Topic","Properties":{"TopicName":"fixture-cfn-t"}}}}`
+
+// sfnDefinition is a runnable machine — one Pass into a Succeed — so a
+// seeded execution finishes on its own and the stop route exercises the
+// already-finished error path rather than racing the engine.
+const sfnDefinition = `{"StartAt":"A","States":{"A":{"Type":"Pass","Next":"B"},"B":{"Type":"Succeed"}}}`
+
+// sfnRole satisfies the model's required roleArn; nothing local evaluates it.
+const sfnRole = "arn:aws:iam::000000000000:role/stepfunctions"
 
 // policyDoc is a syntactically valid policy; nothing here evaluates it.
 const policyDoc = `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"s3:*","Resource":"*"}]}`
@@ -277,6 +287,12 @@ func seedFixtures(t *testing.T, c http.Handler) {
 		{"/eb/fixture-bus/create-rule", url.Values{
 			"name": {"fixture-rule"}, "pattern": {`{"source":["demo"]}`},
 		}},
+		// The machine, and one execution of it for the execution routes to
+		// address. It finishes on its own; re-seeding it afterwards is refused
+		// with ExecutionAlreadyExists, which the seeder tolerates, and
+		// stopping a finished execution answers with when it stopped.
+		{"/sfn/create", url.Values{"name": {"fixture-machine"}, "type": {"STANDARD"}, "role": {sfnRole}, "definition": {sfnDefinition}}},
+		{"/sfn/fixture-machine/start", url.Values{"name": {"fixture-exec"}}},
 		// Reshaping closes the shards it operates on, so merge and split each
 		// get a stream nothing else in the sweep touches.
 		{"/kinesis/create", url.Values{"name": {"fixture-merge"}, "shards": {"2"}}},
@@ -417,6 +433,11 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 	case "/kinesis/{stream}/split":
 		return map[string]string{"{stream}": "fixture-split"},
 			url.Values{"shard": {shardID(0)}, "at": {splitPoint}}
+	case "/sfn/create":
+		// The shared form's "type" is SSM's String; a machine is STANDARD.
+		return nil, url.Values{"name": {"fixture-made-machine"}, "type": {"STANDARD"}, "role": {sfnRole}, "definition": {sfnDefinition}}
+	case "/sfn/{machine}/definition":
+		return nil, url.Values{"definition": {sfnDefinition}}
 	case "/apigw/{api}/update-stage":
 		// The stage the deploy subtest created; mutationForm's generic name
 		// would PATCH a stage that does not exist.

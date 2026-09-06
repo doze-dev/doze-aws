@@ -344,6 +344,22 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/delete-rule", c.ebDeleteRule)
 	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/toggle", c.ebToggleRule)
 
+	// Step Functions. validate and create sit before {machine} so a machine
+	// called "create" cannot shadow them.
+	m.HandleFunc("POST "+p+"/sfn/validate", c.sfnValidate) // HTMX partial (ValidateStateMachineDefinition)
+	m.HandleFunc("GET "+p+"/sfn", c.sfnMachines)
+	m.HandleFunc("GET "+p+"/sfn/create", c.createPage("sfn", "sfn_create"))
+	m.HandleFunc("POST "+p+"/sfn/create", c.sfnCreate)
+	m.HandleFunc("GET "+p+"/sfn/{machine}", c.sfnMachine)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/start", c.sfnStart)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/delete", c.sfnDelete)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/definition", c.sfnUpdateDefinition)
+	m.HandleFunc("GET "+p+"/sfn/{machine}/executions", c.sfnExecutions) // HTMX partial (polled ListExecutions)
+	m.HandleFunc("GET "+p+"/sfn/{machine}/execution/{exec}", c.sfnExecution)
+	m.HandleFunc("GET "+p+"/sfn/{machine}/execution/{exec}/history", c.sfnHistory) // HTMX partial (polled GetExecutionHistory)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/stop", c.sfnStop)
+	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/task-result", c.sfnTaskResult) // HTMX partial (SendTaskSuccess / SendTaskFailure)
+
 	// Lambda.
 	m.HandleFunc("GET "+p+"/lambda", c.lambdaFns)
 	m.HandleFunc("GET "+p+"/lambda/create", c.createPage("lambda", "lambda_create"))

@@ -219,6 +219,50 @@
   </div></section>
 {{template "shell_bottom" .}}{{end}}
 
+{{define "sfn_create"}}{{template "shell_top" .}}
+  {{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  <section class="detail"><div class="form-page">
+    <div class="det-title fp-title">Create state machine</div>
+    <p class="det-sub fp-sub">Write the workflow in the States Language; Validate runs the same analyser CreateStateMachine does, so what passes here deploys.</p>
+    <form hx-post="{{.Prefix}}/sfn/create" hx-indicator="#submit-spin" data-err-slot="#sfn-validate-out">
+      <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
+        <div class="field"><label>Name</label><input class="input" name="name" placeholder="order-flow" required pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off" autofocus></div>
+        <div class="field stack"><label>Type</label>
+          <select class="input" name="type"><option value="STANDARD">STANDARD — durable, every step in the history</option><option value="EXPRESS">EXPRESS — accepted now; executions arrive with Express support</option></select></div>
+        <div class="field stack"><label>Role ARN <span class="dim">the API requires one; nothing evaluates it locally</span></label><input class="input mono" name="role" value="arn:aws:iam::000000000000:role/stepfunctions" required autocomplete="off" spellcheck="false"></div>
+      </div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>Definition</h2>
+        <div class="hdr-btns">
+          <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sfn/validate" hx-include="closest form" hx-target="#sfn-validate-out" hx-select="unset" hx-swap="innerHTML">{{icon "check"}} Validate</button>
+        </div>
+      </div><div class="form-b">
+        {{/* The starter is a real, runnable machine against this stack: a
+             Pass and a Succeed. A Task against a function the stack already
+             has is one edit away, and the function names are listed so the
+             ARN does not have to be typed from memory. */}}
+        <div class="field"><label>States Language <span class="dim">JSON</span></label>
+          <textarea name="definition" data-editor="json" rows="16" spellcheck="false" required>{
+  "Comment": "A workflow that runs against this stack",
+  "StartAt": "Prepare",
+  "States": {
+    "Prepare": {
+      "Type": "Pass",
+      "Result": {"ready": true},
+      "ResultPath": "$.prep",
+      "Next": "Done"
+    },
+    "Done": {"Type": "Succeed"}
+  }
+}</textarea></div>
+        <div id="sfn-validate-out"></div>
+        {{if .Functions}}<p class="mini-note">Functions in this stack a Task can call: {{range $i, $f := .Functions}}{{if $i}}, {{end}}<span class="mono" title="{{$f.ARN}}">{{$f.Name}}</span>{{end}}. A Task's <span class="mono">Resource</span> is the function ARN, or <span class="mono">arn:aws:states:::lambda:invoke</span> with <span class="mono">Parameters.FunctionName</span>.</p>{{end}}
+      </div></div>
+      {{template "cli" "stepfunctions create-state-machine --name $name --definition $definition --role-arn $role --type $type"}}
+      {{template "form_actions" dict "Cancel" (printf "%s/sfn" .Prefix) "Submit" "Create state machine"}}
+    </form>
+  </div></section>
+{{template "shell_bottom" .}}{{end}}
+
 {{define "form_actions"}}
 <div class="det-foot" style="margin-top:6px;border:1px solid var(--border);border-radius:var(--radius);position:sticky;bottom:12px">
   <span id="submit-spin" class="dim htmx-indicator" style="margin-right:auto">Working…</span>

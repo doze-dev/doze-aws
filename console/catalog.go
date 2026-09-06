@@ -42,6 +42,8 @@ var catalog = []svcEntry{
 	{Key: "lambda", Label: "Lambda", Group: "Compute & APIs", Noun: "function",
 		CreatePath: "/lambda/create", CreateLabel: "Create function"},
 	{Key: "apigw", Label: "API Gateway", Group: "Compute & APIs", Noun: "API"},
+	{Key: "sfn", Label: "Step Functions", Group: "Compute & APIs", Noun: "state machine",
+		CreatePath: "/sfn/create", CreateLabel: "Create state machine"},
 
 	{Key: "kms", Label: "KMS", Group: "Config & secrets", Noun: "key",
 		CreatePath: "/kms/create", CreateLabel: "Create key"},

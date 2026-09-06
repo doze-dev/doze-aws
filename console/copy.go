@@ -90,6 +90,13 @@ var emptyCopyBySvc = map[string]emptyCopy{
 		CTA:     "New function",
 		CTAPath: "/lambda/create",
 	},
+	"sfn": {
+		Short:   "No state machines yet",
+		None:    "No state machines yet. A state machine is the orchestration written down — which function runs after which, what a failure retries and what it gives up on — and an execution is one run of it you can read step by step.",
+		Unsel:   "Select a state machine to start an execution, read one's history, or edit the definition.",
+		CTA:     "New state machine",
+		CTAPath: "/sfn/create",
+	},
 	"kms": {
 		Short:   "No keys yet",
 		None:    "No keys yet. Keys here do real cryptography — encrypt, sign and HMAC against actual key material, so a signature that verifies here verifies on deploy.",

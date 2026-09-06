@@ -36,7 +36,7 @@ var arnService = map[string]string{
 	"dynamodb": "ddb", "kinesis": "kinesis", "events": "eb",
 	"kms": "kms", "secretsmanager": "sm", "ssm": "ssm",
 	"cloudformation": "cfn", "apigateway": "apigw", "execute-api": "apigw",
-	"iam": "iam", "sts": "sts",
+	"iam": "iam", "sts": "sts", "states": "sfn",
 }
 
 // resourceFromARN parses an ARN, a queue URL, or a bare name-with-kind and
@@ -124,6 +124,21 @@ func resourceURL(svc, id string) resourceRef {
 		n := strings.TrimPrefix(id, "stream/")
 		n, _, _ = strings.Cut(n, "/")
 		ref.Name, ref.Path = n, "/kinesis/"+n
+	case "sfn":
+		// stateMachine:name, or execution:machine:name — colon-separated, the
+		// machine owns the first page and the execution the second.
+		if rest, ok := strings.CutPrefix(id, "stateMachine:"); ok {
+			ref.Name, ref.Path = rest, "/sfn/"+rest
+		} else if rest, ok := strings.CutPrefix(id, "execution:"); ok {
+			machine, exec, _ := strings.Cut(rest, ":")
+			ref.Name, ref.Path = exec, "/sfn/"+machine+"/execution/"+exec
+			ref.Key = machine + "/" + exec
+		} else if strings.HasPrefix(id, "activity:") {
+			ref.Name = strings.TrimPrefix(id, "activity:")
+			return ref // activities have no page
+		} else {
+			ref.Name, ref.Path = id, "/sfn/"+id
+		}
 	case "eb":
 		// The bus is part of a rule's identity: two buses may each hold a rule
 		// called "orders", and pointing both at /eb/default/rule/orders — which

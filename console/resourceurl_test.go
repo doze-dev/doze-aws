@@ -21,6 +21,9 @@ func TestResourceFromARN(t *testing.T) {
 		// the bus is part of a rule's identity — two buses may hold the same name
 		{"arn:aws:events:us-east-1:000000000000:rule/billing/nightly", "eb", "nightly", "/eb/billing/rule/nightly"},
 		{"arn:aws:events:us-east-1:000000000000:event-bus/billing", "eb", "billing", "/eb/billing"},
+		// Step Functions resources are colon-separated; an execution carries its machine
+		{"arn:aws:states:us-east-1:000000000000:stateMachine:order-flow", "sfn", "order-flow", "/sfn/order-flow"},
+		{"arn:aws:states:us-east-1:000000000000:execution:order-flow:run-7", "sfn", "run-7", "/sfn/order-flow/execution/run-7"},
 		{"arn:aws:cloudformation:us-east-1:000000000000:stack/api/7f-2c", "cfn", "api", "/cfn/api"},
 		{"arn:aws:iam::000000000000:role/worker", "iam", "worker", "/iam/role/worker"},
 		{"arn:aws:s3:::uploads", "s3", "uploads", "/s3/uploads"},

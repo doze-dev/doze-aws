@@ -29,7 +29,7 @@
 <div x-data="{errOnly:false, svc:'', sel:null, paused:false}">
   <div class="chips" style="margin-bottom:10px">
     <label class="chip" style="cursor:pointer"><input type="checkbox" x-model="errOnly" style="margin-right:6px;vertical-align:-1px"> only errors</label>
-    <select class="chip" x-model="svc" style="cursor:pointer;background:var(--card)"><option value="">all services</option><option>s3</option><option>sqs</option><option>sns</option><option>ddb</option><option>lambda</option><option>kms</option><option>eb</option><option>sm</option><option>ssm</option><option>sts</option></select>
+    <select class="chip" x-model="svc" style="cursor:pointer;background:var(--card)"><option value="">all services</option><option>s3</option><option>sqs</option><option>sns</option><option>ddb</option><option>lambda</option><option>kms</option><option>eb</option><option>sfn</option><option>sm</option><option>ssm</option><option>sts</option></select>
     <button type="button" class="chip" style="cursor:pointer" x-text="paused ? '▶ resume' : '⏸ pause'"
             @click="paused=!paused; const f=document.getElementById('traffic-feed'); if(paused){f.setAttribute('data-live-paused','1')}else{f.removeAttribute('data-live-paused')}"></button>
     <button type="button" class="chip" style="cursor:pointer" hx-post="{{.Prefix}}/traffic/clear" hx-target="#traffic-feed" hx-select="unset" hx-swap="outerHTML" @click="sel=null">{{icon "trash"}} clear</button>

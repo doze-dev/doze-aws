@@ -45,6 +45,7 @@ var infoSvc = map[string]string{
 	"sm":    "secretsmanager",
 	"apigw": "apigateway",
 	"cfn":   "cloudformation",
+	"sfn":   "stepfunctions",
 }
 
 var (

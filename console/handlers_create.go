@@ -27,6 +27,11 @@ func (c *Console) createPage(svc, tmpl string) http.HandlerFunc {
 			data["List"], _ = c.be.ListTopics(r.Context())
 		case "eb":
 			data["List"], _ = c.be.ListBuses(r.Context())
+		case "sfn":
+			data["List"], _ = c.be.ListStateMachines(r.Context())
+			// The Task states a definition can call: the pickers in the
+			// editor's help are populated from what the stack actually has.
+			data["Functions"], _ = c.be.ListFunctions(r.Context())
 		case "kms":
 			data["List"], _ = c.be.ListKeys(r.Context())
 		case "ssm":
@@ -101,6 +106,11 @@ func (c *Console) apiResources(w http.ResponseWriter, r *http.Request) {
 	if fns, err := c.be.ListFunctions(ctx); err == nil {
 		for _, f := range fns {
 			add("lambda", f.Name, "/lambda/"+f.Name)
+		}
+	}
+	if sms, err := c.be.ListStateMachines(ctx); err == nil {
+		for _, m := range sms {
+			add("sfn", m.Name, "/sfn/"+m.Name)
 		}
 	}
 	if keys, err := c.be.ListKeys(ctx); err == nil {
