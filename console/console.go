@@ -414,6 +414,7 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/lambda/layers/revoke", c.lambdaLayerRevoke)     // RemoveLayerVersionPermission
 	m.HandleFunc("POST "+p+"/lambda/{fn}/create-url", c.lambdaCreateURL)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-url", c.lambdaDeleteURL)
+	m.HandleFunc("POST "+p+"/lambda/{fn}/update-url", c.lambdaUpdateURL)
 
 	// KMS.
 	m.HandleFunc("GET "+p+"/kms", c.kmsKeys)

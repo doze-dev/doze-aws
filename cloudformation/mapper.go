@@ -84,10 +84,17 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		"AWS::ApiGateway::Account":
 		// Recognised; the resource tree is rebuilt from routes at apply time.
 		return nil
+	case "AWS::Lambda::LayerVersion":
+		return m.layer(name, props)
+	case "AWS::Lambda::Version":
+		return m.functionVersion(props)
+	case "AWS::Lambda::Alias":
+		return m.functionAlias(name, props)
+	case "AWS::Lambda::Url":
+		return m.functionURL(props)
 	case "AWS::Lambda::Permission", "AWS::S3::BucketPolicy",
 		"AWS::SQS::QueuePolicy", "AWS::SNS::TopicPolicy",
-		"AWS::Events::EventBus", "AWS::Lambda::Version",
-		"AWS::Lambda::Alias", "AWS::Lambda::Url", "AWS::Lambda::LayerVersion":
+		"AWS::Events::EventBus":
 		// Recognised and namable — they carry no stack-file state of their own.
 		return nil
 	}
@@ -603,6 +610,9 @@ func (m *mapper) function(name string, props map[string]any) error {
 		}
 	}
 	m.stack.Functions[name] = f
+	if layers := propList(props, "Layers"); len(layers) > 0 {
+		m.functionLayers(name, layers)
+	}
 
 	// SAM Events become triggers and rules once everything exists.
 	if events := propMap(props, "Events"); events != nil {

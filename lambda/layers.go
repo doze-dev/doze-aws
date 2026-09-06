@@ -350,6 +350,9 @@ func (s *Server) publishLayerVersion(w http.ResponseWriter, r *http.Request, nam
 		l.CodeSize = info.Size()
 		if info.IsDir() {
 			l.ExtractedDir = req.Content.S3Key
+			// No upload to hash: the directory's content fingerprint stands
+			// in, so a deploy can tell an unchanged layer from a changed one.
+			l.CodeSHA256 = treeHash(req.Content.S3Key)
 		} else if raw, err := os.ReadFile(req.Content.S3Key); err == nil {
 			archive = raw
 		}

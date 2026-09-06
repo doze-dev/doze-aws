@@ -179,11 +179,12 @@ func (c *Console) lambdaFn(w http.ResponseWriter, r *http.Request) {
 	rt := c.be.LambdaRuntime(r.Context(), name)
 	conn := c.be.Neighbors(r.Context(), "lambda", name)
 	queues, _ := c.be.ListQueues(r.Context())
+	urlCfg := c.be.FunctionURLConfig(r.Context(), name)
 	data := map[string]any{
 		"Fn": f, "Tab": tabOf(r, "invoke"), "List": fns, "Title": name + " · Lambda",
 		"Conn": conn, "Diag": lambdaDiagram(f, conn),
 		"RT": rt, "RTHash": lambdaRuntimeHash(rt),
-		"URL": c.be.FunctionURL(r.Context(), name), "Queues": queues,
+		"URL": urlCfg.URL, "URLAuth": urlCfg.AuthType, "Queues": queues,
 	}
 	if data["Tab"] == "logs" {
 		data["Tail"] = c.logTailData(r, "/aws/lambda/"+name, c.prefix+"/lambda/"+name+"/logs")
@@ -304,7 +305,24 @@ func (c *Console) lambdaConfigPartial(w http.ResponseWriter, r *http.Request, na
 		c.fail(w, err)
 		return
 	}
-	c.partial(w, "lambda_config", map[string]any{"Fn": f, "URL": c.be.FunctionURL(r.Context(), name)})
+	urlCfg := c.be.FunctionURLConfig(r.Context(), name)
+	c.partial(w, "lambda_config", map[string]any{"Fn": f, "URL": urlCfg.URL, "URLAuth": urlCfg.AuthType})
+}
+
+// lambdaUpdateURL changes the function URL's auth type.
+func (c *Console) lambdaUpdateURL(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("fn")
+	auth := r.FormValue("auth_type")
+	if auth != "NONE" && auth != "AWS_IAM" {
+		c.fail(w, fmt.Errorf("auth type must be NONE or AWS_IAM"))
+		return
+	}
+	if err := c.be.UpdateFunctionURL(r.Context(), name, auth); err != nil {
+		c.fail(w, err)
+		return
+	}
+	toast(w, "Function URL updated")
+	c.lambdaConfigPartial(w, r, name)
 }
 
 // lambdaCreateURL / lambdaDeleteURL manage the function URL.

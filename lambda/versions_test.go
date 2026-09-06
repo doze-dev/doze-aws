@@ -3,8 +3,11 @@ package lambda_test
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awslambda "github.com/aws/aws-sdk-go-v2/service/lambda"
@@ -125,5 +128,59 @@ func TestVersionsFreezeCodeAndConfig(t *testing.T) {
 	}
 	if got, _ := invoke(""); !strings.Contains(got, `"gen": 2`) {
 		t.Errorf("$LATEST survives a version delete: %s", got)
+	}
+}
+
+// Code edited in place (the _local_ extension) is what versions are for:
+// the version keeps a real copy, so an edit to the directory reaches
+// $LATEST and not the alias, and a publish after the edit is a new version.
+func TestLocalCodeVersionsFreezeACopy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("runs interpreters")
+	}
+	skipWithoutPython(t)
+	ctx := context.Background()
+	c, _ := lambdaClient(t)
+	dir := t.TempDir()
+	write := func(gen string) {
+		if err := os.WriteFile(filepath.Join(dir, "h.py"), []byte("def handler(e, c):\n    return {'gen': "+gen+"}\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("1")
+	if _, err := c.CreateFunction(ctx, &awslambda.CreateFunctionInput{
+		FunctionName: aws.String("inplace"), Runtime: lambdatypes.RuntimePython312, Handler: aws.String("h.handler"),
+		Role: aws.String("arn:aws:iam::000000000000:role/x"),
+		Code: &lambdatypes.FunctionCode{S3Bucket: aws.String("_local_"), S3Key: aws.String(dir)},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	v1, err := c.PublishVersion(ctx, &awslambda.PublishVersionInput{FunctionName: aws.String("inplace")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again, _ := c.PublishVersion(ctx, &awslambda.PublishVersionInput{FunctionName: aws.String("inplace")}); aws.ToString(again.Version) != aws.ToString(v1.Version) {
+		t.Errorf("an unchanged directory should republish as version %s, got %s", aws.ToString(v1.Version), aws.ToString(again.Version))
+	}
+	// Edit in place — through a truncating write, the case a hard link
+	// would have leaked into the frozen copy.
+	time.Sleep(20 * time.Millisecond) // a distinct mtime on coarse filesystems
+	write("2")
+	invoke := func(qualifier string) string {
+		out, err := c.Invoke(ctx, &awslambda.InvokeInput{FunctionName: aws.String("inplace"), Qualifier: aws.String(qualifier)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return strings.TrimSpace(string(out.Payload))
+	}
+	if got := invoke("$LATEST"); !strings.Contains(got, `"gen": 2`) {
+		t.Errorf("$LATEST should run the edited code, got %s", got)
+	}
+	if got := invoke("1"); !strings.Contains(got, `"gen": 1`) {
+		t.Errorf("version 1 should keep the code it froze, got %s", got)
+	}
+	v2, _ := c.PublishVersion(ctx, &awslambda.PublishVersionInput{FunctionName: aws.String("inplace")})
+	if aws.ToString(v2.Version) != "2" {
+		t.Errorf("a publish after an in-place edit should be version 2, got %s", aws.ToString(v2.Version))
 	}
 }

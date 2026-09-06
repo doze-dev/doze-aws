@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"sync"
 	"testing"
 )
 
@@ -32,6 +34,26 @@ func buildIn(t *testing.T, dir string) string {
 }
 
 func sprintf(format string, args ...any) string { return fmt.Sprintf(format, args...) }
+
+// logCollector is a Logf that keeps every line. Function output reaches it
+// from the sink's worker and the child's copier goroutines, so it locks.
+type logCollector struct {
+	mu    sync.Mutex
+	lines []string
+}
+
+func (c *logCollector) Logf(format string, args ...any) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.lines = append(c.lines, fmt.Sprintf(format, args...))
+}
+
+// String joins what was collected so far.
+func (c *logCollector) String() string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return strings.Join(c.lines, "\n")
+}
 
 // skipWithoutPython skips a test that runs a Python handler when no
 // interpreter is on PATH.

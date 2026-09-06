@@ -137,8 +137,12 @@ Mapped:
 | `AWS::SNS::Subscription` | standalone; attaches after every resource exists, so declaration order does not matter |
 | `AWS::S3::Bucket` | versioning, object lock, CORS, lifecycle, website, notifications (queue/topic/lambda, with prefix and suffix filters) |
 | `AWS::DynamoDB::Table`, `::GlobalTable` | key schema, GSIs, LSIs, TTL, deletion protection |
-| `AWS::Lambda::Function` | runtime, handler, code, env, timeout, memory, DLQ |
+| `AWS::Lambda::Function` | runtime, handler, code, env, timeout, memory, DLQ, `Layers` |
 | `AWS::Lambda::EventSourceMapping` | SQS sources become function triggers |
+| `AWS::Lambda::LayerVersion` | `Content` in the same three spellings as function code (`_local_` may name a directory laid out like an unpacked layer), `CompatibleRuntimes`, `Description`. Each deploy publishes a version when the content changed and keeps the latest one when it did not, so a redeploy does not pile up versions; a function listing the layer gets the version this deploy settled on |
+| `AWS::Lambda::Version` | publishes the function on every deploy; unchanged code and configuration keep their version. `Ref` and `Version` are a placeholder (`$published`) that an alias in the same template consumes, because the number is not known until the function is published |
+| `AWS::Lambda::Alias` | `Name`, `Description`, `FunctionVersion` (the version this deploy publishes, or an explicit number); a weighted `RoutingConfig` collapses to that version, which is where a gradual deployment ends up. `Ref` and `AliasArn` are the real alias ARN, and invoking or triggering it runs the frozen version |
+| `AWS::Lambda::Url` | `AuthType` (`NONE` and `AWS_IAM` are both served, without a signature check) and `Cors`; `FunctionUrl` is the real URL the gateway serves, shaped from the endpoint doze-aws listens on. A URL on a qualified ARN addresses the function |
 | `AWS::Events::Rule` | pattern, schedule, state, targets with `InputPath` / `Input` / `InputTransformer` |
 | `AWS::KMS::Key`, `::Alias` | the alias renames the key, since keys are addressed by alias |
 | `AWS::SecretsManager::Secret` | `SecretString`, or `GenerateSecretString`'s template as a placeholder |
@@ -146,7 +150,7 @@ Mapped:
 | `AWS::Kinesis::Stream` | accepted; the resource graph has no streams section yet |
 | `AWS::Serverless::Api`, `AWS::ApiGateway::RestApi`, `AWS::ApiGatewayV2::Api` | a REST API; routes arrive from the functions that bind to it |
 | `AWS::ApiGateway::Deployment`, `::Stage`, `::Resource`, `::Method`, `::Account` | recognised; the resource tree is rebuilt from routes at apply time |
-| `AWS::Lambda::Permission`, `::Version`, `::Alias`, `::Url`, `::LayerVersion` | recognised and referenceable |
+| `AWS::Lambda::Permission` | recognised and referenceable; nothing locally gates an invocation on the policy |
 | `AWS::S3::BucketPolicy`, `AWS::SQS::QueuePolicy`, `AWS::SNS::TopicPolicy` | recognised; no local policy evaluation |
 | `AWS::StepFunctions::StateMachine` | `DefinitionString` or `Definition`, `DefinitionSubstitutions` applied after intrinsics (what the CDK emits), type, role, tags; `DefinitionUri` is refused — inline the definition for a local deploy |
 | `AWS::StepFunctions::StateMachineVersion` | publishes the machine's revision on every deploy; an unchanged definition keeps its version. Its `Ref` is a placeholder only an alias in the same template can consume, because the version number is not known until the machine is published |
@@ -182,7 +186,8 @@ supplies defaults that an explicit property overrides.
 
 | SAM resource / event | Result |
 |---|---|
-| `AWS::Serverless::Function` | a Lambda function |
+| `AWS::Serverless::Function` | a Lambda function; `AutoPublishAlias` becomes a version and an alias at it (`<Fn>Alias<name>`), `FunctionUrlConfig` a function URL (`<Fn>Url`, so `!GetAtt MyFnUrl.FunctionUrl` resolves), `DeploymentPreference` is dropped because the shift is instant |
+| `AWS::Serverless::LayerVersion` | a layer from `ContentUri` (a local directory or zip, or an `s3://` reference); `RetentionPolicy` is dropped |
 | `AWS::Serverless::SimpleTable` | a DynamoDB table from `PrimaryKey` |
 | `Events` of type `SQS` | a function trigger |
 | `Events` of type `SNS` | a topic subscription |

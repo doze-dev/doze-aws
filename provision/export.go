@@ -25,6 +25,9 @@ func Export(ctx context.Context, gateway http.Handler) (*Stack, error) {
 	if err := exportBuckets(ctx, c, s); err != nil {
 		return nil, err
 	}
+	if err := exportLayers(ctx, c, s); err != nil {
+		return nil, err
+	}
 	if err := exportFunctions(ctx, c, s); err != nil {
 		return nil, err
 	}

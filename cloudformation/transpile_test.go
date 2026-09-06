@@ -453,6 +453,60 @@ Resources:
 	}
 }
 
+// SAM's shorthands around a function — AutoPublishAlias, FunctionUrlConfig
+// and a Serverless::LayerVersion the function lists — map onto the same
+// version, alias, URL and layer the plain resources do.
+func TestTranspileSAMVersioningShorthands(t *testing.T) {
+	tmpl := `
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Helpers:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: helpers
+      ContentUri: ./layer
+      CompatibleRuntimes: [python3.12]
+      RetentionPolicy: Delete
+  Api:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.12
+      Handler: app.handler
+      CodeUri: ./api
+      AutoPublishAlias: live
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowOrigins: ["*"]
+      Layers:
+        - !Ref Helpers
+Outputs:
+  Url:
+    Value: !GetAtt ApiUrl.FunctionUrl
+`
+	parsed, err := Parse([]byte(tmpl))
+	if err != nil {
+		t.Fatal(err)
+	}
+	stack, _, err := Transpile(parsed, TranspileOptions{Endpoint: "http://127.0.0.1:4566"})
+	if err != nil {
+		t.Fatalf("Transpile: %v", err)
+	}
+	fn := stack.Functions["Api"]
+	if !fn.Publish || fn.Aliases["live"].Version != "" {
+		t.Errorf("AutoPublishAlias should publish and alias: publish=%v aliases=%+v", fn.Publish, fn.Aliases)
+	}
+	if fn.URL == nil || fn.URL.AuthType != "NONE" || !strings.Contains(fn.URL.CORS.JSON, `"AllowOrigins":["*"]`) {
+		t.Errorf("FunctionUrlConfig did not map: %+v", fn.URL)
+	}
+	if len(fn.Layers) != 1 || fn.Layers[0] != "helpers" {
+		t.Errorf("the layer should be referenced by name: %v", fn.Layers)
+	}
+	if l := stack.Layers["helpers"]; l.Code != "./layer" || len(l.Runtimes) != 1 {
+		t.Errorf("Serverless::LayerVersion mapped as %+v", l)
+	}
+}
+
 // TestTranspileSAMApiEvent covers what phase 4 unblocked: an Api event used to
 // be refused because a function behind it would never have been reachable.
 // Now it becomes a route on an API.

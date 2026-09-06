@@ -63,9 +63,8 @@ func TestFunctionOutputReachesTheLogsService(t *testing.T) {
 		t.Skip("compiles + runs a lambda process")
 	}
 	ctx := context.Background()
-	var echoed []string
-	logf := func(format string, args ...any) { echoed = append(echoed, sprintf(format, args...)) }
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: logf})
+	var echoed logCollector
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: echoed.Logf})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +123,7 @@ func TestFunctionOutputReachesTheLogsService(t *testing.T) {
 		t.Errorf("stream name %q is not AWS-shaped", name)
 	}
 	// The terminal saw the same lines, prefixed with the function.
-	echo := strings.Join(echoed, "\n")
+	echo := echoed.String()
 	if !strings.Contains(echo, "lambda[printer] cold start") || !strings.Contains(echo, `lambda[printer] handling {"n":1}`) {
 		t.Errorf("function output was not echoed to the log:\n%s", echo)
 	}
@@ -137,9 +136,8 @@ func TestInvokeWithoutTheLogsService(t *testing.T) {
 		t.Skip("compiles + runs a lambda process")
 	}
 	ctx := context.Background()
-	var lines []string
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Services: []string{"lambda"},
-		Logf: func(format string, args ...any) { lines = append(lines, sprintf(format, args...)) }})
+	var lines logCollector
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Services: []string{"lambda"}, Logf: lines.Logf})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +158,7 @@ func TestInvokeWithoutTheLogsService(t *testing.T) {
 		}
 	}
 	time.Sleep(300 * time.Millisecond) // the sink's worker reports on its own goroutine
-	all := strings.Join(lines, "\n")
+	all := lines.String()
 	if !strings.Contains(all, "lambda[lonely] handling {}") {
 		t.Errorf("output should still be echoed:\n%s", all)
 	}

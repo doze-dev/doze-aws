@@ -59,7 +59,7 @@ func hCreateChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	exports, _ := s.store.Exports()
 	_, rep, err := Transpile(tmpl, TranspileOptions{
-		StackName: stackName, Parameters: params, Exports: exports,
+		StackName: stackName, Parameters: params, Exports: exports, Endpoint: s.endpoint,
 	})
 	if err != nil {
 		return nil, errValidation("%v", err)

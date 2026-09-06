@@ -81,6 +81,7 @@ func Destroy(ctx context.Context, gateway http.Handler, s *Stack) (*DestroyRepor
 		{"rules", func() error { return destroyRules(ctx, c, s, rep) }},
 		{"topics", func() error { return destroyTopics(ctx, c, s, rep) }},
 		{"functions", func() error { return destroyFunctions(ctx, c, s, rep) }},
+		{"layers", func() error { return destroyLayers(ctx, c, s, rep) }},
 		{"buckets", func() error { return destroyBuckets(ctx, c, s, rep) }},
 		{"keys", func() error { return destroyKeys(ctx, c, s, rep) }},
 		{"tables", func() error { return destroyTables(ctx, c, s, rep) }},

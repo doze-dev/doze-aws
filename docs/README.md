@@ -4,6 +4,7 @@
 - [endpoints.md](endpoints.md) — the addresses doze-aws answers on, and which are promised
 - [cli.md](cli.md) — CLI reference: commands, flags, the `doze-aws.toml` config file, and how clients connect
 - [cloudformation.md](cloudformation.md) — deploying with the AWS CLI, SAM, CDK or Serverless
+- [lambda.md](lambda.md) — how a function runs (host processes, no Docker), the runtimes, in-place code, logs three ways, versions, layers and function URLs
 - [embedding.md](embedding.md) — use doze-aws as a Go library, with a complete example
 - [api-support/](api-support/) — per-service operation support tables (Functional / Cosmetic / Stub)
 - [reports/](reports/) — phase-by-phase build reports

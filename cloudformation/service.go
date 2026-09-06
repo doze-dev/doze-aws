@@ -54,16 +54,20 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Endpoint is the externally-reachable base URL of the gateway, when
+	// known; a function URL's GetAtt FunctionUrl is shaped from it.
+	Endpoint string
 }
 
 // Server is the CloudFormation service.
 type Server struct {
-	store   *Store
-	gateway http.Handler
-	peers   peers.Directory
-	logf    func(format string, args ...any)
-	api     awsquery.API
-	now     func() time.Time
+	store    *Store
+	gateway  http.Handler
+	peers    peers.Directory
+	logf     func(format string, args ...any)
+	api      awsquery.API
+	now      func() time.Time
+	endpoint string
 }
 
 // New opens the store under DataDir.
@@ -84,12 +88,13 @@ func New(opts Options) (*Server, error) {
 		logf = func(string, ...any) {}
 	}
 	s := &Server{
-		store:   newStore(db),
-		gateway: opts.Gateway,
-		peers:   opts.Peers,
-		logf:    logf,
-		api:     awsquery.API{XMLNS: cfnXMLNS, EmptyResult: true},
-		now:     time.Now,
+		store:    newStore(db),
+		gateway:  opts.Gateway,
+		peers:    opts.Peers,
+		logf:     logf,
+		api:      awsquery.API{XMLNS: cfnXMLNS, EmptyResult: true},
+		now:      time.Now,
+		endpoint: opts.Endpoint,
 	}
 	if s.peers == nil {
 		s.peers = peers.None()

@@ -248,6 +248,56 @@ func aliasRefs(scope *Scope, resources map[string]*Resource, names map[string]st
 	}
 }
 
+// PublishedVersion is the placeholder a Lambda version's number carries
+// through a template: the number is only known once the function is
+// published, and an alias or output that names it means "the version this
+// deploy publishes".
+const PublishedVersion = "$published"
+
+// lambdaRefs completes the Ref and attributes of every Lambda Version, Alias
+// and Url, which pass one cannot know: each is named after its function,
+// which arrives through an unevaluated Ref or GetAtt.
+func lambdaRefs(scope *Scope, resources map[string]*Resource, names map[string]string, endpoint string) {
+	for id, r := range resources {
+		var fn string
+		switch r.Type {
+		case "AWS::Lambda::Version", "AWS::Lambda::Alias":
+			fn = functionOf(r.Properties["FunctionName"], names)
+		case "AWS::Lambda::Url":
+			fn = functionOf(r.Properties["TargetFunctionArn"], names)
+		default:
+			continue
+		}
+		if fn == "" {
+			continue // the mapper reports the unresolvable reference
+		}
+		arn := awsident.ARN("lambda", "function:"+fn)
+		switch r.Type {
+		case "AWS::Lambda::Version":
+			scope.Refs[id] = arn + ":" + PublishedVersion
+			scope.Atts[id] = map[string]string{"Version": PublishedVersion, "FunctionArn": arn}
+		case "AWS::Lambda::Alias":
+			scope.Refs[id] = arn + ":" + names[id]
+			scope.Atts[id] = map[string]string{"AliasArn": arn + ":" + names[id]}
+		case "AWS::Lambda::Url":
+			scope.Refs[id] = arn
+			scope.Atts[id] = map[string]string{
+				"FunctionArn": arn,
+				"FunctionUrl": awsident.FunctionURL(awsident.FunctionURLID(fn), endpoint),
+			}
+		}
+	}
+}
+
+// functionOf resolves a FunctionName-style property — a name, an ARN, or a
+// Ref/GetAtt to the function resource — to the function's name.
+func functionOf(v any, names map[string]string) string {
+	if s, ok := v.(string); ok {
+		return nameFromARN(s)
+	}
+	return names[logicalOfIntrinsic(v)]
+}
+
 func machineOfAlias(props map[string]any, resources map[string]*Resource, names map[string]string) string {
 	var versionRef any
 	if rc, ok := props["RoutingConfiguration"].([]any); ok && len(rc) > 0 {

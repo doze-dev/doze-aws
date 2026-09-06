@@ -853,10 +853,17 @@ func TestLambdaLifecycle(t *testing.T) {
 		t.Fatalf("config edit did not land:\n%s", page)
 	}
 
-	// Function URL: create then remove.
+	// Function URL: create, change the auth type, then remove.
 	cfg := req(t, h, "POST", "/_console/lambda/worker/create-url", nil).Body.String()
 	if !strings.Contains(cfg, "lambda-url") {
 		t.Fatalf("function URL not shown after create:\n%s", cfg)
+	}
+	cfg = req(t, h, "POST", "/_console/lambda/worker/update-url", url.Values{"auth_type": {"AWS_IAM"}}).Body.String()
+	if !strings.Contains(cfg, `value="AWS_IAM" selected`) {
+		t.Fatalf("auth type change did not land:\n%s", cfg)
+	}
+	if rec := req(t, h, "POST", "/_console/lambda/worker/update-url", url.Values{"auth_type": {"BOGUS"}}); rec.Code < 400 {
+		t.Fatalf("an unknown auth type should be refused, got %d", rec.Code)
 	}
 	cfg = req(t, h, "POST", "/_console/lambda/worker/delete-url", nil).Body.String()
 	if strings.Contains(cfg, "Remove URL") {

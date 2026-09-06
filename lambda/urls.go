@@ -2,9 +2,7 @@ package lambda
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -27,27 +25,14 @@ import (
 // decodes it — an object with statusCode as a full response, anything else
 // as a 200 with the value as the JSON body.
 
-// urlID is the 32-character lowercase id a function's URL carries. It is
-// derived from the name so a redeploy addresses the same URL.
-func urlID(name string) string {
-	sum := sha256.Sum256([]byte("function-url:" + name))
-	id := hex.EncodeToString(sum[:])[:32]
-	return strings.Map(func(r rune) rune {
-		if r >= '0' && r <= '9' {
-			return 'a' + (r - '0') // AWS ids are letters and digits; all letters is still valid
-		}
-		return r
-	}, id)
-}
+// urlID is the 32-character lowercase id a function's URL carries, derived
+// from the name so a redeploy addresses the same URL (awsident.FunctionURLID,
+// shared with CloudFormation so a template's GetAtt FunctionUrl is right).
+func urlID(name string) string { return awsident.FunctionURLID(name) }
 
 // functionURL is the URL a config reports: the on.aws host when the
 // endpoint is unknown, the gateway's path form when it is.
-func (s *Server) functionURL(id string) string {
-	if s.endpoint != "" {
-		return strings.TrimRight(s.endpoint, "/") + "/_aws/lambda-url/" + id + "/"
-	}
-	return "https://" + id + ".lambda-url." + awsident.Region + ".on.aws/"
-}
+func (s *Server) functionURL(id string) string { return awsident.FunctionURL(id, s.endpoint) }
 
 // urlConfigView is the Create/Get/UpdateFunctionUrlConfig response.
 func (s *Server) urlConfigView(f *Function, status int) map[string]any {

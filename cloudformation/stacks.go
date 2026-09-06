@@ -315,6 +315,7 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 		StackName:  name,
 		Parameters: params,
 		Exports:    exports,
+		Endpoint:   s.endpoint,
 	})
 	if err != nil {
 		// A template that cannot be transpiled records a failed stack rather
@@ -485,7 +486,7 @@ func (s *Server) stackIR(st *StackRecord) (*provision.Stack, error) {
 	exports, _ := s.store.Exports()
 	sf, _, err := Transpile(tmpl, TranspileOptions{
 		StackName: st.Name, Parameters: st.Parameters, Exports: exports,
-		AllowUnsupported: true,
+		AllowUnsupported: true, Endpoint: s.endpoint,
 	})
 	return sf, err
 }

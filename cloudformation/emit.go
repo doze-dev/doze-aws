@@ -235,6 +235,19 @@ func Emit(s *provision.Stack) ([]byte, error) {
 		add("Table", name, "AWS::DynamoDB::Table", props)
 	}
 
+	for _, name := range sortedNames(s.Layers) {
+		l := s.Layers[name]
+		props := map[string]any{
+			"LayerName": name,
+			"Content":   map[string]any{"S3Bucket": "_local_", "S3Key": l.Code},
+		}
+		if len(l.Runtimes) > 0 {
+			props["CompatibleRuntimes"] = l.Runtimes
+		}
+		putIfStr(props, "Description", l.Description)
+		add("Layer", name, "AWS::Lambda::LayerVersion", props)
+	}
+
 	for _, name := range sortedNames(s.Functions) {
 		f := s.Functions[name]
 		props := map[string]any{"FunctionName": name}
@@ -253,8 +266,50 @@ func Emit(s *provision.Stack) ([]byte, error) {
 		if f.DLQ != nil {
 			props["DeadLetterConfig"] = map[string]any{"TargetArn": destARN(f.DLQ)}
 		}
+		if len(f.Layers) > 0 {
+			var layers []any
+			for _, l := range f.Layers {
+				if _, inStack := s.Layers[l]; inStack {
+					layers = append(layers, map[string]any{"Ref": logicalID("Layer", l)})
+				} else {
+					layers = append(layers, l)
+				}
+			}
+			props["Layers"] = layers
+		}
 		putTags(props, f.Tags)
 		add("Function", name, "AWS::Lambda::Function", props)
+
+		if f.Publish || len(f.Aliases) > 0 {
+			// One version resource per function; every alias points at it.
+			add("Version", name, "AWS::Lambda::Version", map[string]any{
+				"FunctionName": map[string]any{"Ref": logicalID("Function", name)},
+			})
+			for _, alias := range sortedNames(f.Aliases) {
+				props := map[string]any{
+					"Name":            alias,
+					"FunctionName":    map[string]any{"Ref": logicalID("Function", name)},
+					"FunctionVersion": map[string]any{"Fn::GetAtt": []any{logicalID("Version", name), "Version"}},
+				}
+				if v := f.Aliases[alias].Version; v != "" {
+					props["FunctionVersion"] = v
+				}
+				if d := f.Aliases[alias].Description; d != "" {
+					props["Description"] = d
+				}
+				add("Alias", name+alias, "AWS::Lambda::Alias", props)
+			}
+		}
+		if f.URL != nil {
+			props := map[string]any{
+				"TargetFunctionArn": map[string]any{"Fn::GetAtt": []any{logicalID("Function", name), "Arn"}},
+				"AuthType":          orDefault(f.URL.AuthType, "NONE"),
+			}
+			if !f.URL.CORS.IsZero() {
+				props["Cors"] = rawDoc(f.URL.CORS)
+			}
+			add("Url", name, "AWS::Lambda::Url", props)
+		}
 
 		for i, trig := range f.Triggers {
 			esm := map[string]any{

@@ -43,6 +43,7 @@ type Stack struct {
 	StateMachines map[string]StateMachine
 	Activities    map[string]Activity
 	LogGroups     map[string]LogGroup
+	Layers        map[string]Layer
 }
 
 // LogGroup is a CloudWatch Logs log group: a name, an optional retention in
@@ -211,6 +212,44 @@ type Function struct {
 	OnFailure *Dest
 	Triggers  []Trigger
 	Tags      map[string]string
+	// Layers, in order: the name of a layer in this stack (its version
+	// published by this apply is used) or a full layer version ARN.
+	Layers []string
+	// Publish records a version of the function on every apply — what an
+	// AWS::Lambda::Version in the template asks for. Publishing unchanged
+	// code and configuration returns the version it already has, so a
+	// repeated deploy does not pile up versions.
+	Publish bool
+	// Aliases, by name, each pointing at the version this apply published.
+	// A weighted RoutingConfig collapses to that version, which is where a
+	// CloudFormation deployment converges anyway.
+	Aliases map[string]FunctionAlias
+	// URL, when set, gives the function a function URL.
+	URL *FunctionURL
+}
+
+// FunctionAlias is a named pointer at a function version: the one this
+// apply publishes when Version is empty, or an explicit version number.
+type FunctionAlias struct {
+	Version     string
+	Description string
+}
+
+// FunctionURL is a function URL config: NONE or AWS_IAM (accepted and
+// served without checking, locally), with an optional CORS document.
+type FunctionURL struct {
+	AuthType string
+	CORS     Doc
+}
+
+// Layer is a Lambda layer: its content (a local path — a directory laid out
+// like an unpacked layer, or a zip — or an s3://bucket/key a deploy tool
+// staged), and the runtimes it declares. Each apply publishes a version when
+// the content changed and reuses the latest one when it did not.
+type Layer struct {
+	Code        string
+	Runtimes    []string
+	Description string
 }
 
 // Dest names exactly one destination kind.

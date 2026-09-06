@@ -35,6 +35,18 @@ func applySAMTransform(t *Template) error {
 		// locally. Dropping it means apply reports a missing code path rather
 		// than creating a function that cannot run.
 		delete(r.Properties, "InlineCode")
+		t.samVersioning(id, r)
+	}
+	for _, id := range t.Order() {
+		r := t.Resources[id]
+		if r.Type != "AWS::Serverless::LayerVersion" {
+			continue
+		}
+		// SAM's LayerVersion is the plain resource with ContentUri in place
+		// of Content; the layer mapper reads either. RetentionPolicy governs
+		// what CloudFormation keeps on delete, which does not apply here.
+		r.Type = "AWS::Lambda::LayerVersion"
+		delete(r.Properties, "RetentionPolicy")
 	}
 	for _, id := range t.Order() {
 		r := t.Resources[id]
@@ -59,6 +71,43 @@ func applySAMTransform(t *Template) error {
 	return nil
 }
 
+// samVersioning expands the shorthands SAM puts on a function into the
+// resources SAM itself generates, under the logical ids SAM gives them, so a
+// template's `!GetAtt MyFnUrl.FunctionUrl` resolves: AutoPublishAlias into
+// a Version and an Alias at it, FunctionUrlConfig into a Url.
+func (t *Template) samVersioning(id string, r *Resource) {
+	add := func(logical, typ string, props map[string]any) {
+		if _, taken := t.Resources[logical]; taken {
+			return
+		}
+		t.Resources[logical] = &Resource{LogicalID: logical, Type: typ, Properties: props}
+		t.order = append(t.order, logical)
+	}
+	if alias, ok := r.Properties["AutoPublishAlias"].(string); ok && alias != "" {
+		add(id+"Version", "AWS::Lambda::Version", map[string]any{
+			"FunctionName": map[string]any{"Ref": id},
+		})
+		add(id+"Alias"+alias, "AWS::Lambda::Alias", map[string]any{
+			"Name":            alias,
+			"FunctionName":    map[string]any{"Ref": id},
+			"FunctionVersion": map[string]any{"Fn::GetAtt": []any{id + "Version", "Version"}},
+		})
+	}
+	delete(r.Properties, "AutoPublishAlias")
+	delete(r.Properties, "DeploymentPreference")
+	if cfg, ok := r.Properties["FunctionUrlConfig"].(map[string]any); ok {
+		props := map[string]any{
+			"TargetFunctionArn": map[string]any{"Fn::GetAtt": []any{id, "Arn"}},
+			"AuthType":          cfg["AuthType"],
+		}
+		if cors, ok := cfg["Cors"]; ok {
+			props["Cors"] = cors
+		}
+		add(id+"Url", "AWS::Lambda::Url", props)
+	}
+	delete(r.Properties, "FunctionUrlConfig")
+}
+
 func renameProp(props map[string]any, from, to string) {
 	if v, ok := props[from]; ok {
 		if _, taken := props[to]; !taken {
@@ -71,8 +120,7 @@ func renameProp(props map[string]any, from, to string) {
 // unsupportedSAM names serverless resource types doze-aws cannot model, with
 // the reason, so the registry can refuse them precisely.
 var unsupportedSAM = map[string]string{
-	"AWS::Serverless::Application":  "nested applications need the Serverless Application Repository",
-	"AWS::Serverless::LayerVersion": "layer versions are created through the Lambda API, not the stack file",
+	"AWS::Serverless::Application": "nested applications need the Serverless Application Repository",
 }
 
 func samReason(typ string) (string, bool) {

@@ -67,6 +67,9 @@ type TranspileOptions struct {
 	// AllowUnsupported downgrades a rejected resource type to a warning
 	// instead of failing the whole transpile.
 	AllowUnsupported bool
+	// Endpoint is the gateway's externally-reachable base URL, when known;
+	// it shapes a function URL's GetAtt FunctionUrl.
+	Endpoint string
 }
 
 // Transpile converts a parsed template into a stack file plus a report.
@@ -201,6 +204,7 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 		names[p.res.LogicalID] = p.name
 	}
 	aliasRefs(scope, t.Resources, names)
+	lambdaRefs(scope, t.Resources, names, opts.Endpoint)
 
 	// ---- pass two: evaluate and map ----
 	stack := &provision.Stack{
@@ -217,6 +221,7 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 		StateMachines: map[string]provision.StateMachine{},
 		Activities:    map[string]provision.Activity{},
 		LogGroups:     map[string]provision.LogGroup{},
+		Layers:        map[string]provision.Layer{},
 	}
 	m := &mapper{scope: scope, stack: stack, template: t}
 	for _, p := range work {
@@ -291,6 +296,9 @@ func pruneEmpty(s *provision.Stack) {
 	}
 	if len(s.Functions) == 0 {
 		s.Functions = nil
+	}
+	if len(s.Layers) == 0 {
+		s.Layers = nil
 	}
 	if len(s.Rules) == 0 {
 		s.Rules = nil
@@ -415,8 +423,14 @@ func nameFromARN(v string) string {
 		return v
 	}
 	// arn:aws:sqs:region:account:name  |  arn:aws:s3:::bucket
-	// arn:aws:lambda:region:account:function:name
+	// arn:aws:lambda:region:account:function:name[:qualifier]
 	// arn:aws:dynamodb:region:account:table/name
+	if _, rest, ok := strings.Cut(v, ":function:"); ok {
+		// A qualified function ARN names a version or alias; the resource
+		// it belongs to is the function.
+		name, _, _ := strings.Cut(rest, ":")
+		return name
+	}
 	tail := v[strings.LastIndex(v, ":")+1:]
 	if i := strings.LastIndex(tail, "/"); i >= 0 {
 		tail = tail[i+1:]

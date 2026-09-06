@@ -425,8 +425,8 @@ func lambdaRESTAction(r *http.Request, parts []string) string {
 			return map[string]string{"PUT": "UpdateFunctionConfiguration", "GET": "GetFunctionConfiguration"}[m]
 		case "code":
 			return "UpdateFunctionCode"
-		case "url":
-			return map[string]string{"POST": "CreateFunctionUrlConfig", "GET": "GetFunctionUrlConfig", "DELETE": "DeleteFunctionUrlConfig"}[m]
+		case "url", "urls":
+			return map[string]string{"POST": "CreateFunctionUrlConfig", "PUT": "UpdateFunctionUrlConfig", "GET": "GetFunctionUrlConfig", "DELETE": "DeleteFunctionUrlConfig"}[m]
 		case "event-invoke-config":
 			return map[string]string{"PUT": "PutFunctionEventInvokeConfig", "POST": "PutFunctionEventInvokeConfig", "GET": "GetFunctionEventInvokeConfig", "DELETE": "DeleteFunctionEventInvokeConfig"}[m]
 		case "aliases":

@@ -38,8 +38,17 @@ func codeLocation(name, code string) (map[string]string, error) {
 // ---- functions ----
 
 func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error {
+	// Layers first: a function's Layers list names them.
+	publishedLayers, err := applyLayers(ctx, c, s, rep)
+	if err != nil {
+		return err
+	}
 	for _, name := range sortedNames(s.Functions) {
 		f := s.Functions[name]
+		layers, err := layerARNs(name, f.Layers, publishedLayers)
+		if err != nil {
+			return err
+		}
 		// Code is either a path on disk (the _local_ extension) or an
 		// s3://bucket/key that a deploy tool staged. Both spellings reach
 		// Lambda as a Code block; only the local one needs to exist here.
@@ -76,6 +85,10 @@ func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error
 		}
 		if f.DLQ != nil {
 			cfg["DeadLetterConfig"] = map[string]string{"TargetArn": f.DLQ.arn()}
+		}
+		if len(layers) > 0 || exists {
+			// An empty list on update clears layers the stack no longer names.
+			cfg["Layers"] = append([]string{}, layers...)
 		}
 
 		if !exists {
@@ -167,6 +180,12 @@ func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error
 				rep.add("created", "function/"+name, "trigger "+tr.Queue)
 			}
 		}
+
+		// A version, the aliases at it, and the function URL — after the
+		// code and configuration are what the version should freeze.
+		if err := applyVersionAliasesURL(ctx, c, name, f, rep); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -201,6 +220,7 @@ func exportFunctions(ctx context.Context, c *client, s *Stack) error {
 			DeadLetterConfig struct {
 				TargetArn string
 			}
+			Layers []struct{ Arn string }
 		}
 	}
 	json.Unmarshal(out, &lst)
@@ -279,6 +299,7 @@ func exportFunctions(ctx context.Context, c *client, s *Stack) error {
 				f.Tags = lt.Tags
 			}
 		}
+		exportFunctionVersioning(ctx, c, s, fn.FunctionName, &f, fn.Layers)
 		s.Functions[fn.FunctionName] = f
 	}
 	return nil

@@ -54,9 +54,11 @@ type Function struct {
 	// Nothing locally gates invocation on it; it round-trips for templates.
 	Policy []PolicyStatement `json:"policy,omitempty"`
 
-	Aliases  map[string]string `json:"aliases,omitempty"` // alias -> version
-	LastMod  int64             `json:"last_mod"`
-	Revision string            `json:"revision"`
+	Aliases map[string]string `json:"aliases,omitempty"` // alias -> version
+	// AliasDescriptions holds each alias's description, by alias name.
+	AliasDescriptions map[string]string `json:"alias_descriptions,omitempty"`
+	LastMod           int64             `json:"last_mod"`
+	Revision          string            `json:"revision"`
 
 	FunctionURL string          `json:"function_url,omitempty"` // when a URL config exists
 	URLId       string          `json:"url_id,omitempty"`       // the 32-character id the URL carries

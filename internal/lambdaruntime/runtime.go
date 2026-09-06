@@ -1,16 +1,19 @@
 // Package lambdaruntime runs Lambda functions as supervised local processes
-// that speak the AWS Lambda Runtime API. Each function gets one child process
-// (serial invocations in this phase) started with AWS_LAMBDA_RUNTIME_API
-// pointing at a per-function loopback listener serving the four runtime routes:
+// that speak the AWS Lambda Runtime API. A Pool keeps up to a few child
+// processes per function, each started with AWS_LAMBDA_RUNTIME_API pointing
+// at its own loopback listener serving the four runtime routes:
 //
 //	GET  /2018-06-01/runtime/invocation/next
 //	POST /2018-06-01/runtime/invocation/{id}/response
 //	POST /2018-06-01/runtime/invocation/{id}/error
 //	POST /2018-06-01/runtime/init/error
 //
-// The official runtime interface clients (provided.al2 bootstrap, awslambdaric
-// for Python/Node) speak this protocol unmodified — so real handlers run with
-// no Docker.
+// The official runtime interface clients (a provided.* bootstrap, the Java
+// and .NET clients) speak this protocol unmodified, and the embedded clients
+// in shims/ speak it for Python, Node and Ruby on the host interpreter — so
+// real handlers run with no Docker. Every line a process prints is attributed
+// to the invocation that printed it and handed to a LogSink (logs.go); a
+// function's layers go onto the runtime's search paths (layers.go).
 package lambdaruntime
 
 import (

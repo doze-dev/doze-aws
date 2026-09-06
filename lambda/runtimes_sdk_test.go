@@ -119,10 +119,10 @@ func TestMissingInterpreterIsSaidAtCreate(t *testing.T) {
 		t.Skip("boots a stack")
 	}
 	ctx := context.Background()
-	var lines []string
+	var lines logCollector
 	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Services: []string{"lambda"},
 		LambdaRuntimes: map[string]string{"ruby": "/nonexistent/ruby"},
-		Logf:           func(format string, args ...any) { lines = append(lines, sprintf(format, args...)) }})
+		Logf:           lines.Logf})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,8 +138,8 @@ func TestMissingInterpreterIsSaidAtCreate(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("AWS accepts the create; so should this: %v", err)
 	}
-	if !strings.Contains(strings.Join(lines, "\n"), "[lambda.runtimes] ruby") {
-		t.Errorf("the create should warn about the interpreter:\n%s", strings.Join(lines, "\n"))
+	if !strings.Contains(lines.String(), "[lambda.runtimes] ruby") {
+		t.Errorf("the create should warn about the interpreter:\n%s", lines.String())
 	}
 	start := time.Now()
 	// A launch failure is a function error, as a broken init is on AWS —

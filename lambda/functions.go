@@ -550,6 +550,19 @@ func (s *Server) configView(f *Function) map[string]any {
 	if f.DeadLetterArn != "" {
 		view["DeadLetterConfig"] = map[string]any{"TargetArn": f.DeadLetterArn}
 	}
+	if len(f.Layers) > 0 {
+		layers := make([]map[string]any, 0, len(f.Layers))
+		for _, arn := range f.Layers {
+			entry := map[string]any{"Arn": arn}
+			if name, version, ok := parseLayerARN(arn); ok {
+				if l, err := s.store.GetLayerVersion(name, version); err == nil {
+					entry["CodeSize"] = l.CodeSize
+				}
+			}
+			layers = append(layers, entry)
+		}
+		view["Layers"] = layers
+	}
 	// A published version's ARN carries its number, as AWS reports it.
 	if f.Version != "" && f.Version != "$LATEST" {
 		view["FunctionArn"] = f.ARN() + ":" + f.Version

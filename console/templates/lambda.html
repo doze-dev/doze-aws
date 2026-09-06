@@ -300,7 +300,16 @@
       {{if .URL}}
       <div class="copy-row"><span class="mono" style="font-size:11px" title="{{.URL}}">{{.URL}}</span><button class="icon-btn sm" title="Copy" data-copy="{{.URL}}">{{icon "copy"}}</button></div>
       <p class="mini-note">Served by this endpoint: a plain HTTP request becomes the payload-format-2.0 event, no trigger needed. The {id}.lambda-url.us-east-1.on.aws host form routes here too.</p>
-      <div style="display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/delete-url" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove the function URL?">Remove URL</button></div>
+      <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/update-url" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML">
+        <div class="field"><label>Auth type <span class="dim">AWS_IAM is served without a signature check locally</span></label><select class="input" name="auth_type">
+          <option value="NONE" {{if ne .URLAuth "AWS_IAM"}}selected{{end}}>NONE</option>
+          <option value="AWS_IAM" {{if eq .URLAuth "AWS_IAM"}}selected{{end}}>AWS_IAM</option>
+        </select></div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+          <button class="btn btn-outline btn-sm" type="submit">Save auth type</button>
+          <button class="btn btn-outline btn-sm danger" type="button" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/delete-url" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove the function URL?">Remove URL</button>
+        </div>
+      </form>
       {{else}}
       <p class="mini-note" style="margin-top:0">No function URL. Create one to invoke this function over HTTP without a trigger.</p>
       <div style="display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/create-url" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML">{{icon "link"}} Create function URL</button></div>

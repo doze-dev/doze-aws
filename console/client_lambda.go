@@ -352,19 +352,41 @@ func (b *backend) UpdateConfig(ctx context.Context, name string, timeout, memory
 	return err
 }
 
+// FunctionURLConfig is what the console shows of a function URL.
+type FunctionURLConfig struct {
+	URL      string
+	AuthType string
+}
+
 // FunctionURL reads the current function URL, or "".
 func (b *backend) FunctionURL(ctx context.Context, name string) string {
+	return b.FunctionURLConfig(ctx, name).URL
+}
+
+// FunctionURLConfig reads the URL config; a zero value when there is none.
+func (b *backend) FunctionURLConfig(ctx context.Context, name string) FunctionURLConfig {
 	req, _ := http.NewRequestWithContext(ctx, "GET",
 		b.base+"/2021-10-31/functions/"+url.PathEscape(name)+"/url", nil)
 	body, err := b.do(req)
 	if err != nil {
-		return ""
+		return FunctionURLConfig{}
 	}
 	var out struct {
 		FunctionURL string `json:"FunctionUrl"`
+		AuthType    string `json:"AuthType"`
 	}
 	json.Unmarshal(body, &out)
-	return out.FunctionURL
+	return FunctionURLConfig{URL: out.FunctionURL, AuthType: out.AuthType}
+}
+
+// UpdateFunctionURL changes the URL's auth type (UpdateFunctionUrlConfig).
+func (b *backend) UpdateFunctionURL(ctx context.Context, name, authType string) error {
+	payload, _ := json.Marshal(map[string]string{"AuthType": authType})
+	req, _ := http.NewRequestWithContext(ctx, "PUT",
+		b.base+"/2021-10-31/functions/"+url.PathEscape(name)+"/url", bytes.NewReader(payload))
+	req.Header.Set("Content-Type", "application/json")
+	_, err := b.do(req)
+	return err
 }
 
 // CreateFunctionURL provisions a function URL (idempotent).

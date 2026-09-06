@@ -1,7 +1,10 @@
 package lambda
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -47,6 +50,11 @@ func (s *Server) publishVersion(w http.ResponseWriter, r *http.Request, name str
 	if err != nil {
 		return awshttp.AsAPIError(err)
 	}
+	// Code edited in place has no upload to hash; what is on disk now is
+	// what this version would freeze.
+	if s.isLocal(f.CodeDir) {
+		f.CodeSHA256 = treeHash(f.CodeDir)
+	}
 	if n := len(versions); n > 0 && fingerprint(versions[n-1]) == fingerprint(f) {
 		// Nothing changed since the last publish: that version is the answer.
 		writeJSON(w, 201, s.configView(versions[n-1]))
@@ -66,7 +74,7 @@ func (s *Server) publishVersion(w http.ResponseWriter, r *http.Request, name str
 	frozen.CodeDir = filepath.Join(s.dataDir, "versions", name, frozen.Version)
 	// A _local_ directory is copied too: freezing is the point of a
 	// version, and the live function keeps reading the directory in place.
-	if err := copyTree(f.CodeDir, frozen.CodeDir); err != nil {
+	if err := copyTree(f.CodeDir, frozen.CodeDir, !s.isLocal(f.CodeDir)); err != nil {
 		return awshttp.Errf(500, "ServiceException", "freezing the code for version %s: %v", frozen.Version, err)
 	}
 	frozen.Aliases = nil
@@ -150,9 +158,35 @@ func (s *Server) resolve(ref, qualifier string) (*Function, string, *awshttp.API
 	return frozen, version, nil
 }
 
-// copyTree copies a directory, hard-linking files where the filesystem
-// allows so a large package is not duplicated, copying where it does not.
-func copyTree(src, dst string) error {
+// isLocal reports whether a code directory is one the user owns (the
+// _local_ extension) rather than one unpacked under the data dir.
+func (s *Server) isLocal(dir string) bool {
+	rel, err := filepath.Rel(s.dataDir, dir)
+	return err != nil || strings.HasPrefix(rel, "..")
+}
+
+// treeHash is the content fingerprint of a directory the user edits in
+// place: every file's relative path, size and modification time. A zip has
+// a real CodeSha256; a _local_ directory has this, which is what tells a
+// publish that the code changed since the last version.
+func treeHash(dir string) string {
+	h := sha256.New()
+	filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return nil
+		}
+		rel, _ := filepath.Rel(dir, p)
+		fmt.Fprintf(h, "%s\x00%d\x00%d\n", rel, info.Size(), info.ModTime().UnixNano())
+		return nil
+	})
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// copyTree copies a directory. Files under the data dir are hard-linked
+// where the filesystem allows, so a large package is not duplicated; a
+// directory the user edits in place is copied for real, because a hard link
+// would let an edit reach into the frozen version.
+func copyTree(src, dst string, link bool) error {
 	src, err := filepath.Abs(src)
 	if err != nil {
 		return err
@@ -174,8 +208,10 @@ func copyTree(src, dst string) error {
 			}
 			return os.Symlink(link, target)
 		}
-		if err := os.Link(p, target); err == nil {
-			return nil
+		if link {
+			if err := os.Link(p, target); err == nil {
+				return nil
+			}
 		}
 		in, err := os.Open(p)
 		if err != nil {
