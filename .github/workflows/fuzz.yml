@@ -33,6 +33,14 @@ jobs:
             target: FuzzOpenBlob
           - pkg: ./internal/awsquery/
             target: FuzzMembers
+          # The States Language: three hand-written parsers a deploy tool
+          # feeds from the wire.
+          - pkg: ./internal/asl/
+            target: FuzzValidateDefinition
+          - pkg: ./internal/asl/
+            target: FuzzParsePath
+          - pkg: ./internal/asl/
+            target: FuzzIntrinsic
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6

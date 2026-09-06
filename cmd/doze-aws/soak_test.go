@@ -22,6 +22,7 @@ import (
 	awsddb "github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	ddbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	awssfn "github.com/aws/aws-sdk-go-v2/service/sfn"
 	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 
 	"github.com/doze-dev/doze-aws"
@@ -52,10 +53,22 @@ func TestSoak(t *testing.T) {
 	s3c := awss3.NewFromConfig(cfg, func(o *awss3.Options) { o.BaseEndpoint = ep; o.UsePathStyle = true })
 	sqsc := awssqs.NewFromConfig(cfg, func(o *awssqs.Options) { o.BaseEndpoint = ep })
 	ddbc := awsddb.NewFromConfig(cfg, func(o *awsddb.Options) { o.BaseEndpoint = ep })
+	sfnc := awssfn.NewFromConfig(cfg, func(o *awssfn.Options) { o.BaseEndpoint = ep })
 
 	ctx := context.Background()
 	s3c.CreateBucket(ctx, &awss3.CreateBucketInput{Bucket: aws.String("soak")})
 	q, _ := sqsc.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("soak")})
+	// One execution per iteration, fire-and-forget: hours of these is where
+	// the engine's execution and history buckets, and its one driver
+	// goroutine, would show growth or a stall that a short test cannot.
+	machine, err := sfnc.CreateStateMachine(ctx, &awssfn.CreateStateMachineInput{
+		Name: aws.String("soak"), RoleArn: aws.String("arn:aws:iam::000000000000:role/soak"),
+		Definition: aws.String(`{"StartAt":"Send","States":{"Send":{"Type":"Task","Resource":"arn:aws:states:::sqs:sendMessage",
+		  "Parameters":{"QueueUrl":"` + aws.ToString(q.QueueUrl) + `","MessageBody.$":"$.key"},"Next":"Done"},"Done":{"Type":"Succeed"}}}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	ddbc.CreateTable(ctx, &awsddb.CreateTableInput{
 		TableName:            aws.String("soak"),
 		AttributeDefinitions: []ddbtypes.AttributeDefinition{{AttributeName: aws.String("pk"), AttributeType: ddbtypes.ScalarAttributeTypeS}},
@@ -72,7 +85,19 @@ func TestSoak(t *testing.T) {
 		ddbc.PutItem(ctx, &awsddb.PutItemInput{TableName: aws.String("soak"), Item: map[string]ddbtypes.AttributeValue{
 			"pk": &ddbtypes.AttributeValueMemberS{Value: key},
 		}})
+		started, _ := sfnc.StartExecution(ctx, &awssfn.StartExecutionInput{
+			StateMachineArn: machine.StateMachineArn, Name: aws.String(key), Input: aws.String(`{"key":"` + key + `"}`),
+		})
 		if n%500 == 0 {
+			// The engine has to be keeping up: the execution from 500 ops ago
+			// must have finished, or the driver is stalling under the load.
+			prev := fmt.Sprintf("k%d", n-499)
+			d, err := sfnc.DescribeExecution(ctx, &awssfn.DescribeExecutionInput{
+				ExecutionArn: aws.String(strings.Replace(aws.ToString(started.ExecutionArn), key, prev, 1)),
+			})
+			if err != nil || d.Status == "RUNNING" {
+				t.Fatalf("soak: execution %s from 500 ops ago is %v (%v) — the engine is not keeping up", prev, d.Status, err)
+			}
 			t.Logf("soak: %d ops", n)
 		}
 	}

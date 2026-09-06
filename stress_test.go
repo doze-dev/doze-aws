@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -17,6 +18,7 @@ import (
 	ebtypes "github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
 	awskms "github.com/aws/aws-sdk-go-v2/service/kms"
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	awssfn "github.com/aws/aws-sdk-go-v2/service/sfn"
 	awssns "github.com/aws/aws-sdk-go-v2/service/sns"
 	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 
@@ -96,6 +98,22 @@ func TestConcurrencyStress(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	// A state machine every worker starts: a Parallel fans into two branches,
+	// one of which sends to the shared queue, so the engine's single driver
+	// goroutine, its bbolt buckets and the peer call all sit under the same
+	// contention as the stores above.
+	sfnc := awssfn.NewFromConfig(cfg, func(o *awssfn.Options) { o.BaseEndpoint = aws.String(ts.URL) })
+	machine, err := sfnc.CreateStateMachine(ctx, &awssfn.CreateStateMachineInput{
+		Name: aws.String("stress"), RoleArn: aws.String("arn:aws:iam::000000000000:role/stress"),
+		Definition: aws.String(`{"StartAt":"Fan","States":{
+		  "Fan":{"Type":"Parallel","End":true,"Branches":[
+		    {"StartAt":"Tag","States":{"Tag":{"Type":"Pass","Parameters":{"id.$":"$.id","tagged":true},"End":true}}},
+		    {"StartAt":"Send","States":{"Send":{"Type":"Task","Resource":"arn:aws:states:::sqs:sendMessage",
+		      "Parameters":{"QueueUrl":"` + aws.ToString(q.QueueUrl) + `","MessageBody.$":"$.id"},"End":true}}}]}}}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	const (
 		workers = 24
@@ -109,7 +127,7 @@ func TestConcurrencyStress(t *testing.T) {
 			defer wg.Done()
 			for i := 0; i < iters; i++ {
 				id := fmt.Sprintf("w%d-i%d", w, i)
-				if err := stressOnce(ctx, &stressClients{s3c, ddbc, sqsc, kmsc, snsc, ebc}, keyID, q.QueueUrl, aws.ToString(topic.TopicArn), id); err != nil {
+				if err := stressOnce(ctx, &stressClients{s3c, ddbc, sqsc, kmsc, snsc, ebc, sfnc, aws.ToString(machine.StateMachineArn)}, keyID, q.QueueUrl, aws.ToString(topic.TopicArn), id); err != nil {
 					select {
 					case errCh <- fmt.Errorf("worker %d iter %d: %w", w, i, err):
 					default:
@@ -133,6 +151,8 @@ type stressClients struct {
 	kmsc *awskms.Client
 	snsc *awssns.Client
 	ebc  *awseb.Client
+	sfnc *awssfn.Client
+	sfn  string // the stress machine's ARN
 }
 
 func stressOnce(ctx context.Context, c *stressClients, keyID string, queueURL *string, topicARN, id string) error {
@@ -204,6 +224,32 @@ func stressOnce(ctx context.Context, c *stressClients, keyID string, queueURL *s
 		}},
 	}); err != nil {
 		return fmt.Errorf("eb putevents: %w", err)
+	}
+	// Step Functions: start an execution and see it through. Every worker's
+	// executions share one driver goroutine, and the Parallel's SQS branch
+	// lands on the same queue the other services are filling.
+	started, err := c.sfnc.StartExecution(ctx, &awssfn.StartExecutionInput{
+		StateMachineArn: aws.String(c.sfn), Name: aws.String(id), Input: aws.String(`{"id":"` + id + `"}`),
+	})
+	if err != nil {
+		return fmt.Errorf("sfn start: %w", err)
+	}
+	for {
+		d, err := c.sfnc.DescribeExecution(ctx, &awssfn.DescribeExecutionInput{ExecutionArn: started.ExecutionArn})
+		if err != nil {
+			return fmt.Errorf("sfn describe: %w", err)
+		}
+		if d.Status == "SUCCEEDED" {
+			break
+		}
+		if d.Status != "RUNNING" {
+			return fmt.Errorf("sfn execution %s: %s %s", id, d.Status, aws.ToString(d.Cause))
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(20 * time.Millisecond):
+		}
 	}
 	return nil
 }

@@ -86,6 +86,13 @@ func (p *intrinsicParser) arg() (intrinsicExpr, error) {
 		return &litExpr{val: t.text}, nil
 	case tokNumber:
 		p.next()
+		// The scanner takes any run of digit-ish characters; only a JSON
+		// number may become a json.Number, or it fails at encode time —
+		// after the interpreter has accepted the result. "00000" and "1."
+		// are the fuzzer's finds.
+		if !json.Valid([]byte(t.text)) {
+			return nil, fmt.Errorf("%q is not a number", t.text)
+		}
 		return &litExpr{val: json.Number(t.text)}, nil
 	case tokTrue:
 		p.next()
