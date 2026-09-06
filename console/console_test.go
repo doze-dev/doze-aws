@@ -1412,19 +1412,9 @@ func TestWireShowsTheCascade(t *testing.T) {
 
 	gw("PUT", "/inbox/order.json", "application/json", `{"order":1}`, nil)
 
-	// The notification is delivered on its own goroutine; give it a moment.
-	deadline := time.Now().Add(3 * time.Second)
-	var body string
-	for time.Now().Before(deadline) {
-		body = req(t, c, "GET", "/_console/", nil).Body.String()
-		if strings.Count(body, "SendMessage") >= 2 {
-			break
-		}
-		time.Sleep(25 * time.Millisecond)
-	}
-
 	// Read each row's own depth: scanning the whole document for a depth
 	// attribute and then the action would always find the first row's.
+	var body string
 	depthOf := func(action, resource string) int {
 		for _, row := range strings.Split(body, `data-depth="`)[1:] {
 			end := strings.Index(row, `"`)
@@ -1442,6 +1432,19 @@ func TestWireShowsTheCascade(t *testing.T) {
 			}
 		}
 		return -1
+	}
+
+	// The notification is delivered on its own goroutine, and a row lands on
+	// the wire when its call RETURNS — the sends before the publish that
+	// caused them. Wait for the whole cascade, not just its leaves: a
+	// snapshot taken between the two shows the sends without a parent.
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		body = req(t, c, "GET", "/_console/", nil).Body.String()
+		if depthOf("Publish", "uploads") == 1 && depthOf("SendMessage", "orders-q") == 2 && depthOf("SendMessage", "audit-q") == 2 {
+			break
+		}
+		time.Sleep(25 * time.Millisecond)
 	}
 
 	if got := depthOf("PutObject", "inbox/order.json"); got != 0 {

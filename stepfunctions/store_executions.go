@@ -164,7 +164,7 @@ func (s *Store) SaveTransition(e *Execution, events []histEvent, tokens []tokenO
 			for _, op := range tokens {
 				// An activity token also owns a queue row (store_activities.go);
 				// the two are written and dropped together.
-				if err := applyTokenOp(tx, tb, op); err != nil {
+				if err := applyTokenOp(tx, tb, op, s.now()); err != nil {
 					return err
 				}
 			}

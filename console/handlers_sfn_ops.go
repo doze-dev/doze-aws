@@ -128,8 +128,22 @@ func (c *Console) sfnMapRunChildren(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	// A live region while any child is still running: the panel polls
+	// itself on the history pane's cadence and goes quiet once every child
+	// has settled, so the list a user opened mid-run fills in on its own.
+	parts := make([]string, 0, len(execs))
+	running := false
+	for _, e := range execs {
+		parts = append(parts, e.Name, e.Status)
+		running = running || e.Status == "RUNNING"
+	}
+	hash := contentHash(parts...)
+	if liveUnchanged(w, r, hash) {
+		return
+	}
 	c.partial(w, "sfn_map_children", map[string]any{
 		"Machine": r.PathValue("machine"), "Name": r.PathValue("exec"),
-		"Label": mapRunLabel(arn), "Execs": execs,
+		"Label": mapRunLabel(arn), "Execs": execs, "ARN": arn,
+		"Hash": hash, "Running": running,
 	})
 }

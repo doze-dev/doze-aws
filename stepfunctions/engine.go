@@ -587,7 +587,8 @@ func (g *engine) deliver(r *run, f *asl.Frame, res asl.TaskResult) {
 	// f.Token, an uncaught failure leaves it on a terminal frame; only a
 	// retry keeps the park alive for the re-dispatch.
 	if hadToken != "" && (f.Token != hadToken || f.Status.Terminal()) {
-		r.tokens = append(r.tokens, tokenOp{Token: hadToken})
+		timedOut := res.Failure != nil && (res.Failure.Name == asl.ErrTimeout || res.Failure.Name == asl.ErrHeartbeatTimeout)
+		r.tokens = append(r.tokens, tokenOp{Token: hadToken, TimedOut: timedOut})
 	}
 	g.apply(r, eff)
 	if r.e.Status == "RUNNING" {

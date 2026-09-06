@@ -52,9 +52,9 @@ func (s *Server) sendTaskHeartbeat(ctx context.Context, p map[string]any) (any, 
 	return map[string]any{}, nil
 }
 
-// tokenOf resolves the taskToken parameter. An unknown token answers
-// TaskDoesNotExist — that also covers one already redeemed or timed out,
-// where AWS distinguishes TaskTimedOut; the store keeps no tombstones.
+// tokenOf resolves the taskToken parameter. An unknown token — never issued,
+// or already redeemed — answers TaskDoesNotExist; one whose task timed out
+// answers TaskTimedOut for a day, the distinction AWS keeps.
 func (s *Server) tokenOf(p map[string]any) (*TokenRef, *awshttp.APIError) {
 	token := awsjson.Str(p, "taskToken")
 	if token == "" {
@@ -66,6 +66,9 @@ func (s *Server) tokenOf(p map[string]any) (*TokenRef, *awshttp.APIError) {
 	}
 	if ref == nil {
 		return nil, awshttp.Errf(400, "TaskDoesNotExist", "Task Does Not Exist: no task is waiting on this token")
+	}
+	if ref.TimedOut != 0 {
+		return nil, awshttp.Errf(400, "TaskTimedOut", "Task Timed Out: the task this token belongs to timed out")
 	}
 	return ref, nil
 }

@@ -185,8 +185,8 @@
 {{end}}
 
 {{define "sfn_map_children"}}
-<div class="panel">
-  <div class="panel-h"><h2>{{icon "list"}} Child executions{{with .Label}} <span class="mono">{{.}}</span>{{end}} <span class="badge">{{len .Execs}}</span></h2><span class="dim">one per item — listed through the Map Run, never through the machine</span></div>
+<div class="panel" id="sfn-map-children-live" data-live="{{.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}/maprun-children?arn={{.ARN}}" data-live-ms="1500" data-hash="{{.Hash}}"{{if not .Running}} data-live-paused="1"{{end}}>
+  <div class="panel-h"><h2>{{icon "list"}} Child executions{{with .Label}} <span class="mono">{{.}}</span>{{end}} <span class="badge">{{len .Execs}}</span></h2><span class="dim">one per item — listed through the Map Run, never through the machine{{if .Running}} · refreshing while children run{{end}}</span></div>
   {{if .Execs}}<table class="tbl"><thead><tr><th>Execution</th><th>Started</th><th>Stopped</th><th class="right">Status</th></tr></thead><tbody>{{range .Execs}}
     <tr>
       <td><a class="cell-name" href="{{$.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}">{{icon "route"}} {{.Name}}</a></td>

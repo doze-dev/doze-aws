@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -437,6 +438,32 @@ func TestHeartbeatTimeout(t *testing.T) {
 	e, _ := s.store.GetExecution("pulse", "kept")
 	if e.Error != "States.HeartbeatTimeout" {
 		t.Errorf("error = %q, want States.HeartbeatTimeout", e.Error)
+	}
+	// A worker that answers after the timeout hears TaskTimedOut — the
+	// tombstone AWS keeps — not the TaskDoesNotExist of a token never minted.
+	for _, call := range []func(map[string]any) *awshttp.APIError{
+		func(p map[string]any) *awshttp.APIError { _, a := s.sendTaskSuccess(context.Background(), p); return a },
+		func(p map[string]any) *awshttp.APIError { _, a := s.sendTaskFailure(context.Background(), p); return a },
+		func(p map[string]any) *awshttp.APIError { _, a := s.sendTaskHeartbeat(context.Background(), p); return a },
+	} {
+		if aerr := call(map[string]any{"taskToken": token, "output": "{}"}); aerr == nil || aerr.Code != "TaskTimedOut" {
+			t.Errorf("after the timeout, SendTask* = %v, want TaskTimedOut", aerr)
+		}
+	}
+	// The tombstone is swept a day later, and the token is then unknown.
+	clock.Advance(25 * time.Hour)
+	startExec(t, s, "pulse", "later")
+	later := parkedToken(t, s, "pulse", "later")
+	clock.Advance(40 * time.Second) // times out too, which writes a tombstone and sweeps
+	waitFor(t, func() bool {
+		e, _ := s.store.GetExecution("pulse", "later")
+		return e != nil && e.Status == "FAILED"
+	}, "the second timeout never fired")
+	if _, aerr := s.sendTaskSuccess(context.Background(), map[string]any{"taskToken": token, "output": "{}"}); aerr == nil || aerr.Code != "TaskDoesNotExist" {
+		t.Errorf("a day-old tombstone should be swept: %v", aerr)
+	}
+	if _, aerr := s.sendTaskSuccess(context.Background(), map[string]any{"taskToken": later, "output": "{}"}); aerr == nil || aerr.Code != "TaskTimedOut" {
+		t.Errorf("the fresh tombstone should stand: %v", aerr)
 	}
 }
 

@@ -114,15 +114,18 @@ Differences from AWS, listed rather than hidden:
   no timer heap that could desync from the frames, because the frames are the
   schedule.
 - **DeleteStateMachine is immediate**, not DELETING (above).
-- **A redeemed or expired token answers `TaskDoesNotExist`** where AWS
-  distinguishes `TaskTimedOut`; the store keeps no tombstones.
+- **A timed-out token answers `TaskTimedOut` for a day**, then
+  `TaskDoesNotExist` like any spent token. AWS keeps the distinction longer;
+  a worker that comes back a day late is not one this stack needs to serve.
 - **Express executions and TestState runs do not survive a restart.** They
   are held in memory for the call that runs them, which is also where AWS
   keeps them; their history goes to the caller, not to a log group.
-- **A Distributed Map launches at most 40 children at a time** whatever
-  `MaxConcurrency` says, and its item reader reads this stack's S3, not a
-  cross-account bucket. The counts, statuses and result files are the same
-  shape a program sees from AWS.
+- **A Distributed Map with no `MaxConcurrency` runs 40 children at a time**,
+  where AWS's default is 10,000 — one process cannot usefully start ten
+  thousand executions in a tick. A `MaxConcurrency` on the state, or an
+  UpdateMapRun, is honoured as given. The item reader reads this stack's S3,
+  not a cross-account bucket; the counts, statuses and result files are the
+  same shape a program sees from AWS.
 - **`.sync` on any service other than Step Functions is refused at create
   time**, because the job it would wait for runs nowhere locally. AWS's
   `.sync` for Batch, ECS, Glue and the rest has nothing to poll here.

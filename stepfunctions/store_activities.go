@@ -38,8 +38,11 @@ func activityQueueKey(name string, seq uint64) []byte {
 // applyTokenOp performs one buffered token write inside SaveTransition's
 // transaction: put or delete the token row, and keep the activity queue in
 // step with it.
-func applyTokenOp(tx *bolt.Tx, tb *bolt.Bucket, op tokenOp) error {
+func applyTokenOp(tx *bolt.Tx, tb *bolt.Bucket, op tokenOp, now int64) error {
 	if op.Ref == nil {
+		if op.TimedOut {
+			return tombstoneToken(tx, tb, op.Token, now)
+		}
 		return deleteToken(tx, tb, op.Token)
 	}
 	if op.Task != nil {
@@ -71,6 +74,52 @@ func applyTokenOp(tx *bolt.Tx, tb *bolt.Bucket, op tokenOp) error {
 		return err
 	}
 	return tb.Put([]byte(op.Token), rawRef)
+}
+
+// tombstoneToken is deleteToken for a task that timed out: the queue entry
+// goes, but the row stays, marked, so a late worker hears TaskTimedOut.
+// Writing one is also when tombstones past their TTL are swept — the only
+// moment the bucket is being written anyway.
+func tombstoneToken(tx *bolt.Tx, tb *bolt.Bucket, token string, now int64) error {
+	raw := tb.Get([]byte(token))
+	if raw == nil {
+		return nil
+	}
+	var ref TokenRef
+	if err := json.Unmarshal(raw, &ref); err != nil {
+		return err
+	}
+	if ref.Queue != "" {
+		if qb := tx.Bucket(bucketActivityQueue); qb != nil {
+			if err := qb.Delete([]byte(ref.Queue)); err != nil {
+				return err
+			}
+		}
+	}
+	ref.Queue, ref.TimedOut = "", now
+	out, err := json.Marshal(&ref)
+	if err != nil {
+		return err
+	}
+	if err := tb.Put([]byte(token), out); err != nil {
+		return err
+	}
+	var expired [][]byte
+	if err := tb.ForEach(func(k, v []byte) error {
+		var old TokenRef
+		if json.Unmarshal(v, &old) == nil && old.TimedOut != 0 && now-old.TimedOut > tokenTombstoneTTL {
+			expired = append(expired, append([]byte(nil), k...))
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+	for _, k := range expired {
+		if err := tb.Delete(k); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // deleteToken removes a token row and the queue entry it still points at.
