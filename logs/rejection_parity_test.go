@@ -114,6 +114,10 @@ func baselines() map[string]map[string]any {
 		"TagLogGroup":         {"logGroupName": auditGroup, "tags": map[string]any{"team": "audit"}},
 		"UntagLogGroup":       {"logGroupName": auditGroup, "tags": []any{"team"}},
 		"ListTagsLogGroup":    group,
+		"PutSubscriptionFilter": {"logGroupName": auditGroup, "filterName": "audit-sub", "filterPattern": "ERROR",
+			"destinationArn": awsident.ARN("lambda", "function:audit-sink")},
+		"DeleteSubscriptionFilter":    {"logGroupName": auditGroup, "filterName": "doomed-sub"},
+		"DescribeSubscriptionFilters": group,
 	}
 }
 
@@ -160,6 +164,15 @@ func prepare(t *testing.T, ts *httptest.Server, op, mutating string, body map[st
 			name := fmt.Sprintf("doomed-%d", n)
 			call(t, ts, "CreateLogStream", map[string]any{"logGroupName": auditGroup, "logStreamName": name})
 			body["logStreamName"] = name
+		}
+	case "DeleteSubscriptionFilter":
+		// A group holds two filters at most, so each delete gets its own group.
+		if mutating != "filterName" && mutating != "logGroupName" {
+			group := fmt.Sprintf("/audit/sub-%d", n)
+			call(t, ts, "CreateLogGroup", map[string]any{"logGroupName": group})
+			call(t, ts, "PutSubscriptionFilter", map[string]any{"logGroupName": group, "filterName": "doomed-sub",
+				"filterPattern": "", "destinationArn": awsident.ARN("lambda", "function:audit-sink")})
+			body["logGroupName"] = group
 		}
 	}
 }

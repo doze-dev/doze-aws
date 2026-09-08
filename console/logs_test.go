@@ -116,3 +116,32 @@ func truncateBody(s string) string {
 	}
 	return s
 }
+
+// The group page's Subscriptions tab: subscribe a group to a function, see
+// it listed as a link to the function, remove it.
+func TestConsoleLogsSubscriptions(t *testing.T) {
+	h, gw := newConsoleStack(t)
+	putLogs(t, gw, "/app/api", "web-1", "GET /health 200")
+	tab := req(t, h, "GET", "/_console/logs/group?name="+url.QueryEscape("/app/api")+"&tab=subscriptions", nil).Body.String()
+	if !strings.Contains(tab, "No subscription filters") || !strings.Contains(tab, `name="destination"`) {
+		t.Fatalf("subscriptions tab:\n%s", truncateBody(tab))
+	}
+	sub := req(t, h, "POST", "/_console/logs/subscribe", url.Values{
+		"name": {"/app/api"}, "filter": {"errors"}, "pattern": {"ERROR"},
+		"destination": {"arn:aws:lambda:us-east-1:000000000000:function:sink"},
+	})
+	if sub.Code != http.StatusSeeOther {
+		t.Fatalf("subscribe: %d\n%s", sub.Code, sub.Body)
+	}
+	tab = req(t, h, "GET", "/_console/logs/group?name="+url.QueryEscape("/app/api")+"&tab=subscriptions", nil).Body.String()
+	if !strings.Contains(tab, ">errors<") || !strings.Contains(tab, "/lambda/sink") {
+		t.Fatalf("the filter is not listed with a link to its function:\n%s", truncateBody(tab))
+	}
+	if un := req(t, h, "POST", "/_console/logs/unsubscribe", url.Values{"name": {"/app/api"}, "filter": {"errors"}}); un.Code != http.StatusSeeOther {
+		t.Fatalf("unsubscribe: %d\n%s", un.Code, un.Body)
+	}
+	tab = req(t, h, "GET", "/_console/logs/group?name="+url.QueryEscape("/app/api")+"&tab=subscriptions", nil).Body.String()
+	if strings.Contains(tab, ">errors<") {
+		t.Errorf("the filter survived removal:\n%s", truncateBody(tab))
+	}
+}

@@ -146,6 +146,29 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	"TagLogGroup":         cat(groupName(true), tagsMap, []modelcheck.Constraint{{Path: "tags", Kind: modelcheck.KindRequired}}),
 	"UntagLogGroup":       cat(groupName(true), tagKeys("tags")),
 	"ListTagsLogGroup":    groupName(true),
+	"PutSubscriptionFilter": cat(groupName(true), []modelcheck.Constraint{
+		{Path: "destinationArn", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+		{Path: "destinationArn", Kind: modelcheck.KindRequired},
+		{Path: "distribution", Kind: modelcheck.KindEnum, Enum: []string{"Random", "ByLogStream"}},
+		{Path: "fieldSelectionCriteria", Kind: modelcheck.KindLength, Min: 0, Max: 2000},
+		{Path: "filterName", Kind: modelcheck.KindLength, Min: 1, Max: 512},
+		{Path: "filterName", Kind: modelcheck.KindPattern, Pat: reStream},
+		{Path: "filterName", Kind: modelcheck.KindRequired},
+		{Path: "filterPattern", Kind: modelcheck.KindLength, Min: 0, Max: 1024},
+		{Path: "filterPattern", Kind: modelcheck.KindRequired},
+		{Path: "roleArn", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+	}),
+	"DeleteSubscriptionFilter": cat(groupName(true), []modelcheck.Constraint{
+		{Path: "filterName", Kind: modelcheck.KindLength, Min: 1, Max: 512},
+		{Path: "filterName", Kind: modelcheck.KindPattern, Pat: reStream},
+		{Path: "filterName", Kind: modelcheck.KindRequired},
+	}),
+	"DescribeSubscriptionFilters": cat(groupName(true), []modelcheck.Constraint{
+		{Path: "filterNamePrefix", Kind: modelcheck.KindLength, Min: 1, Max: 512},
+		{Path: "filterNamePrefix", Kind: modelcheck.KindPattern, Pat: reStream},
+		{Path: "limit", Kind: modelcheck.KindRange, Min: 1, Max: 50},
+		{Path: "nextToken", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+	}),
 }
 
 func groupIdentifierList() []modelcheck.Constraint {
@@ -182,8 +205,7 @@ func init() {
 		"metric filters publish to CloudWatch Metrics, which does not exist locally": {
 			"PutMetricFilter", "DeleteMetricFilter", "DescribeMetricFilters", "TestMetricFilter",
 		},
-		"subscription filters and destinations fan out to Kinesis, Firehose and Lambda from the logs pipeline; not built": {
-			"PutSubscriptionFilter", "DeleteSubscriptionFilter", "DescribeSubscriptionFilters",
+		"cross-account destinations receive another account's subscription filters; subscribe a Lambda function or a Kinesis stream directly": {
 			"PutDestination", "DeleteDestination", "DescribeDestinations", "PutDestinationPolicy",
 		},
 		"vended-log deliveries move other services' logs into groups, buckets and Firehose; not built": {

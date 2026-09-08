@@ -410,6 +410,8 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/logs/tail", c.logsTail) // HTMX partial (polled FilterLogEvents)
 	m.HandleFunc("POST "+p+"/logs/retention", c.logsRetention)
 	m.HandleFunc("POST "+p+"/logs/delete", c.logsDelete)
+	m.HandleFunc("POST "+p+"/logs/subscribe", c.logsSubscribe)     // PutSubscriptionFilter
+	m.HandleFunc("POST "+p+"/logs/unsubscribe", c.logsUnsubscribe) // DeleteSubscriptionFilter
 	m.HandleFunc("POST "+p+"/lambda/{fn}/invoke", c.lambdaInvoke)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-fn", c.lambdaDelete)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-mapping", c.lambdaDeleteMapping)

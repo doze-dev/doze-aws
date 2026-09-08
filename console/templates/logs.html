@@ -62,6 +62,7 @@
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "tail" "Label" "Tail" "Icon" "list" "URL" (printf "%s/logs/group?name=%s" .Prefix .Sel))
         (dict "Key" "streams" "Label" "Streams" "Icon" "layers" "URL" (printf "%s/logs/group?name=%s&tab=streams" .Prefix .Sel))
+        (dict "Key" "subscriptions" "Label" "Subscriptions" "Icon" "send" "URL" (printf "%s/logs/group?name=%s&tab=subscriptions" .Prefix .Sel))
         (dict "Key" "settings" "Label" "Settings" "Icon" "settings" "URL" (printf "%s/logs/group?name=%s&tab=settings" .Prefix .Sel))
         (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/logs/group?name=%s&tab=tags" .Prefix .Sel)))}}
     </div>
@@ -72,6 +73,29 @@
         {{if .Streams}}<table class="tbl"><thead><tr><th>Stream</th><th>Created</th><th>Last event</th><th></th></tr></thead><tbody>{{range .Streams}}
           <tr><td class="mono trunc" title="{{.Name}}">{{.Name}}</td><td class="dim">{{.Created}}</td><td class="dim">{{if .LastEvent}}{{.LastEvent}}{{else}}—{{end}}</td><td class="right"><button class="btn btn-outline btn-sm danger" hx-post="{{$.Prefix}}/logs/delete-stream" hx-vals='{"name":"{{$.G.Name}}","stream":"{{.Name}}"}' hx-confirm="Delete this stream and its lines?">{{icon "trash"}}</button></td></tr>
         {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No streams yet.</p></div>{{end}}
+      </div>
+      {{else if eq .Tab "subscriptions"}}
+      {{/* Subscription filters forward matching lines to a function or a
+           stream in AWS's gzip envelope; at most two per group, as on AWS. */}}
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "send"}} Subscription filters <span class="badge">{{len .Subs}}</span></h2><span class="dim">matching lines go to a Lambda function or a Kinesis stream, gzip-wrapped as on AWS</span></div>
+        {{if .Subs}}<table class="tbl"><thead><tr><th>Filter</th><th>Pattern</th><th>Destination</th><th></th></tr></thead><tbody>{{range .Subs}}
+          <tr><td class="mono">{{.Name}}</td><td class="mono dim">{{if .Pattern}}{{.Pattern}}{{else}}everything{{end}}</td>
+            <td title="{{.Destination}}">{{with resolve .Destination}}{{if .Path}}<a class="conn-chip" href="{{$.Prefix}}{{.Path}}"><span class="cc-bar" style="--bar:var(--svc-{{.Svc}})"></span><span class="cc-nm">{{.Name}}</span></a>{{else}}<span class="mono trunc dim">{{.Name}}</span>{{end}}{{end}}</td>
+            <td class="right"><button class="btn btn-outline btn-sm danger" hx-post="{{$.Prefix}}/logs/unsubscribe" hx-vals='{"name":"{{$.G.Name}}","filter":"{{.Name}}"}' hx-confirm="Remove subscription filter “{{.Name}}”?">{{icon "trash"}}</button></td></tr>
+        {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No subscription filters — nothing forwards this group's lines yet.</p></div>{{end}}
+      </div>
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "plus"}} Subscribe</h2></div>
+        <form class="form-b" hx-post="{{.Prefix}}/logs/subscribe">
+          <input type="hidden" name="name" value="{{.G.Name}}">
+          <div class="fgrid">
+            <div class="field"><label>Filter name</label><input class="input" name="filter" placeholder="errors-to-sink" required></div>
+            <div class="field"><label>Pattern <span class="dim">terms, a phrase, or a JSON pattern; blank forwards everything</span></label><input class="input mono" name="pattern" placeholder="ERROR"></div>
+          </div>
+          <div class="field"><label>Destination</label><select class="input" name="destination" required>{{range .Functions}}<option value="{{.ARN}}">Lambda · {{.Name}}</option>{{end}}{{range .KinesisStreams}}<option value="{{.ARN}}">Kinesis · {{.Name}}</option>{{end}}</select></div>
+          <button class="btn" type="submit">Subscribe</button>
+        </form>
       </div>
       {{else if eq .Tab "tags"}}
       {{template "tags_panel" dict "Prefix" .Prefix "Svc" "logs" "ID" .G.Name}}

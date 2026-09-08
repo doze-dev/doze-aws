@@ -71,6 +71,8 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 	case "AWS::Logs::LogGroup":
 		m.stack.LogGroups[name] = provision.LogGroup{RetentionDays: propInt(props, "RetentionInDays"), Tags: propTags(props)}
 		return nil
+	case "AWS::Logs::SubscriptionFilter":
+		return m.logSubscription(name, props)
 	case "AWS::Kinesis::Stream":
 		// Streams have no stack-file section yet; the resource is accepted and
 		// reported so a template referencing one still transpiles.

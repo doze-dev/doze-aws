@@ -81,7 +81,7 @@ type Store struct {
 
 func newStore(db *bolt.DB) (*Store, error) {
 	err := db.Update(func(tx *bolt.Tx) error {
-		for _, b := range [][]byte{bucketGroups, bucketStreams, bucketEvents, bucketMeta} {
+		for _, b := range [][]byte{bucketGroups, bucketStreams, bucketEvents, bucketMeta, bucketSubscriptions} {
 			if _, err := tx.CreateBucketIfNotExists(b); err != nil {
 				return err
 			}
@@ -135,6 +135,9 @@ func (s *Store) DeleteGroup(name string) error {
 			if err := sb.Delete(k); err != nil {
 				return err
 			}
+		}
+		if err := deleteGroupSubscriptions(tx, name); err != nil {
+			return err
 		}
 		if tx.Bucket(bucketEvents).Bucket([]byte(name)) != nil {
 			return tx.Bucket(bucketEvents).DeleteBucket([]byte(name))
@@ -231,10 +234,13 @@ func (s *Store) ListStreams(group, prefix string) ([]Stream, error) {
 
 // PutEvents appends a batch to a stream, creating the stream row if the
 // group exists and the stream does not — which is what a Lambda's first
-// line does. It returns ErrNoGroup when the group is unknown.
-func (s *Store) PutEvents(group, stream string, events []Event) error {
+// line does. It returns ErrNoGroup when the group is unknown, and otherwise
+// the batch as stored, in time order with the sequence each event was
+// assigned — what a subscription filter forwards.
+func (s *Store) PutEvents(group, stream string, events []Event) ([]Stored, error) {
 	now := s.now()
-	return s.db.Update(func(tx *bolt.Tx) error {
+	var stored []Stored
+	err := s.db.Update(func(tx *bolt.Tx) error {
 		if tx.Bucket(bucketGroups).Get([]byte(group)) == nil {
 			return ErrNoGroup
 		}
@@ -263,6 +269,7 @@ func (s *Store) PutEvents(group, stream string, events []Event) error {
 			if err := eb.Put(eventKey(ev.TS, stream, seq), raw); err != nil {
 				return err
 			}
+			stored = append(stored, Stored{Event: ev, Stream: stream, Seq: seq})
 			if st.FirstMs == 0 || ev.TS < st.FirstMs {
 				st.FirstMs = ev.TS
 			}
@@ -277,6 +284,7 @@ func (s *Store) PutEvents(group, stream string, events []Event) error {
 		raw, _ := json.Marshal(st)
 		return sb.Put(streamKey(group, stream), raw)
 	})
+	return stored, err
 }
 
 // Scan walks a group's events in time order between from and to (inclusive,

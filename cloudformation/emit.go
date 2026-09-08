@@ -389,6 +389,7 @@ func Emit(s *provision.Stack) ([]byte, error) {
 		add("Rule", name, "AWS::Events::Rule", props)
 	}
 	emitEventsHTTP(s, add)
+	emitLogs(s, add)
 
 	for _, name := range sortedNames(s.Keys) {
 		k := s.Keys[name]

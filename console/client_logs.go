@@ -209,3 +209,44 @@ func (b *backend) DeleteLogStream(ctx context.Context, group, stream string) err
 	_, err := b.json11(ctx, "Logs_20140328", "DeleteLogStream", map[string]any{"logGroupName": group, "logStreamName": stream})
 	return err
 }
+
+// LogSubscription is one subscription filter on a group.
+type LogSubscription struct {
+	Name        string
+	Pattern     string
+	Destination string // ARN
+	Created     string
+}
+
+func (b *backend) ListLogSubscriptions(ctx context.Context, group string) ([]LogSubscription, error) {
+	body, err := b.json11(ctx, "Logs_20140328", "DescribeSubscriptionFilters", map[string]any{"logGroupName": group})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		SubscriptionFilters []struct {
+			FilterName, FilterPattern, DestinationArn string
+			CreationTime                              float64 // milliseconds
+		} `json:"subscriptionFilters"`
+	}
+	json.Unmarshal(body, &out)
+	subs := make([]LogSubscription, 0, len(out.SubscriptionFilters))
+	for _, f := range out.SubscriptionFilters {
+		subs = append(subs, LogSubscription{Name: f.FilterName, Pattern: f.FilterPattern, Destination: f.DestinationArn,
+			Created: epochToTime(f.CreationTime / 1000)})
+	}
+	return subs, nil
+}
+
+// PutLogSubscription creates or replaces a filter by name.
+func (b *backend) PutLogSubscription(ctx context.Context, group, name, pattern, destinationARN string) error {
+	_, err := b.json11(ctx, "Logs_20140328", "PutSubscriptionFilter", map[string]any{
+		"logGroupName": group, "filterName": name, "filterPattern": pattern, "destinationArn": destinationARN,
+	})
+	return err
+}
+
+func (b *backend) DeleteLogSubscription(ctx context.Context, group, name string) error {
+	_, err := b.json11(ctx, "Logs_20140328", "DeleteSubscriptionFilter", map[string]any{"logGroupName": group, "filterName": name})
+	return err
+}

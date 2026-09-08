@@ -78,10 +78,40 @@ func (c *Console) logsGroup(w http.ResponseWriter, r *http.Request) {
 	}
 	streams, _ := c.be.ListLogStreams(r.Context(), name)
 	tail := c.logTailData(r, name, c.prefix+"/logs/tail?name="+urlQuery(name))
-	c.render(w, r, "logs_group", map[string]any{
+	data := map[string]any{
 		"List": groups, "Sel": name, "G": g, "Streams": streams, "Tail": tail,
 		"Tab": tabOf(r, "tail"), "Title": name + " · CloudWatch Logs",
-	})
+	}
+	if data["Tab"] == "subscriptions" {
+		data["Subs"], _ = c.be.ListLogSubscriptions(r.Context(), name)
+		data["Functions"], _ = c.be.ListFunctions(r.Context())
+		data["KinesisStreams"], _ = c.be.ListStreams(r.Context())
+	}
+	c.render(w, r, "logs_group", data)
+}
+
+// logsSubscribe puts a subscription filter on a group: POST /logs/subscribe
+func (c *Console) logsSubscribe(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	filter := strings.TrimSpace(r.FormValue("filter"))
+	if filter == "" {
+		filter = "console"
+	}
+	if err := c.be.PutLogSubscription(r.Context(), name, filter, strings.TrimSpace(r.FormValue("pattern")), r.FormValue("destination")); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/logs/group?name="+urlQuery(name)+"&tab=subscriptions", "Subscription “"+filter+"” added to "+name)
+}
+
+// logsUnsubscribe removes one filter: POST /logs/unsubscribe
+func (c *Console) logsUnsubscribe(w http.ResponseWriter, r *http.Request) {
+	name, filter := r.FormValue("name"), r.FormValue("filter")
+	if err := c.be.DeleteLogSubscription(r.Context(), name, filter); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/logs/group?name="+urlQuery(name)+"&tab=subscriptions", "Subscription “"+filter+"” removed")
 }
 
 // logsTail is the group page's polled partial: GET /logs/tail?name=&rid=&q=&h=

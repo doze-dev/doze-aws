@@ -40,7 +40,8 @@ per-invocation fsync is the one thing that would make Invoke slow.
 | Logs Insights (StartQuery, GetQueryResults, query definitions, scheduled queries, lookup tables, log fields and records) | S | a query engine that does not exist locally; FilterLogEvents covers what a developer reads |
 | StartLiveTail | S | an HTTP event stream to a tailer fleet; `aws logs tail --follow` polls FilterLogEvents, which works |
 | Metric filters | S | publish to CloudWatch Metrics, which does not exist locally |
-| Subscription filters, destinations | S | fan out from the logs pipeline to Kinesis, Firehose and Lambda; not built |
+| PutSubscriptionFilter / DeleteSubscriptionFilter / DescribeSubscriptionFilters | F | a group forwards the lines that match a filter pattern to a Lambda function or a Kinesis stream (see below); two per group, as on AWS; Firehose, cross-account destinations and a function's own log group are refused by name |
+| Destinations (PutDestination, PutDestinationPolicy, DescribeDestinations, DeleteDestination) | S | cross-account receivers for another account's filters; subscribe a function or a stream directly |
 | Deliveries, delivery sources and destinations, configuration templates | S | vended logs from other services; not built |
 | Export and import tasks | S | S3 batch jobs; not built |
 | Anomaly detectors, anomalies | S | a trained model over an account's logs; not built |
@@ -48,7 +49,7 @@ per-invocation fsync is the one thing that would make Invoke slow.
 | Transformers, integrations, S3 Table sources, KMS association, syslog configurations | S | need pipelines or services that do not run locally |
 
 Every one of the 118 operations in the `com.amazonaws.cloudwatchlogs` model
-is either handled (18) or refused by name with what it would need (100).
+is either handled (21) or refused by name with what it would need (97).
 Nothing falls through to `InvalidAction`.
 
 ## Filter patterns
@@ -65,7 +66,23 @@ The subset people type into `sam logs --filter` and `--filter-pattern`:
   `||`, no parentheses.
 
 Regular-expression (`%…%`) and space-delimited (`[…]`) patterns answer
-`InvalidParameterException` naming the construct.
+`InvalidParameterException` naming the construct. A subscription filter
+takes the same language.
+
+## Subscription filters
+
+A filter on a group forwards every PutLogEvents batch's matching lines off
+the request path, in the envelope AWS sends: gzip-compressed JSON with
+`messageType`, `owner`, `logGroup`, `logStream`, `subscriptionFilters` and
+`logEvents[{id, timestamp, message}]`, the ids 56-digit decimals as on AWS.
+A Lambda function receives it base64-encoded under `awslogs.data` on an
+asynchronous invoke, which is what a function written against AWS
+gunzips; a Kinesis stream receives the raw gzip bytes as one record, keyed
+by the log stream under `distribution: ByLogStream` and randomly otherwise.
+A Kinesis stream must exist before the filter names it. Delivery is one
+attempt; a failure is logged with the group, the filter and the destination.
+A function cannot subscribe to its own `/aws/lambda/` group, because every
+line it wrote would invoke it again.
 
 ## Differences from AWS
 
@@ -96,7 +113,7 @@ Regular-expression (`%…%`) and space-delimited (`[…]`) patterns answer
 
 ## Input validation
 
-**167/167 model-derived constraints enforced across the 18 dispatched
+**197/197 model-derived constraints enforced across the 21 dispatched
 operations, with `knownGaps` empty.** Generated with `dzaudit cases
 cloudwatch-logs`, scoped to the dispatched operations, committed to
 `testdata/cases_logs.json`, and replayed in `rejection_parity_test.go` from a

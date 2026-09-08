@@ -161,9 +161,10 @@ Mapped:
 | `AWS::StepFunctions::StateMachineAlias` | `Name`, `Description`, and the version named by `RoutingConfiguration` or `DeploymentPreference`; every alias routes all of its traffic to the version this deploy publishes, which is where a gradual deployment ends up. `Ref` and `Arn` are the real alias ARN |
 | `AWS::StepFunctions::Activity` | `Name` and tags; `Ref` and `Arn` are the activity ARN a Task's `Resource` names |
 | `AWS::Logs::LogGroup` | `LogGroupName` (the logical id when absent), `RetentionInDays`, tags; `Ref` is the name and `Arn` ends in `:*` as CloudWatch Logs reports it. Lambda creates `/aws/lambda/<fn>` itself on the first line, so a template needs one only to set retention |
+| `AWS::Logs::SubscriptionFilter` | `LogGroupName`, `FilterName` (the logical id when absent), `FilterPattern`, `DestinationArn` (a Lambda function or a Kinesis stream; Firehose is refused by name), `Distribution`. A group only Lambda would create is declared for it, so the filter lands before the first line; a Kinesis stream must already exist |
 
 Skipped with a reason: `AWS::IAM::*`, `AWS::Logs::LogStream`,
-`AWS::Logs::SubscriptionFilter`, `AWS::CloudWatch::*`,
+`AWS::CloudWatch::*`,
 `AWS::ECR::Repository`, `AWS::CDK::Metadata`,
 `AWS::CloudFormation::WaitCondition*`.
 

@@ -57,6 +57,20 @@ type Stack struct {
 type LogGroup struct {
 	RetentionDays int
 	Tags          map[string]string
+	// Subscriptions forward the group's matching events to a Lambda function
+	// or a Kinesis stream; at most two per group, as on AWS.
+	Subscriptions []LogSubscription
+}
+
+// LogSubscription is one subscription filter: a pattern and exactly one of
+// Lambda (a function name) or Kinesis (a stream name, which must already
+// exist: streams are not part of the stack model).
+type LogSubscription struct {
+	Name         string
+	Pattern      string
+	Lambda       string
+	Kinesis      string
+	Distribution string // Random | ByLogStream, Kinesis only
 }
 
 // StateMachine is a Step Functions state machine: its definition text (ASL),

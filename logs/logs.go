@@ -6,14 +6,17 @@
 // Lambda writes here through the same wire an SDK uses (PutLogEvents), so
 // the two services can run in one process or two. What is not here is the
 // rest of the service's 118 operations: Logs Insights queries, deliveries,
-// anomaly detection, metric and subscription filters, export and import,
-// account and data-protection policies. Each answers
-// UnsupportedOperationException naming what it would need.
+// anomaly detection, metric filters, export and import, account and
+// data-protection policies. Each answers UnsupportedOperationException
+// naming what it would need. Subscription filters are here: a group forwards
+// its matching lines to a Lambda function or a Kinesis stream in the gzip
+// envelope AWS sends (fanout.go).
 //
 // See docs/api-support/logs.md for the operation-by-operation table.
 package logs
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"os"
@@ -43,7 +46,8 @@ const DefaultMaxEvents = 100000
 type Options struct {
 	// DataDir holds the bbolt store (logs.bolt). Required.
 	DataDir string
-	// Peers is accepted for constructor uniformity; logs calls no siblings.
+	// Peers resolves the Lambda functions and Kinesis streams subscription
+	// filters deliver to. Nil disables delivery (logged).
 	Peers peers.Directory
 	// Logf receives log lines; nil discards.
 	Logf func(format string, args ...any)
@@ -65,6 +69,8 @@ type Server struct {
 	retention time.Duration
 	maxEvents int
 	stop      chan struct{}
+	peers     peers.Directory
+	fan       *fanout // subscription filters → Lambda / Kinesis
 }
 
 // New opens the store under DataDir and starts the retention sweeper.
@@ -108,13 +114,20 @@ func New(opts Options) (*Server, error) {
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock
 	}
+	s.peers = opts.Peers
+	if s.peers == nil {
+		s.peers = peers.None()
+	}
+	s.fan = newFanout(s.store, s.peers, logf)
 	go s.sweeper()
 	return s, nil
 }
 
-// Close stops the sweeper and closes the store.
+// Close stops the sweeper, drains the subscription fan-out, and closes the
+// store.
 func (s *Server) Close() error {
 	close(s.stop)
+	s.fan.close()
 	return s.store.db.Close()
 }
 
@@ -144,7 +157,7 @@ func (s *Server) sweeper() {
 	}
 }
 
-type handler func(s *Server, p map[string]any) (any, *awshttp.APIError)
+type handler func(s *Server, ctx context.Context, p map[string]any) (any, *awshttp.APIError)
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	action, aerr := s.api.Action(r)
@@ -171,7 +184,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.api.WriteError(w, aerr)
 		return
 	}
-	result, aerr := h(s, params)
+	result, aerr := h(s, r.Context(), params)
 	if aerr != nil {
 		s.logf("logs: %s -> %s", action, aerr.Code)
 		s.api.WriteError(w, aerr)

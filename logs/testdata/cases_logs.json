@@ -344,6 +344,90 @@
     ]
   },
   {
+    "operation": "DeleteSubscriptionFilter",
+    "target": "Logs_20140328.DeleteSubscriptionFilter",
+    "path": "filterName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteSubscriptionFilter",
+    "target": "Logs_20140328.DeleteSubscriptionFilter",
+    "path": "filterName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteSubscriptionFilter",
+    "target": "Logs_20140328.DeleteSubscriptionFilter",
+    "path": "filterName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteSubscriptionFilter",
+    "target": "Logs_20140328.DeleteSubscriptionFilter",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteSubscriptionFilter",
+    "target": "Logs_20140328.DeleteSubscriptionFilter",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteSubscriptionFilter",
+    "target": "Logs_20140328.DeleteSubscriptionFilter",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteSubscriptionFilter",
+    "target": "Logs_20140328.DeleteSubscriptionFilter",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
     "operation": "DescribeLogGroups",
     "target": "Logs_20140328.DescribeLogGroups",
     "path": "accountIdentifiers[]",
@@ -558,6 +642,105 @@
     "why": "not one of LogStreamName, LastEventTime",
     "value": "__DOZE_NOT_A_MEMBER__",
     "constraint": "enum LogStreamName|LastEventTime"
+  },
+  {
+    "operation": "DescribeSubscriptionFilters",
+    "target": "Logs_20140328.DescribeSubscriptionFilters",
+    "path": "filterNamePrefix",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DescribeSubscriptionFilters",
+    "target": "Logs_20140328.DescribeSubscriptionFilters",
+    "path": "filterNamePrefix",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DescribeSubscriptionFilters",
+    "target": "Logs_20140328.DescribeSubscriptionFilters",
+    "path": "limit",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..50",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DescribeSubscriptionFilters",
+    "target": "Logs_20140328.DescribeSubscriptionFilters",
+    "path": "limit",
+    "why": "above the maximum of 50",
+    "value": 51,
+    "constraint": "range 1..50",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DescribeSubscriptionFilters",
+    "target": "Logs_20140328.DescribeSubscriptionFilters",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DescribeSubscriptionFilters",
+    "target": "Logs_20140328.DescribeSubscriptionFilters",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DescribeSubscriptionFilters",
+    "target": "Logs_20140328.DescribeSubscriptionFilters",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DescribeSubscriptionFilters",
+    "target": "Logs_20140328.DescribeSubscriptionFilters",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DescribeSubscriptionFilters",
+    "target": "Logs_20140328.DescribeSubscriptionFilters",
+    "path": "nextToken",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..-",
+    "required_members": [
+      "logGroupName"
+    ]
   },
   {
     "operation": "FilterLogEvents",
@@ -1368,6 +1551,202 @@
     "required_members": [
       "logGroupName",
       "retentionInDays"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "destinationArn",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..-",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "destinationArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "distribution",
+    "why": "not one of ByLogStream, Random",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum ByLogStream|Random",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "fieldSelectionCriteria",
+    "why": "longer than the maximum length of 2000",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..2000",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "filterName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "filterName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "filterName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "filterPattern",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "filterPattern",
+    "why": "longer than the maximum length of 1024",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..1024",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "PutSubscriptionFilter",
+    "target": "Logs_20140328.PutSubscriptionFilter",
+    "path": "roleArn",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..-",
+    "required_members": [
+      "destinationArn",
+      "filterName",
+      "filterPattern",
+      "logGroupName"
     ]
   },
   {

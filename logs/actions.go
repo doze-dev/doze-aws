@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"context"
 	"errors"
 	"sort"
 	"strconv"
@@ -12,24 +13,27 @@ import (
 )
 
 var handlers = map[string]handler{
-	"CreateLogGroup":        (*Server).createLogGroup,
-	"DeleteLogGroup":        (*Server).deleteLogGroup,
-	"DescribeLogGroups":     (*Server).describeLogGroups,
-	"ListLogGroups":         (*Server).listLogGroups,
-	"PutRetentionPolicy":    (*Server).putRetentionPolicy,
-	"DeleteRetentionPolicy": (*Server).deleteRetentionPolicy,
-	"CreateLogStream":       (*Server).createLogStream,
-	"DeleteLogStream":       (*Server).deleteLogStream,
-	"DescribeLogStreams":    (*Server).describeLogStreams,
-	"PutLogEvents":          (*Server).putLogEvents,
-	"GetLogEvents":          (*Server).getLogEvents,
-	"FilterLogEvents":       (*Server).filterLogEvents,
-	"TagResource":           (*Server).tagResource,
-	"UntagResource":         (*Server).untagResource,
-	"ListTagsForResource":   (*Server).listTagsForResource,
-	"TagLogGroup":           (*Server).tagLogGroup,
-	"UntagLogGroup":         (*Server).untagLogGroup,
-	"ListTagsLogGroup":      (*Server).listTagsLogGroup,
+	"CreateLogGroup":              (*Server).createLogGroup,
+	"DeleteLogGroup":              (*Server).deleteLogGroup,
+	"DescribeLogGroups":           (*Server).describeLogGroups,
+	"ListLogGroups":               (*Server).listLogGroups,
+	"PutRetentionPolicy":          (*Server).putRetentionPolicy,
+	"DeleteRetentionPolicy":       (*Server).deleteRetentionPolicy,
+	"CreateLogStream":             (*Server).createLogStream,
+	"DeleteLogStream":             (*Server).deleteLogStream,
+	"DescribeLogStreams":          (*Server).describeLogStreams,
+	"PutLogEvents":                (*Server).putLogEvents,
+	"GetLogEvents":                (*Server).getLogEvents,
+	"FilterLogEvents":             (*Server).filterLogEvents,
+	"TagResource":                 (*Server).tagResource,
+	"UntagResource":               (*Server).untagResource,
+	"ListTagsForResource":         (*Server).listTagsForResource,
+	"TagLogGroup":                 (*Server).tagLogGroup,
+	"UntagLogGroup":               (*Server).untagLogGroup,
+	"ListTagsLogGroup":            (*Server).listTagsLogGroup,
+	"PutSubscriptionFilter":       (*Server).putSubscriptionFilter,
+	"DeleteSubscriptionFilter":    (*Server).deleteSubscriptionFilter,
+	"DescribeSubscriptionFilters": (*Server).describeSubscriptionFilters,
 }
 
 // groupARN is the ARN CloudWatch Logs reports for a group.
@@ -68,7 +72,7 @@ func (s *Server) mustGroup(p map[string]any) (*Group, *awshttp.APIError) {
 
 // ---- groups ----
 
-func (s *Server) createLogGroup(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) createLogGroup(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	name := awsjson.Str(p, "logGroupName")
 	if g, _ := s.store.GetGroup(name); g != nil {
 		return nil, errExists("The specified log group already exists")
@@ -80,7 +84,7 @@ func (s *Server) createLogGroup(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{}, nil
 }
 
-func (s *Server) deleteLogGroup(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) deleteLogGroup(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.mustGroup(p)
 	if aerr != nil {
 		return nil, aerr
@@ -107,7 +111,7 @@ func (s *Server) groupView(g Group) map[string]any {
 	return v
 }
 
-func (s *Server) describeLogGroups(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) describeLogGroups(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	groups, err := s.store.ListGroups(awsjson.Str(p, "logGroupNamePrefix"))
 	if err != nil {
 		return nil, awshttp.Errf(500, "ServiceUnavailableException", "%v", err)
@@ -141,7 +145,7 @@ func (s *Server) describeLogGroups(p map[string]any) (any, *awshttp.APIError) {
 	return pageByName(items, "logGroups", "logGroupName", awsjson.Str(p, "nextToken"), awsjson.Int(p, "limit", 50)), nil
 }
 
-func (s *Server) listLogGroups(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) listLogGroups(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	groups, err := s.store.ListGroups("")
 	if err != nil {
 		return nil, awshttp.Errf(500, "ServiceUnavailableException", "%v", err)
@@ -204,7 +208,7 @@ func pageByName(items []map[string]any, listKey, nameKey, token string, limit in
 var validRetention = map[int]bool{1: true, 3: true, 5: true, 7: true, 14: true, 30: true, 60: true, 90: true, 120: true, 150: true, 180: true,
 	365: true, 400: true, 545: true, 731: true, 1096: true, 1827: true, 2192: true, 2557: true, 2922: true, 3288: true, 3653: true}
 
-func (s *Server) putRetentionPolicy(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) putRetentionPolicy(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.mustGroup(p)
 	if aerr != nil {
 		return nil, aerr
@@ -220,7 +224,7 @@ func (s *Server) putRetentionPolicy(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{}, nil
 }
 
-func (s *Server) deleteRetentionPolicy(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) deleteRetentionPolicy(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.mustGroup(p)
 	if aerr != nil {
 		return nil, aerr
@@ -234,7 +238,7 @@ func (s *Server) deleteRetentionPolicy(p map[string]any) (any, *awshttp.APIError
 
 // ---- streams ----
 
-func (s *Server) createLogStream(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) createLogStream(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.mustGroup(p)
 	if aerr != nil {
 		return nil, aerr
@@ -249,7 +253,7 @@ func (s *Server) createLogStream(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{}, nil
 }
 
-func (s *Server) deleteLogStream(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) deleteLogStream(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.mustGroup(p)
 	if aerr != nil {
 		return nil, aerr
@@ -279,7 +283,7 @@ func streamView(g string, st Stream) map[string]any {
 	return v
 }
 
-func (s *Server) describeLogStreams(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) describeLogStreams(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.mustGroup(p)
 	if aerr != nil {
 		return nil, aerr
@@ -325,7 +329,7 @@ func (s *Server) describeLogStreams(p map[string]any) (any, *awshttp.APIError) {
 
 // ---- events ----
 
-func (s *Server) putLogEvents(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) putLogEvents(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.mustGroup(p)
 	if aerr != nil {
 		return nil, aerr
@@ -345,16 +349,18 @@ func (s *Server) putLogEvents(p map[string]any) (any, *awshttp.APIError) {
 		// creates it, so a function's first line never bounces.
 		_ = s.store.PutStream(Stream{Group: g.Name, Name: stream, CreatedMs: s.store.now()})
 	}
-	if err := s.store.PutEvents(g.Name, stream, events); err != nil {
+	stored, err := s.store.PutEvents(g.Name, stream, events)
+	if err != nil {
 		if errors.Is(err, ErrNoGroup) {
 			return nil, errNotFound("The specified log group does not exist.")
 		}
 		return nil, awshttp.Errf(500, "ServiceUnavailableException", "%v", err)
 	}
+	s.fan.enqueue(ctx, g.Name, stream, stored)
 	return map[string]any{"nextSequenceToken": strconv.FormatInt(s.store.now(), 10)}, nil
 }
 
-func (s *Server) getLogEvents(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) getLogEvents(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.mustGroup(p)
 	if aerr != nil {
 		return nil, aerr
@@ -405,7 +411,7 @@ func (s *Server) getLogEvents(p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{"events": items, "nextForwardToken": fwd, "nextBackwardToken": bwd}, nil
 }
 
-func (s *Server) filterLogEvents(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) filterLogEvents(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.mustGroup(p)
 	if aerr != nil {
 		return nil, aerr
@@ -478,7 +484,7 @@ func (s *Server) groupOfARN(arn string) (*Group, *awshttp.APIError) {
 	return s.mustGroup(map[string]any{"logGroupName": strings.TrimSuffix(arn[i+len(":log-group:"):], ":*")})
 }
 
-func (s *Server) tagResource(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) tagResource(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.groupOfARN(awsjson.Str(p, "resourceArn"))
 	if aerr != nil {
 		return nil, aerr
@@ -486,7 +492,7 @@ func (s *Server) tagResource(p map[string]any) (any, *awshttp.APIError) {
 	return s.addTags(g, awsjson.StrMap(p, "tags"))
 }
 
-func (s *Server) untagResource(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) untagResource(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.groupOfARN(awsjson.Str(p, "resourceArn"))
 	if aerr != nil {
 		return nil, aerr
@@ -494,7 +500,7 @@ func (s *Server) untagResource(p map[string]any) (any, *awshttp.APIError) {
 	return s.removeTags(g, awsjson.Strs(p, "tagKeys"))
 }
 
-func (s *Server) listTagsForResource(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) listTagsForResource(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.groupOfARN(awsjson.Str(p, "resourceArn"))
 	if aerr != nil {
 		return nil, aerr
@@ -502,7 +508,7 @@ func (s *Server) listTagsForResource(p map[string]any) (any, *awshttp.APIError) 
 	return map[string]any{"tags": orEmpty(g.Tags)}, nil
 }
 
-func (s *Server) tagLogGroup(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) tagLogGroup(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.mustGroup(p)
 	if aerr != nil {
 		return nil, aerr
@@ -510,7 +516,7 @@ func (s *Server) tagLogGroup(p map[string]any) (any, *awshttp.APIError) {
 	return s.addTags(g, awsjson.StrMap(p, "tags"))
 }
 
-func (s *Server) untagLogGroup(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) untagLogGroup(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.mustGroup(p)
 	if aerr != nil {
 		return nil, aerr
@@ -518,7 +524,7 @@ func (s *Server) untagLogGroup(p map[string]any) (any, *awshttp.APIError) {
 	return s.removeTags(g, awsjson.Strs(p, "tags"))
 }
 
-func (s *Server) listTagsLogGroup(p map[string]any) (any, *awshttp.APIError) {
+func (s *Server) listTagsLogGroup(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	g, aerr := s.mustGroup(p)
 	if aerr != nil {
 		return nil, aerr

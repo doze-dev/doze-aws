@@ -1147,7 +1147,7 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 .conn-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted-foreground); }
 .conn-chip { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 10px 0 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); font-size: 13px; overflow: hidden; }
 .conn-chip:hover { border-color: var(--ring); }
-.conn-chip .cc-bar { width: 4px; height: 28px; flex: none; }
+.conn-chip .cc-bar { width: 4px; height: 28px; flex: none; background: var(--bar); }
 .conn-chip .cc-nm { font-weight: 550; }
 .conn-chip .cc-k { font-size: 10px; font-family: var(--mono); color: var(--muted-foreground); }
 .conn-self { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted-foreground); margin: 0 2px; }

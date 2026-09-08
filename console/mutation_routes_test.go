@@ -493,6 +493,13 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 		return nil, url.Values{"name": {"/fixture/logs"}, "days": {"14"}}
 	case "/logs/delete-stream":
 		return nil, url.Values{"name": {"/fixture/logs"}, "stream": {"never-written"}}
+	case "/logs/subscribe":
+		// Routes run alphabetically: subscribe precedes unsubscribe, which
+		// removes the same filter.
+		return nil, url.Values{"name": {"/fixture/logs"}, "filter": {"fixture-sub"}, "pattern": {"ERROR"},
+			"destination": {"arn:aws:lambda:us-east-1:000000000000:function:fixture-sink"}}
+	case "/logs/unsubscribe":
+		return nil, url.Values{"name": {"/fixture/logs"}, "filter": {"fixture-sub"}}
 	case "/lambda/create":
 		// A function needs somewhere real to read its code from, even though
 		// nothing here invokes it.
