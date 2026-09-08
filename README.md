@@ -40,14 +40,14 @@ clients still speak.
 | Secrets Manager | ✅ version stages, recovery-window deletion, encrypted at rest | **fully audited**: 132/132 across 19 of 20 dispatched operations · no known gaps |
 | S3 | ✅ versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website | **fully audited**: 219/275 across all 64 routed operations · 56 not expressible on the wire · no known gaps |
 | DynamoDB | ✅ full expression engine, GSI/LSI, transactions, TTL, paging semantics | **fully audited**: 333/333 across all 27 dispatched operations · no known gaps |
-| EventBridge | ✅ full pattern language, SQS/SNS/Lambda targets, input transformers | **fully audited**: 284/284 across all 28 dispatched operations · no known gaps |
+| EventBridge | ✅ full pattern language, SQS/SNS/Lambda/CloudWatch Logs targets, input transformers | **fully audited**: 284/284 across all 28 dispatched operations · no known gaps |
 | Lambda | ✅ real host processes speaking the Runtime API (no Docker) — Python, Node and Ruby through embedded clients on the host interpreter, Go and `provided.*` as is, Java and .NET with AWS's own packaging; edit-in-place code; every line logged with its request id; versions that freeze, aliases, layers on the search paths, function URLs served, SQS/DynamoDB/Kinesis event source mappings | **fully audited**: 612/621 across all 47 routed operations with constrained input · 9 not expressible on the wire · no known gaps |
 | Kinesis | ✅ native Go (no JVM), real partition-key routing, resharding with parent/child lineage | **fully audited**: 356/356 across 32 of 35 dispatched operations · no known gaps |
 | IAM | ✅ real policy evaluation, off by default, with least-privilege generation | **fully audited**: 702/702 across 89 of 93 dispatched operations · no known gaps |
 | CloudFormation | ✅ stacks, change sets, deletion — `sam deploy`, `cdk deploy` and Serverless all work | **fully audited**: 182/182 across 22 of 23 dispatched operations · no known gaps |
-| API Gateway | ✅ REST v1 — deployed APIs actually serve into Lambda over a real HTTP endpoint | **fully audited**: 91/95 across all 30 routed operations with constrained input · 4 not expressible on the wire · no known gaps |
-| Step Functions | ✅ All 37 operations: Standard and Express, JSONPath and JSONata, versions and aliases, activities, redrive, Distributed Map with Map Runs, child executions (`.sync`), task tokens; Lambda/SQS/SNS/DynamoDB/EventBridge and `aws-sdk:` integrations for every local service | **fully audited**: 229/229 across 33 of 37 operations · 19 cases consume the state they address · no known gaps |
-| CloudWatch Logs | ✅ log groups, streams and events — every Lambda function's output lands under `/aws/lambda/<fn>` with its request id, and `aws logs tail --follow`, `sam logs` and the console read it | **fully audited**: 167/167 across the 18 dispatched operations · 100 refused by name · no known gaps |
+| API Gateway | ✅ REST v1 — deployed APIs actually serve into Lambda over a real HTTP endpoint; stage access and execution logs written to CloudWatch Logs | **fully audited**: 92/96 across all 31 routed operations with constrained input · 4 not expressible on the wire · no known gaps |
+| Step Functions | ✅ All 37 operations: Standard and Express, JSONPath and JSONata, versions and aliases, activities, redrive, Distributed Map with Map Runs, child executions (`.sync`), task tokens; Lambda/SQS/SNS/DynamoDB/EventBridge and `aws-sdk:` integrations for every local service; history vended to CloudWatch Logs per `loggingConfiguration`, Express runs included | **fully audited**: 229/229 across 33 of 37 operations · 19 cases consume the state they address · no known gaps |
+| CloudWatch Logs | ✅ log groups, streams and events — Lambda output, Step Functions history, API Gateway access and execution logs and EventBridge deliveries land where they do on AWS, each line with its request id, and `aws logs tail --follow`, `sam logs` and the console read it | **fully audited**: 167/167 across the 18 dispatched operations · 100 refused by name · no known gaps |
 
 **Why two columns.** A ✅ means every documented operation of that service has a
 real handler, verified against both AWS SDK generations. It does **not** mean
@@ -68,7 +68,7 @@ right-hand column.
 All 16 services talk to each other: EventBridge→SQS/SNS/Lambda, S3
 notifications→SQS/SNS/Lambda, SNS→SQS/Lambda/webhooks, SQS/DynamoDB
 streams/Kinesis→Lambda, API Gateway→Lambda, Step Functions→Lambda/SQS/SNS
-and back through task tokens, Lambda→CloudWatch Logs.
+and back through task tokens, Lambda/Step Functions/API Gateway/EventBridge→CloudWatch Logs.
 
 ## Deploy with the tooling you already have
 

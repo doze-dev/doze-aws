@@ -66,9 +66,9 @@ useful than a blank 500.
 | PutMethodResponse / GetMethodResponse / DeleteMethodResponse | F | |
 | PutIntegrationResponse / GetIntegrationResponse / DeleteIntegrationResponse | F | |
 | CreateDeployment / GetDeployment / GetDeployments / DeleteDeployment | F | `stageName` creates the stage in the same call, as the CLI and most templates do |
-| CreateStage / GetStage / GetStages / UpdateStage / DeleteStage | F | stage variables reach the proxy event; the response carries a usable `invokeUrl` |
+| CreateStage / GetStage / GetStages / UpdateStage / DeleteStage | F | stage variables reach the proxy event; the response carries a usable `invokeUrl`; UpdateStage keeps `accessLogSettings` and every method-setting path (`/*/*/logging/loglevel`, `logging/dataTrace`, `metrics/enabled`, throttling, caching), reported with AWS's defaults filled in, and refuses a patch path it does not know |
 | GetTags / TagResource / UntagResource | F | REST API ARNs |
-| GetAccount | C | nominal throttle settings; nothing is throttled locally |
+| GetAccount / UpdateAccount | F | the CloudWatch role reads back as set; throttle settings are nominal, nothing is throttled locally |
 | API keys and usage plans (18 operations) | S | there is no metering or billing locally |
 | Custom domains and base path mappings (12 operations) | S | there is no DNS or TLS termination locally |
 | Client certificates (5 operations) | S | certificate material is cloud infrastructure |
@@ -87,6 +87,35 @@ an edit to take effect immediately, and a stale snapshot is a debugging trap
 rather than a feature. The deployment record still exists so the control plane,
 CloudFormation and Terraform all behave.
 
+## Logging
+
+A stage logs the way its settings say, to the [CloudWatch Logs](logs.md)
+service, after the response and off the request's path.
+
+- **Access log**: with `accessLogSettings` set (the CDK's
+  `accessLogDestination` and `accessLogFormat`, SAM's `AccessLogSetting`,
+  or an UpdateStage patch of `/accessLogSettings/destinationArn` and
+  `/format`), every request writes one line in the format given to the
+  destination group, with the `$context` variables a local request can
+  answer filled in — `requestId`, `httpMethod`, `resourcePath`, `path`,
+  `status`, `responseLength`, `responseLatency`, `integrationLatency`,
+  `requestTime`, `stage`, `apiId`, `identity.sourceIp`, `identity.userAgent`,
+  `error.message` — and `-` for the rest, as AWS writes an absent value. A
+  403 for an unmatched path is logged like any other request.
+- **Execution log**: with a method setting's `logging/loglevel` at `INFO`
+  (the stage-wide `*/*` or the method's own, the method winning), every
+  request writes the narrative API Gateway writes — the request as it
+  arrived, the integration it went to, what came back, and the status it
+  ended with — to `API-Gateway-Execution-Logs_<apiId>/<stage>`, each line
+  prefixed with the request id. `ERROR` writes it only for a request that
+  failed or answered 4xx/5xx; `logging/dataTrace` adds the bodies.
+- The account's `cloudwatchRoleArn` is kept and read back; nothing needs
+  it locally, but a deploy that sets it before enabling logs sees what it
+  set.
+
+Streams are one per stage per process, named
+`<apiId>/<stage>/<date>/<hex>`. The console's stage table links both groups.
+
 ## HTTP API (v2)
 
 Not implemented. `AWS::Serverless::HttpApi` and `AWS::ApiGatewayV2::Api`
@@ -104,7 +133,7 @@ but the v2 control plane (`/v2/apis/...`) is not served.
 Separate from the tiers above. A tier says the operation is implemented; this
 says whether doze-aws **refuses what API Gateway refuses**.
 
-**91/95 model-derived constraints enforced across all 30 routed operations that
+**92/96 model-derived constraints enforced across all 31 routed operations that
 have constrained input, with `knownGaps` empty.** Removing the constraint table
 makes 24 of them slip through. The remaining four cannot be put on this wire at
 all — see below.

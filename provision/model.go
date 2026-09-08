@@ -63,6 +63,9 @@ type StateMachine struct {
 	RoleARN    string
 	Type       string // STANDARD | EXPRESS; empty means STANDARD
 	Tags       map[string]string
+	// Logging is the loggingConfiguration as the API takes it (level,
+	// includeExecutionData, destinations); empty leaves logging off.
+	Logging Doc
 	// Publish records a version of the definition on every apply — what an
 	// AWS::StepFunctions::StateMachineVersion in the template asks for.
 	// Publishing an unchanged revision returns the version it already has,
@@ -95,6 +98,28 @@ type Activity struct {
 type API struct {
 	Stage  string
 	Routes []Route
+	// AccessLog and MethodSettings are the stage's logging settings, as an
+	// AWS::ApiGateway::Stage or a Serverless::Api declares them.
+	AccessLog      *APIAccessLog
+	MethodSettings []APIMethodSetting
+}
+
+// APIAccessLog is a stage's access log: the log group ARN and the $context
+// format each request is written in.
+type APIAccessLog struct {
+	DestinationARN string
+	Format         string
+}
+
+// APIMethodSetting is one entry of a stage's MethodSettings: which methods
+// it covers ("*" for all, or a resource path and a verb) and the logging
+// it asks for.
+type APIMethodSetting struct {
+	Path         string // "/*" or a resource path
+	Method       string // "*" or a verb
+	LoggingLevel string // OFF | ERROR | INFO
+	DataTrace    bool
+	Metrics      bool
 }
 
 // Route is one method+path binding.

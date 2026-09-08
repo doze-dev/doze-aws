@@ -23,8 +23,8 @@ definition with four mistakes takes one round trip to understand.
 | Operation | Tier | Notes |
 |---|---|---|
 | CreateStateMachine | F | STANDARD and EXPRESS; idempotent on an identical definition, so an unchanged `cdk deploy` succeeds; task resources outside the local integration set are refused here, not on first execution |
-| DescribeStateMachine / ListStateMachines | F | describe answers AWS's defaults for logging, tracing and encryption when none were given; list paginates with `maxResults` and `nextToken`, and a stale token is `InvalidToken` |
-| UpdateStateMachine | F | running executions keep their frozen definition; `publish` mints a version in the same call |
+| DescribeStateMachine / ListStateMachines | F | describe answers the logging, tracing and encryption blocks as stored, or AWS's defaults when none were given; list paginates with `maxResults` and `nextToken`, and a stale token is `InvalidToken` |
+| UpdateStateMachine | F | running executions keep their frozen definition; `publish` mints a version in the same call; a `loggingConfiguration`, `tracingConfiguration` or `encryptionConfiguration` sent replaces the stored block, so a logging change is not drift on the next plan |
 | DeleteStateMachine | F | synchronous — AWS parks the machine in DELETING until executions drain; locally it disappears at once, and the call is idempotent so a repeated `cdk destroy` does not fail |
 | ValidateStateMachineDefinition | F | the analyser exposed directly; every diagnostic in document order, none returned early |
 | PublishStateMachineVersion / DeleteStateMachineVersion / ListStateMachineVersions | F | a version freezes the definition; `revisionId` guards a publish; a version an alias still routes to cannot be deleted |
@@ -32,7 +32,7 @@ definition with four mistakes takes one round trip to understand.
 | CreateActivity / DescribeActivity / DeleteActivity / ListActivities | F | control plane, paginated |
 | GetActivityTask | F | long-poll, 60 s as on AWS; an activity Task state queues its input for the next worker, which answers through the SendTask* calls |
 | TagResource / UntagResource / ListTagsForResource | F | tags are a `[{key,value}]` list, as on AWS, not the `{k:v}` map Lambda and DynamoDB use; an ARN nothing holds is `ResourceNotFound`, not an empty list |
-| StartExecution | F | machine, version or alias ARN; same name + still RUNNING + same input returns the original execution rather than conflicting; on an EXPRESS machine it is fire-and-forget, answering an ARN nothing can describe afterwards, as on AWS |
+| StartExecution | F | machine, version or alias ARN; same name + still RUNNING + same input returns the original execution rather than conflicting; on an EXPRESS machine it is fire-and-forget, answering an ARN nothing can describe afterwards, as on AWS — its history is in the log group (below) |
 | StartSyncExecution | F | Express: runs to completion inside the call, five-minute cap, `billingDetails` and the `includedData` switch; reachable at `sync-aws.doze`, the host prefix every SDK's endpoint ruleset applies |
 | TestState | F | one state in isolation, with `inspectionData` per `inspectionLevel`, `mock` results and errors, and `stateConfiguration`; the `sync-` host again |
 | DescribeExecution / ListExecutions | F | status, `redriveFilter` and `mapRunArn` filters, `maxResults` and `nextToken`; `traceHeader` comes back only when StartExecution was given one; an EXPRESS machine's executions are not listable, as on AWS |
@@ -119,7 +119,29 @@ Differences from AWS, listed rather than hidden:
   a worker that comes back a day late is not one this stack needs to serve.
 - **Express executions and TestState runs do not survive a restart.** They
   are held in memory for the call that runs them, which is also where AWS
-  keeps them; their history goes to the caller, not to a log group.
+  keeps them. An Express run's history goes to its log group (below); a
+  TestState run's goes to the caller.
+
+## Logging
+
+A machine's `loggingConfiguration` is honoured. Every history event an
+execution records is written to the group its destination names, in the
+JSON record AWS vends — `id`, `type`, `details`, `previous_event_id`,
+`event_timestamp`, `execution_arn` — one stream per machine per process,
+named `states/<machine>/<date>/<hex>`. `level` filters as on AWS: `ALL`
+writes everything, `ERROR` every event that reports a failure, `FATAL` only
+the execution's own end; `includeExecutionData: false` strips input, output
+and parameters. A Standard machine at `OFF` writes nothing, since
+GetExecutionHistory has it all. `aws logs tail <group> --follow` and the
+machine's Logs tab in the console read it.
+
+An **Express machine with logging off still writes**, at `ALL` with data,
+to `/aws/vendedlogs/states/<machine>`. On AWS an Express execution leaves
+nothing behind but its log group, and a run nobody can inspect afterwards
+is the one AWS behaviour a local emulator should not reproduce; the ledger
+says so here and the console says so on the machine. Set a destination to
+choose the group. `tracingConfiguration` and `encryptionConfiguration`
+remain stored-only: there is no X-Ray or KMS wrapping to apply.
 - **A Distributed Map with no `MaxConcurrency` runs 40 children at a time**,
   where AWS's default is 10,000 — one process cannot usefully start ten
   thousand executions in a tick. A `MaxConcurrency` on the state, or an

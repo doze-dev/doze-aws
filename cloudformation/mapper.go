@@ -73,13 +73,21 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		return nil
 	case "AWS::Serverless::Api", "AWS::Serverless::HttpApi",
 		"AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api":
-		// The API itself carries no state beyond its name; its routes arrive
-		// from the functions that bind to it.
-		if _, ok := m.stack.APIs[name]; !ok {
-			m.stack.APIs[name] = provision.API{Stage: propStr(props, "StageName")}
+		// The API itself carries no state beyond its name and, for SAM, the
+		// stage's logging; its routes arrive from the functions that bind
+		// to it.
+		api := m.stack.APIs[name]
+		if api.Stage == "" {
+			api.Stage = propStr(props, "StageName")
 		}
+		stageLogging(&api, props)
+		m.stack.APIs[name] = api
 		return nil
-	case "AWS::ApiGateway::Deployment", "AWS::ApiGateway::Stage",
+	case "AWS::ApiGateway::Stage":
+		// The stage names the API it belongs to; its logging settings land
+		// on that API once every resource is known.
+		return m.stage(props)
+	case "AWS::ApiGateway::Deployment",
 		"AWS::ApiGateway::Resource", "AWS::ApiGateway::Method",
 		"AWS::ApiGateway::Account":
 		// Recognised; the resource tree is rebuilt from routes at apply time.
@@ -142,13 +150,66 @@ func (m *mapper) stateMachine(name string, props map[string]any) error {
 		}
 	}
 	typ := propStr(props, "StateMachineType")
-	m.stack.StateMachines[name] = provision.StateMachine{
+	sm := provision.StateMachine{
 		Definition: definition,
 		RoleARN:    propStr(props, "RoleArn"),
 		Type:       typ,
 		Tags:       propTags(props),
 	}
+	// The template's LoggingConfiguration is the API's loggingConfiguration
+	// with PascalCase keys; the API wants camelCase.
+	if lc := propMap(props, "LoggingConfiguration"); lc != nil {
+		raw, _ := json.Marshal(lowerKeys(lc))
+		sm.Logging = provision.Doc{JSON: string(raw)}
+	}
+	m.stack.StateMachines[name] = sm
 	return nil
+}
+
+// lowerKeys rewrites a template block's PascalCase keys to the camelCase an
+// awsJson API takes, recursively.
+func lowerKeys(v any) any {
+	switch t := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(t))
+		for k, val := range t {
+			if k != "" {
+				k = strings.ToLower(k[:1]) + k[1:]
+			}
+			out[k] = lowerKeys(val)
+		}
+		return out
+	case []any:
+		out := make([]any, len(t))
+		for i, val := range t {
+			out[i] = lowerKeys(val)
+		}
+		return out
+	}
+	return v
+}
+
+// upperKeys is lowerKeys's inverse, for emitting a stored block as a
+// template property.
+func upperKeys(v any) any {
+	switch t := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(t))
+		for k, val := range t {
+			if k != "" {
+				k = strings.ToUpper(k[:1]) + k[1:]
+			}
+			out[k] = upperKeys(val)
+		}
+		return out
+	case []any:
+		out := make([]any, len(t))
+		for i, val := range t {
+			out[i] = upperKeys(val)
+		}
+		return out
+	}
+	return v
 }
 
 // stateMachineVersion maps AWS::StepFunctions::StateMachineVersion: the

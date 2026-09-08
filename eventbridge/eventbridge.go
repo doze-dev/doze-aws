@@ -24,6 +24,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
+	"github.com/doze-dev/doze-aws/internal/logship"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/peers"
 )
@@ -51,6 +52,7 @@ type Server struct {
 	stop     chan struct{} // closed once (via stopOnce) to end the scheduler
 	done     chan struct{} // closed by the scheduler goroutine when it exits
 	stopOnce sync.Once
+	logs     *logship.Shipper // log-group targets
 }
 
 // New opens the store under DataDir (the default bus exists implicitly).
@@ -83,6 +85,7 @@ func New(opts Options) (*Server, error) {
 	if s.now == nil {
 		s.now = time.Now
 	}
+	s.logs = logship.New("eventbridge", s.peers, logf)
 	s.stop = make(chan struct{})
 	s.done = make(chan struct{})
 	go func() {
@@ -99,6 +102,7 @@ func (s *Server) Close() error {
 	s.stopOnce.Do(func() {
 		close(s.stop)
 		<-s.done
+		s.logs.Close()
 		err = s.store.db.Close()
 	})
 	return err

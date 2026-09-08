@@ -27,6 +27,9 @@ func applyStateMachines(ctx context.Context, c *client, s *Stack, rep *Report) e
 		if sm.Type != "" {
 			in["type"] = sm.Type
 		}
+		if !sm.Logging.IsZero() {
+			in["loggingConfiguration"] = json.RawMessage(sm.Logging.JSON)
+		}
 		if len(sm.Tags) > 0 {
 			var tags []map[string]string
 			for _, k := range sortedNames(sm.Tags) {
@@ -48,6 +51,12 @@ func applyStateMachines(ctx context.Context, c *client, s *Stack, rep *Report) e
 			}
 			if sm.RoleARN != "" {
 				upd["roleArn"] = sm.RoleARN
+			}
+			// Logging is replaced with what the stack says, off included:
+			// a template that dropped its Logging block means off.
+			upd["loggingConfiguration"] = json.RawMessage(`{"level":"OFF","includeExecutionData":false}`)
+			if !sm.Logging.IsZero() {
+				upd["loggingConfiguration"] = json.RawMessage(sm.Logging.JSON)
 			}
 			if _, err := c.sfn(ctx, "UpdateStateMachine", upd); err != nil {
 				return fmt.Errorf("state machine %q update: %w", name, err)
@@ -147,15 +156,22 @@ func exportStateMachines(ctx context.Context, c *client, s *Stack) error {
 			return fmt.Errorf("describe state machine %q: %w", m.Name, err)
 		}
 		var d struct {
-			Definition string `json:"definition"`
-			RoleArn    string `json:"roleArn"`
-			Type       string `json:"type"`
+			Definition string          `json:"definition"`
+			RoleArn    string          `json:"roleArn"`
+			Type       string          `json:"type"`
+			Logging    json.RawMessage `json:"loggingConfiguration"`
 		}
 		json.Unmarshal(desc, &d)
 		if s.StateMachines == nil {
 			s.StateMachines = map[string]StateMachine{}
 		}
 		sm := StateMachine{Definition: d.Definition, RoleARN: d.RoleArn, Type: d.Type}
+		var lvl struct {
+			Level string `json:"level"`
+		}
+		if json.Unmarshal(d.Logging, &lvl) == nil && lvl.Level != "" && lvl.Level != "OFF" {
+			sm.Logging = Doc{JSON: string(d.Logging)}
+		}
 		if err := exportVersionAndAliases(ctx, c, m.Arn, &sm); err != nil {
 			return fmt.Errorf("state machine %q: %w", m.Name, err)
 		}

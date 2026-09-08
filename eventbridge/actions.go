@@ -10,6 +10,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 	"github.com/doze-dev/doze-aws/internal/eventpattern"
+	"github.com/doze-dev/doze-aws/internal/logship"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 )
 
@@ -175,8 +176,21 @@ func (s *Server) dispatch(ctx context.Context, rule Rule, target Target, eventJS
 		if err := peercall.SNSPublish(ctx, s.peers, target.ARN, string(payload)); err != nil {
 			s.logf("eventbridge: rule %s -> sns: %v", rule.Name, err)
 		}
+	case strings.Contains(target.ARN, ":logs:"):
+		// A log group target: the shaped event is the log line, in a stream
+		// named for the rule, as AWS writes it.
+		_, rest, ok := strings.Cut(target.ARN, ":log-group:")
+		if !ok {
+			s.logf("eventbridge: rule %s target %s: %s is not a log group ARN", rule.Name, target.ID, target.ARN)
+			return
+		}
+		var ev struct {
+			ID string `json:"id"`
+		}
+		json.Unmarshal(eventJSON, &ev)
+		s.logs.Put(strings.TrimSuffix(rest, ":*"), rule.Name, logship.Event{Timestamp: s.now().UnixMilli(), Message: string(payload), RequestID: ev.ID})
 	default:
-		s.logf("eventbridge: rule %s target %s: unsupported target service in %s (sqs, lambda, sns supported)",
+		s.logf("eventbridge: rule %s target %s: unsupported target service in %s (sqs, lambda, sns, logs supported)",
 			rule.Name, target.ID, target.ARN)
 	}
 }

@@ -10,11 +10,11 @@ delivers to targets.
 
 | Operation | Tier | Notes |
 |---|---|---|
-| PutEvents | F | validates entries, matches enabled rules, delivers to SQS/SNS/Lambda targets with Input/InputPath/InputTransformer shaping |
+| PutEvents | F | validates entries, matches enabled rules, delivers to SQS, SNS, Lambda and CloudWatch Logs targets with Input/InputPath/InputTransformer shaping |
 | PutRule | F | EventPattern rules; `rate(...)` schedules driven by a local ticker; `cron(...)` accepted and stored but not driven (wall-clock cron isn't useful in an ephemeral stack) |
 | DeleteRule / DescribeRule / ListRules | F | |
 | EnableRule / DisableRule | F | |
-| PutTargets / RemoveTargets / ListTargetsByRule / ListRuleNamesByTarget | F | SQS, SNS, and Lambda target ARNs |
+| PutTargets / RemoveTargets / ListTargetsByRule / ListRuleNamesByTarget | F | SQS, SNS, Lambda and CloudWatch Logs log-group target ARNs; a log-group target writes the shaped event as one log line, in a stream named for the rule, as AWS does |
 | CreateEventBus / DeleteEventBus / DescribeEventBus / ListEventBuses | F | default bus implicit; custom buses; deleting a bus removes its rules |
 | TestEventPattern | F | the same matcher, exposed for testing patterns |
 | TagResource / UntagResource / ListTagsForResource | F | rule tags by ARN |

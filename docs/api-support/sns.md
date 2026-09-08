@@ -14,7 +14,7 @@ webhooks with the SubscriptionConfirmation handshake.
 | DeleteTopic | F | drops the topic's subscriptions too |
 | ListTopics | F | |
 | GetTopicAttributes | F | live subscription counts + stored attribute round-trips |
-| SetTopicAttributes | C→F | attributes stored and returned (DisplayName, Policy, ...); no local behavior change |
+| SetTopicAttributes | C→F | attributes stored and returned (DisplayName, Policy, ...); no local behavior change. The delivery status logging attributes (`*SuccessFeedbackRoleArn`, `*FailureFeedbackRoleArn`, `*SuccessFeedbackSampleRate`) round-trip and write nothing: the console's traffic wire already shows every delivery, so a per-delivery log group was not worth the weight |
 | TagResource / UntagResource / ListTagsForResource | F | |
 | Subscribe | F | sqs (auto-confirmed), http/https (confirmation handshake); RawMessageDelivery, FilterPolicy; other protocols stored but undeliverable locally (logged) |
 | ConfirmSubscription | F | by token, incl. the SubscribeURL flow |

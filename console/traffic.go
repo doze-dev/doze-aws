@@ -579,6 +579,9 @@ func apigwAction(r *http.Request) string {
 	case "tags":
 		return map[string]string{"GET": "GetTags", "PUT": "TagResource", "DELETE": "UntagResource"}[m]
 	case "account":
+		if m == "PATCH" {
+			return "UpdateAccount"
+		}
 		return "GetAccount"
 	case "restapis":
 		if sub(1) == "" {

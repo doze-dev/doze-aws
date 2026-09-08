@@ -149,10 +149,11 @@ Mapped:
 | `AWS::SSM::Parameter` | |
 | `AWS::Kinesis::Stream` | accepted; the resource graph has no streams section yet |
 | `AWS::Serverless::Api`, `AWS::ApiGateway::RestApi`, `AWS::ApiGatewayV2::Api` | a REST API; routes arrive from the functions that bind to it |
-| `AWS::ApiGateway::Deployment`, `::Stage`, `::Resource`, `::Method`, `::Account` | recognised; the resource tree is rebuilt from routes at apply time |
+| `AWS::ApiGateway::Stage` | `StageName`, and the stage's `AccessLogSetting` (destination and format) and `MethodSettings` (logging level, data trace, metrics per resource path and method), patched onto the deployed stage the way CloudFormation patches them |
+| `AWS::ApiGateway::Deployment`, `::Resource`, `::Method`, `::Account` | recognised; the resource tree is rebuilt from routes at apply time |
 | `AWS::Lambda::Permission` | recognised and referenceable; nothing locally gates an invocation on the policy |
 | `AWS::S3::BucketPolicy`, `AWS::SQS::QueuePolicy`, `AWS::SNS::TopicPolicy` | recognised; no local policy evaluation |
-| `AWS::StepFunctions::StateMachine` | `DefinitionString` or `Definition`, `DefinitionSubstitutions` applied after intrinsics (what the CDK emits), type, role, tags; `DefinitionUri` is refused — inline the definition for a local deploy |
+| `AWS::StepFunctions::StateMachine` | `DefinitionString` or `Definition`, `DefinitionSubstitutions` applied after intrinsics (what the CDK emits), type, role, tags, `LoggingConfiguration` (the CDK's `logs` property; history is vended to the group it names); `DefinitionUri` is refused — inline the definition for a local deploy |
 | `AWS::StepFunctions::StateMachineVersion` | publishes the machine's revision on every deploy; an unchanged definition keeps its version. Its `Ref` is a placeholder only an alias in the same template can consume, because the version number is not known until the machine is published |
 | `AWS::StepFunctions::StateMachineAlias` | `Name`, `Description`, and the version named by `RoutingConfiguration` or `DeploymentPreference`; every alias routes all of its traffic to the version this deploy publishes, which is where a gradual deployment ends up. `Ref` and `Arn` are the real alias ARN |
 | `AWS::StepFunctions::Activity` | `Name` and tags; `Ref` and `Arn` are the activity ARN a Task's `Resource` names |
@@ -194,8 +195,8 @@ supplies defaults that an explicit property overrides.
 | `Events` of type `Schedule` / `ScheduleV2` | an EventBridge rule |
 | `Events` of type `EventBridgeRule` / `CloudWatchEvent` | an EventBridge rule |
 | `Events` of type `Api` / `HttpApi` | a route on a REST API, deployed and callable — see [api-support/apigateway.md](api-support/apigateway.md) |
-| `AWS::Serverless::Api`, `::HttpApi` | an API the function's routes attach to |
-| `AWS::Serverless::StateMachine` | a state machine; `Policies`, `Logging` and `Tracing` are dropped, and `Events` is refused by name — start executions directly or from a Lambda |
+| `AWS::Serverless::Api`, `::HttpApi` | an API the function's routes attach to; `StageName`, `AccessLogSetting` and `MethodSettings` reach the stage |
+| `AWS::Serverless::StateMachine` | a state machine; `Logging` becomes its `LoggingConfiguration`, `Policies` and `Tracing` are dropped, and `Events` is refused by name — start executions directly or from a Lambda |
 
 A SAM `Api` event becomes a `method + path -> function` route. Several functions
 may bind to the same API, and the API is deployed to SAM's default `Prod` stage

@@ -46,6 +46,9 @@ func Emit(s *provision.Stack) ([]byte, error) {
 		if sm.Type != "" && sm.Type != "STANDARD" {
 			props["StateMachineType"] = sm.Type
 		}
+		if !sm.Logging.IsZero() {
+			props["LoggingConfiguration"] = upperKeys(rawDoc(sm.Logging))
+		}
 		add("StateMachine", name, "AWS::StepFunctions::StateMachine", props)
 		if sm.Publish || len(sm.Aliases) > 0 {
 			// One version resource per machine; every alias routes to it.

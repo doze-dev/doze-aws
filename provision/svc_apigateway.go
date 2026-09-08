@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -57,8 +58,49 @@ func applyAPIs(ctx context.Context, c *client, s *Stack, rep *Report) error {
 			return fmt.Errorf("api %q: deploy: %w", name, err)
 		}
 		rep.add("updated", "api/"+name, "deployed to stage "+stage)
+		if err := applyStageLogging(ctx, c, id, stage, api); err != nil {
+			return fmt.Errorf("api %q stage %s logging: %w", name, stage, err)
+		}
 	}
 	return nil
+}
+
+// applyStageLogging patches the stage's access log and method settings the
+// way CloudFormation patches them — one UpdateStage with a replace per
+// setting — so a repeated apply converges.
+func applyStageLogging(ctx context.Context, c *client, apiID, stage string, api API) error {
+	var ops []map[string]string
+	replace := func(path, value string) {
+		ops = append(ops, map[string]string{"op": "replace", "path": path, "value": value})
+	}
+	if api.AccessLog != nil {
+		replace("/accessLogSettings/destinationArn", api.AccessLog.DestinationARN)
+		replace("/accessLogSettings/format", api.AccessLog.Format)
+	}
+	for _, ms := range api.MethodSettings {
+		path, method := ms.Path, ms.Method
+		if path == "" || path == "/*" {
+			path = "*"
+		}
+		if method == "" {
+			method = "*"
+		}
+		prefix := "/" + strings.ReplaceAll(strings.TrimPrefix(path, "/"), "/", "~1") + "/" + method
+		if path == "*" {
+			prefix = "/*/" + method
+		}
+		if ms.LoggingLevel != "" {
+			replace(prefix+"/logging/loglevel", ms.LoggingLevel)
+		}
+		replace(prefix+"/logging/dataTrace", strconv.FormatBool(ms.DataTrace))
+		replace(prefix+"/metrics/enabled", strconv.FormatBool(ms.Metrics))
+	}
+	if len(ops) == 0 {
+		return nil
+	}
+	_, err := c.do(ctx, "PATCH", "/restapis/"+apiID+"/stages/"+url.PathEscape(stage),
+		map[string]string{"Content-Type": "application/json"}, mustJSON(map[string]any{"patchOperations": ops}))
+	return err
 }
 
 // findAPI looks an API up by name, since the IR names them and API Gateway

@@ -3,13 +3,22 @@
 Tiers: **F** = functional · **C** = cosmetic round-trip · **S** = honest stub.
 
 The slice of CloudWatch Logs a developer reads: log groups, streams and
-events, written by Lambda and read by `aws logs tail --follow`, `sam logs`,
-the SDKs and the console. Every function's output lands under
-`/aws/lambda/<name>` in a stream named the way Lambda names them
-(`2026/09/07/[$LATEST]<32 hex>`, one per process), each line stamped with
-the request id of the invocation that printed it. Lambda writes through the
-same wire an SDK uses (PutLogEvents), so the two services run in one process
-or two.
+events, written by the services that write them on AWS and read by
+`aws logs tail --follow`, `sam logs`, the SDKs and the console. Every
+producer writes through the same wire an SDK uses (PutLogEvents), so the
+services run in one process or several:
+
+| Producer | Group | What a line is |
+|---|---|---|
+| [Lambda](lambda.md) | `/aws/lambda/<function>` | every line a function prints, stamped with the request id of the invocation that printed it, one stream per process named the way Lambda names them |
+| [Step Functions](stepfunctions.md) | the machine's `loggingConfiguration` destination, or `/aws/vendedlogs/states/<machine>` for an Express machine with logging off | one history event in AWS's vended JSON record, filtered by level |
+| [API Gateway](apigateway.md) | the stage's `accessLogSettings` destination; `API-Gateway-Execution-Logs_<apiId>/<stage>` | one access-log line per request in the stage's `$context` format; the execution narrative at `INFO` or `ERROR` |
+| [EventBridge](eventbridge.md) | a rule target's log group | the shaped event |
+| an application | any group it creates | whatever it puts |
+
+Every line a service writes carries a `requestId` (a doze extension) that
+FilterLogEvents can select on, so the console shows one invocation, one
+execution or one request without a filter pattern.
 
 The service speaks AWS JSON 1.1 under the `Logs_20140328` target and signs
 as `logs`. Events are kept for a day by default (`[logs].retention`), or for

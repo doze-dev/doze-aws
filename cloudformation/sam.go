@@ -65,7 +65,7 @@ func applySAMTransform(t *Template) error {
 		renameProp(r.Properties, "Type", "StateMachineType")
 		// Policies build IAM the local stack does not enforce on deploys.
 		delete(r.Properties, "Policies")
-		delete(r.Properties, "Logging")
+		renameProp(r.Properties, "Logging", "LoggingConfiguration")
 		delete(r.Properties, "Tracing")
 	}
 	return nil

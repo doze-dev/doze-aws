@@ -134,3 +134,47 @@ func (m *mapper) functionURL(props map[string]any) error {
 	})
 	return nil
 }
+
+// ---- API Gateway stage logging ----
+
+// stage maps AWS::ApiGateway::Stage: the API it names gets the stage name
+// and the stage's logging settings.
+func (m *mapper) stage(props map[string]any) error {
+	apiName := nameFromARN(propStr(props, "RestApiId"))
+	if apiName == "" {
+		return fmt.Errorf("RestApiId is required")
+	}
+	stageName := propStr(props, "StageName")
+	m.deferred = append(m.deferred, func() error {
+		api, ok := m.stack.APIs[apiName]
+		if !ok {
+			return fmt.Errorf("stage references unknown API %q", apiName)
+		}
+		if stageName != "" {
+			api.Stage = stageName
+		}
+		stageLogging(&api, props)
+		m.stack.APIs[apiName] = api
+		return nil
+	})
+	return nil
+}
+
+// stageLogging reads AccessLogSetting and MethodSettings — the same shape on
+// an AWS::ApiGateway::Stage and a Serverless::Api — onto the API.
+func stageLogging(api *provision.API, props map[string]any) {
+	if al := propMap(props, "AccessLogSetting"); al != nil {
+		api.AccessLog = &provision.APIAccessLog{DestinationARN: propStr(al, "DestinationArn"), Format: propStr(al, "Format")}
+	}
+	for _, item := range propList(props, "MethodSettings") {
+		ms, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		api.MethodSettings = append(api.MethodSettings, provision.APIMethodSetting{
+			Path: propStr(ms, "ResourcePath"), Method: propStr(ms, "HttpMethod"),
+			LoggingLevel: propStr(ms, "LoggingLevel"),
+			DataTrace:    propBool(ms, "DataTraceEnabled"), Metrics: propBool(ms, "MetricsEnabled"),
+		})
+	}
+}
