@@ -38,15 +38,10 @@ func TestUnknownSubresourceDoesNotFallThrough(t *testing.T) {
 
 	// Every unimplemented sub-resource must be refused, not re-interpreted.
 	cases := []struct{ method, path string }{
-		{http.MethodGet, "/audit?ownershipControls"},
-		{http.MethodGet, "/audit?publicAccessBlock"},
-		{http.MethodGet, "/audit?policyStatus"},
 		{http.MethodGet, "/audit?analytics"},
 		{http.MethodGet, "/audit?inventory"},
 		{http.MethodGet, "/audit?metrics"},
 		{http.MethodGet, "/audit?intelligent-tiering"},
-		{http.MethodPut, "/audit?ownershipControls"},
-		{http.MethodDelete, "/audit?publicAccessBlock"},
 		{http.MethodGet, "/audit/important.txt?torrent"},
 		{http.MethodPost, "/audit/important.txt?restore"},
 		{http.MethodPut, "/audit/important.txt?renameObject"},

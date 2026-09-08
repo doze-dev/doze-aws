@@ -368,3 +368,21 @@ func (c *Console) s3SavePolicy(w http.ResponseWriter, r *http.Request) {
 	}
 	c.s3PropsPartial(w, r, bucket)
 }
+
+// s3PublicAccess toggles block public access: on puts all four blocks
+// (PutPublicAccessBlock), off removes the configuration
+// (DeletePublicAccessBlock), so a public policy can be put.
+func (c *Console) s3PublicAccess(w http.ResponseWriter, r *http.Request) {
+	bucket := r.PathValue("bucket")
+	on := r.FormValue("enable") == "true"
+	if err := c.be.SetBlockPublicAccess(r.Context(), bucket, on); err != nil {
+		c.fail(w, err)
+		return
+	}
+	if on {
+		toast(w, "Public access blocked — a policy granting to everyone is refused")
+	} else {
+		toast(w, "Public access block removed")
+	}
+	c.s3PropsPartial(w, r, bucket)
+}

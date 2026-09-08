@@ -207,8 +207,23 @@ func Emit(s *provision.Stack) ([]byte, error) {
 			}
 			props["NotificationConfiguration"] = nc
 		}
+		if p := b.PublicAccess; p != nil {
+			props["PublicAccessBlockConfiguration"] = map[string]any{
+				"BlockPublicAcls": p.BlockPublicAcls, "IgnorePublicAcls": p.IgnorePublicAcls,
+				"BlockPublicPolicy": p.BlockPublicPolicy, "RestrictPublicBuckets": p.RestrictPublicBuckets,
+			}
+		}
+		if b.Ownership != "" {
+			props["OwnershipControls"] = map[string]any{"Rules": []any{map[string]any{"ObjectOwnership": b.Ownership}}}
+		}
 		putTags(props, b.Tags)
 		add("Bucket", name, "AWS::S3::Bucket", props)
+		if !b.Policy.IsZero() {
+			add("BucketPolicy", name, "AWS::S3::BucketPolicy", map[string]any{
+				"Bucket":         map[string]any{"Ref": logicalID("Bucket", name)},
+				"PolicyDocument": rawDoc(b.Policy),
+			})
+		}
 	}
 
 	for _, name := range sortedNames(s.Tables) {

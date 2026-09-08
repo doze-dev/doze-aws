@@ -28,6 +28,11 @@ type BucketProps struct {
 	ObjectLock bool
 	Tags       []KV
 	Configs    []BucketConfig // which optional configs exist, with raw payloads
+	// BlockPublic is the public access block: all four flags on (a new
+	// bucket's default) reads as blocked; none stored reads as off.
+	BlockPublic bool
+	// PolicyPublic is GetBucketPolicyStatus's answer for the stored policy.
+	PolicyPublic bool
 }
 
 type KV struct{ K, V string }
@@ -99,6 +104,14 @@ func (b *backend) GetBucketProps(ctx context.Context, bucket string) (*BucketPro
 		}
 		p.Configs = append(p.Configs, bc)
 	}
+	// Access: the public access block (GetPublicAccessBlock) and whether the
+	// policy makes the bucket public (GetBucketPolicyStatus).
+	if body, err := b.s3Sub(ctx, "GET", bucket, "publicAccessBlock"); err == nil {
+		p.BlockPublic = strings.Contains(string(body), "<BlockPublicPolicy>true</BlockPublicPolicy>")
+	}
+	if body, err := b.s3Sub(ctx, "GET", bucket, "policyStatus"); err == nil {
+		p.PolicyPublic = strings.Contains(string(body), "<IsPublic>true</IsPublic>")
+	}
 	return p, nil
 }
 
@@ -165,6 +178,20 @@ func (b *backend) SetQueueAttributes(ctx context.Context, name string, attrs map
 func (b *backend) s3Sub(ctx context.Context, method, bucket, sub string) ([]byte, error) {
 	req, _ := http.NewRequestWithContext(ctx, method, b.base+"/"+bucket+"?"+sub, nil)
 	return b.do(req)
+}
+
+// SetBlockPublicAccess puts every block (PutPublicAccessBlock) or removes
+// the configuration (DeletePublicAccessBlock).
+func (b *backend) SetBlockPublicAccess(ctx context.Context, bucket string, on bool) error {
+	if !on {
+		_, err := b.s3Sub(ctx, "DELETE", bucket, "publicAccessBlock")
+		return err
+	}
+	body := `<PublicAccessBlockConfiguration><BlockPublicAcls>true</BlockPublicAcls><IgnorePublicAcls>true</IgnorePublicAcls><BlockPublicPolicy>true</BlockPublicPolicy><RestrictPublicBuckets>true</RestrictPublicBuckets></PublicAccessBlockConfiguration>`
+	req, _ := http.NewRequestWithContext(ctx, "PUT", b.base+"/"+bucket+"?publicAccessBlock", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/xml")
+	_, err := b.do(req)
+	return err
 }
 
 // ---- SQS extended create ----

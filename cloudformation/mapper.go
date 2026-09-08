@@ -100,7 +100,9 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		return m.functionAlias(name, props)
 	case "AWS::Lambda::Url":
 		return m.functionURL(props)
-	case "AWS::Lambda::Permission", "AWS::S3::BucketPolicy",
+	case "AWS::S3::BucketPolicy":
+		return m.bucketPolicy(props)
+	case "AWS::Lambda::Permission",
 		"AWS::SQS::QueuePolicy", "AWS::SNS::TopicPolicy",
 		"AWS::Events::EventBus":
 		// Recognised and namable — they carry no stack-file state of their own.
@@ -432,7 +434,51 @@ func (m *mapper) bucket(name string, props map[string]any) error {
 	if nc := propMap(props, "NotificationConfiguration"); nc != nil {
 		b.Notify = append(b.Notify, notificationsFrom(nc)...)
 	}
+	bucketAccess(&b, props)
 	m.stack.Buckets[name] = b
+	return nil
+}
+
+// bucketAccess reads the access settings that have a local effect or a
+// local read-back: the public access block (BlockPublicPolicy is enforced)
+// and ownership controls (stored).
+func bucketAccess(b *provision.Bucket, props map[string]any) {
+	if pab := propMap(props, "PublicAccessBlockConfiguration"); pab != nil {
+		b.PublicAccess = &provision.PublicAccessBlock{
+			BlockPublicAcls: propBool(pab, "BlockPublicAcls"), IgnorePublicAcls: propBool(pab, "IgnorePublicAcls"),
+			BlockPublicPolicy: propBool(pab, "BlockPublicPolicy"), RestrictPublicBuckets: propBool(pab, "RestrictPublicBuckets"),
+		}
+	}
+	if oc := propMap(props, "OwnershipControls"); oc != nil {
+		for _, item := range propList(oc, "Rules") {
+			if rule, ok := item.(map[string]any); ok {
+				b.Ownership = propStr(rule, "ObjectOwnership")
+			}
+		}
+	}
+}
+
+// bucketPolicy maps AWS::S3::BucketPolicy onto its bucket, once the bucket
+// is known.
+func (m *mapper) bucketPolicy(props map[string]any) error {
+	bucket := nameFromARN(propStr(props, "Bucket"))
+	if bucket == "" {
+		return fmt.Errorf("Bucket is required")
+	}
+	doc := props["PolicyDocument"]
+	m.deferred = append(m.deferred, func() error {
+		b, ok := m.stack.Buckets[bucket]
+		if !ok {
+			return fmt.Errorf("bucket policy references unknown bucket %q", bucket)
+		}
+		raw, err := json.Marshal(doc)
+		if err != nil {
+			return fmt.Errorf("bucket policy for %q: %w", bucket, err)
+		}
+		b.Policy = provision.Doc{JSON: string(raw)}
+		m.stack.Buckets[bucket] = b
+		return nil
+	})
 	return nil
 }
 

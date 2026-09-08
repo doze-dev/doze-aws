@@ -61,6 +61,9 @@ func applyBuckets(ctx context.Context, c *client, s *Stack, rep *Report) error {
 				return fmt.Errorf("bucket %q tags: %w", name, err)
 			}
 		}
+		if err := applyBucketAccess(ctx, c, name, b); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -232,6 +235,7 @@ func exportBuckets(ctx context.Context, c *client, s *Stack) error {
 				b.Tags[xmlValue(tag, "Key")] = xmlValue(tag, "Value")
 			}
 		}
+		exportBucketAccess(ctx, c, name, &b)
 		s.Buckets[name] = b
 	}
 	return nil

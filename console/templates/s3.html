@@ -152,6 +152,13 @@
           </div><div class="opt-d">Keep every version of every object</div></div>
           <label class="switch"><input type="checkbox" {{if eq .Props.Versioning "Enabled"}}checked{{end}} hx-post="{{.Prefix}}/s3/{{.Bucket}}/versioning" hx-vals='{"enable":"{{if eq .Props.Versioning "Enabled"}}false{{else}}true{{end}}"}' hx-target="#s3-props" hx-select="unset" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label>
         </div>
+        <div class="opt-row">
+          <div><div class="opt-l">Block public access
+            {{if .Props.BlockPublic}}<span class="badge state-on">On</span>{{else}}<span class="badge state-warn">Off</span>{{end}}
+            {{if .Props.PolicyPublic}}<span class="badge state-bad" title="GetBucketPolicyStatus: the bucket policy grants to everyone">Policy is public</span>{{end}}
+          </div><div class="opt-d">A policy that grants to everyone is refused while on; every new bucket starts on, as on AWS</div></div>
+          <label class="switch"><input type="checkbox" {{if .Props.BlockPublic}}checked{{end}} hx-post="{{.Prefix}}/s3/{{.Bucket}}/public-access" hx-vals='{"enable":"{{if .Props.BlockPublic}}false{{else}}true{{end}}"}' hx-target="#s3-props" hx-select="unset" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label>
+        </div>
         <div class="opt-row"><div><div class="opt-l">Object lock {{if .Props.ObjectLock}}<span class="badge state-on">Enabled</span>{{else}}<span class="badge state-off">Disabled</span>{{end}}</div><div class="opt-d">Set at creation, immutable after</div></div></div>
         {{if .Props.ObjectLock}}
         {{/* The bucket default (PutObjectLockConfiguration); per-object

@@ -812,6 +812,24 @@ func TestS3EditingDepth(t *testing.T) {
 	if !strings.Contains(html.UnescapeString(props), `"ExpireDays": 7`) {
 		t.Fatalf("lifecycle JSON not round-tripped:\n%s", props)
 	}
+
+	// Block public access: on by default, so a public policy is refused;
+	// off, it lands and the status badge says so.
+	if !strings.Contains(props, "Block public access") || !strings.Contains(props, `state-on">On`) {
+		t.Fatalf("a new bucket should show block public access on:\n%s", props)
+	}
+	public := `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"s3:GetObject","Resource":"arn:aws:s3:::docs/*"}]}`
+	if rec := req(t, h, "POST", "/_console/s3/docs/policy", url.Values{"document": {public}}); rec.Code < 400 {
+		t.Fatalf("a public policy under the block should be refused, got %d", rec.Code)
+	}
+	props = req(t, h, "POST", "/_console/s3/docs/public-access", url.Values{"enable": {"false"}}).Body.String()
+	if !strings.Contains(props, `state-warn">Off`) {
+		t.Fatalf("the block should read off after the toggle:\n%s", props)
+	}
+	props = req(t, h, "POST", "/_console/s3/docs/policy", url.Values{"document": {public}}).Body.String()
+	if !strings.Contains(props, "Policy is public") {
+		t.Fatalf("the status badge should say the policy is public:\n%s", props)
+	}
 }
 
 // TestLambdaLifecycle covers wave C: create a function from a local build dir,

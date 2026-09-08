@@ -2246,6 +2246,24 @@
   }
  },
  {
+  "operation": "DeleteBucketEncryption",
+  "path": "Bucket",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket"
+  ],
+  "http": {
+   "method": "DELETE",
+   "uri": "/{Bucket}?encryption",
+   "bind": {
+    "Bucket": "label",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+   }
+  }
+ },
+ {
   "operation": "DeleteBucketLifecycle",
   "path": "Bucket",
   "why": "required member omitted",
@@ -2257,6 +2275,24 @@
   "http": {
    "method": "DELETE",
    "uri": "/{Bucket}?lifecycle",
+   "bind": {
+    "Bucket": "label",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+   }
+  }
+ },
+ {
+  "operation": "DeleteBucketOwnershipControls",
+  "path": "Bucket",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket"
+  ],
+  "http": {
+   "method": "DELETE",
+   "uri": "/{Bucket}?ownershipControls",
    "bind": {
     "Bucket": "label",
     "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
@@ -2738,6 +2774,24 @@
   }
  },
  {
+  "operation": "DeletePublicAccessBlock",
+  "path": "Bucket",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket"
+  ],
+  "http": {
+   "method": "DELETE",
+   "uri": "/{Bucket}?publicAccessBlock",
+   "bind": {
+    "Bucket": "label",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+   }
+  }
+ },
+ {
   "operation": "GetBucketAccelerateConfiguration",
   "path": "Bucket",
   "why": "required member omitted",
@@ -2805,6 +2859,24 @@
   "http": {
    "method": "GET",
    "uri": "/{Bucket}?cors",
+   "bind": {
+    "Bucket": "label",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+   }
+  }
+ },
+ {
+  "operation": "GetBucketEncryption",
+  "path": "Bucket",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket"
+  ],
+  "http": {
+   "method": "GET",
+   "uri": "/{Bucket}?encryption",
    "bind": {
     "Bucket": "label",
     "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
@@ -2884,6 +2956,24 @@
   }
  },
  {
+  "operation": "GetBucketOwnershipControls",
+  "path": "Bucket",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket"
+  ],
+  "http": {
+   "method": "GET",
+   "uri": "/{Bucket}?ownershipControls",
+   "bind": {
+    "Bucket": "label",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+   }
+  }
+ },
+ {
   "operation": "GetBucketPolicy",
   "path": "Bucket",
   "why": "required member omitted",
@@ -2895,6 +2985,24 @@
   "http": {
    "method": "GET",
    "uri": "/{Bucket}?policy",
+   "bind": {
+    "Bucket": "label",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+   }
+  }
+ },
+ {
+  "operation": "GetBucketPolicyStatus",
+  "path": "Bucket",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket"
+  ],
+  "http": {
+   "method": "GET",
+   "uri": "/{Bucket}?policyStatus",
    "bind": {
     "Bucket": "label",
     "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
@@ -3752,6 +3860,24 @@
     "Key": "label",
     "RequestPayer": "header:x-amz-request-payer",
     "VersionId": "query:versionId"
+   }
+  }
+ },
+ {
+  "operation": "GetPublicAccessBlock",
+  "path": "Bucket",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket"
+  ],
+  "http": {
+   "method": "GET",
+   "uri": "/{Bucket}?publicAccessBlock",
+   "bind": {
+    "Bucket": "label",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
    }
   }
  },
@@ -5200,6 +5326,181 @@
   }
  },
  {
+  "operation": "PutBucketEncryption",
+  "path": "Bucket",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket",
+   "ServerSideEncryptionConfiguration"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?encryption",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "ServerSideEncryptionConfiguration": "payload"
+   },
+   "xml_lists": {
+    "ServerSideEncryptionConfiguration.Rules": {
+     "element": "member",
+     "flattened": true
+    },
+    "ServerSideEncryptionConfiguration.Rules[].BlockedEncryptionTypes.EncryptionType": {
+     "element": "EncryptionType",
+     "flattened": true
+    }
+   },
+   "xml_names": {
+    "ServerSideEncryptionConfiguration.Rules": "Rule"
+   }
+  }
+ },
+ {
+  "operation": "PutBucketEncryption",
+  "path": "ChecksumAlgorithm",
+  "why": "not one of XXHASH128, CRC32C, SHA1, MD5, XXHASH3, CRC32, SHA256, CRC64NVME, SHA512, XXHASH64",
+  "value": "__DOZE_NOT_A_MEMBER__",
+  "constraint": "enum XXHASH128|CRC32C|SHA1|MD5|XXHASH3|CRC32|SHA256|CRC64NVME|SHA512|XXHASH64",
+  "required_members": [
+   "Bucket",
+   "ServerSideEncryptionConfiguration"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?encryption",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "ServerSideEncryptionConfiguration": "payload"
+   },
+   "xml_lists": {
+    "ServerSideEncryptionConfiguration.Rules": {
+     "element": "member",
+     "flattened": true
+    },
+    "ServerSideEncryptionConfiguration.Rules[].BlockedEncryptionTypes.EncryptionType": {
+     "element": "EncryptionType",
+     "flattened": true
+    }
+   },
+   "xml_names": {
+    "ServerSideEncryptionConfiguration.Rules": "Rule"
+   }
+  }
+ },
+ {
+  "operation": "PutBucketEncryption",
+  "path": "ServerSideEncryptionConfiguration",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket",
+   "ServerSideEncryptionConfiguration"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?encryption",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "ServerSideEncryptionConfiguration": "payload"
+   },
+   "xml_lists": {
+    "ServerSideEncryptionConfiguration.Rules": {
+     "element": "member",
+     "flattened": true
+    },
+    "ServerSideEncryptionConfiguration.Rules[].BlockedEncryptionTypes.EncryptionType": {
+     "element": "EncryptionType",
+     "flattened": true
+    }
+   },
+   "xml_names": {
+    "ServerSideEncryptionConfiguration.Rules": "Rule"
+   }
+  }
+ },
+ {
+  "operation": "PutBucketEncryption",
+  "path": "ServerSideEncryptionConfiguration.Rules",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket",
+   "ServerSideEncryptionConfiguration"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?encryption",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "ServerSideEncryptionConfiguration": "payload"
+   },
+   "xml_lists": {
+    "ServerSideEncryptionConfiguration.Rules": {
+     "element": "member",
+     "flattened": true
+    },
+    "ServerSideEncryptionConfiguration.Rules[].BlockedEncryptionTypes.EncryptionType": {
+     "element": "EncryptionType",
+     "flattened": true
+    }
+   },
+   "xml_names": {
+    "ServerSideEncryptionConfiguration.Rules": "Rule"
+   }
+  }
+ },
+ {
+  "operation": "PutBucketEncryption",
+  "path": "ServerSideEncryptionConfiguration.Rules[].ApplyServerSideEncryptionByDefault.SSEAlgorithm",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket",
+   "ServerSideEncryptionConfiguration"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?encryption",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "ServerSideEncryptionConfiguration": "payload"
+   },
+   "xml_lists": {
+    "ServerSideEncryptionConfiguration.Rules": {
+     "element": "member",
+     "flattened": true
+    },
+    "ServerSideEncryptionConfiguration.Rules[].BlockedEncryptionTypes.EncryptionType": {
+     "element": "EncryptionType",
+     "flattened": true
+    }
+   },
+   "xml_names": {
+    "ServerSideEncryptionConfiguration.Rules": "Rule"
+   }
+  }
+ },
+ {
   "operation": "PutBucketLifecycleConfiguration",
   "path": "Bucket",
   "why": "required member omitted",
@@ -6059,6 +6360,192 @@
     "NotificationConfiguration.TopicConfigurations[].Events": "Event",
     "NotificationConfiguration.TopicConfigurations[].Filter.Key": "S3Key",
     "NotificationConfiguration.TopicConfigurations[].TopicArn": "Topic"
+   }
+  }
+ },
+ {
+  "operation": "PutBucketOwnershipControls",
+  "path": "Bucket",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket",
+   "OwnershipControls"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?ownershipControls",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "OwnershipControls": "payload"
+   },
+   "xml_lists": {
+    "OwnershipControls.Rules": {
+     "element": "member",
+     "flattened": true
+    }
+   },
+   "xml_names": {
+    "OwnershipControls.Rules": "Rule"
+   }
+  }
+ },
+ {
+  "operation": "PutBucketOwnershipControls",
+  "path": "ChecksumAlgorithm",
+  "why": "not one of CRC64NVME, SHA512, XXHASH64, XXHASH128, CRC32C, SHA1, MD5, XXHASH3, CRC32, SHA256",
+  "value": "__DOZE_NOT_A_MEMBER__",
+  "constraint": "enum CRC64NVME|SHA512|XXHASH64|XXHASH128|CRC32C|SHA1|MD5|XXHASH3|CRC32|SHA256",
+  "required_members": [
+   "Bucket",
+   "OwnershipControls"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?ownershipControls",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "OwnershipControls": "payload"
+   },
+   "xml_lists": {
+    "OwnershipControls.Rules": {
+     "element": "member",
+     "flattened": true
+    }
+   },
+   "xml_names": {
+    "OwnershipControls.Rules": "Rule"
+   }
+  }
+ },
+ {
+  "operation": "PutBucketOwnershipControls",
+  "path": "OwnershipControls",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket",
+   "OwnershipControls"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?ownershipControls",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "OwnershipControls": "payload"
+   },
+   "xml_lists": {
+    "OwnershipControls.Rules": {
+     "element": "member",
+     "flattened": true
+    }
+   },
+   "xml_names": {
+    "OwnershipControls.Rules": "Rule"
+   }
+  }
+ },
+ {
+  "operation": "PutBucketOwnershipControls",
+  "path": "OwnershipControls.Rules",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket",
+   "OwnershipControls"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?ownershipControls",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "OwnershipControls": "payload"
+   },
+   "xml_lists": {
+    "OwnershipControls.Rules": {
+     "element": "member",
+     "flattened": true
+    }
+   },
+   "xml_names": {
+    "OwnershipControls.Rules": "Rule"
+   }
+  }
+ },
+ {
+  "operation": "PutBucketOwnershipControls",
+  "path": "OwnershipControls.Rules[].ObjectOwnership",
+  "why": "not one of ObjectWriter, BucketOwnerEnforced, BucketOwnerPreferred",
+  "value": "__DOZE_NOT_A_MEMBER__",
+  "constraint": "enum ObjectWriter|BucketOwnerEnforced|BucketOwnerPreferred",
+  "required_members": [
+   "Bucket",
+   "OwnershipControls"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?ownershipControls",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "OwnershipControls": "payload"
+   },
+   "xml_lists": {
+    "OwnershipControls.Rules": {
+     "element": "member",
+     "flattened": true
+    }
+   },
+   "xml_names": {
+    "OwnershipControls.Rules": "Rule"
+   }
+  }
+ },
+ {
+  "operation": "PutBucketOwnershipControls",
+  "path": "OwnershipControls.Rules[].ObjectOwnership",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket",
+   "OwnershipControls"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?ownershipControls",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "OwnershipControls": "payload"
+   },
+   "xml_lists": {
+    "OwnershipControls.Rules": {
+     "element": "member",
+     "flattened": true
+    }
+   },
+   "xml_names": {
+    "OwnershipControls.Rules": "Rule"
    }
   }
  },
@@ -8791,6 +9278,72 @@
     "Tagging.TagSet": {
      "element": "Tag"
     }
+   }
+  }
+ },
+ {
+  "operation": "PutPublicAccessBlock",
+  "path": "Bucket",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket",
+   "PublicAccessBlockConfiguration"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?publicAccessBlock",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "PublicAccessBlockConfiguration": "payload"
+   }
+  }
+ },
+ {
+  "operation": "PutPublicAccessBlock",
+  "path": "ChecksumAlgorithm",
+  "why": "not one of CRC32, SHA256, CRC64NVME, SHA512, XXHASH64, XXHASH128, CRC32C, SHA1, MD5, XXHASH3",
+  "value": "__DOZE_NOT_A_MEMBER__",
+  "constraint": "enum CRC32|SHA256|CRC64NVME|SHA512|XXHASH64|XXHASH128|CRC32C|SHA1|MD5|XXHASH3",
+  "required_members": [
+   "Bucket",
+   "PublicAccessBlockConfiguration"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?publicAccessBlock",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "PublicAccessBlockConfiguration": "payload"
+   }
+  }
+ },
+ {
+  "operation": "PutPublicAccessBlock",
+  "path": "PublicAccessBlockConfiguration",
+  "why": "required member omitted",
+  "value": null,
+  "constraint": "required",
+  "required_members": [
+   "Bucket",
+   "PublicAccessBlockConfiguration"
+  ],
+  "http": {
+   "method": "PUT",
+   "uri": "/{Bucket}?publicAccessBlock",
+   "bind": {
+    "Bucket": "label",
+    "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+    "ContentMD5": "header:Content-MD5",
+    "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+    "PublicAccessBlockConfiguration": "payload"
    }
   }
  },

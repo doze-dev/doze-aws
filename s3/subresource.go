@@ -37,9 +37,6 @@ var unsupportedBucketSubresources = map[string]string{
 	"metadataAnnotationTable": "bucket metadata annotation table configuration",
 	"metadataInventoryTable":  "bucket metadata inventory table configuration",
 	"metadataJournalTable":    "bucket metadata journal table configuration",
-	"ownershipControls":       "bucket ownership controls",
-	"publicAccessBlock":       "bucket public access block",
-	"policyStatus":            "GetBucketPolicyStatus",
 	"session":                 "CreateSession (directory buckets)",
 }
 

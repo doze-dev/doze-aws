@@ -1173,5 +1173,116 @@
   "uri": "/{Bucket}/{Key+}?x-id=UploadPartCopy",
   "xml_lists": {},
   "xml_names": {}
+ },
+ "GetPublicAccessBlock": {
+  "method": "GET",
+  "uri": "/{Bucket}?publicAccessBlock",
+  "bind": {
+   "Bucket": "label",
+   "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+  }
+ },
+ "PutPublicAccessBlock": {
+  "method": "PUT",
+  "uri": "/{Bucket}?publicAccessBlock",
+  "bind": {
+   "Bucket": "label",
+   "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+   "ContentMD5": "header:Content-MD5",
+   "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+   "PublicAccessBlockConfiguration": "payload"
+  }
+ },
+ "DeletePublicAccessBlock": {
+  "method": "DELETE",
+  "uri": "/{Bucket}?publicAccessBlock",
+  "bind": {
+   "Bucket": "label",
+   "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+  }
+ },
+ "GetBucketOwnershipControls": {
+  "method": "GET",
+  "uri": "/{Bucket}?ownershipControls",
+  "bind": {
+   "Bucket": "label",
+   "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+  }
+ },
+ "PutBucketOwnershipControls": {
+  "method": "PUT",
+  "uri": "/{Bucket}?ownershipControls",
+  "bind": {
+   "Bucket": "label",
+   "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+   "ContentMD5": "header:Content-MD5",
+   "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+   "OwnershipControls": "payload"
+  },
+  "xml_lists": {
+   "OwnershipControls.Rules": {
+    "element": "member",
+    "flattened": true
+   }
+  },
+  "xml_names": {
+   "OwnershipControls.Rules": "Rule"
+  }
+ },
+ "DeleteBucketOwnershipControls": {
+  "method": "DELETE",
+  "uri": "/{Bucket}?ownershipControls",
+  "bind": {
+   "Bucket": "label",
+   "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+  }
+ },
+ "GetBucketPolicyStatus": {
+  "method": "GET",
+  "uri": "/{Bucket}?policyStatus",
+  "bind": {
+   "Bucket": "label",
+   "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+  }
+ },
+ "GetBucketEncryption": {
+  "method": "GET",
+  "uri": "/{Bucket}?encryption",
+  "bind": {
+   "Bucket": "label",
+   "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+  }
+ },
+ "PutBucketEncryption": {
+  "method": "PUT",
+  "uri": "/{Bucket}?encryption",
+  "bind": {
+   "Bucket": "label",
+   "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+   "ContentMD5": "header:Content-MD5",
+   "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+   "ServerSideEncryptionConfiguration": "payload"
+  },
+  "xml_lists": {
+   "ServerSideEncryptionConfiguration.Rules": {
+    "element": "member",
+    "flattened": true
+   },
+   "ServerSideEncryptionConfiguration.Rules[].BlockedEncryptionTypes.EncryptionType": {
+    "element": "EncryptionType",
+    "flattened": true
+   }
+  },
+  "xml_names": {
+   "ServerSideEncryptionConfiguration.Rules": "Rule"
+  }
+ },
+ "DeleteBucketEncryption": {
+  "method": "DELETE",
+  "uri": "/{Bucket}?encryption",
+  "bind": {
+   "Bucket": "label",
+   "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+  }
  }
 }

@@ -172,7 +172,8 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/s3/{bucket}/notify-add", c.s3NotifyAdd)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/notify-remove", c.s3NotifyRemove)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/cors", c.s3SaveCORS)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/policy", c.s3SavePolicy) // HTMX partial (PutBucketPolicy)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/policy", c.s3SavePolicy)          // HTMX partial (PutBucketPolicy)
+	m.HandleFunc("POST "+p+"/s3/{bucket}/public-access", c.s3PublicAccess) // HTMX partial (PutPublicAccessBlock / DeletePublicAccessBlock; GetPublicAccessBlock and GetBucketPolicyStatus render the row)
 	m.HandleFunc("POST "+p+"/s3/{bucket}/lifecycle", c.s3SaveLifecycle)
 
 	// SQS.

@@ -98,7 +98,18 @@ func setUpFixture(t *testing.T, ts *httptest.Server) fx {
 			"ID": "audit", "Status": "Enabled",
 			"Filter":     map[string]any{"Prefix": "audit/"},
 			"Expiration": map[string]any{"Days": 30}}}}})
+	// The fixture policy grants to everyone, and a new bucket blocks public
+	// policies — as on AWS, the block has to come off before the put.
+	mk(t, ts, "PutPublicAccessBlock", map[string]any{"Bucket": bkt,
+		"PublicAccessBlockConfiguration": map[string]any{
+			"BlockPublicAcls": true, "IgnorePublicAcls": true,
+			"BlockPublicPolicy": false, "RestrictPublicBuckets": false}})
 	mk(t, ts, "PutBucketPolicy", map[string]any{"Bucket": bkt, "Policy": policyDoc})
+	mk(t, ts, "PutBucketOwnershipControls", map[string]any{"Bucket": bkt,
+		"OwnershipControls": map[string]any{"Rules": []any{map[string]any{"ObjectOwnership": "BucketOwnerEnforced"}}}})
+	mk(t, ts, "PutBucketEncryption", map[string]any{"Bucket": bkt,
+		"ServerSideEncryptionConfiguration": map[string]any{"Rules": []any{map[string]any{
+			"ApplyServerSideEncryptionByDefault": map[string]any{"SSEAlgorithm": "AES256"}}}}})
 	mk(t, ts, "PutBucketWebsite", map[string]any{"Bucket": bkt,
 		"WebsiteConfiguration": map[string]any{
 			"IndexDocument": map[string]any{"Suffix": "index.html"}}})
@@ -174,6 +185,19 @@ func baselines(f fx) map[string]map[string]any {
 		"PutBucketPolicy":                 {"Bucket": bkt, "Policy": policyDoc},
 		"GetBucketPolicy":                 b,
 		"DeleteBucketPolicy":              {"Bucket": "made-by-baseline"},
+		"GetBucketPolicyStatus":           b,
+		"PutPublicAccessBlock": {"Bucket": bkt, "PublicAccessBlockConfiguration": map[string]any{
+			"BlockPublicAcls": true, "IgnorePublicAcls": true, "BlockPublicPolicy": false, "RestrictPublicBuckets": false}},
+		"GetPublicAccessBlock":    b,
+		"DeletePublicAccessBlock": {"Bucket": "made-by-baseline"},
+		"PutBucketOwnershipControls": {"Bucket": bkt, "OwnershipControls": map[string]any{
+			"Rules": []any{map[string]any{"ObjectOwnership": "BucketOwnerEnforced"}}}},
+		"GetBucketOwnershipControls":    b,
+		"DeleteBucketOwnershipControls": {"Bucket": "made-by-baseline"},
+		"PutBucketEncryption": {"Bucket": bkt, "ServerSideEncryptionConfiguration": map[string]any{
+			"Rules": []any{map[string]any{"ApplyServerSideEncryptionByDefault": map[string]any{"SSEAlgorithm": "AES256"}}}}},
+		"GetBucketEncryption":    b,
+		"DeleteBucketEncryption": {"Bucket": "made-by-baseline"},
 		"PutBucketVersioning": {"Bucket": bkt,
 			"VersioningConfiguration": map[string]any{"Status": "Enabled"}},
 		"GetBucketVersioning": b,
@@ -295,7 +319,8 @@ func prepare(t *testing.T, ts *httptest.Server, f fx, op, mutating string, body 
 	case "DeleteBucket":
 		set("Bucket", newBucket())
 	case "DeleteBucketCors", "DeleteBucketLifecycle", "DeleteBucketPolicy",
-		"DeleteBucketReplication", "DeleteBucketTagging", "DeleteBucketWebsite":
+		"DeleteBucketReplication", "DeleteBucketTagging", "DeleteBucketWebsite",
+		"DeleteBucketEncryption", "DeleteBucketOwnershipControls", "DeletePublicAccessBlock":
 		// Deleting a sub-resource that is not there is a no-op in S3, so a
 		// fresh bucket is enough and the fixture's stays configured.
 		set("Bucket", newBucket())

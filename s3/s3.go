@@ -211,6 +211,12 @@ func (s *Server) bucketLevel(w http.ResponseWriter, r *http.Request, bucket stri
 			return s.getBucketDoc(w, bucket, "object-lock")
 		case q.Has("policy"):
 			return s.getBucketPolicy(w, bucket)
+		case q.Has("policyStatus"):
+			return s.getBucketPolicyStatus(w, bucket)
+		case q.Has("publicAccessBlock"):
+			return s.getBucketDoc(w, bucket, "publicAccessBlock")
+		case q.Has("ownershipControls"):
+			return s.getBucketDoc(w, bucket, "ownershipControls")
 		case q.Has("acl"):
 			return s.getBucketACL(w, bucket)
 		case q.Has("encryption"):
@@ -244,6 +250,10 @@ func (s *Server) bucketLevel(w http.ResponseWriter, r *http.Request, bucket stri
 			return s.putBucketDoc(w, r, bucket, "object-lock")
 		case q.Has("policy"):
 			return s.putBucketPolicy(w, r, bucket)
+		case q.Has("publicAccessBlock"):
+			return s.putPublicAccessBlock(w, r, bucket)
+		case q.Has("ownershipControls"):
+			return s.putBucketOwnershipControls(w, r, bucket)
 		case q.Has("acl"):
 			return s.putBucketACL(w, r, bucket)
 		case q.Has("encryption"):
@@ -273,6 +283,10 @@ func (s *Server) bucketLevel(w http.ResponseWriter, r *http.Request, bucket stri
 			return s.deleteBucketDoc(w, bucket, "website")
 		case q.Has("policy"):
 			return s.deleteBucketDoc(w, bucket, "policy")
+		case q.Has("publicAccessBlock"):
+			return s.deleteBucketDoc(w, bucket, "publicAccessBlock")
+		case q.Has("ownershipControls"):
+			return s.deleteBucketDoc(w, bucket, "ownershipControls")
 		case q.Has("encryption"):
 			return s.deleteBucketDoc(w, bucket, "encryption")
 		case q.Has("replication"):

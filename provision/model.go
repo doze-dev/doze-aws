@@ -164,6 +164,22 @@ type Bucket struct {
 	Lifecycle  []LifecycleRule
 	Website    *Website
 	Tags       map[string]string
+	// PublicAccess is the public access block; nil leaves the bucket's
+	// default (every block on). BlockPublicPolicy is enforced locally.
+	PublicAccess *PublicAccessBlock
+	// Ownership is the ObjectOwnership setting, stored and reported.
+	Ownership string
+	// Policy is the bucket policy document; applied after PublicAccess, so a
+	// public policy under BlockPublicPolicy fails the apply as it does on AWS.
+	Policy Doc
+}
+
+// PublicAccessBlock is S3's four-flag block public access setting.
+type PublicAccessBlock struct {
+	BlockPublicAcls       bool
+	IgnorePublicAcls      bool
+	BlockPublicPolicy     bool
+	RestrictPublicBuckets bool
 }
 
 // CORSRule mirrors one S3 CORSRule; preflight evaluation is real locally.

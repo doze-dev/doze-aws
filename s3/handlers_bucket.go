@@ -207,16 +207,22 @@ func bucketDocField(bk *s3store.Bucket, name string) *string {
 		return &bk.RequestPays
 	case "policy":
 		return &bk.Policy
+	case "publicAccessBlock":
+		return &bk.PublicAccessBlock
+	case "ownershipControls":
+		return &bk.OwnershipControls
 	}
 	return nil
 }
 
 // docMissingCode names the error S3 uses when a config document is absent.
 var docMissingCode = map[string]string{
-	"cors":      "NoSuchCORSConfiguration",
-	"lifecycle": "NoSuchLifecycleConfiguration",
-	"website":   "NoSuchWebsiteConfiguration",
-	"policy":    "NoSuchBucketPolicy",
+	"cors":              "NoSuchCORSConfiguration",
+	"lifecycle":         "NoSuchLifecycleConfiguration",
+	"website":           "NoSuchWebsiteConfiguration",
+	"policy":            "NoSuchBucketPolicy",
+	"publicAccessBlock": "NoSuchPublicAccessBlockConfiguration",
+	"ownershipControls": "OwnershipControlsNotFoundError",
 }
 
 func (s *Server) getBucketDoc(w http.ResponseWriter, bucket, name string) *awshttp.APIError {
@@ -325,11 +331,21 @@ func (s *Server) putBucketPolicy(w http.ResponseWriter, r *http.Request, bucket 
 	if aerr != nil {
 		return aerr
 	}
+	var blocked bool
 	if err := s.store.UpdateBucket(bucket, func(bk *s3store.Bucket) error {
+		// BlockPublicPolicy is the one access block with a local effect:
+		// a policy that grants to everyone is refused, as on AWS.
+		if blockedByPublicAccess(bk, doc) {
+			blocked = true
+			return nil
+		}
 		bk.Policy = doc
 		return nil
 	}); err != nil {
 		return awshttp.AsAPIError(err)
+	}
+	if blocked {
+		return awshttp.Errf(403, "AccessDenied", "User: root is not authorized to perform: s3:PutBucketPolicy on resource: %s because public policies are prevented by the BlockPublicPolicy block public access setting.", bucket)
 	}
 	w.WriteHeader(204)
 	return nil

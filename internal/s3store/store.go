@@ -40,6 +40,10 @@ func curBucket(bucket string) []byte   { return []byte("cur:" + bucket) }
 func upBucket(bucket string) []byte    { return []byte("up:" + bucket) }
 func partsBucket(bucket string) []byte { return []byte("parts:" + bucket) }
 
+// DefaultPublicAccessBlock is what a new bucket starts with: every block on,
+// which is what S3 has done for new buckets since April 2023.
+const DefaultPublicAccessBlock = `<PublicAccessBlockConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><BlockPublicAcls>true</BlockPublicAcls><IgnorePublicAcls>true</IgnorePublicAcls><BlockPublicPolicy>true</BlockPublicPolicy><RestrictPublicBuckets>true</RestrictPublicBuckets></PublicAccessBlockConfiguration>`
+
 // Bucket is a bucket's durable definition. Config documents with no local
 // behavior are stored raw and returned faithfully (Tier C).
 type Bucket struct {
@@ -53,6 +57,15 @@ type Bucket struct {
 	Lifecycle  string `json:"lifecycle,omitempty"`   // lifecycle XML document
 	Website    string `json:"website,omitempty"`     // website XML document
 	ObjectLock string `json:"object_lock,omitempty"` // object-lock XML document
+
+	// PublicAccessBlock is the bucket's public access block configuration
+	// (XML). BlockPublicPolicy is enforced on PutBucketPolicy; the ACL
+	// blocks are stored, since ACLs are canned here. A new bucket is born
+	// with all four true, as on AWS since 2023.
+	PublicAccessBlock string `json:"public_access_block,omitempty"`
+	// OwnershipControls is the ObjectOwnership setting (XML), stored only:
+	// there is no ACL evaluation on the S3 path.
+	OwnershipControls string `json:"ownership_controls,omitempty"`
 
 	// Round-trip-only configs.
 	Policy       string `json:"policy,omitempty"`
@@ -181,7 +194,7 @@ func (s *Store) CreateBucket(name string, objectLock bool) error {
 		if b.Get([]byte(name)) != nil {
 			return nil
 		}
-		bk := Bucket{Name: name, Created: s.now().Unix()}
+		bk := Bucket{Name: name, Created: s.now().Unix(), PublicAccessBlock: DefaultPublicAccessBlock}
 		if objectLock {
 			bk.ObjectLock = `<ObjectLockConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><ObjectLockEnabled>Enabled</ObjectLockEnabled></ObjectLockConfiguration>`
 			bk.Versioning = "Enabled" // object lock requires versioning
