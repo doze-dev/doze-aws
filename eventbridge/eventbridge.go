@@ -3,8 +3,8 @@
 // synchronous delivery to SQS and Lambda targets with Input / InputPath /
 // InputTransformer shaping.
 //
-// rate(...) scheduled rules are driven by a local ticker; cron(...) and
-// destinations, partner event sources, and the schemas registry are cloud
+// rate(...) and cron(...) scheduled rules are driven by a local ticker;
+// partner event sources and the schemas registry are cloud
 // infrastructure and answer honestly.
 //
 // See docs/api-support/eventbridge.md for the operation table.

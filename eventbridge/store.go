@@ -53,7 +53,7 @@ type Rule struct {
 	Bus      string `json:"bus"`
 	Name     string `json:"name"`
 	Pattern  string `json:"pattern,omitempty"`  // event pattern JSON
-	Schedule string `json:"schedule,omitempty"` // rate(...) driven by ticker; cron(...) stored only
+	Schedule string `json:"schedule,omitempty"` // rate(...) or cron(...), both driven by the ticker
 	State    string `json:"state"`              // ENABLED | DISABLED
 	Desc     string `json:"desc,omitempty"`
 	// RoleArn is the role EventBridge would assume to deliver. Nothing local

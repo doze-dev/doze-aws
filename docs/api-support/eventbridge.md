@@ -11,7 +11,7 @@ delivers to targets.
 | Operation | Tier | Notes |
 |---|---|---|
 | PutEvents | F | validates entries, matches enabled rules, delivers to SQS, SNS, Lambda and CloudWatch Logs targets with Input/InputPath/InputTransformer shaping |
-| PutRule | F | EventPattern rules; `rate(...)` schedules driven by a local ticker; `cron(...)` accepted and stored but not driven (wall-clock cron isn't useful in an ephemeral stack) |
+| PutRule | F | EventPattern rules; `rate(...)` and `cron(...)` schedules both driven by a local ticker (the six-field AWS cron: `?`, `L`, `W`, `#`, month and day names, UTC); a malformed expression is refused with AWS's message; a schedule is armed when first seen and never replays what a restart missed |
 | DeleteRule / DescribeRule / ListRules | F | |
 | EnableRule / DisableRule | F | |
 | PutTargets / RemoveTargets / ListTargetsByRule / ListRuleNamesByTarget | F | SQS, SNS, Lambda and CloudWatch Logs log-group target ARNs; a log-group target writes the shaped event as one log line, in a stream named for the rule, as AWS does |

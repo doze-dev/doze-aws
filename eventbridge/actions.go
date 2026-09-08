@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/awscron"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 	"github.com/doze-dev/doze-aws/internal/eventpattern"
@@ -273,12 +274,12 @@ func (s *Server) putRule(ctx context.Context, p map[string]any) (any, *awshttp.A
 		}
 	}
 	if schedule != "" {
-		// rate(...) is driven by the local ticker; cron(...) is accepted and
-		// stored but not driven (a wall-clock cron isn't useful in an ephemeral
-		// local stack). Anything else is malformed.
-		if _, ok := parseRate(schedule); !ok && !strings.HasPrefix(strings.TrimSpace(schedule), "cron(") {
-			return nil, awshttp.Errf(400, "ValidationException",
-				"ScheduleExpression %q is not a valid rate(...) or cron(...) expression", schedule)
+		// Both forms are driven by the local ticker; a malformed one is
+		// refused with AWS's message.
+		if _, ok := parseRate(schedule); !ok {
+			if _, err := awscron.Parse(schedule); err != nil {
+				return nil, awshttp.Errf(400, "ValidationException", "Parameter ScheduleExpression is not valid.")
+			}
 		}
 	}
 	state := awsjson.Str(p, "State")

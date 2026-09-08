@@ -8,30 +8,50 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/awscron"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
 // runScheduler ticks once a second and fires any enabled schedule-expression
-// rule whose rate interval has elapsed, delivering a "Scheduled Event" to its
-// targets. Only rate(...) is fired locally; cron(...) rules are accepted and
-// stored but not driven (documented in docs/api-support/eventbridge.md) — a
-// wall-clock cron isn't useful in an ephemeral local stack. Runs in a single
-// goroutine, so its lastFired map needs no lock.
+// rule that is due, delivering a "Scheduled Event" to its targets. rate(...)
+// fires when its interval has elapsed since the last firing; cron(...) fires
+// at the expression's next time after the last firing (internal/awscron).
+// A rule is armed the first time the scheduler sees it and fires from then
+// on: nothing is persisted across a restart and nothing missed during one
+// is replayed, which is also what a rule that was disabled gets on AWS.
+// Runs in a single goroutine, so the maps need no lock.
 func (s *Server) runScheduler(stop <-chan struct{}) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	lastFired := map[string]time.Time{}
+	compiled := map[string]*awscron.Expression{}
 	for {
 		select {
 		case <-stop:
 			return
 		case <-ticker.C:
-			s.fireDueSchedules(lastFired)
+			s.fireDueSchedules(lastFired, compiled)
 		}
 	}
 }
 
-func (s *Server) fireDueSchedules(lastFired map[string]time.Time) {
+// nextFire is when a schedule fires next, given when it last did.
+func nextFire(schedule string, last time.Time, compiled map[string]*awscron.Expression) (time.Time, bool) {
+	if interval, ok := parseRate(schedule); ok {
+		return last.Add(interval), true
+	}
+	e, ok := compiled[schedule]
+	if !ok {
+		var err error
+		if e, err = awscron.Parse(schedule); err != nil {
+			return time.Time{}, false
+		}
+		compiled[schedule] = e
+	}
+	return e.Next(last)
+}
+
+func (s *Server) fireDueSchedules(lastFired map[string]time.Time, compiled map[string]*awscron.Expression) {
 	buses, err := s.store.ListBuses()
 	if err != nil {
 		return
@@ -46,10 +66,6 @@ func (s *Server) fireDueSchedules(lastFired map[string]time.Time) {
 			if rule.State != "ENABLED" || rule.Schedule == "" {
 				continue
 			}
-			interval, ok := parseRate(rule.Schedule)
-			if !ok {
-				continue // cron(...) or malformed — not driven locally
-			}
 			key := bus.Name + "\x00" + rule.Name
 			last, seen := lastFired[key]
 			if !seen {
@@ -57,7 +73,8 @@ func (s *Server) fireDueSchedules(lastFired map[string]time.Time) {
 				lastFired[key] = now
 				continue
 			}
-			if now.Sub(last) < interval {
+			next, ok := nextFire(rule.Schedule, last, compiled)
+			if !ok || next.After(now) {
 				continue
 			}
 			lastFired[key] = now
