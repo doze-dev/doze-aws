@@ -143,7 +143,9 @@ Mapped:
 | `AWS::Lambda::Version` | publishes the function on every deploy; unchanged code and configuration keep their version. `Ref` and `Version` are a placeholder (`$published`) that an alias in the same template consumes, because the number is not known until the function is published |
 | `AWS::Lambda::Alias` | `Name`, `Description`, `FunctionVersion` (the version this deploy publishes, or an explicit number); a weighted `RoutingConfig` collapses to that version, which is where a gradual deployment ends up. `Ref` and `AliasArn` are the real alias ARN, and invoking or triggering it runs the frozen version |
 | `AWS::Lambda::Url` | `AuthType` (`NONE` and `AWS_IAM` are both served, without a signature check) and `Cors`; `FunctionUrl` is the real URL the gateway serves, shaped from the endpoint doze-aws listens on. A URL on a qualified ARN addresses the function |
-| `AWS::Events::Rule` | pattern, schedule, state, targets with `InputPath` / `Input` / `InputTransformer` |
+| `AWS::Events::Rule` | pattern, schedule, state, targets with `InputPath` / `Input` / `InputTransformer`; an API destination target (`!GetAtt Dest.Arn`) with `HttpParameters` (path values, headers, query) |
+| `AWS::Events::Connection` | `AuthorizationType` BASIC / API_KEY / OAUTH_CLIENT_CREDENTIALS with `AuthParameters` and `InvocationHttpParameters`; `Arn` is the name-form ARN the service resolves, `SecretArn` the one AWS would mint. VPC Lattice connectivity parameters are refused by name. An export blanks the secret values |
+| `AWS::Events::ApiDestination` | `ConnectionArn` (a `GetAtt` on the connection, resolved to the minted ARN at apply), `InvocationEndpoint`, `HttpMethod`, `InvocationRateLimitPerSecond` (stored, not enforced) |
 | `AWS::KMS::Key`, `::Alias` | the alias renames the key, since keys are addressed by alias |
 | `AWS::SecretsManager::Secret` | `SecretString`, or `GenerateSecretString`'s template as a placeholder |
 | `AWS::SSM::Parameter` | |

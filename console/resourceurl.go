@@ -143,6 +143,17 @@ func resourceURL(svc, id string) resourceRef {
 		// The bus is part of a rule's identity: two buses may each hold a rule
 		// called "orders", and pointing both at /eb/default/rule/orders — which
 		// is what the graph did — sends you to the wrong one, or to nothing.
+		if rest, ok := strings.CutPrefix(id, "api-destination/"); ok {
+			// api-destination/<name>/<id>: the destinations page, keyed by name.
+			n, _, _ := strings.Cut(rest, "/")
+			ref.Name, ref.Path, ref.Key = n, "/eb/destinations", "destination/"+n
+			return ref
+		}
+		if rest, ok := strings.CutPrefix(id, "connection/"); ok {
+			n, _, _ := strings.Cut(rest, "/")
+			ref.Name, ref.Path, ref.Key = n, "/eb/destinations", "connection/"+n
+			return ref
+		}
 		id = strings.TrimPrefix(id, "event-bus/")
 		id = strings.TrimPrefix(id, "rule/")
 		if bus, rule, ok := strings.Cut(id, "/"); ok {

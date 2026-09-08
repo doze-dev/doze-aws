@@ -58,6 +58,7 @@ func Apply(ctx context.Context, gateway http.Handler, s *Stack) (*Report, error)
 		{"buckets", func() error { return applyBuckets(ctx, c, s, rep) }},
 		{"functions", func() error { return applyFunctions(ctx, c, s, rep) }},
 		{"topics", func() error { return applyTopics(ctx, c, s, rep) }},
+		{"connections", func() error { return applyConnections(ctx, c, s, rep) }},
 		{"rules", func() error { return applyRules(ctx, c, s, rep) }},
 		{"notifications", func() error { return applyNotifications(ctx, c, s, rep) }},
 		{"loggroups", func() error { return applyLogGroups(ctx, c, s, rep) }},

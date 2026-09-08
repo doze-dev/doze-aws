@@ -365,6 +365,8 @@ func Emit(s *provision.Stack) ([]byte, error) {
 				m["Arn"] = arnSub("sns", t.Topic)
 			case t.Lambda != "":
 				m["Arn"] = lambdaArnSub(t.Lambda)
+			case t.APIDestination != "":
+				apiDestinationTargetProps(m, t)
 			default:
 				continue
 			}
@@ -386,6 +388,7 @@ func Emit(s *provision.Stack) ([]byte, error) {
 		}
 		add("Rule", name, "AWS::Events::Rule", props)
 	}
+	emitEventsHTTP(s, add)
 
 	for _, name := range sortedNames(s.Keys) {
 		k := s.Keys[name]

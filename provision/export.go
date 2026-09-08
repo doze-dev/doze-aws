@@ -34,6 +34,9 @@ func Export(ctx context.Context, gateway http.Handler) (*Stack, error) {
 	if err := exportTopics(ctx, c, s); err != nil {
 		return nil, err
 	}
+	if err := exportConnections(ctx, c, s); err != nil {
+		return nil, err
+	}
 	if err := exportRules(ctx, c, s); err != nil {
 		return nil, err
 	}

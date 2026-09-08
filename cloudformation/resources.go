@@ -138,6 +138,8 @@ var nameProperty = map[string]string{
 	"AWS::Serverless::Function":               "FunctionName",
 	"AWS::Events::Rule":                       "Name",
 	"AWS::Events::EventBus":                   "Name",
+	"AWS::Events::Connection":                 "Name",
+	"AWS::Events::ApiDestination":             "Name",
 	"AWS::KMS::Key":                           "", // keys are addressed by alias
 	"AWS::KMS::Alias":                         "AliasName",
 	"AWS::SecretsManager::Secret":             "Name",
@@ -387,6 +389,15 @@ func attributes(typ, name string) map[string]string {
 			"Arn":  awsident.ARN("events", "event-bus/"+name),
 			"Name": name,
 		}
+	case "AWS::Events::Connection":
+		// Name-form ARNs: the service mints the id segment at apply time and
+		// resolves a connection or destination by name when it is absent.
+		return map[string]string{
+			"Arn":       awsident.ARN("events", "connection/"+name),
+			"SecretArn": awsident.ARN("secretsmanager", "secret:events!connection/"+name),
+		}
+	case "AWS::Events::ApiDestination":
+		return map[string]string{"Arn": awsident.ARN("events", "api-destination/"+name)}
 	case "AWS::KMS::Key":
 		return map[string]string{
 			"Arn":   awsident.ARN("kms", "key/"+name),

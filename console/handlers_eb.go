@@ -212,9 +212,10 @@ func (c *Console) ebRule(w http.ResponseWriter, r *http.Request) {
 	}
 	queues, _ := c.be.ListQueues(r.Context())
 	fns, _ := c.be.ListFunctions(r.Context())
+	dests, _ := c.be.ListDestinations(r.Context())
 	buses, _ := c.be.ListBuses(r.Context())
 	c.render(w, r, "eb_rule", map[string]any{
-		"Bus": bus, "Rule": rule, "Queues": queues, "Functions": fns, "List": buses, "Title": name + " · EventBridge",
+		"Bus": bus, "Rule": rule, "Queues": queues, "Functions": fns, "Destinations": dests, "List": buses, "Title": name + " · EventBridge",
 		// bus/rule, not rule. The graph keys an EventBridge rule by both —
 		// client_flow.go builds the node as bus.Name+"/"+rl.Name, because two
 		// buses may each hold a rule called "orders" — so looking it up by the
@@ -232,8 +233,9 @@ func (c *Console) ebTargetsPartial(w http.ResponseWriter, r *http.Request, bus, 
 	}
 	queues, _ := c.be.ListQueues(r.Context())
 	fns, _ := c.be.ListFunctions(r.Context())
+	dests, _ := c.be.ListDestinations(r.Context())
 	c.partial(w, "eb_targets", map[string]any{
-		"Bus": bus, "Rule": rule, "Queues": queues, "Functions": fns,
+		"Bus": bus, "Rule": rule, "Queues": queues, "Functions": fns, "Destinations": dests,
 	})
 }
 

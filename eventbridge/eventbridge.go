@@ -1,7 +1,8 @@
 // Package eventbridge is doze-aws's local EventBridge: event buses, rules
-// with the full content-based pattern language (internal/eventpattern), and
-// synchronous delivery to SQS and Lambda targets with Input / InputPath /
-// InputTransformer shaping.
+// with the full content-based pattern language (internal/eventpattern),
+// synchronous delivery to SQS, SNS, Lambda and CloudWatch Logs targets with
+// Input / InputPath / InputTransformer shaping, and API destinations that
+// make a real HTTP request through a connection's credential.
 //
 // rate(...) and cron(...) scheduled rules are driven by a local ticker;
 // partner event sources and the schemas registry are cloud
@@ -53,6 +54,8 @@ type Server struct {
 	done     chan struct{} // closed by the scheduler goroutine when it exits
 	stopOnce sync.Once
 	logs     *logship.Shipper // log-group targets
+	http     *http.Client     // API destination deliveries
+	tokenCache
 }
 
 // New opens the store under DataDir (the default bus exists implicitly).
@@ -86,6 +89,8 @@ func New(opts Options) (*Server, error) {
 		s.now = time.Now
 	}
 	s.logs = logship.New("eventbridge", s.peers, logf)
+	s.http = &http.Client{Timeout: destinationTimeout}
+	s.tokens = map[string]oauthToken{}
 	s.stop = make(chan struct{})
 	s.done = make(chan struct{})
 	go func() {
@@ -150,16 +155,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 var stubActions = map[string]string{
-	"CreateApiDestination":           "API destinations call external endpoints via cloud infrastructure",
-	"DeleteApiDestination":           "API destinations call external endpoints via cloud infrastructure",
-	"DescribeApiDestination":         "API destinations call external endpoints via cloud infrastructure",
-	"ListApiDestinations":            "API destinations call external endpoints via cloud infrastructure",
-	"UpdateApiDestination":           "API destinations call external endpoints via cloud infrastructure",
-	"CreateConnection":               "API destinations call external endpoints via cloud infrastructure",
-	"DeleteConnection":               "API destinations call external endpoints via cloud infrastructure",
-	"DescribeConnection":             "API destinations call external endpoints via cloud infrastructure",
-	"ListConnections":                "API destinations call external endpoints via cloud infrastructure",
-	"UpdateConnection":               "API destinations call external endpoints via cloud infrastructure",
 	"ActivateEventSource":            "partner event sources are cloud infrastructure",
 	"DeactivateEventSource":          "partner event sources are cloud infrastructure",
 	"DescribeEventSource":            "partner event sources are cloud infrastructure",

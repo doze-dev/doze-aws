@@ -16,34 +16,45 @@ import (
 )
 
 var handlers = map[string]handler{
-	"PutEvents":             (*Server).putEvents,
-	"PutRule":               (*Server).putRule,
-	"DeleteRule":            (*Server).deleteRule,
-	"DescribeRule":          (*Server).describeRule,
-	"ListRules":             (*Server).listRules,
-	"EnableRule":            (*Server).enableRule,
-	"DisableRule":           (*Server).disableRule,
-	"PutTargets":            (*Server).putTargets,
-	"RemoveTargets":         (*Server).removeTargets,
-	"ListTargetsByRule":     (*Server).listTargetsByRule,
-	"ListRuleNamesByTarget": (*Server).listRuleNamesByTarget,
-	"CreateEventBus":        (*Server).createEventBus,
-	"DeleteEventBus":        (*Server).deleteEventBus,
-	"DescribeEventBus":      (*Server).describeEventBus,
-	"ListEventBuses":        (*Server).listEventBuses,
-	"TestEventPattern":      (*Server).testEventPattern,
-	"TagResource":           (*Server).tagResource,
-	"UntagResource":         (*Server).untagResource,
-	"ListTagsForResource":   (*Server).listTagsForResource,
-	"CreateArchive":         (*Server).createArchive,
-	"DescribeArchive":       (*Server).describeArchive,
-	"ListArchives":          (*Server).listArchives,
-	"UpdateArchive":         (*Server).updateArchive,
-	"DeleteArchive":         (*Server).deleteArchive,
-	"StartReplay":           (*Server).startReplay,
-	"DescribeReplay":        (*Server).describeReplay,
-	"ListReplays":           (*Server).listReplays,
-	"CancelReplay":          (*Server).cancelReplay,
+	"PutEvents":              (*Server).putEvents,
+	"PutRule":                (*Server).putRule,
+	"DeleteRule":             (*Server).deleteRule,
+	"DescribeRule":           (*Server).describeRule,
+	"ListRules":              (*Server).listRules,
+	"EnableRule":             (*Server).enableRule,
+	"DisableRule":            (*Server).disableRule,
+	"PutTargets":             (*Server).putTargets,
+	"RemoveTargets":          (*Server).removeTargets,
+	"ListTargetsByRule":      (*Server).listTargetsByRule,
+	"ListRuleNamesByTarget":  (*Server).listRuleNamesByTarget,
+	"CreateEventBus":         (*Server).createEventBus,
+	"DeleteEventBus":         (*Server).deleteEventBus,
+	"DescribeEventBus":       (*Server).describeEventBus,
+	"ListEventBuses":         (*Server).listEventBuses,
+	"TestEventPattern":       (*Server).testEventPattern,
+	"TagResource":            (*Server).tagResource,
+	"UntagResource":          (*Server).untagResource,
+	"ListTagsForResource":    (*Server).listTagsForResource,
+	"CreateArchive":          (*Server).createArchive,
+	"DescribeArchive":        (*Server).describeArchive,
+	"ListArchives":           (*Server).listArchives,
+	"UpdateArchive":          (*Server).updateArchive,
+	"DeleteArchive":          (*Server).deleteArchive,
+	"StartReplay":            (*Server).startReplay,
+	"DescribeReplay":         (*Server).describeReplay,
+	"ListReplays":            (*Server).listReplays,
+	"CancelReplay":           (*Server).cancelReplay,
+	"CreateConnection":       (*Server).createConnection,
+	"UpdateConnection":       (*Server).updateConnection,
+	"DeauthorizeConnection":  (*Server).deauthorizeConnection,
+	"DeleteConnection":       (*Server).deleteConnection,
+	"DescribeConnection":     (*Server).describeConnection,
+	"ListConnections":        (*Server).listConnections,
+	"CreateApiDestination":   (*Server).createApiDestination,
+	"UpdateApiDestination":   (*Server).updateApiDestination,
+	"DeleteApiDestination":   (*Server).deleteApiDestination,
+	"DescribeApiDestination": (*Server).describeApiDestination,
+	"ListApiDestinations":    (*Server).listApiDestinations,
 }
 
 // ---- param helpers ----
@@ -190,8 +201,10 @@ func (s *Server) dispatch(ctx context.Context, rule Rule, target Target, eventJS
 		}
 		json.Unmarshal(eventJSON, &ev)
 		s.logs.Put(strings.TrimSuffix(rest, ":*"), rule.Name, logship.Event{Timestamp: s.now().UnixMilli(), Message: string(payload), RequestID: ev.ID})
+	case strings.Contains(target.ARN, ":api-destination/"):
+		s.dispatchAPIDestination(ctx, rule, target, payload)
 	default:
-		s.logf("eventbridge: rule %s target %s: unsupported target service in %s (sqs, lambda, sns, logs supported)",
+		s.logf("eventbridge: rule %s target %s: unsupported target service in %s (sqs, lambda, sns, logs, api destinations supported)",
 			rule.Name, target.ID, target.ARN)
 	}
 }
@@ -384,6 +397,9 @@ func (s *Server) putTargets(ctx context.Context, p map[string]any) (any, *awshtt
 			}
 			t.InputTransformer = trans
 		}
+		if hp, ok := tm["HttpParameters"].(map[string]any); ok {
+			t.HttpParameters = parseTargetHTTPParameters(hp)
+		}
 		if t.ID == "" || t.ARN == "" {
 			return nil, awshttp.Errf(400, "ValidationException", "each target needs Id and Arn")
 		}
@@ -450,6 +466,9 @@ func (s *Server) listTargetsByRule(ctx context.Context, p map[string]any) (any, 
 				"InputTemplate": t.InputTransformer.Template,
 				"InputPathsMap": t.InputTransformer.PathsMap,
 			}
+		}
+		if t.HttpParameters != nil {
+			tv["HttpParameters"] = targetHTTPParametersView(t.HttpParameters)
 		}
 		targets = append(targets, tv)
 	}

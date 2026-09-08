@@ -56,8 +56,16 @@ func applyRules(ctx context.Context, c *client, s *Stack, rep *Report) error {
 					arn = topicARN(t.Topic)
 				case t.Lambda != "":
 					arn = lambdaARN(t.Lambda)
+				case t.APIDestination != "":
+					var err error
+					if arn, err = apiDestinationARN(ctx, c, t.APIDestination); err != nil {
+						return fmt.Errorf("rule %q target: %w", name, err)
+					}
 				}
 				tw := map[string]any{"Id": fmt.Sprintf("t%d", i+1), "Arn": arn}
+				if hp := targetHTTPRequest(t); hp != nil {
+					tw["HttpParameters"] = hp
+				}
 				if !t.Input.IsZero() {
 					tw["Input"] = t.Input.JSON
 				}
@@ -142,6 +150,11 @@ func exportRules(ctx context.Context, c *client, s *Stack) error {
 							InputTemplate string
 							InputPathsMap map[string]string
 						}
+						HttpParameters *struct {
+							PathParameterValues   []string
+							HeaderParameters      map[string]string
+							QueryStringParameters map[string]string
+						}
 					}
 				}
 				json.Unmarshal(out, &ts)
@@ -155,6 +168,11 @@ func exportRules(ctx context.Context, c *client, s *Stack) error {
 						tgt.Topic = leaf
 					case strings.Contains(t.Arn, ":lambda:"):
 						tgt.Lambda = strings.TrimPrefix(leaf, "function:")
+					case strings.Contains(t.Arn, ":api-destination/"):
+						tgt.APIDestination = apiDestinationNameOf(t.Arn)
+						if hp := t.HttpParameters; hp != nil {
+							tgt.PathParams, tgt.Headers, tgt.Query = hp.PathParameterValues, hp.HeaderParameters, hp.QueryStringParameters
+						}
 					default:
 						continue
 					}

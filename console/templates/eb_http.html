@@ -1,0 +1,153 @@
+{{/* API destinations: an HTTP endpoint a rule can target, authenticated by a
+     connection. Locally the delivery is a real HTTP request (one retry, 5s
+     timeout), so a local test server is a fine destination. */}}
+{{define "eb_destinations"}}{{template "shell_top" .}}
+  {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "eb"}} API destinations</div>
+      <div class="chips"><span class="dim">connections hold the credential; destinations hold the endpoint; a rule target names the destination</span></div>
+    </div>
+    <div class="det-b">
+      {{template "eb_http_tables" .}}
+      <div id="eb-http-detail"></div>
+      <div class="split">
+        <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Create connection</h2></div><div class="form-b">
+          <form hx-post="{{.Prefix}}/eb/destinations/create-connection" hx-target="#eb-http-tables" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()" x-data="{auth:'BASIC'}">
+            <div class="fgrid">
+              <div class="field"><label>Name</label><input class="input" name="name" placeholder="partner-api" required></div>
+              <div class="field"><label>Authorization</label><select class="input" name="auth_type" x-model="auth"><option value="BASIC">Basic</option><option value="API_KEY">API key header</option><option value="OAUTH_CLIENT_CREDENTIALS">OAuth client credentials</option></select></div>
+            </div>
+            {{template "eb_connection_auth_fields" .}}
+            <div class="field"><label>Description <span class="dim">optional</span></label><input class="input" name="description"></div>
+            <div class="send-foot"><button class="btn btn-sm" type="submit">Create connection</button></div>
+          </form>
+        </div></div>
+        <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Create API destination</h2></div><div class="form-b">
+          <form hx-post="{{.Prefix}}/eb/destinations/create-destination" hx-target="#eb-http-tables" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+            <div class="fgrid">
+              <div class="field"><label>Name</label><input class="input" name="name" placeholder="partner-hook" required></div>
+              <div class="field"><label>Connection</label><select class="input" name="connection" required>{{range .Connections}}<option value="{{.ARN}}">{{.Name}} · {{.AuthType}}</option>{{end}}</select></div>
+            </div>
+            <div class="field"><label>Endpoint <span class="dim">a * segment is filled by the target's path parameters</span></label><input class="input mono" name="endpoint" placeholder="http://127.0.0.1:8080/hooks/*" required></div>
+            <div class="fgrid">
+              <div class="field"><label>Method</label><select class="input" name="method"><option>POST</option><option>PUT</option><option>PATCH</option><option>GET</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option></select></div>
+              <div class="field"><label>Rate limit <span class="dim">per second, stored not enforced</span></label><input class="input" name="rate" type="number" min="0"></div>
+            </div>
+            <div class="field"><label>Description <span class="dim">optional</span></label><input class="input" name="description"></div>
+            <div class="send-foot"><button class="btn btn-sm" type="submit">Create destination</button></div>
+          </form>
+        </div></div>
+      </div>
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{/* The auth block of the create and update forms, switched by the Alpine
+     `auth` binding. Secrets go in as typed and never come back out. */}}
+{{define "eb_connection_auth_fields"}}
+<div x-show="auth==='BASIC'"><div class="fgrid">
+  <div class="field"><label>Username</label><input class="input" name="username"></div>
+  <div class="field"><label>Password</label><input class="input" name="password" type="password"></div>
+</div></div>
+<div x-show="auth==='API_KEY'"><div class="fgrid">
+  <div class="field"><label>Header name</label><input class="input" name="api_key_name" placeholder="X-Api-Key"></div>
+  <div class="field"><label>Header value</label><input class="input" name="api_key_value" type="password"></div>
+</div></div>
+<div x-show="auth==='OAUTH_CLIENT_CREDENTIALS'">
+  <div class="fgrid">
+    <div class="field"><label>Client ID</label><input class="input" name="client_id"></div>
+    <div class="field"><label>Client secret</label><input class="input" name="client_secret" type="password"></div>
+  </div>
+  <div class="fgrid">
+    <div class="field"><label>Authorization endpoint</label><input class="input mono" name="endpoint" placeholder="https://auth.example.test/oauth/token"></div>
+    <div class="field"><label>Token request method</label><select class="input" name="method"><option>POST</option><option>GET</option><option>PUT</option></select></div>
+  </div>
+</div>
+<div class="fgrid">
+  <div class="field"><label>Headers <span class="dim">key=value per line; !key marks a secret</span></label><textarea class="input mono" name="headers" rows="2"></textarea></div>
+  <div class="field"><label>Query <span class="dim">key=value per line</span></label><textarea class="input mono" name="query" rows="2"></textarea></div>
+</div>
+<div class="field"><label>Body parameters <span class="dim">merged into a JSON object event</span></label><textarea class="input mono" name="body" rows="2"></textarea></div>
+{{end}}
+
+{{define "eb_http_tables"}}
+<div id="eb-http-tables" class="split">
+  <div class="panel"><div class="panel-h"><h2>{{icon "key"}} Connections <span class="badge">{{len .Connections}}</span></h2></div>
+    {{if .Connections}}<table class="tbl"><thead><tr><th>Connection</th><th>Auth</th><th>State</th><th class="right">Actions</th></tr></thead><tbody>{{range .Connections}}
+      <tr><td class="mono"><button type="button" class="linkish" hx-get="{{$.Prefix}}/eb/destinations/connection/{{.Name}}" hx-target="#eb-http-detail" hx-select="unset" hx-swap="innerHTML">{{.Name}}</button></td>
+        <td class="dim">{{.AuthType}}</td><td><span class="badge">{{.State}}</span></td>
+        <td class="right"><div class="row-actions">
+          <button class="icon-btn sm danger" title="Delete connection" hx-post="{{$.Prefix}}/eb/destinations/delete-connection" hx-vals='{"name":"{{.Name}}"}' hx-target="#eb-http-tables" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete connection “{{.Name}}”? Its destinations go INACTIVE.">{{icon "trash"}}</button>
+        </div></td></tr>
+    {{end}}</tbody></table>{{else}}<div class="empty"><p>No connections — create one to hold a credential.</p></div>{{end}}
+  </div>
+  <div class="panel"><div class="panel-h"><h2>{{icon "send"}} API destinations <span class="badge">{{len .Destinations}}</span></h2></div>
+    {{if .Destinations}}<table class="tbl"><thead><tr><th>Destination</th><th>Endpoint</th><th>State</th><th class="right">Actions</th></tr></thead><tbody>{{range .Destinations}}
+      <tr><td class="mono"><button type="button" class="linkish" hx-get="{{$.Prefix}}/eb/destinations/destination/{{.Name}}" hx-target="#eb-http-detail" hx-select="unset" hx-swap="innerHTML">{{.Name}}</button></td>
+        <td class="mono trunc dim" title="{{.Endpoint}}">{{.Method}} {{.Endpoint}}</td><td><span class="badge">{{.State}}</span></td>
+        <td class="right"><div class="row-actions">
+          <button class="icon-btn sm danger" title="Delete destination" hx-post="{{$.Prefix}}/eb/destinations/delete-destination" hx-vals='{"name":"{{.Name}}"}' hx-target="#eb-http-tables" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete API destination “{{.Name}}”?">{{icon "trash"}}</button>
+        </div></td></tr>
+    {{end}}</tbody></table>{{else}}<div class="empty"><p>No API destinations — create one on a connection, then add it as a rule target.</p></div>{{end}}
+  </div>
+</div>
+{{end}}
+
+{{/* DescribeConnection: what the credential is (never its value), the
+     parameters every call carries, and the SecretArn a template's GetAtt
+     resolves to. Update re-authorizes with a fresh credential; Deauthorize
+     drops it and stops deliveries. */}}
+{{define "eb_connection_detail"}}
+<div id="eb-connection-detail" class="panel">
+  <div class="panel-h"><h2>Connection {{.C.Name}}</h2><span class="badge">{{.C.State}}</span></div>
+  <table class="tbl kv"><tbody>
+    <tr><td>ARN</td><td>{{template "kvcopy" .C.ARN}}</td></tr>
+    <tr><td>Secret ARN</td><td>{{template "kvcopy" .C.SecretARN}}</td></tr>
+    <tr><td>Authorization</td><td>{{.C.AuthType}}{{if .C.Username}} · user {{.C.Username}}{{end}}{{if .C.APIKeyName}} · header {{.C.APIKeyName}}{{end}}{{if .C.ClientID}} · client {{.C.ClientID}} via {{.C.Method}} {{.C.Endpoint}}{{end}}</td></tr>
+    {{if .C.Description}}<tr><td>Description</td><td>{{.C.Description}}</td></tr>{{end}}
+    {{if .C.Headers}}<tr><td>Headers</td><td class="mono">{{range .C.Headers}}{{.Key}}={{if .Secret}}••••{{else}}{{.Value}}{{end}}<br>{{end}}</td></tr>{{end}}
+    {{if .C.Query}}<tr><td>Query</td><td class="mono">{{range .C.Query}}{{.Key}}={{if .Secret}}••••{{else}}{{.Value}}{{end}}<br>{{end}}</td></tr>{{end}}
+    {{if .C.Body}}<tr><td>Body</td><td class="mono">{{range .C.Body}}{{.Key}}={{if .Secret}}••••{{else}}{{.Value}}{{end}}<br>{{end}}</td></tr>{{end}}
+    <tr><td>Created</td><td>{{.C.Created}}</td></tr>
+  </tbody></table>
+  <div class="form-b">
+    <p class="mini-note">Secrets are stored with the connection and never reported; the Secret ARN is the one AWS would mint, so a template's GetAtt resolves.</p>
+    <form hx-post="{{.Prefix}}/eb/destinations/connection/{{.C.Name}}/update" hx-target="#eb-connection-detail" hx-select="unset" hx-swap="outerHTML" x-data="{auth:'{{.C.AuthType}}'}">
+      <div class="fgrid">
+        <div class="field"><label>Description</label><input class="input" name="description" value="{{.C.Description}}"></div>
+        <div class="field"><label>Re-authorize as</label><select class="input" name="auth_type" x-model="auth"><option value="BASIC">Basic</option><option value="API_KEY">API key header</option><option value="OAUTH_CLIENT_CREDENTIALS">OAuth client credentials</option></select></div>
+      </div>
+      {{template "eb_connection_auth_fields" .}}
+      <div class="send-foot">
+        <button class="btn btn-outline btn-sm" type="button" hx-post="{{.Prefix}}/eb/destinations/connection/{{.C.Name}}/deauthorize" hx-target="#eb-connection-detail" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove the credential from “{{.C.Name}}”? Deliveries through it stop until it is updated.">Deauthorize</button>
+        <button class="btn btn-sm" type="submit">Update connection</button>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}
+
+{{define "eb_destination_detail"}}
+<div id="eb-destination-detail" class="panel">
+  <div class="panel-h"><h2>API destination {{.D.Name}}</h2><span class="badge">{{.D.State}}</span></div>
+  <table class="tbl kv"><tbody>
+    <tr><td>ARN</td><td>{{template "kvcopy" .D.ARN}}</td></tr>
+    <tr><td>Connection</td><td>{{template "kvcopy" .D.ConnectionARN}}</td></tr>
+    <tr><td>Created</td><td>{{.D.Created}}</td></tr>
+  </tbody></table>
+  <div class="form-b">
+    {{if eq .D.State "INACTIVE"}}<p class="mini-note">INACTIVE: its connection was deleted. Point it at another connection to reactivate.</p>{{end}}
+    <form hx-post="{{.Prefix}}/eb/destinations/destination/{{.D.Name}}/update" hx-target="#eb-destination-detail" hx-select="unset" hx-swap="outerHTML">
+      <div class="field"><label>Connection</label><select class="input" name="connection">{{range .Connections}}<option value="{{.ARN}}" {{if eq .ARN $.D.ConnectionARN}}selected{{end}}>{{.Name}} · {{.AuthType}}</option>{{end}}</select></div>
+      <div class="field"><label>Endpoint</label><input class="input mono" name="endpoint" value="{{.D.Endpoint}}" required></div>
+      <div class="fgrid">
+        <div class="field"><label>Method</label><select class="input" name="method">{{range $m := list "POST" "PUT" "PATCH" "GET" "DELETE" "HEAD" "OPTIONS"}}<option {{if eq $m $.D.Method}}selected{{end}}>{{$m}}</option>{{end}}</select></div>
+        <div class="field"><label>Rate limit <span class="dim">per second</span></label><input class="input" name="rate" type="number" min="0" value="{{if .D.RateLimit}}{{.D.RateLimit}}{{end}}"></div>
+      </div>
+      <div class="field"><label>Description</label><input class="input" name="description" value="{{.D.Description}}"></div>
+      <div class="send-foot"><button class="btn btn-sm" type="submit">Update destination</button></div>
+    </form>
+  </div>
+</div>
+{{end}}

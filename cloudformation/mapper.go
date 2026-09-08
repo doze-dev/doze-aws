@@ -47,6 +47,10 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		return m.eventSourceMapping(props)
 	case "AWS::Events::Rule":
 		return m.rule(name, props)
+	case "AWS::Events::Connection":
+		return m.connection(name, props)
+	case "AWS::Events::ApiDestination":
+		return m.apiDestination(name, props)
 	case "AWS::KMS::Key":
 		return m.key(name, props)
 	case "AWS::KMS::Alias":
@@ -877,8 +881,10 @@ func (m *mapper) rule(name string, props map[string]any) error {
 			t.Topic = nameFromARN(arn)
 		case strings.Contains(arn, ":lambda:"):
 			t.Lambda = nameFromARN(arn)
+		case strings.Contains(arn, ":api-destination/"):
+			apiDestinationTarget(&t, arn, tgt)
 		default:
-			return fmt.Errorf("rule target %q: doze-aws delivers to SQS, SNS and Lambda only", arn)
+			return fmt.Errorf("rule target %q: doze-aws delivers to SQS, SNS, Lambda and API destinations only", arn)
 		}
 		t.InputPath = propStr(tgt, "InputPath")
 		if raw, ok := tgt["Input"]; ok && raw != nil {

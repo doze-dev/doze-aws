@@ -44,6 +44,230 @@
     ]
   },
   {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "ConnectionArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "ConnectionArn",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1600",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "ConnectionArn",
+    "why": "longer than the maximum length of 1600",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..1600",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "ConnectionArn",
+    "why": "does not match ^arn:aws([a-z]|\\-)*:events:([a-z]|\\d|\\-)*:([0-9]{12})?:connection\\/[\\.\\-_A-Za-z0-9]+\\/[\\-A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^arn:aws([a-z]|\\-)*:events:([a-z]|\\d|\\-)*:([0-9]{12})?:connection\\/[\\.\\-_A-Za-z0-9]+\\/[\\-A-Za-z0-9]+$",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "Description",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..512",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "HttpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "HttpMethod",
+    "why": "not one of HEAD, OPTIONS, PUT, PATCH, DELETE, POST, GET",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum HEAD|OPTIONS|PUT|PATCH|DELETE|POST|GET",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "InvocationEndpoint",
+    "why": "does not match ^((%[0-9A-Fa-f]{2}|[-()_.!~*';/?:@\\x26=+$,A-Za-z0-9])+)([).!';/?:,])?$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^((%[0-9A-Fa-f]{2}|[-()_.!~*';/?:@\\x26=+$,A-Za-z0-9])+)([).!';/?:,])?$",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "InvocationEndpoint",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "InvocationEndpoint",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "InvocationEndpoint",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "InvocationRateLimitPerSecond",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..64",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "Name",
+    "why": "longer than the maximum length of 64",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..64",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateApiDestination",
+    "target": "AWSEvents.CreateApiDestination",
+    "path": "Name",
+    "why": "does not match ^[\\.\\-_A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_A-Za-z0-9]+$",
+    "required_members": [
+      "ConnectionArn",
+      "HttpMethod",
+      "InvocationEndpoint",
+      "Name"
+    ]
+  },
+  {
     "operation": "CreateArchive",
     "target": "AWSEvents.CreateArchive",
     "path": "ArchiveName",
@@ -197,6 +421,643 @@
     "required_members": [
       "ArchiveName",
       "EventSourceArn"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyName",
+    "why": "does not match ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyValue",
+    "why": "does not match ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyValue",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyValue",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyValue",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Password",
+    "why": "does not match ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Password",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Password",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Password",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Username",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Username",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Username",
+    "why": "does not match ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Username",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.ConnectivityParameters.ResourceParameters",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.ConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "why": "does not match ^(?:^arn:[a-z0-9\\-]+:vpc-lattice:[a-zA-Z0-9\\-]+:\\d{12}:resourceconfiguration/rcfg-[0-9a-z]{17}$|^$)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^(?:^arn:[a-z0-9\\-]+:vpc-lattice:[a-zA-Z0-9\\-]+:\\d{12}:resourceconfiguration/rcfg-[0-9a-z]{17}$|^$)$",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.ConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..2048",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.ConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.AuthorizationEndpoint",
+    "why": "does not match ^((%[0-9A-Fa-f]{2}|[-()_.!~*';/?:@\\x26=+$,A-Za-z0-9])+)([).!';/?:,])?$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^((%[0-9A-Fa-f]{2}|[-()_.!~*';/?:@\\x26=+$,A-Za-z0-9])+)([).!';/?:,])?$",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.AuthorizationEndpoint",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.AuthorizationEndpoint",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.AuthorizationEndpoint",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientID",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientID",
+    "why": "does not match ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientID",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientID",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientSecret",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientSecret",
+    "why": "does not match ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientSecret",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientSecret",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.HttpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthParameters.OAuthParameters.HttpMethod",
+    "why": "not one of GET, POST, PUT",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum GET|POST|PUT",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthorizationType",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "AuthorizationType",
+    "why": "not one of API_KEY, BASIC, OAUTH_CLIENT_CREDENTIALS",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum API_KEY|BASIC|OAUTH_CLIENT_CREDENTIALS",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "Description",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..512",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "InvocationConnectivityParameters.ResourceParameters",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "InvocationConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..2048",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "InvocationConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "why": "does not match ^(?:^arn:[a-z0-9\\-]+:vpc-lattice:[a-zA-Z0-9\\-]+:\\d{12}:resourceconfiguration/rcfg-[0-9a-z]{17}$|^$)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^(?:^arn:[a-z0-9\\-]+:vpc-lattice:[a-zA-Z0-9\\-]+:\\d{12}:resourceconfiguration/rcfg-[0-9a-z]{17}$|^$)$",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "InvocationConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "KmsKeyIdentifier",
+    "why": "does not match ^[a-zA-Z0-9_\\-/:]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[a-zA-Z0-9_\\-/:]*$",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "KmsKeyIdentifier",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..2048",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "Name",
+    "why": "longer than the maximum length of 64",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..64",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..64",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
+    ]
+  },
+  {
+    "operation": "CreateConnection",
+    "target": "AWSEvents.CreateConnection",
+    "path": "Name",
+    "why": "does not match ^[\\.\\-_A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_A-Za-z0-9]+$",
+    "required_members": [
+      "AuthParameters",
+      "AuthorizationType",
+      "Name"
     ]
   },
   {
@@ -409,6 +1270,94 @@
     ]
   },
   {
+    "operation": "DeauthorizeConnection",
+    "target": "AWSEvents.DeauthorizeConnection",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DeauthorizeConnection",
+    "target": "AWSEvents.DeauthorizeConnection",
+    "path": "Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DeauthorizeConnection",
+    "target": "AWSEvents.DeauthorizeConnection",
+    "path": "Name",
+    "why": "longer than the maximum length of 64",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DeauthorizeConnection",
+    "target": "AWSEvents.DeauthorizeConnection",
+    "path": "Name",
+    "why": "does not match ^[\\.\\-_A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_A-Za-z0-9]+$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DeleteApiDestination",
+    "target": "AWSEvents.DeleteApiDestination",
+    "path": "Name",
+    "why": "does not match ^[\\.\\-_A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_A-Za-z0-9]+$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DeleteApiDestination",
+    "target": "AWSEvents.DeleteApiDestination",
+    "path": "Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DeleteApiDestination",
+    "target": "AWSEvents.DeleteApiDestination",
+    "path": "Name",
+    "why": "longer than the maximum length of 64",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DeleteApiDestination",
+    "target": "AWSEvents.DeleteApiDestination",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
     "operation": "DeleteArchive",
     "target": "AWSEvents.DeleteArchive",
     "path": "ArchiveName",
@@ -450,6 +1399,50 @@
     "constraint": "length 1..48",
     "required_members": [
       "ArchiveName"
+    ]
+  },
+  {
+    "operation": "DeleteConnection",
+    "target": "AWSEvents.DeleteConnection",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DeleteConnection",
+    "target": "AWSEvents.DeleteConnection",
+    "path": "Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DeleteConnection",
+    "target": "AWSEvents.DeleteConnection",
+    "path": "Name",
+    "why": "longer than the maximum length of 64",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DeleteConnection",
+    "target": "AWSEvents.DeleteConnection",
+    "path": "Name",
+    "why": "does not match ^[\\.\\-_A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_A-Za-z0-9]+$",
+    "required_members": [
+      "Name"
     ]
   },
   {
@@ -574,6 +1567,50 @@
     ]
   },
   {
+    "operation": "DescribeApiDestination",
+    "target": "AWSEvents.DescribeApiDestination",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DescribeApiDestination",
+    "target": "AWSEvents.DescribeApiDestination",
+    "path": "Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DescribeApiDestination",
+    "target": "AWSEvents.DescribeApiDestination",
+    "path": "Name",
+    "why": "longer than the maximum length of 64",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DescribeApiDestination",
+    "target": "AWSEvents.DescribeApiDestination",
+    "path": "Name",
+    "why": "does not match ^[\\.\\-_A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_A-Za-z0-9]+$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
     "operation": "DescribeArchive",
     "target": "AWSEvents.DescribeArchive",
     "path": "ArchiveName",
@@ -615,6 +1652,50 @@
     "constraint": "length 1..48",
     "required_members": [
       "ArchiveName"
+    ]
+  },
+  {
+    "operation": "DescribeConnection",
+    "target": "AWSEvents.DescribeConnection",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DescribeConnection",
+    "target": "AWSEvents.DescribeConnection",
+    "path": "Name",
+    "why": "does not match ^[\\.\\-_A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_A-Za-z0-9]+$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DescribeConnection",
+    "target": "AWSEvents.DescribeConnection",
+    "path": "Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DescribeConnection",
+    "target": "AWSEvents.DescribeConnection",
+    "path": "Name",
+    "why": "longer than the maximum length of 64",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
     ]
   },
   {
@@ -917,6 +1998,86 @@
     ]
   },
   {
+    "operation": "ListApiDestinations",
+    "target": "AWSEvents.ListApiDestinations",
+    "path": "ConnectionArn",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1600"
+  },
+  {
+    "operation": "ListApiDestinations",
+    "target": "AWSEvents.ListApiDestinations",
+    "path": "ConnectionArn",
+    "why": "longer than the maximum length of 1600",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..1600"
+  },
+  {
+    "operation": "ListApiDestinations",
+    "target": "AWSEvents.ListApiDestinations",
+    "path": "ConnectionArn",
+    "why": "does not match ^arn:aws([a-z]|\\-)*:events:([a-z]|\\d|\\-)*:([0-9]{12})?:connection\\/[\\.\\-_A-Za-z0-9]+\\/[\\-A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^arn:aws([a-z]|\\-)*:events:([a-z]|\\d|\\-)*:([0-9]{12})?:connection\\/[\\.\\-_A-Za-z0-9]+\\/[\\-A-Za-z0-9]+$"
+  },
+  {
+    "operation": "ListApiDestinations",
+    "target": "AWSEvents.ListApiDestinations",
+    "path": "Limit",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..100"
+  },
+  {
+    "operation": "ListApiDestinations",
+    "target": "AWSEvents.ListApiDestinations",
+    "path": "Limit",
+    "why": "above the maximum of 100",
+    "value": 101,
+    "constraint": "range 1..100"
+  },
+  {
+    "operation": "ListApiDestinations",
+    "target": "AWSEvents.ListApiDestinations",
+    "path": "NamePrefix",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..64"
+  },
+  {
+    "operation": "ListApiDestinations",
+    "target": "AWSEvents.ListApiDestinations",
+    "path": "NamePrefix",
+    "why": "longer than the maximum length of 64",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..64"
+  },
+  {
+    "operation": "ListApiDestinations",
+    "target": "AWSEvents.ListApiDestinations",
+    "path": "NamePrefix",
+    "why": "does not match ^[\\.\\-_A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_A-Za-z0-9]+$"
+  },
+  {
+    "operation": "ListApiDestinations",
+    "target": "AWSEvents.ListApiDestinations",
+    "path": "NextToken",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048"
+  },
+  {
+    "operation": "ListApiDestinations",
+    "target": "AWSEvents.ListApiDestinations",
+    "path": "NextToken",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..2048"
+  },
+  {
     "operation": "ListArchives",
     "target": "AWSEvents.ListArchives",
     "path": "EventSourceArn",
@@ -1003,6 +2164,70 @@
     "why": "not one of CREATE_FAILED, UPDATE_FAILED, ENABLED, DISABLED, CREATING, UPDATING",
     "value": "__DOZE_NOT_A_MEMBER__",
     "constraint": "enum CREATE_FAILED|UPDATE_FAILED|ENABLED|DISABLED|CREATING|UPDATING"
+  },
+  {
+    "operation": "ListConnections",
+    "target": "AWSEvents.ListConnections",
+    "path": "ConnectionState",
+    "why": "not one of UPDATING, DEAUTHORIZED, AUTHORIZING, DEAUTHORIZING, ACTIVE, CREATING, DELETING, AUTHORIZED, FAILED_CONNECTIVITY",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum UPDATING|DEAUTHORIZED|AUTHORIZING|DEAUTHORIZING|ACTIVE|CREATING|DELETING|AUTHORIZED|FAILED_CONNECTIVITY"
+  },
+  {
+    "operation": "ListConnections",
+    "target": "AWSEvents.ListConnections",
+    "path": "Limit",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..100"
+  },
+  {
+    "operation": "ListConnections",
+    "target": "AWSEvents.ListConnections",
+    "path": "Limit",
+    "why": "above the maximum of 100",
+    "value": 101,
+    "constraint": "range 1..100"
+  },
+  {
+    "operation": "ListConnections",
+    "target": "AWSEvents.ListConnections",
+    "path": "NamePrefix",
+    "why": "longer than the maximum length of 64",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..64"
+  },
+  {
+    "operation": "ListConnections",
+    "target": "AWSEvents.ListConnections",
+    "path": "NamePrefix",
+    "why": "does not match ^[\\.\\-_A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_A-Za-z0-9]+$"
+  },
+  {
+    "operation": "ListConnections",
+    "target": "AWSEvents.ListConnections",
+    "path": "NamePrefix",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..64"
+  },
+  {
+    "operation": "ListConnections",
+    "target": "AWSEvents.ListConnections",
+    "path": "NextToken",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048"
+  },
+  {
+    "operation": "ListConnections",
+    "target": "AWSEvents.ListConnections",
+    "path": "NextToken",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..2048"
   },
   {
     "operation": "ListEventBuses",
@@ -3064,6 +4289,149 @@
     ]
   },
   {
+    "operation": "UpdateApiDestination",
+    "target": "AWSEvents.UpdateApiDestination",
+    "path": "ConnectionArn",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1600",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateApiDestination",
+    "target": "AWSEvents.UpdateApiDestination",
+    "path": "ConnectionArn",
+    "why": "longer than the maximum length of 1600",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..1600",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateApiDestination",
+    "target": "AWSEvents.UpdateApiDestination",
+    "path": "ConnectionArn",
+    "why": "does not match ^arn:aws([a-z]|\\-)*:events:([a-z]|\\d|\\-)*:([0-9]{12})?:connection\\/[\\.\\-_A-Za-z0-9]+\\/[\\-A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^arn:aws([a-z]|\\-)*:events:([a-z]|\\d|\\-)*:([0-9]{12})?:connection\\/[\\.\\-_A-Za-z0-9]+\\/[\\-A-Za-z0-9]+$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateApiDestination",
+    "target": "AWSEvents.UpdateApiDestination",
+    "path": "Description",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateApiDestination",
+    "target": "AWSEvents.UpdateApiDestination",
+    "path": "HttpMethod",
+    "why": "not one of DELETE, POST, GET, HEAD, OPTIONS, PUT, PATCH",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum DELETE|POST|GET|HEAD|OPTIONS|PUT|PATCH",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateApiDestination",
+    "target": "AWSEvents.UpdateApiDestination",
+    "path": "InvocationEndpoint",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateApiDestination",
+    "target": "AWSEvents.UpdateApiDestination",
+    "path": "InvocationEndpoint",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateApiDestination",
+    "target": "AWSEvents.UpdateApiDestination",
+    "path": "InvocationEndpoint",
+    "why": "does not match ^((%[0-9A-Fa-f]{2}|[-()_.!~*';/?:@\\x26=+$,A-Za-z0-9])+)([).!';/?:,])?$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^((%[0-9A-Fa-f]{2}|[-()_.!~*';/?:@\\x26=+$,A-Za-z0-9])+)([).!';/?:,])?$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateApiDestination",
+    "target": "AWSEvents.UpdateApiDestination",
+    "path": "InvocationRateLimitPerSecond",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateApiDestination",
+    "target": "AWSEvents.UpdateApiDestination",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateApiDestination",
+    "target": "AWSEvents.UpdateApiDestination",
+    "path": "Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateApiDestination",
+    "target": "AWSEvents.UpdateApiDestination",
+    "path": "Name",
+    "why": "longer than the maximum length of 64",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateApiDestination",
+    "target": "AWSEvents.UpdateApiDestination",
+    "path": "Name",
+    "why": "does not match ^[\\.\\-_A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_A-Za-z0-9]+$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
     "operation": "UpdateArchive",
     "target": "AWSEvents.UpdateArchive",
     "path": "ArchiveName",
@@ -3160,6 +4528,424 @@
     "constraint": "range 0..-",
     "required_members": [
       "ArchiveName"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyName",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyName",
+    "why": "does not match ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyValue",
+    "why": "does not match ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyValue",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyValue",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Password",
+    "why": "does not match ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Password",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Password",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Username",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Username",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.BasicAuthParameters.Username",
+    "why": "does not match ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.ConnectivityParameters.ResourceParameters",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.ConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.ConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..2048",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.ConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "why": "does not match ^(?:^arn:[a-z0-9\\-]+:vpc-lattice:[a-zA-Z0-9\\-]+:\\d{12}:resourceconfiguration/rcfg-[0-9a-z]{17}$|^$)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^(?:^arn:[a-z0-9\\-]+:vpc-lattice:[a-zA-Z0-9\\-]+:\\d{12}:resourceconfiguration/rcfg-[0-9a-z]{17}$|^$)$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.OAuthParameters.AuthorizationEndpoint",
+    "why": "does not match ^((%[0-9A-Fa-f]{2}|[-()_.!~*';/?:@\\x26=+$,A-Za-z0-9])+)([).!';/?:,])?$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^((%[0-9A-Fa-f]{2}|[-()_.!~*';/?:@\\x26=+$,A-Za-z0-9])+)([).!';/?:,])?$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.OAuthParameters.AuthorizationEndpoint",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.OAuthParameters.AuthorizationEndpoint",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientID",
+    "why": "does not match ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientID",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientID",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientSecret",
+    "why": "does not match ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[ \\t]*[^\\x00-\\x1F:\\x7F]+([ \\t]+[^\\x00-\\x1F:\\x7F]+)*[ \\t]*$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientSecret",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientSecret",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthParameters.OAuthParameters.HttpMethod",
+    "why": "not one of POST, PUT, GET",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum POST|PUT|GET",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "AuthorizationType",
+    "why": "not one of API_KEY, BASIC, OAUTH_CLIENT_CREDENTIALS",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum API_KEY|BASIC|OAUTH_CLIENT_CREDENTIALS",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "Description",
+    "why": "longer than the maximum length of 512",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..512",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "InvocationConnectivityParameters.ResourceParameters",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "InvocationConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "InvocationConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..2048",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "InvocationConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "why": "does not match ^(?:^arn:[a-z0-9\\-]+:vpc-lattice:[a-zA-Z0-9\\-]+:\\d{12}:resourceconfiguration/rcfg-[0-9a-z]{17}$|^$)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^(?:^arn:[a-z0-9\\-]+:vpc-lattice:[a-zA-Z0-9\\-]+:\\d{12}:resourceconfiguration/rcfg-[0-9a-z]{17}$|^$)$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "KmsKeyIdentifier",
+    "why": "longer than the maximum length of 2048",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..2048",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "KmsKeyIdentifier",
+    "why": "does not match ^[a-zA-Z0-9_\\-/:]*$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[a-zA-Z0-9_\\-/:]*$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "Name",
+    "why": "does not match ^[\\.\\-_A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_A-Za-z0-9]+$",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "Name",
+    "why": "longer than the maximum length of 64",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..64",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "UpdateConnection",
+    "target": "AWSEvents.UpdateConnection",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
     ]
   }
 ]

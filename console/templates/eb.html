@@ -16,7 +16,7 @@
   {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bus)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "eb"}} {{.Bus}}<div class="acts"><a class="btn" href="{{.Prefix}}/eb/{{.Bus}}/create-rule">{{icon "plus"}} Create rule</a></div></div>
+      <div class="det-title">{{awsIcon "eb"}} {{.Bus}}<div class="acts"><a class="btn btn-outline" href="{{.Prefix}}/eb/destinations">{{icon "send"}} API destinations</a><a class="btn" href="{{.Prefix}}/eb/{{.Bus}}/create-rule">{{icon "plus"}} Create rule</a></div></div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .BusARN}}</div>
     </div>
     <div class="det-b"><div class="split">
@@ -142,7 +142,7 @@
 </div>
 <div class="panel" style="margin-top:12px"><div class="panel-h"><h2>{{icon "plus"}} Add target</h2></div><div style="padding:14px 16px">
   <form hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/add-target" hx-target="#eb-targets" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
-    <div class="field"><label>Destination</label><select class="input" name="arn">{{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">SQS · {{.Name}}</option>{{end}}{{range .Functions}}<option value="{{.ARN}}">Lambda · {{.Name}}</option>{{end}}</select></div>
+    <div class="field"><label>Destination</label><select class="input" name="arn">{{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">SQS · {{.Name}}</option>{{end}}{{range .Functions}}<option value="{{.ARN}}">Lambda · {{.Name}}</option>{{end}}{{range .Destinations}}<option value="{{.ARN}}">API destination · {{.Name}}</option>{{end}}</select></div>
     <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn btn-outline" type="submit">Add target</button></div>
   </form>
 </div></div>

@@ -78,6 +78,7 @@ type fx struct {
 	ruleARN    string
 	archive    string
 	archiveARN string
+	httpFx
 }
 
 func setUpFixture(t *testing.T, ts *httptest.Server) fx {
@@ -124,6 +125,7 @@ func setUpFixture(t *testing.T, ts *httptest.Server) fx {
 	}
 	json.Unmarshal([]byte(body), &ao)
 	f.archiveARN = ao.ArchiveArn
+	f.httpFx = setUpHTTPFixture(t, ts)
 	return f
 }
 
@@ -132,7 +134,7 @@ func baselines(f fx) map[string]map[string]any {
 	rule := map[string]any{"Name": f.rule, "EventBusName": f.bus}
 	arch := map[string]any{"ArchiveName": f.archive}
 	sqsARN := "arn:aws:sqs:us-east-1:000000000000:audit-q"
-	return map[string]map[string]any{
+	out := map[string]map[string]any{
 		"CreateEventBus":   {"Name": "made-by-baseline"},
 		"DescribeEventBus": {"Name": f.bus},
 		"ListEventBuses":   {},
@@ -169,12 +171,16 @@ func baselines(f fx) map[string]map[string]any {
 		"UntagResource":       {"ResourceARN": f.ruleARN, "TagKeys": []any{"env"}},
 		"ListTagsForResource": {"ResourceARN": f.ruleARN},
 	}
+	for op, b := range httpBaselines(f.httpFx) {
+		out[op] = b
+	}
+	return out
 }
 
 // exemplars stand in for containers a baseline does not carry.
 func exemplars() map[string]any {
 	sqsARN := "arn:aws:sqs:us-east-1:000000000000:audit-q"
-	return map[string]any{
+	out := map[string]any{
 		"Tags[]":                           []any{map[string]any{"Key": "env", "Value": "dev"}},
 		"TagKeys[]":                        []any{"env"},
 		"Ids[]":                            []any{"t1"},
@@ -199,6 +205,10 @@ func exemplars() map[string]any {
 		"Destination":                           map[string]any{"Arn": "arn:aws:events:us-east-1:000000000000:event-bus/audit-bus"},
 		"Entries[]":                             []any{map[string]any{"Source": "audit", "DetailType": "t", "Detail": "{}"}},
 	}
+	for k, v := range httpExemplars() {
+		out[k] = v
+	}
+	return out
 }
 
 // prepare gives the non-idempotent operations their own preconditions, so no
@@ -247,6 +257,8 @@ func prepare(t *testing.T, ts *httptest.Server, f fx, op, mutating string, body 
 			})
 			body["ReplayName"] = name
 		}
+	default:
+		prepareHTTP(t, ts, f.httpFx, op, mutating, body, n)
 	}
 }
 

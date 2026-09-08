@@ -44,6 +44,11 @@ type Stack struct {
 	Activities    map[string]Activity
 	LogGroups     map[string]LogGroup
 	Layers        map[string]Layer
+	// Connections and APIDestinations are EventBridge's HTTP targets: a
+	// destination names the connection that authenticates it, and a rule
+	// target names the destination.
+	Connections     map[string]Connection
+	APIDestinations map[string]APIDestination
 }
 
 // LogGroup is a CloudWatch Logs log group: a name, an optional retention in
@@ -325,9 +330,16 @@ type Rule struct {
 //	    template: '{"msg": <msg>}'
 //	    paths: {msg: $.detail.message}
 type Target struct {
-	Queue  string
-	Topic  string
-	Lambda string
+	Queue          string
+	Topic          string
+	Lambda         string
+	APIDestination string // name of an APIDestination in the stack
+
+	// HTTP shaping for an API destination target: values for the endpoint's
+	// `*` segments in order, plus headers and query parameters.
+	PathParams []string
+	Headers    map[string]string
+	Query      map[string]string
 
 	Input     Doc               // literal event to deliver instead
 	InputPath string            // JSONPath into the event, e.g. $.detail

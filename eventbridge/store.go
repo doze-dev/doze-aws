@@ -40,6 +40,15 @@ type Target struct {
 	Input            string            `json:"input,omitempty"`      // literal input override
 	InputPath        string            `json:"input_path,omitempty"` // $.path extraction
 	InputTransformer *InputTransformer `json:"input_transformer,omitempty"`
+	HttpParameters   *HTTPParameters   `json:"http_parameters,omitempty"` // API destination targets only
+}
+
+// HTTPParameters shape the request an API destination target makes: values
+// for the endpoint's `*` path segments, plus headers and query parameters.
+type HTTPParameters struct {
+	PathParameterValues   []string          `json:"path,omitempty"`
+	HeaderParameters      map[string]string `json:"headers,omitempty"`
+	QueryStringParameters map[string]string `json:"query,omitempty"`
 }
 
 // InputTransformer maps event paths into a template.

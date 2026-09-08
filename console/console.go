@@ -325,6 +325,16 @@ func (c *Console) routes() {
 	// EventBridge.
 	m.HandleFunc("POST "+p+"/eb/test-pattern", c.ebTestPattern) // HTMX partial (TestEventPattern)
 	m.HandleFunc("GET "+p+"/eb", c.ebBuses)
+	m.HandleFunc("GET "+p+"/eb/destinations", c.ebDestinations)                                         // ListConnections, ListApiDestinations
+	m.HandleFunc("POST "+p+"/eb/destinations/create-connection", c.ebCreateConnection)                  // CreateConnection
+	m.HandleFunc("POST "+p+"/eb/destinations/delete-connection", c.ebDeleteConnection)                  // DeleteConnection
+	m.HandleFunc("GET "+p+"/eb/destinations/connection/{conn}", c.ebConnection)                         // DescribeConnection
+	m.HandleFunc("POST "+p+"/eb/destinations/connection/{conn}/update", c.ebUpdateConnection)           // UpdateConnection
+	m.HandleFunc("POST "+p+"/eb/destinations/connection/{conn}/deauthorize", c.ebDeauthorizeConnection) // DeauthorizeConnection
+	m.HandleFunc("POST "+p+"/eb/destinations/create-destination", c.ebCreateDestination)                // CreateApiDestination
+	m.HandleFunc("POST "+p+"/eb/destinations/delete-destination", c.ebDeleteDestination)                // DeleteApiDestination
+	m.HandleFunc("GET "+p+"/eb/destinations/destination/{dest}", c.ebDestination)                       // DescribeApiDestination
+	m.HandleFunc("POST "+p+"/eb/destinations/destination/{dest}/update", c.ebUpdateDestination)         // UpdateApiDestination
 	m.HandleFunc("POST "+p+"/eb/create-bus", c.ebCreateBus)
 	m.HandleFunc("POST "+p+"/eb/{bus}/delete-bus", c.ebDeleteBus)
 	m.HandleFunc("GET "+p+"/eb/{bus}", c.ebBus)

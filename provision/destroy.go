@@ -79,6 +79,7 @@ func Destroy(ctx context.Context, gateway http.Handler, s *Stack) (*DestroyRepor
 		{"secrets", func() error { return destroySecrets(ctx, c, s, rep) }},
 		{"loggroups", func() error { return destroyLogGroups(ctx, c, s, rep) }},
 		{"rules", func() error { return destroyRules(ctx, c, s, rep) }},
+		{"connections", func() error { return destroyConnections(ctx, c, s, rep) }},
 		{"topics", func() error { return destroyTopics(ctx, c, s, rep) }},
 		{"functions", func() error { return destroyFunctions(ctx, c, s, rep) }},
 		{"layers", func() error { return destroyLayers(ctx, c, s, rep) }},
@@ -266,11 +267,11 @@ func destroyRules(ctx context.Context, c *client, s *Stack, rep *DestroyReport) 
 	return nil
 }
 
-// targetIDs reproduces the ids Apply assigns to a rule's targets ("1", "2", …).
+// targetIDs reproduces the ids Apply assigns to a rule's targets ("t1", "t2", …).
 func targetIDs(n int) []string {
 	out := make([]string, 0, n)
 	for i := 1; i <= n; i++ {
-		out = append(out, fmt.Sprint(i))
+		out = append(out, fmt.Sprintf("t%d", i))
 	}
 	return out
 }
