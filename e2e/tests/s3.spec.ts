@@ -439,10 +439,29 @@ test.describe('bucket policy', () => {
     const add = panel.locator('.pb-add[list="iam-actions"]');
     await add.fill('s3:GetObject');
     await add.press('Enter');
+    // A new bucket blocks public policies, as on AWS: the save is refused
+    // with S3's own message, inline, and nothing lands.
     await panel.getByRole('button', { name: 'Save bucket policy' }).click();
-    let toast = await waitForToast();
+    await expect(page.locator('.err-msg')).toContainText('BlockPublicPolicy');
+    await expect(panel.locator('.badge.state-off')).toBeVisible();
+
+    // Lift the block; the same policy saves and reads back as public.
+    await page.locator('#s3-props .opt-row', { hasText: 'Block public access' }).locator('label.switch').click();
+    await waitForToast();
+    await expect(
+      page.locator('#s3-props .opt-row', { hasText: 'Block public access' }).locator('.badge').first()
+    ).toContainText('Off');
+    const again = page.locator(`.panel:has(form[hx-post$="/s3/${bucket}/policy"])`);
+    await again.getByRole('button', { name: 'Edit' }).click();
+    await again.locator('.pb-psel').first().selectOption('any');
+    const addAgain = again.locator('.pb-add[list="iam-actions"]');
+    await addAgain.fill('s3:GetObject');
+    await addAgain.press('Enter');
+    await again.getByRole('button', { name: 'Save bucket policy' }).click();
+    const toast = await waitForToast();
     expect(toast).toContain('Bucket policy saved');
     await expect(page.locator(`.panel:has(form[hx-post$="/s3/${bucket}/policy"]) .badge.state-on`)).toBeVisible();
+    await expect(page.locator('#s3-props')).toContainText('Policy is public');
   });
 });
 
@@ -471,5 +490,25 @@ test.describe('rule-rows builders', () => {
     toast = await waitForToast();
     expect(toast).toContain('Lifecycle rules saved');
     await expect(page.locator('.panel:has(form[hx-post$="/lifecycle"]) .rb-row input').nth(1)).toHaveValue('tmp/');
+  });
+});
+
+test.describe('block public access', () => {
+  test('a new bucket starts blocked; the switch lifts it and the badge follows', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const bucket = uniqueName('e2e-s3-pab');
+    await createBucket(request, bucket);
+    await page.goto(`s3/${bucket}?tab=properties`);
+    const row = () => page.locator('#s3-props .opt-row', { hasText: 'Block public access' });
+    await expect(row().locator('.badge').first()).toContainText('On');
+    await row().locator('label.switch').click();
+    await waitForToast();
+    await expect(row().locator('.badge').first()).toContainText('Off');
+    await page.reload();
+    await expect(row().locator('.badge').first()).toContainText('Off');
   });
 });

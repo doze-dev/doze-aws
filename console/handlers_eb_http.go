@@ -33,7 +33,8 @@ func (c *Console) ebDestinations(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// ebDestinationsPartial re-renders both tables after a mutation.
+// ebDestinationsPartial re-renders the tables and both create forms after a
+// mutation, so the destination form lists the connection just made.
 func (c *Console) ebDestinationsPartial(w http.ResponseWriter, r *http.Request) {
 	conns, err := c.be.ListConnections(r.Context())
 	if err != nil {
@@ -41,7 +42,7 @@ func (c *Console) ebDestinationsPartial(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	dests, _ := c.be.ListDestinations(r.Context())
-	c.partial(w, "eb_http_tables", map[string]any{"Connections": conns, "Destinations": dests})
+	c.partial(w, "eb_http_body", map[string]any{"Connections": conns, "Destinations": dests})
 }
 
 func (c *Console) ebCreateConnection(w http.ResponseWriter, r *http.Request) {

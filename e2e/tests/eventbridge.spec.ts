@@ -257,3 +257,51 @@ test.describe('pattern builder', () => {
     expect(after).toBe(before);
   });
 });
+
+test.describe('API destinations', () => {
+  test('connection and destination created, described without the secret, offered as a rule target', async ({
+    page,
+    uniqueName,
+    waitForToast,
+    setEditor,
+  }) => {
+    const conn = uniqueName('e2e-conn');
+    const dest = uniqueName('e2e-dest');
+    await page.goto('eb/destinations');
+    await expect(page.getByRole('heading', { name: 'Create connection' })).toBeVisible();
+
+    const connForm = page.locator('form[hx-post$="/create-connection"]');
+    await connForm.locator('input[name="name"]').fill(conn);
+    await connForm.locator('select[name="auth_type"]').selectOption('API_KEY');
+    await connForm.locator('input[name="api_key_name"]').fill('X-Api-Key');
+    await connForm.locator('input[name="api_key_value"]').fill('hunter2');
+    await connForm.getByRole('button', { name: 'Create connection' }).click();
+    await waitForToast();
+    await expect(page.locator('#eb-http-tables')).toContainText(conn);
+
+    // Describe: the header name shows, the value never does.
+    await page.locator('#eb-http-tables button.linkish', { hasText: conn }).click();
+    await expect(page.locator('#eb-http-detail')).toContainText('X-Api-Key');
+    await expect(page.locator('#eb-http-detail')).not.toContainText('hunter2');
+
+    const destForm = page.locator('form[hx-post$="/create-destination"]');
+    await destForm.locator('input[name="name"]').fill(dest);
+    await destForm.locator('select[name="connection"]').selectOption({ label: `${conn} · API_KEY` });
+    await destForm.locator('input[name="endpoint"]').fill('http://127.0.0.1:1/hooks/*');
+    await destForm.getByRole('button', { name: 'Create destination' }).click();
+    await waitForToast();
+    await expect(page.locator('#eb-http-tables')).toContainText(dest);
+    await expect(page.locator('#eb-http-tables')).toContainText('ACTIVE');
+
+    // The rule page offers it as a target.
+    const ruleName = uniqueName('e2e-eb-http-rule');
+    await page.goto('eb/default/create-rule');
+    await page.locator('input[name="name"]').fill(ruleName);
+    await setEditor('textarea[name="pattern"]', PATTERN);
+    await page.getByRole('button', { name: 'Create rule' }).click();
+    await page.waitForURL(new RegExp(`/eb/default/rule/${ruleName}(\\?|$)`));
+    await expect(
+      page.locator('select[name="arn"] option', { hasText: `API destination · ${dest}` })
+    ).toHaveCount(1);
+  });
+});
