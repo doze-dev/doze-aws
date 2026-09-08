@@ -99,11 +99,13 @@ func (srv *Server) deliverSQS(ctx context.Context, sub Subscription, msgID, topi
 	body, _ := json.Marshal(payload)
 	// Built here rather than via peercall.SQSSend because the payload shape is
 	// SNS's own (raw delivery vs envelope), so the step is recorded explicitly.
+	started := srv.now()
 	err := trace.Step(ctx, trace.Event{Service: "sqs", Action: "SendMessage", Resource: queue, Via: "sns:" + lastSegment(topicARN)},
 		func(ctx context.Context) error { return srv.postToSQS(ctx, ep, body) })
 	if err != nil {
 		srv.logf("sns: deliver to %s: %v", queue, err)
 	}
+	srv.logs.record(srv, topicARN, msgID, message, deliveryOutcome{protocol: "sqs", destination: sub.Endpoint, err: err, dwell: srv.now().Sub(started)})
 }
 
 func (srv *Server) postToSQS(ctx context.Context, ep peers.Endpoint, body []byte) error {
@@ -137,9 +139,12 @@ func (srv *Server) deliverLambda(ctx context.Context, sub Subscription, msgID, t
 		},
 	}
 	payload, _ := json.Marshal(map[string]any{"Records": []any{record}})
-	if err := peercall.LambdaInvokeAsync(ctx, srv.peers, fn, payload); err != nil {
+	started := srv.now()
+	err := peercall.LambdaInvokeAsync(ctx, srv.peers, fn, payload)
+	if err != nil {
 		srv.logf("sns: deliver to lambda %q: %v", fn, err)
 	}
+	srv.logs.record(srv, topicARN, msgID, message, deliveryOutcome{protocol: "lambda", destination: sub.Endpoint, status: 202, err: err, dwell: srv.now().Sub(started)})
 }
 
 // toSQSAttrs converts SNS message attributes to the SQS SendMessage JSON shape.
@@ -171,12 +176,21 @@ func (srv *Server) deliverHTTP(sub Subscription, msgID, topicARN, subject, messa
 	}
 	req.Header.Set("Content-Type", "text/plain; charset=UTF-8")
 	req.Header.Set("x-amz-sns-message-type", "Notification")
+	started := srv.now()
 	resp, err := httpDeliveryClient.Do(req)
+	outcome := deliveryOutcome{protocol: sub.Protocol, destination: sub.Endpoint, err: err}
 	if err != nil {
 		srv.logf("sns: deliver to %s: %v", sub.Endpoint, err)
-		return
+	} else {
+		_ = resp.Body.Close()
+		outcome.status = resp.StatusCode
+		if resp.StatusCode/100 != 2 {
+			// SNS counts anything but a 2xx as a failed attempt.
+			outcome.err = fmt.Errorf("endpoint answered %s", resp.Status)
+		}
 	}
-	_ = resp.Body.Close()
+	outcome.dwell = srv.now().Sub(started)
+	srv.logs.record(srv, topicARN, msgID, message, outcome)
 }
 
 // sendConfirmation posts a SubscriptionConfirmation to an http(s) endpoint so

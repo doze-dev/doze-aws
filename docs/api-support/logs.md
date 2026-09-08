@@ -14,6 +14,7 @@ services run in one process or several:
 | [Step Functions](stepfunctions.md) | the machine's `loggingConfiguration` destination, or `/aws/vendedlogs/states/<machine>` for an Express machine with logging off | one history event in AWS's vended JSON record, filtered by level |
 | [API Gateway](apigateway.md) | the stage's `accessLogSettings` destination; `API-Gateway-Execution-Logs_<apiId>/<stage>` | one access-log line per request in the stage's `$context` format; the execution narrative at `INFO` or `ERROR` |
 | [EventBridge](eventbridge.md) | a rule target's log group | the shaped event |
+| [SNS](sns.md) | `sns/us-east-1/000000000000/<topic>` and its `/Failure` group, when the topic's delivery status attributes are set | one delivery attempt in AWS's record shape |
 | an application | any group it creates | whatever it puts |
 
 Every line a service writes carries a `requestId` (a doze extension) that

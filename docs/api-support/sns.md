@@ -14,7 +14,7 @@ webhooks with the SubscriptionConfirmation handshake.
 | DeleteTopic | F | drops the topic's subscriptions too |
 | ListTopics | F | |
 | GetTopicAttributes | F | live subscription counts + stored attribute round-trips |
-| SetTopicAttributes | C→F | attributes stored and returned (DisplayName, Policy, ...); no local behavior change. The delivery status logging attributes (`*SuccessFeedbackRoleArn`, `*FailureFeedbackRoleArn`, `*SuccessFeedbackSampleRate`) round-trip and write nothing: the console's traffic wire already shows every delivery, so a per-delivery log group was not worth the weight |
+| SetTopicAttributes | C→F | attributes stored and returned (DisplayName, Policy, ...); most have no local behavior. The delivery status attributes do: `SQS`/`Lambda`/`HTTP` `SuccessFeedbackRoleArn` turns on one JSON record per successful delivery to the [CloudWatch Logs](logs.md) group `sns/us-east-1/000000000000/<topic>`, sampled by `*SuccessFeedbackSampleRate` (0–100, default 100); `*FailureFeedbackRoleArn` writes every failed attempt (a refused SQS send, a Lambda that could not be invoked, a non-2xx from a webhook) to `<group>/Failure`, in AWS's record shape (`notification`, `delivery` with destination, provider response, dwell time and status code, `status`). The role itself gates nothing: setting it is the switch |
 | TagResource / UntagResource / ListTagsForResource | F | |
 | Subscribe | F | sqs (auto-confirmed), http/https (confirmation handshake); RawMessageDelivery, FilterPolicy; other protocols stored but undeliverable locally (logged) |
 | ConfirmSubscription | F | by token, incl. the SubscribeURL flow |

@@ -30,6 +30,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/gateway"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
+	"github.com/doze-dev/doze-aws/internal/logship"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -81,6 +82,7 @@ type Server struct {
 	sinks    map[string]*logSink            // function name -> its log sink, closed with the pool
 	mappings map[string]*esm                // mapping UUID -> poller
 	pollers  sync.WaitGroup                 // tracks live ESM poller goroutines
+	logs     *logship.Shipper               // carries every function's lines to the logs service
 }
 
 // New opens the store under DataDir.
@@ -126,6 +128,7 @@ func New(opts Options) (*Server, error) {
 	if s.peers == nil {
 		s.peers = peers.None()
 	}
+	s.logs = logship.New("lambda", s.peers, s.logf)
 	if s.now == nil {
 		s.now = time.Now
 	}
@@ -156,6 +159,7 @@ func (s *Server) Close() error {
 	}
 	s.mu.Unlock()
 	s.pollers.Wait()
+	s.logs.Close()
 	return s.store.db.Close()
 }
 

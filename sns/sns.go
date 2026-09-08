@@ -64,6 +64,7 @@ type Server struct {
 	peers peers.Directory
 	logf  func(format string, args ...any)
 	now   func() time.Time
+	logs  *deliveryLogs
 }
 
 // New opens the bbolt store under DataDir.
@@ -89,11 +90,15 @@ func New(opts Options) (*Server, error) {
 	if s.now == nil {
 		s.now = time.Now
 	}
+	s.logs = newDeliveryLogs(s)
 	return s, nil
 }
 
-// Close closes the bbolt DB.
-func (s *Server) Close() error { return s.store.db.Close() }
+// Close flushes pending delivery logs and closes the bbolt DB.
+func (s *Server) Close() error {
+	s.logs.close()
+	return s.store.db.Close()
+}
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	form, err := awsquery.Params(r)

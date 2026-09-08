@@ -34,7 +34,7 @@ clients still speak.
 |---|---|---|
 | STS | ✅ | **fully audited**: 108/108 across 7 of 8 dispatched operations · no known gaps |
 | SQS | ✅ both protocols, FIFO, DLQ redrive, long polling, move tasks, tags | **fully audited**: 48/48 model-derived across 21 of 22 dispatched operations, plus hand-derived attribute and queue-name checks · no known gaps |
-| SNS | ✅ fanout to SQS/webhooks, filter policies, confirmation handshake | **fully audited**: 53/53 across 18 of 19 dispatched operations · no known gaps |
+| SNS | ✅ fanout to SQS/Lambda/webhooks, filter policies, confirmation handshake, delivery status logs to CloudWatch Logs | **fully audited**: 53/53 across 18 of 19 dispatched operations · no known gaps |
 | KMS | ✅ symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto | **fully audited**: 263/263 across all 36 dispatched operations · no known gaps |
 | SSM Parameter Store | ✅ versions, labels, hierarchies, SecureString at-rest encryption | **fully audited**: 100/100 across all 13 dispatched operations · no known gaps |
 | Secrets Manager | ✅ version stages, recovery-window deletion, encrypted at rest | **fully audited**: 132/132 across 19 of 20 dispatched operations · no known gaps |
@@ -47,7 +47,7 @@ clients still speak.
 | CloudFormation | ✅ stacks, change sets, deletion — `sam deploy`, `cdk deploy` and Serverless all work | **fully audited**: 182/182 across 22 of 23 dispatched operations · no known gaps |
 | API Gateway | ✅ REST v1 — deployed APIs actually serve into Lambda over a real HTTP endpoint; stage access and execution logs written to CloudWatch Logs | **fully audited**: 92/96 across all 31 routed operations with constrained input · 4 not expressible on the wire · no known gaps |
 | Step Functions | ✅ All 37 operations: Standard and Express, JSONPath and JSONata, versions and aliases, activities, redrive, Distributed Map with Map Runs, child executions (`.sync`), task tokens; Lambda/SQS/SNS/DynamoDB/EventBridge and `aws-sdk:` integrations for every local service; history vended to CloudWatch Logs per `loggingConfiguration`, Express runs included | **fully audited**: 229/229 across 33 of 37 operations · 19 cases consume the state they address · no known gaps |
-| CloudWatch Logs | ✅ log groups, streams and events — Lambda output, Step Functions history, API Gateway access and execution logs and EventBridge deliveries land where they do on AWS, each line with its request id, and `aws logs tail --follow`, `sam logs` and the console read it | **fully audited**: 167/167 across the 18 dispatched operations · 100 refused by name · no known gaps |
+| CloudWatch Logs | ✅ log groups, streams and events — Lambda output, Step Functions history, API Gateway access and execution logs, EventBridge deliveries and SNS delivery status land where they do on AWS, each line with its request id, and `aws logs tail --follow`, `sam logs` and the console read it | **fully audited**: 167/167 across the 18 dispatched operations · 100 refused by name · no known gaps |
 
 **Why two columns.** A ✅ means every documented operation of that service has a
 real handler, verified against both AWS SDK generations. It does **not** mean
@@ -68,7 +68,7 @@ right-hand column.
 All 16 services talk to each other: EventBridge→SQS/SNS/Lambda, S3
 notifications→SQS/SNS/Lambda, SNS→SQS/Lambda/webhooks, SQS/DynamoDB
 streams/Kinesis→Lambda, API Gateway→Lambda, Step Functions→Lambda/SQS/SNS
-and back through task tokens, Lambda/Step Functions/API Gateway/EventBridge→CloudWatch Logs.
+and back through task tokens, Lambda/Step Functions/API Gateway/EventBridge/SNS→CloudWatch Logs.
 
 ## Deploy with the tooling you already have
 

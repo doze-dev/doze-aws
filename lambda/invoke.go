@@ -260,7 +260,7 @@ func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
 	if f.ReservedConcurrency != nil {
 		max = *f.ReservedConcurrency
 	}
-	sink := newLogSink(f.Name, s.peers, s.logf, s.echo)
+	sink := newLogSink(f.Name, s.logs, s.logf, s.echo)
 	r := lambdaruntime.NewPool(lambdaruntime.Spec{
 		Name:         f.Name,
 		Handler:      f.Handler,
