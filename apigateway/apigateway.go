@@ -64,6 +64,7 @@ type Server struct {
 	peers peers.Directory
 	logf  func(format string, args ...any)
 	now   func() time.Time
+	logs  *stageLogs
 }
 
 // New opens the store under DataDir.
@@ -91,11 +92,15 @@ func New(opts Options) (*Server, error) {
 		s.store.clock = opts.Clock
 		s.now = opts.Clock
 	}
+	s.logs = newStageLogs(s)
 	return s, nil
 }
 
-// Close closes the bbolt DB.
-func (s *Server) Close() error { return s.store.db.Close() }
+// Close flushes pending logs and closes the bbolt DB.
+func (s *Server) Close() error {
+	s.logs.close()
+	return s.store.db.Close()
+}
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// The data plane is checked first: a deployed API's own paths must never
@@ -147,7 +152,7 @@ func (s *Server) routeControl(w http.ResponseWriter, r *http.Request) *awshttp.A
 	case "tags":
 		return s.routeTags(w, r, segs)
 	case "account":
-		return s.getAccount(w)
+		return s.routeAccount(w, r)
 	case "apikeys", "usageplans", "clientcertificates", "domainnames", "vpclinks", "sdktypes":
 		// Recognised families doze-aws does not model. Refusing by name beats
 		// a bare 404 that looks like a routing bug.

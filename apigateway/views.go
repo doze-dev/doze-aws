@@ -162,6 +162,16 @@ func viewStage(apiID string, st *Stage) map[string]any {
 		"cacheClusterStatus":  "NOT_AVAILABLE",
 		"methodSettings":      map[string]any{},
 	}
+	if len(st.MethodSettings) > 0 {
+		ms := map[string]any{}
+		for k, setting := range st.MethodSettings {
+			ms[k] = setting
+		}
+		v["methodSettings"] = ms
+	}
+	if st.AccessLog != nil {
+		v["accessLogSettings"] = map[string]any{"destinationArn": st.AccessLog.DestinationARN, "format": st.AccessLog.Format}
+	}
 	putIfStr(v, "deploymentId", st.DeploymentID)
 	putIfStr(v, "description", st.Description)
 	if len(st.Variables) > 0 {

@@ -236,7 +236,7 @@
 
 <div class="sec-title">Stages <span class="dim">— what is serving right now</span></div>
 <div class="table-wrap"><table class="tbl">
-  <thead><tr><th style="width:110px">Stage</th><th style="width:220px">Deployment</th><th>Invoke URL</th><th style="width:130px">Created</th><th style="width:60px"></th></tr></thead>
+  <thead><tr><th style="width:110px">Stage</th><th style="width:220px">Deployment</th><th>Invoke URL</th><th>Logs</th><th style="width:130px">Created</th><th style="width:60px"></th></tr></thead>
   <tbody>
   {{range .Stages}}
     <tr>
@@ -251,11 +251,12 @@
         </form>
       </td>
       <td class="mono sub trunc" style="max-width:340px">{{template "copychip" dict "Value" .InvokeBase}}</td>
+      <td class="sub">{{if .AccessLogGroup}}<a href="{{$.Prefix}}/logs/group?name={{.AccessLogGroup}}" title="{{.AccessLogGroup}}">access</a>{{end}}{{if .ExecutionLogGroup}}{{if .AccessLogGroup}} · {{end}}<a href="{{$.Prefix}}/logs/group?name={{.ExecutionLogGroup}}" title="{{.ExecutionLogGroup}}">execution ({{.LogLevel}})</a>{{end}}{{if not (or .AccessLogGroup .ExecutionLogGroup)}}<span class="dim">off</span>{{end}}</td>
       <td class="dim sub">{{.Created}}</td>
       <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete stage {{.Name}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-stage" hx-vals='{"name":"{{.Name}}"}' hx-confirm="Delete stage “{{.Name}}”? Callers using its URL get 404s; the deployment stays.">{{icon "trash"}}</button></div></td>
     </tr>
   {{else}}
-    <tr><td colspan="5" class="mini-note">No stages. Until the API is deployed to one, the routes exist only as a definition.</td></tr>
+    <tr><td colspan="6" class="mini-note">No stages. Until the API is deployed to one, the routes exist only as a definition.</td></tr>
   {{end}}
   </tbody>
 </table></div>

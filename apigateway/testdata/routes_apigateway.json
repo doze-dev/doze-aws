@@ -261,5 +261,20 @@
   },
   "method": "PATCH",
   "uri": "/restapis/{restApiId}/stages/{stageName}"
+ },
+ "GetAccount": {
+  "bind": {},
+  "method": "GET",
+  "uri": "/account"
+ },
+ "UpdateAccount": {
+  "bind": {},
+  "method": "PATCH",
+  "uri": "/account",
+  "xml_lists": {
+   "patchOperations": {
+    "element": "member"
+   }
+  }
  }
 }

@@ -128,6 +128,53 @@ type Stage struct {
 	Updated        int64             `json:"updated"`
 	Tags           map[string]string `json:"tags,omitempty"`
 	TracingEnabled bool              `json:"tracing_enabled,omitempty"`
+	// AccessLog is the stage's access log setting: a log group and the
+	// $context format each request is written in.
+	AccessLog *AccessLogSettings `json:"access_log,omitempty"`
+	// MethodSettings holds the per-method settings UpdateStage patches, keyed
+	// the way AWS keys them — "*/*" for the whole stage, or
+	// "<resource path>/<METHOD>" — with the values AWS reports.
+	MethodSettings map[string]map[string]any `json:"method_settings,omitempty"`
+}
+
+// AccessLogSettings is where a stage's access log goes and what it says.
+type AccessLogSettings struct {
+	DestinationARN string `json:"destination_arn"`
+	Format         string `json:"format"`
+}
+
+// Account is the account-level record: the CloudWatch role UpdateAccount
+// sets, which AWS needs before a stage may log and doze-aws only keeps.
+type Account struct {
+	CloudwatchRoleARN string `json:"cloudwatch_role_arn,omitempty"`
+}
+
+var metaBucket = []byte("meta")
+
+// GetAccount reads the account record; a zero value when none was set.
+func (s *Store) GetAccount() Account {
+	var a Account
+	s.db.View(func(tx *bolt.Tx) error {
+		if b := tx.Bucket(metaBucket); b != nil {
+			if raw := b.Get([]byte("account")); raw != nil {
+				json.Unmarshal(raw, &a)
+			}
+		}
+		return nil
+	})
+	return a
+}
+
+// PutAccount writes the account record.
+func (s *Store) PutAccount(a Account) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists(metaBucket)
+		if err != nil {
+			return err
+		}
+		raw, _ := json.Marshal(a)
+		return b.Put([]byte("account"), raw)
+	})
 }
 
 // Store is the bbolt-backed API Gateway state.

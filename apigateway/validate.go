@@ -67,6 +67,8 @@ var routes = []route{
 	{Op: "GetRestApi", Method: "GET", Segs: []string{"restapis", ""}, Labels: []string{"", "restApiId"}},
 	{Op: "UpdateRestApi", Method: "PATCH", Segs: []string{"restapis", ""}, Labels: []string{"", "restApiId"}},
 	{Op: "CreateRestApi", Method: "POST", Segs: []string{"restapis"}, Labels: []string{""}},
+	{Op: "GetAccount", Method: "GET", Segs: []string{"account"}, Labels: []string{""}},
+	{Op: "UpdateAccount", Method: "PATCH", Segs: []string{"account"}, Labels: []string{""}},
 }
 
 var constraintTables = map[string][]modelcheck.Constraint{
@@ -215,6 +217,9 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "patchOperations[].op", Kind: modelcheck.KindEnum, Enum: []string{"remove", "replace", "move", "copy", "test", "add"}},
 		{Path: "resourceId", Kind: modelcheck.KindRequired},
 		{Path: "restApiId", Kind: modelcheck.KindRequired},
+	},
+	"UpdateAccount": {
+		{Path: "patchOperations[].op", Kind: modelcheck.KindEnum, Enum: []string{"add", "remove", "replace", "move", "copy", "test"}},
 	},
 	"UpdateRestApi": {
 		{Path: "patchOperations[].op", Kind: modelcheck.KindEnum, Enum: []string{"add", "remove", "replace", "move", "copy", "test"}},

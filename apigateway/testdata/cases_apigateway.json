@@ -1952,5 +1952,21 @@
     "stageName": "label"
    }
   }
+ },
+ {
+  "operation": "UpdateAccount",
+  "path": "patchOperations[].op",
+  "why": "not one of add, remove, replace, move, copy, test",
+  "value": "__DOZE_NOT_A_MEMBER__",
+  "constraint": "enum add|remove|replace|move|copy|test",
+  "http": {
+   "method": "PATCH",
+   "uri": "/account",
+   "xml_lists": {
+    "patchOperations": {
+     "element": "member"
+    }
+   }
+  }
  }
 ]

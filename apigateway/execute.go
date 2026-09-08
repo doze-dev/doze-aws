@@ -45,30 +45,50 @@ func (s *Server) serveExecute(w http.ResponseWriter, r *http.Request, rest strin
 		writeExecuteError(w, 403, "Forbidden", "")
 		return
 	}
-	if _, ok := api.Stages[stage]; !ok {
+	st, ok := api.Stages[stage]
+	if !ok {
 		writeExecuteError(w, 404, "Not Found",
 			"Invalid stage identifier specified: "+stage)
 		return
 	}
 
+	// From here the stage exists, so the request is logged the way the
+	// stage asks — access line and execution narrative — once it is answered.
+	rl := &requestLog{
+		id: requestID(), started: s.now(), apiID: apiID, stage: stage,
+		method: strings.ToUpper(r.Method), path: path, protocol: r.Proto,
+		sourceIP: sourceIP(r), userAgent: r.UserAgent(), query: r.URL.RawQuery, headers: r.Header,
+	}
+	sw := &statusWriter{ResponseWriter: w}
+	defer func() {
+		rl.status, rl.respLength = sw.status, sw.length
+		s.logs.record(st, rl)
+	}()
+	w = sw
+
 	res, params, ok := matchResource(api, path)
 	if !ok {
+		rl.errMessage = "Missing Authentication Token"
 		writeExecuteError(w, 403, "Missing Authentication Token", "")
 		return
 	}
+	rl.resource = res.Path
 	method := s.methodFor(res, r.Method)
 	if method == nil {
+		rl.errMessage = "Missing Authentication Token"
 		writeExecuteError(w, 403, "Missing Authentication Token", "")
 		return
 	}
 	if method.Integration == nil {
+		rl.errMessage = "No integration defined for method"
 		writeExecuteError(w, 500, "Internal server error",
 			"No integration defined for method")
 		return
 	}
+	rl.integType, rl.integURI = method.Integration.Type, method.Integration.URI
 
 	s.logf("apigateway: %s %s -> %s %s", r.Method, path, method.Integration.Type, method.Integration.URI)
-	s.invokeIntegration(w, r, api, stage, res, method, params, path)
+	s.invokeIntegration(w, r, api, stage, res, method, params, path, rl)
 }
 
 // methodFor picks the method that serves a verb, honouring ANY.
@@ -164,26 +184,33 @@ func paramCount(segs []string) int {
 // ---- integrations ----
 
 func (s *Server) invokeIntegration(w http.ResponseWriter, r *http.Request, api *RestAPI,
-	stage string, res *Resource, method *Method, params map[string]string, path string) {
+	stage string, res *Resource, method *Method, params map[string]string, path string, rl *requestLog) {
 
 	integ := method.Integration
 	body, _ := io.ReadAll(io.LimitReader(r.Body, 16<<20))
+	rl.body = body
 
 	switch integ.Type {
 	case "AWS_PROXY":
-		s.invokeLambdaProxy(w, r, api, stage, res, integ, params, path, body)
+		s.invokeLambdaProxy(w, r, api, stage, res, integ, params, path, body, rl)
 	case "MOCK":
+		rl.integStart = s.now()
 		s.invokeMock(w, method, integ)
+		rl.integEnd = s.now()
 	case "HTTP", "HTTP_PROXY":
+		rl.integStart = s.now()
 		s.invokeHTTP(w, r, integ, params, body)
+		rl.integEnd = s.now()
 	case "AWS":
 		// A non-proxy AWS integration is a Velocity mapping template over an
 		// arbitrary AWS action. Emulating VTL badly would silently produce the
 		// wrong request, so it is refused instead.
+		rl.errMessage = "non-proxy AWS integrations are not emulated"
 		writeExecuteError(w, 500, "Internal server error",
 			"doze-aws implements AWS_PROXY, MOCK, HTTP and HTTP_PROXY integrations; "+
 				"non-proxy AWS integrations need Velocity mapping templates, which are not emulated")
 	default:
+		rl.errMessage = "unsupported integration type " + integ.Type
 		writeExecuteError(w, 500, "Internal server error",
 			"unsupported integration type "+integ.Type)
 	}
@@ -206,10 +233,11 @@ type proxyEvent struct {
 }
 
 func (s *Server) invokeLambdaProxy(w http.ResponseWriter, r *http.Request, api *RestAPI,
-	stage string, res *Resource, integ *Integration, params map[string]string, path string, body []byte) {
+	stage string, res *Resource, integ *Integration, params map[string]string, path string, body []byte, rl *requestLog) {
 
 	fn := lambdaFromURI(integ.URI)
 	if fn == "" {
+		rl.errMessage = "cannot tell which Lambda function the integration URI names: " + integ.URI
 		writeExecuteError(w, 500, "Internal server error",
 			"cannot tell which Lambda function the integration URI names: "+integ.URI)
 		return
@@ -227,7 +255,7 @@ func (s *Server) invokeLambdaProxy(w http.ResponseWriter, r *http.Request, api *
 			"stage":        stage,
 			"apiId":        api.ID,
 			"accountId":    awsident.AccountID,
-			"requestId":    requestID(),
+			"requestId":    rl.id,
 			"protocol":     "HTTP/1.1",
 			"identity": map[string]any{
 				"sourceIp":  sourceIP(r),
@@ -262,16 +290,22 @@ func (s *Server) invokeLambdaProxy(w http.ResponseWriter, r *http.Request, api *
 
 	payload, err := json.Marshal(ev)
 	if err != nil {
+		rl.errMessage = err.Error()
 		writeExecuteError(w, 500, "Internal server error", err.Error())
 		return
 	}
+	rl.integBody, rl.integStart = payload, s.now()
 	out, err := peercall.LambdaInvoke(r.Context(), s.peers, fn, payload)
+	rl.integEnd, rl.integResp = s.now(), out
 	if err != nil {
+		rl.errMessage = "invoking " + fn + ": " + err.Error()
 		writeExecuteError(w, 502, "Internal server error",
 			"invoking "+fn+": "+err.Error())
 		return
 	}
-	writeProxyResponse(w, out, fn)
+	if msg := writeProxyResponse(w, out, fn); msg != "" {
+		rl.errMessage = msg
+	}
 }
 
 // writeProxyResponse turns a Lambda's return value into an HTTP response.
@@ -279,7 +313,10 @@ func (s *Server) invokeLambdaProxy(w http.ResponseWriter, r *http.Request, api *
 // A handler that returns a malformed shape produces a 502 in AWS, and the same
 // here — a proxy integration's contract is the response object, so a handler
 // that ignores it has genuinely failed.
-func writeProxyResponse(w http.ResponseWriter, out []byte, fn string) {
+//
+// It reports the malformed-response message when there was one, for the
+// execution log; "" when the response went out as the function shaped it.
+func writeProxyResponse(w http.ResponseWriter, out []byte, fn string) string {
 	var resp struct {
 		StatusCode        int                 `json:"statusCode"`
 		Headers           map[string]string   `json:"headers"`
@@ -288,10 +325,10 @@ func writeProxyResponse(w http.ResponseWriter, out []byte, fn string) {
 		IsBase64Encoded   bool                `json:"isBase64Encoded"`
 	}
 	if err := json.Unmarshal(out, &resp); err != nil || resp.StatusCode == 0 {
-		writeExecuteError(w, 502, "Internal server error",
-			"function "+fn+" did not return a proxy-integration response "+
-				`({"statusCode":…,"body":…}); got: `+truncate(string(out), 200))
-		return
+		msg := "function " + fn + " did not return a proxy-integration response " +
+			`({"statusCode":…,"body":…}); got: ` + truncate(string(out), 200)
+		writeExecuteError(w, 502, "Internal server error", msg)
+		return "Malformed Lambda proxy response: " + msg
 	}
 	for k, v := range resp.Headers {
 		w.Header().Set(k, v)
@@ -310,6 +347,7 @@ func writeProxyResponse(w http.ResponseWriter, out []byte, fn string) {
 	}
 	w.WriteHeader(resp.StatusCode)
 	w.Write(body)
+	return ""
 }
 
 // invokeMock answers from the integration's own response templates, which is

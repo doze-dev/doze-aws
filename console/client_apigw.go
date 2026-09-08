@@ -80,6 +80,12 @@ type APIStage struct {
 	CacheEnabled bool
 	// InvokeBase is where a request to this stage goes.
 	InvokeBase string
+	// AccessLogGroup is the access log's group, "" when none is set;
+	// ExecutionLogGroup is the execution log's group when the stage-wide
+	// level is INFO or ERROR, "" when logging is off.
+	AccessLogGroup    string
+	ExecutionLogGroup string
+	LogLevel          string
 }
 
 // apigwSign stamps the SigV4-shaped credential scope the gateway routes
@@ -249,6 +255,12 @@ func (b *backend) APIStages(ctx context.Context, apiID, endpoint string) ([]APIS
 			Variables      map[string]string `json:"variables"`
 			TracingEnabled bool              `json:"tracingEnabled"`
 			CacheEnabled   bool              `json:"cacheClusterEnabled"`
+			AccessLog      struct {
+				DestinationArn string `json:"destinationArn"`
+			} `json:"accessLogSettings"`
+			MethodSettings map[string]struct {
+				LoggingLevel string `json:"loggingLevel"`
+			} `json:"methodSettings"`
 		} `json:"item"`
 	}
 	if err := b.apigwGet(ctx, "/restapis/"+url.PathEscape(apiID)+"/stages", &out); err != nil {
@@ -256,12 +268,20 @@ func (b *backend) APIStages(ctx context.Context, apiID, endpoint string) ([]APIS
 	}
 	stages := make([]APIStage, 0, len(out.Item))
 	for _, s := range out.Item {
-		stages = append(stages, APIStage{
+		st := APIStage{
 			Name: s.StageName, DeploymentID: s.DeploymentID, Description: s.Description,
 			Created: epochTime(s.CreatedDate), Variables: s.Variables,
 			Tracing: s.TracingEnabled, CacheEnabled: s.CacheEnabled,
 			InvokeBase: "http://" + endpoint + "/_aws/execute-api/" + apiID + "/" + s.StageName,
-		})
+		}
+		if _, rest, ok := strings.Cut(s.AccessLog.DestinationArn, ":log-group:"); ok {
+			st.AccessLogGroup = strings.TrimSuffix(rest, ":*")
+		}
+		if level := s.MethodSettings["*/*"].LoggingLevel; level != "" && level != "OFF" {
+			st.LogLevel = level
+			st.ExecutionLogGroup = "API-Gateway-Execution-Logs_" + apiID + "/" + s.StageName
+		}
+		stages = append(stages, st)
 	}
 	sort.Slice(stages, func(i, j int) bool { return stages[i].Name < stages[j].Name })
 	return stages, nil

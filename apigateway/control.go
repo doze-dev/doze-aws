@@ -889,6 +889,30 @@ func (s *Server) patchStage(w http.ResponseWriter, r *http.Request, apiID, name 
 				} else {
 					st.Variables[key] = op.Value
 				}
+			case op.Path == "/accessLogSettings" && op.Op == "remove":
+				st.AccessLog = nil
+			case op.Path == "/accessLogSettings/destinationArn", op.Path == "/accessLogSettings/format":
+				if st.AccessLog == nil {
+					st.AccessLog = &AccessLogSettings{}
+				}
+				if op.Path == "/accessLogSettings/destinationArn" {
+					if op.Value != "" && logGroupFromARN(op.Value) == "" {
+						return errBadRequest("Invalid patch value '%s' for path '/accessLogSettings/destinationArn': a CloudWatch Logs log group ARN is required", op.Value)
+					}
+					st.AccessLog.DestinationARN = op.Value
+				} else {
+					st.AccessLog.Format = op.Value
+				}
+			default:
+				handled, err := applyMethodSettingPatch(st, op)
+				if err != nil {
+					return err
+				}
+				if !handled {
+					// AWS refuses a path it does not know rather than
+					// answering success for a change it did not make.
+					return errBadRequest("Invalid patch path '%s'", op.Path)
+				}
 			}
 		}
 		st.Updated = s.now().Unix()
@@ -965,9 +989,36 @@ func apiIDFromARN(arn string) string {
 	return arn
 }
 
-func (s *Server) getAccount(w http.ResponseWriter) *awshttp.APIError {
+// routeAccount is GetAccount and UpdateAccount. The CloudWatch role is what
+// AWS needs before a stage may log; here it is kept so a deploy that sets
+// it (the CDK's `cloudWatchRole: true`) reads back what it wrote.
+func (s *Server) routeAccount(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
+	acct := s.store.GetAccount()
+	if r.Method == http.MethodPatch {
+		ops, aerr := decodePatch(r)
+		if aerr != nil {
+			return aerr
+		}
+		for _, op := range ops {
+			switch op.Path {
+			case "/cloudwatchRoleArn":
+				if op.Op == "remove" {
+					acct.CloudwatchRoleARN = ""
+				} else {
+					acct.CloudwatchRoleARN = op.Value
+				}
+			default:
+				return errBadRequest("Invalid patch path '%s'", op.Path)
+			}
+		}
+		if err := s.store.PutAccount(acct); err != nil {
+			return awshttp.AsAPIError(err)
+		}
+	} else if r.Method != http.MethodGet {
+		return awshttp.Errf(405, "MethodNotAllowed", "unsupported account operation")
+	}
 	writeJSON(w, 200, map[string]any{
-		"cloudwatchRoleArn": "",
+		"cloudwatchRoleArn": acct.CloudwatchRoleARN,
 		"throttleSettings":  map[string]any{"burstLimit": 5000, "rateLimit": 10000},
 		"features":          []string{},
 		"apiKeyVersion":     "4",

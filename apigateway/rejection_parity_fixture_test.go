@@ -152,6 +152,8 @@ func baselines(f fx) map[string]map[string]any {
 		"CreateStage": {"restApiId": f.api, "stageName": "made-by-baseline", "deploymentId": f.deploy},
 		"UpdateStage": {"restApiId": f.api, "stageName": f.stage, "patchOperations": patch()},
 		"DeleteStage": {"restApiId": f.api, "stageName": "made-by-baseline"},
+		// The account's one patchable path; a description would be refused.
+		"UpdateAccount": {"patchOperations": []any{map[string]any{"op": "replace", "path": "/cloudwatchRoleArn", "value": "arn:aws:iam::000000000000:role/apigw-logs"}}},
 	}
 }
 
