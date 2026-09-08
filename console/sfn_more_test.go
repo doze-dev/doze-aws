@@ -138,14 +138,27 @@ func TestConsoleStepFunctionsExpressAndTestState(t *testing.T) {
 	if rec.Code != 200 {
 		t.Fatalf("start-sync: %d\n%s", rec.Code, rec.Body)
 	}
-	for _, want := range []string{`data-status="SUCCEEDED"`, `&#34;ready&#34;: true`, "X-9", "ms · ", "leave no record", ":express:fast:sync-1:"} {
+	for _, want := range []string{`data-status="SUCCEEDED"`, `&#34;ready&#34;: true`, "X-9", "ms · ", "Logs tab holds the history", ":express:fast:sync-1:"} {
 		if !strings.Contains(rec.Body.String(), want) {
 			t.Errorf("sync result is missing %q:\n%s", want, rec.Body)
 		}
 	}
 	// A plain start on an Express machine has no page to land on.
-	if loc := create(t, h, "/_console/sfn/fast/start", url.Values{"name": {"async-1"}}); !strings.Contains(loc, "tab=start") || !strings.Contains(loc, "no+record") {
+	if loc := create(t, h, "/_console/sfn/fast/start", url.Values{"name": {"async-1"}}); !strings.Contains(loc, "tab=start") || !strings.Contains(loc, "Logs+tab") {
 		t.Errorf("express async start location = %q", loc)
+	}
+	// Its history is in the Logs tab: the default group an Express machine
+	// writes to, with the fire-and-forget run's events in it.
+	var logsTab string
+	for i := 0; i < 40; i++ {
+		logsTab = req(t, h, "GET", "/_console/sfn/fast?tab=logs", nil).Body.String()
+		if strings.Contains(logsTab, "ExecutionSucceeded") && strings.Contains(logsTab, ":express:fast:async-1:") {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !strings.Contains(logsTab, "/aws/vendedlogs/states/fast") || !strings.Contains(logsTab, "ExecutionSucceeded") || !strings.Contains(logsTab, ":express:fast:async-1:") {
+		t.Errorf("the Logs tab should show the Express run's vended history:\n%s", logsTab)
 	}
 
 	// Test a state: the Definition tab lists the states, the partial reports

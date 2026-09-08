@@ -86,6 +86,7 @@ func (s *Server) startExpress(ctx context.Context, m *StateMachine, p map[string
 	if err := s.store.SaveTransition(e, nil, nil); err != nil {
 		return nil, asAPIError(err)
 	}
+	s.logs.record(e, []histEvent{startedEvent(e)})
 	s.engine.nudge(e.Key())
 	return map[string]any{"executionArn": e.ARN, "startDate": epoch(e.StartedAt)}, nil
 }

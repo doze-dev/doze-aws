@@ -137,20 +137,28 @@ func (s *Server) launch(spec launchSpec) (*Execution, *awshttp.APIError) {
 	}
 	// The record and its ExecutionStarted event land in one transaction; the
 	// root frame's chain starts at that event.
-	started := histEvent{
+	started := startedEvent(e)
+	e.NextEventID = 2
+	e.Exec.Root().PrevEventID = 1
+	if err := s.store.SaveTransition(e, []histEvent{started}, nil); err != nil {
+		return nil, asAPIError(err)
+	}
+	s.logs.record(e, []histEvent{started})
+	s.engine.nudge(e.Key())
+	return e, nil
+}
+
+// startedEvent is event 1 of every execution. An Express execution keeps no
+// history, so it is not stored for one — but it is still what its log group
+// opens with.
+func startedEvent(e *Execution) histEvent {
+	return histEvent{
 		ID: 1, PrevID: 0, TS: e.StartedAt, Type: "ExecutionStarted",
 		DetailKey: "executionStartedEventDetails",
 		Details: map[string]any{
 			"input": e.Input, "inputDetails": notTruncated(), "roleArn": e.RoleARN,
 		},
 	}
-	e.NextEventID = 2
-	e.Exec.Root().PrevEventID = 1
-	if err := s.store.SaveTransition(e, []histEvent{started}, nil); err != nil {
-		return nil, asAPIError(err)
-	}
-	s.engine.nudge(e.Key())
-	return e, nil
 }
 
 func (s *Server) getExecutionHistory(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {

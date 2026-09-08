@@ -1,6 +1,7 @@
 package console
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -97,8 +98,27 @@ func (c *Console) sfnMachine(w http.ResponseWriter, r *http.Request) {
 		for k, v := range c.sfnVersionsData(r, name) {
 			data[k] = v
 		}
+	case "logs":
+		if sm.LogGroup != "" {
+			data["Tail"] = c.logTailData(r, sm.LogGroup, c.prefix+"/sfn/"+name+"/logs")
+		}
 	}
 	c.render(w, r, "sfn_machine", data)
+}
+
+// sfnLogs is the Logs tab's poll: the machine's vended history.
+func (c *Console) sfnLogs(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("machine")
+	sm, err := c.be.DescribeStateMachine(r.Context(), stateMachineARNOf(name))
+	if err != nil || sm.LogGroup == "" {
+		c.fail(w, fmt.Errorf("state machine %s does not log to a group", name))
+		return
+	}
+	data := c.logTailData(r, sm.LogGroup, c.prefix+"/sfn/"+name+"/logs")
+	if liveUnchanged(w, r, data["Hash"].(string)) {
+		return
+	}
+	c.partial(w, "log_tail", data)
 }
 
 // sfnExecutionsData is what the executions panel renders, shared by the page
@@ -141,7 +161,7 @@ func (c *Console) sfnStart(w http.ResponseWriter, r *http.Request) {
 		// An Express execution's ARN says :express:, and there is no record
 		// behind it to visit — AWS keeps none either. The Start tab offers
 		// the synchronous run for exactly this reason.
-		c.redirect(w, r, c.prefix+"/sfn/"+name+"?tab=start", "Express execution started — it leaves no record; run it synchronously to see the result")
+		c.redirect(w, r, c.prefix+"/sfn/"+name+"?tab=start", "Express execution started — its history is in the Logs tab; run it synchronously to see the result here")
 		return
 	}
 	c.redirect(w, r, c.prefix+"/sfn/"+name+"/execution/"+exec, "Execution “"+exec+"” started")

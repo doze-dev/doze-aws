@@ -31,6 +31,10 @@ type StateMachine struct {
 	// Description is a version's — DescribeStateMachine on a version ARN
 	// carries the text it was published with; the machine itself has none.
 	Description string
+	// LogGroup is where history is vended, "" when logging is off; LogLevel
+	// is the configured level.
+	LogGroup string
+	LogLevel string
 }
 
 // Execution is one run of a machine.
@@ -120,14 +124,37 @@ func (b *backend) DescribeStateMachine(ctx context.Context, arn string) (StateMa
 		UpdateDate   float64 `json:"updateDate"`
 		RevisionID   string  `json:"revisionId"`
 		Description  string  `json:"description"`
+		Logging      struct {
+			Level        string `json:"level"`
+			Destinations []struct {
+				CloudWatchLogsLogGroup struct {
+					LogGroupArn string `json:"logGroupArn"`
+				} `json:"cloudWatchLogsLogGroup"`
+			} `json:"destinations"`
+		} `json:"loggingConfiguration"`
 	}
 	json.Unmarshal(body, &out)
-	return StateMachine{
+	sm := StateMachine{
 		Name: out.Name, ARN: out.ARN, Type: out.Type, Status: out.Status,
 		Definition: prettyJSON(out.Definition), RoleARN: out.RoleARN,
 		Created: epochToTime(out.CreationDate), Updated: epochToTime(max(out.UpdateDate, out.CreationDate)),
 		Revision: out.RevisionID, States: countStates(out.Definition), Description: out.Description,
-	}, nil
+		LogLevel: out.Logging.Level,
+	}
+	// The group history goes to: the configured destination, or for an
+	// Express machine with logging off, the default group doze-aws writes.
+	if sm.LogLevel != "" && sm.LogLevel != "OFF" {
+		for _, d := range out.Logging.Destinations {
+			if _, rest, ok := strings.Cut(d.CloudWatchLogsLogGroup.LogGroupArn, ":log-group:"); ok {
+				sm.LogGroup = strings.TrimSuffix(rest, ":*")
+				break
+			}
+		}
+	}
+	if sm.LogGroup == "" && sm.Type == "EXPRESS" {
+		sm.LogGroup, sm.LogLevel = "/aws/vendedlogs/states/"+out.Name, "ALL"
+	}
+	return sm, nil
 }
 
 // stateNames lists a definition's top-level states in name order, for the

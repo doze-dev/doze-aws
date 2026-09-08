@@ -140,6 +140,7 @@ func (s *Server) createStateMachine(ctx context.Context, p map[string]any) (any,
 	if aerr != nil {
 		return nil, aerr
 	}
+	s.logs.forget(name)
 	if tags := tagsOf(p); len(tags) > 0 {
 		if err := s.store.setTags(stored.ARN, tags); err != nil {
 			return nil, asAPIError(err)
@@ -221,13 +222,18 @@ func (s *Server) updateStateMachine(ctx context.Context, p map[string]any) (any,
 	if raw, ok := p["roleArn"].(string); ok {
 		roleARN = &raw
 	}
-	m, aerr := s.store.UpdateMachine(name, definition, roleARN)
+	configs := machineConfigs{
+		Logging: rawOf(p, "loggingConfiguration"), Tracing: rawOf(p, "tracingConfiguration"),
+		Encryption: rawOf(p, "encryptionConfiguration"),
+	}
+	m, aerr := s.store.UpdateMachine(name, definition, roleARN, configs)
 	if aerr != nil {
 		return nil, aerr
 	}
 	if m == nil {
 		return nil, errMachineNotFound(arn)
 	}
+	s.logs.forget(name)
 	out := map[string]any{
 		"updateDate": epoch(s.store.now()),
 		"revisionId": m.RevisionID,
@@ -251,6 +257,7 @@ func (s *Server) deleteStateMachine(ctx context.Context, p map[string]any) (any,
 	if aerr := s.store.DeleteMachine(name); aerr != nil {
 		return nil, aerr
 	}
+	s.logs.forget(name)
 	// AWS deletes a machine's versions and aliases with it.
 	if aerr := s.store.DeleteVersionsAndAliases(name); aerr != nil {
 		return nil, aerr

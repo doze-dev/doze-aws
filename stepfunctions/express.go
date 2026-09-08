@@ -219,6 +219,7 @@ func (s *Server) startVolatile(e *Execution) (<-chan struct{}, error) {
 		s.engine.waiters.release(key)
 		return nil, err
 	}
+	s.logs.record(e, []histEvent{startedEvent(e)})
 	s.engine.nudge(key)
 	return ch, nil
 }

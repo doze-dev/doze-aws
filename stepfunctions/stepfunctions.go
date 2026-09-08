@@ -60,6 +60,7 @@ type Server struct {
 	api    awsjson.API
 	sink   trace.Sink
 	engine *engine
+	logs   *machineLogs
 }
 
 // New opens the store under DataDir.
@@ -94,6 +95,7 @@ func New(opts Options) (*Server, error) {
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock
 	}
+	s.logs = newMachineLogs(s)
 	s.engine = newEngine(s)
 	return s, nil
 }
@@ -104,6 +106,7 @@ func New(opts Options) (*Server, error) {
 // bbolt.
 func (s *Server) Close() error {
 	s.engine.close()
+	s.logs.close()
 	return s.store.db.Close()
 }
 

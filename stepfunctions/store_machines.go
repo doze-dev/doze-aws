@@ -54,7 +54,13 @@ func (s *Store) GetMachine(name string) (*StateMachine, *awshttp.APIError) {
 // UpdateMachine applies the fields UpdateStateMachine may change. A field left
 // nil is untouched, which is the operation's contract — passing only RoleArn
 // must not blank the definition.
-func (s *Store) UpdateMachine(name string, definition, roleARN *string) (*StateMachine, *awshttp.APIError) {
+// machineConfigs carries the configuration blocks an update may replace;
+// a nil block is "not sent".
+type machineConfigs struct {
+	Logging, Tracing, Encryption json.RawMessage
+}
+
+func (s *Store) UpdateMachine(name string, definition, roleARN *string, configs machineConfigs) (*StateMachine, *awshttp.APIError) {
 	m, aerr := s.GetMachine(name)
 	if aerr != nil {
 		return nil, aerr
@@ -67,6 +73,17 @@ func (s *Store) UpdateMachine(name string, definition, roleARN *string) (*StateM
 	}
 	if roleARN != nil {
 		m.RoleARN = *roleARN
+	}
+	// The configuration blocks replace what was stored when sent; UpdateStateMachine
+	// is a full replacement of each block on AWS too.
+	if configs.Logging != nil {
+		m.LoggingConfiguration = configs.Logging
+	}
+	if configs.Tracing != nil {
+		m.TracingConfiguration = configs.Tracing
+	}
+	if configs.Encryption != nil {
+		m.EncryptionConfiguration = configs.Encryption
 	}
 	// The revision changes only when something that affects execution does.
 	// CDK reads stateMachineRevisionId back and would see a phantom change if

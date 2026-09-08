@@ -43,6 +43,7 @@
         (dict "Key" "graph" "Label" "Graph" "Icon" "route" "URL" (printf "%s/sfn/%s?tab=graph" .Prefix .Name))
         (dict "Key" "definition" "Label" "Definition" "Icon" "settings" "URL" (printf "%s/sfn/%s?tab=definition" .Prefix .Name))
         (dict "Key" "versions" "Label" "Versions & aliases" "Icon" "git-branch" "URL" (printf "%s/sfn/%s?tab=versions" .Prefix .Name))
+        (dict "Key" "logs" "Label" "Logs" "Icon" "list" "URL" (printf "%s/sfn/%s?tab=logs" .Prefix .Name))
         (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/sfn/%s?tab=tags" .Prefix .Name)))}}
     </div>
 
@@ -79,6 +80,18 @@
       {{template "sfn_graph" .}}
     </div>
 
+    {{else if eq .Tab "logs"}}
+    <div class="det-b">
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "list"}} Logs</h2><span class="dim">{{if .Machine.LogGroup}}<span class="mono">{{.Machine.LogGroup}}</span> · level {{.Machine.LogLevel}} · every history event, as Step Functions vends it{{else}}logging is off for this machine{{end}}</span></div>
+        {{if .Machine.LogGroup}}
+        {{template "log_tail" .Tail}}
+        {{else}}
+        <div class="form-b"><p class="mini-note">A Standard machine's history is on each execution's page. To vend it to CloudWatch Logs as well, set a <span class="mono">loggingConfiguration</span> with a level and a log group destination on the machine — with the SDK, SAM's <span class="mono">Logging</span>, or the CDK's <span class="mono">logs</span> property. An Express machine writes to <span class="mono">/aws/vendedlogs/states/{{.Name}}</span> even with logging off, because that is its only record.</p></div>
+        {{end}}
+      </div>
+    </div>
+
     {{else if eq .Tab "tags"}}
     <div class="det-b">
       {{template "tags_panel" dict "Prefix" .Prefix "Svc" "sfn" "ID" .Name}}
@@ -93,7 +106,7 @@
            select is the same field either way: a version or alias qualifier
            the handler appends to this machine's ARN. */}}
       <div class="panel">
-        <div class="panel-h"><h2>{{icon "send"}} Start execution</h2><span class="dim">{{if .Express}}runs to completion and answers here — Express executions keep no history to visit{{else}}lands you on its history as it runs{{end}}</span></div>
+        <div class="panel-h"><h2>{{icon "send"}} Start execution</h2><span class="dim">{{if .Express}}runs to completion and answers here — an Express execution’s history is in the Logs tab{{else}}lands you on its history as it runs{{end}}</span></div>
         <div class="form-b">
         <form hx-post="{{.Prefix}}/sfn/{{.Name}}/{{if .Express}}start-sync{{else}}start{{end}}" hx-indicator="#submit-spin"{{if .Express}} hx-target="#sfn-sync-out" hx-select="unset" hx-swap="innerHTML" data-err-slot="#sfn-sync-out"{{end}}>
           <div class="field"><label>Name <span class="dim">optional — one is generated</span></label><input class="input mono" name="name" placeholder="order-1042" pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off"></div>

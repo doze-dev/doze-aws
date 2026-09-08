@@ -445,7 +445,9 @@ func (g *engine) persist(r *run) {
 	r.pending, r.tokens = nil, nil
 	if err := g.srv.store.SaveTransition(r.e, events, tokens); err != nil {
 		g.srv.logf("stepfunctions: persist %s: %v", r.e.ARN, err)
+		return
 	}
+	g.srv.logs.record(r.e, events)
 }
 
 // finalize ends an execution, records its terminal event, and forgets its
