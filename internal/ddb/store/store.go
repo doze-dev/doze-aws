@@ -72,7 +72,7 @@ type Table struct {
 	// Cosmetic round-trips.
 	BillingMode        string `json:"billing_mode,omitempty"`
 	DeletionProtection bool   `json:"deletion_protection,omitempty"`
-	StreamSpec         string `json:"stream_spec,omitempty"` // stored, inert (streams post-1.0)
+	StreamSpec         string `json:"stream_spec,omitempty"` // the StreamSpecification as sent; streams themselves are real (dynamodb/streams*.go)
 	// SSE round-trips the table's server-side-encryption setting. Nothing is
 	// enciphered locally, but a table that is asked for encryption and then
 	// reports none is a drift source: Terraform writes the block, reads the

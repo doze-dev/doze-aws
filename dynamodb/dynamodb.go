@@ -188,4 +188,11 @@ var stubActions = map[string]string{
 	"EnableKinesisStreamingDestination":   "Kinesis streaming needs Kinesis",
 	"DisableKinesisStreamingDestination":  "Kinesis streaming needs Kinesis",
 	"UpdateKinesisStreamingDestination":   "Kinesis streaming needs Kinesis",
+	"GetResourcePolicy":                   "table resource policies are not evaluated locally; the IAM service reads identity policies only",
+	"PutResourcePolicy":                   "table resource policies are not evaluated locally; the IAM service reads identity policies only",
+	"DeleteResourcePolicy":                "table resource policies are not evaluated locally; the IAM service reads identity policies only",
+	"DescribeTableReplicaAutoScaling":     "replica auto scaling belongs to global tables; there is exactly one region locally",
+	"UpdateTableReplicaAutoScaling":       "replica auto scaling belongs to global tables; there is exactly one region locally",
+	"ListContributorInsights":             "contributor insights need CloudWatch, which does not exist locally",
+	"SearchVectors":                       "vector search needs the vector index engine, which does not exist locally",
 }

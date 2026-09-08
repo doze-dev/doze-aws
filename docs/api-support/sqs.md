@@ -28,7 +28,7 @@ validation passes.
 | StartMessageMoveTask | F | completes synchronously (local volumes); DestinationArn required — doze-aws does not track per-message origin queues |
 | ListMessageMoveTasks | F | returns the recorded (terminal) tasks |
 | CancelMessageMoveTask | F | always "task is not active" — local moves complete synchronously, matching AWS's answer for a finished task |
-| AddPermission / RemovePermission | C | no IAM locally: succeeds, changes nothing |
+| AddPermission / RemovePermission | C | succeeds and changes nothing: resource policies are not evaluated, the IAM service reads identity policies only |
 | DozePeek | — | doze extension: read-only full-queue inspection (no visibility/receive-count side effects) |
 
 Dead-letter redrive (maxReceiveCount → DLQ move) and retention expiry run on

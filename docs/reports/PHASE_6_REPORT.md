@@ -58,3 +58,5 @@ serves all 10 services and they talk to each other.
   through a Stack lands a correctly-shaped S3 event record in SQS, honoring a
   `.jpg` suffix filter (the `.txt` upload is filtered out).
 - Full suite `-race` clean.
+
+> Update (2026-09-08): scheduled rules, archives and replay shipped in Phase 8; see docs/api-support/eventbridge.md.

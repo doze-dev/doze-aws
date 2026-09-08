@@ -42,7 +42,7 @@ the same shard number locally as it does in the cloud.
 | DescribeLimits | C | reports live OpenShardCount against a nominal quota |
 | DescribeAccountSettings / UpdateAccountSettings | C | no account-level quotas locally |
 | UpdateMaxRecordSize | C | accepted; the 1 MiB ceiling on the put path is not raised |
-| PutResourcePolicy / GetResourcePolicy / DeleteResourcePolicy | C | the policy document round-trips; there is no IAM evaluation until the IAM service lands |
+| PutResourcePolicy / GetResourcePolicy / DeleteResourcePolicy | C | the policy document round-trips; resource policies are not evaluated — the IAM service reads identity policies only |
 | SubscribeToShard | S | enhanced fan-out delivers over an HTTP/2 event stream; register the consumer and poll GetRecords instead |
 | UpdateStreamWarmThroughput | S | a capacity hint with no local meaning |
 

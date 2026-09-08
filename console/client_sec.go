@@ -23,9 +23,11 @@ type Key struct {
 	Enabled     bool
 	RotationOn  bool
 	Created     string
-	SigAlgos    []string // SIGN_VERIFY keys
-	MacAlgos    []string // GENERATE_VERIFY_MAC keys
-	Aliases     []string
+	// Rotations lists the on-demand rotations, newest first (ListKeyRotations).
+	Rotations []string
+	SigAlgos  []string // SIGN_VERIFY keys
+	MacAlgos  []string // GENERATE_VERIFY_MAC keys
+	Aliases   []string
 }
 
 func (b *backend) ListKeys(ctx context.Context) ([]Key, error) {
@@ -135,6 +137,17 @@ func (b *backend) DescribeKey(ctx context.Context, id string) (*Key, error) {
 		}
 		json.Unmarshal(rb, &rs)
 		k.RotationOn = rs.KeyRotationEnabled
+	}
+	if rb, err := b.json11(ctx, "TrentService", "ListKeyRotations", map[string]any{"KeyId": m.KeyId}); err == nil {
+		var lr struct {
+			Rotations []struct {
+				RotationDate float64 `json:"RotationDate"`
+			} `json:"Rotations"`
+		}
+		json.Unmarshal(rb, &lr)
+		for _, r := range lr.Rotations {
+			k.Rotations = append(k.Rotations, time.Unix(int64(r.RotationDate), 0).Local().Format("2006-01-02 15:04"))
+		}
 	}
 	return k, nil
 }

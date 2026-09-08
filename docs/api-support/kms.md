@@ -24,9 +24,9 @@ returns genuine SPKI DER — signatures verify outside KMS.
 | CreateAlias / UpdateAlias / DeleteAlias / ListAliases | F | |
 | TagResource / UntagResource / ListResourceTags | F | |
 | UpdateKeyDescription | F | |
-| GetKeyPolicy / PutKeyPolicy / ListKeyPolicies | C | stored and returned; not evaluated (no IAM locally) |
-| EnableKeyRotation / DisableKeyRotation / GetKeyRotationStatus | C | flag stored; actual rotation mechanics arrive in Phase 8 |
-| RotateKeyOnDemand / ListKeyRotations | S | Phase 8 |
+| GetKeyPolicy / PutKeyPolicy / ListKeyPolicies | C | stored and returned; resource policies are not evaluated — the IAM service reads identity policies only |
+| EnableKeyRotation / DisableKeyRotation / GetKeyRotationStatus | F | symmetric keys only; `RotationPeriodInDays` stored and reported (AWS's default when omitted); the scheduled rotation itself is not run by a clock locally — RotateKeyOnDemand is the switch |
+| RotateKeyOnDemand / ListKeyRotations | F | fresh backing material for a symmetric key, kept alongside the old so earlier ciphertexts still decrypt; the rotation list records each |
 | Grants (Create/Retire/Revoke/List) | S | grants are IAM machinery |
 | Custom key stores, ImportKeyMaterial, multi-region replication, DeriveSharedSecret | S | cloud-infrastructure-only |
 

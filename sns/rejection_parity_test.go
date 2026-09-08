@@ -227,10 +227,11 @@ func exemplars() map[string]any {
 // replaying a mutation against them proves nothing about validation. Recorded
 // with the reason rather than dropped, because a case nobody ran is not a case
 // that passed.
-var cannotAudit = map[string]string{
-	"DecodeAuthorizationMessage": "an honest stub — doze-aws never produces encoded " +
-		"authorization messages, so there is nothing to decode and the baseline is refused too",
-}
+//
+// Empty: every SNS operation with cases has a baseline the service accepts.
+// (An STS entry once sat here by copy-paste and never matched anything, which
+// is why the ledger said "18 of 19".)
+var cannotAudit = map[string]string{}
 
 // knownGaps are constraints AWS enforces and doze-aws does not, as of the last
 // run. Listed rather than tolerated silently.

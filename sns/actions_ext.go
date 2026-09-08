@@ -49,7 +49,7 @@ func init() {
 func stubHandler(name string) func(*Server, context.Context, url.Values, string) (any, *apiError) {
 	return func(*Server, context.Context, url.Values, string) (any, *apiError) {
 		return nil, &apiError{
-			Code:    "InvalidAction",
+			Code:    "UnsupportedOperationException",
 			Status:  400,
 			Message: fmt.Sprintf("%s is not supported by doze-aws: SMS and mobile-push delivery need carrier/platform infrastructure that does not exist locally", name),
 		}

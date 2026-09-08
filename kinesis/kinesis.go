@@ -161,7 +161,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// rather than a bare InvalidAction, so the boundary is legible.
 	if why, ok := stubActions[action]; ok {
 		s.logf("kinesis: %s -> unsupported", action)
-		s.api.WriteError(w, awshttp.Errf(400, "InvalidArgumentException",
+		s.api.WriteError(w, awshttp.Errf(400, "UnsupportedOperationException",
 			"doze-aws does not implement %s: %s", action, why))
 		return
 	}

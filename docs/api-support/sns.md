@@ -23,14 +23,16 @@ webhooks with the SubscriptionConfirmation handshake.
 | GetSubscriptionAttributes / SetSubscriptionAttributes | F | RawMessageDelivery + FilterPolicy live; others round-trip |
 | Publish | F | filter-policy evaluation, raw + enveloped delivery, message attributes |
 | PublishBatch | F | per-entry subjects and message attributes |
-| AddPermission / RemovePermission | C | no IAM locally: succeeds, changes nothing |
+| AddPermission / RemovePermission | C | succeeds and changes nothing: resource policies are not evaluated, the IAM service reads identity policies only |
 | PutDataProtectionPolicy / GetDataProtectionPolicy | C | stored and returned; not evaluated |
 | Mobile push (Platform applications/endpoints), SMS + sandbox, phone-number opt-out ops | S | carrier/platform infrastructure cannot exist locally; each answers a clean coded error |
 
-Filter policies support exact match, `prefix`, `anything-but` (list), and
-`exists` — the most-used subset. The full pattern-operator set (numeric
-ranges, wildcards, `$or`, FilterPolicyScope=MessageBody) arrives with the
-EventBridge pattern engine in Phase 6.
+Filter policies share EventBridge's pattern engine (`internal/eventpattern`),
+so the full operator set applies: exact match, `prefix`, `suffix`,
+`anything-but`, `numeric` ranges, `exists`, `wildcard`, and `$or`. Policies
+are matched against message attributes; `FilterPolicyScope: MessageBody` is
+stored and reported but the body is not matched — a body-scoped policy is
+applied as if attribute-scoped.
 
 ## Input validation
 
@@ -63,7 +65,7 @@ SDK sees, not just that something failed.
 The `Subscribe` protocol check above was hand-derived. This is the generated
 audit that covers the rest.
 
-**53/53 model-derived constraints enforced across 18 of the 19 dispatched
+**53/53 model-derived constraints enforced across all 19 dispatched
 operations, with `knownGaps` empty.** Before this table, 27 were enforced and
 26 were not.
 

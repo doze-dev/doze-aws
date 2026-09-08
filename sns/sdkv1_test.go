@@ -103,7 +103,7 @@ func TestSDKV1MobilePushIsHonestStub(t *testing.T) {
 		t.Fatal("want honest error for mobile push")
 	}
 	type coder interface{ Code() string }
-	if c, ok := err.(coder); !ok || c.Code() != "InvalidAction" {
+	if c, ok := err.(coder); !ok || c.Code() != "UnsupportedOperationException" {
 		t.Errorf("error = %v", err)
 	}
 }

@@ -20,9 +20,9 @@ cosmetically.
 | UpdateSecretVersionStage | F | a stage names at most one version |
 | TagResource / UntagResource | F | |
 | GetRandomPassword | F | length, ExcludeCharacters, ExcludePunctuation |
-| PutResourcePolicy / GetResourcePolicy / DeleteResourcePolicy | C | stored and returned; not evaluated (no IAM locally) |
+| PutResourcePolicy / GetResourcePolicy / DeleteResourcePolicy | C | stored and returned; resource policies are not evaluated — the IAM service reads identity policies only |
 | ValidateResourcePolicy | C | always passes |
-| RotateSecret / CancelRotateSecret | S→F | Phase 8: RotateSecret will invoke the configured rotation lambda (4-step protocol) once the lambda service exists |
+| RotateSecret / CancelRotateSecret | F | RotateSecret invokes the configured rotation Lambda synchronously for the four steps (createSecret, setSecret, testSecret, finishSecret); the function moves the version stages, as on AWS. CancelRotateSecret clears the pending rotation |
 | ReplicateSecretToRegions / RemoveRegionsFromReplication / StopReplicationToReplica | S | exactly one region locally |
 
 ## Input validation

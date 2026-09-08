@@ -165,7 +165,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		if why, stubbed := stubActions[action]; stubbed {
 			s.logf("iam: %s -> unsupported", action)
-			s.api.WriteError(w, awshttp.Errf(400, "NotImplemented",
+			s.api.WriteError(w, awshttp.Errf(400, "UnsupportedOperationException",
 				"doze-aws does not implement %s: %s", action, why))
 			return
 		}

@@ -96,6 +96,8 @@ test.describe('ENCRYPT_DECRYPT key', () => {
     const rotateToast = await waitForToast();
     expect(rotateToast).toMatch(/Key material rotated/);
     await waitToastGone(page);
+    // The rotation history (ListKeyRotations) shows the on-demand rotation.
+    await expect(page.getByText(/Rotated on demand 1 time, last/)).toBeVisible();
 
     // --- Alias management ---
     // Scoped to the alias form specifically — the tags panel further down

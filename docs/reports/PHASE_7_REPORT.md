@@ -33,3 +33,5 @@ functional) and ready to tag v0.1.0.
 DynamoDB PartiQL, KMS key rotation mechanics, EventBridge scheduled rules +
 archives/replay, Secrets Manager rotation-via-Lambda, and a Lambda scale-out
 concurrency pool. Each answers a clear error with a named reason until then.
+
+> Update (2026-09-08): everything in "Deferred to Phase 8" shipped in Phase 8; see the per-service ledgers.

@@ -64,3 +64,5 @@ tables + DAX; and the per-service stubs enumerated in each service's
 - Runtime dependencies unchanged (bbolt + BurntSushi/toml); AWS SDKs test-only.
 
 Deferred to post-1.0: DynamoDB Streams (and the Lambda triggers that ride on it).
+
+> Update (2026-09-08): DynamoDB Streams and the Lambda triggers on them shipped after this report; see docs/api-support/dynamodb.md.

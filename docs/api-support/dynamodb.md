@@ -24,7 +24,7 @@ paths (`a.b[0].c`), and unused-reference rejection.
 | TagResource / UntagResource / ListTagsOfResource | F | |
 | DescribeLimits / DescribeEndpoints | F | canned values |
 | ContinuousBackups / ContributorInsights describes+updates | C | fixed status round-trips |
-| PartiQL (ExecuteStatement / BatchExecuteStatement / ExecuteTransaction) | S→F | Phase 8 |
+| PartiQL (ExecuteStatement / BatchExecuteStatement / ExecuteTransaction) | F | INSERT, SELECT (a full key is a GetItem, anything else a filtered Scan), UPDATE and DELETE with `?` parameters, translated onto the classic operations so they share storage and conditional semantics; ExecuteTransaction runs as TransactWriteItems |
 | Streams (DescribeStream / GetRecords / GetShardIterator / ListStreams) | F | one open shard per stream-enabled table; TRIM_HORIZON / LATEST / AT_ and AFTER_SEQUENCE_NUMBER iterators; Lambda event source mappings poll it |
 | Global tables, DAX, Kinesis destinations | S | multi-region/cloud infrastructure |
 | Backups / exports / imports / PITR restore | S | copy the data directory instead |
@@ -89,14 +89,16 @@ members for display and that elision had leaked into the emitted JSON.
 | Scope | Cases | Status |
 |---|---|---|
 | The 27 dispatched operations | 333 | ✅ fully audited, all enforced |
-| 22 stub operations | 299 | **un-auditable**: an honest `UnsupportedOperationException` refuses the baseline too, so replaying a mutation proves nothing |
-| 7 operations with no handler | 61 | **un-auditable**: `InvalidAction` for the same reason |
+| 29 stub operations | 360 | **un-auditable**: an honest `UnsupportedOperationException` refuses the baseline too, so replaying a mutation proves nothing |
 
-The stubs are global tables, backups, exports/imports and Kinesis streaming —
-things that are cloud infrastructure rather than local behaviour, and that
-`stubActions` refuses by name with a reason. The seven without handlers are
-`SearchVectors`, the resource-policy trio, the replica-autoscaling pair and
-`ListContributorInsights`.
+The stubs are global tables and their replica auto scaling, backups,
+exports/imports, Kinesis streaming, table resource policies (stored nowhere;
+the IAM service reads identity policies only), `ListContributorInsights`
+(CloudWatch) and `SearchVectors` (a vector index) — cloud infrastructure
+rather than local behaviour, each refused by name with a reason. A frozen
+list of the model's 58 operations (`model_coverage_test.go`) fails the build
+if one is ever neither handled nor refused, so nothing answers a bare
+`InvalidAction`.
 
 An operation that refuses every request cannot be too permissive, so nothing is
 hidden by this — but it is not the same statement as "audited", and this page
