@@ -139,6 +139,9 @@ func baselines(f fx) map[string]map[string]any {
 		"DescribeEventBus": {"Name": f.bus},
 		"ListEventBuses":   {},
 		"DeleteEventBus":   {"Name": "made-by-baseline"},
+		// The fixture bus, so the update lands on something that exists —
+		// a missing bus is a 404 and would mask every constraint refusal.
+		"UpdateEventBus": {"Name": f.bus, "Description": "set by the baseline"},
 		"PutRule":          {"Name": f.rule, "EventBusName": f.bus, "EventPattern": `{"source":["audit"]}`},
 		"DescribeRule":     rule,
 		"ListRules":        {"EventBusName": f.bus},
