@@ -165,6 +165,22 @@ type API struct {
 	// APIKeyRequired makes every route require an API key unless the route
 	// says otherwise (SAM's Auth.ApiKeyRequired).
 	APIKeyRequired bool
+	// Protocol is "" for a REST API and "HTTP" for an HTTP API (apigatewayv2):
+	// the same routes, applied through the v2 control plane, served at the
+	//  stage unless Stage says otherwise. CORS is the HTTP API's
+	// CORS configuration.
+	Protocol string
+	CORS     *APICORS
+}
+
+// APICORS is an HTTP API's CORS configuration.
+type APICORS struct {
+	AllowOrigins     []string
+	AllowMethods     []string
+	AllowHeaders     []string
+	ExposeHeaders    []string
+	AllowCredentials bool
+	MaxAge           *int
 }
 
 // APIAuthorizer is a Lambda authorizer: a TOKEN one reads a header, a
@@ -175,6 +191,12 @@ type APIAuthorizer struct {
 	IdentitySource string // TOKEN: one header name (default Authorization); REQUEST: the method.request.* list
 	Validation     string // TOKEN: the regex a token must match
 	TTL            *int   // authorizer result cache, seconds; nil is API Gateway's default
+	// HTTP API (v2) REQUEST authorizers: the payload format the function
+	// gets (1.0 or 2.0) and whether it answers the simple {isAuthorized}
+	// response. IdentitySource then holds .header.X selection
+	// expressions, comma-separated.
+	PayloadFormat   string
+	SimpleResponses bool
 }
 
 // MockRoute is a MOCK integration: the status, response headers and body
@@ -215,6 +237,12 @@ type Route struct {
 	Authorizer string
 	// APIKeyRequired overrides the API's setting for this route.
 	APIKeyRequired *bool
+	// HTTP API (v2) routes: Path "$default" with Method "" is the catch-all
+	// route; PayloadFormat is the Lambda integration's payload format
+	// version (default 2.0); HTTPTarget is an HTTP_PROXY integration's URL,
+	// in place of Lambda.
+	PayloadFormat string
+	HTTPTarget    string
 }
 
 type Queue struct {

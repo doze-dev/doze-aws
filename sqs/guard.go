@@ -1,4 +1,3 @@
-
 package sqs
 
 // The queue policy, evaluated on the request under IAM soft or enforce, and

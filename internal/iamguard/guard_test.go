@@ -121,7 +121,9 @@ func TestModesAndHeaders(t *testing.T) {
 	}
 
 	var logged []string
-	soft := Guard{Logf: func(f string, a ...any) { logged = append(logged, strings.TrimSpace(strings.ReplaceAll(f, "%s", "%v"))+" "+join(a)) }}
+	soft := Guard{Logf: func(f string, a ...any) {
+		logged = append(logged, strings.TrimSpace(strings.ReplaceAll(f, "%s", "%v"))+" "+join(a))
+	}}
 	w := httptest.NewRecorder()
 	if err := soft.Check(w, request("soft", alice, IdentityAllowed, ""), docs(t, deny), "sqs:SendMessage", resource); err != nil {
 		t.Fatalf("soft must not block: %v", err)

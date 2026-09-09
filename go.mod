@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.46.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.28
 	github.com/aws/aws-sdk-go-v2/service/apigateway v1.42.3
+	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.41.0
 	github.com/aws/aws-sdk-go-v2/service/cloudformation v1.76.0
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.86.0
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.60.0

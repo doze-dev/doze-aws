@@ -191,6 +191,12 @@ func resourceURL(svc, id string) resourceRef {
 		ref.Name, ref.Path = n, "/cfn/"+n
 	case "apigw":
 		// An execute-api ARN leads with the api id; the rest is stage and path.
+		// An HTTP API's own ARN is /apis/<id>, and its page is its own.
+		if strings.HasPrefix(id, "/apis/") {
+			n, _, _ := strings.Cut(strings.TrimPrefix(id, "/apis/"), "/")
+			ref.Name, ref.Path = n, "/apigw-http/"+n
+			break
+		}
 		n, _, _ := strings.Cut(strings.TrimPrefix(id, "/restapis/"), "/")
 		ref.Name, ref.Path = n, "/apigw/"+n
 	case "iam":

@@ -100,9 +100,10 @@ var apigatewayPathPrefixes = []string{
 	"/vpclinks",
 	"/sdktypes",
 	"/account",
-	"/v2/apis", // HTTP API (v2) shares the apigateway signing name
-	"/v2/routes",
-	"/v2/domainnames",
+	// HTTP APIs (apigatewayv2) share the apigateway signing name; every v2
+	// family routes there, those with no local counterpart to be refused by
+	// name rather than falling through to S3.
+	"/v2/apis", "/v2/tags", "/v2/domainnames", "/v2/vpclinks", "/v2/portals", "/v2/portalproducts",
 }
 
 // isExecuteAPI reports whether a request addresses a DEPLOYED API rather than

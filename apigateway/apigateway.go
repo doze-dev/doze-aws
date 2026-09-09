@@ -160,6 +160,8 @@ func (s *Server) routeControl(w http.ResponseWriter, r *http.Request) *awshttp.A
 		return s.routeAPIKeys(w, r, segs)
 	case "usageplans":
 		return s.routeUsagePlans(w, r, segs)
+	case "v2":
+		return s.routeV2(w, r, segs)
 	case "clientcertificates", "domainnames", "vpclinks", "sdktypes":
 		// Recognised families doze-aws does not model. Refusing by name beats
 		// a bare 404 that looks like a routing bug.

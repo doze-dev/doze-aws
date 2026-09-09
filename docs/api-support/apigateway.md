@@ -167,9 +167,12 @@ Streams are one per stage per process, named
 
 ## HTTP API (v2)
 
-Not implemented. `AWS::Serverless::HttpApi` and `AWS::ApiGatewayV2::Api`
-transpile to the same route model as REST APIs, so a SAM `HttpApi` event works,
-but the v2 control plane (`/v2/apis/...`) is not served.
+Implemented, in this package, at the `/v2/apis/...` control plane: routes by
+key, Lambda integrations in payload format 1.0 and 2.0, HTTP proxy
+integrations, CORS, REQUEST authorizers, stages served at `$default`. Its
+ledger is [apigatewayv2.md](apigatewayv2.md). An HTTP API and a REST API do
+not see each other: `GetRestApis` lists REST APIs, `GetApis` HTTP APIs, as on
+AWS.
 
 ## See also
 

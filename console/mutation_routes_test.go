@@ -349,6 +349,28 @@ func seedFixtures(t *testing.T, c http.Handler) {
 			fixtures["{api}"] = m[1]
 		}
 	}
+	// The HTTP API fixture, likewise id-addressed and consumed by its delete
+	// route; it carries a stage, a route and an authorizer for the routes
+	// that address one, whose ids are read back from the page.
+	if fixtures["{httpapi}"] == "" || !pageOK(c, "/apigw-http/"+fixtures["{httpapi}"]) {
+		rec := postForm(t, c, "/apigw/create", url.Values{"name": {"fixture-http-api"}, "protocol": {"HTTP"}})
+		if m := httpAPIID.FindStringSubmatch(flashOf(rec)); m != nil {
+			fixtures["{httpapi}"] = m[1]
+		}
+	}
+	if id := fixtures["{httpapi}"]; id != "" {
+		postForm(t, c, "/apigw-http/"+id+"/create-stage", url.Values{"name": {"dev"}})
+		postForm(t, c, "/apigw-http/"+id+"/create-authorizer", url.Values{"name": {"fixture-gate"}, "lambda": {"fixture-sink"}})
+		rec := postForm(t, c, "/apigw-http/"+id+"/add-route", url.Values{"method": {"GET"}, "path": {"/fixture"}, "url": {"http://127.0.0.1:1/"}})
+		if m := httpRouteID.FindStringSubmatch(rec.Body.String()); m != nil {
+			discovered["httpRoute"] = m[1]
+		}
+		settings := httptest.NewRecorder()
+		c.ServeHTTP(settings, httptest.NewRequest(http.MethodGet, "/_console/apigw-http/"+id+"?tab=settings", nil))
+		if m := httpAuthID.FindStringSubmatch(settings.Body.String()); m != nil {
+			discovered["httpAuth"] = m[1]
+		}
+	}
 	// The KMS routes take a key id in the path. An alias would carry a slash
 	// and never match the route pattern, so the id comes from where the create
 	// redirect points.
@@ -394,8 +416,15 @@ func pageOK(c http.Handler, path string) bool {
 	return rec.Code == http.StatusOK
 }
 
-// apigwID matches the generated id in the create redirect's target.
-var apigwID = regexp.MustCompile(`/apigw/([a-z0-9]{6,})`)
+// apigwID matches the generated id in the create redirect's target; the
+// HTTP API twin, and the ids the HTTP API page renders for its route and
+// authorizer delete buttons.
+var (
+	apigwID     = regexp.MustCompile(`/apigw/([a-z0-9]{6,})`)
+	httpAPIID   = regexp.MustCompile(`/apigw-http/([a-z0-9]{6,})`)
+	httpRouteID = regexp.MustCompile(`\{"route":"([a-z0-9]+)"\}`)
+	httpAuthID  = regexp.MustCompile(`\{"id":"([a-z0-9]{6,})"\}`)
+)
 
 // keyID matches the UUID a KMS key is named by.
 var keyID = regexp.MustCompile(`([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})`)
@@ -483,6 +512,22 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 		// The finished fixture execution SUCCEEDED, which is the one status
 		// that can never be redriven; the aborted Wait can.
 		return map[string]string{"{machine}": "fixture-slow", "{exec}": "fixture-halted"}, nil
+	case "/apigw-http/create":
+		return nil, url.Values{"name": {"fixture-made-http"}}
+	case "/apigw-http/{api}/create-authorizer":
+		return map[string]string{"{api}": fixtures["{httpapi}"]}, url.Values{"name": {"fixture-made-gate"}, "lambda": {"fixture-sink"}}
+	case "/apigw-http/{api}/delete-authorizer":
+		return map[string]string{"{api}": fixtures["{httpapi}"]}, url.Values{"id": {discovered["httpAuth"]}}
+	case "/apigw-http/{api}/delete-route":
+		return map[string]string{"{api}": fixtures["{httpapi}"]}, url.Values{"route": {discovered["httpRoute"]}}
+	case "/apigw-http/{api}/create-stage":
+		return map[string]string{"{api}": fixtures["{httpapi}"]}, url.Values{"name": {"fixture-made-stage"}}
+	case "/apigw-http/{api}/delete-stage", "/apigw-http/{api}/deploy":
+		return map[string]string{"{api}": fixtures["{httpapi}"]}, url.Values{"name": {"dev"}, "stage": {"dev"}}
+	case "/apigw-http/{api}/add-route":
+		return map[string]string{"{api}": fixtures["{httpapi}"]}, url.Values{"method": {"POST"}, "path": {"/made"}, "url": {"http://127.0.0.1:1/"}}
+	case "/apigw-http/{api}/delete", "/apigw-http/{api}/update", "/apigw-http/{api}/invoke":
+		return map[string]string{"{api}": fixtures["{httpapi}"]}, nil
 	case "/apigw/{api}/update-stage":
 		// The stage the deploy subtest created; mutationForm's generic name
 		// would PATCH a stage that does not exist.

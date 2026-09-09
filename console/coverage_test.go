@@ -44,9 +44,12 @@ var uncovered = map[string][]string{
 	"dynamodb":   {},
 	"lambda":     {},
 	"apigateway": {},
-	"s3":         {},
-	"iam":        {},
-	"sts":        {},
+	// HTTP APIs: the routes, stages, invoke and settings tabs of the
+	// apigw-http page, and the traffic classifier names the rest.
+	"apigatewayv2": {},
+	"s3":           {},
+	"iam":          {},
+	"sts":          {},
 	// ListStackResources is the one exemption — see exempt.
 	"cloudformation": {},
 	// Complete, all 37 — the activities page is the worker, the task-result
@@ -103,6 +106,11 @@ var exempt = map[string]map[string]string{
 			"values (SecureStrings included) for a view that does not exist is " +
 			"the BatchGetSecretValue trade again: fewer fetch sites beats fewer " +
 			"round trips for a store that holds secrets.",
+	},
+	"kms": {
+		"ListKeyPolicies": "a key has exactly one policy and it is named default, " +
+			"on AWS as here; the key page reads it with GetKeyPolicy. Listing " +
+			"the one name would be a request whose answer we already know.",
 	},
 	"kinesis": {
 		"DescribeStream": "the console reads DescribeStreamSummary + ListShards " +

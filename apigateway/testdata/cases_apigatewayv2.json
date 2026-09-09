@@ -1,0 +1,2024 @@
+[
+  {
+    "operation": "CreateApi",
+    "path": "corsConfiguration.maxAge",
+    "why": "below the minimum of -1",
+    "value": -2,
+    "constraint": "range -1..86400",
+    "required_members": [
+      "name",
+      "protocolType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis",
+      "xml_lists": {
+        "CorsConfiguration.AllowHeaders": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowMethods": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowOrigins": {
+          "element": "member"
+        },
+        "CorsConfiguration.ExposeHeaders": {
+          "element": "member"
+        }
+      },
+      "bind": {}
+    }
+  },
+  {
+    "operation": "CreateApi",
+    "path": "corsConfiguration.maxAge",
+    "why": "above the maximum of 86400",
+    "value": 86401,
+    "constraint": "range -1..86400",
+    "required_members": [
+      "name",
+      "protocolType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis",
+      "xml_lists": {
+        "CorsConfiguration.AllowHeaders": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowMethods": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowOrigins": {
+          "element": "member"
+        },
+        "CorsConfiguration.ExposeHeaders": {
+          "element": "member"
+        }
+      },
+      "bind": {}
+    }
+  },
+  {
+    "operation": "CreateApi",
+    "path": "ipAddressType",
+    "why": "not one of ipv4, dualstack",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum ipv4|dualstack",
+    "required_members": [
+      "name",
+      "protocolType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis",
+      "xml_lists": {
+        "CorsConfiguration.AllowHeaders": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowMethods": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowOrigins": {
+          "element": "member"
+        },
+        "CorsConfiguration.ExposeHeaders": {
+          "element": "member"
+        }
+      },
+      "bind": {}
+    }
+  },
+  {
+    "operation": "CreateApi",
+    "path": "name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "name",
+      "protocolType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis",
+      "xml_lists": {
+        "CorsConfiguration.AllowHeaders": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowMethods": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowOrigins": {
+          "element": "member"
+        },
+        "CorsConfiguration.ExposeHeaders": {
+          "element": "member"
+        }
+      },
+      "bind": {}
+    }
+  },
+  {
+    "operation": "CreateApi",
+    "path": "protocolType",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "name",
+      "protocolType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis",
+      "xml_lists": {
+        "CorsConfiguration.AllowHeaders": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowMethods": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowOrigins": {
+          "element": "member"
+        },
+        "CorsConfiguration.ExposeHeaders": {
+          "element": "member"
+        }
+      },
+      "bind": {}
+    }
+  },
+  {
+    "operation": "CreateApi",
+    "path": "protocolType",
+    "why": "not one of HTTP, WEBSOCKET",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum HTTP|WEBSOCKET",
+    "required_members": [
+      "name",
+      "protocolType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis",
+      "xml_lists": {
+        "CorsConfiguration.AllowHeaders": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowMethods": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowOrigins": {
+          "element": "member"
+        },
+        "CorsConfiguration.ExposeHeaders": {
+          "element": "member"
+        }
+      },
+      "bind": {}
+    }
+  },
+  {
+    "operation": "CreateAuthorizer",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "authorizerType",
+      "identitySource",
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/authorizers",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "IdentitySource": {
+          "element": "member"
+        },
+        "JwtConfiguration.Audience": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateAuthorizer",
+    "path": "authorizerResultTtlInSeconds",
+    "why": "below the minimum of 0",
+    "value": -1,
+    "constraint": "range 0..3600",
+    "required_members": [
+      "apiId",
+      "authorizerType",
+      "identitySource",
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/authorizers",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "IdentitySource": {
+          "element": "member"
+        },
+        "JwtConfiguration.Audience": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateAuthorizer",
+    "path": "authorizerResultTtlInSeconds",
+    "why": "above the maximum of 3600",
+    "value": 3601,
+    "constraint": "range 0..3600",
+    "required_members": [
+      "apiId",
+      "authorizerType",
+      "identitySource",
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/authorizers",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "IdentitySource": {
+          "element": "member"
+        },
+        "JwtConfiguration.Audience": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateAuthorizer",
+    "path": "authorizerType",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "authorizerType",
+      "identitySource",
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/authorizers",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "IdentitySource": {
+          "element": "member"
+        },
+        "JwtConfiguration.Audience": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateAuthorizer",
+    "path": "authorizerType",
+    "why": "not one of REQUEST, JWT",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum REQUEST|JWT",
+    "required_members": [
+      "apiId",
+      "authorizerType",
+      "identitySource",
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/authorizers",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "IdentitySource": {
+          "element": "member"
+        },
+        "JwtConfiguration.Audience": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateAuthorizer",
+    "path": "identitySource",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "authorizerType",
+      "identitySource",
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/authorizers",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "IdentitySource": {
+          "element": "member"
+        },
+        "JwtConfiguration.Audience": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateAuthorizer",
+    "path": "name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "authorizerType",
+      "identitySource",
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/authorizers",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "IdentitySource": {
+          "element": "member"
+        },
+        "JwtConfiguration.Audience": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateDeployment",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/deployments",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateIntegration",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "integrationType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/integrations",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateIntegration",
+    "path": "connectionType",
+    "why": "not one of INTERNET, VPC_LINK",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum INTERNET|VPC_LINK",
+    "required_members": [
+      "apiId",
+      "integrationType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/integrations",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateIntegration",
+    "path": "contentHandlingStrategy",
+    "why": "not one of CONVERT_TO_BINARY, CONVERT_TO_TEXT",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum CONVERT_TO_BINARY|CONVERT_TO_TEXT",
+    "required_members": [
+      "apiId",
+      "integrationType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/integrations",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateIntegration",
+    "path": "integrationType",
+    "why": "not one of HTTP_PROXY, AWS_PROXY, AWS, HTTP, MOCK",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum HTTP_PROXY|AWS_PROXY|AWS|HTTP|MOCK",
+    "required_members": [
+      "apiId",
+      "integrationType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/integrations",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateIntegration",
+    "path": "integrationType",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "integrationType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/integrations",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateIntegration",
+    "path": "passthroughBehavior",
+    "why": "not one of NEVER, WHEN_NO_TEMPLATES, WHEN_NO_MATCH",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum NEVER|WHEN_NO_TEMPLATES|WHEN_NO_MATCH",
+    "required_members": [
+      "apiId",
+      "integrationType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/integrations",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateIntegration",
+    "path": "timeoutInMillis",
+    "why": "below the minimum of 50",
+    "value": 49,
+    "constraint": "range 50..30000",
+    "required_members": [
+      "apiId",
+      "integrationType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/integrations",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateIntegration",
+    "path": "timeoutInMillis",
+    "why": "above the maximum of 30000",
+    "value": 30001,
+    "constraint": "range 50..30000",
+    "required_members": [
+      "apiId",
+      "integrationType"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/integrations",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateRoute",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "routeKey"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/routes",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "AuthorizationScopes": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateRoute",
+    "path": "authorizationType",
+    "why": "not one of NONE, AWS_IAM, CUSTOM, JWT",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum NONE|AWS_IAM|CUSTOM|JWT",
+    "required_members": [
+      "apiId",
+      "routeKey"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/routes",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "AuthorizationScopes": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateRoute",
+    "path": "routeKey",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "routeKey"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/routes",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "AuthorizationScopes": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateStage",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/stages",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateStage",
+    "path": "defaultRouteSettings.loggingLevel",
+    "why": "not one of ERROR, INFO, OFF",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum ERROR|INFO|OFF",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/stages",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateStage",
+    "path": "routeSettings{}.loggingLevel",
+    "why": "not one of ERROR, INFO, OFF",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum ERROR|INFO|OFF",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/stages",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateStage",
+    "path": "stageName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/apis/{apiId}/stages",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteAccessLogSettings",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}/accesslogsettings",
+      "bind": {
+        "apiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteAccessLogSettings",
+    "path": "stageName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}/accesslogsettings",
+      "bind": {
+        "apiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteApi",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteAuthorizer",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "authorizerId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/authorizers/{authorizerId}",
+      "bind": {
+        "apiId": "label",
+        "authorizerId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteAuthorizer",
+    "path": "authorizerId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "authorizerId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/authorizers/{authorizerId}",
+      "bind": {
+        "apiId": "label",
+        "authorizerId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteCorsConfiguration",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/cors",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteDeployment",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "deploymentId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/deployments/{deploymentId}",
+      "bind": {
+        "apiId": "label",
+        "deploymentId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteDeployment",
+    "path": "deploymentId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "deploymentId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/deployments/{deploymentId}",
+      "bind": {
+        "apiId": "label",
+        "deploymentId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteIntegration",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "integrationId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+      "bind": {
+        "apiId": "label",
+        "integrationId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteIntegration",
+    "path": "integrationId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "integrationId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+      "bind": {
+        "apiId": "label",
+        "integrationId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteRoute",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "routeId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/routes/{routeId}",
+      "bind": {
+        "apiId": "label",
+        "routeId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteRoute",
+    "path": "routeId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "routeId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/routes/{routeId}",
+      "bind": {
+        "apiId": "label",
+        "routeId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteRouteSettings",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "routeKey",
+      "stageName"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}/routesettings/{routeKey}",
+      "bind": {
+        "apiId": "label",
+        "routeKey": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteRouteSettings",
+    "path": "routeKey",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "routeKey",
+      "stageName"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}/routesettings/{routeKey}",
+      "bind": {
+        "apiId": "label",
+        "routeKey": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteRouteSettings",
+    "path": "stageName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "routeKey",
+      "stageName"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}/routesettings/{routeKey}",
+      "bind": {
+        "apiId": "label",
+        "routeKey": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteStage",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}",
+      "bind": {
+        "apiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteStage",
+    "path": "stageName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}",
+      "bind": {
+        "apiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetApi",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}",
+      "bind": {
+        "apiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetAuthorizer",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "authorizerId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/authorizers/{authorizerId}",
+      "bind": {
+        "apiId": "label",
+        "authorizerId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetAuthorizer",
+    "path": "authorizerId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "authorizerId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/authorizers/{authorizerId}",
+      "bind": {
+        "apiId": "label",
+        "authorizerId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetAuthorizers",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/authorizers",
+      "bind": {
+        "apiId": "label",
+        "maxResults": "query:maxResults",
+        "nextToken": "query:nextToken"
+      }
+    }
+  },
+  {
+    "operation": "GetDeployment",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "deploymentId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/deployments/{deploymentId}",
+      "bind": {
+        "apiId": "label",
+        "deploymentId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetDeployment",
+    "path": "deploymentId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "deploymentId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/deployments/{deploymentId}",
+      "bind": {
+        "apiId": "label",
+        "deploymentId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetDeployments",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/deployments",
+      "bind": {
+        "apiId": "label",
+        "maxResults": "query:maxResults",
+        "nextToken": "query:nextToken"
+      }
+    }
+  },
+  {
+    "operation": "GetIntegration",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "integrationId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+      "bind": {
+        "apiId": "label",
+        "integrationId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetIntegration",
+    "path": "integrationId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "integrationId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+      "bind": {
+        "apiId": "label",
+        "integrationId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetIntegrations",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/integrations",
+      "bind": {
+        "apiId": "label",
+        "maxResults": "query:maxResults",
+        "nextToken": "query:nextToken"
+      }
+    }
+  },
+  {
+    "operation": "GetRoute",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "routeId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/routes/{routeId}",
+      "bind": {
+        "apiId": "label",
+        "routeId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetRoute",
+    "path": "routeId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "routeId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/routes/{routeId}",
+      "bind": {
+        "apiId": "label",
+        "routeId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetRoutes",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/routes",
+      "bind": {
+        "apiId": "label",
+        "maxResults": "query:maxResults",
+        "nextToken": "query:nextToken"
+      }
+    }
+  },
+  {
+    "operation": "GetStage",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}",
+      "bind": {
+        "apiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetStage",
+    "path": "stageName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}",
+      "bind": {
+        "apiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetStages",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/apis/{apiId}/stages",
+      "bind": {
+        "apiId": "label",
+        "maxResults": "query:maxResults",
+        "nextToken": "query:nextToken"
+      }
+    }
+  },
+  {
+    "operation": "GetTags",
+    "path": "resourceArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceArn"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/v2/tags/{resourceArn}",
+      "bind": {
+        "resourceArn": "label"
+      }
+    }
+  },
+  {
+    "operation": "ResetAuthorizersCache",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}/cache/authorizers",
+      "bind": {
+        "apiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "ResetAuthorizersCache",
+    "path": "stageName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}/cache/authorizers",
+      "bind": {
+        "apiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "TagResource",
+    "path": "resourceArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceArn"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/v2/tags/{resourceArn}",
+      "bind": {
+        "resourceArn": "label"
+      }
+    }
+  },
+  {
+    "operation": "UntagResource",
+    "path": "resourceArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceArn",
+      "tagKeys"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/tags/{resourceArn}",
+      "bind": {
+        "resourceArn": "label",
+        "tagKeys": "query:tagKeys"
+      },
+      "xml_lists": {
+        "TagKeys": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UntagResource",
+    "path": "tagKeys",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceArn",
+      "tagKeys"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/v2/tags/{resourceArn}",
+      "bind": {
+        "resourceArn": "label",
+        "tagKeys": "query:tagKeys"
+      },
+      "xml_lists": {
+        "TagKeys": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateApi",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "CorsConfiguration.AllowHeaders": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowMethods": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowOrigins": {
+          "element": "member"
+        },
+        "CorsConfiguration.ExposeHeaders": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateApi",
+    "path": "corsConfiguration.maxAge",
+    "why": "below the minimum of -1",
+    "value": -2,
+    "constraint": "range -1..86400",
+    "required_members": [
+      "apiId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "CorsConfiguration.AllowHeaders": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowMethods": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowOrigins": {
+          "element": "member"
+        },
+        "CorsConfiguration.ExposeHeaders": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateApi",
+    "path": "corsConfiguration.maxAge",
+    "why": "above the maximum of 86400",
+    "value": 86401,
+    "constraint": "range -1..86400",
+    "required_members": [
+      "apiId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "CorsConfiguration.AllowHeaders": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowMethods": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowOrigins": {
+          "element": "member"
+        },
+        "CorsConfiguration.ExposeHeaders": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateApi",
+    "path": "ipAddressType",
+    "why": "not one of ipv4, dualstack",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum ipv4|dualstack",
+    "required_members": [
+      "apiId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}",
+      "bind": {
+        "apiId": "label"
+      },
+      "xml_lists": {
+        "CorsConfiguration.AllowHeaders": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowMethods": {
+          "element": "member"
+        },
+        "CorsConfiguration.AllowOrigins": {
+          "element": "member"
+        },
+        "CorsConfiguration.ExposeHeaders": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateAuthorizer",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "authorizerId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/authorizers/{authorizerId}",
+      "bind": {
+        "apiId": "label",
+        "authorizerId": "label"
+      },
+      "xml_lists": {
+        "IdentitySource": {
+          "element": "member"
+        },
+        "JwtConfiguration.Audience": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateAuthorizer",
+    "path": "authorizerId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "authorizerId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/authorizers/{authorizerId}",
+      "bind": {
+        "apiId": "label",
+        "authorizerId": "label"
+      },
+      "xml_lists": {
+        "IdentitySource": {
+          "element": "member"
+        },
+        "JwtConfiguration.Audience": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateAuthorizer",
+    "path": "authorizerResultTtlInSeconds",
+    "why": "below the minimum of 0",
+    "value": -1,
+    "constraint": "range 0..3600",
+    "required_members": [
+      "apiId",
+      "authorizerId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/authorizers/{authorizerId}",
+      "bind": {
+        "apiId": "label",
+        "authorizerId": "label"
+      },
+      "xml_lists": {
+        "IdentitySource": {
+          "element": "member"
+        },
+        "JwtConfiguration.Audience": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateAuthorizer",
+    "path": "authorizerResultTtlInSeconds",
+    "why": "above the maximum of 3600",
+    "value": 3601,
+    "constraint": "range 0..3600",
+    "required_members": [
+      "apiId",
+      "authorizerId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/authorizers/{authorizerId}",
+      "bind": {
+        "apiId": "label",
+        "authorizerId": "label"
+      },
+      "xml_lists": {
+        "IdentitySource": {
+          "element": "member"
+        },
+        "JwtConfiguration.Audience": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateAuthorizer",
+    "path": "authorizerType",
+    "why": "not one of REQUEST, JWT",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum REQUEST|JWT",
+    "required_members": [
+      "apiId",
+      "authorizerId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/authorizers/{authorizerId}",
+      "bind": {
+        "apiId": "label",
+        "authorizerId": "label"
+      },
+      "xml_lists": {
+        "IdentitySource": {
+          "element": "member"
+        },
+        "JwtConfiguration.Audience": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateDeployment",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "deploymentId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/deployments/{deploymentId}",
+      "bind": {
+        "apiId": "label",
+        "deploymentId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateDeployment",
+    "path": "deploymentId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "deploymentId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/deployments/{deploymentId}",
+      "bind": {
+        "apiId": "label",
+        "deploymentId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateIntegration",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "integrationId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+      "bind": {
+        "apiId": "label",
+        "integrationId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateIntegration",
+    "path": "connectionType",
+    "why": "not one of INTERNET, VPC_LINK",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum INTERNET|VPC_LINK",
+    "required_members": [
+      "apiId",
+      "integrationId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+      "bind": {
+        "apiId": "label",
+        "integrationId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateIntegration",
+    "path": "contentHandlingStrategy",
+    "why": "not one of CONVERT_TO_BINARY, CONVERT_TO_TEXT",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum CONVERT_TO_BINARY|CONVERT_TO_TEXT",
+    "required_members": [
+      "apiId",
+      "integrationId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+      "bind": {
+        "apiId": "label",
+        "integrationId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateIntegration",
+    "path": "integrationId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "integrationId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+      "bind": {
+        "apiId": "label",
+        "integrationId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateIntegration",
+    "path": "integrationType",
+    "why": "not one of AWS, HTTP, MOCK, HTTP_PROXY, AWS_PROXY",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum AWS|HTTP|MOCK|HTTP_PROXY|AWS_PROXY",
+    "required_members": [
+      "apiId",
+      "integrationId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+      "bind": {
+        "apiId": "label",
+        "integrationId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateIntegration",
+    "path": "passthroughBehavior",
+    "why": "not one of WHEN_NO_MATCH, NEVER, WHEN_NO_TEMPLATES",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum WHEN_NO_MATCH|NEVER|WHEN_NO_TEMPLATES",
+    "required_members": [
+      "apiId",
+      "integrationId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+      "bind": {
+        "apiId": "label",
+        "integrationId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateIntegration",
+    "path": "timeoutInMillis",
+    "why": "above the maximum of 30000",
+    "value": 30001,
+    "constraint": "range 50..30000",
+    "required_members": [
+      "apiId",
+      "integrationId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+      "bind": {
+        "apiId": "label",
+        "integrationId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateIntegration",
+    "path": "timeoutInMillis",
+    "why": "below the minimum of 50",
+    "value": 49,
+    "constraint": "range 50..30000",
+    "required_members": [
+      "apiId",
+      "integrationId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+      "bind": {
+        "apiId": "label",
+        "integrationId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateRoute",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "routeId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/routes/{routeId}",
+      "bind": {
+        "apiId": "label",
+        "routeId": "label"
+      },
+      "xml_lists": {
+        "AuthorizationScopes": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateRoute",
+    "path": "authorizationType",
+    "why": "not one of CUSTOM, JWT, NONE, AWS_IAM",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum CUSTOM|JWT|NONE|AWS_IAM",
+    "required_members": [
+      "apiId",
+      "routeId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/routes/{routeId}",
+      "bind": {
+        "apiId": "label",
+        "routeId": "label"
+      },
+      "xml_lists": {
+        "AuthorizationScopes": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateRoute",
+    "path": "routeId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "routeId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/routes/{routeId}",
+      "bind": {
+        "apiId": "label",
+        "routeId": "label"
+      },
+      "xml_lists": {
+        "AuthorizationScopes": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateStage",
+    "path": "apiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}",
+      "bind": {
+        "apiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateStage",
+    "path": "defaultRouteSettings.loggingLevel",
+    "why": "not one of INFO, OFF, ERROR",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum INFO|OFF|ERROR",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}",
+      "bind": {
+        "apiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateStage",
+    "path": "routeSettings{}.loggingLevel",
+    "why": "not one of ERROR, INFO, OFF",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum ERROR|INFO|OFF",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}",
+      "bind": {
+        "apiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateStage",
+    "path": "stageName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/v2/apis/{apiId}/stages/{stageName}",
+      "bind": {
+        "apiId": "label",
+        "stageName": "label"
+      }
+    }
+  }
+]

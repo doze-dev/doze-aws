@@ -29,6 +29,9 @@ type mapper struct {
 	// resolved into routes after every resource is known (mapper_apigw.go).
 	apiNodes   map[string]apiNode
 	apiMethods []apiMethodDecl
+	// v2Integrations are the HTTP API integrations as declared, by logical
+	// id, which a route's Target names (mapper_apigwv2.go).
+	v2Integrations map[string]v2Integration
 }
 
 func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
@@ -81,8 +84,19 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		// Streams have no stack-file section yet; the resource is accepted and
 		// reported so a template referencing one still transpiles.
 		return nil
-	case "AWS::Serverless::Api", "AWS::Serverless::HttpApi",
-		"AWS::ApiGateway::RestApi", "AWS::ApiGatewayV2::Api":
+	case "AWS::Serverless::HttpApi", "AWS::ApiGatewayV2::Api":
+		return m.httpAPI(name, props)
+	case "AWS::ApiGatewayV2::Integration":
+		return m.v2Integration(r.LogicalID, props)
+	case "AWS::ApiGatewayV2::Route":
+		return m.v2Route(props)
+	case "AWS::ApiGatewayV2::Stage":
+		return m.v2Stage(props)
+	case "AWS::ApiGatewayV2::Authorizer":
+		return m.v2Authorizer(name, props)
+	case "AWS::ApiGatewayV2::Deployment":
+		return nil // a deployment happens on every apply
+	case "AWS::Serverless::Api", "AWS::ApiGateway::RestApi":
 		// The API itself carries no state beyond its name and, for SAM, the
 		// stage's logging; its routes arrive from the functions that bind
 		// to it.
@@ -846,7 +860,11 @@ func (m *mapper) samEvents(fn string, events map[string]any) error {
 				Pattern: pattern,
 				Targets: []provision.Target{{Lambda: fn}},
 			}
-		case "Api", "HttpApi":
+		case "HttpApi":
+			if err := m.samHTTPEvent(fn, evName, props); err != nil {
+				return err
+			}
+		case "Api":
 			// An Api event binds one method+path to the function. The API it
 			// belongs to is named by RestApiId when the template declares one,
 			// and otherwise by SAM's implicit-API convention.

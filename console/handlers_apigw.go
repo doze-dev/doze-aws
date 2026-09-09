@@ -8,13 +8,17 @@ import (
 )
 
 func (c *Console) apigwList(w http.ResponseWriter, r *http.Request) {
-	apis, err := c.be.ListRestAPIs(r.Context())
+	apis, err := c.be.ListAllAPIs(r.Context())
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
 	if len(apis) > 0 {
 		r.SetPathValue("api", apis[0].ID)
+		if apis[0].Protocol == "HTTP" {
+			c.apigwHTTP(w, r)
+			return
+		}
 		c.apigwAPI(w, r)
 		return
 	}
@@ -28,7 +32,7 @@ func (c *Console) apigwAPI(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	apis, _ := c.be.ListRestAPIs(r.Context())
+	apis, _ := c.be.ListAllAPIs(r.Context())
 	tab := tabOf(r, "routes")
 	data := map[string]any{
 		"API": api, "List": apis, "Tab": tab, "Title": api.Name + " · API Gateway",
@@ -80,6 +84,10 @@ func (c *Console) apigwRoutesPartial(w http.ResponseWriter, r *http.Request, api
 }
 
 func (c *Console) apigwCreate(w http.ResponseWriter, r *http.Request) {
+	if r.FormValue("protocol") == "HTTP" {
+		c.apigwHTTPCreate(w, r)
+		return
+	}
 	id, err := c.be.CreateRestAPI(r.Context(), strings.TrimSpace(r.FormValue("name")), r.FormValue("description"))
 	if err != nil {
 		c.fail(w, err)

@@ -138,9 +138,13 @@ func deref(v any) any {
 	return v
 }
 
-func loadCases(t *testing.T) []auditCase {
+func loadCases(t *testing.T) []auditCase { return loadCasesFile(t, "cases_apigateway.json") }
+
+// loadCasesFile reads one committed case file; the HTTP API (v2) surface
+// has its own, replayed by v2_parity_test.go.
+func loadCasesFile(t *testing.T, name string) []auditCase {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("testdata", "cases_apigateway.json"))
+	raw, err := os.ReadFile(filepath.Join("testdata", name))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,8 +168,12 @@ func loadCases(t *testing.T) []auditCase {
 // no constraints. The cases cannot supply this: an operation with nothing to
 // violate produces none, and the shortening check below needs the whole set.
 func loadRoutes(t *testing.T) map[string]*httpBinding {
+	return loadRoutesFile(t, "routes_apigateway.json")
+}
+
+func loadRoutesFile(t *testing.T, name string) map[string]*httpBinding {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("testdata", "routes_apigateway.json"))
+	raw, err := os.ReadFile(filepath.Join("testdata", name))
 	if err != nil {
 		t.Fatal(err)
 	}

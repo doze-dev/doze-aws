@@ -310,14 +310,20 @@
 {{define "apigw_create"}}{{template "shell_top" .}}
   {{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page">
-    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create REST API</div>
-    <p class="det-sub" style="margin-bottom:18px">An empty API with a root resource. Build the route tree, wire integrations, then deploy to a stage.</p>
-    <form hx-post="{{.Prefix}}/apigw/create" hx-indicator="#submit-spin">
+    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create API</div>
+    <p class="det-sub" style="margin-bottom:18px">A REST API is a resource tree with methods and integrations, deployed to a stage. An HTTP API is routes by key, answering at <span class="mono">$default</span> as soon as a route exists.</p>
+    <form hx-post="{{.Prefix}}/apigw/create" hx-indicator="#submit-spin" x-data="{proto:'REST'}">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
+        <div class="field"><label>Kind</label>
+          <div class="opt-row"><label><input type="radio" name="protocol" value="REST" x-model="proto"> REST API <span class="dim">(apigateway v1)</span></label></div>
+          <div class="opt-row"><label><input type="radio" name="protocol" value="HTTP" x-model="proto"> HTTP API <span class="dim">(apigatewayv2)</span></label></div>
+        </div>
         <div class="field"><label>API name</label><input class="input" name="name" placeholder="orders-api" required autocomplete="off" autofocus></div>
-        <div class="field" style="margin-top:8px"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="what this API fronts"></div>
+        <div class="field" style="margin-top:8px" x-show="proto==='REST'"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="what this API fronts"></div>
+        <div class="opt-row" x-show="proto==='HTTP'" x-cloak><label><input type="checkbox" name="cors"> Allow CORS from every origin <span class="dim">— what a browser app on another port needs</span></label></div>
       </div></div>
-      {{template "cli" "apigateway create-rest-api --name $name [--description $description]"}}
+      <template x-if="proto==='REST'">{{template "cli" "apigateway create-rest-api --name $name [--description $description]"}}</template>
+      <template x-if="proto==='HTTP'">{{template "cli" "apigatewayv2 create-api --name $name --protocol-type HTTP"}}</template>
       {{template "form_actions" dict "Cancel" (printf "%s/apigw" .Prefix) "Submit" "Create API"}}
     </form>
   </div></section>

@@ -26,19 +26,28 @@ import (
 // serveExecute handles /_aws/execute-api/{apiId}/{stage}/{path...}.
 func (s *Server) serveExecute(w http.ResponseWriter, r *http.Request, rest string) {
 	apiID, remainder, _ := strings.Cut(rest, "/")
+	if apiID == "" {
+		writeExecuteError(w, 404, "Not Found", "the execute-api path needs an api id")
+		return
+	}
+	api, err := s.store.Get(apiID)
+	if err != nil {
+		writeExecuteError(w, 403, "Forbidden", "")
+		return
+	}
+	if api.Protocol == "HTTP" {
+		// An HTTP API serves its $default stage at the root, so the stage
+		// is resolved by the v2 data plane (v2_execute.go).
+		s.serveExecuteV2(w, r, api, remainder)
+		return
+	}
 	stage, path, _ := strings.Cut(remainder, "/")
-	if apiID == "" || stage == "" {
+	if stage == "" {
 		writeExecuteError(w, 404, "Not Found", "the execute-api path needs an api id and a stage")
 		return
 	}
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
-	}
-
-	api, err := s.store.Get(apiID)
-	if err != nil {
-		writeExecuteError(w, 403, "Forbidden", "")
-		return
 	}
 	st, ok := api.Stages[stage]
 	if !ok {

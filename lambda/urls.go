@@ -2,15 +2,14 @@ package lambda
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/httpevent"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/trace"
 )
@@ -153,7 +152,7 @@ func (s *Server) serveFunctionURL(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"Message":"Internal Server Error"}`))
 		return
 	}
-	writeURLResponse(w, res.Payload)
+	httpevent.WriteResponse(w, res.Payload)
 }
 
 type functionError struct{ res lambdaruntime.Result }
@@ -161,111 +160,13 @@ type functionError struct{ res lambdaruntime.Result }
 func (e functionError) Error() string            { return e.res.FunctionErr + ": " + string(e.res.Payload) }
 func errFunction(res lambdaruntime.Result) error { return functionError{res} }
 
-// urlEvent is the payload format 2.0 event a function URL delivers.
+// urlEvent is the payload format 2.0 event a function URL delivers — the
+// same document an HTTP API route delivers, built by internal/httpevent.
 func urlEvent(r *http.Request, path string, body []byte, f *Function) map[string]any {
-	headers := map[string]string{}
-	var cookies []string
-	for k, vs := range r.Header {
-		lk := strings.ToLower(k)
-		if lk == "cookie" {
-			for _, v := range vs {
-				for _, c := range strings.Split(v, ";") {
-					if c = strings.TrimSpace(c); c != "" {
-						cookies = append(cookies, c)
-					}
-				}
-			}
-			continue
-		}
-		headers[lk] = strings.Join(vs, ",")
-	}
-	headers["host"] = r.Host
-	query := map[string]string{}
-	for k, vs := range r.URL.Query() {
-		query[k] = strings.Join(vs, ",")
-	}
-	isBinary := !isText(r.Header.Get("Content-Type"))
-	bodyStr := string(body)
-	if isBinary && len(body) > 0 {
-		bodyStr = base64.StdEncoding.EncodeToString(body)
-	}
-	ip := r.RemoteAddr
-	if i := strings.LastIndex(ip, ":"); i >= 0 {
-		ip = ip[:i]
-	}
-	now := time.Now()
-	ev := map[string]any{
-		"version":        "2.0",
-		"routeKey":       "$default",
-		"rawPath":        path,
-		"rawQueryString": r.URL.RawQuery,
-		"headers":        headers,
-		"requestContext": map[string]any{
-			"accountId":    "anonymous",
-			"apiId":        f.URLId,
-			"domainName":   f.URLId + ".lambda-url." + awsident.Region + ".on.aws",
-			"domainPrefix": f.URLId,
-			"http": map[string]any{
-				"method": r.Method, "path": path, "protocol": r.Proto,
-				"sourceIp": ip, "userAgent": r.UserAgent(),
-			},
-			"requestId": lambdaruntime.NewRequestID(),
-			"routeKey":  "$default",
-			"stage":     "$default",
-			"time":      now.UTC().Format("02/Jan/2006:15:04:05 -0700"),
-			"timeEpoch": now.UnixMilli(),
-		},
-		"body":            bodyStr,
-		"isBase64Encoded": isBinary && len(body) > 0,
-	}
-	if len(query) > 0 {
-		ev["queryStringParameters"] = query
-	}
-	if len(cookies) > 0 {
-		ev["cookies"] = cookies
-	}
-	return ev
-}
-
-func isText(ct string) bool {
-	ct = strings.ToLower(ct)
-	return ct == "" || strings.HasPrefix(ct, "text/") || strings.Contains(ct, "json") || strings.Contains(ct, "xml") ||
-		strings.Contains(ct, "x-www-form-urlencoded") || strings.Contains(ct, "javascript")
-}
-
-// writeURLResponse decodes what the function returned, by AWS's rule: an
-// object with statusCode is the whole response; anything else is the body
-// of a 200 application/json.
-func writeURLResponse(w http.ResponseWriter, out []byte) {
-	var resp struct {
-		StatusCode      int               `json:"statusCode"`
-		Headers         map[string]string `json:"headers"`
-		Cookies         []string          `json:"cookies"`
-		Body            string            `json:"body"`
-		IsBase64Encoded bool              `json:"isBase64Encoded"`
-	}
-	trimmed := strings.TrimSpace(string(out))
-	if !strings.HasPrefix(trimmed, "{") || json.Unmarshal(out, &resp) != nil || resp.StatusCode == 0 {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(200)
-		w.Write(out)
-		return
-	}
-	for k, v := range resp.Headers {
-		w.Header().Set(k, v)
-	}
-	for _, c := range resp.Cookies {
-		w.Header().Add("Set-Cookie", c)
-	}
-	if w.Header().Get("Content-Type") == "" {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	}
-	body := []byte(resp.Body)
-	if resp.IsBase64Encoded {
-		if decoded, err := base64.StdEncoding.DecodeString(resp.Body); err == nil {
-			body = decoded
-		}
-	}
-	w.WriteHeader(resp.StatusCode)
-	w.Write(body)
+	return httpevent.Event(httpevent.Request{
+		R: r, Path: path, Body: body,
+		APIID:      f.URLId,
+		DomainName: f.URLId + ".lambda-url." + awsident.Region + ".on.aws",
+		RequestID:  lambdaruntime.NewRequestID(),
+	})
 }

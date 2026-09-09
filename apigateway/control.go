@@ -100,6 +100,11 @@ func (s *Server) routeRestAPIs(w http.ResponseWriter, r *http.Request, segs []st
 		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on /restapis")
 	}
 	apiID := segs[1]
+	// An HTTP API is not a REST API: the v1 surface does not see it, as on
+	// AWS, where the two control planes have separate id spaces.
+	if api, err := s.store.Get(apiID); err == nil && api.Protocol == "HTTP" {
+		return errNotFound("Invalid REST API identifier specified %s", apiID)
+	}
 
 	if len(segs) == 2 {
 		switch r.Method {
@@ -182,7 +187,7 @@ func (s *Server) createRestAPI(w http.ResponseWriter, r *http.Request) *awshttp.
 }
 
 func (s *Server) listRestAPIs(w http.ResponseWriter) *awshttp.APIError {
-	apis, err := s.store.List()
+	apis, err := s.store.ListProtocol("")
 	if err != nil {
 		return awshttp.AsAPIError(err)
 	}
@@ -953,7 +958,7 @@ func (s *Server) routeTags(w http.ResponseWriter, r *http.Request, segs []string
 		}
 		writeJSON(w, 200, map[string]any{"tags": orEmptyMap(api.Tags)})
 		return nil
-	case http.MethodPut:
+	case http.MethodPut, http.MethodPost: // PUT is v1 TagResource, POST the v2 spelling
 		var req struct {
 			Tags map[string]string `json:"tags"`
 		}
@@ -975,6 +980,9 @@ func (s *Server) routeTags(w http.ResponseWriter, r *http.Request, segs []string
 		return nil
 	case http.MethodDelete:
 		keys := r.URL.Query()["tagKeys"]
+		if len(keys) == 0 {
+			return errBadRequest("tagKeys is required")
+		}
 		if _, err := s.store.Update(apiID, func(api *RestAPI) error {
 			for _, k := range keys {
 				delete(api.Tags, k)
@@ -989,12 +997,14 @@ func (s *Server) routeTags(w http.ResponseWriter, r *http.Request, segs []string
 	return awshttp.Errf(405, "MethodNotAllowed", "unsupported tag operation")
 }
 
-// apiIDFromARN pulls the api id out of arn:aws:apigateway:region::/restapis/{id}.
+// apiIDFromARN pulls the api id out of arn:aws:apigateway:region::/restapis/{id}
+// or, for an HTTP API, arn:aws:apigateway:region::/apis/{id}.
 func apiIDFromARN(arn string) string {
-	if i := strings.Index(arn, "/restapis/"); i >= 0 {
-		rest := arn[i+len("/restapis/"):]
-		id, _, _ := strings.Cut(rest, "/")
-		return id
+	for _, marker := range []string{"/restapis/", "/apis/"} {
+		if i := strings.Index(arn, marker); i >= 0 {
+			id, _, _ := strings.Cut(arn[i+len(marker):], "/")
+			return id
+		}
 	}
 	return arn
 }

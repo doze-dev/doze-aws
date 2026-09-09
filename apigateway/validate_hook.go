@@ -31,7 +31,13 @@ func matchRoute(method, path string) (op string, labels map[string]string, ok bo
 	if len(segs) == 1 && segs[0] == "" {
 		return "", nil, false
 	}
-	for _, rt := range routes {
+	// The HTTP API (v2) surface has its own table; the operation names
+	// overlap (both have a CreateAuthorizer), so the path prefix decides.
+	table := routes
+	if segs[0] == "v2" {
+		table = routesV2
+	}
+	for _, rt := range table {
 		if rt.Method != method || len(rt.Segs) != len(segs) {
 			continue
 		}
@@ -74,6 +80,9 @@ func validateControl(r *http.Request) (body []byte, aerr *awshttp.APIError) {
 		return body, nil
 	}
 	table := constraintTables[op]
+	if isV2Path(r.URL.Path) {
+		table = constraintTablesV2[op]
+	}
 	if len(table) == 0 {
 		return body, nil
 	}
@@ -95,7 +104,7 @@ func validateControl(r *http.Request) (body []byte, aerr *awshttp.APIError) {
 		}
 		input[name] = value
 	}
-	rt := routeFor(op)
+	rt := routeFor(op, isV2Path(r.URL.Path))
 	query := r.URL.Query()
 	for param, member := range rt.Query {
 		// Presence, not non-emptiness: "?Qualifier=" supplies the member as an
@@ -125,8 +134,15 @@ func validateControl(r *http.Request) (body []byte, aerr *awshttp.APIError) {
 	return body, modelcheck.ValidateMapAs(input, table, codeREST)
 }
 
-func routeFor(op string) route {
-	for _, rt := range routes {
+// isV2Path reports whether a control-plane path is the HTTP API surface.
+func isV2Path(path string) bool { return strings.HasPrefix(path, "/v2/") }
+
+func routeFor(op string, v2 bool) route {
+	table := routes
+	if v2 {
+		table = routesV2
+	}
+	for _, rt := range table {
 		if rt.Op == op {
 			return rt
 		}

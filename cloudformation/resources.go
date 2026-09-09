@@ -166,6 +166,11 @@ var nameProperty = map[string]string{
 	"AWS::Serverless::HttpApi":                "Name",
 	"AWS::ApiGateway::RestApi":                "Name",
 	"AWS::ApiGatewayV2::Api":                  "Name",
+	"AWS::ApiGatewayV2::Integration":          "",
+	"AWS::ApiGatewayV2::Route":                "",
+	"AWS::ApiGatewayV2::Stage":                "StageName",
+	"AWS::ApiGatewayV2::Deployment":           "",
+	"AWS::ApiGatewayV2::Authorizer":           "Name",
 	"AWS::ApiGateway::Deployment":             "",
 	"AWS::ApiGateway::Stage":                  "StageName",
 	"AWS::ApiGateway::Resource":               "",
@@ -383,12 +388,26 @@ func attributes(typ, name string) map[string]string {
 		}
 	case "AWS::Events::Rule":
 		return map[string]string{"Arn": awsident.ARN("events", "rule/"+name)}
-	case "AWS::ApiGateway::RestApi", "AWS::Serverless::Api", "AWS::ApiGatewayV2::Api":
+	case "AWS::ApiGateway::RestApi", "AWS::Serverless::Api":
 		return map[string]string{
 			"RootResourceId": "root",
 			"Arn":            awsident.ARN("apigateway", "/restapis/"+name),
 			"ApiId":          name,
 		}
+	case "AWS::ApiGatewayV2::Api", "AWS::Serverless::HttpApi":
+		// Ref and ApiId are the name; provision resolves it to the id the
+		// service mints. The endpoint is where the $default stage answers.
+		return map[string]string{
+			"ApiId":       name,
+			"ApiEndpoint": "http://127.0.0.1:4566/_aws/execute-api/" + name,
+			"Arn":         awsident.ARN("apigateway", "/apis/"+name),
+		}
+	case "AWS::ApiGatewayV2::Integration":
+		return map[string]string{"IntegrationId": name}
+	case "AWS::ApiGatewayV2::Route":
+		return map[string]string{"RouteId": name}
+	case "AWS::ApiGatewayV2::Authorizer":
+		return map[string]string{"AuthorizerId": name}
 	case "AWS::ApiGateway::Authorizer":
 		// Ref and AuthorizerId are the name; provision resolves it to the id
 		// the service mints at apply.

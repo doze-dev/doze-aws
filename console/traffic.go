@@ -651,6 +651,66 @@ func apigwAction(r *http.Request) string {
 			}
 			return map[string]string{"GET": "GetUsagePlanKey", "DELETE": "DeleteUsagePlanKey"}[m]
 		}
+	case "v2":
+		return apigwV2Action(m, segs[1:])
+	}
+	return m + " " + segs[len(segs)-1]
+}
+
+// apigwV2Action names an HTTP API (apigatewayv2) operation from its path
+// under /v2/: apis and the collections beneath one, tags, and the families
+// the service refuses by name.
+func apigwV2Action(m string, segs []string) string {
+	sub := func(i int) string {
+		if len(segs) > i {
+			return segs[i]
+		}
+		return ""
+	}
+	switch sub(0) {
+	case "tags":
+		return map[string]string{"GET": "GetTags", "POST": "TagResource", "DELETE": "UntagResource"}[m]
+	case "domainnames":
+		return m + " domain name"
+	case "vpclinks":
+		return m + " VPC link"
+	case "apis":
+		if sub(1) == "" {
+			return map[string]string{"GET": "GetApis", "POST": "CreateApi"}[m]
+		}
+		one := sub(3) != ""
+		pick := func(list, create, get, update, del string) string {
+			if !one {
+				return map[string]string{"GET": list, "POST": create}[m]
+			}
+			return map[string]string{"GET": get, "PATCH": update, "DELETE": del}[m]
+		}
+		switch sub(2) {
+		case "":
+			return map[string]string{"GET": "GetApi", "PATCH": "UpdateApi", "DELETE": "DeleteApi"}[m]
+		case "cors":
+			return "DeleteCorsConfiguration"
+		case "routes":
+			return pick("GetRoutes", "CreateRoute", "GetRoute", "UpdateRoute", "DeleteRoute")
+		case "integrations":
+			return pick("GetIntegrations", "CreateIntegration", "GetIntegration", "UpdateIntegration", "DeleteIntegration")
+		case "authorizers":
+			return pick("GetAuthorizers", "CreateAuthorizer", "GetAuthorizer", "UpdateAuthorizer", "DeleteAuthorizer")
+		case "deployments":
+			return pick("GetDeployments", "CreateDeployment", "GetDeployment", "UpdateDeployment", "DeleteDeployment")
+		case "stages":
+			switch sub(4) {
+			case "accesslogsettings":
+				return "DeleteAccessLogSettings"
+			case "routesettings":
+				return "DeleteRouteSettings"
+			case "cache":
+				return "ResetAuthorizersCache"
+			}
+			return pick("GetStages", "CreateStage", "GetStage", "UpdateStage", "DeleteStage")
+		case "models", "exports", "routingrules":
+			return m + " " + sub(2)
+		}
 	}
 	return m + " " + segs[len(segs)-1]
 }
@@ -664,6 +724,9 @@ func apigwResource(r *http.Request) string {
 	segs := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(segs) >= 2 && segs[0] == "restapis" {
 		return segs[1]
+	}
+	if len(segs) >= 3 && segs[0] == "v2" && segs[1] == "apis" {
+		return segs[2]
 	}
 	return ""
 }

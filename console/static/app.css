@@ -1349,6 +1349,11 @@ a.lo-card:hover { border-color: var(--accent); }
 .ex-grid { display: flex; gap: 12px; align-items: flex-end; }
 .ex-grid .btn { flex: none; height: 34px; }
 .ex-grid .field { margin-bottom: 0; }
+/* fixed-width columns and fields the API pages share */
+.w-method { width: 110px; }
+.w-stage { width: 120px; }
+.w-acts { width: 60px; }
+.grow { flex: 1; }
 /* filter-expression value bindings: one typed input per :token */
 .fv-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .fv-row { display: flex; gap: 8px; align-items: center; }

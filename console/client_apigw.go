@@ -34,6 +34,9 @@ type RestAPI struct {
 	EndpointTypes  []string
 	RootID         string
 	Routes         int
+	// Protocol is "" for a REST API and "HTTP" for an HTTP API, which the
+	// sidebar lists alongside and links to its own page.
+	Protocol string
 }
 
 // APIMethod is one method on a resource, with the integration behind it.
@@ -138,9 +141,9 @@ func (b *backend) ListRestAPIs(ctx context.Context) ([]RestAPI, error) {
 	return apis, nil
 }
 
-// CountRestAPIs is the cheap probe for the nav badge.
+// CountRestAPIs is the cheap probe for the nav badge: REST and HTTP APIs.
 func (b *backend) CountRestAPIs(ctx context.Context) (int, error) {
-	apis, err := b.ListRestAPIs(ctx)
+	apis, err := b.ListAllAPIs(ctx)
 	return len(apis), err
 }
 

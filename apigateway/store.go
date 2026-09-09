@@ -44,6 +44,19 @@ type RestAPI struct {
 	EndpointTypes          []string `json:"endpoint_types,omitempty"`
 	Policy                 string   `json:"policy,omitempty"`
 	DisableExecuteAPI      bool     `json:"disable_execute_api,omitempty"`
+
+	// An HTTP API (apigatewayv2, Protocol "HTTP") lives in the same record:
+	// the same stages, deployments and tags, but routes and integrations by
+	// id instead of a resource tree (v2_store.go). Protocol "" is a REST API.
+	Protocol       string                    `json:"protocol,omitempty"`
+	CORS           *CORSConfig               `json:"cors,omitempty"`
+	V2Routes       map[string]*V2Route       `json:"v2_routes,omitempty"`
+	V2Integrations map[string]*V2Integration `json:"v2_integrations,omitempty"`
+	V2Authorizers  map[string]*V2Authorizer  `json:"v2_authorizers,omitempty"`
+	// Round-tripped HTTP API settings with no local effect.
+	RouteSelection          string `json:"route_selection,omitempty"`
+	DisableSchemaValidation bool   `json:"disable_schema_validation,omitempty"`
+	IPAddressType           string `json:"ip_address_type,omitempty"`
 }
 
 // Resource is one node of the API's path tree.
@@ -118,6 +131,8 @@ type Deployment struct {
 	ID          string `json:"id"`
 	Description string `json:"description,omitempty"`
 	Created     int64  `json:"created"`
+	// AutoDeployed marks an HTTP API deployment a stage with autoDeploy made.
+	AutoDeployed bool `json:"auto_deployed,omitempty"`
 }
 
 // Stage is a named, addressable release.
@@ -137,6 +152,12 @@ type Stage struct {
 	// the way AWS keys them — "*/*" for the whole stage, or
 	// "<resource path>/<METHOD>" — with the values AWS reports.
 	MethodSettings map[string]map[string]any `json:"method_settings,omitempty"`
+	// HTTP API stage settings (v2): autoDeploy makes every route change a
+	// deployment; the route settings are stored and reported, nothing is
+	// throttled locally.
+	AutoDeploy           bool                      `json:"auto_deploy,omitempty"`
+	DefaultRouteSettings map[string]any            `json:"default_route_settings,omitempty"`
+	RouteSettings        map[string]map[string]any `json:"route_settings,omitempty"`
 }
 
 // AccessLogSettings is where a stage's access log goes and what it says.

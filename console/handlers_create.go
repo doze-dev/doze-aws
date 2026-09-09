@@ -43,7 +43,7 @@ func (c *Console) createPage(svc, tmpl string) http.HandlerFunc {
 		case "cfn":
 			data["List"], _ = c.be.ListStacks(r.Context())
 		case "apigw":
-			data["List"], _ = c.be.ListRestAPIs(r.Context())
+			data["List"], _ = c.be.ListAllAPIs(r.Context())
 		case "lambda":
 			// Missing from this switch since the lambda create page was added,
 			// and it became a 500-in-disguise when lp_head started rendering
@@ -147,8 +147,12 @@ func (c *Console) apiResources(w http.ResponseWriter, r *http.Request) {
 			add("cfn", st.Name, "/cfn/"+st.Name)
 		}
 	}
-	if apis, err := c.be.ListRestAPIs(ctx); err == nil {
+	if apis, err := c.be.ListAllAPIs(ctx); err == nil {
 		for _, a := range apis {
+			if a.Protocol == "HTTP" {
+				add("apigw", a.Name, "/apigw-http/"+a.ID)
+				continue
+			}
 			add("apigw", a.Name, "/apigw/"+a.ID)
 		}
 	}

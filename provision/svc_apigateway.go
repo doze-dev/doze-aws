@@ -18,6 +18,12 @@ import (
 func applyAPIs(ctx context.Context, c *client, s *Stack, rep *Report) error {
 	for _, name := range sortedNames(s.APIs) {
 		api := s.APIs[name]
+		if api.Protocol == "HTTP" {
+			if err := applyHTTPAPI(ctx, c, name, api, rep); err != nil {
+				return err
+			}
+			continue
+		}
 		id, existing, err := findAPI(ctx, c, name)
 		if err != nil {
 			return err
@@ -218,6 +224,10 @@ func listResources(ctx context.Context, c *client, apiID string) (map[string]str
 
 func destroyAPIs(ctx context.Context, c *client, s *Stack, rep *DestroyReport) error {
 	for _, name := range sortedNames(s.APIs) {
+		if s.APIs[name].Protocol == "HTTP" {
+			destroyHTTPAPI(ctx, c, name, rep)
+			continue
+		}
 		id, found, err := findAPI(ctx, c, name)
 		if err != nil || !found {
 			rep.add("absent", "api/"+name, "")

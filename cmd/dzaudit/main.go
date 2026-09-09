@@ -218,7 +218,7 @@ func coverage(cache string) error {
 	services := []string{
 		"sqs", "sns", "s3", "dynamodb", "lambda", "kinesis", "kms", "iam",
 		"ssm", "secrets-manager", "eventbridge", "cloudformation",
-		"api-gateway", "sts",
+		"api-gateway", "apigatewayv2", "sts",
 	}
 	fmt.Printf("%-18s %8s %8s %8s\n", "service", "inputs", "ops", "track")
 	for _, s := range services {

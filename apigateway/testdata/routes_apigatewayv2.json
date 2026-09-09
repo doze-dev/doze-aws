@@ -1,0 +1,349 @@
+{
+  "CreateApi": {
+    "method": "POST",
+    "uri": "/v2/apis",
+    "xml_lists": {
+      "CorsConfiguration.AllowHeaders": {
+        "element": "member"
+      },
+      "CorsConfiguration.AllowMethods": {
+        "element": "member"
+      },
+      "CorsConfiguration.AllowOrigins": {
+        "element": "member"
+      },
+      "CorsConfiguration.ExposeHeaders": {
+        "element": "member"
+      }
+    },
+    "bind": {}
+  },
+  "CreateAuthorizer": {
+    "method": "POST",
+    "uri": "/v2/apis/{apiId}/authorizers",
+    "bind": {
+      "apiId": "label"
+    },
+    "xml_lists": {
+      "IdentitySource": {
+        "element": "member"
+      },
+      "JwtConfiguration.Audience": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateDeployment": {
+    "method": "POST",
+    "uri": "/v2/apis/{apiId}/deployments",
+    "bind": {
+      "apiId": "label"
+    }
+  },
+  "CreateIntegration": {
+    "method": "POST",
+    "uri": "/v2/apis/{apiId}/integrations",
+    "bind": {
+      "apiId": "label"
+    }
+  },
+  "CreateRoute": {
+    "method": "POST",
+    "uri": "/v2/apis/{apiId}/routes",
+    "bind": {
+      "apiId": "label"
+    },
+    "xml_lists": {
+      "AuthorizationScopes": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateStage": {
+    "method": "POST",
+    "uri": "/v2/apis/{apiId}/stages",
+    "bind": {
+      "apiId": "label"
+    }
+  },
+  "DeleteAccessLogSettings": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{apiId}/stages/{stageName}/accesslogsettings",
+    "bind": {
+      "apiId": "label",
+      "stageName": "label"
+    }
+  },
+  "DeleteApi": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{apiId}",
+    "bind": {
+      "apiId": "label"
+    }
+  },
+  "DeleteAuthorizer": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{apiId}/authorizers/{authorizerId}",
+    "bind": {
+      "apiId": "label",
+      "authorizerId": "label"
+    }
+  },
+  "DeleteCorsConfiguration": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{apiId}/cors",
+    "bind": {
+      "apiId": "label"
+    }
+  },
+  "DeleteDeployment": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{apiId}/deployments/{deploymentId}",
+    "bind": {
+      "apiId": "label",
+      "deploymentId": "label"
+    }
+  },
+  "DeleteIntegration": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+    "bind": {
+      "apiId": "label",
+      "integrationId": "label"
+    }
+  },
+  "DeleteRoute": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{apiId}/routes/{routeId}",
+    "bind": {
+      "apiId": "label",
+      "routeId": "label"
+    }
+  },
+  "DeleteRouteSettings": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{apiId}/stages/{stageName}/routesettings/{routeKey}",
+    "bind": {
+      "apiId": "label",
+      "routeKey": "label",
+      "stageName": "label"
+    }
+  },
+  "DeleteStage": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{apiId}/stages/{stageName}",
+    "bind": {
+      "apiId": "label",
+      "stageName": "label"
+    }
+  },
+  "GetApi": {
+    "method": "GET",
+    "uri": "/v2/apis/{apiId}",
+    "bind": {
+      "apiId": "label"
+    }
+  },
+  "GetApis": {
+    "method": "GET",
+    "uri": "/v2/apis",
+    "bind": {
+      "maxResults": "query:maxResults",
+      "nextToken": "query:nextToken"
+    }
+  },
+  "GetAuthorizer": {
+    "method": "GET",
+    "uri": "/v2/apis/{apiId}/authorizers/{authorizerId}",
+    "bind": {
+      "apiId": "label",
+      "authorizerId": "label"
+    }
+  },
+  "GetAuthorizers": {
+    "method": "GET",
+    "uri": "/v2/apis/{apiId}/authorizers",
+    "bind": {
+      "apiId": "label",
+      "maxResults": "query:maxResults",
+      "nextToken": "query:nextToken"
+    }
+  },
+  "GetDeployment": {
+    "method": "GET",
+    "uri": "/v2/apis/{apiId}/deployments/{deploymentId}",
+    "bind": {
+      "apiId": "label",
+      "deploymentId": "label"
+    }
+  },
+  "GetDeployments": {
+    "method": "GET",
+    "uri": "/v2/apis/{apiId}/deployments",
+    "bind": {
+      "apiId": "label",
+      "maxResults": "query:maxResults",
+      "nextToken": "query:nextToken"
+    }
+  },
+  "GetIntegration": {
+    "method": "GET",
+    "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+    "bind": {
+      "apiId": "label",
+      "integrationId": "label"
+    }
+  },
+  "GetIntegrations": {
+    "method": "GET",
+    "uri": "/v2/apis/{apiId}/integrations",
+    "bind": {
+      "apiId": "label",
+      "maxResults": "query:maxResults",
+      "nextToken": "query:nextToken"
+    }
+  },
+  "GetRoute": {
+    "method": "GET",
+    "uri": "/v2/apis/{apiId}/routes/{routeId}",
+    "bind": {
+      "apiId": "label",
+      "routeId": "label"
+    }
+  },
+  "GetRoutes": {
+    "method": "GET",
+    "uri": "/v2/apis/{apiId}/routes",
+    "bind": {
+      "apiId": "label",
+      "maxResults": "query:maxResults",
+      "nextToken": "query:nextToken"
+    }
+  },
+  "GetStage": {
+    "method": "GET",
+    "uri": "/v2/apis/{apiId}/stages/{stageName}",
+    "bind": {
+      "apiId": "label",
+      "stageName": "label"
+    }
+  },
+  "GetStages": {
+    "method": "GET",
+    "uri": "/v2/apis/{apiId}/stages",
+    "bind": {
+      "apiId": "label",
+      "maxResults": "query:maxResults",
+      "nextToken": "query:nextToken"
+    }
+  },
+  "GetTags": {
+    "method": "GET",
+    "uri": "/v2/tags/{resourceArn}",
+    "bind": {
+      "resourceArn": "label"
+    }
+  },
+  "ResetAuthorizersCache": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{apiId}/stages/{stageName}/cache/authorizers",
+    "bind": {
+      "apiId": "label",
+      "stageName": "label"
+    }
+  },
+  "TagResource": {
+    "method": "POST",
+    "uri": "/v2/tags/{resourceArn}",
+    "bind": {
+      "resourceArn": "label"
+    }
+  },
+  "UntagResource": {
+    "method": "DELETE",
+    "uri": "/v2/tags/{resourceArn}",
+    "bind": {
+      "resourceArn": "label",
+      "tagKeys": "query:tagKeys"
+    },
+    "xml_lists": {
+      "TagKeys": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateApi": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{apiId}",
+    "bind": {
+      "apiId": "label"
+    },
+    "xml_lists": {
+      "CorsConfiguration.AllowHeaders": {
+        "element": "member"
+      },
+      "CorsConfiguration.AllowMethods": {
+        "element": "member"
+      },
+      "CorsConfiguration.AllowOrigins": {
+        "element": "member"
+      },
+      "CorsConfiguration.ExposeHeaders": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateAuthorizer": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{apiId}/authorizers/{authorizerId}",
+    "bind": {
+      "apiId": "label",
+      "authorizerId": "label"
+    },
+    "xml_lists": {
+      "IdentitySource": {
+        "element": "member"
+      },
+      "JwtConfiguration.Audience": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateDeployment": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{apiId}/deployments/{deploymentId}",
+    "bind": {
+      "apiId": "label",
+      "deploymentId": "label"
+    }
+  },
+  "UpdateIntegration": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{apiId}/integrations/{integrationId}",
+    "bind": {
+      "apiId": "label",
+      "integrationId": "label"
+    }
+  },
+  "UpdateRoute": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{apiId}/routes/{routeId}",
+    "bind": {
+      "apiId": "label",
+      "routeId": "label"
+    },
+    "xml_lists": {
+      "AuthorizationScopes": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateStage": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{apiId}/stages/{stageName}",
+    "bind": {
+      "apiId": "label",
+      "stageName": "label"
+    }
+  }
+}

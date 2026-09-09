@@ -238,7 +238,7 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 		LogGroups:     map[string]provision.LogGroup{},
 		Layers:        map[string]provision.Layer{},
 	}
-	m := &mapper{scope: scope, stack: stack, template: t, apiNodes: map[string]apiNode{}}
+	m := &mapper{scope: scope, stack: stack, template: t, apiNodes: map[string]apiNode{}, v2Integrations: map[string]v2Integration{}}
 	for _, p := range work {
 		props, err := scope.Eval(p.res.Properties)
 		if err != nil {

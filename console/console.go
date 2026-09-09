@@ -263,6 +263,18 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/apigw-keys/plans/{plan}/attach-key", c.apigwPlanAttachKey) // CreateUsagePlanKey
 	m.HandleFunc("POST "+p+"/apigw-keys/plans/{plan}/detach-key", c.apigwPlanDetachKey) // DeleteUsagePlanKey
 	m.HandleFunc("POST "+p+"/apigw/create", c.apigwCreate)
+	m.HandleFunc("GET "+p+"/apigw-http/{api}", c.apigwHTTP)                          // GetApis, GetRoutes, GetIntegrations, GetStages, GetAuthorizers
+	m.HandleFunc("POST "+p+"/apigw-http/create", c.apigwHTTPCreate)                  // CreateApi
+	m.HandleFunc("POST "+p+"/apigw-http/{api}/update", c.apigwHTTPUpdate)            // UpdateApi, DeleteCorsConfiguration
+	m.HandleFunc("POST "+p+"/apigw-http/{api}/delete", c.apigwHTTPDelete)            // DeleteApi
+	m.HandleFunc("POST "+p+"/apigw-http/{api}/add-route", c.apigwHTTPAddRoute)       // HTMX partial (CreateIntegration, CreateRoute)
+	m.HandleFunc("POST "+p+"/apigw-http/{api}/delete-route", c.apigwHTTPDeleteRoute) // HTMX partial (DeleteRoute, DeleteIntegration)
+	m.HandleFunc("POST "+p+"/apigw-http/{api}/invoke", c.apigwHTTPInvoke)
+	m.HandleFunc("POST "+p+"/apigw-http/{api}/create-stage", c.apigwHTTPCreateStage)           // CreateStage
+	m.HandleFunc("POST "+p+"/apigw-http/{api}/delete-stage", c.apigwHTTPDeleteStage)           // DeleteStage
+	m.HandleFunc("POST "+p+"/apigw-http/{api}/deploy", c.apigwHTTPDeploy)                      // CreateDeployment
+	m.HandleFunc("POST "+p+"/apigw-http/{api}/create-authorizer", c.apigwHTTPCreateAuthorizer) // CreateAuthorizer
+	m.HandleFunc("POST "+p+"/apigw-http/{api}/delete-authorizer", c.apigwHTTPDeleteAuthorizer) // DeleteAuthorizer
 	m.HandleFunc("GET "+p+"/apigw/{api}", c.apigwAPI)
 	m.HandleFunc("POST "+p+"/apigw/{api}/invoke", c.apigwInvoke)
 	m.HandleFunc("POST "+p+"/apigw/{api}/update", c.apigwUpdate)
@@ -687,6 +699,7 @@ func templateFuncs(prefix string) template.FuncMap {
 		"secs":      humanSecs,
 		"ago":       ago,
 		"list":      func(items ...any) []any { return items },
+		"join":      strings.Join,
 		"masked":    maskedValue,
 		"add":       func(a, b int) int { return a + b },
 		"addOne":    func(n int64) int64 { return n + 1 },

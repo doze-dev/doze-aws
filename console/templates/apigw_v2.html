@@ -1,0 +1,217 @@
+{{/* HTTP APIs (apigatewayv2). An HTTP API is a flat table of routes — a key
+     such as "GET /items/{id}" or $default, and the function or URL it
+     forwards to — served at its $default stage as soon as one exists, so
+     the page is routes first, with the stages, invoke and settings tabs a
+     REST API has. */}}
+{{define "apigw_http"}}{{template "shell_top" .}}
+  {{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" .API.ID)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "apigw"}} {{.API.Name}} <span class="badge" title="HTTP API (apigatewayv2)">HTTP</span>
+        <div class="acts">
+          <a class="btn" href="{{.Prefix}}/apigw-http/{{.API.ID}}?tab=invoke">{{icon "send"}} Invoke</a>
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/delete" hx-confirm="Delete HTTP API “{{.API.Name}}” and every route, stage and authorizer under it?">{{icon "trash"}} Delete</button>
+        </div>
+      </div>
+      <div class="chips">
+        {{template "copychip" dict "Label" "id" "Value" .API.ID}}
+        {{template "copychip" dict "Label" "endpoint" "Value" .API.Endpoint}}
+        {{if .API.CORS}}<span class="chip" title="CORS: {{.API.CORS.Origins}}">CORS on</span>{{end}}
+      </div>
+      {{if .API.Description}}<p class="mini-note">{{.API.Description}}</p>{{end}}
+      {{template "dtabs" dict "Cur" .Tab "Tabs" (list
+        (dict "Key" "routes" "Label" "Routes" "Icon" "route" "URL" (printf "%s/apigw-http/%s" .Prefix .API.ID))
+        (dict "Key" "stages" "Label" "Stages" "Icon" "git-branch" "URL" (printf "%s/apigw-http/%s?tab=stages" .Prefix .API.ID))
+        (dict "Key" "invoke" "Label" "Invoke" "Icon" "send" "URL" (printf "%s/apigw-http/%s?tab=invoke" .Prefix .API.ID))
+        (dict "Key" "settings" "Label" "Settings" "Icon" "settings" "URL" (printf "%s/apigw-http/%s?tab=settings" .Prefix .API.ID))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/apigw-http/%s?tab=tags" .Prefix .API.ID)))}}
+    </div>
+    <div class="det-b">
+      {{if eq .Tab "invoke"}}
+        {{template "apigw_http_invoke" .}}
+      {{else if eq .Tab "stages"}}
+        {{template "apigw_http_stages" .}}
+      {{else if eq .Tab "settings"}}
+        {{template "apigw_http_settings" .}}
+      {{else if eq .Tab "tags"}}
+        {{template "tags_panel" dict "Prefix" .Prefix "Svc" "apigw" "ID" .API.ID}}
+      {{else}}
+        {{template "apigw_http_routes" .}}
+      {{end}}
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{define "apigw_http_routes"}}
+<div id="apigw-http-routes">
+  {{if not .Stages}}<div class="pub-receipt warn"><div class="pr-h">No stage yet — the routes exist as a definition and nothing answers.</div>
+    <div class="pr-row dim">Create the <span class="mono">$default</span> stage on the Stages tab; with auto-deploy it serves every route change at once.</div></div>{{end}}
+  <div class="sec-title">Routes <span class="dim">— key, and what it forwards to; a literal segment beats {param}, {param} beats {proxy+}, $default catches the rest</span></div>
+  <div class="table-wrap"><table class="tbl">
+    <thead><tr><th class="w-method">Method</th><th>Path</th><th>Integration</th><th>Payload</th><th>Auth</th><th class="w-acts"></th></tr></thead>
+    <tbody>
+    {{range .Routes}}
+      <tr>
+        <td><span class="chip mono">{{.Method}}</span></td>
+        <td class="mono sub">{{.Path}}</td>
+        <td class="sub">{{if .Lambda}}{{awsIcon "lambda"}} <a href="{{$.Prefix}}/lambda/{{.Lambda}}">{{.Lambda}}</a>{{else if .Target}}<span class="mono">{{.Type}}</span> {{.Target}}{{else}}<span class="dim">no integration</span>{{end}}</td>
+        <td class="mono sub">{{if .Lambda}}{{.PayloadFormat}}{{else}}<span class="dim">—</span>{{end}}</td>
+        <td class="sub">{{if eq .AuthType "CUSTOM"}}<span class="chip" title="authorizer {{.AuthID}}">Lambda authorizer</span>{{else}}<span class="dim">{{.AuthType}}</span>{{end}}</td>
+        <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete route {{.Key}}" hx-post="{{$.Prefix}}/apigw-http/{{$.API.ID}}/delete-route" hx-vals='{"route":"{{.ID}}"}' hx-target="#apigw-http-routes" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete route “{{.Key}}”? Its integration goes with it when nothing else uses it.">{{icon "trash"}}</button></div></td>
+      </tr>
+    {{else}}
+      <tr><td colspan="6" class="mini-note">No routes. Add one below — <span class="mono">$default</span> alone catches every request.</td></tr>
+    {{end}}
+    </tbody>
+  </table></div>
+
+  <div class="sec-title">Add route</div>
+  <div class="panel"><div class="form-b" x-data="{kind:'lambda'}">
+    <form hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/add-route" hx-target="#apigw-http-routes" hx-select="unset" hx-swap="outerHTML">
+      <div class="fgrid">
+        <div class="field"><label>Method</label>
+          <select class="input mono" name="method"><option>ANY</option><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option></select></div>
+        <div class="field"><label>Path <span class="dim">empty for $default</span></label><input class="input mono" name="path" placeholder="/items/{id}" spellcheck="false" autocomplete="off"></div>
+        <div class="field"><label>Forward to</label>
+          <select class="input" x-model="kind"><option value="lambda">a Lambda function</option><option value="url">an HTTP URL</option></select></div>
+        <div class="field" x-show="kind==='lambda'"><label>Function</label>
+          <select class="input mono" name="lambda" :disabled="kind!=='lambda'"><option value="">— pick a function —</option>{{range .Functions}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>
+        <div class="field" x-show="kind==='lambda'"><label>Payload format</label>
+          <select class="input mono" name="payload" :disabled="kind!=='lambda'"><option value="2.0">2.0</option><option value="1.0">1.0</option></select></div>
+        <div class="field" x-show="kind==='url'" x-cloak><label>URL <span class="dim">{proxy} expands</span></label><input class="input mono" name="url" placeholder="http://localhost:3000/{proxy}" spellcheck="false" :disabled="kind!=='url'"></div>
+        {{if .Authorizers}}<div class="field"><label>Authorizer</label>
+          <select class="input" name="authorizer"><option value="">none</option>{{range .Authorizers}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></div>{{end}}
+      </div>
+      <div class="fr-btn"><button class="btn" type="submit">{{icon "plus"}} Add route</button></div>
+    </form>
+    <p class="mini-note">Payload 2.0 is the event a function URL gets (rawPath, requestContext.http); 1.0 is the REST proxy event with a version field. A URL target is proxied as is, with the request's method.</p>
+  </div></div>
+</div>
+{{end}}
+
+{{define "apigw_http_stages"}}
+<div class="split">
+  <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Create stage</h2></div><div class="form-b">
+    <form hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/create-stage">
+      <div class="fgrid">
+        <div class="field"><label>Stage name</label><input class="input mono" name="name" placeholder="$default" spellcheck="false"></div>
+        <div class="field"><label>Auto-deploy</label><select class="input" name="auto_deploy"><option value="on">on — every route change is live</option><option value="off">off — deploy by hand</option></select></div>
+      </div>
+      <div class="fr-btn"><button class="btn" type="submit">Create stage</button></div>
+    </form>
+    <p class="mini-note"><span class="mono">$default</span> answers at the API's root with no stage segment; a named stage answers under its name.</p>
+  </div></div>
+  <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Deploy</h2></div><div class="form-b">
+    {{if .Stages}}
+    <form hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/deploy">
+      <div class="field"><label>Stage</label><select class="input mono" name="stage">{{range .Stages}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>
+      <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Deploy now</button></div>
+    </form>
+    <p class="mini-note">Makes a deployment and points the stage at it — needed only for a stage without auto-deploy; locally the live definition serves either way.</p>
+    {{else}}<p class="mini-note">No stages to deploy to.</p>{{end}}
+  </div></div>
+</div>
+<div class="sec-title">Stages</div>
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th class="w-method">Stage</th><th>Invoke URL</th><th>Auto-deploy</th><th>Deployment</th><th>Access log</th><th class="w-acts"></th></tr></thead>
+  <tbody>
+  {{range .Stages}}
+    <tr>
+      <td class="mono sub">{{.Name}}</td>
+      <td class="mono sub trunc">{{template "copychip" dict "Value" .InvokeURL}}</td>
+      <td class="sub">{{if .AutoDeploy}}<span class="badge state-on">on</span>{{else}}<span class="dim">off</span>{{end}}</td>
+      <td class="mono sub">{{if .DeploymentID}}{{.DeploymentID}}{{else}}<span class="dim">none</span>{{end}}</td>
+      <td class="sub">{{if .LogGroup}}<a href="{{$.Prefix}}/logs/group?name={{.LogGroup}}">{{.LogGroup}}</a>{{else}}<span class="dim">off</span>{{end}}</td>
+      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete stage {{.Name}}" hx-post="{{$.Prefix}}/apigw-http/{{$.API.ID}}/delete-stage" hx-vals='{"name":"{{.Name}}"}' hx-confirm="Delete stage “{{.Name}}”? Callers using its URL get 404s.">{{icon "trash"}}</button></div></td>
+    </tr>
+  {{else}}
+    <tr><td colspan="6" class="mini-note">No stages. Until one exists the routes are only a definition.</td></tr>
+  {{end}}
+  </tbody>
+</table></div>
+{{end}}
+
+{{define "apigw_http_invoke"}}
+{{if .Stages}}
+<form class="explorer-form" hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/invoke" hx-target="#apigw-result" hx-select="unset" hx-swap="outerHTML">
+  <div class="ex-grid">
+    <div class="field w-stage"><label>Stage</label>
+      <select class="input" name="stage">{{range .Stages}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>
+    <div class="field w-method"><label>Method</label>
+      <select class="input" name="method"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option></select></div>
+    <div class="field grow"><label>Path</label>
+      <input class="input mono sub" name="path" value="/" placeholder="/items/42" spellcheck="false" autocomplete="off"></div>
+    <button class="btn" type="submit">{{icon "send"}} Send</button>
+  </div>
+  <div class="field"><label>Body <span class="dim">optional</span></label><textarea name="body" data-editor rows="5" placeholder='{"item":"x"}'></textarea></div>
+  <p class="mini-note">Goes through the execute-api plane on this endpoint — the $default stage at the API's root — the same path an outside caller takes.</p>
+</form>
+{{template "apigw_result" dict}}
+{{else}}
+<div class="empty"><span class="ic-lg">{{icon "send"}}</span><p>Nothing to invoke yet — this API has no stages. Create <span class="mono">$default</span> first.</p></div>
+{{end}}
+{{end}}
+
+{{define "apigw_http_settings"}}
+<div class="panel form-sec"><div class="panel-h"><h2>{{icon "settings"}} API settings and CORS</h2></div><div class="form-b">
+  <form hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/update">
+    <div class="fgrid">
+      <div class="field"><label>Name</label><input class="input" name="name" value="{{.API.Name}}" required></div>
+      <div class="field"><label>Description</label><input class="input" name="description" value="{{.API.Description}}"></div>
+    </div>
+    <div class="sec-title">CORS <span class="dim">— comma-separated; no origins removes the configuration</span></div>
+    {{with .API.CORS}}
+    <div class="fgrid">
+      <div class="field"><label>Allow origins</label><input class="input mono" name="cors_origins" value="{{join .Origins ","}}" placeholder="*"></div>
+      <div class="field"><label>Allow methods</label><input class="input mono" name="cors_methods" value="{{join .Methods ","}}" placeholder="GET,POST"></div>
+      <div class="field"><label>Allow headers</label><input class="input mono" name="cors_headers" value="{{join .Headers ","}}" placeholder="content-type,authorization"></div>
+      <div class="field"><label>Expose headers</label><input class="input mono" name="cors_expose" value="{{join .Expose ","}}"></div>
+      <div class="field"><label>Max age <span class="dim">seconds</span></label><input class="input mono" name="cors_max_age" value="{{.MaxAge}}"></div>
+      <div class="field"><label>Credentials</label><div class="opt-row"><label><input type="checkbox" name="cors_credentials" {{if .Credentials}}checked{{end}}> allow</label></div></div>
+    </div>
+    {{else}}
+    <div class="fgrid">
+      <div class="field"><label>Allow origins</label><input class="input mono" name="cors_origins" placeholder="*"></div>
+      <div class="field"><label>Allow methods</label><input class="input mono" name="cors_methods" placeholder="GET,POST"></div>
+      <div class="field"><label>Allow headers</label><input class="input mono" name="cors_headers" placeholder="content-type,authorization"></div>
+      <div class="field"><label>Expose headers</label><input class="input mono" name="cors_expose"></div>
+      <div class="field"><label>Max age <span class="dim">seconds</span></label><input class="input mono" name="cors_max_age" placeholder="300"></div>
+      <div class="field"><label>Credentials</label><div class="opt-row"><label><input type="checkbox" name="cors_credentials"> allow</label></div></div>
+    </div>
+    {{end}}
+    <div class="fr-btn"><button class="btn" type="submit">Save settings</button></div>
+  </form>
+  <p class="mini-note">A preflight is answered from this configuration and every response to an allowed origin carries the headers, as on AWS.</p>
+</div></div>
+
+<div class="sec-title">Authorizers <span class="dim">— REQUEST Lambda authorizers with the simple response; JWT needs an identity provider that does not exist locally</span></div>
+<div class="table-wrap"><table class="tbl">
+  <thead><tr><th>Name</th><th>Function</th><th>Identity source</th><th>Payload</th><th>TTL</th><th class="w-acts"></th></tr></thead>
+  <tbody>
+  {{range .Authorizers}}
+    <tr>
+      <td class="mono sub">{{.Name}}</td>
+      <td class="sub">{{awsIcon "lambda"}} <a href="{{$.Prefix}}/lambda/{{.Lambda}}">{{.Lambda}}</a></td>
+      <td class="mono sub">{{join .IdentitySource ", "}}</td>
+      <td class="mono sub">{{.PayloadFormat}}{{if .SimpleResponses}} · simple{{end}}</td>
+      <td class="mono sub">{{.TTL}}s</td>
+      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete authorizer {{.Name}}" hx-post="{{$.Prefix}}/apigw-http/{{$.API.ID}}/delete-authorizer" hx-vals='{"id":"{{.ID}}"}' hx-confirm="Delete authorizer “{{.Name}}”? Routes that name it are refused first.">{{icon "trash"}}</button></div></td>
+    </tr>
+  {{else}}
+    <tr><td colspan="6" class="mini-note">No authorizers. A route with none is open.</td></tr>
+  {{end}}
+  </tbody>
+</table></div>
+<div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Add authorizer</h2></div><div class="form-b">
+  <form hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/create-authorizer">
+    <div class="fgrid">
+      <div class="field"><label>Name</label><input class="input mono" name="name" placeholder="gate" required spellcheck="false"></div>
+      <div class="field"><label>Function</label><select class="input mono" name="lambda" required><option value="">— pick a function —</option>{{range .Functions}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>
+      <div class="field"><label>Header</label><input class="input mono" name="header" value="Authorization" spellcheck="false"></div>
+      <div class="field"><label>Cache TTL <span class="dim">seconds, 0 off</span></label><input class="input mono" name="ttl" value="0"></div>
+    </div>
+    <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Create authorizer</button></div>
+  </form>
+  <p class="mini-note">The function gets the request as a payload-2.0 event with the header's value in <span class="mono">identitySource</span> and answers <span class="mono">{"isAuthorized": true, "context": {…}}</span>; the context lands on the route's event under <span class="mono">requestContext.authorizer.lambda</span>.</p>
+</div></div>
+{{end}}

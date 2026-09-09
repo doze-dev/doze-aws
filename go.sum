@@ -68,6 +68,8 @@ github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.31 h1:3GUprIsfmGcC5SACIyB0e7E0BM1
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.31/go.mod h1:7PuV1yl5e2xnUbm+RqvVg5i2iBM8EyijZNoI9wsOoOc=
 github.com/aws/aws-sdk-go-v2/service/apigateway v1.42.3 h1:vnfomuPPLg7/p9xqm0Nc6oYBdi0sWl1xUksUyDxpJpU=
 github.com/aws/aws-sdk-go-v2/service/apigateway v1.42.3/go.mod h1:XzqQmG/JL1ODamWc19W1A4oHHx7CPNTRSDox27KTmg0=
+github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.41.0 h1:KHyDCctrYDZoNkHo9T59JrG7WDMUsmt8tSeVAPJ2ETU=
+github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.41.0/go.mod h1:s9YgzxaZLaLEz1uq+H6nzk8g5SsYhjHkJHNI5oT+X1Y=
 github.com/aws/aws-sdk-go-v2/service/cloudformation v1.76.0 h1:E0vn0XhHzTW58fCej74npT22XRLHyagyS/5FE1OQ6RA=
 github.com/aws/aws-sdk-go-v2/service/cloudformation v1.76.0/go.mod h1:5EKLAUkmrDE1vh/IuibzQaNf+tH3jki4HU6x0a/dNQU=
 github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.86.0 h1:yNLrmQvtLjjhSgQ70FiqN36rGP+kMX1evs8hEkDsFtc=

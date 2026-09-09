@@ -173,7 +173,9 @@ Mapped:
 | `AWS::SecretsManager::Secret` | `SecretString`, or `GenerateSecretString`'s template as a placeholder |
 | `AWS::SSM::Parameter` | |
 | `AWS::Kinesis::Stream` | accepted; the resource graph has no streams section yet |
-| `AWS::Serverless::Api`, `AWS::ApiGateway::RestApi`, `AWS::ApiGatewayV2::Api` | a REST API; routes arrive from the functions that bind to it |
+| `AWS::Serverless::Api`, `AWS::ApiGateway::RestApi` | a REST API; routes arrive from the functions that bind to it |
+| `AWS::ApiGatewayV2::Api`, `AWS::Serverless::HttpApi` | an HTTP API (`ProtocolType` HTTP; `WEBSOCKET` is refused by name) with `CorsConfiguration`; a `Target` quick-creates a route (`RouteKey`, or `$default`). `!GetAtt Api.ApiEndpoint` is where its `$default` stage answers — see [api-support/apigatewayv2.md](api-support/apigatewayv2.md) |
+| `AWS::ApiGatewayV2::Integration`, `::Route`, `::Stage`, `::Deployment`, `::Authorizer` | an integration (`AWS_PROXY` to the function `IntegrationUri` names with `PayloadFormatVersion`, or `HTTP_PROXY` to a URL; service integrations and VPC links refused by name), a route (`RouteKey`, `Target` naming an Integration of the template by `Ref`, `AuthorizationType` `NONE`/`AWS_IAM`/`CUSTOM` with `AuthorizerId`; `JWT` refused), a stage (`StageName`, `AutoDeploy`, `AccessLogSettings`), and a `REQUEST` authorizer (`AuthorizerUri`, `IdentitySource`, `AuthorizerPayloadFormatVersion`, `EnableSimpleResponses`, `AuthorizerResultTtlInSeconds`; `JWT` refused). A deployment happens on every apply |
 | `AWS::ApiGateway::Stage` | `StageName`, and the stage's `AccessLogSetting` (destination and format) and `MethodSettings` (logging level, data trace, metrics per resource path and method), patched onto the deployed stage the way CloudFormation patches them |
 | `AWS::ApiGateway::Resource`, `::Method` | the resource tree as CDK and hand-written templates declare it: paths rebuilt from `ParentId`/`PathPart` up to `!GetAtt Api.RootResourceId`, each method one route. `Integration.Type` `AWS_PROXY` (the function the `Uri` names) or `MOCK` (the first `IntegrationResponses` entry's status, `method.response.header.*` parameters and `application/json` template — a CDK CORS preflight); other types are refused by name. `AuthorizationType` `NONE`, `AWS_IAM` (unchecked locally) or `CUSTOM` with `AuthorizerId`; `ApiKeyRequired` |
 | `AWS::ApiGateway::Authorizer` | `TOKEN` and `REQUEST` Lambda authorizers: `AuthorizerUri`, `IdentitySource`, `IdentityValidationExpression`, `AuthorizerResultTtlInSeconds`. `Ref` is the authorizer's name, resolved to the id the service mints at apply. `COGNITO_USER_POOLS` is refused by name |
@@ -226,8 +228,9 @@ supplies defaults that an explicit property overrides.
 | `Events` of type `SNS` | a topic subscription |
 | `Events` of type `Schedule` / `ScheduleV2` | an EventBridge rule |
 | `Events` of type `EventBridgeRule` / `CloudWatchEvent` | an EventBridge rule |
-| `Events` of type `Api` / `HttpApi` | a route on a REST API, deployed and callable — see [api-support/apigateway.md](api-support/apigateway.md) |
-| `AWS::Serverless::Api`, `::HttpApi` | an API the function's routes attach to; `StageName`, `AccessLogSetting` and `MethodSettings` reach the stage |
+| `Events` of type `Api` | a route on a REST API, deployed and callable — see [api-support/apigateway.md](api-support/apigateway.md) |
+| `Events` of type `HttpApi` | a route on an HTTP API (`ServerlessHttpApi` at `$default` unless `ApiId` names one); no `Path` is the `$default` route; `PayloadFormatVersion`; `Auth.Authorizer` — see [api-support/apigatewayv2.md](api-support/apigatewayv2.md) |
+| `AWS::Serverless::Api`, `::HttpApi` | an API the function's routes attach to; `StageName`, `AccessLogSetting` and `MethodSettings` reach the stage. An `HttpApi`'s `Auth` block: Lambda `Authorizers` (`FunctionArn`, `Identity.Headers`/`QueryStrings`, `AuthorizerPayloadFormatVersion`, `EnableSimpleResponses`) and `DefaultAuthorizer`; JWT authorizers refused by name |
 | `AWS::Serverless::StateMachine` | a state machine; `Logging` becomes its `LoggingConfiguration`, `Policies` and `Tracing` are dropped, and `Events` is refused by name — start executions directly or from a Lambda |
 
 A SAM `Api` event becomes a `method + path -> function` route. Several functions
