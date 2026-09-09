@@ -51,7 +51,7 @@ func (s *Server) authorizeRequest(ctx context.Context, api *RestAPI, stage strin
 
 	arn := methodARN(api.ID, stage, r.Method, path)
 	values, ok := identityValues(a, r, params, api.Stages[stage])
-	if !ok {
+	if !ok && (a.Type == "TOKEN" || a.ResultTTL > 0) {
 		return nil, &authDenial{401, "Unauthorized"}
 	}
 	if a.Type == "TOKEN" && a.IdentityValidation != "" {
@@ -61,6 +61,7 @@ func (s *Server) authorizeRequest(ctx context.Context, api *RestAPI, stage strin
 		}
 	}
 	key := a.ID + "\x00" + strings.Join(values, "\x00")
+	rl.authorizer = a.Name
 	if a.ResultTTL > 0 {
 		if cached, ok := s.authCache.get(key, s.now()); ok {
 			rl.authCached = true
@@ -113,14 +114,20 @@ func methodARN(apiID, stage, method, path string) string {
 }
 
 // identityValues reads the authorizer's identity sources from the request.
-// Every named source must be present, or the request is unauthorized before
-// the function is called.
+// A TOKEN authorizer always needs its header. A REQUEST authorizer with
+// caching on needs every named source, as AWS checks them to build the
+// cache key; with caching off AWS hands the request to the function as is,
+// and so does this — ok reports whether every source was present.
 func identityValues(a *Authorizer, r *http.Request, params map[string]string, st *Stage) ([]string, bool) {
 	src := a.IdentitySource
-	if src == "" {
+	if src == "" && a.Type == "TOKEN" {
 		src = "method.request.header.Authorization"
 	}
+	if strings.TrimSpace(src) == "" {
+		return nil, true
+	}
 	var out []string
+	ok := true
 	for _, one := range strings.Split(src, ",") {
 		one = strings.TrimSpace(one)
 		kind, name, _ := strings.Cut(strings.TrimPrefix(one, "method.request."), ".")
@@ -146,11 +153,11 @@ func identityValues(a *Authorizer, r *http.Request, params map[string]string, st
 			}
 		}
 		if v == "" {
-			return nil, false
+			ok = false
 		}
 		out = append(out, v)
 	}
-	return out, true
+	return out, ok
 }
 
 // authorizerResponse is the shape a Lambda authorizer returns.

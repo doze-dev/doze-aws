@@ -84,7 +84,41 @@ func (s *Server) recordNested(parent *StackRecord, rep *Report, isUpdate bool) e
 		}
 		return nil
 	}
-	return walk(parent, rep.Nested)
+	if err := walk(parent, rep.Nested); err != nil {
+		return err
+	}
+	return s.dropRemovedChildren(parent, rep)
+}
+
+// dropRemovedChildren removes the records of children an update no longer
+// declares; a child that stayed would otherwise keep its old record, owned
+// by the parent and refusing deletion, forever.
+func (s *Server) dropRemovedChildren(parent *StackRecord, rep *Report) error {
+	kept := map[string]bool{}
+	var collect func(children []*NestedStack)
+	collect = func(children []*NestedStack) {
+		for _, c := range children {
+			kept[c.Name] = true
+			collect(c.Report.Nested)
+		}
+	}
+	collect(rep.Nested)
+	all, err := s.store.ListStacks()
+	if err != nil {
+		return err
+	}
+	root := parent.RootID
+	if root == "" {
+		root = parent.ID
+	}
+	for _, rec := range all {
+		if rec.RootID == root && rec.ID != parent.ID && !kept[rec.Name] {
+			if err := s.store.DeleteStack(rec.Name); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // deleteNested marks every child of a deleted stack DELETE_COMPLETE; the

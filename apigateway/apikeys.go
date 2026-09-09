@@ -105,15 +105,25 @@ func (s *Store) DeleteAPIKey(id string) error {
 		if pb == nil {
 			return nil
 		}
-		return pb.ForEach(func(pk, raw []byte) error {
+		// Collected first: bbolt forbids writing a bucket from inside its
+		// own ForEach.
+		var rewrite [][2][]byte
+		pb.ForEach(func(pk, raw []byte) error {
 			var p UsagePlan
 			if json.Unmarshal(raw, &p) != nil || !p.hasKey(id) {
 				return nil
 			}
 			p.removeKey(id)
 			out, _ := json.Marshal(p)
-			return pb.Put(pk, out)
+			rewrite = append(rewrite, [2][]byte{append([]byte(nil), pk...), out})
+			return nil
 		})
+		for _, kv := range rewrite {
+			if err := pb.Put(kv[0], kv[1]); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 }
 
@@ -211,7 +221,9 @@ func (s *Server) createAPIKey(w http.ResponseWriter, r *http.Request) *awshttp.A
 	now := s.now().Unix()
 	k := &APIKey{
 		ID: s.store.newID(), Name: req.Name, Description: req.Description, Value: req.Value,
-		Enabled: true, CustomerID: req.CustomerID, Created: now, Updated: now, Tags: req.Tags,
+		// A key is disabled unless asked for, as on AWS (the CDK says
+		// enabled: true for exactly that reason).
+		Enabled: false, CustomerID: req.CustomerID, Created: now, Updated: now, Tags: req.Tags,
 	}
 	if req.Enabled != nil {
 		k.Enabled = *req.Enabled
@@ -248,7 +260,7 @@ func (s *Server) listAPIKeys(w http.ResponseWriter, r *http.Request) *awshttp.AP
 		}
 		items = append(items, viewAPIKey(k, withValues))
 	}
-	writeJSON(w, 200, map[string]any{"items": items})
+	writeJSON(w, 200, map[string]any{"item": items})
 	return nil
 }
 

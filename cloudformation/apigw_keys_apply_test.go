@@ -142,7 +142,7 @@ func TestApplyAPIKeysAndUsagePlans(t *testing.T) {
 		t.Fatal(err)
 	}
 	var keys struct {
-		Items []struct{ ID, Name, Value string }
+		Items []struct{ ID, Name, Value string } `json:"item"`
 	}
 	json.NewDecoder(resp.Body).Decode(&keys)
 	resp.Body.Close()

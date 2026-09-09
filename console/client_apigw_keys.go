@@ -40,7 +40,7 @@ func (b *backend) ListAPIKeys(ctx context.Context) ([]APIKeyRow, error) {
 			ID, Name, Description string
 			Enabled               bool
 			CreatedDate           float64
-		} `json:"items"`
+		} `json:"item"`
 	}
 	json.Unmarshal(body, &out)
 	rows := make([]APIKeyRow, 0, len(out.Items))
@@ -107,7 +107,7 @@ func (b *backend) ListUsagePlans(ctx context.Context) ([]UsagePlanRow, error) {
 				Limit  int
 				Period string
 			}
-		} `json:"items"`
+		} `json:"item"`
 	}
 	json.Unmarshal(body, &out)
 	apis, _ := b.ListRestAPIs(ctx)
@@ -157,7 +157,7 @@ func (b *backend) UsagePlanKeys(ctx context.Context, planID string) ([]APIKeyRow
 		return nil, err
 	}
 	var out struct {
-		Items []struct{ ID, Name string } `json:"items"`
+		Items []struct{ ID, Name string } `json:"item"`
 	}
 	json.Unmarshal(body, &out)
 	rows := make([]APIKeyRow, 0, len(out.Items))

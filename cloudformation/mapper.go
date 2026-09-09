@@ -72,7 +72,7 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		m.stack.Activities[name] = provision.Activity{Tags: propTags(props)}
 		return nil
 	case "AWS::StepFunctions::StateMachineVersion":
-		return m.stateMachineVersion(r.LogicalID, props)
+		return m.stateMachineVersion(name, props)
 	case "AWS::StepFunctions::StateMachineAlias":
 		return m.stateMachineAlias(name, props)
 	case "AWS::Logs::LogGroup":
@@ -87,7 +87,7 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 	case "AWS::Serverless::HttpApi", "AWS::ApiGatewayV2::Api":
 		return m.httpAPI(name, props)
 	case "AWS::ApiGatewayV2::Integration":
-		return m.v2Integration(r.LogicalID, props)
+		return m.v2Integration(name, props)
 	case "AWS::ApiGatewayV2::Route":
 		return m.v2Route(props)
 	case "AWS::ApiGatewayV2::Stage":
@@ -115,10 +115,13 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		// The stage names the API it belongs to; its logging settings land
 		// on that API once every resource is known.
 		return m.stage(props)
+	// Resources, methods, HTTP API integrations and state-machine versions
+	// are looked up by what !Ref on them yields, which is the derived name —
+	// under a nested stack's prefix, not the bare logical id.
 	case "AWS::ApiGateway::Resource":
-		return m.apiResource(r.LogicalID, props)
+		return m.apiResource(name, props)
 	case "AWS::ApiGateway::Method":
-		return m.apiMethod(r.LogicalID, props)
+		return m.apiMethod(name, props)
 	case "AWS::ApiGateway::Authorizer":
 		return m.apiAuthorizer(name, props)
 	case "AWS::ApiGateway::ApiKey":

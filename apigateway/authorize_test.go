@@ -167,8 +167,12 @@ func TestLambdaAuthorizerGate(t *testing.T) {
 	if fake.calls.Load() != before+2 {
 		t.Errorf("a TTL of 0 should not cache: %d invokes", fake.calls.Load()-before)
 	}
-	if code, _ := get("/open", map[string]string{"Authorization": "allow"}); code != 401 {
-		t.Errorf("request authorizer without X-Token: %d", code)
+	// With caching off, AWS hands the request to the function whether or
+	// not the identity sources are present: the function sees no X-Token
+	// and answers with its 500, not a 401 from the gate.
+	before = fake.calls.Load()
+	if code, _ := get("/open", map[string]string{"Authorization": "allow"}); code == 401 || fake.calls.Load() != before+1 {
+		t.Errorf("request authorizer with caching off must invoke without X-Token: %d, invokes %d", code, fake.calls.Load()-before)
 	}
 }
 

@@ -253,7 +253,7 @@ func (s *Server) listUsagePlans(w http.ResponseWriter, r *http.Request) *awshttp
 		}
 		items = append(items, viewUsagePlan(p))
 	}
-	writeJSON(w, 200, map[string]any{"items": items})
+	writeJSON(w, 200, map[string]any{"item": items})
 	return nil
 }
 
@@ -371,7 +371,7 @@ func (s *Server) routeUsagePlanKeys(w http.ResponseWriter, r *http.Request, plan
 				}
 				items = append(items, viewUsagePlanKey(k))
 			}
-			writeJSON(w, 200, map[string]any{"items": items})
+			writeJSON(w, 200, map[string]any{"item": items})
 			return nil
 		}
 		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on usage plan keys")

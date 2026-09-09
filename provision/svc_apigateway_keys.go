@@ -129,7 +129,9 @@ func listAPIKeys(ctx context.Context, c *client) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var listed struct{ Items []struct{ ID, Name string } }
+	var listed struct {
+		Items []struct{ ID, Name string } `json:"item"`
+	}
 	json.Unmarshal(out, &listed)
 	byName := map[string]string{}
 	for _, k := range listed.Items {
@@ -144,7 +146,9 @@ func listUsagePlans(ctx context.Context, c *client) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	var listed struct{ Items []struct{ ID, Name string } }
+	var listed struct {
+		Items []struct{ ID, Name string } `json:"item"`
+	}
 	json.Unmarshal(out, &listed)
 	byName := map[string]string{}
 	for _, p := range listed.Items {

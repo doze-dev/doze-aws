@@ -222,6 +222,12 @@ func samAuth(api *provision.API, auth map[string]any) error {
 				for _, q := range propList(ident, "QueryStrings") {
 					sources = append(sources, "method.request.querystring."+fmt.Sprint(q))
 				}
+				for _, c := range propList(ident, "Context") {
+					sources = append(sources, "context."+fmt.Sprint(c))
+				}
+				for _, v := range propList(ident, "StageVariables") {
+					sources = append(sources, "stageVariables."+fmt.Sprint(v))
+				}
 				a.IdentitySource = strings.Join(sources, ",")
 			}
 			if _, ok := ident["ReauthorizeEvery"]; ok {
