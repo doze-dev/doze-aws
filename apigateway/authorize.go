@@ -32,6 +32,10 @@ type callCtx struct {
 	// UsageKey is the usageIdentifierKey the authorizer returned, which the
 	// API key check reads when the API's key source is AUTHORIZER.
 	UsageKey string
+	// APIKey and APIKeyID are the key the request presented, for the
+	// integration event's identity block.
+	APIKey   string
+	APIKeyID string
 }
 
 // authDenial is a refusal the gate produced.

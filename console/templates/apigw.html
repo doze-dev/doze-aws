@@ -20,6 +20,7 @@
     <div class="det-h">
       <div class="det-title">{{awsIcon "apigw"}} {{.API.Name}}
         <div class="acts">
+          <a class="btn btn-outline" href="{{.Prefix}}/apigw-keys">{{icon "key"}} API keys</a>
           <a class="btn" href="{{.Prefix}}/apigw/{{.API.ID}}?tab=stages">{{icon "send"}} Deploy</a>
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/delete" hx-confirm="Delete API “{{.API.Name}}” and every resource, stage and deployment under it?">{{icon "trash"}} Delete</button>
         </div>

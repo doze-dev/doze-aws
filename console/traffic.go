@@ -627,6 +627,29 @@ func apigwAction(r *http.Request) string {
 				return map[string]string{"GET": "GetStages", "POST": "CreateStage"}[m]
 			}
 			return map[string]string{"GET": "GetStage", "PATCH": "UpdateStage", "DELETE": "DeleteStage"}[m]
+		case "authorizers":
+			if sub(3) == "" {
+				return map[string]string{"GET": "GetAuthorizers", "POST": "CreateAuthorizer"}[m]
+			}
+			return map[string]string{"GET": "GetAuthorizer", "PATCH": "UpdateAuthorizer", "DELETE": "DeleteAuthorizer"}[m]
+		}
+	case "apikeys":
+		if sub(1) == "" {
+			return map[string]string{"GET": "GetApiKeys", "POST": "CreateApiKey"}[m]
+		}
+		return map[string]string{"GET": "GetApiKey", "PATCH": "UpdateApiKey", "DELETE": "DeleteApiKey"}[m]
+	case "usageplans":
+		if sub(1) == "" {
+			return map[string]string{"GET": "GetUsagePlans", "POST": "CreateUsagePlan"}[m]
+		}
+		switch sub(2) {
+		case "":
+			return map[string]string{"GET": "GetUsagePlan", "PATCH": "UpdateUsagePlan", "DELETE": "DeleteUsagePlan"}[m]
+		case "keys":
+			if sub(3) == "" {
+				return map[string]string{"GET": "GetUsagePlanKeys", "POST": "CreateUsagePlanKey"}[m]
+			}
+			return map[string]string{"GET": "GetUsagePlanKey", "DELETE": "DeleteUsagePlanKey"}[m]
 		}
 	}
 	return m + " " + segs[len(segs)-1]

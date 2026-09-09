@@ -156,7 +156,11 @@ func (s *Server) routeControl(w http.ResponseWriter, r *http.Request) *awshttp.A
 		return s.routeTags(w, r, segs)
 	case "account":
 		return s.routeAccount(w, r)
-	case "apikeys", "usageplans", "clientcertificates", "domainnames", "vpclinks", "sdktypes":
+	case "apikeys":
+		return s.routeAPIKeys(w, r, segs)
+	case "usageplans":
+		return s.routeUsagePlans(w, r, segs)
+	case "clientcertificates", "domainnames", "vpclinks", "sdktypes":
 		// Recognised families doze-aws does not model. Refusing by name beats
 		// a bare 404 that looks like a routing bug.
 		return awshttp.Errf(501, "NotImplemented",

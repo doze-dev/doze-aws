@@ -57,11 +57,17 @@ func (s *Server) buildProxyEvent(r *http.Request, api *RestAPI, stage string, re
 		},
 	}
 	if cc != nil {
-		auth := map[string]any{"principalId": cc.Principal}
-		for k, v := range cc.Context {
-			auth[k] = v
+		if cc.Principal != "" {
+			auth := map[string]any{"principalId": cc.Principal}
+			for k, v := range cc.Context {
+				auth[k] = v
+			}
+			ev.RequestContext["authorizer"] = auth
 		}
-		ev.RequestContext["authorizer"] = auth
+		if cc.APIKeyID != "" {
+			ident := ev.RequestContext["identity"].(map[string]any)
+			ident["apiKey"], ident["apiKeyId"] = cc.APIKey, cc.APIKeyID
+		}
 	}
 	if st, ok := api.Stages[stage]; ok && len(st.Variables) > 0 {
 		ev.StageVariables = st.Variables

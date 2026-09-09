@@ -72,11 +72,65 @@ var routes = []route{
 	{Op: "GetRestApi", Method: "GET", Segs: []string{"restapis", ""}, Labels: []string{"", "restApiId"}},
 	{Op: "UpdateRestApi", Method: "PATCH", Segs: []string{"restapis", ""}, Labels: []string{"", "restApiId"}},
 	{Op: "CreateRestApi", Method: "POST", Segs: []string{"restapis"}, Labels: []string{""}},
+	{Op: "DeleteUsagePlanKey", Method: "DELETE", Segs: []string{"usageplans", "", "keys", ""}, Labels: []string{"", "usagePlanId", "", "keyId"}},
+	{Op: "GetUsagePlanKey", Method: "GET", Segs: []string{"usageplans", "", "keys", ""}, Labels: []string{"", "usagePlanId", "", "keyId"}},
+	{Op: "CreateUsagePlanKey", Method: "POST", Segs: []string{"usageplans", "", "keys"}, Labels: []string{"", "usagePlanId", ""}},
+	{Op: "GetUsagePlanKeys", Method: "GET", Segs: []string{"usageplans", "", "keys"}, Labels: []string{"", "usagePlanId", ""}, Query: map[string]string{"limit": "limit", "name": "nameQuery", "position": "position"}},
+	{Op: "DeleteUsagePlan", Method: "DELETE", Segs: []string{"usageplans", ""}, Labels: []string{"", "usagePlanId"}},
+	{Op: "GetUsagePlan", Method: "GET", Segs: []string{"usageplans", ""}, Labels: []string{"", "usagePlanId"}},
+	{Op: "UpdateUsagePlan", Method: "PATCH", Segs: []string{"usageplans", ""}, Labels: []string{"", "usagePlanId"}},
+	{Op: "CreateUsagePlan", Method: "POST", Segs: []string{"usageplans"}, Labels: []string{""}},
+	{Op: "GetUsagePlans", Method: "GET", Segs: []string{"usageplans"}, Labels: []string{""}, Query: map[string]string{"keyId": "keyId", "limit": "limit", "position": "position"}},
+	{Op: "DeleteApiKey", Method: "DELETE", Segs: []string{"apikeys", ""}, Labels: []string{"", "apiKey"}},
+	{Op: "GetApiKey", Method: "GET", Segs: []string{"apikeys", ""}, Labels: []string{"", "apiKey"}, Query: map[string]string{"includeValue": "includeValue"}},
+	{Op: "UpdateApiKey", Method: "PATCH", Segs: []string{"apikeys", ""}, Labels: []string{"", "apiKey"}},
+	{Op: "CreateApiKey", Method: "POST", Segs: []string{"apikeys"}, Labels: []string{""}},
+	{Op: "GetApiKeys", Method: "GET", Segs: []string{"apikeys"}, Labels: []string{""}, Query: map[string]string{"customerId": "customerId", "includeValues": "includeValues", "limit": "limit", "name": "nameQuery", "position": "position"}},
 	{Op: "GetAccount", Method: "GET", Segs: []string{"account"}, Labels: []string{""}},
 	{Op: "UpdateAccount", Method: "PATCH", Segs: []string{"account"}, Labels: []string{""}},
 }
 
 var constraintTables = map[string][]modelcheck.Constraint{
+	"CreateUsagePlan": {
+		{Path: "name", Kind: modelcheck.KindRequired},
+		{Path: "quota.period", Kind: modelcheck.KindEnum, Enum: []string{"MONTH", "DAY", "WEEK"}},
+	},
+	"CreateUsagePlanKey": {
+		{Path: "keyId", Kind: modelcheck.KindRequired},
+		{Path: "keyType", Kind: modelcheck.KindRequired},
+		{Path: "usagePlanId", Kind: modelcheck.KindRequired},
+	},
+	"DeleteApiKey": {
+		{Path: "apiKey", Kind: modelcheck.KindRequired},
+	},
+	"DeleteUsagePlan": {
+		{Path: "usagePlanId", Kind: modelcheck.KindRequired},
+	},
+	"DeleteUsagePlanKey": {
+		{Path: "keyId", Kind: modelcheck.KindRequired},
+		{Path: "usagePlanId", Kind: modelcheck.KindRequired},
+	},
+	"GetApiKey": {
+		{Path: "apiKey", Kind: modelcheck.KindRequired},
+	},
+	"GetUsagePlan": {
+		{Path: "usagePlanId", Kind: modelcheck.KindRequired},
+	},
+	"GetUsagePlanKey": {
+		{Path: "keyId", Kind: modelcheck.KindRequired},
+		{Path: "usagePlanId", Kind: modelcheck.KindRequired},
+	},
+	"GetUsagePlanKeys": {
+		{Path: "usagePlanId", Kind: modelcheck.KindRequired},
+	},
+	"UpdateApiKey": {
+		{Path: "apiKey", Kind: modelcheck.KindRequired},
+		{Path: "patchOperations[].op", Kind: modelcheck.KindEnum, Enum: []string{"remove", "replace", "move", "copy", "test", "add"}},
+	},
+	"UpdateUsagePlan": {
+		{Path: "patchOperations[].op", Kind: modelcheck.KindEnum, Enum: []string{"add", "remove", "replace", "move", "copy", "test"}},
+		{Path: "usagePlanId", Kind: modelcheck.KindRequired},
+	},
 	"CreateAuthorizer": {
 		{Path: "name", Kind: modelcheck.KindRequired},
 		{Path: "restApiId", Kind: modelcheck.KindRequired},

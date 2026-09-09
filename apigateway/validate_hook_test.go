@@ -70,7 +70,7 @@ func TestUnroutedPathsAreLeftAlone(t *testing.T) {
 	for _, tc := range []struct{ method, path string }{
 		{"GET", "/restapis/abc/requestvalidators"},
 		{"POST", "/restapis/abc/models"},
-		{"GET", "/apikeys"},
+		{"GET", "/domainnames"},
 		{"GET", "/"},
 	} {
 		if op, _, ok := matchRoute(tc.method, tc.path); ok {

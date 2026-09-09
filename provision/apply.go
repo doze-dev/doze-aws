@@ -65,6 +65,7 @@ func Apply(ctx context.Context, gateway http.Handler, s *Stack) (*Report, error)
 		{"secrets", func() error { return applySecrets(ctx, c, s, rep) }},
 		{"parameters", func() error { return applyParameters(ctx, c, s, rep) }},
 		{"apis", func() error { return applyAPIs(ctx, c, s, rep) }},
+		{"apikeys", func() error { return applyAPIKeys(ctx, c, s, rep) }},
 		// State machines last: their definitions reference functions, queues
 		// and topics by ARN, so everything they orchestrate already exists.
 		{"statemachines", func() error { return applyStateMachines(ctx, c, s, rep) }},

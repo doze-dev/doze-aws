@@ -97,6 +97,19 @@ func (s *Server) serveExecute(w http.ResponseWriter, r *http.Request, rest strin
 		writeExecuteError(w, 500, "Internal server error", "the method names an authorizer that no longer exists")
 		return
 	}
+	key, denied := s.checkAPIKey(api, stage, method, r, cc)
+	if denied != nil {
+		rl.errMessage = "API Key check failed: the key is missing, disabled, or not in a usage plan covering " + api.ID + "/" + stage
+		writeExecuteError(w, denied.status, denied.message, "")
+		return
+	}
+	if key != nil {
+		rl.apiKeyID = key.ID
+		if cc == nil {
+			cc = &callCtx{}
+		}
+		cc.APIKey, cc.APIKeyID = key.Value, key.ID
+	}
 
 	s.logf("apigateway: %s %s -> %s %s", r.Method, path, method.Integration.Type, method.Integration.URI)
 	s.invokeIntegration(w, r, api, stage, res, method, params, path, cc, rl)

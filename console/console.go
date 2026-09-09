@@ -251,6 +251,17 @@ func (c *Console) routes() {
 	// API Gateway.
 	m.HandleFunc("GET "+p+"/apigw", c.apigwList)
 	m.HandleFunc("GET "+p+"/apigw/create", c.createPage("apigw", "apigw_create"))
+	m.HandleFunc("GET "+p+"/apigw-keys", c.apigwKeys)                                   // GetApiKeys, GetUsagePlans, GetUsagePlanKeys
+	m.HandleFunc("POST "+p+"/apigw-keys/create", c.apigwCreateKey)                      // CreateApiKey
+	m.HandleFunc("GET "+p+"/apigw-keys/key/{key}/reveal", c.apigwRevealKey)             // GetApiKey
+	m.HandleFunc("POST "+p+"/apigw-keys/toggle", c.apigwToggleKey)                      // UpdateApiKey
+	m.HandleFunc("POST "+p+"/apigw-keys/delete", c.apigwDeleteKey)                      // DeleteApiKey
+	m.HandleFunc("POST "+p+"/apigw-keys/plans/create", c.apigwCreatePlan)               // CreateUsagePlan
+	m.HandleFunc("GET "+p+"/apigw-keys/plans/{plan}", c.apigwPlanDetail)                // GetUsagePlan, GetUsagePlanKey
+	m.HandleFunc("POST "+p+"/apigw-keys/plans/{plan}/add-stage", c.apigwPlanAddStage)   // UpdateUsagePlan
+	m.HandleFunc("POST "+p+"/apigw-keys/plans/delete", c.apigwDeletePlan)               // DeleteUsagePlan
+	m.HandleFunc("POST "+p+"/apigw-keys/plans/{plan}/attach-key", c.apigwPlanAttachKey) // CreateUsagePlanKey
+	m.HandleFunc("POST "+p+"/apigw-keys/plans/{plan}/detach-key", c.apigwPlanDetachKey) // DeleteUsagePlanKey
 	m.HandleFunc("POST "+p+"/apigw/create", c.apigwCreate)
 	m.HandleFunc("GET "+p+"/apigw/{api}", c.apigwAPI)
 	m.HandleFunc("POST "+p+"/apigw/{api}/invoke", c.apigwInvoke)

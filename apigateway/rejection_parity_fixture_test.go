@@ -22,6 +22,8 @@ type fx struct {
 	deploy   string
 	stage    string
 	auth     string // a TOKEN authorizer
+	key      string // an API key
+	plan     string // a usage plan covering the stage, holding the key
 }
 
 // mk sends a request built from the operation's own model binding, so the
@@ -45,6 +47,11 @@ func bindingFor(t *testing.T, op string) *httpBinding {
 		if c.Operation == op {
 			return c.HTTP
 		}
+	}
+	// An operation with no constrained input has no cases; its binding is
+	// in the routes file.
+	if b, ok := loadRoutes(t)[op]; ok {
+		return b
 	}
 	t.Fatalf("no binding for %s", op)
 	return nil
@@ -100,6 +107,12 @@ func setUpFixture(t *testing.T, ts *httptest.Server) fx {
 		"restApiId": f.api, "name": "audit-auth", "type": "TOKEN", "authorizerUri": authorizerURI,
 	})
 	f.auth = field(t, resp, "id")
+	resp = mk(t, ts, "CreateApiKey", map[string]any{"name": "audit-key", "enabled": true})
+	f.key = field(t, resp, "id")
+	resp = mk(t, ts, "CreateUsagePlan", map[string]any{"name": "audit-plan",
+		"apiStages": []any{map[string]any{"apiId": f.api, "stage": f.stage}}})
+	f.plan = field(t, resp, "id")
+	mk(t, ts, "CreateUsagePlanKey", map[string]any{"usagePlanId": f.plan, "keyId": f.key, "keyType": "API_KEY"})
 	return f
 }
 
@@ -166,6 +179,23 @@ func baselines(f fx) map[string]map[string]any {
 		"CreateAuthorizer": {"restApiId": f.api, "name": "made-by-baseline", "type": "TOKEN", "authorizerUri": authorizerURI},
 		"UpdateAuthorizer": {"restApiId": f.api, "authorizerId": f.auth, "patchOperations": []any{map[string]any{"op": "replace", "path": "/name", "value": "audit-auth"}}},
 		"DeleteAuthorizer": {"restApiId": f.api, "authorizerId": "made-by-baseline"},
+
+		"GetApiKeys":   {},
+		"GetApiKey":    {"apiKey": f.key},
+		"CreateApiKey": {"name": "made-by-baseline"},
+		"UpdateApiKey": {"apiKey": f.key, "patchOperations": patch()},
+		"DeleteApiKey": {"apiKey": "made-by-baseline"},
+
+		"GetUsagePlans":   {},
+		"GetUsagePlan":    {"usagePlanId": f.plan},
+		"CreateUsagePlan": {"name": "made-by-baseline"},
+		"UpdateUsagePlan": {"usagePlanId": f.plan, "patchOperations": patch()},
+		"DeleteUsagePlan": {"usagePlanId": "made-by-baseline"},
+
+		"GetUsagePlanKeys":   {"usagePlanId": f.plan},
+		"GetUsagePlanKey":    {"usagePlanId": f.plan, "keyId": f.key},
+		"CreateUsagePlanKey": {"usagePlanId": "made-by-baseline", "keyId": f.key, "keyType": "API_KEY"},
+		"DeleteUsagePlanKey": {"usagePlanId": "made-by-baseline", "keyId": f.key},
 		// The account's one patchable path; a description would be refused.
 		"UpdateAccount": {"patchOperations": []any{map[string]any{"op": "replace", "path": "/cloudwatchRoleArn", "value": "arn:aws:iam::000000000000:role/apigw-logs"}}},
 	}
@@ -190,6 +220,10 @@ func exemplars() map[string]any {
 		"endpointConfiguration.types[]":           []any{"REGIONAL"},
 		"canarySettings":                          map[string]any{"percentTraffic": 0},
 		"canarySettings.stageVariableOverrides{}": "v",
+		"quota":       map[string]any{"limit": 100, "period": "DAY"},
+		"throttle":    map[string]any{"rateLimit": 10, "burstLimit": 5},
+		"apiStages[]": []any{},
+		"stageKeys[]": []any{},
 	}
 }
 
@@ -280,6 +314,26 @@ func prepare(t *testing.T, ts *httptest.Server, f fx, op, mutating string, body 
 			"restApiId": f.api, "name": fmt.Sprintf("doomed-auth-%d", n), "type": "TOKEN", "authorizerUri": authorizerURI,
 		})
 		set("authorizerId", field(t, resp, "id"))
+
+	case "CreateApiKey":
+		set("name", fmt.Sprintf("created-key-%d", n))
+	case "DeleteApiKey":
+		resp := mk(t, ts, "CreateApiKey", map[string]any{"name": fmt.Sprintf("doomed-key-%d", n)})
+		set("apiKey", field(t, resp, "id"))
+	case "CreateUsagePlan":
+		set("name", fmt.Sprintf("created-plan-%d", n))
+	case "DeleteUsagePlan":
+		resp := mk(t, ts, "CreateUsagePlan", map[string]any{"name": fmt.Sprintf("doomed-plan-%d", n)})
+		set("usagePlanId", field(t, resp, "id"))
+	case "CreateUsagePlanKey":
+		// A key is in a plan once; each case attaches it to a fresh plan.
+		resp := mk(t, ts, "CreateUsagePlan", map[string]any{"name": fmt.Sprintf("plan-%d", n)})
+		set("usagePlanId", field(t, resp, "id"))
+	case "DeleteUsagePlanKey":
+		resp := mk(t, ts, "CreateUsagePlan", map[string]any{"name": fmt.Sprintf("plan-%d", n)})
+		id := field(t, resp, "id")
+		mk(t, ts, "CreateUsagePlanKey", map[string]any{"usagePlanId": id, "keyId": f.key, "keyType": "API_KEY"})
+		set("usagePlanId", id)
 
 	case "CreateStage":
 		set("stageName", fmt.Sprintf("created%d", n))

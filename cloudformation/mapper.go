@@ -94,6 +94,7 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		if err := samAuth(&api, propMap(props, "Auth")); err != nil {
 			return err
 		}
+		m.samUsagePlan(name, propMap(props, "Auth"))
 		m.stack.APIs[name] = api
 		return nil
 	case "AWS::ApiGateway::Stage":
@@ -106,6 +107,12 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		return m.apiMethod(r.LogicalID, props)
 	case "AWS::ApiGateway::Authorizer":
 		return m.apiAuthorizer(name, props)
+	case "AWS::ApiGateway::ApiKey":
+		return m.apiKey(name, props)
+	case "AWS::ApiGateway::UsagePlan":
+		return m.usagePlan(name, props)
+	case "AWS::ApiGateway::UsagePlanKey":
+		return m.usagePlanKey(props)
 	case "AWS::ApiGateway::Deployment", "AWS::ApiGateway::Account":
 		// Recognised; a deployment happens on every apply, and the account
 		// record only holds a role ARN.

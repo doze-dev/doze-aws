@@ -74,6 +74,7 @@ func Destroy(ctx context.Context, gateway http.Handler, s *Stack) (*DestroyRepor
 		run  func() error
 	}{
 		{"statemachines", func() error { return destroyStateMachines(ctx, c, s, rep) }},
+		{"apikeys", func() error { return destroyAPIKeys(ctx, c, s, rep) }},
 		{"apis", func() error { return destroyAPIs(ctx, c, s, rep) }},
 		{"parameters", func() error { return destroyParameters(ctx, c, s, rep) }},
 		{"secrets", func() error { return destroySecrets(ctx, c, s, rep) }},

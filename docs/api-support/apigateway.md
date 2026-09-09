@@ -4,14 +4,15 @@ Tiers: **F** = functional (real local semantics, SDK-observable behavior
 matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) ·
 **S** = stub (clean error; emulating it locally would be a lie).
 
-doze-aws implements the REST (v1) **create → deploy → invoke** path: 40 of API
+doze-aws implements the REST (v1) **create → deploy → invoke** path: 54 of API
 Gateway's 124 operations, covering everything needed to stand an API up and
 actually call it. The remaining families are refused by name.
 
-The narrow surface is deliberate. Most of API Gateway's operation count is
-commercial and edge machinery — API keys, usage plans, custom domains, client
-certificates, VPC links, SDK generation — none of which has a local
-counterpart. What a developer needs locally is for a deployed API to answer.
+The surface is deliberate. Much of API Gateway's operation count is edge
+machinery — custom domains, client certificates, VPC links, SDK generation,
+usage metering — with no local counterpart. What a developer needs locally is
+for a deployed API to answer, and for the gates a template puts in front of it
+(a Lambda authorizer, an API key) to gate.
 
 ## Two planes
 
@@ -69,7 +70,11 @@ useful than a blank 500.
 | CreateStage / GetStage / GetStages / UpdateStage / DeleteStage | F | stage variables reach the proxy event; the response carries a usable `invokeUrl`; UpdateStage keeps `accessLogSettings` and every method-setting path (`/*/*/logging/loglevel`, `logging/dataTrace`, `metrics/enabled`, throttling, caching), reported with AWS's defaults filled in, and refuses a patch path it does not know |
 | GetTags / TagResource / UntagResource | F | REST API ARNs |
 | GetAccount / UpdateAccount | F | the CloudWatch role reads back as set; throttle settings are nominal, nothing is throttled locally |
-| API keys and usage plans (18 operations) | S | there is no metering or billing locally |
+| CreateApiKey / GetApiKey / GetApiKeys / UpdateApiKey / DeleteApiKey | F | a value is minted when none is given (20 to 128 characters when it is); `includeValue` reveals it; enable/disable, description and customerId patch; deleting a key detaches it from every plan (see below) |
+| CreateUsagePlan / GetUsagePlan / GetUsagePlans / UpdateUsagePlan / DeleteUsagePlan | F | `apiStages` name an existing API; `throttle` and `quota` are stored and reported, not enforced; `UpdateUsagePlan` patches name, description, `/apiStages` (`apiId:stage`), throttle and quota |
+| CreateUsagePlanKey / GetUsagePlanKey / GetUsagePlanKeys / DeleteUsagePlanKey | F | attach and detach keys; the plan-key views are derived from the plan's key list |
+| GetUsage / UpdateUsage | S | doze-aws does not meter requests, so there is no usage to report or reset |
+| ImportApiKeys | S | reads a CSV of keys; create them one at a time |
 | Custom domains and base path mappings (12 operations) | S | there is no DNS or TLS termination locally |
 | Client certificates (5 operations) | S | certificate material is cloud infrastructure |
 | VPC links (5 operations) | S | there is no VPC locally |
@@ -119,6 +124,18 @@ answers that 500 with a null message; doze-aws names the cause
 execution log records the authorizer invoked, whether the verdict came from
 the cache, and the principal.
 
+## API keys
+
+A method with `apiKeyRequired` is served only when the request carries a
+key — `x-api-key`, or the authorizer's `usageIdentifierKey` when the API's
+`apiKeySource` is `AUTHORIZER` — that exists, is enabled, and is attached to
+a usage plan covering this API's stage. Anything else is `403
+{"message":"Forbidden"}`, as on AWS. The key lands on the integration event
+under `requestContext.identity.apiKey` and `apiKeyId`, and the execution
+log's usage-plan lines name it. Throttle and quota are stored and reported
+and never enforced: nothing is metered locally, which is also why
+`GetUsage` and `UpdateUsage` are refused.
+
 ## Logging
 
 A stage logs the way its settings say, to the [CloudWatch Logs](logs.md)
@@ -165,9 +182,9 @@ but the v2 control plane (`/v2/apis/...`) is not served.
 Separate from the tiers above. A tier says the operation is implemented; this
 says whether doze-aws **refuses what API Gateway refuses**.
 
-**103/108 model-derived constraints enforced across all 36 routed operations that
+**118/126 model-derived constraints enforced across all 47 routed operations that
 have constrained input, with `knownGaps` empty.** Removing the constraint table
-makes 26 of them slip through. The remaining five cannot be put on this wire at
+makes 29 of them slip through. The remaining eight cannot be put on this wire at
 all — see below.
 
 Generated with `dzaudit cases api-gateway`, committed to
@@ -202,12 +219,13 @@ validator recorded it as present, which meant **every `@required` path label
 passed vacuously**: a label is never absent from the map the router builds. Now
 an empty label is treated as omitted, and the seven affected cases are enforced.
 
-### Five cases cannot be expressed on this wire
+### Eight cases cannot be expressed on this wire
 
 Omitting the **last** label of a URI does not produce an invalid request. It
 produces a shorter path, which is a different and entirely valid operation:
 `GET /restapis` is `GetRestApis`, not a broken `GetRestApi`. The same is true
-for `GetResource`, `GetDeployment`, `GetStage` and `GetAuthorizer`. There is nothing for the
+for `GetResource`, `GetDeployment`, `GetStage`, `GetAuthorizer`, `GetApiKey`,
+`GetUsagePlan` and `GetUsagePlanKey`. There is nothing for the
 service to refuse, and AWS does not refuse it either, so these are listed in
 `unexpressible` with the reason and counted separately — a gap means AWS
 enforces something doze-aws does not, and this is not that.
@@ -215,6 +233,5 @@ enforces something doze-aws does not, and this is not that.
 ### Not audited
 
 The operations doze-aws answers with 501 (models, request validators,
-documentation, gateway responses) and everything outside `/restapis`
-(API keys, usage plans, domain names, VPC links) have no handler to validate
-input. `GetRestApis` is routed but has no constrained input in the model at all.
+documentation, gateway responses, GetUsage, ImportApiKeys, domain names, VPC
+links) have no handler to validate input. `GetRestApis` is routed but has no constrained input in the model at all.

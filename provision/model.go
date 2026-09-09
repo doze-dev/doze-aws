@@ -49,6 +49,43 @@ type Stack struct {
 	// target names the destination.
 	Connections     map[string]Connection
 	APIDestinations map[string]APIDestination
+	// APIKeys and UsagePlans gate the routes that require a key: a plan
+	// names the API stages it covers and the keys it admits.
+	APIKeys    map[string]APIKey
+	UsagePlans map[string]UsagePlan
+}
+
+// APIKey is one API Gateway key; Value is minted when empty.
+type APIKey struct {
+	Description string
+	Value       string
+	Enabled     *bool // default true
+}
+
+// UsagePlan covers API stages (by API name) and admits keys (by name).
+// Throttle and quota are stored and reported; nothing is metered locally.
+type UsagePlan struct {
+	Description string
+	Stages      []UsagePlanStage
+	Keys        []string
+	Throttle    *UsagePlanThrottle
+	Quota       *UsagePlanQuota
+}
+
+type UsagePlanStage struct {
+	API   string // API name
+	Stage string // empty means the API's stage
+}
+
+type UsagePlanThrottle struct {
+	Rate  float64
+	Burst int
+}
+
+type UsagePlanQuota struct {
+	Limit  int
+	Offset int
+	Period string // DAY | WEEK | MONTH
 }
 
 // LogGroup is a CloudWatch Logs log group: a name, an optional retention in

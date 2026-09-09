@@ -326,5 +326,129 @@
         "element": "member"
       }
     }
+  },
+  "CreateApiKey": {
+    "method": "POST",
+    "uri": "/apikeys",
+    "xml_lists": {
+      "stageKeys": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateUsagePlan": {
+    "method": "POST",
+    "uri": "/usageplans",
+    "xml_lists": {
+      "apiStages": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateUsagePlanKey": {
+    "method": "POST",
+    "uri": "/usageplans/{usagePlanId}/keys",
+    "bind": {
+      "usagePlanId": "label"
+    }
+  },
+  "DeleteApiKey": {
+    "method": "DELETE",
+    "uri": "/apikeys/{apiKey}",
+    "bind": {
+      "apiKey": "label"
+    }
+  },
+  "DeleteUsagePlan": {
+    "method": "DELETE",
+    "uri": "/usageplans/{usagePlanId}",
+    "bind": {
+      "usagePlanId": "label"
+    }
+  },
+  "DeleteUsagePlanKey": {
+    "method": "DELETE",
+    "uri": "/usageplans/{usagePlanId}/keys/{keyId}",
+    "bind": {
+      "keyId": "label",
+      "usagePlanId": "label"
+    }
+  },
+  "GetApiKey": {
+    "method": "GET",
+    "uri": "/apikeys/{apiKey}",
+    "bind": {
+      "apiKey": "label",
+      "includeValue": "query:includeValue"
+    }
+  },
+  "GetApiKeys": {
+    "method": "GET",
+    "uri": "/apikeys",
+    "bind": {
+      "customerId": "query:customerId",
+      "includeValues": "query:includeValues",
+      "limit": "query:limit",
+      "nameQuery": "query:name",
+      "position": "query:position"
+    }
+  },
+  "GetUsagePlan": {
+    "method": "GET",
+    "uri": "/usageplans/{usagePlanId}",
+    "bind": {
+      "usagePlanId": "label"
+    }
+  },
+  "GetUsagePlanKey": {
+    "method": "GET",
+    "uri": "/usageplans/{usagePlanId}/keys/{keyId}",
+    "bind": {
+      "keyId": "label",
+      "usagePlanId": "label"
+    }
+  },
+  "GetUsagePlanKeys": {
+    "method": "GET",
+    "uri": "/usageplans/{usagePlanId}/keys",
+    "bind": {
+      "limit": "query:limit",
+      "nameQuery": "query:name",
+      "position": "query:position",
+      "usagePlanId": "label"
+    }
+  },
+  "GetUsagePlans": {
+    "method": "GET",
+    "uri": "/usageplans",
+    "bind": {
+      "keyId": "query:keyId",
+      "limit": "query:limit",
+      "position": "query:position"
+    }
+  },
+  "UpdateApiKey": {
+    "method": "PATCH",
+    "uri": "/apikeys/{apiKey}",
+    "bind": {
+      "apiKey": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateUsagePlan": {
+    "method": "PATCH",
+    "uri": "/usageplans/{usagePlanId}",
+    "bind": {
+      "usagePlanId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
   }
 }

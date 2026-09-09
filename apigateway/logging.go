@@ -166,6 +166,8 @@ type requestLog struct {
 	authCached bool
 	authStart  time.Time
 	authEnd    time.Time
+	// apiKeyID is the key the request presented, when the method needed one.
+	apiKeyID string
 }
 
 // statusWriter captures the status and length the response went out with.
@@ -329,9 +331,13 @@ func (rl *requestLog) accessLine(format string) string {
 func (rl *requestLog) executionLines(dataTrace bool) []string {
 	var lines []string
 	lines = append(lines, "Extended Request Id: "+rl.id)
-	lines = append(lines, "Verifying Usage Plan for request: "+rl.id+". API Key:  API Stage: "+rl.apiID+"/"+rl.stage)
-	lines = append(lines, "API Key  authorized because method '"+rl.method+" "+rl.resource+"' does not require API Key. Request will not contribute to throttle or quota limits")
-	lines = append(lines, "Usage Plan check succeeded for API Key  and API Stage "+rl.apiID+"/"+rl.stage)
+	lines = append(lines, "Verifying Usage Plan for request: "+rl.id+". API Key: "+rl.apiKeyID+" API Stage: "+rl.apiID+"/"+rl.stage)
+	if rl.apiKeyID != "" {
+		lines = append(lines, "API Key "+rl.apiKeyID+" authorized because it is in a usage plan covering "+rl.apiID+"/"+rl.stage+". Throttle and quota are not metered locally")
+	} else {
+		lines = append(lines, "API Key  authorized because method '"+rl.method+" "+rl.resource+"' does not require API Key. Request will not contribute to throttle or quota limits")
+	}
+	lines = append(lines, "Usage Plan check succeeded for API Key "+rl.apiKeyID+" and API Stage "+rl.apiID+"/"+rl.stage)
 	if rl.authorizer != "" {
 		switch {
 		case rl.authCached:

@@ -350,6 +350,118 @@
     }
   },
   {
+    "operation": "CreateUsagePlan",
+    "path": "name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/usageplans",
+      "xml_lists": {
+        "apiStages": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateUsagePlan",
+    "path": "quota.period",
+    "why": "not one of MONTH, DAY, WEEK",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum MONTH|DAY|WEEK",
+    "required_members": [
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/usageplans",
+      "xml_lists": {
+        "apiStages": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateUsagePlanKey",
+    "path": "keyId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "keyId",
+      "keyType",
+      "usagePlanId"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/usageplans/{usagePlanId}/keys",
+      "bind": {
+        "usagePlanId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateUsagePlanKey",
+    "path": "keyType",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "keyId",
+      "keyType",
+      "usagePlanId"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/usageplans/{usagePlanId}/keys",
+      "bind": {
+        "usagePlanId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateUsagePlanKey",
+    "path": "usagePlanId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "keyId",
+      "keyType",
+      "usagePlanId"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/usageplans/{usagePlanId}/keys",
+      "bind": {
+        "usagePlanId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteApiKey",
+    "path": "apiKey",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiKey"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/apikeys/{apiKey}",
+      "bind": {
+        "apiKey": "label"
+      }
+    }
+  },
+  {
     "operation": "DeleteAuthorizer",
     "path": "authorizerId",
     "why": "required member omitted",
@@ -871,6 +983,79 @@
       "bind": {
         "restApiId": "label",
         "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteUsagePlan",
+    "path": "usagePlanId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "usagePlanId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/usageplans/{usagePlanId}",
+      "bind": {
+        "usagePlanId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteUsagePlanKey",
+    "path": "keyId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "keyId",
+      "usagePlanId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/usageplans/{usagePlanId}/keys/{keyId}",
+      "bind": {
+        "keyId": "label",
+        "usagePlanId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteUsagePlanKey",
+    "path": "usagePlanId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "keyId",
+      "usagePlanId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/usageplans/{usagePlanId}/keys/{keyId}",
+      "bind": {
+        "keyId": "label",
+        "usagePlanId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetApiKey",
+    "path": "apiKey",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiKey"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/apikeys/{apiKey}",
+      "bind": {
+        "apiKey": "label",
+        "includeValue": "query:includeValue"
       }
     }
   },
@@ -1480,6 +1665,81 @@
     }
   },
   {
+    "operation": "GetUsagePlan",
+    "path": "usagePlanId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "usagePlanId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/usageplans/{usagePlanId}",
+      "bind": {
+        "usagePlanId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetUsagePlanKey",
+    "path": "keyId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "keyId",
+      "usagePlanId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/usageplans/{usagePlanId}/keys/{keyId}",
+      "bind": {
+        "keyId": "label",
+        "usagePlanId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetUsagePlanKey",
+    "path": "usagePlanId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "keyId",
+      "usagePlanId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/usageplans/{usagePlanId}/keys/{keyId}",
+      "bind": {
+        "keyId": "label",
+        "usagePlanId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetUsagePlanKeys",
+    "path": "usagePlanId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "usagePlanId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/usageplans/{usagePlanId}/keys",
+      "bind": {
+        "limit": "query:limit",
+        "nameQuery": "query:name",
+        "position": "query:position",
+        "usagePlanId": "label"
+      }
+    }
+  },
+  {
     "operation": "PutIntegration",
     "path": "connectionType",
     "why": "not one of INTERNET, VPC_LINK",
@@ -2013,6 +2273,50 @@
     }
   },
   {
+    "operation": "UpdateApiKey",
+    "path": "apiKey",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "apiKey"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/apikeys/{apiKey}",
+      "bind": {
+        "apiKey": "label"
+      },
+      "xml_lists": {
+        "patchOperations": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateApiKey",
+    "path": "patchOperations[].op",
+    "why": "not one of remove, replace, move, copy, test, add",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum remove|replace|move|copy|test|add",
+    "required_members": [
+      "apiKey"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/apikeys/{apiKey}",
+      "bind": {
+        "apiKey": "label"
+      },
+      "xml_lists": {
+        "patchOperations": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
     "operation": "UpdateAuthorizer",
     "path": "authorizerId",
     "why": "required member omitted",
@@ -2229,6 +2533,50 @@
       "bind": {
         "restApiId": "label",
         "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateUsagePlan",
+    "path": "patchOperations[].op",
+    "why": "not one of add, remove, replace, move, copy, test",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum add|remove|replace|move|copy|test",
+    "required_members": [
+      "usagePlanId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/usageplans/{usagePlanId}",
+      "bind": {
+        "usagePlanId": "label"
+      },
+      "xml_lists": {
+        "patchOperations": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateUsagePlan",
+    "path": "usagePlanId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "usagePlanId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/usageplans/{usagePlanId}",
+      "bind": {
+        "usagePlanId": "label"
+      },
+      "xml_lists": {
+        "patchOperations": {
+          "element": "member"
+        }
       }
     }
   }
