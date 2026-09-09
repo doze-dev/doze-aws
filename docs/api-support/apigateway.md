@@ -4,7 +4,7 @@ Tiers: **F** = functional (real local semantics, SDK-observable behavior
 matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) ·
 **S** = stub (clean error; emulating it locally would be a lie).
 
-doze-aws implements the REST (v1) **create → deploy → invoke** path: 35 of API
+doze-aws implements the REST (v1) **create → deploy → invoke** path: 40 of API
 Gateway's 124 operations, covering everything needed to stand an API up and
 actually call it. The remaining families are refused by name.
 
@@ -73,7 +73,7 @@ useful than a blank 500.
 | Custom domains and base path mappings (12 operations) | S | there is no DNS or TLS termination locally |
 | Client certificates (5 operations) | S | certificate material is cloud infrastructure |
 | VPC links (5 operations) | S | there is no VPC locally |
-| Authorizers (5 operations) | S | a Lambda authorizer is worth building; it is not built yet |
+| CreateAuthorizer / GetAuthorizer / GetAuthorizers / UpdateAuthorizer / DeleteAuthorizer | F | TOKEN and REQUEST Lambda authorizers, run on the data plane (see below); a duplicate name conflicts; `COGNITO_USER_POOLS` is refused by name, there being no user pool locally; `PutMethod` with `CUSTOM` must name an authorizer that exists |
 | Request validators and models (10 operations) | S | request validation is schema work with no local consumer yet |
 | Documentation parts and versions (10 operations) | S | documentation exports are a publishing feature |
 | SDK and export generation (5 operations) | S | code generation is a cloud-side service |
@@ -86,6 +86,38 @@ until you redeploy. doze-aws serves the **live** API instead: locally you want
 an edit to take effect immediately, and a stale snapshot is a debugging trap
 rather than a feature. The deployment record still exists so the control plane,
 CloudFormation and Terraform all behave.
+
+## Lambda authorizers
+
+A method whose `authorizationType` is `CUSTOM` is gated by the authorizer it
+names, before the integration runs and in the order AWS runs its gates
+(authorizer, then API key). A `TOKEN` authorizer reads its identity source
+(the `Authorization` header by default), checks the token against
+`identityValidationExpression` when one is set, and invokes the function
+with `{type: TOKEN, authorizationToken, methodArn}`. A `REQUEST` authorizer
+reads every source in its comma-separated `identitySource` — headers, query
+strings, path parameters, stage variables, `context.identity.sourceIp` and
+`context.identity.userAgent` — and invokes the function with the request
+shaped as a proxy event plus `type: REQUEST` and `methodArn`.
+
+The function's answer is an IAM policy, evaluated for the method's ARN
+(`arn:aws:execute-api:<region>:<account>:<apiId>/<stage>/<METHOD>/<path>`)
+with `*` and `?` globs on the resource; an explicit Deny wins, an Allow must
+match, and nothing matching is a deny. Its `principalId` and `context` land
+on the integration event under `requestContext.authorizer`, as on AWS, and
+its `usageIdentifierKey` feeds the API key check when the API's key source
+is `AUTHORIZER`. The answer is cached per authorizer and identity values for
+`authorizerResultTtlInSeconds` (default 300; 0 disables); updating or
+deleting the authorizer drops its cache.
+
+Errors follow AWS: a missing identity source or a token failing validation
+is `401 {"message":"Unauthorized"}` with no invoke; a deny is `403 "User is
+not authorized to access this resource with an explicit deny"`; an invoke
+failure or an answer without `principalId` or `policyDocument` is a 500. AWS
+answers that 500 with a null message; doze-aws names the cause
+(`Authorizer error: …`) because the cause is the thing you need. The
+execution log records the authorizer invoked, whether the verdict came from
+the cache, and the principal.
 
 ## Logging
 
@@ -133,9 +165,9 @@ but the v2 control plane (`/v2/apis/...`) is not served.
 Separate from the tiers above. A tier says the operation is implemented; this
 says whether doze-aws **refuses what API Gateway refuses**.
 
-**92/96 model-derived constraints enforced across all 31 routed operations that
+**103/108 model-derived constraints enforced across all 36 routed operations that
 have constrained input, with `knownGaps` empty.** Removing the constraint table
-makes 24 of them slip through. The remaining four cannot be put on this wire at
+makes 26 of them slip through. The remaining five cannot be put on this wire at
 all — see below.
 
 Generated with `dzaudit cases api-gateway`, committed to
@@ -170,19 +202,19 @@ validator recorded it as present, which meant **every `@required` path label
 passed vacuously**: a label is never absent from the map the router builds. Now
 an empty label is treated as omitted, and the seven affected cases are enforced.
 
-### Four cases cannot be expressed on this wire
+### Five cases cannot be expressed on this wire
 
 Omitting the **last** label of a URI does not produce an invalid request. It
 produces a shorter path, which is a different and entirely valid operation:
 `GET /restapis` is `GetRestApis`, not a broken `GetRestApi`. The same is true
-for `GetResource`, `GetDeployment` and `GetStage`. There is nothing for the
+for `GetResource`, `GetDeployment`, `GetStage` and `GetAuthorizer`. There is nothing for the
 service to refuse, and AWS does not refuse it either, so these are listed in
 `unexpressible` with the reason and counted separately — a gap means AWS
 enforces something doze-aws does not, and this is not that.
 
 ### Not audited
 
-The operations doze-aws answers with 501 (authorizers, models, request
-validators, documentation, gateway responses) and everything outside `/restapis`
+The operations doze-aws answers with 501 (models, request validators,
+documentation, gateway responses) and everything outside `/restapis`
 (API keys, usage plans, domain names, VPC links) have no handler to validate
 input. `GetRestApis` is routed but has no constrained input in the model at all.

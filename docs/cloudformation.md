@@ -152,7 +152,10 @@ Mapped:
 | `AWS::Kinesis::Stream` | accepted; the resource graph has no streams section yet |
 | `AWS::Serverless::Api`, `AWS::ApiGateway::RestApi`, `AWS::ApiGatewayV2::Api` | a REST API; routes arrive from the functions that bind to it |
 | `AWS::ApiGateway::Stage` | `StageName`, and the stage's `AccessLogSetting` (destination and format) and `MethodSettings` (logging level, data trace, metrics per resource path and method), patched onto the deployed stage the way CloudFormation patches them |
-| `AWS::ApiGateway::Deployment`, `::Resource`, `::Method`, `::Account` | recognised; the resource tree is rebuilt from routes at apply time |
+| `AWS::ApiGateway::Resource`, `::Method` | the resource tree as CDK and hand-written templates declare it: paths rebuilt from `ParentId`/`PathPart` up to `!GetAtt Api.RootResourceId`, each method one route. `Integration.Type` `AWS_PROXY` (the function the `Uri` names) or `MOCK` (the first `IntegrationResponses` entry's status, `method.response.header.*` parameters and `application/json` template — a CDK CORS preflight); other types are refused by name. `AuthorizationType` `NONE`, `AWS_IAM` (unchecked locally) or `CUSTOM` with `AuthorizerId`; `ApiKeyRequired` |
+| `AWS::ApiGateway::Authorizer` | `TOKEN` and `REQUEST` Lambda authorizers: `AuthorizerUri`, `IdentitySource`, `IdentityValidationExpression`, `AuthorizerResultTtlInSeconds`. `Ref` is the authorizer's name, resolved to the id the service mints at apply. `COGNITO_USER_POOLS` is refused by name |
+| SAM `Auth` on `AWS::Serverless::Api` and on an `Api` event | `Authorizers` with `FunctionArn`, `FunctionPayloadType`, `Identity` (`Header`, `ValidationExpression`, `ReauthorizeEvery`; `Headers`/`QueryStrings` for REQUEST), `DefaultAuthorizer`, `ApiKeyRequired`; an event's `Auth.Authorizer` (`NONE` opts out of the default) and `Auth.ApiKeyRequired`. Cognito authorizers are refused by name |
+| `AWS::ApiGateway::Deployment`, `::Account` | recognised; a deployment happens on every apply, and the account record only holds a role ARN |
 | `AWS::Lambda::Permission` | recognised and referenceable; nothing locally gates an invocation on the policy |
 | `AWS::S3::BucketPolicy` | the document lands on the bucket (stored; not evaluated as an access control) |
 | `AWS::SQS::QueuePolicy`, `AWS::SNS::TopicPolicy` | recognised; no local policy evaluation |

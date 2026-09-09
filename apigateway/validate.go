@@ -55,12 +55,17 @@ var routes = []route{
 	{Op: "DeleteResource", Method: "DELETE", Segs: []string{"restapis", "", "resources", ""}, Labels: []string{"", "restApiId", "", "resourceId"}},
 	{Op: "GetResource", Method: "GET", Segs: []string{"restapis", "", "resources", ""}, Labels: []string{"", "restApiId", "", "resourceId"}, Query: map[string]string{"embed": "embed"}},
 	{Op: "UpdateResource", Method: "PATCH", Segs: []string{"restapis", "", "resources", ""}, Labels: []string{"", "restApiId", "", "resourceId"}},
+	{Op: "DeleteAuthorizer", Method: "DELETE", Segs: []string{"restapis", "", "authorizers", ""}, Labels: []string{"", "restApiId", "", "authorizerId"}},
+	{Op: "GetAuthorizer", Method: "GET", Segs: []string{"restapis", "", "authorizers", ""}, Labels: []string{"", "restApiId", "", "authorizerId"}},
+	{Op: "UpdateAuthorizer", Method: "PATCH", Segs: []string{"restapis", "", "authorizers", ""}, Labels: []string{"", "restApiId", "", "authorizerId"}},
 	{Op: "DeleteStage", Method: "DELETE", Segs: []string{"restapis", "", "stages", ""}, Labels: []string{"", "restApiId", "", "stageName"}},
 	{Op: "GetStage", Method: "GET", Segs: []string{"restapis", "", "stages", ""}, Labels: []string{"", "restApiId", "", "stageName"}},
 	{Op: "UpdateStage", Method: "PATCH", Segs: []string{"restapis", "", "stages", ""}, Labels: []string{"", "restApiId", "", "stageName"}},
 	{Op: "CreateDeployment", Method: "POST", Segs: []string{"restapis", "", "deployments"}, Labels: []string{"", "restApiId", ""}},
 	{Op: "GetDeployments", Method: "GET", Segs: []string{"restapis", "", "deployments"}, Labels: []string{"", "restApiId", ""}, Query: map[string]string{"limit": "limit", "position": "position"}},
 	{Op: "GetResources", Method: "GET", Segs: []string{"restapis", "", "resources"}, Labels: []string{"", "restApiId", ""}, Query: map[string]string{"embed": "embed", "limit": "limit", "position": "position"}},
+	{Op: "CreateAuthorizer", Method: "POST", Segs: []string{"restapis", "", "authorizers"}, Labels: []string{"", "restApiId", ""}},
+	{Op: "GetAuthorizers", Method: "GET", Segs: []string{"restapis", "", "authorizers"}, Labels: []string{"", "restApiId", ""}, Query: map[string]string{"limit": "limit", "position": "position"}},
 	{Op: "CreateStage", Method: "POST", Segs: []string{"restapis", "", "stages"}, Labels: []string{"", "restApiId", ""}},
 	{Op: "GetStages", Method: "GET", Segs: []string{"restapis", "", "stages"}, Labels: []string{"", "restApiId", ""}, Query: map[string]string{"deploymentId": "deploymentId"}},
 	{Op: "DeleteRestApi", Method: "DELETE", Segs: []string{"restapis", ""}, Labels: []string{"", "restApiId"}},
@@ -72,6 +77,28 @@ var routes = []route{
 }
 
 var constraintTables = map[string][]modelcheck.Constraint{
+	"CreateAuthorizer": {
+		{Path: "name", Kind: modelcheck.KindRequired},
+		{Path: "restApiId", Kind: modelcheck.KindRequired},
+		{Path: "type", Kind: modelcheck.KindEnum, Enum: []string{"TOKEN", "REQUEST", "COGNITO_USER_POOLS"}},
+		{Path: "type", Kind: modelcheck.KindRequired},
+	},
+	"DeleteAuthorizer": {
+		{Path: "authorizerId", Kind: modelcheck.KindRequired},
+		{Path: "restApiId", Kind: modelcheck.KindRequired},
+	},
+	"GetAuthorizer": {
+		{Path: "authorizerId", Kind: modelcheck.KindRequired},
+		{Path: "restApiId", Kind: modelcheck.KindRequired},
+	},
+	"GetAuthorizers": {
+		{Path: "restApiId", Kind: modelcheck.KindRequired},
+	},
+	"UpdateAuthorizer": {
+		{Path: "authorizerId", Kind: modelcheck.KindRequired},
+		{Path: "patchOperations[].op", Kind: modelcheck.KindEnum, Enum: []string{"replace", "move", "copy", "test", "add", "remove"}},
+		{Path: "restApiId", Kind: modelcheck.KindRequired},
+	},
 	"CreateDeployment": {
 		{Path: "cacheClusterSize", Kind: modelcheck.KindEnum, Enum: []string{"6.1", "13.5", "28.4", "58.2", "118", "237", "0.5", "1.6"}},
 		{Path: "restApiId", Kind: modelcheck.KindRequired},

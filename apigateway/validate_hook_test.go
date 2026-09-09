@@ -68,7 +68,7 @@ func TestEveryConstraintTableHasARoute(t *testing.T) {
 // does not implement must not be claimed by the matcher.
 func TestUnroutedPathsAreLeftAlone(t *testing.T) {
 	for _, tc := range []struct{ method, path string }{
-		{"GET", "/restapis/abc/authorizers"},
+		{"GET", "/restapis/abc/requestvalidators"},
 		{"POST", "/restapis/abc/models"},
 		{"GET", "/apikeys"},
 		{"GET", "/"},

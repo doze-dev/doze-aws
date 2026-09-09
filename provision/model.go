@@ -121,6 +121,31 @@ type API struct {
 	// AWS::ApiGateway::Stage or a Serverless::Api declares them.
 	AccessLog      *APIAccessLog
 	MethodSettings []APIMethodSetting
+	// Authorizers are the API's Lambda authorizers by name; a route names
+	// one, or DefaultAuthorizer covers every route that names none.
+	Authorizers       map[string]APIAuthorizer
+	DefaultAuthorizer string
+	// APIKeyRequired makes every route require an API key unless the route
+	// says otherwise (SAM's Auth.ApiKeyRequired).
+	APIKeyRequired bool
+}
+
+// APIAuthorizer is a Lambda authorizer: a TOKEN one reads a header, a
+// REQUEST one reads the sources named in IdentitySource.
+type APIAuthorizer struct {
+	Type           string // TOKEN | REQUEST
+	Lambda         string // function name
+	IdentitySource string // TOKEN: one header name (default Authorization); REQUEST: the method.request.* list
+	Validation     string // TOKEN: the regex a token must match
+	TTL            *int   // authorizer result cache, seconds; nil is API Gateway's default
+}
+
+// MockRoute is a MOCK integration: the status, response headers and body
+// the method answers with no backend — CORS preflights, mostly.
+type MockRoute struct {
+	Status  int
+	Headers map[string]string
+	Body    string
 }
 
 // APIAccessLog is a stage's access log: the log group ARN and the $context
@@ -146,6 +171,13 @@ type Route struct {
 	Method string // GET, POST, ANY, …
 	Path   string // /orders/{id}, /{proxy+}
 	Lambda string
+	// Mock answers without a backend; exactly one of Lambda or Mock is set.
+	Mock *MockRoute
+	// Authorizer names one of the API's authorizers; "NONE" opts out of
+	// the API's DefaultAuthorizer; "" takes the default.
+	Authorizer string
+	// APIKeyRequired overrides the API's setting for this route.
+	APIKeyRequired *bool
 }
 
 type Queue struct {

@@ -170,6 +170,7 @@ var nameProperty = map[string]string{
 	"AWS::ApiGateway::Stage":                  "StageName",
 	"AWS::ApiGateway::Resource":               "",
 	"AWS::ApiGateway::Method":                 "",
+	"AWS::ApiGateway::Authorizer":             "Name",
 	"AWS::ApiGateway::Account":                "",
 }
 
@@ -384,6 +385,10 @@ func attributes(typ, name string) map[string]string {
 			"Arn":            awsident.ARN("apigateway", "/restapis/"+name),
 			"ApiId":          name,
 		}
+	case "AWS::ApiGateway::Authorizer":
+		// Ref and AuthorizerId are the name; provision resolves it to the id
+		// the service mints at apply.
+		return map[string]string{"AuthorizerId": name}
 	case "AWS::Events::EventBus":
 		return map[string]string{
 			"Arn":  awsident.ARN("events", "event-bus/"+name),

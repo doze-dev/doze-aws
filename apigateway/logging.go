@@ -158,6 +158,14 @@ type requestLog struct {
 	status     int
 	respLength int
 	errMessage string
+	// The Lambda authorizer, when the method has one: its name, the
+	// principal it answered, whether the answer came from the cache, and the
+	// invoke window.
+	authorizer string
+	principal  string
+	authCached bool
+	authStart  time.Time
+	authEnd    time.Time
 }
 
 // statusWriter captures the status and length the response went out with.
@@ -324,6 +332,17 @@ func (rl *requestLog) executionLines(dataTrace bool) []string {
 	lines = append(lines, "Verifying Usage Plan for request: "+rl.id+". API Key:  API Stage: "+rl.apiID+"/"+rl.stage)
 	lines = append(lines, "API Key  authorized because method '"+rl.method+" "+rl.resource+"' does not require API Key. Request will not contribute to throttle or quota limits")
 	lines = append(lines, "Usage Plan check succeeded for API Key  and API Stage "+rl.apiID+"/"+rl.stage)
+	if rl.authorizer != "" {
+		switch {
+		case rl.authCached:
+			lines = append(lines, "Using cached authorizer result for authorizer "+rl.authorizer)
+		case !rl.authEnd.IsZero():
+			lines = append(lines, fmt.Sprintf("Invoking authorizer %s (%d ms)", rl.authorizer, rl.authEnd.Sub(rl.authStart).Milliseconds()))
+		}
+		if rl.principal != "" {
+			lines = append(lines, "Authorizer result: principalId "+rl.principal)
+		}
+	}
 	lines = append(lines, "Starting execution for request: "+rl.id)
 	lines = append(lines, "HTTP Method: "+rl.method+", Resource Path: "+rl.resource)
 	lines = append(lines, "Method request path: "+jsonOf(pathParamsOf(rl)))

@@ -1,1972 +1,2235 @@
 [
- {
-  "operation": "CreateDeployment",
-  "path": "cacheClusterSize",
-  "why": "not one of 6.1, 13.5, 28.4, 58.2, 118, 237, 0.5, 1.6",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum 6.1|13.5|28.4|58.2|118|237|0.5|1.6",
-  "required_members": [
-   "restApiId"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis/{restApiId}/deployments",
-   "bind": {
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "CreateDeployment",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "restApiId"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis/{restApiId}/deployments",
-   "bind": {
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "CreateResource",
-  "path": "parentId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "parentId",
-   "pathPart",
-   "restApiId"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis/{restApiId}/resources/{parentId}",
-   "bind": {
-    "parentId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "CreateResource",
-  "path": "pathPart",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "parentId",
-   "pathPart",
-   "restApiId"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis/{restApiId}/resources/{parentId}",
-   "bind": {
-    "parentId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "CreateResource",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "parentId",
-   "pathPart",
-   "restApiId"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis/{restApiId}/resources/{parentId}",
-   "bind": {
-    "parentId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "CreateRestApi",
-  "path": "apiKeySource",
-  "why": "not one of HEADER, AUTHORIZER",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum HEADER|AUTHORIZER",
-  "required_members": [
-   "name"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis"
-  }
- },
- {
-  "operation": "CreateRestApi",
-  "path": "endpointAccessMode",
-  "why": "not one of BASIC, STRICT",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum BASIC|STRICT",
-  "required_members": [
-   "name"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis"
-  }
- },
- {
-  "operation": "CreateRestApi",
-  "path": "endpointConfiguration.ipAddressType",
-  "why": "not one of ipv4, dualstack",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum ipv4|dualstack",
-  "required_members": [
-   "name"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis"
-  }
- },
- {
-  "operation": "CreateRestApi",
-  "path": "endpointConfiguration.types[]",
-  "why": "not one of REGIONAL, EDGE, PRIVATE",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum REGIONAL|EDGE|PRIVATE",
-  "required_members": [
-   "name"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis"
-  }
- },
- {
-  "operation": "CreateRestApi",
-  "path": "name",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "name"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis"
-  }
- },
- {
-  "operation": "CreateRestApi",
-  "path": "securityPolicy",
-  "why": "not one of SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09, SecurityPolicy_TLS13_1_2_2021_06, TLS_1_0, SecurityPolicy_TLS13_1_3_2025_09, SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09, SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09, SecurityPolicy_TLS13_1_2_PQ_2025_09, SecurityPolicy_TLS13_2025_EDGE, SecurityPolicy_TLS12_PFS_2025_EDGE, SecurityPolicy_TLS12_2018_EDGE, TLS_1_2, SecurityPolicy_TLS13_1_3_FIPS_2025_09",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09|SecurityPolicy_TLS13_1_2_2021_06|TLS_1_0|SecurityPolicy_TLS13_1_3_2025_09|SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09|SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09|SecurityPolicy_TLS13_1_2_PQ_2025_09|SecurityPolicy_TLS13_2025_EDGE|SecurityPolicy_TLS12_PFS_2025_EDGE|SecurityPolicy_TLS12_2018_EDGE|TLS_1_2|SecurityPolicy_TLS13_1_3_FIPS_2025_09",
-  "required_members": [
-   "name"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis"
-  }
- },
- {
-  "operation": "CreateStage",
-  "path": "cacheClusterSize",
-  "why": "not one of 1.6, 6.1, 13.5, 28.4, 58.2, 118, 237, 0.5",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum 1.6|6.1|13.5|28.4|58.2|118|237|0.5",
-  "required_members": [
-   "deploymentId",
-   "restApiId",
-   "stageName"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis/{restApiId}/stages",
-   "bind": {
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "CreateStage",
-  "path": "deploymentId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "deploymentId",
-   "restApiId",
-   "stageName"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis/{restApiId}/stages",
-   "bind": {
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "CreateStage",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "deploymentId",
-   "restApiId",
-   "stageName"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis/{restApiId}/stages",
-   "bind": {
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "CreateStage",
-  "path": "stageName",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "deploymentId",
-   "restApiId",
-   "stageName"
-  ],
-  "http": {
-   "method": "POST",
-   "uri": "/restapis/{restApiId}/stages",
-   "bind": {
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteDeployment",
-  "path": "deploymentId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "deploymentId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/deployments/{deploymentId}",
-   "bind": {
-    "deploymentId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteDeployment",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "deploymentId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/deployments/{deploymentId}",
-   "bind": {
-    "deploymentId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteIntegration",
-  "path": "httpMethod",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteIntegration",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteIntegration",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteIntegrationResponse",
-  "path": "httpMethod",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteIntegrationResponse",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteIntegrationResponse",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteIntegrationResponse",
-  "path": "statusCode",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteIntegrationResponse",
-  "path": "statusCode",
-  "why": "does not match ^[1-5]\\d\\d$",
-  "value": "\u0000\u0001",
-  "constraint": "pattern ^[1-5]\\d\\d$",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteMethod",
-  "path": "httpMethod",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteMethod",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteMethod",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteMethodResponse",
-  "path": "httpMethod",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteMethodResponse",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteMethodResponse",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteMethodResponse",
-  "path": "statusCode",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteMethodResponse",
-  "path": "statusCode",
-  "why": "does not match ^[1-5]\\d\\d$",
-  "value": "\u0000\u0001",
-  "constraint": "pattern ^[1-5]\\d\\d$",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteResource",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}",
-   "bind": {
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteResource",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}",
-   "bind": {
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteRestApi",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "restApiId"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}",
-   "bind": {
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteStage",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "restApiId",
-   "stageName"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/stages/{stageName}",
-   "bind": {
-    "restApiId": "label",
-    "stageName": "label"
-   }
-  }
- },
- {
-  "operation": "DeleteStage",
-  "path": "stageName",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "restApiId",
-   "stageName"
-  ],
-  "http": {
-   "method": "DELETE",
-   "uri": "/restapis/{restApiId}/stages/{stageName}",
-   "bind": {
-    "restApiId": "label",
-    "stageName": "label"
-   }
-  }
- },
- {
-  "operation": "GetDeployment",
-  "path": "deploymentId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "deploymentId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/deployments/{deploymentId}",
-   "bind": {
-    "deploymentId": "label",
-    "embed": "query:embed",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "GetDeployment",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "deploymentId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/deployments/{deploymentId}",
-   "bind": {
-    "deploymentId": "label",
-    "embed": "query:embed",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "GetDeployments",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/deployments",
-   "bind": {
-    "limit": "query:limit",
-    "position": "query:position",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "GetIntegration",
-  "path": "httpMethod",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "GetIntegration",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "GetIntegration",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "GetIntegrationResponse",
-  "path": "httpMethod",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "GetIntegrationResponse",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "GetIntegrationResponse",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "GetIntegrationResponse",
-  "path": "statusCode",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "GetIntegrationResponse",
-  "path": "statusCode",
-  "why": "does not match ^[1-5]\\d\\d$",
-  "value": "\u0000\u0001",
-  "constraint": "pattern ^[1-5]\\d\\d$",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "GetMethod",
-  "path": "httpMethod",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "GetMethod",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "GetMethod",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "GetMethodResponse",
-  "path": "httpMethod",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "GetMethodResponse",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "GetMethodResponse",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "GetMethodResponse",
-  "path": "statusCode",
-  "why": "does not match ^[1-5]\\d\\d$",
-  "value": "\u0000\u0001",
-  "constraint": "pattern ^[1-5]\\d\\d$",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "GetMethodResponse",
-  "path": "statusCode",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "GetResource",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}",
-   "bind": {
-    "embed": "query:embed",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "GetResource",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}",
-   "bind": {
-    "embed": "query:embed",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "GetResources",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/resources",
-   "bind": {
-    "embed": "query:embed",
-    "limit": "query:limit",
-    "position": "query:position",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "GetRestApi",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}",
-   "bind": {
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "GetStage",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "restApiId",
-   "stageName"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/stages/{stageName}",
-   "bind": {
-    "restApiId": "label",
-    "stageName": "label"
-   }
-  }
- },
- {
-  "operation": "GetStage",
-  "path": "stageName",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "restApiId",
-   "stageName"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/stages/{stageName}",
-   "bind": {
-    "restApiId": "label",
-    "stageName": "label"
-   }
-  }
- },
- {
-  "operation": "GetStages",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "restApiId"
-  ],
-  "http": {
-   "method": "GET",
-   "uri": "/restapis/{restApiId}/stages",
-   "bind": {
-    "deploymentId": "query:deploymentId",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegration",
-  "path": "connectionType",
-  "why": "not one of INTERNET, VPC_LINK",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum INTERNET|VPC_LINK",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "type"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegration",
-  "path": "contentHandling",
-  "why": "not one of CONVERT_TO_BINARY, CONVERT_TO_TEXT",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum CONVERT_TO_BINARY|CONVERT_TO_TEXT",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "type"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegration",
-  "path": "httpMethod",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "type"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegration",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "type"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegration",
-  "path": "responseTransferMode",
-  "why": "not one of BUFFERED, STREAM",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum BUFFERED|STREAM",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "type"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegration",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "type"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegration",
-  "path": "type",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "type"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegration",
-  "path": "type",
-  "why": "not one of HTTP, AWS, MOCK, HTTP_PROXY, AWS_PROXY",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum HTTP|AWS|MOCK|HTTP_PROXY|AWS_PROXY",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "type"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegrationResponse",
-  "path": "contentHandling",
-  "why": "not one of CONVERT_TO_BINARY, CONVERT_TO_TEXT",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum CONVERT_TO_BINARY|CONVERT_TO_TEXT",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegrationResponse",
-  "path": "httpMethod",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegrationResponse",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegrationResponse",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegrationResponse",
-  "path": "statusCode",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "PutIntegrationResponse",
-  "path": "statusCode",
-  "why": "does not match ^[1-5]\\d\\d$",
-  "value": "\u0000\u0001",
-  "constraint": "pattern ^[1-5]\\d\\d$",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "PutMethod",
-  "path": "authorizationType",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "authorizationType",
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "PutMethod",
-  "path": "httpMethod",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "authorizationType",
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "PutMethod",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "authorizationType",
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "PutMethod",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "authorizationType",
-   "httpMethod",
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "PutMethodResponse",
-  "path": "httpMethod",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "PutMethodResponse",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "PutMethodResponse",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "PutMethodResponse",
-  "path": "statusCode",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "PutMethodResponse",
-  "path": "statusCode",
-  "why": "does not match ^[1-5]\\d\\d$",
-  "value": "\u0000\u0001",
-  "constraint": "pattern ^[1-5]\\d\\d$",
-  "required_members": [
-   "httpMethod",
-   "resourceId",
-   "restApiId",
-   "statusCode"
-  ],
-  "http": {
-   "method": "PUT",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
-   "bind": {
-    "httpMethod": "label",
-    "resourceId": "label",
-    "restApiId": "label",
-    "statusCode": "label"
-   }
-  }
- },
- {
-  "operation": "UpdateResource",
-  "path": "patchOperations[].op",
-  "why": "not one of remove, replace, move, copy, test, add",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum remove|replace|move|copy|test|add",
-  "required_members": [
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "PATCH",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}",
-   "bind": {
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "UpdateResource",
-  "path": "resourceId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "PATCH",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}",
-   "bind": {
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "UpdateResource",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "resourceId",
-   "restApiId"
-  ],
-  "http": {
-   "method": "PATCH",
-   "uri": "/restapis/{restApiId}/resources/{resourceId}",
-   "bind": {
-    "resourceId": "label",
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "UpdateRestApi",
-  "path": "patchOperations[].op",
-  "why": "not one of add, remove, replace, move, copy, test",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum add|remove|replace|move|copy|test",
-  "required_members": [
-   "restApiId"
-  ],
-  "http": {
-   "method": "PATCH",
-   "uri": "/restapis/{restApiId}",
-   "bind": {
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "UpdateRestApi",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "restApiId"
-  ],
-  "http": {
-   "method": "PATCH",
-   "uri": "/restapis/{restApiId}",
-   "bind": {
-    "restApiId": "label"
-   }
-  }
- },
- {
-  "operation": "UpdateStage",
-  "path": "patchOperations[].op",
-  "why": "not one of move, copy, test, add, remove, replace",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum move|copy|test|add|remove|replace",
-  "required_members": [
-   "restApiId",
-   "stageName"
-  ],
-  "http": {
-   "method": "PATCH",
-   "uri": "/restapis/{restApiId}/stages/{stageName}",
-   "bind": {
-    "restApiId": "label",
-    "stageName": "label"
-   }
-  }
- },
- {
-  "operation": "UpdateStage",
-  "path": "restApiId",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "restApiId",
-   "stageName"
-  ],
-  "http": {
-   "method": "PATCH",
-   "uri": "/restapis/{restApiId}/stages/{stageName}",
-   "bind": {
-    "restApiId": "label",
-    "stageName": "label"
-   }
-  }
- },
- {
-  "operation": "UpdateStage",
-  "path": "stageName",
-  "why": "required member omitted",
-  "value": null,
-  "constraint": "required",
-  "required_members": [
-   "restApiId",
-   "stageName"
-  ],
-  "http": {
-   "method": "PATCH",
-   "uri": "/restapis/{restApiId}/stages/{stageName}",
-   "bind": {
-    "restApiId": "label",
-    "stageName": "label"
-   }
-  }
- },
- {
-  "operation": "UpdateAccount",
-  "path": "patchOperations[].op",
-  "why": "not one of add, remove, replace, move, copy, test",
-  "value": "__DOZE_NOT_A_MEMBER__",
-  "constraint": "enum add|remove|replace|move|copy|test",
-  "http": {
-   "method": "PATCH",
-   "uri": "/account",
-   "xml_lists": {
-    "patchOperations": {
-     "element": "member"
+  {
+    "operation": "CreateAuthorizer",
+    "path": "name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "name",
+      "restApiId",
+      "type"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis/{restApiId}/authorizers",
+      "bind": {
+        "restApiId": "label"
+      },
+      "xml_lists": {
+        "providerARNs": {
+          "element": "member"
+        }
+      }
     }
-   }
+  },
+  {
+    "operation": "CreateAuthorizer",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "name",
+      "restApiId",
+      "type"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis/{restApiId}/authorizers",
+      "bind": {
+        "restApiId": "label"
+      },
+      "xml_lists": {
+        "providerARNs": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateAuthorizer",
+    "path": "type",
+    "why": "not one of TOKEN, REQUEST, COGNITO_USER_POOLS",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum TOKEN|REQUEST|COGNITO_USER_POOLS",
+    "required_members": [
+      "name",
+      "restApiId",
+      "type"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis/{restApiId}/authorizers",
+      "bind": {
+        "restApiId": "label"
+      },
+      "xml_lists": {
+        "providerARNs": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateAuthorizer",
+    "path": "type",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "name",
+      "restApiId",
+      "type"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis/{restApiId}/authorizers",
+      "bind": {
+        "restApiId": "label"
+      },
+      "xml_lists": {
+        "providerARNs": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "CreateDeployment",
+    "path": "cacheClusterSize",
+    "why": "not one of 6.1, 13.5, 28.4, 58.2, 118, 237, 0.5, 1.6",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum 6.1|13.5|28.4|58.2|118|237|0.5|1.6",
+    "required_members": [
+      "restApiId"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis/{restApiId}/deployments",
+      "bind": {
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateDeployment",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis/{restApiId}/deployments",
+      "bind": {
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateResource",
+    "path": "parentId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "parentId",
+      "pathPart",
+      "restApiId"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis/{restApiId}/resources/{parentId}",
+      "bind": {
+        "parentId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateResource",
+    "path": "pathPart",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "parentId",
+      "pathPart",
+      "restApiId"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis/{restApiId}/resources/{parentId}",
+      "bind": {
+        "parentId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateResource",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "parentId",
+      "pathPart",
+      "restApiId"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis/{restApiId}/resources/{parentId}",
+      "bind": {
+        "parentId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateRestApi",
+    "path": "apiKeySource",
+    "why": "not one of HEADER, AUTHORIZER",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum HEADER|AUTHORIZER",
+    "required_members": [
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis"
+    }
+  },
+  {
+    "operation": "CreateRestApi",
+    "path": "endpointAccessMode",
+    "why": "not one of BASIC, STRICT",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum BASIC|STRICT",
+    "required_members": [
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis"
+    }
+  },
+  {
+    "operation": "CreateRestApi",
+    "path": "endpointConfiguration.ipAddressType",
+    "why": "not one of ipv4, dualstack",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum ipv4|dualstack",
+    "required_members": [
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis"
+    }
+  },
+  {
+    "operation": "CreateRestApi",
+    "path": "endpointConfiguration.types[]",
+    "why": "not one of REGIONAL, EDGE, PRIVATE",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum REGIONAL|EDGE|PRIVATE",
+    "required_members": [
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis"
+    }
+  },
+  {
+    "operation": "CreateRestApi",
+    "path": "name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis"
+    }
+  },
+  {
+    "operation": "CreateRestApi",
+    "path": "securityPolicy",
+    "why": "not one of SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09, SecurityPolicy_TLS13_1_2_2021_06, TLS_1_0, SecurityPolicy_TLS13_1_3_2025_09, SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09, SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09, SecurityPolicy_TLS13_1_2_PQ_2025_09, SecurityPolicy_TLS13_2025_EDGE, SecurityPolicy_TLS12_PFS_2025_EDGE, SecurityPolicy_TLS12_2018_EDGE, TLS_1_2, SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09|SecurityPolicy_TLS13_1_2_2021_06|TLS_1_0|SecurityPolicy_TLS13_1_3_2025_09|SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09|SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09|SecurityPolicy_TLS13_1_2_PQ_2025_09|SecurityPolicy_TLS13_2025_EDGE|SecurityPolicy_TLS12_PFS_2025_EDGE|SecurityPolicy_TLS12_2018_EDGE|TLS_1_2|SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+    "required_members": [
+      "name"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis"
+    }
+  },
+  {
+    "operation": "CreateStage",
+    "path": "cacheClusterSize",
+    "why": "not one of 1.6, 6.1, 13.5, 28.4, 58.2, 118, 237, 0.5",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum 1.6|6.1|13.5|28.4|58.2|118|237|0.5",
+    "required_members": [
+      "deploymentId",
+      "restApiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis/{restApiId}/stages",
+      "bind": {
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateStage",
+    "path": "deploymentId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "deploymentId",
+      "restApiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis/{restApiId}/stages",
+      "bind": {
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateStage",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "deploymentId",
+      "restApiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis/{restApiId}/stages",
+      "bind": {
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "CreateStage",
+    "path": "stageName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "deploymentId",
+      "restApiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "POST",
+      "uri": "/restapis/{restApiId}/stages",
+      "bind": {
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteAuthorizer",
+    "path": "authorizerId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "authorizerId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/authorizers/{authorizerId}",
+      "bind": {
+        "authorizerId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteAuthorizer",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "authorizerId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/authorizers/{authorizerId}",
+      "bind": {
+        "authorizerId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteDeployment",
+    "path": "deploymentId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "deploymentId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/deployments/{deploymentId}",
+      "bind": {
+        "deploymentId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteDeployment",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "deploymentId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/deployments/{deploymentId}",
+      "bind": {
+        "deploymentId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteIntegration",
+    "path": "httpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteIntegration",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteIntegration",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteIntegrationResponse",
+    "path": "httpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteIntegrationResponse",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteIntegrationResponse",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteIntegrationResponse",
+    "path": "statusCode",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteIntegrationResponse",
+    "path": "statusCode",
+    "why": "does not match ^[1-5]\\d\\d$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[1-5]\\d\\d$",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteMethod",
+    "path": "httpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteMethod",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteMethod",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteMethodResponse",
+    "path": "httpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteMethodResponse",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteMethodResponse",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteMethodResponse",
+    "path": "statusCode",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteMethodResponse",
+    "path": "statusCode",
+    "why": "does not match ^[1-5]\\d\\d$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[1-5]\\d\\d$",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteResource",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}",
+      "bind": {
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteResource",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}",
+      "bind": {
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteRestApi",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}",
+      "bind": {
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteStage",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/stages/{stageName}",
+      "bind": {
+        "restApiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "DeleteStage",
+    "path": "stageName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "DELETE",
+      "uri": "/restapis/{restApiId}/stages/{stageName}",
+      "bind": {
+        "restApiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetAuthorizer",
+    "path": "authorizerId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "authorizerId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/authorizers/{authorizerId}",
+      "bind": {
+        "authorizerId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetAuthorizer",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "authorizerId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/authorizers/{authorizerId}",
+      "bind": {
+        "authorizerId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetAuthorizers",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/authorizers",
+      "bind": {
+        "limit": "query:limit",
+        "position": "query:position",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetDeployment",
+    "path": "deploymentId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "deploymentId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/deployments/{deploymentId}",
+      "bind": {
+        "deploymentId": "label",
+        "embed": "query:embed",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetDeployment",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "deploymentId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/deployments/{deploymentId}",
+      "bind": {
+        "deploymentId": "label",
+        "embed": "query:embed",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetDeployments",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/deployments",
+      "bind": {
+        "limit": "query:limit",
+        "position": "query:position",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetIntegration",
+    "path": "httpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetIntegration",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetIntegration",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetIntegrationResponse",
+    "path": "httpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetIntegrationResponse",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetIntegrationResponse",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetIntegrationResponse",
+    "path": "statusCode",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetIntegrationResponse",
+    "path": "statusCode",
+    "why": "does not match ^[1-5]\\d\\d$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[1-5]\\d\\d$",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetMethod",
+    "path": "httpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetMethod",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetMethod",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetMethodResponse",
+    "path": "httpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetMethodResponse",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetMethodResponse",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetMethodResponse",
+    "path": "statusCode",
+    "why": "does not match ^[1-5]\\d\\d$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[1-5]\\d\\d$",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetMethodResponse",
+    "path": "statusCode",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetResource",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}",
+      "bind": {
+        "embed": "query:embed",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetResource",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}",
+      "bind": {
+        "embed": "query:embed",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetResources",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/resources",
+      "bind": {
+        "embed": "query:embed",
+        "limit": "query:limit",
+        "position": "query:position",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetRestApi",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}",
+      "bind": {
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetStage",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/stages/{stageName}",
+      "bind": {
+        "restApiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetStage",
+    "path": "stageName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/stages/{stageName}",
+      "bind": {
+        "restApiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "GetStages",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId"
+    ],
+    "http": {
+      "method": "GET",
+      "uri": "/restapis/{restApiId}/stages",
+      "bind": {
+        "deploymentId": "query:deploymentId",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegration",
+    "path": "connectionType",
+    "why": "not one of INTERNET, VPC_LINK",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum INTERNET|VPC_LINK",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "type"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegration",
+    "path": "contentHandling",
+    "why": "not one of CONVERT_TO_BINARY, CONVERT_TO_TEXT",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum CONVERT_TO_BINARY|CONVERT_TO_TEXT",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "type"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegration",
+    "path": "httpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "type"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegration",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "type"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegration",
+    "path": "responseTransferMode",
+    "why": "not one of BUFFERED, STREAM",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum BUFFERED|STREAM",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "type"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegration",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "type"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegration",
+    "path": "type",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "type"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegration",
+    "path": "type",
+    "why": "not one of HTTP, AWS, MOCK, HTTP_PROXY, AWS_PROXY",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum HTTP|AWS|MOCK|HTTP_PROXY|AWS_PROXY",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "type"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegrationResponse",
+    "path": "contentHandling",
+    "why": "not one of CONVERT_TO_BINARY, CONVERT_TO_TEXT",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum CONVERT_TO_BINARY|CONVERT_TO_TEXT",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegrationResponse",
+    "path": "httpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegrationResponse",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegrationResponse",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegrationResponse",
+    "path": "statusCode",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutIntegrationResponse",
+    "path": "statusCode",
+    "why": "does not match ^[1-5]\\d\\d$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[1-5]\\d\\d$",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutMethod",
+    "path": "authorizationType",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "authorizationType",
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutMethod",
+    "path": "httpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "authorizationType",
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutMethod",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "authorizationType",
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutMethod",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "authorizationType",
+      "httpMethod",
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutMethodResponse",
+    "path": "httpMethod",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutMethodResponse",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutMethodResponse",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutMethodResponse",
+    "path": "statusCode",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "PutMethodResponse",
+    "path": "statusCode",
+    "why": "does not match ^[1-5]\\d\\d$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[1-5]\\d\\d$",
+    "required_members": [
+      "httpMethod",
+      "resourceId",
+      "restApiId",
+      "statusCode"
+    ],
+    "http": {
+      "method": "PUT",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+      "bind": {
+        "httpMethod": "label",
+        "resourceId": "label",
+        "restApiId": "label",
+        "statusCode": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateAccount",
+    "path": "patchOperations[].op",
+    "why": "not one of add, remove, replace, move, copy, test",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum add|remove|replace|move|copy|test",
+    "http": {
+      "method": "PATCH",
+      "uri": "/account",
+      "xml_lists": {
+        "patchOperations": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateAuthorizer",
+    "path": "authorizerId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "authorizerId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/restapis/{restApiId}/authorizers/{authorizerId}",
+      "bind": {
+        "authorizerId": "label",
+        "restApiId": "label"
+      },
+      "xml_lists": {
+        "patchOperations": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateAuthorizer",
+    "path": "patchOperations[].op",
+    "why": "not one of replace, move, copy, test, add, remove",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum replace|move|copy|test|add|remove",
+    "required_members": [
+      "authorizerId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/restapis/{restApiId}/authorizers/{authorizerId}",
+      "bind": {
+        "authorizerId": "label",
+        "restApiId": "label"
+      },
+      "xml_lists": {
+        "patchOperations": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateAuthorizer",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "authorizerId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/restapis/{restApiId}/authorizers/{authorizerId}",
+      "bind": {
+        "authorizerId": "label",
+        "restApiId": "label"
+      },
+      "xml_lists": {
+        "patchOperations": {
+          "element": "member"
+        }
+      }
+    }
+  },
+  {
+    "operation": "UpdateResource",
+    "path": "patchOperations[].op",
+    "why": "not one of remove, replace, move, copy, test, add",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum remove|replace|move|copy|test|add",
+    "required_members": [
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}",
+      "bind": {
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateResource",
+    "path": "resourceId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}",
+      "bind": {
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateResource",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "resourceId",
+      "restApiId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/restapis/{restApiId}/resources/{resourceId}",
+      "bind": {
+        "resourceId": "label",
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateRestApi",
+    "path": "patchOperations[].op",
+    "why": "not one of add, remove, replace, move, copy, test",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum add|remove|replace|move|copy|test",
+    "required_members": [
+      "restApiId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/restapis/{restApiId}",
+      "bind": {
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateRestApi",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/restapis/{restApiId}",
+      "bind": {
+        "restApiId": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateStage",
+    "path": "patchOperations[].op",
+    "why": "not one of move, copy, test, add, remove, replace",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum move|copy|test|add|remove|replace",
+    "required_members": [
+      "restApiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/restapis/{restApiId}/stages/{stageName}",
+      "bind": {
+        "restApiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateStage",
+    "path": "restApiId",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/restapis/{restApiId}/stages/{stageName}",
+      "bind": {
+        "restApiId": "label",
+        "stageName": "label"
+      }
+    }
+  },
+  {
+    "operation": "UpdateStage",
+    "path": "stageName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "restApiId",
+      "stageName"
+    ],
+    "http": {
+      "method": "PATCH",
+      "uri": "/restapis/{restApiId}/stages/{stageName}",
+      "bind": {
+        "restApiId": "label",
+        "stageName": "label"
+      }
+    }
   }
- }
 ]

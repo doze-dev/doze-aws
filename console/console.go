@@ -271,6 +271,10 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/apigw/{api}/create-stage", c.apigwCreateStage)
 	m.HandleFunc("POST "+p+"/apigw/{api}/update-stage", c.apigwUpdateStage)
 	m.HandleFunc("POST "+p+"/apigw/{api}/delete-stage", c.apigwDeleteStage)
+	m.HandleFunc("POST "+p+"/apigw/{api}/create-authorizer", c.apigwCreateAuthorizer) // HTMX partial (CreateAuthorizer, GetAuthorizers)
+	m.HandleFunc("POST "+p+"/apigw/{api}/update-authorizer", c.apigwUpdateAuthorizer) // HTMX partial (UpdateAuthorizer)
+	m.HandleFunc("POST "+p+"/apigw/{api}/delete-authorizer", c.apigwDeleteAuthorizer) // HTMX partial (DeleteAuthorizer)
+	m.HandleFunc("GET "+p+"/apigw/{api}/authorizer/{auth}", c.apigwAuthorizer)        // HTMX partial (GetAuthorizer)
 
 	// CloudFormation.
 	m.HandleFunc("GET "+p+"/cfn", c.cfnStacks)

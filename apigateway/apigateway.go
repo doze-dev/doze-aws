@@ -65,6 +65,8 @@ type Server struct {
 	logf  func(format string, args ...any)
 	now   func() time.Time
 	logs  *stageLogs
+	// authCache holds Lambda authorizer answers for their TTL (authorize.go).
+	authCache *authCache
 }
 
 // New opens the store under DataDir.
@@ -93,6 +95,7 @@ func New(opts Options) (*Server, error) {
 		s.now = opts.Clock
 	}
 	s.logs = newStageLogs(s)
+	s.authCache = newAuthCache()
 	return s, nil
 }
 

@@ -34,6 +34,8 @@ type RestAPI struct {
 	// Deployments and Stages are keyed by id and stage name.
 	Deployments map[string]*Deployment `json:"deployments,omitempty"`
 	Stages      map[string]*Stage      `json:"stages,omitempty"`
+	// Authorizers are keyed by id (authorizers.go).
+	Authorizers map[string]*Authorizer `json:"authorizers,omitempty"`
 
 	// Round-tripped configuration with no local effect.
 	APIKeySource           string   `json:"api_key_source,omitempty"`

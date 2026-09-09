@@ -129,7 +129,9 @@ func (s *Server) routeRestAPIs(w http.ResponseWriter, r *http.Request, segs []st
 		return s.routeDeployments(w, r, apiID, segs)
 	case "stages":
 		return s.routeStages(w, r, apiID, segs)
-	case "models", "requestvalidators", "authorizers", "documentation", "gatewayresponses":
+	case "authorizers":
+		return s.routeAuthorizers(w, r, apiID, segs)
+	case "models", "requestvalidators", "documentation", "gatewayresponses":
 		return awshttp.Errf(501, "NotImplemented",
 			"doze-aws does not implement API Gateway %s", segs[2])
 	}
@@ -434,6 +436,14 @@ func (s *Server) putMethod(w http.ResponseWriter, r *http.Request, apiID, resour
 		}
 		if m.AuthorizationType == "" {
 			m.AuthorizationType = "NONE"
+		}
+		if m.AuthorizationType == "CUSTOM" {
+			if _, ok := api.Authorizers[m.AuthorizerID]; !ok {
+				return errBadRequest("Invalid Authorizer identifier specified")
+			}
+		}
+		if m.AuthorizationType == "COGNITO_USER_POOLS" {
+			return errBadRequest("COGNITO_USER_POOLS authorization needs a Cognito user pool, which does not exist locally")
 		}
 		// A re-put keeps whatever integration and responses were attached, so
 		// Terraform's update path does not silently unwire the backend.

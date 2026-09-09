@@ -21,6 +21,7 @@ type fx struct {
 	resource string
 	deploy   string
 	stage    string
+	auth     string // a TOKEN authorizer
 }
 
 // mk sends a request built from the operation's own model binding, so the
@@ -95,8 +96,15 @@ func setUpFixture(t *testing.T, ts *httptest.Server) fx {
 	mk(t, ts, "CreateStage", map[string]any{
 		"restApiId": f.api, "stageName": f.stage, "deploymentId": f.deploy,
 	})
+	resp = mk(t, ts, "CreateAuthorizer", map[string]any{
+		"restApiId": f.api, "name": "audit-auth", "type": "TOKEN", "authorizerUri": authorizerURI,
+	})
+	f.auth = field(t, resp, "id")
 	return f
 }
+
+// authorizerURI names a function that need not exist for the control plane.
+const authorizerURI = "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:000000000000:function:audit-auth/invocations"
 
 // patch is the JSON-Patch document API Gateway's Update* operations take.
 func patch() []any {
@@ -152,6 +160,12 @@ func baselines(f fx) map[string]map[string]any {
 		"CreateStage": {"restApiId": f.api, "stageName": "made-by-baseline", "deploymentId": f.deploy},
 		"UpdateStage": {"restApiId": f.api, "stageName": f.stage, "patchOperations": patch()},
 		"DeleteStage": {"restApiId": f.api, "stageName": "made-by-baseline"},
+
+		"GetAuthorizers":   api,
+		"GetAuthorizer":    {"restApiId": f.api, "authorizerId": f.auth},
+		"CreateAuthorizer": {"restApiId": f.api, "name": "made-by-baseline", "type": "TOKEN", "authorizerUri": authorizerURI},
+		"UpdateAuthorizer": {"restApiId": f.api, "authorizerId": f.auth, "patchOperations": []any{map[string]any{"op": "replace", "path": "/name", "value": "audit-auth"}}},
+		"DeleteAuthorizer": {"restApiId": f.api, "authorizerId": "made-by-baseline"},
 		// The account's one patchable path; a description would be refused.
 		"UpdateAccount": {"patchOperations": []any{map[string]any{"op": "replace", "path": "/cloudwatchRoleArn", "value": "arn:aws:iam::000000000000:role/apigw-logs"}}},
 	}
@@ -258,6 +272,14 @@ func prepare(t *testing.T, ts *httptest.Server, f fx, op, mutating string, body 
 	case "DeleteDeployment":
 		resp := mk(t, ts, "CreateDeployment", map[string]any{"restApiId": f.api})
 		set("deploymentId", field(t, resp, "id"))
+
+	case "CreateAuthorizer":
+		set("name", fmt.Sprintf("created-auth-%d", n))
+	case "DeleteAuthorizer":
+		resp := mk(t, ts, "CreateAuthorizer", map[string]any{
+			"restApiId": f.api, "name": fmt.Sprintf("doomed-auth-%d", n), "type": "TOKEN", "authorizerUri": authorizerURI,
+		})
+		set("authorizerId", field(t, resp, "id"))
 
 	case "CreateStage":
 		set("stageName", fmt.Sprintf("created%d", n))

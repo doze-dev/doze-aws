@@ -421,9 +421,12 @@ func methodPath(apiID, resourceID, verb string) string {
 
 // PutAPIMethod declares a verb on a resource (PutMethod). A re-put keeps the
 // integration, so editing auth does not unwire the backend.
-func (b *backend) PutAPIMethod(ctx context.Context, apiID, resourceID, verb, authType string, apiKey bool) error {
-	_, err := b.apigwJSON(ctx, "PUT", methodPath(apiID, resourceID, verb),
-		map[string]any{"authorizationType": authType, "apiKeyRequired": apiKey})
+func (b *backend) PutAPIMethod(ctx context.Context, apiID, resourceID, verb, authType, authorizerID string, apiKey bool) error {
+	in := map[string]any{"authorizationType": authType, "apiKeyRequired": apiKey}
+	if authType == "CUSTOM" {
+		in["authorizerId"] = authorizerID
+	}
+	_, err := b.apigwJSON(ctx, "PUT", methodPath(apiID, resourceID, verb), in)
 	return err
 }
 
@@ -493,6 +496,7 @@ func (b *backend) DeleteAPIIntegrationResponse(ctx context.Context, apiID, resou
 // GetIntegrationResponse feed it).
 type MethodDetail struct {
 	Verb, AuthType   string
+	AuthorizerID     string
 	APIKeyReq        bool
 	Integration      APIIntegration
 	MethodResponses  []string
@@ -510,6 +514,7 @@ func (b *backend) APIMethodDetail(ctx context.Context, apiID, resourceID, verb s
 	var m struct {
 		HTTPMethod        string `json:"httpMethod"`
 		AuthorizationType string `json:"authorizationType"`
+		AuthorizerID      string `json:"authorizerId"`
 		APIKeyRequired    bool   `json:"apiKeyRequired"`
 		MethodResponses   map[string]struct {
 			StatusCode string `json:"statusCode"`
@@ -529,7 +534,7 @@ func (b *backend) APIMethodDetail(ctx context.Context, apiID, resourceID, verb s
 		return nil, err
 	}
 	d := &MethodDetail{
-		Verb: m.HTTPMethod, AuthType: m.AuthorizationType, APIKeyReq: m.APIKeyRequired,
+		Verb: m.HTTPMethod, AuthType: m.AuthorizationType, AuthorizerID: m.AuthorizerID, APIKeyReq: m.APIKeyRequired,
 		ResourceID: resourceID,
 	}
 	mi := m.MethodIntegration

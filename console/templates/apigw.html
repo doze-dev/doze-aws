@@ -16,7 +16,7 @@
 
 {{define "apigw_api"}}{{template "shell_top" .}}
   {{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" .API.ID)}}
-  <section class="detail" x-data="{addRes:null, addM:null, ren:null}">
+  <section class="detail" x-data="{addRes:null, addM:null, ren:null, authM:'NONE'}">
     <div class="det-h">
       <div class="det-title">{{awsIcon "apigw"}} {{.API.Name}}
         <div class="acts">
@@ -52,6 +52,7 @@
             <div class="fr-btn"><button class="btn" type="submit">Save settings</button></div>
           </form>
         </div></div>
+        {{template "apigw_authorizers" .}}
       {{else if eq .Tab "tags"}}
         {{template "tags_panel" dict "Prefix" .Prefix "Svc" "apigw" "ID" .API.ID}}
       {{else}}
@@ -77,8 +78,9 @@
             <div class="dialog-b">
               <div class="fgrid">
                 <div class="field"><label>Verb</label><select class="input" name="verb"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option><option>ANY</option></select></div>
-                <div class="field"><label>Authorization</label><select class="input" name="auth"><option>NONE</option><option>AWS_IAM</option></select></div>
+                <div class="field"><label>Authorization</label><select class="input" name="auth" x-model="authM"><option>NONE</option><option>AWS_IAM</option><option>CUSTOM</option></select></div>
               </div>
+              <div class="field" x-show="authM==='CUSTOM'"><label>Lambda authorizer</label><select class="input" name="authorizer">{{range .Authorizers}}<option value="{{.ID}}">{{.Name}} · {{.Type}}</option>{{end}}</select>{{if not .Authorizers}}<p class="mini-note">No authorizers yet — add one on the Settings tab.</p>{{end}}</div>
               <label class="bb-txn" style="margin-top:10px"><input type="checkbox" name="apikey" value="1"> require an API key</label>
             </div>
             <div class="dialog-f"><button type="button" class="btn btn-outline" @click="addM=null">Cancel</button><button type="submit" class="btn">Add method</button></div>
@@ -145,7 +147,7 @@
      contract, each editable in place. */}}
 {{define "apigw_method"}}
 <div class="panel sub-panel"><div class="panel-h"><h2>{{icon "zap"}} {{.M.Verb}} <span class="mono dim">{{.M.Path}}</span></h2>
-  <span class="dim sub">{{.M.AuthType}}{{if .M.APIKeyReq}} · API key required{{end}}</span></div>
+  <span class="dim sub">{{.M.AuthType}}{{if .M.AuthorizerID}} · authorizer {{.M.AuthorizerID}}{{end}}{{if .M.APIKeyReq}} · API key required{{end}}</span></div>
 <div class="form-b">
   <div class="split">
     <div>
@@ -339,4 +341,42 @@
   </div>
 {{end}}
 </div>
+{{end}}
+
+{{/* Lambda authorizers: a TOKEN one reads a header and hands the token to
+     a function; a REQUEST one hands the function the request. The function's
+     policy allows or denies the method; the verdict is cached for the TTL. */}}
+{{define "apigw_authorizers"}}
+<div id="apigw-authorizers" class="panel"><div class="panel-h"><h2>{{icon "key"}} Lambda authorizers <span class="badge">{{len .Authorizers}}</span></h2>
+  <span class="dim sub">a method set to CUSTOM names one; the function answers Allow or Deny</span></div>
+  {{if .Authorizers}}<table class="tbl"><thead><tr><th>Name</th><th>Type</th><th>Function</th><th>Identity source</th><th>Cache</th><th></th></tr></thead><tbody>{{range .Authorizers}}
+    <tr><td class="mono"><button type="button" class="linkish" hx-get="{{$.Prefix}}/apigw/{{$.API.ID}}/authorizer/{{.ID}}" hx-target="#apigw-authorizer-detail" hx-select="unset" hx-swap="innerHTML">{{.Name}}</button></td>
+      <td class="dim">{{.Type}}</td><td class="mono">{{.Function}}</td><td class="mono dim">{{.Source}}</td>
+      <td><form class="ex-grid" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/update-authorizer" hx-vals='{"id":"{{.ID}}"}' hx-target="#apigw-authorizers" hx-select="unset" hx-swap="outerHTML"><input class="input" name="ttl" type="number" min="0" max="3600" value="{{.TTL}}"><button class="btn btn-outline btn-sm" type="submit">Set TTL</button></form></td>
+      <td class="right"><button class="icon-btn sm danger" title="Delete authorizer" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-authorizer" hx-vals='{"id":"{{.ID}}"}' hx-target="#apigw-authorizers" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete authorizer “{{.Name}}”? Methods that name it stop serving.">{{icon "trash"}}</button></td></tr>
+  {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No authorizers — methods are open unless one gates them.</p></div>{{end}}
+  <div id="apigw-authorizer-detail"></div>
+  <form class="form-b" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/create-authorizer" hx-target="#apigw-authorizers" hx-select="unset" hx-swap="outerHTML" x-data="{t:'TOKEN'}">
+    <div class="fgrid">
+      <div class="field"><label>Name</label><input class="input" name="name" placeholder="token-gate" required></div>
+      <div class="field"><label>Type</label><select class="input" name="type" x-model="t"><option>TOKEN</option><option>REQUEST</option></select></div>
+    </div>
+    <div class="fgrid">
+      <div class="field"><label>Function</label><input class="input mono" name="function" list="apigw-auth-fns" required><datalist id="apigw-auth-fns">{{range .Functions}}<option value="{{.Name}}"></option>{{end}}</datalist></div>
+      <div class="field"><label x-text="t==='TOKEN' ? 'Token header' : 'Identity sources'"></label><input class="input mono" name="source" :placeholder="t==='TOKEN' ? 'Authorization' : 'method.request.header.X-Token'"></div>
+    </div>
+    <div class="field"><label>Cache <span class="dim">seconds a verdict is kept per identity; 0 asks every time</span></label><input class="input" name="ttl" type="number" min="0" max="3600" value="300"></div>
+    <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Add authorizer</button></div>
+  </form>
+</div>
+{{end}}
+
+{{define "apigw_authorizer_detail"}}
+<div class="table-wrap"><table class="tbl kv"><tbody>
+  <tr><td>Id</td><td class="mono">{{.A.ID}}</td></tr>
+  <tr><td>Type</td><td>{{.A.Type}}</td></tr>
+  <tr><td>Function</td><td class="mono"><a href="{{.Prefix}}/lambda/{{.A.Function}}">{{.A.Function}}</a></td></tr>
+  <tr><td>Identity source</td><td class="mono">{{.A.Source}}</td></tr>
+  <tr><td>Cache</td><td>{{.A.TTL}} s</td></tr>
+</tbody></table></div>
 {{end}}

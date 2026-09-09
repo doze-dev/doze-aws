@@ -25,6 +25,10 @@ type mapper struct {
 	// versions maps a StateMachineVersion logical id to its machine name, so
 	// an alias can resolve the placeholder ARN the version Refs to.
 	versions map[string]string
+	// apiNodes and apiMethods are the API Gateway resource tree as declared,
+	// resolved into routes after every resource is known (mapper_apigw.go).
+	apiNodes   map[string]apiNode
+	apiMethods []apiMethodDecl
 }
 
 func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
@@ -87,16 +91,24 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 			api.Stage = propStr(props, "StageName")
 		}
 		stageLogging(&api, props)
+		if err := samAuth(&api, propMap(props, "Auth")); err != nil {
+			return err
+		}
 		m.stack.APIs[name] = api
 		return nil
 	case "AWS::ApiGateway::Stage":
 		// The stage names the API it belongs to; its logging settings land
 		// on that API once every resource is known.
 		return m.stage(props)
-	case "AWS::ApiGateway::Deployment",
-		"AWS::ApiGateway::Resource", "AWS::ApiGateway::Method",
-		"AWS::ApiGateway::Account":
-		// Recognised; the resource tree is rebuilt from routes at apply time.
+	case "AWS::ApiGateway::Resource":
+		return m.apiResource(r.LogicalID, props)
+	case "AWS::ApiGateway::Method":
+		return m.apiMethod(r.LogicalID, props)
+	case "AWS::ApiGateway::Authorizer":
+		return m.apiAuthorizer(name, props)
+	case "AWS::ApiGateway::Deployment", "AWS::ApiGateway::Account":
+		// Recognised; a deployment happens on every apply, and the account
+		// record only holds a role ARN.
 		return nil
 	case "AWS::Lambda::LayerVersion":
 		return m.layer(name, props)
@@ -123,7 +135,7 @@ func (m *mapper) applyDeferred() error {
 			return err
 		}
 	}
-	return nil
+	return m.resolveAPITree()
 }
 
 // ---- Step Functions ----
@@ -842,9 +854,15 @@ func (m *mapper) samEvents(fn string, events map[string]any) error {
 			if api.Stage == "" {
 				api.Stage = "Prod" // SAM's default implicit stage
 			}
-			api.Routes = append(api.Routes, provision.Route{
-				Method: method, Path: path, Lambda: fn,
-			})
+			route := provision.Route{Method: method, Path: path, Lambda: fn}
+			if auth := propMap(props, "Auth"); auth != nil {
+				route.Authorizer = propStr(auth, "Authorizer")
+				if _, ok := auth["ApiKeyRequired"]; ok {
+					required := propBool(auth, "ApiKeyRequired")
+					route.APIKeyRequired = &required
+				}
+			}
+			api.Routes = append(api.Routes, route)
 			m.stack.APIs[apiName] = api
 		default:
 			return fmt.Errorf("SAM event %s has unsupported type %q", evName, propStr(ev, "Type"))

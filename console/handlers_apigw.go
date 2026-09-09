@@ -40,9 +40,13 @@ func (c *Console) apigwAPI(w http.ResponseWriter, r *http.Request) {
 		data["Deployments"], _ = c.be.APIDeployments(r.Context(), id)
 	case "invoke":
 		data["Stages"], _ = c.be.APIStages(r.Context(), id, endpointHost(r))
-	case "settings", "tags":
+	case "settings":
+		data["Authorizers"], _ = c.be.APIAuthorizers(r.Context(), id)
+		data["Functions"], _ = c.be.ListFunctions(r.Context())
+	case "tags":
 	default:
 		data["Routes"], _ = c.be.APIRoutes(r.Context(), id)
+		data["Authorizers"], _ = c.be.APIAuthorizers(r.Context(), id)
 	}
 	c.render(w, r, "apigw_api", data)
 }
@@ -145,7 +149,7 @@ func (c *Console) apigwPutMethod(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("api")
 	verb := r.FormValue("verb")
 	if err := c.be.PutAPIMethod(r.Context(), id, r.FormValue("resource"), verb,
-		r.FormValue("auth"), r.FormValue("apikey") != ""); err != nil {
+		r.FormValue("auth"), r.FormValue("authorizer"), r.FormValue("apikey") != ""); err != nil {
 		c.fail(w, err)
 		return
 	}

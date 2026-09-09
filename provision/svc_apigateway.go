@@ -13,8 +13,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 func applyAPIs(ctx context.Context, c *client, s *Stack, rep *Report) error {
@@ -43,8 +41,12 @@ func applyAPIs(ctx context.Context, c *client, s *Stack, rep *Report) error {
 			rep.add("skipped", "api/"+name, "already in place")
 		}
 
+		authIDs, err := ensureAuthorizers(ctx, c, id, api)
+		if err != nil {
+			return fmt.Errorf("api %q: %w", name, err)
+		}
 		for _, route := range api.Routes {
-			if err := ensureRoute(ctx, c, id, route); err != nil {
+			if err := ensureRoute(ctx, c, id, api, route, authIDs); err != nil {
 				return fmt.Errorf("api %q route %s %s: %w", name, route.Method, route.Path, err)
 			}
 		}
@@ -128,7 +130,7 @@ func findAPI(ctx context.Context, c *client, name string) (id string, found bool
 }
 
 // ensureRoute creates the path tree for one route and wires its integration.
-func ensureRoute(ctx context.Context, c *client, apiID string, route Route) error {
+func ensureRoute(ctx context.Context, c *client, apiID string, api API, route Route, authIDs map[string]string) error {
 	resources, err := listResources(ctx, c, apiID)
 	if err != nil {
 		return err
@@ -173,17 +175,21 @@ func ensureRoute(ctx context.Context, c *client, apiID string, route Route) erro
 		verb = "ANY"
 	}
 	base := "/restapis/" + apiID + "/resources/" + parent + "/methods/" + url.PathEscape(verb)
-	if _, err := c.do(ctx, "PUT", base,
-		map[string]string{"Content-Type": "application/json"},
-		mustJSON(map[string]any{"authorizationType": "NONE"})); err != nil {
+	method, err := methodRequest(api, route, authIDs)
+	if err != nil {
 		return err
 	}
-	uri := "arn:aws:apigateway:" + awsident.Region + ":lambda:path/2015-03-31/functions/" +
-		lambdaARN(route.Lambda) + "/invocations"
+	if _, err := c.do(ctx, "PUT", base,
+		map[string]string{"Content-Type": "application/json"}, mustJSON(method)); err != nil {
+		return err
+	}
+	if route.Mock != nil {
+		return putMockIntegration(ctx, c, base, route.Mock)
+	}
 	_, err = c.do(ctx, "PUT", base+"/integration",
 		map[string]string{"Content-Type": "application/json"},
 		mustJSON(map[string]any{
-			"type": "AWS_PROXY", "integrationHttpMethod": "POST", "uri": uri,
+			"type": "AWS_PROXY", "integrationHttpMethod": "POST", "uri": lambdaInvokeURI(route.Lambda),
 		}))
 	return err
 }
