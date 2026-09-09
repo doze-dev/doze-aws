@@ -208,8 +208,15 @@ func (b *backend) AttachedPolicies(ctx context.Context, kind, name string) ([]Po
 		PolicyName string `xml:"PolicyName"`
 		PolicyArn  string `xml:"PolicyArn"`
 	}
+	// One branch per kind. The group arm was missing: the call went out as
+	// ListAttachedGroupPolicies and the answer was parsed as the User form,
+	// so the path never matched and a group's attached policies were ALWAYS
+	// empty. The page said "No managed policies attached" however many you
+	// attached, and the e2e test that should have caught it asserted
+	// toContainText(''), which is true of any content at all.
 	var members []member
-	if kind == "role" {
+	switch kind {
+	case "role":
 		var out struct {
 			M []member `xml:"ListAttachedRolePoliciesResult>AttachedPolicies>member"`
 		}
@@ -217,7 +224,15 @@ func (b *backend) AttachedPolicies(ctx context.Context, kind, name string) ([]Po
 			return nil, err
 		}
 		members = out.M
-	} else {
+	case "group":
+		var out struct {
+			M []member `xml:"ListAttachedGroupPoliciesResult>AttachedPolicies>member"`
+		}
+		if err := xml.Unmarshal(body, &out); err != nil {
+			return nil, err
+		}
+		members = out.M
+	default:
 		var out struct {
 			M []member `xml:"ListAttachedUserPoliciesResult>AttachedPolicies>member"`
 		}

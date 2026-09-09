@@ -22,7 +22,10 @@ func TestV2QuickCreateMakesRouteStageAndAnswers(t *testing.T) {
 		t.Fatalf("quick create routes: %v", routes)
 	}
 	st := a.must("GET", "/v2/apis/"+id+"/stages/$default", nil)
-	if st["autoDeploy"] != true || st["deploymentId"] == "" {
+	// viewV2Stage omits deploymentId when it is empty, so it comes back nil
+	// rather than "" — the old `st["deploymentId"] == ""` could never fire and
+	// a quick create that produced no deployment would have passed.
+	if st["autoDeploy"] != true || st["deploymentId"] == nil || st["deploymentId"] == "" {
 		t.Fatalf("quick create stage: %v", st)
 	}
 	if code, _, body := a.invoke("GET", id+"/hello", nil, ""); code != 200 || !strings.Contains(body, "/hello") {

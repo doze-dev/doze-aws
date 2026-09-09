@@ -34,9 +34,17 @@ test.describe('IAM console', () => {
 
     // Attach a policy to the group; rename it and land on the new page.
     await page.goto(`iam/group/${group}`);
+    const policyArn = await page
+      .locator('select[name="arn"] option')
+      .first()
+      .getAttribute('value');
     await page.locator('select[name="arn"]').selectOption({ index: 0 });
     await page.locator('form:has(select[name="arn"])').getByRole('button', { name: 'Attach' }).click();
-    await expect(page.locator('#flashbar')).toContainText('');
+    // This used to be toContainText(''), which is true of any content at all —
+    // an empty flashbar, an error, a page that never attached anything. The
+    // attached policy has to show up in the Attached policies table.
+    await expect(page.locator('.tbl')).not.toContainText('No managed policies attached');
+    await expect(page.locator('.tbl td.mono.dim', { hasText: policyArn! })).toBeVisible();
     await page.locator('input[name="new"]').fill(`${group}-renamed`);
     await page.getByRole('button', { name: 'Rename' }).click();
     await page.locator('#confirm-yes').click();

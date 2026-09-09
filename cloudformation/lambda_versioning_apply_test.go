@@ -229,12 +229,25 @@ func TestApplyLambdaVersioningTemplate(t *testing.T) {
 	}
 
 	// Destroy takes the layer with the function.
-	if _, err := provision.Destroy(ctx, stack.Handler(), sf); err != nil {
-		t.Fatalf("Destroy: %v", err)
+	//
+	// This assertion used to be three nested guards, each of which skipped
+	// the check: the outer list had to error for the body to run, the inner
+	// list discarded its own error, and a nil result skipped again. It was
+	// the only claim in the repository that Destroy removes a Lambda function
+	// and it could not fail. The report is now inspected, and the function —
+	// which the comment always promised and never checked — with it.
+	drep, err := provision.Destroy(ctx, stack.Handler(), sf)
+	if err != nil {
+		t.Fatalf("Destroy: %v\n%+v", err, drep.Actions)
 	}
-	if _, err := lc.ListLayerVersions(ctx, &awslambda.ListLayerVersionsInput{LayerName: aws.String("helpers")}); err == nil {
-		if l, _ := lc.ListLayerVersions(ctx, &awslambda.ListLayerVersionsInput{LayerName: aws.String("helpers")}); l != nil && len(l.LayerVersions) != 0 {
-			t.Errorf("destroy left layer versions behind: %d", len(l.LayerVersions))
-		}
+	if len(drep.Failures()) != 0 {
+		t.Errorf("Destroy reported failures: %+v", drep.Failures())
+	}
+	if _, err := lc.GetFunction(ctx, &awslambda.GetFunctionInput{FunctionName: aws.String("versioned")}); err == nil {
+		t.Error("destroy left the function behind")
+	}
+	lv, err := lc.ListLayerVersions(ctx, &awslambda.ListLayerVersionsInput{LayerName: aws.String("helpers")})
+	if err == nil && len(lv.LayerVersions) != 0 {
+		t.Errorf("destroy left %d layer version(s) behind", len(lv.LayerVersions))
 	}
 }
