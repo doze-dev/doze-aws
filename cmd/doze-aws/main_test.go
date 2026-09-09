@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -54,13 +55,17 @@ func TestBinaryEndToEnd(t *testing.T) {
 	// The binary logs `msg=listening addr=127.0.0.1:PORT ...` once bound.
 	addrRe := regexp.MustCompile(`msg=listening addr=([0-9.:]+)`)
 	addrCh := make(chan string, 1)
+	// The tail is read on the timeout path while the reader still writes it.
+	var tailMu sync.Mutex
 	var logTail strings.Builder
 	go func() {
 		sc := bufio.NewScanner(stderr)
 		for sc.Scan() {
 			line := sc.Text()
+			tailMu.Lock()
 			logTail.WriteString(line)
 			logTail.WriteByte('\n')
+			tailMu.Unlock()
 			if m := addrRe.FindStringSubmatch(line); m != nil {
 				select {
 				case addrCh <- m[1]:
@@ -75,8 +80,13 @@ func TestBinaryEndToEnd(t *testing.T) {
 	var addr string
 	select {
 	case addr = <-addrCh:
-	case <-time.After(10 * time.Second):
-		t.Fatalf("binary never logged its listen address; log so far:\n%s", logTail.String())
+	case <-time.After(60 * time.Second):
+		// A budget, not a benchmark: under the full race suite the machine is
+		// building sixteen stores for every package at once.
+		tailMu.Lock()
+		tail := logTail.String()
+		tailMu.Unlock()
+		t.Fatalf("binary never logged its listen address; log so far:\n%s", tail)
 	}
 
 	endpoint := aws.String("http://" + addr)
