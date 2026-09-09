@@ -281,16 +281,32 @@ func destroyKeys(ctx context.Context, c *client, s *Stack, rep *DestroyReport) e
 	for _, name := range sortedNames(s.Keys) {
 		// KMS keys are scheduled for deletion, never removed outright — even
 		// locally, because code that reads a deleted key should see the same
-		// PendingDeletion state it would in the cloud. The alias goes now.
-		_, aliasErr := c.json11(ctx, "TrentService", "DeleteAlias",
-			map[string]any{"AliasName": "alias/" + name})
-		_, err := c.json11(ctx, "TrentService", "ScheduleKeyDeletion",
-			map[string]any{"KeyId": "alias/" + name, "PendingWindowInDays": 7})
-		if err == nil {
-			err = nil // the schedule succeeded; the alias result is incidental
-		} else if notFound(aliasErr) && notFound(err) {
-			err = aliasErr
+		// PendingDeletion state it would in the cloud.
+		//
+		// Resolve the key id BEFORE dropping the alias. Scheduling by
+		// "alias/<name>" after the alias is gone resolves to nothing, and the
+		// NotFoundException that comes back reads as "absent" — so the key
+		// survived every Destroy while the report said it had been removed.
+		out, err := c.json11(ctx, "TrentService", "DescribeKey", map[string]any{"KeyId": "alias/" + name})
+		if err != nil {
+			// Not there at all is the goal state; anything else is a failure.
+			record(rep, "key/"+name, err)
+			continue
 		}
+		var desc struct {
+			KeyMetadata struct{ KeyId string } `json:"KeyMetadata"`
+		}
+		if jsonErr := json.Unmarshal(out, &desc); jsonErr != nil || desc.KeyMetadata.KeyId == "" {
+			rep.add("failed", "key/"+name, "could not read the key id behind alias/"+name)
+			continue
+		}
+		if _, aliasErr := c.json11(ctx, "TrentService", "DeleteAlias",
+			map[string]any{"AliasName": "alias/" + name}); aliasErr != nil && !notFound(aliasErr) {
+			record(rep, "key/"+name, aliasErr)
+			continue
+		}
+		_, err = c.json11(ctx, "TrentService", "ScheduleKeyDeletion",
+			map[string]any{"KeyId": desc.KeyMetadata.KeyId, "PendingWindowInDays": 7})
 		record(rep, "key/"+name, err)
 	}
 	return nil
