@@ -61,7 +61,7 @@ func (d inProcessDir) Endpoint(service string) (Endpoint, bool) {
 		return Endpoint{}, false
 	}
 	return Endpoint{
-		Client:  &http.Client{Transport: handlerTransport{h}, Timeout: 30 * time.Second},
+		Client:  &http.Client{Transport: principalTransport{handlerTransport{h}}, Timeout: 30 * time.Second},
 		BaseURL: "http://" + service + ".doze-aws.internal",
 	}, true
 }
@@ -96,12 +96,12 @@ func (d socketDir) Endpoint(service string) (Endpoint, bool) {
 func unixEndpoint(service, socket string) Endpoint {
 	return Endpoint{
 		Client: &http.Client{
-			Transport: &http.Transport{
+			Transport: principalTransport{&http.Transport{
 				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 					var d net.Dialer
 					return d.DialContext(ctx, "unix", socket)
 				},
-			},
+			}},
 			Timeout: 30 * time.Second,
 		},
 		// The host is decorative — the transport dials the socket regardless —
@@ -128,7 +128,7 @@ func (envDir) Endpoint(service string) (Endpoint, bool) {
 	for _, key := range []string{"AWS_ENDPOINT_URL_" + envSvc, "AWS_ENDPOINT_URL"} {
 		if u := os.Getenv(key); u != "" {
 			return Endpoint{
-				Client:  &http.Client{Timeout: 30 * time.Second},
+				Client:  &http.Client{Transport: principalTransport{http.DefaultTransport}, Timeout: 30 * time.Second},
 				BaseURL: strings.TrimSuffix(u, "/"),
 			}, true
 		}

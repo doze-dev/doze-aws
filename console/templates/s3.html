@@ -229,7 +229,7 @@
     {{template "iam_actions_datalist" .SeenActions}}
     {{/* The bucket policy, in the same builder IAM documents get everywhere
          else — it was read-only raw text under "Other configurations". */}}
-    <div class="sec-title">Bucket policy</div>
+    <div class="sec-title">Bucket policy <span class="dim">— evaluated under IAM soft and enforce</span></div>
     <div class="panel" style="margin-bottom:14px" x-data="{open:false}" x-effect="if(open)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
       <div class="panel-h"><h2>{{icon "braces"}} {{if .BucketPolicy}}<span class="badge state-on">Configured</span>{{else}}<span class="badge state-off">Not set</span>{{end}}</h2>
         <button type="button" class="btn btn-outline btn-sm" @click="open=!open" x-text="open ? 'Close' : 'Edit'"></button></div>

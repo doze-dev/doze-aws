@@ -31,6 +31,7 @@ import (
 	"github.com/doze-dev/doze-aws/iam"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/gateway"
+	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/kinesis"
 	"github.com/doze-dev/doze-aws/kms"
@@ -147,7 +148,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 	dir := peers.InProcess(st.gw.Handler)
 	switch name {
 	case "s3":
-		s, err := s3.New(s3.Options{DataDir: dataDir, Host: cfg.S3Host, Peers: dir, Logf: logf})
+		s, err := s3.New(s3.Options{DataDir: dataDir, Host: cfg.S3Host, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
 		return s, s, err
 	case "dynamodb":
 		s, err := dynamodb.New(dynamodb.Options{DataDir: dataDir, Peers: dir, Logf: logf})
@@ -156,19 +157,19 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := sts.New(sts.Options{DataDir: dataDir, Logf: logf})
 		return s, s, err
 	case "sqs":
-		s, err := sqs.New(sqs.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		s, err := sqs.New(sqs.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
 		return s, s, err
 	case "sns":
-		s, err := sns.New(sns.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		s, err := sns.New(sns.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
 		return s, s, err
 	case "kms":
-		s, err := kms.New(kms.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		s, err := kms.New(kms.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
 		return s, s, err
 	case "ssm":
 		s, err := ssm.New(ssm.Options{DataDir: dataDir, Peers: dir, Logf: logf})
 		return s, s, err
 	case "secretsmanager":
-		s, err := secretsmanager.New(secretsmanager.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		s, err := secretsmanager.New(secretsmanager.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
 		return s, s, err
 	case "logs":
 		s, err := logs.New(logs.Options{DataDir: dataDir, Peers: dir, Logf: logf})
@@ -183,13 +184,13 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := eventbridge.New(eventbridge.Options{DataDir: dataDir, Peers: dir, Logf: logf})
 		return s, s, err
 	case "lambda":
-		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, QuietFunctions: cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes, Endpoint: cfg.Endpoint})
+		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, QuietFunctions: cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes, Endpoint: cfg.Endpoint, IAMMode: string(cfg.IAMMode)})
 		if err == nil {
 			st.lambda = s // retained so its pollers can be given a trace sink
 		}
 		return s, s, err
 	case "kinesis":
-		s, err := kinesis.New(kinesis.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		s, err := kinesis.New(kinesis.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
 		return s, s, err
 	case "apigateway":
 		s, err := apigateway.New(apigateway.Options{DataDir: dataDir, Peers: dir, Logf: logf})
@@ -230,12 +231,25 @@ func (s *Stack) Handler() http.Handler {
 // disagree about which service a request belongs to.
 func (s *Stack) authorized(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// A client cannot claim a principal or a verdict: the handoff headers
+		// are the middleware's to write.
+		iamguard.Strip(r)
 		res := s.iam.Authorize(r, gateway.Route(r))
 		if res.Err != nil {
 			writeDenied(w, res.Err)
 			return
 		}
+		if res.Action == "" {
+			h.ServeHTTP(w, r)
+			return
+		}
+		// The service finishes the question with its resource policy and
+		// reports the verdict on the response for the recorder.
+		iamguard.Stamp(r, string(s.iam.Mode()), res.Principal, res.Identity)
 		h.ServeHTTP(w, r)
+		if dec, ok := iam.ParseDecision(w.Header().Get(iamguard.HeaderDecision)); ok {
+			s.iam.RecordResource(res.Principal, res.Action, res.Resource, dec, w.Header().Get(iamguard.HeaderMatchedBy))
+		}
 	})
 }
 

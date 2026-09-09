@@ -8,6 +8,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 	"github.com/doze-dev/doze-aws/internal/peercall"
+	"github.com/doze-dev/doze-aws/peers"
 )
 
 // rotateSecret runs the standard four-step Secrets Manager rotation by invoking
@@ -41,7 +42,9 @@ func (s *Server) rotateSecret(p map[string]any) (any, *awshttp.APIError) {
 			"SecretId":           sec.ARN,
 			"ClientRequestToken": token,
 		})
-		if _, err := peercall.LambdaInvoke(context.Background(), s.peers, fn, payload); err != nil {
+		// Rotation is Secrets Manager's own call, on behalf of the secret; the
+		// function needs a permission for secretsmanager.amazonaws.com, as on AWS.
+		if _, err := peercall.LambdaInvoke(peers.WithPrincipal(context.Background(), "secretsmanager", sec.ARN), s.peers, fn, payload); err != nil {
 			return nil, awshttp.Errf(500, "InternalServiceError", "rotation step %s failed: %v", step, err)
 		}
 	}

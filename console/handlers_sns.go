@@ -69,6 +69,9 @@ func (c *Console) snsTopic(w http.ResponseWriter, r *http.Request) {
 		// subscription to a deleted topic becomes visible.
 		"AllSubs":    c.allSubs(r),
 		"DataPolicy": c.be.DataProtectionPolicy(r.Context(), arn),
+		// The access policy's statements, read back from the Policy
+		// attribute (the same shape SQS's AddPermission writes).
+		"Perms": sqsPermissionsOf(attrs["Policy"]),
 	})
 }
 
@@ -308,8 +311,8 @@ func (c *Console) snsSetAttribute(w http.ResponseWriter, r *http.Request) {
 }
 
 // snsAddPermission / snsRemovePermission write the topic's access policy.
-// Same shape and the same caveat as the SQS queue policy: accepted, and there
-// is no IAM in front of a local topic for it to affect.
+// Same shape as the SQS queue policy: the statement is written, and under IAM
+// soft and enforce the topic evaluates the policy on every request.
 func (c *Console) snsAddPermission(w http.ResponseWriter, r *http.Request) {
 	topic := r.PathValue("topic")
 	label := strings.TrimSpace(r.FormValue("label"))

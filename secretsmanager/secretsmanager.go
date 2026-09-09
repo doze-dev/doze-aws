@@ -23,6 +23,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
+	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/peers"
 )
@@ -38,6 +39,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// IAMMode is the IAM service's mode; under soft or enforce a secret's
+	// resource policy is evaluated on every request that names it.
+	IAMMode string
 }
 
 // Server is the Secrets Manager service: an http.Handler speaking AWS JSON
@@ -48,6 +52,7 @@ type Server struct {
 	logf  func(format string, args ...any)
 	api   awsjson.API
 	stop  chan struct{}
+	guard iamguard.Guard // the secret's resource policy, under IAM soft/enforce
 }
 
 // New opens the store under DataDir and starts the deletion janitor.
@@ -78,6 +83,7 @@ func New(opts Options) (*Server, error) {
 		logf:  logf,
 		api:   awsjson.API{TargetPrefix: "secretsmanager", JSONVersion: "1.1"},
 		stop:  make(chan struct{}),
+		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf},
 	}
 	if s.peers == nil {
 		s.peers = peers.None()
@@ -136,6 +142,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if aerr := s.guardRequest(w, r, action, params); aerr != nil {
+		s.logf("secretsmanager: %s -> %s", action, aerr.Code)
+		s.api.WriteError(w, aerr)
+		return
+	}
 	result, aerr := h(s, params)
 	if aerr != nil {
 		s.logf("secretsmanager: %s -> %s", action, aerr.Code)

@@ -1,4 +1,4 @@
-package iam
+package iamguard
 
 // Resolving an HTTP request into the (action, resource) pair IAM evaluates.
 //
@@ -156,8 +156,19 @@ func ResolveAction(r *http.Request, service string) (action, resource string) {
 // well-defined by method and path shape, which is why it can be done at all —
 // bucket operations are distinguished from object ones by whether a key is
 // present, and sub-resources by the query string.
+// ResolveS3 maps an S3 request onto its action and resource given the bucket
+// and key the service itself resolved (path-style or virtual-hosted); the
+// middleware, which only sees the path, calls it with the path-style pair.
+func ResolveS3(r *http.Request, bucket, key string) (string, string) {
+	return resolveS3With(r, bucket, key)
+}
+
 func resolveS3(r *http.Request) (string, string) {
 	bucket, key := s3Target(r)
+	return resolveS3With(r, bucket, key)
+}
+
+func resolveS3With(r *http.Request, bucket, key string) (string, string) {
 	arn := ""
 	switch {
 	case bucket != "" && key != "":

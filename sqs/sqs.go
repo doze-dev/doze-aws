@@ -10,6 +10,7 @@
 package sqs
 
 import (
+	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"net/http"
 	"os"
@@ -38,6 +39,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// IAMMode is the IAM service's mode; under soft or enforce the queue policy
+	// is evaluated on every queue-scoped request, peer calls included.
+	IAMMode string
 }
 
 // Server is the SQS service: an http.Handler speaking both SQS wire protocols,
@@ -46,6 +50,7 @@ type Server struct {
 	store *Store
 	logf  func(format string, args ...any)
 	stop  chan struct{}
+	guard iamguard.Guard // the queue policy, under IAM soft/enforce
 }
 
 // New opens the bbolt store under DataDir and starts the retention janitor.
@@ -65,7 +70,7 @@ func New(opts Options) (*Server, error) {
 	if logf == nil {
 		logf = func(string, ...any) {}
 	}
-	s := &Server{store: newStore(db), logf: logf, stop: make(chan struct{})}
+	s := &Server{store: newStore(db), logf: logf, stop: make(chan struct{}), guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf}}
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock
 	}
@@ -115,6 +120,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, req.json, &apiError{
 			Code: aerr.Code, Status: aerr.Status, Message: aerr.Message, SenderFault: true,
 		})
+		return
+	}
+	if err := s.guardRequest(w, r, req); err != nil {
+		s.logf("sqs: %s -> %s", req.action, err.Code)
+		writeError(w, req.json, err)
 		return
 	}
 	result, err := h(s.store, req)

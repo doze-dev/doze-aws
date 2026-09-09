@@ -20,7 +20,7 @@ cosmetically.
 | UpdateSecretVersionStage | F | a stage names at most one version |
 | TagResource / UntagResource | F | |
 | GetRandomPassword | F | length, ExcludeCharacters, ExcludePunctuation |
-| PutResourcePolicy / GetResourcePolicy / DeleteResourcePolicy | C | stored and returned; resource policies are not evaluated — the IAM service reads identity policies only |
+| PutResourcePolicy / GetResourcePolicy / DeleteResourcePolicy | F | the secret's resource policy, evaluated on every request naming the secret under IAM `soft` and `enforce` by AWS's same-account rule (see the IAM ledger, "Resource policies"); stored and returned only under the default `off` |
 | ValidateResourcePolicy | C | always passes |
 | RotateSecret / CancelRotateSecret | F | RotateSecret invokes the configured rotation Lambda synchronously for the four steps (createSecret, setSecret, testSecret, finishSecret); the function moves the version stages, as on AWS. CancelRotateSecret clears the pending rotation |
 | ReplicateSecretToRegions / RemoveRegionsFromReplication / StopReplicationToReplica | S | exactly one region locally |

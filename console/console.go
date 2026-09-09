@@ -489,6 +489,7 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/sm/update", c.smUpdateMeta) // UpdateSecret
 	m.HandleFunc("POST "+p+"/sm/rotation", c.smConfigureRotation)
 	m.HandleFunc("POST "+p+"/sm/rotate-now", c.smRotateNow)
+	m.HandleFunc("POST "+p+"/sm/policy", c.smSavePolicy) // PutResourcePolicy / DeleteResourcePolicy
 	m.HandleFunc("GET "+p+"/sm/password", c.smPassword)
 	m.HandleFunc("GET "+p+"/sm/secret", c.smSecret)
 	m.HandleFunc("GET "+p+"/sm/diff", c.smDiff)

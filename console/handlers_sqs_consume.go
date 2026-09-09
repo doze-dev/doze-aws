@@ -241,8 +241,8 @@ func (c *Console) sqsSendBatch(w http.ResponseWriter, r *http.Request) {
 }
 
 // sqsAddPermission and sqsRemovePermission write the queue's resource policy.
-// Both are tier C locally — accepted, no local effect — and the UI says so
-// next to the control rather than letting the button imply enforcement.
+// AddPermission writes the statement AWS writes; under IAM soft and enforce the
+// queue evaluates the policy on every request, so a grant here is real.
 func (c *Console) sqsAddPermission(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("queue")
 	label := strings.TrimSpace(r.FormValue("label"))

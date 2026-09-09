@@ -135,7 +135,9 @@ func (f *fanout) deliver(b fanBatch) {
 			f.logf("logs: subscription %s/%s: %v", b.group, sub.Name, err)
 			continue
 		}
-		err = trace.Step(b.ctx, trace.Event{Service: "logs", Action: "SubscriptionFilter", Resource: b.group + "/" + sub.Name, Via: "logs:PutLogEvents"},
+		// The delivery is Logs' own call, on behalf of the group.
+		ctx := peers.WithPrincipal(b.ctx, "logs", awsident.ARN("logs", "log-group:"+b.group+":*"))
+		err = trace.Step(ctx, trace.Event{Service: "logs", Action: "SubscriptionFilter", Resource: b.group + "/" + sub.Name, Via: "logs:PutLogEvents"},
 			func(ctx context.Context) error {
 				switch {
 				case strings.Contains(sub.Destination, ":lambda:"):

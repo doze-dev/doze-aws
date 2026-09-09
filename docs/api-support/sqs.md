@@ -28,7 +28,7 @@ validation passes.
 | StartMessageMoveTask | F | completes synchronously (local volumes); DestinationArn required — doze-aws does not track per-message origin queues |
 | ListMessageMoveTasks | F | returns the recorded (terminal) tasks |
 | CancelMessageMoveTask | F | always "task is not active" — local moves complete synchronously, matching AWS's answer for a finished task |
-| AddPermission / RemovePermission | C | succeeds and changes nothing: resource policies are not evaluated, the IAM service reads identity policies only |
+| AddPermission / RemovePermission | F | AddPermission writes the statement AWS writes into the `Policy` attribute (Sid = Label, the account roots as principals, `SQS:<action>` on the queue; a label in use is refused), RemovePermission drops it by label. The queue policy is evaluated on every request naming the queue under IAM `soft` and `enforce`; an SNS fan-out into the queue needs a `Service: sns.amazonaws.com` statement under `enforce`, as on AWS |
 | DozePeek | — | doze extension: read-only full-queue inspection (no visibility/receive-count side effects) |
 
 Dead-letter redrive (maxReceiveCount → DLQ move) and retention expiry run on

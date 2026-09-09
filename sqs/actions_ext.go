@@ -53,23 +53,6 @@ func hListDeadLetterSourceQueues(s *Store, req *request) (any, *apiError) {
 	return dlqSourcesResult{QueueURLs: urls}, nil
 }
 
-// hAddPermission / hRemovePermission are Tier C: doze-aws has no IAM, so queue
-// policies can't grant anything — the calls succeed (application setup code
-// keeps working) and change nothing.
-func hAddPermission(s *Store, req *request) (any, *apiError) {
-	if _, err := s.Attributes(targetQueue(req)); err != nil {
-		return nil, asAPIError(err)
-	}
-	return nil, nil
-}
-
-func hRemovePermission(s *Store, req *request) (any, *apiError) {
-	if _, err := s.Attributes(targetQueue(req)); err != nil {
-		return nil, asAPIError(err)
-	}
-	return nil, nil
-}
-
 type startMoveResult struct {
 	TaskHandle string `json:"TaskHandle" xml:"TaskHandle"`
 }

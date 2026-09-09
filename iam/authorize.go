@@ -23,6 +23,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/sigparse"
 )
 
@@ -46,6 +47,9 @@ type AccessEvent struct {
 	MatchedBy string
 	Count     int
 	Last      int64
+	// Source is "identity" for the middleware's verdict on identity policies
+	// and "resource" for a service's verdict on its resource policy.
+	Source string
 }
 
 // key identifies an event for deduplication.
@@ -74,10 +78,16 @@ func (r *recorder) record(e AccessEvent) {
 		// A later deny on the same tuple is the more interesting verdict. The
 		// statement that decided has to travel WITH it: leaving the old
 		// MatchedBy in place would caption this deny with the reason for a
-		// previous allow.
-		if e.Decision != Allowed {
+		// previous allow. A resource verdict is the final word on its request
+		// (it already folded the identity verdict in), so it always lands.
+		if e.Decision != Allowed || e.Source == "resource" {
 			prev.Decision = e.Decision
-			prev.MatchedBy = e.MatchedBy
+			if e.MatchedBy != "" || e.Source != "resource" {
+				// A resource verdict decided by the identity half keeps the
+				// identity statement's name.
+				prev.MatchedBy = e.MatchedBy
+				prev.Source = e.Source
+			}
 		}
 		return
 	}
@@ -126,6 +136,17 @@ type Result struct {
 	// Err is non-nil when the request should be rejected — only ever set in
 	// enforce mode.
 	Err *awshttp.APIError
+	// Identity is the verdict the service's resource-policy guard combines
+	// with its own (iamguard): allowed, implicitDeny or root.
+	Identity string
+}
+
+// ResourcePolicyServices are the services that evaluate a resource policy of
+// their own. For these an implicit deny by the identity policies is not the
+// end of the question — the resource policy may still allow — so the
+// middleware hands the verdict on rather than refusing.
+var ResourcePolicyServices = map[string]bool{
+	"s3": true, "sqs": true, "sns": true, "lambda": true, "kms": true, "secretsmanager": true, "kinesis": true,
 }
 
 // Authorize answers whether a request may proceed. It is called by the stack
@@ -135,7 +156,7 @@ type Result struct {
 // root-credential call is how every doze-aws client behaves by default, and
 // denying them would make enforce mode unusable rather than instructive.
 func (s *Server) Authorize(r *http.Request, service string) Result {
-	action, resource := ResolveAction(r, service)
+	action, resource := iamguard.ResolveAction(r, service)
 	if action == "" {
 		return Result{Decision: Allowed}
 	}
@@ -146,9 +167,9 @@ func (s *Server) Authorize(r *http.Request, service string) Result {
 		// shows the action, but never block.
 		s.rec.record(AccessEvent{
 			Principal: principal, Action: action, Resource: resource,
-			Decision: Allowed, ResourceKnown: resource != "",
+			Decision: Allowed, ResourceKnown: resource != "", Source: "identity",
 		})
-		return Result{Decision: Allowed, Principal: principal, Action: action, Resource: resource}
+		return Result{Decision: Allowed, Principal: principal, Action: action, Resource: resource, Identity: iamguard.IdentityRoot}
 	}
 
 	docs, err := s.store.PoliciesFor(kind, name)
@@ -172,14 +193,21 @@ func (s *Server) Authorize(r *http.Request, service string) Result {
 
 	s.rec.record(AccessEvent{
 		Principal: principal, Action: action, Resource: resource,
-		Decision: decision, ResourceKnown: resource != "", MatchedBy: by,
+		Decision: decision, ResourceKnown: resource != "", MatchedBy: by, Source: "identity",
 	})
 
-	res := Result{Decision: decision, Principal: principal, Action: action, Resource: resource, MatchedBy: by}
-	if decision != Allowed && s.mode == ModeEnforce {
+	res := Result{Decision: decision, Principal: principal, Action: action, Resource: resource, MatchedBy: by, Identity: iamguard.IdentityAllowed}
+	if decision != Allowed {
+		res.Identity = iamguard.IdentityImplicitDeny
+	}
+	// An implicit deny on a resource that may carry a policy is the service's
+	// question to finish; an explicit deny, or a deny on a request naming no
+	// resource (nothing but an identity policy could grant it), is final here.
+	deferred := decision == ImplicitDeny && resource != "" && ResourcePolicyServices[service]
+	if decision != Allowed && s.mode == ModeEnforce && !deferred {
 		res.Err = errAccessDenied(principal, action, resource)
 	}
-	if decision != Allowed && s.mode == ModeSoft {
+	if decision != Allowed && s.mode == ModeSoft && !deferred {
 		s.logf("iam[soft]: would deny %s on %s for %s (%s)", action, orDash(resource), principal, decision)
 	}
 	return res
@@ -287,6 +315,7 @@ func hDozeAccessLog(s *Server, p params) (any, *awshttp.APIError) {
 		Decision      string `xml:"Decision"`
 		ResourceKnown bool   `xml:"ResourceKnown"`
 		MatchedBy     string `xml:"MatchedBy,omitempty"`
+		Source        string `xml:"Source,omitempty"`
 		Count         int    `xml:"Count"`
 		LastUsed      string `xml:"LastUsed"`
 	}
@@ -296,7 +325,7 @@ func hDozeAccessLog(s *Server, p params) (any, *awshttp.APIError) {
 		out = append(out, entry{
 			Principal: e.Principal, Action: e.Action, Resource: e.Resource,
 			Decision: e.Decision.String(), ResourceKnown: e.ResourceKnown,
-			MatchedBy: e.MatchedBy, Count: e.Count, LastUsed: iso(e.Last),
+			MatchedBy: e.MatchedBy, Source: e.Source, Count: e.Count, LastUsed: iso(e.Last),
 		})
 	}
 	return struct {
@@ -381,4 +410,26 @@ func sortedMapKeys(m map[string]map[string]bool) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// RecordResource keeps a service's resource-policy verdict, which arrives on
+// the response header the guard sets, beside the identity verdicts.
+func (s *Server) RecordResource(principal, action, resource string, decision Decision, matchedBy string) {
+	s.rec.record(AccessEvent{
+		Principal: principal, Action: action, Resource: resource,
+		Decision: decision, ResourceKnown: resource != "", MatchedBy: matchedBy, Source: "resource",
+	})
+}
+
+// ParseDecision reads a verdict the guard wrote.
+func ParseDecision(s string) (Decision, bool) {
+	switch s {
+	case "allowed":
+		return Allowed, true
+	case "explicitDeny":
+		return ExplicitDeny, true
+	case "implicitDeny":
+		return ImplicitDeny, true
+	}
+	return ImplicitDeny, false
 }

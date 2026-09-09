@@ -43,11 +43,13 @@
       </div></div>
       <div class="sec-title">Details</div><div class="table-wrap"><table class="tbl kv"><tbody><tr><td>Spec</td><td>{{.Key.Spec}}</td></tr><tr><td>Usage</td><td>{{.Key.Usage}}</td></tr><tr><td>Created</td><td title="{{.Key.Created}}">{{ago .Key.Created}}</td></tr></tbody></table></div>
 
-      {{/* The key's resource policy: stored and returned, not evaluated
-           (there is no cross-account locally to gate) — the surface exists so
-           what round-trips through the SDK round-trips here, in the same
-           builder IAM documents get everywhere else. */}}
-      <div class="sec-title">Key policy</div>
+      {{/* The key policy, in the same builder IAM documents get everywhere
+           else. Under IAM soft or enforce it is evaluated on every request
+           naming the key, and it gates the identity policies the way AWS
+           does: an identity policy counts only while the key policy lets
+           the account in (the default policy's one statement). A policy
+           that names nobody locks everyone out, root included. */}}
+      <div class="sec-title">Key policy <span class="dim">— evaluated under IAM soft and enforce; gates identity policies</span></div>
       <div class="panel" x-data="{open:false}" x-effect="if(open)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
         <div class="panel-h"><h2>{{icon "braces"}} Resource policy</h2>
           <button type="button" class="btn btn-outline btn-sm" @click="open=!open" x-text="open ? 'Close' : 'Edit'"></button></div>

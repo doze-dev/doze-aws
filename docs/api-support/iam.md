@@ -74,6 +74,90 @@ with `ResourceKnown=false`.
 Virtual-hosted-style S3 addressing is deliberately not decoded for resource
 extraction, since splitting it correctly needs the configured S3 host.
 
+## Resource policies
+
+Seven services carry a policy on the resource itself — a bucket policy, a
+queue policy, a topic policy, a function's permissions (`AddPermission`), a
+key policy, a secret's resource policy, a stream's resource policy — and
+under `soft` and `enforce` each one is evaluated **by the service that owns
+the resource**, on every request that names it. With IAM `off` the policies
+are stored and returned and nothing consults them, which is what every
+local emulator did before and what the default still does.
+
+The rule is AWS's same-account rule:
+
+- an explicit `Deny` in the identity policies or the resource policy denies;
+- an `Allow` in either grants — a user with no identity policy at all gets
+  in when the resource policy names it, and a user the identity policies
+  allow gets in when the resource policy says nothing about it;
+- otherwise the request is denied.
+
+Naming the **account** (`arn:aws:iam::000000000000:root`, or the bare
+account id — what SQS and SNS `AddPermission` write) admits the root
+credentials and delegates to the identity policies of the account's users:
+it does not, by itself, let an ungranted user in. Naming a user or role ARN
+grants that identity directly. `NotPrincipal`, `*`, glob patterns on the ARN
+and `Service` principals match as on AWS.
+
+**KMS is the exception**, as it is on AWS: the key policy gates the identity
+policies. An identity policy counts only while the key policy contains an
+`Allow` for the account root covering the action — the default key policy's
+one statement (`"Enable IAM policies"`). A key policy that names nobody in
+the account locks everyone out, root and `PutKeyPolicy` included. That is
+the real lockout AWS warns about, reproduced deliberately.
+
+### Service principals
+
+A service calling a sibling on behalf of a resource — S3 delivering a
+notification to Lambda or SNS, SNS fanning out to SQS or Lambda, EventBridge
+invoking a target, Logs shipping to Kinesis or Lambda, API Gateway invoking
+an integration, Secrets Manager invoking a rotation function — calls as
+that service's principal (`s3.amazonaws.com`, `sns.amazonaws.com`, …) with
+`aws:SourceArn` set to the resource it acts for. A service principal has no
+identity policy, so only the target's resource policy can admit it.
+
+**Under `enforce`, service-to-service triggers therefore need permissions
+exactly as they do on AWS.** An S3 notification does not invoke a function
+until `AddPermission` grants `s3.amazonaws.com` for the bucket; an SNS
+subscription does not reach a queue until the queue policy allows
+`sns.amazonaws.com` for the topic. A stack that worked with IAM off will
+lose its triggers when switched to `enforce`, and the soft-mode log says
+which permission is missing before that happens. Lambda destinations and
+event-source-mapping polls are the exception: they run under the function's
+execution role on AWS, which doze-aws does not model, and pass.
+
+### The handoff
+
+The gateway middleware evaluates the identity policies and cannot evaluate
+resource policies — it never sees a peer call, it resolves resources
+loosely, and it can render only one error shape. The two halves meet
+through request headers, a doze extension a client cannot forge (whatever a
+client sends under `X-Doze-*` is stripped first):
+
+| Header | Written by | Meaning |
+|---|---|---|
+| `X-Doze-Iam-Mode` | middleware | `soft` or `enforce` |
+| `X-Doze-Principal` | middleware, or the peer transport | the caller: a user or role ARN, the account root, or a service principal |
+| `X-Doze-Identity` | middleware | the identity verdict: `allowed`, `implicitDeny`, `root`, `service` |
+| `X-Doze-Source-Arn` | peer transport | the resource a service call is made for |
+| `X-Doze-Resource-Decision`, `-Matched-By` | the service, on the response | the combined verdict and the statement that decided, for the access log |
+
+An implicit deny by the identity policies on a request naming a resource of
+one of the seven services is not answered by the middleware; the service
+finishes the question. An explicit deny, or an implicit deny on a request
+naming no resource (`ListQueues`, `CreateKey`), is final at the middleware.
+The access log records both halves: `Source=identity` for the middleware's
+verdict, `Source=resource` for the service's, which is the one that counts.
+
+### Not covered
+
+Cross-account principals (there is one account; `aws:SourceAccount` is
+always the local one, and `aws:SourceOwner` is never supplied, so SNS's
+default topic policy, which conditions on it, delegates to identity policies
+as it does on AWS), VPC endpoint policies, S3 access point policies, and
+Lambda layer permissions (stored, not evaluated — a
+layer is fetched by the function that names it, in the same account).
+
 ## Managed policies
 
 AWS-managed policies are **synthesized from their naming convention** rather

@@ -140,19 +140,6 @@ func (srv *Server) listTagsForResource(ctx context.Context, form url.Values, _ s
 
 // addPermission / removePermission are Tier C: no IAM locally, so the calls
 // succeed and change nothing.
-func (srv *Server) addPermission(ctx context.Context, form url.Values, _ string) (any, *apiError) {
-	if !srv.store.TopicExists(form.Get("TopicArn")) {
-		return nil, errNotFound("topic does not exist: " + form.Get("TopicArn"))
-	}
-	return nil, nil
-}
-
-func (srv *Server) removePermission(ctx context.Context, form url.Values, _ string) (any, *apiError) {
-	if !srv.store.TopicExists(form.Get("TopicArn")) {
-		return nil, errNotFound("topic does not exist: " + form.Get("TopicArn"))
-	}
-	return nil, nil
-}
 
 func (srv *Server) putDataProtectionPolicy(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	return nil, asErr(srv.store.UpdateTopic(form.Get("ResourceArn"), func(t *Topic) {

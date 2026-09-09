@@ -83,7 +83,7 @@ response belongs to the request that returned.
 | CreateEventSourceMapping (SQS) | F | polls the queue, delivers batches (batch-size honored), delete-on-success, visibility-timeout retry on failure |
 | Get/List/Update/DeleteEventSourceMapping | F | |
 | DynamoDB/Kinesis event source mappings | F | both are polled for real — one iterator per shard for Kinesis, refreshed on reshard |
-| AddPermission / RemovePermission / GetPolicy | F | the API behind `AWS::Lambda::Permission`; service and account principals, SourceArn/SourceAccount synthesized into ArnLike/StringEquals conditions. Nothing locally gates invocation on the policy — it round-trips for templates |
+| AddPermission / RemovePermission / GetPolicy | F | the API behind `AWS::Lambda::Permission`; service and account principals, SourceArn/SourceAccount synthesized into ArnLike/StringEquals conditions. Under IAM `soft` and `enforce` the policy gates every request naming the function: an S3 notification, SNS delivery, EventBridge target or API Gateway integration calls as its service principal with `aws:SourceArn`, and does not invoke until a statement admits it, as on AWS |
 | PublishLayerVersion / GetLayerVersion / GetLayerVersionByArn | F | inline `ZipFile`, S3-staged content, or `_local_` naming a zip or a directory laid out like an unpacked layer; **unpacked and put on the function's search paths** (below); `CodeSha256` is the zip's hash, or a content fingerprint for a `_local_` directory |
 | ListLayers / ListLayerVersions / DeleteLayerVersion | F | newest-first ordering; ListLayers reports each layer's latest version |
 | AddLayerVersionPermission / GetLayerVersionPolicy / RemoveLayerVersionPermission | F | |

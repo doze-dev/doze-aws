@@ -1,4 +1,4 @@
-package iam
+package iampolicy
 
 import "testing"
 
@@ -48,7 +48,7 @@ func TestGlobMatchFoldsActionCase(t *testing.T) {
 
 func mustParse(t *testing.T, raw string) *Document {
 	t.Helper()
-	d, err := ParsePolicy(raw)
+	d, err := Parse(raw)
 	if err != nil {
 		t.Fatalf("ParsePolicy: %v", err)
 	}
@@ -76,8 +76,8 @@ func TestParsePolicyRejectsGarbage(t *testing.T) {
 		`{"Statement":[{"Effect":"Maybe","Action":"s3:*"}]}`,
 		`{"Statement":[{"Effect":"Allow","Resource":"*"}]}`, // no Action or NotAction
 	} {
-		if _, err := ParsePolicy(raw); err == nil {
-			t.Errorf("ParsePolicy(%q) should have failed", raw)
+		if _, err := Parse(raw); err == nil {
+			t.Errorf("Parse(%q) should have failed", raw)
 		}
 	}
 }

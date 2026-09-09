@@ -54,19 +54,19 @@
       <div class="table-wrap"><table class="tbl kv"><tbody>
         {{range $k, $v := .Attrs}}<tr><td>{{$k}}</td><td>{{template "kvcopy" $v}}</td></tr>{{end}}
       </tbody></table></div>
-      {{/* The C-tier surfaces, together and labelled.
+      {{/* Attributes and the access policy.
 
-           These are operations doze-aws accepts and does not act on, and they
-           are exposed for the reason the emulator exists: a deploy script that
-           calls SetTopicAttributes or AddPermission must not fail here, and you
-           must be able to see the call was accepted. The badge is doing the
-           honest work — without it a control implies an effect it has not got.
-
-           SQS's queue-policy panel is the same shape for the same reason; SNS
-           had these operations and no surface for any of them, which was an
-           inconsistency rather than a decision. */}}
+           DisplayName and DeliveryPolicy are stored and returned, nothing
+           more. Policy is the topic's resource policy: under IAM soft or
+           enforce it is evaluated on every request naming the topic — a
+           topic is born with AWS's default policy, which admits the
+           account's own identities and no service principal — so an S3
+           notification into this topic needs a "Service": "s3.amazonaws.com"
+           statement under enforce, exactly as on AWS. AddPermission writes
+           the statement AWS writes (Sid = Label, the account roots, the
+           actions on this topic); RemovePermission drops it by label. */}}
       <div class="sec-title">Attributes you can set
-        <span class="tier tier-c" title="Stored and returned by GetTopicAttributes; nothing about the topic behaves differently">stored, not enforced</span></div>
+        <span class="tier tier-c" title="DisplayName and DeliveryPolicy are stored and returned; Policy is the access policy below">stored</span></div>
       <div class="panel">
         <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{.Topic}}/attribute">
           <select class="input" name="name">
@@ -77,12 +77,19 @@
         </form>
       </div>
 
-      <div class="sec-title">Access policy
-        <span class="tier tier-c" title="Answered 200; there is no IAM in front of a local topic for a grant to affect">accepted, not enforced</span></div>
+      <div class="sec-title">Access policy <span class="dim">— evaluated under IAM soft and enforce</span></div>
       <div class="panel">
+        {{if .Perms}}
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Sid</th><th>Principal</th><th>Action</th><th></th></tr></thead><tbody>
+          {{range .Perms}}<tr><td class="mono">{{.Label}}</td><td class="mono">{{.Account}}</td><td class="mono">{{.Action}}</td>
+            <td class="right"><form hx-post="{{$.Prefix}}/sns/{{$.Topic}}/permission/delete" hx-vals='{"label":"{{.Label}}"}'>
+              <button class="btn btn-ghost btn-sm" type="submit">Revoke</button></form></td></tr>{{end}}
+        </tbody></table></div>
+        {{end}}
         <div class="mini-note perm-none">
-          A grant here changes who can reach this topic not at all — there is no
-          IAM in front of a local one. The call is answered and appears on the wire.
+          An account grant delegates to the account's identity policies, as on AWS; a service
+          principal (S3 notifying this topic) needs a statement of its own. Set the Policy
+          attribute above to write the whole document.
         </div>
         <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{.Topic}}/permission">
           <input class="input" name="label" placeholder="Label" required autocomplete="off">
@@ -91,10 +98,6 @@
             <option>Publish</option><option>Subscribe</option><option>GetTopicAttributes</option><option>*</option>
           </select>
           <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Grant</button>
-        </form>
-        <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{.Topic}}/permission/delete">
-          <input class="input" name="label" placeholder="Label to revoke" required autocomplete="off">
-          <button class="btn btn-ghost btn-sm" type="submit">Revoke</button>
         </form>
       </div>
 

@@ -181,7 +181,7 @@ Mapped:
 | `AWS::ApiGateway::ApiKey`, `::UsagePlan`, `::UsagePlanKey` | a key (`Name`, `Value`, `Enabled`, `Description`), a plan (`UsagePlanName`, `ApiStages` by `!Ref Api`, `Throttle`, `Quota`), and the join between them by `Ref`. `Ref` on a key or plan is its name, resolved to the minted id at apply. SAM `Auth.UsagePlan` (`CreateUsagePlan` `PER_API` or `SHARED`, `UsagePlanName`, `Throttle`, `Quota`) makes the key and plan SAM would, on the API's stage |
 | `AWS::ApiGateway::Deployment`, `::Account` | recognised; a deployment happens on every apply, and the account record only holds a role ARN |
 | `AWS::Lambda::Permission` | recognised and referenceable; nothing locally gates an invocation on the policy |
-| `AWS::S3::BucketPolicy` | the document lands on the bucket (stored; not evaluated as an access control) |
+| `AWS::S3::BucketPolicy` | the document lands on the bucket, and is evaluated under IAM `soft` and `enforce` |
 | `AWS::SQS::QueuePolicy`, `AWS::SNS::TopicPolicy` | recognised; no local policy evaluation |
 | `AWS::StepFunctions::StateMachine` | `DefinitionString` or `Definition`, `DefinitionSubstitutions` applied after intrinsics (what the CDK emits), type, role, tags, `LoggingConfiguration` (the CDK's `logs` property; history is vended to the group it names); `DefinitionUri` is refused — inline the definition for a local deploy |
 | `AWS::StepFunctions::StateMachineVersion` | publishes the machine's revision on every deploy; an unchanged definition keeps its version. Its `Ref` is a placeholder only an alias in the same template can consume, because the version number is not known until the machine is published |

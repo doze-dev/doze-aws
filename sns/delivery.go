@@ -55,6 +55,9 @@ func (srv *Server) envelope(msgID, topicARN, subject, message string, attrs map[
 // subscription of the topic. Delivery is synchronous (simpler and
 // deterministic for local dev).
 func (srv *Server) deliver(ctx context.Context, msgID, topicARN, subject, message string, attrs map[string]Attr) {
+	// Every delivery is SNS's own call, on behalf of the topic: a queue policy
+	// or function permission sees sns.amazonaws.com and the topic ARN.
+	ctx = peers.WithPrincipal(ctx, "sns", topicARN)
 	subs, err := srv.store.subsForTopic(topicARN)
 	if err != nil {
 		srv.logf("sns: deliver: %v", err)

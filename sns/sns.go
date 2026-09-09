@@ -18,6 +18,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsquery"
+	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 
@@ -55,6 +56,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// IAMMode is the IAM service's mode; under soft or enforce the topic policy
+	// is evaluated on every topic-scoped request, peer calls included.
+	IAMMode string
 }
 
 // Server is the SNS service: an http.Handler speaking the Query/XML protocol,
@@ -65,6 +69,7 @@ type Server struct {
 	logf  func(format string, args ...any)
 	now   func() time.Time
 	logs  *deliveryLogs
+	guard iamguard.Guard // the topic policy, under IAM soft/enforce
 }
 
 // New opens the bbolt store under DataDir.
@@ -87,6 +92,7 @@ func New(opts Options) (*Server, error) {
 	if s.logf == nil {
 		s.logf = func(string, ...any) {}
 	}
+	s.guard = iamguard.Guard{Mode: opts.IAMMode, Logf: s.logf}
 	if s.now == nil {
 		s.now = time.Now
 	}
@@ -124,6 +130,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if aerr := s.guardRequest(w, r, action, form); aerr != nil {
+		s.logf("sns: %s -> %s", action, aerr.Code)
+		writeError(w, aerr)
+		return
+	}
 	result, aerr := h(s, r.Context(), form, r.Host)
 	if aerr != nil {
 		s.logf("sns: %s -> %s", action, aerr.Code)

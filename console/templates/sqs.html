@@ -293,7 +293,7 @@
       </div>
       {{end}}
       <div class="edit-grid edit-grid-tight">
-        <div class="field"><label>Access policy <span class="dim">JSON — stored, not evaluated locally</span></label>
+        <div class="field"><label>Access policy <span class="dim">JSON — evaluated under IAM soft and enforce; empty clears it</span></label>
           <textarea name="policy" data-editor="json" rows="4" spellcheck="false">{{index .Attrs "Policy"}}</textarea></div>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 16px 12px"><button type="button" class="btn btn-outline btn-sm" @click="edit=false">Cancel</button><button type="submit" class="btn btn-sm">Save settings</button></div>
@@ -305,24 +305,26 @@
   </div>
   {{/* Queue policy — AddPermission / RemovePermission.
 
-       Tier C, and more strictly so than the docs table alone conveys: verified
-       against the running emulator, AddPermission returns 200 and writes
-       NOTHING. No Policy attribute appears afterwards. So there is deliberately
-       no table of granted permissions here — a table that can never have a row
-       is worse than no table, and the first draft of this panel had one.
-
-       Both operations are still reachable, because that is the point of an
-       emulator: a deploy script that calls AddPermission must not fail here,
-       the call must show up on the wire like any other, and you must be able to
-       see that it was accepted. What the panel must not do is imply the grant
-       took effect. */}}
-  <div class="sec-title">Queue policy <span class="tier tier-c" title="Accepted and answered 200, but doze-aws stores nothing and evaluates nothing">accepted, not stored</span></div>
+       AddPermission writes the statement AWS writes (Sid = Label, the
+       account roots as principals, the actions on this queue) into the Policy
+       attribute, and RemovePermission drops it by label; the rows below are
+       read back from that attribute. Under IAM soft or enforce the policy is
+       evaluated on every request to the queue, so a grant here — or an SNS
+       fan-out's "Service": "sns.amazonaws.com" statement — is what admits a
+       caller the identity policies do not. With IAM off it is stored and
+       shown, and nothing consults it. */}}
+  <div class="sec-title">Queue policy <span class="dim">— evaluated under IAM soft and enforce</span></div>
   <div class="panel">
-    <div class="mini-note perm-none">
-      doze-aws answers these calls so your deploy path works, and keeps nothing:
-      there is no IAM in front of a local queue, so a grant here changes who can
-      reach this queue not at all. Both calls appear on the wire.
-    </div>
+    {{if .Perms}}
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>Label</th><th>Principal</th><th>Action</th><th></th></tr></thead><tbody>
+      {{range .Perms}}<tr><td class="mono">{{.Label}}</td><td class="mono">{{.Account}}</td><td class="mono">{{.Action}}</td>
+        <td class="right"><form hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/permission/delete" hx-target="#sqs-config" hx-select="unset" hx-swap="outerHTML" hx-vals='{"label":"{{.Label}}"}'>
+          <button class="btn btn-ghost btn-sm" type="submit">Revoke</button></form></td></tr>{{end}}
+    </tbody></table></div>
+    {{else}}
+    <div class="mini-note perm-none">No statements. An account grant delegates to the account's identity
+      policies, as on AWS; a service principal (an SNS topic fanning out here) needs a statement of its own.</div>
+    {{end}}
     <form class="tag-row-form" hx-post="{{.Prefix}}/sqs/{{.Queue}}/permission"
           hx-target="#sqs-config" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
       <input class="input" name="label" placeholder="Label" required autocomplete="off">
@@ -332,11 +334,6 @@
         <option>ChangeMessageVisibility</option><option>GetQueueAttributes</option><option>*</option>
       </select>
       <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Grant</button>
-    </form>
-    <form class="tag-row-form" hx-post="{{.Prefix}}/sqs/{{.Queue}}/permission/delete"
-          hx-target="#sqs-config" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
-      <input class="input" name="label" placeholder="Label to revoke" required autocomplete="off">
-      <button class="btn btn-ghost btn-sm" type="submit">Revoke</button>
     </form>
   </div>
 </div>

@@ -29,6 +29,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
+	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 	"github.com/doze-dev/doze-aws/peers"
@@ -47,6 +48,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// IAMMode is the IAM service's mode; under soft or enforce a stream's
+	// resource policy is evaluated on every request that names it.
+	IAMMode string
 	// SweepInterval is how often expired records are reclaimed. Zero uses one
 	// minute.
 	SweepInterval time.Duration
@@ -60,6 +64,7 @@ type Server struct {
 	api   awsjson.API
 	now   func() time.Time
 	stop  chan struct{}
+	guard iamguard.Guard // the stream's resource policy, under IAM soft/enforce
 	// peers resolves KMS, so a stream encrypted with a customer key can check
 	// that the key is still usable rather than accepting writes against one
 	// that has been disabled or deleted.
@@ -90,6 +95,7 @@ func New(opts Options) (*Server, error) {
 		now:   time.Now,
 		stop:  make(chan struct{}),
 		peers: opts.Peers,
+		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf},
 	}
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock
@@ -143,6 +149,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// operation at once — coverage is then a property of the dispatch
 		// table rather than something each handler has to remember.
 		if aerr := modelcheck.ValidateMap(params, constraintTables[action]); aerr != nil {
+			s.logf("kinesis: %s -> %s", action, aerr.Code)
+			s.api.WriteError(w, aerr)
+			return
+		}
+		if aerr := s.guardRequest(w, r, action, params); aerr != nil {
 			s.logf("kinesis: %s -> %s", action, aerr.Code)
 			s.api.WriteError(w, aerr)
 			return

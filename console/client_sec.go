@@ -841,8 +841,8 @@ func (b *backend) KeyPolicy(ctx context.Context, keyID string) (string, error) {
 	return prettyJSON(out.Policy), nil
 }
 
-// PutKeyPolicy replaces it (stored and returned; nothing local evaluates it —
-// the surface exists so what round-trips through the SDK round-trips here).
+// PutKeyPolicy replaces it (evaluated under IAM soft and enforce, where it
+// gates the identity policies as on AWS).
 func (b *backend) PutKeyPolicy(ctx context.Context, keyID, doc string) error {
 	_, err := b.json11(ctx, "TrentService", "PutKeyPolicy", map[string]any{
 		"KeyId": keyID, "PolicyName": "default", "Policy": doc,

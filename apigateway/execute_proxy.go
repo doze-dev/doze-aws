@@ -12,6 +12,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/peercall"
+	"github.com/doze-dev/doze-aws/peers"
 )
 
 // proxyEvent is the API Gateway v1 proxy event shape.
@@ -114,7 +115,8 @@ func (s *Server) invokeLambdaProxy(w http.ResponseWriter, r *http.Request, api *
 		return
 	}
 	rl.integBody, rl.integStart = payload, s.now()
-	out, err := peercall.LambdaInvoke(r.Context(), s.peers, fn, payload)
+	// The invoke is API Gateway's own call, on behalf of the API.
+	out, err := peercall.LambdaInvoke(peers.WithPrincipal(r.Context(), "apigateway", APIARN(api.ID)), s.peers, fn, payload)
 	rl.integEnd, rl.integResp = s.now(), out
 	if err != nil {
 		rl.errMessage = "invoking " + fn + ": " + err.Error()

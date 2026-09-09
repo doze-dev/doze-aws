@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/s3store"
 	"github.com/doze-dev/doze-aws/internal/sigparse"
 	"github.com/doze-dev/doze-aws/peers"
@@ -37,6 +38,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// IAMMode is the IAM service's mode; under soft or enforce the bucket
+	// policy is evaluated on every bucket and object request.
+	IAMMode string
 }
 
 // Server is the S3 service: an http.Handler + io.Closer.
@@ -47,6 +51,7 @@ type Server struct {
 	logf  func(format string, args ...any)
 	now   func() time.Time
 	stop  chan struct{}
+	guard iamguard.Guard // the bucket policy, under IAM soft/enforce
 }
 
 // New opens the store under DataDir and starts the lifecycle janitor.
@@ -67,6 +72,7 @@ func New(opts Options) (*Server, error) {
 		logf:  logf,
 		now:   opts.Clock,
 		stop:  make(chan struct{}),
+		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf},
 	}
 	if s.peers == nil {
 		s.peers = peers.None()
@@ -153,6 +159,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if _, verr := validateControl(r); verr != nil {
 		s.logf("s3: %s %s -> %s", r.Method, r.URL.Path, verr.Code)
 		writeS3Error(w, verr)
+		return
+	}
+
+	if aerr := s.guardRequest(w, r, bucket, key); aerr != nil {
+		s.logf("s3: %s /%s/%s -> %s", r.Method, bucket, key, aerr.Code)
+		writeS3Error(w, aerr)
 		return
 	}
 

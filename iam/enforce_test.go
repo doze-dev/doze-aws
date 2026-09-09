@@ -24,13 +24,18 @@ import (
 // stack stands up a full doze-aws stack in the given IAM mode and returns an
 // IAM client on the root identity plus the endpoint URL.
 func stack(t *testing.T, mode iam.Mode) (*awsiam.Client, string) {
+	return stackWith(t, mode, "iam", "sqs")
+}
+
+// stackWith is stack with the services named.
+func stackWith(t *testing.T, mode iam.Mode, services ...string) (*awsiam.Client, string) {
 	t.Helper()
 	if testing.Short() {
 		t.Skip("skipping stack test in -short mode")
 	}
 	st, err := dozeaws.NewStack(dozeaws.StackConfig{
 		DataDir: t.TempDir(), Logf: t.Logf, IAMMode: mode,
-		Services: []string{"iam", "sqs"},
+		Services: services,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -53,6 +58,13 @@ func rootCfg() aws.Config {
 // userSQS creates an IAM user with the given inline policy, mints an access
 // key, and returns an SQS client signing as that user.
 func userSQS(t *testing.T, root *awsiam.Client, endpoint, user, policy string) *awssqs.Client {
+	cfg := userConfig(t, root, user, policy)
+	return awssqs.NewFromConfig(cfg, func(o *awssqs.Options) { o.BaseEndpoint = aws.String(endpoint) })
+}
+
+// userConfig creates an IAM user with the given inline policy, mints an
+// access key, and returns a config signing as that user.
+func userConfig(t *testing.T, root *awsiam.Client, user, policy string) aws.Config {
 	t.Helper()
 	ctx := context.Background()
 	if _, err := root.CreateUser(ctx, &awsiam.CreateUserInput{UserName: aws.String(user)}); err != nil {
@@ -70,13 +82,12 @@ func userSQS(t *testing.T, root *awsiam.Client, endpoint, user, policy string) *
 	if err != nil {
 		t.Fatalf("CreateAccessKey: %v", err)
 	}
-	cfg := aws.Config{
+	return aws.Config{
 		Region: awsident.Region,
 		Credentials: credentials.NewStaticCredentialsProvider(
 			aws.ToString(key.AccessKey.AccessKeyId),
 			aws.ToString(key.AccessKey.SecretAccessKey), ""),
 	}
-	return awssqs.NewFromConfig(cfg, func(o *awssqs.Options) { o.BaseEndpoint = aws.String(endpoint) })
 }
 
 // TestModeOffNeverDenies is the guarantee that matters most: switching IAM on

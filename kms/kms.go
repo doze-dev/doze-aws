@@ -29,6 +29,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
+	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/peers"
 )
@@ -43,6 +44,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// IAMMode is the IAM service's mode; under soft or enforce the key policy
+	// is evaluated on every key-scoped request, and gates the identity policies.
+	IAMMode string
 }
 
 // Server is the KMS service: an http.Handler speaking AWS JSON 1.1, and an
@@ -52,6 +56,7 @@ type Server struct {
 	logf  func(format string, args ...any)
 	api   awsjson.API
 	stop  chan struct{}
+	guard iamguard.Guard // the key policy, under IAM soft/enforce
 }
 
 // New opens the bbolt store under DataDir and starts the deletion janitor.
@@ -76,6 +81,7 @@ func New(opts Options) (*Server, error) {
 		logf:  logf,
 		api:   awsjson.API{TargetPrefix: "TrentService", JSONVersion: "1.1"},
 		stop:  make(chan struct{}),
+		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf, KeyPolicyGates: true},
 	}
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock
@@ -128,6 +134,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// operation at once — coverage is then a property of the dispatch table
 	// rather than something each handler has to remember.
 	if aerr := modelcheck.ValidateMap(params, constraintTables[action]); aerr != nil {
+		s.logf("kms: %s -> %s", action, aerr.Code)
+		s.api.WriteError(w, aerr)
+		return
+	}
+	if aerr := s.guardRequest(w, r, action, params); aerr != nil {
 		s.logf("kms: %s -> %s", action, aerr.Code)
 		s.api.WriteError(w, aerr)
 		return

@@ -23,7 +23,7 @@ webhooks with the SubscriptionConfirmation handshake.
 | GetSubscriptionAttributes / SetSubscriptionAttributes | F | RawMessageDelivery + FilterPolicy live; others round-trip |
 | Publish | F | filter-policy evaluation, raw + enveloped delivery, message attributes |
 | PublishBatch | F | per-entry subjects and message attributes |
-| AddPermission / RemovePermission | C | succeeds and changes nothing: resource policies are not evaluated, the IAM service reads identity policies only |
+| AddPermission / RemovePermission | F | AddPermission writes the statement AWS writes into the `Policy` attribute (Sid = Label, the account roots as principals, `SNS:<action>` on the topic; a label in use is refused), RemovePermission drops it by label. The policy — a topic is born with AWS's default one — is evaluated on every request naming the topic under IAM `soft` and `enforce`; an S3 notification into the topic needs a `Service: s3.amazonaws.com` statement under `enforce`, as on AWS |
 | PutDataProtectionPolicy / GetDataProtectionPolicy | C | stored and returned; not evaluated |
 | Mobile push (Platform applications/endpoints), SMS + sandbox, phone-number opt-out ops | S | carrier/platform infrastructure cannot exist locally; each answers a clean coded error |
 

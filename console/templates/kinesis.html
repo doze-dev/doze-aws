@@ -411,9 +411,10 @@
       </div>
 
       {{/* Everything below is stored by the service and echoed back, but has
-           no local effect: there is no envelope over the store, no CloudWatch
-           to publish to, and no policy evaluation. Saying so beats letting the
-           page imply a guarantee doze-aws does not make. */}}
+           no local effect: there is no envelope over the store and no
+           CloudWatch to publish to. Saying so beats letting the page imply a
+           guarantee doze-aws does not make. The resource policy further down
+           is the exception: IAM soft and enforce evaluate it. */}}
       <div class="sec-title">Encryption <span class="dim">— recorded, not applied</span></div>
       <div class="panel">
         <div style="padding:14px 16px">
@@ -496,7 +497,7 @@
         </div>
       </div>
 
-      <div class="sec-title">Resource policy <span class="dim">— stored, not enforced</span></div>
+      <div class="sec-title">Resource policy <span class="dim">— evaluated under IAM soft and enforce</span></div>
       <div class="panel">
         <div style="padding:14px 16px">
           <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/policy">

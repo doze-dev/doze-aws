@@ -364,7 +364,7 @@ func (c *Console) s3SavePolicy(w http.ResponseWriter, r *http.Request) {
 	if doc == "" {
 		toast(w, "Bucket policy removed")
 	} else {
-		toast(w, "Bucket policy saved — stored and returned; nothing local evaluates it")
+		toast(w, "Bucket policy saved — evaluated under IAM soft and enforce")
 	}
 	c.s3PropsPartial(w, r, bucket)
 }

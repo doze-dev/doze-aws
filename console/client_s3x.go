@@ -1162,8 +1162,8 @@ func (b *backend) BucketPolicyDoc(ctx context.Context, bucket string) string {
 	return prettyJSON(string(body))
 }
 
-// PutBucketPolicyDoc replaces the bucket policy; empty deletes it. Stored and
-// returned, not evaluated — the tier the ledger records, and the surface says.
+// PutBucketPolicyDoc replaces the bucket policy; empty deletes it. Under IAM
+// soft and enforce S3 evaluates it on every bucket and object request.
 func (b *backend) PutBucketPolicyDoc(ctx context.Context, bucket, doc string) error {
 	if strings.TrimSpace(doc) == "" {
 		_, err := b.s3Sub(ctx, "DELETE", bucket, "policy")

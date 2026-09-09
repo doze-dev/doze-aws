@@ -23,6 +23,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/peercall"
+	"github.com/doze-dev/doze-aws/peers"
 )
 
 // callCtx is what an authorizer contributes to the integration event.
@@ -82,7 +83,7 @@ func (s *Server) authorizeRequest(ctx context.Context, api *RestAPI, stage strin
 	}
 	payload, _ := json.Marshal(event)
 	rl.authorizer, rl.authStart = a.Name, s.now()
-	out, err := peercall.LambdaInvoke(ctx, s.peers, fn, payload)
+	out, err := peercall.LambdaInvoke(peers.WithPrincipal(ctx, "apigateway", APIARN(api.ID)), s.peers, fn, payload)
 	rl.authEnd = s.now()
 	if err != nil {
 		return nil, &authDenial{500, "Authorizer error: invoking " + fn + ": " + err.Error()}

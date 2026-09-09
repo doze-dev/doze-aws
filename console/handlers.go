@@ -710,6 +710,8 @@ func (c *Console) sqsPanelData(r *http.Request, name string, attrs map[string]st
 		"MaxReceive": atoi(redrivePolicyMaxReceive(attrs["RedrivePolicy"])),
 		"Sources":    sources, "Tasks": tasks,
 		"Hash": sqsMsgHash(attrs, msgs, tasks),
+		// What AddPermission wrote, read back from the Policy attribute.
+		"Perms": sqsPermissionsOf(attrs["Policy"]),
 	}
 }
 

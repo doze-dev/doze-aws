@@ -166,11 +166,14 @@ func (srv *Server) getTopicAttributes(ctx context.Context, form url.Values, _ st
 		{Key: "SubscriptionsConfirmed", Value: fmt.Sprintf("%d", countConfirmed(subs))},
 		{Key: "SubscriptionsPending", Value: fmt.Sprintf("%d", len(subs)-countConfirmed(subs))},
 		{Key: "SubscriptionsDeleted", Value: "0"},
-		{Key: "Policy", Value: defaultTopicPolicy(arn)},
+		{Key: "Policy", Value: srv.effectivePolicy(arn)},
 		{Key: "EffectiveDeliveryPolicy", Value: defaultDeliveryPolicy},
 	}
 	if t, err := srv.store.GetTopic(arn); err == nil {
 		for _, k := range sortedAttrKeys(t.Attrs) {
+			if k == "Policy" {
+				continue // reported once, above, as the effective policy
+			}
 			res.Attributes.Entry = append(res.Attributes.Entry, attrEntry{Key: k, Value: t.Attrs[k]})
 		}
 	}

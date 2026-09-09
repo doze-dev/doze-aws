@@ -13,6 +13,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/eventpattern"
 	"github.com/doze-dev/doze-aws/internal/logship"
 	"github.com/doze-dev/doze-aws/internal/peercall"
+	"github.com/doze-dev/doze-aws/peers"
 )
 
 var handlers = map[string]handler{
@@ -168,6 +169,8 @@ func (s *Server) matchAndDispatch(ctx context.Context, bus string, eventJSON []b
 
 // dispatch delivers one matched event to one target, applying input shaping.
 func (s *Server) dispatch(ctx context.Context, rule Rule, target Target, eventJSON []byte) {
+	// A delivery is EventBridge's own call, on behalf of the rule.
+	ctx = peers.WithPrincipal(ctx, "events", rule.ARN())
 	payload, err := shapeInput(target, eventJSON)
 	if err != nil {
 		s.logf("eventbridge: rule %s target %s input shaping: %v", rule.Name, target.ID, err)

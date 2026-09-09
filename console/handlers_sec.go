@@ -338,7 +338,8 @@ func (c *Console) smSecret(w http.ResponseWriter, r *http.Request) {
 	if stages, err := c.be.SecretVersionIDs(r.Context(), name); err == nil && len(stages) > 0 {
 		s.Stages = stages
 	}
-	c.render(w, r, "sm_secret", map[string]any{"S": s, "List": all, "Functions": fns, "Sel": name, "Mode": tabOf(r, "view"), "Title": s.Name + " · Secrets Manager"})
+	policy, _ := c.be.SecretPolicy(r.Context(), name)
+	c.render(w, r, "sm_secret", map[string]any{"S": s, "List": all, "Functions": fns, "Sel": name, "Mode": tabOf(r, "view"), "Title": s.Name + " · Secrets Manager", "Policy": policy})
 }
 
 // smRotationPartial re-renders the secret detail (rotation strip lives there).
@@ -349,7 +350,8 @@ func (c *Console) smRotationRefresh(w http.ResponseWriter, r *http.Request, name
 		return
 	}
 	fns, _ := c.be.ListFunctions(r.Context())
-	c.partial(w, "sm_secret_detail", map[string]any{"S": s, "Functions": fns})
+	policy, _ := c.be.SecretPolicy(r.Context(), name)
+	c.partial(w, "sm_secret_detail", map[string]any{"S": s, "Functions": fns, "Policy": policy})
 }
 
 // smConfigureRotation sets or clears the rotation lambda + schedule.
@@ -402,7 +404,8 @@ func (c *Console) smPut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fns, _ := c.be.ListFunctions(r.Context())
-	c.partial(w, "sm_secret_detail", map[string]any{"S": s, "Functions": fns})
+	policy, _ := c.be.SecretPolicy(r.Context(), name)
+	c.partial(w, "sm_secret_detail", map[string]any{"S": s, "Functions": fns, "Policy": policy})
 }
 
 func (c *Console) smDelete(w http.ResponseWriter, r *http.Request) {
@@ -645,6 +648,6 @@ func (c *Console) kmsSavePolicy(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	toast(w, "Key policy saved — stored and returned; nothing local evaluates it")
+	toast(w, "Key policy saved — evaluated under IAM soft and enforce; it gates identity policies")
 	c.kmsKeyPartial(w, r)
 }

@@ -29,6 +29,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/gateway"
+	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/logship"
 	"github.com/doze-dev/doze-aws/peers"
@@ -44,6 +45,10 @@ type Options struct {
 	// Endpoint is the shared gateway URL handlers reach siblings through
 	// (AWS_ENDPOINT_URL). Empty derives per-service from Peers where possible.
 	Endpoint string
+	// IAMMode is the IAM service's mode ("off", "soft", "enforce"); under soft
+	// or enforce a function's resource policy is evaluated on every request
+	// that names the function, peer calls included.
+	IAMMode string
 	// Logf receives log lines; nil discards.
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
@@ -76,6 +81,7 @@ type Server struct {
 	echo        bool                       // function output to Logf
 	shimDir     string                     // the embedded runtime clients, materialised
 	interps     lambdaruntime.Interpreters // configured interpreter overrides
+	guard       iamguard.Guard             // the function resource policy, under IAM soft/enforce
 
 	mu       sync.Mutex
 	runners  map[string]*lambdaruntime.Pool // function name -> concurrency pool
@@ -114,6 +120,7 @@ func New(opts Options) (*Server, error) {
 		store:       newStore(db),
 		dataDir:     opts.DataDir,
 		peers:       opts.Peers,
+		guard:       iamguard.Guard{Mode: opts.IAMMode, Logf: logf},
 		endpoint:    opts.Endpoint,
 		logf:        logf,
 		now:         opts.Clock,
@@ -174,6 +181,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// operation at once — coverage is then a property of the route table rather
 	// than something each handler has to remember.
 	if _, aerr := validateControl(r); aerr != nil {
+		s.logf("lambda: %s %s -> %s", r.Method, r.URL.Path, aerr.Code)
+		writeError(w, aerr)
+		return
+	}
+	if aerr := s.guardRequest(w, r); aerr != nil {
 		s.logf("lambda: %s %s -> %s", r.Method, r.URL.Path, aerr.Code)
 		writeError(w, aerr)
 		return
