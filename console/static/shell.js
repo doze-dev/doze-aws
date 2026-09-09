@@ -794,10 +794,19 @@
   // The timer is the other half: a partial mutation flashes WITHOUT navigating,
   // so no settle is coming and the queue would sit there unpainted.
   var pendingFlash = null;
+  // The last flash painted and when. The 120ms timer below can paint before
+  // a slow follow-up GET swaps #workspace, and the swap destroys the banner
+  // with nothing left to paint; afterSettle re-paints a banner that was
+  // painted moments ago and is no longer in the document.
+  var recentFlash = null;
   function paintFlash() {
+    if (!pendingFlash && recentFlash && Date.now() - recentFlash.at < 3000 && !document.getElementById("flashbar")) {
+      pendingFlash = recentFlash.f;
+    }
     if (!pendingFlash) return;
     var f = pendingFlash;
     pendingFlash = null;
+    recentFlash = { f: f, at: Date.now() };
     var host = document.getElementById("workspace") || document.body;
     // One at a time. Stacking is AWS's behaviour, but AWS's messages come from
     // many sources; ours all come from the thing you just clicked, so a stack

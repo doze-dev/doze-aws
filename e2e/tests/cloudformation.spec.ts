@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/console';
-import { postForm } from '../fixtures/api';
+import { postForm, createBucket } from '../fixtures/api';
 
 // CloudFormation console coverage: the deploy path (template in → validate →
 // parameters generated from the template → create), the change-set workflow
@@ -109,5 +109,39 @@ test.describe('CloudFormation console', () => {
     await expect(row).toContainText(exporter);
     // The importer chip is the blast radius, resolved via ListImports.
     await expect(row.locator('a.badge', { hasText: importer })).toBeVisible();
+  });
+
+  test('a nested stack deploys from a staged child and lists under its parent', async ({ page, uniqueName }) => {
+    const parent = uniqueName('e2e-cfn-nest');
+    const bucket = uniqueName('e2e-cfn-staging');
+    await createBucket(page.request, bucket);
+    // Stage the child the way CDK does: an object in the local S3.
+    const child = JSON.stringify({
+      Parameters: { Prefix: { Type: 'String' } },
+      Resources: { Work: { Type: 'AWS::SQS::Queue', Properties: { QueueName: { 'Fn::Sub': '${Prefix}-work' } } } },
+      Outputs: { WorkArn: { Value: { 'Fn::GetAtt': ['Work', 'Arn'] } } },
+    });
+    const put = await page.request.put(`http://127.0.0.1:14566/${bucket}/child.json`, { data: child });
+    expect(put.ok()).toBeTruthy();
+    await postForm(page.request, 'cfn/create', {
+      name: parent,
+      template: JSON.stringify({
+        Resources: {
+          Queues: {
+            Type: 'AWS::CloudFormation::Stack',
+            Properties: {
+              TemplateURL: `https://s3.us-east-1.amazonaws.com/${bucket}/child.json`,
+              Parameters: { Prefix: parent },
+            },
+          },
+        },
+        Outputs: { Work: { Value: { 'Fn::GetAtt': ['Queues', 'Outputs.WorkArn'] } } },
+      }),
+    });
+    await page.goto('cfn');
+    const childRow = page.locator('.li', { hasText: `${parent}-Queues` });
+    await expect(childRow).toContainText(`nested under ${parent}`);
+    await page.goto(`cfn/${parent}`);
+    await expect(page.locator('.detail')).toContainText(`${parent}-work`);
   });
 });
