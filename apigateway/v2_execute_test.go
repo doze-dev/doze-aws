@@ -172,7 +172,7 @@ func TestV2HTTPProxyRoutesAndPrecedence(t *testing.T) {
 	if _, _, body := a.invoke("GET", id+"/$default/items/me", nil, ""); !strings.HasPrefix(body, "POST /me") {
 		t.Fatalf("$default spelled out: %q", body)
 	}
-	a.must("POST", "/v2/apis/"+id+"/stages", map[string]any{"stageName": "beta"})
+	a.must("POST", "/v2/apis/"+id+"/stages", map[string]any{"stageName": "beta", "autoDeploy": true})
 	if _, _, body := a.invoke("GET", id+"/beta/items/me", nil, ""); !strings.HasPrefix(body, "POST /me") {
 		t.Fatalf("named stage: %q", body)
 	}
@@ -211,7 +211,7 @@ func TestV2LambdaPayloadFormats(t *testing.T) {
 	v1 := a.must("POST", "/v2/apis/"+id+"/integrations", map[string]any{"integrationType": "AWS_PROXY", "integrationUri": fnARN, "payloadFormatVersion": "1.0"})
 	a.must("POST", "/v2/apis/"+id+"/routes", map[string]any{"routeKey": "POST /two/{id}", "target": "integrations/" + v2["integrationId"].(string)})
 	a.must("POST", "/v2/apis/"+id+"/routes", map[string]any{"routeKey": "POST /one/{id}", "target": "integrations/" + v1["integrationId"].(string)})
-	a.must("POST", "/v2/apis/"+id+"/stages", map[string]any{"stageName": "$default", "stageVariables": map[string]string{"env": "test"}})
+	a.must("POST", "/v2/apis/"+id+"/stages", map[string]any{"stageName": "$default", "autoDeploy": true, "stageVariables": map[string]string{"env": "test"}})
 
 	code, h, body := a.invoke("POST", id+"/two/7?q=1", map[string]string{"Cookie": "a=1; b=2", "X-Test": "yes"}, `{"n":1}`)
 	if code != 201 || body != "made" || h.Get("X-From") != "lambda" {
@@ -275,7 +275,7 @@ func TestV2CORS(t *testing.T) {
 	}
 	integ := a.must("POST", "/v2/apis/"+id+"/integrations", map[string]any{"integrationType": "HTTP_PROXY", "integrationUri": backend.URL})
 	a.must("POST", "/v2/apis/"+id+"/routes", map[string]any{"routeKey": "$default", "target": "integrations/" + integ["integrationId"].(string)})
-	a.must("POST", "/v2/apis/"+id+"/stages", map[string]any{"stageName": "$default"})
+	a.must("POST", "/v2/apis/"+id+"/stages", map[string]any{"stageName": "$default", "autoDeploy": true})
 
 	code, h, _ := a.invoke("OPTIONS", id+"/x", map[string]string{"Origin": "https://app.example", "Access-Control-Request-Method": "POST"}, "")
 	if code != 204 || h.Get("Access-Control-Allow-Origin") != "https://app.example" || h.Get("Access-Control-Allow-Methods") != "GET,POST" ||
@@ -283,8 +283,10 @@ func TestV2CORS(t *testing.T) {
 		t.Fatalf("preflight: %d %v", code, h)
 	}
 	code, h, _ = a.invoke("OPTIONS", id+"/x", map[string]string{"Origin": "https://evil.example", "Access-Control-Request-Method": "POST"}, "")
-	if code != 204 || h.Get("Access-Control-Allow-Origin") != "" {
-		t.Fatalf("preflight from another origin must carry no allow headers: %d %v", code, h)
+	// Not admitted by the configuration: routed like any request, which the
+	// $default route answers, with no allow headers.
+	if code != 200 || h.Get("X-Backend") != "echo" || h.Get("Access-Control-Allow-Origin") != "" {
+		t.Fatalf("preflight from another origin must be routed without allow headers: %d %v", code, h)
 	}
 	_, h, body := a.invoke("GET", id+"/x", map[string]string{"Origin": "https://app.example"}, "")
 	if h.Get("Access-Control-Allow-Origin") != "https://app.example" || !strings.HasPrefix(body, "GET /") {
@@ -326,7 +328,7 @@ func TestV2RequestAuthorizer(t *testing.T) {
 		"routeKey": "GET /private", "target": "integrations/" + integ["integrationId"].(string),
 		"authorizationType": "CUSTOM", "authorizerId": auth["authorizerId"],
 	})
-	a.must("POST", "/v2/apis/"+id+"/stages", map[string]any{"stageName": "$default"})
+	a.must("POST", "/v2/apis/"+id+"/stages", map[string]any{"stageName": "$default", "autoDeploy": true})
 
 	if code, _, body := a.invoke("GET", id+"/private", nil, ""); code != 401 || !strings.Contains(body, "Unauthorized") {
 		t.Fatalf("missing identity source: %d %s", code, body)

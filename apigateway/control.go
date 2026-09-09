@@ -950,6 +950,15 @@ func (s *Server) routeTags(w http.ResponseWriter, r *http.Request, segs []string
 	}
 	arn := strings.Join(segs[1:], "/")
 	apiID := apiIDFromARN(arn)
+	// The ARN's own shape says which kind of API it names, and the two id
+	// spaces do not see each other: a REST ARN for an HTTP API (or the
+	// reverse) is an ARN of nothing.
+	if api, err := s.store.Get(apiID); err == nil {
+		isHTTP := api.Protocol == "HTTP"
+		if isHTTP != strings.Contains(arn, "/apis/") {
+			return errNotFound("Invalid resource ARN specified %s", arn)
+		}
+	}
 	switch r.Method {
 	case http.MethodGet:
 		api, err := s.store.Get(apiID)

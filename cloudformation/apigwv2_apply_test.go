@@ -210,7 +210,7 @@ func TestApplyCDKHTTPAPI(t *testing.T) {
 		t.Fatal(err)
 	}
 	pre.Body.Close()
-	if pre.StatusCode != 204 || pre.Header.Get("Access-Control-Allow-Origin") != "https://app.example" || pre.Header.Get("Access-Control-Max-Age") != "300" {
+	if pre.StatusCode != 204 || pre.Header.Get("Access-Control-Allow-Origin") != "*" || pre.Header.Get("Access-Control-Max-Age") != "300" {
 		t.Fatalf("preflight: %d %v", pre.StatusCode, pre.Header)
 	}
 

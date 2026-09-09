@@ -57,7 +57,8 @@ func setUpFixtureV2(t *testing.T, ts *httptest.Server) fxV2 {
 	f.route = field(t, resp, "routeId")
 	resp = mkV2(t, ts, "CreateDeployment", map[string]any{"apiId": f.api})
 	f.deploy = field(t, resp, "deploymentId")
-	mkV2(t, ts, "CreateStage", map[string]any{"apiId": f.api, "stageName": f.stage, "deploymentId": f.deploy})
+	mkV2(t, ts, "CreateStage", map[string]any{"apiId": f.api, "stageName": f.stage, "deploymentId": f.deploy,
+		"routeSettings": map[string]any{"GET /audit": map[string]any{"detailedMetricsEnabled": false}}})
 	resp = mkV2(t, ts, "CreateAuthorizer", map[string]any{
 		"apiId": f.api, "name": "audit-auth", "authorizerType": "REQUEST", "authorizerUri": authorizerURI,
 		"identitySource": []any{"$request.header.Authorization"}, "authorizerPayloadFormatVersion": "2.0",
@@ -147,6 +148,10 @@ func prepareV2(t *testing.T, ts *httptest.Server, f fxV2, op, mutating string, b
 		set("stageName", fmt.Sprintf("s%d", n))
 	case "CreateAuthorizer":
 		set("name", fmt.Sprintf("a%d", n))
+	case "DeleteRouteSettings":
+		// The baseline deletes the fixture's one setting; put it back first.
+		mkV2(t, ts, "UpdateStage", map[string]any{"apiId": f.api, "stageName": f.stage,
+			"routeSettings": map[string]any{"GET /audit": map[string]any{"detailedMetricsEnabled": false}}})
 	case "DeleteApi":
 		resp := mkV2(t, ts, "CreateApi", map[string]any{"name": fmt.Sprintf("d%d", n), "protocolType": "HTTP"})
 		set("apiId", field(t, resp, "apiId"))

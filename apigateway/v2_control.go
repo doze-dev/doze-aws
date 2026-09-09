@@ -8,6 +8,7 @@ package apigateway
 
 import (
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -165,18 +166,23 @@ func (s *Server) v2CreateAPI(w http.ResponseWriter, r *http.Request) *awshttp.AP
 	default:
 		return errBadRequest("protocolType must be HTTP or WEBSOCKET")
 	}
-	api, err := s.store.CreateHTTP(*req.Name, strVal(req.Description), strVal(req.Version), req.Tags)
+	created, err := s.store.CreateHTTP(*req.Name, strVal(req.Description), strVal(req.Version), req.Tags)
 	if err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	api, err = s.store.Update(api.ID, func(api *RestAPI) error {
-		applyV2APIInput(api, &req)
+	api, err := s.store.UpdateHTTP(created.ID, func(api *RestAPI) error {
+		if err := applyV2APIInput(api, &req); err != nil {
+			return err
+		}
 		if req.Target != "" {
 			return s.v2QuickCreate(api, req.Target, req.RouteKey)
 		}
 		return nil
 	})
 	if err != nil {
+		// The record was written before its input was refused; a refused
+		// CreateApi creates nothing.
+		s.store.Delete(created.ID)
 		return awshttp.AsAPIError(err)
 	}
 	s.logf("apigateway: created HTTP API %s (%s)", api.Name, api.ID)
@@ -202,6 +208,9 @@ func (s *Server) v2QuickCreate(api *RestAPI, target, routeKey string) error {
 	if !validRouteKey(routeKey) {
 		return errBadRequest("Invalid route key %q", routeKey)
 	}
+	if method, path := routeKeyParts(routeKey); method != "" {
+		routeKey = method + " " + path
+	}
 	route := &V2Route{ID: s.store.newID(), RouteKey: routeKey, Target: "integrations/" + integ.ID, AuthorizationType: "NONE"}
 	api.V2Routes[route.ID] = route
 	now := s.now().Unix()
@@ -211,7 +220,7 @@ func (s *Server) v2QuickCreate(api *RestAPI, target, routeKey string) error {
 	return nil
 }
 
-func applyV2APIInput(api *RestAPI, in *v2APIInput) {
+func applyV2APIInput(api *RestAPI, in *v2APIInput) error {
 	if in.Name != nil && *in.Name != "" {
 		api.Name = *in.Name
 	}
@@ -222,7 +231,13 @@ func applyV2APIInput(api *RestAPI, in *v2APIInput) {
 		api.Version = *in.Version
 	}
 	if in.CorsConfiguration != nil {
-		api.CORS = in.CorsConfiguration.config()
+		cors := in.CorsConfiguration.config()
+		for _, o := range cors.AllowOrigins {
+			if o == "*" && cors.AllowCredentials {
+				return errBadRequest("corsConfiguration: allowCredentials cannot be true when allowOrigins contains \"*\"; browsers refuse that combination and AWS refuses the configuration")
+			}
+		}
+		api.CORS = cors
 	}
 	if in.RouteSelectionExpression != nil {
 		api.RouteSelection = *in.RouteSelectionExpression
@@ -244,6 +259,7 @@ func applyV2APIInput(api *RestAPI, in *v2APIInput) {
 			api.Tags[k] = v
 		}
 	}
+	return nil
 }
 
 func (s *Server) v2UpdateAPI(w http.ResponseWriter, r *http.Request, apiID string) *awshttp.APIError {
@@ -252,7 +268,9 @@ func (s *Server) v2UpdateAPI(w http.ResponseWriter, r *http.Request, apiID strin
 		return aerr
 	}
 	api, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
-		applyV2APIInput(api, &req)
+		if err := applyV2APIInput(api, &req); err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
@@ -379,6 +397,38 @@ func (s *Server) autoDeployV2(api *RestAPI) {
 		api.Deployments[dep.ID] = dep
 		st.DeploymentID = dep.ID
 		st.Updated = dep.Created
+	}
+	pruneAutoDeployments(api)
+}
+
+// keptAutoDeployments is how many automatic deployments an API keeps beyond
+// the ones its stages point at. Every route change makes one, and the record
+// is re-read on every request, so the history is bounded rather than kept
+// forever; the ones a stage serves are never dropped.
+const keptAutoDeployments = 10
+
+func pruneAutoDeployments(api *RestAPI) {
+	inUse := map[string]bool{}
+	for _, st := range api.Stages {
+		inUse[st.DeploymentID] = true
+	}
+	var auto []*Deployment
+	for _, d := range api.Deployments {
+		if d.AutoDeployed && !inUse[d.ID] {
+			auto = append(auto, d)
+		}
+	}
+	if len(auto) <= keptAutoDeployments {
+		return
+	}
+	sort.Slice(auto, func(i, j int) bool {
+		if auto[i].Created != auto[j].Created {
+			return auto[i].Created > auto[j].Created
+		}
+		return auto[i].ID > auto[j].ID
+	})
+	for _, d := range auto[keptAutoDeployments:] {
+		delete(api.Deployments, d.ID)
 	}
 }
 

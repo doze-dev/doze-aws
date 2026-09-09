@@ -29,6 +29,12 @@ func (c *Console) apigwAPI(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("api")
 	api, err := c.be.RestAPI(r.Context(), id)
 	if err != nil {
+		// A link built from an execute-api ARN cannot tell the two kinds
+		// apart; an HTTP API's id lands on its own page.
+		if _, herr := c.be.HTTPAPI(r.Context(), id); herr == nil {
+			http.Redirect(w, r, c.prefix+"/apigw-http/"+id, http.StatusSeeOther)
+			return
+		}
 		c.fail(w, err)
 		return
 	}

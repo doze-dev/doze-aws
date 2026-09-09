@@ -40,7 +40,9 @@ type v2Call struct {
 func (s *Server) serveExecuteV2(w http.ResponseWriter, r *http.Request, api *RestAPI, remainder string) {
 	stageName, path := v2ResolveStage(api, remainder)
 	st, ok := api.Stages[stageName]
-	if !ok {
+	if !ok || st.DeploymentID == "" {
+		// A stage nothing has been deployed to answers 404, as on AWS: the
+		// console's "deploy by hand" option is meaningful only if it does.
 		writeExecuteError(w, 404, "Not Found", "")
 		return
 	}
@@ -56,11 +58,11 @@ func (s *Server) serveExecuteV2(w http.ResponseWriter, r *http.Request, api *Res
 	}()
 	w = sw
 
-	// CORS: a preflight is answered here; a matching origin gets the
-	// headers on whatever the route answers.
+	// CORS: a preflight the configuration admits is answered here; any
+	// other request is routed, with the headers on whatever the route
+	// answers when its origin is allowed.
 	if api.CORS != nil {
-		if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" {
-			v2Preflight(w, r, api.CORS)
+		if r.Method == http.MethodOptions && r.Header.Get("Access-Control-Request-Method") != "" && v2Preflight(w, r, api.CORS) {
 			return
 		}
 		v2CORSHeaders(w.Header(), r, api.CORS)
@@ -111,7 +113,9 @@ func (s *Server) serveExecuteV2(w http.ResponseWriter, r *http.Request, api *Res
 		if integ.Method != "" && integ.Method != "ANY" {
 			v1.HTTPMethod = integ.Method
 		}
+		rl.integBody, rl.integStart = body, s.now()
 		s.invokeHTTP(w, r, v1, params, body)
+		rl.integEnd = s.now()
 	default:
 		rl.errMessage = "unsupported integration type " + integ.Type
 		writeExecuteError(w, 500, "Internal Server Error", "")
@@ -152,14 +156,20 @@ func matchV2Route(api *RestAPI, method, path string) (*V2Route, map[string]strin
 		if c.proxy != b.proxy {
 			return !c.proxy
 		}
-		if c.proxy {
-			if c.depth != b.depth {
-				return c.depth > b.depth
-			}
-		} else if c.nparam != b.nparam {
+		if c.proxy && c.depth != b.depth {
+			return c.depth > b.depth
+		}
+		// At equal depth a literal segment beats a parameter, for proxy
+		// routes as for exact ones.
+		if c.nparam != b.nparam {
 			return c.nparam < b.nparam
 		}
-		return !c.anyM && b.anyM
+		if c.anyM != b.anyM {
+			return !c.anyM
+		}
+		// Two keys that match the same request equally are the same route
+		// spelled differently (creation refuses that); keep the pick stable.
+		return c.route.RouteKey < b.route.RouteKey
 	}
 	for _, rt := range api.V2Routes {
 		if rt.RouteKey == "$default" {
@@ -203,12 +213,24 @@ func v2OriginAllowed(c *CORSConfig, origin string) bool {
 	return false
 }
 
+// v2AllowOrigin is the Access-Control-Allow-Origin value: the literal "*"
+// when the configuration is "*", the request's origin when a pattern or an
+// exact entry admitted it — as AWS answers.
+func v2AllowOrigin(c *CORSConfig, origin string) string {
+	for _, o := range c.AllowOrigins {
+		if o == "*" {
+			return "*"
+		}
+	}
+	return origin
+}
+
 func v2CORSHeaders(h http.Header, r *http.Request, c *CORSConfig) {
 	origin := r.Header.Get("Origin")
 	if !v2OriginAllowed(c, origin) {
 		return
 	}
-	h.Set("Access-Control-Allow-Origin", origin)
+	h.Set("Access-Control-Allow-Origin", v2AllowOrigin(c, origin))
 	if c.AllowCredentials {
 		h.Set("Access-Control-Allow-Credentials", "true")
 	}
@@ -217,10 +239,11 @@ func v2CORSHeaders(h http.Header, r *http.Request, c *CORSConfig) {
 	}
 }
 
-// v2Preflight answers an OPTIONS preflight from the configuration: 204 with
-// the allow headers when the origin and method are allowed, a bare 204
-// without them otherwise, as AWS answers.
-func v2Preflight(w http.ResponseWriter, r *http.Request, c *CORSConfig) {
+// v2Preflight answers an OPTIONS preflight from the configuration when the
+// origin and method are allowed: 204 with the allow headers. It reports
+// false when the configuration does not match, and the request is then
+// routed like any other — an OPTIONS route may answer it, or nothing does.
+func v2Preflight(w http.ResponseWriter, r *http.Request, c *CORSConfig) bool {
 	origin := r.Header.Get("Origin")
 	method := strings.ToUpper(r.Header.Get("Access-Control-Request-Method"))
 	methodOK := len(c.AllowMethods) == 0
@@ -229,28 +252,30 @@ func v2Preflight(w http.ResponseWriter, r *http.Request, c *CORSConfig) {
 			methodOK = true
 		}
 	}
-	if v2OriginAllowed(c, origin) && methodOK {
-		h := w.Header()
-		h.Set("Access-Control-Allow-Origin", origin)
-		if len(c.AllowMethods) > 0 {
-			h.Set("Access-Control-Allow-Methods", strings.Join(c.AllowMethods, ","))
-		}
-		if len(c.AllowHeaders) > 0 {
-			h.Set("Access-Control-Allow-Headers", strings.Join(c.AllowHeaders, ","))
-		} else if req := r.Header.Get("Access-Control-Request-Headers"); req != "" {
-			h.Set("Access-Control-Allow-Headers", req)
-		}
-		if c.AllowCredentials {
-			h.Set("Access-Control-Allow-Credentials", "true")
-		}
-		if len(c.ExposeHeaders) > 0 {
-			h.Set("Access-Control-Expose-Headers", strings.Join(c.ExposeHeaders, ","))
-		}
-		if c.MaxAge != nil {
-			h.Set("Access-Control-Max-Age", strconv.Itoa(*c.MaxAge))
-		}
+	if !v2OriginAllowed(c, origin) || !methodOK {
+		return false
+	}
+	h := w.Header()
+	h.Set("Access-Control-Allow-Origin", v2AllowOrigin(c, origin))
+	if len(c.AllowMethods) > 0 {
+		h.Set("Access-Control-Allow-Methods", strings.Join(c.AllowMethods, ","))
+	}
+	if len(c.AllowHeaders) > 0 {
+		h.Set("Access-Control-Allow-Headers", strings.Join(c.AllowHeaders, ","))
+	} else if req := r.Header.Get("Access-Control-Request-Headers"); req != "" {
+		h.Set("Access-Control-Allow-Headers", req)
+	}
+	if c.AllowCredentials {
+		h.Set("Access-Control-Allow-Credentials", "true")
+	}
+	if len(c.ExposeHeaders) > 0 {
+		h.Set("Access-Control-Expose-Headers", strings.Join(c.ExposeHeaders, ","))
+	}
+	if c.MaxAge != nil {
+		h.Set("Access-Control-Max-Age", strconv.Itoa(*c.MaxAge))
 	}
 	w.WriteHeader(204)
+	return true
 }
 
 // ---- Lambda proxy ----
@@ -275,6 +300,9 @@ func (s *Server) v2Event(r *http.Request, call *v2Call, version string, body []b
 		res := &Resource{ID: call.route.ID, Path: v2RoutePath(call.route)}
 		ev := s.buildProxyEvent(r, call.api, call.stage.Name, res, call.params, call.path, body, nil, call.rl.id)
 		ev.RequestContext["routeKey"] = call.route.RouteKey
+		// requestContext.path carries the stage prefix for a named stage and
+		// nothing for $default, as AWS's 1.0 example shows.
+		ev.RequestContext["path"] = v2StagePath(call.stage.Name, call.path)
 		ev.RequestContext["domainName"] = call.api.ID + ".execute-api." + awsident.Region + ".amazonaws.com"
 		if len(authorizer) > 0 {
 			ev.RequestContext["authorizer"] = authorizer
@@ -291,13 +319,24 @@ func (s *Server) v2Event(r *http.Request, call *v2Call, version string, body []b
 		auth = map[string]any{"lambda": authorizer}
 	}
 	out, _ := json.Marshal(httpevent.Event(httpevent.Request{
-		R: r, Path: call.path, Body: body,
+		// rawPath includes the stage for a named stage (what the serverless
+		// adapters strip as the base path) and is the bare path on $default.
+		R: r, Path: v2StagePath(call.stage.Name, call.path), Body: body,
 		RouteKey: call.route.RouteKey, Stage: call.stage.Name, APIID: call.api.ID,
 		DomainName: call.api.ID + ".execute-api." + awsident.Region + ".amazonaws.com",
 		AccountID:  awsident.AccountID, RequestID: call.rl.id, Now: s.now(),
 		PathParameters: call.params, StageVariables: call.stage.Variables, Authorizer: auth,
 	}))
 	return out
+}
+
+// v2StagePath is the path as the client sent it: under the stage name for a
+// named stage, bare for $default.
+func v2StagePath(stage, path string) string {
+	if stage == "$default" {
+		return path
+	}
+	return "/" + stage + path
 }
 
 // v2RoutePath is the path template of a route key, "/" for $default.

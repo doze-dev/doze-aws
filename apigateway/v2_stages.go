@@ -7,6 +7,8 @@ package apigateway
 
 import (
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
@@ -161,10 +163,19 @@ func (s *Server) routeV2StageSub(w http.ResponseWriter, r *http.Request, apiID, 
 	case "accesslogsettings":
 		return mutate(func(st *Stage) error { st.AccessLog = nil; return nil })
 	case "routesettings":
-		if len(segs) < 2 {
+		// The key ("GET /items/{id}") arrives percent-encoded and the router
+		// split the decoded path, so it is re-read from the escaped one.
+		key := v2RouteKeyLabel(r)
+		if key == "" {
 			return errNotFound("a route key is required")
 		}
-		return mutate(func(st *Stage) error { delete(st.RouteSettings, segs[1]); return nil })
+		return mutate(func(st *Stage) error {
+			if _, ok := st.RouteSettings[key]; !ok {
+				return errNotFound("Invalid route key specified %s", key)
+			}
+			delete(st.RouteSettings, key)
+			return nil
+		})
 	case "cache":
 		if len(segs) == 2 && segs[1] == "authorizers" {
 			api, err := s.store.GetHTTP(apiID)
@@ -274,4 +285,21 @@ func orEmptyAny(m map[string]any) map[string]any {
 		return map[string]any{}
 	}
 	return m
+}
+
+// v2RouteKeyLabel reads the route key label of a .../routesettings/{routeKey}
+// path from the escaped path, since the decoded one has the key's own "/"
+// in it. "" when the path carries no key.
+func v2RouteKeyLabel(r *http.Request) string {
+	segs := strings.Split(strings.Trim(r.URL.EscapedPath(), "/"), "/")
+	for i, seg := range segs {
+		if seg == "routesettings" && i+1 < len(segs) {
+			key, err := url.PathUnescape(strings.Join(segs[i+1:], "/"))
+			if err != nil {
+				return ""
+			}
+			return key
+		}
+	}
+	return ""
 }

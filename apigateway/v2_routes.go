@@ -143,6 +143,11 @@ func applyV2RouteInput(api *RestAPI, rt *V2Route, in *v2RouteInput) error {
 		if !validRouteKey(key) {
 			return errBadRequest("Invalid route key %q: expected \"$default\" or \"<METHOD> /<path>\"", key)
 		}
+		// Stored in the spelling the data plane matches on, so "get /x" and
+		// "GET /x" are the same key and the second is refused as such.
+		if method, path := routeKeyParts(key); method != "" {
+			key = method + " " + path
+		}
 		for _, other := range api.V2Routes {
 			if other.ID != rt.ID && other.RouteKey == key {
 				return errConflict("Route with key %s already exists for this API", key)
