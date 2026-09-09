@@ -443,13 +443,18 @@ func peekForm(r *http.Request) (url.Values, bool) {
 
 // LambdaFunctionARN is the function ARN a request's function reference
 // names. The reference may be a name, a name with a qualifier (name:alias
-// or name:version), a partial ARN or a full one; the ARN keeps the
-// qualifier, as a function policy written for an alias does.
+// or name:version), a partial ARN (account:function:name) or a full one; the
+// ARN keeps the qualifier, as a function policy written for an alias does.
+//
+// The cut is on ":function:" without requiring an "arn:" prefix, because that
+// is what the service does (lambda/versions.go, lambda/extras.go): it accepts
+// the partial ARN AWS documents. Requiring the prefix here resolved
+// "000000000000:function:worker" to a function literally named
+// "000000000000:function:worker", so a policy scoped to the real function
+// matched neither way round — an explicit Deny did not bite.
 func LambdaFunctionARN(ref string) string {
-	if strings.HasPrefix(ref, "arn:") {
-		if i := strings.Index(ref, ":function:"); i >= 0 {
-			ref = ref[i+len(":function:"):]
-		}
+	if i := strings.Index(ref, ":function:"); i >= 0 {
+		ref = ref[i+len(":function:"):]
 	}
 	return awsident.ARN("lambda", "function:"+ref)
 }
