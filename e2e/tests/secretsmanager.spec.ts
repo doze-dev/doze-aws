@@ -132,9 +132,9 @@ test.describe('new version', () => {
 
     await page.goto(`sm/secret?name=${name}&tab=edit`);
     // Edit mode prefills the editor with the real (unmasked) value.
-    await expect(page.locator('textarea[data-editor]')).toHaveValue(/old-value/);
+    await expect(page.locator('textarea[name="value"][data-editor]')).toHaveValue(/old-value/);
 
-    await setEditor('textarea[data-editor]', '{"pw":"new-value"}');
+    await setEditor('textarea[name="value"][data-editor]', '{"pw":"new-value"}');
     await page.getByRole('button', { name: 'Save as new version' }).click();
 
     const toastMsg = await waitForToast();
