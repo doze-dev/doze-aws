@@ -36,7 +36,7 @@ func (s *Server) guardRequest(w http.ResponseWriter, r *http.Request, req *reque
 			}
 		}
 	}
-	if aerr := s.guard.Check(w, r, docs, "sqs:"+req.action, resource); aerr != nil {
+	if aerr := s.guard.Check(w, r, docs, iamguard.Action("sqs", req.action), resource); aerr != nil {
 		return &apiError{Code: aerr.Code, Status: aerr.Status, Message: aerr.Message, SenderFault: true}
 	}
 	return nil
@@ -74,6 +74,11 @@ func hAddPermission(s *Store, req *request) (any, *apiError) {
 	if label == "" || len(accounts) == 0 || len(actions) == 0 {
 		return nil, &apiError{Code: "MissingParameter", Status: 400, SenderFault: true,
 			Message: "Label, AWSAccountIds and Actions are required"}
+	}
+	if raw := attrs["Policy"]; raw != "" && !json.Valid([]byte(raw)) {
+		// A stored policy this cannot read is not silently replaced.
+		return nil, &apiError{Code: "InvalidParameterValue", Status: 400, SenderFault: true,
+			Message: "The queue's Policy attribute is not a JSON document; set it before adding a permission"}
 	}
 	doc := loadQueuePolicy(attrs)
 	for _, st := range doc.Statement {

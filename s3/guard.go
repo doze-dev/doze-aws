@@ -13,7 +13,10 @@ import (
 	"github.com/doze-dev/doze-aws/internal/iampolicy"
 )
 
-// guardRequest runs the guard for a request that names a bucket.
+// guardRequest runs the guard for a request that names a bucket. A copy
+// (PutObject or UploadPart with x-amz-copy-source) reads its source too, so
+// the source is authorized for s3:GetObject against its own bucket's policy
+// before the destination is, as on AWS.
 func (s *Server) guardRequest(w http.ResponseWriter, r *http.Request, bucket, key string) *awshttp.APIError {
 	if s.guard.Mode == "" && r.Header.Get(iamguard.HeaderMode) == "" {
 		return nil
@@ -22,6 +25,19 @@ func (s *Server) guardRequest(w http.ResponseWriter, r *http.Request, bucket, ke
 	if action == "" {
 		return nil
 	}
+	if src := r.Header.Get("x-amz-copy-source"); src != "" && (action == "s3:PutObject" || action == "s3:UploadPart") {
+		srcBucket, srcKey, _, aerr := parseCopySource(src)
+		if aerr == nil && srcBucket != "" && srcKey != "" {
+			if aerr := s.guardOne(w, r, srcBucket, "s3:GetObject", "arn:aws:s3:::"+srcBucket+"/"+srcKey); aerr != nil {
+				return aerr
+			}
+		}
+	}
+	return s.guardOne(w, r, bucket, action, resource)
+}
+
+// guardOne checks one action on one bucket's policy.
+func (s *Server) guardOne(w http.ResponseWriter, r *http.Request, bucket, action, resource string) *awshttp.APIError {
 	var docs []*iampolicy.Document
 	b, err := s.store.GetBucket(bucket)
 	if bucket == "" || err != nil {

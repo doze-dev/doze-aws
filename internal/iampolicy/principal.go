@@ -25,16 +25,24 @@ import (
 // only "*".
 func principalMatches(st *Statement, caller string) bool {
 	if st.NotPrincipal.Present {
-		return !principalNamed(st.NotPrincipal, caller)
+		// AWS refuses NotPrincipal with Allow at write time: it would grant
+		// everyone but the named. A statement that could not have been
+		// written matches nobody.
+		if st.Effect == "Allow" {
+			return false
+		}
+		return !principalNamed(st.NotPrincipal, caller, true)
 	}
 	if !st.Principal.Present {
 		return true
 	}
-	return principalNamed(st.Principal, caller)
+	return principalNamed(st.Principal, caller, st.Effect == "Deny")
 }
 
-// principalNamed reports whether a principal block names the caller.
-func principalNamed(p principalBlock, caller string) bool {
+// principalNamed reports whether a principal block names the caller. deny
+// widens the account principal: an Allow naming the account delegates to
+// its identities' own policies, a Deny naming the account denies them all.
+func principalNamed(p principalBlock, caller string, deny bool) bool {
 	if p.Any {
 		return true
 	}
@@ -57,11 +65,15 @@ func principalNamed(p principalBlock, caller string) bool {
 		case aws == "*":
 			return true
 		case aws == rootARN || aws == awsident.AccountID:
-			// The account principal names the account, not its identities: it
-			// admits the root caller itself and delegates to the identity
-			// policies of the account's users, which the same-account rule
-			// already honours. Naming a user grants that user directly.
+			// The account principal names the account, not its identities: an
+			// Allow admits the root caller itself and delegates to the
+			// identity policies of the account's users, which the
+			// same-account rule already honours; a Deny covers every identity
+			// in the account. Naming a user grants or denies that user.
 			if caller == rootARN {
+				return true
+			}
+			if deny && strings.HasPrefix(caller, "arn:aws:iam::"+awsident.AccountID+":") {
 				return true
 			}
 		case strings.Contains(aws, "*"):

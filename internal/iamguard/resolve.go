@@ -128,7 +128,7 @@ func ResolveAction(r *http.Request, service string) (action, resource string) {
 	// 1. JSON protocol: X-Amz-Target is "Prefix.Operation".
 	if target := r.Header.Get("X-Amz-Target"); target != "" {
 		if _, op, ok := strings.Cut(target, "."); ok && op != "" {
-			return prefix + ":" + op, resourceFromBody(r, service)
+			return iamAction(prefix, op), resourceFromBody(r, service)
 		}
 	}
 
@@ -142,14 +142,35 @@ func ResolveAction(r *http.Request, service string) (action, resource string) {
 
 	// 3. Query protocol: the Action parameter, in the query string or the form.
 	if op := r.URL.Query().Get("Action"); op != "" {
-		return prefix + ":" + op, resourceFromForm(r, service, r.URL.Query())
+		return iamAction(prefix, op), resourceFromForm(r, service, r.URL.Query())
 	}
 	if form, ok := peekForm(r); ok {
 		if op := form.Get("Action"); op != "" {
-			return prefix + ":" + op, resourceFromForm(r, service, form)
+			return iamAction(prefix, op), resourceFromForm(r, service, form)
 		}
 	}
 	return "", ""
+}
+
+// iamAction is the IAM action an operation is authorized as. Most are the
+// operation's own name; the batch operations are authorized as the action
+// they batch, since sqs:SendMessageBatch and sns:PublishBatch are not IAM
+// actions and a policy on sqs:SendMessage covers both.
+// Action is exported for the services, whose guards name their own actions.
+func Action(prefix, op string) string { return iamAction(prefix, op) }
+
+func iamAction(prefix, op string) string {
+	switch prefix + ":" + op {
+	case "sqs:SendMessageBatch":
+		return "sqs:SendMessage"
+	case "sqs:DeleteMessageBatch":
+		return "sqs:DeleteMessage"
+	case "sqs:ChangeMessageVisibilityBatch":
+		return "sqs:ChangeMessageVisibility"
+	case "sns:PublishBatch":
+		return "sns:Publish"
+	}
+	return prefix + ":" + op
 }
 
 // resolveS3 maps an S3 REST request onto an action. S3's mapping is
@@ -178,13 +199,30 @@ func resolveS3With(r *http.Request, bucket, key string) (string, string) {
 	}
 
 	q := r.URL.Query()
+	// Multipart uploads are authorized as AWS names them: the parts and the
+	// completion as PutObject, an abort and a listing by their own names.
+	if _, ok := q["uploads"]; ok {
+		if key == "" {
+			return "s3:ListBucketMultipartUploads", arn
+		}
+		return "s3:PutObject", arn
+	}
+	if _, ok := q["uploadId"]; ok {
+		switch r.Method {
+		case http.MethodDelete:
+			return "s3:AbortMultipartUpload", arn
+		case http.MethodGet:
+			return "s3:ListMultipartUploadParts", arn
+		}
+		return "s3:PutObject", arn
+	}
 	// Sub-resource operations are named by the query parameter present.
 	for param, suffix := range map[string]string{
 		"acl": "Acl", "policy": "BucketPolicy", "versioning": "BucketVersioning",
 		"tagging": "BucketTagging", "lifecycle": "LifecycleConfiguration",
 		"cors": "BucketCORS", "notification": "BucketNotification",
 		"website": "BucketWebsite", "encryption": "EncryptionConfiguration",
-		"replication": "ReplicationConfiguration", "uploads": "MultipartUpload",
+		"replication": "ReplicationConfiguration",
 	} {
 		if _, ok := q[param]; ok {
 			verb := "Get"
@@ -254,7 +292,7 @@ func resolveLambda(r *http.Request, prefix string) (string, string) {
 	}
 	arn := ""
 	if len(segs) >= 3 && segs[1] == "functions" {
-		arn = awsident.ARN("lambda", "function:"+segs[2])
+		arn = LambdaFunctionARN(segs[2])
 	}
 	switch segs[1] {
 	case "functions":
@@ -401,4 +439,26 @@ func peekForm(r *http.Request) (url.Values, bool) {
 		return nil, false
 	}
 	return vals, true
+}
+
+// LambdaFunctionARN is the function ARN a request's function reference
+// names. The reference may be a name, a name with a qualifier (name:alias
+// or name:version), a partial ARN or a full one; the ARN keeps the
+// qualifier, as a function policy written for an alias does.
+func LambdaFunctionARN(ref string) string {
+	if strings.HasPrefix(ref, "arn:") {
+		if i := strings.Index(ref, ":function:"); i >= 0 {
+			ref = ref[i+len(":function:"):]
+		}
+	}
+	return awsident.ARN("lambda", "function:"+ref)
+}
+
+// LambdaFunctionName is the bare function name of a reference, without a
+// qualifier or the ARN around it.
+func LambdaFunctionName(ref string) string {
+	arn := LambdaFunctionARN(ref)
+	name := arn[strings.Index(arn, ":function:")+len(":function:"):]
+	name, _, _ = strings.Cut(name, ":")
+	return name
 }

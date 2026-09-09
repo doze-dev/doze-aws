@@ -10,6 +10,8 @@ import (
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/httpevent"
+	"github.com/doze-dev/doze-aws/internal/iamguard"
+	"github.com/doze-dev/doze-aws/internal/iampolicy"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/trace"
 )
@@ -124,8 +126,32 @@ func (s *Server) functionByURL(r *http.Request) (*Function, string) {
 }
 
 // serveFunctionURL is the data plane: build the v2 event, invoke, decode.
+// Under IAM soft or enforce the URL needs what it needs on AWS even with
+// AuthType NONE: a resource-policy statement granting
+// lambda:InvokeFunctionUrl to everyone, which the URL's anonymous caller is
+// admitted by and nothing else.
 func (s *Server) serveFunctionURL(w http.ResponseWriter, r *http.Request) {
 	f, path := s.functionByURL(r)
+	if f != nil {
+		mode := r.Header.Get(iamguard.HeaderMode)
+		if mode == "" {
+			mode = s.guard.Mode
+		}
+		if mode == "soft" || mode == "enforce" {
+			dec, _ := iampolicy.Evaluate(functionPolicyDocs(f), iampolicy.Request{
+				Action: "lambda:InvokeFunctionUrl", Resource: awsident.ARN("lambda", "function:"+f.Name), Principal: "",
+			})
+			if dec != iampolicy.Allowed {
+				if mode == "enforce" {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(403)
+					w.Write([]byte(`{"Message":"Forbidden"}`))
+					return
+				}
+				s.logf("iam[soft]: would deny lambda:InvokeFunctionUrl on %s: no statement grants it to everyone", f.Name)
+			}
+		}
+	}
 	if f == nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(404)

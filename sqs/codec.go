@@ -136,9 +136,21 @@ func (p params) queueAttrs() map[string]string {
 }
 
 // stringList reads a repeated string parameter (e.g. AttributeNames).
+// queryListNames maps the Query protocol's wire name of a list member to
+// the member's model name.
+var queryListNames = map[string]string{"AWSAccountId": "AWSAccountIds", "ActionName": "Actions"}
+
 func (p params) stringList(name string) []string {
 	if p.form != nil {
-		// AWS query lists are name.1, name.2, …
+		// AWS query lists are name.1, name.2, … — under the wire name, where
+		// the model name differs.
+		for wire, member := range queryListNames {
+			if member == name {
+				if vals := awsquery.Members(p.form, wire, true); len(vals) > 0 {
+					return vals
+				}
+			}
+		}
 		return awsquery.Members(p.form, name, true)
 	}
 	if raw, ok := p.obj[name]; ok {
@@ -481,7 +493,18 @@ const sysAttrTraceHeader = "AWSTraceHeader"
 // clients unchecked — and the Query half is the older, likelier-to-be-wrong one.
 func (p params) asMap() map[string]any {
 	if p.form != nil {
-		return modelcheck.FromQuery(p.form)
+		m := modelcheck.FromQuery(p.form)
+		// The Query protocol spells AddPermission's lists by their wire
+		// names, AWSAccountId.N and ActionName.N; the model, and the JSON
+		// protocol, say AWSAccountIds and Actions.
+		for wire, member := range queryListNames {
+			if v, ok := m[wire]; ok {
+				if _, present := m[member]; !present {
+					m[member] = v
+				}
+			}
+		}
+		return m
 	}
 	out := make(map[string]any, len(p.obj))
 	for k, raw := range p.obj {

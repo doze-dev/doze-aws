@@ -27,6 +27,7 @@
 package iamguard
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -43,15 +44,40 @@ const (
 	HeaderSourceARN = "X-Doze-Source-Arn"
 	HeaderDecision  = "X-Doze-Resource-Decision"
 	HeaderMatchedBy = "X-Doze-Resource-Matched-By"
+	// HeaderAction and HeaderResource say what the identity verdict was
+	// evaluated for. A service whose own resolution differs — a key named
+	// by alias, an S3 bucket in the host, a copy's source object — asks
+	// for the verdict again on the pair it means.
+	HeaderAction   = "X-Doze-Action"
+	HeaderResource = "X-Doze-Resource"
 )
 
 // Identity verdicts the middleware stamps.
 const (
 	IdentityAllowed      = "allowed"
 	IdentityImplicitDeny = "implicitDeny"
-	IdentityRoot         = "root"    // no IAM identity behind the call: the account root
-	IdentityService      = "service" // a peer call by a service principal
+	IdentityExplicitDeny = "explicitDeny" // stamped under soft, where the middleware does not refuse
+	IdentityRoot         = "root"         // no IAM identity behind the call: the account root
+	IdentityService      = "service"      // a peer call by a service principal
 )
+
+// Reauthorize answers the identity verdict for the request's principal on
+// an (action, resource) the middleware did not evaluate. The middleware
+// attaches one to the request context (WithReauthorize); a guard whose
+// resolution differs from the stamped pair calls it through Check.
+type Reauthorize func(r *http.Request, action, resource string) string
+
+type reauthKey struct{}
+
+// WithReauthorize returns the request with a Reauthorize on its context.
+func WithReauthorize(r *http.Request, fn Reauthorize) *http.Request {
+	return r.WithContext(context.WithValue(r.Context(), reauthKey{}, fn))
+}
+
+func reauthorizer(r *http.Request) Reauthorize {
+	fn, _ := r.Context().Value(reauthKey{}).(Reauthorize)
+	return fn
+}
 
 // Strip removes every X-Doze-* header a client sent, so a caller cannot
 // claim a principal or a verdict. The middleware calls it before stamping.
@@ -63,11 +89,14 @@ func Strip(r *http.Request) {
 	}
 }
 
-// Stamp writes the middleware's handoff onto the request.
-func Stamp(r *http.Request, mode, principal, identity string) {
+// Stamp writes the middleware's handoff onto the request: the mode, the
+// principal, the identity verdict, and the pair it was evaluated for.
+func Stamp(r *http.Request, mode, principal, identity, action, resource string) {
 	r.Header.Set(HeaderMode, mode)
 	r.Header.Set(HeaderPrincipal, principal)
 	r.Header.Set(HeaderIdentity, identity)
+	r.Header.Set(HeaderAction, action)
+	r.Header.Set(HeaderResource, resource)
 }
 
 // Guard is one service's resource-policy check.
@@ -118,6 +147,16 @@ func (g Guard) Check(w http.ResponseWriter, r *http.Request, docs []*iampolicy.D
 			identity = IdentityRoot
 		}
 	}
+	// The middleware's verdict is for the pair it resolved from the wire;
+	// when this service means a different one, the verdict is asked for
+	// again on that pair rather than trusted for the wrong resource.
+	if identity != IdentityService && identity != IdentityRoot {
+		if r.Header.Get(HeaderAction) != action || r.Header.Get(HeaderResource) != resource {
+			if ask := reauthorizer(r); ask != nil {
+				identity = ask(r, action, resource)
+			}
+		}
+	}
 	ctx := map[string][]string{
 		"aws:PrincipalArn":     {principal},
 		"aws:PrincipalAccount": {awsident.AccountID},
@@ -128,7 +167,7 @@ func (g Guard) Check(w http.ResponseWriter, r *http.Request, docs []*iampolicy.D
 	}
 	rdec, by := iampolicy.Evaluate(docs, iampolicy.Request{Action: action, Resource: resource, Context: ctx, Principal: principal})
 
-	decision := combine(rdec, identity, g.KeyPolicyGates && !accountAdmitted(docs, action))
+	decision := combine(rdec, identity, g.KeyPolicyGates && !accountAdmitted(docs, action, resource, ctx))
 	if w != nil {
 		w.Header().Set(HeaderDecision, decision.String())
 		if by != "" && rdec == decision {
@@ -141,6 +180,8 @@ func (g Guard) Check(w http.ResponseWriter, r *http.Request, docs []*iampolicy.D
 	reason := "the resource policy does not allow it"
 	if rdec == iampolicy.ExplicitDeny {
 		reason = "the resource policy denies it (" + by + ")"
+	} else if identity == IdentityExplicitDeny {
+		reason = "the identity policies deny it"
 	} else if identity == IdentityImplicitDeny {
 		reason = "neither the identity policies nor the resource policy allow it"
 	} else if identity == IdentityService {
@@ -159,7 +200,7 @@ func (g Guard) Check(w http.ResponseWriter, r *http.Request, docs []*iampolicy.D
 // combine applies the same-account rule to a resource verdict and the
 // identity verdict the middleware stamped.
 func combine(resource iampolicy.Decision, identity string, keyGateClosed bool) iampolicy.Decision {
-	if resource == iampolicy.ExplicitDeny {
+	if resource == iampolicy.ExplicitDeny || identity == IdentityExplicitDeny {
 		return iampolicy.ExplicitDeny
 	}
 	if resource == iampolicy.Allowed {
@@ -180,28 +221,21 @@ func combine(resource iampolicy.Decision, identity string, keyGateClosed bool) i
 	return iampolicy.ImplicitDeny
 }
 
-// accountAdmitted reports whether any document allows the account root the
-// action, which is what the default KMS key policy's one clause does
-// ("Enable IAM policies" — kms:* for the root principal).
-func accountAdmitted(docs []*iampolicy.Document, action string) bool {
+// accountAdmitted reports whether the key policy allows the account root
+// the action on the key, which is what the default KMS key policy's one
+// clause does ("Enable IAM policies" — kms:* for the root principal on
+// "*") and what a policy naming the key's own ARN, or conditioning on the
+// request, does as well. Evaluated as the root would be: the same resource
+// and context the request carries.
+func accountAdmitted(docs []*iampolicy.Document, action, resource string, ctx map[string][]string) bool {
 	root := awsident.GlobalARN("iam", "root")
-	for _, d := range docs {
-		if d == nil {
-			continue
-		}
-		for i := range d.Statement {
-			st := &d.Statement[i]
-			if st.Effect != "Allow" {
-				continue
-			}
-			dec, _ := iampolicy.Evaluate([]*iampolicy.Document{{Statement: []iampolicy.Statement{*st}}},
-				iampolicy.Request{Action: action, Resource: "*", Principal: root})
-			if dec == iampolicy.Allowed {
-				return true
-			}
-		}
+	rootCtx := map[string][]string{}
+	for k, v := range ctx {
+		rootCtx[k] = v
 	}
-	return false
+	rootCtx["aws:PrincipalArn"] = []string{root}
+	dec, _ := iampolicy.Evaluate(docs, iampolicy.Request{Action: action, Resource: resource, Principal: root, Context: rootCtx})
+	return dec == iampolicy.Allowed
 }
 
 func orDash(s string) string {

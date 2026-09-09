@@ -149,14 +149,37 @@ naming no resource (`ListQueues`, `CreateKey`), is final at the middleware.
 The access log records both halves: `Source=identity` for the middleware's
 verdict, `Source=resource` for the service's, which is the one that counts.
 
+### What the services resolve for themselves
+
+The middleware reads the resource off the wire loosely; a service that
+knows better asks for the identity verdict again on the pair it means
+(`X-Doze-Action`/`X-Doze-Resource` say what was evaluated). So a KMS key
+named by alias, or inside a `Decrypt` ciphertext, is authorized on the key
+ARN; `ReEncrypt` consults the source key for `kms:ReEncryptFrom` and the
+destination for `kms:ReEncryptTo`; an S3 bucket addressed in the host is
+authorized as the object request it is; a copy's source is authorized for
+`s3:GetObject` against the source bucket's policy; a Lambda function named
+by ARN or with a qualifier is authorized on that ARN; the batch operations
+(`SendMessageBatch`, `PublishBatch`, ...) are authorized as the action they
+batch, since the batch names are not IAM actions. A function URL, even with
+`AuthType NONE`, needs a statement granting `lambda:InvokeFunctionUrl` to
+everyone, as on AWS.
+
 ### Not covered
 
 Cross-account principals (there is one account; `aws:SourceAccount` is
 always the local one, and `aws:SourceOwner` is never supplied, so SNS's
 default topic policy, which conditions on it, delegates to identity policies
 as it does on AWS), VPC endpoint policies, S3 access point policies, and
-Lambda layer permissions (stored, not evaluated — a
-layer is fetched by the function that names it, in the same account).
+Lambda layer permissions (stored, not evaluated — a layer is fetched by the
+function that names it, in the same account).
+
+The handoff assumes the services run in one process, which the `doze-aws`
+binary always does. An embedder wiring services over sockets
+(`peers.UnixSockets`, `peers.FromEnv`) and putting a second stack's
+middleware in front of them would have that middleware strip the peer's
+service principal and treat the call as the root's; run the guard in each
+service (`Options.IAMMode`) with no middleware between peers instead.
 
 ## Managed policies
 

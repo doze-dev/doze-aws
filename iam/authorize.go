@@ -81,13 +81,7 @@ func (r *recorder) record(e AccessEvent) {
 		// previous allow. A resource verdict is the final word on its request
 		// (it already folded the identity verdict in), so it always lands.
 		if e.Decision != Allowed || e.Source == "resource" {
-			prev.Decision = e.Decision
-			if e.MatchedBy != "" || e.Source != "resource" {
-				// A resource verdict decided by the identity half keeps the
-				// identity statement's name.
-				prev.MatchedBy = e.MatchedBy
-				prev.Source = e.Source
-			}
+			prev.Decision, prev.MatchedBy, prev.Source = e.Decision, e.MatchedBy, e.Source
 		}
 		return
 	}
@@ -160,7 +154,34 @@ func (s *Server) Authorize(r *http.Request, service string) Result {
 	if action == "" {
 		return Result{Decision: Allowed}
 	}
+	res := s.evaluate(r, action, resource)
+	if res.Identity == iamguard.IdentityRoot {
+		return res
+	}
+	// An implicit deny on a resource that may carry a policy is the service's
+	// question to finish; an explicit deny, or a deny on a request naming no
+	// resource (nothing but an identity policy could grant it), is final here.
+	deferred := res.Decision == ImplicitDeny && resource != "" && ResourcePolicyServices[service]
+	if res.Decision != Allowed && s.mode == ModeEnforce && !deferred {
+		res.Err = errAccessDenied(res.Principal, action, resource)
+	}
+	if res.Decision != Allowed && s.mode == ModeSoft && !deferred {
+		s.logf("iam[soft]: would deny %s on %s for %s (%s)", action, orDash(resource), res.Principal, res.Decision)
+	}
+	return res
+}
 
+// Identity is the identity verdict for a request's principal on a pair the
+// middleware did not evaluate — what a service's guard asks for when its own
+// resolution of the request differs (internal/iamguard.Reauthorize). It is
+// recorded like any other question.
+func (s *Server) Identity(r *http.Request, action, resource string) string {
+	return s.evaluate(r, action, resource).Identity
+}
+
+// evaluate answers the identity policies for one (action, resource) and
+// records the question.
+func (s *Server) evaluate(r *http.Request, action, resource string) Result {
 	principal, kind, name, ok := s.principalFor(r)
 	if !ok {
 		// No IAM identity behind this request; record it so soft mode still
@@ -174,7 +195,10 @@ func (s *Server) Authorize(r *http.Request, service string) Result {
 
 	docs, err := s.store.PoliciesFor(kind, name)
 	if err != nil {
-		return Result{Decision: Allowed, Principal: principal, Action: action, Resource: resource}
+		// A store that cannot be read grants nothing: an identity whose
+		// policies are unknown is an ungranted one, not the root.
+		s.logf("iam: policies for %s: %v", principal, err)
+		return Result{Decision: ImplicitDeny, Principal: principal, Action: action, Resource: resource, Identity: iamguard.IdentityImplicitDeny}
 	}
 	req := Request{Action: action, Resource: resource, Context: s.contextFor(r, principal, name)}
 	decision, by := Evaluate(docs, req)
@@ -197,18 +221,11 @@ func (s *Server) Authorize(r *http.Request, service string) Result {
 	})
 
 	res := Result{Decision: decision, Principal: principal, Action: action, Resource: resource, MatchedBy: by, Identity: iamguard.IdentityAllowed}
-	if decision != Allowed {
+	switch decision {
+	case ImplicitDeny:
 		res.Identity = iamguard.IdentityImplicitDeny
-	}
-	// An implicit deny on a resource that may carry a policy is the service's
-	// question to finish; an explicit deny, or a deny on a request naming no
-	// resource (nothing but an identity policy could grant it), is final here.
-	deferred := decision == ImplicitDeny && resource != "" && ResourcePolicyServices[service]
-	if decision != Allowed && s.mode == ModeEnforce && !deferred {
-		res.Err = errAccessDenied(principal, action, resource)
-	}
-	if decision != Allowed && s.mode == ModeSoft && !deferred {
-		s.logf("iam[soft]: would deny %s on %s for %s (%s)", action, orDash(resource), principal, decision)
+	case ExplicitDeny:
+		res.Identity = iamguard.IdentityExplicitDeny
 	}
 	return res
 }
@@ -414,10 +431,10 @@ func sortedMapKeys(m map[string]map[string]bool) []string {
 
 // RecordResource keeps a service's resource-policy verdict, which arrives on
 // the response header the guard sets, beside the identity verdicts.
-func (s *Server) RecordResource(principal, action, resource string, decision Decision, matchedBy string) {
+func (s *Server) RecordResource(principal, action, resource string, decision Decision, matchedBy, source string) {
 	s.rec.record(AccessEvent{
 		Principal: principal, Action: action, Resource: resource,
-		Decision: decision, ResourceKnown: resource != "", MatchedBy: matchedBy, Source: "resource",
+		Decision: decision, ResourceKnown: resource != "", MatchedBy: matchedBy, Source: source,
 	})
 }
 

@@ -48,7 +48,11 @@ func conditionMatches(op, key string, want []string, ctx map[string][]string) bo
 		return wantNull != present
 	}
 	if !present || len(have) == 0 {
-		return ifExists
+		// An absent key satisfies a negated operator (StringNotEquals,
+		// ArnNotLike, NotIpAddress...): "deny unless aws:SourceVpce is X"
+		// denies a request that carries no aws:SourceVpce at all, as on
+		// AWS. ...IfExists makes any operator pass on absence.
+		return ifExists || isNegated(op)
 	}
 
 	test := func(v string) bool {
@@ -174,4 +178,12 @@ func ipMatch(have, want string) bool {
 		return cidr.Contains(ip)
 	}
 	return have == want
+}
+
+// isNegated reports whether a condition operator is one of the Not forms.
+func isNegated(op string) bool {
+	l := strings.ToLower(op)
+	return strings.HasPrefix(l, "stringnot") || strings.HasPrefix(l, "arnnot") ||
+		strings.HasPrefix(l, "notipaddress") || strings.HasPrefix(l, "numericnot") ||
+		strings.HasPrefix(l, "datenot")
 }

@@ -2,10 +2,12 @@ package sns
 
 // The topic policy, evaluated on topic-scoped requests under IAM soft or
 // enforce, and the two operations that write it. A topic is born with the
-// policy AWS attaches — every identity in the account may use it — so the
-// guard changes nothing until a policy narrows it; an S3 notification or an
-// EventBridge target arriving as a service principal is admitted by the
-// default policy's account condition, as on AWS.
+// policy AWS attaches, whose one statement conditions on aws:SourceOwner —
+// a key no request here carries — so the default policy grants nothing
+// directly and the identity policies decide, which is what an IAM user
+// without sns:Publish observes on AWS. A service principal (S3 notifying
+// the topic, an EventBridge target) needs a statement naming it, on AWS as
+// here.
 
 import (
 	"context"
@@ -42,8 +44,9 @@ func (srv *Server) guardRequest(w http.ResponseWriter, r *http.Request, action s
 			docs = append(docs, doc)
 		}
 	}
-	if aerr := srv.guard.Check(w, r, docs, "sns:"+action, arn); aerr != nil {
-		return &apiError{Code: aerr.Code, Status: aerr.Status, Message: aerr.Message, SenderFault: true}
+	if aerr := srv.guard.Check(w, r, docs, iamguard.Action("sns", action), arn); aerr != nil {
+		// SNS spells a refusal AuthorizationError, as the SDKs expect.
+		return &apiError{Code: "AuthorizationError", Status: aerr.Status, Message: aerr.Message, SenderFault: true}
 	}
 	return nil
 }

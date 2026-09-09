@@ -244,11 +244,18 @@ func (s *Stack) authorized(h http.Handler) http.Handler {
 			return
 		}
 		// The service finishes the question with its resource policy and
-		// reports the verdict on the response for the recorder.
-		iamguard.Stamp(r, string(s.iam.Mode()), res.Principal, res.Identity)
+		// reports the verdict on the response for the recorder. It can ask
+		// for the identity verdict again on a pair it resolves differently.
+		iamguard.Stamp(r, string(s.iam.Mode()), res.Principal, res.Identity, res.Action, res.Resource)
+		r = iamguard.WithReauthorize(r, s.iam.Identity)
 		h.ServeHTTP(w, r)
 		if dec, ok := iam.ParseDecision(w.Header().Get(iamguard.HeaderDecision)); ok {
-			s.iam.RecordResource(res.Principal, res.Action, res.Resource, dec, w.Header().Get(iamguard.HeaderMatchedBy))
+			by, source := w.Header().Get(iamguard.HeaderMatchedBy), "resource"
+			if by == "" {
+				// The identity half decided: the caption stays its statement.
+				by, source = res.MatchedBy, "identity"
+			}
+			s.iam.RecordResource(res.Principal, res.Action, res.Resource, dec, by, source)
 		}
 	})
 }

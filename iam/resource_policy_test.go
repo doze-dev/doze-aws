@@ -32,8 +32,8 @@ func wantDenied(t *testing.T, err error, what string, mentions ...string) {
 	if err == nil {
 		t.Fatalf("%s: should have been denied", what)
 	}
-	if !strings.Contains(err.Error(), "AccessDenied") {
-		t.Fatalf("%s: want AccessDenied, got %v", what, err)
+	if !strings.Contains(err.Error(), "AccessDenied") && !strings.Contains(err.Error(), "AuthorizationError") {
+		t.Fatalf("%s: want AccessDenied or AuthorizationError, got %v", what, err)
 	}
 	for _, m := range mentions {
 		if !strings.Contains(err.Error(), m) {

@@ -179,7 +179,7 @@ func TestStripAndStamp(t *testing.T) {
 	if r.Header.Get("X-Amz-Target") != "keep" {
 		t.Fatal("Strip must leave other headers alone")
 	}
-	Stamp(r, "enforce", "arn:aws:iam::000000000000:user/alice", IdentityImplicitDeny)
+	Stamp(r, "enforce", "arn:aws:iam::000000000000:user/alice", IdentityImplicitDeny, "sqs:SendMessage", resource)
 	if r.Header.Get(HeaderMode) != "enforce" || r.Header.Get(HeaderIdentity) != IdentityImplicitDeny || !strings.HasSuffix(r.Header.Get(HeaderPrincipal), "user/alice") {
 		t.Fatalf("stamp incomplete: %v", r.Header)
 	}

@@ -9,7 +9,6 @@ package lambda
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
@@ -30,8 +29,10 @@ func (s *Server) guardRequest(w http.ResponseWriter, r *http.Request) *awshttp.A
 	if resource == "" {
 		return s.guard.CheckIdentity(w, r, action, "")
 	}
-	name := resource[strings.LastIndex(resource, ":")+1:]
-	f, err := s.store.GetFunction(name)
+	// The reference may carry a qualifier (fn:live) or be an ARN; the
+	// function is looked up by its bare name, the policy evaluated for the
+	// ARN as referenced.
+	f, err := s.store.GetFunction(iamguard.LambdaFunctionName(resource))
 	if err != nil {
 		return s.guard.CheckIdentity(w, r, action, resource) // the handler reports the missing function
 	}
