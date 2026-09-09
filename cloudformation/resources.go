@@ -174,6 +174,7 @@ var nameProperty = map[string]string{
 	"AWS::ApiGateway::ApiKey":                 "Name",
 	"AWS::ApiGateway::UsagePlan":              "UsagePlanName",
 	"AWS::ApiGateway::UsagePlanKey":           "",
+	"AWS::CloudFormation::Stack":              "",
 	"AWS::ApiGateway::Account":                "",
 }
 

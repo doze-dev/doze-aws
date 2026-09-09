@@ -126,6 +126,29 @@ no-op redeploy reports *"No changes to deploy"* rather than erroring.
 
 A stack whose export another stack imports cannot be deleted.
 
+## Nested stacks
+
+An `AWS::CloudFormation::Stack` resource names a child template by
+`TemplateURL` (an object in the local S3, which is where CDK stages it) and
+passes it `Parameters`. The child is fetched and transpiled in its own scope
+with those parameters, its `Outputs` become `!GetAtt Child.Outputs.<Key>` in
+the parent, `!Ref Child` is the child's stack ARN, and the child's resources
+are merged into the parent's graph so one apply provisions everything in
+dependency order. A later child can read an earlier child's outputs; the
+chain may nest five deep, and a template that nests itself is refused.
+
+The child stack is a real record named `<parent>-<Logical>` (CDK's
+`…NestedStackResource…` suffix stripped), described with `ParentId` and
+`RootId`, and listed in the console as nested under its parent. A name
+derived from a logical id inside the child is prefixed with the child's
+logical id — two children with a `Queue` become `Orders-Queue` and
+`Billing-Queue` — while an explicit name is never rewritten, so a name the
+parent also declares fails the deploy rather than provisioning twice.
+Deleting the parent destroys the merged graph and marks the children
+`DELETE_COMPLETE`, from the child bodies the parent kept at deploy, so the
+staging object need not still exist. Deleting a child directly is refused:
+the parent would be left describing resources that no longer exist.
+
 ## Resource types
 
 Mapped:
@@ -165,6 +188,7 @@ Mapped:
 | `AWS::StepFunctions::StateMachineAlias` | `Name`, `Description`, and the version named by `RoutingConfiguration` or `DeploymentPreference`; every alias routes all of its traffic to the version this deploy publishes, which is where a gradual deployment ends up. `Ref` and `Arn` are the real alias ARN |
 | `AWS::StepFunctions::Activity` | `Name` and tags; `Ref` and `Arn` are the activity ARN a Task's `Resource` names |
 | `AWS::Logs::LogGroup` | `LogGroupName` (the logical id when absent), `RetentionInDays`, tags; `Ref` is the name and `Arn` ends in `:*` as CloudWatch Logs reports it. Lambda creates `/aws/lambda/<fn>` itself on the first line, so a template needs one only to set retention |
+| `AWS::CloudFormation::Stack` | a nested stack: `TemplateURL` fetched from the local S3, `Parameters` evaluated in the parent, `Outputs.<Key>` attributes and a stack-ARN `Ref`; see [Nested stacks](#nested-stacks) |
 | `AWS::Logs::SubscriptionFilter` | `LogGroupName`, `FilterName` (the logical id when absent), `FilterPattern`, `DestinationArn` (a Lambda function or a Kinesis stream; Firehose is refused by name), `Distribution`. A group only Lambda would create is declared for it, so the filter lands before the first line; a Kinesis stream must already exist |
 
 Skipped with a reason: `AWS::IAM::*`, `AWS::Logs::LogStream`,
@@ -251,9 +275,9 @@ values are deliberately left blank.
 
 ## What this is not
 
-There is no drift detection, no rollback, no StackSets, no resource registry,
-and no nested stacks. Those describe cloud-side machinery with no local
-counterpart to inspect; each is refused by name with the reason. See
+There is no drift detection, no rollback, no StackSets and no resource
+registry. Those describe cloud-side machinery with no local counterpart to
+inspect; each is refused by name with the reason. See
 [api-support/cloudformation.md](api-support/cloudformation.md).
 
 ## See also

@@ -20,6 +20,7 @@ import (
 type Stack struct {
 	Name         string
 	ID           string
+	Parent       string // the parent stack's name when this is a nested stack
 	Status       string
 	StatusReason string
 	Description  string
@@ -109,6 +110,7 @@ type stackWire struct {
 	} `xml:"Tags>member"`
 	Capabilities []string `xml:"Capabilities>member"`
 	NotifyARNs   []string `xml:"NotificationARNs>member"`
+	ParentID     string   `xml:"ParentId"`
 }
 
 func (w stackWire) toStack() Stack {
@@ -118,6 +120,7 @@ func (w stackWire) toStack() Stack {
 		Created: shortTime(w.CreationTime), Updated: shortTime(w.LastUpdatedTime),
 		Capabilities: w.Capabilities, NotifyARNs: w.NotifyARNs,
 		DisableRollback: w.DisableRollback, TerminationProtection: w.TerminationProt,
+		Parent: stackNameOfARN(w.ParentID),
 	}
 	for _, p := range w.Parameters {
 		s.Params = append(s.Params, KeyVal{p.Key, p.Value})
@@ -658,4 +661,14 @@ func (b *backend) StackResource1(ctx context.Context, stack, logicalID string) (
 		Type: out.D.ResourceType, Status: out.D.ResourceStatus,
 		Reason: out.D.ResourceStatusReason, Updated: shortTime(out.D.Timestamp),
 	}, nil
+}
+
+// stackNameOfARN reads the name out of arn:...:stack/<name>/<id>.
+func stackNameOfARN(arn string) string {
+	_, rest, ok := strings.Cut(arn, ":stack/")
+	if !ok {
+		return ""
+	}
+	name, _, _ := strings.Cut(rest, "/")
+	return name
 }

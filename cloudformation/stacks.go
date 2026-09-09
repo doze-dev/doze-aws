@@ -86,6 +86,8 @@ type stackView struct {
 	Capabilities                []string        `xml:"Capabilities>member,omitempty"`
 	NotificationARNs            []string        `xml:"NotificationARNs>member,omitempty"`
 	RollbackConfiguration       *rollbackView   `xml:"RollbackConfiguration,omitempty"`
+	ParentId                    string          `xml:"ParentId,omitempty"`
+	RootId                      string          `xml:"RootId,omitempty"`
 	// DriftInformation is present in real responses and some SDK models
 	// require the node, so it is emitted with the only honest value.
 	DriftInformation driftInfo `xml:"DriftInformation"`
@@ -196,6 +198,8 @@ func viewStack(st *StackRecord) stackView {
 		Capabilities:                st.Capabilities,
 		NotificationARNs:            st.NotificationARNs,
 		RollbackConfiguration:       viewRollback(st.Rollback),
+		ParentId:                    st.ParentID,
+		RootId:                      st.RootID,
 		DriftInformation:            driftInfo{StackDriftStatus: "NOT_CHECKED"},
 	}
 	if st.Updated != 0 && st.Updated != st.Created {
@@ -312,10 +316,11 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 	}
 	exports, _ := s.store.Exports()
 	sf, rep, err := Transpile(tmpl, TranspileOptions{
-		StackName:  name,
-		Parameters: params,
-		Exports:    exports,
-		Endpoint:   s.endpoint,
+		StackName:     name,
+		Parameters:    params,
+		Exports:       exports,
+		Endpoint:      s.endpoint,
+		FetchTemplate: s.fetcher(nil),
 	})
 	if err != nil {
 		// A template that cannot be transpiled records a failed stack rather
@@ -333,6 +338,7 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 	if prev != nil {
 		st.ID, st.Created = prev.ID, prev.Created
 		st.TerminationProtection, st.Policy = prev.TerminationProtection, prev.Policy
+		st.ParentID, st.RootID = prev.ParentID, prev.RootID
 	} else {
 		st.ID = StackARN(name, s.store.newID())
 	}
@@ -373,6 +379,11 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 		st.Status = pick(isUpdate, StatusUpdateComplete, StatusCreateComplete)
 	}
 	st.Events = s.synthesizeEvents(st, applyRep, isUpdate)
+	if len(rep.Nested) > 0 {
+		if err := s.recordNested(st, rep, isUpdate); err != nil {
+			return nil, awshttp.AsAPIError(err)
+		}
+	}
 
 	if err := s.store.PutStack(st); err != nil {
 		return nil, awshttp.AsAPIError(err)
@@ -424,6 +435,9 @@ func hDeleteStack(s *Server, p params) (any, *awshttp.APIError) {
 	if st.TerminationProtection {
 		return nil, errValidation("Stack [%s] cannot be deleted while termination protection is enabled", name)
 	}
+	if err := refuseChildDelete(st); err != nil {
+		return nil, errValidation("%v", err)
+	}
 	// Refuse while another stack imports one of this stack's exports, which is
 	// the check that keeps a multi-stack app consistent.
 	for _, o := range st.Outputs {
@@ -453,6 +467,7 @@ func hDeleteStack(s *Server, p params) (any, *awshttp.APIError) {
 		s.logf("cloudformation: stack %s template no longer transpiles, resources left in place: %v", name, terr)
 	}
 	_ = s.store.DeleteStackChangeSets(name)
+	s.deleteNested(st)
 
 	// The record is retained in DELETE_COMPLETE rather than removed: real
 	// CloudFormation keeps a deleted stack queryable by id, and `cdk destroy`
@@ -486,7 +501,7 @@ func (s *Server) stackIR(st *StackRecord) (*provision.Stack, error) {
 	exports, _ := s.store.Exports()
 	sf, _, err := Transpile(tmpl, TranspileOptions{
 		StackName: st.Name, Parameters: st.Parameters, Exports: exports,
-		AllowUnsupported: true, Endpoint: s.endpoint,
+		AllowUnsupported: true, Endpoint: s.endpoint, FetchTemplate: s.fetcher(st.NestedTemplates),
 	})
 	return sf, err
 }

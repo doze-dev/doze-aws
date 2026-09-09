@@ -69,6 +69,13 @@ type StackRecord struct {
 	NotificationARNs []string        `json:"notification_arns,omitempty"`
 	Rollback         *RollbackConfig `json:"rollback,omitempty"`
 	DisableRollback  bool            `json:"disable_rollback,omitempty"`
+	// ParentID and RootID are set on a nested stack's record; a child is
+	// created and deleted with its parent and refuses a direct delete.
+	ParentID string `json:"parent_id,omitempty"`
+	RootID   string `json:"root_id,omitempty"`
+	// NestedTemplates keeps each child's body by TemplateURL, so the stack
+	// can be re-transpiled for delete without the staging bucket.
+	NestedTemplates map[string]string `json:"nested_templates,omitempty"`
 }
 
 // RollbackConfig is the alarm-watch configuration a stack declares. Nothing

@@ -26,6 +26,8 @@ type Report struct {
 	Outputs map[string]string
 	// SAM is true when the SAM transform was applied.
 	SAM bool
+	// Nested are the child stacks, in template order (nested.go).
+	Nested []*NestedStack
 }
 
 // Counts summarises the report.
@@ -70,6 +72,16 @@ type TranspileOptions struct {
 	// Endpoint is the gateway's externally-reachable base URL, when known;
 	// it shapes a function URL's GetAtt FunctionUrl.
 	Endpoint string
+	// FetchTemplate reads a nested stack's TemplateURL; nil refuses nested
+	// stacks with a message naming the URL.
+	FetchTemplate func(url string) ([]byte, error)
+	// NamePrefix is prepended to every name derived from a logical id — a
+	// nested stack's resources carry their stack's logical id, so two
+	// children with a `Queue` do not collide. Explicit names are untouched.
+	NamePrefix string
+
+	depth    int
+	ancestry []string // TemplateURLs above this transpile, for cycle detection
 }
 
 // Transpile converts a parsed template into a stack file plus a report.
@@ -179,7 +191,7 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 		// parameters, so evaluate the name property alone at this stage. With
 		// no explicit name, the logical ID is used — sanitised to the service's
 		// naming rules, since a logical ID is not always a legal name.
-		name := derivedName(r.Type, r.LogicalID)
+		name := derivedName(r.Type, opts.NamePrefix+r.LogicalID)
 		if prop, ok := nameProperty[r.Type]; ok && prop != "" {
 			if raw, present := r.Properties[prop]; present {
 				v, err := scope.Eval(raw)
@@ -205,6 +217,9 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 	}
 	aliasRefs(scope, t.Resources, names)
 	lambdaRefs(scope, t.Resources, names, opts.Endpoint)
+	if err := nestedRefs(scope, t, opts, rep); err != nil {
+		return nil, rep, err
+	}
 
 	// ---- pass two: evaluate and map ----
 	stack := &provision.Stack{
@@ -241,6 +256,11 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 	// applied after every resource exists, so they can reference anything.
 	if err := m.applyDeferred(); err != nil {
 		return nil, rep, err
+	}
+	for _, child := range rep.Nested {
+		if err := mergeStacks(stack, child.Stack, child.LogicalID); err != nil {
+			return nil, rep, err
+		}
 	}
 
 	// ---- outputs ----

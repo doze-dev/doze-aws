@@ -2,7 +2,7 @@
 {{template "lp_head" dict "Svc" "cfn" "Prefix" .Prefix "Label" "CloudFormation" "Count" (len .List) "NewURL" (printf "%s/cfn/create" .Prefix)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/cfn/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
-    <span class="nm">{{.Name}}</span>
+    <span class="nm">{{.Name}}{{if .Parent}} <span class="badge type">nested under {{.Parent}}</span>{{end}}</span>
     <span class="sb">{{if .Failed}}{{icon "alert"}}{{else}}{{len .Outputs}}{{end}}</span>
   </a>
   {{else}}{{template "lp_empty" dict "Svc" "cfn" "Prefix" $.Prefix}}

@@ -113,6 +113,9 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		return m.usagePlan(name, props)
 	case "AWS::ApiGateway::UsagePlanKey":
 		return m.usagePlanKey(props)
+	case "AWS::CloudFormation::Stack":
+		// Transpiled and merged in nestedRefs; nothing to map here.
+		return nil
 	case "AWS::ApiGateway::Deployment", "AWS::ApiGateway::Account":
 		// Recognised; a deployment happens on every apply, and the account
 		// record only holds a role ARN.
