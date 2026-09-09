@@ -148,4 +148,104 @@ test.describe('API Gateway gates', () => {
     await waitForToast();
     await expect(body().locator('.sub-panel', { hasText: plan }).locator('.chip', { hasText: key })).toBeVisible();
   });
+
+  // The gate itself. Every assertion in the test above is on rendered DOM
+  // text: the authorizer points at a function that is never created, the
+  // CUSTOM method is never called, and the key and plan are created but no
+  // request ever carries one. "x-api-key" appeared exactly once in the whole
+  // suite — as the header NAME of an EventBridge connection — so nothing
+  // anywhere sent a key to execute-api. This sends one.
+  test('a keyed method is refused without x-api-key and served with it', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const name = uniqueName('e2e-apigw-key');
+    await page.goto('apigw/create');
+    await page.locator('input[name="name"]').fill(name);
+    await page.getByRole('button', { name: 'Create API' }).click();
+    await page.waitForURL(/\/apigw\/[a-z0-9]+$/);
+    await waitForToast();
+    const apiURL = page.url();
+    const apiID = apiURL.split('/').pop()!;
+
+    // A MOCK-backed GET on the root that requires a key.
+    await page.locator('button[title="Add method on /"]').click();
+    const mDlg = page.locator('.overlay[aria-label="Add method"]');
+    await mDlg.locator('select[name="verb"]').selectOption('GET');
+    await mDlg.locator('input[name="apikey"]').check();
+    await mDlg.getByRole('button', { name: 'Add method' }).click();
+    await waitForToast();
+
+    const panel = page.locator('#method-out');
+    await page.locator('#apigw-routes a:has(.chip:text("GET"))').click();
+    await panel.locator('select[name="type"]').selectOption('MOCK');
+    await panel.getByRole('button', { name: 'Save integration' }).click();
+    await waitForToast();
+    await panel.locator('form:has(button:has-text("Declare")) input[name="status"]').fill('200');
+    await panel.getByRole('button', { name: 'Declare' }).click();
+    await waitForToast();
+    await panel.locator('form:has(button:has-text("Map")) input[name="status"]').fill('200');
+    await panel.locator('input[name="template"]').fill('{"ok": true}');
+    await panel.getByRole('button', { name: 'Map' }).click();
+    await waitForToast();
+
+    await page.goto(apiURL + '?tab=stages');
+    await page.locator('input[name="stage"]').fill('v1');
+    await page.getByRole('button', { name: 'Deploy API' }).click();
+    await expect(page.locator('#flashbar')).toContainText('v1');
+
+    const invoke = `http://127.0.0.1:14566/_aws/execute-api/${apiID}/v1/`;
+
+    // No key: Forbidden. This is the assertion the whole feature exists for.
+    const bare = await request.get(invoke);
+    expect(bare.status()).toBe(403);
+    expect(await bare.text()).toContain('Forbidden');
+
+    // A key that exists but belongs to no plan covering this stage is still
+    // refused — the plan, not the key, is what admits a request.
+    const keyName = uniqueName('partner');
+    const keyValue = 'e2e-key-value-0123456789';
+    await page.goto('apigw-keys');
+    const body = () => page.locator('#apigw-keys-body');
+    await body().locator('form[hx-post$="/apigw-keys/create"] input[name="name"]').fill(keyName);
+    await body().locator('form[hx-post$="/apigw-keys/create"] input[name="value"]').fill(keyValue);
+    await body().getByRole('button', { name: 'Create key' }).click();
+    await waitForToast();
+
+    const unplanned = await request.get(invoke, { headers: { 'x-api-key': keyValue } });
+    expect(unplanned.status()).toBe(403);
+
+    // The value is masked in the list until revealed — the Go test checks
+    // this and the e2e only ever checked that a button's label changed.
+    // Scoped to the keys panel: a plan panel elsewhere on the page carries
+    // key chips too, and matching on the name alone is ambiguous.
+    const keysPanel = body().locator('.split > .panel').first();
+    const keyRow = keysPanel.locator('table.tbl tbody tr', { hasText: keyName });
+    await expect(keyRow).not.toContainText(keyValue);
+    await keyRow.locator('button.linkish', { hasText: 'reveal' }).click();
+    await expect(keysPanel.locator('table.tbl tbody tr', { hasText: keyName })).toContainText(keyValue);
+
+    // Put it in a plan on this api+stage, and the same request is served.
+    const plan = uniqueName('partners');
+    await body().locator('form[hx-post$="/plans/create"] input[name="name"]').fill(plan);
+    await body()
+      .locator('form[hx-post$="/plans/create"] select[name="stage"]')
+      .selectOption({ label: `${name} · v1` });
+    await body().getByRole('button', { name: 'Create plan' }).click();
+    await waitForToast();
+    const planPanel = body().locator('.sub-panel', { hasText: plan });
+    await planPanel.locator('select[name="key"]').selectOption({ label: keyName });
+    await planPanel.getByRole('button', { name: 'Attach key' }).click();
+    await waitForToast();
+
+    const admitted = await request.get(invoke, { headers: { 'x-api-key': keyValue } });
+    expect(admitted.status()).toBe(200);
+    expect(await admitted.text()).toContain('"ok"');
+
+    // And a wrong value is still refused, so the 200 above was the key.
+    const wrong = await request.get(invoke, { headers: { 'x-api-key': 'not-the-key-0123456789' } });
+    expect(wrong.status()).toBe(403);
+  });
 });
