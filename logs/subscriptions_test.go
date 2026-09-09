@@ -146,8 +146,14 @@ func TestSubscriptionFilterToLambda(t *testing.T) {
 	if len(m.LogEvents) != 2 || m.LogEvents[0].Message != "ERROR boom" || m.LogEvents[1].Message != "ERROR again" {
 		t.Errorf("filtered events: %+v", m.LogEvents)
 	}
-	if len(m.LogEvents[0].ID) != 56 || m.LogEvents[0].ID == m.LogEvents[1].ID {
-		t.Errorf("event ids: %q %q", m.LogEvents[0].ID, m.LogEvents[1].ID)
+	// The envelope's ids are the ids FilterLogEvents reports, so a consumer
+	// can correlate a subscription record with the API.
+	filtered, err := c.FilterLogEvents(ctx, &cwl.FilterLogEventsInput{LogGroupName: aws.String(group), FilterPattern: aws.String("ERROR")})
+	if err != nil || len(filtered.Events) != 2 {
+		t.Fatalf("FilterLogEvents: %v %+v", err, filtered)
+	}
+	if m.LogEvents[0].ID != aws.ToString(filtered.Events[0].EventId) || m.LogEvents[1].ID != aws.ToString(filtered.Events[1].EventId) || m.LogEvents[0].ID == m.LogEvents[1].ID {
+		t.Errorf("event ids %q %q differ from the API's %q %q", m.LogEvents[0].ID, m.LogEvents[1].ID, aws.ToString(filtered.Events[0].EventId), aws.ToString(filtered.Events[1].EventId))
 	}
 
 	// Two per group, then LimitExceededException; delete frees a slot.

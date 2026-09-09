@@ -135,3 +135,48 @@ func TestPutRuleRefusesMalformedCron(t *testing.T) {
 		}
 	}
 }
+
+// A rule disabled and re-enabled (or deleted and re-created) arms afresh
+// rather than firing at once for the time it was off; the audit found the
+// stale clock made it fire on the first tick after re-enabling.
+func TestReenabledScheduleArmsAfresh(t *testing.T) {
+	if testing.Short() {
+		t.Skip("opens a store")
+	}
+	now := time.Date(2026, time.September, 8, 9, 0, 0, 0, time.UTC)
+	s, err := New(Options{DataDir: t.TempDir(), Clock: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	rule := Rule{Bus: DefaultBus, Name: "hourly", Schedule: "rate(1 hour)", State: "ENABLED"}
+	if err := s.store.PutRule(rule); err != nil {
+		t.Fatal(err)
+	}
+	lastFired := map[string]time.Time{}
+	compiled := map[string]*awscron.Expression{}
+	key := DefaultBus + "\x00hourly"
+	s.fireDueSchedules(lastFired, compiled) // arms at 09:00
+	now = now.Add(61 * time.Minute)
+	s.fireDueSchedules(lastFired, compiled) // fires at 10:01
+	fired := lastFired[key]
+
+	rule.State = "DISABLED"
+	s.store.PutRule(rule)
+	now = now.Add(10 * time.Hour)
+	s.fireDueSchedules(lastFired, compiled)
+	if _, still := lastFired[key]; still {
+		t.Fatal("a disabled rule must lose its clock")
+	}
+	rule.State = "ENABLED"
+	s.store.PutRule(rule)
+	s.fireDueSchedules(lastFired, compiled) // re-enabled: arms, does not fire
+	if !lastFired[key].Equal(now) || lastFired[key].Equal(fired) {
+		t.Fatalf("re-enabled rule fired at once instead of arming: %v", lastFired[key])
+	}
+	now = now.Add(30 * time.Minute)
+	s.fireDueSchedules(lastFired, compiled)
+	if !lastFired[key].Equal(now.Add(-30 * time.Minute)) {
+		t.Fatal("the re-armed rule fired before its interval")
+	}
+}

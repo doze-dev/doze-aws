@@ -92,6 +92,9 @@ func (s *Server) deleteLogGroup(ctx context.Context, p map[string]any) (any, *aw
 	if err := s.store.DeleteGroup(g.Name); err != nil {
 		return nil, awshttp.Errf(500, "ServiceUnavailableException", "%v", err)
 	}
+	// The group's filters went with it; the fan-out must not keep shipping
+	// on their compiled copies once the name is reused.
+	s.fan.forget(g.Name)
 	return map[string]any{}, nil
 }
 

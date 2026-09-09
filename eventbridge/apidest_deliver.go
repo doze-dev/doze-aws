@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -195,14 +196,16 @@ func (s *Server) fetchToken(ctx context.Context, conn *Connection) (string, erro
 	if resp.StatusCode/100 != 2 {
 		return "", fmt.Errorf("authorization endpoint answered %s", resp.Status)
 	}
+	// expires_in is a number in the spec and a string from several real
+	// providers; either is read, and neither is required.
 	var tok struct {
-		AccessToken string `json:"access_token"`
-		ExpiresIn   int    `json:"expires_in"`
+		AccessToken string          `json:"access_token"`
+		ExpiresIn   json.RawMessage `json:"expires_in"`
 	}
 	if json.Unmarshal(raw, &tok) != nil || tok.AccessToken == "" {
 		return "", fmt.Errorf("authorization endpoint did not return an access_token")
 	}
-	ttl := time.Duration(tok.ExpiresIn) * time.Second
+	ttl := time.Duration(expiresIn(tok.ExpiresIn)) * time.Second
 	if ttl <= 0 {
 		ttl = time.Hour
 	}
@@ -219,8 +222,25 @@ func (s *Server) forgetToken(connARN string) {
 	s.tokenMu.Unlock()
 }
 
+// expiresIn reads a token lifetime given as a JSON number or a numeric
+// string; 0 when absent or unreadable.
+func expiresIn(raw json.RawMessage) int {
+	var n int
+	if json.Unmarshal(raw, &n) == nil {
+		return n
+	}
+	var s string
+	if json.Unmarshal(raw, &s) == nil {
+		if v, err := strconv.Atoi(strings.TrimSpace(s)); err == nil {
+			return v
+		}
+	}
+	return 0
+}
+
 // deliverHTTP sends the request, once more after a second on a transport
-// error, 429 or 5xx, and logs the outcome.
+// error, 429, 5xx or — for an OAuth connection, whose cached token may have
+// been revoked — 401, and logs the outcome.
 func (s *Server) deliverHTTP(ctx context.Context, rule Rule, target Target, dest *ApiDestination, conn *Connection, payload []byte) {
 	host := dest.Endpoint
 	if u, err := url.Parse(dest.Endpoint); err == nil {
@@ -240,7 +260,14 @@ func (s *Server) deliverHTTP(ctx context.Context, rule Rule, target Target, dest
 				if err == nil {
 					io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<20))
 					resp.Body.Close()
-					if resp.StatusCode != 429 && resp.StatusCode/100 != 5 {
+					retryable := resp.StatusCode == 429 || resp.StatusCode/100 == 5
+					if resp.StatusCode == http.StatusUnauthorized && conn != nil && conn.AuthType == "OAUTH_CLIENT_CREDENTIALS" {
+						// The token the cache held is no longer accepted: drop
+						// it so the retry fetches a fresh one.
+						s.forgetToken(conn.ARN())
+						retryable = attempt == 1
+					}
+					if !retryable {
 						cancel()
 						if resp.StatusCode/100 != 2 {
 							return fmt.Errorf("%s answered %s", dest.Name, resp.Status)

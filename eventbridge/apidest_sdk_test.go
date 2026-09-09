@@ -41,7 +41,7 @@ func (r *recorder) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			w.WriteHeader(401)
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]any{"access_token": r.token, "expires_in": 3600})
+		json.NewEncoder(w).Encode(map[string]any{"access_token": r.token, "expires_in": "3600"})
 		return
 	}
 	r.requests = append(r.requests, recorded{Method: req.Method, Path: req.URL.Path, Query: req.URL.RawQuery,

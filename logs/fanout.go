@@ -17,7 +17,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"sync"
 
@@ -53,6 +52,9 @@ type fanout struct {
 
 	mu    sync.Mutex
 	cache map[string][]compiledSub // group → its filters, compiled
+	// closed is set before the channel closes, so enqueue never sends on
+	// a closed channel; guarded by mu.
+	closed bool
 }
 
 func newFanout(store *Store, dir peers.Directory, logf func(string, ...any)) *fanout {
@@ -65,6 +67,14 @@ func newFanout(store *Store, dir peers.Directory, logf func(string, ...any)) *fa
 // detached so the delivery outlives the PutLogEvents call that caused it.
 func (f *fanout) enqueue(ctx context.Context, group, stream string, events []Stored) {
 	if len(events) == 0 {
+		return
+	}
+	// A batch that arrives while the server is closing is dropped rather
+	// than sent on a closed channel: Shutdown can leave a handler in flight.
+	f.mu.Lock()
+	closed := f.closed
+	f.mu.Unlock()
+	if closed {
 		return
 	}
 	select {
@@ -83,6 +93,9 @@ func (f *fanout) forget(group string) {
 
 // close stops the worker after it drains what is queued.
 func (f *fanout) close() {
+	f.mu.Lock()
+	f.closed = true
+	f.mu.Unlock()
 	close(f.in)
 	<-f.done
 }
@@ -164,7 +177,8 @@ func (f *fanout) deliver(b fanBatch) {
 func envelope(group, stream, filter string, events []Stored) ([]byte, error) {
 	items := make([]map[string]any, 0, len(events))
 	for _, ev := range events {
-		items = append(items, map[string]any{"id": eventID(ev.Seq), "timestamp": ev.TS, "message": ev.Msg})
+		// The same id FilterLogEvents reports, so a consumer can correlate.
+		items = append(items, map[string]any{"id": ev.ID(), "timestamp": ev.TS, "message": ev.Msg})
 	}
 	doc := map[string]any{
 		"messageType":         "DATA_MESSAGE",
@@ -185,12 +199,6 @@ func envelope(group, stream, filter string, events []Stored) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-// eventID renders a sequence as the 56-digit decimal id AWS uses, so a
-// consumer that parses ids as big integers is not surprised.
-func eventID(seq int64) string {
-	return fmt.Sprintf("%056d", seq)
 }
 
 func randomKey() string {

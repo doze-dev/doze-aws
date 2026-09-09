@@ -113,7 +113,16 @@ func parseSet(field string, lo, hi int, names map[string]int, set func(int)) err
 				return err
 			}
 			if start > end {
-				return fmt.Errorf("range %q runs backwards", part)
+				// A wrap-around range (20-2 hours, FRI-MON): everything from
+				// start to the top, then the bottom to end, as AWS's own
+				// examples use.
+				for v := start; v <= hi; v += step {
+					set(v)
+				}
+				for v := lo; v <= end; v += step {
+					set(v)
+				}
+				continue
 			}
 		default:
 			v, err := atoiNamed(part, names)
@@ -182,7 +191,9 @@ func (e *Expression) parseDOW(field string) error {
 	for _, part := range strings.Split(field, ",") {
 		switch {
 		case part == "L":
-			e.dowL = 7 // Saturday
+			// Bare L in the day-of-week field is Saturday, every week; "7L"
+			// is the last Saturday of the month.
+			e.dow[7] = true
 		case strings.HasSuffix(part, "L"):
 			d, err := atoiNamed(strings.TrimSuffix(part, "L"), dayNames)
 			if err != nil || d < 1 || d > 7 {
@@ -198,6 +209,9 @@ func (e *Expression) parseDOW(field string) error {
 			n, err := strconv.Atoi(b)
 			if err != nil || n < 1 || n > 5 {
 				return fmt.Errorf("%q is not an ordinal 1-5", b)
+			}
+			if len(e.dowN) > 0 {
+				return fmt.Errorf("only one #-expression is allowed in the day-of-week field")
 			}
 			e.dowN = append(e.dowN, dowNth{d, n})
 		default:

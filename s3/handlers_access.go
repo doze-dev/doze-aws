@@ -140,11 +140,49 @@ func policyIsPublic(policy string) bool {
 	for _, st := range statements {
 		var effect string
 		json.Unmarshal(st["Effect"], &effect)
-		if effect != "Allow" || len(st["Condition"]) > 0 {
+		if effect != "Allow" {
 			continue
 		}
-		if principalIsEveryone(st["Principal"]) {
+		// A NotPrincipal Allow grants everyone it does not name: public.
+		if len(st["NotPrincipal"]) > 0 {
 			return true
+		}
+		if !principalIsEveryone(st["Principal"]) {
+			continue
+		}
+		if !conditionNarrows(st["Condition"]) {
+			return true
+		}
+	}
+	return false
+}
+
+// conditionNarrows reports whether a "*" statement's Condition makes it
+// non-public by AWS's rule: only a condition on one of a fixed set of keys
+// (the caller's network, source, account or organization) counts. Any
+// other condition — aws:SecureTransport, a date, s3:prefix — leaves the
+// statement public.
+func conditionNarrows(raw json.RawMessage) bool {
+	if len(raw) == 0 {
+		return false
+	}
+	var cond map[string]map[string]json.RawMessage
+	if json.Unmarshal(raw, &cond) != nil {
+		return false
+	}
+	for op, keys := range cond {
+		// A negated operator widens rather than narrows.
+		if strings.HasPrefix(strings.ToLower(op), "stringnot") || strings.HasPrefix(strings.ToLower(op), "arnnot") ||
+			strings.HasPrefix(strings.ToLower(op), "notipaddress") {
+			continue
+		}
+		for key := range keys {
+			switch strings.ToLower(key) {
+			case "aws:sourceip", "aws:sourcevpc", "aws:sourcevpce", "aws:sourcearn", "aws:sourceaccount", "aws:sourceowner",
+				"aws:principalarn", "aws:principalaccount", "aws:principalorgid", "aws:principalorgpaths", "aws:userid",
+				"s3:dataaccesspointarn", "s3:dataaccesspointaccount", "s3:accesspointnetworkorigin", "aws:vpcsourceip":
+				return true
+			}
 		}
 	}
 	return false

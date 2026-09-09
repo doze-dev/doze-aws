@@ -309,7 +309,7 @@ func (s *Store) ListApiDestinations(prefix, connARN string) ([]ApiDestination, e
 			if err := json.Unmarshal(raw, &d); err != nil {
 				return err
 			}
-			if (prefix == "" || strings.HasPrefix(d.Name, prefix)) && (connARN == "" || d.ConnectionARN == connARN) {
+			if (prefix == "" || strings.HasPrefix(d.Name, prefix)) && (connARN == "" || sameConnection(d.ConnectionARN, connARN)) {
 				out = append(out, d)
 			}
 			return nil
@@ -317,6 +317,18 @@ func (s *Store) ListApiDestinations(prefix, connARN string) ([]ApiDestination, e
 	})
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
 	return out, err
+}
+
+// sameConnection compares connection ARNs by the name they carry, since a
+// destination may name its connection in the name form (CloudFormation) or
+// with a stale id.
+func sameConnection(a, b string) bool {
+	if a == b {
+		return true
+	}
+	an, _, aok := destinationConnection(a)
+	bn, _, bok := destinationConnection(b)
+	return aok && bok && an == bn
 }
 
 // markDestinationsInactive flips every destination on a deleted connection.

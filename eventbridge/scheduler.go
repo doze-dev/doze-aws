@@ -57,6 +57,10 @@ func (s *Server) fireDueSchedules(lastFired map[string]time.Time, compiled map[s
 		return
 	}
 	now := s.now()
+	// A rule that is disabled, deleted or no longer scheduled loses its
+	// clock, so re-enabling or re-creating it arms it afresh rather than
+	// firing at once for the time it spent off.
+	live := map[string]bool{}
 	for _, bus := range buses {
 		rules, err := s.store.Rules(bus.Name, "")
 		if err != nil {
@@ -67,6 +71,7 @@ func (s *Server) fireDueSchedules(lastFired map[string]time.Time, compiled map[s
 				continue
 			}
 			key := bus.Name + "\x00" + rule.Name
+			live[key] = true
 			last, seen := lastFired[key]
 			if !seen {
 				// First sighting: start the clock, don't fire immediately.
@@ -79,6 +84,11 @@ func (s *Server) fireDueSchedules(lastFired map[string]time.Time, compiled map[s
 			}
 			lastFired[key] = now
 			s.fireScheduled(rule)
+		}
+	}
+	for key := range lastFired {
+		if !live[key] {
+			delete(lastFired, key)
 		}
 	}
 }
