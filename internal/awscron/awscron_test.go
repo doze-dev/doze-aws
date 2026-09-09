@@ -36,6 +36,20 @@ func TestNextMatchesAWSDocumentation(t *testing.T) {
 		{"cron(0 1 ? * FRI-MON *)", at(2026, 9, 11, 1, 0)},       // a wrap-around weekday range
 		{"cron(0 12 ? * L *)", at(2026, 9, 12, 12, 0)},           // bare L is every Saturday
 		{"cron(0 12 ? * 7L *)", at(2026, 9, 26, 12, 0)},          // 7L is the last Saturday
+
+		// The W flag's whole job is landing on a weekday, and every one of
+		// nearestWeekday's four adjustments was dead: the two existing W
+		// cases (the 15th, and LW in September) both fall on weekdays
+		// already, so the function was only ever asked to do nothing.
+		// AWS: W never crosses a month boundary, which is why the first and
+		// last of a month move forwards and backwards respectively.
+		{"cron(0 9 12W * ? *)", at(2026, 9, 11, 9, 0)},  // the 12th is a Saturday: back to Friday the 11th
+		{"cron(0 9 13W * ? *)", at(2026, 9, 14, 9, 0)},  // the 13th is a Sunday: on to Monday the 14th
+		{"cron(0 7 LW * ? 2026)", at(2026, 9, 30, 7, 0)}, // Sep 30 is a Wednesday, unmoved
+		{"cron(0 7 31W OCT ? 2026)", at(2026, 10, 30, 7, 0)}, // Oct 31 is a Saturday: back to Friday the 30th
+		{"cron(0 7 LW OCT ? 2027)", at(2027, 10, 29, 7, 0)},  // Oct 31 2027 is a Sunday: back TWO days, not forward into November
+		{"cron(0 7 1W MAY ? 2027)", at(2027, 5, 3, 7, 0)},    // May 1 2027 is a Saturday: forward TWO days, not back into April
+		{"cron(0 7 1W NOV ? 2026)", at(2026, 11, 2, 7, 0)},   // Nov 1 2026 is a Sunday: forward one to Monday
 	}
 	for _, c := range cases {
 		e, err := Parse(c.expr)
@@ -82,6 +96,24 @@ func TestNextExhaustsTheYearField(t *testing.T) {
 	}
 	if got, ok := e.Next(after); ok {
 		t.Errorf("a 2020-only expression has no next firing after 2026, got %v", got)
+	}
+}
+
+// TestWDayPastTheMonthNeverFires: a day the month does not have has no
+// nearest weekday, so the expression simply never matches in that month —
+// the same as AWS, where there is no 30th of February to move away from.
+//
+// nearestWeekday clamps n to the last day of the month, but the day loop
+// never offers it a day the month does not contain, so that clamp is
+// defensive and unreachable. Written down here so the next person reading
+// the 90.9% does not go looking for the case that would cover it.
+func TestWDayPastTheMonthNeverFires(t *testing.T) {
+	e, err := Parse("cron(0 7 30W FEB ? 2027)")
+	if err != nil {
+		t.Fatalf("30W is a legal expression even in February: %v", err)
+	}
+	if got, ok := e.Next(after); ok {
+		t.Errorf("February has no 30th, so nothing should fire; got %v", got)
 	}
 }
 

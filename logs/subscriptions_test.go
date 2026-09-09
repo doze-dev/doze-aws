@@ -237,4 +237,56 @@ func TestSubscriptionFilterToKinesis(t *testing.T) {
 	if m.LogGroup != group || len(m.LogEvents) != 1 || m.LogEvents[0].Message != "GET /health 200" {
 		t.Errorf("record envelope: %+v", m)
 	}
+
+	// What Describe reports back. Distribution and RoleArn are stored and
+	// returned and nothing read them: subscriptionView's lines for both were
+	// dead, so a filter could report a distribution it was not using.
+	desc, err := c.DescribeSubscriptionFilters(ctx, &cwl.DescribeSubscriptionFiltersInput{
+		LogGroupName: aws.String(group)})
+	if err != nil || len(desc.SubscriptionFilters) != 1 {
+		t.Fatalf("DescribeSubscriptionFilters = %+v %v", desc, err)
+	}
+	if got := desc.SubscriptionFilters[0].Distribution; got != cwltypes.DistributionByLogStream {
+		t.Errorf("Distribution = %q, want ByLogStream", got)
+	}
+
+	// The DEFAULT distribution — the one you get by not asking — had never
+	// delivered a record in any test: both this test and the CloudFormation
+	// one set ByLogStream, so randomKey was 0% covered. Unset means Random,
+	// and the partition key must NOT be the log stream.
+	group2 := "/app/worker"
+	c.CreateLogGroup(ctx, &cwl.CreateLogGroupInput{LogGroupName: aws.String(group2)})
+	if _, err := c.PutSubscriptionFilter(ctx, &cwl.PutSubscriptionFilterInput{
+		LogGroupName: aws.String(group2), FilterName: aws.String("default-dist"),
+		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.ARN("kinesis", "stream/logs-out")),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	put(t, c, group2, "worker-1", 6000, "worker tick")
+
+	var more []kintypes.Record
+	deadline = time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		out, err := kin.GetRecords(ctx, &awskinesis.GetRecordsInput{ShardIterator: it.ShardIterator})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(out.Records) > 1 {
+			more = out.Records
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if len(more) < 2 {
+		t.Fatalf("the default-distribution filter delivered nothing: %d record(s)", len(more))
+	}
+	last := more[len(more)-1]
+	if key := aws.ToString(last.PartitionKey); key == "worker-1" {
+		t.Errorf("the default distribution is Random, not ByLogStream, but keyed by the stream name %q", key)
+	} else if key == "" {
+		t.Error("a record needs a partition key")
+	}
+	if m2 := gunzipMessage(t, last.Data); m2.LogGroup != group2 {
+		t.Errorf("second record envelope: %+v", m2)
+	}
 }

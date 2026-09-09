@@ -65,6 +65,13 @@ var uncovered = map[string][]string{
 // This is a different claim from uncovered: uncovered says "not yet", exempt
 // says "and here is why it never will be".
 var exempt = map[string]map[string]string{
+	"eventbridge": {
+		"UpdateEventBus": "the three members it writes — Description, KmsKeyIdentifier and " +
+			"DeadLetterConfig — are stored and reported back but inert locally, and the console " +
+			"does not set them at create time either. It exists so a Terraform or CloudFormation " +
+			"change to aws_cloudwatch_event_bus applies instead of answering InvalidAction; an " +
+			"edit form would only change values nothing here reads",
+	},
 	"logs": {
 		"ListLogGroups":    "the newer twin of DescribeLogGroups, which the list pane reads; it adds account-wide and pattern filters a single local account never needs",
 		"GetLogEvents":     "one stream forwards or backwards; FilterLogEvents with a stream name, which the tail makes, reads the same lines and is what the CLI calls",

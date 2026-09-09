@@ -30,6 +30,7 @@ var handlers = map[string]handler{
 	"ListRuleNamesByTarget":  (*Server).listRuleNamesByTarget,
 	"CreateEventBus":         (*Server).createEventBus,
 	"DeleteEventBus":         (*Server).deleteEventBus,
+	"UpdateEventBus":         (*Server).updateEventBus,
 	"DescribeEventBus":       (*Server).describeEventBus,
 	"ListEventBuses":         (*Server).listEventBuses,
 	"TestEventPattern":       (*Server).testEventPattern,
@@ -520,6 +521,53 @@ func (s *Server) createEventBus(ctx context.Context, p map[string]any) (any, *aw
 
 func (s *Server) deleteEventBus(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	return nil, awshttp.AsAPIErrorOrNil(s.store.DeleteBus(awsjson.Str(p, "Name")))
+}
+
+// updateEventBus writes the same declared-and-inert fields CreateEventBus
+// accepts. It was missing entirely: not handled and not refused, so it fell
+// through to InvalidAction, which reads to a caller like a typo of their own
+// rather than a gap here. Terraform's aws_cloudwatch_event_bus updates these
+// in place, so a changed description was an error rather than a no-op.
+//
+// AWS replaces the members it is given and leaves the rest; a member sent as
+// null clears it, which is what an absent key means for these three.
+func (s *Server) updateEventBus(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
+	name := awsjson.Str(p, "Name")
+	if name == "" {
+		name = DefaultBus
+	}
+	found := false
+	buses, err := s.store.ListBuses()
+	if err != nil {
+		return nil, awshttp.AsAPIError(err)
+	}
+	for _, b := range buses {
+		if b.Name == name {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, awshttp.Errf(404, "ResourceNotFoundException", "Event bus %s does not exist.", name)
+	}
+	if err := s.store.UpdateBus(name, func(b *Bus) {
+		b.Description = awsjson.Str(p, "Description")
+		b.KmsKeyIdentifier = awsjson.Str(p, "KmsKeyIdentifier")
+		b.DeadLetterARN = ""
+		if dlq, ok := p["DeadLetterConfig"].(map[string]any); ok {
+			b.DeadLetterARN, _ = dlq["Arn"].(string)
+		}
+	}); err != nil {
+		return nil, awshttp.AsAPIError(err)
+	}
+	out := map[string]any{"Name": name, "Arn": busARN(name)}
+	if d := awsjson.Str(p, "Description"); d != "" {
+		out["Description"] = d
+	}
+	if k := awsjson.Str(p, "KmsKeyIdentifier"); k != "" {
+		out["KmsKeyIdentifier"] = k
+	}
+	return out, nil
 }
 
 func (s *Server) describeEventBus(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {

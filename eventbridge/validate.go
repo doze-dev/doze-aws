@@ -416,4 +416,14 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "Name", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[\.\-_A-Za-z0-9]+$`)},
 		{Path: "Name", Kind: modelcheck.KindRequired},
 	},
+	"UpdateEventBus": {
+		{Path: "DeadLetterConfig.Arn", Kind: modelcheck.KindLength, Min: 1, Max: 1600},
+		{Path: "Description", Kind: modelcheck.KindLength, Min: 0, Max: 512},
+		{Path: "KmsKeyIdentifier", Kind: modelcheck.KindLength, Min: 0, Max: 2048},
+		{Path: "KmsKeyIdentifier", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_\-/:]*$`)},
+		{Path: "LogConfig.IncludeDetail", Kind: modelcheck.KindEnum, Enum: []string{"NONE", "FULL"}},
+		{Path: "LogConfig.Level", Kind: modelcheck.KindEnum, Enum: []string{"OFF", "ERROR", "INFO", "TRACE"}},
+		{Path: "Name", Kind: modelcheck.KindLength, Min: 1, Max: 256},
+		{Path: "Name", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[/\.\-_A-Za-z0-9]+$`)},
+	},
 }

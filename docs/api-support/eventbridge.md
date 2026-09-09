@@ -15,7 +15,7 @@ delivers to targets.
 | DeleteRule / DescribeRule / ListRules | F | |
 | EnableRule / DisableRule | F | |
 | PutTargets / RemoveTargets / ListTargetsByRule / ListRuleNamesByTarget | F | SQS, SNS, Lambda, CloudWatch Logs log-group and API destination target ARNs; a log-group target writes the shaped event as one log line, in a stream named for the rule, as AWS does; an API destination target carries `HttpParameters` |
-| CreateEventBus / DeleteEventBus / DescribeEventBus / ListEventBuses | F | default bus implicit; custom buses; deleting a bus removes its rules |
+| CreateEventBus / UpdateEventBus / DeleteEventBus / DescribeEventBus / ListEventBuses | F | default bus implicit; custom buses; deleting a bus removes its rules. `Description`, `KmsKeyIdentifier` and `DeadLetterConfig` are stored and reported back but inert locally — Terraform tracks them on `aws_cloudwatch_event_bus`, so dropping them would be permanent drift |
 | TestEventPattern | F | the same matcher, exposed for testing patterns |
 | TagResource / UntagResource / ListTagsForResource | F | rule tags by ARN |
 | CreateArchive / DescribeArchive / ListArchives / UpdateArchive / DeleteArchive | F | PutEvents appends matching events to the archive's log; retention stored but not actively expired |
