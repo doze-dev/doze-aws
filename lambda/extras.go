@@ -11,6 +11,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 	"github.com/doze-dev/doze-aws/internal/trace"
@@ -417,11 +418,19 @@ func (s *Server) startPoller(m *EventSourceMapping) {
 	s.pollers.Add(1)
 	switch {
 	case isDDBStreamARN(m.EventSourceArn):
-		go func() { defer s.pollers.Done(); s.pollDDBStream(poller, m) }()
+		go func() {
+			defer s.pollers.Done()
+			defer bg.Recover(s.logf, "lambda: DynamoDB stream poller")
+			s.pollDDBStream(poller, m)
+		}()
 	case isKinesisStreamARN(m.EventSourceArn):
-		go func() { defer s.pollers.Done(); s.pollKinesis(poller, m) }()
+		go func() {
+			defer s.pollers.Done()
+			defer bg.Recover(s.logf, "lambda: Kinesis poller")
+			s.pollKinesis(poller, m)
+		}()
 	default:
-		go func() { defer s.pollers.Done(); s.pollSQS(poller, m) }()
+		go func() { defer s.pollers.Done(); defer bg.Recover(s.logf, "lambda: SQS poller"); s.pollSQS(poller, m) }()
 	}
 }
 

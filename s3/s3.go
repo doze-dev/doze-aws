@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/s3store"
 	"github.com/doze-dev/doze-aws/internal/sigparse"
@@ -51,6 +52,9 @@ type Server struct {
 	logf  func(format string, args ...any)
 	now   func() time.Time
 	stop  chan struct{}
+	// done closes when the janitor has returned, so Close waits for it before
+	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
+	done  chan struct{}
 	guard iamguard.Guard // the bucket policy, under IAM soft/enforce
 }
 
@@ -72,6 +76,7 @@ func New(opts Options) (*Server, error) {
 		logf:  logf,
 		now:   opts.Clock,
 		stop:  make(chan struct{}),
+		done:  make(chan struct{}),
 		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf},
 	}
 	if s.peers == nil {
@@ -89,11 +94,15 @@ func New(opts Options) (*Server, error) {
 // Close stops the janitor and closes the store.
 func (s *Server) Close() error {
 	close(s.stop)
+	// Waited on, not just signalled: a sweep inside a bolt transaction races
+	// the close below, and bolt panics on a closed DB.
+	<-s.done
 	return s.store.Close()
 }
 
 // janitor applies lifecycle expiration rules.
 func (s *Server) janitor() {
+	defer close(s.done)
 	t := time.NewTicker(time.Minute)
 	defer t.Stop()
 	for {
@@ -101,7 +110,7 @@ func (s *Server) janitor() {
 		case <-s.stop:
 			return
 		case <-t.C:
-			s.sweepLifecycle()
+			bg.Tick(s.logf, "s3: janitor", func() { s.sweepLifecycle() })
 		}
 	}
 }

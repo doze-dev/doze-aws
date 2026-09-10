@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 )
@@ -41,7 +42,7 @@ func (s *Server) invoke(w http.ResponseWriter, r *http.Request, name, qualifier 
 	}
 
 	if invType == "Event" {
-		go s.invokeAsync(f, payload)
+		bg.Go(s.logf, "lambda: asynchronous invoke", func() { s.invokeAsync(f, payload) })
 		w.WriteHeader(202)
 		return nil
 	}

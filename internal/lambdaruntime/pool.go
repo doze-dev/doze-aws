@@ -5,6 +5,8 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"github.com/doze-dev/doze-aws/internal/bg"
 )
 
 // ErrPoolClosed is returned by Invoke when the pool has been stopped (e.g. a
@@ -140,7 +142,11 @@ func (p *Pool) release(r *Runner) {
 		if p.idleTimer != nil {
 			p.idleTimer.Stop()
 		}
-		p.idleTimer = time.AfterFunc(p.idle, p.reapIdle)
+		// A timer callback runs on its own goroutine: a panic there is fatal
+		// to the process, so it is contained like any other.
+		p.idleTimer = time.AfterFunc(p.idle, func() {
+			bg.Tick(p.logf, "lambda: idle reaper", p.reapIdle)
+		})
 		p.idleDeadline = time.Now().Add(p.idle)
 	}
 	p.mu.Unlock()

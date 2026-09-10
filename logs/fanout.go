@@ -21,6 +21,7 @@ import (
 	"sync"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
@@ -55,6 +56,9 @@ type fanout struct {
 	// closed is set before the channel closes, so enqueue never sends on
 	// a closed channel; guarded by mu.
 	closed bool
+	// dead is set when the worker panicked, which enqueue reports and a
+	// deliberate close does not.
+	dead bool
 }
 
 func newFanout(store *Store, dir peers.Directory, logf func(string, ...any)) *fanout {
@@ -72,8 +76,14 @@ func (f *fanout) enqueue(ctx context.Context, group, stream string, events []Sto
 	// A batch that arrives while the server is closing is dropped rather
 	// than sent on a closed channel: Shutdown can leave a handler in flight.
 	f.mu.Lock()
-	closed := f.closed
+	closed, dead := f.closed, f.dead
 	f.mu.Unlock()
+	if dead {
+		// Distinguished from a deliberate close: shutting down and dropping a
+		// batch is expected and silent, a dead worker dropping one is not.
+		f.logf("logs: subscription fan-out for %s is not running; dropped a batch", group)
+		return
+	}
 	if closed {
 		return
 	}
@@ -101,10 +111,22 @@ func (f *fanout) close() {
 }
 
 func (f *fanout) run() {
+	// Registered AFTER close(f.done), so it runs BEFORE it: the worker has to
+	// be marked dead before close() is told it finished, or a panicking
+	// fan-out reports a clean shutdown and enqueue goes on silently accepting
+	// batches into a channel nobody drains.
 	defer close(f.done)
+	defer bg.Recover(f.logf, "logs: subscription fan-out", f.die)
 	for b := range f.in {
 		f.deliver(b)
 	}
+}
+
+// die marks the worker dead after a panic, so enqueue starts reporting drops.
+func (f *fanout) die() {
+	f.mu.Lock()
+	f.closed, f.dead = true, true
+	f.mu.Unlock()
 }
 
 // subs returns a group's filters, compiled, from the cache or the store.

@@ -22,6 +22,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
@@ -118,7 +119,9 @@ func (s *Server) fireActions(a *alarm, prev, now, reason string, at time.Time) {
 
 	for _, arn := range targets {
 		kind, name := classifyAction(arn)
-		go s.deliver(ctx, a, kind, arn, name, subject, payload)
+		bg.Go(s.logf, "cloudwatch: alarm action", func() {
+			s.deliver(ctx, a, kind, arn, name, subject, payload)
+		})
 	}
 }
 

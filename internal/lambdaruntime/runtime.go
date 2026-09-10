@@ -33,6 +33,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/doze-dev/doze-aws/internal/bg"
 )
 
 // Spec describes how to run one function.
@@ -358,7 +360,7 @@ func (r *Runner) ensureStarted() error {
 		return fmt.Errorf("start function process: %w", err)
 	}
 	r.started = true
-	go r.reap()
+	bg.Go(r.logf, "lambda: runtime reaper", r.reap)
 	return nil
 }
 

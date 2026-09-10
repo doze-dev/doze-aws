@@ -27,6 +27,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 	"github.com/doze-dev/doze-aws/peers"
@@ -151,11 +152,13 @@ func (s *Server) sweeper() {
 		case <-s.stop:
 			return
 		case <-t.C:
-			if n, err := s.store.Sweep(s.retention, s.maxEvents); err != nil {
-				s.logf("logs: sweep: %v", err)
-			} else if n > 0 {
-				s.logf("logs: swept %d events past retention", n)
-			}
+			bg.Tick(s.logf, "logs: sweeper", func() {
+				if n, err := s.store.Sweep(s.retention, s.maxEvents); err != nil {
+					s.logf("logs: sweep: %v", err)
+				} else if n > 0 {
+					s.logf("logs: swept %d events past retention", n)
+				}
+			})
 		}
 	}
 }

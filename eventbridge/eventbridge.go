@@ -21,6 +21,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -94,7 +95,9 @@ func New(opts Options) (*Server, error) {
 	s.stop = make(chan struct{})
 	s.done = make(chan struct{})
 	go func() {
+		// Registered after close(s.done) so it runs before it.
 		defer close(s.done)
+		defer bg.Recover(s.logf, "eventbridge: scheduler")
 		s.runScheduler(s.stop) // the goroutine only touches its arguments, not s.stop
 	}()
 	return s, nil

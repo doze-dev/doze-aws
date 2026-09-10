@@ -16,6 +16,7 @@ import (
 	"sync"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/metricship"
 	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
@@ -45,6 +46,9 @@ type metricEmitter struct {
 	mu     sync.Mutex
 	cache  map[string][]compiledFilter
 	closed bool
+	// dead is set when the worker panicked, which enqueue reports and a
+	// deliberate close does not.
+	dead bool
 }
 
 func newMetricEmitter(store *Store, dir peers.Directory, logf func(string, ...any)) *metricEmitter {
@@ -64,8 +68,12 @@ func (m *metricEmitter) enqueue(ctx context.Context, group string, events []Stor
 		return
 	}
 	m.mu.Lock()
-	closed := m.closed
+	closed, dead := m.closed, m.dead
 	m.mu.Unlock()
+	if dead {
+		m.logf("logs: metric-filter emitter is not running; dropped a batch for %s", group)
+		return
+	}
 	if closed {
 		return
 	}
@@ -96,11 +104,22 @@ func (m *metricEmitter) close() {
 	m.ship.Close()
 }
 
+// run drains the queue. The recover is registered AFTER close(m.done) so it
+// runs BEFORE it: the worker must be marked dead before close() is told it
+// finished, or a panicking emitter reports a clean shutdown.
 func (m *metricEmitter) run() {
 	defer close(m.done)
+	defer bg.Recover(m.logf, "logs: metric-filter emitter", m.die)
 	for b := range m.in {
 		m.evaluate(b)
 	}
+}
+
+// die marks the worker dead after a panic, so enqueue starts reporting drops.
+func (m *metricEmitter) die() {
+	m.mu.Lock()
+	m.closed, m.dead = true, true
+	m.mu.Unlock()
 }
 
 // filtersFor compiles a group's filters once and caches them, because a

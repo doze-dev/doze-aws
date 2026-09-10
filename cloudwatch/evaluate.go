@@ -28,6 +28,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/doze-dev/doze-aws/internal/bg"
 )
 
 // evalInterval is how often alarms are re-examined. Ten seconds is far finer
@@ -211,6 +213,7 @@ func plural(n int) string {
 
 // evaluator re-examines every alarm on a tick.
 func (s *Server) evaluator() {
+	defer s.bg.Done()
 	t := time.NewTicker(evalInterval)
 	defer t.Stop()
 	for {
@@ -218,7 +221,7 @@ func (s *Server) evaluator() {
 		case <-s.stop:
 			return
 		case <-t.C:
-			s.EvaluateNow()
+			bg.Tick(s.logf, "cloudwatch: alarm evaluator", s.EvaluateNow)
 		}
 	}
 }

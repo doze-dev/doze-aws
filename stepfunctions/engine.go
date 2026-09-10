@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/doze-dev/doze-aws/internal/asl"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/trace"
 )
 
@@ -104,7 +105,13 @@ func newEngine(srv *Server) *engine {
 		workerCtx:  ctx,
 		activities: activityHub{gens: map[string]chan struct{}{}},
 	}
-	go g.loop(ctx)
+	go func() {
+		// The single driver: all execution state is mutated here, so a panic
+		// would silently stop every running execution while close() reported a
+		// clean shutdown.
+		defer bg.Recover(g.srv.logf, "stepfunctions: engine driver")
+		g.loop(ctx)
+	}()
 	return g
 }
 
@@ -416,7 +423,10 @@ func (g *engine) dispatch(r *run, call asl.EffCallTask) {
 	key, header := r.key, r.e.TraceHeader
 	g.wg.Add(1)
 	go func() {
+		// Registered after wg.Done so it runs before it: a panicking task must
+		// not let close() believe the worker finished cleanly.
 		defer g.wg.Done()
+		defer bg.Recover(g.srv.logf, "stepfunctions: task worker")
 		ctx := trace.Continue(g.workerCtx, g.srv.sink, header)
 		res := g.srv.performTask(ctx, call.Resource, call.Input)
 		if g.workerCtx.Err() != nil {

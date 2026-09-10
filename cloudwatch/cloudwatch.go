@@ -23,11 +23,13 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
@@ -55,11 +57,14 @@ type Options struct {
 // Server is the CloudWatch service: an http.Handler over three protocols, and
 // an io.Closer that closes the store.
 type Server struct {
-	db         *bolt.DB
-	peers      peers.Directory
-	logf       func(format string, args ...any)
-	now        func() time.Time
-	stop       chan struct{}
+	db    *bolt.DB
+	peers peers.Directory
+	logf  func(format string, args ...any)
+	now   func() time.Time
+	stop  chan struct{}
+	// bg waits for the sweeper and the evaluator, so Close does not close the
+	// store while one of them is inside a bolt transaction.
+	bg         sync.WaitGroup
 	retention  time.Duration
 	maxSamples int
 	sink       trace.Sink
@@ -101,6 +106,7 @@ func New(opts Options) (*Server, error) {
 	if s.maxSamples <= 0 {
 		s.maxSamples = defaultMaxSamples
 	}
+	s.bg.Add(2)
 	go s.sweeper()
 	go s.evaluator()
 	return s, nil
@@ -111,6 +117,7 @@ func New(opts Options) (*Server, error) {
 // sweep is proportional to what it removes, and a long gap would make one
 // sweep expensive rather than many cheap.
 func (s *Server) sweeper() {
+	defer s.bg.Done()
 	t := time.NewTicker(time.Minute)
 	defer t.Stop()
 	for {
@@ -118,11 +125,13 @@ func (s *Server) sweeper() {
 		case <-s.stop:
 			return
 		case <-t.C:
-			if n, err := s.sweep(s.retention, s.maxSamples); err != nil {
-				s.logf("cloudwatch: sweep: %v", err)
-			} else if n > 0 {
-				s.logf("cloudwatch: swept %d samples", n)
-			}
+			bg.Tick(s.logf, "cloudwatch: sweeper", func() {
+				if n, err := s.sweep(s.retention, s.maxSamples); err != nil {
+					s.logf("cloudwatch: sweep: %v", err)
+				} else if n > 0 {
+					s.logf("cloudwatch: swept %d samples", n)
+				}
+			})
 		}
 	}
 }
@@ -145,6 +154,9 @@ func (s *Server) Close() error {
 	default:
 		close(s.stop)
 	}
+	// Waited on: a sweep or an evaluation inside a bolt transaction races the
+	// close below, and bolt panics on a closed DB.
+	s.bg.Wait()
 	return s.db.Close()
 }
 

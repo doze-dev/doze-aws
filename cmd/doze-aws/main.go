@@ -24,6 +24,7 @@ import (
 	"github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/console"
 	"github.com/doze-dev/doze-aws/iam"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/config"
 	"github.com/doze-dev/doze-aws/peers"
 	"github.com/doze-dev/doze-aws/provision"
@@ -269,7 +270,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	}
 
 	errc := make(chan error, 1)
-	go func() { errc <- srv.Serve(ln) }()
+	bg.Go(slogf(logger), "doze-aws: listener", func() { errc <- srv.Serve(ln) })
 	serveExtra(srv, extra, logger)
 
 	select {

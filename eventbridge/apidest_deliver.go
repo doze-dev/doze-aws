@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/trace"
 )
 
@@ -60,7 +61,10 @@ func (s *Server) dispatchAPIDestination(ctx context.Context, rule Rule, target T
 		s.logf("eventbridge: rule %s target %s: connection %s is %s", rule.Name, target.ID, connName, conn.State)
 		return
 	}
-	go s.deliverHTTP(context.WithoutCancel(ctx), rule, target, dest, conn, payload)
+	outer := context.WithoutCancel(ctx)
+	bg.Go(s.logf, "eventbridge: API destination delivery", func() {
+		s.deliverHTTP(outer, rule, target, dest, conn, payload)
+	})
 }
 
 // buildRequest assembles the request: URL, parameters, body and auth.

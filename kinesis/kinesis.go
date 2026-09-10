@@ -29,6 +29,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
@@ -64,6 +65,9 @@ type Server struct {
 	api   awsjson.API
 	now   func() time.Time
 	stop  chan struct{}
+	// done closes when the janitor has returned, so Close waits for it before
+	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
+	done  chan struct{}
 	guard iamguard.Guard // the stream's resource policy, under IAM soft/enforce
 	// peers resolves KMS, so a stream encrypted with a customer key can check
 	// that the key is still usable rather than accepting writes against one
@@ -94,6 +98,7 @@ func New(opts Options) (*Server, error) {
 		api:   awsjson.API{TargetPrefix: "Kinesis_20131202", JSONVersion: "1.1"},
 		now:   time.Now,
 		stop:  make(chan struct{}),
+		done:  make(chan struct{}),
 		peers: opts.Peers,
 		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf},
 	}
@@ -112,11 +117,15 @@ func New(opts Options) (*Server, error) {
 // Close stops the sweeper and closes the bbolt DB.
 func (s *Server) Close() error {
 	close(s.stop)
+	// Waited on, not just signalled: a sweep inside a bolt transaction races
+	// the close below, and bolt panics on a closed DB.
+	<-s.done
 	return s.store.db.Close()
 }
 
 // sweeper reclaims records past their stream's retention window.
 func (s *Server) sweeper(interval time.Duration) {
+	defer close(s.done)
 	t := time.NewTicker(interval)
 	defer t.Stop()
 	for {
@@ -124,9 +133,11 @@ func (s *Server) sweeper(interval time.Duration) {
 		case <-s.stop:
 			return
 		case <-t.C:
-			if n := s.store.Sweep(); n > 0 {
-				s.logf("kinesis: retention reclaimed %d record(s)", n)
-			}
+			bg.Tick(s.logf, "kinesis: sweeper", func() {
+				if n := s.store.Sweep(); n > 0 {
+					s.logf("kinesis: retention reclaimed %d record(s)", n)
+				}
+			})
 		}
 	}
 }

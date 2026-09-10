@@ -10,6 +10,7 @@
 package sqs
 
 import (
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"net/http"
@@ -50,6 +51,9 @@ type Server struct {
 	store *Store
 	logf  func(format string, args ...any)
 	stop  chan struct{}
+	// done closes when the janitor has returned, so Close waits for it before
+	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
+	done  chan struct{}
 	guard iamguard.Guard // the queue policy, under IAM soft/enforce
 }
 
@@ -70,7 +74,7 @@ func New(opts Options) (*Server, error) {
 	if logf == nil {
 		logf = func(string, ...any) {}
 	}
-	s := &Server{store: newStore(db), logf: logf, stop: make(chan struct{}), guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf}}
+	s := &Server{store: newStore(db), logf: logf, stop: make(chan struct{}), done: make(chan struct{}), guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf}}
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock
 	}
@@ -81,10 +85,14 @@ func New(opts Options) (*Server, error) {
 // Close stops the janitor goroutine, then closes the bbolt DB.
 func (s *Server) Close() error {
 	close(s.stop)
+	// Waited on, not just signalled: a sweep inside a bolt transaction races
+	// the close below, and bolt panics on a closed DB.
+	<-s.done
 	return s.store.db.Close()
 }
 
 func (s *Server) janitor() {
+	defer close(s.done)
 	t := time.NewTicker(sweepInterval)
 	defer t.Stop()
 	for {
@@ -92,7 +100,7 @@ func (s *Server) janitor() {
 		case <-s.stop:
 			return
 		case <-t.C:
-			s.store.Sweep()
+			bg.Tick(s.logf, "sqs: janitor", func() { s.store.Sweep() })
 		}
 	}
 }

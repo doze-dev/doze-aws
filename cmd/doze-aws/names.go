@@ -25,6 +25,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/bg"
 	names "github.com/doze-dev/doze-names"
 )
 
@@ -188,11 +189,11 @@ func serveExtra(srv *http.Server, ln net.Listener, logger *slog.Logger) {
 	if ln == nil {
 		return
 	}
-	go func() {
+	bg.Go(slogf(logger), "zone: extra listener", func() {
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
 			logger.Debug("zone: extra listener stopped", "err", err)
 		}
-	}()
+	})
 }
 
 // runDNSSetup is `doze-aws dns-setup`. The same command exists in doze and
@@ -229,4 +230,12 @@ func runDNSSetup(args []string) int {
 		}
 	}
 	return 0
+}
+
+// slogf adapts an *slog.Logger to the logf shape the rest of the tree uses,
+// so cmd/ can hand one to internal/bg like any service does.
+func slogf(logger *slog.Logger) func(string, ...any) {
+	return func(format string, args ...any) {
+		logger.Error(fmt.Sprintf(format, args...))
+	}
 }

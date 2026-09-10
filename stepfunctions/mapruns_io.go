@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/asl"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/trace"
 )
 
@@ -24,6 +25,7 @@ func (g *engine) readItems(r *run, f *asl.Frame, cfg asl.MapRunConfig) {
 	g.wg.Add(1)
 	go func() {
 		defer g.wg.Done()
+		defer bg.Recover(g.srv.logf, "stepfunctions: Map Run item reader")
 		ctx := trace.Continue(g.workerCtx, g.srv.sink, header)
 		items, fail := g.srv.fetchItems(ctx, reader, input)
 		d := delivery{key: key, frame: frame, kind: dlvMapItems, items: items}
@@ -154,6 +156,7 @@ func (g *engine) writeResults(r *run, f *asl.Frame, mr *MapRun, items []*MapItem
 	g.wg.Add(1)
 	go func() {
 		defer g.wg.Done()
+		defer bg.Recover(g.srv.logf, "stepfunctions: Map Run result writer")
 		ctx := trace.Continue(g.workerCtx, g.srv.sink, header)
 		res := g.srv.storeResults(ctx, writer, arn, items)
 		select {

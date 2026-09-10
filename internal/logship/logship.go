@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 	"github.com/doze-dev/doze-aws/peers"
 )
@@ -37,7 +38,10 @@ type Shipper struct {
 	timer    *time.Timer
 	disabled bool
 	closed   bool
-	work     chan map[key][]Event
+	// dead is set when the worker panicked: a caller's Put then reports a
+	// drop instead of buffering into a queue nobody drains.
+	dead bool
+	work chan map[key][]Event
 	// quit tells the worker to drain and stop. The work channel is never
 	// closed, because Flush runs on a timer goroutine that can be between its
 	// unlock and its send at the moment Close is called — closing the channel
@@ -70,6 +74,13 @@ func (s *Shipper) Put(group, stream string, events ...Event) {
 		return
 	}
 	s.mu.Lock()
+	if s.dead {
+		s.mu.Unlock()
+		// Reported, unlike a deliberate close: a shipper that died is not
+		// something the caller asked for, and the lines are gone.
+		s.logf("%s: the log shipper is not running; dropped %d event(s)", s.name, len(events))
+		return
+	}
 	defer s.mu.Unlock()
 	if s.disabled || s.closed {
 		return
@@ -79,6 +90,13 @@ func (s *Shipper) Put(group, stream string, events ...Event) {
 	if s.timer == nil {
 		s.timer = time.AfterFunc(flushAfter, s.Flush)
 	}
+}
+
+// die marks the shipper dead after a panic, so Put starts reporting drops.
+func (s *Shipper) die() {
+	s.mu.Lock()
+	s.closed, s.dead = true, true
+	s.mu.Unlock()
 }
 
 // Flush hands everything pending to the worker.
@@ -130,7 +148,10 @@ func (s *Shipper) Close() {
 }
 
 func (s *Shipper) worker() {
+	// Registered after close(s.done) so it runs before it: the shipper must be
+	// marked dead before Close is told the worker finished.
 	defer close(s.done)
+	defer bg.Recover(s.logf, s.name+": shipper", s.die)
 	for {
 		select {
 		case batch := <-s.work:

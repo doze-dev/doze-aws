@@ -29,6 +29,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/peers"
@@ -56,6 +57,9 @@ type Server struct {
 	logf  func(format string, args ...any)
 	api   awsjson.API
 	stop  chan struct{}
+	// done closes when the janitor has returned, so Close waits for it before
+	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
+	done  chan struct{}
 	guard iamguard.Guard // the key policy, under IAM soft/enforce
 }
 
@@ -81,6 +85,7 @@ func New(opts Options) (*Server, error) {
 		logf:  logf,
 		api:   awsjson.API{TargetPrefix: "TrentService", JSONVersion: "1.1"},
 		stop:  make(chan struct{}),
+		done:  make(chan struct{}),
 		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf, KeyPolicyGates: true},
 	}
 	if opts.Clock != nil {
@@ -93,11 +98,15 @@ func New(opts Options) (*Server, error) {
 // Close stops the janitor and closes the bbolt DB.
 func (s *Server) Close() error {
 	close(s.stop)
+	// Waited on, not just signalled: a sweep inside a bolt transaction races
+	// the close below, and bolt panics on a closed DB.
+	<-s.done
 	return s.store.db.Close()
 }
 
 // janitor finalizes scheduled key deletions whose waiting period has passed.
 func (s *Server) janitor() {
+	defer close(s.done)
 	t := time.NewTicker(time.Minute)
 	defer t.Stop()
 	for {
@@ -105,7 +114,7 @@ func (s *Server) janitor() {
 		case <-s.stop:
 			return
 		case <-t.C:
-			s.store.SweepDeletions()
+			bg.Tick(s.logf, "kms: janitor", func() { s.store.SweepDeletions() })
 		}
 	}
 }
