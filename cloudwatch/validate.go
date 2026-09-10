@@ -34,6 +34,26 @@ var standardUnits = []string{
 // reNamespace is the model's ^[^:] — a namespace may not begin with a colon.
 var reNamespace = regexp.MustCompile(`^[^:]`)
 
+// alarmTypes is the model's AlarmType. doze-aws only ever holds MetricAlarm,
+// but the other two are accepted as filter values and answered with nothing,
+// which is the truthful answer rather than a refusal.
+var alarmTypes = []string{"MetricAlarm", "CompositeAlarm", "LogAlarm"}
+
+// historyItemTypes includes the two contributor spellings the model carries.
+// They select history doze-aws never writes, so they filter to nothing.
+var historyItemTypes = []string{
+	historyConfigUpdate, historyStateUpdate, historyAction,
+	"AlarmContributorStateUpdate", "AlarmContributorAction",
+}
+
+// scanByValues orders DescribeAlarmHistory. AWS defaults to newest first.
+var scanByValues = []string{scanDescending, scanAscending}
+
+const (
+	scanDescending = "TimestampDescending"
+	scanAscending  = "TimestampAscending"
+)
+
 var constraintTables = map[string][]modelcheck.Constraint{
 	"PutMetricData": {
 		{Path: "Namespace", Kind: modelcheck.KindRequired},
@@ -141,6 +161,13 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	"DescribeAlarms": {
 		{Path: "AlarmNames[]", Kind: modelcheck.KindLength, Min: 1, Max: 255},
 		{Path: "AlarmNamePrefix", Kind: modelcheck.KindLength, Min: 1, Max: 255},
+		{Path: "ActionPrefix", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+		{Path: "AlarmTypes[]", Kind: modelcheck.KindEnum, Enum: alarmTypes},
+		// Composite-alarm filters. doze-aws evaluates metric alarms only, so
+		// the honest answer to "the children of X" is an empty list — but the
+		// value still has to be shaped like a name, as on AWS.
+		{Path: "ChildrenOfAlarmName", Kind: modelcheck.KindLength, Min: 1, Max: 255},
+		{Path: "ParentsOfAlarmName", Kind: modelcheck.KindLength, Min: 1, Max: 255},
 		{Path: "StateValue", Kind: modelcheck.KindEnum,
 			Enum: []string{stateOK, stateAlarm, stateInsufficientData}},
 		{Path: "MaxRecords", Kind: modelcheck.KindRange, Min: 1, Max: 100},
@@ -159,6 +186,10 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "Dimensions[].Name", Kind: modelcheck.KindLength, Min: 1, Max: 255},
 		{Path: "Dimensions[].Value", Kind: modelcheck.KindRequired},
 		{Path: "Dimensions[].Value", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+		{Path: "Tags[].Key", Kind: modelcheck.KindRequired},
+		{Path: "Tags[].Key", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+		{Path: "Tags[].Value", Kind: modelcheck.KindRequired},
+		{Path: "Tags[].Value", Kind: modelcheck.KindLength, Min: 0, Max: 256},
 	},
 	"DeleteAlarms": {
 		{Path: "AlarmNames", Kind: modelcheck.KindRequired},
@@ -176,8 +207,10 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	},
 	"DescribeAlarmHistory": {
 		{Path: "AlarmName", Kind: modelcheck.KindLength, Min: 1, Max: 255},
-		{Path: "HistoryItemType", Kind: modelcheck.KindEnum,
-			Enum: []string{historyConfigUpdate, historyStateUpdate, historyAction}},
+		{Path: "AlarmContributorId", Kind: modelcheck.KindLength, Min: 1, Max: 16},
+		{Path: "AlarmTypes[]", Kind: modelcheck.KindEnum, Enum: alarmTypes},
+		{Path: "HistoryItemType", Kind: modelcheck.KindEnum, Enum: historyItemTypes},
+		{Path: "ScanBy", Kind: modelcheck.KindEnum, Enum: scanByValues},
 		{Path: "MaxRecords", Kind: modelcheck.KindRange, Min: 1, Max: 100},
 	},
 	"EnableAlarmActions": {
@@ -187,6 +220,43 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	"DisableAlarmActions": {
 		{Path: "AlarmNames", Kind: modelcheck.KindRequired},
 		{Path: "AlarmNames[]", Kind: modelcheck.KindLength, Min: 1, Max: 255},
+	},
+
+	"PutDashboard": {
+		{Path: "DashboardName", Kind: modelcheck.KindRequired},
+		{Path: "DashboardBody", Kind: modelcheck.KindRequired},
+		{Path: "Tags[].Key", Kind: modelcheck.KindRequired},
+		{Path: "Tags[].Key", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+		{Path: "Tags[].Value", Kind: modelcheck.KindRequired},
+		{Path: "Tags[].Value", Kind: modelcheck.KindLength, Min: 0, Max: 256},
+	},
+	"GetDashboard": {
+		{Path: "DashboardName", Kind: modelcheck.KindRequired},
+	},
+	"DeleteDashboards": {
+		{Path: "DashboardNames", Kind: modelcheck.KindRequired},
+	},
+	// ListDashboards carries no constraint traits in the model.
+	"ListDashboards": {},
+
+	"TagResource": {
+		{Path: "ResourceARN", Kind: modelcheck.KindRequired},
+		{Path: "ResourceARN", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+		{Path: "Tags", Kind: modelcheck.KindRequired},
+		{Path: "Tags[].Key", Kind: modelcheck.KindRequired},
+		{Path: "Tags[].Key", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+		{Path: "Tags[].Value", Kind: modelcheck.KindRequired},
+		{Path: "Tags[].Value", Kind: modelcheck.KindLength, Min: 0, Max: 256},
+	},
+	"UntagResource": {
+		{Path: "ResourceARN", Kind: modelcheck.KindRequired},
+		{Path: "ResourceARN", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+		{Path: "TagKeys", Kind: modelcheck.KindRequired},
+		{Path: "TagKeys[]", Kind: modelcheck.KindLength, Min: 1, Max: 128},
+	},
+	"ListTagsForResource": {
+		{Path: "ResourceARN", Kind: modelcheck.KindRequired},
+		{Path: "ResourceARN", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
 	},
 }
 
@@ -203,12 +273,6 @@ var notHere = map[string]string{}
 
 func init() {
 	groups := map[string][]string{
-		"dashboards are stored and returned once the store lands": {
-			"PutDashboard", "GetDashboard", "ListDashboards", "DeleteDashboards",
-		},
-		"tagging lands with the resources there are to tag": {
-			"TagResource", "UntagResource", "ListTagsForResource",
-		},
 		"a composite alarm evaluates a rule over other alarms' states; doze-aws " +
 			"evaluates metric alarms only": {
 			"PutCompositeAlarm", "DescribeAlarmContributors",

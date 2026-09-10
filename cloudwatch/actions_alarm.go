@@ -36,6 +36,15 @@ func (s *Server) putMetricAlarm(req *request) (any, *awshttp.APIError) {
 			"alarm %s is an anomaly-detection alarm (ThresholdMetricId %s); "+
 				"doze-aws has no trained band to compare against.", name, id)
 	}
+	// Refused rather than ignored. A warm-up suppresses an alarm while the
+	// resource it watches settles; accepting the field and evaluating anyway
+	// would fire an alarm the caller asked to be held back, which is worse
+	// than saying the feature is not here.
+	if req.params.Has("WarmUpConfiguration") {
+		return nil, errf("InvalidParameterValueException",
+			"alarm %s sets WarmUpConfiguration; doze-aws evaluates every period "+
+				"from the moment the alarm exists and has no warm-up to honour.", name)
+	}
 
 	op := req.params.Str("ComparisonOperator")
 	if op == "" {
@@ -137,6 +146,7 @@ func (s *Server) putMetricAlarm(req *request) (any, *awshttp.APIError) {
 	if req.params.Has("ActionsEnabled") {
 		a.ActionsEnabled = req.params.Bool("ActionsEnabled")
 	}
+	a.Tags = tagsFromParams(req.params, "Tags")
 	// Replacing an alarm keeps its state: AWS does not reset an alarm to
 	// INSUFFICIENT_DATA because its description changed.
 	summary := "Alarm " + name + " created"
@@ -144,6 +154,11 @@ func (s *Server) putMetricAlarm(req *request) (any, *awshttp.APIError) {
 		a.State, a.StateReason = prev.State, prev.StateReason
 		a.StateReasonData, a.StateUpdatedMs = prev.StateReasonData, prev.StateUpdatedMs
 		summary = "Alarm " + name + " updated"
+		// Tags belong to the resource, not to the put: a re-put that does not
+		// mention them keeps what TagResource added, as on AWS.
+		if len(a.Tags) == 0 {
+			a.Tags = prev.Tags
+		}
 	}
 	h := historyEntry{AlarmName: name, Type: historyConfigUpdate,
 		AtMs: now.UnixMilli(), Summary: summary}
@@ -176,11 +191,24 @@ func (s *Server) describeAlarms(req *request) (any, *awshttp.APIError) {
 	names := req.params.Strs("AlarmNames")
 	prefix := req.params.Str("AlarmNamePrefix")
 	state := req.params.Str("StateValue")
+	actionPrefix := req.params.Str("ActionPrefix")
 
 	// AWS answers composite alarms in a separate member. doze-aws has none,
 	// so it is always empty rather than absent — a caller ranging over it
 	// should find a list.
 	out := describeAlarmsResult{MetricAlarms: []alarmView{}, CompositeAlarms: []alarmView{}}
+
+	// Three filters select things doze-aws never holds, and each answers
+	// nothing rather than everything. Accepting one and ignoring it would be
+	// worse than refusing it: a caller asking for the children of a composite
+	// alarm would receive every metric alarm in the account and believe it.
+	if req.params.Str("ChildrenOfAlarmName") != "" || req.params.Str("ParentsOfAlarmName") != "" {
+		return out, nil
+	}
+	if types := req.params.Strs("AlarmTypes"); len(types) > 0 && !slices.Contains(types, "MetricAlarm") {
+		return out, nil
+	}
+
 	for _, a := range all {
 		if len(names) > 0 && !slices.Contains(names, a.Name) {
 			continue
@@ -191,9 +219,26 @@ func (s *Server) describeAlarms(req *request) (any, *awshttp.APIError) {
 		if state != "" && a.State != state {
 			continue
 		}
+		if actionPrefix != "" && !hasActionWithPrefix(a, actionPrefix) {
+			continue
+		}
 		out.MetricAlarms = append(out.MetricAlarms, viewOf(a))
 	}
 	return out, nil
+}
+
+// hasActionWithPrefix reports whether any of an alarm's actions starts with
+// the prefix — AWS's ActionPrefix filter, which is how "every alarm that
+// notifies this topic" is asked.
+func hasActionWithPrefix(a *alarm, prefix string) bool {
+	for _, group := range [][]string{a.AlarmActions, a.OKActions, a.InsufficientData} {
+		for _, arn := range group {
+			if strings.HasPrefix(arn, prefix) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // describeAlarmsForMetric answers which alarms watch one metric, which is how
@@ -344,6 +389,22 @@ func (s *Server) describeAlarmHistory(req *request) (any, *awshttp.APIError) {
 		return nil, awshttp.AsAPIError(err)
 	}
 	out := describeAlarmHistoryResult{AlarmHistoryItems: []historyView{}}
+
+	// Two filters name history doze-aws never writes. Contributor history
+	// belongs to Contributor Insights, and the only alarm type here is
+	// MetricAlarm — so each answers an empty list rather than every entry.
+	if req.params.Str("AlarmContributorId") != "" {
+		return out, nil
+	}
+	if types := req.params.Strs("AlarmTypes"); len(types) > 0 && !slices.Contains(types, "MetricAlarm") {
+		return out, nil
+	}
+	// readHistory answers newest first, which is AWS's default. Ascending is
+	// the same list read the other way.
+	if req.params.Str("ScanBy") == scanAscending {
+		slices.Reverse(entries)
+	}
+
 	for _, h := range entries {
 		out.AlarmHistoryItems = append(out.AlarmHistoryItems, historyView{
 			AlarmName:       h.AlarmName,

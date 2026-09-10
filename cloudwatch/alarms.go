@@ -93,6 +93,8 @@ type alarm struct {
 	// StateSetManually records that SetAlarmState put this state here, so the
 	// evaluator does not immediately undo a deliberate flip.
 	StateSetManually bool `json:"state_set_manually,omitempty"`
+
+	Tags map[string]string `json:"tags,omitempty"`
 }
 
 // ARN is the alarm's ARN, which is what an IAM policy names and what an

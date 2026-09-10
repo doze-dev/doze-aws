@@ -33,6 +33,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/cloudwatch"
 	"github.com/doze-dev/doze-aws/internal/auditkit"
 	"github.com/doze-dev/doze-aws/internal/rpcv2cbor"
 )
@@ -50,10 +52,10 @@ type auditCase struct {
 // dispatched is the set of operations with a real handler. A case against a
 // refused operation proves nothing — it answers UnsupportedOperationException
 // whatever the input — so replaying one would be a case that cannot fail.
-var dispatched = map[string]bool{
-	"PutMetricData": true, "ListMetrics": true,
-	"GetMetricStatistics": true, "GetMetricData": true,
-}
+//
+// Derived from the dispatch table itself: this was a hand-written list, and
+// it silently excluded every alarm operation from the day they landed.
+var dispatched = cloudwatch.Dispatched()
 
 func loadCases(t *testing.T) []auditCase {
 	t.Helper()
@@ -115,8 +117,58 @@ func baselines() map[string]map[string]any {
 				},
 			}},
 		},
+
+		// The alarm operations. They have had model-derived cases in the
+		// fixture since D3 and no baseline to mutate, so none of them ran.
+		"PutMetricAlarm": {
+			"AlarmName": auditAlarm, "Namespace": "Audit", "MetricName": "Probe",
+			"Statistic": "Sum", "Period": 60.0, "EvaluationPeriods": 1.0,
+			"ComparisonOperator": "GreaterThanThreshold", "Threshold": 1.0,
+			"Dimensions": []any{map[string]any{"Name": "Stage", "Value": "prod"}},
+		},
+		"DescribeAlarms":          {},
+		"DescribeAlarmsForMetric": {"Namespace": "Audit", "MetricName": "Probe"},
+		"DescribeAlarmHistory":    {"AlarmName": auditAlarm},
+		"SetAlarmState": {
+			"AlarmName": auditAlarm, "StateValue": "ALARM", "StateReason": "by hand",
+		},
+		"EnableAlarmActions":  {"AlarmNames": []any{auditAlarm}},
+		"DisableAlarmActions": {"AlarmNames": []any{auditAlarm}},
+		// DeleteAlarms consumes what it names, so it gets its own alarm —
+		// seeded per case by prepare, not the shared one every other alarm
+		// operation reads.
+		"DeleteAlarms": {"AlarmNames": []any{auditDoomedAlarm}},
+
+		// Dashboards and tags.
+		"PutDashboard": {
+			"DashboardName": auditDashboard,
+			"DashboardBody": `{"widgets":[]}`,
+		},
+		"GetDashboard":     {"DashboardName": auditDashboard},
+		"ListDashboards":   {},
+		"DeleteDashboards": {"DashboardNames": []any{auditDoomedDashboard}},
+		"TagResource": {
+			"ResourceARN": awsident.ARN("cloudwatch", "alarm:"+auditAlarm),
+			"Tags":        []any{map[string]any{"Key": "team", "Value": "audit"}},
+		},
+		"UntagResource": {
+			"ResourceARN": awsident.ARN("cloudwatch", "alarm:"+auditAlarm),
+			"TagKeys":     []any{"team"},
+		},
+		"ListTagsForResource": {
+			"ResourceARN": awsident.ARN("cloudwatch", "alarm:"+auditAlarm),
+		},
 	}
 }
+
+// The fixture's named resources. The doomed pair exist so the two destructive
+// operations have something of their own to consume.
+const (
+	auditAlarm           = "audit-alarm"
+	auditDoomedAlarm     = "audit-doomed-alarm"
+	auditDashboard       = "audit-dashboard"
+	auditDoomedDashboard = "audit-doomed-dashboard"
+)
 
 // exemplars are valid fillers for the containers a case reaches through. A
 // constraint on Dimensions[].Name can only be tested if the Dimensions list
@@ -146,7 +198,32 @@ func exemplars() map[string]any {
 		"MetricDataQueries[].MetricStat":  metricStat,
 		"EntityMetricData[]":              []any{map[string]any{"MetricData": []any{datum}}},
 		"EntityMetricData[].MetricData[]": []any{datum},
+		"Tags[]":                          []any{map[string]any{"Key": "team", "Value": "audit"}},
 	}
+}
+
+// outOfScope are the case paths that reach INTO a feature doze-aws refuses
+// wholesale. Replaying one would be the exact trap this suite exists to
+// avoid, in its most convincing form: the request IS refused, so the runner
+// records the constraint as enforced — but it was refused for the feature,
+// not for the value, and the constraint is not checked at all.
+//
+// Each entry is a path prefix and why the feature is not here. The refusal
+// itself is tested where it belongs, by name, in the alarm tests.
+var outOfScope = map[string]string{
+	"Metrics": "metric math: PutMetricAlarm refuses Metrics by name, so every " +
+		"case under it would be refused for the feature rather than the value",
+	"WarmUpConfiguration": "alarm warm-up: refused by name, same reason",
+}
+
+// skipReason answers why a case is out of scope, or "" when it should run.
+func skipReason(path string) string {
+	for prefix, why := range outOfScope {
+		if path == prefix || strings.HasPrefix(path, prefix+".") || strings.HasPrefix(path, prefix+"[") {
+			return why
+		}
+	}
+	return ""
 }
 
 // knownGaps are constraints doze-aws does not yet enforce, listed explicitly
@@ -259,6 +336,9 @@ func TestCloudWatchRejectsWhatTheModelForbids(t *testing.T) {
 
 	for _, w := range wires {
 		t.Run(w.name, func(t *testing.T) {
+			// The previous wire's baseline pass consumed the doomed alarm and
+			// dashboard; put them back before this one runs.
+			seedAudit(t, ts.URL)
 			// Every baseline must be accepted before any mutation of it means
 			// anything. A failure here is unusable, not a pass.
 			for op, body := range base {
@@ -270,8 +350,12 @@ func TestCloudWatchRejectsWhatTheModelForbids(t *testing.T) {
 				}
 			}
 
-			checked, gaps := 0, 0
+			checked, gaps, skipped := 0, 0, 0
 			for _, c := range cases {
+				if skipReason(c.Path) != "" {
+					skipped++
+					continue
+				}
 				body := auditkit.DeepCopy(base[c.Operation]).(map[string]any)
 				if err := auditkit.Apply(body, ex, c.Path, c.Value, true); err != nil {
 					t.Errorf("%s %s: building the case: %v", c.Operation, c.Path, err)
@@ -298,8 +382,8 @@ func TestCloudWatchRejectsWhatTheModelForbids(t *testing.T) {
 					checked++
 				}
 			}
-			t.Logf("%s: %d/%d model constraints enforced across %d dispatched operations",
-				w.name, checked, len(cases), len(base))
+			t.Logf("%s: %d/%d model constraints enforced across %d dispatched operations "+
+				"(%d out of scope)", w.name, checked, len(cases)-skipped, len(base), skipped)
 			if gaps > len(knownGaps) {
 				t.Errorf("%d unlisted gaps", gaps-len(knownGaps))
 			}
@@ -307,16 +391,39 @@ func TestCloudWatchRejectsWhatTheModelForbids(t *testing.T) {
 	}
 }
 
-// seedAudit publishes the series the read baselines address, so a baseline is
-// accepted for the right reason rather than by answering an empty result.
+// seedAudit puts the fixture in place: one series, the alarms and the
+// dashboards the baselines address.
+//
+// Called once per wire rather than once per test, because the baseline pass
+// runs every baseline — including DeleteAlarms and DeleteDashboards, which
+// consume what they name. Without a re-seed the second wire's baseline pass
+// would fail on a resource the first wire deleted, and the failure would look
+// like a protocol bug rather than a fixture one.
 func seedAudit(t *testing.T, base string) {
 	t.Helper()
-	body := `{"Namespace":"Audit","MetricData":[{"MetricName":"Probe","Value":1,` +
-		`"Unit":"Count","Dimensions":[{"Name":"Stage","Value":"prod"}],` +
-		`"Timestamp":"2026-09-10T11:30:00Z"}]}`
-	if code, _, out := do(t, jsonRequest(t, base, "PutMetricData", body)); code != 200 {
-		t.Fatalf("seeding: %d: %s", code, out)
+	post := func(op, body string) {
+		t.Helper()
+		if code, _, out := do(t, jsonRequest(t, base, op, body)); code != 200 {
+			t.Fatalf("seeding %s: %d: %s", op, code, out)
+		}
 	}
+	post("PutMetricData", `{"Namespace":"Audit","MetricData":[{"MetricName":"Probe","Value":1,`+
+		`"Unit":"Count","Dimensions":[{"Name":"Stage","Value":"prod"}],`+
+		`"Timestamp":"2026-09-10T11:30:00Z"}]}`)
+	for _, name := range []string{auditAlarm, auditDoomedAlarm} {
+		post("PutMetricAlarm", `{"AlarmName":"`+name+`","Namespace":"Audit","MetricName":"Probe",`+
+			`"Statistic":"Sum","Period":60,"EvaluationPeriods":1,`+
+			`"ComparisonOperator":"GreaterThanThreshold","Threshold":1,`+
+			`"Dimensions":[{"Name":"Stage","Value":"prod"}]}`)
+	}
+	for _, name := range []string{auditDashboard, auditDoomedDashboard} {
+		post("PutDashboard", `{"DashboardName":"`+name+`","DashboardBody":"{\"widgets\":[]}"}`)
+	}
+	// TagResource's baseline adds this tag; UntagResource's removes it. The
+	// order the two baselines run in is map order, so the tag is seeded here
+	// and neither baseline depends on the other having gone first.
+	post("TagResource", `{"ResourceARN":"`+awsident.ARN("cloudwatch", "alarm:"+auditAlarm)+`",`+
+		`"Tags":[{"Key":"team","Value":"audit"}]}`)
 }
 
 func truncate(b []byte) string {

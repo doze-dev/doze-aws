@@ -32,6 +32,15 @@ var handlers = map[string]handler{
 	"DescribeAlarmHistory":    (*Server).describeAlarmHistory,
 	"EnableAlarmActions":      (*Server).enableAlarmActions,
 	"DisableAlarmActions":     (*Server).disableAlarmActions,
+
+	"PutDashboard":     (*Server).putDashboardAction,
+	"GetDashboard":     (*Server).getDashboard,
+	"ListDashboards":   (*Server).listDashboardsAction,
+	"DeleteDashboards": (*Server).deleteDashboardsAction,
+
+	"TagResource":         (*Server).tagResource,
+	"UntagResource":       (*Server).untagResource,
+	"ListTagsForResource": (*Server).listTagsForResource,
 }
 
 // datum is one validated metric observation. D1a stops at validation — the
