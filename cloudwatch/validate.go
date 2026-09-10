@@ -61,6 +61,23 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "OwningAccount", Kind: modelcheck.KindLength, Min: 1, Max: 255},
 		{Path: "RecentlyActive", Kind: modelcheck.KindEnum, Enum: []string{"PT3H"}},
 	},
+	"GetMetricData": {
+		{Path: "StartTime", Kind: modelcheck.KindRequired},
+		{Path: "EndTime", Kind: modelcheck.KindRequired},
+		{Path: "MetricDataQueries", Kind: modelcheck.KindRequired},
+		{Path: "MetricDataQueries[].Id", Kind: modelcheck.KindRequired},
+		{Path: "MetricDataQueries[].Id", Kind: modelcheck.KindLength, Min: 1, Max: 255},
+		{Path: "MetricDataQueries[].Expression", Kind: modelcheck.KindLength, Min: 1, Max: 2048},
+		{Path: "MetricDataQueries[].AccountId", Kind: modelcheck.KindLength, Min: 1, Max: 255},
+		{Path: "MetricDataQueries[].Period", Kind: modelcheck.KindRange, Min: 1, Max: modelcheck.NoMax},
+		{Path: "MetricDataQueries[].MetricStat.Metric", Kind: modelcheck.KindRequired},
+		{Path: "MetricDataQueries[].MetricStat.Period", Kind: modelcheck.KindRequired},
+		{Path: "MetricDataQueries[].MetricStat.Period", Kind: modelcheck.KindRange, Min: 1, Max: modelcheck.NoMax},
+		{Path: "MetricDataQueries[].MetricStat.Stat", Kind: modelcheck.KindRequired},
+		{Path: "MetricDataQueries[].MetricStat.Unit", Kind: modelcheck.KindEnum, Enum: standardUnits},
+		{Path: "ScanBy", Kind: modelcheck.KindEnum,
+			Enum: []string{"TimestampDescending", "TimestampAscending"}},
+	},
 	"GetMetricStatistics": {
 		{Path: "Namespace", Kind: modelcheck.KindRequired},
 		{Path: "Namespace", Kind: modelcheck.KindLength, Min: 1, Max: 255},
@@ -94,9 +111,6 @@ var notHere = map[string]string{}
 
 func init() {
 	groups := map[string][]string{
-		"the metric store lands in the next sub-batch": {
-			"GetMetricData",
-		},
 		"alarms land in the sub-batch after the metric store": {
 			"PutMetricAlarm", "DescribeAlarms", "DescribeAlarmsForMetric", "DeleteAlarms",
 			"SetAlarmState", "DescribeAlarmHistory", "EnableAlarmActions", "DisableAlarmActions",

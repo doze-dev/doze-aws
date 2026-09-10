@@ -99,6 +99,137 @@ func (s *Server) getMetricStatistics(req *request) (any, *awshttp.APIError) {
 	return out, nil
 }
 
+// getMetricData answers several metrics at once, which is the read CDK and
+// the console emit.
+//
+// Metric math is refused rather than half-implemented. A query carrying an
+// Expression is asking for an arithmetic language over other queries' results
+// — SUM(METRICS()), RATE(m1), FILL(m1, 0) — and a partial evaluator that
+// silently returned the wrong number for the operators it did not know would
+// be worse than one that says so. A single MetricStat per query is accepted,
+// which is what CDK emits for an alarm and what the console reads.
+func (s *Server) getMetricData(req *request) (any, *awshttp.APIError) {
+	from, ok := req.params.Time("StartTime")
+	if !ok {
+		return nil, errMissingParameter("The parameter StartTime is required.")
+	}
+	to, ok := req.params.Time("EndTime")
+	if !ok {
+		return nil, errMissingParameter("The parameter EndTime is required.")
+	}
+	if !from.Before(to) {
+		return nil, errInvalidParameter("The parameter StartTime must be less than EndTime.")
+	}
+	queries := req.params.List("MetricDataQueries")
+	if len(queries) == 0 {
+		return nil, errMissingParameter("The parameter MetricDataQueries is required.")
+	}
+	// Descending is AWS's default, and the one the console wants: newest
+	// first, so a truncated read shows the most recent data rather than the
+	// oldest.
+	descending := req.params.Str("ScanBy") != "TimestampAscending"
+
+	out := getMetricDataResult{MetricDataResults: []metricDataResultView{}}
+	for _, q := range queries {
+		id := q.Str("Id")
+		if id == "" {
+			return nil, errMissingParameter("The parameter MetricDataQueries.member.N.Id is required.")
+		}
+		if q.Str("Expression") != "" {
+			return nil, errf("InvalidParameterValueException",
+				"doze-aws does not evaluate metric math: query %s carries an Expression. "+
+					"A single MetricStat per query is supported, which is what CDK emits.", id)
+		}
+		ms := q.Map("MetricStat")
+		if ms == nil {
+			return nil, errMissingParameter(
+				"The parameter MetricDataQueries.member.N.MetricStat is required for query %s.", id)
+		}
+		res, aerr := s.oneMetricStat(id, q, ms, from, to, descending)
+		if aerr != nil {
+			return nil, aerr
+		}
+		// ReturnData false means "compute it for a later expression but do
+		// not send it". With no expressions to feed, the honest answer is an
+		// empty result carrying its id, not silence.
+		if q.Has("ReturnData") && !q.Bool("ReturnData") {
+			res.Timestamps, res.Values = []time.Time{}, []float64{}
+		}
+		out.MetricDataResults = append(out.MetricDataResults, res)
+	}
+	return out, nil
+}
+
+// oneMetricStat resolves a single query against the store.
+func (s *Server) oneMetricStat(id string, q, ms params, from, to time.Time,
+	descending bool) (metricDataResultView, *awshttp.APIError) {
+	metric := ms.Map("Metric")
+	if metric == nil {
+		return metricDataResultView{}, errMissingParameter(
+			"The parameter MetricStat.Metric is required for query %s.", id)
+	}
+	ns, name := metric.Str("Namespace"), metric.Str("MetricName")
+	if ns == "" || name == "" {
+		return metricDataResultView{}, errMissingParameter(
+			"MetricStat.Metric requires Namespace and MetricName for query %s.", id)
+	}
+	periodSecs := ms.Int("Period", q.Int("Period", 0))
+	if periodSecs <= 0 {
+		return metricDataResultView{}, errMissingParameter(
+			"The parameter MetricStat.Period is required for query %s.", id)
+	}
+	if aerr := checkPeriod(periodSecs); aerr != nil {
+		return metricDataResultView{}, aerr
+	}
+	st, ok := parseStat(ms.Str("Stat"))
+	if !ok {
+		return metricDataResultView{}, errInvalidParameter(
+			"The value %s is not a valid statistic for query %s.", ms.Str("Stat"), id)
+	}
+
+	dims := map[string]string{}
+	for _, d := range metric.List("Dimensions") {
+		n, v := d.Str("Name"), d.Str("Value")
+		if n == "" || v == "" {
+			return metricDataResultView{}, errInvalidParameter(
+				"The dimension Name and Value must both be set for query %s.", id)
+		}
+		dims[n] = v
+	}
+
+	samples, err := s.readSamples(seriesKey(ns, name, dims), from, to)
+	if err != nil {
+		return metricDataResultView{}, awshttp.AsAPIError(err)
+	}
+	if unit := ms.Str("Unit"); unit != "" {
+		kept := samples[:0]
+		for _, sm := range samples {
+			if sm.Unit == unit {
+				kept = append(kept, sm)
+			}
+		}
+		samples = kept
+	}
+
+	label := q.Str("Label")
+	if label == "" {
+		label = name + " " + st.Name
+	}
+	res := metricDataResultView{Id: id, Label: label, StatusCode: "Complete",
+		Timestamps: []time.Time{}, Values: []float64{}}
+	buckets := bucketize(samples, from, to, time.Duration(periodSecs)*time.Second)
+	if descending {
+		for i, j := 0, len(buckets)-1; i < j; i, j = i+1, j-1 {
+			buckets[i], buckets[j] = buckets[j], buckets[i]
+		}
+	}
+	for _, b := range buckets {
+		res.Timestamps = append(res.Timestamps, b.Start.UTC())
+		res.Values = append(res.Values, b.value(st))
+	}
+	return res, nil
+}
+
 // checkPeriod applies AWS's granularity rule.
 func checkPeriod(secs int) *awshttp.APIError {
 	switch secs {

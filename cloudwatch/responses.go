@@ -83,3 +83,22 @@ type getMetricStatisticsResult struct {
 	Label      string          `json:"Label" xml:"Label"`
 	Datapoints []datapointView `json:"Datapoints" xml:"Datapoints>member"`
 }
+
+// metricDataResultView is one query's answer: parallel Timestamps and Values
+// rather than a list of points, which is the shape GetMetricData uses.
+type metricDataResultView struct {
+	Id         string      `json:"Id" xml:"Id"`
+	Label      string      `json:"Label,omitempty" xml:"Label,omitempty"`
+	Timestamps []time.Time `json:"Timestamps" xml:"Timestamps>member"`
+	Values     []float64   `json:"Values" xml:"Values>member"`
+	// StatusCode is Complete, InternalError or PartialData. Everything this
+	// answers is complete: the samples are local, so there is no partial read
+	// to report.
+	StatusCode string `json:"StatusCode,omitempty" xml:"StatusCode,omitempty"`
+}
+
+// getMetricDataResult answers GetMetricData.
+type getMetricDataResult struct {
+	MetricDataResults []metricDataResultView `json:"MetricDataResults" xml:"MetricDataResults>member"`
+	NextToken         string                 `json:"NextToken,omitempty" xml:"NextToken,omitempty"`
+}

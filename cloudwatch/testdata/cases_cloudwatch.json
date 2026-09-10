@@ -1,0 +1,5618 @@
+[
+  {
+    "operation": "AssociateDatasetKmsKey",
+    "path": "DatasetIdentifier",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "DatasetIdentifier",
+      "KmsKeyArn"
+    ]
+  },
+  {
+    "operation": "AssociateDatasetKmsKey",
+    "path": "DatasetIdentifier",
+    "why": "does not match ^(default|arn:[a-zA-Z0-9-]+:cloudwatch:[a-zA-Z0-9-]*:\\d{12}:dataset/default)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^(default|arn:[a-zA-Z0-9-]+:cloudwatch:[a-zA-Z0-9-]*:\\d{12}:dataset/default)$",
+    "required_members": [
+      "DatasetIdentifier",
+      "KmsKeyArn"
+    ]
+  },
+  {
+    "operation": "AssociateDatasetKmsKey",
+    "path": "DatasetIdentifier",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "DatasetIdentifier",
+      "KmsKeyArn"
+    ]
+  },
+  {
+    "operation": "AssociateDatasetKmsKey",
+    "path": "DatasetIdentifier",
+    "why": "longer than the maximum length of 2048",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 2049
+    },
+    "constraint": "length 1..2048",
+    "required_members": [
+      "DatasetIdentifier",
+      "KmsKeyArn"
+    ]
+  },
+  {
+    "operation": "AssociateDatasetKmsKey",
+    "path": "KmsKeyArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "DatasetIdentifier",
+      "KmsKeyArn"
+    ]
+  },
+  {
+    "operation": "AssociateDatasetKmsKey",
+    "path": "KmsKeyArn",
+    "why": "shorter than the minimum length of 20",
+    "value": "",
+    "constraint": "length 20..2048",
+    "required_members": [
+      "DatasetIdentifier",
+      "KmsKeyArn"
+    ]
+  },
+  {
+    "operation": "AssociateDatasetKmsKey",
+    "path": "KmsKeyArn",
+    "why": "longer than the maximum length of 2048",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 2049
+    },
+    "constraint": "length 20..2048",
+    "required_members": [
+      "DatasetIdentifier",
+      "KmsKeyArn"
+    ]
+  },
+  {
+    "operation": "AssociateDatasetKmsKey",
+    "path": "KmsKeyArn",
+    "why": "does not match ^arn:[a-zA-Z0-9-]+:kms:[a-zA-Z0-9-]+:\\d{12}:key/[a-f0-9-]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^arn:[a-zA-Z0-9-]+:kms:[a-zA-Z0-9-]+:\\d{12}:key/[a-f0-9-]+$",
+    "required_members": [
+      "DatasetIdentifier",
+      "KmsKeyArn"
+    ]
+  },
+  {
+    "operation": "DeleteAlarmMuteRule",
+    "path": "AlarmMuteRuleName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmMuteRuleName"
+    ]
+  },
+  {
+    "operation": "DeleteAlarmMuteRule",
+    "path": "AlarmMuteRuleName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmMuteRuleName"
+    ]
+  },
+  {
+    "operation": "DeleteAlarmMuteRule",
+    "path": "AlarmMuteRuleName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmMuteRuleName"
+    ]
+  },
+  {
+    "operation": "DeleteAlarms",
+    "path": "AlarmNames",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmNames"
+    ]
+  },
+  {
+    "operation": "DeleteAlarms",
+    "path": "AlarmNames[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmNames"
+    ]
+  },
+  {
+    "operation": "DeleteAlarms",
+    "path": "AlarmNames[]",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmNames"
+    ]
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "AnomalyDetectorId",
+    "why": "does not match ^[A-Za-z0-9_./:%()+-]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[A-Za-z0-9_./:%()+-]+$"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "AnomalyDetectorId",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "AnomalyDetectorId",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "Dimensions[].Name",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "Dimensions[].Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "Dimensions[].Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "Dimensions[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "Dimensions[].Value",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "Dimensions[].Value",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].AccountId",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].AccountId",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].Expression",
+    "why": "longer than the maximum length of 2048",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 2049
+    },
+    "constraint": "length 1..2048"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].Expression",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].Id",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].Id",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].Id",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].MetricStat.Metric",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].MetricStat.Period",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].MetricStat.Stat",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].Period",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "MetricName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "MetricName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "Namespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "Namespace",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.AccountId",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.AccountId",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Dimensions[].Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Dimensions[].Name",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Dimensions[].Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Dimensions[].Value",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Dimensions[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Dimensions[].Value",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.MetricName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.MetricName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Namespace",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Namespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Stat",
+    "why": "does not match ^(SampleCount|Average|Sum|Minimum|Maximum|IQM|(p|tc|tm|ts|wm)(\\d{1,2}(\\.\\d{0,10})?|100)|[ou]\\d+(\\.\\d*)?)(_E|_L|_H)?|(TM|TC|TS|WM)\\(((((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?:((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%|((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%:(((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?)\\)|(TM|TC|TS|WM|PR)\\(((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)):((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?|((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?:(\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))\\)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^(SampleCount|Average|Sum|Minimum|Maximum|IQM|(p|tc|tm|ts|wm)(\\d{1,2}(\\.\\d{0,10})?|100)|[ou]\\d+(\\.\\d*)?)(_E|_L|_H)?|(TM|TC|TS|WM)\\(((((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?:((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%|((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%:(((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?)\\)|(TM|TC|TS|WM|PR)\\(((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)):((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?|((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?:(\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))\\)$"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Stat",
+    "why": "longer than the maximum length of 50",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..50"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "Stat",
+    "why": "does not match ^(SampleCount|Average|Sum|Minimum|Maximum|IQM|(p|tc|tm|ts|wm)(\\d{1,2}(\\.\\d{0,10})?|100)|[ou]\\d+(\\.\\d*)?)(_E|_L|_H)?|(TM|TC|TS|WM)\\(((((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?:((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%|((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%:(((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?)\\)|(TM|TC|TS|WM|PR)\\(((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)):((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?|((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?:(\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))\\)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^(SampleCount|Average|Sum|Minimum|Maximum|IQM|(p|tc|tm|ts|wm)(\\d{1,2}(\\.\\d{0,10})?|100)|[ou]\\d+(\\.\\d*)?)(_E|_L|_H)?|(TM|TC|TS|WM)\\(((((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?:((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%|((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%:(((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?)\\)|(TM|TC|TS|WM|PR)\\(((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)):((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?|((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?:(\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))\\)$"
+  },
+  {
+    "operation": "DeleteAnomalyDetector",
+    "path": "Stat",
+    "why": "longer than the maximum length of 50",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..50"
+  },
+  {
+    "operation": "DeleteDashboards",
+    "path": "DashboardNames",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "DashboardNames"
+    ]
+  },
+  {
+    "operation": "DeleteInsightRules",
+    "path": "RuleNames",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "RuleNames"
+    ]
+  },
+  {
+    "operation": "DeleteInsightRules",
+    "path": "RuleNames[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "RuleNames"
+    ]
+  },
+  {
+    "operation": "DeleteInsightRules",
+    "path": "RuleNames[]",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "RuleNames"
+    ]
+  },
+  {
+    "operation": "DeleteInsightRules",
+    "path": "RuleNames[]",
+    "why": "does not match ^[\\x20-\\x7E]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\x20-\\x7E]+$",
+    "required_members": [
+      "RuleNames"
+    ]
+  },
+  {
+    "operation": "DeleteMetricStream",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DeleteMetricStream",
+    "path": "Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DeleteMetricStream",
+    "path": "Name",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmContributors",
+    "path": "AlarmName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmContributors",
+    "path": "AlarmName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmContributors",
+    "path": "AlarmName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmHistory",
+    "path": "AlarmContributorId",
+    "why": "longer than the maximum length of 16",
+    "value": "aaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..16"
+  },
+  {
+    "operation": "DescribeAlarmHistory",
+    "path": "AlarmContributorId",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..16"
+  },
+  {
+    "operation": "DescribeAlarmHistory",
+    "path": "AlarmName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAlarmHistory",
+    "path": "AlarmName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAlarmHistory",
+    "path": "AlarmTypes[]",
+    "why": "not one of MetricAlarm, LogAlarm, CompositeAlarm",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum MetricAlarm|LogAlarm|CompositeAlarm"
+  },
+  {
+    "operation": "DescribeAlarmHistory",
+    "path": "HistoryItemType",
+    "why": "not one of ConfigurationUpdate, StateUpdate, Action, AlarmContributorStateUpdate, AlarmContributorAction",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum ConfigurationUpdate|StateUpdate|Action|AlarmContributorStateUpdate|AlarmContributorAction"
+  },
+  {
+    "operation": "DescribeAlarmHistory",
+    "path": "MaxRecords",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..100"
+  },
+  {
+    "operation": "DescribeAlarmHistory",
+    "path": "MaxRecords",
+    "why": "above the maximum of 100",
+    "value": 101,
+    "constraint": "range 1..100"
+  },
+  {
+    "operation": "DescribeAlarmHistory",
+    "path": "ScanBy",
+    "why": "not one of TimestampDescending, TimestampAscending",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum TimestampDescending|TimestampAscending"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "ActionPrefix",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "ActionPrefix",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "AlarmNamePrefix",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "AlarmNamePrefix",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "AlarmNames[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "AlarmNames[]",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "AlarmTypes[]",
+    "why": "not one of CompositeAlarm, MetricAlarm, LogAlarm",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum CompositeAlarm|MetricAlarm|LogAlarm"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "ChildrenOfAlarmName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "ChildrenOfAlarmName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "MaxRecords",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..100"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "MaxRecords",
+    "why": "above the maximum of 100",
+    "value": 101,
+    "constraint": "range 1..100"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "ParentsOfAlarmName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "ParentsOfAlarmName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAlarms",
+    "path": "StateValue",
+    "why": "not one of OK, ALARM, INSUFFICIENT_DATA",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum OK|ALARM|INSUFFICIENT_DATA"
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "Dimensions[].Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "Dimensions[].Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "Dimensions[].Name",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "Dimensions[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "Dimensions[].Value",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "Dimensions[].Value",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "MetricName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "MetricName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "MetricName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "Namespace",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "Namespace",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "Namespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "Period",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "Statistic",
+    "why": "not one of SampleCount, Average, Sum, Minimum, Maximum",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum SampleCount|Average|Sum|Minimum|Maximum",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAlarmsForMetric",
+    "path": "Unit",
+    "why": "not one of Megabytes, Gigabits, Percent, Count/Second, Microseconds, Kilobytes, Bytes/Second, Terabytes/Second, Bits/Second, Kilobits/Second, Terabits/Second, Bytes, Gigabytes, Megabits, Terabits, Count, Kilobytes/Second, Megabytes/Second, Gigabits/Second, Milliseconds, Terabytes, Bits, Kilobits, Gigabytes/Second, Megabits/Second, None, Seconds",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum Megabytes|Gigabits|Percent|Count/Second|Microseconds|Kilobytes|Bytes/Second|Terabytes/Second|Bits/Second|Kilobits/Second|Terabits/Second|Bytes|Gigabytes|Megabits|Terabits|Count|Kilobytes/Second|Megabytes/Second|Gigabits/Second|Milliseconds|Terabytes|Bits|Kilobits|Gigabytes/Second|Megabits/Second|None|Seconds",
+    "required_members": [
+      "MetricName",
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "AnomalyDetectorIds[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "AnomalyDetectorIds[]",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "AnomalyDetectorIds[]",
+    "why": "does not match ^[A-Za-z0-9_./:%()+-]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[A-Za-z0-9_./:%()+-]+$"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "AnomalyDetectorTypes[]",
+    "why": "not one of SINGLE_METRIC, METRIC_MATH",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum SINGLE_METRIC|METRIC_MATH"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "Dimensions[].Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "Dimensions[].Name",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "Dimensions[].Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "Dimensions[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "Dimensions[].Value",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "Dimensions[].Value",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "MaxResults",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "MetricName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "MetricName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "Namespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeAnomalyDetectors",
+    "path": "Namespace",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "DescribeInsightRules",
+    "path": "MaxResults",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..500"
+  },
+  {
+    "operation": "DescribeInsightRules",
+    "path": "MaxResults",
+    "why": "above the maximum of 500",
+    "value": 501,
+    "constraint": "range 1..500"
+  },
+  {
+    "operation": "DisableAlarmActions",
+    "path": "AlarmNames",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmNames"
+    ]
+  },
+  {
+    "operation": "DisableAlarmActions",
+    "path": "AlarmNames[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmNames"
+    ]
+  },
+  {
+    "operation": "DisableAlarmActions",
+    "path": "AlarmNames[]",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmNames"
+    ]
+  },
+  {
+    "operation": "DisableInsightRules",
+    "path": "RuleNames",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "RuleNames"
+    ]
+  },
+  {
+    "operation": "DisableInsightRules",
+    "path": "RuleNames[]",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "RuleNames"
+    ]
+  },
+  {
+    "operation": "DisableInsightRules",
+    "path": "RuleNames[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "RuleNames"
+    ]
+  },
+  {
+    "operation": "DisableInsightRules",
+    "path": "RuleNames[]",
+    "why": "does not match ^[\\x20-\\x7E]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\x20-\\x7E]+$",
+    "required_members": [
+      "RuleNames"
+    ]
+  },
+  {
+    "operation": "DisassociateDatasetKmsKey",
+    "path": "DatasetIdentifier",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "DatasetIdentifier"
+    ]
+  },
+  {
+    "operation": "DisassociateDatasetKmsKey",
+    "path": "DatasetIdentifier",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "DatasetIdentifier"
+    ]
+  },
+  {
+    "operation": "DisassociateDatasetKmsKey",
+    "path": "DatasetIdentifier",
+    "why": "longer than the maximum length of 2048",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 2049
+    },
+    "constraint": "length 1..2048",
+    "required_members": [
+      "DatasetIdentifier"
+    ]
+  },
+  {
+    "operation": "DisassociateDatasetKmsKey",
+    "path": "DatasetIdentifier",
+    "why": "does not match ^(default|arn:[a-zA-Z0-9-]+:cloudwatch:[a-zA-Z0-9-]*:\\d{12}:dataset/default)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^(default|arn:[a-zA-Z0-9-]+:cloudwatch:[a-zA-Z0-9-]*:\\d{12}:dataset/default)$",
+    "required_members": [
+      "DatasetIdentifier"
+    ]
+  },
+  {
+    "operation": "EnableAlarmActions",
+    "path": "AlarmNames",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmNames"
+    ]
+  },
+  {
+    "operation": "EnableAlarmActions",
+    "path": "AlarmNames[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmNames"
+    ]
+  },
+  {
+    "operation": "EnableAlarmActions",
+    "path": "AlarmNames[]",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmNames"
+    ]
+  },
+  {
+    "operation": "EnableInsightRules",
+    "path": "RuleNames",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "RuleNames"
+    ]
+  },
+  {
+    "operation": "EnableInsightRules",
+    "path": "RuleNames[]",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "RuleNames"
+    ]
+  },
+  {
+    "operation": "EnableInsightRules",
+    "path": "RuleNames[]",
+    "why": "does not match ^[\\x20-\\x7E]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\x20-\\x7E]+$",
+    "required_members": [
+      "RuleNames"
+    ]
+  },
+  {
+    "operation": "EnableInsightRules",
+    "path": "RuleNames[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "RuleNames"
+    ]
+  },
+  {
+    "operation": "GetAlarmMuteRule",
+    "path": "AlarmMuteRuleName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmMuteRuleName"
+    ]
+  },
+  {
+    "operation": "GetAlarmMuteRule",
+    "path": "AlarmMuteRuleName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmMuteRuleName"
+    ]
+  },
+  {
+    "operation": "GetAlarmMuteRule",
+    "path": "AlarmMuteRuleName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmMuteRuleName"
+    ]
+  },
+  {
+    "operation": "GetDashboard",
+    "path": "DashboardName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "DashboardName"
+    ]
+  },
+  {
+    "operation": "GetDataset",
+    "path": "DatasetIdentifier",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "DatasetIdentifier"
+    ]
+  },
+  {
+    "operation": "GetDataset",
+    "path": "DatasetIdentifier",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "DatasetIdentifier"
+    ]
+  },
+  {
+    "operation": "GetDataset",
+    "path": "DatasetIdentifier",
+    "why": "longer than the maximum length of 2048",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 2049
+    },
+    "constraint": "length 1..2048",
+    "required_members": [
+      "DatasetIdentifier"
+    ]
+  },
+  {
+    "operation": "GetDataset",
+    "path": "DatasetIdentifier",
+    "why": "does not match ^(default|arn:[a-zA-Z0-9-]+:cloudwatch:[a-zA-Z0-9-]*:\\d{12}:dataset/default)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^(default|arn:[a-zA-Z0-9-]+:cloudwatch:[a-zA-Z0-9-]*:\\d{12}:dataset/default)$",
+    "required_members": [
+      "DatasetIdentifier"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "EndTime",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "Metrics[]",
+    "why": "does not match ^[\\x20-\\x7E]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\x20-\\x7E]+$",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "Metrics[]",
+    "why": "longer than the maximum length of 32",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..32",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "Metrics[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..32",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "OrderBy",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..32",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "OrderBy",
+    "why": "does not match ^[\\x20-\\x7E]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\x20-\\x7E]+$",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "OrderBy",
+    "why": "longer than the maximum length of 32",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..32",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "Period",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "Period",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "RuleName",
+    "why": "does not match ^[\\x20-\\x7E]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\x20-\\x7E]+$",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "RuleName",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "RuleName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "RuleName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetInsightRuleReport",
+    "path": "StartTime",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "Period",
+      "RuleName",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "EndTime",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries[].AccountId",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries[].AccountId",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries[].Expression",
+    "why": "longer than the maximum length of 2048",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 2049
+    },
+    "constraint": "length 1..2048",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries[].Expression",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries[].Id",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries[].Id",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries[].Id",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries[].MetricStat.Metric",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries[].MetricStat.Period",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries[].MetricStat.Period",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries[].MetricStat.Stat",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries[].MetricStat.Unit",
+    "why": "not one of Kilobits, Gigabytes/Second, Megabits/Second, None, Seconds, Megabytes, Gigabits, Percent, Count/Second, Microseconds, Kilobytes, Bytes/Second, Terabytes/Second, Bits/Second, Kilobits/Second, Terabits/Second, Bytes, Gigabytes, Megabits, Terabits, Count, Kilobytes/Second, Megabytes/Second, Gigabits/Second, Milliseconds, Terabytes, Bits",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum Kilobits|Gigabytes/Second|Megabits/Second|None|Seconds|Megabytes|Gigabits|Percent|Count/Second|Microseconds|Kilobytes|Bytes/Second|Terabytes/Second|Bits/Second|Kilobits/Second|Terabits/Second|Bytes|Gigabytes|Megabits|Terabits|Count|Kilobytes/Second|Megabytes/Second|Gigabits/Second|Milliseconds|Terabytes|Bits",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "MetricDataQueries[].Period",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "ScanBy",
+    "why": "not one of TimestampDescending, TimestampAscending",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum TimestampDescending|TimestampAscending",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricData",
+    "path": "StartTime",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricDataQueries",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "Dimensions[].Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "Dimensions[].Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "Dimensions[].Name",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "Dimensions[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "Dimensions[].Value",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "Dimensions[].Value",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "EndTime",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "MetricName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "MetricName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "MetricName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "Namespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "Namespace",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "Namespace",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "Period",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "Period",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "StartTime",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "Statistics[]",
+    "why": "not one of SampleCount, Average, Sum, Minimum, Maximum",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum SampleCount|Average|Sum|Minimum|Maximum",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStatistics",
+    "path": "Unit",
+    "why": "not one of Bytes, Gigabytes, Megabits, Terabits, Count, Kilobytes/Second, Megabytes/Second, Gigabits/Second, Milliseconds, Terabytes, Bits, Kilobits, Gigabytes/Second, Megabits/Second, None, Seconds, Megabytes, Gigabits, Percent, Count/Second, Microseconds, Kilobytes, Bytes/Second, Terabytes/Second, Bits/Second, Kilobits/Second, Terabits/Second",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum Bytes|Gigabytes|Megabits|Terabits|Count|Kilobytes/Second|Megabytes/Second|Gigabits/Second|Milliseconds|Terabytes|Bits|Kilobits|Gigabytes/Second|Megabits/Second|None|Seconds|Megabytes|Gigabits|Percent|Count/Second|Microseconds|Kilobytes|Bytes/Second|Terabytes/Second|Bits/Second|Kilobits/Second|Terabits/Second",
+    "required_members": [
+      "EndTime",
+      "MetricName",
+      "Namespace",
+      "Period",
+      "StartTime"
+    ]
+  },
+  {
+    "operation": "GetMetricStream",
+    "path": "Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "GetMetricStream",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "GetMetricStream",
+    "path": "Name",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Name"
+    ]
+  },
+  {
+    "operation": "GetMetricWidgetImage",
+    "path": "MetricWidget",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "MetricWidget"
+    ]
+  },
+  {
+    "operation": "ListAlarmMuteRules",
+    "path": "AlarmName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "ListAlarmMuteRules",
+    "path": "AlarmName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "ListAlarmMuteRules",
+    "path": "MaxRecords",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..100"
+  },
+  {
+    "operation": "ListAlarmMuteRules",
+    "path": "MaxRecords",
+    "why": "above the maximum of 100",
+    "value": 101,
+    "constraint": "range 1..100"
+  },
+  {
+    "operation": "ListAlarmMuteRules",
+    "path": "Statuses[]",
+    "why": "not one of SCHEDULED, ACTIVE, EXPIRED",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum SCHEDULED|ACTIVE|EXPIRED"
+  },
+  {
+    "operation": "ListManagedInsightRules",
+    "path": "MaxResults",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..500",
+    "required_members": [
+      "ResourceARN"
+    ]
+  },
+  {
+    "operation": "ListManagedInsightRules",
+    "path": "MaxResults",
+    "why": "above the maximum of 500",
+    "value": 501,
+    "constraint": "range 1..500",
+    "required_members": [
+      "ResourceARN"
+    ]
+  },
+  {
+    "operation": "ListManagedInsightRules",
+    "path": "ResourceARN",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceARN"
+    ]
+  },
+  {
+    "operation": "ListManagedInsightRules",
+    "path": "ResourceARN",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "ResourceARN"
+    ]
+  },
+  {
+    "operation": "ListManagedInsightRules",
+    "path": "ResourceARN",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "ResourceARN"
+    ]
+  },
+  {
+    "operation": "ListMetricStreams",
+    "path": "MaxResults",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..500"
+  },
+  {
+    "operation": "ListMetricStreams",
+    "path": "MaxResults",
+    "why": "above the maximum of 500",
+    "value": 501,
+    "constraint": "range 1..500"
+  },
+  {
+    "operation": "ListMetrics",
+    "path": "Dimensions[].Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "ListMetrics",
+    "path": "Dimensions[].Name",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "ListMetrics",
+    "path": "Dimensions[].Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "ListMetrics",
+    "path": "Dimensions[].Value",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "ListMetrics",
+    "path": "Dimensions[].Value",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "ListMetrics",
+    "path": "MetricName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "ListMetrics",
+    "path": "MetricName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "ListMetrics",
+    "path": "Namespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "ListMetrics",
+    "path": "Namespace",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "ListMetrics",
+    "path": "OwningAccount",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "ListMetrics",
+    "path": "OwningAccount",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "ListMetrics",
+    "path": "RecentlyActive",
+    "why": "not one of PT3H",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum PT3H"
+  },
+  {
+    "operation": "ListTagsForResource",
+    "path": "ResourceARN",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceARN"
+    ]
+  },
+  {
+    "operation": "ListTagsForResource",
+    "path": "ResourceARN",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "ResourceARN"
+    ]
+  },
+  {
+    "operation": "ListTagsForResource",
+    "path": "ResourceARN",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "ResourceARN"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Description",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 0..1024",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "MuteTargets.AlarmNames",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "MuteTargets.AlarmNames[]",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "MuteTargets.AlarmNames[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Name",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Rule",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Rule.Schedule",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Rule.Schedule.Duration",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..50",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Rule.Schedule.Duration",
+    "why": "longer than the maximum length of 50",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..50",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Rule.Schedule.Duration",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Rule.Schedule.Expression",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Rule.Schedule.Expression",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..256",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Rule.Schedule.Expression",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..256",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Rule.Schedule.Timezone",
+    "why": "longer than the maximum length of 50",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..50",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Rule.Schedule.Timezone",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..50",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Tags[].Key",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Tags[].Key",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Tags[].Key",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Tags[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAlarmMuteRule",
+    "path": "Tags[].Value",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "Name",
+      "Rule"
+    ]
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "Configuration.ExcludedTimeRanges[].EndTime",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "Configuration.ExcludedTimeRanges[].StartTime",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "Configuration.MetricTimezone",
+    "why": "longer than the maximum length of 50",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..50"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "Dimensions[].Name",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "Dimensions[].Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "Dimensions[].Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "Dimensions[].Value",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "Dimensions[].Value",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "Dimensions[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].AccountId",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].AccountId",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].Expression",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].Expression",
+    "why": "longer than the maximum length of 2048",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 2049
+    },
+    "constraint": "length 1..2048"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].Id",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].Id",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].Id",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].MetricStat.Metric",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].MetricStat.Period",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].MetricStat.Stat",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "MetricMathAnomalyDetector.MetricDataQueries[].Period",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "MetricName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "MetricName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "Namespace",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "Namespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.AccountId",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.AccountId",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Dimensions[].Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Dimensions[].Name",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Dimensions[].Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Dimensions[].Value",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Dimensions[].Value",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Dimensions[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.MetricName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.MetricName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Namespace",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Namespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Stat",
+    "why": "longer than the maximum length of 50",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..50"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "SingleMetricAnomalyDetector.Stat",
+    "why": "does not match ^(SampleCount|Average|Sum|Minimum|Maximum|IQM|(p|tc|tm|ts|wm)(\\d{1,2}(\\.\\d{0,10})?|100)|[ou]\\d+(\\.\\d*)?)(_E|_L|_H)?|(TM|TC|TS|WM)\\(((((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?:((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%|((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%:(((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?)\\)|(TM|TC|TS|WM|PR)\\(((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)):((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?|((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?:(\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))\\)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^(SampleCount|Average|Sum|Minimum|Maximum|IQM|(p|tc|tm|ts|wm)(\\d{1,2}(\\.\\d{0,10})?|100)|[ou]\\d+(\\.\\d*)?)(_E|_L|_H)?|(TM|TC|TS|WM)\\(((((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?:((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%|((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%:(((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?)\\)|(TM|TC|TS|WM|PR)\\(((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)):((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?|((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?:(\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))\\)$"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "Stat",
+    "why": "does not match ^(SampleCount|Average|Sum|Minimum|Maximum|IQM|(p|tc|tm|ts|wm)(\\d{1,2}(\\.\\d{0,10})?|100)|[ou]\\d+(\\.\\d*)?)(_E|_L|_H)?|(TM|TC|TS|WM)\\(((((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?:((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%|((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%:(((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?)\\)|(TM|TC|TS|WM|PR)\\(((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)):((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?|((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?:(\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))\\)$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^(SampleCount|Average|Sum|Minimum|Maximum|IQM|(p|tc|tm|ts|wm)(\\d{1,2}(\\.\\d{0,10})?|100)|[ou]\\d+(\\.\\d*)?)(_E|_L|_H)?|(TM|TC|TS|WM)\\(((((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?:((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%|((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%:(((\\d{1,2})(\\.\\d{0,10})?|100(\\.0{0,10})?)%)?)\\)|(TM|TC|TS|WM|PR)\\(((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)):((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?|((\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))?:(\\d+(\\.\\d{0,10})?|(\\d+(\\.\\d{0,10})?[Ee][+-]?\\d+)))\\)$"
+  },
+  {
+    "operation": "PutAnomalyDetector",
+    "path": "Stat",
+    "why": "longer than the maximum length of 50",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..50"
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "ActionsSuppressor",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1600",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "ActionsSuppressor",
+    "why": "longer than the maximum length of 1600",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1601
+    },
+    "constraint": "length 1..1600",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "AlarmActions[]",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "AlarmActions[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "AlarmDescription",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 0..1024",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "AlarmName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "AlarmName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "AlarmName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "AlarmRule",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "AlarmRule",
+    "why": "longer than the maximum length of 10240",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 10241
+    },
+    "constraint": "length 1..10240",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "AlarmRule",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..10240",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "InsufficientDataActions[]",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "InsufficientDataActions[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "OKActions[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "OKActions[]",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "Tags[].Key",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "Tags[].Key",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "Tags[].Key",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "Tags[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutCompositeAlarm",
+    "path": "Tags[].Value",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "AlarmName",
+      "AlarmRule"
+    ]
+  },
+  {
+    "operation": "PutDashboard",
+    "path": "DashboardBody",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "DashboardBody",
+      "DashboardName"
+    ]
+  },
+  {
+    "operation": "PutDashboard",
+    "path": "DashboardName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "DashboardBody",
+      "DashboardName"
+    ]
+  },
+  {
+    "operation": "PutDashboard",
+    "path": "Tags[].Key",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "DashboardBody",
+      "DashboardName"
+    ]
+  },
+  {
+    "operation": "PutDashboard",
+    "path": "Tags[].Key",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "DashboardBody",
+      "DashboardName"
+    ]
+  },
+  {
+    "operation": "PutDashboard",
+    "path": "Tags[].Key",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "DashboardBody",
+      "DashboardName"
+    ]
+  },
+  {
+    "operation": "PutDashboard",
+    "path": "Tags[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "DashboardBody",
+      "DashboardName"
+    ]
+  },
+  {
+    "operation": "PutDashboard",
+    "path": "Tags[].Value",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "DashboardBody",
+      "DashboardName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "RuleDefinition",
+    "why": "does not match ^[\\x00-\\x7F]+$",
+    "value": "«»",
+    "constraint": "pattern ^[\\x00-\\x7F]+$",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "RuleDefinition",
+    "why": "longer than the maximum length of 8192",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 8193
+    },
+    "constraint": "length 1..8192",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "RuleDefinition",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..8192",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "RuleDefinition",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "RuleName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "RuleName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "RuleName",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "RuleName",
+    "why": "does not match ^[\\x20-\\x7E]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\x20-\\x7E]+$",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "RuleState",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..32",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "RuleState",
+    "why": "longer than the maximum length of 32",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..32",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "RuleState",
+    "why": "does not match ^[\\x20-\\x7E]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\x20-\\x7E]+$",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "Tags[].Key",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "Tags[].Key",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "Tags[].Key",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "Tags[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutInsightRule",
+    "path": "Tags[].Value",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "RuleDefinition",
+      "RuleName"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "AlarmActions[]",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "AlarmActions[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "AlarmDescription",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 0..1024",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "AlarmName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "AlarmName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "AlarmName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ComparisonOperator",
+    "why": "not one of GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold, LessThanLowerOrGreaterThanUpperThreshold, LessThanLowerThreshold, GreaterThanUpperThreshold",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum GreaterThanOrEqualToThreshold|GreaterThanThreshold|LessThanThreshold|LessThanOrEqualToThreshold|LessThanLowerOrGreaterThanUpperThreshold|LessThanLowerThreshold|GreaterThanUpperThreshold",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ComparisonOperator",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "InsufficientDataActions[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "InsufficientDataActions[]",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "OKActions[]",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "OKActions[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "QueryResultsToAlarm",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "QueryResultsToAlarm",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "QueryResultsToEvaluate",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "QueryResultsToEvaluate",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.AggregationExpression",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.AggregationExpression",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.AggregationExpression",
+    "why": "longer than the maximum length of 2048",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 2049
+    },
+    "constraint": "length 1..2048",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.LogGroupIdentifiers[]",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.LogGroupIdentifiers[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.QueryARN",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.QueryARN",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.QueryString",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.QueryString",
+    "why": "longer than the maximum length of 10000",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 10001
+    },
+    "constraint": "length 0..10000",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.ScheduleConfiguration",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.ScheduleConfiguration.EndTimeOffset",
+    "why": "above the maximum of 2592000",
+    "value": 2592001,
+    "constraint": "range 0..2592000",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.ScheduleConfiguration.EndTimeOffset",
+    "why": "below the minimum of 0",
+    "value": -1,
+    "constraint": "range 0..2592000",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.ScheduleConfiguration.ScheduleExpression",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..256",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.ScheduleConfiguration.ScheduleExpression",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..256",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.ScheduleConfiguration.ScheduleExpression",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.ScheduleConfiguration.StartTimeOffset",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..2592000",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.ScheduleConfiguration.StartTimeOffset",
+    "why": "above the maximum of 2592000",
+    "value": 2592001,
+    "constraint": "range 1..2592000",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.ScheduleConfiguration.StartTimeOffset",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.ScheduledQueryRoleARN",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.ScheduledQueryRoleARN",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.ScheduledQueryRoleARN",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.Tags[].Key",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.Tags[].Key",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.Tags[].Key",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.Tags[].Value",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "ScheduledQueryConfiguration.Tags[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "Tags[].Key",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "Tags[].Key",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "Tags[].Key",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "Tags[].Value",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "Tags[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "Threshold",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "TreatMissingData",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "TreatMissingData",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "WarmUpConfiguration.WarmUpPeriodDurationInMinutes",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "WarmUpConfiguration.WarmUpPeriodDurationInMinutes",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..2880",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutLogAlarm",
+    "path": "WarmUpConfiguration.WarmUpPeriodDurationInMinutes",
+    "why": "above the maximum of 2880",
+    "value": 2881,
+    "constraint": "range 1..2880",
+    "required_members": [
+      "AlarmName",
+      "ComparisonOperator",
+      "QueryResultsToAlarm",
+      "QueryResultsToEvaluate",
+      "ScheduledQueryConfiguration",
+      "Threshold"
+    ]
+  },
+  {
+    "operation": "PutManagedInsightRules",
+    "path": "ManagedRules",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ManagedRules"
+    ]
+  },
+  {
+    "operation": "PutManagedInsightRules",
+    "path": "ManagedRules[].ResourceARN",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "ManagedRules"
+    ]
+  },
+  {
+    "operation": "PutManagedInsightRules",
+    "path": "ManagedRules[].ResourceARN",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ManagedRules"
+    ]
+  },
+  {
+    "operation": "PutManagedInsightRules",
+    "path": "ManagedRules[].ResourceARN",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "ManagedRules"
+    ]
+  },
+  {
+    "operation": "PutManagedInsightRules",
+    "path": "ManagedRules[].Tags[].Key",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ManagedRules"
+    ]
+  },
+  {
+    "operation": "PutManagedInsightRules",
+    "path": "ManagedRules[].Tags[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ManagedRules"
+    ]
+  },
+  {
+    "operation": "PutManagedInsightRules",
+    "path": "ManagedRules[].TemplateName",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "ManagedRules"
+    ]
+  },
+  {
+    "operation": "PutManagedInsightRules",
+    "path": "ManagedRules[].TemplateName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ManagedRules"
+    ]
+  },
+  {
+    "operation": "PutManagedInsightRules",
+    "path": "ManagedRules[].TemplateName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "ManagedRules"
+    ]
+  },
+  {
+    "operation": "PutManagedInsightRules",
+    "path": "ManagedRules[].TemplateName",
+    "why": "does not match ^[0-9A-Za-z][\\-\\.\\_0-9A-Za-z]{0,126}[0-9A-Za-z]$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[0-9A-Za-z][\\-\\.\\_0-9A-Za-z]{0,126}[0-9A-Za-z]$",
+    "required_members": [
+      "ManagedRules"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "AlarmActions[]",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "AlarmActions[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "AlarmDescription",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 0..1024",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "AlarmName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "AlarmName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "AlarmName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "ComparisonOperator",
+    "why": "not one of LessThanLowerOrGreaterThanUpperThreshold, LessThanLowerThreshold, GreaterThanUpperThreshold, GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum LessThanLowerOrGreaterThanUpperThreshold|LessThanLowerThreshold|GreaterThanUpperThreshold|GreaterThanOrEqualToThreshold|GreaterThanThreshold|LessThanThreshold|LessThanOrEqualToThreshold",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "DatapointsToAlarm",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Dimensions[].Name",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Dimensions[].Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Dimensions[].Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Dimensions[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Dimensions[].Value",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Dimensions[].Value",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "EvaluateLowSampleCountPercentile",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "EvaluateLowSampleCountPercentile",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "EvaluationInterval",
+    "why": "below the minimum of 10",
+    "value": 9,
+    "constraint": "range 10..3600",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "EvaluationInterval",
+    "why": "above the maximum of 3600",
+    "value": 3601,
+    "constraint": "range 10..3600",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "EvaluationPeriods",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "InsufficientDataActions[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "InsufficientDataActions[]",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "MetricName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "MetricName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Metrics[].AccountId",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Metrics[].AccountId",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Metrics[].Expression",
+    "why": "longer than the maximum length of 2048",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 2049
+    },
+    "constraint": "length 1..2048",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Metrics[].Expression",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..2048",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Metrics[].Id",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Metrics[].Id",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Metrics[].Id",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Metrics[].MetricStat.Metric",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Metrics[].MetricStat.Period",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Metrics[].MetricStat.Period",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Metrics[].MetricStat.Stat",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Metrics[].MetricStat.Unit",
+    "why": "not one of Gigabits, Percent, Count/Second, Microseconds, Kilobytes, Bytes/Second, Terabytes/Second, Bits/Second, Kilobits/Second, Terabits/Second, Bytes, Gigabytes, Megabits, Terabits, Count, Kilobytes/Second, Megabytes/Second, Gigabits/Second, Milliseconds, Terabytes, Bits, Kilobits, Gigabytes/Second, Megabits/Second, None, Seconds, Megabytes",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum Gigabits|Percent|Count/Second|Microseconds|Kilobytes|Bytes/Second|Terabytes/Second|Bits/Second|Kilobits/Second|Terabits/Second|Bytes|Gigabytes|Megabits|Terabits|Count|Kilobytes/Second|Megabytes/Second|Gigabits/Second|Milliseconds|Terabytes|Bits|Kilobits|Gigabytes/Second|Megabits/Second|None|Seconds|Megabytes",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Metrics[].Period",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Namespace",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Namespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "OKActions[]",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "OKActions[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Period",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Statistic",
+    "why": "not one of SampleCount, Average, Sum, Minimum, Maximum",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum SampleCount|Average|Sum|Minimum|Maximum",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Tags[].Key",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Tags[].Key",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Tags[].Key",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Tags[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Tags[].Value",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "ThresholdMetricId",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "ThresholdMetricId",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "TreatMissingData",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "TreatMissingData",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "Unit",
+    "why": "not one of Microseconds, Kilobytes, Bytes/Second, Terabytes/Second, Bits/Second, Kilobits/Second, Terabits/Second, Bytes, Gigabytes, Megabits, Terabits, Count, Kilobytes/Second, Megabytes/Second, Gigabits/Second, Milliseconds, Terabytes, Bits, Kilobits, Gigabytes/Second, Megabits/Second, None, Seconds, Megabytes, Gigabits, Percent, Count/Second",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum Microseconds|Kilobytes|Bytes/Second|Terabytes/Second|Bits/Second|Kilobits/Second|Terabits/Second|Bytes|Gigabytes|Megabits|Terabits|Count|Kilobytes/Second|Megabytes/Second|Gigabits/Second|Milliseconds|Terabytes|Bits|Kilobits|Gigabytes/Second|Megabits/Second|None|Seconds|Megabytes|Gigabits|Percent|Count/Second",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "WarmUpConfiguration.WarmUpPeriodDurationInMinutes",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "WarmUpConfiguration.WarmUpPeriodDurationInMinutes",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..2880",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricAlarm",
+    "path": "WarmUpConfiguration.WarmUpPeriodDurationInMinutes",
+    "why": "above the maximum of 2880",
+    "value": 2881,
+    "constraint": "range 1..2880",
+    "required_members": [
+      "AlarmName"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "EntityMetricData[].MetricData[].MetricName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "MetricData[].Dimensions[].Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "MetricData[].Dimensions[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "MetricData[].MetricName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "MetricData[].MetricName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "MetricData[].MetricName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "MetricData[].StatisticValues.Maximum",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "MetricData[].StatisticValues.Minimum",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "MetricData[].StatisticValues.SampleCount",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "MetricData[].StatisticValues.Sum",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "MetricData[].StorageResolution",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..-",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "MetricData[].Unit",
+    "why": "not one of Bits/Second, Kilobits/Second, Terabits/Second, Bytes, Gigabytes, Megabits, Terabits, Count, Kilobytes/Second, Megabytes/Second, Gigabits/Second, Milliseconds, Terabytes, Bits, Kilobits, Gigabytes/Second, Megabits/Second, None, Seconds, Megabytes, Gigabits, Percent, Count/Second, Microseconds, Kilobytes, Bytes/Second, Terabytes/Second",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum Bits/Second|Kilobits/Second|Terabits/Second|Bytes|Gigabytes|Megabits|Terabits|Count|Kilobytes/Second|Megabytes/Second|Gigabits/Second|Milliseconds|Terabytes|Bits|Kilobits|Gigabytes/Second|Megabits/Second|None|Seconds|Megabytes|Gigabits|Percent|Count/Second|Microseconds|Kilobytes|Bytes/Second|Terabytes/Second",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "Namespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "Namespace",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricData",
+    "path": "Namespace",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Namespace"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "ExcludeFilters[].MetricNames[]",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "ExcludeFilters[].MetricNames[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "ExcludeFilters[].Namespace",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "ExcludeFilters[].Namespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "FirehoseArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "FirehoseArn",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "FirehoseArn",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "IncludeFilters[].MetricNames[]",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "IncludeFilters[].MetricNames[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "IncludeFilters[].Namespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "IncludeFilters[].Namespace",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "Name",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "Name",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "Name",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "OutputFormat",
+    "why": "not one of json, opentelemetry0.7, opentelemetry1.0",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum json|opentelemetry0.7|opentelemetry1.0",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "OutputFormat",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "RoleArn",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "RoleArn",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "RoleArn",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "StatisticsConfigurations[].AdditionalStatistics",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "StatisticsConfigurations[].IncludeMetrics",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "StatisticsConfigurations[].IncludeMetrics[].MetricName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "StatisticsConfigurations[].IncludeMetrics[].Namespace",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "Tags[].Key",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "Tags[].Key",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "Tags[].Key",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "Tags[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "PutMetricStream",
+    "path": "Tags[].Value",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "FirehoseArn",
+      "Name",
+      "OutputFormat",
+      "RoleArn"
+    ]
+  },
+  {
+    "operation": "SetAlarmState",
+    "path": "AlarmName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "StateReason",
+      "StateValue"
+    ]
+  },
+  {
+    "operation": "SetAlarmState",
+    "path": "AlarmName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName",
+      "StateReason",
+      "StateValue"
+    ]
+  },
+  {
+    "operation": "SetAlarmState",
+    "path": "AlarmName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "AlarmName",
+      "StateReason",
+      "StateValue"
+    ]
+  },
+  {
+    "operation": "SetAlarmState",
+    "path": "StateReason",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "StateReason",
+      "StateValue"
+    ]
+  },
+  {
+    "operation": "SetAlarmState",
+    "path": "StateReason",
+    "why": "longer than the maximum length of 1023",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1024
+    },
+    "constraint": "length 0..1023",
+    "required_members": [
+      "AlarmName",
+      "StateReason",
+      "StateValue"
+    ]
+  },
+  {
+    "operation": "SetAlarmState",
+    "path": "StateReasonData",
+    "why": "longer than the maximum length of 4000",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 4001
+    },
+    "constraint": "length 0..4000",
+    "required_members": [
+      "AlarmName",
+      "StateReason",
+      "StateValue"
+    ]
+  },
+  {
+    "operation": "SetAlarmState",
+    "path": "StateValue",
+    "why": "not one of OK, ALARM, INSUFFICIENT_DATA",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum OK|ALARM|INSUFFICIENT_DATA",
+    "required_members": [
+      "AlarmName",
+      "StateReason",
+      "StateValue"
+    ]
+  },
+  {
+    "operation": "SetAlarmState",
+    "path": "StateValue",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "AlarmName",
+      "StateReason",
+      "StateValue"
+    ]
+  },
+  {
+    "operation": "StartMetricStreams",
+    "path": "Names",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Names"
+    ]
+  },
+  {
+    "operation": "StartMetricStreams",
+    "path": "Names[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Names"
+    ]
+  },
+  {
+    "operation": "StartMetricStreams",
+    "path": "Names[]",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Names"
+    ]
+  },
+  {
+    "operation": "StopMetricStreams",
+    "path": "Names",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "Names"
+    ]
+  },
+  {
+    "operation": "StopMetricStreams",
+    "path": "Names[]",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Names"
+    ]
+  },
+  {
+    "operation": "StopMetricStreams",
+    "path": "Names[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..255",
+    "required_members": [
+      "Names"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "ResourceARN",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceARN",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "ResourceARN",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "ResourceARN",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "ResourceARN",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "ResourceARN",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "Tags",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceARN",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "Tags[].Key",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "ResourceARN",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "Tags[].Key",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "ResourceARN",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "Tags[].Key",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceARN",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "Tags[].Value",
+    "why": "longer than the maximum length of 256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..256",
+    "required_members": [
+      "ResourceARN",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "TagResource",
+    "path": "Tags[].Value",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceARN",
+      "Tags"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "path": "ResourceARN",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceARN",
+      "TagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "path": "ResourceARN",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..1024",
+    "required_members": [
+      "ResourceARN",
+      "TagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "path": "ResourceARN",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 1..1024",
+    "required_members": [
+      "ResourceARN",
+      "TagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "path": "TagKeys",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "ResourceARN",
+      "TagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "path": "TagKeys[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..128",
+    "required_members": [
+      "ResourceARN",
+      "TagKeys"
+    ]
+  },
+  {
+    "operation": "UntagResource",
+    "path": "TagKeys[]",
+    "why": "longer than the maximum length of 128",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 1..128",
+    "required_members": [
+      "ResourceARN",
+      "TagKeys"
+    ]
+  }
+]

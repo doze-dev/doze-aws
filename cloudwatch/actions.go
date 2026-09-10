@@ -22,6 +22,7 @@ var handlers = map[string]handler{
 	"PutMetricData":       (*Server).putMetricData,
 	"ListMetrics":         (*Server).listMetrics,
 	"GetMetricStatistics": (*Server).getMetricStatistics,
+	"GetMetricData":       (*Server).getMetricData,
 }
 
 // datum is one validated metric observation. D1a stops at validation — the
