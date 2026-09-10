@@ -18,12 +18,30 @@ import (
 // the service packages, so the console could drift arbitrarily far from what
 // the emulator can actually do and no test would notice.
 //
-// This is that test. Every F-tier operation must be reachable from the console
-// or listed below with a reason. It fails going OVER the floor and going UNDER
-// it — the same shape as inlineBudget in cssguard_test.go — so the remaining
-// distance is written down and burnt down instead of estimated.
+// This is that test. It fails going OVER the floor and going UNDER it — the
+// same shape as inlineBudget in cssguard_test.go — so the remaining distance
+// is written down and burnt down instead of estimated.
 //
 // The docs are read, never written: this test only ever tells you the number.
+//
+// # What the bar actually is
+//
+// It was "every F-tier operation is reachable from the console", and that was
+// never the rule anyone believed. Sixteen operations were exempt, and not one
+// of the reasons said "not yet" — they said the operation has no business in a
+// console: it is the deprecated spelling of a call already made, or the way
+// the system writes rather than the way a person reads, or a fetch deliberately
+// not made so a secret lives in fewer places.
+//
+// So the bar is stated as what it is: every operation a developer would
+// INSPECT or REPAIR by hand is reachable. Everything else is exempt by
+// CATEGORY, and the category carries the argument. A new operation is
+// classified rather than argued about from scratch — which matters most for
+// services yet to land, where the alternative is writing a fresh essay per
+// operation to justify not building a form nobody would open.
+//
+// The note on each exemption stays. The category says which argument applies;
+// the note says why it applies to this operation.
 
 // uncovered is the burn-down list: F-tier operations with no console surface.
 //
@@ -61,74 +79,119 @@ var uncovered = map[string][]string{
 	"logs": {},
 }
 
-// exempt is for operations that are deliberately not called, with the reason.
-// This is a different claim from uncovered: uncovered says "not yet", exempt
-// says "and here is why it never will be".
-var exempt = map[string]map[string]string{
+// why an operation has no console surface. These are the four arguments the
+// sixteen hand-written exemptions turned out to be making; naming them is what
+// lets the next service classify an operation instead of writing an essay.
+type why int
+
+const (
+	// redundant: the console reaches the same state another way — a
+	// deprecated spelling, a paginated or batch twin, or an answer the
+	// console already holds. A second call site would exercise the wire
+	// without showing anything new.
+	redundant why = iota
+	// dataPlane: the operation is how the system writes, not how a person
+	// reads or repairs. A form for it would fabricate state — log lines
+	// nothing printed, metrics nothing measured — and misrepresent the run.
+	dataPlane
+	// withheld: deliberately not called so a value is fetched into fewer
+	// places than it could be. The secrets trade: fewer fetch sites beats
+	// fewer round trips for a store that holds plaintext.
+	withheld
+	// inert: writes configuration nothing local reads. It exists so a
+	// Terraform or CloudFormation change applies instead of failing; an edit
+	// form would only change values nothing here consults.
+	inert
+)
+
+func (w why) String() string {
+	switch w {
+	case redundant:
+		return "redundant"
+	case dataPlane:
+		return "data-plane"
+	case withheld:
+		return "withheld"
+	case inert:
+		return "inert"
+	}
+	return "unknown"
+}
+
+// exemption is a category and the note saying why it applies here.
+type exemption struct {
+	why  why
+	note string
+}
+
+// exempt is for operations that are deliberately not called. This is a
+// different claim from uncovered: uncovered says "not yet", exempt says "and
+// here is why it never will be".
+var exempt = map[string]map[string]exemption{
 	"eventbridge": {
-		"UpdateEventBus": "the three members it writes — Description, KmsKeyIdentifier and " +
+		"UpdateEventBus": {inert, "the three members it writes — Description, KmsKeyIdentifier and " +
 			"DeadLetterConfig — are stored and reported back but inert locally, and the console " +
 			"does not set them at create time either. It exists so a Terraform or CloudFormation " +
 			"change to aws_cloudwatch_event_bus applies instead of answering InvalidAction; an " +
-			"edit form would only change values nothing here reads",
+			"edit form would only change values nothing here reads"},
 	},
 	"logs": {
-		"ListLogGroups":    "the newer twin of DescribeLogGroups, which the list pane reads; it adds account-wide and pattern filters a single local account never needs",
-		"GetLogEvents":     "one stream forwards or backwards; FilterLogEvents with a stream name, which the tail makes, reads the same lines and is what the CLI calls",
-		"PutLogEvents":     "Lambda writes it for every invocation; a console form that writes lines nothing printed would be a lie about what ran",
-		"CreateLogStream":  "a stream is created by the first PutLogEvents on it, which is how every stream here comes to exist",
-		"TagLogGroup":      "the deprecated spelling of TagResource, which the tags panel calls",
-		"UntagLogGroup":    "the deprecated spelling of UntagResource, which the tags panel calls",
-		"ListTagsLogGroup": "the deprecated spelling of ListTagsForResource, which the tags panel calls",
+		"ListLogGroups":    {redundant, "the newer twin of DescribeLogGroups, which the list pane reads; it adds account-wide and pattern filters a single local account never needs"},
+		"GetLogEvents":     {redundant, "one stream forwards or backwards; FilterLogEvents with a stream name, which the tail makes, reads the same lines and is what the CLI calls"},
+		"PutLogEvents":     {dataPlane, "Lambda writes it for every invocation; a console form that writes lines nothing printed would be a lie about what ran"},
+		"CreateLogStream":  {dataPlane, "a stream is created by the first PutLogEvents on it, which is how every stream here comes to exist"},
+		"TagLogGroup":      {redundant, "the deprecated spelling of TagResource, which the tags panel calls"},
+		"UntagLogGroup":    {redundant, "the deprecated spelling of UntagResource, which the tags panel calls"},
+		"ListTagsLogGroup": {redundant, "the deprecated spelling of ListTagsForResource, which the tags panel calls"},
 	},
 	"cloudformation": {
-		"ListStackResources": "the paginated twin of DescribeStackResources, " +
+		"ListStackResources": {redundant, "the paginated twin of DescribeStackResources, " +
 			"which the resources tab already reads and which locally returns " +
 			"every resource in one response. The list variant exists for stacks " +
 			"past the describe call's 100-resource cap; a second call site " +
 			"rendering the same rows would exercise the wire without showing " +
-			"anything new.",
+			"anything new."},
 	},
 	"sqs": {
-		"GetQueueUrl": "the console builds the URL from base + account + name " +
+		"GetQueueUrl": {redundant, "the console builds the URL from base + account + name " +
 			"(backend.queueURL), which is exact and saves a round trip on every " +
-			"render. Calling it would be a request whose answer we already know.",
+			"render. Calling it would be a request whose answer we already know."},
 	},
 	"secretsmanager": {
-		"BatchGetSecretValue": "the console shows one secret at a time, so a " +
+		"BatchGetSecretValue": {withheld, "the console shows one secret at a time, so a " +
 			"batch read would fetch plaintext values it does not display. For a " +
 			"secrets store that is a worse trade than a round trip: the fewer " +
-			"places a value is fetched into, the fewer places it can leak.",
+			"places a value is fetched into, the fewer places it can leak."},
 	},
 	"dynamodb": {
-		"DescribeEndpoints": "returns a canned endpoint list — where to connect. " +
+		"DescribeEndpoints": {redundant, "returns a canned endpoint list — where to connect. " +
 			"The console proves that answer on every page it renders: it is " +
 			"already talking to the endpoint the operation would describe, so a " +
-			"surface for it would display a fact the connection itself asserts.",
+			"surface for it would display a fact the connection itself asserts."},
 	},
 	"ssm": {
-		"GetParameters": "the batch get by explicit names. The console reads " +
+		"GetParameters": {withheld, "the batch get by explicit names. The console reads " +
 			"parameters one at a time, and the multi-parameter view it does have " +
 			"— a path listing — rides GetParametersByPath. Fetching a list of " +
 			"values (SecureStrings included) for a view that does not exist is " +
 			"the BatchGetSecretValue trade again: fewer fetch sites beats fewer " +
-			"round trips for a store that holds secrets.",
+			"round trips for a store that holds secrets."},
 	},
 	"kms": {
-		"ListKeyPolicies": "a key has exactly one policy and it is named default, " +
+		"ListKeyPolicies": {redundant, "a key has exactly one policy and it is named default, " +
 			"on AWS as here; the key page reads it with GetKeyPolicy. Listing " +
-			"the one name would be a request whose answer we already know.",
+			"the one name would be a request whose answer we already know."},
 	},
 	"kinesis": {
-		"DescribeStream": "the console reads DescribeStreamSummary + ListShards " +
+		"DescribeStream": {redundant, "the console reads DescribeStreamSummary + ListShards " +
 			"instead. AWS caps DescribeStream's inline shard list and paginates it " +
 			"with HasMoreShards; doze-aws returns every shard and always says " +
 			"false. Writing the console against the emulator's generosity would " +
-			"make it wrong against the service it imitates.",
-		"DescribeStreamConsumer": "ListStreamConsumers already returns all four " +
+			"make it wrong against the service it imitates."},
+		"DescribeStreamConsumer": {redundant, "ListStreamConsumers already returns all four " +
 			"fields it would (name, ARN, status, creation time), and the consumers " +
 			"table shows them. Describing one would be a second call for data " +
-			"already on screen.",
+			"already on screen."},
 	},
 }
 
@@ -246,6 +309,7 @@ func TestSDKCoverage(t *testing.T) {
 	}
 
 	total, reached := 0, 0
+	byCategory := map[why]int{}
 	for _, doc := range docs {
 		svc := strings.TrimSuffix(filepath.Base(doc), ".md")
 		var missing []string
@@ -255,8 +319,8 @@ func TestSDKCoverage(t *testing.T) {
 				reached++
 				continue
 			}
-			if _, ok := exempt[svc][op]; ok {
-				reached++
+			if ex, ok := exempt[svc][op]; ok {
+				byCategory[ex.why]++
 				continue
 			}
 			missing = append(missing, op)
@@ -281,7 +345,25 @@ func TestSDKCoverage(t *testing.T) {
 				svc, missing, svc, want)
 		}
 	}
-	t.Logf("F-tier coverage: %d/%d operations reachable from the console", reached, total)
+	// Exempt operations are no longer folded into "reachable". Counting them
+	// as reached made the headline number the one that only ever goes up, and
+	// obscured the thing worth watching: which categories the console is
+	// deliberately not serving, and whether one of them is quietly growing.
+	exemptTotal := 0
+	for _, n := range byCategory {
+		exemptTotal += n
+	}
+	if reached+exemptTotal != total {
+		t.Errorf("%d reachable + %d exempt != %d F-tier operations: something is counted twice or not at all",
+			reached, exemptTotal, total)
+	}
+	t.Logf("F-tier operations: %d, of which %d reachable from the console and %d exempt by category",
+		total, reached, exemptTotal)
+	for _, w := range []why{redundant, dataPlane, withheld, inert} {
+		if byCategory[w] > 0 {
+			t.Logf("  %-10s %d", w, byCategory[w])
+		}
+	}
 }
 
 // TestExemptionsAreReal keeps the escape hatch honest: an exemption for an
@@ -299,9 +381,12 @@ func TestExemptionsAreReal(t *testing.T) {
 		for _, op := range fTierOps(t, doc) {
 			listed[op] = true
 		}
-		for op, why := range ops {
-			if why == "" {
-				t.Errorf("exempt[%q][%q] has no reason", svc, op)
+		for op, ex := range ops {
+			if ex.note == "" {
+				t.Errorf("exempt[%q][%q] has no note: the category says which argument applies, the note says why it applies here", svc, op)
+			}
+			if ex.why.String() == "unknown" {
+				t.Errorf("exempt[%q][%q] has no category", svc, op)
 			}
 			if !listed[op] {
 				t.Errorf("exempt[%q][%q] is not an F-tier operation in the ledger — stale exemption", svc, op)

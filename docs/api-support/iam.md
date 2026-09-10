@@ -16,17 +16,28 @@ at once. So enforcement is a dial:
 
 | Mode | Behaviour | Cost |
 |---|---|---|
-| `off` *(default)* | Full CRUD; every API works; nothing is ever denied. | None — the middleware is not installed at all |
-| `soft` | Every request is evaluated and recorded. Nothing is blocked; would-be denials are logged. | One evaluation per request |
+| `off` | Full CRUD; every API works; nothing is evaluated. | None — the middleware is not installed at all |
+| `soft` *(default)* | Every request is evaluated and recorded. Nothing is blocked; would-be denials are logged. | One evaluation per request |
 | `enforce` | Denials are real and answer `AccessDenied`. | One evaluation per request |
 
 ```sh
-doze-aws --iam-mode soft        # observe
+doze-aws                        # soft: observe, never block
 doze-aws --iam-mode enforce     # enforce
+doze-aws --iam-mode off         # evaluate nothing
 ```
 
-Both LocalStack and moto also default to permissive, for the same reason. What
-doze-aws adds is the middle rung being *useful* rather than merely quiet.
+**Why soft is the default.** "It worked locally and 403s on deploy because the
+Lambda permission was missing" is not a bug you suspect and then switch a flag
+to investigate — it is a bug that ambushes you at deploy, and a diagnostic for
+it only pays if it is already running. Soft can be the default because it
+cannot refuse: both halves, the middleware and every service's guard, log and
+return. And it is silent until it has something to say — with no IAM identities
+created the caller is the account root, which is admitted, so a stack nobody
+has written a policy for never prints a line.
+
+Both LocalStack and moto default to permissive too. What doze-aws adds is the
+middle rung being *useful* rather than merely quiet — and being the rung you
+land on without asking.
 
 ## Least-privilege generation
 
@@ -80,9 +91,10 @@ Seven services carry a policy on the resource itself — a bucket policy, a
 queue policy, a topic policy, a function's permissions (`AddPermission`), a
 key policy, a secret's resource policy, a stream's resource policy — and
 under `soft` and `enforce` each one is evaluated **by the service that owns
-the resource**, on every request that names it. With IAM `off` the policies
-are stored and returned and nothing consults them, which is what every
-local emulator did before and what the default still does.
+the resource**, on every request that names it — so under the default they are
+evaluated, and a policy that would have bitten you says so in the log. With IAM
+`off` the policies are stored and returned and nothing consults them, which is
+what every other local emulator does.
 
 The rule is AWS's same-account rule:
 

@@ -19,9 +19,9 @@ data-dir = "./data"
 # auto-detect ./template.yaml.
 # template = "template.yaml"
 
-# IAM enforcement: "off" (the default — never denies), "soft" (evaluate and
-# record without blocking), or "enforce" (real AccessDenied responses).
-# iam-mode = "off"
+# IAM enforcement: "soft" (the default — evaluate and record, never denies),
+# "off" (no evaluation at all), or "enforce" (real AccessDenied responses).
+# iam-mode = "soft"
 
 [s3]
 # Base host for virtual-hosted-style bucket addressing (bucket.<host>).

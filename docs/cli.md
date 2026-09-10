@@ -34,7 +34,7 @@ Flags apply to serving and to `config print`.
 | `--services <a,b,…>` | all implemented | Comma-separated subset of services to enable. Unknown names are an error. |
 | `--s3-host <host>` | (none) | Base host for virtual-hosted-style S3 addressing (`<bucket>.<host>`). Path-style always works regardless. |
 | `--template <path>` | `./template.yaml` if present | CloudFormation/SAM template to apply at boot. See [cloudformation.md](cloudformation.md). |
-| `--iam-mode <mode>` | `off` | IAM enforcement: `off` (never denies), `soft` (evaluate and record, never block), `enforce` (real denials). See [api-support/iam.md](api-support/iam.md). |
+| `--iam-mode <mode>` | `soft` | IAM enforcement: `soft` (evaluate and record, never block), `off` (no evaluation at all), `enforce` (real denials). See [api-support/iam.md](api-support/iam.md). |
 | `--console` | on | Serve the web management console at `/_console`. |
 | `--lambda-idle <duration>` | `10m` | How long a warm Lambda keeps its process before scaling to zero. |
 

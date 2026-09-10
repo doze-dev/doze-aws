@@ -136,7 +136,7 @@ func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs.DurationVar(&dst.LambdaIdleTimeout, "lambda-idle", dst.LambdaIdleTimeout, "how long a warm Lambda keeps its process before scaling to zero")
 	fs.BoolVar(&dst.LambdaQuiet, "lambda-quiet", dst.LambdaQuiet, "do not echo Lambda function output to this log")
 	fs.StringVar(&dst.TemplateFile, "template", dst.TemplateFile, "CloudFormation/SAM template to apply at boot (default: ./template.yaml if present)")
-	fs.StringVar(&dst.IAMMode, "iam-mode", dst.IAMMode, "IAM enforcement: off (default), soft (evaluate and record, never block), enforce (deny for real)")
+	fs.StringVar(&dst.IAMMode, "iam-mode", dst.IAMMode, "IAM enforcement: soft (default: evaluate and record, never block), off (no evaluation), enforce (deny for real)")
 	return fs, cp
 }
 

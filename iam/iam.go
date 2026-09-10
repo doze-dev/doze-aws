@@ -8,11 +8,12 @@
 // switch enforcement on under an existing test suite and everything fails at
 // once. So enforcement is a dial, not a fact:
 //
-//	off      the default. Full CRUD, every API works, nothing is ever denied.
-//	         Zero cost: no evaluation runs on the request path at all.
-//	soft     every request is evaluated and recorded, and nothing is blocked.
-//	         Denials are logged, so you can see what your policies would reject
-//	         before you commit to rejecting it.
+//	off      full CRUD, every API works, nothing is ever denied. Zero cost:
+//	         no evaluation runs on the request path at all.
+//	soft     the default. Every request is evaluated and recorded, and nothing
+//	         is blocked. Denials are logged, so you see what your policies would
+//	         reject before you commit to rejecting it — and, more to the point,
+//	         before a deploy rejects it for you.
 //	enforce  denials are real, and answer AccessDenied like AWS.
 //
 // Soft mode also records every action a principal actually performed, which
@@ -58,19 +59,34 @@ const iamXMLNS = "https://iam.amazonaws.com/doc/2010-05-08/"
 // Mode selects how far IAM goes on the request path.
 type Mode string
 
+// The default is soft, and that is a deliberate choice about what this is for.
+//
+// "Works locally, 403s on deploy because the Lambda permission was missing" is
+// not a bug a developer suspects and then enables a flag to investigate — it
+// is a bug that ambushes them at deploy. A diagnostic for that class only pays
+// if it is already running, and off-by-default meant seven days of policy
+// evaluation delivered its answer to whoever already knew to ask.
+//
+// Soft can be defaulted because it cannot refuse: both halves — the middleware
+// here and every service's guard — log and return. And it is quiet unless it
+// has something to say: with no IAM identities created the principal is the
+// account root, which combine admits, so a stack nobody has written a policy
+// for never prints a line. It speaks exactly when a policy would have bitten.
 const (
-	// ModeOff is the default: CRUD only, nothing is evaluated or denied.
+	// ModeOff evaluates nothing: CRUD only, no verdicts, no log lines.
 	ModeOff Mode = "off"
-	// ModeSoft evaluates and records every request but blocks nothing.
+	// ModeSoft is the default: evaluate and record every request, block nothing.
 	ModeSoft Mode = "soft"
 	// ModeEnforce turns denials into real AccessDenied responses.
 	ModeEnforce Mode = "enforce"
 )
 
-// ParseMode reads a mode name, defaulting an empty string to off.
+// ParseMode reads a mode name, defaulting an empty string to soft.
 func ParseMode(s string) (Mode, error) {
 	switch Mode(strings.ToLower(strings.TrimSpace(s))) {
-	case "", ModeOff:
+	case "":
+		return ModeSoft, nil
+	case ModeOff:
 		return ModeOff, nil
 	case ModeSoft:
 		return ModeSoft, nil
@@ -84,7 +100,7 @@ func ParseMode(s string) (Mode, error) {
 type Options struct {
 	// DataDir holds the bbolt store (iam.bolt). Required.
 	DataDir string
-	// Mode selects enforcement behaviour; the zero value is ModeOff.
+	// Mode selects enforcement behaviour; the zero value is ModeSoft.
 	Mode Mode
 	// Peers is accepted for constructor uniformity. IAM dispatches nothing.
 	Peers peers.Directory
@@ -124,7 +140,7 @@ func New(opts Options) (*Server, error) {
 	}
 	mode := opts.Mode
 	if mode == "" {
-		mode = ModeOff
+		mode = ModeSoft
 	}
 	s := &Server{
 		store: newStore(db),

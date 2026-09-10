@@ -38,9 +38,9 @@ type Config struct {
 	// default target of `doze-aws apply`). Empty auto-detects the conventional
 	// template names.
 	TemplateFile string
-	// IAMMode selects how far IAM goes on the request path: "off" (the
-	// default) never evaluates, "soft" evaluates and records without blocking,
-	// "enforce" returns real AccessDenied errors.
+	// IAMMode selects how far IAM goes on the request path: "soft" (the
+	// default) evaluates and records without ever blocking, "off" never
+	// evaluates, "enforce" returns real AccessDenied errors.
 	IAMMode string
 }
 
@@ -54,7 +54,7 @@ func Default() Config {
 		S3Host:            "localhost",
 		Console:           true,
 		LambdaIdleTimeout: 10 * time.Minute,
-		IAMMode:           "off",
+		IAMMode:           "soft",
 	}
 }
 
