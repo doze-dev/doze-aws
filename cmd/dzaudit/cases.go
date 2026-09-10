@@ -29,6 +29,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/internal/auditkit"
 )
 
 // Case is one violating input, ready for a runner to send.
@@ -44,8 +46,13 @@ type Case struct {
 	// Why the value is invalid, in words a failure message can use.
 	Why string `json:"why"`
 	// Value is the violating value. Null means "omit this member", which is
-	// how a @required case is expressed.
+	// how a @required case is expressed — unless ValueRepeat is set, which
+	// says the value is padding and gives its shape instead.
 	Value any `json:"value"`
+	// ValueRepeat stands in for a long run of one character. A max-length
+	// case only needs its value to be that long, so writing the run out put
+	// megabytes of "aaa…" in the fixtures; the harness rebuilds it.
+	ValueRepeat *auditkit.Repeat `json:"value_repeat,omitempty"`
 	// Constraint is the rule being tested, for the report.
 	Constraint string `json:"constraint"`
 	// RequiredMembers are the operation's top-level required inputs — what a
@@ -137,12 +144,14 @@ func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 	for _, f := range found {
 		// A required member is its own case; it is not also a value violation.
 		for _, v := range violations(f.Constraint) {
+			value, repeat := auditkit.FoldRepeat(v.Value)
 			cases = append(cases, Case{
 				Operation:       f.Op,
 				Target:          targetFor(id, proto, f.Op),
 				Path:            f.Path,
 				Why:             v.Why,
-				Value:           v.Value,
+				Value:           value,
+				ValueRepeat:     repeat,
 				Constraint:      f.Constraint.Full(),
 				RequiredMembers: required[f.Op],
 				HTTP:            bindings[f.Op],

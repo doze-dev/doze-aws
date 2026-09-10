@@ -27,12 +27,13 @@ import (
 )
 
 type auditCase struct {
-	Operation  string `json:"operation"`
-	Target     string `json:"target"`
-	Path       string `json:"path"`
-	Why        string `json:"why"`
-	Value      any    `json:"value"`
-	Constraint string `json:"constraint"`
+	Operation   string           `json:"operation"`
+	Target      string           `json:"target"`
+	Path        string           `json:"path"`
+	Why         string           `json:"why"`
+	Value       any              `json:"value"`
+	ValueRepeat *auditkit.Repeat `json:"value_repeat,omitempty"`
+	Constraint  string           `json:"constraint"`
 }
 
 // fixture is the state the baselines address: a machine whose executions
@@ -300,6 +301,11 @@ func loadCases(t *testing.T) []auditCase {
 	var cs []auditCase
 	if err := json.Unmarshal(raw, &cs); err != nil {
 		t.Fatal(err)
+	}
+	// A max-length case stores the shape of its padding rather than the run
+	// itself: written out, those runs were 35 MB of the 37.5 MB of fixtures.
+	for i := range cs {
+		cs[i].Value = auditkit.Materialize(cs[i].Value, cs[i].ValueRepeat)
 	}
 	if len(cs) == 0 {
 		t.Fatal("no cases: the audit would pass vacuously")
