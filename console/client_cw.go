@@ -175,10 +175,15 @@ type Series struct {
 	Min, Max, Last float64
 	// Path is the SVG polyline for the sparkline, rendered server-side —
 	// there is no charting library in the console and this needs none.
-	Path   string
+	Path string
+	// Dots marks the individual observations of a sparse series.
+	Dots   []Dot
 	Width  int
 	Height int
 }
+
+// Dot is one observation's position in the chart's viewBox.
+type Dot struct{ X, Y float64 }
 
 type Point struct {
 	At    time.Time
@@ -278,9 +283,21 @@ func (s *Series) summarise() {
 			b.WriteByte(' ')
 		}
 		fmt.Fprintf(&b, "%.1f,%.1f", x, y)
+		// A sparse series also gets a dot per observation. A polyline through
+		// ONE point has zero area and draws nothing at all — publish a single
+		// metric, open the chart, and the panel looks broken rather than
+		// sparse. Dots say how many observations there actually are, which is
+		// the honest thing to show when there are few.
+		if len(s.Points) <= sparseDots {
+			s.Dots = append(s.Dots, Dot{X: x, Y: y})
+		}
 	}
 	s.Path = b.String()
 }
+
+// sparseDots is where a chart stops marking individual observations. Above it
+// the dots merge into the line and stop carrying information.
+const sparseDots = 30
 
 // Alarm is one metric alarm as the console shows it.
 type Alarm struct {

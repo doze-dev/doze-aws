@@ -68,6 +68,8 @@ var uncovered = map[string][]string{
 	"s3":           {},
 	"iam":          {},
 	"sts":          {},
+	// Two exemptions, both twins of what the pane already calls — see exempt.
+	"cloudwatch": {},
 	// ListStackResources is the one exemption — see exempt.
 	"cloudformation": {},
 	// Complete, all 37 — the activities page is the worker, the task-result
@@ -128,6 +130,15 @@ type exemption struct {
 // different claim from uncovered: uncovered says "not yet", exempt says "and
 // here is why it never will be".
 var exempt = map[string]map[string]exemption{
+	"cloudwatch": {
+		"PutMetricData": {dataPlane, "Lambda, API Gateway, Step Functions, EMF and log " +
+			"metric filters all write it, and that is the point of it. A console form that " +
+			"published a metric nothing measured would be a lie about what ran — the same " +
+			"reason PutLogEvents has no form"},
+		"GetMetricStatistics": {redundant, "the older twin of GetMetricData, which the chart " +
+			"reads. Both aggregate the same retained samples into the same statistics; " +
+			"GetMetricData is the one an SDK reaches for and the one that carries a Label"},
+	},
 	"eventbridge": {
 		"UpdateEventBus": {inert, "the three members it writes — Description, KmsKeyIdentifier and " +
 			"DeadLetterConfig — are stored and reported back but inert locally, and the console " +

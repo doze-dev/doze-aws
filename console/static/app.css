@@ -2002,3 +2002,7 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 /* The state reason is the API's own sentence, and it is long. Wrapped rather
    than truncated: it is the answer to "why did this fire". */
 .cw-reason { padding: 0 12px 10px; font-size: 12px; line-height: 1.5; word-break: break-word; }
+
+/* One observation is a dot, not a line: a polyline through a single point has
+   zero area and draws nothing, so a sparse chart would read as broken. */
+.cw-dot { fill: var(--svc-cw); }

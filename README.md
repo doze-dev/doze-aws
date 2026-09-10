@@ -47,7 +47,8 @@ clients still speak.
 | CloudFormation | ✅ stacks, nested stacks, change sets, deletion — `sam deploy`, `cdk deploy` and Serverless all work | **fully audited**: 22 of 23 dispatched operations · 182/182 constraint cases · no known gaps |
 | API Gateway | ✅ REST v1 and HTTP APIs (v2) — deployed APIs actually serve into Lambda over a real HTTP endpoint; an HTTP API answers at its `$default` stage with payload 2.0 events, CORS and REQUEST authorizers; TOKEN and REQUEST Lambda authorizers gate methods with the policy the function answers; API keys and usage plans gate methods that require a key; stage access and execution logs written to CloudWatch Logs; a CDK `RestApi`'s Resource and Method tree deploys as declared | **fully audited**: all 47 routed operations with constrained input · 118/126 constraint cases · 8 not expressible on the wire · no known gaps |
 | Step Functions | ✅ All 37 operations: Standard and Express, JSONPath and JSONata, versions and aliases, activities, redrive, Distributed Map with Map Runs, child executions (`.sync`), task tokens; Lambda/SQS/SNS/DynamoDB/EventBridge and `aws-sdk:` integrations for every local service; history vended to CloudWatch Logs per `loggingConfiguration`, Express runs included | **fully audited**: 33 of 37 operations · 229/229 constraint cases · 19 cases consume the state they address · no known gaps |
-| CloudWatch Logs | ✅ log groups, streams and events — Lambda output, Step Functions history, API Gateway access and execution logs, EventBridge deliveries and SNS delivery status land where they do on AWS, each line with its request id, and `aws logs tail --follow`, `sam logs` and the console read it; subscription filters forward matching lines to Lambda and Kinesis in AWS's gzip envelope | **fully audited**: the 21 dispatched operations · 197/197 constraint cases · 97 refused by name · no known gaps |
+| CloudWatch Logs | ✅ log groups, streams and events — Lambda output, Step Functions history, API Gateway access and execution logs, EventBridge deliveries and SNS delivery status land where they do on AWS, each line with its request id, and `aws logs tail --follow`, `sam logs` and the console read it; subscription filters forward matching lines to Lambda and Kinesis in AWS's gzip envelope; metric filters turn matching lines into CloudWatch metrics on ingest | **fully audited**: the 25 dispatched operations · 237/237 constraint cases · 93 refused by name · no known gaps |
+| CloudWatch | ✅ metrics with dimension-correct identity, statistics and exact percentiles over retained samples, and alarms that evaluate M-of-N over completed periods with `TreatMissingData` and notify SNS topics and Lambda functions with AWS's own alarm JSON — the alarm you would deploy, testable before you deploy it; Lambda, API Gateway and Step Functions publish their `AWS/*` metrics unasked, and EMF lines and log metric filters make custom ones. Served on **all three wires**: RPC v2 CBOR (Go v2, Java, Rust), JSON 1.0 (**the AWS CLI**, boto3, JS v3) and Query | **fully audited**: the 19 dispatched operations · 183/183 constraint cases on each of the three wires · 31 refused by name · no known gaps |
 
 **Why two columns.** A ✅ means every documented operation of that service has a
 real handler, verified against both AWS SDK generations. It does **not** mean
@@ -75,11 +76,12 @@ that goes up when you generate more padding should never be the headline.
 If a gap above bites you, it is a bug worth reporting — the goal is an empty
 right-hand column.
 
-All 16 services talk to each other: EventBridge→SQS/SNS/Lambda/HTTP API destinations, S3
+All 17 services talk to each other: EventBridge→SQS/SNS/Lambda/HTTP API destinations, S3
 notifications→SQS/SNS/Lambda, SNS→SQS/Lambda/webhooks, SQS/DynamoDB
 streams/Kinesis→Lambda, API Gateway→Lambda, Step Functions→Lambda/SQS/SNS
 and back through task tokens, Lambda/Step Functions/API Gateway/EventBridge/SNS→CloudWatch Logs,
-CloudWatch Logs subscription filters→Lambda/Kinesis.
+CloudWatch Logs subscription filters→Lambda/Kinesis, CloudWatch Logs metric filters→CloudWatch,
+Lambda/API Gateway/Step Functions→CloudWatch metrics, and CloudWatch alarms→SNS/Lambda.
 
 ## Deploy with the tooling you already have
 
