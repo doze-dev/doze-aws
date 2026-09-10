@@ -51,6 +51,16 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "MetricData[].StatisticValues.Sum", Kind: modelcheck.KindRequired},
 		{Path: "EntityMetricData[].MetricData[].MetricName", Kind: modelcheck.KindRequired},
 	},
+	"ListMetrics": {
+		{Path: "Namespace", Kind: modelcheck.KindLength, Min: 1, Max: 255},
+		{Path: "Namespace", Kind: modelcheck.KindPattern, Pat: reNamespace},
+		{Path: "MetricName", Kind: modelcheck.KindLength, Min: 1, Max: 255},
+		{Path: "Dimensions[].Name", Kind: modelcheck.KindRequired},
+		{Path: "Dimensions[].Name", Kind: modelcheck.KindLength, Min: 1, Max: 255},
+		{Path: "Dimensions[].Value", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+		{Path: "OwningAccount", Kind: modelcheck.KindLength, Min: 1, Max: 255},
+		{Path: "RecentlyActive", Kind: modelcheck.KindEnum, Enum: []string{"PT3H"}},
+	},
 }
 
 // notHere is every documented operation doze-aws refuses on purpose, with
@@ -67,7 +77,7 @@ var notHere = map[string]string{}
 func init() {
 	groups := map[string][]string{
 		"the metric store lands in the next sub-batch": {
-			"GetMetricData", "GetMetricStatistics", "ListMetrics",
+			"GetMetricData", "GetMetricStatistics",
 		},
 		"alarms land in the sub-batch after the metric store": {
 			"PutMetricAlarm", "DescribeAlarms", "DescribeAlarmsForMetric", "DeleteAlarms",

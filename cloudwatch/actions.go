@@ -10,12 +10,17 @@ package cloudwatch
 // three-wire design is wrong, this is where it shows.
 
 import (
+	"encoding/base64"
+	"sort"
+	"time"
+
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
 // handlers is every operation with a real implementation.
 var handlers = map[string]handler{
 	"PutMetricData": (*Server).putMetricData,
+	"ListMetrics":   (*Server).listMetrics,
 }
 
 // datum is one validated metric observation. D1a stops at validation — the
@@ -50,11 +55,98 @@ func (s *Server) putMetricData(req *request) (any, *awshttp.APIError) {
 		}
 		parsed = append(parsed, d)
 	}
-	for _, d := range parsed {
-		s.logf("cloudwatch: %s/%s = %v %s (%d dimensions)",
-			d.Namespace, d.MetricName, d.Value, d.Unit, len(d.Dimensions))
+	// The catalogue only. Samples land with the metric store in the next
+	// sub-batch; recording the series now is what gives ListMetrics something
+	// true to answer.
+	if err := s.putSeries(parsed); err != nil {
+		return nil, awshttp.AsAPIError(err)
 	}
 	return nil, nil
+}
+
+// listMetricsPageSize is AWS's page size for ListMetrics.
+const listMetricsPageSize = 500
+
+// listMetrics answers the metric catalogue.
+//
+// It is the first operation here with a response body, which is the point of
+// it: a list of structures, each with a nested list of dimensions, rendered
+// three ways from one struct.
+func (s *Server) listMetrics(req *request) (any, *awshttp.APIError) {
+	f := seriesFilter{
+		Namespace:  req.params.Str("Namespace"),
+		MetricName: req.params.Str("MetricName"),
+	}
+	for _, df := range req.params.List("Dimensions") {
+		name := df.Str("Name")
+		if name == "" {
+			return nil, errMissingParameter("The parameter Dimensions.member.N.Name is required.")
+		}
+		f.Dimensions = append(f.Dimensions, dimensionFilter{
+			Name: name, Value: df.Str("Value"), HasValue: df.Has("Value")})
+	}
+	// RecentlyActive has exactly one legal value, so the window is fixed.
+	if req.params.Str("RecentlyActive") == "PT3H" {
+		f.SinceMs = s.now().Add(-3 * time.Hour).UnixMilli()
+	}
+
+	after, aerr := decodeToken(req.params.Str("NextToken"))
+	if aerr != nil {
+		return nil, aerr
+	}
+	found, next, err := s.listSeries(f, after, listMetricsPageSize)
+	if err != nil {
+		return nil, awshttp.AsAPIError(err)
+	}
+
+	out := listMetricsResult{Metrics: make([]metricView, 0, len(found))}
+	for _, rec := range found {
+		out.Metrics = append(out.Metrics, metricView{
+			Namespace: rec.Namespace, MetricName: rec.MetricName,
+			Dimensions: dimensionViews(rec.Dimensions),
+		})
+	}
+	out.NextToken = encodeToken(next)
+	return out, nil
+}
+
+// dimensionViews renders a dimension set in a stable order, so two identical
+// listings are identical rather than differing by map iteration.
+func dimensionViews(dims map[string]string) []dimensionView {
+	if len(dims) == 0 {
+		return nil
+	}
+	names := make([]string, 0, len(dims))
+	for n := range dims {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	out := make([]dimensionView, 0, len(names))
+	for _, n := range names {
+		out = append(out, dimensionView{Name: n, Value: dims[n]})
+	}
+	return out
+}
+
+// encodeToken and decodeToken carry a store key across a page boundary. It is
+// opaque to the client, so it is base64 — a raw key contains NUL bytes and
+// would not survive a query string.
+func encodeToken(key []byte) string {
+	if len(key) == 0 {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(key)
+}
+
+func decodeToken(tok string) ([]byte, *awshttp.APIError) {
+	if tok == "" {
+		return nil, nil
+	}
+	raw, err := base64.StdEncoding.DecodeString(tok)
+	if err != nil {
+		return nil, errf("InvalidNextToken", "The next token is not valid.")
+	}
+	return raw, nil
 }
 
 // parseDatum reads one MetricDatum. The checks here are the ones the model

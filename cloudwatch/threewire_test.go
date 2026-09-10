@@ -66,6 +66,18 @@ func cborRequest(t *testing.T, base, op string) *http.Request {
 	return r
 }
 
+// rawCBOR builds an RPC v2 request around a body written by hand, for cases
+// where no captured fixture says what the bytes should be.
+func rawCBOR(t *testing.T, base, op string, body []byte) *http.Request {
+	t.Helper()
+	r, _ := http.NewRequest("POST",
+		base+"/service/GraniteServiceVersion20100801/operation/"+op, bytes.NewReader(body))
+	r.Header.Set("Content-Type", "application/cbor")
+	r.Header.Set("Accept", "application/cbor")
+	r.Header.Set("Smithy-Protocol", "rpc-v2-cbor")
+	return r
+}
+
 const jsonBody = `{"Namespace":"Shop","MetricData":[{"MetricName":"Checkouts",` +
 	`"Dimensions":[{"Name":"FunctionName","Value":"checkout"},{"Name":"Stage","Value":"prod"}],` +
 	`"Value":1.5,"Unit":"Count","StorageResolution":1}]}`
