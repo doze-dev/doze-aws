@@ -12,6 +12,8 @@ package cloudwatch
 // protocol wraps every list element in a <member> element, which Go's XML
 // encoder writes as `xml:"Name>member"`. JSON and CBOR carry a plain array.
 
+import "time"
+
 // metricView is one entry in the metric catalogue: what was published, not
 // what its values were.
 type metricView struct {
@@ -35,4 +37,49 @@ type dimensionView struct {
 type listMetricsResult struct {
 	Metrics   []metricView `json:"Metrics" xml:"Metrics>member"`
 	NextToken string       `json:"NextToken,omitempty" xml:"NextToken,omitempty"`
+}
+
+// datapointView is one period's statistics.
+//
+// Every statistic is a pointer, because absent and zero are different
+// answers: a Sum of 0 over a period that had observations is a fact, and
+// omitting the member is how "you did not ask for this statistic" is said.
+// Percentiles ride in ExtendedStatistics, keyed by their pNN name.
+type datapointView struct {
+	Timestamp   time.Time          `json:"Timestamp" xml:"Timestamp"`
+	SampleCount *float64           `json:"SampleCount,omitempty" xml:"SampleCount,omitempty"`
+	Average     *float64           `json:"Average,omitempty" xml:"Average,omitempty"`
+	Sum         *float64           `json:"Sum,omitempty" xml:"Sum,omitempty"`
+	Minimum     *float64           `json:"Minimum,omitempty" xml:"Minimum,omitempty"`
+	Maximum     *float64           `json:"Maximum,omitempty" xml:"Maximum,omitempty"`
+	Unit        string             `json:"Unit,omitempty" xml:"Unit,omitempty"`
+	Extended    map[string]float64 `json:"ExtendedStatistics,omitempty" xml:"-"`
+}
+
+// set places one computed statistic on the datapoint.
+func (d *datapointView) set(st stat, v float64) {
+	val := v
+	switch st.Name {
+	case "SampleCount":
+		d.SampleCount = &val
+	case "Average":
+		d.Average = &val
+	case "Sum":
+		d.Sum = &val
+	case "Minimum":
+		d.Minimum = &val
+	case "Maximum":
+		d.Maximum = &val
+	default:
+		if d.Extended == nil {
+			d.Extended = map[string]float64{}
+		}
+		d.Extended[st.Name] = v
+	}
+}
+
+// getMetricStatisticsResult answers GetMetricStatistics.
+type getMetricStatisticsResult struct {
+	Label      string          `json:"Label" xml:"Label"`
+	Datapoints []datapointView `json:"Datapoints" xml:"Datapoints>member"`
 }

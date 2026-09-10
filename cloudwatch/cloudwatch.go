@@ -42,6 +42,10 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Retention is how long samples are kept; zero uses the default (24h).
+	Retention time.Duration
+	// MaxSamples caps stored samples; zero uses the default (1e6).
+	MaxSamples int
 	// IAMMode is the enforcement mode the service's resource-policy guard
 	// runs in when the middleware does not stamp one.
 	IAMMode string
@@ -50,11 +54,13 @@ type Options struct {
 // Server is the CloudWatch service: an http.Handler over three protocols, and
 // an io.Closer that closes the store.
 type Server struct {
-	db    *bolt.DB
-	peers peers.Directory
-	logf  func(format string, args ...any)
-	now   func() time.Time
-	stop  chan struct{}
+	db         *bolt.DB
+	peers      peers.Directory
+	logf       func(format string, args ...any)
+	now        func() time.Time
+	stop       chan struct{}
+	retention  time.Duration
+	maxSamples int
 }
 
 // New opens the store under DataDir.
@@ -82,12 +88,45 @@ func New(opts Options) (*Server, error) {
 	if dir == nil {
 		dir = peers.None()
 	}
-	s := &Server{db: db, peers: dir, logf: logf, now: time.Now, stop: make(chan struct{})}
+	s := &Server{db: db, peers: dir, logf: logf, now: time.Now, stop: make(chan struct{}),
+		retention: opts.Retention, maxSamples: opts.MaxSamples}
 	if opts.Clock != nil {
 		s.now = opts.Clock
 	}
+	if s.retention <= 0 {
+		s.retention = defaultRetention
+	}
+	if s.maxSamples <= 0 {
+		s.maxSamples = defaultMaxSamples
+	}
+	go s.sweeper()
 	return s, nil
 }
+
+// sweeper drops samples past the retention window on a slow tick. A minute is
+// far finer than the window it enforces, which is the point: the cost of a
+// sweep is proportional to what it removes, and a long gap would make one
+// sweep expensive rather than many cheap.
+func (s *Server) sweeper() {
+	t := time.NewTicker(time.Minute)
+	defer t.Stop()
+	for {
+		select {
+		case <-s.stop:
+			return
+		case <-t.C:
+			if n, err := s.sweep(s.retention, s.maxSamples); err != nil {
+				s.logf("cloudwatch: sweep: %v", err)
+			} else if n > 0 {
+				s.logf("cloudwatch: swept %d samples", n)
+			}
+		}
+	}
+}
+
+// SweepNow runs one retention pass and reports what it removed. Exported so a
+// test can force a sweep rather than wait a minute for the ticker.
+func (s *Server) SweepNow() (int, error) { return s.sweep(s.retention, s.maxSamples) }
 
 // Close stops the background work and closes the store.
 func (s *Server) Close() error {

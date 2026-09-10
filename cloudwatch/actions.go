@@ -19,8 +19,9 @@ import (
 
 // handlers is every operation with a real implementation.
 var handlers = map[string]handler{
-	"PutMetricData": (*Server).putMetricData,
-	"ListMetrics":   (*Server).listMetrics,
+	"PutMetricData":       (*Server).putMetricData,
+	"ListMetrics":         (*Server).listMetrics,
+	"GetMetricStatistics": (*Server).getMetricStatistics,
 }
 
 // datum is one validated metric observation. D1a stops at validation — the
@@ -33,6 +34,20 @@ type datum struct {
 	Value      float64
 	Unit       string
 	Resolution int
+	// Timestamp is when the caller says the observation happened. Zero means
+	// "now", which is what AWS does with an omitted one.
+	Timestamp time.Time
+	// Stats is set when the caller pre-summarised: one datum standing for
+	// many observations. Value is then meaningless on its own.
+	Stats *statisticValues
+}
+
+// statisticValues is a pre-summarised observation set.
+type statisticValues struct {
+	SampleCount float64
+	Sum         float64
+	Minimum     float64
+	Maximum     float64
 }
 
 // putMetricData accepts observations. AWS answers with an empty body, so this
@@ -58,7 +73,7 @@ func (s *Server) putMetricData(req *request) (any, *awshttp.APIError) {
 	// The catalogue only. Samples land with the metric store in the next
 	// sub-batch; recording the series now is what gives ListMetrics something
 	// true to answer.
-	if err := s.putSeries(parsed); err != nil {
+	if err := s.putSamples(parsed); err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
 	return nil, nil
@@ -149,6 +164,30 @@ func decodeToken(tok string) ([]byte, *awshttp.APIError) {
 	return raw, nil
 }
 
+// parseStatisticValues reads a pre-summarised observation set. The model
+// requires all four members; these are the checks it cannot state — that the
+// count is positive and the extremes bracket the mean, without which an
+// average over the record is nonsense.
+func parseStatisticValues(sv params) (*statisticValues, *awshttp.APIError) {
+	count, hasCount := sv.Float("SampleCount")
+	sum, _ := sv.Float("Sum")
+	min, hasMin := sv.Float("Minimum")
+	max, hasMax := sv.Float("Maximum")
+	if !hasCount || !hasMin || !hasMax {
+		return nil, errMissingParameter(
+			"StatisticValues requires SampleCount, Sum, Minimum and Maximum.")
+	}
+	if count <= 0 {
+		return nil, errInvalidParameter(
+			"The parameter StatisticValues.SampleCount must be greater than 0.")
+	}
+	if min > max {
+		return nil, errInvalidParameter(
+			"The parameter StatisticValues.Minimum must not exceed Maximum.")
+	}
+	return &statisticValues{SampleCount: count, Sum: sum, Minimum: min, Maximum: max}, nil
+}
+
 // parseDatum reads one MetricDatum. The checks here are the ones the model
 // cannot state: that a value was supplied at all, and that a dimension has
 // both halves.
@@ -159,11 +198,20 @@ func parseDatum(ns string, md params) (datum, *awshttp.APIError) {
 	}
 	d := datum{Namespace: ns, MetricName: name, Unit: md.Str("Unit"),
 		Resolution: md.Int("StorageResolution", 60)}
+	if ts, ok := md.Time("Timestamp"); ok {
+		d.Timestamp = ts
+	}
 
 	// A value is required unless StatisticValues carries one, and 0 is a
 	// legal value — so presence is the question, not truthiness.
 	v, ok := md.Float("Value")
-	if !ok && !md.Has("StatisticValues") {
+	if sv := md.Map("StatisticValues"); sv != nil {
+		stats, aerr := parseStatisticValues(sv)
+		if aerr != nil {
+			return datum{}, aerr
+		}
+		d.Stats = stats
+	} else if !ok {
 		return datum{}, errMissingParameter(
 			"The parameter MetricDatum.Value or MetricDatum.StatisticValues is required.")
 	}

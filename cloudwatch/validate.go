@@ -61,6 +61,24 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "OwningAccount", Kind: modelcheck.KindLength, Min: 1, Max: 255},
 		{Path: "RecentlyActive", Kind: modelcheck.KindEnum, Enum: []string{"PT3H"}},
 	},
+	"GetMetricStatistics": {
+		{Path: "Namespace", Kind: modelcheck.KindRequired},
+		{Path: "Namespace", Kind: modelcheck.KindLength, Min: 1, Max: 255},
+		{Path: "Namespace", Kind: modelcheck.KindPattern, Pat: reNamespace},
+		{Path: "MetricName", Kind: modelcheck.KindRequired},
+		{Path: "MetricName", Kind: modelcheck.KindLength, Min: 1, Max: 255},
+		{Path: "StartTime", Kind: modelcheck.KindRequired},
+		{Path: "EndTime", Kind: modelcheck.KindRequired},
+		{Path: "Period", Kind: modelcheck.KindRequired},
+		{Path: "Period", Kind: modelcheck.KindRange, Min: 1, Max: modelcheck.NoMax},
+		{Path: "Dimensions[].Name", Kind: modelcheck.KindRequired},
+		{Path: "Dimensions[].Name", Kind: modelcheck.KindLength, Min: 1, Max: 255},
+		{Path: "Dimensions[].Value", Kind: modelcheck.KindRequired},
+		{Path: "Dimensions[].Value", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
+		{Path: "Statistics[]", Kind: modelcheck.KindEnum,
+			Enum: []string{"Average", "Sum", "Minimum", "Maximum", "SampleCount"}},
+		{Path: "Unit", Kind: modelcheck.KindEnum, Enum: standardUnits},
+	},
 }
 
 // notHere is every documented operation doze-aws refuses on purpose, with
@@ -77,7 +95,7 @@ var notHere = map[string]string{}
 func init() {
 	groups := map[string][]string{
 		"the metric store lands in the next sub-batch": {
-			"GetMetricData", "GetMetricStatistics",
+			"GetMetricData",
 		},
 		"alarms land in the sub-batch after the metric store": {
 			"PutMetricAlarm", "DescribeAlarms", "DescribeAlarmsForMetric", "DeleteAlarms",
