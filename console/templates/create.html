@@ -366,7 +366,7 @@
       <div class="panel form-sec"><div class="panel-h"><h2>Condition</h2></div><div class="form-b">
         <div class="fgrid">
           <div class="field"><label>Statistic</label><select class="input" name="statistic">
-            {{range $s := list "Sum" "Average" "Maximum" "Minimum" "SampleCount" "p95" "p99"}}<option value="{{$s}}">{{$s}}</option>{{end}}
+            {{range $s := $.Stats}}<option value="{{$s}}">{{$s}}</option>{{end}}
           </select></div>
           <div class="field"><label>Operator</label><select class="input" name="operator">
             <option value="GreaterThanThreshold">&gt;</option>

@@ -36,9 +36,15 @@ type Shipper struct {
 	ensured  map[key]bool
 	timer    *time.Timer
 	disabled bool
+	closed   bool
 	work     chan map[key][]Event
-	done     chan struct{}
-	once     sync.Once
+	// quit tells the worker to drain and stop. The work channel is never
+	// closed, because Flush runs on a timer goroutine that can be between its
+	// unlock and its send at the moment Close is called — closing the channel
+	// underneath it is a panic, and a flag cannot prevent it.
+	quit chan struct{}
+	done chan struct{}
+	once sync.Once
 }
 
 // New starts a shipper. name appears in the "logs service is not enabled"
@@ -50,7 +56,8 @@ func New(name string, dir peers.Directory, logf func(string, ...any)) *Shipper {
 	s := &Shipper{
 		name: name, peers: dir, logf: logf,
 		pending: map[key][]Event{}, ensured: map[key]bool{},
-		work: make(chan map[key][]Event, 64), done: make(chan struct{}),
+		work: make(chan map[key][]Event, 64),
+		quit: make(chan struct{}), done: make(chan struct{}),
 	}
 	go s.worker()
 	return s
@@ -64,7 +71,7 @@ func (s *Shipper) Put(group, stream string, events ...Event) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.disabled {
+	if s.disabled || s.closed {
 		return
 	}
 	k := key{group, stream}
@@ -76,14 +83,26 @@ func (s *Shipper) Put(group, stream string, events ...Event) {
 
 // Flush hands everything pending to the worker.
 func (s *Shipper) Flush() {
+	s.send(s.take())
+}
+
+// take detaches what is pending and disarms the timer.
+func (s *Shipper) take() map[key][]Event {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	batch := s.pending
 	s.pending = map[key][]Event{}
 	if s.timer != nil {
 		s.timer.Stop()
 		s.timer = nil
 	}
-	s.mu.Unlock()
+	return batch
+}
+
+// send queues a batch, giving up if the worker has already stopped — which is
+// what a Flush racing Close does, and it costs at most the events that were
+// pending at the instant of shutdown.
+func (s *Shipper) send(batch map[key][]Event) {
 	if len(batch) == 0 {
 		return
 	}
@@ -97,8 +116,12 @@ func (s *Shipper) Flush() {
 // sent, bounded by a short deadline, so a test can read what it wrote.
 func (s *Shipper) Close() {
 	s.once.Do(func() {
-		s.Flush()
-		close(s.work)
+		batch := s.take()
+		s.mu.Lock()
+		s.closed = true
+		s.mu.Unlock()
+		s.send(batch)
+		close(s.quit)
 		select {
 		case <-s.done:
 		case <-time.After(2 * time.Second):
@@ -108,10 +131,28 @@ func (s *Shipper) Close() {
 
 func (s *Shipper) worker() {
 	defer close(s.done)
-	for batch := range s.work {
-		for k, events := range batch {
-			s.ship(k, events)
+	for {
+		select {
+		case batch := <-s.work:
+			s.shipAll(batch)
+		case <-s.quit:
+			// Everything already queued still goes out: Close waits for this,
+			// and a test that writes then reads back depends on it.
+			for {
+				select {
+				case batch := <-s.work:
+					s.shipAll(batch)
+				default:
+					return
+				}
+			}
 		}
+	}
+}
+
+func (s *Shipper) shipAll(batch map[key][]Event) {
+	for k, events := range batch {
+		s.ship(k, events)
 	}
 }
 

@@ -45,6 +45,7 @@ func (c *Console) createPage(svc, tmpl string) http.HandlerFunc {
 			// topic that does not exist, is the deploy-time failure this form
 			// exists to make impossible.
 			data["Metrics"], _ = c.be.ListMetrics(r.Context(), "")
+			data["Stats"] = cwStats
 			data["Topics"], _ = c.be.ListTopics(r.Context())
 			data["Metric"] = r.URL.Query().Get("metric")
 		case "sm":
