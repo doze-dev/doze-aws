@@ -10,8 +10,6 @@ package cloudformation
 // string wrong turns a no-op redeploy into a hard error.
 
 import (
-	"strings"
-
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
@@ -274,7 +272,3 @@ func hListChangeSets(s *Server, p params) (any, *awshttp.APIError) {
 		Summaries []summary `xml:"Summaries>member"`
 	}{out}, nil
 }
-
-// hasChangeSetSuffix reports whether a name is really a change-set ARN, which
-// deploy tools sometimes pass where a name is expected.
-func hasChangeSetSuffix(v string) bool { return strings.Contains(v, "/changeSet/") }

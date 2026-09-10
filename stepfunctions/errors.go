@@ -13,20 +13,12 @@ func errMachineNotFound(arn string) *awshttp.APIError {
 	return awshttp.Errf(400, "StateMachineDoesNotExist", "State Machine Does Not Exist: '%s'", arn)
 }
 
-func errMachineDeleting(arn string) *awshttp.APIError {
-	return awshttp.Errf(400, "StateMachineDeleting", "State Machine is being deleted: '%s'", arn)
-}
-
 func errMachineExists(arn string) *awshttp.APIError {
 	return awshttp.Errf(400, "StateMachineAlreadyExists", "State Machine Already Exists: '%s'", arn)
 }
 
 func errActivityNotFound(arn string) *awshttp.APIError {
 	return awshttp.Errf(400, "ActivityDoesNotExist", "Activity Does Not Exist: '%s'", arn)
-}
-
-func errActivityExists(arn string) *awshttp.APIError {
-	return awshttp.Errf(400, "ActivityAlreadyExists", "Activity Already Exists: '%s'", arn)
 }
 
 // errInvalidDefinition carries the analyser's diagnostics through to the

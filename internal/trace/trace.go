@@ -106,29 +106,6 @@ func CauseOf(ctx context.Context) Cause {
 	return 0
 }
 
-// Traced reports whether this context carries a sink — useful to skip building
-// an event nobody will read.
-func Traced(ctx context.Context) bool {
-	_, ok := ctx.Value(key{}).(carrier)
-	return ok
-}
-
-// Emit records one cascade event. It fills in Cause and At when unset, and is
-// a no-op without a sink, so instrumented code needs no conditionals.
-func Emit(ctx context.Context, e Event) {
-	c, ok := ctx.Value(key{}).(carrier)
-	if !ok {
-		return
-	}
-	if e.Cause == 0 {
-		e.Cause = c.cause
-	}
-	if e.At.IsZero() {
-		e.At = time.Now()
-	}
-	c.sink.EmitCascade(e)
-}
-
 // Step runs one piece of caused work, timing it and recording it as a child of
 // whatever caused the current context.
 //

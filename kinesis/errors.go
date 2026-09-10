@@ -67,17 +67,6 @@ type notifier struct {
 
 func newNotifier() *notifier { return &notifier{chans: map[string]chan struct{}{}} }
 
-func (n *notifier) wait(stream string) <-chan struct{} {
-	n.mu.Lock()
-	defer n.mu.Unlock()
-	ch, ok := n.chans[stream]
-	if !ok {
-		ch = make(chan struct{})
-		n.chans[stream] = ch
-	}
-	return ch
-}
-
 func (n *notifier) signal(stream string) {
 	n.mu.Lock()
 	defer n.mu.Unlock()

@@ -49,11 +49,28 @@ tasks:
     cmds:
       - go vet ./...
 
+  deadcode:
+    desc: Report functions nothing can reach (golang.org/x/tools/cmd/deadcode)
+    cmds:
+      # Fails when anything is reported. The tree is at zero, and the only way
+      # to keep it there is to notice on the commit that adds the first one —
+      # dead code is never worth a special trip later.
+      - |
+        out="$(go tool deadcode -test ./...)"
+        if [ -n "$out" ]; then
+          echo 'unreachable code:'; echo "$out"
+          echo
+          echo 'Delete it, or if it is deliberately-kept API, say so in a comment and'
+          echo 'reference it from a test.'
+          exit 1
+        fi
+
   check:
-    desc: 'Pre-push gate: gofmt check, go vet, and the full race suite. Wire it as a git pre-push hook (task hooks:install).'
+    desc: 'Pre-push gate: gofmt check, go vet, deadcode, and the full race suite. Wire it as a git pre-push hook (task hooks:install).'
     cmds:
       - test -z "$(gofmt -l .)" || { echo 'gofmt needed:'; gofmt -l .; exit 1; }
       - go vet ./...
+      - task: deadcode
       - go test -race ./...
 
   hooks:install:

@@ -451,9 +451,6 @@ type KMSKeyState struct {
 	Found bool
 }
 
-// Usable reports whether encryption with this key would succeed.
-func (k KMSKeyState) Usable() bool { return k.Found && k.State == "Enabled" }
-
 // KMSDescribeKey resolves a key through the local KMS. A service holding a
 // customer key is expected to fail loudly when that key stops being usable —
 // AWS answers KMSNotFound/KMSDisabled/KMSInvalidState rather than carrying on

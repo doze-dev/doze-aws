@@ -190,23 +190,6 @@ func IsMappable(typ string) bool {
 	return ok
 }
 
-// physicalName decides the name a resource takes in the stack file. An
-// explicit name property wins; otherwise the logical ID is used verbatim.
-//
-// CloudFormation would generate something like `stack-Logical-1A2B3C`. Locally
-// that is actively unhelpful — you want to `aws sqs receive-message --queue-url
-// .../MyQueue`, not chase a random suffix — so the logical ID is the name.
-func physicalName(r *Resource, props map[string]any) string {
-	if prop, ok := nameProperty[r.Type]; ok && prop != "" {
-		if v, ok := props[prop]; ok {
-			if s := fmt.Sprint(v); s != "" && s != "<nil>" {
-				return s
-			}
-		}
-	}
-	return r.LogicalID
-}
-
 // refValue is what `!Ref` on a resource of this type yields, following AWS's
 // per-type rules — Ref on a queue is its URL, on a topic its ARN, on a bucket
 // its name.

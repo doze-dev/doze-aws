@@ -9,13 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
-
-func layerARN(name string, version int64) string {
-	return "arn:aws:lambda:" + awsident.Region + ":" + awsident.AccountID + ":layer:" + name + ":" + strconv.FormatInt(version, 10)
-}
 
 // ---- layers ----
 

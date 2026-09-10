@@ -20,7 +20,6 @@ package cloudwatch
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
@@ -227,8 +226,3 @@ func writeParseError(w http.ResponseWriter, r *http.Request, e *awshttp.APIError
 	}
 	req.writeError(w, e)
 }
-
-// isQueryVersion reports whether a Query request names CloudWatch's API
-// version, which is how the gateway tells a CloudWatch TagResource from an
-// SNS one when there is no signature to route on.
-func isQueryVersion(v string) bool { return strings.TrimSpace(v) == apiVersion }

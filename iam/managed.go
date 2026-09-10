@@ -21,8 +21,6 @@ package iam
 
 import (
 	"strings"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // managedPrefix is the ARN prefix AWS-managed policies live under. Note the
@@ -243,13 +241,4 @@ func stableSuffix(name string) string {
 		}
 	}
 	return string(out)
-}
-
-// ManagedARN builds the ARN for an AWS-managed policy name, for callers that
-// have a bare name (CloudFormation templates commonly do).
-func ManagedARN(name string) string { return managedPrefix + name }
-
-// CustomerARN builds the ARN for a customer-managed policy.
-func CustomerARN(path, name string) string {
-	return awsident.GlobalARN("iam", "policy"+normPath(path)+name)
 }

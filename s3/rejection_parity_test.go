@@ -58,14 +58,6 @@ type auditCase struct {
 	HTTP        *binding         `json:"http"`
 }
 
-func (b *binding) lists() map[string]xmlList {
-	out := map[string]xmlList{}
-	for k, v := range b.XMLLists {
-		out[k] = v
-	}
-	return out
-}
-
 func s3Server(t *testing.T) *httptest.Server {
 	t.Helper()
 	srv, err := New(Options{DataDir: t.TempDir(), Logf: t.Logf})

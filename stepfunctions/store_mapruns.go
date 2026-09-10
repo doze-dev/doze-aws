@@ -73,7 +73,6 @@ type MapItem struct {
 
 func (m *MapRun) Total() int   { return len(m.Inputs) }
 func (m *MapRun) Pending() int { return m.Total() - m.Next }
-func (m *MapRun) settled() int { return m.Succeeded + m.Failed + m.TimedOut + m.Aborted }
 func (m *MapRun) done() bool   { return m.Next == m.Total() && m.Running == 0 }
 
 // failures is Failed plus TimedOut plus Aborted — what the tolerance counts.

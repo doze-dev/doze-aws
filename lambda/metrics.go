@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
-	"github.com/doze-dev/doze-aws/internal/metricship"
 )
 
 // lambdaNamespace is AWS's, not doze-aws's: an alarm written against the
@@ -56,15 +55,4 @@ func (s *Server) recordInvoke(name string, res lambdaruntime.Result, err error, 
 		s.metrics.Count(lambdaNamespace, "Errors", dims, 1)
 		s.metrics.Count(lambdaNamespace, "Errors", nil, 1)
 	}
-}
-
-// putEMF publishes the metrics an Embedded Metric Format log line carries.
-// A function that writes EMF is asking for custom metrics without an SDK
-// call, and the line reaching CloudWatch Logs is the whole publishing
-// mechanism — see internal/emf.
-func (s *Server) putEMF(data []metricship.Datum, namespace string) {
-	if s.metrics == nil || len(data) == 0 {
-		return
-	}
-	s.metrics.Put(namespace, data...)
 }

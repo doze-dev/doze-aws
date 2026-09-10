@@ -99,20 +99,6 @@ func (s *Server) recordSeries(tx *bolt.Tx, d datum, nowMs int64) error {
 	return b.Put(key, raw)
 }
 
-// putSeries records every datum of one call in a single transaction, so a
-// PutMetricData either lands entirely or not at all.
-func (s *Server) putSeries(data []datum) error {
-	nowMs := s.now().UnixMilli()
-	return s.db.Update(func(tx *bolt.Tx) error {
-		for _, d := range data {
-			if err := s.recordSeries(tx, d, nowMs); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-}
-
 // seriesFilter narrows a listing. A zero filter matches everything.
 type seriesFilter struct {
 	Namespace  string

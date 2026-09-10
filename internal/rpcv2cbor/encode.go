@@ -15,7 +15,6 @@ package rpcv2cbor
 // and no annotations added for this package's benefit.
 
 import (
-	"encoding/base64"
 	"fmt"
 	"math"
 	"reflect"
@@ -255,7 +254,3 @@ func isEmpty(v reflect.Value) bool {
 	}
 	return false
 }
-
-// B64 is the spelling the decoder gives a blob, exported so a caller that
-// needs the bytes back does not have to guess the encoding.
-func B64(s string) ([]byte, error) { return base64.StdEncoding.DecodeString(s) }

@@ -621,20 +621,6 @@ func orStr(v, def string) string {
 	return v
 }
 
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	var buf [12]byte
-	i := len(buf)
-	for n > 0 {
-		i--
-		buf[i] = byte('0' + n%10)
-		n /= 10
-	}
-	return string(buf[i:])
-}
-
 // Bounds Lambda states for a function's sizing, from its own service model
 // (`dzaudit list --op CreateFunction lambda`). Zero means "not supplied" on
 // both members — Lambda defaults them, so an absent value is not an

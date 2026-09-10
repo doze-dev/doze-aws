@@ -49,19 +49,6 @@ type FlowGraph struct {
 	Flows     int
 }
 
-func (g FlowGraph) hash() string {
-	parts := []string{strconv.Itoa(g.Flows), strconv.Itoa(g.Conns)}
-	for _, d := range g.Diagrams {
-		for _, n := range d.Nodes {
-			parts = append(parts, n.ID+"="+n.Sub)
-		}
-	}
-	for _, n := range g.Unwired {
-		parts = append(parts, n.ID)
-	}
-	return contentHash(parts...)
-}
-
 func nodeID(svc, name string) string { return svc + ":" + name }
 
 // BuildGraph assembles the wiring map from the live services.
@@ -561,47 +548,6 @@ func ensureNode(nodes map[string]*FlowNode, ref resourceRef) string {
 		nodes[id] = &FlowNode{ID: id, Svc: ref.Svc, Name: ref.Name, URL: ref.Path}
 	}
 	return id
-}
-
-func edgeTargetNode(proto, endpoint string, leaf func(string) string) string {
-	switch {
-	case proto == "sqs" || strings.Contains(endpoint, ":sqs:"):
-		return nodeID("sqs", leaf(endpoint))
-	case proto == "lambda" || strings.Contains(endpoint, ":lambda:") || strings.Contains(endpoint, "function:"):
-		return nodeID("lambda", leaf(strings.TrimPrefix(leaf(endpoint), "function:")))
-	case proto == "sns" || strings.Contains(endpoint, ":sns:"):
-		return nodeID("sns", leaf(endpoint))
-	}
-	return ""
-}
-
-// destNode maps a destination ARN (SQS/SNS/Lambda/EventBridge) to a graph node.
-func destNode(arn string, leaf func(string) string) string {
-	switch {
-	case arn == "":
-		return ""
-	case strings.Contains(arn, ":sqs:"):
-		return nodeID("sqs", leaf(arn))
-	case strings.Contains(arn, ":sns:"):
-		return nodeID("sns", leaf(arn))
-	case strings.Contains(arn, ":lambda:") || strings.Contains(arn, "function:"):
-		return nodeID("lambda", strings.TrimPrefix(leaf(arn), "function:"))
-	case strings.Contains(arn, ":events:") || strings.Contains(arn, "event-bus/"):
-		return nodeID("eb", leaf(arn))
-	}
-	return ""
-}
-
-func protoOfARN(arn string) string {
-	switch {
-	case strings.Contains(arn, ":sqs:"):
-		return "sqs"
-	case strings.Contains(arn, ":lambda:") || strings.Contains(arn, "function:"):
-		return "lambda"
-	case strings.Contains(arn, ":sns:"):
-		return "sns"
-	}
-	return ""
 }
 
 // bucketNotifications reads a bucket's S3 event-notification config.

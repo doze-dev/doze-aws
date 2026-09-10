@@ -204,12 +204,6 @@ func ValidateReferencePath(s string) error {
 	return nil
 }
 
-// IsPathExpr reports whether a payload-template value is a path reference —
-// the ".$" suffixed key convention, where {"a.$": "$.b"} copies $.b into a.
-func IsPathExpr(v string) bool {
-	return strings.HasPrefix(v, "$")
-}
-
 // isVariableStart reports whether a byte after "$" begins a variable name
 // rather than a path segment: a letter or underscore, as AWS's variable
 // names are.

@@ -15,13 +15,6 @@ import (
 // the wrong type is simply false — a NumericEquals over a string does not
 // match, it does not throw.
 
-// chooseNext evaluates a Choice state's rules in order and returns the name
-// of the state to transition to.
-func chooseNext(s *State, data, ctxObj any) (string, *Failure) {
-	next, _, fail := chooseRule(s, data, ctxObj)
-	return next, fail
-}
-
 // chooseRule is chooseNext that also says which rule matched (nil for the
 // Default), so the caller can run that rule's Assign.
 func chooseRule(s *State, data, ctxObj any) (string, *ChoiceRule, *Failure) {

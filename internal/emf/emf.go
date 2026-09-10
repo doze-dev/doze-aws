@@ -35,7 +35,6 @@ package emf
 
 import (
 	"encoding/json"
-	"time"
 )
 
 // Metric is one observation the directive names, resolved against the body.
@@ -206,13 +205,4 @@ func trimFloat(f float64) string {
 		return ""
 	}
 	return string(b)
-}
-
-// TimestampOr returns the directive's timestamp, or the fallback when it had
-// none — a line without one was observed when it was printed.
-func TimestampOr(ms int64, fallback time.Time) time.Time {
-	if ms > 0 {
-		return time.UnixMilli(ms).UTC()
-	}
-	return fallback.UTC()
 }

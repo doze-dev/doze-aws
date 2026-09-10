@@ -342,15 +342,13 @@ func TestConsoleLambdaPage(t *testing.T) {
 func TestConsoleCreatePagesAndPalette(t *testing.T) {
 	h := newConsole(t)
 
-	for _, p := range []string{
-		"/_console/s3/create", "/_console/sqs/create", "/_console/ddb/create",
-		"/_console/sns/create", "/_console/eb/create-bus", "/_console/eb/default/create-rule",
-		"/_console/kms/create", "/_console/ssm/create", "/_console/sm/create",
-	} {
-		rec := req(t, h, "GET", p, nil)
-		if rec.Code != 200 || !strings.Contains(rec.Body.String(), "form-page") {
-			t.Fatalf("create page %s: %d", p, rec.Code)
-		}
+	// The create pages themselves are swept by TestEveryCatalogPageRenders,
+	// from the catalogue — the hand-written list that used to be here named
+	// nine of the sixteen. What is left is the scoped page the catalogue
+	// cannot know about, since a rule belongs to a bus.
+	rec := req(t, h, "GET", "/_console/eb/default/create-rule", nil)
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "form-page") {
+		t.Fatalf("scoped create page: %d", rec.Code)
 	}
 
 	// Seed one resource, then the palette index includes it plus the actions.
@@ -1263,13 +1261,14 @@ func TestSurfacesRenderWithoutTemplateErrors(t *testing.T) {
 	bad.Header.Set("Content-Type", "application/x-amz-json-1.0")
 	rec.ServeHTTP(httptest.NewRecorder(), bad)
 
-	for _, path := range []string{
-		"/_console/", "/_console/traffic", "/_console/connect",
-		"/_console/s3", "/_console/sqs", "/_console/sns", "/_console/ddb",
-		"/_console/lambda", "/_console/eb", "/_console/kinesis",
-		"/_console/kms", "/_console/sm", "/_console/ssm", "/_console/iam",
-		"/_console/cfn", "/_console/apigw",
-	} {
+	// From the catalogue, not a hand-written list. The list that used to be
+	// here had drifted: it was missing /logs, /cw and /sfn, so three services
+	// were never checked for template errors through the recorded path.
+	var paths []string
+	for _, e := range append(console.RegisteredServices(), console.RegisteredSurfaces()...) {
+		paths = append(paths, "/_console"+e.Path)
+	}
+	for _, path := range paths {
 		t.Run(path, func(t *testing.T) {
 			body := req(t, c, "GET", path, nil).Body.String()
 			for _, marker := range []string{"template:", "can't evaluate", "<no value>"} {

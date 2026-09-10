@@ -172,10 +172,6 @@ func (rec *Recorder) reserve() int64 {
 	return rec.seq
 }
 
-func (rec *Recorder) add(e TrafficEntry) {
-	rec.addAt(rec.reserve(), e)
-}
-
 func (rec *Recorder) addAt(seq int64, e TrafficEntry) {
 	rec.mu.Lock()
 	defer rec.mu.Unlock()

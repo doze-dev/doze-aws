@@ -24,6 +24,8 @@ jobs:
           fi
       - name: go vet
         run: go vet ./...
+      - name: deadcode
+        run: go tool task deadcode
 
   test:
     strategy:

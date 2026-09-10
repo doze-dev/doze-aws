@@ -9,38 +9,51 @@ permissions:
   contents: read
 
 jobs:
+  # The matrix is DISCOVERED, not written down. It used to be a hand-maintained
+  # list beside a growing set of fuzz targets, and it drifted the way every
+  # such list in this repo has: internal/rpcv2cbor's FuzzDecode — the
+  # hand-rolled binary decoder that parses untrusted request bodies, and so the
+  # single target most worth the CPU — was never in it. A name collision with
+  # internal/awschunk's FuzzDecode meant the list looked complete.
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.find.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: find
+        name: Find every Fuzz target
+        run: |
+          # One {pkg, target} object per `func FuzzX` in the tree. The package
+          # comes from the file's directory, so a target is covered the day it
+          # lands, wherever it lands — and two targets sharing a name in
+          # different packages are two entries, which is what the hand-written
+          # matrix got wrong.
+          targets=$(grep -rl --include='*_test.go' -E '^func Fuzz' . | while read -r f; do
+            d=$(dirname "$f" | sed 's#^\./##')
+            grep -oE '^func Fuzz[A-Za-z0-9_]*' "$f" | sed 's/^func //' | while read -r t; do
+              printf '{"pkg":"./%s/","target":"%s"}\n' "$d" "$t"
+            done
+          done | sort -u | paste -sd, -)
+          echo "targets=[$targets]" >> "$GITHUB_OUTPUT"
+          echo "Discovered:"; echo "[$targets]" | tr ',' '\n'
+
+      - name: Fail if nothing was found
+        run: |
+          # A discovery step that silently finds nothing would turn this whole
+          # workflow into a no-op that reports success — the exact failure the
+          # matrix already had, one level up.
+          count=$(echo '${{ steps.find.outputs.targets }}' | grep -o '"target"' | wc -l)
+          echo "found $count target(s)"
+          [ "$count" -ge 12 ] || { echo "expected at least 12 fuzz targets, found $count"; exit 1; }
+
   fuzz:
+    needs: discover
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - pkg: ./internal/sigparse/
-            target: FuzzParse
-          - pkg: ./internal/awschunk/
-            target: FuzzDecode
-          - pkg: ./internal/ddb/item/
-            target: FuzzDecimal
-          - pkg: ./internal/ddb/keyenc/
-            target: FuzzOrderProperty
-          - pkg: ./internal/ddb/expr/
-            target: FuzzParsers
-          - pkg: ./internal/eventpattern/
-            target: FuzzPattern
-          - pkg: ./dynamodb/
-            target: FuzzPartiQL
-          - pkg: ./kms/
-            target: FuzzOpenBlob
-          - pkg: ./internal/awsquery/
-            target: FuzzMembers
-          # The States Language: three hand-written parsers a deploy tool
-          # feeds from the wire.
-          - pkg: ./internal/asl/
-            target: FuzzValidateDefinition
-          - pkg: ./internal/asl/
-            target: FuzzParsePath
-          - pkg: ./internal/asl/
-            target: FuzzIntrinsic
+        include: ${{ fromJSON(needs.discover.outputs.targets) }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6

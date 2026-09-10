@@ -1,50 +1,36 @@
 package console_test
 
-// Every service surface must render. A template referencing a field the
-// handler never sets fails at execution time rather than at build time, so a
-// console that compiles proves nothing about whether its pages work — and a
-// template error is written into the response body with a 200, so it has to be
-// looked for rather than inferred from the status.
+// The rail links every surface, so a page that exists but is unreachable from
+// the nav is only half-delivered.
+//
+// This checks the RENDERED page, where registration_test.go checks the
+// template source. Both are worth having: the source check says the markup
+// exists, this one says it survived rendering with a working href.
+//
+// It used to name three hrefs by hand, and separately maintained a list of
+// every surface path for a render sweep. That sweep is gone — it had drifted,
+// missing /logs and /cw — and lives in registration_render_test.go now,
+// driven by the catalogue.
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/doze-dev/doze-aws/console"
 )
 
-func TestEverySurfaceRenders(t *testing.T) {
-	c := newConsole(t)
-	paths := []string{
-		"/", "/traffic",
-		"/s3", "/ddb", "/sqs", "/sns", "/eb", "/kinesis",
-		"/lambda", "/cfn", "/apigw", "/sfn", "/iam", "/kms", "/sm", "/ssm",
-	}
-	for _, p := range paths {
-		t.Run(p, func(t *testing.T) {
-			rec := httptest.NewRecorder()
-			c.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/_console"+p, nil))
-			if rec.Code != http.StatusOK {
-				t.Fatalf("GET %s = %d", p, rec.Code)
-			}
-			if body := rec.Body.String(); strings.Contains(body, "template:") {
-				i := strings.Index(body, "template:")
-				t.Fatalf("GET %s rendered a template error: %s", p, body[i:min(i+220, len(body))])
-			}
-		})
-	}
-}
-
-// The rail lists every surface, so a page that exists but is unreachable from
-// the nav is only half-delivered.
-func TestRailLinksEverySurface(t *testing.T) {
+func TestRailLinksEveryCatalogService(t *testing.T) {
 	c := newConsole(t)
 	rec := httptest.NewRecorder()
 	c.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/_console/", nil))
 	body := rec.Body.String()
-	for _, href := range []string{"/_console/cfn", "/_console/apigw", "/_console/iam"} {
-		if !strings.Contains(body, `href="`+href+`"`) {
-			t.Errorf("rail has no link to %s", href)
+	for _, e := range console.RegisteredServices() {
+		href := `href="/_console` + e.Path + `"`
+		if !strings.Contains(body, href) {
+			t.Errorf("the rail has no link to %s — the page exists but nothing "+
+				"navigates to it", e.Path)
 		}
 	}
 }

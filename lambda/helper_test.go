@@ -33,8 +33,6 @@ func buildIn(t *testing.T, dir string) string {
 	return dir
 }
 
-func sprintf(format string, args ...any) string { return fmt.Sprintf(format, args...) }
-
 // logCollector is a Logf that keeps every line. Function output reaches it
 // from the sink's worker and the child's copier goroutines, so it locks.
 type logCollector struct {

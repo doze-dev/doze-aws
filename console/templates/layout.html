@@ -155,6 +155,7 @@ return"= "+p.join(" ");};</script>
       {{template "ri" dict "P" .Prefix "URL" "/apigw" "On" (hasPrefix .Page "apigw") "Name" "API Gateway" "Svc" "apigw" "Ct" (index $.Counts "apigw")}}
       {{template "ri" dict "P" .Prefix "URL" "/sfn" "On" (hasPrefix .Page "sfn") "Name" "Step Functions" "Svc" "sfn" "Ct" (index $.Counts "sfn")}}
       {{template "ri" dict "P" .Prefix "URL" "/logs" "On" (hasPrefix .Page "logs") "Name" "CloudWatch Logs" "Svc" "logs" "Ct" (index $.Counts "logs")}}
+      {{template "ri" dict "P" .Prefix "URL" "/cw" "On" (hasPrefix .Page "cw") "Name" "CloudWatch" "Svc" "cw" "Ct" (index $.Counts "cw")}}
       <div class="rgroup">Config &amp; secrets</div>
       {{template "ri" dict "P" .Prefix "URL" "/kms" "On" (hasPrefix .Page "kms") "Name" "KMS" "Svc" "kms" "Ct" (index $.Counts "kms")}}
       {{template "ri" dict "P" .Prefix "URL" "/sm" "On" (and (hasPrefix .Page "sm") (not (hasPrefix .Page "sms"))) "Name" "Secrets Manager" "Svc" "sm" "Ct" (index $.Counts "sm")}}
