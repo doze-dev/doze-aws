@@ -139,10 +139,13 @@ func parseQuery(r *http.Request) (*request, *awshttp.APIError) {
 	if action == "" {
 		return nil, awshttp.Errf(400, "MissingAction", "no Action specified")
 	}
-	// FromQuery rebuilds the nesting the flattened keys describe. It leaves
-	// leaves as strings; params coerces.
+	// awsquery.Unflatten, not modelcheck.FromQuery: FromQuery keeps only the
+	// first element of every list, which is sound for validation and lossy
+	// for a handler. A PutMetricData with two dimensions reached one with a
+	// single dimension mixed out of both until this was split apart, and the
+	// v1 SDK contract test is what caught it.
 	return &request{action: action, wire: wireQuery,
-		params: params(modelcheck.FromQuery(vals))}, nil
+		params: params(awsquery.Unflatten(vals))}, nil
 }
 
 func readBody(r *http.Request) ([]byte, *awshttp.APIError) {
