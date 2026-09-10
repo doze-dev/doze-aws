@@ -277,6 +277,20 @@ func (c *Console) glanceSnapshot(ctx context.Context) glanceResponse {
 	if groups, err := c.be.ListLogGroups(ctx); err == nil && len(groups) > 0 {
 		svc("logs", len(groups), plural(len(groups), "log group"), "", false)
 	}
+	if alarms, err := c.be.ListAlarms(ctx); err == nil && len(alarms) > 0 {
+		// An alarm in ALARM is the one thing on this page worth reading first.
+		firing := 0
+		for _, a := range alarms {
+			if a.State == "ALARM" {
+				firing++
+			}
+		}
+		note := ""
+		if firing > 0 {
+			note = plural(firing, "alarm") + " firing"
+		}
+		svc("cw", len(alarms), plural(len(alarms), "alarm"), note, firing > 0)
+	}
 	if n, err := c.be.CountPrincipals(ctx); err == nil && n > 0 {
 		svc("iam", n, plural(n, "principal"), "", false)
 	}

@@ -37,6 +37,7 @@ var arnService = map[string]string{
 	"kms": "kms", "secretsmanager": "sm", "ssm": "ssm",
 	"cloudformation": "cfn", "apigateway": "apigw", "execute-api": "apigw",
 	"iam": "iam", "sts": "sts", "states": "sfn",
+	"cloudwatch": "cw", "logs": "logs",
 }
 
 // resourceFromARN parses an ARN, a queue URL, or a bare name-with-kind and
@@ -139,6 +140,24 @@ func resourceURL(svc, id string) resourceRef {
 		} else {
 			ref.Name, ref.Path = id, "/sfn/"+id
 		}
+	case "cw":
+		// alarm:name, or dashboard/name. Only alarms have a page; a dashboard
+		// is stored and returned but nothing renders it locally, so its name is
+		// returned without a link rather than pointing at a page that lies.
+		if rest, ok := strings.CutPrefix(id, "alarm:"); ok {
+			ref.Name, ref.Path = rest, "/cw/alarm/"+rest
+		} else if rest, ok := strings.CutPrefix(id, "dashboard/"); ok {
+			ref.Name = rest
+			return ref
+		} else {
+			ref.Name, ref.Path = id, "/cw/alarm/"+id
+		}
+	case "logs":
+		// log-group:/app/api:* — the trailing :* is how CloudWatch Logs reports
+		// a group ARN, and the group page addresses it by name in the query
+		// because a group name carries slashes.
+		name := strings.TrimSuffix(strings.TrimPrefix(id, "log-group:"), ":*")
+		ref.Name, ref.Path = name, "/logs/group?name="+url.QueryEscape(name)
 	case "eb":
 		// The bus is part of a rule's identity: two buses may each hold a rule
 		// called "orders", and pointing both at /eb/default/rule/orders — which

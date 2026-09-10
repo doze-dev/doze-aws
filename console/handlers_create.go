@@ -38,6 +38,15 @@ func (c *Console) createPage(svc, tmpl string) http.HandlerFunc {
 			data["List"], _ = c.be.ListParameters(r.Context())
 		case "logs":
 			data["List"], _ = c.be.ListLogGroups(r.Context())
+		case "cw":
+			data["List"], _ = c.be.ListAlarms(r.Context())
+			// The create form picks a metric and a topic from what the stack
+			// actually has: an alarm on a metric nothing publishes, or naming a
+			// topic that does not exist, is the deploy-time failure this form
+			// exists to make impossible.
+			data["Metrics"], _ = c.be.ListMetrics(r.Context(), "")
+			data["Topics"], _ = c.be.ListTopics(r.Context())
+			data["Metric"] = r.URL.Query().Get("metric")
 		case "sm":
 			data["List"], _ = c.be.ListSecrets(r.Context())
 		case "cfn":
@@ -161,56 +170,26 @@ func (c *Console) apiResources(w http.ResponseWriter, r *http.Request) {
 			add("iam", pr.Name, "/iam/"+pr.Kind+"/"+pr.Name)
 		}
 	}
+	if alarms, err := c.be.ListAlarms(ctx); err == nil {
+		for _, a := range alarms {
+			add("cw", a.Name, "/cw/alarm/"+a.Name)
+		}
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(out)
 }
 
-// apiCounts feeds the rail's live per-service resource counts. It runs every
-// few seconds in every open tab, so it must use the count-only probes — the
-// full List* helpers fan out N+1 describe calls whose results would all be
-// discarded here.
+// apiCounts feeds the rail's live per-service resource counts, polled every
+// few seconds in every open tab.
+//
+// It delegates to serviceCounts rather than keeping its own copy of the probe
+// list. It DID keep its own copy, and the copy drifted: Step Functions and
+// CloudWatch Logs never appeared in it, so the rail's badges for those two
+// were right on first paint — the page render calls serviceCounts — and then
+// went blank on the first poll. Two hand-maintained lists of the same services
+// end up as one complete list and one that is missing whatever landed last.
 func (c *Console) apiCounts(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	counts := map[string]int{}
-	if v, err := c.be.ListBuckets(ctx); err == nil { // single call already
-		counts["s3"] = len(v)
-	}
-	if n, err := c.be.CountQueues(ctx); err == nil {
-		counts["sqs"] = n
-	}
-	if n, err := c.be.CountTables(ctx); err == nil {
-		counts["ddb"] = n
-	}
-	if n, err := c.be.CountTopics(ctx); err == nil {
-		counts["sns"] = n
-	}
-	if n, err := c.be.CountBuses(ctx); err == nil {
-		counts["eb"] = n
-	}
-	if v, err := c.be.ListFunctions(ctx); err == nil { // single call already
-		counts["lambda"] = len(v)
-	}
-	if n, err := c.be.CountKeys(ctx); err == nil {
-		counts["kms"] = n
-	}
-	if n, err := c.be.CountStreams(ctx); err == nil {
-		counts["kinesis"] = n
-	}
-	if n, err := c.be.CountStacks(ctx); err == nil {
-		counts["cfn"] = n
-	}
-	if n, err := c.be.CountRestAPIs(ctx); err == nil {
-		counts["apigw"] = n
-	}
-	if n, err := c.be.CountPrincipals(ctx); err == nil {
-		counts["iam"] = n
-	}
-	if v, err := c.be.ListParameters(ctx); err == nil { // single call already
-		counts["ssm"] = len(v)
-	}
-	if v, err := c.be.ListSecrets(ctx); err == nil { // single call already
-		counts["sm"] = len(v)
-	}
+	counts := c.serviceCounts(r.Context())
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(counts)
 }

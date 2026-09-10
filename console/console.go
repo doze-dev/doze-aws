@@ -442,6 +442,18 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/logs/metric-filter", c.logsPutMetricFilter)           // PutMetricFilter
 	m.HandleFunc("POST "+p+"/logs/delete-metric-filter", c.logsDeleteMetricFilter) // DeleteMetricFilter
 	m.HandleFunc("POST "+p+"/logs/test-metric-filter", c.logsTestMetricFilter)     // TestMetricFilter
+
+	// CloudWatch: alarms by name in the path, metrics by an encoded key in the
+	// query — a metric identity is namespace + name + its dimension set, which
+	// does not fit in a path segment.
+	m.HandleFunc("GET "+p+"/cw/create", c.createPage("cw", "cw_create"))
+	m.HandleFunc("GET "+p+"/cw", c.cwHome)                             // DescribeAlarms, ListMetrics
+	m.HandleFunc("GET "+p+"/cw/metric", c.cwMetric)                    // GetMetricData, DescribeAlarmsForMetric
+	m.HandleFunc("GET "+p+"/cw/alarm/{name}", c.cwAlarm)               // DescribeAlarmHistory
+	m.HandleFunc("POST "+p+"/cw/create-alarm", c.cwCreateAlarm)        // PutMetricAlarm
+	m.HandleFunc("POST "+p+"/cw/alarm/{name}/state", c.cwSetState)     // SetAlarmState
+	m.HandleFunc("POST "+p+"/cw/alarm/{name}/actions", c.cwSetActions) // Enable/DisableAlarmActions
+	m.HandleFunc("POST "+p+"/cw/alarm/{name}/delete", c.cwDeleteAlarm) // DeleteAlarms
 	m.HandleFunc("POST "+p+"/lambda/{fn}/invoke", c.lambdaInvoke)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-fn", c.lambdaDelete)
 	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-mapping", c.lambdaDeleteMapping)

@@ -46,6 +46,8 @@ var catalog = []svcEntry{
 		CreatePath: "/sfn/create", CreateLabel: "Create state machine"},
 	{Key: "logs", Label: "CloudWatch Logs", Group: "Compute & APIs", Noun: "log group",
 		CreatePath: "/logs/create", CreateLabel: "Create log group"},
+	{Key: "cw", Label: "CloudWatch", Group: "Compute & APIs", Noun: "alarm",
+		CreatePath: "/cw/create", CreateLabel: "Create alarm"},
 
 	{Key: "kms", Label: "KMS", Group: "Config & secrets", Noun: "key",
 		CreatePath: "/kms/create", CreateLabel: "Create key"},

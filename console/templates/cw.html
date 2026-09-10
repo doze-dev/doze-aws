@@ -1,0 +1,216 @@
+{{/* CloudWatch: the alarms watching a stack, and the metrics they watch.
+
+     The list pane holds alarms rather than metrics, because an alarm is what
+     a person acts on. Metrics live in a browser on the service page and on
+     each metric's own chart, which links back to the alarms watching it. */}}
+
+{{/* The state chip, one vocabulary everywhere. AWS's three state names, not
+     softened: INSUFFICIENT_DATA is a real answer and not a failure. */}}
+{{define "cw_state"}}<span class="badge {{if eq . "ALARM"}}state-bad{{else if eq . "OK"}}state-on{{else}}state-off{{end}}" data-status="{{.}}">{{.}}</span>{{end}}
+
+{{define "cw_lp"}}
+{{template "lp_head" dict "Svc" "cw" "Prefix" .Prefix "Label" "CloudWatch" "NewURL" (printf "%s/cw/create" .Prefix) "Count" (len .List)}}
+  {{range .List}}
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/cw/alarm/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{template "cw_state" .State}}</span></a>
+  {{else}}{{template "lp_empty" dict "Svc" "cw" "Prefix" $.Prefix}}
+  {{end}}
+{{template "lp_foot" .}}
+{{end}}
+
+{{/* The metric browser: namespace, then every series in it. A series is
+     namespace + name + its exact dimension set, so two rows with the same
+     name and different dimensions are two metrics — which is the thing Moto
+     gets wrong and an alarm cannot tolerate. */}}
+{{define "cw_browser"}}
+<div class="panel">
+  <div class="panel-h"><h2>{{icon "list"}} Metrics <span class="badge">{{len .Metrics}}</span></h2><span class="dim">what the stack has published</span></div>
+  {{if .Metrics}}
+  {{range $ns := .Namespaces}}
+  <div class="cw-ns">
+    <h3 class="cw-ns-h mono">{{$ns}}</h3>
+    <table class="tbl"><thead><tr><th>Metric</th><th>Dimensions</th></tr></thead><tbody>
+      {{range $.Metrics}}{{if eq .Namespace $ns}}
+      <tr><td class="mono"><a href="{{$.Prefix}}/cw/metric?key={{.Key}}">{{.Name}}</a></td>
+        <td class="mono dim">{{.Label}}</td></tr>
+      {{end}}{{end}}
+    </tbody></table>
+  </div>
+  {{end}}
+  {{else}}
+  <div class="empty flat"><p>No metrics yet. Lambda, API Gateway and Step Functions publish their own the first time they run, and an EMF line or a log metric filter makes a custom one.</p></div>
+  {{end}}
+</div>
+{{end}}
+
+{{/* The chart. Server-rendered SVG: the console carries no charting library
+     and this needs none — a polyline over a fixed viewBox is the whole of
+     it, and it degrades to a readable "no data" panel when the window is
+     empty. */}}
+{{define "cw_chart"}}
+<div class="panel">
+  <div class="panel-h"><h2>{{icon "activity"}} {{.Series.Metric.Name}} <span class="badge type">{{.Series.Stat}}</span></h2>
+    <span class="dim">{{.Series.Metric.Namespace}} · {{.Series.Metric.Label}} · {{.Series.Period}}s periods</span></div>
+  <form class="cw-controls" hx-get="{{.Prefix}}/cw/metric" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML">
+    <input type="hidden" name="key" value="{{.Series.Metric.Key}}">
+    <label class="field inline"><span>Statistic</span>
+      <select class="input" name="stat" onchange="this.form.requestSubmit()">
+        {{range $.Stats}}<option value="{{.}}"{{if eq . $.Stat}} selected{{end}}>{{.}}</option>{{end}}
+      </select></label>
+    <label class="field inline"><span>Window</span>
+      <select class="input" name="window" onchange="this.form.requestSubmit()">
+        {{range $.Windows}}<option value="{{.Key}}"{{if eq .Key $.Window}} selected{{end}}>{{.Label}}</option>{{end}}
+      </select></label>
+  </form>
+  {{if .Series.Points}}
+  <div class="cw-chart">
+    <svg viewBox="0 0 {{.Series.Width}} {{.Series.Height}}" preserveAspectRatio="none" role="img" aria-label="{{.Series.Metric.Name}} over the last {{.Window}}">
+      <polyline class="cw-line" points="{{.Series.Path}}" fill="none" />
+    </svg>
+    <div class="factstrip">
+      <div class="fact"><div class="fx-k">Last</div><div class="fx-v num">{{.Series.Last}}</div></div>
+      <div class="fact"><div class="fx-k">Min</div><div class="fx-v num">{{.Series.Min}}</div></div>
+      <div class="fact"><div class="fx-k">Max</div><div class="fx-v num">{{.Series.Max}}</div></div>
+      <div class="fact"><div class="fx-k">Points</div><div class="fx-v num">{{len .Series.Points}}</div></div>
+    </div>
+  </div>
+  {{else}}
+  <div class="empty flat"><p>Nothing in the last {{.Window}}. A metric with no observations in a window is not a metric that observed zero — the chart says so rather than drawing a flat line at nothing.</p></div>
+  {{end}}
+</div>
+{{end}}
+
+{{define "cw_home"}}{{template "shell_top" .}}
+  {{template "cw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "cw"}} CloudWatch
+        <div class="acts"><a class="btn" href="{{.Prefix}}/cw/create">{{icon "plus"}} Create alarm</a></div>
+      </div>
+      <div class="chips">{{template "copychip" dict "Label" "list" "Value" "aws cloudwatch describe-alarms"}}</div>
+    </div>
+    <div class="det-b">
+      {{if .List}}
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "alert"}} Alarms <span class="badge">{{len .List}}</span></h2><span class="dim">evaluated every ten seconds over completed periods</span></div>
+        <table class="tbl"><thead><tr><th>Alarm</th><th>State</th><th>Watching</th><th>Threshold</th></tr></thead><tbody>
+          {{range .List}}
+          <tr><td><a href="{{$.Prefix}}/cw/alarm/{{.Name}}">{{.Name}}</a></td>
+            <td>{{template "cw_state" .State}}</td>
+            <td class="mono dim">{{.Namespace}}/{{.MetricName}}{{if .Dimensions}} · {{.DimLabel}}{{end}}</td>
+            <td class="mono dim">{{.Statistic}} {{.Operator}} {{.Threshold}}</td></tr>
+          {{end}}
+        </tbody></table>
+      </div>
+      {{end}}
+      {{template "cw_browser" .}}
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{define "cw_metric"}}{{template "shell_top" .}}
+  {{template "cw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "cw"}} <span class="mono">{{.M.Namespace}}/{{.M.Name}}</span></div>
+      <div class="chips">{{template "copychip" dict "Label" "dimensions" "Value" .M.Label}}</div>
+    </div>
+    <div class="det-b">
+      {{template "cw_chart" .}}
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "alert"}} Alarms on this metric <span class="badge">{{len .Alarms}}</span></h2></div>
+        {{if .Alarms}}
+        <table class="tbl"><thead><tr><th>Alarm</th><th>State</th><th>Condition</th></tr></thead><tbody>
+          {{range .Alarms}}
+          <tr><td><a href="{{$.Prefix}}/cw/alarm/{{.Name}}">{{.Name}}</a></td>
+            <td>{{template "cw_state" .State}}</td>
+            <td class="mono dim">{{.Statistic}} {{.Operator}} {{.Threshold}}</td></tr>
+          {{end}}
+        </tbody></table>
+        {{else}}<div class="empty flat"><p>Nothing watches this metric. <a href="{{.Prefix}}/cw/create?metric={{.M.Key}}">Create an alarm on it</a>.</p></div>{{end}}
+      </div>
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}
+
+{{define "cw_alarm"}}{{template "shell_top" .}}
+  {{template "cw_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Sel)}}
+  <section class="detail">
+    <div class="det-h">
+      <div class="det-title">{{awsIcon "cw"}} {{.A.Name}} {{template "cw_state" .A.State}}
+        {{if not .A.Enabled}}<span class="badge dim">actions off</span>{{end}}
+        <div class="acts">
+          <button class="btn btn-outline danger" hx-post="{{.Prefix}}/cw/alarm/{{.A.Name}}/delete" hx-confirm="Delete alarm “{{.A.Name}}”? Its history goes with it.">{{icon "trash"}} Delete</button>
+        </div>
+      </div>
+      <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .A.ARN}}</div>
+      {{template "dtabs" dict "Cur" .Tab "Tabs" (list
+        (dict "Key" "state" "Label" "State" "Icon" "alert" "URL" (printf "%s/cw/alarm/%s" .Prefix .Sel))
+        (dict "Key" "metric" "Label" "Metric" "Icon" "activity" "URL" (printf "%s/cw/alarm/%s?tab=metric" .Prefix .Sel))
+        (dict "Key" "history" "Label" "History" "Icon" "history" "URL" (printf "%s/cw/alarm/%s?tab=history" .Prefix .Sel))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/cw/alarm/%s?tab=tags" .Prefix .Sel)))}}
+    </div>
+    <div class="det-b">
+      {{if eq .Tab "history"}}
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "history"}} History <span class="badge">{{len .History}}</span></h2><span class="dim">newest first</span></div>
+        {{if .History}}<table class="tbl"><thead><tr><th>When</th><th>Type</th><th>What happened</th></tr></thead><tbody>{{range .History}}
+          <tr><td class="dim">{{.When}}</td><td><span class="badge type">{{.Type}}</span></td><td>{{.Summary}}</td></tr>
+        {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No history yet.</p></div>{{end}}
+      </div>
+      {{else if eq .Tab "metric"}}
+      {{template "cw_chart" .}}
+      {{else if eq .Tab "tags"}}
+      {{template "tags_panel" dict "Prefix" .Prefix "Svc" "cw" "ID" .A.Name}}
+      {{else}}
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "alert"}} State</h2><span class="dim">{{if .A.Updated}}since {{.A.Updated}}{{end}}</span></div>
+        <div class="factstrip">
+          <div class="fact"><div class="fx-k">State</div><div class="fx-v">{{template "cw_state" .A.State}}</div></div>
+          <div class="fact"><div class="fx-k">Watching</div><div class="fx-v mono"><a href="{{.Prefix}}/cw/metric?key={{.A.MetricKey}}">{{.A.Namespace}}/{{.A.MetricName}}</a></div></div>
+          <div class="fact"><div class="fx-k">Condition</div><div class="fx-v mono">{{.A.Statistic}} {{.A.Operator}} {{.A.Threshold}}</div></div>
+          <div class="fact"><div class="fx-k">Window</div><div class="fx-v num">{{.A.Datapoints}}/{{.A.Evaluation}} × {{.A.Period}}s</div></div>
+        </div>
+        {{if .A.StateReason}}<p class="dim mono cw-reason">{{.A.StateReason}}</p>{{end}}
+        {{if .A.Description}}<p class="dim">{{.A.Description}}</p>{{end}}
+      </div>
+
+      {{if or .A.Actions .A.OKActions .A.NoData}}
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "send"}} Actions</h2><span class="dim">what a transition notifies</span></div>
+        <table class="tbl"><thead><tr><th>On</th><th>Target</th></tr></thead><tbody>
+          {{range .A.Actions}}<tr><td><span class="badge state-bad">ALARM</span></td><td>{{with resolve .}}{{if .Path}}<a class="conn-chip" href="{{$.Prefix}}{{.Path}}"><span class="cc-bar" style="--bar:var(--svc-{{.Svc}})"></span><span class="cc-nm">{{.Name}}</span></a>{{else}}<span class="mono trunc dim">{{.Name}}</span>{{end}}{{end}}</td></tr>{{end}}
+          {{range .A.OKActions}}<tr><td><span class="badge state-on">OK</span></td><td>{{with resolve .}}{{if .Path}}<a class="conn-chip" href="{{$.Prefix}}{{.Path}}"><span class="cc-bar" style="--bar:var(--svc-{{.Svc}})"></span><span class="cc-nm">{{.Name}}</span></a>{{else}}<span class="mono trunc dim">{{.Name}}</span>{{end}}{{end}}</td></tr>{{end}}
+          {{range .A.NoData}}<tr><td><span class="badge state-off">INSUFFICIENT_DATA</span></td><td>{{with resolve .}}{{if .Path}}<a class="conn-chip" href="{{$.Prefix}}{{.Path}}"><span class="cc-bar" style="--bar:var(--svc-{{.Svc}})"></span><span class="cc-nm">{{.Name}}</span></a>{{else}}<span class="mono trunc dim">{{.Name}}</span>{{end}}{{end}}</td></tr>{{end}}
+        </tbody></table>
+      </div>
+      {{end}}
+
+      {{/* Setting the state by hand is what makes an alarm testable locally:
+           it fires the alarm's actions without waiting for the metric to
+           breach, which is how a developer checks the topic behind it. */}}
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "play"}} Set state</h2><span class="dim">fires the actions for the state you pick, as SetAlarmState does on AWS</span></div>
+        <form class="form-b" hx-post="{{.Prefix}}/cw/alarm/{{.A.Name}}/state">
+          <div class="fgrid">
+            <div class="field"><label>State</label><select class="input" name="state">
+              <option value="ALARM">ALARM</option>
+              <option value="OK">OK</option>
+              <option value="INSUFFICIENT_DATA">INSUFFICIENT_DATA</option>
+            </select></div>
+            <div class="field"><label>Reason</label><input class="input" name="reason" placeholder="testing the notification"></div>
+          </div>
+          <button class="btn" type="submit">Set state</button>
+        </form>
+      </div>
+
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "power"}} Actions {{if .A.Enabled}}enabled{{else}}disabled{{end}}</h2><span class="dim">an alarm with actions off still changes state, it just notifies nothing</span></div>
+        <form class="form-b" hx-post="{{.Prefix}}/cw/alarm/{{.A.Name}}/actions">
+          <input type="hidden" name="enabled" value="{{if .A.Enabled}}false{{else}}true{{end}}">
+          <button class="btn btn-outline" type="submit">{{if .A.Enabled}}Disable actions{{else}}Enable actions{{end}}</button>
+        </form>
+      </div>
+      {{end}}
+    </div>
+  </section>
+{{template "shell_bottom" .}}{{end}}

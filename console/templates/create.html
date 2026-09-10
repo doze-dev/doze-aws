@@ -343,3 +343,61 @@
     </form>
   </div></section>
 {{template "shell_bottom" .}}{{end}}
+
+{{/* Create alarm. The metric picker offers what the stack has actually
+     published and the topic picker what it has actually created, because an
+     alarm on a metric nothing produces — or naming a topic that does not
+     exist — is the deploy-time failure this form exists to prevent. */}}
+{{define "cw_create"}}{{template "shell_top" .}}
+  {{template "cw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
+  <section class="detail"><div class="form-page">
+    <div class="det-title fp-title">Create alarm</div><p class="det-sub fp-sub">An alarm watches one metric over a window and notifies when it crosses a threshold. It is evaluated over <b>completed</b> periods — the period containing now is still filling, so a fresh alarm reads INSUFFICIENT_DATA until one period has closed.</p>
+    {{if .Metrics}}
+    <form hx-post="{{.Prefix}}/cw/create-alarm" hx-indicator="#submit-spin">
+      <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
+        <div class="fgrid">
+          <div class="field"><label>Alarm name</label><input class="input" name="name" placeholder="too-many-errors" required autocomplete="off" autofocus></div>
+          <div class="field"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="the API is erroring"></div>
+        </div>
+        <div class="field"><label>Metric</label><select class="input mono" name="metric" required>
+          {{range .Metrics}}<option value="{{.Key}}"{{if eq .Key $.Metric}} selected{{end}}>{{.Namespace}} / {{.Name}} — {{.Label}}</option>{{end}}
+        </select></div>
+      </div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>Condition</h2></div><div class="form-b">
+        <div class="fgrid">
+          <div class="field"><label>Statistic</label><select class="input" name="statistic">
+            {{range $s := list "Sum" "Average" "Maximum" "Minimum" "SampleCount" "p95" "p99"}}<option value="{{$s}}">{{$s}}</option>{{end}}
+          </select></div>
+          <div class="field"><label>Operator</label><select class="input" name="operator">
+            <option value="GreaterThanThreshold">&gt;</option>
+            <option value="GreaterThanOrEqualToThreshold">&ge;</option>
+            <option value="LessThanThreshold">&lt;</option>
+            <option value="LessThanOrEqualToThreshold">&le;</option>
+          </select></div>
+          <div class="field"><label>Threshold</label><input class="input num" name="threshold" value="1" required></div>
+        </div>
+        <div class="fgrid">
+          <div class="field"><label>Period <span class="dim">seconds</span></label><input class="input num" name="period" value="60"></div>
+          <div class="field"><label>Evaluation periods</label><input class="input num" name="evaluation" value="1"></div>
+          <div class="field"><label>Missing data <span class="dim">a period with no observations is not a period that observed zero</span></label><select class="input" name="missing">
+            <option value="missing">missing — neither breaches nor clears</option>
+            <option value="notBreaching">notBreaching — treat as good</option>
+            <option value="breaching">breaching — treat as bad</option>
+            <option value="ignore">ignore — keep the current state</option>
+          </select></div>
+        </div>
+      </div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>Notify</h2></div><div class="form-b">
+        <div class="field"><label>SNS topic <span class="dim">optional; an alarm with no action still changes state</span></label><select class="input" name="topic">
+          <option value="">nothing</option>
+          {{range .Topics}}<option value="{{.ARN}}">{{.Name}}</option>{{end}}
+        </select></div>
+      </div></div>
+      {{template "cli" "cloudwatch put-metric-alarm --alarm-name $name"}}
+      {{template "form_actions" dict "Cancel" (printf "%s/cw" .Prefix) "Submit" "Create alarm"}}
+    </form>
+    {{else}}
+    <div class="empty flat"><p>No metrics to watch yet. An alarm names one metric, and there is nothing published to name — invoke a function, serve a request or run a workflow and its metrics appear here, or publish your own with <span class="mono">aws cloudwatch put-metric-data</span>.</p></div>
+    {{end}}
+  </div></section>
+{{template "shell_bottom" .}}{{end}}

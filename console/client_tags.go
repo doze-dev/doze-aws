@@ -33,6 +33,8 @@ func (b *backend) tagARN(svc, id string) string {
 		return awsident.ARN("states", "stateMachine:"+id)
 	case "logs":
 		return awsident.ARN("logs", "log-group:"+id)
+	case "cw":
+		return awsident.ARN("cloudwatch", "alarm:"+id)
 	case "apigw":
 		// API Gateway ARNs carry no account and a path-shaped resource.
 		return "arn:aws:apigateway:" + awsident.Region + "::/restapis/" + id
@@ -150,6 +152,21 @@ func (b *backend) ResourceTags(ctx context.Context, svc, id string) ([]KV, error
 			m = out.Tags
 		}
 		err = e
+	case "cw":
+		// CloudWatch answers a LIST of Key/Value, not the map CloudWatch Logs
+		// uses — one service, two tag shapes, and the ARN prefixes differ too.
+		var out struct {
+			Tags []struct{ Key, Value string }
+		}
+		body, e := b.cw(ctx, "ListTagsForResource", map[string]any{"ResourceARN": b.tagARN(svc, id)})
+		if e == nil {
+			json.Unmarshal(body, &out)
+			m = map[string]string{}
+			for _, t := range out.Tags {
+				m[t.Key] = t.Value
+			}
+		}
+		err = e
 	case "eb":
 		var out struct {
 			Tags []struct{ Key, Value string } `json:"Tags"`
@@ -248,6 +265,12 @@ func (b *backend) SetResourceTag(ctx context.Context, svc, id, key, value string
 			"resourceArn": b.tagARN(svc, id), "tags": map[string]string{key: value},
 		})
 		return err
+	case "cw":
+		_, err := b.cw(ctx, "TagResource", map[string]any{
+			"ResourceARN": b.tagARN(svc, id),
+			"Tags":        []map[string]string{{"Key": key, "Value": value}},
+		})
+		return err
 	default: // sns
 		v := url.Values{"Action": {"TagResource"}, "ResourceArn": {b.tagARN(svc, id)}}
 		v.Set("Tags.member.1.Key", key)
@@ -304,6 +327,11 @@ func (b *backend) RemoveResourceTag(ctx context.Context, svc, id, key string) er
 	case "logs":
 		_, err := b.json11(ctx, "Logs_20140328", "UntagResource", map[string]any{
 			"resourceArn": b.tagARN(svc, id), "tagKeys": []string{key},
+		})
+		return err
+	case "cw":
+		_, err := b.cw(ctx, "UntagResource", map[string]any{
+			"ResourceARN": b.tagARN(svc, id), "TagKeys": []string{key},
 		})
 		return err
 	default: // sns

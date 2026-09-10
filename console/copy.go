@@ -97,6 +97,13 @@ var emptyCopyBySvc = map[string]emptyCopy{
 		CTA:     "New state machine",
 		CTAPath: "/sfn/create",
 	},
+	"cw": {
+		Short:   "No alarms yet",
+		None:    "No alarms yet. An alarm watches one metric over a window and notifies a topic or a function when it crosses a threshold — the same alarm you would write against the cloud, testable before you deploy it.",
+		Unsel:   "Select an alarm to read why it is in the state it is in, chart the metric behind it, or set its state by hand to test what it notifies.",
+		CTA:     "New alarm",
+		CTAPath: "/cw/create",
+	},
 	"logs": {
 		Short: "No log groups yet",
 		None:  "No log groups yet. A function writes one under /aws/lambda/<name> the first time it prints, and `aws logs tail --follow` reads the same lines you see here.",

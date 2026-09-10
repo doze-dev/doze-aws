@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"github.com/doze-dev/doze-aws/internal/gateway"
+	"github.com/doze-dev/doze-aws/internal/rpcv2cbor"
 	"github.com/doze-dev/doze-aws/internal/trace"
 	"io"
 	"net/http"
@@ -319,6 +320,7 @@ var consoleLabel = map[string]string{
 	"dynamodb":       "ddb",
 	"cloudformation": "cfn",
 	"apigateway":     "apigw",
+	"cloudwatch":     "cw",
 }
 
 // labelFor resolves a request to the console's service label using the
@@ -345,6 +347,14 @@ func classify(r *http.Request, capturedBody string, rec *Recorder) (svc, action,
 	if t := r.Header.Get("X-Amz-Target"); t != "" {
 		_, act, _ := strings.Cut(t, ".")
 		return svc, act, jsonResource(svc, capturedBody)
+	}
+	// Smithy RPC v2 CBOR: POST /service/{Service}/operation/{Operation}, with no
+	// X-Amz-Target and no Action anywhere. Without this branch a CBOR request
+	// falls all the way through to the path-style S3 arm below and a
+	// PutMetricData is reported on the wire as an object GET — the same failure
+	// the Lambda-layers comment describes, and the reason that comment exists.
+	if svc, action, resource, ok := rpcv2Classify(r, capturedBody); ok {
+		return svc, action, resource
 	}
 	// API Gateway: the control plane is path-routed, and a call to a DEPLOYED
 	// api is the one shape worth naming precisely, since that is what a
@@ -822,6 +832,17 @@ func jsonResource(svc, body string) string {
 			return n
 		}
 		return leafName(str("logGroupIdentifier"))
+	case "cw":
+		if n := str("AlarmName"); n != "" {
+			return n
+		}
+		if n := str("DashboardName"); n != "" {
+			return n
+		}
+		if ns, name := str("Namespace"), str("MetricName"); ns != "" && name != "" {
+			return ns + "/" + name
+		}
+		return str("Namespace")
 	}
 	return ""
 }
@@ -954,3 +975,34 @@ func firstNonEmpty(vals ...string) string {
 	}
 	return ""
 }
+
+// rpcv2Classify names a Smithy RPC v2 CBOR request from its path.
+//
+// The body is CBOR, not JSON, so the resource cannot be read out of it the way
+// jsonResource reads a JSON body — and decoding CBOR here to name a row would
+// put a decoder on the console's hot path for a label. The operation name is
+// the useful half and the path carries it, so the row shows the operation and
+// leaves the resource blank rather than guessing.
+func rpcv2Classify(r *http.Request, body string) (svc, action, resource string, ok bool) {
+	if r.Method != http.MethodPost {
+		return "", "", "", false
+	}
+	service, operation, found := rpcv2cbor.ParsePath(r.URL.Path)
+	if !found {
+		return "", "", "", false
+	}
+	svc = labelFor(r)
+	if svc == "" || svc == "s3" {
+		// The gateway routes a signed request by its credential scope, so this
+		// is only reached for something unsigned; name it from the service
+		// shape id rather than letting the S3 fallback claim it.
+		if service == cwServiceID {
+			svc = "cw"
+		}
+	}
+	return svc, operation, "", true
+}
+
+// cwServiceID is CloudWatch's Smithy service shape name, which is what its
+// RPC v2 paths carry — not "cloudwatch", and not the "monitoring" it signs as.
+const cwServiceID = "GraniteServiceVersion20100801"

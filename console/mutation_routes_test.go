@@ -281,6 +281,18 @@ func seedFixtures(t *testing.T, c http.Handler) {
 			"name": {"/fixture/logs"}, "filter": {"fixture-doomed-mf"}, "pattern": {"ERROR"},
 			"namespace": {"Fixture"}, "metric": {"Errors"}, "value": {"1"},
 		}},
+		// Two alarms: one the state and actions routes address, one for the
+		// delete route to consume.
+		{"/cw/create-alarm", url.Values{
+			"name": {"fixture-alarm"}, "metric": {"Fixture|Probe"}, "statistic": {"Sum"},
+			"operator": {"GreaterThanThreshold"}, "threshold": {"1"},
+			"period": {"60"}, "evaluation": {"1"},
+		}},
+		{"/cw/create-alarm", url.Values{
+			"name": {"fixture-doomed-alarm"}, "metric": {"Fixture|Probe"}, "statistic": {"Sum"},
+			"operator": {"GreaterThanThreshold"}, "threshold": {"1"},
+			"period": {"60"}, "evaluation": {"1"},
+		}},
 		{"/ddb/create", url.Values{
 			"name": {"fixture-table"}, "hash_key": {"pk"}, "hash_type": {"S"},
 		}},
@@ -552,6 +564,23 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 			"destination": {"arn:aws:lambda:us-east-1:000000000000:function:fixture-sink"}}
 	case "/logs/unsubscribe":
 		return nil, url.Values{"name": {"/fixture/logs"}, "filter": {"fixture-sub"}}
+	case "/cw/create-alarm":
+		// The metric key is the same encoding the browser links with; the
+		// series need not exist, because an alarm may be declared before the
+		// thing it watches has published anything.
+		return nil, url.Values{"name": {"fixture-made-alarm"}, "metric": {"Fixture|Probe"},
+			"statistic": {"Sum"}, "operator": {"GreaterThanThreshold"},
+			"threshold": {"1"}, "period": {"60"}, "evaluation": {"1"}}
+	case "/cw/alarm/{name}/state":
+		return map[string]string{"{name}": "fixture-alarm"},
+			url.Values{"state": {"ALARM"}, "reason": {"swept"}}
+	case "/cw/alarm/{name}/actions":
+		return map[string]string{"{name}": "fixture-alarm"}, url.Values{"enabled": {"false"}}
+	case "/cw/alarm/{name}/delete":
+		// Its own victim: the sweep runs alphabetically, so "actions" and
+		// "state" have already addressed the shared alarm by the time this
+		// route consumes one.
+		return map[string]string{"{name}": "fixture-doomed-alarm"}, nil
 	case "/logs/metric-filter":
 		return nil, url.Values{"name": {"/fixture/logs"}, "filter": {"fixture-mf"}, "pattern": {"ERROR"},
 			"namespace": {"Fixture"}, "metric": {"Errors"}, "value": {"1"}}
