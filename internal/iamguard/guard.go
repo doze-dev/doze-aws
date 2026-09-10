@@ -89,6 +89,17 @@ func Strip(r *http.Request) {
 	}
 }
 
+// StripHandler wraps h so a request reaches it with no X-Doze-* headers of
+// the client's own. It is what the stack serves when IAM is off, where there
+// is no middleware to strip them: Check reads the mode from a header, so a
+// request that arrives claiming one must not keep it.
+func StripHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		Strip(r)
+		h.ServeHTTP(w, r)
+	})
+}
+
 // Stamp writes the middleware's handoff onto the request: the mode, the
 // principal, the identity verdict, and the pair it was evaluated for.
 func Stamp(r *http.Request, mode, principal, identity, action, resource string) {

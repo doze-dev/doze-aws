@@ -221,7 +221,13 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 // even a wrapper frame per request.
 func (s *Stack) Handler() http.Handler {
 	if s.iam == nil || s.iam.Mode() == iam.ModeOff {
-		return s.gw
+		// Still stripped. Off means nothing is enforced, so a client that
+		// stamps its own handoff headers gains nothing today — but the
+		// guards read those headers to decide the mode they run in, and a
+		// header a client can set is not one anything should trust. The
+		// strip belongs on the way in, not on the branch that happens to
+		// evaluate policies.
+		return iamguard.StripHandler(s.gw)
 	}
 	return s.authorized(s.gw)
 }

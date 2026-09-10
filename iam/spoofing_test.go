@@ -136,6 +136,52 @@ func TestClientSuppliedDozeHeadersAreIgnored(t *testing.T) {
 	}
 }
 
+// TestClientCannotUpgradeTheModeWhenIAMIsOff is the other direction, and the
+// one the stack used to get wrong.
+//
+// Every test above runs under enforce, where the middleware is in the request
+// path and strips on the way in. With IAM off — the default — Handler served
+// the gateway directly, so nothing stripped anything, and Guard.Check reads
+// the mode from a header. A client could therefore switch resource-policy
+// enforcement ON for its own request and name any principal it liked.
+//
+// Nothing escalated: with IAM off there is nothing to escalate past, and a
+// spoofed "allowed" only grants what was already granted. What it could do is
+// make a request fail that should have succeeded, against a policy the
+// operator never asked to have enforced. The strip is now unconditional.
+func TestClientCannotUpgradeTheModeWhenIAMIsOff(t *testing.T) {
+	ctx := context.Background()
+	_, endpoint := stack(t, iam.ModeOff)
+
+	rootSQS := sqsClient(rootCfg(), endpoint)
+	q, err := rootSQS.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("unguarded")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A policy that denies everyone. With IAM off it is stored and never
+	// evaluated, so a send must succeed.
+	if _, err := rootSQS.SetQueueAttributes(ctx, &awssqs.SetQueueAttributesInput{
+		QueueUrl: q.QueueUrl,
+		Attributes: map[string]string{"Policy": `{"Version":"2012-10-17","Statement":[{"Sid":"DenyAll",` +
+			`"Effect":"Deny","Principal":"*","Action":"sqs:SendMessage","Resource":"*"}]}`},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg := rootCfg()
+	cfg.HTTPClient = headerInjector{inner: http.DefaultClient, headers: map[string]string{
+		"X-Doze-Iam-Mode":  "enforce",
+		"X-Doze-Principal": awsident.GlobalARN("iam", "user/nobody"),
+		"X-Doze-Identity":  "implicitDeny",
+	}}
+	spoofer := sqsClient(cfg, endpoint)
+
+	if _, err := spoofer.SendMessage(ctx, &awssqs.SendMessageInput{
+		QueueUrl: q.QueueUrl, MessageBody: aws.String("hi")}); err != nil {
+		t.Fatalf("a client asked for enforce on a stack with IAM off and got it: %v", err)
+	}
+}
+
 // TestClientCannotDowngradeTheMode: "X-Doze-Iam-Mode: off" would turn every
 // guard into a no-op if it survived. Covered by the test above through the
 // denial, and separately here on a service whose guard reads the mode first.
