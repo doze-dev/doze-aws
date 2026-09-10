@@ -32,6 +32,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
+	"github.com/doze-dev/doze-aws/internal/metricship"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 	"github.com/doze-dev/doze-aws/internal/trace"
@@ -54,13 +55,14 @@ type Options struct {
 // Server is the Step Functions service: an http.Handler speaking AWS JSON 1.0,
 // and an io.Closer.
 type Server struct {
-	store  *Store
-	peers  peers.Directory
-	logf   func(format string, args ...any)
-	api    awsjson.API
-	sink   trace.Sink
-	engine *engine
-	logs   *machineLogs
+	store   *Store
+	peers   peers.Directory
+	logf    func(format string, args ...any)
+	api     awsjson.API
+	sink    trace.Sink
+	engine  *engine
+	logs    *machineLogs
+	metrics *metricship.Shipper
 }
 
 // New opens the store under DataDir.
@@ -96,6 +98,7 @@ func New(opts Options) (*Server, error) {
 		s.store.clock = opts.Clock
 	}
 	s.logs = newMachineLogs(s)
+	s.metrics = newMetrics(s)
 	s.engine = newEngine(s)
 	return s, nil
 }
@@ -107,6 +110,7 @@ func New(opts Options) (*Server, error) {
 func (s *Server) Close() error {
 	s.engine.close()
 	s.logs.close()
+	s.metrics.Close()
 	return s.store.db.Close()
 }
 

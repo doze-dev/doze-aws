@@ -39,7 +39,7 @@ per-invocation fsync is the one thing that would make Invoke slow.
 | TagResource / UntagResource / ListTagsForResource, TagLogGroup / UntagLogGroup / ListTagsLogGroup | F | the current and the deprecated spellings; the ARN form takes the ARN without the `:*` suffix DescribeLogGroups reports, as on AWS |
 | Logs Insights (StartQuery, GetQueryResults, query definitions, scheduled queries, lookup tables, log fields and records) | S | a query engine that does not exist locally; FilterLogEvents covers what a developer reads |
 | StartLiveTail | S | an HTTP event stream to a tailer fleet; `aws logs tail --follow` polls FilterLogEvents, which works |
-| Metric filters | S | publish to CloudWatch Metrics, which does not exist locally |
+| PutMetricFilter / DeleteMetricFilter / DescribeMetricFilters / TestMetricFilter | F | a matching line becomes a CloudWatch metric on ingest, beside the subscription fan-out; `metricValue` is a literal or a `$.field` reference, with `defaultValue` when the reference does not resolve; up to 100 filters per group, as on AWS |
 | PutSubscriptionFilter / DeleteSubscriptionFilter / DescribeSubscriptionFilters | F | a group forwards the lines that match a filter pattern to a Lambda function or a Kinesis stream (see below); two per group, as on AWS; Firehose, cross-account destinations and a function's own log group are refused by name |
 | Destinations (PutDestination, PutDestinationPolicy, DescribeDestinations, DeleteDestination) | S | cross-account receivers for another account's filters; subscribe a function or a stream directly |
 | Deliveries, delivery sources and destinations, configuration templates | S | vended logs from other services; not built |
@@ -49,7 +49,7 @@ per-invocation fsync is the one thing that would make Invoke slow.
 | Transformers, integrations, S3 Table sources, KMS association, syslog configurations | S | need pipelines or services that do not run locally |
 
 Every one of the 118 operations in the `com.amazonaws.cloudwatchlogs` model
-is either handled (21) or refused by name with what it would need (97).
+is either handled (25) or refused by name with what it would need (93).
 Nothing falls through to `InvalidAction`.
 
 ## Filter patterns
@@ -64,6 +64,9 @@ The subset people type into `sam logs --filter` and `--filter-pattern`:
   JSON, with `=`, `!=`, `<`, `<=`, `>`, `>=`, `IS NULL`, `NOT EXISTS`,
   `IS TRUE`, `IS FALSE`, `*` wildcards in strings, `&&` binding tighter than
   `||`, no parentheses.
+- `{ $.latency = * }` — an unquoted `*` tests existence rather than matching a
+  string, which is how a metric filter says "every line carrying this field".
+  `{ $.latency != * }` is the negation, the same as `NOT EXISTS`.
 
 Regular-expression (`%…%`) and space-delimited (`[…]`) patterns answer
 `InvalidParameterException` naming the construct. A subscription filter

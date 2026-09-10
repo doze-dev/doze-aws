@@ -36,3 +36,42 @@ test.describe('log group subscriptions', () => {
     await expect(page.getByText('No subscription filters')).toBeVisible();
   });
 });
+
+// The Metric filters tab: a rule that turns matching lines into a CloudWatch
+// metric, the pattern tester beside it, and removal.
+test.describe('log group metric filters', () => {
+  test('create a metric filter, test its pattern, then remove it', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+  }) => {
+    const group = '/app/' + uniqueName('e2e-mf');
+    await postForm(request, 'logs/create', { name: group, days: 7 });
+
+    await page.goto(`logs/group?name=${encodeURIComponent(group)}&tab=metrics`);
+    await expect(page.getByText('No metric filters')).toBeVisible();
+
+    // The tester answers before anything is stored, which is the point of it.
+    await page.locator('textarea[name="samples"]').fill('ERROR boom\nINFO fine');
+    await page.locator('form[hx-post$="test-metric-filter"] input[name="pattern"]').fill('ERROR');
+    await page.getByRole('button', { name: 'Test' }).click();
+    await expect(page.locator('#mf-test')).toContainText('1 of 2 lines matched');
+    await expect(page.getByText('No metric filters')).toBeVisible();
+
+    await page.locator('form[hx-post$="/logs/metric-filter"] input[name="filter"]').fill('error-count');
+    await page.locator('form[hx-post$="/logs/metric-filter"] input[name="pattern"]').fill('ERROR');
+    await page.locator('input[name="namespace"]').fill('E2E');
+    await page.locator('input[name="metric"]').fill('Errors');
+    await page.getByRole('button', { name: 'Create filter' }).click();
+    await page.waitForURL(/tab=metrics/);
+    await expect(page.locator('#flashbar')).toContainText('Errors');
+    const row = page.locator('table.tbl tr', { hasText: 'error-count' });
+    await expect(row).toContainText('E2E / Errors');
+
+    await row.getByRole('button').click();
+    await confirmDialog('accept');
+    await page.waitForURL(/tab=metrics/);
+    await expect(page.getByText('No metric filters')).toBeVisible();
+  });
+});

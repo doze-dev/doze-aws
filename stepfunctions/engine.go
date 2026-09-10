@@ -477,6 +477,7 @@ func (g *engine) finalize(r *run, status string, output []byte, errName, cause s
 		})
 	}
 	g.persist(r)
+	g.srv.recordFinished(r.e)
 	delete(g.runs, r.key)
 	// A parent parked on this execution hears of it before a volatile record
 	// is dropped; a Map Run this execution belongs to counts it; a stopped

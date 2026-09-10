@@ -274,6 +274,13 @@ func seedFixtures(t *testing.T, c http.Handler) {
 		{"/sm/create", url.Values{"name": {"fixture-secret"}, "value": {"v"}}},
 		{"/ssm/create", url.Values{"name": {"/fixture/param"}, "type": {"String"}, "value": {"v"}}},
 		{"/logs/create", url.Values{"name": {"/fixture/logs"}, "days": {"7"}}},
+		// A metric filter for delete-metric-filter to consume: routes run
+		// alphabetically, so the delete route runs before the create route
+		// that would otherwise have made one.
+		{"/logs/metric-filter", url.Values{
+			"name": {"/fixture/logs"}, "filter": {"fixture-doomed-mf"}, "pattern": {"ERROR"},
+			"namespace": {"Fixture"}, "metric": {"Errors"}, "value": {"1"},
+		}},
 		{"/ddb/create", url.Values{
 			"name": {"fixture-table"}, "hash_key": {"pk"}, "hash_type": {"S"},
 		}},
@@ -545,6 +552,15 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 			"destination": {"arn:aws:lambda:us-east-1:000000000000:function:fixture-sink"}}
 	case "/logs/unsubscribe":
 		return nil, url.Values{"name": {"/fixture/logs"}, "filter": {"fixture-sub"}}
+	case "/logs/metric-filter":
+		return nil, url.Values{"name": {"/fixture/logs"}, "filter": {"fixture-mf"}, "pattern": {"ERROR"},
+			"namespace": {"Fixture"}, "metric": {"Errors"}, "value": {"1"}}
+	case "/logs/delete-metric-filter":
+		// The seed's filter; the one the create route above makes is left
+		// standing, so the two routes never contend for the same name.
+		return nil, url.Values{"name": {"/fixture/logs"}, "filter": {"fixture-doomed-mf"}}
+	case "/logs/test-metric-filter":
+		return nil, url.Values{"pattern": {"ERROR"}, "samples": {"ERROR boom\nINFO fine"}}
 	case "/lambda/create":
 		// A function needs somewhere real to read its code from, even though
 		// nothing here invokes it.

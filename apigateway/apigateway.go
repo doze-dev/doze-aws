@@ -39,6 +39,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/metricship"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 	"github.com/doze-dev/doze-aws/peers"
 )
@@ -60,11 +61,12 @@ type Options struct {
 
 // Server is the API Gateway service.
 type Server struct {
-	store *Store
-	peers peers.Directory
-	logf  func(format string, args ...any)
-	now   func() time.Time
-	logs  *stageLogs
+	store   *Store
+	peers   peers.Directory
+	logf    func(format string, args ...any)
+	now     func() time.Time
+	logs    *stageLogs
+	metrics *metricship.Shipper
 	// authCache holds Lambda authorizer answers for their TTL (authorize.go).
 	authCache *authCache
 }
@@ -95,6 +97,7 @@ func New(opts Options) (*Server, error) {
 		s.now = opts.Clock
 	}
 	s.logs = newStageLogs(s)
+	s.metrics = newMetrics(s)
 	s.authCache = newAuthCache()
 	return s, nil
 }
@@ -102,6 +105,7 @@ func New(opts Options) (*Server, error) {
 // Close flushes pending logs and closes the bbolt DB.
 func (s *Server) Close() error {
 	s.logs.close()
+	s.closeMetrics()
 	return s.store.db.Close()
 }
 

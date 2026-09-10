@@ -250,3 +250,89 @@ func (b *backend) DeleteLogSubscription(ctx context.Context, group, name string)
 	_, err := b.json11(ctx, "Logs_20140328", "DeleteSubscriptionFilter", map[string]any{"logGroupName": group, "filterName": name})
 	return err
 }
+
+// LogMetricFilter is one metric filter on a group: a rule that turns matching
+// lines into a CloudWatch metric.
+type LogMetricFilter struct {
+	Name      string
+	Pattern   string
+	Namespace string
+	Metric    string
+	Value     string // a literal, or a $.field reference
+	Unit      string
+	Created   string
+}
+
+func (b *backend) ListLogMetricFilters(ctx context.Context, group string) ([]LogMetricFilter, error) {
+	body, err := b.json11(ctx, "Logs_20140328", "DescribeMetricFilters", map[string]any{"logGroupName": group})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		MetricFilters []struct {
+			FilterName, LogGroupName, FilterPattern string
+			CreationTime                            float64 // milliseconds
+			MetricTransformations                   []struct {
+				MetricNamespace, MetricName, MetricValue, Unit string
+			} `json:"metricTransformations"`
+		} `json:"metricFilters"`
+	}
+	json.Unmarshal(body, &out)
+	filters := make([]LogMetricFilter, 0, len(out.MetricFilters))
+	for _, f := range out.MetricFilters {
+		// A filter can carry several transformations; the console shows the
+		// first, which is the only one its own form creates and the shape
+		// CDK and Terraform emit.
+		lf := LogMetricFilter{Name: f.FilterName, Pattern: f.FilterPattern,
+			Created: epochToTime(f.CreationTime / 1000)}
+		if len(f.MetricTransformations) > 0 {
+			t := f.MetricTransformations[0]
+			lf.Namespace, lf.Metric, lf.Value, lf.Unit = t.MetricNamespace, t.MetricName, t.MetricValue, t.Unit
+		}
+		filters = append(filters, lf)
+	}
+	return filters, nil
+}
+
+// PutLogMetricFilter creates or replaces a metric filter by name.
+func (b *backend) PutLogMetricFilter(ctx context.Context, group, name, pattern, namespace, metric, value, unit string) error {
+	transform := map[string]any{"metricNamespace": namespace, "metricName": metric, "metricValue": value}
+	if unit != "" {
+		transform["unit"] = unit
+	}
+	_, err := b.json11(ctx, "Logs_20140328", "PutMetricFilter", map[string]any{
+		"logGroupName": group, "filterName": name, "filterPattern": pattern,
+		"metricTransformations": []any{transform},
+	})
+	return err
+}
+
+func (b *backend) DeleteLogMetricFilter(ctx context.Context, group, name string) error {
+	_, err := b.json11(ctx, "Logs_20140328", "DeleteMetricFilter", map[string]any{"logGroupName": group, "filterName": name})
+	return err
+}
+
+// TestLogMetricFilter runs a pattern against sample lines without storing
+// anything, and reports which of them matched — the check a developer wants
+// before committing a pattern to a template.
+func (b *backend) TestLogMetricFilter(ctx context.Context, pattern string, messages []string) ([]string, error) {
+	lines := make([]any, 0, len(messages))
+	for _, m := range messages {
+		lines = append(lines, m)
+	}
+	body, err := b.json11(ctx, "Logs_20140328", "TestMetricFilter", map[string]any{
+		"filterPattern": pattern, "logEventMessages": lines,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var out struct {
+		Matches []struct{ EventMessage string } `json:"matches"`
+	}
+	json.Unmarshal(body, &out)
+	matched := make([]string, 0, len(out.Matches))
+	for _, m := range out.Matches {
+		matched = append(matched, m.EventMessage)
+	}
+	return matched, nil
+}

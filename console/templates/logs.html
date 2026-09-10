@@ -36,6 +36,16 @@
 </div>
 {{end}}
 
+{{/* The pattern tester's answer: which sample lines the pattern took. */}}
+{{define "metric_filter_test"}}
+{{if .Note}}<div class="empty flat"><p>{{.Note}}</p></div>{{else}}
+<p class="dim">{{.Matched}} of {{.Total}} line{{if ne .Total 1}}s{{end}} matched.</p>
+<table class="tbl"><tbody>{{range .Samples}}
+  <tr><td class="mono">{{if .Matched}}<span class="badge ok">match</span>{{else}}<span class="badge dim">—</span>{{end}}</td><td class="mono">{{.Message}}</td></tr>
+{{end}}</tbody></table>
+{{end}}
+{{end}}
+
 {{define "logs_lp"}}
 {{template "lp_head" dict "Svc" "logs" "Prefix" .Prefix "Label" "CloudWatch Logs" "NewURL" "" "Count" (len .List)}}
   {{range .List}}
@@ -63,6 +73,7 @@
         (dict "Key" "tail" "Label" "Tail" "Icon" "list" "URL" (printf "%s/logs/group?name=%s" .Prefix .Sel))
         (dict "Key" "streams" "Label" "Streams" "Icon" "layers" "URL" (printf "%s/logs/group?name=%s&tab=streams" .Prefix .Sel))
         (dict "Key" "subscriptions" "Label" "Subscriptions" "Icon" "send" "URL" (printf "%s/logs/group?name=%s&tab=subscriptions" .Prefix .Sel))
+        (dict "Key" "metrics" "Label" "Metric filters" "Icon" "sliders" "URL" (printf "%s/logs/group?name=%s&tab=metrics" .Prefix .Sel))
         (dict "Key" "settings" "Label" "Settings" "Icon" "settings" "URL" (printf "%s/logs/group?name=%s&tab=settings" .Prefix .Sel))
         (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/logs/group?name=%s&tab=tags" .Prefix .Sel)))}}
     </div>
@@ -96,6 +107,61 @@
           <div class="field"><label>Destination</label><select class="input" name="destination" required>{{range .Functions}}<option value="{{.ARN}}">Lambda · {{.Name}}</option>{{end}}{{range .KinesisStreams}}<option value="{{.ARN}}">Kinesis · {{.Name}}</option>{{end}}</select></div>
           <button class="btn" type="submit">Subscribe</button>
         </form>
+      </div>
+      {{else if eq .Tab "metrics"}}
+      {{/* A metric filter turns matching lines into a CloudWatch metric on
+           ingest, which is how a stack alarms on something only its logs
+           know. metricValue is a literal — "1" counts occurrences — or a
+           $.field reference that reads a number out of the line. */}}
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "sliders"}} Metric filters <span class="badge">{{len .MetricFilters}}</span></h2><span class="dim">matching lines become CloudWatch metrics as they arrive</span></div>
+        {{if .MetricFilters}}<table class="tbl"><thead><tr><th>Filter</th><th>Pattern</th><th>Metric</th><th>Value</th><th></th></tr></thead><tbody>{{range .MetricFilters}}
+          <tr><td class="mono">{{.Name}}</td><td class="mono dim">{{if .Pattern}}{{.Pattern}}{{else}}every line{{end}}</td>
+            <td class="mono">{{.Namespace}} / {{.Metric}}{{if .Unit}} <span class="dim">{{.Unit}}</span>{{end}}</td>
+            <td class="mono dim">{{.Value}}</td>
+            <td class="right"><button class="btn btn-outline btn-sm danger" hx-post="{{$.Prefix}}/logs/delete-metric-filter" hx-vals='{"name":"{{$.G.Name}}","filter":"{{.Name}}"}' hx-confirm="Remove metric filter “{{.Name}}”?">{{icon "trash"}}</button></td></tr>
+        {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No metric filters — nothing in this group is being counted yet.</p></div>{{end}}
+      </div>
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "plus"}} Add a metric filter</h2></div>
+        <form class="form-b" hx-post="{{.Prefix}}/logs/metric-filter">
+          <input type="hidden" name="name" value="{{.G.Name}}">
+          <div class="fgrid">
+            <div class="field"><label>Filter name</label><input class="input" name="filter" placeholder="error-count" required></div>
+            <div class="field"><label>Pattern <span class="dim">blank matches every line</span></label><input class="input mono" name="pattern" placeholder="ERROR"></div>
+          </div>
+          <div class="fgrid">
+            <div class="field"><label>Namespace</label><input class="input mono" name="namespace" placeholder="MyApp" required></div>
+            <div class="field"><label>Metric name</label><input class="input mono" name="metric" placeholder="Errors" required></div>
+          </div>
+          <div class="fgrid">
+            <div class="field"><label>Value <span class="dim">a number to count by, or <span class="mono">$.field</span> to read one out of the line</span></label><input class="input mono" name="value" value="1"></div>
+            <div class="field"><label>Unit</label><select class="input" name="unit">
+              <option value="">none</option>
+              {{range $u := list "Count" "Milliseconds" "Seconds" "Bytes" "Percent" "Count/Second"}}<option value="{{$u}}">{{$u}}</option>{{end}}
+            </select></div>
+          </div>
+          <button class="btn" type="submit">Create filter</button>
+        </form>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><h2>{{icon "search"}} Test a pattern</h2><span class="dim">runs the pattern against sample lines without storing anything</span></div>
+        {{/* Both opt-outs are load-bearing, and each fails differently.
+             #workspace carries hx-select="#workspace" and
+             hx-swap="outerHTML show:none", and htmx inherits both: without
+             hx-select="unset" htmx looks for a #workspace inside this partial,
+             finds none and swaps nothing; without hx-swap="innerHTML" the
+             inherited outerHTML replaces #mf-test itself, so the second test
+             run has no target left to swap into. */}}
+        <form class="form-b" hx-post="{{.Prefix}}/logs/test-metric-filter"
+              hx-target="#mf-test" hx-select="unset" hx-swap="innerHTML">
+          <div class="field"><label>Pattern</label><input class="input mono" name="pattern" placeholder="ERROR"></div>
+          <div class="field"><label>Sample lines <span class="dim">one per line; prefilled from this group's tail</span></label>
+            <textarea class="input mono" name="samples" rows="4">{{range .Samples}}{{.}}
+{{end}}</textarea></div>
+          <button class="btn btn-outline" type="submit">Test</button>
+        </form>
+        <div id="mf-test"></div>
       </div>
       {{else if eq .Tab "tags"}}
       {{template "tags_panel" dict "Prefix" .Prefix "Svc" "logs" "ID" .G.Name}}

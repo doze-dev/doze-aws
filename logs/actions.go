@@ -34,6 +34,10 @@ var handlers = map[string]handler{
 	"PutSubscriptionFilter":       (*Server).putSubscriptionFilter,
 	"DeleteSubscriptionFilter":    (*Server).deleteSubscriptionFilter,
 	"DescribeSubscriptionFilters": (*Server).describeSubscriptionFilters,
+	"PutMetricFilter":             (*Server).putMetricFilter,
+	"DeleteMetricFilter":          (*Server).deleteMetricFilter,
+	"DescribeMetricFilters":       (*Server).describeMetricFilters,
+	"TestMetricFilter":            (*Server).testMetricFilter,
 }
 
 // groupARN is the ARN CloudWatch Logs reports for a group.
@@ -360,6 +364,10 @@ func (s *Server) putLogEvents(ctx context.Context, p map[string]any) (any, *awsh
 		return nil, awshttp.Errf(500, "ServiceUnavailableException", "%v", err)
 	}
 	s.fan.enqueue(ctx, g.Name, stream, stored)
+	// Beside the fan-out rather than inside it: a subscription ships the line
+	// onward and a metric filter turns it into a number, and a group may have
+	// either, both, or neither.
+	s.met.enqueue(ctx, g.Name, stored)
 	return map[string]any{"nextSequenceToken": strconv.FormatInt(s.store.now(), 10)}, nil
 }
 

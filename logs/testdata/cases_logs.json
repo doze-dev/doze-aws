@@ -324,6 +324,98 @@
     ]
   },
   {
+    "operation": "DeleteMetricFilter",
+    "target": "Logs_20140328.DeleteMetricFilter",
+    "path": "filterName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteMetricFilter",
+    "target": "Logs_20140328.DeleteMetricFilter",
+    "path": "filterName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteMetricFilter",
+    "target": "Logs_20140328.DeleteMetricFilter",
+    "path": "filterName",
+    "why": "longer than the maximum length of 512",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 513
+    },
+    "constraint": "length 1..512",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteMetricFilter",
+    "target": "Logs_20140328.DeleteMetricFilter",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteMetricFilter",
+    "target": "Logs_20140328.DeleteMetricFilter",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteMetricFilter",
+    "target": "Logs_20140328.DeleteMetricFilter",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 513
+    },
+    "constraint": "length 1..512",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
+    "operation": "DeleteMetricFilter",
+    "target": "Logs_20140328.DeleteMetricFilter",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "filterName",
+      "logGroupName"
+    ]
+  },
+  {
     "operation": "DeleteRetentionPolicy",
     "target": "Logs_20140328.DeleteRetentionPolicy",
     "path": "logGroupName",
@@ -702,6 +794,94 @@
     "why": "not one of LogStreamName, LastEventTime",
     "value": "__DOZE_NOT_A_MEMBER__",
     "constraint": "enum LogStreamName|LastEventTime"
+  },
+  {
+    "operation": "DescribeMetricFilters",
+    "target": "Logs_20140328.DescribeMetricFilters",
+    "path": "filterNamePrefix",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "DescribeMetricFilters",
+    "target": "Logs_20140328.DescribeMetricFilters",
+    "path": "filterNamePrefix",
+    "why": "longer than the maximum length of 512",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 513
+    },
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "DescribeMetricFilters",
+    "target": "Logs_20140328.DescribeMetricFilters",
+    "path": "limit",
+    "why": "below the minimum of 1",
+    "value": 0,
+    "constraint": "range 1..50"
+  },
+  {
+    "operation": "DescribeMetricFilters",
+    "target": "Logs_20140328.DescribeMetricFilters",
+    "path": "limit",
+    "why": "above the maximum of 50",
+    "value": 51,
+    "constraint": "range 1..50"
+  },
+  {
+    "operation": "DescribeMetricFilters",
+    "target": "Logs_20140328.DescribeMetricFilters",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "DescribeMetricFilters",
+    "target": "Logs_20140328.DescribeMetricFilters",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 513
+    },
+    "constraint": "length 1..512"
+  },
+  {
+    "operation": "DescribeMetricFilters",
+    "target": "Logs_20140328.DescribeMetricFilters",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$"
+  },
+  {
+    "operation": "DescribeMetricFilters",
+    "target": "Logs_20140328.DescribeMetricFilters",
+    "path": "metricName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..255"
+  },
+  {
+    "operation": "DescribeMetricFilters",
+    "target": "Logs_20140328.DescribeMetricFilters",
+    "path": "metricNamespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..255"
+  },
+  {
+    "operation": "DescribeMetricFilters",
+    "target": "Logs_20140328.DescribeMetricFilters",
+    "path": "nextToken",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..-"
   },
   {
     "operation": "DescribeSubscriptionFilters",
@@ -1622,6 +1802,288 @@
     ]
   },
   {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "fieldSelectionCriteria",
+    "why": "longer than the maximum length of 2000",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 2001
+    },
+    "constraint": "length 0..2000",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "filterName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "filterName",
+    "why": "longer than the maximum length of 512",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 513
+    },
+    "constraint": "length 1..512",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "filterName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "filterPattern",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 0..1024",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "filterPattern",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "logGroupName",
+    "why": "longer than the maximum length of 512",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 513
+    },
+    "constraint": "length 1..512",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "logGroupName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "logGroupName",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..512",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "logGroupName",
+    "why": "does not match ^[\\.\\-_/#A-Za-z0-9]+$",
+    "value": "\u0000\u0001",
+    "constraint": "pattern ^[\\.\\-_/#A-Za-z0-9]+$",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "metricTransformations",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "metricTransformations[].dimensions{}",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..255",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "metricTransformations[].metricName",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..255",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "metricTransformations[].metricName",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "metricTransformations[].metricNamespace",
+    "why": "longer than the maximum length of 255",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..255",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "metricTransformations[].metricNamespace",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "metricTransformations[].metricValue",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "metricTransformations[].metricValue",
+    "why": "longer than the maximum length of 100",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "constraint": "length 0..100",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
+    "operation": "PutMetricFilter",
+    "target": "Logs_20140328.PutMetricFilter",
+    "path": "metricTransformations[].unit",
+    "why": "not one of Bytes/Second, Megabytes/Second, Terabytes/Second, Kilobits/Second, Count, Gigabits/Second, None, Microseconds, Terabytes, Bits, Gigabits, Percent, Bits/Second, Terabits/Second, Count/Second, Seconds, Milliseconds, Megabytes, Gigabytes, Terabits, Kilobytes/Second, Gigabytes/Second, Megabits/Second, Bytes, Kilobytes, Kilobits, Megabits",
+    "value": "__DOZE_NOT_A_MEMBER__",
+    "constraint": "enum Bytes/Second|Megabytes/Second|Terabytes/Second|Kilobits/Second|Count|Gigabits/Second|None|Microseconds|Terabytes|Bits|Gigabits|Percent|Bits/Second|Terabits/Second|Count/Second|Seconds|Milliseconds|Megabytes|Gigabytes|Terabits|Kilobytes/Second|Gigabytes/Second|Megabits/Second|Bytes|Kilobytes|Kilobits|Megabits",
+    "required_members": [
+      "filterName",
+      "filterPattern",
+      "logGroupName",
+      "metricTransformations"
+    ]
+  },
+  {
     "operation": "PutRetentionPolicy",
     "target": "Logs_20140328.PutRetentionPolicy",
     "path": "logGroupName",
@@ -2071,6 +2533,58 @@
     "required_members": [
       "resourceArn",
       "tags"
+    ]
+  },
+  {
+    "operation": "TestMetricFilter",
+    "target": "Logs_20140328.TestMetricFilter",
+    "path": "filterPattern",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "filterPattern",
+      "logEventMessages"
+    ]
+  },
+  {
+    "operation": "TestMetricFilter",
+    "target": "Logs_20140328.TestMetricFilter",
+    "path": "filterPattern",
+    "why": "longer than the maximum length of 1024",
+    "value": null,
+    "value_repeat": {
+      "of": "a",
+      "times": 1025
+    },
+    "constraint": "length 0..1024",
+    "required_members": [
+      "filterPattern",
+      "logEventMessages"
+    ]
+  },
+  {
+    "operation": "TestMetricFilter",
+    "target": "Logs_20140328.TestMetricFilter",
+    "path": "logEventMessages",
+    "why": "required member omitted",
+    "value": null,
+    "constraint": "required",
+    "required_members": [
+      "filterPattern",
+      "logEventMessages"
+    ]
+  },
+  {
+    "operation": "TestMetricFilter",
+    "target": "Logs_20140328.TestMetricFilter",
+    "path": "logEventMessages[]",
+    "why": "shorter than the minimum length of 1",
+    "value": "",
+    "constraint": "length 1..-",
+    "required_members": [
+      "filterPattern",
+      "logEventMessages"
     ]
   },
   {

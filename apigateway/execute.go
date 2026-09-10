@@ -67,6 +67,7 @@ func (s *Server) serveExecute(w http.ResponseWriter, r *http.Request, rest strin
 	defer func() {
 		rl.status, rl.respLength = sw.status, sw.length
 		s.logs.record(st, rl)
+		s.recordRequest(api, stage, rl)
 	}()
 	w = sw
 

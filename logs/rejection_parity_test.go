@@ -119,7 +119,18 @@ func baselines() map[string]map[string]any {
 			"destinationArn": awsident.ARN("lambda", "function:audit-sink")},
 		"DeleteSubscriptionFilter":    {"logGroupName": auditGroup, "filterName": "doomed-sub"},
 		"DescribeSubscriptionFilters": group,
+		"PutMetricFilter": {"logGroupName": auditGroup, "filterName": "audit-metric", "filterPattern": "ERROR",
+			"metricTransformations": []any{auditTransformation()}},
+		"DeleteMetricFilter":    {"logGroupName": auditGroup, "filterName": "doomed-metric"},
+		"DescribeMetricFilters": group,
+		"TestMetricFilter":      {"filterPattern": "ERROR", "logEventMessages": []any{"ERROR boom"}},
 	}
+}
+
+// auditTransformation is the shape every metricTransformations case mutates:
+// a literal-valued counter, which is the transformation CDK emits.
+func auditTransformation() map[string]any {
+	return map[string]any{"metricNamespace": "Audit", "metricName": "Errors", "metricValue": "1"}
 }
 
 func exemplars() map[string]any {
@@ -138,6 +149,10 @@ func exemplars() map[string]any {
 		"entity":                  map[string]any{"keyAttributes": map[string]any{"Type": "Service"}},
 		"entity.attributes{}":     map[string]any{"k": "v"},
 		"entity.keyAttributes{}":  map[string]any{"Type": "Service"},
+
+		"logEventMessages[]":                   []any{"ERROR boom"},
+		"metricTransformations[]":              []any{auditTransformation()},
+		"metricTransformations[].dimensions{}": map[string]any{"Service": "audit"},
 	}
 }
 
@@ -174,6 +189,15 @@ func prepare(t *testing.T, ts *httptest.Server, op, mutating string, body map[st
 			call(t, ts, "PutSubscriptionFilter", map[string]any{"logGroupName": group, "filterName": "doomed-sub",
 				"filterPattern": "", "destinationArn": awsident.ARN("lambda", "function:audit-sink")})
 			body["logGroupName"] = group
+		}
+	case "DeleteMetricFilter":
+		// Deleting the same filter twice is a ResourceNotFoundException, so
+		// every baseline gets its own victim rather than sharing one.
+		if mutating != "filterName" && mutating != "logGroupName" {
+			name := fmt.Sprintf("doomed-metric-%d", n)
+			call(t, ts, "PutMetricFilter", map[string]any{"logGroupName": auditGroup, "filterName": name,
+				"filterPattern": "ERROR", "metricTransformations": []any{auditTransformation()}})
+			body["filterName"] = name
 		}
 	}
 }

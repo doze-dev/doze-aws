@@ -32,6 +32,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/logship"
+	"github.com/doze-dev/doze-aws/internal/metricship"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -89,6 +90,7 @@ type Server struct {
 	mappings map[string]*esm                // mapping UUID -> poller
 	pollers  sync.WaitGroup                 // tracks live ESM poller goroutines
 	logs     *logship.Shipper               // carries every function's lines to the logs service
+	metrics  *metricship.Shipper            // carries AWS/Lambda metrics to the cloudwatch service
 }
 
 // New opens the store under DataDir.
@@ -136,6 +138,7 @@ func New(opts Options) (*Server, error) {
 		s.peers = peers.None()
 	}
 	s.logs = logship.New("lambda", s.peers, s.logf)
+	s.metrics = metricship.New("lambda", s.peers, s.logf)
 	if s.now == nil {
 		s.now = time.Now
 	}
@@ -167,6 +170,7 @@ func (s *Server) Close() error {
 	s.mu.Unlock()
 	s.pollers.Wait()
 	s.logs.Close()
+	s.metrics.Close()
 	return s.store.db.Close()
 }
 

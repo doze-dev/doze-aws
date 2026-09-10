@@ -20,6 +20,9 @@ var (
 	reTagKey  = regexp.MustCompile(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]+)$`)
 	reARN     = regexp.MustCompile(`^[\w+=/:,.@-]*$`)
 	reAccount = regexp.MustCompile(`^\d{12}$`)
+	// A metric namespace or name may not carry a colon, a star or a dollar —
+	// the last because `$.field` is metricValue's reference syntax.
+	reMetricName = regexp.MustCompile(`^[^:*$]*$`)
 )
 
 func groupName(required bool) []modelcheck.Constraint {
@@ -169,6 +172,56 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "limit", Kind: modelcheck.KindRange, Min: 1, Max: 50},
 		{Path: "nextToken", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
 	}),
+	"PutMetricFilter": cat(groupName(true), []modelcheck.Constraint{
+		{Path: "fieldSelectionCriteria", Kind: modelcheck.KindLength, Min: 0, Max: 2000},
+		{Path: "filterName", Kind: modelcheck.KindRequired},
+		{Path: "filterName", Kind: modelcheck.KindLength, Min: 1, Max: 512},
+		{Path: "filterName", Kind: modelcheck.KindPattern, Pat: reStream},
+		{Path: "filterPattern", Kind: modelcheck.KindRequired},
+		{Path: "filterPattern", Kind: modelcheck.KindLength, Min: 0, Max: 1024},
+		{Path: "metricTransformations", Kind: modelcheck.KindRequired},
+		{Path: "metricTransformations[].dimensions{}", Kind: modelcheck.KindLength, Min: 0, Max: 255},
+		{Path: "metricTransformations[].metricName", Kind: modelcheck.KindRequired},
+		{Path: "metricTransformations[].metricName", Kind: modelcheck.KindLength, Min: 0, Max: 255},
+		{Path: "metricTransformations[].metricName", Kind: modelcheck.KindPattern, Pat: reMetricName},
+		{Path: "metricTransformations[].metricNamespace", Kind: modelcheck.KindRequired},
+		{Path: "metricTransformations[].metricNamespace", Kind: modelcheck.KindLength, Min: 0, Max: 255},
+		{Path: "metricTransformations[].metricNamespace", Kind: modelcheck.KindPattern, Pat: reMetricName},
+		{Path: "metricTransformations[].metricValue", Kind: modelcheck.KindRequired},
+		{Path: "metricTransformations[].metricValue", Kind: modelcheck.KindLength, Min: 0, Max: 100},
+		{Path: "metricTransformations[].unit", Kind: modelcheck.KindEnum, Enum: standardUnits},
+	}),
+	"DeleteMetricFilter": cat(groupName(true), []modelcheck.Constraint{
+		{Path: "filterName", Kind: modelcheck.KindRequired},
+		{Path: "filterName", Kind: modelcheck.KindLength, Min: 1, Max: 512},
+		{Path: "filterName", Kind: modelcheck.KindPattern, Pat: reStream},
+	}),
+	"DescribeMetricFilters": cat(groupName(false), []modelcheck.Constraint{
+		{Path: "filterNamePrefix", Kind: modelcheck.KindLength, Min: 1, Max: 512},
+		{Path: "filterNamePrefix", Kind: modelcheck.KindPattern, Pat: reStream},
+		{Path: "limit", Kind: modelcheck.KindRange, Min: 1, Max: 50},
+		{Path: "metricName", Kind: modelcheck.KindLength, Min: 0, Max: 255},
+		{Path: "metricName", Kind: modelcheck.KindPattern, Pat: reMetricName},
+		{Path: "metricNamespace", Kind: modelcheck.KindLength, Min: 0, Max: 255},
+		{Path: "metricNamespace", Kind: modelcheck.KindPattern, Pat: reMetricName},
+		{Path: "nextToken", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+	}),
+	"TestMetricFilter": {
+		{Path: "filterPattern", Kind: modelcheck.KindRequired},
+		{Path: "filterPattern", Kind: modelcheck.KindLength, Min: 0, Max: 1024},
+		{Path: "logEventMessages", Kind: modelcheck.KindRequired},
+		{Path: "logEventMessages[]", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
+	},
+}
+
+// standardUnits is StandardUnit, which CloudWatch Logs shares with CloudWatch
+// Metrics: a metric transformation names the unit the produced metric carries.
+var standardUnits = []string{
+	"Gigabytes", "Terabits", "Gigabytes/Second", "None", "Microseconds", "Milliseconds",
+	"Bytes", "Terabytes", "Bits", "Bytes/Second", "Kilobytes/Second", "Terabytes/Second",
+	"Seconds", "Kilobits", "Count", "Bits/Second", "Kilobits/Second", "Megabits/Second",
+	"Gigabits/Second", "Count/Second", "Gigabits", "Percent", "Kilobytes", "Megabytes",
+	"Megabits", "Megabytes/Second", "Terabits/Second",
 }
 
 func groupIdentifierList() []modelcheck.Constraint {
@@ -201,9 +254,6 @@ func init() {
 		},
 		"live tail is an HTTP event stream to a fleet of tailers; `aws logs tail --follow` polls FilterLogEvents, which works": {
 			"StartLiveTail",
-		},
-		"metric filters publish to CloudWatch Metrics, which does not exist locally": {
-			"PutMetricFilter", "DeleteMetricFilter", "DescribeMetricFilters", "TestMetricFilter",
 		},
 		"cross-account destinations receive another account's subscription filters; subscribe a Lambda function or a Kinesis stream directly": {
 			"PutDestination", "DeleteDestination", "DescribeDestinations", "PutDestinationPolicy",

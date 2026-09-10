@@ -38,7 +38,7 @@ the same shard number locally as it does in the cloud.
 | DeregisterStreamConsumer / DescribeStreamConsumer | F | addressable by (StreamARN, ConsumerName) or by ConsumerARN |
 | ListStreamConsumers | F | |
 | StartStreamEncryption / StopStreamEncryption | C | the KeyId round-trips and is echoed in DescribeStream; records live in the data directory either way |
-| EnableEnhancedMonitoring / DisableEnhancedMonitoring | C | shard-level metrics are stored and echoed; there is no CloudWatch locally to publish them to |
+| EnableEnhancedMonitoring / DisableEnhancedMonitoring | C | shard-level metrics are stored and echoed; CloudWatch is local now, but nothing produces the `AWS/Kinesis` shard metrics this would turn on |
 | DescribeLimits | C | reports live OpenShardCount against a nominal quota |
 | DescribeAccountSettings / UpdateAccountSettings | C | no account-level quotas locally |
 | UpdateMaxRecordSize | C | accepted; the 1 MiB ceiling on the put path is not raised |

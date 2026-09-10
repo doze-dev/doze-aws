@@ -726,8 +726,10 @@ func (b *backend) UpdateStreamMode(ctx context.Context, arn, mode string) error 
 // ---- encryption, monitoring, consumers, policy ----
 //
 // The service stores these faithfully but none of them does anything locally:
-// there is no KMS envelope over the bbolt file, no CloudWatch to publish shard
-// metrics to, and no evaluation of a stream's resource policy. They are worth
+// there is no KMS envelope over the bbolt file, no AWS/Kinesis shard-metric
+// producer for enhanced monitoring to turn on (CloudWatch itself is here; the
+// Kinesis side of it is not), and no evaluation of a stream's resource policy.
+// They are worth
 // exposing because SDK and template code sets them and expects to read them
 // back — but the console labels them for what they are rather than implying a
 // local guarantee it cannot make.

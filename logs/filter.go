@@ -160,6 +160,17 @@ func parseComparison(s string) (comparison, error) {
 		if i := strings.Index(s, op); i > 0 {
 			left, right := strings.TrimSpace(s[:i]), strings.TrimSpace(s[i+len(op):])
 			c := comparison{path: splitPath(left), op: op}
+			if right == "*" && (op == "=" || op == "!=") {
+				// `$.latency = *` is AWS's existence test, and it is how a
+				// metric filter says "every line that carries this field" —
+				// unquoted, so it never reaches the string glob below.
+				if op == "=" {
+					c.null = "EXISTS"
+				} else {
+					c.null = "NOT EXISTS"
+				}
+				return c, nil
+			}
 			if strings.HasPrefix(right, `"`) && strings.HasSuffix(right, `"`) && len(right) >= 2 {
 				c.val = right[1 : len(right)-1]
 			} else if f, err := strconv.ParseFloat(right, 64); err == nil {
@@ -231,6 +242,8 @@ func (c comparison) match(doc any) bool {
 	switch c.null {
 	case "NOT EXISTS":
 		return !found
+	case "EXISTS":
+		return found
 	case "IS NULL":
 		return found && cur == nil
 	case "IS TRUE":

@@ -87,6 +87,7 @@ func (s *Server) startExpress(ctx context.Context, m *StateMachine, p map[string
 		return nil, asAPIError(err)
 	}
 	s.logs.record(e, []histEvent{startedEvent(e)})
+	s.recordStarted(e)
 	s.engine.nudge(e.Key())
 	return map[string]any{"executionArn": e.ARN, "startDate": epoch(e.StartedAt)}, nil
 }
@@ -107,6 +108,7 @@ func (s *Server) startSyncExecution(ctx context.Context, p map[string]any) (any,
 	if err != nil {
 		return nil, asAPIError(err)
 	}
+	s.recordStarted(e)
 	done, ok := s.awaitVolatile(ctx, e.Key(), ch)
 	if !ok {
 		return nil, awshttp.Errf(500, "InternalFailure", "the execution did not finish before the request ended")

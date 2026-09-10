@@ -193,6 +193,6 @@ var stubActions = map[string]string{
 	"DeleteResourcePolicy":                "table resource policies are not evaluated locally; the IAM service reads identity policies only",
 	"DescribeTableReplicaAutoScaling":     "replica auto scaling belongs to global tables; there is exactly one region locally",
 	"UpdateTableReplicaAutoScaling":       "replica auto scaling belongs to global tables; there is exactly one region locally",
-	"ListContributorInsights":             "contributor insights need CloudWatch, which does not exist locally",
+	"ListContributorInsights":             "Contributor Insights is a CloudWatch insight-rule feature; doze-aws serves CloudWatch metrics and alarms, not insight rules",
 	"SearchVectors":                       "vector search needs the vector index engine, which does not exist locally",
 }

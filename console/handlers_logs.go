@@ -87,7 +87,95 @@ func (c *Console) logsGroup(w http.ResponseWriter, r *http.Request) {
 		data["Functions"], _ = c.be.ListFunctions(r.Context())
 		data["KinesisStreams"], _ = c.be.ListStreams(r.Context())
 	}
+	if data["Tab"] == "metrics" {
+		data["MetricFilters"], _ = c.be.ListLogMetricFilters(r.Context(), name)
+		// The tail's own lines are the samples the pattern tester offers, so
+		// checking a pattern needs no typing against logs already on screen.
+		data["Samples"] = tailSamples(tail)
+	}
 	c.render(w, r, "logs_group", data)
+}
+
+// tailSamples pulls the most recent messages off the tail for the pattern
+// tester's default input.
+func tailSamples(tail map[string]any) []string {
+	lines, _ := tail["Lines"].([]LogLine)
+	out := make([]string, 0, 5)
+	for i := len(lines) - 1; i >= 0 && len(out) < 5; i-- {
+		out = append(out, lines[i].Message)
+	}
+	return out
+}
+
+// logsPutMetricFilter creates a metric filter: POST /logs/metric-filter
+func (c *Console) logsPutMetricFilter(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("name")
+	filter := strings.TrimSpace(r.FormValue("filter"))
+	if filter == "" {
+		filter = "console"
+	}
+	metric := strings.TrimSpace(r.FormValue("metric"))
+	value := strings.TrimSpace(r.FormValue("value"))
+	if value == "" {
+		// The counting case, and the one almost every metric filter wants.
+		value = "1"
+	}
+	err := c.be.PutLogMetricFilter(r.Context(), name, filter,
+		strings.TrimSpace(r.FormValue("pattern")),
+		strings.TrimSpace(r.FormValue("namespace")), metric, value, r.FormValue("unit"))
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/logs/group?name="+urlQuery(name)+"&tab=metrics",
+		"Metric filter “"+filter+"” now publishes "+metric)
+}
+
+// logsDeleteMetricFilter removes one: POST /logs/delete-metric-filter
+func (c *Console) logsDeleteMetricFilter(w http.ResponseWriter, r *http.Request) {
+	name, filter := r.FormValue("name"), r.FormValue("filter")
+	if err := c.be.DeleteLogMetricFilter(r.Context(), name, filter); err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.redirect(w, r, c.prefix+"/logs/group?name="+urlQuery(name)+"&tab=metrics",
+		"Metric filter “"+filter+"” removed")
+}
+
+// logsTestMetricFilter answers the pattern tester with the lines that matched:
+// POST /logs/test-metric-filter
+func (c *Console) logsTestMetricFilter(w http.ResponseWriter, r *http.Request) {
+	pattern := strings.TrimSpace(r.FormValue("pattern"))
+	var samples []string
+	for _, line := range strings.Split(r.FormValue("samples"), "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			samples = append(samples, line)
+		}
+	}
+	if len(samples) == 0 {
+		c.render(w, r, "metric_filter_test", map[string]any{
+			"Note": "Paste a line or two to test the pattern against."})
+		return
+	}
+	matched, err := c.be.TestLogMetricFilter(r.Context(), pattern, samples)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	hit := map[string]bool{}
+	for _, m := range matched {
+		hit[m] = true
+	}
+	type sample struct {
+		Message string
+		Matched bool
+	}
+	rows := make([]sample, 0, len(samples))
+	for _, s := range samples {
+		rows = append(rows, sample{Message: s, Matched: hit[s]})
+	}
+	c.render(w, r, "metric_filter_test", map[string]any{
+		"Samples": rows, "Matched": len(matched), "Total": len(samples)})
 }
 
 // logsSubscribe puts a subscription filter on a group: POST /logs/subscribe

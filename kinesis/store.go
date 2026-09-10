@@ -78,8 +78,9 @@ type Stream struct {
 	// the data directory either way, so this is configuration, not crypto.
 	EncryptionType string `json:"encryption_type,omitempty"`
 	KeyID          string `json:"key_id,omitempty"`
-	// EnhancedMetrics round-trips EnableEnhancedMonitoring; there is no
-	// CloudWatch locally to publish them to.
+	// EnhancedMetrics round-trips EnableEnhancedMonitoring. CloudWatch exists
+	// locally now, but doze-aws does not produce the AWS/Kinesis shard-level
+	// metrics this setting would turn on, so the setting is still only stored.
 	EnhancedMetrics []string `json:"enhanced_metrics,omitempty"`
 	ResourcePolicy  string   `json:"resource_policy,omitempty"`
 }

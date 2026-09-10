@@ -41,11 +41,13 @@ type StateMachine struct {
 	CreatedAt  int64  `json:"created_at"`
 	RevisionID string `json:"revision_id"`
 
-	// Logging, Tracing and Encryption are stored and returned verbatim without
-	// having any local effect. There is no CloudWatch Logs or X-Ray here, but
-	// Terraform's aws_sfn_state_machine tracks all three, so dropping them
-	// would show as drift on every plan. Recorded as Tier C in the docs rather
-	// than silently discarded.
+	// Logging is honoured: logging.go reads the level and the
+	// includeExecutionData flag and ships history to the group it names.
+	// Tracing and Encryption are stored and returned verbatim without having
+	// any local effect — there is no X-Ray here, and the bbolt file carries no
+	// KMS envelope — but Terraform's aws_sfn_state_machine tracks all three, so
+	// dropping them would show as drift on every plan. Recorded as Tier C in
+	// the docs rather than silently discarded.
 	LoggingConfiguration    json.RawMessage `json:"logging,omitempty"`
 	TracingConfiguration    json.RawMessage `json:"tracing,omitempty"`
 	EncryptionConfiguration json.RawMessage `json:"encryption,omitempty"`

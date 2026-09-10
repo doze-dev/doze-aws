@@ -3,8 +3,10 @@ package lambda
 import (
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/emf"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/logship"
+	"github.com/doze-dev/doze-aws/internal/metricship"
 )
 
 // Where a function's lines go: the terminal, and the logs service.
@@ -19,15 +21,18 @@ import (
 // logs service is said once per server.
 
 type logSink struct {
-	fn    string
-	group string
-	ship  *logship.Shipper
-	logf  func(string, ...any)
-	echo  bool
+	fn      string
+	group   string
+	ship    *logship.Shipper
+	metrics *metricship.Shipper
+	logf    func(string, ...any)
+	echo    bool
 }
 
-func newLogSink(fn string, ship *logship.Shipper, logf func(string, ...any), echo bool) *logSink {
-	return &logSink{fn: fn, group: lambdaruntime.LogGroupName(fn), ship: ship, logf: logf, echo: echo}
+func newLogSink(fn string, ship *logship.Shipper, metrics *metricship.Shipper,
+	logf func(string, ...any), echo bool) *logSink {
+	return &logSink{fn: fn, group: lambdaruntime.LogGroupName(fn),
+		ship: ship, metrics: metrics, logf: logf, echo: echo}
 }
 
 // Line implements lambdaruntime.LogSink.
@@ -36,6 +41,35 @@ func (s *logSink) Line(stream, requestID string, at time.Time, line []byte) {
 		s.logf("lambda[%s] %s", s.fn, line)
 	}
 	s.ship.Put(s.group, stream, logship.Event{Timestamp: at.UnixMilli(), Message: string(line), RequestID: requestID})
+	s.emit(line, at)
+}
+
+// emit publishes the metrics an EMF line carries. A line is still a log line
+// either way: EMF is a log entry that is ALSO a publication, so this is in
+// addition to shipping it, never instead.
+//
+// emf.Looks gates the parse, because this runs on every line a function
+// prints and full-parsing all of them to find the few that are EMF would make
+// printing expensive for everyone else.
+func (s *logSink) emit(line []byte, at time.Time) {
+	if s.metrics == nil || !emf.Looks(line) {
+		return
+	}
+	byNamespace := map[string][]metricship.Datum{}
+	for _, m := range emf.Parse(line) {
+		ms := m.TimestampMs
+		if ms == 0 {
+			ms = at.UnixMilli()
+		}
+		byNamespace[m.Namespace] = append(byNamespace[m.Namespace], metricship.Datum{
+			MetricName: m.Name, Value: m.Value, Unit: m.Unit,
+			Dimensions: m.Dimensions, TimestampMs: ms,
+			StorageResolution: m.StorageResolution,
+		})
+	}
+	for ns, data := range byNamespace {
+		s.metrics.Put(ns, data...)
+	}
 }
 
 // Flush implements lambdaruntime.LogSink: an invocation ended, send now.

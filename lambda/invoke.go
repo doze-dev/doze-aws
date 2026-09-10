@@ -92,7 +92,15 @@ func (s *Server) runInvoke(ctx context.Context, f *Function, payload []byte) (la
 }
 
 func (s *Server) runInvokeInput(ctx context.Context, f *Function, in lambdaruntime.Input) (lambdaruntime.Result, error) {
+	// Every invocation, sync and async, passes through here, so this is the
+	// one place AWS/Lambda's metrics have to be recorded from.
+	started := time.Now()
+	var res lambdaruntime.Result
+	var err error
+	defer func() { s.recordInvoke(f.Name, res, err, time.Since(started)) }()
+
 	if f.ReservedConcurrency != nil && *f.ReservedConcurrency == 0 {
+		err = errThrottled
 		return lambdaruntime.Result{}, errThrottled
 	}
 	// The backstop has to be at least as long as the runtime's own bound, or it
@@ -103,7 +111,7 @@ func (s *Server) runInvokeInput(ctx context.Context, f *Function, in lambdarunti
 	defer cancel()
 	// If the pool was stopped underneath us by a concurrent restart (code/config
 	// update), retry once against the freshly-created pool.
-	res, err := s.runnerFor(f).InvokeInput(ctx, in)
+	res, err = s.runnerFor(f).InvokeInput(ctx, in)
 	if errors.Is(err, lambdaruntime.ErrPoolClosed) {
 		res, err = s.runnerFor(f).InvokeInput(ctx, in)
 	}
@@ -260,7 +268,7 @@ func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
 	if f.ReservedConcurrency != nil {
 		max = *f.ReservedConcurrency
 	}
-	sink := newLogSink(f.Name, s.logs, s.logf, s.echo)
+	sink := newLogSink(f.Name, s.logs, s.metrics, s.logf, s.echo)
 	r := lambdaruntime.NewPool(lambdaruntime.Spec{
 		Name:         f.Name,
 		Handler:      f.Handler,

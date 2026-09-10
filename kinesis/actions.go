@@ -421,8 +421,10 @@ func consumerWire(c *Consumer) map[string]any {
 // ---- configuration round-trips ----
 //
 // These change stream metadata that has no local effect: there is no KMS
-// envelope over the bbolt file, no CloudWatch to publish shard metrics to, and
-// no IAM evaluation until the IAM service lands. They are stored and echoed
+// envelope over the bbolt file, no AWS/Kinesis shard metrics for enhanced
+// monitoring to turn on, and no IAM evaluation until the IAM service lands.
+// (CloudWatch itself exists; what is missing is the Kinesis-side producer, so
+// enhanced monitoring has nothing to enable.) They are stored and echoed
 // faithfully rather than refused, because SDK code paths that set them should
 // keep working.
 

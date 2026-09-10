@@ -70,7 +70,8 @@ type Server struct {
 	maxEvents int
 	stop      chan struct{}
 	peers     peers.Directory
-	fan       *fanout // subscription filters → Lambda / Kinesis
+	fan       *fanout        // subscription filters → Lambda / Kinesis
+	met       *metricEmitter // metric filters → CloudWatch Metrics
 }
 
 // New opens the store under DataDir and starts the retention sweeper.
@@ -119,6 +120,7 @@ func New(opts Options) (*Server, error) {
 		s.peers = peers.None()
 	}
 	s.fan = newFanout(s.store, s.peers, logf)
+	s.met = newMetricEmitter(s.store, s.peers, logf)
 	go s.sweeper()
 	return s, nil
 }
@@ -128,6 +130,7 @@ func New(opts Options) (*Server, error) {
 func (s *Server) Close() error {
 	close(s.stop)
 	s.fan.close()
+	s.met.close()
 	return s.store.db.Close()
 }
 

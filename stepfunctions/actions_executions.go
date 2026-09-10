@@ -144,6 +144,7 @@ func (s *Server) launch(spec launchSpec) (*Execution, *awshttp.APIError) {
 		return nil, asAPIError(err)
 	}
 	s.logs.record(e, []histEvent{started})
+	s.recordStarted(e)
 	s.engine.nudge(e.Key())
 	return e, nil
 }
