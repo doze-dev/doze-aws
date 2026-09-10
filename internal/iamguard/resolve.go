@@ -48,6 +48,7 @@ var actionPrefixes = map[string]string{
 	"iam":            "iam",
 	"stepfunctions":  "states",
 	"logs":           "logs",
+	"cloudwatch":     "cloudwatch",
 }
 
 // resourceField names the request parameter holding the resource identifier
@@ -95,6 +96,24 @@ var resourceRules = map[string]resourceRule{
 	}},
 	"eventbridge": {fields: []string{"Name", "EventBusName"}, toARN: func(v string) string {
 		return awsident.ARN("events", "rule/"+v)
+	}},
+	// CloudWatch names an alarm two ways: AlarmName on the single-alarm
+	// operations, and AlarmNames — a LIST — on DeleteAlarms and the
+	// enable/disable pair. A list field is a shape no other rule here has, so
+	// resolveField below takes the first element: an IAM decision needs one
+	// resource, and refusing a batch because it names several would deny work
+	// AWS allows. The batch is authorised as its first alarm, which is
+	// documented in iam.md rather than left to be discovered.
+	//
+	// The metric operations resolve to no resource at all: PutMetricData and
+	// GetMetricStatistics act on a namespace, not on an ARN, and AWS
+	// authorises them against "*" with a cloudwatch:namespace condition. An
+	// invented ARN would be worse than none.
+	"cloudwatch": {fields: []string{"AlarmName", "AlarmNames"}, toARN: func(v string) string {
+		if strings.HasPrefix(v, "arn:") {
+			return v
+		}
+		return awsident.ARN("cloudwatch", "alarm:"+v)
 	}},
 	// Step Functions spells its members lowercase-initial, unlike every other
 	// service here. Matching is exact, so "StateMachineArn" would resolve to an
@@ -386,8 +405,20 @@ func resourceFromBody(r *http.Request, service string) string {
 		return ""
 	}
 	for _, field := range rule.fields {
-		if v, ok := doc[field].(string); ok && v != "" {
-			return rule.toARN(v)
+		switch v := doc[field].(type) {
+		case string:
+			if v != "" {
+				return rule.toARN(v)
+			}
+		case []any:
+			// A list-valued name — CloudWatch's AlarmNames on DeleteAlarms
+			// and the enable/disable pair. An IAM decision needs one
+			// resource, so the batch is authorised as its first member.
+			if len(v) > 0 {
+				if first, ok := v[0].(string); ok && first != "" {
+					return rule.toARN(first)
+				}
+			}
 		}
 	}
 	return ""
@@ -401,6 +432,11 @@ func resourceFromForm(_ *http.Request, service string, form url.Values) string {
 	}
 	for _, field := range rule.fields {
 		if v := form.Get(field); v != "" {
+			return rule.toARN(v)
+		}
+		// The Query spelling of a list: the first member is the one an IAM
+		// decision is made against, matching the JSON path above.
+		if v := form.Get(field + ".member.1"); v != "" {
 			return rule.toARN(v)
 		}
 	}

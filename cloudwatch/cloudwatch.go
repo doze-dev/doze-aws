@@ -29,6 +29,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
+	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -61,6 +62,7 @@ type Server struct {
 	stop       chan struct{}
 	retention  time.Duration
 	maxSamples int
+	sink       trace.Sink
 }
 
 // New opens the store under DataDir.
@@ -100,6 +102,7 @@ func New(opts Options) (*Server, error) {
 		s.maxSamples = defaultMaxSamples
 	}
 	go s.sweeper()
+	go s.evaluator()
 	return s, nil
 }
 
@@ -127,6 +130,13 @@ func (s *Server) sweeper() {
 // SweepNow runs one retention pass and reports what it removed. Exported so a
 // test can force a sweep rather than wait a minute for the ticker.
 func (s *Server) SweepNow() (int, error) { return s.sweep(s.retention, s.maxSamples) }
+
+// SetTraceSink gives the alarm evaluator somewhere to record the actions it
+// fires. It runs on a ticker with no request to inherit a sink from, so
+// without this an alarm notifying a topic would be a cascade the recorder
+// never sees — the same reason lambda and stepfunctions take one. Called once
+// during stack construction, before the service serves anything.
+func (s *Server) SetTraceSink(sink trace.Sink) { s.sink = sink }
 
 // Close stops the background work and closes the store.
 func (s *Server) Close() error {

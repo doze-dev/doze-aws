@@ -23,6 +23,15 @@ var handlers = map[string]handler{
 	"ListMetrics":         (*Server).listMetrics,
 	"GetMetricStatistics": (*Server).getMetricStatistics,
 	"GetMetricData":       (*Server).getMetricData,
+
+	"PutMetricAlarm":          (*Server).putMetricAlarm,
+	"DescribeAlarms":          (*Server).describeAlarms,
+	"DescribeAlarmsForMetric": (*Server).describeAlarmsForMetric,
+	"DeleteAlarms":            (*Server).deleteAlarmsAction,
+	"SetAlarmState":           (*Server).setAlarmState,
+	"DescribeAlarmHistory":    (*Server).describeAlarmHistory,
+	"EnableAlarmActions":      (*Server).enableAlarmActions,
+	"DisableAlarmActions":     (*Server).disableAlarmActions,
 }
 
 // datum is one validated metric observation. D1a stops at validation — the

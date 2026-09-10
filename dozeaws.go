@@ -99,6 +99,9 @@ type Stack struct {
 	// stepfunctions is retained for the same reason: its engine advances
 	// executions from a scheduler goroutine, which has no request context.
 	stepfunctions *stepfunctions.Server
+	// cloudwatch is retained for the same reason: its alarm evaluator runs on
+	// a ticker and fires SNS and Lambda actions with no request to inherit.
+	cloudwatch *cloudwatch.Server
 }
 
 // NewStack constructs and wires the requested services.
@@ -178,6 +181,9 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 	case "cloudwatch":
 		s, err := cloudwatch.New(cloudwatch.Options{
 			DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
+		if err == nil {
+			st.cloudwatch = s // retained so the evaluator can be given a trace sink
+		}
 		return s, s, err
 	case "stepfunctions":
 		s, err := stepfunctions.New(stepfunctions.Options{DataDir: dataDir, Peers: dir, Logf: logf})
@@ -298,6 +304,11 @@ func (s *Stack) SetTraceSink(sink trace.Sink) {
 	}
 	if s.stepfunctions != nil {
 		s.stepfunctions.SetTraceSink(sink)
+	}
+	// The alarm evaluator fires actions from a ticking goroutine with no
+	// request context, so its cascade only reaches the recorder this way.
+	if s.cloudwatch != nil {
+		s.cloudwatch.SetTraceSink(sink)
 	}
 }
 

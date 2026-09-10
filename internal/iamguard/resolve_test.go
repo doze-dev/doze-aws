@@ -115,7 +115,11 @@ func TestResolveActionJSONProtocol(t *testing.T) {
 // at. An empty action means "do not evaluate this", which is safer than a
 // wrong one only because the middleware treats it that way.
 func TestResolveActionUnknownService(t *testing.T) {
-	action, resource := ResolveAction(req(http.MethodPost, "Whatever.DoThing", "/", `{"Name":"x"}`), "cloudwatch")
+	// route53, not cloudwatch: cloudwatch was the example here until it
+	// gained an action prefix of its own, at which point this test started
+	// asserting the opposite of what it means. The service named has to be
+	// one doze-aws genuinely does not implement.
+	action, resource := ResolveAction(req(http.MethodPost, "Whatever.DoThing", "/", `{"Name":"x"}`), "route53")
 	if action != "" || resource != "" {
 		t.Errorf("an unknown service must not resolve: got (%q, %q)", action, resource)
 	}

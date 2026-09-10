@@ -47,6 +47,7 @@ var servicePrefixes = map[string]string{
 	"KeyManagementService": "kms",
 	"KMS":                  "kms",
 	"EventBridge":          "events",
+	"CloudWatch":           "cloudwatch",
 	"CloudWatchEvents":     "events",
 	"CloudWatchLogs":       "logs",
 	"IAM":                  "iam",

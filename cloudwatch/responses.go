@@ -12,7 +12,10 @@ package cloudwatch
 // protocol wraps every list element in a <member> element, which Go's XML
 // encoder writes as `xml:"Name>member"`. JSON and CBOR carry a plain array.
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // metricView is one entry in the metric catalogue: what was published, not
 // what its values were.
@@ -101,4 +104,108 @@ type metricDataResultView struct {
 type getMetricDataResult struct {
 	MetricDataResults []metricDataResultView `json:"MetricDataResults" xml:"MetricDataResults>member"`
 	NextToken         string                 `json:"NextToken,omitempty" xml:"NextToken,omitempty"`
+}
+
+// alarmView is one alarm as the API reports it.
+type alarmView struct {
+	AlarmName                          string          `json:"AlarmName" xml:"AlarmName"`
+	AlarmArn                           string          `json:"AlarmArn" xml:"AlarmArn"`
+	AlarmDescription                   string          `json:"AlarmDescription,omitempty" xml:"AlarmDescription,omitempty"`
+	AlarmConfigurationUpdatedTimestamp time.Time       `json:"AlarmConfigurationUpdatedTimestamp" xml:"AlarmConfigurationUpdatedTimestamp"`
+	ActionsEnabled                     bool            `json:"ActionsEnabled" xml:"ActionsEnabled"`
+	OKActions                          []string        `json:"OKActions" xml:"OKActions>member"`
+	AlarmActions                       []string        `json:"AlarmActions" xml:"AlarmActions>member"`
+	InsufficientDataActions            []string        `json:"InsufficientDataActions" xml:"InsufficientDataActions>member"`
+	StateValue                         string          `json:"StateValue" xml:"StateValue"`
+	StateReason                        string          `json:"StateReason,omitempty" xml:"StateReason,omitempty"`
+	StateReasonData                    string          `json:"StateReasonData,omitempty" xml:"StateReasonData,omitempty"`
+	StateUpdatedTimestamp              time.Time       `json:"StateUpdatedTimestamp" xml:"StateUpdatedTimestamp"`
+	MetricName                         string          `json:"MetricName" xml:"MetricName"`
+	Namespace                          string          `json:"Namespace" xml:"Namespace"`
+	Statistic                          string          `json:"Statistic,omitempty" xml:"Statistic,omitempty"`
+	ExtendedStatistic                  string          `json:"ExtendedStatistic,omitempty" xml:"ExtendedStatistic,omitempty"`
+	Dimensions                         []dimensionView `json:"Dimensions" xml:"Dimensions>member"`
+	Period                             int             `json:"Period" xml:"Period"`
+	Unit                               string          `json:"Unit,omitempty" xml:"Unit,omitempty"`
+	EvaluationPeriods                  int             `json:"EvaluationPeriods" xml:"EvaluationPeriods"`
+	DatapointsToAlarm                  int             `json:"DatapointsToAlarm,omitempty" xml:"DatapointsToAlarm,omitempty"`
+	Threshold                          float64         `json:"Threshold" xml:"Threshold"`
+	ComparisonOperator                 string          `json:"ComparisonOperator" xml:"ComparisonOperator"`
+	TreatMissingData                   string          `json:"TreatMissingData,omitempty" xml:"TreatMissingData,omitempty"`
+}
+
+// viewOf renders a stored alarm. A percentile statistic goes in
+// ExtendedStatistic and the named ones in Statistic — the same split AWS
+// makes, and the reason a client reading Statistic for a p99 alarm finds
+// nothing rather than a value it cannot parse.
+func viewOf(a *alarm) alarmView {
+	v := alarmView{
+		AlarmName: a.Name, AlarmArn: a.ARN(), AlarmDescription: a.Description,
+		AlarmConfigurationUpdatedTimestamp: time.UnixMilli(a.UpdatedMs).UTC(),
+		ActionsEnabled:                     a.ActionsEnabled,
+		OKActions:                          nonNil(a.OKActions),
+		AlarmActions:                       nonNil(a.AlarmActions),
+		InsufficientDataActions:            nonNil(a.InsufficientData),
+		StateValue:                         a.State,
+		StateReason:                        a.StateReason,
+		StateReasonData:                    a.StateReasonData,
+		StateUpdatedTimestamp:              time.UnixMilli(a.StateUpdatedMs).UTC(),
+		MetricName:                         a.MetricName,
+		Namespace:                          a.Namespace,
+		Dimensions:                         nonNilDims(dimensionViews(a.Dimensions)),
+		Period:                             a.Period,
+		Unit:                               a.Unit,
+		EvaluationPeriods:                  a.EvaluationPeriods,
+		DatapointsToAlarm:                  a.DatapointsToAlarm,
+		Threshold:                          a.Threshold,
+		ComparisonOperator:                 a.ComparisonOp,
+		TreatMissingData:                   a.TreatMissingData,
+	}
+	if strings.HasPrefix(a.Statistic, "p") {
+		v.ExtendedStatistic = a.Statistic
+	} else {
+		v.Statistic = a.Statistic
+	}
+	return v
+}
+
+// A list member that is empty should serialise as an empty list, not null: a
+// caller ranging over AlarmActions should find none rather than crash.
+func nonNil(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
+}
+
+func nonNilDims(d []dimensionView) []dimensionView {
+	if d == nil {
+		return []dimensionView{}
+	}
+	return d
+}
+
+type describeAlarmsResult struct {
+	MetricAlarms    []alarmView `json:"MetricAlarms" xml:"MetricAlarms>member"`
+	CompositeAlarms []alarmView `json:"CompositeAlarms" xml:"CompositeAlarms>member"`
+	NextToken       string      `json:"NextToken,omitempty" xml:"NextToken,omitempty"`
+}
+
+type describeAlarmsForMetricResult struct {
+	MetricAlarms []alarmView `json:"MetricAlarms" xml:"MetricAlarms>member"`
+}
+
+// historyView is one entry in an alarm's log.
+type historyView struct {
+	AlarmName       string    `json:"AlarmName" xml:"AlarmName"`
+	AlarmType       string    `json:"AlarmType,omitempty" xml:"AlarmType,omitempty"`
+	Timestamp       time.Time `json:"Timestamp" xml:"Timestamp"`
+	HistoryItemType string    `json:"HistoryItemType" xml:"HistoryItemType"`
+	HistorySummary  string    `json:"HistorySummary" xml:"HistorySummary"`
+	HistoryData     string    `json:"HistoryData,omitempty" xml:"HistoryData,omitempty"`
+}
+
+type describeAlarmHistoryResult struct {
+	AlarmHistoryItems []historyView `json:"AlarmHistoryItems" xml:"AlarmHistoryItems>member"`
+	NextToken         string        `json:"NextToken,omitempty" xml:"NextToken,omitempty"`
 }
