@@ -43,9 +43,9 @@ func TestNextMatchesAWSDocumentation(t *testing.T) {
 		// already, so the function was only ever asked to do nothing.
 		// AWS: W never crosses a month boundary, which is why the first and
 		// last of a month move forwards and backwards respectively.
-		{"cron(0 9 12W * ? *)", at(2026, 9, 11, 9, 0)},  // the 12th is a Saturday: back to Friday the 11th
-		{"cron(0 9 13W * ? *)", at(2026, 9, 14, 9, 0)},  // the 13th is a Sunday: on to Monday the 14th
-		{"cron(0 7 LW * ? 2026)", at(2026, 9, 30, 7, 0)}, // Sep 30 is a Wednesday, unmoved
+		{"cron(0 9 12W * ? *)", at(2026, 9, 11, 9, 0)},       // the 12th is a Saturday: back to Friday the 11th
+		{"cron(0 9 13W * ? *)", at(2026, 9, 14, 9, 0)},       // the 13th is a Sunday: on to Monday the 14th
+		{"cron(0 7 LW * ? 2026)", at(2026, 9, 30, 7, 0)},     // Sep 30 is a Wednesday, unmoved
 		{"cron(0 7 31W OCT ? 2026)", at(2026, 10, 30, 7, 0)}, // Oct 31 is a Saturday: back to Friday the 30th
 		{"cron(0 7 LW OCT ? 2027)", at(2027, 10, 29, 7, 0)},  // Oct 31 2027 is a Sunday: back TWO days, not forward into November
 		{"cron(0 7 1W MAY ? 2027)", at(2027, 5, 3, 7, 0)},    // May 1 2027 is a Saturday: forward TWO days, not back into April

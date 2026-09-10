@@ -189,8 +189,8 @@ func writeSurfaces(ctx context.Context, t *testing.T, c surfaceClients) surfaceI
 	ids.restAPI = aws.ToString(rest.Id)
 	auth, err := c.agw.CreateAuthorizer(ctx, &awsapi.CreateAuthorizerInput{
 		RestApiId: rest.Id, Name: aws.String("gate"), Type: "TOKEN",
-		AuthorizerUri: aws.String(authorizerURIForPersistence),
-		IdentitySource: aws.String("method.request.header.Auth"),
+		AuthorizerUri:                aws.String(authorizerURIForPersistence),
+		IdentitySource:               aws.String("method.request.header.Auth"),
 		AuthorizerResultTtlInSeconds: aws.Int32(42),
 	})
 	if err != nil {

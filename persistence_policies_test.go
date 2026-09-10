@@ -166,7 +166,7 @@ func writeGuardedResources(ctx context.Context, t *testing.T, url string) guarde
 	}
 	ids.openURL = aws.ToString(open.QueueUrl)
 	if _, err := root.sqs.SetQueueAttributes(ctx, &awssqs.SetQueueAttributesInput{
-		QueueUrl: q.QueueUrl,
+		QueueUrl:   q.QueueUrl,
 		Attributes: map[string]string{"Policy": deny("NoWriterQueue", "sqs:SendMessage", awsident.ARN("sqs", guardedQueue))},
 	}); err != nil {
 		t.Fatalf("SetQueueAttributes: %v", err)

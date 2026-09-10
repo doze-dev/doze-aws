@@ -552,6 +552,10 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 			"name": {"fixture-made-fn"}, "runtime": {"provided.al2"},
 			"handler": {"bootstrap"}, "code": {discovered["code"]},
 		}
+	case "/lambda/layers/publish":
+		// "path" here is a host directory, not a URL path, and the shared
+		// form's "/" would send PublishLayerVersion to hash the whole disk.
+		return nil, url.Values{"path": {discovered["code"]}}
 	}
 	return nil, nil
 }

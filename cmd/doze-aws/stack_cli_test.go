@@ -24,8 +24,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 	awssns "github.com/aws/aws-sdk-go-v2/service/sns"
+	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"

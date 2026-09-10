@@ -352,7 +352,12 @@ func (s *Server) publishLayerVersion(w http.ResponseWriter, r *http.Request, nam
 			l.ExtractedDir = req.Content.S3Key
 			// No upload to hash: the directory's content fingerprint stands
 			// in, so a deploy can tell an unchanged layer from a changed one.
-			l.CodeSHA256 = treeHash(req.Content.S3Key)
+			sum, err := treeHash(req.Content.S3Key)
+			if err != nil {
+				return awshttp.Errf(400, "InvalidParameterValueException",
+					"cannot fingerprint the layer at %s: %v", req.Content.S3Key, err)
+			}
+			l.CodeSHA256 = sum
 		} else if raw, err := os.ReadFile(req.Content.S3Key); err == nil {
 			archive = raw
 		}

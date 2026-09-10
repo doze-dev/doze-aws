@@ -53,7 +53,12 @@ func (s *Server) publishVersion(w http.ResponseWriter, r *http.Request, name str
 	// Code edited in place has no upload to hash; what is on disk now is
 	// what this version would freeze.
 	if s.isLocal(f.CodeDir) {
-		f.CodeSHA256 = treeHash(f.CodeDir)
+		sum, err := treeHash(f.CodeDir)
+		if err != nil {
+			return awshttp.Errf(400, "InvalidParameterValueException",
+				"cannot fingerprint the code at %s: %v", f.CodeDir, err)
+		}
+		f.CodeSHA256 = sum
 	}
 	if n := len(versions); n > 0 && fingerprint(versions[n-1]) == fingerprint(f) {
 		// Nothing changed since the last publish: that version is the answer.
@@ -165,21 +170,46 @@ func (s *Server) isLocal(dir string) bool {
 	return err != nil || strings.HasPrefix(rel, "..")
 }
 
+// maxTreeEntries bounds treeHash. A _local_ path is whatever the caller
+// typed — a console form field, a CloudFormation property — and "/" or a
+// home directory is a plausible typo. Walking one of those is minutes of
+// disk with no output, so the walk stops and says so instead. A layer or a
+// function package far past this is not what the local extension is for.
+// A var, not a const, so the test can lower it rather than lay down fifty
+// thousand files to prove the limit exists.
+var maxTreeEntries = 50000
+
+// errTreeTooLarge names the limit treeHash gave up at.
+func errTreeTooLarge() error {
+	return fmt.Errorf("more than %d files: pass a directory holding just the code, not a whole filesystem", maxTreeEntries)
+}
+
 // treeHash is the content fingerprint of a directory the user edits in
 // place: every file's relative path, size and modification time. A zip has
 // a real CodeSha256; a _local_ directory has this, which is what tells a
 // publish that the code changed since the last version.
-func treeHash(dir string) string {
+//
+// A tree over maxTreeEntries is an error rather than a truncated hash: two
+// different trees that stopped at the same entry would fingerprint alike,
+// and a publish would then think unchanged code had not changed.
+func treeHash(dir string) (string, error) {
 	h := sha256.New()
-	filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
+	seen := 0
+	err := filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
+		}
+		if seen++; seen > maxTreeEntries {
+			return errTreeTooLarge()
 		}
 		rel, _ := filepath.Rel(dir, p)
 		fmt.Fprintf(h, "%s\x00%d\x00%d\n", rel, info.Size(), info.ModTime().UnixNano())
 		return nil
 	})
-	return hex.EncodeToString(h.Sum(nil))
+	if err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 // copyTree copies a directory. Files under the data dir are hard-linked
