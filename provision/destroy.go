@@ -73,6 +73,8 @@ func Destroy(ctx context.Context, gateway http.Handler, s *Stack) (*DestroyRepor
 		name string
 		run  func() error
 	}{
+		// First, mirroring apply: an alarm goes before the topics it names.
+		{"alarms", func() error { return destroyAlarms(ctx, c, s, rep) }},
 		{"statemachines", func() error { return destroyStateMachines(ctx, c, s, rep) }},
 		{"apikeys", func() error { return destroyAPIKeys(ctx, c, s, rep) }},
 		{"apis", func() error { return destroyAPIs(ctx, c, s, rep) }},

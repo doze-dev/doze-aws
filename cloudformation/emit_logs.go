@@ -30,5 +30,6 @@ func emitLogs(s *provision.Stack, add func(prefix, name, typ string, props map[s
 			}
 			add("Subscription", name+"-"+sub.Name, "AWS::Logs::SubscriptionFilter", fp)
 		}
+		emitMetricFilters(name, g.MetricFilters, add)
 	}
 }

@@ -55,5 +55,8 @@ func Export(ctx context.Context, gateway http.Handler) (*Stack, error) {
 	if err := exportStateMachines(ctx, c, s); err != nil {
 		return nil, err
 	}
+	if err := exportAlarms(ctx, c, s); err != nil {
+		return nil, err
+	}
 	return s, nil
 }

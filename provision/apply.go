@@ -69,6 +69,9 @@ func Apply(ctx context.Context, gateway http.Handler, s *Stack) (*Report, error)
 		// State machines last: their definitions reference functions, queues
 		// and topics by ARN, so everything they orchestrate already exists.
 		{"statemachines", func() error { return applyStateMachines(ctx, c, s, rep) }},
+		// Last: an alarm names the topics and functions it notifies, and
+		// PutMetricAlarm refuses an action it cannot deliver.
+		{"alarms", func() error { return applyAlarms(ctx, c, s, rep) }},
 	}
 	for _, p := range phases {
 		if err := p.run(); err != nil {

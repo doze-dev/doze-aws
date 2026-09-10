@@ -36,8 +36,6 @@ var ignoredTypes = map[string]string{
 	"AWS::IAM::Group":                          "no IAM evaluation during apply",
 	"AWS::IAM::ServiceLinkedRole":              "no IAM evaluation during apply",
 	"AWS::Logs::LogStream":                     "a stream is created by the first PutLogEvents; a template need not declare one",
-	"AWS::CloudWatch::Alarm":                   "there is no CloudWatch locally",
-	"AWS::CloudWatch::Dashboard":               "there is no CloudWatch locally",
 	"AWS::CDK::Metadata":                       "CDK bookkeeping, no resource behind it",
 	"AWS::ECR::Repository":                     "there is no container registry locally (CDK's bootstrap declares one)",
 	"AWS::CloudFormation::WaitCondition":       "nothing to wait for locally",
@@ -181,6 +179,9 @@ var nameProperty = map[string]string{
 	"AWS::ApiGateway::UsagePlanKey":           "",
 	"AWS::CloudFormation::Stack":              "",
 	"AWS::ApiGateway::Account":                "",
+	"AWS::CloudWatch::Alarm":                  "AlarmName",
+	"AWS::CloudWatch::Dashboard":              "DashboardName",
+	"AWS::Logs::MetricFilter":                 "FilterName",
 }
 
 // IsMappable reports whether doze-aws models a resource type.
@@ -463,6 +464,8 @@ func attributes(typ, name string) map[string]string {
 	case "AWS::Logs::LogGroup":
 		// Ref is the name; Arn ends in :* as CloudWatch Logs reports it.
 		return map[string]string{"Arn": awsident.ARN("logs", "log-group:"+name+":*")}
+	case "AWS::CloudWatch::Alarm":
+		return map[string]string{"Arn": awsident.ARN("cloudwatch", "alarm:"+name)}
 	}
 	return map[string]string{}
 }
@@ -518,8 +521,10 @@ func serviceOf(typ string) (string, bool) {
 // ghostName is the physical name an ignored resource takes: an explicit name
 // property when the template gives one, else the logical ID.
 func ghostName(r *Resource, props map[string]any) string {
+	// AlarmName is deliberately absent: AWS::CloudWatch::Alarm is mapped now,
+	// so a ghost name for one would be a name nothing ever created.
 	for _, field := range []string{"RoleName", "GroupName", "UserName", "PolicyName",
-		"LogGroupName", "RepositoryName", "AlarmName", "ManagedPolicyName", "InstanceProfileName"} {
+		"LogGroupName", "RepositoryName", "ManagedPolicyName", "InstanceProfileName"} {
 		if v, ok := props[field]; ok {
 			if s := fmt.Sprint(v); s != "" && s != "<nil>" && !strings.Contains(s, "map[") {
 				return s

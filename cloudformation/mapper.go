@@ -80,6 +80,12 @@ func (m *mapper) apply(r *Resource, name string, props map[string]any) error {
 		return nil
 	case "AWS::Logs::SubscriptionFilter":
 		return m.logSubscription(name, props)
+	case "AWS::Logs::MetricFilter":
+		return m.metricFilter(name, props)
+	case "AWS::CloudWatch::Alarm":
+		return m.alarm(name, props)
+	case "AWS::CloudWatch::Dashboard":
+		return m.dashboard(name, props)
 	case "AWS::Kinesis::Stream":
 		// Streams have no stack-file section yet; the resource is accepted and
 		// reported so a template referencing one still transpiles.

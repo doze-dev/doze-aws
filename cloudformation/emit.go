@@ -390,6 +390,7 @@ func Emit(s *provision.Stack) ([]byte, error) {
 	}
 	emitEventsHTTP(s, add)
 	emitLogs(s, add)
+	emitCloudWatch(s, add)
 
 	for _, name := range sortedNames(s.Keys) {
 		k := s.Keys[name]

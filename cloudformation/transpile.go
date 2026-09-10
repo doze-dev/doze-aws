@@ -362,14 +362,42 @@ func propInt(props map[string]any, key string) int {
 	return n
 }
 
-func propBool(props map[string]any, key string) bool {
-	switch t := props[key].(type) {
+func propBool(props map[string]any, key string) bool { return propBoolOf(props[key]) }
+
+// propBoolOf is the value form, for a caller that must tell "declared false"
+// from "not declared" and so has already looked the key up.
+func propBoolOf(v any) bool {
+	switch t := v.(type) {
 	case bool:
 		return t
 	case string:
 		return strings.EqualFold(t, "true")
 	}
 	return false
+}
+
+// propFloat reads a number that is not a count — a threshold, a default
+// metric value. A template may spell it as a JSON number or as a string,
+// which is what CDK emits for a value it interpolated.
+func propFloat(props map[string]any, key string) float64 { return propFloatOf(props[key]) }
+
+func propFloatOf(v any) float64 {
+	switch t := v.(type) {
+	case float64:
+		return t
+	case int:
+		return float64(t)
+	case json.Number:
+		f, _ := t.Float64()
+		return f
+	case string:
+		f, err := strconv.ParseFloat(t, 64)
+		if err != nil {
+			return 0
+		}
+		return f
+	}
+	return 0
 }
 
 func propMap(props map[string]any, key string) map[string]any {

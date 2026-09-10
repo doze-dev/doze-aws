@@ -53,6 +53,11 @@ type Stack struct {
 	// names the API stages it covers and the keys it admits.
 	APIKeys    map[string]APIKey
 	UsagePlans map[string]UsagePlan
+	// Alarms and Dashboards are CloudWatch: an alarm watches a metric a
+	// producer publishes, so it is applied after the resources that produce
+	// what it watches and the topics it notifies.
+	Alarms     map[string]Alarm
+	Dashboards map[string]Dashboard
 }
 
 // APIKey is one API Gateway key; Value is minted when empty.
@@ -97,6 +102,29 @@ type LogGroup struct {
 	// Subscriptions forward the group's matching events to a Lambda function
 	// or a Kinesis stream; at most two per group, as on AWS.
 	Subscriptions []LogSubscription
+	// MetricFilters turn the group's matching lines into CloudWatch metrics
+	// on ingest — how a stack alarms on something only its logs know.
+	MetricFilters []MetricFilter
+}
+
+// MetricFilter is one metric filter on a log group.
+type MetricFilter struct {
+	Name            string
+	Pattern         string
+	Transformations []MetricTransformation
+}
+
+// MetricTransformation says what metric a matching line produces. Value is a
+// literal to count by, or a `$.field` reference that reads a number out of
+// the line; Default is what an unresolved reference contributes, and is a
+// pointer because "no default" and "a default of zero" are different.
+type MetricTransformation struct {
+	Namespace  string
+	MetricName string
+	Value      string
+	Default    *float64
+	Unit       string
+	Dimensions map[string]string
 }
 
 // LogSubscription is one subscription filter: a pattern and exactly one of
@@ -108,6 +136,46 @@ type LogSubscription struct {
 	Lambda       string
 	Kinesis      string
 	Distribution string // Random | ByLogStream, Kinesis only
+}
+
+// Alarm is a CloudWatch metric alarm: which metric it watches, the M-of-N
+// window it evaluates, and what it notifies.
+//
+// Only metric alarms. Composite alarms evaluate a rule over other alarms'
+// states and doze-aws does not evaluate them, so a template declaring one is
+// refused by name rather than deployed into something that never fires.
+type Alarm struct {
+	Description string
+	Namespace   string
+	MetricName  string
+	Dimensions  map[string]string
+	// Statistic is Sum/Average/Minimum/Maximum/SampleCount, or a pNN
+	// percentile — the same set the service accepts.
+	Statistic string
+	Unit      string
+	// Period is seconds; EvaluationPeriods is how many are examined and
+	// DatapointsToAlarm how many of them must breach (AWS's "M out of N",
+	// defaulting to N when unset).
+	Period             int
+	EvaluationPeriods  int
+	DatapointsToAlarm  int
+	ComparisonOperator string
+	Threshold          float64
+	TreatMissingData   string
+	// ActionsEnabled defaults to true; a pointer so "declared false" and
+	// "not declared" are different.
+	ActionsEnabled          *bool
+	AlarmActions            []string
+	OKActions               []string
+	InsufficientDataActions []string
+	Tags                    map[string]string
+}
+
+// Dashboard is a CloudWatch dashboard: its body, verbatim. Nothing local
+// renders it, so the body travels as the exact text the template carried —
+// the same round-trip-fidelity rule as StateMachine.Definition.
+type Dashboard struct {
+	Body string
 }
 
 // StateMachine is a Step Functions state machine: its definition text (ASL),
