@@ -32,7 +32,7 @@ import (
 // Services is the canonical set of doze-aws service names, in the order they
 // appear in docs and config listings.
 var Services = []string{
-	"s3", "sqs", "sns", "sts", "dynamodb", "kms", "ssm", "secretsmanager", "eventbridge", "lambda", "kinesis", "iam", "cloudformation", "apigateway", "stepfunctions", "logs",
+	"s3", "sqs", "sns", "sts", "dynamodb", "kms", "ssm", "secretsmanager", "eventbridge", "lambda", "kinesis", "iam", "cloudformation", "apigateway", "stepfunctions", "logs", "cloudwatch",
 }
 
 // KnownService reports whether name is one of the canonical service names.
@@ -42,16 +42,17 @@ func KnownService(name string) bool {
 
 // targetPrefixes maps X-Amz-Target prefixes to services.
 var targetPrefixes = map[string]string{
-	"AmazonSQS":                "sqs",
-	"DynamoDB_20120810":        "dynamodb",
-	"DynamoDBStreams_20120810": "dynamodb",
-	"TrentService":             "kms",
-	"AmazonSSM":                "ssm",
-	"secretsmanager":           "secretsmanager",
-	"AWSEvents":                "eventbridge",
-	"Kinesis_20131202":         "kinesis",
-	"AWSStepFunctions":         "stepfunctions",
-	"Logs_20140328":            "logs",
+	"AmazonSQS":                     "sqs",
+	"DynamoDB_20120810":             "dynamodb",
+	"DynamoDBStreams_20120810":      "dynamodb",
+	"TrentService":                  "kms",
+	"AmazonSSM":                     "ssm",
+	"secretsmanager":                "secretsmanager",
+	"AWSEvents":                     "eventbridge",
+	"Kinesis_20131202":              "kinesis",
+	"AWSStepFunctions":              "stepfunctions",
+	"Logs_20140328":                 "logs",
+	"GraniteServiceVersion20100801": "cloudwatch",
 }
 
 // scopeServices maps SigV4 signing names to services (they mostly coincide;
@@ -73,6 +74,7 @@ var scopeServices = map[string]string{
 	"cloudformation": "cloudformation",
 	"apigateway":     "apigateway",
 	"logs":           "logs",
+	"monitoring":     "cloudwatch",
 }
 
 // lambdaPathPrefixes are the REST-API version prefixes the Lambda control
@@ -104,6 +106,32 @@ var apigatewayPathPrefixes = []string{
 	// family routes there, those with no local counterpart to be refused by
 	// name rather than falling through to S3.
 	"/v2/apis", "/v2/tags", "/v2/domainnames", "/v2/vpclinks", "/v2/portals", "/v2/portalproducts",
+}
+
+// rpcv2PathPrefixes routes Smithy RPC v2 requests, which address an operation
+// by path (/service/{Service}/operation/{Op}) and carry no target header. It
+// is matched as a substring rather than a prefix because a fronting router may
+// serve the stack under a path of its own.
+//
+// A signed request never reaches this rule — the signature scope names
+// `monitoring` and settles it several rules earlier — so this is for the
+// unsigned ones, which would otherwise fall through to the S3 fallback and be
+// answered by a service that has no idea what CBOR is.
+var rpcv2PathPrefixes = map[string]string{
+	"/service/GraniteServiceVersion20100801/operation/": "cloudwatch",
+}
+
+// ambiguousQueryActions are Action names claimed by more than one service,
+// resolved by the API Version the same request carries.
+//
+// Go will not let a name appear twice in queryActions, and picking a winner
+// would silently break the loser. Every signed request is routed by signature
+// scope long before this, so the only callers affected are unsigned or SigV2
+// ones; the fallback below keeps their existing behaviour.
+var ambiguousQueryActions = map[string]map[string]string{
+	"TagResource":         {"2010-03-31": "sns", "2010-08-01": "cloudwatch"},
+	"UntagResource":       {"2010-03-31": "sns", "2010-08-01": "cloudwatch"},
+	"ListTagsForResource": {"2010-03-31": "sns", "2010-08-01": "cloudwatch"},
 }
 
 // isExecuteAPI reports whether a request addresses a DEPLOYED API rather than
@@ -237,7 +265,23 @@ func routeService(r *http.Request) (service, why string) {
 	if IsFunctionURL(r) {
 		return "lambda", "function URL"
 	}
-	if action := peekAction(r); action != "" {
+	// Smithy RPC v2 addresses an operation by path and carries no target
+	// header, so an unsigned CBOR call would otherwise reach the S3 fallback.
+	for prefix, svc := range rpcv2PathPrefixes {
+		if strings.Contains(r.URL.Path, prefix) {
+			return svc, "rpc-v2 service path"
+		}
+	}
+	if action, version := peekAction(r); action != "" {
+		// A few Action names belong to more than one service. The signature
+		// scope settles it for any signed request, which is every SDK call;
+		// this is for the unsigned ones, where the API version is the only
+		// other thing that distinguishes them.
+		if byVersion, ok := ambiguousQueryActions[action]; ok {
+			if svc, ok := byVersion[version]; ok {
+				return svc, "Query action and version"
+			}
+		}
 		if svc, ok := queryActions[action]; ok {
 			return svc, "Query action"
 		}
@@ -247,27 +291,30 @@ func routeService(r *http.Request) (service, why string) {
 
 // peekAction extracts a Query-protocol Action parameter without consuming the
 // request body: form bodies are read and then restored for the handler.
-func peekAction(r *http.Request) string {
-	if action := r.URL.Query().Get("Action"); action != "" {
-		return action
+// It returns the API Version alongside, because a handful of Action names are
+// claimed by two services and the version is the only thing in an unsigned
+// request that tells them apart.
+func peekAction(r *http.Request) (action, version string) {
+	if q := r.URL.Query(); q.Get("Action") != "" {
+		return q.Get("Action"), q.Get("Version")
 	}
 	if r.Method != http.MethodPost {
-		return ""
+		return "", ""
 	}
 	ct := r.Header.Get("Content-Type")
 	if ct != "" && !strings.HasPrefix(ct, "application/x-www-form-urlencoded") {
-		return ""
+		return "", ""
 	}
 	body, err := io.ReadAll(io.LimitReader(r.Body, 10<<20))
 	if err != nil {
-		return ""
+		return "", ""
 	}
 	r.Body = io.NopCloser(bytes.NewReader(body))
 	vals, err := url.ParseQuery(string(body))
 	if err != nil {
-		return ""
+		return "", ""
 	}
-	return vals.Get("Action")
+	return vals.Get("Action"), vals.Get("Version")
 }
 
 // writeRouteError emits a routing-level error. The requester's protocol isn't

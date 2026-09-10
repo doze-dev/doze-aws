@@ -38,6 +38,62 @@ func TestFromQueryRebuildsTheNesting(t *testing.T) {
 	}
 }
 
+// A list of {Name, Value} structures is a LIST, and a map spelled as pairs is
+// a MAP, and the only thing that tells them apart is the marker word.
+//
+// AWS flattens list<Struct{Name,Value}> exactly like map<String,String>, so
+// the two arrive here identical but for `.member.` versus `.entry.`.
+// Collapsing on shape alone turned CloudWatch's Dimensions — a genuine list —
+// into a map, and every constraint written `Dimensions[].Name` then resolved
+// to no sites and passed vacuously.
+//
+// The existing case above missed this only by luck: STS spells its tag member
+// `Key`, and the collapse looks for `Name` or lowercase `key`.
+func TestFromQueryKeepsMemberListsAndCollapsesEntryMaps(t *testing.T) {
+	got := FromQuery(map[string][]string{
+		// CloudWatch: a list of dimensions, Name/Value shaped.
+		"MetricData.member.1.MetricName":                {"Hits"},
+		"MetricData.member.1.Dimensions.member.1.Name":  {"FunctionName"},
+		"MetricData.member.1.Dimensions.member.1.Value": {"checkout"},
+		// SNS: a genuine map, spelled as entries.
+		"Attributes.entry.1.Name":  {"DisplayName"},
+		"Attributes.entry.1.Value": {"shop"},
+	})
+	want := map[string]any{
+		"MetricData": []any{map[string]any{
+			"MetricName": "Hits",
+			"Dimensions": []any{map[string]any{
+				"Name": "FunctionName", "Value": "checkout",
+			}},
+		}},
+		"Attributes": map[string]any{"DisplayName": "shop"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("FromQuery mismatch\n got: %#v\nwant: %#v", got, want)
+	}
+}
+
+// The sites a constraint path resolves to are what the collapse actually
+// affects, so assert on those too: a path written with list syntax must find
+// the value, which is the thing that silently stopped happening.
+// Both members are sent on purpose: entriesToMap only collapses elements with
+// exactly two keys, so a Name-only fixture would survive the collapse and this
+// test would pass whether or not the fix is in place.
+func TestNestedMemberListResolvesListPaths(t *testing.T) {
+	raw := FromQuery(map[string][]string{
+		"MetricData.member.1.Dimensions.member.1.Name":  {"FunctionName"},
+		"MetricData.member.1.Dimensions.member.1.Value": {"checkout"},
+	})
+	got := sites(raw, "MetricData[].Dimensions[].Name")
+	if len(got) != 1 {
+		t.Fatalf("MetricData[].Dimensions[].Name resolved to %d sites, want 1 — "+
+			"a constraint on it would pass vacuously", len(got))
+	}
+	if got[0].val != "FunctionName" {
+		t.Errorf("site value = %v", got[0].val)
+	}
+}
+
 // TestRangeReadsANumericString covers the reason the above is useful: a Query
 // value is a string, so a @range constraint would otherwise never be checked.
 func TestRangeReadsANumericString(t *testing.T) {

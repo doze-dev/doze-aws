@@ -26,6 +26,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/apigateway"
 	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/cloudwatch"
 	"github.com/doze-dev/doze-aws/dynamodb"
 	"github.com/doze-dev/doze-aws/eventbridge"
 	"github.com/doze-dev/doze-aws/iam"
@@ -49,7 +50,7 @@ import (
 
 // Implemented lists the services this build of doze-aws can serve, in gateway
 // order (currently the full set gateway.Services knows about).
-var Implemented = []string{"s3", "dynamodb", "sqs", "sns", "sts", "kms", "ssm", "secretsmanager", "eventbridge", "lambda", "kinesis", "iam", "cloudformation", "apigateway", "stepfunctions", "logs"}
+var Implemented = []string{"s3", "dynamodb", "sqs", "sns", "sts", "kms", "ssm", "secretsmanager", "eventbridge", "lambda", "kinesis", "iam", "cloudformation", "apigateway", "stepfunctions", "logs", "cloudwatch"}
 
 // StackConfig configures a Stack.
 type StackConfig struct {
@@ -74,8 +75,8 @@ type StackConfig struct {
 	// LambdaRuntimes overrides the interpreter per runtime family.
 	LambdaRuntimes map[string]string
 	// IAMMode selects how far the IAM service goes on the request path:
-	// "off" (the default) never evaluates anything, "soft" evaluates and
-	// records without blocking, "enforce" returns real AccessDenied errors.
+	// "soft" (the default) evaluates and records without blocking, "off"
+	// never evaluates anything, "enforce" returns real AccessDenied errors.
 	IAMMode iam.Mode
 	// Endpoint is the externally-reachable base URL of this stack's gateway
 	// (e.g. "http://127.0.0.1:4566"). It is injected into Lambda function
@@ -174,6 +175,10 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 	case "logs":
 		s, err := logs.New(logs.Options{DataDir: dataDir, Peers: dir, Logf: logf})
 		return s, s, err
+	case "cloudwatch":
+		s, err := cloudwatch.New(cloudwatch.Options{
+			DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
+		return s, s, err
 	case "stepfunctions":
 		s, err := stepfunctions.New(stepfunctions.Options{DataDir: dataDir, Peers: dir, Logf: logf})
 		if err == nil {
@@ -215,10 +220,11 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 
 // Handler returns the shared-endpoint gateway handler.
 //
-// When IAM is enabled in soft or enforce mode the gateway is wrapped in an
-// authorization middleware. In the default off mode the bare gateway is
-// returned, so a deployment that does not want IAM pays nothing for it — not
-// even a wrapper frame per request.
+// In soft — the default — and in enforce, the gateway is wrapped in the
+// authorization middleware. With IAM off it is wrapped in a thinner handler
+// that only strips the client's X-Doze-* headers, because the service guards
+// read the mode from one and a header a client can set is not one anything
+// should trust.
 func (s *Stack) Handler() http.Handler {
 	if s.iam == nil || s.iam.Mode() == iam.ModeOff {
 		// Still stripped. Off means nothing is enforced, so a client that

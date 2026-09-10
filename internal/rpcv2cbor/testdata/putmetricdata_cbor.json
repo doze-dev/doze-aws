@@ -1,0 +1,20 @@
+{
+  "wire": "rpcv2Cbor",
+  "method": "POST",
+  "path": "/service/GraniteServiceVersion20100801/operation/PutMetricData",
+  "headers": {
+    "Accept": "application/cbor",
+    "Accept-Encoding": "gzip",
+    "Amz-Sdk-Invocation-Id": "f2342e20-c67a-4e49-9bba-e188fe35acb6",
+    "Amz-Sdk-Request": "attempt=1; max=3",
+    "Authorization": "AWS4-HMAC-SHA256 Credential=test/20260910/us-east-1/monitoring/aws4_request, SignedHeaders=accept;amz-sdk-invocation-id;amz-sdk-request;content-encoding;content-length;content-type;host;smithy-protocol;x-amz-date;x-amzn-query-mode, Signature=752672e8ce5f61c8d2f263ab9d1a006a1f1e143aa9a2cc64beea3fb9e5ea6870",
+    "Content-Encoding": "gzip",
+    "Content-Length": "145",
+    "Content-Type": "application/cbor",
+    "Smithy-Protocol": "rpc-v2-cbor",
+    "User-Agent": "aws-sdk-go-v2/1.47.0 ua/2.1 os/macos lang/go#1.27.0 md/GOOS#darwin md/GOARCH#arm64 api/cloudwatch#1.72.0 m/E,L,M,e",
+    "X-Amz-Date": "20260910T101603Z",
+    "X-Amzn-Query-Mode": "true"
+  },
+  "body_base64": "H4sIAAAAAAAA/yyMMc7CMAxG//9kDK3YYKCC3Uqs1iW1Q+Kcp0fJtZAYjELjzfree3W9oCZyIyjsdR1pQ84knPfqr7BhOBd2SsLtwQeEgotb0D2lqB0ITgpz33xM4s16tK00dDq/JpUEM94wSyit+e/vTIqDFNbD/5zef78zo2bnCA79tEi07wBDcKbGqgAAAA=="
+}

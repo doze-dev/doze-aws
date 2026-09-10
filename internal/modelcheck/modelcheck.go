@@ -358,14 +358,27 @@ func lowerFirst(s string) string {
 // trait is what says whether a member is a number; see toNumber.
 func FromQuery(vals map[string][]string) map[string]any {
 	root := map[string]any{}
+	// Which containers were spelled with the MAP marker. Both markers vanish
+	// during the walk, and only this says which one was there.
+	entries := map[string]bool{}
 	for key, vs := range vals {
 		if len(vs) == 0 {
 			continue
 		}
-		insertQuery(root, strings.Split(key, "."), vs[0])
+		insertQuery(root, strings.Split(key, "."), vs[0], "", entries)
 	}
-	collapseEntries(root)
+	collapseEntries(root, "", entries)
 	return root
+}
+
+// childPath is the dotted path of one member, used to line up what
+// insertQuery recorded with what collapseEntries is looking at. A list's
+// elements share their container's path: the index is not part of it.
+func childPath(parent, key string) string {
+	if parent == "" {
+		return key
+	}
+	return parent + "." + key
 }
 
 // collapseEntries turns the Query protocol's spelling of a MAP back into one.
@@ -375,20 +388,32 @@ func FromQuery(vals map[string][]string) map[string]any {
 // list of {Name, Value} structures. The model calls that member a map
 // (MessageAttributes{}.DataType), so without this the walker looks for a map,
 // finds a list, and every constraint underneath passes vacuously.
-func collapseEntries(node map[string]any) {
+//
+// It collapses ONLY containers spelled `.entry.`, which is why insertQuery
+// records them. The shape alone cannot tell you: AWS flattens a
+// list<Struct{Name,Value}> exactly like a map<String,String>, so
+// CloudWatch's `Dimensions.member.1.Name/.Value` — a genuine LIST — is
+// indistinguishable from SNS's `Attributes.entry.1.Name/.Value` once the
+// marker is gone. Collapsing on shape turned that list into a map, and every
+// constraint written `Dimensions[].Name` then found no sites and passed
+// vacuously — the same failure this function exists to prevent, inverted.
+func collapseEntries(node map[string]any, path string, entries map[string]bool) {
 	for k, v := range node {
+		here := childPath(path, k)
 		switch t := v.(type) {
 		case map[string]any:
-			collapseEntries(t)
+			collapseEntries(t, here, entries)
 		case []any:
-			if m, ok := entriesToMap(t); ok {
-				node[k] = m
-				collapseEntries(m)
-				continue
+			if entries[here] {
+				if m, ok := entriesToMap(t); ok {
+					node[k] = m
+					collapseEntries(m, here, entries)
+					continue
+				}
 			}
 			for _, el := range t {
 				if em, ok := el.(map[string]any); ok {
-					collapseEntries(em)
+					collapseEntries(em, here, entries)
 				}
 			}
 		}
@@ -425,7 +450,7 @@ func entriesToMap(list []any) (map[string]any, bool) {
 // insertQuery walks one flattened key into the tree, creating containers as it
 // goes. "member" is skipped: it is the protocol's list marker, not a member
 // name, and the index that follows is what selects the element.
-func insertQuery(cur map[string]any, segs []string, val string) {
+func insertQuery(cur map[string]any, segs []string, val string, path string, entries map[string]bool) {
 	for i := 0; i < len(segs); i++ {
 		seg := segs[i]
 
@@ -444,10 +469,13 @@ func insertQuery(cur map[string]any, segs []string, val string) {
 		}
 
 		last := i == len(segs)-1
-		// Look ahead: a list marker or index after this segment makes it a list.
-		isList := false
+		// Look ahead: a list marker or index after this segment makes it a
+		// list. marker remembers WHICH marker, because that is the only thing
+		// that distinguishes a map from a list of Name/Value pairs.
+		isList, marker := false, ""
 		for j := i + 1; j < len(segs); j++ {
 			if segs[j] == "member" || segs[j] == "entry" {
+				marker = segs[j]
 				continue
 			}
 			if _, err := strconv.Atoi(segs[j]); err == nil {
@@ -460,6 +488,10 @@ func insertQuery(cur map[string]any, segs []string, val string) {
 		case last:
 			cur[seg] = val
 		case isList:
+			here := childPath(path, seg)
+			if marker == "entry" {
+				entries[here] = true
+			}
 			lst, _ := cur[seg].([]any)
 			// One element is enough: a constraint applies to every element, so
 			// checking the first is checking the rule.
@@ -488,7 +520,7 @@ func insertQuery(cur map[string]any, segs []string, val string) {
 				lst = append(lst, elem)
 			}
 			cur[seg] = lst
-			insertQuery(elem, rest[k:], val)
+			insertQuery(elem, rest[k:], val, here, entries)
 			return
 		default:
 			next, _ := cur[seg].(map[string]any)
@@ -497,6 +529,7 @@ func insertQuery(cur map[string]any, segs []string, val string) {
 				cur[seg] = next
 			}
 			cur = next
+			path = childPath(path, seg)
 		}
 	}
 }

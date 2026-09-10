@@ -1,0 +1,14 @@
+{
+  "wire": "awsQuery",
+  "method": "POST",
+  "path": "/",
+  "headers": {
+    "Accept-Encoding": "gzip",
+    "Authorization": "AWS4-HMAC-SHA256 Credential=test/20260910/us-east-1/monitoring/aws4_request, SignedHeaders=content-length;content-type;host;x-amz-date, Signature=6d69e38e417f83e070f27a0f6a467d06989462e2615b54cda456445c9b951326",
+    "Content-Length": "411",
+    "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
+    "User-Agent": "aws-sdk-go/1.55.8 (go1.27.0; darwin; arm64)",
+    "X-Amz-Date": "20260910T101603Z"
+  },
+  "body_raw": "Action=PutMetricData\u0026MetricData.member.1.Dimensions.member.1.Name=FunctionName\u0026MetricData.member.1.Dimensions.member.1.Value=checkout\u0026MetricData.member.1.Dimensions.member.2.Name=Stage\u0026MetricData.member.1.Dimensions.member.2.Value=prod\u0026MetricData.member.1.MetricName=Checkouts\u0026MetricData.member.1.StorageResolution=1\u0026MetricData.member.1.Unit=Count\u0026MetricData.member.1.Value=1.5\u0026Namespace=Shop\u0026Version=2010-08-01"
+}

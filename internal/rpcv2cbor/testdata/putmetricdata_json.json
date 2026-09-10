@@ -1,0 +1,22 @@
+{
+  "wire": "awsJson1_0",
+  "method": "POST",
+  "path": "/",
+  "headers": {
+    "content-type": "application/x-amz-json-1.0",
+    "x-amz-target": "GraniteServiceVersion20100801.PutMetricData",
+    "x-amzn-query-mode": "true",
+    "content-length": "201",
+    "x-amz-user-agent": "aws-sdk-js/3.1128.0",
+    "user-agent": "aws-sdk-js/3.1128.0 ua/2.1 os/darwin#25.6.0 lang/js md/bun#1.4.0 api/cloudwatch#3.1128.0 m/N,E,e",
+    "host": "127.0.0.1:64399",
+    "amz-sdk-invocation-id": "a34f9941-1452-48a2-920a-14b6ca7b63e6",
+    "amz-sdk-request": "attempt=1; max=3",
+    "x-amz-date": "20260910T101033Z",
+    "x-amz-content-sha256": "28d6756abc9f819ce702e19330989fc29edf15fe266b55eacdd7c2d231286f07",
+    "authorization": "AWS4-HMAC-SHA256 Credential=test/20260910/us-east-1/monitoring/aws4_request, SignedHeaders=amz-sdk-invocation-id;amz-sdk-request;content-length;content-type;host;x-amz-content-sha256;x-amz-date;x-amz-target;x-amz-user-agent;x-amzn-query-mode, Signature=4fef80656e59684828e48f3ac127834e539412f67c5f7bbbb6a8c7cb77089312",
+    "connection": "keep-alive"
+  },
+  "gzipped": false,
+  "body_raw": "{\"Namespace\":\"Shop\",\"MetricData\":[{\"MetricName\":\"Checkouts\",\"Dimensions\":[{\"Name\":\"FunctionName\",\"Value\":\"checkout\"},{\"Name\":\"Stage\",\"Value\":\"prod\"}],\"Value\":1.5,\"Unit\":\"Count\",\"StorageResolution\":1}]}"
+}
