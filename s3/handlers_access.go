@@ -1,12 +1,11 @@
 package s3
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"net/http"
-	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/iampolicy"
 	"github.com/doze-dev/doze-aws/internal/s3store"
 )
 
@@ -119,102 +118,18 @@ func (s *Server) getBucketPolicyStatus(w http.ResponseWriter, bucket string) *aw
 	return nil
 }
 
-// policyIsPublic applies S3's rule in its simplest honest form: an Allow
-// statement whose Principal is everyone, with no Condition narrowing it,
-// makes the bucket public. A policy that does not parse is not public.
+// policyIsPublic asks the policy engine, which owns both the document model
+// and the principal/action/resource matching. This used to walk the JSON
+// here with its own parser, and that parser missed a Statement written as
+// one object rather than a list, and treated an explicit Deny as if it were
+// not there. A policy that does not parse is not public: PutBucketPolicy
+// refuses malformed documents on its own grounds.
 func policyIsPublic(policy string) bool {
-	var doc struct {
-		Statement json.RawMessage `json:"Statement"`
-	}
-	if json.Unmarshal([]byte(policy), &doc) != nil {
+	doc, err := iampolicy.Parse(policy)
+	if err != nil {
 		return false
 	}
-	var statements []map[string]json.RawMessage
-	if err := json.Unmarshal(doc.Statement, &statements); err != nil {
-		var one map[string]json.RawMessage
-		if json.Unmarshal(doc.Statement, &one) != nil {
-			return false
-		}
-		statements = []map[string]json.RawMessage{one}
-	}
-	for _, st := range statements {
-		var effect string
-		json.Unmarshal(st["Effect"], &effect)
-		if effect != "Allow" {
-			continue
-		}
-		// A NotPrincipal Allow grants everyone it does not name: public.
-		if len(st["NotPrincipal"]) > 0 {
-			return true
-		}
-		if !principalIsEveryone(st["Principal"]) {
-			continue
-		}
-		if !conditionNarrows(st["Condition"]) {
-			return true
-		}
-	}
-	return false
-}
-
-// conditionNarrows reports whether a "*" statement's Condition makes it
-// non-public by AWS's rule: only a condition on one of a fixed set of keys
-// (the caller's network, source, account or organization) counts. Any
-// other condition — aws:SecureTransport, a date, s3:prefix — leaves the
-// statement public.
-func conditionNarrows(raw json.RawMessage) bool {
-	if len(raw) == 0 {
-		return false
-	}
-	var cond map[string]map[string]json.RawMessage
-	if json.Unmarshal(raw, &cond) != nil {
-		return false
-	}
-	for op, keys := range cond {
-		// A negated operator widens rather than narrows.
-		if strings.HasPrefix(strings.ToLower(op), "stringnot") || strings.HasPrefix(strings.ToLower(op), "arnnot") ||
-			strings.HasPrefix(strings.ToLower(op), "notipaddress") {
-			continue
-		}
-		for key := range keys {
-			switch strings.ToLower(key) {
-			case "aws:sourceip", "aws:sourcevpc", "aws:sourcevpce", "aws:sourcearn", "aws:sourceaccount", "aws:sourceowner",
-				"aws:principalarn", "aws:principalaccount", "aws:principalorgid", "aws:principalorgpaths", "aws:userid",
-				"s3:dataaccesspointarn", "s3:dataaccesspointaccount", "s3:accesspointnetworkorigin", "aws:vpcsourceip":
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// principalIsEveryone recognises "*", {"AWS":"*"} and {"AWS":["*"]}.
-func principalIsEveryone(raw json.RawMessage) bool {
-	trimmed := strings.TrimSpace(string(raw))
-	if trimmed == `"*"` {
-		return true
-	}
-	var obj map[string]json.RawMessage
-	if json.Unmarshal(raw, &obj) != nil {
-		return false
-	}
-	aws, ok := obj["AWS"]
-	if !ok {
-		return false
-	}
-	var one string
-	if json.Unmarshal(aws, &one) == nil {
-		return one == "*"
-	}
-	var many []string
-	if json.Unmarshal(aws, &many) == nil {
-		for _, p := range many {
-			if p == "*" {
-				return true
-			}
-		}
-	}
-	return false
+	return iampolicy.IsPublic(doc)
 }
 
 // blockedByPublicAccess says whether a policy may not be put on the bucket:

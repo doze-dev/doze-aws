@@ -25,14 +25,7 @@ func TestPolicyIsPublicByAWSRule(t *testing.T) {
 		{"NotPrincipal allow", `{"Effect":"Allow","NotPrincipal":{"AWS":"arn:aws:iam::000000000000:user/x"},"Action":"s3:GetObject","Resource":"*"}`, true},
 		{"AWS star scalar", `{"Effect":"Allow","Principal":{"AWS":"*"},"Action":"s3:GetObject","Resource":"*"}`, true},
 		{"star in a list beside a named principal", `{"Effect":"Allow","Principal":{"AWS":["arn:aws:iam::000000000000:user/x","*"]},"Action":"s3:GetObject","Resource":"*"}`, true},
-		// A known simplification, pinned so a change to it is deliberate.
-		// policyIsPublic returns on the first unconditioned "*" Allow, so a
-		// later blanket Deny that would cancel it is not considered. AWS
-		// evaluates the whole document and would very likely call this one
-		// not public. It is a strictly conservative disagreement — doze-aws
-		// says "public" where AWS might not, so BlockPublicPolicy refuses a
-		// policy AWS would have taken, and nothing is let through.
-		{"a later blanket deny is not weighed (conservative)", `{"Effect":"Allow","Principal":"*","Action":"s3:GetObject","Resource":"*"},{"Effect":"Deny","Principal":"*","Action":"s3:GetObject","Resource":"*"}`, true},
+		{"a blanket deny cancels the allow", `{"Effect":"Allow","Principal":"*","Action":"s3:GetObject","Resource":"*"},{"Effect":"Deny","Principal":"*","Action":"s3:GetObject","Resource":"*"}`, false},
 	}
 	for _, c := range cases {
 		if got := policyIsPublic(wrap(c.stmt)); got != c.public {
@@ -58,6 +51,42 @@ func TestPolicyIsPublicWithASingleStatementObject(t *testing.T) {
 	for _, c := range cases {
 		if got := policyIsPublic(one(c.stmt)); got != c.public {
 			t.Errorf("%s: public=%v, want %v", c.name, got, c.public)
+		}
+	}
+}
+
+// An explicit Deny cancels a public Allow, but only when it actually reaches
+// the caller the Allow reached: unconditional, aimed at everyone, and at
+// least as broad. Each case below is a Deny that must NOT cancel, except the
+// first — get any of these backwards and BlockPublicPolicy waves through a
+// bucket policy that does expose the bucket.
+func TestPolicyIsPublicWeighsDenyStatements(t *testing.T) {
+	const allowAll = `{"Effect":"Allow","Principal":"*","Action":"s3:GetObject","Resource":"arn:aws:s3:::b/*"}`
+	wrap := func(stmts string) string { return `{"Version":"2012-10-17","Statement":[` + stmts + `]}` }
+	cases := []struct {
+		name   string
+		deny   string
+		public bool
+	}{
+		{"deny of the same action and resource", `{"Effect":"Deny","Principal":"*","Action":"s3:GetObject","Resource":"arn:aws:s3:::b/*"}`, false},
+		{"broader deny by wildcard action", `{"Effect":"Deny","Principal":"*","Action":"s3:*","Resource":"arn:aws:s3:::b/*"}`, false},
+		{"broader deny by star", `{"Effect":"Deny","Principal":"*","Action":"*","Resource":"*"}`, false},
+		// A deny narrower than the allow leaves the rest of the grant public.
+		{"narrower deny by resource", `{"Effect":"Deny","Principal":"*","Action":"s3:GetObject","Resource":"arn:aws:s3:::b/private/*"}`, true},
+		{"deny of a different action", `{"Effect":"Deny","Principal":"*","Action":"s3:PutObject","Resource":"arn:aws:s3:::b/*"}`, true},
+		// A deny that may not fire, or that does not name everyone, cannot
+		// be relied on to close the grant.
+		{"conditional deny", `{"Effect":"Deny","Principal":"*","Action":"s3:GetObject","Resource":"arn:aws:s3:::b/*","Condition":{"Bool":{"aws:SecureTransport":"false"}}}`, true},
+		{"deny aimed at one principal", `{"Effect":"Deny","Principal":{"AWS":"arn:aws:iam::000000000000:user/x"},"Action":"s3:GetObject","Resource":"arn:aws:s3:::b/*"}`, true},
+		{"deny by NotPrincipal", `{"Effect":"Deny","NotPrincipal":{"AWS":"arn:aws:iam::000000000000:user/x"},"Action":"s3:GetObject","Resource":"arn:aws:s3:::b/*"}`, true},
+	}
+	for _, c := range cases {
+		if got := policyIsPublic(wrap(allowAll + "," + c.deny)); got != c.public {
+			t.Errorf("%s: public=%v, want %v", c.name, got, c.public)
+		}
+		// Order must not matter: a deny before the allow reads the same.
+		if got := policyIsPublic(wrap(c.deny + "," + allowAll)); got != c.public {
+			t.Errorf("%s (deny first): public=%v, want %v", c.name, got, c.public)
 		}
 	}
 }
