@@ -58,7 +58,7 @@ func (m msgAttrs) MarshalXML(e *xml.Encoder, _ xml.StartElement) error {
 		Name  string `xml:"Name"`
 		Value valXML `xml:"Value"`
 	}
-	for _, k := range sortedKeys2(m) {
+	for _, k := range sortedKeys(m) {
 		a := m[k]
 		v := valXML{DataType: a.DataType, StringValue: a.StringValue}
 		if len(a.BinaryValue) > 0 {
@@ -184,16 +184,10 @@ type visBatchResult struct {
 	Failed     []batchErr   `json:"Failed,omitempty" xml:"BatchResultErrorEntry"`
 }
 
-func sortedKeys(m map[string]string) []string {
-	out := make([]string, 0, len(m))
-	for k := range m {
-		out = append(out, k)
-	}
-	sort.Strings(out)
-	return out
-}
-
-func sortedKeys2(m map[string]Attr) []string {
+// sortedKeys is generic so one copy serves every value type. It was not, and
+// the package carried a second, otherwise identical sortedKeys2 purely for the
+// attribute map.
+func sortedKeys[V any](m map[string]V) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {
 		out = append(out, k)

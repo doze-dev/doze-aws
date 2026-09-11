@@ -292,6 +292,12 @@ func targetHTTPRequest(t Target) map[string]any {
 	return hp
 }
 
+// orDefaultStr returns def when v is empty.
+//
+// The package had a second, byte-identical helper called orDefault, in
+// svc_lambda_versions.go. Two identical functions under different names in
+// one package is a coin-flip for whoever writes the next caller, so there is
+// one now.
 func orDefaultStr(v, def string) string {
 	if v == "" {
 		return def

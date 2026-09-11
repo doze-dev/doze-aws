@@ -149,7 +149,7 @@ func applyVersionAliasesURL(ctx context.Context, c *client, name string, f Funct
 	}
 
 	if f.URL != nil {
-		in := map[string]any{"AuthType": orDefault(f.URL.AuthType, "NONE")}
+		in := map[string]any{"AuthType": orDefaultStr(f.URL.AuthType, "NONE")}
 		if f.URL.CORS.JSON != "" {
 			in["Cors"] = json.RawMessage(f.URL.CORS.JSON)
 		}
@@ -167,13 +167,6 @@ func applyVersionAliasesURL(ctx context.Context, c *client, name string, f Funct
 		rep.add(verb, "function/"+name+"/url", u.FunctionUrl)
 	}
 	return nil
-}
-
-func orDefault(v, def string) string {
-	if v == "" {
-		return def
-	}
-	return v
 }
 
 // ---- export ----
