@@ -39,9 +39,14 @@
       {{end}}
     </div>
     <div class="overlay" role="dialog" aria-modal="true" aria-label="Add item" x-effect="window.dozeTrap && dozeTrap($el, put)" x-show="put" x-cloak @click.self="put=false" @keydown.escape.window="put=false" x-effect="if(put)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
-      <div class="dialog wide anim"><form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/put" hx-target="#ddb-items" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){put=false;$el.reset();}">
-        <div class="dialog-h"><h3>Add item</h3><p>Plain JSON — types inferred ({{.Table.HashKey}}{{if .Table.RangeKey}}, {{.Table.RangeKey}}{{end}} required).</p></div>
-        <div class="dialog-b"><textarea id="ddb-item-editor" name="item" data-editor="json" rows="9" spellcheck="false" required placeholder='{&#10;  "{{.Table.HashKey}}": "user-1",&#10;  "name": "Ada"&#10;}'></textarea></div>
+      {{/* $el.reset() puts the textarea back to the skeleton, but CodeMirror
+           keeps its own buffer, so dozeEditor.reset re-reads defaultValue —
+           otherwise reopening this dialog after a save shows the item you just
+           submitted. Only on success, and never on open: the drawer's Edit
+           button shares this dialog and prefills it with an existing item. */}}
+      <div class="dialog wide anim"><form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/put" hx-target="#ddb-items" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){put=false;$el.reset();window.dozeEditor&&dozeEditor.reset('#ddb-item-editor');}">
+        <div class="dialog-h"><h3>Add item</h3><p>Plain JSON — types inferred. {{.Table.HashKey}}{{if .Table.RangeKey}} and {{.Table.RangeKey}} are{{else}} is{{end}} the key, filled in for you.</p></div>
+        <div class="dialog-b"><textarea id="ddb-item-editor" name="item" data-editor="json" rows="9" spellcheck="false" required placeholder='{&#10;  "{{.Table.HashKey}}": "user-1",&#10;  "name": "Ada"&#10;}'>{{.Table.ItemSkeleton}}</textarea></div>
         <div class="dialog-f"><button type="button" class="btn btn-outline" @click="put=false">Cancel</button><button type="submit" class="btn">Save item</button></div>
       </form></div>
     </div>

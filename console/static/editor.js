@@ -158,6 +158,16 @@
       if (ta.__cm) { ta.__cm.setValue(value); ta.__cm.save(); ta.__cm.refresh(); }
       else ta.value = value;
     },
+    // Back to what the server rendered. form.reset() restores a textarea's
+    // defaultValue, but CodeMirror holds its own buffer and never hears about
+    // it — so without this a dialog reopened after a save still shows the text
+    // that was just submitted. defaultValue is the server's own markup, which
+    // is why this needs no copy of it.
+    reset: function (ta) {
+      if (typeof ta === "string") ta = document.querySelector(ta);
+      if (!ta) return;
+      window.dozeEditor.set(ta, ta.defaultValue);
+    },
     refresh: function (root) {
       (root || document).querySelectorAll("textarea[data-editor]").forEach(function (ta) {
         if (ta.__cm) ta.__cm.refresh();

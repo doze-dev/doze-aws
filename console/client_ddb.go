@@ -37,6 +37,43 @@ type GSI struct {
 	RangeType string
 }
 
+// ItemSkeleton is the starting content for the add-item editor: this table's
+// key attributes, empty but correctly typed, in key order.
+//
+// AWS's own console prefills the same thing, and the reason is not saving
+// keystrokes. A PutItem missing a key attribute is refused, and DynamoDB's
+// refusal talks about the key schema rather than naming the attribute you left
+// out — so an empty box invites the one mistake the form is least able to help
+// with. Prefilling makes the required shape something you edit rather than
+// something you remember, and the types mean a numeric key does not arrive
+// quoted.
+//
+// It is rendered into the textarea rather than set from JS so that it survives
+// a form reset without a round trip, and so the editor comes up with it
+// already in the buffer.
+func (t *Table) ItemSkeleton() string {
+	if t.HashKey == "" {
+		return "{\n  \n}" // no key schema to describe; leave room to type
+	}
+	var b strings.Builder
+	b.WriteString("{\n  ")
+	b.WriteString(strconv.Quote(t.HashKey) + ": " + emptyLiteralFor(t.HashType))
+	if t.RangeKey != "" {
+		b.WriteString(",\n  " + strconv.Quote(t.RangeKey) + ": " + emptyLiteralFor(t.RangeType))
+	}
+	b.WriteString("\n}")
+	return b.String()
+}
+
+// emptyLiteralFor is the empty JSON literal for a key attribute's type. B is
+// base64 text on the wire, so it starts out looking like S does.
+func emptyLiteralFor(attrType string) string {
+	if attrType == "N" {
+		return "0"
+	}
+	return `""`
+}
+
 // Item is one scanned row prepared for display.
 type Item struct {
 	PK      string
