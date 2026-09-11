@@ -317,6 +317,12 @@ a { color: inherit; text-decoration: none; }
 .mono { font-family: var(--mono); font-variant-ligatures: none; }
 .num { font-variant-numeric: tabular-nums; }
 .trunc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* An ellipsis needs a width to work against. A cell in an auto-layout table
+   grows to fit its content whatever overflow says, so .trunc on a <td> does
+   nothing at all until it is given a ceiling — which is how a long API
+   destination endpoint pushed its panel 657px wide inside a 463px column and
+   got clipped there, title attribute and all. */
+.tbl td.trunc { max-width: 220px; }
 
 /* ---------- shell ---------- */
 /* Fixed-viewport shell: the app never exceeds the window, so the panes
@@ -444,6 +450,13 @@ a.stat:hover { border-color: var(--ring); }
 .panel-h h2 { font-size: 13px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 8px; }
 .panel-b { padding: 6px 6px; }
 .split { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
+/* A grid column will not go below the intrinsic width of what is in it unless
+   it is told it may, and an ARN or a wide table has a large intrinsic width. So
+   between the container query's 480px and about 1000px the two columns refused
+   to shrink and pushed their content out of the detail pane, where it was
+   clipped with no way to scroll to it. Measured at a 1100px window: 993px of
+   content in an 812px box. */
+.split > * { min-width: 0; }
 @container pane (max-width: 480px) { .split { grid-template-columns: 1fr; } }
 /* A split placed under something needs air above it. Nothing gives a table or a
    panel a bottom margin — the vertical rhythm comes from .sec-title's margin —
@@ -457,13 +470,20 @@ a.stat:hover { border-color: var(--ring); }
 .sec-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); margin: 22px 0 10px; }
 
 /* ---------- table ---------- */
-.table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--card); }
+.table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow-x: auto; background: var(--card); }
+/* overflow-x rather than hidden: a table wider than its column is reachable
+   by scrolling instead of being silently cut off at the edge. hidden was the
+   original, chosen to clip the table's corners against the rounded border,
+   which auto does just as well. */
 /* A table that grows without limit scrolls inside itself rather than pushing
    the rest of the page past the fold. The IAM access log is the case that
    forced it: after a busy session it was 142 rows and 4,939px tall, so the
    policy generator and the simulator underneath it started 5,190px down — five
    screens, on a page whose whole point is those two tools. The header stays put
    while it scrolls, or the columns mean nothing halfway down. */
+/* A wrap nested inside a panel borrows the panel's border: its job there is
+   to let a wide table scroll, not to draw a second box around it. */
+.table-wrap.flush { border: 0; border-radius: 0; }
 .table-wrap.capped { max-height: 420px; overflow-y: auto; }
 .table-wrap.capped thead th { position: sticky; top: 0; z-index: 2; background: var(--card); }
 table.tbl { width: 100%; border-collapse: collapse; }
@@ -1340,8 +1360,13 @@ a.lo-card:hover { border-color: var(--accent); }
 .sub-row .sub-arn { flex: 1; min-width: 0; font-size: 11px; }
 .sub-row .copy-btn, .sub-row .icon-btn { opacity: 0; flex: none; }
 .sub-row:hover .copy-btn, .sub-row:hover .icon-btn { opacity: 1; }
-.sub-add { display: flex; gap: 8px; align-items: center; padding: 10px 13px; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--muted) 30%, transparent); }
+.sub-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 13px; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--muted) 30%, transparent); }
 .sub-add > select:first-child { width: 130px; flex: none; }
+/* The add-a-subscription row is several controls wide. In a narrow column it
+   used to force its panel past the pane and get clipped there, because a flex
+   row does not wrap unless it is told to: 635px of controls in a 463px panel,
+   measured. Wrapping is the honest answer -- the alternative is a column that
+   cannot get narrower, which is what pushed the whole detail body out. */
 .sub-add-adv { padding: 12px 13px 4px; background: color-mix(in srgb, var(--muted) 30%, transparent); border-top: 1px solid var(--border); display: grid; gap: 10px; }
 .sub-add-adv .raw-inline { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--foreground); cursor: pointer; }
 .icon-btn.on { color: var(--foreground); background: var(--muted); }
@@ -1804,6 +1829,14 @@ a.lo-card:hover { border-color: var(--accent); }
 /* The × inside a label badge — same affordance as a removable chip. */
 .lbl-x { background: none; border: 0; padding: 0 0 0 4px; font: inherit; color: inherit; cursor: pointer; opacity: .6; }
 .lbl-x:hover { opacity: 1; }
+/* The ✕ that detaches a key or drops a label is one glyph, and one glyph
+   measures 7×17 — small enough that hitting it is a knack rather than a click.
+   inline-flex with a floor gives it a real target without drawing anything
+   bigger: the badge around it is unchanged, the hit area is not. */
+.lbl-x, .chip .linkish {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 20px; min-height: 20px;
+}
 
 /* The transactional switch on the DynamoDB bulk bar (and the consistent-read
    toggle on the Get form): a small inline checkbox whose caption states the

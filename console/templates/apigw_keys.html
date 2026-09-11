@@ -44,9 +44,9 @@
           <button class="icon-btn sm danger" title="Delete plan" hx-post="{{$.Prefix}}/apigw-keys/plans/delete" hx-vals='{"id":"{{.ID}}"}' hx-target="#apigw-keys-body" hx-select="" hx-swap="outerHTML" hx-confirm="Delete usage plan “{{.Name}}”?">{{icon "trash"}}</button></div>
         <table class="tbl kv"><tbody>
           <tr><td>Stages</td><td>{{range .Stages}}<span class="chip"><a href="{{$.Prefix}}/apigw/{{.APIID}}?tab=stages">{{if .APIName}}{{.APIName}}{{else}}{{.APIID}}{{end}}</a> · {{.Stage}}</span> {{else}}<span class="dim">none — no method is opened by this plan</span>{{end}}
-            <form class="ex-grid" hx-post="{{$.Prefix}}/apigw-keys/plans/{{.ID}}/add-stage" hx-target="#apigw-keys-body" hx-select="" hx-swap="outerHTML"><select class="input" name="stage">{{range $.Stages}}<option value="{{.APIID}}:{{.Stage}}">{{.APIName}} · {{.Stage}}</option>{{end}}</select><button class="btn btn-outline btn-sm" type="submit">Add stage</button></form></td></tr>
+            <form class="ex-grid" hx-post="{{$.Prefix}}/apigw-keys/plans/{{.ID}}/add-stage" hx-target="#apigw-keys-body" hx-select="" hx-swap="outerHTML"><select class="input" title="API stage" name="stage">{{range $.Stages}}<option value="{{.APIID}}:{{.Stage}}">{{.APIName}} · {{.Stage}}</option>{{end}}</select><button class="btn btn-outline btn-sm" type="submit">Add stage</button></form></td></tr>
           <tr><td>Keys</td><td>{{$plan := .}}{{range .Keys}}<span class="chip">{{.Name}} <button type="button" class="linkish" hx-post="{{$.Prefix}}/apigw-keys/plans/{{$plan.ID}}/detach-key" hx-vals='{"key":"{{.ID}}"}' hx-target="#apigw-keys-body" hx-select="" hx-swap="outerHTML" title="Detach">✕</button></span> {{else}}<span class="dim">none</span>{{end}}
-            <form class="ex-grid" hx-post="{{$.Prefix}}/apigw-keys/plans/{{.ID}}/attach-key" hx-target="#apigw-keys-body" hx-select="" hx-swap="outerHTML"><select class="input" name="key">{{range $.Keys}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><button class="btn btn-outline btn-sm" type="submit">Attach key</button></form></td></tr>
+            <form class="ex-grid" hx-post="{{$.Prefix}}/apigw-keys/plans/{{.ID}}/attach-key" hx-target="#apigw-keys-body" hx-select="" hx-swap="outerHTML"><select class="input" title="API key" name="key">{{range $.Keys}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><button class="btn btn-outline btn-sm" type="submit">Attach key</button></form></td></tr>
         </tbody></table>
       </div>
       {{end}}{{else}}<div class="empty flat"><p>No usage plans — a key opens nothing until a plan admits it for a stage.</p></div>{{end}}
@@ -54,7 +54,7 @@
       <form class="form-b" hx-post="{{.Prefix}}/apigw-keys/plans/create" hx-target="#apigw-keys-body" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
         <div class="fgrid">
           <div class="field"><label>Name</label><input class="input" name="name" placeholder="partners" required></div>
-          <div class="field"><label>Covers</label><select class="input" name="stage"><option value="">no stage yet</option>{{range .Stages}}<option value="{{.APIID}}:{{.Stage}}">{{.APIName}} · {{.Stage}}</option>{{end}}</select></div>
+          <div class="field"><label>Covers</label><select class="input" title="API stage" name="stage"><option value="">no stage yet</option>{{range .Stages}}<option value="{{.APIID}}:{{.Stage}}">{{.APIName}} · {{.Stage}}</option>{{end}}</select></div>
         </div>
         <div class="field"><label>Description <span class="dim">optional</span></label><input class="input" name="description"></div>
         <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Create plan</button></div>

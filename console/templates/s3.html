@@ -294,13 +294,13 @@
     {{end}}</div>
     {{else}}<div class="empty" style="border:0"><p>No notifications — object events go nowhere yet.</p></div>{{end}}
     <form class="sub-add" hx-post="{{.Prefix}}/s3/{{.Bucket}}/notify-add" hx-target="#s3-notify" hx-select="" hx-swap="outerHTML">
-      <select class="input" name="dest" required>
+      <select class="input" title="Destination service" name="dest" required>
         <option value="">— destination —</option>
         {{range .Queues}}<option value="sqs:{{.Name}}">SQS · {{.Name}}</option>{{end}}
         {{range .Topics}}<option value="sns:{{.Name}}">SNS · {{.Name}}</option>{{end}}
         {{range .Functions}}<option value="lambda:{{.Name}}">Lambda · {{.Name}}</option>{{end}}
       </select>
-      <select class="input" name="event" style="width:170px;flex:none">
+      <select class="input" title="S3 event type" name="event" style="width:170px;flex:none">
         <option value="s3:ObjectCreated:*">ObjectCreated:*</option>
         <option value="s3:ObjectRemoved:*">ObjectRemoved:*</option>
       </select>

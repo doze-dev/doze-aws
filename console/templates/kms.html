@@ -100,7 +100,7 @@
       <div class="sec-title">Random bytes <span class="dim">— no key involved</span></div>
       <div class="panel">
         <form class="tag-row-form" hx-post="{{.Prefix}}/kms/random" hx-target="#kms-op-out" hx-select="" hx-swap="innerHTML">
-          <input class="input" name="bytes" type="number" min="1" max="1024" value="32">
+          <input class="input" name="bytes" title="Number of random bytes" type="number" min="1" max="1024" value="32">
           <button class="btn btn-outline btn-sm" type="submit">Generate</button>
         </form>
       </div>

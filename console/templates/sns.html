@@ -289,8 +289,8 @@
     <form x-data="{proto:'sqs', adv:false}" hx-post="{{.Prefix}}/sns/{{.Topic}}/subscribe" hx-target="#sns-subs" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){$el.reset();adv=false}">
       <div class="sub-add">
         <select class="input" name="protocol" x-model="proto" title="Protocol"><option value="sqs">sqs</option><option value="lambda">lambda</option><option value="http">http (webhook)</option></select>
-        <span x-show="proto==='sqs'" style="flex:1"><select class="input" name="endpoint" :disabled="proto!=='sqs'">{{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">{{.Name}}</option>{{end}}</select></span>
-        <span x-show="proto==='lambda'" x-cloak style="flex:1"><select class="input" name="endpoint" :disabled="proto!=='lambda'">{{range .Functions}}<option value="{{.ARN}}">{{.Name}}</option>{{end}}</select></span>
+        <span x-show="proto==='sqs'" style="flex:1"><select class="input" title="Subscription endpoint" name="endpoint" :disabled="proto!=='sqs'">{{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">{{.Name}}</option>{{end}}</select></span>
+        <span x-show="proto==='lambda'" x-cloak style="flex:1"><select class="input" title="Subscription endpoint" name="endpoint" :disabled="proto!=='lambda'">{{range .Functions}}<option value="{{.ARN}}">{{.Name}}</option>{{end}}</select></span>
         <span x-show="proto==='http'" x-cloak style="flex:1"><input class="input" name="endpoint" placeholder="http://localhost:9000/hook" :disabled="proto!=='http'"></span>
         <button type="button" class="icon-btn sm" :class="adv&&'on'" @click="adv=!adv" title="Filter &amp; delivery options">{{icon "sliders"}}</button>
         <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Subscribe</button>

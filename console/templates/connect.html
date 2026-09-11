@@ -13,7 +13,7 @@
           <div class="sec-title">AWS CLI profile</div>
           <p class="mini-note">A named profile keeps every later command short, and leaves your real AWS credentials untouched.</p>
           <div class="code-out">
-            <div class="co-h"><span>~/.aws/config</span><button class="copy-btn" data-copy="[profile doze]
+            <div class="co-h"><span>~/.aws/config</span><button class="copy-btn" title="Copy to clipboard" data-copy="[profile doze]
 region = {{.Region}}
 output = json
 endpoint_url = {{.URL}}">{{icon "copy"}}</button></div>
@@ -23,7 +23,7 @@ output = json
 endpoint_url = {{.URL}}</pre>
           </div>
           <div class="code-out" style="margin-top:10px">
-            <div class="co-h"><span>~/.aws/credentials</span><button class="copy-btn" data-copy="[doze]
+            <div class="co-h"><span>~/.aws/credentials</span><button class="copy-btn" title="Copy to clipboard" data-copy="[doze]
 aws_access_key_id = {{.Key}}
 aws_secret_access_key = {{.Secret}}">{{icon "copy"}}</button></div>
             <pre>[doze]
@@ -31,7 +31,7 @@ aws_access_key_id = {{.Key}}
 aws_secret_access_key = {{.Secret}}</pre>
           </div>
           <div class="code-out" style="margin-top:10px">
-            <div class="co-h"><span>then</span><button class="copy-btn" data-copy="aws --profile doze s3 ls">{{icon "copy"}}</button></div>
+            <div class="co-h"><span>then</span><button class="copy-btn" title="Copy to clipboard" data-copy="aws --profile doze s3 ls">{{icon "copy"}}</button></div>
             <pre>aws --profile doze s3 ls
 aws --profile doze sqs list-queues</pre>
           </div>
@@ -42,7 +42,7 @@ aws --profile doze sqs list-queues</pre>
           <div class="sec-title">Environment</div>
           <p class="mini-note">No files touched. Every AWS SDK reads these, so it works for one-off shells and CI alike.</p>
           <div class="code-out">
-            <div class="co-h"><span>shell</span><button class="copy-btn" data-copy="export AWS_ENDPOINT_URL={{.URL}}
+            <div class="co-h"><span>shell</span><button class="copy-btn" title="Copy to clipboard" data-copy="export AWS_ENDPOINT_URL={{.URL}}
 export AWS_ACCESS_KEY_ID={{.Key}}
 export AWS_SECRET_ACCESS_KEY={{.Secret}}
 export AWS_REGION={{.Region}}">{{icon "copy"}}</button></div>
@@ -54,7 +54,7 @@ export AWS_REGION={{.Region}}</pre>
 
           <div class="sec-title" style="margin-top:16px">Terraform</div>
           <div class="code-out">
-            <div class="co-h"><span>provider.tf</span><button class="copy-btn" data-copy='provider "aws" {
+            <div class="co-h"><span>provider.tf</span><button class="copy-btn" title="Copy to clipboard" data-copy='provider "aws" {
   region                      = "{{.Region}}"
   access_key                  = "{{.Key}}"
   secret_key                  = "{{.Secret}}"
@@ -93,7 +93,7 @@ export AWS_REGION={{.Region}}</pre>
       <div class="sec-title" style="margin-top:18px">Deploy with what you already have</div>
       <p class="mini-note">There is no doze-specific file format. These read the environment above and need no further setup.</p>
       <div class="code-out">
-        <div class="co-h"><span>deploy</span><button class="copy-btn" data-copy="aws cloudformation deploy --template-file template.yaml --stack-name shop
+        <div class="co-h"><span>deploy</span><button class="copy-btn" title="Copy to clipboard" data-copy="aws cloudformation deploy --template-file template.yaml --stack-name shop
 sam deploy --stack-name shop --s3-bucket artifacts
 cdk bootstrap &amp;&amp; cdk deploy">{{icon "copy"}}</button></div>
         <pre>aws cloudformation deploy --template-file template.yaml --stack-name shop

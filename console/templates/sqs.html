@@ -334,7 +334,7 @@
           hx-target="#sqs-config" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
       <input class="input" name="label" placeholder="Label" required autocomplete="off">
       <input class="input" name="account" placeholder="000000000000" autocomplete="off">
-      <select class="input" name="action">
+      <select class="input" title="Policy action" name="action">
         <option>SendMessage</option><option>ReceiveMessage</option><option>DeleteMessage</option>
         <option>ChangeMessageVisibility</option><option>GetQueueAttributes</option><option>*</option>
       </select>

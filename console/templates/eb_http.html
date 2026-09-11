@@ -91,13 +91,13 @@
     {{end}}</tbody></table>{{else}}<div class="empty"><p>No connections — create one to hold a credential.</p></div>{{end}}
   </div>
   <div class="panel"><div class="panel-h"><h2>{{icon "send"}} API destinations <span class="badge">{{len .Destinations}}</span></h2></div>
-    {{if .Destinations}}<table class="tbl"><thead><tr><th>Destination</th><th>Endpoint</th><th>State</th><th class="right">Actions</th></tr></thead><tbody>{{range .Destinations}}
+    {{if .Destinations}}<div class="table-wrap flush"><table class="tbl"><thead><tr><th>Destination</th><th>Endpoint</th><th>State</th><th class="right">Actions</th></tr></thead><tbody>{{range .Destinations}}
       <tr><td class="mono"><button type="button" class="linkish" hx-get="{{$.Prefix}}/eb/destinations/destination/{{.Name}}" hx-target="#eb-http-detail" hx-select="" hx-swap="innerHTML">{{.Name}}</button></td>
         <td class="mono trunc dim" title="{{.Endpoint}}">{{.Method}} {{.Endpoint}}</td><td><span class="badge">{{.State}}</span></td>
         <td class="right"><div class="row-actions">
           <button class="icon-btn sm danger" title="Delete destination" hx-post="{{$.Prefix}}/eb/destinations/delete-destination" hx-vals='{"name":"{{.Name}}"}' hx-target="#eb-http-body" hx-select="" hx-swap="outerHTML" hx-confirm="Delete API destination “{{.Name}}”?">{{icon "trash"}}</button>
         </div></td></tr>
-    {{end}}</tbody></table>{{else}}<div class="empty"><p>No API destinations — create one on a connection, then add it as a rule target.</p></div>{{end}}
+    {{end}}</tbody></table></div>{{else}}<div class="empty"><p>No API destinations — create one on a connection, then add it as a rule target.</p></div>{{end}}
   </div>
 </div>
 {{end}}

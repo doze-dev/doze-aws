@@ -840,7 +840,7 @@
         <div class="pb-row">
           <span class="pb-l">Principal</span>
           <div class="pb-chips">
-            <select class="input pb-psel" x-model="st.pmode" @change="if(st.pmode==='typed'&&!st.prows.length)addPrincipalRow(st); sync()">
+            <select class="input pb-psel" title="How this statement names its principal" x-model="st.pmode" @change="if(st.pmode==='typed'&&!st.prows.length)addPrincipalRow(st); sync()">
               <option value="none">— none —</option><option value="any">* (anyone)</option><option value="typed">by type</option>
             </select>
             <button type="button" class="pb-not" x-show="st.pmode!=='none'" :class="st.pnot && 'on'" title="NotPrincipal" @click="st.pnot=!st.pnot; sync()">not</button>
@@ -848,7 +848,7 @@
         </div>
         <template x-for="(pr, pi) in st.prows" :key="pi">
           <div class="pb-row pb-sub" x-show="st.pmode==='typed'">
-            <select class="input pb-psel" x-model="pr.type" @change="sync()">
+            <select class="input pb-psel" title="Principal type" x-model="pr.type" @change="sync()">
               <template x-for="pt in principalTypes"><option x-text="pt"></option></template>
             </select>
             <input class="input mono" placeholder="arn:aws:iam::000000000000:user/x, comma-separated" x-model="pr.vals" @input="sync()" spellcheck="false">
