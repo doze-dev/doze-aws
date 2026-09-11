@@ -1361,7 +1361,7 @@ a.lo-card:hover { border-color: var(--accent); }
 .sub-row .copy-btn, .sub-row .icon-btn { opacity: 0; flex: none; }
 .sub-row:hover .copy-btn, .sub-row:hover .icon-btn { opacity: 1; }
 .sub-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 13px; border-top: 1px solid var(--border); background: color-mix(in srgb, var(--muted) 30%, transparent); }
-.sub-add > select:first-child { width: 130px; flex: none; }
+.sub-add > .ds:first-child { width: 130px; flex: none; }
 /* The add-a-subscription row is several controls wide. In a narrow column it
    used to force its panel past the pane and get clipped there, because a flex
    row does not wrap unless it is told to: 635px of controls in a 463px panel,
@@ -1415,7 +1415,7 @@ a.lo-card:hover { border-color: var(--accent); }
 .fv-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .fv-row { display: flex; gap: 8px; align-items: center; }
 .fv-row .fv-tok { font-size: 12px; font-family: var(--mono); color: var(--accent); min-width: 70px; }
-.fv-row select.input { width: 110px; }
+.fv-row .ds { width: 110px; flex: none; }
 .fv-row input.input { flex: 1; max-width: 280px; }
 /* item rows open the drawer */
 .ddb-row { cursor: pointer; }
@@ -2001,7 +2001,7 @@ a.lo-card:hover { border-color: var(--accent); }
 .sfn-routes { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .sfn-route { display: inline-flex; align-items: center; gap: 4px; }
 .sfn-route .input { height: 28px; width: 64px; padding: 0 8px; font-size: 12px; }
-.sfn-route select.input { width: 72px; }
+.sfn-route .ds { width: 72px; flex: none; }
 /* Map Run panels: the count table is a strip, not a list — one row, seven
    right-aligned numbers, and the controls under it. */
 .sfn-maprun .chips { padding: 8px 16px 0; }
@@ -2074,3 +2074,60 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 /* One observation is a dot, not a line: a polyline through a single point has
    zero area and draws nothing, so a sparse chart would read as broken. */
 .cw-dot { fill: var(--svc-cw); }
+
+/* ---------- custom select (static/select.js) ----------
+   The native control is still in the DOM and still the one that posts; this is
+   the surface drawn on top of it. It is positioned rather than hidden with
+   display:none so that `required` can still focus it when a submit is blocked
+   — a browser will not report a validation message on an element it cannot
+   show, and the form would fail silently instead. */
+.ds { position: relative; width: 100%; }
+.ds-native {
+  position: absolute; left: 0; bottom: 0; width: 100%; height: 1px;
+  opacity: 0; pointer-events: none; z-index: -1;
+}
+.ds-trigger {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  cursor: pointer; font: inherit; font-size: 13px;
+}
+.ds-trigger.input { height: 32px; padding: 0 8px 0 10px; }
+.ds-trigger:disabled { opacity: .55; cursor: not-allowed; }
+.ds-trigger:focus-visible {
+  outline: none; border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 20%, transparent);
+}
+.ds-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-text.ds-empty::before { content: "Select…"; color: var(--muted-foreground); }
+.ds-caret { color: var(--muted-foreground); font-size: 11px; line-height: 1; margin-top: -3px; }
+.ds[open] .ds-caret, .ds-trigger[aria-expanded="true"] .ds-caret { color: var(--foreground); }
+
+.ds-pop {
+  position: absolute; z-index: 60; top: calc(100% + 4px); left: 0; min-width: 100%;
+  max-width: min(420px, 90vw);
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: 0 10px 24px -8px rgb(0 0 0 / .28), 0 2px 6px -2px rgb(0 0 0 / .16);
+  padding: 4px; overflow: hidden;
+}
+.ds.ds-up .ds-pop { top: auto; bottom: calc(100% + 4px); }
+.ds-filter {
+  width: 100%; height: 28px; margin-bottom: 4px; padding: 0 8px;
+  font: inherit; font-size: 12px; color: var(--foreground);
+  background: var(--background); border: 1px solid var(--input); border-radius: calc(var(--radius) - 2px);
+}
+.ds-filter:focus { outline: none; border-color: var(--ring); }
+.ds-filter[hidden] { display: none; }
+.ds-list { max-height: 240px; overflow-y: auto; }
+.ds-opt {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  border-radius: calc(var(--radius) - 2px); cursor: pointer; font-size: 13px;
+  color: var(--foreground);
+}
+.ds-opt.on { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.ds-opt[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
+.ds-tick { width: 12px; flex: none; color: var(--accent); font-size: 11px; }
+.ds-opt-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-none { padding: 8px; font-size: 12px; color: var(--muted-foreground); }
+
+/* The filter row in the traffic header is a chip, not a field. */
+.ds-chip { width: auto; }
+.ds-trigger.chip { cursor: pointer; }
