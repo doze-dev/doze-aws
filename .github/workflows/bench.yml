@@ -1,0 +1,43 @@
+name: Bench
+
+on:
+  schedule:
+    - cron: '41 4 * * 0' # weekly, Sunday 04:41 UTC
+  workflow_dispatch:
+  # Also on a push to main, so a change that makes a hot path dramatically
+  # slower shows up in the run for that commit rather than a week later.
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      # Deliberately NOT a pass/fail gate.
+      #
+      # A shared GitHub runner varies by tens of percent between runs of the
+      # same commit, so a threshold here would fire on noise, and a check that
+      # cries wolf is a check people turn off. What this job is for is
+      # catching a benchmark that stops COMPILING or starts PANICKING — which
+      # happens quietly, because nothing else builds them — and leaving a
+      # number in the log that a human can eyeball against the previous run.
+      #
+      # Real comparisons are done locally, where the machine is quiet:
+      #   task bench BENCHTIME=2s > new.txt
+      #   benchstat old.txt new.txt
+      - name: Run benchmarks
+        run: go test -run '^$' -bench . -benchmem -benchtime 200x ./... | tee bench.txt
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-${{ github.sha }}
+          path: bench.txt

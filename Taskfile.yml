@@ -96,6 +96,15 @@ tasks:
     cmds:
       - go test ./internal/sigparse/ -run '^$' -fuzz FuzzParse -fuzztime 30s
 
+  bench:
+    desc: 'Benchmarks for the hot paths (BENCHTIME, default 1s). Pipe to a file and compare with benchstat.'
+    vars:
+      BENCHTIME: '{{.BENCHTIME | default "1s"}}'
+    cmds:
+      # -run '^$' so no tests run alongside: a benchmark binary that also
+      # boots stacks for the test functions measures the wrong thing.
+      - go test -run '^$' -bench . -benchmem -benchtime {{.BENCHTIME}} ./...
+
   soak:
     desc: 'Cross-service soak under sustained load (SOAK_DURATION, default 2m)'
     env:
