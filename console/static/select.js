@@ -103,6 +103,11 @@
     pop.appendChild(list);
     wrap.appendChild(pop);
 
+    // Option ids have to be unique across the document, not just within this
+    // listbox: aria-activedescendant resolves an id globally, so two popovers
+    // numbering their rows from zero would point a screen reader at the wrong
+    // one. A per-instance prefix is the whole fix.
+    var uid = "ds" + (Math.random().toString(36).slice(2, 8));
     var state = { open: false, active: -1, items: [], typed: "", typedAt: 0 };
     sel.__ds = { sync: syncFromNative };
 
@@ -138,7 +143,7 @@
         var row = document.createElement("div");
         row.className = "ds-opt";
         row.setAttribute("role", "option");
-        row.id = "dsopt-" + n;
+        row.id = uid + "-opt-" + n;
         var chosen = o.i === sel.selectedIndex;
         row.setAttribute("aria-selected", String(chosen));
         if (o.disabled) row.setAttribute("aria-disabled", "true");

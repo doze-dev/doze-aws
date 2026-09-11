@@ -279,7 +279,7 @@
           </div>
         </div>
         <div class="pb-row pb-cond">
-          <select class="input" x-model="r.draftType">
+          <select class="input" title="Match type for this condition" x-model="r.draftType">
             <template x-for="t in condTypes"><option :value="t.k" x-text="t.label"></option></template>
           </select>
           <input class="input mono" x-model="r.draftVal" spellcheck="false"

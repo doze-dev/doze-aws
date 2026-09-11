@@ -94,4 +94,78 @@ test.describe('custom select', () => {
     await page.getByRole('button', { name: 'Subscribe' }).click();
     await expect(page.locator('#sns-subs')).toContainText(queue);
   });
+
+  // The option rows only exist while a popover is open, so any check that walks
+  // the page at rest is blind to them.
+  //
+  // The fixture is built here rather than found on a page: which pages happen
+  // to carry two selects at once is data-dependent, and a guard that quietly
+  // finds only one is a guard that passes for the wrong reason. Two is the
+  // minimum that can collide.
+  //
+  // What it guards: the first version of the component numbered its rows from
+  // zero globally — dsopt-0, dsopt-1 — so any two open listboxes left colliding
+  // ids behind. aria-activedescendant resolves an id against the whole
+  // document, so a screen reader would have been pointed at a row belonging to
+  // a different control.
+  test('two open listboxes do not collide, and each announces itself', async ({ page }) => {
+    await page.goto('');
+
+    const report = await page.evaluate(() => {
+      const host = document.createElement('div');
+      host.id = 'ds-fixture';
+      for (const name of ['alpha', 'beta']) {
+        const s = document.createElement('select');
+        s.name = name;
+        s.title = name + ' picker';
+        for (const v of ['one', 'two', 'three']) {
+          const o = document.createElement('option');
+          o.value = v;
+          o.textContent = v;
+          s.appendChild(o);
+        }
+        host.appendChild(s);
+      }
+      document.body.appendChild(host);
+      (window as any).dozeSelect.upgradeAll(host);
+
+      // Open both. Clicking the second would close the first, so the triggers
+      // are opened directly — the rows are what matter, not the visibility.
+      host.querySelectorAll('.ds-trigger').forEach((t) => (t as HTMLElement).click());
+
+      const bad: string[] = [];
+      const lists = Array.from(host.querySelectorAll('.ds-list'));
+      const populated = lists.filter((l) => l.children.length).length;
+      if (populated < 2) bad.push(`only ${populated} listbox(es) rendered rows; nothing was compared`);
+
+      const seen = new Map<string, number>();
+      for (const e of Array.from(document.querySelectorAll('[id]'))) {
+        seen.set(e.id, (seen.get(e.id) ?? 0) + 1);
+      }
+      for (const [id, n] of seen) if (n > 1) bad.push(`#${id} appears ${n} times`);
+
+      for (const t of Array.from(host.querySelectorAll('.ds-trigger'))) {
+        if (t.getAttribute('aria-haspopup') !== 'listbox') bad.push('a trigger has no aria-haspopup=listbox');
+        if (t.getAttribute('aria-expanded') === null) bad.push('a trigger has no aria-expanded');
+        if (!((t.textContent || '').trim() || t.getAttribute('aria-label') || t.getAttribute('aria-labelledby'))) {
+          bad.push('a trigger announces nothing');
+        }
+      }
+      for (const l of lists) if (l.getAttribute('role') !== 'listbox') bad.push('a list is not role=listbox');
+
+      // An active row has to resolve to a row in its OWN list, which is the
+      // thing duplicate ids actually break.
+      for (const l of lists) {
+        const active = l.getAttribute('aria-activedescendant');
+        if (!active) continue;
+        const target = document.getElementById(active);
+        if (!target || !l.contains(target)) bad.push(`aria-activedescendant ${active} resolves outside its list`);
+      }
+
+      host.remove();
+      return bad;
+    });
+
+    expect(report, report.join('\n')).toEqual([]);
+  });
 });
