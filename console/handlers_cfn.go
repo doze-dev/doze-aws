@@ -211,3 +211,18 @@ func (c *Console) cfnResource(w http.ResponseWriter, r *http.Request) {
 	}
 	c.partial(w, "cfn_resource_detail", map[string]any{"R": info})
 }
+
+// cfnExportTemplate answers with everything currently running as a
+// CloudFormation template — the same bytes `doze-aws export` writes. The create
+// page's "Start from what's running" button loads it into the editor, so a
+// first template is something you edit rather than something you compose from
+// nothing against a dialect you may not know.
+func (c *Console) cfnExportTemplate(w http.ResponseWriter, r *http.Request) {
+	out, err := c.be.ExportTemplate(r.Context())
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write(out)
+}

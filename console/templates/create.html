@@ -290,7 +290,15 @@
           <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/cfn/summary" hx-include="closest form" hx-target="#cfn-params" hx-select="" hx-swap="innerHTML">{{icon "settings"}} Load parameters</button>
         </div>
       </div><div class="form-b">
-        <div class="field"><label>Template body <span class="dim">JSON or YAML</span></label>
+        <div class="field"><label>Template body <span class="dim">JSON or YAML</span>
+            {{/* The emptiest box in the console had the highest prerequisite:
+                 the YAML dialect AND which resource types this emulator
+                 supports. `doze-aws export` could already answer the second
+                 half and was CLI-only, so this puts it a click away. */}}
+            <button type="button" class="btn btn-outline btn-sm lbl-btn"
+                    onclick="dozeCfnStarter(this, '{{.Prefix}}')"
+                    title="Write everything currently running into the editor as a template">
+              {{icon "download"}} Start from what&rsquo;s running</button></label>
           <textarea name="template" data-editor rows="14" spellcheck="false" required placeholder="Resources:&#10;  Queue:&#10;    Type: AWS::SQS::Queue"></textarea></div>
         <div id="cfn-validate-out"></div>
       </div></div>

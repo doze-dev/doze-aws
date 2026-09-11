@@ -418,6 +418,11 @@ textarea { height: auto; padding: 8px 10px; font-family: var(--mono); font-size:
 .input::placeholder, textarea::placeholder { color: var(--muted-foreground); }
 .field { display: flex; flex-direction: column; gap: 6px; }
 .field label { font-size: 12px; font-weight: 550; }
+/* A button living inside a field's label, for actions that fill the field in
+   ("Start from what's running"). The label is the only row with space for it,
+   and putting it there keeps the action next to what it acts on. */
+.field label:has(.lbl-btn) { display: flex; align-items: center; gap: 8px; }
+.field label .lbl-btn { margin-left: auto; font-weight: 500; }
 .field .hint { font-size: 12px; color: var(--muted-foreground); }
 /* live humanized echo under duration inputs ("345600" → "= 4 days") */
 .dur-echo { font-size: 11px; color: var(--muted-foreground); min-height: 13px; }

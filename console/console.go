@@ -302,6 +302,7 @@ func (c *Console) routes() {
 	// CloudFormation.
 	m.HandleFunc("GET "+p+"/cfn", c.cfnStacks)
 	m.HandleFunc("GET "+p+"/cfn/create", c.createPage("cfn", "cfn_create"))
+	m.HandleFunc("GET "+p+"/cfn/export-template", c.cfnExportTemplate) // seeds the create page from what is running
 	m.HandleFunc("POST "+p+"/cfn/create", c.cfnCreate)
 	m.HandleFunc("POST "+p+"/cfn/validate", c.cfnValidate) // HTMX partial (ValidateTemplate)
 	m.HandleFunc("POST "+p+"/cfn/summary", c.cfnSummary)   // HTMX partial (GetTemplateSummary)

@@ -206,6 +206,47 @@
     upgradeAll: upgradeAll,
   };
 
+  // Load the running stack into the CloudFormation create page's editor, as a
+  // template. Used by the "Start from what's running" button.
+  //
+  // Replacing what is in the editor asks first, and asks on the button rather
+  // than in a dialog: a second click inside four seconds does it. The box is
+  // almost always empty on a create page, so the common path is one click, and
+  // the uncommon one cannot silently discard a template someone was typing.
+  window.dozeCfnStarter = function (btn, prefix) {
+    var ta = document.querySelector('textarea[name="template"]');
+    if (!ta) return;
+    var current = (ta.__cm ? ta.__cm.getValue() : ta.value).trim();
+    if (current && !btn._dozeArmed) {
+      btn._dozeArmed = true;
+      var label = btn.innerHTML;
+      btn.textContent = "Replace what's there?";
+      setTimeout(function () {
+        btn._dozeArmed = false;
+        btn.innerHTML = label;
+      }, 4000);
+      return;
+    }
+    btn._dozeArmed = false;
+    btn.disabled = true;
+    fetch(prefix + "/cfn/export-template")
+      .then(function (r) {
+        if (!r.ok) throw new Error("export failed");
+        return r.text();
+      })
+      .then(function (yaml) { window.dozeEditor.set(ta, yaml); })
+      .catch(function () {
+        // The console's inline-error ladder hangs off htmx requests; this is a
+        // plain fetch, so the button says it and puts itself back. Nothing is
+        // reloaded and nothing in the editor is touched — a failed export must
+        // not cost someone the template they were writing.
+        var label = btn.innerHTML;
+        btn.textContent = "Could not read the stack";
+        setTimeout(function () { btn.innerHTML = label; }, 2500);
+      })
+      .finally(function () { btn.disabled = false; });
+  };
+
   // Fetch a random password from Secrets Manager and drop it into the panel's
   // editor as a starter JSON secret. Used by the "Generate password" button.
   window.dozeGenPassword = function (btn, prefix) {

@@ -73,28 +73,36 @@ test.describe('items', () => {
     await page.goto(`ddb/${table}`);
     await page.locator('.acts').getByRole('button', { name: 'Add item' }).click();
 
-    const geo = await page.evaluate(() => {
-      const ta = document.querySelector('#ddb-item-editor') as HTMLTextAreaElement & {
-        __cm?: any;
-      };
-      const cm = ta.__cm;
-      const wrap = cm.getWrapperElement() as HTMLElement;
-      const gutter = wrap.querySelector('.CodeMirror-gutters') as HTMLElement;
-      const lines = wrap.querySelector('.CodeMirror-lines') as HTMLElement;
-      return {
-        value: cm.getValue(),
-        gutterWidth: Math.round(gutter.getBoundingClientRect().width),
-        textOffset: Math.round(
-          lines.getBoundingClientRect().left - gutter.getBoundingClientRect().left
-        ),
-      };
-    });
+    const measure = () =>
+      page.evaluate(() => {
+        const ta = document.querySelector('#ddb-item-editor') as HTMLTextAreaElement & {
+          __cm?: any;
+        };
+        const cm = ta.__cm;
+        const wrap = cm.getWrapperElement() as HTMLElement;
+        const gutter = wrap.querySelector('.CodeMirror-gutters') as HTMLElement;
+        const lines = wrap.querySelector('.CodeMirror-lines') as HTMLElement;
+        return {
+          value: cm.getValue(),
+          gutterWidth: Math.round(gutter.getBoundingClientRect().width),
+          textOffset: Math.round(
+            lines.getBoundingClientRect().left - gutter.getBoundingClientRect().left
+          ),
+        };
+      });
 
+    // Polled, not read once. The measurement only becomes possible when the
+    // dialog is laid out, and the refresh that follows rides an
+    // IntersectionObserver — so reading immediately after the click is a race,
+    // and the honest claim is that the gutter ENDS UP correct rather than that
+    // it is correct within one microtask of the click.
+    await expect.poll(async () => (await measure()).gutterWidth).toBeGreaterThan(20);
+
+    const geo = await measure();
     // A string key is quoted and a numeric key is not: DynamoDB refuses a
     // number sent as a string, so the types are the useful half of the prefill.
     expect(geo.value).toBe('{\n  "pk": "",\n  "ts": 0\n}');
     // The text has to start past the gutter, not on top of it.
-    expect(geo.gutterWidth).toBeGreaterThan(20);
     expect(geo.textOffset).toBeGreaterThanOrEqual(geo.gutterWidth - 1);
   });
 
