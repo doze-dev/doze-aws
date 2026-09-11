@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -35,6 +36,49 @@ type GSI struct {
 	HashType  string
 	RangeKey  string
 	RangeType string
+}
+
+// keyMoved reports the key attribute an edit would move the item to, with the
+// two values as the user would read them, or "" when the key is untouched.
+//
+// PutItem is keyed: change part of the key and you have not edited the item,
+// you have written a different one and left the original where it was. That is
+// correct DynamoDB and a trap behind a button labelled Edit, which is why this
+// is checked rather than explained in a hint nobody reads.
+//
+// Both documents are the console's plain JSON, so a string compares as a string
+// and a number as a float64 on both sides. The comparison is deliberately over
+// the decoded values rather than the raw text: reformatting 12 as 12.0, or
+// reordering the attributes, is not a key change.
+func keyMoved(t *Table, origJSON, newJSON string) (attr, from, to string) {
+	var orig, next map[string]any
+	if json.Unmarshal([]byte(origJSON), &orig) != nil || json.Unmarshal([]byte(newJSON), &next) != nil {
+		return "", "", "" // unparseable is PutItemJSON's error to report, not this one
+	}
+	for _, k := range []string{t.HashKey, t.RangeKey} {
+		if k == "" {
+			continue
+		}
+		a, b := orig[k], next[k]
+		if reflect.DeepEqual(a, b) {
+			continue
+		}
+		return k, displayKeyVal(a), displayKeyVal(b)
+	}
+	return "", "", ""
+}
+
+// displayKeyVal renders a key value the way the editor showed it, so the
+// refusal quotes what the user typed rather than Go's rendering of it.
+func displayKeyVal(v any) string {
+	if v == nil {
+		return "absent"
+	}
+	b, err := json.Marshal(v)
+	if err != nil {
+		return fmt.Sprint(v)
+	}
+	return string(b)
 }
 
 // ItemSkeleton is the starting content for the add-item editor: this table's

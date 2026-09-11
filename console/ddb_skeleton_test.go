@@ -81,3 +81,54 @@ func TestPutItemEditorOpensWithTheKeysInIt(t *testing.T) {
 		t.Errorf("the add-item editor did not open with the key schema in it; wanted\n%s\nin the page", want)
 	}
 }
+
+// Editing an item and changing part of its key is not an edit: PutItem is
+// keyed, so it stores a second item and leaves the original. The console
+// refuses it rather than doing it silently, because the button says Edit.
+func TestEditRefusesToMoveTheKey(t *testing.T) {
+	h := newConsole(t)
+	create(t, h, "/_console/ddb/create", url.Values{
+		"name": {"keymove"}, "hash_key": {"pk"}, "hash_type": {"S"},
+		"range_key": {"ts"}, "range_type": {"N"},
+	})
+	orig := `{"pk":"abc","ts":0,"note":"first"}`
+	if rec := req(t, h, "POST", "/_console/ddb/keymove/put", url.Values{"item": {orig}}); rec.Code != 200 {
+		t.Fatalf("seed put: %d\n%s", rec.Code, rec.Body)
+	}
+
+	// Changing a non-key attribute is a real edit and must go through.
+	ok := req(t, h, "POST", "/_console/ddb/keymove/put", url.Values{
+		"item": {`{"pk":"abc","ts":0,"note":"second"}`}, "orig_item": {orig},
+	})
+	if ok.Code != 200 {
+		t.Fatalf("editing a non-key attribute was refused: %d\n%s", ok.Code, ok.Body)
+	}
+
+	// Changing the sort key is refused, and the refusal names the attribute and
+	// both values rather than leaving the user to work out what happened.
+	moved := req(t, h, "POST", "/_console/ddb/keymove/put", url.Values{
+		"item": {`{"pk":"abc","ts":12,"note":"first"}`}, "orig_item": {orig},
+	})
+	if moved.Code != 400 {
+		t.Fatalf("moving the sort key was accepted: %d\n%s", moved.Code, moved.Body)
+	}
+	for _, want := range []string{"ts", "0", "12", "NEW item"} {
+		if !strings.Contains(moved.Body.String(), want) {
+			t.Errorf("refusal does not mention %q:\n%s", want, moved.Body)
+		}
+	}
+
+	// And the table still holds exactly the one item.
+	page := req(t, h, "GET", "/_console/ddb/keymove", nil).Body.String()
+	if strings.Contains(page, ">12<") {
+		t.Error("the refused edit still wrote a second item")
+	}
+
+	// Adding an item sends no orig_item, so any key is allowed.
+	add := req(t, h, "POST", "/_console/ddb/keymove/put", url.Values{
+		"item": {`{"pk":"abc","ts":12,"note":"deliberate"}`},
+	})
+	if add.Code != 200 {
+		t.Fatalf("Add item was blocked by the edit guard: %d\n%s", add.Code, add.Body)
+	}
+}

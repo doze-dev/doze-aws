@@ -269,7 +269,24 @@ func (c *Console) ddbExplore(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) ddbPutItem(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("table")
-	if err := c.be.PutItemJSON(r.Context(), name, r.FormValue("item")); err != nil {
+	item := r.FormValue("item")
+	// orig_item is set only when this dialog was opened by the drawer's Edit
+	// button, and carries the item as it stood. Adding an item does not send it.
+	if orig := r.FormValue("orig_item"); orig != "" {
+		t, err := c.be.DescribeTable(r.Context(), name)
+		if err != nil {
+			c.fail(w, err)
+			return
+		}
+		if attr, from, to := keyMoved(t, orig, item); attr != "" {
+			c.fail(w, fmt.Errorf("this would write a NEW item rather than edit this one: %s is part of the "+
+				"key and changes from %s to %s. An item's key is its identity, so PutItem would store a "+
+				"second item and leave this one untouched. Use Add item if that is what you meant, or "+
+				"Update item to change the other attributes in place", attr, from, to))
+			return
+		}
+	}
+	if err := c.be.PutItemJSON(r.Context(), name, item); err != nil {
 		c.fail(w, err)
 		return
 	}
