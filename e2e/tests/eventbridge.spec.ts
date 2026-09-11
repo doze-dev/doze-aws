@@ -145,7 +145,9 @@ test.describe('EventBridge', () => {
     });
 
     await test.step('7: archive captures events and replay redelivers to the target', async () => {
-      await page.goto(`eb/${bus}`);
+      // Archives and replays live on their own tab now — the bus page used to
+      // render every panel at once.
+      await page.goto(`eb/${bus}?tab=archives`);
       await page
         .locator('.tag-row-form input[name="name"]')
         .fill(archiveName);
@@ -157,7 +159,9 @@ test.describe('EventBridge', () => {
       // Archives only capture events published AFTER they're created, so
       // publish a fresh matching event now (also delivers directly, since
       // the rule is enabled again) — this is what the archive will capture
-      // and what replay will redeliver a second time.
+      // and what replay will redeliver a second time. Back to the Rules tab:
+      // the test-event form lives beside the rules it paints verdicts on.
+      await page.goto(`eb/${bus}`);
       await page.locator('input[name="source"]').fill('orders');
       await page.locator('input[name="detail_type"]').fill('OrderCreated');
       await setEditor('#eb-event-form textarea[name="detail"]', MATCHING_DETAIL);
@@ -167,14 +171,29 @@ test.describe('EventBridge', () => {
       const beforeReplay = await page.locator('#message-panel-wrap .msg').count();
       expect(beforeReplay).toBeGreaterThanOrEqual(2); // the two direct publishes above
 
-      await page.goto(`eb/${bus}`);
+      await page.goto(`eb/${bus}?tab=archives`);
       const archiveRow = page.locator('#eb-archives tr', { hasText: archiveName });
       await archiveRow.getByRole('button', { name: /Replay/ }).click();
       const replayToast = await waitForToast();
       expect(replayToast).toMatch(/Replaying/i);
 
-      const replayRow = page.locator('#eb-archives tr', { hasText: archiveName }).last();
+      // #eb-replays, not #eb-archives: the two panels live in different columns
+      // now, so starting a replay swaps Archives and repaints Replays out of
+      // band.
+      const replayRow = page.locator('#eb-replays tr', { hasText: archiveName }).last();
       await expect(replayRow.locator('.badge')).toHaveText('COMPLETED');
+
+      // And Replays must still be where it belongs. Content alone does not
+      // prove the out-of-band half worked: drop hx-swap-oob and htmx swaps the
+      // whole response into #eb-archives instead, which moves the Replays panel
+      // bodily into the left column. It still says COMPLETED there.
+      await expect(page.locator('#eb-archives #eb-replays')).toHaveCount(0);
+      const cols = await page.evaluate(() => {
+        const l = document.querySelector('#eb-archives')!.getBoundingClientRect().left;
+        const r = document.querySelector('#eb-replays')!.getBoundingClientRect().left;
+        return { archivesLeft: Math.round(l), replaysLeft: Math.round(r) };
+      });
+      expect(cols.replaysLeft).toBeGreaterThan(cols.archivesLeft);
 
       // Replay is synchronous server-side (eventbridge/archive_actions.go
       // startReplay calls matchAndDispatch inline before responding), so the
@@ -185,18 +204,18 @@ test.describe('EventBridge', () => {
       expect(afterReplay).toBeGreaterThan(beforeReplay);
 
       // Clean up the archive.
-      await page.goto(`eb/${bus}`);
+      await page.goto(`eb/${bus}?tab=archives`);
       await page
         .locator('#eb-archives tr', { hasText: archiveName })
         .getByRole('button', { name: 'Delete archive' })
         .click();
       await confirmDialog('accept');
       await waitForToast();
-      // Scope to the Archives panel specifically — the sibling Replays panel
-      // still legitimately shows a row named "{archiveName}-replay-…".
-      await expect(page.locator('#eb-archives > .panel').first()).not.toContainText(
-        archiveName
-      );
+      // Scope to the Archives panel specifically — the Replays panel still
+      // legitimately shows a row named "{archiveName}-replay-…". #eb-archives
+      // IS that panel now rather than a wrapper around it and Replays, so the
+      // scoping no longer needs a child selector to exclude its sibling.
+      await expect(page.locator('#eb-archives')).not.toContainText(archiveName);
     });
 
     await test.step('8: delete the rules, then the bus', async () => {

@@ -49,17 +49,25 @@ func (c *Console) ebBus(w http.ResponseWriter, r *http.Request) {
 	buses, _ := c.be.ListBuses(r.Context())
 	arcs, _ := c.be.ListArchives(r.Context(), busARN(bus))
 	reps, _ := c.be.ListReplays(r.Context())
+	// Tabs, like every other detail page. Everything used to render at once,
+	// which is why this page felt unlike the rest of the console: six panels
+	// competing for one screen, and the two columns were never the same height.
+	tab := r.URL.Query().Get("tab")
+	if tab != "archives" && tab != "trace" {
+		tab = "rules"
+	}
 	c.render(w, r, "eb_bus", map[string]any{
 		"Bus": bus, "Rules": rules, "BusARN": busARN(bus), "List": buses,
-		"Archives": arcs, "Replays": reps, "Title": bus + " · EventBridge",
+		"Archives": arcs, "Replays": reps, "Tab": tab, "Title": bus + " · EventBridge",
 	})
 }
 
-// ebArchivesPartial re-renders the archives+replays panel after a mutation.
+// ebArchivesPartial re-renders the archives panel after a mutation, with the
+// replays panel out of band — the two live in different columns now.
 func (c *Console) ebArchivesPartial(w http.ResponseWriter, r *http.Request, bus string) {
 	arcs, _ := c.be.ListArchives(r.Context(), busARN(bus))
 	reps, _ := c.be.ListReplays(r.Context())
-	c.partial(w, "eb_archives", map[string]any{"Bus": bus, "BusARN": busARN(bus), "Archives": arcs, "Replays": reps})
+	c.partial(w, "eb_archives_swap", map[string]any{"Bus": bus, "BusARN": busARN(bus), "Archives": arcs, "Replays": reps})
 }
 
 func (c *Console) ebCreateArchive(w http.ResponseWriter, r *http.Request) {

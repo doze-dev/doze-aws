@@ -18,8 +18,22 @@
     <div class="det-h">
       <div class="det-title">{{awsIcon "eb"}} {{.Bus}}<div class="acts"><a class="btn btn-outline" href="{{.Prefix}}/eb/destinations">{{icon "send"}} API destinations</a><a class="btn" href="{{.Prefix}}/eb/{{.Bus}}/create-rule">{{icon "plus"}} Create rule</a></div></div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .BusARN}}</div>
+      {{/* Tabs, as every other detail page has. All six panels used to render
+           at once, two columns deep, and they are never the same height: an
+           empty Rules panel is 196px against a Test event panel's 482px, so
+           ~290px of nothing sat in the middle of the page. Splitting by what
+           you came to do is a better answer than balancing the columns.
+
+           Rules keeps Test event beside it because the two interact — typing an
+           event paints live match verdicts in the rules list. */}}
+      {{template "dtabs" dict "Cur" .Tab "Tabs" (list
+        (dict "Key" "rules" "Label" "Rules" "Icon" "list" "URL" (printf "%s/eb/%s" .Prefix .Bus))
+        (dict "Key" "archives" "Label" "Archives" "Icon" "database" "URL" (printf "%s/eb/%s?tab=archives" .Prefix .Bus))
+        (dict "Key" "trace" "Label" "Trace" "Icon" "route" "URL" (printf "%s/eb/%s?tab=trace" .Prefix .Bus)))}}
     </div>
-    <div class="det-b"><div class="split">
+    <div class="det-b">
+    {{if eq .Tab "rules"}}
+    <div class="split">
       {{template "eb_rule_list" .}}
       <div class="panel"><div class="panel-h"><h2>{{icon "send"}} Test event</h2></div><div style="padding:14px 16px">
         {{/* As you type, the rules panel shows live match verdicts (the sibling
@@ -36,7 +50,19 @@
         <p class="mini-note">Publishing delivers to every matching rule's targets immediately.</p>
       </div></div>
     </div>
-    {{template "eb_archives" .}}
+    {{else if eq .Tab "archives"}}
+    <div class="split">
+      {{template "eb_archives" .}}
+      {{template "eb_replays" .}}
+    </div>
+    {{else}}
+    {{template "eb_trace" .}}
+    {{end}}
+    {{/* Outside the tab switch: the Archives tab's row buttons describe an
+         archive or a replay into here, and so does the Trace tab's "Describe
+         this bus". A slot that only existed on one tab would leave those
+         buttons on the others pointing at nothing. */}}
+    <div id="eb-detail" class="eb-detail"></div>
     </div>
   </section>
 {{template "shell_bottom" .}}{{end}}
@@ -45,8 +71,7 @@
 {{/* Archives capture events for later replay; replays re-inject them through
      this bus's rules. Local replays run synchronously and complete at once. */}}
 {{define "eb_archives"}}
-<div id="eb-archives" class="split" style="margin-top:14px">
-  <div class="panel"><div class="panel-h"><h2>{{icon "database"}} Archives <span class="badge">{{len .Archives}}</span></h2>
+  <div id="eb-archives" class="panel"><div class="panel-h"><h2>{{icon "database"}} Archives <span class="badge">{{len .Archives}}</span></h2>
     <span class="dim" style="font-size:11.5px">every matching event is captured</span></div>
     {{if .Archives}}<table class="tbl"><thead><tr><th>Archive</th><th>Events</th><th class="right">Actions</th></tr></thead><tbody>{{range .Archives}}
       <tr><td class="mono eb-arc-name"><button type="button" class="linkish"
@@ -63,7 +88,14 @@
       <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Archive</button>
     </form>
   </div>
-  <div class="panel"><div class="panel-h"><h2>{{icon "rotate"}} Replays <span class="badge">{{len .Replays}}</span></h2></div>
+{{end}}
+
+{{/* A replay started from the Archives panel changes this one too, but the
+     mutation swaps #eb-archives alone, so this repaints out of band. hx-swap-oob is inert on a full page render (nothing is being
+     swapped) and honoured on a partial, which is why the same template serves
+     both without a flag. */}}
+{{define "eb_replays"}}
+  <div id="eb-replays" class="panel" hx-swap-oob="true"><div class="panel-h"><h2>{{icon "rotate"}} Replays <span class="badge">{{len .Replays}}</span></h2></div>
     {{if .Replays}}<table class="tbl"><thead><tr><th>Replay</th><th>State</th><th class="right">Started</th></tr></thead><tbody>{{range .Replays}}
       <tr><td class="mono trunc eb-rep-name" title="{{.Name}}"><button type="button" class="linkish"
              hx-get="{{$.Prefix}}/eb/{{$.Bus}}/replay/{{.Name}}" hx-target="#eb-detail" hx-select="" hx-swap="innerHTML"
@@ -72,10 +104,18 @@
         <td class="right dim" style="font-size:11px">{{ago .Started}}</td></tr>
     {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No replays yet.</p></div>{{end}}
   </div>
-      {{/* Reverse lookup and the bus's own record. A rule's target list answers
-           "where does this go"; ListRuleNamesByTarget answers "what sends
-           here", which is the question you have while standing on a queue
-           receiving something you did not expect. */}}
+{{end}}
+
+{{/* Reverse lookup and the bus's own record. A rule's target list answers
+     "where does this go"; ListRuleNamesByTarget answers "what sends here",
+     which is the question you have while standing on a queue receiving
+     something you did not expect.
+
+     Full width, below both columns. It used to be a direct child of the same
+     two-column grid as Archives and Replays, which put this heading in the
+     left column and the form it labels in the right one. */}}
+{{define "eb_trace"}}
+<div class="eb-trace">
       <div class="sec-title">Trace a target back</div>
       <div class="panel">
         <form class="tag-row-form" hx-post="{{.Prefix}}/eb/{{.Bus}}/rules-by-target" hx-target="#eb-by-target" hx-select="" hx-swap="outerHTML">
@@ -88,7 +128,6 @@
         </form>
       </div>
       <div id="eb-by-target"></div>
-      <div id="eb-detail" class="eb-detail"></div>
 </div>
 {{end}}
 
@@ -280,3 +319,8 @@
 </p>
 {{end}}
 {{end}}
+{{/* The response to an archive mutation: the Archives panel for the #eb-archives
+     swap, plus the Replays panel riding out of band to the other column. A
+     replay started here changes both, and they no longer sit next to each
+     other in the DOM. */}}
+{{define "eb_archives_swap"}}{{template "eb_archives" .}}{{template "eb_replays" .}}{{end}}

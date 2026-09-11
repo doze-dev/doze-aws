@@ -1778,6 +1778,13 @@ a.lo-card:hover { border-color: var(--accent); }
 .eb-arc-name { font-size: 11px; font-weight: 550; }
 .eb-rep-name { font-size: 11px; max-width: 220px; }
 .eb-detail:not(:empty) { margin-top: 12px; }
+/* The trace utility spans both columns, below them. */
+.eb-trace { margin-top: 18px; }
+/* The test-event detail box is a scratch pad for a line or two of JSON, not a
+   document. The global 180px floor made an empty one 182px tall and the panel
+   482px against a 196px Rules panel beside it, which is most of where this
+   page's empty space came from. It still grows with what you paste. */
+#eb-event-form .CodeMirror { min-height: 96px; }
 
 /* The × inside a label badge — same affordance as a removable chip. */
 .lbl-x { background: none; border: 0; padding: 0 0 0 4px; font: inherit; color: inherit; cursor: pointer; opacity: .6; }

@@ -1122,10 +1122,11 @@ func TestEBArchivesReplay(t *testing.T) {
 	req(t, h, "POST", "/_console/eb/default/test-event", url.Values{
 		"source": {"billing"}, "detail_type": {"Invoiced"}, "detail": {`{"id":"1"}`},
 	})
-	// The bus page shows the archive with its captured event count.
-	bus := req(t, h, "GET", "/_console/eb/default", nil).Body.String()
+	// The Archives tab shows the archive with its captured event count. The bus
+	// page is tabbed like every other detail page now; the default tab is Rules.
+	bus := req(t, h, "GET", "/_console/eb/default?tab=archives", nil).Body.String()
 	if !strings.Contains(bus, "audit") {
-		t.Fatalf("archive missing from bus page:\n%s", bus)
+		t.Fatalf("archive missing from the archives tab:\n%s", bus)
 	}
 	// Replay it — the replay completes synchronously.
 	rep := req(t, h, "POST", "/_console/eb/default/replay", url.Values{"name": {"audit"}}).Body.String()
