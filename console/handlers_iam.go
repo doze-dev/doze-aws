@@ -30,6 +30,10 @@ func (c *Console) iamHome(w http.ResponseWriter, r *http.Request) {
 	c.render(w, r, "iam_home", map[string]any{
 		"Principals": principals, "Policies": policies, "NavGroups": navGroups, "NavProfiles": navProfiles,
 		"Mode": mode, "Events": events, "Title": "IAM",
+		// The access checker's draft box opens with a document to edit rather
+		// than an empty one. It was the only policy field on this page with
+		// neither a builder nor a starter.
+		"StarterInline": starterPolicy,
 	})
 }
 

@@ -503,7 +503,7 @@
           <form hx-post="{{.Prefix}}/kinesis/{{.Stream}}/policy">
             <div class="field">
               <label>Policy JSON <span class="dim">empty removes it</span></label>
-              <textarea name="policy" data-editor rows="8" placeholder='{"Version":"2012-10-17","Statement":[]}'>{{.Policy}}</textarea>
+              {{template "policy_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" .Policy "Rows" 8 "UID" (printf "kinpol-%s" .Stream) "Check" false}}
             </div>
             <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
               <span class="mini-note" style="margin:0">Nothing evaluates this locally — it round-trips for templates and SDK code that set it.</span>

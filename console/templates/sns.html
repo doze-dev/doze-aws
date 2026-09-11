@@ -297,7 +297,10 @@
       </div>
       <div class="sub-add-adv" x-show="adv" x-cloak x-effect="if(adv)$nextTick(()=>dozeEditor.refresh($root))">
         <div class="field"><label>Filter policy <span class="dim">JSON — optional; only matching messages are delivered</span></label>
-          <textarea name="policy" data-editor="json" rows="4" spellcheck="false" placeholder='{"eventType":["OrderPlaced"]}'></textarea></div>
+          {{/* The same builder the subscription's own filter policy gets once
+               it exists. It was only on the edit path, so you got the worse
+               editor on the one path where you know least about the shape. */}}
+          {{template "pattern_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" "" "Rows" 4 "UID" "snsfnew" "Test" false}}</div>
         <label class="raw-inline" x-show="proto!=='lambda'"><input type="checkbox" name="raw"> Deliver raw messages <span class="dim">(no SNS envelope)</span></label>
       </div>
     </form>

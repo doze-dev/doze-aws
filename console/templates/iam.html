@@ -134,7 +134,15 @@
                    yet — the one thing the principal simulator cannot do. */}}
               <div class="field" style="margin-bottom:10px" x-show="draft" x-cloak>
                 <label>Draft policy document</label>
-                <textarea name="document" data-editor rows="8" spellcheck="false" x-bind:disabled="!draft"></textarea>
+                {{/* Prefilled, but NOT switched to the policy builder. The
+                     disabled binding is load-bearing: iamSimulate branches on
+                     document != "" to pick SimulateCustomPolicy over
+                     SimulatePrincipalPolicy, and a disabled field submits
+                     nothing — so a prefilled box that stayed enabled in
+                     principal mode would silently simulate this starter
+                     instead of the principal you chose. The builder's textarea
+                     carries no such binding. */}}
+                <textarea name="document" data-editor rows="8" spellcheck="false" x-bind:disabled="!draft">{{.StarterInline}}</textarea>
                 <div class="mini-note">Evaluated as-if attached — check a policy BEFORE creating it.</div>
               </div>
               <div class="field" style="margin-bottom:10px">

@@ -294,7 +294,12 @@
       {{end}}
       <div class="edit-grid edit-grid-tight">
         <div class="field"><label>Access policy <span class="dim">JSON — evaluated under IAM soft and enforce; empty clears it</span></label>
-          <textarea name="policy" data-editor="json" rows="4" spellcheck="false">{{index .Attrs "Policy"}}</textarea></div>
+          {{/* A queue policy is an IAM document, so it gets the same builder
+               the bucket and key policies do rather than a bare textarea. The
+               partial is service-agnostic: rows over a textarea that stays the
+               source of truth, and anything the rows cannot round-trip stays
+               JSON instead of being flattened. */}}
+          {{template "policy_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" (index .Attrs "Policy") "Rows" 8 "UID" (printf "sqspol-%s" .Queue) "Check" false}}</div>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 16px 12px"><button type="button" class="btn btn-outline btn-sm" @click="edit=false">Cancel</button><button type="submit" class="btn btn-sm">Save settings</button></div>
     </form>

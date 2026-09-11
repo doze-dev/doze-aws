@@ -77,7 +77,7 @@
           <div class="field"><label>KMS key ID <span class="dim">optional</span></label>
             <input class="input mono" name="kms_key" placeholder="alias/aws/sqs" autocomplete="off"></div>
           <div class="field"><label>Access policy <span class="dim">JSON, optional</span></label>
-            <textarea name="policy" rows="5" data-editor="json" placeholder=&#39;{&#34;Version&#34;:&#34;2012-10-17&#34;,&#34;Statement&#34;:[]}&#39;></textarea>
+            {{template "policy_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" "" "Rows" 5 "UID" "sqscreatepol" "Check" false}}
             <span class="hint">stored and returned; doze-aws does not evaluate queue policies</span></div>
           <div class="field"><label>Tags</label>
             {{template "tag_rows" .}}</div>
@@ -212,7 +212,7 @@
         <div class="field"><label>Secret name</label><input class="input mono" name="name" placeholder="prod/db/credentials" required autocomplete="off" autofocus></div>
         <div class="field"><label>Description <span class="dim">optional</span></label><input class="input" name="description" placeholder="Database credentials"></div>
       </div></div></div>
-      <div class="panel form-sec"><div class="panel-h"><h2>Secret value</h2><button type="button" class="btn btn-outline btn-sm" onclick="dozeGenPassword(this,'{{.Prefix}}')">{{icon "key"}} Generate password</button></div><div class="form-b"><textarea name="value" data-editor rows="12" spellcheck="false" required placeholder='{&#10;  "username": "admin"&#10;}'></textarea></div></div>
+      <div class="panel form-sec"><div class="panel-h"><h2>Secret value</h2><button type="button" class="btn btn-outline btn-sm" onclick="dozeGenPassword(this,'{{.Prefix}}')">{{icon "key"}} Generate password</button></div><div class="form-b"><textarea name="value" data-editor rows="12" spellcheck="false" required placeholder='{&#10;  "username": "admin"&#10;}'>{&#10;  "username": "",&#10;  "password": ""&#10;}</textarea></div></div>
       {{template "cli" "secretsmanager create-secret --name $name --secret-string $value [--description $description]"}}
       {{template "form_actions" dict "Cancel" (printf "%s/sm" .Prefix) "Submit" "Store secret"}}
     </form>
