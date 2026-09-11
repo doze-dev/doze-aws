@@ -66,11 +66,21 @@ tasks:
         fi
 
   check:
-    desc: 'Pre-push gate: gofmt check, go vet, deadcode, and the full race suite. Wire it as a git pre-push hook (task hooks:install).'
+    desc: 'Pre-push gate (~40s): gofmt, vet, deadcode and the unit tests. Wire it as a git pre-push hook (task hooks:install).'
     cmds:
+      # Deliberately the FAST stage. It used to run the full race suite, which
+      # is five to six minutes before every push — long enough that the honest
+      # outcome is people stop running it. CI runs check:full on every push and
+      # pull request, so nothing that can actually block a merge got weaker.
       - test -z "$(gofmt -l .)" || { echo 'gofmt needed:'; gofmt -l .; exit 1; }
       - go vet ./...
       - task: deadcode
+      - go test -short ./...
+
+  check:full:
+    desc: 'Everything check does, plus the full race suite (~6 min). What CI runs.'
+    cmds:
+      - task: check
       - go test -race ./...
 
   hooks:install:

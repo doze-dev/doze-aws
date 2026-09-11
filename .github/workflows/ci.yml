@@ -56,3 +56,6 @@ jobs:
         run: go test -short ./...
       - name: Full suite (race)
         run: go test -race ./...
+        # CI keeps running the full race suite on every push and pull request.
+        # `task check` is the fast local stage; this is the one that gates a
+        # merge, so splitting the local gate cost nothing here.

@@ -302,6 +302,7 @@ func TestConsoleStepFunctionsMapRuns(t *testing.T) {
 }
 
 func TestConsoleStepFunctionsActivities(t *testing.T) {
+	t.Parallel()
 	h := newConsole(t)
 	page := req(t, h, "GET", "/_console/sfn/activities", nil)
 	if page.Code != 200 || !strings.Contains(page.Body.String(), "No activities") {

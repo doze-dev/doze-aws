@@ -834,6 +834,7 @@ func TestS3EditingDepth(t *testing.T) {
 // edit env/timeout/memory, provision + drop a function URL, add an event
 // source mapping, and invoke both sync and async.
 func TestLambdaLifecycle(t *testing.T) {
+	t.Parallel()
 	h := newConsole(t)
 
 	// A real build directory the _local_ extension can run.
@@ -1346,6 +1347,11 @@ func TestS3ListingCrossesThePageBoundary(t *testing.T) {
 	if testing.Short() {
 		t.Skip("boots a Stack")
 	}
+	// Parallel: this writes 1005 objects one at a time and each is a durable
+	// write, so it is ~11s of fsync that has no reason to block anything else.
+	// Its stack and data directory are its own; the only shared state in this
+	// package is the mutation sweep's fixture maps, which it never touches.
+	t.Parallel()
 	c, gw := newConsoleStack(t)
 
 	if rec := req(t, c, "POST", "/_console/s3/create", url.Values{"name": {"big"}}); rec.Code >= 400 {

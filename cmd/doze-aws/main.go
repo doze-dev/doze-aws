@@ -34,46 +34,124 @@ import (
 // (-ldflags "-X main.version=..."). It defaults to "dev" for local builds.
 var version = "dev"
 
+// commands are the subcommands, in the order help lists them. Each takes the
+// arguments after its own name and returns an exit code.
+//
+// A table rather than a chain of positional ifs. The chain FELL THROUGH to
+// booting the server for anything it did not recognise, so `doze-aws help`
+// silently bound :4566 and served AWS instead of printing help — and a typo
+// like `doze-aws aply` did the same. An unrecognised subcommand is an error
+// now, and bare `doze-aws` with flags is still the way you start it.
+type command struct {
+	name string
+	desc string
+	run  func(args []string) int
+}
+
+// A function, not a package-level var: help both appears in the table and
+// prints it, which as a var is an initialisation cycle.
+func commands() []command {
+	return []command{
+		{"apply", "converge the resources a CloudFormation/SAM template declares", runApply},
+		{"export", "write what is running as a CloudFormation template", runExport},
+		{"config print", "print the effective configuration as TOML, ready to edit", runConfigPrint},
+		{"dns-setup", "prepare this machine for .doze names (idempotent)", runDNSSetup},
+		{"version", "print the version and the services this build serves", runVersion},
+		{"help", "print this message", runHelp},
+	}
+}
+
+// runHelp is a named function rather than a closure in the table: a closure
+// calling usage, which ranges over the table, is an initialisation cycle.
+func runHelp([]string) int { usage(os.Stdout); return 0 }
+
+func runVersion([]string) int {
+	fmt.Printf("doze-aws %s — local AWS services: %s\n",
+		version, strings.Join(dozeaws.Implemented, ", "))
+	return 0
+}
+
+// runConfigPrint writes the effective configuration — defaults, then the
+// config file, then flags — as TOML.
+func runConfigPrint(args []string) int {
+	st, err := loadConfig(args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	if err := config.WriteTOML(os.Stdout, st.cfg); err != nil {
+		fmt.Fprintln(os.Stderr, "config print:", err)
+		return 1
+	}
+	return 0
+}
+
+// usage prints the commands AND the flags. The flags alone were all `--help`
+// showed, so five subcommands documented in docs/cli.md were invisible to
+// anyone who looked in the obvious place.
+func usage(w *os.File) {
+	fmt.Fprintf(w, `doze-aws %s — local AWS services, one binary.
+
+usage:
+  doze-aws [flags]              start the emulator (the default)
+  doze-aws <command> [args]
+
+commands:
+`, version)
+	for _, c := range commands() {
+		fmt.Fprintf(w, "  %-14s %s\n", c.name, c.desc)
+	}
+	fmt.Fprint(w, "\nflags:\n")
+	fs, _ := newFlagSet(&config.Config{})
+	fs.SetOutput(w)
+	fs.PrintDefaults()
+	fmt.Fprint(w, "\nExamples:\n"+
+		"  doze-aws                                  everything, on 127.0.0.1:4566\n"+
+		"  doze-aws --services s3,sqs,lambda         just those three\n"+
+		"  doze-aws --data-dir /tmp/doze             a throwaway data directory\n"+
+		"  doze-aws apply template.yaml              deploy a template into a running stack\n"+
+		"\nDocs: https://github.com/doze-dev/doze-aws/tree/main/docs\n")
+}
+
+// dispatch runs a subcommand if args names one. ok is false when this is a
+// plain `doze-aws [flags]` start.
+func dispatch(args []string) (code int, ok bool) {
+	if len(args) == 0 {
+		return 0, false
+	}
+	switch args[0] {
+	case "-h", "--help", "-help":
+		usage(os.Stdout)
+		return 0, true
+	}
+	for _, c := range commands() {
+		// "config print" is two words; the rest are one.
+		name, sub, twoWord := strings.Cut(c.name, " ")
+		if args[0] != name {
+			continue
+		}
+		if twoWord {
+			if len(args) < 2 || args[1] != sub {
+				fmt.Fprintf(os.Stderr, "usage: doze-aws %s [flags]\n", c.name)
+				return 2, true
+			}
+			return c.run(args[2:]), true
+		}
+		return c.run(args[1:]), true
+	}
+	// A bare flag is a start, not a typo. Anything else is a typo, and saying
+	// so beats starting a server the caller did not ask for.
+	if strings.HasPrefix(args[0], "-") {
+		return 0, false
+	}
+	fmt.Fprintf(os.Stderr, "doze-aws: unknown command %q\n\n", args[0])
+	usage(os.Stderr)
+	return 2, true
+}
+
 func main() {
-	if len(os.Args) > 1 && os.Args[1] == "version" {
-		fmt.Printf("doze-aws %s — local AWS services: %s\n", version, strings.Join(dozeaws.Implemented, ", "))
-		return
-	}
-
-	// `doze-aws config print` writes the effective configuration (defaults,
-	// then the config file, then flags) as TOML — a ready-to-edit starting point.
-	if len(os.Args) > 1 && os.Args[1] == "config" {
-		if len(os.Args) < 3 || os.Args[2] != "print" {
-			fmt.Fprintln(os.Stderr, "usage: doze-aws config print [flags]")
-			os.Exit(2)
-		}
-		st, err := loadConfig(os.Args[3:])
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		if err := config.WriteTOML(os.Stdout, st.cfg); err != nil {
-			fmt.Fprintln(os.Stderr, "config print:", err)
-			os.Exit(1)
-		}
-		return
-	}
-
-	// `doze-aws dns-setup` prepares the machine for .doze names. It is the same
-	// work `doze dns-setup` does and is idempotent, so whichever binary you
-	// happen to have installed can do it — that is the point of the zone being
-	// shared rather than owned.
-	if len(os.Args) > 1 && os.Args[1] == "dns-setup" {
-		os.Exit(runDNSSetup(os.Args[2:]))
-	}
-
-	// `doze-aws apply [stack.yaml]` converges resources; `doze-aws export`
-	// writes the running stack as a stack.yaml.
-	if len(os.Args) > 1 && os.Args[1] == "apply" {
-		os.Exit(runApply(os.Args[2:]))
-	}
-	if len(os.Args) > 1 && os.Args[1] == "export" {
-		os.Exit(runExport(os.Args[2:]))
+	if code, handled := dispatch(os.Args[1:]); handled {
+		os.Exit(code)
 	}
 
 	st, err := loadConfig(os.Args[1:])
