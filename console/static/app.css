@@ -445,12 +445,27 @@ a.stat:hover { border-color: var(--ring); }
 .panel-b { padding: 6px 6px; }
 .split { display: grid; grid-template-columns: 1.15fr 1fr; gap: 20px; align-items: start; }
 @container pane (max-width: 480px) { .split { grid-template-columns: 1fr; } }
+/* A split placed under something needs air above it. Nothing gives a table or a
+   panel a bottom margin — the vertical rhythm comes from .sec-title's margin —
+   so a split that follows one without a heading between them lands flush and
+   the two borders read as a single block with a seam through it. Two pages did
+   exactly that. Adjacent margins collapse, so a split that DOES follow a
+   .sec-title still gets one gap rather than two. */
+* + .split { margin-top: 18px; }
 
 /* ---------- section title ---------- */
 .sec-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); margin: 22px 0 10px; }
 
 /* ---------- table ---------- */
 .table-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--card); }
+/* A table that grows without limit scrolls inside itself rather than pushing
+   the rest of the page past the fold. The IAM access log is the case that
+   forced it: after a busy session it was 142 rows and 4,939px tall, so the
+   policy generator and the simulator underneath it started 5,190px down — five
+   screens, on a page whose whole point is those two tools. The header stays put
+   while it scrolls, or the columns mean nothing halfway down. */
+.table-wrap.capped { max-height: 420px; overflow-y: auto; }
+.table-wrap.capped thead th { position: sticky; top: 0; z-index: 2; background: var(--card); }
 table.tbl { width: 100%; border-collapse: collapse; }
 .tbl th, .tbl td { text-align: left; padding: 0 12px; height: 34px; border-bottom: 1px solid var(--border); }
 .tbl thead th { height: 29px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted-foreground); background: color-mix(in srgb, var(--muted) 40%, transparent); }
