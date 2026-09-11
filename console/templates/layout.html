@@ -64,7 +64,6 @@ for(var i=0;i<u.length&&p.length<2;i++){var n=Math.floor(s/u[i][1]);
 if(n>0){p.push(n+" "+u[i][0]+(n>1&&u[i][0]!=="s"?"s":""));s-=n*u[i][1];}}
 return"= "+p.join(" ");};</script>
 <script src="{{.Prefix}}/static/htmx.min.js"></script>
-<script src="{{.Prefix}}/static/idiomorph-ext.min.js"></script>
 <script defer src="{{.Prefix}}/static/alpine.min.js"></script>
 <script src="{{.Prefix}}/static/cm/codemirror.min.js"></script>
 <script src="{{.Prefix}}/static/cm/javascript.min.js"></script>
@@ -80,35 +79,28 @@ return"= "+p.join(" ");};</script>
 <script src="{{.Prefix}}/static/graph.js"></script>
 <script src="{{.Prefix}}/static/shell.js" defer></script>
 
-{{/* An explicit <body>, and it carries hx-ext.
+{{/* An explicit <body>. It no longer carries hx-ext, because there is no
+     longer an extension to carry: htmx 4 ships morphing as the "outerMorph"
+     and "innerMorph" swap styles, and idiomorph-ext.min.js is gone.
 
-     This template had no body tag — the browser synthesized one — and
-     idiomorph-ext.min.js was loaded but never activated, because htmx only
-     applies an extension it finds by walking UP from the swap's context
-     element. shell.js drives the live regions through htmx.ajax() with no
-     source element, so that context is document.body; an hx-ext on the inner
-     <div class="body"> is a DESCENDANT of it and is never seen.
+     That retires a long-running trap, recorded here because the shape of it
+     recurs. Morphing in this console never once ran. The template had no body
+     tag, the browser synthesized one, and htmx 2 activates an extension by
+     walking UP from the swap's context element — shell.js drives the live
+     regions through htmx.ajax() with no source element, so that context was
+     document.body and an hx-ext on the inner <div class="body"> was a
+     DESCENDANT of it, never seen. Every "morph:outerHTML" fell through to
+     innerHTML, so each live region's wrapper was swapped INSIDE itself on the
+     first change: two #message-panel-wrap elements, one nested in the other.
 
-     The effect was silent and total: every "morph:outerHTML" in shell.js:424
-     fell through to htmx's defaultSwapStyle, which is innerHTML, so each live
-     region's own wrapper was swapped INSIDE itself the first time its content
-     changed — two #message-panel-wrap elements, one nested in the other,
-     duplicate ids and all. Reproduced in a browser before and after this line:
-     wrap 1→2 / nested 0→1 without it, 1 and 0 with it.
+     Putting hx-ext on <body> then broke UNRELATED swaps, because idiomorph's
+     isInlineSwap answers TRUE for every style it does not recognise — fragments
+     stopped being unwrapped, an OOB span's attributes leaked into its target,
+     and hx-swap="beforeend" appended nothing. The KMS one-click verify broke
+     exactly that way.
 
-     So none of the selection-, scroll- and focus-preservation that morphing
-     exists to provide has ever actually run. That also explains the
-     data-live-swap="outerHTML" opt-out on #lambda-rt, whose comment blames
-     "idiomorph nesting its replacement" — it was the innerHTML fallback
-     nesting it, and idiomorph was never in the picture. */}}
-{{/* NO hx-ext here, and that is load-bearing. idiomorph's isInlineSwap
-     answers TRUE for every swap style it does not recognise (o(style) returns
-     undefined, and undefined?.morphStyle == null holds) — so with the
-     extension on <body>, EVERY swap on the page changed semantics: fragments
-     stopped being unwrapped, an out-of-band span's own attributes leaked into
-     its target, and hx-swap="beforeend" appended nothing at all. The KMS
-     one-click verify broke exactly that way. The extension lives on the four
-     data-live regions instead, which are the only elements that morph. */}}
+     Both failures were extension-activation problems, not morphing problems.
+     A built-in swap style has no activation to get wrong. */}}
 <body>
 <div class="app">
   <header class="topbar">
@@ -127,7 +119,7 @@ return"= "+p.join(" ");};</script>
   </header>
 
   <div class="body">
-    <nav class="rail" hx-boost="true" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML">
+    <nav class="rail" hx-boost:inherited="true" hx-target:inherited="#workspace" hx-select:inherited="#workspace" hx-swap:inherited="outerHTML">
       {{/* Grouped by what you are doing, not by AWS's product taxonomy.
            "Provisioning" was a heading from the docs holding three services, only
            one of which provisions anything: API Gateway is a traffic surface with
@@ -171,11 +163,22 @@ return"= "+p.join(" ");};</script>
       </button>
     </nav>
 
-    {{/* NOTE: hx-target/hx-select here are INHERITED by every htmx actuator
-         inside the workspace. Any element with its own partial hx-target MUST
-         also set hx-select="unset", or htmx selects #workspace out of the
-         partial response, finds nothing, and swaps in emptiness. */}}
-    <div id="workspace" class="workspace" hx-boost="true" hx-target="#workspace" hx-select="#workspace" hx-swap="outerHTML show:none">
+    {{/* The :inherited suffix is htmx 4's explicit opt-in — without it these
+         reach only this element, and every boosted link in the workspace would
+         swap a whole page into <body>.
+
+         What they are for is boosted navigation: a plain <a href> in here
+         fetches a FULL page, and #workspace has to be selected out of it. The
+         cost is that every htmx actuator inside also sees them, so anything
+         with its own partial hx-target MUST carry hx-select="" or htmx selects
+         #workspace out of a partial response, finds nothing, and swaps in
+         emptiness. 198 elements do exactly that.
+
+         htmx 2 spelled that neutraliser hx-select="unset"; htmx 4 dropped the
+         sentinel because an empty value now short-circuits inheritance on its
+         own — #attributeValue returns "" before it ever consults the parent,
+         and the swap path treats "" as no-select. */}}
+    <div id="workspace" class="workspace" hx-boost:inherited="true" hx-target:inherited="#workspace" hx-select:inherited="#workspace" hx-swap:inherited="outerHTML show:none">
       {{if .Flash}}
       <div class="flash anim" id="flashbar">
         {{icon "check"}} <span>{{.Flash}}</span>

@@ -57,7 +57,7 @@
         <td class="sub">{{if .Lambda}}{{awsIcon "lambda"}} <a href="{{$.Prefix}}/lambda/{{.Lambda}}">{{.Lambda}}</a>{{else if .Target}}<span class="mono">{{.Type}}</span> {{.Target}}{{else}}<span class="dim">no integration</span>{{end}}</td>
         <td class="mono sub">{{if .Lambda}}{{.PayloadFormat}}{{else}}<span class="dim">—</span>{{end}}</td>
         <td class="sub">{{if eq .AuthType "CUSTOM"}}<span class="chip" title="authorizer {{.AuthID}}">Lambda authorizer</span>{{else}}<span class="dim">{{.AuthType}}</span>{{end}}</td>
-        <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete route {{.Key}}" hx-post="{{$.Prefix}}/apigw-http/{{$.API.ID}}/delete-route" hx-vals='{"route":"{{.ID}}"}' hx-target="#apigw-http-routes" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete route “{{.Key}}”? Its integration goes with it when nothing else uses it.">{{icon "trash"}}</button></div></td>
+        <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete route {{.Key}}" hx-post="{{$.Prefix}}/apigw-http/{{$.API.ID}}/delete-route" hx-vals='{"route":"{{.ID}}"}' hx-target="#apigw-http-routes" hx-select="" hx-swap="outerHTML" hx-confirm="Delete route “{{.Key}}”? Its integration goes with it when nothing else uses it.">{{icon "trash"}}</button></div></td>
       </tr>
     {{else}}
       <tr><td colspan="6" class="mini-note">No routes. Add one below — <span class="mono">$default</span> alone catches every request.</td></tr>
@@ -67,7 +67,7 @@
 
   <div class="sec-title">Add route</div>
   <div class="panel"><div class="form-b" x-data="{kind:'lambda'}">
-    <form hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/add-route" hx-target="#apigw-http-routes" hx-select="unset" hx-swap="outerHTML">
+    <form hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/add-route" hx-target="#apigw-http-routes" hx-select="" hx-swap="outerHTML">
       <div class="fgrid">
         <div class="field"><label>Method</label>
           <select class="input mono" name="method"><option>ANY</option><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option><option>HEAD</option><option>OPTIONS</option></select></div>
@@ -133,7 +133,7 @@
 
 {{define "apigw_http_invoke"}}
 {{if .Stages}}
-<form class="explorer-form" hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/invoke" hx-target="#apigw-result" hx-select="unset" hx-swap="outerHTML">
+<form class="explorer-form" hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/invoke" hx-target="#apigw-result" hx-select="" hx-swap="outerHTML">
   <div class="ex-grid">
     <div class="field w-stage"><label>Stage</label>
       <select class="input" name="stage">{{range .Stages}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select></div>

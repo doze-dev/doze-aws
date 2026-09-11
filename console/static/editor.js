@@ -132,7 +132,7 @@
   }
 
   // Sync every editor back to its textarea before htmx serializes the form.
-  document.addEventListener("htmx:configRequest", function () {
+  document.addEventListener("htmx:config:request", function () {
     document.querySelectorAll("textarea[data-editor]").forEach(function (ta) {
       if (ta.__cm) ta.__cm.save();
     });
@@ -144,11 +144,11 @@
   }, true);
 
   document.addEventListener("DOMContentLoaded", function () { upgradeAll(); });
-  // For outerHTML swaps htmx reports the OLD (detached) node as e.detail.target,
+  // For outerHTML swaps htmx reports the OLD (detached) node as ctx.target,
   // so upgrading from it never reaches the swapped-in content. upgrade() is
   // idempotent (skips textareas already carrying a CodeMirror), so a cheap
   // document-wide pass correctly attaches editors to newly-swapped content.
-  document.addEventListener("htmx:afterSwap", function () { upgradeAll(); });
+  document.addEventListener("htmx:after:swap", function () { upgradeAll(); });
 
   // Programmatic access (e.g. "Edit item" prefills the put-item editor).
   window.dozeEditor = {

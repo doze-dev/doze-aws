@@ -148,5 +148,5 @@
   document.addEventListener("DOMContentLoaded", setupAll);
   // A poll replaces the wrap outright (the live region swaps outerHTML), so
   // the guard on the old element goes with it and setup runs on the new one.
-  document.addEventListener("htmx:afterSwap", setupAll);
+  document.addEventListener("htmx:after:swap", setupAll);
 })();

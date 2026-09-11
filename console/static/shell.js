@@ -8,8 +8,8 @@
     : "/_console";
 
   // ---------- Alpine glue ----------
-  document.addEventListener("htmx:afterSwap", function () {
-    // e.detail.target is the OLD detached node for outerHTML swaps; upgrade
+  document.addEventListener("htmx:after:swap", function () {
+    // ctx.target is the OLD detached node for outerHTML swaps; upgrade
     // document-wide instead (both calls are idempotent). Alpine also inits new
     // nodes via its own MutationObserver, but initTree on the live tree is safe.
     if (window.Alpine) window.Alpine.initTree(document.body);
@@ -82,10 +82,18 @@
   // construction newer than any request that was already open, so a just-
   // patched badge is left alone rather than raced. Same number, same probe —
   // an overlap is a redundant identical write, not a conflict.
+  // htmx 4 has no per-OOB event — htmx:after:swap fires once for the whole
+  // response. The swap's task list is on htmx:before:swap instead, and each
+  // out-of-band task carries the element it will patch, so this stamps exactly
+  // the same ids the old htmx:oobAfterSwap listener did and in one pass rather
+  // than one event per badge.
   var patchedAt = Object.create(null);
-  document.body.addEventListener("htmx:oobAfterSwap", function (e) {
-    var t = e.detail && e.detail.target;
-    if (t && t.id) patchedAt[t.id] = Date.now();
+  document.body.addEventListener("htmx:before:swap", function (e) {
+    var tasks = (e.detail && e.detail.tasks) || [];
+    for (var i = 0; i < tasks.length; i++) {
+      var t = tasks[i];
+      if (t.type === "oob" && t.target && t.target.id) patchedAt[t.target.id] = Date.now();
+    }
   });
   function refreshCounts() {
     if (document.hidden) return;
@@ -145,11 +153,10 @@
   window.addEventListener("toast", function (e) { toast(e.detail.value !== undefined ? e.detail.value : e.detail, "ok"); });
   window.addEventListener("toast-error", function (e) { toast(e.detail.value !== undefined ? e.detail.value : e.detail, "err"); });
   // ---------- inline errors ----------
-  // c.fail sends 400 with an HX-Doze-Error header. htmx's default for 4xx is
-  // swap:false, so that body would never reach the DOM — but beforeSwap fires
-  // regardless of shouldSwap, which is the hook that lets us place it ourselves,
-  // next to the control that failed, without letting it near the success target
-  // the request was aimed at.
+  // c.fail sends 400 with an HX-Doze-Error header. htmx 4 swaps every status
+  // but 204 and 304, so that body WOULD land in the success target if nothing
+  // stopped it; the two listeners further down place it next to the control
+  // that failed and cancel the swap instead.
   function clearErr(root) {
     (root || document).querySelectorAll(".err[data-doze-err]").forEach(function (el) { el.remove(); });
   }
@@ -202,27 +209,51 @@
     try { node.focus(); } catch (e) {}
     return true;
   }
-  document.addEventListener("htmx:beforeRequest", function (e) {
-    var slot = errSlot(e.detail.elt);
+  document.addEventListener("htmx:before:request", function (e) {
+    var ctx = e.detail.ctx;
+    var slot = errSlot(ctx && ctx.sourceElement);
     if (slot) clearErr(slot.host);
   });
-  document.addEventListener("htmx:beforeSwap", function (e) {
-    var x = e.detail.xhr;
-    if (!x || x.getResponseHeader("HX-Doze-Error") !== "1") return;
-    // Never let an error reach the success target.
-    e.detail.shouldSwap = false;
-    // isError stays true on purpose: detail.successful must remain false, or
-    // every @htmx:after-request="if(successful) ..." in the templates fires on a
-    // failure and resets a form the user still needs.
-    if (placeError(e.detail.requestConfig.elt, x.responseText)) x._dozeHandled = true;
+  // c.fail's response is recognised by its header, and handled in two events
+  // because htmx 4 fires them in this order:
+  //
+  //   htmx:after:request  ->  htmx:response:error  ->  htmx:before:swap
+  //
+  // The inline placement has to happen before response:error, or the toast
+  // fallback below cannot tell that the error already has a home and every
+  // failure shows up twice. htmx 2 ordered these the other way round and the
+  // placement rode on beforeSwap; moving it to after:request is the whole
+  // reason this is two listeners rather than one.
+  function dozeError(ctx) {
+    return ctx && ctx.response && ctx.response.headers.get("HX-Doze-Error") === "1";
+  }
+  document.addEventListener("htmx:after:request", function (e) {
+    var ctx = e.detail.ctx;
+    if (!dozeError(ctx)) return;
+    // The status stays 400, so every template's
+    // @htmx:after:request="if(ctx.response.status < 400) ..." still reads a
+    // failure and does not reset a form the user still needs.
+    if (placeError(ctx.sourceElement, ctx.text)) ctx._dozeHandled = true;
+  });
+  document.addEventListener("htmx:before:swap", function (e) {
+    if (!dozeError(e.detail.ctx)) return;
+    // Never let an error reach the success target. htmx 2 took shouldSwap=false
+    // for this; htmx 4 cancels a swap by cancelling the event, and that cancels
+    // every task in it — main and OOB alike — which is what we want.
+    //
+    // It matters more than it did: htmx 2 declined to swap 4xx at all, so this
+    // was belt and braces. htmx 4's noSwap default is [204, 304], so a 400
+    // WOULD land in the success target if this listener stopped firing.
+    e.preventDefault();
   });
 
-  document.addEventListener("htmx:responseError", function (e) {
+  document.addEventListener("htmx:response:error", function (e) {
     // Placed inline already? Then a toast would be a duplicate. This stays as the
     // fallback for network errors, 5xx, and any surface the ladder could not find
     // a home in — so it is strictly never worse than before.
-    if (e.detail.xhr && e.detail.xhr._dozeHandled) return;
-    var raw = (e.detail.xhr.responseText || "Request failed");
+    var ctx = e.detail.ctx;
+    if (!ctx || ctx._dozeHandled) return;
+    var raw = (ctx.text || "Request failed");
     // The server HTML-escapes error bodies; decode entities first so the message
     // regex matches and the toast shows real quotes/brackets, not "&#34;".
     var ta = document.createElement("textarea");
@@ -244,9 +275,22 @@
   // ---------- styled confirm (intercepts hx-confirm) ----------
   var confirmBox = document.getElementById("confirm");
   document.addEventListener("htmx:confirm", function (e) {
-    var q = e.detail.question;
+    var q = e.detail.ctx && e.detail.ctx.confirm;
     if (!q || !confirmBox) return;
     e.preventDefault();
+    // htmx 4 AWAITS this confirmation, and the request queue does not advance
+    // until one of issueRequest/dropRequest is called. htmx 2 simply dropped a
+    // request whose confirm was never answered, so dismissing the dialog could
+    // be a no-op; here it has to resolve, or the next request on the page
+    // queues behind a promise nobody settles. Every exit below goes through
+    // settle() for that reason, and settle() is once-only because the backdrop,
+    // the Escape key and the No button can all fire for one dialog.
+    var settled = false;
+    function settle(ok) {
+      if (settled) return;
+      settled = true;
+      if (ok) e.detail.issueRequest(); else e.detail.dropRequest();
+    }
     // The QUESTION goes in the message, and the title stays the static "Are you
     // sure?" the markup ships with. Making the question the title instead left
     // #confirm-msg fed only by a data-confirm-detail attribute that no template
@@ -263,10 +307,11 @@
     confirmBox.hidden = false;
     var yes = document.getElementById("confirm-yes"), no = document.getElementById("confirm-no");
     function close() { if (window.dozeTrap) dozeTrap(confirmBox, false); confirmBox.hidden = true; yes.onclick = no.onclick = confirmBox.onclick = null; document.removeEventListener("keydown", onKey); }
-    function onKey(ev) { if (ev.key === "Escape") close(); }
-    yes.onclick = function () { close(); e.detail.issueRequest(true); };
-    no.onclick = close;
-    confirmBox.onclick = function (ev) { if (ev.target === confirmBox) close(); };
+    function dismiss() { close(); settle(false); }
+    function onKey(ev) { if (ev.key === "Escape") dismiss(); }
+    yes.onclick = function () { close(); settle(true); };
+    no.onclick = dismiss;
+    confirmBox.onclick = function (ev) { if (ev.target === confirmBox) dismiss(); };
     document.addEventListener("keydown", onKey);
     yes.focus();
     if (window.dozeTrap) dozeTrap(document.getElementById("confirm"), true);
@@ -317,7 +362,7 @@
     } catch (e) {}
   }
   document.addEventListener("DOMContentLoaded", trackVisit);
-  document.addEventListener("htmx:pushedIntoHistory", trackVisit);
+  document.addEventListener("htmx:after:history:push", trackVisit);
 
   // ---------- rail active state ----------
   // The rail lives outside #workspace, so boosted navigation swaps the page
@@ -334,7 +379,7 @@
     });
   }
   document.addEventListener("DOMContentLoaded", syncRail);
-  document.addEventListener("htmx:pushedIntoHistory", syncRail);
+  document.addEventListener("htmx:after:history:push", syncRail);
   window.addEventListener("popstate", syncRail);
 
   function openPalette() {
@@ -485,32 +530,42 @@
         if (cur.hasAttribute("data-live-paused")) return; // user hit pause
         var url = cur.getAttribute("data-live");
         if (!url) return;
-        // Plain outerHTML, not morph — a deliberate retreat, recorded so the
-        // next person does not re-fight it. Morphing here never worked: for
-        // the whole life of this feature hx-ext was absent so "morph" fell
-        // back to innerHTML and nested each region inside itself on first
-        // change. Activating it on <body> broke UNRELATED swaps (idiomorph
-        // claims every style it does not recognise as inline, which is also
-        // how an OOB span's attributes leaked into its target), and scoping
-        // it to the regions made idiomorph consume the element outright. A
-        // full replace costs scroll position inside a region on the ticks
-        // where content actually changed — the 204 no-change path, which is
-        // most ticks, swaps nothing at all.
-        var swap = cur.getAttribute("data-live-swap") || "outerHTML";
+        // outerMorph, which under htmx 4 is a built-in swap style rather than
+        // an extension that has to be activated. That distinction is the whole
+        // history of this line: morphing here never once ran. hx-ext was
+        // absent for the life of the feature so "morph" fell back to innerHTML
+        // and nested each region inside itself on first change; activating the
+        // extension on <body> then broke UNRELATED swaps, because idiomorph
+        // claims every style it does not recognise as inline. The retreat to a
+        // plain outerHTML replace was the right call at the time and cost
+        // scroll position inside a region on every tick that changed anything.
+        //
+        // Nothing to activate now, so the feature can finally do what it was
+        // written for. The 204 no-change path still swaps nothing at all,
+        // which is most ticks.
+        var swap = cur.getAttribute("data-live-swap") || "outerMorph";
         var hash = cur.getAttribute("data-hash") || "";
+        // select:"" is load-bearing, and it is the JS half of the 198
+        // hx-select="" attributes in the templates. htmx 4's ajax() resolves
+        // the source element as `sourceElt ||= target`, so the source here is
+        // the live region — which sits inside #workspace and therefore
+        // INHERITS its hx-select:inherited="#workspace". The region's partial
+        // has no #workspace in it, so every poll would select nothing and swap
+        // nothing, silently, forever. htmx 2 sourced htmx.ajax() from
+        // document.body and never picked the attribute up.
         htmx.ajax("GET", url + (url.indexOf("?") >= 0 ? "&" : "?") + "h=" + hash, {
-          target: "#" + id, swap: swap,
+          target: "#" + id, swap: swap, select: "",
         });
       }, every);
       liveTimers.push(t);
     });
   }
   document.addEventListener("DOMContentLoaded", setupLive);
-  document.addEventListener("htmx:afterSwap", function (e) {
+  document.addEventListener("htmx:after:swap", function (e) {
     // Re-arm after a navigation OR after a swap that lands (or contains) a live
     // region — including one whose target IS the data-live element itself, which
     // a descendant-only querySelector check would miss.
-    var t = e.detail.target;
+    var t = e.detail.ctx && e.detail.ctx.target;
     if (t && (t.id === "workspace" ||
               (t.matches && t.matches("[data-live]")) ||
               (t.querySelector && t.querySelector("[data-live]")))) setupLive();
@@ -518,12 +573,19 @@
   // After each poll, stamp the element's data-hash from the response header — a
   // morph swap doesn't reliably update the root's attributes, so without this the
   // poll would keep re-fetching the same change every tick.
-  document.addEventListener("htmx:afterRequest", function (e) {
-    var xhr = e.detail.xhr;
-    if (!xhr) return;
-    var h = xhr.getResponseHeader("HX-Live-Hash");
+  document.addEventListener("htmx:after:request", function (e) {
+    var ctx = e.detail.ctx;
+    if (!ctx || !ctx.response) return;
+    var h = ctx.response.headers.get("HX-Live-Hash");
     if (!h) return;
-    var path = (e.detail.requestConfig && e.detail.requestConfig.path) || "";
+    // Path AND query, not just the path: a data-live base can carry a filter
+    // (#sfn-executions is ".../executions?status=RUNNING"), and the prefix
+    // match below is against that whole string. Dropping the query makes every
+    // filtered live region stop stamping its hash, which strands the poll on a
+    // stale hash and it never sees another change.
+    var action = (ctx.request && ctx.request.action) || "";
+    var path = action;
+    try { var u = new URL(action, location.href); path = u.pathname + u.search; } catch (err) {}
     document.querySelectorAll("[data-live]").forEach(function (el) {
       var base = el.getAttribute("data-live");
       if (base && path.indexOf(base) === 0) el.setAttribute("data-hash", h);
@@ -571,14 +633,14 @@
     }
     return reqBar;
   }
-  document.addEventListener("htmx:beforeRequest", function (e) {
-    if ((e.detail.requestConfig || {}).verb === "get") return;
+  document.addEventListener("htmx:before:request", function (e) {
+    if (String((e.detail.ctx && e.detail.ctx.request || {}).method).toUpperCase() === "GET") return;
     reqDepth++;
     if (reqTimer) return;
     reqTimer = setTimeout(function () { bar().classList.add("on"); }, 300);
   });
-  document.addEventListener("htmx:afterRequest", function (e) {
-    if ((e.detail.requestConfig || {}).verb === "get") return;
+  document.addEventListener("htmx:after:request", function (e) {
+    if (String((e.detail.ctx && e.detail.ctx.request || {}).method).toUpperCase() === "GET") return;
     if (--reqDepth > 0) return;
     reqDepth = 0;
     clearTimeout(reqTimer); reqTimer = null;
@@ -613,50 +675,61 @@
   // the unbound window is a silent no-op: the button simply does nothing and
   // there is no navigation to even notice. defaultPrevented cannot tell the
   // cases apart here (htmx does not preventDefault plain clicks), so this
-  // checks htmx's own processed marker — internal data with an initHash —
-  // and rescues only elements htmx has genuinely not seen.
+  // checks htmx's own processed marker and rescues only elements htmx has
+  // genuinely not seen. htmx 2 kept that marker in an "htmx-internal-data"
+  // property with an initHash; htmx 4 keeps it on elt._htmx and records the
+  // fact of initialization directly, which is what its own #shouldProcess
+  // tests. Reading the current one matters: a marker probe that never matches
+  // silently re-processes every bound element on every click.
   document.addEventListener("click", function (e) {
     if (!window.htmx || !e.target || !e.target.closest) return;
     var c = e.target.closest("[hx-post],[hx-get],[hx-put],[hx-patch],[hx-delete]");
     if (!c || c.tagName === "FORM") return;
     if (c.form || c.closest("form")) return; // form members ride the submit guard
-    var d = c["htmx-internal-data"];
-    if (d && d.initHash) return; // bound: htmx's own listener already fired
+    if (c._htmx && c._htmx.initialized) return; // bound: htmx's own listener already fired
     htmx.process(c);
     htmx.trigger(c, "click");
   });
 
   // ---------- double-submit guard ----------
-  // htmx:beforeSend, NOT beforeRequest: the payload is serialized between the
-  // two, and a control disabled before serialization drops out of the body.
+  // htmx:before:request is safe to disable controls in. Under htmx 2 it was
+  // not — the payload was serialized between beforeRequest and beforeSend, so
+  // a control disabled at beforeRequest dropped out of the body and this had
+  // to listen on beforeSend instead. htmx 4 builds ctx.request.body before it
+  // fires htmx:config:request, which is earlier still, so by the time
+  // before:request runs the body is already committed.
   //
-  // hx-disabled-elt="this" is not usable here — it is inheritable, but "this"
-  // resolves to the ancestor CARRYING the attribute, not to the actuator, so a
-  // body-level declaration would disable the wrapper and leave the button live.
+  // hx-disable="this" (htmx 2's hx-disabled-elt) is not usable here — it is
+  // inheritable, but "this" resolves to the ancestor CARRYING the attribute,
+  // not to the actuator, so a body-level declaration would disable the wrapper
+  // and leave the button live.
   function submitControls(elt) {
     if (!elt || !elt.tagName) return [];
     if (elt.tagName === "BUTTON" || elt.tagName === "INPUT") return [elt];
     return Array.prototype.slice.call(
       elt.querySelectorAll('button[type="submit"], button:not([type]), input[type="submit"]'));
   }
-  document.addEventListener("htmx:beforeSend", function (e) {
-    if ((e.detail.requestConfig || {}).verb === "get") return;
-    var elt = e.detail.elt;
+  document.addEventListener("htmx:before:request", function (e) {
+    var ctx = e.detail.ctx;
+    if (!ctx || String(ctx.request.method).toUpperCase() === "GET") return;
+    var elt = ctx.sourceElement;
     var ctrls = submitControls(elt).filter(function (c) { return !c.disabled; });
     if (!ctrls.length) return;
     ctrls.forEach(function (c) { c.disabled = true; });
     elt._dozeLocked = ctrls;
   });
   function unlock(e) {
-    var elt = e.detail && e.detail.elt;
+    var ctx = e.detail && e.detail.ctx;
+    var elt = ctx && ctx.sourceElement;
     if (!elt || !elt._dozeLocked) return;
     // Guard against a swap having replaced the button underneath us.
     elt._dozeLocked.forEach(function (c) { if (document.contains(c)) c.disabled = false; });
     elt._dozeLocked = null;
   }
-  document.addEventListener("htmx:afterRequest", unlock);
-  document.addEventListener("htmx:sendError", unlock);
-  document.addEventListener("htmx:timeout", unlock);
+  // htmx:error is htmx 4's single failure event: it replaces sendError, timeout,
+  // swapError and targetError, which each needed their own listener before.
+  document.addEventListener("htmx:after:request", unlock);
+  document.addEventListener("htmx:error", unlock);
 
   // ---------- filter matched nothing ----------
   // The fourth empty state, and the only one that looked like a bug: rows exist,
@@ -698,7 +771,7 @@
     queueNoMatch();
   }
   document.addEventListener("DOMContentLoaded", watchPanes);
-  document.addEventListener("htmx:afterSwap", watchPanes);
+  document.addEventListener("htmx:after:swap", watchPanes);
   watchPanes();
 
   // ---------- after an in-place navigation ----------
@@ -709,7 +782,7 @@
     var seg = p.replace(PREFIX, "").split("/").filter(Boolean);
     return seg.length ? seg[0] : "";
   }
-  document.addEventListener("htmx:afterSettle", function (e) {
+  document.addEventListener("htmx:after:settle", function (e) {
     if (location.pathname === lastPath) return;
     var from = lastPath, to = location.pathname;
     lastPath = to;
@@ -758,7 +831,7 @@
     }
   }
   document.addEventListener("DOMContentLoaded", tidyFlash);
-  document.addEventListener("htmx:afterSettle", tidyFlash);
+  document.addEventListener("htmx:after:settle", tidyFlash);
 
   // A polite live region, so an in-place navigation is announced the way a page
   // load was.
@@ -846,7 +919,7 @@
   window.addEventListener("doze:flash", function (e) { queueFlash(e, false); });
   // A value that cannot be retrieved again also gets a copy button.
   window.addEventListener("doze:flash-sticky", function (e) { queueFlash(e, true); });
-  document.addEventListener("htmx:afterSettle", paintFlash);
+  document.addEventListener("htmx:after:settle", paintFlash);
 
   // ---------- div-buttons ----------
   // A div carrying hx-get is a button to the user and nothing to a keyboard.
@@ -923,7 +996,7 @@
     });
   }
   document.addEventListener("DOMContentLoaded", function () { linkLabels(); });
-  document.addEventListener("htmx:afterSwap", function (e) { linkLabels(e.target); });
+  document.addEventListener("htmx:after:swap", function (e) { linkLabels(e.target); });
   // Clearing has to go through the same store the rows filter on, not just the
   // input, or the rows stay hidden while the box looks empty.
   function clearFilter(from) {

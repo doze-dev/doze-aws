@@ -96,7 +96,7 @@
         <div class="panel">
           <div class="panel-h"><h2>{{icon "braces"}} Generate a policy</h2></div>
           <div style="padding:14px 16px">
-            <form hx-post="{{.Prefix}}/iam/generate" hx-target="#iam-generated" hx-select="unset" hx-swap="outerHTML">
+            <form hx-post="{{.Prefix}}/iam/generate" hx-target="#iam-generated" hx-select="" hx-swap="outerHTML">
               <div class="field">
                 <label>Principal <span class="dim">blank covers everything recorded</span></label>
                 <select class="input mono sub" name="principal">
@@ -118,7 +118,7 @@
         <div class="panel">
           <div class="panel-h"><h2>{{icon "search"}} Simulate</h2></div>
           <div style="padding:14px 16px">
-            <form hx-post="{{.Prefix}}/iam/simulate" hx-target="#iam-sim" hx-select="unset" hx-swap="outerHTML"
+            <form hx-post="{{.Prefix}}/iam/simulate" hx-target="#iam-sim" hx-select="" hx-swap="outerHTML"
                   x-data="{draft:false}" x-effect="if(draft)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
               <div class="seg" style="margin-bottom:10px">
                 <button type="button" :class="!draft && 'on'" @click="draft=false">Principal</button>
@@ -676,7 +676,7 @@
       {{end}}
 
       <div class="sec-title">Authorization details <span class="dim">— the whole IAM database in one read</span></div>
-      <div hx-post="{{.Prefix}}/iam/account/details" hx-trigger="click from:find button" hx-target="#iam-auth-out" hx-select="unset" hx-swap="innerHTML">
+      <div hx-post="{{.Prefix}}/iam/account/details" hx-trigger="click from:find button" hx-target="#iam-auth-out" hx-select="" hx-swap="innerHTML">
         <button type="button" class="btn btn-outline btn-sm">{{icon "download"}} Load the export</button>
         <p class="mini-note">GetAccountAuthorizationDetails: every user, role, group and policy with documents attached — what an auditor pulls first.</p>
       </div>
@@ -707,7 +707,7 @@
           <button type="button" :class="m==='web-identity' && 'on'" @click="m='web-identity'">Web identity</button>
           <button type="button" :class="m==='saml' && 'on'" @click="m='saml'">SAML</button>
         </div>
-        <form hx-post="{{.Prefix}}/iam/sts/mint" hx-target="#sts-out" hx-select="unset" hx-swap="innerHTML">
+        <form hx-post="{{.Prefix}}/iam/sts/mint" hx-target="#sts-out" hx-select="" hx-swap="innerHTML">
           <input type="hidden" name="mode" :value="m">
           <div class="fgrid" x-show="m==='assume-role' || m==='web-identity' || m==='saml'">
             <div class="field"><label>Role</label>
@@ -741,7 +741,7 @@
       </div></div>
 
       <div class="panel" style="max-width:760px;margin-top:14px"><div class="panel-h"><h2>{{icon "search"}} Whose key is this?</h2></div><div class="form-b">
-        <form class="ex-grid" style="align-items:end" hx-post="{{.Prefix}}/iam/sts/key-info" hx-target="#keyinfo-out" hx-select="unset" hx-swap="innerHTML">
+        <form class="ex-grid" style="align-items:end" hx-post="{{.Prefix}}/iam/sts/key-info" hx-target="#keyinfo-out" hx-select="" hx-swap="innerHTML">
           <div class="field" style="flex:1"><label>Access key id</label><input class="input mono" name="id" placeholder="AKIA… / ASIA…" required spellcheck="false"></div>
           <button class="btn btn-outline btn-sm" type="submit">Look up</button>
         </form>
@@ -887,8 +887,8 @@
   <div class="pb-check" x-data="{acts:''}">
     <input class="input mono" placeholder="s3:GetObject sqs:SendMessage" x-model="acts" spellcheck="false">
     <button type="button" class="btn btn-outline btn-sm"
-            hx-post="{{.Prefix}}/iam/simulate-inline" hx-target="#pb-out-{{.UID}}" hx-select="unset" hx-swap="innerHTML"
-            @htmx:config-request="$event.detail.parameters.document = read(); $event.detail.parameters.actions = acts">{{icon "search"}} Check this draft</button>
+            hx-post="{{.Prefix}}/iam/simulate-inline" hx-target="#pb-out-{{.UID}}" hx-select="" hx-swap="innerHTML"
+            @htmx:config:request="$event.detail.ctx.request.body.set('document', read()); $event.detail.ctx.request.body.set('actions', acts)">{{icon "search"}} Check this draft</button>
   </div>
   <div id="pb-out-{{.UID}}"></div>
   {{end}}

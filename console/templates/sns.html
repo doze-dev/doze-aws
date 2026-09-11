@@ -161,7 +161,7 @@
         <div class="panel-h"><h2>{{icon "send"}} Publish message</h2>
           <span class="dim">fans out to {{len .Subs}} subscriber{{if ne (len .Subs) 1}}s{{end}}</span></div>
         <div class="form-b">
-        <form hx-post="{{.Prefix}}/sns/{{.Topic}}/publish" hx-target="#sns-receipt" hx-select="unset" hx-swap="outerHTML">
+        <form hx-post="{{.Prefix}}/sns/{{.Topic}}/publish" hx-target="#sns-receipt" hx-select="" hx-swap="outerHTML">
           <div class="field" style="margin-bottom:10px"><label>Subject <span class="dim">optional</span></label><input class="input" name="subject" placeholder="Order shipped"></div>
           <div class="field"><label>Message</label><textarea name="message" data-editor rows="6" placeholder='{"orderId":"A-1042"}' required></textarea></div>
           {{template "cli" (printf "sns publish --topic-arn arn:aws:sns:us-east-1:000000000000:%s --message $message [--subject $subject]" .Topic)}}
@@ -243,7 +243,7 @@
       A subscription stays pending until the token SNS posted to the endpoint is
       handed back. Until then it is listed and receives nothing.
     </div>
-    <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{.Topic}}/confirm" hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML">
+    <form class="tag-row-form" hx-post="{{.Prefix}}/sns/{{.Topic}}/confirm" hx-target="#sns-subs" hx-select="" hx-swap="outerHTML">
       <input class="input mono" name="token" placeholder="Confirmation token" required autocomplete="off">
       <button class="btn btn-outline btn-sm" type="submit">Confirm</button>
     </form>
@@ -265,11 +265,11 @@
           <span class="sub-arn mono trunc dim" title="{{.Endpoint}}">{{.Endpoint}}</span>
           <button class="copy-btn" data-copy="{{.Endpoint}}" title="Copy endpoint ARN">{{icon "copy"}}</button>
           {{if not .Pending}}<button type="button" class="icon-btn sm gear" title="Delivery settings" @click="open=!open">{{icon "settings"}}</button>{{end}}
-          <button class="icon-btn sm danger" title="Unsubscribe {{.Name}}" hx-post="{{$.Prefix}}/sns/{{$.Topic}}/unsubscribe" hx-vals='{"arn":"{{.SubARN}}"}' hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML" hx-confirm="Unsubscribe “{{.Name}}” from this topic?">{{icon "trash"}}</button>
+          <button class="icon-btn sm danger" title="Unsubscribe {{.Name}}" hx-post="{{$.Prefix}}/sns/{{$.Topic}}/unsubscribe" hx-vals='{"arn":"{{.SubARN}}"}' hx-target="#sns-subs" hx-select="" hx-swap="outerHTML" hx-confirm="Unsubscribe “{{.Name}}” from this topic?">{{icon "trash"}}</button>
         </div>
         {{if not .Pending}}
         <div class="sub-cfg" x-show="open" x-cloak x-effect="if(open)$nextTick(()=>dozeEditor.refresh($root))">
-          <form hx-post="{{$.Prefix}}/sns/{{$.Topic}}/sub-filter" hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML">
+          <form hx-post="{{$.Prefix}}/sns/{{$.Topic}}/sub-filter" hx-target="#sns-subs" hx-select="" hx-swap="outerHTML">
             <input type="hidden" name="arn" value="{{.SubARN}}">
             <div class="field"><label>Filter policy <span class="dim">empty clears it; same pattern language as EventBridge</span></label>
             {{template "pattern_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" .FilterPolicy "Rows" 5 "UID" (printf "snsf-%s" .SubARN) "Test" true}}</div>
@@ -278,7 +278,7 @@
           {{if ne .Proto "lambda"}}
           <div class="raw-toggle">
             <div><div class="opt-l">Raw message delivery</div><div class="opt-d">Deliver the bare message, not the SNS JSON envelope</div></div>
-            <label class="switch"><input type="checkbox" name="raw" {{if .RawDelivery}}checked{{end}} hx-post="{{$.Prefix}}/sns/{{$.Topic}}/sub-raw" hx-vals='{"arn":"{{.SubARN}}"}' hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label>
+            <label class="switch"><input type="checkbox" name="raw" {{if .RawDelivery}}checked{{end}} hx-post="{{$.Prefix}}/sns/{{$.Topic}}/sub-raw" hx-vals='{"arn":"{{.SubARN}}"}' hx-target="#sns-subs" hx-select="" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label>
           </div>
           {{end}}
         </div>
@@ -286,7 +286,7 @@
       </div>
     {{end}}</div>
     {{else}}<div class="empty" style="border:0"><p>No subscribers — publishes go nowhere. Add one below.</p></div>{{end}}
-    <form x-data="{proto:'sqs', adv:false}" hx-post="{{.Prefix}}/sns/{{.Topic}}/subscribe" hx-target="#sns-subs" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){$el.reset();adv=false}">
+    <form x-data="{proto:'sqs', adv:false}" hx-post="{{.Prefix}}/sns/{{.Topic}}/subscribe" hx-target="#sns-subs" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){$el.reset();adv=false}">
       <div class="sub-add">
         <select class="input" name="protocol" x-model="proto" title="Protocol"><option value="sqs">sqs</option><option value="lambda">lambda</option><option value="http">http (webhook)</option></select>
         <span x-show="proto==='sqs'" style="flex:1"><select class="input" name="endpoint" :disabled="proto!=='sqs'">{{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">{{.Name}}</option>{{end}}</select></span>

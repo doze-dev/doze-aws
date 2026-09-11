@@ -658,12 +658,16 @@ func toast(w http.ResponseWriter, msg string) {
 // fail renders a console-driven call's failure the way the wire renders a
 // client's: the code, the message, and a line about where the fix lives.
 //
-// The status stays 400 and no htmx config changes. htmx's default for 4xx is
-// swap:false, so this body would never reach the DOM on its own — but
-// htmx:beforeSwap fires anyway, even when shouldSwap is false, so shell.js can
-// place it next to the control that failed. The header is what tells it to.
-// Doing it that way is why none of the ~180 call sites had to change, and why
-// an error can never clobber a success target it was not addressed to.
+// The status stays 400 and no htmx config changes. The header is what marks
+// the response: shell.js reads it on htmx:after:request to place this body
+// next to the control that failed, and cancels htmx:before:swap so it never
+// reaches the success target the request was aimed at. That is why none of the
+// ~180 call sites had to change, and why an error can never clobber a target it
+// was not addressed to.
+//
+// Under htmx 2 the cancel was belt and braces, because 4xx did not swap by
+// default. htmx 4 swaps every status except 204 and 304, so it now carries the
+// whole guarantee on its own.
 func (c *Console) fail(w http.ResponseWriter, err error) {
 	w.Header().Set("HX-Doze-Error", "1")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")

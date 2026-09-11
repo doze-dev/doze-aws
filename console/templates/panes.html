@@ -71,7 +71,7 @@
      Expects Prefix, Svc (sqs|sns|ddb|lambda|kms|sm|eb), ID (the console id). */}}
 {{define "tags_panel"}}
 <div class="sec-title">Tags</div>
-<div hx-get="{{.Prefix}}/tags/view?svc={{.Svc}}&id={{.ID}}" hx-trigger="load" hx-target="this" hx-select="unset" hx-swap="innerHTML"><div class="panel"><div class="mini-note" style="padding:10px 14px">Loading tags…</div></div></div>
+<div hx-get="{{.Prefix}}/tags/view?svc={{.Svc}}&id={{.ID}}" hx-trigger="load" hx-target="this" hx-select="" hx-swap="innerHTML"><div class="panel"><div class="mini-note" style="padding:10px 14px">Loading tags…</div></div></div>
 {{end}}
 
 {{/* tag_editor — a draft you submit, not a set of controls that each fire.
@@ -99,7 +99,7 @@
 
        .attr-row already solved this for message attributes — a grid with real
        gaps. Same shape here. */}}
-  <form class="panel" hx-post="{{.Prefix}}/tags/save" hx-target="#tag-editor" hx-select="unset" hx-swap="outerHTML">
+  <form class="panel" hx-post="{{.Prefix}}/tags/save" hx-target="#tag-editor" hx-select="" hx-swap="outerHTML">
     <input type="hidden" name="svc" value="{{.Svc}}"><input type="hidden" name="id" value="{{.ID}}">
     <div class="tag-rows">
       <template x-for="(row, i) in rows" :key="i">
@@ -278,7 +278,7 @@
   <div class="overlay" role="dialog" aria-modal="true" aria-label="service fidelity" x-effect="window.dozeTrap && dozeTrap($el, info)" x-show="info" x-cloak @click.self="info=false" @keydown.escape.window="info=false">
     <div class="dialog wide anim">
       <div class="dialog-h"><h3>Fidelity</h3><p>What the emulator genuinely implements (functional), accepts without local effect (cosmetic), and refuses honestly (stub).</p></div>
-      <div class="dialog-b info-body" hx-get="{{.Prefix}}/info/{{.Svc}}" hx-trigger="intersect once" hx-target="this" hx-select="unset" hx-swap="innerHTML"><p class="mini-note">loading…</p></div>
+      <div class="dialog-b info-body" hx-get="{{.Prefix}}/info/{{.Svc}}" hx-trigger="intersect once" hx-target="this" hx-select="" hx-swap="innerHTML"><p class="mini-note">loading…</p></div>
       <div class="dialog-f"><button type="button" class="btn btn-outline" @click="info=false">Close</button></div>
     </div>
   </div>

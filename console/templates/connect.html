@@ -103,7 +103,7 @@ cdk bootstrap &amp;&amp; cdk deploy</pre>
 
       <div class="sec-title" style="margin-top:18px">Check it works</div>
       <div class="cn-verify">
-        <button class="btn" hx-post="{{.Prefix}}/connect/verify" hx-target="#cn-result" hx-select="unset" hx-swap="innerHTML">
+        <button class="btn" hx-post="{{.Prefix}}/connect/verify" hx-target="#cn-result" hx-select="" hx-swap="innerHTML">
           {{icon "play"}} Run get-caller-identity
         </button>
         <div id="cn-result" class="cn-result"><span class="mini-note">Runs STS GetCallerIdentity against this stack. It will not appear on the wire — that tail is deliberately your app's traffic only.</span></div>

@@ -22,7 +22,7 @@
       <div id="eb-http-detail"></div>
       <div class="split">
         <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Create connection</h2></div><div class="form-b">
-          <form hx-post="{{.Prefix}}/eb/destinations/create-connection" hx-target="#eb-http-body" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()" x-data="{auth:'BASIC'}">
+          <form hx-post="{{.Prefix}}/eb/destinations/create-connection" hx-target="#eb-http-body" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()" x-data="{auth:'BASIC'}">
             <div class="fgrid">
               <div class="field"><label>Name</label><input class="input" name="name" placeholder="partner-api" required></div>
               <div class="field"><label>Authorization</label><select class="input" name="auth_type" x-model="auth"><option value="BASIC">Basic</option><option value="API_KEY">API key header</option><option value="OAUTH_CLIENT_CREDENTIALS">OAuth client credentials</option></select></div>
@@ -33,7 +33,7 @@
           </form>
         </div></div>
         <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Create API destination</h2></div><div class="form-b">
-          <form hx-post="{{.Prefix}}/eb/destinations/create-destination" hx-target="#eb-http-body" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()">
+          <form hx-post="{{.Prefix}}/eb/destinations/create-destination" hx-target="#eb-http-body" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
             <div class="fgrid">
               <div class="field"><label>Name</label><input class="input" name="name" placeholder="partner-hook" required></div>
               <div class="field"><label>Connection</label><select class="input" name="connection" required>{{range .Connections}}<option value="{{.ARN}}">{{.Name}} · {{.AuthType}}</option>{{end}}</select></div>
@@ -83,19 +83,19 @@
 <div id="eb-http-tables" class="split">
   <div class="panel"><div class="panel-h"><h2>{{icon "key"}} Connections <span class="badge">{{len .Connections}}</span></h2></div>
     {{if .Connections}}<table class="tbl"><thead><tr><th>Connection</th><th>Auth</th><th>State</th><th class="right">Actions</th></tr></thead><tbody>{{range .Connections}}
-      <tr><td class="mono"><button type="button" class="linkish" hx-get="{{$.Prefix}}/eb/destinations/connection/{{.Name}}" hx-target="#eb-http-detail" hx-select="unset" hx-swap="innerHTML">{{.Name}}</button></td>
+      <tr><td class="mono"><button type="button" class="linkish" hx-get="{{$.Prefix}}/eb/destinations/connection/{{.Name}}" hx-target="#eb-http-detail" hx-select="" hx-swap="innerHTML">{{.Name}}</button></td>
         <td class="dim">{{.AuthType}}</td><td><span class="badge">{{.State}}</span></td>
         <td class="right"><div class="row-actions">
-          <button class="icon-btn sm danger" title="Delete connection" hx-post="{{$.Prefix}}/eb/destinations/delete-connection" hx-vals='{"name":"{{.Name}}"}' hx-target="#eb-http-body" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete connection “{{.Name}}”? Its destinations go INACTIVE.">{{icon "trash"}}</button>
+          <button class="icon-btn sm danger" title="Delete connection" hx-post="{{$.Prefix}}/eb/destinations/delete-connection" hx-vals='{"name":"{{.Name}}"}' hx-target="#eb-http-body" hx-select="" hx-swap="outerHTML" hx-confirm="Delete connection “{{.Name}}”? Its destinations go INACTIVE.">{{icon "trash"}}</button>
         </div></td></tr>
     {{end}}</tbody></table>{{else}}<div class="empty"><p>No connections — create one to hold a credential.</p></div>{{end}}
   </div>
   <div class="panel"><div class="panel-h"><h2>{{icon "send"}} API destinations <span class="badge">{{len .Destinations}}</span></h2></div>
     {{if .Destinations}}<table class="tbl"><thead><tr><th>Destination</th><th>Endpoint</th><th>State</th><th class="right">Actions</th></tr></thead><tbody>{{range .Destinations}}
-      <tr><td class="mono"><button type="button" class="linkish" hx-get="{{$.Prefix}}/eb/destinations/destination/{{.Name}}" hx-target="#eb-http-detail" hx-select="unset" hx-swap="innerHTML">{{.Name}}</button></td>
+      <tr><td class="mono"><button type="button" class="linkish" hx-get="{{$.Prefix}}/eb/destinations/destination/{{.Name}}" hx-target="#eb-http-detail" hx-select="" hx-swap="innerHTML">{{.Name}}</button></td>
         <td class="mono trunc dim" title="{{.Endpoint}}">{{.Method}} {{.Endpoint}}</td><td><span class="badge">{{.State}}</span></td>
         <td class="right"><div class="row-actions">
-          <button class="icon-btn sm danger" title="Delete destination" hx-post="{{$.Prefix}}/eb/destinations/delete-destination" hx-vals='{"name":"{{.Name}}"}' hx-target="#eb-http-body" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete API destination “{{.Name}}”?">{{icon "trash"}}</button>
+          <button class="icon-btn sm danger" title="Delete destination" hx-post="{{$.Prefix}}/eb/destinations/delete-destination" hx-vals='{"name":"{{.Name}}"}' hx-target="#eb-http-body" hx-select="" hx-swap="outerHTML" hx-confirm="Delete API destination “{{.Name}}”?">{{icon "trash"}}</button>
         </div></td></tr>
     {{end}}</tbody></table>{{else}}<div class="empty"><p>No API destinations — create one on a connection, then add it as a rule target.</p></div>{{end}}
   </div>
@@ -121,14 +121,14 @@
   </tbody></table>
   <div class="form-b">
     <p class="mini-note">Secrets are stored with the connection and never reported; the Secret ARN is the one AWS would mint, so a template's GetAtt resolves.</p>
-    <form hx-post="{{.Prefix}}/eb/destinations/connection/{{.C.Name}}/update" hx-target="#eb-connection-detail" hx-select="unset" hx-swap="outerHTML" x-data="{auth:'{{.C.AuthType}}'}">
+    <form hx-post="{{.Prefix}}/eb/destinations/connection/{{.C.Name}}/update" hx-target="#eb-connection-detail" hx-select="" hx-swap="outerHTML" x-data="{auth:'{{.C.AuthType}}'}">
       <div class="fgrid">
         <div class="field"><label>Description</label><input class="input" name="description" value="{{.C.Description}}"></div>
         <div class="field"><label>Re-authorize as</label><select class="input" name="auth_type" x-model="auth"><option value="BASIC">Basic</option><option value="API_KEY">API key header</option><option value="OAUTH_CLIENT_CREDENTIALS">OAuth client credentials</option></select></div>
       </div>
       {{template "eb_connection_auth_fields" .}}
       <div class="send-foot">
-        <button class="btn btn-outline btn-sm" type="button" hx-post="{{.Prefix}}/eb/destinations/connection/{{.C.Name}}/deauthorize" hx-target="#eb-connection-detail" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove the credential from “{{.C.Name}}”? Deliveries through it stop until it is updated.">Deauthorize</button>
+        <button class="btn btn-outline btn-sm" type="button" hx-post="{{.Prefix}}/eb/destinations/connection/{{.C.Name}}/deauthorize" hx-target="#eb-connection-detail" hx-select="" hx-swap="outerHTML" hx-confirm="Remove the credential from “{{.C.Name}}”? Deliveries through it stop until it is updated.">Deauthorize</button>
         <button class="btn btn-sm" type="submit">Update connection</button>
       </div>
     </form>
@@ -146,7 +146,7 @@
   </tbody></table>
   <div class="form-b">
     {{if eq .D.State "INACTIVE"}}<p class="mini-note">INACTIVE: its connection was deleted. Point it at another connection to reactivate.</p>{{end}}
-    <form hx-post="{{.Prefix}}/eb/destinations/destination/{{.D.Name}}/update" hx-target="#eb-destination-detail" hx-select="unset" hx-swap="outerHTML">
+    <form hx-post="{{.Prefix}}/eb/destinations/destination/{{.D.Name}}/update" hx-target="#eb-destination-detail" hx-select="" hx-swap="outerHTML">
       <div class="field"><label>Connection</label><select class="input" name="connection">{{range .Connections}}<option value="{{.ARN}}" {{if eq .ARN $.D.ConnectionARN}}selected{{end}}>{{.Name}} · {{.AuthType}}</option>{{end}}</select></div>
       <div class="field"><label>Endpoint</label><input class="input mono" name="endpoint" value="{{.D.Endpoint}}" required></div>
       <div class="fgrid">

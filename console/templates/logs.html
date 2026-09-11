@@ -10,12 +10,12 @@
 {{define "log_tail"}}
 <div id="log-tail" class="log-tail" data-live="{{.LiveURL}}" data-live-ms="1500" data-hash="{{.Hash}}" x-data="{paused:false}">
   <div class="log-tools">
-    <form class="log-filter" hx-get="{{.BaseURL}}" hx-target="#log-tail" hx-select="unset" hx-swap="outerHTML">
+    <form class="log-filter" hx-get="{{.BaseURL}}" hx-target="#log-tail" hx-select="" hx-swap="outerHTML">
       {{if .RID}}<input type="hidden" name="rid" value="{{.RID}}">{{end}}
       <label class="filter">{{icon "search"}}<input type="text" name="q" value="{{.Query}}" placeholder="filter pattern — ERROR, &quot;out of memory&quot;, { $.level = &quot;error&quot; }" spellcheck="false" autocomplete="off"></label>
       <button class="btn btn-outline btn-sm" type="submit">Filter</button>
     </form>
-    {{if .RID}}<a class="chip log-rid-chip" href="#" hx-get="{{.BaseURL}}" hx-vals='{"q":"{{.Query}}"}' hx-target="#log-tail" hx-select="unset" hx-swap="outerHTML" title="Showing one invocation — click to show every line">request {{.RID}} ✕</a>{{end}}
+    {{if .RID}}<a class="chip log-rid-chip" href="#" hx-get="{{.BaseURL}}" hx-vals='{"q":"{{.Query}}"}' hx-target="#log-tail" hx-select="" hx-swap="outerHTML" title="Showing one invocation — click to show every line">request {{.RID}} ✕</a>{{end}}
     <button type="button" class="chip log-pause" x-text="paused ? '▶ resume' : '⏸ pause'"
             @click="paused=!paused; const f=$el.closest('#log-tail'); if(paused){f.setAttribute('data-live-paused','1')}else{f.removeAttribute('data-live-paused')}"></button>
     <span class="dim log-count">{{len .Lines}} line{{if ne (len .Lines) 1}}s{{end}}{{if .Query}} matching{{end}} · last hour</span>
@@ -28,7 +28,7 @@
   <div class="log-lines" data-log-scroll>{{range .Lines}}
     <div class="log-line log-{{.Kind}}" data-rid="{{.RequestID}}">
       <span class="log-when mono">{{.When}}</span>
-      {{if .RequestID}}<a class="log-rid mono" href="#" hx-get="{{$.BaseURL}}" hx-vals='{"rid":"{{.RequestID}}","q":"{{$.Query}}"}' hx-target="#log-tail" hx-select="unset" hx-swap="outerHTML" title="{{.RequestID}} — click to show only this invocation">{{.Short}}</a>{{else}}<span class="log-rid mono dim" title="init output, before the first invocation">init</span>{{end}}
+      {{if .RequestID}}<a class="log-rid mono" href="#" hx-get="{{$.BaseURL}}" hx-vals='{"rid":"{{.RequestID}}","q":"{{$.Query}}"}' hx-target="#log-tail" hx-select="" hx-swap="outerHTML" title="{{.RequestID}} — click to show only this invocation">{{.Short}}</a>{{else}}<span class="log-rid mono dim" title="init output, before the first invocation">init</span>{{end}}
       <span class="log-msg">{{.Message}}</span>
     </div>{{end}}
   </div>
@@ -149,12 +149,12 @@
         {{/* Both opt-outs are load-bearing, and each fails differently.
              #workspace carries hx-select="#workspace" and
              hx-swap="outerHTML show:none", and htmx inherits both: without
-             hx-select="unset" htmx looks for a #workspace inside this partial,
+             hx-select="" htmx looks for a #workspace inside this partial,
              finds none and swaps nothing; without hx-swap="innerHTML" the
              inherited outerHTML replaces #mf-test itself, so the second test
              run has no target left to swap into. */}}
         <form class="form-b" hx-post="{{.Prefix}}/logs/test-metric-filter"
-              hx-target="#mf-test" hx-select="unset" hx-swap="innerHTML">
+              hx-target="#mf-test" hx-select="" hx-swap="innerHTML">
           <div class="field"><label>Pattern</label><input class="input mono" name="pattern" placeholder="ERROR"></div>
           <div class="field"><label>Sample lines <span class="dim">one per line; prefilled from this group's tail</span></label>
             <textarea class="input mono" name="samples" rows="4">{{range .Samples}}{{.}}

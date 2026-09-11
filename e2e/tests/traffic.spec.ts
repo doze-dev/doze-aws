@@ -71,13 +71,14 @@ test.describe('console actions stay out of Traffic', () => {
     await createBucket(request, bucket);
 
     await page.goto('traffic');
-    // #traffic-feed's own partial re-emits an element with the same id at its
-    // root, so the client's morph-poll self-nests one extra `#traffic-feed`
-    // inside the original on the very first tick (verified: count goes 1 -> 2
-    // after tick one and stays there) — a pre-existing quirk of this page,
-    // not something this spec introduces. `.first()` sidesteps the resulting
-    // strict-mode ambiguity; its content is a superset of the nested copy's,
-    // so it's still the right target for both assertions below.
+    // `.first()` is belt and braces now. #traffic-feed's partial re-emits an
+    // element with the same id at its root, and the live poll used to nest one
+    // extra `#traffic-feed` inside the original on the first tick (count went
+    // 1 -> 2 and stayed there) because the swap style fell through to
+    // innerHTML — morphing was configured but had never actually activated.
+    // htmx 4 makes outerMorph a built-in swap style with nothing to activate,
+    // and the count now stays at 1 across ticks (re-verified). Kept because it
+    // costs nothing and the id really is duplicated in the response.
     const feed = page.locator('#traffic-feed').first();
     await expect(feed).toBeVisible();
     // #traffic-feed polls every 1500ms (data-live-ms). Wait out a couple of

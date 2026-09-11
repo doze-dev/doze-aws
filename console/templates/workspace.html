@@ -27,7 +27,7 @@
        represented that way: a flat JSON object of scalars. Paste something
        nested, an array, or plain text and the tab disappears rather than
        silently flattening a structure the builder cannot round-trip. */}}
-  <form hx-post="{{.SaveURL}}" hx-target="{{.Target}}" hx-select="unset" hx-swap="outerHTML"
+  <form hx-post="{{.SaveURL}}" hx-target="{{.Target}}" hx-select="" hx-swap="outerHTML"
         x-data="kvEditor({{printf "%q" .Value}})" x-init="init($refs.ta)">
     <input type="hidden" name="{{.SaveField}}" value="{{.SaveVal}}">
 
@@ -67,9 +67,9 @@
     <tbody>
     {{if .History}}{{range .History}}
       <tr><td class="mono" style="font-weight:600">v{{.Version}}</td>
-        {{if $.LabelURL}}<td>{{$row := .}}{{range .Labels}}<span class="badge type ver-stage">{{.}}{{if $.UnlabelURL}}<button type="button" class="lbl-x" title="Remove this label" hx-post="{{$.UnlabelURL}}" hx-vals='{"name":"{{$.SaveVal}}","version":"{{$row.Version}}","label":"{{.}}"}' hx-target="{{$.Target}}" hx-select="unset" hx-swap="outerHTML">&times;</button>{{end}}</span>{{end}}<form class="tag-row-form" style="margin-top:4px" hx-post="{{$.LabelURL}}" hx-target="{{$.Target}}" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="$el.reset()"><input type="hidden" name="name" value="{{$.SaveVal}}"><input type="hidden" name="version" value="{{.Version}}"><input class="input" name="label" placeholder="e.g. prod" style="flex:1;font-size:11px;padding:3px 6px" required><button class="icon-btn sm" type="submit" title="Attach label">{{icon "plus"}}</button></form></td>
+        {{if $.LabelURL}}<td>{{$row := .}}{{range .Labels}}<span class="badge type ver-stage">{{.}}{{if $.UnlabelURL}}<button type="button" class="lbl-x" title="Remove this label" hx-post="{{$.UnlabelURL}}" hx-vals='{"name":"{{$.SaveVal}}","version":"{{$row.Version}}","label":"{{.}}"}' hx-target="{{$.Target}}" hx-select="" hx-swap="outerHTML">&times;</button>{{end}}</span>{{end}}<form class="tag-row-form" style="margin-top:4px" hx-post="{{$.LabelURL}}" hx-target="{{$.Target}}" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()"><input type="hidden" name="name" value="{{$.SaveVal}}"><input type="hidden" name="version" value="{{.Version}}"><input class="input" name="label" placeholder="e.g. prod" style="flex:1;font-size:11px;padding:3px 6px" required><button class="icon-btn sm" type="submit" title="Attach label">{{icon "plus"}}</button></form></td>
         {{else}}<td class="mono trunc dim" style="font-size:11px;max-width:280px" title="{{.Value}}">{{.Value}}</td>{{end}}
-        <td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{.Version}}" hx-target="#version-diff" hx-select="unset" hx-swap="innerHTML">Diff vs current</button></td></tr>
+        <td class="right"><button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{.Version}}" hx-target="#version-diff" hx-select="" hx-swap="innerHTML">Diff vs current</button></td></tr>
     {{end}}{{end}}
     {{if .Stages}}{{range $id, $st := .Stages}}
       <tr><td class="mono trunc ver-id" title="{{$id}}">{{$id}}</td>
@@ -85,7 +85,7 @@
             <button class="btn btn-outline btn-sm" type="submit">{{icon "rotate"}} Make current</button>
           </form>
           {{end}}
-          <button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{$id}}" hx-target="#version-diff" hx-select="unset" hx-swap="innerHTML">Diff vs current</button></td></tr>
+          <button class="btn btn-outline btn-sm" hx-get="{{$.Diff}}&v={{$id}}" hx-target="#version-diff" hx-select="" hx-swap="innerHTML">Diff vs current</button></td></tr>
     {{end}}{{end}}
     </tbody>
   </table></div>

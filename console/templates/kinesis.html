@@ -67,7 +67,7 @@
               {{/* Kinesis has no count API, so depth costs a read. It loads
                    after the page so a deep stream still paints at once. */}}
               <td class="num sub" hx-get="{{$.Prefix}}/kinesis/{{$.Stream}}/shards/{{.ID}}/depth"
-                  hx-trigger="load" hx-target="this" hx-select="unset"
+                  hx-trigger="load" hx-target="this" hx-select=""
                   hx-swap="innerHTML"><span class="dim">·</span></td>
               <td class="dim sub mono">
                 {{if .Adjacent}}merge of {{.Parent}} + {{.Adjacent}}
@@ -169,7 +169,7 @@
 {{define "kinesis_filters"}}
 <form class="explorer-form" x-data="{more:{{if or .Query.Partition .Query.Contains}}true{{else}}false{{end}}}"
       hx-post="{{.Prefix}}/kinesis/{{.Stream}}/records/query"
-      hx-target="#k-records" hx-select="unset" hx-swap="outerHTML">
+      hx-target="#k-records" hx-select="" hx-swap="outerHTML">
   <div class="ex-grid">
     <div class="field" style="width:210px"><label>Shard</label>
       <select class="input mono sub" name="shard">
@@ -284,7 +284,7 @@
       {{if .Binary}}<span class="chip">base64</span> {{end}}{{.Data}}{{if .Truncated}}<span class="dim">…</span>
       <button class="btn btn-outline btn-sm" style="margin-left:6px"
               hx-get="{{$.Prefix}}/kinesis/{{$.Stream}}/record?shard={{.Shard}}&seq={{.Seq}}"
-              hx-target="#drawer-inner" hx-select="unset" hx-swap="innerHTML"
+              hx-target="#drawer-inner" hx-select="" hx-swap="innerHTML"
               @click="drawer=true">{{icon "search"}} Full</button>{{end}}
     </td>
     <td class="num dim sub">{{.Bytes}}</td>
@@ -296,7 +296,7 @@
   <tr id="k-tail"><td colspan="{{$cols}}" style="text-align:center;padding:6px">
     <span class="dim sub" role="button" tabindex="0" hx-post="{{.Prefix}}/kinesis/{{.Stream}}/records/query"
           hx-vals='{{.NextVals}}' hx-trigger="every 2s"
-          hx-target="closest tr" hx-select="unset" hx-swap="outerHTML">
+          hx-target="closest tr" hx-select="" hx-swap="outerHTML">
       {{icon "activity"}} following — new records appear here
     </span>
   </td></tr>
@@ -304,7 +304,7 @@
   <tr><td colspan="{{$cols}}" style="text-align:center;padding:6px">
     <button type="button" class="btn btn-outline btn-sm"
             hx-post="{{.Prefix}}/kinesis/{{.Stream}}/records/query"
-            hx-vals='{{.NextVals}}' hx-target="closest tr" hx-select="unset" hx-swap="outerHTML">
+            hx-vals='{{.NextVals}}' hx-target="closest tr" hx-select="" hx-swap="outerHTML">
       {{icon "plus"}} Load {{.Query.Limit}} more
     </button>
   </td></tr>

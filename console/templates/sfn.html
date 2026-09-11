@@ -61,7 +61,7 @@
           <div class="field"><textarea id="sfn-def-editor" name="definition" data-editor="json" rows="18" spellcheck="false" required>{{.Machine.Definition}}</textarea></div>
           <div id="sfn-def-out"></div>
           <div class="send-foot">
-            <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sfn/validate" hx-include="closest form" hx-target="#sfn-def-out" hx-select="unset" hx-swap="innerHTML">{{icon "check"}} Validate</button>
+            <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sfn/validate" hx-include="closest form" hx-target="#sfn-def-out" hx-select="" hx-swap="innerHTML">{{icon "check"}} Validate</button>
             <span id="submit-spin" class="dim htmx-indicator">Working…</span>
             <button class="btn btn-sm" type="submit">Save definition</button>
           </div>
@@ -108,7 +108,7 @@
       <div class="panel">
         <div class="panel-h"><h2>{{icon "send"}} Start execution</h2><span class="dim">{{if .Express}}runs to completion and answers here — an Express execution’s history is in the Logs tab{{else}}lands you on its history as it runs{{end}}</span></div>
         <div class="form-b">
-        <form hx-post="{{.Prefix}}/sfn/{{.Name}}/{{if .Express}}start-sync{{else}}start{{end}}" hx-indicator="#submit-spin"{{if .Express}} hx-target="#sfn-sync-out" hx-select="unset" hx-swap="innerHTML" data-err-slot="#sfn-sync-out"{{end}}>
+        <form hx-post="{{.Prefix}}/sfn/{{.Name}}/{{if .Express}}start-sync{{else}}start{{end}}" hx-indicator="#submit-spin"{{if .Express}} hx-target="#sfn-sync-out" hx-select="" hx-swap="innerHTML" data-err-slot="#sfn-sync-out"{{end}}>
           <div class="field"><label>Name <span class="dim">optional — one is generated</span></label><input class="input mono" name="name" placeholder="order-1042" pattern="[^\s<>{}\[\]?*&quot;#%\\^|~`$,;:/\x00-\x1f\x7f-\x9f]{1,80}" autocomplete="off"></div>
           <div class="field stack"><label>Run as <span class="dim">the machine as it stands, or a frozen version, or whatever an alias routes to</span></label>
             <select class="input" name="target">
@@ -311,7 +311,7 @@
      HeartbeatSeconds clock and swaps nothing. dict: Prefix, Action,
      Heartbeat, Target, Swap, Token, TokenHint, Activity. */}}
 {{define "sfn_task_form"}}
-<form class="form-b" x-data="{outcome:'success'}" hx-post="{{.Action}}" hx-target="{{.Target}}" hx-select="unset" hx-swap="{{.Swap}}">
+<form class="form-b" x-data="{outcome:'success'}" hx-post="{{.Action}}" hx-target="{{.Target}}" hx-select="" hx-swap="{{.Swap}}">
   {{with .Activity}}<input type="hidden" name="activity" value="{{.}}">{{end}}
   <div class="field"><label>Task token <span class="dim">{{.TokenHint}}</span></label><input class="input mono" name="token" value="{{.Token}}" required autocomplete="off" spellcheck="false"></div>
   <div class="field stack"><span class="ws-seg">

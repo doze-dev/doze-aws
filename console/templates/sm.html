@@ -75,11 +75,11 @@
       {{if .S.RotationOn}}
       <div class="pub-receipt" style="margin-bottom:12px"><div class="pr-h">✓ Rotating with <b>{{.S.RotationLambda}}</b> every {{.S.RotationDays}} days{{if .S.LastRotated}} · last rotated {{.S.LastRotated}}{{end}}</div><div class="pr-row dim">doze-aws runs the real 4-step rotation protocol against your local function.</div></div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sm/rotate-now" hx-vals='{"name":"{{.S.Name}}"}' hx-target="#sm-detail" hx-select="unset" hx-swap="outerHTML">{{icon "rotate"}} Rotate now</button>
-        <button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/sm/rotation" hx-vals='{"name":"{{.S.Name}}","lambda":""}' hx-target="#sm-detail" hx-select="unset" hx-swap="outerHTML" hx-confirm="Turn off automatic rotation?">Disable rotation</button>
+        <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sm/rotate-now" hx-vals='{"name":"{{.S.Name}}"}' hx-target="#sm-detail" hx-select="" hx-swap="outerHTML">{{icon "rotate"}} Rotate now</button>
+        <button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/sm/rotation" hx-vals='{"name":"{{.S.Name}}","lambda":""}' hx-target="#sm-detail" hx-select="" hx-swap="outerHTML" hx-confirm="Turn off automatic rotation?">Disable rotation</button>
       </div>
       {{else}}
-      <form hx-post="{{.Prefix}}/sm/rotation" hx-target="#sm-detail" hx-select="unset" hx-swap="outerHTML">
+      <form hx-post="{{.Prefix}}/sm/rotation" hx-target="#sm-detail" hx-select="" hx-swap="outerHTML">
         <input type="hidden" name="name" value="{{.S.Name}}">
         <p class="mini-note" style="margin-top:0">Point at a Lambda that implements the rotation protocol; doze-aws invokes it on the schedule (and on demand).</p>
         <div class="fgrid">
@@ -99,7 +99,7 @@
       <div class="panel-h"><h2>{{icon "braces"}} {{if .Policy}}<span class="badge state-on">Configured</span>{{else}}<span class="badge state-off">Not set</span>{{end}}</h2>
         <button type="button" class="btn btn-outline btn-sm" @click="open=!open" x-text="open ? 'Close' : 'Edit'"></button></div>
       <div class="form-b" x-show="open" x-cloak>
-        <form hx-post="{{.Prefix}}/sm/policy" hx-target="#sm-detail" hx-select="unset" hx-swap="outerHTML">
+        <form hx-post="{{.Prefix}}/sm/policy" hx-target="#sm-detail" hx-select="" hx-swap="outerHTML">
           <input type="hidden" name="name" value="{{.S.Name}}">
           {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .Policy "Rows" 10 "UID" "secpol" "Check" false}}
           <div class="fr-btn"><button class="btn" type="submit">Save policy</button>

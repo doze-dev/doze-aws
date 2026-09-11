@@ -32,7 +32,7 @@
     <select class="chip" x-model="svc" style="cursor:pointer;background:var(--card)"><option value="">all services</option><option>s3</option><option>sqs</option><option>sns</option><option>ddb</option><option>lambda</option><option>kms</option><option>eb</option><option>sfn</option><option>sm</option><option>ssm</option><option>sts</option></select>
     <button type="button" class="chip" style="cursor:pointer" x-text="paused ? '▶ resume' : '⏸ pause'"
             @click="paused=!paused; const f=document.getElementById('traffic-feed'); if(paused){f.setAttribute('data-live-paused','1')}else{f.removeAttribute('data-live-paused')}"></button>
-    <button type="button" class="chip" style="cursor:pointer" hx-post="{{.Prefix}}/traffic/clear" hx-target="#traffic-feed" hx-select="unset" hx-swap="outerHTML" @click="sel=null">{{icon "trash"}} clear</button>
+    <button type="button" class="chip" style="cursor:pointer" hx-post="{{.Prefix}}/traffic/clear" hx-target="#traffic-feed" hx-select="" hx-swap="outerHTML" @click="sel=null">{{icon "trash"}} clear</button>
   </div>
   <div class="tr-wrap" :class="sel!==null && 'open'">
     {{template "traffic_rows" .}}
@@ -48,13 +48,13 @@
   {{range .Entries}}
   <div x-data x-show="(!errOnly || {{if .IsErr}}true{{else}}false{{end}}) && (svc==='' || svc==='{{.Service}}')">
     <div class="tr-row {{if .IsErr}}{{.State}}{{end}}{{if .Cascade}} tr-child{{end}}" role="button" tabindex="0" aria-label="Inspect {{.Action}} {{.Resource}}" data-depth="{{.Depth}}" :class="sel==={{.Seq}} && 'sel'"
-         hx-get="{{$.Prefix}}/traffic/entry?seq={{.Seq}}" hx-target="#t-drawer-inner" hx-select="unset" hx-swap="innerHTML"
+         hx-get="{{$.Prefix}}/traffic/entry?seq={{.Seq}}" hx-target="#t-drawer-inner" hx-select="" hx-swap="innerHTML"
          @click="sel = (sel==={{.Seq}} ? null : {{.Seq}})">
       <span class="ts">{{.Time}}</span>
       <span class="svcb" style="--svc-ink:var(--svc-{{.Service}}-ink);padding-left:{{mul .Depth 14}}px">{{if .Cascade}}<span class="tr-branch" title="caused by the call above">└</span>{{end}}{{.Service}}</span>
       <span class="act">{{.Action}}{{with .Via}}<span class="tr-via" title="what emitted this work">via {{.}}</span>{{end}}</span>
       {{/* The three hx-* attributes here are load-bearing. The row sets
-           hx-target="#t-drawer-inner" and hx-select="unset", and htmx
+           hx-target="#t-drawer-inner" and hx-select="", and htmx
            inheritance hands both to any link inside it — so a boosted click
            would swap the whole page into the 380px inspector drawer.
            @click.stop keeps the row's own drawer toggle from firing too. */}}

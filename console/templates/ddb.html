@@ -18,7 +18,7 @@
 {{define "ddb_table"}}{{template "shell_top" .}}
   {{template "ddb_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Table.Name)}}
   <section class="detail" x-data="{drawer:false, put:false, upd:false, updKey:'', sel:[]}"
-           @htmx:after-swap="if($event.target.id==='ddb-items') sel=[]">
+           @htmx:after:swap="if($event.detail.ctx.target && $event.detail.ctx.target.id==='ddb-items') sel=[]">
     <div class="det-h">
       <div class="det-title">{{awsIcon "ddb"}} {{.Table.Name}}
         <div class="acts"><button class="btn" @click="put=true">{{icon "plus"}} Add item</button><button class="btn btn-outline danger" hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/delete-table" hx-confirm="Delete table “{{.Table.Name}}” and ALL its items?">{{icon "trash"}} Delete</button></div>
@@ -39,7 +39,7 @@
       {{end}}
     </div>
     <div class="overlay" role="dialog" aria-modal="true" aria-label="Add item" x-effect="window.dozeTrap && dozeTrap($el, put)" x-show="put" x-cloak @click.self="put=false" @keydown.escape.window="put=false" x-effect="if(put)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
-      <div class="dialog wide anim"><form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/put" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){put=false;$el.reset();}">
+      <div class="dialog wide anim"><form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/put" hx-target="#ddb-items" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){put=false;$el.reset();}">
         <div class="dialog-h"><h3>Add item</h3><p>Plain JSON — types inferred ({{.Table.HashKey}}{{if .Table.RangeKey}}, {{.Table.RangeKey}}{{end}} required).</p></div>
         <div class="dialog-b"><textarea id="ddb-item-editor" name="item" data-editor="json" rows="9" spellcheck="false" required placeholder='{&#10;  "{{.Table.HashKey}}": "user-1",&#10;  "name": "Ada"&#10;}'></textarea></div>
         <div class="dialog-f"><button type="button" class="btn btn-outline" @click="put=false">Cancel</button><button type="submit" class="btn">Save item</button></div>
@@ -50,7 +50,7 @@
          value rows exactly like the explorer's filter expressions (same
          template, same fv:/ft: wire shape, same server-side parsing). */}}
     <div class="overlay" role="dialog" aria-modal="true" aria-label="Update item" x-effect="window.dozeTrap && dozeTrap($el, upd)" x-show="upd" x-cloak @click.self="upd=false" @keydown.escape.window="upd=false">
-      <div class="dialog wide anim"><form x-data="{f:''}" hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/update-item" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){upd=false;$el.reset();f='';}">
+      <div class="dialog wide anim"><form x-data="{f:''}" hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/update-item" hx-target="#ddb-items" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){upd=false;$el.reset();f='';}">
         <input type="hidden" name="key" :value="updKey">
         <div class="dialog-h"><h3>Update item</h3><p>SET, REMOVE, ADD and DELETE clauses edit attributes in place; the rest of the item is untouched.</p></div>
         <div class="dialog-b">
@@ -86,9 +86,9 @@
     <div class="panel"><div class="form-b">
       {{if .Table.TTLAttr}}
       <div class="opt-row"><div><div class="opt-l">Expiring on <span class="mono">{{.Table.TTLAttr}}</span> <span class="badge state-on">{{.Table.TTLStatus}}</span></div><div class="opt-d">Items vanish once this attribute's epoch time passes</div></div>
-        <button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/ttl" hx-vals='{"attr":""}' hx-target="#ddb-details" hx-select="unset" hx-swap="outerHTML" hx-confirm="Disable TTL on “{{.Table.Name}}”?">Disable</button></div>
+        <button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/ttl" hx-vals='{"attr":""}' hx-target="#ddb-details" hx-select="" hx-swap="outerHTML" hx-confirm="Disable TTL on “{{.Table.Name}}”?">Disable</button></div>
       {{else}}
-      <form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/ttl" hx-target="#ddb-details" hx-select="unset" hx-swap="outerHTML">
+      <form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/ttl" hx-target="#ddb-details" hx-select="" hx-swap="outerHTML">
         <div class="ex-grid" style="align-items:end"><div class="field" style="flex:1"><label>TTL attribute</label><input class="input mono" name="attr" placeholder="expiresAt" required spellcheck="false"></div><button class="btn btn-outline btn-sm" type="submit">Enable TTL</button></div>
         <p class="mini-note">The attribute holds a Unix epoch (seconds); doze-aws expires items lazily on read and via a background janitor.</p>
       </form>
@@ -100,11 +100,11 @@
     <div class="sec-title" style="margin-top:0">Global secondary indexes</div>
     {{if .Table.GSIs}}<div class="table-wrap"><table class="tbl"><thead><tr><th>Index</th><th>Partition key</th><th>Sort key</th><th style="width:36px"></th></tr></thead><tbody>{{range .Table.GSIs}}
       <tr><td class="mono" style="font-size:11.5px">{{.Name}}</td><td class="mono dim" style="font-size:11.5px">{{.HashKey}} ({{.HashType}})</td><td class="mono dim" style="font-size:11.5px">{{if .RangeKey}}{{.RangeKey}} ({{.RangeType}}){{else}}—{{end}}</td>
-        <td><div class="row-actions"><button class="icon-btn sm danger" title="Delete index" hx-post="{{$.Prefix}}/ddb/{{$.Table.Name}}/delete-gsi" hx-vals='{"index":"{{.Name}}"}' hx-target="#ddb-details" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete index “{{.Name}}”?">{{icon "trash"}}</button></div></td></tr>
+        <td><div class="row-actions"><button class="icon-btn sm danger" title="Delete index" hx-post="{{$.Prefix}}/ddb/{{$.Table.Name}}/delete-gsi" hx-vals='{"index":"{{.Name}}"}' hx-target="#ddb-details" hx-select="" hx-swap="outerHTML" hx-confirm="Delete index “{{.Name}}”?">{{icon "trash"}}</button></div></td></tr>
     {{end}}</tbody></table></div>{{else}}<p class="mini-note">No GSIs — add one to query by a different key.</p>{{end}}
 
     <div class="panel" style="margin-top:12px"><div class="panel-h"><h2>{{icon "plus"}} Add index</h2></div><div class="form-b">
-      <form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/add-gsi" hx-target="#ddb-details" hx-select="unset" hx-swap="outerHTML">
+      <form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/add-gsi" hx-target="#ddb-details" hx-select="" hx-swap="outerHTML">
         <div class="field"><label>Index name</label><input class="input" name="gsi_name" placeholder="by-email" required autocomplete="off"></div>
         <div class="ex-grid" style="margin-top:8px">
           <div class="field" style="flex:1"><label>Partition key</label><input class="input mono" name="gsi_hash" placeholder="email" required spellcheck="false"></div>
@@ -136,7 +136,7 @@
 
   {{/* SCAN */}}
   <form class="explorer-form" x-show="mode==='scan'" x-data="{f:''}"
-        hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML">
+        hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-target="#ddb-items" hx-select="" hx-swap="outerHTML">
     <input type="hidden" name="mode" value="scan">
     <div class="ex-grid">
       <div class="field" style="flex:1"><label>Filter expression <span class="dim">optional</span></label>
@@ -150,7 +150,7 @@
 
   {{/* QUERY */}}
   <form class="explorer-form" x-show="mode==='query'" x-cloak x-data="{f:''}"
-        hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML">
+        hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-target="#ddb-items" hx-select="" hx-swap="outerHTML">
     <input type="hidden" name="mode" value="query">
     <div class="ex-grid">
       <div class="field"><label>Index</label>
@@ -192,7 +192,7 @@
 
   {{/* GET — the point read: the whole primary key in, zero or one item out. */}}
   <form class="explorer-form" x-show="mode==='get'" x-cloak
-        hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML">
+        hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-target="#ddb-items" hx-select="" hx-swap="outerHTML">
     <input type="hidden" name="mode" value="get">
     <div class="ex-grid">
       <div class="field" style="flex:1"><label>{{.Table.HashKey}} <span class="dim">partition key</span></label>
@@ -207,7 +207,7 @@
 
   {{/* PARTIQL */}}
   <form class="explorer-form" x-show="mode==='partiql'" x-cloak
-        hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML">
+        hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-target="#ddb-items" hx-select="" hx-swap="outerHTML">
     <input type="hidden" name="mode" value="partiql">
     <div class="field"><label>PartiQL statement</label>
       <textarea name="statement" data-editor="sql" rows="3" spellcheck="false">SELECT * FROM "{{.Table.Name}}" WHERE {{.Table.HashKey}} = 'user-1'</textarea></div>
@@ -224,12 +224,12 @@
      between the pairs — not what they do, but what they promise. */}}
 <div class="bulkbar" x-data="{txn:false}" x-show="sel.length" x-cloak>
   <span class="bb-n"><span x-text="sel.length"></span> selected</span>
-  <form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/batch-get" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML">
+  <form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/batch-get" hx-target="#ddb-items" hx-select="" hx-swap="outerHTML">
     <input type="hidden" name="keys" :value="JSON.stringify(sel)">
     <input type="hidden" name="snapshot" :value="txn?'1':''">
     <button class="btn btn-outline btn-sm" type="submit">{{icon "refresh"}} Re-read selected</button>
   </form>
-  <form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/batch-delete" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete the selected items?">
+  <form hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/batch-delete" hx-target="#ddb-items" hx-select="" hx-swap="outerHTML" hx-confirm="Delete the selected items?">
     <input type="hidden" name="keys" :value="JSON.stringify(sel)">
     <input type="hidden" name="atomic" :value="txn?'1':''">
     <button class="btn btn-outline danger btn-sm" type="submit">{{icon "trash"}} Delete selected</button>
@@ -290,10 +290,10 @@
     {{if $.Table.RangeKey}}<td class="mono dim" style="font-size:11.5px">{{.SK}}</td>{{end}}
     {{if $.Cols}}{{$it := .}}{{range $.Cols}}<td class="mono dim trunc" style="font-size:11px;max-width:220px">{{index $it.Attrs .}}</td>{{end}}
     {{else}}<td class="dim mono trunc" style="font-size:11px;max-width:420px">{{if .Preview}}{{.Preview}}{{else}}<span style="opacity:.5">keys only</span>{{end}}</td>{{end}}
-    <td @click.stop><div class="row-actions"><button class="icon-btn sm danger" title="Delete item" hx-post="{{$.Prefix}}/ddb/{{$.Table.Name}}/delete-item" :hx-vals="JSON.stringify({key: keyJSON})" hx-target="#ddb-items" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete this item?">{{icon "trash"}}</button></div></td>
+    <td @click.stop><div class="row-actions"><button class="icon-btn sm danger" title="Delete item" hx-post="{{$.Prefix}}/ddb/{{$.Table.Name}}/delete-item" :hx-vals="JSON.stringify({key: keyJSON})" hx-target="#ddb-items" hx-select="" hx-swap="outerHTML" hx-confirm="Delete this item?">{{icon "trash"}}</button></div></td>
   </tr>
 {{end}}
 {{if .Next}}<tr class="load-more"><td colspan="{{.Colspan}}">
-  <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-vals='{{.NextVals}}' hx-target="closest tr" hx-select="unset" hx-swap="outerHTML">{{icon "plus"}} Load 50 more</button>
+  <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/explore" hx-vals='{{.NextVals}}' hx-target="closest tr" hx-select="" hx-swap="outerHTML">{{icon "plus"}} Load 50 more</button>
 </td></tr>{{end}}
 {{end}}

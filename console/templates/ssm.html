@@ -25,7 +25,7 @@
   <section class="detail"><div class="det-b">
     <div class="sec-title">Query a path</div>
     <div class="panel">
-      <form class="tag-row-form" hx-post="{{.Prefix}}/ssm/path" hx-target="#ssm-path-out" hx-select="unset" hx-swap="innerHTML">
+      <form class="tag-row-form" hx-post="{{.Prefix}}/ssm/path" hx-target="#ssm-path-out" hx-select="" hx-swap="innerHTML">
         <input class="input mono" name="path" placeholder="/app/prod" required autocomplete="off" spellcheck="false">
         <button class="btn btn-outline btn-sm" type="submit">List everything under it</button>
       </form>

@@ -31,7 +31,7 @@
 
     <div class="split" style="margin-top:14px">
       <div class="panel"><div class="panel-h"><h2>{{icon "plus"}} Publish a layer version</h2></div><div class="form-b">
-        <form hx-post="{{.Prefix}}/lambda/layers/publish" hx-target="#lam-layers" hx-select="unset" hx-swap="outerHTML">
+        <form hx-post="{{.Prefix}}/lambda/layers/publish" hx-target="#lam-layers" hx-select="" hx-swap="outerHTML">
           <div class="fgrid">
             <div class="field"><label>Layer name</label><input class="input mono" name="name" placeholder="shared-utils" required pattern="[a-zA-Z0-9_\-]{1,64}" spellcheck="false"></div>
             <div class="field"><label>Compatible runtimes <span class="dim">optional, comma-sep</span></label><input class="input mono" name="runtimes" placeholder="python3.12, nodejs20.x" spellcheck="false"></div>
@@ -43,7 +43,7 @@
         <p class="mini-note">Publishing an existing name adds the next version; nothing already deployed changes.</p>
       </div></div>
       <div class="panel"><div class="panel-h"><h2>{{icon "search"}} Look up by ARN</h2></div><div class="form-b">
-        <form hx-post="{{.Prefix}}/lambda/layers/find" hx-target="#layer-out" hx-select="unset" hx-swap="innerHTML">
+        <form hx-post="{{.Prefix}}/lambda/layers/find" hx-target="#layer-out" hx-select="" hx-swap="innerHTML">
           <div class="field"><label>Layer version ARN</label><input class="input mono" name="arn" placeholder="arn:aws:lambda:us-east-1:000000000000:layer:shared-utils:3" required spellcheck="false"></div>
           <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Resolve</button></div>
         </form>
@@ -65,7 +65,7 @@
   <tbody>
   {{range .Layers}}
     <tr>
-      <td class="mono sub"><a href="javascript:void(0)" hx-post="{{$.Prefix}}/lambda/layers/versions" hx-vals='{"layer":"{{.Name}}"}' hx-target="#layer-out" hx-select="unset" hx-swap="innerHTML" title="List versions">{{.Name}}</a></td>
+      <td class="mono sub"><a href="javascript:void(0)" hx-post="{{$.Prefix}}/lambda/layers/versions" hx-vals='{"layer":"{{.Name}}"}' hx-target="#layer-out" hx-select="" hx-swap="innerHTML" title="List versions">{{.Name}}</a></td>
       <td class="sub num">v{{.Version}}</td>
       <td class="dim sub mono">{{if .Runtimes}}{{range $i, $rt := .Runtimes}}{{if $i}}, {{end}}{{$rt}}{{end}}{{else}}any{{end}}</td>
       <td class="dim sub mono">{{.Created}}</td>
@@ -84,10 +84,10 @@
   <tbody>
   {{range .Versions}}
     <tr>
-      <td class="sub num"><a href="javascript:void(0)" hx-post="{{$.Prefix}}/lambda/layers/version" hx-vals='{"layer":"{{.Name}}","version":"{{.Version}}"}' hx-target="#layer-out" hx-select="unset" hx-swap="innerHTML" title="Version detail">v{{.Version}}</a></td>
+      <td class="sub num"><a href="javascript:void(0)" hx-post="{{$.Prefix}}/lambda/layers/version" hx-vals='{"layer":"{{.Name}}","version":"{{.Version}}"}' hx-target="#layer-out" hx-select="" hx-swap="innerHTML" title="Version detail">v{{.Version}}</a></td>
       <td class="dim sub">{{if .Description}}{{.Description}}{{else}}&mdash;{{end}}</td>
       <td class="dim sub mono">{{.Created}}</td>
-      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete version {{.Version}}" hx-post="{{$.Prefix}}/lambda/layers/delete" hx-vals='{"layer":"{{.Name}}","version":"{{.Version}}"}' hx-target="#lam-layers" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete {{.Name}} v{{.Version}}? Functions already configured with it keep running.">{{icon "trash"}}</button></div></td>
+      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete version {{.Version}}" hx-post="{{$.Prefix}}/lambda/layers/delete" hx-vals='{"layer":"{{.Name}}","version":"{{.Version}}"}' hx-target="#lam-layers" hx-select="" hx-swap="outerHTML" hx-confirm="Delete {{.Name}} v{{.Version}}? Functions already configured with it keep running.">{{icon "trash"}}</button></div></td>
     </tr>
   {{else}}
     <tr><td colspan="4" class="mini-note">No versions &mdash; every version of this layer has been deleted.</td></tr>
@@ -112,12 +112,12 @@
   <div class="sec-title" style="margin-top:0">Permissions <span class="dim">&mdash; who else may GetLayerVersion</span></div>
   {{if .L.Policy}}<div class="code-out"><pre>{{.L.Policy}}</pre></div>
   {{else}}<p class="mini-note">Private &mdash; no statements. Only this account can use the version.</p>{{end}}
-  <form class="ex-grid" style="margin-top:10px;align-items:end" hx-post="{{.Prefix}}/lambda/layers/grant" hx-vals='{"layer":"{{.L.Name}}","version":"{{.L.Version}}"}' hx-target="#layer-out" hx-select="unset" hx-swap="innerHTML">
+  <form class="ex-grid" style="margin-top:10px;align-items:end" hx-post="{{.Prefix}}/lambda/layers/grant" hx-vals='{"layer":"{{.L.Name}}","version":"{{.L.Version}}"}' hx-target="#layer-out" hx-select="" hx-swap="innerHTML">
     <div class="field" style="width:150px"><label>Statement id</label><input class="input mono" name="sid" placeholder="share-1" required spellcheck="false"></div>
     <div class="field" style="flex:1"><label>Principal <span class="dim">account id, or *</span></label><input class="input mono" name="principal" placeholder="123456789012" required spellcheck="false"></div>
     <button class="btn btn-outline btn-sm" type="submit">Grant</button>
   </form>
-  <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/lambda/layers/revoke" hx-vals='{"layer":"{{.L.Name}}","version":"{{.L.Version}}"}' hx-target="#layer-out" hx-select="unset" hx-swap="innerHTML">
+  <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/lambda/layers/revoke" hx-vals='{"layer":"{{.L.Name}}","version":"{{.L.Version}}"}' hx-target="#layer-out" hx-select="" hx-swap="innerHTML">
     <div class="field" style="flex:1"><label>Revoke statement id</label><input class="input mono" name="sid" placeholder="share-1" required spellcheck="false"></div>
     <button class="btn btn-outline btn-sm danger" type="submit">Revoke</button>
   </form>
@@ -192,7 +192,7 @@
       {{else}}
       <div class="split">
         <div class="panel lam-test"><div class="panel-h"><h2>{{icon "play"}} Test event</h2></div><div style="padding:14px 16px">
-          <form x-data="{async:false}" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/invoke" hx-target="#invoke-result" hx-select="unset" hx-swap="innerHTML" hx-indicator="#invoke-spin">
+          <form x-data="{async:false}" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/invoke" hx-target="#invoke-result" hx-select="" hx-swap="innerHTML" hx-indicator="#invoke-spin">
             <textarea name="payload" data-editor="json" rows="10" placeholder='{"key":"value"}'>{"hello": "world"}</textarea>
           {{template "cli" (printf "lambda invoke --function-name %s --payload $payload --cli-binary-format raw-in-base64-out /dev/stdout" .Fn.Name)}}
             <input type="hidden" name="async" :value="async">
@@ -257,9 +257,9 @@
 {{define "lambda_triggers"}}
 <div id="lambda-triggers"><div class="panel"><div class="panel-h"><h2>{{icon "arrow-right"}} Event source mappings <span class="badge">{{len .Fn.Mappings}}</span></h2></div>
   {{if .Fn.Mappings}}<table class="tbl"><thead><tr><th>Source</th><th class="right">Batch size</th><th class="right">State</th><th style="width:36px"></th></tr></thead><tbody>{{range .Fn.Mappings}}
-    <tr><td class="mono trunc dim" style="font-size:11.5px;max-width:320px" title="{{.SourceARN}}">{{.SourceARN}}</td><td class="right num">{{.BatchSize}}</td><td class="right"><span class="badge {{if eq .State "Enabled"}}state-on{{else}}state-off{{end}}">{{.State}}</span></td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove trigger" hx-post="{{$.Prefix}}/lambda/{{$.Fn.Name}}/delete-mapping" hx-vals='{"uuid":"{{.UUID}}"}' hx-target="#lambda-triggers" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove this trigger?">{{icon "trash"}}</button></div></td></tr>
+    <tr><td class="mono trunc dim" style="font-size:11.5px;max-width:320px" title="{{.SourceARN}}">{{.SourceARN}}</td><td class="right num">{{.BatchSize}}</td><td class="right"><span class="badge {{if eq .State "Enabled"}}state-on{{else}}state-off{{end}}">{{.State}}</span></td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove trigger" hx-post="{{$.Prefix}}/lambda/{{$.Fn.Name}}/delete-mapping" hx-vals='{"uuid":"{{.UUID}}"}' hx-target="#lambda-triggers" hx-select="" hx-swap="outerHTML" hx-confirm="Remove this trigger?">{{icon "trash"}}</button></div></td></tr>
   {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No triggers yet. Poll an SQS queue below, or subscribe this function to SNS/EventBridge.</p></div>{{end}}
-  <form class="sub-add" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/add-mapping" hx-target="#lambda-triggers" hx-select="unset" hx-swap="outerHTML">
+  <form class="sub-add" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/add-mapping" hx-target="#lambda-triggers" hx-select="" hx-swap="outerHTML">
     <select class="input" name="queue" required style="flex:1"><option value="">— SQS queue to poll —</option>{{range .Queues}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
     <input class="input" name="batch" type="number" min="1" max="10000" placeholder="batch 10" style="width:110px;flex:none">
     <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Add trigger</button>
@@ -271,7 +271,7 @@
 {{define "lambda_config"}}
 <div id="lambda-config" class="split">
   <div>
-    <form x-data hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/config" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML">
+    <form x-data hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/config" hx-target="#lambda-config" hx-select="" hx-swap="outerHTML">
       <div class="sec-title" style="margin-top:0">General</div>
       <div class="panel"><div class="form-b">
         <div class="table-wrap"><table class="tbl kv"><tbody>
@@ -300,24 +300,24 @@
       {{if .URL}}
       <div class="copy-row"><span class="mono" style="font-size:11px" title="{{.URL}}">{{.URL}}</span><button class="icon-btn sm" title="Copy" data-copy="{{.URL}}">{{icon "copy"}}</button></div>
       <p class="mini-note">Served by this endpoint: a plain HTTP request becomes the payload-format-2.0 event, no trigger needed. The {id}.lambda-url.us-east-1.on.aws host form routes here too.</p>
-      <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/update-url" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML">
+      <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/update-url" hx-target="#lambda-config" hx-select="" hx-swap="outerHTML">
         <div class="field"><label>Auth type <span class="dim">AWS_IAM is served without a signature check locally</span></label><select class="input" name="auth_type">
           <option value="NONE" {{if ne .URLAuth "AWS_IAM"}}selected{{end}}>NONE</option>
           <option value="AWS_IAM" {{if eq .URLAuth "AWS_IAM"}}selected{{end}}>AWS_IAM</option>
         </select></div>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
           <button class="btn btn-outline btn-sm" type="submit">Save auth type</button>
-          <button class="btn btn-outline btn-sm danger" type="button" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/delete-url" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML" hx-confirm="Remove the function URL?">Remove URL</button>
+          <button class="btn btn-outline btn-sm danger" type="button" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/delete-url" hx-target="#lambda-config" hx-select="" hx-swap="outerHTML" hx-confirm="Remove the function URL?">Remove URL</button>
         </div>
       </form>
       {{else}}
       <p class="mini-note" style="margin-top:0">No function URL. Create one to invoke this function over HTTP without a trigger.</p>
-      <div style="display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/create-url" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML">{{icon "link"}} Create function URL</button></div>
+      <div style="display:flex;justify-content:flex-end"><button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/create-url" hx-target="#lambda-config" hx-select="" hx-swap="outerHTML">{{icon "link"}} Create function URL</button></div>
       {{end}}
     </div></div>
     <div class="sec-title">Code</div>
     <div class="panel"><div class="form-b">
-      <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/code" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML">
+      <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/code" hx-target="#lambda-config" hx-select="" hx-swap="outerHTML">
         <div class="field"><label>New code path <span class="dim">zip or directory on this machine, run in place</span></label>
           <input class="input mono" name="path" placeholder="/path/to/code" required spellcheck="false"></div>
         <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Update code</button></div>
@@ -332,7 +332,7 @@
       {{if .Fn.OnFailure}}<tr><td>On failure →</td><td>{{template "copychip" dict "Value" .Fn.OnFailure}}</td></tr>{{end}}
     </tbody></table></div>
     {{if or .Fn.OnSuccess .Fn.OnFailure}}
-    <div class="fr-btn"><button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/reset-async" hx-target="#lambda-config" hx-select="unset" hx-swap="outerHTML" hx-confirm="Reset the async invoke policy? Retries, event age and destinations go back to defaults.">Reset async policy</button></div>
+    <div class="fr-btn"><button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/reset-async" hx-target="#lambda-config" hx-select="" hx-swap="outerHTML" hx-confirm="Reset the async invoke policy? Retries, event age and destinations go back to defaults.">Reset async policy</button></div>
     {{end}}
     {{end}}
   </div>

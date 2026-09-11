@@ -64,7 +64,7 @@
         {{/* The three small structural edits, as dialogs (the ddb Update
              pattern): row buttons stash the target in section state. */}}
         <div class="overlay" role="dialog" aria-modal="true" aria-label="Add resource" x-effect="window.dozeTrap && dozeTrap($el, addRes)" x-show="addRes" x-cloak @click.self="addRes=null" @keydown.escape.window="addRes=null">
-          <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{.API.ID}}/add-resource" hx-target="#apigw-routes" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){addRes=null;$el.reset();}">
+          <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{.API.ID}}/add-resource" hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){addRes=null;$el.reset();}">
             <input type="hidden" name="parent" :value="addRes && addRes.id">
             <div class="dialog-h"><h3>Add resource</h3><p>One path part under <span class="mono" x-text="addRes && addRes.path"></span>.</p></div>
             <div class="dialog-b"><div class="field"><label>Path part</label><input class="input mono" name="part" placeholder="orders" required spellcheck="false" pattern="[a-zA-Z0-9._\-\{\}]+"></div>
@@ -73,7 +73,7 @@
           </form></div>
         </div>
         <div class="overlay" role="dialog" aria-modal="true" aria-label="Add method" x-effect="window.dozeTrap && dozeTrap($el, addM)" x-show="addM" x-cloak @click.self="addM=null" @keydown.escape.window="addM=null">
-          <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{.API.ID}}/put-method" hx-target="#apigw-routes" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){addM=null;$el.reset();}">
+          <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{.API.ID}}/put-method" hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){addM=null;$el.reset();}">
             <input type="hidden" name="resource" :value="addM && addM.id">
             <div class="dialog-h"><h3>Add method</h3><p>On <span class="mono" x-text="addM && addM.path"></span>. The verb exists first; its integration is wired from the method panel.</p></div>
             <div class="dialog-b">
@@ -88,7 +88,7 @@
           </form></div>
         </div>
         <div class="overlay" role="dialog" aria-modal="true" aria-label="Rename resource" x-effect="window.dozeTrap && dozeTrap($el, ren)" x-show="ren" x-cloak @click.self="ren=null" @keydown.escape.window="ren=null">
-          <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{.API.ID}}/rename-resource" hx-target="#apigw-routes" hx-select="unset" hx-swap="outerHTML" @htmx:after-request="if($event.detail.successful){ren=null;$el.reset();}">
+          <div class="dialog anim"><form hx-post="{{.Prefix}}/apigw/{{.API.ID}}/rename-resource" hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400)){ren=null;$el.reset();}">
             <input type="hidden" name="resource" :value="ren && ren.id">
             <div class="dialog-h"><h3>Rename resource</h3><p>Changes the last path part of <span class="mono" x-text="ren && ren.path"></span>; children move with it.</p></div>
             <div class="dialog-b"><div class="field"><label>New path part</label><input class="input mono" name="part" required spellcheck="false" pattern="[a-zA-Z0-9._\-\{\}]+"></div></div>
@@ -117,14 +117,14 @@
         <button type="button" class="icon-btn sm" title="Add method on {{.Path}}" @click='addM={id:{{printf "%q" .ID}}, path:{{printf "%q" .Path}}}'>{{icon "zap"}}</button>
         {{if ne .Path "/"}}
         <button type="button" class="icon-btn sm" title="Rename {{.Path}}" @click='ren={id:{{printf "%q" .ID}}, path:{{printf "%q" .Path}}}'>{{icon "pencil"}}</button>
-        <button class="icon-btn sm danger" title="Delete {{.Path}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-resource" hx-vals='{"resource":"{{.ID}}"}' hx-target="#apigw-routes" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete {{.Path}} and everything under it?">{{icon "trash"}}</button>
+        <button class="icon-btn sm danger" title="Delete {{.Path}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-resource" hx-vals='{"resource":"{{.ID}}"}' hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" hx-confirm="Delete {{.Path}} and everything under it?">{{icon "trash"}}</button>
         {{end}}
       </div></td>
     </tr>
     {{range .Methods}}
     <tr>
       <td></td>
-      <td><a href="javascript:void(0)" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/method" hx-vals='{"resource":"{{$r.ID}}","verb":"{{.HTTPMethod}}","path":"{{$r.Path}}"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML" title="Method detail"><span class="chip mono">{{.HTTPMethod}}</span></a></td>
+      <td><a href="javascript:void(0)" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/method" hx-vals='{"resource":"{{$r.ID}}","verb":"{{.HTTPMethod}}","path":"{{$r.Path}}"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML" title="Method detail"><span class="chip mono">{{.HTTPMethod}}</span></a></td>
       <td class="dim sub">{{.AuthType}}{{if .APIKeyReq}} · key{{end}}</td>
       <td class="dim sub mono">{{if .Integration.Type}}{{.Integration.Type}}{{else}}<span class="chip bad">unwired</span>{{end}}</td>
       <td class="mono sub trunc" style="max-width:340px">
@@ -132,7 +132,7 @@
         {{else if .Integration.Target}}{{.Integration.Target}}
         {{else}}<span class="dim">—</span>{{end}}
       </td>
-      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete {{.HTTPMethod}} on {{$r.Path}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-method" hx-vals='{"resource":"{{$r.ID}}","verb":"{{.HTTPMethod}}"}' hx-target="#apigw-routes" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete {{.HTTPMethod}} on {{$r.Path}}? Its integration goes with it.">{{icon "trash"}}</button></div></td>
+      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete {{.HTTPMethod}} on {{$r.Path}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-method" hx-vals='{"resource":"{{$r.ID}}","verb":"{{.HTTPMethod}}"}' hx-target="#apigw-routes" hx-select="" hx-swap="outerHTML" hx-confirm="Delete {{.HTTPMethod}} on {{$r.Path}}? Its integration goes with it.">{{icon "trash"}}</button></div></td>
     </tr>
     {{end}}
   {{else}}
@@ -158,9 +158,9 @@
         <tr><td>Type</td><td class="mono">{{.M.Integration.Type}}</td></tr>
         <tr><td>Target</td><td class="mono" style="font-size:11px">{{if .M.Integration.Href}}<a href="{{.Prefix}}{{.M.Integration.Href}}">{{.M.Integration.Target}}</a>{{else}}{{.M.Integration.Target}}{{end}}</td></tr>
       </tbody></table></div>
-      <div class="fr-btn"><button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/delete-integration" hx-vals='{"resource":"{{.M.ResourceID}}","verb":"{{.M.Verb}}","path":"{{.M.Path}}"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML" hx-confirm="Remove the integration? The method stays, but nothing answers it.">Remove integration</button></div>
+      <div class="fr-btn"><button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/delete-integration" hx-vals='{"resource":"{{.M.ResourceID}}","verb":"{{.M.Verb}}","path":"{{.M.Path}}"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML" hx-confirm="Remove the integration? The method stays, but nothing answers it.">Remove integration</button></div>
       {{else}}<p class="mini-note">Unwired — the method exists but nothing answers it. Wire a backend:</p>{{end}}
-      <form x-data="{t:'AWS_PROXY'}" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/put-integration" hx-vals='{"resource":"{{.M.ResourceID}}","verb":"{{.M.Verb}}","path":"{{.M.Path}}"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML">
+      <form x-data="{t:'AWS_PROXY'}" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/put-integration" hx-vals='{"resource":"{{.M.ResourceID}}","verb":"{{.M.Verb}}","path":"{{.M.Path}}"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">
         <div class="field" style="margin-top:8px"><label>Type</label>
           <select class="input" name="type" x-model="t">
             <option value="AWS_PROXY">AWS_PROXY — Lambda, whole request through</option>
@@ -181,10 +181,10 @@
       <div class="sec-title" style="margin-top:0">Method responses <span class="dim">— the contract callers see</span></div>
       <div class="chips">
         {{range .M.MethodResponses}}
-        <span class="badge type ver-stage">{{.}}<button type="button" class="lbl-x" title="Remove {{.}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-response" hx-vals='{"resource":"{{$.M.ResourceID}}","verb":"{{$.M.Verb}}","path":"{{$.M.Path}}","status":"{{.}}","half":"method"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML">&times;</button></span>
+        <span class="badge type ver-stage">{{.}}<button type="button" class="lbl-x" title="Remove {{.}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-response" hx-vals='{"resource":"{{$.M.ResourceID}}","verb":"{{$.M.Verb}}","path":"{{$.M.Path}}","status":"{{.}}","half":"method"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">&times;</button></span>
         {{else}}<span class="mini-note">none declared</span>{{end}}
       </div>
-      <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/put-response" hx-vals='{"resource":"{{.M.ResourceID}}","verb":"{{.M.Verb}}","path":"{{.M.Path}}","half":"method"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML">
+      <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/put-response" hx-vals='{"resource":"{{.M.ResourceID}}","verb":"{{.M.Verb}}","path":"{{.M.Path}}","half":"method"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">
         <div class="field" style="width:110px"><label>Status</label><input class="input mono" name="status" placeholder="200" required pattern="[1-5][0-9]{2}"></div>
         <button class="btn btn-outline btn-sm" type="submit">Declare</button>
       </form>
@@ -195,11 +195,11 @@
         <thead><tr><th style="width:80px">Status</th><th>Template</th><th style="width:40px"></th></tr></thead>
         <tbody>{{range .M.IntegrationResps}}
         <tr><td class="mono sub">{{.Status}}</td><td class="dim sub mono trunc" style="max-width:220px">{{if .Template}}{{.Template}}{{else}}passthrough{{end}}</td>
-          <td><div class="cs-acts"><button class="icon-btn sm danger" title="Remove {{.Status}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-response" hx-vals='{"resource":"{{$.M.ResourceID}}","verb":"{{$.M.Verb}}","path":"{{$.M.Path}}","status":"{{.Status}}","half":"integration"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML">{{icon "trash"}}</button></div></td></tr>
+          <td><div class="cs-acts"><button class="icon-btn sm danger" title="Remove {{.Status}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-response" hx-vals='{"resource":"{{$.M.ResourceID}}","verb":"{{$.M.Verb}}","path":"{{$.M.Path}}","status":"{{.Status}}","half":"integration"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">{{icon "trash"}}</button></div></td></tr>
         {{end}}</tbody>
       </table></div>
       {{else}}<p class="mini-note">none — proxy integrations pass the backend's answer straight through</p>{{end}}
-      <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/put-response" hx-vals='{"resource":"{{.M.ResourceID}}","verb":"{{.M.Verb}}","path":"{{.M.Path}}","half":"integration"}' hx-target="#method-out" hx-select="unset" hx-swap="innerHTML">
+      <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/put-response" hx-vals='{"resource":"{{.M.ResourceID}}","verb":"{{.M.Verb}}","path":"{{.M.Path}}","half":"integration"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">
         <div class="field" style="width:110px"><label>Status</label><input class="input mono" name="status" placeholder="200" required pattern="[1-5][0-9]{2}"></div>
         <div class="field" style="flex:1"><label>Response template <span class="dim">optional, application/json</span></label><input class="input mono" name="template" placeholder='{"ok": true}' spellcheck="false"></div>
         <button class="btn btn-outline btn-sm" type="submit">Map</button>
@@ -287,7 +287,7 @@
 {{define "apigw_invoke"}}
 {{if .Stages}}
 <form class="explorer-form"
-      hx-post="{{.Prefix}}/apigw/{{.API.ID}}/invoke" hx-target="#apigw-result" hx-select="unset" hx-swap="outerHTML">
+      hx-post="{{.Prefix}}/apigw/{{.API.ID}}/invoke" hx-target="#apigw-result" hx-select="" hx-swap="outerHTML">
   <div class="ex-grid">
     <div class="field" style="width:120px"><label>Stage</label>
       <select class="input" name="stage">
@@ -351,13 +351,13 @@
 <div id="apigw-authorizers" class="panel"><div class="panel-h"><h2>{{icon "key"}} Lambda authorizers <span class="badge">{{len .Authorizers}}</span></h2>
   <span class="dim sub">a method set to CUSTOM names one; the function answers Allow or Deny</span></div>
   {{if .Authorizers}}<table class="tbl"><thead><tr><th>Name</th><th>Type</th><th>Function</th><th>Identity source</th><th>Cache</th><th></th></tr></thead><tbody>{{range .Authorizers}}
-    <tr><td class="mono"><button type="button" class="linkish" hx-get="{{$.Prefix}}/apigw/{{$.API.ID}}/authorizer/{{.ID}}" hx-target="#apigw-authorizer-detail" hx-select="unset" hx-swap="innerHTML">{{.Name}}</button></td>
+    <tr><td class="mono"><button type="button" class="linkish" hx-get="{{$.Prefix}}/apigw/{{$.API.ID}}/authorizer/{{.ID}}" hx-target="#apigw-authorizer-detail" hx-select="" hx-swap="innerHTML">{{.Name}}</button></td>
       <td class="dim">{{.Type}}</td><td class="mono">{{.Function}}</td><td class="mono dim">{{.Source}}</td>
-      <td><form class="ex-grid" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/update-authorizer" hx-vals='{"id":"{{.ID}}"}' hx-target="#apigw-authorizers" hx-select="unset" hx-swap="outerHTML"><input class="input" name="ttl" type="number" min="0" max="3600" value="{{.TTL}}"><button class="btn btn-outline btn-sm" type="submit">Set TTL</button></form></td>
-      <td class="right"><button class="icon-btn sm danger" title="Delete authorizer" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-authorizer" hx-vals='{"id":"{{.ID}}"}' hx-target="#apigw-authorizers" hx-select="unset" hx-swap="outerHTML" hx-confirm="Delete authorizer “{{.Name}}”? Methods that name it stop serving.">{{icon "trash"}}</button></td></tr>
+      <td><form class="ex-grid" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/update-authorizer" hx-vals='{"id":"{{.ID}}"}' hx-target="#apigw-authorizers" hx-select="" hx-swap="outerHTML"><input class="input" name="ttl" type="number" min="0" max="3600" value="{{.TTL}}"><button class="btn btn-outline btn-sm" type="submit">Set TTL</button></form></td>
+      <td class="right"><button class="icon-btn sm danger" title="Delete authorizer" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-authorizer" hx-vals='{"id":"{{.ID}}"}' hx-target="#apigw-authorizers" hx-select="" hx-swap="outerHTML" hx-confirm="Delete authorizer “{{.Name}}”? Methods that name it stop serving.">{{icon "trash"}}</button></td></tr>
   {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No authorizers — methods are open unless one gates them.</p></div>{{end}}
   <div id="apigw-authorizer-detail"></div>
-  <form class="form-b" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/create-authorizer" hx-target="#apigw-authorizers" hx-select="unset" hx-swap="outerHTML" x-data="{t:'TOKEN'}">
+  <form class="form-b" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/create-authorizer" hx-target="#apigw-authorizers" hx-select="" hx-swap="outerHTML" x-data="{t:'TOKEN'}">
     <div class="fgrid">
       <div class="field"><label>Name</label><input class="input" name="name" placeholder="token-gate" required></div>
       <div class="field"><label>Type</label><select class="input" name="type" x-model="t"><option>TOKEN</option><option>REQUEST</option></select></div>

@@ -159,7 +159,7 @@
               <textarea name="template" data-editor rows="14" spellcheck="false">{{.Template}}</textarea></div>
           </div></div>
           <div class="panel form-sec"><div class="panel-h"><h2>Parameters</h2>
-            <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/cfn/summary" hx-include="closest form" hx-target="#cfn-params" hx-select="unset" hx-swap="innerHTML">Reload from template</button>
+            <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/cfn/summary" hx-include="closest form" hx-target="#cfn-params" hx-select="" hx-swap="innerHTML">Reload from template</button>
           </div><div class="form-b" id="cfn-params">
             {{if .Stack.Params}}{{range .Stack.Params}}
             <div class="field"><label>{{.Key}} <span class="dim">current value shown</span></label><input class="input mono" name="param:{{.Key}}" value="{{.Value}}" spellcheck="false"></div>
@@ -180,7 +180,7 @@
           <tbody>
           {{range .Resources}}
             <tr>
-              <td class="mono sub"><a href="javascript:void(0)" hx-post="{{$.Prefix}}/cfn/{{$.Stack.Name}}/resource" hx-vals='{"logical":"{{.LogicalID}}"}' hx-target="#cfn-res-out" hx-select="unset" hx-swap="innerHTML" title="Resource detail">{{.LogicalID}}</a></td>
+              <td class="mono sub"><a href="javascript:void(0)" hx-post="{{$.Prefix}}/cfn/{{$.Stack.Name}}/resource" hx-vals='{"logical":"{{.LogicalID}}"}' hx-target="#cfn-res-out" hx-select="" hx-swap="innerHTML" title="Resource detail">{{.LogicalID}}</a></td>
               <td class="dim sub mono">{{.Type}}</td>
               <td class="mono sub trunc" style="max-width:320px">
                 {{/* A stack is most useful as a way into the things it built. */}}

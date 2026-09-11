@@ -10,7 +10,7 @@
     <form hx-post="{{.Prefix}}/s3/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Bucket name</label>
         <div class="ex-grid"><input class="input" style="flex:1" name="name" placeholder="my-bucket" required pattern="[a-z0-9.\-]{3,63}" autocomplete="off" autofocus>
-        <button type="button" class="btn btn-outline" hx-post="{{.Prefix}}/s3/check-name" hx-include="closest form" hx-target="#s3-name-out" hx-select="unset" hx-swap="innerHTML">Check availability</button></div>
+        <button type="button" class="btn btn-outline" hx-post="{{.Prefix}}/s3/check-name" hx-include="closest form" hx-target="#s3-name-out" hx-select="" hx-swap="innerHTML">Check availability</button></div>
         <div id="s3-name-out"></div></div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Options</h2></div><div class="form-b">
         <div class="opt-row"><div><div class="opt-l">Versioning</div><div class="opt-d">Keep every version of every object</div></div><label class="switch"><input type="checkbox" name="versioning"><span class="track"></span><span class="thumb"></span></label></div>
@@ -233,7 +233,7 @@
       </div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Definition</h2>
         <div class="hdr-btns">
-          <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sfn/validate" hx-include="closest form" hx-target="#sfn-validate-out" hx-select="unset" hx-swap="innerHTML">{{icon "check"}} Validate</button>
+          <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sfn/validate" hx-include="closest form" hx-target="#sfn-validate-out" hx-select="" hx-swap="innerHTML">{{icon "check"}} Validate</button>
         </div>
       </div><div class="form-b">
         {{/* The starter is a real, runnable machine against this stack: a
@@ -286,8 +286,8 @@
              the form below from them. Both post the whole form so the template
              body rides along. */}}
         <div class="hdr-btns">
-          <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/cfn/validate" hx-include="closest form" hx-target="#cfn-validate-out" hx-select="unset" hx-swap="innerHTML">{{icon "check"}} Validate</button>
-          <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/cfn/summary" hx-include="closest form" hx-target="#cfn-params" hx-select="unset" hx-swap="innerHTML">{{icon "settings"}} Load parameters</button>
+          <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/cfn/validate" hx-include="closest form" hx-target="#cfn-validate-out" hx-select="" hx-swap="innerHTML">{{icon "check"}} Validate</button>
+          <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/cfn/summary" hx-include="closest form" hx-target="#cfn-params" hx-select="" hx-swap="innerHTML">{{icon "settings"}} Load parameters</button>
         </div>
       </div><div class="form-b">
         <div class="field"><label>Template body <span class="dim">JSON or YAML</span></label>
