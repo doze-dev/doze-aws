@@ -112,6 +112,7 @@ All seventeen services enabled, nothing being asked of them.
 |---|---|
 | Physical footprint | **15 MB** |
 | CPU | **0.1% of one core** |
+| Wakeups | **0.1/second** |
 | Goroutines | 25 |
 
 **Quote the footprint, not RSS.** `ps` reports ~40 MB for the same process,
@@ -123,9 +124,37 @@ what Go's own `MemStats.Sys` agrees with to within a megabyte.
 **The CPU figure is the floor, not a target for more work.** A 30-second
 profile of an idle process collects 30ms of samples and *every one of them* is
 the Go runtime parking and waiting — `pthread_cond_wait`, `kevent`,
-`findRunnable`. Not one sample lands in doze-aws code. That includes the
-EventBridge scheduler, which re-reads the bus's rules every second looking for
-schedules to fire: inelegant, and far too cheap to measure.
+`findRunnable`. Not one sample lands in doze-aws code.
+
+**Wakeups are the number that CPU% hides.** A process using no measurable CPU
+can still wake the core hundreds of times a minute, and a core that is woken
+never reaches its deeper idle states — which is what a laptop's battery
+notices. doze-aws idled at 2.4 wakeups/second because two schedulers ticked
+once a second each regardless of whether anything was scheduled:
+
+- The Step Functions engine's ticker walks the loaded executions looking for
+  Wait states and deadlines that have come due. With no executions loaded it
+  woke every second to look at an empty map. It now runs only while there are
+  runs to time, and parks on its nudge and delivery channels otherwise.
+- The EventBridge scheduler re-read every bus's rules once a second — a bbolt
+  read transaction per bus, forever — to be told again that nothing is
+  scheduled. It now backs off to `idleScan` (5s) once it finds no schedule
+  rules and returns to one second the moment one exists.
+
+Together: **2.4 → 0.1 wakeups/second**, about one every ten seconds. The
+EventBridge backoff costs arming latency and not a missed fire: a rule is armed
+when the scheduler first sees it and its interval starts there, so a rule
+created during an idle stretch begins up to 5s late and every tick after it is
+exact.
+
+**Cutting goroutines is not worth doing.** It is the obvious next lever and the
+numbers say no: a blocked ticker goroutine costs **2.8 KB** of stack, measured,
+so folding the nine per-service janitors into one shared sweeper would save
+~25 KB — 0.2% of the footprint — and about five wakeups a minute. The price is
+moving janitor ownership out of nine services and back through the shutdown
+path that already had a DB-close race once. The goroutines that remain are one
+janitor per service plus queue workers parked on channels, and a goroutine
+parked on a channel costs nothing at all.
 
 What the 15 MB is made of, from a heap profile of an idle process:
 

@@ -12,25 +12,51 @@ import (
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
-// runScheduler ticks once a second and fires any enabled schedule-expression
-// rule that is due, delivering a "Scheduled Event" to its targets. rate(...)
-// fires when its interval has elapsed since the last firing; cron(...) fires
-// at the expression's next time after the last firing (internal/awscron).
-// A rule is armed the first time the scheduler sees it and fires from then
-// on: nothing is persisted across a restart and nothing missed during one
-// is replayed, which is also what a rule that was disabled gets on AWS.
-// Runs in a single goroutine, so the maps need no lock.
+// idleScan is how often the scheduler looks for schedule rules once it has
+// found none. A bus with no schedules is the normal state of a local stack, and
+// checking every second meant opening a bbolt read transaction per bus per
+// second, forever, to be told nothing again — the single largest source of
+// wakeups on an idle process.
+//
+// The cost of backing off is arming latency, not a missed fire: a rule is armed
+// the first time the scheduler sees it and its clock starts there, so a rule
+// created during an idle stretch begins its interval up to idleScan late rather
+// than firing late. The first tick of a rate(1 minute) rule can therefore land
+// as much as five seconds after it otherwise would, and every tick after it is
+// exact.
+const idleScan = 5 * time.Second
+
+// runScheduler fires any enabled schedule-expression rule that is due,
+// delivering a "Scheduled Event" to its targets. rate(...) fires when its
+// interval has elapsed since the last firing; cron(...) fires at the
+// expression's next time after the last firing (internal/awscron). A rule is
+// armed the first time the scheduler sees it and fires from then on: nothing is
+// persisted across a restart and nothing missed during one is replayed, which
+// is also what a rule that was disabled gets on AWS. Runs in a single
+// goroutine, so the maps need no lock.
+//
+// It ticks once a second while any schedule rule exists and every idleScan
+// while none does.
 func (s *Server) runScheduler(stop <-chan struct{}) {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	lastFired := map[string]time.Time{}
 	compiled := map[string]*awscron.Expression{}
+	slow := false
 	for {
 		select {
 		case <-stop:
 			return
 		case <-ticker.C:
-			s.fireDueSchedules(lastFired, compiled)
+			// A second is the resolution schedules need while any exist; it is
+			// pure waste while none do.
+			if armed := s.fireDueSchedules(lastFired, compiled); armed == 0 && !slow {
+				ticker.Reset(idleScan)
+				slow = true
+			} else if armed > 0 && slow {
+				ticker.Reset(time.Second)
+				slow = false
+			}
 		}
 	}
 }
@@ -51,10 +77,13 @@ func nextFire(schedule string, last time.Time, compiled map[string]*awscron.Expr
 	return e.Next(last)
 }
 
-func (s *Server) fireDueSchedules(lastFired map[string]time.Time, compiled map[string]*awscron.Expression) {
+// fireDueSchedules fires every schedule rule the clock has passed and returns
+// how many enabled schedule rules it saw, which is what tells the caller
+// whether a one-second cadence is buying anything.
+func (s *Server) fireDueSchedules(lastFired map[string]time.Time, compiled map[string]*awscron.Expression) (armed int) {
 	buses, err := s.store.ListBuses()
 	if err != nil {
-		return
+		return 0
 	}
 	now := s.now()
 	// A rule that is disabled, deleted or no longer scheduled loses its
@@ -72,6 +101,7 @@ func (s *Server) fireDueSchedules(lastFired map[string]time.Time, compiled map[s
 			}
 			key := bus.Name + "\x00" + rule.Name
 			live[key] = true
+			armed++
 			last, seen := lastFired[key]
 			if !seen {
 				// First sighting: start the clock, don't fire immediately.
@@ -91,6 +121,7 @@ func (s *Server) fireDueSchedules(lastFired map[string]time.Time, compiled map[s
 			delete(lastFired, key)
 		}
 	}
+	return armed
 }
 
 // fireScheduled delivers the canonical EventBridge "Scheduled Event" to a rule's

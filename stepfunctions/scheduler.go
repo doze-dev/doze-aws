@@ -27,9 +27,39 @@ func (g *engine) loop(ctx context.Context) {
 		g.drive(g.ensure(key))
 	}
 
+	// The ticker runs only while there is something to time.
+	//
+	// fireDue walks g.runs, so with no loaded executions it wakes the process
+	// once a second to look at an empty map. On an idle stack that was most of
+	// the wakeups doze-aws made, and a wakeup a second is what stops a laptop's
+	// CPU reaching its deeper idle states.
+	//
+	// A stopped ticker's channel is never sent on, and receiving from the nil
+	// channel that replaces it blocks forever, so an idle loop parks on nudges
+	// and deliveries alone. Work only ever arrives through those two, and both
+	// re-arm below — so nothing can be left waiting on a clock that is not
+	// running.
 	tick := time.NewTicker(time.Second)
 	defer tick.Stop()
+	ticking := true
+	arm := func() {
+		want := len(g.runs) > 0
+		switch {
+		case want && !ticking:
+			tick.Reset(time.Second)
+			ticking = true
+		case !want && ticking:
+			tick.Stop()
+			ticking = false
+		}
+	}
+	arm() // resume may have loaded nothing, or plenty
+
 	for {
+		var tickC <-chan time.Time
+		if ticking {
+			tickC = tick.C
+		}
 		select {
 		case <-g.stop:
 			return
@@ -41,10 +71,13 @@ func (g *engine) loop(ctx context.Context) {
 				g.resumeMapRuns(r)
 			}
 			g.drive(r)
+			arm()
 		case d := <-g.deliveries:
 			g.applyDelivery(d)
-		case <-tick.C:
+			arm()
+		case <-tickC:
 			g.fireDue()
+			arm()
 		}
 	}
 }

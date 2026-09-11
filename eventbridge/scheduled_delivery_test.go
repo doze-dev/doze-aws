@@ -239,3 +239,50 @@ func TestDisabledScheduleDeliversNothing(t *testing.T) {
 		t.Errorf("a disabled rule delivered %d events", delivered)
 	}
 }
+
+// The scheduler ticks once a second while any schedule rule exists and backs
+// off to idleScan while none does, which is what keeps an idle stack from
+// waking up every second to re-read a bus that has nothing scheduled on it.
+// fireDueSchedules reports the count that decision is made from, so the count
+// has to mean "rules worth ticking for" and nothing else.
+func TestArmedCountDrivesTheCadence(t *testing.T) {
+	s, err := New(Options{DataDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	lastFired := map[string]time.Time{}
+	compiled := map[string]*awscron.Expression{}
+
+	if armed := s.fireDueSchedules(lastFired, compiled); armed != 0 {
+		t.Fatalf("a bus with no rules reported %d armed; the scheduler would tick every second for nothing", armed)
+	}
+
+	// A pattern rule is not a schedule: it fires on PutEvents, never on a clock.
+	if err := s.store.PutRule(Rule{Bus: DefaultBus, Name: "onpattern", State: "ENABLED",
+		Pattern: `{"source":["shop"]}`}); err != nil {
+		t.Fatal(err)
+	}
+	if armed := s.fireDueSchedules(lastFired, compiled); armed != 0 {
+		t.Errorf("a pattern rule counted as armed (%d); only schedules need a clock", armed)
+	}
+
+	if err := s.store.PutRule(Rule{Bus: DefaultBus, Name: "hourly", State: "ENABLED",
+		Schedule: "rate(1 hour)"}); err != nil {
+		t.Fatal(err)
+	}
+	if armed := s.fireDueSchedules(lastFired, compiled); armed != 1 {
+		t.Errorf("armed = %d, want 1 — the scheduler would stay slow with a live schedule", armed)
+	}
+
+	// Disabling it must hand the clock back, or the stack keeps ticking for a
+	// rule that can never fire.
+	if err := s.store.PutRule(Rule{Bus: DefaultBus, Name: "hourly", State: "DISABLED",
+		Schedule: "rate(1 hour)"}); err != nil {
+		t.Fatal(err)
+	}
+	if armed := s.fireDueSchedules(lastFired, compiled); armed != 0 {
+		t.Errorf("a disabled schedule still counted as armed (%d)", armed)
+	}
+}
