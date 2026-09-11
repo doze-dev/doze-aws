@@ -13,8 +13,6 @@ package apigateway
 // apigateway/rejection_parity_test.go.
 
 import (
-	"regexp"
-
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 )
 
@@ -189,7 +187,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "httpMethod", Kind: modelcheck.KindRequired},
 		{Path: "resourceId", Kind: modelcheck.KindRequired},
 		{Path: "restApiId", Kind: modelcheck.KindRequired},
-		{Path: "statusCode", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[1-5]\d\d$`)},
+		{Path: "statusCode", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[1-5]\d\d$`)},
 		{Path: "statusCode", Kind: modelcheck.KindRequired},
 	},
 	"DeleteMethod": {
@@ -201,7 +199,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "httpMethod", Kind: modelcheck.KindRequired},
 		{Path: "resourceId", Kind: modelcheck.KindRequired},
 		{Path: "restApiId", Kind: modelcheck.KindRequired},
-		{Path: "statusCode", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[1-5]\d\d$`)},
+		{Path: "statusCode", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[1-5]\d\d$`)},
 		{Path: "statusCode", Kind: modelcheck.KindRequired},
 	},
 	"DeleteResource": {
@@ -231,7 +229,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "httpMethod", Kind: modelcheck.KindRequired},
 		{Path: "resourceId", Kind: modelcheck.KindRequired},
 		{Path: "restApiId", Kind: modelcheck.KindRequired},
-		{Path: "statusCode", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[1-5]\d\d$`)},
+		{Path: "statusCode", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[1-5]\d\d$`)},
 		{Path: "statusCode", Kind: modelcheck.KindRequired},
 	},
 	"GetMethod": {
@@ -243,7 +241,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "httpMethod", Kind: modelcheck.KindRequired},
 		{Path: "resourceId", Kind: modelcheck.KindRequired},
 		{Path: "restApiId", Kind: modelcheck.KindRequired},
-		{Path: "statusCode", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[1-5]\d\d$`)},
+		{Path: "statusCode", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[1-5]\d\d$`)},
 		{Path: "statusCode", Kind: modelcheck.KindRequired},
 	},
 	"GetResource": {
@@ -278,7 +276,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "httpMethod", Kind: modelcheck.KindRequired},
 		{Path: "resourceId", Kind: modelcheck.KindRequired},
 		{Path: "restApiId", Kind: modelcheck.KindRequired},
-		{Path: "statusCode", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[1-5]\d\d$`)},
+		{Path: "statusCode", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[1-5]\d\d$`)},
 		{Path: "statusCode", Kind: modelcheck.KindRequired},
 	},
 	"PutMethod": {
@@ -291,7 +289,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "httpMethod", Kind: modelcheck.KindRequired},
 		{Path: "resourceId", Kind: modelcheck.KindRequired},
 		{Path: "restApiId", Kind: modelcheck.KindRequired},
-		{Path: "statusCode", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[1-5]\d\d$`)},
+		{Path: "statusCode", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[1-5]\d\d$`)},
 		{Path: "statusCode", Kind: modelcheck.KindRequired},
 	},
 	"UpdateResource": {

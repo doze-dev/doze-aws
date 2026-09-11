@@ -5,8 +5,6 @@ package s3
 // from the route table so each file stays readable.
 
 import (
-	"regexp"
-
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 )
 
@@ -31,7 +29,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "AnnotationDirective", Kind: modelcheck.KindEnum, Enum: []string{"COPY", "EXCLUDE"}},
 		{Path: "Bucket", Kind: modelcheck.KindRequired},
 		{Path: "ChecksumAlgorithm", Kind: modelcheck.KindEnum, Enum: []string{"XXHASH128", "CRC32", "CRC32C", "SHA1", "CRC64NVME", "SHA512", "MD5", "SHA256", "XXHASH64", "XXHASH3"}},
-		{Path: "CopySource", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^\/?.+\/.+$`)},
+		{Path: "CopySource", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^\/?.+\/.+$`)},
 		{Path: "CopySource", Kind: modelcheck.KindRequired},
 		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
 		{Path: "Key", Kind: modelcheck.KindRequired},
@@ -431,7 +429,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	},
 	"UploadPartCopy": {
 		{Path: "Bucket", Kind: modelcheck.KindRequired},
-		{Path: "CopySource", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^\/?.+\/.+$`)},
+		{Path: "CopySource", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^\/?.+\/.+$`)},
 		{Path: "CopySource", Kind: modelcheck.KindRequired},
 		{Path: "Key", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
 		{Path: "Key", Kind: modelcheck.KindRequired},

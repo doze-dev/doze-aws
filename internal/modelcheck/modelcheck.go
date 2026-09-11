@@ -70,8 +70,45 @@ type Constraint struct {
 	Enum []string
 	Min  float64
 	Max  float64
-	Pat  *regexp.Regexp
+	Pat  *Pat
 }
+
+// Pat is a constraint's regular expression, compiled the first time something
+// is actually matched against it.
+//
+// 527 of these are written across the service tables, and regexp.MustCompile in
+// a package-level var meant every one of them was compiled during init. That is
+// the single largest thing an idle doze-aws holds: a heap profile of a process
+// with nothing to do put regexp.Compile at 3.1MB of a 6.7MB live heap, 46% of
+// it, for patterns belonging to APIs the process may never be asked to serve.
+//
+// Compiling on demand costs one atomic load per check once warm. The tables are
+// still declared the same way; only MustCompile becomes Pattern.
+type Pat struct {
+	src  string
+	once sync.Once
+	re   *regexp.Regexp
+	err  error
+}
+
+// Pattern declares a constraint's regular expression without compiling it.
+func Pattern(src string) *Pat { return &Pat{src: src} }
+
+func (p *Pat) compile() {
+	p.once.Do(func() { p.re, p.err = regexp.Compile(p.src) })
+}
+
+// MatchString reports whether the value satisfies the pattern. A pattern that
+// does not compile matches nothing, so a table with a bad entry refuses rather
+// than accepts — but TestEveryPatternCompiles is what actually catches one,
+// before it can reach a request.
+func (p *Pat) MatchString(s string) bool {
+	p.compile()
+	return p.err == nil && p.re.MatchString(s)
+}
+
+// String is the pattern's source, which is what AWS quotes back in a refusal.
+func (p *Pat) String() string { return p.src }
 
 // site is one concrete location a path resolved to: the value found there,
 // whether it was present at all, and how AWS would spell that location.

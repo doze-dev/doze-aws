@@ -16,7 +16,6 @@ package cloudwatch
 
 import (
 	"encoding/json"
-	"regexp"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
@@ -32,7 +31,7 @@ var standardUnits = []string{
 }
 
 // reNamespace is the model's ^[^:] — a namespace may not begin with a colon.
-var reNamespace = regexp.MustCompile(`^[^:]`)
+var reNamespace = modelcheck.Pattern(`^[^:]`)
 
 // alarmTypes is the model's AlarmType. doze-aws only ever holds MetricAlarm,
 // but the other two are accepted as filter values and answered with nothing,

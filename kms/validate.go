@@ -7,8 +7,6 @@ package kms
 // by case in kms/rejection_parity_test.go.
 
 import (
-	"regexp"
-
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 )
 
@@ -19,7 +17,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	},
 	"CreateAlias": {
 		{Path: "AliasName", Kind: modelcheck.KindLength, Min: 1, Max: 256},
-		{Path: "AliasName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9:/_-]+$`)},
+		{Path: "AliasName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9:/_-]+$`)},
 		{Path: "AliasName", Kind: modelcheck.KindRequired},
 		{Path: "TargetKeyId", Kind: modelcheck.KindLength, Min: 1, Max: 2048},
 		{Path: "TargetKeyId", Kind: modelcheck.KindRequired},
@@ -37,7 +35,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "Tags[].TagValue", Kind: modelcheck.KindLength, Min: 0, Max: 256},
 		{Path: "Tags[].TagValue", Kind: modelcheck.KindRequired},
 		{Path: "XksKeyId", Kind: modelcheck.KindLength, Min: 1, Max: 128},
-		{Path: "XksKeyId", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9-_.]+$`)},
+		{Path: "XksKeyId", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9-_.]+$`)},
 	},
 	"Decrypt": {
 		{Path: "CiphertextBlob", Kind: modelcheck.KindLength, Min: 1, Max: 6144},
@@ -50,7 +48,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	},
 	"DeleteAlias": {
 		{Path: "AliasName", Kind: modelcheck.KindLength, Min: 1, Max: 256},
-		{Path: "AliasName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9:/_-]+$`)},
+		{Path: "AliasName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9:/_-]+$`)},
 		{Path: "AliasName", Kind: modelcheck.KindRequired},
 	},
 	"DescribeKey": {
@@ -134,7 +132,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "KeyId", Kind: modelcheck.KindLength, Min: 1, Max: 2048},
 		{Path: "KeyId", Kind: modelcheck.KindRequired},
 		{Path: "PolicyName", Kind: modelcheck.KindLength, Min: 1, Max: 128},
-		{Path: "PolicyName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[\w]+$`)},
+		{Path: "PolicyName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[\w]+$`)},
 	},
 	"GetKeyRotationStatus": {
 		{Path: "KeyId", Kind: modelcheck.KindLength, Min: 1, Max: 2048},
@@ -179,7 +177,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "Policy", Kind: modelcheck.KindLength, Min: 1, Max: 131072},
 		{Path: "Policy", Kind: modelcheck.KindRequired},
 		{Path: "PolicyName", Kind: modelcheck.KindLength, Min: 1, Max: 128},
-		{Path: "PolicyName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[\w]+$`)},
+		{Path: "PolicyName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[\w]+$`)},
 	},
 	"ReEncrypt": {
 		{Path: "CiphertextBlob", Kind: modelcheck.KindLength, Min: 1, Max: 6144},
@@ -227,7 +225,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	},
 	"UpdateAlias": {
 		{Path: "AliasName", Kind: modelcheck.KindLength, Min: 1, Max: 256},
-		{Path: "AliasName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9:/_-]+$`)},
+		{Path: "AliasName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9:/_-]+$`)},
 		{Path: "AliasName", Kind: modelcheck.KindRequired},
 		{Path: "TargetKeyId", Kind: modelcheck.KindLength, Min: 1, Max: 2048},
 		{Path: "TargetKeyId", Kind: modelcheck.KindRequired},

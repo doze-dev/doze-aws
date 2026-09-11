@@ -13,8 +13,6 @@ package stepfunctions
 // stateMachineArn, not StateMachineArn, and the walker matches keys exactly.
 
 import (
-	"regexp"
-
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 )
 
@@ -121,7 +119,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "stateMachineArn", Kind: modelcheck.KindRequired},
 		{Path: "stateMachineArn", Kind: modelcheck.KindLength, Min: 1, Max: 256},
 		{Path: "traceHeader", Kind: modelcheck.KindLength, Min: 0, Max: 256},
-		{Path: "traceHeader", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[[:ascii:]]*$`)},
+		{Path: "traceHeader", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[[:ascii:]]*$`)},
 	},
 	"StopExecution": {
 		{Path: "cause", Kind: modelcheck.KindLength, Min: 0, Max: 32768},
@@ -170,7 +168,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "stateMachineArn", Kind: modelcheck.KindLength, Min: 1, Max: 256},
 		{Path: "stateMachineArn", Kind: modelcheck.KindRequired},
 		{Path: "traceHeader", Kind: modelcheck.KindLength, Min: 0, Max: 256},
-		{Path: "traceHeader", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[[:ascii:]]*$`)},
+		{Path: "traceHeader", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[[:ascii:]]*$`)},
 	},
 	"TestState": {
 		{Path: "context", Kind: modelcheck.KindLength, Min: 0, Max: 262144},
@@ -197,7 +195,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	},
 	"RedriveExecution": {
 		{Path: "clientToken", Kind: modelcheck.KindLength, Min: 1, Max: 64},
-		{Path: "clientToken", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[!-~]+$`)},
+		{Path: "clientToken", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[!-~]+$`)},
 		{Path: "executionArn", Kind: modelcheck.KindRequired},
 		{Path: "executionArn", Kind: modelcheck.KindLength, Min: 1, Max: 256},
 	},
@@ -220,7 +218,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "description", Kind: modelcheck.KindLength, Min: 0, Max: 256},
 		{Path: "name", Kind: modelcheck.KindRequired},
 		{Path: "name", Kind: modelcheck.KindLength, Min: 1, Max: 80},
-		{Path: "name", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_\-.]+$`)},
+		{Path: "name", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_\-.]+$`)},
 		{Path: "routingConfiguration", Kind: modelcheck.KindRequired},
 		{Path: "routingConfiguration[].stateMachineVersionArn", Kind: modelcheck.KindRequired},
 		{Path: "routingConfiguration[].stateMachineVersionArn", Kind: modelcheck.KindLength, Min: 1, Max: 256},

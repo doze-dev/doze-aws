@@ -87,3 +87,32 @@ func TestNestedScalarKeepsItsFullDisplayPath(t *testing.T) {
 		t.Errorf("display path = %q, want %q", got[0].disp, "projection.projectionType")
 	}
 }
+
+// TestPatternCompilesLazilyButExactlyOnce pins the contract the service tables
+// depend on. A Pat holds its source until something matches against it, which
+// is what keeps 527 compiled programs out of an idle process's heap.
+func TestPatternCompilesLazilyButExactlyOnce(t *testing.T) {
+	p := Pattern(`^[a-z]+$`)
+	if p.String() != `^[a-z]+$` {
+		t.Errorf("String() = %q, want the source back — a refusal quotes it", p.String())
+	}
+	if !p.MatchString("abc") || p.MatchString("ABC") {
+		t.Error("the pattern did not match on demand")
+	}
+	// Matching again must reuse the compiled program, not recompile.
+	first := p.re
+	p.MatchString("xyz")
+	if p.re != first {
+		t.Error("the pattern recompiled on a second match")
+	}
+}
+
+// A pattern that does not compile refuses everything rather than accepting it.
+// Accepting would be the dangerous direction: a table entry with a typo would
+// silently stop checking the member it was written for.
+func TestABadPatternRefusesRatherThanAccepts(t *testing.T) {
+	p := Pattern(`^[a-`)
+	if p.MatchString("anything") {
+		t.Error("an uncompilable pattern accepted a value; it must refuse")
+	}
+}

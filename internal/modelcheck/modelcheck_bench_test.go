@@ -11,7 +11,6 @@ package modelcheck
 // measure nothing.
 
 import (
-	"regexp"
 	"strconv"
 	"testing"
 )
@@ -19,7 +18,7 @@ import (
 // table builds a constraint table of n entries with the mix the real ones
 // have: mostly lengths, some patterns and enums, a few ranges.
 func table(n int) []Constraint {
-	pat := regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
+	pat := Pattern(`^[A-Za-z0-9_.-]+$`)
 	enum := []string{"STANDARD", "INFREQUENT_ACCESS", "DELIVERY"}
 	out := make([]Constraint, 0, n)
 	for i := range n {

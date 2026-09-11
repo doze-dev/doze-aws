@@ -7,8 +7,6 @@ package ssm
 // case by case in ssm/rejection_parity_test.go.
 
 import (
-	"regexp"
-
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 )
 
@@ -19,10 +17,10 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "ResourceType", Kind: modelcheck.KindRequired},
 		{Path: "Tags", Kind: modelcheck.KindRequired},
 		{Path: "Tags[].Key", Kind: modelcheck.KindLength, Min: 1, Max: 128},
-		{Path: "Tags[].Key", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$`)},
+		{Path: "Tags[].Key", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$`)},
 		{Path: "Tags[].Key", Kind: modelcheck.KindRequired},
 		{Path: "Tags[].Value", Kind: modelcheck.KindLength, Min: 0, Max: 256},
-		{Path: "Tags[].Value", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$`)},
+		{Path: "Tags[].Value", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$`)},
 		{Path: "Tags[].Value", Kind: modelcheck.KindRequired},
 	},
 	"DeleteParameter": {
@@ -40,7 +38,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "Filters[].Values[]", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
 		{Path: "MaxResults", Kind: modelcheck.KindRange, Min: 1, Max: 50},
 		{Path: "ParameterFilters[].Key", Kind: modelcheck.KindLength, Min: 1, Max: 132},
-		{Path: "ParameterFilters[].Key", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^tag:.+|Name|Type|KeyId|Path|Label|Tier|DataType$`)},
+		{Path: "ParameterFilters[].Key", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^tag:.+|Name|Type|KeyId|Path|Label|Tier|DataType$`)},
 		{Path: "ParameterFilters[].Key", Kind: modelcheck.KindRequired},
 		{Path: "ParameterFilters[].Option", Kind: modelcheck.KindLength, Min: 1, Max: 10},
 		{Path: "ParameterFilters[].Values[]", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
@@ -61,7 +59,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	"GetParametersByPath": {
 		{Path: "MaxResults", Kind: modelcheck.KindRange, Min: 1, Max: 10},
 		{Path: "ParameterFilters[].Key", Kind: modelcheck.KindLength, Min: 1, Max: 132},
-		{Path: "ParameterFilters[].Key", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^tag:.+|Name|Type|KeyId|Path|Label|Tier|DataType$`)},
+		{Path: "ParameterFilters[].Key", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^tag:.+|Name|Type|KeyId|Path|Label|Tier|DataType$`)},
 		{Path: "ParameterFilters[].Key", Kind: modelcheck.KindRequired},
 		{Path: "ParameterFilters[].Option", Kind: modelcheck.KindLength, Min: 1, Max: 10},
 		{Path: "ParameterFilters[].Values[]", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
@@ -84,15 +82,15 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "DataType", Kind: modelcheck.KindLength, Min: 0, Max: 128},
 		{Path: "Description", Kind: modelcheck.KindLength, Min: 0, Max: 1024},
 		{Path: "KeyId", Kind: modelcheck.KindLength, Min: 1, Max: 256},
-		{Path: "KeyId", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z0-9:/_-]+)$`)},
+		{Path: "KeyId", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([a-zA-Z0-9:/_-]+)$`)},
 		{Path: "Name", Kind: modelcheck.KindLength, Min: 1, Max: 2048},
 		{Path: "Name", Kind: modelcheck.KindRequired},
 		{Path: "Policies", Kind: modelcheck.KindLength, Min: 1, Max: 4096},
 		{Path: "Tags[].Key", Kind: modelcheck.KindLength, Min: 1, Max: 128},
-		{Path: "Tags[].Key", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$`)},
+		{Path: "Tags[].Key", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$`)},
 		{Path: "Tags[].Key", Kind: modelcheck.KindRequired},
 		{Path: "Tags[].Value", Kind: modelcheck.KindLength, Min: 0, Max: 256},
-		{Path: "Tags[].Value", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$`)},
+		{Path: "Tags[].Value", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$`)},
 		{Path: "Tags[].Value", Kind: modelcheck.KindRequired},
 		{Path: "Tier", Kind: modelcheck.KindEnum, Enum: []string{"Advanced", "Intelligent-Tiering", "Standard"}},
 		{Path: "Type", Kind: modelcheck.KindEnum, Enum: []string{"String", "StringList", "SecureString"}},
@@ -104,7 +102,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "ResourceType", Kind: modelcheck.KindRequired},
 		{Path: "TagKeys", Kind: modelcheck.KindRequired},
 		{Path: "TagKeys[]", Kind: modelcheck.KindLength, Min: 1, Max: 128},
-		{Path: "TagKeys[]", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$`)},
+		{Path: "TagKeys[]", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$`)},
 	},
 	"UnlabelParameterVersion": {
 		{Path: "Labels", Kind: modelcheck.KindRequired},

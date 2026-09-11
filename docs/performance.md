@@ -104,5 +104,47 @@ Network, TLS and SDK client time. The benchmarks drive the handler directly,
 because those three are the parts doze-aws does not control — including them
 would measure the loopback interface and call it emulator performance.
 
-Idle cost is separate and small: about 35 MB resident and well under 1% of one
-core, with all seventeen services enabled.
+## Idle cost
+
+All seventeen services enabled, nothing being asked of them.
+
+| | |
+|---|---|
+| Physical footprint | **15 MB** |
+| CPU | **0.1% of one core** |
+| Goroutines | 25 |
+
+**Quote the footprint, not RSS.** `ps` reports ~40 MB for the same process,
+because on macOS RSS counts file-backed pages — the binary's own text, the
+system libraries — that are shared and not the process's to give back. `vmmap`
+puts the dirty total at 15 MB, which is what Activity Monitor calls Memory and
+what Go's own `MemStats.Sys` agrees with to within a megabyte.
+
+**The CPU figure is the floor, not a target for more work.** A 30-second
+profile of an idle process collects 30ms of samples and *every one of them* is
+the Go runtime parking and waiting — `pthread_cond_wait`, `kevent`,
+`findRunnable`. Not one sample lands in doze-aws code. That includes the
+EventBridge scheduler, which re-reads the bus's rules every second looking for
+schedules to fire: inelegant, and far too cheap to measure.
+
+What the 15 MB is made of, from a heap profile of an idle process:
+
+| | |
+|---|---|
+| Live heap | 2.2 MB |
+| GC metadata | 3.0 MB |
+| Goroutine stacks | 0.7 MB |
+| Runtime, spans, other | the rest |
+
+It was 20 MB until the constraint tables stopped compiling their regular
+expressions during init. 527 patterns across ten services were compiled at
+startup whether or not the process was ever asked to serve those APIs, and they
+were 3.1 MB of a 6.7 MB live heap — 46% of everything an idle doze-aws held.
+`modelcheck.Pattern` keeps the source and compiles on first match instead.
+
+Two things that did **not** help, recorded so nobody spends the afternoon:
+
+- `debug.FreeOSMemory()` after startup moves retained memory 16.5 MB → 16.4 MB.
+  Go's scavenger has already returned what it can.
+- Lazy patterns did nothing for startup: 237 ms before, 245 ms after, which is
+  noise. Compiling 527 regexes is not slow, it is just memory you keep forever.

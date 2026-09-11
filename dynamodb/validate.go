@@ -6,8 +6,6 @@ package dynamodb
 // in dynamodb/rejection_parity_test.go.
 
 import (
-	"regexp"
-
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 )
@@ -53,7 +51,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "AttributeDefinitions[].AttributeType", Kind: modelcheck.KindRequired},
 		{Path: "BillingMode", Kind: modelcheck.KindEnum, Enum: []string{"PROVISIONED", "PAY_PER_REQUEST"}},
 		{Path: "GlobalSecondaryIndexes[].IndexName", Kind: modelcheck.KindLength, Min: 3, Max: 255},
-		{Path: "GlobalSecondaryIndexes[].IndexName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)},
+		{Path: "GlobalSecondaryIndexes[].IndexName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 		{Path: "GlobalSecondaryIndexes[].IndexName", Kind: modelcheck.KindRequired},
 		{Path: "GlobalSecondaryIndexes[].KeySchema", Kind: modelcheck.KindRequired},
 		{Path: "GlobalSecondaryIndexes[].KeySchema[].AttributeName", Kind: modelcheck.KindRequired},
@@ -71,7 +69,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "KeySchema[].KeyType", Kind: modelcheck.KindEnum, Enum: []string{"RANGE", "HASH"}},
 		{Path: "KeySchema[].KeyType", Kind: modelcheck.KindRequired},
 		{Path: "LocalSecondaryIndexes[].IndexName", Kind: modelcheck.KindLength, Min: 3, Max: 255},
-		{Path: "LocalSecondaryIndexes[].IndexName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)},
+		{Path: "LocalSecondaryIndexes[].IndexName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 		{Path: "LocalSecondaryIndexes[].IndexName", Kind: modelcheck.KindRequired},
 		{Path: "LocalSecondaryIndexes[].KeySchema", Kind: modelcheck.KindRequired},
 		{Path: "LocalSecondaryIndexes[].KeySchema[].AttributeName", Kind: modelcheck.KindRequired},
@@ -97,7 +95,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "VectorIndexes[].DistanceFunction", Kind: modelcheck.KindEnum, Enum: []string{"EUCLIDEAN", "COSINE", "DOT_PRODUCT"}},
 		{Path: "VectorIndexes[].DistanceFunction", Kind: modelcheck.KindRequired},
 		{Path: "VectorIndexes[].IndexName", Kind: modelcheck.KindLength, Min: 3, Max: 255},
-		{Path: "VectorIndexes[].IndexName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)},
+		{Path: "VectorIndexes[].IndexName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 		{Path: "VectorIndexes[].IndexName", Kind: modelcheck.KindRequired},
 		{Path: "VectorIndexes[].Projection", Kind: modelcheck.KindRequired},
 		{Path: "VectorIndexes[].Projection.ProjectionType", Kind: modelcheck.KindEnum, Enum: []string{"KEYS_ONLY", "INCLUDE", "ALL"}},
@@ -129,7 +127,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	},
 	"DescribeContributorInsights": {
 		{Path: "IndexName", Kind: modelcheck.KindLength, Min: 3, Max: 255},
-		{Path: "IndexName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)},
+		{Path: "IndexName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 		{Path: "TableName", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
 		{Path: "TableName", Kind: modelcheck.KindRequired},
 	},
@@ -167,7 +165,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	},
 	"ListTables": {
 		{Path: "ExclusiveStartTableName", Kind: modelcheck.KindLength, Min: 3, Max: 255},
-		{Path: "ExclusiveStartTableName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)},
+		{Path: "ExclusiveStartTableName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 		{Path: "Limit", Kind: modelcheck.KindRange, Min: 1, Max: 100},
 	},
 	"ListTagsOfResource": {
@@ -191,7 +189,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "ConditionalOperator", Kind: modelcheck.KindEnum, Enum: []string{"AND", "OR"}},
 		{Path: "ExpressionAttributeNames{}", Kind: modelcheck.KindLength, Min: 0, Max: 65535},
 		{Path: "IndexName", Kind: modelcheck.KindLength, Min: 3, Max: 255},
-		{Path: "IndexName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)},
+		{Path: "IndexName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 		{Path: "KeyConditions{}.ComparisonOperator", Kind: modelcheck.KindEnum, Enum: []string{"NE", "IN", "LE", "LT", "GE", "GT", "NOT_NULL", "NULL", "EQ", "BETWEEN", "CONTAINS", "NOT_CONTAINS", "BEGINS_WITH"}},
 		{Path: "KeyConditions{}.ComparisonOperator", Kind: modelcheck.KindRequired},
 		{Path: "Limit", Kind: modelcheck.KindRange, Min: 1, Max: modelcheck.NoMax},
@@ -207,7 +205,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "ConditionalOperator", Kind: modelcheck.KindEnum, Enum: []string{"OR", "AND"}},
 		{Path: "ExpressionAttributeNames{}", Kind: modelcheck.KindLength, Min: 0, Max: 65535},
 		{Path: "IndexName", Kind: modelcheck.KindLength, Min: 3, Max: 255},
-		{Path: "IndexName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)},
+		{Path: "IndexName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 		{Path: "Limit", Kind: modelcheck.KindRange, Min: 1, Max: modelcheck.NoMax},
 		{Path: "ReturnConsumedCapacity", Kind: modelcheck.KindEnum, Enum: []string{"INDEXES", "TOTAL", "NONE"}},
 		{Path: "ScanFilter{}.ComparisonOperator", Kind: modelcheck.KindEnum, Enum: []string{"CONTAINS", "NOT_CONTAINS", "BEGINS_WITH", "NE", "IN", "LE", "LT", "GE", "GT", "NOT_NULL", "NULL", "EQ", "BETWEEN"}},
@@ -277,7 +275,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "ContributorInsightsAction", Kind: modelcheck.KindRequired},
 		{Path: "ContributorInsightsMode", Kind: modelcheck.KindEnum, Enum: []string{"ACCESSED_AND_THROTTLED_KEYS", "THROTTLED_KEYS"}},
 		{Path: "IndexName", Kind: modelcheck.KindLength, Min: 3, Max: 255},
-		{Path: "IndexName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)},
+		{Path: "IndexName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 		{Path: "TableName", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
 		{Path: "TableName", Kind: modelcheck.KindRequired},
 	},
@@ -301,17 +299,17 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "AttributeDefinitions[].AttributeType", Kind: modelcheck.KindRequired},
 		{Path: "BillingMode", Kind: modelcheck.KindEnum, Enum: []string{"PROVISIONED", "PAY_PER_REQUEST"}},
 		{Path: "GlobalSecondaryIndexUpdates[].Create.IndexName", Kind: modelcheck.KindLength, Min: 3, Max: 255},
-		{Path: "GlobalSecondaryIndexUpdates[].Create.IndexName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)},
+		{Path: "GlobalSecondaryIndexUpdates[].Create.IndexName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 		{Path: "GlobalSecondaryIndexUpdates[].Create.IndexName", Kind: modelcheck.KindRequired},
 		{Path: "GlobalSecondaryIndexUpdates[].Create.KeySchema", Kind: modelcheck.KindRequired},
 		{Path: "GlobalSecondaryIndexUpdates[].Create.Projection", Kind: modelcheck.KindRequired},
 		{Path: "GlobalSecondaryIndexUpdates[].Create.ProvisionedThroughput.ReadCapacityUnits", Kind: modelcheck.KindRequired},
 		{Path: "GlobalSecondaryIndexUpdates[].Create.ProvisionedThroughput.WriteCapacityUnits", Kind: modelcheck.KindRequired},
 		{Path: "GlobalSecondaryIndexUpdates[].Delete.IndexName", Kind: modelcheck.KindLength, Min: 3, Max: 255},
-		{Path: "GlobalSecondaryIndexUpdates[].Delete.IndexName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)},
+		{Path: "GlobalSecondaryIndexUpdates[].Delete.IndexName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 		{Path: "GlobalSecondaryIndexUpdates[].Delete.IndexName", Kind: modelcheck.KindRequired},
 		{Path: "GlobalSecondaryIndexUpdates[].Update.IndexName", Kind: modelcheck.KindLength, Min: 3, Max: 255},
-		{Path: "GlobalSecondaryIndexUpdates[].Update.IndexName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)},
+		{Path: "GlobalSecondaryIndexUpdates[].Update.IndexName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 		{Path: "GlobalSecondaryIndexUpdates[].Update.IndexName", Kind: modelcheck.KindRequired},
 		{Path: "GlobalSecondaryIndexUpdates[].Update.ProvisionedThroughput.ReadCapacityUnits", Kind: modelcheck.KindRequired},
 		{Path: "GlobalSecondaryIndexUpdates[].Update.ProvisionedThroughput.WriteCapacityUnits", Kind: modelcheck.KindRequired},
@@ -339,13 +337,13 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "VectorIndexUpdates[].Create.DistanceFunction", Kind: modelcheck.KindEnum, Enum: []string{"COSINE", "DOT_PRODUCT", "EUCLIDEAN"}},
 		{Path: "VectorIndexUpdates[].Create.DistanceFunction", Kind: modelcheck.KindRequired},
 		{Path: "VectorIndexUpdates[].Create.IndexName", Kind: modelcheck.KindLength, Min: 3, Max: 255},
-		{Path: "VectorIndexUpdates[].Create.IndexName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)},
+		{Path: "VectorIndexUpdates[].Create.IndexName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 		{Path: "VectorIndexUpdates[].Create.IndexName", Kind: modelcheck.KindRequired},
 		{Path: "VectorIndexUpdates[].Create.Projection", Kind: modelcheck.KindRequired},
 		{Path: "VectorIndexUpdates[].Create.VectorAttribute", Kind: modelcheck.KindRequired},
 		{Path: "VectorIndexUpdates[].Create.VectorAttribute.AttributeName", Kind: modelcheck.KindRequired},
 		{Path: "VectorIndexUpdates[].Delete.IndexName", Kind: modelcheck.KindLength, Min: 3, Max: 255},
-		{Path: "VectorIndexUpdates[].Delete.IndexName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9_.-]+$`)},
+		{Path: "VectorIndexUpdates[].Delete.IndexName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 		{Path: "VectorIndexUpdates[].Delete.IndexName", Kind: modelcheck.KindRequired},
 	},
 	"UpdateTimeToLive": {

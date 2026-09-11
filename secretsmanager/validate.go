@@ -8,8 +8,6 @@ package secretsmanager
 // secretsmanager/rejection_parity_test.go.
 
 import (
-	"regexp"
-
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 )
 
@@ -17,7 +15,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	"BatchGetSecretValue": {
 		{Path: "Filters[].Key", Kind: modelcheck.KindEnum, Enum: []string{"description", "name", "tag-key", "tag-value", "primary-region", "owning-service", "all"}},
 		{Path: "Filters[].Values[]", Kind: modelcheck.KindLength, Min: 0, Max: 512},
-		{Path: "Filters[].Values[]", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^\!?[a-zA-Z0-9 :_@\/\+\=\.\-\!]*$`)},
+		{Path: "Filters[].Values[]", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^\!?[a-zA-Z0-9 :_@\/\+\=\.\-\!]*$`)},
 		{Path: "MaxResults", Kind: modelcheck.KindRange, Min: 1, Max: 20},
 		{Path: "NextToken", Kind: modelcheck.KindLength, Min: 1, Max: 4096},
 		{Path: "SecretIdList[]", Kind: modelcheck.KindLength, Min: 1, Max: 2048},
@@ -29,7 +27,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	"CreateSecret": {
 		{Path: "AddReplicaRegions[].KmsKeyId", Kind: modelcheck.KindLength, Min: 0, Max: 2048},
 		{Path: "AddReplicaRegions[].Region", Kind: modelcheck.KindLength, Min: 1, Max: 128},
-		{Path: "AddReplicaRegions[].Region", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-z]+-)+\d+$`)},
+		{Path: "AddReplicaRegions[].Region", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([a-z]+-)+\d+$`)},
 		{Path: "ClientRequestToken", Kind: modelcheck.KindLength, Min: 32, Max: 64},
 		{Path: "Description", Kind: modelcheck.KindLength, Min: 0, Max: 2048},
 		{Path: "KmsKeyId", Kind: modelcheck.KindLength, Min: 0, Max: 2048},
@@ -76,7 +74,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	"ListSecrets": {
 		{Path: "Filters[].Key", Kind: modelcheck.KindEnum, Enum: []string{"description", "name", "tag-key", "tag-value", "primary-region", "owning-service", "all"}},
 		{Path: "Filters[].Values[]", Kind: modelcheck.KindLength, Min: 0, Max: 512},
-		{Path: "Filters[].Values[]", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^\!?[a-zA-Z0-9 :_@\/\+\=\.\-\!]*$`)},
+		{Path: "Filters[].Values[]", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^\!?[a-zA-Z0-9 :_@\/\+\=\.\-\!]*$`)},
 		{Path: "MaxResults", Kind: modelcheck.KindRange, Min: 1, Max: 100},
 		{Path: "NextToken", Kind: modelcheck.KindLength, Min: 1, Max: 4096},
 		{Path: "SortBy", Kind: modelcheck.KindEnum, Enum: []string{"last-changed-date", "name", "created-date", "last-accessed-date"}},
@@ -91,7 +89,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	"PutSecretValue": {
 		{Path: "ClientRequestToken", Kind: modelcheck.KindLength, Min: 32, Max: 64},
 		{Path: "RotationToken", Kind: modelcheck.KindLength, Min: 36, Max: 256},
-		{Path: "RotationToken", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9\-]+$`)},
+		{Path: "RotationToken", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9\-]+$`)},
 		{Path: "SecretBinary", Kind: modelcheck.KindLength, Min: 1, Max: 65536},
 		{Path: "SecretId", Kind: modelcheck.KindLength, Min: 1, Max: 2048},
 		{Path: "SecretId", Kind: modelcheck.KindRequired},
@@ -110,9 +108,9 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "RotationLambdaARN", Kind: modelcheck.KindLength, Min: 0, Max: 2048},
 		{Path: "RotationRules.AutomaticallyAfterDays", Kind: modelcheck.KindRange, Min: 1, Max: 1000},
 		{Path: "RotationRules.Duration", Kind: modelcheck.KindLength, Min: 2, Max: 3},
-		{Path: "RotationRules.Duration", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[0-9]+h$`)},
+		{Path: "RotationRules.Duration", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[0-9]+h$`)},
 		{Path: "RotationRules.ScheduleExpression", Kind: modelcheck.KindLength, Min: 1, Max: 256},
-		{Path: "RotationRules.ScheduleExpression", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[0-9A-Za-z\(\)#\?\*\-\/, ]+$`)},
+		{Path: "RotationRules.ScheduleExpression", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[0-9A-Za-z\(\)#\?\*\-\/, ]+$`)},
 		{Path: "SecretId", Kind: modelcheck.KindLength, Min: 1, Max: 2048},
 		{Path: "SecretId", Kind: modelcheck.KindRequired},
 	},

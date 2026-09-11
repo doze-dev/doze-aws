@@ -7,22 +7,20 @@ package logs
 // build dispatches, and replayed case by case in rejection_parity_test.go.
 
 import (
-	"regexp"
-
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 )
 
 var (
-	reGroup   = regexp.MustCompile(`^[\.\-_/#A-Za-z0-9]+$`)
-	reStream  = regexp.MustCompile(`^[^:*]*$`)
-	reGroupID = regexp.MustCompile(`^[\w#+=/:,.@-]*$`)
-	reTagVal  = regexp.MustCompile(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$`)
-	reTagKey  = regexp.MustCompile(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]+)$`)
-	reARN     = regexp.MustCompile(`^[\w+=/:,.@-]*$`)
-	reAccount = regexp.MustCompile(`^\d{12}$`)
+	reGroup   = modelcheck.Pattern(`^[\.\-_/#A-Za-z0-9]+$`)
+	reStream  = modelcheck.Pattern(`^[^:*]*$`)
+	reGroupID = modelcheck.Pattern(`^[\w#+=/:,.@-]*$`)
+	reTagVal  = modelcheck.Pattern(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]*)$`)
+	reTagKey  = modelcheck.Pattern(`^([\p{L}\p{Z}\p{N}_.:/=+\-@]+)$`)
+	reARN     = modelcheck.Pattern(`^[\w+=/:,.@-]*$`)
+	reAccount = modelcheck.Pattern(`^\d{12}$`)
 	// A metric namespace or name may not carry a colon, a star or a dollar —
 	// the last because `$.field` is metricValue's reference syntax.
-	reMetricName = regexp.MustCompile(`^[^:*$]*$`)
+	reMetricName = modelcheck.Pattern(`^[^:*$]*$`)
 )
 
 func groupName(required bool) []modelcheck.Constraint {
@@ -85,7 +83,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "limit", Kind: modelcheck.KindRange, Min: 1, Max: 50},
 		{Path: "logGroupClass", Kind: modelcheck.KindEnum, Enum: []string{"STANDARD", "INFREQUENT_ACCESS", "DELIVERY"}},
 		{Path: "logGroupNamePattern", Kind: modelcheck.KindLength, Min: 0, Max: 512},
-		{Path: "logGroupNamePattern", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[\.\-_/#A-Za-z0-9]*$`)},
+		{Path: "logGroupNamePattern", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[\.\-_/#A-Za-z0-9]*$`)},
 		{Path: "logGroupNamePrefix", Kind: modelcheck.KindLength, Min: 1, Max: 512},
 		{Path: "logGroupNamePrefix", Kind: modelcheck.KindPattern, Pat: reGroup},
 		{Path: "nextToken", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
@@ -99,12 +97,12 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "limit", Kind: modelcheck.KindRange, Min: 1, Max: 1000},
 		{Path: "logGroupClass", Kind: modelcheck.KindEnum, Enum: []string{"STANDARD", "INFREQUENT_ACCESS", "DELIVERY"}},
 		{Path: "logGroupNamePattern", Kind: modelcheck.KindLength, Min: 3, Max: 129},
-		{Path: "logGroupNamePattern", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^(\^?[\.\-_\/#A-Za-z0-9]{3,24})(\|\^?[\.\-_\/#A-Za-z0-9]{3,24}){0,4}$`)},
+		{Path: "logGroupNamePattern", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^(\^?[\.\-_\/#A-Za-z0-9]{3,24})(\|\^?[\.\-_\/#A-Za-z0-9]{3,24}){0,4}$`)},
 		{Path: "logGroupTags[].key", Kind: modelcheck.KindRequired},
 		{Path: "logGroupTags[].key", Kind: modelcheck.KindLength, Min: 1, Max: 128},
 		{Path: "logGroupTags[].key", Kind: modelcheck.KindPattern, Pat: reTagKey},
 		{Path: "logGroupTags[].values[]", Kind: modelcheck.KindLength, Min: 0, Max: 259},
-		{Path: "logGroupTags[].values[]", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^!?\*?([\p{L}\p{Z}\p{N}_.:/=+\-@]*)\*?$`)},
+		{Path: "logGroupTags[].values[]", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^!?\*?([\p{L}\p{Z}\p{N}_.:/=+\-@]*)\*?$`)},
 		{Path: "nextToken", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
 	},
 	"CreateLogStream": cat(groupName(true), streamName(true)),

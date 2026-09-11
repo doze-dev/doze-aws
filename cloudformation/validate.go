@@ -9,21 +9,19 @@ package cloudformation
 // and replayed case by case in cloudformation/rejection_parity_test.go.
 
 import (
-	"regexp"
-
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 )
 
 var constraintTables = map[string][]modelcheck.Constraint{
 	"CancelUpdateStack": {
 		{Path: "ClientRequestToken", Kind: modelcheck.KindLength, Min: 1, Max: 128},
-		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
+		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
 		{Path: "StackName", Kind: modelcheck.KindRequired},
 	},
 	"CreateChangeSet": {
 		{Path: "Capabilities[]", Kind: modelcheck.KindEnum, Enum: []string{"CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"}},
 		{Path: "ChangeSetName", Kind: modelcheck.KindLength, Min: 1, Max: 128},
-		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z][-a-zA-Z0-9]*$`)},
+		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z][-a-zA-Z0-9]*$`)},
 		{Path: "ChangeSetName", Kind: modelcheck.KindRequired},
 		{Path: "ChangeSetType", Kind: modelcheck.KindEnum, Enum: []string{"CREATE", "UPDATE", "IMPORT"}},
 		{Path: "ClientToken", Kind: modelcheck.KindLength, Min: 1, Max: 128},
@@ -42,7 +40,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "RollbackConfiguration.RollbackTriggers[].Arn", Kind: modelcheck.KindRequired},
 		{Path: "RollbackConfiguration.RollbackTriggers[].Type", Kind: modelcheck.KindRequired},
 		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
-		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
 		{Path: "StackName", Kind: modelcheck.KindRequired},
 		{Path: "Tags[].Key", Kind: modelcheck.KindLength, Min: 1, Max: 128},
 		{Path: "Tags[].Key", Kind: modelcheck.KindRequired},
@@ -54,7 +52,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	"CreateStack": {
 		{Path: "Capabilities[]", Kind: modelcheck.KindEnum, Enum: []string{"CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"}},
 		{Path: "ClientRequestToken", Kind: modelcheck.KindLength, Min: 1, Max: 128},
-		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
+		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
 		{Path: "DeploymentConfig.Mode", Kind: modelcheck.KindEnum, Enum: []string{"STANDARD", "EXPRESS"}},
 		{Path: "OnFailure", Kind: modelcheck.KindEnum, Enum: []string{"DELETE", "DO_NOTHING", "ROLLBACK"}},
 		{Path: "ResourceTypes[]", Kind: modelcheck.KindLength, Min: 1, Max: 256},
@@ -75,14 +73,14 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	},
 	"DeleteChangeSet": {
 		{Path: "ChangeSetName", Kind: modelcheck.KindLength, Min: 1, Max: 1600},
-		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z][-a-zA-Z0-9]*|arn:[-a-zA-Z0-9:/]*$`)},
+		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z][-a-zA-Z0-9]*|arn:[-a-zA-Z0-9:/]*$`)},
 		{Path: "ChangeSetName", Kind: modelcheck.KindRequired},
 		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
-		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
 	},
 	"DeleteStack": {
 		{Path: "ClientRequestToken", Kind: modelcheck.KindLength, Min: 1, Max: 128},
-		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
+		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
 		{Path: "DeletionMode", Kind: modelcheck.KindEnum, Enum: []string{"STANDARD", "FORCE_DELETE_STACK"}},
 		{Path: "DeploymentConfig.Mode", Kind: modelcheck.KindEnum, Enum: []string{"STANDARD", "EXPRESS"}},
 		{Path: "RoleARN", Kind: modelcheck.KindLength, Min: 20, Max: 2048},
@@ -90,11 +88,11 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	},
 	"DescribeChangeSet": {
 		{Path: "ChangeSetName", Kind: modelcheck.KindLength, Min: 1, Max: 1600},
-		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z][-a-zA-Z0-9]*|arn:[-a-zA-Z0-9:/]*$`)},
+		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z][-a-zA-Z0-9]*|arn:[-a-zA-Z0-9:/]*$`)},
 		{Path: "ChangeSetName", Kind: modelcheck.KindRequired},
 		{Path: "NextToken", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
 		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
-		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
 	},
 	"DescribeStackEvents": {
 		{Path: "NextToken", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
@@ -109,33 +107,33 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	},
 	"ExecuteChangeSet": {
 		{Path: "ChangeSetName", Kind: modelcheck.KindLength, Min: 1, Max: 1600},
-		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z][-a-zA-Z0-9]*|arn:[-a-zA-Z0-9:/]*$`)},
+		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z][-a-zA-Z0-9]*|arn:[-a-zA-Z0-9:/]*$`)},
 		{Path: "ChangeSetName", Kind: modelcheck.KindRequired},
 		{Path: "ClientRequestToken", Kind: modelcheck.KindLength, Min: 1, Max: 128},
-		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
+		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
 		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
-		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
 	},
 	"GetStackPolicy": {
 		{Path: "StackName", Kind: modelcheck.KindRequired},
 	},
 	"GetTemplate": {
 		{Path: "ChangeSetName", Kind: modelcheck.KindLength, Min: 1, Max: 1600},
-		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z][-a-zA-Z0-9]*|arn:[-a-zA-Z0-9:/]*$`)},
+		{Path: "ChangeSetName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z][-a-zA-Z0-9]*|arn:[-a-zA-Z0-9:/]*$`)},
 		{Path: "TemplateStage", Kind: modelcheck.KindEnum, Enum: []string{"Original", "Processed"}},
 	},
 	"GetTemplateSummary": {
 		{Path: "CallAs", Kind: modelcheck.KindEnum, Enum: []string{"SELF", "DELEGATED_ADMIN"}},
 		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
-		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
-		{Path: "StackSetName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z][-a-zA-Z0-9]*(?::[a-zA-Z0-9]{8}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{12})?$`)},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+		{Path: "StackSetName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z][-a-zA-Z0-9]*(?::[a-zA-Z0-9]{8}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{12})?$`)},
 		{Path: "TemplateBody", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
 		{Path: "TemplateURL", Kind: modelcheck.KindLength, Min: 1, Max: 5120},
 	},
 	"ListChangeSets": {
 		{Path: "NextToken", Kind: modelcheck.KindLength, Min: 1, Max: 1024},
 		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
-		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
 		{Path: "StackName", Kind: modelcheck.KindRequired},
 	},
 	"ListExports": {
@@ -161,7 +159,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	"UpdateStack": {
 		{Path: "Capabilities[]", Kind: modelcheck.KindEnum, Enum: []string{"CAPABILITY_IAM", "CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND"}},
 		{Path: "ClientRequestToken", Kind: modelcheck.KindLength, Min: 1, Max: 128},
-		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
+		{Path: "ClientRequestToken", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9][-a-zA-Z0-9]*$`)},
 		{Path: "DeploymentConfig.Mode", Kind: modelcheck.KindEnum, Enum: []string{"STANDARD", "EXPRESS"}},
 		{Path: "ResourceTypes[]", Kind: modelcheck.KindLength, Min: 1, Max: 256},
 		{Path: "RoleARN", Kind: modelcheck.KindLength, Min: 20, Max: 2048},
@@ -183,7 +181,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	"UpdateTerminationProtection": {
 		{Path: "EnableTerminationProtection", Kind: modelcheck.KindRequired},
 		{Path: "StackName", Kind: modelcheck.KindLength, Min: 1, Max: modelcheck.NoMax},
-		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: regexp.MustCompile(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
+		{Path: "StackName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^([a-zA-Z][-a-zA-Z0-9]*)|(arn:\b(aws|aws-us-gov|aws-cn)\b:[-a-zA-Z0-9:/._+]*)$`)},
 		{Path: "StackName", Kind: modelcheck.KindRequired},
 	},
 	"ValidateTemplate": {
