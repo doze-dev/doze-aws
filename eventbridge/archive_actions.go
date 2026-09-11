@@ -38,16 +38,26 @@ func (s *Server) captureToArchives(bus string, eventJSON []byte) {
 		return
 	}
 	now := s.now().Unix()
+	// Decoded once and compiled once, for the same reason matchAndDispatch
+	// does: every archive on the bus filters the same event.
+	var doc any
 	for _, a := range arcs {
 		if a.State != "ENABLED" {
 			continue
 		}
 		if a.Pattern != "" {
-			pat, perr := eventpattern.Parse([]byte(a.Pattern))
+			pat, perr := s.patterns.compiled(a.Pattern)
 			if perr != nil {
 				continue
 			}
-			if ok, _ := pat.Match(eventJSON); !ok {
+			if doc == nil {
+				decoded, derr := eventpattern.Decode(eventJSON)
+				if derr != nil {
+					return
+				}
+				doc = decoded
+			}
+			if !pat.MatchDoc(doc) {
 				continue
 			}
 		}

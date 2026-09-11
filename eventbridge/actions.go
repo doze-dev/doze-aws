@@ -146,6 +146,15 @@ func (s *Server) matchAndDispatch(ctx context.Context, bus string, eventJSON []b
 		s.logf("eventbridge: rules(%s): %v", bus, rerr)
 		return
 	}
+	// Decoded once, matched many: every rule on the bus sees the same event,
+	// and Match would otherwise re-parse it per rule. On a bus with thirty
+	// rules that is twenty-nine wasted decodes per event, and the decode is
+	// nearly all of what matching costs.
+	doc, derr := eventpattern.Decode(eventJSON)
+	if derr != nil {
+		s.logf("eventbridge: event is not valid JSON: %v", derr)
+		return
+	}
 	for _, rule := range rules {
 		if rule.State != "ENABLED" || rule.Pattern == "" {
 			continue
@@ -153,13 +162,12 @@ func (s *Server) matchAndDispatch(ctx context.Context, bus string, eventJSON []b
 		if filter != nil && !filter[rule.ARN()] {
 			continue
 		}
-		pat, perr := eventpattern.Parse([]byte(rule.Pattern))
+		pat, perr := s.patterns.compiled(rule.Pattern)
 		if perr != nil {
 			s.logf("eventbridge: rule %s has an unparseable pattern: %v", rule.Name, perr)
 			continue
 		}
-		matched, merr := pat.Match(eventJSON)
-		if merr != nil || !matched {
+		if !pat.MatchDoc(doc) {
 			continue
 		}
 		for _, target := range rule.Targets {

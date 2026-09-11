@@ -45,6 +45,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
@@ -81,6 +82,45 @@ type site struct {
 }
 
 var markerRE = regexp.MustCompile(`^([A-Za-z0-9]+)((?:\[\]|\{\})*)$`)
+
+// segment is one dot-separated part of a constraint path, already split into
+// its member name, its markers, and the lower-cased spelling used in the
+// message a refusal carries.
+type segment struct {
+	name    string
+	lower   string
+	markers []string
+}
+
+// pathCache holds each constraint path parsed into segments.
+//
+// A path is a compile-time constant — "MetricData[].Dimensions[].Name" is
+// written in a table and never changes — but it used to be split on "." and
+// run through markerRE on EVERY request, for every constraint in the table.
+// Validation runs on every request of every service, and Lambda's table has
+// 464 constraints, so that was 464 regex matches and 464 string splits per
+// call: profiling put splitSegment and strings.Split at over half the
+// allocations in the whole validator.
+//
+// Parsed once here instead. A sync.Map rather than a plain map because tables
+// are read concurrently by every in-flight request and never written after
+// init; the only writes are first-sight parses, which converge immediately.
+var pathCache sync.Map // string -> []segment
+
+// parsePath splits a constraint path into segments, once per distinct path.
+func parsePath(path string) []segment {
+	if got, ok := pathCache.Load(path); ok {
+		return got.([]segment)
+	}
+	parts := strings.Split(path, ".")
+	segs := make([]segment, 0, len(parts))
+	for _, p := range parts {
+		name, markers := splitSegment(p)
+		segs = append(segs, segment{name: name, lower: lowerFirst(name), markers: markers})
+	}
+	pathCache.Store(path, segs)
+	return segs
+}
 
 // splitSegment separates a segment into its member name and its markers.
 func splitSegment(seg string) (name string, markers []string) {
@@ -142,24 +182,37 @@ func expand(start element, markers []string) []element {
 	return level
 }
 
-// sites resolves a path over the body.
-func sites(root map[string]any, path string) []site {
-	return descend(root, strings.Split(path, "."), nil)
+// sites resolves a path over the body, appending what it finds to buf.
+//
+// The caller passes a buffer and reads the result before the next call, so a
+// whole table is walked with one allocation rather than one per constraint —
+// which matters because the walk runs on every request of every service and
+// Lambda's table has 464 constraints. Nothing retains a site.
+func sites(root map[string]any, path string, buf []site) []site {
+	return descend(root, parsePath(path), nil, buf[:0])
 }
 
-func descend(cur map[string]any, segs []string, prefix []string) []site {
-	name, markers := splitSegment(segs[0])
-	here := append(append([]string{}, prefix...), lowerFirst(name))
-	v, present := cur[name]
+func descend(cur map[string]any, segs []segment, prefix []string, out []site) []site {
+	seg := segs[0]
+	markers := seg.markers
+	v, present := cur[seg.name]
 
-	if len(segs) == 1 {
-		// The leaf. Without markers it is the member itself; with them, the
-		// constraint is on each element or map value — AttributesToGet[] bounds
-		// the strings in the list, not the list.
-		if len(markers) == 0 || !present {
-			return []site{{val: v, present: present, disp: strings.Join(here, ".")}}
+	// The leaf. Without markers it is the member itself; with them, the
+	// constraint is on each element or map value — AttributesToGet[] bounds
+	// the strings in the list, not the list.
+	if len(segs) == 1 && (len(markers) == 0 || !present) {
+		// Most constraints in a table are a top-level member with no markers,
+		// so this case is the one worth not allocating for: the display path
+		// is just the member's own lower-cased name, already parsed.
+		disp := seg.lower
+		if len(prefix) > 0 {
+			disp = strings.Join(prefix, ".") + "." + seg.lower
 		}
-		var out []site
+		return append(out, site{val: v, present: present, disp: disp})
+	}
+
+	here := append(append([]string{}, prefix...), seg.lower)
+	if len(segs) == 1 {
 		for _, el := range expand(element{v: v, disp: here}, markers) {
 			out = append(out, site{val: el.v, present: true, disp: strings.Join(el.disp, ".")})
 		}
@@ -167,15 +220,14 @@ func descend(cur map[string]any, segs []string, prefix []string) []site {
 	}
 
 	if !present {
-		return nil // the structure was not sent: nothing inside it to check
+		return out // the structure was not sent: nothing inside it to check
 	}
-	var out []site
 	for _, el := range expand(element{v: v, disp: here}, markers) {
 		m, ok := el.v.(map[string]any)
 		if !ok {
 			continue
 		}
-		out = append(out, descend(m, segs[1:], el.disp)...)
+		out = descend(m, segs[1:], el.disp, out)
 	}
 	return out
 }
@@ -280,8 +332,10 @@ func ValidateMap(raw map[string]any, table []Constraint) *awshttp.APIError {
 
 // ValidateMapAs is ValidateMap with the error code the service's protocol uses.
 func ValidateMapAs(raw map[string]any, table []Constraint, code string) *awshttp.APIError {
+	var buf []site
 	for _, c := range table {
-		for _, s := range sites(raw, c.Path) {
+		buf = sites(raw, c.Path, buf)
+		for _, s := range buf {
 			if err := c.check(s, code); err != nil {
 				return err
 			}

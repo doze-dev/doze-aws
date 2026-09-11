@@ -84,7 +84,7 @@ func TestNestedMemberListResolvesListPaths(t *testing.T) {
 		"MetricData.member.1.Dimensions.member.1.Name":  {"FunctionName"},
 		"MetricData.member.1.Dimensions.member.1.Value": {"checkout"},
 	})
-	got := sites(raw, "MetricData[].Dimensions[].Name")
+	got := sites(raw, "MetricData[].Dimensions[].Name", nil)
 	if len(got) != 1 {
 		t.Fatalf("MetricData[].Dimensions[].Name resolved to %d sites, want 1 — "+
 			"a constraint on it would pass vacuously", len(got))

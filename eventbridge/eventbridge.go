@@ -57,6 +57,8 @@ type Server struct {
 	logs     *logship.Shipper // log-group targets
 	http     *http.Client     // API destination deliveries
 	tokenCache
+	// patterns compiles each rule's pattern once; see patterncache.go.
+	patterns patternCache
 }
 
 // New opens the store under DataDir (the default bus exists implicitly).

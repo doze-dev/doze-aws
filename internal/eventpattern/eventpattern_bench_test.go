@@ -65,6 +65,29 @@ func BenchmarkMatch(b *testing.B) {
 	}
 }
 
+// MatchDoc is what the bus actually calls: the event is decoded once for the
+// whole PutEvents and then offered to every rule. This is the per-rule cost.
+func BenchmarkMatchDoc(b *testing.B) {
+	doc, err := Decode([]byte(orderEvent))
+	if err != nil {
+		b.Fatal(err)
+	}
+	for name, src := range patterns {
+		p, err := Parse([]byte(src))
+		if err != nil {
+			b.Fatalf("%s: %v", name, err)
+		}
+		b.Run(name, func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				if !p.MatchDoc(doc) {
+					b.Fatalf("pattern %s did not match the fixture", name)
+				}
+			}
+		})
+	}
+}
+
 // A non-matching event is the common case on a busy bus — most rules reject
 // most events — so it is worth knowing it is cheaper than a match rather than
 // assuming it.
@@ -91,4 +114,45 @@ func BenchmarkParse(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+// The shape a bus actually has: one event, many rules. This is what the
+// per-rule Parse+Match loop was paying, and what Decode-once plus a compiled
+// pattern cache is meant to remove.
+func BenchmarkBusFanout(b *testing.B) {
+	const rules = 30
+	event := []byte(orderEvent)
+	src := []byte(patterns["numeric"])
+
+	b.Run("parse+match per rule (the old shape)", func(b *testing.B) {
+		b.ReportAllocs()
+		for b.Loop() {
+			for range rules {
+				p, err := Parse(src)
+				if err != nil {
+					b.Fatal(err)
+				}
+				if _, err := p.Match(event); err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+
+	b.Run("compiled once, decoded once", func(b *testing.B) {
+		p, err := Parse(src)
+		if err != nil {
+			b.Fatal(err)
+		}
+		b.ReportAllocs()
+		for b.Loop() {
+			doc, err := Decode(event)
+			if err != nil {
+				b.Fatal(err)
+			}
+			for range rules {
+				p.MatchDoc(doc)
+			}
+		}
+	})
 }

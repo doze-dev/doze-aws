@@ -52,28 +52,51 @@ What one request is made of, for anyone optimising:
 
 | Path | Cost | Notes |
 |---|---|---|
-| `modelcheck.ValidateMap`, 277 constraints (DynamoDB) | 52 µs, 1,662 allocs | runs on **every request of every service** |
-| `modelcheck.ValidateMap`, 464 constraints (Lambda) | 89 µs, 2,784 allocs | the largest table in the tree |
+| `modelcheck.ValidateMap`, 277 constraints (DynamoDB) | 17 µs, 1 alloc | runs on **every request of every service** |
+| `modelcheck.ValidateMap`, 464 constraints (Lambda) | 29 µs, 1 alloc | the largest table in the tree |
 | `modelcheck.FromQuery` | 15 µs | only on the Query wire (v1-era SDKs) |
 | `awsquery.Unflatten`, 20 datums | 28 µs | ditto |
 | `rpcv2cbor.DecodeMap` | 225–514 MB/s | the hand-rolled CBOR decoder |
-| `eventpattern.Match` | 3.2 µs | per event **per rule** |
+| `eventpattern.MatchDoc` against a decoded event | 35–130 ns, **0 allocs** | per event **per rule** |
+| `eventpattern.Decode` one event | 3.5 µs | once per `PutEvents`, not per rule |
 | `ddb/expr` parse a filter | 0.8 µs | once per request |
 | `ddb/expr` evaluate against one item | **0.18 µs, 1 alloc** | once per item scanned |
 | `cloudwatch` exact p99 over 1,000 samples | 9.6 µs | raw samples, not a sketch |
 
-Two of these are worth knowing about:
+Two of these were worth knowing about, and both have since been fixed. The
+before-and-after is kept because the shapes recur.
 
-- **Validation is the single largest fixed cost of a request**, at roughly six
-  allocations per constraint. It buys the rejection parity the ledgers
-  describe — doze-aws refusing what AWS refuses — so it is not waste, but it
-  is where a request's time goes.
-- **`eventpattern.Match` costs the same whatever the pattern**, because it
-  decodes the event from JSON on every call. EventBridge matches every event
-  against every rule on the bus and re-parses both the event and the rule's
-  pattern each time, so a bus with thirty rules pays that thirtyfold per
-  `PutEvents`. Correct, but the obvious thing to fix first if event throughput
-  ever matters.
+- **Validation was the single largest fixed cost of a request**, at roughly six
+  allocations per constraint — 89 µs and 2,784 allocations for Lambda's table.
+  Two things caused it, and neither was the checking. Constraint paths were
+  split on `.` and run through a regexp on *every* request even though a path
+  is a compile-time constant, and every resolved path allocated its own result
+  slice. Paths are now parsed once into a `sync.Map`, and the walk appends into
+  one buffer reused across the table. **29 µs and a single allocation**,
+  whatever the table's size — 3× faster and effectively allocation-free.
+  The buffer reuse is guarded by `internal/modelcheck/walk_test.go`: a stale
+  buffer checks constraint *N* against the sites of the constraints before it,
+  which is silent for an absent member, so those fixtures are built so it
+  cannot be.
+- **`eventpattern.Match` cost the same whatever the pattern** — 3.5 µs for the
+  cheapest and the most expensive alike — because it decoded the event from
+  JSON on every call, and the decode was all of it. Matching a *decoded* event
+  costs 35–130 ns and allocates nothing. EventBridge matches every event
+  against every rule on the bus, and re-parsed both the event and the rule's
+  pattern each time, so a bus with thirty rules paid that thirtyfold per
+  `PutEvents`. The event is now decoded once per `PutEvents` (`Decode` +
+  `MatchDoc`) and compiled patterns are cached by their text
+  (`eventbridge/patterncache.go` — keyed by text so there is nothing to
+  invalidate). `BenchmarkBusFanout` measures a 30-rule bus both ways:
+
+  | | ns/op | allocs/op |
+  |---|---|---|
+  | parse + match per rule (the old shape) | 191,325 | 4,680 |
+  | compiled once, decoded once | 7,086 | 79 |
+
+  **27× faster, 59× fewer allocations.** `Match` still exists and still decodes;
+  it is the right call for a one-off, and `Parse` is still what validates a
+  pattern a user submits.
 
 ## What is not measured here
 

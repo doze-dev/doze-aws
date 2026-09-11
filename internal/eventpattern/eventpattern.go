@@ -40,13 +40,31 @@ func Parse(src []byte) (*Pattern, error) {
 }
 
 // Match evaluates the pattern against an event document.
+//
+// For one pattern this is the whole story. For MANY patterns against the same
+// event — which is what a bus does, every rule on it — decode once with
+// Decode and call MatchDoc, or the event is re-parsed per rule and the JSON
+// decode dominates: measured, matching costs the same whatever the pattern
+// is, because the decode is nearly all of it.
 func (p *Pattern) Match(event []byte) (bool, error) {
-	var doc any
-	if err := json.Unmarshal(event, &doc); err != nil {
-		return false, fmt.Errorf("event is not valid JSON: %w", err)
+	doc, err := Decode(event)
+	if err != nil {
+		return false, err
 	}
 	return p.root.match(doc), nil
 }
+
+// Decode parses an event once so many patterns can be matched against it.
+func Decode(event []byte) (any, error) {
+	var doc any
+	if err := json.Unmarshal(event, &doc); err != nil {
+		return nil, fmt.Errorf("event is not valid JSON: %w", err)
+	}
+	return doc, nil
+}
+
+// MatchDoc evaluates the pattern against an already-decoded event.
+func (p *Pattern) MatchDoc(doc any) bool { return p.root.match(doc) }
 
 // patternNode matches one level of the event document.
 type patternNode interface {
