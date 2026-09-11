@@ -38,7 +38,7 @@
       {{template "ddb_explorer" .}}
       {{end}}
     </div>
-    <div class="overlay" role="dialog" aria-modal="true" aria-label="Add item" x-effect="window.dozeTrap && dozeTrap($el, put)" x-show="put" x-cloak @click.self="put=false" @keydown.escape.window="put=false" x-effect="if(put)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
+    <div class="overlay" role="dialog" aria-modal="true" aria-label="Add item" x-effect="window.dozeTrap && dozeTrap($el, put)" x-show="put" x-cloak @click.self="put=false" @keydown.escape.window="put=false">
       {{/* $el.reset() puts the textarea back to the skeleton, but CodeMirror
            keeps its own buffer, so dozeEditor.reset re-reads defaultValue —
            otherwise reopening this dialog after a save shows the item you just

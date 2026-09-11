@@ -53,6 +53,51 @@ test.describe('create table', () => {
 });
 
 test.describe('items', () => {
+  // The add-item editor opens prefilled with the table's key schema, and a
+  // CodeMirror built inside a hidden dialog measures its gutter as zero — so
+  // without a refresh on reveal the line numbers render on top of the first
+  // characters of every line. That went unseen for as long as the editor
+  // opened empty, because an empty editor has nothing to overlap.
+  //
+  // Asserting geometry rather than text is the point: the content was always
+  // correct, it was the layout that was wrong.
+  test('opens prefilled with the key schema, and the gutter does not sit on the text', async ({
+    page,
+    request,
+    uniqueName,
+  }) => {
+    const table = await createTable(request, uniqueName('e2e-ddb-gutter'), {
+      rangeKey: 'ts',
+      rangeType: 'N',
+    });
+    await page.goto(`ddb/${table}`);
+    await page.locator('.acts').getByRole('button', { name: 'Add item' }).click();
+
+    const geo = await page.evaluate(() => {
+      const ta = document.querySelector('#ddb-item-editor') as HTMLTextAreaElement & {
+        __cm?: any;
+      };
+      const cm = ta.__cm;
+      const wrap = cm.getWrapperElement() as HTMLElement;
+      const gutter = wrap.querySelector('.CodeMirror-gutters') as HTMLElement;
+      const lines = wrap.querySelector('.CodeMirror-lines') as HTMLElement;
+      return {
+        value: cm.getValue(),
+        gutterWidth: Math.round(gutter.getBoundingClientRect().width),
+        textOffset: Math.round(
+          lines.getBoundingClientRect().left - gutter.getBoundingClientRect().left
+        ),
+      };
+    });
+
+    // A string key is quoted and a numeric key is not: DynamoDB refuses a
+    // number sent as a string, so the types are the useful half of the prefill.
+    expect(geo.value).toBe('{\n  "pk": "",\n  "ts": 0\n}');
+    // The text has to start past the gutter, not on top of it.
+    expect(geo.gutterWidth).toBeGreaterThan(20);
+    expect(geo.textOffset).toBeGreaterThanOrEqual(geo.gutterWidth - 1);
+  });
+
   test('add via JSON editor, view/edit/delete via the drawer', async ({
     page,
     request,

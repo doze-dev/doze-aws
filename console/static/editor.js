@@ -125,6 +125,36 @@
     // Format button, no validity pill and no error line — the three things that
     // make a JSON textarea bearable.
     attachJsonChrome(cm, isJSON);
+    watchForReveal(cm);
+  }
+
+  // A CodeMirror built inside a hidden dialog measures its gutter as zero,
+  // because nothing in a display:none subtree has a layout box yet. The line
+  // numbers then sit on top of the first characters of every line until
+  // something calls refresh(). Most editors open empty so there is nothing to
+  // overlap and the fault is invisible; give one server-rendered content and
+  // it shows immediately.
+  //
+  // Templates used to arrange that refresh themselves, one x-effect per
+  // dialog, which is a thing to forget. ddb.html forgot it in the way that is
+  // hardest to see: it carried TWO x-effect attributes on one element, and the
+  // HTML parser keeps only the first, so its refresh had never run at all.
+  //
+  // An IntersectionObserver cannot be forgotten by the next dialog. It reports
+  // not-intersecting for a display:none element and fires the moment something
+  // reveals it, which is exactly when the measurement becomes possible.
+  var reveal = typeof IntersectionObserver === "function" &&
+    new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        var cm = e.target.CodeMirror;
+        if (cm) cm.refresh();
+      });
+    });
+
+  function watchForReveal(cm) {
+    if (!reveal) return;
+    reveal.observe(cm.getWrapperElement());
   }
 
   function upgradeAll(root) {
