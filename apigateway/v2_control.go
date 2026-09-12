@@ -47,7 +47,7 @@ func (s *Server) routeV2APIs(w http.ResponseWriter, r *http.Request, segs []stri
 			}
 			items := make([]any, 0, len(apis))
 			for i := range apis {
-				items = append(items, viewV2API(&apis[i]))
+				items = append(items, viewV2API(s.invokeBase(r), &apis[i]))
 			}
 			writeJSON(w, 200, map[string]any{"items": items})
 			return nil
@@ -62,7 +62,7 @@ func (s *Server) routeV2APIs(w http.ResponseWriter, r *http.Request, segs []stri
 			if err != nil {
 				return awshttp.AsAPIError(err)
 			}
-			writeJSON(w, 200, viewV2API(api))
+			writeJSON(w, 200, viewV2API(s.invokeBase(r), api))
 			return nil
 		case http.MethodPatch:
 			return s.v2UpdateAPI(w, r, apiID)
@@ -185,7 +185,7 @@ func (s *Server) v2CreateAPI(w http.ResponseWriter, r *http.Request) *awshttp.AP
 		return awshttp.AsAPIError(err)
 	}
 	s.logf("apigateway: created HTTP API %s (%s)", api.Name, api.ID)
-	writeJSON(w, 201, viewV2API(api))
+	writeJSON(w, 201, viewV2API(s.invokeBase(r), api))
 	return nil
 }
 
@@ -275,7 +275,7 @@ func (s *Server) v2UpdateAPI(w http.ResponseWriter, r *http.Request, apiID strin
 	if err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	writeJSON(w, 200, viewV2API(api))
+	writeJSON(w, 200, viewV2API(s.invokeBase(r), api))
 	return nil
 }
 
@@ -437,8 +437,8 @@ func v2Time(unix int64) string { return time.Unix(unix, 0).UTC().Format(time.RFC
 
 // V2Endpoint is where an HTTP API answers: its $default stage at the root,
 // a named stage under its name.
-func V2Endpoint(apiID string) string {
-	return "http://127.0.0.1:4566" + ExecutePrefix + apiID
+func V2Endpoint(base, apiID string) string {
+	return base + ExecutePrefix + apiID
 }
 
 // V2APIARN is the ARN a v2 API is tagged by.
@@ -446,12 +446,12 @@ func (s *Server) V2APIARN(apiID string) string {
 	return "arn:aws:apigateway:" + s.id.RegionName() + "::/apis/" + apiID
 }
 
-func viewV2API(api *RestAPI) map[string]any {
+func viewV2API(base string, api *RestAPI) map[string]any {
 	v := map[string]any{
 		"apiId":                     api.ID,
 		"name":                      api.Name,
 		"protocolType":              "HTTP",
-		"apiEndpoint":               V2Endpoint(api.ID),
+		"apiEndpoint":               V2Endpoint(base, api.ID),
 		"createdDate":               v2Time(api.Created),
 		"routeSelectionExpression":  api.RouteSelection,
 		"disableExecuteApiEndpoint": api.DisableExecuteAPI,

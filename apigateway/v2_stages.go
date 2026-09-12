@@ -60,7 +60,7 @@ func (s *Server) routeV2Stages(w http.ResponseWriter, r *http.Request, apiID str
 			if err != nil {
 				return awshttp.AsAPIError(err)
 			}
-			writeJSON(w, 201, viewV2Stage(apiID, out))
+			writeJSON(w, 201, viewV2Stage(s.invokeBase(r), apiID, out))
 			return nil
 		case http.MethodGet:
 			api, err := s.store.GetHTTP(apiID)
@@ -69,7 +69,7 @@ func (s *Server) routeV2Stages(w http.ResponseWriter, r *http.Request, apiID str
 			}
 			items := make([]any, 0, len(api.Stages))
 			for _, name := range sortedKeys(api.Stages) {
-				items = append(items, viewV2Stage(apiID, api.Stages[name]))
+				items = append(items, viewV2Stage(s.invokeBase(r), apiID, api.Stages[name]))
 			}
 			writeJSON(w, 200, map[string]any{"items": items})
 			return nil
@@ -90,7 +90,7 @@ func (s *Server) routeV2Stages(w http.ResponseWriter, r *http.Request, apiID str
 		if !ok {
 			return errNotFound("Invalid stage identifier specified %s", name)
 		}
-		writeJSON(w, 200, viewV2Stage(apiID, st))
+		writeJSON(w, 200, viewV2Stage(s.invokeBase(r), apiID, st))
 		return nil
 	case http.MethodPatch:
 		var req v2StageInput
@@ -116,7 +116,7 @@ func (s *Server) routeV2Stages(w http.ResponseWriter, r *http.Request, apiID str
 		if err != nil {
 			return awshttp.AsAPIError(err)
 		}
-		writeJSON(w, 200, viewV2Stage(apiID, out))
+		writeJSON(w, 200, viewV2Stage(s.invokeBase(r), apiID, out))
 		return nil
 	case http.MethodDelete:
 		_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
@@ -244,7 +244,7 @@ func applyV2StageInput(api *RestAPI, st *Stage, in *v2StageInput) error {
 	return nil
 }
 
-func viewV2Stage(apiID string, st *Stage) map[string]any {
+func viewV2Stage(base, apiID string, st *Stage) map[string]any {
 	v := map[string]any{
 		"stageName":            st.Name,
 		"apiGatewayManaged":    false,
@@ -273,9 +273,9 @@ func viewV2Stage(apiID string, st *Stage) map[string]any {
 	}
 	// The invoke URL is the practical output, as it is for a REST stage.
 	if st.Name == "$default" {
-		v["invokeUrl"] = V2Endpoint(apiID)
+		v["invokeUrl"] = V2Endpoint(base, apiID)
 	} else {
-		v["invokeUrl"] = V2Endpoint(apiID) + "/" + st.Name
+		v["invokeUrl"] = V2Endpoint(base, apiID) + "/" + st.Name
 	}
 	return v
 }

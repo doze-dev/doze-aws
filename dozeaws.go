@@ -267,7 +267,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := kinesis.New(kinesis.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "apigateway":
-		s, err := apigateway.New(apigateway.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity, Suffix: cfg.Suffix})
+		s, err := apigateway.New(apigateway.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity, Suffix: cfg.Suffix, Endpoint: cfg.Endpoint})
 		return s, s, err
 	case "cloudformation":
 		// CloudFormation provisions across every other service, so it is the

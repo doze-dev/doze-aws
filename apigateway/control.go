@@ -800,7 +800,7 @@ func (s *Server) routeStages(w http.ResponseWriter, r *http.Request, apiID strin
 			}
 			items := make([]any, 0, len(api.Stages))
 			for _, name := range sortedKeys(api.Stages) {
-				items = append(items, viewStage(apiID, api.Stages[name]))
+				items = append(items, viewStage(s.invokeBase(r), apiID, api.Stages[name]))
 			}
 			writeJSON(w, 200, map[string]any{"item": items})
 			return nil
@@ -818,7 +818,7 @@ func (s *Server) routeStages(w http.ResponseWriter, r *http.Request, apiID strin
 			if !ok {
 				return errNotFound("Invalid stage identifier specified")
 			}
-			writeJSON(w, 200, viewStage(apiID, st))
+			writeJSON(w, 200, viewStage(s.invokeBase(r), apiID, st))
 			return nil
 		case http.MethodPatch:
 			return s.patchStage(w, r, apiID, name)
@@ -871,7 +871,7 @@ func (s *Server) createStage(w http.ResponseWriter, r *http.Request, apiID strin
 	if err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	writeJSON(w, 201, viewStage(apiID, out))
+	writeJSON(w, 201, viewStage(s.invokeBase(r), apiID, out))
 	return nil
 }
 
@@ -937,7 +937,7 @@ func (s *Server) patchStage(w http.ResponseWriter, r *http.Request, apiID, name 
 	if err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	writeJSON(w, 200, viewStage(apiID, out))
+	writeJSON(w, 200, viewStage(s.invokeBase(r), apiID, out))
 	return nil
 }
 

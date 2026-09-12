@@ -8,8 +8,10 @@ package apigateway
 // as `{}` rather than dropped where AWS does the same.
 
 import (
+	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
@@ -151,7 +153,7 @@ func viewDeployment(d *Deployment) map[string]any {
 	return v
 }
 
-func viewStage(apiID string, st *Stage) map[string]any {
+func viewStage(base, apiID string, st *Stage) map[string]any {
 	v := map[string]any{
 		"stageName":           st.Name,
 		"createdDate":         st.Created,
@@ -180,14 +182,44 @@ func viewStage(apiID string, st *Stage) map[string]any {
 		v["tags"] = st.Tags
 	}
 	// The invoke URL is the practical output: it is what you paste into curl.
-	v["invokeUrl"] = InvokeURL(apiID, st.Name)
+	v["invokeUrl"] = InvokeURL(base, apiID, st.Name)
 	return v
 }
 
-// InvokeURL is where a deployed stage answers. It is exported because
-// CloudFormation and the console both surface it.
-func InvokeURL(apiID, stage string) string {
-	return "http://127.0.0.1:4566" + ExecutePrefix + apiID + "/" + stage
+// InvokeURL is where a deployed stage answers, under the base a request
+// arrived on.
+func InvokeURL(base, apiID, stage string) string {
+	return base + ExecutePrefix + apiID + "/" + stage
+}
+
+// invokeBase is the scheme and host a deployed API answers on, taken from the
+// request that asked for it.
+//
+// It used to be the literal "http://127.0.0.1:4566", which meant the invoke
+// URL this service reported was wrong for anyone who had moved the endpoint —
+// --listen, a container, a .doze name, a fronting proxy. The console did not
+// have the bug, because it re-minted the same URL from the live Host; so the
+// two disagreed, and the one people copied out of an SDK response was the
+// broken one.
+//
+// The Host is the right source for the same reason SQS uses it for queue URLs:
+// an address reached through a name should report that name back, not whatever
+// the process happens to be bound to.
+func (s *Server) invokeBase(r *http.Request) string {
+	if r != nil && r.Host != "" {
+		scheme := "http"
+		if r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
+			scheme = "https"
+		}
+		return scheme + "://" + r.Host
+	}
+	// No request to learn from: a CloudFormation apply or an export, which
+	// reaches the service in-process. The configured endpoint is what the
+	// stack was told it is reachable at.
+	if s.endpoint != "" {
+		return strings.TrimRight(s.endpoint, "/")
+	}
+	return "http://127.0.0.1:4566"
 }
 
 // APIARN is the ARN used to tag a REST API.

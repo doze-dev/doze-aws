@@ -59,6 +59,10 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Endpoint is the stack's externally-reachable base URL. It is the
+	// fallback for the invoke URL when there is no request to read a Host from
+	// (a CloudFormation apply reaches this service in-process).
+	Endpoint string
 	// Suffix is the instance's DNS suffix, standing in for amazonaws.com.
 	Suffix string
 	// Identity is the region and account this service mints ARNs for. The zero
@@ -78,6 +82,7 @@ type Server struct {
 	authCache *authCache
 	id        awsident.Identity // the region and account this service mints ARNs for
 	suffix    string            // stands in for amazonaws.com in hostnames
+	endpoint  string            // the stack's reachable base URL, for in-process callers with no request
 }
 
 // New opens the store under DataDir.
@@ -97,7 +102,7 @@ func New(opts Options) (*Server, error) {
 	if logf == nil {
 		logf = func(string, ...any) {}
 	}
-	s := &Server{store: newStore(db), peers: opts.Peers, logf: logf, now: time.Now, id: opts.Identity, suffix: opts.Suffix}
+	s := &Server{store: newStore(db), peers: opts.Peers, logf: logf, now: time.Now, id: opts.Identity, suffix: opts.Suffix, endpoint: opts.Endpoint}
 	if s.peers == nil {
 		s.peers = peers.None()
 	}
