@@ -55,6 +55,10 @@ type Config struct {
 	// Region is the region every ARN this instance mints carries. Empty means
 	// the conventional local region.
 	Region string
+	// Suffix is the DNS suffix that stands in for amazonaws.com in the
+	// AWS-shaped hostnames this instance recognises and mints. Empty means only
+	// the conventional infixes are recognised and no AWS-shaped URL is minted.
+	Suffix string
 	// Regions are additional regions served alongside Region. A region a signed
 	// request names is created on first use whether or not it is listed; listing
 	// one only creates it eagerly, so it appears before anything touches it.

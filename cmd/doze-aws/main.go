@@ -54,6 +54,7 @@ func commands() []command {
 	return []command{
 		{"apply", "converge the resources a CloudFormation/SAM template declares", runApply},
 		{"export", "write what is running as a CloudFormation template", runExport},
+		{"env", envUsage, runEnv},
 		{"config print", "print the effective configuration as TOML, ready to edit", runConfigPrint},
 		{"dns-setup", "prepare this machine for .doze names (idempotent)", runDNSSetup},
 		{"version", "print the version and the services this build serves", runVersion},
@@ -110,6 +111,7 @@ commands:
 		"  doze-aws --services s3,sqs,lambda         just those three\n"+
 		"  doze-aws --data-dir /tmp/doze             a throwaway data directory\n"+
 		"  doze-aws apply template.yaml              deploy a template into a running stack\n"+
+		"  eval \"$(doze-aws env)\"                    point your shell's AWS SDK at it\n"+
 		"\nDocs: https://github.com/doze-dev/doze-aws/tree/main/docs\n")
 }
 
@@ -213,6 +215,7 @@ func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs.StringVar(&dst.S3Host, "s3-host", dst.S3Host, "base host for virtual-hosted-style S3 bucket addressing")
 	fs.StringVar(&dst.AccountID, "account-id", dst.AccountID, "twelve-digit account id every ARN carries (default 000000000000; set at creation, hard to change later)")
 	fs.StringVar(&dst.Region, "region", dst.Region, "default region; its data lives under <data-dir>/<region> (default us-east-1)")
+	fs.StringVar(&dst.Suffix, "suffix", dst.Suffix, "DNS suffix standing in for amazonaws.com, e.g. aws.harbour.doze")
 	fs.Var(servicesFlag{&dst.Regions}, "regions", "comma-separated extra regions to serve (any region a signed request names is created on first use regardless)")
 	fs.BoolVar(&dst.Console, "console", dst.Console, "serve the web management console at /_console")
 	fs.DurationVar(&dst.LambdaIdleTimeout, "lambda-idle", dst.LambdaIdleTimeout, "how long a warm Lambda keeps its process before scaling to zero")
