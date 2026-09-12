@@ -111,7 +111,7 @@ func TestApplyEventsHTTP(t *testing.T) {
 
 	// Apply twice: the second pass updates rather than failing on exists.
 	for i := 0; i < 2; i++ {
-		if _, err := provision.Apply(ctx, stack.Handler(), sf); err != nil {
+		if _, err := provision.Apply(ctx, stack.Handler(), sf, awsident.Default()); err != nil {
 			t.Fatalf("Apply #%d: %v", i+1, err)
 		}
 	}
@@ -137,7 +137,7 @@ func TestApplyEventsHTTP(t *testing.T) {
 
 	// Export: the connection comes back with its key value blank and the
 	// destination still names it; the rule target still names the destination.
-	exported, err := provision.Export(ctx, stack.Handler())
+	exported, err := provision.Export(ctx, stack.Handler(), awsident.Default())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +161,7 @@ func TestApplyEventsHTTP(t *testing.T) {
 	}
 
 	// Destroy removes the destination before the connection, and the rule.
-	drep, err := provision.Destroy(ctx, stack.Handler(), sf)
+	drep, err := provision.Destroy(ctx, stack.Handler(), sf, awsident.Default())
 	if err != nil {
 		t.Fatalf("Destroy: %v\n%+v", err, drep)
 	}

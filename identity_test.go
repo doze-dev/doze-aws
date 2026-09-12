@@ -39,7 +39,7 @@ const (
 // it to the table in TestEveryServiceMintsTheConfiguredIdentity — the two
 // together are the migration's progress bar.
 var unplumbed = []string{
-	"iam", "cloudformation",
+	"iam",
 }
 
 func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {

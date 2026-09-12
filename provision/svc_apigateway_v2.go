@@ -10,8 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 func applyHTTPAPI(ctx context.Context, c *client, name string, api API, rep *Report) error {
@@ -134,7 +132,7 @@ func ensureV2Integration(ctx context.Context, c *client, apiID string, route Rou
 		key = "lambda:" + route.Lambda + ":" + format
 		body = map[string]any{
 			"integrationType": "AWS_PROXY", "payloadFormatVersion": format,
-			"integrationUri": awsident.ARN("lambda", "function:"+route.Lambda),
+			"integrationUri": c.id.ARN("lambda", "function:"+route.Lambda),
 		}
 	default:
 		return "", fmt.Errorf("an HTTP API route needs a Lambda function or an HTTP target; MOCK integrations exist only on REST APIs")
@@ -188,7 +186,7 @@ func ensureV2Authorizers(ctx context.Context, c *client, apiID string, api API) 
 		}
 		body := map[string]any{
 			"name": name, "authorizerType": "REQUEST", "identitySource": sources,
-			"authorizerUri":                  lambdaInvokeURI(a.Lambda),
+			"authorizerUri":                  lambdaInvokeURI(c.id, a.Lambda),
 			"authorizerPayloadFormatVersion": format,
 			"enableSimpleResponses":          a.SimpleResponses,
 		}

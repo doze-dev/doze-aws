@@ -114,7 +114,7 @@ func TestApplyLoggingSettings(t *testing.T) {
 		t.Fatalf("the API's stage logging did not map: %+v", api)
 	}
 	for i := 0; i < 2; i++ {
-		if _, err := provision.Apply(ctx, stack.Handler(), sf); err != nil {
+		if _, err := provision.Apply(ctx, stack.Handler(), sf, awsident.Default()); err != nil {
 			t.Fatalf("Apply #%d: %v", i+1, err)
 		}
 	}

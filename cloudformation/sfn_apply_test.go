@@ -94,11 +94,11 @@ func TestApplyStateMachineTemplate(t *testing.T) {
 		t.Fatalf("output MachineArn = %q", arn)
 	}
 
-	if _, err := provision.Apply(ctx, stack.Handler(), sf); err != nil {
+	if _, err := provision.Apply(ctx, stack.Handler(), sf, awsident.Default()); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 	// Applying twice converges rather than conflicting.
-	if _, err := provision.Apply(ctx, stack.Handler(), sf); err != nil {
+	if _, err := provision.Apply(ctx, stack.Handler(), sf, awsident.Default()); err != nil {
 		t.Fatalf("second Apply: %v", err)
 	}
 

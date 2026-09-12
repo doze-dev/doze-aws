@@ -21,7 +21,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/doze-dev/doze-aws"
+	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/console"
 	"github.com/doze-dev/doze-aws/iam"
 	"github.com/doze-dev/doze-aws/internal/bg"
@@ -211,6 +211,7 @@ func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs.StringVar(&dst.DataDir, "data-dir", dst.DataDir, "root directory for service data")
 	fs.Var(servicesFlag{&dst.Services}, "services", "comma-separated services to enable (default: all implemented)")
 	fs.StringVar(&dst.S3Host, "s3-host", dst.S3Host, "base host for virtual-hosted-style S3 bucket addressing")
+	fs.StringVar(&dst.AccountID, "account-id", dst.AccountID, "twelve-digit account id every ARN carries (default 000000000000; set at creation, hard to change later)")
 	fs.BoolVar(&dst.Console, "console", dst.Console, "serve the web management console at /_console")
 	fs.DurationVar(&dst.LambdaIdleTimeout, "lambda-idle", dst.LambdaIdleTimeout, "how long a warm Lambda keeps its process before scaling to zero")
 	fs.BoolVar(&dst.LambdaQuiet, "lambda-quiet", dst.LambdaQuiet, "do not echo Lambda function output to this log")
@@ -240,6 +241,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		DataDir:           cfg.DataDir,
 		Services:          cfg.Services,
 		S3Host:            cfg.S3Host,
+		Identity:          cfg.Identity(),
 		LambdaIdleTimeout: cfg.LambdaIdleTimeout,
 		LambdaQuiet:       cfg.LambdaQuiet,
 		LambdaRuntimes:    cfg.LambdaRuntimes,
@@ -275,7 +277,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 			return fmt.Errorf("template %s: %w", tmplPath, err)
 		}
 		printTranspileReport(rep)
-		applyRep, err := provision.Apply(context.Background(), stack.Handler(), sf)
+		applyRep, err := provision.Apply(context.Background(), stack.Handler(), sf, cfg.Identity())
 		if err != nil {
 			return err
 		}

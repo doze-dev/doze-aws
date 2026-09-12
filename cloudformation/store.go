@@ -167,8 +167,8 @@ func newStore(db *bolt.DB) *Store { return &Store{db: db, clock: time.Now} }
 func (s *Store) now() time.Time { return s.clock() }
 
 // StackARN builds the ARN a stack reports as its StackId.
-func StackARN(name, id string) string {
-	return awsident.ARN("cloudformation", "stack/"+name+"/"+id)
+func StackARN(ident awsident.Identity, name, id string) string {
+	return ident.ARN("cloudformation", "stack/"+name+"/"+id)
 }
 
 // ---- stacks ----

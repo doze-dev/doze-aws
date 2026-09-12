@@ -50,7 +50,7 @@ func (s *Server) recordNested(parent *StackRecord, rep *Report, isUpdate bool) e
 			if prev, _ := s.store.GetStack(child.Name); prev != nil {
 				rec.ID, rec.Created = prev.ID, prev.Created
 			} else {
-				rec.ID = StackARN(child.Name, s.store.newID())
+				rec.ID = StackARN(s.id, child.Name, s.store.newID())
 			}
 			for _, e := range child.Report.Entries {
 				if e.Kind != Mapped {

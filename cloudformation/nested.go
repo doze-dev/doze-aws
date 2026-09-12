@@ -80,7 +80,7 @@ func nestedRefs(scope *Scope, t *Template, opts TranspileOptions, rep *Report) e
 		short := nestedShortName(id)
 		childName := opts.StackName + "-" + short
 		childStack, childRep, err := Transpile(child, TranspileOptions{
-			StackName: childName, Parameters: params, Exports: opts.Exports,
+			StackName: childName, Parameters: params, Exports: opts.Exports, Identity: opts.Identity,
 			AllowUnsupported: opts.AllowUnsupported, Endpoint: opts.Endpoint,
 			FetchTemplate: opts.FetchTemplate, NamePrefix: opts.NamePrefix + short + "-",
 			depth: opts.depth + 1, ancestry: append(append([]string(nil), opts.ancestry...), url),
@@ -88,7 +88,7 @@ func nestedRefs(scope *Scope, t *Template, opts TranspileOptions, rep *Report) e
 		if err != nil {
 			return fmt.Errorf("nested stack %s (%s): %w", id, url, err)
 		}
-		arn := StackARN(childName, "nested")
+		arn := StackARN(scope.Identity, childName, "nested")
 		scope.Refs[id] = arn
 		atts := map[string]string{"Arn": arn, "StackId": arn}
 		for k, v := range childRep.Outputs {

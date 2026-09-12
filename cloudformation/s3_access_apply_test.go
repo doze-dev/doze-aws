@@ -80,13 +80,13 @@ func TestApplyBucketAccessSettings(t *testing.T) {
 		t.Fatalf("the access settings did not map: %+v", b)
 	}
 	// Blocked: the deploy fails on the policy, naming the setting.
-	if _, err := provision.Apply(ctx, stack.Handler(), blocked); err == nil || !strings.Contains(err.Error(), "BlockPublicPolicy") {
+	if _, err := provision.Apply(ctx, stack.Handler(), blocked, awsident.Default()); err == nil || !strings.Contains(err.Error(), "BlockPublicPolicy") {
 		t.Fatalf("a public policy under BlockPublicPolicy should fail the apply with S3's message, got %v", err)
 	}
 	// Lifted: it lands, twice.
 	open := transpile("false")
 	for i := 0; i < 2; i++ {
-		if _, err := provision.Apply(ctx, stack.Handler(), open); err != nil {
+		if _, err := provision.Apply(ctx, stack.Handler(), open, awsident.Default()); err != nil {
 			t.Fatalf("Apply #%d: %v", i+1, err)
 		}
 	}
@@ -103,7 +103,7 @@ func TestApplyBucketAccessSettings(t *testing.T) {
 	}
 
 	// Export carries all three back as a template that transpiles the same.
-	exported, err := provision.Export(ctx, stack.Handler())
+	exported, err := provision.Export(ctx, stack.Handler(), awsident.Default())
 	if err != nil {
 		t.Fatal(err)
 	}

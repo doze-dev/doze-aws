@@ -65,7 +65,7 @@ func applyQueues(ctx context.Context, c *client, s *Stack, rep *Report) error {
 				maxr = 3
 			}
 			rp, _ := json.Marshal(map[string]string{
-				"deadLetterTargetArn": queueARN(dlq),
+				"deadLetterTargetArn": queueARN(c.id, dlq),
 				"maxReceiveCount":     strconv.Itoa(maxr),
 			})
 			attrs["RedrivePolicy"] = string(rp)
@@ -90,14 +90,14 @@ func applyQueues(ctx context.Context, c *client, s *Stack, rep *Report) error {
 		delete(attrs, "FifoQueue")
 		if len(attrs) > 0 {
 			if _, err := c.sqs(ctx, "SetQueueAttributes", map[string]any{
-				"QueueUrl": queueURL(name), "Attributes": attrs,
+				"QueueUrl": queueURL(c.id, name), "Attributes": attrs,
 			}); err != nil {
 				return err
 			}
 		}
 		if len(q.Tags) > 0 {
 			if _, err := c.sqs(ctx, "TagQueue", map[string]any{
-				"QueueUrl": queueURL(name), "Tags": q.Tags,
+				"QueueUrl": queueURL(c.id, name), "Tags": q.Tags,
 			}); err != nil {
 				return err
 			}
@@ -150,7 +150,7 @@ func exportQueues(ctx context.Context, c *client, s *Stack) error {
 		name := u[strings.LastIndex(u, "/")+1:]
 		q := Queue{FIFO: strings.HasSuffix(name, ".fifo")}
 		if out, err := c.sqs(ctx, "GetQueueAttributes", map[string]any{
-			"QueueUrl": queueURL(name), "AttributeNames": []string{"All"},
+			"QueueUrl": queueURL(c.id, name), "AttributeNames": []string{"All"},
 		}); err == nil {
 			var ga struct {
 				Attributes map[string]string `json:"Attributes"`
@@ -184,7 +184,7 @@ func exportQueues(ctx context.Context, c *client, s *Stack) error {
 				}
 			}
 		}
-		if out, err := c.sqs(ctx, "ListQueueTags", map[string]any{"QueueUrl": queueURL(name)}); err == nil {
+		if out, err := c.sqs(ctx, "ListQueueTags", map[string]any{"QueueUrl": queueURL(c.id, name)}); err == nil {
 			var lt struct {
 				Tags map[string]string `json:"Tags"`
 			}

@@ -5,15 +5,16 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
-	"github.com/doze-dev/doze-aws/internal/gateway"
-	"github.com/doze-dev/doze-aws/internal/rpcv2cbor"
-	"github.com/doze-dev/doze-aws/internal/trace"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/doze-dev/doze-aws/internal/gateway"
+	"github.com/doze-dev/doze-aws/internal/rpcv2cbor"
+	"github.com/doze-dev/doze-aws/internal/trace"
 )
 
 // Recorder is gateway middleware that keeps a ring buffer of the most recent

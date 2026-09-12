@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/provision"
 )
@@ -316,6 +317,7 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 	}
 	exports, _ := s.store.Exports()
 	sf, rep, err := Transpile(tmpl, TranspileOptions{
+		Identity:      s.id,
 		StackName:     name,
 		Parameters:    params,
 		Exports:       exports,
@@ -340,12 +342,12 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 		st.TerminationProtection, st.Policy = prev.TerminationProtection, prev.Policy
 		st.ParentID, st.RootID = prev.ParentID, prev.RootID
 	} else {
-		st.ID = StackARN(name, s.store.newID())
+		st.ID = StackARN(s.id, name, s.store.newID())
 	}
 
 	ctx, cancel := s.ctx()
 	defer cancel()
-	applyRep, applyErr := provision.Apply(ctx, s.gateway, sf)
+	applyRep, applyErr := provision.Apply(ctx, s.gateway, sf, s.id)
 
 	// Resources the stack now owns, from the transpile report.
 	for _, e := range rep.Entries {
@@ -363,7 +365,7 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 		if decl, ok := tmpl.Outputs[name]; ok && decl.ExportName != nil {
 			// The export name may itself be an intrinsic; it was evaluated
 			// during transpile, so re-evaluate against the same scope.
-			if ev, everr := exportNameOf(tmpl, name, params, exports, st.Name); everr == nil {
+			if ev, everr := exportNameOf(s.id, tmpl, name, params, exports, st.Name); everr == nil {
 				out.ExportName = ev
 			}
 			out.Description = decl.Description
@@ -401,7 +403,7 @@ func (s *Server) recordFailure(name, body string, params, tags map[string]string
 	now := s.now().Unix()
 	st, _ := s.store.GetStack(name)
 	if st == nil {
-		st = &StackRecord{Name: name, ID: StackARN(name, s.store.newID()), Created: now}
+		st = &StackRecord{Name: name, ID: StackARN(s.id, name, s.store.newID()), Created: now}
 	}
 	st.TemplateBody, st.Parameters, st.Tags, st.Updated = body, params, tags, now
 	st.Status = pick(isUpdate, StatusUpdateFailed, StatusCreateFailed)
@@ -456,7 +458,7 @@ func hDeleteStack(s *Server, p params) (any, *awshttp.APIError) {
 	// recorded its own template, so it can be re-transpiled into the exact IR
 	// that created it and handed to Destroy.
 	if sf, terr := s.stackIR(st); terr == nil {
-		rep, derr := provision.Destroy(ctx, s.gateway, sf)
+		rep, derr := provision.Destroy(ctx, s.gateway, sf, s.id)
 		if derr != nil {
 			s.logf("cloudformation: stack %s delete left resources behind: %v", name, derr)
 		}
@@ -500,6 +502,7 @@ func (s *Server) stackIR(st *StackRecord) (*provision.Stack, error) {
 	}
 	exports, _ := s.store.Exports()
 	sf, _, err := Transpile(tmpl, TranspileOptions{
+		Identity:  s.id,
 		StackName: st.Name, Parameters: st.Parameters, Exports: exports,
 		AllowUnsupported: true, Endpoint: s.endpoint, FetchTemplate: s.fetcher(st.NestedTemplates),
 	})
@@ -877,12 +880,12 @@ func toAnyMap[T any](m map[string]T) map[string]any {
 }
 
 // exportNameOf re-evaluates an output's Export.Name, which may be an intrinsic.
-func exportNameOf(t *Template, output string, params map[string]string, exports map[string]string, stackName string) (string, error) {
+func exportNameOf(ident awsident.Identity, t *Template, output string, params map[string]string, exports map[string]string, stackName string) (string, error) {
 	decl := t.Outputs[output]
 	if decl.ExportName == nil {
 		return "", nil
 	}
-	scope := &Scope{StackName: stackName, Exports: exports, Parameters: map[string]any{}}
+	scope := &Scope{StackName: stackName, Exports: exports, Parameters: map[string]any{}, Identity: ident}
 	for k, v := range params {
 		scope.Parameters[k] = v
 	}

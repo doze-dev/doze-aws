@@ -128,7 +128,7 @@ func TestApplyCloudWatchAlarmsAndFilters(t *testing.T) {
 
 	// Twice: apply is convergent, and PutMetricAlarm is an upsert.
 	for i := range 2 {
-		if _, err := provision.Apply(ctx, stack.Handler(), sf); err != nil {
+		if _, err := provision.Apply(ctx, stack.Handler(), sf, awsident.Default()); err != nil {
 			t.Fatalf("Apply #%d: %v", i+1, err)
 		}
 	}
@@ -218,7 +218,7 @@ func TestApplyCloudWatchAlarmsAndFilters(t *testing.T) {
 
 	// Round trip: export what is live, emit a template, transpile it again,
 	// and the alarm must come back the same.
-	exported, err := provision.Export(ctx, stack.Handler())
+	exported, err := provision.Export(ctx, stack.Handler(), awsident.Default())
 	if err != nil {
 		t.Fatal(err)
 	}

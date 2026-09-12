@@ -95,7 +95,7 @@ func TestApplyAndDestroyPrimitives(t *testing.T) {
 	h, cfg, url := liveStack(t)
 	sf := primitivesStack()
 
-	rep, err := provision.Apply(ctx, h, sf)
+	rep, err := provision.Apply(ctx, h, sf, awsident.Default())
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestApplyAndDestroyPrimitives(t *testing.T) {
 	}
 
 	// Applying again converges: nothing is created twice.
-	rep2, err := provision.Apply(ctx, h, sf)
+	rep2, err := provision.Apply(ctx, h, sf, awsident.Default())
 	if err != nil {
 		t.Fatalf("second Apply: %v", err)
 	}
@@ -138,7 +138,7 @@ func TestApplyAndDestroyPrimitives(t *testing.T) {
 	}
 
 	// Destroy removes all four.
-	drep, err := provision.Destroy(ctx, h, sf)
+	drep, err := provision.Destroy(ctx, h, sf, awsident.Default())
 	if err != nil {
 		t.Fatalf("Destroy: %v — %+v", err, drep.Actions)
 	}
@@ -181,7 +181,7 @@ func TestDestroyIsTolerantOfAbsentResources(t *testing.T) {
 	h, _, _ := liveStack(t)
 
 	// Nothing was ever applied: every resource is already in its goal state.
-	drep, err := provision.Destroy(ctx, h, primitivesStack())
+	drep, err := provision.Destroy(ctx, h, primitivesStack(), awsident.Default())
 	if err != nil {
 		t.Fatalf("destroying a stack that was never applied must succeed: %v", err)
 	}
@@ -203,13 +203,13 @@ func TestDestroyIsIdempotent(t *testing.T) {
 	ctx := context.Background()
 	h, _, _ := liveStack(t)
 	sf := primitivesStack()
-	if _, err := provision.Apply(ctx, h, sf); err != nil {
+	if _, err := provision.Apply(ctx, h, sf, awsident.Default()); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := provision.Destroy(ctx, h, sf); err != nil {
+	if _, err := provision.Destroy(ctx, h, sf, awsident.Default()); err != nil {
 		t.Fatal(err)
 	}
-	drep, err := provision.Destroy(ctx, h, sf)
+	drep, err := provision.Destroy(ctx, h, sf, awsident.Default())
 	if err != nil {
 		t.Fatalf("a second Destroy must be a no-op, not an error: %v", err)
 	}
@@ -244,7 +244,7 @@ func TestDestroyContinuesPastAFailureAndReportsIt(t *testing.T) {
 	ctx := context.Background()
 	h, cfg, url := liveStack(t)
 	sf := primitivesStack()
-	if _, err := provision.Apply(ctx, h, sf); err != nil {
+	if _, err := provision.Apply(ctx, h, sf, awsident.Default()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -255,7 +255,7 @@ func TestDestroyContinuesPastAFailureAndReportsIt(t *testing.T) {
 		return strings.Contains(r.Header.Get("X-Amz-Target"), "DeleteParameter")
 	}}
 
-	drep, err := provision.Destroy(ctx, broken, sf)
+	drep, err := provision.Destroy(ctx, broken, sf, awsident.Default())
 	if err == nil {
 		t.Fatal("a failed deletion must be reported as an error")
 	}
@@ -296,14 +296,14 @@ func TestSecretForceGovernsOverwrite(t *testing.T) {
 	smC := awssm.NewFromConfig(cfg, func(o *awssm.Options) { o.BaseEndpoint = aws.String(url) })
 
 	sf := &provision.Stack{Secrets: map[string]provision.Secret{"db": {Value: "first"}}}
-	if _, err := provision.Apply(ctx, h, sf); err != nil {
+	if _, err := provision.Apply(ctx, h, sf, awsident.Default()); err != nil {
 		t.Fatal(err)
 	}
 
 	// Without Force, a live value is left alone: the running value wins,
 	// because a stack file should not silently clobber a rotated secret.
 	sf.Secrets["db"] = provision.Secret{Value: "second"}
-	rep, err := provision.Apply(ctx, h, sf)
+	rep, err := provision.Apply(ctx, h, sf, awsident.Default())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -317,7 +317,7 @@ func TestSecretForceGovernsOverwrite(t *testing.T) {
 
 	// With Force, it is overwritten.
 	sf.Secrets["db"] = provision.Secret{Value: "second", Force: true}
-	if _, err := provision.Apply(ctx, h, sf); err != nil {
+	if _, err := provision.Apply(ctx, h, sf, awsident.Default()); err != nil {
 		t.Fatal(err)
 	}
 	sv, _ = smC.GetSecretValue(ctx, &awssm.GetSecretValueInput{SecretId: aws.String("db")})

@@ -193,33 +193,33 @@ func IsMappable(typ string) bool {
 // refValue is what `!Ref` on a resource of this type yields, following AWS's
 // per-type rules — Ref on a queue is its URL, on a topic its ARN, on a bucket
 // its name.
-func refValue(typ, name string) string {
+func refValue(id awsident.Identity, typ, name string) string {
 	switch typ {
 	case "AWS::SQS::Queue":
-		return queueURL(name)
+		return queueURL(id, name)
 	case "AWS::SNS::Topic":
-		return awsident.ARN("sns", name)
+		return id.ARN("sns", name)
 	case "AWS::KMS::Key":
 		return name
 	case "AWS::Lambda::LayerVersion":
-		return awsident.ARN("lambda", "layer:"+name+":1")
+		return id.ARN("lambda", "layer:"+name+":1")
 	case "AWS::SecretsManager::Secret":
-		return awsident.ARN("secretsmanager", "secret:"+name)
+		return id.ARN("secretsmanager", "secret:"+name)
 	case "AWS::Kinesis::Stream":
 		return name
 	case "AWS::StepFunctions::StateMachine", "AWS::Serverless::StateMachine":
 		// Ref on a state machine is its ARN, not its name.
-		return awsident.ARN("states", "stateMachine:"+name)
+		return id.ARN("states", "stateMachine:"+name)
 	case "AWS::StepFunctions::Activity":
-		return awsident.ARN("states", "activity:"+name)
+		return id.ARN("states", "activity:"+name)
 	case "AWS::StepFunctions::StateMachineVersion":
 		// The version number is only known once the machine is published, so
 		// the Ref is a placeholder the alias mapping resolves by logical id.
-		return awsident.ARN("states", "stateMachineVersion:"+name)
+		return id.ARN("states", "stateMachineVersion:"+name)
 	case "AWS::StepFunctions::StateMachineAlias":
 		// Completed by aliasRefs once the machine is known: the alias ARN is
 		// the machine's with the alias name appended.
-		return awsident.ARN("states", "stateMachineAlias:"+name)
+		return id.ARN("states", "stateMachineAlias:"+name)
 	}
 	// Buckets, tables, functions, rules and parameters all Ref to their name.
 	return name
@@ -238,7 +238,7 @@ func aliasRefs(scope *Scope, resources map[string]*Resource, names map[string]st
 		if machine == "" {
 			continue // the mapper reports the unresolvable reference
 		}
-		arn := awsident.ARN("states", "stateMachine:"+machine+":"+names[id])
+		arn := scope.Identity.ARN("states", "stateMachine:"+machine+":"+names[id])
 		scope.Refs[id] = arn
 		scope.Atts[id] = map[string]string{"Arn": arn}
 	}
@@ -267,7 +267,7 @@ func lambdaRefs(scope *Scope, resources map[string]*Resource, names map[string]s
 		if fn == "" {
 			continue // the mapper reports the unresolvable reference
 		}
-		arn := awsident.ARN("lambda", "function:"+fn)
+		arn := scope.Identity.ARN("lambda", "function:"+fn)
 		switch r.Type {
 		case "AWS::Lambda::Version":
 			scope.Refs[id] = arn + ":" + PublishedVersion
@@ -279,7 +279,7 @@ func lambdaRefs(scope *Scope, resources map[string]*Resource, names map[string]s
 			scope.Refs[id] = arn
 			scope.Atts[id] = map[string]string{
 				"FunctionArn": arn,
-				"FunctionUrl": awsident.FunctionURL(awsident.FunctionURLID(fn), endpoint),
+				"FunctionUrl": scope.Identity.FunctionURL(awsident.FunctionURLID(fn), endpoint),
 			}
 		}
 	}
@@ -340,42 +340,42 @@ func logicalOfIntrinsic(v any) string {
 // attributes are the Fn::GetAtt values doze-aws can answer for a resource.
 // Anything absent here produces an explicit error naming what IS available,
 // rather than an empty string that silently corrupts a property.
-func attributes(typ, name string) map[string]string {
+func attributes(id awsident.Identity, typ, name string) map[string]string {
 	switch typ {
 	case "AWS::SQS::Queue":
 		return map[string]string{
-			"Arn":       awsident.ARN("sqs", name),
+			"Arn":       id.ARN("sqs", name),
 			"QueueName": name,
-			"QueueUrl":  queueURL(name),
+			"QueueUrl":  queueURL(id, name),
 		}
 	case "AWS::SNS::Topic":
 		return map[string]string{
-			"TopicArn":  awsident.ARN("sns", name),
+			"TopicArn":  id.ARN("sns", name),
 			"TopicName": name,
-			"Arn":       awsident.ARN("sns", name),
+			"Arn":       id.ARN("sns", name),
 		}
 	case "AWS::S3::Bucket":
 		return map[string]string{
 			"Arn":                s3ARN(name),
 			"DomainName":         name + ".s3.localhost",
-			"RegionalDomainName": name + ".s3." + awsident.Region + ".localhost",
+			"RegionalDomainName": name + ".s3." + id.RegionName() + ".localhost",
 			"WebsiteURL":         "http://" + name + ".s3-website.localhost",
 		}
 	case "AWS::DynamoDB::Table", "AWS::DynamoDB::GlobalTable", "AWS::Serverless::SimpleTable":
 		return map[string]string{
-			"Arn":       awsident.ARN("dynamodb", "table/"+name),
-			"StreamArn": awsident.ARN("dynamodb", "table/"+name+"/stream/local"),
+			"Arn":       id.ARN("dynamodb", "table/"+name),
+			"StreamArn": id.ARN("dynamodb", "table/"+name+"/stream/local"),
 		}
 	case "AWS::Lambda::Function", "AWS::Serverless::Function":
 		return map[string]string{
-			"Arn": awsident.ARN("lambda", "function:"+name),
+			"Arn": id.ARN("lambda", "function:"+name),
 		}
 	case "AWS::Events::Rule":
-		return map[string]string{"Arn": awsident.ARN("events", "rule/"+name)}
+		return map[string]string{"Arn": id.ARN("events", "rule/"+name)}
 	case "AWS::ApiGateway::RestApi", "AWS::Serverless::Api":
 		return map[string]string{
 			"RootResourceId": "root",
-			"Arn":            awsident.ARN("apigateway", "/restapis/"+name),
+			"Arn":            id.ARN("apigateway", "/restapis/"+name),
 			"ApiId":          name,
 		}
 	case "AWS::ApiGatewayV2::Api", "AWS::Serverless::HttpApi":
@@ -384,7 +384,7 @@ func attributes(typ, name string) map[string]string {
 		return map[string]string{
 			"ApiId":       name,
 			"ApiEndpoint": "http://127.0.0.1:4566/_aws/execute-api/" + name,
-			"Arn":         awsident.ARN("apigateway", "/apis/"+name),
+			"Arn":         id.ARN("apigateway", "/apis/"+name),
 		}
 	case "AWS::ApiGatewayV2::Integration":
 		return map[string]string{"IntegrationId": name}
@@ -402,53 +402,53 @@ func attributes(typ, name string) map[string]string {
 		return map[string]string{"Id": name}
 	case "AWS::Events::EventBus":
 		return map[string]string{
-			"Arn":  awsident.ARN("events", "event-bus/"+name),
+			"Arn":  id.ARN("events", "event-bus/"+name),
 			"Name": name,
 		}
 	case "AWS::Events::Connection":
 		// Name-form ARNs: the service mints the id segment at apply time and
 		// resolves a connection or destination by name when it is absent.
 		return map[string]string{
-			"Arn":       awsident.ARN("events", "connection/"+name),
-			"SecretArn": awsident.ARN("secretsmanager", "secret:events!connection/"+name),
+			"Arn":       id.ARN("events", "connection/"+name),
+			"SecretArn": id.ARN("secretsmanager", "secret:events!connection/"+name),
 		}
 	case "AWS::Events::ApiDestination":
-		return map[string]string{"Arn": awsident.ARN("events", "api-destination/"+name)}
+		return map[string]string{"Arn": id.ARN("events", "api-destination/"+name)}
 	case "AWS::KMS::Key":
 		return map[string]string{
-			"Arn":   awsident.ARN("kms", "key/"+name),
+			"Arn":   id.ARN("kms", "key/"+name),
 			"KeyId": name,
 		}
 	case "AWS::SecretsManager::Secret":
-		return map[string]string{"Id": awsident.ARN("secretsmanager", "secret:"+name)}
+		return map[string]string{"Id": id.ARN("secretsmanager", "secret:"+name)}
 	case "AWS::SSM::Parameter":
 		return map[string]string{"Type": "String", "Value": name}
 	case "AWS::Kinesis::Stream":
 		return map[string]string{
-			"Arn":  awsident.ARN("kinesis", "stream/"+name),
+			"Arn":  id.ARN("kinesis", "stream/"+name),
 			"Name": name,
 		}
 	case "AWS::Lambda::LayerVersion":
-		return map[string]string{"LayerVersionArn": awsident.ARN("lambda", "layer:"+name+":1")}
+		return map[string]string{"LayerVersionArn": id.ARN("lambda", "layer:"+name+":1")}
 	case "AWS::StepFunctions::StateMachine", "AWS::Serverless::StateMachine":
 		return map[string]string{
-			"Arn":  awsident.ARN("states", "stateMachine:"+name),
+			"Arn":  id.ARN("states", "stateMachine:"+name),
 			"Name": name,
 		}
 	case "AWS::StepFunctions::Activity":
 		return map[string]string{
-			"Arn":  awsident.ARN("states", "activity:"+name),
+			"Arn":  id.ARN("states", "activity:"+name),
 			"Name": name,
 		}
 	case "AWS::StepFunctions::StateMachineVersion":
-		return map[string]string{"Arn": awsident.ARN("states", "stateMachineVersion:"+name)}
+		return map[string]string{"Arn": id.ARN("states", "stateMachineVersion:"+name)}
 	case "AWS::StepFunctions::StateMachineAlias":
-		return map[string]string{"Arn": awsident.ARN("states", "stateMachineAlias:"+name)}
+		return map[string]string{"Arn": id.ARN("states", "stateMachineAlias:"+name)}
 	case "AWS::Logs::LogGroup":
 		// Ref is the name; Arn ends in :* as CloudWatch Logs reports it.
-		return map[string]string{"Arn": awsident.ARN("logs", "log-group:"+name+":*")}
+		return map[string]string{"Arn": id.ARN("logs", "log-group:"+name+":*")}
 	case "AWS::CloudWatch::Alarm":
-		return map[string]string{"Arn": awsident.ARN("cloudwatch", "alarm:"+name)}
+		return map[string]string{"Arn": id.ARN("cloudwatch", "alarm:"+name)}
 	}
 	return map[string]string{}
 }
@@ -457,8 +457,8 @@ func attributes(typ, name string) map[string]string {
 func s3ARN(bucket string) string { return "arn:aws:s3:::" + bucket }
 
 // queueURL matches the URL shape the SQS service hands out.
-func queueURL(name string) string {
-	return "http://127.0.0.1/" + awsident.AccountID + "/" + name
+func queueURL(id awsident.Identity, name string) string {
+	return "http://127.0.0.1/" + id.Account() + "/" + name
 }
 
 // classify decides what will happen to a resource type before any mapping is
@@ -518,9 +518,9 @@ func ghostName(r *Resource, props map[string]any) string {
 }
 
 // ghostIdentity returns the Ref value and attributes for an ignored resource.
-func ghostIdentity(typ, name string) (string, map[string]string) {
+func ghostIdentity(id awsident.Identity, typ, name string) (string, map[string]string) {
 	service, kind := serviceAndKind(typ)
-	arn := ghostARN(service, kind, name)
+	arn := ghostARN(id, service, kind, name)
 	atts := map[string]string{"Arn": arn, "Name": name}
 
 	switch typ {
@@ -535,7 +535,7 @@ func ghostIdentity(typ, name string) (string, map[string]string) {
 		// Ref on an instance profile is its name, but GetAtt Arn is common.
 	case "AWS::ECR::Repository":
 		atts["RepositoryName"] = name
-		atts["RepositoryUri"] = awsident.AccountID + ".dkr.ecr." + awsident.Region + ".localhost/" + name
+		atts["RepositoryUri"] = id.Account() + ".dkr.ecr." + id.RegionName() + ".localhost/" + name
 	}
 
 	// Ref semantics differ by type: an IAM role Refs to its name, a managed
@@ -558,14 +558,14 @@ func serviceAndKind(typ string) (string, string) {
 
 // ghostARN builds a plausible ARN for a resource doze-aws does not model. IAM
 // is global, so it has no region segment.
-func ghostARN(service, kind, name string) string {
+func ghostARN(id awsident.Identity, service, kind, name string) string {
 	if service == "iam" {
-		return awsident.GlobalARN("iam", kind+"/"+name)
+		return id.GlobalARN("iam", kind+"/"+name)
 	}
 	if service == "" {
 		return name
 	}
-	return awsident.ARN(service, kind+"/"+name)
+	return id.ARN(service, kind+"/"+name)
 }
 
 // derivedName sanitises a name taken from a logical ID so it satisfies the

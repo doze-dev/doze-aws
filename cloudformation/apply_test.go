@@ -105,7 +105,7 @@ func TestApplyTemplateToLiveStack(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Transpile: %v", err)
 	}
-	applyRep, err := provision.Apply(ctx, stack.Handler(), sf)
+	applyRep, err := provision.Apply(ctx, stack.Handler(), sf, awsident.Default())
 	if err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
@@ -211,7 +211,7 @@ func TestApplyIsConvergent(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		rep, err := provision.Apply(ctx, stack.Handler(), sf)
+		rep, err := provision.Apply(ctx, stack.Handler(), sf, awsident.Default())
 		if err != nil {
 			t.Fatalf("Apply: %v", err)
 		}

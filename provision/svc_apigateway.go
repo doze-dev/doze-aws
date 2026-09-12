@@ -195,7 +195,7 @@ func ensureRoute(ctx context.Context, c *client, apiID string, api API, route Ro
 	_, err = c.do(ctx, "PUT", base+"/integration",
 		map[string]string{"Content-Type": "application/json"},
 		mustJSON(map[string]any{
-			"type": "AWS_PROXY", "integrationHttpMethod": "POST", "uri": lambdaInvokeURI(route.Lambda),
+			"type": "AWS_PROXY", "integrationHttpMethod": "POST", "uri": lambdaInvokeURI(c.id, route.Lambda),
 		}))
 	return err
 }

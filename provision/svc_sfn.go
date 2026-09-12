@@ -9,8 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 func applyStateMachines(ctx context.Context, c *client, s *Stack, rep *Report) error {
@@ -46,7 +44,7 @@ func applyStateMachines(ctx context.Context, c *client, s *Stack, rep *Report) e
 				return fmt.Errorf("state machine %q: %w", name, err)
 			}
 			upd := map[string]any{
-				"stateMachineArn": stateMachineARN(name),
+				"stateMachineArn": stateMachineARN(c.id, name),
 				"definition":      sm.Definition,
 			}
 			if sm.RoleARN != "" {
@@ -78,7 +76,7 @@ func applyVersionAndAliases(ctx context.Context, c *client, name string, sm Stat
 	if !sm.Publish && len(sm.Aliases) == 0 {
 		return nil
 	}
-	out, err := c.sfn(ctx, "PublishStateMachineVersion", map[string]any{"stateMachineArn": stateMachineARN(name)})
+	out, err := c.sfn(ctx, "PublishStateMachineVersion", map[string]any{"stateMachineArn": stateMachineARN(c.id, name)})
 	if err != nil {
 		return fmt.Errorf("state machine %q publish: %w", name, err)
 	}
@@ -103,7 +101,7 @@ func applyVersionAndAliases(ctx context.Context, c *client, name string, sm Stat
 				return fmt.Errorf("state machine %q alias %q: %w", name, alias, err)
 			}
 		}
-		upd := map[string]any{"stateMachineAliasArn": stateMachineARN(name) + ":" + alias, "routingConfiguration": routing}
+		upd := map[string]any{"stateMachineAliasArn": stateMachineARN(c.id, name) + ":" + alias, "routingConfiguration": routing}
 		if d := sm.Aliases[alias].Description; d != "" {
 			upd["description"] = d
 		}
@@ -247,13 +245,13 @@ func exportActivities(ctx context.Context, c *client, s *Stack) error {
 func destroyStateMachines(ctx context.Context, c *client, s *Stack, rep *DestroyReport) error {
 	for _, name := range sortedNames(s.StateMachines) {
 		_, err := c.sfn(ctx, "DeleteStateMachine", map[string]any{
-			"stateMachineArn": stateMachineARN(name),
+			"stateMachineArn": stateMachineARN(c.id, name),
 		})
 		record(rep, "statemachine/"+name, err)
 	}
 	for _, name := range sortedNames(s.Activities) {
 		_, err := c.sfn(ctx, "DeleteActivity", map[string]any{
-			"activityArn": awsident.ARN("states", "activity:"+name),
+			"activityArn": c.id.ARN("states", "activity:"+name),
 		})
 		record(rep, "activity/"+name, err)
 	}

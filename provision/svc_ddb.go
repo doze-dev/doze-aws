@@ -170,7 +170,7 @@ func convergeTable(ctx context.Context, c *client, rep *Report, name string, t T
 
 	if len(t.Tags) > 0 {
 		if _, err := c.ddb(ctx, "TagResource", map[string]any{
-			"ResourceArn": tableARN(name), "Tags": tagList(t.Tags, "Key", "Value"),
+			"ResourceArn": tableARN(c.id, name), "Tags": tagList(t.Tags, "Key", "Value"),
 		}); err != nil {
 			return fmt.Errorf("tags: %w", err)
 		}
@@ -196,7 +196,7 @@ func projectionWire(p string, include []string) map[string]any {
 	return out
 }
 
-func tableARN(name string) string { return awsident.ARN("dynamodb", "table/"+name) }
+func tableARN(id awsident.Identity, name string) string { return id.ARN("dynamodb", "table/"+name) }
 
 func exportTables(ctx context.Context, c *client, s *Stack) error {
 	out, err := c.ddb(ctx, "ListTables", map[string]any{})
@@ -289,7 +289,7 @@ func exportTables(ctx context.Context, c *client, s *Stack) error {
 			v := true
 			t.DeletionProtection = &v
 		}
-		if out, err := c.ddb(ctx, "ListTagsOfResource", map[string]any{"ResourceArn": tableARN(name)}); err == nil {
+		if out, err := c.ddb(ctx, "ListTagsOfResource", map[string]any{"ResourceArn": tableARN(c.id, name)}); err == nil {
 			var lt struct {
 				Tags []struct{ Key, Value string }
 			}

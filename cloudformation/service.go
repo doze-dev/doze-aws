@@ -29,6 +29,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsquery"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
@@ -57,6 +58,10 @@ type Options struct {
 	// Endpoint is the externally-reachable base URL of the gateway, when
 	// known; a function URL's GetAtt FunctionUrl is shaped from it.
 	Endpoint string
+	// Identity is the region and account this service mints ARNs for, and what
+	// AWS::Region and AWS::AccountId resolve to. Zero means the conventional
+	// local identity.
+	Identity awsident.Identity
 }
 
 // Server is the CloudFormation service.
@@ -68,6 +73,7 @@ type Server struct {
 	api      awsquery.API
 	now      func() time.Time
 	endpoint string
+	id       awsident.Identity // the region and account this service mints ARNs for
 }
 
 // New opens the store under DataDir.
@@ -95,6 +101,7 @@ func New(opts Options) (*Server, error) {
 		api:      awsquery.API{XMLNS: cfnXMLNS, EmptyResult: true},
 		now:      time.Now,
 		endpoint: opts.Endpoint,
+		id:       opts.Identity,
 	}
 	if s.peers == nil {
 		s.peers = peers.None()

@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // ---- topics + subscriptions ----
@@ -18,7 +20,7 @@ func applyTopics(ctx context.Context, c *client, s *Stack, rep *Report) error {
 		if _, err := c.query(ctx, url.Values{"Action": {"CreateTopic"}, "Name": {name}}); err != nil {
 			return fmt.Errorf("topic %q: %w", name, err)
 		}
-		arn := topicARN(name)
+		arn := topicARN(c.id, name)
 
 		if len(t.Tags) > 0 {
 			v := url.Values{"Action": {"TagResource"}, "ResourceArn": {arn}}
@@ -39,7 +41,7 @@ func applyTopics(ctx context.Context, c *client, s *Stack, rep *Report) error {
 
 		createdAny := false
 		for _, sub := range t.Subscriptions {
-			proto, endpoint := sub.wire()
+			proto, endpoint := sub.wire(c.id)
 			k := proto + "|" + endpoint
 			subARN, ok := existing[k]
 			if !ok {
@@ -79,12 +81,12 @@ func applyTopics(ctx context.Context, c *client, s *Stack, rep *Report) error {
 	return nil
 }
 
-func (sub Subscription) wire() (proto, endpoint string) {
+func (sub Subscription) wire(id awsident.Identity) (proto, endpoint string) {
 	switch {
 	case sub.Queue != "":
-		return "sqs", queueARN(sub.Queue)
+		return "sqs", queueARN(id, sub.Queue)
 	case sub.Lambda != "":
-		return "lambda", lambdaARN(sub.Lambda)
+		return "lambda", lambdaARN(id, sub.Lambda)
 	default:
 		return "http", sub.HTTP
 	}

@@ -6,14 +6,16 @@ package provision
 import (
 	"context"
 	"net/http"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // Export reads the running stack and renders it as a Stack — the inverse of
 // Apply, so a team can click a stack together in the console and commit the
 // file. Secret and SecureString values are deliberately NOT exported; the
 // header comment in Marshal explains the blank.
-func Export(ctx context.Context, gateway http.Handler) (*Stack, error) {
-	c := newClient(gateway)
+func Export(ctx context.Context, gateway http.Handler, id awsident.Identity) (*Stack, error) {
+	c := newClient(gateway, id)
 	s := &Stack{}
 
 	if err := exportQueues(ctx, c, s); err != nil {

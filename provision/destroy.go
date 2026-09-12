@@ -25,6 +25,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // DestroyReport is the outcome of a Destroy.
@@ -64,8 +66,8 @@ func (r *DestroyReport) Failures() []Action {
 
 // Destroy removes every resource named in s. It returns a report even when it
 // also returns an error, so a caller can always see how far it got.
-func Destroy(ctx context.Context, gateway http.Handler, s *Stack) (*DestroyReport, error) {
-	c := newClient(gateway)
+func Destroy(ctx context.Context, gateway http.Handler, s *Stack, id awsident.Identity) (*DestroyReport, error) {
+	c := newClient(gateway, id)
 	rep := &DestroyReport{}
 
 	// The reverse of Apply's order: dependents first.
@@ -139,7 +141,7 @@ func deleteQueue(ctx context.Context, c *client, name string) error {
 		QueueUrl string `json:"QueueUrl"`
 	}
 	if json.Unmarshal(out, &got) != nil || got.QueueUrl == "" {
-		got.QueueUrl = queueURL(name)
+		got.QueueUrl = queueURL(c.id, name)
 	}
 	_, err = c.sqs(ctx, "DeleteQueue", map[string]any{"QueueUrl": got.QueueUrl})
 	return err
@@ -148,7 +150,7 @@ func deleteQueue(ctx context.Context, c *client, name string) error {
 func destroyTopics(ctx context.Context, c *client, s *Stack, rep *DestroyReport) error {
 	for _, name := range sortedNames(s.Topics) {
 		_, err := c.query(ctx, url.Values{
-			"Action": {"DeleteTopic"}, "TopicArn": {topicARN(name)}, "Version": {"2010-03-31"},
+			"Action": {"DeleteTopic"}, "TopicArn": {topicARN(c.id, name)}, "Version": {"2010-03-31"},
 		})
 		record(rep, "topic/"+name, err)
 	}

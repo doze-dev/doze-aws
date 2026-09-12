@@ -15,8 +15,8 @@ import (
 )
 
 // lambdaInvokeURI is the integration and authorizer URI shape for a function.
-func lambdaInvokeURI(fn string) string {
-	return "arn:aws:apigateway:" + awsident.Region + ":lambda:path/2015-03-31/functions/" + lambdaARN(fn) + "/invocations"
+func lambdaInvokeURI(id awsident.Identity, fn string) string {
+	return "arn:aws:apigateway:" + id.RegionName() + ":lambda:path/2015-03-31/functions/" + lambdaARN(id, fn) + "/invocations"
 }
 
 // ensureAuthorizers creates or updates the API's authorizers by name and
@@ -51,7 +51,7 @@ func ensureAuthorizers(ctx context.Context, c *client, apiID string, api API) (m
 			}
 		}
 		fields := map[string]any{
-			"name": name, "type": typ, "authorizerUri": lambdaInvokeURI(a.Lambda), "identitySource": source,
+			"name": name, "type": typ, "authorizerUri": lambdaInvokeURI(c.id, a.Lambda), "identitySource": source,
 		}
 		if a.Validation != "" {
 			fields["identityValidationExpression"] = a.Validation

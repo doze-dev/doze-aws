@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // codeLocation resolves a function's code reference into the Code block the
@@ -84,7 +86,7 @@ func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error
 			cfg["Command"] = f.Command
 		}
 		if f.DLQ != nil {
-			cfg["DeadLetterConfig"] = map[string]string{"TargetArn": f.DLQ.arn()}
+			cfg["DeadLetterConfig"] = map[string]string{"TargetArn": f.DLQ.arn(c.id)}
 		}
 		if len(layers) > 0 || exists {
 			// An empty list on update clears layers the stack no longer names.
@@ -115,10 +117,10 @@ func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error
 			eic := map[string]any{}
 			dc := map[string]any{}
 			if f.OnSuccess != nil {
-				dc["OnSuccess"] = map[string]string{"Destination": f.OnSuccess.arn()}
+				dc["OnSuccess"] = map[string]string{"Destination": f.OnSuccess.arn(c.id)}
 			}
 			if f.OnFailure != nil {
-				dc["OnFailure"] = map[string]string{"Destination": f.OnFailure.arn()}
+				dc["OnFailure"] = map[string]string{"Destination": f.OnFailure.arn(c.id)}
 			}
 			if len(dc) > 0 {
 				eic["DestinationConfig"] = dc
@@ -135,7 +137,7 @@ func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error
 		// Tags merge idempotently.
 		if len(f.Tags) > 0 {
 			body := mustJSON(map[string]any{"Tags": f.Tags})
-			if _, err := c.do(ctx, "POST", "/2017-03-31/tags/"+lambdaARN(name), map[string]string{"Content-Type": "application/json"}, body); err != nil {
+			if _, err := c.do(ctx, "POST", "/2017-03-31/tags/"+lambdaARN(c.id, name), map[string]string{"Content-Type": "application/json"}, body); err != nil {
 				return fmt.Errorf("function %q tags: %w", name, err)
 			}
 		}
@@ -157,7 +159,7 @@ func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error
 				}
 			}
 			for _, tr := range f.Triggers {
-				arn := queueARN(tr.Queue)
+				arn := queueARN(c.id, tr.Queue)
 				if uuid, ok := existing[arn]; ok {
 					if tr.Enabled != nil {
 						body := mustJSON(map[string]any{"Enabled": *tr.Enabled})
@@ -190,14 +192,14 @@ func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error
 	return nil
 }
 
-func (d *Dest) arn() string {
+func (d *Dest) arn(id awsident.Identity) string {
 	switch {
 	case d.Queue != "":
-		return queueARN(d.Queue)
+		return queueARN(id, d.Queue)
 	case d.Topic != "":
-		return topicARN(d.Topic)
+		return topicARN(id, d.Topic)
 	case d.Lambda != "":
-		return lambdaARN(d.Lambda)
+		return lambdaARN(id, d.Lambda)
 	}
 	return ""
 }
@@ -290,7 +292,7 @@ func exportFunctions(ctx context.Context, c *client, s *Stack) error {
 			}
 		}
 		// Tags.
-		if out, err := c.do(ctx, "GET", "/2017-03-31/tags/"+lambdaARN(fn.FunctionName), nil, nil); err == nil {
+		if out, err := c.do(ctx, "GET", "/2017-03-31/tags/"+lambdaARN(c.id, fn.FunctionName), nil, nil); err == nil {
 			var lt struct {
 				Tags map[string]string
 			}

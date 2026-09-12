@@ -17,12 +17,15 @@ import (
 // in-process — the same honesty rule as the console: apply exercises exactly
 // the API an SDK user would.
 type client struct {
+	// id is the identity ARNs are minted under. provision sends ARNs TO the
+	// local services, so it has to mint the same ones they do.
+	id   awsident.Identity
 	h    http.Handler
 	base string
 }
 
-func newClient(gateway http.Handler) *client {
-	return &client{h: gateway, base: "http://stackfile.doze-aws.internal"}
+func newClient(gateway http.Handler, id awsident.Identity) *client {
+	return &client{h: gateway, base: "http://stackfile.doze-aws.internal", id: id}
 }
 
 // apiErr carries a non-2xx wire response.
@@ -124,15 +127,17 @@ func (c *client) query(ctx context.Context, v url.Values) ([]byte, error) {
 	return c.do(ctx, "POST", "/?"+v.Encode(), nil, nil)
 }
 
-func queueURL(name string) string {
-	return "http://stackfile.doze-aws.internal/" + awsident.AccountID + "/" + name
+func queueURL(id awsident.Identity, name string) string {
+	return "http://stackfile.doze-aws.internal/" + id.Account() + "/" + name
 }
 
-func queueARN(name string) string { return awsident.ARN("sqs", name) }
-func topicARN(name string) string { return awsident.ARN("sns", name) }
+func queueARN(id awsident.Identity, name string) string { return id.ARN("sqs", name) }
+func topicARN(id awsident.Identity, name string) string { return id.ARN("sns", name) }
 
-func lambdaARN(name string) string {
-	return "arn:aws:lambda:" + awsident.Region + ":" + awsident.AccountID + ":function:" + name
+func lambdaARN(id awsident.Identity, name string) string {
+	return "arn:aws:lambda:" + id.RegionName() + ":" + id.Account() + ":function:" + name
 }
 
-func stateMachineARN(name string) string { return awsident.ARN("states", "stateMachine:"+name) }
+func stateMachineARN(id awsident.Identity, name string) string {
+	return id.ARN("states", "stateMachine:"+name)
+}

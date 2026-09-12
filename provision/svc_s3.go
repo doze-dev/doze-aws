@@ -163,11 +163,11 @@ func applyNotifications(ctx context.Context, c *client, s *Stack, rep *Report) e
 			var target, tag, arn string
 			switch {
 			case nf.Queue != "":
-				tag, target, arn = "QueueConfiguration", "Queue", queueARN(nf.Queue)
+				tag, target, arn = "QueueConfiguration", "Queue", queueARN(c.id, nf.Queue)
 			case nf.Topic != "":
-				tag, target, arn = "TopicConfiguration", "Topic", topicARN(nf.Topic)
+				tag, target, arn = "TopicConfiguration", "Topic", topicARN(c.id, nf.Topic)
 			default:
-				tag, target, arn = "CloudFunctionConfiguration", "CloudFunction", lambdaARN(nf.Lambda)
+				tag, target, arn = "CloudFunctionConfiguration", "CloudFunction", lambdaARN(c.id, nf.Lambda)
 			}
 			sb.WriteString("<" + tag + "><Id>stackfile-" + strconv.Itoa(i+1) + "</Id>")
 			if nf.Prefix != "" || nf.Suffix != "" {

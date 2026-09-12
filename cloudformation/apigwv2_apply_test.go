@@ -18,6 +18,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/apigateway"
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/cloudformation"
 	"github.com/doze-dev/doze-aws/provision"
 )
@@ -149,7 +150,7 @@ func TestApplyCDKHTTPAPI(t *testing.T) {
 	}
 
 	for i := 0; i < 2; i++ {
-		if _, err := provision.Apply(ctx, stack.Handler(), sf); err != nil {
+		if _, err := provision.Apply(ctx, stack.Handler(), sf, awsident.Default()); err != nil {
 			t.Fatalf("Apply #%d: %v", i+1, err)
 		}
 	}
@@ -214,7 +215,7 @@ func TestApplyCDKHTTPAPI(t *testing.T) {
 		t.Fatalf("preflight: %d %v", pre.StatusCode, pre.Header)
 	}
 
-	if _, err := provision.Destroy(ctx, stack.Handler(), sf); err != nil {
+	if _, err := provision.Destroy(ctx, stack.Handler(), sf, awsident.Default()); err != nil {
 		t.Fatalf("Destroy: %v", err)
 	}
 	listed.Items = nil

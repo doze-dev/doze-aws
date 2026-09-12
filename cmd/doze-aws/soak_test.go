@@ -25,7 +25,7 @@ import (
 	awssfn "github.com/aws/aws-sdk-go-v2/service/sfn"
 	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 
-	"github.com/doze-dev/doze-aws"
+	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
 )
 

@@ -37,21 +37,25 @@ type Scope struct {
 	// Exports resolves Fn::ImportValue names. Locally there is no cross-stack
 	// export registry unless one is supplied.
 	Exports map[string]string
+	// Identity is the region and account AWS::Region, AWS::AccountId and every
+	// minted ARN resolve to. The zero value means the conventional local
+	// identity.
+	Identity awsident.Identity
 }
 
 // pseudo resolves an AWS::* pseudo-parameter.
 func (s *Scope) pseudo(name string) (string, bool) {
 	switch name {
 	case "AWS::Region":
-		return awsident.Region, true
+		return s.Identity.RegionName(), true
 	case "AWS::AccountId":
-		return awsident.AccountID, true
+		return s.Identity.Account(), true
 	case "AWS::Partition":
 		return "aws", true
 	case "AWS::StackName":
 		return s.StackName, true
 	case "AWS::StackId":
-		return awsident.ARN("cloudformation", "stack/"+s.StackName+"/local"), true
+		return s.Identity.ARN("cloudformation", "stack/"+s.StackName+"/local"), true
 	case "AWS::URLSuffix":
 		return "amazonaws.com", true
 	case "AWS::NoValue":
@@ -160,7 +164,7 @@ func (s *Scope) call(key string, arg any) (any, error) {
 	case "Fn::GetAZs":
 		// One region, one zone locally; returning the real shape keeps
 		// templates that index into it working.
-		return []any{awsident.Region + "a"}, nil
+		return []any{s.Identity.RegionName() + "a"}, nil
 	case "Fn::ToJsonString":
 		v, err := s.Eval(arg)
 		if err != nil {

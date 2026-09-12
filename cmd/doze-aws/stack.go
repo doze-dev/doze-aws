@@ -123,7 +123,7 @@ func runApply(args []string) int {
 	} else {
 		fmt.Fprintf(os.Stderr, "applying %s to the data dir at %s (no server running)\n", file, st.cfg.DataDir)
 	}
-	rep, err := provision.Apply(context.Background(), gw, s)
+	rep, err := provision.Apply(context.Background(), gw, s, st.cfg.Identity())
 	printReport(rep)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "apply:", err)
@@ -206,7 +206,7 @@ func runExport(args []string) int {
 		return 1
 	}
 	defer closer()
-	s, err := provision.Export(context.Background(), gw)
+	s, err := provision.Export(context.Background(), gw, st.cfg.Identity())
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "export:", err)
 		return 1
@@ -248,7 +248,7 @@ func gatewayFor(cfg config.Config) (h http.Handler, closer func(), live bool, er
 		return proxyHandler{base: "http://" + cfg.ListenAddr}, func() {}, true, nil
 	}
 	stack, err := dozeaws.NewStack(dozeaws.StackConfig{
-		DataDir: cfg.DataDir, Services: cfg.Services, S3Host: cfg.S3Host,
+		DataDir: cfg.DataDir, Services: cfg.Services, S3Host: cfg.S3Host, Identity: cfg.Identity(),
 	})
 	if err != nil {
 		return nil, nil, false, err

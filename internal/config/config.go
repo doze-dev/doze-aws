@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/gateway"
 )
 
@@ -42,6 +43,23 @@ type Config struct {
 	// default) evaluates and records without ever blocking, "off" never
 	// evaluates, "enforce" returns real AccessDenied errors.
 	IAMMode string
+	// AccountID is the twelve-digit account every ARN this instance mints
+	// carries. Empty means the conventional local account.
+	//
+	// It is settable at creation and effectively frozen afterwards: ARNs stored
+	// INSIDE other resources — an EventBridge target, a Lambda event source
+	// mapping, an IAM policy resource — are strings that were written with the
+	// old account, so changing it orphans every cross-resource reference
+	// silently, at fire time rather than when the change is made.
+	AccountID string
+	// Region is the region every ARN this instance mints carries. Empty means
+	// the conventional local region.
+	Region string
+}
+
+// Identity is the region and account this configuration mints ARNs for.
+func (c Config) Identity() awsident.Identity {
+	return awsident.Identity{Region: c.Region, AccountID: c.AccountID}
 }
 
 // Default returns a Config suitable for zero-config local development. The
@@ -71,6 +89,19 @@ func (c Config) Validate() error {
 	for _, s := range c.Services {
 		if !gateway.KnownService(s) {
 			return fmt.Errorf("config: unknown service %q (known: %s)", s, strings.Join(gateway.Services, ", "))
+		}
+	}
+	// AWS account ids are exactly twelve digits, and a wrong one is not a
+	// cosmetic problem: it goes into every ARN the instance mints, and an SDK
+	// that parses an ARN for its account segment gets a malformed answer.
+	if c.AccountID != "" {
+		if len(c.AccountID) != 12 {
+			return fmt.Errorf("config: account id %q is %d characters, want 12 digits", c.AccountID, len(c.AccountID))
+		}
+		for _, r := range c.AccountID {
+			if r < '0' || r > '9' {
+				return fmt.Errorf("config: account id %q must be digits only", c.AccountID)
+			}
 		}
 	}
 	return nil

@@ -7,6 +7,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // Action is one thing Apply did (or decided not to do).
@@ -43,8 +45,8 @@ func (r *Report) Counts() (created, updated, skipped int) {
 // Apply converges the running stack toward the file: resources are created if
 // missing and cheaply updated if present; nothing is ever deleted. Phases run
 // in dependency order so references by name always resolve.
-func Apply(ctx context.Context, gateway http.Handler, s *Stack) (*Report, error) {
-	c := newClient(gateway)
+func Apply(ctx context.Context, gateway http.Handler, s *Stack, id awsident.Identity) (*Report, error) {
+	c := newClient(gateway, id)
 	rep := &Report{}
 
 	type phase struct {

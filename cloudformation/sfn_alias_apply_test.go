@@ -110,7 +110,7 @@ func TestApplyStateMachineAliasTemplate(t *testing.T) {
 	}
 
 	for i := 0; i < 2; i++ {
-		if _, err := provision.Apply(ctx, stack.Handler(), sf); err != nil {
+		if _, err := provision.Apply(ctx, stack.Handler(), sf, awsident.Default()); err != nil {
 			t.Fatalf("Apply #%d: %v", i+1, err)
 		}
 	}
@@ -149,7 +149,7 @@ func TestApplyStateMachineAliasTemplate(t *testing.T) {
 
 	// Export carries the three resources back out as a template that parses
 	// and transpiles to the same stack.
-	exported, err := provision.Export(ctx, stack.Handler())
+	exported, err := provision.Export(ctx, stack.Handler(), awsident.Default())
 	if err != nil {
 		t.Fatalf("Export: %v", err)
 	}

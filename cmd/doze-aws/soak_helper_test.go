@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/doze-dev/doze-aws"
+	dozeaws "github.com/doze-dev/doze-aws"
 )
 
 // serve starts the stack on a background loopback listener and returns its addr.

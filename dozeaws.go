@@ -215,7 +215,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		// CloudFormation provisions across every other service, so it is the
 		// one service handed the whole gateway. It resolves at request time,
 		// so construction order does not matter.
-		s, err := cloudformation.New(cloudformation.Options{
+		s, err := cloudformation.New(cloudformation.Options{Identity: cfg.Identity,
 			DataDir: dataDir, Gateway: st.gw, Peers: dir, Logf: logf, Endpoint: cfg.Endpoint,
 		})
 		return s, s, err

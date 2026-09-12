@@ -118,7 +118,7 @@ func applyVersionAliasesURL(ctx context.Context, c *client, name string, f Funct
 		}
 		var v struct{ Version string }
 		json.Unmarshal(out, &v)
-		rep.add("published", "function/"+name, lambdaARN(name)+":"+v.Version)
+		rep.add("published", "function/"+name, lambdaARN(c.id, name)+":"+v.Version)
 
 		for _, alias := range sortedNames(f.Aliases) {
 			target := f.Aliases[alias].Version

@@ -11,10 +11,11 @@ import (
 	"strings"
 
 	"fmt"
-	"github.com/doze-dev/doze-aws/awsident"
 	"io"
 	"sort"
 	"time"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // ---- S3 bucket properties ----

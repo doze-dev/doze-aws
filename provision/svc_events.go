@@ -51,11 +51,11 @@ func applyRules(ctx context.Context, c *client, s *Stack, rep *Report) error {
 				arn := ""
 				switch {
 				case t.Queue != "":
-					arn = queueARN(t.Queue)
+					arn = queueARN(c.id, t.Queue)
 				case t.Topic != "":
-					arn = topicARN(t.Topic)
+					arn = topicARN(c.id, t.Topic)
 				case t.Lambda != "":
-					arn = lambdaARN(t.Lambda)
+					arn = lambdaARN(c.id, t.Lambda)
 				case t.APIDestination != "":
 					var err error
 					if arn, err = apiDestinationARN(ctx, c, t.APIDestination); err != nil {

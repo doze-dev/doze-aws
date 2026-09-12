@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	dozeaws "github.com/doze-dev/doze-aws"
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/cloudformation"
 	"github.com/doze-dev/doze-aws/provision"
 )
@@ -118,11 +119,11 @@ func TestEmitRoundTripsEveryResourceKind(t *testing.T) {
 	if _, _, rejected := rep.Counts(); rejected > 0 {
 		t.Fatalf("rejected: %+v", rep.Entries)
 	}
-	if _, err := provision.Apply(ctx, stack.Handler(), sf); err != nil {
+	if _, err := provision.Apply(ctx, stack.Handler(), sf, awsident.Default()); err != nil {
 		t.Fatalf("Apply: %v", err)
 	}
 
-	exported, err := provision.Export(ctx, stack.Handler())
+	exported, err := provision.Export(ctx, stack.Handler(), awsident.Default())
 	if err != nil {
 		t.Fatalf("Export: %v", err)
 	}

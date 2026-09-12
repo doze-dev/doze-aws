@@ -37,7 +37,7 @@ func applyLogGroups(ctx context.Context, c *client, s *Stack, rep *Report) error
 			}
 		}
 		for _, sub := range g.Subscriptions {
-			in, err := subscriptionRequest(name, sub)
+			in, err := subscriptionRequest(c.id, name, sub)
 			if err != nil {
 				return err
 			}
@@ -123,13 +123,13 @@ func exportMetricFilters(ctx context.Context, c *client, group string) []MetricF
 }
 
 // subscriptionRequest is the PutSubscriptionFilter body for one filter.
-func subscriptionRequest(group string, sub LogSubscription) (map[string]any, error) {
+func subscriptionRequest(id awsident.Identity, group string, sub LogSubscription) (map[string]any, error) {
 	in := map[string]any{"logGroupName": group, "filterName": sub.Name, "filterPattern": sub.Pattern}
 	switch {
 	case sub.Lambda != "":
-		in["destinationArn"] = lambdaARN(sub.Lambda)
+		in["destinationArn"] = lambdaARN(id, sub.Lambda)
 	case sub.Kinesis != "":
-		in["destinationArn"] = awsident.ARN("kinesis", "stream/"+sub.Kinesis)
+		in["destinationArn"] = id.ARN("kinesis", "stream/"+sub.Kinesis)
 		if sub.Distribution != "" {
 			in["distribution"] = sub.Distribution
 		}

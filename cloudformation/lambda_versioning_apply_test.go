@@ -145,7 +145,7 @@ func TestApplyLambdaVersioningTemplate(t *testing.T) {
 	}
 
 	for i := 0; i < 2; i++ {
-		if _, err := provision.Apply(ctx, stack.Handler(), sf); err != nil {
+		if _, err := provision.Apply(ctx, stack.Handler(), sf, awsident.Default()); err != nil {
 			t.Fatalf("Apply #%d: %v", i+1, err)
 		}
 	}
@@ -199,7 +199,7 @@ func TestApplyLambdaVersioningTemplate(t *testing.T) {
 
 	// Export carries the four resources back out as a template that parses
 	// and transpiles to the same stack.
-	exported, err := provision.Export(ctx, stack.Handler())
+	exported, err := provision.Export(ctx, stack.Handler(), awsident.Default())
 	if err != nil {
 		t.Fatalf("Export: %v", err)
 	}
@@ -236,7 +236,7 @@ func TestApplyLambdaVersioningTemplate(t *testing.T) {
 	// the only claim in the repository that Destroy removes a Lambda function
 	// and it could not fail. The report is now inspected, and the function —
 	// which the comment always promised and never checked — with it.
-	drep, err := provision.Destroy(ctx, stack.Handler(), sf)
+	drep, err := provision.Destroy(ctx, stack.Handler(), sf, awsident.Default())
 	if err != nil {
 		t.Fatalf("Destroy: %v\n%+v", err, drep.Actions)
 	}

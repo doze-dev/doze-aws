@@ -94,7 +94,7 @@ func TestApplyLogsSubscriptionFilters(t *testing.T) {
 		t.Fatal(err)
 	}
 	for i := 0; i < 2; i++ {
-		if _, err := provision.Apply(ctx, stack.Handler(), sf); err != nil {
+		if _, err := provision.Apply(ctx, stack.Handler(), sf, awsident.Default()); err != nil {
 			t.Fatalf("Apply #%d: %v", i+1, err)
 		}
 	}
@@ -108,7 +108,7 @@ func TestApplyLogsSubscriptionFilters(t *testing.T) {
 		t.Fatalf("the Lambda filter did not land: %+v %v", desc, err)
 	}
 
-	exported, err := provision.Export(ctx, stack.Handler())
+	exported, err := provision.Export(ctx, stack.Handler(), awsident.Default())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -57,6 +57,7 @@ func hCreateChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	exports, _ := s.store.Exports()
 	_, rep, err := Transpile(tmpl, TranspileOptions{
+		Identity:  s.id,
 		StackName: stackName, Parameters: params, Exports: exports, Endpoint: s.endpoint,
 		FetchTemplate: s.fetcher(nil),
 	})
@@ -73,7 +74,7 @@ func hCreateChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 		stackID = existing.ID
 	} else {
 		review := &StackRecord{
-			Name: stackName, ID: StackARN(stackName, s.store.newID()),
+			Name: stackName, ID: StackARN(s.id, stackName, s.store.newID()),
 			Status: StatusReviewInProgress, TemplateBody: body,
 			Parameters: params, Created: now, Updated: now,
 		}
@@ -210,7 +211,7 @@ func hDescribeChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 		Parameters      []parameterView `xml:"Parameters>member,omitempty"`
 		Changes         []change        `xml:"Changes>member,omitempty"`
 	}{
-		cs.Name, cs.ID, StackARN(cs.StackName, ""), cs.StackName,
+		cs.Name, cs.ID, StackARN(s.id, cs.StackName, ""), cs.StackName,
 		cs.Status, cs.StatusReason, cs.ExecutionStatus,
 		awshttp.ISO8601(unix(cs.Created)), paramViews, changes,
 	}, nil
@@ -263,7 +264,7 @@ func hListChangeSets(s *Server, p params) (any, *awshttp.APIError) {
 	out := make([]summary, 0, len(sets))
 	for _, cs := range sets {
 		out = append(out, summary{
-			cs.ID, cs.Name, StackARN(cs.StackName, ""), cs.StackName,
+			cs.ID, cs.Name, StackARN(s.id, cs.StackName, ""), cs.StackName,
 			cs.Status, cs.StatusReason, cs.ExecutionStatus,
 			awshttp.ISO8601(unix(cs.Created)),
 		})

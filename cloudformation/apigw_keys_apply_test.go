@@ -18,6 +18,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/apigateway"
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/cloudformation"
 	"github.com/doze-dev/doze-aws/provision"
 )
@@ -131,7 +132,7 @@ func TestApplyAPIKeysAndUsagePlans(t *testing.T) {
 		t.Fatalf("SAM key %q did not map", plan.Keys[0])
 	}
 	for i := 0; i < 2; i++ {
-		if _, err := provision.Apply(ctx, stack.Handler(), sf); err != nil {
+		if _, err := provision.Apply(ctx, stack.Handler(), sf, awsident.Default()); err != nil {
 			t.Fatalf("Apply #%d: %v", i+1, err)
 		}
 	}
