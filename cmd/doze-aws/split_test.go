@@ -94,17 +94,21 @@ func TestFlagTakesValue(t *testing.T) {
 	}
 }
 
-func TestReachableEndpoint(t *testing.T) {
+// reachableEndpoint is gone — it was a near-duplicate of reachableHost, and
+// its only remaining caller was `doze-aws env`, where it was the bug: it
+// derived the endpoint from --listen alone, which now defaults to empty.
+// instanceAddress replaced it; the wildcard-to-loopback rule it tested lives
+// in reachableHost.
+func TestReachableHostRewritesWildcards(t *testing.T) {
 	cases := map[string]string{
-		"127.0.0.1:4566": "http://127.0.0.1:4566",
-		":4566":          "http://127.0.0.1:4566",
-		"0.0.0.0:8080":   "http://127.0.0.1:8080",
-		"localhost:9000": "http://localhost:9000",
-		"":               "",
+		"127.0.0.1:4566": "127.0.0.1:4566",
+		":4566":          "127.0.0.1:4566",
+		"0.0.0.0:8080":   "127.0.0.1:8080",
+		"localhost:9000": "localhost:9000",
 	}
 	for in, want := range cases {
-		if got := reachableEndpoint(in); got != want {
-			t.Errorf("reachableEndpoint(%q) = %q, want %q", in, got, want)
+		if got := reachableHost(in); got != want {
+			t.Errorf("reachableHost(%q) = %q, want %q", in, got, want)
 		}
 	}
 }

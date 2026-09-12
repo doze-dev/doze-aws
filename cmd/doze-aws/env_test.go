@@ -75,10 +75,58 @@ func TestGlobalServicesHaveNoRegionInTheirHost(t *testing.T) {
 // With no suffix there is nothing for the per-service variables to point at
 // that AWS_ENDPOINT_URL does not already cover, so printing them would be
 // noise that also happens to be wrong.
-func TestEnvOmitsPerServiceVarsWithoutASuffix(t *testing.T) {
-	out := captureEnv(t)
+// `eval "$(doze-aws env)"` is the documented way to point a shell at doze-aws,
+// and it emitted an EMPTY AWS_ENDPOINT_URL once --listen stopped being the
+// default. That does not fail loudly — an empty value reads as unset, and every
+// SDK call goes to real AWS.
+//
+// Two assertions because the bug had two halves. The endpoint came from
+// reachableEndpoint(cfg.ListenAddr), which is "" by default now. And the suffix
+// was read from cfg.Suffix, which is derived during STARTUP — so a command that
+// does not start the server never saw one and always claimed AWS-shaped
+// hostnames were unavailable.
+func TestEnvPointsAtTheInstance(t *testing.T) {
+	out := captureEnv(t, "--name", "harbour")
+
+	if strings.Contains(out, "export AWS_ENDPOINT_URL=\n") {
+		t.Errorf("AWS_ENDPOINT_URL is empty — SDKs would fall back to real AWS:\n%s", out)
+	}
+	if !strings.Contains(out, "export AWS_ENDPOINT_URL=http://aws.harbour.doze") {
+		t.Errorf("AWS_ENDPOINT_URL does not name the instance:\n%s", out)
+	}
+	if !strings.Contains(out, "AWS_ENDPOINT_URL_SQS=http://sqs.us-east-1.aws.harbour.doze") {
+		t.Errorf("the per-service block is missing or wrong:\n%s", out)
+	}
+	// The three that sign under another name — the variable follows the signing
+	// name, not the service name.
+	for _, want := range []string{
+		"AWS_ENDPOINT_URL_EVENTS=http://events.",
+		"AWS_ENDPOINT_URL_STATES=http://states.",
+		"AWS_ENDPOINT_URL_MONITORING=http://monitoring.",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("missing %q:\n%s", want, out)
+		}
+	}
+}
+
+// Under --listen there is no name, so there is no derived suffix and nothing
+// for per-service hostnames to point at.
+//
+// This replaces TestEnvOmitsPerServiceVarsWithoutASuffix, whose premise —
+// "usually there is no suffix" — is now backwards: in the default mode the
+// suffix is always the instance's own name. --listen is the case with none.
+func TestEnvUnderListenUsesTheAddress(t *testing.T) {
+	out := captureEnv(t, "--listen", "127.0.0.1:4566")
+
+	if !strings.Contains(out, "export AWS_ENDPOINT_URL=http://127.0.0.1:4566") {
+		t.Errorf("AWS_ENDPOINT_URL is not the listen address:\n%s", out)
+	}
 	if strings.Contains(out, "AWS_ENDPOINT_URL_") {
-		t.Errorf("per-service variables printed with no suffix:\n%s", out)
+		t.Errorf("per-service hostnames need a suffix, and --listen claims no name:\n%s", out)
+	}
+	if strings.Contains(out, ".doze") {
+		t.Errorf("a .doze name under --listen resolves to nothing:\n%s", out)
 	}
 	for _, want := range []string{"AWS_ENDPOINT_URL=", "AWS_REGION=", "AWS_ACCESS_KEY_ID="} {
 		if !strings.Contains(out, want) {

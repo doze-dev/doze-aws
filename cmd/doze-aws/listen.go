@@ -53,6 +53,7 @@ import (
 	"net/http"
 
 	"github.com/doze-dev/doze-aws/internal/config"
+	names "github.com/doze-dev/doze-names"
 )
 
 // binding is one address doze-aws answers on, with how to describe it.
@@ -144,6 +145,39 @@ func openListeners(cfg config.Config, z *zone, logger *slog.Logger) (listeners, 
 // types — the front door serves the name port-less on :80 — but a listener
 // needs one, and keeping 4566 means an explicit host:port still works.
 const namePort = "4566"
+
+// instanceAddress is where a configuration says this instance answers, and the
+// suffix its AWS-shaped hostnames sit under.
+//
+// It exists so the commands that do NOT run the server — env, doctor — give
+// the same answer the server does. They used to work it out separately, and
+// the separate answers were wrong in two ways at once: `doze-aws env` derived
+// its endpoint from --listen alone, which now defaults to empty, so it printed
+// `export AWS_ENDPOINT_URL=` and sent every SDK call to real AWS; and it never
+// saw the suffix, because the suffix is derived during startup, so it always
+// claimed AWS-shaped hostnames were unavailable.
+//
+// The registry is asked rather than DNS, and rather than assuming the port:
+// a running instance publishes the address it actually bound (which may not be
+// 4566 — see listenOn), and URLFor gives the port-less form when the shared
+// front door is up. With nothing running there is nothing to ask, so the answer
+// is the name the instance WILL claim, which is the useful thing to print.
+func instanceAddress(cfg config.Config) (url, suffix string) {
+	if cfg.ListenAddr != "" {
+		// An address claims no name, so there is no derived suffix — only an
+		// explicit --suffix, which is the behind-a-proxy case.
+		return "http://" + reachableHost(cfg.ListenAddr), cfg.Suffix
+	}
+	host := names.Qualified("aws", cfg.InstanceName()).Host
+	suffix = cfg.Suffix
+	if suffix == "" {
+		suffix = host
+	}
+	if u := names.Open(names.Home(), "doze-aws").URLFor(host); u != "" {
+		return u, suffix
+	}
+	return "http://" + host, suffix
+}
 
 // reachableHost turns a bind address into one a child process can dial: a
 // wildcard or empty host becomes loopback, since "0.0.0.0" is an address to

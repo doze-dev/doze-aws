@@ -62,10 +62,18 @@ func TestInvokeURLFallsBackToTheConfiguredEndpoint(t *testing.T) {
 		t.Errorf("invokeBase(nil) = %q, want %q (trailing slash trimmed)", got, want)
 	}
 
-	// And with nothing configured at all, the historical default — which is
-	// right for an embedder that never told us anything.
+	// And with nothing configured at all, EMPTY — so InvokeURL emits the path
+	// form.
+	//
+	// This used to assert "http://127.0.0.1:4566", "the historical default,
+	// which is right for an embedder that never told us anything". It is not
+	// right any more and arguably never was: doze-aws does not bind that
+	// address by default now, so the answer was a URL that looks complete,
+	// copies cleanly, and reaches nothing. An embedder that never said where it
+	// is reachable cannot be told; a relative path is relative to the right
+	// thing, and says so.
 	bare := &Server{}
-	if got, want := bare.invokeBase(nil), "http://127.0.0.1:4566"; got != want {
-		t.Errorf("invokeBase(nil) with no endpoint = %q, want %q", got, want)
+	if got := bare.invokeBase(nil); got != "" {
+		t.Errorf("invokeBase(nil) with no endpoint = %q, want empty — we do not know where it is", got)
 	}
 }

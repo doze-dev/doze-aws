@@ -73,14 +73,18 @@ func envTo(w io.Writer, args []string) int {
 	cfg := st.cfg
 	id := cfg.Identity()
 
-	base := reachableEndpoint(cfg.ListenAddr)
+	// The same answer the server gives itself — see instanceAddress. This used
+	// to be reachableEndpoint(cfg.ListenAddr), which returns "" now that an
+	// address is the opt-in rather than the default, so `eval "$(doze-aws env)"`
+	// set an EMPTY AWS_ENDPOINT_URL and every SDK call went to real AWS.
+	base, suffix := instanceAddress(cfg)
 	fmt.Fprintf(w, "export AWS_ENDPOINT_URL=%s\n", base)
 	fmt.Fprintf(w, "export AWS_REGION=%s\n", id.RegionName())
 	fmt.Fprintf(w, "export AWS_DEFAULT_REGION=%s\n", id.RegionName())
 	fmt.Fprintf(w, "export AWS_ACCESS_KEY_ID=%s\n", awsident.AccessKeyID)
 	fmt.Fprintf(w, "export AWS_SECRET_ACCESS_KEY=%s\n", awsident.SecretAccessKey)
 
-	if cfg.Suffix == "" {
+	if suffix == "" {
 		fmt.Fprintln(w)
 		fmt.Fprintln(w, "# Everything reaches one address and the gateway tells the services apart.")
 		fmt.Fprintln(w, "# Configure a DNS suffix (--suffix) to get AWS-shaped hostnames, and this")
@@ -89,7 +93,7 @@ func envTo(w io.Writer, args []string) int {
 	}
 
 	fmt.Fprintln(w)
-	fmt.Fprintf(w, "# AWS-shaped hostnames under %s. Setting these means the URLs doze-aws\n", cfg.Suffix)
+	fmt.Fprintf(w, "# AWS-shaped hostnames under %s. Setting these means the URLs doze-aws\n", suffix)
 	fmt.Fprintln(w, "# hands back — queue URLs, invoke URLs — are AWS-shaped too, because it")
 	fmt.Fprintln(w, "# mints them from the host a request arrived on.")
 	fmt.Fprintf(w, "# Each names %s; a client built for another region still works (routing\n", id.RegionName())
@@ -105,10 +109,10 @@ func envTo(w io.Writer, args []string) int {
 		if !ok {
 			continue
 		}
-		host := signing + "." + id.RegionName() + "." + cfg.Suffix
+		host := signing + "." + id.RegionName() + "." + suffix
 		if dozeaws.Global[svc] {
 			// IAM and STS have no region, and their hostnames say so.
-			host = signing + "." + cfg.Suffix
+			host = signing + "." + suffix
 		}
 		lines = append(lines, fmt.Sprintf("export %s=http://%s", envVarName(signing), host))
 	}

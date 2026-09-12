@@ -217,10 +217,13 @@ func (s *Server) invokeBase(r *http.Request) string {
 	// No request to learn from: a CloudFormation apply or an export, which
 	// reaches the service in-process. The configured endpoint is what the
 	// stack was told it is reachable at.
-	if s.endpoint != "" {
-		return strings.TrimRight(s.endpoint, "/")
-	}
-	return "http://127.0.0.1:4566"
+	//
+	// And when there is no endpoint either — an embedder that never set one —
+	// the answer is empty, so InvokeURL emits the path form. It used to return
+	// "http://127.0.0.1:4566", an address doze-aws no longer binds by default:
+	// a URL that looks complete, copies cleanly, and reaches nothing. A path is
+	// obviously relative, and relative to the right thing.
+	return strings.TrimRight(s.endpoint, "/")
 }
 
 // APIARN is the ARN used to tag a REST API.

@@ -21,11 +21,9 @@ func (c *Console) s3Presign(w http.ResponseWriter, r *http.Request) {
 	if err != nil || ttl <= 0 || ttl > 7*24*time.Hour {
 		ttl = time.Hour
 	}
-	host := r.Host
-	if host == "" {
-		host = "127.0.0.1:4566"
-	}
-	link := PresignURL(host, bucket, key, ttl)
+	// The browser's own host, with no invented fallback — a presigned link to
+	// an address nothing binds is worse than a short one.
+	link := PresignURL(r.Host, bucket, key, ttl)
 	c.partial(w, "s3_share_link", map[string]any{"URL": link, "TTL": ttl.String()})
 }
 

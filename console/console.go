@@ -634,10 +634,12 @@ func stripFlash(to string) string {
 // address an SDK/CLI would target. Used for the endpoint chip and copyable
 // resource URLs so they don't lie about the actual listen address.
 func endpointHost(r *http.Request) string {
-	if r.Host != "" {
-		return r.Host
-	}
-	return "127.0.0.1:4566"
+	// No fallback. This used to return "127.0.0.1:4566" for a request with no
+	// Host — an address doze-aws no longer binds by default, so the chip would
+	// have shown a copyable URL that reaches nothing. The console is reached by
+	// a browser, which always sends Host; an empty one renders as empty, which
+	// is at least true.
+	return r.Host
 }
 
 // partial renders a single named template (for HTMX swaps).

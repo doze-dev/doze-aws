@@ -41,8 +41,15 @@ var handlers = map[string]handler{
 // request (so a queue reached through a name reports that name), and the
 // account from this instance's identity.
 func (s *Store) queueURL(host, name string) string {
+	// With no host there is no absolute URL worth minting. This used to fall
+	// back to "127.0.0.1" — no port, so http://127.0.0.1/<account>/<queue>,
+	// which is port 80 and has never been where doze-aws answers. It was wrong
+	// before the addressing change and merely more obviously wrong now.
+	//
+	// A path-relative URL is legal, unambiguous, and claims no address. It also
+	// round-trips: every inbound QueueUrl is reduced to its last segment.
 	if host == "" {
-		host = "127.0.0.1"
+		return "/" + s.id.Account() + "/" + name
 	}
 	return "http://" + host + "/" + s.id.Account() + "/" + name
 }

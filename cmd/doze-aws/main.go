@@ -13,7 +13,6 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -436,22 +435,6 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		return err
 	}
 	return nil
-}
-
-// reachableEndpoint turns a listen address into a URL a child Lambda process can
-// dial (AWS_ENDPOINT_URL). A wildcard/empty host becomes 127.0.0.1.
-func reachableEndpoint(listenAddr string) string {
-	if listenAddr == "" {
-		return ""
-	}
-	host, port, err := net.SplitHostPort(listenAddr)
-	if err != nil {
-		return "http://" + listenAddr
-	}
-	if host == "" || host == "0.0.0.0" || host == "::" {
-		host = "127.0.0.1"
-	}
-	return "http://" + net.JoinHostPort(host, port)
 }
 
 // servicesFlag collects a comma-separated (and/or repeated) flag into a slice.
