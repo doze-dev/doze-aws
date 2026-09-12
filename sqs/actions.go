@@ -141,19 +141,36 @@ func hSendMessage(s *Store, req *request) (any, *apiError) {
 
 func hSendMessageBatch(s *Store, req *request) (any, *apiError) {
 	queue := targetQueue(req)
-	var res sendBatchResult
-	for _, e := range req.p.sendBatchEntries() {
+	// One transaction for the whole batch, and therefore one fsync. Looping
+	// over Send opened one per message, which made a ten-item batch cost ten
+	// times a single send — all of it durability rather than work.
+	entries := req.p.sendBatchEntries()
+	items := make([]SendItem, len(entries))
+	for i, e := range entries {
 		delay := -1
 		if e.Delay != nil {
 			delay = *e.Delay
 		}
-		m, err := s.Send(queue, e.Body, e.Attrs, delay, e.GroupID, e.DedupID, nil)
-		if err != nil {
-			ae := asAPIError(err)
+		items[i] = SendItem{Body: e.Body, Attrs: e.Attrs, Delay: delay, GroupID: e.GroupID, DedupID: e.DedupID}
+	}
+	out, err := s.SendBatch(queue, items)
+	if err != nil {
+		// A queue-level failure: no entry was written, and AWS fails the
+		// request rather than reporting every entry as failed.
+		return nil, asAPIError(err)
+	}
+
+	var res sendBatchResult
+	for i, r := range out {
+		e := entries[i]
+		if r.Err != nil {
+			ae := asAPIError(r.Err)
 			res.Failed = append(res.Failed, batchErr{ID: e.ID, Code: ae.Code, Message: ae.Message, SenderFault: true})
 			continue
 		}
-		res.Successful = append(res.Successful, sendBatchOK{ID: e.ID, MessageID: m.ID, MD5OfBody: m.MD5Body, MD5OfAttrs: m.MD5Attrs})
+		res.Successful = append(res.Successful, sendBatchOK{
+			ID: e.ID, MessageID: r.Msg.ID, MD5OfBody: r.Msg.MD5Body, MD5OfAttrs: r.Msg.MD5Attrs,
+		})
 	}
 	return res, nil
 }
@@ -229,10 +246,19 @@ func hDeleteMessage(s *Store, req *request) (any, *apiError) {
 
 func hDeleteMessageBatch(s *Store, req *request) (any, *apiError) {
 	queue := targetQueue(req)
+	entries := req.p.deleteBatchEntries()
+	handles := make([]string, len(entries))
+	for i, e := range entries {
+		handles[i] = e.ReceiptHandle
+	}
+	errs, err := s.DeleteBatch(queue, handles)
+	if err != nil {
+		return nil, asAPIError(err)
+	}
 	var res deleteBatchResult
-	for _, e := range req.p.deleteBatchEntries() {
-		if err := s.Delete(queue, e.ReceiptHandle); err != nil {
-			ae := asAPIError(err)
+	for i, e := range entries {
+		if errs[i] != nil {
+			ae := asAPIError(errs[i])
 			res.Failed = append(res.Failed, batchErr{ID: e.ID, Code: ae.Code, Message: ae.Message, SenderFault: true})
 			continue
 		}
@@ -254,10 +280,19 @@ func hChangeMessageVisibility(s *Store, req *request) (any, *apiError) {
 // reports a partial batch.
 func hChangeMessageVisibilityBatch(s *Store, req *request) (any, *apiError) {
 	queue := targetQueue(req)
+	entries := req.p.visibilityBatchEntries()
+	items := make([]VisibilityItem, len(entries))
+	for i, e := range entries {
+		items[i] = VisibilityItem{Handle: e.ReceiptHandle, Timeout: e.Timeout}
+	}
+	errs, err := s.ChangeVisibilityBatch(queue, items)
+	if err != nil {
+		return nil, asAPIError(err)
+	}
 	var res visBatchResult
-	for _, e := range req.p.visibilityBatchEntries() {
-		if err := s.ChangeVisibility(queue, e.ReceiptHandle, e.Timeout); err != nil {
-			ae := asAPIError(err)
+	for i, e := range entries {
+		if errs[i] != nil {
+			ae := asAPIError(errs[i])
 			res.Failed = append(res.Failed, batchErr{ID: e.ID, Code: ae.Code, Message: ae.Message, SenderFault: true})
 			continue
 		}

@@ -34,13 +34,20 @@ a time spends about 7.5 seconds in fsync. If that is your bottleneck:
 - **Put the data directory on a tmpfs / RAM disk.** `--data-dir` takes any
   path, and nothing about doze-aws needs the data to survive a reboot during a
   test run. This is the lever that works today.
-- **Batching does not help yet, and the benchmark says so.** One
-  `SendMessageBatch` of ten messages costs 71.8 ms — ten times a single send,
-  not one fsync's worth. `SendMessageBatch` loops calling the store's `Send`,
-  and each call opens its own bbolt transaction. On AWS batching is a real
-  saving; here it is currently only an API convenience. Making the batch
-  operations one transaction is a known, contained improvement
-  (`BenchmarkRequestSendMessageBatch` is there to prove it when someone does).
+- **Use the batch operations.** A `SendMessageBatch` of ten messages costs
+  **7.6 ms** — the same as a single send, because it is one transaction and
+  therefore one fsync. Ten individual sends cost 75 ms.
+
+  This used to be a note saying batching did *not* help: the handler looped
+  over the store's `Send`, so ten messages opened ten transactions and cost
+  71.8 ms. `SendMessageBatch`, `DeleteMessageBatch` and
+  `ChangeMessageVisibilityBatch` now each run in one transaction, which is a
+  **9.4× improvement** and makes batching worth reaching for here the way it is
+  on AWS.
+
+  Per-entry semantics are unchanged: one oversized message still fails on its
+  own and the other nine are written, because the batch reports per entry
+  rather than aborting the transaction.
 
 Durability stays the default because the alternative is a local stack that
 loses the resources you just created when a laptop sleeps, and that costs more

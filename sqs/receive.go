@@ -236,60 +236,117 @@ func (s *Store) moveToDLQ(tx *bolt.Tx, dlq string, m *Message) (bool, error) {
 }
 
 func (s *Store) Delete(queue, handle string) error {
-	seqKey, id, err := decodeHandle(handle)
-	if err != nil {
-		return errInvalid("invalid receipt handle")
-	}
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if _, err := s.getQueue(tx, queue); err != nil {
 			return err
 		}
-		mb := tx.Bucket(msgBucket(queue))
-		if mb == nil {
-			return nil
-		}
-		raw := mb.Get(seqKey)
-		if raw == nil {
-			return nil // already deleted — idempotent, like real SQS
-		}
-		var m Message
-		if err := json.Unmarshal(raw, &m); err != nil {
-			return err
-		}
-		if m.ID != id {
-			return nil // stale handle for a message that has since been replaced
-		}
-		return mb.Delete(seqKey)
+		return s.deleteIn(tx, queue, handle)
 	})
 }
 
-func (s *Store) ChangeVisibility(queue, handle string, timeout int) error {
+// DeleteBatch removes several messages in ONE transaction, and one fsync.
+//
+// Per-handle failures are reported per entry rather than aborting, because
+// that is DeleteMessageBatch's contract — and because deleting is idempotent,
+// so a handle that names nothing is a success on AWS too.
+func (s *Store) DeleteBatch(queue string, handles []string) ([]error, error) {
+	errs := make([]error, len(handles))
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		if _, err := s.getQueue(tx, queue); err != nil {
+			return err
+		}
+		for i, h := range handles {
+			errs[i] = s.deleteIn(tx, queue, h)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return errs, nil
+}
+
+// deleteIn is one delete inside a caller's transaction.
+func (s *Store) deleteIn(tx *bolt.Tx, queue, handle string) error {
 	seqKey, id, err := decodeHandle(handle)
 	if err != nil {
 		return errInvalid("invalid receipt handle")
 	}
+	mb := tx.Bucket(msgBucket(queue))
+	if mb == nil {
+		return nil
+	}
+	raw := mb.Get(seqKey)
+	if raw == nil {
+		return nil // already deleted — idempotent, like real SQS
+	}
+	var m Message
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return err
+	}
+	if m.ID != id {
+		return nil // stale handle for a message that has since been replaced
+	}
+	return mb.Delete(seqKey)
+}
+
+func (s *Store) ChangeVisibility(queue, handle string, timeout int) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if _, err := s.getQueue(tx, queue); err != nil {
 			return err
 		}
-		mb := tx.Bucket(msgBucket(queue))
-		if mb == nil {
-			return nil
-		}
-		raw := mb.Get(seqKey)
-		if raw == nil {
-			return nil
-		}
-		var m Message
-		if err := json.Unmarshal(raw, &m); err != nil {
+		return s.changeVisibilityIn(tx, queue, handle, timeout)
+	})
+}
+
+// VisibilityItem is one entry of a ChangeMessageVisibilityBatch.
+type VisibilityItem struct {
+	Handle  string
+	Timeout int
+}
+
+// ChangeVisibilityBatch applies several visibility changes in ONE transaction,
+// and one fsync. Per-entry failures are reported per entry, as AWS does.
+func (s *Store) ChangeVisibilityBatch(queue string, items []VisibilityItem) ([]error, error) {
+	errs := make([]error, len(items))
+	err := s.db.Update(func(tx *bolt.Tx) error {
+		if _, err := s.getQueue(tx, queue); err != nil {
 			return err
 		}
-		if m.ID != id {
-			return nil // stale handle; don't disturb the current occupant of this seq
+		for i, it := range items {
+			errs[i] = s.changeVisibilityIn(tx, queue, it.Handle, it.Timeout)
 		}
-		m.VisibleAt = s.now().Add(time.Duration(timeout) * time.Second).UnixNano()
-		return putMessage(mb, &m)
+		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	return errs, nil
+}
+
+// changeVisibilityIn is one change inside a caller's transaction.
+func (s *Store) changeVisibilityIn(tx *bolt.Tx, queue, handle string, timeout int) error {
+	seqKey, id, err := decodeHandle(handle)
+	if err != nil {
+		return errInvalid("invalid receipt handle")
+	}
+	mb := tx.Bucket(msgBucket(queue))
+	if mb == nil {
+		return nil
+	}
+	raw := mb.Get(seqKey)
+	if raw == nil {
+		return nil
+	}
+	var m Message
+	if err := json.Unmarshal(raw, &m); err != nil {
+		return err
+	}
+	if m.ID != id {
+		return nil // stale handle; don't disturb the current occupant of this seq
+	}
+	m.VisibleAt = s.now().Add(time.Duration(timeout) * time.Second).UnixNano()
+	return putMessage(mb, &m)
 }
 
 // Handle encodes the message's position AND identity; Delete/ChangeVisibility
