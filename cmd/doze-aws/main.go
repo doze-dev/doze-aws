@@ -190,7 +190,11 @@ func main() {
 	logger.Info("doze-aws", "version", version)
 	if st.configFile != "" {
 		logger.Info("loaded config file", "path", st.configFile)
-		reportOverrides(logger, st.configFile, st.fileKeys, st.given)
+		// Asked BEFORE anything is opened or claimed, so answering no leaves
+		// the machine exactly as it was.
+		if err := confirmOverrides(liveOverrideEnv(st.cfg.AssumeYes), st.configFile, st.fileKeys, st.given); err != nil {
+			os.Exit(1)
+		}
 	}
 
 	if err := run(st.cfg, logger); err != nil {
@@ -230,7 +234,7 @@ type startup struct {
 	configFile string // the config file actually loaded, or "" if none.
 	// fileKeys names what the config file set, and given what was passed on the
 	// command line. Kept so startup can report a flag overruling the file — see
-	// reportOverrides.
+	// confirmOverrides.
 	fileKeys map[string]bool
 	given    map[string]bool
 }
@@ -294,6 +298,7 @@ func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs.Var(servicesFlag{&dst.Services}, "services", "comma-separated services to enable (default: all implemented)")
 	fs.StringVar(&dst.AccountID, "account-id", dst.AccountID, "twelve-digit account id every ARN carries (default 000000000000; set at creation, hard to change later)")
 	fs.StringVar(&dst.Region, "region", dst.Region, "default region; its data lives under <data-dir>/<region> (default us-east-1)")
+	fs.BoolVar(&dst.AssumeYes, "yes", dst.AssumeYes, "answer yes to the confirmation a flag overruling doze-aws.toml asks for")
 	fs.StringVar(&dst.Name, "name", dst.Name, "this instance's name in .doze; it answers on aws.<name>.doze (default: the directory name)")
 	fs.StringVar(&dst.Suffix, "suffix", dst.Suffix, "DNS suffix standing in for amazonaws.com (default: this instance's own name)")
 	fs.Var(servicesFlag{&dst.Regions}, "regions", "comma-separated extra regions to serve (any region a signed request names is created on first use regardless)")
@@ -315,45 +320,6 @@ func parseFlags(args []string, dst *config.Config) (configPath string, given map
 	given = map[string]bool{}
 	fs.Visit(func(f *flag.Flag) { given[f.Name] = true })
 	return *cp, given
-}
-
-// consequential are the flags whose silent override of a config file looks,
-// from the outside, like something went wrong.
-//
-// Flags beat the file — that is the documented precedence and it is right; a
-// throwaway --data-dir is a real and reasonable thing to want. What was wrong
-// is that overriding happened without a word, and three of these produce a
-// running instance that appears to have lost data:
-//
-//	data-dir    a different directory is an EMPTY instance. "Where did my
-//	            queues go" — they are in the directory the file named.
-//	services    the store is still on disk, the service is simply not served,
-//	            so its resources are invisible with nothing to explain why.
-//	name        every URL already minted under the old name is now NXDOMAIN,
-//	            because the old name is no longer claimed by anything.
-//	region      unqualified requests land in a different folder; the old
-//	            region's resources are still there, under the old region.
-//	account-id  refused outright, not warned — the data records its account
-//	            and stored ARNs embed it. See instance.go.
-var consequential = map[string]string{
-	"data-dir": "the resources you had are in the directory the file names, not here",
-	"services": "the services you dropped keep their data on disk; it is simply not served",
-	"name":     "URLs minted under the old name no longer resolve — nothing claims it now",
-	"region":   "unqualified requests land in the new region; the old one's resources are still under its own folder",
-}
-
-// reportOverrides says when a flag overruled something the config file wrote
-// down. Only for keys the file ACTUALLY set: a flag filling in a blank is not
-// an override and saying so would be noise.
-func reportOverrides(logger *slog.Logger, path string, fileKeys, given map[string]bool) {
-	for name := range given {
-		why, matters := consequential[name]
-		if !matters || !fileKeys[name] {
-			continue
-		}
-		logger.Warn("a flag overrode the config file",
-			"flag", "--"+name, "file", path, "consequence", why)
-	}
 }
 
 // run builds the stack and serves until interrupted.

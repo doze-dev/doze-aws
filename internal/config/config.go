@@ -61,6 +61,10 @@ type Config struct {
 	// request names is created on first use whether or not it is listed; listing
 	// one only creates it eagerly, so it appears before anything touches it.
 	Regions []string
+	// AssumeYes answers the confirmation a flag overruling the config file
+	// asks for. It is not persisted to the file -- it is a property of one
+	// invocation, not of the instance.
+	AssumeYes bool
 	// Name is this instance's name in the .doze zone. doze-aws answers on
 	// aws.<Name>.doze, and the AWS-shaped hostnames it mints sit beneath that,
 	// so two projects on one machine never contend for an address.

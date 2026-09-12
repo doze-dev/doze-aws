@@ -39,7 +39,7 @@ Flags apply to serving and to `config print`.
 |---|---|---|
 | `--config <path>` | `./doze-aws.toml` if present | Path to a TOML config file. Relative paths **inside** it resolve against the file, not against your working directory. |
 | `--name <name>` | the directory's name | This instance's name in `.doze`. It answers on `aws.<name>.doze`. |
-| `--listen <host:port>` | (none — the name is the address) | **Also** serve on an address, and claim no `.doze` name at all. For containers, CI, anywhere without DNS. Exclusive with the name; see [endpoints.md](endpoints.md). |
+| `--listen <host:port>` | (none — the name is the address) | Serve on an address **instead of** a `.doze` name; no name is claimed. For containers, CI, anywhere without DNS. See [endpoints.md](endpoints.md). |
 | `--data-dir <dir>` | `./data`, or beside `doze-aws.toml` | Root directory: each region gets a subdirectory, with IAM and STS under `_global`. The **flag** resolves against your working directory; the config-file key resolves against the file. |
 | `--region <region>` | `us-east-1` | Default region for unqualified requests. Others are created on first use. |
 | `--account-id <12 digits>` | `000000000000` | The account every ARN carries. Set at creation and effectively frozen — the data records it and a mismatch is refused. |
@@ -49,6 +49,32 @@ Flags apply to serving and to `config print`.
 | `--iam-mode <mode>` | `soft` | IAM enforcement: `soft` (evaluate and record, never block), `off` (no evaluation at all), `enforce` (real denials). See [api-support/iam.md](api-support/iam.md). |
 | `--console` | on | Serve the web management console at `/_console`. |
 | `--lambda-idle <duration>` | `10m` | How long a warm Lambda keeps its process before scaling to zero. |
+| `--yes` | off | Answer yes to the confirmation described below. For scripts, and for anyone who does this daily. |
+
+### When a flag overrules the config file
+
+`--data-dir`, `--services`, `--name` and `--region` **ask before proceeding**
+when `doze-aws.toml` set the same key, because each one produces a running
+instance that looks like something went wrong:
+
+```
+These flags overrule doze-aws.toml:
+
+  --data-dir   the resources you had are in the directory the file names, not here
+  --name       URLs minted under the old name stop resolving — nothing claims it once you rename
+
+Continue? [y/N]
+```
+
+Enter alone declines — the safe answer is the one you get by not deciding. Off
+a terminal (CI, `doze-aws &`) it explains and proceeds rather than asking a
+question nobody can answer; `--yes` skips the question and keeps the
+explanation. A flag the file did **not** set overrules no decision and is never
+questioned.
+
+`--account-id` is not in that list: a mismatch is **refused** outright by the
+data's own record of the account it was created under, because stored ARNs
+embed it.
 
 ```sh
 # Only S3 + SQS, with data under /tmp/aws
