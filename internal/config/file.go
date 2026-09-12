@@ -42,12 +42,14 @@ var DefaultTemplateFiles = []string{
 // so a key absent from the file leaves the corresponding Config value
 // untouched — that is what makes flags > file > defaults precedence work.
 type fileConfig struct {
-	Listen   *string     `toml:"listen"`
-	DataDir  *string     `toml:"data-dir"`
-	Services []string    `toml:"services"`
-	S3       *s3File     `toml:"s3"`
-	Lambda   *lambdaFile `toml:"lambda"`
-	Template *string     `toml:"template"`
+	Listen    *string     `toml:"listen"`
+	DataDir   *string     `toml:"data-dir"`
+	Services  []string    `toml:"services"`
+	S3        *s3File     `toml:"s3"`
+	Lambda    *lambdaFile `toml:"lambda"`
+	Template  *string     `toml:"template"`
+	Region    *string     `toml:"region"`
+	AccountID *string     `toml:"account-id"`
 }
 
 type s3File struct {
@@ -101,6 +103,12 @@ func (fc fileConfig) applyTo(cfg *Config) {
 	if fc.Lambda != nil && fc.Lambda.Runtimes != nil {
 		cfg.LambdaRuntimes = fc.Lambda.Runtimes
 	}
+	if fc.Region != nil {
+		cfg.Region = *fc.Region
+	}
+	if fc.AccountID != nil {
+		cfg.AccountID = *fc.AccountID
+	}
 	if fc.Template != nil {
 		cfg.TemplateFile = *fc.Template
 	}
@@ -111,10 +119,12 @@ func (fc fileConfig) applyTo(cfg *Config) {
 // `doze-aws config print`.
 func WriteTOML(w io.Writer, cfg Config) error {
 	fc := fileConfig{
-		Listen:  &cfg.ListenAddr,
-		DataDir: &cfg.DataDir,
-		S3:      &s3File{Host: &cfg.S3Host},
-		Lambda:  &lambdaFile{IdleTimeout: &tomlDuration{cfg.LambdaIdleTimeout}, Quiet: &cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes},
+		Listen:    &cfg.ListenAddr,
+		DataDir:   &cfg.DataDir,
+		S3:        &s3File{Host: &cfg.S3Host},
+		Region:    &cfg.Region,
+		AccountID: &cfg.AccountID,
+		Lambda:    &lambdaFile{IdleTimeout: &tomlDuration{cfg.LambdaIdleTimeout}, Quiet: &cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes},
 	}
 	if len(cfg.Services) > 0 {
 		fc.Services = cfg.Services

@@ -212,6 +212,7 @@ func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs.Var(servicesFlag{&dst.Services}, "services", "comma-separated services to enable (default: all implemented)")
 	fs.StringVar(&dst.S3Host, "s3-host", dst.S3Host, "base host for virtual-hosted-style S3 bucket addressing")
 	fs.StringVar(&dst.AccountID, "account-id", dst.AccountID, "twelve-digit account id every ARN carries (default 000000000000; set at creation, hard to change later)")
+	fs.StringVar(&dst.Region, "region", dst.Region, "region this instance serves; its data lives under <data-dir>/<region> (default us-east-1)")
 	fs.BoolVar(&dst.Console, "console", dst.Console, "serve the web management console at /_console")
 	fs.DurationVar(&dst.LambdaIdleTimeout, "lambda-idle", dst.LambdaIdleTimeout, "how long a warm Lambda keeps its process before scaling to zero")
 	fs.BoolVar(&dst.LambdaQuiet, "lambda-quiet", dst.LambdaQuiet, "do not echo Lambda function output to this log")
@@ -235,6 +236,21 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	iamMode, err := iam.ParseMode(cfg.IAMMode)
 	if err != nil {
 		return err
+	}
+
+	// A data directory written before regions keeps its services directly under
+	// the root; they belong under <region>/ now. This is a directory rename per
+	// service and it happens once, but it happens to somebody's data — so it is
+	// announced before it runs rather than discovered afterwards.
+	if dozeaws.NeedsMigration(cfg.DataDir) {
+		plan := dozeaws.PlanMigration(cfg.DataDir, cfg.Identity().RegionName())
+		for _, line := range plan.Describe() {
+			logger.Info(line)
+		}
+		if _, err := dozeaws.Migrate(cfg.DataDir, cfg.Identity().RegionName()); err != nil {
+			return err
+		}
+		logger.Info("data directory migrated", "services", len(plan.Moves))
 	}
 
 	stack, err := dozeaws.NewStack(dozeaws.StackConfig{

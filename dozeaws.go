@@ -53,6 +53,37 @@ import (
 // order (currently the full set gateway.Services knows about).
 var Implemented = []string{"s3", "dynamodb", "sqs", "sns", "sts", "kms", "ssm", "secretsmanager", "eventbridge", "lambda", "kinesis", "iam", "cloudformation", "apigateway", "stepfunctions", "logs", "cloudwatch"}
 
+// GlobalDir is the directory holding the services that have no region.
+//
+// It is a name no region can collide with: AWS region codes are
+// <area>-<direction>-<number> and never begin with an underscore.
+const GlobalDir = "_global"
+
+// Global names the services whose resources are genuinely region-less, and so
+// are shared by every region rather than duplicated per region.
+//
+// This is not a judgement call: it is exactly the set that mints ARNs through
+// awsident.GlobalARN — arn:aws:iam::<account>:… with an empty region segment —
+// which is AWS's own way of saying a resource is account-wide. A user or role
+// created in one region is the same user or role in every other.
+var Global = map[string]bool{"iam": true, "sts": true}
+
+// ServiceDir is where a service's data lives under the data directory:
+// <region>/<service>, or _global/<service> for the region-less ones.
+//
+// A region is a folder. That is the whole multi-region storage mechanism —
+// every service's store is opened under one, so none of the 245 store methods
+// or 76 bbolt buckets had to learn what a region is.
+func ServiceDir(region, service string) string {
+	if Global[service] {
+		return filepath.Join(GlobalDir, service)
+	}
+	if region == "" {
+		region = awsident.Region
+	}
+	return filepath.Join(region, service)
+}
+
 // StackConfig configures a Stack.
 type StackConfig struct {
 	// DataDir is the root under which each service gets its own subdirectory.
@@ -151,7 +182,7 @@ func NewStack(cfg StackConfig) (*Stack, error) {
 func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) (http.Handler, io.Closer, error) {
 	dataDir := ""
 	if cfg.DataDir != "" {
-		dataDir = filepath.Join(cfg.DataDir, name)
+		dataDir = filepath.Join(cfg.DataDir, ServiceDir(cfg.Identity.RegionName(), name))
 	}
 	// Peers resolve through the gateway registry at call time, so services
 	// find their siblings regardless of construction order.
