@@ -132,7 +132,7 @@ func (s *Store) PutItem(table string, rawItem json.RawMessage, cond *Cond) (old 
 		return nil, awshttp.Errf(400, "ValidationException", "item size %d exceeds the %d byte limit", size, item.MaxItemSize)
 	}
 	err = s.db.Update(func(tx *bolt.Tx) error {
-		t, err := getTable(tx, table)
+		t, err := s.getTable(tx, table)
 		if err != nil {
 			return err
 		}
@@ -157,7 +157,7 @@ func (s *Store) PutItem(table string, rawItem json.RawMessage, cond *Cond) (old 
 func (s *Store) GetItem(table string, rawKey json.RawMessage) (item.Item, error) {
 	var out item.Item
 	err := s.db.View(func(tx *bolt.Tx) error {
-		t, err := getTable(tx, table)
+		t, err := s.getTable(tx, table)
 		if err != nil {
 			return err
 		}
@@ -178,7 +178,7 @@ func (s *Store) GetItem(table string, rawKey json.RawMessage) (item.Item, error)
 // DeleteItem removes an item, returning the previous one.
 func (s *Store) DeleteItem(table string, rawKey json.RawMessage, cond *Cond, _ string) (old item.Item, err error) {
 	err = s.db.Update(func(tx *bolt.Tx) error {
-		t, err := getTable(tx, table)
+		t, err := s.getTable(tx, table)
 		if err != nil {
 			return err
 		}
@@ -205,7 +205,7 @@ func (s *Store) DeleteItem(table string, rawKey json.RawMessage, cond *Cond, _ s
 // UpdateItem applies an update expression, returning (old, new) items.
 func (s *Store) UpdateItem(table string, rawKey json.RawMessage, upd *expr.Update, cond *Cond) (old, new item.Item, err error) {
 	err = s.db.Update(func(tx *bolt.Tx) error {
-		t, err := getTable(tx, table)
+		t, err := s.getTable(tx, table)
 		if err != nil {
 			return err
 		}

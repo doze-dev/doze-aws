@@ -104,7 +104,7 @@ func hListStreams(s *Server, p map[string]any) (any, *awshttp.APIError) {
 		}
 		summaries = append(summaries, map[string]any{
 			"StreamName":              st.Name,
-			"StreamARN":               streamARN(st.Name),
+			"StreamARN":               streamARN(s.id, st.Name),
 			"StreamStatus":            "ACTIVE",
 			"StreamModeDetails":       map[string]any{"StreamMode": st.Mode},
 			"StreamCreationTimestamp": float64(st.Created),
@@ -139,7 +139,7 @@ func hDescribeStream(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	}
 	d := map[string]any{
 		"StreamName":              st.Name,
-		"StreamARN":               streamARN(st.Name),
+		"StreamARN":               streamARN(s.id, st.Name),
 		"StreamStatus":            "ACTIVE",
 		"StreamModeDetails":       map[string]any{"StreamMode": st.Mode},
 		"Shards":                  shards,
@@ -164,10 +164,10 @@ func hDescribeStreamSummary(s *Server, p map[string]any) (any, *awshttp.APIError
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	consumers, _ := s.store.ListConsumers(streamARN(st.Name))
+	consumers, _ := s.store.ListConsumers(streamARN(s.id, st.Name))
 	d := map[string]any{
 		"StreamName":              st.Name,
-		"StreamARN":               streamARN(st.Name),
+		"StreamARN":               streamARN(s.id, st.Name),
 		"StreamStatus":            "ACTIVE",
 		"StreamModeDetails":       map[string]any{"StreamMode": st.Mode},
 		"RetentionPeriodHours":    st.RetentionHours,
@@ -514,7 +514,7 @@ func setMonitoring(s *Server, p map[string]any, enable bool) (any, *awshttp.APIE
 	}
 	return map[string]any{
 		"StreamName":               stream,
-		"StreamARN":                streamARN(stream),
+		"StreamARN":                streamARN(s.id, stream),
 		"CurrentShardLevelMetrics": before,
 		"DesiredShardLevelMetrics": after,
 	}, nil
@@ -587,7 +587,7 @@ func hGetResourcePolicy(s *Server, p map[string]any) (any, *awshttp.APIError) {
 		return nil, awshttp.AsAPIError(gerr)
 	}
 	if st.ResourcePolicy == "" {
-		return nil, errNoStream(stream)
+		return nil, errNoStream(s.id, stream)
 	}
 	return map[string]any{"Policy": st.ResourcePolicy}, nil
 }

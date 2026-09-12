@@ -13,7 +13,7 @@ import (
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 
-	"github.com/doze-dev/doze-aws"
+	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
 )
 

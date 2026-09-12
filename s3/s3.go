@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
@@ -39,6 +40,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Identity is the region and account this service mints ARNs for. The zero
+	// value means the conventional local identity.
+	Identity awsident.Identity
 	// IAMMode is the IAM service's mode; under soft or enforce the bucket
 	// policy is evaluated on every bucket and object request.
 	IAMMode string
@@ -55,7 +59,8 @@ type Server struct {
 	// done closes when the janitor has returned, so Close waits for it before
 	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
 	done  chan struct{}
-	guard iamguard.Guard // the bucket policy, under IAM soft/enforce
+	guard iamguard.Guard    // the bucket policy, under IAM soft/enforce
+	id    awsident.Identity // the region and account this service mints ARNs for
 }
 
 // New opens the store under DataDir and starts the lifecycle janitor.
@@ -78,6 +83,7 @@ func New(opts Options) (*Server, error) {
 		stop:  make(chan struct{}),
 		done:  make(chan struct{}),
 		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf},
+		id:    opts.Identity,
 	}
 	if s.peers == nil {
 		s.peers = peers.None()

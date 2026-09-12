@@ -58,8 +58,8 @@ type owner struct {
 	DisplayName string `xml:"DisplayName"`
 }
 
-func localOwner() owner {
-	return owner{ID: "doze" + awsident.AccountID, DisplayName: awsident.AccessKeyID}
+func (s *Server) localOwner() owner {
+	return owner{ID: "doze" + s.id.Account(), DisplayName: awsident.AccessKeyID}
 }
 
 // readBodyXML decodes a request's XML body into dst with a size guard.

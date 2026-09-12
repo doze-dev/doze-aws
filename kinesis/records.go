@@ -118,7 +118,7 @@ func hGetShardIterator(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	}
 	sh, ok := st.shard(shard)
 	if !ok {
-		return nil, errNoShard(shard, stream)
+		return nil, errNoShard(s.id, shard, stream)
 	}
 
 	var after uint64
@@ -190,7 +190,7 @@ func hGetRecords(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	}
 	sh, ok := st.shard(cur.Shard)
 	if !ok {
-		return nil, errNoShard(cur.Shard, cur.Stream)
+		return nil, errNoShard(s.id, cur.Shard, cur.Stream)
 	}
 
 	out := make([]map[string]any, 0, len(recs))

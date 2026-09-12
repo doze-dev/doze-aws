@@ -23,6 +23,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -42,6 +43,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Identity is the region and account this service mints ARNs for. The zero
+	// value means the conventional local identity.
+	Identity awsident.Identity
 }
 
 // Server is the DynamoDB service: an http.Handler speaking AWS JSON 1.0, and
@@ -54,6 +58,7 @@ type Server struct {
 	// done closes when the janitor has returned, so Close waits for it before
 	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
 	done chan struct{}
+	id   awsident.Identity // the region and account this service mints ARNs for
 }
 
 // New opens the store under DataDir and starts the TTL janitor.
@@ -79,10 +84,12 @@ func New(opts Options) (*Server, error) {
 		api:   awsjson.API{TargetPrefix: "DynamoDB_20120810", JSONVersion: "1.0"},
 		stop:  make(chan struct{}),
 		done:  make(chan struct{}),
+		id:    opts.Identity,
 	}
 	if opts.Clock != nil {
 		s.store.SetClock(opts.Clock)
 	}
+	s.store.SetIdentity(opts.Identity)
 	go s.janitor()
 	return s, nil
 }

@@ -81,10 +81,14 @@ type Table struct {
 	SSEType    string `json:"sse_type,omitempty"`
 	SSEKeyID   string `json:"sse_key_id,omitempty"`
 	ItemCount  int64  `json:"item_count"`
+
+	// id is the identity ARN() and StreamARN() mint under, stamped on read by
+	// Store.stamp. Unexported, so it is never written to bbolt.
+	id awsident.Identity
 }
 
 // ARN returns the table ARN.
-func (t *Table) ARN() string { return awsident.ARN("dynamodb", "table/"+t.Name) }
+func (t *Table) ARN() string { return t.id.ARN("dynamodb", "table/"+t.Name) }
 
 // FindIndex locates an index by name.
 func (t *Table) FindIndex(name string) *Index {
@@ -100,6 +104,9 @@ func (t *Table) FindIndex(name string) *Index {
 type Store struct {
 	db    *bolt.DB
 	clock func() time.Time
+	// id is the region and account table ARNs are minted for. Set by
+	// SetIdentity after construction, the same way the clock is.
+	id awsident.Identity
 }
 
 // New wraps an open bbolt DB.
@@ -107,6 +114,10 @@ func New(db *bolt.DB) *Store { return &Store{db: db, clock: time.Now} }
 
 // SetClock overrides the clock (tests).
 func (s *Store) SetClock(fn func() time.Time) { s.clock = fn }
+
+// SetIdentity sets the region and account this store's table ARNs are minted
+// for. The zero value means the conventional local identity.
+func (s *Store) SetIdentity(id awsident.Identity) { s.id = id }
 
 func (s *Store) now() time.Time { return s.clock() }
 
@@ -139,14 +150,14 @@ func (s *Store) CreateTable(t Table) (*Table, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &t, nil
+	return s.stamp(&t), nil
 }
 
 // GetTable loads a table definition.
 func (s *Store) GetTable(name string) (*Table, error) {
 	var out *Table
 	err := s.db.View(func(tx *bolt.Tx) error {
-		t, err := getTable(tx, name)
+		t, err := s.getTable(tx, name)
 		if err != nil {
 			return err
 		}
@@ -156,7 +167,7 @@ func (s *Store) GetTable(name string) (*Table, error) {
 	return out, err
 }
 
-func getTable(tx *bolt.Tx, name string) (*Table, error) {
+func (s *Store) getTable(tx *bolt.Tx, name string) (*Table, error) {
 	b := tx.Bucket(tablesBucket)
 	if b == nil {
 		return nil, errTableNotFound(name)
@@ -169,7 +180,18 @@ func getTable(tx *bolt.Tx, name string) (*Table, error) {
 	if err := json.Unmarshal(raw, &t); err != nil {
 		return nil, err
 	}
-	return &t, nil
+	return s.stamp(&t), nil
+}
+
+// stamp marks a table with the identity that owns it, so ARN() and StreamARN()
+// can stay plain methods on a record that was decoded out of bbolt and has no
+// pointer back here. The field is unexported and therefore never persisted: the
+// identity belongs to the instance, not the row.
+func (s *Store) stamp(t *Table) *Table {
+	if t != nil {
+		t.id = s.id
+	}
+	return t
 }
 
 // UpdateTable applies fn to a table definition. Adding a GSI triggers a
@@ -177,7 +199,7 @@ func getTable(tx *bolt.Tx, name string) (*Table, error) {
 func (s *Store) UpdateTable(name string, fn func(*Table) error) (*Table, error) {
 	var out *Table
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		t, err := getTable(tx, name)
+		t, err := s.getTable(tx, name)
 		if err != nil {
 			return err
 		}
@@ -263,7 +285,7 @@ func (s *Store) backfillIndex(tx *bolt.Tx, t *Table, idx *Index) error {
 func (s *Store) DeleteTable(name string) (*Table, error) {
 	var out *Table
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		t, err := getTable(tx, name)
+		t, err := s.getTable(tx, name)
 		if err != nil {
 			return err
 		}

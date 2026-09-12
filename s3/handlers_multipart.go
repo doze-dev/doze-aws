@@ -226,7 +226,7 @@ func (s *Server) listParts(w http.ResponseWriter, bucket, key, uploadID string) 
 		Owner    owner    `xml:"Owner"`
 		Parts    []partEl `xml:"Part"`
 	}
-	res := result{XMLNS: s3NS, Bucket: bucket, Key: key, UploadID: uploadID, Owner: localOwner(), Parts: []partEl{}}
+	res := result{XMLNS: s3NS, Bucket: bucket, Key: key, UploadID: uploadID, Owner: s.localOwner(), Parts: []partEl{}}
 	for _, p := range parts {
 		res.Parts = append(res.Parts, partEl{
 			PartNumber: p.Number, LastModified: iso8601(p.LastModified),
@@ -257,7 +257,7 @@ func (s *Server) listMultipartUploads(w http.ResponseWriter, bucket string, q ur
 	res := result{XMLNS: s3NS, Bucket: bucket, Uploads: []uploadEl{}}
 	for _, u := range ups {
 		res.Uploads = append(res.Uploads, uploadEl{
-			Key: u.Key, UploadID: u.ID, Initiated: iso8601(u.Initiated), Owner: localOwner(),
+			Key: u.Key, UploadID: u.ID, Initiated: iso8601(u.Initiated), Owner: s.localOwner(),
 		})
 	}
 	writeXML(w, 200, res)

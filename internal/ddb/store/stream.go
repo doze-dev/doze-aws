@@ -14,7 +14,6 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/ddb/item"
 )
 
@@ -69,7 +68,7 @@ func (t *Table) StreamLabel() string {
 	return time.Unix(t.Created, 0).UTC().Format("2006-01-02T15:04:05.000")
 }
 func (t *Table) StreamARN() string {
-	return awsident.ARN("dynamodb", "table/"+t.Name+"/stream/"+t.StreamLabel())
+	return t.id.ARN("dynamodb", "table/"+t.Name+"/stream/"+t.StreamLabel())
 }
 
 // storedStreamRecord is the on-disk change record (both images kept; the view

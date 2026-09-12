@@ -157,10 +157,10 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 	dir := peers.InProcess(st.gw.Handler)
 	switch name {
 	case "s3":
-		s, err := s3.New(s3.Options{DataDir: dataDir, Host: cfg.S3Host, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
+		s, err := s3.New(s3.Options{DataDir: dataDir, Host: cfg.S3Host, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "dynamodb":
-		s, err := dynamodb.New(dynamodb.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		s, err := dynamodb.New(dynamodb.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "sts":
 		s, err := sts.New(sts.Options{DataDir: dataDir, Logf: logf})
@@ -206,7 +206,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		}
 		return s, s, err
 	case "kinesis":
-		s, err := kinesis.New(kinesis.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
+		s, err := kinesis.New(kinesis.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "apigateway":
 		s, err := apigateway.New(apigateway.Options{DataDir: dataDir, Peers: dir, Logf: logf})

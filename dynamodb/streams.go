@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/ddb/store"
 )
@@ -158,7 +157,7 @@ func (s *Server) getRecords(body []byte) (any, *awshttp.APIError) {
 	next := after
 	out := make([]map[string]any, 0, len(recs))
 	for _, rec := range recs {
-		out = append(out, streamRecordWire(rec, viewType))
+		out = append(out, s.streamRecordWire(rec, viewType))
 		next = rec.Seq
 	}
 	return map[string]any{
@@ -170,7 +169,7 @@ func (s *Server) getRecords(body []byte) (any, *awshttp.APIError) {
 
 // streamRecordWire shapes one stored record into the Streams wire format,
 // applying the stream view type.
-func streamRecordWire(rec store.StreamRecord, viewType string) map[string]any {
+func (s *Server) streamRecordWire(rec store.StreamRecord, viewType string) map[string]any {
 	d := map[string]any{
 		"Keys":                        json.RawMessage(rec.Keys),
 		"SequenceNumber":              strconv.FormatUint(rec.Seq, 10),
@@ -200,7 +199,7 @@ func streamRecordWire(rec store.StreamRecord, viewType string) map[string]any {
 		"eventName":    rec.EventName,
 		"eventVersion": "1.1",
 		"eventSource":  "aws:dynamodb",
-		"awsRegion":    awsident.Region,
+		"awsRegion":    s.id.RegionName(),
 		"dynamodb":     d,
 	}
 }

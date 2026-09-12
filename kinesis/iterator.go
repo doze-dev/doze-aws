@@ -13,15 +13,16 @@ import (
 	"github.com/doze-dev/doze-aws/awsident"
 )
 
-const accountID = awsident.AccountID
-
 // iteratorTTL matches AWS: a shard iterator goes stale after five minutes, and
 // consumers are expected to handle ExpiredIteratorException by asking for a new
 // one. Enforcing it locally means code that ignores the contract fails here
 // rather than in production.
 const iteratorTTL = 5 * time.Minute
 
-func streamARN(name string) string { return awsident.ARN("kinesis", "stream/"+name) }
+// streamARN takes an identity rather than reading a package constant: an ARN
+// belongs to the instance that minted it. Every caller has an s with an id,
+// whether it is a Server or a Store.
+func streamARN(id awsident.Identity, name string) string { return id.ARN("kinesis", "stream/"+name) }
 
 // shardID renders a shard number the way Kinesis does: shardId- and twelve
 // zero-padded digits.

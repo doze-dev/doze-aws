@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -131,6 +132,7 @@ type Store struct {
 	db     *bolt.DB
 	clock  func() time.Time
 	notify *notifier
+	id     awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
 func newStore(db *bolt.DB) *Store {
@@ -144,11 +146,11 @@ func (s *Store) now() time.Time { return s.clock() }
 func (s *Store) getStream(tx *bolt.Tx, name string) (*Stream, error) {
 	b := tx.Bucket(metaBucket)
 	if b == nil {
-		return nil, errNoStream(name)
+		return nil, errNoStream(s.id, name)
 	}
 	raw := b.Get([]byte(name))
 	if raw == nil {
-		return nil, errNoStream(name)
+		return nil, errNoStream(s.id, name)
 	}
 	var st Stream
 	if err := json.Unmarshal(raw, &st); err != nil {
@@ -254,7 +256,7 @@ func (s *Store) Delete(name string) error {
 			_ = tx.DeleteBucket(recBucket(name, sh.ID))
 		}
 		if cb := tx.Bucket(consumerBucket); cb != nil {
-			arn := streamARN(name)
+			arn := streamARN(s.id, name)
 			c := cb.Cursor()
 			var kill [][]byte
 			for k, v := c.First(); k != nil; k, v = c.Next() {
@@ -438,7 +440,7 @@ func (s *Store) Fetch(stream, shard string, after uint64, limit int) (recs []Rec
 		}
 		sh, ok := st.shard(shard)
 		if !ok {
-			return errNoShard(shard, stream)
+			return errNoShard(s.id, shard, stream)
 		}
 		b := tx.Bucket(recBucket(stream, shard))
 		if b == nil {

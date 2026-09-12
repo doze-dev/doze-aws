@@ -33,7 +33,7 @@ func (s *Server) guardRequest(w http.ResponseWriter, r *http.Request, action str
 	if err != nil || action == "CreateStream" {
 		// No stream, no policy: the identity verdict decides, and the
 		// handler reports a missing stream.
-		return s.guard.CheckIdentity(w, r, "kinesis:"+action, streamARN(name))
+		return s.guard.CheckIdentity(w, r, "kinesis:"+action, streamARN(s.id, name))
 	}
 	var docs []*iampolicy.Document
 	if st.ResourcePolicy != "" {
@@ -41,5 +41,5 @@ func (s *Server) guardRequest(w http.ResponseWriter, r *http.Request, action str
 			docs = append(docs, doc)
 		}
 	}
-	return s.guard.Check(w, r, docs, "kinesis:"+action, streamARN(name))
+	return s.guard.Check(w, r, docs, "kinesis:"+action, streamARN(s.id, name))
 }

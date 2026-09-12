@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/s3store"
 )
@@ -27,7 +26,7 @@ func (s *Server) listBuckets(w http.ResponseWriter) *awshttp.APIError {
 		Owner   owner      `xml:"Owner"`
 		Buckets []bucketEl `xml:"Buckets>Bucket"`
 	}
-	res := result{XMLNS: s3NS, Owner: localOwner(), Buckets: []bucketEl{}}
+	res := result{XMLNS: s3NS, Owner: s.localOwner(), Buckets: []bucketEl{}}
 	for _, b := range buckets {
 		res.Buckets = append(res.Buckets, bucketEl{Name: b.Name, CreationDate: iso8601(b.Created)})
 	}
@@ -49,7 +48,7 @@ func (s *Server) headBucket(w http.ResponseWriter, bucket string) *awshttp.APIEr
 	if _, err := s.store.GetBucket(bucket); err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	w.Header().Set("x-amz-bucket-region", awsident.Region)
+	w.Header().Set("x-amz-bucket-region", s.id.RegionName())
 	w.WriteHeader(200)
 	return nil
 }
@@ -371,8 +370,8 @@ type grantee struct {
 	DisplayName string `xml:"DisplayName,omitempty"`
 }
 
-func cannedACL() aclDoc {
-	o := localOwner()
+func (s *Server) cannedACL() aclDoc {
+	o := s.localOwner()
 	return aclDoc{
 		XMLNS: s3NS,
 		Owner: o,
@@ -387,7 +386,7 @@ func (s *Server) getBucketACL(w http.ResponseWriter, bucket string) *awshttp.API
 	if _, err := s.store.GetBucket(bucket); err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	writeXML(w, 200, cannedACL())
+	writeXML(w, 200, s.cannedACL())
 	return nil
 }
 
@@ -408,7 +407,7 @@ func (s *Server) getObjectACL(w http.ResponseWriter, bucket, key string) *awshtt
 	if _, err := s.store.GetVersion(bucket, key, ""); err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	writeXML(w, 200, cannedACL())
+	writeXML(w, 200, s.cannedACL())
 	return nil
 }
 
@@ -462,7 +461,7 @@ func (s *Server) listObjects(w http.ResponseWriter, r *http.Request, bucket stri
 				ETag: quoteETag(e.ETag), Size: e.Size, StorageClass: e.StorageClass,
 			}
 			if fetchOwner {
-				ow := localOwner()
+				ow := s.localOwner()
 				o.Owner = &ow
 			}
 			if e.ChecksumAlg != "" {
@@ -578,7 +577,7 @@ func (s *Server) listObjectVersions(w http.ResponseWriter, bucket string, q url.
 		if v.DeleteMarker {
 			out.DeleteMarkers = append(out.DeleteMarkers, markerEl{
 				Key: v.Key, VersionID: v.VersionID, IsLatest: v.IsLatest,
-				LastModified: iso8601(v.LastModified), Owner: localOwner(),
+				LastModified: iso8601(v.LastModified), Owner: s.localOwner(),
 			})
 			continue
 		}
@@ -586,7 +585,7 @@ func (s *Server) listObjectVersions(w http.ResponseWriter, bucket string, q url.
 			Key: v.Key, VersionID: v.VersionID, IsLatest: v.IsLatest,
 			LastModified: iso8601(v.LastModified), ETag: quoteETag(v.ETag),
 			Size: v.Size, StorageClass: orDefault(v.StorageClass, "STANDARD"),
-			Owner: localOwner(),
+			Owner: s.localOwner(),
 		})
 	}
 	for _, p := range res.CommonPrefixes {

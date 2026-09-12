@@ -59,7 +59,7 @@ func hSplitShard(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	_, err := s.store.Update(stream, func(st *Stream) error {
 		sh, found := st.shard(target)
 		if !found {
-			return errNoShard(target, stream)
+			return errNoShard(s.id, target, stream)
 		}
 		if sh.Closed {
 			return errInvalid("shard %s is already closed", target)
@@ -101,10 +101,10 @@ func hMergeShards(s *Server, p map[string]any) (any, *awshttp.APIError) {
 		left, ok1 := st.shard(a)
 		right, ok2 := st.shard(b)
 		if !ok1 {
-			return errNoShard(a, stream)
+			return errNoShard(s.id, a, stream)
 		}
 		if !ok2 {
-			return errNoShard(b, stream)
+			return errNoShard(s.id, b, stream)
 		}
 		if left.Closed || right.Closed {
 			return errInvalid("both shards must be open to merge")
@@ -194,6 +194,6 @@ func hUpdateShardCount(s *Server, p map[string]any) (any, *awshttp.APIError) {
 		"StreamName":        out.Name,
 		"CurrentShardCount": current,
 		"TargetShardCount":  target,
-		"StreamARN":         streamARN(out.Name),
+		"StreamARN":         streamARN(s.id, out.Name),
 	}, nil
 }

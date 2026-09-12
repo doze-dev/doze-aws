@@ -103,7 +103,7 @@ func (s *Store) TransactWrite(ops []TxWriteOp, token string, requestHash string)
 		seen := map[string]bool{}
 		for i, op := range ops {
 			reasons[i] = CancellationReason{Code: "None"}
-			t, err := getTable(tx, op.Table)
+			t, err := s.getTable(tx, op.Table)
 			if err != nil {
 				reasons[i] = CancellationReason{Code: "ResourceNotFound", Message: op.Table}
 				canceled = true
@@ -290,7 +290,7 @@ func (s *Store) TransactGet(keys []struct {
 	out := make([]item.Item, len(keys))
 	err := s.db.View(func(tx *bolt.Tx) error {
 		for i, g := range keys {
-			t, err := getTable(tx, g.Table)
+			t, err := s.getTable(tx, g.Table)
 			if err != nil {
 				return err
 			}

@@ -39,8 +39,7 @@ const (
 // it to the table in TestEveryServiceMintsTheConfiguredIdentity — the two
 // together are the migration's progress bar.
 var unplumbed = []string{
-	"s3", "dynamodb", "sns", "sts",
-	"eventbridge", "lambda", "kinesis", "iam", "cloudformation",
+	"sns", "sts", "eventbridge", "lambda", "iam", "cloudformation",
 	"apigateway", "stepfunctions", "logs", "cloudwatch",
 }
 
@@ -79,6 +78,20 @@ func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {
 			create: [2]string{"TrentService.CreateKey", `{"Description":"test"}`},
 			read:   [2]string{"TrentService.ListKeys", `{}`},
 			want:   "arn:aws:kms:" + testRegion + ":" + testAccount + ":key/",
+		},
+		{
+			svc: "dynamodb",
+			create: [2]string{"DynamoDB_20120810.CreateTable",
+				`{"TableName":"orders","AttributeDefinitions":[{"AttributeName":"id","AttributeType":"S"}],` +
+					`"KeySchema":[{"AttributeName":"id","KeyType":"HASH"}],"BillingMode":"PAY_PER_REQUEST"}`},
+			read: [2]string{"DynamoDB_20120810.DescribeTable", `{"TableName":"orders"}`},
+			want: "arn:aws:dynamodb:" + testRegion + ":" + testAccount + ":table/orders",
+		},
+		{
+			svc:    "kinesis",
+			create: [2]string{"Kinesis_20131202.CreateStream", `{"StreamName":"events","ShardCount":1}`},
+			read:   [2]string{"Kinesis_20131202.DescribeStreamSummary", `{"StreamName":"events"}`},
+			want:   "arn:aws:kinesis:" + testRegion + ":" + testAccount + ":stream/events",
 		},
 	}
 

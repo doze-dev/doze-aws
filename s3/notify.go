@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 	"github.com/doze-dev/doze-aws/internal/s3store"
@@ -106,7 +105,7 @@ func (s *Server) eventRecord(bucket, key, eventName string, v *s3store.ObjectVer
 	return map[string]any{
 		"eventVersion": "2.1",
 		"eventSource":  "aws:s3",
-		"awsRegion":    awsident.Region,
+		"awsRegion":    s.id.RegionName(),
 		"eventTime":    time.Unix(s.now().Unix(), 0).UTC().Format(time.RFC3339),
 		"eventName":    strings.TrimPrefix(eventName, "s3:"),
 		"s3": map[string]any{

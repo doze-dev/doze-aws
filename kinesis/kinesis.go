@@ -27,6 +27,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 	"github.com/doze-dev/doze-aws/internal/bg"
@@ -49,6 +50,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Identity is the region and account this service mints ARNs for. The zero
+	// value means the conventional local identity.
+	Identity awsident.Identity
 	// IAMMode is the IAM service's mode; under soft or enforce a stream's
 	// resource policy is evaluated on every request that names it.
 	IAMMode string
@@ -68,7 +72,8 @@ type Server struct {
 	// done closes when the janitor has returned, so Close waits for it before
 	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
 	done  chan struct{}
-	guard iamguard.Guard // the stream's resource policy, under IAM soft/enforce
+	guard iamguard.Guard    // the stream's resource policy, under IAM soft/enforce
+	id    awsident.Identity // the region and account this service mints ARNs for
 	// peers resolves KMS, so a stream encrypted with a customer key can check
 	// that the key is still usable rather than accepting writes against one
 	// that has been disabled or deleted.
@@ -101,6 +106,7 @@ func New(opts Options) (*Server, error) {
 		done:  make(chan struct{}),
 		peers: opts.Peers,
 		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf},
+		id:    opts.Identity,
 	}
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock

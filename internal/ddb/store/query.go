@@ -44,7 +44,7 @@ type QueryOutput struct {
 func (s *Store) Query(in QueryInput) (*QueryOutput, error) {
 	out := &QueryOutput{}
 	err := s.db.View(func(tx *bolt.Tx) error {
-		t, err := getTable(tx, in.Table)
+		t, err := s.getTable(tx, in.Table)
 		if err != nil {
 			return err
 		}
@@ -334,7 +334,7 @@ type ScanInput struct {
 func (s *Store) Scan(in ScanInput) (*QueryOutput, error) {
 	out := &QueryOutput{}
 	err := s.db.View(func(tx *bolt.Tx) error {
-		t, err := getTable(tx, in.Table)
+		t, err := s.getTable(tx, in.Table)
 		if err != nil {
 			return err
 		}

@@ -7,22 +7,23 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
 type apiError = awshttp.APIError
 
-func errNoStream(name string) *apiError {
+func errNoStream(id awsident.Identity, name string) *apiError {
 	return &apiError{
 		Code: "ResourceNotFoundException", Status: 400, SenderFault: true,
-		Message: "Stream " + name + " under account " + accountID + " not found.",
+		Message: "Stream " + name + " under account " + id.Account() + " not found.",
 	}
 }
 
-func errNoShard(shard, stream string) *apiError {
+func errNoShard(id awsident.Identity, shard, stream string) *apiError {
 	return &apiError{
 		Code: "ResourceNotFoundException", Status: 400, SenderFault: true,
-		Message: "Shard " + shard + " in stream " + stream + " under account " + accountID + " does not exist",
+		Message: "Shard " + shard + " in stream " + stream + " under account " + id.Account() + " does not exist",
 	}
 }
 

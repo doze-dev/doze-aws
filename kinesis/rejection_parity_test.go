@@ -25,8 +25,9 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/doze-dev/doze-aws/internal/auditkit"
 	"testing"
+
+	"github.com/doze-dev/doze-aws/internal/auditkit"
 )
 
 type auditCase struct {
