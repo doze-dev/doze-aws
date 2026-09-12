@@ -190,6 +190,7 @@ func main() {
 	logger.Info("doze-aws", "version", version)
 	if st.configFile != "" {
 		logger.Info("loaded config file", "path", st.configFile)
+		reportOverrides(logger, st.configFile, st.fileKeys, st.given)
 	}
 
 	if err := run(st.cfg, logger); err != nil {
@@ -227,6 +228,11 @@ func fatal(logger *slog.Logger, err error) {
 type startup struct {
 	cfg        config.Config
 	configFile string // the config file actually loaded, or "" if none.
+	// fileKeys names what the config file set, and given what was passed on the
+	// command line. Kept so startup can report a flag overruling the file — see
+	// reportOverrides.
+	fileKeys map[string]bool
+	given    map[string]bool
 }
 
 // loadConfig resolves the effective configuration with flags > file > defaults
@@ -235,7 +241,7 @@ type startup struct {
 // parses the flags again on top so any flag still wins.
 func loadConfig(args []string) (startup, error) {
 	probe := config.Default()
-	configPath := parseFlags(args, &probe)
+	configPath, _ := parseFlags(args, &probe)
 	if configPath == "" {
 		if _, err := os.Stat(config.DefaultConfigFile); err == nil {
 			configPath = config.DefaultConfigFile
@@ -243,12 +249,14 @@ func loadConfig(args []string) (startup, error) {
 	}
 
 	c := config.Default()
+	var fileKeys map[string]bool
 	if configPath != "" {
-		if err := config.LoadFile(configPath, &c); err != nil {
+		var err error
+		if fileKeys, err = config.LoadFile(configPath, &c); err != nil {
 			return startup{}, err
 		}
 	}
-	parseFlags(args, &c)
+	_, given := parseFlags(args, &c)
 	// The instance name is resolved HERE rather than in Default, so it is the
 	// same answer for the server and for the `apply`/`export` clients that have
 	// to find it — all three run in the project directory, and all three go
@@ -272,7 +280,7 @@ func loadConfig(args []string) (startup, error) {
 	if abs, err := filepath.Abs(c.DataDir); err == nil {
 		c.DataDir = abs
 	}
-	return startup{cfg: c, configFile: configPath}, nil
+	return startup{cfg: c, configFile: configPath, fileKeys: fileKeys, given: given}, nil
 }
 
 // newFlagSet binds the flags onto dst and returns the set plus the --config
@@ -298,10 +306,54 @@ func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 }
 
 // parseFlags binds the flags onto dst and parses args, returning the --config path.
-func parseFlags(args []string, dst *config.Config) (configPath string) {
+// given names the flags EXPLICITLY passed, via fs.Visit — which walks only
+// those that were set, unlike VisitAll. That distinction is the whole point:
+// a flag left at its default must not look like an instruction.
+func parseFlags(args []string, dst *config.Config) (configPath string, given map[string]bool) {
 	fs, cp := newFlagSet(dst)
 	fs.Parse(args) //nolint:errcheck // flag.ExitOnError exits on a parse error.
-	return *cp
+	given = map[string]bool{}
+	fs.Visit(func(f *flag.Flag) { given[f.Name] = true })
+	return *cp, given
+}
+
+// consequential are the flags whose silent override of a config file looks,
+// from the outside, like something went wrong.
+//
+// Flags beat the file — that is the documented precedence and it is right; a
+// throwaway --data-dir is a real and reasonable thing to want. What was wrong
+// is that overriding happened without a word, and three of these produce a
+// running instance that appears to have lost data:
+//
+//	data-dir    a different directory is an EMPTY instance. "Where did my
+//	            queues go" — they are in the directory the file named.
+//	services    the store is still on disk, the service is simply not served,
+//	            so its resources are invisible with nothing to explain why.
+//	name        every URL already minted under the old name is now NXDOMAIN,
+//	            because the old name is no longer claimed by anything.
+//	region      unqualified requests land in a different folder; the old
+//	            region's resources are still there, under the old region.
+//	account-id  refused outright, not warned — the data records its account
+//	            and stored ARNs embed it. See instance.go.
+var consequential = map[string]string{
+	"data-dir": "the resources you had are in the directory the file names, not here",
+	"services": "the services you dropped keep their data on disk; it is simply not served",
+	"name":     "URLs minted under the old name no longer resolve — nothing claims it now",
+	"region":   "unqualified requests land in the new region; the old one's resources are still under its own folder",
+}
+
+// reportOverrides says when a flag overruled something the config file wrote
+// down. Only for keys the file ACTUALLY set: a flag filling in a blank is not
+// an override and saying so would be noise.
+func reportOverrides(logger *slog.Logger, path string, fileKeys, given map[string]bool) {
+	for name := range given {
+		why, matters := consequential[name]
+		if !matters || !fileKeys[name] {
+			continue
+		}
+		logger.Warn("a flag overrode the config file",
+			"flag", "--"+name, "file", path, "consequence", why)
+	}
 }
 
 // run builds the stack and serves until interrupted.

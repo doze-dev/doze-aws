@@ -59,25 +59,52 @@ type lambdaFile struct {
 	Runtimes    map[string]string `toml:"runtimes"`
 }
 
+// Keys a config file set, by their flag spelling. Returned by LoadFile so the
+// caller can tell a value that was WRITTEN DOWN from one that merely defaulted
+// — which is the difference between a flag overriding a decision and a flag
+// filling in a blank.
+func (fc fileConfig) keys() map[string]bool {
+	set := map[string]bool{}
+	for name, present := range map[string]bool{
+		"listen":     fc.Listen != nil,
+		"data-dir":   fc.DataDir != nil,
+		"services":   fc.Services != nil,
+		"template":   fc.Template != nil,
+		"region":     fc.Region != nil,
+		"account-id": fc.AccountID != nil,
+		"name":       fc.Name != nil,
+	} {
+		if present {
+			set[name] = true
+		}
+	}
+	return set
+}
+
 // LoadFile reads a TOML config file and overlays it onto cfg. Unknown keys are
 // rejected so a typo fails loudly instead of being silently ignored.
-func LoadFile(path string, cfg *Config) error {
+//
+// The returned set names the keys the file actually set. Flags still win — that
+// is the documented precedence and it is right — but the caller uses this to
+// SAY when a flag is overruling something someone wrote down, because several
+// of these look like data loss when they take effect silently.
+func LoadFile(path string, cfg *Config) (map[string]bool, error) {
 	var fc fileConfig
 	md, err := toml.DecodeFile(path, &fc)
 	if err != nil {
-		return fmt.Errorf("config: read %s: %w", path, err)
+		return nil, fmt.Errorf("config: read %s: %w", path, err)
 	}
 	if undecoded := md.Undecoded(); len(undecoded) > 0 {
 		keys := make([]string, len(undecoded))
 		for i, k := range undecoded {
 			keys[i] = k.String()
 		}
-		return fmt.Errorf("config: %s: unknown key(s): %s%s",
+		return nil, fmt.Errorf("config: %s: unknown key(s): %s%s",
 			path, strings.Join(keys, ", "), removedKeyHint(keys))
 	}
 	fc.applyTo(cfg)
 	resolveAgainstFile(path, fc.DataDir, cfg)
-	return nil
+	return fc.keys(), nil
 }
 
 // resolveAgainstFile anchors the data directory to the CONFIG FILE rather than

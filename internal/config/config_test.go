@@ -42,7 +42,7 @@ func TestLoadFileOverlay(t *testing.T) {
 	os.WriteFile(path, []byte("listen = \"127.0.0.1:9999\"\nservices = [\"sts\", \"sqs\"]\n"), 0o644)
 
 	c := Default()
-	if err := LoadFile(path, &c); err != nil {
+	if _, err := LoadFile(path, &c); err != nil {
 		t.Fatal(err)
 	}
 	if c.ListenAddr != "127.0.0.1:9999" {
@@ -74,7 +74,7 @@ func TestDataDirIsAnchoredToTheConfigFile(t *testing.T) {
 		t.Run(tc.what, func(t *testing.T) {
 			os.WriteFile(path, []byte(tc.key), 0o644)
 			c := Default()
-			if err := LoadFile(path, &c); err != nil {
+			if _, err := LoadFile(path, &c); err != nil {
 				t.Fatal(err)
 			}
 			if c.DataDir != tc.want {
@@ -93,7 +93,7 @@ func TestARemovedKeyNamesItsReplacement(t *testing.T) {
 	os.WriteFile(path, []byte("[s3]\nhost = \"localhost\"\n"), 0o644)
 
 	c := Default()
-	err := LoadFile(path, &c)
+	_, err := LoadFile(path, &c)
 	if err == nil {
 		t.Fatal("[s3] host must not be silently ignored")
 	}
@@ -109,7 +109,7 @@ func TestLoadFileRejectsUnknownKeys(t *testing.T) {
 	os.WriteFile(path, []byte("lisen = \"typo\"\n"), 0o644)
 
 	c := Default()
-	err := LoadFile(path, &c)
+	_, err := LoadFile(path, &c)
 	if err == nil || !strings.Contains(err.Error(), "lisen") {
 		t.Errorf("unknown key: err = %v", err)
 	}
@@ -136,7 +136,7 @@ func TestWriteTOMLRoundTrips(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "rt.toml")
 	os.WriteFile(path, buf.Bytes(), 0o644)
 	got := Default()
-	if err := LoadFile(path, &got); err != nil {
+	if _, err := LoadFile(path, &got); err != nil {
 		t.Fatalf("re-reading WriteTOML output: %v\n%s", err, buf.String())
 	}
 	if got.ListenAddr != orig.ListenAddr || got.DataDir != orig.DataDir || len(got.Services) != 1 || got.LambdaIdleTimeout != orig.LambdaIdleTimeout {
