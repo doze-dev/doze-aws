@@ -191,13 +191,13 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		}
 		return s, s, err
 	case "stepfunctions":
-		s, err := stepfunctions.New(stepfunctions.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		s, err := stepfunctions.New(stepfunctions.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		if err == nil {
 			st.stepfunctions = s // retained so the engine can be given a trace sink
 		}
 		return s, s, err
 	case "eventbridge":
-		s, err := eventbridge.New(eventbridge.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		s, err := eventbridge.New(eventbridge.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "lambda":
 		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, QuietFunctions: cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes, Endpoint: cfg.Endpoint, IAMMode: string(cfg.IAMMode)})

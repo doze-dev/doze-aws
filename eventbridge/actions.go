@@ -118,9 +118,9 @@ func (s *Server) putOneEvent(ctx context.Context, entry map[string]any) map[stri
 		"id":          eventID,
 		"detail-type": detailType,
 		"source":      source,
-		"account":     awsident.AccountID,
+		"account":     s.id.Account(),
 		"time":        awshttp.ISO8601(s.now()),
-		"region":      awsident.Region,
+		"region":      s.id.RegionName(),
 		"resources":   entry["Resources"],
 		"detail":      json.RawMessage(detail),
 	}
@@ -159,7 +159,7 @@ func (s *Server) matchAndDispatch(ctx context.Context, bus string, eventJSON []b
 		if rule.State != "ENABLED" || rule.Pattern == "" {
 			continue
 		}
-		if filter != nil && !filter[rule.ARN()] {
+		if filter != nil && !filter[rule.ARN(s.id)] {
 			continue
 		}
 		pat, perr := s.patterns.compiled(rule.Pattern)
@@ -179,7 +179,7 @@ func (s *Server) matchAndDispatch(ctx context.Context, bus string, eventJSON []b
 // dispatch delivers one matched event to one target, applying input shaping.
 func (s *Server) dispatch(ctx context.Context, rule Rule, target Target, eventJSON []byte) {
 	// A delivery is EventBridge's own call, on behalf of the rule.
-	ctx = peers.WithPrincipal(ctx, "events", rule.ARN())
+	ctx = peers.WithPrincipal(ctx, "events", rule.ARN(s.id))
 	payload, err := shapeInput(target, eventJSON)
 	if err != nil {
 		s.logf("eventbridge: rule %s target %s input shaping: %v", rule.Name, target.ID, err)
@@ -319,17 +319,17 @@ func (s *Server) putRule(ctx context.Context, p map[string]any) (any, *awshttp.A
 	if err := s.store.PutRule(r); err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	return map[string]any{"RuleArn": r.ARN()}, nil
+	return map[string]any{"RuleArn": r.ARN(s.id)}, nil
 }
 
 func (s *Server) deleteRule(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	return nil, awshttp.AsAPIErrorOrNil(s.store.DeleteRule(busOrDefault(p), awsjson.Str(p, "Name")))
 }
 
-func ruleView(r *Rule) map[string]any {
+func ruleView(id awsident.Identity, r *Rule) map[string]any {
 	out := map[string]any{
 		"Name":         r.Name,
-		"Arn":          r.ARN(),
+		"Arn":          r.ARN(id),
 		"State":        r.State,
 		"EventBusName": r.Bus,
 	}
@@ -353,7 +353,7 @@ func (s *Server) describeRule(ctx context.Context, p map[string]any) (any, *awsh
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	return ruleView(r), nil
+	return ruleView(s.id, r), nil
 }
 
 func (s *Server) listRules(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
@@ -363,7 +363,7 @@ func (s *Server) listRules(ctx context.Context, p map[string]any) (any, *awshttp
 	}
 	views := []map[string]any{}
 	for i := range rules {
-		views = append(views, ruleView(&rules[i]))
+		views = append(views, ruleView(s.id, &rules[i]))
 	}
 	return map[string]any{"Rules": views}, nil
 }
@@ -524,7 +524,7 @@ func (s *Server) createEventBus(ctx context.Context, p map[string]any) (any, *aw
 	}); err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	return map[string]any{"EventBusArn": busARN(name)}, nil
+	return map[string]any{"EventBusArn": busARN(s.id, name)}, nil
 }
 
 func (s *Server) deleteEventBus(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
@@ -568,7 +568,7 @@ func (s *Server) updateEventBus(ctx context.Context, p map[string]any) (any, *aw
 	}); err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	out := map[string]any{"Name": name, "Arn": busARN(name)}
+	out := map[string]any{"Name": name, "Arn": busARN(s.id, name)}
 	if d := awsjson.Str(p, "Description"); d != "" {
 		out["Description"] = d
 	}
@@ -589,7 +589,7 @@ func (s *Server) describeEventBus(ctx context.Context, p map[string]any) (any, *
 	}
 	for _, b := range buses {
 		if b.Name == name {
-			out := map[string]any{"Name": b.Name, "Arn": busARN(b.Name)}
+			out := map[string]any{"Name": b.Name, "Arn": busARN(s.id, b.Name)}
 			if b.Description != "" {
 				out["Description"] = b.Description
 			}
@@ -615,7 +615,7 @@ func (s *Server) listEventBuses(ctx context.Context, p map[string]any) (any, *aw
 	}
 	views := []map[string]any{}
 	for _, b := range buses {
-		views = append(views, map[string]any{"Name": b.Name, "Arn": busARN(b.Name)})
+		views = append(views, map[string]any{"Name": b.Name, "Arn": busARN(s.id, b.Name)})
 	}
 	return map[string]any{"EventBuses": views}, nil
 }

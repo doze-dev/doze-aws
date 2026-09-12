@@ -6,6 +6,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
@@ -66,6 +67,7 @@ type Store struct {
 	clock func() time.Time
 	// vol holds Express and TestState executions, which never reach bbolt.
 	vol *volatile
+	id  awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
 func newStore(db *bolt.DB) *Store {

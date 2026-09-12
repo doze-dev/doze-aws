@@ -30,6 +30,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 	"github.com/doze-dev/doze-aws/internal/metricship"
@@ -50,6 +51,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Identity is the region and account this service mints ARNs for. The zero
+	// value means the conventional local identity.
+	Identity awsident.Identity
 }
 
 // Server is the Step Functions service: an http.Handler speaking AWS JSON 1.0,
@@ -63,6 +67,7 @@ type Server struct {
 	engine  *engine
 	logs    *machineLogs
 	metrics *metricship.Shipper
+	id      awsident.Identity // the region and account this service mints ARNs for
 }
 
 // New opens the store under DataDir.
@@ -90,7 +95,9 @@ func New(opts Options) (*Server, error) {
 		// where the target prefix and the JSON version disagree with the
 		// service's own name: it signs as "states" and targets AWSStepFunctions.
 		api: awsjson.API{TargetPrefix: "AWSStepFunctions", JSONVersion: "1.0"},
+		id:  opts.Identity,
 	}
+	s.store.id = opts.Identity
 	if s.peers == nil {
 		s.peers = peers.None()
 	}

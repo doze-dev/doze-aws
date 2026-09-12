@@ -72,12 +72,12 @@ type OAuthAuth struct {
 	Params       HTTPParams `json:"params"`
 }
 
-func (c *Connection) ARN() string {
-	return awsident.ARN("events", "connection/"+c.Name+"/"+c.ID)
+func (c *Connection) ARN(id awsident.Identity) string {
+	return id.ARN("events", "connection/"+c.Name+"/"+c.ID)
 }
 
-func (c *Connection) SecretARN() string {
-	return awsident.ARN("secretsmanager", "secret:events!connection/"+c.Name+"/"+c.ID)
+func (c *Connection) SecretARN(id awsident.Identity) string {
+	return id.ARN("secretsmanager", "secret:events!connection/"+c.Name+"/"+c.ID)
 }
 
 func newID() string {
@@ -183,9 +183,9 @@ func httpParamsView(h HTTPParams) map[string]any {
 
 // connectionView is the Describe response; the list view is a subset. No
 // password, API key value or client secret ever leaves the store.
-func connectionView(c *Connection, full bool) map[string]any {
+func connectionView(id awsident.Identity, c *Connection, full bool) map[string]any {
 	v := map[string]any{
-		"Name": c.Name, "ConnectionArn": c.ARN(), "ConnectionState": c.State,
+		"Name": c.Name, "ConnectionArn": c.ARN(id), "ConnectionState": c.State,
 		"AuthorizationType": c.AuthType,
 		"CreationTime":      float64(c.CreatedMs) / 1000, "LastModifiedTime": float64(c.ModifiedMs) / 1000,
 		"LastAuthorizedTime": float64(c.ModifiedMs) / 1000,
@@ -193,7 +193,7 @@ func connectionView(c *Connection, full bool) map[string]any {
 	if !full {
 		return v
 	}
-	v["SecretArn"] = c.SecretARN()
+	v["SecretArn"] = c.SecretARN(id)
 	if c.Desc != "" {
 		v["Description"] = c.Desc
 	}

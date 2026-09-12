@@ -39,8 +39,7 @@ const (
 // it to the table in TestEveryServiceMintsTheConfiguredIdentity — the two
 // together are the migration's progress bar.
 var unplumbed = []string{
-	"eventbridge", "lambda", "iam", "cloudformation",
-	"apigateway", "stepfunctions",
+	"lambda", "iam", "cloudformation", "apigateway",
 }
 
 func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {
@@ -105,6 +104,21 @@ func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {
 				`{"DashboardName":"ops","DashboardBody":"{\"widgets\":[]}"}`},
 			read: [2]string{"GraniteServiceVersion20100801.GetDashboard", `{"DashboardName":"ops"}`},
 			want: "arn:aws:cloudwatch:" + testRegion + ":" + testAccount + ":dashboard/ops",
+		},
+		{
+			svc:    "eventbridge",
+			create: [2]string{"AWSEvents.CreateEventBus", `{"Name":"orders-bus"}`},
+			read:   [2]string{"AWSEvents.DescribeEventBus", `{"Name":"orders-bus"}`},
+			want:   "arn:aws:events:" + testRegion + ":" + testAccount + ":event-bus/orders-bus",
+		},
+		{
+			svc: "stepfunctions",
+			create: [2]string{"AWSStepFunctions.CreateStateMachine",
+				`{"name":"pipeline","roleArn":"arn:aws:iam::` + testAccount + `:role/sfn",` +
+					`"definition":"{\"StartAt\":\"Done\",\"States\":{\"Done\":{\"Type\":\"Succeed\"}}}"}`},
+			read: [2]string{"AWSStepFunctions.DescribeStateMachine",
+				`{"stateMachineArn":"arn:aws:states:` + testRegion + `:` + testAccount + `:stateMachine:pipeline"}`},
+			want: "arn:aws:states:" + testRegion + ":" + testAccount + ":stateMachine:pipeline",
 		},
 	}
 

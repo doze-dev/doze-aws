@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/asl"
 )
 
@@ -159,7 +158,7 @@ func (g *engine) taskScheduledEvents(r *run, f *asl.Frame, call asl.EffCallTask)
 	details := map[string]any{
 		"resourceType": resourceType,
 		"resource":     resourceAPI,
-		"region":       awsident.Region,
+		"region":       g.srv.id.RegionName(),
 		"parameters":   string(call.Input),
 	}
 	if call.Token != "" {

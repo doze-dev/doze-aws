@@ -116,7 +116,7 @@ func (s *Server) createStateMachineAlias(ctx context.Context, p map[string]any) 
 	if aerr != nil {
 		return nil, aerr
 	}
-	a := &Alias{MachineName: machine, Name: name, ARN: aliasARN(machine, name), Routing: routes}
+	a := &Alias{MachineName: machine, Name: name, ARN: aliasARN(s.id, machine, name), Routing: routes}
 	if description != nil {
 		a.Description = *description
 	}

@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/auditkit"
 )
 
@@ -117,14 +118,14 @@ func setUpFixture(t *testing.T, ts *httptest.Server) fixture {
 			t.Fatalf("fixture StartExecution %s = %d: %s", e.name, code, body)
 		}
 	}
-	f.execARN = execARN("audit", "parked")
-	f.stopExecARN = execARN("audit", "stoppable")
+	f.execARN = execARN(awsident.Default(), "audit", "parked")
+	f.stopExecARN = execARN(awsident.Default(), "audit", "stoppable")
 
 	code, body = call(t, ts, "AWSStepFunctions.CreateActivity", map[string]any{"name": "auditact"})
 	if code != http.StatusOK {
 		t.Fatalf("fixture CreateActivity = %d: %s", code, body)
 	}
-	f.activityARN = activityARN("auditact")
+	f.activityARN = activityARN(awsident.Default(), "auditact")
 
 	must := func(target string, in map[string]any) map[string]any {
 		t.Helper()
@@ -185,13 +186,13 @@ func baselines(f fixture) map[string]map[string]any {
 		// Deletion is idempotent, so a machine that never existed is a valid,
 		// harmless target — deleting the fixture machine would break every
 		// baseline after this one alphabetically.
-		"DeleteStateMachine":             {"stateMachineArn": machineARN("never-created")},
+		"DeleteStateMachine":             {"stateMachineArn": machineARN(awsident.Default(), "never-created")},
 		"ListStateMachines":              {},
 		"ValidateStateMachineDefinition": {"definition": auditDef},
 
 		"CreateActivity":   {"name": "auditact"},
 		"DescribeActivity": {"activityArn": f.activityARN},
-		"DeleteActivity":   {"activityArn": activityARN("never-created")},
+		"DeleteActivity":   {"activityArn": activityARN(awsident.Default(), "never-created")},
 		"ListActivities":   {},
 
 		"TagResource":         {"resourceArn": f.machineARN, "tags": tags},

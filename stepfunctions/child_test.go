@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // Child executions through states:startExecution in its three patterns,
@@ -16,7 +18,7 @@ const childDef = `{"StartAt":"Work","States":{"Work":{"Type":"Pass","Parameters"
 
 func parentDef(resource, extra string) string {
 	return `{"StartAt":"Call","States":{"Call":{"Type":"Task","Resource":"` + resource + `",
-	  "Parameters":{"StateMachineArn":"` + machineARN("child") + `","Name.$":"$.childName","Input":{"n.$":"$.n"}},
+	  "Parameters":{"StateMachineArn":"` + machineARN(awsident.Default(), "child") + `","Name.$":"$.childName","Input":{"n.$":"$.n"}},
 	  "ResultPath":"$.child",` + extra + `"End":true}}}`
 }
 
@@ -83,7 +85,7 @@ func TestChildSyncFailureIsCatchable(t *testing.T) {
 	createMachine(t, s, "child", `{"StartAt":"F","States":{"F":{"Type":"Fail","Error":"Child.Bad","Cause":"nope"}}}`)
 	createMachine(t, s, "parent", parentDef(childStartResource+".sync", ""))
 	def := `{"StartAt":"Call","States":{"Call":{"Type":"Task","Resource":"` + childStartResource + `.sync",
-	  "Parameters":{"StateMachineArn":"` + machineARN("child") + `","Name":"kid-fail"},
+	  "Parameters":{"StateMachineArn":"` + machineARN(awsident.Default(), "child") + `","Name":"kid-fail"},
 	  "Catch":[{"ErrorEquals":["States.TaskFailed"],"ResultPath":"$.err","Next":"Handled"}],"End":true},
 	  "Handled":{"Type":"Pass","End":true}}}`
 	createMachine(t, s, "parent-catch", def)
@@ -159,7 +161,7 @@ func TestChildWithTaskToken(t *testing.T) {
 	createMachine(t, s, "child", `{"StartAt":"P","States":{"P":{"Type":"Pass","End":true}}}`)
 	createMachine(t, s, "parent", `{"StartAt":"Call","States":{"Call":{"Type":"Task",
 	  "Resource":"`+childStartResource+`.waitForTaskToken",
-	  "Parameters":{"StateMachineArn":"`+machineARN("child")+`","Name":"tok","Input":{"token.$":"$$.Task.Token"}},
+	  "Parameters":{"StateMachineArn":"`+machineARN(awsident.Default(), "child")+`","Name":"tok","Input":{"token.$":"$$.Task.Token"}},
 	  "End":true}}}`)
 	startExec(t, s, "parent", "run")
 	token := parkedToken(t, s, "parent", "run")

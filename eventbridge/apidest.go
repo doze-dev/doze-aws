@@ -33,15 +33,15 @@ type ApiDestination struct {
 	ModifiedMs    int64  `json:"modified_ms"`
 }
 
-func (d *ApiDestination) ARN() string {
-	return awsident.ARN("events", "api-destination/"+d.Name+"/"+d.ID)
+func (d *ApiDestination) ARN(id awsident.Identity) string {
+	return id.ARN("events", "api-destination/"+d.Name+"/"+d.ID)
 }
 
 var httpMethods = map[string]bool{"POST": true, "GET": true, "HEAD": true, "OPTIONS": true, "PUT": true, "PATCH": true, "DELETE": true}
 
-func destinationView(d *ApiDestination, full bool) map[string]any {
+func destinationView(id awsident.Identity, d *ApiDestination, full bool) map[string]any {
 	v := map[string]any{
-		"Name": d.Name, "ApiDestinationArn": d.ARN(), "ApiDestinationState": d.State,
+		"Name": d.Name, "ApiDestinationArn": d.ARN(id), "ApiDestinationState": d.State,
 		"ConnectionArn": d.ConnectionARN, "InvocationEndpoint": d.Endpoint, "HttpMethod": d.Method,
 		"CreationTime": float64(d.CreatedMs) / 1000, "LastModifiedTime": float64(d.ModifiedMs) / 1000,
 	}
@@ -124,7 +124,7 @@ func (s *Server) createApiDestination(ctx context.Context, p map[string]any) (an
 		return nil, awshttp.AsAPIError(err)
 	}
 	return map[string]any{
-		"ApiDestinationArn": d.ARN(), "ApiDestinationState": d.State,
+		"ApiDestinationArn": d.ARN(s.id), "ApiDestinationState": d.State,
 		"CreationTime": float64(d.CreatedMs) / 1000, "LastModifiedTime": float64(d.ModifiedMs) / 1000,
 	}, nil
 }
@@ -192,7 +192,7 @@ func (s *Server) updateApiDestination(ctx context.Context, p map[string]any) (an
 		return nil, awshttp.AsAPIError(err)
 	}
 	return map[string]any{
-		"ApiDestinationArn": d.ARN(), "ApiDestinationState": d.State,
+		"ApiDestinationArn": d.ARN(s.id), "ApiDestinationState": d.State,
 		"CreationTime": float64(d.CreatedMs) / 1000, "LastModifiedTime": float64(d.ModifiedMs) / 1000,
 	}, nil
 }
@@ -209,7 +209,7 @@ func (s *Server) describeApiDestination(ctx context.Context, p map[string]any) (
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	return destinationView(d, true), nil
+	return destinationView(s.id, d, true), nil
 }
 
 func (s *Server) listApiDestinations(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
@@ -219,7 +219,7 @@ func (s *Server) listApiDestinations(ctx context.Context, p map[string]any) (any
 	}
 	views := []any{}
 	for i := range ds {
-		views = append(views, destinationView(&ds[i], false))
+		views = append(views, destinationView(s.id, &ds[i], false))
 	}
 	return map[string]any{"ApiDestinations": views}, nil
 }

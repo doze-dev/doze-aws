@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 	"github.com/doze-dev/doze-aws/internal/eventpattern"
@@ -33,7 +34,7 @@ func archiveFromArn(arn string) string {
 // captureToArchives appends an event to every enabled archive over its bus
 // whose pattern (if any) matches. Called for real PutEvents, not replays.
 func (s *Server) captureToArchives(bus string, eventJSON []byte) {
-	arcs, err := s.store.ListArchives("", busARN(bus))
+	arcs, err := s.store.ListArchives("", busARN(s.id, bus))
 	if err != nil || len(arcs) == 0 {
 		return
 	}
@@ -91,14 +92,14 @@ func (s *Server) createArchive(ctx context.Context, p map[string]any) (any, *aws
 		return nil, awshttp.AsAPIError(err)
 	}
 	return map[string]any{
-		"ArchiveArn": a.ARN(), "State": a.State, "CreationTime": float64(a.CreationTime),
+		"ArchiveArn": a.ARN(s.id), "State": a.State, "CreationTime": float64(a.CreationTime),
 	}, nil
 }
 
-func archiveView(a *Archive) map[string]any {
+func archiveView(id awsident.Identity, a *Archive) map[string]any {
 	out := map[string]any{
 		"ArchiveName":    a.Name,
-		"ArchiveArn":     a.ARN(),
+		"ArchiveArn":     a.ARN(id),
 		"EventSourceArn": a.EventSourceArn,
 		"State":          a.State,
 		"RetentionDays":  float64(a.RetentionDays),
@@ -120,7 +121,7 @@ func (s *Server) describeArchive(ctx context.Context, p map[string]any) (any, *a
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	return archiveView(a), nil
+	return archiveView(s.id, a), nil
 }
 
 func (s *Server) listArchives(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
@@ -130,7 +131,7 @@ func (s *Server) listArchives(ctx context.Context, p map[string]any) (any, *awsh
 	}
 	list := make([]map[string]any, 0, len(arcs))
 	for i := range arcs {
-		list = append(list, archiveView(&arcs[i]))
+		list = append(list, archiveView(s.id, &arcs[i]))
 	}
 	return map[string]any{"Archives": list}, nil
 }
@@ -157,7 +158,7 @@ func (s *Server) updateArchive(ctx context.Context, p map[string]any) (any, *aws
 	}
 	a, _ := s.store.GetArchive(name)
 	return map[string]any{
-		"ArchiveArn": a.ARN(), "State": a.State, "CreationTime": float64(a.CreationTime),
+		"ArchiveArn": a.ARN(s.id), "State": a.State, "CreationTime": float64(a.CreationTime),
 	}, nil
 }
 
@@ -225,15 +226,15 @@ func (s *Server) startReplay(ctx context.Context, p map[string]any) (any, *awsht
 		return nil, awshttp.AsAPIError(err)
 	}
 	return map[string]any{
-		"ReplayArn": r.ARN(), "State": r.State,
+		"ReplayArn": r.ARN(s.id), "State": r.State,
 		"StateReason": r.StateReason, "ReplayStartTime": float64(now),
 	}, nil
 }
 
-func replayView(r *Replay) map[string]any {
+func replayView(id awsident.Identity, r *Replay) map[string]any {
 	out := map[string]any{
 		"ReplayName":      r.Name,
-		"ReplayArn":       r.ARN(),
+		"ReplayArn":       r.ARN(id),
 		"EventSourceArn":  r.EventSourceArn,
 		"State":           r.State,
 		"EventStartTime":  float64(r.EventStartTime),
@@ -256,7 +257,7 @@ func (s *Server) describeReplay(ctx context.Context, p map[string]any) (any, *aw
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	return replayView(r), nil
+	return replayView(s.id, r), nil
 }
 
 func (s *Server) listReplays(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
@@ -266,7 +267,7 @@ func (s *Server) listReplays(ctx context.Context, p map[string]any) (any, *awsht
 	}
 	list := make([]map[string]any, 0, len(reps))
 	for i := range reps {
-		list = append(list, replayView(&reps[i]))
+		list = append(list, replayView(s.id, &reps[i]))
 	}
 	return map[string]any{"Replays": list}, nil
 }

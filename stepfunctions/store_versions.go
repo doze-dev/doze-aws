@@ -136,7 +136,7 @@ func (s *Store) PublishVersion(m *StateMachine, description string) (*Version, *
 			next = last + 1
 		}
 		out = Version{
-			MachineName: m.Name, Number: next, ARN: versionARN(m.Name, next),
+			MachineName: m.Name, Number: next, ARN: versionARN(s.id, m.Name, next),
 			Definition: m.Definition, RoleARN: m.RoleARN, Type: m.Type,
 			RevisionID: m.RevisionID, Description: description, CreatedAt: s.now(),
 			LoggingConfiguration:    m.LoggingConfiguration,
@@ -190,7 +190,7 @@ func (s *Store) ListVersions(machine string) ([]Version, *awshttp.APIError) {
 // nothing. Deleting an absent version succeeds; the operation's model lists
 // no not-found error.
 func (s *Store) DeleteVersion(machine string, n int) *awshttp.APIError {
-	arn := versionARN(machine, n)
+	arn := versionARN(s.id, machine, n)
 	return asAPIError(s.db.Update(func(tx *bolt.Tx) error {
 		aliases, err := aliasesIn(tx, machine)
 		if err != nil {

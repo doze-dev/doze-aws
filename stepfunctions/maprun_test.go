@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -67,7 +68,7 @@ func TestDistributedMapRunsItemsAsExecutions(t *testing.T) {
 		t.Fatalf("output = %s", out)
 	}
 	// The run record and its children are reachable through the API.
-	runs, _ := s.listMapRuns(context.Background(), map[string]any{"executionArn": execARN("dm", "run")})
+	runs, _ := s.listMapRuns(context.Background(), map[string]any{"executionArn": execARN(awsident.Default(), "dm", "run")})
 	list := runs.(map[string]any)["mapRuns"].([]any)
 	if len(list) != 1 {
 		t.Fatalf("mapRuns = %v", list)
@@ -89,7 +90,7 @@ func TestDistributedMapRunsItemsAsExecutions(t *testing.T) {
 	if n := len(children.(map[string]any)["executions"].([]any)); n != 5 {
 		t.Errorf("ListExecutions(mapRunArn) = %d executions, want 5", n)
 	}
-	plain, _ := s.listExecutions(context.Background(), map[string]any{"stateMachineArn": machineARN("dm")})
+	plain, _ := s.listExecutions(context.Background(), map[string]any{"stateMachineArn": machineARN(awsident.Default(), "dm")})
 	if n := len(plain.(map[string]any)["executions"].([]any)); n != 1 {
 		t.Errorf("a plain ListExecutions should not show the children, got %d", n)
 	}
@@ -244,7 +245,7 @@ func TestDistributedMapStopAbortsChildren(t *testing.T) {
 		}
 		return false
 	}, "never started")
-	if _, aerr := s.stopExecution(context.Background(), map[string]any{"executionArn": execARN("halt", "run")}); aerr != nil {
+	if _, aerr := s.stopExecution(context.Background(), map[string]any{"executionArn": execARN(awsident.Default(), "halt", "run")}); aerr != nil {
 		t.Fatal(aerr)
 	}
 	mr, _ := s.store.GetMapRun(arn)

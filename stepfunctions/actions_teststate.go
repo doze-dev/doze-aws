@@ -89,13 +89,13 @@ func (s *Server) testState(ctx context.Context, p map[string]any) (any, *awshttp
 	// accepted it, and Sub/States lookups need the stubs to exist.
 	now := s.store.clock()
 	id := newToken()[2:18]
-	arn := expressExecARN("TestState", stateName, id)
+	arn := expressExecARN(s.id, "TestState", stateName, id)
 	e := &Execution{
-		ARN: arn, MachineARN: machineARN("TestState"), Name: stateName,
+		ARN: arn, MachineARN: machineARN(s.id, "TestState"), Name: stateName,
 		Definition: frozen, RoleARN: awsjson.Str(p, "roleArn"), Type: "STANDARD",
 		Status: "RUNNING", StartedAt: now.UnixMilli(), Input: input,
 		Volatile: true, Test: spec,
-		Exec: asl.StartExec(arn, stateName, machineARN("TestState"), "TestState", awsjson.Str(p, "roleArn"),
+		Exec: asl.StartExec(arn, stateName, machineARN(s.id, "TestState"), "TestState", awsjson.Str(p, "roleArn"),
 			json.RawMessage(input), now),
 		NextEventID: 2,
 	}

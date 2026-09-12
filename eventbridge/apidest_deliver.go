@@ -148,7 +148,7 @@ func (s *Server) applyAuth(ctx context.Context, req *http.Request, conn *Connect
 // authorization endpoint, caching the token until it expires.
 func (s *Server) fetchToken(ctx context.Context, conn *Connection) (string, error) {
 	s.tokenMu.Lock()
-	if t, ok := s.tokens[conn.ARN()]; ok && s.now().Before(t.expires) {
+	if t, ok := s.tokens[conn.ARN(s.id)]; ok && s.now().Before(t.expires) {
 		s.tokenMu.Unlock()
 		return t.value, nil
 	}
@@ -214,7 +214,7 @@ func (s *Server) fetchToken(ctx context.Context, conn *Connection) (string, erro
 		ttl = time.Hour
 	}
 	s.tokenMu.Lock()
-	s.tokens[conn.ARN()] = oauthToken{value: tok.AccessToken, expires: s.now().Add(ttl - 30*time.Second)}
+	s.tokens[conn.ARN(s.id)] = oauthToken{value: tok.AccessToken, expires: s.now().Add(ttl - 30*time.Second)}
 	s.tokenMu.Unlock()
 	return tok.AccessToken, nil
 }
@@ -268,7 +268,7 @@ func (s *Server) deliverHTTP(ctx context.Context, rule Rule, target Target, dest
 					if resp.StatusCode == http.StatusUnauthorized && conn != nil && conn.AuthType == "OAUTH_CLIENT_CREDENTIALS" {
 						// The token the cache held is no longer accepted: drop
 						// it so the retry fetches a fresh one.
-						s.forgetToken(conn.ARN())
+						s.forgetToken(conn.ARN(s.id))
 						retryable = attempt == 1
 					}
 					if !retryable {

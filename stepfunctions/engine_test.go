@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/peers"
 )
@@ -58,7 +59,7 @@ func createMachine(t *testing.T, s *Server, name, def string) {
 func startExec(t *testing.T, s *Server, machine, name string) {
 	t.Helper()
 	_, aerr := s.startExecution(context.Background(), map[string]any{
-		"stateMachineArn": machineARN(machine), "name": name,
+		"stateMachineArn": machineARN(awsident.Default(), machine), "name": name,
 	})
 	if aerr != nil {
 		t.Fatalf("startExecution: %v", aerr)
@@ -179,7 +180,7 @@ func waitSucceeded(t *testing.T, s *Server, machine, name string) string {
 func startExecInput(t *testing.T, s *Server, machine, name, input string) {
 	t.Helper()
 	_, aerr := s.startExecution(context.Background(), map[string]any{
-		"stateMachineArn": machineARN(machine), "name": name, "input": input,
+		"stateMachineArn": machineARN(awsident.Default(), machine), "name": name, "input": input,
 	})
 	if aerr != nil {
 		t.Fatalf("startExecution: %v", aerr)

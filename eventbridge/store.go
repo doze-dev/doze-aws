@@ -73,15 +73,15 @@ type Rule struct {
 }
 
 // ARN returns the rule ARN.
-func (r *Rule) ARN() string {
+func (r *Rule) ARN(id awsident.Identity) string {
 	if r.Bus == DefaultBus {
-		return awsident.ARN("events", "rule/"+r.Name)
+		return id.ARN("events", "rule/"+r.Name)
 	}
-	return awsident.ARN("events", "rule/"+r.Bus+"/"+r.Name)
+	return id.ARN("events", "rule/"+r.Bus+"/"+r.Name)
 }
 
-func busARN(name string) string {
-	return awsident.ARN("events", "event-bus/"+name)
+func busARN(id awsident.Identity, name string) string {
+	return id.ARN("events", "event-bus/"+name)
 }
 
 func ruleKey(bus, name string) []byte {
@@ -91,6 +91,7 @@ func ruleKey(bus, name string) []byte {
 // Store is the bbolt-backed EventBridge state.
 type Store struct {
 	db *bolt.DB
+	id awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
 func newStore(db *bolt.DB) *Store { return &Store{db: db} }

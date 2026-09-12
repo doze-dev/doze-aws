@@ -21,6 +21,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 
@@ -41,12 +42,16 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Identity is the region and account this service mints ARNs for. The zero
+	// value means the conventional local identity.
+	Identity awsident.Identity
 }
 
 // Server is the EventBridge service: an http.Handler speaking AWS JSON 1.1,
 // and an io.Closer.
 type Server struct {
 	store    *Store
+	id       awsident.Identity // the region and account this service mints ARNs for
 	peers    peers.Directory
 	logf     func(format string, args ...any)
 	now      func() time.Time
@@ -84,7 +89,9 @@ func New(opts Options) (*Server, error) {
 		logf:  logf,
 		now:   opts.Clock,
 		api:   awsjson.API{TargetPrefix: "AWSEvents", JSONVersion: "1.1"},
+		id:    opts.Identity,
 	}
+	s.store.id = opts.Identity
 	if s.peers == nil {
 		s.peers = peers.None()
 	}

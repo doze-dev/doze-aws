@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -35,7 +36,7 @@ func flakyLambda(t *testing.T, ok *atomic.Bool, calls *atomic.Int32) peers.Direc
 
 func redrive(t *testing.T, s *Server, machine, name string, extra map[string]any) (map[string]any, string) {
 	t.Helper()
-	p := map[string]any{"executionArn": execARN(machine, name)}
+	p := map[string]any{"executionArn": execARN(awsident.Default(), machine, name)}
 	for k, v := range extra {
 		p[k] = v
 	}
@@ -128,7 +129,7 @@ func TestRedriveAnAbortedWait(t *testing.T) {
 		e, _ := s.store.GetExecution("w", "run")
 		return e != nil && e.Exec.Root().Status == "SLEEPING"
 	}, "never slept")
-	if _, aerr := s.stopExecution(context.Background(), map[string]any{"executionArn": execARN("w", "run"), "error": "Op", "cause": "stop"}); aerr != nil {
+	if _, aerr := s.stopExecution(context.Background(), map[string]any{"executionArn": execARN(awsident.Default(), "w", "run"), "error": "Op", "cause": "stop"}); aerr != nil {
 		t.Fatal(aerr)
 	}
 	e, _ := s.store.GetExecution("w", "run")
@@ -170,7 +171,7 @@ func TestRedriveRefusals(t *testing.T) {
 		t.Errorf("older than 14 days: %q", code)
 	}
 	// DescribeExecution says so.
-	out, _ := s.describeExecution(context.Background(), map[string]any{"executionArn": execARN("old", "run")})
+	out, _ := s.describeExecution(context.Background(), map[string]any{"executionArn": execARN(awsident.Default(), "old", "run")})
 	if m := out.(map[string]any); m["redriveStatus"] != "NOT_REDRIVABLE" || m["redriveStatusReason"] == nil {
 		t.Errorf("describe = %v", m)
 	}

@@ -38,7 +38,7 @@ type Archive struct {
 	SizeBytes      int64  `json:"size_bytes"`
 }
 
-func (a *Archive) ARN() string { return awsident.ARN("events", "archive/"+a.Name) }
+func (a *Archive) ARN(id awsident.Identity) string { return id.ARN("events", "archive/"+a.Name) }
 
 // Replay is a completed (local replays run synchronously) archive replay.
 type Replay struct {
@@ -55,7 +55,7 @@ type Replay struct {
 	LastEventTime  int64    `json:"last_event"`
 }
 
-func (r *Replay) ARN() string { return awsident.ARN("events", "replay/"+r.Name) }
+func (r *Replay) ARN(id awsident.Identity) string { return id.ARN("events", "replay/"+r.Name) }
 
 // storedEvent is one archived event with its ingestion time.
 type storedEvent struct {

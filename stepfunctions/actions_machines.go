@@ -83,8 +83,12 @@ func checkName(name string) *awshttp.APIError {
 	return nil
 }
 
-func machineARN(name string) string  { return awsident.ARN("states", "stateMachine:"+name) }
-func activityARN(name string) string { return awsident.ARN("states", "activity:"+name) }
+func machineARN(id awsident.Identity, name string) string {
+	return id.ARN("states", "stateMachine:"+name)
+}
+func activityARN(id awsident.Identity, name string) string {
+	return id.ARN("states", "activity:"+name)
+}
 
 // nameFromARN pulls the resource name out of an ARN of the shape
 // arn:aws:states:<region>:<account>:<kind>:<name>. Returns "" for anything that
@@ -130,7 +134,7 @@ func (s *Server) createStateMachine(ctx context.Context, p map[string]any) (any,
 	}
 
 	m := &StateMachine{
-		Name: name, ARN: machineARN(name), Definition: definition,
+		Name: name, ARN: machineARN(s.id, name), Definition: definition,
 		RoleARN: awsjson.Str(p, "roleArn"), Type: typ,
 		LoggingConfiguration:    rawOf(p, "loggingConfiguration"),
 		TracingConfiguration:    rawOf(p, "tracingConfiguration"),
@@ -337,7 +341,7 @@ func (s *Server) createActivity(ctx context.Context, p map[string]any) (any, *aw
 	if aerr := checkName(name); aerr != nil {
 		return nil, aerr
 	}
-	a, aerr := s.store.PutActivity(&Activity{Name: name, ARN: activityARN(name)})
+	a, aerr := s.store.PutActivity(&Activity{Name: name, ARN: activityARN(s.id, name)})
 	if aerr != nil {
 		return nil, aerr
 	}

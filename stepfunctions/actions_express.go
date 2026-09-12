@@ -54,7 +54,7 @@ func (s *Server) newExpressExecution(ctx context.Context, m *StateMachine, p map
 		return nil, awshttp.Errf(500, "InternalFailure", "the stored definition no longer parses: %v", perr)
 	}
 	now := s.store.clock()
-	arn := expressExecARN(m.Name, execName, newToken()[2:18])
+	arn := expressExecARN(s.id, m.Name, execName, newToken()[2:18])
 	e := &Execution{
 		ARN: arn, MachineARN: m.ARN, Name: execName,
 		Definition: m.Definition, RoleARN: m.RoleARN, RevisionID: m.RevisionID, Type: "EXPRESS",

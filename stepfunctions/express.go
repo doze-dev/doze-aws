@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/asl"
 )
 
@@ -247,8 +248,8 @@ func (s *Server) awaitVolatile(ctx context.Context, key string, ch <-chan struct
 // expressExecARN is arn:aws:states:<r>:<a>:express:<machine>:<name>:<id>,
 // the form AWS gives an Express execution. The id is what lets two Express
 // executions share a name, which AWS allows and Standard does not.
-func expressExecARN(machineName, execName, id string) string {
-	return strings.Replace(execARN(machineName, execName), ":execution:", ":express:", 1) + ":" + id
+func expressExecARN(ident awsident.Identity, machineName, execName, id string) string {
+	return strings.Replace(execARN(ident, machineName, execName), ":execution:", ":express:", 1) + ":" + id
 }
 
 // parseExpressARN splits an Express execution ARN.

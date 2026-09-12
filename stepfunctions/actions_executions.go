@@ -21,8 +21,8 @@ import (
 // read the store and hand the engine work over its channels — a handler never
 // touches a run.
 
-func execARN(machineName, execName string) string {
-	return awsident.ARN("states", "execution:"+machineName+":"+execName)
+func execARN(id awsident.Identity, machineName, execName string) string {
+	return id.ARN("states", "execution:"+machineName+":"+execName)
 }
 
 // parseExecARN splits arn:aws:states:<r>:<a>:execution:<machine>:<name>.
@@ -114,7 +114,7 @@ func (s *Server) launch(spec launchSpec) (*Execution, *awshttp.APIError) {
 		return nil, awshttp.Errf(500, "InternalFailure", "the stored definition no longer parses: %v", perr)
 	}
 	now := s.store.clock()
-	arn := execARN(m.Name, spec.Name)
+	arn := execARN(s.id, m.Name, spec.Name)
 	e := &Execution{
 		ARN: arn, MachineARN: m.ARN, Name: spec.Name,
 		Definition: m.Definition, RoleARN: m.RoleARN, RevisionID: m.RevisionID, Type: m.Type,

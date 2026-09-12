@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/asl"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
@@ -24,7 +25,7 @@ func createActivity(t *testing.T, s *Server, name string) {
 // pollActivity is one GetActivityTask call; nil when the poll came back empty.
 func pollActivity(t *testing.T, ctx context.Context, s *Server, name, worker string) map[string]any {
 	t.Helper()
-	res, aerr := s.getActivityTask(ctx, map[string]any{"activityArn": activityARN(name), "workerName": worker})
+	res, aerr := s.getActivityTask(ctx, map[string]any{"activityArn": activityARN(awsident.Default(), name), "workerName": worker})
 	if aerr != nil {
 		t.Fatalf("GetActivityTask: %v", aerr)
 	}
@@ -36,7 +37,7 @@ func pollActivity(t *testing.T, ctx context.Context, s *Server, name, worker str
 }
 
 func activityDef(name, extra string) string {
-	return `{"StartAt":"Work","States":{"Work":{"Type":"Task","Resource":"` + activityARN(name) + `",` +
+	return `{"StartAt":"Work","States":{"Work":{"Type":"Task","Resource":"` + activityARN(awsident.Default(), name) + `",` +
 		extra + `"End":true}}}`
 }
 
@@ -66,7 +67,7 @@ func TestActivityWorkerRoundTrip(t *testing.T) {
 	got := make(chan polled, 1)
 	go func() {
 		res, aerr := s.getActivityTask(context.Background(), map[string]any{
-			"activityArn": activityARN("approve"), "workerName": "w1"})
+			"activityArn": activityARN(awsident.Default(), "approve"), "workerName": "w1"})
 		got <- polled{res, aerr}
 	}()
 	startExecInput(t, s, "flow", "run", `{"n":1}`)
@@ -107,7 +108,7 @@ func TestActivityFailureRoutesThroughCatch(t *testing.T) {
 	defer s.Close()
 	createActivity(t, s, "review")
 	createMachine(t, s, "veto", `{"StartAt":"Work","States":{
-	  "Work":{"Type":"Task","Resource":"`+activityARN("review")+`",
+	  "Work":{"Type":"Task","Resource":"`+activityARN(awsident.Default(), "review")+`",
 	    "Catch":[{"ErrorEquals":["Rejected"],"Next":"No"}],"End":true},
 	  "No":{"Type":"Pass","Result":"vetoed","End":true}}}`)
 	startExec(t, s, "veto", "run")
@@ -249,7 +250,7 @@ func TestMissingActivityFailsCatchably(t *testing.T) {
 	s := newTestServer(t, t.TempDir(), clock)
 	defer s.Close()
 	createMachine(t, s, "ghostly", `{"StartAt":"Work","States":{
-	  "Work":{"Type":"Task","Resource":"`+activityARN("ghost")+`",
+	  "Work":{"Type":"Task","Resource":"`+activityARN(awsident.Default(), "ghost")+`",
 	    "Catch":[{"ErrorEquals":["States.Runtime"],"ResultPath":"$.err","Next":"Saved"}],"End":true},
 	  "Saved":{"Type":"Pass","Parameters":{"got.$":"$.err.Error"},"End":true}}}`)
 	startExec(t, s, "ghostly", "run")
@@ -304,7 +305,7 @@ func TestActivityTimeoutWhileQueued(t *testing.T) {
 // TestActivityResourceParsing: the resource table and the interpreter agree
 // that an activity parks, and the explicit suffix is refused.
 func TestActivityResourceParsing(t *testing.T) {
-	arn := activityARN("x")
+	arn := activityARN(awsident.Default(), "x")
 	tt, err := ParseResource(arn)
 	if err != nil || tt.Kind != taskActivity || !tt.Parks {
 		t.Errorf("ParseResource(%s) = %+v, %v", arn, tt, err)
@@ -322,7 +323,7 @@ func TestActivityResourceParsing(t *testing.T) {
 	for _, c := range []struct{ arn, code string }{
 		{"", "ValidationException"},
 		{"not-an-arn", "InvalidArn"},
-		{activityARN("nobody"), "ActivityDoesNotExist"},
+		{activityARN(awsident.Default(), "nobody"), "ActivityDoesNotExist"},
 	} {
 		_, aerr := s.getActivityTask(context.Background(), map[string]any{"activityArn": c.arn})
 		if aerr == nil || aerr.Code != c.code {

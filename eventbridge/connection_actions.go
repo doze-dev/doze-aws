@@ -3,6 +3,7 @@ package eventbridge
 import (
 	"context"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 )
@@ -27,7 +28,7 @@ func (s *Server) createConnection(ctx context.Context, p map[string]any) (any, *
 		return nil, awshttp.AsAPIError(err)
 	}
 	return map[string]any{
-		"ConnectionArn": c.ARN(), "ConnectionState": c.State,
+		"ConnectionArn": c.ARN(s.id), "ConnectionState": c.State,
 		"CreationTime": float64(now) / 1000, "LastModifiedTime": float64(now) / 1000,
 	}, nil
 }
@@ -57,8 +58,8 @@ func (s *Server) updateConnection(ctx context.Context, p map[string]any) (any, *
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	s.forgetToken(c.ARN())
-	return connectionStateView(c), nil
+	s.forgetToken(c.ARN(s.id))
+	return connectionStateView(s.id, c), nil
 }
 
 func (s *Server) deauthorizeConnection(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
@@ -71,8 +72,8 @@ func (s *Server) deauthorizeConnection(ctx context.Context, p map[string]any) (a
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	s.forgetToken(c.ARN())
-	return connectionStateView(c), nil
+	s.forgetToken(c.ARN(s.id))
+	return connectionStateView(s.id, c), nil
 }
 
 func (s *Server) deleteConnection(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
@@ -85,9 +86,9 @@ func (s *Server) deleteConnection(ctx context.Context, p map[string]any) (any, *
 		return nil, awshttp.AsAPIError(err)
 	}
 	// Destinations on the connection stay, inactive, as on AWS.
-	s.store.markDestinationsInactive(c.ARN())
-	s.forgetToken(c.ARN())
-	v := connectionStateView(c)
+	s.store.markDestinationsInactive(c.ARN(s.id))
+	s.forgetToken(c.ARN(s.id))
+	v := connectionStateView(s.id, c)
 	v["ConnectionState"] = "DELETING"
 	return v, nil
 }
@@ -97,7 +98,7 @@ func (s *Server) describeConnection(ctx context.Context, p map[string]any) (any,
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	return connectionView(c, true), nil
+	return connectionView(s.id, c, true), nil
 }
 
 func (s *Server) listConnections(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
@@ -107,15 +108,15 @@ func (s *Server) listConnections(ctx context.Context, p map[string]any) (any, *a
 	}
 	views := []any{}
 	for i := range conns {
-		views = append(views, connectionView(&conns[i], false))
+		views = append(views, connectionView(s.id, &conns[i], false))
 	}
 	return map[string]any{"Connections": views}, nil
 }
 
 // connectionStateView is the Update/Deauthorize/Delete answer.
-func connectionStateView(c *Connection) map[string]any {
+func connectionStateView(id awsident.Identity, c *Connection) map[string]any {
 	return map[string]any{
-		"ConnectionArn": c.ARN(), "ConnectionState": c.State,
+		"ConnectionArn": c.ARN(id), "ConnectionState": c.State,
 		"CreationTime": float64(c.CreatedMs) / 1000, "LastModifiedTime": float64(c.ModifiedMs) / 1000,
 		"LastAuthorizedTime": float64(c.ModifiedMs) / 1000,
 	}

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 )
@@ -23,8 +24,12 @@ import (
 // why CreateStateMachineAlias refuses an integer name. Machine names cannot
 // contain ":" (checkName), so the split is unambiguous.
 
-func versionARN(machine string, n int) string { return machineARN(machine) + ":" + strconv.Itoa(n) }
-func aliasARN(machine, alias string) string   { return machineARN(machine) + ":" + alias }
+func versionARN(id awsident.Identity, machine string, n int) string {
+	return machineARN(id, machine) + ":" + strconv.Itoa(n)
+}
+func aliasARN(id awsident.Identity, machine, alias string) string {
+	return machineARN(id, machine) + ":" + alias
+}
 
 // splitMachineARN pulls the machine name and the qualifier ("" when
 // unqualified) out of a stateMachine ARN. ok is false for anything that is
@@ -255,7 +260,7 @@ func (s *Server) startTarget(arn string) (m *StateMachine, versionARN, aliasARN 
 			return nil, "", "", errMachineNotFound(arn)
 		}
 		aliasARN = a.ARN
-		n = versionNumber(strings.TrimPrefix(pickRoute(a.Routing), machineARN(name)+":"))
+		n = versionNumber(strings.TrimPrefix(pickRoute(a.Routing), machineARN(s.id, name)+":"))
 	}
 	v, aerr := s.store.GetVersion(name, n)
 	if aerr != nil {

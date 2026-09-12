@@ -63,7 +63,7 @@ func (g *engine) beginMapRun(r *run, f *asl.Frame, cfg asl.MapRunConfig, items [
 	}
 	id := newToken()[2:18]
 	mr := &MapRun{
-		ARN: mapRunARN(r.e.Exec.MachineName, r.e.Name, cfg.Label, id), ID: id,
+		ARN: mapRunARN(g.srv.id, r.e.Exec.MachineName, r.e.Name, cfg.Label, id), ID: id,
 		ExecKey: r.key, ExecARN: r.e.ARN, MachineARN: r.e.MachineARN, Machine: r.e.Exec.MachineName,
 		Frame: f.ID, Label: cfg.Label, Status: "RUNNING", StartedAt: g.srv.store.now(),
 		MaxConcurrency: cfg.MaxConcurrency, ToleratedFailureCount: cfg.ToleratedFailureCount,

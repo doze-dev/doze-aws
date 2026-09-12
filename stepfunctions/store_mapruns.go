@@ -91,12 +91,12 @@ func (m *MapRun) tolerated() int {
 
 // mapRunARN is arn:aws:states:<r>:<a>:mapRun:<machine>/<execution>[/<label>]:<id>,
 // the shape AWS gives one.
-func mapRunARN(machine, execName, label, id string) string {
+func mapRunARN(ident awsident.Identity, machine, execName, label, id string) string {
 	res := "mapRun:" + machine + "/" + execName
 	if label != "" {
 		res += "/" + label
 	}
-	return awsident.ARN("states", res+":"+id)
+	return ident.ARN("states", res+":"+id)
 }
 
 func (s *Store) PutMapRun(m *MapRun) error { return s.put(bucketMapRuns, []byte(m.ARN), m) }

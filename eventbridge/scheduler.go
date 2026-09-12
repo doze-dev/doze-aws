@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awscron"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
@@ -132,10 +131,10 @@ func (s *Server) fireScheduled(rule Rule) {
 		"id":          awshttp.RequestID(),
 		"detail-type": "Scheduled Event",
 		"source":      "aws.events",
-		"account":     awsident.AccountID,
+		"account":     s.id.Account(),
 		"time":        awshttp.ISO8601(s.now()),
-		"region":      awsident.Region,
-		"resources":   []string{awsident.ARN("events", "rule/"+rule.Name)},
+		"region":      s.id.RegionName(),
+		"resources":   []string{s.id.ARN("events", "rule/"+rule.Name)},
 		"detail":      json.RawMessage("{}"),
 	}
 	eventJSON, err := json.Marshal(doc)
