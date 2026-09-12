@@ -123,9 +123,14 @@ func (z *zone) listen(logger *slog.Logger, cfgAddr, port string) net.Listener {
 		if errors.Is(err, syscall.EADDRINUSE) {
 			hint = "something else already holds " + addr + "; free it, or that name will not work"
 		}
-		logger.Warn("zone: the name resolves but nothing serves it",
-			"name", z.lease.Name.Host, "addr", addr, "err", err,
-			"still_works", "http://"+z.cfgAddr, "hint", hint)
+		// The name is the primary address now, so there is usually nothing
+		// else to fall back to — saying "still works: http://" would be worse
+		// than saying nothing. The hint is what matters here.
+		attrs := []any{"name", z.lease.Name.Host, "addr", addr, "err", err, "hint", hint}
+		if z.cfgAddr != "" {
+			attrs = append(attrs, "still_works", "http://"+z.cfgAddr)
+		}
+		logger.Warn("zone: the name resolves but nothing serves it", attrs...)
 		return nil
 	}
 	z.extra = ln
@@ -184,14 +189,22 @@ func (z *zone) close() {
 	z.front.Close()
 }
 
-// serveExtra runs srv on an additional listener until it closes.
-func serveExtra(srv *http.Server, ln net.Listener, logger *slog.Logger) {
+// serveOn runs srv on one listener until it closes, reporting a genuine
+// failure on errc.
+//
+// Every listener reports, because none of them is "the extra" any more: a name
+// that stops answering is as much a failure as an address that does.
+func serveOn(srv *http.Server, ln net.Listener, logger *slog.Logger, errc chan<- error) {
 	if ln == nil {
 		return
 	}
-	bg.Go(slogf(logger), "zone: extra listener", func() {
-		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			logger.Debug("zone: extra listener stopped", "err", err)
+	bg.Go(slogf(logger), "doze-aws: listener "+ln.Addr().String(), func() {
+		err := srv.Serve(ln)
+		if err != nil && err != http.ErrServerClosed {
+			select {
+			case errc <- err:
+			default: // another listener got there first; one report is enough
+			}
 		}
 	})
 }

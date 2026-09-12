@@ -350,12 +350,12 @@ func TestGatewayForPrefersARunningServer(t *testing.T) {
 
 	// Nothing listening: an embedded stack, and closer() must free the lock.
 	cfg := configFor(data, "127.0.0.1:1")
-	h, closer, live, err := gatewayFor(cfg)
+	h, closer, liveAt, err := gatewayFor(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if live {
-		t.Error("nothing is listening, so live must be false")
+	if liveAt != "" {
+		t.Errorf("nothing is listening, so liveAt must be empty, got %q", liveAt)
 	}
 	if h == nil {
 		t.Fatal("no handler")
@@ -372,12 +372,12 @@ func TestGatewayForPrefersARunningServer(t *testing.T) {
 	// Something listening: a proxy, and no lock taken at all.
 	stop, addr := newListener(t)
 	defer stop()
-	h, closer, live, err = gatewayFor(configFor(data, addr))
+	h, closer, liveAt, err = gatewayFor(configFor(data, addr))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer closer()
-	if !live {
+	if liveAt == "" {
 		t.Error("a listening server must be detected")
 	}
 	if _, ok := h.(proxyHandler); !ok {

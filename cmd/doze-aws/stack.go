@@ -16,6 +16,7 @@ import (
 	"github.com/doze-dev/doze-aws/cloudformation"
 	"github.com/doze-dev/doze-aws/internal/config"
 	"github.com/doze-dev/doze-aws/provision"
+	names "github.com/doze-dev/doze-names"
 )
 
 // splitApplyArgs separates `apply` arguments into the stack file, the --var
@@ -112,14 +113,14 @@ func runApply(args []string) int {
 		return 1
 	}
 	printTranspileReport(cfnRep)
-	gw, closer, live, err := gatewayFor(st.cfg)
+	gw, closer, liveAt, err := gatewayFor(st.cfg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "apply:", err)
 		return 1
 	}
 	defer closer()
-	if live {
-		fmt.Fprintf(os.Stderr, "applying %s to the running server at %s\n", file, st.cfg.ListenAddr)
+	if liveAt != "" {
+		fmt.Fprintf(os.Stderr, "applying %s to the running server at %s\n", file, liveAt)
 	} else {
 		fmt.Fprintf(os.Stderr, "applying %s to the data dir at %s (no server running)\n", file, st.cfg.DataDir)
 	}
@@ -242,18 +243,44 @@ func printReport(rep *provision.Report) {
 // gatewayFor returns an http.Handler for the stack: the RUNNING server when
 // one is listening (bbolt is single-writer, so the data dir can't be opened
 // alongside it), otherwise a stack booted from the data dir.
-func gatewayFor(cfg config.Config) (h http.Handler, closer func(), live bool, err error) {
-	if conn, derr := net.DialTimeout("tcp", cfg.ListenAddr, 400*time.Millisecond); derr == nil {
-		conn.Close()
-		return proxyHandler{base: "http://" + cfg.ListenAddr}, func() {}, true, nil
+func gatewayFor(cfg config.Config) (h http.Handler, closer func(), liveAt string, err error) {
+	// Where to look for a running server. --listen names one directly; without
+	// it the instance is on its .doze name, so the registry is asked where
+	// that name is routed rather than an address being guessed at.
+	for _, addr := range liveCandidates(cfg) {
+		if conn, derr := net.DialTimeout("tcp", addr, 400*time.Millisecond); derr == nil {
+			conn.Close()
+			return proxyHandler{base: "http://" + addr}, func() {}, addr, nil
+		}
 	}
 	stack, err := dozeaws.NewStack(dozeaws.StackConfig{
 		DataDir: cfg.DataDir, Services: cfg.Services, S3Host: cfg.S3Host, Identity: cfg.Identity(),
 	})
 	if err != nil {
-		return nil, nil, false, err
+		return nil, nil, "", err
 	}
-	return stack.Handler(), func() { stack.Close() }, false, nil
+	return stack.Handler(), func() { stack.Close() }, "", nil
+}
+
+// liveCandidates are the addresses a running doze-aws might be answering on,
+// most specific first.
+//
+// The name is asked of the REGISTRY rather than resolved through DNS: the
+// registry records where a name is actually routed, and it is right even on a
+// machine where dns-setup has never run. `apply` and `export` have to find the
+// server whether or not the person running them set up names.
+func liveCandidates(cfg config.Config) []string {
+	var out []string
+	if cfg.ListenAddr != "" {
+		out = append(out, reachableHost(cfg.ListenAddr))
+	}
+	reg := names.Open(names.Home(), "doze-aws")
+	for host, e := range reg.Snapshot() {
+		if e.Owner == "doze-aws" && e.Target != "" && strings.HasPrefix(host, "aws.") {
+			out = append(out, e.Target)
+		}
+	}
+	return out
 }
 
 // proxyHandler adapts a base URL to http.Handler so stackfile's in-process

@@ -75,7 +75,9 @@ func (c Config) Identity() awsident.Identity {
 // unchanged.
 func Default() Config {
 	return Config{
-		ListenAddr:        "127.0.0.1:4566",
+		// No default address: doze-aws answers on its .doze NAME, and --listen
+		// is the opt-in for the cases a name cannot serve. See cmd/doze-aws/listen.go.
+		ListenAddr:        "",
 		DataDir:           "./data",
 		S3Host:            "localhost",
 		Console:           true,
@@ -88,10 +90,9 @@ func Default() Config {
 // starting. Service-name existence is checked against the full roadmap set
 // here; whether a service is implemented yet is the stack's concern.
 func (c Config) Validate() error {
-	switch {
-	case c.ListenAddr == "":
-		return fmt.Errorf("config: listen address is empty")
-	case c.DataDir == "":
+	// An empty ListenAddr is no longer an error: it is the default. doze-aws
+	// answers on its .doze name, and --listen adds an address alongside it.
+	if c.DataDir == "" {
 		return fmt.Errorf("config: data dir is empty")
 	}
 	for _, s := range c.Services {

@@ -24,7 +24,6 @@ import (
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/console"
 	"github.com/doze-dev/doze-aws/iam"
-	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/config"
 	"github.com/doze-dev/doze-aws/peers"
 	"github.com/doze-dev/doze-aws/provision"
@@ -210,7 +209,7 @@ func loadConfig(args []string) (startup, error) {
 func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs := flag.NewFlagSet("doze-aws", flag.ExitOnError)
 	cp := fs.String("config", "", "path to a TOML config file (default: ./doze-aws.toml if present)")
-	fs.StringVar(&dst.ListenAddr, "listen", dst.ListenAddr, "host:port for the shared endpoint")
+	fs.StringVar(&dst.ListenAddr, "listen", dst.ListenAddr, "ALSO serve on this host:port (default: the .doze name only; use this for cross-container access)")
 	fs.StringVar(&dst.DataDir, "data-dir", dst.DataDir, "root directory for service data")
 	fs.Var(servicesFlag{&dst.Services}, "services", "comma-separated services to enable (default: all implemented)")
 	fs.StringVar(&dst.S3Host, "s3-host", dst.S3Host, "base host for virtual-hosted-style S3 bucket addressing")
@@ -243,6 +242,31 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		return err
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	// Addresses are decided BEFORE anything is built, because what doze-aws
+	// tells a Lambda process to dial (AWS_ENDPOINT_URL) and what it reports in
+	// a queue URL both depend on where it ended up listening.
+	//
+	// The default is a NAME. --listen is the opt-in for the cases a name
+	// cannot serve — chiefly a sibling container reaching this one over the
+	// compose network, where the address is supplied by Docker and .doze is
+	// not in play.
+	if cfg.ListenAddr == "" {
+		if _, nerr := ensureNames(liveNameEnv()); nerr != nil {
+			return nerr
+		}
+	}
+	z := joinZone(ctx, logger)
+	defer z.close()
+
+	binds, err := openListeners(cfg, z, logger)
+	if err != nil {
+		return err
+	}
+	defer binds.close()
+
 	// A data directory written before regions keeps its services directly under
 	// the root; they belong under <region>/ now. This is a directory rename per
 	// service and it happens once, but it happens to somebody's data — so it is
@@ -267,7 +291,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		LambdaQuiet:       cfg.LambdaQuiet,
 		LambdaRuntimes:    cfg.LambdaRuntimes,
 		IAMMode:           iamMode,
-		Endpoint:          reachableEndpoint(cfg.ListenAddr),
+		Endpoint:          binds.endpoint,
 		Logf: func(format string, args ...any) {
 			logger.Info(fmt.Sprintf(format, args...))
 		},
@@ -310,18 +334,17 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		logger.Info("template applied", "file", tmplPath, "created", created, "updated", updated, "in_place", skipped)
 	}
 
-	ln, err := net.Listen("tcp", cfg.ListenAddr)
-	if err != nil {
-		return err
-	}
 	enabled := cfg.Services
 	if enabled == nil {
 		enabled = dozeaws.Implemented
 	}
 	// This exact line is what the E2E test (and any wrapping tooling) parses
 	// to learn the bound address — keep its shape stable.
-	logger.Info("listening", "addr", ln.Addr().String(), "services", strings.Join(enabled, ","),
+	logger.Info("listening", "addr", binds.primary().ln.Addr().String(), "services", strings.Join(enabled, ","),
 		"regions", strings.Join(regions.Serving(), ","), "account", cfg.Identity().Account())
+	for _, b := range binds.all {
+		logger.Info("reachable at", "url", b.url, "as", b.what)
+	}
 
 	// Mount the web console alongside the AWS gateway on the same endpoint. The
 	// "/_console" prefix can never collide with a valid S3 bucket name (those
@@ -357,28 +380,13 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		mux.Handle("/_console", http.RedirectHandler("/_console/", http.StatusFound))
 		mux.Handle("/", rec)
 		handler = mux
-		logger.Info("console", "url", "http://"+ln.Addr().String()+"/_console/")
+		logger.Info("console", "url", binds.primary().url+"/_console/")
 	}
 
 	srv := &http.Server{Handler: handler}
 
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
-
-	// Join .doze: claim aws.doze, serve the zone if no peer is, and take an
-	// extra listener on the name's own address. All of it is additive — the
-	// configured address above is the contract and is never affected.
-	z := joinZone(ctx, logger)
-	defer z.close()
-	_, cfgPort, _ := net.SplitHostPort(ln.Addr().String())
-	extra := z.listen(logger, ln.Addr().String(), cfgPort)
-	if url := z.url(); url != "" {
-		logger.Info("listening", "addr", extra.Addr().String(), "name", url)
-	}
-
 	errc := make(chan error, 1)
-	bg.Go(slogf(logger), "doze-aws: listener", func() { errc <- srv.Serve(ln) })
-	serveExtra(srv, extra, logger)
+	binds.serve(srv, logger, errc)
 
 	select {
 	case err := <-errc:

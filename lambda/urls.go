@@ -52,7 +52,7 @@ func (s *Server) urlFor(r *http.Request, f *Function) string {
 	if f.FunctionURL == "" {
 		return ""
 	}
-	if r == nil || r.Host == "" {
+	if r == nil || r.Host == "" || awshost.Internal(r.Host) {
 		return f.FunctionURL
 	}
 	if s.suffix != "" && awshost.Parse(r.Host, s.suffix).Named() {
