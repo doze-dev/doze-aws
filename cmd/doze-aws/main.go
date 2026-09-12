@@ -57,6 +57,7 @@ func commands() []command {
 		{"env", envUsage, runEnv},
 		{"config print", "print the effective configuration as TOML, ready to edit", runConfigPrint},
 		{"dns-setup", "prepare this machine for .doze names (idempotent)", runDNSSetup},
+		{"doctor", doctorUsage, runDoctor},
 		{"version", "print the version and the services this build serves", runVersion},
 		{"help", "print this message", runHelp},
 	}
