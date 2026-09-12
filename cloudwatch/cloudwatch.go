@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -71,7 +72,7 @@ type Server struct {
 	bg         sync.WaitGroup
 	retention  time.Duration
 	maxSamples int
-	sink       trace.Sink
+	sink       atomic.Pointer[trace.Sink]
 	id         awsident.Identity // the region and account this service mints ARNs for
 }
 
@@ -150,7 +151,18 @@ func (s *Server) SweepNow() (int, error) { return s.sweep(s.retention, s.maxSamp
 // without this an alarm notifying a topic would be a cascade the recorder
 // never sees — the same reason lambda and stepfunctions take one. Called once
 // during stack construction, before the service serves anything.
-func (s *Server) SetTraceSink(sink trace.Sink) { s.sink = sink }
+// Atomic: the alarm ticker is already running when this is called, and a
+// torn interface read is a segfault rather than a 500. See the stepfunctions
+// copy for the full reasoning.
+func (s *Server) SetTraceSink(sink trace.Sink) { s.sink.Store(&sink) }
+
+// traceSink reads the sink, or nil if none was set.
+func (s *Server) traceSink() trace.Sink {
+	if p := s.sink.Load(); p != nil {
+		return *p
+	}
+	return nil
+}
 
 // Close stops the background work and closes the store.
 func (s *Server) Close() error {

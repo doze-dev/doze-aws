@@ -110,7 +110,7 @@ func (s *Server) fireActions(a *alarm, prev, now, reason string, at time.Time) {
 		return
 	}
 	// The evaluator has no request context, so the sink is attached here.
-	ctx := trace.With(context.Background(), s.sink, 0)
+	ctx := trace.With(context.Background(), s.traceSink(), 0)
 	// The principal is the service on behalf of the alarm, so a topic policy
 	// conditioned on aws:SourceArn evaluates the way it would on AWS.
 	ctx = peers.WithPrincipal(ctx, "cloudwatch", a.ARN())

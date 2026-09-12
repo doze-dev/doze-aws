@@ -427,7 +427,7 @@ func (g *engine) dispatch(r *run, call asl.EffCallTask) {
 		// not let close() believe the worker finished cleanly.
 		defer g.wg.Done()
 		defer bg.Recover(g.srv.logf, "stepfunctions: task worker")
-		ctx := trace.Continue(g.workerCtx, g.srv.sink, header)
+		ctx := trace.Continue(g.workerCtx, g.srv.traceSink(), header)
 		res := g.srv.performTask(ctx, call.Resource, call.Input)
 		if g.workerCtx.Err() != nil {
 			// Shutdown cancelled the call. That is not a task failure: the

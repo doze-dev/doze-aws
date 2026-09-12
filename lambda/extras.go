@@ -343,7 +343,7 @@ func stateFor(enabled bool) string {
 // a DynamoDB or Kinesis delivery is visible where it used to be silent, and
 // a failure is logged rather than discarded.
 func (s *Server) invokeFromSource(f *Function, payload []byte, via string) {
-	ctx := trace.With(context.Background(), s.sink, 0)
+	ctx := trace.With(context.Background(), s.traceSink(), 0)
 	err := trace.StepDetail(ctx, trace.Event{
 		Service: "lambda", Action: "Invoke (event source)", Resource: f.Name, Via: via,
 	}, func(ctx context.Context) (string, string, error) {
@@ -479,7 +479,7 @@ func (s *Server) pollSQS(poller *esm, m *EventSourceMapping) {
 		// mix causes; the first message's header is used, because one invoke
 		// has one parent and inventing a second edge would be a guess. In
 		// practice a batch is one producer's work.
-		ctx := trace.Continue(context.Background(), s.sink, msgs[0].TraceHeader())
+		ctx := trace.Continue(context.Background(), s.traceSink(), msgs[0].TraceHeader())
 
 		records := make([]map[string]any, 0, len(msgs))
 		for _, msg := range msgs {

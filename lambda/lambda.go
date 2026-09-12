@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -79,7 +80,7 @@ type Server struct {
 	// sink receives cascade events from the event-source pollers. It arrives
 	// after construction because the recorder wraps the assembled stack, so it
 	// cannot exist when the services are built.
-	sink trace.Sink
+	sink atomic.Pointer[trace.Sink]
 
 	store       *Store
 	dataDir     string
@@ -240,4 +241,15 @@ func (s *Server) route(w http.ResponseWriter, r *http.Request) *awshttp.APIError
 
 // SetTraceSink tells the pollers where to report the work a queued message
 // caused. Safe to leave unset: tracing is then a no-op.
-func (s *Server) SetTraceSink(sink trace.Sink) { s.sink = sink }
+// SetTraceSink is called after the ESM pollers are already running, so the
+// field is written while they read it. Atomic for the reason on the
+// stepfunctions copy: a torn interface read is a segfault, not a 500.
+func (s *Server) SetTraceSink(sink trace.Sink) { s.sink.Store(&sink) }
+
+// traceSink reads the sink, or nil if none was set.
+func (s *Server) traceSink() trace.Sink {
+	if p := s.sink.Load(); p != nil {
+		return *p
+	}
+	return nil
+}

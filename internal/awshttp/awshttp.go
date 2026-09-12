@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sync/atomic"
 	"time"
 )
 
@@ -48,12 +49,29 @@ func Errf(status int, code, format string, args ...any) *APIError {
 // A package-level hook rather than a parameter: threading a logger through
 // every one of those call sites would be a large mechanical change for a
 // diagnostic, and coercion is exactly the choke point where the error is still
-// in hand. Set once, at stack construction. Nil means discard, which keeps
-// awshttp usable as a library and keeps tests quiet.
+// in hand. Unset means discard, which keeps awshttp usable as a library and
+// keeps tests quiet.
+//
+// ATOMIC, and that is not decoration. Every Stack sets it at construction, and
+// stacks are built concurrently — one per region, and the root package's
+// TestStackChurn builds them in parallel on purpose. The first version of this
+// was a plain `var OnInternalFault func(error)`, and `go test -race` reported
+// it immediately: concurrent NewStack calls writing the same word.
 //
 // The wire response is deliberately unchanged — internal detail still never
 // leaves the process.
-var OnInternalFault func(error)
+var onInternalFault atomic.Pointer[func(error)]
+
+// SetInternalFaultHandler installs the handler described on onInternalFault.
+// Passing nil clears it. Safe to call from several goroutines; last writer
+// wins, and every writer in practice installs the same behaviour.
+func SetInternalFaultHandler(fn func(error)) {
+	if fn == nil {
+		onInternalFault.Store(nil)
+		return
+	}
+	onInternalFault.Store(&fn)
+}
 
 // AsAPIError coerces err into an *APIError, wrapping unknown error types as an
 // opaque InternalFailure so internal details never leak onto the wire.
@@ -61,8 +79,8 @@ func AsAPIError(err error) *APIError {
 	if ae, ok := err.(*APIError); ok {
 		return ae
 	}
-	if OnInternalFault != nil && err != nil {
-		OnInternalFault(err)
+	if fn := onInternalFault.Load(); fn != nil && err != nil {
+		(*fn)(err)
 	}
 	return &APIError{Code: "InternalFailure", Status: 500, Message: "internal error"}
 }

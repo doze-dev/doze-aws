@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -63,7 +64,7 @@ type Server struct {
 	peers   peers.Directory
 	logf    func(format string, args ...any)
 	api     awsjson.API
-	sink    trace.Sink
+	sink    atomic.Pointer[trace.Sink]
 	engine  *engine
 	logs    *machineLogs
 	metrics *metricship.Shipper
@@ -125,7 +126,26 @@ func (s *Server) Close() error {
 // causes. Request-driven work inherits its sink from the request context; the
 // engine drives executions from a scheduler goroutine, which has no request,
 // so it needs the sink handed to it the way lambda's pollers do.
-func (s *Server) SetTraceSink(sink trace.Sink) { s.sink = sink }
+//
+// Stored atomically, because this is called AFTER the goroutines that read it
+// are already running. The engine's driver starts inside New, and the first
+// thing it does is resume every RUNNING execution — which reaches dispatch and
+// reads the sink. The binary sets it much later: cmd/doze-aws/main.go builds
+// the regions at :375 and calls this at :457. A data directory holding one
+// RUNNING execution across a restart is enough for the two to overlap.
+//
+// A plain field write would be a race on an INTERFACE value — two words — so a
+// torn read can pair a new itab with an old data pointer, which is a segfault
+// inside trace.Continue rather than a clean 500.
+func (s *Server) SetTraceSink(sink trace.Sink) { s.sink.Store(&sink) }
+
+// traceSink reads the sink set by SetTraceSink, or nil if none was.
+func (s *Server) traceSink() trace.Sink {
+	if p := s.sink.Load(); p != nil {
+		return *p
+	}
+	return nil
+}
 
 type handler func(s *Server, ctx context.Context, p map[string]any) (any, *awshttp.APIError)
 

@@ -38,8 +38,8 @@ func TestErrfAndAs(t *testing.T) {
 // so the one person who could act on it learned nothing.
 func TestAnInternalFaultIsReportedSomewhere(t *testing.T) {
 	var seen []error
-	OnInternalFault = func(err error) { seen = append(seen, err) }
-	t.Cleanup(func() { OnInternalFault = nil })
+	SetInternalFaultHandler(func(err error) { seen = append(seen, err) })
+	t.Cleanup(func() { SetInternalFaultHandler(nil) })
 
 	boom := errors.New("bbolt: database not open")
 	got := AsAPIError(boom)
@@ -63,7 +63,7 @@ func TestAnInternalFaultIsReportedSomewhere(t *testing.T) {
 		t.Errorf("a deliberate API error was reported as an internal fault: %v", seen)
 	}
 	// Nil hook is the library default and must not panic.
-	OnInternalFault = nil
+	SetInternalFaultHandler(nil)
 	_ = AsAPIError(boom)
 }
 

@@ -26,7 +26,7 @@ func (g *engine) readItems(r *run, f *asl.Frame, cfg asl.MapRunConfig) {
 	go func() {
 		defer g.wg.Done()
 		defer bg.Recover(g.srv.logf, "stepfunctions: Map Run item reader")
-		ctx := trace.Continue(g.workerCtx, g.srv.sink, header)
+		ctx := trace.Continue(g.workerCtx, g.srv.traceSink(), header)
 		items, fail := g.srv.fetchItems(ctx, reader, input)
 		d := delivery{key: key, frame: frame, kind: dlvMapItems, items: items}
 		if fail != nil {
@@ -157,7 +157,7 @@ func (g *engine) writeResults(r *run, f *asl.Frame, mr *MapRun, items []*MapItem
 	go func() {
 		defer g.wg.Done()
 		defer bg.Recover(g.srv.logf, "stepfunctions: Map Run result writer")
-		ctx := trace.Continue(g.workerCtx, g.srv.sink, header)
+		ctx := trace.Continue(g.workerCtx, g.srv.traceSink(), header)
 		res := g.srv.storeResults(ctx, writer, arn, items)
 		select {
 		case g.deliveries <- delivery{key: key, frame: frame, kind: dlvMapResults, result: res}:
