@@ -82,16 +82,26 @@ func (s *Store) DeadLetterSourceQueues(dlq string) ([]string, error) {
 	return out, err
 }
 
-// MoveTask records one message move task. Local moves are synchronous, so a
-// stored task is always in a terminal state.
+// MoveTask records one message move task.
+//
+// Status is always COMPLETED, and that is a consequence of the local design
+// rather than an omission. AWS moves asynchronously, so a task can be RUNNING
+// and can later FAIL; here the whole move happens inside one bbolt transaction,
+// so a failure rolls the transaction back and comes out of StartMessageMoveTask
+// as an API error. There is no moment at which a failed task could be observed,
+// which means there is nothing for a FailureReason to say.
+//
+// The field for it used to be here — declared, read into the wire response, and
+// never assigned anywhere in the tree, so ListMessageMoveTasks reported an empty
+// FailureReason forever. The wire view keeps the field (AWS has it, and it is
+// omitempty) but nothing pretends to fill it.
 type MoveTask struct {
 	Handle      string `json:"handle"`
-	Status      string `json:"status"` // COMPLETED | FAILED
+	Status      string `json:"status"` // always COMPLETED — see above
 	Source      string `json:"source"` // queue name
 	Destination string `json:"destination"`
 	Moved       int    `json:"moved"`
 	StartedAt   int64  `json:"started_at"` // unix seconds
-	FailureWhy  string `json:"failure_why,omitempty"`
 }
 
 // StartMessageMoveTask moves every currently-stored message from source to

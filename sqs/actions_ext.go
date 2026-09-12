@@ -105,7 +105,10 @@ func hListMessageMoveTasks(s *Store, req *request) (any, *apiError) {
 			DestinationArn:                   s.queueARN(t.Destination),
 			ApproximateNumberOfMessagesMoved: int64(t.Moved),
 			StartedTimestamp:                 t.StartedAt * 1000, // epoch millis
-			FailureReason:                    t.FailureWhy,
+			// FailureReason is deliberately left unset: a local move is one
+			// bbolt transaction, so a failure is an API error from
+			// StartMessageMoveTask rather than a task anyone can list. See
+			// MoveTask. It stays in the wire shape because AWS has it.
 		})
 	}
 	return res, nil

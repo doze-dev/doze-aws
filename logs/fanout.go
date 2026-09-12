@@ -49,11 +49,27 @@ type fanout struct {
 	logf  func(string, ...any)
 	in    chan fanBatch
 	done  chan struct{}
+	// quit is closed to stop the worker. The batch channel itself is NEVER
+	// closed, and that is the whole point.
+	//
+	// This used to be `close(f.in)`, guarded by a `closed` flag that enqueue
+	// checked — but enqueue released the mutex before sending, and close()
+	// released it before closing, so the check and the send were not ordered
+	// against each other. A PutLogEvents in flight when Stack.Close ran could
+	// send on a closed channel and panic. It reaches this handler over the
+	// in-process peer path, where peers.handlerTransport calls ServeHTTP
+	// directly with no recover — unlike net/http — so the panic would unwind
+	// into whichever goroutine made the peer call and be blamed on that.
+	//
+	// internal/logship had it right: select on a quit channel, never close the
+	// work channel. Same shape here.
+	quit chan struct{}
+	once sync.Once
 
 	mu    sync.Mutex
 	cache map[string][]compiledSub // group → its filters, compiled
-	// closed is set before the channel closes, so enqueue never sends on
-	// a closed channel; guarded by mu.
+	// closed reports that a shutdown is under way, so enqueue can stay silent
+	// about drops that are expected. It no longer guards against a panic.
 	closed bool
 	// dead is set when the worker panicked, which enqueue reports and a
 	// deliberate close does not.
@@ -61,7 +77,7 @@ type fanout struct {
 }
 
 func newFanout(store *Store, dir peers.Directory, logf func(string, ...any)) *fanout {
-	f := &fanout{store: store, peers: dir, logf: logf, in: make(chan fanBatch, fanBuffer), done: make(chan struct{}), cache: map[string][]compiledSub{}}
+	f := &fanout{store: store, peers: dir, logf: logf, in: make(chan fanBatch, fanBuffer), done: make(chan struct{}), quit: make(chan struct{}), cache: map[string][]compiledSub{}}
 	go f.run()
 	return f
 }
@@ -88,6 +104,9 @@ func (f *fanout) enqueue(ctx context.Context, group, stream string, events []Sto
 	}
 	select {
 	case f.in <- fanBatch{ctx: context.WithoutCancel(ctx), group: group, stream: stream, events: events}:
+	case <-f.quit:
+		// Shutting down between the check above and this send. Expected and
+		// silent — and safe, because nothing ever closes f.in.
 	default:
 		f.logf("logs: subscription fan-out for %s is %d batches behind; dropped one", group, fanBuffer)
 	}
@@ -100,13 +119,18 @@ func (f *fanout) forget(group string) {
 	f.mu.Unlock()
 }
 
-// close stops the worker after it drains what is queued.
+// close stops the worker after it drains what is queued. Safe to call more
+// than once: the service packages are exported for direct embedding, so an
+// embedder with `defer svc.Close()` plus an error path would otherwise get
+// `panic: close of closed channel`.
 func (f *fanout) close() {
-	f.mu.Lock()
-	f.closed = true
-	f.mu.Unlock()
-	close(f.in)
-	<-f.done
+	f.once.Do(func() {
+		f.mu.Lock()
+		f.closed = true
+		f.mu.Unlock()
+		close(f.quit)
+		<-f.done
+	})
 }
 
 func (f *fanout) run() {
@@ -116,8 +140,22 @@ func (f *fanout) run() {
 	// batches into a channel nobody drains.
 	defer close(f.done)
 	defer bg.Recover(f.logf, "logs: subscription fan-out", f.die)
-	for b := range f.in {
-		f.deliver(b)
+	for {
+		select {
+		case b := <-f.in:
+			f.deliver(b)
+		case <-f.quit:
+			// Drain what is already queued before stopping — close() promises
+			// that, and it is what `for range f.in` used to give for free.
+			for {
+				select {
+				case b := <-f.in:
+					f.deliver(b)
+				default:
+					return
+				}
+			}
+		}
 	}
 }
 

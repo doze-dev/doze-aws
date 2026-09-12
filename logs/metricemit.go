@@ -41,6 +41,9 @@ type metricEmitter struct {
 	logf  func(string, ...any)
 	in    chan metricBatch
 	done  chan struct{}
+	// quit stops the worker. m.in is NEVER closed — see the long note on
+	// fanout.quit; this had the identical check-then-send defect.
+	quit chan struct{}
 
 	mu     sync.Mutex
 	cache  map[string][]compiledFilter
@@ -53,7 +56,7 @@ type metricEmitter struct {
 func newMetricEmitter(store *Store, dir peers.Directory, logf func(string, ...any)) *metricEmitter {
 	m := &metricEmitter{
 		store: store, ship: metricship.New("logs", dir, logf), logf: logf,
-		in: make(chan metricBatch, metricBuffer), done: make(chan struct{}),
+		in: make(chan metricBatch, metricBuffer), done: make(chan struct{}), quit: make(chan struct{}),
 		cache: map[string][]compiledFilter{},
 	}
 	go m.run()
@@ -78,6 +81,9 @@ func (m *metricEmitter) enqueue(ctx context.Context, group string, events []Stor
 	}
 	select {
 	case m.in <- metricBatch{ctx: context.WithoutCancel(ctx), group: group, events: events}:
+	case <-m.quit:
+		// Closing between the check above and this send: expected, silent,
+		// and safe because nothing closes m.in.
 	default:
 		m.logf("logs: metric-filter queue full; dropped a batch for %s", group)
 	}
@@ -98,7 +104,7 @@ func (m *metricEmitter) close() {
 	}
 	m.closed = true
 	m.mu.Unlock()
-	close(m.in)
+	close(m.quit)
 	<-m.done
 	m.ship.Close()
 }
@@ -109,8 +115,21 @@ func (m *metricEmitter) close() {
 func (m *metricEmitter) run() {
 	defer close(m.done)
 	defer bg.Recover(m.logf, "logs: metric-filter emitter", m.die)
-	for b := range m.in {
-		m.evaluate(b)
+	for {
+		select {
+		case b := <-m.in:
+			m.evaluate(b)
+		case <-m.quit:
+			// Drain what is queued, as `for range m.in` used to.
+			for {
+				select {
+				case b := <-m.in:
+					m.evaluate(b)
+				default:
+					return
+				}
+			}
+		}
 	}
 }
 

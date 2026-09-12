@@ -74,9 +74,13 @@ type Server struct {
 	retention time.Duration
 	maxEvents int
 	stop      chan struct{}
-	peers     peers.Directory
-	fan       *fanout        // subscription filters → Lambda / Kinesis
-	met       *metricEmitter // metric filters → CloudWatch Metrics
+	// done closes when the sweeper has returned, so Close waits for it before
+	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
+	// Every sibling service carries this; logs was the one that did not.
+	done  chan struct{}
+	peers peers.Directory
+	fan   *fanout        // subscription filters → Lambda / Kinesis
+	met   *metricEmitter // metric filters → CloudWatch Metrics
 }
 
 // New opens the store under DataDir and starts the retention sweeper.
@@ -110,6 +114,7 @@ func New(opts Options) (*Server, error) {
 		retention: opts.Retention,
 		maxEvents: opts.MaxEvents,
 		stop:      make(chan struct{}),
+		done:      make(chan struct{}),
 	}
 	if s.retention <= 0 {
 		s.retention = DefaultRetention
@@ -137,6 +142,10 @@ func New(opts Options) (*Server, error) {
 // store.
 func (s *Server) Close() error {
 	close(s.stop)
+	// Waited on, not just signalled: a sweep inside a bolt transaction races
+	// the close below, and bolt panics on a closed DB. The fan-out and emitter
+	// already wait on their own workers; the sweeper was the one that did not.
+	<-s.done
 	s.fan.close()
 	s.met.close()
 	return s.store.db.Close()
@@ -152,6 +161,7 @@ func (s *Server) SweepNow() int {
 }
 
 func (s *Server) sweeper() {
+	defer close(s.done)
 	t := time.NewTicker(time.Minute)
 	defer t.Stop()
 	for {
