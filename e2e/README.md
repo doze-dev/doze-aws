@@ -8,16 +8,16 @@ self-contained in this directory.
 
 ```sh
 bun install
-bun run ./node_modules/playwright/cli.js install --with-deps chromium   # once, or after a Playwright bump
-bun run ./node_modules/playwright/cli.js test                            # headless
-bun run ./node_modules/playwright/cli.js test --ui                        # interactive UI mode
-bun run ./node_modules/playwright/cli.js test --headed                     # watch it drive a real browser
-bun run ./node_modules/playwright/cli.js test tests/sqs.spec.ts             # one file
+bunx --bun playwright install --with-deps chromium   # once, or after a Playwright bump
+bunx --bun playwright test                            # headless
+bunx --bun playwright test --ui                        # interactive UI mode
+bunx --bun playwright test --headed                     # watch it drive a real browser
+bunx --bun playwright test tests/sqs.spec.ts             # one file
 ```
 
 Or via the repo's Taskfile from `doze-aws/`: `go tool task test:e2e`.
 
-`bun run ./node_modules/playwright/cli.js test` builds the real `doze-aws`
+`bunx --bun playwright test` builds the real `doze-aws`
 binary and boots it with `--listen 127.0.0.1:14566` against an isolated data
 dir (`e2e/.tmp/data`) — see `playwright.config.ts`'s `webServer`.
 

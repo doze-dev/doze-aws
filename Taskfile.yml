@@ -126,9 +126,11 @@ tasks:
     desc: 'Playwright browser tests against the console UI (builds+boots a real binary; not part of check)'
     cmds:
       - cd e2e && bun install --frozen-lockfile
-      - cd e2e && bun run ./node_modules/playwright/cli.js install --with-deps chromium
-      # bunx shells out to node, which is not pinned here; bun run is.
-      - cd e2e && bun run ./node_modules/playwright/cli.js test
+      - cd e2e && bunx --bun playwright install --with-deps chromium
+      # --bun matters: the playwright bin has a #!/usr/bin/env node shebang, and
+      # plain bunx honours it. Where node is a version-manager shim with nothing
+      # pinned, that fails before Playwright starts. --bun runs it with bun.
+      - cd e2e && bunx --bun playwright test
 
   clean:
     desc: Remove build output and local service data

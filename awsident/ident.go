@@ -110,11 +110,6 @@ func ARN(service, resource string) string { return Default().ARN(service, resour
 // Deprecated: use an instance's Identity, for the reason on ARN.
 func GlobalARN(service, resource string) string { return Default().GlobalARN(service, resource) }
 
-// FunctionURL reports a function URL under the default identity.
-//
-// Deprecated: use an instance's Identity, for the reason on ARN.
-func FunctionURL(id, endpoint string) string { return Default().FunctionURL(id, endpoint) }
-
 // FunctionURLID is the 32-character lowercase id a Lambda function URL carries,
 // derived from the function name so a redeploy addresses the same URL and a
 // template can know it before the function exists.
