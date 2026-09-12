@@ -8,6 +8,7 @@
 - [embedding.md](embedding.md) — use doze-aws as a Go library, with a complete example
 - [api-support/](api-support/) — per-service operation support tables (Functional / Cosmetic / Stub)
 - [performance.md](performance.md) — measured hot-path and whole-request costs, and what to do about the slow ones
+- [storage.md](storage.md) — why bbolt, what it costs, and what pebble was measured at
 - [reports/](reports/) — phase-by-phase build reports
 
 ## Design ground rules
