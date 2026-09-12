@@ -55,6 +55,10 @@ type Config struct {
 	// Region is the region every ARN this instance mints carries. Empty means
 	// the conventional local region.
 	Region string
+	// Regions are additional regions served alongside Region. A region a signed
+	// request names is created on first use whether or not it is listed; listing
+	// one only creates it eagerly, so it appears before anything touches it.
+	Regions []string
 }
 
 // Identity is the region and account this configuration mints ARNs for.

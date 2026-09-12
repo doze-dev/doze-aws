@@ -212,7 +212,8 @@ func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs.Var(servicesFlag{&dst.Services}, "services", "comma-separated services to enable (default: all implemented)")
 	fs.StringVar(&dst.S3Host, "s3-host", dst.S3Host, "base host for virtual-hosted-style S3 bucket addressing")
 	fs.StringVar(&dst.AccountID, "account-id", dst.AccountID, "twelve-digit account id every ARN carries (default 000000000000; set at creation, hard to change later)")
-	fs.StringVar(&dst.Region, "region", dst.Region, "region this instance serves; its data lives under <data-dir>/<region> (default us-east-1)")
+	fs.StringVar(&dst.Region, "region", dst.Region, "default region; its data lives under <data-dir>/<region> (default us-east-1)")
+	fs.Var(servicesFlag{&dst.Regions}, "regions", "comma-separated extra regions to serve (any region a signed request names is created on first use regardless)")
 	fs.BoolVar(&dst.Console, "console", dst.Console, "serve the web management console at /_console")
 	fs.DurationVar(&dst.LambdaIdleTimeout, "lambda-idle", dst.LambdaIdleTimeout, "how long a warm Lambda keeps its process before scaling to zero")
 	fs.BoolVar(&dst.LambdaQuiet, "lambda-quiet", dst.LambdaQuiet, "do not echo Lambda function output to this log")
@@ -253,7 +254,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		logger.Info("data directory migrated", "services", len(plan.Moves))
 	}
 
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{
+	regions, err := dozeaws.NewRegions(dozeaws.StackConfig{
 		DataDir:           cfg.DataDir,
 		Services:          cfg.Services,
 		S3Host:            cfg.S3Host,
@@ -266,11 +267,15 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		Logf: func(format string, args ...any) {
 			logger.Info(fmt.Sprintf(format, args...))
 		},
-	})
+	}, cfg.Regions)
 	if err != nil {
 		return err
 	}
-	defer stack.Close()
+	defer regions.Close()
+	// The default region's stack is what the console and the boot-time template
+	// apply act on. Everything reached over the wire goes through regions,
+	// which picks per request from the credential scope.
+	stack := regions.Stack(regions.Default())
 
 	// Apply a CloudFormation/SAM template at boot, if one is named or a
 	// conventionally-named one is sitting in the working directory.
@@ -311,17 +316,18 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	}
 	// This exact line is what the E2E test (and any wrapping tooling) parses
 	// to learn the bound address — keep its shape stable.
-	logger.Info("listening", "addr", ln.Addr().String(), "services", strings.Join(enabled, ","))
+	logger.Info("listening", "addr", ln.Addr().String(), "services", strings.Join(enabled, ","),
+		"regions", strings.Join(regions.Serving(), ","), "account", cfg.Identity().Account())
 
 	// Mount the web console alongside the AWS gateway on the same endpoint. The
 	// "/_console" prefix can never collide with a valid S3 bucket name (those
 	// forbid underscores), so path-style S3 routing is unaffected.
-	handler := http.Handler(stack.Handler())
+	handler := http.Handler(regions)
 	if cfg.Console {
 		// The recorder wraps the gateway for external SDK/CLI traffic; the
 		// console reads it for the Traffic tail but drives its own calls
 		// through the RAW gateway so they never appear there.
-		rec := console.NewRecorder(stack.Handler(), cfg.Identity())
+		rec := console.NewRecorder(regions, cfg.Identity())
 		// S3, Lambda and API Gateway name their operation by PATH. Without these
 		// the wire falls back to mapping the HTTP method, which collapses all 64
 		// S3 operations onto five strings — GetBucketVersioning shown as
@@ -330,7 +336,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		rec.SetOpResolver(dozeaws.OperationResolvers())
 		// Pollers have no request behind them, so they are handed the recorder
 		// directly — it is how a queued message's cause reaches the wire.
-		stack.SetTraceSink(rec)
+		regions.SetTraceSink(rec)
 		// The console drives its own calls straight to each raw service handler
 		// (peers.InProcess over the stack), so they never pass through the
 		// recorder and never appear in the Traffic tail.

@@ -116,6 +116,11 @@ type StackConfig struct {
 	// sibling services. Leave empty when running fully embedded with no HTTP
 	// listener; service-to-service calls still work via in-process peers.
 	Endpoint string
+	// Shared, when set, supplies the region-less services (IAM, STS) rather
+	// than this stack building its own. Regions sets it so every region reaches
+	// one _global store — bbolt is single-writer, so a second opener would
+	// block forever. Nil means build them, which is the single-region case.
+	Shared *Shared
 	// Identity is the region and account this stack mints ARNs for. The zero
 	// value means the conventional local identity (us-east-1, 000000000000),
 	// so an embedder that does not care never has to name one.
@@ -162,6 +167,22 @@ func NewStack(cfg StackConfig) (*Stack, error) {
 		if !slices.Contains(Implemented, name) {
 			st.Close()
 			return nil, fmt.Errorf("dozeaws: service %q is not implemented yet (implemented: %s)", name, strings.Join(Implemented, ", "))
+		}
+		// A region-less service is built once and shared when Regions supplies
+		// one: its store lives under _global, and bbolt is single-writer, so a
+		// per-region copy would block on the file lock rather than work. It is
+		// still REGISTERED here, so a service in this region resolves it
+		// through peers exactly as if it were local.
+		if cfg.Shared != nil && Global[name] {
+			h, ok := cfg.Shared.handlers[name]
+			if !ok {
+				continue // not enabled
+			}
+			gw.Register(name, h)
+			if name == "iam" {
+				st.iam = cfg.Shared.iam
+			}
+			continue
 		}
 		h, closer, err := st.build(name, cfg, logf)
 		if err != nil {
