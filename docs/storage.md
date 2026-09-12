@@ -15,8 +15,8 @@ at — write throughput and reclaiming space — are respectively **not doze-aws
 bottleneck** and **not a problem doze-aws has**. The two things it is bad at —
 per-instance overhead and scan cost — are exactly what doze-aws does most of.
 
-The write cost people notice is **fsync, not the engine**, and it is
-addressable within bbolt by more than switching engines would give.
+The write cost people notice is **fsync, not the engine**. The batch operations
+now share one, which was worth more than the engine swap would have been.
 
 ## The shape that decides it
 
@@ -65,22 +65,48 @@ The 7,526 µs above is not bbolt being slow. It is one `fsync`, and it matches
 the measured end-to-end cost of `SQS SendMessage` (7.5 ms) almost exactly.
 Pebble's 3,487 µs is also an fsync — of a smaller WAL append.
 
-Two levers inside bbolt beat what the engine swap would buy:
+### One transaction per batch operation — done
 
-| | per op | |
+`SendMessageBatch` used to loop over the single-message store method, so ten
+messages opened ten transactions:
+
+| | per op |
+|---|---|
+| A 10-item batch as 10 transactions | 76.1 ms |
+| The same 10 in one transaction | **7.55 ms** |
+
+The three SQS batch operations now each run in one transaction. A ten-item
+batch costs what a single send costs, because it is one fsync either way — a
+9.4× improvement on `BenchmarkRequestSendMessageBatch`, and larger than
+anything the engine swap offered.
+
+### `DB.Batch` — measured, and deliberately not used
+
+bbolt can coalesce *concurrent* callers into one transaction. It was measured
+and rejected, which is recorded here so it is not rediscovered as an
+obvious win:
+
+| | 1 caller | 16 concurrent |
 |---|---|---|
-| 16 concurrent writers, `DB.Update` | 122.9 ms | each waits on its own fsync |
-| 16 concurrent writers, `DB.Batch` | 19.1 ms | **6.4× faster** — they share one |
-| A 10-item batch as 10 transactions | 76.1 ms | what `SendMessageBatch` does today |
-| The same 10 in one transaction | 7.55 ms | **10× faster** |
+| `DB.Update` (what we do) | **6.95 ms** | 122.9 ms |
+| `DB.Batch`, 10 ms default delay | 19.0 ms | 19.1 ms |
+| `DB.Batch`, 100 µs delay | 8.31 ms | **8.39 ms** |
 
-Neither is in use yet. `DB.Batch` coalesces concurrent callers into a single
-transaction and a single fsync — it is not a drop-in for `DB.Update`, because
-the function may run more than once and so must be idempotent, but that is a
-contained change. Making the batch API operations one transaction is the fix
-[performance.md](performance.md) already names.
+`DB.Batch` waits up to `MaxBatchDelay` for other callers to join, and a lone
+caller pays that wait for nothing. Tuned down to 100 µs it is 14.6× faster
+under concurrency — and still **20% slower for a single caller**, which is the
+case [performance.md](performance.md) actually documents: a test sending a
+thousand messages one at a time.
 
-Against those, pebble's 2.2× on durable writes is the smaller prize.
+It also carries a correctness constraint. The function may run more than once,
+so any side effect outside the transaction must be idempotent — that needs
+checking per call site rather than being applied across the tree.
+
+And 122.9 ms for 16 concurrent writes is not pathological: it is 16 × 7.7 ms,
+the fsync cost serialised. Concurrency does not make doze-aws slower today; it
+simply does not make it faster.
+
+Against all of this, pebble's 2.2× on durable writes is the smaller prize.
 
 ## What bbolt actually costs
 
