@@ -27,7 +27,7 @@ func (srv *Server) effectivePolicy(arn string) string {
 	if t, err := srv.store.GetTopic(arn); err == nil && t.Attrs["Policy"] != "" {
 		return t.Attrs["Policy"]
 	}
-	return defaultTopicPolicy(arn)
+	return srv.defaultTopicPolicy(arn)
 }
 
 // guardRequest runs the guard for a request that names a topic.

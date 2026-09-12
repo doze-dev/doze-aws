@@ -49,6 +49,7 @@ type Subscription struct {
 // Store is the bbolt-backed SNS state.
 type Store struct {
 	db *bolt.DB
+	id awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
 func newStore(db *bolt.DB) *Store { return &Store{db: db} }
@@ -64,7 +65,7 @@ func errInvalid(msg string) *apiError {
 	return &apiError{Code: "InvalidParameter", Status: 400, Message: msg, SenderFault: true}
 }
 
-func topicARN(name string) string { return awsident.ARN("sns", name) }
+func (s *Store) topicARN(name string) string { return s.id.ARN("sns", name) }
 
 // ---- topics ----
 
@@ -72,7 +73,7 @@ func (s *Store) CreateTopic(name string, attrs, tags map[string]string) (*Topic,
 	if name == "" {
 		return nil, errInvalid("topic name is required")
 	}
-	t := &Topic{ARN: topicARN(name), Name: name}
+	t := &Topic{ARN: s.topicARN(name), Name: name}
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(topicsBucket)
 		if err != nil {

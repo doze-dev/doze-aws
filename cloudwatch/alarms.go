@@ -95,11 +95,25 @@ type alarm struct {
 	StateSetManually bool `json:"state_set_manually,omitempty"`
 
 	Tags map[string]string `json:"tags,omitempty"`
+
+	// id is the identity ARN() mints under, stamped on read by Server.stamp.
+	// Unexported, so it is never written to bbolt.
+	id awsident.Identity
 }
 
 // ARN is the alarm's ARN, which is what an IAM policy names and what an
 // action's payload identifies it by.
-func (a *alarm) ARN() string { return awsident.ARN("cloudwatch", "alarm:"+a.Name) }
+func (a *alarm) ARN() string { return a.id.ARN("cloudwatch", "alarm:"+a.Name) }
+
+// stamp marks an alarm with the identity that owns it, so ARN() stays a plain
+// method on a record decoded out of bbolt. Unexported, so it is never
+// persisted: the identity belongs to the instance, not the row.
+func (s *Server) stamp(a *alarm) *alarm {
+	if a != nil {
+		a.id = s.id
+	}
+	return a
+}
 
 // actionsFor returns the actions to fire on entering a state.
 func (a *alarm) actionsFor(state string) []string {
@@ -218,7 +232,7 @@ func (s *Server) getAlarm(name string) (*alarm, error) {
 		if err := json.Unmarshal(raw, &parsed); err != nil {
 			return err
 		}
-		a = &parsed
+		a = s.stamp(&parsed)
 		return nil
 	})
 	return a, err
@@ -237,7 +251,7 @@ func (s *Server) listAlarms() ([]*alarm, error) {
 			if json.Unmarshal(v, &a) != nil {
 				return nil
 			}
-			out = append(out, &a)
+			out = append(out, s.stamp(&a))
 			return nil
 		})
 	})

@@ -39,8 +39,8 @@ const (
 // it to the table in TestEveryServiceMintsTheConfiguredIdentity — the two
 // together are the migration's progress bar.
 var unplumbed = []string{
-	"sns", "sts", "eventbridge", "lambda", "iam", "cloudformation",
-	"apigateway", "stepfunctions", "logs", "cloudwatch",
+	"eventbridge", "lambda", "iam", "cloudformation",
+	"apigateway", "stepfunctions",
 }
 
 func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {
@@ -92,6 +92,19 @@ func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {
 			create: [2]string{"Kinesis_20131202.CreateStream", `{"StreamName":"events","ShardCount":1}`},
 			read:   [2]string{"Kinesis_20131202.DescribeStreamSummary", `{"StreamName":"events"}`},
 			want:   "arn:aws:kinesis:" + testRegion + ":" + testAccount + ":stream/events",
+		},
+		{
+			svc:    "logs",
+			create: [2]string{"Logs_20140328.CreateLogGroup", `{"logGroupName":"/app/api"}`},
+			read:   [2]string{"Logs_20140328.DescribeLogGroups", `{}`},
+			want:   "arn:aws:logs:" + testRegion + ":" + testAccount + ":log-group:/app/api",
+		},
+		{
+			svc: "cloudwatch",
+			create: [2]string{"GraniteServiceVersion20100801.PutDashboard",
+				`{"DashboardName":"ops","DashboardBody":"{\"widgets\":[]}"}`},
+			read: [2]string{"GraniteServiceVersion20100801.GetDashboard", `{"DashboardName":"ops"}`},
+			want: "arn:aws:cloudwatch:" + testRegion + ":" + testAccount + ":dashboard/ops",
 		},
 	}
 

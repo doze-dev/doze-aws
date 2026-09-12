@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/logship"
 )
 
@@ -67,7 +66,7 @@ func (l *deliveryLogs) record(srv *Server, topicARN, msgID, message string, o de
 		return
 	}
 	failed := o.err != nil
-	group := "sns/" + awsident.Region + "/" + awsident.AccountID + "/" + t.Name
+	group := "sns/" + srv.id.RegionName() + "/" + srv.id.Account() + "/" + t.Name
 	if failed {
 		if t.Attrs[p+"FailureFeedbackRoleArn"] == "" {
 			return

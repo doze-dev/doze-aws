@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsquery"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
@@ -32,6 +33,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Identity is the account this service reports. The zero value means the
+	// conventional local identity.
+	Identity awsident.Identity
 }
 
 // Server is the STS service: an http.Handler speaking the Query/XML protocol,
@@ -40,6 +44,7 @@ type Server struct {
 	logf func(format string, args ...any)
 	now  func() time.Time
 	api  awsquery.API
+	id   awsident.Identity // the account this service reports
 }
 
 // New builds the service.
@@ -48,6 +53,7 @@ func New(opts Options) (*Server, error) {
 		logf: opts.Logf,
 		now:  opts.Clock,
 		api:  awsquery.API{XMLNS: xmlns},
+		id:   opts.Identity,
 	}
 	if s.logf == nil {
 		s.logf = func(string, ...any) {}

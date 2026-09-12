@@ -28,6 +28,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
@@ -45,6 +46,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Identity is the region and account this service mints ARNs for. The zero
+	// value means the conventional local identity.
+	Identity awsident.Identity
 	// Retention is how long samples are kept; zero uses the default (24h).
 	Retention time.Duration
 	// MaxSamples caps stored samples; zero uses the default (1e6).
@@ -68,6 +72,7 @@ type Server struct {
 	retention  time.Duration
 	maxSamples int
 	sink       trace.Sink
+	id         awsident.Identity // the region and account this service mints ARNs for
 }
 
 // New opens the store under DataDir.
@@ -96,7 +101,7 @@ func New(opts Options) (*Server, error) {
 		dir = peers.None()
 	}
 	s := &Server{db: db, peers: dir, logf: logf, now: time.Now, stop: make(chan struct{}),
-		retention: opts.Retention, maxSamples: opts.MaxSamples}
+		retention: opts.Retention, maxSamples: opts.MaxSamples, id: opts.Identity}
 	if opts.Clock != nil {
 		s.now = opts.Clock
 	}

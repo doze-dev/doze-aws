@@ -16,6 +16,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsquery"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
@@ -56,6 +57,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Identity is the region and account this service mints ARNs for. The zero
+	// value means the conventional local identity.
+	Identity awsident.Identity
 	// IAMMode is the IAM service's mode; under soft or enforce the topic policy
 	// is evaluated on every topic-scoped request, peer calls included.
 	IAMMode string
@@ -69,7 +73,8 @@ type Server struct {
 	logf  func(format string, args ...any)
 	now   func() time.Time
 	logs  *deliveryLogs
-	guard iamguard.Guard // the topic policy, under IAM soft/enforce
+	guard iamguard.Guard    // the topic policy, under IAM soft/enforce
+	id    awsident.Identity // the region and account this service mints ARNs for
 }
 
 // New opens the bbolt store under DataDir.
@@ -85,7 +90,8 @@ func New(opts Options) (*Server, error) {
 		db.Close()
 		return nil, err
 	}
-	s := &Server{store: newStore(db), peers: opts.Peers, logf: opts.Logf, now: opts.Clock}
+	s := &Server{store: newStore(db), peers: opts.Peers, logf: opts.Logf, now: opts.Clock, id: opts.Identity}
+	s.store.id = opts.Identity
 	if s.peers == nil {
 		s.peers = peers.None()
 	}

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -77,6 +78,7 @@ func streamKey(group, stream string) []byte { return []byte(group + "\x00" + str
 type Store struct {
 	db    *bolt.DB
 	clock func() time.Time
+	id    awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
 func newStore(db *bolt.DB) (*Store, error) {

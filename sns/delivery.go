@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
@@ -89,7 +88,7 @@ func (srv *Server) deliverSQS(ctx context.Context, sub Subscription, msgID, topi
 		return
 	}
 	queue := lastSegment(sub.Endpoint)
-	payload := map[string]any{"QueueUrl": "http://sqs.doze-aws.internal/" + awsident.AccountID + "/" + queue}
+	payload := map[string]any{"QueueUrl": "http://sqs.doze-aws.internal/" + srv.id.Account() + "/" + queue}
 	if sub.RawDelivery {
 		payload["MessageBody"] = message
 		if sqsAttrs := toSQSAttrs(attrs); sqsAttrs != nil {

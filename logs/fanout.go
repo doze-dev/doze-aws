@@ -20,7 +20,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 	"github.com/doze-dev/doze-aws/internal/trace"
@@ -165,13 +164,13 @@ func (f *fanout) deliver(b fanBatch) {
 		if len(matched) == 0 {
 			continue
 		}
-		data, err := envelope(b.group, b.stream, sub.Name, matched)
+		data, err := f.envelope(b.group, b.stream, sub.Name, matched)
 		if err != nil {
 			f.logf("logs: subscription %s/%s: %v", b.group, sub.Name, err)
 			continue
 		}
 		// The delivery is Logs' own call, on behalf of the group.
-		ctx := peers.WithPrincipal(b.ctx, "logs", awsident.ARN("logs", "log-group:"+b.group+":*"))
+		ctx := peers.WithPrincipal(b.ctx, "logs", f.store.groupARN(b.group))
 		err = trace.Step(ctx, trace.Event{Service: "logs", Action: "SubscriptionFilter", Resource: b.group + "/" + sub.Name, Via: "logs:PutLogEvents"},
 			func(ctx context.Context) error {
 				switch {
@@ -196,7 +195,7 @@ func (f *fanout) deliver(b fanBatch) {
 }
 
 // envelope is the CloudWatch Logs subscription message, gzip-compressed.
-func envelope(group, stream, filter string, events []Stored) ([]byte, error) {
+func (f *fanout) envelope(group, stream, filter string, events []Stored) ([]byte, error) {
 	items := make([]map[string]any, 0, len(events))
 	for _, ev := range events {
 		// The same id FilterLogEvents reports, so a consumer can correlate.
@@ -204,7 +203,7 @@ func envelope(group, stream, filter string, events []Stored) ([]byte, error) {
 	}
 	doc := map[string]any{
 		"messageType":         "DATA_MESSAGE",
-		"owner":               awsident.AccountID,
+		"owner":               f.store.id.Account(),
 		"logGroup":            group,
 		"logStream":           stream,
 		"subscriptionFilters": []string{filter},

@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 )
@@ -41,8 +40,8 @@ var handlers = map[string]handler{
 }
 
 // groupARN is the ARN CloudWatch Logs reports for a group.
-func groupARN(name string) string {
-	return awsident.ARN("logs", "log-group:"+name+":*")
+func (s *Store) groupARN(name string) string {
+	return s.id.ARN("logs", "log-group:"+name+":*")
 }
 
 // groupOf resolves logGroupName or logGroupIdentifier (a name or an ARN).
@@ -106,8 +105,8 @@ func (s *Server) groupView(g Group) map[string]any {
 	v := map[string]any{
 		"logGroupName":      g.Name,
 		"creationTime":      g.CreatedMs,
-		"arn":               groupARN(g.Name),
-		"logGroupArn":       strings.TrimSuffix(groupARN(g.Name), ":*"),
+		"arn":               s.store.groupARN(g.Name),
+		"logGroupArn":       strings.TrimSuffix(s.store.groupARN(g.Name), ":*"),
 		"metricFilterCount": 0,
 		"storedBytes":       0,
 		"logGroupClass":     "STANDARD",
@@ -164,7 +163,7 @@ func (s *Server) listLogGroups(ctx context.Context, p map[string]any) (any, *aws
 			continue
 		}
 		items = append(items, map[string]any{
-			"logGroupName": g.Name, "logGroupArn": strings.TrimSuffix(groupARN(g.Name), ":*"), "logGroupClass": "STANDARD",
+			"logGroupName": g.Name, "logGroupArn": strings.TrimSuffix(s.store.groupARN(g.Name), ":*"), "logGroupClass": "STANDARD",
 		})
 	}
 	return pageByName(items, "logGroups", "logGroupName", awsjson.Str(p, "nextToken"), awsjson.Int(p, "limit", 50)), nil
@@ -275,11 +274,11 @@ func (s *Server) deleteLogStream(ctx context.Context, p map[string]any) (any, *a
 	return map[string]any{}, nil
 }
 
-func streamView(g string, st Stream) map[string]any {
+func (s *Server) streamView(g string, st Stream) map[string]any {
 	v := map[string]any{
 		"logStreamName": st.Name,
 		"creationTime":  st.CreatedMs,
-		"arn":           awsident.ARN("logs", "log-group:"+g+":log-stream:"+st.Name),
+		"arn":           s.store.id.ARN("logs", "log-group:"+g+":log-stream:"+st.Name),
 		"storedBytes":   0,
 	}
 	if st.FirstMs > 0 {
@@ -314,7 +313,7 @@ func (s *Server) describeLogStreams(ctx context.Context, p map[string]any) (any,
 	}
 	items := make([]map[string]any, 0, len(streams))
 	for _, st := range streams {
-		items = append(items, streamView(g.Name, st))
+		items = append(items, s.streamView(g.Name, st))
 	}
 	// The token is the page offset: orderBy and descending change the order,
 	// so a name token would not survive them.

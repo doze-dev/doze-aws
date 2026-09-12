@@ -3,14 +3,14 @@ package sns
 import (
 	"context"
 	"fmt"
-	"github.com/doze-dev/doze-aws/awsident"
 	"net/url"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/internal/awsquery"
-	"github.com/doze-dev/doze-aws/internal/eventpattern"
 	"sort"
 	"strconv"
+
+	"github.com/doze-dev/doze-aws/internal/awsquery"
+	"github.com/doze-dev/doze-aws/internal/eventpattern"
 )
 
 // dispatch maps an SNS action to its handler.
@@ -141,13 +141,13 @@ const defaultDeliveryPolicy = `{"http":{"defaultHealthyRetryPolicy":` +
 
 // defaultTopicPolicy mirrors the access policy AWS attaches to a new topic.
 // Nothing locally evaluates it; it exists because clients parse it.
-func defaultTopicPolicy(arn string) string {
+func (srv *Server) defaultTopicPolicy(arn string) string {
 	return `{"Version":"2008-10-17","Id":"__default_policy_ID","Statement":[{` +
 		`"Sid":"__default_statement_ID","Effect":"Allow","Principal":{"AWS":"*"},` +
 		`"Action":["SNS:GetTopicAttributes","SNS:SetTopicAttributes","SNS:AddPermission",` +
 		`"SNS:RemovePermission","SNS:DeleteTopic","SNS:Subscribe","SNS:ListSubscriptionsByTopic",` +
 		`"SNS:Publish"],"Resource":"` + arn + `","Condition":{"StringEquals":` +
-		`{"AWS:SourceOwner":"` + awsident.AccountID + `"}}}]}`
+		`{"AWS:SourceOwner":"` + srv.id.Account() + `"}}}]}`
 }
 
 func (srv *Server) getTopicAttributes(ctx context.Context, form url.Values, _ string) (any, *apiError) {
@@ -162,7 +162,7 @@ func (srv *Server) getTopicAttributes(ctx context.Context, form url.Values, _ st
 	// "unexpected end of JSON input" rather than a missing field.
 	res.Attributes.Entry = []attrEntry{
 		{Key: "TopicArn", Value: arn},
-		{Key: "Owner", Value: awsident.AccountID},
+		{Key: "Owner", Value: srv.id.Account()},
 		{Key: "SubscriptionsConfirmed", Value: fmt.Sprintf("%d", countConfirmed(subs))},
 		{Key: "SubscriptionsPending", Value: fmt.Sprintf("%d", len(subs)-countConfirmed(subs))},
 		{Key: "SubscriptionsDeleted", Value: "0"},

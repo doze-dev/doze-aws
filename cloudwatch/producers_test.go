@@ -29,7 +29,7 @@ import (
 	lambdatypes "github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	awssfn "github.com/aws/aws-sdk-go-v2/service/sfn"
 
-	"github.com/doze-dev/doze-aws"
+	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/apigateway"
 )
 

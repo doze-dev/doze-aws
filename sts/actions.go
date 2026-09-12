@@ -118,9 +118,9 @@ type getCallerIdentityResult struct {
 
 func (s *Server) getCallerIdentity(params) (any, *awshttp.APIError) {
 	return getCallerIdentityResult{
-		Arn:     awsident.GlobalARN("iam", "user/"+awsident.AccessKeyID),
+		Arn:     s.id.GlobalARN("iam", "user/"+awsident.AccessKeyID),
 		UserId:  "AIDADOZE" + strings.ToUpper(awsident.AccessKeyID),
-		Account: awsident.AccountID,
+		Account: s.id.Account(),
 	}, nil
 }
 
@@ -147,14 +147,14 @@ func (s *Server) assumeRole(p params) (any, *awshttp.APIError) {
 	}
 	return assumeRoleResult{
 		Credentials:     s.mintCredentials(time.Duration(secs) * time.Second),
-		AssumedRoleUser: assumedRole(roleName, session),
+		AssumedRoleUser: s.assumedRole(roleName, session),
 	}, nil
 }
 
-func assumedRole(roleName, session string) assumedRoleUser {
+func (s *Server) assumedRole(roleName, session string) assumedRoleUser {
 	return assumedRoleUser{
 		AssumedRoleId: "AROA" + randToken(17) + ":" + session,
-		Arn:           awsident.GlobalARN("sts", fmt.Sprintf("assumed-role/%s/%s", roleName, session)),
+		Arn:           s.id.GlobalARN("sts", fmt.Sprintf("assumed-role/%s/%s", roleName, session)),
 	}
 }
 
@@ -199,7 +199,7 @@ func (s *Server) assumeRoleWithWebIdentity(p params) (any, *awshttp.APIError) {
 	}
 	return assumeRoleWithWebIdentityResult{
 		Credentials:                 s.mintCredentials(time.Duration(secs) * time.Second),
-		AssumedRoleUser:             assumedRole(roleName, session),
+		AssumedRoleUser:             s.assumedRole(roleName, session),
 		SubjectFromWebIdentityToken: sub,
 		Audience:                    aud,
 		Provider:                    provider,
@@ -273,7 +273,7 @@ func (s *Server) assumeRoleWithSAML(p params) (any, *awshttp.APIError) {
 	session := sanitizeSession(subject)
 	return assumeRoleWithSAMLResult{
 		Credentials:     s.mintCredentials(time.Duration(secs) * time.Second),
-		AssumedRoleUser: assumedRole(roleName, session),
+		AssumedRoleUser: s.assumedRole(roleName, session),
 		Subject:         subject,
 		SubjectType:     "persistent",
 		Issuer:          issuer,
@@ -393,8 +393,8 @@ func (s *Server) getFederationToken(p params) (any, *awshttp.APIError) {
 	return getFederationTokenResult{
 		Credentials: s.mintCredentials(time.Duration(secs) * time.Second),
 		FederatedUser: federatedUser{
-			FederatedUserId: awsident.AccountID + ":" + name,
-			Arn:             awsident.GlobalARN("sts", "federated-user/"+name),
+			FederatedUserId: s.id.Account() + ":" + name,
+			Arn:             s.id.GlobalARN("sts", "federated-user/"+name),
 		},
 	}, nil
 }
@@ -410,7 +410,7 @@ func (s *Server) getAccessKeyInfo(p params) (any, *awshttp.APIError) {
 		return nil, awshttp.Errf(400, "ValidationError", "AccessKeyId is required")
 	}
 	// Locally every key belongs to the one account.
-	return getAccessKeyInfoResult{Account: awsident.AccountID}, nil
+	return getAccessKeyInfoResult{Account: s.id.Account()}, nil
 }
 
 // --- DecodeAuthorizationMessage ---

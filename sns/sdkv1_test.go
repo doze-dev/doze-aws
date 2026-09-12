@@ -12,7 +12,7 @@ import (
 	snsv1 "github.com/aws/aws-sdk-go/service/sns"
 	sqsv1 "github.com/aws/aws-sdk-go/service/sqs"
 
-	"github.com/doze-dev/doze-aws"
+	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
 )
 

@@ -20,7 +20,6 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
@@ -34,8 +33,8 @@ type dashboard struct {
 }
 
 // dashboardARN is what a tag operation names and what GetDashboard reports.
-func dashboardARN(name string) string {
-	return awsident.ARN("cloudwatch", "dashboard/"+name)
+func (s *Server) dashboardARN(name string) string {
+	return s.id.ARN("cloudwatch", "dashboard/"+name)
 }
 
 func (s *Server) putDashboard(d dashboard) error {

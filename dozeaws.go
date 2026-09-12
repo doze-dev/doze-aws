@@ -163,13 +163,13 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := dynamodb.New(dynamodb.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "sts":
-		s, err := sts.New(sts.Options{DataDir: dataDir, Logf: logf})
+		s, err := sts.New(sts.Options{DataDir: dataDir, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "sqs":
 		s, err := sqs.New(sqs.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "sns":
-		s, err := sns.New(sns.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
+		s, err := sns.New(sns.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "kms":
 		s, err := kms.New(kms.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
@@ -181,11 +181,11 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := secretsmanager.New(secretsmanager.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "logs":
-		s, err := logs.New(logs.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		s, err := logs.New(logs.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "cloudwatch":
 		s, err := cloudwatch.New(cloudwatch.Options{
-			DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
+			DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		if err == nil {
 			st.cloudwatch = s // retained so the evaluator can be given a trace sink
 		}

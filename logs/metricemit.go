@@ -15,7 +15,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/metricship"
 	"github.com/doze-dev/doze-aws/internal/trace"
@@ -164,7 +163,7 @@ func (m *metricEmitter) evaluate(b metricBatch) {
 	// The principal is the logs service acting for the group, so a metric
 	// published under enforcement is attributable the way AWS attributes it.
 	ctx := peers.WithPrincipal(b.ctx, "logs",
-		awsident.ARN("logs", "log-group:"+b.group+":*"))
+		m.store.groupARN(b.group))
 
 	published := 0
 	for _, f := range filters {

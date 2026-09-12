@@ -25,6 +25,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 	"github.com/doze-dev/doze-aws/internal/bg"
@@ -54,6 +55,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Identity is the region and account this service mints ARNs for. The zero
+	// value means the conventional local identity.
+	Identity awsident.Identity
 	// Retention is the default for groups without a policy; zero means
 	// DefaultRetention.
 	Retention time.Duration
@@ -116,6 +120,9 @@ func New(opts Options) (*Server, error) {
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock
 	}
+	// The fanout and metric-emitter workers reach the identity through the
+	// store they already hold, so this one assignment covers them too.
+	s.store.id = opts.Identity
 	s.peers = opts.Peers
 	if s.peers == nil {
 		s.peers = peers.None()

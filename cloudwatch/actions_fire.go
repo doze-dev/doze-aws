@@ -21,7 +21,6 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 	"github.com/doze-dev/doze-aws/internal/trace"
@@ -56,7 +55,7 @@ func classifyAction(arn string) (actionTarget, string) {
 
 // alarmPayload is AWS's alarm notification, which is what a subscriber
 // parses. The field names are AWS's, not doze-aws's.
-func alarmPayload(a *alarm, prev, now string, reason string, at time.Time) map[string]any {
+func (s *Server) alarmPayload(a *alarm, prev, now string, reason string, at time.Time) map[string]any {
 	dims := make([]map[string]string, 0, len(a.Dimensions))
 	for _, d := range dimensionViews(a.Dimensions) {
 		dims = append(dims, map[string]string{"name": d.Name, "value": d.Value})
@@ -64,12 +63,12 @@ func alarmPayload(a *alarm, prev, now string, reason string, at time.Time) map[s
 	return map[string]any{
 		"AlarmName":                          a.Name,
 		"AlarmDescription":                   a.Description,
-		"AWSAccountId":                       awsident.AccountID,
+		"AWSAccountId":                       s.id.Account(),
 		"AlarmConfigurationUpdatedTimestamp": time.UnixMilli(a.UpdatedMs).UTC().Format(time.RFC3339),
 		"NewStateValue":                      now,
 		"NewStateReason":                     reason,
 		"StateChangeTime":                    at.UTC().Format(time.RFC3339),
-		"Region":                             awsident.Region,
+		"Region":                             s.id.RegionName(),
 		"AlarmArn":                           a.ARN(),
 		"OldStateValue":                      prev,
 		"OKActions":                          a.OKActions,
@@ -105,7 +104,7 @@ func (s *Server) fireActions(a *alarm, prev, now, reason string, at time.Time) {
 	if len(targets) == 0 {
 		return
 	}
-	payload, err := json.Marshal(alarmPayload(a, prev, now, reason, at))
+	payload, err := json.Marshal(s.alarmPayload(a, prev, now, reason, at))
 	if err != nil {
 		s.logf("cloudwatch: building the alarm payload for %s: %v", a.Name, err)
 		return
@@ -115,7 +114,7 @@ func (s *Server) fireActions(a *alarm, prev, now, reason string, at time.Time) {
 	// The principal is the service on behalf of the alarm, so a topic policy
 	// conditioned on aws:SourceArn evaluates the way it would on AWS.
 	ctx = peers.WithPrincipal(ctx, "cloudwatch", a.ARN())
-	subject := fmt.Sprintf("%s: %q in %s", now, a.Name, awsident.Region)
+	subject := fmt.Sprintf("%s: %q in %s", now, a.Name, s.id.RegionName())
 
 	for _, arn := range targets {
 		kind, name := classifyAction(arn)

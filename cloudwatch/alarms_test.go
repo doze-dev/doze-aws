@@ -19,7 +19,7 @@ import (
 	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 	sqstypes "github.com/aws/aws-sdk-go-v2/service/sqs/types"
 
-	"github.com/doze-dev/doze-aws"
+	dozeaws "github.com/doze-dev/doze-aws"
 )
 
 func alarmInput(name string, mut func(*awscw.PutMetricAlarmInput)) *awscw.PutMetricAlarmInput {

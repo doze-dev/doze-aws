@@ -143,6 +143,7 @@ func (s *Server) putMetricAlarm(req *request) (any, *awshttp.APIError) {
 		State: stateInsufficientData, StateReason: "Unchecked: Initial alarm creation",
 		StateUpdatedMs: now.UnixMilli(), UpdatedMs: now.UnixMilli(),
 	}
+	s.stamp(a)
 	if req.params.Has("ActionsEnabled") {
 		a.ActionsEnabled = req.params.Bool("ActionsEnabled")
 	}

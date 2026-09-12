@@ -92,7 +92,7 @@ func (s *Server) getDashboard(req *request) (any, *awshttp.APIError) {
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	return getDashboardResult{DashboardName: d.Name, DashboardArn: dashboardARN(d.Name),
+	return getDashboardResult{DashboardName: d.Name, DashboardArn: s.dashboardARN(d.Name),
 		DashboardBody: d.Body}, nil
 }
 
@@ -105,7 +105,7 @@ func (s *Server) listDashboardsAction(req *request) (any, *awshttp.APIError) {
 	entries := make([]dashboardEntryView, 0, len(found))
 	for _, d := range found {
 		entries = append(entries, dashboardEntryView{
-			DashboardName: d.Name, DashboardArn: dashboardARN(d.Name),
+			DashboardName: d.Name, DashboardArn: s.dashboardARN(d.Name),
 			LastModified: msToISO(d.UpdatedMs), Size: int64(len(d.Body)),
 		})
 	}
