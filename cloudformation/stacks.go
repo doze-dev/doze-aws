@@ -322,6 +322,7 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 		Parameters:    params,
 		Exports:       exports,
 		Endpoint:      s.endpoint,
+		Suffix:        s.suffix,
 		FetchTemplate: s.fetcher(nil),
 	})
 	if err != nil {
@@ -504,7 +505,7 @@ func (s *Server) stackIR(st *StackRecord) (*provision.Stack, error) {
 	sf, _, err := Transpile(tmpl, TranspileOptions{
 		Identity:  s.id,
 		StackName: st.Name, Parameters: st.Parameters, Exports: exports,
-		AllowUnsupported: true, Endpoint: s.endpoint, FetchTemplate: s.fetcher(st.NestedTemplates),
+		AllowUnsupported: true, Endpoint: s.endpoint, Suffix: s.suffix, FetchTemplate: s.fetcher(st.NestedTemplates),
 	})
 	return sf, err
 }

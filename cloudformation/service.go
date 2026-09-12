@@ -55,6 +55,10 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Suffix stands in for amazonaws.com in hostname-shaped GetAtt values
+	// (a bucket DomainName, an HTTP API ApiEndpoint). Empty means none are
+	// minted rather than that a wrong one is.
+	Suffix string
 	// Endpoint is the externally-reachable base URL of the gateway, when
 	// known; a function URL's GetAtt FunctionUrl is shaped from it.
 	Endpoint string
@@ -73,6 +77,7 @@ type Server struct {
 	api      awsquery.API
 	now      func() time.Time
 	endpoint string
+	suffix   string
 	id       awsident.Identity // the region and account this service mints ARNs for
 }
 
@@ -101,6 +106,7 @@ func New(opts Options) (*Server, error) {
 		api:      awsquery.API{XMLNS: cfnXMLNS, EmptyResult: true},
 		now:      time.Now,
 		endpoint: opts.Endpoint,
+		suffix:   opts.Suffix,
 		id:       opts.Identity,
 	}
 	if s.peers == nil {

@@ -270,7 +270,8 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		// one service handed the whole gateway. It resolves at request time,
 		// so construction order does not matter.
 		s, err := cloudformation.New(cloudformation.Options{Identity: cfg.Identity,
-			DataDir: dataDir, Gateway: st.gw, Peers: dir, Logf: logf, Endpoint: cfg.Endpoint,
+			DataDir: dataDir, Gateway: st.gw, Peers: dir, Logf: logf,
+			Endpoint: cfg.Endpoint, Suffix: cfg.Suffix,
 		})
 		return s, s, err
 	case "iam":

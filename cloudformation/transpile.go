@@ -76,6 +76,8 @@ type TranspileOptions struct {
 	// Identity is the region and account AWS::Region, AWS::AccountId and every
 	// minted ARN resolve to. Zero means the conventional local identity.
 	Identity awsident.Identity
+	// Suffix stands in for amazonaws.com in hostname-shaped GetAtt values.
+	Suffix string
 	// FetchTemplate reads a nested stack's TemplateURL; nil refuses nested
 	// stacks with a message naming the URL.
 	FetchTemplate func(url string) ([]byte, error)
@@ -143,6 +145,8 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 		Atts:       map[string]map[string]string{},
 		Exports:    opts.Exports,
 		Identity:   opts.Identity,
+		Suffix:     opts.Suffix,
+		Endpoint:   opts.Endpoint,
 	}
 	if err := scope.EvalConditions(t.Conditions); err != nil {
 		return nil, nil, err
@@ -178,7 +182,7 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 			// An ignored resource keeps its identity so references to it still
 			// resolve — templates GetAtt IAM role ARNs constantly.
 			ghost := ghostName(r, r.Properties)
-			ref, atts := ghostIdentity(scope.Identity, r.Type, ghost)
+			ref, atts := ghostIdentity(scope.minting(), r.Type, ghost)
 			scope.Refs[id], scope.Atts[id] = ref, atts
 			rep.Entries = append(rep.Entries, Entry{
 				LogicalID: id, Type: r.Type, Kind: Ignored, Name: ghost, Reason: reason,
@@ -208,8 +212,8 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 				}
 			}
 		}
-		scope.Refs[id] = refValue(scope.Identity, r.Type, name)
-		scope.Atts[id] = attributes(scope.Identity, r.Type, name)
+		scope.Refs[id] = refValue(scope.minting(), r.Type, name)
+		scope.Atts[id] = attributes(scope.minting(), r.Type, name)
 		work = append(work, pending{r, name})
 		rep.Entries = append(rep.Entries, Entry{
 			LogicalID: id, Type: r.Type, Kind: Mapped, Name: name,

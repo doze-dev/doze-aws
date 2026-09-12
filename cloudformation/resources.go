@@ -193,10 +193,11 @@ func IsMappable(typ string) bool {
 // refValue is what `!Ref` on a resource of this type yields, following AWS's
 // per-type rules — Ref on a queue is its URL, on a topic its ARN, on a bucket
 // its name.
-func refValue(id awsident.Identity, typ, name string) string {
+func refValue(m minting, typ, name string) string {
+	id := m.id
 	switch typ {
 	case "AWS::SQS::Queue":
-		return queueURL(id, name)
+		return m.queueURL(name)
 	case "AWS::SNS::Topic":
 		return id.ARN("sns", name)
 	case "AWS::KMS::Key":
@@ -337,16 +338,74 @@ func logicalOfIntrinsic(v any) string {
 	return ""
 }
 
+// minting is the instance context a GetAtt value needs when it is a hostname
+// or a URL rather than an ARN.
+//
+// These attributes used to be literals: <bucket>.s3.localhost,
+// http://127.0.0.1:4566/_aws/execute-api/<id>, http://127.0.0.1/<acct>/<queue>,
+// <acct>.dkr.ecr.<region>.localhost. Every one of them is something a user
+// reads out of a template and then tries to use, and not one of them pointed
+// anywhere doze-aws answers.
+type minting struct {
+	id awsident.Identity
+	// suffix stands in for amazonaws.com. Empty means this instance mints no
+	// AWS-shaped hostnames, and URL attributes fall back to endpoint or a path.
+	suffix string
+	// endpoint is where this instance answers, when it is known.
+	endpoint string
+}
+
+// domain is what stands in for amazonaws.com in a hostname-shaped attribute.
+//
+// These attributes must ALWAYS resolve. Fn::GetAtt on an absent one is an
+// error naming what is available, and for the ignored tier in particular the
+// entire point is that a reference resolves rather than exploding — a template
+// full of ${Repo.RepositoryUri} has to transpile.
+//
+// So there is no empty case. With a suffix the answer is this instance's own
+// hostname space, which is the good case and now the default. Without one —
+// --listen, where doze-aws has no hostname of its own — the answer is AWS's
+// real domain, because that is what the attribute MEANS and what a template
+// passing it onward expects to see. It is not an address doze-aws claims to
+// serve, which is the distinction that matters: the alternative, a
+// .localhost form, looked local and worked nowhere.
+func (m minting) domain() string {
+	if m.suffix != "" {
+		return m.suffix
+	}
+	return "amazonaws.com"
+}
+
+// host builds an AWS-shaped hostname for a service.
+func (m minting) host(signing string) string {
+	return signing + "." + m.id.RegionName() + "." + m.domain()
+}
+
+// apiEndpoint is the GetAtt ApiEndpoint of an HTTP API: AWS's own
+// <id>.execute-api.<region>.<suffix> when this instance has a suffix, else the
+// path form under whatever endpoint it knows about.
+func (m minting) apiEndpoint(apiID string) string {
+	// Unlike the hostname attributes, this one has a working local form: the
+	// gateway serves /_aws/execute-api/<id>. So with no suffix it uses that
+	// under whatever endpoint is known, rather than an amazonaws.com host that
+	// would not answer.
+	if m.suffix != "" {
+		return "http://" + apiID + ".execute-api." + m.id.RegionName() + "." + m.suffix
+	}
+	return strings.TrimRight(m.endpoint, "/") + "/_aws/execute-api/" + apiID
+}
+
 // attributes are the Fn::GetAtt values doze-aws can answer for a resource.
 // Anything absent here produces an explicit error naming what IS available,
 // rather than an empty string that silently corrupts a property.
-func attributes(id awsident.Identity, typ, name string) map[string]string {
+func attributes(m minting, typ, name string) map[string]string {
+	id := m.id
 	switch typ {
 	case "AWS::SQS::Queue":
 		return map[string]string{
 			"Arn":       id.ARN("sqs", name),
 			"QueueName": name,
-			"QueueUrl":  queueURL(id, name),
+			"QueueUrl":  m.queueURL(name),
 		}
 	case "AWS::SNS::Topic":
 		return map[string]string{
@@ -355,11 +414,14 @@ func attributes(id awsident.Identity, typ, name string) map[string]string {
 			"Arn":       id.ARN("sns", name),
 		}
 	case "AWS::S3::Bucket":
+		// AWS answers <bucket>.s3.amazonaws.com here; doze-aws answers the same
+		// shape with its own suffix in place of amazonaws.com, which is exactly
+		// what the suffix is for. These used to be .s3.localhost literals.
 		return map[string]string{
 			"Arn":                s3ARN(name),
-			"DomainName":         name + ".s3.localhost",
-			"RegionalDomainName": name + ".s3." + id.RegionName() + ".localhost",
-			"WebsiteURL":         "http://" + name + ".s3-website.localhost",
+			"DomainName":         name + ".s3." + m.domain(),
+			"RegionalDomainName": name + "." + m.host("s3"),
+			"WebsiteURL":         "http://" + name + ".s3-website." + m.id.RegionName() + "." + m.domain(),
 		}
 	case "AWS::DynamoDB::Table", "AWS::DynamoDB::GlobalTable", "AWS::Serverless::SimpleTable":
 		return map[string]string{
@@ -383,7 +445,7 @@ func attributes(id awsident.Identity, typ, name string) map[string]string {
 		// service mints. The endpoint is where the $default stage answers.
 		return map[string]string{
 			"ApiId":       name,
-			"ApiEndpoint": "http://127.0.0.1:4566/_aws/execute-api/" + name,
+			"ApiEndpoint": m.apiEndpoint(name),
 			"Arn":         id.ARN("apigateway", "/apis/"+name),
 		}
 	case "AWS::ApiGatewayV2::Integration":
@@ -457,8 +519,23 @@ func attributes(id awsident.Identity, typ, name string) map[string]string {
 func s3ARN(bucket string) string { return "arn:aws:s3:::" + bucket }
 
 // queueURL matches the URL shape the SQS service hands out.
-func queueURL(id awsident.Identity, name string) string {
-	return "http://127.0.0.1/" + id.Account() + "/" + name
+//
+// It used to be the literal http://127.0.0.1/<account>/<queue> — port 80,
+// where doze-aws has never answered. A template's Ref to a queue therefore
+// produced a URL nothing could use, and it looked fine.
+func (m minting) queueURL(name string) string {
+	// m.host is NOT used unguarded here: with no suffix it falls back to
+	// amazonaws.com, which is right for a decorative hostname attribute and
+	// very wrong for a queue URL something will actually call — it would send
+	// a local send to real SQS. A queue URL has a working local form, so it
+	// takes that instead.
+	if m.suffix != "" {
+		return "http://" + m.host("sqs") + "/" + m.id.Account() + "/" + name
+	}
+	if m.endpoint != "" {
+		return strings.TrimRight(m.endpoint, "/") + "/" + m.id.Account() + "/" + name
+	}
+	return "/" + m.id.Account() + "/" + name
 }
 
 // classify decides what will happen to a resource type before any mapping is
@@ -518,7 +595,8 @@ func ghostName(r *Resource, props map[string]any) string {
 }
 
 // ghostIdentity returns the Ref value and attributes for an ignored resource.
-func ghostIdentity(id awsident.Identity, typ, name string) (string, map[string]string) {
+func ghostIdentity(m minting, typ, name string) (string, map[string]string) {
+	id := m.id
 	service, kind := serviceAndKind(typ)
 	arn := ghostARN(id, service, kind, name)
 	atts := map[string]string{"Arn": arn, "Name": name}
@@ -535,7 +613,7 @@ func ghostIdentity(id awsident.Identity, typ, name string) (string, map[string]s
 		// Ref on an instance profile is its name, but GetAtt Arn is common.
 	case "AWS::ECR::Repository":
 		atts["RepositoryName"] = name
-		atts["RepositoryUri"] = id.Account() + ".dkr.ecr." + id.RegionName() + ".localhost/" + name
+		atts["RepositoryUri"] = id.Account() + ".dkr.ecr." + id.RegionName() + "." + m.domain() + "/" + name
 	}
 
 	// Ref semantics differ by type: an IAM role Refs to its name, a managed

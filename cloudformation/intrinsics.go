@@ -41,6 +41,18 @@ type Scope struct {
 	// minted ARN resolve to. The zero value means the conventional local
 	// identity.
 	Identity awsident.Identity
+	// Suffix stands in for amazonaws.com in the hostnames a GetAtt value
+	// carries. Empty means this instance mints none, and those attributes fall
+	// back to a path under Endpoint.
+	Suffix string
+	// Endpoint is where this instance answers, when it is known.
+	Endpoint string
+}
+
+// minting is the instance context the resource registry needs to build a
+// hostname or a URL rather than an ARN.
+func (s *Scope) minting() minting {
+	return minting{id: s.Identity, suffix: s.Suffix, endpoint: s.Endpoint}
 }
 
 // pseudo resolves an AWS::* pseudo-parameter.
