@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/iampolicy"
 )
@@ -29,7 +28,7 @@ func (s *Server) guardRequest(w http.ResponseWriter, r *http.Request, req *reque
 	resource := ""
 	var docs []*iampolicy.Document
 	if queue != "" {
-		resource = awsident.ARN("sqs", queue)
+		resource = s.id.ARN("sqs", queue)
 		if attrs, err := s.store.Attributes(queue); err == nil && attrs["Policy"] != "" {
 			if doc, err := iampolicy.Parse(attrs["Policy"]); err == nil {
 				docs = append(docs, doc)
@@ -105,7 +104,7 @@ func hAddPermission(s *Store, req *request) (any, *apiError) {
 	}
 	doc.Statement = append(doc.Statement, map[string]any{
 		"Sid": label, "Effect": "Allow", "Principal": map[string]any{"AWS": principals},
-		"Action": acts, "Resource": awsident.ARN("sqs", name),
+		"Action": acts, "Resource": s.queueARN(name),
 	})
 	raw, _ := json.Marshal(doc)
 	if err := s.SetAttributes(name, map[string]string{"Policy": string(raw)}); err != nil {

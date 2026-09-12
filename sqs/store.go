@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -90,8 +91,12 @@ type Message struct {
 
 // Store is the bbolt-backed SQS state.
 type Store struct {
-	db     *bolt.DB
-	clock  func() time.Time
+	db    *bolt.DB
+	clock func() time.Time
+	// id is the region and account ARNs are minted for. Stamped by New after
+	// construction, like clock: a queue decoded out of bbolt carries no pointer
+	// back to the Server that owns it.
+	id     awsident.Identity
 	notify *notifier
 }
 

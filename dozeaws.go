@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/apigateway"
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/cloudformation"
 	"github.com/doze-dev/doze-aws/cloudwatch"
 	"github.com/doze-dev/doze-aws/dynamodb"
@@ -84,6 +85,10 @@ type StackConfig struct {
 	// sibling services. Leave empty when running fully embedded with no HTTP
 	// listener; service-to-service calls still work via in-process peers.
 	Endpoint string
+	// Identity is the region and account this stack mints ARNs for. The zero
+	// value means the conventional local identity (us-east-1, 000000000000),
+	// so an embedder that does not care never has to name one.
+	Identity awsident.Identity
 }
 
 // Stack is a running set of services behind one gateway.
@@ -161,7 +166,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := sts.New(sts.Options{DataDir: dataDir, Logf: logf})
 		return s, s, err
 	case "sqs":
-		s, err := sqs.New(sqs.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
+		s, err := sqs.New(sqs.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "sns":
 		s, err := sns.New(sns.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})

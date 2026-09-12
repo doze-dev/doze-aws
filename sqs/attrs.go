@@ -169,7 +169,7 @@ func (s *Store) Attributes(name string) (map[string]string, error) {
 		out["ApproximateNumberOfMessages"] = strconv.Itoa(visible)
 		out["ApproximateNumberOfMessagesNotVisible"] = strconv.Itoa(inflight)
 		out["ApproximateNumberOfMessagesDelayed"] = strconv.Itoa(delayed)
-		out["QueueArn"] = queueARN(name)
+		out["QueueArn"] = s.queueARN(name)
 		if q.FIFO {
 			out["FifoQueue"] = "true"
 			out["ContentBasedDeduplication"] = strconv.FormatBool(q.ContentBasedDedup)
@@ -180,7 +180,7 @@ func (s *Store) Attributes(name string) (map[string]string, error) {
 			// what it reads back equals what it wrote — a stringified count
 			// never compares equal, so the resource never converges.
 			rp, _ := json.Marshal(map[string]any{
-				"deadLetterTargetArn": queueARN(q.DeadLetterTarget),
+				"deadLetterTargetArn": s.queueARN(q.DeadLetterTarget),
 				"maxReceiveCount":     q.MaxReceiveCount,
 			})
 			out["RedrivePolicy"] = string(rp)

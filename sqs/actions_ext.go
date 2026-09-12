@@ -48,7 +48,7 @@ func hListDeadLetterSourceQueues(s *Store, req *request) (any, *apiError) {
 	}
 	urls := make([]string, 0, len(names))
 	for _, n := range names {
-		urls = append(urls, queueURL(req.host, n))
+		urls = append(urls, s.queueURL(req.host, n))
 	}
 	return dlqSourcesResult{QueueURLs: urls}, nil
 }
@@ -101,8 +101,8 @@ func hListMessageMoveTasks(s *Store, req *request) (any, *apiError) {
 		res.Results = append(res.Results, moveTaskView{
 			TaskHandle:                       t.Handle,
 			Status:                           t.Status,
-			SourceArn:                        queueARN(t.Source),
-			DestinationArn:                   queueARN(t.Destination),
+			SourceArn:                        s.queueARN(t.Source),
+			DestinationArn:                   s.queueARN(t.Destination),
 			ApproximateNumberOfMessagesMoved: int64(t.Moved),
 			StartedTimestamp:                 t.StartedAt * 1000, // epoch millis
 			FailureReason:                    t.FailureWhy,

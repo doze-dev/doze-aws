@@ -6,11 +6,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"sort"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
-func queueARN(name string) string { return awsident.ARN("sqs", name) }
+// queueARN is a method rather than a free function because an ARN now depends
+// on which instance minted it, and the Store is what carries that.
+func (s *Store) queueARN(name string) string { return s.id.ARN("sqs", name) }
 
 // encodeHandle builds an opaque receipt handle from the message's sequence key
 // (8 bytes) and its unique id. Binding the id into the handle prevents aliasing:

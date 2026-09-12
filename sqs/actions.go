@@ -2,8 +2,6 @@ package sqs
 
 import (
 	"strconv"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // handler implements one SQS action against the store. Returns the result value
@@ -37,11 +35,16 @@ var handlers = map[string]handler{
 	"DozePeek":                     hDozePeek, // non-AWS: read-only inspector peek
 }
 
-func queueURL(host, name string) string {
+// queueURL is the URL GetQueueUrl and CreateQueue hand back, and the one every
+// later SendMessage is addressed to — the SDK uses it verbatim rather than
+// rebuilding it. Both halves are per-instance now: the host comes from the
+// request (so a queue reached through a name reports that name), and the
+// account from this instance's identity.
+func (s *Store) queueURL(host, name string) string {
 	if host == "" {
 		host = "127.0.0.1"
 	}
-	return "http://" + host + "/" + awsident.AccountID + "/" + name
+	return "http://" + host + "/" + s.id.Account() + "/" + name
 }
 
 // targetQueue resolves the queue name from a QueueUrl param (or QueueName).
@@ -67,7 +70,7 @@ func hCreateQueue(s *Store, req *request) (any, *apiError) {
 	if _, err := s.CreateQueue(name, req.p.queueAttrs(), req.p.tags()); err != nil {
 		return nil, asAPIError(err)
 	}
-	return queueURLResult{QueueURL: queueURL(req.host, name)}, nil
+	return queueURLResult{QueueURL: s.queueURL(req.host, name)}, nil
 }
 
 func hDeleteQueue(s *Store, req *request) (any, *apiError) {
@@ -84,7 +87,7 @@ func hListQueues(s *Store, req *request) (any, *apiError) {
 	}
 	urls := make([]string, 0, len(names))
 	for _, n := range names {
-		urls = append(urls, queueURL(req.host, n))
+		urls = append(urls, s.queueURL(req.host, n))
 	}
 	return listQueuesResult{QueueURLs: urls}, nil
 }
@@ -94,7 +97,7 @@ func hGetQueueURL(s *Store, req *request) (any, *apiError) {
 	if _, err := s.Attributes(name); err != nil {
 		return nil, asAPIError(err)
 	}
-	return queueURLResult{QueueURL: queueURL(req.host, name)}, nil
+	return queueURLResult{QueueURL: s.queueURL(req.host, name)}, nil
 }
 
 func hGetQueueAttributes(s *Store, req *request) (any, *apiError) {

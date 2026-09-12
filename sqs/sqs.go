@@ -10,13 +10,15 @@
 package sqs
 
 import (
-	"github.com/doze-dev/doze-aws/internal/bg"
-	"github.com/doze-dev/doze-aws/internal/iamguard"
-	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/bg"
+	"github.com/doze-dev/doze-aws/internal/iamguard"
+	"github.com/doze-dev/doze-aws/internal/modelcheck"
 
 	bolt "go.etcd.io/bbolt"
 
@@ -43,6 +45,9 @@ type Options struct {
 	// IAMMode is the IAM service's mode; under soft or enforce the queue policy
 	// is evaluated on every queue-scoped request, peer calls included.
 	IAMMode string
+	// Identity is the region and account this service mints ARNs for. The zero
+	// value means the conventional local identity.
+	Identity awsident.Identity
 }
 
 // Server is the SQS service: an http.Handler speaking both SQS wire protocols,
@@ -54,7 +59,8 @@ type Server struct {
 	// done closes when the janitor has returned, so Close waits for it before
 	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
 	done  chan struct{}
-	guard iamguard.Guard // the queue policy, under IAM soft/enforce
+	guard iamguard.Guard    // the queue policy, under IAM soft/enforce
+	id    awsident.Identity // the region and account this service mints ARNs for
 }
 
 // New opens the bbolt store under DataDir and starts the retention janitor.
@@ -74,10 +80,13 @@ func New(opts Options) (*Server, error) {
 	if logf == nil {
 		logf = func(string, ...any) {}
 	}
-	s := &Server{store: newStore(db), logf: logf, stop: make(chan struct{}), done: make(chan struct{}), guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf}}
+	s := &Server{store: newStore(db), logf: logf, stop: make(chan struct{}), done: make(chan struct{}), guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf}, id: opts.Identity}
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock
 	}
+	// The store mints ARNs for queues it decodes out of bbolt, and those records
+	// carry no owner pointer. Stamped after construction, the same way Clock is.
+	s.store.id = opts.Identity
 	go s.janitor()
 	return s, nil
 }
