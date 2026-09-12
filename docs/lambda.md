@@ -40,7 +40,7 @@ replaces the launch line:
 
 ```sh
 # the CLI refuses a member it does not know, so send it directly
-curl -X PUT http://127.0.0.1:4566/2015-03-31/functions/f/configuration \
+curl -X PUT http://aws.harbour.doze/2015-03-31/functions/f/configuration \
   -d '{"Command": ["deno", "run", "-A", "bootstrap.ts"]}'
 ```
 
@@ -99,8 +99,8 @@ process, each line stamped with the request id of the invocation that
 printed it. The tools that read the cloud read this:
 
 ```sh
-aws --endpoint-url http://127.0.0.1:4566 logs tail /aws/lambda/hello --follow
-AWS_ENDPOINT_URL=http://127.0.0.1:4566 sam logs -n hello --tail
+aws --endpoint-url http://aws.harbour.doze logs tail /aws/lambda/hello --follow
+AWS_ENDPOINT_URL=http://aws.harbour.doze sam logs -n hello --tail
 aws logs filter-log-events --log-group-name /aws/lambda/hello \
   --filter-pattern '{ $.level = "ERROR" }'
 ```
@@ -139,8 +139,8 @@ A function URL is served. Create one and `curl` it:
 
 ```sh
 aws lambda create-function-url-config --function-name hello --auth-type NONE
-# "FunctionUrl": "http://127.0.0.1:4566/_aws/lambda-url/<id>/"
-curl -X POST http://127.0.0.1:4566/_aws/lambda-url/<id>/orders/7 -d '{"n":1}'
+# "FunctionUrl": "http://<id>.lambda-url.us-east-1.aws.harbour.doze/"
+curl -X POST http://<id>.lambda-url.us-east-1.aws.harbour.doze/orders/7 -d '{"n":1}'
 ```
 
 The request arrives as the payload-format-2.0 event (`rawPath`,

@@ -33,7 +33,7 @@ definition with four mistakes takes one round trip to understand.
 | GetActivityTask | F | long-poll, 60 s as on AWS; an activity Task state queues its input for the next worker, which answers through the SendTask* calls |
 | TagResource / UntagResource / ListTagsForResource | F | tags are a `[{key,value}]` list, as on AWS, not the `{k:v}` map Lambda and DynamoDB use; an ARN nothing holds is `ResourceNotFound`, not an empty list |
 | StartExecution | F | machine, version or alias ARN; same name + still RUNNING + same input returns the original execution rather than conflicting; on an EXPRESS machine it is fire-and-forget, answering an ARN nothing can describe afterwards, as on AWS — its history is in the log group (below) |
-| StartSyncExecution | F | Express: runs to completion inside the call, five-minute cap, `billingDetails` and the `includedData` switch; reachable at `sync-aws.doze`, the host prefix every SDK's endpoint ruleset applies |
+| StartSyncExecution | F | Express: runs to completion inside the call, five-minute cap, `billingDetails` and the `includedData` switch; reachable at `sync-aws.<instance>.doze`, the host prefix every SDK's endpoint ruleset applies (an instance claims it alongside its own name; under `--listen` there is no name, so a client needs `disableHostPrefix`) |
 | TestState | F | one state in isolation, with `inspectionData` per `inspectionLevel`, `mock` results and errors, and `stateConfiguration`; the `sync-` host again |
 | DescribeExecution / ListExecutions | F | status, `redriveFilter` and `mapRunArn` filters, `maxResults` and `nextToken`; `traceHeader` comes back only when StartExecution was given one; an EXPRESS machine's executions are not listable, as on AWS |
 | StopExecution | F | also aborts the Map Runs the execution owns; a child started with `.sync` keeps running, as on AWS |
@@ -165,7 +165,7 @@ Three SDKs and one deploy tool, in tests that run on every push:
   through the SDK's own exception types — a near-miss spelling decodes as a
   generic error no program can branch on, which is what those tests exist
   to catch. StartSyncExecution and TestState go through the SDK with the
-  `sync-` host prefix its ruleset adds, which is what `sync-aws.doze` serves.
+  `sync-` host prefix its ruleset adds, which is what `sync-aws.<instance>.doze` serves.
 - **aws-sdk-go v1** (`sdkv1_test.go`): the older wire encoding round-trips.
 - **@aws-sdk/client-sfn** (`e2e/tests/stepfunctions-sdk.spec.ts`): what the
   JavaScript types promise — timestamps decode as `Date`, payloads in

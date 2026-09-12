@@ -1,10 +1,20 @@
 // Command doze-aws serves local, from-scratch emulations of the AWS services a
-// development stack leans on — one shared endpoint, real wire protocols, both
-// AWS SDK generations, no Docker, no JVM.
+// development stack leans on — real wire protocols, both AWS SDK generations,
+// no Docker, no JVM.
 //
-// Zero-config: `doze-aws` listens on 127.0.0.1:4566 (the port LocalStack
-// standardized, so existing AWS_ENDPOINT_URL setups work unchanged) and stores
-// data under ./data.
+// An instance answers on its own name. `doze-aws` in a directory called
+// harbour is aws.harbour.doze, and the AWS-shaped hostnames sit beneath it, so
+// a URL it hands back differs from the real one by the suffix alone:
+//
+//	https://sqs.ap-south-1.amazonaws.com/811690671382/orders     AWS
+//	http://sqs.ap-south-1.aws.harbour.doze/811690671382/orders   doze-aws
+//
+// That needs `doze-aws dns-setup` once per machine. Where a name cannot serve
+// — a sibling container over a compose network, CI, anywhere without DNS —
+// `--listen host:port` is the opt-in, and it REPLACES the name rather than
+// adding to it: one instance, one way to reach it.
+//
+// Data lives under ./data, or wherever doze-aws.toml says.
 package main
 
 import (
@@ -107,9 +117,11 @@ commands:
 	fs.SetOutput(w)
 	fs.PrintDefaults()
 	fmt.Fprint(w, "\nExamples:\n"+
-		"  doze-aws                                  everything, on 127.0.0.1:4566\n"+
+		"  doze-aws dns-setup                        once per machine, so .doze resolves\n"+
+		"  doze-aws                                  everything, on aws.<dir>.doze\n"+
+		"  doze-aws --name harbour                   name the instance explicitly\n"+
 		"  doze-aws --services s3,sqs,lambda         just those three\n"+
-		"  doze-aws --data-dir /tmp/doze             a throwaway data directory\n"+
+		"  doze-aws --listen 127.0.0.1:4566          an address instead of a name\n"+
 		"  doze-aws apply template.yaml              deploy a template into a running stack\n"+
 		"  eval \"$(doze-aws env)\"                    point your shell's AWS SDK at it\n"+
 		"\nDocs: https://github.com/doze-dev/doze-aws/tree/main/docs\n")

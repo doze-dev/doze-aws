@@ -256,4 +256,10 @@ else
 fi
 
 echo ""
-echo "Done. Start a broker with:  doze-aws"
+echo "Done. Two steps to a running stack:"
+echo ""
+echo "  doze-aws dns-setup     once per machine, so .doze names resolve"
+echo "  doze-aws               in your project directory"
+echo ""
+echo "It answers on aws.<directory>.doze. No DNS available (CI, a container)?"
+echo "Use:  doze-aws --listen 127.0.0.1:4566"

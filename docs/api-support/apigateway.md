@@ -29,6 +29,9 @@ already the control plane, so a deployed API is served at:
 Both shapes match LocalStack's, so existing habits and test helpers transfer.
 
 ```sh
+curl http://abc123def0.execute-api.us-east-1.aws.harbour.doze/prod/orders/42
+
+# or, reached at an address rather than a name:
 curl http://127.0.0.1:4566/_aws/execute-api/abc123def0/prod/orders/42
 ```
 

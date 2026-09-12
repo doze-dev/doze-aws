@@ -19,6 +19,7 @@ doze-aws --data-dir /tmp/harbour          # in another terminal
 
 cd demo
 bun install
+eval "$(doze-aws env)"                    # endpoint, region and account, agreeing
 bun seed.ts                               # paced, so you can watch it fill up
 ```
 
@@ -88,12 +89,17 @@ and the other three still work.
 
 ## Two things worth knowing
 
-**The region is not yours.** doze-aws stamps `us-east-1` and account
-`000000000000` onto every ARN it mints, whatever your client is configured
-with. An ARN built with a different region names a resource that does not
-exist — and the services that take an ARN rather than a name (an SQS redrive
-policy, an EventBridge target, a Lambda event source) accept it quietly and
-then never fire. `lib/aws.ts` pins the region for this reason.
+**The region has to agree with the instance.** An ARN built with a region the
+instance is not serving names a resource that does not exist — and the services
+that take an ARN rather than a name (an SQS redrive policy, an EventBridge
+target, a Lambda event source) accept it quietly and then never fire.
+
+This section used to say the region was "not yours", because doze-aws stamped
+`us-east-1` onto everything whatever the client asked for. That is no longer
+true: a region is a folder under the data directory, a signed request is served
+from the region its credential scope names, and regions are created on first
+use. `lib/aws.ts` now reads `AWS_REGION` and `AWS_ACCOUNT_ID` from the
+environment, so `eval "$(doze-aws env)"` supplies both and they cannot drift.
 
 **Kinesis needs the HTTP/1.1 handler.** Its JS SDK defaults to HTTP/2, which
 doze-aws does not serve, and the failure is a bare `Protocol error` from

@@ -10,7 +10,9 @@ import { BASE_URL } from '../playwright.config';
 // the typed exception classes a program branches on, pagination yields
 // nextToken. StartSyncExecution and TestState go through a second client with
 // disableHostPrefix: the SDK's endpoint ruleset prefixes `sync-` onto the
-// host, which the sync-aws.doze name serves but an IP endpoint cannot.
+// host, which an instance serves as sync-aws.<name>.doze but an IP endpoint
+// cannot. This suite runs under --listen, so there is no name and the prefix
+// has to be switched off — the same thing a container or CI would do.
 
 const endpoint = BASE_URL.replace(/\/_console\/$/, '');
 const cfg = {

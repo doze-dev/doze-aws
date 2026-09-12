@@ -8,21 +8,27 @@ self-contained in this directory.
 
 ```sh
 bun install
-bunx playwright install --with-deps chromium   # once, or after a Playwright bump
-bunx playwright test                            # headless
-bunx playwright test --ui                        # interactive UI mode
-bunx playwright test --headed                     # watch it drive a real browser
-bunx playwright test tests/sqs.spec.ts             # one file
+bun run ./node_modules/playwright/cli.js install --with-deps chromium   # once, or after a Playwright bump
+bun run ./node_modules/playwright/cli.js test                            # headless
+bun run ./node_modules/playwright/cli.js test --ui                        # interactive UI mode
+bun run ./node_modules/playwright/cli.js test --headed                     # watch it drive a real browser
+bun run ./node_modules/playwright/cli.js test tests/sqs.spec.ts             # one file
 ```
 
 Or via the repo's Taskfile from `doze-aws/`: `go tool task test:e2e`.
 
-`bunx playwright test` builds the real `doze-aws` binary and boots it on a
-fixed port (`127.0.0.1:14566`, deliberately off the default 4566 so it never
-collides with a dev instance) against an isolated data dir
-(`e2e/.tmp/data`) — see `playwright.config.ts`'s `webServer`. Locally it
-reuses an already-running instance on that port (fast iteration while
-authoring a spec); CI always boots fresh.
+`bun run ./node_modules/playwright/cli.js test` builds the real `doze-aws`
+binary and boots it with `--listen 127.0.0.1:14566` against an isolated data
+dir (`e2e/.tmp/data`) — see `playwright.config.ts`'s `webServer`.
+
+`--listen` matters here: it claims no `.doze` name, needs no `dns-setup`, and
+touches no shared registry, so the suite is identical in CI and on a laptop
+with instances already running. The port is off 4566 so it never collides with
+a dev instance; 4566 is not "the default" any more, since doze-aws answers on
+its name and binds no address unless asked.
+
+The server is never reused — the data dir is wiped in the boot command, so a
+reused one would keep its state and the wipe would never run.
 
 ## How the suite is isolated
 

@@ -25,22 +25,35 @@ import { CloudFormationClient } from '@aws-sdk/client-cloudformation';
 import { STSClient } from '@aws-sdk/client-sts';
 import { NodeHttpHandler } from '@smithy/node-http-handler';
 
+/**
+ * Where the instance answers. `eval "$(doze-aws env)"` sets this, and the
+ * fallback is the address a `--listen` run uses — the seed should work whether
+ * you started doze-aws on its .doze name or on an address.
+ */
 export const ENDPOINT = process.env.AWS_ENDPOINT_URL ?? 'http://127.0.0.1:4566';
 
 /**
- * doze-aws stamps one region and one account onto every ARN it mints
- * (awsident.Region, awsident.AccountID) whatever the client is configured
- * with. So this has to match, not merely be plausible: an ARN built here with
- * a different region names a resource that does not exist, and the services
- * that take an ARN rather than a name — an SQS redrive policy, an EventBridge
- * target, a Lambda event source — accept it quietly and then never fire.
+ * The region and account this demo builds ARNs with.
  *
- * That is worth knowing before you point a real deployment's config at a local
- * stack: the region in your config is ignored, and the ARNs you get back are
- * the ones to use.
+ * These must MATCH the instance, not merely be plausible. An ARN built here
+ * with a different region names a resource that does not exist, and the
+ * services that take an ARN rather than a name — an SQS redrive policy, an
+ * EventBridge target, a Lambda event source — accept it quietly and then never
+ * fire.
+ *
+ * This comment used to say the region in your config was IGNORED, because
+ * doze-aws stamped one region onto everything whatever the client asked for.
+ * That is no longer true: a region is a folder under the data directory, a
+ * signed request is served from the region its credential scope names, and
+ * regions are created on first use. So the region below is a real choice —
+ * it has to agree with the instance's default (`--region`, or the `region` key
+ * in doze-aws.toml), or these ARNs point into a region the resources are not in.
+ *
+ * Both are read from the environment for that reason, so `doze-aws env` can
+ * supply them.
  */
-export const REGION = 'us-east-1';
-export const ACCOUNT = '000000000000';
+export const REGION = process.env.AWS_REGION ?? 'us-east-1';
+export const ACCOUNT = process.env.AWS_ACCOUNT_ID ?? '000000000000';
 
 const shared = {
   endpoint: ENDPOINT,

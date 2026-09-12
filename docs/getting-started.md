@@ -7,15 +7,16 @@ both AWS SDK generations. No Docker, no JVM, no cloud.
 ## Run it
 
 ```sh
-doze-aws
-# msg=listening addr=127.0.0.1:4566 services=s3,dynamodb,sqs,sns,sts,kms,ssm,secretsmanager,eventbridge,lambda,kinesis,iam,cloudformation,apigateway,stepfunctions
+doze-aws dns-setup            # one sudo, once per machine
+cd ~/code/harbour && doze-aws
+# msg="reachable at" url=http://aws.harbour.doze as=name
 ```
 
-Point any AWS SDK or the CLI at it:
+The instance is named after the directory, so each project gets its own. Point
+any AWS SDK or the CLI at it:
 
 ```sh
-export AWS_ENDPOINT_URL=http://127.0.0.1:4566
-export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_REGION=us-east-1
+eval "$(doze-aws env)"
 
 aws s3 mb s3://my-bucket
 aws s3 cp ./file.txt s3://my-bucket/
@@ -25,8 +26,13 @@ aws dynamodb create-table --table-name t \
 aws sqs create-queue --queue-name jobs
 ```
 
-The default port (4566) matches LocalStack's, so existing `AWS_ENDPOINT_URL`
-setups work unchanged.
+Queue URLs, invoke URLs and function URLs come back AWS-shaped under the
+instance name — `http://sqs.us-east-1.aws.harbour.doze/000000000000/jobs` — so
+what you copy out of a response is the shape you would get from AWS with the
+suffix swapped.
+
+No DNS available (CI, a container)? `doze-aws --listen 127.0.0.1:4566` serves an
+address instead. See [endpoints.md](endpoints.md).
 
 ## Configure
 
@@ -37,19 +43,21 @@ doze-aws config print
 ```
 
 Copy [`doze-aws.example.toml`](../doze-aws.example.toml) to `./doze-aws.toml`
-(auto-loaded) to enable a subset of services, change the port, or set the data
-directory:
+(auto-loaded) to name the instance, enable a subset of services, or set the
+data directory:
 
 ```toml
-listen   = "127.0.0.1:4566"
-data-dir = "./data"
+name     = "harbour"
+region   = "ap-south-1"
+data-dir = "data"       # relative to THIS FILE, not to your shell
 services = ["s3", "dynamodb", "sqs"]
 ```
 
 ## Persistence
 
-Data lives under `data/<service>/` and survives restarts. Delete the directory
-to reset. There is nothing else to clean up.
+Data lives under `data/<region>/<service>/` — with IAM and STS under
+`data/_global/` — and survives restarts. Delete the directory to reset. There is
+nothing else to clean up.
 
 ## Where things run
 

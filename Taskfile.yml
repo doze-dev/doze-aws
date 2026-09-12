@@ -24,7 +24,7 @@ tasks:
       - go build -o bin/{{.BINARY}} ./cmd/doze-aws
 
   run:
-    desc: Build and run the emulator (zero-config on 127.0.0.1:4566)
+    desc: Build and run the emulator (on aws.<dir>.doze; needs dns-setup once)
     deps: [build]
     cmds:
       - ./bin/{{.BINARY}}
@@ -126,8 +126,9 @@ tasks:
     desc: 'Playwright browser tests against the console UI (builds+boots a real binary; not part of check)'
     cmds:
       - cd e2e && bun install --frozen-lockfile
-      - cd e2e && bunx playwright install --with-deps chromium
-      - cd e2e && bunx playwright test
+      - cd e2e && bun run ./node_modules/playwright/cli.js install --with-deps chromium
+      # bunx shells out to node, which is not pinned here; bun run is.
+      - cd e2e && bun run ./node_modules/playwright/cli.js test
 
   clean:
     desc: Remove build output and local service data

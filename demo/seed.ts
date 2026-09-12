@@ -63,7 +63,7 @@ if (tradeFor > 0) await trading(tradeFor);
 
 summary(started);
 if (!tradeFor && !only) {
-  console.log('\x1b[2m   Now open http://127.0.0.1:4566/_console/ — or run again with --trade 5\x1b[0m');
+  console.log(`\x1b[2m   Now open ${ENDPOINT}/_console/ — or run again with --trade 5\x1b[0m`);
   console.log('\x1b[2m   to put live traffic through it while you take screenshots.\x1b[0m');
 }
 process.exit(failures.length ? 1 : 0);

@@ -4,13 +4,26 @@
 #
 #   doze-aws config print
 
-# host:port for the shared endpoint every enabled service answers on. The
-# default port matches LocalStack's, so existing AWS_ENDPOINT_URL setups work
-# unchanged.
-listen = "127.0.0.1:4566"
+# This instance's name in .doze. It answers on aws.<name>.doze, and the
+# AWS-shaped hostnames sit beneath that — sqs.<region>.aws.<name>.doze. Two
+# projects on one machine each get their own name and never contend.
+# Unset means the directory this file is in.
+# name = "harbour"
 
-# Root data directory; each service owns a subdirectory (data/sts, data/sqs, ...).
-data-dir = "./data"
+# ALSO serve on an address instead of a name, for the cases a name cannot
+# reach: a sibling container over a compose network, CI, a machine where
+# dns-setup has not run. This REPLACES the name rather than adding to it —
+# no .doze name is claimed, and URLs come back in their path form.
+# listen = "127.0.0.1:4566"
+
+# Root data directory; each region owns a subdirectory, with IAM and STS under
+# _global (data/ap-south-1/sqs, data/_global/iam, ...).
+#
+# A RELATIVE path is resolved against THIS FILE, not against the directory you
+# happen to run from — so the pair travels together. An absolute path is used
+# as given, which is how you point at a mounted volume with more disk. The
+# --data-dir flag is the exception: typed in a shell, resolved from there.
+data-dir = "data"
 
 # Services to enable. Omit to enable everything this build implements.
 # services = ["sts"]

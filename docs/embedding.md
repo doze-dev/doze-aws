@@ -27,9 +27,14 @@ Lambda event-source mappings) work with zero configuration.
 One case does need configuration: if your **Lambda handler code** calls a sibling
 service through an AWS SDK, set `StackConfig.Endpoint` to the stack's
 externally-reachable base URL (e.g. `"http://127.0.0.1:4566"`). It is injected
-into function processes as `AWS_ENDPOINT_URL`. The `doze-aws` binary derives this
-from `--listen` automatically; embedders serving the handler over HTTP should
-pass it explicitly.
+into function processes as `AWS_ENDPOINT_URL`. The `doze-aws` binary derives it
+from wherever it actually bound — its `.doze` name, or the `--listen` address —
+so embedders serving the handler over HTTP should pass it explicitly.
+
+`StackConfig.Suffix` is the related one: set it to what stands in for
+`amazonaws.com` in the hostnames you serve under, and minted URLs come back
+AWS-shaped (`<bucket>.s3.<region>.<suffix>`). Leave it empty and they use path
+shapes, which is correct when there is no hostname space to address under.
 
 ## A single service
 
@@ -144,8 +149,7 @@ func main() {
 Both clients hit the one `ts.URL`; the stack's gateway routes each request to the
 right service by its wire signals. Swap `httptest.NewServer` for
 `http.ListenAndServe("127.0.0.1:4566", stack.Handler())` to keep it up as a
-long-running local endpoint (4566 matches LocalStack, so existing
-`AWS_ENDPOINT_URL` setups work unchanged).
+long-running local endpoint on an address of your choosing.
 
 ## Wiring services across processes
 

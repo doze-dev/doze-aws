@@ -1,7 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Deliberately off the default 4566 so this never collides with a dev
-// instance of doze-aws already running on the machine.
+// The suite runs with --listen, so it needs no DNS and claims no .doze name —
+// which is what makes it safe in CI and on a laptop at the same time.
+//
+// The port is deliberately off 4566 so it never collides with a dev instance
+// already running on the machine. It is not "the default port" any more:
+// doze-aws answers on its name by default and binds no address at all.
 const PORT = 14566;
 export const BASE_URL = `http://127.0.0.1:${PORT}/_console/`;
 

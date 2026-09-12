@@ -1,19 +1,26 @@
 # CLI reference
 
 `doze-aws` is a single static binary. Run it with no arguments to serve every
-implemented service on one endpoint; it runs in the foreground until you
-interrupt it (Ctrl-C).
+implemented service; it runs in the foreground until you interrupt it (Ctrl-C).
 
 ```sh
-doze-aws
-# msg=listening addr=127.0.0.1:4566 services=s3,dynamodb,sqs,sns,sts,kms,ssm,secretsmanager,eventbridge,lambda,kinesis,iam,cloudformation,apigateway,stepfunctions
+doze-aws dns-setup   # once per machine
+cd ~/code/harbour && doze-aws
+# msg=listening addr=127.0.0.17:4566 services=s3,dynamodb,sqs,… instance=harbour
+# msg="reachable at" url=http://aws.harbour.doze as=name
 ```
+
+The instance name comes from the directory. See
+[endpoints.md](endpoints.md) for the addressing model.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
-| `doze-aws` | Serve the enabled services on the shared endpoint (the default). If `./template.yaml` exists (or `--template` names a file), it is applied at boot. |
+| `doze-aws` | Serve the enabled services (the default). If `./template.yaml` exists (or `--template` names a file), it is applied at boot. |
+| `doze-aws dns-setup [--print]` | Prepare this machine for `.doze` names: alias the loopback pool and point the resolver at doze. One sudo, idempotent, once per machine. `--print` writes the script instead of running it. |
+| `doze-aws doctor` | What this instance is, whether `.doze` resolves, and who holds which name. The first thing to run when a name stops working. |
+| `doze-aws env` | Print the shell block that points an AWS SDK at this instance — endpoint, region, credentials, and the per-service `AWS_ENDPOINT_URL_*` hostnames. Use it as `eval "$(doze-aws env)"`. |
 | `doze-aws apply [--var k=v ...] [file]` | Deploy a CloudFormation or SAM template (default `./template.yaml`): create what's missing, cheaply update what exists, never delete. `--var` supplies template parameters. Targets the running server if one is listening, the data dir otherwise. See [cloudformation.md](cloudformation.md). |
 | `doze-aws export` | Write the running stack (queues, tables, buckets, functions, wiring, …) to stdout as a CloudFormation template. Secret values are left blank on purpose. |
 | `doze-aws version` | Print the build version and the list of implemented services. |
@@ -28,19 +35,22 @@ Flags apply to serving and to `config print`.
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `--config <path>` | `./doze-aws.toml` if present | Path to a TOML config file. |
-| `--listen <host:port>` | `127.0.0.1:4566` | Address the shared endpoint binds. 4566 matches LocalStack, so existing `AWS_ENDPOINT_URL` setups work unchanged. |
-| `--data-dir <dir>` | `./data` | Root directory; each service gets its own subdirectory beneath it. |
+| `--config <path>` | `./doze-aws.toml` if present | Path to a TOML config file. Relative paths **inside** it resolve against the file, not against your working directory. |
+| `--name <name>` | the directory's name | This instance's name in `.doze`. It answers on `aws.<name>.doze`. |
+| `--listen <host:port>` | (none — the name is the address) | **Also** serve on an address, and claim no `.doze` name at all. For containers, CI, anywhere without DNS. Exclusive with the name; see [endpoints.md](endpoints.md). |
+| `--data-dir <dir>` | `./data`, or beside `doze-aws.toml` | Root directory: each region gets a subdirectory, with IAM and STS under `_global`. The **flag** resolves against your working directory; the config-file key resolves against the file. |
+| `--region <region>` | `us-east-1` | Default region for unqualified requests. Others are created on first use. |
+| `--account-id <12 digits>` | `000000000000` | The account every ARN carries. Set at creation and effectively frozen — the data records it and a mismatch is refused. |
+| `--suffix <host>` | the instance's own name | What stands in for `amazonaws.com` in minted hostnames. Set this when a proxy owns the name and forwards to doze-aws on an address. |
 | `--services <a,b,…>` | all implemented | Comma-separated subset of services to enable. Unknown names are an error. |
-| `--s3-host <host>` | (none) | Base host for virtual-hosted-style S3 addressing (`<bucket>.<host>`). Path-style always works regardless. |
 | `--template <path>` | `./template.yaml` if present | CloudFormation/SAM template to apply at boot. See [cloudformation.md](cloudformation.md). |
 | `--iam-mode <mode>` | `soft` | IAM enforcement: `soft` (evaluate and record, never block), `off` (no evaluation at all), `enforce` (real denials). See [api-support/iam.md](api-support/iam.md). |
 | `--console` | on | Serve the web management console at `/_console`. |
 | `--lambda-idle <duration>` | `10m` | How long a warm Lambda keeps its process before scaling to zero. |
 
 ```sh
-# Only S3 + SQS, on a custom port, with data under /tmp/aws
-doze-aws --services s3,sqs --listen 127.0.0.1:9000 --data-dir /tmp/aws
+# Only S3 + SQS, with data under /tmp/aws
+doze-aws --services s3,sqs --data-dir /tmp/aws
 
 # Watch what IAM would deny, without denying it
 doze-aws --iam-mode soft
@@ -56,15 +66,22 @@ Instead of flags, put settings in `doze-aws.toml` (auto-loaded from the working
 directory, or point `--config` at one elsewhere):
 
 ```toml
-listen   = "127.0.0.1:4566"
-data-dir = "./data"
+name     = "harbour"           # answers on aws.harbour.doze
+region   = "ap-south-1"
+data-dir = "data"              # relative to THIS FILE, not to your shell
 services = ["s3", "dynamodb", "sqs"]
-
-[s3]
-host = "s3.localhost"   # enables http://<bucket>.s3.localhost addressing
 ```
 
 Every key is optional; omitted keys fall back to the defaults above.
+
+**Paths in this file resolve against the file**, the way `Cargo.toml` and
+`package.json` work — so `doze-aws --config /srv/harbour/doze-aws.toml` run from
+anywhere puts the data in `/srv/harbour/data`. An absolute `data-dir` is used as
+written, which is how you point at a mounted volume. The `--data-dir` *flag* is
+the exception: typed in a shell, resolved from where you are standing.
+
+Removed keys fail loudly rather than being ignored, and the error names the
+replacement — `[s3] host` became `--suffix`, for instance.
 
 **Precedence** (lowest to highest): built-in defaults → config file → flags. A
 key set in the file survives unless the matching flag is explicitly passed, so
@@ -73,11 +90,15 @@ line. Run `doze-aws config print` to see the resolved result.
 
 ## Talking to it
 
-Point any AWS SDK or the AWS CLI at the endpoint. Credentials are not verified,
-so any non-empty values work; the region is `us-east-1`.
+Point any AWS SDK or the AWS CLI at the instance. Credentials are not verified,
+so any non-empty values work. `doze-aws env` prints the right block for the
+configuration in front of you, including the per-service hostnames:
 
 ```sh
-export AWS_ENDPOINT_URL=http://127.0.0.1:4566
+eval "$(doze-aws env)"
+
+# or by hand:
+export AWS_ENDPOINT_URL=http://aws.harbour.doze
 export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_REGION=us-east-1
 
 aws sts get-caller-identity
@@ -97,10 +118,27 @@ elsewhere: `AWS_ENDPOINT_URL_S3`, `AWS_ENDPOINT_URL_DYNAMODB`, etc.
 
 ## Persistence & resetting
 
-Data is written under `--data-dir` (`./data` by default), one subdirectory per
-service, and survives restarts. To reset a service, stop `doze-aws` and delete
-its subdirectory; to reset everything, delete the whole data directory. There is
-nothing else to tear down.
+Data is written under `--data-dir` and survives restarts. The layout is one
+directory per region, with the region-less services under `_global`:
+
+```
+data/
+  instance.json        what this data was created with — account, region
+  ap-south-1/          sqs/ s3/ dynamodb/ lambda/ …
+  eu-west-1/           the same, created on first use
+  _global/             iam/ sts/
+```
+
+To reset one service in one region, stop `doze-aws` and delete its directory;
+to reset everything, delete the whole data directory. There is nothing else to
+tear down.
+
+`instance.json` is written by doze-aws, not by you. It records the account and
+region the data was created under, so starting the same data with a different
+`--account-id` is **refused** rather than silently orphaning every stored ARN —
+they are embedded in other resources as plain strings, and would break at fire
+time rather than at startup. A changed default region is reported, not refused:
+regions are separate directories and the old one's resources are still there.
 
 ## See also
 

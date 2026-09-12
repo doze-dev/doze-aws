@@ -4,23 +4,31 @@ Local AWS services, built from scratch in Go. One small static binary that
 speaks the real AWS wire protocols — no Docker, no JVM, no cloud.
 
 ```sh
-doze-aws
-# listening on 127.0.0.1:4566
+doze-aws dns-setup   # one sudo, once per machine
+cd ~/code/harbour && doze-aws
+# reachable at http://aws.harbour.doze
 ```
 
 Point any AWS SDK at it and go:
 
 ```sh
-export AWS_ENDPOINT_URL=http://127.0.0.1:4566
-export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_REGION=us-east-1
-
+eval "$(doze-aws env)"
 aws sts get-caller-identity
 ```
 
-`127.0.0.1:4566` is a permanent address — the port is LocalStack's on purpose,
-and it will never require the `doze` CLI. Local DNS names like
-`aws.<stack>.doze` are additive on top of it, and switching between them does
-not strand what you already created. → **[Endpoints — the contract](docs/endpoints.md)**
+An instance answers on **its own name**, taken from the project directory, and
+the AWS-shaped hostnames sit beneath it — so a URL it hands back differs from
+the real one by the suffix alone:
+
+```
+https://sqs.ap-south-1.amazonaws.com/811690671382/orders     AWS
+http://sqs.ap-south-1.aws.harbour.doze/811690671382/orders   doze-aws
+```
+
+Two projects each get their own name and never contend. No DNS available — CI,
+a container, a sibling service over a compose network? `doze-aws --listen
+127.0.0.1:4566` serves an address instead, and that is the only other way in.
+→ **[Endpoints — where doze-aws answers](docs/endpoints.md)**
 
 ## What it is
 
@@ -103,9 +111,9 @@ Per-service operation coverage lives in [docs/api-support](docs/api-support/).
 
 ## Design ground rules
 
-- **Lightweight above all.** Three runtime dependencies: bbolt, a TOML parser
-  and a YAML parser. Data persists across restarts under one directory you can
-  delete.
+- **Lightweight above all.** Five runtime dependencies: bbolt, a TOML parser, a
+  YAML parser, a JSONata evaluator (Step Functions) and doze-names (the `.doze`
+  zone). Data persists across restarts under one directory you can delete.
 - **Real protocols, honest boundaries.** Every documented operation of an
   implemented service gets a handler: functional where locally meaningful,
   faithful config round-trips where the effect is cloud-infrastructure-only,
