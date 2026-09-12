@@ -49,6 +49,9 @@ type Options struct {
 	IAMMode string
 }
 
+// maxVhostWarned bounds the set of base hosts warnLostVHost will remember.
+const maxVhostWarned = 64
+
 // Server is the S3 service: an http.Handler + io.Closer.
 type Server struct {
 	store *s3store.Store
@@ -64,7 +67,14 @@ type Server struct {
 	suffix string            // stands in for amazonaws.com in hostnames
 	// vhostWarned remembers which base hosts warnLostVHost has already
 	// mentioned, so a client sending every request that way gets one line.
-	vhostWarned sync.Map
+	//
+	// Bounded, because the key comes from the client's Host header. It was a
+	// sync.Map with no cap, which is a map keyed by user input and never
+	// evicted — the same shape as two other findings in this pass, and I wrote
+	// it. A mutex rather than sync.Map so the size is knowable; this sits on
+	// the path-style branch, which is a map read and nothing else.
+	vhostMu     sync.Mutex
+	vhostWarned map[string]bool
 }
 
 // New opens the store under DataDir and starts the lifecycle janitor.
@@ -79,15 +89,16 @@ func New(opts Options) (*Server, error) {
 	}
 	st.Logf = logf
 	s := &Server{
-		store:  st,
-		peers:  opts.Peers,
-		logf:   logf,
-		now:    opts.Clock,
-		stop:   make(chan struct{}),
-		done:   make(chan struct{}),
-		guard:  iamguard.Guard{Mode: opts.IAMMode, Logf: logf, Identity: opts.Identity},
-		id:     opts.Identity,
-		suffix: opts.Suffix,
+		store:       st,
+		peers:       opts.Peers,
+		logf:        logf,
+		now:         opts.Clock,
+		stop:        make(chan struct{}),
+		done:        make(chan struct{}),
+		vhostWarned: map[string]bool{},
+		guard:       iamguard.Guard{Mode: opts.IAMMode, Logf: logf, Identity: opts.Identity},
+		id:          opts.Identity,
+		suffix:      opts.Suffix,
 	}
 	if s.peers == nil {
 		s.peers = peers.None()
@@ -199,9 +210,20 @@ func (s *Server) warnLostVHost(r *http.Request) {
 	if strings.Contains(rest, ".s3.") || strings.HasPrefix(rest, "s3.") {
 		return
 	}
-	if _, seen := s.vhostWarned.LoadOrStore(rest, true); seen {
+	s.vhostMu.Lock()
+	if s.vhostWarned[rest] {
+		s.vhostMu.Unlock()
 		return
 	}
+	if len(s.vhostWarned) >= maxVhostWarned {
+		// Said it enough. A client reaching this many distinct base hosts is
+		// not someone who needs the advice repeated; it is someone sending
+		// varied Host headers, and the map is keyed by what they send.
+		s.vhostMu.Unlock()
+		return
+	}
+	s.vhostWarned[rest] = true
+	s.vhostMu.Unlock()
 	s.logf("s3: read %s path-style — <bucket>.%s addressing was removed with --s3-host. "+
 		"Use UsePathStyle, or --suffix %s and <bucket>.s3.%s.%s",
 		r.Host, rest, rest, s.id.RegionName(), rest)

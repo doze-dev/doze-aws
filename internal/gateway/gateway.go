@@ -20,10 +20,18 @@
 // <id>.execute-api.<region>.amazonaws.com — so a request names its service
 // before a path is ever considered and two services cannot want the same URL.
 //
-// doze-aws serves one address, because 127.0.0.1:4566 working with no DNS
-// setup is the promise docs/endpoints.md makes. Everything above is the cost
-// of that promise: the shapes AWS separates by hostname arrive here on one,
-// and have to be told apart by what is left.
+// doze-aws does support those hostnames — sqs.<region>.aws.<instance>.doze and
+// the rest — but it cannot RELY on them, and the reason has nothing to do with
+// DNS setup: AWS_ENDPOINT_URL is a fixed string. The SDKs do not template a
+// service or a region into it, so a client configured with one endpoint sends
+// every service there whatever its hostname could have been, and under
+// --listen there is no hostname at all.
+//
+// So everything above is routing by what is left, and hostname routing is
+// additional rather than load-bearing. (This used to say the single address was
+// the cost of promising 127.0.0.1:4566 with no DNS setup. That promise was
+// withdrawn when instances became named; the routing is unchanged, because the
+// fixed-endpoint constraint was always the real reason.)
 //
 // The S3 fallback is what makes the ordering matter. Anything unrecognised
 // becomes an S3 request, so a shape that is not claimed above is not merely
@@ -377,8 +385,22 @@ func peekAction(r *http.Request) (action, version string) {
 	if ct != "" && !strings.HasPrefix(ct, "application/x-www-form-urlencoded") {
 		return "", ""
 	}
-	body, err := io.ReadAll(io.LimitReader(r.Body, 10<<20))
+	// One byte past the cap, so an oversized body is detected rather than
+	// silently truncated — the same defect internal/iamguard had, for the same
+	// reason: a chunked request has no Content-Length to check first, and
+	// replacing r.Body with what was read discards the rest.
+	//
+	// A Query-protocol body over 10 MiB is not a request doze-aws can route by
+	// Action anyway, so the answer is to put it back whole and let the service
+	// decide, not to hand the service a truncated form.
+	const maxPeek = 10 << 20
+	orig := r.Body
+	body, err := io.ReadAll(io.LimitReader(orig, maxPeek+1))
 	if err != nil {
+		return "", ""
+	}
+	if len(body) > maxPeek {
+		r.Body = bodyWithRest{Reader: io.MultiReader(bytes.NewReader(body), orig), Closer: orig}
 		return "", ""
 	}
 	r.Body = io.NopCloser(bytes.NewReader(body))
@@ -387,6 +409,13 @@ func peekAction(r *http.Request) (action, version string) {
 		return "", ""
 	}
 	return vals.Get("Action"), vals.Get("Version")
+}
+
+// bodyWithRest restores a partly-read body: the bytes already taken, followed
+// by whatever is still unread, closing over the original.
+type bodyWithRest struct {
+	io.Reader
+	io.Closer
 }
 
 // writeRouteError emits a routing-level error. The requester's protocol isn't

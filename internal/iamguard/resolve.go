@@ -446,14 +446,38 @@ func resourceFromForm(id awsident.Identity, _ *http.Request, service string, for
 	return ""
 }
 
+// bodyWithRest restores a partly-read body: the bytes already taken, followed
+// by whatever is still unread, closing over the original.
+type bodyWithRest struct {
+	io.Reader
+	io.Closer
+}
+
 // peekBody reads a request body and puts it back, so the service handler sees
 // an untouched request. Bodies over maxPeek are left alone entirely.
+//
+// "Left alone" has to mean it, and it did not. The guard is on ContentLength,
+// which is **-1 for a chunked request** — so chunked bodies passed it, were
+// read to maxPeek, and then r.Body was REPLACED by just those bytes. The rest
+// was discarded. IAM mode is soft by default, so this middleware is always on:
+// a perfectly well-formed 4 MB BatchWriteItem sent with
+// Transfer-Encoding: chunked reached its handler as 1 MiB of truncated JSON
+// and came back as SerializationException.
+//
+// So read one byte PAST the limit. Getting it means the body is too big to
+// peek at, and everything read goes back in front of the unread remainder
+// rather than in place of it.
 func peekBody(r *http.Request) ([]byte, bool) {
 	if r.Body == nil || r.ContentLength > maxPeek {
 		return nil, false
 	}
-	body, err := io.ReadAll(io.LimitReader(r.Body, maxPeek))
+	orig := r.Body
+	body, err := io.ReadAll(io.LimitReader(orig, maxPeek+1))
 	if err != nil {
+		return nil, false
+	}
+	if len(body) > maxPeek {
+		r.Body = bodyWithRest{Reader: io.MultiReader(bytes.NewReader(body), orig), Closer: orig}
 		return nil, false
 	}
 	r.Body = io.NopCloser(bytes.NewReader(body))

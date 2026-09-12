@@ -33,3 +33,22 @@ func (n *notifier) signal(queue string) {
 		delete(n.chans, queue)
 	}
 }
+
+// forget drops a queue's channel WITHOUT waking anyone.
+//
+// wait() registers interest before the receive is attempted, which is
+// deliberate — a Send landing between the check and the wait would otherwise be
+// missed. The cost is that a receive for a queue that does not exist also
+// registers, and nothing will ever signal that name, so the entry stayed
+// forever. `for i in $(seq 1000000); do aws sqs receive-message --queue-url
+// .../nope-$i; done` left a million live channels and their strings; a queue
+// deleted out from under a waiter stranded one the same way.
+//
+// Not closed, only dropped: anyone still holding the channel is waiting on a
+// queue that cannot deliver, and they have a long-poll deadline of their own.
+// Closing would be a spurious wakeup with nothing behind it.
+func (n *notifier) forget(queue string) {
+	n.mu.Lock()
+	delete(n.chans, queue)
+	n.mu.Unlock()
+}

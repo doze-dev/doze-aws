@@ -292,10 +292,37 @@ func (c *authCache) get(key string, now time.Time) (*authorizerResponse, bool) {
 	return e.resp, true
 }
 
+// maxCachedAuth bounds the cache, for the reason eventbridge's patternCache is
+// bounded — except this one is keyed by something a CLIENT chooses.
+//
+// The key is authorizer id + the caller's identity source, which for a TOKEN
+// authorizer is the Authorization header. Per-request JWTs therefore mint a new
+// key every request, and entries were only ever removed by a `get` for that
+// same key — which never comes again. A load test against a REST API behind a
+// TOKEN authorizer left one cachedAuth per request, each holding a whole policy
+// document, resident for the life of the process and long past its TTL.
+//
+// Dropping everything on overflow is fine: the only cost of a miss is one
+// authorizer invocation, which is exactly what would have happened anyway.
+const maxCachedAuth = 512
+
 func (c *authCache) put(key string, resp *authorizerResponse, expires time.Time) {
 	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(c.entries) >= maxCachedAuth {
+		// Sweep the expired first — under a steady per-request-token load that
+		// is all of them, and it keeps a busy-but-bounded workload cached.
+		now := time.Now()
+		for k, e := range c.entries {
+			if now.After(e.expires) {
+				delete(c.entries, k)
+			}
+		}
+		if len(c.entries) >= maxCachedAuth {
+			clear(c.entries)
+		}
+	}
 	c.entries[key] = cachedAuth{resp: resp, expires: expires}
-	c.mu.Unlock()
 }
 
 // forget drops every entry of one authorizer after it changed.

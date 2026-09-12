@@ -29,6 +29,12 @@ func (s *Store) Receive(queue string, max, waitSec int, visibilityOverride int) 
 		wakeCh := s.notify.wait(queue)
 		msgs, nextVisible, err := s.receiveOnce(queue, max, visibilityOverride)
 		if err != nil || len(msgs) > 0 {
+			if err != nil {
+				// The queue does not exist, or stopped existing. Nothing will
+				// ever signal this name, so the interest registered above would
+				// sit in the map for the life of the process. See forget.
+				s.notify.forget(queue)
+			}
 			return msgs, err
 		}
 		now := s.now()
