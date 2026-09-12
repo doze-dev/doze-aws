@@ -25,6 +25,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -45,6 +46,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Identity is the region and account this service mints ARNs for. The zero
+	// value means the conventional local identity.
+	Identity awsident.Identity
 	// IAMMode is the IAM service's mode; under soft or enforce the key policy
 	// is evaluated on every key-scoped request, and gates the identity policies.
 	IAMMode string
@@ -60,7 +64,8 @@ type Server struct {
 	// done closes when the janitor has returned, so Close waits for it before
 	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
 	done  chan struct{}
-	guard iamguard.Guard // the key policy, under IAM soft/enforce
+	guard iamguard.Guard    // the key policy, under IAM soft/enforce
+	id    awsident.Identity // the region and account this service mints ARNs for
 }
 
 // New opens the bbolt store under DataDir and starts the deletion janitor.
@@ -87,10 +92,14 @@ func New(opts Options) (*Server, error) {
 		stop:  make(chan struct{}),
 		done:  make(chan struct{}),
 		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf, KeyPolicyGates: true},
+		id:    opts.Identity,
 	}
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock
 	}
+	// The store stamps every Key it reads with this, so ARN() can stay a method
+	// on a record that has no pointer back here.
+	s.store.id = opts.Identity
 	go s.janitor()
 	return s, nil
 }

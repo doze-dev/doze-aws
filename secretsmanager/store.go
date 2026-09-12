@@ -53,6 +53,7 @@ type Version struct {
 type Store struct {
 	db    *bolt.DB
 	gcm   cipher.AEAD
+	id    awsident.Identity // region and account ARNs are minted for; stamped by New
 	clock func() time.Time
 }
 
@@ -196,7 +197,7 @@ func (s *Store) Create(name, description, kmsKeyID, token string, str, bin []byt
 	}
 	now := s.now().Unix()
 	sec := &Secret{
-		ARN:         secretARN(name),
+		ARN:         s.secretARN(name),
 		Name:        name,
 		Description: description,
 		KMSKeyID:    kmsKeyID,
@@ -394,8 +395,8 @@ func (s *Store) SweepDeleted() {
 	})
 }
 
-func secretARN(name string) string {
-	return awsident.ARN("secretsmanager", "secret:"+name+"-"+randSuffix())
+func (s *Store) secretARN(name string) string {
+	return s.id.ARN("secretsmanager", "secret:"+name+"-"+randSuffix())
 }
 
 // randSuffix mimics the 6-character ARN suffix real Secrets Manager appends.

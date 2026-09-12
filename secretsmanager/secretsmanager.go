@@ -19,6 +19,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -40,6 +41,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Identity is the region and account this service mints ARNs for. The zero
+	// value means the conventional local identity.
+	Identity awsident.Identity
 	// IAMMode is the IAM service's mode; under soft or enforce a secret's
 	// resource policy is evaluated on every request that names it.
 	IAMMode string
@@ -96,6 +100,7 @@ func New(opts Options) (*Server, error) {
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock
 	}
+	s.store.id = opts.Identity
 	go s.janitor()
 	return s, nil
 }

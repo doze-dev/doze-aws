@@ -43,14 +43,14 @@ type paramView struct {
 	LastModifiedDate float64 `json:"LastModifiedDate"`
 }
 
-func view(p *Parameter, v *Version, value, selector string) paramView {
+func (s *Server) view(p *Parameter, v *Version, value, selector string) paramView {
 	return paramView{
 		Name:             p.Name,
 		Type:             p.Type,
 		Value:            value,
 		Version:          v.Version,
 		Selector:         selector,
-		ARN:              paramARN(p.Name),
+		ARN:              paramARN(s.id, p.Name),
 		DataType:         p.DataType,
 		LastModifiedDate: float64(v.Created),
 	}
@@ -128,7 +128,7 @@ func (s *Server) getParameter(p map[string]any) (any, *awshttp.APIError) {
 	if i := strings.LastIndex(selector, ":"); i > 0 {
 		sel = selector[i:]
 	}
-	return map[string]any{"Parameter": view(param, v, value, sel)}, nil
+	return map[string]any{"Parameter": s.view(param, v, value, sel)}, nil
 }
 
 func (s *Server) getParameters(p map[string]any) (any, *awshttp.APIError) {
@@ -141,7 +141,7 @@ func (s *Server) getParameters(p map[string]any) (any, *awshttp.APIError) {
 			invalid = append(invalid, name)
 			continue
 		}
-		params = append(params, view(param, v, value, ""))
+		params = append(params, s.view(param, v, value, ""))
 	}
 	return map[string]any{"Parameters": params, "InvalidParameters": invalid}, nil
 }
@@ -160,7 +160,7 @@ func (s *Server) getParametersByPath(p map[string]any) (any, *awshttp.APIError) 
 		if aerr != nil {
 			return nil, aerr
 		}
-		params = append(params, view(param, v, value, ""))
+		params = append(params, s.view(param, v, value, ""))
 	}
 	return map[string]any{"Parameters": params}, nil
 }
@@ -243,7 +243,7 @@ func (s *Server) describeParameters(p map[string]any) (any, *awshttp.APIError) {
 	for i := range filtered {
 		param := &filtered[i]
 		out = append(out, meta{
-			Name: param.Name, ARN: paramARN(param.Name), Type: param.Type,
+			Name: param.Name, ARN: paramARN(s.id, param.Name), Type: param.Type,
 			KeyId: param.KeyID, Description: param.Description,
 			Version: param.Latest().Version, Tier: orDefault(param.Tier, "Standard"),
 			DataType: param.DataType, LastModifiedDate: float64(param.Latest().Created),

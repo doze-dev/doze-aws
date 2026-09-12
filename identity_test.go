@@ -34,34 +34,85 @@ const (
 	testRegion  = "ap-south-1"
 )
 
-func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {
-	plumbed := []string{"sqs"}
+// unplumbed names the services whose ARNs still come from awsident's
+// package-level defaults. Delete an entry as its service is migrated, and add
+// it to the table in TestEveryServiceMintsTheConfiguredIdentity — the two
+// together are the migration's progress bar.
+var unplumbed = []string{
+	"s3", "dynamodb", "sns", "sts",
+	"eventbridge", "lambda", "kinesis", "iam", "cloudformation",
+	"apigateway", "stepfunctions", "logs", "cloudwatch",
+}
 
-	// Not yet migrated. Each entry is a service whose ARNs still come from
-	// awsident's package-level defaults. Delete a line when its service is done;
-	// the test then holds it to the configured identity forever after.
-	unplumbed := []string{
-		"s3", "dynamodb", "sns", "sts", "kms", "ssm", "secretsmanager",
-		"eventbridge", "lambda", "kinesis", "iam", "cloudformation",
-		"apigateway", "stepfunctions", "logs", "cloudwatch",
+func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {
+	// Each row creates a resource and then reads it back. The assertion is
+	// deliberately blunt — the reply must carry the configured account and must
+	// never contain the default — because a service that mints one ARN correctly
+	// and another from the constants is exactly the failure being hunted.
+	migrated := []struct {
+		svc    string
+		create [2]string // X-Amz-Target, body
+		read   [2]string
+		want   string // an ARN that must appear in the read reply
+	}{
+		{
+			svc:    "sqs",
+			create: [2]string{"AmazonSQS.CreateQueue", `{"QueueName":"orders"}`},
+			read: [2]string{"AmazonSQS.GetQueueAttributes",
+				`{"QueueUrl":"http://h/` + testAccount + `/orders","AttributeNames":["QueueArn"]}`},
+			want: "arn:aws:sqs:" + testRegion + ":" + testAccount + ":orders",
+		},
+		{
+			svc:    "ssm",
+			create: [2]string{"AmazonSSM.PutParameter", `{"Name":"/app/db","Value":"x","Type":"String"}`},
+			read:   [2]string{"AmazonSSM.GetParameter", `{"Name":"/app/db"}`},
+			want:   "arn:aws:ssm:" + testRegion + ":" + testAccount + ":parameter/app/db",
+		},
+		{
+			svc:    "secretsmanager",
+			create: [2]string{"secretsmanager.CreateSecret", `{"Name":"db-password","SecretString":"s"}`},
+			read:   [2]string{"secretsmanager.DescribeSecret", `{"SecretId":"db-password"}`},
+			want:   "arn:aws:secretsmanager:" + testRegion + ":" + testAccount + ":secret:db-password",
+		},
+		{
+			svc:    "kms",
+			create: [2]string{"TrentService.CreateKey", `{"Description":"test"}`},
+			read:   [2]string{"TrentService.ListKeys", `{}`},
+			want:   "arn:aws:kms:" + testRegion + ":" + testAccount + ":key/",
+		},
 	}
 
 	stack, err := dozeaws.NewStack(dozeaws.StackConfig{
 		DataDir:  t.TempDir(),
-		Services: append(append([]string{}, plumbed...), unplumbed...),
+		Services: dozeaws.Implemented,
 		Identity: awsident.Identity{Region: testRegion, AccountID: testAccount},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer stack.Close()
-
-	// SQS is the reference: create a queue, then read back both the URL and the
-	// ARN. Both must carry the configured account.
 	srv := httptest.NewServer(stack.Handler())
 	defer srv.Close()
 
-	body := call(t, srv.URL, "AmazonSQS.CreateQueue", `{"QueueName":"orders"}`)
+	for _, tc := range migrated {
+		t.Run(tc.svc, func(t *testing.T) {
+			created := call(t, srv.URL, tc.create[0], tc.create[1])
+			got := call(t, srv.URL, tc.read[0], tc.read[1])
+
+			if !strings.Contains(got, tc.want) {
+				t.Errorf("want %q in the reply\ncreate: %s\nread:   %s", tc.want, created, got)
+			}
+			// The default account appearing anywhere means some path still
+			// mints from the package constants.
+			if strings.Contains(got, awsident.AccountID) {
+				t.Errorf("default account %s leaked into %s", awsident.AccountID, got)
+			}
+		})
+	}
+
+	// SQS additionally hands back a URL, which carries the account outside any
+	// ARN — the shape that started this work.
+	body := call(t, srv.URL, "AmazonSQS.CreateQueue", `{"QueueName":"url-check"}`)
 	var created struct{ QueueUrl string }
 	if err := json.Unmarshal([]byte(body), &created); err != nil {
 		t.Fatalf("CreateQueue: %v (body %s)", err, body)
@@ -70,15 +121,10 @@ func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {
 		t.Errorf("queue URL = %q, want it to carry account %s", created.QueueUrl, testAccount)
 	}
 
-	attrs := call(t, srv.URL, "AmazonSQS.GetQueueAttributes",
-		`{"QueueUrl":"`+created.QueueUrl+`","AttributeNames":["QueueArn"]}`)
-	wantARN := "arn:aws:sqs:" + testRegion + ":" + testAccount + ":orders"
-	if !strings.Contains(attrs, wantARN) {
-		t.Errorf("QueueArn: want %q in %s", wantARN, attrs)
-	}
-
 	if len(unplumbed) == 0 {
-		t.Log("every service is plumbed — fold this list away and assert over Implemented instead")
+		t.Log("every service is plumbed — fold the list away and assert over Implemented instead")
+	} else {
+		t.Logf("still on the package defaults: %s", strings.Join(unplumbed, ", "))
 	}
 }
 

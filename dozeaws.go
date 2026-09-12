@@ -172,13 +172,13 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := sns.New(sns.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
 		return s, s, err
 	case "kms":
-		s, err := kms.New(kms.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
+		s, err := kms.New(kms.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "ssm":
-		s, err := ssm.New(ssm.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		s, err := ssm.New(ssm.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "secretsmanager":
-		s, err := secretsmanager.New(secretsmanager.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode)})
+		s, err := secretsmanager.New(secretsmanager.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "logs":
 		s, err := logs.New(logs.Options{DataDir: dataDir, Peers: dir, Logf: logf})

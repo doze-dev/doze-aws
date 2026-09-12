@@ -5,7 +5,6 @@ package kms
 import (
 	"sort"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
 )
@@ -68,15 +67,15 @@ func (s *Server) listAliases(p map[string]any) (any, *awshttp.APIError) {
 		}
 		out = append(out, entry{
 			AliasName:   "alias/" + a[0],
-			AliasArn:    aliasARN(a[0]),
+			AliasArn:    s.aliasARN(a[0]),
 			TargetKeyId: a[1],
 		})
 	}
 	return map[string]any{"Aliases": out, "Truncated": false}, nil
 }
 
-func aliasARN(name string) string {
-	return awsident.ARN("kms", "alias/"+name)
+func (s *Server) aliasARN(name string) string {
+	return s.id.ARN("kms", "alias/"+name)
 }
 
 // ---- tags ----

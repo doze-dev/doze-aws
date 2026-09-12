@@ -46,18 +46,43 @@ type Key struct {
 	KeySpec      string            `json:"key_spec"`  // SYMMETRIC_DEFAULT
 	KeyUsage     string            `json:"key_usage"` // ENCRYPT_DECRYPT
 	MultiRegion  bool              `json:"multi_region"`
+
+	// id is the identity ARN() mints under, stamped on read by Store.stamp.
+	// Unexported, so it is never written to bbolt — see stamp for why.
+	id awsident.Identity
 }
 
 // ARN returns the key's ARN.
-func (k *Key) ARN() string { return awsident.ARN("kms", "key/"+k.ID) }
+//
+// The identity comes off the record rather than a package constant, and is
+// stamped as the key is read (see stamp). A Key decoded out of bbolt has no
+// pointer back to the Store that owns it, so the alternative would have been an
+// identity argument at all thirteen call sites.
+func (k *Key) ARN() string { return k.id.ARN("kms", "key/"+k.ID) }
 
 // Store is the bbolt-backed KMS state.
 type Store struct {
 	db    *bolt.DB
 	clock func() time.Time
+	// id is the region and account ARNs are minted for. Stamped by New after
+	// construction, the same way clock is.
+	id awsident.Identity
 }
 
 func newStore(db *bolt.DB) *Store { return &Store{db: db, clock: time.Now} }
+
+// stamp marks a key with the identity that owns it. Every path that produces a
+// Key goes through here, so ARN() can stay a plain method on the record.
+//
+// It is not persisted — the field is unexported, so encoding/json skips it.
+// That is deliberate: the identity belongs to the instance serving the key, not
+// to the record, so a data directory stays portable between instances.
+func (s *Store) stamp(k *Key) *Key {
+	if k != nil {
+		k.id = s.id
+	}
+	return k
+}
 
 func (s *Store) now() time.Time { return s.clock() }
 
@@ -100,7 +125,7 @@ func (s *Store) CreateKey(spec, usage, description, policy string, tags map[stri
 		raw, _ := json.Marshal(k)
 		return b.Put([]byte(k.ID), raw)
 	})
-	return k, err
+	return s.stamp(k), err
 }
 
 // Resolve maps any accepted key identifier — key id, key ARN, alias name,
@@ -193,7 +218,7 @@ func (s *Store) resolve(tx *bolt.Tx, ident string) (*Key, error) {
 	if err := json.Unmarshal(raw, &k); err != nil {
 		return nil, err
 	}
-	return &k, nil
+	return s.stamp(&k), nil
 }
 
 // Update applies fn to a key resolved by ident and persists it.
@@ -225,6 +250,7 @@ func (s *Store) List() ([]Key, error) {
 		return b.ForEach(func(_, raw []byte) error {
 			var k Key
 			if json.Unmarshal(raw, &k) == nil {
+				s.stamp(&k)
 				out = append(out, k)
 			}
 			return nil

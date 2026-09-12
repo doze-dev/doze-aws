@@ -475,9 +475,11 @@ func (s *Store) SweepExpired() {
 	})
 }
 
-// ARN returns a parameter's ARN.
-func paramARN(name string) string {
-	return awsident.ARN("ssm", "parameter"+ensureSlash(name))
+// paramARN returns a parameter's ARN under the given identity. It takes one
+// rather than reading a package constant because an ARN belongs to the instance
+// that minted it.
+func paramARN(id awsident.Identity, name string) string {
+	return id.ARN("ssm", "parameter"+ensureSlash(name))
 }
 
 func ensureSlash(name string) string {
