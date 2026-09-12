@@ -183,22 +183,60 @@ func TestApplyLooksForItsOwnInstanceFirst(t *testing.T) {
 	}
 }
 
-// --listen is the escape from both: a held name is no longer fatal when there
-// is an address to serve on.
-func TestAnAddressServesEvenWhenTheNameIsHeld(t *testing.T) {
+// --listen and the name are EXCLUSIVE. With an address given, run() never
+// joins the zone at all, so openListeners is handed a nil zone — and must
+// serve the address without touching it.
+//
+// This test used to assert that --listen was the escape from a HELD name,
+// passing a zone with held set. That state can no longer occur: nothing claims
+// a name under --listen, so nothing can lose one. The nil zone is the real
+// contract now.
+func TestListenServesTheAddressAndNeverTouchesTheZone(t *testing.T) {
 	cfg := config.Default()
 	cfg.ListenAddr = "127.0.0.1:0"
-	z := &zone{held: &names.ErrHeld{Host: "aws.harbour.doze", PID: 4242, Owner: "doze-aws"}}
 
-	binds, err := openListeners(cfg, z, quietLogger())
+	binds, err := openListeners(cfg, nil, quietLogger())
 	if err != nil {
-		t.Fatalf("--listen must serve regardless of the name: %v", err)
+		t.Fatalf("--listen must serve with no zone at all: %v", err)
 	}
 	defer binds.close()
-	if len(binds.all) != 1 || binds.primary().what != "address" {
-		t.Fatalf("want one address binding, got %+v", binds.all)
+
+	if len(binds.all) != 1 {
+		t.Fatalf("want exactly one binding, got %+v", binds.all)
 	}
+	if got := binds.primary().what; got != "address" {
+		t.Errorf("binding is %q, want %q", got, "address")
+	}
+	// binds.endpoint is what a child Lambda gets as AWS_ENDPOINT_URL. It used
+	// to be set from the NAME branch first and only fall back to the address,
+	// so under --listen a function was handed a .doze URL that resolves to
+	// nothing on a machine where dns-setup never ran.
 	if !strings.HasPrefix(binds.endpoint, "http://127.0.0.1:") {
-		t.Errorf("endpoint = %q, want the bound address", binds.endpoint)
+		t.Errorf("endpoint = %q, want the bound address — a Lambda child dials this", binds.endpoint)
+	}
+	if strings.Contains(binds.endpoint, ".doze") {
+		t.Errorf("endpoint = %q — a name under --listen resolves to nothing", binds.endpoint)
+	}
+}
+
+// The name is claimed only when --listen was NOT given. Asserting on the
+// registry rather than on a log line, because the registry is what another
+// process reads: a stray entry means `apply` in a sibling directory could pick
+// this instance as its target.
+func TestListenClaimsNoName(t *testing.T) {
+	reg := names.Open(names.Home(), "doze-aws")
+	before := len(reg.Snapshot())
+
+	cfg := config.Default()
+	cfg.ListenAddr = "127.0.0.1:0"
+	binds, err := openListeners(cfg, nil, quietLogger())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer binds.close()
+
+	if after := len(reg.Snapshot()); after != before {
+		t.Errorf("registry grew from %d to %d entries under --listen: %v",
+			before, after, reg.Snapshot())
 	}
 }

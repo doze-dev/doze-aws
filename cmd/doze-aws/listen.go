@@ -22,12 +22,21 @@ package main
 // the suffix swapped. One address cannot be seventeen services in as many
 // regions, and every workaround for that is a path shape AWS does not use.
 //
-// # --listen is not a fallback
+// # --listen is not a fallback, and not an addition
 //
 // It is for the case a name genuinely cannot serve: a sibling container
 // reaching this one over a compose network, where the address comes from
-// Docker and .doze is not in play. It ADDS a listener rather than replacing
-// the name, so an instance can answer both ways at once.
+// Docker and .doze is not in play.
+//
+// It REPLACES the name rather than adding to it. An instance that answered on
+// both would hand back two different URL shapes depending on which address you
+// asked through, and would have to pick one of them for AWS_ENDPOINT_URL —
+// which it did, badly: it preferred the name, so a Lambda child under --listen
+// on a machine with no dns-setup was handed a URL that resolved to nothing.
+// One instance, one way to reach it.
+//
+// --suffix still applies under --listen, and that is the containerised-behind-
+// a-proxy case: the proxy owns the name, doze-aws owns the address.
 //
 // # What this costs
 //
@@ -79,11 +88,25 @@ func (l listeners) serve(srv *http.Server, logger *slog.Logger, errc chan<- erro
 
 // openListeners binds what the configuration asks for.
 //
-// Order matters: the instance's name comes first, because it is what the
-// console link, AWS_ENDPOINT_URL and every minted URL should prefer.
+// Exactly one of the two arms runs. A nil zone means --listen was given, which
+// is the caller's way of saying names are not in play at all — see run() in
+// main.go, which is the only place that decision is made.
 func openListeners(cfg config.Config, z *zone, logger *slog.Logger) (listeners, error) {
 	var out listeners
-	z.cfgAddr = cfg.ListenAddr
+
+	// --listen: this address, and nothing else. The error from net.Listen is
+	// returned verbatim rather than reworded — "address already in use" on an
+	// address the caller typed needs no interpretation from us.
+	if cfg.ListenAddr != "" {
+		ln, err := net.Listen("tcp", cfg.ListenAddr)
+		if err != nil {
+			return listeners{}, err
+		}
+		url := "http://" + reachableHost(ln.Addr().String())
+		out.all = append(out.all, binding{ln: ln, what: "address", url: url})
+		out.endpoint = url
+		return out, nil
+	}
 
 	// The name's own loopback address. The port stays 4566 so a client that
 	// wants to be explicit still can; the port-less form comes from the shared
@@ -97,24 +120,11 @@ func openListeners(cfg config.Config, z *zone, logger *slog.Logger) (listeners, 
 		out.endpoint = url
 	}
 
-	if cfg.ListenAddr != "" {
-		ln, err := net.Listen("tcp", cfg.ListenAddr)
-		if err != nil {
-			return listeners{}, err
-		}
-		out.all = append(out.all, binding{
-			ln: ln, what: "address", url: "http://" + reachableHost(ln.Addr().String()),
-		})
-		if out.endpoint == "" {
-			out.endpoint = "http://" + reachableHost(ln.Addr().String())
-		}
-	}
-
 	if len(out.all) == 0 {
 		// Losing the name to another live instance is a different problem from
 		// having no names at all, and it has a different answer — so say which
 		// one happened rather than one message for both.
-		if z.held != nil {
+		if z != nil && z.held != nil {
 			return listeners{}, fmt.Errorf(
 				"doze-aws: %s is already served by pid %d (%s).\n"+
 					"  doze-aws --name <other>     run this instance under its own name\n"+

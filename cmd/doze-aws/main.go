@@ -261,17 +261,24 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	// tells a Lambda process to dial (AWS_ENDPOINT_URL) and what it reports in
 	// a queue URL both depend on where it ended up listening.
 	//
-	// The default is a NAME. --listen is the opt-in for the cases a name
-	// cannot serve — chiefly a sibling container reaching this one over the
-	// compose network, where the address is supplied by Docker and .doze is
-	// not in play.
+	// The two modes are EXCLUSIVE, not additive. Without --listen this instance
+	// is its .doze name and nothing else. With --listen it is that address and
+	// nothing else: no name is claimed, no DNS check runs, and the registry
+	// records nothing. One instance, one way to reach it.
+	//
+	// Additive was the old shape, and it produced an instance that answered on
+	// two addresses with two different URL shapes depending on which one you
+	// asked through — and a binds.endpoint that preferred the name, so a child
+	// Lambda under --listen was handed a .doze URL it could not resolve on a
+	// machine where dns-setup had never run.
+	var z *zone
 	if cfg.ListenAddr == "" {
 		if _, nerr := ensureNames(liveNameEnv()); nerr != nil {
 			return nerr
 		}
+		z = joinZone(ctx, logger, cfg.InstanceName())
+		defer z.close()
 	}
-	z := joinZone(ctx, logger, cfg.InstanceName())
-	defer z.close()
 
 	binds, err := openListeners(cfg, z, logger)
 	if err != nil {
@@ -282,10 +289,13 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	// The suffix that stands in for amazonaws.com is this instance's own name,
 	// unless --suffix says otherwise. Deriving it rather than requiring it is
 	// what makes sqs.ap-south-1.aws.harbour.doze come out of a plain
-	// `doze-aws` with nothing configured; an instance with no name mints no
-	// AWS-shaped URLs, which is correct, because there would be nothing to
-	// resolve them.
-	if cfg.Suffix == "" && z.own != nil {
+	// `doze-aws` with nothing configured.
+	//
+	// Under --listen there is no name, so there is no derived suffix and the
+	// URL shapes fall back to paths — correct, because there would be no
+	// resolver to serve an AWS-shaped hostname. --suffix still works there, and
+	// that is the containerised-behind-a-proxy case: the proxy owns the name.
+	if cfg.Suffix == "" && z != nil && z.own != nil {
 		cfg.Suffix = z.own.Name.Host
 	}
 

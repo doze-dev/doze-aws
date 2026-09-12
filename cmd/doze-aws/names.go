@@ -58,9 +58,6 @@ type zone struct {
 	// held records who owns this instance's name when the claim lost, so
 	// startup can name the process instead of reporting a nameless failure.
 	held *names.ErrHeld
-	// cfgAddr is the --listen address, when one was given — the answer to
-	// "then what still works?" below, and empty in the ordinary case.
-	cfgAddr string
 }
 
 // joinZone claims this instance's names and starts serving the zone if nobody
@@ -133,14 +130,11 @@ func (z *zone) listenOn(l *names.Lease, logger *slog.Logger, port string) net.Li
 		if errors.Is(err, syscall.EADDRINUSE) {
 			hint = "something else already holds " + addr + "; free it, or that name will not work"
 		}
-		// The name is the primary address now, so there is usually nothing
-		// else to fall back to — saying "still works: http://" would be worse
-		// than saying nothing. The hint is what matters here.
-		attrs := []any{"name", l.Name.Host, "addr", addr, "err", err, "hint", hint}
-		if z.cfgAddr != "" {
-			attrs = append(attrs, "still_works", "http://"+z.cfgAddr)
-		}
-		logger.Warn("zone: the name resolves but nothing serves it", attrs...)
+		// There is nothing to fall back to. The zone is only joined when
+		// --listen was NOT given, so a name that cannot bind means this
+		// instance has no address at all — the hint is the whole message.
+		logger.Warn("zone: the name resolves but nothing serves it",
+			"name", l.Name.Host, "addr", addr, "err", err, "hint", hint)
 		return nil
 	}
 	z.extras = append(z.extras, ln)

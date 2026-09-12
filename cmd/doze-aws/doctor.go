@@ -46,19 +46,32 @@ func doctorTo(w io.Writer, cfg config.Config, status names.Status, reg registry)
 
 	fmt.Fprintf(w, "doze-aws %s\n\n", version)
 
+	// --listen and the name are exclusive, so doctor must report whichever one
+	// this configuration actually uses. Printing "answers on aws.<name>.doze"
+	// under --listen would describe a name nothing claims.
+	byName := cfg.ListenAddr == ""
+
 	fmt.Fprintln(w, "this instance")
 	fmt.Fprintf(w, "  name        %s\n", cfg.InstanceName())
-	fmt.Fprintf(w, "  answers on  %s\n", names.Qualified("aws", cfg.InstanceName()).Host)
+	if byName {
+		fmt.Fprintf(w, "  answers on  %s\n", names.Qualified("aws", cfg.InstanceName()).Host)
+	} else {
+		fmt.Fprintf(w, "  answers on  %s (--listen; no .doze name is claimed)\n", cfg.ListenAddr)
+	}
 	fmt.Fprintf(w, "  region      %s\n", id.RegionName())
 	fmt.Fprintf(w, "  account     %s\n", id.Account())
 	fmt.Fprintf(w, "  data        %s\n", cfg.DataDir)
 	// An explicit --suffix is worth distinguishing from the derived one,
-	// because only the derived one follows the instance if it is renamed.
+	// because only the derived one follows the instance if it is renamed —
+	// and under --listen an explicit one is the only way to get AWS-shaped
+	// URLs at all.
 	switch {
 	case cfg.Suffix != "":
 		fmt.Fprintf(w, "  suffix      %s (--suffix)\n", cfg.Suffix)
-	default:
+	case byName:
 		fmt.Fprintf(w, "  suffix      %s (from the name)\n", names.Qualified("aws", cfg.InstanceName()).Host)
+	default:
+		fmt.Fprintln(w, "  suffix      (none — URLs use path shapes; see --suffix)")
 	}
 
 	fmt.Fprintf(w, "\n.doze on this machine (%s)\n", status.Platform)
