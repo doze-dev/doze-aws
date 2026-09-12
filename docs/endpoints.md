@@ -4,7 +4,7 @@ There are two ways to reach an instance, and deliberately only two.
 
 | | | |
 |---|---|---|
-| **`aws.<instance>.doze`** | the default | needs `doze-aws dns-setup` once per machine |
+| **`aws.<instance>.doze`** | the default | the first run offers to set `.doze` up — one prompt, one sudo, once per machine |
 | **`--listen host:port`** | explicit opt-in | for containers, CI, anywhere without DNS |
 
 They are **exclusive**. With `--listen`, no `.doze` name is claimed at all: one
@@ -196,16 +196,32 @@ is never in doubt, and the unsigned one is where this goes wrong.
 
 ## Setting up `.doze`
 
+**Usually you do not.** `doze-aws` checks on every start and, the first time it
+finds `.doze` unresolvable, handles it according to who is asking:
+
+| | |
+|---|---|
+| a terminal | offers it once — `Set it up now? [Y/n]`, default yes, one sudo |
+| root (a container) | installs it, because there is nobody to ask |
+| neither (CI, `doze-aws &`) | changes **nothing**, prints the ways forward, exits |
+
+That last row is the important one. `sudo` with no terminal waits for a
+password that will never arrive, and a server that hangs at boot is worse than
+one that errors — CI would sit there until the job timed out with no
+explanation. Passwordless sudo is the other trap: it would succeed silently and
+rewrite a build machine's DNS as a side effect of starting a test fixture.
+
+The explicit commands are for when you want it done deliberately:
+
 ```sh
-doze-aws dns-setup           # one sudo, once per machine
+doze-aws dns-setup           # one sudo, idempotent — for CI or a scripted install
 doze-aws dns-setup --print   # print the script instead, to run yourself
+doze-aws dns-setup --check   # does .doze resolve? non-zero if not
 doze-aws doctor              # what is missing, and who holds which name
 ```
 
 It aliases a loopback pool and points the resolver at a high port — macOS via
 `/etc/resolver/doze`, Linux via `systemd-resolved` or an `/etc/hosts` block.
-`doze-aws` will not start without it unless `--listen` is given; it says so and
-exits rather than hanging on a `sudo` prompt that no one is there to answer.
 
 The zone is served by whichever doze binary is running — `doze`, `doze-aws` or
 `doze-kafka` take turns, so a machine with only doze-aws installed still

@@ -9,7 +9,9 @@
 //	https://sqs.ap-south-1.amazonaws.com/811690671382/orders     AWS
 //	http://sqs.ap-south-1.aws.harbour.doze/811690671382/orders   doze-aws
 //
-// That needs `doze-aws dns-setup` once per machine. Where a name cannot serve
+// That needs `.doze` to resolve, which the first run offers to arrange: one
+// prompt, one sudo, once per machine. `doze-aws dns-setup` is the same thing
+// run deliberately, for CI or a scripted install. Where a name cannot serve
 // — a sibling container over a compose network, CI, anywhere without DNS —
 // `--listen host:port` is the opt-in, and it REPLACES the name rather than
 // adding to it: one instance, one way to reach it.
@@ -121,8 +123,8 @@ commands:
 	fs.SetOutput(w)
 	fs.PrintDefaults()
 	fmt.Fprint(w, "\nExamples:\n"+
-		"  doze-aws dns-setup                        once per machine, so .doze resolves\n"+
 		"  doze-aws                                  everything, on aws.<dir>.doze\n"+
+		"  doze-aws dns-setup                        set .doze up deliberately (CI, scripted installs)\n"+
 		"  doze-aws --name harbour                   name the instance explicitly\n"+
 		"  doze-aws --services s3,sqs,lambda         just those three\n"+
 		"  doze-aws --listen 127.0.0.1:4566          an address instead of a name\n"+

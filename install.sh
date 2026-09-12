@@ -256,10 +256,10 @@ else
 fi
 
 echo ""
-echo "Done. Two steps to a running stack:"
+echo "Done. One step to a running stack:"
 echo ""
-echo "  doze-aws dns-setup     once per machine, so .doze names resolve"
 echo "  doze-aws               in your project directory"
 echo ""
-echo "It answers on aws.<directory>.doze. No DNS available (CI, a container)?"
+echo "It answers on aws.<directory>.doze, and the first run asks once for the"
+echo "sudo that makes .doze resolve. No terminal to ask on (CI, a container)?"
 echo "Use:  doze-aws --listen 127.0.0.1:4566"

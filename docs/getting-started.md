@@ -7,10 +7,23 @@ both AWS SDK generations. No Docker, no JVM, no cloud.
 ## Run it
 
 ```sh
-doze-aws dns-setup            # one sudo, once per machine
 cd ~/code/harbour && doze-aws
 # msg="reachable at" url=http://aws.harbour.doze as=name
 ```
+
+That is the whole setup. doze-aws addresses itself by name, so the first run
+on a machine offers to make `.doze` resolve:
+
+```
+doze-aws addresses itself by name, and .doze does not resolve on this machine yet.
+Setting it up needs sudo once — per machine, not per project.
+Set it up now? [Y/n]
+```
+
+Say yes and it is done for good. Running as root (a container) it installs
+without asking, since there is nobody to ask. With no terminal at all — CI, or
+`doze-aws &` — it changes nothing and prints what to run, because a server that
+hangs waiting for a password nobody can type is worse than one that stops.
 
 The instance is named after the directory, so each project gets its own. Point
 any AWS SDK or the CLI at it:

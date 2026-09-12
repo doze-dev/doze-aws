@@ -4,10 +4,21 @@ Local AWS services, built from scratch in Go. One small static binary that
 speaks the real AWS wire protocols — no Docker, no JVM, no cloud.
 
 ```sh
-doze-aws dns-setup   # one sudo, once per machine
 cd ~/code/harbour && doze-aws
 # reachable at http://aws.harbour.doze
 ```
+
+The first run on a machine offers to set up `.doze` for you — one prompt, one
+sudo, never again:
+
+```
+doze-aws addresses itself by name, and .doze does not resolve on this machine yet.
+Setting it up needs sudo once — per machine, not per project.
+Set it up now? [Y/n]
+```
+
+In a container it just does it; with no terminal to ask on (CI) it changes
+nothing and tells you the two ways forward.
 
 Point any AWS SDK at it and go:
 

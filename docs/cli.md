@@ -4,13 +4,14 @@
 implemented service; it runs in the foreground until you interrupt it (Ctrl-C).
 
 ```sh
-doze-aws dns-setup   # once per machine
 cd ~/code/harbour && doze-aws
 # msg=listening addr=127.0.0.17:4566 services=s3,dynamodb,sqs,… instance=harbour
 # msg="reachable at" url=http://aws.harbour.doze as=name
 ```
 
-The instance name comes from the directory. See
+The instance name comes from the directory. The first run on a machine offers
+to make `.doze` resolve (one prompt, one sudo); `dns-setup` below is the same
+thing run deliberately, for CI or a scripted install. See
 [endpoints.md](endpoints.md) for the addressing model.
 
 ## Commands
@@ -18,7 +19,8 @@ The instance name comes from the directory. See
 | Command | What it does |
 |---|---|
 | `doze-aws` | Serve the enabled services (the default). If `./template.yaml` exists (or `--template` names a file), it is applied at boot. |
-| `doze-aws dns-setup [--print]` | Prepare this machine for `.doze` names: alias the loopback pool and point the resolver at doze. One sudo, idempotent, once per machine. `--print` writes the script instead of running it. |
+| `doze-aws dns-setup [--print]` | Set up `.doze` **deliberately**, rather than accepting the offer the first run makes. For CI, a scripted install, or a machine where you want it done before anything needs it. Idempotent. `--print` writes the script instead of running it, for anyone who will not hand a tool sudo. |
+| `doze-aws dns-setup --check` | Report whether `.doze` resolves; exits non-zero if not. |
 | `doze-aws doctor` | What this instance is, whether `.doze` resolves, and who holds which name. The first thing to run when a name stops working. |
 | `doze-aws env` | Print the shell block that points an AWS SDK at this instance — endpoint, region, credentials, and the per-service `AWS_ENDPOINT_URL_*` hostnames. Use it as `eval "$(doze-aws env)"`. |
 | `doze-aws apply [--var k=v ...] [file]` | Deploy a CloudFormation or SAM template (default `./template.yaml`): create what's missing, cheaply update what exists, never delete. `--var` supplies template parameters. Targets the running server if one is listening, the data dir otherwise. See [cloudformation.md](cloudformation.md). |
