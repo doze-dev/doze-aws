@@ -38,9 +38,7 @@ const (
 // package-level defaults. Delete an entry as its service is migrated, and add
 // it to the table in TestEveryServiceMintsTheConfiguredIdentity — the two
 // together are the migration's progress bar.
-var unplumbed = []string{
-	"iam",
-}
+var unplumbed = []string{}
 
 func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {
 	// Each row creates a resource and then reads it back. The assertion is
@@ -110,6 +108,12 @@ func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {
 			create: [2]string{"AWSEvents.CreateEventBus", `{"Name":"orders-bus"}`},
 			read:   [2]string{"AWSEvents.DescribeEventBus", `{"Name":"orders-bus"}`},
 			want:   "arn:aws:events:" + testRegion + ":" + testAccount + ":event-bus/orders-bus",
+		},
+		{
+			svc:    "iam",
+			create: [2]string{"", `Action=CreateUser&UserName=deploy&Version=2010-05-08`},
+			read:   [2]string{"", `Action=GetUser&UserName=deploy&Version=2010-05-08`},
+			want:   "arn:aws:iam::" + testAccount + ":user/deploy",
 		},
 		{
 			svc: "stepfunctions",
@@ -216,11 +220,30 @@ func TestTwoStacksKeepTheirOwnIdentities(t *testing.T) {
 	}
 }
 
+// call posts one request. A non-empty target is the JSON protocol; an empty one
+// is the Query protocol, which is how IAM and STS speak — the body is then a
+// form, not JSON.
 func call(t *testing.T, base, target, body string) string {
 	t.Helper()
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, base+"/", strings.NewReader(body))
 	if err != nil {
 		t.Fatal(err)
+	}
+	if target == "" {
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		out, err := io.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("query %.40s -> %d: %s", body, resp.StatusCode, out)
+		}
+		return string(out)
 	}
 	req.Header.Set("X-Amz-Target", target)
 	req.Header.Set("Content-Type", "application/x-amz-json-1.0")

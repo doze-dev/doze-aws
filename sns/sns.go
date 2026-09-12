@@ -98,7 +98,7 @@ func New(opts Options) (*Server, error) {
 	if s.logf == nil {
 		s.logf = func(string, ...any) {}
 	}
-	s.guard = iamguard.Guard{Mode: opts.IAMMode, Logf: s.logf}
+	s.guard = iamguard.Guard{Mode: opts.IAMMode, Logf: s.logf, Identity: opts.Identity}
 	if s.now == nil {
 		s.now = time.Now
 	}

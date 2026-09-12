@@ -94,6 +94,7 @@ type StackConfig struct {
 // Stack is a running set of services behind one gateway.
 type Stack struct {
 	gw      *gateway.Gateway
+	id      awsident.Identity // the region and account this stack mints ARNs for
 	closers []io.Closer
 	// iam is retained so Handler can install the authorization middleware. It
 	// is nil when the service is disabled, and unused when its mode is off.
@@ -120,8 +121,8 @@ func NewStack(cfg StackConfig) (*Stack, error) {
 		logf = func(string, ...any) {}
 	}
 
-	gw := gateway.New(gateway.Options{Logf: logf})
-	st := &Stack{gw: gw}
+	gw := gateway.New(gateway.Options{Logf: logf, Identity: cfg.Identity})
+	st := &Stack{gw: gw, id: cfg.Identity}
 	for _, name := range names {
 		if !gateway.KnownService(name) {
 			st.Close()
@@ -220,7 +221,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		})
 		return s, s, err
 	case "iam":
-		s, err := iam.New(iam.Options{DataDir: dataDir, Mode: cfg.IAMMode, Peers: dir, Logf: logf})
+		s, err := iam.New(iam.Options{DataDir: dataDir, Mode: cfg.IAMMode, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		if err == nil {
 			st.iam = s
 		}
@@ -257,7 +258,7 @@ func (s *Stack) authorized(h http.Handler) http.Handler {
 		// A client cannot claim a principal or a verdict: the handoff headers
 		// are the middleware's to write.
 		iamguard.Strip(r)
-		res := s.iam.Authorize(r, gateway.Route(r))
+		res := s.iam.Authorize(r, gateway.Route(s.id, r))
 		if res.Err != nil {
 			writeDenied(w, res.Err)
 			return

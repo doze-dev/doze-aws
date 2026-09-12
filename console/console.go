@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -43,6 +44,9 @@ type Options struct {
 	// each request to the owning service via gateway.Route, so one console fronts
 	// either topology unchanged.
 	Peers peers.Directory
+	// Identity is the region and account the stack behind this console mints
+	// ARNs for. The zero value means the conventional local identity.
+	Identity awsident.Identity
 	// Recorder, if set, feeds the Traffic surface. Wrap the gateway with
 	// NewRecorder for external SDK/CLI calls and pass that recorder here. Leave
 	// nil in topologies where the console doesn't sit in the external request
@@ -65,7 +69,7 @@ func New(opts Options) (*Console, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Console{be: newBackend(opts.Peers), tmpl: tmpl, prefix: prefix, rec: opts.Recorder}
+	c := &Console{be: newBackend(opts.Peers, opts.Identity), tmpl: tmpl, prefix: prefix, rec: opts.Recorder}
 	c.routes()
 	return c, nil
 }

@@ -18,8 +18,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // Principal is a user or a role.
@@ -96,7 +94,7 @@ func (b *backend) iam(ctx context.Context, action string, extra url.Values) ([]b
 	req, _ := http.NewRequestWithContext(ctx, "POST", b.base+"/", strings.NewReader(v.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Authorization",
-		"AWS4-HMAC-SHA256 Credential=test/20260101/"+awsident.Region+"/iam/aws4_request")
+		"AWS4-HMAC-SHA256 Credential=test/20260101/"+b.id.RegionName()+"/iam/aws4_request")
 	return b.do(req)
 }
 

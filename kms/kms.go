@@ -91,7 +91,7 @@ func New(opts Options) (*Server, error) {
 		api:   awsjson.API{TargetPrefix: "TrentService", JSONVersion: "1.1"},
 		stop:  make(chan struct{}),
 		done:  make(chan struct{}),
-		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf, KeyPolicyGates: true},
+		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf, KeyPolicyGates: true, Identity: opts.Identity},
 		id:    opts.Identity,
 	}
 	if opts.Clock != nil {

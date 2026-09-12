@@ -23,7 +23,7 @@ import (
 // principalMatches reports whether a statement's Principal (or NotPrincipal)
 // admits the caller. An empty caller with a Principal block present matches
 // only "*".
-func principalMatches(st *Statement, caller string) bool {
+func principalMatches(st *Statement, caller, account string) bool {
 	if st.NotPrincipal.Present {
 		// AWS refuses NotPrincipal with Allow at write time: it would grant
 		// everyone but the named. A statement that could not have been
@@ -31,18 +31,18 @@ func principalMatches(st *Statement, caller string) bool {
 		if st.Effect == "Allow" {
 			return false
 		}
-		return !principalNamed(st.NotPrincipal, caller, true)
+		return !principalNamed(st.NotPrincipal, caller, account, true)
 	}
 	if !st.Principal.Present {
 		return true
 	}
-	return principalNamed(st.Principal, caller, st.Effect == "Deny")
+	return principalNamed(st.Principal, caller, account, st.Effect == "Deny")
 }
 
 // principalNamed reports whether a principal block names the caller. deny
 // widens the account principal: an Allow naming the account delegates to
 // its identities' own policies, a Deny naming the account denies them all.
-func principalNamed(p principalBlock, caller string, deny bool) bool {
+func principalNamed(p principalBlock, caller, account string, deny bool) bool {
 	if p.Any {
 		return true
 	}
@@ -57,14 +57,15 @@ func principalNamed(p principalBlock, caller string, deny bool) bool {
 		}
 		return false
 	}
-	rootARN := awsident.GlobalARN("iam", "root")
+	id := awsident.Identity{AccountID: account}
+	rootARN := id.GlobalARN("iam", "root")
 	for _, aws := range p.ByType["AWS"] {
 		switch {
 		case aws == caller:
 			return true
 		case aws == "*":
 			return true
-		case aws == rootARN || aws == awsident.AccountID:
+		case aws == rootARN || aws == id.Account():
 			// The account principal names the account, not its identities: an
 			// Allow admits the root caller itself and delegates to the
 			// identity policies of the account's users, which the
@@ -73,7 +74,7 @@ func principalNamed(p principalBlock, caller string, deny bool) bool {
 			if caller == rootARN {
 				return true
 			}
-			if deny && strings.HasPrefix(caller, "arn:aws:iam::"+awsident.AccountID+":") {
+			if deny && strings.HasPrefix(caller, "arn:aws:iam::"+id.Account()+":") {
 				return true
 			}
 		case strings.Contains(aws, "*"):

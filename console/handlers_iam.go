@@ -7,8 +7,6 @@ import (
 	"net/url"
 	"sort"
 	"strings"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // iamNav gathers what the list pane needs on every IAM page.
@@ -576,7 +574,7 @@ func (c *Console) iamSTSMint(w http.ResponseWriter, r *http.Request) {
 	switch mode {
 	case "assume-role", "web-identity", "saml":
 		if role := strings.TrimSpace(r.FormValue("role")); role != "" {
-			v.Set("RoleArn", "arn:aws:iam::"+awsident.AccountID+":role/"+role)
+			v.Set("RoleArn", "arn:aws:iam::"+c.be.id.Account()+":role/"+role)
 		}
 		set("RoleSessionName", "session")
 	}

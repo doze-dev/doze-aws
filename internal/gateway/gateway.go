@@ -187,6 +187,7 @@ type Gateway struct {
 	handlers map[string]http.Handler
 	logf     func(format string, args ...any)
 	now      func() time.Time
+	id       awsident.Identity
 }
 
 // Options configures a Gateway.
@@ -195,6 +196,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Now is the clock used for presigned-URL expiry; nil means time.Now.
 	Now func() time.Time
+	// Identity is the account a queue URL is recognised by (rule 9). The zero
+	// value means the conventional local identity.
+	Identity awsident.Identity
 }
 
 // New builds an empty gateway; add services with Register.
@@ -203,6 +207,7 @@ func New(opts Options) *Gateway {
 		handlers: map[string]http.Handler{},
 		logf:     opts.Logf,
 		now:      opts.Now,
+		id:       opts.Identity,
 	}
 	if g.logf == nil {
 		g.logf = func(string, ...any) {}
@@ -242,19 +247,19 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // route picks the service for a request and names the rule that decided, for
 // error messages and logs.
-func (g *Gateway) route(r *http.Request) (service, why string) { return routeService(r) }
+func (g *Gateway) route(r *http.Request) (service, why string) { return routeService(g.id, r) }
 
 // Route picks the AWS service a request is destined for, using the same rules
 // the gateway dispatches by. Exported so an out-of-process fanout (e.g. the
 // console talking to per-service sockets) routes identically to the in-process
 // gateway — one source of truth, no drift.
-func Route(r *http.Request) string {
-	svc, _ := routeService(r)
+func Route(id awsident.Identity, r *http.Request) string {
+	svc, _ := routeService(id, r)
 	return svc
 }
 
 // routeService is the pure routing logic shared by the gateway and Route.
-func routeService(r *http.Request) (service, why string) {
+func routeService(id awsident.Identity, r *http.Request) (service, why string) {
 	if target := r.Header.Get("X-Amz-Target"); target != "" {
 		prefix, _, _ := strings.Cut(target, ".")
 		if svc, ok := targetPrefixes[prefix]; ok {
@@ -307,7 +312,7 @@ func routeService(r *http.Request) (service, why string) {
 	}
 	// A queue URL, which is the last shape that has to be recognised before S3
 	// takes everything else.
-	if isQueueURL(r.URL.Path) {
+	if isQueueURL(id, r.URL.Path) {
 		return "sqs", "queue URL"
 	}
 	return "s3", "fallback"
@@ -343,8 +348,8 @@ func routeService(r *http.Request) (service, why string) {
 // rather than any numeric-looking bucket name — a bucket called
 // "000000000000" is possible on AWS and would be shadowed here, which is the
 // whole cost and is worth it.
-func isQueueURL(path string) bool {
-	rest, ok := strings.CutPrefix(path, "/"+awsident.AccountID+"/")
+func isQueueURL(id awsident.Identity, path string) bool {
+	rest, ok := strings.CutPrefix(path, "/"+id.Account()+"/")
 	if !ok {
 		return false
 	}

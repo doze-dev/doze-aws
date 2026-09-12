@@ -15,6 +15,7 @@ import (
 	"time"
 
 	dozeaws "github.com/doze-dev/doze-aws"
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/console"
 	"github.com/doze-dev/doze-aws/peers"
 )
@@ -1159,7 +1160,7 @@ func TestTrafficRecorder(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { stack.Close() })
-	rec := console.NewRecorder(stack.Handler())
+	rec := console.NewRecorder(stack.Handler(), awsident.Default())
 	c, err := console.New(console.Options{Peers: peers.InProcess(stack.Service), Recorder: rec})
 	if err != nil {
 		t.Fatal(err)
@@ -1246,7 +1247,7 @@ func TestSurfacesRenderWithoutTemplateErrors(t *testing.T) {
 	}
 	t.Cleanup(func() { stack.Close() })
 
-	rec := console.NewRecorder(stack.Handler())
+	rec := console.NewRecorder(stack.Handler(), awsident.Default())
 	c, err := console.New(console.Options{
 		Peers:    peers.InProcess(stack.Service),
 		Recorder: rec,
@@ -1404,7 +1405,7 @@ func TestWireShowsTheCascade(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { stack.Close() })
-	rec := console.NewRecorder(stack.Handler())
+	rec := console.NewRecorder(stack.Handler(), awsident.Default())
 	c, err := console.New(console.Options{Peers: peers.InProcess(stack.Service), Recorder: rec})
 	if err != nil {
 		t.Fatal(err)

@@ -129,7 +129,7 @@ func New(opts Options) (*Server, error) {
 		store:       newStore(db),
 		dataDir:     opts.DataDir,
 		peers:       opts.Peers,
-		guard:       iamguard.Guard{Mode: opts.IAMMode, Logf: logf},
+		guard:       iamguard.Guard{Mode: opts.IAMMode, Logf: logf, Identity: opts.Identity},
 		endpoint:    opts.Endpoint,
 		logf:        logf,
 		now:         opts.Clock,

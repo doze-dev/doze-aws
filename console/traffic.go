@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/gateway"
 	"github.com/doze-dev/doze-aws/internal/rpcv2cbor"
 	"github.com/doze-dev/doze-aws/internal/trace"
@@ -25,6 +26,7 @@ type Recorder struct {
 	next  http.Handler
 	runID string
 	ops   OpResolver
+	id    awsident.Identity // the identity the stack behind this recorder mints ARNs for
 	mu    sync.Mutex
 	buf   []TrafficEntry
 	head  int
@@ -115,8 +117,11 @@ func (e TrafficEntry) Curl() string {
 const trafficCap = 500
 
 // NewRecorder wraps the AWS gateway handler with traffic capture.
-func NewRecorder(next http.Handler) *Recorder {
-	return &Recorder{next: next, buf: make([]TrafficEntry, trafficCap), runID: newRunID()}
+// NewRecorder captures traffic for the Traffic surface. id is the stack's
+// identity: classification recognises a queue URL by its account prefix, so a
+// recorder given the wrong one labels those requests as S3.
+func NewRecorder(next http.Handler, id awsident.Identity) *Recorder {
+	return &Recorder{next: next, buf: make([]TrafficEntry, trafficCap), runID: newRunID(), id: id}
 }
 
 // RunID names this process's numbering, satisfying trace.Runner.
@@ -144,7 +149,7 @@ func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			r.Body = io.NopCloser(strings.NewReader(string(b)))
 		}
 	}
-	svc, action, resource := classify(r, body, rec)
+	svc, action, resource := classify(rec.id, r, body, rec)
 	sw := &statusWriter{ResponseWriter: w, code: 200}
 	start := time.Now()
 
@@ -328,8 +333,8 @@ var consoleLabel = map[string]string{
 // Gateway traffic as S3 (because /restapis fell through to the path-style
 // catch-all). A debugging tool that misattributes requests is worse than one
 // that shows nothing, so the classification now has a single source of truth.
-func labelFor(r *http.Request) string {
-	svc := gateway.Route(r)
+func labelFor(id awsident.Identity, r *http.Request) string {
+	svc := gateway.Route(id, r)
 	if short, ok := consoleLabel[svc]; ok {
 		return short
 	}
@@ -338,8 +343,8 @@ func labelFor(r *http.Request) string {
 
 // classify infers (service, action, resource) from a request. The SERVICE comes
 // from the gateway; only the action and resource are console-specific.
-func classify(r *http.Request, capturedBody string, rec *Recorder) (svc, action, resource string) {
-	svc = labelFor(r)
+func classify(id awsident.Identity, r *http.Request, capturedBody string, rec *Recorder) (svc, action, resource string) {
+	svc = labelFor(id, r)
 
 	if t := r.Header.Get("X-Amz-Target"); t != "" {
 		_, act, _ := strings.Cut(t, ".")
@@ -350,7 +355,7 @@ func classify(r *http.Request, capturedBody string, rec *Recorder) (svc, action,
 	// falls all the way through to the path-style S3 arm below and a
 	// PutMetricData is reported on the wire as an object GET — the same failure
 	// the Lambda-layers comment describes, and the reason that comment exists.
-	if svc, action, resource, ok := rpcv2Classify(r, capturedBody); ok {
+	if svc, action, resource, ok := rpcv2Classify(id, r, capturedBody); ok {
 		return svc, action, resource
 	}
 	// API Gateway: the control plane is path-routed, and a call to a DEPLOYED
@@ -980,7 +985,7 @@ func firstNonEmpty(vals ...string) string {
 // put a decoder on the console's hot path for a label. The operation name is
 // the useful half and the path carries it, so the row shows the operation and
 // leaves the resource blank rather than guessing.
-func rpcv2Classify(r *http.Request, body string) (svc, action, resource string, ok bool) {
+func rpcv2Classify(id awsident.Identity, r *http.Request, body string) (svc, action, resource string, ok bool) {
 	if r.Method != http.MethodPost {
 		return "", "", "", false
 	}
@@ -988,7 +993,7 @@ func rpcv2Classify(r *http.Request, body string) (svc, action, resource string, 
 	if !found {
 		return "", "", "", false
 	}
-	svc = labelFor(r)
+	svc = labelFor(id, r)
 	if svc == "" || svc == "s3" {
 		// The gateway routes a signed request by its credential scope, so this
 		// is only reached for something unsigned; name it from the service

@@ -222,6 +222,11 @@ type Request struct {
 	// "s3.amazonaws.com" when one service calls another. Identity policies
 	// carry no Principal block and ignore it.
 	Principal string
+	// Account is the account this instance is, used by the account-principal
+	// rule: a Principal naming the bare account admits its root and delegates
+	// to identity policies, and a Deny covers every identity in it. Empty means
+	// the conventional local account.
+	Account string
 }
 
 // Evaluate applies the AWS evaluation order across every supplied document.
@@ -273,7 +278,7 @@ func statementMatches(st *Statement, req Request) bool {
 	if !resourceMatches(st, req.Resource) {
 		return false
 	}
-	if !principalMatches(st, req.Principal) {
+	if !principalMatches(st, req.Principal, req.Account) {
 		return false
 	}
 	return conditionsMatch(st.Condition, req.Context)

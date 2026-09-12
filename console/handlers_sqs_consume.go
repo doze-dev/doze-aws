@@ -8,8 +8,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // The Consume tab.
@@ -252,7 +250,7 @@ func (c *Console) sqsAddPermission(w http.ResponseWriter, r *http.Request) {
 	}
 	acct := strings.TrimSpace(r.FormValue("account"))
 	if acct == "" {
-		acct = awsident.AccountID
+		acct = c.be.id.Account()
 	}
 	action := strings.TrimSpace(r.FormValue("action"))
 	if action == "" {

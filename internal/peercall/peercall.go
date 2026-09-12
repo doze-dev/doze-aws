@@ -21,6 +21,18 @@ import (
 	"github.com/doze-dev/doze-aws/peers"
 )
 
+// A note on the account in the queue URLs below.
+//
+// They use awsident.AccountID — the DEFAULT — rather than the instance's, and
+// that is correct rather than an oversight. These URLs never leave the process:
+// they address a sibling service in-process over peers.Directory, and SQS
+// resolves a queue from the LAST path segment alone (sqs/codec.go,
+// queueNameFromURL), so the account is discarded before it is ever compared.
+//
+// Threading an identity through every peercall signature would buy nothing and
+// cost a parameter on a dozen exported helpers. Every URL a USER sees is minted
+// elsewhere, from the instance's own identity and the request's Host.
+
 // SQSSend sends one message to a queue by name (SQS JSON protocol).
 func SQSSend(ctx context.Context, dir peers.Directory, queue, body string, attrs map[string]string) error {
 	ep, ok := dir.Endpoint("sqs")

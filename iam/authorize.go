@@ -150,7 +150,7 @@ var ResourcePolicyServices = map[string]bool{
 // root-credential call is how every doze-aws client behaves by default, and
 // denying them would make enforce mode unusable rather than instructive.
 func (s *Server) Authorize(r *http.Request, service string) Result {
-	action, resource := iamguard.ResolveAction(r, service)
+	action, resource := iamguard.ResolveAction(s.id, r, service)
 	if action == "" {
 		return Result{Decision: Allowed}
 	}
@@ -248,23 +248,23 @@ func (s *Server) boundaryDocs(arn string) []*Document {
 func (s *Server) principalFor(r *http.Request) (arn string, kind attachTarget, name string, ok bool) {
 	scope, parsed := sigparse.Parse(r)
 	if !parsed || scope.AccessKeyID == "" {
-		return awsident.GlobalARN("iam", "root"), targetUser, "", false
+		return s.id.GlobalARN("iam", "root"), targetUser, "", false
 	}
 	// The conventional local credentials are the root identity, not a user.
 	if scope.AccessKeyID == awsident.AccessKeyID {
-		return awsident.GlobalARN("iam", "root"), targetUser, "", false
+		return s.id.GlobalARN("iam", "root"), targetUser, "", false
 	}
 	key, found := s.store.LookupAccessKey(scope.AccessKeyID)
 	if !found {
-		return awsident.GlobalARN("iam", "root"), targetUser, "", false
+		return s.id.GlobalARN("iam", "root"), targetUser, "", false
 	}
 	// An inactive key authorizes nothing, but the caller is still identified.
 	s.store.TouchAccessKey(key.ID, serviceOfScope(scope.Service))
 	u, err := s.store.GetUser(key.UserName)
 	if err != nil {
-		return awsident.GlobalARN("iam", "root"), targetUser, "", false
+		return s.id.GlobalARN("iam", "root"), targetUser, "", false
 	}
-	return awsident.GlobalARN("iam", "user"+u.Path+u.Name), targetUser, u.Name, true
+	return s.id.GlobalARN("iam", "user"+u.Path+u.Name), targetUser, u.Name, true
 }
 
 func serviceOfScope(s string) string {
@@ -277,9 +277,9 @@ func serviceOfScope(s string) string {
 // contextFor builds the condition-key context for a request.
 func (s *Server) contextFor(r *http.Request, principalARN, username string) map[string][]string {
 	ctx := map[string][]string{
-		"aws:PrincipalAccount": {awsident.AccountID},
+		"aws:PrincipalAccount": {s.id.Account()},
 		"aws:PrincipalArn":     {principalARN},
-		"aws:RequestedRegion":  {awsident.Region},
+		"aws:RequestedRegion":  {s.id.RegionName()},
 		"aws:SecureTransport":  {boolStr(r.TLS != nil)},
 	}
 	if username != "" {

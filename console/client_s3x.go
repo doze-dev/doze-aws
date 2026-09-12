@@ -48,7 +48,7 @@ func (b *backend) GetBucketProps(ctx context.Context, bucket string) (*BucketPro
 	p := &BucketProps{
 		Name:   bucket,
 		ARN:    "arn:aws:s3:::" + bucket,
-		Region: awsident.Region,
+		Region: b.id.RegionName(),
 	}
 
 	// Versioning.
@@ -473,7 +473,7 @@ func (b *backend) PutNotifications(ctx context.Context, bucket string, rules []N
 			tag, target, arn = "TopicConfiguration", "Topic", awsident.ARN("sns", r.Name)
 		case "lambda":
 			tag, target = "CloudFunctionConfiguration", "CloudFunction"
-			arn = "arn:aws:lambda:" + awsident.Region + ":" + awsident.AccountID + ":function:" + r.Name
+			arn = "arn:aws:lambda:" + b.id.RegionName() + ":" + b.id.Account() + ":function:" + r.Name
 		}
 		events := r.Events
 		if len(events) == 0 {
@@ -1135,13 +1135,13 @@ func (b *backend) DeleteBucketWebsite(ctx context.Context, bucket string) error 
 func (b *backend) BucketLocation(ctx context.Context, bucket string) string {
 	body, err := b.s3Sub(ctx, "GET", bucket, "location")
 	if err != nil {
-		return awsident.Region
+		return b.id.RegionName()
 	}
 	var out struct {
 		Value string `xml:",chardata"`
 	}
 	if xml.Unmarshal(body, &out) != nil || strings.TrimSpace(out.Value) == "" {
-		return awsident.Region // an empty LocationConstraint means us-east-1, per the API
+		return b.id.RegionName() // an empty LocationConstraint means us-east-1, per the API
 	}
 	return strings.TrimSpace(out.Value)
 }

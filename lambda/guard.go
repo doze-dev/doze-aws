@@ -22,7 +22,7 @@ func (s *Server) guardRequest(w http.ResponseWriter, r *http.Request) *awshttp.A
 	if s.guard.Mode == "" && r.Header.Get(iamguard.HeaderMode) == "" {
 		return nil
 	}
-	action, resource := iamguard.ResolveAction(r, "lambda")
+	action, resource := iamguard.ResolveAction(s.id, r, "lambda")
 	if action == "" {
 		return nil
 	}

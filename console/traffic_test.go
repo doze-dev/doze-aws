@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // TestRecorderPreservesFormBody: the recorder must never consume the request
@@ -18,7 +20,7 @@ func TestRecorderPreservesFormBody(t *testing.T) {
 	rec := NewRecorder(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, _ := io.ReadAll(r.Body)
 		seen = string(b)
-	}))
+	}), awsident.Default())
 	form := "Action=ListTopics&Version=2010-03-31"
 	r := httptest.NewRequest("POST", "/", strings.NewReader(form))
 	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")

@@ -54,48 +54,51 @@ var actionPrefixes = map[string]string{
 // resourceField names the request parameter holding the resource identifier
 // for each service, and how to turn it into an ARN.
 type resourceRule struct {
-	fields []string              // parameter names to try, in order
-	toARN  func(v string) string // converts the raw value into an ARN
+	fields []string // parameter names to try, in order
+	// toARN converts the raw value into an ARN. It takes an identity rather
+	// than reading a package constant: these closures live in a package-level
+	// map, so they cannot capture one, and the ARN belongs to the instance.
+	toARN func(id awsident.Identity, v string) string
 }
 
 var resourceRules = map[string]resourceRule{
-	"sqs": {fields: []string{"QueueUrl", "QueueName"}, toARN: func(v string) string {
+	"sqs": {fields: []string{"QueueUrl", "QueueName"}, toARN: func(id awsident.Identity, v string) string {
 		// A queue URL ends in /<account>/<name>; the name is what matters.
 		if i := strings.LastIndex(v, "/"); i >= 0 {
 			v = v[i+1:]
 		}
-		return awsident.ARN("sqs", v)
+		return id.ARN("sqs", v)
 	}},
 	"sns": {fields: []string{"TopicArn", "ResourceArn", "SubscriptionArn"}, toARN: identity},
-	"dynamodb": {fields: []string{"TableName"}, toARN: func(v string) string {
-		return awsident.ARN("dynamodb", "table/"+v)
+	"dynamodb": {fields: []string{"TableName"}, toARN: func(id awsident.Identity, v string) string {
+		return id.ARN("dynamodb", "table/"+v)
 	}},
-	"kinesis": {fields: []string{"StreamARN", "StreamName"}, toARN: func(v string) string {
+	"kinesis": {fields: []string{"StreamARN", "StreamName"}, toARN: func(id awsident.Identity, v string) string {
 		if strings.HasPrefix(v, "arn:") {
 			return v
 		}
-		return awsident.ARN("kinesis", "stream/"+v)
+		return id.ARN("kinesis", "stream/"+v)
 	}},
-	"kms": {fields: []string{"KeyId"}, toARN: func(v string) string {
+	"kms": {fields: []string{"KeyId"}, toARN: func(id awsident.Identity, v string) string {
 		if strings.HasPrefix(v, "arn:") {
 			return v
 		}
 		if strings.HasPrefix(v, "alias/") {
-			return awsident.ARN("kms", v)
+			return id.ARN("kms", v)
 		}
-		return awsident.ARN("kms", "key/"+v)
+		return id.ARN("kms", "key/"+v)
 	}},
-	"secretsmanager": {fields: []string{"SecretId", "Name"}, toARN: func(v string) string {
+	"secretsmanager": {fields: []string{"SecretId", "Name"}, toARN: func(id awsident.Identity, v string) string {
 		if strings.HasPrefix(v, "arn:") {
 			return v
 		}
-		return awsident.ARN("secretsmanager", "secret:"+v)
+		return id.ARN("secretsmanager", "secret:"+v)
 	}},
-	"ssm": {fields: []string{"Name"}, toARN: func(v string) string {
-		return awsident.ARN("ssm", "parameter"+ensureLeadingSlash(v))
+	"ssm": {fields: []string{"Name"}, toARN: func(id awsident.Identity, v string) string {
+		return id.ARN("ssm", "parameter"+ensureLeadingSlash(v))
 	}},
-	"eventbridge": {fields: []string{"Name", "EventBusName"}, toARN: func(v string) string {
-		return awsident.ARN("events", "rule/"+v)
+	"eventbridge": {fields: []string{"Name", "EventBusName"}, toARN: func(id awsident.Identity, v string) string {
+		return id.ARN("events", "rule/"+v)
 	}},
 	// CloudWatch names an alarm two ways: AlarmName on the single-alarm
 	// operations, and AlarmNames — a LIST — on DeleteAlarms and the
@@ -109,24 +112,24 @@ var resourceRules = map[string]resourceRule{
 	// GetMetricStatistics act on a namespace, not on an ARN, and AWS
 	// authorises them against "*" with a cloudwatch:namespace condition. An
 	// invented ARN would be worse than none.
-	"cloudwatch": {fields: []string{"AlarmName", "AlarmNames"}, toARN: func(v string) string {
+	"cloudwatch": {fields: []string{"AlarmName", "AlarmNames"}, toARN: func(id awsident.Identity, v string) string {
 		if strings.HasPrefix(v, "arn:") {
 			return v
 		}
-		return awsident.ARN("cloudwatch", "alarm:"+v)
+		return id.ARN("cloudwatch", "alarm:"+v)
 	}},
 	// Step Functions spells its members lowercase-initial, unlike every other
 	// service here. Matching is exact, so "StateMachineArn" would resolve to an
 	// empty resource and only ever match a policy saying "Resource": "*".
-	"stepfunctions": {fields: []string{"stateMachineArn", "activityArn", "executionArn", "resourceArn", "name"}, toARN: func(v string) string {
+	"stepfunctions": {fields: []string{"stateMachineArn", "activityArn", "executionArn", "resourceArn", "name"}, toARN: func(id awsident.Identity, v string) string {
 		if strings.HasPrefix(v, "arn:") {
 			return v
 		}
-		return awsident.ARN("states", "stateMachine:"+v)
+		return id.ARN("states", "stateMachine:"+v)
 	}},
 }
 
-func identity(v string) string { return v }
+func identity(_ awsident.Identity, v string) string { return v }
 
 func ensureLeadingSlash(v string) string {
 	if strings.HasPrefix(v, "/") {
@@ -138,7 +141,7 @@ func ensureLeadingSlash(v string) string {
 // ResolveAction maps a request onto the IAM action it exercises and, where it
 // can be determined, the resource ARN. An empty action means doze-aws cannot
 // classify the request and it should not be evaluated.
-func ResolveAction(r *http.Request, service string) (action, resource string) {
+func ResolveAction(id awsident.Identity, r *http.Request, service string) (action, resource string) {
 	prefix, known := actionPrefixes[service]
 	if !known {
 		return "", ""
@@ -147,7 +150,7 @@ func ResolveAction(r *http.Request, service string) (action, resource string) {
 	// 1. JSON protocol: X-Amz-Target is "Prefix.Operation".
 	if target := r.Header.Get("X-Amz-Target"); target != "" {
 		if _, op, ok := strings.Cut(target, "."); ok && op != "" {
-			return iamAction(prefix, op), resourceFromBody(r, service)
+			return iamAction(prefix, op), resourceFromBody(id, r, service)
 		}
 	}
 
@@ -156,16 +159,16 @@ func ResolveAction(r *http.Request, service string) (action, resource string) {
 	case "s3":
 		return resolveS3(r)
 	case "lambda":
-		return resolveLambda(r, prefix)
+		return resolveLambda(id, r, prefix)
 	}
 
 	// 3. Query protocol: the Action parameter, in the query string or the form.
 	if op := r.URL.Query().Get("Action"); op != "" {
-		return iamAction(prefix, op), resourceFromForm(r, service, r.URL.Query())
+		return iamAction(prefix, op), resourceFromForm(id, r, service, r.URL.Query())
 	}
 	if form, ok := peekForm(r); ok {
 		if op := form.Get("Action"); op != "" {
-			return iamAction(prefix, op), resourceFromForm(r, service, form)
+			return iamAction(prefix, op), resourceFromForm(id, r, service, form)
 		}
 	}
 	return "", ""
@@ -304,14 +307,14 @@ func s3Target(r *http.Request) (bucket, key string) {
 }
 
 // resolveLambda maps the Lambda REST API onto actions by path family.
-func resolveLambda(r *http.Request, prefix string) (string, string) {
+func resolveLambda(id awsident.Identity, r *http.Request, prefix string) (string, string) {
 	segs := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(segs) < 2 {
 		return "", ""
 	}
 	arn := ""
 	if len(segs) >= 3 && segs[1] == "functions" {
-		arn = LambdaFunctionARN(segs[2])
+		arn = LambdaFunctionARN(id, segs[2])
 	}
 	switch segs[1] {
 	case "functions":
@@ -391,7 +394,7 @@ func methodVerb(r *http.Request, noun string) string {
 
 // resourceFromBody peeks a JSON request body for the service's resource field.
 // The body is fully restored for the handler.
-func resourceFromBody(r *http.Request, service string) string {
+func resourceFromBody(id awsident.Identity, r *http.Request, service string) string {
 	rule, ok := resourceRules[service]
 	if !ok {
 		return ""
@@ -408,7 +411,7 @@ func resourceFromBody(r *http.Request, service string) string {
 		switch v := doc[field].(type) {
 		case string:
 			if v != "" {
-				return rule.toARN(v)
+				return rule.toARN(id, v)
 			}
 		case []any:
 			// A list-valued name — CloudWatch's AlarmNames on DeleteAlarms
@@ -416,7 +419,7 @@ func resourceFromBody(r *http.Request, service string) string {
 			// resource, so the batch is authorised as its first member.
 			if len(v) > 0 {
 				if first, ok := v[0].(string); ok && first != "" {
-					return rule.toARN(first)
+					return rule.toARN(id, first)
 				}
 			}
 		}
@@ -425,19 +428,19 @@ func resourceFromBody(r *http.Request, service string) string {
 }
 
 // resourceFromForm reads the resource from an already-parsed Query form.
-func resourceFromForm(_ *http.Request, service string, form url.Values) string {
+func resourceFromForm(id awsident.Identity, _ *http.Request, service string, form url.Values) string {
 	rule, ok := resourceRules[service]
 	if !ok {
 		return ""
 	}
 	for _, field := range rule.fields {
 		if v := form.Get(field); v != "" {
-			return rule.toARN(v)
+			return rule.toARN(id, v)
 		}
 		// The Query spelling of a list: the first member is the one an IAM
 		// decision is made against, matching the JSON path above.
 		if v := form.Get(field + ".member.1"); v != "" {
-			return rule.toARN(v)
+			return rule.toARN(id, v)
 		}
 	}
 	return ""
@@ -488,18 +491,21 @@ func peekForm(r *http.Request) (url.Values, bool) {
 // "000000000000:function:worker" to a function literally named
 // "000000000000:function:worker", so a policy scoped to the real function
 // matched neither way round — an explicit Deny did not bite.
-func LambdaFunctionARN(ref string) string {
+func LambdaFunctionARN(id awsident.Identity, ref string) string {
 	if i := strings.Index(ref, ":function:"); i >= 0 {
 		ref = ref[i+len(":function:"):]
 	}
-	return awsident.ARN("lambda", "function:"+ref)
+	return id.ARN("lambda", "function:"+ref)
 }
 
 // LambdaFunctionName is the bare function name of a reference, without a
 // qualifier or the ARN around it.
+// It needs no identity: it used to build a full ARN and immediately strip the
+// prefix back off, so the region and account were computed and discarded.
 func LambdaFunctionName(ref string) string {
-	arn := LambdaFunctionARN(ref)
-	name := arn[strings.Index(arn, ":function:")+len(":function:"):]
-	name, _, _ = strings.Cut(name, ":")
+	if i := strings.Index(ref, ":function:"); i >= 0 {
+		ref = ref[i+len(":function:"):]
+	}
+	name, _, _ := strings.Cut(ref, ":")
 	return name
 }

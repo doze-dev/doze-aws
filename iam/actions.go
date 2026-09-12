@@ -187,10 +187,10 @@ type userView struct {
 	Tags       []tagView `xml:"Tags>member,omitempty"`
 }
 
-func viewUser(u *User) userView {
+func viewUser(id awsident.Identity, u *User) userView {
 	return userView{
 		Path: u.Path, UserName: u.Name, UserId: u.ID,
-		Arn:        awsident.GlobalARN("iam", "user"+u.Path+u.Name),
+		Arn:        id.GlobalARN("iam", "user"+u.Path+u.Name),
 		CreateDate: iso(u.Created), Tags: tagViews(u.Tags),
 	}
 }
@@ -203,10 +203,10 @@ type groupView struct {
 	CreateDate string `xml:"CreateDate"`
 }
 
-func viewGroup(g *Group) groupView {
+func viewGroup(id awsident.Identity, g *Group) groupView {
 	return groupView{
 		Path: g.Path, GroupName: g.Name, GroupId: g.ID,
-		Arn:        awsident.GlobalARN("iam", "group"+g.Path+g.Name),
+		Arn:        id.GlobalARN("iam", "group"+g.Path+g.Name),
 		CreateDate: iso(g.Created),
 	}
 }
@@ -223,10 +223,10 @@ type roleView struct {
 	Tags                     []tagView `xml:"Tags>member,omitempty"`
 }
 
-func viewRole(r *Role) roleView {
+func viewRole(id awsident.Identity, r *Role) roleView {
 	return roleView{
 		Path: r.Path, RoleName: r.Name, RoleId: r.ID,
-		Arn:        awsident.GlobalARN("iam", "role"+r.Path+r.Name),
+		Arn:        id.GlobalARN("iam", "role"+r.Path+r.Name),
 		CreateDate: iso(r.Created),
 		// AWS URL-encodes policy documents in Query responses; the SDKs decode
 		// them, and skipping it produces XML the parsers choke on.
@@ -300,7 +300,7 @@ func hCreateUser(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	return struct {
 		User userView `xml:"User"`
-	}{viewUser(u)}, nil
+	}{viewUser(s.id, u)}, nil
 }
 
 func hGetUser(s *Server, p params) (any, *awshttp.APIError) {
@@ -312,7 +312,7 @@ func hGetUser(s *Server, p params) (any, *awshttp.APIError) {
 			User userView `xml:"User"`
 		}{userView{
 			Path: "/", UserName: "root", UserId: "AIDADOZEROOTACCOUNT00",
-			Arn: awsident.GlobalARN("iam", "root"), CreateDate: iso(0),
+			Arn: s.id.GlobalARN("iam", "root"), CreateDate: iso(0),
 		}}, nil
 	}
 	u, err := s.store.GetUser(name)
@@ -321,7 +321,7 @@ func hGetUser(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	return struct {
 		User userView `xml:"User"`
-	}{viewUser(u)}, nil
+	}{viewUser(s.id, u)}, nil
 }
 
 func hUpdateUser(s *Server, p params) (any, *awshttp.APIError) {
@@ -348,7 +348,7 @@ func hListUsers(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	views := make([]userView, 0, len(users))
 	for i := range users {
-		views = append(views, viewUser(&users[i]))
+		views = append(views, viewUser(s.id, &users[i]))
 	}
 	return struct {
 		Users       []userView `xml:"Users>member"`
@@ -394,7 +394,7 @@ func hCreateGroup(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	return struct {
 		Group groupView `xml:"Group"`
-	}{viewGroup(g)}, nil
+	}{viewGroup(s.id, g)}, nil
 }
 
 func hGetGroup(s *Server, p params) (any, *awshttp.APIError) {
@@ -407,14 +407,14 @@ func hGetGroup(s *Server, p params) (any, *awshttp.APIError) {
 	var members []userView
 	for i := range users {
 		if containsString(users[i].Groups, g.Name) {
-			members = append(members, viewUser(&users[i]))
+			members = append(members, viewUser(s.id, &users[i]))
 		}
 	}
 	return struct {
 		Group       groupView  `xml:"Group"`
 		Users       []userView `xml:"Users>member"`
 		IsTruncated bool       `xml:"IsTruncated"`
-	}{viewGroup(g), members, false}, nil
+	}{viewGroup(s.id, g), members, false}, nil
 }
 
 func hUpdateGroup(s *Server, p params) (any, *awshttp.APIError) {
@@ -441,7 +441,7 @@ func hListGroups(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	views := make([]groupView, 0, len(groups))
 	for i := range groups {
-		views = append(views, viewGroup(&groups[i]))
+		views = append(views, viewGroup(s.id, &groups[i]))
 	}
 	return struct {
 		Groups      []groupView `xml:"Groups>member"`
@@ -480,7 +480,7 @@ func hListGroupsForUser(s *Server, p params) (any, *awshttp.APIError) {
 	var views []groupView
 	for _, name := range u.Groups {
 		if g, err := s.store.GetGroup(name); err == nil {
-			views = append(views, viewGroup(g))
+			views = append(views, viewGroup(s.id, g))
 		}
 	}
 	return struct {
@@ -501,7 +501,7 @@ func hCreateRole(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	return struct {
 		Role roleView `xml:"Role"`
-	}{viewRole(r)}, nil
+	}{viewRole(s.id, r)}, nil
 }
 
 func hGetRole(s *Server, p params) (any, *awshttp.APIError) {
@@ -511,7 +511,7 @@ func hGetRole(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	return struct {
 		Role roleView `xml:"Role"`
-	}{viewRole(r)}, nil
+	}{viewRole(s.id, r)}, nil
 }
 
 func hUpdateRole(s *Server, p params) (any, *awshttp.APIError) {
@@ -537,7 +537,7 @@ func hUpdateRoleDescription(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	return struct {
 		Role roleView `xml:"Role"`
-	}{viewRole(r)}, nil
+	}{viewRole(s.id, r)}, nil
 }
 
 func hDeleteRole(s *Server, p params) (any, *awshttp.APIError) {
@@ -551,7 +551,7 @@ func hListRoles(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	views := make([]roleView, 0, len(roles))
 	for i := range roles {
-		views = append(views, viewRole(&roles[i]))
+		views = append(views, viewRole(s.id, &roles[i]))
 	}
 	return struct {
 		Roles       []roleView `xml:"Roles>member"`
@@ -622,7 +622,7 @@ func hCreateServiceLinkedRole(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	return struct {
 		Role roleView `xml:"Role"`
-	}{viewRole(r)}, nil
+	}{viewRole(s.id, r)}, nil
 }
 
 func hDeleteServiceLinkedRole(s *Server, p params) (any, *awshttp.APIError) {

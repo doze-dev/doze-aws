@@ -26,6 +26,7 @@ import (
 // it exercises exactly the API real SDK users hit.
 type backend struct {
 	c    *http.Client
+	id   awsident.Identity // the region and account the stack behind this console mints ARNs for
 	base string
 
 	// graphMu guards a short-lived cache of the full wiring graph. BuildGraph
@@ -46,9 +47,10 @@ type backend struct {
 
 const graphTTL = 5 * time.Second
 
-func newBackend(dir peers.Directory) *backend {
+func newBackend(dir peers.Directory, id awsident.Identity) *backend {
 	return &backend{
-		c:    &http.Client{Transport: fanoutTransport{dir}, Timeout: 30 * time.Second},
+		c:    &http.Client{Transport: fanoutTransport{dir, id}, Timeout: 30 * time.Second},
+		id:   id,
 		base: "http://console.doze-aws.internal",
 	}
 }
@@ -101,6 +103,7 @@ func (b *backend) bustGraph() {
 // truth), which is what lets the same console front both topologies unchanged.
 type fanoutTransport struct {
 	dir peers.Directory
+	id  awsident.Identity
 }
 
 func (t fanoutTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -115,7 +118,7 @@ func (t fanoutTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// assumes the server-side invariant (Body never nil) and panics on the
 	// difference. Hand it the invariant it expects.
 	req.Body = io.NopCloser(bytes.NewReader(body))
-	svc := gateway.Route(req)
+	svc := gateway.Route(t.id, req)
 	ep, ok := t.dir.Endpoint(svc)
 	if !ok {
 		return &http.Response{
@@ -503,6 +506,11 @@ func (b *backend) sqs(ctx context.Context, action string, in any) ([]byte, error
 }
 
 func (b *backend) queueURL(name string) string {
+	// The default account, deliberately. This URL never leaves the process —
+	// it addresses the in-process SQS handler, which resolves a queue by the
+	// LAST path segment alone (sqs/codec.go queueNameFromURL), so the account
+	// here is discarded. The copyable URL a user sees is re-minted from the
+	// request Host in handlers.go.
 	return b.base + "/" + awsident.AccountID + "/" + name
 }
 

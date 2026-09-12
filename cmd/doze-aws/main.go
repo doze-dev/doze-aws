@@ -305,7 +305,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		// The recorder wraps the gateway for external SDK/CLI traffic; the
 		// console reads it for the Traffic tail but drives its own calls
 		// through the RAW gateway so they never appear there.
-		rec := console.NewRecorder(stack.Handler())
+		rec := console.NewRecorder(stack.Handler(), cfg.Identity())
 		// S3, Lambda and API Gateway name their operation by PATH. Without these
 		// the wire falls back to mapping the HTTP method, which collapses all 64
 		// S3 operations onto five strings — GetBucketVersioning shown as
@@ -319,6 +319,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		// (peers.InProcess over the stack), so they never pass through the
 		// recorder and never appear in the Traffic tail.
 		con, err := console.New(console.Options{
+			Identity: cfg.Identity(),
 			Peers:    peers.InProcess(stack.Service),
 			Recorder: rec,
 		})

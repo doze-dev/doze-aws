@@ -46,6 +46,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsquery"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
@@ -100,6 +101,9 @@ func ParseMode(s string) (Mode, error) {
 type Options struct {
 	// DataDir holds the bbolt store (iam.bolt). Required.
 	DataDir string
+	// Identity is the account this service mints ARNs for. The zero value means
+	// the conventional local identity.
+	Identity awsident.Identity
 	// Mode selects enforcement behaviour; the zero value is ModeSoft.
 	Mode Mode
 	// Peers is accepted for constructor uniformity. IAM dispatches nothing.
@@ -119,6 +123,7 @@ type Server struct {
 	logf  func(format string, args ...any)
 	api   awsquery.API
 	now   func() time.Time
+	id    awsident.Identity // the account this service mints ARNs for
 }
 
 // New opens the store under DataDir.
@@ -149,6 +154,7 @@ func New(opts Options) (*Server, error) {
 		logf:  logf,
 		api:   awsquery.API{XMLNS: iamXMLNS, EmptyResult: true},
 		now:   time.Now,
+		id:    opts.Identity,
 	}
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock

@@ -18,7 +18,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/cloudformation"
 	"github.com/doze-dev/doze-aws/provision"
 )
@@ -59,7 +58,7 @@ func (g gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // ExportTemplate renders everything currently running as a CloudFormation
 // template, the same bytes `doze-aws export` writes to stdout.
 func (b *backend) ExportTemplate(ctx context.Context) ([]byte, error) {
-	s, err := provision.Export(ctx, gatewayHandler{b}, awsident.Default())
+	s, err := provision.Export(ctx, gatewayHandler{b}, b.id)
 	if err != nil {
 		return nil, err
 	}

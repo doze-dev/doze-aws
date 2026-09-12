@@ -92,7 +92,7 @@ func New(opts Options) (*Server, error) {
 		api:   awsjson.API{TargetPrefix: "secretsmanager", JSONVersion: "1.1"},
 		stop:  make(chan struct{}),
 		done:  make(chan struct{}),
-		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf},
+		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf, Identity: opts.Identity},
 	}
 	if s.peers == nil {
 		s.peers = peers.None()

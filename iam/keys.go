@@ -7,7 +7,6 @@ package iam
 // addressable from the request path at all.
 
 import (
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
@@ -80,7 +79,7 @@ func hGetAccessKeyLastUsed(s *Server, p params) (any, *awshttp.APIError) {
 	if k.LastUsed != 0 {
 		used.LastUsedDate = iso(k.LastUsed)
 		used.ServiceName = k.LastSvc
-		used.Region = awsident.Region
+		used.Region = s.id.RegionName()
 	}
 	return struct {
 		UserName          string `xml:"UserName"`
@@ -207,12 +206,12 @@ func (s *Server) viewProfile(prof *InstanceProfile) instanceProfileView {
 	var roles []roleView
 	for _, name := range prof.Roles {
 		if r, err := s.store.GetRole(name); err == nil {
-			roles = append(roles, viewRole(r))
+			roles = append(roles, viewRole(s.id, r))
 		}
 	}
 	return instanceProfileView{
 		Path: prof.Path, InstanceProfileName: prof.Name, InstanceProfileId: prof.ID,
-		Arn:        awsident.GlobalARN("iam", "instance-profile"+prof.Path+prof.Name),
+		Arn:        s.id.GlobalARN("iam", "instance-profile"+prof.Path+prof.Name),
 		CreateDate: iso(prof.Created), Roles: roles,
 	}
 }

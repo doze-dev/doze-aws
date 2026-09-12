@@ -8,7 +8,6 @@ package iam
 import (
 	"net/url"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
@@ -24,7 +23,7 @@ func hCreatePolicy(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	return struct {
 		Policy policyView `xml:"Policy"`
-	}{viewPolicy(pol, pol.ARN())}, nil
+	}{viewPolicy(pol, pol.ARN(s.id))}, nil
 }
 
 func hGetPolicy(s *Server, p params) (any, *awshttp.APIError) {
@@ -54,7 +53,7 @@ func hListPolicies(s *Server, p params) (any, *awshttp.APIError) {
 		if p.str("OnlyAttached") == "true" && pols[i].AttachCount == 0 {
 			continue
 		}
-		views = append(views, viewPolicy(&pols[i], pols[i].ARN()))
+		views = append(views, viewPolicy(&pols[i], pols[i].ARN(s.id)))
 	}
 	return struct {
 		Policies    []policyView `xml:"Policies>member"`
@@ -497,8 +496,8 @@ func hGetAccountSummary(s *Server, _ params) (any, *awshttp.APIError) {
 // hGetAccountPasswordPolicy answers NoSuchEntity, which is what AWS returns
 // for an account that has never set one — and is the honest local answer,
 // since doze-aws has no console login to apply a password policy to.
-func hGetAccountPasswordPolicy(_ *Server, _ params) (any, *awshttp.APIError) {
-	return nil, errNoEntity("The Password Policy with domain %s cannot be found.", awsident.AccountID)
+func hGetAccountPasswordPolicy(s *Server, _ params) (any, *awshttp.APIError) {
+	return nil, errNoEntity("The Password Policy with domain %s cannot be found.", s.id.Account())
 }
 
 // hGetAccountAuthorizationDetails dumps every principal with its policies —
@@ -555,7 +554,7 @@ func hGetAccountAuthorizationDetails(s *Server, _ params) (any, *awshttp.APIErro
 		u := &users[i]
 		userDetails = append(userDetails, userDetail{
 			Path: u.Path, UserName: u.Name, UserId: u.ID,
-			Arn:            awsident.GlobalARN("iam", "user"+u.Path+u.Name),
+			Arn:            s.id.GlobalARN("iam", "user"+u.Path+u.Name),
 			CreateDate:     iso(u.Created),
 			UserPolicyList: inlineOf(&u.Principal), AttachedManagedPolicies: attachedOf(&u.Principal),
 			GroupList: u.Groups,
@@ -567,7 +566,7 @@ func hGetAccountAuthorizationDetails(s *Server, _ params) (any, *awshttp.APIErro
 		r := &roles[i]
 		roleDetails = append(roleDetails, roleDetail{
 			Path: r.Path, RoleName: r.Name, RoleId: r.ID,
-			Arn:                      awsident.GlobalARN("iam", "role"+r.Path+r.Name),
+			Arn:                      s.id.GlobalARN("iam", "role"+r.Path+r.Name),
 			CreateDate:               iso(r.Created),
 			AssumeRolePolicyDocument: url.QueryEscape(r.AssumeRolePolicy),
 			RolePolicyList:           inlineOf(&r.Principal),

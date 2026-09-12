@@ -23,7 +23,7 @@ func (c *Console) connect(w http.ResponseWriter, r *http.Request) {
 	c.render(w, r, "connect", map[string]any{
 		"Title":  "Connect",
 		"URL":    "http://" + host,
-		"Region": awsident.Region,
+		"Region": c.be.id.RegionName(),
 		"Key":    awsident.AccessKeyID,
 		"Secret": awsident.SecretAccessKey,
 	})

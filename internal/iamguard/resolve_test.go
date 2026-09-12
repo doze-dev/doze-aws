@@ -103,7 +103,7 @@ func TestResolveActionJSONProtocol(t *testing.T) {
 		{"target with no operation", "sqs", "AmazonSQS.", "", "", ""},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			action, resource := ResolveAction(req(http.MethodPost, c.target, "/", c.body), c.service)
+			action, resource := ResolveAction(awsident.Default(), req(http.MethodPost, c.target, "/", c.body), c.service)
 			if action != c.action || resource != c.resource {
 				t.Errorf("got (%q, %q), want (%q, %q)", action, resource, c.action, c.resource)
 			}
@@ -119,7 +119,7 @@ func TestResolveActionUnknownService(t *testing.T) {
 	// gained an action prefix of its own, at which point this test started
 	// asserting the opposite of what it means. The service named has to be
 	// one doze-aws genuinely does not implement.
-	action, resource := ResolveAction(req(http.MethodPost, "Whatever.DoThing", "/", `{"Name":"x"}`), "route53")
+	action, resource := ResolveAction(awsident.Default(), req(http.MethodPost, "Whatever.DoThing", "/", `{"Name":"x"}`), "route53")
 	if action != "" || resource != "" {
 		t.Errorf("an unknown service must not resolve: got (%q, %q)", action, resource)
 	}
@@ -132,7 +132,7 @@ func TestResolveActionQueryProtocol(t *testing.T) {
 
 	t.Run("query string", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/?Action=Publish&TopicArn="+topic, nil)
-		action, resource := ResolveAction(r, "sns")
+		action, resource := ResolveAction(awsident.Default(), r, "sns")
 		if action != "sns:Publish" || resource != topic {
 			t.Errorf("got (%q, %q)", action, resource)
 		}
@@ -142,7 +142,7 @@ func TestResolveActionQueryProtocol(t *testing.T) {
 		form := "Action=Publish&TopicArn=" + topic
 		r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(form))
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		action, resource := ResolveAction(r, "sns")
+		action, resource := ResolveAction(awsident.Default(), r, "sns")
 		if action != "sns:Publish" || resource != topic {
 			t.Errorf("got (%q, %q)", action, resource)
 		}
@@ -156,7 +156,7 @@ func TestResolveActionQueryProtocol(t *testing.T) {
 
 	t.Run("batch publish is its base action", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/?Action=PublishBatch&TopicArn="+topic, nil)
-		action, _ := ResolveAction(r, "sns")
+		action, _ := ResolveAction(awsident.Default(), r, "sns")
 		if action != "sns:Publish" {
 			t.Errorf("PublishBatch must authorize as sns:Publish, got %q", action)
 		}
@@ -165,7 +165,7 @@ func TestResolveActionQueryProtocol(t *testing.T) {
 	t.Run("subscription arn is a resource too", func(t *testing.T) {
 		sub := topic + ":1234"
 		r := httptest.NewRequest(http.MethodPost, "/?Action=Unsubscribe&SubscriptionArn="+sub, nil)
-		_, resource := ResolveAction(r, "sns")
+		_, resource := ResolveAction(awsident.Default(), r, "sns")
 		if resource != sub {
 			t.Errorf("got %q, want %q", resource, sub)
 		}
@@ -174,7 +174,7 @@ func TestResolveActionQueryProtocol(t *testing.T) {
 	t.Run("a GET form body is not read", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/", strings.NewReader("Action=Publish"))
 		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		if action, _ := ResolveAction(r, "sns"); action != "" {
+		if action, _ := ResolveAction(awsident.Default(), r, "sns"); action != "" {
 			t.Errorf("peekForm is POST-only, got %q", action)
 		}
 	})
@@ -182,14 +182,14 @@ func TestResolveActionQueryProtocol(t *testing.T) {
 	t.Run("a JSON body is not parsed as a form", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"Action":"Publish"}`))
 		r.Header.Set("Content-Type", "application/json")
-		if action, _ := ResolveAction(r, "sns"); action != "" {
+		if action, _ := ResolveAction(awsident.Default(), r, "sns"); action != "" {
 			t.Errorf("got %q, want no action", action)
 		}
 	})
 
 	t.Run("no action anywhere", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/", nil)
-		if action, resource := ResolveAction(r, "sns"); action != "" || resource != "" {
+		if action, resource := ResolveAction(awsident.Default(), r, "sns"); action != "" || resource != "" {
 			t.Errorf("got (%q, %q)", action, resource)
 		}
 	})
@@ -250,7 +250,7 @@ func TestResolveS3(t *testing.T) {
 		{"an unmapped method on an object", "OPTIONS", "/docs/report.pdf", "", o},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			action, resource := ResolveAction(httptest.NewRequest(c.method, c.path, nil), "s3")
+			action, resource := ResolveAction(awsident.Default(), httptest.NewRequest(c.method, c.path, nil), "s3")
 			if action != c.action || resource != c.resource {
 				t.Errorf("got (%q, %q), want (%q, %q)", action, resource, c.action, c.resource)
 			}
@@ -266,7 +266,7 @@ func TestResolveS3WithServiceResolvedTarget(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/report.pdf", nil)
 	r.Host = "docs.s3.localhost"
 
-	action, resource := ResolveAction(r, "s3")
+	action, resource := ResolveAction(awsident.Default(), r, "s3")
 	if action != "s3:ListBucket" || resource != "arn:aws:s3:::report.pdf" {
 		t.Fatalf("the path-only reading is the one the guard must correct: got (%q, %q)", action, resource)
 	}
@@ -317,7 +317,7 @@ func TestResolveLambda(t *testing.T) {
 		{"too few segments", "GET", "/2015-03-31", "", ""},
 	} {
 		t.Run(c.name, func(t *testing.T) {
-			action, resource := ResolveAction(httptest.NewRequest(c.method, c.path, nil), "lambda")
+			action, resource := ResolveAction(awsident.Default(), httptest.NewRequest(c.method, c.path, nil), "lambda")
 			if action != c.action || resource != c.resource {
 				t.Errorf("got (%q, %q), want (%q, %q)", action, resource, c.action, c.resource)
 			}
@@ -338,8 +338,8 @@ func TestLambdaFunctionReferences(t *testing.T) {
 		{full + ":live", full + ":live", "worker"},
 		{"000000000000:function:worker", full, "worker"},
 	} {
-		if got := LambdaFunctionARN(c.ref); got != c.arn {
-			t.Errorf("LambdaFunctionARN(%q) = %q, want %q", c.ref, got, c.arn)
+		if got := LambdaFunctionARN(awsident.Default(), c.ref); got != c.arn {
+			t.Errorf("LambdaFunctionARN(awsident.Default(), %q) = %q, want %q", c.ref, got, c.arn)
 		}
 		if got := LambdaFunctionName(c.ref); got != c.name {
 			t.Errorf("LambdaFunctionName(%q) = %q, want %q", c.ref, got, c.name)
@@ -371,7 +371,7 @@ func TestActionIsExportedForServices(t *testing.T) {
 func TestPeekRestoresTheBody(t *testing.T) {
 	const body = `{"TableName":"orders","Item":{"pk":{"S":"1"}}}`
 	r := req(http.MethodPost, "DynamoDB_20120810.PutItem", "/", body)
-	if _, resource := ResolveAction(r, "dynamodb"); resource != awsident.ARN("dynamodb", "table/orders") {
+	if _, resource := ResolveAction(awsident.Default(), r, "dynamodb"); resource != awsident.ARN("dynamodb", "table/orders") {
 		t.Fatalf("resource = %q", resource)
 	}
 	got, err := io.ReadAll(r.Body)
@@ -388,7 +388,7 @@ func TestPeekSkipsOversizeBodies(t *testing.T) {
 	r := req(http.MethodPost, "DynamoDB_20120810.PutItem", "/", `{"TableName":"orders"}`)
 	r.ContentLength = maxPeek + 1
 	_ = big
-	action, resource := ResolveAction(r, "dynamodb")
+	action, resource := ResolveAction(awsident.Default(), r, "dynamodb")
 	if action != "dynamodb:PutItem" {
 		t.Errorf("the action must still resolve: %q", action)
 	}

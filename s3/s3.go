@@ -82,7 +82,7 @@ func New(opts Options) (*Server, error) {
 		now:   opts.Clock,
 		stop:  make(chan struct{}),
 		done:  make(chan struct{}),
-		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf},
+		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf, Identity: opts.Identity},
 		id:    opts.Identity,
 	}
 	if s.peers == nil {

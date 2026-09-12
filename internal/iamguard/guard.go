@@ -121,6 +121,8 @@ type Guard struct {
 	// key policy lets the account in (an Allow for the account root), so a
 	// key policy that names nobody locks everyone out, as on AWS.
 	KeyPolicyGates bool
+	// Identity is the region and account this guard mints ARNs for.
+	Identity awsident.Identity
 }
 
 // CheckIdentity settles a request that has no resource policy to consult: it
@@ -149,7 +151,7 @@ func (g Guard) Check(w http.ResponseWriter, r *http.Request, docs []*iampolicy.D
 	principal := r.Header.Get(HeaderPrincipal)
 	identity := r.Header.Get(HeaderIdentity)
 	if principal == "" {
-		principal = awsident.GlobalARN("iam", "root")
+		principal = g.Identity.GlobalARN("iam", "root")
 	}
 	if identity == "" {
 		if strings.HasSuffix(principal, ".amazonaws.com") {
@@ -170,15 +172,15 @@ func (g Guard) Check(w http.ResponseWriter, r *http.Request, docs []*iampolicy.D
 	}
 	ctx := map[string][]string{
 		"aws:PrincipalArn":     {principal},
-		"aws:PrincipalAccount": {awsident.AccountID},
-		"aws:SourceAccount":    {awsident.AccountID},
+		"aws:PrincipalAccount": {g.Identity.Account()},
+		"aws:SourceAccount":    {g.Identity.Account()},
 	}
 	if src := r.Header.Get(HeaderSourceARN); src != "" {
 		ctx["aws:SourceArn"] = []string{src} // condition keys fold case
 	}
-	rdec, by := iampolicy.Evaluate(docs, iampolicy.Request{Action: action, Resource: resource, Context: ctx, Principal: principal})
+	rdec, by := iampolicy.Evaluate(docs, iampolicy.Request{Action: action, Resource: resource, Context: ctx, Principal: principal, Account: g.Identity.Account()})
 
-	decision := combine(rdec, identity, g.KeyPolicyGates && !accountAdmitted(docs, action, resource, ctx))
+	decision := combine(rdec, identity, g.KeyPolicyGates && !g.accountAdmitted(docs, action, resource, ctx))
 	if w != nil {
 		w.Header().Set(HeaderDecision, decision.String())
 		if by != "" && rdec == decision {
@@ -238,14 +240,14 @@ func combine(resource iampolicy.Decision, identity string, keyGateClosed bool) i
 // "*") and what a policy naming the key's own ARN, or conditioning on the
 // request, does as well. Evaluated as the root would be: the same resource
 // and context the request carries.
-func accountAdmitted(docs []*iampolicy.Document, action, resource string, ctx map[string][]string) bool {
-	root := awsident.GlobalARN("iam", "root")
+func (g Guard) accountAdmitted(docs []*iampolicy.Document, action, resource string, ctx map[string][]string) bool {
+	root := g.Identity.GlobalARN("iam", "root")
 	rootCtx := map[string][]string{}
 	for k, v := range ctx {
 		rootCtx[k] = v
 	}
 	rootCtx["aws:PrincipalArn"] = []string{root}
-	dec, _ := iampolicy.Evaluate(docs, iampolicy.Request{Action: action, Resource: resource, Principal: root, Context: rootCtx})
+	dec, _ := iampolicy.Evaluate(docs, iampolicy.Request{Action: action, Resource: resource, Principal: root, Context: rootCtx, Account: g.Identity.Account()})
 	return dec == iampolicy.Allowed
 }
 

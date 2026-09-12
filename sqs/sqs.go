@@ -80,7 +80,7 @@ func New(opts Options) (*Server, error) {
 	if logf == nil {
 		logf = func(string, ...any) {}
 	}
-	s := &Server{store: newStore(db), logf: logf, stop: make(chan struct{}), done: make(chan struct{}), guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf}, id: opts.Identity}
+	s := &Server{store: newStore(db), logf: logf, stop: make(chan struct{}), done: make(chan struct{}), guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf, Identity: opts.Identity}, id: opts.Identity}
 	if opts.Clock != nil {
 		s.store.clock = opts.Clock
 	}

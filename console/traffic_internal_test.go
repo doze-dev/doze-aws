@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // JSON-protocol SQS clients may address by QueueUrl or bare QueueName; the
@@ -108,7 +110,7 @@ func TestClassifyUsesGatewayRouting(t *testing.T) {
 		},
 	}
 	for _, c := range cases {
-		svc, act, res := classify(c.req, c.body, nil)
+		svc, act, res := classify(awsident.Default(), c.req, c.body, nil)
 		if svc != c.wantSvc {
 			t.Errorf("%s: service = %q, want %q", c.name, svc, c.wantSvc)
 		}

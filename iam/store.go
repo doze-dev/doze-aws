@@ -83,7 +83,7 @@ type Policy struct {
 }
 
 // ARN is the policy's customer-managed ARN.
-func (p *Policy) ARN() string { return awsident.GlobalARN("iam", "policy"+p.Path+p.Name) }
+func (p *Policy) ARN(id awsident.Identity) string { return id.GlobalARN("iam", "policy"+p.Path+p.Name) }
 
 // Default returns the document of the default version.
 func (p *Policy) Default() string { return p.Versions[p.DefaultVersion] }
