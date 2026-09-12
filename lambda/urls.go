@@ -36,11 +36,36 @@ func urlID(name string) string { return awsident.FunctionURLID(name) }
 // endpoint is unknown, the gateway's path form when it is.
 func (s *Server) functionURL(urlID string) string { return s.id.FunctionURL(urlID, s.endpoint) }
 
+// urlFor is the URL to REPORT for a function's URL config.
+//
+// The stored f.FunctionURL is stamped from the configured endpoint when the
+// config is created, so it goes stale the moment the endpoint moves — the same
+// bug API Gateway's invoke URL had. It stays stored because it doubles as the
+// "a URL config exists" flag and is the answer when there is no request (a
+// CloudFormation GetAtt), but what a caller is TOLD follows the request.
+//
+// The shape follows the request too: reach doze-aws at an AWS-shaped host and
+// the answer is AWS's own <id>.lambda-url.<region>.<suffix> form; reach it at
+// a plain address and the answer is the path form that works there. Handing
+// back a name the caller has no DNS for would be worse than a plain URL.
+func (s *Server) urlFor(r *http.Request, f *Function) string {
+	if f.FunctionURL == "" {
+		return ""
+	}
+	if r == nil || r.Host == "" {
+		return f.FunctionURL
+	}
+	if s.suffix != "" && awshost.Parse(r.Host, s.suffix).Named() {
+		return "http://" + f.URLId + ".lambda-url." + s.id.RegionName() + "." + s.suffix + "/"
+	}
+	return s.id.FunctionURL(f.URLId, "http://"+r.Host)
+}
+
 // urlConfigView is the Create/Get/UpdateFunctionUrlConfig response.
-func (s *Server) urlConfigView(f *Function, status int) map[string]any {
+func (s *Server) urlConfigView(r *http.Request, f *Function, status int) map[string]any {
 	now := awshttp.ISO8601(s.now())
 	v := map[string]any{
-		"FunctionUrl": f.FunctionURL, "FunctionArn": f.ARN(), "AuthType": orStr(f.URLAuthType, "NONE"),
+		"FunctionUrl": s.urlFor(r, f), "FunctionArn": f.ARN(), "AuthType": orStr(f.URLAuthType, "NONE"),
 		"InvokeMode": "BUFFERED", "CreationTime": now, "LastModifiedTime": now,
 	}
 	if len(f.URLCors) > 0 {
@@ -77,7 +102,7 @@ func (s *Server) routeFunctionURL(w http.ResponseWriter, r *http.Request, name s
 		if r.Method == http.MethodPut {
 			status = 200
 		}
-		writeJSON(w, status, s.urlConfigView(f, status))
+		writeJSON(w, status, s.urlConfigView(r, f, status))
 		return nil
 	case http.MethodGet:
 		f, err := s.store.GetFunction(name)
@@ -87,7 +112,7 @@ func (s *Server) routeFunctionURL(w http.ResponseWriter, r *http.Request, name s
 		if f.FunctionURL == "" {
 			return awshttp.Errf(404, "ResourceNotFoundException", "The resource you requested does not exist.")
 		}
-		writeJSON(w, 200, s.urlConfigView(f, 200))
+		writeJSON(w, 200, s.urlConfigView(r, f, 200))
 		return nil
 	case http.MethodDelete:
 		s.store.Update(name, func(f *Function) error {

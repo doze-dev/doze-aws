@@ -57,13 +57,19 @@ def handler(event, context):
 	if err != nil {
 		t.Fatal(err)
 	}
-	// With no endpoint configured the URL is AWS's own shape; its id names
-	// the path form the gateway also serves.
+	// The reported URL follows the request, so it is an address that actually
+	// reaches this server.
+	//
+	// This used to assert the https://<id>.lambda-url.us-east-1.on.aws/ shape
+	// when no endpoint was configured. That is a REAL AWS address: it does not
+	// point at the local instance at all, so anyone who pasted it either got a
+	// DNS failure or, worse, reached AWS. The id was the only part the test
+	// went on to use, which is how it survived.
 	reported := aws.ToString(cfg.FunctionUrl)
-	if !strings.HasPrefix(reported, "https://") || !strings.Contains(reported, ".lambda-url.us-east-1.on.aws/") {
-		t.Fatalf("FunctionUrl = %s", reported)
+	if !strings.HasPrefix(reported, ts+"/_aws/lambda-url/") {
+		t.Fatalf("FunctionUrl = %s, want it under %s", reported, ts)
 	}
-	id := strings.TrimPrefix(strings.SplitN(reported, ".", 2)[0], "https://")
+	id := strings.TrimSuffix(strings.TrimPrefix(reported, ts+"/_aws/lambda-url/"), "/")
 	url := ts + "/_aws/lambda-url/" + id + "/"
 	if got, _ := c.GetFunctionUrlConfig(ctx, &awslambda.GetFunctionUrlConfigInput{FunctionName: aws.String("web")}); aws.ToString(got.FunctionUrl) != reported {
 		t.Errorf("GetFunctionUrlConfig = %s, want %s", aws.ToString(got.FunctionUrl), reported)

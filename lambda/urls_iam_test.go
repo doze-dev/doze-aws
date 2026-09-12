@@ -66,14 +66,14 @@ func urlUnderMode(t *testing.T, mode iam.Mode) (*awslambda.Client, string, conte
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The reported URL is AWS's public shape; its id names the path form this
-	// gateway serves.
+	// The reported URL follows the request, so it already addresses this
+	// server — it used to be AWS's public on.aws shape, which named a real AWS
+	// address rather than anything local.
 	reported := aws.ToString(cfg.FunctionUrl)
-	if !strings.Contains(reported, ".lambda-url.us-east-1.on.aws/") {
-		t.Fatalf("function url = %q", reported)
+	if !strings.HasPrefix(reported, ts+"/_aws/lambda-url/") {
+		t.Fatalf("function url = %q, want it under %s", reported, ts)
 	}
-	id := strings.TrimPrefix(strings.SplitN(reported, ".", 2)[0], "https://")
-	return c, ts + "/_aws/lambda-url/" + id + "/", ctx
+	return c, reported, ctx
 }
 
 func getURL(t *testing.T, url string) (int, string) {
