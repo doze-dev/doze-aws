@@ -12,9 +12,11 @@
 package s3
 
 import (
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -31,10 +33,6 @@ import (
 type Options struct {
 	// DataDir holds the metadata database and blob files. Required.
 	DataDir string
-	// Host is the base host for virtual-hosted-style addressing: a request
-	// whose Host is <bucket>.<Host> addresses that bucket. Path-style always
-	// works. Empty disables vhost detection (path-style only).
-	Host string
 	// Peers is how S3 event notifications reach SNS/SQS/Lambda targets.
 	Peers peers.Directory
 	// Logf receives log lines; nil discards.
@@ -54,7 +52,6 @@ type Options struct {
 // Server is the S3 service: an http.Handler + io.Closer.
 type Server struct {
 	store *s3store.Store
-	host  string
 	peers peers.Directory
 	logf  func(format string, args ...any)
 	now   func() time.Time
@@ -65,6 +62,9 @@ type Server struct {
 	guard  iamguard.Guard    // the bucket policy, under IAM soft/enforce
 	id     awsident.Identity // the region and account this service mints ARNs for
 	suffix string            // stands in for amazonaws.com in hostnames
+	// vhostWarned remembers which base hosts warnLostVHost has already
+	// mentioned, so a client sending every request that way gets one line.
+	vhostWarned sync.Map
 }
 
 // New opens the store under DataDir and starts the lifecycle janitor.
@@ -80,7 +80,6 @@ func New(opts Options) (*Server, error) {
 	st.Logf = logf
 	s := &Server{
 		store:  st,
-		host:   strings.ToLower(opts.Host),
 		peers:  opts.Peers,
 		logf:   logf,
 		now:    opts.Clock,
@@ -130,24 +129,24 @@ func (s *Server) janitor() {
 // styles. bucket=="" means a service-level request (ListBuckets).
 func (s *Server) resolvePath(r *http.Request) (bucket, key string) {
 	path := strings.TrimPrefix(r.URL.EscapedPath(), "/")
-	// Virtual-hosted style, two shapes:
+	// Virtual-hosted style has one shape now: <bucket>.s3.<region>.<suffix>,
+	// AWS's own, read by internal/awshost.
 	//
-	//   <bucket>.<S3Host>                     the configured base host
-	//   <bucket>.s3.<region>.<suffix>         AWS's own, via internal/awshost
+	// There used to be a second — <bucket>.<--s3-host>, a base host the
+	// operator named, with its own hand-rolled parser here. It was the last of
+	// the five Host parsers awshost was created to absorb, and a second way to
+	// address a bucket by host is exactly the kind of choice this tree is
+	// removing. The suffix covers it.
 	//
-	// The configured form stays local because it is not an AWS shape — it is
-	// whatever base host the operator named, so there is no region or infix to
-	// read. Both are kept: --s3-host is the one host behaviour with existing
-	// users, and `host != s.host` is load-bearing — a request to the BARE base
-	// host is a service-level request (ListBuckets), not a bucket named "".
-	host := strings.ToLower(r.Host)
-	if h, _, ok := strings.Cut(host, ":"); ok {
-		host = h
-	}
-	if s.host != "" && host != s.host && strings.HasSuffix(host, "."+s.host) {
-		bucket = strings.TrimSuffix(host, "."+s.host)
-	} else {
-		bucket = awshost.Parse(r.Host, s.suffix).Bucket
+	// The load-bearing part survives for free: a request to the BARE base host
+	// is a service-level request (ListBuckets), not a bucket named "".
+	// Parse("aws.harbour.doze", "aws.harbour.doze") strips to an empty host and
+	// returns the zero Info, and Parse("s3.<region>.<suffix>", …) finds the
+	// infix in leading position and refuses to read a resource name from it —
+	// both leave bucket empty and fall through to path style.
+	bucket = awshost.Parse(r.Host, s.suffix).Bucket
+	if bucket == "" {
+		s.warnLostVHost(r)
 	}
 	if bucket != "" {
 		key, _ = url.PathUnescape(path)
@@ -158,6 +157,54 @@ func (s *Server) resolvePath(r *http.Request) (bucket, key string) {
 	bucket, _ = url.PathUnescape(b)
 	key, _ = url.PathUnescape(rest)
 	return bucket, key
+}
+
+// warnLostVHost says so when a request LOOKS like virtual-hosted addressing
+// this service no longer understands.
+//
+// Removing --s3-host is the one change in this cleanup that can fail quietly.
+// Its default was "localhost", and *.localhost really does resolve to loopback
+// on macOS and on Linux under systemd-resolved — so an SDK pointed at
+// http://localhost:4566 with the default UsePathStyle:false addressed buckets
+// this way, and worked. Afterwards the same request is read path-style:
+// GET photos.localhost/receipts/jan.pdf becomes bucket "receipts", key
+// "jan.pdf". That is a NoSuchBucket for a bucket nobody named, or worse a
+// successful read from the wrong one.
+//
+// So it is said out loud. Once per distinct shape — a client does this on
+// every request, and a line per request is a line nobody reads.
+func (s *Server) warnLostVHost(r *http.Request) {
+	host := strings.ToLower(r.Host)
+	if h, _, ok := strings.Cut(host, ":"); ok {
+		host = h
+	}
+	// An IP literal is not a hostname with a bucket in front of it. 127.0.0.1
+	// otherwise reads as head "127", rest "0.0.1", and "127" is a legal bucket
+	// name — so this has to come first.
+	if net.ParseIP(host) != nil {
+		return
+	}
+	head, rest, ok := strings.Cut(host, ".")
+	// Two labels minimum, no AWS infix (awshost would have read it), not the
+	// instance's own suffix, and a leading label that could be a bucket.
+	if !ok || rest == "" || !s3store.ValidBucketName(head) {
+		return
+	}
+	// The instance's own suffix, and the suffix ITSELF — a request to the bare
+	// suffix is a service-level call, not a bucket that failed to resolve.
+	if suf := strings.ToLower(s.suffix); suf != "" &&
+		(host == suf || strings.HasSuffix(host, "."+suf)) {
+		return
+	}
+	if strings.Contains(rest, ".s3.") || strings.HasPrefix(rest, "s3.") {
+		return
+	}
+	if _, seen := s.vhostWarned.LoadOrStore(rest, true); seen {
+		return
+	}
+	s.logf("s3: read %s path-style — <bucket>.%s addressing was removed with --s3-host. "+
+		"Use UsePathStyle, or --suffix %s and <bucket>.s3.%s.%s",
+		r.Host, rest, rest, s.id.RegionName(), rest)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {

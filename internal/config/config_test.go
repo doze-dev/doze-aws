@@ -39,7 +39,7 @@ func TestValidateRejects(t *testing.T) {
 
 func TestLoadFileOverlay(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "doze-aws.toml")
-	os.WriteFile(path, []byte("listen = \"127.0.0.1:9999\"\nservices = [\"sts\", \"sqs\"]\n\n[s3]\nhost = \"s3.test\"\n"), 0o644)
+	os.WriteFile(path, []byte("listen = \"127.0.0.1:9999\"\nservices = [\"sts\", \"sqs\"]\n"), 0o644)
 
 	c := Default()
 	if err := LoadFile(path, &c); err != nil {
@@ -54,8 +54,25 @@ func TestLoadFileOverlay(t *testing.T) {
 	if len(c.Services) != 2 || c.Services[1] != "sqs" {
 		t.Errorf("Services = %v", c.Services)
 	}
-	if c.S3Host != "s3.test" {
-		t.Errorf("S3Host = %q", c.S3Host)
+}
+
+// A key that USED to work is not a typo, and "unknown key" is not an answer.
+// Somebody wrote [s3] host when it was real; the error has to say where the
+// behaviour went, or they are left guessing whether the feature or the
+// spelling changed.
+func TestARemovedKeyNamesItsReplacement(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "doze-aws.toml")
+	os.WriteFile(path, []byte("[s3]\nhost = \"localhost\"\n"), 0o644)
+
+	c := Default()
+	err := LoadFile(path, &c)
+	if err == nil {
+		t.Fatal("[s3] host must not be silently ignored")
+	}
+	for _, want := range []string{"was removed", "suffix", "UsePathStyle"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error is missing %q:\n%v", want, err)
+		}
 	}
 }
 
@@ -87,7 +104,7 @@ func TestWriteTOMLRoundTrips(t *testing.T) {
 	if err := LoadFile(path, &got); err != nil {
 		t.Fatalf("re-reading WriteTOML output: %v\n%s", err, buf.String())
 	}
-	if got.ListenAddr != orig.ListenAddr || got.DataDir != orig.DataDir || got.S3Host != orig.S3Host || len(got.Services) != 1 || got.LambdaIdleTimeout != orig.LambdaIdleTimeout {
+	if got.ListenAddr != orig.ListenAddr || got.DataDir != orig.DataDir || len(got.Services) != 1 || got.LambdaIdleTimeout != orig.LambdaIdleTimeout {
 		t.Errorf("round trip: got %+v, want %+v", got, orig)
 	}
 }

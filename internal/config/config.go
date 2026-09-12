@@ -21,9 +21,6 @@ type Config struct {
 	DataDir string
 	// Services to enable; empty means every implemented service.
 	Services []string
-	// S3Host is the base host for virtual-hosted-style S3 bucket detection
-	// (reserved until the s3 service lands).
-	S3Host string
 	// Console mounts the web management UI at /_console on the shared endpoint.
 	Console bool
 	// LambdaIdleTimeout is how long a warm Lambda function keeps its process(es)
@@ -133,7 +130,6 @@ func Default() Config {
 		// is the opt-in for the cases a name cannot serve. See cmd/doze-aws/listen.go.
 		ListenAddr:        "",
 		DataDir:           "./data",
-		S3Host:            "localhost",
 		Console:           true,
 		LambdaIdleTimeout: 10 * time.Minute,
 		IAMMode:           "soft",

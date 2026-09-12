@@ -23,11 +23,6 @@ data-dir = "./data"
 # "off" (no evaluation at all), or "enforce" (real AccessDenied responses).
 # iam-mode = "soft"
 
-[s3]
-# Base host for virtual-hosted-style bucket addressing (bucket.<host>).
-# Path-style requests work regardless.
-host = "localhost"
-
 [lambda]
 # How long a warm function keeps its process(es) before scaling to zero.
 # idle-timeout = "10m"

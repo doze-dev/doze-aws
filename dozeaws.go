@@ -95,10 +95,6 @@ type StackConfig struct {
 	Services []string
 	// Logf receives service and gateway log lines; nil discards.
 	Logf func(format string, args ...any)
-	// S3Host is the host under which virtual-hosted-style S3 bucket addressing
-	// is detected (a request to <bucket>.<S3Host> addresses that bucket).
-	// Path-style always works.
-	S3Host string
 	// LambdaIdleTimeout is how long a warm Lambda function keeps its process(es)
 	// before scaling to zero. Zero uses the service default (10m).
 	LambdaIdleTimeout time.Duration
@@ -215,7 +211,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 	dir := peers.InProcess(st.gw.Handler)
 	switch name {
 	case "s3":
-		s, err := s3.New(s3.Options{DataDir: dataDir, Host: cfg.S3Host, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity, Suffix: cfg.Suffix})
+		s, err := s3.New(s3.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity, Suffix: cfg.Suffix})
 		return s, s, err
 	case "dynamodb":
 		s, err := dynamodb.New(dynamodb.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})

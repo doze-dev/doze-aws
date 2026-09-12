@@ -183,7 +183,7 @@ func ErrNoSuchKey(key string) *awshttp.APIError {
 // CreateBucket creates a bucket; recreating an existing one succeeds (AWS
 // returns 200 for the owner in us-east-1, and local buckets are always yours).
 func (s *Store) CreateBucket(name string, objectLock bool) error {
-	if !validBucketName(name) {
+	if !ValidBucketName(name) {
 		return awshttp.Errf(400, "InvalidBucketName", "bucket name %q is not valid", name)
 	}
 	return s.db.Update(func(tx *bolt.Tx) error {
@@ -295,8 +295,12 @@ func (s *Store) ListBuckets() ([]Bucket, error) {
 	return out, err
 }
 
-// validBucketName enforces the S3 naming rules that matter locally.
-func validBucketName(name string) bool {
+// ValidBucketName enforces the S3 naming rules that matter locally. Exported
+// because the s3 service needs the same judgement outside the store: it asks
+// whether a hostname label could be a bucket before warning about a request
+// that LOOKS like virtual-hosted addressing, and a second copy of these rules
+// would drift from this one.
+func ValidBucketName(name string) bool {
 	if len(name) < 3 || len(name) > 63 {
 		return false
 	}

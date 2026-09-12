@@ -754,6 +754,11 @@ func executePath(r *http.Request) (apiID, stage, path string, ok bool) {
 	// The same parse the apigateway service and the gateway use. This was a
 	// hand-rolled copy of apigateway.virtualHostExecute, which is how the two
 	// were free to drift.
+	//
+	// The empty suffix is correct here and not an oversight: the ".execute-api."
+	// infix identifies the shape on its own, so <id>.execute-api.<region>.<any
+	// suffix> parses with no suffix configured — including the .doze forms. The
+	// recorder has no instance suffix to pass and does not need one.
 	if id := awshost.Parse(r.Host, "").APIID; id != "" {
 		stage, tail, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
 		return id, stage, "/" + tail, true

@@ -223,7 +223,6 @@ func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs.StringVar(&dst.ListenAddr, "listen", dst.ListenAddr, "ALSO serve on this host:port (default: the .doze name only; use this for cross-container access)")
 	fs.StringVar(&dst.DataDir, "data-dir", dst.DataDir, "root directory for service data")
 	fs.Var(servicesFlag{&dst.Services}, "services", "comma-separated services to enable (default: all implemented)")
-	fs.StringVar(&dst.S3Host, "s3-host", dst.S3Host, "base host for virtual-hosted-style S3 bucket addressing")
 	fs.StringVar(&dst.AccountID, "account-id", dst.AccountID, "twelve-digit account id every ARN carries (default 000000000000; set at creation, hard to change later)")
 	fs.StringVar(&dst.Region, "region", dst.Region, "default region; its data lives under <data-dir>/<region> (default us-east-1)")
 	fs.StringVar(&dst.Name, "name", dst.Name, "this instance's name in .doze; it answers on aws.<name>.doze (default: the directory name)")
@@ -317,7 +316,6 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	regions, err := dozeaws.NewRegions(dozeaws.StackConfig{
 		DataDir:           cfg.DataDir,
 		Services:          cfg.Services,
-		S3Host:            cfg.S3Host,
 		Identity:          cfg.Identity(),
 		LambdaIdleTimeout: cfg.LambdaIdleTimeout,
 		LambdaQuiet:       cfg.LambdaQuiet,
@@ -403,6 +401,9 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		// recorder and never appear in the Traffic tail.
 		con, err := console.New(console.Options{
 			Identity: cfg.Identity(),
+			// Without this the console routed with an empty suffix, so an
+			// AWS-shaped host reached it and was not recognised as one.
+			Suffix:   cfg.Suffix,
 			Peers:    peers.InProcess(stack.Service),
 			Recorder: rec,
 		})

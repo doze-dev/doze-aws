@@ -422,9 +422,14 @@ func TestSDKVirtualHostedStyle(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	// Boot with a base host so <bucket>.<host> addressing resolves; the SDK's
-	// default (UsePathStyle=false) rewrites the Host header itself.
-	srv, err := s3.New(s3.Options{DataDir: t.TempDir(), Host: "example.test", Logf: t.Logf})
+	// Boot with the instance suffix so AWS's own virtual-hosted shape resolves.
+	//
+	// This used to pass Host: "example.test" and address buckets as
+	// <bucket>.example.test — a second, non-AWS host form with its own parser.
+	// It is gone; the suffix covers the shape AWS itself uses, and that is the
+	// one worth supporting.
+	const suffix = "aws.harbour.doze"
+	srv, err := s3.New(s3.Options{DataDir: t.TempDir(), Suffix: suffix, Logf: t.Logf})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -442,9 +447,10 @@ func TestSDKVirtualHostedStyle(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Hand-rolled vhost request: Host: vhost.example.test, path = /k.
+	// Hand-rolled vhost request, AWS's shape with the suffix swapped:
+	// Host: vhost.s3.us-east-1.aws.harbour.doze, path = /k.
 	req, _ := http.NewRequest("GET", ts.URL+"/k", nil)
-	req.Host = "vhost.example.test"
+	req.Host = "vhost.s3.us-east-1." + suffix
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -453,5 +459,22 @@ func TestSDKVirtualHostedStyle(t *testing.T) {
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != 200 || string(body) != "via path" {
 		t.Fatalf("vhost GET: %d %q", resp.StatusCode, body)
+	}
+
+	// The load-bearing half, and the reason --s3-host had a `host != s.host`
+	// guard: a request to the BARE suffix is a SERVICE-level request
+	// (ListBuckets), not a bucket named "". Same for the service host itself.
+	for _, host := range []string{suffix, "s3.us-east-1." + suffix} {
+		req, _ := http.NewRequest("GET", ts.URL+"/", nil)
+		req.Host = host
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if resp.StatusCode != 200 || !strings.Contains(string(body), "<Buckets>") {
+			t.Errorf("GET / with Host %q: %d %q — want ListBuckets", host, resp.StatusCode, body)
+		}
 	}
 }

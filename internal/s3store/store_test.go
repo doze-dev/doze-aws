@@ -292,8 +292,8 @@ func TestBucketNameRejectsIPForm(t *testing.T) {
 		{"01.02.03.04", false},
 	}
 	for _, c := range cases {
-		if got := validBucketName(c.name); got != c.ok {
-			t.Errorf("validBucketName(%q) = %v, want %v", c.name, got, c.ok)
+		if got := ValidBucketName(c.name); got != c.ok {
+			t.Errorf("ValidBucketName(%q) = %v, want %v", c.name, got, c.ok)
 		}
 	}
 }

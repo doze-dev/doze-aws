@@ -45,16 +45,11 @@ type fileConfig struct {
 	Listen    *string     `toml:"listen"`
 	DataDir   *string     `toml:"data-dir"`
 	Services  []string    `toml:"services"`
-	S3        *s3File     `toml:"s3"`
 	Lambda    *lambdaFile `toml:"lambda"`
 	Template  *string     `toml:"template"`
 	Region    *string     `toml:"region"`
 	AccountID *string     `toml:"account-id"`
 	Name      *string     `toml:"name"`
-}
-
-type s3File struct {
-	Host *string `toml:"host"`
 }
 
 type lambdaFile struct {
@@ -76,10 +71,37 @@ func LoadFile(path string, cfg *Config) error {
 		for i, k := range undecoded {
 			keys[i] = k.String()
 		}
-		return fmt.Errorf("config: %s: unknown key(s): %s", path, strings.Join(keys, ", "))
+		return fmt.Errorf("config: %s: unknown key(s): %s%s",
+			path, strings.Join(keys, ", "), removedKeyHint(keys))
 	}
 	fc.applyTo(cfg)
 	return nil
+}
+
+// removed maps a key this config file used to accept to what replaced it.
+//
+// An unknown key is normally a typo, and "unknown key" is the whole answer. A
+// key that was REAL last release is a different problem: the person did not
+// mistype it, they wrote it when it worked, and telling them only that it is
+// unknown leaves them to guess whether the feature went or the spelling did.
+var removed = map[string]string{
+	"s3":      "virtual-hosted S3 addressing now uses the instance suffix: <bucket>.s3.<region>.<suffix>. Set --suffix, or use UsePathStyle in your SDK",
+	"s3.host": "virtual-hosted S3 addressing now uses the instance suffix: <bucket>.s3.<region>.<suffix>. Set --suffix, or use UsePathStyle in your SDK",
+}
+
+// removedKeyHint appends an explanation for any key that used to be valid.
+func removedKeyHint(keys []string) string {
+	var out strings.Builder
+	seen := map[string]bool{}
+	for _, k := range keys {
+		hint, ok := removed[k]
+		if !ok || seen[hint] {
+			continue
+		}
+		seen[hint] = true
+		out.WriteString("\n  " + k + " was removed — " + hint)
+	}
+	return out.String()
 }
 
 func (fc fileConfig) applyTo(cfg *Config) {
@@ -91,9 +113,6 @@ func (fc fileConfig) applyTo(cfg *Config) {
 	}
 	if fc.Services != nil {
 		cfg.Services = fc.Services
-	}
-	if fc.S3 != nil && fc.S3.Host != nil {
-		cfg.S3Host = *fc.S3.Host
 	}
 	if fc.Lambda != nil && fc.Lambda.IdleTimeout != nil {
 		cfg.LambdaIdleTimeout = fc.Lambda.IdleTimeout.Duration
@@ -125,7 +144,6 @@ func WriteTOML(w io.Writer, cfg Config) error {
 	fc := fileConfig{
 		Listen:    &cfg.ListenAddr,
 		DataDir:   &cfg.DataDir,
-		S3:        &s3File{Host: &cfg.S3Host},
 		Region:    &cfg.Region,
 		AccountID: &cfg.AccountID,
 		Name:      &cfg.Name,

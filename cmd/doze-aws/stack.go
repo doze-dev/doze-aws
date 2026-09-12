@@ -254,7 +254,7 @@ func gatewayFor(cfg config.Config) (h http.Handler, closer func(), liveAt string
 		}
 	}
 	stack, err := dozeaws.NewStack(dozeaws.StackConfig{
-		DataDir: cfg.DataDir, Services: cfg.Services, S3Host: cfg.S3Host, Identity: cfg.Identity(),
+		DataDir: cfg.DataDir, Services: cfg.Services, Identity: cfg.Identity(),
 	})
 	if err != nil {
 		return nil, nil, "", err
