@@ -225,16 +225,44 @@ func (s *Server) startVolatile(e *Execution) (<-chan struct{}, error) {
 	return ch, nil
 }
 
+// giveUp releases this caller's interest in a volatile run and drops the
+// record if the driver has already handed it over.
+//
+// release() reports whether a waiter was still registered, and that is exactly
+// the handover flag. finished() drops only when release returns FALSE — "no
+// waiter, so nobody will read this". So when a waiter gives up:
+//
+//	release true   we got there first; the driver will later find no waiter
+//	               and drop it itself. Nothing to do.
+//	release false  the driver already released us, which means it left the
+//	               record for US to drop. Drop it.
+//
+// The second case was missing, and it is reachable whenever a client's
+// deadline expires at the moment the driver finalises: both <-ch and
+// <-ctx.Done() are ready, Go picks a case at random, and picking ctx.Done()
+// meant the execution record and its whole history stayed in memory for the
+// life of the process. A one-second client timeout against a ~one-second
+// Express workflow hits it regularly, and nothing ever reclaims it.
+//
+// The engine.stop path leaked the same way, via releaseAll().
+func (s *Server) giveUp(key string) {
+	if !s.engine.waiters.release(key) {
+		s.store.DropVolatile(key)
+	}
+}
+
 // awaitVolatile waits for a volatile execution to finish and hands back its
 // final record, dropped from memory. A caller that stops waiting (context
-// cancelled) leaves the run to finish on its own and be dropped by finished.
+// cancelled) leaves the run to finish on its own; whichever side loses the
+// handover race does the dropping — see giveUp.
 func (s *Server) awaitVolatile(ctx context.Context, key string, ch <-chan struct{}) (*Execution, bool) {
 	select {
 	case <-ch:
 	case <-ctx.Done():
-		s.engine.waiters.release(key)
+		s.giveUp(key)
 		return nil, false
 	case <-s.engine.stop:
+		s.giveUp(key)
 		return nil, false
 	}
 	e, err := s.store.GetExecutionByKey(key)

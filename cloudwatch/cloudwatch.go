@@ -69,7 +69,11 @@ type Server struct {
 	stop  chan struct{}
 	// bg waits for the sweeper and the evaluator, so Close does not close the
 	// store while one of them is inside a bolt transaction.
-	bg         sync.WaitGroup
+	bg sync.WaitGroup
+	// stopOnce keeps a second Close from closing stop twice. These servers are
+	// exported for direct embedding, so an embedder with a `defer svc.Close()`
+	// plus an error path that also closes gets two calls.
+	stopOnce   sync.Once
 	retention  time.Duration
 	maxSamples int
 	sink       atomic.Pointer[trace.Sink]
@@ -164,17 +168,18 @@ func (s *Server) traceSink() trace.Sink {
 	return nil
 }
 
-// Close stops the background work and closes the store.
+// Close stops the background work and closes the store. Safe to call more than
+// once.
 func (s *Server) Close() error {
-	select {
-	case <-s.stop:
-	default:
+	var err error
+	s.stopOnce.Do(func() {
 		close(s.stop)
-	}
-	// Waited on: a sweep or an evaluation inside a bolt transaction races the
-	// close below, and bolt panics on a closed DB.
-	s.bg.Wait()
-	return s.db.Close()
+		// Waited on: a sweep or an evaluation inside a bolt transaction races the
+		// close below, and bolt panics on a closed DB.
+		s.bg.Wait()
+		err = s.db.Close()
+	})
+	return err
 }
 
 // handler is one CloudWatch operation. It reads a normalised request and

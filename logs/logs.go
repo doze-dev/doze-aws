@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -77,10 +78,14 @@ type Server struct {
 	// done closes when the sweeper has returned, so Close waits for it before
 	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
 	// Every sibling service carries this; logs was the one that did not.
-	done  chan struct{}
-	peers peers.Directory
-	fan   *fanout        // subscription filters → Lambda / Kinesis
-	met   *metricEmitter // metric filters → CloudWatch Metrics
+	done chan struct{}
+	// stopOnce keeps a second Close from closing stop twice. These servers are
+	// exported for direct embedding, so an embedder with a `defer svc.Close()`
+	// plus an error path that also closes gets two calls.
+	stopOnce sync.Once
+	peers    peers.Directory
+	fan      *fanout        // subscription filters → Lambda / Kinesis
+	met      *metricEmitter // metric filters → CloudWatch Metrics
 }
 
 // New opens the store under DataDir and starts the retention sweeper.
@@ -139,16 +144,20 @@ func New(opts Options) (*Server, error) {
 }
 
 // Close stops the sweeper, drains the subscription fan-out, and closes the
-// store.
+// store. Safe to call more than once.
 func (s *Server) Close() error {
-	close(s.stop)
-	// Waited on, not just signalled: a sweep inside a bolt transaction races
-	// the close below, and bolt panics on a closed DB. The fan-out and emitter
-	// already wait on their own workers; the sweeper was the one that did not.
-	<-s.done
-	s.fan.close()
-	s.met.close()
-	return s.store.db.Close()
+	var err error
+	s.stopOnce.Do(func() {
+		close(s.stop)
+		// Waited on, not just signalled: a sweep inside a bolt transaction races
+		// the close below, and bolt panics on a closed DB. The fan-out and emitter
+		// already wait on their own workers; the sweeper was the one that did not.
+		<-s.done
+		s.fan.close()
+		s.met.close()
+		err = s.store.db.Close()
+	})
+	return err
 }
 
 // SweepNow runs one retention sweep and reports how many events it dropped.

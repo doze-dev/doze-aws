@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -63,9 +64,13 @@ type Server struct {
 	stop  chan struct{}
 	// done closes when the janitor has returned, so Close waits for it before
 	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
-	done  chan struct{}
-	guard iamguard.Guard    // the key policy, under IAM soft/enforce
-	id    awsident.Identity // the region and account this service mints ARNs for
+	done chan struct{}
+	// stopOnce keeps a second Close from closing stop twice. These servers are
+	// exported for direct embedding, so an embedder with a `defer svc.Close()`
+	// plus an error path that also closes gets two calls.
+	stopOnce sync.Once
+	guard    iamguard.Guard    // the key policy, under IAM soft/enforce
+	id       awsident.Identity // the region and account this service mints ARNs for
 }
 
 // New opens the bbolt store under DataDir and starts the deletion janitor.
@@ -106,11 +111,15 @@ func New(opts Options) (*Server, error) {
 
 // Close stops the janitor and closes the bbolt DB.
 func (s *Server) Close() error {
-	close(s.stop)
-	// Waited on, not just signalled: a sweep inside a bolt transaction races
-	// the close below, and bolt panics on a closed DB.
-	<-s.done
-	return s.store.db.Close()
+	var err error
+	s.stopOnce.Do(func() {
+		close(s.stop)
+		// Waited on, not just signalled: a sweep inside a bolt transaction races
+		// the close below, and bolt panics on a closed DB.
+		<-s.done
+		err = s.store.db.Close()
+	})
+	return err
 }
 
 // janitor finalizes scheduled key deletions whose waiting period has passed.
