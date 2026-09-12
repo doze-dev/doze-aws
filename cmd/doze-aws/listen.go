@@ -8,6 +8,10 @@ package main
 // "additive, never a replacement", as the code said. That is now the other way
 // round: the NAME is what doze-aws is, and an address is the opt-in.
 //
+// The name is per-INSTANCE — aws.harbour.doze, aws.atlas.doze — so "the name
+// is the address" does not mean one doze-aws per machine. Each instance gets
+// its own loopback address from doze-names and binds the same port on it.
+//
 // The reason is that an address cannot carry what a name carries. AWS puts the
 // service and the region in the hostname —
 // sqs.ap-south-1.amazonaws.com — and doze-aws mints the URLs it hands back
@@ -73,21 +77,32 @@ func (l listeners) serve(srv *http.Server, logger *slog.Logger, errc chan<- erro
 
 // openListeners binds what the configuration asks for.
 //
-// Order matters: the name comes first when there is one, because it is what
-// the console link and every minted URL should prefer.
+// Order matters: this instance's own name comes first, because it is what the
+// console link, AWS_ENDPOINT_URL and every minted URL should prefer. The
+// shorthand aws.doze is bound too when this instance happens to hold it, but
+// it is never what gets reported — a URL under a shorthand another instance
+// might take tomorrow is a URL that stops working tomorrow.
 func openListeners(cfg config.Config, z *zone, logger *slog.Logger) (listeners, error) {
 	var out listeners
+	z.cfgAddr = cfg.ListenAddr
 
-	// The name's own loopback address. Its port stays 4566 so a client that
+	// Each name's own loopback address. The port stays 4566 so a client that
 	// wants to be explicit still can; the port-less form comes from the shared
 	// :80 front door, which joinZone already runs.
-	if ln := z.listen(logger, "", namePort); ln != nil {
-		url := z.url()
+	if ln := z.listenOn(z.own, logger, namePort); ln != nil {
+		url := z.urlFor(z.own)
 		if url == "" {
 			url = "http://" + ln.Addr().String()
 		}
 		out.all = append(out.all, binding{ln: ln, what: "name", url: url})
 		out.endpoint = url
+	}
+	if ln := z.listenOn(z.apex, logger, namePort); ln != nil {
+		url := z.urlFor(z.apex)
+		if url == "" {
+			url = "http://" + ln.Addr().String()
+		}
+		out.all = append(out.all, binding{ln: ln, what: "shorthand", url: url})
 	}
 
 	if cfg.ListenAddr != "" {
@@ -104,6 +119,16 @@ func openListeners(cfg config.Config, z *zone, logger *slog.Logger) (listeners, 
 	}
 
 	if len(out.all) == 0 {
+		// Losing the name to another live instance is a different problem from
+		// having no names at all, and it has a different answer — so say which
+		// one happened rather than one message for both.
+		if z.held != nil {
+			return listeners{}, fmt.Errorf(
+				"doze-aws: %s is already served by pid %d (%s).\n"+
+					"  doze-aws --name <other>     run this instance under its own name\n"+
+					"  doze-aws --listen host:port serve on an address instead",
+				z.held.Host, z.held.PID, z.held.Owner)
+		}
 		// ensureNames already explained the DNS half; this is the other way in.
 		return listeners{}, fmt.Errorf(
 			"doze-aws: nothing to listen on — .doze gave no name and no --listen was set.\n" +

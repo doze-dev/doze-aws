@@ -56,12 +56,30 @@ func TestDoctorNamesTheHolder(t *testing.T) {
 	}
 }
 
-// With no suffix the AWS-shaped hostnames are off, and saying so beats leaving
-// a blank line someone has to interpret.
-func TestDoctorSaysWhenThereIsNoSuffix(t *testing.T) {
+// Without --suffix there is still a suffix: the instance's own name. This
+// test used to assert the opposite — that AWS-shaped hostnames were off and
+// doctor said so — which was right while a suffix had to be configured by
+// hand. Deriving it from the name is what makes
+// sqs.ap-south-1.aws.harbour.doze come out of a plain `doze-aws`, so the
+// thing worth asserting is that doctor says WHERE the suffix came from:
+// a derived one follows a rename, a --suffix one does not.
+func TestDoctorDerivesTheSuffixFromTheName(t *testing.T) {
+	cfg := config.Default()
+	cfg.Name = "harbour"
+
 	var b strings.Builder
-	doctorTo(&b, config.Default(), names.Status{Platform: "darwin"}, fakeRegistry{})
-	if !strings.Contains(b.String(), "--suffix") {
-		t.Errorf("an absent suffix is not explained:\n%s", b.String())
+	doctorTo(&b, cfg, names.Status{Platform: "darwin"}, fakeRegistry{})
+	out := b.String()
+	for _, want := range []string{"harbour", "aws.harbour.doze", "from the name"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("the derived suffix report is missing %q:\n%s", want, out)
+		}
+	}
+
+	cfg.Suffix = "aws.example.test"
+	b.Reset()
+	doctorTo(&b, cfg, names.Status{Platform: "darwin"}, fakeRegistry{})
+	if out := b.String(); !strings.Contains(out, "aws.example.test (--suffix)") {
+		t.Errorf("an explicit suffix must be marked as explicit:\n%s", out)
 	}
 }

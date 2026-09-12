@@ -47,13 +47,18 @@ func doctorTo(w io.Writer, cfg config.Config, status names.Status, reg registry)
 	fmt.Fprintf(w, "doze-aws %s\n\n", version)
 
 	fmt.Fprintln(w, "this instance")
+	fmt.Fprintf(w, "  name        %s\n", cfg.InstanceName())
+	fmt.Fprintf(w, "  answers on  %s\n", names.Qualified("aws", cfg.InstanceName()).Host)
 	fmt.Fprintf(w, "  region      %s\n", id.RegionName())
 	fmt.Fprintf(w, "  account     %s\n", id.Account())
 	fmt.Fprintf(w, "  data        %s\n", cfg.DataDir)
-	if cfg.Suffix != "" {
-		fmt.Fprintf(w, "  suffix      %s\n", cfg.Suffix)
-	} else {
-		fmt.Fprintf(w, "  suffix      (none — AWS-shaped hostnames are off; see --suffix)\n")
+	// An explicit --suffix is worth distinguishing from the derived one,
+	// because only the derived one follows the instance if it is renamed.
+	switch {
+	case cfg.Suffix != "":
+		fmt.Fprintf(w, "  suffix      %s (--suffix)\n", cfg.Suffix)
+	default:
+		fmt.Fprintf(w, "  suffix      %s (from the name)\n", names.Qualified("aws", cfg.InstanceName()).Host)
 	}
 
 	fmt.Fprintf(w, "\n.doze on this machine (%s)\n", status.Platform)

@@ -5,6 +5,7 @@ package config
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -63,6 +64,59 @@ type Config struct {
 	// request names is created on first use whether or not it is listed; listing
 	// one only creates it eagerly, so it appears before anything touches it.
 	Regions []string
+	// Name is this instance's name in the .doze zone. doze-aws answers on
+	// aws.<Name>.doze, and the AWS-shaped hostnames it mints sit beneath that,
+	// so two projects on one machine never contend for an address.
+	//
+	// Empty means derive one from the working directory — see DeriveName.
+	Name string
+}
+
+// DefaultName is the instance name used when nothing better can be derived:
+// a directory whose name has no letters or digits in it at all.
+const DefaultName = "local"
+
+// InstanceName is the name to claim and to report, and is never empty.
+//
+// Name is normally filled in when the configuration is loaded, from the
+// project directory. This is the floor for a Config built directly in code —
+// without it an empty name renders as aws..doze, which resolves to nothing and
+// reads like a bug in the zone rather than a missing setting.
+func (c Config) InstanceName() string {
+	if c.Name == "" {
+		return DefaultName
+	}
+	return c.Name
+}
+
+// DeriveName picks an instance name from a project directory.
+//
+// The directory's own name is the right default because it is what a person
+// already calls the project, and because two checkouts then get two instances
+// with nobody configuring anything — which is the whole point of naming.
+//
+// The result is not sanitized here. doze-names reduces a name to a DNS label
+// on claim, and duplicating that rule is exactly the kind of mirror this tree
+// keeps getting bitten by; what this checks is only whether anything would
+// SURVIVE that reduction, since a directory called "~" would otherwise claim
+// the empty label.
+func DeriveName(dir string) string {
+	base := filepath.Base(dir)
+	if !hasLabelChar(base) {
+		return DefaultName
+	}
+	return base
+}
+
+// hasLabelChar reports whether s contains anything that survives reduction to
+// a DNS label — at least one letter or digit.
+func hasLabelChar(s string) bool {
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			return true
+		}
+	}
+	return false
 }
 
 // Identity is the region and account this configuration mints ARNs for.
@@ -99,6 +153,11 @@ func (c Config) Validate() error {
 		if !gateway.KnownService(s) {
 			return fmt.Errorf("config: unknown service %q (known: %s)", s, strings.Join(gateway.Services, ", "))
 		}
+	}
+	// A name with nothing label-worthy in it would claim aws..doze, which
+	// resolves to nothing and is confusing rather than broken-looking.
+	if c.Name != "" && !hasLabelChar(c.Name) {
+		return fmt.Errorf("config: instance name %q has no letters or digits — it cannot become a DNS label", c.Name)
 	}
 	// AWS account ids are exactly twelve digits, and a wrong one is not a
 	// cosmetic problem: it goes into every ARN the instance mints, and an SDK

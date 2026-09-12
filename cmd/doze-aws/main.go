@@ -200,6 +200,17 @@ func loadConfig(args []string) (startup, error) {
 		}
 	}
 	parseFlags(args, &c)
+	// The instance name is resolved HERE rather than in Default, so it is the
+	// same answer for the server and for the `apply`/`export` clients that have
+	// to find it — all three run in the project directory, and all three go
+	// through loadConfig.
+	if c.Name == "" {
+		wd, err := os.Getwd()
+		if err != nil {
+			return startup{}, fmt.Errorf("config: cannot read the working directory to name this instance: %w", err)
+		}
+		c.Name = config.DeriveName(wd)
+	}
 	return startup{cfg: c, configFile: configPath}, nil
 }
 
@@ -215,7 +226,8 @@ func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs.StringVar(&dst.S3Host, "s3-host", dst.S3Host, "base host for virtual-hosted-style S3 bucket addressing")
 	fs.StringVar(&dst.AccountID, "account-id", dst.AccountID, "twelve-digit account id every ARN carries (default 000000000000; set at creation, hard to change later)")
 	fs.StringVar(&dst.Region, "region", dst.Region, "default region; its data lives under <data-dir>/<region> (default us-east-1)")
-	fs.StringVar(&dst.Suffix, "suffix", dst.Suffix, "DNS suffix standing in for amazonaws.com, e.g. aws.harbour.doze")
+	fs.StringVar(&dst.Name, "name", dst.Name, "this instance's name in .doze; it answers on aws.<name>.doze (default: the directory name)")
+	fs.StringVar(&dst.Suffix, "suffix", dst.Suffix, "DNS suffix standing in for amazonaws.com (default: this instance's own name)")
 	fs.Var(servicesFlag{&dst.Regions}, "regions", "comma-separated extra regions to serve (any region a signed request names is created on first use regardless)")
 	fs.BoolVar(&dst.Console, "console", dst.Console, "serve the web management console at /_console")
 	fs.DurationVar(&dst.LambdaIdleTimeout, "lambda-idle", dst.LambdaIdleTimeout, "how long a warm Lambda keeps its process before scaling to zero")
@@ -258,7 +270,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 			return nerr
 		}
 	}
-	z := joinZone(ctx, logger)
+	z := joinZone(ctx, logger, cfg.InstanceName())
 	defer z.close()
 
 	binds, err := openListeners(cfg, z, logger)
@@ -266,6 +278,16 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		return err
 	}
 	defer binds.close()
+
+	// The suffix that stands in for amazonaws.com is this instance's own name,
+	// unless --suffix says otherwise. Deriving it rather than requiring it is
+	// what makes sqs.ap-south-1.aws.harbour.doze come out of a plain
+	// `doze-aws` with nothing configured; an instance with no name mints no
+	// AWS-shaped URLs, which is correct, because there would be nothing to
+	// resolve them.
+	if cfg.Suffix == "" && z.own != nil {
+		cfg.Suffix = z.own.Name.Host
+	}
 
 	// A data directory written before regions keeps its services directly under
 	// the root; they belong under <region>/ now. This is a directory rename per
@@ -292,6 +314,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		LambdaRuntimes:    cfg.LambdaRuntimes,
 		IAMMode:           iamMode,
 		Endpoint:          binds.endpoint,
+		Suffix:            cfg.Suffix,
 		Logf: func(format string, args ...any) {
 			logger.Info(fmt.Sprintf(format, args...))
 		},
@@ -341,7 +364,8 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	// This exact line is what the E2E test (and any wrapping tooling) parses
 	// to learn the bound address — keep its shape stable.
 	logger.Info("listening", "addr", binds.primary().ln.Addr().String(), "services", strings.Join(enabled, ","),
-		"regions", strings.Join(regions.Serving(), ","), "account", cfg.Identity().Account())
+		"regions", strings.Join(regions.Serving(), ","), "account", cfg.Identity().Account(),
+		"instance", cfg.InstanceName())
 	for _, b := range binds.all {
 		logger.Info("reachable at", "url", b.url, "as", b.what)
 	}

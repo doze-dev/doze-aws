@@ -2,10 +2,24 @@ package main
 
 // Adoption of the shared .doze zone.
 //
-// doze-aws claims aws.doze and, if the machine has been set up, serves on the
-// address that name points at — in addition to the configured listen address,
-// never instead of it. 127.0.0.1:4566 is a permanent contract (docs/endpoints.md);
-// a name is something extra, and everything here degrades to a log line.
+// # Two names, and why
+//
+// Every instance claims its OWN name — aws.<instance>.doze, where the instance
+// defaults to the project directory. That name is what doze-aws is: it is the
+// address it answers on, and the suffix every AWS-shaped URL it mints sits
+// beneath, so sqs.ap-south-1.aws.harbour.doze and the same host under
+// aws.atlas.doze are two different instances that never contend.
+//
+// On top of that it tries for aws.doze, the machine-wide shorthand. That one
+// is first-come and is a CONVENIENCE, not an identity: whoever starts first
+// gets it, everyone else simply doesn't, and nothing about an instance depends
+// on having it. Minted URLs always use the instance's own name, because that
+// is the one that stays right when a second instance appears.
+//
+// The loopback address each name resolves to is doze-names' business: apex
+// names have fixed addresses (aws.doze is 127.0.0.2), qualified ones are
+// hashed into a dynamic range, which is what lets two instances bind the same
+// port on different addresses.
 //
 // It also joins the zone as a peer: if no other doze binary is serving DNS,
 // this process serves it, answering for every peer's names and not only its
@@ -37,52 +51,59 @@ const apexPort = 80
 
 // zone is doze-aws's participation in .doze.
 type zone struct {
-	lease *names.Lease
-	sync  *names.Lease // sync-aws.doze, the Step Functions host-prefix name
-	srv   *names.Server
-	front *names.Ingress
-	extra net.Listener
-	reg   *names.Registry
-	// cfgAddr is the configured listen address — the contract, and the answer
-	// to every "then what still works?" below.
+	// own is aws.<instance>.doze — this instance's identity in the zone.
+	own *names.Lease
+	// apex is aws.doze, the machine-wide shorthand, when this instance got it.
+	apex *names.Lease
+	// sync holds the sync-prefixed twin of each name above, for Step Functions.
+	sync   []*names.Lease
+	srv    *names.Server
+	front  *names.Ingress
+	extras []net.Listener
+	reg    *names.Registry
+	// held records who owns this instance's name when the claim lost, so
+	// startup can name the process instead of reporting a nameless failure.
+	held *names.ErrHeld
+	// cfgAddr is the --listen address, when one was given — the answer to
+	// "then what still works?" below, and empty in the ordinary case.
 	cfgAddr string
 }
 
-// joinZone claims aws.doze and starts serving the zone if nobody else is.
-// It never fails: a machine that has not run dns-setup simply has no names,
-// which is a smaller thing than refusing to start.
-func joinZone(ctx context.Context, logger *slog.Logger) *zone {
+// joinZone claims this instance's names and starts serving the zone if nobody
+// else is. It never fails: a machine that has not run dns-setup simply has no
+// names, which is a smaller thing than refusing to start — openListeners is
+// what decides whether the result is servable.
+func joinZone(ctx context.Context, logger *slog.Logger, instance string) *zone {
 	z := &zone{}
 	reg := names.Open(names.Home(), "doze-aws")
+	z.reg = reg
 
-	lease, err := reg.Claim(names.Apex("aws"))
-	switch {
-	case err == nil:
-		z.lease = lease
-		// Step Functions' StartSyncExecution and TestState are the two AWS
-		// operations with a host prefix: every SDK sends them to
-		// sync-<endpoint host>, and the endpoint ruleset applies the prefix
-		// even to a custom endpoint. sync-aws.doze at the same address is
-		// what makes them resolve; the resolver answers only registered
-		// names, so it has to be claimed, not assumed.
-		sync := names.Name{Host: "sync-" + lease.Name.Host, Tier: names.TierApex}
-		if l, err := reg.ClaimAt(sync, lease.IP); err == nil {
-			z.sync = l
-		} else {
-			logger.Debug("zone: could not claim the sync- name", "err", err)
-		}
-	default:
-		if held, ok := names.Held(err); ok {
-			// First-come, and the holder keeps it. Saying which process has it
-			// turns "my name stopped working" into something answerable.
-			logger.Info("zone: apex name already claimed",
-				"name", held.Host, "held_by_pid", held.PID, "owner", held.Owner)
-		} else {
-			logger.Debug("zone: could not claim the apex name", "err", err)
-		}
+	// The instance's own name. This is the one that matters: losing it means
+	// there is no address that is THIS instance, so the holder is kept for the
+	// startup message rather than only logged.
+	if lease, err := reg.Claim(names.Qualified("aws", instance)); err == nil {
+		z.own = lease
+		z.claimSync(lease, logger)
+	} else if held, ok := names.Held(err); ok {
+		z.held = held
+		logger.Info("zone: this instance's name is already served",
+			"name", held.Host, "held_by_pid", held.PID, "owner", held.Owner)
+	} else {
+		logger.Debug("zone: could not claim the instance name", "err", err)
 	}
 
-	z.reg = reg
+	// The shorthand, on top. Not getting it is unremarkable — it means another
+	// instance started first — so this is Info once and never an error.
+	if lease, err := reg.Claim(names.Apex("aws")); err == nil {
+		z.apex = lease
+		z.claimSync(lease, logger)
+	} else if held, ok := names.Held(err); ok {
+		logger.Info("zone: the shorthand aws.doze belongs to another instance",
+			"held_by_pid", held.PID, "owner", held.Owner)
+	} else {
+		logger.Debug("zone: could not claim the shorthand", "err", err)
+	}
+
 	// Info, not Debug: these lines are few, they happen at startup, and they are
 	// the only warning that a name is not going to work.
 	logf := func(format string, args ...any) { logger.Info(fmt.Sprintf(format, args...)) }
@@ -94,27 +115,34 @@ func joinZone(ctx context.Context, logger *slog.Logger) *zone {
 	return z
 }
 
-// listen returns an extra listener on the apex address.
+// claimSync claims the sync-prefixed twin of a name, at the same address.
 //
-// Port 80 is tried first, because http://aws.doze with no port is the whole
-// point of the name — but macOS refuses a privileged port on a SPECIFIC
-// address even though it allows one on the wildcard, so this usually fails
-// there and falls back to the configured port. A name that answers on
-// :<port> is worth more than a name that answers nowhere.
-//
-// The port-less form needs a wildcard-bound, Host-routed front door shared
-// between the binaries, the way doze core already fronts aws.<stack>.doze.
-func (z *zone) listen(logger *slog.Logger, cfgAddr, port string) net.Listener {
-	if z != nil {
-		z.cfgAddr = cfgAddr
+// Step Functions' StartSyncExecution and TestState are the two AWS operations
+// with a host prefix: every SDK sends them to sync-<endpoint host>, and the
+// endpoint ruleset applies the prefix even to a custom endpoint. The prefixed
+// host is a SIBLING of the name, not a descendant, so subtree resolution does
+// not cover it and it has to be claimed rather than assumed.
+func (z *zone) claimSync(l *names.Lease, logger *slog.Logger) {
+	n := names.Name{Host: "sync-" + l.Name.Host, Tier: l.Name.Tier}
+	if s, err := z.reg.ClaimAt(n, l.IP); err == nil {
+		z.sync = append(z.sync, s)
+	} else {
+		logger.Debug("zone: could not claim the sync- name", "name", n.Host, "err", err)
 	}
-	if z == nil || z.lease == nil || port == "" {
+}
+
+// listenOn returns a listener on one claimed name's own address.
+//
+// :80 is not attempted here even though the port-less form is the whole point
+// of a name: macOS refuses a privileged port on a SPECIFIC address while
+// allowing one on the wildcard, so the port-less form comes from the shared
+// wildcard front door instead, which routes by Host header the way doze core
+// already fronts aws.<stack>.doze.
+func (z *zone) listenOn(l *names.Lease, logger *slog.Logger, port string) net.Listener {
+	if z == nil || l == nil || port == "" {
 		return nil
 	}
-	// The service binds its own address on its ordinary port; :80 is not
-	// attempted here, because macOS refuses a privileged port on a specific
-	// address. The front door supplies the port-less form.
-	addr := net.JoinHostPort(z.lease.IP.String(), port)
+	addr := net.JoinHostPort(l.IP.String(), port)
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		// Both causes leave the name resolving to an address that answers
@@ -126,26 +154,26 @@ func (z *zone) listen(logger *slog.Logger, cfgAddr, port string) net.Listener {
 		// The name is the primary address now, so there is usually nothing
 		// else to fall back to — saying "still works: http://" would be worse
 		// than saying nothing. The hint is what matters here.
-		attrs := []any{"name", z.lease.Name.Host, "addr", addr, "err", err, "hint", hint}
+		attrs := []any{"name", l.Name.Host, "addr", addr, "err", err, "hint", hint}
 		if z.cfgAddr != "" {
 			attrs = append(attrs, "still_works", "http://"+z.cfgAddr)
 		}
 		logger.Warn("zone: the name resolves but nothing serves it", attrs...)
 		return nil
 	}
-	z.extra = ln
+	z.extras = append(z.extras, ln)
 	// Publish where the front door should send this name.
-	if err := z.lease.Route(addr); err != nil {
+	if err := l.Route(addr); err != nil {
 		logger.Debug("zone: could not publish the route", "err", err)
 	}
 	return ln
 }
 
-// url is what to tell the user to connect to — port-less when the front door
-// is up, with the port when it is not, so the line printed at startup is one
-// that actually works.
-func (z *zone) url() string {
-	if z == nil || z.lease == nil || z.extra == nil {
+// urlFor is what to tell the user to connect to for one name — port-less when
+// the front door is up, with the port when it is not, so the line printed at
+// startup is one that actually works.
+func (z *zone) urlFor(l *names.Lease) string {
+	if z == nil || l == nil {
 		return ""
 	}
 	// Wait briefly for a front door to appear before deciding how to print the
@@ -157,7 +185,7 @@ func (z *zone) url() string {
 	// The wait only runs while the answer is still the pessimistic one, so the
 	// common case — already fronted — costs nothing.
 	deadline := time.Now().Add(500 * time.Millisecond)
-	host := z.lease.Name.Host
+	host := l.Name.Host
 	for {
 		u := z.reg.URLFor(host)
 		if u == "http://"+host || time.Now().After(deadline) {
@@ -174,14 +202,17 @@ func (z *zone) close() {
 	if z == nil {
 		return
 	}
-	if z.extra != nil {
-		_ = z.extra.Close()
+	for _, ln := range z.extras {
+		_ = ln.Close()
 	}
-	if z.sync != nil {
-		_ = z.sync.Release()
+	for _, l := range z.sync {
+		_ = l.Release()
 	}
-	if z.lease != nil {
-		_ = z.lease.Release()
+	if z.apex != nil {
+		_ = z.apex.Release()
+	}
+	if z.own != nil {
+		_ = z.own.Release()
 	}
 	if z.srv != nil {
 		z.srv.Close()

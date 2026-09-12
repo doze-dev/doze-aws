@@ -269,14 +269,26 @@ func gatewayFor(cfg config.Config) (h http.Handler, closer func(), liveAt string
 // registry records where a name is actually routed, and it is right even on a
 // machine where dns-setup has never run. `apply` and `export` have to find the
 // server whether or not the person running them set up names.
+//
+// THIS instance's name is tried before any other. With several instances
+// running, every one of them has an "aws." entry, and applying a stack to
+// whichever came back first from a map iteration would be a coin toss over
+// somebody else's data. The name comes from the same loadConfig the server
+// used, so running `apply` in the project directory finds that project's
+// instance.
 func liveCandidates(cfg config.Config) []string {
 	var out []string
 	if cfg.ListenAddr != "" {
 		out = append(out, reachableHost(cfg.ListenAddr))
 	}
 	reg := names.Open(names.Home(), "doze-aws")
-	for host, e := range reg.Snapshot() {
-		if e.Owner == "doze-aws" && e.Target != "" && strings.HasPrefix(host, "aws.") {
+	snap := reg.Snapshot()
+	mine := names.Qualified("aws", cfg.InstanceName()).Host
+	if e, ok := snap[mine]; ok && e.Target != "" {
+		out = append(out, e.Target)
+	}
+	for host, e := range snap {
+		if host != mine && e.Owner == "doze-aws" && e.Target != "" && strings.HasPrefix(host, "aws.") {
 			out = append(out, e.Target)
 		}
 	}

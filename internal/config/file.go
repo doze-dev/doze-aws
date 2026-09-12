@@ -50,6 +50,7 @@ type fileConfig struct {
 	Template  *string     `toml:"template"`
 	Region    *string     `toml:"region"`
 	AccountID *string     `toml:"account-id"`
+	Name      *string     `toml:"name"`
 }
 
 type s3File struct {
@@ -109,6 +110,9 @@ func (fc fileConfig) applyTo(cfg *Config) {
 	if fc.AccountID != nil {
 		cfg.AccountID = *fc.AccountID
 	}
+	if fc.Name != nil {
+		cfg.Name = *fc.Name
+	}
 	if fc.Template != nil {
 		cfg.TemplateFile = *fc.Template
 	}
@@ -124,6 +128,7 @@ func WriteTOML(w io.Writer, cfg Config) error {
 		S3:        &s3File{Host: &cfg.S3Host},
 		Region:    &cfg.Region,
 		AccountID: &cfg.AccountID,
+		Name:      &cfg.Name,
 		Lambda:    &lambdaFile{IdleTimeout: &tomlDuration{cfg.LambdaIdleTimeout}, Quiet: &cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes},
 	}
 	if len(cfg.Services) > 0 {
