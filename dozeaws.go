@@ -167,6 +167,14 @@ func NewStack(cfg StackConfig) (*Stack, error) {
 		return nil, err
 	}
 
+	// An unexpected error becomes an opaque 500 on the wire, which is right —
+	// internal detail must not leak to a client. It used to become nothing at
+	// all in the log, which is not: the one person who could act on it is the
+	// one running the server.
+	awshttp.OnInternalFault = func(err error) {
+		logf("doze-aws: internal fault (answered 500): %v", err)
+	}
+
 	gw := gateway.New(gateway.Options{Logf: logf, Identity: cfg.Identity, Suffix: cfg.Suffix})
 	st := &Stack{gw: gw, id: cfg.Identity, suffix: cfg.Suffix}
 	for _, name := range names {

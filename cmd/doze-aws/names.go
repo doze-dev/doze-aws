@@ -247,8 +247,13 @@ func runDNSSetup(args []string) int {
 		st := names.Check()
 		fmt.Printf("%s\n%s", st.Platform, st)
 		if !st.OK() {
-			fmt.Printf("\nrun `doze-aws dns-setup` to finish. Without it, %s still works —\n"+
-				"names are additive, never a replacement.\n", "127.0.0.1:4566")
+			// This used to say "127.0.0.1:4566 still works — names are
+			// additive, never a replacement". Both halves are now false, and
+			// this is the DIAGNOSTIC command: it is read by someone already
+			// stuck, who would have pointed an SDK at an address nothing binds
+			// and concluded the tool was lying to them. It was.
+			fmt.Print("\nrun `doze-aws dns-setup` to finish, or serve on an address instead:\n" +
+				"  doze-aws --listen 127.0.0.1:4566\n")
 			return 1
 		}
 		return 0

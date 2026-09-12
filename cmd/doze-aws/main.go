@@ -113,7 +113,11 @@ commands:
 		fmt.Fprintf(w, "  %-14s %s\n", c.name, c.desc)
 	}
 	fmt.Fprint(w, "\nflags:\n")
-	fs, _ := newFlagSet(&config.Config{})
+	// Default(), not a zero Config: PrintDefaults reads the values bound to the
+	// flags, so a zero one showed no defaults at all — and the canonical help
+	// implied --console was opt-in when it is on.
+	probe := config.Default()
+	fs, _ := newFlagSet(&probe)
 	fs.SetOutput(w)
 	fs.PrintDefaults()
 	fmt.Fprint(w, "\nExamples:\n"+
@@ -137,6 +141,12 @@ func dispatch(args []string) (code int, ok bool) {
 	case "-h", "--help", "-help":
 		usage(os.Stdout)
 		return 0, true
+	case "-v", "--version", "-version":
+		// `doze-aws version` is the documented spelling, but --version is
+		// muscle memory from cargo, docker, gh and everything else. Without
+		// this it fell through to the flag package, which answered a version
+		// query with "flag provided but not defined" and thirty lines of flags.
+		return runVersion(nil), true
 	}
 	for _, c := range commands() {
 		// "config print" is two words; the rest are one.
@@ -269,7 +279,7 @@ func loadConfig(args []string) (startup, error) {
 func newFlagSet(dst *config.Config) (*flag.FlagSet, *string) {
 	fs := flag.NewFlagSet("doze-aws", flag.ExitOnError)
 	cp := fs.String("config", "", "path to a TOML config file (default: ./doze-aws.toml if present)")
-	fs.StringVar(&dst.ListenAddr, "listen", dst.ListenAddr, "ALSO serve on this host:port (default: the .doze name only; use this for cross-container access)")
+	fs.StringVar(&dst.ListenAddr, "listen", dst.ListenAddr, "serve on this host:port INSTEAD of a .doze name (for containers, CI, anywhere without DNS)")
 	fs.StringVar(&dst.DataDir, "data-dir", dst.DataDir, "root directory for service data")
 	fs.Var(servicesFlag{&dst.Services}, "services", "comma-separated services to enable (default: all implemented)")
 	fs.StringVar(&dst.AccountID, "account-id", dst.AccountID, "twelve-digit account id every ARN carries (default 000000000000; set at creation, hard to change later)")

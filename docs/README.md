@@ -13,8 +13,9 @@
 
 ## Design ground rules
 
-- **Lightweight above all.** Three runtime dependencies: bbolt, a TOML parser
-  and a YAML parser (for CloudFormation templates); the AWS SDKs are test-only.
+- **Lightweight above all.** Five runtime dependencies: bbolt, a TOML parser, a
+  YAML parser (for CloudFormation templates), a JSONata evaluator (Step
+  Functions) and doze-names (the `.doze` zone); the AWS SDKs are test-only.
   Data persists under one deletable directory.
 - **Real protocols, both SDK generations.** Every service speaks the actual AWS
   wire protocol and is verified against `aws-sdk-go-v2` and the legacy

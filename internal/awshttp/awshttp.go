@@ -37,11 +37,32 @@ func Errf(status int, code, format string, args ...any) *APIError {
 	return &APIError{Code: code, Status: status, Message: fmt.Sprintf(format, args...), SenderFault: true}
 }
 
+// OnInternalFault receives every error AsAPIError turns into an opaque 500.
+//
+// It exists because those errors used to be DISCARDED. An unexpected failure
+// anywhere in 400-odd call sites produced "InternalFailure: internal error" on
+// the wire and absolutely nothing in the log — no message, no operation, no
+// clue. A user hitting one had no way to learn anything and nowhere to look,
+// and neither did we.
+//
+// A package-level hook rather than a parameter: threading a logger through
+// every one of those call sites would be a large mechanical change for a
+// diagnostic, and coercion is exactly the choke point where the error is still
+// in hand. Set once, at stack construction. Nil means discard, which keeps
+// awshttp usable as a library and keeps tests quiet.
+//
+// The wire response is deliberately unchanged — internal detail still never
+// leaves the process.
+var OnInternalFault func(error)
+
 // AsAPIError coerces err into an *APIError, wrapping unknown error types as an
 // opaque InternalFailure so internal details never leak onto the wire.
 func AsAPIError(err error) *APIError {
 	if ae, ok := err.(*APIError); ok {
 		return ae
+	}
+	if OnInternalFault != nil && err != nil {
+		OnInternalFault(err)
 	}
 	return &APIError{Code: "InternalFailure", Status: 500, Message: "internal error"}
 }
