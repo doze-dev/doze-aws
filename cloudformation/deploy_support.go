@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/awshost"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/provision"
 )
@@ -72,13 +73,14 @@ func parseS3URL(raw string) (bucket, key string, err error) {
 	if u.Scheme == "s3" {
 		return u.Host, path, nil
 	}
-	host := u.Host
-	if i := strings.Index(host, ":"); i >= 0 {
-		host = host[:i]
-	}
-	// Virtual-host style: the bucket is the label before the "s3." segment.
-	if i := strings.Index(host, ".s3"); i > 0 {
-		return host[:i], path, nil
+	// Virtual-host style: the bucket is the label before the "s3" one.
+	//
+	// This used to be its own parser, matching ".s3" without the trailing dot
+	// the other five required — so it also claimed a bucket out of hosts like
+	// <b>.s3x.example.com. The shared reader matches "s3" as a whole label,
+	// which is stricter and the same rule everywhere else in the tree.
+	if bucket := awshost.Parse(u.Host, "").Bucket; bucket != "" {
+		return bucket, path, nil
 	}
 	// Path style: the first path segment is the bucket.
 	bucket, key, found := strings.Cut(path, "/")

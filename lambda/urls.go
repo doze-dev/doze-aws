@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/awshost"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/httpevent"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
@@ -107,11 +108,10 @@ func (s *Server) functionByURL(r *http.Request) (*Function, string) {
 		id, rest, _ = strings.Cut(rest, "/")
 		rest = "/" + rest
 	} else {
-		host := r.Host
-		if i := strings.Index(host, ":"); i >= 0 {
-			host = host[:i]
-		}
-		id, _, _ = strings.Cut(host, ".")
+		// <id>.lambda-url.<region>.<suffix>, parsed by the shared host reader
+		// rather than by taking the first label — which is what this did, and
+		// which claimed the first label of ANY host it was handed.
+		id = awshost.Parse(r.Host, s.suffix).FunctionURLID
 	}
 	fns, err := s.store.ListFunctions()
 	if err != nil {

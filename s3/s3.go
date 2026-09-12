@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/awshost"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
@@ -40,6 +41,8 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Suffix is the instance's DNS suffix, standing in for amazonaws.com.
+	Suffix string
 	// Identity is the region and account this service mints ARNs for. The zero
 	// value means the conventional local identity.
 	Identity awsident.Identity
@@ -58,9 +61,10 @@ type Server struct {
 	stop  chan struct{}
 	// done closes when the janitor has returned, so Close waits for it before
 	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
-	done  chan struct{}
-	guard iamguard.Guard    // the bucket policy, under IAM soft/enforce
-	id    awsident.Identity // the region and account this service mints ARNs for
+	done   chan struct{}
+	guard  iamguard.Guard    // the bucket policy, under IAM soft/enforce
+	id     awsident.Identity // the region and account this service mints ARNs for
+	suffix string            // stands in for amazonaws.com in hostnames
 }
 
 // New opens the store under DataDir and starts the lifecycle janitor.
@@ -75,15 +79,16 @@ func New(opts Options) (*Server, error) {
 	}
 	st.Logf = logf
 	s := &Server{
-		store: st,
-		host:  strings.ToLower(opts.Host),
-		peers: opts.Peers,
-		logf:  logf,
-		now:   opts.Clock,
-		stop:  make(chan struct{}),
-		done:  make(chan struct{}),
-		guard: iamguard.Guard{Mode: opts.IAMMode, Logf: logf, Identity: opts.Identity},
-		id:    opts.Identity,
+		store:  st,
+		host:   strings.ToLower(opts.Host),
+		peers:  opts.Peers,
+		logf:   logf,
+		now:    opts.Clock,
+		stop:   make(chan struct{}),
+		done:   make(chan struct{}),
+		guard:  iamguard.Guard{Mode: opts.IAMMode, Logf: logf, Identity: opts.Identity},
+		id:     opts.Identity,
+		suffix: opts.Suffix,
 	}
 	if s.peers == nil {
 		s.peers = peers.None()
@@ -125,16 +130,24 @@ func (s *Server) janitor() {
 // styles. bucket=="" means a service-level request (ListBuckets).
 func (s *Server) resolvePath(r *http.Request) (bucket, key string) {
 	path := strings.TrimPrefix(r.URL.EscapedPath(), "/")
-	// Virtual-hosted style: Host = <bucket>.<base> (base configured), or the
-	// conventional <bucket>.s3.<anything> shape.
+	// Virtual-hosted style, two shapes:
+	//
+	//   <bucket>.<S3Host>                     the configured base host
+	//   <bucket>.s3.<region>.<suffix>         AWS's own, via internal/awshost
+	//
+	// The configured form stays local because it is not an AWS shape — it is
+	// whatever base host the operator named, so there is no region or infix to
+	// read. Both are kept: --s3-host is the one host behaviour with existing
+	// users, and `host != s.host` is load-bearing — a request to the BARE base
+	// host is a service-level request (ListBuckets), not a bucket named "".
 	host := strings.ToLower(r.Host)
 	if h, _, ok := strings.Cut(host, ":"); ok {
 		host = h
 	}
 	if s.host != "" && host != s.host && strings.HasSuffix(host, "."+s.host) {
 		bucket = strings.TrimSuffix(host, "."+s.host)
-	} else if i := strings.Index(host, ".s3."); i > 0 {
-		bucket = host[:i]
+	} else {
+		bucket = awshost.Parse(r.Host, s.suffix).Bucket
 	}
 	if bucket != "" {
 		key, _ = url.PathUnescape(path)

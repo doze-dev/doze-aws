@@ -60,7 +60,7 @@ func TestPublishedURLsRouteToTheirService(t *testing.T) {
 	} {
 		t.Run(tc.what, func(t *testing.T) {
 			r := httptest.NewRequest(tc.method, tc.url, strings.NewReader(""))
-			if got := Route(awsident.Default(), r); got != tc.want {
+			if got := Route(awsident.Default(), "", r); got != tc.want {
 				t.Errorf("%s\n  %s %s\n  routed to %q, want %q",
 					tc.what, tc.method, tc.url, got, tc.want)
 			}
@@ -84,7 +84,7 @@ func TestOnlyTheRealAccountIDClaimsAQueueURL(t *testing.T) {
 	} {
 		t.Run(tc.path, func(t *testing.T) {
 			r := httptest.NewRequest(http.MethodGet, "http://127.0.0.1:4566"+tc.path, nil)
-			if got := Route(awsident.Default(), r); got != tc.want {
+			if got := Route(awsident.Default(), "", r); got != tc.want {
 				t.Errorf("GET %s routed to %q, want %q", tc.path, got, tc.want)
 			}
 		})

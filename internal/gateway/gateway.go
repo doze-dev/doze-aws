@@ -44,6 +44,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/awshost"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/sigparse"
 )
@@ -156,29 +157,21 @@ var ambiguousQueryActions = map[string]map[string]string{
 // isExecuteAPI reports whether a request addresses a DEPLOYED API rather than
 // the control plane — either by the /_aws/execute-api/ path or by the
 // virtual-host {apiId}.execute-api.<host> form.
-func isExecuteAPI(r *http.Request) bool {
+func isExecuteAPI(r *http.Request, suffix string) bool {
 	if strings.HasPrefix(r.URL.Path, "/_aws/execute-api/") {
 		return true
 	}
-	host := r.Host
-	if i := strings.Index(host, ":"); i >= 0 {
-		host = host[:i]
-	}
-	return strings.Contains(host, ".execute-api.")
+	return awshost.Parse(r.Host, suffix).APIID != ""
 }
 
 // IsFunctionURL reports whether a request addresses a Lambda function URL
 // rather than the control plane — by the /_aws/lambda-url/ path, or by the
 // virtual-host {id}.lambda-url.<region>.on.aws form a function URL is.
-func IsFunctionURL(r *http.Request) bool {
+func IsFunctionURL(r *http.Request, suffix string) bool {
 	if strings.HasPrefix(r.URL.Path, "/_aws/lambda-url/") {
 		return true
 	}
-	host := r.Host
-	if i := strings.Index(host, ":"); i >= 0 {
-		host = host[:i]
-	}
-	return strings.Contains(host, ".lambda-url.")
+	return awshost.Parse(r.Host, suffix).FunctionURLID != ""
 }
 
 // Gateway is the shared-endpoint router. Register handlers for the services a
@@ -188,6 +181,10 @@ type Gateway struct {
 	logf     func(format string, args ...any)
 	now      func() time.Time
 	id       awsident.Identity
+	// suffix stands in for amazonaws.com in AWS-shaped hostnames. Empty means
+	// only the conventional infixes (.execute-api., .lambda-url., .s3.) are
+	// recognised, which is how this worked before names carried a region.
+	suffix string
 }
 
 // Options configures a Gateway.
@@ -199,6 +196,8 @@ type Options struct {
 	// Identity is the account a queue URL is recognised by (rule 9). The zero
 	// value means the conventional local identity.
 	Identity awsident.Identity
+	// Suffix is the instance's DNS suffix, standing in for amazonaws.com.
+	Suffix string
 }
 
 // New builds an empty gateway; add services with Register.
@@ -208,6 +207,7 @@ func New(opts Options) *Gateway {
 		logf:     opts.Logf,
 		now:      opts.Now,
 		id:       opts.Identity,
+		suffix:   opts.Suffix,
 	}
 	if g.logf == nil {
 		g.logf = func(string, ...any) {}
@@ -247,19 +247,21 @@ func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // route picks the service for a request and names the rule that decided, for
 // error messages and logs.
-func (g *Gateway) route(r *http.Request) (service, why string) { return routeService(g.id, r) }
+func (g *Gateway) route(r *http.Request) (service, why string) {
+	return routeService(g.id, g.suffix, r)
+}
 
 // Route picks the AWS service a request is destined for, using the same rules
 // the gateway dispatches by. Exported so an out-of-process fanout (e.g. the
 // console talking to per-service sockets) routes identically to the in-process
 // gateway — one source of truth, no drift.
-func Route(id awsident.Identity, r *http.Request) string {
-	svc, _ := routeService(id, r)
+func Route(id awsident.Identity, suffix string, r *http.Request) string {
+	svc, _ := routeService(id, suffix, r)
 	return svc
 }
 
 // routeService is the pure routing logic shared by the gateway and Route.
-func routeService(id awsident.Identity, r *http.Request) (service, why string) {
+func routeService(id awsident.Identity, suffix string, r *http.Request) (service, why string) {
 	if target := r.Header.Get("X-Amz-Target"); target != "" {
 		prefix, _, _ := strings.Cut(target, ".")
 		if svc, ok := targetPrefixes[prefix]; ok {
@@ -283,10 +285,10 @@ func routeService(id awsident.Identity, r *http.Request) (service, why string) {
 	}
 	// A request to a deployed API carries no signature at all, so it must be
 	// recognised by shape before the S3 fallback claims it.
-	if isExecuteAPI(r) {
+	if isExecuteAPI(r, suffix) {
 		return "apigateway", "execute-api path"
 	}
-	if IsFunctionURL(r) {
+	if IsFunctionURL(r, suffix) {
 		return "lambda", "function URL"
 	}
 	// Smithy RPC v2 addresses an operation by path and carries no target

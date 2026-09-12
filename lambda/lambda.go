@@ -52,6 +52,9 @@ type Options struct {
 	// or enforce a function's resource policy is evaluated on every request
 	// that names the function, peer calls included.
 	IAMMode string
+	// Suffix is the instance's DNS suffix, standing in for amazonaws.com in
+	// AWS-shaped hostnames. Empty recognises only the conventional infixes.
+	Suffix string
 	// Identity is the region and account this service mints ARNs for, and tells
 	// function processes they run in. The zero value means the conventional
 	// local identity.
@@ -90,6 +93,7 @@ type Server struct {
 	interps     lambdaruntime.Interpreters // configured interpreter overrides
 	guard       iamguard.Guard             // the function resource policy, under IAM soft/enforce
 	id          awsident.Identity          // the region and account this service mints ARNs for
+	suffix      string                     // stands in for amazonaws.com in hostnames
 
 	mu       sync.Mutex
 	runners  map[string]*lambdaruntime.Pool // function name -> concurrency pool
@@ -141,6 +145,7 @@ func New(opts Options) (*Server, error) {
 		sinks:       map[string]*logSink{},
 		mappings:    map[string]*esm{},
 		id:          opts.Identity,
+		suffix:      opts.Suffix,
 	}
 	s.store.id = opts.Identity
 	if s.peers == nil {
@@ -186,7 +191,7 @@ func (s *Server) Close() error {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// A function URL is the data plane: an unsigned HTTP request the gateway
 	// routed here by its host or path, not a control-plane operation.
-	if gateway.IsFunctionURL(r) {
+	if gateway.IsFunctionURL(r, s.suffix) {
 		s.serveFunctionURL(w, r)
 		return
 	}

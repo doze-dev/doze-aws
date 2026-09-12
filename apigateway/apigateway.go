@@ -39,6 +39,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/awshost"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/metricship"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
@@ -58,6 +59,8 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Suffix is the instance's DNS suffix, standing in for amazonaws.com.
+	Suffix string
 	// Identity is the region and account this service mints ARNs for. The zero
 	// value means the conventional local identity.
 	Identity awsident.Identity
@@ -74,6 +77,7 @@ type Server struct {
 	// authCache holds Lambda authorizer answers for their TTL (authorize.go).
 	authCache *authCache
 	id        awsident.Identity // the region and account this service mints ARNs for
+	suffix    string            // stands in for amazonaws.com in hostnames
 }
 
 // New opens the store under DataDir.
@@ -93,7 +97,7 @@ func New(opts Options) (*Server, error) {
 	if logf == nil {
 		logf = func(string, ...any) {}
 	}
-	s := &Server{store: newStore(db), peers: opts.Peers, logf: logf, now: time.Now, id: opts.Identity}
+	s := &Server{store: newStore(db), peers: opts.Peers, logf: logf, now: time.Now, id: opts.Identity, suffix: opts.Suffix}
 	if s.peers == nil {
 		s.peers = peers.None()
 	}
@@ -121,7 +125,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.serveExecute(w, r, strings.TrimPrefix(r.URL.Path, ExecutePrefix))
 		return
 	}
-	if apiID, rest, ok := virtualHostExecute(r); ok {
+	if apiID, rest, ok := s.virtualHostExecute(r); ok {
 		s.serveExecute(w, r, apiID+"/"+rest)
 		return
 	}
@@ -139,17 +143,18 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// virtualHostExecute detects the {apiId}.execute-api.<host> addressing form.
-func virtualHostExecute(r *http.Request) (apiID, rest string, ok bool) {
-	host := r.Host
-	if i := strings.Index(host, ":"); i >= 0 {
-		host = host[:i]
-	}
-	label, remainder, found := strings.Cut(host, ".execute-api.")
-	if !found || label == "" || remainder == "" {
+// virtualHostExecute detects the {apiId}.execute-api.<region>.<suffix>
+// addressing form — AWS's own shape for a deployed API.
+//
+// The parse is shared with the gateway, S3 and Lambda (internal/awshost) rather
+// than hand-rolled here, which is what it used to be: five separate parsers,
+// each with its own idea of how to strip a port, and none aware of a region.
+func (s *Server) virtualHostExecute(r *http.Request) (apiID, rest string, ok bool) {
+	id := awshost.Parse(r.Host, s.suffix).APIID
+	if id == "" {
 		return "", "", false
 	}
-	return label, strings.TrimPrefix(r.URL.Path, "/"), true
+	return id, strings.TrimPrefix(r.URL.Path, "/"), true
 }
 
 // routeControl dispatches the control plane by path family.

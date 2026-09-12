@@ -116,6 +116,10 @@ type StackConfig struct {
 	// sibling services. Leave empty when running fully embedded with no HTTP
 	// listener; service-to-service calls still work via in-process peers.
 	Endpoint string
+	// Suffix is this instance's DNS suffix, standing in for amazonaws.com in
+	// the AWS-shaped hostnames it recognises and mints. Empty means only the
+	// conventional infixes are recognised.
+	Suffix string
 	// Shared, when set, supplies the region-less services (IAM, STS) rather
 	// than this stack building its own. Regions sets it so every region reaches
 	// one _global store — bbolt is single-writer, so a second opener would
@@ -131,6 +135,7 @@ type StackConfig struct {
 type Stack struct {
 	gw      *gateway.Gateway
 	id      awsident.Identity // the region and account this stack mints ARNs for
+	suffix  string            // stands in for amazonaws.com in hostnames
 	closers []io.Closer
 	// iam is retained so Handler can install the authorization middleware. It
 	// is nil when the service is disabled, and unused when its mode is off.
@@ -157,8 +162,8 @@ func NewStack(cfg StackConfig) (*Stack, error) {
 		logf = func(string, ...any) {}
 	}
 
-	gw := gateway.New(gateway.Options{Logf: logf, Identity: cfg.Identity})
-	st := &Stack{gw: gw, id: cfg.Identity}
+	gw := gateway.New(gateway.Options{Logf: logf, Identity: cfg.Identity, Suffix: cfg.Suffix})
+	st := &Stack{gw: gw, id: cfg.Identity, suffix: cfg.Suffix}
 	for _, name := range names {
 		if !gateway.KnownService(name) {
 			st.Close()
@@ -210,7 +215,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 	dir := peers.InProcess(st.gw.Handler)
 	switch name {
 	case "s3":
-		s, err := s3.New(s3.Options{DataDir: dataDir, Host: cfg.S3Host, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
+		s, err := s3.New(s3.Options{DataDir: dataDir, Host: cfg.S3Host, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity, Suffix: cfg.Suffix})
 		return s, s, err
 	case "dynamodb":
 		s, err := dynamodb.New(dynamodb.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
@@ -253,7 +258,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := eventbridge.New(eventbridge.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "lambda":
-		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, QuietFunctions: cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes, Endpoint: cfg.Endpoint, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
+		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, QuietFunctions: cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes, Endpoint: cfg.Endpoint, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity, Suffix: cfg.Suffix})
 		if err == nil {
 			st.lambda = s // retained so its pollers can be given a trace sink
 		}
@@ -262,7 +267,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := kinesis.New(kinesis.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "apigateway":
-		s, err := apigateway.New(apigateway.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
+		s, err := apigateway.New(apigateway.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity, Suffix: cfg.Suffix})
 		return s, s, err
 	case "cloudformation":
 		// CloudFormation provisions across every other service, so it is the
@@ -310,7 +315,7 @@ func (s *Stack) authorized(h http.Handler) http.Handler {
 		// A client cannot claim a principal or a verdict: the handoff headers
 		// are the middleware's to write.
 		iamguard.Strip(r)
-		res := s.iam.Authorize(r, gateway.Route(s.id, r))
+		res := s.iam.Authorize(r, gateway.Route(s.id, s.suffix, r))
 		if res.Err != nil {
 			writeDenied(w, res.Err)
 			return

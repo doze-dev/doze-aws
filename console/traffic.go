@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/awshost"
 	"github.com/doze-dev/doze-aws/internal/gateway"
 	"github.com/doze-dev/doze-aws/internal/rpcv2cbor"
 	"github.com/doze-dev/doze-aws/internal/trace"
@@ -334,7 +335,7 @@ var consoleLabel = map[string]string{
 // catch-all). A debugging tool that misattributes requests is worse than one
 // that shows nothing, so the classification now has a single source of truth.
 func labelFor(id awsident.Identity, r *http.Request) string {
-	svc := gateway.Route(id, r)
+	svc := gateway.Route(id, "", r)
 	if short, ok := consoleLabel[svc]; ok {
 		return short
 	}
@@ -750,13 +751,12 @@ func executePath(r *http.Request) (apiID, stage, path string, ok bool) {
 		stage, tail, _ := strings.Cut(remainder, "/")
 		return apiID, stage, "/" + tail, apiID != ""
 	}
-	host := r.Host
-	if i := strings.Index(host, ":"); i >= 0 {
-		host = host[:i]
-	}
-	if label, _, found := strings.Cut(host, ".execute-api."); found && label != "" {
+	// The same parse the apigateway service and the gateway use. This was a
+	// hand-rolled copy of apigateway.virtualHostExecute, which is how the two
+	// were free to drift.
+	if id := awshost.Parse(r.Host, "").APIID; id != "" {
 		stage, tail, _ := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
-		return label, stage, "/" + tail, true
+		return id, stage, "/" + tail, true
 	}
 	return "", "", "", false
 }

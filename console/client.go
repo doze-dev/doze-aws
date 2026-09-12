@@ -25,9 +25,10 @@ import (
 // parses signatures but never verifies them). This keeps the console honest —
 // it exercises exactly the API real SDK users hit.
 type backend struct {
-	c    *http.Client
-	id   awsident.Identity // the region and account the stack behind this console mints ARNs for
-	base string
+	c      *http.Client
+	id     awsident.Identity // the region and account the stack behind this console mints ARNs for
+	suffix string            // stands in for amazonaws.com in hostnames
+	base   string
 
 	// graphMu guards a short-lived cache of the full wiring graph. BuildGraph
 	// fans out a crawl over every service, and every resource detail page's
@@ -47,11 +48,12 @@ type backend struct {
 
 const graphTTL = 5 * time.Second
 
-func newBackend(dir peers.Directory, id awsident.Identity) *backend {
+func newBackend(dir peers.Directory, id awsident.Identity, suffix string) *backend {
 	return &backend{
-		c:    &http.Client{Transport: fanoutTransport{dir, id}, Timeout: 30 * time.Second},
-		id:   id,
-		base: "http://console.doze-aws.internal",
+		c:      &http.Client{Transport: fanoutTransport{dir, id, suffix}, Timeout: 30 * time.Second},
+		id:     id,
+		suffix: suffix,
+		base:   "http://console.doze-aws.internal",
 	}
 }
 
@@ -102,8 +104,9 @@ func (b *backend) bustGraph() {
 // the console picks exactly the service the real gateway would (one source of
 // truth), which is what lets the same console front both topologies unchanged.
 type fanoutTransport struct {
-	dir peers.Directory
-	id  awsident.Identity
+	dir    peers.Directory
+	id     awsident.Identity
+	suffix string
 }
 
 func (t fanoutTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -118,7 +121,7 @@ func (t fanoutTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// assumes the server-side invariant (Body never nil) and panics on the
 	// difference. Hand it the invariant it expects.
 	req.Body = io.NopCloser(bytes.NewReader(body))
-	svc := gateway.Route(t.id, req)
+	svc := gateway.Route(t.id, t.suffix, req)
 	ep, ok := t.dir.Endpoint(svc)
 	if !ok {
 		return &http.Response{
