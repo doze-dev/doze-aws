@@ -49,7 +49,7 @@ type authDenial struct {
 func (s *Server) authorizeRequest(ctx context.Context, api *RestAPI, stage string, res *Resource, m *Method,
 	a *Authorizer, params map[string]string, path string, r *http.Request, rl *requestLog) (*callCtx, *authDenial) {
 
-	arn := methodARN(api.ID, stage, r.Method, path)
+	arn := methodARN(s.id, api.ID, stage, r.Method, path)
 	values, ok := identityValues(a, r, params, api.Stages[stage])
 	if !ok && (a.Type == "TOKEN" || a.ResultTTL > 0) {
 		return nil, &authDenial{401, "Unauthorized"}
@@ -84,7 +84,7 @@ func (s *Server) authorizeRequest(ctx context.Context, api *RestAPI, stage strin
 	}
 	payload, _ := json.Marshal(event)
 	rl.authorizer, rl.authStart = a.Name, s.now()
-	out, err := peercall.LambdaInvoke(peers.WithPrincipal(ctx, "apigateway", APIARN(api.ID)), s.peers, fn, payload)
+	out, err := peercall.LambdaInvoke(peers.WithPrincipal(ctx, "apigateway", s.APIARN(api.ID)), s.peers, fn, payload)
 	rl.authEnd = s.now()
 	if err != nil {
 		return nil, &authDenial{500, "Authorizer error: invoking " + fn + ": " + err.Error()}
@@ -109,8 +109,8 @@ func (s *Server) decide(resp *authorizerResponse, arn string, rl *requestLog) (*
 }
 
 // methodARN is the execute-api ARN a policy is evaluated against.
-func methodARN(apiID, stage, method, path string) string {
-	return awsident.ARN("execute-api", apiID+"/"+stage+"/"+strings.ToUpper(method)+"/"+strings.TrimPrefix(path, "/"))
+func methodARN(id awsident.Identity, apiID, stage, method, path string) string {
+	return id.ARN("execute-api", apiID+"/"+stage+"/"+strings.ToUpper(method)+"/"+strings.TrimPrefix(path, "/"))
 }
 
 // identityValues reads the authorizer's identity sources from the request.

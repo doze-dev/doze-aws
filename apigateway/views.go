@@ -11,7 +11,6 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
@@ -192,8 +191,8 @@ func InvokeURL(apiID, stage string) string {
 }
 
 // APIARN is the ARN used to tag a REST API.
-func APIARN(apiID string) string {
-	return "arn:aws:apigateway:" + awsident.Region + "::/restapis/" + apiID
+func (s *Server) APIARN(apiID string) string {
+	return "arn:aws:apigateway:" + s.id.RegionName() + "::/restapis/" + apiID
 }
 
 // ---- small helpers ----

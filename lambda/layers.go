@@ -52,13 +52,13 @@ type LayerVersion struct {
 }
 
 // ARN returns the versioned layer ARN.
-func (l *LayerVersion) ARN() string {
-	return awsident.ARN("lambda", fmt.Sprintf("layer:%s:%d", l.LayerName, l.Version))
+func (l *LayerVersion) ARN(id awsident.Identity) string {
+	return id.ARN("lambda", fmt.Sprintf("layer:%s:%d", l.LayerName, l.Version))
 }
 
 // LayerARN returns the unversioned layer ARN.
-func (l *LayerVersion) LayerARN() string {
-	return awsident.ARN("lambda", "layer:"+l.LayerName)
+func (l *LayerVersion) LayerARN(id awsident.Identity) string {
+	return id.ARN("lambda", "layer:"+l.LayerName)
 }
 
 // layerKey orders versions of one layer contiguously and numerically.
@@ -400,7 +400,7 @@ func (s *Server) publishLayerVersion(w http.ResponseWriter, r *http.Request, nam
 	if err := s.store.PutLayerVersion(l); err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	writeJSON(w, 201, layerVersionView(l, true))
+	writeJSON(w, 201, layerVersionView(s.id, l, true))
 	return nil
 }
 
@@ -409,7 +409,7 @@ func (s *Server) getLayerVersion(w http.ResponseWriter, name string, version int
 	if err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	writeJSON(w, 200, layerVersionView(l, true))
+	writeJSON(w, 200, layerVersionView(s.id, l, true))
 	return nil
 }
 
@@ -420,7 +420,7 @@ func (s *Server) listLayerVersions(w http.ResponseWriter, name string) *awshttp.
 	}
 	views := make([]any, 0, len(versions))
 	for i := range versions {
-		views = append(views, layerVersionView(&versions[i], false))
+		views = append(views, layerVersionView(s.id, &versions[i], false))
 	}
 	writeJSON(w, 200, map[string]any{"LayerVersions": views})
 	return nil
@@ -436,8 +436,8 @@ func (s *Server) listLayers(w http.ResponseWriter) *awshttp.APIError {
 		l := &layers[i]
 		views = append(views, map[string]any{
 			"LayerName":             l.LayerName,
-			"LayerArn":              l.LayerARN(),
-			"LatestMatchingVersion": layerVersionView(l, false),
+			"LayerArn":              l.LayerARN(s.id),
+			"LatestMatchingVersion": layerVersionView(s.id, l, false),
 		})
 	}
 	writeJSON(w, 200, map[string]any{"Layers": views})
@@ -446,10 +446,10 @@ func (s *Server) listLayers(w http.ResponseWriter) *awshttp.APIError {
 
 // layerVersionView shapes a layer version. withContent adds the Content block,
 // which list responses omit.
-func layerVersionView(l *LayerVersion, withContent bool) map[string]any {
+func layerVersionView(id awsident.Identity, l *LayerVersion, withContent bool) map[string]any {
 	v := map[string]any{
-		"LayerVersionArn": l.ARN(),
-		"LayerArn":        l.LayerARN(),
+		"LayerVersionArn": l.ARN(id),
+		"LayerArn":        l.LayerARN(id),
 		"Version":         l.Version,
 		"Description":     l.Description,
 		"CreatedDate":     l.CreatedDate,
@@ -498,7 +498,7 @@ func (s *Server) routeLayerPolicy(w http.ResponseWriter, r *http.Request, name s
 		stmt := PolicyStatement{
 			Sid: req.StatementId, Effect: "Allow",
 			Principal: map[string]string{"AWS": req.Principal},
-			Action:    req.Action, Resource: l.ARN(),
+			Action:    req.Action, Resource: l.ARN(s.id),
 		}
 		if err := s.store.UpdateLayerVersion(name, version, func(l *LayerVersion) error {
 			for _, existing := range l.Policy {

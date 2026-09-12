@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
@@ -662,8 +661,8 @@ func (s *Server) pollKinesis(poller *esm, m *EventSourceMapping) {
 					"eventVersion":      "1.0",
 					"eventSource":       "aws:kinesis",
 					"eventSourceARN":    m.EventSourceArn,
-					"awsRegion":         awsident.Region,
-					"invokeIdentityArn": awsident.GlobalARN("iam", "role/lambda-kinesis-role"),
+					"awsRegion":         s.id.RegionName(),
+					"invokeIdentityArn": s.id.GlobalARN("iam", "role/lambda-kinesis-role"),
 					"kinesis": map[string]any{
 						"kinesisSchemaVersion":        "1.0",
 						"partitionKey":                rec.PartitionKey,

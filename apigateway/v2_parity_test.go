@@ -48,7 +48,7 @@ func setUpFixtureV2(t *testing.T, ts *httptest.Server) fxV2 {
 	f := fxV2{stage: "audit"}
 	resp := mkV2(t, ts, "CreateApi", map[string]any{"name": "audit-http", "protocolType": "HTTP"})
 	f.api = field(t, resp, "apiId")
-	f.arn = V2APIARN(f.api)
+	f.arn = testV2APIARN(f.api)
 	resp = mkV2(t, ts, "CreateIntegration", map[string]any{
 		"apiId": f.api, "integrationType": "AWS_PROXY", "integrationUri": fnARN, "payloadFormatVersion": "2.0",
 	})

@@ -38,6 +38,7 @@ import (
 
 	bolt "go.etcd.io/bbolt"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/metricship"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
@@ -57,6 +58,9 @@ type Options struct {
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
 	Clock func() time.Time
+	// Identity is the region and account this service mints ARNs for. The zero
+	// value means the conventional local identity.
+	Identity awsident.Identity
 }
 
 // Server is the API Gateway service.
@@ -69,6 +73,7 @@ type Server struct {
 	metrics *metricship.Shipper
 	// authCache holds Lambda authorizer answers for their TTL (authorize.go).
 	authCache *authCache
+	id        awsident.Identity // the region and account this service mints ARNs for
 }
 
 // New opens the store under DataDir.
@@ -88,7 +93,7 @@ func New(opts Options) (*Server, error) {
 	if logf == nil {
 		logf = func(string, ...any) {}
 	}
-	s := &Server{store: newStore(db), peers: opts.Peers, logf: logf, now: time.Now}
+	s := &Server{store: newStore(db), peers: opts.Peers, logf: logf, now: time.Now, id: opts.Identity}
 	if s.peers == nil {
 		s.peers = peers.None()
 	}

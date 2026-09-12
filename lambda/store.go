@@ -83,10 +83,14 @@ type Function struct {
 	SnapStart          json.RawMessage `json:"snap_start,omitempty"`
 	VpcConfig          json.RawMessage `json:"vpc_config,omitempty"`
 	FileSystemConfigs  json.RawMessage `json:"file_system_configs,omitempty"`
+
+	// id is the identity ARN() mints under, stamped on read by Store.stamp.
+	// Unexported, so it is never written to bbolt.
+	id awsident.Identity
 }
 
 // ARN returns the function ARN.
-func (f *Function) ARN() string { return awsident.ARN("lambda", "function:"+f.Name) }
+func (f *Function) ARN() string { return f.id.ARN("lambda", "function:"+f.Name) }
 
 // EventSourceMapping is one SQS→function poller definition.
 type EventSourceMapping struct {
@@ -101,9 +105,26 @@ type EventSourceMapping struct {
 // Store is the bbolt-backed Lambda control-plane state.
 type Store struct {
 	db *bolt.DB
+	id awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
 func newStore(db *bolt.DB) *Store { return &Store{db: db} }
+
+// stamp marks a function with the identity that owns it, so ARN() stays a plain
+// method on a record decoded out of bbolt with no pointer back here.
+//
+// Stamping rather than an ARN(id) parameter is the right trade for Function:
+// there are three decode points and fifteen call sites, so three places to get
+// right beats fifteen. EventBridge went the other way for the opposite reason.
+//
+// The field is unexported and so never persisted — the identity belongs to the
+// instance, not the row.
+func (s *Store) stamp(f *Function) *Function {
+	if f != nil {
+		f.id = s.id
+	}
+	return f
+}
 
 func errFuncNotFound(name string) *awshttp.APIError {
 	return &awshttp.APIError{Code: "ResourceNotFoundException", Status: 404,
@@ -138,7 +159,7 @@ func (s *Store) GetFunction(name string) (*Function, error) {
 		if err := json.Unmarshal(raw, &f); err != nil {
 			return err
 		}
-		out = &f
+		out = s.stamp(&f)
 		return nil
 	})
 	return out, err
@@ -164,7 +185,7 @@ func (s *Store) Update(name string, fn func(*Function) error) (*Function, error)
 			return err
 		}
 		nraw, _ := json.Marshal(f)
-		out = &f
+		out = s.stamp(&f)
 		return b.Put([]byte(name), nraw)
 	})
 	return out, err
@@ -192,6 +213,7 @@ func (s *Store) ListFunctions() ([]Function, error) {
 		return b.ForEach(func(_, raw []byte) error {
 			var f Function
 			if json.Unmarshal(raw, &f) == nil {
+				s.stamp(&f)
 				out = append(out, f)
 			}
 			return nil

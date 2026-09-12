@@ -18,6 +18,13 @@ import (
 	"github.com/doze-dev/doze-aws/peers"
 )
 
+// APIARN and V2APIARN are Server methods now, because the region in an ARN
+// belongs to the instance that minted it. Tests run on servers with the
+// default identity, so a zero Server gives them the same string they used to
+// get from the package-level function.
+func testAPIARN(apiID string) string   { return (&Server{}).APIARN(apiID) }
+func testV2APIARN(apiID string) string { return (&Server{}).V2APIARN(apiID) }
+
 // v2API drives the control plane for a test: JSON in, decoded JSON out.
 type v2API struct {
 	t  *testing.T

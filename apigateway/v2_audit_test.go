@@ -171,14 +171,14 @@ func TestV2AutoDeploymentsArePruned(t *testing.T) {
 func TestV2TagARNsDoNotCross(t *testing.T) {
 	a := v2Server(t, nil)
 	id := a.must("POST", "/v2/apis", map[string]any{"name": "tagged", "protocolType": "HTTP", "tags": map[string]string{"k": "v"}})["apiId"].(string)
-	if code, _ := a.do("GET", "/tags/"+url.PathEscape(APIARN(id)), nil); code != 404 {
+	if code, _ := a.do("GET", "/tags/"+url.PathEscape(testAPIARN(id)), nil); code != 404 {
 		t.Fatalf("v1 ARN on an HTTP API: %d", code)
 	}
-	if m := a.must("GET", "/v2/tags/"+url.PathEscape(V2APIARN(id)), nil); m["tags"].(map[string]any)["k"] != "v" {
+	if m := a.must("GET", "/v2/tags/"+url.PathEscape(testV2APIARN(id)), nil); m["tags"].(map[string]any)["k"] != "v" {
 		t.Fatalf("v2 tags: %v", m)
 	}
 	rest := a.must("POST", "/restapis", map[string]any{"name": "rest"})["id"].(string)
-	if code, _ := a.do("GET", "/v2/tags/"+url.PathEscape(V2APIARN(rest)), nil); code != 404 {
+	if code, _ := a.do("GET", "/v2/tags/"+url.PathEscape(testV2APIARN(rest)), nil); code != 404 {
 		t.Fatalf("v2 ARN on a REST API: %d", code)
 	}
 }

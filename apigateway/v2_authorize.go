@@ -54,8 +54,8 @@ func v2IdentityValues(a *V2Authorizer, r *http.Request, call *v2Call) ([]string,
 }
 
 // v2RouteARN is the execute-api ARN a policy is evaluated against.
-func v2RouteARN(apiID, stage, method, path string) string {
-	return awsident.ARN("execute-api", apiID+"/"+stage+"/"+strings.ToUpper(method)+strings.TrimSuffix("/"+strings.TrimPrefix(path, "/"), "/"))
+func v2RouteARN(id awsident.Identity, apiID, stage, method, path string) string {
+	return id.ARN("execute-api", apiID+"/"+stage+"/"+strings.ToUpper(method)+strings.TrimSuffix("/"+strings.TrimPrefix(path, "/"), "/"))
 }
 
 // v2AuthResponse is either shape a v2 authorizer may answer with.
@@ -73,7 +73,7 @@ func (s *Server) v2Authorize(r *http.Request, call *v2Call, a *V2Authorizer) (ma
 	if !ok {
 		return nil, &authDenial{401, "Unauthorized"}
 	}
-	arn := v2RouteARN(call.api.ID, call.stage.Name, r.Method, call.path)
+	arn := v2RouteARN(s.id, call.api.ID, call.stage.Name, r.Method, call.path)
 	key := a.ID + "\x00" + strings.Join(values, "\x00")
 	if a.ResultTTL > 0 {
 		if cached, ok := s.authCache.get(key, s.now()); ok {
@@ -98,8 +98,8 @@ func (s *Server) v2Authorize(r *http.Request, call *v2Call, a *V2Authorizer) (ma
 	} else {
 		ev := httpevent.Event(httpevent.Request{
 			R: r, Path: call.path, RouteKey: call.route.RouteKey, Stage: call.stage.Name, APIID: call.api.ID,
-			DomainName: call.api.ID + ".execute-api." + awsident.Region + ".amazonaws.com",
-			AccountID:  awsident.AccountID, RequestID: rl.id, Now: s.now(),
+			DomainName: call.api.ID + ".execute-api." + s.id.RegionName() + ".amazonaws.com",
+			AccountID:  s.id.Account(), RequestID: rl.id, Now: s.now(),
 			PathParameters: call.params, StageVariables: call.stage.Variables,
 		})
 		ev["type"] = "REQUEST"
@@ -110,7 +110,7 @@ func (s *Server) v2Authorize(r *http.Request, call *v2Call, a *V2Authorizer) (ma
 		payload, _ = json.Marshal(ev)
 	}
 	rl.authorizer, rl.authStart = a.Name, s.now()
-	out, err := peercall.LambdaInvoke(peers.WithPrincipal(r.Context(), "apigateway", V2APIARN(call.api.ID)), s.peers, fn, payload)
+	out, err := peercall.LambdaInvoke(peers.WithPrincipal(r.Context(), "apigateway", s.V2APIARN(call.api.ID)), s.peers, fn, payload)
 	rl.authEnd = s.now()
 	if err != nil {
 		s.logf("apigateway: authorizer %s: invoking %s: %v", a.Name, fn, err)

@@ -160,7 +160,7 @@ func TestHTTPAPIServesLambda(t *testing.T) {
 	if err != nil || !aws.ToBool(st.AutoDeploy) || aws.ToString(st.DeploymentId) == "" || st.CreatedDate == nil {
 		t.Fatalf("GetStage: %v %+v", err, st)
 	}
-	tags, err := v2.GetTags(ctx, &awsv2.GetTagsInput{ResourceArn: aws.String(apigateway.V2APIARN(apiID))})
+	tags, err := v2.GetTags(ctx, &awsv2.GetTagsInput{ResourceArn: aws.String((&apigateway.Server{}).V2APIARN(apiID))})
 	if err != nil || tags.Tags["env"] != "test" {
 		t.Fatalf("GetTags: %v %v", err, tags)
 	}

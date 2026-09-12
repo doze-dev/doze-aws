@@ -18,7 +18,7 @@ import (
 	lamtypes "github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	"github.com/aws/smithy-go"
 
-	"github.com/doze-dev/doze-aws"
+	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
 )
 

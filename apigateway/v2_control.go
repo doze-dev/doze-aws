@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
@@ -443,8 +442,8 @@ func V2Endpoint(apiID string) string {
 }
 
 // V2APIARN is the ARN a v2 API is tagged by.
-func V2APIARN(apiID string) string {
-	return "arn:aws:apigateway:" + awsident.Region + "::/apis/" + apiID
+func (s *Server) V2APIARN(apiID string) string {
+	return "arn:aws:apigateway:" + s.id.RegionName() + "::/apis/" + apiID
 }
 
 func viewV2API(api *RestAPI) map[string]any {

@@ -19,8 +19,8 @@ import (
 // win the way they do on AWS (a function may override AWS_REGION).
 
 // FunctionARN is the unqualified ARN of a function by name.
-func FunctionARN(name string) string {
-	return awsident.ARN("lambda", "function:"+name)
+func FunctionARN(id awsident.Identity, name string) string {
+	return id.ARN("lambda", "function:"+name)
 }
 
 // LogGroupName is the log group Lambda creates for a function.
@@ -53,8 +53,8 @@ func (r *Runner) childEnv(runtimeAPI, stream string) []string {
 		"AWS_EXECUTION_ENV":               "AWS_Lambda_" + executionEnv(r.spec.Runtime),
 		"LAMBDA_TASK_ROOT":                taskRoot,
 		"LAMBDA_RUNTIME_DIR":              r.spec.ShimDir,
-		"AWS_REGION":                      awsident.Region,
-		"AWS_DEFAULT_REGION":              awsident.Region,
+		"AWS_REGION":                      r.spec.Identity.RegionName(),
+		"AWS_DEFAULT_REGION":              r.spec.Identity.RegionName(),
 		"AWS_ACCESS_KEY_ID":               awsident.AccessKeyID,
 		"AWS_SECRET_ACCESS_KEY":           awsident.SecretAccessKey,
 		"AWS_SESSION_TOKEN":               "test",

@@ -200,7 +200,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := eventbridge.New(eventbridge.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "lambda":
-		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, QuietFunctions: cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes, Endpoint: cfg.Endpoint, IAMMode: string(cfg.IAMMode)})
+		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, QuietFunctions: cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes, Endpoint: cfg.Endpoint, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		if err == nil {
 			st.lambda = s // retained so its pollers can be given a trace sink
 		}
@@ -209,7 +209,7 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 		s, err := kinesis.New(kinesis.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "apigateway":
-		s, err := apigateway.New(apigateway.Options{DataDir: dataDir, Peers: dir, Logf: logf})
+		s, err := apigateway.New(apigateway.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "cloudformation":
 		// CloudFormation provisions across every other service, so it is the

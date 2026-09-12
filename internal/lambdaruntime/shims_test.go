@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // The embedded runtime clients, driven for real: each interpreter on PATH
@@ -126,7 +128,7 @@ func TestShimsRunRealHandlers(t *testing.T) {
 			defer r.Stop()
 
 			res, err := r.InvokeInput(context.Background(), Input{Payload: []byte(`{"n":1}`),
-				InvokedARN: FunctionARN("shimmed") + ":3", ClientContext: `{"custom":{"k":"v"}}`})
+				InvokedARN: FunctionARN(awsident.Default(), "shimmed") + ":3", ClientContext: `{"custom":{"k":"v"}}`})
 			if err != nil {
 				t.Fatalf("invoke: %v", err)
 			}
@@ -149,7 +151,7 @@ func TestShimsRunRealHandlers(t *testing.T) {
 				t.Fatalf("payload %s: %v", res.Payload, err)
 			}
 			if out.Event["n"] != float64(1) || out.RID != res.RequestID || out.Fn != "shimmed" || out.Version != "3" ||
-				out.ARN != FunctionARN("shimmed")+":3" || out.Mem != 256 || out.Group != "/aws/lambda/shimmed" ||
+				out.ARN != FunctionARN(awsident.Default(), "shimmed")+":3" || out.Mem != 256 || out.Group != "/aws/lambda/shimmed" ||
 				out.Stream != r.Stream() || out.Left <= 0 || out.Left > 10000 || out.CC["k"] != "v" {
 				t.Errorf("context as the handler saw it: %+v (payload %s)", out, res.Payload)
 			}

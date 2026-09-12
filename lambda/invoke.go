@@ -280,6 +280,7 @@ func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
 		Timeout:      time.Duration(f.Timeout) * time.Second,
 		MemorySize:   f.MemorySize,
 		Endpoints:    s.endpointEnv(),
+		Identity:     s.id,
 		LogSink:      sink,
 		Version:      f.Version,
 		LayerDirs:    s.layerDirs(f),

@@ -39,7 +39,7 @@ const (
 // it to the table in TestEveryServiceMintsTheConfiguredIdentity — the two
 // together are the migration's progress bar.
 var unplumbed = []string{
-	"lambda", "iam", "cloudformation", "apigateway",
+	"iam", "cloudformation",
 }
 
 func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {
@@ -149,6 +149,12 @@ func TestEveryServiceMintsTheConfiguredIdentity(t *testing.T) {
 			}
 		})
 	}
+
+	// Not in the table, and deliberately: s3, lambda and apigateway address
+	// their control planes by REST path or XML rather than X-Amz-Target, so
+	// this harness cannot drive them. Their own package suites cover the ARN
+	// paths — lambda's through (*Function).ARN, which is the record-stamping
+	// case, and apigateway's through the APIARN/V2APIARN methods.
 
 	// SQS additionally hands back a URL, which carries the account outside any
 	// ARN — the shape that started this work.

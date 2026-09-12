@@ -19,7 +19,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/httpevent"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 	"github.com/doze-dev/doze-aws/peers"
@@ -304,7 +303,7 @@ func (s *Server) v2Event(r *http.Request, call *v2Call, version string, body []b
 		// requestContext.path carries the stage prefix for a named stage and
 		// nothing for $default, as AWS's 1.0 example shows.
 		ev.RequestContext["path"] = v2StagePath(call.stage.Name, call.path)
-		ev.RequestContext["domainName"] = call.api.ID + ".execute-api." + awsident.Region + ".amazonaws.com"
+		ev.RequestContext["domainName"] = call.api.ID + ".execute-api." + s.id.RegionName() + ".amazonaws.com"
 		if len(authorizer) > 0 {
 			ev.RequestContext["authorizer"] = authorizer
 		}
@@ -324,8 +323,8 @@ func (s *Server) v2Event(r *http.Request, call *v2Call, version string, body []b
 		// adapters strip as the base path) and is the bare path on $default.
 		R: r, Path: v2StagePath(call.stage.Name, call.path), Body: body,
 		RouteKey: call.route.RouteKey, Stage: call.stage.Name, APIID: call.api.ID,
-		DomainName: call.api.ID + ".execute-api." + awsident.Region + ".amazonaws.com",
-		AccountID:  awsident.AccountID, RequestID: call.rl.id, Now: s.now(),
+		DomainName: call.api.ID + ".execute-api." + s.id.RegionName() + ".amazonaws.com",
+		AccountID:  s.id.Account(), RequestID: call.rl.id, Now: s.now(),
 		PathParameters: call.params, StageVariables: call.stage.Variables, Authorizer: auth,
 	}))
 	return out
@@ -359,7 +358,7 @@ func (s *Server) v2InvokeLambda(w http.ResponseWriter, r *http.Request, call *v2
 	}
 	payload := s.v2Event(r, call, integ.PayloadFormatVersion, body, authorizer)
 	rl.integBody, rl.integStart = payload, s.now()
-	out, err := peercall.LambdaInvoke(peers.WithPrincipal(r.Context(), "apigateway", V2APIARN(call.api.ID)), s.peers, fn, payload)
+	out, err := peercall.LambdaInvoke(peers.WithPrincipal(r.Context(), "apigateway", s.V2APIARN(call.api.ID)), s.peers, fn, payload)
 	rl.integEnd, rl.integResp = s.now(), out
 	if err != nil {
 		rl.errMessage = "invoking " + fn + ": " + err.Error()

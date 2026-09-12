@@ -33,7 +33,7 @@ func urlID(name string) string { return awsident.FunctionURLID(name) }
 
 // functionURL is the URL a config reports: the on.aws host when the
 // endpoint is unknown, the gateway's path form when it is.
-func (s *Server) functionURL(id string) string { return awsident.FunctionURL(id, s.endpoint) }
+func (s *Server) functionURL(urlID string) string { return s.id.FunctionURL(urlID, s.endpoint) }
 
 // urlConfigView is the Create/Get/UpdateFunctionUrlConfig response.
 func (s *Server) urlConfigView(f *Function, status int) map[string]any {
@@ -139,7 +139,7 @@ func (s *Server) serveFunctionURL(w http.ResponseWriter, r *http.Request) {
 		}
 		if mode == "soft" || mode == "enforce" {
 			dec, _ := iampolicy.Evaluate(functionPolicyDocs(f), iampolicy.Request{
-				Action: "lambda:InvokeFunctionUrl", Resource: awsident.ARN("lambda", "function:"+f.Name), Principal: "",
+				Action: "lambda:InvokeFunctionUrl", Resource: s.id.ARN("lambda", "function:"+f.Name), Principal: "",
 			})
 			if dec != iampolicy.Allowed {
 				if mode == "enforce" {
@@ -159,7 +159,7 @@ func (s *Server) serveFunctionURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body, _ := io.ReadAll(io.LimitReader(r.Body, 6<<20))
-	event := urlEvent(r, path, body, f)
+	event := urlEvent(s.id, r, path, body, f)
 	payload, _ := json.Marshal(event)
 	var res lambdaruntime.Result
 	err := trace.StepDetail(r.Context(), trace.Event{Service: "lambda", Action: "Invoke", Resource: f.Name, Via: "function URL"},
@@ -188,11 +188,11 @@ func errFunction(res lambdaruntime.Result) error { return functionError{res} }
 
 // urlEvent is the payload format 2.0 event a function URL delivers — the
 // same document an HTTP API route delivers, built by internal/httpevent.
-func urlEvent(r *http.Request, path string, body []byte, f *Function) map[string]any {
+func urlEvent(id awsident.Identity, r *http.Request, path string, body []byte, f *Function) map[string]any {
 	return httpevent.Event(httpevent.Request{
 		R: r, Path: path, Body: body,
 		APIID:      f.URLId,
-		DomainName: f.URLId + ".lambda-url." + awsident.Region + ".on.aws",
+		DomainName: f.URLId + ".lambda-url." + id.RegionName() + ".on.aws",
 		RequestID:  lambdaruntime.NewRequestID(),
 	})
 }

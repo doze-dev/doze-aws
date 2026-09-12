@@ -10,7 +10,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/peercall"
 	"github.com/doze-dev/doze-aws/peers"
 )
@@ -48,7 +47,7 @@ func (s *Server) buildProxyEvent(r *http.Request, api *RestAPI, stage string, re
 			"path":         "/" + stage + path,
 			"stage":        stage,
 			"apiId":        api.ID,
-			"accountId":    awsident.AccountID,
+			"accountId":    s.id.Account(),
 			"requestId":    rid,
 			"protocol":     "HTTP/1.1",
 			"identity": map[string]any{
@@ -116,7 +115,7 @@ func (s *Server) invokeLambdaProxy(w http.ResponseWriter, r *http.Request, api *
 	}
 	rl.integBody, rl.integStart = payload, s.now()
 	// The invoke is API Gateway's own call, on behalf of the API.
-	out, err := peercall.LambdaInvoke(peers.WithPrincipal(r.Context(), "apigateway", APIARN(api.ID)), s.peers, fn, payload)
+	out, err := peercall.LambdaInvoke(peers.WithPrincipal(r.Context(), "apigateway", s.APIARN(api.ID)), s.peers, fn, payload)
 	rl.integEnd, rl.integResp = s.now(), out
 	if err != nil {
 		rl.errMessage = "invoking " + fn + ": " + err.Error()

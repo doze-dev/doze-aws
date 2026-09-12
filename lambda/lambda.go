@@ -16,12 +16,14 @@ package lambda
 import (
 	"net/http"
 
-	"github.com/doze-dev/doze-aws/internal/trace"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/trace"
 
 	bolt "go.etcd.io/bbolt"
 
@@ -50,6 +52,10 @@ type Options struct {
 	// or enforce a function's resource policy is evaluated on every request
 	// that names the function, peer calls included.
 	IAMMode string
+	// Identity is the region and account this service mints ARNs for, and tells
+	// function processes they run in. The zero value means the conventional
+	// local identity.
+	Identity awsident.Identity
 	// Logf receives log lines; nil discards.
 	Logf func(format string, args ...any)
 	// Clock overrides time.Now in tests.
@@ -83,6 +89,7 @@ type Server struct {
 	shimDir     string                     // the embedded runtime clients, materialised
 	interps     lambdaruntime.Interpreters // configured interpreter overrides
 	guard       iamguard.Guard             // the function resource policy, under IAM soft/enforce
+	id          awsident.Identity          // the region and account this service mints ARNs for
 
 	mu       sync.Mutex
 	runners  map[string]*lambdaruntime.Pool // function name -> concurrency pool
@@ -133,7 +140,9 @@ func New(opts Options) (*Server, error) {
 		runners:     map[string]*lambdaruntime.Pool{},
 		sinks:       map[string]*logSink{},
 		mappings:    map[string]*esm{},
+		id:          opts.Identity,
 	}
+	s.store.id = opts.Identity
 	if s.peers == nil {
 		s.peers = peers.None()
 	}

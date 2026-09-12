@@ -8,6 +8,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // recordingSink keeps every line with its attribution.
@@ -130,7 +132,7 @@ func TestOutputIsAttributedToItsInvocation(t *testing.T) {
 	var outs []map[string]string
 	for i := 0; i < 2; i++ {
 		res, err := r.InvokeInput(context.Background(), Input{Payload: []byte(`{}`),
-			ClientContext: `{"custom":{"k":"v"}}`, InvokedARN: FunctionARN("chatty") + ":7", TraceID: "Root=1-abc;Sampled=1"})
+			ClientContext: `{"custom":{"k":"v"}}`, InvokedARN: FunctionARN(awsident.Default(), "chatty") + ":7", TraceID: "Root=1-abc;Sampled=1"})
 		if err != nil || res.FunctionErr != "" {
 			t.Fatalf("invoke %d: %v %s", i, err, res.Payload)
 		}
@@ -144,7 +146,7 @@ func TestOutputIsAttributedToItsInvocation(t *testing.T) {
 		outs = append(outs, out)
 	}
 	out := outs[0]
-	if out["arn"] != FunctionARN("chatty")+":7" || out["trace"] != "Root=1-abc;Sampled=1" || out["cc"] != `{"custom":{"k":"v"}}` {
+	if out["arn"] != FunctionARN(awsident.Default(), "chatty")+":7" || out["trace"] != "Root=1-abc;Sampled=1" || out["cc"] != `{"custom":{"k":"v"}}` {
 		t.Errorf("headers seen by the function: %+v", out)
 	}
 	if out["version"] != "7" || out["group"] != "/aws/lambda/chatty" || out["stream"] != r.Stream() || out["root"] != dir || out["token"] != "test" {

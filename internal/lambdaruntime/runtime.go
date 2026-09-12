@@ -34,6 +34,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/bg"
 )
 
@@ -48,6 +49,10 @@ type Spec struct {
 	Timeout    time.Duration
 	MemorySize int               // MB, as configured; 0 falls back to Lambda's own default
 	Endpoints  map[string]string // AWS_ENDPOINT_URL_* injected so handlers reach sibling services
+	// Identity is the region and account the child process is told it runs in
+	// (AWS_REGION, and the function ARN in its context). Zero means the
+	// conventional local identity.
+	Identity awsident.Identity
 	// Version is the qualifier this runner serves — "$LATEST" when empty. It
 	// names the log stream and AWS_LAMBDA_FUNCTION_VERSION.
 	Version string
@@ -447,7 +452,7 @@ func (r *Runner) handleNext(w http.ResponseWriter, req *http.Request) {
 
 	arn := inv.input.InvokedARN
 	if arn == "" {
-		arn = FunctionARN(r.spec.Name)
+		arn = FunctionARN(r.spec.Identity, r.spec.Name)
 	}
 	w.Header().Set("Lambda-Runtime-Aws-Request-Id", inv.id)
 	w.Header().Set("Lambda-Runtime-Deadline-Ms", fmt.Sprintf("%d", deadline.UnixMilli()))
