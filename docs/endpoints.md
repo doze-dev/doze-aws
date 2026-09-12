@@ -149,3 +149,77 @@ the names keep working when any individual stack goes down.
 - `aws.doze` — stable on macOS once `dns-setup` has run. Not yet on Linux; see
   the platform caveat above, and prefer `127.0.0.1:4566` in anything that has
   to run on both.
+
+## URL shapes, and how one address tells them apart
+
+On AWS this section would not exist. Every service has its own hostname —
+`sqs.<region>.amazonaws.com`, `s3.<region>.amazonaws.com`,
+`<id>.execute-api.<region>.amazonaws.com` — so a request names its service
+before anyone looks at a path, and two services cannot want the same URL.
+
+doze-aws serves one address, because `127.0.0.1:4566` working with no DNS setup
+is the promise above. So the shapes AWS separates by hostname arrive here on
+one, and `internal/gateway` tells them apart by what is left.
+
+### What identifies a request
+
+In order. The first rule that matches wins.
+
+| | Rule | Example |
+|---|---|---|
+| 1 | `X-Amz-Target` prefix | `AmazonSQS.SendMessage` |
+| 2 | SigV4 credential scope | `.../us-east-1/dynamodb/aws4_request` |
+| 3 | Lambda control-plane path | `/2015-03-31/functions/…` |
+| 4 | API Gateway control-plane path | `/restapis`, `/v2/apis` |
+| 5 | A deployed API | `/_aws/execute-api/{id}/…` |
+| 6 | A function URL | `/_aws/lambda-url/{id}/…` |
+| 7 | Smithy RPC v2 path | `/service/{Service}/operation/{Op}` |
+| 8 | Query-protocol `Action` | `?Action=SendMessage` |
+| 9 | A queue URL | `/000000000000/orders` |
+| 10 | otherwise **S3** | `/my-bucket/key.txt` |
+
+Rules 1, 2 and 8 cover every SDK call: an SDK signs, and the scope names the
+service. The rest exist for requests that carry no signature — a URL someone
+copied out of the console and opened in a browser, a webhook, a `curl`.
+
+### Two conventions worth knowing
+
+**`/_aws/{plane}/{id}/…`** is how a data plane AWS addresses by hostname is
+reached here. A deployed API is `/_aws/execute-api/{id}/{stage}/{path}` and a
+function URL is `/_aws/lambda-url/{id}/{path}`. Both also accept the real AWS
+host shape (`{id}.execute-api.…`, `{id}.lambda-url.…`) for a client that can
+set `Host`, which is what makes a rewritten hostname work without a rewritten
+path.
+
+**S3 is the fallback**, because the host and path shapes S3 clients produce are
+too varied to enumerate. That is a deliberate trade with one consequence worth
+stating plainly: a shape that no rule above claims is not merely unrouted, it
+is answered by S3. That is why a queue URL needed rule 9 — until it had one,
+opening `http://127.0.0.1:4566/000000000000/orders` answered `NoSuchBucket`,
+naming neither the service asked for nor the mistake.
+
+### Why the queue URL is a special case
+
+`/{account}/{queue}` is AWS's own shape, and `GetQueueUrl` has to return
+something the SDKs will accept and call back into — so it cannot be changed to
+something unambiguous. It is also indistinguishable from S3 path-style
+`/{bucket}/{key}`.
+
+The account id resolves it. doze-aws mints exactly one, so rule 9 claims that
+one twelve-digit prefix and nothing else: `/000000000001/orders` is still an
+S3 request. The cost is that a bucket literally named `000000000000` would be
+shadowed, which is a price worth paying.
+
+LocalStack meets the same wall and offers five strategies for it — two put the
+service in the hostname, one uses a `/queue/<region>/<account>/<queue>` path
+prefix, and the one that looks like a bare `/{account}/{queue}` is the mode
+they label legacy and warn causes conflicts. Reading the account id is how
+that shape is kept without the conflict.
+
+### What is *not* ambiguous, and can be trusted
+
+`internal/gateway/published_urls_test.go` walks every URL shape doze-aws hands
+a user — queue URLs, invoke URLs, function URLs, S3 objects — and asserts each
+routes to the service that issued it **unsigned**, exactly as a browser would
+send it. If you add a URL shape that a user can copy, add it there: the signed
+path is never in doubt, and the unsigned one is where this goes wrong.

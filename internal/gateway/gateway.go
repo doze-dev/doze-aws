@@ -8,8 +8,26 @@
 //  3. a Lambda REST-API path prefix (/2015-03-31/..., etc.);
 //  4. the Query-protocol Action parameter, looked up in a static action table
 //     (distinguishes STS from SNS for unsigned/SigV2 requests);
-//  5. otherwise S3 — the host/path shapes S3 clients produce are too varied to
+//  5. a queue URL, /{account}/{queue}, which is the one published URL shape
+//     that collides with S3 path-style and has to be claimed before it;
+//  6. otherwise S3 — the host/path shapes S3 clients produce are too varied to
 //     enumerate, so S3 is the fallback, matching LocalStack ergonomics.
+//
+// # Why any of this is necessary
+//
+// On AWS it is not. Every service has its own hostname —
+// sqs.<region>.amazonaws.com, s3.<region>.amazonaws.com,
+// <id>.execute-api.<region>.amazonaws.com — so a request names its service
+// before a path is ever considered and two services cannot want the same URL.
+//
+// doze-aws serves one address, because 127.0.0.1:4566 working with no DNS
+// setup is the promise docs/endpoints.md makes. Everything above is the cost
+// of that promise: the shapes AWS separates by hostname arrive here on one,
+// and have to be told apart by what is left.
+//
+// The S3 fallback is what makes the ordering matter. Anything unrecognised
+// becomes an S3 request, so a shape that is not claimed above is not merely
+// unrouted — it is answered by the wrong service, with NoSuchBucket.
 //
 // The gateway is routing only: it never interprets a request beyond picking a
 // handler, and it restores any body bytes it had to peek at.
@@ -25,6 +43,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/sigparse"
 )
@@ -286,7 +305,53 @@ func routeService(r *http.Request) (service, why string) {
 			return svc, "Query action"
 		}
 	}
+	// A queue URL, which is the last shape that has to be recognised before S3
+	// takes everything else.
+	if isQueueURL(r.URL.Path) {
+		return "sqs", "queue URL"
+	}
 	return "s3", "fallback"
+}
+
+// isQueueURL reports whether a path is a queue URL: /{account}/{queue}.
+//
+// On AWS the host settles this — a queue lives at
+// sqs.<region>.amazonaws.com/<account>/<queue>, and S3 path-style lives at
+// s3.<region>.amazonaws.com/<bucket>/<key>, so the two shapes never meet. Every
+// service gets its own hostname and there is no multiplexing to do.
+//
+// doze-aws serves one address, so they do meet, and /{account}/{queue} is
+// indistinguishable from /{bucket}/{key} by shape alone. An SDK call is signed
+// and the credential scope names the service, so it was never in doubt there;
+// what broke was the URL a person copies out of the console and opens. It
+// reached the S3 fallback and answered NoSuchBucket, naming neither the service
+// nor the mistake.
+//
+// LocalStack hit the same wall and offers five strategies for it. Two put the
+// service in the hostname (sqs.<region>.localhost.localstack.cloud), one uses
+// an unambiguous path prefix (/queue/<region>/<account>/<queue>), and the one
+// that looks like this — localhost:4566/<account>/<queue> — is the mode they
+// label legacy and warn causes conflicts.
+//
+// Hostnames are not open to us as the only answer: 127.0.0.1:4566 working with
+// no DNS setup is the contract docs/endpoints.md makes. And the path cannot
+// simply be changed, because GetQueueUrl has to return something the AWS SDKs
+// will accept and then call back into, which is this shape.
+//
+// So the account id is read as the marker it already is. doze-aws mints exactly
+// one (awsident.AccountID), so this claims one specific twelve-digit prefix
+// rather than any numeric-looking bucket name — a bucket called
+// "000000000000" is possible on AWS and would be shadowed here, which is the
+// whole cost and is worth it.
+func isQueueURL(path string) bool {
+	rest, ok := strings.CutPrefix(path, "/"+awsident.AccountID+"/")
+	if !ok {
+		return false
+	}
+	// A queue name never contains a slash, so anything deeper is an S3 key
+	// that happens to start with those digits.
+	name := strings.TrimSuffix(rest, "/")
+	return name != "" && !strings.Contains(name, "/")
 }
 
 // peekAction extracts a Query-protocol Action parameter without consuming the
