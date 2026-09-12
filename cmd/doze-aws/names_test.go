@@ -20,11 +20,6 @@ func quietLogger() *slog.Logger {
 // "The name is the address" would mean one doze-aws per machine if the name
 // were aws.doze; it is aws.<instance>.doze, and each instance gets its own
 // loopback address, so both bind the same port and neither notices the other.
-//
-// Both zones here share a PID, so this cannot assert the apex CONTENTION — a
-// process re-claiming its own name succeeds by design, which is what makes a
-// restart work. What it does assert is the part that is doze-aws's own
-// decision: which name each instance asks for, and that the answers differ.
 func TestTwoInstancesGetTheirOwnNamesAndAddresses(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -48,10 +43,43 @@ func TestTwoInstancesGetTheirOwnNamesAndAddresses(t *testing.T) {
 	if harbour.own.IP.Equal(atlas.own.IP) {
 		t.Errorf("both instances landed on %s — they cannot both bind a port there", harbour.own.IP)
 	}
-	// An instance's address must not be the apex's either, or holding the
-	// shorthand and holding your own name would be the same bind.
+	// An instance's address must not be the apex's either — 127.0.0.2 is
+	// reserved for aws.doze and going into people's /etc/hosts.
 	if apex := net.ParseIP("127.0.0.2"); harbour.own.IP.Equal(apex) || atlas.own.IP.Equal(apex) {
 		t.Errorf("an instance name took the apex address %s", apex)
+	}
+}
+
+// aws.doze is never claimed. It used to be taken as a machine-wide shorthand
+// for whichever instance started first, which made a URL under it mean a
+// different instance depending on boot order — unwritable-down, and quietly
+// wrong the day a colleague starts their own project. One way to reach an
+// instance, not two.
+//
+// Asserting it stays unclaimed is the only way this holds: the shorthand was
+// four lines, and four lines are easy to add back "as a convenience".
+func TestTheMachineWideApexIsNeverClaimed(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	z := joinZone(ctx, quietLogger(), "harbour")
+	defer z.close()
+
+	for host := range names.Open(names.Home(), "doze-aws").Snapshot() {
+		if host == "aws.doze" || host == "sync-aws.doze" {
+			t.Errorf("%s was claimed; every instance must be named", host)
+		}
+	}
+	// And nothing is listening for it, which is the part a user would notice.
+	binds, err := openListeners(config.Default(), z, quietLogger())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer binds.close()
+	for _, b := range binds.all {
+		if strings.Contains(b.url, "//aws.doze") {
+			t.Errorf("a listener advertises the apex: %+v", b)
+		}
 	}
 }
 

@@ -11,6 +11,8 @@ package main
 // The name is per-INSTANCE — aws.harbour.doze, aws.atlas.doze — so "the name
 // is the address" does not mean one doze-aws per machine. Each instance gets
 // its own loopback address from doze-names and binds the same port on it.
+// There is no unnamed instance and no machine-wide aws.doze: one way to reach
+// an instance by name, not two.
 //
 // The reason is that an address cannot carry what a name carries. AWS puts the
 // service and the region in the hostname —
@@ -77,16 +79,13 @@ func (l listeners) serve(srv *http.Server, logger *slog.Logger, errc chan<- erro
 
 // openListeners binds what the configuration asks for.
 //
-// Order matters: this instance's own name comes first, because it is what the
-// console link, AWS_ENDPOINT_URL and every minted URL should prefer. The
-// shorthand aws.doze is bound too when this instance happens to hold it, but
-// it is never what gets reported — a URL under a shorthand another instance
-// might take tomorrow is a URL that stops working tomorrow.
+// Order matters: the instance's name comes first, because it is what the
+// console link, AWS_ENDPOINT_URL and every minted URL should prefer.
 func openListeners(cfg config.Config, z *zone, logger *slog.Logger) (listeners, error) {
 	var out listeners
 	z.cfgAddr = cfg.ListenAddr
 
-	// Each name's own loopback address. The port stays 4566 so a client that
+	// The name's own loopback address. The port stays 4566 so a client that
 	// wants to be explicit still can; the port-less form comes from the shared
 	// :80 front door, which joinZone already runs.
 	if ln := z.listenOn(z.own, logger, namePort); ln != nil {
@@ -96,13 +95,6 @@ func openListeners(cfg config.Config, z *zone, logger *slog.Logger) (listeners, 
 		}
 		out.all = append(out.all, binding{ln: ln, what: "name", url: url})
 		out.endpoint = url
-	}
-	if ln := z.listenOn(z.apex, logger, namePort); ln != nil {
-		url := z.urlFor(z.apex)
-		if url == "" {
-			url = "http://" + ln.Addr().String()
-		}
-		out.all = append(out.all, binding{ln: ln, what: "shorthand", url: url})
 	}
 
 	if cfg.ListenAddr != "" {

@@ -2,24 +2,25 @@ package main
 
 // Adoption of the shared .doze zone.
 //
-// # Two names, and why
+// # One name per instance, and nothing else
 //
-// Every instance claims its OWN name — aws.<instance>.doze, where the instance
-// defaults to the project directory. That name is what doze-aws is: it is the
-// address it answers on, and the suffix every AWS-shaped URL it mints sits
-// beneath, so sqs.ap-south-1.aws.harbour.doze and the same host under
-// aws.atlas.doze are two different instances that never contend.
+// Every instance claims aws.<instance>.doze, where the instance defaults to
+// the project directory. That name is what doze-aws is: it is the address it
+// answers on, and the suffix every AWS-shaped URL it mints sits beneath, so
+// sqs.ap-south-1.aws.harbour.doze and the same host under aws.atlas.doze are
+// two different instances that never contend.
 //
-// On top of that it tries for aws.doze, the machine-wide shorthand. That one
-// is first-come and is a CONVENIENCE, not an identity: whoever starts first
-// gets it, everyone else simply doesn't, and nothing about an instance depends
-// on having it. Minted URLs always use the instance's own name, because that
-// is the one that stays right when a second instance appears.
+// aws.doze — the machine-wide apex — is deliberately NOT claimed. It existed
+// as a shorthand for whichever instance started first, and that is the kind of
+// choice that costs more than it gives: a URL under it means a different
+// instance depending on boot order, so it cannot be written down, cannot be
+// put in a config file, and quietly points somewhere else the day a colleague
+// starts their own project. One rule is better than two. If you want a short
+// name, name the instance something short.
 //
-// The loopback address each name resolves to is doze-names' business: apex
-// names have fixed addresses (aws.doze is 127.0.0.2), qualified ones are
-// hashed into a dynamic range, which is what lets two instances bind the same
-// port on different addresses.
+// The loopback address a name resolves to is doze-names' business: qualified
+// names are hashed into a dynamic range, which is what lets two instances bind
+// the same port on different addresses.
 //
 // It also joins the zone as a peer: if no other doze binary is serving DNS,
 // this process serves it, answering for every peer's names and not only its
@@ -43,19 +44,12 @@ import (
 	names "github.com/doze-dev/doze-names"
 )
 
-// apexPort is the port an apex name implies. http://aws.doze has to mean the
-// same URL whether a standalone process or a doze stack is behind it, and the
-// stack serves it port-less, so standalone binds 80 on its own address rather
-// than exposing the configured high port under the name.
-const apexPort = 80
-
 // zone is doze-aws's participation in .doze.
 type zone struct {
-	// own is aws.<instance>.doze — this instance's identity in the zone.
+	// own is aws.<instance>.doze — this instance's identity in the zone, and
+	// the only name it claims.
 	own *names.Lease
-	// apex is aws.doze, the machine-wide shorthand, when this instance got it.
-	apex *names.Lease
-	// sync holds the sync-prefixed twin of each name above, for Step Functions.
+	// sync holds the sync-prefixed twin of that name, for Step Functions.
 	sync   []*names.Lease
 	srv    *names.Server
 	front  *names.Ingress
@@ -90,18 +84,6 @@ func joinZone(ctx context.Context, logger *slog.Logger, instance string) *zone {
 			"name", held.Host, "held_by_pid", held.PID, "owner", held.Owner)
 	} else {
 		logger.Debug("zone: could not claim the instance name", "err", err)
-	}
-
-	// The shorthand, on top. Not getting it is unremarkable — it means another
-	// instance started first — so this is Info once and never an error.
-	if lease, err := reg.Claim(names.Apex("aws")); err == nil {
-		z.apex = lease
-		z.claimSync(lease, logger)
-	} else if held, ok := names.Held(err); ok {
-		logger.Info("zone: the shorthand aws.doze belongs to another instance",
-			"held_by_pid", held.PID, "owner", held.Owner)
-	} else {
-		logger.Debug("zone: could not claim the shorthand", "err", err)
 	}
 
 	// Info, not Debug: these lines are few, they happen at startup, and they are
@@ -207,9 +189,6 @@ func (z *zone) close() {
 	}
 	for _, l := range z.sync {
 		_ = l.Release()
-	}
-	if z.apex != nil {
-		_ = z.apex.Release()
 	}
 	if z.own != nil {
 		_ = z.own.Release()
