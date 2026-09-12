@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/doze-dev/doze-aws/apigateway"
@@ -145,6 +146,10 @@ type Stack struct {
 	// cloudwatch is retained for the same reason: its alarm evaluator runs on
 	// a ticker and fires SNS and Lambda actions with no request to inherit.
 	cloudwatch *cloudwatch.Server
+	// closeOnce serialises Close. Nilling closers made a second SEQUENTIAL
+	// close a no-op already; two at once raced on that field, and this is the
+	// object a signal handler and a defer both plausibly hold.
+	closeOnce sync.Once
 }
 
 // NewStack constructs and wires the requested services.
@@ -392,12 +397,14 @@ func (s *Stack) SetTraceSink(sink trace.Sink) {
 // Close shuts every service down, releasing stores and background janitors.
 func (s *Stack) Close() error {
 	var firstErr error
-	for _, c := range s.closers {
-		if err := c.Close(); err != nil && firstErr == nil {
-			firstErr = err
+	s.closeOnce.Do(func() {
+		for _, c := range s.closers {
+			if err := c.Close(); err != nil && firstErr == nil {
+				firstErr = err
+			}
 		}
-	}
-	s.closers = nil
+		s.closers = nil
+	})
 	return firstErr
 }
 

@@ -46,6 +46,71 @@ func TestASecondCloseIsNotAPanic(t *testing.T) {
 	}
 }
 
+// Stack and Shared are what an embedder and the binary actually hold, and both
+// were a step worse than the services: nilling the closers slice made a second
+// SEQUENTIAL close a clean no-op, so the obvious test passed, while two closes
+// at once raced on that field outright. Confirmed as a real `WARNING: DATA
+// RACE` before the fix — unlike the service-level concurrent case below, this
+// one reproduced on the first run.
+//
+// Reachable the ordinary way: a signal handler closing the stack while the
+// defer in main also closes it.
+func TestTopLevelClosesAreSafeTwiceAndConcurrently(t *testing.T) {
+	id := awsident.Identity{Region: "ap-south-1", AccountID: "811690671382"}
+	quiet := func(string, ...any) {}
+	// Three services rather than all 17: this is about the closer loop, not the
+	// services under it, and those have their own test above.
+	cfg := func(t *testing.T) StackConfig {
+		return StackConfig{DataDir: t.TempDir(), Identity: id,
+			Services: []string{"s3", "sqs", "logs"}, Logf: quiet}
+	}
+
+	t.Run("stack twice", func(t *testing.T) {
+		st, err := NewStack(cfg(t))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := st.Close(); err != nil {
+			t.Fatalf("first Close: %v", err)
+		}
+		_ = st.Close()
+	})
+
+	t.Run("stack concurrently", func(t *testing.T) {
+		st, err := NewStack(cfg(t))
+		if err != nil {
+			t.Fatal(err)
+		}
+		closeFromManyGoroutines(func() { _ = st.Close() })
+	})
+
+	t.Run("shared concurrently", func(t *testing.T) {
+		sh, err := NewShared(cfg(t))
+		if err != nil {
+			t.Fatal(err)
+		}
+		closeFromManyGoroutines(func() { _ = sh.Close() })
+	})
+}
+
+// closeFromManyGoroutines runs close from several goroutines released together.
+func closeFromManyGoroutines(closeFn func()) {
+	const n = 8
+	start := make(chan struct{})
+	done := make(chan struct{}, n)
+	for range n {
+		go func() {
+			defer func() { done <- struct{}{} }()
+			<-start
+			closeFn()
+		}()
+	}
+	close(start)
+	for range n {
+		<-done
+	}
+}
+
 // The same hazard from several goroutines at once.
 //
 // cloudwatch used to guard with `select { case <-s.stop: default: close(...) }`,
@@ -73,20 +138,7 @@ func TestConcurrentClosesDoNotPanic(t *testing.T) {
 				t.Skipf("%s has no closer", name)
 			}
 
-			const n = 8
-			start := make(chan struct{})
-			done := make(chan struct{}, n)
-			for range n {
-				go func() {
-					defer func() { done <- struct{}{} }()
-					<-start
-					_ = closer.Close()
-				}()
-			}
-			close(start)
-			for range n {
-				<-done
-			}
+			closeFromManyGoroutines(func() { _ = closer.Close() })
 		})
 	}
 }

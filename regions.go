@@ -213,6 +213,11 @@ type Shared struct {
 	handlers map[string]http.Handler
 	iam      *iam.Server
 	closers  []io.Closer
+	// closeOnce serialises Close, for the same reason Stack carries one: the
+	// nilled closers slice made a second sequential close a no-op, but two at
+	// once raced on the field. Regions.Close calls this one under its mutex;
+	// an embedder holding a Shared directly has no such protection.
+	closeOnce sync.Once
 }
 
 // NewShared builds the global services under <data-dir>/_global.
@@ -253,11 +258,13 @@ func (sh *Shared) Close() error {
 		return nil
 	}
 	var firstErr error
-	for _, c := range sh.closers {
-		if err := c.Close(); err != nil && firstErr == nil {
-			firstErr = err
+	sh.closeOnce.Do(func() {
+		for _, c := range sh.closers {
+			if err := c.Close(); err != nil && firstErr == nil {
+				firstErr = err
+			}
 		}
-	}
-	sh.closers = nil
+		sh.closers = nil
+	})
 	return firstErr
 }
