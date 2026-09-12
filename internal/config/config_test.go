@@ -48,11 +48,39 @@ func TestLoadFileOverlay(t *testing.T) {
 	if c.ListenAddr != "127.0.0.1:9999" {
 		t.Errorf("ListenAddr = %q", c.ListenAddr)
 	}
-	if c.DataDir != Default().DataDir {
-		t.Errorf("DataDir overwritten to %q despite being absent from the file", c.DataDir)
+	// An ABSENT data-dir means "beside the config file", not "leave the
+	// default alone". This assertion used to be the opposite, which was right
+	// while the working directory was the anchor for everything.
+	if want := filepath.Join(filepath.Dir(path), "data"); c.DataDir != want {
+		t.Errorf("DataDir = %q, want %q — an absent key means beside the file", c.DataDir, want)
 	}
 	if len(c.Services) != 2 || c.Services[1] != "sqs" {
 		t.Errorf("Services = %v", c.Services)
+	}
+}
+
+// A path written in a config file has to mean the same thing wherever the file
+// is read from. Before this, `doze-aws --config /srv/harbour/doze-aws.toml`
+// run from your home directory put the data in ~/data.
+func TestDataDirIsAnchoredToTheConfigFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "doze-aws.toml")
+
+	for _, tc := range []struct{ what, key, want string }{
+		{"relative resolves against the file", "data-dir = \"store\"\n", filepath.Join(dir, "store")},
+		{"absent means beside the file", "", filepath.Join(dir, "data")},
+		{"absolute is left exactly as written", "data-dir = \"/mnt/aws-data\"\n", "/mnt/aws-data"},
+	} {
+		t.Run(tc.what, func(t *testing.T) {
+			os.WriteFile(path, []byte(tc.key), 0o644)
+			c := Default()
+			if err := LoadFile(path, &c); err != nil {
+				t.Fatal(err)
+			}
+			if c.DataDir != tc.want {
+				t.Errorf("DataDir = %q, want %q", c.DataDir, tc.want)
+			}
+		})
 	}
 }
 
@@ -92,6 +120,13 @@ func TestWriteTOMLRoundTrips(t *testing.T) {
 	orig.ListenAddr = "0.0.0.0:4566"
 	orig.Services = []string{"sts"}
 	orig.LambdaIdleTimeout = 90 * time.Second
+	// An ABSOLUTE data dir, so the round trip is an identity.
+	//
+	// A relative one deliberately is not: "./data" means "beside this file",
+	// so writing it here and reading it back from a temp directory resolves
+	// somewhere else — correctly. That property has its own test
+	// (TestDataDirIsAnchoredToTheConfigFile); this one is about the encoder.
+	orig.DataDir = "/mnt/aws-data"
 
 	var buf bytes.Buffer
 	if err := WriteTOML(&buf, orig); err != nil {

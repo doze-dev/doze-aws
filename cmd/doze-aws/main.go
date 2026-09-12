@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -168,9 +169,34 @@ func main() {
 	}
 
 	if err := run(st.cfg, logger); err != nil {
-		logger.Error("fatal", "err", err)
-		os.Exit(1)
+		fatal(logger, err)
 	}
+}
+
+// fatal reports a startup failure and exits.
+//
+// Multi-line errors go to stderr PLAINLY rather than through the log handler.
+// The errors worth reading at startup are the ones carrying remedies —
+// "nothing to listen on", a name held by another process, a data directory
+// belonging to a different account — and slog's TextHandler renders those as
+// one quoted line with the newlines escaped to \n, which turns a three-line
+// answer into something nobody reads.
+//
+// A wrapping prefix is stripped for the same reason. dozeaws wraps per-region
+// errors as "region ap-south-1: …", which is right for a region-level failure
+// and noise on one about the whole data directory — the account check is not
+// about a region and says so on its own.
+func fatal(logger *slog.Logger, err error) {
+	var changed *dozeaws.ErrAccountChanged
+	if errors.As(err, &changed) {
+		err = changed
+	}
+	if strings.Contains(err.Error(), "\n") {
+		fmt.Fprintln(os.Stderr, err)
+	} else {
+		logger.Error("fatal", "err", err)
+	}
+	os.Exit(1)
 }
 
 // startup holds everything resolved from the command line before serving.
@@ -209,6 +235,18 @@ func loadConfig(args []string) (startup, error) {
 			return startup{}, fmt.Errorf("config: cannot read the working directory to name this instance: %w", err)
 		}
 		c.Name = config.DeriveName(wd)
+	}
+	// The data directory is made ABSOLUTE once, here, so that every later
+	// reader means the same thing by it.
+	//
+	// It has two possible anchors — the config file for a value written in one,
+	// the working directory for the --data-dir flag — and which applied is not
+	// visible downstream. A log line, `doctor`, and `config print` should not
+	// each have to ask "relative to what?", and `config print` in particular
+	// claims to emit the EFFECTIVE configuration: "./data" is not effective,
+	// it is a question.
+	if abs, err := filepath.Abs(c.DataDir); err == nil {
+		c.DataDir = abs
 	}
 	return startup{cfg: c, configFile: configPath}, nil
 }

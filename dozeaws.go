@@ -158,6 +158,15 @@ func NewStack(cfg StackConfig) (*Stack, error) {
 		logf = func(string, ...any) {}
 	}
 
+	// Before anything is opened: the data records what identity it was created
+	// under, and refuses a different account. Here rather than in the binary
+	// because this is the one path EVERY deployment goes through — including
+	// doze, which constructs a Stack directly with nothing but a data
+	// directory. See instance.go.
+	if err := stampInstance(cfg.DataDir, cfg.Identity, logf); err != nil {
+		return nil, err
+	}
+
 	gw := gateway.New(gateway.Options{Logf: logf, Identity: cfg.Identity, Suffix: cfg.Suffix})
 	st := &Stack{gw: gw, id: cfg.Identity, suffix: cfg.Suffix}
 	for _, name := range names {

@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -75,7 +76,37 @@ func LoadFile(path string, cfg *Config) error {
 			path, strings.Join(keys, ", "), removedKeyHint(keys))
 	}
 	fc.applyTo(cfg)
+	resolveAgainstFile(path, fc.DataDir, cfg)
 	return nil
+}
+
+// resolveAgainstFile anchors the data directory to the CONFIG FILE rather than
+// to the process's working directory.
+//
+// A path written in a file has to mean the same thing wherever the file is
+// read from — the convention Cargo.toml, package.json and tsconfig.json all
+// use. Without this, `doze-aws --config /srv/harbour/doze-aws.toml` run from
+// your home directory put the data in ~/data, which is nobody's intent.
+//
+// The flag is deliberately NOT anchored this way. --data-dir is typed in a
+// shell, now, so it resolves against where you are standing; it is applied
+// after this, so it overrides whatever was resolved here.
+//
+// An absent key means <config dir>/data, so the ordinary layout — a TOML and
+// its data side by side — needs nothing written down. `doze-aws init` writes
+// the key explicitly anyway, because reading the file should tell you where
+// the data is without having to know this rule, and because it is the one line
+// an operator edits to point at a bigger volume.
+func resolveAgainstFile(path string, fileValue *string, cfg *Config) {
+	dir := filepath.Dir(path)
+	switch {
+	case fileValue == nil:
+		cfg.DataDir = filepath.Join(dir, "data")
+	case filepath.IsAbs(*fileValue):
+		// Already absolute: the mounted-volume case, left exactly as written.
+	default:
+		cfg.DataDir = filepath.Join(dir, *fileValue)
+	}
 }
 
 // removed maps a key this config file used to accept to what replaced it.
