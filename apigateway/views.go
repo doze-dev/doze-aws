@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/internal/awshost"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/peers"
 )
 
 func viewAPI(api *RestAPI) map[string]any {
@@ -207,7 +207,7 @@ func InvokeURL(base, apiID, stage string) string {
 // an address reached through a name should report that name back, not whatever
 // the process happens to be bound to.
 func (s *Server) invokeBase(r *http.Request) string {
-	if r != nil && r.Host != "" && !awshost.Internal(r.Host) {
+	if r != nil && r.Host != "" && !peers.IsPeer(r) {
 		scheme := "http"
 		if r.TLS != nil || strings.EqualFold(r.Header.Get("X-Forwarded-Proto"), "https") {
 			scheme = "https"

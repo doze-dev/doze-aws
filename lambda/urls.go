@@ -15,6 +15,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/iampolicy"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/trace"
+	"github.com/doze-dev/doze-aws/peers"
 )
 
 // Function URLs, served.
@@ -52,7 +53,7 @@ func (s *Server) urlFor(r *http.Request, f *Function) string {
 	if f.FunctionURL == "" {
 		return ""
 	}
-	if r == nil || r.Host == "" || awshost.Internal(r.Host) {
+	if r == nil || r.Host == "" || peers.IsPeer(r) {
 		return f.FunctionURL
 	}
 	if s.suffix != "" && awshost.Parse(r.Host, s.suffix).Named() {

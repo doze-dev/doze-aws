@@ -141,7 +141,15 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, aerr)
 		return
 	}
-	result, aerr := h(s, r.Context(), form, r.Host)
+	// The host a handler may report back in a URL. A PEER's host is a
+	// placeholder that resolves to nothing, so it is blanked here rather than
+	// at each handler — one place to get right, and a handler added later
+	// inherits it.
+	host := r.Host
+	if peers.IsPeer(r) {
+		host = ""
+	}
+	result, aerr := h(s, r.Context(), form, host)
 	if aerr != nil {
 		s.logf("sns: %s -> %s", action, aerr.Code)
 		writeError(w, aerr)

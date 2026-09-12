@@ -50,31 +50,6 @@ type Info struct {
 // Named reports whether the hostname named a service at all.
 func (i Info) Named() bool { return i.Service != "" }
 
-// internalSuffix is the decorative host peers.Directory gives an in-process
-// service (peers/peers.go). It is never dialled and never reachable.
-const internalSuffix = ".doze-aws.internal"
-
-// Internal reports whether a Host is doze-aws's own in-process peer address.
-//
-// This matters when a URL is built from the host a request arrived on. Most
-// requests come from a client and that host is exactly what should be reported
-// back — but a request from the CONSOLE, or from one service calling another,
-// arrives at lambda.doze-aws.internal, which is a name nothing can resolve and
-// nobody should ever be shown.
-//
-// A minted URL has to check this, or the console displays an address that
-// looks plausible and reaches nothing. That is how a function URL briefly came
-// out as http://lambda.doze-aws.internal/_aws/lambda-url/… — caught by an e2e
-// test asserting the shape the console shows.
-func Internal(host string) bool {
-	if h, ok := stripPort(strings.ToLower(host)); ok {
-		host = h
-	} else {
-		host = strings.ToLower(host)
-	}
-	return strings.HasSuffix(strings.TrimSuffix(host, "."), internalSuffix)
-}
-
 // infix names the service a middle label belongs to. These are AWS's own
 // spellings, which differ from doze-aws's service names in one place —
 // EventBridge signs and addresses as "events".

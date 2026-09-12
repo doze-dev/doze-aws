@@ -76,7 +76,7 @@ func call(t *testing.T, ts *httptest.Server, target string, body map[string]any)
 
 const (
 	auditQueue = "audit-q"
-	auditURL   = "http://sqs.doze-aws.internal/000000000000/audit-q"
+	auditURL   = "http://peer.invalid/000000000000/audit-q"
 	auditARN   = "arn:aws:sqs:us-east-1:000000000000:audit-q"
 
 	auditDLQ    = "audit-dlq"
@@ -132,7 +132,7 @@ func baselines() map[string]map[string]any {
 	q := map[string]any{"QueueUrl": auditURL}
 	return map[string]map[string]any{
 		"CreateQueue":                {"QueueName": "made-by-baseline"},
-		"DeleteQueue":                {"QueueUrl": "http://sqs.doze-aws.internal/000000000000/made-by-baseline"},
+		"DeleteQueue":                {"QueueUrl": "http://peer.invalid/000000000000/made-by-baseline"},
 		"GetQueueUrl":                {"QueueName": auditQueue},
 		"PurgeQueue":                 q,
 		"GetQueueAttributes":         {"QueueUrl": auditURL, "AttributeNames": []any{"All"}},
@@ -195,7 +195,7 @@ func prepare(t *testing.T, ts *httptest.Server, op, mutating string, body map[st
 	case "DeleteQueue":
 		name := fmt.Sprintf("doomed-%d", n)
 		call(t, ts, "CreateQueue", map[string]any{"QueueName": name})
-		body["QueueUrl"] = "http://sqs.doze-aws.internal/000000000000/" + name
+		body["QueueUrl"] = "http://peer.invalid/000000000000/" + name
 	}
 }
 

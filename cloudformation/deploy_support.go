@@ -95,7 +95,7 @@ func (s *Server) fetchS3(bucket, key string) (string, error) {
 	if s.gateway == nil {
 		return "", fmt.Errorf("no gateway wired")
 	}
-	req, err := http.NewRequest(http.MethodGet, "http://s3.doze-aws.internal/"+bucket+"/"+key, nil)
+	req, err := http.NewRequest(http.MethodGet, "http://peer.invalid/"+bucket+"/"+key, nil)
 	if err != nil {
 		return "", err
 	}

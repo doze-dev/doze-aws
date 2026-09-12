@@ -73,32 +73,18 @@ func TestParse(t *testing.T) {
 	}
 }
 
-// The in-process peer host must never reach a minted URL. It looks like a
-// hostname and resolves to nothing, so a URL built from it is plausible and
-// broken — which is exactly what happened to a function URL until an e2e test
-// asserted the shape the console shows.
-func TestInternalHostsAreRecognised(t *testing.T) {
-	for _, h := range []string{
-		"lambda.doze-aws.internal",
-		"console.doze-aws.internal",
-		"sqs.doze-aws.internal:80",
-		"stackfile.doze-aws.internal",
-		"LAMBDA.DOZE-AWS.INTERNAL",
-		"lambda.doze-aws.internal.",
-	} {
-		if !Internal(h) {
-			t.Errorf("Internal(%q) = false", h)
-		}
-	}
-	for _, h := range []string{
-		"127.0.0.1:4566", "aws.harbour.doze", "sqs.ap-south-1.aws.harbour.doze",
-		"localhost", "internal.example.com", "doze-aws.internal.example.com",
-	} {
-		if Internal(h) {
-			t.Errorf("Internal(%q) = true — that is a real address", h)
-		}
-	}
-}
+// Internal() lived here and is gone. It recognised the ".doze-aws.internal"
+// hostname peers handed out, so a minted URL could avoid being built from it.
+//
+// Recognising a hostname was the wrong shape for the question. Whether a
+// request came from a sibling service is a fact about the REQUEST, not about a
+// string that happens to look like a name — and the fake name was itself what
+// made the bug possible, since a URL built from it looks real. The peer base
+// URL is now peer.invalid and the fact travels as peers.HeaderPeer, which a
+// client cannot forge because iamguard.Strip removes every X-Doze-* header on
+// the way in. See peers/principal.go.
+//
+// Nothing replaces this test here; peers owns the behaviour now.
 
 // A region label is recognised by SHAPE, not from a list — AWS adds regions,
 // and doze-aws creates whichever one a request names, so a list would reject a

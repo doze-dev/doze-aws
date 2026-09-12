@@ -40,7 +40,7 @@ func SQSSend(ctx context.Context, dir peers.Directory, queue, body string, attrs
 		return fmt.Errorf("no sqs peer wired")
 	}
 	payload := map[string]any{
-		"QueueUrl":    "http://sqs.doze-aws.internal/" + awsident.AccountID + "/" + queue,
+		"QueueUrl":    "http://peer.invalid/" + awsident.AccountID + "/" + queue,
 		"MessageBody": body,
 	}
 	if len(attrs) > 0 {
@@ -84,7 +84,7 @@ func SQSReceive(ctx context.Context, dir peers.Directory, queue string, max, wai
 		return nil, fmt.Errorf("no sqs peer wired")
 	}
 	payload := map[string]any{
-		"QueueUrl":            "http://sqs.doze-aws.internal/" + awsident.AccountID + "/" + queue,
+		"QueueUrl":            "http://peer.invalid/" + awsident.AccountID + "/" + queue,
 		"MaxNumberOfMessages": max,
 		"WaitTimeSeconds":     waitSeconds,
 		// Ask for the trace header the sender may have left, so a poller can
@@ -246,7 +246,7 @@ func SQSDelete(ctx context.Context, dir peers.Directory, queue, receiptHandle st
 		return fmt.Errorf("no sqs peer wired")
 	}
 	return postJSON(ctx, ep, "AmazonSQS.DeleteMessage", "application/x-amz-json-1.0", map[string]any{
-		"QueueUrl":      "http://sqs.doze-aws.internal/" + awsident.AccountID + "/" + queue,
+		"QueueUrl":      "http://peer.invalid/" + awsident.AccountID + "/" + queue,
 		"ReceiptHandle": receiptHandle,
 	})
 }
@@ -575,7 +575,7 @@ func SQSSendDetailed(ctx context.Context, dir peers.Directory, queue, body strin
 		return "", "", fmt.Errorf("no sqs peer wired")
 	}
 	payload := map[string]any{
-		"QueueUrl":    "http://sqs.doze-aws.internal/" + awsident.AccountID + "/" + queue,
+		"QueueUrl":    "http://peer.invalid/" + awsident.AccountID + "/" + queue,
 		"MessageBody": body,
 	}
 	if len(attrs) > 0 {

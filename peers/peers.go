@@ -62,7 +62,7 @@ func (d inProcessDir) Endpoint(service string) (Endpoint, bool) {
 	}
 	return Endpoint{
 		Client:  &http.Client{Transport: principalTransport{handlerTransport{h}}, Timeout: 30 * time.Second},
-		BaseURL: "http://" + service + ".doze-aws.internal",
+		BaseURL: "http://peer.invalid",
 	}, true
 }
 
@@ -106,7 +106,7 @@ func unixEndpoint(service, socket string) Endpoint {
 		},
 		// The host is decorative — the transport dials the socket regardless —
 		// but it keeps URLs readable in logs.
-		BaseURL: "http://" + service + ".doze-aws.internal",
+		BaseURL: "http://peer.invalid",
 	}
 }
 

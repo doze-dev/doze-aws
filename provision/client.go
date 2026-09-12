@@ -25,7 +25,7 @@ type client struct {
 }
 
 func newClient(gateway http.Handler, id awsident.Identity) *client {
-	return &client{h: gateway, base: "http://stackfile.doze-aws.internal", id: id}
+	return &client{h: gateway, base: "http://peer.invalid", id: id}
 }
 
 // apiErr carries a non-2xx wire response.
@@ -128,7 +128,7 @@ func (c *client) query(ctx context.Context, v url.Values) ([]byte, error) {
 }
 
 func queueURL(id awsident.Identity, name string) string {
-	return "http://stackfile.doze-aws.internal/" + id.Account() + "/" + name
+	return "http://peer.invalid/" + id.Account() + "/" + name
 }
 
 func queueARN(id awsident.Identity, name string) string { return id.ARN("sqs", name) }

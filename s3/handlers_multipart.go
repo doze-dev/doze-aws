@@ -9,6 +9,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/s3store"
+	"github.com/doze-dev/doze-aws/peers"
 )
 
 func (s *Server) createMultipartUpload(w http.ResponseWriter, r *http.Request, bucket, key string) *awshttp.APIError {
@@ -174,7 +175,7 @@ func (s *Server) completeMultipartUpload(w http.ResponseWriter, r *http.Request,
 	}
 	res := result{
 		XMLNS:    s3NS,
-		Location: "http://" + r.Host + "/" + bucket + "/" + key,
+		Location: s.completeLocation(r, bucket, key),
 		Bucket:   bucket, Key: key, ETag: quoteETag(v.ETag),
 		ChecksumType: v.ChecksumType,
 	}
@@ -262,4 +263,26 @@ func (s *Server) listMultipartUploads(w http.ResponseWriter, bucket string, q ur
 	}
 	writeXML(w, 200, res)
 	return nil
+}
+
+// completeLocation is the Location a CompleteMultipartUpload reports.
+//
+// Built from the request's host, like every other user-facing URL doze-aws
+// mints — reach it through a name and the answer carries that name. The
+// exception is a PEER: a sibling service calling in has a placeholder host
+// that resolves to nothing, and reporting it back would hand out an address
+// that looks real and reaches nowhere.
+//
+// For a peer there is no host worth reporting, so the answer is AWS's own
+// virtual-hosted form when this instance has a suffix, and a bucket-relative
+// path when it does not. Both are things the caller can act on; neither claims
+// an address that does not exist.
+func (s *Server) completeLocation(r *http.Request, bucket, key string) string {
+	if r != nil && r.Host != "" && !peers.IsPeer(r) {
+		return "http://" + r.Host + "/" + bucket + "/" + key
+	}
+	if s.suffix != "" {
+		return "http://" + bucket + ".s3." + s.id.RegionName() + "." + s.suffix + "/" + key
+	}
+	return "/" + bucket + "/" + key
 }

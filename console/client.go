@@ -53,7 +53,7 @@ func newBackend(dir peers.Directory, id awsident.Identity, suffix string) *backe
 		c:      &http.Client{Transport: fanoutTransport{dir, id, suffix}, Timeout: 30 * time.Second},
 		id:     id,
 		suffix: suffix,
-		base:   "http://console.doze-aws.internal",
+		base:   "http://peer.invalid",
 	}
 }
 

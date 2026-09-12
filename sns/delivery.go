@@ -88,7 +88,7 @@ func (srv *Server) deliverSQS(ctx context.Context, sub Subscription, msgID, topi
 		return
 	}
 	queue := lastSegment(sub.Endpoint)
-	payload := map[string]any{"QueueUrl": "http://sqs.doze-aws.internal/" + srv.id.Account() + "/" + queue}
+	payload := map[string]any{"QueueUrl": "http://peer.invalid/" + srv.id.Account() + "/" + queue}
 	if sub.RawDelivery {
 		payload["MessageBody"] = message
 		if sqsAttrs := toSQSAttrs(attrs); sqsAttrs != nil {
@@ -198,16 +198,22 @@ func (srv *Server) deliverHTTP(sub Subscription, msgID, topicARN, subject, messa
 // sendConfirmation posts a SubscriptionConfirmation to an http(s) endpoint so
 // it can confirm by fetching SubscribeURL (or calling ConfirmSubscription).
 func (srv *Server) sendConfirmation(sub Subscription, host string) {
-	subscribeURL := fmt.Sprintf("http://%s/?Action=ConfirmSubscription&TopicArn=%s&Token=%s",
-		host, url.QueryEscape(sub.TopicARN), url.QueryEscape(sub.Token))
-	payload, _ := json.Marshal(map[string]string{
-		"Type":         "SubscriptionConfirmation",
-		"TopicArn":     sub.TopicARN,
-		"Token":        sub.Token,
-		"Message":      "You have chosen to subscribe to the topic " + sub.TopicARN,
-		"SubscribeURL": subscribeURL,
-		"Timestamp":    srv.now().UTC().Format(time.RFC3339),
-	})
+	body := map[string]string{
+		"Type":      "SubscriptionConfirmation",
+		"TopicArn":  sub.TopicARN,
+		"Token":     sub.Token,
+		"Message":   "You have chosen to subscribe to the topic " + sub.TopicARN,
+		"Timestamp": srv.now().UTC().Format(time.RFC3339),
+	}
+	// SubscribeURL is omitted when there is no host worth reporting — a peer
+	// call, whose host is a placeholder that resolves to nothing. A confirmation
+	// carrying an unreachable SubscribeURL is worse than one carrying none: the
+	// Token is still here, and ConfirmSubscription takes it directly.
+	if host != "" {
+		body["SubscribeURL"] = fmt.Sprintf("http://%s/?Action=ConfirmSubscription&TopicArn=%s&Token=%s",
+			host, url.QueryEscape(sub.TopicARN), url.QueryEscape(sub.Token))
+	}
+	payload, _ := json.Marshal(body)
 	req, err := http.NewRequest(http.MethodPost, sub.Endpoint, bytes.NewReader(payload))
 	if err != nil {
 		srv.logf("sns: confirmation to %s: %v", sub.Endpoint, err)
