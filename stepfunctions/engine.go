@@ -80,10 +80,13 @@ type engine struct {
 	deliveries chan delivery
 	stop       chan struct{}
 	done       chan struct{}
-	stopOnce   sync.Once
-	cancel     context.CancelFunc
-	workerCtx  context.Context // cancelled on close; aborts in-flight peercalls
-	wg         sync.WaitGroup  // transient task workers
+	// dead is closed by die() when the driver panics, so nudge and stopExec
+	// stop waiting on a goroutine that is gone. A panic does not close stop.
+	dead      chan struct{}
+	stopOnce  sync.Once
+	cancel    context.CancelFunc
+	workerCtx context.Context // cancelled on close; aborts in-flight peercalls
+	wg        sync.WaitGroup  // transient task workers
 	// activities wakes GetActivityTask long-polls when the driver queues a
 	// task; the queue itself is in bbolt, this is only the doorbell.
 	activities activityHub
@@ -101,17 +104,15 @@ func newEngine(srv *Server) *engine {
 		deliveries: make(chan delivery, 128),
 		stop:       make(chan struct{}),
 		done:       make(chan struct{}),
+		dead:       make(chan struct{}),
 		cancel:     cancel,
 		workerCtx:  ctx,
 		activities: activityHub{gens: map[string]chan struct{}{}},
 	}
-	go func() {
-		// The single driver: all execution state is mutated here, so a panic
-		// would silently stop every running execution while close() reported a
-		// clean shutdown.
-		defer bg.Recover(g.srv.logf, "stepfunctions: engine driver")
-		g.loop(ctx)
-	}()
+	// The single driver: all execution state is mutated here. Its panic
+	// containment lives in loop itself, registered after loop's own
+	// close(g.done) so it runs first -- see the note there.
+	go g.loop(ctx)
 	return g
 }
 
@@ -130,6 +131,20 @@ func (g *engine) close() {
 	})
 }
 
+// die marks the driver dead after a panic.
+//
+// It is what internal/bg means by "mark the worker dead so enqueue starts
+// REPORTING drops", and this driver is the case the convention exists for. It
+// owns every execution's state, and nudge and stopExec both hand work to it
+// over a buffered channel and otherwise wait on g.stop — which a panic does
+// NOT close. So without this, a dead driver meant: the 128-slot nudge buffer
+// fills, and then every StartExecution blocks forever; stopExec waits on a
+// reply that will never come; and close() returns cleanly, because loop's
+// deferred close(g.done) fires on the panic unwind just as happily as on a
+// clean return. Step Functions would stop answering with no error and no
+// crash.
+func (g *engine) die() { close(g.dead) }
+
 // nudge tells the driver an execution has work. Safe from any goroutine; a
 // nudge lost to shutdown is fine, because restart re-drives every RUNNING
 // execution.
@@ -137,6 +152,12 @@ func (g *engine) nudge(key string) {
 	select {
 	case g.nudges <- key:
 	case <-g.stop:
+	case <-g.dead:
+		// Reported per nudge rather than once: each one is an execution that
+		// will now sit still until the process restarts, and saying so for the
+		// first and staying silent for the rest would understate it.
+		g.srv.logf("stepfunctions: the engine driver is not running (it panicked); "+
+			"execution %s will not advance until doze-aws restarts", key)
 	}
 }
 
@@ -149,11 +170,17 @@ func (g *engine) stopExec(key, errName, cause string) bool {
 	case g.deliveries <- d:
 	case <-g.stop:
 		return false
+	case <-g.dead:
+		return false
 	}
 	select {
 	case <-reply:
 		return true
 	case <-g.stop:
+		return false
+	case <-g.dead:
+		// The driver is the only thing that closes reply, so without this the
+		// wait is forever.
 		return false
 	}
 }

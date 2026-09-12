@@ -2,6 +2,7 @@ package stepfunctions
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/bg"
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/asl"
@@ -16,6 +17,17 @@ import (
 
 func (g *engine) loop(ctx context.Context) {
 	defer close(g.done)
+	// Registered AFTER close(g.done) so it runs BEFORE it — the ordering
+	// internal/bg documents and the reason it does.
+	//
+	// This used to sit in the goroutine that calls loop, which put it on the
+	// wrong side: close(g.done) is deferred inside THIS function, so it ran
+	// first and close() was told the worker had finished before anything knew
+	// it had died. bg.go names that exact mistake: "compiles, runs, and reports
+	// a clean shutdown of a goroutine that just died."
+	//
+	// It also had no cleanup at all, which is the more serious half — see die.
+	defer bg.Recover(g.srv.logf, "stepfunctions: engine driver", g.die)
 
 	// Resume: every RUNNING execution is re-driven exactly the way a nudge
 	// would. Restart is not a special case — that is the point of the
