@@ -123,9 +123,25 @@ func (z *zone) listenOn(l *names.Lease, logger *slog.Logger, port string) net.Li
 	}
 	addr := net.JoinHostPort(l.IP.String(), port)
 	ln, err := net.Listen("tcp", addr)
+	if errors.Is(err, syscall.EADDRINUSE) {
+		// The port is an internal detail. Nobody types it — the front door
+		// serves the name port-less, and URLFor reads whatever port we publish
+		// back out of the registry — so something else holding it is no reason
+		// to refuse to start. Take any free port instead.
+		//
+		// Each instance has its own loopback address, so this is rare: it means
+		// something else on this machine bound THIS address and port, not merely
+		// that another doze-aws is running.
+		var reerr error
+		if ln, reerr = net.Listen("tcp", net.JoinHostPort(l.IP.String(), "0")); reerr == nil {
+			logger.Info("zone: the preferred port was taken, took another",
+				"name", l.Name.Host, "wanted", addr, "using", ln.Addr().String())
+			addr, err = ln.Addr().String(), nil
+		}
+	}
 	if err != nil {
-		// Both causes leave the name resolving to an address that answers
-		// nothing, so say which one it is — the remedies are opposites.
+		// Both remaining causes leave the name resolving to an address that
+		// answers nothing, so say which one it is — the remedies are opposites.
 		hint := "run `doze-aws dns-setup` once to alias the loopback pool"
 		if errors.Is(err, syscall.EADDRINUSE) {
 			hint = "something else already holds " + addr + "; free it, or that name will not work"
@@ -138,7 +154,8 @@ func (z *zone) listenOn(l *names.Lease, logger *slog.Logger, port string) net.Li
 		return nil
 	}
 	z.extras = append(z.extras, ln)
-	// Publish where the front door should send this name.
+	// Publish where the front door should send this name — the address actually
+	// bound, not the one asked for, or a fallback port would route nowhere.
 	if err := l.Route(addr); err != nil {
 		logger.Debug("zone: could not publish the route", "err", err)
 	}

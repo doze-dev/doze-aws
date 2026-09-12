@@ -219,6 +219,48 @@ func TestListenServesTheAddressAndNeverTouchesTheZone(t *testing.T) {
 	}
 }
 
+// A taken port is not a startup failure. Under DNS the port is an internal
+// detail — the front door serves the name port-less, and the registry carries
+// whatever port was actually bound — so refusing to start over one would be
+// refusing over something nobody types.
+//
+// Skips rather than fails where the loopback pool is not aliased: binding
+// 127.0.0.x needs `dns-setup` on macOS, and a machine without it cannot
+// exercise this at all.
+func TestATakenPortTakesAnotherOne(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	z := joinZone(ctx, quietLogger(), "portclash")
+	defer z.close()
+	if z.own == nil {
+		t.Skip("no name claimed")
+	}
+
+	// Hold the preferred port on this instance's own address.
+	blocker, err := net.Listen("tcp", net.JoinHostPort(z.own.IP.String(), namePort))
+	if err != nil {
+		t.Skipf("cannot bind %s (loopback pool not aliased?): %v", z.own.IP, err)
+	}
+	defer blocker.Close() //nolint:errcheck
+
+	ln := z.listenOn(z.own, quietLogger(), namePort)
+	if ln == nil {
+		t.Fatal("a taken port must not stop the name from being served")
+	}
+	if _, port, _ := net.SplitHostPort(ln.Addr().String()); port == namePort {
+		t.Fatalf("bound the blocked port %s", port)
+	}
+
+	// The registry must carry what was actually bound. If it still said :4566
+	// the front door would forward the name straight at the blocker.
+	got := z.reg.Snapshot()[z.own.Name.Host].Target
+	if got != ln.Addr().String() {
+		t.Errorf("registry routes %s to %q, but we are listening on %q",
+			z.own.Name.Host, got, ln.Addr().String())
+	}
+}
+
 // The name is claimed only when --listen was NOT given. Asserting on the
 // registry rather than on a log line, because the registry is what another
 // process reads: a stray entry means `apply` in a sibling directory could pick
