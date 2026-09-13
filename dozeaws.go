@@ -126,6 +126,23 @@ type StackConfig struct {
 	// value means the conventional local identity (us-east-1, 000000000000),
 	// so an embedder that does not care never has to name one.
 	Identity awsident.Identity
+	// Peers wraps the in-process peer directory every service resolves its
+	// siblings through. Nil means no wrapping, which is what every deployment
+	// wants.
+	//
+	// A DECORATOR rather than a replacement, because the wiring itself is not
+	// the interesting part and rebuilding it correctly in a test would be both
+	// tedious and a good way to test something other than the real thing. The
+	// stack still constructs peers.InProcess over its own gateway; this gets to
+	// sit in front of it.
+	//
+	// It exists so cross-service failure can be INJECTED. Every cascade in
+	// doze-aws — a notification reaching Lambda, a Step Functions task calling
+	// SQS, a subscription filter shipping to Kinesis — goes through a
+	// peers.Directory, and until now there was no way to make one of those fail,
+	// hang or vanish. Every such path has therefore only ever been tested on its
+	// success case.
+	Peers func(peers.Directory) peers.Directory
 	// Clock overrides time.Now for every service in the stack. Nil means real
 	// time, which is what every deployment wants.
 	//
@@ -290,6 +307,9 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 	// Peers resolve through the gateway registry at call time, so services
 	// find their siblings regardless of construction order.
 	dir := peers.InProcess(st.gw.Handler)
+	if cfg.Peers != nil {
+		dir = cfg.Peers(dir)
+	}
 	switch name {
 	case "s3":
 		s, err := s3.New(s3.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity, Suffix: cfg.Suffix})

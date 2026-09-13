@@ -184,10 +184,22 @@ func errTreeTooLarge() error {
 	return fmt.Errorf("more than %d files: pass a directory holding just the code, not a whole filesystem", maxTreeEntries)
 }
 
-// treeHash is the content fingerprint of a directory the user edits in
-// place: every file's relative path, size and modification time. A zip has
-// a real CodeSha256; a _local_ directory has this, which is what tells a
-// publish that the code changed since the last version.
+// treeHash is the content fingerprint of a directory the user edits in place:
+// every file's relative path and its BYTES. A zip has a real CodeSha256; a
+// _local_ directory has this, which is what tells a publish that the code
+// changed since the last version.
+//
+// It used to hash the path, the size and the MODIFICATION TIME, which made it
+// a metadata fingerprint wearing a content fingerprint's name, and wrong in
+// both directions. Touching a file without editing it published a new version
+// of identical code; copying or re-cloning a tree changed every mtime and so
+// changed every function's CodeSha256, meaning the same source produced a
+// different answer on a different machine. AWS's CodeSha256 is a hash of the
+// code itself and is reproducible, and callers reasonably assume that.
+//
+// Reading the bytes costs more than a stat. It is bounded by maxTreeEntries,
+// these are function packages rather than data sets, and a fingerprint that is
+// cheap and wrong is not worth having.
 //
 // A tree over maxTreeEntries is an error rather than a truncated hash: two
 // different trees that stopped at the same entry would fingerprint alike,
@@ -203,7 +215,20 @@ func treeHash(dir string) (string, error) {
 			return errTreeTooLarge()
 		}
 		rel, _ := filepath.Rel(dir, p)
-		fmt.Fprintf(h, "%s\x00%d\x00%d\n", rel, info.Size(), info.ModTime().UnixNano())
+		// The path and length are mixed in as well as the bytes, so that moving
+		// content between two files — or splitting one in two — changes the
+		// answer. Hashing bytes alone would not notice either.
+		fmt.Fprintf(h, "%s\x00%d\x00", rel, info.Size())
+		f, err := os.Open(p)
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(h, f)
+		f.Close()
+		if err != nil {
+			return err
+		}
+		fmt.Fprintln(h)
 		return nil
 	})
 	if err != nil {

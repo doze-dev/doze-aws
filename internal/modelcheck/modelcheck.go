@@ -98,10 +98,17 @@ func (p *Pat) compile() {
 	p.once.Do(func() { p.re, p.err = regexp.Compile(p.src) })
 }
 
-// MatchString reports whether the value satisfies the pattern. A pattern that
-// does not compile matches nothing, so a table with a bad entry refuses rather
-// than accepts — but TestEveryPatternCompiles is what actually catches one,
-// before it can reach a request.
+// MatchString reports whether the value satisfies the pattern.
+//
+// A pattern that does not compile matches nothing, and the walker refuses what
+// does not match — so a bad entry refuses EVERY request that sets the member,
+// valid ones included. Fail-closed, which is the right direction, and loud
+// enough that each service's rejection-parity suite catches it: those assert
+// the baseline is accepted before mutating it, and a pattern refusing
+// everything fails that first.
+//
+// TestEveryPatternCompiles (patterns_test.go) covers the rest — a pattern on a
+// member no baseline happens to set, which nothing else would exercise.
 func (p *Pat) MatchString(s string) bool {
 	p.compile()
 	return p.err == nil && p.re.MatchString(s)
