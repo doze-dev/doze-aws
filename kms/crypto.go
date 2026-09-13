@@ -29,11 +29,10 @@ const (
 
 // specInfo describes one supported KeySpec.
 type specInfo struct {
-	usages     []string // allowed usages; first is the default
-	rsaBits    int
-	curve      elliptic.Curve
-	hmacBytes  int
-	signingAlg map[string][]string // usage -> algorithm list advertised by DescribeKey/GetPublicKey
+	usages    []string // allowed usages; first is the default
+	rsaBits   int
+	curve     elliptic.Curve
+	hmacBytes int
 }
 
 var specs = map[string]specInfo{

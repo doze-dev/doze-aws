@@ -21,12 +21,12 @@ jobs:
         working-directory: e2e
         run: |
           bun install --frozen-lockfile
-          bunx playwright install --with-deps chromium
+          bunx --bun playwright install --with-deps chromium
       - name: Run Playwright suite
         working-directory: e2e
         # webServer in playwright.config.ts builds and boots the real
         # binary on a fixed port against an isolated data dir.
-        run: bunx playwright test
+        run: bunx --bun playwright test
       - name: Upload report on failure
         if: failure()
         uses: actions/upload-artifact@v4

@@ -832,19 +832,13 @@ func (b *backend) RenameUser(ctx context.Context, name, newName string) error {
 }
 
 // UpdateRoleMeta writes a role's description and/or session duration
-// (UpdateRole); UpdateRoleDescriptionOnly uses the older single-field op the
-// SDK still ships.
+// (UpdateRole).
 func (b *backend) UpdateRoleMeta(ctx context.Context, name, description string, maxSession int) error {
 	v := url.Values{"RoleName": {name}, "Description": {description}}
 	if maxSession > 0 {
 		v.Set("MaxSessionDuration", strconv.Itoa(maxSession))
 	}
 	_, err := b.iam(ctx, "UpdateRole", v)
-	return err
-}
-
-func (b *backend) UpdateRoleDescriptionOnly(ctx context.Context, name, description string) error {
-	_, err := b.iam(ctx, "UpdateRoleDescription", url.Values{"RoleName": {name}, "Description": {description}})
 	return err
 }
 

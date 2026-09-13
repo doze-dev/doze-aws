@@ -57,9 +57,6 @@ type Path struct {
 	Raw string
 }
 
-// IsRoot reports whether the path selects the whole document.
-func (p Path) IsRoot() bool { return len(p.Segments) == 0 }
-
 // ParsePath parses a reference path. It accepts the dotted form (`$.a.b`), the
 // bracketed form (`$['a']['b']`), array indices (`$.a[0]`), and the context
 // object (`$$.Execution.Name`).

@@ -30,12 +30,11 @@ var (
 // Stack lifecycle statuses. Only terminal ones are ever stored: nothing here
 // is asynchronous, so an IN_PROGRESS stack would be a lie.
 const (
-	StatusCreateComplete   = "CREATE_COMPLETE"
-	StatusUpdateComplete   = "UPDATE_COMPLETE"
-	StatusCreateFailed     = "CREATE_FAILED"
-	StatusUpdateFailed     = "UPDATE_ROLLBACK_COMPLETE"
-	StatusDeleteComplete   = "DELETE_COMPLETE"
-	StatusRollbackComplete = "ROLLBACK_COMPLETE"
+	StatusCreateComplete = "CREATE_COMPLETE"
+	StatusUpdateComplete = "UPDATE_COMPLETE"
+	StatusCreateFailed   = "CREATE_FAILED"
+	StatusUpdateFailed   = "UPDATE_ROLLBACK_COMPLETE"
+	StatusDeleteComplete = "DELETE_COMPLETE"
 	// StatusReviewInProgress is the one non-terminal status that must exist:
 	// real CloudFormation materialises a stack the moment a CREATE change set
 	// is made, and deploy tools poll its events before executing. Without it,
@@ -269,20 +268,6 @@ func (s *Store) Exports() (map[string]string, error) {
 		}
 	}
 	return out, nil
-}
-
-// ExportOwner reports which stack exports a name, for the conflict check on
-// create and the dependency check on delete.
-func (s *Store) ExportOwner(export string) (string, bool) {
-	stacks, _ := s.ListStacks()
-	for _, st := range stacks {
-		for _, o := range st.Outputs {
-			if o.ExportName == export {
-				return st.Name, true
-			}
-		}
-	}
-	return "", false
 }
 
 // ---- change sets ----

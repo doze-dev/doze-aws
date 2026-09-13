@@ -152,7 +152,13 @@ just as happily standalone.
 curl -fsSL https://raw.githubusercontent.com/doze-dev/doze-aws/main/install.sh | sh
 ```
 
-Or build from source: `go build ./cmd/doze-aws` (Go 1.26+).
+Or build from source: `go build ./cmd/doze-aws` (Go 1.27+).
+
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md) covers the build loop (`go tool task check`,
+~60s), the eight places a new service has to register itself, and what each
+tier of test is for.
 
 ## License
 

@@ -442,11 +442,6 @@ func sortedBytes(bs [][]byte) [][]byte {
 	return out
 }
 
-// TypeName renders the human-facing type name used in error messages.
-func (v Value) TypeName() string {
-	return string(v.Type)
-}
-
 // DebugString renders a compact human-readable form (admin/inspection).
 func (v Value) DebugString() string {
 	switch v.Type {

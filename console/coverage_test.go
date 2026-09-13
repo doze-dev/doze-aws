@@ -193,6 +193,13 @@ var exempt = map[string]map[string]exemption{
 			"on AWS as here; the key page reads it with GetKeyPolicy. Listing " +
 			"the one name would be a request whose answer we already know."},
 	},
+	"iam": {
+		"UpdateRoleDescription": {redundant, "UpdateRole, which the role's settings form calls, " +
+			"writes the description and the max session duration together. This is the older " +
+			"single-field spelling; the console had a backend method for it that nothing " +
+			"called, reaching the wire from no surface at all, which is coverage on paper " +
+			"rather than a thing a person can do"},
+	},
 	"kinesis": {
 		"DescribeStream": {redundant, "the console reads DescribeStreamSummary + ListShards " +
 			"instead. AWS caps DescribeStream's inline shard list and paginates it " +

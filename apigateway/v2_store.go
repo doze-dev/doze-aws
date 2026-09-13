@@ -6,10 +6,7 @@ package apigateway
 // keyed by id the way the v2 API addresses them.
 
 import (
-	"encoding/json"
 	"strings"
-
-	bolt "go.etcd.io/bbolt"
 )
 
 // CORSConfig is the API's CORS configuration; the data plane answers
@@ -55,9 +52,6 @@ type V2Integration struct {
 	CredentialsARN       string                       `json:"credentials_arn,omitempty"`
 	RequestParameters    map[string]string            `json:"request_parameters,omitempty"`
 	ResponseParameters   map[string]map[string]string `json:"response_parameters,omitempty"`
-	// Subtype is the AWS service integration kind (e.g. SQS-SendMessage),
-	// stored so the record round-trips; the data plane refuses to run it.
-	Subtype string `json:"subtype,omitempty"`
 }
 
 // V2Authorizer is a REQUEST Lambda authorizer for an HTTP API (JWT
@@ -147,27 +141,6 @@ func (s *Store) ListProtocol(protocol string) ([]RestAPI, error) {
 		}
 	}
 	return out, nil
-}
-
-// CountHTTP reports how many HTTP APIs exist, for the console badge.
-func (s *Store) CountHTTP() int {
-	n := 0
-	s.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket(apiBucket)
-		if b == nil {
-			return nil
-		}
-		return b.ForEach(func(_, raw []byte) error {
-			var probe struct {
-				Protocol string `json:"protocol"`
-			}
-			if json.Unmarshal(raw, &probe) == nil && probe.Protocol == "HTTP" {
-				n++
-			}
-			return nil
-		})
-	})
-	return n
 }
 
 // routeKeyParts splits "GET /items/{id}" into its method and path; "$default"

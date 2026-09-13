@@ -365,16 +365,6 @@ func rebuildPaths(api *RestAPI) {
 	walk(root)
 }
 
-// FindByPath returns the resource with an exact path, if any.
-func (api *RestAPI) FindByPath(path string) *Resource {
-	for _, r := range api.Resources {
-		if r.Path == path {
-			return r
-		}
-	}
-	return nil
-}
-
 // ---- ids ----
 
 // newID generates the 10-character lowercase alphanumeric id API Gateway uses.

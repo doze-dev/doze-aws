@@ -3,10 +3,8 @@ package console
 import (
 	"context"
 	"encoding/xml"
-	"net/http"
 	"sort"
 	"strconv"
-	"strings"
 )
 
 // ---- flow graph: the live wiring map ----
@@ -16,22 +14,11 @@ import (
 // redrive policies. Laid out by service column in the template.
 
 type FlowNode struct {
-	ID      string // stable: "sqs:orders"
-	Svc     string // s3 | sns | sqs | eb | lambda
-	Name    string
-	Sub     string // small caption ("2 msgs", "1 sub")
-	X, Y    int    // absolute layout position (px), assigned per flow band
-	Unwired bool   // no edges touch it
-	URL     string
-}
-
-// FlowDiagram is one independent connected flow, rendered as its own card with
-// a self-contained SVG (local coordinates).
-type FlowDiagram struct {
-	Label string
-	Nodes []FlowNode // local coordinates within this card's SVG
-	Edges []FlowEdge // edges internal to this flow
-	W, H  int
+	ID   string // stable: "sqs:orders"
+	Svc  string // s3 | sns | sqs | eb | lambda
+	Name string
+	Sub  string // small caption ("2 msgs", "1 sub")
+	URL  string
 }
 
 type FlowEdge struct {
@@ -41,12 +28,30 @@ type FlowEdge struct {
 	Hot  bool   // carried traffic recently (best-effort: has depth/invocations)
 }
 
+// FlowGraph is the wiring map: every resource, every connection between two of
+// them, and the ones nothing is wired to.
+//
+// It used to carry a LAYOUT — nodes grouped into connected flows, each with
+// per-node pixel coordinates from a depth pass and three barycentric ordering
+// sweeps, a generated label naming the flow's endpoints, and an SVG width and
+// height. That existed for a Flows page which was deleted, and the geometry has
+// been computed and discarded on every graph build since. The two consumers
+// that remain never wanted it:
+//
+//	Neighbors   walks the edges to find a resource's 1-hop wiring. It indexed
+//	            nodes by id and matched edges by endpoint, so which flow an
+//	            edge sat in, and where it was drawn, changed nothing.
+//	glance      shows Unwired as chips, and reads NodeCount.
+//
+// Unwired is still derived by connected components rather than "has no
+// incident edge". The two differ on exactly one case — a resource wired to
+// ITSELF, a queue whose redrive target is itself — where the component is
+// still of size one. Keeping the component pass keeps that answer unchanged.
 type FlowGraph struct {
-	Diagrams  []FlowDiagram // one per independent flow
-	Unwired   []FlowNode    // unconnected resources (chips)
+	Nodes     []FlowNode // every node, for lookup by id
+	Edges     []FlowEdge // every edge between two known nodes
+	Unwired   []FlowNode // resources nothing is wired to
 	NodeCount int
-	Conns     int
-	Flows     int
 }
 
 func nodeID(svc, name string) string { return svc + ":" + name }
@@ -180,24 +185,15 @@ func (b *backend) BuildGraph(ctx context.Context) FlowGraph {
 			edges[i].Hot = true
 		}
 	}
-	return layoutFlows(nodes, edges)
+	return collectGraph(nodes, edges)
 }
 
-// layout geometry
-const (
-	flColW    = 208 // horizontal step between chain depths
-	flNodeW   = 176
-	flNodeH   = 46
-	flRowH    = 62 // vertical step between siblings in a band
-	flBandGap = 30
-	flTop     = 44 // room for the first band label
-	flPadX    = 20
-)
-
-// layoutFlows groups the graph into independent connected flows and lays each
-// out as its own band: left→right by chain depth, siblings stacked. Unconnected
-// resources collect into a final "Not connected" band.
-func layoutFlows(nodes map[string]*FlowNode, edges []FlowEdge) FlowGraph {
+// collectGraph turns the crawled nodes and edges into a FlowGraph, separating
+// out the resources nothing is wired to.
+//
+// Connected components, not "has no incident edge": see the note on FlowGraph
+// for the one case where those differ.
+func collectGraph(nodes map[string]*FlowNode, edges []FlowEdge) FlowGraph {
 	ids := make([]string, 0, len(nodes))
 	for id := range nodes {
 		ids = append(ids, id)
@@ -220,262 +216,28 @@ func layoutFlows(nodes map[string]*FlowNode, edges []FlowEdge) FlowGraph {
 	for _, id := range ids {
 		find(id)
 	}
+	var kept []FlowEdge
 	for _, e := range edges {
 		if nodes[e.From] != nil && nodes[e.To] != nil {
 			union(e.From, e.To)
+			kept = append(kept, e)
 		}
 	}
-	comps := map[string][]string{}
+	size := map[string]int{}
 	for _, id := range ids {
-		r := find(id)
-		comps[r] = append(comps[r], id)
+		size[find(id)]++
 	}
 
-	// depth = longest path from a source (in-degree 0) within the component
-	depthMemo := map[string]int{}
-	var depth func(string, map[string]bool) int
-	depth = func(id string, seen map[string]bool) int {
-		if d, ok := depthMemo[id]; ok {
-			return d
-		}
-		if seen[id] {
-			return 0 // break cycles
-		}
-		seen[id] = true
-		best := 0
-		// depth = 1 + max depth of predecessors; compute via reverse — easier to
-		// derive from successors' perspective, so compute forward here:
-		for _, e := range edges {
-			if e.To == id && nodes[e.From] != nil {
-				if d := depth(e.From, seen) + 1; d > best {
-					best = d
-				}
-			}
-		}
-		delete(seen, id)
-		depthMemo[id] = best
-		return best
-	}
-
-	// order components: multi-node flows first (by size desc), singletons last
-	type comp struct {
-		root  string
-		ids   []string
-		multi bool
-	}
-	var list []comp
-	for r, cids := range comps {
-		list = append(list, comp{r, cids, len(cids) > 1})
-	}
-	sort.Slice(list, func(i, j int) bool {
-		if list[i].multi != list[j].multi {
-			return list[i].multi
-		}
-		if len(list[i].ids) != len(list[j].ids) {
-			return len(list[i].ids) > len(list[j].ids)
-		}
-		return list[i].root < list[j].root
-	})
-
-	var diagrams []FlowDiagram
-	var singles []string // unwired singletons
-	nodeCount := 0
-
-	for _, c := range list {
-		if !c.multi {
-			singles = append(singles, c.ids...)
-			continue
-		}
-		// each flow gets its own SVG with LOCAL coordinates (origin at 0,0).
-		// Nodes go into columns by chain depth; rows within a column are
-		// ordered by the barycenter of their neighbors' rows so edges run
-		// roughly parallel instead of crossing.
-		byCol := map[int][]string{}
-		maxRows, maxCol := 0, 0
-		for _, id := range c.ids {
-			col := depth(id, map[string]bool{})
-			byCol[col] = append(byCol[col], id)
-			if col > maxCol {
-				maxCol = col
-			}
-		}
-		rowOf := map[string]int{}
-		for col := 0; col <= maxCol; col++ {
-			sort.Slice(byCol[col], func(i, j int) bool { return nodes[byCol[col][i]].Name < nodes[byCol[col][j]].Name })
-			for row, id := range byCol[col] {
-				rowOf[id] = row
-			}
-		}
-		bary := func(id string, incoming bool) (float64, bool) {
-			sum, n := 0.0, 0
-			for _, e := range edges {
-				if incoming && e.To == id && nodes[e.From] != nil {
-					sum += float64(rowOf[e.From])
-					n++
-				}
-				if !incoming && e.From == id && nodes[e.To] != nil {
-					sum += float64(rowOf[e.To])
-					n++
-				}
-			}
-			if n == 0 {
-				return 0, false
-			}
-			return sum / float64(n), true
-		}
-		reorder := func(col int, incoming bool) {
-			ids := byCol[col]
-			sort.SliceStable(ids, func(i, j int) bool {
-				bi, oki := bary(ids[i], incoming)
-				bj, okj := bary(ids[j], incoming)
-				if oki && okj && bi != bj {
-					return bi < bj
-				}
-				if oki != okj {
-					return okj // unconnected-within-direction nodes sink to the bottom
-				}
-				return rowOf[ids[i]] < rowOf[ids[j]]
-			})
-			for row, id := range ids {
-				rowOf[id] = row
-			}
-		}
-		// sweep right pulling nodes toward their feeders, then left toward
-		// their readers, then right once more to settle
-		for col := 1; col <= maxCol; col++ {
-			reorder(col, true)
-		}
-		for col := maxCol - 1; col >= 0; col-- {
-			reorder(col, false)
-		}
-		for col := 1; col <= maxCol; col++ {
-			reorder(col, true)
-		}
-		diagNodes := make([]FlowNode, 0, len(c.ids))
-		for col := 0; col <= maxCol; col++ {
-			if len(byCol[col]) > maxRows {
-				maxRows = len(byCol[col])
-			}
-			for _, id := range byCol[col] {
-				n := *nodes[id]
-				n.X = flPadX + col*flColW
-				n.Y = 12 + rowOf[id]*flRowH
-				diagNodes = append(diagNodes, n)
-			}
-		}
-		// edges internal to this flow
-		inFlow := map[string]bool{}
-		for _, id := range c.ids {
-			inFlow[id] = true
-		}
-		var diagEdges []FlowEdge
-		for _, e := range edges {
-			if inFlow[e.From] && inFlow[e.To] {
-				diagEdges = append(diagEdges, e)
-			}
-		}
-		diagrams = append(diagrams, FlowDiagram{
-			Label: flowLabel(nodes, c.ids, edges), Nodes: diagNodes, Edges: diagEdges,
-			W: flPadX + (maxCol+1)*flColW - (flColW - flNodeW) + flPadX,
-			H: 12 + maxRows*flRowH + 8,
-		})
-		nodeCount += len(c.ids)
-	}
-
-	// unconnected resources as chips
-	sort.Slice(singles, func(i, j int) bool { return nodes[singles[i]].Name < nodes[singles[j]].Name })
-	unwired := make([]FlowNode, 0, len(singles))
-	for _, id := range singles {
+	out := FlowGraph{Edges: kept, NodeCount: len(ids)}
+	for _, id := range ids {
 		n := *nodes[id]
-		n.Unwired = true
-		unwired = append(unwired, n)
-	}
-	nodeCount += len(unwired)
-
-	return FlowGraph{
-		Diagrams: diagrams, Unwired: unwired,
-		NodeCount: nodeCount, Conns: len(edges), Flows: len(diagrams),
-	}
-}
-
-// flowLabel names a flow by its endpoints — the longest source→sink chain
-// through the component ("uploads → resize → audit"), which says what the flow
-// does instead of naming it after one arbitrary member.
-func flowLabel(nodes map[string]*FlowNode, ids []string, edges []FlowEdge) string {
-	inFlow := map[string]bool{}
-	for _, id := range ids {
-		inFlow[id] = true
-	}
-	hasIncoming := map[string]bool{}
-	succ := map[string][]string{}
-	for _, e := range edges {
-		if inFlow[e.From] && inFlow[e.To] {
-			hasIncoming[e.To] = true
-			succ[e.From] = append(succ[e.From], e.To)
+		out.Nodes = append(out.Nodes, n)
+		if size[find(id)] == 1 {
+			out.Unwired = append(out.Unwired, n)
 		}
 	}
-	// longest path from a source (memoized; cycles cut by the seen set)
-	memo := map[string][]string{}
-	var chain func(string, map[string]bool) []string
-	chain = func(id string, seen map[string]bool) []string {
-		if c, ok := memo[id]; ok {
-			return c
-		}
-		if seen[id] {
-			return []string{id}
-		}
-		seen[id] = true
-		var longest []string
-		for _, nxt := range succ[id] {
-			if c := chain(nxt, seen); len(c) > len(longest) {
-				longest = c
-			}
-		}
-		delete(seen, id)
-		out := append([]string{id}, longest...)
-		memo[id] = out
-		return out
-	}
-	// the label is the LONGEST source→sink chain; ties break toward the
-	// upstream-most service kind, then name
-	rank := map[string]int{"s3": 0, "sns": 1, "eb": 2, "lambda": 3, "sqs": 4}
-	var path []string
-	bestSrc := ""
-	for _, id := range ids {
-		if hasIncoming[id] {
-			continue // not a source
-		}
-		c := chain(id, map[string]bool{})
-		better := len(c) > len(path) ||
-			(len(c) == len(path) && (bestSrc == "" || rank[nodes[id].Svc] < rank[nodes[bestSrc].Svc] ||
-				(rank[nodes[id].Svc] == rank[nodes[bestSrc].Svc] && nodes[id].Name < nodes[bestSrc].Name)))
-		if better {
-			path, bestSrc = c, id
-		}
-	}
-	if len(path) == 0 { // all nodes have incoming (cycle) — fall back to first
-		for _, id := range ids {
-			if bestSrc == "" || nodes[id].Name < nodes[bestSrc].Name {
-				bestSrc = id
-			}
-		}
-		path = chain(bestSrc, map[string]bool{})
-	}
-	names := make([]string, 0, len(path))
-	for _, id := range path {
-		if n := nodes[id]; n != nil {
-			names = append(names, n.Name)
-		}
-	}
-	switch {
-	case len(names) == 0:
-		return "flow"
-	case len(names) == 1:
-		return names[0]
-	case len(names) > 3: // keep the header scannable: ends + an ellipsis
-		return names[0] + " → … → " + names[len(names)-1]
-	}
-	return strings.Join(names, " → ")
+	sort.Slice(out.Unwired, func(i, j int) bool { return out.Unwired[i].Name < out.Unwired[j].Name })
+	return out
 }
 
 // Neighbor is one adjacent resource in a Connections view.
@@ -497,38 +259,30 @@ type Neighborhood struct {
 func (b *backend) Neighbors(ctx context.Context, svc, name string) Neighborhood {
 	g := b.graphCached(ctx)
 	self := nodeID(svc, name)
-	// index nodes across all diagrams + unwired for name/svc lookup
-	byID := map[string]FlowNode{}
-	for _, d := range g.Diagrams {
-		for _, n := range d.Nodes {
-			byID[n.ID] = n
-		}
-	}
-	for _, n := range g.Unwired {
+	byID := make(map[string]FlowNode, len(g.Nodes))
+	for _, n := range g.Nodes {
 		byID[n.ID] = n
 	}
 	var nb Neighborhood
 	seen := map[string]bool{}
-	for _, d := range g.Diagrams {
-		for _, e := range d.Edges {
-			if e.From == self && !seen["d"+e.To] {
-				seen["d"+e.To] = true
-				if n, ok := byID[e.To]; ok {
-					// n.URL, not nodeURL(n.Svc, n.Name): the node's URL was
-					// resolved from its QUALIFIED key when the graph was built,
-					// and the display name is lossy — an eb rule's name is
-					// "orders" while its key is "default/orders", so
-					// re-resolving from the name minted /eb/orders, a bus page
-					// for a bus that does not exist. Every rule chip in every
-					// wiring strip linked there.
-					nb.Downstream = append(nb.Downstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: n.URL})
-				}
+	for _, e := range g.Edges {
+		if e.From == self && !seen["d"+e.To] {
+			seen["d"+e.To] = true
+			if n, ok := byID[e.To]; ok {
+				// n.URL, not nodeURL(n.Svc, n.Name): the node's URL was
+				// resolved from its QUALIFIED key when the graph was built,
+				// and the display name is lossy — an eb rule's name is
+				// "orders" while its key is "default/orders", so
+				// re-resolving from the name minted /eb/orders, a bus page
+				// for a bus that does not exist. Every rule chip in every
+				// wiring strip linked there.
+				nb.Downstream = append(nb.Downstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: n.URL})
 			}
-			if e.To == self && !seen["u"+e.From] {
-				seen["u"+e.From] = true
-				if n, ok := byID[e.From]; ok {
-					nb.Upstream = append(nb.Upstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: n.URL})
-				}
+		}
+		if e.To == self && !seen["u"+e.From] {
+			seen["u"+e.From] = true
+			if n, ok := byID[e.From]; ok {
+				nb.Upstream = append(nb.Upstream, Neighbor{Svc: n.Svc, Name: n.Name, Kind: e.Kind, URL: n.URL})
 			}
 		}
 	}
@@ -592,5 +346,3 @@ func plural(n int, unit string) string {
 	}
 	return strconv.Itoa(n) + " " + unit + "s"
 }
-
-var _ = http.MethodGet

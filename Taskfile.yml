@@ -66,7 +66,7 @@ tasks:
         fi
 
   check:
-    desc: 'Pre-push gate (~40s): gofmt, vet, deadcode and the unit tests. Wire it as a git pre-push hook (task hooks:install).'
+    desc: 'Pre-push gate (~60s): gofmt, vet, deadcode and the unit tests. Wire it as a git pre-push hook (task hooks:install).'
     cmds:
       # Deliberately the FAST stage. It used to run the full race suite, which
       # is five to six minutes before every push — long enough that the honest

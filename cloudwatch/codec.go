@@ -33,7 +33,6 @@ import (
 // segment and the JSON target prefix, so it is spelled once here.
 const (
 	serviceName = "GraniteServiceVersion20100801"
-	apiVersion  = "2010-08-01"
 	xmlNS       = "http://monitoring.amazonaws.com/doc/2010-08-01/"
 )
 
