@@ -331,6 +331,9 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 		s.recordFailure(name, body, params, tags, isUpdate, err.Error())
 		return nil, errValidation("%v", err)
 	}
+	if aerr := s.refuseExportConflict(tmpl, name, params, exports); aerr != nil {
+		return nil, aerr
+	}
 
 	now := s.now().Unix()
 	prev, _ := s.store.GetStack(name)
@@ -881,6 +884,43 @@ func toAnyMap[T any](m map[string]T) map[string]any {
 }
 
 // exportNameOf re-evaluates an output's Export.Name, which may be an intrinsic.
+// refuseExportConflict rejects a deploy that would claim an export name another
+// stack already owns.
+//
+// An export name is account-wide and belongs to exactly one stack — that is
+// what makes Fn::ImportValue unambiguous. Without this the second stack simply
+// took the name, and `Exports()` (last writer by iteration order) then resolved
+// every importer to whichever of the two it happened to see last. Two stacks
+// silently sharing an export is worse than either failing, because the symptom
+// lands in a third stack that imports it.
+//
+// Checked after transpile, because an export name may itself be an intrinsic
+// and has to be evaluated first, and BEFORE provision.Apply, so a refused
+// deploy creates nothing. AWS surfaces this asynchronously as a stack event and
+// a rollback; this service is synchronous by design (see service.go), so it is
+// the same refusal at the only moment this service has.
+func (s *Server) refuseExportConflict(tmpl *Template, name string, params, exports map[string]string) *awshttp.APIError {
+	// Sorted: a template with two conflicting exports must name the same one
+	// every run, or the error message depends on map iteration order.
+	outputs := make([]string, 0, len(tmpl.Outputs))
+	for out := range tmpl.Outputs {
+		outputs = append(outputs, out)
+	}
+	sort.Strings(outputs)
+
+	for _, out := range outputs {
+		ev, err := exportNameOf(s.id, tmpl, out, params, exports, name)
+		if err != nil || ev == "" {
+			continue
+		}
+		// owner != name: a stack updating itself already owns its exports.
+		if owner, ok := s.store.ExportOwner(ev); ok && owner != name {
+			return errValidation("Export with name %s is already exported by stack %s.", ev, owner)
+		}
+	}
+	return nil
+}
+
 func exportNameOf(ident awsident.Identity, t *Template, output string, params map[string]string, exports map[string]string, stackName string) (string, error) {
 	decl := t.Outputs[output]
 	if decl.ExportName == nil {

@@ -383,6 +383,19 @@ func writeDenied(w http.ResponseWriter, e *awshttp.APIError) {
 // it isn't enabled — useful for mounting a service on its own listener.
 func (s *Stack) Service(name string) http.Handler { return s.gw.Handler(name) }
 
+// Identity is the region and account this stack mints ARNs for — the
+// StackConfig value, or the conventional local identity when that was the zero
+// value.
+//
+// Exported because two things an embedder assembles AROUND a stack now require
+// the SAME identity it was built with, and getting it wrong is quiet rather
+// than loud: console.NewRecorder classifies a queue URL by its account prefix,
+// so a recorder given the wrong account labels SQS traffic as S3, and
+// provision.Apply mints ARNs that are SENT to the stack. Before this an
+// embedder had to remember what it passed to NewStack and pass the same thing
+// again; now it can ask.
+func (s *Stack) Identity() awsident.Identity { return s.id }
+
 // SetTraceSink tells services that do their own polling where to report the
 // work a queued message caused.
 //

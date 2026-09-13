@@ -270,6 +270,26 @@ func (s *Store) Exports() (map[string]string, error) {
 	return out, nil
 }
 
+// ExportOwner reports which stack exports a name.
+//
+// An export name is account-wide and belongs to exactly one stack: that is what
+// makes `Fn::ImportValue` unambiguous, and why AWS refuses a deploy that would
+// claim a name another stack already owns.
+func (s *Store) ExportOwner(export string) (string, bool) {
+	stacks, err := s.ListStacks()
+	if err != nil {
+		return "", false
+	}
+	for _, st := range stacks {
+		for _, o := range st.Outputs {
+			if o.ExportName == export {
+				return st.Name, true
+			}
+		}
+	}
+	return "", false
+}
+
 // ---- change sets ----
 
 func changeSetKey(stack, name string) string { return stack + "\x00" + name }

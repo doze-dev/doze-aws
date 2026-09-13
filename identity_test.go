@@ -261,3 +261,40 @@ func call(t *testing.T, base, target, body string) string {
 	}
 	return string(out)
 }
+
+// Stack.Identity reports what the stack actually mints with, including the
+// zero-value case where it resolves to the conventional local identity.
+//
+// It exists because console.NewRecorder and provision.Apply both take an
+// identity that must MATCH the stack's, and both fail quietly when it does not
+// — a recorder with the wrong account labels SQS traffic as S3, because it
+// recognises a queue URL by its account prefix. An embedder that has to
+// remember what it passed to NewStack will eventually not.
+func TestStackReportsTheIdentityItMintsWith(t *testing.T) {
+	t.Run("configured", func(t *testing.T) {
+		want := awsident.Identity{Region: "ap-south-1", AccountID: "811690671382"}
+		st, err := dozeaws.NewStack(dozeaws.StackConfig{
+			DataDir: t.TempDir(), Identity: want, Logf: func(string, ...any) {}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer st.Close()
+		if got := st.Identity(); got != want {
+			t.Errorf("Identity() = %+v, want %+v", got, want)
+		}
+	})
+
+	t.Run("zero value resolves to the local default", func(t *testing.T) {
+		st, err := dozeaws.NewStack(dozeaws.StackConfig{
+			DataDir: t.TempDir(), Logf: func(string, ...any) {}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer st.Close()
+		id := st.Identity()
+		if id.RegionName() != awsident.Region || id.Account() != awsident.AccountID {
+			t.Errorf("Identity() = %s/%s, want the defaults %s/%s",
+				id.RegionName(), id.Account(), awsident.Region, awsident.AccountID)
+		}
+	})
+}
