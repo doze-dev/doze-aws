@@ -139,7 +139,7 @@ type API struct {
 // whose fields marshal into the {Action}Result element's children; pass nil
 // for actions that have no result element.
 func (a API) WriteResult(w http.ResponseWriter, action string, result any) {
-	reqID := awshttp.RequestID()
+	reqID := awshttp.ResponseID(w)
 	body, err := a.renderResult(action, result, reqID)
 	if err != nil {
 		a.WriteError(w, awshttp.AsAPIError(fmt.Errorf("marshal %s result: %w", action, err)))
@@ -180,7 +180,8 @@ func (a API) WriteError(w http.ResponseWriter, e *awshttp.APIError) {
 	if e.SenderFault {
 		fault = "Sender"
 	}
-	reqID := awshttp.RequestID()
+	reqID := awshttp.ResponseID(w)
+	awshttp.NoteFault(reqID, e)
 	w.Header().Set("Content-Type", "text/xml")
 	w.Header().Set("x-amzn-RequestId", reqID)
 	w.WriteHeader(e.Status)

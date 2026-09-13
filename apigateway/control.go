@@ -40,7 +40,7 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("x-amzn-RequestId", awshttp.RequestID())
+	w.Header().Set("x-amzn-RequestId", awshttp.ResponseID(w))
 	w.WriteHeader(status)
 	w.Write(body)
 }
@@ -48,8 +48,10 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 func writeError(w http.ResponseWriter, e *awshttp.APIError) {
 	body, _ := json.Marshal(map[string]string{"message": e.Message})
 	w.Header().Set("Content-Type", "application/json")
+	id := awshttp.ResponseID(w)
+	awshttp.NoteFault(id, e)
 	w.Header().Set("x-amzn-ErrorType", e.Code)
-	w.Header().Set("x-amzn-RequestId", awshttp.RequestID())
+	w.Header().Set("x-amzn-RequestId", id)
 	w.WriteHeader(e.Status)
 	w.Write(body)
 }

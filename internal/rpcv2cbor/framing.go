@@ -98,7 +98,7 @@ func Write(w http.ResponseWriter, result any) {
 	}
 	w.Header().Set("Content-Type", ContentType)
 	w.Header().Set(ProtocolHeader, ProtocolID)
-	w.Header().Set("x-amzn-RequestId", awshttp.RequestID())
+	w.Header().Set("x-amzn-RequestId", awshttp.ResponseID(w))
 	w.WriteHeader(200)
 	_, _ = w.Write(body)
 }
@@ -125,9 +125,11 @@ func WriteError(w http.ResponseWriter, e *awshttp.APIError, queryCode string, wa
 		// falls back to.
 		body = []byte{0xa0}
 	}
+	id := awshttp.ResponseID(w)
+	awshttp.NoteFault(id, e)
 	w.Header().Set("Content-Type", ContentType)
 	w.Header().Set(ProtocolHeader, ProtocolID)
-	w.Header().Set("x-amzn-RequestId", awshttp.RequestID())
+	w.Header().Set("x-amzn-RequestId", id)
 	if wantsQuery && queryCode != "" {
 		w.Header().Set(QueryErrorHeader, queryCode+";"+fault)
 	}

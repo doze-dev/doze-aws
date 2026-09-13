@@ -19,7 +19,7 @@ const s3NS = "http://s3.amazonaws.com/doc/2006-03-01/"
 // writeXML renders an XML document with the standard header and request id.
 func writeXML(w http.ResponseWriter, status int, doc any) {
 	w.Header().Set("Content-Type", "application/xml")
-	w.Header().Set("x-amz-request-id", awshttp.RequestID())
+	w.Header().Set("x-amz-request-id", awshttp.ResponseID(w))
 	w.WriteHeader(status)
 	io.WriteString(w, xml.Header)
 	enc := xml.NewEncoder(w)
@@ -37,10 +37,16 @@ func writeS3Error(w http.ResponseWriter, e *awshttp.APIError) {
 		Message   string   `xml:"Message"`
 		RequestID string   `xml:"RequestId"`
 	}
+	// The header as well as the element. The error path used to set only the
+	// element, so a client reading x-amz-request-id off a failure — which is
+	// when you actually want it — found nothing. AWS sends both.
+	id := awshttp.ResponseID(w)
+	awshttp.NoteFault(id, e)
 	w.Header().Set("Content-Type", "application/xml")
+	w.Header().Set("x-amz-request-id", id)
 	w.WriteHeader(e.Status)
 	io.WriteString(w, xml.Header)
-	_ = xml.NewEncoder(w).Encode(errDoc{Code: e.Code, Message: e.Message, RequestID: awshttp.RequestID()})
+	_ = xml.NewEncoder(w).Encode(errDoc{Code: e.Code, Message: e.Message, RequestID: id})
 	io.WriteString(w, "\n")
 }
 

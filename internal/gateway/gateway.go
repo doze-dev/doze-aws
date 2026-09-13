@@ -235,6 +235,16 @@ func (g *Gateway) Register(service string, h http.Handler) {
 func (g *Gateway) Handler(service string) http.Handler { return g.handlers[service] }
 
 func (g *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// One request id, minted here because this is the only place every client
+	// request passes through, and carried on BOTH the response writer (for the
+	// protocol writers, which take no request) and the context (for everything
+	// that holds one). Before this, each writer minted its own at the moment it
+	// wrote a header, so the id on the wire existed nowhere else.
+	//
+	// Ahead of the expiry check below on purpose: a rejected request is exactly
+	// the kind a user quotes an id from.
+	w, r, _ = awshttp.WithRequestID(w, r)
+
 	// Presigned-URL expiry is enforced centrally: it applies to any service and
 	// is the one signature check a local emulator genuinely benefits from.
 	if present, expired := sigparse.PresignedExpiry(r.URL.Query(), g.now()); present && expired {

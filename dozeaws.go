@@ -179,6 +179,14 @@ func NewStack(cfg StackConfig) (*Stack, error) {
 	awshttp.SetInternalFaultHandler(func(err error) {
 		logf("doze-aws: internal fault (answered 500): %v", err)
 	})
+	// The other half of that line. The fault hook has the cause but not the
+	// request; this one has the request id but not the cause, because it fires
+	// where the response is written. Together a 500 puts both in the log, and
+	// the id is the half a user can actually quote back at you — it is the one
+	// the SDK prints and the console's Traffic row now carries.
+	awshttp.SetFaultResponseHandler(func(id string, e *awshttp.APIError) {
+		logf("doze-aws: answered %d %s — request id %s", e.Status, e.Code, id)
+	})
 
 	gw := gateway.New(gateway.Options{Logf: logf, Identity: cfg.Identity, Suffix: cfg.Suffix})
 	st := &Stack{gw: gw, id: cfg.Identity, suffix: cfg.Suffix}

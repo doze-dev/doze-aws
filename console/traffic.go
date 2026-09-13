@@ -82,6 +82,10 @@ type TrafficEntry struct {
 	Host     string
 	CT       string // Content-Type
 	Target   string // X-Amz-Target
+	// RequestID is the id this call answered with — the same value the SDK
+	// surfaces in an error and the server logs on a 500. It is what turns "my
+	// call failed with request id 7f3a…" into a row on this page.
+	RequestID string
 
 	// Parent is the Seq of the call that caused this one, for internal work
 	// the gateway never saw. Zero for anything a client asked for directly.
@@ -168,7 +172,23 @@ func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		RespBody: redact(sw.captured.String()), RespCT: sw.Header().Get("Content-Type"),
 		Method: r.Method, Path: r.URL.RequestURI(), Host: r.Host,
 		CT: r.Header.Get("Content-Type"), Target: r.Header.Get("X-Amz-Target"),
+		// Read back off the response rather than plumbed in: the gateway mints
+		// the id and the protocol writer stamps it, and this recorder sits
+		// OUTSIDE the gateway, so the header is where the two meet. Two names
+		// because AWS uses two — S3 says x-amz-request-id, everything else
+		// says x-amzn-RequestId.
+		RequestID: firstHeader(sw.Header(), "x-amzn-RequestId", "x-amz-request-id"),
 	})
+}
+
+// firstHeader returns the first of names that h carries a value for.
+func firstHeader(h http.Header, names ...string) string {
+	for _, n := range names {
+		if v := h.Get(n); v != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 // reserve allocates a sequence number ahead of the work it identifies.

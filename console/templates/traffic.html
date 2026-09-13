@@ -102,6 +102,7 @@
 </div>
 <div class="td-sec">
   <div class="td-k">Response{{if .E.RespCT}} · {{.E.RespCT}}{{end}}</div>
+  {{if .E.RequestID}}<p class="mini-note">Request id <span class="mono">{{.E.RequestID}}</span> — the same value the SDK reports and the server logs on a 5xx, so an error a colleague quotes can be found here.</p>{{end}}
   {{if .Resp}}<pre>{{.Resp}}</pre>{{else}}<p class="mini-note">Empty or binary response.</p>{{end}}
 </div>
 {{if or .E.Detail .E.DetailURL}}<div class="td-sec">

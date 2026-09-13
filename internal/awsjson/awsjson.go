@@ -160,7 +160,7 @@ func (a API) Write(w http.ResponseWriter, result any) {
 		return
 	}
 	w.Header().Set("Content-Type", a.ContentType())
-	w.Header().Set("x-amzn-RequestId", awshttp.RequestID())
+	w.Header().Set("x-amzn-RequestId", awshttp.ResponseID(w))
 	w.WriteHeader(http.StatusOK)
 	w.Write(body)
 }
@@ -179,7 +179,9 @@ func (a API) WriteError(w http.ResponseWriter, e *awshttp.APIError) {
 	}
 	body, _ := json.Marshal(payload)
 	w.Header().Set("Content-Type", a.ContentType())
-	w.Header().Set("x-amzn-RequestId", awshttp.RequestID())
+	id := awshttp.ResponseID(w)
+	awshttp.NoteFault(id, e)
+	w.Header().Set("x-amzn-RequestId", id)
 	w.Header().Set("x-amzn-ErrorType", e.Code)
 	w.WriteHeader(e.Status)
 	w.Write(body)
