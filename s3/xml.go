@@ -41,7 +41,7 @@ func writeS3Error(w http.ResponseWriter, e *awshttp.APIError) {
 	// element, so a client reading x-amz-request-id off a failure — which is
 	// when you actually want it — found nothing. AWS sends both.
 	id := awshttp.ResponseID(w)
-	awshttp.NoteFault(id, e)
+	awshttp.NoteFault(w, id, e)
 	w.Header().Set("Content-Type", "application/xml")
 	w.Header().Set("x-amz-request-id", id)
 	w.WriteHeader(e.Status)

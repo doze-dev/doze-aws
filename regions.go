@@ -233,7 +233,7 @@ func NewShared(cfg StackConfig) (*Shared, error) {
 	// it. IAM accepts a directory only for constructor uniformity and never
 	// calls it, and STS takes none — but depending on that would be a trap for
 	// whoever adds the next global service.
-	host := &Stack{id: cfg.Identity, gw: gateway.New(gateway.Options{Logf: cfg.Logf, Identity: cfg.Identity})}
+	host := &Stack{id: cfg.Identity, gw: gateway.New(gateway.Options{Logf: cfg.Logf, Now: cfg.Clock, Identity: cfg.Identity})}
 	for _, name := range want {
 		if !Global[name] {
 			continue

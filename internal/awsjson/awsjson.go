@@ -180,7 +180,7 @@ func (a API) WriteError(w http.ResponseWriter, e *awshttp.APIError) {
 	body, _ := json.Marshal(payload)
 	w.Header().Set("Content-Type", a.ContentType())
 	id := awshttp.ResponseID(w)
-	awshttp.NoteFault(id, e)
+	awshttp.NoteFault(w, id, e)
 	w.Header().Set("x-amzn-RequestId", id)
 	w.Header().Set("x-amzn-ErrorType", e.Code)
 	w.WriteHeader(e.Status)

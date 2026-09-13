@@ -202,8 +202,12 @@ func ResponseID(w http.ResponseWriter) string {
 // thing you can search for, which is what was missing entirely before.
 var onFaultResponse atomic.Pointer[func(id string, e *APIError)]
 
-// SetFaultResponseHandler installs the handler described on onFaultResponse.
-// Passing nil clears it.
+// SetFaultResponseHandler installs the process-wide fallback described on
+// onFaultResponse. Passing nil clears it.
+//
+// Prefer WithFaultRecorder: this one is global, so when two stacks run at once
+// — which the test suite does on purpose — the last one constructed owns the
+// hook and the other stack's faults are reported to it.
 func SetFaultResponseHandler(fn func(id string, e *APIError)) {
 	if fn == nil {
 		onFaultResponse.Store(nil)
@@ -212,11 +216,48 @@ func SetFaultResponseHandler(fn func(id string, e *APIError)) {
 	onFaultResponse.Store(&fn)
 }
 
-// NoteFault reports that id's response is a server fault. Protocol writers call
+// faultWriter carries a per-response fault recorder, so a fault can be reported
+// to the stack that produced it rather than to whichever stack was built last.
+type faultWriter struct {
+	http.ResponseWriter
+	rec func(id string, e *APIError)
+}
+
+func (w *faultWriter) recordFault(id string, e *APIError) { w.rec(id, e) }
+func (w *faultWriter) Unwrap() http.ResponseWriter        { return w.ResponseWriter }
+
+// WithFaultRecorder returns w wrapped so that NoteFault reports to rec instead
+// of the process-wide handler. Install it at the stack's edge, outside the
+// gateway: NoteFault walks the same Unwrap chain ResponseID does, so the order
+// of the two wrappers does not matter.
+func WithFaultRecorder(w http.ResponseWriter, rec func(id string, e *APIError)) http.ResponseWriter {
+	if rec == nil {
+		return w
+	}
+	return &faultWriter{ResponseWriter: w, rec: rec}
+}
+
+// NoteFault reports that this response is a server fault. Protocol writers call
 // it; anything below 500 is ignored, so callers need no condition of their own.
-func NoteFault(id string, e *APIError) {
+//
+// A recorder found on the writer wins over the global handler, and there is no
+// fallthrough: a stack that installed one has said where its faults go.
+func NoteFault(w http.ResponseWriter, id string, e *APIError) {
 	if e == nil || e.Status < 500 {
 		return
+	}
+	for cur := w; cur != nil; {
+		if fw, ok := cur.(interface {
+			recordFault(string, *APIError)
+		}); ok {
+			fw.recordFault(id, e)
+			return
+		}
+		u, ok := cur.(interface{ Unwrap() http.ResponseWriter })
+		if !ok {
+			break
+		}
+		cur = u.Unwrap()
 	}
 	if fn := onFaultResponse.Load(); fn != nil {
 		(*fn)(id, e)

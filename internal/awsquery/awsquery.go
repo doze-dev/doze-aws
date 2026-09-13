@@ -181,7 +181,7 @@ func (a API) WriteError(w http.ResponseWriter, e *awshttp.APIError) {
 		fault = "Sender"
 	}
 	reqID := awshttp.ResponseID(w)
-	awshttp.NoteFault(reqID, e)
+	awshttp.NoteFault(w, reqID, e)
 	w.Header().Set("Content-Type", "text/xml")
 	w.Header().Set("x-amzn-RequestId", reqID)
 	w.WriteHeader(e.Status)

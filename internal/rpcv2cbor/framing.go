@@ -126,7 +126,7 @@ func WriteError(w http.ResponseWriter, e *awshttp.APIError, queryCode string, wa
 		body = []byte{0xa0}
 	}
 	id := awshttp.ResponseID(w)
-	awshttp.NoteFault(id, e)
+	awshttp.NoteFault(w, id, e)
 	w.Header().Set("Content-Type", ContentType)
 	w.Header().Set(ProtocolHeader, ProtocolID)
 	w.Header().Set("x-amzn-RequestId", id)

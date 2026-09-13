@@ -126,6 +126,22 @@ type StackConfig struct {
 	// value means the conventional local identity (us-east-1, 000000000000),
 	// so an embedder that does not care never has to name one.
 	Identity awsident.Identity
+	// Clock overrides time.Now for every service in the stack. Nil means real
+	// time, which is what every deployment wants.
+	//
+	// Each service has taken a Clock since it was written, and until now the
+	// stack passed one to none of them — so the seam existed, was exercised by
+	// per-service unit tests, and was thrown away by the assembly that every
+	// deployment and every cross-service test actually goes through. A test
+	// that needed to move time could only do it one service at a time, which is
+	// useless for anything involving two.
+	//
+	// It does NOT make a stack deterministic on its own: a dozen background
+	// sweepers still run on wall-clock tickers, so an advanced clock is noticed
+	// on the next real tick rather than immediately. It makes the RECORDED
+	// times consistent, and it is the prerequisite for anything that wants to
+	// age a whole stack rather than wait.
+	Clock func() time.Time
 }
 
 // Stack is a running set of services behind one gateway.
@@ -150,6 +166,41 @@ type Stack struct {
 	// close a no-op already; two at once raced on that field, and this is the
 	// object a signal handler and a defer both plausibly hold.
 	closeOnce sync.Once
+	// faults records every 5xx this stack answered with.
+	//
+	// Per-stack rather than the package-level hook, because that hook is global
+	// and the last stack constructed owns it — so with two stacks running at
+	// once, which the test suite does deliberately, one stack's faults were
+	// reported to the other's logger. Here they are reported to the stack that
+	// produced them, and Faults() makes "did this stack fault?" a question a
+	// test can ask rather than a line someone has to notice in the output.
+	faultMu sync.Mutex
+	faults  []Fault
+}
+
+// Fault is one 5xx a stack answered with.
+type Fault struct {
+	RequestID string
+	Code      string
+	Status    int
+}
+
+// Faults returns the server faults this stack has answered with, in order.
+//
+// A 5xx during a request a test believes is valid is a bug by definition, which
+// makes this the cheapest assertion in the suite: no new test, no new fixture,
+// just "and nothing broke while you did that".
+func (s *Stack) Faults() []Fault {
+	s.faultMu.Lock()
+	defer s.faultMu.Unlock()
+	return append([]Fault(nil), s.faults...)
+}
+
+// recordFault is the sink installed on every response this stack writes.
+func (s *Stack) recordFault(id string, e *awshttp.APIError) {
+	s.faultMu.Lock()
+	defer s.faultMu.Unlock()
+	s.faults = append(s.faults, Fault{RequestID: id, Code: e.Code, Status: e.Status})
 }
 
 // NewStack constructs and wires the requested services.
@@ -188,7 +239,7 @@ func NewStack(cfg StackConfig) (*Stack, error) {
 		logf("doze-aws: answered %d %s — request id %s", e.Status, e.Code, id)
 	})
 
-	gw := gateway.New(gateway.Options{Logf: logf, Identity: cfg.Identity, Suffix: cfg.Suffix})
+	gw := gateway.New(gateway.Options{Logf: logf, Now: cfg.Clock, Identity: cfg.Identity, Suffix: cfg.Suffix})
 	st := &Stack{gw: gw, id: cfg.Identity, suffix: cfg.Suffix}
 	for _, name := range names {
 		if !gateway.KnownService(name) {
@@ -241,71 +292,71 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 	dir := peers.InProcess(st.gw.Handler)
 	switch name {
 	case "s3":
-		s, err := s3.New(s3.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity, Suffix: cfg.Suffix})
+		s, err := s3.New(s3.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity, Suffix: cfg.Suffix})
 		return s, s, err
 	case "dynamodb":
-		s, err := dynamodb.New(dynamodb.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
+		s, err := dynamodb.New(dynamodb.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "sts":
-		s, err := sts.New(sts.Options{DataDir: dataDir, Logf: logf, Identity: cfg.Identity})
+		s, err := sts.New(sts.Options{DataDir: dataDir, Clock: cfg.Clock, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "sqs":
-		s, err := sqs.New(sqs.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
+		s, err := sqs.New(sqs.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "sns":
-		s, err := sns.New(sns.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
+		s, err := sns.New(sns.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "kms":
-		s, err := kms.New(kms.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
+		s, err := kms.New(kms.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "ssm":
-		s, err := ssm.New(ssm.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
+		s, err := ssm.New(ssm.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "secretsmanager":
-		s, err := secretsmanager.New(secretsmanager.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
+		s, err := secretsmanager.New(secretsmanager.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "logs":
-		s, err := logs.New(logs.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
+		s, err := logs.New(logs.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "cloudwatch":
 		s, err := cloudwatch.New(cloudwatch.Options{
-			DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
+			DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		if err == nil {
 			st.cloudwatch = s // retained so the evaluator can be given a trace sink
 		}
 		return s, s, err
 	case "stepfunctions":
-		s, err := stepfunctions.New(stepfunctions.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
+		s, err := stepfunctions.New(stepfunctions.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		if err == nil {
 			st.stepfunctions = s // retained so the engine can be given a trace sink
 		}
 		return s, s, err
 	case "eventbridge":
-		s, err := eventbridge.New(eventbridge.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity})
+		s, err := eventbridge.New(eventbridge.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		return s, s, err
 	case "lambda":
-		s, err := lambda.New(lambda.Options{DataDir: dataDir, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, QuietFunctions: cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes, Endpoint: cfg.Endpoint, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity, Suffix: cfg.Suffix})
+		s, err := lambda.New(lambda.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, IdleTimeout: cfg.LambdaIdleTimeout, QuietFunctions: cfg.LambdaQuiet, Runtimes: cfg.LambdaRuntimes, Endpoint: cfg.Endpoint, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity, Suffix: cfg.Suffix})
 		if err == nil {
 			st.lambda = s // retained so its pollers can be given a trace sink
 		}
 		return s, s, err
 	case "kinesis":
-		s, err := kinesis.New(kinesis.Options{DataDir: dataDir, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
+		s, err := kinesis.New(kinesis.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity})
 		return s, s, err
 	case "apigateway":
-		s, err := apigateway.New(apigateway.Options{DataDir: dataDir, Peers: dir, Logf: logf, Identity: cfg.Identity, Suffix: cfg.Suffix, Endpoint: cfg.Endpoint})
+		s, err := apigateway.New(apigateway.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, Identity: cfg.Identity, Suffix: cfg.Suffix, Endpoint: cfg.Endpoint})
 		return s, s, err
 	case "cloudformation":
 		// CloudFormation provisions across every other service, so it is the
 		// one service handed the whole gateway. It resolves at request time,
 		// so construction order does not matter.
-		s, err := cloudformation.New(cloudformation.Options{Identity: cfg.Identity,
+		s, err := cloudformation.New(cloudformation.Options{Identity: cfg.Identity, Clock: cfg.Clock,
 			DataDir: dataDir, Gateway: st.gw, Peers: dir, Logf: logf,
 			Endpoint: cfg.Endpoint, Suffix: cfg.Suffix,
 		})
 		return s, s, err
 	case "iam":
-		s, err := iam.New(iam.Options{DataDir: dataDir, Mode: cfg.IAMMode, Peers: dir, Logf: logf, Identity: cfg.Identity})
+		s, err := iam.New(iam.Options{DataDir: dataDir, Clock: cfg.Clock, Mode: cfg.IAMMode, Peers: dir, Logf: logf, Identity: cfg.Identity})
 		if err == nil {
 			st.iam = s
 		}
@@ -322,6 +373,22 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 // read the mode from one and a header a client can set is not one anything
 // should trust.
 func (s *Stack) Handler() http.Handler {
+	return s.recordingFaults(s.handler())
+}
+
+// recordingFaults installs this stack's fault sink on every response.
+//
+// Outermost, and before the gateway mints the request id: NoteFault walks the
+// same Unwrap chain ResponseID does, so both wrappers are found wherever they
+// sit relative to each other, and putting this one outside means it also covers
+// the routing errors the gateway answers before any service is reached.
+func (s *Stack) recordingFaults(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(awshttp.WithFaultRecorder(w, s.recordFault), r)
+	})
+}
+
+func (s *Stack) handler() http.Handler {
 	if s.iam == nil || s.iam.Mode() == iam.ModeOff {
 		// Still stripped. Off means nothing is enforced, so a client that
 		// stamps its own handoff headers gains nothing today — but the
