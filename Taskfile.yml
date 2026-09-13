@@ -116,9 +116,11 @@ tasks:
       - go test -run '^$' -bench . -benchmem -benchtime {{.BENCHTIME}} ./...
 
   soak:
-    desc: 'Cross-service soak under sustained load (SOAK_DURATION, default 2m)'
+    desc: 'Cross-service soak under sustained load (SOAK_DURATION=2m, SOAK_CHAOS=1 to restart mid-load)'
     env:
       SOAK_DURATION: '{{.SOAK_DURATION | default "2m"}}'
+      SOAK_CHAOS: '{{.SOAK_CHAOS | default ""}}'
+      SOAK_CHAOS_EVERY: '{{.SOAK_CHAOS_EVERY | default "2000"}}'
     cmds:
       - go test -tags soak -run TestSoak -timeout 24h -v ./cmd/doze-aws/
 

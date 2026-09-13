@@ -59,6 +59,37 @@ services; every `List*`, `Describe*` and `Scan` is a range read; the flow graph
 crawls everything. Creates are comparatively rare — you make a queue once and
 then use it.
 
+### The scan row overstates what it buys
+
+The 55.9 µs above is the ENGINE scanning 10,000 keys. It is not what a
+`Scan` costs. `internal/ddb/store`'s `BenchmarkScan10k` measures the operation
+— the same cursor walk, plus decoding each record into an `item.Item`:
+
+| | per operation | allocations |
+|---|---|---|
+| `Scan`, 10,000 items, no filter | **24.6 ms** | 467k (≈47 per item) |
+| `Scan`, 10,000 items, filtered | **27.0 ms** | 473k |
+| `Query`, one hash key (~100 of 10,000) | **0.36 ms** | 6.7k |
+
+So the engine's 55.9 µs is about **0.2%** of a 24.6 ms Scan. The other 99.8% is
+per-item decode. Pebble's 688 µs would have been ~2.7% — worse, but not
+visibly: 25.2 ms against 24.6 ms is not a difference a person notices.
+
+This is the same lesson as the write path, on the other side. The write cost
+people notice is fsync, not the engine; the scan cost people notice is the
+per-item decode, not the engine. **"bbolt wins scans by an order of magnitude"
+is true of the engine and nearly irrelevant to the operation**, and it should
+not be read as one of the load-bearing reasons for the decision.
+
+What is still load-bearing is the per-instance overhead (~50 open stores) and
+the point-read advantage, neither of which this changes. The conclusion holds;
+one of its four pillars does not.
+
+The filter costs ~240 ns per item (2.4 ms across 10,000), which matches
+`internal/ddb/expr`'s own `BenchmarkEvalCondition` — the two benchmarks measure
+the same work at different scopes and agree, which is the cross-check that
+makes either believable.
+
 ## The write cost is fsync, and bbolt can fix it
 
 The 7,526 µs above is not bbolt being slow. It is one `fsync`, and it matches
@@ -177,5 +208,18 @@ and `go.etcd.io/bbolt`, with benchmarks for single-op writes at both durability
 levels, point reads, a 10,000-key scan, and — the important one — a test that
 opens 48 of each and reports heap and goroutine deltas.
 
-The in-repo benchmarks that matter for the fsync story are already there:
-`task bench`, and `BenchmarkRequestSendMessageBatch` in particular.
+The COMPARISON benchmarks need pebble; the doze-aws side of every claim is now
+measurable in-repo, which is what lets a future reader check this record rather
+than take it:
+
+| claim | in-repo benchmark |
+|---|---|
+| the write cost is fsync | `BenchmarkRequestSendMessageBatch` (`task bench`) |
+| scan cost, and what the engine is worth in it | `internal/ddb/store` — `BenchmarkScan10k`, `BenchmarkScanFiltered10k`, `BenchmarkQuery10k` |
+| per-item filter evaluation | `internal/ddb/expr` — `BenchmarkEvalCondition` |
+| the per-request cost above the store | `internal/sigparse`, `internal/gateway` |
+
+The scan benchmarks were added after this record was written, and they are what
+produced the correction above: the claim about scans had rested entirely on an
+out-of-repo measurement of the engine, with no benchmark of the operation it
+was being used to justify.

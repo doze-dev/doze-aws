@@ -34,3 +34,50 @@ jobs:
           name: playwright-report
           path: e2e/playwright-report/
           retention-days: 7
+
+  # demo/seed.ts drives 18 real AWS SDK clients across every implemented
+  # service and exits non-zero on any failed step, so running it is broad
+  # smoke coverage for free — including services the Playwright suite reaches
+  # only through the console, and Kinesis, which had no browser spec at all
+  # until recently.
+  #
+  # A separate job rather than a step in the one above: that one's binary is
+  # booted by playwright.config.ts's webServer and only lives for the duration
+  # of `playwright test`, so there is nothing for a later step to seed.
+  #
+  # It needs node, python3 and ruby on PATH — the demo's four Lambda functions
+  # are deliberately one runtime each, and they run as real supervised
+  # processes. The ubuntu-latest image ships all three. If this job ever goes
+  # red on "the function process exited", check that before suspecting the
+  # emulator: a version-manager shim with no pinned version fails exactly that
+  # way, which is what it does on a dev machine using proto.
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: oven-sh/setup-bun@v2
+      - name: Install demo dependencies
+        working-directory: demo
+        run: bun install --frozen-lockfile
+      - name: Seed a stack with the real SDKs
+        env:
+          AWS_ENDPOINT_URL: http://127.0.0.1:4566
+        # Boot and seed in ONE step: a process backgrounded in an earlier step
+        # is not something to rely on surviving into a later one.
+        run: |
+          set -euo pipefail
+          GOWORK=off go build -o .tmp/doze-aws ./cmd/doze-aws
+          mkdir -p .tmp/data
+          ./.tmp/doze-aws --listen 127.0.0.1:4566 --data-dir .tmp/data --console &
+          server=$!
+          trap 'kill $server 2>/dev/null || true' EXIT
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:4566/_console/ -o /dev/null && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:4566/_console/ -o /dev/null || {
+            echo "doze-aws did not come up"; exit 1; }
+          cd demo && bun seed.ts --fast
