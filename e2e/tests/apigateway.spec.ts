@@ -133,7 +133,13 @@ test.describe('API Gateway gates', () => {
     await body().locator('form[hx-post$="/apigw-keys/create"] input[name="name"]').fill(key);
     await body().getByRole('button', { name: 'Create key' }).click();
     await waitForToast();
-    const keyRow = body().locator('table.tbl tr', { hasText: key });
+    // Scoped to the keys panel, and to tbody: hasText matches DESCENDANT text,
+    // so an unscoped `table.tbl tr` also matches rows in the plans panel and
+    // the <option> text inside its stage <select> — both of which carry key
+    // names on this instance-global page. The same fix is applied below at the
+    // API-key-enforcement test; it was written there and never back-ported.
+    const keysPanel = body().locator('.split > .panel').first();
+    const keyRow = keysPanel.locator('table.tbl tbody tr', { hasText: key });
     await expect(keyRow).toBeVisible();
     await keyRow.locator('button.linkish', { hasText: 'reveal' }).click();
     await expect(keyRow).not.toContainText('reveal');
@@ -206,7 +212,13 @@ test.describe('API Gateway gates', () => {
     // A key that exists but belongs to no plan covering this stage is still
     // refused — the plan, not the key, is what admits a request.
     const keyName = uniqueName('partner');
-    const keyValue = 'e2e-key-value-0123456789';
+    // Unique, like every other identifier this suite creates. It was the one
+    // hard-coded value in a suite whose whole isolation model is uniqueName(),
+    // one line below a uniqueName() call — and with retries: 2 in CI, a retry
+    // re-creates a key with a value that already exists, so the retry that was
+    // meant to absorb flakiness GUARANTEED the failure instead. The prefix is
+    // long enough that the value clears AWS's 20-character minimum.
+    const keyValue = uniqueName('e2e-key-value-0123456789');
     await page.goto('apigw-keys');
     const body = () => page.locator('#apigw-keys-body');
     await body().locator('form[hx-post$="/apigw-keys/create"] input[name="name"]').fill(keyName);

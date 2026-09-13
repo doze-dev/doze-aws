@@ -69,6 +69,27 @@ export const test = base.extend<ConsoleFixtures>({
   },
 
   waitForToast: async ({ page }, use) => {
+    // A refused mutation produces NO toast and NO flashbar. console.fail
+    // answers 400 with an HX-Doze-Error header and renders the reason inline
+    // next to the control that failed (templates/panes.html, "fail_inline"),
+    // deliberately cancelling the swap so it never reaches the success target.
+    //
+    // So a caller waiting for success against a refused action waited the full
+    // 8s and then reported a bare "toast never appeared" — while the app's
+    // actual message, with its AWS error code, sat on the page unread. Every
+    // console spec goes through this fixture, which is why it was worth
+    // fixing once here rather than diagnosing repeatedly at the call sites.
+    //
+    // Watching the RESPONSE HEADER rather than the DOM is what makes this
+    // precise: an .err block already on the page from an earlier step would be
+    // indistinguishable from a fresh one, but a header arrives exactly once,
+    // when it happens.
+    const failed: string[] = [];
+    page.on('response', (res) => {
+      if (res.headers()['hx-doze-error'] === '1') {
+        failed.push(`${res.status()} ${new URL(res.url()).pathname}`);
+      }
+    });
     await use(async (opts) => {
       const kind = opts?.kind ?? 'ok';
       // Wait for a toast this fixture has not RETURNED yet. Toasts carry a
@@ -80,7 +101,10 @@ export const test = base.extend<ConsoleFixtures>({
       // followed), and a toast that lands BEFORE the wait is called gets
       // counted into the baseline, deadlocking the wait against itself.
       // Consumption tracking has neither race.
-      const state = page as unknown as { __lastToastSeq?: number };
+      const state = page as unknown as {
+        __lastToastSeq?: number;
+        __consumedFailures?: number;
+      };
       const consumed = state.__lastToastSeq ?? 0;
       // A mutation's feedback arrives as a corner toast OR as the flashbar —
       // redirect-style results moved to the banner when toasts proved too
@@ -90,11 +114,36 @@ export const test = base.extend<ConsoleFixtures>({
         .locator(kind === 'err' ? '.toast.err' : '.toast:not(.err), #flashbar')
         .last();
       let seq = 0;
-      await expect(async () => {
-        seq = Number(await locator.getAttribute('data-seq'));
-        expect(seq).toBeGreaterThan(consumed);
-      }).toPass({ timeout: 8000 });
+      // The refusal check sits in the CATCH, not inside the predicate.
+      // Throwing inside toPass only makes it retry, and toPass reports its own
+      // "Timeout 8000ms exceeded while waiting on the predicate" on top —
+      // which is the very message this fixture exists to replace. Verified the
+      // hard way: the first version of this put the throw inside, and the
+      // failure still read exactly as it had before.
+      try {
+        await expect(async () => {
+          seq = Number(await locator.getAttribute('data-seq'));
+          expect(seq).toBeGreaterThan(consumed);
+        }).toPass({ timeout: 8000 });
+      } catch (timeout) {
+        // Only when success was expected. A spec asking for kind: 'err' is
+        // testing a refusal on purpose.
+        const fresh = failed.slice(state.__consumedFailures ?? 0);
+        if (kind !== 'ok' || !fresh.length) throw timeout;
+        const inline = page.locator('.err[role="alert"]').last();
+        const detail = (await inline.count())
+          ? ((await inline.textContent()) ?? '').replace(/\s+/g, ' ').trim()
+          : '(no inline error rendered)';
+        throw new Error(
+          `the action was refused, so no toast was ever going to arrive.\n` +
+            `  response: ${fresh.join(', ')}\n` +
+            `  console said: ${detail}`
+        );
+      }
       state.__lastToastSeq = seq;
+      // A refusal before this point was survivable (a spec may drive one on
+      // purpose); don't let it explain a LATER timeout.
+      state.__consumedFailures = failed.length;
       // Toast text is span #2; the flashbar's is .fl-msg.
       const flMsg = locator.locator('.fl-msg');
       if (await flMsg.count()) return (await flMsg.textContent()) ?? '';

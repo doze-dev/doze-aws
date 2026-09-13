@@ -119,7 +119,9 @@ func TestShimsRunRealHandlers(t *testing.T) {
 			}
 			if c.envForNode && os.Getenv("PROTO_NODE_VERSION") == "" && os.Getenv("CI") == "" {
 				// The proto shim needs a pinned version to run node at all.
-				os.Setenv("PROTO_NODE_VERSION", "26.8.1")
+				// t.Setenv, not os.Setenv: the plain one leaked this into every
+				// later test in the package.
+				t.Setenv("PROTO_NODE_VERSION", "26.8.1")
 			}
 			dir := writeFiles(t, c.files)
 			sink := &recordingSink{}
