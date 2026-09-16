@@ -5,6 +5,7 @@ package secretsmanager_test
 import (
 	"context"
 	"errors"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"testing"
 
@@ -22,7 +23,7 @@ func smClient(t *testing.T) *awssm.Client {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	s, err := secretsmanager.New(secretsmanager.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := secretsmanager.New(secretsmanager.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

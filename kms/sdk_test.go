@@ -8,6 +8,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"testing"
 
@@ -25,7 +26,7 @@ func kmsClient(t *testing.T) *awskms.Client {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	s, err := kms.New(kms.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := kms.New(kms.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

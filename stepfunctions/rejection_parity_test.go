@@ -13,6 +13,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -63,7 +64,7 @@ const auditDef = `{"StartAt":"W","States":{"W":{"Type":"Wait","Seconds":30000,"N
 
 func sfnServer(t *testing.T) *httptest.Server {
 	t.Helper()
-	s, err := New(Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := New(Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -9,6 +9,7 @@ package cloudformation_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -103,7 +104,7 @@ func TestApplyLambdaVersioningTemplate(t *testing.T) {
 	os.WriteFile(filepath.Join(codeDir, "h.py"), []byte("import helper\nimport os\ndef handler(event, context):\n    return {'greeting': helper.greet(event.get('who', 'url')), 'version': os.environ['AWS_LAMBDA_FUNCTION_VERSION']}\n"), 0o644)
 	template := strings.NewReplacer("LAYER_DIR", layerDir, "CODE_DIR", codeDir).Replace(lambdaVersioningTemplate)
 
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

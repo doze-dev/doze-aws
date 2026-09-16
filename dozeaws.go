@@ -193,6 +193,9 @@ type Stack struct {
 	// test can ask rather than a line someone has to notice in the output.
 	faultMu sync.Mutex
 	faults  []Fault
+	// logf is this stack's logger, kept so recordFault can report a fault to
+	// the same place every other line from this stack goes.
+	logf func(string, ...any)
 }
 
 // Fault is one 5xx a stack answered with.
@@ -214,10 +217,19 @@ func (s *Stack) Faults() []Fault {
 }
 
 // recordFault is the sink installed on every response this stack writes.
+// It LOGS as well as records. Making the sink per-stack meant NoteFault stopped
+// falling through to the process-wide handler, which is correct — a stack that
+// installed a sink has said where its faults go — but it also silently took the
+// "answered 500 … request id" line away from every stack served through
+// Handler(), which is all of them. Recording without logging would trade a
+// diagnostic a person reads for one only a test reads.
 func (s *Stack) recordFault(id string, e *awshttp.APIError) {
 	s.faultMu.Lock()
-	defer s.faultMu.Unlock()
 	s.faults = append(s.faults, Fault{RequestID: id, Code: e.Code, Status: e.Status})
+	s.faultMu.Unlock()
+	if s.logf != nil {
+		s.logf("doze-aws: answered %d %s — request id %s", e.Status, e.Code, id)
+	}
 }
 
 // NewStack constructs and wires the requested services.
@@ -257,7 +269,7 @@ func NewStack(cfg StackConfig) (*Stack, error) {
 	})
 
 	gw := gateway.New(gateway.Options{Logf: logf, Now: cfg.Clock, Identity: cfg.Identity, Suffix: cfg.Suffix})
-	st := &Stack{gw: gw, id: cfg.Identity, suffix: cfg.Suffix}
+	st := &Stack{gw: gw, id: cfg.Identity, suffix: cfg.Suffix, logf: logf}
 	for _, name := range names {
 		if !gateway.KnownService(name) {
 			st.Close()

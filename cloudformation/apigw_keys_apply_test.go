@@ -8,6 +8,7 @@ package cloudformation_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -104,7 +105,7 @@ func TestApplyAPIKeysAndUsagePlans(t *testing.T) {
 	os.WriteFile(filepath.Join(codeDir, "h.py"), []byte(
 		"import json\ndef handler(event, context):\n    ident = event['requestContext']['identity']\n"+
 			"    return {'statusCode': 200, 'body': json.dumps({'apiKeyId': ident.get('apiKeyId'), 'path': event['path']})}\n"), 0o644)
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

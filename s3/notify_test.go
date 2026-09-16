@@ -3,6 +3,7 @@ package s3_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -25,7 +26,7 @@ func TestS3EventNotificationToSQS(t *testing.T) {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
 	ctx := context.Background()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

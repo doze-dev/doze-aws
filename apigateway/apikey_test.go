@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/doze-dev/doze-aws/peers"
+
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 )
 
 // A method that requires an API key is served only with a key that exists,
@@ -16,7 +18,7 @@ func TestAPIKeyGate(t *testing.T) {
 	fake := &fakeLambda{}
 	peer := httptest.NewServer(fake)
 	defer peer.Close()
-	s, err := New(Options{DataDir: t.TempDir(), Logf: t.Logf,
+	s, err := New(Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t),
 		Peers: peers.Static{"lambda": peers.Endpoint{Client: peer.Client(), BaseURL: peer.URL}}})
 	if err != nil {
 		t.Fatal(err)

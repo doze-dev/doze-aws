@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 )
 
 // TestUnknownSubresourceDoesNotFallThrough is the regression for the worst bug
@@ -16,7 +18,7 @@ import (
 // `DELETE /object?annotation` deleted the object — destroying data the caller
 // never asked to touch.
 func TestUnknownSubresourceDoesNotFallThrough(t *testing.T) {
-	srv, err := New(Options{DataDir: t.TempDir(), Logf: t.Logf})
+	srv, err := New(Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +71,7 @@ func TestUnknownSubresourceDoesNotFallThrough(t *testing.T) {
 // TestImplementedSubresourcesStillRoute guards the other direction: the guard
 // must not swallow anything doze-aws does implement.
 func TestImplementedSubresourcesStillRoute(t *testing.T) {
-	srv, err := New(Options{DataDir: t.TempDir(), Logf: t.Logf})
+	srv, err := New(Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

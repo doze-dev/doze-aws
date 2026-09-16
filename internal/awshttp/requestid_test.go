@@ -68,11 +68,11 @@ func TestNoteFaultReportsOnlyServerFaults(t *testing.T) {
 	})
 	t.Cleanup(func() { SetFaultResponseHandler(nil) })
 
-	NoteFault("id-400", &APIError{Status: 400, Code: "ValidationError"})
-	NoteFault("id-404", &APIError{Status: 404, Code: "NoSuchBucket"})
-	NoteFault("id-500", &APIError{Status: 500, Code: "InternalFailure"})
-	NoteFault("id-503", &APIError{Status: 503, Code: "ServiceUnavailable"})
-	NoteFault("id-nil", nil)
+	NoteFault(httptest.NewRecorder(), "id-400", &APIError{Status: 400, Code: "ValidationError"})
+	NoteFault(httptest.NewRecorder(), "id-404", &APIError{Status: 404, Code: "NoSuchBucket"})
+	NoteFault(httptest.NewRecorder(), "id-500", &APIError{Status: 500, Code: "InternalFailure"})
+	NoteFault(httptest.NewRecorder(), "id-503", &APIError{Status: 503, Code: "ServiceUnavailable"})
+	NoteFault(httptest.NewRecorder(), "id-nil", nil)
 
 	mu.Lock()
 	defer mu.Unlock()

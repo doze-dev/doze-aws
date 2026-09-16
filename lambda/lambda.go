@@ -14,6 +14,7 @@
 package lambda
 
 import (
+	"context"
 	"net/http"
 
 	"os"
@@ -101,8 +102,18 @@ type Server struct {
 	sinks    map[string]*logSink            // function name -> its log sink, closed with the pool
 	mappings map[string]*esm                // mapping UUID -> poller
 	pollers  sync.WaitGroup                 // tracks live ESM poller goroutines
-	logs     *logship.Shipper               // carries every function's lines to the logs service
-	metrics  *metricship.Shipper            // carries AWS/Lambda metrics to the cloudwatch service
+	// async tracks in-flight Event invocations. They are fire-and-forget to the
+	// CALLER, which is what the 202 means — but not to Close, which would
+	// otherwise shut the store while one was still writing to it.
+	async sync.WaitGroup
+	// shutdown is cancelled by Close, which is how in-flight async invocations
+	// are ENDED rather than waited out. An Event invoke retries twice and each
+	// attempt can sit through the ten-second init budget, so waiting for one is
+	// most of a minute; cancelling it is immediate.
+	shutdown    context.Context
+	endShutdown context.CancelFunc
+	logs        *logship.Shipper    // carries every function's lines to the logs service
+	metrics     *metricship.Shipper // carries AWS/Lambda metrics to the cloudwatch service
 }
 
 // New opens the store under DataDir.
@@ -148,6 +159,7 @@ func New(opts Options) (*Server, error) {
 		id:          opts.Identity,
 		suffix:      opts.Suffix,
 	}
+	s.shutdown, s.endShutdown = context.WithCancel(context.Background())
 	s.store.id = opts.Identity
 	if s.peers == nil {
 		s.peers = peers.None()
@@ -184,6 +196,20 @@ func (s *Server) Close() error {
 	}
 	s.mu.Unlock()
 	s.pollers.Wait()
+	// CANCEL the in-flight async invocations, then wait for them.
+	//
+	// Waiting alone is not an option: an Event invoke retries twice, and each
+	// attempt can sit through the ten-second init budget, so Close would block
+	// for most of a minute on a function whose process is already dead.
+	// Cancelling ends them at once, and the wait that follows is then bounded
+	// by how long they take to unwind rather than by their timeouts — which is
+	// why it needs no deadline of its own, and so leaks no waiter goroutine.
+	//
+	// They have to be waited for at all because an async invocation writes logs
+	// and metrics: one still running when the store closed is either an error
+	// nobody sees or a panic on a closed bbolt handle.
+	s.endShutdown()
+	s.async.Wait()
 	s.logs.Close()
 	s.metrics.Close()
 	return s.store.db.Close()

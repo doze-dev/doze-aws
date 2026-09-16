@@ -5,6 +5,7 @@ package apigateway_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"testing"
 
@@ -19,7 +20,7 @@ import (
 
 func TestSDKListsAPIKeysAndUsagePlans(t *testing.T) {
 	ctx := context.Background()
-	s, err := apigateway.New(apigateway.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := apigateway.New(apigateway.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

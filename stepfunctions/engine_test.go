@@ -3,6 +3,7 @@ package stepfunctions
 import (
 	"context"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -38,10 +39,13 @@ func (c *testClock) Advance(d time.Duration) {
 
 func newTestServer(t *testing.T, dir string, clock *testClock) *Server {
 	t.Helper()
-	s, err := New(Options{DataDir: dir, Logf: t.Logf, Clock: clock.Now})
+	s, err := New(Options{DataDir: dir, Logf: dozetest.Logf(t), Clock: clock.Now})
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Closed here rather than at the twenty-five call sites. Close is
+	// idempotent, so a caller that also closes is fine.
+	t.Cleanup(func() { s.Close() })
 	return s
 }
 
@@ -323,10 +327,11 @@ func stubSQS(t *testing.T) peers.Directory {
 
 func newTestServerPeers(t *testing.T, dir string, clock *testClock, peers peers.Directory) *Server {
 	t.Helper()
-	s, err := New(Options{DataDir: dir, Logf: t.Logf, Clock: clock.Now, Peers: peers})
+	s, err := New(Options{DataDir: dir, Logf: dozetest.Logf(t), Clock: clock.Now, Peers: peers})
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { s.Close() })
 	return s
 }
 

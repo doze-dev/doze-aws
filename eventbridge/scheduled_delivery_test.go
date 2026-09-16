@@ -16,6 +16,7 @@ package eventbridge
 
 import (
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -49,7 +50,7 @@ func TestScheduledRuleDeliversTheScheduledEvent(t *testing.T) {
 
 	now := time.Date(2026, 3, 2, 9, 0, 0, 0, time.UTC) // a Monday
 	s, err := New(Options{
-		DataDir: t.TempDir(), Logf: t.Logf,
+		DataDir: t.TempDir(), Logf: dozetest.Logf(t),
 		Clock: func() time.Time { return now },
 		Peers: peers.Static{"lambda": peers.Endpoint{Client: fake.Client(), BaseURL: fake.URL}},
 	})
@@ -151,7 +152,7 @@ func TestScheduledRuleDeliversToEveryTarget(t *testing.T) {
 
 	now := time.Date(2026, 3, 2, 9, 0, 0, 0, time.UTC)
 	s, err := New(Options{
-		DataDir: t.TempDir(), Logf: t.Logf,
+		DataDir: t.TempDir(), Logf: dozetest.Logf(t),
 		Clock: func() time.Time { return now },
 		// Only lambda resolves: the SQS target below has nowhere to go, and
 		// must be logged rather than aborting the fan-out.
@@ -213,7 +214,7 @@ func TestDisabledScheduleDeliversNothing(t *testing.T) {
 
 	now := time.Date(2026, 3, 2, 9, 0, 0, 0, time.UTC)
 	s, err := New(Options{
-		DataDir: t.TempDir(), Logf: t.Logf,
+		DataDir: t.TempDir(), Logf: dozetest.Logf(t),
 		Clock: func() time.Time { return now },
 		Peers: peers.Static{"lambda": peers.Endpoint{Client: fake.Client(), BaseURL: fake.URL}},
 	})

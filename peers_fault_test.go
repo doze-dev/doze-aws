@@ -16,6 +16,7 @@ package dozeaws_test
 import (
 	"context"
 	"errors"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -39,7 +40,7 @@ func faultStack(t *testing.T, wrap func(peers.Directory) peers.Directory) (*doze
 		t.Skip("stands up a full stack")
 	}
 	st, err := dozeaws.NewStack(dozeaws.StackConfig{
-		DataDir: t.TempDir(), Logf: func(string, ...any) {}, Peers: wrap})
+		DataDir: t.TempDir(), Logf: dozetest.Quiet(t), Peers: wrap})
 	if err != nil {
 		t.Fatal(err)
 	}

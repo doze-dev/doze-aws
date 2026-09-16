@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"testing"
 
@@ -25,7 +26,7 @@ func ddbClient(t *testing.T) *awsddb.Client {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	s, err := dynamodb.New(dynamodb.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := dynamodb.New(dynamodb.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

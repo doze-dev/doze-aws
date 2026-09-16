@@ -3,6 +3,7 @@ package console_test
 import (
 	"bytes"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"html"
 	"mime/multipart"
 	"net/http"
@@ -32,7 +33,7 @@ func newConsoleStack(t *testing.T) (http.Handler, http.Handler) {
 	if testing.Short() {
 		t.Skip("boots a Stack")
 	}
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1155,7 +1156,7 @@ func TestTrafficRecorder(t *testing.T) {
 	if testing.Short() {
 		t.Skip("boots a Stack")
 	}
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1241,7 +1242,7 @@ func TestSurfacesRenderWithoutTemplateErrors(t *testing.T) {
 	if testing.Short() {
 		t.Skip("boots a Stack")
 	}
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1400,7 +1401,7 @@ func TestWireShowsTheCascade(t *testing.T) {
 	if testing.Short() {
 		t.Skip("boots a Stack")
 	}
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

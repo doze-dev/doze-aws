@@ -6,6 +6,7 @@ package apigateway_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -78,7 +79,7 @@ func TestHTTPAPIServesLambda(t *testing.T) {
 		t.Skip("compiles and runs a lambda across the stack")
 	}
 	ctx := context.Background()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

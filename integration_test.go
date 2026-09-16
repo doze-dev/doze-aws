@@ -2,6 +2,7 @@ package dozeaws_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"os"
 	"os/exec"
@@ -93,7 +94,7 @@ func TestIntegrationLambdaSinks(t *testing.T) {
 		t.Skip("compiles + runs a lambda across the stack")
 	}
 	ctx := context.Background()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,7 +168,7 @@ func TestIntegrationS3ToLambda(t *testing.T) {
 		t.Skip("compiles + runs a lambda across the stack")
 	}
 	ctx := context.Background()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,7 +223,7 @@ func TestIntegrationDynamoDBStreamToLambda(t *testing.T) {
 		t.Skip("compiles + runs a lambda across the stack")
 	}
 	ctx := context.Background()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -289,7 +290,7 @@ func TestIntegrationKinesisToLambda(t *testing.T) {
 		t.Skip("compiles + runs a lambda across the stack")
 	}
 	ctx := context.Background()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -385,7 +386,7 @@ func TestIntegrationLambdaDLQ(t *testing.T) {
 		t.Skip("compiles + runs a failing lambda across the stack")
 	}
 	ctx := context.Background()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -443,7 +444,7 @@ func TestIntegrationLambdaOnFailureDestination(t *testing.T) {
 		t.Skip("compiles + runs a failing lambda across the stack")
 	}
 	ctx := context.Background()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -499,7 +500,7 @@ func TestIntegrationS3ToSNSToSQS(t *testing.T) {
 		t.Skip("cross-service chain")
 	}
 	ctx := context.Background()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -628,7 +629,7 @@ func TestIntegrationStepFunctionsCascade(t *testing.T) {
 		t.Skip("compiles + runs a lambda across the stack")
 	}
 	ctx := context.Background()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

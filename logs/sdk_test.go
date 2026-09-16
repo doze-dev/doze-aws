@@ -3,6 +3,7 @@ package logs_test
 import (
 	"context"
 	"errors"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -26,7 +27,7 @@ func logsClient(t *testing.T) *cwl.Client {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	s, err := logs.New(logs.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := logs.New(logs.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +273,7 @@ func TestSDKRefusedOperationsAreNamed(t *testing.T) {
 func TestSweepDropsOldEvents(t *testing.T) {
 	now := time.Now()
 	clock := now
-	s, err := logs.New(logs.Options{DataDir: t.TempDir(), Logf: t.Logf, Clock: func() time.Time { return clock }, Retention: time.Hour})
+	s, err := logs.New(logs.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t), Clock: func() time.Time { return clock }, Retention: time.Hour})
 	if err != nil {
 		t.Fatal(err)
 	}

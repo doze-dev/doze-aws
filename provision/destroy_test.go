@@ -29,6 +29,7 @@ package provision_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -55,7 +56,7 @@ func liveStack(t *testing.T, services ...string) (http.Handler, aws.Config, stri
 	if testing.Short() {
 		t.Skip("boots a stack")
 	}
-	st, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf, Services: services})
+	st, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t), Services: services})
 	if err != nil {
 		t.Fatal(err)
 	}

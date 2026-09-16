@@ -39,6 +39,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -560,7 +561,7 @@ func deepCopy(v any) any {
 
 func newDDB(t *testing.T) *httptest.Server {
 	t.Helper()
-	s, err := dynamodb.New(dynamodb.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := dynamodb.New(dynamodb.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

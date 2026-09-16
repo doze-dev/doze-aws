@@ -12,6 +12,8 @@ import (
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/dynamodb"
+
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 )
 
 func ddbV1Client(t *testing.T) *ddbv1.DynamoDB {
@@ -19,7 +21,7 @@ func ddbV1Client(t *testing.T) *ddbv1.DynamoDB {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	s, err := dynamodb.New(dynamodb.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := dynamodb.New(dynamodb.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

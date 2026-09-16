@@ -17,6 +17,7 @@ package main
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -164,7 +165,7 @@ func TestApplyCommandCreatesResources(t *testing.T) {
 	}
 
 	// And the resources are really there.
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: data, Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: data, Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -363,7 +364,7 @@ func TestGatewayForPrefersARunningServer(t *testing.T) {
 	closer()
 	// If the lock was not released this fails, which is the whole reason the
 	// closer exists.
-	second, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: data, Logf: t.Logf})
+	second, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: data, Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatalf("closer() did not release the data dir: %v", err)
 	}

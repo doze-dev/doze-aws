@@ -8,6 +8,7 @@ package cloudformation_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -146,7 +147,7 @@ func TestApplyCDKRestAPIWithAuthorizer(t *testing.T) {
 		"def handler(event, context):\n    effect = 'Allow' if event['authorizationToken'] == 'allow-me' else 'Deny'\n"+
 			"    return {'principalId': 'alice', 'context': {'tier': 'gold'}, 'policyDocument': {'Version': '2012-10-17', 'Statement': [{'Effect': effect, 'Action': 'execute-api:Invoke', 'Resource': event['methodArn']}]}}\n"), 0o644)
 
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

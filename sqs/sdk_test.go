@@ -3,6 +3,7 @@ package sqs
 import (
 	"context"
 	"errors"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -18,7 +19,7 @@ func sdkClient(t *testing.T) *awssqs.Client {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	s, err := New(Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := New(Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

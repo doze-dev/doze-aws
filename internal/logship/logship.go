@@ -130,8 +130,24 @@ func (s *Shipper) send(batch map[key][]Event) {
 	}
 }
 
+// closeDeadline bounds how long Close waits for the worker to finish.
+//
+// It was two seconds, which could not tell a WEDGED worker from a busy one: a
+// publish goes out through a peers client whose own timeout is thirty seconds,
+// so a worker legitimately mid-send could be abandoned fifteen times over
+// before it had any chance to return. Under a loaded machine — the full test
+// suite, several packages at once — that is exactly what happened, and Close
+// returned leaving the goroutine and the store reference alive.
+//
+// The deadline now sits past the longest legitimate operation, so reaching it
+// means something really is stuck rather than merely slow.
+const closeDeadline = 35 * time.Second
+
 // Close flushes and stops the worker. It waits for what was pending to be
-// sent, bounded by a short deadline, so a test can read what it wrote.
+// sent, bounded by closeDeadline, so a test can read what it wrote.
+//
+// Giving up is LOGGED. A shutdown that abandons a goroutine is a thing worth
+// knowing about, and it used to happen in silence.
 func (s *Shipper) Close() {
 	s.once.Do(func() {
 		batch := s.take()
@@ -142,7 +158,10 @@ func (s *Shipper) Close() {
 		close(s.quit)
 		select {
 		case <-s.done:
-		case <-time.After(2 * time.Second):
+		case <-time.After(closeDeadline):
+			if s.logf != nil {
+				s.logf("%s: shipper did not stop within %s; abandoning it", s.name, closeDeadline)
+			}
 		}
 	})
 }

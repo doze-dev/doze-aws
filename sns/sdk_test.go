@@ -7,6 +7,7 @@ package sns_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,7 +32,7 @@ func startStack(t *testing.T) (*awssns.Client, *awssqs.Client) {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

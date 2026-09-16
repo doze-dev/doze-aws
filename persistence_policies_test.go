@@ -21,6 +21,7 @@ package dozeaws_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -96,7 +97,7 @@ func TestResourcePoliciesSurviveRestart(t *testing.T) {
 	ctx := context.Background()
 	dir := t.TempDir()
 
-	stack1, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: dir, Logf: t.Logf, IAMMode: iam.ModeEnforce})
+	stack1, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: dir, Logf: dozetest.Logf(t), IAMMode: iam.ModeEnforce})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +113,7 @@ func TestResourcePoliciesSurviveRestart(t *testing.T) {
 		t.Fatalf("stack1 close: %v", err)
 	}
 
-	stack2, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: dir, Logf: t.Logf, IAMMode: iam.ModeEnforce})
+	stack2, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: dir, Logf: dozetest.Logf(t), IAMMode: iam.ModeEnforce})
 	if err != nil {
 		t.Fatalf("reopen stack: %v", err)
 	}

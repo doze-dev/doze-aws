@@ -3,6 +3,7 @@ package dozeaws_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -274,7 +275,7 @@ func TestStackReportsTheIdentityItMintsWith(t *testing.T) {
 	t.Run("configured", func(t *testing.T) {
 		want := awsident.Identity{Region: "ap-south-1", AccountID: "811690671382"}
 		st, err := dozeaws.NewStack(dozeaws.StackConfig{
-			DataDir: t.TempDir(), Identity: want, Logf: func(string, ...any) {}})
+			DataDir: t.TempDir(), Identity: want, Logf: dozetest.Quiet(t)})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -286,7 +287,7 @@ func TestStackReportsTheIdentityItMintsWith(t *testing.T) {
 
 	t.Run("zero value resolves to the local default", func(t *testing.T) {
 		st, err := dozeaws.NewStack(dozeaws.StackConfig{
-			DataDir: t.TempDir(), Logf: func(string, ...any) {}})
+			DataDir: t.TempDir(), Logf: dozetest.Quiet(t)})
 		if err != nil {
 			t.Fatal(err)
 		}

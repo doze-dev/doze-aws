@@ -8,6 +8,7 @@ package cloudformation_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -62,7 +63,7 @@ func TestNestedStackDeploysAndDeletes(t *testing.T) {
 		t.Skip("stands up a full stack")
 	}
 	ctx := context.Background()
-	st, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	st, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

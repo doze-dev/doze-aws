@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -27,7 +28,7 @@ func startStack(t *testing.T) *httptest.Server {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

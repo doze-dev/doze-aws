@@ -5,6 +5,7 @@ package iam_test
 import (
 	"context"
 	"errors"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"net/url"
 	"strings"
@@ -27,7 +28,7 @@ func client(t *testing.T) *awsiam.Client {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	s, err := iam.New(iam.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := iam.New(iam.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

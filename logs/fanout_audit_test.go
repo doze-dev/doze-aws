@@ -7,6 +7,7 @@ package logs_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -33,7 +34,7 @@ func TestDeletedGroupStopsShipping(t *testing.T) {
 		w.WriteHeader(202)
 	}))
 	defer fake.Close()
-	s, err := logs.New(logs.Options{DataDir: t.TempDir(), Logf: t.Logf,
+	s, err := logs.New(logs.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t),
 		Peers: peers.Static{"lambda": peers.Endpoint{Client: fake.Client(), BaseURL: fake.URL}}})
 	if err != nil {
 		t.Fatal(err)
@@ -80,7 +81,7 @@ func TestPutAfterCloseDoesNotPanic(t *testing.T) {
 	if testing.Short() {
 		t.Skip("boots a store")
 	}
-	s, err := logs.New(logs.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := logs.New(logs.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

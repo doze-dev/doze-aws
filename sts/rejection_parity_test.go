@@ -19,6 +19,7 @@ package sts
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -44,7 +45,7 @@ type auditCase struct {
 
 func stsServer(t *testing.T) *httptest.Server {
 	t.Helper()
-	s, err := New(Options{Logf: t.Logf})
+	s, err := New(Options{Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

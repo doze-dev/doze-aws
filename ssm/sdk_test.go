@@ -5,6 +5,7 @@ package ssm_test
 import (
 	"context"
 	"errors"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -24,7 +25,7 @@ func ssmClient(t *testing.T) *awsssm.Client {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	s, err := ssm.New(ssm.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := ssm.New(ssm.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

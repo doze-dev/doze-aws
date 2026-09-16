@@ -2,6 +2,7 @@ package secretsmanager_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"os"
 	"os/exec"
@@ -57,7 +58,7 @@ func TestRotateSecretViaLambda(t *testing.T) {
 		t.Skip("compiles + runs a rotation lambda through a full stack")
 	}
 	ctx := context.Background()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

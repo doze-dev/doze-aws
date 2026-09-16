@@ -17,6 +17,7 @@ package lambda_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"strings"
@@ -41,7 +42,7 @@ func urlUnderMode(t *testing.T, mode iam.Mode) (*awslambda.Client, string, conte
 	}
 	skipWithoutPython(t)
 	ctx := context.Background()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf, IAMMode: mode})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t), IAMMode: mode})
 	if err != nil {
 		t.Fatal(err)
 	}

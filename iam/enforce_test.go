@@ -4,6 +4,7 @@ package iam_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -34,7 +35,7 @@ func stackWith(t *testing.T, mode iam.Mode, services ...string) (*awsiam.Client,
 		t.Skip("skipping stack test in -short mode")
 	}
 	st, err := dozeaws.NewStack(dozeaws.StackConfig{
-		DataDir: t.TempDir(), Logf: t.Logf, IAMMode: mode,
+		DataDir: t.TempDir(), Logf: dozetest.Logf(t), IAMMode: mode,
 		Services: services,
 	})
 	if err != nil {

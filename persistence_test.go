@@ -2,6 +2,7 @@ package dozeaws_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http/httptest"
 	"strings"
@@ -70,7 +71,7 @@ func TestPersistenceAcrossRestart(t *testing.T) {
 	dir := t.TempDir()
 
 	// ---- first boot: write one durable artifact per service ----
-	stack1, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: dir, Logf: t.Logf})
+	stack1, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: dir, Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +135,7 @@ func TestPersistenceAcrossRestart(t *testing.T) {
 		t.Fatalf("stack1 close: %v", err)
 	}
 
-	stack2, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: dir, Logf: t.Logf})
+	stack2, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: dir, Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatalf("reopen stack: %v", err)
 	}

@@ -22,6 +22,7 @@ package apigateway
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -71,7 +72,7 @@ func authCacheServer(t *testing.T) (*Server, *httptest.Server, *anyTokenLambda, 
 	fake := &anyTokenLambda{}
 	peer := httptest.NewServer(fake)
 	t.Cleanup(peer.Close)
-	s, err := New(Options{DataDir: t.TempDir(), Logf: func(string, ...any) {},
+	s, err := New(Options{DataDir: t.TempDir(), Logf: dozetest.Quiet(t),
 		Peers: peers.Static{"lambda": peers.Endpoint{Client: peer.Client(), BaseURL: peer.URL}}})
 	if err != nil {
 		t.Fatal(err)

@@ -7,6 +7,7 @@ package cloudformation_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -90,7 +91,7 @@ func TestApplyLoggingSettings(t *testing.T) {
 	codeDir := t.TempDir() // no bootstrap: the function fails to launch, which is still a logged request
 	os.WriteFile(codeDir+"/README", []byte("empty on purpose"), 0o644)
 
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

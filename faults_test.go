@@ -14,6 +14,8 @@ package dozeaws_test
 // innocent tests and passes on guilty ones.
 
 import (
+	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -27,7 +29,7 @@ import (
 func faultTestStack(t *testing.T) (*dozeaws.Stack, *httptest.Server) {
 	t.Helper()
 	st, err := dozeaws.NewStack(dozeaws.StackConfig{
-		DataDir: t.TempDir(), Logf: func(string, ...any) {}})
+		DataDir: t.TempDir(), Logf: dozetest.Quiet(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,4 +156,47 @@ func TestAFaultCarriesTheWireRequestID(t *testing.T) {
 			t.Errorf("a recorded fault has no request id: %+v", f)
 		}
 	}
+}
+
+// A recorded fault is also a LOGGED fault.
+//
+// Making the sink per-stack meant NoteFault stopped falling through to the
+// process-wide handler — correct, but it silently took the "answered 500 …
+// request id" line away from every stack served through Handler(), which is all
+// of them. The id on the wire led nowhere again, which was the whole point of
+// adding it.
+//
+// Recording without logging trades a diagnostic a person reads for one only a
+// test reads. Both, or neither is worth having.
+func TestARecordedFaultIsAlsoLogged(t *testing.T) {
+	var mu sync.Mutex
+	var lines []string
+	st, err := dozeaws.NewStack(dozeaws.StackConfig{
+		DataDir: t.TempDir(),
+		Logf: func(f string, a ...any) {
+			mu.Lock()
+			defer mu.Unlock()
+			lines = append(lines, fmt.Sprintf(f, a...))
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	rec := httptest.NewRecorder()
+	w := awshttp.WithFaultRecorder(rec, st.FaultSinkForTest())
+	awshttp.NoteFault(w, "logged-id", &awshttp.APIError{Status: 500, Code: "InternalFailure"})
+
+	if got := st.Faults(); len(got) != 1 {
+		t.Fatalf("recorded %d faults, want 1", len(got))
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	for _, l := range lines {
+		if strings.Contains(l, "logged-id") && strings.Contains(l, "500") {
+			return
+		}
+	}
+	t.Errorf("the fault was recorded but never logged — the id on the wire leads nowhere again.\nlines: %v", lines)
 }

@@ -12,6 +12,8 @@ import (
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/secretsmanager"
+
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 )
 
 func smV1Client(t *testing.T) *smv1.SecretsManager {
@@ -19,7 +21,7 @@ func smV1Client(t *testing.T) *smv1.SecretsManager {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	s, err := secretsmanager.New(secretsmanager.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := secretsmanager.New(secretsmanager.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -14,6 +14,7 @@ package dozeaws_test
 
 import (
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -131,7 +132,7 @@ func TestEveryProtocolStampsARequestID(t *testing.T) {
 // a colleague quotes findable in the console.
 func TestTheTrafficRowCarriesTheWireRequestID(t *testing.T) {
 	stack, err := dozeaws.NewStack(dozeaws.StackConfig{
-		DataDir: t.TempDir(), Logf: func(string, ...any) {}})
+		DataDir: t.TempDir(), Logf: dozetest.Quiet(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

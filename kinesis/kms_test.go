@@ -7,6 +7,7 @@ package kinesis_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -30,7 +31,7 @@ func encryptedPair(t *testing.T) (*awskinesis.Client, *awskms.Client, string) {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	km, err := kms.New(kms.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	km, err := kms.New(kms.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +43,7 @@ func encryptedPair(t *testing.T) (*awskinesis.Client, *awskms.Client, string) {
 		}
 		return nil
 	})
-	ks, err := kinesis.New(kinesis.Options{DataDir: t.TempDir(), Logf: t.Logf, Peers: dir})
+	ks, err := kinesis.New(kinesis.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t), Peers: dir})
 	if err != nil {
 		t.Fatal(err)
 	}

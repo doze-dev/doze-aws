@@ -3,6 +3,7 @@ package stepfunctions_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -28,7 +29,7 @@ func sfnAndLogs(t *testing.T) (*awssfn.Client, *cwl.Client) {
 	if testing.Short() {
 		t.Skip("stands up a full stack")
 	}
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

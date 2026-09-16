@@ -16,6 +16,7 @@ package dozeaws_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -142,7 +143,7 @@ func TestANilStackClockMeansRealTime(t *testing.T) {
 		t.Skip("stands up a full stack")
 	}
 	st, err := dozeaws.NewStack(dozeaws.StackConfig{
-		DataDir: t.TempDir(), Logf: func(string, ...any) {}})
+		DataDir: t.TempDir(), Logf: dozetest.Quiet(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

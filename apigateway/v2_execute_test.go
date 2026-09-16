@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -119,7 +120,7 @@ func v2Server(t *testing.T, lambda http.Handler) v2API {
 		}
 		return nil
 	})
-	s, err := New(Options{DataDir: t.TempDir(), Logf: t.Logf, Peers: dir})
+	s, err := New(Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t), Peers: dir})
 	if err != nil {
 		t.Fatal(err)
 	}

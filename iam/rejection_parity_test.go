@@ -21,6 +21,7 @@ package iam
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -47,7 +48,7 @@ type auditCase struct {
 
 func iamServer(t *testing.T) *httptest.Server {
 	t.Helper()
-	s, err := New(Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := New(Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

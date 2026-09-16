@@ -8,6 +8,7 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"math/big"
 	"net/http/httptest"
 	"testing"
@@ -28,7 +29,7 @@ func client(t *testing.T) *awskinesis.Client {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	s, err := kinesis.New(kinesis.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := kinesis.New(kinesis.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -11,6 +11,8 @@ import (
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/console"
 	"github.com/doze-dev/doze-aws/peers"
+
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 )
 
 // The copyable queue URL on a queue's page must be the URL SQS itself would
@@ -33,7 +35,7 @@ func TestQueueURLChipUsesTheConfiguredAccount(t *testing.T) {
 
 	stack, err := dozeaws.NewStack(dozeaws.StackConfig{
 		DataDir:  t.TempDir(),
-		Logf:     t.Logf,
+		Logf:     dozetest.Logf(t),
 		Identity: awsident.Identity{AccountID: account, Region: "ap-south-1"},
 	})
 	if err != nil {

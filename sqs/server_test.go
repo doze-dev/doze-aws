@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	bolt "go.etcd.io/bbolt"
+
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 )
 
 // testStore opens a fresh white-box store (no server, no janitor).
@@ -30,7 +32,7 @@ func testServer(t *testing.T) *httptest.Server {
 	if testing.Short() {
 		t.Skip("skipping server test in -short mode")
 	}
-	s, err := New(Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := New(Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

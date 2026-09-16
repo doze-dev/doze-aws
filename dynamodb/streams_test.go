@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -47,7 +48,7 @@ func TestDynamoDBStreamsAPI(t *testing.T) {
 		t.Skip("streams contract test")
 	}
 	ctx := context.Background()
-	s, err := dynamodb.New(dynamodb.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := dynamodb.New(dynamodb.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

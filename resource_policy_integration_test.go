@@ -8,6 +8,7 @@ package dozeaws_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -31,7 +32,7 @@ import (
 
 func enforceStack(t *testing.T, services ...string) (aws.Config, string) {
 	t.Helper()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf, IAMMode: iam.ModeEnforce, Services: services})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t), IAMMode: iam.ModeEnforce, Services: services})
 	if err != nil {
 		t.Fatal(err)
 	}

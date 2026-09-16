@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -54,7 +55,7 @@ type auditCase struct {
 
 func lambdaServer(t *testing.T) *httptest.Server {
 	t.Helper()
-	s, err := lambda.New(lambda.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	s, err := lambda.New(lambda.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -5,6 +5,7 @@ package apigateway_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -90,7 +91,7 @@ func TestDeployedAPIInvokesLambda(t *testing.T) {
 	}
 	ctx := context.Background()
 
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -236,7 +237,7 @@ func TestControlPlaneCRUD(t *testing.T) {
 	}
 	ctx := context.Background()
 	stack, err := dozeaws.NewStack(dozeaws.StackConfig{
-		DataDir: t.TempDir(), Logf: t.Logf, Services: []string{"apigateway"},
+		DataDir: t.TempDir(), Logf: dozetest.Logf(t), Services: []string{"apigateway"},
 	})
 	if err != nil {
 		t.Fatal(err)

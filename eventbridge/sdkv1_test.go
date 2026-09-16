@@ -14,6 +14,8 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
+
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 )
 
 func ebV1Client(t *testing.T) *ebv1.EventBridge {
@@ -21,7 +23,7 @@ func ebV1Client(t *testing.T) *ebv1.EventBridge {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

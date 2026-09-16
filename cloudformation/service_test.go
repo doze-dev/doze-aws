@@ -10,6 +10,7 @@ package cloudformation_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -49,7 +50,7 @@ func cfnStack(t *testing.T) (*awscfn.Client, *awssqs.Client) {
 	if testing.Short() {
 		t.Skip("stands up a full stack")
 	}
-	st, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	st, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

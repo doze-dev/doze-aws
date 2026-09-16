@@ -167,6 +167,7 @@ type Runner struct {
 
 	mu      sync.Mutex
 	ln      net.Listener
+	srv     *http.Server // closed by Stop, so in-flight handlers are cancelled too
 	cmd     *exec.Cmd
 	queue   chan *invocation
 	current *invocation
@@ -349,7 +350,19 @@ func (r *Runner) ensureStarted() error {
 		return err
 	}
 	r.ln = ln
-	go http.Serve(ln, r.routes()) //nolint:errcheck // stops when ln closes
+	// A real Server rather than bare http.Serve, so Stop can close the
+	// CONNECTIONS and not just the listener.
+	//
+	// Closing a listener stops new connections and lets Serve return; it does
+	// nothing to the ones already accepted. handleNext is a long poll — it
+	// blocks on the invocation queue until the child's connection drops — so a
+	// handler already in flight when the runner stopped waited on a queue
+	// nobody would ever fill again. Killing the child usually dropped that
+	// connection and the handler noticed, which is why this survived; when the
+	// kill raced the accept, or the child was gone already, the goroutine
+	// stayed for the life of the process.
+	r.srv = &http.Server{Handler: r.routes()}
+	go r.srv.Serve(ln) //nolint:errcheck // stops when ln closes
 
 	// One stream per process, one writer for both of its output pipes.
 	r.stream = streamName(r.version(), time.Now())
@@ -562,13 +575,20 @@ func (r *Runner) reap() {
 	}
 }
 
-// Stop terminates the process and listener.
+// Stop terminates the process and the Runtime API server.
+//
+// The server, not just the listener: handleNext long-polls until the child's
+// connection drops, so a handler in flight when the runner stopped would
+// otherwise block on a queue nothing will ever fill again.
 func (r *Runner) Stop() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.stopped = true
 	if r.cmd != nil && r.cmd.Process != nil {
 		_ = r.cmd.Process.Kill()
+	}
+	if r.srv != nil {
+		_ = r.srv.Close()
 	}
 	if r.ln != nil {
 		_ = r.ln.Close()

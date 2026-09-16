@@ -8,6 +8,7 @@ package cloudformation_test
 import (
 	"context"
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -111,7 +112,7 @@ func TestApplyCDKHTTPAPI(t *testing.T) {
 	os.WriteFile(filepath.Join(gateDir, "h.py"), []byte(
 		"def handler(event, context):\n    return {'isAuthorized': event['headers'].get('authorization') == 'let-me-in', 'context': {'user': 'alice'}}\n"), 0o644)
 
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

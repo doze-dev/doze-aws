@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -83,7 +84,7 @@ func TestSubscriptionFilterToLambda(t *testing.T) {
 	}))
 	defer fake.Close()
 	dir := peers.Static{"lambda": peers.Endpoint{Client: fake.Client(), BaseURL: fake.URL}}
-	s, err := logs.New(logs.Options{DataDir: t.TempDir(), Logf: t.Logf, Peers: dir})
+	s, err := logs.New(logs.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t), Peers: dir})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -187,7 +188,7 @@ func TestSubscriptionFilterToKinesis(t *testing.T) {
 		t.Skip("stands up a full stack")
 	}
 	ctx := context.Background()
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

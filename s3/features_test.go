@@ -4,6 +4,7 @@ package s3_test
 
 import (
 	"context"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -158,7 +159,7 @@ func TestLifecycleExpiration(t *testing.T) {
 	clock := func() time.Time {
 		return time.Now().Add(time.Duration(atomic.LoadInt64(&offsetDays)) * 24 * time.Hour)
 	}
-	srv, err := s3.New(s3.Options{DataDir: t.TempDir(), Logf: t.Logf, Clock: clock})
+	srv, err := s3.New(s3.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t), Clock: clock})
 	if err != nil {
 		t.Fatal(err)
 	}

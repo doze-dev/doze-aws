@@ -48,6 +48,8 @@ type metricEmitter struct {
 	mu     sync.Mutex
 	cache  map[string][]compiledFilter
 	closed bool
+	// once guards close. Deliberately not the closed flag — see close().
+	once sync.Once
 	// dead is set when the worker panicked, which enqueue reports and a
 	// deliberate close does not.
 	dead bool
@@ -96,17 +98,29 @@ func (m *metricEmitter) forget(group string) {
 	m.mu.Unlock()
 }
 
+// close stops the worker and the shipper behind it.
+//
+// Guarded by a sync.Once, the way fanout.close is — NOT by the closed flag,
+// which is what this used to do and which made a contained panic leak the
+// shipper. die() sets closed to make enqueue start reporting drops, so after a
+// panic the flag was already true and close() returned at the first line: the
+// quit channel was never closed, m.ship.Close() was never called, and the
+// shipper's worker sat on its select for the life of the process.
+//
+// The flag answers "should enqueue accept more?". Whether close has already run
+// is a different question and now has its own answer. The fan-out is a copy of
+// this file and got the Once; this one kept the flag check and drifted.
 func (m *metricEmitter) close() {
-	m.mu.Lock()
-	if m.closed {
+	m.once.Do(func() {
+		m.mu.Lock()
+		m.closed = true
 		m.mu.Unlock()
-		return
-	}
-	m.closed = true
-	m.mu.Unlock()
-	close(m.quit)
-	<-m.done
-	m.ship.Close()
+		close(m.quit)
+		// Already closed by run's defer if the worker died, so this returns at
+		// once in that case rather than waiting for a worker that is gone.
+		<-m.done
+		m.ship.Close()
+	})
 }
 
 // run drains the queue. The recover is registered AFTER close(m.done) so it

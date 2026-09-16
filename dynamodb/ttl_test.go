@@ -3,6 +3,7 @@ package dynamodb_test
 import (
 	"context"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
@@ -27,7 +28,7 @@ func TestTTLExpiry(t *testing.T) {
 
 	var offset int64
 	clock := func() time.Time { return time.Now().Add(time.Duration(atomic.LoadInt64(&offset)) * time.Second) }
-	s, err := dynamodb.New(dynamodb.Options{DataDir: t.TempDir(), Logf: t.Logf, Clock: clock})
+	s, err := dynamodb.New(dynamodb.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t), Clock: clock})
 	if err != nil {
 		t.Fatal(err)
 	}

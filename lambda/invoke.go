@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -42,7 +43,15 @@ func (s *Server) invoke(w http.ResponseWriter, r *http.Request, name, qualifier 
 	}
 
 	if invType == "Event" {
-		bg.Go(s.logf, "lambda: asynchronous invoke", func() { s.invokeAsync(f, payload) })
+		// Tracked, even though the CALLER is told nothing more (that is what the
+		// 202 means). Close cancels these and then waits: an async invocation
+		// writes logs and metrics, and one still running when the store closed
+		// is either an error nobody sees or a panic on a closed bbolt handle.
+		s.async.Add(1)
+		bg.Go(s.logf, "lambda: asynchronous invoke", func() {
+			defer s.async.Done()
+			s.invokeAsync(f, payload)
+		})
 		w.WriteHeader(202)
 		return nil
 	}
@@ -129,7 +138,7 @@ func (s *Server) invokeAsync(f *Function, payload []byte) {
 		retries = *f.MaxRetryAttempts
 	}
 	for attempt := 0; attempt <= retries; attempt++ { // 1 try + N retries
-		res, err = s.runInvoke(context.Background(), f, payload)
+		res, err = s.runInvoke(s.shutdown, f, payload)
 		if err == nil && res.FunctionErr == "" {
 			s.routeDestination(f, payload, res, true)
 			return
@@ -265,6 +274,20 @@ func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
 	if r := s.runners[key]; r != nil {
 		return r
 	}
+	// Never start a process for a service that is shutting down.
+	//
+	// Close stops every pool, but an async invocation RETRIES — and a retry
+	// calls back through here. Creating a pool at that point starts a fresh
+	// child process and a fresh Runtime API server that Close has already
+	// walked past, so they outlive the service that owns them and hold the log
+	// sink and the store open behind it.
+	//
+	// An empty pool refuses the invoke with ErrPoolClosed, which is the same
+	// answer the caller would get from a pool stopped a moment earlier — and
+	// the retry loop treats it as the failure it is.
+	if s.shutdown.Err() != nil {
+		return closedPool()
+	}
 	max := 0 // NewPool defaults it
 	if f.ReservedConcurrency != nil {
 		max = *f.ReservedConcurrency
@@ -352,3 +375,17 @@ func (s *Server) endpointEnv() map[string]string {
 }
 
 func readRand(b []byte) (int, error) { return rand.Read(b) }
+
+// closedPool is a single, already-stopped pool handed out while the service is
+// shutting down.
+//
+// lambdaruntime.Pool already refuses to spawn a child once stopped, and says
+// why: "that runner would be invisible to Stop and leak". The hole was one
+// level up — runnerFor created a BRAND NEW pool, which is not stopped and so
+// never met that guard. Returning a stopped one puts the existing guard back in
+// the path instead of writing a second one.
+var closedPool = sync.OnceValue(func() *lambdaruntime.Pool {
+	p := lambdaruntime.NewPool(lambdaruntime.Spec{Name: "shutting-down"}, 1, func(string, ...any) {})
+	p.Stop()
+	return p
+})

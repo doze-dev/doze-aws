@@ -184,8 +184,18 @@ func (s *Shipper) send(batch map[string][]Datum) {
 	}
 }
 
-// Close flushes and stops the worker, waiting briefly for what was pending so
-// a test can read back what it published.
+// closeDeadline bounds how long Close waits for the worker to finish.
+//
+// Two seconds could not tell a WEDGED worker from a busy one: a publish goes
+// out through a peers client whose own timeout is thirty seconds, so a worker
+// legitimately mid-send was abandoned long before it could return. Under a
+// loaded machine that happened for real, and Close returned leaving the
+// goroutine alive. The deadline now sits past the longest legitimate
+// operation. See internal/logship for the same change and the same reasoning.
+const closeDeadline = 35 * time.Second
+
+// Close flushes and stops the worker, waiting for what was pending so a test
+// can read back what it published. Giving up is logged rather than silent.
 func (s *Shipper) Close() {
 	s.once.Do(func() {
 		batch := s.take()
@@ -196,7 +206,10 @@ func (s *Shipper) Close() {
 		close(s.quit)
 		select {
 		case <-s.done:
-		case <-time.After(2 * time.Second):
+		case <-time.After(closeDeadline):
+			if s.logf != nil {
+				s.logf("%s: shipper did not stop within %s; abandoning it", s.name, closeDeadline)
+			}
 		}
 	})
 }

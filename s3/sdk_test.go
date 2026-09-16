@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -31,7 +32,7 @@ func startS3(t *testing.T) *httptest.Server {
 	if testing.Short() {
 		t.Skip("skipping SDK contract test in -short mode")
 	}
-	srv, err := s3.New(s3.Options{DataDir: t.TempDir(), Logf: t.Logf})
+	srv, err := s3.New(s3.Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -429,7 +430,7 @@ func TestSDKVirtualHostedStyle(t *testing.T) {
 	// It is gone; the suffix covers the shape AWS itself uses, and that is the
 	// one worth supporting.
 	const suffix = "aws.harbour.doze"
-	srv, err := s3.New(s3.Options{DataDir: t.TempDir(), Suffix: suffix, Logf: t.Logf})
+	srv, err := s3.New(s3.Options{DataDir: t.TempDir(), Suffix: suffix, Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

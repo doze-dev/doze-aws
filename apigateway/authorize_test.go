@@ -2,6 +2,7 @@ package apigateway
 
 import (
 	"encoding/json"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -99,7 +100,7 @@ func TestLambdaAuthorizerGate(t *testing.T) {
 	peer := httptest.NewServer(fake)
 	defer peer.Close()
 	now := time.Date(2026, 9, 9, 10, 0, 0, 0, time.UTC)
-	s, err := New(Options{DataDir: t.TempDir(), Logf: t.Logf,
+	s, err := New(Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t),
 		Peers: peers.Static{"lambda": peers.Endpoint{Client: peer.Client(), BaseURL: peer.URL}},
 		Clock: func() time.Time { return now }})
 	if err != nil {

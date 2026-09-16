@@ -6,6 +6,7 @@ package lambda_test
 import (
 	"context"
 	"errors"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -82,7 +83,7 @@ func lambdaClient(t *testing.T) (*awslambda.Client, string) {
 	}
 	// Use the service directly (function URLs / runner env are simplest without
 	// the gateway); still exercised through the real HTTP handler.
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,7 +198,7 @@ func TestSDKEventSourceMapping(t *testing.T) {
 	}
 	codeDir := buildBootstrap(t)
 
-	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: t.Logf})
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}

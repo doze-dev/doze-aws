@@ -27,6 +27,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -60,10 +61,11 @@ type auditCase struct {
 
 func s3Server(t *testing.T) *httptest.Server {
 	t.Helper()
-	srv, err := New(Options{DataDir: t.TempDir(), Logf: t.Logf})
+	srv, err := New(Options{DataDir: t.TempDir(), Logf: dozetest.Logf(t)})
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { srv.Close() })
 	ts := httptest.NewServer(srv)
 	t.Cleanup(ts.Close)
 	return ts
