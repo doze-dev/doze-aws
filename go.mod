@@ -29,7 +29,9 @@ require (
 	github.com/blues/jsonata-go v1.5.4
 	github.com/doze-dev/doze-names v0.0.0-20260912101014-06107ced21f0
 	go.etcd.io/bbolt v1.5.0
+	go.uber.org/goleak v1.3.0
 	gopkg.in/yaml.v3 v3.0.1
+	pgregory.net/rapid v1.3.0
 )
 
 require (
@@ -137,7 +139,6 @@ require (
 	go.opentelemetry.io/otel/sdk v1.44.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
-	go.uber.org/goleak v1.3.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect

@@ -28,6 +28,13 @@ e2e/.bun/
 # dzaudit refetches on demand: go run ./cmd/dzaudit coverage
 .audit-models/
 
+# rapid writes a failfile for every failing property run and replays every
+# failfile it finds here on the next run. That is the right local behaviour —
+# a failure you are fixing should keep failing until it does not — but the
+# files are transient, machine-specific and unreviewable, so they are not
+# committed. A case worth keeping permanently belongs in a named test.
+testdata/rapid/
+
 # The dzaudit binary, if you build it in the repo root. `go build ./cmd/dzaudit`
 # writes it here, and an 8.5 MB platform-specific artifact was committed twice
 # before anyone noticed. Run it with `go run ./cmd/dzaudit` instead.

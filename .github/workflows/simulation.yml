@@ -1,0 +1,73 @@
+name: Simulation
+
+# The generated-sequence tests, run nightly at a scale the normal suite cannot
+# afford.
+#
+# `go test ./...` runs TestSimulation at rapid's defaults — a hundred sequences
+# of a hundred actions — which is enough to catch a bug that is reachable in a
+# short sequence and nothing like enough to catch one that needs a particular
+# order of two hundred. That is what this is for: a much longer budget, a fresh
+# seed, and the race detector.
+#
+# rapid picks a random seed when none is given and PRINTS it on failure, so a
+# red build here arrives with the one flag that reproduces it. The failfile it
+# writes is uploaded too, which replays the shrunk sequence directly.
+
+on:
+  schedule:
+    - cron: '17 3 * * *' # nightly, 03:17 UTC
+  workflow_dispatch:
+    inputs:
+      checks:
+        description: 'Sequences to generate'
+        default: '400'
+      steps:
+        description: 'Actions per sequence'
+        default: '300'
+      rounds:
+        description: 'Create/use/delete rounds for the resource-bound test'
+        default: '4000'
+
+permissions:
+  contents: read
+
+jobs:
+  simulation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      # Generated operation sequences against a model of what should exist,
+      # with restarts and cross-service faults mixed in.
+      - name: Simulate
+        env:
+          GOWORK: off
+        run: |
+          go test -race -timeout 110m -v -run TestSimulation \
+            -rapid.checks=${{ github.event.inputs.checks || '400' }} \
+            -rapid.steps=${{ github.event.inputs.steps || '300' }} .
+
+      # The other half: does a stack that has been used cost more than one
+      # used half as much? Long enough here that a slow heap leak climbs out
+      # of the noise, which it cannot do at the suite's default scale.
+      - name: Resource bounds at scale
+        if: always()
+        env:
+          GOWORK: off
+          DOZE_BOUND_ROUNDS: ${{ github.event.inputs.rounds || '4000' }}
+        run: go test -timeout 110m -v -run TestResourcesStayBounded .
+
+      # The seed is in the log; this is the shrunk sequence, replayable with
+      # -rapid.failfile=<path>.
+      - name: Upload the failing sequence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapid-failfiles
+          path: testdata/rapid/
+          retention-days: 30
+          if-no-files-found: ignore
