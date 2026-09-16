@@ -1,0 +1,2069 @@
+[
+ {
+  "operation": "DeleteInsightRules",
+  "output": "DeleteInsightRulesOutput",
+  "members": [
+   {
+    "path": "Failures",
+    "type": "list"
+   },
+   {
+    "path": "Failures[]",
+    "type": "structure"
+   },
+   {
+    "path": "Failures[].ExceptionType",
+    "type": "string"
+   },
+   {
+    "path": "Failures[].FailureCode",
+    "type": "string"
+   },
+   {
+    "path": "Failures[].FailureDescription",
+    "type": "string"
+   },
+   {
+    "path": "Failures[].FailureResource",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeAlarmContributors",
+  "output": "DescribeAlarmContributorsOutput",
+  "members": [
+   {
+    "path": "AlarmContributors",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "AlarmContributors[]",
+    "type": "structure"
+   },
+   {
+    "path": "AlarmContributors[].ContributorAttributes",
+    "type": "map",
+    "required": true
+   },
+   {
+    "path": "AlarmContributors[].ContributorAttributes{}",
+    "type": "string"
+   },
+   {
+    "path": "AlarmContributors[].ContributorId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "AlarmContributors[].StateReason",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "AlarmContributors[].StateTransitionedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeAlarmHistory",
+  "output": "DescribeAlarmHistoryOutput",
+  "members": [
+   {
+    "path": "AlarmHistoryItems",
+    "type": "list"
+   },
+   {
+    "path": "AlarmHistoryItems[]",
+    "type": "structure"
+   },
+   {
+    "path": "AlarmHistoryItems[].AlarmContributorAttributes",
+    "type": "map"
+   },
+   {
+    "path": "AlarmHistoryItems[].AlarmContributorAttributes{}",
+    "type": "string"
+   },
+   {
+    "path": "AlarmHistoryItems[].AlarmContributorId",
+    "type": "string"
+   },
+   {
+    "path": "AlarmHistoryItems[].AlarmName",
+    "type": "string"
+   },
+   {
+    "path": "AlarmHistoryItems[].AlarmType",
+    "type": "enum",
+    "enum": [
+     "CompositeAlarm",
+     "MetricAlarm",
+     "LogAlarm"
+    ]
+   },
+   {
+    "path": "AlarmHistoryItems[].HistoryData",
+    "type": "string"
+   },
+   {
+    "path": "AlarmHistoryItems[].HistoryItemType",
+    "type": "enum",
+    "enum": [
+     "StateUpdate",
+     "Action",
+     "AlarmContributorStateUpdate",
+     "AlarmContributorAction",
+     "ConfigurationUpdate"
+    ]
+   },
+   {
+    "path": "AlarmHistoryItems[].HistorySummary",
+    "type": "string"
+   },
+   {
+    "path": "AlarmHistoryItems[].Timestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeAlarms",
+  "output": "DescribeAlarmsOutput",
+  "members": [
+   {
+    "path": "CompositeAlarms",
+    "type": "list"
+   },
+   {
+    "path": "CompositeAlarms[]",
+    "type": "structure"
+   },
+   {
+    "path": "CompositeAlarms[].ActionsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "CompositeAlarms[].ActionsSuppressedBy",
+    "type": "enum",
+    "enum": [
+     "WaitPeriod",
+     "ExtensionPeriod",
+     "Alarm"
+    ]
+   },
+   {
+    "path": "CompositeAlarms[].ActionsSuppressedReason",
+    "type": "string"
+   },
+   {
+    "path": "CompositeAlarms[].ActionsSuppressor",
+    "type": "string"
+   },
+   {
+    "path": "CompositeAlarms[].ActionsSuppressorExtensionPeriod",
+    "type": "integer"
+   },
+   {
+    "path": "CompositeAlarms[].ActionsSuppressorWaitPeriod",
+    "type": "integer"
+   },
+   {
+    "path": "CompositeAlarms[].AlarmActions",
+    "type": "list"
+   },
+   {
+    "path": "CompositeAlarms[].AlarmActions[]",
+    "type": "string"
+   },
+   {
+    "path": "CompositeAlarms[].AlarmArn",
+    "type": "string"
+   },
+   {
+    "path": "CompositeAlarms[].AlarmConfigurationUpdatedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "CompositeAlarms[].AlarmDescription",
+    "type": "string"
+   },
+   {
+    "path": "CompositeAlarms[].AlarmName",
+    "type": "string"
+   },
+   {
+    "path": "CompositeAlarms[].AlarmRule",
+    "type": "string"
+   },
+   {
+    "path": "CompositeAlarms[].InsufficientDataActions",
+    "type": "list"
+   },
+   {
+    "path": "CompositeAlarms[].InsufficientDataActions[]",
+    "type": "string"
+   },
+   {
+    "path": "CompositeAlarms[].OKActions",
+    "type": "list"
+   },
+   {
+    "path": "CompositeAlarms[].OKActions[]",
+    "type": "string"
+   },
+   {
+    "path": "CompositeAlarms[].StateReason",
+    "type": "string"
+   },
+   {
+    "path": "CompositeAlarms[].StateReasonData",
+    "type": "string"
+   },
+   {
+    "path": "CompositeAlarms[].StateTransitionedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "CompositeAlarms[].StateUpdatedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "CompositeAlarms[].StateValue",
+    "type": "enum",
+    "enum": [
+     "OK",
+     "ALARM",
+     "INSUFFICIENT_DATA"
+    ]
+   },
+   {
+    "path": "LogAlarms",
+    "type": "list"
+   },
+   {
+    "path": "LogAlarms[]",
+    "type": "structure"
+   },
+   {
+    "path": "LogAlarms[].ActionLogLineCount",
+    "type": "integer"
+   },
+   {
+    "path": "LogAlarms[].ActionLogLineRoleArn",
+    "type": "string"
+   },
+   {
+    "path": "LogAlarms[].ActionsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "LogAlarms[].AlarmActions",
+    "type": "list"
+   },
+   {
+    "path": "LogAlarms[].AlarmActions[]",
+    "type": "string"
+   },
+   {
+    "path": "LogAlarms[].AlarmArn",
+    "type": "string"
+   },
+   {
+    "path": "LogAlarms[].AlarmConfigurationUpdatedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "LogAlarms[].AlarmDescription",
+    "type": "string"
+   },
+   {
+    "path": "LogAlarms[].AlarmName",
+    "type": "string"
+   },
+   {
+    "path": "LogAlarms[].ComparisonOperator",
+    "type": "enum",
+    "enum": [
+     "GreaterThanThreshold",
+     "LessThanThreshold",
+     "LessThanOrEqualToThreshold",
+     "LessThanLowerOrGreaterThanUpperThreshold",
+     "LessThanLowerThreshold",
+     "GreaterThanUpperThreshold",
+     "GreaterThanOrEqualToThreshold"
+    ]
+   },
+   {
+    "path": "LogAlarms[].EvaluationState",
+    "type": "enum",
+    "enum": [
+     "PARTIAL_DATA",
+     "EVALUATION_FAILURE",
+     "EVALUATION_ERROR"
+    ]
+   },
+   {
+    "path": "LogAlarms[].InsufficientDataActions",
+    "type": "list"
+   },
+   {
+    "path": "LogAlarms[].InsufficientDataActions[]",
+    "type": "string"
+   },
+   {
+    "path": "LogAlarms[].OKActions",
+    "type": "list"
+   },
+   {
+    "path": "LogAlarms[].OKActions[]",
+    "type": "string"
+   },
+   {
+    "path": "LogAlarms[].QueryResultsToAlarm",
+    "type": "integer"
+   },
+   {
+    "path": "LogAlarms[].QueryResultsToEvaluate",
+    "type": "integer"
+   },
+   {
+    "path": "LogAlarms[].ScheduledQueryConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "LogAlarms[].ScheduledQueryConfiguration.AggregationExpression",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "LogAlarms[].ScheduledQueryConfiguration.LogGroupIdentifiers",
+    "type": "list"
+   },
+   {
+    "path": "LogAlarms[].ScheduledQueryConfiguration.LogGroupIdentifiers[]",
+    "type": "string"
+   },
+   {
+    "path": "LogAlarms[].ScheduledQueryConfiguration.QueryARN",
+    "type": "string"
+   },
+   {
+    "path": "LogAlarms[].ScheduledQueryConfiguration.QueryString",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "LogAlarms[].ScheduledQueryConfiguration.ScheduleConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "LogAlarms[].ScheduledQueryConfiguration.ScheduleConfiguration.EndTimeOffset",
+    "type": "integer"
+   },
+   {
+    "path": "LogAlarms[].ScheduledQueryConfiguration.ScheduleConfiguration.ScheduleExpression",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "LogAlarms[].ScheduledQueryConfiguration.ScheduleConfiguration.StartTimeOffset",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "LogAlarms[].ScheduledQueryConfiguration.ScheduledQueryRoleARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "LogAlarms[].ScheduledQueryConfiguration.Tags",
+    "type": "list"
+   },
+   {
+    "path": "LogAlarms[].ScheduledQueryConfiguration.Tags[]",
+    "type": "structure"
+   },
+   {
+    "path": "LogAlarms[].StateReason",
+    "type": "string"
+   },
+   {
+    "path": "LogAlarms[].StateReasonData",
+    "type": "string"
+   },
+   {
+    "path": "LogAlarms[].StateTransitionedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "LogAlarms[].StateUpdatedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "LogAlarms[].StateValue",
+    "type": "enum",
+    "enum": [
+     "OK",
+     "ALARM",
+     "INSUFFICIENT_DATA"
+    ]
+   },
+   {
+    "path": "LogAlarms[].Threshold",
+    "type": "float"
+   },
+   {
+    "path": "LogAlarms[].TreatMissingData",
+    "type": "string"
+   },
+   {
+    "path": "LogAlarms[].WarmUpConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "LogAlarms[].WarmUpConfiguration.OnlyStartEvaluatingAfterWarmUpPeriodEnds",
+    "type": "boolean"
+   },
+   {
+    "path": "LogAlarms[].WarmUpConfiguration.WarmUpPeriodDurationInMinutes",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "MetricAlarms",
+    "type": "list"
+   },
+   {
+    "path": "MetricAlarms[]",
+    "type": "structure"
+   },
+   {
+    "path": "MetricAlarms[].ActionsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "MetricAlarms[].AlarmActions",
+    "type": "list"
+   },
+   {
+    "path": "MetricAlarms[].AlarmActions[]",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].AlarmArn",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].AlarmConfigurationUpdatedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "MetricAlarms[].AlarmDescription",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].AlarmName",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].ComparisonOperator",
+    "type": "enum",
+    "enum": [
+     "GreaterThanUpperThreshold",
+     "GreaterThanOrEqualToThreshold",
+     "GreaterThanThreshold",
+     "LessThanThreshold",
+     "LessThanOrEqualToThreshold",
+     "LessThanLowerOrGreaterThanUpperThreshold",
+     "LessThanLowerThreshold"
+    ]
+   },
+   {
+    "path": "MetricAlarms[].DatapointsToAlarm",
+    "type": "integer"
+   },
+   {
+    "path": "MetricAlarms[].Dimensions",
+    "type": "list"
+   },
+   {
+    "path": "MetricAlarms[].Dimensions[]",
+    "type": "structure"
+   },
+   {
+    "path": "MetricAlarms[].Dimensions[].Name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "MetricAlarms[].Dimensions[].Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "MetricAlarms[].EvaluateLowSampleCountPercentile",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].EvaluationCriteria",
+    "type": "any"
+   },
+   {
+    "path": "MetricAlarms[].EvaluationInterval",
+    "type": "integer"
+   },
+   {
+    "path": "MetricAlarms[].EvaluationPeriods",
+    "type": "integer"
+   },
+   {
+    "path": "MetricAlarms[].EvaluationState",
+    "type": "enum",
+    "enum": [
+     "PARTIAL_DATA",
+     "EVALUATION_FAILURE",
+     "EVALUATION_ERROR"
+    ]
+   },
+   {
+    "path": "MetricAlarms[].EvaluationWindow",
+    "type": "any"
+   },
+   {
+    "path": "MetricAlarms[].ExtendedStatistic",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].InsufficientDataActions",
+    "type": "list"
+   },
+   {
+    "path": "MetricAlarms[].InsufficientDataActions[]",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].MetricName",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].Metrics",
+    "type": "list"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[]",
+    "type": "structure"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].AccountId",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].Expression",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].Label",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].MetricStat",
+    "type": "structure"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].Period",
+    "type": "integer"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].ReturnData",
+    "type": "boolean"
+   },
+   {
+    "path": "MetricAlarms[].Namespace",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].OKActions",
+    "type": "list"
+   },
+   {
+    "path": "MetricAlarms[].OKActions[]",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].Period",
+    "type": "integer"
+   },
+   {
+    "path": "MetricAlarms[].StateReason",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].StateReasonData",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].StateTransitionedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "MetricAlarms[].StateUpdatedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "MetricAlarms[].StateValue",
+    "type": "enum",
+    "enum": [
+     "OK",
+     "ALARM",
+     "INSUFFICIENT_DATA"
+    ]
+   },
+   {
+    "path": "MetricAlarms[].Statistic",
+    "type": "enum",
+    "enum": [
+     "SampleCount",
+     "Average",
+     "Sum",
+     "Minimum",
+     "Maximum"
+    ]
+   },
+   {
+    "path": "MetricAlarms[].Threshold",
+    "type": "float"
+   },
+   {
+    "path": "MetricAlarms[].ThresholdMetricId",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].TreatMissingData",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].Unit",
+    "type": "enum",
+    "enum": [
+     "Bits",
+     "Kilobits",
+     "Megabits",
+     "Megabytes/Second",
+     "Megabits/Second",
+     "Gigabits/Second",
+     "Terabits/Second",
+     "Kilobytes",
+     "Megabytes",
+     "Gigabits",
+     "Bytes/Second",
+     "Gigabytes/Second",
+     "Terabytes/Second",
+     "Kilobits/Second",
+     "Seconds",
+     "Gigabytes",
+     "Terabits",
+     "Percent",
+     "Count",
+     "Bits/Second",
+     "Count/Second",
+     "None",
+     "Microseconds",
+     "Bytes",
+     "Terabytes",
+     "Kilobytes/Second",
+     "Milliseconds"
+    ]
+   },
+   {
+    "path": "MetricAlarms[].WarmUpConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "MetricAlarms[].WarmUpConfiguration.OnlyStartEvaluatingAfterWarmUpPeriodEnds",
+    "type": "boolean"
+   },
+   {
+    "path": "MetricAlarms[].WarmUpConfiguration.WarmUpPeriodDurationInMinutes",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeAlarmsForMetric",
+  "output": "DescribeAlarmsForMetricOutput",
+  "members": [
+   {
+    "path": "MetricAlarms",
+    "type": "list"
+   },
+   {
+    "path": "MetricAlarms[]",
+    "type": "structure"
+   },
+   {
+    "path": "MetricAlarms[].ActionsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "MetricAlarms[].AlarmActions",
+    "type": "list"
+   },
+   {
+    "path": "MetricAlarms[].AlarmActions[]",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].AlarmArn",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].AlarmConfigurationUpdatedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "MetricAlarms[].AlarmDescription",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].AlarmName",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].ComparisonOperator",
+    "type": "enum",
+    "enum": [
+     "GreaterThanOrEqualToThreshold",
+     "GreaterThanThreshold",
+     "LessThanThreshold",
+     "LessThanOrEqualToThreshold",
+     "LessThanLowerOrGreaterThanUpperThreshold",
+     "LessThanLowerThreshold",
+     "GreaterThanUpperThreshold"
+    ]
+   },
+   {
+    "path": "MetricAlarms[].DatapointsToAlarm",
+    "type": "integer"
+   },
+   {
+    "path": "MetricAlarms[].Dimensions",
+    "type": "list"
+   },
+   {
+    "path": "MetricAlarms[].Dimensions[]",
+    "type": "structure"
+   },
+   {
+    "path": "MetricAlarms[].Dimensions[].Name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "MetricAlarms[].Dimensions[].Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "MetricAlarms[].EvaluateLowSampleCountPercentile",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].EvaluationCriteria",
+    "type": "any"
+   },
+   {
+    "path": "MetricAlarms[].EvaluationInterval",
+    "type": "integer"
+   },
+   {
+    "path": "MetricAlarms[].EvaluationPeriods",
+    "type": "integer"
+   },
+   {
+    "path": "MetricAlarms[].EvaluationState",
+    "type": "enum",
+    "enum": [
+     "EVALUATION_FAILURE",
+     "EVALUATION_ERROR",
+     "PARTIAL_DATA"
+    ]
+   },
+   {
+    "path": "MetricAlarms[].EvaluationWindow",
+    "type": "any"
+   },
+   {
+    "path": "MetricAlarms[].ExtendedStatistic",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].InsufficientDataActions",
+    "type": "list"
+   },
+   {
+    "path": "MetricAlarms[].InsufficientDataActions[]",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].MetricName",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].Metrics",
+    "type": "list"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[]",
+    "type": "structure"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].AccountId",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].Expression",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].Label",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].MetricStat",
+    "type": "structure"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].Period",
+    "type": "integer"
+   },
+   {
+    "path": "MetricAlarms[].Metrics[].ReturnData",
+    "type": "boolean"
+   },
+   {
+    "path": "MetricAlarms[].Namespace",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].OKActions",
+    "type": "list"
+   },
+   {
+    "path": "MetricAlarms[].OKActions[]",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].Period",
+    "type": "integer"
+   },
+   {
+    "path": "MetricAlarms[].StateReason",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].StateReasonData",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].StateTransitionedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "MetricAlarms[].StateUpdatedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "MetricAlarms[].StateValue",
+    "type": "enum",
+    "enum": [
+     "OK",
+     "ALARM",
+     "INSUFFICIENT_DATA"
+    ]
+   },
+   {
+    "path": "MetricAlarms[].Statistic",
+    "type": "enum",
+    "enum": [
+     "SampleCount",
+     "Average",
+     "Sum",
+     "Minimum",
+     "Maximum"
+    ]
+   },
+   {
+    "path": "MetricAlarms[].Threshold",
+    "type": "float"
+   },
+   {
+    "path": "MetricAlarms[].ThresholdMetricId",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].TreatMissingData",
+    "type": "string"
+   },
+   {
+    "path": "MetricAlarms[].Unit",
+    "type": "enum",
+    "enum": [
+     "Bytes/Second",
+     "Gigabytes/Second",
+     "Terabytes/Second",
+     "Kilobits/Second",
+     "Seconds",
+     "Gigabytes",
+     "Terabits",
+     "Percent",
+     "Count",
+     "Bits/Second",
+     "Count/Second",
+     "None",
+     "Microseconds",
+     "Bytes",
+     "Terabytes",
+     "Kilobytes/Second",
+     "Milliseconds",
+     "Bits",
+     "Kilobits",
+     "Megabits",
+     "Megabytes/Second",
+     "Megabits/Second",
+     "Gigabits/Second",
+     "Terabits/Second",
+     "Kilobytes",
+     "Megabytes",
+     "Gigabits"
+    ]
+   },
+   {
+    "path": "MetricAlarms[].WarmUpConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "MetricAlarms[].WarmUpConfiguration.OnlyStartEvaluatingAfterWarmUpPeriodEnds",
+    "type": "boolean"
+   },
+   {
+    "path": "MetricAlarms[].WarmUpConfiguration.WarmUpPeriodDurationInMinutes",
+    "type": "integer",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "DescribeAnomalyDetectors",
+  "output": "DescribeAnomalyDetectorsOutput",
+  "members": [
+   {
+    "path": "AnomalyDetectors",
+    "type": "list"
+   },
+   {
+    "path": "AnomalyDetectors[]",
+    "type": "structure"
+   },
+   {
+    "path": "AnomalyDetectors[].AnomalyDetectorId",
+    "type": "string"
+   },
+   {
+    "path": "AnomalyDetectors[].Configuration",
+    "type": "structure"
+   },
+   {
+    "path": "AnomalyDetectors[].Configuration.ExcludedTimeRanges",
+    "type": "list"
+   },
+   {
+    "path": "AnomalyDetectors[].Configuration.ExcludedTimeRanges[]",
+    "type": "structure"
+   },
+   {
+    "path": "AnomalyDetectors[].Configuration.MetricTimezone",
+    "type": "string"
+   },
+   {
+    "path": "AnomalyDetectors[].Dimensions",
+    "type": "list"
+   },
+   {
+    "path": "AnomalyDetectors[].Dimensions[]",
+    "type": "structure"
+   },
+   {
+    "path": "AnomalyDetectors[].Dimensions[].Name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "AnomalyDetectors[].Dimensions[].Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "AnomalyDetectors[].MetricCharacteristics",
+    "type": "structure"
+   },
+   {
+    "path": "AnomalyDetectors[].MetricCharacteristics.PeriodicSpikes",
+    "type": "boolean"
+   },
+   {
+    "path": "AnomalyDetectors[].MetricMathAnomalyDetector",
+    "type": "structure"
+   },
+   {
+    "path": "AnomalyDetectors[].MetricMathAnomalyDetector.MetricDataQueries",
+    "type": "list"
+   },
+   {
+    "path": "AnomalyDetectors[].MetricMathAnomalyDetector.MetricDataQueries[]",
+    "type": "structure"
+   },
+   {
+    "path": "AnomalyDetectors[].MetricName",
+    "type": "string"
+   },
+   {
+    "path": "AnomalyDetectors[].Namespace",
+    "type": "string"
+   },
+   {
+    "path": "AnomalyDetectors[].SingleMetricAnomalyDetector",
+    "type": "structure"
+   },
+   {
+    "path": "AnomalyDetectors[].SingleMetricAnomalyDetector.AccountId",
+    "type": "string"
+   },
+   {
+    "path": "AnomalyDetectors[].SingleMetricAnomalyDetector.Dimensions",
+    "type": "list"
+   },
+   {
+    "path": "AnomalyDetectors[].SingleMetricAnomalyDetector.Dimensions[]",
+    "type": "structure"
+   },
+   {
+    "path": "AnomalyDetectors[].SingleMetricAnomalyDetector.MetricName",
+    "type": "string"
+   },
+   {
+    "path": "AnomalyDetectors[].SingleMetricAnomalyDetector.Namespace",
+    "type": "string"
+   },
+   {
+    "path": "AnomalyDetectors[].SingleMetricAnomalyDetector.Stat",
+    "type": "string"
+   },
+   {
+    "path": "AnomalyDetectors[].Stat",
+    "type": "string"
+   },
+   {
+    "path": "AnomalyDetectors[].StateValue",
+    "type": "enum",
+    "enum": [
+     "PENDING_TRAINING",
+     "TRAINED_INSUFFICIENT_DATA",
+     "TRAINED"
+    ]
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeInsightRules",
+  "output": "DescribeInsightRulesOutput",
+  "members": [
+   {
+    "path": "InsightRules",
+    "type": "list"
+   },
+   {
+    "path": "InsightRules[]",
+    "type": "structure"
+   },
+   {
+    "path": "InsightRules[].ApplyOnTransformedLogs",
+    "type": "boolean"
+   },
+   {
+    "path": "InsightRules[].Definition",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "InsightRules[].ManagedRule",
+    "type": "boolean"
+   },
+   {
+    "path": "InsightRules[].Name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "InsightRules[].Schema",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "InsightRules[].State",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DisableInsightRules",
+  "output": "DisableInsightRulesOutput",
+  "members": [
+   {
+    "path": "Failures",
+    "type": "list"
+   },
+   {
+    "path": "Failures[]",
+    "type": "structure"
+   },
+   {
+    "path": "Failures[].ExceptionType",
+    "type": "string"
+   },
+   {
+    "path": "Failures[].FailureCode",
+    "type": "string"
+   },
+   {
+    "path": "Failures[].FailureDescription",
+    "type": "string"
+   },
+   {
+    "path": "Failures[].FailureResource",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "EnableInsightRules",
+  "output": "EnableInsightRulesOutput",
+  "members": [
+   {
+    "path": "Failures",
+    "type": "list"
+   },
+   {
+    "path": "Failures[]",
+    "type": "structure"
+   },
+   {
+    "path": "Failures[].ExceptionType",
+    "type": "string"
+   },
+   {
+    "path": "Failures[].FailureCode",
+    "type": "string"
+   },
+   {
+    "path": "Failures[].FailureDescription",
+    "type": "string"
+   },
+   {
+    "path": "Failures[].FailureResource",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetAlarmMuteRule",
+  "output": "GetAlarmMuteRuleOutput",
+  "members": [
+   {
+    "path": "AlarmMuteRuleArn",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "ExpireDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastUpdatedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "MuteTargets",
+    "type": "structure"
+   },
+   {
+    "path": "MuteTargets.AlarmNames",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "MuteTargets.AlarmNames[]",
+    "type": "string"
+   },
+   {
+    "path": "MuteType",
+    "type": "string"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "Rule",
+    "type": "structure"
+   },
+   {
+    "path": "Rule.Schedule",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Rule.Schedule.Duration",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Rule.Schedule.Expression",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Rule.Schedule.Timezone",
+    "type": "string"
+   },
+   {
+    "path": "StartDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "SCHEDULED",
+     "ACTIVE",
+     "EXPIRED"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetDashboard",
+  "output": "GetDashboardOutput",
+  "members": [
+   {
+    "path": "DashboardArn",
+    "type": "string"
+   },
+   {
+    "path": "DashboardBody",
+    "type": "string"
+   },
+   {
+    "path": "DashboardName",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDataset",
+  "output": "GetDatasetOutput",
+  "members": [
+   {
+    "path": "Arn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "DatasetId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "KmsKeyArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetInsightRuleReport",
+  "output": "GetInsightRuleReportOutput",
+  "members": [
+   {
+    "path": "AggregateValue",
+    "type": "float"
+   },
+   {
+    "path": "AggregationStatistic",
+    "type": "string"
+   },
+   {
+    "path": "ApproximateUniqueCount",
+    "type": "integer"
+   },
+   {
+    "path": "Contributors",
+    "type": "list"
+   },
+   {
+    "path": "Contributors[]",
+    "type": "structure"
+   },
+   {
+    "path": "Contributors[].ApproximateAggregateValue",
+    "type": "float",
+    "required": true
+   },
+   {
+    "path": "Contributors[].Datapoints",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Contributors[].Datapoints[]",
+    "type": "structure"
+   },
+   {
+    "path": "Contributors[].Datapoints[].ApproximateValue",
+    "type": "float",
+    "required": true
+   },
+   {
+    "path": "Contributors[].Datapoints[].Timestamp",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Contributors[].Keys",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Contributors[].Keys[]",
+    "type": "string"
+   },
+   {
+    "path": "KeyLabels",
+    "type": "list"
+   },
+   {
+    "path": "KeyLabels[]",
+    "type": "string"
+   },
+   {
+    "path": "MetricDatapoints",
+    "type": "list"
+   },
+   {
+    "path": "MetricDatapoints[]",
+    "type": "structure"
+   },
+   {
+    "path": "MetricDatapoints[].Average",
+    "type": "float"
+   },
+   {
+    "path": "MetricDatapoints[].MaxContributorValue",
+    "type": "float"
+   },
+   {
+    "path": "MetricDatapoints[].Maximum",
+    "type": "float"
+   },
+   {
+    "path": "MetricDatapoints[].Minimum",
+    "type": "float"
+   },
+   {
+    "path": "MetricDatapoints[].SampleCount",
+    "type": "float"
+   },
+   {
+    "path": "MetricDatapoints[].Sum",
+    "type": "float"
+   },
+   {
+    "path": "MetricDatapoints[].Timestamp",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "MetricDatapoints[].UniqueContributors",
+    "type": "float"
+   }
+  ]
+ },
+ {
+  "operation": "GetMetricData",
+  "output": "GetMetricDataOutput",
+  "members": [
+   {
+    "path": "Messages",
+    "type": "list"
+   },
+   {
+    "path": "Messages[]",
+    "type": "structure"
+   },
+   {
+    "path": "Messages[].Code",
+    "type": "string"
+   },
+   {
+    "path": "Messages[].Value",
+    "type": "string"
+   },
+   {
+    "path": "MetricDataResults",
+    "type": "list"
+   },
+   {
+    "path": "MetricDataResults[]",
+    "type": "structure"
+   },
+   {
+    "path": "MetricDataResults[].Id",
+    "type": "string"
+   },
+   {
+    "path": "MetricDataResults[].Label",
+    "type": "string"
+   },
+   {
+    "path": "MetricDataResults[].Messages",
+    "type": "list"
+   },
+   {
+    "path": "MetricDataResults[].Messages[]",
+    "type": "structure"
+   },
+   {
+    "path": "MetricDataResults[].Messages[].Code",
+    "type": "string"
+   },
+   {
+    "path": "MetricDataResults[].Messages[].Value",
+    "type": "string"
+   },
+   {
+    "path": "MetricDataResults[].StatusCode",
+    "type": "enum",
+    "enum": [
+     "Complete",
+     "InternalError",
+     "PartialData",
+     "Forbidden"
+    ]
+   },
+   {
+    "path": "MetricDataResults[].Timestamps",
+    "type": "list"
+   },
+   {
+    "path": "MetricDataResults[].Timestamps[]",
+    "type": "timestamp"
+   },
+   {
+    "path": "MetricDataResults[].Values",
+    "type": "list"
+   },
+   {
+    "path": "MetricDataResults[].Values[]",
+    "type": "float"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetMetricStatistics",
+  "output": "GetMetricStatisticsOutput",
+  "members": [
+   {
+    "path": "Datapoints",
+    "type": "list"
+   },
+   {
+    "path": "Datapoints[]",
+    "type": "structure"
+   },
+   {
+    "path": "Datapoints[].Average",
+    "type": "float"
+   },
+   {
+    "path": "Datapoints[].ExtendedStatistics",
+    "type": "map"
+   },
+   {
+    "path": "Datapoints[].ExtendedStatistics{}",
+    "type": "float"
+   },
+   {
+    "path": "Datapoints[].Maximum",
+    "type": "float"
+   },
+   {
+    "path": "Datapoints[].Minimum",
+    "type": "float"
+   },
+   {
+    "path": "Datapoints[].SampleCount",
+    "type": "float"
+   },
+   {
+    "path": "Datapoints[].Sum",
+    "type": "float"
+   },
+   {
+    "path": "Datapoints[].Timestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "Datapoints[].Unit",
+    "type": "enum",
+    "enum": [
+     "Terabytes",
+     "Kilobytes/Second",
+     "Milliseconds",
+     "Bits",
+     "Kilobits",
+     "Megabits",
+     "Megabytes/Second",
+     "Megabits/Second",
+     "Gigabits/Second",
+     "Terabits/Second",
+     "Kilobytes",
+     "Megabytes",
+     "Gigabits",
+     "Bytes/Second",
+     "Gigabytes/Second",
+     "Terabytes/Second",
+     "Kilobits/Second",
+     "Seconds",
+     "Gigabytes",
+     "Terabits",
+     "Percent",
+     "Count",
+     "Bits/Second",
+     "Count/Second",
+     "None",
+     "Microseconds",
+     "Bytes"
+    ]
+   },
+   {
+    "path": "Label",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetMetricStream",
+  "output": "GetMetricStreamOutput",
+  "members": [
+   {
+    "path": "Arn",
+    "type": "string"
+   },
+   {
+    "path": "CreationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "ExcludeFilters",
+    "type": "list"
+   },
+   {
+    "path": "ExcludeFilters[]",
+    "type": "structure"
+   },
+   {
+    "path": "ExcludeFilters[].MetricNames",
+    "type": "list"
+   },
+   {
+    "path": "ExcludeFilters[].MetricNames[]",
+    "type": "string"
+   },
+   {
+    "path": "ExcludeFilters[].Namespace",
+    "type": "string"
+   },
+   {
+    "path": "FirehoseArn",
+    "type": "string"
+   },
+   {
+    "path": "IncludeFilters",
+    "type": "list"
+   },
+   {
+    "path": "IncludeFilters[]",
+    "type": "structure"
+   },
+   {
+    "path": "IncludeFilters[].MetricNames",
+    "type": "list"
+   },
+   {
+    "path": "IncludeFilters[].MetricNames[]",
+    "type": "string"
+   },
+   {
+    "path": "IncludeFilters[].Namespace",
+    "type": "string"
+   },
+   {
+    "path": "IncludeLinkedAccountsMetrics",
+    "type": "boolean"
+   },
+   {
+    "path": "LastUpdateDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "OutputFormat",
+    "type": "enum",
+    "enum": [
+     "opentelemetry1.0",
+     "json",
+     "opentelemetry0.7"
+    ]
+   },
+   {
+    "path": "RoleArn",
+    "type": "string"
+   },
+   {
+    "path": "State",
+    "type": "string"
+   },
+   {
+    "path": "StatisticsConfigurations",
+    "type": "list"
+   },
+   {
+    "path": "StatisticsConfigurations[]",
+    "type": "structure"
+   },
+   {
+    "path": "StatisticsConfigurations[].AdditionalStatistics",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "StatisticsConfigurations[].AdditionalStatistics[]",
+    "type": "string"
+   },
+   {
+    "path": "StatisticsConfigurations[].IncludeMetrics",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "StatisticsConfigurations[].IncludeMetrics[]",
+    "type": "structure"
+   },
+   {
+    "path": "StatisticsConfigurations[].IncludeMetrics[].MetricName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StatisticsConfigurations[].IncludeMetrics[].Namespace",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "GetMetricWidgetImage",
+  "output": "GetMetricWidgetImageOutput",
+  "members": [
+   {
+    "path": "MetricWidgetImage",
+    "type": "blob"
+   }
+  ]
+ },
+ {
+  "operation": "GetOTelEnrichment",
+  "output": "GetOTelEnrichmentOutput",
+  "members": [
+   {
+    "path": "Status",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "Running",
+     "Stopped"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "ListAlarmMuteRules",
+  "output": "ListAlarmMuteRulesOutput",
+  "members": [
+   {
+    "path": "AlarmMuteRuleSummaries",
+    "type": "list"
+   },
+   {
+    "path": "AlarmMuteRuleSummaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "AlarmMuteRuleSummaries[].AlarmMuteRuleArn",
+    "type": "string"
+   },
+   {
+    "path": "AlarmMuteRuleSummaries[].ExpireDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "AlarmMuteRuleSummaries[].LastUpdatedTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "AlarmMuteRuleSummaries[].MuteType",
+    "type": "string"
+   },
+   {
+    "path": "AlarmMuteRuleSummaries[].Status",
+    "type": "enum",
+    "enum": [
+     "SCHEDULED",
+     "ACTIVE",
+     "EXPIRED"
+    ]
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListDashboards",
+  "output": "ListDashboardsOutput",
+  "members": [
+   {
+    "path": "DashboardEntries",
+    "type": "list"
+   },
+   {
+    "path": "DashboardEntries[]",
+    "type": "structure"
+   },
+   {
+    "path": "DashboardEntries[].DashboardArn",
+    "type": "string"
+   },
+   {
+    "path": "DashboardEntries[].DashboardName",
+    "type": "string"
+   },
+   {
+    "path": "DashboardEntries[].LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "DashboardEntries[].Size",
+    "type": "integer"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListManagedInsightRules",
+  "output": "ListManagedInsightRulesOutput",
+  "members": [
+   {
+    "path": "ManagedRules",
+    "type": "list"
+   },
+   {
+    "path": "ManagedRules[]",
+    "type": "structure"
+   },
+   {
+    "path": "ManagedRules[].ResourceARN",
+    "type": "string"
+   },
+   {
+    "path": "ManagedRules[].RuleState",
+    "type": "structure"
+   },
+   {
+    "path": "ManagedRules[].RuleState.RuleName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ManagedRules[].RuleState.State",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ManagedRules[].TemplateName",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListMetricStreams",
+  "output": "ListMetricStreamsOutput",
+  "members": [
+   {
+    "path": "Entries",
+    "type": "list"
+   },
+   {
+    "path": "Entries[]",
+    "type": "structure"
+   },
+   {
+    "path": "Entries[].Arn",
+    "type": "string"
+   },
+   {
+    "path": "Entries[].CreationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Entries[].FirehoseArn",
+    "type": "string"
+   },
+   {
+    "path": "Entries[].LastUpdateDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Entries[].Name",
+    "type": "string"
+   },
+   {
+    "path": "Entries[].OutputFormat",
+    "type": "enum",
+    "enum": [
+     "opentelemetry0.7",
+     "opentelemetry1.0",
+     "json"
+    ]
+   },
+   {
+    "path": "Entries[].State",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListMetrics",
+  "output": "ListMetricsOutput",
+  "members": [
+   {
+    "path": "Metrics",
+    "type": "list"
+   },
+   {
+    "path": "Metrics[]",
+    "type": "structure"
+   },
+   {
+    "path": "Metrics[].Dimensions",
+    "type": "list"
+   },
+   {
+    "path": "Metrics[].Dimensions[]",
+    "type": "structure"
+   },
+   {
+    "path": "Metrics[].Dimensions[].Name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Metrics[].Dimensions[].Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Metrics[].MetricName",
+    "type": "string"
+   },
+   {
+    "path": "Metrics[].Namespace",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "OwningAccounts",
+    "type": "list"
+   },
+   {
+    "path": "OwningAccounts[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListTagsForResource",
+  "output": "ListTagsForResourceOutput",
+  "members": [
+   {
+    "path": "Tags",
+    "type": "list"
+   },
+   {
+    "path": "Tags[]",
+    "type": "structure"
+   },
+   {
+    "path": "Tags[].Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Tags[].Value",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "PutAnomalyDetector",
+  "output": "PutAnomalyDetectorOutput",
+  "members": [
+   {
+    "path": "AnomalyDetectorId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutDashboard",
+  "output": "PutDashboardOutput",
+  "members": [
+   {
+    "path": "DashboardValidationMessages",
+    "type": "list"
+   },
+   {
+    "path": "DashboardValidationMessages[]",
+    "type": "structure"
+   },
+   {
+    "path": "DashboardValidationMessages[].DataPath",
+    "type": "string"
+   },
+   {
+    "path": "DashboardValidationMessages[].Message",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutManagedInsightRules",
+  "output": "PutManagedInsightRulesOutput",
+  "members": [
+   {
+    "path": "Failures",
+    "type": "list"
+   },
+   {
+    "path": "Failures[]",
+    "type": "structure"
+   },
+   {
+    "path": "Failures[].ExceptionType",
+    "type": "string"
+   },
+   {
+    "path": "Failures[].FailureCode",
+    "type": "string"
+   },
+   {
+    "path": "Failures[].FailureDescription",
+    "type": "string"
+   },
+   {
+    "path": "Failures[].FailureResource",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutMetricStream",
+  "output": "PutMetricStreamOutput",
+  "members": [
+   {
+    "path": "Arn",
+    "type": "string"
+   }
+  ]
+ }
+]

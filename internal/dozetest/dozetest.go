@@ -111,20 +111,6 @@ func ignored() []goleak.Option {
 	}
 }
 
-// Faulter is a stack that records the server faults it answered with.
-// dozeaws.Stack satisfies it; the interface keeps this package from importing
-// the root, which imports every service.
-type Faulter interface {
-	Faults() []Fault
-}
-
-// Fault mirrors dozeaws.Fault.
-type Fault struct {
-	RequestID string
-	Code      string
-	Status    int
-}
-
 // NoFaults fails the test if the stack answered any 5xx.
 //
 // A server fault during a request a test believes is valid is a bug by
@@ -134,7 +120,13 @@ type Fault struct {
 // Register it with t.Cleanup so it runs whatever the test does:
 //
 //	t.Cleanup(func() { dozetest.NoFaults(t, stack) })
-func NoFaults(t testing.TB, s Faulter) {
+//
+// Generic over the fault type rather than naming it: this package must not
+// import the root, which imports every service, and a declared mirror of
+// dozeaws.Fault would not satisfy `Faults() []dozeaws.Fault` anyway — Go
+// matches the slice's element type by name, not by shape. The fault is printed
+// with %+v, which is why no accessor is needed.
+func NoFaults[F any](t testing.TB, s interface{ Faults() []F }) {
 	t.Helper()
 	faults := s.Faults()
 	if len(faults) == 0 {
@@ -143,7 +135,7 @@ func NoFaults(t testing.TB, s Faulter) {
 	var b strings.Builder
 	fmt.Fprintf(&b, "the stack answered %d server fault(s) during this test:\n", len(faults))
 	for _, f := range faults {
-		fmt.Fprintf(&b, "  %d %s (request id %s)\n", f.Status, f.Code, f.RequestID)
+		fmt.Fprintf(&b, "  %+v\n", f)
 	}
 	b.WriteString("a 5xx during a request the test believes is valid is a bug in doze-aws")
 	t.Error(b.String())

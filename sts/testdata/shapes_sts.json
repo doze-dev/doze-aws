@@ -1,0 +1,392 @@
+[
+ {
+  "operation": "AssumeRole",
+  "output": "AssumeRoleResponse",
+  "members": [
+   {
+    "path": "AssumedRoleUser",
+    "type": "structure"
+   },
+   {
+    "path": "AssumedRoleUser.Arn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "AssumedRoleUser.AssumedRoleId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials",
+    "type": "structure"
+   },
+   {
+    "path": "Credentials.AccessKeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.Expiration",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Credentials.SecretAccessKey",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.SessionToken",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PackedPolicySize",
+    "type": "integer"
+   },
+   {
+    "path": "SourceIdentity",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "AssumeRoleWithSAML",
+  "output": "AssumeRoleWithSAMLResponse",
+  "members": [
+   {
+    "path": "AssumedRoleUser",
+    "type": "structure"
+   },
+   {
+    "path": "AssumedRoleUser.Arn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "AssumedRoleUser.AssumedRoleId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Audience",
+    "type": "string"
+   },
+   {
+    "path": "Credentials",
+    "type": "structure"
+   },
+   {
+    "path": "Credentials.AccessKeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.Expiration",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Credentials.SecretAccessKey",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.SessionToken",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Issuer",
+    "type": "string"
+   },
+   {
+    "path": "NameQualifier",
+    "type": "string"
+   },
+   {
+    "path": "PackedPolicySize",
+    "type": "integer"
+   },
+   {
+    "path": "SourceIdentity",
+    "type": "string"
+   },
+   {
+    "path": "Subject",
+    "type": "string"
+   },
+   {
+    "path": "SubjectType",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "AssumeRoleWithWebIdentity",
+  "output": "AssumeRoleWithWebIdentityResponse",
+  "members": [
+   {
+    "path": "AssumedRoleUser",
+    "type": "structure"
+   },
+   {
+    "path": "AssumedRoleUser.Arn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "AssumedRoleUser.AssumedRoleId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Audience",
+    "type": "string"
+   },
+   {
+    "path": "Credentials",
+    "type": "structure"
+   },
+   {
+    "path": "Credentials.AccessKeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.Expiration",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Credentials.SecretAccessKey",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.SessionToken",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PackedPolicySize",
+    "type": "integer"
+   },
+   {
+    "path": "Provider",
+    "type": "string"
+   },
+   {
+    "path": "SourceIdentity",
+    "type": "string"
+   },
+   {
+    "path": "SubjectFromWebIdentityToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "AssumeRoot",
+  "output": "AssumeRootResponse",
+  "members": [
+   {
+    "path": "Credentials",
+    "type": "structure"
+   },
+   {
+    "path": "Credentials.AccessKeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.Expiration",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Credentials.SecretAccessKey",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.SessionToken",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "SourceIdentity",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DecodeAuthorizationMessage",
+  "output": "DecodeAuthorizationMessageResponse",
+  "members": [
+   {
+    "path": "DecodedMessage",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetAccessKeyInfo",
+  "output": "GetAccessKeyInfoResponse",
+  "members": [
+   {
+    "path": "Account",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetCallerIdentity",
+  "output": "GetCallerIdentityResponse",
+  "members": [
+   {
+    "path": "Account",
+    "type": "string"
+   },
+   {
+    "path": "Arn",
+    "type": "string"
+   },
+   {
+    "path": "UserId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDelegatedAccessToken",
+  "output": "GetDelegatedAccessTokenResponse",
+  "members": [
+   {
+    "path": "AssumedPrincipal",
+    "type": "string"
+   },
+   {
+    "path": "Credentials",
+    "type": "structure"
+   },
+   {
+    "path": "Credentials.AccessKeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.Expiration",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Credentials.SecretAccessKey",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.SessionToken",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PackedPolicySize",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "GetFederationToken",
+  "output": "GetFederationTokenResponse",
+  "members": [
+   {
+    "path": "Credentials",
+    "type": "structure"
+   },
+   {
+    "path": "Credentials.AccessKeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.Expiration",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Credentials.SecretAccessKey",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.SessionToken",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "FederatedUser",
+    "type": "structure"
+   },
+   {
+    "path": "FederatedUser.Arn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "FederatedUser.FederatedUserId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PackedPolicySize",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "GetSessionToken",
+  "output": "GetSessionTokenResponse",
+  "members": [
+   {
+    "path": "Credentials",
+    "type": "structure"
+   },
+   {
+    "path": "Credentials.AccessKeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.Expiration",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Credentials.SecretAccessKey",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.SessionToken",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "GetWebIdentityToken",
+  "output": "GetWebIdentityTokenResponse",
+  "members": [
+   {
+    "path": "Expiration",
+    "type": "timestamp"
+   },
+   {
+    "path": "WebIdentityToken",
+    "type": "string"
+   }
+  ]
+ }
+]

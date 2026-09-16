@@ -86,6 +86,8 @@ func run(args []string, cache, opFilter string) error {
 		return emitCases(os.Stdout, m, found, opFilter)
 	case "routes":
 		return emitRoutes(os.Stdout, m)
+	case "shapes":
+		return emitShapes(os.Stdout, m, opFilter)
 	}
 	return fmt.Errorf("unknown command %q", cmd)
 }

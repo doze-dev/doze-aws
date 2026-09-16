@@ -28,6 +28,7 @@ type shape struct {
 	Member  *member                    `json:"member"` // list/set element
 	Value   *member                    `json:"value"`  // map value
 	Input   *ref                       `json:"input"`
+	Output  *ref                       `json:"output"`
 	Traits  map[string]json.RawMessage `json:"traits"`
 
 	// A service reaches its operations two ways: directly, and through

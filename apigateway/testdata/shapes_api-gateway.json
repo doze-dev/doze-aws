@@ -1,0 +1,7143 @@
+[
+ {
+  "operation": "CreateApiKey",
+  "output": "ApiKey",
+  "members": [
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "customerId",
+    "type": "string"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "enabled",
+    "type": "boolean"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "lastUpdatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "stageKeys",
+    "type": "list"
+   },
+   {
+    "path": "stageKeys[]",
+    "type": "string"
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "value",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateAuthorizer",
+  "output": "Authorizer",
+  "members": [
+   {
+    "path": "authType",
+    "type": "string"
+   },
+   {
+    "path": "authorizerCredentials",
+    "type": "string"
+   },
+   {
+    "path": "authorizerResultTtlInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "authorizerUri",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "identitySource",
+    "type": "string"
+   },
+   {
+    "path": "identityValidationExpression",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "providerARNs",
+    "type": "list"
+   },
+   {
+    "path": "providerARNs[]",
+    "type": "string"
+   },
+   {
+    "path": "type",
+    "type": "enum",
+    "enum": [
+     "TOKEN",
+     "REQUEST",
+     "COGNITO_USER_POOLS"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "CreateBasePathMapping",
+  "output": "BasePathMapping",
+  "members": [
+   {
+    "path": "basePath",
+    "type": "string"
+   },
+   {
+    "path": "restApiId",
+    "type": "string"
+   },
+   {
+    "path": "stage",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateDeployment",
+  "output": "Deployment",
+  "members": [
+   {
+    "path": "apiSummary",
+    "type": "map"
+   },
+   {
+    "path": "apiSummary{}",
+    "type": "map"
+   },
+   {
+    "path": "apiSummary{}{}",
+    "type": "structure"
+   },
+   {
+    "path": "apiSummary{}{}.apiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "apiSummary{}{}.authorizationType",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateDocumentationPart",
+  "output": "DocumentationPart",
+  "members": [
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "location",
+    "type": "structure"
+   },
+   {
+    "path": "location.method",
+    "type": "string"
+   },
+   {
+    "path": "location.name",
+    "type": "string"
+   },
+   {
+    "path": "location.path",
+    "type": "string"
+   },
+   {
+    "path": "location.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "location.type",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "RESPONSE_BODY",
+     "MODEL",
+     "REQUEST_HEADER",
+     "RESPONSE",
+     "RESPONSE_HEADER",
+     "API",
+     "AUTHORIZER",
+     "RESOURCE",
+     "METHOD",
+     "PATH_PARAMETER",
+     "QUERY_PARAMETER",
+     "REQUEST_BODY"
+    ]
+   },
+   {
+    "path": "properties",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateDocumentationVersion",
+  "output": "DocumentationVersion",
+  "members": [
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "version",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateDomainName",
+  "output": "DomainName",
+  "members": [
+   {
+    "path": "certificateArn",
+    "type": "string"
+   },
+   {
+    "path": "certificateName",
+    "type": "string"
+   },
+   {
+    "path": "certificateUploadDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "distributionDomainName",
+    "type": "string"
+   },
+   {
+    "path": "distributionHostedZoneId",
+    "type": "string"
+   },
+   {
+    "path": "domainName",
+    "type": "string"
+   },
+   {
+    "path": "domainNameArn",
+    "type": "string"
+   },
+   {
+    "path": "domainNameId",
+    "type": "string"
+   },
+   {
+    "path": "domainNameStatus",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "PENDING_CERTIFICATE_REIMPORT",
+     "PENDING_OWNERSHIP_VERIFICATION",
+     "FAILED",
+     "AVAILABLE",
+     "UPDATING"
+    ]
+   },
+   {
+    "path": "domainNameStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "endpointAccessMode",
+    "type": "enum",
+    "enum": [
+     "STRICT",
+     "BASIC"
+    ]
+   },
+   {
+    "path": "endpointConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "endpointConfiguration.ipAddressType",
+    "type": "enum",
+    "enum": [
+     "dualstack",
+     "ipv4"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.types",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.types[]",
+    "type": "enum",
+    "enum": [
+     "REGIONAL",
+     "EDGE",
+     "PRIVATE"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds[]",
+    "type": "string"
+   },
+   {
+    "path": "managementPolicy",
+    "type": "string"
+   },
+   {
+    "path": "mutualTlsAuthentication",
+    "type": "structure"
+   },
+   {
+    "path": "mutualTlsAuthentication.truststoreUri",
+    "type": "string"
+   },
+   {
+    "path": "mutualTlsAuthentication.truststoreVersion",
+    "type": "string"
+   },
+   {
+    "path": "mutualTlsAuthentication.truststoreWarnings",
+    "type": "list"
+   },
+   {
+    "path": "mutualTlsAuthentication.truststoreWarnings[]",
+    "type": "string"
+   },
+   {
+    "path": "ownershipVerificationCertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "policy",
+    "type": "string"
+   },
+   {
+    "path": "regionalCertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "regionalCertificateName",
+    "type": "string"
+   },
+   {
+    "path": "regionalDomainName",
+    "type": "string"
+   },
+   {
+    "path": "regionalHostedZoneId",
+    "type": "string"
+   },
+   {
+    "path": "routingMode",
+    "type": "enum",
+    "enum": [
+     "ROUTING_RULE_ONLY",
+     "ROUTING_RULE_THEN_BASE_PATH_MAPPING",
+     "BASE_PATH_MAPPING_ONLY"
+    ]
+   },
+   {
+    "path": "securityPolicy",
+    "type": "enum",
+    "enum": [
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "SecurityPolicy_TLS12_PFS_2025_EDGE",
+     "SecurityPolicy_TLS12_2018_EDGE",
+     "TLS_1_0",
+     "TLS_1_2",
+     "SecurityPolicy_TLS13_1_3_2025_09"
+    ]
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateDomainNameAccessAssociation",
+  "output": "DomainNameAccessAssociation",
+  "members": [
+   {
+    "path": "accessAssociationSource",
+    "type": "string"
+   },
+   {
+    "path": "accessAssociationSourceType",
+    "type": "enum",
+    "enum": [
+     "VPCE"
+    ]
+   },
+   {
+    "path": "domainNameAccessAssociationArn",
+    "type": "string"
+   },
+   {
+    "path": "domainNameArn",
+    "type": "string"
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateModel",
+  "output": "Model",
+  "members": [
+   {
+    "path": "contentType",
+    "type": "string"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "schema",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateRequestValidator",
+  "output": "RequestValidator",
+  "members": [
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "validateRequestBody",
+    "type": "boolean"
+   },
+   {
+    "path": "validateRequestParameters",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "CreateResource",
+  "output": "Resource",
+  "members": [
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "parentId",
+    "type": "string"
+   },
+   {
+    "path": "path",
+    "type": "string"
+   },
+   {
+    "path": "pathPart",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.apiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "resourceMethods{}.authorizationScopes",
+    "type": "list"
+   },
+   {
+    "path": "resourceMethods{}.authorizationScopes[]",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.authorizationType",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.authorizerId",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.cacheKeyParameters",
+    "type": "list"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.cacheKeyParameters[]",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.cacheNamespace",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.connectionId",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.connectionType",
+    "type": "enum",
+    "enum": [
+     "INTERNET",
+     "VPC_LINK"
+    ]
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.credentials",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.integrationResponses",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.integrationResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.integrationTarget",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.passthroughBehavior",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.requestParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.requestTemplates",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.requestTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.responseTransferMode",
+    "type": "enum",
+    "enum": [
+     "BUFFERED",
+     "STREAM"
+    ]
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.timeoutInMillis",
+    "type": "integer"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.tlsConfig",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.tlsConfig.insecureSkipVerification",
+    "type": "boolean"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.type",
+    "type": "enum",
+    "enum": [
+     "HTTP",
+     "AWS",
+     "MOCK",
+     "HTTP_PROXY",
+     "AWS_PROXY"
+    ]
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.uri",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses{}.responseModels",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses{}.responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses{}.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.operationName",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.requestModels",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.requestModels{}",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.requestParameters{}",
+    "type": "boolean"
+   },
+   {
+    "path": "resourceMethods{}.requestValidatorId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateRestApi",
+  "output": "RestApi",
+  "members": [
+   {
+    "path": "apiKeySource",
+    "type": "enum",
+    "enum": [
+     "HEADER",
+     "AUTHORIZER"
+    ]
+   },
+   {
+    "path": "apiStatus",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "PENDING",
+     "FAILED",
+     "UPDATING"
+    ]
+   },
+   {
+    "path": "apiStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "binaryMediaTypes",
+    "type": "list"
+   },
+   {
+    "path": "binaryMediaTypes[]",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "disableExecuteApiEndpoint",
+    "type": "boolean"
+   },
+   {
+    "path": "endpointAccessMode",
+    "type": "enum",
+    "enum": [
+     "BASIC",
+     "STRICT"
+    ]
+   },
+   {
+    "path": "endpointConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "endpointConfiguration.ipAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.types",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.types[]",
+    "type": "enum",
+    "enum": [
+     "REGIONAL",
+     "EDGE",
+     "PRIVATE"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds[]",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "minimumCompressionSize",
+    "type": "integer"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "policy",
+    "type": "string"
+   },
+   {
+    "path": "rootResourceId",
+    "type": "string"
+   },
+   {
+    "path": "securityPolicy",
+    "type": "enum",
+    "enum": [
+     "SecurityPolicy_TLS12_2018_EDGE",
+     "TLS_1_0",
+     "TLS_1_2",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "SecurityPolicy_TLS12_PFS_2025_EDGE"
+    ]
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "version",
+    "type": "string"
+   },
+   {
+    "path": "warnings",
+    "type": "list"
+   },
+   {
+    "path": "warnings[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateStage",
+  "output": "Stage",
+  "members": [
+   {
+    "path": "accessLogSettings",
+    "type": "structure"
+   },
+   {
+    "path": "accessLogSettings.destinationArn",
+    "type": "string"
+   },
+   {
+    "path": "accessLogSettings.format",
+    "type": "string"
+   },
+   {
+    "path": "cacheClusterEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "cacheClusterSize",
+    "type": "enum",
+    "enum": [
+     "0.5",
+     "1.6",
+     "6.1",
+     "13.5",
+     "28.4",
+     "58.2",
+     "118",
+     "237"
+    ]
+   },
+   {
+    "path": "cacheClusterStatus",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "DELETE_IN_PROGRESS",
+     "NOT_AVAILABLE",
+     "FLUSH_IN_PROGRESS",
+     "CREATE_IN_PROGRESS"
+    ]
+   },
+   {
+    "path": "canarySettings",
+    "type": "structure"
+   },
+   {
+    "path": "canarySettings.deploymentId",
+    "type": "string"
+   },
+   {
+    "path": "canarySettings.percentTraffic",
+    "type": "float"
+   },
+   {
+    "path": "canarySettings.stageVariableOverrides",
+    "type": "map"
+   },
+   {
+    "path": "canarySettings.stageVariableOverrides{}",
+    "type": "string"
+   },
+   {
+    "path": "canarySettings.useStageCache",
+    "type": "boolean"
+   },
+   {
+    "path": "clientCertificateId",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "deploymentId",
+    "type": "string"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "documentationVersion",
+    "type": "string"
+   },
+   {
+    "path": "lastUpdatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "methodSettings",
+    "type": "map"
+   },
+   {
+    "path": "methodSettings{}",
+    "type": "structure"
+   },
+   {
+    "path": "methodSettings{}.cacheDataEncrypted",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.cacheTtlInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "methodSettings{}.cachingEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.dataTraceEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.loggingLevel",
+    "type": "string"
+   },
+   {
+    "path": "methodSettings{}.metricsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.requireAuthorizationForCacheControl",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.throttlingBurstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "methodSettings{}.throttlingRateLimit",
+    "type": "float"
+   },
+   {
+    "path": "methodSettings{}.unauthorizedCacheControlHeaderStrategy",
+    "type": "enum",
+    "enum": [
+     "FAIL_WITH_403",
+     "SUCCEED_WITH_RESPONSE_HEADER",
+     "SUCCEED_WITHOUT_RESPONSE_HEADER"
+    ]
+   },
+   {
+    "path": "stageName",
+    "type": "string"
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "tracingEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "variables",
+    "type": "map"
+   },
+   {
+    "path": "variables{}",
+    "type": "string"
+   },
+   {
+    "path": "webAclArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateUsagePlan",
+  "output": "UsagePlan",
+  "members": [
+   {
+    "path": "apiStages",
+    "type": "list"
+   },
+   {
+    "path": "apiStages[]",
+    "type": "structure"
+   },
+   {
+    "path": "apiStages[].apiId",
+    "type": "string"
+   },
+   {
+    "path": "apiStages[].stage",
+    "type": "string"
+   },
+   {
+    "path": "apiStages[].throttle",
+    "type": "map"
+   },
+   {
+    "path": "apiStages[].throttle{}",
+    "type": "structure"
+   },
+   {
+    "path": "apiStages[].throttle{}.burstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "apiStages[].throttle{}.rateLimit",
+    "type": "float"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "productCode",
+    "type": "string"
+   },
+   {
+    "path": "quota",
+    "type": "structure"
+   },
+   {
+    "path": "quota.limit",
+    "type": "integer"
+   },
+   {
+    "path": "quota.offset",
+    "type": "integer"
+   },
+   {
+    "path": "quota.period",
+    "type": "enum",
+    "enum": [
+     "DAY",
+     "WEEK",
+     "MONTH"
+    ]
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "throttle",
+    "type": "structure"
+   },
+   {
+    "path": "throttle.burstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "throttle.rateLimit",
+    "type": "float"
+   }
+  ]
+ },
+ {
+  "operation": "CreateUsagePlanKey",
+  "output": "UsagePlanKey",
+  "members": [
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "type",
+    "type": "string"
+   },
+   {
+    "path": "value",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateVpcLink",
+  "output": "VpcLink",
+  "members": [
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "status",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "DELETING",
+     "FAILED",
+     "AVAILABLE"
+    ]
+   },
+   {
+    "path": "statusMessage",
+    "type": "string"
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "targetArns",
+    "type": "list"
+   },
+   {
+    "path": "targetArns[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GenerateClientCertificate",
+  "output": "ClientCertificate",
+  "members": [
+   {
+    "path": "clientCertificateId",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "expirationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "pemEncodedCertificate",
+    "type": "string"
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetAccount",
+  "output": "Account",
+  "members": [
+   {
+    "path": "apiKeyVersion",
+    "type": "string"
+   },
+   {
+    "path": "cloudwatchRoleArn",
+    "type": "string"
+   },
+   {
+    "path": "features",
+    "type": "list"
+   },
+   {
+    "path": "features[]",
+    "type": "string"
+   },
+   {
+    "path": "throttleSettings",
+    "type": "structure"
+   },
+   {
+    "path": "throttleSettings.burstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "throttleSettings.rateLimit",
+    "type": "float"
+   }
+  ]
+ },
+ {
+  "operation": "GetApiKey",
+  "output": "ApiKey",
+  "members": [
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "customerId",
+    "type": "string"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "enabled",
+    "type": "boolean"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "lastUpdatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "stageKeys",
+    "type": "list"
+   },
+   {
+    "path": "stageKeys[]",
+    "type": "string"
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "value",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetApiKeys",
+  "output": "ApiKeys",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "items[].customerId",
+    "type": "string"
+   },
+   {
+    "path": "items[].description",
+    "type": "string"
+   },
+   {
+    "path": "items[].enabled",
+    "type": "boolean"
+   },
+   {
+    "path": "items[].id",
+    "type": "string"
+   },
+   {
+    "path": "items[].lastUpdatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "items[].name",
+    "type": "string"
+   },
+   {
+    "path": "items[].stageKeys",
+    "type": "list"
+   },
+   {
+    "path": "items[].stageKeys[]",
+    "type": "string"
+   },
+   {
+    "path": "items[].tags",
+    "type": "map"
+   },
+   {
+    "path": "items[].tags{}",
+    "type": "string"
+   },
+   {
+    "path": "items[].value",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   },
+   {
+    "path": "warnings",
+    "type": "list"
+   },
+   {
+    "path": "warnings[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetAuthorizer",
+  "output": "Authorizer",
+  "members": [
+   {
+    "path": "authType",
+    "type": "string"
+   },
+   {
+    "path": "authorizerCredentials",
+    "type": "string"
+   },
+   {
+    "path": "authorizerResultTtlInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "authorizerUri",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "identitySource",
+    "type": "string"
+   },
+   {
+    "path": "identityValidationExpression",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "providerARNs",
+    "type": "list"
+   },
+   {
+    "path": "providerARNs[]",
+    "type": "string"
+   },
+   {
+    "path": "type",
+    "type": "enum",
+    "enum": [
+     "TOKEN",
+     "REQUEST",
+     "COGNITO_USER_POOLS"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetAuthorizers",
+  "output": "Authorizers",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].authType",
+    "type": "string"
+   },
+   {
+    "path": "items[].authorizerCredentials",
+    "type": "string"
+   },
+   {
+    "path": "items[].authorizerResultTtlInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "items[].authorizerUri",
+    "type": "string"
+   },
+   {
+    "path": "items[].id",
+    "type": "string"
+   },
+   {
+    "path": "items[].identitySource",
+    "type": "string"
+   },
+   {
+    "path": "items[].identityValidationExpression",
+    "type": "string"
+   },
+   {
+    "path": "items[].name",
+    "type": "string"
+   },
+   {
+    "path": "items[].providerARNs",
+    "type": "list"
+   },
+   {
+    "path": "items[].providerARNs[]",
+    "type": "string"
+   },
+   {
+    "path": "items[].type",
+    "type": "enum",
+    "enum": [
+     "REQUEST",
+     "COGNITO_USER_POOLS",
+     "TOKEN"
+    ]
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetBasePathMapping",
+  "output": "BasePathMapping",
+  "members": [
+   {
+    "path": "basePath",
+    "type": "string"
+   },
+   {
+    "path": "restApiId",
+    "type": "string"
+   },
+   {
+    "path": "stage",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetBasePathMappings",
+  "output": "BasePathMappings",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].basePath",
+    "type": "string"
+   },
+   {
+    "path": "items[].restApiId",
+    "type": "string"
+   },
+   {
+    "path": "items[].stage",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetClientCertificate",
+  "output": "ClientCertificate",
+  "members": [
+   {
+    "path": "clientCertificateId",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "expirationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "pemEncodedCertificate",
+    "type": "string"
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetClientCertificates",
+  "output": "ClientCertificates",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].clientCertificateId",
+    "type": "string"
+   },
+   {
+    "path": "items[].createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "items[].description",
+    "type": "string"
+   },
+   {
+    "path": "items[].expirationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "items[].pemEncodedCertificate",
+    "type": "string"
+   },
+   {
+    "path": "items[].tags",
+    "type": "map"
+   },
+   {
+    "path": "items[].tags{}",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDeployment",
+  "output": "Deployment",
+  "members": [
+   {
+    "path": "apiSummary",
+    "type": "map"
+   },
+   {
+    "path": "apiSummary{}",
+    "type": "map"
+   },
+   {
+    "path": "apiSummary{}{}",
+    "type": "structure"
+   },
+   {
+    "path": "apiSummary{}{}.apiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "apiSummary{}{}.authorizationType",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDeployments",
+  "output": "Deployments",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].apiSummary",
+    "type": "map"
+   },
+   {
+    "path": "items[].apiSummary{}",
+    "type": "map"
+   },
+   {
+    "path": "items[].apiSummary{}{}",
+    "type": "structure"
+   },
+   {
+    "path": "items[].createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "items[].description",
+    "type": "string"
+   },
+   {
+    "path": "items[].id",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDocumentationPart",
+  "output": "DocumentationPart",
+  "members": [
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "location",
+    "type": "structure"
+   },
+   {
+    "path": "location.method",
+    "type": "string"
+   },
+   {
+    "path": "location.name",
+    "type": "string"
+   },
+   {
+    "path": "location.path",
+    "type": "string"
+   },
+   {
+    "path": "location.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "location.type",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "RESPONSE_HEADER",
+     "API",
+     "AUTHORIZER",
+     "RESOURCE",
+     "METHOD",
+     "PATH_PARAMETER",
+     "QUERY_PARAMETER",
+     "REQUEST_BODY",
+     "RESPONSE_BODY",
+     "MODEL",
+     "REQUEST_HEADER",
+     "RESPONSE"
+    ]
+   },
+   {
+    "path": "properties",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDocumentationParts",
+  "output": "DocumentationParts",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].id",
+    "type": "string"
+   },
+   {
+    "path": "items[].location",
+    "type": "structure"
+   },
+   {
+    "path": "items[].location.method",
+    "type": "string"
+   },
+   {
+    "path": "items[].location.name",
+    "type": "string"
+   },
+   {
+    "path": "items[].location.path",
+    "type": "string"
+   },
+   {
+    "path": "items[].location.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "items[].location.type",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "REQUEST_HEADER",
+     "RESPONSE",
+     "RESPONSE_HEADER",
+     "API",
+     "AUTHORIZER",
+     "RESOURCE",
+     "METHOD",
+     "PATH_PARAMETER",
+     "QUERY_PARAMETER",
+     "REQUEST_BODY",
+     "RESPONSE_BODY",
+     "MODEL"
+    ]
+   },
+   {
+    "path": "items[].properties",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDocumentationVersion",
+  "output": "DocumentationVersion",
+  "members": [
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "version",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDocumentationVersions",
+  "output": "DocumentationVersions",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "items[].description",
+    "type": "string"
+   },
+   {
+    "path": "items[].version",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDomainName",
+  "output": "DomainName",
+  "members": [
+   {
+    "path": "certificateArn",
+    "type": "string"
+   },
+   {
+    "path": "certificateName",
+    "type": "string"
+   },
+   {
+    "path": "certificateUploadDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "distributionDomainName",
+    "type": "string"
+   },
+   {
+    "path": "distributionHostedZoneId",
+    "type": "string"
+   },
+   {
+    "path": "domainName",
+    "type": "string"
+   },
+   {
+    "path": "domainNameArn",
+    "type": "string"
+   },
+   {
+    "path": "domainNameId",
+    "type": "string"
+   },
+   {
+    "path": "domainNameStatus",
+    "type": "enum",
+    "enum": [
+     "PENDING_CERTIFICATE_REIMPORT",
+     "PENDING_OWNERSHIP_VERIFICATION",
+     "FAILED",
+     "AVAILABLE",
+     "UPDATING",
+     "PENDING"
+    ]
+   },
+   {
+    "path": "domainNameStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "endpointAccessMode",
+    "type": "enum",
+    "enum": [
+     "STRICT",
+     "BASIC"
+    ]
+   },
+   {
+    "path": "endpointConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "endpointConfiguration.ipAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.types",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.types[]",
+    "type": "enum",
+    "enum": [
+     "REGIONAL",
+     "EDGE",
+     "PRIVATE"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds[]",
+    "type": "string"
+   },
+   {
+    "path": "managementPolicy",
+    "type": "string"
+   },
+   {
+    "path": "mutualTlsAuthentication",
+    "type": "structure"
+   },
+   {
+    "path": "mutualTlsAuthentication.truststoreUri",
+    "type": "string"
+   },
+   {
+    "path": "mutualTlsAuthentication.truststoreVersion",
+    "type": "string"
+   },
+   {
+    "path": "mutualTlsAuthentication.truststoreWarnings",
+    "type": "list"
+   },
+   {
+    "path": "mutualTlsAuthentication.truststoreWarnings[]",
+    "type": "string"
+   },
+   {
+    "path": "ownershipVerificationCertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "policy",
+    "type": "string"
+   },
+   {
+    "path": "regionalCertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "regionalCertificateName",
+    "type": "string"
+   },
+   {
+    "path": "regionalDomainName",
+    "type": "string"
+   },
+   {
+    "path": "regionalHostedZoneId",
+    "type": "string"
+   },
+   {
+    "path": "routingMode",
+    "type": "enum",
+    "enum": [
+     "BASE_PATH_MAPPING_ONLY",
+     "ROUTING_RULE_ONLY",
+     "ROUTING_RULE_THEN_BASE_PATH_MAPPING"
+    ]
+   },
+   {
+    "path": "securityPolicy",
+    "type": "enum",
+    "enum": [
+     "TLS_1_0",
+     "TLS_1_2",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "SecurityPolicy_TLS12_PFS_2025_EDGE",
+     "SecurityPolicy_TLS12_2018_EDGE"
+    ]
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDomainNameAccessAssociations",
+  "output": "DomainNameAccessAssociations",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].accessAssociationSource",
+    "type": "string"
+   },
+   {
+    "path": "items[].accessAssociationSourceType",
+    "type": "enum",
+    "enum": [
+     "VPCE"
+    ]
+   },
+   {
+    "path": "items[].domainNameAccessAssociationArn",
+    "type": "string"
+   },
+   {
+    "path": "items[].domainNameArn",
+    "type": "string"
+   },
+   {
+    "path": "items[].tags",
+    "type": "map"
+   },
+   {
+    "path": "items[].tags{}",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDomainNames",
+  "output": "DomainNames",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].certificateArn",
+    "type": "string"
+   },
+   {
+    "path": "items[].certificateName",
+    "type": "string"
+   },
+   {
+    "path": "items[].certificateUploadDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "items[].distributionDomainName",
+    "type": "string"
+   },
+   {
+    "path": "items[].distributionHostedZoneId",
+    "type": "string"
+   },
+   {
+    "path": "items[].domainName",
+    "type": "string"
+   },
+   {
+    "path": "items[].domainNameArn",
+    "type": "string"
+   },
+   {
+    "path": "items[].domainNameId",
+    "type": "string"
+   },
+   {
+    "path": "items[].domainNameStatus",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "UPDATING",
+     "PENDING",
+     "PENDING_CERTIFICATE_REIMPORT",
+     "PENDING_OWNERSHIP_VERIFICATION",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "items[].domainNameStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "items[].endpointAccessMode",
+    "type": "enum",
+    "enum": [
+     "BASIC",
+     "STRICT"
+    ]
+   },
+   {
+    "path": "items[].endpointConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "items[].endpointConfiguration.ipAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "items[].endpointConfiguration.types",
+    "type": "list"
+   },
+   {
+    "path": "items[].endpointConfiguration.types[]",
+    "type": "enum",
+    "enum": [
+     "EDGE",
+     "PRIVATE",
+     "REGIONAL"
+    ]
+   },
+   {
+    "path": "items[].endpointConfiguration.vpcEndpointIds",
+    "type": "list"
+   },
+   {
+    "path": "items[].endpointConfiguration.vpcEndpointIds[]",
+    "type": "string"
+   },
+   {
+    "path": "items[].managementPolicy",
+    "type": "string"
+   },
+   {
+    "path": "items[].mutualTlsAuthentication",
+    "type": "structure"
+   },
+   {
+    "path": "items[].mutualTlsAuthentication.truststoreUri",
+    "type": "string"
+   },
+   {
+    "path": "items[].mutualTlsAuthentication.truststoreVersion",
+    "type": "string"
+   },
+   {
+    "path": "items[].mutualTlsAuthentication.truststoreWarnings",
+    "type": "list"
+   },
+   {
+    "path": "items[].mutualTlsAuthentication.truststoreWarnings[]",
+    "type": "string"
+   },
+   {
+    "path": "items[].ownershipVerificationCertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "items[].policy",
+    "type": "string"
+   },
+   {
+    "path": "items[].regionalCertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "items[].regionalCertificateName",
+    "type": "string"
+   },
+   {
+    "path": "items[].regionalDomainName",
+    "type": "string"
+   },
+   {
+    "path": "items[].regionalHostedZoneId",
+    "type": "string"
+   },
+   {
+    "path": "items[].routingMode",
+    "type": "enum",
+    "enum": [
+     "ROUTING_RULE_THEN_BASE_PATH_MAPPING",
+     "BASE_PATH_MAPPING_ONLY",
+     "ROUTING_RULE_ONLY"
+    ]
+   },
+   {
+    "path": "items[].securityPolicy",
+    "type": "enum",
+    "enum": [
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "SecurityPolicy_TLS12_PFS_2025_EDGE",
+     "SecurityPolicy_TLS12_2018_EDGE",
+     "TLS_1_0",
+     "TLS_1_2",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09"
+    ]
+   },
+   {
+    "path": "items[].tags",
+    "type": "map"
+   },
+   {
+    "path": "items[].tags{}",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetExport",
+  "output": "ExportResponse",
+  "members": [
+   {
+    "path": "body",
+    "type": "blob"
+   },
+   {
+    "path": "contentDisposition",
+    "type": "string"
+   },
+   {
+    "path": "contentType",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetGatewayResponse",
+  "output": "GatewayResponse",
+  "members": [
+   {
+    "path": "defaultResponse",
+    "type": "boolean"
+   },
+   {
+    "path": "responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "responseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "responseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "responseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "responseType",
+    "type": "enum",
+    "enum": [
+     "INVALID_SIGNATURE",
+     "EXPIRED_TOKEN",
+     "INTEGRATION_FAILURE",
+     "INTEGRATION_TIMEOUT",
+     "UNSUPPORTED_MEDIA_TYPE",
+     "RESOURCE_NOT_FOUND",
+     "BAD_REQUEST_PARAMETERS",
+     "BAD_REQUEST_BODY",
+     "REQUEST_TOO_LARGE",
+     "THROTTLED",
+     "DEFAULT_5XX",
+     "AUTHORIZER_CONFIGURATION_ERROR",
+     "API_CONFIGURATION_ERROR",
+     "WAF_FILTERED",
+     "INVALID_API_KEY",
+     "AUTHORIZER_FAILURE",
+     "MISSING_AUTHENTICATION_TOKEN",
+     "QUOTA_EXCEEDED",
+     "DEFAULT_4XX",
+     "UNAUTHORIZED",
+     "ACCESS_DENIED"
+    ]
+   },
+   {
+    "path": "statusCode",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetGatewayResponses",
+  "output": "GatewayResponses",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].defaultResponse",
+    "type": "boolean"
+   },
+   {
+    "path": "items[].responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "items[].responseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "items[].responseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "items[].responseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "items[].responseType",
+    "type": "enum",
+    "enum": [
+     "DEFAULT_4XX",
+     "UNAUTHORIZED",
+     "ACCESS_DENIED",
+     "INVALID_SIGNATURE",
+     "EXPIRED_TOKEN",
+     "INTEGRATION_FAILURE",
+     "INTEGRATION_TIMEOUT",
+     "UNSUPPORTED_MEDIA_TYPE",
+     "RESOURCE_NOT_FOUND",
+     "BAD_REQUEST_PARAMETERS",
+     "BAD_REQUEST_BODY",
+     "REQUEST_TOO_LARGE",
+     "THROTTLED",
+     "DEFAULT_5XX",
+     "AUTHORIZER_CONFIGURATION_ERROR",
+     "API_CONFIGURATION_ERROR",
+     "WAF_FILTERED",
+     "INVALID_API_KEY",
+     "AUTHORIZER_FAILURE",
+     "MISSING_AUTHENTICATION_TOKEN",
+     "QUOTA_EXCEEDED"
+    ]
+   },
+   {
+    "path": "items[].statusCode",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetIntegration",
+  "output": "Integration",
+  "members": [
+   {
+    "path": "cacheKeyParameters",
+    "type": "list"
+   },
+   {
+    "path": "cacheKeyParameters[]",
+    "type": "string"
+   },
+   {
+    "path": "cacheNamespace",
+    "type": "string"
+   },
+   {
+    "path": "connectionId",
+    "type": "string"
+   },
+   {
+    "path": "connectionType",
+    "type": "enum",
+    "enum": [
+     "INTERNET",
+     "VPC_LINK"
+    ]
+   },
+   {
+    "path": "contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "credentials",
+    "type": "string"
+   },
+   {
+    "path": "httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "integrationResponses",
+    "type": "map"
+   },
+   {
+    "path": "integrationResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "integrationResponses{}.contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "integrationResponses{}.responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "integrationResponses{}.responseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "integrationResponses{}.responseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "integrationResponses{}.responseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "integrationResponses{}.selectionPattern",
+    "type": "string"
+   },
+   {
+    "path": "integrationResponses{}.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "integrationTarget",
+    "type": "string"
+   },
+   {
+    "path": "passthroughBehavior",
+    "type": "string"
+   },
+   {
+    "path": "requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "requestParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "requestTemplates",
+    "type": "map"
+   },
+   {
+    "path": "requestTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "responseTransferMode",
+    "type": "enum",
+    "enum": [
+     "BUFFERED",
+     "STREAM"
+    ]
+   },
+   {
+    "path": "timeoutInMillis",
+    "type": "integer"
+   },
+   {
+    "path": "tlsConfig",
+    "type": "structure"
+   },
+   {
+    "path": "tlsConfig.insecureSkipVerification",
+    "type": "boolean"
+   },
+   {
+    "path": "type",
+    "type": "enum",
+    "enum": [
+     "HTTP",
+     "AWS",
+     "MOCK",
+     "HTTP_PROXY",
+     "AWS_PROXY"
+    ]
+   },
+   {
+    "path": "uri",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetIntegrationResponse",
+  "output": "IntegrationResponse",
+  "members": [
+   {
+    "path": "contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "responseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "responseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "responseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "selectionPattern",
+    "type": "string"
+   },
+   {
+    "path": "statusCode",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetMethod",
+  "output": "Method",
+  "members": [
+   {
+    "path": "apiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "authorizationScopes",
+    "type": "list"
+   },
+   {
+    "path": "authorizationScopes[]",
+    "type": "string"
+   },
+   {
+    "path": "authorizationType",
+    "type": "string"
+   },
+   {
+    "path": "authorizerId",
+    "type": "string"
+   },
+   {
+    "path": "httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration",
+    "type": "structure"
+   },
+   {
+    "path": "methodIntegration.cacheKeyParameters",
+    "type": "list"
+   },
+   {
+    "path": "methodIntegration.cacheKeyParameters[]",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.cacheNamespace",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.connectionId",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.connectionType",
+    "type": "enum",
+    "enum": [
+     "INTERNET",
+     "VPC_LINK"
+    ]
+   },
+   {
+    "path": "methodIntegration.contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "methodIntegration.credentials",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationResponses",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.responseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.responseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.responseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.selectionPattern",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationTarget",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.passthroughBehavior",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.requestParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.requestTemplates",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.requestTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.responseTransferMode",
+    "type": "enum",
+    "enum": [
+     "BUFFERED",
+     "STREAM"
+    ]
+   },
+   {
+    "path": "methodIntegration.timeoutInMillis",
+    "type": "integer"
+   },
+   {
+    "path": "methodIntegration.tlsConfig",
+    "type": "structure"
+   },
+   {
+    "path": "methodIntegration.tlsConfig.insecureSkipVerification",
+    "type": "boolean"
+   },
+   {
+    "path": "methodIntegration.type",
+    "type": "enum",
+    "enum": [
+     "AWS",
+     "MOCK",
+     "HTTP_PROXY",
+     "AWS_PROXY",
+     "HTTP"
+    ]
+   },
+   {
+    "path": "methodIntegration.uri",
+    "type": "string"
+   },
+   {
+    "path": "methodResponses",
+    "type": "map"
+   },
+   {
+    "path": "methodResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "methodResponses{}.responseModels",
+    "type": "map"
+   },
+   {
+    "path": "methodResponses{}.responseModels{}",
+    "type": "string"
+   },
+   {
+    "path": "methodResponses{}.responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "methodResponses{}.responseParameters{}",
+    "type": "boolean"
+   },
+   {
+    "path": "methodResponses{}.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "operationName",
+    "type": "string"
+   },
+   {
+    "path": "requestModels",
+    "type": "map"
+   },
+   {
+    "path": "requestModels{}",
+    "type": "string"
+   },
+   {
+    "path": "requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "requestParameters{}",
+    "type": "boolean"
+   },
+   {
+    "path": "requestValidatorId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetMethodResponse",
+  "output": "MethodResponse",
+  "members": [
+   {
+    "path": "responseModels",
+    "type": "map"
+   },
+   {
+    "path": "responseModels{}",
+    "type": "string"
+   },
+   {
+    "path": "responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "responseParameters{}",
+    "type": "boolean"
+   },
+   {
+    "path": "statusCode",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetModel",
+  "output": "Model",
+  "members": [
+   {
+    "path": "contentType",
+    "type": "string"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "schema",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetModelTemplate",
+  "output": "Template",
+  "members": [
+   {
+    "path": "value",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetModels",
+  "output": "Models",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].contentType",
+    "type": "string"
+   },
+   {
+    "path": "items[].description",
+    "type": "string"
+   },
+   {
+    "path": "items[].id",
+    "type": "string"
+   },
+   {
+    "path": "items[].name",
+    "type": "string"
+   },
+   {
+    "path": "items[].schema",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetRequestValidator",
+  "output": "RequestValidator",
+  "members": [
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "validateRequestBody",
+    "type": "boolean"
+   },
+   {
+    "path": "validateRequestParameters",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "GetRequestValidators",
+  "output": "RequestValidators",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].id",
+    "type": "string"
+   },
+   {
+    "path": "items[].name",
+    "type": "string"
+   },
+   {
+    "path": "items[].validateRequestBody",
+    "type": "boolean"
+   },
+   {
+    "path": "items[].validateRequestParameters",
+    "type": "boolean"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetResource",
+  "output": "Resource",
+  "members": [
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "parentId",
+    "type": "string"
+   },
+   {
+    "path": "path",
+    "type": "string"
+   },
+   {
+    "path": "pathPart",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.apiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "resourceMethods{}.authorizationScopes",
+    "type": "list"
+   },
+   {
+    "path": "resourceMethods{}.authorizationScopes[]",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.authorizationType",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.authorizerId",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.cacheKeyParameters",
+    "type": "list"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.cacheKeyParameters[]",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.cacheNamespace",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.connectionId",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.connectionType",
+    "type": "enum",
+    "enum": [
+     "INTERNET",
+     "VPC_LINK"
+    ]
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_TEXT",
+     "CONVERT_TO_BINARY"
+    ]
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.credentials",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.integrationResponses",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.integrationResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.integrationTarget",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.passthroughBehavior",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.requestParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.requestTemplates",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.requestTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.responseTransferMode",
+    "type": "enum",
+    "enum": [
+     "BUFFERED",
+     "STREAM"
+    ]
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.timeoutInMillis",
+    "type": "integer"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.tlsConfig",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.tlsConfig.insecureSkipVerification",
+    "type": "boolean"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.type",
+    "type": "enum",
+    "enum": [
+     "HTTP",
+     "AWS",
+     "MOCK",
+     "HTTP_PROXY",
+     "AWS_PROXY"
+    ]
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.uri",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses{}.responseModels",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses{}.responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses{}.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.operationName",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.requestModels",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.requestModels{}",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.requestParameters{}",
+    "type": "boolean"
+   },
+   {
+    "path": "resourceMethods{}.requestValidatorId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetResources",
+  "output": "Resources",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].id",
+    "type": "string"
+   },
+   {
+    "path": "items[].parentId",
+    "type": "string"
+   },
+   {
+    "path": "items[].path",
+    "type": "string"
+   },
+   {
+    "path": "items[].pathPart",
+    "type": "string"
+   },
+   {
+    "path": "items[].resourceMethods",
+    "type": "map"
+   },
+   {
+    "path": "items[].resourceMethods{}",
+    "type": "structure"
+   },
+   {
+    "path": "items[].resourceMethods{}.apiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "items[].resourceMethods{}.authorizationScopes",
+    "type": "list"
+   },
+   {
+    "path": "items[].resourceMethods{}.authorizationType",
+    "type": "string"
+   },
+   {
+    "path": "items[].resourceMethods{}.authorizerId",
+    "type": "string"
+   },
+   {
+    "path": "items[].resourceMethods{}.httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "items[].resourceMethods{}.methodIntegration",
+    "type": "structure"
+   },
+   {
+    "path": "items[].resourceMethods{}.methodResponses",
+    "type": "map"
+   },
+   {
+    "path": "items[].resourceMethods{}.operationName",
+    "type": "string"
+   },
+   {
+    "path": "items[].resourceMethods{}.requestModels",
+    "type": "map"
+   },
+   {
+    "path": "items[].resourceMethods{}.requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "items[].resourceMethods{}.requestValidatorId",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetRestApi",
+  "output": "RestApi",
+  "members": [
+   {
+    "path": "apiKeySource",
+    "type": "enum",
+    "enum": [
+     "HEADER",
+     "AUTHORIZER"
+    ]
+   },
+   {
+    "path": "apiStatus",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "FAILED",
+     "UPDATING",
+     "AVAILABLE"
+    ]
+   },
+   {
+    "path": "apiStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "binaryMediaTypes",
+    "type": "list"
+   },
+   {
+    "path": "binaryMediaTypes[]",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "disableExecuteApiEndpoint",
+    "type": "boolean"
+   },
+   {
+    "path": "endpointAccessMode",
+    "type": "enum",
+    "enum": [
+     "STRICT",
+     "BASIC"
+    ]
+   },
+   {
+    "path": "endpointConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "endpointConfiguration.ipAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.types",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.types[]",
+    "type": "enum",
+    "enum": [
+     "REGIONAL",
+     "EDGE",
+     "PRIVATE"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds[]",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "minimumCompressionSize",
+    "type": "integer"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "policy",
+    "type": "string"
+   },
+   {
+    "path": "rootResourceId",
+    "type": "string"
+   },
+   {
+    "path": "securityPolicy",
+    "type": "enum",
+    "enum": [
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "SecurityPolicy_TLS12_PFS_2025_EDGE",
+     "SecurityPolicy_TLS12_2018_EDGE",
+     "TLS_1_0",
+     "TLS_1_2",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09"
+    ]
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "version",
+    "type": "string"
+   },
+   {
+    "path": "warnings",
+    "type": "list"
+   },
+   {
+    "path": "warnings[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetRestApis",
+  "output": "RestApis",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].apiKeySource",
+    "type": "enum",
+    "enum": [
+     "AUTHORIZER",
+     "HEADER"
+    ]
+   },
+   {
+    "path": "items[].apiStatus",
+    "type": "enum",
+    "enum": [
+     "UPDATING",
+     "AVAILABLE",
+     "PENDING",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "items[].apiStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "items[].binaryMediaTypes",
+    "type": "list"
+   },
+   {
+    "path": "items[].binaryMediaTypes[]",
+    "type": "string"
+   },
+   {
+    "path": "items[].createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "items[].description",
+    "type": "string"
+   },
+   {
+    "path": "items[].disableExecuteApiEndpoint",
+    "type": "boolean"
+   },
+   {
+    "path": "items[].endpointAccessMode",
+    "type": "enum",
+    "enum": [
+     "BASIC",
+     "STRICT"
+    ]
+   },
+   {
+    "path": "items[].endpointConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "items[].endpointConfiguration.ipAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "items[].endpointConfiguration.types",
+    "type": "list"
+   },
+   {
+    "path": "items[].endpointConfiguration.types[]",
+    "type": "enum",
+    "enum": [
+     "REGIONAL",
+     "EDGE",
+     "PRIVATE"
+    ]
+   },
+   {
+    "path": "items[].endpointConfiguration.vpcEndpointIds",
+    "type": "list"
+   },
+   {
+    "path": "items[].endpointConfiguration.vpcEndpointIds[]",
+    "type": "string"
+   },
+   {
+    "path": "items[].id",
+    "type": "string"
+   },
+   {
+    "path": "items[].minimumCompressionSize",
+    "type": "integer"
+   },
+   {
+    "path": "items[].name",
+    "type": "string"
+   },
+   {
+    "path": "items[].policy",
+    "type": "string"
+   },
+   {
+    "path": "items[].rootResourceId",
+    "type": "string"
+   },
+   {
+    "path": "items[].securityPolicy",
+    "type": "enum",
+    "enum": [
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "SecurityPolicy_TLS12_PFS_2025_EDGE",
+     "SecurityPolicy_TLS12_2018_EDGE",
+     "TLS_1_0",
+     "TLS_1_2",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09"
+    ]
+   },
+   {
+    "path": "items[].tags",
+    "type": "map"
+   },
+   {
+    "path": "items[].tags{}",
+    "type": "string"
+   },
+   {
+    "path": "items[].version",
+    "type": "string"
+   },
+   {
+    "path": "items[].warnings",
+    "type": "list"
+   },
+   {
+    "path": "items[].warnings[]",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetSdk",
+  "output": "SdkResponse",
+  "members": [
+   {
+    "path": "body",
+    "type": "blob"
+   },
+   {
+    "path": "contentDisposition",
+    "type": "string"
+   },
+   {
+    "path": "contentType",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetSdkType",
+  "output": "SdkType",
+  "members": [
+   {
+    "path": "configurationProperties",
+    "type": "list"
+   },
+   {
+    "path": "configurationProperties[]",
+    "type": "structure"
+   },
+   {
+    "path": "configurationProperties[].defaultValue",
+    "type": "string"
+   },
+   {
+    "path": "configurationProperties[].description",
+    "type": "string"
+   },
+   {
+    "path": "configurationProperties[].friendlyName",
+    "type": "string"
+   },
+   {
+    "path": "configurationProperties[].name",
+    "type": "string"
+   },
+   {
+    "path": "configurationProperties[].required",
+    "type": "boolean"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "friendlyName",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetSdkTypes",
+  "output": "SdkTypes",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].configurationProperties",
+    "type": "list"
+   },
+   {
+    "path": "items[].configurationProperties[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].configurationProperties[].defaultValue",
+    "type": "string"
+   },
+   {
+    "path": "items[].configurationProperties[].description",
+    "type": "string"
+   },
+   {
+    "path": "items[].configurationProperties[].friendlyName",
+    "type": "string"
+   },
+   {
+    "path": "items[].configurationProperties[].name",
+    "type": "string"
+   },
+   {
+    "path": "items[].configurationProperties[].required",
+    "type": "boolean"
+   },
+   {
+    "path": "items[].description",
+    "type": "string"
+   },
+   {
+    "path": "items[].friendlyName",
+    "type": "string"
+   },
+   {
+    "path": "items[].id",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetStage",
+  "output": "Stage",
+  "members": [
+   {
+    "path": "accessLogSettings",
+    "type": "structure"
+   },
+   {
+    "path": "accessLogSettings.destinationArn",
+    "type": "string"
+   },
+   {
+    "path": "accessLogSettings.format",
+    "type": "string"
+   },
+   {
+    "path": "cacheClusterEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "cacheClusterSize",
+    "type": "enum",
+    "enum": [
+     "0.5",
+     "1.6",
+     "6.1",
+     "13.5",
+     "28.4",
+     "58.2",
+     "118",
+     "237"
+    ]
+   },
+   {
+    "path": "cacheClusterStatus",
+    "type": "enum",
+    "enum": [
+     "CREATE_IN_PROGRESS",
+     "AVAILABLE",
+     "DELETE_IN_PROGRESS",
+     "NOT_AVAILABLE",
+     "FLUSH_IN_PROGRESS"
+    ]
+   },
+   {
+    "path": "canarySettings",
+    "type": "structure"
+   },
+   {
+    "path": "canarySettings.deploymentId",
+    "type": "string"
+   },
+   {
+    "path": "canarySettings.percentTraffic",
+    "type": "float"
+   },
+   {
+    "path": "canarySettings.stageVariableOverrides",
+    "type": "map"
+   },
+   {
+    "path": "canarySettings.stageVariableOverrides{}",
+    "type": "string"
+   },
+   {
+    "path": "canarySettings.useStageCache",
+    "type": "boolean"
+   },
+   {
+    "path": "clientCertificateId",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "deploymentId",
+    "type": "string"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "documentationVersion",
+    "type": "string"
+   },
+   {
+    "path": "lastUpdatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "methodSettings",
+    "type": "map"
+   },
+   {
+    "path": "methodSettings{}",
+    "type": "structure"
+   },
+   {
+    "path": "methodSettings{}.cacheDataEncrypted",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.cacheTtlInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "methodSettings{}.cachingEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.dataTraceEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.loggingLevel",
+    "type": "string"
+   },
+   {
+    "path": "methodSettings{}.metricsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.requireAuthorizationForCacheControl",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.throttlingBurstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "methodSettings{}.throttlingRateLimit",
+    "type": "float"
+   },
+   {
+    "path": "methodSettings{}.unauthorizedCacheControlHeaderStrategy",
+    "type": "enum",
+    "enum": [
+     "FAIL_WITH_403",
+     "SUCCEED_WITH_RESPONSE_HEADER",
+     "SUCCEED_WITHOUT_RESPONSE_HEADER"
+    ]
+   },
+   {
+    "path": "stageName",
+    "type": "string"
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "tracingEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "variables",
+    "type": "map"
+   },
+   {
+    "path": "variables{}",
+    "type": "string"
+   },
+   {
+    "path": "webAclArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetStages",
+  "output": "Stages",
+  "members": [
+   {
+    "path": "item",
+    "type": "list"
+   },
+   {
+    "path": "item[]",
+    "type": "structure"
+   },
+   {
+    "path": "item[].accessLogSettings",
+    "type": "structure"
+   },
+   {
+    "path": "item[].accessLogSettings.destinationArn",
+    "type": "string"
+   },
+   {
+    "path": "item[].accessLogSettings.format",
+    "type": "string"
+   },
+   {
+    "path": "item[].cacheClusterEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "item[].cacheClusterSize",
+    "type": "enum",
+    "enum": [
+     "6.1",
+     "13.5",
+     "28.4",
+     "58.2",
+     "118",
+     "237",
+     "0.5",
+     "1.6"
+    ]
+   },
+   {
+    "path": "item[].cacheClusterStatus",
+    "type": "enum",
+    "enum": [
+     "CREATE_IN_PROGRESS",
+     "AVAILABLE",
+     "DELETE_IN_PROGRESS",
+     "NOT_AVAILABLE",
+     "FLUSH_IN_PROGRESS"
+    ]
+   },
+   {
+    "path": "item[].canarySettings",
+    "type": "structure"
+   },
+   {
+    "path": "item[].canarySettings.deploymentId",
+    "type": "string"
+   },
+   {
+    "path": "item[].canarySettings.percentTraffic",
+    "type": "float"
+   },
+   {
+    "path": "item[].canarySettings.stageVariableOverrides",
+    "type": "map"
+   },
+   {
+    "path": "item[].canarySettings.stageVariableOverrides{}",
+    "type": "string"
+   },
+   {
+    "path": "item[].canarySettings.useStageCache",
+    "type": "boolean"
+   },
+   {
+    "path": "item[].clientCertificateId",
+    "type": "string"
+   },
+   {
+    "path": "item[].createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "item[].deploymentId",
+    "type": "string"
+   },
+   {
+    "path": "item[].description",
+    "type": "string"
+   },
+   {
+    "path": "item[].documentationVersion",
+    "type": "string"
+   },
+   {
+    "path": "item[].lastUpdatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "item[].methodSettings",
+    "type": "map"
+   },
+   {
+    "path": "item[].methodSettings{}",
+    "type": "structure"
+   },
+   {
+    "path": "item[].methodSettings{}.cacheDataEncrypted",
+    "type": "boolean"
+   },
+   {
+    "path": "item[].methodSettings{}.cacheTtlInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "item[].methodSettings{}.cachingEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "item[].methodSettings{}.dataTraceEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "item[].methodSettings{}.loggingLevel",
+    "type": "string"
+   },
+   {
+    "path": "item[].methodSettings{}.metricsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "item[].methodSettings{}.requireAuthorizationForCacheControl",
+    "type": "boolean"
+   },
+   {
+    "path": "item[].methodSettings{}.throttlingBurstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "item[].methodSettings{}.throttlingRateLimit",
+    "type": "float"
+   },
+   {
+    "path": "item[].methodSettings{}.unauthorizedCacheControlHeaderStrategy",
+    "type": "enum",
+    "enum": [
+     "FAIL_WITH_403",
+     "SUCCEED_WITH_RESPONSE_HEADER",
+     "SUCCEED_WITHOUT_RESPONSE_HEADER"
+    ]
+   },
+   {
+    "path": "item[].stageName",
+    "type": "string"
+   },
+   {
+    "path": "item[].tags",
+    "type": "map"
+   },
+   {
+    "path": "item[].tags{}",
+    "type": "string"
+   },
+   {
+    "path": "item[].tracingEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "item[].variables",
+    "type": "map"
+   },
+   {
+    "path": "item[].variables{}",
+    "type": "string"
+   },
+   {
+    "path": "item[].webAclArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetTags",
+  "output": "Tags",
+  "members": [
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetUsage",
+  "output": "Usage",
+  "members": [
+   {
+    "path": "endDate",
+    "type": "string"
+   },
+   {
+    "path": "items",
+    "type": "map"
+   },
+   {
+    "path": "items{}",
+    "type": "list"
+   },
+   {
+    "path": "items{}[]",
+    "type": "list"
+   },
+   {
+    "path": "items{}[][]",
+    "type": "integer"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   },
+   {
+    "path": "startDate",
+    "type": "string"
+   },
+   {
+    "path": "usagePlanId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetUsagePlan",
+  "output": "UsagePlan",
+  "members": [
+   {
+    "path": "apiStages",
+    "type": "list"
+   },
+   {
+    "path": "apiStages[]",
+    "type": "structure"
+   },
+   {
+    "path": "apiStages[].apiId",
+    "type": "string"
+   },
+   {
+    "path": "apiStages[].stage",
+    "type": "string"
+   },
+   {
+    "path": "apiStages[].throttle",
+    "type": "map"
+   },
+   {
+    "path": "apiStages[].throttle{}",
+    "type": "structure"
+   },
+   {
+    "path": "apiStages[].throttle{}.burstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "apiStages[].throttle{}.rateLimit",
+    "type": "float"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "productCode",
+    "type": "string"
+   },
+   {
+    "path": "quota",
+    "type": "structure"
+   },
+   {
+    "path": "quota.limit",
+    "type": "integer"
+   },
+   {
+    "path": "quota.offset",
+    "type": "integer"
+   },
+   {
+    "path": "quota.period",
+    "type": "enum",
+    "enum": [
+     "DAY",
+     "WEEK",
+     "MONTH"
+    ]
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "throttle",
+    "type": "structure"
+   },
+   {
+    "path": "throttle.burstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "throttle.rateLimit",
+    "type": "float"
+   }
+  ]
+ },
+ {
+  "operation": "GetUsagePlanKey",
+  "output": "UsagePlanKey",
+  "members": [
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "type",
+    "type": "string"
+   },
+   {
+    "path": "value",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetUsagePlanKeys",
+  "output": "UsagePlanKeys",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].id",
+    "type": "string"
+   },
+   {
+    "path": "items[].name",
+    "type": "string"
+   },
+   {
+    "path": "items[].type",
+    "type": "string"
+   },
+   {
+    "path": "items[].value",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetUsagePlans",
+  "output": "UsagePlans",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].apiStages",
+    "type": "list"
+   },
+   {
+    "path": "items[].apiStages[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].apiStages[].apiId",
+    "type": "string"
+   },
+   {
+    "path": "items[].apiStages[].stage",
+    "type": "string"
+   },
+   {
+    "path": "items[].apiStages[].throttle",
+    "type": "map"
+   },
+   {
+    "path": "items[].description",
+    "type": "string"
+   },
+   {
+    "path": "items[].id",
+    "type": "string"
+   },
+   {
+    "path": "items[].name",
+    "type": "string"
+   },
+   {
+    "path": "items[].productCode",
+    "type": "string"
+   },
+   {
+    "path": "items[].quota",
+    "type": "structure"
+   },
+   {
+    "path": "items[].quota.limit",
+    "type": "integer"
+   },
+   {
+    "path": "items[].quota.offset",
+    "type": "integer"
+   },
+   {
+    "path": "items[].quota.period",
+    "type": "enum",
+    "enum": [
+     "DAY",
+     "WEEK",
+     "MONTH"
+    ]
+   },
+   {
+    "path": "items[].tags",
+    "type": "map"
+   },
+   {
+    "path": "items[].tags{}",
+    "type": "string"
+   },
+   {
+    "path": "items[].throttle",
+    "type": "structure"
+   },
+   {
+    "path": "items[].throttle.burstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "items[].throttle.rateLimit",
+    "type": "float"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetVpcLink",
+  "output": "VpcLink",
+  "members": [
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "status",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "PENDING",
+     "DELETING",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "statusMessage",
+    "type": "string"
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "targetArns",
+    "type": "list"
+   },
+   {
+    "path": "targetArns[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetVpcLinks",
+  "output": "VpcLinks",
+  "members": [
+   {
+    "path": "items",
+    "type": "list"
+   },
+   {
+    "path": "items[]",
+    "type": "structure"
+   },
+   {
+    "path": "items[].description",
+    "type": "string"
+   },
+   {
+    "path": "items[].id",
+    "type": "string"
+   },
+   {
+    "path": "items[].name",
+    "type": "string"
+   },
+   {
+    "path": "items[].status",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "PENDING",
+     "DELETING",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "items[].statusMessage",
+    "type": "string"
+   },
+   {
+    "path": "items[].tags",
+    "type": "map"
+   },
+   {
+    "path": "items[].tags{}",
+    "type": "string"
+   },
+   {
+    "path": "items[].targetArns",
+    "type": "list"
+   },
+   {
+    "path": "items[].targetArns[]",
+    "type": "string"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ImportApiKeys",
+  "output": "ApiKeyIds",
+  "members": [
+   {
+    "path": "ids",
+    "type": "list"
+   },
+   {
+    "path": "ids[]",
+    "type": "string"
+   },
+   {
+    "path": "warnings",
+    "type": "list"
+   },
+   {
+    "path": "warnings[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ImportDocumentationParts",
+  "output": "DocumentationPartIds",
+  "members": [
+   {
+    "path": "ids",
+    "type": "list"
+   },
+   {
+    "path": "ids[]",
+    "type": "string"
+   },
+   {
+    "path": "warnings",
+    "type": "list"
+   },
+   {
+    "path": "warnings[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ImportRestApi",
+  "output": "RestApi",
+  "members": [
+   {
+    "path": "apiKeySource",
+    "type": "enum",
+    "enum": [
+     "AUTHORIZER",
+     "HEADER"
+    ]
+   },
+   {
+    "path": "apiStatus",
+    "type": "enum",
+    "enum": [
+     "UPDATING",
+     "AVAILABLE",
+     "PENDING",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "apiStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "binaryMediaTypes",
+    "type": "list"
+   },
+   {
+    "path": "binaryMediaTypes[]",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "disableExecuteApiEndpoint",
+    "type": "boolean"
+   },
+   {
+    "path": "endpointAccessMode",
+    "type": "enum",
+    "enum": [
+     "BASIC",
+     "STRICT"
+    ]
+   },
+   {
+    "path": "endpointConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "endpointConfiguration.ipAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.types",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.types[]",
+    "type": "enum",
+    "enum": [
+     "REGIONAL",
+     "EDGE",
+     "PRIVATE"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds[]",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "minimumCompressionSize",
+    "type": "integer"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "policy",
+    "type": "string"
+   },
+   {
+    "path": "rootResourceId",
+    "type": "string"
+   },
+   {
+    "path": "securityPolicy",
+    "type": "enum",
+    "enum": [
+     "SecurityPolicy_TLS12_2018_EDGE",
+     "TLS_1_0",
+     "TLS_1_2",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "SecurityPolicy_TLS12_PFS_2025_EDGE"
+    ]
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "version",
+    "type": "string"
+   },
+   {
+    "path": "warnings",
+    "type": "list"
+   },
+   {
+    "path": "warnings[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutGatewayResponse",
+  "output": "GatewayResponse",
+  "members": [
+   {
+    "path": "defaultResponse",
+    "type": "boolean"
+   },
+   {
+    "path": "responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "responseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "responseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "responseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "responseType",
+    "type": "enum",
+    "enum": [
+     "AUTHORIZER_FAILURE",
+     "MISSING_AUTHENTICATION_TOKEN",
+     "QUOTA_EXCEEDED",
+     "DEFAULT_4XX",
+     "UNAUTHORIZED",
+     "ACCESS_DENIED",
+     "INVALID_SIGNATURE",
+     "EXPIRED_TOKEN",
+     "INTEGRATION_FAILURE",
+     "INTEGRATION_TIMEOUT",
+     "UNSUPPORTED_MEDIA_TYPE",
+     "RESOURCE_NOT_FOUND",
+     "BAD_REQUEST_PARAMETERS",
+     "BAD_REQUEST_BODY",
+     "REQUEST_TOO_LARGE",
+     "THROTTLED",
+     "DEFAULT_5XX",
+     "AUTHORIZER_CONFIGURATION_ERROR",
+     "API_CONFIGURATION_ERROR",
+     "WAF_FILTERED",
+     "INVALID_API_KEY"
+    ]
+   },
+   {
+    "path": "statusCode",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutIntegration",
+  "output": "Integration",
+  "members": [
+   {
+    "path": "cacheKeyParameters",
+    "type": "list"
+   },
+   {
+    "path": "cacheKeyParameters[]",
+    "type": "string"
+   },
+   {
+    "path": "cacheNamespace",
+    "type": "string"
+   },
+   {
+    "path": "connectionId",
+    "type": "string"
+   },
+   {
+    "path": "connectionType",
+    "type": "enum",
+    "enum": [
+     "INTERNET",
+     "VPC_LINK"
+    ]
+   },
+   {
+    "path": "contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "credentials",
+    "type": "string"
+   },
+   {
+    "path": "httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "integrationResponses",
+    "type": "map"
+   },
+   {
+    "path": "integrationResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "integrationResponses{}.contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "integrationResponses{}.responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "integrationResponses{}.responseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "integrationResponses{}.responseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "integrationResponses{}.responseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "integrationResponses{}.selectionPattern",
+    "type": "string"
+   },
+   {
+    "path": "integrationResponses{}.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "integrationTarget",
+    "type": "string"
+   },
+   {
+    "path": "passthroughBehavior",
+    "type": "string"
+   },
+   {
+    "path": "requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "requestParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "requestTemplates",
+    "type": "map"
+   },
+   {
+    "path": "requestTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "responseTransferMode",
+    "type": "enum",
+    "enum": [
+     "BUFFERED",
+     "STREAM"
+    ]
+   },
+   {
+    "path": "timeoutInMillis",
+    "type": "integer"
+   },
+   {
+    "path": "tlsConfig",
+    "type": "structure"
+   },
+   {
+    "path": "tlsConfig.insecureSkipVerification",
+    "type": "boolean"
+   },
+   {
+    "path": "type",
+    "type": "enum",
+    "enum": [
+     "AWS_PROXY",
+     "HTTP",
+     "AWS",
+     "MOCK",
+     "HTTP_PROXY"
+    ]
+   },
+   {
+    "path": "uri",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutIntegrationResponse",
+  "output": "IntegrationResponse",
+  "members": [
+   {
+    "path": "contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "responseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "responseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "responseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "selectionPattern",
+    "type": "string"
+   },
+   {
+    "path": "statusCode",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutMethod",
+  "output": "Method",
+  "members": [
+   {
+    "path": "apiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "authorizationScopes",
+    "type": "list"
+   },
+   {
+    "path": "authorizationScopes[]",
+    "type": "string"
+   },
+   {
+    "path": "authorizationType",
+    "type": "string"
+   },
+   {
+    "path": "authorizerId",
+    "type": "string"
+   },
+   {
+    "path": "httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration",
+    "type": "structure"
+   },
+   {
+    "path": "methodIntegration.cacheKeyParameters",
+    "type": "list"
+   },
+   {
+    "path": "methodIntegration.cacheKeyParameters[]",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.cacheNamespace",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.connectionId",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.connectionType",
+    "type": "enum",
+    "enum": [
+     "INTERNET",
+     "VPC_LINK"
+    ]
+   },
+   {
+    "path": "methodIntegration.contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "methodIntegration.credentials",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationResponses",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.responseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.responseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.responseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.selectionPattern",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationTarget",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.passthroughBehavior",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.requestParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.requestTemplates",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.requestTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.responseTransferMode",
+    "type": "enum",
+    "enum": [
+     "BUFFERED",
+     "STREAM"
+    ]
+   },
+   {
+    "path": "methodIntegration.timeoutInMillis",
+    "type": "integer"
+   },
+   {
+    "path": "methodIntegration.tlsConfig",
+    "type": "structure"
+   },
+   {
+    "path": "methodIntegration.tlsConfig.insecureSkipVerification",
+    "type": "boolean"
+   },
+   {
+    "path": "methodIntegration.type",
+    "type": "enum",
+    "enum": [
+     "HTTP_PROXY",
+     "AWS_PROXY",
+     "HTTP",
+     "AWS",
+     "MOCK"
+    ]
+   },
+   {
+    "path": "methodIntegration.uri",
+    "type": "string"
+   },
+   {
+    "path": "methodResponses",
+    "type": "map"
+   },
+   {
+    "path": "methodResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "methodResponses{}.responseModels",
+    "type": "map"
+   },
+   {
+    "path": "methodResponses{}.responseModels{}",
+    "type": "string"
+   },
+   {
+    "path": "methodResponses{}.responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "methodResponses{}.responseParameters{}",
+    "type": "boolean"
+   },
+   {
+    "path": "methodResponses{}.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "operationName",
+    "type": "string"
+   },
+   {
+    "path": "requestModels",
+    "type": "map"
+   },
+   {
+    "path": "requestModels{}",
+    "type": "string"
+   },
+   {
+    "path": "requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "requestParameters{}",
+    "type": "boolean"
+   },
+   {
+    "path": "requestValidatorId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutMethodResponse",
+  "output": "MethodResponse",
+  "members": [
+   {
+    "path": "responseModels",
+    "type": "map"
+   },
+   {
+    "path": "responseModels{}",
+    "type": "string"
+   },
+   {
+    "path": "responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "responseParameters{}",
+    "type": "boolean"
+   },
+   {
+    "path": "statusCode",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutRestApi",
+  "output": "RestApi",
+  "members": [
+   {
+    "path": "apiKeySource",
+    "type": "enum",
+    "enum": [
+     "AUTHORIZER",
+     "HEADER"
+    ]
+   },
+   {
+    "path": "apiStatus",
+    "type": "enum",
+    "enum": [
+     "UPDATING",
+     "AVAILABLE",
+     "PENDING",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "apiStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "binaryMediaTypes",
+    "type": "list"
+   },
+   {
+    "path": "binaryMediaTypes[]",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "disableExecuteApiEndpoint",
+    "type": "boolean"
+   },
+   {
+    "path": "endpointAccessMode",
+    "type": "enum",
+    "enum": [
+     "BASIC",
+     "STRICT"
+    ]
+   },
+   {
+    "path": "endpointConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "endpointConfiguration.ipAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.types",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.types[]",
+    "type": "enum",
+    "enum": [
+     "REGIONAL",
+     "EDGE",
+     "PRIVATE"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds[]",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "minimumCompressionSize",
+    "type": "integer"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "policy",
+    "type": "string"
+   },
+   {
+    "path": "rootResourceId",
+    "type": "string"
+   },
+   {
+    "path": "securityPolicy",
+    "type": "enum",
+    "enum": [
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "SecurityPolicy_TLS12_PFS_2025_EDGE",
+     "SecurityPolicy_TLS12_2018_EDGE",
+     "TLS_1_0",
+     "TLS_1_2",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09"
+    ]
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "version",
+    "type": "string"
+   },
+   {
+    "path": "warnings",
+    "type": "list"
+   },
+   {
+    "path": "warnings[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "TestInvokeAuthorizer",
+  "output": "TestInvokeAuthorizerResponse",
+  "members": [
+   {
+    "path": "authorization",
+    "type": "map"
+   },
+   {
+    "path": "authorization{}",
+    "type": "list"
+   },
+   {
+    "path": "authorization{}[]",
+    "type": "string"
+   },
+   {
+    "path": "claims",
+    "type": "map"
+   },
+   {
+    "path": "claims{}",
+    "type": "string"
+   },
+   {
+    "path": "clientStatus",
+    "type": "integer"
+   },
+   {
+    "path": "latency",
+    "type": "integer"
+   },
+   {
+    "path": "log",
+    "type": "string"
+   },
+   {
+    "path": "policy",
+    "type": "string"
+   },
+   {
+    "path": "principalId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "TestInvokeMethod",
+  "output": "TestInvokeMethodResponse",
+  "members": [
+   {
+    "path": "body",
+    "type": "string"
+   },
+   {
+    "path": "headers",
+    "type": "map"
+   },
+   {
+    "path": "headers{}",
+    "type": "string"
+   },
+   {
+    "path": "latency",
+    "type": "integer"
+   },
+   {
+    "path": "log",
+    "type": "string"
+   },
+   {
+    "path": "multiValueHeaders",
+    "type": "map"
+   },
+   {
+    "path": "multiValueHeaders{}",
+    "type": "list"
+   },
+   {
+    "path": "multiValueHeaders{}[]",
+    "type": "string"
+   },
+   {
+    "path": "status",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateAccount",
+  "output": "Account",
+  "members": [
+   {
+    "path": "apiKeyVersion",
+    "type": "string"
+   },
+   {
+    "path": "cloudwatchRoleArn",
+    "type": "string"
+   },
+   {
+    "path": "features",
+    "type": "list"
+   },
+   {
+    "path": "features[]",
+    "type": "string"
+   },
+   {
+    "path": "throttleSettings",
+    "type": "structure"
+   },
+   {
+    "path": "throttleSettings.burstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "throttleSettings.rateLimit",
+    "type": "float"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateApiKey",
+  "output": "ApiKey",
+  "members": [
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "customerId",
+    "type": "string"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "enabled",
+    "type": "boolean"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "lastUpdatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "stageKeys",
+    "type": "list"
+   },
+   {
+    "path": "stageKeys[]",
+    "type": "string"
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "value",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateAuthorizer",
+  "output": "Authorizer",
+  "members": [
+   {
+    "path": "authType",
+    "type": "string"
+   },
+   {
+    "path": "authorizerCredentials",
+    "type": "string"
+   },
+   {
+    "path": "authorizerResultTtlInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "authorizerUri",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "identitySource",
+    "type": "string"
+   },
+   {
+    "path": "identityValidationExpression",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "providerARNs",
+    "type": "list"
+   },
+   {
+    "path": "providerARNs[]",
+    "type": "string"
+   },
+   {
+    "path": "type",
+    "type": "enum",
+    "enum": [
+     "TOKEN",
+     "REQUEST",
+     "COGNITO_USER_POOLS"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "UpdateBasePathMapping",
+  "output": "BasePathMapping",
+  "members": [
+   {
+    "path": "basePath",
+    "type": "string"
+   },
+   {
+    "path": "restApiId",
+    "type": "string"
+   },
+   {
+    "path": "stage",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateClientCertificate",
+  "output": "ClientCertificate",
+  "members": [
+   {
+    "path": "clientCertificateId",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "expirationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "pemEncodedCertificate",
+    "type": "string"
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateDeployment",
+  "output": "Deployment",
+  "members": [
+   {
+    "path": "apiSummary",
+    "type": "map"
+   },
+   {
+    "path": "apiSummary{}",
+    "type": "map"
+   },
+   {
+    "path": "apiSummary{}{}",
+    "type": "structure"
+   },
+   {
+    "path": "apiSummary{}{}.apiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "apiSummary{}{}.authorizationType",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateDocumentationPart",
+  "output": "DocumentationPart",
+  "members": [
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "location",
+    "type": "structure"
+   },
+   {
+    "path": "location.method",
+    "type": "string"
+   },
+   {
+    "path": "location.name",
+    "type": "string"
+   },
+   {
+    "path": "location.path",
+    "type": "string"
+   },
+   {
+    "path": "location.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "location.type",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "RESPONSE",
+     "RESPONSE_HEADER",
+     "API",
+     "AUTHORIZER",
+     "RESOURCE",
+     "METHOD",
+     "PATH_PARAMETER",
+     "QUERY_PARAMETER",
+     "REQUEST_BODY",
+     "RESPONSE_BODY",
+     "MODEL",
+     "REQUEST_HEADER"
+    ]
+   },
+   {
+    "path": "properties",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateDocumentationVersion",
+  "output": "DocumentationVersion",
+  "members": [
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "version",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateDomainName",
+  "output": "DomainName",
+  "members": [
+   {
+    "path": "certificateArn",
+    "type": "string"
+   },
+   {
+    "path": "certificateName",
+    "type": "string"
+   },
+   {
+    "path": "certificateUploadDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "distributionDomainName",
+    "type": "string"
+   },
+   {
+    "path": "distributionHostedZoneId",
+    "type": "string"
+   },
+   {
+    "path": "domainName",
+    "type": "string"
+   },
+   {
+    "path": "domainNameArn",
+    "type": "string"
+   },
+   {
+    "path": "domainNameId",
+    "type": "string"
+   },
+   {
+    "path": "domainNameStatus",
+    "type": "enum",
+    "enum": [
+     "FAILED",
+     "AVAILABLE",
+     "UPDATING",
+     "PENDING",
+     "PENDING_CERTIFICATE_REIMPORT",
+     "PENDING_OWNERSHIP_VERIFICATION"
+    ]
+   },
+   {
+    "path": "domainNameStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "endpointAccessMode",
+    "type": "enum",
+    "enum": [
+     "BASIC",
+     "STRICT"
+    ]
+   },
+   {
+    "path": "endpointConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "endpointConfiguration.ipAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.types",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.types[]",
+    "type": "enum",
+    "enum": [
+     "REGIONAL",
+     "EDGE",
+     "PRIVATE"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds[]",
+    "type": "string"
+   },
+   {
+    "path": "managementPolicy",
+    "type": "string"
+   },
+   {
+    "path": "mutualTlsAuthentication",
+    "type": "structure"
+   },
+   {
+    "path": "mutualTlsAuthentication.truststoreUri",
+    "type": "string"
+   },
+   {
+    "path": "mutualTlsAuthentication.truststoreVersion",
+    "type": "string"
+   },
+   {
+    "path": "mutualTlsAuthentication.truststoreWarnings",
+    "type": "list"
+   },
+   {
+    "path": "mutualTlsAuthentication.truststoreWarnings[]",
+    "type": "string"
+   },
+   {
+    "path": "ownershipVerificationCertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "policy",
+    "type": "string"
+   },
+   {
+    "path": "regionalCertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "regionalCertificateName",
+    "type": "string"
+   },
+   {
+    "path": "regionalDomainName",
+    "type": "string"
+   },
+   {
+    "path": "regionalHostedZoneId",
+    "type": "string"
+   },
+   {
+    "path": "routingMode",
+    "type": "enum",
+    "enum": [
+     "BASE_PATH_MAPPING_ONLY",
+     "ROUTING_RULE_ONLY",
+     "ROUTING_RULE_THEN_BASE_PATH_MAPPING"
+    ]
+   },
+   {
+    "path": "securityPolicy",
+    "type": "enum",
+    "enum": [
+     "TLS_1_0",
+     "TLS_1_2",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "SecurityPolicy_TLS12_PFS_2025_EDGE",
+     "SecurityPolicy_TLS12_2018_EDGE"
+    ]
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateGatewayResponse",
+  "output": "GatewayResponse",
+  "members": [
+   {
+    "path": "defaultResponse",
+    "type": "boolean"
+   },
+   {
+    "path": "responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "responseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "responseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "responseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "responseType",
+    "type": "enum",
+    "enum": [
+     "DEFAULT_5XX",
+     "AUTHORIZER_CONFIGURATION_ERROR",
+     "API_CONFIGURATION_ERROR",
+     "WAF_FILTERED",
+     "INVALID_API_KEY",
+     "AUTHORIZER_FAILURE",
+     "MISSING_AUTHENTICATION_TOKEN",
+     "QUOTA_EXCEEDED",
+     "DEFAULT_4XX",
+     "UNAUTHORIZED",
+     "ACCESS_DENIED",
+     "INVALID_SIGNATURE",
+     "EXPIRED_TOKEN",
+     "INTEGRATION_FAILURE",
+     "INTEGRATION_TIMEOUT",
+     "UNSUPPORTED_MEDIA_TYPE",
+     "RESOURCE_NOT_FOUND",
+     "BAD_REQUEST_PARAMETERS",
+     "BAD_REQUEST_BODY",
+     "REQUEST_TOO_LARGE",
+     "THROTTLED"
+    ]
+   },
+   {
+    "path": "statusCode",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateIntegration",
+  "output": "Integration",
+  "members": [
+   {
+    "path": "cacheKeyParameters",
+    "type": "list"
+   },
+   {
+    "path": "cacheKeyParameters[]",
+    "type": "string"
+   },
+   {
+    "path": "cacheNamespace",
+    "type": "string"
+   },
+   {
+    "path": "connectionId",
+    "type": "string"
+   },
+   {
+    "path": "connectionType",
+    "type": "enum",
+    "enum": [
+     "INTERNET",
+     "VPC_LINK"
+    ]
+   },
+   {
+    "path": "contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "credentials",
+    "type": "string"
+   },
+   {
+    "path": "httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "integrationResponses",
+    "type": "map"
+   },
+   {
+    "path": "integrationResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "integrationResponses{}.contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "integrationResponses{}.responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "integrationResponses{}.responseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "integrationResponses{}.responseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "integrationResponses{}.responseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "integrationResponses{}.selectionPattern",
+    "type": "string"
+   },
+   {
+    "path": "integrationResponses{}.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "integrationTarget",
+    "type": "string"
+   },
+   {
+    "path": "passthroughBehavior",
+    "type": "string"
+   },
+   {
+    "path": "requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "requestParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "requestTemplates",
+    "type": "map"
+   },
+   {
+    "path": "requestTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "responseTransferMode",
+    "type": "enum",
+    "enum": [
+     "BUFFERED",
+     "STREAM"
+    ]
+   },
+   {
+    "path": "timeoutInMillis",
+    "type": "integer"
+   },
+   {
+    "path": "tlsConfig",
+    "type": "structure"
+   },
+   {
+    "path": "tlsConfig.insecureSkipVerification",
+    "type": "boolean"
+   },
+   {
+    "path": "type",
+    "type": "enum",
+    "enum": [
+     "HTTP",
+     "AWS",
+     "MOCK",
+     "HTTP_PROXY",
+     "AWS_PROXY"
+    ]
+   },
+   {
+    "path": "uri",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateIntegrationResponse",
+  "output": "IntegrationResponse",
+  "members": [
+   {
+    "path": "contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_TEXT",
+     "CONVERT_TO_BINARY"
+    ]
+   },
+   {
+    "path": "responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "responseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "responseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "responseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "selectionPattern",
+    "type": "string"
+   },
+   {
+    "path": "statusCode",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateMethod",
+  "output": "Method",
+  "members": [
+   {
+    "path": "apiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "authorizationScopes",
+    "type": "list"
+   },
+   {
+    "path": "authorizationScopes[]",
+    "type": "string"
+   },
+   {
+    "path": "authorizationType",
+    "type": "string"
+   },
+   {
+    "path": "authorizerId",
+    "type": "string"
+   },
+   {
+    "path": "httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration",
+    "type": "structure"
+   },
+   {
+    "path": "methodIntegration.cacheKeyParameters",
+    "type": "list"
+   },
+   {
+    "path": "methodIntegration.cacheKeyParameters[]",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.cacheNamespace",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.connectionId",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.connectionType",
+    "type": "enum",
+    "enum": [
+     "VPC_LINK",
+     "INTERNET"
+    ]
+   },
+   {
+    "path": "methodIntegration.contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "methodIntegration.credentials",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationResponses",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.responseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.responseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.responseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.selectionPattern",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationResponses{}.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.integrationTarget",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.passthroughBehavior",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.requestParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.requestTemplates",
+    "type": "map"
+   },
+   {
+    "path": "methodIntegration.requestTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "methodIntegration.responseTransferMode",
+    "type": "enum",
+    "enum": [
+     "BUFFERED",
+     "STREAM"
+    ]
+   },
+   {
+    "path": "methodIntegration.timeoutInMillis",
+    "type": "integer"
+   },
+   {
+    "path": "methodIntegration.tlsConfig",
+    "type": "structure"
+   },
+   {
+    "path": "methodIntegration.tlsConfig.insecureSkipVerification",
+    "type": "boolean"
+   },
+   {
+    "path": "methodIntegration.type",
+    "type": "enum",
+    "enum": [
+     "AWS_PROXY",
+     "HTTP",
+     "AWS",
+     "MOCK",
+     "HTTP_PROXY"
+    ]
+   },
+   {
+    "path": "methodIntegration.uri",
+    "type": "string"
+   },
+   {
+    "path": "methodResponses",
+    "type": "map"
+   },
+   {
+    "path": "methodResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "methodResponses{}.responseModels",
+    "type": "map"
+   },
+   {
+    "path": "methodResponses{}.responseModels{}",
+    "type": "string"
+   },
+   {
+    "path": "methodResponses{}.responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "methodResponses{}.responseParameters{}",
+    "type": "boolean"
+   },
+   {
+    "path": "methodResponses{}.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "operationName",
+    "type": "string"
+   },
+   {
+    "path": "requestModels",
+    "type": "map"
+   },
+   {
+    "path": "requestModels{}",
+    "type": "string"
+   },
+   {
+    "path": "requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "requestParameters{}",
+    "type": "boolean"
+   },
+   {
+    "path": "requestValidatorId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateMethodResponse",
+  "output": "MethodResponse",
+  "members": [
+   {
+    "path": "responseModels",
+    "type": "map"
+   },
+   {
+    "path": "responseModels{}",
+    "type": "string"
+   },
+   {
+    "path": "responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "responseParameters{}",
+    "type": "boolean"
+   },
+   {
+    "path": "statusCode",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateModel",
+  "output": "Model",
+  "members": [
+   {
+    "path": "contentType",
+    "type": "string"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "schema",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateRequestValidator",
+  "output": "RequestValidator",
+  "members": [
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "validateRequestBody",
+    "type": "boolean"
+   },
+   {
+    "path": "validateRequestParameters",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateResource",
+  "output": "Resource",
+  "members": [
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "parentId",
+    "type": "string"
+   },
+   {
+    "path": "path",
+    "type": "string"
+   },
+   {
+    "path": "pathPart",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.apiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "resourceMethods{}.authorizationScopes",
+    "type": "list"
+   },
+   {
+    "path": "resourceMethods{}.authorizationScopes[]",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.authorizationType",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.authorizerId",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.cacheKeyParameters",
+    "type": "list"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.cacheKeyParameters[]",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.cacheNamespace",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.connectionId",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.connectionType",
+    "type": "enum",
+    "enum": [
+     "VPC_LINK",
+     "INTERNET"
+    ]
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.contentHandling",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.credentials",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.httpMethod",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.integrationResponses",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.integrationResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.integrationTarget",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.passthroughBehavior",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.requestParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.requestTemplates",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.requestTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.responseTransferMode",
+    "type": "enum",
+    "enum": [
+     "BUFFERED",
+     "STREAM"
+    ]
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.timeoutInMillis",
+    "type": "integer"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.tlsConfig",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.tlsConfig.insecureSkipVerification",
+    "type": "boolean"
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.type",
+    "type": "enum",
+    "enum": [
+     "HTTP",
+     "AWS",
+     "MOCK",
+     "HTTP_PROXY",
+     "AWS_PROXY"
+    ]
+   },
+   {
+    "path": "resourceMethods{}.methodIntegration.uri",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses{}",
+    "type": "structure"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses{}.responseModels",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses{}.responseParameters",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.methodResponses{}.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.operationName",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.requestModels",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.requestModels{}",
+    "type": "string"
+   },
+   {
+    "path": "resourceMethods{}.requestParameters",
+    "type": "map"
+   },
+   {
+    "path": "resourceMethods{}.requestParameters{}",
+    "type": "boolean"
+   },
+   {
+    "path": "resourceMethods{}.requestValidatorId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateRestApi",
+  "output": "RestApi",
+  "members": [
+   {
+    "path": "apiKeySource",
+    "type": "enum",
+    "enum": [
+     "HEADER",
+     "AUTHORIZER"
+    ]
+   },
+   {
+    "path": "apiStatus",
+    "type": "enum",
+    "enum": [
+     "FAILED",
+     "UPDATING",
+     "AVAILABLE",
+     "PENDING"
+    ]
+   },
+   {
+    "path": "apiStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "binaryMediaTypes",
+    "type": "list"
+   },
+   {
+    "path": "binaryMediaTypes[]",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "disableExecuteApiEndpoint",
+    "type": "boolean"
+   },
+   {
+    "path": "endpointAccessMode",
+    "type": "enum",
+    "enum": [
+     "BASIC",
+     "STRICT"
+    ]
+   },
+   {
+    "path": "endpointConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "endpointConfiguration.ipAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.types",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.types[]",
+    "type": "enum",
+    "enum": [
+     "REGIONAL",
+     "EDGE",
+     "PRIVATE"
+    ]
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds",
+    "type": "list"
+   },
+   {
+    "path": "endpointConfiguration.vpcEndpointIds[]",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "minimumCompressionSize",
+    "type": "integer"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "policy",
+    "type": "string"
+   },
+   {
+    "path": "rootResourceId",
+    "type": "string"
+   },
+   {
+    "path": "securityPolicy",
+    "type": "enum",
+    "enum": [
+     "SecurityPolicy_TLS12_PFS_2025_EDGE",
+     "SecurityPolicy_TLS12_2018_EDGE",
+     "TLS_1_0",
+     "TLS_1_2",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_2025_EDGE"
+    ]
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "version",
+    "type": "string"
+   },
+   {
+    "path": "warnings",
+    "type": "list"
+   },
+   {
+    "path": "warnings[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateStage",
+  "output": "Stage",
+  "members": [
+   {
+    "path": "accessLogSettings",
+    "type": "structure"
+   },
+   {
+    "path": "accessLogSettings.destinationArn",
+    "type": "string"
+   },
+   {
+    "path": "accessLogSettings.format",
+    "type": "string"
+   },
+   {
+    "path": "cacheClusterEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "cacheClusterSize",
+    "type": "enum",
+    "enum": [
+     "1.6",
+     "6.1",
+     "13.5",
+     "28.4",
+     "58.2",
+     "118",
+     "237",
+     "0.5"
+    ]
+   },
+   {
+    "path": "cacheClusterStatus",
+    "type": "enum",
+    "enum": [
+     "CREATE_IN_PROGRESS",
+     "AVAILABLE",
+     "DELETE_IN_PROGRESS",
+     "NOT_AVAILABLE",
+     "FLUSH_IN_PROGRESS"
+    ]
+   },
+   {
+    "path": "canarySettings",
+    "type": "structure"
+   },
+   {
+    "path": "canarySettings.deploymentId",
+    "type": "string"
+   },
+   {
+    "path": "canarySettings.percentTraffic",
+    "type": "float"
+   },
+   {
+    "path": "canarySettings.stageVariableOverrides",
+    "type": "map"
+   },
+   {
+    "path": "canarySettings.stageVariableOverrides{}",
+    "type": "string"
+   },
+   {
+    "path": "canarySettings.useStageCache",
+    "type": "boolean"
+   },
+   {
+    "path": "clientCertificateId",
+    "type": "string"
+   },
+   {
+    "path": "createdDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "deploymentId",
+    "type": "string"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "documentationVersion",
+    "type": "string"
+   },
+   {
+    "path": "lastUpdatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "methodSettings",
+    "type": "map"
+   },
+   {
+    "path": "methodSettings{}",
+    "type": "structure"
+   },
+   {
+    "path": "methodSettings{}.cacheDataEncrypted",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.cacheTtlInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "methodSettings{}.cachingEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.dataTraceEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.loggingLevel",
+    "type": "string"
+   },
+   {
+    "path": "methodSettings{}.metricsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.requireAuthorizationForCacheControl",
+    "type": "boolean"
+   },
+   {
+    "path": "methodSettings{}.throttlingBurstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "methodSettings{}.throttlingRateLimit",
+    "type": "float"
+   },
+   {
+    "path": "methodSettings{}.unauthorizedCacheControlHeaderStrategy",
+    "type": "enum",
+    "enum": [
+     "SUCCEED_WITH_RESPONSE_HEADER",
+     "SUCCEED_WITHOUT_RESPONSE_HEADER",
+     "FAIL_WITH_403"
+    ]
+   },
+   {
+    "path": "stageName",
+    "type": "string"
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "tracingEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "variables",
+    "type": "map"
+   },
+   {
+    "path": "variables{}",
+    "type": "string"
+   },
+   {
+    "path": "webAclArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateUsage",
+  "output": "Usage",
+  "members": [
+   {
+    "path": "endDate",
+    "type": "string"
+   },
+   {
+    "path": "items",
+    "type": "map"
+   },
+   {
+    "path": "items{}",
+    "type": "list"
+   },
+   {
+    "path": "items{}[]",
+    "type": "list"
+   },
+   {
+    "path": "items{}[][]",
+    "type": "integer"
+   },
+   {
+    "path": "position",
+    "type": "string"
+   },
+   {
+    "path": "startDate",
+    "type": "string"
+   },
+   {
+    "path": "usagePlanId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateUsagePlan",
+  "output": "UsagePlan",
+  "members": [
+   {
+    "path": "apiStages",
+    "type": "list"
+   },
+   {
+    "path": "apiStages[]",
+    "type": "structure"
+   },
+   {
+    "path": "apiStages[].apiId",
+    "type": "string"
+   },
+   {
+    "path": "apiStages[].stage",
+    "type": "string"
+   },
+   {
+    "path": "apiStages[].throttle",
+    "type": "map"
+   },
+   {
+    "path": "apiStages[].throttle{}",
+    "type": "structure"
+   },
+   {
+    "path": "apiStages[].throttle{}.burstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "apiStages[].throttle{}.rateLimit",
+    "type": "float"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "productCode",
+    "type": "string"
+   },
+   {
+    "path": "quota",
+    "type": "structure"
+   },
+   {
+    "path": "quota.limit",
+    "type": "integer"
+   },
+   {
+    "path": "quota.offset",
+    "type": "integer"
+   },
+   {
+    "path": "quota.period",
+    "type": "enum",
+    "enum": [
+     "WEEK",
+     "MONTH",
+     "DAY"
+    ]
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "throttle",
+    "type": "structure"
+   },
+   {
+    "path": "throttle.burstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "throttle.rateLimit",
+    "type": "float"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateVpcLink",
+  "output": "VpcLink",
+  "members": [
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "id",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "status",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "PENDING",
+     "DELETING",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "statusMessage",
+    "type": "string"
+   },
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   },
+   {
+    "path": "targetArns",
+    "type": "list"
+   },
+   {
+    "path": "targetArns[]",
+    "type": "string"
+   }
+  ]
+ }
+]

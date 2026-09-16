@@ -1,0 +1,2382 @@
+[
+ {
+  "operation": "CancelReplay",
+  "output": "CancelReplayResponse",
+  "members": [
+   {
+    "path": "ReplayArn",
+    "type": "string"
+   },
+   {
+    "path": "State",
+    "type": "enum",
+    "enum": [
+     "STARTING",
+     "RUNNING",
+     "CANCELLING",
+     "COMPLETED",
+     "CANCELLED",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "StateReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateApiDestination",
+  "output": "CreateApiDestinationResponse",
+  "members": [
+   {
+    "path": "ApiDestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "ApiDestinationState",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "INACTIVE"
+    ]
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastModifiedTime",
+    "type": "timestamp"
+   }
+  ]
+ },
+ {
+  "operation": "CreateArchive",
+  "output": "CreateArchiveResponse",
+  "members": [
+   {
+    "path": "ArchiveArn",
+    "type": "string"
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "State",
+    "type": "enum",
+    "enum": [
+     "UPDATING",
+     "CREATE_FAILED",
+     "UPDATE_FAILED",
+     "ENABLED",
+     "DISABLED",
+     "CREATING"
+    ]
+   },
+   {
+    "path": "StateReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateConnection",
+  "output": "CreateConnectionResponse",
+  "members": [
+   {
+    "path": "ConnectionArn",
+    "type": "string"
+   },
+   {
+    "path": "ConnectionState",
+    "type": "enum",
+    "enum": [
+     "DELETING",
+     "AUTHORIZING",
+     "CREATING",
+     "AUTHORIZED",
+     "DEAUTHORIZED",
+     "DEAUTHORIZING",
+     "ACTIVE",
+     "FAILED_CONNECTIVITY",
+     "UPDATING"
+    ]
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastModifiedTime",
+    "type": "timestamp"
+   }
+  ]
+ },
+ {
+  "operation": "CreateEndpoint",
+  "output": "CreateEndpointResponse",
+  "members": [
+   {
+    "path": "Arn",
+    "type": "string"
+   },
+   {
+    "path": "EventBuses",
+    "type": "list"
+   },
+   {
+    "path": "EventBuses[]",
+    "type": "structure"
+   },
+   {
+    "path": "EventBuses[].EventBusArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "ReplicationConfig",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfig.State",
+    "type": "enum",
+    "enum": [
+     "DISABLED",
+     "ENABLED"
+    ]
+   },
+   {
+    "path": "RoleArn",
+    "type": "string"
+   },
+   {
+    "path": "RoutingConfig",
+    "type": "structure"
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig.Primary",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig.Primary.HealthCheck",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig.Secondary",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig.Secondary.Route",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "State",
+    "type": "enum",
+    "enum": [
+     "CREATING",
+     "UPDATING",
+     "DELETING",
+     "CREATE_FAILED",
+     "UPDATE_FAILED",
+     "DELETE_FAILED",
+     "ACTIVE"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "CreateEventBus",
+  "output": "CreateEventBusResponse",
+  "members": [
+   {
+    "path": "DeadLetterConfig",
+    "type": "structure"
+   },
+   {
+    "path": "DeadLetterConfig.Arn",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "EventBusArn",
+    "type": "string"
+   },
+   {
+    "path": "KmsKeyIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "LogConfig",
+    "type": "structure"
+   },
+   {
+    "path": "LogConfig.IncludeDetail",
+    "type": "enum",
+    "enum": [
+     "NONE",
+     "FULL"
+    ]
+   },
+   {
+    "path": "LogConfig.Level",
+    "type": "enum",
+    "enum": [
+     "OFF",
+     "ERROR",
+     "INFO",
+     "TRACE"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "CreatePartnerEventSource",
+  "output": "CreatePartnerEventSourceResponse",
+  "members": [
+   {
+    "path": "EventSourceArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DeauthorizeConnection",
+  "output": "DeauthorizeConnectionResponse",
+  "members": [
+   {
+    "path": "ConnectionArn",
+    "type": "string"
+   },
+   {
+    "path": "ConnectionState",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "FAILED_CONNECTIVITY",
+     "UPDATING",
+     "DELETING",
+     "AUTHORIZING",
+     "CREATING",
+     "AUTHORIZED",
+     "DEAUTHORIZED",
+     "DEAUTHORIZING"
+    ]
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastAuthorizedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastModifiedTime",
+    "type": "timestamp"
+   }
+  ]
+ },
+ {
+  "operation": "DeleteConnection",
+  "output": "DeleteConnectionResponse",
+  "members": [
+   {
+    "path": "ConnectionArn",
+    "type": "string"
+   },
+   {
+    "path": "ConnectionState",
+    "type": "enum",
+    "enum": [
+     "UPDATING",
+     "DELETING",
+     "AUTHORIZING",
+     "CREATING",
+     "AUTHORIZED",
+     "DEAUTHORIZED",
+     "DEAUTHORIZING",
+     "ACTIVE",
+     "FAILED_CONNECTIVITY"
+    ]
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastAuthorizedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastModifiedTime",
+    "type": "timestamp"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeApiDestination",
+  "output": "DescribeApiDestinationResponse",
+  "members": [
+   {
+    "path": "ApiDestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "ApiDestinationState",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "INACTIVE"
+    ]
+   },
+   {
+    "path": "ConnectionArn",
+    "type": "string"
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "HttpMethod",
+    "type": "enum",
+    "enum": [
+     "POST",
+     "GET",
+     "HEAD",
+     "OPTIONS",
+     "PUT",
+     "PATCH",
+     "DELETE"
+    ]
+   },
+   {
+    "path": "InvocationEndpoint",
+    "type": "string"
+   },
+   {
+    "path": "InvocationRateLimitPerSecond",
+    "type": "integer"
+   },
+   {
+    "path": "LastModifiedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeArchive",
+  "output": "DescribeArchiveResponse",
+  "members": [
+   {
+    "path": "ArchiveArn",
+    "type": "string"
+   },
+   {
+    "path": "ArchiveName",
+    "type": "string"
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "EventCount",
+    "type": "integer"
+   },
+   {
+    "path": "EventPattern",
+    "type": "string"
+   },
+   {
+    "path": "EventSourceArn",
+    "type": "string"
+   },
+   {
+    "path": "KmsKeyIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "RetentionDays",
+    "type": "integer"
+   },
+   {
+    "path": "SizeBytes",
+    "type": "integer"
+   },
+   {
+    "path": "State",
+    "type": "enum",
+    "enum": [
+     "UPDATING",
+     "CREATE_FAILED",
+     "UPDATE_FAILED",
+     "ENABLED",
+     "DISABLED",
+     "CREATING"
+    ]
+   },
+   {
+    "path": "StateReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeConnection",
+  "output": "DescribeConnectionResponse",
+  "members": [
+   {
+    "path": "AuthParameters",
+    "type": "structure"
+   },
+   {
+    "path": "AuthParameters.ApiKeyAuthParameters",
+    "type": "structure"
+   },
+   {
+    "path": "AuthParameters.ApiKeyAuthParameters.ApiKeyName",
+    "type": "string"
+   },
+   {
+    "path": "AuthParameters.BasicAuthParameters",
+    "type": "structure"
+   },
+   {
+    "path": "AuthParameters.BasicAuthParameters.Username",
+    "type": "string"
+   },
+   {
+    "path": "AuthParameters.ConnectivityParameters",
+    "type": "structure"
+   },
+   {
+    "path": "AuthParameters.ConnectivityParameters.ResourceParameters",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "AuthParameters.ConnectivityParameters.ResourceParameters.ResourceAssociationArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "AuthParameters.ConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters",
+    "type": "structure"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.BodyParameters",
+    "type": "list"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.BodyParameters[]",
+    "type": "structure"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.BodyParameters[].IsValueSecret",
+    "type": "boolean"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.BodyParameters[].Key",
+    "type": "string"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.BodyParameters[].Value",
+    "type": "string"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.HeaderParameters",
+    "type": "list"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.HeaderParameters[]",
+    "type": "structure"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.HeaderParameters[].IsValueSecret",
+    "type": "boolean"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.HeaderParameters[].Key",
+    "type": "string"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.HeaderParameters[].Value",
+    "type": "string"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.QueryStringParameters",
+    "type": "list"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.QueryStringParameters[]",
+    "type": "structure"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.QueryStringParameters[].IsValueSecret",
+    "type": "boolean"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.QueryStringParameters[].Key",
+    "type": "string"
+   },
+   {
+    "path": "AuthParameters.InvocationHttpParameters.QueryStringParameters[].Value",
+    "type": "string"
+   },
+   {
+    "path": "AuthParameters.OAuthParameters",
+    "type": "structure"
+   },
+   {
+    "path": "AuthParameters.OAuthParameters.AuthorizationEndpoint",
+    "type": "string"
+   },
+   {
+    "path": "AuthParameters.OAuthParameters.ClientParameters",
+    "type": "structure"
+   },
+   {
+    "path": "AuthParameters.OAuthParameters.ClientParameters.ClientID",
+    "type": "string"
+   },
+   {
+    "path": "AuthParameters.OAuthParameters.HttpMethod",
+    "type": "enum",
+    "enum": [
+     "GET",
+     "POST",
+     "PUT"
+    ]
+   },
+   {
+    "path": "AuthParameters.OAuthParameters.OAuthHttpParameters",
+    "type": "structure"
+   },
+   {
+    "path": "AuthParameters.OAuthParameters.OAuthHttpParameters.BodyParameters",
+    "type": "list"
+   },
+   {
+    "path": "AuthParameters.OAuthParameters.OAuthHttpParameters.BodyParameters[]",
+    "type": "structure"
+   },
+   {
+    "path": "AuthParameters.OAuthParameters.OAuthHttpParameters.HeaderParameters",
+    "type": "list"
+   },
+   {
+    "path": "AuthParameters.OAuthParameters.OAuthHttpParameters.HeaderParameters[]",
+    "type": "structure"
+   },
+   {
+    "path": "AuthParameters.OAuthParameters.OAuthHttpParameters.QueryStringParameters",
+    "type": "list"
+   },
+   {
+    "path": "AuthParameters.OAuthParameters.OAuthHttpParameters.QueryStringParameters[]",
+    "type": "structure"
+   },
+   {
+    "path": "AuthorizationType",
+    "type": "enum",
+    "enum": [
+     "API_KEY",
+     "BASIC",
+     "OAUTH_CLIENT_CREDENTIALS"
+    ]
+   },
+   {
+    "path": "ConnectionArn",
+    "type": "string"
+   },
+   {
+    "path": "ConnectionState",
+    "type": "enum",
+    "enum": [
+     "UPDATING",
+     "DELETING",
+     "AUTHORIZING",
+     "CREATING",
+     "AUTHORIZED",
+     "DEAUTHORIZED",
+     "DEAUTHORIZING",
+     "ACTIVE",
+     "FAILED_CONNECTIVITY"
+    ]
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "InvocationConnectivityParameters",
+    "type": "structure"
+   },
+   {
+    "path": "InvocationConnectivityParameters.ResourceParameters",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "InvocationConnectivityParameters.ResourceParameters.ResourceAssociationArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "InvocationConnectivityParameters.ResourceParameters.ResourceConfigurationArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "KmsKeyIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "LastAuthorizedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastModifiedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "SecretArn",
+    "type": "string"
+   },
+   {
+    "path": "StateReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeEndpoint",
+  "output": "DescribeEndpointResponse",
+  "members": [
+   {
+    "path": "Arn",
+    "type": "string"
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "EndpointId",
+    "type": "string"
+   },
+   {
+    "path": "EndpointUrl",
+    "type": "string"
+   },
+   {
+    "path": "EventBuses",
+    "type": "list"
+   },
+   {
+    "path": "EventBuses[]",
+    "type": "structure"
+   },
+   {
+    "path": "EventBuses[].EventBusArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "LastModifiedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "ReplicationConfig",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfig.State",
+    "type": "enum",
+    "enum": [
+     "DISABLED",
+     "ENABLED"
+    ]
+   },
+   {
+    "path": "RoleArn",
+    "type": "string"
+   },
+   {
+    "path": "RoutingConfig",
+    "type": "structure"
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig.Primary",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig.Primary.HealthCheck",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig.Secondary",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig.Secondary.Route",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "State",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "CREATING",
+     "UPDATING",
+     "DELETING",
+     "CREATE_FAILED",
+     "UPDATE_FAILED",
+     "DELETE_FAILED"
+    ]
+   },
+   {
+    "path": "StateReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeEventBus",
+  "output": "DescribeEventBusResponse",
+  "members": [
+   {
+    "path": "Arn",
+    "type": "string"
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "DeadLetterConfig",
+    "type": "structure"
+   },
+   {
+    "path": "DeadLetterConfig.Arn",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "KmsKeyIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "LastModifiedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "LogConfig",
+    "type": "structure"
+   },
+   {
+    "path": "LogConfig.IncludeDetail",
+    "type": "enum",
+    "enum": [
+     "NONE",
+     "FULL"
+    ]
+   },
+   {
+    "path": "LogConfig.Level",
+    "type": "enum",
+    "enum": [
+     "OFF",
+     "ERROR",
+     "INFO",
+     "TRACE"
+    ]
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "Policy",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeEventSource",
+  "output": "DescribeEventSourceResponse",
+  "members": [
+   {
+    "path": "Arn",
+    "type": "string"
+   },
+   {
+    "path": "CreatedBy",
+    "type": "string"
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "ExpirationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "State",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "DELETED",
+     "PENDING"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "DescribePartnerEventSource",
+  "output": "DescribePartnerEventSourceResponse",
+  "members": [
+   {
+    "path": "Arn",
+    "type": "string"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeReplay",
+  "output": "DescribeReplayResponse",
+  "members": [
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "Destination",
+    "type": "structure"
+   },
+   {
+    "path": "Destination.Arn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Destination.FilterArns",
+    "type": "list"
+   },
+   {
+    "path": "Destination.FilterArns[]",
+    "type": "string"
+   },
+   {
+    "path": "EventEndTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "EventLastReplayedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "EventSourceArn",
+    "type": "string"
+   },
+   {
+    "path": "EventStartTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "ReplayArn",
+    "type": "string"
+   },
+   {
+    "path": "ReplayEndTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "ReplayName",
+    "type": "string"
+   },
+   {
+    "path": "ReplayStartTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "State",
+    "type": "enum",
+    "enum": [
+     "COMPLETED",
+     "CANCELLED",
+     "FAILED",
+     "STARTING",
+     "RUNNING",
+     "CANCELLING"
+    ]
+   },
+   {
+    "path": "StateReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeRule",
+  "output": "DescribeRuleResponse",
+  "members": [
+   {
+    "path": "Arn",
+    "type": "string"
+   },
+   {
+    "path": "CreatedBy",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "EventBusName",
+    "type": "string"
+   },
+   {
+    "path": "EventPattern",
+    "type": "string"
+   },
+   {
+    "path": "ManagedBy",
+    "type": "string"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "RoleArn",
+    "type": "string"
+   },
+   {
+    "path": "ScheduleExpression",
+    "type": "string"
+   },
+   {
+    "path": "State",
+    "type": "enum",
+    "enum": [
+     "ENABLED",
+     "DISABLED",
+     "ENABLED_WITH_ALL_CLOUDTRAIL_MANAGEMENT_EVENTS"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "ListApiDestinations",
+  "output": "ListApiDestinationsResponse",
+  "members": [
+   {
+    "path": "ApiDestinations",
+    "type": "list"
+   },
+   {
+    "path": "ApiDestinations[]",
+    "type": "structure"
+   },
+   {
+    "path": "ApiDestinations[].ApiDestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "ApiDestinations[].ApiDestinationState",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "INACTIVE"
+    ]
+   },
+   {
+    "path": "ApiDestinations[].ConnectionArn",
+    "type": "string"
+   },
+   {
+    "path": "ApiDestinations[].CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "ApiDestinations[].HttpMethod",
+    "type": "enum",
+    "enum": [
+     "DELETE",
+     "POST",
+     "GET",
+     "HEAD",
+     "OPTIONS",
+     "PUT",
+     "PATCH"
+    ]
+   },
+   {
+    "path": "ApiDestinations[].InvocationEndpoint",
+    "type": "string"
+   },
+   {
+    "path": "ApiDestinations[].InvocationRateLimitPerSecond",
+    "type": "integer"
+   },
+   {
+    "path": "ApiDestinations[].LastModifiedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "ApiDestinations[].Name",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListArchives",
+  "output": "ListArchivesResponse",
+  "members": [
+   {
+    "path": "Archives",
+    "type": "list"
+   },
+   {
+    "path": "Archives[]",
+    "type": "structure"
+   },
+   {
+    "path": "Archives[].ArchiveName",
+    "type": "string"
+   },
+   {
+    "path": "Archives[].CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Archives[].EventCount",
+    "type": "integer"
+   },
+   {
+    "path": "Archives[].EventSourceArn",
+    "type": "string"
+   },
+   {
+    "path": "Archives[].RetentionDays",
+    "type": "integer"
+   },
+   {
+    "path": "Archives[].SizeBytes",
+    "type": "integer"
+   },
+   {
+    "path": "Archives[].State",
+    "type": "enum",
+    "enum": [
+     "ENABLED",
+     "DISABLED",
+     "CREATING",
+     "UPDATING",
+     "CREATE_FAILED",
+     "UPDATE_FAILED"
+    ]
+   },
+   {
+    "path": "Archives[].StateReason",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListConnections",
+  "output": "ListConnectionsResponse",
+  "members": [
+   {
+    "path": "Connections",
+    "type": "list"
+   },
+   {
+    "path": "Connections[]",
+    "type": "structure"
+   },
+   {
+    "path": "Connections[].AuthorizationType",
+    "type": "enum",
+    "enum": [
+     "BASIC",
+     "OAUTH_CLIENT_CREDENTIALS",
+     "API_KEY"
+    ]
+   },
+   {
+    "path": "Connections[].ConnectionArn",
+    "type": "string"
+   },
+   {
+    "path": "Connections[].ConnectionState",
+    "type": "enum",
+    "enum": [
+     "DEAUTHORIZED",
+     "DEAUTHORIZING",
+     "ACTIVE",
+     "FAILED_CONNECTIVITY",
+     "UPDATING",
+     "DELETING",
+     "AUTHORIZING",
+     "CREATING",
+     "AUTHORIZED"
+    ]
+   },
+   {
+    "path": "Connections[].CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Connections[].LastAuthorizedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Connections[].LastModifiedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Connections[].Name",
+    "type": "string"
+   },
+   {
+    "path": "Connections[].StateReason",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListEndpoints",
+  "output": "ListEndpointsResponse",
+  "members": [
+   {
+    "path": "Endpoints",
+    "type": "list"
+   },
+   {
+    "path": "Endpoints[]",
+    "type": "structure"
+   },
+   {
+    "path": "Endpoints[].Arn",
+    "type": "string"
+   },
+   {
+    "path": "Endpoints[].CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Endpoints[].Description",
+    "type": "string"
+   },
+   {
+    "path": "Endpoints[].EndpointId",
+    "type": "string"
+   },
+   {
+    "path": "Endpoints[].EndpointUrl",
+    "type": "string"
+   },
+   {
+    "path": "Endpoints[].EventBuses",
+    "type": "list"
+   },
+   {
+    "path": "Endpoints[].EventBuses[]",
+    "type": "structure"
+   },
+   {
+    "path": "Endpoints[].EventBuses[].EventBusArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Endpoints[].LastModifiedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Endpoints[].Name",
+    "type": "string"
+   },
+   {
+    "path": "Endpoints[].ReplicationConfig",
+    "type": "structure"
+   },
+   {
+    "path": "Endpoints[].ReplicationConfig.State",
+    "type": "enum",
+    "enum": [
+     "ENABLED",
+     "DISABLED"
+    ]
+   },
+   {
+    "path": "Endpoints[].RoleArn",
+    "type": "string"
+   },
+   {
+    "path": "Endpoints[].RoutingConfig",
+    "type": "structure"
+   },
+   {
+    "path": "Endpoints[].RoutingConfig.FailoverConfig",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Endpoints[].RoutingConfig.FailoverConfig.Primary",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Endpoints[].RoutingConfig.FailoverConfig.Secondary",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Endpoints[].State",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "CREATING",
+     "UPDATING",
+     "DELETING",
+     "CREATE_FAILED",
+     "UPDATE_FAILED",
+     "DELETE_FAILED"
+    ]
+   },
+   {
+    "path": "Endpoints[].StateReason",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListEventBuses",
+  "output": "ListEventBusesResponse",
+  "members": [
+   {
+    "path": "EventBuses",
+    "type": "list"
+   },
+   {
+    "path": "EventBuses[]",
+    "type": "structure"
+   },
+   {
+    "path": "EventBuses[].Arn",
+    "type": "string"
+   },
+   {
+    "path": "EventBuses[].CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "EventBuses[].Description",
+    "type": "string"
+   },
+   {
+    "path": "EventBuses[].LastModifiedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "EventBuses[].Name",
+    "type": "string"
+   },
+   {
+    "path": "EventBuses[].Policy",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListEventSources",
+  "output": "ListEventSourcesResponse",
+  "members": [
+   {
+    "path": "EventSources",
+    "type": "list"
+   },
+   {
+    "path": "EventSources[]",
+    "type": "structure"
+   },
+   {
+    "path": "EventSources[].Arn",
+    "type": "string"
+   },
+   {
+    "path": "EventSources[].CreatedBy",
+    "type": "string"
+   },
+   {
+    "path": "EventSources[].CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "EventSources[].ExpirationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "EventSources[].Name",
+    "type": "string"
+   },
+   {
+    "path": "EventSources[].State",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "ACTIVE",
+     "DELETED"
+    ]
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListPartnerEventSourceAccounts",
+  "output": "ListPartnerEventSourceAccountsResponse",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "PartnerEventSourceAccounts",
+    "type": "list"
+   },
+   {
+    "path": "PartnerEventSourceAccounts[]",
+    "type": "structure"
+   },
+   {
+    "path": "PartnerEventSourceAccounts[].Account",
+    "type": "string"
+   },
+   {
+    "path": "PartnerEventSourceAccounts[].CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "PartnerEventSourceAccounts[].ExpirationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "PartnerEventSourceAccounts[].State",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "DELETED",
+     "PENDING"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "ListPartnerEventSources",
+  "output": "ListPartnerEventSourcesResponse",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "PartnerEventSources",
+    "type": "list"
+   },
+   {
+    "path": "PartnerEventSources[]",
+    "type": "structure"
+   },
+   {
+    "path": "PartnerEventSources[].Arn",
+    "type": "string"
+   },
+   {
+    "path": "PartnerEventSources[].Name",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListReplays",
+  "output": "ListReplaysResponse",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Replays",
+    "type": "list"
+   },
+   {
+    "path": "Replays[]",
+    "type": "structure"
+   },
+   {
+    "path": "Replays[].EventEndTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Replays[].EventLastReplayedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Replays[].EventSourceArn",
+    "type": "string"
+   },
+   {
+    "path": "Replays[].EventStartTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Replays[].ReplayEndTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Replays[].ReplayName",
+    "type": "string"
+   },
+   {
+    "path": "Replays[].ReplayStartTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Replays[].State",
+    "type": "enum",
+    "enum": [
+     "STARTING",
+     "RUNNING",
+     "CANCELLING",
+     "COMPLETED",
+     "CANCELLED",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "Replays[].StateReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListRuleNamesByTarget",
+  "output": "ListRuleNamesByTargetResponse",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "RuleNames",
+    "type": "list"
+   },
+   {
+    "path": "RuleNames[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListRules",
+  "output": "ListRulesResponse",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Rules",
+    "type": "list"
+   },
+   {
+    "path": "Rules[]",
+    "type": "structure"
+   },
+   {
+    "path": "Rules[].Arn",
+    "type": "string"
+   },
+   {
+    "path": "Rules[].Description",
+    "type": "string"
+   },
+   {
+    "path": "Rules[].EventBusName",
+    "type": "string"
+   },
+   {
+    "path": "Rules[].EventPattern",
+    "type": "string"
+   },
+   {
+    "path": "Rules[].ManagedBy",
+    "type": "string"
+   },
+   {
+    "path": "Rules[].Name",
+    "type": "string"
+   },
+   {
+    "path": "Rules[].RoleArn",
+    "type": "string"
+   },
+   {
+    "path": "Rules[].ScheduleExpression",
+    "type": "string"
+   },
+   {
+    "path": "Rules[].State",
+    "type": "enum",
+    "enum": [
+     "ENABLED_WITH_ALL_CLOUDTRAIL_MANAGEMENT_EVENTS",
+     "ENABLED",
+     "DISABLED"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "ListTagsForResource",
+  "output": "ListTagsForResourceResponse",
+  "members": [
+   {
+    "path": "Tags",
+    "type": "list"
+   },
+   {
+    "path": "Tags[]",
+    "type": "structure"
+   },
+   {
+    "path": "Tags[].Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Tags[].Value",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "ListTargetsByRule",
+  "output": "ListTargetsByRuleResponse",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Targets",
+    "type": "list"
+   },
+   {
+    "path": "Targets[]",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].AppSyncParameters",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].AppSyncParameters.GraphQLOperation",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].Arn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Targets[].BatchParameters",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].BatchParameters.ArrayProperties",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].BatchParameters.ArrayProperties.Size",
+    "type": "integer"
+   },
+   {
+    "path": "Targets[].BatchParameters.JobDefinition",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Targets[].BatchParameters.JobName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Targets[].BatchParameters.RetryStrategy",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].BatchParameters.RetryStrategy.Attempts",
+    "type": "integer"
+   },
+   {
+    "path": "Targets[].DeadLetterConfig",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].DeadLetterConfig.Arn",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].EcsParameters",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].EcsParameters.CapacityProviderStrategy",
+    "type": "list"
+   },
+   {
+    "path": "Targets[].EcsParameters.CapacityProviderStrategy[]",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].EcsParameters.EnableECSManagedTags",
+    "type": "boolean"
+   },
+   {
+    "path": "Targets[].EcsParameters.EnableExecuteCommand",
+    "type": "boolean"
+   },
+   {
+    "path": "Targets[].EcsParameters.Group",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].EcsParameters.LaunchType",
+    "type": "enum",
+    "enum": [
+     "EC2",
+     "FARGATE",
+     "EXTERNAL"
+    ]
+   },
+   {
+    "path": "Targets[].EcsParameters.NetworkConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].EcsParameters.NetworkConfiguration.awsvpcConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].EcsParameters.PlacementConstraints",
+    "type": "list"
+   },
+   {
+    "path": "Targets[].EcsParameters.PlacementConstraints[]",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].EcsParameters.PlacementStrategy",
+    "type": "list"
+   },
+   {
+    "path": "Targets[].EcsParameters.PlacementStrategy[]",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].EcsParameters.PlatformVersion",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].EcsParameters.PropagateTags",
+    "type": "enum",
+    "enum": [
+     "TASK_DEFINITION"
+    ]
+   },
+   {
+    "path": "Targets[].EcsParameters.ReferenceId",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].EcsParameters.Tags",
+    "type": "list"
+   },
+   {
+    "path": "Targets[].EcsParameters.Tags[]",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].EcsParameters.TaskCount",
+    "type": "integer"
+   },
+   {
+    "path": "Targets[].EcsParameters.TaskDefinitionArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Targets[].HttpParameters",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].HttpParameters.HeaderParameters",
+    "type": "map"
+   },
+   {
+    "path": "Targets[].HttpParameters.HeaderParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].HttpParameters.PathParameterValues",
+    "type": "list"
+   },
+   {
+    "path": "Targets[].HttpParameters.PathParameterValues[]",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].HttpParameters.QueryStringParameters",
+    "type": "map"
+   },
+   {
+    "path": "Targets[].HttpParameters.QueryStringParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Targets[].Input",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].InputPath",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].InputTransformer",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].InputTransformer.InputPathsMap",
+    "type": "map"
+   },
+   {
+    "path": "Targets[].InputTransformer.InputPathsMap{}",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].InputTransformer.InputTemplate",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Targets[].KinesisParameters",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].KinesisParameters.PartitionKeyPath",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Targets[].RedshiftDataParameters",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].RedshiftDataParameters.Database",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Targets[].RedshiftDataParameters.DbUser",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].RedshiftDataParameters.SecretManagerArn",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].RedshiftDataParameters.Sql",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].RedshiftDataParameters.Sqls",
+    "type": "list"
+   },
+   {
+    "path": "Targets[].RedshiftDataParameters.Sqls[]",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].RedshiftDataParameters.StatementName",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].RedshiftDataParameters.WithEvent",
+    "type": "boolean"
+   },
+   {
+    "path": "Targets[].RetryPolicy",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].RetryPolicy.MaximumEventAgeInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "Targets[].RetryPolicy.MaximumRetryAttempts",
+    "type": "integer"
+   },
+   {
+    "path": "Targets[].RoleArn",
+    "type": "string"
+   },
+   {
+    "path": "Targets[].RunCommandParameters",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].RunCommandParameters.RunCommandTargets",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Targets[].RunCommandParameters.RunCommandTargets[]",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].SageMakerPipelineParameters",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].SageMakerPipelineParameters.PipelineParameterList",
+    "type": "list"
+   },
+   {
+    "path": "Targets[].SageMakerPipelineParameters.PipelineParameterList[]",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].SqsParameters",
+    "type": "structure"
+   },
+   {
+    "path": "Targets[].SqsParameters.MessageGroupId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutEvents",
+  "output": "PutEventsResponse",
+  "members": [
+   {
+    "path": "Entries",
+    "type": "list"
+   },
+   {
+    "path": "Entries[]",
+    "type": "structure"
+   },
+   {
+    "path": "Entries[].ErrorCode",
+    "type": "string"
+   },
+   {
+    "path": "Entries[].ErrorMessage",
+    "type": "string"
+   },
+   {
+    "path": "Entries[].EventId",
+    "type": "string"
+   },
+   {
+    "path": "FailedEntryCount",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "PutPartnerEvents",
+  "output": "PutPartnerEventsResponse",
+  "members": [
+   {
+    "path": "Entries",
+    "type": "list"
+   },
+   {
+    "path": "Entries[]",
+    "type": "structure"
+   },
+   {
+    "path": "Entries[].ErrorCode",
+    "type": "string"
+   },
+   {
+    "path": "Entries[].ErrorMessage",
+    "type": "string"
+   },
+   {
+    "path": "Entries[].EventId",
+    "type": "string"
+   },
+   {
+    "path": "FailedEntryCount",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "PutRule",
+  "output": "PutRuleResponse",
+  "members": [
+   {
+    "path": "RuleArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutTargets",
+  "output": "PutTargetsResponse",
+  "members": [
+   {
+    "path": "FailedEntries",
+    "type": "list"
+   },
+   {
+    "path": "FailedEntries[]",
+    "type": "structure"
+   },
+   {
+    "path": "FailedEntries[].ErrorCode",
+    "type": "string"
+   },
+   {
+    "path": "FailedEntries[].ErrorMessage",
+    "type": "string"
+   },
+   {
+    "path": "FailedEntries[].TargetId",
+    "type": "string"
+   },
+   {
+    "path": "FailedEntryCount",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "RemoveTargets",
+  "output": "RemoveTargetsResponse",
+  "members": [
+   {
+    "path": "FailedEntries",
+    "type": "list"
+   },
+   {
+    "path": "FailedEntries[]",
+    "type": "structure"
+   },
+   {
+    "path": "FailedEntries[].ErrorCode",
+    "type": "string"
+   },
+   {
+    "path": "FailedEntries[].ErrorMessage",
+    "type": "string"
+   },
+   {
+    "path": "FailedEntries[].TargetId",
+    "type": "string"
+   },
+   {
+    "path": "FailedEntryCount",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "StartReplay",
+  "output": "StartReplayResponse",
+  "members": [
+   {
+    "path": "ReplayArn",
+    "type": "string"
+   },
+   {
+    "path": "ReplayStartTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "State",
+    "type": "enum",
+    "enum": [
+     "RUNNING",
+     "CANCELLING",
+     "COMPLETED",
+     "CANCELLED",
+     "FAILED",
+     "STARTING"
+    ]
+   },
+   {
+    "path": "StateReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "TestEventPattern",
+  "output": "TestEventPatternResponse",
+  "members": [
+   {
+    "path": "Result",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateApiDestination",
+  "output": "UpdateApiDestinationResponse",
+  "members": [
+   {
+    "path": "ApiDestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "ApiDestinationState",
+    "type": "enum",
+    "enum": [
+     "INACTIVE",
+     "ACTIVE"
+    ]
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastModifiedTime",
+    "type": "timestamp"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateArchive",
+  "output": "UpdateArchiveResponse",
+  "members": [
+   {
+    "path": "ArchiveArn",
+    "type": "string"
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "State",
+    "type": "enum",
+    "enum": [
+     "CREATING",
+     "UPDATING",
+     "CREATE_FAILED",
+     "UPDATE_FAILED",
+     "ENABLED",
+     "DISABLED"
+    ]
+   },
+   {
+    "path": "StateReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateConnection",
+  "output": "UpdateConnectionResponse",
+  "members": [
+   {
+    "path": "ConnectionArn",
+    "type": "string"
+   },
+   {
+    "path": "ConnectionState",
+    "type": "enum",
+    "enum": [
+     "FAILED_CONNECTIVITY",
+     "UPDATING",
+     "DELETING",
+     "AUTHORIZING",
+     "CREATING",
+     "AUTHORIZED",
+     "DEAUTHORIZED",
+     "DEAUTHORIZING",
+     "ACTIVE"
+    ]
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastAuthorizedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastModifiedTime",
+    "type": "timestamp"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateEndpoint",
+  "output": "UpdateEndpointResponse",
+  "members": [
+   {
+    "path": "Arn",
+    "type": "string"
+   },
+   {
+    "path": "EndpointId",
+    "type": "string"
+   },
+   {
+    "path": "EndpointUrl",
+    "type": "string"
+   },
+   {
+    "path": "EventBuses",
+    "type": "list"
+   },
+   {
+    "path": "EventBuses[]",
+    "type": "structure"
+   },
+   {
+    "path": "EventBuses[].EventBusArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "ReplicationConfig",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfig.State",
+    "type": "enum",
+    "enum": [
+     "ENABLED",
+     "DISABLED"
+    ]
+   },
+   {
+    "path": "RoleArn",
+    "type": "string"
+   },
+   {
+    "path": "RoutingConfig",
+    "type": "structure"
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig.Primary",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig.Primary.HealthCheck",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig.Secondary",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "RoutingConfig.FailoverConfig.Secondary.Route",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "State",
+    "type": "enum",
+    "enum": [
+     "CREATE_FAILED",
+     "UPDATE_FAILED",
+     "DELETE_FAILED",
+     "ACTIVE",
+     "CREATING",
+     "UPDATING",
+     "DELETING"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "UpdateEventBus",
+  "output": "UpdateEventBusResponse",
+  "members": [
+   {
+    "path": "Arn",
+    "type": "string"
+   },
+   {
+    "path": "DeadLetterConfig",
+    "type": "structure"
+   },
+   {
+    "path": "DeadLetterConfig.Arn",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "KmsKeyIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "LogConfig",
+    "type": "structure"
+   },
+   {
+    "path": "LogConfig.IncludeDetail",
+    "type": "enum",
+    "enum": [
+     "NONE",
+     "FULL"
+    ]
+   },
+   {
+    "path": "LogConfig.Level",
+    "type": "enum",
+    "enum": [
+     "OFF",
+     "ERROR",
+     "INFO",
+     "TRACE"
+    ]
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   }
+  ]
+ }
+]

@@ -109,6 +109,13 @@ func TestNoFaultsReportsEveryFault(t *testing.T) {
 	})
 }
 
-type stubFaulter []Fault
+// stubFault stands in for dozeaws.Fault, which this package cannot import.
+type stubFault struct {
+	RequestID string
+	Code      string
+	Status    int
+}
 
-func (s stubFaulter) Faults() []Fault { return s }
+type stubFaulter []stubFault
+
+func (s stubFaulter) Faults() []stubFault { return s }

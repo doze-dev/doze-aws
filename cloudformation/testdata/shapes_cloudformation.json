@@ -1,0 +1,4913 @@
+[
+ {
+  "operation": "ActivateType",
+  "output": "ActivateTypeOutput",
+  "members": [
+   {
+    "path": "Arn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "BatchDescribeTypeConfigurations",
+  "output": "BatchDescribeTypeConfigurationsOutput",
+  "members": [
+   {
+    "path": "Errors",
+    "type": "list"
+   },
+   {
+    "path": "Errors[]",
+    "type": "structure"
+   },
+   {
+    "path": "Errors[].ErrorCode",
+    "type": "string"
+   },
+   {
+    "path": "Errors[].ErrorMessage",
+    "type": "string"
+   },
+   {
+    "path": "Errors[].TypeConfigurationIdentifier",
+    "type": "structure"
+   },
+   {
+    "path": "Errors[].TypeConfigurationIdentifier.Type",
+    "type": "enum",
+    "enum": [
+     "MODULE",
+     "HOOK",
+     "RESOURCE"
+    ]
+   },
+   {
+    "path": "Errors[].TypeConfigurationIdentifier.TypeArn",
+    "type": "string"
+   },
+   {
+    "path": "Errors[].TypeConfigurationIdentifier.TypeConfigurationAlias",
+    "type": "string"
+   },
+   {
+    "path": "Errors[].TypeConfigurationIdentifier.TypeConfigurationArn",
+    "type": "string"
+   },
+   {
+    "path": "Errors[].TypeConfigurationIdentifier.TypeName",
+    "type": "string"
+   },
+   {
+    "path": "TypeConfigurations",
+    "type": "list"
+   },
+   {
+    "path": "TypeConfigurations[]",
+    "type": "structure"
+   },
+   {
+    "path": "TypeConfigurations[].Alias",
+    "type": "string"
+   },
+   {
+    "path": "TypeConfigurations[].Arn",
+    "type": "string"
+   },
+   {
+    "path": "TypeConfigurations[].Configuration",
+    "type": "string"
+   },
+   {
+    "path": "TypeConfigurations[].IsDefaultConfiguration",
+    "type": "boolean"
+   },
+   {
+    "path": "TypeConfigurations[].LastUpdated",
+    "type": "timestamp"
+   },
+   {
+    "path": "TypeConfigurations[].TypeArn",
+    "type": "string"
+   },
+   {
+    "path": "TypeConfigurations[].TypeName",
+    "type": "string"
+   },
+   {
+    "path": "UnprocessedTypeConfigurations",
+    "type": "list"
+   },
+   {
+    "path": "UnprocessedTypeConfigurations[]",
+    "type": "structure"
+   },
+   {
+    "path": "UnprocessedTypeConfigurations[].Type",
+    "type": "enum",
+    "enum": [
+     "MODULE",
+     "HOOK",
+     "RESOURCE"
+    ]
+   },
+   {
+    "path": "UnprocessedTypeConfigurations[].TypeArn",
+    "type": "string"
+   },
+   {
+    "path": "UnprocessedTypeConfigurations[].TypeConfigurationAlias",
+    "type": "string"
+   },
+   {
+    "path": "UnprocessedTypeConfigurations[].TypeConfigurationArn",
+    "type": "string"
+   },
+   {
+    "path": "UnprocessedTypeConfigurations[].TypeName",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateChangeSet",
+  "output": "CreateChangeSetOutput",
+  "members": [
+   {
+    "path": "Id",
+    "type": "string"
+   },
+   {
+    "path": "StackId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateGeneratedTemplate",
+  "output": "CreateGeneratedTemplateOutput",
+  "members": [
+   {
+    "path": "GeneratedTemplateId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateStack",
+  "output": "CreateStackOutput",
+  "members": [
+   {
+    "path": "OperationId",
+    "type": "string"
+   },
+   {
+    "path": "StackId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateStackInstances",
+  "output": "CreateStackInstancesOutput",
+  "members": [
+   {
+    "path": "OperationId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateStackRefactor",
+  "output": "CreateStackRefactorOutput",
+  "members": [
+   {
+    "path": "StackRefactorId",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "CreateStackSet",
+  "output": "CreateStackSetOutput",
+  "members": [
+   {
+    "path": "StackSetId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DeleteStackInstances",
+  "output": "DeleteStackInstancesOutput",
+  "members": [
+   {
+    "path": "OperationId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeAccountLimits",
+  "output": "DescribeAccountLimitsOutput",
+  "members": [
+   {
+    "path": "AccountLimits",
+    "type": "list"
+   },
+   {
+    "path": "AccountLimits[]",
+    "type": "structure"
+   },
+   {
+    "path": "AccountLimits[].Name",
+    "type": "string"
+   },
+   {
+    "path": "AccountLimits[].Value",
+    "type": "integer"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeChangeSet",
+  "output": "DescribeChangeSetOutput",
+  "members": [
+   {
+    "path": "Capabilities",
+    "type": "list"
+   },
+   {
+    "path": "Capabilities[]",
+    "type": "enum",
+    "enum": [
+     "CAPABILITY_IAM",
+     "CAPABILITY_NAMED_IAM",
+     "CAPABILITY_AUTO_EXPAND"
+    ]
+   },
+   {
+    "path": "ChangeSetId",
+    "type": "string"
+   },
+   {
+    "path": "ChangeSetName",
+    "type": "string"
+   },
+   {
+    "path": "Changes",
+    "type": "list"
+   },
+   {
+    "path": "Changes[]",
+    "type": "structure"
+   },
+   {
+    "path": "Changes[].HookInvocationCount",
+    "type": "integer"
+   },
+   {
+    "path": "Changes[].ResourceChange",
+    "type": "structure"
+   },
+   {
+    "path": "Changes[].ResourceChange.Action",
+    "type": "enum",
+    "enum": [
+     "Add",
+     "Modify",
+     "Remove",
+     "Import",
+     "Dynamic",
+     "SyncWithActual"
+    ]
+   },
+   {
+    "path": "Changes[].ResourceChange.AfterContext",
+    "type": "string"
+   },
+   {
+    "path": "Changes[].ResourceChange.BeforeContext",
+    "type": "string"
+   },
+   {
+    "path": "Changes[].ResourceChange.ChangeSetId",
+    "type": "string"
+   },
+   {
+    "path": "Changes[].ResourceChange.Details",
+    "type": "list"
+   },
+   {
+    "path": "Changes[].ResourceChange.Details[]",
+    "type": "structure"
+   },
+   {
+    "path": "Changes[].ResourceChange.LogicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "Changes[].ResourceChange.ModuleInfo",
+    "type": "structure"
+   },
+   {
+    "path": "Changes[].ResourceChange.ModuleInfo.LogicalIdHierarchy",
+    "type": "string"
+   },
+   {
+    "path": "Changes[].ResourceChange.ModuleInfo.TypeHierarchy",
+    "type": "string"
+   },
+   {
+    "path": "Changes[].ResourceChange.PhysicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "Changes[].ResourceChange.PolicyAction",
+    "type": "enum",
+    "enum": [
+     "ReplaceAndDelete",
+     "ReplaceAndRetain",
+     "ReplaceAndSnapshot",
+     "Delete",
+     "Retain",
+     "Snapshot"
+    ]
+   },
+   {
+    "path": "Changes[].ResourceChange.PreviousDeploymentContext",
+    "type": "string"
+   },
+   {
+    "path": "Changes[].ResourceChange.Replacement",
+    "type": "enum",
+    "enum": [
+     "False",
+     "Conditional",
+     "True"
+    ]
+   },
+   {
+    "path": "Changes[].ResourceChange.ResourceDriftIgnoredAttributes",
+    "type": "list"
+   },
+   {
+    "path": "Changes[].ResourceChange.ResourceDriftIgnoredAttributes[]",
+    "type": "structure"
+   },
+   {
+    "path": "Changes[].ResourceChange.ResourceDriftStatus",
+    "type": "enum",
+    "enum": [
+     "NOT_CHECKED",
+     "UNKNOWN",
+     "UNSUPPORTED",
+     "IN_SYNC",
+     "MODIFIED",
+     "DELETED"
+    ]
+   },
+   {
+    "path": "Changes[].ResourceChange.ResourceType",
+    "type": "string"
+   },
+   {
+    "path": "Changes[].ResourceChange.Scope",
+    "type": "list"
+   },
+   {
+    "path": "Changes[].ResourceChange.Scope[]",
+    "type": "enum",
+    "enum": [
+     "Metadata",
+     "CreationPolicy",
+     "UpdatePolicy",
+     "DeletionPolicy",
+     "UpdateReplacePolicy",
+     "Tags",
+     "Properties"
+    ]
+   },
+   {
+    "path": "Changes[].Type",
+    "type": "enum",
+    "enum": [
+     "Resource"
+    ]
+   },
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "DeploymentConfig",
+    "type": "structure"
+   },
+   {
+    "path": "DeploymentConfig.DisableRollback",
+    "type": "boolean"
+   },
+   {
+    "path": "DeploymentConfig.Mode",
+    "type": "enum",
+    "enum": [
+     "STANDARD",
+     "EXPRESS"
+    ]
+   },
+   {
+    "path": "DeploymentMode",
+    "type": "enum",
+    "enum": [
+     "REVERT_DRIFT"
+    ]
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "ExecutionStatus",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "EXECUTE_IN_PROGRESS",
+     "EXECUTE_COMPLETE",
+     "EXECUTE_FAILED",
+     "OBSOLETE",
+     "UNAVAILABLE"
+    ]
+   },
+   {
+    "path": "ImportExistingResources",
+    "type": "boolean"
+   },
+   {
+    "path": "IncludeNestedStacks",
+    "type": "boolean"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "NotificationARNs",
+    "type": "list"
+   },
+   {
+    "path": "NotificationARNs[]",
+    "type": "string"
+   },
+   {
+    "path": "OnStackFailure",
+    "type": "enum",
+    "enum": [
+     "DO_NOTHING",
+     "ROLLBACK",
+     "DELETE"
+    ]
+   },
+   {
+    "path": "Parameters",
+    "type": "list"
+   },
+   {
+    "path": "Parameters[]",
+    "type": "structure"
+   },
+   {
+    "path": "Parameters[].ParameterKey",
+    "type": "string"
+   },
+   {
+    "path": "Parameters[].ParameterValue",
+    "type": "string"
+   },
+   {
+    "path": "Parameters[].ResolvedValue",
+    "type": "string"
+   },
+   {
+    "path": "Parameters[].UsePreviousValue",
+    "type": "boolean"
+   },
+   {
+    "path": "ParentChangeSetId",
+    "type": "string"
+   },
+   {
+    "path": "RollbackConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "RollbackConfiguration.MonitoringTimeInMinutes",
+    "type": "integer"
+   },
+   {
+    "path": "RollbackConfiguration.RollbackTriggers",
+    "type": "list"
+   },
+   {
+    "path": "RollbackConfiguration.RollbackTriggers[]",
+    "type": "structure"
+   },
+   {
+    "path": "RollbackConfiguration.RollbackTriggers[].Arn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RollbackConfiguration.RollbackTriggers[].Type",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RootChangeSetId",
+    "type": "string"
+   },
+   {
+    "path": "StackDriftStatus",
+    "type": "enum",
+    "enum": [
+     "NOT_CHECKED",
+     "DRIFTED",
+     "IN_SYNC",
+     "UNKNOWN"
+    ]
+   },
+   {
+    "path": "StackId",
+    "type": "string"
+   },
+   {
+    "path": "StackName",
+    "type": "string"
+   },
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "CREATE_COMPLETE",
+     "DELETE_PENDING",
+     "DELETE_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "DELETE_FAILED",
+     "FAILED",
+     "CREATE_PENDING",
+     "CREATE_IN_PROGRESS"
+    ]
+   },
+   {
+    "path": "StatusReason",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "list"
+   },
+   {
+    "path": "Tags[]",
+    "type": "structure"
+   },
+   {
+    "path": "Tags[].Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Tags[].Value",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "DescribeChangeSetHooks",
+  "output": "DescribeChangeSetHooksOutput",
+  "members": [
+   {
+    "path": "ChangeSetId",
+    "type": "string"
+   },
+   {
+    "path": "ChangeSetName",
+    "type": "string"
+   },
+   {
+    "path": "Hooks",
+    "type": "list"
+   },
+   {
+    "path": "Hooks[]",
+    "type": "structure"
+   },
+   {
+    "path": "Hooks[].FailureMode",
+    "type": "enum",
+    "enum": [
+     "FAIL",
+     "WARN"
+    ]
+   },
+   {
+    "path": "Hooks[].InvocationPoint",
+    "type": "enum",
+    "enum": [
+     "PRE_PROVISION"
+    ]
+   },
+   {
+    "path": "Hooks[].TargetDetails",
+    "type": "structure"
+   },
+   {
+    "path": "Hooks[].TargetDetails.ResourceTargetDetails",
+    "type": "structure"
+   },
+   {
+    "path": "Hooks[].TargetDetails.ResourceTargetDetails.LogicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "Hooks[].TargetDetails.ResourceTargetDetails.ResourceAction",
+    "type": "enum",
+    "enum": [
+     "Add",
+     "Modify",
+     "Remove",
+     "Import",
+     "Dynamic",
+     "SyncWithActual"
+    ]
+   },
+   {
+    "path": "Hooks[].TargetDetails.ResourceTargetDetails.ResourceType",
+    "type": "string"
+   },
+   {
+    "path": "Hooks[].TargetDetails.TargetType",
+    "type": "enum",
+    "enum": [
+     "RESOURCE"
+    ]
+   },
+   {
+    "path": "Hooks[].TypeConfigurationVersionId",
+    "type": "string"
+   },
+   {
+    "path": "Hooks[].TypeName",
+    "type": "string"
+   },
+   {
+    "path": "Hooks[].TypeVersionId",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "StackId",
+    "type": "string"
+   },
+   {
+    "path": "StackName",
+    "type": "string"
+   },
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "PLANNING",
+     "PLANNED",
+     "UNAVAILABLE"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "DescribeEvents",
+  "output": "DescribeEventsOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents",
+    "type": "list"
+   },
+   {
+    "path": "OperationEvents[]",
+    "type": "structure"
+   },
+   {
+    "path": "OperationEvents[].ClientRequestToken",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents[].DetailedStatus",
+    "type": "enum",
+    "enum": [
+     "VALIDATION_FAILED",
+     "CONFIGURATION_COMPLETE"
+    ]
+   },
+   {
+    "path": "OperationEvents[].EndTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "OperationEvents[].EventId",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents[].EventType",
+    "type": "enum",
+    "enum": [
+     "STACK_EVENT",
+     "PROGRESS_EVENT",
+     "VALIDATION_ERROR",
+     "PROVISIONING_ERROR",
+     "HOOK_INVOCATION_ERROR"
+    ]
+   },
+   {
+    "path": "OperationEvents[].HookFailureMode",
+    "type": "enum",
+    "enum": [
+     "WARN",
+     "FAIL"
+    ]
+   },
+   {
+    "path": "OperationEvents[].HookInvocationPoint",
+    "type": "enum",
+    "enum": [
+     "PRE_PROVISION"
+    ]
+   },
+   {
+    "path": "OperationEvents[].HookStatus",
+    "type": "enum",
+    "enum": [
+     "HOOK_COMPLETE_FAILED",
+     "HOOK_FAILED",
+     "HOOK_IN_PROGRESS",
+     "HOOK_COMPLETE_SUCCEEDED"
+    ]
+   },
+   {
+    "path": "OperationEvents[].HookStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents[].HookType",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents[].LogicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents[].OperationId",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents[].OperationStatus",
+    "type": "enum",
+    "enum": [
+     "IN_PROGRESS",
+     "SUCCEEDED",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "OperationEvents[].OperationType",
+    "type": "enum",
+    "enum": [
+     "CREATE_STACK",
+     "UPDATE_STACK",
+     "DELETE_STACK",
+     "CONTINUE_ROLLBACK",
+     "ROLLBACK",
+     "CREATE_CHANGESET"
+    ]
+   },
+   {
+    "path": "OperationEvents[].PhysicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents[].ResourceProperties",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents[].ResourceStatus",
+    "type": "enum",
+    "enum": [
+     "IMPORT_FAILED",
+     "IMPORT_IN_PROGRESS",
+     "IMPORT_ROLLBACK_COMPLETE",
+     "UPDATE_ROLLBACK_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "IMPORT_COMPLETE",
+     "EXPORT_IN_PROGRESS",
+     "EXPORT_ROLLBACK_FAILED",
+     "ROLLBACK_IN_PROGRESS",
+     "ROLLBACK_COMPLETE",
+     "DELETE_IN_PROGRESS",
+     "UPDATE_FAILED",
+     "UPDATE_COMPLETE",
+     "EXPORT_COMPLETE",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "ROLLBACK_FAILED",
+     "CREATE_COMPLETE",
+     "DELETE_SKIPPED",
+     "UPDATE_IN_PROGRESS",
+     "IMPORT_ROLLBACK_FAILED",
+     "EXPORT_FAILED",
+     "EXPORT_ROLLBACK_IN_PROGRESS",
+     "EXPORT_ROLLBACK_COMPLETE",
+     "UPDATE_ROLLBACK_FAILED",
+     "IMPORT_ROLLBACK_IN_PROGRESS",
+     "CREATE_IN_PROGRESS",
+     "CREATE_FAILED",
+     "DELETE_FAILED"
+    ]
+   },
+   {
+    "path": "OperationEvents[].ResourceStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents[].ResourceType",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents[].StackId",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents[].StartTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "OperationEvents[].Timestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "OperationEvents[].ValidationFailureMode",
+    "type": "enum",
+    "enum": [
+     "FAIL",
+     "WARN"
+    ]
+   },
+   {
+    "path": "OperationEvents[].ValidationName",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents[].ValidationPath",
+    "type": "string"
+   },
+   {
+    "path": "OperationEvents[].ValidationStatus",
+    "type": "enum",
+    "enum": [
+     "SKIPPED",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "OperationEvents[].ValidationStatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeGeneratedTemplate",
+  "output": "DescribeGeneratedTemplateOutput",
+  "members": [
+   {
+    "path": "CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "GeneratedTemplateId",
+    "type": "string"
+   },
+   {
+    "path": "GeneratedTemplateName",
+    "type": "string"
+   },
+   {
+    "path": "LastUpdatedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Progress",
+    "type": "structure"
+   },
+   {
+    "path": "Progress.ResourcesFailed",
+    "type": "integer"
+   },
+   {
+    "path": "Progress.ResourcesPending",
+    "type": "integer"
+   },
+   {
+    "path": "Progress.ResourcesProcessing",
+    "type": "integer"
+   },
+   {
+    "path": "Progress.ResourcesSucceeded",
+    "type": "integer"
+   },
+   {
+    "path": "Resources",
+    "type": "list"
+   },
+   {
+    "path": "Resources[]",
+    "type": "structure"
+   },
+   {
+    "path": "Resources[].LogicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "Resources[].ResourceIdentifier",
+    "type": "map"
+   },
+   {
+    "path": "Resources[].ResourceIdentifier{}",
+    "type": "string"
+   },
+   {
+    "path": "Resources[].ResourceStatus",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "IN_PROGRESS",
+     "FAILED",
+     "COMPLETE"
+    ]
+   },
+   {
+    "path": "Resources[].ResourceStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "Resources[].ResourceType",
+    "type": "string"
+   },
+   {
+    "path": "Resources[].Warnings",
+    "type": "list"
+   },
+   {
+    "path": "Resources[].Warnings[]",
+    "type": "structure"
+   },
+   {
+    "path": "Resources[].Warnings[].Properties",
+    "type": "list"
+   },
+   {
+    "path": "Resources[].Warnings[].Type",
+    "type": "enum",
+    "enum": [
+     "EXCLUDED_PROPERTIES",
+     "EXCLUDED_RESOURCES",
+     "MUTUALLY_EXCLUSIVE_PROPERTIES",
+     "UNSUPPORTED_PROPERTIES",
+     "MUTUALLY_EXCLUSIVE_TYPES"
+    ]
+   },
+   {
+    "path": "StackId",
+    "type": "string"
+   },
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "DELETE_PENDING",
+     "CREATE_IN_PROGRESS",
+     "UPDATE_IN_PROGRESS",
+     "DELETE_IN_PROGRESS",
+     "FAILED",
+     "COMPLETE",
+     "CREATE_PENDING",
+     "UPDATE_PENDING"
+    ]
+   },
+   {
+    "path": "StatusReason",
+    "type": "string"
+   },
+   {
+    "path": "TemplateConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "TemplateConfiguration.DeletionPolicy",
+    "type": "enum",
+    "enum": [
+     "DELETE",
+     "RETAIN"
+    ]
+   },
+   {
+    "path": "TemplateConfiguration.UpdateReplacePolicy",
+    "type": "enum",
+    "enum": [
+     "DELETE",
+     "RETAIN"
+    ]
+   },
+   {
+    "path": "TotalWarnings",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeOrganizationsAccess",
+  "output": "DescribeOrganizationsAccessOutput",
+  "members": [
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "ENABLED",
+     "DISABLED",
+     "DISABLED_PERMANENTLY"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "DescribePublisher",
+  "output": "DescribePublisherOutput",
+  "members": [
+   {
+    "path": "IdentityProvider",
+    "type": "enum",
+    "enum": [
+     "AWS_Marketplace",
+     "GitHub",
+     "Bitbucket"
+    ]
+   },
+   {
+    "path": "PublisherId",
+    "type": "string"
+   },
+   {
+    "path": "PublisherProfile",
+    "type": "string"
+   },
+   {
+    "path": "PublisherStatus",
+    "type": "enum",
+    "enum": [
+     "VERIFIED",
+     "UNVERIFIED"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "DescribeResourceScan",
+  "output": "DescribeResourceScanOutput",
+  "members": [
+   {
+    "path": "EndTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "PercentageCompleted",
+    "type": "float"
+   },
+   {
+    "path": "ResourceScanId",
+    "type": "string"
+   },
+   {
+    "path": "ResourceTypes",
+    "type": "list"
+   },
+   {
+    "path": "ResourceTypes[]",
+    "type": "string"
+   },
+   {
+    "path": "ResourcesRead",
+    "type": "integer"
+   },
+   {
+    "path": "ResourcesScanned",
+    "type": "integer"
+   },
+   {
+    "path": "ScanFilters",
+    "type": "list"
+   },
+   {
+    "path": "ScanFilters[]",
+    "type": "structure"
+   },
+   {
+    "path": "ScanFilters[].Types",
+    "type": "list"
+   },
+   {
+    "path": "ScanFilters[].Types[]",
+    "type": "string"
+   },
+   {
+    "path": "StartTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "EXPIRED",
+     "IN_PROGRESS",
+     "FAILED",
+     "COMPLETE"
+    ]
+   },
+   {
+    "path": "StatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeStackDriftDetectionStatus",
+  "output": "DescribeStackDriftDetectionStatusOutput",
+  "members": [
+   {
+    "path": "DetectionStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "DETECTION_IN_PROGRESS",
+     "DETECTION_FAILED",
+     "DETECTION_COMPLETE"
+    ]
+   },
+   {
+    "path": "DetectionStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "DriftedStackResourceCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackDriftDetectionId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackDriftStatus",
+    "type": "enum",
+    "enum": [
+     "DRIFTED",
+     "IN_SYNC",
+     "UNKNOWN",
+     "NOT_CHECKED"
+    ]
+   },
+   {
+    "path": "StackId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Timestamp",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "DescribeStackEvents",
+  "output": "DescribeStackEventsOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "StackEvents",
+    "type": "list"
+   },
+   {
+    "path": "StackEvents[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackEvents[].ClientRequestToken",
+    "type": "string"
+   },
+   {
+    "path": "StackEvents[].DetailedStatus",
+    "type": "enum",
+    "enum": [
+     "CONFIGURATION_COMPLETE",
+     "VALIDATION_FAILED"
+    ]
+   },
+   {
+    "path": "StackEvents[].EventId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackEvents[].HookFailureMode",
+    "type": "enum",
+    "enum": [
+     "FAIL",
+     "WARN"
+    ]
+   },
+   {
+    "path": "StackEvents[].HookInvocationId",
+    "type": "string"
+   },
+   {
+    "path": "StackEvents[].HookInvocationPoint",
+    "type": "enum",
+    "enum": [
+     "PRE_PROVISION"
+    ]
+   },
+   {
+    "path": "StackEvents[].HookStatus",
+    "type": "enum",
+    "enum": [
+     "HOOK_IN_PROGRESS",
+     "HOOK_COMPLETE_SUCCEEDED",
+     "HOOK_COMPLETE_FAILED",
+     "HOOK_FAILED"
+    ]
+   },
+   {
+    "path": "StackEvents[].HookStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "StackEvents[].HookType",
+    "type": "string"
+   },
+   {
+    "path": "StackEvents[].LogicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "StackEvents[].OperationId",
+    "type": "string"
+   },
+   {
+    "path": "StackEvents[].PhysicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "StackEvents[].ResourceProperties",
+    "type": "string"
+   },
+   {
+    "path": "StackEvents[].ResourceStatus",
+    "type": "enum",
+    "enum": [
+     "ROLLBACK_IN_PROGRESS",
+     "ROLLBACK_COMPLETE",
+     "DELETE_IN_PROGRESS",
+     "UPDATE_FAILED",
+     "UPDATE_COMPLETE",
+     "EXPORT_COMPLETE",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "ROLLBACK_FAILED",
+     "CREATE_COMPLETE",
+     "DELETE_SKIPPED",
+     "UPDATE_IN_PROGRESS",
+     "IMPORT_ROLLBACK_FAILED",
+     "EXPORT_FAILED",
+     "EXPORT_ROLLBACK_IN_PROGRESS",
+     "EXPORT_ROLLBACK_COMPLETE",
+     "UPDATE_ROLLBACK_FAILED",
+     "IMPORT_ROLLBACK_IN_PROGRESS",
+     "CREATE_IN_PROGRESS",
+     "CREATE_FAILED",
+     "DELETE_FAILED",
+     "IMPORT_FAILED",
+     "IMPORT_IN_PROGRESS",
+     "IMPORT_ROLLBACK_COMPLETE",
+     "UPDATE_ROLLBACK_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "IMPORT_COMPLETE",
+     "EXPORT_IN_PROGRESS",
+     "EXPORT_ROLLBACK_FAILED"
+    ]
+   },
+   {
+    "path": "StackEvents[].ResourceStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "StackEvents[].ResourceType",
+    "type": "string"
+   },
+   {
+    "path": "StackEvents[].StackId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackEvents[].StackName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackEvents[].Timestamp",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "DescribeStackInstance",
+  "output": "DescribeStackInstanceOutput",
+  "members": [
+   {
+    "path": "StackInstance",
+    "type": "structure"
+   },
+   {
+    "path": "StackInstance.Account",
+    "type": "string"
+   },
+   {
+    "path": "StackInstance.DriftStatus",
+    "type": "enum",
+    "enum": [
+     "DRIFTED",
+     "IN_SYNC",
+     "UNKNOWN",
+     "NOT_CHECKED"
+    ]
+   },
+   {
+    "path": "StackInstance.LastDriftCheckTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "StackInstance.LastOperationId",
+    "type": "string"
+   },
+   {
+    "path": "StackInstance.OrganizationalUnitId",
+    "type": "string"
+   },
+   {
+    "path": "StackInstance.ParameterOverrides",
+    "type": "list"
+   },
+   {
+    "path": "StackInstance.ParameterOverrides[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackInstance.ParameterOverrides[].ParameterKey",
+    "type": "string"
+   },
+   {
+    "path": "StackInstance.ParameterOverrides[].ParameterValue",
+    "type": "string"
+   },
+   {
+    "path": "StackInstance.ParameterOverrides[].ResolvedValue",
+    "type": "string"
+   },
+   {
+    "path": "StackInstance.ParameterOverrides[].UsePreviousValue",
+    "type": "boolean"
+   },
+   {
+    "path": "StackInstance.Region",
+    "type": "string"
+   },
+   {
+    "path": "StackInstance.StackId",
+    "type": "string"
+   },
+   {
+    "path": "StackInstance.StackInstanceStatus",
+    "type": "structure"
+   },
+   {
+    "path": "StackInstance.StackInstanceStatus.DetailedStatus",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "RUNNING",
+     "SUCCEEDED",
+     "FAILED",
+     "CANCELLED",
+     "INOPERABLE",
+     "SKIPPED_SUSPENDED_ACCOUNT",
+     "FAILED_IMPORT"
+    ]
+   },
+   {
+    "path": "StackInstance.StackSetId",
+    "type": "string"
+   },
+   {
+    "path": "StackInstance.Status",
+    "type": "enum",
+    "enum": [
+     "OUTDATED",
+     "INOPERABLE",
+     "CURRENT"
+    ]
+   },
+   {
+    "path": "StackInstance.StatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeStackRefactor",
+  "output": "DescribeStackRefactorOutput",
+  "members": [
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "ExecutionStatus",
+    "type": "enum",
+    "enum": [
+     "OBSOLETE",
+     "EXECUTE_IN_PROGRESS",
+     "EXECUTE_FAILED",
+     "EXECUTE_COMPLETE",
+     "ROLLBACK_IN_PROGRESS",
+     "ROLLBACK_COMPLETE",
+     "ROLLBACK_FAILED",
+     "UNAVAILABLE",
+     "AVAILABLE"
+    ]
+   },
+   {
+    "path": "ExecutionStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "StackIds",
+    "type": "list"
+   },
+   {
+    "path": "StackIds[]",
+    "type": "string"
+   },
+   {
+    "path": "StackRefactorId",
+    "type": "string"
+   },
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "CREATE_FAILED",
+     "DELETE_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "DELETE_FAILED",
+     "CREATE_IN_PROGRESS",
+     "CREATE_COMPLETE"
+    ]
+   },
+   {
+    "path": "StatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeStackResource",
+  "output": "DescribeStackResourceOutput",
+  "members": [
+   {
+    "path": "StackResourceDetail",
+    "type": "structure"
+   },
+   {
+    "path": "StackResourceDetail.Description",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDetail.DriftInformation",
+    "type": "structure"
+   },
+   {
+    "path": "StackResourceDetail.DriftInformation.LastCheckTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "StackResourceDetail.DriftInformation.StackResourceDriftStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "IN_SYNC",
+     "MODIFIED",
+     "DELETED",
+     "NOT_CHECKED",
+     "UNKNOWN",
+     "UNSUPPORTED"
+    ]
+   },
+   {
+    "path": "StackResourceDetail.LastUpdatedTimestamp",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "StackResourceDetail.LogicalResourceId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDetail.Metadata",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDetail.ModuleInfo",
+    "type": "structure"
+   },
+   {
+    "path": "StackResourceDetail.ModuleInfo.LogicalIdHierarchy",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDetail.ModuleInfo.TypeHierarchy",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDetail.PhysicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDetail.ResourceStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "EXPORT_FAILED",
+     "EXPORT_ROLLBACK_IN_PROGRESS",
+     "EXPORT_ROLLBACK_COMPLETE",
+     "UPDATE_ROLLBACK_FAILED",
+     "IMPORT_ROLLBACK_IN_PROGRESS",
+     "CREATE_IN_PROGRESS",
+     "CREATE_FAILED",
+     "DELETE_FAILED",
+     "IMPORT_FAILED",
+     "IMPORT_IN_PROGRESS",
+     "IMPORT_ROLLBACK_COMPLETE",
+     "UPDATE_ROLLBACK_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "IMPORT_COMPLETE",
+     "EXPORT_IN_PROGRESS",
+     "EXPORT_ROLLBACK_FAILED",
+     "ROLLBACK_IN_PROGRESS",
+     "ROLLBACK_COMPLETE",
+     "DELETE_IN_PROGRESS",
+     "UPDATE_FAILED",
+     "UPDATE_COMPLETE",
+     "EXPORT_COMPLETE",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "ROLLBACK_FAILED",
+     "CREATE_COMPLETE",
+     "DELETE_SKIPPED",
+     "UPDATE_IN_PROGRESS",
+     "IMPORT_ROLLBACK_FAILED"
+    ]
+   },
+   {
+    "path": "StackResourceDetail.ResourceStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDetail.ResourceType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDetail.StackId",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDetail.StackName",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeStackResourceDrifts",
+  "output": "DescribeStackResourceDriftsOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDrifts",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrifts[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackResourceDrifts[].ActualProperties",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDrifts[].DriftStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDrifts[].ExpectedProperties",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDrifts[].LogicalResourceId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrifts[].ModuleInfo",
+    "type": "structure"
+   },
+   {
+    "path": "StackResourceDrifts[].ModuleInfo.LogicalIdHierarchy",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDrifts[].ModuleInfo.TypeHierarchy",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDrifts[].PhysicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDrifts[].PhysicalResourceIdContext",
+    "type": "list"
+   },
+   {
+    "path": "StackResourceDrifts[].PhysicalResourceIdContext[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackResourceDrifts[].PhysicalResourceIdContext[].Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrifts[].PhysicalResourceIdContext[].Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrifts[].PropertyDifferences",
+    "type": "list"
+   },
+   {
+    "path": "StackResourceDrifts[].PropertyDifferences[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackResourceDrifts[].PropertyDifferences[].ActualValue",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrifts[].PropertyDifferences[].DifferenceType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "ADD",
+     "REMOVE",
+     "NOT_EQUAL"
+    ]
+   },
+   {
+    "path": "StackResourceDrifts[].PropertyDifferences[].ExpectedValue",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrifts[].PropertyDifferences[].PropertyPath",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrifts[].ResourceType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrifts[].StackId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrifts[].StackResourceDriftStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "IN_SYNC",
+     "MODIFIED",
+     "DELETED",
+     "NOT_CHECKED",
+     "UNKNOWN",
+     "UNSUPPORTED"
+    ]
+   },
+   {
+    "path": "StackResourceDrifts[].Timestamp",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "DescribeStackResources",
+  "output": "DescribeStackResourcesOutput",
+  "members": [
+   {
+    "path": "StackResources",
+    "type": "list"
+   },
+   {
+    "path": "StackResources[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackResources[].Description",
+    "type": "string"
+   },
+   {
+    "path": "StackResources[].DriftInformation",
+    "type": "structure"
+   },
+   {
+    "path": "StackResources[].DriftInformation.LastCheckTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "StackResources[].DriftInformation.StackResourceDriftStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "IN_SYNC",
+     "MODIFIED",
+     "DELETED",
+     "NOT_CHECKED",
+     "UNKNOWN",
+     "UNSUPPORTED"
+    ]
+   },
+   {
+    "path": "StackResources[].LogicalResourceId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResources[].ModuleInfo",
+    "type": "structure"
+   },
+   {
+    "path": "StackResources[].ModuleInfo.LogicalIdHierarchy",
+    "type": "string"
+   },
+   {
+    "path": "StackResources[].ModuleInfo.TypeHierarchy",
+    "type": "string"
+   },
+   {
+    "path": "StackResources[].PhysicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "StackResources[].ResourceStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "EXPORT_ROLLBACK_IN_PROGRESS",
+     "EXPORT_ROLLBACK_COMPLETE",
+     "UPDATE_ROLLBACK_FAILED",
+     "IMPORT_ROLLBACK_IN_PROGRESS",
+     "CREATE_IN_PROGRESS",
+     "CREATE_FAILED",
+     "DELETE_FAILED",
+     "IMPORT_FAILED",
+     "IMPORT_IN_PROGRESS",
+     "IMPORT_ROLLBACK_COMPLETE",
+     "UPDATE_ROLLBACK_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "IMPORT_COMPLETE",
+     "EXPORT_IN_PROGRESS",
+     "EXPORT_ROLLBACK_FAILED",
+     "ROLLBACK_IN_PROGRESS",
+     "ROLLBACK_COMPLETE",
+     "DELETE_IN_PROGRESS",
+     "UPDATE_FAILED",
+     "UPDATE_COMPLETE",
+     "EXPORT_COMPLETE",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "ROLLBACK_FAILED",
+     "CREATE_COMPLETE",
+     "DELETE_SKIPPED",
+     "UPDATE_IN_PROGRESS",
+     "IMPORT_ROLLBACK_FAILED",
+     "EXPORT_FAILED"
+    ]
+   },
+   {
+    "path": "StackResources[].ResourceStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "StackResources[].ResourceType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResources[].StackId",
+    "type": "string"
+   },
+   {
+    "path": "StackResources[].StackName",
+    "type": "string"
+   },
+   {
+    "path": "StackResources[].Timestamp",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "DescribeStackSet",
+  "output": "DescribeStackSetOutput",
+  "members": [
+   {
+    "path": "StackSet",
+    "type": "structure"
+   },
+   {
+    "path": "StackSet.AdministrationRoleARN",
+    "type": "string"
+   },
+   {
+    "path": "StackSet.AutoDeployment",
+    "type": "structure"
+   },
+   {
+    "path": "StackSet.AutoDeployment.DependsOn",
+    "type": "list"
+   },
+   {
+    "path": "StackSet.AutoDeployment.DependsOn[]",
+    "type": "string"
+   },
+   {
+    "path": "StackSet.AutoDeployment.Enabled",
+    "type": "boolean"
+   },
+   {
+    "path": "StackSet.AutoDeployment.RetainStacksOnAccountRemoval",
+    "type": "boolean"
+   },
+   {
+    "path": "StackSet.Capabilities",
+    "type": "list"
+   },
+   {
+    "path": "StackSet.Capabilities[]",
+    "type": "enum",
+    "enum": [
+     "CAPABILITY_IAM",
+     "CAPABILITY_NAMED_IAM",
+     "CAPABILITY_AUTO_EXPAND"
+    ]
+   },
+   {
+    "path": "StackSet.Description",
+    "type": "string"
+   },
+   {
+    "path": "StackSet.ExecutionRoleName",
+    "type": "string"
+   },
+   {
+    "path": "StackSet.ManagedExecution",
+    "type": "structure"
+   },
+   {
+    "path": "StackSet.ManagedExecution.Active",
+    "type": "boolean"
+   },
+   {
+    "path": "StackSet.OrganizationalUnitIds",
+    "type": "list"
+   },
+   {
+    "path": "StackSet.OrganizationalUnitIds[]",
+    "type": "string"
+   },
+   {
+    "path": "StackSet.Parameters",
+    "type": "list"
+   },
+   {
+    "path": "StackSet.Parameters[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackSet.Parameters[].ParameterKey",
+    "type": "string"
+   },
+   {
+    "path": "StackSet.Parameters[].ParameterValue",
+    "type": "string"
+   },
+   {
+    "path": "StackSet.Parameters[].ResolvedValue",
+    "type": "string"
+   },
+   {
+    "path": "StackSet.Parameters[].UsePreviousValue",
+    "type": "boolean"
+   },
+   {
+    "path": "StackSet.PermissionModel",
+    "type": "enum",
+    "enum": [
+     "SERVICE_MANAGED",
+     "SELF_MANAGED"
+    ]
+   },
+   {
+    "path": "StackSet.Regions",
+    "type": "list"
+   },
+   {
+    "path": "StackSet.Regions[]",
+    "type": "string"
+   },
+   {
+    "path": "StackSet.StackSetARN",
+    "type": "string"
+   },
+   {
+    "path": "StackSet.StackSetDriftDetectionDetails",
+    "type": "structure"
+   },
+   {
+    "path": "StackSet.StackSetDriftDetectionDetails.DriftDetectionStatus",
+    "type": "enum",
+    "enum": [
+     "IN_PROGRESS",
+     "STOPPED",
+     "COMPLETED",
+     "FAILED",
+     "PARTIAL_SUCCESS"
+    ]
+   },
+   {
+    "path": "StackSet.StackSetDriftDetectionDetails.DriftStatus",
+    "type": "enum",
+    "enum": [
+     "DRIFTED",
+     "IN_SYNC",
+     "NOT_CHECKED"
+    ]
+   },
+   {
+    "path": "StackSet.StackSetDriftDetectionDetails.DriftedStackInstancesCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackSet.StackSetDriftDetectionDetails.FailedStackInstancesCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackSet.StackSetDriftDetectionDetails.InProgressStackInstancesCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackSet.StackSetDriftDetectionDetails.InSyncStackInstancesCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackSet.StackSetDriftDetectionDetails.LastDriftCheckTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "StackSet.StackSetDriftDetectionDetails.TotalStackInstancesCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackSet.StackSetId",
+    "type": "string"
+   },
+   {
+    "path": "StackSet.StackSetName",
+    "type": "string"
+   },
+   {
+    "path": "StackSet.Status",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "DELETED"
+    ]
+   },
+   {
+    "path": "StackSet.Tags",
+    "type": "list"
+   },
+   {
+    "path": "StackSet.Tags[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackSet.Tags[].Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackSet.Tags[].Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackSet.TemplateBody",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeStackSetOperation",
+  "output": "DescribeStackSetOperationOutput",
+  "members": [
+   {
+    "path": "StackSetOperation",
+    "type": "structure"
+   },
+   {
+    "path": "StackSetOperation.Action",
+    "type": "enum",
+    "enum": [
+     "CREATE",
+     "UPDATE",
+     "DELETE",
+     "DETECT_DRIFT"
+    ]
+   },
+   {
+    "path": "StackSetOperation.AdministrationRoleARN",
+    "type": "string"
+   },
+   {
+    "path": "StackSetOperation.CreationTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "StackSetOperation.DeploymentTargets",
+    "type": "structure"
+   },
+   {
+    "path": "StackSetOperation.DeploymentTargets.AccountFilterType",
+    "type": "enum",
+    "enum": [
+     "NONE",
+     "INTERSECTION",
+     "DIFFERENCE",
+     "UNION"
+    ]
+   },
+   {
+    "path": "StackSetOperation.DeploymentTargets.Accounts",
+    "type": "list"
+   },
+   {
+    "path": "StackSetOperation.DeploymentTargets.AccountsUrl",
+    "type": "string"
+   },
+   {
+    "path": "StackSetOperation.DeploymentTargets.Accounts[]",
+    "type": "string"
+   },
+   {
+    "path": "StackSetOperation.DeploymentTargets.OrganizationalUnitIds",
+    "type": "list"
+   },
+   {
+    "path": "StackSetOperation.DeploymentTargets.OrganizationalUnitIds[]",
+    "type": "string"
+   },
+   {
+    "path": "StackSetOperation.EndTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "StackSetOperation.ExecutionRoleName",
+    "type": "string"
+   },
+   {
+    "path": "StackSetOperation.OperationId",
+    "type": "string"
+   },
+   {
+    "path": "StackSetOperation.OperationPreferences",
+    "type": "structure"
+   },
+   {
+    "path": "StackSetOperation.OperationPreferences.ConcurrencyMode",
+    "type": "enum",
+    "enum": [
+     "STRICT_FAILURE_TOLERANCE",
+     "SOFT_FAILURE_TOLERANCE"
+    ]
+   },
+   {
+    "path": "StackSetOperation.OperationPreferences.FailureToleranceCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackSetOperation.OperationPreferences.FailureTolerancePercentage",
+    "type": "integer"
+   },
+   {
+    "path": "StackSetOperation.OperationPreferences.MaxConcurrentCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackSetOperation.OperationPreferences.MaxConcurrentPercentage",
+    "type": "integer"
+   },
+   {
+    "path": "StackSetOperation.OperationPreferences.RegionConcurrencyType",
+    "type": "enum",
+    "enum": [
+     "SEQUENTIAL",
+     "PARALLEL"
+    ]
+   },
+   {
+    "path": "StackSetOperation.OperationPreferences.RegionOrder",
+    "type": "list"
+   },
+   {
+    "path": "StackSetOperation.OperationPreferences.RegionOrder[]",
+    "type": "string"
+   },
+   {
+    "path": "StackSetOperation.RetainStacks",
+    "type": "boolean"
+   },
+   {
+    "path": "StackSetOperation.StackSetDriftDetectionDetails",
+    "type": "structure"
+   },
+   {
+    "path": "StackSetOperation.StackSetDriftDetectionDetails.DriftDetectionStatus",
+    "type": "enum",
+    "enum": [
+     "STOPPED",
+     "COMPLETED",
+     "FAILED",
+     "PARTIAL_SUCCESS",
+     "IN_PROGRESS"
+    ]
+   },
+   {
+    "path": "StackSetOperation.StackSetDriftDetectionDetails.DriftStatus",
+    "type": "enum",
+    "enum": [
+     "IN_SYNC",
+     "NOT_CHECKED",
+     "DRIFTED"
+    ]
+   },
+   {
+    "path": "StackSetOperation.StackSetDriftDetectionDetails.DriftedStackInstancesCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackSetOperation.StackSetDriftDetectionDetails.FailedStackInstancesCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackSetOperation.StackSetDriftDetectionDetails.InProgressStackInstancesCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackSetOperation.StackSetDriftDetectionDetails.InSyncStackInstancesCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackSetOperation.StackSetDriftDetectionDetails.LastDriftCheckTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "StackSetOperation.StackSetDriftDetectionDetails.TotalStackInstancesCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackSetOperation.StackSetId",
+    "type": "string"
+   },
+   {
+    "path": "StackSetOperation.Status",
+    "type": "enum",
+    "enum": [
+     "STOPPING",
+     "STOPPED",
+     "QUEUED",
+     "RUNNING",
+     "SUCCEEDED",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "StackSetOperation.StatusDetails",
+    "type": "structure"
+   },
+   {
+    "path": "StackSetOperation.StatusDetails.FailedStackInstancesCount",
+    "type": "integer"
+   },
+   {
+    "path": "StackSetOperation.StatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeStacks",
+  "output": "DescribeStacksOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Stacks",
+    "type": "list"
+   },
+   {
+    "path": "Stacks[]",
+    "type": "structure"
+   },
+   {
+    "path": "Stacks[].Capabilities",
+    "type": "list"
+   },
+   {
+    "path": "Stacks[].Capabilities[]",
+    "type": "enum",
+    "enum": [
+     "CAPABILITY_IAM",
+     "CAPABILITY_NAMED_IAM",
+     "CAPABILITY_AUTO_EXPAND"
+    ]
+   },
+   {
+    "path": "Stacks[].ChangeSetId",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].CreationTime",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Stacks[].DeletionMode",
+    "type": "enum",
+    "enum": [
+     "STANDARD",
+     "FORCE_DELETE_STACK"
+    ]
+   },
+   {
+    "path": "Stacks[].DeletionTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Stacks[].DeploymentConfig",
+    "type": "structure"
+   },
+   {
+    "path": "Stacks[].DeploymentConfig.DisableRollback",
+    "type": "boolean"
+   },
+   {
+    "path": "Stacks[].DeploymentConfig.Mode",
+    "type": "enum",
+    "enum": [
+     "STANDARD",
+     "EXPRESS"
+    ]
+   },
+   {
+    "path": "Stacks[].Description",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].DetailedStatus",
+    "type": "enum",
+    "enum": [
+     "CONFIGURATION_COMPLETE",
+     "VALIDATION_FAILED"
+    ]
+   },
+   {
+    "path": "Stacks[].DisableRollback",
+    "type": "boolean"
+   },
+   {
+    "path": "Stacks[].DriftInformation",
+    "type": "structure"
+   },
+   {
+    "path": "Stacks[].DriftInformation.LastCheckTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "Stacks[].DriftInformation.StackDriftStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "DRIFTED",
+     "IN_SYNC",
+     "UNKNOWN",
+     "NOT_CHECKED"
+    ]
+   },
+   {
+    "path": "Stacks[].EnableTerminationProtection",
+    "type": "boolean"
+   },
+   {
+    "path": "Stacks[].LastOperations",
+    "type": "list"
+   },
+   {
+    "path": "Stacks[].LastOperations[]",
+    "type": "structure"
+   },
+   {
+    "path": "Stacks[].LastOperations[].OperationId",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].LastOperations[].OperationType",
+    "type": "enum",
+    "enum": [
+     "CREATE_STACK",
+     "UPDATE_STACK",
+     "DELETE_STACK",
+     "CONTINUE_ROLLBACK",
+     "ROLLBACK",
+     "CREATE_CHANGESET"
+    ]
+   },
+   {
+    "path": "Stacks[].LastUpdatedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Stacks[].NotificationARNs",
+    "type": "list"
+   },
+   {
+    "path": "Stacks[].NotificationARNs[]",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].Outputs",
+    "type": "list"
+   },
+   {
+    "path": "Stacks[].Outputs[]",
+    "type": "structure"
+   },
+   {
+    "path": "Stacks[].Outputs[].Description",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].Outputs[].ExportName",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].Outputs[].OutputKey",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].Outputs[].OutputValue",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].Parameters",
+    "type": "list"
+   },
+   {
+    "path": "Stacks[].Parameters[]",
+    "type": "structure"
+   },
+   {
+    "path": "Stacks[].Parameters[].ParameterKey",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].Parameters[].ParameterValue",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].Parameters[].ResolvedValue",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].Parameters[].UsePreviousValue",
+    "type": "boolean"
+   },
+   {
+    "path": "Stacks[].ParentId",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].RetainExceptOnCreate",
+    "type": "boolean"
+   },
+   {
+    "path": "Stacks[].RoleARN",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].RollbackConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "Stacks[].RollbackConfiguration.MonitoringTimeInMinutes",
+    "type": "integer"
+   },
+   {
+    "path": "Stacks[].RollbackConfiguration.RollbackTriggers",
+    "type": "list"
+   },
+   {
+    "path": "Stacks[].RollbackConfiguration.RollbackTriggers[]",
+    "type": "structure"
+   },
+   {
+    "path": "Stacks[].RootId",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].StackId",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].StackName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Stacks[].StackStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "CREATE_COMPLETE",
+     "DELETE_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "UPDATE_IN_PROGRESS",
+     "REVIEW_IN_PROGRESS",
+     "IMPORT_ROLLBACK_IN_PROGRESS",
+     "IMPORT_ROLLBACK_COMPLETE",
+     "ROLLBACK_IN_PROGRESS",
+     "ROLLBACK_FAILED",
+     "DELETE_FAILED",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "UPDATE_FAILED",
+     "UPDATE_ROLLBACK_IN_PROGRESS",
+     "CREATE_IN_PROGRESS",
+     "CREATE_FAILED",
+     "ROLLBACK_COMPLETE",
+     "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS",
+     "UPDATE_ROLLBACK_FAILED",
+     "IMPORT_COMPLETE",
+     "UPDATE_COMPLETE",
+     "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
+     "IMPORT_IN_PROGRESS",
+     "IMPORT_ROLLBACK_FAILED"
+    ]
+   },
+   {
+    "path": "Stacks[].StackStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "Stacks[].Tags",
+    "type": "list"
+   },
+   {
+    "path": "Stacks[].Tags[]",
+    "type": "structure"
+   },
+   {
+    "path": "Stacks[].Tags[].Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Stacks[].Tags[].Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Stacks[].TimeoutInMinutes",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeType",
+  "output": "DescribeTypeOutput",
+  "members": [
+   {
+    "path": "Arn",
+    "type": "string"
+   },
+   {
+    "path": "AutoUpdate",
+    "type": "boolean"
+   },
+   {
+    "path": "ConfigurationSchema",
+    "type": "string"
+   },
+   {
+    "path": "DefaultVersionId",
+    "type": "string"
+   },
+   {
+    "path": "DeprecatedStatus",
+    "type": "enum",
+    "enum": [
+     "LIVE",
+     "DEPRECATED"
+    ]
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "DocumentationUrl",
+    "type": "string"
+   },
+   {
+    "path": "ExecutionRoleArn",
+    "type": "string"
+   },
+   {
+    "path": "IsActivated",
+    "type": "boolean"
+   },
+   {
+    "path": "IsDefaultVersion",
+    "type": "boolean"
+   },
+   {
+    "path": "LastUpdated",
+    "type": "timestamp"
+   },
+   {
+    "path": "LatestPublicVersion",
+    "type": "string"
+   },
+   {
+    "path": "LoggingConfig",
+    "type": "structure"
+   },
+   {
+    "path": "LoggingConfig.LogGroupName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "LoggingConfig.LogRoleArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "OriginalTypeArn",
+    "type": "string"
+   },
+   {
+    "path": "OriginalTypeName",
+    "type": "string"
+   },
+   {
+    "path": "ProvisioningType",
+    "type": "enum",
+    "enum": [
+     "IMMUTABLE",
+     "FULLY_MUTABLE",
+     "NON_PROVISIONABLE"
+    ]
+   },
+   {
+    "path": "PublicVersionNumber",
+    "type": "string"
+   },
+   {
+    "path": "PublisherId",
+    "type": "string"
+   },
+   {
+    "path": "RequiredActivatedTypes",
+    "type": "list"
+   },
+   {
+    "path": "RequiredActivatedTypes[]",
+    "type": "structure"
+   },
+   {
+    "path": "RequiredActivatedTypes[].OriginalTypeName",
+    "type": "string"
+   },
+   {
+    "path": "RequiredActivatedTypes[].PublisherId",
+    "type": "string"
+   },
+   {
+    "path": "RequiredActivatedTypes[].SupportedMajorVersions",
+    "type": "list"
+   },
+   {
+    "path": "RequiredActivatedTypes[].SupportedMajorVersions[]",
+    "type": "integer"
+   },
+   {
+    "path": "RequiredActivatedTypes[].TypeNameAlias",
+    "type": "string"
+   },
+   {
+    "path": "Schema",
+    "type": "string"
+   },
+   {
+    "path": "SourceUrl",
+    "type": "string"
+   },
+   {
+    "path": "TimeCreated",
+    "type": "timestamp"
+   },
+   {
+    "path": "Type",
+    "type": "enum",
+    "enum": [
+     "RESOURCE",
+     "MODULE",
+     "HOOK"
+    ]
+   },
+   {
+    "path": "TypeName",
+    "type": "string"
+   },
+   {
+    "path": "TypeTestsStatus",
+    "type": "enum",
+    "enum": [
+     "PASSED",
+     "FAILED",
+     "IN_PROGRESS",
+     "NOT_TESTED"
+    ]
+   },
+   {
+    "path": "TypeTestsStatusDescription",
+    "type": "string"
+   },
+   {
+    "path": "Visibility",
+    "type": "enum",
+    "enum": [
+     "PUBLIC",
+     "PRIVATE"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "DescribeTypeRegistration",
+  "output": "DescribeTypeRegistrationOutput",
+  "members": [
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "ProgressStatus",
+    "type": "enum",
+    "enum": [
+     "COMPLETE",
+     "IN_PROGRESS",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "TypeArn",
+    "type": "string"
+   },
+   {
+    "path": "TypeVersionArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DetectStackDrift",
+  "output": "DetectStackDriftOutput",
+  "members": [
+   {
+    "path": "StackDriftDetectionId",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "DetectStackResourceDrift",
+  "output": "DetectStackResourceDriftOutput",
+  "members": [
+   {
+    "path": "StackResourceDrift",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrift.ActualProperties",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDrift.DriftStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDrift.ExpectedProperties",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDrift.LogicalResourceId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrift.ModuleInfo",
+    "type": "structure"
+   },
+   {
+    "path": "StackResourceDrift.ModuleInfo.LogicalIdHierarchy",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDrift.ModuleInfo.TypeHierarchy",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDrift.PhysicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceDrift.PhysicalResourceIdContext",
+    "type": "list"
+   },
+   {
+    "path": "StackResourceDrift.PhysicalResourceIdContext[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackResourceDrift.PhysicalResourceIdContext[].Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrift.PhysicalResourceIdContext[].Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrift.PropertyDifferences",
+    "type": "list"
+   },
+   {
+    "path": "StackResourceDrift.PropertyDifferences[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackResourceDrift.PropertyDifferences[].ActualValue",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrift.PropertyDifferences[].DifferenceType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "ADD",
+     "REMOVE",
+     "NOT_EQUAL"
+    ]
+   },
+   {
+    "path": "StackResourceDrift.PropertyDifferences[].ExpectedValue",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrift.PropertyDifferences[].PropertyPath",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrift.ResourceType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrift.StackId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceDrift.StackResourceDriftStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "MODIFIED",
+     "DELETED",
+     "NOT_CHECKED",
+     "UNKNOWN",
+     "UNSUPPORTED",
+     "IN_SYNC"
+    ]
+   },
+   {
+    "path": "StackResourceDrift.Timestamp",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "DetectStackSetDrift",
+  "output": "DetectStackSetDriftOutput",
+  "members": [
+   {
+    "path": "OperationId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "EstimateTemplateCost",
+  "output": "EstimateTemplateCostOutput",
+  "members": [
+   {
+    "path": "Url",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetGeneratedTemplate",
+  "output": "GetGeneratedTemplateOutput",
+  "members": [
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "CREATE_IN_PROGRESS",
+     "UPDATE_IN_PROGRESS",
+     "DELETE_IN_PROGRESS",
+     "FAILED",
+     "COMPLETE",
+     "CREATE_PENDING",
+     "UPDATE_PENDING",
+     "DELETE_PENDING"
+    ]
+   },
+   {
+    "path": "TemplateBody",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetHookResult",
+  "output": "GetHookResultOutput",
+  "members": [
+   {
+    "path": "Annotations",
+    "type": "list"
+   },
+   {
+    "path": "Annotations[]",
+    "type": "structure"
+   },
+   {
+    "path": "Annotations[].AnnotationName",
+    "type": "string"
+   },
+   {
+    "path": "Annotations[].RemediationLink",
+    "type": "string"
+   },
+   {
+    "path": "Annotations[].RemediationMessage",
+    "type": "string"
+   },
+   {
+    "path": "Annotations[].SeverityLevel",
+    "type": "enum",
+    "enum": [
+     "CRITICAL",
+     "INFORMATIONAL",
+     "LOW",
+     "MEDIUM",
+     "HIGH"
+    ]
+   },
+   {
+    "path": "Annotations[].Status",
+    "type": "enum",
+    "enum": [
+     "PASSED",
+     "FAILED",
+     "SKIPPED"
+    ]
+   },
+   {
+    "path": "Annotations[].StatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "FailureMode",
+    "type": "enum",
+    "enum": [
+     "FAIL",
+     "WARN"
+    ]
+   },
+   {
+    "path": "HookResultId",
+    "type": "string"
+   },
+   {
+    "path": "HookStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "InvocationPoint",
+    "type": "enum",
+    "enum": [
+     "PRE_PROVISION"
+    ]
+   },
+   {
+    "path": "InvokedAt",
+    "type": "timestamp"
+   },
+   {
+    "path": "OriginalTypeName",
+    "type": "string"
+   },
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "HOOK_COMPLETE_SUCCEEDED",
+     "HOOK_COMPLETE_FAILED",
+     "HOOK_FAILED",
+     "HOOK_IN_PROGRESS"
+    ]
+   },
+   {
+    "path": "Target",
+    "type": "structure"
+   },
+   {
+    "path": "Target.Action",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "UPDATE",
+     "DELETE",
+     "IMPORT",
+     "CREATE"
+    ]
+   },
+   {
+    "path": "Target.TargetId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Target.TargetType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "RESOURCE"
+    ]
+   },
+   {
+    "path": "Target.TargetTypeName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "TypeArn",
+    "type": "string"
+   },
+   {
+    "path": "TypeConfigurationVersionId",
+    "type": "string"
+   },
+   {
+    "path": "TypeName",
+    "type": "string"
+   },
+   {
+    "path": "TypeVersionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetStackPolicy",
+  "output": "GetStackPolicyOutput",
+  "members": [
+   {
+    "path": "StackPolicyBody",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetTemplate",
+  "output": "GetTemplateOutput",
+  "members": [
+   {
+    "path": "StagesAvailable",
+    "type": "list"
+   },
+   {
+    "path": "StagesAvailable[]",
+    "type": "enum",
+    "enum": [
+     "Original",
+     "Processed"
+    ]
+   },
+   {
+    "path": "TemplateBody",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetTemplateSummary",
+  "output": "GetTemplateSummaryOutput",
+  "members": [
+   {
+    "path": "Capabilities",
+    "type": "list"
+   },
+   {
+    "path": "CapabilitiesReason",
+    "type": "string"
+   },
+   {
+    "path": "Capabilities[]",
+    "type": "enum",
+    "enum": [
+     "CAPABILITY_IAM",
+     "CAPABILITY_NAMED_IAM",
+     "CAPABILITY_AUTO_EXPAND"
+    ]
+   },
+   {
+    "path": "DeclaredTransforms",
+    "type": "list"
+   },
+   {
+    "path": "DeclaredTransforms[]",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "Metadata",
+    "type": "string"
+   },
+   {
+    "path": "Parameters",
+    "type": "list"
+   },
+   {
+    "path": "Parameters[]",
+    "type": "structure"
+   },
+   {
+    "path": "Parameters[].DefaultValue",
+    "type": "string"
+   },
+   {
+    "path": "Parameters[].Description",
+    "type": "string"
+   },
+   {
+    "path": "Parameters[].NoEcho",
+    "type": "boolean"
+   },
+   {
+    "path": "Parameters[].ParameterConstraints",
+    "type": "structure"
+   },
+   {
+    "path": "Parameters[].ParameterConstraints.AllowedValues",
+    "type": "list"
+   },
+   {
+    "path": "Parameters[].ParameterConstraints.AllowedValues[]",
+    "type": "string"
+   },
+   {
+    "path": "Parameters[].ParameterKey",
+    "type": "string"
+   },
+   {
+    "path": "Parameters[].ParameterType",
+    "type": "string"
+   },
+   {
+    "path": "ResourceIdentifierSummaries",
+    "type": "list"
+   },
+   {
+    "path": "ResourceIdentifierSummaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "ResourceIdentifierSummaries[].LogicalResourceIds",
+    "type": "list"
+   },
+   {
+    "path": "ResourceIdentifierSummaries[].LogicalResourceIds[]",
+    "type": "string"
+   },
+   {
+    "path": "ResourceIdentifierSummaries[].ResourceIdentifiers",
+    "type": "list"
+   },
+   {
+    "path": "ResourceIdentifierSummaries[].ResourceIdentifiers[]",
+    "type": "string"
+   },
+   {
+    "path": "ResourceIdentifierSummaries[].ResourceType",
+    "type": "string"
+   },
+   {
+    "path": "ResourceTypes",
+    "type": "list"
+   },
+   {
+    "path": "ResourceTypes[]",
+    "type": "string"
+   },
+   {
+    "path": "Version",
+    "type": "string"
+   },
+   {
+    "path": "Warnings",
+    "type": "structure"
+   },
+   {
+    "path": "Warnings.UnrecognizedResourceTypes",
+    "type": "list"
+   },
+   {
+    "path": "Warnings.UnrecognizedResourceTypes[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ImportStacksToStackSet",
+  "output": "ImportStacksToStackSetOutput",
+  "members": [
+   {
+    "path": "OperationId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListChangeSets",
+  "output": "ListChangeSetsOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Summaries",
+    "type": "list"
+   },
+   {
+    "path": "Summaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].ChangeSetId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].ChangeSetName",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Summaries[].Description",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].ExecutionStatus",
+    "type": "enum",
+    "enum": [
+     "OBSOLETE",
+     "UNAVAILABLE",
+     "AVAILABLE",
+     "EXECUTE_IN_PROGRESS",
+     "EXECUTE_COMPLETE",
+     "EXECUTE_FAILED"
+    ]
+   },
+   {
+    "path": "Summaries[].ImportExistingResources",
+    "type": "boolean"
+   },
+   {
+    "path": "Summaries[].IncludeNestedStacks",
+    "type": "boolean"
+   },
+   {
+    "path": "Summaries[].ParentChangeSetId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].RootChangeSetId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].StackId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].StackName",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].Status",
+    "type": "enum",
+    "enum": [
+     "CREATE_COMPLETE",
+     "DELETE_PENDING",
+     "DELETE_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "DELETE_FAILED",
+     "FAILED",
+     "CREATE_PENDING",
+     "CREATE_IN_PROGRESS"
+    ]
+   },
+   {
+    "path": "Summaries[].StatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListExports",
+  "output": "ListExportsOutput",
+  "members": [
+   {
+    "path": "Exports",
+    "type": "list"
+   },
+   {
+    "path": "Exports[]",
+    "type": "structure"
+   },
+   {
+    "path": "Exports[].ExportingStackId",
+    "type": "string"
+   },
+   {
+    "path": "Exports[].Name",
+    "type": "string"
+   },
+   {
+    "path": "Exports[].Value",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListGeneratedTemplates",
+  "output": "ListGeneratedTemplatesOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Summaries",
+    "type": "list"
+   },
+   {
+    "path": "Summaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].CreationTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Summaries[].GeneratedTemplateId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].GeneratedTemplateName",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].LastUpdatedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "Summaries[].NumberOfResources",
+    "type": "integer"
+   },
+   {
+    "path": "Summaries[].Status",
+    "type": "enum",
+    "enum": [
+     "COMPLETE",
+     "CREATE_PENDING",
+     "UPDATE_PENDING",
+     "DELETE_PENDING",
+     "CREATE_IN_PROGRESS",
+     "UPDATE_IN_PROGRESS",
+     "DELETE_IN_PROGRESS",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "Summaries[].StatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListHookResults",
+  "output": "ListHookResultsOutput",
+  "members": [
+   {
+    "path": "HookResults",
+    "type": "list"
+   },
+   {
+    "path": "HookResults[]",
+    "type": "structure"
+   },
+   {
+    "path": "HookResults[].FailureMode",
+    "type": "enum",
+    "enum": [
+     "FAIL",
+     "WARN"
+    ]
+   },
+   {
+    "path": "HookResults[].HookExecutionTarget",
+    "type": "string"
+   },
+   {
+    "path": "HookResults[].HookResultId",
+    "type": "string"
+   },
+   {
+    "path": "HookResults[].HookStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "HookResults[].InvocationPoint",
+    "type": "enum",
+    "enum": [
+     "PRE_PROVISION"
+    ]
+   },
+   {
+    "path": "HookResults[].InvokedAt",
+    "type": "timestamp"
+   },
+   {
+    "path": "HookResults[].Status",
+    "type": "enum",
+    "enum": [
+     "HOOK_IN_PROGRESS",
+     "HOOK_COMPLETE_SUCCEEDED",
+     "HOOK_COMPLETE_FAILED",
+     "HOOK_FAILED"
+    ]
+   },
+   {
+    "path": "HookResults[].TargetId",
+    "type": "string"
+   },
+   {
+    "path": "HookResults[].TargetType",
+    "type": "enum",
+    "enum": [
+     "RESOURCE",
+     "CLOUD_CONTROL",
+     "CHANGE_SET",
+     "STACK"
+    ]
+   },
+   {
+    "path": "HookResults[].TypeArn",
+    "type": "string"
+   },
+   {
+    "path": "HookResults[].TypeConfigurationVersionId",
+    "type": "string"
+   },
+   {
+    "path": "HookResults[].TypeName",
+    "type": "string"
+   },
+   {
+    "path": "HookResults[].TypeVersionId",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "TargetId",
+    "type": "string"
+   },
+   {
+    "path": "TargetType",
+    "type": "enum",
+    "enum": [
+     "CHANGE_SET",
+     "STACK",
+     "RESOURCE",
+     "CLOUD_CONTROL"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "ListImports",
+  "output": "ListImportsOutput",
+  "members": [
+   {
+    "path": "Imports",
+    "type": "list"
+   },
+   {
+    "path": "Imports[]",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListResourceScanRelatedResources",
+  "output": "ListResourceScanRelatedResourcesOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "RelatedResources",
+    "type": "list"
+   },
+   {
+    "path": "RelatedResources[]",
+    "type": "structure"
+   },
+   {
+    "path": "RelatedResources[].ManagedByStack",
+    "type": "boolean"
+   },
+   {
+    "path": "RelatedResources[].ResourceIdentifier",
+    "type": "map"
+   },
+   {
+    "path": "RelatedResources[].ResourceIdentifier{}",
+    "type": "string"
+   },
+   {
+    "path": "RelatedResources[].ResourceType",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListResourceScanResources",
+  "output": "ListResourceScanResourcesOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Resources",
+    "type": "list"
+   },
+   {
+    "path": "Resources[]",
+    "type": "structure"
+   },
+   {
+    "path": "Resources[].ManagedByStack",
+    "type": "boolean"
+   },
+   {
+    "path": "Resources[].ResourceIdentifier",
+    "type": "map"
+   },
+   {
+    "path": "Resources[].ResourceIdentifier{}",
+    "type": "string"
+   },
+   {
+    "path": "Resources[].ResourceType",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListResourceScans",
+  "output": "ListResourceScansOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "ResourceScanSummaries",
+    "type": "list"
+   },
+   {
+    "path": "ResourceScanSummaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "ResourceScanSummaries[].EndTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "ResourceScanSummaries[].PercentageCompleted",
+    "type": "float"
+   },
+   {
+    "path": "ResourceScanSummaries[].ResourceScanId",
+    "type": "string"
+   },
+   {
+    "path": "ResourceScanSummaries[].ScanType",
+    "type": "enum",
+    "enum": [
+     "FULL",
+     "PARTIAL"
+    ]
+   },
+   {
+    "path": "ResourceScanSummaries[].StartTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "ResourceScanSummaries[].Status",
+    "type": "enum",
+    "enum": [
+     "EXPIRED",
+     "IN_PROGRESS",
+     "FAILED",
+     "COMPLETE"
+    ]
+   },
+   {
+    "path": "ResourceScanSummaries[].StatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListStackInstanceResourceDrifts",
+  "output": "ListStackInstanceResourceDriftsOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Summaries",
+    "type": "list"
+   },
+   {
+    "path": "Summaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].LogicalResourceId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Summaries[].PhysicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].PhysicalResourceIdContext",
+    "type": "list"
+   },
+   {
+    "path": "Summaries[].PhysicalResourceIdContext[]",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].PhysicalResourceIdContext[].Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Summaries[].PhysicalResourceIdContext[].Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Summaries[].PropertyDifferences",
+    "type": "list"
+   },
+   {
+    "path": "Summaries[].PropertyDifferences[]",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].PropertyDifferences[].ActualValue",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Summaries[].PropertyDifferences[].DifferenceType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "ADD",
+     "REMOVE",
+     "NOT_EQUAL"
+    ]
+   },
+   {
+    "path": "Summaries[].PropertyDifferences[].ExpectedValue",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Summaries[].PropertyDifferences[].PropertyPath",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Summaries[].ResourceType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Summaries[].StackId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Summaries[].StackResourceDriftStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "UNSUPPORTED",
+     "IN_SYNC",
+     "MODIFIED",
+     "DELETED",
+     "NOT_CHECKED",
+     "UNKNOWN"
+    ]
+   },
+   {
+    "path": "Summaries[].Timestamp",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "ListStackInstances",
+  "output": "ListStackInstancesOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Summaries",
+    "type": "list"
+   },
+   {
+    "path": "Summaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].Account",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].DriftStatus",
+    "type": "enum",
+    "enum": [
+     "DRIFTED",
+     "IN_SYNC",
+     "UNKNOWN",
+     "NOT_CHECKED"
+    ]
+   },
+   {
+    "path": "Summaries[].LastDriftCheckTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "Summaries[].LastOperationId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].OrganizationalUnitId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].Region",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].StackId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].StackInstanceStatus",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].StackInstanceStatus.DetailedStatus",
+    "type": "enum",
+    "enum": [
+     "CANCELLED",
+     "INOPERABLE",
+     "SKIPPED_SUSPENDED_ACCOUNT",
+     "FAILED_IMPORT",
+     "PENDING",
+     "RUNNING",
+     "SUCCEEDED",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "Summaries[].StackSetId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].Status",
+    "type": "enum",
+    "enum": [
+     "CURRENT",
+     "OUTDATED",
+     "INOPERABLE"
+    ]
+   },
+   {
+    "path": "Summaries[].StatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListStackRefactorActions",
+  "output": "ListStackRefactorActionsOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "StackRefactorActions",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "StackRefactorActions[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackRefactorActions[].Action",
+    "type": "enum",
+    "enum": [
+     "MOVE",
+     "CREATE"
+    ]
+   },
+   {
+    "path": "StackRefactorActions[].Description",
+    "type": "string"
+   },
+   {
+    "path": "StackRefactorActions[].Detection",
+    "type": "enum",
+    "enum": [
+     "AUTO",
+     "MANUAL"
+    ]
+   },
+   {
+    "path": "StackRefactorActions[].DetectionReason",
+    "type": "string"
+   },
+   {
+    "path": "StackRefactorActions[].Entity",
+    "type": "enum",
+    "enum": [
+     "RESOURCE",
+     "STACK"
+    ]
+   },
+   {
+    "path": "StackRefactorActions[].PhysicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "StackRefactorActions[].ResourceIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "StackRefactorActions[].ResourceMapping",
+    "type": "structure"
+   },
+   {
+    "path": "StackRefactorActions[].ResourceMapping.Destination",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "StackRefactorActions[].ResourceMapping.Destination.LogicalResourceId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackRefactorActions[].ResourceMapping.Destination.StackName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackRefactorActions[].ResourceMapping.Source",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "StackRefactorActions[].ResourceMapping.Source.LogicalResourceId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackRefactorActions[].ResourceMapping.Source.StackName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackRefactorActions[].TagResources",
+    "type": "list"
+   },
+   {
+    "path": "StackRefactorActions[].TagResources[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackRefactorActions[].TagResources[].Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackRefactorActions[].TagResources[].Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackRefactorActions[].UntagResources",
+    "type": "list"
+   },
+   {
+    "path": "StackRefactorActions[].UntagResources[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListStackRefactors",
+  "output": "ListStackRefactorsOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "StackRefactorSummaries",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "StackRefactorSummaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackRefactorSummaries[].Description",
+    "type": "string"
+   },
+   {
+    "path": "StackRefactorSummaries[].ExecutionStatus",
+    "type": "enum",
+    "enum": [
+     "UNAVAILABLE",
+     "AVAILABLE",
+     "OBSOLETE",
+     "EXECUTE_IN_PROGRESS",
+     "EXECUTE_FAILED",
+     "EXECUTE_COMPLETE",
+     "ROLLBACK_IN_PROGRESS",
+     "ROLLBACK_COMPLETE",
+     "ROLLBACK_FAILED"
+    ]
+   },
+   {
+    "path": "StackRefactorSummaries[].ExecutionStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "StackRefactorSummaries[].StackRefactorId",
+    "type": "string"
+   },
+   {
+    "path": "StackRefactorSummaries[].Status",
+    "type": "enum",
+    "enum": [
+     "CREATE_IN_PROGRESS",
+     "CREATE_COMPLETE",
+     "CREATE_FAILED",
+     "DELETE_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "DELETE_FAILED"
+    ]
+   },
+   {
+    "path": "StackRefactorSummaries[].StatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListStackResources",
+  "output": "ListStackResourcesOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceSummaries",
+    "type": "list"
+   },
+   {
+    "path": "StackResourceSummaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackResourceSummaries[].DriftInformation",
+    "type": "structure"
+   },
+   {
+    "path": "StackResourceSummaries[].DriftInformation.LastCheckTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "StackResourceSummaries[].DriftInformation.StackResourceDriftStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "UNSUPPORTED",
+     "IN_SYNC",
+     "MODIFIED",
+     "DELETED",
+     "NOT_CHECKED",
+     "UNKNOWN"
+    ]
+   },
+   {
+    "path": "StackResourceSummaries[].LastUpdatedTimestamp",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "StackResourceSummaries[].LogicalResourceId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackResourceSummaries[].ModuleInfo",
+    "type": "structure"
+   },
+   {
+    "path": "StackResourceSummaries[].ModuleInfo.LogicalIdHierarchy",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceSummaries[].ModuleInfo.TypeHierarchy",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceSummaries[].PhysicalResourceId",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceSummaries[].ResourceStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "EXPORT_IN_PROGRESS",
+     "EXPORT_ROLLBACK_FAILED",
+     "ROLLBACK_IN_PROGRESS",
+     "ROLLBACK_COMPLETE",
+     "DELETE_IN_PROGRESS",
+     "UPDATE_FAILED",
+     "UPDATE_COMPLETE",
+     "EXPORT_COMPLETE",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "ROLLBACK_FAILED",
+     "CREATE_COMPLETE",
+     "DELETE_SKIPPED",
+     "UPDATE_IN_PROGRESS",
+     "IMPORT_ROLLBACK_FAILED",
+     "EXPORT_FAILED",
+     "EXPORT_ROLLBACK_IN_PROGRESS",
+     "EXPORT_ROLLBACK_COMPLETE",
+     "UPDATE_ROLLBACK_FAILED",
+     "IMPORT_ROLLBACK_IN_PROGRESS",
+     "CREATE_IN_PROGRESS",
+     "CREATE_FAILED",
+     "DELETE_FAILED",
+     "IMPORT_FAILED",
+     "IMPORT_IN_PROGRESS",
+     "IMPORT_ROLLBACK_COMPLETE",
+     "UPDATE_ROLLBACK_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "IMPORT_COMPLETE"
+    ]
+   },
+   {
+    "path": "StackResourceSummaries[].ResourceStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "StackResourceSummaries[].ResourceType",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "ListStackSetAutoDeploymentTargets",
+  "output": "ListStackSetAutoDeploymentTargetsOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Summaries",
+    "type": "list"
+   },
+   {
+    "path": "Summaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].OrganizationalUnitId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].Regions",
+    "type": "list"
+   },
+   {
+    "path": "Summaries[].Regions[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListStackSetOperationResults",
+  "output": "ListStackSetOperationResultsOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Summaries",
+    "type": "list"
+   },
+   {
+    "path": "Summaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].Account",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].AccountGateResult",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].AccountGateResult.Status",
+    "type": "enum",
+    "enum": [
+     "SKIPPED",
+     "SUCCEEDED",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "Summaries[].AccountGateResult.StatusReason",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].OrganizationalUnitId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].Region",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].Status",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "RUNNING",
+     "SUCCEEDED",
+     "FAILED",
+     "CANCELLED"
+    ]
+   },
+   {
+    "path": "Summaries[].StatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListStackSetOperations",
+  "output": "ListStackSetOperationsOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Summaries",
+    "type": "list"
+   },
+   {
+    "path": "Summaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].Action",
+    "type": "enum",
+    "enum": [
+     "DELETE",
+     "DETECT_DRIFT",
+     "CREATE",
+     "UPDATE"
+    ]
+   },
+   {
+    "path": "Summaries[].CreationTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "Summaries[].EndTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "Summaries[].OperationId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].OperationPreferences",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].OperationPreferences.ConcurrencyMode",
+    "type": "enum",
+    "enum": [
+     "STRICT_FAILURE_TOLERANCE",
+     "SOFT_FAILURE_TOLERANCE"
+    ]
+   },
+   {
+    "path": "Summaries[].OperationPreferences.FailureToleranceCount",
+    "type": "integer"
+   },
+   {
+    "path": "Summaries[].OperationPreferences.FailureTolerancePercentage",
+    "type": "integer"
+   },
+   {
+    "path": "Summaries[].OperationPreferences.MaxConcurrentCount",
+    "type": "integer"
+   },
+   {
+    "path": "Summaries[].OperationPreferences.MaxConcurrentPercentage",
+    "type": "integer"
+   },
+   {
+    "path": "Summaries[].OperationPreferences.RegionConcurrencyType",
+    "type": "enum",
+    "enum": [
+     "SEQUENTIAL",
+     "PARALLEL"
+    ]
+   },
+   {
+    "path": "Summaries[].OperationPreferences.RegionOrder",
+    "type": "list"
+   },
+   {
+    "path": "Summaries[].OperationPreferences.RegionOrder[]",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].Status",
+    "type": "enum",
+    "enum": [
+     "STOPPING",
+     "STOPPED",
+     "QUEUED",
+     "RUNNING",
+     "SUCCEEDED",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "Summaries[].StatusDetails",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].StatusDetails.FailedStackInstancesCount",
+    "type": "integer"
+   },
+   {
+    "path": "Summaries[].StatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListStackSets",
+  "output": "ListStackSetsOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Summaries",
+    "type": "list"
+   },
+   {
+    "path": "Summaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].AutoDeployment",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].AutoDeployment.DependsOn",
+    "type": "list"
+   },
+   {
+    "path": "Summaries[].AutoDeployment.DependsOn[]",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].AutoDeployment.Enabled",
+    "type": "boolean"
+   },
+   {
+    "path": "Summaries[].AutoDeployment.RetainStacksOnAccountRemoval",
+    "type": "boolean"
+   },
+   {
+    "path": "Summaries[].Description",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].DriftStatus",
+    "type": "enum",
+    "enum": [
+     "DRIFTED",
+     "IN_SYNC",
+     "UNKNOWN",
+     "NOT_CHECKED"
+    ]
+   },
+   {
+    "path": "Summaries[].LastDriftCheckTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "Summaries[].ManagedExecution",
+    "type": "structure"
+   },
+   {
+    "path": "Summaries[].ManagedExecution.Active",
+    "type": "boolean"
+   },
+   {
+    "path": "Summaries[].PermissionModel",
+    "type": "enum",
+    "enum": [
+     "SERVICE_MANAGED",
+     "SELF_MANAGED"
+    ]
+   },
+   {
+    "path": "Summaries[].StackSetId",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].StackSetName",
+    "type": "string"
+   },
+   {
+    "path": "Summaries[].Status",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "DELETED"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "ListStacks",
+  "output": "ListStacksOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "StackSummaries",
+    "type": "list"
+   },
+   {
+    "path": "StackSummaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackSummaries[].CreationTime",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "StackSummaries[].DeletionTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "StackSummaries[].DriftInformation",
+    "type": "structure"
+   },
+   {
+    "path": "StackSummaries[].DriftInformation.LastCheckTimestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "StackSummaries[].DriftInformation.StackDriftStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "NOT_CHECKED",
+     "DRIFTED",
+     "IN_SYNC",
+     "UNKNOWN"
+    ]
+   },
+   {
+    "path": "StackSummaries[].LastOperations",
+    "type": "list"
+   },
+   {
+    "path": "StackSummaries[].LastOperations[]",
+    "type": "structure"
+   },
+   {
+    "path": "StackSummaries[].LastOperations[].OperationId",
+    "type": "string"
+   },
+   {
+    "path": "StackSummaries[].LastOperations[].OperationType",
+    "type": "enum",
+    "enum": [
+     "DELETE_STACK",
+     "CONTINUE_ROLLBACK",
+     "ROLLBACK",
+     "CREATE_CHANGESET",
+     "CREATE_STACK",
+     "UPDATE_STACK"
+    ]
+   },
+   {
+    "path": "StackSummaries[].LastUpdatedTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "StackSummaries[].ParentId",
+    "type": "string"
+   },
+   {
+    "path": "StackSummaries[].RootId",
+    "type": "string"
+   },
+   {
+    "path": "StackSummaries[].StackId",
+    "type": "string"
+   },
+   {
+    "path": "StackSummaries[].StackName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "StackSummaries[].StackStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "CREATE_FAILED",
+     "ROLLBACK_COMPLETE",
+     "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS",
+     "UPDATE_ROLLBACK_FAILED",
+     "IMPORT_COMPLETE",
+     "UPDATE_COMPLETE",
+     "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
+     "IMPORT_IN_PROGRESS",
+     "IMPORT_ROLLBACK_FAILED",
+     "CREATE_COMPLETE",
+     "DELETE_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "UPDATE_IN_PROGRESS",
+     "REVIEW_IN_PROGRESS",
+     "IMPORT_ROLLBACK_IN_PROGRESS",
+     "IMPORT_ROLLBACK_COMPLETE",
+     "ROLLBACK_IN_PROGRESS",
+     "ROLLBACK_FAILED",
+     "DELETE_FAILED",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "UPDATE_FAILED",
+     "UPDATE_ROLLBACK_IN_PROGRESS",
+     "CREATE_IN_PROGRESS"
+    ]
+   },
+   {
+    "path": "StackSummaries[].StackStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "StackSummaries[].TemplateDescription",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListTypeRegistrations",
+  "output": "ListTypeRegistrationsOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "RegistrationTokenList",
+    "type": "list"
+   },
+   {
+    "path": "RegistrationTokenList[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListTypeVersions",
+  "output": "ListTypeVersionsOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "TypeVersionSummaries",
+    "type": "list"
+   },
+   {
+    "path": "TypeVersionSummaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "TypeVersionSummaries[].Arn",
+    "type": "string"
+   },
+   {
+    "path": "TypeVersionSummaries[].Description",
+    "type": "string"
+   },
+   {
+    "path": "TypeVersionSummaries[].IsDefaultVersion",
+    "type": "boolean"
+   },
+   {
+    "path": "TypeVersionSummaries[].PublicVersionNumber",
+    "type": "string"
+   },
+   {
+    "path": "TypeVersionSummaries[].TimeCreated",
+    "type": "timestamp"
+   },
+   {
+    "path": "TypeVersionSummaries[].Type",
+    "type": "enum",
+    "enum": [
+     "RESOURCE",
+     "MODULE",
+     "HOOK"
+    ]
+   },
+   {
+    "path": "TypeVersionSummaries[].TypeName",
+    "type": "string"
+   },
+   {
+    "path": "TypeVersionSummaries[].VersionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListTypes",
+  "output": "ListTypesOutput",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "TypeSummaries",
+    "type": "list"
+   },
+   {
+    "path": "TypeSummaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "TypeSummaries[].DefaultVersionId",
+    "type": "string"
+   },
+   {
+    "path": "TypeSummaries[].Description",
+    "type": "string"
+   },
+   {
+    "path": "TypeSummaries[].IsActivated",
+    "type": "boolean"
+   },
+   {
+    "path": "TypeSummaries[].LastUpdated",
+    "type": "timestamp"
+   },
+   {
+    "path": "TypeSummaries[].LatestPublicVersion",
+    "type": "string"
+   },
+   {
+    "path": "TypeSummaries[].OriginalTypeName",
+    "type": "string"
+   },
+   {
+    "path": "TypeSummaries[].PublicVersionNumber",
+    "type": "string"
+   },
+   {
+    "path": "TypeSummaries[].PublisherId",
+    "type": "string"
+   },
+   {
+    "path": "TypeSummaries[].PublisherIdentity",
+    "type": "enum",
+    "enum": [
+     "AWS_Marketplace",
+     "GitHub",
+     "Bitbucket"
+    ]
+   },
+   {
+    "path": "TypeSummaries[].PublisherName",
+    "type": "string"
+   },
+   {
+    "path": "TypeSummaries[].Type",
+    "type": "enum",
+    "enum": [
+     "RESOURCE",
+     "MODULE",
+     "HOOK"
+    ]
+   },
+   {
+    "path": "TypeSummaries[].TypeArn",
+    "type": "string"
+   },
+   {
+    "path": "TypeSummaries[].TypeName",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PublishType",
+  "output": "PublishTypeOutput",
+  "members": [
+   {
+    "path": "PublicTypeArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "RegisterPublisher",
+  "output": "RegisterPublisherOutput",
+  "members": [
+   {
+    "path": "PublisherId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "RegisterType",
+  "output": "RegisterTypeOutput",
+  "members": [
+   {
+    "path": "RegistrationToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "RollbackStack",
+  "output": "RollbackStackOutput",
+  "members": [
+   {
+    "path": "OperationId",
+    "type": "string"
+   },
+   {
+    "path": "StackId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "SetTypeConfiguration",
+  "output": "SetTypeConfigurationOutput",
+  "members": [
+   {
+    "path": "ConfigurationArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "StartResourceScan",
+  "output": "StartResourceScanOutput",
+  "members": [
+   {
+    "path": "ResourceScanId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "TestType",
+  "output": "TestTypeOutput",
+  "members": [
+   {
+    "path": "TypeVersionArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateGeneratedTemplate",
+  "output": "UpdateGeneratedTemplateOutput",
+  "members": [
+   {
+    "path": "GeneratedTemplateId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateStack",
+  "output": "UpdateStackOutput",
+  "members": [
+   {
+    "path": "OperationId",
+    "type": "string"
+   },
+   {
+    "path": "StackId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateStackInstances",
+  "output": "UpdateStackInstancesOutput",
+  "members": [
+   {
+    "path": "OperationId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateStackSet",
+  "output": "UpdateStackSetOutput",
+  "members": [
+   {
+    "path": "OperationId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateTerminationProtection",
+  "output": "UpdateTerminationProtectionOutput",
+  "members": [
+   {
+    "path": "StackId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ValidateTemplate",
+  "output": "ValidateTemplateOutput",
+  "members": [
+   {
+    "path": "Capabilities",
+    "type": "list"
+   },
+   {
+    "path": "CapabilitiesReason",
+    "type": "string"
+   },
+   {
+    "path": "Capabilities[]",
+    "type": "enum",
+    "enum": [
+     "CAPABILITY_IAM",
+     "CAPABILITY_NAMED_IAM",
+     "CAPABILITY_AUTO_EXPAND"
+    ]
+   },
+   {
+    "path": "DeclaredTransforms",
+    "type": "list"
+   },
+   {
+    "path": "DeclaredTransforms[]",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "Parameters",
+    "type": "list"
+   },
+   {
+    "path": "Parameters[]",
+    "type": "structure"
+   },
+   {
+    "path": "Parameters[].DefaultValue",
+    "type": "string"
+   },
+   {
+    "path": "Parameters[].Description",
+    "type": "string"
+   },
+   {
+    "path": "Parameters[].NoEcho",
+    "type": "boolean"
+   },
+   {
+    "path": "Parameters[].ParameterKey",
+    "type": "string"
+   }
+  ]
+ }
+]

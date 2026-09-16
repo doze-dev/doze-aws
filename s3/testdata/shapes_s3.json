@@ -1,0 +1,4957 @@
+[
+ {
+  "operation": "AbortMultipartUpload",
+  "output": "AbortMultipartUploadOutput",
+  "members": [
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "CompleteMultipartUpload",
+  "output": "CompleteMultipartUploadOutput",
+  "members": [
+   {
+    "path": "Bucket",
+    "type": "string"
+   },
+   {
+    "path": "BucketKeyEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "ChecksumCRC32",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC32C",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC64NVME",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumMD5",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA1",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA256",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA512",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumType",
+    "type": "enum",
+    "enum": [
+     "COMPOSITE",
+     "FULL_OBJECT"
+    ]
+   },
+   {
+    "path": "ChecksumXXHASH128",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH3",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH64",
+    "type": "string"
+   },
+   {
+    "path": "ETag",
+    "type": "string"
+   },
+   {
+    "path": "Expiration",
+    "type": "string"
+   },
+   {
+    "path": "Key",
+    "type": "string"
+   },
+   {
+    "path": "Location",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "SSEKMSKeyId",
+    "type": "string"
+   },
+   {
+    "path": "ServerSideEncryption",
+    "type": "enum",
+    "enum": [
+     "aws:kms:dsse",
+     "AES256",
+     "aws:fsx",
+     "aws:backup",
+     "aws:kms"
+    ]
+   },
+   {
+    "path": "VersionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CopyObject",
+  "output": "CopyObjectOutput",
+  "members": [
+   {
+    "path": "BucketKeyEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "CopyObjectResult",
+    "type": "structure"
+   },
+   {
+    "path": "CopyObjectResult.ChecksumCRC32",
+    "type": "string"
+   },
+   {
+    "path": "CopyObjectResult.ChecksumCRC32C",
+    "type": "string"
+   },
+   {
+    "path": "CopyObjectResult.ChecksumCRC64NVME",
+    "type": "string"
+   },
+   {
+    "path": "CopyObjectResult.ChecksumMD5",
+    "type": "string"
+   },
+   {
+    "path": "CopyObjectResult.ChecksumSHA1",
+    "type": "string"
+   },
+   {
+    "path": "CopyObjectResult.ChecksumSHA256",
+    "type": "string"
+   },
+   {
+    "path": "CopyObjectResult.ChecksumSHA512",
+    "type": "string"
+   },
+   {
+    "path": "CopyObjectResult.ChecksumType",
+    "type": "enum",
+    "enum": [
+     "COMPOSITE",
+     "FULL_OBJECT"
+    ]
+   },
+   {
+    "path": "CopyObjectResult.ChecksumXXHASH128",
+    "type": "string"
+   },
+   {
+    "path": "CopyObjectResult.ChecksumXXHASH3",
+    "type": "string"
+   },
+   {
+    "path": "CopyObjectResult.ChecksumXXHASH64",
+    "type": "string"
+   },
+   {
+    "path": "CopyObjectResult.ETag",
+    "type": "string"
+   },
+   {
+    "path": "CopyObjectResult.LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "CopySourceVersionId",
+    "type": "string"
+   },
+   {
+    "path": "Expiration",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "SSECustomerAlgorithm",
+    "type": "string"
+   },
+   {
+    "path": "SSECustomerKeyMD5",
+    "type": "string"
+   },
+   {
+    "path": "SSEKMSEncryptionContext",
+    "type": "string"
+   },
+   {
+    "path": "SSEKMSKeyId",
+    "type": "string"
+   },
+   {
+    "path": "ServerSideEncryption",
+    "type": "enum",
+    "enum": [
+     "aws:kms:dsse",
+     "AES256",
+     "aws:fsx",
+     "aws:backup",
+     "aws:kms"
+    ]
+   },
+   {
+    "path": "VersionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateBucket",
+  "output": "CreateBucketOutput",
+  "members": [
+   {
+    "path": "BucketArn",
+    "type": "string"
+   },
+   {
+    "path": "Location",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateMultipartUpload",
+  "output": "CreateMultipartUploadOutput",
+  "members": [
+   {
+    "path": "AbortDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "AbortRuleId",
+    "type": "string"
+   },
+   {
+    "path": "Bucket",
+    "type": "string"
+   },
+   {
+    "path": "BucketKeyEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "ChecksumAlgorithm",
+    "type": "enum",
+    "enum": [
+     "CRC32",
+     "SHA1",
+     "XXHASH64",
+     "CRC32C",
+     "SHA256",
+     "CRC64NVME",
+     "SHA512",
+     "MD5",
+     "XXHASH3",
+     "XXHASH128"
+    ]
+   },
+   {
+    "path": "ChecksumType",
+    "type": "enum",
+    "enum": [
+     "COMPOSITE",
+     "FULL_OBJECT"
+    ]
+   },
+   {
+    "path": "Key",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "SSECustomerAlgorithm",
+    "type": "string"
+   },
+   {
+    "path": "SSECustomerKeyMD5",
+    "type": "string"
+   },
+   {
+    "path": "SSEKMSEncryptionContext",
+    "type": "string"
+   },
+   {
+    "path": "SSEKMSKeyId",
+    "type": "string"
+   },
+   {
+    "path": "ServerSideEncryption",
+    "type": "enum",
+    "enum": [
+     "AES256",
+     "aws:fsx",
+     "aws:backup",
+     "aws:kms",
+     "aws:kms:dsse"
+    ]
+   },
+   {
+    "path": "UploadId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateSession",
+  "output": "CreateSessionOutput",
+  "members": [
+   {
+    "path": "BucketKeyEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "Credentials",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Credentials.AccessKeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.Expiration",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Credentials.SecretAccessKey",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Credentials.SessionToken",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "SSEKMSEncryptionContext",
+    "type": "string"
+   },
+   {
+    "path": "SSEKMSKeyId",
+    "type": "string"
+   },
+   {
+    "path": "ServerSideEncryption",
+    "type": "enum",
+    "enum": [
+     "AES256",
+     "aws:fsx",
+     "aws:backup",
+     "aws:kms",
+     "aws:kms:dsse"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "DeleteObject",
+  "output": "DeleteObjectOutput",
+  "members": [
+   {
+    "path": "DeleteMarker",
+    "type": "boolean"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "VersionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DeleteObjectAnnotation",
+  "output": "DeleteObjectAnnotationOutput",
+  "members": [
+   {
+    "path": "ObjectVersionId",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "DeleteObjectTagging",
+  "output": "DeleteObjectTaggingOutput",
+  "members": [
+   {
+    "path": "VersionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DeleteObjects",
+  "output": "DeleteObjectsOutput",
+  "members": [
+   {
+    "path": "Deleted",
+    "type": "list"
+   },
+   {
+    "path": "Deleted[]",
+    "type": "structure"
+   },
+   {
+    "path": "Deleted[].DeleteMarker",
+    "type": "boolean"
+   },
+   {
+    "path": "Deleted[].DeleteMarkerVersionId",
+    "type": "string"
+   },
+   {
+    "path": "Deleted[].Key",
+    "type": "string"
+   },
+   {
+    "path": "Deleted[].VersionId",
+    "type": "string"
+   },
+   {
+    "path": "Errors",
+    "type": "list"
+   },
+   {
+    "path": "Errors[]",
+    "type": "structure"
+   },
+   {
+    "path": "Errors[].Code",
+    "type": "string"
+   },
+   {
+    "path": "Errors[].Key",
+    "type": "string"
+   },
+   {
+    "path": "Errors[].Message",
+    "type": "string"
+   },
+   {
+    "path": "Errors[].VersionId",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketAbac",
+  "output": "GetBucketAbacOutput",
+  "members": [
+   {
+    "path": "AbacStatus",
+    "type": "structure"
+   },
+   {
+    "path": "AbacStatus.Status",
+    "type": "enum",
+    "enum": [
+     "Enabled",
+     "Disabled"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketAccelerateConfiguration",
+  "output": "GetBucketAccelerateConfigurationOutput",
+  "members": [
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "Enabled",
+     "Suspended"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketAcl",
+  "output": "GetBucketAclOutput",
+  "members": [
+   {
+    "path": "Grants",
+    "type": "list"
+   },
+   {
+    "path": "Grants[]",
+    "type": "structure"
+   },
+   {
+    "path": "Grants[].Grantee",
+    "type": "structure"
+   },
+   {
+    "path": "Grants[].Grantee.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Grantee.EmailAddress",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Grantee.ID",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Grantee.Type",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "CanonicalUser",
+     "AmazonCustomerByEmail",
+     "Group"
+    ]
+   },
+   {
+    "path": "Grants[].Grantee.URI",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Permission",
+    "type": "enum",
+    "enum": [
+     "WRITE",
+     "WRITE_ACP",
+     "READ",
+     "READ_ACP",
+     "FULL_CONTROL"
+    ]
+   },
+   {
+    "path": "Owner",
+    "type": "structure"
+   },
+   {
+    "path": "Owner.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "Owner.ID",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketAnalyticsConfiguration",
+  "output": "GetBucketAnalyticsConfigurationOutput",
+  "members": [
+   {
+    "path": "AnalyticsConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "AnalyticsConfiguration.Filter",
+    "type": "any"
+   },
+   {
+    "path": "AnalyticsConfiguration.Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "AnalyticsConfiguration.StorageClassAnalysis",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "AnalyticsConfiguration.StorageClassAnalysis.DataExport",
+    "type": "structure"
+   },
+   {
+    "path": "AnalyticsConfiguration.StorageClassAnalysis.DataExport.Destination",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "AnalyticsConfiguration.StorageClassAnalysis.DataExport.Destination.S3BucketDestination",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "AnalyticsConfiguration.StorageClassAnalysis.DataExport.OutputSchemaVersion",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "V_1"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketCors",
+  "output": "GetBucketCorsOutput",
+  "members": [
+   {
+    "path": "CORSRules",
+    "type": "list"
+   },
+   {
+    "path": "CORSRules[]",
+    "type": "structure"
+   },
+   {
+    "path": "CORSRules[].AllowedHeaders",
+    "type": "list"
+   },
+   {
+    "path": "CORSRules[].AllowedHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "CORSRules[].AllowedMethods",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "CORSRules[].AllowedMethods[]",
+    "type": "string"
+   },
+   {
+    "path": "CORSRules[].AllowedOrigins",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "CORSRules[].AllowedOrigins[]",
+    "type": "string"
+   },
+   {
+    "path": "CORSRules[].ExposeHeaders",
+    "type": "list"
+   },
+   {
+    "path": "CORSRules[].ExposeHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "CORSRules[].ID",
+    "type": "string"
+   },
+   {
+    "path": "CORSRules[].MaxAgeSeconds",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketEncryption",
+  "output": "GetBucketEncryptionOutput",
+  "members": [
+   {
+    "path": "ServerSideEncryptionConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ServerSideEncryptionConfiguration.Rules",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "ServerSideEncryptionConfiguration.Rules[]",
+    "type": "structure"
+   },
+   {
+    "path": "ServerSideEncryptionConfiguration.Rules[].ApplyServerSideEncryptionByDefault",
+    "type": "structure"
+   },
+   {
+    "path": "ServerSideEncryptionConfiguration.Rules[].ApplyServerSideEncryptionByDefault.KMSMasterKeyID",
+    "type": "string"
+   },
+   {
+    "path": "ServerSideEncryptionConfiguration.Rules[].ApplyServerSideEncryptionByDefault.SSEAlgorithm",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "AES256",
+     "aws:fsx",
+     "aws:backup",
+     "aws:kms",
+     "aws:kms:dsse"
+    ]
+   },
+   {
+    "path": "ServerSideEncryptionConfiguration.Rules[].BlockedEncryptionTypes",
+    "type": "structure"
+   },
+   {
+    "path": "ServerSideEncryptionConfiguration.Rules[].BlockedEncryptionTypes.EncryptionType",
+    "type": "list"
+   },
+   {
+    "path": "ServerSideEncryptionConfiguration.Rules[].BucketKeyEnabled",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketIntelligentTieringConfiguration",
+  "output": "GetBucketIntelligentTieringConfigurationOutput",
+  "members": [
+   {
+    "path": "IntelligentTieringConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Filter",
+    "type": "structure"
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Filter.And",
+    "type": "structure"
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Filter.And.Prefix",
+    "type": "string"
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Filter.And.Tags",
+    "type": "list"
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Filter.And.Tags[]",
+    "type": "structure"
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Filter.Prefix",
+    "type": "string"
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Filter.Tag",
+    "type": "structure"
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Filter.Tag.Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Filter.Tag.Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Status",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "Enabled",
+     "Disabled"
+    ]
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Tierings",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Tierings[]",
+    "type": "structure"
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Tierings[].AccessTier",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "ARCHIVE_ACCESS",
+     "DEEP_ARCHIVE_ACCESS"
+    ]
+   },
+   {
+    "path": "IntelligentTieringConfiguration.Tierings[].Days",
+    "type": "integer",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketInventoryConfiguration",
+  "output": "GetBucketInventoryConfigurationOutput",
+  "members": [
+   {
+    "path": "InventoryConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "InventoryConfiguration.Destination",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "InventoryConfiguration.Destination.S3BucketDestination",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "InventoryConfiguration.Destination.S3BucketDestination.AccountId",
+    "type": "string"
+   },
+   {
+    "path": "InventoryConfiguration.Destination.S3BucketDestination.Bucket",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "InventoryConfiguration.Destination.S3BucketDestination.Encryption",
+    "type": "structure"
+   },
+   {
+    "path": "InventoryConfiguration.Destination.S3BucketDestination.Encryption.SSEKMS",
+    "type": "structure"
+   },
+   {
+    "path": "InventoryConfiguration.Destination.S3BucketDestination.Encryption.SSES3",
+    "type": "structure"
+   },
+   {
+    "path": "InventoryConfiguration.Destination.S3BucketDestination.Format",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "CSV",
+     "ORC",
+     "Parquet"
+    ]
+   },
+   {
+    "path": "InventoryConfiguration.Destination.S3BucketDestination.Prefix",
+    "type": "string"
+   },
+   {
+    "path": "InventoryConfiguration.Filter",
+    "type": "structure"
+   },
+   {
+    "path": "InventoryConfiguration.Filter.Prefix",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "InventoryConfiguration.Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "InventoryConfiguration.IncludedObjectVersions",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "All",
+     "Current"
+    ]
+   },
+   {
+    "path": "InventoryConfiguration.IsEnabled",
+    "type": "boolean",
+    "required": true
+   },
+   {
+    "path": "InventoryConfiguration.OptionalFields",
+    "type": "list"
+   },
+   {
+    "path": "InventoryConfiguration.OptionalFields[]",
+    "type": "enum",
+    "enum": [
+     "ReplicationStatus",
+     "ObjectLockLegalHoldStatus",
+     "StorageClass",
+     "ETag",
+     "EncryptionStatus",
+     "ObjectLockRetainUntilDate",
+     "ObjectLockMode",
+     "ObjectAccessControlList",
+     "LifecycleExpirationDate",
+     "Size",
+     "LastModifiedDate",
+     "BucketKeyStatus",
+     "ObjectOwner",
+     "IsMultipartUploaded",
+     "IntelligentTieringAccessTier",
+     "ChecksumAlgorithm"
+    ]
+   },
+   {
+    "path": "InventoryConfiguration.Schedule",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "InventoryConfiguration.Schedule.Frequency",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "Daily",
+     "Weekly"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketLifecycleConfiguration",
+  "output": "GetBucketLifecycleConfigurationOutput",
+  "members": [
+   {
+    "path": "Rules",
+    "type": "list"
+   },
+   {
+    "path": "Rules[]",
+    "type": "structure"
+   },
+   {
+    "path": "Rules[].AbortIncompleteMultipartUpload",
+    "type": "structure"
+   },
+   {
+    "path": "Rules[].AbortIncompleteMultipartUpload.DaysAfterInitiation",
+    "type": "integer"
+   },
+   {
+    "path": "Rules[].Expiration",
+    "type": "structure"
+   },
+   {
+    "path": "Rules[].Expiration.Date",
+    "type": "timestamp"
+   },
+   {
+    "path": "Rules[].Expiration.Days",
+    "type": "integer"
+   },
+   {
+    "path": "Rules[].Expiration.ExpiredObjectDeleteMarker",
+    "type": "boolean"
+   },
+   {
+    "path": "Rules[].Filter",
+    "type": "structure"
+   },
+   {
+    "path": "Rules[].Filter.And",
+    "type": "structure"
+   },
+   {
+    "path": "Rules[].Filter.And.ObjectSizeGreaterThan",
+    "type": "integer"
+   },
+   {
+    "path": "Rules[].Filter.And.ObjectSizeLessThan",
+    "type": "integer"
+   },
+   {
+    "path": "Rules[].Filter.And.Prefix",
+    "type": "string"
+   },
+   {
+    "path": "Rules[].Filter.And.Tags",
+    "type": "list"
+   },
+   {
+    "path": "Rules[].Filter.ObjectSizeGreaterThan",
+    "type": "integer"
+   },
+   {
+    "path": "Rules[].Filter.ObjectSizeLessThan",
+    "type": "integer"
+   },
+   {
+    "path": "Rules[].Filter.Prefix",
+    "type": "string"
+   },
+   {
+    "path": "Rules[].Filter.Tag",
+    "type": "structure"
+   },
+   {
+    "path": "Rules[].Filter.Tag.Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Rules[].Filter.Tag.Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Rules[].ID",
+    "type": "string"
+   },
+   {
+    "path": "Rules[].NoncurrentVersionExpiration",
+    "type": "structure"
+   },
+   {
+    "path": "Rules[].NoncurrentVersionExpiration.NewerNoncurrentVersions",
+    "type": "integer"
+   },
+   {
+    "path": "Rules[].NoncurrentVersionExpiration.NoncurrentDays",
+    "type": "integer"
+   },
+   {
+    "path": "Rules[].NoncurrentVersionTransitions",
+    "type": "list"
+   },
+   {
+    "path": "Rules[].NoncurrentVersionTransitions[]",
+    "type": "structure"
+   },
+   {
+    "path": "Rules[].NoncurrentVersionTransitions[].NewerNoncurrentVersions",
+    "type": "integer"
+   },
+   {
+    "path": "Rules[].NoncurrentVersionTransitions[].NoncurrentDays",
+    "type": "integer"
+   },
+   {
+    "path": "Rules[].NoncurrentVersionTransitions[].StorageClass",
+    "type": "enum",
+    "enum": [
+     "GLACIER",
+     "STANDARD_IA",
+     "ONEZONE_IA",
+     "INTELLIGENT_TIERING",
+     "DEEP_ARCHIVE",
+     "GLACIER_IR"
+    ]
+   },
+   {
+    "path": "Rules[].Prefix",
+    "type": "string"
+   },
+   {
+    "path": "Rules[].Status",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "Enabled",
+     "Disabled"
+    ]
+   },
+   {
+    "path": "Rules[].Transitions",
+    "type": "list"
+   },
+   {
+    "path": "Rules[].Transitions[]",
+    "type": "structure"
+   },
+   {
+    "path": "Rules[].Transitions[].Date",
+    "type": "timestamp"
+   },
+   {
+    "path": "Rules[].Transitions[].Days",
+    "type": "integer"
+   },
+   {
+    "path": "Rules[].Transitions[].StorageClass",
+    "type": "enum",
+    "enum": [
+     "GLACIER_IR",
+     "GLACIER",
+     "STANDARD_IA",
+     "ONEZONE_IA",
+     "INTELLIGENT_TIERING",
+     "DEEP_ARCHIVE"
+    ]
+   },
+   {
+    "path": "TransitionDefaultMinimumObjectSize",
+    "type": "enum",
+    "enum": [
+     "varies_by_storage_class",
+     "all_storage_classes_128K"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketLocation",
+  "output": "GetBucketLocationOutput",
+  "members": [
+   {
+    "path": "LocationConstraint",
+    "type": "enum",
+    "enum": [
+     "ap-southeast-1",
+     "us-east-2",
+     "af-south-1",
+     "ap-east-1",
+     "ap-northeast-1",
+     "eu-north-1",
+     "eu-south-1",
+     "ap-northeast-3",
+     "EU",
+     "eu-central-2",
+     "il-central-1",
+     "cn-north-1",
+     "eu-south-2",
+     "us-gov-east-1",
+     "ap-south-2",
+     "ap-southeast-4",
+     "ca-central-1",
+     "eu-west-3",
+     "me-central-1",
+     "me-south-1",
+     "ap-southeast-2",
+     "ap-southeast-7",
+     "ca-west-1",
+     "cn-northwest-1",
+     "eu-central-1",
+     "mx-central-1",
+     "ap-east-2",
+     "ap-south-1",
+     "ap-southeast-5",
+     "eu-west-1",
+     "us-west-1",
+     "us-west-2",
+     "ap-northeast-2",
+     "ap-southeast-3",
+     "ap-southeast-6",
+     "eu-west-2",
+     "sa-east-1",
+     "us-gov-west-1"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketLogging",
+  "output": "GetBucketLoggingOutput",
+  "members": [
+   {
+    "path": "LoggingEnabled",
+    "type": "structure"
+   },
+   {
+    "path": "LoggingEnabled.TargetBucket",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "LoggingEnabled.TargetGrants",
+    "type": "list"
+   },
+   {
+    "path": "LoggingEnabled.TargetGrants[]",
+    "type": "structure"
+   },
+   {
+    "path": "LoggingEnabled.TargetGrants[].Grantee",
+    "type": "structure"
+   },
+   {
+    "path": "LoggingEnabled.TargetGrants[].Grantee.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "LoggingEnabled.TargetGrants[].Grantee.EmailAddress",
+    "type": "string"
+   },
+   {
+    "path": "LoggingEnabled.TargetGrants[].Grantee.ID",
+    "type": "string"
+   },
+   {
+    "path": "LoggingEnabled.TargetGrants[].Grantee.Type",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "CanonicalUser",
+     "AmazonCustomerByEmail",
+     "Group"
+    ]
+   },
+   {
+    "path": "LoggingEnabled.TargetGrants[].Grantee.URI",
+    "type": "string"
+   },
+   {
+    "path": "LoggingEnabled.TargetGrants[].Permission",
+    "type": "enum",
+    "enum": [
+     "FULL_CONTROL",
+     "READ",
+     "WRITE"
+    ]
+   },
+   {
+    "path": "LoggingEnabled.TargetObjectKeyFormat",
+    "type": "structure"
+   },
+   {
+    "path": "LoggingEnabled.TargetObjectKeyFormat.PartitionedPrefix",
+    "type": "structure"
+   },
+   {
+    "path": "LoggingEnabled.TargetObjectKeyFormat.PartitionedPrefix.PartitionDateSource",
+    "type": "enum",
+    "enum": [
+     "EventTime",
+     "DeliveryTime"
+    ]
+   },
+   {
+    "path": "LoggingEnabled.TargetObjectKeyFormat.SimplePrefix",
+    "type": "structure"
+   },
+   {
+    "path": "LoggingEnabled.TargetPrefix",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketMetadataConfiguration",
+  "output": "GetBucketMetadataConfigurationOutput",
+  "members": [
+   {
+    "path": "GetBucketMetadataConfigurationResult",
+    "type": "structure"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.AnnotationTableConfigurationResult",
+    "type": "structure"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.AnnotationTableConfigurationResult.ConfigurationState",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "DISABLED",
+     "ENABLED"
+    ]
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.AnnotationTableConfigurationResult.Error",
+    "type": "structure"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.AnnotationTableConfigurationResult.Error.ErrorCode",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.AnnotationTableConfigurationResult.Error.ErrorMessage",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.AnnotationTableConfigurationResult.Role",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.AnnotationTableConfigurationResult.TableArn",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.AnnotationTableConfigurationResult.TableName",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.AnnotationTableConfigurationResult.TableStatus",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.DestinationResult",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.DestinationResult.TableBucketArn",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.DestinationResult.TableBucketType",
+    "type": "enum",
+    "enum": [
+     "aws",
+     "customer"
+    ]
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.DestinationResult.TableNamespace",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.InventoryTableConfigurationResult",
+    "type": "structure"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.InventoryTableConfigurationResult.ConfigurationState",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "ENABLED",
+     "DISABLED"
+    ]
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.InventoryTableConfigurationResult.Error",
+    "type": "structure"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.InventoryTableConfigurationResult.Error.ErrorCode",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.InventoryTableConfigurationResult.Error.ErrorMessage",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.InventoryTableConfigurationResult.TableArn",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.InventoryTableConfigurationResult.TableName",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.InventoryTableConfigurationResult.TableStatus",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.JournalTableConfigurationResult",
+    "type": "structure"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.JournalTableConfigurationResult.Error",
+    "type": "structure"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.JournalTableConfigurationResult.Error.ErrorCode",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.JournalTableConfigurationResult.Error.ErrorMessage",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.JournalTableConfigurationResult.RecordExpiration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.JournalTableConfigurationResult.RecordExpiration.Days",
+    "type": "integer"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.JournalTableConfigurationResult.RecordExpiration.Expiration",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "ENABLED",
+     "DISABLED"
+    ]
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.JournalTableConfigurationResult.TableArn",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.JournalTableConfigurationResult.TableName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "GetBucketMetadataConfigurationResult.MetadataConfigurationResult.JournalTableConfigurationResult.TableStatus",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketMetadataTableConfiguration",
+  "output": "GetBucketMetadataTableConfigurationOutput",
+  "members": [
+   {
+    "path": "GetBucketMetadataTableConfigurationResult",
+    "type": "structure"
+   },
+   {
+    "path": "GetBucketMetadataTableConfigurationResult.Error",
+    "type": "structure"
+   },
+   {
+    "path": "GetBucketMetadataTableConfigurationResult.Error.ErrorCode",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataTableConfigurationResult.Error.ErrorMessage",
+    "type": "string"
+   },
+   {
+    "path": "GetBucketMetadataTableConfigurationResult.MetadataTableConfigurationResult",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "GetBucketMetadataTableConfigurationResult.MetadataTableConfigurationResult.S3TablesDestinationResult",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "GetBucketMetadataTableConfigurationResult.MetadataTableConfigurationResult.S3TablesDestinationResult.TableArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "GetBucketMetadataTableConfigurationResult.MetadataTableConfigurationResult.S3TablesDestinationResult.TableBucketArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "GetBucketMetadataTableConfigurationResult.MetadataTableConfigurationResult.S3TablesDestinationResult.TableName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "GetBucketMetadataTableConfigurationResult.MetadataTableConfigurationResult.S3TablesDestinationResult.TableNamespace",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "GetBucketMetadataTableConfigurationResult.Status",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketMetricsConfiguration",
+  "output": "GetBucketMetricsConfigurationOutput",
+  "members": [
+   {
+    "path": "MetricsConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "MetricsConfiguration.Filter",
+    "type": "any"
+   },
+   {
+    "path": "MetricsConfiguration.Id",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketNotificationConfiguration",
+  "output": "NotificationConfiguration",
+  "members": [
+   {
+    "path": "EventBridgeConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "LambdaFunctionConfigurations",
+    "type": "list"
+   },
+   {
+    "path": "LambdaFunctionConfigurations[]",
+    "type": "structure"
+   },
+   {
+    "path": "LambdaFunctionConfigurations[].Events",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "LambdaFunctionConfigurations[].Events[]",
+    "type": "enum",
+    "enum": [
+     "s3:ObjectCreated:Put",
+     "s3:ObjectCreated:Post",
+     "s3:ObjectRemoved:DeleteMarkerCreated",
+     "s3:LifecycleExpiration:DeleteMarkerCreated",
+     "s3:ObjectRemoved:*",
+     "s3:ObjectRestore:*",
+     "s3:Replication:OperationFailedReplication",
+     "s3:Replication:OperationMissedThreshold",
+     "s3:LifecycleExpiration:*",
+     "s3:ObjectTagging:Put",
+     "s3:ReducedRedundancyLostObject",
+     "s3:ObjectRemoved:Delete",
+     "s3:ObjectRestore:Post",
+     "s3:IntelligentTiering",
+     "s3:ObjectTagging:Delete",
+     "s3:ObjectCreated:CompleteMultipartUpload",
+     "s3:LifecycleTransition",
+     "s3:Replication:*",
+     "s3:ObjectCreated:*",
+     "s3:ObjectTagging:*",
+     "s3:ObjectAnnotation:Delete",
+     "s3:Replication:OperationNotTracked",
+     "s3:ObjectAcl:Put",
+     "s3:LifecycleExpiration:Delete",
+     "s3:ObjectAnnotation:Put",
+     "s3:ObjectCreated:Copy",
+     "s3:ObjectAnnotation:*",
+     "s3:Replication:OperationReplicatedAfterThreshold",
+     "s3:ObjectRestore:Delete",
+     "s3:ObjectRestore:Completed"
+    ]
+   },
+   {
+    "path": "LambdaFunctionConfigurations[].Filter",
+    "type": "structure"
+   },
+   {
+    "path": "LambdaFunctionConfigurations[].Filter.Key",
+    "type": "structure"
+   },
+   {
+    "path": "LambdaFunctionConfigurations[].Filter.Key.FilterRules",
+    "type": "list"
+   },
+   {
+    "path": "LambdaFunctionConfigurations[].Id",
+    "type": "string"
+   },
+   {
+    "path": "LambdaFunctionConfigurations[].LambdaFunctionArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "QueueConfigurations",
+    "type": "list"
+   },
+   {
+    "path": "QueueConfigurations[]",
+    "type": "structure"
+   },
+   {
+    "path": "QueueConfigurations[].Events",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "QueueConfigurations[].Events[]",
+    "type": "enum",
+    "enum": [
+     "s3:ObjectTagging:Delete",
+     "s3:ObjectCreated:CompleteMultipartUpload",
+     "s3:LifecycleTransition",
+     "s3:Replication:*",
+     "s3:ObjectCreated:*",
+     "s3:ObjectTagging:*",
+     "s3:ObjectAnnotation:Delete",
+     "s3:Replication:OperationNotTracked",
+     "s3:ObjectAcl:Put",
+     "s3:LifecycleExpiration:Delete",
+     "s3:ObjectAnnotation:Put",
+     "s3:ObjectCreated:Copy",
+     "s3:ObjectAnnotation:*",
+     "s3:Replication:OperationReplicatedAfterThreshold",
+     "s3:ObjectRestore:Delete",
+     "s3:ObjectRestore:Completed",
+     "s3:ObjectCreated:Put",
+     "s3:ObjectCreated:Post",
+     "s3:ObjectRemoved:DeleteMarkerCreated",
+     "s3:LifecycleExpiration:DeleteMarkerCreated",
+     "s3:ObjectRemoved:*",
+     "s3:ObjectRestore:*",
+     "s3:Replication:OperationFailedReplication",
+     "s3:Replication:OperationMissedThreshold",
+     "s3:LifecycleExpiration:*",
+     "s3:ObjectTagging:Put",
+     "s3:ReducedRedundancyLostObject",
+     "s3:ObjectRemoved:Delete",
+     "s3:ObjectRestore:Post",
+     "s3:IntelligentTiering"
+    ]
+   },
+   {
+    "path": "QueueConfigurations[].Filter",
+    "type": "structure"
+   },
+   {
+    "path": "QueueConfigurations[].Filter.Key",
+    "type": "structure"
+   },
+   {
+    "path": "QueueConfigurations[].Filter.Key.FilterRules",
+    "type": "list"
+   },
+   {
+    "path": "QueueConfigurations[].Id",
+    "type": "string"
+   },
+   {
+    "path": "QueueConfigurations[].QueueArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "TopicConfigurations",
+    "type": "list"
+   },
+   {
+    "path": "TopicConfigurations[]",
+    "type": "structure"
+   },
+   {
+    "path": "TopicConfigurations[].Events",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "TopicConfigurations[].Events[]",
+    "type": "enum",
+    "enum": [
+     "s3:ObjectCreated:*",
+     "s3:ObjectTagging:*",
+     "s3:ObjectAnnotation:Delete",
+     "s3:Replication:OperationNotTracked",
+     "s3:ObjectAcl:Put",
+     "s3:LifecycleExpiration:Delete",
+     "s3:ObjectAnnotation:Put",
+     "s3:ObjectCreated:Copy",
+     "s3:ObjectAnnotation:*",
+     "s3:Replication:OperationReplicatedAfterThreshold",
+     "s3:ObjectRestore:Delete",
+     "s3:ObjectRestore:Completed",
+     "s3:ObjectCreated:Put",
+     "s3:ObjectCreated:Post",
+     "s3:ObjectRemoved:DeleteMarkerCreated",
+     "s3:LifecycleExpiration:DeleteMarkerCreated",
+     "s3:ObjectRemoved:*",
+     "s3:ObjectRestore:*",
+     "s3:Replication:OperationFailedReplication",
+     "s3:Replication:OperationMissedThreshold",
+     "s3:LifecycleExpiration:*",
+     "s3:ObjectTagging:Put",
+     "s3:ReducedRedundancyLostObject",
+     "s3:ObjectRemoved:Delete",
+     "s3:ObjectRestore:Post",
+     "s3:IntelligentTiering",
+     "s3:ObjectTagging:Delete",
+     "s3:ObjectCreated:CompleteMultipartUpload",
+     "s3:LifecycleTransition",
+     "s3:Replication:*"
+    ]
+   },
+   {
+    "path": "TopicConfigurations[].Filter",
+    "type": "structure"
+   },
+   {
+    "path": "TopicConfigurations[].Filter.Key",
+    "type": "structure"
+   },
+   {
+    "path": "TopicConfigurations[].Filter.Key.FilterRules",
+    "type": "list"
+   },
+   {
+    "path": "TopicConfigurations[].Id",
+    "type": "string"
+   },
+   {
+    "path": "TopicConfigurations[].TopicArn",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketOwnershipControls",
+  "output": "GetBucketOwnershipControlsOutput",
+  "members": [
+   {
+    "path": "OwnershipControls",
+    "type": "structure"
+   },
+   {
+    "path": "OwnershipControls.Rules",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "OwnershipControls.Rules[]",
+    "type": "structure"
+   },
+   {
+    "path": "OwnershipControls.Rules[].ObjectOwnership",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "BucketOwnerEnforced",
+     "BucketOwnerPreferred",
+     "ObjectWriter"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketPolicy",
+  "output": "GetBucketPolicyOutput",
+  "members": [
+   {
+    "path": "Policy",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketPolicyStatus",
+  "output": "GetBucketPolicyStatusOutput",
+  "members": [
+   {
+    "path": "PolicyStatus",
+    "type": "structure"
+   },
+   {
+    "path": "PolicyStatus.IsPublic",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketReplication",
+  "output": "GetBucketReplicationOutput",
+  "members": [
+   {
+    "path": "ReplicationConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Role",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ReplicationConfiguration.Rules",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[]",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].DeleteMarkerReplication",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].DeleteMarkerReplication.Status",
+    "type": "enum",
+    "enum": [
+     "Enabled",
+     "Disabled"
+    ]
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Destination",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Destination.AccessControlTranslation",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Destination.Account",
+    "type": "string"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Destination.Bucket",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Destination.EncryptionConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Destination.Metrics",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Destination.ReplicationTime",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Destination.StorageClass",
+    "type": "enum",
+    "enum": [
+     "AWS_BACKUP_LOW_COST_WARM",
+     "STANDARD",
+     "ONEZONE_IA",
+     "DEEP_ARCHIVE",
+     "OUTPOSTS",
+     "GLACIER_IR",
+     "FSX_OPENZFS",
+     "REDUCED_REDUNDANCY",
+     "SNOW",
+     "EXPRESS_ONEZONE",
+     "FSX_ONTAP",
+     "STANDARD_IA",
+     "INTELLIGENT_TIERING",
+     "GLACIER",
+     "AWS_BACKUP_WARM"
+    ]
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].ExistingObjectReplication",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].ExistingObjectReplication.Status",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "Enabled",
+     "Disabled"
+    ]
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Filter",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Filter.And",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Filter.Prefix",
+    "type": "string"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Filter.Tag",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].ID",
+    "type": "string"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Prefix",
+    "type": "string"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Priority",
+    "type": "integer"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].SourceSelectionCriteria",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].SourceSelectionCriteria.ReplicaModifications",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].SourceSelectionCriteria.SseKmsEncryptedObjects",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicationConfiguration.Rules[].Status",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "Disabled",
+     "Enabled"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketRequestPayment",
+  "output": "GetBucketRequestPaymentOutput",
+  "members": [
+   {
+    "path": "Payer",
+    "type": "enum",
+    "enum": [
+     "Requester",
+     "BucketOwner"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketTagging",
+  "output": "GetBucketTaggingOutput",
+  "members": [
+   {
+    "path": "TagSet",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "TagSet[]",
+    "type": "structure"
+   },
+   {
+    "path": "TagSet[].Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "TagSet[].Value",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketVersioning",
+  "output": "GetBucketVersioningOutput",
+  "members": [
+   {
+    "path": "MFADelete",
+    "type": "enum",
+    "enum": [
+     "Enabled",
+     "Disabled"
+    ]
+   },
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "Enabled",
+     "Suspended"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetBucketWebsite",
+  "output": "GetBucketWebsiteOutput",
+  "members": [
+   {
+    "path": "ErrorDocument",
+    "type": "structure"
+   },
+   {
+    "path": "ErrorDocument.Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "IndexDocument",
+    "type": "structure"
+   },
+   {
+    "path": "IndexDocument.Suffix",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RedirectAllRequestsTo",
+    "type": "structure"
+   },
+   {
+    "path": "RedirectAllRequestsTo.HostName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RedirectAllRequestsTo.Protocol",
+    "type": "enum",
+    "enum": [
+     "http",
+     "https"
+    ]
+   },
+   {
+    "path": "RoutingRules",
+    "type": "list"
+   },
+   {
+    "path": "RoutingRules[]",
+    "type": "structure"
+   },
+   {
+    "path": "RoutingRules[].Condition",
+    "type": "structure"
+   },
+   {
+    "path": "RoutingRules[].Condition.HttpErrorCodeReturnedEquals",
+    "type": "string"
+   },
+   {
+    "path": "RoutingRules[].Condition.KeyPrefixEquals",
+    "type": "string"
+   },
+   {
+    "path": "RoutingRules[].Redirect",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "RoutingRules[].Redirect.HostName",
+    "type": "string"
+   },
+   {
+    "path": "RoutingRules[].Redirect.HttpRedirectCode",
+    "type": "string"
+   },
+   {
+    "path": "RoutingRules[].Redirect.Protocol",
+    "type": "enum",
+    "enum": [
+     "http",
+     "https"
+    ]
+   },
+   {
+    "path": "RoutingRules[].Redirect.ReplaceKeyPrefixWith",
+    "type": "string"
+   },
+   {
+    "path": "RoutingRules[].Redirect.ReplaceKeyWith",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetObject",
+  "output": "GetObjectOutput",
+  "members": [
+   {
+    "path": "AcceptRanges",
+    "type": "string"
+   },
+   {
+    "path": "Body",
+    "type": "blob"
+   },
+   {
+    "path": "BucketKeyEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "CacheControl",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC32",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC32C",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC64NVME",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumMD5",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA1",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA256",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA512",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumType",
+    "type": "enum",
+    "enum": [
+     "COMPOSITE",
+     "FULL_OBJECT"
+    ]
+   },
+   {
+    "path": "ChecksumXXHASH128",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH3",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH64",
+    "type": "string"
+   },
+   {
+    "path": "ContentDisposition",
+    "type": "string"
+   },
+   {
+    "path": "ContentEncoding",
+    "type": "string"
+   },
+   {
+    "path": "ContentLanguage",
+    "type": "string"
+   },
+   {
+    "path": "ContentLength",
+    "type": "integer"
+   },
+   {
+    "path": "ContentRange",
+    "type": "string"
+   },
+   {
+    "path": "ContentType",
+    "type": "string"
+   },
+   {
+    "path": "DeleteMarker",
+    "type": "boolean"
+   },
+   {
+    "path": "ETag",
+    "type": "string"
+   },
+   {
+    "path": "Expiration",
+    "type": "string"
+   },
+   {
+    "path": "Expires",
+    "type": "string"
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "Metadata",
+    "type": "map"
+   },
+   {
+    "path": "Metadata{}",
+    "type": "string"
+   },
+   {
+    "path": "MissingMeta",
+    "type": "integer"
+   },
+   {
+    "path": "ObjectLockLegalHoldStatus",
+    "type": "enum",
+    "enum": [
+     "ON",
+     "OFF"
+    ]
+   },
+   {
+    "path": "ObjectLockMode",
+    "type": "enum",
+    "enum": [
+     "COMPLIANCE",
+     "GOVERNANCE"
+    ]
+   },
+   {
+    "path": "ObjectLockRetainUntilDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "PartsCount",
+    "type": "integer"
+   },
+   {
+    "path": "ReplicationStatus",
+    "type": "enum",
+    "enum": [
+     "FAILED",
+     "REPLICA",
+     "COMPLETED",
+     "COMPLETE",
+     "PENDING"
+    ]
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "Restore",
+    "type": "string"
+   },
+   {
+    "path": "SSECustomerAlgorithm",
+    "type": "string"
+   },
+   {
+    "path": "SSECustomerKeyMD5",
+    "type": "string"
+   },
+   {
+    "path": "SSEKMSKeyId",
+    "type": "string"
+   },
+   {
+    "path": "ServerSideEncryption",
+    "type": "enum",
+    "enum": [
+     "AES256",
+     "aws:fsx",
+     "aws:backup",
+     "aws:kms",
+     "aws:kms:dsse"
+    ]
+   },
+   {
+    "path": "StorageClass",
+    "type": "enum",
+    "enum": [
+     "STANDARD",
+     "ONEZONE_IA",
+     "DEEP_ARCHIVE",
+     "OUTPOSTS",
+     "GLACIER_IR",
+     "FSX_OPENZFS",
+     "REDUCED_REDUNDANCY",
+     "SNOW",
+     "EXPRESS_ONEZONE",
+     "FSX_ONTAP",
+     "STANDARD_IA",
+     "INTELLIGENT_TIERING",
+     "GLACIER",
+     "AWS_BACKUP_WARM",
+     "AWS_BACKUP_LOW_COST_WARM"
+    ]
+   },
+   {
+    "path": "TagCount",
+    "type": "integer"
+   },
+   {
+    "path": "VersionId",
+    "type": "string"
+   },
+   {
+    "path": "WebsiteRedirectLocation",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetObjectAcl",
+  "output": "GetObjectAclOutput",
+  "members": [
+   {
+    "path": "Grants",
+    "type": "list"
+   },
+   {
+    "path": "Grants[]",
+    "type": "structure"
+   },
+   {
+    "path": "Grants[].Grantee",
+    "type": "structure"
+   },
+   {
+    "path": "Grants[].Grantee.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Grantee.EmailAddress",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Grantee.ID",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Grantee.Type",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "Group",
+     "CanonicalUser",
+     "AmazonCustomerByEmail"
+    ]
+   },
+   {
+    "path": "Grants[].Grantee.URI",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Permission",
+    "type": "enum",
+    "enum": [
+     "WRITE_ACP",
+     "READ",
+     "READ_ACP",
+     "FULL_CONTROL",
+     "WRITE"
+    ]
+   },
+   {
+    "path": "Owner",
+    "type": "structure"
+   },
+   {
+    "path": "Owner.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "Owner.ID",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetObjectAnnotation",
+  "output": "GetObjectAnnotationOutput",
+  "members": [
+   {
+    "path": "AnnotationPayload",
+    "type": "blob"
+   },
+   {
+    "path": "ChecksumCRC32",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC32C",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC64NVME",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumMD5",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA1",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA256",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA512",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumType",
+    "type": "enum",
+    "enum": [
+     "FULL_OBJECT",
+     "COMPOSITE"
+    ]
+   },
+   {
+    "path": "ChecksumXXHASH128",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH3",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH64",
+    "type": "string"
+   },
+   {
+    "path": "ContentLength",
+    "type": "integer"
+   },
+   {
+    "path": "ETag",
+    "type": "string"
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "ObjectVersionId",
+    "type": "string"
+   },
+   {
+    "path": "ReplicationStatus",
+    "type": "enum",
+    "enum": [
+     "COMPLETED",
+     "COMPLETE",
+     "PENDING",
+     "FAILED",
+     "REPLICA"
+    ]
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "ServerSideEncryption",
+    "type": "enum",
+    "enum": [
+     "aws:kms:dsse",
+     "AES256",
+     "aws:fsx",
+     "aws:backup",
+     "aws:kms"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetObjectAttributes",
+  "output": "GetObjectAttributesOutput",
+  "members": [
+   {
+    "path": "Checksum",
+    "type": "structure"
+   },
+   {
+    "path": "Checksum.ChecksumCRC32",
+    "type": "string"
+   },
+   {
+    "path": "Checksum.ChecksumCRC32C",
+    "type": "string"
+   },
+   {
+    "path": "Checksum.ChecksumCRC64NVME",
+    "type": "string"
+   },
+   {
+    "path": "Checksum.ChecksumMD5",
+    "type": "string"
+   },
+   {
+    "path": "Checksum.ChecksumSHA1",
+    "type": "string"
+   },
+   {
+    "path": "Checksum.ChecksumSHA256",
+    "type": "string"
+   },
+   {
+    "path": "Checksum.ChecksumSHA512",
+    "type": "string"
+   },
+   {
+    "path": "Checksum.ChecksumType",
+    "type": "enum",
+    "enum": [
+     "COMPOSITE",
+     "FULL_OBJECT"
+    ]
+   },
+   {
+    "path": "Checksum.ChecksumXXHASH128",
+    "type": "string"
+   },
+   {
+    "path": "Checksum.ChecksumXXHASH3",
+    "type": "string"
+   },
+   {
+    "path": "Checksum.ChecksumXXHASH64",
+    "type": "string"
+   },
+   {
+    "path": "DeleteMarker",
+    "type": "boolean"
+   },
+   {
+    "path": "ETag",
+    "type": "string"
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "ObjectParts",
+    "type": "structure"
+   },
+   {
+    "path": "ObjectParts.IsTruncated",
+    "type": "boolean"
+   },
+   {
+    "path": "ObjectParts.MaxParts",
+    "type": "integer"
+   },
+   {
+    "path": "ObjectParts.NextPartNumberMarker",
+    "type": "string"
+   },
+   {
+    "path": "ObjectParts.PartNumberMarker",
+    "type": "string"
+   },
+   {
+    "path": "ObjectParts.Parts",
+    "type": "list"
+   },
+   {
+    "path": "ObjectParts.Parts[]",
+    "type": "structure"
+   },
+   {
+    "path": "ObjectParts.Parts[].ChecksumCRC32",
+    "type": "string"
+   },
+   {
+    "path": "ObjectParts.Parts[].ChecksumCRC32C",
+    "type": "string"
+   },
+   {
+    "path": "ObjectParts.Parts[].ChecksumCRC64NVME",
+    "type": "string"
+   },
+   {
+    "path": "ObjectParts.Parts[].ChecksumMD5",
+    "type": "string"
+   },
+   {
+    "path": "ObjectParts.Parts[].ChecksumSHA1",
+    "type": "string"
+   },
+   {
+    "path": "ObjectParts.Parts[].ChecksumSHA256",
+    "type": "string"
+   },
+   {
+    "path": "ObjectParts.Parts[].ChecksumSHA512",
+    "type": "string"
+   },
+   {
+    "path": "ObjectParts.Parts[].ChecksumXXHASH128",
+    "type": "string"
+   },
+   {
+    "path": "ObjectParts.Parts[].ChecksumXXHASH3",
+    "type": "string"
+   },
+   {
+    "path": "ObjectParts.Parts[].ChecksumXXHASH64",
+    "type": "string"
+   },
+   {
+    "path": "ObjectParts.Parts[].PartNumber",
+    "type": "integer"
+   },
+   {
+    "path": "ObjectParts.Parts[].Size",
+    "type": "integer"
+   },
+   {
+    "path": "ObjectParts.TotalPartsCount",
+    "type": "integer"
+   },
+   {
+    "path": "ObjectSize",
+    "type": "integer"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "StorageClass",
+    "type": "enum",
+    "enum": [
+     "STANDARD",
+     "ONEZONE_IA",
+     "DEEP_ARCHIVE",
+     "OUTPOSTS",
+     "GLACIER_IR",
+     "FSX_OPENZFS",
+     "REDUCED_REDUNDANCY",
+     "SNOW",
+     "EXPRESS_ONEZONE",
+     "FSX_ONTAP",
+     "STANDARD_IA",
+     "INTELLIGENT_TIERING",
+     "GLACIER",
+     "AWS_BACKUP_WARM",
+     "AWS_BACKUP_LOW_COST_WARM"
+    ]
+   },
+   {
+    "path": "VersionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetObjectLegalHold",
+  "output": "GetObjectLegalHoldOutput",
+  "members": [
+   {
+    "path": "LegalHold",
+    "type": "structure"
+   },
+   {
+    "path": "LegalHold.Status",
+    "type": "enum",
+    "enum": [
+     "ON",
+     "OFF"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetObjectLockConfiguration",
+  "output": "GetObjectLockConfigurationOutput",
+  "members": [
+   {
+    "path": "ObjectLockConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ObjectLockConfiguration.ObjectLockEnabled",
+    "type": "enum",
+    "enum": [
+     "Enabled"
+    ]
+   },
+   {
+    "path": "ObjectLockConfiguration.Rule",
+    "type": "structure"
+   },
+   {
+    "path": "ObjectLockConfiguration.Rule.DefaultRetention",
+    "type": "structure"
+   },
+   {
+    "path": "ObjectLockConfiguration.Rule.DefaultRetention.Days",
+    "type": "integer"
+   },
+   {
+    "path": "ObjectLockConfiguration.Rule.DefaultRetention.Mode",
+    "type": "enum",
+    "enum": [
+     "GOVERNANCE",
+     "COMPLIANCE"
+    ]
+   },
+   {
+    "path": "ObjectLockConfiguration.Rule.DefaultRetention.Years",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "GetObjectRetention",
+  "output": "GetObjectRetentionOutput",
+  "members": [
+   {
+    "path": "Retention",
+    "type": "structure"
+   },
+   {
+    "path": "Retention.Mode",
+    "type": "enum",
+    "enum": [
+     "GOVERNANCE",
+     "COMPLIANCE"
+    ]
+   },
+   {
+    "path": "Retention.RetainUntilDate",
+    "type": "timestamp"
+   }
+  ]
+ },
+ {
+  "operation": "GetObjectTagging",
+  "output": "GetObjectTaggingOutput",
+  "members": [
+   {
+    "path": "TagSet",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "TagSet[]",
+    "type": "structure"
+   },
+   {
+    "path": "TagSet[].Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "TagSet[].Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "VersionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetObjectTorrent",
+  "output": "GetObjectTorrentOutput",
+  "members": [
+   {
+    "path": "Body",
+    "type": "blob"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetPublicAccessBlock",
+  "output": "GetPublicAccessBlockOutput",
+  "members": [
+   {
+    "path": "PublicAccessBlockConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "PublicAccessBlockConfiguration.BlockPublicAcls",
+    "type": "boolean"
+   },
+   {
+    "path": "PublicAccessBlockConfiguration.BlockPublicPolicy",
+    "type": "boolean"
+   },
+   {
+    "path": "PublicAccessBlockConfiguration.IgnorePublicAcls",
+    "type": "boolean"
+   },
+   {
+    "path": "PublicAccessBlockConfiguration.RestrictPublicBuckets",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "HeadBucket",
+  "output": "HeadBucketOutput",
+  "members": [
+   {
+    "path": "AccessPointAlias",
+    "type": "boolean"
+   },
+   {
+    "path": "BucketArn",
+    "type": "string"
+   },
+   {
+    "path": "BucketLocationName",
+    "type": "string"
+   },
+   {
+    "path": "BucketLocationType",
+    "type": "enum",
+    "enum": [
+     "AvailabilityZone",
+     "LocalZone"
+    ]
+   },
+   {
+    "path": "BucketRegion",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "HeadObject",
+  "output": "HeadObjectOutput",
+  "members": [
+   {
+    "path": "AcceptRanges",
+    "type": "string"
+   },
+   {
+    "path": "ArchiveStatus",
+    "type": "enum",
+    "enum": [
+     "ARCHIVE_ACCESS",
+     "DEEP_ARCHIVE_ACCESS"
+    ]
+   },
+   {
+    "path": "BucketKeyEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "CacheControl",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC32",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC32C",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC64NVME",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumMD5",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA1",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA256",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA512",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumType",
+    "type": "enum",
+    "enum": [
+     "FULL_OBJECT",
+     "COMPOSITE"
+    ]
+   },
+   {
+    "path": "ChecksumXXHASH128",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH3",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH64",
+    "type": "string"
+   },
+   {
+    "path": "ContentDisposition",
+    "type": "string"
+   },
+   {
+    "path": "ContentEncoding",
+    "type": "string"
+   },
+   {
+    "path": "ContentLanguage",
+    "type": "string"
+   },
+   {
+    "path": "ContentLength",
+    "type": "integer"
+   },
+   {
+    "path": "ContentRange",
+    "type": "string"
+   },
+   {
+    "path": "ContentType",
+    "type": "string"
+   },
+   {
+    "path": "DeleteMarker",
+    "type": "boolean"
+   },
+   {
+    "path": "ETag",
+    "type": "string"
+   },
+   {
+    "path": "Expiration",
+    "type": "string"
+   },
+   {
+    "path": "Expires",
+    "type": "string"
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "Metadata",
+    "type": "map"
+   },
+   {
+    "path": "Metadata{}",
+    "type": "string"
+   },
+   {
+    "path": "MissingMeta",
+    "type": "integer"
+   },
+   {
+    "path": "ObjectLockLegalHoldStatus",
+    "type": "enum",
+    "enum": [
+     "ON",
+     "OFF"
+    ]
+   },
+   {
+    "path": "ObjectLockMode",
+    "type": "enum",
+    "enum": [
+     "GOVERNANCE",
+     "COMPLIANCE"
+    ]
+   },
+   {
+    "path": "ObjectLockRetainUntilDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "PartsCount",
+    "type": "integer"
+   },
+   {
+    "path": "ReplicationStatus",
+    "type": "enum",
+    "enum": [
+     "COMPLETE",
+     "PENDING",
+     "FAILED",
+     "REPLICA",
+     "COMPLETED"
+    ]
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "Restore",
+    "type": "string"
+   },
+   {
+    "path": "SSECustomerAlgorithm",
+    "type": "string"
+   },
+   {
+    "path": "SSECustomerKeyMD5",
+    "type": "string"
+   },
+   {
+    "path": "SSEKMSKeyId",
+    "type": "string"
+   },
+   {
+    "path": "ServerSideEncryption",
+    "type": "enum",
+    "enum": [
+     "aws:kms",
+     "aws:kms:dsse",
+     "AES256",
+     "aws:fsx",
+     "aws:backup"
+    ]
+   },
+   {
+    "path": "StorageClass",
+    "type": "enum",
+    "enum": [
+     "REDUCED_REDUNDANCY",
+     "SNOW",
+     "EXPRESS_ONEZONE",
+     "FSX_ONTAP",
+     "STANDARD_IA",
+     "INTELLIGENT_TIERING",
+     "GLACIER",
+     "AWS_BACKUP_WARM",
+     "AWS_BACKUP_LOW_COST_WARM",
+     "STANDARD",
+     "ONEZONE_IA",
+     "DEEP_ARCHIVE",
+     "OUTPOSTS",
+     "GLACIER_IR",
+     "FSX_OPENZFS"
+    ]
+   },
+   {
+    "path": "TagCount",
+    "type": "integer"
+   },
+   {
+    "path": "VersionId",
+    "type": "string"
+   },
+   {
+    "path": "WebsiteRedirectLocation",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListBucketAnalyticsConfigurations",
+  "output": "ListBucketAnalyticsConfigurationsOutput",
+  "members": [
+   {
+    "path": "AnalyticsConfigurationList",
+    "type": "list"
+   },
+   {
+    "path": "AnalyticsConfigurationList[]",
+    "type": "structure"
+   },
+   {
+    "path": "AnalyticsConfigurationList[].Filter",
+    "type": "any"
+   },
+   {
+    "path": "AnalyticsConfigurationList[].Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "AnalyticsConfigurationList[].StorageClassAnalysis",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "AnalyticsConfigurationList[].StorageClassAnalysis.DataExport",
+    "type": "structure"
+   },
+   {
+    "path": "AnalyticsConfigurationList[].StorageClassAnalysis.DataExport.Destination",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "AnalyticsConfigurationList[].StorageClassAnalysis.DataExport.OutputSchemaVersion",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "V_1"
+    ]
+   },
+   {
+    "path": "ContinuationToken",
+    "type": "string"
+   },
+   {
+    "path": "IsTruncated",
+    "type": "boolean"
+   },
+   {
+    "path": "NextContinuationToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListBucketIntelligentTieringConfigurations",
+  "output": "ListBucketIntelligentTieringConfigurationsOutput",
+  "members": [
+   {
+    "path": "ContinuationToken",
+    "type": "string"
+   },
+   {
+    "path": "IntelligentTieringConfigurationList",
+    "type": "list"
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[]",
+    "type": "structure"
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Filter",
+    "type": "structure"
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Filter.And",
+    "type": "structure"
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Filter.And.Prefix",
+    "type": "string"
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Filter.And.Tags",
+    "type": "list"
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Filter.Prefix",
+    "type": "string"
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Filter.Tag",
+    "type": "structure"
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Filter.Tag.Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Filter.Tag.Value",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Status",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "Enabled",
+     "Disabled"
+    ]
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Tierings",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Tierings[]",
+    "type": "structure"
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Tierings[].AccessTier",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "ARCHIVE_ACCESS",
+     "DEEP_ARCHIVE_ACCESS"
+    ]
+   },
+   {
+    "path": "IntelligentTieringConfigurationList[].Tierings[].Days",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "IsTruncated",
+    "type": "boolean"
+   },
+   {
+    "path": "NextContinuationToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListBucketInventoryConfigurations",
+  "output": "ListBucketInventoryConfigurationsOutput",
+  "members": [
+   {
+    "path": "ContinuationToken",
+    "type": "string"
+   },
+   {
+    "path": "InventoryConfigurationList",
+    "type": "list"
+   },
+   {
+    "path": "InventoryConfigurationList[]",
+    "type": "structure"
+   },
+   {
+    "path": "InventoryConfigurationList[].Destination",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "InventoryConfigurationList[].Destination.S3BucketDestination",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "InventoryConfigurationList[].Destination.S3BucketDestination.AccountId",
+    "type": "string"
+   },
+   {
+    "path": "InventoryConfigurationList[].Destination.S3BucketDestination.Bucket",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "InventoryConfigurationList[].Destination.S3BucketDestination.Encryption",
+    "type": "structure"
+   },
+   {
+    "path": "InventoryConfigurationList[].Destination.S3BucketDestination.Format",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "CSV",
+     "ORC",
+     "Parquet"
+    ]
+   },
+   {
+    "path": "InventoryConfigurationList[].Destination.S3BucketDestination.Prefix",
+    "type": "string"
+   },
+   {
+    "path": "InventoryConfigurationList[].Filter",
+    "type": "structure"
+   },
+   {
+    "path": "InventoryConfigurationList[].Filter.Prefix",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "InventoryConfigurationList[].Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "InventoryConfigurationList[].IncludedObjectVersions",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "All",
+     "Current"
+    ]
+   },
+   {
+    "path": "InventoryConfigurationList[].IsEnabled",
+    "type": "boolean",
+    "required": true
+   },
+   {
+    "path": "InventoryConfigurationList[].OptionalFields",
+    "type": "list"
+   },
+   {
+    "path": "InventoryConfigurationList[].OptionalFields[]",
+    "type": "enum",
+    "enum": [
+     "Size",
+     "LastModifiedDate",
+     "BucketKeyStatus",
+     "ObjectOwner",
+     "IsMultipartUploaded",
+     "IntelligentTieringAccessTier",
+     "ChecksumAlgorithm",
+     "ReplicationStatus",
+     "ObjectLockLegalHoldStatus",
+     "StorageClass",
+     "ETag",
+     "EncryptionStatus",
+     "ObjectLockRetainUntilDate",
+     "ObjectLockMode",
+     "ObjectAccessControlList",
+     "LifecycleExpirationDate"
+    ]
+   },
+   {
+    "path": "InventoryConfigurationList[].Schedule",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "InventoryConfigurationList[].Schedule.Frequency",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "Daily",
+     "Weekly"
+    ]
+   },
+   {
+    "path": "IsTruncated",
+    "type": "boolean"
+   },
+   {
+    "path": "NextContinuationToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListBucketMetricsConfigurations",
+  "output": "ListBucketMetricsConfigurationsOutput",
+  "members": [
+   {
+    "path": "ContinuationToken",
+    "type": "string"
+   },
+   {
+    "path": "IsTruncated",
+    "type": "boolean"
+   },
+   {
+    "path": "MetricsConfigurationList",
+    "type": "list"
+   },
+   {
+    "path": "MetricsConfigurationList[]",
+    "type": "structure"
+   },
+   {
+    "path": "MetricsConfigurationList[].Filter",
+    "type": "any"
+   },
+   {
+    "path": "MetricsConfigurationList[].Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "NextContinuationToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListBuckets",
+  "output": "ListBucketsOutput",
+  "members": [
+   {
+    "path": "Buckets",
+    "type": "list"
+   },
+   {
+    "path": "Buckets[]",
+    "type": "structure"
+   },
+   {
+    "path": "Buckets[].BucketArn",
+    "type": "string"
+   },
+   {
+    "path": "Buckets[].BucketRegion",
+    "type": "string"
+   },
+   {
+    "path": "Buckets[].CreationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Buckets[].Name",
+    "type": "string"
+   },
+   {
+    "path": "ContinuationToken",
+    "type": "string"
+   },
+   {
+    "path": "Owner",
+    "type": "structure"
+   },
+   {
+    "path": "Owner.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "Owner.ID",
+    "type": "string"
+   },
+   {
+    "path": "Prefix",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListDirectoryBuckets",
+  "output": "ListDirectoryBucketsOutput",
+  "members": [
+   {
+    "path": "Buckets",
+    "type": "list"
+   },
+   {
+    "path": "Buckets[]",
+    "type": "structure"
+   },
+   {
+    "path": "Buckets[].BucketArn",
+    "type": "string"
+   },
+   {
+    "path": "Buckets[].BucketRegion",
+    "type": "string"
+   },
+   {
+    "path": "Buckets[].CreationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Buckets[].Name",
+    "type": "string"
+   },
+   {
+    "path": "ContinuationToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListMultipartUploads",
+  "output": "ListMultipartUploadsOutput",
+  "members": [
+   {
+    "path": "Bucket",
+    "type": "string"
+   },
+   {
+    "path": "CommonPrefixes",
+    "type": "list"
+   },
+   {
+    "path": "CommonPrefixes[]",
+    "type": "structure"
+   },
+   {
+    "path": "CommonPrefixes[].Prefix",
+    "type": "string"
+   },
+   {
+    "path": "Delimiter",
+    "type": "string"
+   },
+   {
+    "path": "EncodingType",
+    "type": "enum",
+    "enum": [
+     "url"
+    ]
+   },
+   {
+    "path": "IsTruncated",
+    "type": "boolean"
+   },
+   {
+    "path": "KeyMarker",
+    "type": "string"
+   },
+   {
+    "path": "MaxUploads",
+    "type": "integer"
+   },
+   {
+    "path": "NextKeyMarker",
+    "type": "string"
+   },
+   {
+    "path": "NextUploadIdMarker",
+    "type": "string"
+   },
+   {
+    "path": "Prefix",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "UploadIdMarker",
+    "type": "string"
+   },
+   {
+    "path": "Uploads",
+    "type": "list"
+   },
+   {
+    "path": "Uploads[]",
+    "type": "structure"
+   },
+   {
+    "path": "Uploads[].ChecksumAlgorithm",
+    "type": "enum",
+    "enum": [
+     "CRC32C",
+     "SHA256",
+     "CRC64NVME",
+     "SHA512",
+     "MD5",
+     "XXHASH3",
+     "XXHASH128",
+     "CRC32",
+     "SHA1",
+     "XXHASH64"
+    ]
+   },
+   {
+    "path": "Uploads[].ChecksumType",
+    "type": "enum",
+    "enum": [
+     "FULL_OBJECT",
+     "COMPOSITE"
+    ]
+   },
+   {
+    "path": "Uploads[].Initiated",
+    "type": "timestamp"
+   },
+   {
+    "path": "Uploads[].Initiator",
+    "type": "structure"
+   },
+   {
+    "path": "Uploads[].Initiator.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "Uploads[].Initiator.ID",
+    "type": "string"
+   },
+   {
+    "path": "Uploads[].Key",
+    "type": "string"
+   },
+   {
+    "path": "Uploads[].Owner",
+    "type": "structure"
+   },
+   {
+    "path": "Uploads[].Owner.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "Uploads[].Owner.ID",
+    "type": "string"
+   },
+   {
+    "path": "Uploads[].StorageClass",
+    "type": "enum",
+    "enum": [
+     "STANDARD_IA",
+     "INTELLIGENT_TIERING",
+     "GLACIER",
+     "AWS_BACKUP_WARM",
+     "AWS_BACKUP_LOW_COST_WARM",
+     "STANDARD",
+     "ONEZONE_IA",
+     "DEEP_ARCHIVE",
+     "OUTPOSTS",
+     "GLACIER_IR",
+     "FSX_OPENZFS",
+     "REDUCED_REDUNDANCY",
+     "SNOW",
+     "EXPRESS_ONEZONE",
+     "FSX_ONTAP"
+    ]
+   },
+   {
+    "path": "Uploads[].UploadId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListObjectAnnotations",
+  "output": "ListObjectAnnotationsOutput",
+  "members": [
+   {
+    "path": "AnnotationCount",
+    "type": "integer"
+   },
+   {
+    "path": "AnnotationPrefix",
+    "type": "string"
+   },
+   {
+    "path": "Annotations",
+    "type": "list"
+   },
+   {
+    "path": "Annotations[]",
+    "type": "structure"
+   },
+   {
+    "path": "Annotations[].AnnotationName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Annotations[].ChecksumAlgorithm",
+    "type": "list"
+   },
+   {
+    "path": "Annotations[].ChecksumAlgorithm[]",
+    "type": "enum",
+    "enum": [
+     "CRC32C",
+     "SHA256",
+     "CRC64NVME",
+     "SHA512",
+     "MD5",
+     "XXHASH3",
+     "XXHASH128",
+     "CRC32",
+     "SHA1",
+     "XXHASH64"
+    ]
+   },
+   {
+    "path": "Annotations[].ETag",
+    "type": "string"
+   },
+   {
+    "path": "Annotations[].LastModified",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Annotations[].ReplicationStatus",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "FAILED",
+     "REPLICA",
+     "COMPLETED",
+     "COMPLETE"
+    ]
+   },
+   {
+    "path": "Annotations[].Size",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "Bucket",
+    "type": "string"
+   },
+   {
+    "path": "ContinuationToken",
+    "type": "string"
+   },
+   {
+    "path": "Key",
+    "type": "string"
+   },
+   {
+    "path": "MaxAnnotationResults",
+    "type": "integer"
+   },
+   {
+    "path": "NextContinuationToken",
+    "type": "string"
+   },
+   {
+    "path": "ObjectVersionId",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "ListObjectVersions",
+  "output": "ListObjectVersionsOutput",
+  "members": [
+   {
+    "path": "CommonPrefixes",
+    "type": "list"
+   },
+   {
+    "path": "CommonPrefixes[]",
+    "type": "structure"
+   },
+   {
+    "path": "CommonPrefixes[].Prefix",
+    "type": "string"
+   },
+   {
+    "path": "DeleteMarkers",
+    "type": "list"
+   },
+   {
+    "path": "DeleteMarkers[]",
+    "type": "structure"
+   },
+   {
+    "path": "DeleteMarkers[].IsLatest",
+    "type": "boolean"
+   },
+   {
+    "path": "DeleteMarkers[].Key",
+    "type": "string"
+   },
+   {
+    "path": "DeleteMarkers[].LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "DeleteMarkers[].Owner",
+    "type": "structure"
+   },
+   {
+    "path": "DeleteMarkers[].Owner.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "DeleteMarkers[].Owner.ID",
+    "type": "string"
+   },
+   {
+    "path": "DeleteMarkers[].VersionId",
+    "type": "string"
+   },
+   {
+    "path": "Delimiter",
+    "type": "string"
+   },
+   {
+    "path": "EncodingType",
+    "type": "enum",
+    "enum": [
+     "url"
+    ]
+   },
+   {
+    "path": "IsTruncated",
+    "type": "boolean"
+   },
+   {
+    "path": "KeyMarker",
+    "type": "string"
+   },
+   {
+    "path": "MaxKeys",
+    "type": "integer"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "NextKeyMarker",
+    "type": "string"
+   },
+   {
+    "path": "NextVersionIdMarker",
+    "type": "string"
+   },
+   {
+    "path": "Prefix",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "VersionIdMarker",
+    "type": "string"
+   },
+   {
+    "path": "Versions",
+    "type": "list"
+   },
+   {
+    "path": "Versions[]",
+    "type": "structure"
+   },
+   {
+    "path": "Versions[].ChecksumAlgorithm",
+    "type": "list"
+   },
+   {
+    "path": "Versions[].ChecksumAlgorithm[]",
+    "type": "enum",
+    "enum": [
+     "CRC32C",
+     "SHA256",
+     "CRC64NVME",
+     "SHA512",
+     "MD5",
+     "XXHASH3",
+     "XXHASH128",
+     "CRC32",
+     "SHA1",
+     "XXHASH64"
+    ]
+   },
+   {
+    "path": "Versions[].ChecksumType",
+    "type": "enum",
+    "enum": [
+     "COMPOSITE",
+     "FULL_OBJECT"
+    ]
+   },
+   {
+    "path": "Versions[].ETag",
+    "type": "string"
+   },
+   {
+    "path": "Versions[].IsLatest",
+    "type": "boolean"
+   },
+   {
+    "path": "Versions[].Key",
+    "type": "string"
+   },
+   {
+    "path": "Versions[].LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "Versions[].Owner",
+    "type": "structure"
+   },
+   {
+    "path": "Versions[].Owner.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "Versions[].Owner.ID",
+    "type": "string"
+   },
+   {
+    "path": "Versions[].RestoreStatus",
+    "type": "structure"
+   },
+   {
+    "path": "Versions[].RestoreStatus.IsRestoreInProgress",
+    "type": "boolean"
+   },
+   {
+    "path": "Versions[].RestoreStatus.RestoreExpiryDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Versions[].Size",
+    "type": "integer"
+   },
+   {
+    "path": "Versions[].StorageClass",
+    "type": "enum",
+    "enum": [
+     "STANDARD"
+    ]
+   },
+   {
+    "path": "Versions[].VersionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListObjects",
+  "output": "ListObjectsOutput",
+  "members": [
+   {
+    "path": "CommonPrefixes",
+    "type": "list"
+   },
+   {
+    "path": "CommonPrefixes[]",
+    "type": "structure"
+   },
+   {
+    "path": "CommonPrefixes[].Prefix",
+    "type": "string"
+   },
+   {
+    "path": "Contents",
+    "type": "list"
+   },
+   {
+    "path": "Contents[]",
+    "type": "structure"
+   },
+   {
+    "path": "Contents[].ChecksumAlgorithm",
+    "type": "list"
+   },
+   {
+    "path": "Contents[].ChecksumAlgorithm[]",
+    "type": "enum",
+    "enum": [
+     "CRC32C",
+     "SHA256",
+     "CRC64NVME",
+     "SHA512",
+     "MD5",
+     "XXHASH3",
+     "XXHASH128",
+     "CRC32",
+     "SHA1",
+     "XXHASH64"
+    ]
+   },
+   {
+    "path": "Contents[].ChecksumType",
+    "type": "enum",
+    "enum": [
+     "COMPOSITE",
+     "FULL_OBJECT"
+    ]
+   },
+   {
+    "path": "Contents[].ETag",
+    "type": "string"
+   },
+   {
+    "path": "Contents[].Key",
+    "type": "string"
+   },
+   {
+    "path": "Contents[].LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "Contents[].Owner",
+    "type": "structure"
+   },
+   {
+    "path": "Contents[].Owner.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "Contents[].Owner.ID",
+    "type": "string"
+   },
+   {
+    "path": "Contents[].RestoreStatus",
+    "type": "structure"
+   },
+   {
+    "path": "Contents[].RestoreStatus.IsRestoreInProgress",
+    "type": "boolean"
+   },
+   {
+    "path": "Contents[].RestoreStatus.RestoreExpiryDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Contents[].Size",
+    "type": "integer"
+   },
+   {
+    "path": "Contents[].StorageClass",
+    "type": "enum",
+    "enum": [
+     "OUTPOSTS",
+     "SNOW",
+     "AWS_BACKUP_WARM",
+     "REDUCED_REDUNDANCY",
+     "GLACIER",
+     "GLACIER_IR",
+     "EXPRESS_ONEZONE",
+     "STANDARD",
+     "FSX_OPENZFS",
+     "FSX_ONTAP",
+     "STANDARD_IA",
+     "ONEZONE_IA",
+     "AWS_BACKUP_LOW_COST_WARM",
+     "INTELLIGENT_TIERING",
+     "DEEP_ARCHIVE"
+    ]
+   },
+   {
+    "path": "Delimiter",
+    "type": "string"
+   },
+   {
+    "path": "EncodingType",
+    "type": "enum",
+    "enum": [
+     "url"
+    ]
+   },
+   {
+    "path": "IsTruncated",
+    "type": "boolean"
+   },
+   {
+    "path": "Marker",
+    "type": "string"
+   },
+   {
+    "path": "MaxKeys",
+    "type": "integer"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "NextMarker",
+    "type": "string"
+   },
+   {
+    "path": "Prefix",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "ListObjectsV2",
+  "output": "ListObjectsV2Output",
+  "members": [
+   {
+    "path": "CommonPrefixes",
+    "type": "list"
+   },
+   {
+    "path": "CommonPrefixes[]",
+    "type": "structure"
+   },
+   {
+    "path": "CommonPrefixes[].Prefix",
+    "type": "string"
+   },
+   {
+    "path": "Contents",
+    "type": "list"
+   },
+   {
+    "path": "Contents[]",
+    "type": "structure"
+   },
+   {
+    "path": "Contents[].ChecksumAlgorithm",
+    "type": "list"
+   },
+   {
+    "path": "Contents[].ChecksumAlgorithm[]",
+    "type": "enum",
+    "enum": [
+     "CRC32C",
+     "SHA256",
+     "CRC64NVME",
+     "SHA512",
+     "MD5",
+     "XXHASH3",
+     "XXHASH128",
+     "CRC32",
+     "SHA1",
+     "XXHASH64"
+    ]
+   },
+   {
+    "path": "Contents[].ChecksumType",
+    "type": "enum",
+    "enum": [
+     "COMPOSITE",
+     "FULL_OBJECT"
+    ]
+   },
+   {
+    "path": "Contents[].ETag",
+    "type": "string"
+   },
+   {
+    "path": "Contents[].Key",
+    "type": "string"
+   },
+   {
+    "path": "Contents[].LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "Contents[].Owner",
+    "type": "structure"
+   },
+   {
+    "path": "Contents[].Owner.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "Contents[].Owner.ID",
+    "type": "string"
+   },
+   {
+    "path": "Contents[].RestoreStatus",
+    "type": "structure"
+   },
+   {
+    "path": "Contents[].RestoreStatus.IsRestoreInProgress",
+    "type": "boolean"
+   },
+   {
+    "path": "Contents[].RestoreStatus.RestoreExpiryDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Contents[].Size",
+    "type": "integer"
+   },
+   {
+    "path": "Contents[].StorageClass",
+    "type": "enum",
+    "enum": [
+     "GLACIER",
+     "GLACIER_IR",
+     "EXPRESS_ONEZONE",
+     "STANDARD",
+     "FSX_OPENZFS",
+     "FSX_ONTAP",
+     "STANDARD_IA",
+     "ONEZONE_IA",
+     "AWS_BACKUP_LOW_COST_WARM",
+     "INTELLIGENT_TIERING",
+     "DEEP_ARCHIVE",
+     "OUTPOSTS",
+     "SNOW",
+     "AWS_BACKUP_WARM",
+     "REDUCED_REDUNDANCY"
+    ]
+   },
+   {
+    "path": "ContinuationToken",
+    "type": "string"
+   },
+   {
+    "path": "Delimiter",
+    "type": "string"
+   },
+   {
+    "path": "EncodingType",
+    "type": "enum",
+    "enum": [
+     "url"
+    ]
+   },
+   {
+    "path": "IsTruncated",
+    "type": "boolean"
+   },
+   {
+    "path": "KeyCount",
+    "type": "integer"
+   },
+   {
+    "path": "MaxKeys",
+    "type": "integer"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "NextContinuationToken",
+    "type": "string"
+   },
+   {
+    "path": "Prefix",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "StartAfter",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListParts",
+  "output": "ListPartsOutput",
+  "members": [
+   {
+    "path": "AbortDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "AbortRuleId",
+    "type": "string"
+   },
+   {
+    "path": "Bucket",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumAlgorithm",
+    "type": "enum",
+    "enum": [
+     "XXHASH64",
+     "CRC32C",
+     "SHA256",
+     "CRC64NVME",
+     "SHA512",
+     "MD5",
+     "XXHASH3",
+     "XXHASH128",
+     "CRC32",
+     "SHA1"
+    ]
+   },
+   {
+    "path": "ChecksumType",
+    "type": "enum",
+    "enum": [
+     "COMPOSITE",
+     "FULL_OBJECT"
+    ]
+   },
+   {
+    "path": "Initiator",
+    "type": "structure"
+   },
+   {
+    "path": "Initiator.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "Initiator.ID",
+    "type": "string"
+   },
+   {
+    "path": "IsTruncated",
+    "type": "boolean"
+   },
+   {
+    "path": "Key",
+    "type": "string"
+   },
+   {
+    "path": "MaxParts",
+    "type": "integer"
+   },
+   {
+    "path": "NextPartNumberMarker",
+    "type": "string"
+   },
+   {
+    "path": "Owner",
+    "type": "structure"
+   },
+   {
+    "path": "Owner.DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "Owner.ID",
+    "type": "string"
+   },
+   {
+    "path": "PartNumberMarker",
+    "type": "string"
+   },
+   {
+    "path": "Parts",
+    "type": "list"
+   },
+   {
+    "path": "Parts[]",
+    "type": "structure"
+   },
+   {
+    "path": "Parts[].ChecksumCRC32",
+    "type": "string"
+   },
+   {
+    "path": "Parts[].ChecksumCRC32C",
+    "type": "string"
+   },
+   {
+    "path": "Parts[].ChecksumCRC64NVME",
+    "type": "string"
+   },
+   {
+    "path": "Parts[].ChecksumMD5",
+    "type": "string"
+   },
+   {
+    "path": "Parts[].ChecksumSHA1",
+    "type": "string"
+   },
+   {
+    "path": "Parts[].ChecksumSHA256",
+    "type": "string"
+   },
+   {
+    "path": "Parts[].ChecksumSHA512",
+    "type": "string"
+   },
+   {
+    "path": "Parts[].ChecksumXXHASH128",
+    "type": "string"
+   },
+   {
+    "path": "Parts[].ChecksumXXHASH3",
+    "type": "string"
+   },
+   {
+    "path": "Parts[].ChecksumXXHASH64",
+    "type": "string"
+   },
+   {
+    "path": "Parts[].ETag",
+    "type": "string"
+   },
+   {
+    "path": "Parts[].LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "Parts[].PartNumber",
+    "type": "integer"
+   },
+   {
+    "path": "Parts[].Size",
+    "type": "integer"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "StorageClass",
+    "type": "enum",
+    "enum": [
+     "STANDARD_IA",
+     "INTELLIGENT_TIERING",
+     "GLACIER",
+     "AWS_BACKUP_WARM",
+     "AWS_BACKUP_LOW_COST_WARM",
+     "STANDARD",
+     "ONEZONE_IA",
+     "DEEP_ARCHIVE",
+     "OUTPOSTS",
+     "GLACIER_IR",
+     "FSX_OPENZFS",
+     "REDUCED_REDUNDANCY",
+     "SNOW",
+     "EXPRESS_ONEZONE",
+     "FSX_ONTAP"
+    ]
+   },
+   {
+    "path": "UploadId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutBucketLifecycleConfiguration",
+  "output": "PutBucketLifecycleConfigurationOutput",
+  "members": [
+   {
+    "path": "TransitionDefaultMinimumObjectSize",
+    "type": "enum",
+    "enum": [
+     "varies_by_storage_class",
+     "all_storage_classes_128K"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "PutObject",
+  "output": "PutObjectOutput",
+  "members": [
+   {
+    "path": "BucketKeyEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "ChecksumCRC32",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC32C",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC64NVME",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumMD5",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA1",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA256",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA512",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumType",
+    "type": "enum",
+    "enum": [
+     "COMPOSITE",
+     "FULL_OBJECT"
+    ]
+   },
+   {
+    "path": "ChecksumXXHASH128",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH3",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH64",
+    "type": "string"
+   },
+   {
+    "path": "ETag",
+    "type": "string"
+   },
+   {
+    "path": "Expiration",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "SSECustomerAlgorithm",
+    "type": "string"
+   },
+   {
+    "path": "SSECustomerKeyMD5",
+    "type": "string"
+   },
+   {
+    "path": "SSEKMSEncryptionContext",
+    "type": "string"
+   },
+   {
+    "path": "SSEKMSKeyId",
+    "type": "string"
+   },
+   {
+    "path": "ServerSideEncryption",
+    "type": "enum",
+    "enum": [
+     "AES256",
+     "aws:fsx",
+     "aws:backup",
+     "aws:kms",
+     "aws:kms:dsse"
+    ]
+   },
+   {
+    "path": "Size",
+    "type": "integer"
+   },
+   {
+    "path": "VersionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutObjectAcl",
+  "output": "PutObjectAclOutput",
+  "members": [
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "PutObjectAnnotation",
+  "output": "PutObjectAnnotationOutput",
+  "members": [
+   {
+    "path": "AnnotationName",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC32",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC32C",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC64NVME",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumMD5",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA1",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA256",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA512",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumType",
+    "type": "enum",
+    "enum": [
+     "FULL_OBJECT",
+     "COMPOSITE"
+    ]
+   },
+   {
+    "path": "ChecksumXXHASH128",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH3",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH64",
+    "type": "string"
+   },
+   {
+    "path": "ETag",
+    "type": "string"
+   },
+   {
+    "path": "Key",
+    "type": "string"
+   },
+   {
+    "path": "ObjectVersionId",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "ServerSideEncryption",
+    "type": "enum",
+    "enum": [
+     "AES256",
+     "aws:fsx",
+     "aws:backup",
+     "aws:kms",
+     "aws:kms:dsse"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "PutObjectLegalHold",
+  "output": "PutObjectLegalHoldOutput",
+  "members": [
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "PutObjectLockConfiguration",
+  "output": "PutObjectLockConfigurationOutput",
+  "members": [
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "PutObjectRetention",
+  "output": "PutObjectRetentionOutput",
+  "members": [
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "PutObjectTagging",
+  "output": "PutObjectTaggingOutput",
+  "members": [
+   {
+    "path": "VersionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "RestoreObject",
+  "output": "RestoreObjectOutput",
+  "members": [
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "RestoreOutputPath",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "SelectObjectContent",
+  "output": "SelectObjectContentOutput",
+  "members": [
+   {
+    "path": "Payload",
+    "type": "any"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateObjectEncryption",
+  "output": "UpdateObjectEncryptionResponse",
+  "members": [
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "UploadPart",
+  "output": "UploadPartOutput",
+  "members": [
+   {
+    "path": "BucketKeyEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "ChecksumCRC32",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC32C",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumCRC64NVME",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumMD5",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA1",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA256",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumSHA512",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH128",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH3",
+    "type": "string"
+   },
+   {
+    "path": "ChecksumXXHASH64",
+    "type": "string"
+   },
+   {
+    "path": "ETag",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "SSECustomerAlgorithm",
+    "type": "string"
+   },
+   {
+    "path": "SSECustomerKeyMD5",
+    "type": "string"
+   },
+   {
+    "path": "SSEKMSKeyId",
+    "type": "string"
+   },
+   {
+    "path": "ServerSideEncryption",
+    "type": "enum",
+    "enum": [
+     "AES256",
+     "aws:fsx",
+     "aws:backup",
+     "aws:kms",
+     "aws:kms:dsse"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "UploadPartCopy",
+  "output": "UploadPartCopyOutput",
+  "members": [
+   {
+    "path": "BucketKeyEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "CopyPartResult",
+    "type": "structure"
+   },
+   {
+    "path": "CopyPartResult.ChecksumCRC32",
+    "type": "string"
+   },
+   {
+    "path": "CopyPartResult.ChecksumCRC32C",
+    "type": "string"
+   },
+   {
+    "path": "CopyPartResult.ChecksumCRC64NVME",
+    "type": "string"
+   },
+   {
+    "path": "CopyPartResult.ChecksumMD5",
+    "type": "string"
+   },
+   {
+    "path": "CopyPartResult.ChecksumSHA1",
+    "type": "string"
+   },
+   {
+    "path": "CopyPartResult.ChecksumSHA256",
+    "type": "string"
+   },
+   {
+    "path": "CopyPartResult.ChecksumSHA512",
+    "type": "string"
+   },
+   {
+    "path": "CopyPartResult.ChecksumXXHASH128",
+    "type": "string"
+   },
+   {
+    "path": "CopyPartResult.ChecksumXXHASH3",
+    "type": "string"
+   },
+   {
+    "path": "CopyPartResult.ChecksumXXHASH64",
+    "type": "string"
+   },
+   {
+    "path": "CopyPartResult.ETag",
+    "type": "string"
+   },
+   {
+    "path": "CopyPartResult.LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "CopySourceVersionId",
+    "type": "string"
+   },
+   {
+    "path": "RequestCharged",
+    "type": "enum",
+    "enum": [
+     "requester"
+    ]
+   },
+   {
+    "path": "SSECustomerAlgorithm",
+    "type": "string"
+   },
+   {
+    "path": "SSECustomerKeyMD5",
+    "type": "string"
+   },
+   {
+    "path": "SSEKMSKeyId",
+    "type": "string"
+   },
+   {
+    "path": "ServerSideEncryption",
+    "type": "enum",
+    "enum": [
+     "AES256",
+     "aws:fsx",
+     "aws:backup",
+     "aws:kms",
+     "aws:kms:dsse"
+    ]
+   }
+  ]
+ }
+]

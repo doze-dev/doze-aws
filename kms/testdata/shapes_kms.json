@@ -1,0 +1,2079 @@
+[
+ {
+  "operation": "CancelKeyDeletion",
+  "output": "CancelKeyDeletionResponse",
+  "members": [
+   {
+    "path": "KeyId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateCustomKeyStore",
+  "output": "CreateCustomKeyStoreResponse",
+  "members": [
+   {
+    "path": "CustomKeyStoreId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateGrant",
+  "output": "CreateGrantResponse",
+  "members": [
+   {
+    "path": "GrantId",
+    "type": "string"
+   },
+   {
+    "path": "GrantToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateKey",
+  "output": "CreateKeyResponse",
+  "members": [
+   {
+    "path": "KeyMetadata",
+    "type": "structure"
+   },
+   {
+    "path": "KeyMetadata.AWSAccountId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.Arn",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.CloudHsmClusterId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.CreationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "KeyMetadata.CurrentKeyMaterialId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.CustomKeyStoreId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.CustomerMasterKeySpec",
+    "type": "enum",
+    "enum": [
+     "ECC_NIST_P256",
+     "ECC_NIST_P521",
+     "ECC_SECG_P256K1",
+     "SYMMETRIC_DEFAULT",
+     "HMAC_384",
+     "RSA_4096",
+     "ECC_NIST_P384",
+     "HMAC_224",
+     "HMAC_256",
+     "HMAC_512",
+     "SM2",
+     "RSA_2048",
+     "RSA_3072"
+    ]
+   },
+   {
+    "path": "KeyMetadata.DeletionDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "KeyMetadata.Description",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.Enabled",
+    "type": "boolean"
+   },
+   {
+    "path": "KeyMetadata.EncryptionAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "KeyMetadata.EncryptionAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "SYMMETRIC_DEFAULT",
+     "RSAES_OAEP_SHA_1",
+     "RSAES_OAEP_SHA_256",
+     "SM2PKE"
+    ]
+   },
+   {
+    "path": "KeyMetadata.ExpirationModel",
+    "type": "enum",
+    "enum": [
+     "KEY_MATERIAL_EXPIRES",
+     "KEY_MATERIAL_DOES_NOT_EXPIRE"
+    ]
+   },
+   {
+    "path": "KeyMetadata.KeyAgreementAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "KeyMetadata.KeyAgreementAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "ECDH"
+    ]
+   },
+   {
+    "path": "KeyMetadata.KeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "KeyMetadata.KeyManager",
+    "type": "enum",
+    "enum": [
+     "AWS",
+     "CUSTOMER"
+    ]
+   },
+   {
+    "path": "KeyMetadata.KeySpec",
+    "type": "enum",
+    "enum": [
+     "RSA_3072",
+     "ECC_NIST_P256",
+     "ECC_NIST_P521",
+     "HMAC_256",
+     "HMAC_512",
+     "RSA_4096",
+     "ECC_SECG_P256K1",
+     "SM2",
+     "RSA_2048",
+     "ECC_NIST_P384",
+     "HMAC_224",
+     "ML_DSA_65",
+     "ML_DSA_87",
+     "SYMMETRIC_DEFAULT",
+     "HMAC_384",
+     "ML_DSA_44",
+     "ECC_NIST_EDWARDS25519"
+    ]
+   },
+   {
+    "path": "KeyMetadata.KeyState",
+    "type": "enum",
+    "enum": [
+     "Creating",
+     "Enabled",
+     "Disabled",
+     "PendingDeletion",
+     "PendingImport",
+     "PendingReplicaDeletion",
+     "Unavailable",
+     "Updating"
+    ]
+   },
+   {
+    "path": "KeyMetadata.KeyUsage",
+    "type": "enum",
+    "enum": [
+     "ENCRYPT_DECRYPT",
+     "GENERATE_VERIFY_MAC",
+     "KEY_AGREEMENT",
+     "SIGN_VERIFY"
+    ]
+   },
+   {
+    "path": "KeyMetadata.MacAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "KeyMetadata.MacAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "HMAC_SHA_224",
+     "HMAC_SHA_256",
+     "HMAC_SHA_384",
+     "HMAC_SHA_512"
+    ]
+   },
+   {
+    "path": "KeyMetadata.MultiRegion",
+    "type": "boolean"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.MultiRegionKeyType",
+    "type": "enum",
+    "enum": [
+     "PRIMARY",
+     "REPLICA"
+    ]
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.PrimaryKey",
+    "type": "structure"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.PrimaryKey.Arn",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.PrimaryKey.Region",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.ReplicaKeys",
+    "type": "list"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.ReplicaKeys[]",
+    "type": "structure"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.ReplicaKeys[].Arn",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.ReplicaKeys[].Region",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.Origin",
+    "type": "enum",
+    "enum": [
+     "AWS_KMS",
+     "EXTERNAL",
+     "AWS_CLOUDHSM",
+     "EXTERNAL_KEY_STORE"
+    ]
+   },
+   {
+    "path": "KeyMetadata.PendingDeletionWindowInDays",
+    "type": "integer"
+   },
+   {
+    "path": "KeyMetadata.SigningAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "KeyMetadata.SigningAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "RSASSA_PSS_SHA_384",
+     "RSASSA_PSS_SHA_512",
+     "RSASSA_PKCS1_V1_5_SHA_256",
+     "RSASSA_PKCS1_V1_5_SHA_384",
+     "RSASSA_PKCS1_V1_5_SHA_512",
+     "ECDSA_SHA_384",
+     "SM2DSA",
+     "ECDSA_SHA_256",
+     "ECDSA_SHA_512",
+     "ML_DSA_SHAKE_256",
+     "ED25519_SHA_512",
+     "ED25519_PH_SHA_512",
+     "RSASSA_PSS_SHA_256"
+    ]
+   },
+   {
+    "path": "KeyMetadata.ValidTo",
+    "type": "timestamp"
+   },
+   {
+    "path": "KeyMetadata.XksKeyConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "KeyMetadata.XksKeyConfiguration.Id",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "Decrypt",
+  "output": "DecryptResponse",
+  "members": [
+   {
+    "path": "CiphertextForRecipient",
+    "type": "blob"
+   },
+   {
+    "path": "EncryptionAlgorithm",
+    "type": "enum",
+    "enum": [
+     "SYMMETRIC_DEFAULT",
+     "RSAES_OAEP_SHA_1",
+     "RSAES_OAEP_SHA_256",
+     "SM2PKE"
+    ]
+   },
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMaterialId",
+    "type": "string"
+   },
+   {
+    "path": "Plaintext",
+    "type": "blob"
+   }
+  ]
+ },
+ {
+  "operation": "DeleteImportedKeyMaterial",
+  "output": "DeleteImportedKeyMaterialResponse",
+  "members": [
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMaterialId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DeriveSharedSecret",
+  "output": "DeriveSharedSecretResponse",
+  "members": [
+   {
+    "path": "CiphertextForRecipient",
+    "type": "blob"
+   },
+   {
+    "path": "KeyAgreementAlgorithm",
+    "type": "enum",
+    "enum": [
+     "ECDH"
+    ]
+   },
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "KeyOrigin",
+    "type": "enum",
+    "enum": [
+     "AWS_KMS",
+     "EXTERNAL",
+     "AWS_CLOUDHSM",
+     "EXTERNAL_KEY_STORE"
+    ]
+   },
+   {
+    "path": "SharedSecret",
+    "type": "blob"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeCustomKeyStores",
+  "output": "DescribeCustomKeyStoresResponse",
+  "members": [
+   {
+    "path": "CustomKeyStores",
+    "type": "list"
+   },
+   {
+    "path": "CustomKeyStores[]",
+    "type": "structure"
+   },
+   {
+    "path": "CustomKeyStores[].CloudHsmClusterId",
+    "type": "string"
+   },
+   {
+    "path": "CustomKeyStores[].ConnectionErrorCode",
+    "type": "enum",
+    "enum": [
+     "XKS_PROXY_ACCESS_DENIED",
+     "XKS_PROXY_INVALID_CONFIGURATION",
+     "INTERNAL_ERROR",
+     "USER_LOCKED_OUT",
+     "XKS_PROXY_TIMED_OUT",
+     "XKS_PROXY_INVALID_TLS_CONFIGURATION",
+     "CLUSTER_NOT_FOUND",
+     "USER_NOT_FOUND",
+     "USER_LOGGED_IN",
+     "XKS_PROXY_INVALID_RESPONSE",
+     "SUBNET_NOT_FOUND",
+     "INSUFFICIENT_FREE_ADDRESSES_IN_SUBNET",
+     "XKS_PROXY_NOT_REACHABLE",
+     "XKS_VPC_ENDPOINT_SERVICE_NOT_FOUND",
+     "XKS_VPC_ENDPOINT_SERVICE_INVALID_CONFIGURATION",
+     "INVALID_CREDENTIALS",
+     "NETWORK_ERRORS",
+     "INSUFFICIENT_CLOUDHSM_HSMS"
+    ]
+   },
+   {
+    "path": "CustomKeyStores[].ConnectionState",
+    "type": "enum",
+    "enum": [
+     "CONNECTING",
+     "FAILED",
+     "DISCONNECTED",
+     "DISCONNECTING",
+     "CONNECTED"
+    ]
+   },
+   {
+    "path": "CustomKeyStores[].CreationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "CustomKeyStores[].CustomKeyStoreId",
+    "type": "string"
+   },
+   {
+    "path": "CustomKeyStores[].CustomKeyStoreName",
+    "type": "string"
+   },
+   {
+    "path": "CustomKeyStores[].CustomKeyStoreType",
+    "type": "enum",
+    "enum": [
+     "AWS_CLOUDHSM",
+     "EXTERNAL_KEY_STORE"
+    ]
+   },
+   {
+    "path": "CustomKeyStores[].TrustAnchorCertificate",
+    "type": "string"
+   },
+   {
+    "path": "CustomKeyStores[].XksProxyConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "CustomKeyStores[].XksProxyConfiguration.AccessKeyId",
+    "type": "string"
+   },
+   {
+    "path": "CustomKeyStores[].XksProxyConfiguration.Connectivity",
+    "type": "enum",
+    "enum": [
+     "PUBLIC_ENDPOINT",
+     "VPC_ENDPOINT_SERVICE"
+    ]
+   },
+   {
+    "path": "CustomKeyStores[].XksProxyConfiguration.UriEndpoint",
+    "type": "string"
+   },
+   {
+    "path": "CustomKeyStores[].XksProxyConfiguration.UriPath",
+    "type": "string"
+   },
+   {
+    "path": "CustomKeyStores[].XksProxyConfiguration.VpcEndpointServiceName",
+    "type": "string"
+   },
+   {
+    "path": "CustomKeyStores[].XksProxyConfiguration.VpcEndpointServiceOwner",
+    "type": "string"
+   },
+   {
+    "path": "NextMarker",
+    "type": "string"
+   },
+   {
+    "path": "Truncated",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeKey",
+  "output": "DescribeKeyResponse",
+  "members": [
+   {
+    "path": "KeyMetadata",
+    "type": "structure"
+   },
+   {
+    "path": "KeyMetadata.AWSAccountId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.Arn",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.CloudHsmClusterId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.CreationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "KeyMetadata.CurrentKeyMaterialId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.CustomKeyStoreId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.CustomerMasterKeySpec",
+    "type": "enum",
+    "enum": [
+     "SYMMETRIC_DEFAULT",
+     "HMAC_384",
+     "RSA_4096",
+     "ECC_NIST_P384",
+     "HMAC_224",
+     "HMAC_256",
+     "HMAC_512",
+     "SM2",
+     "RSA_2048",
+     "RSA_3072",
+     "ECC_NIST_P256",
+     "ECC_NIST_P521",
+     "ECC_SECG_P256K1"
+    ]
+   },
+   {
+    "path": "KeyMetadata.DeletionDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "KeyMetadata.Description",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.Enabled",
+    "type": "boolean"
+   },
+   {
+    "path": "KeyMetadata.EncryptionAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "KeyMetadata.EncryptionAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "SYMMETRIC_DEFAULT",
+     "RSAES_OAEP_SHA_1",
+     "RSAES_OAEP_SHA_256",
+     "SM2PKE"
+    ]
+   },
+   {
+    "path": "KeyMetadata.ExpirationModel",
+    "type": "enum",
+    "enum": [
+     "KEY_MATERIAL_DOES_NOT_EXPIRE",
+     "KEY_MATERIAL_EXPIRES"
+    ]
+   },
+   {
+    "path": "KeyMetadata.KeyAgreementAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "KeyMetadata.KeyAgreementAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "ECDH"
+    ]
+   },
+   {
+    "path": "KeyMetadata.KeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "KeyMetadata.KeyManager",
+    "type": "enum",
+    "enum": [
+     "AWS",
+     "CUSTOMER"
+    ]
+   },
+   {
+    "path": "KeyMetadata.KeySpec",
+    "type": "enum",
+    "enum": [
+     "ML_DSA_87",
+     "SYMMETRIC_DEFAULT",
+     "HMAC_384",
+     "ML_DSA_44",
+     "ECC_NIST_EDWARDS25519",
+     "RSA_3072",
+     "ECC_NIST_P256",
+     "ECC_NIST_P521",
+     "HMAC_256",
+     "HMAC_512",
+     "RSA_4096",
+     "ECC_SECG_P256K1",
+     "SM2",
+     "RSA_2048",
+     "ECC_NIST_P384",
+     "HMAC_224",
+     "ML_DSA_65"
+    ]
+   },
+   {
+    "path": "KeyMetadata.KeyState",
+    "type": "enum",
+    "enum": [
+     "Enabled",
+     "Disabled",
+     "PendingDeletion",
+     "PendingImport",
+     "PendingReplicaDeletion",
+     "Unavailable",
+     "Updating",
+     "Creating"
+    ]
+   },
+   {
+    "path": "KeyMetadata.KeyUsage",
+    "type": "enum",
+    "enum": [
+     "ENCRYPT_DECRYPT",
+     "GENERATE_VERIFY_MAC",
+     "KEY_AGREEMENT",
+     "SIGN_VERIFY"
+    ]
+   },
+   {
+    "path": "KeyMetadata.MacAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "KeyMetadata.MacAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "HMAC_SHA_224",
+     "HMAC_SHA_256",
+     "HMAC_SHA_384",
+     "HMAC_SHA_512"
+    ]
+   },
+   {
+    "path": "KeyMetadata.MultiRegion",
+    "type": "boolean"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.MultiRegionKeyType",
+    "type": "enum",
+    "enum": [
+     "PRIMARY",
+     "REPLICA"
+    ]
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.PrimaryKey",
+    "type": "structure"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.PrimaryKey.Arn",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.PrimaryKey.Region",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.ReplicaKeys",
+    "type": "list"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.ReplicaKeys[]",
+    "type": "structure"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.ReplicaKeys[].Arn",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.MultiRegionConfiguration.ReplicaKeys[].Region",
+    "type": "string"
+   },
+   {
+    "path": "KeyMetadata.Origin",
+    "type": "enum",
+    "enum": [
+     "AWS_KMS",
+     "EXTERNAL",
+     "AWS_CLOUDHSM",
+     "EXTERNAL_KEY_STORE"
+    ]
+   },
+   {
+    "path": "KeyMetadata.PendingDeletionWindowInDays",
+    "type": "integer"
+   },
+   {
+    "path": "KeyMetadata.SigningAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "KeyMetadata.SigningAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "RSASSA_PKCS1_V1_5_SHA_384",
+     "RSASSA_PKCS1_V1_5_SHA_512",
+     "ECDSA_SHA_384",
+     "SM2DSA",
+     "ECDSA_SHA_256",
+     "ECDSA_SHA_512",
+     "ML_DSA_SHAKE_256",
+     "ED25519_SHA_512",
+     "ED25519_PH_SHA_512",
+     "RSASSA_PSS_SHA_256",
+     "RSASSA_PSS_SHA_384",
+     "RSASSA_PSS_SHA_512",
+     "RSASSA_PKCS1_V1_5_SHA_256"
+    ]
+   },
+   {
+    "path": "KeyMetadata.ValidTo",
+    "type": "timestamp"
+   },
+   {
+    "path": "KeyMetadata.XksKeyConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "KeyMetadata.XksKeyConfiguration.Id",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "Encrypt",
+  "output": "EncryptResponse",
+  "members": [
+   {
+    "path": "CiphertextBlob",
+    "type": "blob"
+   },
+   {
+    "path": "EncryptionAlgorithm",
+    "type": "enum",
+    "enum": [
+     "SYMMETRIC_DEFAULT",
+     "RSAES_OAEP_SHA_1",
+     "RSAES_OAEP_SHA_256",
+     "SM2PKE"
+    ]
+   },
+   {
+    "path": "KeyId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GenerateDataKey",
+  "output": "GenerateDataKeyResponse",
+  "members": [
+   {
+    "path": "CiphertextBlob",
+    "type": "blob"
+   },
+   {
+    "path": "CiphertextForRecipient",
+    "type": "blob"
+   },
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMaterialId",
+    "type": "string"
+   },
+   {
+    "path": "Plaintext",
+    "type": "blob"
+   }
+  ]
+ },
+ {
+  "operation": "GenerateDataKeyPair",
+  "output": "GenerateDataKeyPairResponse",
+  "members": [
+   {
+    "path": "CiphertextForRecipient",
+    "type": "blob"
+   },
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMaterialId",
+    "type": "string"
+   },
+   {
+    "path": "KeyPairSpec",
+    "type": "enum",
+    "enum": [
+     "RSA_3072",
+     "RSA_4096",
+     "SM2",
+     "ECC_NIST_P256",
+     "ECC_NIST_P384",
+     "ECC_NIST_P521",
+     "ECC_SECG_P256K1",
+     "ECC_NIST_EDWARDS25519",
+     "RSA_2048"
+    ]
+   },
+   {
+    "path": "PrivateKeyCiphertextBlob",
+    "type": "blob"
+   },
+   {
+    "path": "PrivateKeyPlaintext",
+    "type": "blob"
+   },
+   {
+    "path": "PublicKey",
+    "type": "blob"
+   }
+  ]
+ },
+ {
+  "operation": "GenerateDataKeyPairWithoutPlaintext",
+  "output": "GenerateDataKeyPairWithoutPlaintextResponse",
+  "members": [
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMaterialId",
+    "type": "string"
+   },
+   {
+    "path": "KeyPairSpec",
+    "type": "enum",
+    "enum": [
+     "ECC_NIST_P256",
+     "ECC_NIST_P384",
+     "ECC_NIST_P521",
+     "ECC_SECG_P256K1",
+     "ECC_NIST_EDWARDS25519",
+     "RSA_2048",
+     "RSA_3072",
+     "RSA_4096",
+     "SM2"
+    ]
+   },
+   {
+    "path": "PrivateKeyCiphertextBlob",
+    "type": "blob"
+   },
+   {
+    "path": "PublicKey",
+    "type": "blob"
+   }
+  ]
+ },
+ {
+  "operation": "GenerateDataKeyWithoutPlaintext",
+  "output": "GenerateDataKeyWithoutPlaintextResponse",
+  "members": [
+   {
+    "path": "CiphertextBlob",
+    "type": "blob"
+   },
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMaterialId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GenerateMac",
+  "output": "GenerateMacResponse",
+  "members": [
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "Mac",
+    "type": "blob"
+   },
+   {
+    "path": "MacAlgorithm",
+    "type": "enum",
+    "enum": [
+     "HMAC_SHA_384",
+     "HMAC_SHA_512",
+     "HMAC_SHA_224",
+     "HMAC_SHA_256"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GenerateRandom",
+  "output": "GenerateRandomResponse",
+  "members": [
+   {
+    "path": "CiphertextForRecipient",
+    "type": "blob"
+   },
+   {
+    "path": "Plaintext",
+    "type": "blob"
+   }
+  ]
+ },
+ {
+  "operation": "GetKeyLastUsage",
+  "output": "GetKeyLastUsageResponse",
+  "members": [
+   {
+    "path": "KeyCreationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "KeyLastUsage",
+    "type": "structure"
+   },
+   {
+    "path": "KeyLastUsage.CloudTrailEventId",
+    "type": "string"
+   },
+   {
+    "path": "KeyLastUsage.KmsRequestId",
+    "type": "string"
+   },
+   {
+    "path": "KeyLastUsage.Operation",
+    "type": "enum",
+    "enum": [
+     "GenerateDataKeyWithoutPlaintext",
+     "Sign",
+     "Verify",
+     "VerifyMac",
+     "Decrypt",
+     "DeriveSharedSecret",
+     "GenerateMac",
+     "ReEncrypt",
+     "Encrypt",
+     "GenerateDataKey",
+     "GenerateDataKeyPair",
+     "GenerateDataKeyPairWithoutPlaintext"
+    ]
+   },
+   {
+    "path": "KeyLastUsage.Timestamp",
+    "type": "timestamp"
+   },
+   {
+    "path": "TrackingStartDate",
+    "type": "timestamp"
+   }
+  ]
+ },
+ {
+  "operation": "GetKeyPolicy",
+  "output": "GetKeyPolicyResponse",
+  "members": [
+   {
+    "path": "Policy",
+    "type": "string"
+   },
+   {
+    "path": "PolicyName",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetKeyRotationStatus",
+  "output": "GetKeyRotationStatusResponse",
+  "members": [
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "KeyRotationEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "NextRotationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "OnDemandRotationStartDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "RotationPeriodInDays",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "GetParametersForImport",
+  "output": "GetParametersForImportResponse",
+  "members": [
+   {
+    "path": "ImportToken",
+    "type": "blob"
+   },
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "ParametersValidTo",
+    "type": "timestamp"
+   },
+   {
+    "path": "PublicKey",
+    "type": "blob"
+   }
+  ]
+ },
+ {
+  "operation": "GetPublicKey",
+  "output": "GetPublicKeyResponse",
+  "members": [
+   {
+    "path": "CustomerMasterKeySpec",
+    "type": "enum",
+    "enum": [
+     "RSA_4096",
+     "ECC_NIST_P384",
+     "HMAC_224",
+     "HMAC_256",
+     "HMAC_512",
+     "SM2",
+     "RSA_2048",
+     "RSA_3072",
+     "ECC_NIST_P256",
+     "ECC_NIST_P521",
+     "ECC_SECG_P256K1",
+     "SYMMETRIC_DEFAULT",
+     "HMAC_384"
+    ]
+   },
+   {
+    "path": "EncryptionAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "EncryptionAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "SYMMETRIC_DEFAULT",
+     "RSAES_OAEP_SHA_1",
+     "RSAES_OAEP_SHA_256",
+     "SM2PKE"
+    ]
+   },
+   {
+    "path": "KeyAgreementAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "KeyAgreementAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "ECDH"
+    ]
+   },
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "KeySpec",
+    "type": "enum",
+    "enum": [
+     "RSA_4096",
+     "ECC_SECG_P256K1",
+     "SM2",
+     "RSA_2048",
+     "ECC_NIST_P384",
+     "HMAC_224",
+     "ML_DSA_65",
+     "ML_DSA_87",
+     "SYMMETRIC_DEFAULT",
+     "HMAC_384",
+     "ML_DSA_44",
+     "ECC_NIST_EDWARDS25519",
+     "RSA_3072",
+     "ECC_NIST_P256",
+     "ECC_NIST_P521",
+     "HMAC_256",
+     "HMAC_512"
+    ]
+   },
+   {
+    "path": "KeyUsage",
+    "type": "enum",
+    "enum": [
+     "KEY_AGREEMENT",
+     "SIGN_VERIFY",
+     "ENCRYPT_DECRYPT",
+     "GENERATE_VERIFY_MAC"
+    ]
+   },
+   {
+    "path": "PublicKey",
+    "type": "blob"
+   },
+   {
+    "path": "SigningAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "SigningAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "RSASSA_PSS_SHA_256",
+     "RSASSA_PSS_SHA_384",
+     "RSASSA_PSS_SHA_512",
+     "RSASSA_PKCS1_V1_5_SHA_256",
+     "RSASSA_PKCS1_V1_5_SHA_384",
+     "RSASSA_PKCS1_V1_5_SHA_512",
+     "ECDSA_SHA_384",
+     "SM2DSA",
+     "ECDSA_SHA_256",
+     "ECDSA_SHA_512",
+     "ML_DSA_SHAKE_256",
+     "ED25519_SHA_512",
+     "ED25519_PH_SHA_512"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "ImportKeyMaterial",
+  "output": "ImportKeyMaterialResponse",
+  "members": [
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "KeyMaterialId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListAliases",
+  "output": "ListAliasesResponse",
+  "members": [
+   {
+    "path": "Aliases",
+    "type": "list"
+   },
+   {
+    "path": "Aliases[]",
+    "type": "structure"
+   },
+   {
+    "path": "Aliases[].AliasArn",
+    "type": "string"
+   },
+   {
+    "path": "Aliases[].AliasName",
+    "type": "string"
+   },
+   {
+    "path": "Aliases[].CreationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Aliases[].LastUpdatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Aliases[].TargetKeyId",
+    "type": "string"
+   },
+   {
+    "path": "NextMarker",
+    "type": "string"
+   },
+   {
+    "path": "Truncated",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "ListGrants",
+  "output": "ListGrantsResponse",
+  "members": [
+   {
+    "path": "Grants",
+    "type": "list"
+   },
+   {
+    "path": "Grants[]",
+    "type": "structure"
+   },
+   {
+    "path": "Grants[].Constraints",
+    "type": "structure"
+   },
+   {
+    "path": "Grants[].Constraints.EncryptionContextEquals",
+    "type": "map"
+   },
+   {
+    "path": "Grants[].Constraints.EncryptionContextEquals{}",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Constraints.EncryptionContextSubset",
+    "type": "map"
+   },
+   {
+    "path": "Grants[].Constraints.EncryptionContextSubset{}",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Constraints.SourceArn",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].CreationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Grants[].GrantId",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].GranteePrincipal",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].GranteeServicePrincipal",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].IssuingAccount",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].KeyId",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Name",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Operations",
+    "type": "list"
+   },
+   {
+    "path": "Grants[].Operations[]",
+    "type": "enum",
+    "enum": [
+     "Decrypt",
+     "GenerateDataKeyWithoutPlaintext",
+     "DescribeKey",
+     "GenerateMac",
+     "GenerateDataKey",
+     "ReEncryptFrom",
+     "CreateGrant",
+     "GenerateDataKeyPair",
+     "Verify",
+     "GenerateDataKeyPairWithoutPlaintext",
+     "DeriveSharedSecret",
+     "Encrypt",
+     "ReEncryptTo",
+     "Sign",
+     "GetPublicKey",
+     "RetireGrant",
+     "VerifyMac"
+    ]
+   },
+   {
+    "path": "Grants[].RetiringPrincipal",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].RetiringServicePrincipal",
+    "type": "string"
+   },
+   {
+    "path": "NextMarker",
+    "type": "string"
+   },
+   {
+    "path": "Truncated",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "ListKeyPolicies",
+  "output": "ListKeyPoliciesResponse",
+  "members": [
+   {
+    "path": "NextMarker",
+    "type": "string"
+   },
+   {
+    "path": "PolicyNames",
+    "type": "list"
+   },
+   {
+    "path": "PolicyNames[]",
+    "type": "string"
+   },
+   {
+    "path": "Truncated",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "ListKeyRotations",
+  "output": "ListKeyRotationsResponse",
+  "members": [
+   {
+    "path": "NextMarker",
+    "type": "string"
+   },
+   {
+    "path": "Rotations",
+    "type": "list"
+   },
+   {
+    "path": "Rotations[]",
+    "type": "structure"
+   },
+   {
+    "path": "Rotations[].ExpirationModel",
+    "type": "enum",
+    "enum": [
+     "KEY_MATERIAL_EXPIRES",
+     "KEY_MATERIAL_DOES_NOT_EXPIRE"
+    ]
+   },
+   {
+    "path": "Rotations[].ImportState",
+    "type": "enum",
+    "enum": [
+     "IMPORTED",
+     "PENDING_IMPORT"
+    ]
+   },
+   {
+    "path": "Rotations[].KeyId",
+    "type": "string"
+   },
+   {
+    "path": "Rotations[].KeyMaterialDescription",
+    "type": "string"
+   },
+   {
+    "path": "Rotations[].KeyMaterialId",
+    "type": "string"
+   },
+   {
+    "path": "Rotations[].KeyMaterialState",
+    "type": "enum",
+    "enum": [
+     "NON_CURRENT",
+     "CURRENT",
+     "PENDING_ROTATION",
+     "PENDING_MULTI_REGION_IMPORT_AND_ROTATION"
+    ]
+   },
+   {
+    "path": "Rotations[].RotationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Rotations[].RotationType",
+    "type": "enum",
+    "enum": [
+     "AUTOMATIC",
+     "ON_DEMAND"
+    ]
+   },
+   {
+    "path": "Rotations[].ValidTo",
+    "type": "timestamp"
+   },
+   {
+    "path": "Truncated",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "ListKeys",
+  "output": "ListKeysResponse",
+  "members": [
+   {
+    "path": "Keys",
+    "type": "list"
+   },
+   {
+    "path": "Keys[]",
+    "type": "structure"
+   },
+   {
+    "path": "Keys[].KeyArn",
+    "type": "string"
+   },
+   {
+    "path": "Keys[].KeyId",
+    "type": "string"
+   },
+   {
+    "path": "NextMarker",
+    "type": "string"
+   },
+   {
+    "path": "Truncated",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "ListResourceTags",
+  "output": "ListResourceTagsResponse",
+  "members": [
+   {
+    "path": "NextMarker",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "list"
+   },
+   {
+    "path": "Tags[]",
+    "type": "structure"
+   },
+   {
+    "path": "Tags[].TagKey",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Tags[].TagValue",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Truncated",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "ListRetirableGrants",
+  "output": "ListGrantsResponse",
+  "members": [
+   {
+    "path": "Grants",
+    "type": "list"
+   },
+   {
+    "path": "Grants[]",
+    "type": "structure"
+   },
+   {
+    "path": "Grants[].Constraints",
+    "type": "structure"
+   },
+   {
+    "path": "Grants[].Constraints.EncryptionContextEquals",
+    "type": "map"
+   },
+   {
+    "path": "Grants[].Constraints.EncryptionContextEquals{}",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Constraints.EncryptionContextSubset",
+    "type": "map"
+   },
+   {
+    "path": "Grants[].Constraints.EncryptionContextSubset{}",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Constraints.SourceArn",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].CreationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Grants[].GrantId",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].GranteePrincipal",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].GranteeServicePrincipal",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].IssuingAccount",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].KeyId",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Name",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].Operations",
+    "type": "list"
+   },
+   {
+    "path": "Grants[].Operations[]",
+    "type": "enum",
+    "enum": [
+     "GenerateMac",
+     "GenerateDataKey",
+     "ReEncryptFrom",
+     "CreateGrant",
+     "GenerateDataKeyPair",
+     "Verify",
+     "GenerateDataKeyPairWithoutPlaintext",
+     "DeriveSharedSecret",
+     "Encrypt",
+     "ReEncryptTo",
+     "Sign",
+     "GetPublicKey",
+     "RetireGrant",
+     "VerifyMac",
+     "Decrypt",
+     "GenerateDataKeyWithoutPlaintext",
+     "DescribeKey"
+    ]
+   },
+   {
+    "path": "Grants[].RetiringPrincipal",
+    "type": "string"
+   },
+   {
+    "path": "Grants[].RetiringServicePrincipal",
+    "type": "string"
+   },
+   {
+    "path": "NextMarker",
+    "type": "string"
+   },
+   {
+    "path": "Truncated",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "ReEncrypt",
+  "output": "ReEncryptResponse",
+  "members": [
+   {
+    "path": "CiphertextBlob",
+    "type": "blob"
+   },
+   {
+    "path": "DestinationEncryptionAlgorithm",
+    "type": "enum",
+    "enum": [
+     "RSAES_OAEP_SHA_256",
+     "SM2PKE",
+     "SYMMETRIC_DEFAULT",
+     "RSAES_OAEP_SHA_1"
+    ]
+   },
+   {
+    "path": "DestinationKeyMaterialId",
+    "type": "string"
+   },
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "SourceEncryptionAlgorithm",
+    "type": "enum",
+    "enum": [
+     "SYMMETRIC_DEFAULT",
+     "RSAES_OAEP_SHA_1",
+     "RSAES_OAEP_SHA_256",
+     "SM2PKE"
+    ]
+   },
+   {
+    "path": "SourceKeyId",
+    "type": "string"
+   },
+   {
+    "path": "SourceKeyMaterialId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ReplicateKey",
+  "output": "ReplicateKeyResponse",
+  "members": [
+   {
+    "path": "ReplicaKeyMetadata",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicaKeyMetadata.AWSAccountId",
+    "type": "string"
+   },
+   {
+    "path": "ReplicaKeyMetadata.Arn",
+    "type": "string"
+   },
+   {
+    "path": "ReplicaKeyMetadata.CloudHsmClusterId",
+    "type": "string"
+   },
+   {
+    "path": "ReplicaKeyMetadata.CreationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "ReplicaKeyMetadata.CurrentKeyMaterialId",
+    "type": "string"
+   },
+   {
+    "path": "ReplicaKeyMetadata.CustomKeyStoreId",
+    "type": "string"
+   },
+   {
+    "path": "ReplicaKeyMetadata.CustomerMasterKeySpec",
+    "type": "enum",
+    "enum": [
+     "ECC_NIST_P521",
+     "ECC_SECG_P256K1",
+     "SYMMETRIC_DEFAULT",
+     "HMAC_384",
+     "RSA_4096",
+     "ECC_NIST_P384",
+     "HMAC_224",
+     "HMAC_256",
+     "HMAC_512",
+     "SM2",
+     "RSA_2048",
+     "RSA_3072",
+     "ECC_NIST_P256"
+    ]
+   },
+   {
+    "path": "ReplicaKeyMetadata.DeletionDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "ReplicaKeyMetadata.Description",
+    "type": "string"
+   },
+   {
+    "path": "ReplicaKeyMetadata.Enabled",
+    "type": "boolean"
+   },
+   {
+    "path": "ReplicaKeyMetadata.EncryptionAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "ReplicaKeyMetadata.EncryptionAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "SYMMETRIC_DEFAULT",
+     "RSAES_OAEP_SHA_1",
+     "RSAES_OAEP_SHA_256",
+     "SM2PKE"
+    ]
+   },
+   {
+    "path": "ReplicaKeyMetadata.ExpirationModel",
+    "type": "enum",
+    "enum": [
+     "KEY_MATERIAL_EXPIRES",
+     "KEY_MATERIAL_DOES_NOT_EXPIRE"
+    ]
+   },
+   {
+    "path": "ReplicaKeyMetadata.KeyAgreementAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "ReplicaKeyMetadata.KeyAgreementAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "ECDH"
+    ]
+   },
+   {
+    "path": "ReplicaKeyMetadata.KeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ReplicaKeyMetadata.KeyManager",
+    "type": "enum",
+    "enum": [
+     "AWS",
+     "CUSTOMER"
+    ]
+   },
+   {
+    "path": "ReplicaKeyMetadata.KeySpec",
+    "type": "enum",
+    "enum": [
+     "ECC_NIST_P384",
+     "HMAC_224",
+     "ML_DSA_65",
+     "ML_DSA_87",
+     "SYMMETRIC_DEFAULT",
+     "HMAC_384",
+     "ML_DSA_44",
+     "ECC_NIST_EDWARDS25519",
+     "RSA_3072",
+     "ECC_NIST_P256",
+     "ECC_NIST_P521",
+     "HMAC_256",
+     "HMAC_512",
+     "RSA_4096",
+     "ECC_SECG_P256K1",
+     "SM2",
+     "RSA_2048"
+    ]
+   },
+   {
+    "path": "ReplicaKeyMetadata.KeyState",
+    "type": "enum",
+    "enum": [
+     "Unavailable",
+     "Updating",
+     "Creating",
+     "Enabled",
+     "Disabled",
+     "PendingDeletion",
+     "PendingImport",
+     "PendingReplicaDeletion"
+    ]
+   },
+   {
+    "path": "ReplicaKeyMetadata.KeyUsage",
+    "type": "enum",
+    "enum": [
+     "KEY_AGREEMENT",
+     "SIGN_VERIFY",
+     "ENCRYPT_DECRYPT",
+     "GENERATE_VERIFY_MAC"
+    ]
+   },
+   {
+    "path": "ReplicaKeyMetadata.MacAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "ReplicaKeyMetadata.MacAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "HMAC_SHA_224",
+     "HMAC_SHA_256",
+     "HMAC_SHA_384",
+     "HMAC_SHA_512"
+    ]
+   },
+   {
+    "path": "ReplicaKeyMetadata.MultiRegion",
+    "type": "boolean"
+   },
+   {
+    "path": "ReplicaKeyMetadata.MultiRegionConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicaKeyMetadata.MultiRegionConfiguration.MultiRegionKeyType",
+    "type": "enum",
+    "enum": [
+     "PRIMARY",
+     "REPLICA"
+    ]
+   },
+   {
+    "path": "ReplicaKeyMetadata.MultiRegionConfiguration.PrimaryKey",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicaKeyMetadata.MultiRegionConfiguration.PrimaryKey.Arn",
+    "type": "string"
+   },
+   {
+    "path": "ReplicaKeyMetadata.MultiRegionConfiguration.PrimaryKey.Region",
+    "type": "string"
+   },
+   {
+    "path": "ReplicaKeyMetadata.MultiRegionConfiguration.ReplicaKeys",
+    "type": "list"
+   },
+   {
+    "path": "ReplicaKeyMetadata.MultiRegionConfiguration.ReplicaKeys[]",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicaKeyMetadata.MultiRegionConfiguration.ReplicaKeys[].Arn",
+    "type": "string"
+   },
+   {
+    "path": "ReplicaKeyMetadata.MultiRegionConfiguration.ReplicaKeys[].Region",
+    "type": "string"
+   },
+   {
+    "path": "ReplicaKeyMetadata.Origin",
+    "type": "enum",
+    "enum": [
+     "EXTERNAL",
+     "AWS_CLOUDHSM",
+     "EXTERNAL_KEY_STORE",
+     "AWS_KMS"
+    ]
+   },
+   {
+    "path": "ReplicaKeyMetadata.PendingDeletionWindowInDays",
+    "type": "integer"
+   },
+   {
+    "path": "ReplicaKeyMetadata.SigningAlgorithms",
+    "type": "list"
+   },
+   {
+    "path": "ReplicaKeyMetadata.SigningAlgorithms[]",
+    "type": "enum",
+    "enum": [
+     "ED25519_SHA_512",
+     "ED25519_PH_SHA_512",
+     "RSASSA_PSS_SHA_256",
+     "RSASSA_PSS_SHA_384",
+     "RSASSA_PSS_SHA_512",
+     "RSASSA_PKCS1_V1_5_SHA_256",
+     "RSASSA_PKCS1_V1_5_SHA_384",
+     "RSASSA_PKCS1_V1_5_SHA_512",
+     "ECDSA_SHA_384",
+     "SM2DSA",
+     "ECDSA_SHA_256",
+     "ECDSA_SHA_512",
+     "ML_DSA_SHAKE_256"
+    ]
+   },
+   {
+    "path": "ReplicaKeyMetadata.ValidTo",
+    "type": "timestamp"
+   },
+   {
+    "path": "ReplicaKeyMetadata.XksKeyConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicaKeyMetadata.XksKeyConfiguration.Id",
+    "type": "string"
+   },
+   {
+    "path": "ReplicaPolicy",
+    "type": "string"
+   },
+   {
+    "path": "ReplicaTags",
+    "type": "list"
+   },
+   {
+    "path": "ReplicaTags[]",
+    "type": "structure"
+   },
+   {
+    "path": "ReplicaTags[].TagKey",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ReplicaTags[].TagValue",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "RotateKeyOnDemand",
+  "output": "RotateKeyOnDemandResponse",
+  "members": [
+   {
+    "path": "KeyId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ScheduleKeyDeletion",
+  "output": "ScheduleKeyDeletionResponse",
+  "members": [
+   {
+    "path": "DeletionDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "KeyState",
+    "type": "enum",
+    "enum": [
+     "Creating",
+     "Enabled",
+     "Disabled",
+     "PendingDeletion",
+     "PendingImport",
+     "PendingReplicaDeletion",
+     "Unavailable",
+     "Updating"
+    ]
+   },
+   {
+    "path": "PendingWindowInDays",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "Sign",
+  "output": "SignResponse",
+  "members": [
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "Signature",
+    "type": "blob"
+   },
+   {
+    "path": "SigningAlgorithm",
+    "type": "enum",
+    "enum": [
+     "ML_DSA_SHAKE_256",
+     "ED25519_SHA_512",
+     "ED25519_PH_SHA_512",
+     "RSASSA_PSS_SHA_256",
+     "RSASSA_PSS_SHA_384",
+     "RSASSA_PSS_SHA_512",
+     "RSASSA_PKCS1_V1_5_SHA_256",
+     "RSASSA_PKCS1_V1_5_SHA_384",
+     "RSASSA_PKCS1_V1_5_SHA_512",
+     "ECDSA_SHA_384",
+     "SM2DSA",
+     "ECDSA_SHA_256",
+     "ECDSA_SHA_512"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "Verify",
+  "output": "VerifyResponse",
+  "members": [
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "SignatureValid",
+    "type": "boolean"
+   },
+   {
+    "path": "SigningAlgorithm",
+    "type": "enum",
+    "enum": [
+     "RSASSA_PSS_SHA_384",
+     "RSASSA_PSS_SHA_512",
+     "RSASSA_PKCS1_V1_5_SHA_256",
+     "RSASSA_PKCS1_V1_5_SHA_384",
+     "RSASSA_PKCS1_V1_5_SHA_512",
+     "ECDSA_SHA_384",
+     "SM2DSA",
+     "ECDSA_SHA_256",
+     "ECDSA_SHA_512",
+     "ML_DSA_SHAKE_256",
+     "ED25519_SHA_512",
+     "ED25519_PH_SHA_512",
+     "RSASSA_PSS_SHA_256"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "VerifyMac",
+  "output": "VerifyMacResponse",
+  "members": [
+   {
+    "path": "KeyId",
+    "type": "string"
+   },
+   {
+    "path": "MacAlgorithm",
+    "type": "enum",
+    "enum": [
+     "HMAC_SHA_224",
+     "HMAC_SHA_256",
+     "HMAC_SHA_384",
+     "HMAC_SHA_512"
+    ]
+   },
+   {
+    "path": "MacValid",
+    "type": "boolean"
+   }
+  ]
+ }
+]

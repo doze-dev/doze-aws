@@ -1,0 +1,2082 @@
+[
+ {
+  "operation": "CreateActivity",
+  "output": "CreateActivityOutput",
+  "members": [
+   {
+    "path": "activityArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "creationDate",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "CreateStateMachine",
+  "output": "CreateStateMachineOutput",
+  "members": [
+   {
+    "path": "creationDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "stateMachineArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "stateMachineVersionArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateStateMachineAlias",
+  "output": "CreateStateMachineAliasOutput",
+  "members": [
+   {
+    "path": "creationDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "stateMachineAliasArn",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "DescribeActivity",
+  "output": "DescribeActivityOutput",
+  "members": [
+   {
+    "path": "activityArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "creationDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "encryptionConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "encryptionConfiguration.kmsDataKeyReusePeriodSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "encryptionConfiguration.kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "encryptionConfiguration.type",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "AWS_OWNED_KEY",
+     "CUSTOMER_MANAGED_KMS_KEY"
+    ]
+   },
+   {
+    "path": "name",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "DescribeExecution",
+  "output": "DescribeExecutionOutput",
+  "members": [
+   {
+    "path": "cause",
+    "type": "string"
+   },
+   {
+    "path": "error",
+    "type": "string"
+   },
+   {
+    "path": "executionArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "input",
+    "type": "string"
+   },
+   {
+    "path": "inputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "inputDetails.included",
+    "type": "boolean"
+   },
+   {
+    "path": "mapRunArn",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "output",
+    "type": "string"
+   },
+   {
+    "path": "outputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "outputDetails.included",
+    "type": "boolean"
+   },
+   {
+    "path": "redriveCount",
+    "type": "integer"
+   },
+   {
+    "path": "redriveDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "redriveStatus",
+    "type": "enum",
+    "enum": [
+     "REDRIVABLE",
+     "NOT_REDRIVABLE",
+     "REDRIVABLE_BY_MAP_RUN"
+    ]
+   },
+   {
+    "path": "redriveStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "startDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "stateMachineAliasArn",
+    "type": "string"
+   },
+   {
+    "path": "stateMachineArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "stateMachineVersionArn",
+    "type": "string"
+   },
+   {
+    "path": "status",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "FAILED",
+     "TIMED_OUT",
+     "ABORTED",
+     "PENDING_REDRIVE",
+     "RUNNING",
+     "SUCCEEDED"
+    ]
+   },
+   {
+    "path": "stopDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "traceHeader",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeMapRun",
+  "output": "DescribeMapRunOutput",
+  "members": [
+   {
+    "path": "executionArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "executionCounts",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "executionCounts.aborted",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "executionCounts.failed",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "executionCounts.failuresNotRedrivable",
+    "type": "integer"
+   },
+   {
+    "path": "executionCounts.pending",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "executionCounts.pendingRedrive",
+    "type": "integer"
+   },
+   {
+    "path": "executionCounts.resultsWritten",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "executionCounts.running",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "executionCounts.succeeded",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "executionCounts.timedOut",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "executionCounts.total",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "itemCounts",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "itemCounts.aborted",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "itemCounts.failed",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "itemCounts.failuresNotRedrivable",
+    "type": "integer"
+   },
+   {
+    "path": "itemCounts.pending",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "itemCounts.pendingRedrive",
+    "type": "integer"
+   },
+   {
+    "path": "itemCounts.resultsWritten",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "itemCounts.running",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "itemCounts.succeeded",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "itemCounts.timedOut",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "itemCounts.total",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "mapRunArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "maxConcurrency",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "redriveCount",
+    "type": "integer"
+   },
+   {
+    "path": "redriveDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "startDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "status",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "SUCCEEDED",
+     "FAILED",
+     "ABORTED",
+     "RUNNING"
+    ]
+   },
+   {
+    "path": "stopDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "toleratedFailureCount",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "toleratedFailurePercentage",
+    "type": "float",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "DescribeStateMachine",
+  "output": "DescribeStateMachineOutput",
+  "members": [
+   {
+    "path": "creationDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "definition",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "encryptionConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "encryptionConfiguration.kmsDataKeyReusePeriodSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "encryptionConfiguration.kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "encryptionConfiguration.type",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "AWS_OWNED_KEY",
+     "CUSTOMER_MANAGED_KMS_KEY"
+    ]
+   },
+   {
+    "path": "label",
+    "type": "string"
+   },
+   {
+    "path": "loggingConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "loggingConfiguration.destinations",
+    "type": "list"
+   },
+   {
+    "path": "loggingConfiguration.destinations[]",
+    "type": "structure"
+   },
+   {
+    "path": "loggingConfiguration.destinations[].cloudWatchLogsLogGroup",
+    "type": "structure"
+   },
+   {
+    "path": "loggingConfiguration.destinations[].cloudWatchLogsLogGroup.logGroupArn",
+    "type": "string"
+   },
+   {
+    "path": "loggingConfiguration.includeExecutionData",
+    "type": "boolean"
+   },
+   {
+    "path": "loggingConfiguration.level",
+    "type": "enum",
+    "enum": [
+     "FATAL",
+     "OFF",
+     "ALL",
+     "ERROR"
+    ]
+   },
+   {
+    "path": "name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "revisionId",
+    "type": "string"
+   },
+   {
+    "path": "roleArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "stateMachineArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "status",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "DELETING"
+    ]
+   },
+   {
+    "path": "tracingConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "tracingConfiguration.enabled",
+    "type": "boolean"
+   },
+   {
+    "path": "type",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "STANDARD",
+     "EXPRESS"
+    ]
+   },
+   {
+    "path": "variableReferences",
+    "type": "map"
+   },
+   {
+    "path": "variableReferences{}",
+    "type": "list"
+   },
+   {
+    "path": "variableReferences{}[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeStateMachineAlias",
+  "output": "DescribeStateMachineAliasOutput",
+  "members": [
+   {
+    "path": "creationDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "routingConfiguration",
+    "type": "list"
+   },
+   {
+    "path": "routingConfiguration[]",
+    "type": "structure"
+   },
+   {
+    "path": "routingConfiguration[].stateMachineVersionArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "routingConfiguration[].weight",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "stateMachineAliasArn",
+    "type": "string"
+   },
+   {
+    "path": "updateDate",
+    "type": "timestamp"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeStateMachineForExecution",
+  "output": "DescribeStateMachineForExecutionOutput",
+  "members": [
+   {
+    "path": "definition",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "encryptionConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "encryptionConfiguration.kmsDataKeyReusePeriodSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "encryptionConfiguration.kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "encryptionConfiguration.type",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "AWS_OWNED_KEY",
+     "CUSTOMER_MANAGED_KMS_KEY"
+    ]
+   },
+   {
+    "path": "label",
+    "type": "string"
+   },
+   {
+    "path": "loggingConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "loggingConfiguration.destinations",
+    "type": "list"
+   },
+   {
+    "path": "loggingConfiguration.destinations[]",
+    "type": "structure"
+   },
+   {
+    "path": "loggingConfiguration.destinations[].cloudWatchLogsLogGroup",
+    "type": "structure"
+   },
+   {
+    "path": "loggingConfiguration.destinations[].cloudWatchLogsLogGroup.logGroupArn",
+    "type": "string"
+   },
+   {
+    "path": "loggingConfiguration.includeExecutionData",
+    "type": "boolean"
+   },
+   {
+    "path": "loggingConfiguration.level",
+    "type": "enum",
+    "enum": [
+     "ALL",
+     "ERROR",
+     "FATAL",
+     "OFF"
+    ]
+   },
+   {
+    "path": "mapRunArn",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "revisionId",
+    "type": "string"
+   },
+   {
+    "path": "roleArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "stateMachineArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "tracingConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "tracingConfiguration.enabled",
+    "type": "boolean"
+   },
+   {
+    "path": "updateDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "variableReferences",
+    "type": "map"
+   },
+   {
+    "path": "variableReferences{}",
+    "type": "list"
+   },
+   {
+    "path": "variableReferences{}[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetActivityTask",
+  "output": "GetActivityTaskOutput",
+  "members": [
+   {
+    "path": "input",
+    "type": "string"
+   },
+   {
+    "path": "taskToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetExecutionHistory",
+  "output": "GetExecutionHistoryOutput",
+  "members": [
+   {
+    "path": "events",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "events[]",
+    "type": "structure"
+   },
+   {
+    "path": "events[].activityFailedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].activityFailedEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].activityFailedEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].activityScheduleFailedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].activityScheduleFailedEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].activityScheduleFailedEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].activityScheduledEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].activityScheduledEventDetails.heartbeatInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "events[].activityScheduledEventDetails.input",
+    "type": "string"
+   },
+   {
+    "path": "events[].activityScheduledEventDetails.inputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].activityScheduledEventDetails.inputDetails.truncated",
+    "type": "boolean"
+   },
+   {
+    "path": "events[].activityScheduledEventDetails.resource",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].activityScheduledEventDetails.timeoutInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "events[].activityStartedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].activityStartedEventDetails.workerName",
+    "type": "string"
+   },
+   {
+    "path": "events[].activitySucceededEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].activitySucceededEventDetails.output",
+    "type": "string"
+   },
+   {
+    "path": "events[].activitySucceededEventDetails.outputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].activitySucceededEventDetails.outputDetails.truncated",
+    "type": "boolean"
+   },
+   {
+    "path": "events[].activityTimedOutEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].activityTimedOutEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].activityTimedOutEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].evaluationFailedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].evaluationFailedEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].evaluationFailedEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].evaluationFailedEventDetails.location",
+    "type": "string"
+   },
+   {
+    "path": "events[].evaluationFailedEventDetails.state",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].executionAbortedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].executionAbortedEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].executionAbortedEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].executionFailedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].executionFailedEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].executionFailedEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].executionRedrivenEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].executionRedrivenEventDetails.redriveCount",
+    "type": "integer"
+   },
+   {
+    "path": "events[].executionStartedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].executionStartedEventDetails.input",
+    "type": "string"
+   },
+   {
+    "path": "events[].executionStartedEventDetails.inputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].executionStartedEventDetails.inputDetails.truncated",
+    "type": "boolean"
+   },
+   {
+    "path": "events[].executionStartedEventDetails.roleArn",
+    "type": "string"
+   },
+   {
+    "path": "events[].executionStartedEventDetails.stateMachineAliasArn",
+    "type": "string"
+   },
+   {
+    "path": "events[].executionStartedEventDetails.stateMachineVersionArn",
+    "type": "string"
+   },
+   {
+    "path": "events[].executionSucceededEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].executionSucceededEventDetails.output",
+    "type": "string"
+   },
+   {
+    "path": "events[].executionSucceededEventDetails.outputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].executionSucceededEventDetails.outputDetails.truncated",
+    "type": "boolean"
+   },
+   {
+    "path": "events[].executionTimedOutEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].executionTimedOutEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].executionTimedOutEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].id",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "events[].lambdaFunctionFailedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].lambdaFunctionFailedEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].lambdaFunctionFailedEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].lambdaFunctionScheduleFailedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].lambdaFunctionScheduleFailedEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].lambdaFunctionScheduleFailedEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].lambdaFunctionScheduledEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].lambdaFunctionScheduledEventDetails.input",
+    "type": "string"
+   },
+   {
+    "path": "events[].lambdaFunctionScheduledEventDetails.inputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].lambdaFunctionScheduledEventDetails.inputDetails.truncated",
+    "type": "boolean"
+   },
+   {
+    "path": "events[].lambdaFunctionScheduledEventDetails.resource",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].lambdaFunctionScheduledEventDetails.taskCredentials",
+    "type": "structure"
+   },
+   {
+    "path": "events[].lambdaFunctionScheduledEventDetails.taskCredentials.roleArn",
+    "type": "string"
+   },
+   {
+    "path": "events[].lambdaFunctionScheduledEventDetails.timeoutInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "events[].lambdaFunctionStartFailedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].lambdaFunctionStartFailedEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].lambdaFunctionStartFailedEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].lambdaFunctionSucceededEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].lambdaFunctionSucceededEventDetails.output",
+    "type": "string"
+   },
+   {
+    "path": "events[].lambdaFunctionSucceededEventDetails.outputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].lambdaFunctionSucceededEventDetails.outputDetails.truncated",
+    "type": "boolean"
+   },
+   {
+    "path": "events[].lambdaFunctionTimedOutEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].lambdaFunctionTimedOutEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].lambdaFunctionTimedOutEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].mapIterationAbortedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].mapIterationAbortedEventDetails.index",
+    "type": "integer"
+   },
+   {
+    "path": "events[].mapIterationAbortedEventDetails.name",
+    "type": "string"
+   },
+   {
+    "path": "events[].mapIterationFailedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].mapIterationFailedEventDetails.index",
+    "type": "integer"
+   },
+   {
+    "path": "events[].mapIterationFailedEventDetails.name",
+    "type": "string"
+   },
+   {
+    "path": "events[].mapIterationStartedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].mapIterationStartedEventDetails.index",
+    "type": "integer"
+   },
+   {
+    "path": "events[].mapIterationStartedEventDetails.name",
+    "type": "string"
+   },
+   {
+    "path": "events[].mapIterationSucceededEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].mapIterationSucceededEventDetails.index",
+    "type": "integer"
+   },
+   {
+    "path": "events[].mapIterationSucceededEventDetails.name",
+    "type": "string"
+   },
+   {
+    "path": "events[].mapRunFailedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].mapRunFailedEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].mapRunFailedEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].mapRunRedrivenEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].mapRunRedrivenEventDetails.mapRunArn",
+    "type": "string"
+   },
+   {
+    "path": "events[].mapRunRedrivenEventDetails.redriveCount",
+    "type": "integer"
+   },
+   {
+    "path": "events[].mapRunStartedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].mapRunStartedEventDetails.mapRunArn",
+    "type": "string"
+   },
+   {
+    "path": "events[].mapStateStartedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].mapStateStartedEventDetails.length",
+    "type": "integer"
+   },
+   {
+    "path": "events[].previousEventId",
+    "type": "integer"
+   },
+   {
+    "path": "events[].stateEnteredEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].stateEnteredEventDetails.input",
+    "type": "string"
+   },
+   {
+    "path": "events[].stateEnteredEventDetails.inputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].stateEnteredEventDetails.inputDetails.truncated",
+    "type": "boolean"
+   },
+   {
+    "path": "events[].stateEnteredEventDetails.name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].stateExitedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].stateExitedEventDetails.assignedVariables",
+    "type": "map"
+   },
+   {
+    "path": "events[].stateExitedEventDetails.assignedVariablesDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].stateExitedEventDetails.assignedVariablesDetails.truncated",
+    "type": "boolean"
+   },
+   {
+    "path": "events[].stateExitedEventDetails.assignedVariables{}",
+    "type": "string"
+   },
+   {
+    "path": "events[].stateExitedEventDetails.name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].stateExitedEventDetails.output",
+    "type": "string"
+   },
+   {
+    "path": "events[].stateExitedEventDetails.outputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].stateExitedEventDetails.outputDetails.truncated",
+    "type": "boolean"
+   },
+   {
+    "path": "events[].taskFailedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].taskFailedEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].taskFailedEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].taskFailedEventDetails.resource",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskFailedEventDetails.resourceType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskScheduledEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].taskScheduledEventDetails.heartbeatInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "events[].taskScheduledEventDetails.parameters",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskScheduledEventDetails.region",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskScheduledEventDetails.resource",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskScheduledEventDetails.resourceType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskScheduledEventDetails.taskCredentials",
+    "type": "structure"
+   },
+   {
+    "path": "events[].taskScheduledEventDetails.taskCredentials.roleArn",
+    "type": "string"
+   },
+   {
+    "path": "events[].taskScheduledEventDetails.timeoutInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "events[].taskStartFailedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].taskStartFailedEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].taskStartFailedEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].taskStartFailedEventDetails.resource",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskStartFailedEventDetails.resourceType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskStartedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].taskStartedEventDetails.resource",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskStartedEventDetails.resourceType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskSubmitFailedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].taskSubmitFailedEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].taskSubmitFailedEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].taskSubmitFailedEventDetails.resource",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskSubmitFailedEventDetails.resourceType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskSubmittedEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].taskSubmittedEventDetails.output",
+    "type": "string"
+   },
+   {
+    "path": "events[].taskSubmittedEventDetails.outputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].taskSubmittedEventDetails.outputDetails.truncated",
+    "type": "boolean"
+   },
+   {
+    "path": "events[].taskSubmittedEventDetails.resource",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskSubmittedEventDetails.resourceType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskSucceededEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].taskSucceededEventDetails.output",
+    "type": "string"
+   },
+   {
+    "path": "events[].taskSucceededEventDetails.outputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].taskSucceededEventDetails.outputDetails.truncated",
+    "type": "boolean"
+   },
+   {
+    "path": "events[].taskSucceededEventDetails.resource",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskSucceededEventDetails.resourceType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskTimedOutEventDetails",
+    "type": "structure"
+   },
+   {
+    "path": "events[].taskTimedOutEventDetails.cause",
+    "type": "string"
+   },
+   {
+    "path": "events[].taskTimedOutEventDetails.error",
+    "type": "string"
+   },
+   {
+    "path": "events[].taskTimedOutEventDetails.resource",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].taskTimedOutEventDetails.resourceType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "events[].timestamp",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "events[].type",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "MapStateExited",
+     "MapRunRedriven",
+     "LambdaFunctionSucceeded",
+     "MapIterationFailed",
+     "ParallelStateSucceeded",
+     "TaskTimedOut",
+     "MapRunSucceeded",
+     "ActivityFailed",
+     "WaitStateEntered",
+     "MapRunAborted",
+     "MapStateSucceeded",
+     "ParallelStateStarted",
+     "SucceedStateExited",
+     "TaskStateAborted",
+     "ActivityScheduled",
+     "MapStateEntered",
+     "PassStateExited",
+     "TaskFailed",
+     "WaitStateAborted",
+     "ActivityStarted",
+     "LambdaFunctionFailed",
+     "MapRunFailed",
+     "MapIterationSucceeded",
+     "ParallelStateExited",
+     "TaskStateExited",
+     "LambdaFunctionScheduleFailed",
+     "MapStateAborted",
+     "MapStateFailed",
+     "PassStateEntered",
+     "ActivityTimedOut",
+     "MapIterationStarted",
+     "ParallelStateFailed",
+     "TaskSucceeded",
+     "ChoiceStateEntered",
+     "ExecutionFailed",
+     "SucceedStateEntered",
+     "TaskSubmitFailed",
+     "LambdaFunctionStarted",
+     "LambdaFunctionTimedOut",
+     "MapStateStarted",
+     "ParallelStateEntered",
+     "ActivityScheduleFailed",
+     "ExecutionSucceeded",
+     "ExecutionTimedOut",
+     "WaitStateExited",
+     "MapRunStarted",
+     "ExecutionRedriven",
+     "ChoiceStateExited",
+     "FailStateEntered",
+     "LambdaFunctionScheduled",
+     "ActivitySucceeded",
+     "ExecutionAborted",
+     "ExecutionStarted",
+     "LambdaFunctionStartFailed",
+     "MapIterationAborted",
+     "ParallelStateAborted",
+     "TaskStarted",
+     "TaskStartFailed",
+     "TaskScheduled",
+     "TaskStateEntered",
+     "TaskSubmitted",
+     "EvaluationFailed"
+    ]
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListActivities",
+  "output": "ListActivitiesOutput",
+  "members": [
+   {
+    "path": "activities",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "activities[]",
+    "type": "structure"
+   },
+   {
+    "path": "activities[].activityArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "activities[].creationDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "activities[].name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListExecutions",
+  "output": "ListExecutionsOutput",
+  "members": [
+   {
+    "path": "executions",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "executions[]",
+    "type": "structure"
+   },
+   {
+    "path": "executions[].executionArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "executions[].itemCount",
+    "type": "integer"
+   },
+   {
+    "path": "executions[].mapRunArn",
+    "type": "string"
+   },
+   {
+    "path": "executions[].name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "executions[].redriveCount",
+    "type": "integer"
+   },
+   {
+    "path": "executions[].redriveDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "executions[].startDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "executions[].stateMachineAliasArn",
+    "type": "string"
+   },
+   {
+    "path": "executions[].stateMachineArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "executions[].stateMachineVersionArn",
+    "type": "string"
+   },
+   {
+    "path": "executions[].status",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "PENDING_REDRIVE",
+     "RUNNING",
+     "SUCCEEDED",
+     "FAILED",
+     "TIMED_OUT",
+     "ABORTED"
+    ]
+   },
+   {
+    "path": "executions[].stopDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListMapRuns",
+  "output": "ListMapRunsOutput",
+  "members": [
+   {
+    "path": "mapRuns",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "mapRuns[]",
+    "type": "structure"
+   },
+   {
+    "path": "mapRuns[].executionArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "mapRuns[].mapRunArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "mapRuns[].startDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "mapRuns[].stateMachineArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "mapRuns[].stopDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListStateMachineAliases",
+  "output": "ListStateMachineAliasesOutput",
+  "members": [
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "stateMachineAliases",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "stateMachineAliases[]",
+    "type": "structure"
+   },
+   {
+    "path": "stateMachineAliases[].creationDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "stateMachineAliases[].stateMachineAliasArn",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "ListStateMachineVersions",
+  "output": "ListStateMachineVersionsOutput",
+  "members": [
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "stateMachineVersions",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "stateMachineVersions[]",
+    "type": "structure"
+   },
+   {
+    "path": "stateMachineVersions[].creationDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "stateMachineVersions[].stateMachineVersionArn",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "ListStateMachines",
+  "output": "ListStateMachinesOutput",
+  "members": [
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "stateMachines",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "stateMachines[]",
+    "type": "structure"
+   },
+   {
+    "path": "stateMachines[].creationDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "stateMachines[].name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "stateMachines[].stateMachineArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "stateMachines[].type",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "EXPRESS",
+     "STANDARD"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "ListTagsForResource",
+  "output": "ListTagsForResourceOutput",
+  "members": [
+   {
+    "path": "tags",
+    "type": "list"
+   },
+   {
+    "path": "tags[]",
+    "type": "structure"
+   },
+   {
+    "path": "tags[].key",
+    "type": "string"
+   },
+   {
+    "path": "tags[].value",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PublishStateMachineVersion",
+  "output": "PublishStateMachineVersionOutput",
+  "members": [
+   {
+    "path": "creationDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "stateMachineVersionArn",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "RedriveExecution",
+  "output": "RedriveExecutionOutput",
+  "members": [
+   {
+    "path": "redriveDate",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "StartExecution",
+  "output": "StartExecutionOutput",
+  "members": [
+   {
+    "path": "executionArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "startDate",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "StartSyncExecution",
+  "output": "StartSyncExecutionOutput",
+  "members": [
+   {
+    "path": "billingDetails",
+    "type": "structure"
+   },
+   {
+    "path": "billingDetails.billedDurationInMilliseconds",
+    "type": "integer"
+   },
+   {
+    "path": "billingDetails.billedMemoryUsedInMB",
+    "type": "integer"
+   },
+   {
+    "path": "cause",
+    "type": "string"
+   },
+   {
+    "path": "error",
+    "type": "string"
+   },
+   {
+    "path": "executionArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "input",
+    "type": "string"
+   },
+   {
+    "path": "inputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "inputDetails.included",
+    "type": "boolean"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "output",
+    "type": "string"
+   },
+   {
+    "path": "outputDetails",
+    "type": "structure"
+   },
+   {
+    "path": "outputDetails.included",
+    "type": "boolean"
+   },
+   {
+    "path": "startDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "stateMachineArn",
+    "type": "string"
+   },
+   {
+    "path": "status",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "SUCCEEDED",
+     "FAILED",
+     "TIMED_OUT"
+    ]
+   },
+   {
+    "path": "stopDate",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "traceHeader",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "StopExecution",
+  "output": "StopExecutionOutput",
+  "members": [
+   {
+    "path": "stopDate",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "TestState",
+  "output": "TestStateOutput",
+  "members": [
+   {
+    "path": "cause",
+    "type": "string"
+   },
+   {
+    "path": "error",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData",
+    "type": "structure"
+   },
+   {
+    "path": "inspectionData.afterArguments",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.afterInputPath",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.afterItemBatcher",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.afterItemSelector",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.afterItemsPath",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.afterItemsPointer",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.afterParameters",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.afterResultPath",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.afterResultSelector",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.errorDetails",
+    "type": "structure"
+   },
+   {
+    "path": "inspectionData.errorDetails.catchIndex",
+    "type": "integer"
+   },
+   {
+    "path": "inspectionData.errorDetails.retryBackoffIntervalSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "inspectionData.errorDetails.retryIndex",
+    "type": "integer"
+   },
+   {
+    "path": "inspectionData.input",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.maxConcurrency",
+    "type": "integer"
+   },
+   {
+    "path": "inspectionData.request",
+    "type": "structure"
+   },
+   {
+    "path": "inspectionData.request.body",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.request.headers",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.request.method",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.request.protocol",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.request.url",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.response",
+    "type": "structure"
+   },
+   {
+    "path": "inspectionData.response.body",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.response.headers",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.response.protocol",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.response.statusCode",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.response.statusMessage",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.result",
+    "type": "string"
+   },
+   {
+    "path": "inspectionData.toleratedFailureCount",
+    "type": "integer"
+   },
+   {
+    "path": "inspectionData.toleratedFailurePercentage",
+    "type": "float"
+   },
+   {
+    "path": "inspectionData.variables",
+    "type": "string"
+   },
+   {
+    "path": "nextState",
+    "type": "string"
+   },
+   {
+    "path": "output",
+    "type": "string"
+   },
+   {
+    "path": "status",
+    "type": "enum",
+    "enum": [
+     "RETRIABLE",
+     "CAUGHT_ERROR",
+     "SUCCEEDED",
+     "FAILED"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "UpdateStateMachine",
+  "output": "UpdateStateMachineOutput",
+  "members": [
+   {
+    "path": "revisionId",
+    "type": "string"
+   },
+   {
+    "path": "stateMachineVersionArn",
+    "type": "string"
+   },
+   {
+    "path": "updateDate",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "UpdateStateMachineAlias",
+  "output": "UpdateStateMachineAliasOutput",
+  "members": [
+   {
+    "path": "updateDate",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "ValidateStateMachineDefinition",
+  "output": "ValidateStateMachineDefinitionOutput",
+  "members": [
+   {
+    "path": "diagnostics",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "diagnostics[]",
+    "type": "structure"
+   },
+   {
+    "path": "diagnostics[].code",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "diagnostics[].location",
+    "type": "string"
+   },
+   {
+    "path": "diagnostics[].message",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "diagnostics[].severity",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "ERROR",
+     "WARNING"
+    ]
+   },
+   {
+    "path": "result",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "OK",
+     "FAIL"
+    ]
+   },
+   {
+    "path": "truncated",
+    "type": "boolean"
+   }
+  ]
+ }
+]

@@ -1,0 +1,507 @@
+[
+ {
+  "operation": "CheckIfPhoneNumberIsOptedOut",
+  "output": "CheckIfPhoneNumberIsOptedOutResponse",
+  "members": [
+   {
+    "path": "isOptedOut",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "ConfirmSubscription",
+  "output": "ConfirmSubscriptionResponse",
+  "members": [
+   {
+    "path": "SubscriptionArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreatePlatformApplication",
+  "output": "CreatePlatformApplicationResponse",
+  "members": [
+   {
+    "path": "PlatformApplicationArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreatePlatformEndpoint",
+  "output": "CreateEndpointResponse",
+  "members": [
+   {
+    "path": "EndpointArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateTopic",
+  "output": "CreateTopicResponse",
+  "members": [
+   {
+    "path": "TopicArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDataProtectionPolicy",
+  "output": "GetDataProtectionPolicyResponse",
+  "members": [
+   {
+    "path": "DataProtectionPolicy",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetEndpointAttributes",
+  "output": "GetEndpointAttributesResponse",
+  "members": [
+   {
+    "path": "Attributes",
+    "type": "map"
+   },
+   {
+    "path": "Attributes{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetPlatformApplicationAttributes",
+  "output": "GetPlatformApplicationAttributesResponse",
+  "members": [
+   {
+    "path": "Attributes",
+    "type": "map"
+   },
+   {
+    "path": "Attributes{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetSMSAttributes",
+  "output": "GetSMSAttributesResponse",
+  "members": [
+   {
+    "path": "attributes",
+    "type": "map"
+   },
+   {
+    "path": "attributes{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetSMSSandboxAccountStatus",
+  "output": "GetSMSSandboxAccountStatusResult",
+  "members": [
+   {
+    "path": "IsInSandbox",
+    "type": "boolean",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "GetSubscriptionAttributes",
+  "output": "GetSubscriptionAttributesResponse",
+  "members": [
+   {
+    "path": "Attributes",
+    "type": "map"
+   },
+   {
+    "path": "Attributes{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetTopicAttributes",
+  "output": "GetTopicAttributesResponse",
+  "members": [
+   {
+    "path": "Attributes",
+    "type": "map"
+   },
+   {
+    "path": "Attributes{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListEndpointsByPlatformApplication",
+  "output": "ListEndpointsByPlatformApplicationResponse",
+  "members": [
+   {
+    "path": "Endpoints",
+    "type": "list"
+   },
+   {
+    "path": "Endpoints[]",
+    "type": "structure"
+   },
+   {
+    "path": "Endpoints[].Attributes",
+    "type": "map"
+   },
+   {
+    "path": "Endpoints[].Attributes{}",
+    "type": "string"
+   },
+   {
+    "path": "Endpoints[].EndpointArn",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListOriginationNumbers",
+  "output": "ListOriginationNumbersResult",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "PhoneNumbers",
+    "type": "list"
+   },
+   {
+    "path": "PhoneNumbers[]",
+    "type": "structure"
+   },
+   {
+    "path": "PhoneNumbers[].CreatedAt",
+    "type": "timestamp"
+   },
+   {
+    "path": "PhoneNumbers[].Iso2CountryCode",
+    "type": "string"
+   },
+   {
+    "path": "PhoneNumbers[].NumberCapabilities",
+    "type": "list"
+   },
+   {
+    "path": "PhoneNumbers[].NumberCapabilities[]",
+    "type": "enum",
+    "enum": [
+     "SMS",
+     "MMS",
+     "VOICE"
+    ]
+   },
+   {
+    "path": "PhoneNumbers[].PhoneNumber",
+    "type": "string"
+   },
+   {
+    "path": "PhoneNumbers[].RouteType",
+    "type": "enum",
+    "enum": [
+     "Transactional",
+     "Promotional",
+     "Premium"
+    ]
+   },
+   {
+    "path": "PhoneNumbers[].Status",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListPhoneNumbersOptedOut",
+  "output": "ListPhoneNumbersOptedOutResponse",
+  "members": [
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "phoneNumbers",
+    "type": "list"
+   },
+   {
+    "path": "phoneNumbers[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListPlatformApplications",
+  "output": "ListPlatformApplicationsResponse",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "PlatformApplications",
+    "type": "list"
+   },
+   {
+    "path": "PlatformApplications[]",
+    "type": "structure"
+   },
+   {
+    "path": "PlatformApplications[].Attributes",
+    "type": "map"
+   },
+   {
+    "path": "PlatformApplications[].Attributes{}",
+    "type": "string"
+   },
+   {
+    "path": "PlatformApplications[].PlatformApplicationArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListSMSSandboxPhoneNumbers",
+  "output": "ListSMSSandboxPhoneNumbersResult",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "PhoneNumbers",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "PhoneNumbers[]",
+    "type": "structure"
+   },
+   {
+    "path": "PhoneNumbers[].PhoneNumber",
+    "type": "string"
+   },
+   {
+    "path": "PhoneNumbers[].Status",
+    "type": "enum",
+    "enum": [
+     "Pending",
+     "Verified"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "ListSubscriptions",
+  "output": "ListSubscriptionsResponse",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Subscriptions",
+    "type": "list"
+   },
+   {
+    "path": "Subscriptions[]",
+    "type": "structure"
+   },
+   {
+    "path": "Subscriptions[].Endpoint",
+    "type": "string"
+   },
+   {
+    "path": "Subscriptions[].Owner",
+    "type": "string"
+   },
+   {
+    "path": "Subscriptions[].Protocol",
+    "type": "string"
+   },
+   {
+    "path": "Subscriptions[].SubscriptionArn",
+    "type": "string"
+   },
+   {
+    "path": "Subscriptions[].TopicArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListSubscriptionsByTopic",
+  "output": "ListSubscriptionsByTopicResponse",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Subscriptions",
+    "type": "list"
+   },
+   {
+    "path": "Subscriptions[]",
+    "type": "structure"
+   },
+   {
+    "path": "Subscriptions[].Endpoint",
+    "type": "string"
+   },
+   {
+    "path": "Subscriptions[].Owner",
+    "type": "string"
+   },
+   {
+    "path": "Subscriptions[].Protocol",
+    "type": "string"
+   },
+   {
+    "path": "Subscriptions[].SubscriptionArn",
+    "type": "string"
+   },
+   {
+    "path": "Subscriptions[].TopicArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListTagsForResource",
+  "output": "ListTagsForResourceResponse",
+  "members": [
+   {
+    "path": "Tags",
+    "type": "list"
+   },
+   {
+    "path": "Tags[]",
+    "type": "structure"
+   },
+   {
+    "path": "Tags[].Key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Tags[].Value",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "ListTopics",
+  "output": "ListTopicsResponse",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "Topics",
+    "type": "list"
+   },
+   {
+    "path": "Topics[]",
+    "type": "structure"
+   },
+   {
+    "path": "Topics[].TopicArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "Publish",
+  "output": "PublishResponse",
+  "members": [
+   {
+    "path": "MessageId",
+    "type": "string"
+   },
+   {
+    "path": "SequenceNumber",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PublishBatch",
+  "output": "PublishBatchResponse",
+  "members": [
+   {
+    "path": "Failed",
+    "type": "list"
+   },
+   {
+    "path": "Failed[]",
+    "type": "structure"
+   },
+   {
+    "path": "Failed[].Code",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Failed[].Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Failed[].Message",
+    "type": "string"
+   },
+   {
+    "path": "Failed[].SenderFault",
+    "type": "boolean",
+    "required": true
+   },
+   {
+    "path": "Successful",
+    "type": "list"
+   },
+   {
+    "path": "Successful[]",
+    "type": "structure"
+   },
+   {
+    "path": "Successful[].Id",
+    "type": "string"
+   },
+   {
+    "path": "Successful[].MessageId",
+    "type": "string"
+   },
+   {
+    "path": "Successful[].SequenceNumber",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "Subscribe",
+  "output": "SubscribeResponse",
+  "members": [
+   {
+    "path": "SubscriptionArn",
+    "type": "string"
+   }
+  ]
+ }
+]

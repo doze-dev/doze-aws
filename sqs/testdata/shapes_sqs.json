@@ -1,0 +1,420 @@
+[
+ {
+  "operation": "CancelMessageMoveTask",
+  "output": "CancelMessageMoveTaskResult",
+  "members": [
+   {
+    "path": "ApproximateNumberOfMessagesMoved",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "ChangeMessageVisibilityBatch",
+  "output": "ChangeMessageVisibilityBatchResult",
+  "members": [
+   {
+    "path": "Failed",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Failed[]",
+    "type": "structure"
+   },
+   {
+    "path": "Failed[].Code",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Failed[].Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Failed[].Message",
+    "type": "string"
+   },
+   {
+    "path": "Failed[].SenderFault",
+    "type": "boolean",
+    "required": true
+   },
+   {
+    "path": "Successful",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Successful[]",
+    "type": "structure"
+   },
+   {
+    "path": "Successful[].Id",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "CreateQueue",
+  "output": "CreateQueueResult",
+  "members": [
+   {
+    "path": "QueueUrl",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DeleteMessageBatch",
+  "output": "DeleteMessageBatchResult",
+  "members": [
+   {
+    "path": "Failed",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Failed[]",
+    "type": "structure"
+   },
+   {
+    "path": "Failed[].Code",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Failed[].Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Failed[].Message",
+    "type": "string"
+   },
+   {
+    "path": "Failed[].SenderFault",
+    "type": "boolean",
+    "required": true
+   },
+   {
+    "path": "Successful",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Successful[]",
+    "type": "structure"
+   },
+   {
+    "path": "Successful[].Id",
+    "type": "string",
+    "required": true
+   }
+  ]
+ },
+ {
+  "operation": "GetQueueAttributes",
+  "output": "GetQueueAttributesResult",
+  "members": [
+   {
+    "path": "Attributes",
+    "type": "map"
+   },
+   {
+    "path": "Attributes{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetQueueUrl",
+  "output": "GetQueueUrlResult",
+  "members": [
+   {
+    "path": "QueueUrl",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListDeadLetterSourceQueues",
+  "output": "ListDeadLetterSourceQueuesResult",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "queueUrls",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "queueUrls[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListMessageMoveTasks",
+  "output": "ListMessageMoveTasksResult",
+  "members": [
+   {
+    "path": "Results",
+    "type": "list"
+   },
+   {
+    "path": "Results[]",
+    "type": "structure"
+   },
+   {
+    "path": "Results[].ApproximateNumberOfMessagesMoved",
+    "type": "integer"
+   },
+   {
+    "path": "Results[].ApproximateNumberOfMessagesToMove",
+    "type": "integer"
+   },
+   {
+    "path": "Results[].DestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "Results[].FailureReason",
+    "type": "string"
+   },
+   {
+    "path": "Results[].MaxNumberOfMessagesPerSecond",
+    "type": "integer"
+   },
+   {
+    "path": "Results[].SourceArn",
+    "type": "string"
+   },
+   {
+    "path": "Results[].StartedTimestamp",
+    "type": "integer"
+   },
+   {
+    "path": "Results[].Status",
+    "type": "string"
+   },
+   {
+    "path": "Results[].TaskHandle",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListQueueTags",
+  "output": "ListQueueTagsResult",
+  "members": [
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListQueues",
+  "output": "ListQueuesResult",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "QueueUrls",
+    "type": "list"
+   },
+   {
+    "path": "QueueUrls[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ReceiveMessage",
+  "output": "ReceiveMessageResult",
+  "members": [
+   {
+    "path": "Messages",
+    "type": "list"
+   },
+   {
+    "path": "Messages[]",
+    "type": "structure"
+   },
+   {
+    "path": "Messages[].Attributes",
+    "type": "map"
+   },
+   {
+    "path": "Messages[].Attributes{}",
+    "type": "string"
+   },
+   {
+    "path": "Messages[].Body",
+    "type": "string"
+   },
+   {
+    "path": "Messages[].MD5OfBody",
+    "type": "string"
+   },
+   {
+    "path": "Messages[].MD5OfMessageAttributes",
+    "type": "string"
+   },
+   {
+    "path": "Messages[].MessageAttributes",
+    "type": "map"
+   },
+   {
+    "path": "Messages[].MessageAttributes{}",
+    "type": "structure"
+   },
+   {
+    "path": "Messages[].MessageAttributes{}.BinaryListValues",
+    "type": "list"
+   },
+   {
+    "path": "Messages[].MessageAttributes{}.BinaryValue",
+    "type": "blob"
+   },
+   {
+    "path": "Messages[].MessageAttributes{}.DataType",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Messages[].MessageAttributes{}.StringListValues",
+    "type": "list"
+   },
+   {
+    "path": "Messages[].MessageAttributes{}.StringValue",
+    "type": "string"
+   },
+   {
+    "path": "Messages[].MessageId",
+    "type": "string"
+   },
+   {
+    "path": "Messages[].ReceiptHandle",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "SendMessage",
+  "output": "SendMessageResult",
+  "members": [
+   {
+    "path": "MD5OfMessageAttributes",
+    "type": "string"
+   },
+   {
+    "path": "MD5OfMessageBody",
+    "type": "string"
+   },
+   {
+    "path": "MD5OfMessageSystemAttributes",
+    "type": "string"
+   },
+   {
+    "path": "MessageId",
+    "type": "string"
+   },
+   {
+    "path": "SequenceNumber",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "SendMessageBatch",
+  "output": "SendMessageBatchResult",
+  "members": [
+   {
+    "path": "Failed",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Failed[]",
+    "type": "structure"
+   },
+   {
+    "path": "Failed[].Code",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Failed[].Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Failed[].Message",
+    "type": "string"
+   },
+   {
+    "path": "Failed[].SenderFault",
+    "type": "boolean",
+    "required": true
+   },
+   {
+    "path": "Successful",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Successful[]",
+    "type": "structure"
+   },
+   {
+    "path": "Successful[].Id",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Successful[].MD5OfMessageAttributes",
+    "type": "string"
+   },
+   {
+    "path": "Successful[].MD5OfMessageBody",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Successful[].MD5OfMessageSystemAttributes",
+    "type": "string"
+   },
+   {
+    "path": "Successful[].MessageId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Successful[].SequenceNumber",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "StartMessageMoveTask",
+  "output": "StartMessageMoveTaskResult",
+  "members": [
+   {
+    "path": "TaskHandle",
+    "type": "string"
+   }
+  ]
+ }
+]

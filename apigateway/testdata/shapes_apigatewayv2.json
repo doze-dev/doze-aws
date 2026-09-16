@@ -1,0 +1,5916 @@
+[
+ {
+  "operation": "CreateApi",
+  "output": "CreateApiResponse",
+  "members": [
+   {
+    "path": "ApiEndpoint",
+    "type": "string"
+   },
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "ApiId",
+    "type": "string"
+   },
+   {
+    "path": "ApiKeySelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "CorsConfiguration.AllowCredentials",
+    "type": "boolean"
+   },
+   {
+    "path": "CorsConfiguration.AllowHeaders",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.AllowMethods",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowMethods[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.AllowOrigins",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowOrigins[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.ExposeHeaders",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.ExposeHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.MaxAge",
+    "type": "integer"
+   },
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "DisableExecuteApiEndpoint",
+    "type": "boolean"
+   },
+   {
+    "path": "DisableSchemaValidation",
+    "type": "boolean"
+   },
+   {
+    "path": "ImportInfo",
+    "type": "list"
+   },
+   {
+    "path": "ImportInfo[]",
+    "type": "string"
+   },
+   {
+    "path": "IpAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "ProtocolType",
+    "type": "enum",
+    "enum": [
+     "WEBSOCKET",
+     "HTTP"
+    ]
+   },
+   {
+    "path": "RouteSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "Version",
+    "type": "string"
+   },
+   {
+    "path": "Warnings",
+    "type": "list"
+   },
+   {
+    "path": "Warnings[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateApiMapping",
+  "output": "CreateApiMappingResponse",
+  "members": [
+   {
+    "path": "ApiId",
+    "type": "string"
+   },
+   {
+    "path": "ApiMappingId",
+    "type": "string"
+   },
+   {
+    "path": "ApiMappingKey",
+    "type": "string"
+   },
+   {
+    "path": "Stage",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateAuthorizer",
+  "output": "CreateAuthorizerResponse",
+  "members": [
+   {
+    "path": "AuthorizerCredentialsArn",
+    "type": "string"
+   },
+   {
+    "path": "AuthorizerId",
+    "type": "string"
+   },
+   {
+    "path": "AuthorizerPayloadFormatVersion",
+    "type": "string"
+   },
+   {
+    "path": "AuthorizerResultTtlInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "AuthorizerType",
+    "type": "enum",
+    "enum": [
+     "REQUEST",
+     "JWT"
+    ]
+   },
+   {
+    "path": "AuthorizerUri",
+    "type": "string"
+   },
+   {
+    "path": "EnableSimpleResponses",
+    "type": "boolean"
+   },
+   {
+    "path": "IdentitySource",
+    "type": "list"
+   },
+   {
+    "path": "IdentitySource[]",
+    "type": "string"
+   },
+   {
+    "path": "IdentityValidationExpression",
+    "type": "string"
+   },
+   {
+    "path": "JwtConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "JwtConfiguration.Audience",
+    "type": "list"
+   },
+   {
+    "path": "JwtConfiguration.Audience[]",
+    "type": "string"
+   },
+   {
+    "path": "JwtConfiguration.Issuer",
+    "type": "string"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateDeployment",
+  "output": "CreateDeploymentResponse",
+  "members": [
+   {
+    "path": "AutoDeployed",
+    "type": "boolean"
+   },
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "DeploymentId",
+    "type": "string"
+   },
+   {
+    "path": "DeploymentStatus",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "FAILED",
+     "DEPLOYED"
+    ]
+   },
+   {
+    "path": "DeploymentStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateDomainName",
+  "output": "CreateDomainNameResponse",
+  "members": [
+   {
+    "path": "ApiMappingSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "DomainName",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameArn",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations",
+    "type": "list"
+   },
+   {
+    "path": "DomainNameConfigurations[]",
+    "type": "structure"
+   },
+   {
+    "path": "DomainNameConfigurations[].ApiGatewayDomainName",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].CertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].CertificateName",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].CertificateUploadDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "DomainNameConfigurations[].DomainNameStatus",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "UPDATING",
+     "PENDING_CERTIFICATE_REIMPORT",
+     "PENDING_OWNERSHIP_VERIFICATION"
+    ]
+   },
+   {
+    "path": "DomainNameConfigurations[].DomainNameStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].EndpointType",
+    "type": "enum",
+    "enum": [
+     "REGIONAL",
+     "EDGE"
+    ]
+   },
+   {
+    "path": "DomainNameConfigurations[].HostedZoneId",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].IpAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "DomainNameConfigurations[].OwnershipVerificationCertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].SecurityPolicy",
+    "type": "enum",
+    "enum": [
+     "TLS_1_0",
+     "TLS_1_2"
+    ]
+   },
+   {
+    "path": "MutualTlsAuthentication",
+    "type": "structure"
+   },
+   {
+    "path": "MutualTlsAuthentication.TruststoreUri",
+    "type": "string"
+   },
+   {
+    "path": "MutualTlsAuthentication.TruststoreVersion",
+    "type": "string"
+   },
+   {
+    "path": "MutualTlsAuthentication.TruststoreWarnings",
+    "type": "list"
+   },
+   {
+    "path": "MutualTlsAuthentication.TruststoreWarnings[]",
+    "type": "string"
+   },
+   {
+    "path": "RoutingMode",
+    "type": "enum",
+    "enum": [
+     "API_MAPPING_ONLY",
+     "ROUTING_RULE_ONLY",
+     "ROUTING_RULE_THEN_API_MAPPING"
+    ]
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateIntegration",
+  "output": "CreateIntegrationResult",
+  "members": [
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "ConnectionId",
+    "type": "string"
+   },
+   {
+    "path": "ConnectionType",
+    "type": "enum",
+    "enum": [
+     "INTERNET",
+     "VPC_LINK"
+    ]
+   },
+   {
+    "path": "ContentHandlingStrategy",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "CredentialsArn",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationId",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationMethod",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationResponseSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationSubtype",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationType",
+    "type": "enum",
+    "enum": [
+     "AWS",
+     "HTTP",
+     "MOCK",
+     "HTTP_PROXY",
+     "AWS_PROXY"
+    ]
+   },
+   {
+    "path": "IntegrationUri",
+    "type": "string"
+   },
+   {
+    "path": "PassthroughBehavior",
+    "type": "enum",
+    "enum": [
+     "WHEN_NO_MATCH",
+     "NEVER",
+     "WHEN_NO_TEMPLATES"
+    ]
+   },
+   {
+    "path": "PayloadFormatVersion",
+    "type": "string"
+   },
+   {
+    "path": "RequestParameters",
+    "type": "map"
+   },
+   {
+    "path": "RequestParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "RequestTemplates",
+    "type": "map"
+   },
+   {
+    "path": "RequestTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "ResponseParameters",
+    "type": "map"
+   },
+   {
+    "path": "ResponseParameters{}",
+    "type": "map"
+   },
+   {
+    "path": "ResponseParameters{}{}",
+    "type": "string"
+   },
+   {
+    "path": "TemplateSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "TimeoutInMillis",
+    "type": "integer"
+   },
+   {
+    "path": "TlsConfig",
+    "type": "structure"
+   },
+   {
+    "path": "TlsConfig.ServerNameToVerify",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateIntegrationResponse",
+  "output": "CreateIntegrationResponseResponse",
+  "members": [
+   {
+    "path": "ContentHandlingStrategy",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "IntegrationResponseId",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationResponseKey",
+    "type": "string"
+   },
+   {
+    "path": "ResponseParameters",
+    "type": "map"
+   },
+   {
+    "path": "ResponseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "ResponseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "ResponseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "TemplateSelectionExpression",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateModel",
+  "output": "CreateModelResponse",
+  "members": [
+   {
+    "path": "ContentType",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "ModelId",
+    "type": "string"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "Schema",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreatePortal",
+  "output": "CreatePortalResponse",
+  "members": [
+   {
+    "path": "Authorization",
+    "type": "structure"
+   },
+   {
+    "path": "Authorization.CognitoConfig",
+    "type": "structure"
+   },
+   {
+    "path": "Authorization.CognitoConfig.AppClientId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Authorization.CognitoConfig.UserPoolArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Authorization.CognitoConfig.UserPoolDomain",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Authorization.None",
+    "type": "structure"
+   },
+   {
+    "path": "EndpointConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "EndpointConfiguration.CertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "EndpointConfiguration.DomainName",
+    "type": "string"
+   },
+   {
+    "path": "EndpointConfiguration.PortalDefaultDomainName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "EndpointConfiguration.PortalDomainHostedZoneId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "IncludedPortalProductArns",
+    "type": "list"
+   },
+   {
+    "path": "IncludedPortalProductArns[]",
+    "type": "string"
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastPublished",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastPublishedDescription",
+    "type": "string"
+   },
+   {
+    "path": "PortalArn",
+    "type": "string"
+   },
+   {
+    "path": "PortalContent",
+    "type": "structure"
+   },
+   {
+    "path": "PortalContent.Description",
+    "type": "string"
+   },
+   {
+    "path": "PortalContent.DisplayName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.AccentColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.BackgroundColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.ErrorValidationColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.HeaderColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.NavigationColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.TextColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.LogoLastUploaded",
+    "type": "timestamp"
+   },
+   {
+    "path": "PortalId",
+    "type": "string"
+   },
+   {
+    "path": "PublishStatus",
+    "type": "enum",
+    "enum": [
+     "DISABLE_IN_PROGRESS",
+     "DISABLE_FAILED",
+     "DISABLED",
+     "PUBLISHED",
+     "PUBLISH_IN_PROGRESS",
+     "PUBLISH_FAILED"
+    ]
+   },
+   {
+    "path": "RumAppMonitorName",
+    "type": "string"
+   },
+   {
+    "path": "StatusException",
+    "type": "structure"
+   },
+   {
+    "path": "StatusException.Exception",
+    "type": "string"
+   },
+   {
+    "path": "StatusException.Message",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreatePortalProduct",
+  "output": "CreatePortalProductResponse",
+  "members": [
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "DisplayOrder",
+    "type": "structure"
+   },
+   {
+    "path": "DisplayOrder.Contents",
+    "type": "list"
+   },
+   {
+    "path": "DisplayOrder.Contents[]",
+    "type": "structure"
+   },
+   {
+    "path": "DisplayOrder.Contents[].ProductRestEndpointPageArns",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "DisplayOrder.Contents[].ProductRestEndpointPageArns[]",
+    "type": "string"
+   },
+   {
+    "path": "DisplayOrder.Contents[].SectionName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "DisplayOrder.OverviewPageArn",
+    "type": "string"
+   },
+   {
+    "path": "DisplayOrder.ProductPageArns",
+    "type": "list"
+   },
+   {
+    "path": "DisplayOrder.ProductPageArns[]",
+    "type": "string"
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "PortalProductArn",
+    "type": "string"
+   },
+   {
+    "path": "PortalProductId",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateProductPage",
+  "output": "CreateProductPageResponse",
+  "members": [
+   {
+    "path": "DisplayContent",
+    "type": "structure"
+   },
+   {
+    "path": "DisplayContent.Body",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "DisplayContent.Title",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "ProductPageArn",
+    "type": "string"
+   },
+   {
+    "path": "ProductPageId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateProductRestEndpointPage",
+  "output": "CreateProductRestEndpointPageResponse",
+  "members": [
+   {
+    "path": "DisplayContent",
+    "type": "structure"
+   },
+   {
+    "path": "DisplayContent.Body",
+    "type": "string"
+   },
+   {
+    "path": "DisplayContent.Endpoint",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "DisplayContent.OperationName",
+    "type": "string"
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "ProductRestEndpointPageArn",
+    "type": "string"
+   },
+   {
+    "path": "ProductRestEndpointPageId",
+    "type": "string"
+   },
+   {
+    "path": "RestEndpointIdentifier",
+    "type": "structure"
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts",
+    "type": "structure"
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts.Method",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts.Path",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts.RestApiId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts.Stage",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "IN_PROGRESS",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "StatusException",
+    "type": "structure"
+   },
+   {
+    "path": "StatusException.Exception",
+    "type": "string"
+   },
+   {
+    "path": "StatusException.Message",
+    "type": "string"
+   },
+   {
+    "path": "TryItState",
+    "type": "enum",
+    "enum": [
+     "ENABLED",
+     "DISABLED"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "CreateRoute",
+  "output": "CreateRouteResult",
+  "members": [
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "ApiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "AuthorizationScopes",
+    "type": "list"
+   },
+   {
+    "path": "AuthorizationScopes[]",
+    "type": "string"
+   },
+   {
+    "path": "AuthorizationType",
+    "type": "enum",
+    "enum": [
+     "JWT",
+     "NONE",
+     "AWS_IAM",
+     "CUSTOM"
+    ]
+   },
+   {
+    "path": "AuthorizerId",
+    "type": "string"
+   },
+   {
+    "path": "ModelSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "OperationName",
+    "type": "string"
+   },
+   {
+    "path": "RequestModels",
+    "type": "map"
+   },
+   {
+    "path": "RequestModels{}",
+    "type": "string"
+   },
+   {
+    "path": "RequestParameters",
+    "type": "map"
+   },
+   {
+    "path": "RequestParameters{}",
+    "type": "structure"
+   },
+   {
+    "path": "RequestParameters{}.Required",
+    "type": "boolean"
+   },
+   {
+    "path": "RouteId",
+    "type": "string"
+   },
+   {
+    "path": "RouteKey",
+    "type": "string"
+   },
+   {
+    "path": "RouteResponseSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Target",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateRouteResponse",
+  "output": "CreateRouteResponseResponse",
+  "members": [
+   {
+    "path": "ModelSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "ResponseModels",
+    "type": "map"
+   },
+   {
+    "path": "ResponseModels{}",
+    "type": "string"
+   },
+   {
+    "path": "ResponseParameters",
+    "type": "map"
+   },
+   {
+    "path": "ResponseParameters{}",
+    "type": "structure"
+   },
+   {
+    "path": "ResponseParameters{}.Required",
+    "type": "boolean"
+   },
+   {
+    "path": "RouteResponseId",
+    "type": "string"
+   },
+   {
+    "path": "RouteResponseKey",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateRoutingRule",
+  "output": "CreateRoutingRuleResponse",
+  "members": [
+   {
+    "path": "Actions",
+    "type": "list"
+   },
+   {
+    "path": "Actions[]",
+    "type": "structure"
+   },
+   {
+    "path": "Actions[].InvokeApi",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Actions[].InvokeApi.ApiId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Actions[].InvokeApi.Stage",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Actions[].InvokeApi.StripBasePath",
+    "type": "boolean"
+   },
+   {
+    "path": "Conditions",
+    "type": "list"
+   },
+   {
+    "path": "Conditions[]",
+    "type": "structure"
+   },
+   {
+    "path": "Conditions[].MatchBasePaths",
+    "type": "structure"
+   },
+   {
+    "path": "Conditions[].MatchBasePaths.AnyOf",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Conditions[].MatchBasePaths.AnyOf[]",
+    "type": "string"
+   },
+   {
+    "path": "Conditions[].MatchHeaders",
+    "type": "structure"
+   },
+   {
+    "path": "Conditions[].MatchHeaders.AnyOf",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Conditions[].MatchHeaders.AnyOf[]",
+    "type": "structure"
+   },
+   {
+    "path": "Priority",
+    "type": "integer"
+   },
+   {
+    "path": "RoutingRuleArn",
+    "type": "string"
+   },
+   {
+    "path": "RoutingRuleId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateStage",
+  "output": "CreateStageResponse",
+  "members": [
+   {
+    "path": "AccessLogSettings",
+    "type": "structure"
+   },
+   {
+    "path": "AccessLogSettings.DestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "AccessLogSettings.Format",
+    "type": "string"
+   },
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "AutoDeploy",
+    "type": "boolean"
+   },
+   {
+    "path": "ClientCertificateId",
+    "type": "string"
+   },
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "DefaultRouteSettings",
+    "type": "structure"
+   },
+   {
+    "path": "DefaultRouteSettings.DataTraceEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "DefaultRouteSettings.DetailedMetricsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "DefaultRouteSettings.LoggingLevel",
+    "type": "enum",
+    "enum": [
+     "ERROR",
+     "INFO",
+     "OFF"
+    ]
+   },
+   {
+    "path": "DefaultRouteSettings.ThrottlingBurstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "DefaultRouteSettings.ThrottlingRateLimit",
+    "type": "float"
+   },
+   {
+    "path": "DeploymentId",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "LastDeploymentStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "LastUpdatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "RouteSettings",
+    "type": "map"
+   },
+   {
+    "path": "RouteSettings{}",
+    "type": "structure"
+   },
+   {
+    "path": "RouteSettings{}.DataTraceEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "RouteSettings{}.DetailedMetricsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "RouteSettings{}.LoggingLevel",
+    "type": "enum",
+    "enum": [
+     "ERROR",
+     "INFO",
+     "OFF"
+    ]
+   },
+   {
+    "path": "RouteSettings{}.ThrottlingBurstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "RouteSettings{}.ThrottlingRateLimit",
+    "type": "float"
+   },
+   {
+    "path": "StageName",
+    "type": "string"
+   },
+   {
+    "path": "StageVariables",
+    "type": "map"
+   },
+   {
+    "path": "StageVariables{}",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateVpcLink",
+  "output": "CreateVpcLinkResponse",
+  "members": [
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "SecurityGroupIds",
+    "type": "list"
+   },
+   {
+    "path": "SecurityGroupIds[]",
+    "type": "string"
+   },
+   {
+    "path": "SubnetIds",
+    "type": "list"
+   },
+   {
+    "path": "SubnetIds[]",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "VpcLinkId",
+    "type": "string"
+   },
+   {
+    "path": "VpcLinkStatus",
+    "type": "enum",
+    "enum": [
+     "INACTIVE",
+     "PENDING",
+     "AVAILABLE",
+     "DELETING",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "VpcLinkStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "VpcLinkVersion",
+    "type": "enum",
+    "enum": [
+     "V2"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "ExportApi",
+  "output": "ExportApiResponse",
+  "members": [
+   {
+    "path": "body",
+    "type": "blob"
+   }
+  ]
+ },
+ {
+  "operation": "GetApi",
+  "output": "GetApiResponse",
+  "members": [
+   {
+    "path": "ApiEndpoint",
+    "type": "string"
+   },
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "ApiId",
+    "type": "string"
+   },
+   {
+    "path": "ApiKeySelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "CorsConfiguration.AllowCredentials",
+    "type": "boolean"
+   },
+   {
+    "path": "CorsConfiguration.AllowHeaders",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.AllowMethods",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowMethods[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.AllowOrigins",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowOrigins[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.ExposeHeaders",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.ExposeHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.MaxAge",
+    "type": "integer"
+   },
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "DisableExecuteApiEndpoint",
+    "type": "boolean"
+   },
+   {
+    "path": "DisableSchemaValidation",
+    "type": "boolean"
+   },
+   {
+    "path": "ImportInfo",
+    "type": "list"
+   },
+   {
+    "path": "ImportInfo[]",
+    "type": "string"
+   },
+   {
+    "path": "IpAddressType",
+    "type": "enum",
+    "enum": [
+     "dualstack",
+     "ipv4"
+    ]
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "ProtocolType",
+    "type": "enum",
+    "enum": [
+     "WEBSOCKET",
+     "HTTP"
+    ]
+   },
+   {
+    "path": "RouteSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "Version",
+    "type": "string"
+   },
+   {
+    "path": "Warnings",
+    "type": "list"
+   },
+   {
+    "path": "Warnings[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetApiMapping",
+  "output": "GetApiMappingResponse",
+  "members": [
+   {
+    "path": "ApiId",
+    "type": "string"
+   },
+   {
+    "path": "ApiMappingId",
+    "type": "string"
+   },
+   {
+    "path": "ApiMappingKey",
+    "type": "string"
+   },
+   {
+    "path": "Stage",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetApiMappings",
+  "output": "GetApiMappingsResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].ApiId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].ApiMappingId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].ApiMappingKey",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Stage",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetApis",
+  "output": "GetApisResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].ApiEndpoint",
+    "type": "string"
+   },
+   {
+    "path": "Items[].ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].ApiId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].ApiKeySelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Items[].CorsConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].CorsConfiguration.AllowCredentials",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].CorsConfiguration.AllowHeaders",
+    "type": "list"
+   },
+   {
+    "path": "Items[].CorsConfiguration.AllowHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "Items[].CorsConfiguration.AllowMethods",
+    "type": "list"
+   },
+   {
+    "path": "Items[].CorsConfiguration.AllowMethods[]",
+    "type": "string"
+   },
+   {
+    "path": "Items[].CorsConfiguration.AllowOrigins",
+    "type": "list"
+   },
+   {
+    "path": "Items[].CorsConfiguration.AllowOrigins[]",
+    "type": "string"
+   },
+   {
+    "path": "Items[].CorsConfiguration.ExposeHeaders",
+    "type": "list"
+   },
+   {
+    "path": "Items[].CorsConfiguration.ExposeHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "Items[].CorsConfiguration.MaxAge",
+    "type": "integer"
+   },
+   {
+    "path": "Items[].CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Items[].Description",
+    "type": "string"
+   },
+   {
+    "path": "Items[].DisableExecuteApiEndpoint",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].DisableSchemaValidation",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].ImportInfo",
+    "type": "list"
+   },
+   {
+    "path": "Items[].ImportInfo[]",
+    "type": "string"
+   },
+   {
+    "path": "Items[].IpAddressType",
+    "type": "enum",
+    "enum": [
+     "dualstack",
+     "ipv4"
+    ]
+   },
+   {
+    "path": "Items[].Name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].ProtocolType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "WEBSOCKET",
+     "HTTP"
+    ]
+   },
+   {
+    "path": "Items[].RouteSelectionExpression",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].Tags",
+    "type": "map"
+   },
+   {
+    "path": "Items[].Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Version",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Warnings",
+    "type": "list"
+   },
+   {
+    "path": "Items[].Warnings[]",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetAuthorizer",
+  "output": "GetAuthorizerResponse",
+  "members": [
+   {
+    "path": "AuthorizerCredentialsArn",
+    "type": "string"
+   },
+   {
+    "path": "AuthorizerId",
+    "type": "string"
+   },
+   {
+    "path": "AuthorizerPayloadFormatVersion",
+    "type": "string"
+   },
+   {
+    "path": "AuthorizerResultTtlInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "AuthorizerType",
+    "type": "enum",
+    "enum": [
+     "REQUEST",
+     "JWT"
+    ]
+   },
+   {
+    "path": "AuthorizerUri",
+    "type": "string"
+   },
+   {
+    "path": "EnableSimpleResponses",
+    "type": "boolean"
+   },
+   {
+    "path": "IdentitySource",
+    "type": "list"
+   },
+   {
+    "path": "IdentitySource[]",
+    "type": "string"
+   },
+   {
+    "path": "IdentityValidationExpression",
+    "type": "string"
+   },
+   {
+    "path": "JwtConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "JwtConfiguration.Audience",
+    "type": "list"
+   },
+   {
+    "path": "JwtConfiguration.Audience[]",
+    "type": "string"
+   },
+   {
+    "path": "JwtConfiguration.Issuer",
+    "type": "string"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetAuthorizers",
+  "output": "GetAuthorizersResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].AuthorizerCredentialsArn",
+    "type": "string"
+   },
+   {
+    "path": "Items[].AuthorizerId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].AuthorizerPayloadFormatVersion",
+    "type": "string"
+   },
+   {
+    "path": "Items[].AuthorizerResultTtlInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "Items[].AuthorizerType",
+    "type": "enum",
+    "enum": [
+     "REQUEST",
+     "JWT"
+    ]
+   },
+   {
+    "path": "Items[].AuthorizerUri",
+    "type": "string"
+   },
+   {
+    "path": "Items[].EnableSimpleResponses",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].IdentitySource",
+    "type": "list"
+   },
+   {
+    "path": "Items[].IdentitySource[]",
+    "type": "string"
+   },
+   {
+    "path": "Items[].IdentityValidationExpression",
+    "type": "string"
+   },
+   {
+    "path": "Items[].JwtConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].JwtConfiguration.Audience",
+    "type": "list"
+   },
+   {
+    "path": "Items[].JwtConfiguration.Audience[]",
+    "type": "string"
+   },
+   {
+    "path": "Items[].JwtConfiguration.Issuer",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDeployment",
+  "output": "GetDeploymentResponse",
+  "members": [
+   {
+    "path": "AutoDeployed",
+    "type": "boolean"
+   },
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "DeploymentId",
+    "type": "string"
+   },
+   {
+    "path": "DeploymentStatus",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "FAILED",
+     "DEPLOYED"
+    ]
+   },
+   {
+    "path": "DeploymentStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDeployments",
+  "output": "GetDeploymentsResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].AutoDeployed",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Items[].DeploymentId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].DeploymentStatus",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "FAILED",
+     "DEPLOYED"
+    ]
+   },
+   {
+    "path": "Items[].DeploymentStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Description",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDomainName",
+  "output": "GetDomainNameResponse",
+  "members": [
+   {
+    "path": "ApiMappingSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "DomainName",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameArn",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations",
+    "type": "list"
+   },
+   {
+    "path": "DomainNameConfigurations[]",
+    "type": "structure"
+   },
+   {
+    "path": "DomainNameConfigurations[].ApiGatewayDomainName",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].CertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].CertificateName",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].CertificateUploadDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "DomainNameConfigurations[].DomainNameStatus",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "UPDATING",
+     "PENDING_CERTIFICATE_REIMPORT",
+     "PENDING_OWNERSHIP_VERIFICATION"
+    ]
+   },
+   {
+    "path": "DomainNameConfigurations[].DomainNameStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].EndpointType",
+    "type": "enum",
+    "enum": [
+     "REGIONAL",
+     "EDGE"
+    ]
+   },
+   {
+    "path": "DomainNameConfigurations[].HostedZoneId",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].IpAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "DomainNameConfigurations[].OwnershipVerificationCertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].SecurityPolicy",
+    "type": "enum",
+    "enum": [
+     "TLS_1_0",
+     "TLS_1_2"
+    ]
+   },
+   {
+    "path": "MutualTlsAuthentication",
+    "type": "structure"
+   },
+   {
+    "path": "MutualTlsAuthentication.TruststoreUri",
+    "type": "string"
+   },
+   {
+    "path": "MutualTlsAuthentication.TruststoreVersion",
+    "type": "string"
+   },
+   {
+    "path": "MutualTlsAuthentication.TruststoreWarnings",
+    "type": "list"
+   },
+   {
+    "path": "MutualTlsAuthentication.TruststoreWarnings[]",
+    "type": "string"
+   },
+   {
+    "path": "RoutingMode",
+    "type": "enum",
+    "enum": [
+     "API_MAPPING_ONLY",
+     "ROUTING_RULE_ONLY",
+     "ROUTING_RULE_THEN_API_MAPPING"
+    ]
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDomainNames",
+  "output": "GetDomainNamesResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].ApiMappingSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Items[].DomainName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].DomainNameArn",
+    "type": "string"
+   },
+   {
+    "path": "Items[].DomainNameConfigurations",
+    "type": "list"
+   },
+   {
+    "path": "Items[].DomainNameConfigurations[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].DomainNameConfigurations[].ApiGatewayDomainName",
+    "type": "string"
+   },
+   {
+    "path": "Items[].DomainNameConfigurations[].CertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "Items[].DomainNameConfigurations[].CertificateName",
+    "type": "string"
+   },
+   {
+    "path": "Items[].DomainNameConfigurations[].CertificateUploadDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Items[].DomainNameConfigurations[].DomainNameStatus",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "UPDATING",
+     "PENDING_CERTIFICATE_REIMPORT",
+     "PENDING_OWNERSHIP_VERIFICATION"
+    ]
+   },
+   {
+    "path": "Items[].DomainNameConfigurations[].DomainNameStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "Items[].DomainNameConfigurations[].EndpointType",
+    "type": "enum",
+    "enum": [
+     "REGIONAL",
+     "EDGE"
+    ]
+   },
+   {
+    "path": "Items[].DomainNameConfigurations[].HostedZoneId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].DomainNameConfigurations[].IpAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "Items[].DomainNameConfigurations[].OwnershipVerificationCertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "Items[].DomainNameConfigurations[].SecurityPolicy",
+    "type": "enum",
+    "enum": [
+     "TLS_1_0",
+     "TLS_1_2"
+    ]
+   },
+   {
+    "path": "Items[].MutualTlsAuthentication",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].MutualTlsAuthentication.TruststoreUri",
+    "type": "string"
+   },
+   {
+    "path": "Items[].MutualTlsAuthentication.TruststoreVersion",
+    "type": "string"
+   },
+   {
+    "path": "Items[].MutualTlsAuthentication.TruststoreWarnings",
+    "type": "list"
+   },
+   {
+    "path": "Items[].MutualTlsAuthentication.TruststoreWarnings[]",
+    "type": "string"
+   },
+   {
+    "path": "Items[].RoutingMode",
+    "type": "enum",
+    "enum": [
+     "API_MAPPING_ONLY",
+     "ROUTING_RULE_ONLY",
+     "ROUTING_RULE_THEN_API_MAPPING"
+    ]
+   },
+   {
+    "path": "Items[].Tags",
+    "type": "map"
+   },
+   {
+    "path": "Items[].Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetIntegration",
+  "output": "GetIntegrationResult",
+  "members": [
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "ConnectionId",
+    "type": "string"
+   },
+   {
+    "path": "ConnectionType",
+    "type": "enum",
+    "enum": [
+     "INTERNET",
+     "VPC_LINK"
+    ]
+   },
+   {
+    "path": "ContentHandlingStrategy",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "CredentialsArn",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationId",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationMethod",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationResponseSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationSubtype",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationType",
+    "type": "enum",
+    "enum": [
+     "AWS",
+     "HTTP",
+     "MOCK",
+     "HTTP_PROXY",
+     "AWS_PROXY"
+    ]
+   },
+   {
+    "path": "IntegrationUri",
+    "type": "string"
+   },
+   {
+    "path": "PassthroughBehavior",
+    "type": "enum",
+    "enum": [
+     "WHEN_NO_MATCH",
+     "NEVER",
+     "WHEN_NO_TEMPLATES"
+    ]
+   },
+   {
+    "path": "PayloadFormatVersion",
+    "type": "string"
+   },
+   {
+    "path": "RequestParameters",
+    "type": "map"
+   },
+   {
+    "path": "RequestParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "RequestTemplates",
+    "type": "map"
+   },
+   {
+    "path": "RequestTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "ResponseParameters",
+    "type": "map"
+   },
+   {
+    "path": "ResponseParameters{}",
+    "type": "map"
+   },
+   {
+    "path": "ResponseParameters{}{}",
+    "type": "string"
+   },
+   {
+    "path": "TemplateSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "TimeoutInMillis",
+    "type": "integer"
+   },
+   {
+    "path": "TlsConfig",
+    "type": "structure"
+   },
+   {
+    "path": "TlsConfig.ServerNameToVerify",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetIntegrationResponse",
+  "output": "GetIntegrationResponseResponse",
+  "members": [
+   {
+    "path": "ContentHandlingStrategy",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_TEXT",
+     "CONVERT_TO_BINARY"
+    ]
+   },
+   {
+    "path": "IntegrationResponseId",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationResponseKey",
+    "type": "string"
+   },
+   {
+    "path": "ResponseParameters",
+    "type": "map"
+   },
+   {
+    "path": "ResponseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "ResponseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "ResponseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "TemplateSelectionExpression",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetIntegrationResponses",
+  "output": "GetIntegrationResponsesResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].ContentHandlingStrategy",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "Items[].IntegrationResponseId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].IntegrationResponseKey",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].ResponseParameters",
+    "type": "map"
+   },
+   {
+    "path": "Items[].ResponseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "Items[].ResponseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "Items[].ResponseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "Items[].TemplateSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetIntegrations",
+  "output": "GetIntegrationsResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].ConnectionId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].ConnectionType",
+    "type": "enum",
+    "enum": [
+     "INTERNET",
+     "VPC_LINK"
+    ]
+   },
+   {
+    "path": "Items[].ContentHandlingStrategy",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "Items[].CredentialsArn",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Description",
+    "type": "string"
+   },
+   {
+    "path": "Items[].IntegrationId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].IntegrationMethod",
+    "type": "string"
+   },
+   {
+    "path": "Items[].IntegrationResponseSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Items[].IntegrationSubtype",
+    "type": "string"
+   },
+   {
+    "path": "Items[].IntegrationType",
+    "type": "enum",
+    "enum": [
+     "AWS_PROXY",
+     "AWS",
+     "HTTP",
+     "MOCK",
+     "HTTP_PROXY"
+    ]
+   },
+   {
+    "path": "Items[].IntegrationUri",
+    "type": "string"
+   },
+   {
+    "path": "Items[].PassthroughBehavior",
+    "type": "enum",
+    "enum": [
+     "NEVER",
+     "WHEN_NO_TEMPLATES",
+     "WHEN_NO_MATCH"
+    ]
+   },
+   {
+    "path": "Items[].PayloadFormatVersion",
+    "type": "string"
+   },
+   {
+    "path": "Items[].RequestParameters",
+    "type": "map"
+   },
+   {
+    "path": "Items[].RequestParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "Items[].RequestTemplates",
+    "type": "map"
+   },
+   {
+    "path": "Items[].RequestTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "Items[].ResponseParameters",
+    "type": "map"
+   },
+   {
+    "path": "Items[].ResponseParameters{}",
+    "type": "map"
+   },
+   {
+    "path": "Items[].ResponseParameters{}{}",
+    "type": "string"
+   },
+   {
+    "path": "Items[].TemplateSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Items[].TimeoutInMillis",
+    "type": "integer"
+   },
+   {
+    "path": "Items[].TlsConfig",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].TlsConfig.ServerNameToVerify",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetModel",
+  "output": "GetModelResponse",
+  "members": [
+   {
+    "path": "ContentType",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "ModelId",
+    "type": "string"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "Schema",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetModelTemplate",
+  "output": "GetModelTemplateResponse",
+  "members": [
+   {
+    "path": "Value",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetModels",
+  "output": "GetModelsResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].ContentType",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Description",
+    "type": "string"
+   },
+   {
+    "path": "Items[].ModelId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].Schema",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetPortal",
+  "output": "GetPortalResponse",
+  "members": [
+   {
+    "path": "Authorization",
+    "type": "structure"
+   },
+   {
+    "path": "Authorization.CognitoConfig",
+    "type": "structure"
+   },
+   {
+    "path": "Authorization.CognitoConfig.AppClientId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Authorization.CognitoConfig.UserPoolArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Authorization.CognitoConfig.UserPoolDomain",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Authorization.None",
+    "type": "structure"
+   },
+   {
+    "path": "EndpointConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "EndpointConfiguration.CertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "EndpointConfiguration.DomainName",
+    "type": "string"
+   },
+   {
+    "path": "EndpointConfiguration.PortalDefaultDomainName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "EndpointConfiguration.PortalDomainHostedZoneId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "IncludedPortalProductArns",
+    "type": "list"
+   },
+   {
+    "path": "IncludedPortalProductArns[]",
+    "type": "string"
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastPublished",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastPublishedDescription",
+    "type": "string"
+   },
+   {
+    "path": "PortalArn",
+    "type": "string"
+   },
+   {
+    "path": "PortalContent",
+    "type": "structure"
+   },
+   {
+    "path": "PortalContent.Description",
+    "type": "string"
+   },
+   {
+    "path": "PortalContent.DisplayName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.AccentColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.BackgroundColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.ErrorValidationColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.HeaderColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.NavigationColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.TextColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.LogoLastUploaded",
+    "type": "timestamp"
+   },
+   {
+    "path": "PortalId",
+    "type": "string"
+   },
+   {
+    "path": "Preview",
+    "type": "structure"
+   },
+   {
+    "path": "Preview.PreviewStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "PREVIEW_IN_PROGRESS",
+     "PREVIEW_FAILED",
+     "PREVIEW_READY"
+    ]
+   },
+   {
+    "path": "Preview.PreviewUrl",
+    "type": "string"
+   },
+   {
+    "path": "Preview.StatusException",
+    "type": "structure"
+   },
+   {
+    "path": "Preview.StatusException.Exception",
+    "type": "string"
+   },
+   {
+    "path": "Preview.StatusException.Message",
+    "type": "string"
+   },
+   {
+    "path": "PublishStatus",
+    "type": "enum",
+    "enum": [
+     "PUBLISH_FAILED",
+     "DISABLE_IN_PROGRESS",
+     "DISABLE_FAILED",
+     "DISABLED",
+     "PUBLISHED",
+     "PUBLISH_IN_PROGRESS"
+    ]
+   },
+   {
+    "path": "RumAppMonitorName",
+    "type": "string"
+   },
+   {
+    "path": "StatusException",
+    "type": "structure"
+   },
+   {
+    "path": "StatusException.Exception",
+    "type": "string"
+   },
+   {
+    "path": "StatusException.Message",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetPortalProduct",
+  "output": "GetPortalProductResponse",
+  "members": [
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "DisplayOrder",
+    "type": "structure"
+   },
+   {
+    "path": "DisplayOrder.Contents",
+    "type": "list"
+   },
+   {
+    "path": "DisplayOrder.Contents[]",
+    "type": "structure"
+   },
+   {
+    "path": "DisplayOrder.Contents[].ProductRestEndpointPageArns",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "DisplayOrder.Contents[].ProductRestEndpointPageArns[]",
+    "type": "string"
+   },
+   {
+    "path": "DisplayOrder.Contents[].SectionName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "DisplayOrder.OverviewPageArn",
+    "type": "string"
+   },
+   {
+    "path": "DisplayOrder.ProductPageArns",
+    "type": "list"
+   },
+   {
+    "path": "DisplayOrder.ProductPageArns[]",
+    "type": "string"
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "PortalProductArn",
+    "type": "string"
+   },
+   {
+    "path": "PortalProductId",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetPortalProductSharingPolicy",
+  "output": "GetPortalProductSharingPolicyResponse",
+  "members": [
+   {
+    "path": "PolicyDocument",
+    "type": "string"
+   },
+   {
+    "path": "PortalProductId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetProductPage",
+  "output": "GetProductPageResponse",
+  "members": [
+   {
+    "path": "DisplayContent",
+    "type": "structure"
+   },
+   {
+    "path": "DisplayContent.Body",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "DisplayContent.Title",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "ProductPageArn",
+    "type": "string"
+   },
+   {
+    "path": "ProductPageId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetProductRestEndpointPage",
+  "output": "GetProductRestEndpointPageResponse",
+  "members": [
+   {
+    "path": "DisplayContent",
+    "type": "structure"
+   },
+   {
+    "path": "DisplayContent.Body",
+    "type": "string"
+   },
+   {
+    "path": "DisplayContent.Endpoint",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "DisplayContent.OperationName",
+    "type": "string"
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "ProductRestEndpointPageArn",
+    "type": "string"
+   },
+   {
+    "path": "ProductRestEndpointPageId",
+    "type": "string"
+   },
+   {
+    "path": "RawDisplayContent",
+    "type": "string"
+   },
+   {
+    "path": "RestEndpointIdentifier",
+    "type": "structure"
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts",
+    "type": "structure"
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts.Method",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts.Path",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts.RestApiId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts.Stage",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "IN_PROGRESS",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "StatusException",
+    "type": "structure"
+   },
+   {
+    "path": "StatusException.Exception",
+    "type": "string"
+   },
+   {
+    "path": "StatusException.Message",
+    "type": "string"
+   },
+   {
+    "path": "TryItState",
+    "type": "enum",
+    "enum": [
+     "ENABLED",
+     "DISABLED"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetRoute",
+  "output": "GetRouteResult",
+  "members": [
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "ApiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "AuthorizationScopes",
+    "type": "list"
+   },
+   {
+    "path": "AuthorizationScopes[]",
+    "type": "string"
+   },
+   {
+    "path": "AuthorizationType",
+    "type": "enum",
+    "enum": [
+     "AWS_IAM",
+     "CUSTOM",
+     "JWT",
+     "NONE"
+    ]
+   },
+   {
+    "path": "AuthorizerId",
+    "type": "string"
+   },
+   {
+    "path": "ModelSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "OperationName",
+    "type": "string"
+   },
+   {
+    "path": "RequestModels",
+    "type": "map"
+   },
+   {
+    "path": "RequestModels{}",
+    "type": "string"
+   },
+   {
+    "path": "RequestParameters",
+    "type": "map"
+   },
+   {
+    "path": "RequestParameters{}",
+    "type": "structure"
+   },
+   {
+    "path": "RequestParameters{}.Required",
+    "type": "boolean"
+   },
+   {
+    "path": "RouteId",
+    "type": "string"
+   },
+   {
+    "path": "RouteKey",
+    "type": "string"
+   },
+   {
+    "path": "RouteResponseSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Target",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetRouteResponse",
+  "output": "GetRouteResponseResponse",
+  "members": [
+   {
+    "path": "ModelSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "ResponseModels",
+    "type": "map"
+   },
+   {
+    "path": "ResponseModels{}",
+    "type": "string"
+   },
+   {
+    "path": "ResponseParameters",
+    "type": "map"
+   },
+   {
+    "path": "ResponseParameters{}",
+    "type": "structure"
+   },
+   {
+    "path": "ResponseParameters{}.Required",
+    "type": "boolean"
+   },
+   {
+    "path": "RouteResponseId",
+    "type": "string"
+   },
+   {
+    "path": "RouteResponseKey",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetRouteResponses",
+  "output": "GetRouteResponsesResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].ModelSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Items[].ResponseModels",
+    "type": "map"
+   },
+   {
+    "path": "Items[].ResponseModels{}",
+    "type": "string"
+   },
+   {
+    "path": "Items[].ResponseParameters",
+    "type": "map"
+   },
+   {
+    "path": "Items[].ResponseParameters{}",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].ResponseParameters{}.Required",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].RouteResponseId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].RouteResponseKey",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetRoutes",
+  "output": "GetRoutesResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].ApiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].AuthorizationScopes",
+    "type": "list"
+   },
+   {
+    "path": "Items[].AuthorizationScopes[]",
+    "type": "string"
+   },
+   {
+    "path": "Items[].AuthorizationType",
+    "type": "enum",
+    "enum": [
+     "NONE",
+     "AWS_IAM",
+     "CUSTOM",
+     "JWT"
+    ]
+   },
+   {
+    "path": "Items[].AuthorizerId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].ModelSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Items[].OperationName",
+    "type": "string"
+   },
+   {
+    "path": "Items[].RequestModels",
+    "type": "map"
+   },
+   {
+    "path": "Items[].RequestModels{}",
+    "type": "string"
+   },
+   {
+    "path": "Items[].RequestParameters",
+    "type": "map"
+   },
+   {
+    "path": "Items[].RequestParameters{}",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].RequestParameters{}.Required",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].RouteId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].RouteKey",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].RouteResponseSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Target",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetRoutingRule",
+  "output": "GetRoutingRuleResponse",
+  "members": [
+   {
+    "path": "Actions",
+    "type": "list"
+   },
+   {
+    "path": "Actions[]",
+    "type": "structure"
+   },
+   {
+    "path": "Actions[].InvokeApi",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Actions[].InvokeApi.ApiId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Actions[].InvokeApi.Stage",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Actions[].InvokeApi.StripBasePath",
+    "type": "boolean"
+   },
+   {
+    "path": "Conditions",
+    "type": "list"
+   },
+   {
+    "path": "Conditions[]",
+    "type": "structure"
+   },
+   {
+    "path": "Conditions[].MatchBasePaths",
+    "type": "structure"
+   },
+   {
+    "path": "Conditions[].MatchBasePaths.AnyOf",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Conditions[].MatchBasePaths.AnyOf[]",
+    "type": "string"
+   },
+   {
+    "path": "Conditions[].MatchHeaders",
+    "type": "structure"
+   },
+   {
+    "path": "Conditions[].MatchHeaders.AnyOf",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Conditions[].MatchHeaders.AnyOf[]",
+    "type": "structure"
+   },
+   {
+    "path": "Priority",
+    "type": "integer"
+   },
+   {
+    "path": "RoutingRuleArn",
+    "type": "string"
+   },
+   {
+    "path": "RoutingRuleId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetStage",
+  "output": "GetStageResponse",
+  "members": [
+   {
+    "path": "AccessLogSettings",
+    "type": "structure"
+   },
+   {
+    "path": "AccessLogSettings.DestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "AccessLogSettings.Format",
+    "type": "string"
+   },
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "AutoDeploy",
+    "type": "boolean"
+   },
+   {
+    "path": "ClientCertificateId",
+    "type": "string"
+   },
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "DefaultRouteSettings",
+    "type": "structure"
+   },
+   {
+    "path": "DefaultRouteSettings.DataTraceEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "DefaultRouteSettings.DetailedMetricsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "DefaultRouteSettings.LoggingLevel",
+    "type": "enum",
+    "enum": [
+     "ERROR",
+     "INFO",
+     "OFF"
+    ]
+   },
+   {
+    "path": "DefaultRouteSettings.ThrottlingBurstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "DefaultRouteSettings.ThrottlingRateLimit",
+    "type": "float"
+   },
+   {
+    "path": "DeploymentId",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "LastDeploymentStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "LastUpdatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "RouteSettings",
+    "type": "map"
+   },
+   {
+    "path": "RouteSettings{}",
+    "type": "structure"
+   },
+   {
+    "path": "RouteSettings{}.DataTraceEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "RouteSettings{}.DetailedMetricsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "RouteSettings{}.LoggingLevel",
+    "type": "enum",
+    "enum": [
+     "ERROR",
+     "INFO",
+     "OFF"
+    ]
+   },
+   {
+    "path": "RouteSettings{}.ThrottlingBurstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "RouteSettings{}.ThrottlingRateLimit",
+    "type": "float"
+   },
+   {
+    "path": "StageName",
+    "type": "string"
+   },
+   {
+    "path": "StageVariables",
+    "type": "map"
+   },
+   {
+    "path": "StageVariables{}",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetStages",
+  "output": "GetStagesResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].AccessLogSettings",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].AccessLogSettings.DestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "Items[].AccessLogSettings.Format",
+    "type": "string"
+   },
+   {
+    "path": "Items[].ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].AutoDeploy",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].ClientCertificateId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Items[].DefaultRouteSettings",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].DefaultRouteSettings.DataTraceEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].DefaultRouteSettings.DetailedMetricsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].DefaultRouteSettings.LoggingLevel",
+    "type": "enum",
+    "enum": [
+     "ERROR",
+     "INFO",
+     "OFF"
+    ]
+   },
+   {
+    "path": "Items[].DefaultRouteSettings.ThrottlingBurstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "Items[].DefaultRouteSettings.ThrottlingRateLimit",
+    "type": "float"
+   },
+   {
+    "path": "Items[].DeploymentId",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Description",
+    "type": "string"
+   },
+   {
+    "path": "Items[].LastDeploymentStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "Items[].LastUpdatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Items[].RouteSettings",
+    "type": "map"
+   },
+   {
+    "path": "Items[].RouteSettings{}",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].RouteSettings{}.DataTraceEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].RouteSettings{}.DetailedMetricsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "Items[].RouteSettings{}.LoggingLevel",
+    "type": "enum",
+    "enum": [
+     "ERROR",
+     "INFO",
+     "OFF"
+    ]
+   },
+   {
+    "path": "Items[].RouteSettings{}.ThrottlingBurstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "Items[].RouteSettings{}.ThrottlingRateLimit",
+    "type": "float"
+   },
+   {
+    "path": "Items[].StageName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].StageVariables",
+    "type": "map"
+   },
+   {
+    "path": "Items[].StageVariables{}",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Tags",
+    "type": "map"
+   },
+   {
+    "path": "Items[].Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetTags",
+  "output": "GetTagsResponse",
+  "members": [
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetVpcLink",
+  "output": "GetVpcLinkResponse",
+  "members": [
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "SecurityGroupIds",
+    "type": "list"
+   },
+   {
+    "path": "SecurityGroupIds[]",
+    "type": "string"
+   },
+   {
+    "path": "SubnetIds",
+    "type": "list"
+   },
+   {
+    "path": "SubnetIds[]",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "VpcLinkId",
+    "type": "string"
+   },
+   {
+    "path": "VpcLinkStatus",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "AVAILABLE",
+     "DELETING",
+     "FAILED",
+     "INACTIVE"
+    ]
+   },
+   {
+    "path": "VpcLinkStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "VpcLinkVersion",
+    "type": "enum",
+    "enum": [
+     "V2"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetVpcLinks",
+  "output": "GetVpcLinksResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Items[].Name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].SecurityGroupIds",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Items[].SecurityGroupIds[]",
+    "type": "string"
+   },
+   {
+    "path": "Items[].SubnetIds",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Items[].SubnetIds[]",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Tags",
+    "type": "map"
+   },
+   {
+    "path": "Items[].Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "Items[].VpcLinkId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].VpcLinkStatus",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "AVAILABLE",
+     "DELETING",
+     "FAILED",
+     "INACTIVE"
+    ]
+   },
+   {
+    "path": "Items[].VpcLinkStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "Items[].VpcLinkVersion",
+    "type": "enum",
+    "enum": [
+     "V2"
+    ]
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ImportApi",
+  "output": "ImportApiResponse",
+  "members": [
+   {
+    "path": "ApiEndpoint",
+    "type": "string"
+   },
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "ApiId",
+    "type": "string"
+   },
+   {
+    "path": "ApiKeySelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "CorsConfiguration.AllowCredentials",
+    "type": "boolean"
+   },
+   {
+    "path": "CorsConfiguration.AllowHeaders",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.AllowMethods",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowMethods[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.AllowOrigins",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowOrigins[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.ExposeHeaders",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.ExposeHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.MaxAge",
+    "type": "integer"
+   },
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "DisableExecuteApiEndpoint",
+    "type": "boolean"
+   },
+   {
+    "path": "DisableSchemaValidation",
+    "type": "boolean"
+   },
+   {
+    "path": "ImportInfo",
+    "type": "list"
+   },
+   {
+    "path": "ImportInfo[]",
+    "type": "string"
+   },
+   {
+    "path": "IpAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "ProtocolType",
+    "type": "enum",
+    "enum": [
+     "WEBSOCKET",
+     "HTTP"
+    ]
+   },
+   {
+    "path": "RouteSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "Version",
+    "type": "string"
+   },
+   {
+    "path": "Warnings",
+    "type": "list"
+   },
+   {
+    "path": "Warnings[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListPortalProducts",
+  "output": "ListPortalProductsResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].Description",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].DisplayName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].LastModified",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Items[].PortalProductArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].PortalProductId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].Tags",
+    "type": "map"
+   },
+   {
+    "path": "Items[].Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListPortals",
+  "output": "ListPortalsResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].Authorization",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Items[].Authorization.CognitoConfig",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].Authorization.CognitoConfig.AppClientId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].Authorization.CognitoConfig.UserPoolArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].Authorization.CognitoConfig.UserPoolDomain",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].Authorization.None",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].EndpointConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Items[].EndpointConfiguration.CertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "Items[].EndpointConfiguration.DomainName",
+    "type": "string"
+   },
+   {
+    "path": "Items[].EndpointConfiguration.PortalDefaultDomainName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].EndpointConfiguration.PortalDomainHostedZoneId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].IncludedPortalProductArns",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Items[].IncludedPortalProductArns[]",
+    "type": "string"
+   },
+   {
+    "path": "Items[].LastModified",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Items[].LastPublished",
+    "type": "timestamp"
+   },
+   {
+    "path": "Items[].LastPublishedDescription",
+    "type": "string"
+   },
+   {
+    "path": "Items[].PortalArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].PortalContent",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Items[].PortalContent.Description",
+    "type": "string"
+   },
+   {
+    "path": "Items[].PortalContent.DisplayName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].PortalContent.Theme",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Items[].PortalContent.Theme.CustomColors",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Items[].PortalContent.Theme.LogoLastUploaded",
+    "type": "timestamp"
+   },
+   {
+    "path": "Items[].PortalId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].Preview",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].Preview.PreviewStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "PREVIEW_IN_PROGRESS",
+     "PREVIEW_FAILED",
+     "PREVIEW_READY"
+    ]
+   },
+   {
+    "path": "Items[].Preview.PreviewUrl",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Preview.StatusException",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].Preview.StatusException.Exception",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Preview.StatusException.Message",
+    "type": "string"
+   },
+   {
+    "path": "Items[].PublishStatus",
+    "type": "enum",
+    "enum": [
+     "PUBLISHED",
+     "PUBLISH_IN_PROGRESS",
+     "PUBLISH_FAILED",
+     "DISABLE_IN_PROGRESS",
+     "DISABLE_FAILED",
+     "DISABLED"
+    ]
+   },
+   {
+    "path": "Items[].RumAppMonitorName",
+    "type": "string"
+   },
+   {
+    "path": "Items[].StatusException",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].StatusException.Exception",
+    "type": "string"
+   },
+   {
+    "path": "Items[].StatusException.Message",
+    "type": "string"
+   },
+   {
+    "path": "Items[].Tags",
+    "type": "map"
+   },
+   {
+    "path": "Items[].Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListProductPages",
+  "output": "ListProductPagesResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].LastModified",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Items[].PageTitle",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].ProductPageArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].ProductPageId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListProductRestEndpointPages",
+  "output": "ListProductRestEndpointPagesResponse",
+  "members": [
+   {
+    "path": "Items",
+    "type": "list"
+   },
+   {
+    "path": "Items[]",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].Endpoint",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].LastModified",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "Items[].OperationName",
+    "type": "string"
+   },
+   {
+    "path": "Items[].ProductRestEndpointPageArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].ProductRestEndpointPageId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].RestEndpointIdentifier",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Items[].RestEndpointIdentifier.IdentifierParts",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].RestEndpointIdentifier.IdentifierParts.Method",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].RestEndpointIdentifier.IdentifierParts.Path",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].RestEndpointIdentifier.IdentifierParts.RestApiId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].RestEndpointIdentifier.IdentifierParts.Stage",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Items[].Status",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "AVAILABLE",
+     "IN_PROGRESS",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "Items[].StatusException",
+    "type": "structure"
+   },
+   {
+    "path": "Items[].StatusException.Exception",
+    "type": "string"
+   },
+   {
+    "path": "Items[].StatusException.Message",
+    "type": "string"
+   },
+   {
+    "path": "Items[].TryItState",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "ENABLED",
+     "DISABLED"
+    ]
+   },
+   {
+    "path": "NextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListRoutingRules",
+  "output": "ListRoutingRulesResponse",
+  "members": [
+   {
+    "path": "NextToken",
+    "type": "string"
+   },
+   {
+    "path": "RoutingRules",
+    "type": "list"
+   },
+   {
+    "path": "RoutingRules[]",
+    "type": "structure"
+   },
+   {
+    "path": "RoutingRules[].Actions",
+    "type": "list"
+   },
+   {
+    "path": "RoutingRules[].Actions[]",
+    "type": "structure"
+   },
+   {
+    "path": "RoutingRules[].Actions[].InvokeApi",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "RoutingRules[].Conditions",
+    "type": "list"
+   },
+   {
+    "path": "RoutingRules[].Conditions[]",
+    "type": "structure"
+   },
+   {
+    "path": "RoutingRules[].Conditions[].MatchBasePaths",
+    "type": "structure"
+   },
+   {
+    "path": "RoutingRules[].Conditions[].MatchHeaders",
+    "type": "structure"
+   },
+   {
+    "path": "RoutingRules[].Priority",
+    "type": "integer"
+   },
+   {
+    "path": "RoutingRules[].RoutingRuleArn",
+    "type": "string"
+   },
+   {
+    "path": "RoutingRules[].RoutingRuleId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutRoutingRule",
+  "output": "PutRoutingRuleResponse",
+  "members": [
+   {
+    "path": "Actions",
+    "type": "list"
+   },
+   {
+    "path": "Actions[]",
+    "type": "structure"
+   },
+   {
+    "path": "Actions[].InvokeApi",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "Actions[].InvokeApi.ApiId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Actions[].InvokeApi.Stage",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Actions[].InvokeApi.StripBasePath",
+    "type": "boolean"
+   },
+   {
+    "path": "Conditions",
+    "type": "list"
+   },
+   {
+    "path": "Conditions[]",
+    "type": "structure"
+   },
+   {
+    "path": "Conditions[].MatchBasePaths",
+    "type": "structure"
+   },
+   {
+    "path": "Conditions[].MatchBasePaths.AnyOf",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Conditions[].MatchBasePaths.AnyOf[]",
+    "type": "string"
+   },
+   {
+    "path": "Conditions[].MatchHeaders",
+    "type": "structure"
+   },
+   {
+    "path": "Conditions[].MatchHeaders.AnyOf",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "Conditions[].MatchHeaders.AnyOf[]",
+    "type": "structure"
+   },
+   {
+    "path": "Priority",
+    "type": "integer"
+   },
+   {
+    "path": "RoutingRuleArn",
+    "type": "string"
+   },
+   {
+    "path": "RoutingRuleId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ReimportApi",
+  "output": "ReimportApiResponse",
+  "members": [
+   {
+    "path": "ApiEndpoint",
+    "type": "string"
+   },
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "ApiId",
+    "type": "string"
+   },
+   {
+    "path": "ApiKeySelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "CorsConfiguration.AllowCredentials",
+    "type": "boolean"
+   },
+   {
+    "path": "CorsConfiguration.AllowHeaders",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.AllowMethods",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowMethods[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.AllowOrigins",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowOrigins[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.ExposeHeaders",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.ExposeHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.MaxAge",
+    "type": "integer"
+   },
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "DisableExecuteApiEndpoint",
+    "type": "boolean"
+   },
+   {
+    "path": "DisableSchemaValidation",
+    "type": "boolean"
+   },
+   {
+    "path": "ImportInfo",
+    "type": "list"
+   },
+   {
+    "path": "ImportInfo[]",
+    "type": "string"
+   },
+   {
+    "path": "IpAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "ProtocolType",
+    "type": "enum",
+    "enum": [
+     "WEBSOCKET",
+     "HTTP"
+    ]
+   },
+   {
+    "path": "RouteSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "Version",
+    "type": "string"
+   },
+   {
+    "path": "Warnings",
+    "type": "list"
+   },
+   {
+    "path": "Warnings[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateApi",
+  "output": "UpdateApiResponse",
+  "members": [
+   {
+    "path": "ApiEndpoint",
+    "type": "string"
+   },
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "ApiId",
+    "type": "string"
+   },
+   {
+    "path": "ApiKeySelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "CorsConfiguration.AllowCredentials",
+    "type": "boolean"
+   },
+   {
+    "path": "CorsConfiguration.AllowHeaders",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.AllowMethods",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowMethods[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.AllowOrigins",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.AllowOrigins[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.ExposeHeaders",
+    "type": "list"
+   },
+   {
+    "path": "CorsConfiguration.ExposeHeaders[]",
+    "type": "string"
+   },
+   {
+    "path": "CorsConfiguration.MaxAge",
+    "type": "integer"
+   },
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "DisableExecuteApiEndpoint",
+    "type": "boolean"
+   },
+   {
+    "path": "DisableSchemaValidation",
+    "type": "boolean"
+   },
+   {
+    "path": "ImportInfo",
+    "type": "list"
+   },
+   {
+    "path": "ImportInfo[]",
+    "type": "string"
+   },
+   {
+    "path": "IpAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "ProtocolType",
+    "type": "enum",
+    "enum": [
+     "WEBSOCKET",
+     "HTTP"
+    ]
+   },
+   {
+    "path": "RouteSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "Version",
+    "type": "string"
+   },
+   {
+    "path": "Warnings",
+    "type": "list"
+   },
+   {
+    "path": "Warnings[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateApiMapping",
+  "output": "UpdateApiMappingResponse",
+  "members": [
+   {
+    "path": "ApiId",
+    "type": "string"
+   },
+   {
+    "path": "ApiMappingId",
+    "type": "string"
+   },
+   {
+    "path": "ApiMappingKey",
+    "type": "string"
+   },
+   {
+    "path": "Stage",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateAuthorizer",
+  "output": "UpdateAuthorizerResponse",
+  "members": [
+   {
+    "path": "AuthorizerCredentialsArn",
+    "type": "string"
+   },
+   {
+    "path": "AuthorizerId",
+    "type": "string"
+   },
+   {
+    "path": "AuthorizerPayloadFormatVersion",
+    "type": "string"
+   },
+   {
+    "path": "AuthorizerResultTtlInSeconds",
+    "type": "integer"
+   },
+   {
+    "path": "AuthorizerType",
+    "type": "enum",
+    "enum": [
+     "REQUEST",
+     "JWT"
+    ]
+   },
+   {
+    "path": "AuthorizerUri",
+    "type": "string"
+   },
+   {
+    "path": "EnableSimpleResponses",
+    "type": "boolean"
+   },
+   {
+    "path": "IdentitySource",
+    "type": "list"
+   },
+   {
+    "path": "IdentitySource[]",
+    "type": "string"
+   },
+   {
+    "path": "IdentityValidationExpression",
+    "type": "string"
+   },
+   {
+    "path": "JwtConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "JwtConfiguration.Audience",
+    "type": "list"
+   },
+   {
+    "path": "JwtConfiguration.Audience[]",
+    "type": "string"
+   },
+   {
+    "path": "JwtConfiguration.Issuer",
+    "type": "string"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateDeployment",
+  "output": "UpdateDeploymentResponse",
+  "members": [
+   {
+    "path": "AutoDeployed",
+    "type": "boolean"
+   },
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "DeploymentId",
+    "type": "string"
+   },
+   {
+    "path": "DeploymentStatus",
+    "type": "enum",
+    "enum": [
+     "PENDING",
+     "FAILED",
+     "DEPLOYED"
+    ]
+   },
+   {
+    "path": "DeploymentStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateDomainName",
+  "output": "UpdateDomainNameResponse",
+  "members": [
+   {
+    "path": "ApiMappingSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "DomainName",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameArn",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations",
+    "type": "list"
+   },
+   {
+    "path": "DomainNameConfigurations[]",
+    "type": "structure"
+   },
+   {
+    "path": "DomainNameConfigurations[].ApiGatewayDomainName",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].CertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].CertificateName",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].CertificateUploadDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "DomainNameConfigurations[].DomainNameStatus",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "UPDATING",
+     "PENDING_CERTIFICATE_REIMPORT",
+     "PENDING_OWNERSHIP_VERIFICATION"
+    ]
+   },
+   {
+    "path": "DomainNameConfigurations[].DomainNameStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].EndpointType",
+    "type": "enum",
+    "enum": [
+     "REGIONAL",
+     "EDGE"
+    ]
+   },
+   {
+    "path": "DomainNameConfigurations[].HostedZoneId",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].IpAddressType",
+    "type": "enum",
+    "enum": [
+     "ipv4",
+     "dualstack"
+    ]
+   },
+   {
+    "path": "DomainNameConfigurations[].OwnershipVerificationCertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "DomainNameConfigurations[].SecurityPolicy",
+    "type": "enum",
+    "enum": [
+     "TLS_1_0",
+     "TLS_1_2"
+    ]
+   },
+   {
+    "path": "MutualTlsAuthentication",
+    "type": "structure"
+   },
+   {
+    "path": "MutualTlsAuthentication.TruststoreUri",
+    "type": "string"
+   },
+   {
+    "path": "MutualTlsAuthentication.TruststoreVersion",
+    "type": "string"
+   },
+   {
+    "path": "MutualTlsAuthentication.TruststoreWarnings",
+    "type": "list"
+   },
+   {
+    "path": "MutualTlsAuthentication.TruststoreWarnings[]",
+    "type": "string"
+   },
+   {
+    "path": "RoutingMode",
+    "type": "enum",
+    "enum": [
+     "ROUTING_RULE_THEN_API_MAPPING",
+     "API_MAPPING_ONLY",
+     "ROUTING_RULE_ONLY"
+    ]
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateIntegration",
+  "output": "UpdateIntegrationResult",
+  "members": [
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "ConnectionId",
+    "type": "string"
+   },
+   {
+    "path": "ConnectionType",
+    "type": "enum",
+    "enum": [
+     "INTERNET",
+     "VPC_LINK"
+    ]
+   },
+   {
+    "path": "ContentHandlingStrategy",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
+    ]
+   },
+   {
+    "path": "CredentialsArn",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationId",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationMethod",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationResponseSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationSubtype",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationType",
+    "type": "enum",
+    "enum": [
+     "AWS",
+     "HTTP",
+     "MOCK",
+     "HTTP_PROXY",
+     "AWS_PROXY"
+    ]
+   },
+   {
+    "path": "IntegrationUri",
+    "type": "string"
+   },
+   {
+    "path": "PassthroughBehavior",
+    "type": "enum",
+    "enum": [
+     "WHEN_NO_MATCH",
+     "NEVER",
+     "WHEN_NO_TEMPLATES"
+    ]
+   },
+   {
+    "path": "PayloadFormatVersion",
+    "type": "string"
+   },
+   {
+    "path": "RequestParameters",
+    "type": "map"
+   },
+   {
+    "path": "RequestParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "RequestTemplates",
+    "type": "map"
+   },
+   {
+    "path": "RequestTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "ResponseParameters",
+    "type": "map"
+   },
+   {
+    "path": "ResponseParameters{}",
+    "type": "map"
+   },
+   {
+    "path": "ResponseParameters{}{}",
+    "type": "string"
+   },
+   {
+    "path": "TemplateSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "TimeoutInMillis",
+    "type": "integer"
+   },
+   {
+    "path": "TlsConfig",
+    "type": "structure"
+   },
+   {
+    "path": "TlsConfig.ServerNameToVerify",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateIntegrationResponse",
+  "output": "UpdateIntegrationResponseResponse",
+  "members": [
+   {
+    "path": "ContentHandlingStrategy",
+    "type": "enum",
+    "enum": [
+     "CONVERT_TO_TEXT",
+     "CONVERT_TO_BINARY"
+    ]
+   },
+   {
+    "path": "IntegrationResponseId",
+    "type": "string"
+   },
+   {
+    "path": "IntegrationResponseKey",
+    "type": "string"
+   },
+   {
+    "path": "ResponseParameters",
+    "type": "map"
+   },
+   {
+    "path": "ResponseParameters{}",
+    "type": "string"
+   },
+   {
+    "path": "ResponseTemplates",
+    "type": "map"
+   },
+   {
+    "path": "ResponseTemplates{}",
+    "type": "string"
+   },
+   {
+    "path": "TemplateSelectionExpression",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateModel",
+  "output": "UpdateModelResponse",
+  "members": [
+   {
+    "path": "ContentType",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "ModelId",
+    "type": "string"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "Schema",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdatePortal",
+  "output": "UpdatePortalResponse",
+  "members": [
+   {
+    "path": "Authorization",
+    "type": "structure"
+   },
+   {
+    "path": "Authorization.CognitoConfig",
+    "type": "structure"
+   },
+   {
+    "path": "Authorization.CognitoConfig.AppClientId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Authorization.CognitoConfig.UserPoolArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Authorization.CognitoConfig.UserPoolDomain",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Authorization.None",
+    "type": "structure"
+   },
+   {
+    "path": "EndpointConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "EndpointConfiguration.CertificateArn",
+    "type": "string"
+   },
+   {
+    "path": "EndpointConfiguration.DomainName",
+    "type": "string"
+   },
+   {
+    "path": "EndpointConfiguration.PortalDefaultDomainName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "EndpointConfiguration.PortalDomainHostedZoneId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "IncludedPortalProductArns",
+    "type": "list"
+   },
+   {
+    "path": "IncludedPortalProductArns[]",
+    "type": "string"
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastPublished",
+    "type": "timestamp"
+   },
+   {
+    "path": "LastPublishedDescription",
+    "type": "string"
+   },
+   {
+    "path": "PortalArn",
+    "type": "string"
+   },
+   {
+    "path": "PortalContent",
+    "type": "structure"
+   },
+   {
+    "path": "PortalContent.Description",
+    "type": "string"
+   },
+   {
+    "path": "PortalContent.DisplayName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.AccentColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.BackgroundColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.ErrorValidationColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.HeaderColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.NavigationColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.CustomColors.TextColor",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "PortalContent.Theme.LogoLastUploaded",
+    "type": "timestamp"
+   },
+   {
+    "path": "PortalId",
+    "type": "string"
+   },
+   {
+    "path": "Preview",
+    "type": "structure"
+   },
+   {
+    "path": "Preview.PreviewStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "PREVIEW_IN_PROGRESS",
+     "PREVIEW_FAILED",
+     "PREVIEW_READY"
+    ]
+   },
+   {
+    "path": "Preview.PreviewUrl",
+    "type": "string"
+   },
+   {
+    "path": "Preview.StatusException",
+    "type": "structure"
+   },
+   {
+    "path": "Preview.StatusException.Exception",
+    "type": "string"
+   },
+   {
+    "path": "Preview.StatusException.Message",
+    "type": "string"
+   },
+   {
+    "path": "PublishStatus",
+    "type": "enum",
+    "enum": [
+     "PUBLISHED",
+     "PUBLISH_IN_PROGRESS",
+     "PUBLISH_FAILED",
+     "DISABLE_IN_PROGRESS",
+     "DISABLE_FAILED",
+     "DISABLED"
+    ]
+   },
+   {
+    "path": "RumAppMonitorName",
+    "type": "string"
+   },
+   {
+    "path": "StatusException",
+    "type": "structure"
+   },
+   {
+    "path": "StatusException.Exception",
+    "type": "string"
+   },
+   {
+    "path": "StatusException.Message",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdatePortalProduct",
+  "output": "UpdatePortalProductResponse",
+  "members": [
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "DisplayName",
+    "type": "string"
+   },
+   {
+    "path": "DisplayOrder",
+    "type": "structure"
+   },
+   {
+    "path": "DisplayOrder.Contents",
+    "type": "list"
+   },
+   {
+    "path": "DisplayOrder.Contents[]",
+    "type": "structure"
+   },
+   {
+    "path": "DisplayOrder.Contents[].ProductRestEndpointPageArns",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "DisplayOrder.Contents[].ProductRestEndpointPageArns[]",
+    "type": "string"
+   },
+   {
+    "path": "DisplayOrder.Contents[].SectionName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "DisplayOrder.OverviewPageArn",
+    "type": "string"
+   },
+   {
+    "path": "DisplayOrder.ProductPageArns",
+    "type": "list"
+   },
+   {
+    "path": "DisplayOrder.ProductPageArns[]",
+    "type": "string"
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "PortalProductArn",
+    "type": "string"
+   },
+   {
+    "path": "PortalProductId",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateProductPage",
+  "output": "UpdateProductPageResponse",
+  "members": [
+   {
+    "path": "DisplayContent",
+    "type": "structure"
+   },
+   {
+    "path": "DisplayContent.Body",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "DisplayContent.Title",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "ProductPageArn",
+    "type": "string"
+   },
+   {
+    "path": "ProductPageId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateProductRestEndpointPage",
+  "output": "UpdateProductRestEndpointPageResponse",
+  "members": [
+   {
+    "path": "DisplayContent",
+    "type": "structure"
+   },
+   {
+    "path": "DisplayContent.Body",
+    "type": "string"
+   },
+   {
+    "path": "DisplayContent.Endpoint",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "DisplayContent.OperationName",
+    "type": "string"
+   },
+   {
+    "path": "LastModified",
+    "type": "timestamp"
+   },
+   {
+    "path": "ProductRestEndpointPageArn",
+    "type": "string"
+   },
+   {
+    "path": "ProductRestEndpointPageId",
+    "type": "string"
+   },
+   {
+    "path": "RestEndpointIdentifier",
+    "type": "structure"
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts",
+    "type": "structure"
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts.Method",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts.Path",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts.RestApiId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "RestEndpointIdentifier.IdentifierParts.Stage",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "Status",
+    "type": "enum",
+    "enum": [
+     "AVAILABLE",
+     "IN_PROGRESS",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "StatusException",
+    "type": "structure"
+   },
+   {
+    "path": "StatusException.Exception",
+    "type": "string"
+   },
+   {
+    "path": "StatusException.Message",
+    "type": "string"
+   },
+   {
+    "path": "TryItState",
+    "type": "enum",
+    "enum": [
+     "ENABLED",
+     "DISABLED"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "UpdateRoute",
+  "output": "UpdateRouteResult",
+  "members": [
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "ApiKeyRequired",
+    "type": "boolean"
+   },
+   {
+    "path": "AuthorizationScopes",
+    "type": "list"
+   },
+   {
+    "path": "AuthorizationScopes[]",
+    "type": "string"
+   },
+   {
+    "path": "AuthorizationType",
+    "type": "enum",
+    "enum": [
+     "CUSTOM",
+     "JWT",
+     "NONE",
+     "AWS_IAM"
+    ]
+   },
+   {
+    "path": "AuthorizerId",
+    "type": "string"
+   },
+   {
+    "path": "ModelSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "OperationName",
+    "type": "string"
+   },
+   {
+    "path": "RequestModels",
+    "type": "map"
+   },
+   {
+    "path": "RequestModels{}",
+    "type": "string"
+   },
+   {
+    "path": "RequestParameters",
+    "type": "map"
+   },
+   {
+    "path": "RequestParameters{}",
+    "type": "structure"
+   },
+   {
+    "path": "RequestParameters{}.Required",
+    "type": "boolean"
+   },
+   {
+    "path": "RouteId",
+    "type": "string"
+   },
+   {
+    "path": "RouteKey",
+    "type": "string"
+   },
+   {
+    "path": "RouteResponseSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "Target",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateRouteResponse",
+  "output": "UpdateRouteResponseResponse",
+  "members": [
+   {
+    "path": "ModelSelectionExpression",
+    "type": "string"
+   },
+   {
+    "path": "ResponseModels",
+    "type": "map"
+   },
+   {
+    "path": "ResponseModels{}",
+    "type": "string"
+   },
+   {
+    "path": "ResponseParameters",
+    "type": "map"
+   },
+   {
+    "path": "ResponseParameters{}",
+    "type": "structure"
+   },
+   {
+    "path": "ResponseParameters{}.Required",
+    "type": "boolean"
+   },
+   {
+    "path": "RouteResponseId",
+    "type": "string"
+   },
+   {
+    "path": "RouteResponseKey",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateStage",
+  "output": "UpdateStageResponse",
+  "members": [
+   {
+    "path": "AccessLogSettings",
+    "type": "structure"
+   },
+   {
+    "path": "AccessLogSettings.DestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "AccessLogSettings.Format",
+    "type": "string"
+   },
+   {
+    "path": "ApiGatewayManaged",
+    "type": "boolean"
+   },
+   {
+    "path": "AutoDeploy",
+    "type": "boolean"
+   },
+   {
+    "path": "ClientCertificateId",
+    "type": "string"
+   },
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "DefaultRouteSettings",
+    "type": "structure"
+   },
+   {
+    "path": "DefaultRouteSettings.DataTraceEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "DefaultRouteSettings.DetailedMetricsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "DefaultRouteSettings.LoggingLevel",
+    "type": "enum",
+    "enum": [
+     "ERROR",
+     "INFO",
+     "OFF"
+    ]
+   },
+   {
+    "path": "DefaultRouteSettings.ThrottlingBurstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "DefaultRouteSettings.ThrottlingRateLimit",
+    "type": "float"
+   },
+   {
+    "path": "DeploymentId",
+    "type": "string"
+   },
+   {
+    "path": "Description",
+    "type": "string"
+   },
+   {
+    "path": "LastDeploymentStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "LastUpdatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "RouteSettings",
+    "type": "map"
+   },
+   {
+    "path": "RouteSettings{}",
+    "type": "structure"
+   },
+   {
+    "path": "RouteSettings{}.DataTraceEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "RouteSettings{}.DetailedMetricsEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "RouteSettings{}.LoggingLevel",
+    "type": "enum",
+    "enum": [
+     "ERROR",
+     "INFO",
+     "OFF"
+    ]
+   },
+   {
+    "path": "RouteSettings{}.ThrottlingBurstLimit",
+    "type": "integer"
+   },
+   {
+    "path": "RouteSettings{}.ThrottlingRateLimit",
+    "type": "float"
+   },
+   {
+    "path": "StageName",
+    "type": "string"
+   },
+   {
+    "path": "StageVariables",
+    "type": "map"
+   },
+   {
+    "path": "StageVariables{}",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateVpcLink",
+  "output": "UpdateVpcLinkResponse",
+  "members": [
+   {
+    "path": "CreatedDate",
+    "type": "timestamp"
+   },
+   {
+    "path": "Name",
+    "type": "string"
+   },
+   {
+    "path": "SecurityGroupIds",
+    "type": "list"
+   },
+   {
+    "path": "SecurityGroupIds[]",
+    "type": "string"
+   },
+   {
+    "path": "SubnetIds",
+    "type": "list"
+   },
+   {
+    "path": "SubnetIds[]",
+    "type": "string"
+   },
+   {
+    "path": "Tags",
+    "type": "map"
+   },
+   {
+    "path": "Tags{}",
+    "type": "string"
+   },
+   {
+    "path": "VpcLinkId",
+    "type": "string"
+   },
+   {
+    "path": "VpcLinkStatus",
+    "type": "enum",
+    "enum": [
+     "DELETING",
+     "FAILED",
+     "INACTIVE",
+     "PENDING",
+     "AVAILABLE"
+    ]
+   },
+   {
+    "path": "VpcLinkStatusMessage",
+    "type": "string"
+   },
+   {
+    "path": "VpcLinkVersion",
+    "type": "enum",
+    "enum": [
+     "V2"
+    ]
+   }
+  ]
+ }
+]

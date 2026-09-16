@@ -1,0 +1,4098 @@
+[
+ {
+  "operation": "AssociateSourceToS3TableIntegration",
+  "output": "AssociateSourceToS3TableIntegrationResponse",
+  "members": [
+   {
+    "path": "identifier",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CancelImportTask",
+  "output": "CancelImportTaskResponse",
+  "members": [
+   {
+    "path": "creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "importId",
+    "type": "string"
+   },
+   {
+    "path": "importStatistics",
+    "type": "structure"
+   },
+   {
+    "path": "importStatistics.bytesImported",
+    "type": "integer"
+   },
+   {
+    "path": "importStatus",
+    "type": "enum",
+    "enum": [
+     "COMPLETED",
+     "FAILED",
+     "IN_PROGRESS",
+     "CANCELLED"
+    ]
+   },
+   {
+    "path": "lastUpdatedTime",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "CreateDelivery",
+  "output": "CreateDeliveryResponse",
+  "members": [
+   {
+    "path": "delivery",
+    "type": "structure"
+   },
+   {
+    "path": "delivery.arn",
+    "type": "string"
+   },
+   {
+    "path": "delivery.deliveryDestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "delivery.deliveryDestinationType",
+    "type": "enum",
+    "enum": [
+     "FH",
+     "XRAY",
+     "S3",
+     "CWL"
+    ]
+   },
+   {
+    "path": "delivery.deliverySourceName",
+    "type": "string"
+   },
+   {
+    "path": "delivery.fieldDelimiter",
+    "type": "string"
+   },
+   {
+    "path": "delivery.id",
+    "type": "string"
+   },
+   {
+    "path": "delivery.recordFields",
+    "type": "list"
+   },
+   {
+    "path": "delivery.recordFields[]",
+    "type": "string"
+   },
+   {
+    "path": "delivery.s3DeliveryConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "delivery.s3DeliveryConfiguration.enableHiveCompatiblePath",
+    "type": "boolean"
+   },
+   {
+    "path": "delivery.s3DeliveryConfiguration.suffixPath",
+    "type": "string"
+   },
+   {
+    "path": "delivery.tags",
+    "type": "map"
+   },
+   {
+    "path": "delivery.tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateExportTask",
+  "output": "CreateExportTaskResponse",
+  "members": [
+   {
+    "path": "taskId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateImportTask",
+  "output": "CreateImportTaskResponse",
+  "members": [
+   {
+    "path": "creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "importDestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "importId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateLogAnomalyDetector",
+  "output": "CreateLogAnomalyDetectorResponse",
+  "members": [
+   {
+    "path": "anomalyDetectorArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateLookupTable",
+  "output": "CreateLookupTableResponse",
+  "members": [
+   {
+    "path": "createdAt",
+    "type": "integer"
+   },
+   {
+    "path": "lookupTableArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "CreateScheduledQuery",
+  "output": "CreateScheduledQueryResponse",
+  "members": [
+   {
+    "path": "scheduledQueryArn",
+    "type": "string"
+   },
+   {
+    "path": "state",
+    "type": "enum",
+    "enum": [
+     "ENABLED",
+     "DISABLED"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "DeleteQueryDefinition",
+  "output": "DeleteQueryDefinitionResponse",
+  "members": [
+   {
+    "path": "success",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeAccountPolicies",
+  "output": "DescribeAccountPoliciesResponse",
+  "members": [
+   {
+    "path": "accountPolicies",
+    "type": "list"
+   },
+   {
+    "path": "accountPolicies[]",
+    "type": "structure"
+   },
+   {
+    "path": "accountPolicies[].accountId",
+    "type": "string"
+   },
+   {
+    "path": "accountPolicies[].lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "accountPolicies[].policyDocument",
+    "type": "string"
+   },
+   {
+    "path": "accountPolicies[].policyName",
+    "type": "string"
+   },
+   {
+    "path": "accountPolicies[].policyType",
+    "type": "enum",
+    "enum": [
+     "DATA_PROTECTION_POLICY",
+     "SUBSCRIPTION_FILTER_POLICY",
+     "FIELD_INDEX_POLICY",
+     "TRANSFORMER_POLICY",
+     "METRIC_EXTRACTION_POLICY"
+    ]
+   },
+   {
+    "path": "accountPolicies[].scope",
+    "type": "enum",
+    "enum": [
+     "ALL"
+    ]
+   },
+   {
+    "path": "accountPolicies[].selectionCriteria",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeConfigurationTemplates",
+  "output": "DescribeConfigurationTemplatesResponse",
+  "members": [
+   {
+    "path": "configurationTemplates",
+    "type": "list"
+   },
+   {
+    "path": "configurationTemplates[]",
+    "type": "structure"
+   },
+   {
+    "path": "configurationTemplates[].allowedActionForAllowVendedLogsDeliveryForResource",
+    "type": "string"
+   },
+   {
+    "path": "configurationTemplates[].allowedFieldDelimiters",
+    "type": "list"
+   },
+   {
+    "path": "configurationTemplates[].allowedFieldDelimiters[]",
+    "type": "string"
+   },
+   {
+    "path": "configurationTemplates[].allowedFields",
+    "type": "list"
+   },
+   {
+    "path": "configurationTemplates[].allowedFields[]",
+    "type": "structure"
+   },
+   {
+    "path": "configurationTemplates[].allowedFields[].mandatory",
+    "type": "boolean"
+   },
+   {
+    "path": "configurationTemplates[].allowedFields[].name",
+    "type": "string"
+   },
+   {
+    "path": "configurationTemplates[].allowedOutputFormats",
+    "type": "list"
+   },
+   {
+    "path": "configurationTemplates[].allowedOutputFormats[]",
+    "type": "enum",
+    "enum": [
+     "json",
+     "plain",
+     "w3c",
+     "raw",
+     "parquet"
+    ]
+   },
+   {
+    "path": "configurationTemplates[].allowedSuffixPathFields",
+    "type": "list"
+   },
+   {
+    "path": "configurationTemplates[].allowedSuffixPathFields[]",
+    "type": "string"
+   },
+   {
+    "path": "configurationTemplates[].defaultDeliveryConfigValues",
+    "type": "structure"
+   },
+   {
+    "path": "configurationTemplates[].defaultDeliveryConfigValues.fieldDelimiter",
+    "type": "string"
+   },
+   {
+    "path": "configurationTemplates[].defaultDeliveryConfigValues.recordFields",
+    "type": "list"
+   },
+   {
+    "path": "configurationTemplates[].defaultDeliveryConfigValues.recordFields[]",
+    "type": "string"
+   },
+   {
+    "path": "configurationTemplates[].defaultDeliveryConfigValues.s3DeliveryConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "configurationTemplates[].defaultDeliveryConfigValues.s3DeliveryConfiguration.enableHiveCompatiblePath",
+    "type": "boolean"
+   },
+   {
+    "path": "configurationTemplates[].defaultDeliveryConfigValues.s3DeliveryConfiguration.suffixPath",
+    "type": "string"
+   },
+   {
+    "path": "configurationTemplates[].deliveryDestinationType",
+    "type": "enum",
+    "enum": [
+     "CWL",
+     "FH",
+     "XRAY",
+     "S3"
+    ]
+   },
+   {
+    "path": "configurationTemplates[].deliverySourceConfiguration",
+    "type": "list"
+   },
+   {
+    "path": "configurationTemplates[].deliverySourceConfiguration[]",
+    "type": "structure"
+   },
+   {
+    "path": "configurationTemplates[].deliverySourceConfiguration[].defaultValue",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "configurationTemplates[].deliverySourceConfiguration[].keyName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "configurationTemplates[].deliverySourceConfiguration[].maxValue",
+    "type": "float"
+   },
+   {
+    "path": "configurationTemplates[].deliverySourceConfiguration[].minValue",
+    "type": "float"
+   },
+   {
+    "path": "configurationTemplates[].deliverySourceConfiguration[].supportedValues",
+    "type": "list"
+   },
+   {
+    "path": "configurationTemplates[].deliverySourceConfiguration[].valueType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "string",
+     "boolean",
+     "int",
+     "double",
+     "long"
+    ]
+   },
+   {
+    "path": "configurationTemplates[].logType",
+    "type": "string"
+   },
+   {
+    "path": "configurationTemplates[].resourceType",
+    "type": "string"
+   },
+   {
+    "path": "configurationTemplates[].s3TablesIntegration",
+    "type": "structure"
+   },
+   {
+    "path": "configurationTemplates[].s3TablesIntegration.datasourceName",
+    "type": "string"
+   },
+   {
+    "path": "configurationTemplates[].s3TablesIntegration.datasourceType",
+    "type": "string"
+   },
+   {
+    "path": "configurationTemplates[].service",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeDeliveries",
+  "output": "DescribeDeliveriesResponse",
+  "members": [
+   {
+    "path": "deliveries",
+    "type": "list"
+   },
+   {
+    "path": "deliveries[]",
+    "type": "structure"
+   },
+   {
+    "path": "deliveries[].arn",
+    "type": "string"
+   },
+   {
+    "path": "deliveries[].deliveryDestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "deliveries[].deliveryDestinationType",
+    "type": "enum",
+    "enum": [
+     "XRAY",
+     "S3",
+     "CWL",
+     "FH"
+    ]
+   },
+   {
+    "path": "deliveries[].deliverySourceName",
+    "type": "string"
+   },
+   {
+    "path": "deliveries[].fieldDelimiter",
+    "type": "string"
+   },
+   {
+    "path": "deliveries[].id",
+    "type": "string"
+   },
+   {
+    "path": "deliveries[].recordFields",
+    "type": "list"
+   },
+   {
+    "path": "deliveries[].recordFields[]",
+    "type": "string"
+   },
+   {
+    "path": "deliveries[].s3DeliveryConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "deliveries[].s3DeliveryConfiguration.enableHiveCompatiblePath",
+    "type": "boolean"
+   },
+   {
+    "path": "deliveries[].s3DeliveryConfiguration.suffixPath",
+    "type": "string"
+   },
+   {
+    "path": "deliveries[].tags",
+    "type": "map"
+   },
+   {
+    "path": "deliveries[].tags{}",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeDeliveryDestinations",
+  "output": "DescribeDeliveryDestinationsResponse",
+  "members": [
+   {
+    "path": "deliveryDestinations",
+    "type": "list"
+   },
+   {
+    "path": "deliveryDestinations[]",
+    "type": "structure"
+   },
+   {
+    "path": "deliveryDestinations[].arn",
+    "type": "string"
+   },
+   {
+    "path": "deliveryDestinations[].deliveryDestinationConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "deliveryDestinations[].deliveryDestinationConfiguration.destinationResourceArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "deliveryDestinations[].deliveryDestinationType",
+    "type": "enum",
+    "enum": [
+     "S3",
+     "CWL",
+     "FH",
+     "XRAY"
+    ]
+   },
+   {
+    "path": "deliveryDestinations[].name",
+    "type": "string"
+   },
+   {
+    "path": "deliveryDestinations[].outputFormat",
+    "type": "enum",
+    "enum": [
+     "plain",
+     "w3c",
+     "raw",
+     "parquet",
+     "json"
+    ]
+   },
+   {
+    "path": "deliveryDestinations[].tags",
+    "type": "map"
+   },
+   {
+    "path": "deliveryDestinations[].tags{}",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeDeliverySources",
+  "output": "DescribeDeliverySourcesResponse",
+  "members": [
+   {
+    "path": "deliverySources",
+    "type": "list"
+   },
+   {
+    "path": "deliverySources[]",
+    "type": "structure"
+   },
+   {
+    "path": "deliverySources[].arn",
+    "type": "string"
+   },
+   {
+    "path": "deliverySources[].deliverySourceConfiguration",
+    "type": "map"
+   },
+   {
+    "path": "deliverySources[].deliverySourceConfiguration{}",
+    "type": "string"
+   },
+   {
+    "path": "deliverySources[].logType",
+    "type": "string"
+   },
+   {
+    "path": "deliverySources[].name",
+    "type": "string"
+   },
+   {
+    "path": "deliverySources[].resourceArns",
+    "type": "list"
+   },
+   {
+    "path": "deliverySources[].resourceArns[]",
+    "type": "string"
+   },
+   {
+    "path": "deliverySources[].service",
+    "type": "string"
+   },
+   {
+    "path": "deliverySources[].status",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "INACTIVE"
+    ]
+   },
+   {
+    "path": "deliverySources[].statusReason",
+    "type": "enum",
+    "enum": [
+     "RESOURCE_DELETED"
+    ]
+   },
+   {
+    "path": "deliverySources[].tags",
+    "type": "map"
+   },
+   {
+    "path": "deliverySources[].tags{}",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeDestinations",
+  "output": "DescribeDestinationsResponse",
+  "members": [
+   {
+    "path": "destinations",
+    "type": "list"
+   },
+   {
+    "path": "destinations[]",
+    "type": "structure"
+   },
+   {
+    "path": "destinations[].accessPolicy",
+    "type": "string"
+   },
+   {
+    "path": "destinations[].arn",
+    "type": "string"
+   },
+   {
+    "path": "destinations[].creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "destinations[].destinationName",
+    "type": "string"
+   },
+   {
+    "path": "destinations[].roleArn",
+    "type": "string"
+   },
+   {
+    "path": "destinations[].targetArn",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeExportTasks",
+  "output": "DescribeExportTasksResponse",
+  "members": [
+   {
+    "path": "exportTasks",
+    "type": "list"
+   },
+   {
+    "path": "exportTasks[]",
+    "type": "structure"
+   },
+   {
+    "path": "exportTasks[].destination",
+    "type": "string"
+   },
+   {
+    "path": "exportTasks[].destinationPrefix",
+    "type": "string"
+   },
+   {
+    "path": "exportTasks[].executionInfo",
+    "type": "structure"
+   },
+   {
+    "path": "exportTasks[].executionInfo.completionTime",
+    "type": "integer"
+   },
+   {
+    "path": "exportTasks[].executionInfo.creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "exportTasks[].from",
+    "type": "integer"
+   },
+   {
+    "path": "exportTasks[].logGroupName",
+    "type": "string"
+   },
+   {
+    "path": "exportTasks[].status",
+    "type": "structure"
+   },
+   {
+    "path": "exportTasks[].status.code",
+    "type": "enum",
+    "enum": [
+     "PENDING_CANCEL",
+     "RUNNING",
+     "CANCELLED",
+     "COMPLETED",
+     "FAILED",
+     "PENDING"
+    ]
+   },
+   {
+    "path": "exportTasks[].status.message",
+    "type": "string"
+   },
+   {
+    "path": "exportTasks[].taskId",
+    "type": "string"
+   },
+   {
+    "path": "exportTasks[].taskName",
+    "type": "string"
+   },
+   {
+    "path": "exportTasks[].to",
+    "type": "integer"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeFieldIndexes",
+  "output": "DescribeFieldIndexesResponse",
+  "members": [
+   {
+    "path": "fieldIndexes",
+    "type": "list"
+   },
+   {
+    "path": "fieldIndexes[]",
+    "type": "structure"
+   },
+   {
+    "path": "fieldIndexes[].fieldIndexName",
+    "type": "string"
+   },
+   {
+    "path": "fieldIndexes[].firstEventTime",
+    "type": "integer"
+   },
+   {
+    "path": "fieldIndexes[].indexCategory",
+    "type": "enum",
+    "enum": [
+     "DEFAULT",
+     "CUSTOM",
+     "AUTO",
+     "INACTIVE"
+    ]
+   },
+   {
+    "path": "fieldIndexes[].lastEventTime",
+    "type": "integer"
+   },
+   {
+    "path": "fieldIndexes[].lastScanTime",
+    "type": "integer"
+   },
+   {
+    "path": "fieldIndexes[].logGroupIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "fieldIndexes[].type",
+    "type": "enum",
+    "enum": [
+     "FACET",
+     "FIELD_INDEX"
+    ]
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeImportTaskBatches",
+  "output": "DescribeImportTaskBatchesResponse",
+  "members": [
+   {
+    "path": "importBatches",
+    "type": "list"
+   },
+   {
+    "path": "importBatches[]",
+    "type": "structure"
+   },
+   {
+    "path": "importBatches[].batchId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "importBatches[].errorMessage",
+    "type": "string"
+   },
+   {
+    "path": "importBatches[].status",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "IN_PROGRESS",
+     "CANCELLED",
+     "COMPLETED",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "importId",
+    "type": "string"
+   },
+   {
+    "path": "importSourceArn",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeImportTasks",
+  "output": "DescribeImportTasksResponse",
+  "members": [
+   {
+    "path": "imports",
+    "type": "list"
+   },
+   {
+    "path": "imports[]",
+    "type": "structure"
+   },
+   {
+    "path": "imports[].creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "imports[].errorMessage",
+    "type": "string"
+   },
+   {
+    "path": "imports[].importDestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "imports[].importFilter",
+    "type": "structure"
+   },
+   {
+    "path": "imports[].importFilter.endEventTime",
+    "type": "integer"
+   },
+   {
+    "path": "imports[].importFilter.startEventTime",
+    "type": "integer"
+   },
+   {
+    "path": "imports[].importId",
+    "type": "string"
+   },
+   {
+    "path": "imports[].importSourceArn",
+    "type": "string"
+   },
+   {
+    "path": "imports[].importStatistics",
+    "type": "structure"
+   },
+   {
+    "path": "imports[].importStatistics.bytesImported",
+    "type": "integer"
+   },
+   {
+    "path": "imports[].importStatus",
+    "type": "enum",
+    "enum": [
+     "IN_PROGRESS",
+     "CANCELLED",
+     "COMPLETED",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "imports[].lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeIndexPolicies",
+  "output": "DescribeIndexPoliciesResponse",
+  "members": [
+   {
+    "path": "indexPolicies",
+    "type": "list"
+   },
+   {
+    "path": "indexPolicies[]",
+    "type": "structure"
+   },
+   {
+    "path": "indexPolicies[].lastUpdateTime",
+    "type": "integer"
+   },
+   {
+    "path": "indexPolicies[].logGroupIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "indexPolicies[].policyDocument",
+    "type": "string"
+   },
+   {
+    "path": "indexPolicies[].policyName",
+    "type": "string"
+   },
+   {
+    "path": "indexPolicies[].source",
+    "type": "enum",
+    "enum": [
+     "ACCOUNT",
+     "LOG_GROUP"
+    ]
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeLogGroups",
+  "output": "DescribeLogGroupsResponse",
+  "members": [
+   {
+    "path": "logGroups",
+    "type": "list"
+   },
+   {
+    "path": "logGroups[]",
+    "type": "structure"
+   },
+   {
+    "path": "logGroups[].arn",
+    "type": "string"
+   },
+   {
+    "path": "logGroups[].bearerTokenAuthenticationEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "logGroups[].creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "logGroups[].dataProtectionStatus",
+    "type": "enum",
+    "enum": [
+     "DELETED",
+     "ARCHIVED",
+     "DISABLED",
+     "ACTIVATED"
+    ]
+   },
+   {
+    "path": "logGroups[].deletionProtectionEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "logGroups[].inheritedProperties",
+    "type": "list"
+   },
+   {
+    "path": "logGroups[].inheritedProperties[]",
+    "type": "enum",
+    "enum": [
+     "ACCOUNT_DATA_PROTECTION"
+    ]
+   },
+   {
+    "path": "logGroups[].kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "logGroups[].logGroupArn",
+    "type": "string"
+   },
+   {
+    "path": "logGroups[].logGroupClass",
+    "type": "enum",
+    "enum": [
+     "STANDARD",
+     "INFREQUENT_ACCESS",
+     "DELIVERY"
+    ]
+   },
+   {
+    "path": "logGroups[].logGroupName",
+    "type": "string"
+   },
+   {
+    "path": "logGroups[].metricFilterCount",
+    "type": "integer"
+   },
+   {
+    "path": "logGroups[].retentionInDays",
+    "type": "integer"
+   },
+   {
+    "path": "logGroups[].storedBytes",
+    "type": "integer"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeLogStreams",
+  "output": "DescribeLogStreamsResponse",
+  "members": [
+   {
+    "path": "logStreams",
+    "type": "list"
+   },
+   {
+    "path": "logStreams[]",
+    "type": "structure"
+   },
+   {
+    "path": "logStreams[].arn",
+    "type": "string"
+   },
+   {
+    "path": "logStreams[].creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "logStreams[].firstEventTimestamp",
+    "type": "integer"
+   },
+   {
+    "path": "logStreams[].lastEventTimestamp",
+    "type": "integer"
+   },
+   {
+    "path": "logStreams[].lastIngestionTime",
+    "type": "integer"
+   },
+   {
+    "path": "logStreams[].logStreamName",
+    "type": "string"
+   },
+   {
+    "path": "logStreams[].storedBytes",
+    "type": "integer"
+   },
+   {
+    "path": "logStreams[].uploadSequenceToken",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeLookupTables",
+  "output": "DescribeLookupTablesResponse",
+  "members": [
+   {
+    "path": "lookupTables",
+    "type": "list"
+   },
+   {
+    "path": "lookupTables[]",
+    "type": "structure"
+   },
+   {
+    "path": "lookupTables[].description",
+    "type": "string"
+   },
+   {
+    "path": "lookupTables[].kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "lookupTables[].lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "lookupTables[].lookupTableArn",
+    "type": "string"
+   },
+   {
+    "path": "lookupTables[].lookupTableName",
+    "type": "string"
+   },
+   {
+    "path": "lookupTables[].recordsCount",
+    "type": "integer"
+   },
+   {
+    "path": "lookupTables[].sizeBytes",
+    "type": "integer"
+   },
+   {
+    "path": "lookupTables[].tableFields",
+    "type": "list"
+   },
+   {
+    "path": "lookupTables[].tableFields[]",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeMetricFilters",
+  "output": "DescribeMetricFiltersResponse",
+  "members": [
+   {
+    "path": "metricFilters",
+    "type": "list"
+   },
+   {
+    "path": "metricFilters[]",
+    "type": "structure"
+   },
+   {
+    "path": "metricFilters[].applyOnTransformedLogs",
+    "type": "boolean"
+   },
+   {
+    "path": "metricFilters[].creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "metricFilters[].emitSystemFieldDimensions",
+    "type": "list"
+   },
+   {
+    "path": "metricFilters[].emitSystemFieldDimensions[]",
+    "type": "string"
+   },
+   {
+    "path": "metricFilters[].fieldSelectionCriteria",
+    "type": "string"
+   },
+   {
+    "path": "metricFilters[].filterName",
+    "type": "string"
+   },
+   {
+    "path": "metricFilters[].filterPattern",
+    "type": "string"
+   },
+   {
+    "path": "metricFilters[].logGroupName",
+    "type": "string"
+   },
+   {
+    "path": "metricFilters[].metricTransformations",
+    "type": "list"
+   },
+   {
+    "path": "metricFilters[].metricTransformations[]",
+    "type": "structure"
+   },
+   {
+    "path": "metricFilters[].metricTransformations[].defaultValue",
+    "type": "float"
+   },
+   {
+    "path": "metricFilters[].metricTransformations[].dimensions",
+    "type": "map"
+   },
+   {
+    "path": "metricFilters[].metricTransformations[].metricName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "metricFilters[].metricTransformations[].metricNamespace",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "metricFilters[].metricTransformations[].metricValue",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "metricFilters[].metricTransformations[].unit",
+    "type": "enum",
+    "enum": [
+     "Megabits",
+     "Bytes/Second",
+     "None",
+     "Milliseconds",
+     "Kilobits",
+     "Gigabits",
+     "Terabits",
+     "Count",
+     "Megabytes/Second",
+     "Gigabytes/Second",
+     "Gigabits/Second",
+     "Gigabytes",
+     "Terabytes/Second",
+     "Megabits/Second",
+     "Terabits/Second",
+     "Count/Second",
+     "Kilobytes",
+     "Megabytes",
+     "Terabytes",
+     "Percent",
+     "Kilobytes/Second",
+     "Bits/Second",
+     "Kilobits/Second",
+     "Seconds",
+     "Microseconds",
+     "Bytes",
+     "Bits"
+    ]
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeQueries",
+  "output": "DescribeQueriesResponse",
+  "members": [
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "queries",
+    "type": "list"
+   },
+   {
+    "path": "queries[]",
+    "type": "structure"
+   },
+   {
+    "path": "queries[].bytesScanned",
+    "type": "float"
+   },
+   {
+    "path": "queries[].createTime",
+    "type": "integer"
+   },
+   {
+    "path": "queries[].logGroupName",
+    "type": "string"
+   },
+   {
+    "path": "queries[].queryDuration",
+    "type": "integer"
+   },
+   {
+    "path": "queries[].queryId",
+    "type": "string"
+   },
+   {
+    "path": "queries[].queryLanguage",
+    "type": "enum",
+    "enum": [
+     "CWLI",
+     "SQL",
+     "PPL"
+    ]
+   },
+   {
+    "path": "queries[].queryString",
+    "type": "string"
+   },
+   {
+    "path": "queries[].status",
+    "type": "enum",
+    "enum": [
+     "Complete",
+     "Failed",
+     "Cancelled",
+     "Timeout",
+     "Unknown",
+     "Scheduled",
+     "Running"
+    ]
+   },
+   {
+    "path": "queries[].userIdentity",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeQueryDefinitions",
+  "output": "DescribeQueryDefinitionsResponse",
+  "members": [
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "queryDefinitions",
+    "type": "list"
+   },
+   {
+    "path": "queryDefinitions[]",
+    "type": "structure"
+   },
+   {
+    "path": "queryDefinitions[].lastModified",
+    "type": "integer"
+   },
+   {
+    "path": "queryDefinitions[].logGroupNames",
+    "type": "list"
+   },
+   {
+    "path": "queryDefinitions[].logGroupNames[]",
+    "type": "string"
+   },
+   {
+    "path": "queryDefinitions[].name",
+    "type": "string"
+   },
+   {
+    "path": "queryDefinitions[].parameters",
+    "type": "list"
+   },
+   {
+    "path": "queryDefinitions[].parameters[]",
+    "type": "structure"
+   },
+   {
+    "path": "queryDefinitions[].parameters[].defaultValue",
+    "type": "string"
+   },
+   {
+    "path": "queryDefinitions[].parameters[].description",
+    "type": "string"
+   },
+   {
+    "path": "queryDefinitions[].parameters[].name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "queryDefinitions[].queryDefinitionId",
+    "type": "string"
+   },
+   {
+    "path": "queryDefinitions[].queryLanguage",
+    "type": "enum",
+    "enum": [
+     "CWLI",
+     "SQL",
+     "PPL"
+    ]
+   },
+   {
+    "path": "queryDefinitions[].queryString",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeResourcePolicies",
+  "output": "DescribeResourcePoliciesResponse",
+  "members": [
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "resourcePolicies",
+    "type": "list"
+   },
+   {
+    "path": "resourcePolicies[]",
+    "type": "structure"
+   },
+   {
+    "path": "resourcePolicies[].lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "resourcePolicies[].policyDocument",
+    "type": "string"
+   },
+   {
+    "path": "resourcePolicies[].policyName",
+    "type": "string"
+   },
+   {
+    "path": "resourcePolicies[].policyScope",
+    "type": "enum",
+    "enum": [
+     "ACCOUNT",
+     "RESOURCE"
+    ]
+   },
+   {
+    "path": "resourcePolicies[].resourceArn",
+    "type": "string"
+   },
+   {
+    "path": "resourcePolicies[].revisionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DescribeSubscriptionFilters",
+  "output": "DescribeSubscriptionFiltersResponse",
+  "members": [
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "subscriptionFilters",
+    "type": "list"
+   },
+   {
+    "path": "subscriptionFilters[]",
+    "type": "structure"
+   },
+   {
+    "path": "subscriptionFilters[].applyOnTransformedLogs",
+    "type": "boolean"
+   },
+   {
+    "path": "subscriptionFilters[].creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "subscriptionFilters[].destinationArn",
+    "type": "string"
+   },
+   {
+    "path": "subscriptionFilters[].distribution",
+    "type": "enum",
+    "enum": [
+     "Random",
+     "ByLogStream"
+    ]
+   },
+   {
+    "path": "subscriptionFilters[].emitSystemFields",
+    "type": "list"
+   },
+   {
+    "path": "subscriptionFilters[].emitSystemFields[]",
+    "type": "string"
+   },
+   {
+    "path": "subscriptionFilters[].fieldSelectionCriteria",
+    "type": "string"
+   },
+   {
+    "path": "subscriptionFilters[].filterName",
+    "type": "string"
+   },
+   {
+    "path": "subscriptionFilters[].filterPattern",
+    "type": "string"
+   },
+   {
+    "path": "subscriptionFilters[].logGroupName",
+    "type": "string"
+   },
+   {
+    "path": "subscriptionFilters[].roleArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "DisassociateSourceFromS3TableIntegration",
+  "output": "DisassociateSourceFromS3TableIntegrationResponse",
+  "members": [
+   {
+    "path": "identifier",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "FilterLogEvents",
+  "output": "FilterLogEventsResponse",
+  "members": [
+   {
+    "path": "events",
+    "type": "list"
+   },
+   {
+    "path": "events[]",
+    "type": "structure"
+   },
+   {
+    "path": "events[].eventId",
+    "type": "string"
+   },
+   {
+    "path": "events[].ingestionTime",
+    "type": "integer"
+   },
+   {
+    "path": "events[].logStreamName",
+    "type": "string"
+   },
+   {
+    "path": "events[].message",
+    "type": "string"
+   },
+   {
+    "path": "events[].timestamp",
+    "type": "integer"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "searchedLogStreams",
+    "type": "list"
+   },
+   {
+    "path": "searchedLogStreams[]",
+    "type": "structure"
+   },
+   {
+    "path": "searchedLogStreams[].logStreamName",
+    "type": "string"
+   },
+   {
+    "path": "searchedLogStreams[].searchedCompletely",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "GetDataProtectionPolicy",
+  "output": "GetDataProtectionPolicyResponse",
+  "members": [
+   {
+    "path": "lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "logGroupIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "policyDocument",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDelivery",
+  "output": "GetDeliveryResponse",
+  "members": [
+   {
+    "path": "delivery",
+    "type": "structure"
+   },
+   {
+    "path": "delivery.arn",
+    "type": "string"
+   },
+   {
+    "path": "delivery.deliveryDestinationArn",
+    "type": "string"
+   },
+   {
+    "path": "delivery.deliveryDestinationType",
+    "type": "enum",
+    "enum": [
+     "S3",
+     "CWL",
+     "FH",
+     "XRAY"
+    ]
+   },
+   {
+    "path": "delivery.deliverySourceName",
+    "type": "string"
+   },
+   {
+    "path": "delivery.fieldDelimiter",
+    "type": "string"
+   },
+   {
+    "path": "delivery.id",
+    "type": "string"
+   },
+   {
+    "path": "delivery.recordFields",
+    "type": "list"
+   },
+   {
+    "path": "delivery.recordFields[]",
+    "type": "string"
+   },
+   {
+    "path": "delivery.s3DeliveryConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "delivery.s3DeliveryConfiguration.enableHiveCompatiblePath",
+    "type": "boolean"
+   },
+   {
+    "path": "delivery.s3DeliveryConfiguration.suffixPath",
+    "type": "string"
+   },
+   {
+    "path": "delivery.tags",
+    "type": "map"
+   },
+   {
+    "path": "delivery.tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDeliveryDestination",
+  "output": "GetDeliveryDestinationResponse",
+  "members": [
+   {
+    "path": "deliveryDestination",
+    "type": "structure"
+   },
+   {
+    "path": "deliveryDestination.arn",
+    "type": "string"
+   },
+   {
+    "path": "deliveryDestination.deliveryDestinationConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "deliveryDestination.deliveryDestinationConfiguration.destinationResourceArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "deliveryDestination.deliveryDestinationType",
+    "type": "enum",
+    "enum": [
+     "CWL",
+     "FH",
+     "XRAY",
+     "S3"
+    ]
+   },
+   {
+    "path": "deliveryDestination.name",
+    "type": "string"
+   },
+   {
+    "path": "deliveryDestination.outputFormat",
+    "type": "enum",
+    "enum": [
+     "json",
+     "plain",
+     "w3c",
+     "raw",
+     "parquet"
+    ]
+   },
+   {
+    "path": "deliveryDestination.tags",
+    "type": "map"
+   },
+   {
+    "path": "deliveryDestination.tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDeliveryDestinationPolicy",
+  "output": "GetDeliveryDestinationPolicyResponse",
+  "members": [
+   {
+    "path": "policy",
+    "type": "structure"
+   },
+   {
+    "path": "policy.deliveryDestinationPolicy",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetDeliverySource",
+  "output": "GetDeliverySourceResponse",
+  "members": [
+   {
+    "path": "deliverySource",
+    "type": "structure"
+   },
+   {
+    "path": "deliverySource.arn",
+    "type": "string"
+   },
+   {
+    "path": "deliverySource.deliverySourceConfiguration",
+    "type": "map"
+   },
+   {
+    "path": "deliverySource.deliverySourceConfiguration{}",
+    "type": "string"
+   },
+   {
+    "path": "deliverySource.logType",
+    "type": "string"
+   },
+   {
+    "path": "deliverySource.name",
+    "type": "string"
+   },
+   {
+    "path": "deliverySource.resourceArns",
+    "type": "list"
+   },
+   {
+    "path": "deliverySource.resourceArns[]",
+    "type": "string"
+   },
+   {
+    "path": "deliverySource.service",
+    "type": "string"
+   },
+   {
+    "path": "deliverySource.status",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "INACTIVE"
+    ]
+   },
+   {
+    "path": "deliverySource.statusReason",
+    "type": "enum",
+    "enum": [
+     "RESOURCE_DELETED"
+    ]
+   },
+   {
+    "path": "deliverySource.tags",
+    "type": "map"
+   },
+   {
+    "path": "deliverySource.tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetIntegration",
+  "output": "GetIntegrationResponse",
+  "members": [
+   {
+    "path": "integrationDetails",
+    "type": "any"
+   },
+   {
+    "path": "integrationName",
+    "type": "string"
+   },
+   {
+    "path": "integrationStatus",
+    "type": "enum",
+    "enum": [
+     "PROVISIONING",
+     "ACTIVE",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "integrationType",
+    "type": "enum",
+    "enum": [
+     "OPENSEARCH"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetLogAnomalyDetector",
+  "output": "GetLogAnomalyDetectorResponse",
+  "members": [
+   {
+    "path": "anomalyDetectorStatus",
+    "type": "enum",
+    "enum": [
+     "ANALYZING",
+     "FAILED",
+     "DELETED",
+     "PAUSED",
+     "INITIALIZING",
+     "TRAINING"
+    ]
+   },
+   {
+    "path": "anomalyVisibilityTime",
+    "type": "integer"
+   },
+   {
+    "path": "creationTimeStamp",
+    "type": "integer"
+   },
+   {
+    "path": "detectorName",
+    "type": "string"
+   },
+   {
+    "path": "evaluationFrequency",
+    "type": "enum",
+    "enum": [
+     "ONE_MIN",
+     "FIVE_MIN",
+     "TEN_MIN",
+     "FIFTEEN_MIN",
+     "THIRTY_MIN",
+     "ONE_HOUR"
+    ]
+   },
+   {
+    "path": "filterPattern",
+    "type": "string"
+   },
+   {
+    "path": "kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "lastModifiedTimeStamp",
+    "type": "integer"
+   },
+   {
+    "path": "logGroupArnList",
+    "type": "list"
+   },
+   {
+    "path": "logGroupArnList[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetLogEvents",
+  "output": "GetLogEventsResponse",
+  "members": [
+   {
+    "path": "events",
+    "type": "list"
+   },
+   {
+    "path": "events[]",
+    "type": "structure"
+   },
+   {
+    "path": "events[].ingestionTime",
+    "type": "integer"
+   },
+   {
+    "path": "events[].message",
+    "type": "string"
+   },
+   {
+    "path": "events[].timestamp",
+    "type": "integer"
+   },
+   {
+    "path": "nextBackwardToken",
+    "type": "string"
+   },
+   {
+    "path": "nextForwardToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetLogFields",
+  "output": "GetLogFieldsResponse",
+  "members": [
+   {
+    "path": "logFields",
+    "type": "list"
+   },
+   {
+    "path": "logFields[]",
+    "type": "structure"
+   },
+   {
+    "path": "logFields[].logFieldName",
+    "type": "string"
+   },
+   {
+    "path": "logFields[].logFieldType",
+    "type": "structure"
+   },
+   {
+    "path": "logFields[].logFieldType.element",
+    "type": "structure"
+   },
+   {
+    "path": "logFields[].logFieldType.element.element",
+    "type": "structure"
+   },
+   {
+    "path": "logFields[].logFieldType.element.fields",
+    "type": "list"
+   },
+   {
+    "path": "logFields[].logFieldType.element.type",
+    "type": "string"
+   },
+   {
+    "path": "logFields[].logFieldType.fields",
+    "type": "list"
+   },
+   {
+    "path": "logFields[].logFieldType.fields[]",
+    "type": "structure"
+   },
+   {
+    "path": "logFields[].logFieldType.type",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetLogGroupFields",
+  "output": "GetLogGroupFieldsResponse",
+  "members": [
+   {
+    "path": "logGroupFields",
+    "type": "list"
+   },
+   {
+    "path": "logGroupFields[]",
+    "type": "structure"
+   },
+   {
+    "path": "logGroupFields[].name",
+    "type": "string"
+   },
+   {
+    "path": "logGroupFields[].percent",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "GetLogObject",
+  "output": "GetLogObjectResponse",
+  "members": [
+   {
+    "path": "fieldStream",
+    "type": "any"
+   }
+  ]
+ },
+ {
+  "operation": "GetLogRecord",
+  "output": "GetLogRecordResponse",
+  "members": [
+   {
+    "path": "logRecord",
+    "type": "map"
+   },
+   {
+    "path": "logRecord{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetLookupTable",
+  "output": "GetLookupTableResponse",
+  "members": [
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "lookupTableArn",
+    "type": "string"
+   },
+   {
+    "path": "lookupTableName",
+    "type": "string"
+   },
+   {
+    "path": "sizeBytes",
+    "type": "integer"
+   },
+   {
+    "path": "tableBody",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetQueryResults",
+  "output": "GetQueryResultsResponse",
+  "members": [
+   {
+    "path": "encryptionKey",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "queryLanguage",
+    "type": "enum",
+    "enum": [
+     "CWLI",
+     "SQL",
+     "PPL"
+    ]
+   },
+   {
+    "path": "results",
+    "type": "list"
+   },
+   {
+    "path": "results[]",
+    "type": "list"
+   },
+   {
+    "path": "results[][]",
+    "type": "structure"
+   },
+   {
+    "path": "results[][].field",
+    "type": "string"
+   },
+   {
+    "path": "results[][].value",
+    "type": "string"
+   },
+   {
+    "path": "statistics",
+    "type": "structure"
+   },
+   {
+    "path": "statistics.bytesScanned",
+    "type": "float"
+   },
+   {
+    "path": "statistics.estimatedBytesSkipped",
+    "type": "float"
+   },
+   {
+    "path": "statistics.estimatedRecordsSkipped",
+    "type": "float"
+   },
+   {
+    "path": "statistics.logGroupsScanned",
+    "type": "float"
+   },
+   {
+    "path": "statistics.recordsMatched",
+    "type": "float"
+   },
+   {
+    "path": "statistics.recordsScanned",
+    "type": "float"
+   },
+   {
+    "path": "statistics.resultCount",
+    "type": "float"
+   },
+   {
+    "path": "status",
+    "type": "enum",
+    "enum": [
+     "Complete",
+     "Failed",
+     "Cancelled",
+     "Timeout",
+     "Unknown",
+     "Scheduled",
+     "Running"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetScheduledQuery",
+  "output": "GetScheduledQueryResponse",
+  "members": [
+   {
+    "path": "creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "destinationConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration.description",
+    "type": "string"
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration.kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration.roleArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration.tableName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration.tags",
+    "type": "map"
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration.tags{}",
+    "type": "string"
+   },
+   {
+    "path": "destinationConfiguration.s3Configuration",
+    "type": "structure"
+   },
+   {
+    "path": "destinationConfiguration.s3Configuration.destinationIdentifier",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "destinationConfiguration.s3Configuration.kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "destinationConfiguration.s3Configuration.ownerAccountId",
+    "type": "string"
+   },
+   {
+    "path": "destinationConfiguration.s3Configuration.roleArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "endTimeOffset",
+    "type": "integer"
+   },
+   {
+    "path": "executionRoleArn",
+    "type": "string"
+   },
+   {
+    "path": "lastExecutionStatus",
+    "type": "enum",
+    "enum": [
+     "Running",
+     "InvalidQuery",
+     "Complete",
+     "Failed",
+     "Timeout"
+    ]
+   },
+   {
+    "path": "lastTriggeredTime",
+    "type": "integer"
+   },
+   {
+    "path": "lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "logGroupIdentifiers",
+    "type": "list"
+   },
+   {
+    "path": "logGroupIdentifiers[]",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "queryLanguage",
+    "type": "enum",
+    "enum": [
+     "CWLI",
+     "SQL",
+     "PPL"
+    ]
+   },
+   {
+    "path": "queryString",
+    "type": "string"
+   },
+   {
+    "path": "scheduleEndTime",
+    "type": "integer"
+   },
+   {
+    "path": "scheduleExpression",
+    "type": "string"
+   },
+   {
+    "path": "scheduleStartTime",
+    "type": "integer"
+   },
+   {
+    "path": "scheduleType",
+    "type": "enum",
+    "enum": [
+     "CUSTOMER_MANAGED",
+     "AWS_MANAGED"
+    ]
+   },
+   {
+    "path": "scheduledQueryArn",
+    "type": "string"
+   },
+   {
+    "path": "startTimeOffset",
+    "type": "integer"
+   },
+   {
+    "path": "state",
+    "type": "enum",
+    "enum": [
+     "ENABLED",
+     "DISABLED"
+    ]
+   },
+   {
+    "path": "timezone",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetScheduledQueryHistory",
+  "output": "GetScheduledQueryHistoryResponse",
+  "members": [
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "scheduledQueryArn",
+    "type": "string"
+   },
+   {
+    "path": "triggerHistory",
+    "type": "list"
+   },
+   {
+    "path": "triggerHistory[]",
+    "type": "structure"
+   },
+   {
+    "path": "triggerHistory[].destinations",
+    "type": "list"
+   },
+   {
+    "path": "triggerHistory[].destinations[]",
+    "type": "structure"
+   },
+   {
+    "path": "triggerHistory[].destinations[].destinationIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "triggerHistory[].destinations[].destinationType",
+    "type": "enum",
+    "enum": [
+     "S3",
+     "LOOKUP_TABLE"
+    ]
+   },
+   {
+    "path": "triggerHistory[].destinations[].errorMessage",
+    "type": "string"
+   },
+   {
+    "path": "triggerHistory[].destinations[].processedIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "triggerHistory[].destinations[].status",
+    "type": "enum",
+    "enum": [
+     "IN_PROGRESS",
+     "CLIENT_ERROR",
+     "FAILED",
+     "COMPLETE"
+    ]
+   },
+   {
+    "path": "triggerHistory[].errorMessage",
+    "type": "string"
+   },
+   {
+    "path": "triggerHistory[].executionStatus",
+    "type": "enum",
+    "enum": [
+     "Failed",
+     "Timeout",
+     "Running",
+     "InvalidQuery",
+     "Complete"
+    ]
+   },
+   {
+    "path": "triggerHistory[].queryId",
+    "type": "string"
+   },
+   {
+    "path": "triggerHistory[].triggeredTimestamp",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "GetStorageTierPolicy",
+  "output": "GetStorageTierPolicyResponse",
+  "members": [
+   {
+    "path": "lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "storageTier",
+    "type": "enum",
+    "enum": [
+     "STANDARD",
+     "INTELLIGENT_TIERING"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "GetTransformer",
+  "output": "GetTransformerResponse",
+  "members": [
+   {
+    "path": "creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "lastModifiedTime",
+    "type": "integer"
+   },
+   {
+    "path": "logGroupIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig",
+    "type": "list"
+   },
+   {
+    "path": "transformerConfig[]",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].addKeys",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].addKeys.entries",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].addKeys.entries[]",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].copyValue",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].copyValue.entries",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].copyValue.entries[]",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].csv",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].csv.columns",
+    "type": "list"
+   },
+   {
+    "path": "transformerConfig[].csv.columns[]",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].csv.delimiter",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].csv.destination",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].csv.quoteCharacter",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].csv.source",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].dateTimeConverter",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].dateTimeConverter.locale",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].dateTimeConverter.matchPatterns",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].dateTimeConverter.matchPatterns[]",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].dateTimeConverter.source",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].dateTimeConverter.sourceTimezone",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].dateTimeConverter.target",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].dateTimeConverter.targetFormat",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].dateTimeConverter.targetTimezone",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].deleteKeys",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].deleteKeys.withKeys",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].deleteKeys.withKeys[]",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].grok",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].grok.match",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].grok.source",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].listToMap",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].listToMap.flatten",
+    "type": "boolean"
+   },
+   {
+    "path": "transformerConfig[].listToMap.flattenedElement",
+    "type": "enum",
+    "enum": [
+     "first",
+     "last"
+    ]
+   },
+   {
+    "path": "transformerConfig[].listToMap.key",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].listToMap.source",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].listToMap.target",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].listToMap.valueKey",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].lowerCaseString",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].lowerCaseString.withKeys",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].lowerCaseString.withKeys[]",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].moveKeys",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].moveKeys.entries",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].moveKeys.entries[]",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].parseCloudfront",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].parseCloudfront.source",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parseJSON",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].parseJSON.destination",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parseJSON.source",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parseKeyValue",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].parseKeyValue.destination",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parseKeyValue.fieldDelimiter",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parseKeyValue.keyPrefix",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parseKeyValue.keyValueDelimiter",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parseKeyValue.nonMatchValue",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parseKeyValue.overwriteIfExists",
+    "type": "boolean"
+   },
+   {
+    "path": "transformerConfig[].parseKeyValue.source",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parsePostgres",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].parsePostgres.source",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parseRoute53",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].parseRoute53.source",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parseToOCSF",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].parseToOCSF.eventSource",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "CloudTrail",
+     "Route53Resolver",
+     "VPCFlow",
+     "EKSAudit",
+     "AWSWAF"
+    ]
+   },
+   {
+    "path": "transformerConfig[].parseToOCSF.mappingVersion",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parseToOCSF.ocsfVersion",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "V1.1",
+     "V1.5"
+    ]
+   },
+   {
+    "path": "transformerConfig[].parseToOCSF.source",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parseVPC",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].parseVPC.source",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].parseWAF",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].parseWAF.source",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].renameKeys",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].renameKeys.entries",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].renameKeys.entries[]",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].splitString",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].splitString.entries",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].splitString.entries[]",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].substituteString",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].substituteString.entries",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].substituteString.entries[]",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].trimString",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].trimString.withKeys",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].trimString.withKeys[]",
+    "type": "string"
+   },
+   {
+    "path": "transformerConfig[].typeConverter",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].typeConverter.entries",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].typeConverter.entries[]",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].upperCaseString",
+    "type": "structure"
+   },
+   {
+    "path": "transformerConfig[].upperCaseString.withKeys",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "transformerConfig[].upperCaseString.withKeys[]",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListAggregateLogGroupSummaries",
+  "output": "ListAggregateLogGroupSummariesResponse",
+  "members": [
+   {
+    "path": "aggregateLogGroupSummaries",
+    "type": "list"
+   },
+   {
+    "path": "aggregateLogGroupSummaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "aggregateLogGroupSummaries[].groupingIdentifiers",
+    "type": "list"
+   },
+   {
+    "path": "aggregateLogGroupSummaries[].groupingIdentifiers[]",
+    "type": "structure"
+   },
+   {
+    "path": "aggregateLogGroupSummaries[].groupingIdentifiers[].key",
+    "type": "string"
+   },
+   {
+    "path": "aggregateLogGroupSummaries[].groupingIdentifiers[].value",
+    "type": "string"
+   },
+   {
+    "path": "aggregateLogGroupSummaries[].logGroupCount",
+    "type": "integer"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListAnomalies",
+  "output": "ListAnomaliesResponse",
+  "members": [
+   {
+    "path": "anomalies",
+    "type": "list"
+   },
+   {
+    "path": "anomalies[]",
+    "type": "structure"
+   },
+   {
+    "path": "anomalies[].active",
+    "type": "boolean",
+    "required": true
+   },
+   {
+    "path": "anomalies[].anomalyDetectorArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "anomalies[].anomalyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "anomalies[].description",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "anomalies[].firstSeen",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "anomalies[].histogram",
+    "type": "map",
+    "required": true
+   },
+   {
+    "path": "anomalies[].histogram{}",
+    "type": "integer"
+   },
+   {
+    "path": "anomalies[].isPatternLevelSuppression",
+    "type": "boolean"
+   },
+   {
+    "path": "anomalies[].lastSeen",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "anomalies[].logGroupArnList",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "anomalies[].logGroupArnList[]",
+    "type": "string"
+   },
+   {
+    "path": "anomalies[].logSamples",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "anomalies[].logSamples[]",
+    "type": "structure"
+   },
+   {
+    "path": "anomalies[].logSamples[].message",
+    "type": "string"
+   },
+   {
+    "path": "anomalies[].logSamples[].timestamp",
+    "type": "integer"
+   },
+   {
+    "path": "anomalies[].patternId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "anomalies[].patternRegex",
+    "type": "string"
+   },
+   {
+    "path": "anomalies[].patternString",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "anomalies[].patternTokens",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "anomalies[].patternTokens[]",
+    "type": "structure"
+   },
+   {
+    "path": "anomalies[].patternTokens[].dynamicTokenPosition",
+    "type": "integer"
+   },
+   {
+    "path": "anomalies[].patternTokens[].enumerations",
+    "type": "map"
+   },
+   {
+    "path": "anomalies[].patternTokens[].inferredTokenName",
+    "type": "string"
+   },
+   {
+    "path": "anomalies[].patternTokens[].isDynamic",
+    "type": "boolean"
+   },
+   {
+    "path": "anomalies[].patternTokens[].tokenString",
+    "type": "string"
+   },
+   {
+    "path": "anomalies[].priority",
+    "type": "string"
+   },
+   {
+    "path": "anomalies[].state",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "Active",
+     "Suppressed",
+     "Baseline"
+    ]
+   },
+   {
+    "path": "anomalies[].suppressed",
+    "type": "boolean"
+   },
+   {
+    "path": "anomalies[].suppressedDate",
+    "type": "integer"
+   },
+   {
+    "path": "anomalies[].suppressedUntil",
+    "type": "integer"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListIntegrations",
+  "output": "ListIntegrationsResponse",
+  "members": [
+   {
+    "path": "integrationSummaries",
+    "type": "list"
+   },
+   {
+    "path": "integrationSummaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "integrationSummaries[].integrationName",
+    "type": "string"
+   },
+   {
+    "path": "integrationSummaries[].integrationStatus",
+    "type": "enum",
+    "enum": [
+     "FAILED",
+     "PROVISIONING",
+     "ACTIVE"
+    ]
+   },
+   {
+    "path": "integrationSummaries[].integrationType",
+    "type": "enum",
+    "enum": [
+     "OPENSEARCH"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "ListLogAnomalyDetectors",
+  "output": "ListLogAnomalyDetectorsResponse",
+  "members": [
+   {
+    "path": "anomalyDetectors",
+    "type": "list"
+   },
+   {
+    "path": "anomalyDetectors[]",
+    "type": "structure"
+   },
+   {
+    "path": "anomalyDetectors[].anomalyDetectorArn",
+    "type": "string"
+   },
+   {
+    "path": "anomalyDetectors[].anomalyDetectorStatus",
+    "type": "enum",
+    "enum": [
+     "ANALYZING",
+     "FAILED",
+     "DELETED",
+     "PAUSED",
+     "INITIALIZING",
+     "TRAINING"
+    ]
+   },
+   {
+    "path": "anomalyDetectors[].anomalyVisibilityTime",
+    "type": "integer"
+   },
+   {
+    "path": "anomalyDetectors[].creationTimeStamp",
+    "type": "integer"
+   },
+   {
+    "path": "anomalyDetectors[].detectorName",
+    "type": "string"
+   },
+   {
+    "path": "anomalyDetectors[].evaluationFrequency",
+    "type": "enum",
+    "enum": [
+     "ONE_MIN",
+     "FIVE_MIN",
+     "TEN_MIN",
+     "FIFTEEN_MIN",
+     "THIRTY_MIN",
+     "ONE_HOUR"
+    ]
+   },
+   {
+    "path": "anomalyDetectors[].filterPattern",
+    "type": "string"
+   },
+   {
+    "path": "anomalyDetectors[].kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "anomalyDetectors[].lastModifiedTimeStamp",
+    "type": "integer"
+   },
+   {
+    "path": "anomalyDetectors[].logGroupArnList",
+    "type": "list"
+   },
+   {
+    "path": "anomalyDetectors[].logGroupArnList[]",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListLogGroups",
+  "output": "ListLogGroupsResponse",
+  "members": [
+   {
+    "path": "logGroups",
+    "type": "list"
+   },
+   {
+    "path": "logGroups[]",
+    "type": "structure"
+   },
+   {
+    "path": "logGroups[].logGroupArn",
+    "type": "string"
+   },
+   {
+    "path": "logGroups[].logGroupClass",
+    "type": "enum",
+    "enum": [
+     "STANDARD",
+     "INFREQUENT_ACCESS",
+     "DELIVERY"
+    ]
+   },
+   {
+    "path": "logGroups[].logGroupName",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListLogGroupsForQuery",
+  "output": "ListLogGroupsForQueryResponse",
+  "members": [
+   {
+    "path": "logGroupIdentifiers",
+    "type": "list"
+   },
+   {
+    "path": "logGroupIdentifiers[]",
+    "type": "string"
+   },
+   {
+    "path": "nextToken",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListScheduledQueries",
+  "output": "ListScheduledQueriesResponse",
+  "members": [
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "scheduledQueries",
+    "type": "list"
+   },
+   {
+    "path": "scheduledQueries[]",
+    "type": "structure"
+   },
+   {
+    "path": "scheduledQueries[].creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "scheduledQueries[].destinationConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "scheduledQueries[].destinationConfiguration.lookupTableConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "scheduledQueries[].destinationConfiguration.lookupTableConfiguration.description",
+    "type": "string"
+   },
+   {
+    "path": "scheduledQueries[].destinationConfiguration.lookupTableConfiguration.kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "scheduledQueries[].destinationConfiguration.lookupTableConfiguration.roleArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "scheduledQueries[].destinationConfiguration.lookupTableConfiguration.tableName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "scheduledQueries[].destinationConfiguration.lookupTableConfiguration.tags",
+    "type": "map"
+   },
+   {
+    "path": "scheduledQueries[].destinationConfiguration.s3Configuration",
+    "type": "structure"
+   },
+   {
+    "path": "scheduledQueries[].destinationConfiguration.s3Configuration.destinationIdentifier",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "scheduledQueries[].destinationConfiguration.s3Configuration.kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "scheduledQueries[].destinationConfiguration.s3Configuration.ownerAccountId",
+    "type": "string"
+   },
+   {
+    "path": "scheduledQueries[].destinationConfiguration.s3Configuration.roleArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "scheduledQueries[].lastExecutionStatus",
+    "type": "enum",
+    "enum": [
+     "Running",
+     "InvalidQuery",
+     "Complete",
+     "Failed",
+     "Timeout"
+    ]
+   },
+   {
+    "path": "scheduledQueries[].lastTriggeredTime",
+    "type": "integer"
+   },
+   {
+    "path": "scheduledQueries[].lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "scheduledQueries[].name",
+    "type": "string"
+   },
+   {
+    "path": "scheduledQueries[].scheduleExpression",
+    "type": "string"
+   },
+   {
+    "path": "scheduledQueries[].scheduleType",
+    "type": "enum",
+    "enum": [
+     "AWS_MANAGED",
+     "CUSTOMER_MANAGED"
+    ]
+   },
+   {
+    "path": "scheduledQueries[].scheduledQueryArn",
+    "type": "string"
+   },
+   {
+    "path": "scheduledQueries[].state",
+    "type": "enum",
+    "enum": [
+     "ENABLED",
+     "DISABLED"
+    ]
+   },
+   {
+    "path": "scheduledQueries[].timezone",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListSourcesForS3TableIntegration",
+  "output": "ListSourcesForS3TableIntegrationResponse",
+  "members": [
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "sources",
+    "type": "list"
+   },
+   {
+    "path": "sources[]",
+    "type": "structure"
+   },
+   {
+    "path": "sources[].createdTimeStamp",
+    "type": "integer"
+   },
+   {
+    "path": "sources[].dataSource",
+    "type": "structure"
+   },
+   {
+    "path": "sources[].dataSource.name",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "sources[].dataSource.type",
+    "type": "string"
+   },
+   {
+    "path": "sources[].identifier",
+    "type": "string"
+   },
+   {
+    "path": "sources[].parentSourceIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "sources[].status",
+    "type": "enum",
+    "enum": [
+     "DATA_SOURCE_DELETE_IN_PROGRESS",
+     "ACTIVE",
+     "UNHEALTHY",
+     "FAILED"
+    ]
+   },
+   {
+    "path": "sources[].statusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListSyslogConfigurations",
+  "output": "ListSyslogConfigurationsResponse",
+  "members": [
+   {
+    "path": "nextToken",
+    "type": "string"
+   },
+   {
+    "path": "syslogConfigurations",
+    "type": "list"
+   },
+   {
+    "path": "syslogConfigurations[]",
+    "type": "structure"
+   },
+   {
+    "path": "syslogConfigurations[].createdAt",
+    "type": "integer"
+   },
+   {
+    "path": "syslogConfigurations[].logGroupArn",
+    "type": "string"
+   },
+   {
+    "path": "syslogConfigurations[].sourceType",
+    "type": "enum",
+    "enum": [
+     "VPCE"
+    ]
+   },
+   {
+    "path": "syslogConfigurations[].vpcEndpointId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListTagsForResource",
+  "output": "ListTagsForResourceResponse",
+  "members": [
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListTagsLogGroup",
+  "output": "ListTagsLogGroupResponse",
+  "members": [
+   {
+    "path": "tags",
+    "type": "map"
+   },
+   {
+    "path": "tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutAccountPolicy",
+  "output": "PutAccountPolicyResponse",
+  "members": [
+   {
+    "path": "accountPolicy",
+    "type": "structure"
+   },
+   {
+    "path": "accountPolicy.accountId",
+    "type": "string"
+   },
+   {
+    "path": "accountPolicy.lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "accountPolicy.policyDocument",
+    "type": "string"
+   },
+   {
+    "path": "accountPolicy.policyName",
+    "type": "string"
+   },
+   {
+    "path": "accountPolicy.policyType",
+    "type": "enum",
+    "enum": [
+     "TRANSFORMER_POLICY",
+     "METRIC_EXTRACTION_POLICY",
+     "DATA_PROTECTION_POLICY",
+     "SUBSCRIPTION_FILTER_POLICY",
+     "FIELD_INDEX_POLICY"
+    ]
+   },
+   {
+    "path": "accountPolicy.scope",
+    "type": "enum",
+    "enum": [
+     "ALL"
+    ]
+   },
+   {
+    "path": "accountPolicy.selectionCriteria",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutDataProtectionPolicy",
+  "output": "PutDataProtectionPolicyResponse",
+  "members": [
+   {
+    "path": "lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "logGroupIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "policyDocument",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutDeliveryDestination",
+  "output": "PutDeliveryDestinationResponse",
+  "members": [
+   {
+    "path": "deliveryDestination",
+    "type": "structure"
+   },
+   {
+    "path": "deliveryDestination.arn",
+    "type": "string"
+   },
+   {
+    "path": "deliveryDestination.deliveryDestinationConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "deliveryDestination.deliveryDestinationConfiguration.destinationResourceArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "deliveryDestination.deliveryDestinationType",
+    "type": "enum",
+    "enum": [
+     "CWL",
+     "FH",
+     "XRAY",
+     "S3"
+    ]
+   },
+   {
+    "path": "deliveryDestination.name",
+    "type": "string"
+   },
+   {
+    "path": "deliveryDestination.outputFormat",
+    "type": "enum",
+    "enum": [
+     "json",
+     "plain",
+     "w3c",
+     "raw",
+     "parquet"
+    ]
+   },
+   {
+    "path": "deliveryDestination.tags",
+    "type": "map"
+   },
+   {
+    "path": "deliveryDestination.tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutDeliveryDestinationPolicy",
+  "output": "PutDeliveryDestinationPolicyResponse",
+  "members": [
+   {
+    "path": "policy",
+    "type": "structure"
+   },
+   {
+    "path": "policy.deliveryDestinationPolicy",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutDeliverySource",
+  "output": "PutDeliverySourceResponse",
+  "members": [
+   {
+    "path": "deliverySource",
+    "type": "structure"
+   },
+   {
+    "path": "deliverySource.arn",
+    "type": "string"
+   },
+   {
+    "path": "deliverySource.deliverySourceConfiguration",
+    "type": "map"
+   },
+   {
+    "path": "deliverySource.deliverySourceConfiguration{}",
+    "type": "string"
+   },
+   {
+    "path": "deliverySource.logType",
+    "type": "string"
+   },
+   {
+    "path": "deliverySource.name",
+    "type": "string"
+   },
+   {
+    "path": "deliverySource.resourceArns",
+    "type": "list"
+   },
+   {
+    "path": "deliverySource.resourceArns[]",
+    "type": "string"
+   },
+   {
+    "path": "deliverySource.service",
+    "type": "string"
+   },
+   {
+    "path": "deliverySource.status",
+    "type": "enum",
+    "enum": [
+     "ACTIVE",
+     "INACTIVE"
+    ]
+   },
+   {
+    "path": "deliverySource.statusReason",
+    "type": "enum",
+    "enum": [
+     "RESOURCE_DELETED"
+    ]
+   },
+   {
+    "path": "deliverySource.tags",
+    "type": "map"
+   },
+   {
+    "path": "deliverySource.tags{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutDestination",
+  "output": "PutDestinationResponse",
+  "members": [
+   {
+    "path": "destination",
+    "type": "structure"
+   },
+   {
+    "path": "destination.accessPolicy",
+    "type": "string"
+   },
+   {
+    "path": "destination.arn",
+    "type": "string"
+   },
+   {
+    "path": "destination.creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "destination.destinationName",
+    "type": "string"
+   },
+   {
+    "path": "destination.roleArn",
+    "type": "string"
+   },
+   {
+    "path": "destination.targetArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutIndexPolicy",
+  "output": "PutIndexPolicyResponse",
+  "members": [
+   {
+    "path": "indexPolicy",
+    "type": "structure"
+   },
+   {
+    "path": "indexPolicy.lastUpdateTime",
+    "type": "integer"
+   },
+   {
+    "path": "indexPolicy.logGroupIdentifier",
+    "type": "string"
+   },
+   {
+    "path": "indexPolicy.policyDocument",
+    "type": "string"
+   },
+   {
+    "path": "indexPolicy.policyName",
+    "type": "string"
+   },
+   {
+    "path": "indexPolicy.source",
+    "type": "enum",
+    "enum": [
+     "ACCOUNT",
+     "LOG_GROUP"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "PutIntegration",
+  "output": "PutIntegrationResponse",
+  "members": [
+   {
+    "path": "integrationName",
+    "type": "string"
+   },
+   {
+    "path": "integrationStatus",
+    "type": "enum",
+    "enum": [
+     "PROVISIONING",
+     "ACTIVE",
+     "FAILED"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "PutLogEvents",
+  "output": "PutLogEventsResponse",
+  "members": [
+   {
+    "path": "nextSequenceToken",
+    "type": "string"
+   },
+   {
+    "path": "rejectedEntityInfo",
+    "type": "structure"
+   },
+   {
+    "path": "rejectedEntityInfo.errorType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "InvalidEntity",
+     "InvalidTypeValue",
+     "InvalidKeyAttributes",
+     "InvalidAttributes",
+     "EntitySizeTooLarge",
+     "UnsupportedLogGroupType",
+     "MissingRequiredFields"
+    ]
+   },
+   {
+    "path": "rejectedLogEventsInfo",
+    "type": "structure"
+   },
+   {
+    "path": "rejectedLogEventsInfo.expiredLogEventEndIndex",
+    "type": "integer"
+   },
+   {
+    "path": "rejectedLogEventsInfo.tooNewLogEventStartIndex",
+    "type": "integer"
+   },
+   {
+    "path": "rejectedLogEventsInfo.tooOldLogEventEndIndex",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "PutQueryDefinition",
+  "output": "PutQueryDefinitionResponse",
+  "members": [
+   {
+    "path": "queryDefinitionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutResourcePolicy",
+  "output": "PutResourcePolicyResponse",
+  "members": [
+   {
+    "path": "resourcePolicy",
+    "type": "structure"
+   },
+   {
+    "path": "resourcePolicy.lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "resourcePolicy.policyDocument",
+    "type": "string"
+   },
+   {
+    "path": "resourcePolicy.policyName",
+    "type": "string"
+   },
+   {
+    "path": "resourcePolicy.policyScope",
+    "type": "enum",
+    "enum": [
+     "RESOURCE",
+     "ACCOUNT"
+    ]
+   },
+   {
+    "path": "resourcePolicy.resourceArn",
+    "type": "string"
+   },
+   {
+    "path": "resourcePolicy.revisionId",
+    "type": "string"
+   },
+   {
+    "path": "revisionId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutStorageTierPolicy",
+  "output": "PutStorageTierPolicyResponse",
+  "members": [
+   {
+    "path": "lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "storageTier",
+    "type": "enum",
+    "enum": [
+     "STANDARD",
+     "INTELLIGENT_TIERING"
+    ]
+   }
+  ]
+ },
+ {
+  "operation": "StartLiveTail",
+  "output": "StartLiveTailResponse",
+  "members": [
+   {
+    "path": "responseStream",
+    "type": "any"
+   }
+  ]
+ },
+ {
+  "operation": "StartQuery",
+  "output": "StartQueryResponse",
+  "members": [
+   {
+    "path": "queryId",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "StopQuery",
+  "output": "StopQueryResponse",
+  "members": [
+   {
+    "path": "success",
+    "type": "boolean"
+   }
+  ]
+ },
+ {
+  "operation": "TestMetricFilter",
+  "output": "TestMetricFilterResponse",
+  "members": [
+   {
+    "path": "matches",
+    "type": "list"
+   },
+   {
+    "path": "matches[]",
+    "type": "structure"
+   },
+   {
+    "path": "matches[].eventMessage",
+    "type": "string"
+   },
+   {
+    "path": "matches[].eventNumber",
+    "type": "integer"
+   },
+   {
+    "path": "matches[].extractedValues",
+    "type": "map"
+   },
+   {
+    "path": "matches[].extractedValues{}",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "TestTransformer",
+  "output": "TestTransformerResponse",
+  "members": [
+   {
+    "path": "transformedLogs",
+    "type": "list"
+   },
+   {
+    "path": "transformedLogs[]",
+    "type": "structure"
+   },
+   {
+    "path": "transformedLogs[].eventMessage",
+    "type": "string"
+   },
+   {
+    "path": "transformedLogs[].eventNumber",
+    "type": "integer"
+   },
+   {
+    "path": "transformedLogs[].transformedEventMessage",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateLookupTable",
+  "output": "UpdateLookupTableResponse",
+  "members": [
+   {
+    "path": "lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "lookupTableArn",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateScheduledQuery",
+  "output": "UpdateScheduledQueryResponse",
+  "members": [
+   {
+    "path": "creationTime",
+    "type": "integer"
+   },
+   {
+    "path": "description",
+    "type": "string"
+   },
+   {
+    "path": "destinationConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration.description",
+    "type": "string"
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration.kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration.roleArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration.tableName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration.tags",
+    "type": "map"
+   },
+   {
+    "path": "destinationConfiguration.lookupTableConfiguration.tags{}",
+    "type": "string"
+   },
+   {
+    "path": "destinationConfiguration.s3Configuration",
+    "type": "structure"
+   },
+   {
+    "path": "destinationConfiguration.s3Configuration.destinationIdentifier",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "destinationConfiguration.s3Configuration.kmsKeyId",
+    "type": "string"
+   },
+   {
+    "path": "destinationConfiguration.s3Configuration.ownerAccountId",
+    "type": "string"
+   },
+   {
+    "path": "destinationConfiguration.s3Configuration.roleArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "endTimeOffset",
+    "type": "integer"
+   },
+   {
+    "path": "executionRoleArn",
+    "type": "string"
+   },
+   {
+    "path": "lastExecutionStatus",
+    "type": "enum",
+    "enum": [
+     "Running",
+     "InvalidQuery",
+     "Complete",
+     "Failed",
+     "Timeout"
+    ]
+   },
+   {
+    "path": "lastTriggeredTime",
+    "type": "integer"
+   },
+   {
+    "path": "lastUpdatedTime",
+    "type": "integer"
+   },
+   {
+    "path": "logGroupIdentifiers",
+    "type": "list"
+   },
+   {
+    "path": "logGroupIdentifiers[]",
+    "type": "string"
+   },
+   {
+    "path": "name",
+    "type": "string"
+   },
+   {
+    "path": "queryLanguage",
+    "type": "enum",
+    "enum": [
+     "SQL",
+     "PPL",
+     "CWLI"
+    ]
+   },
+   {
+    "path": "queryString",
+    "type": "string"
+   },
+   {
+    "path": "scheduleEndTime",
+    "type": "integer"
+   },
+   {
+    "path": "scheduleExpression",
+    "type": "string"
+   },
+   {
+    "path": "scheduleStartTime",
+    "type": "integer"
+   },
+   {
+    "path": "scheduleType",
+    "type": "enum",
+    "enum": [
+     "CUSTOMER_MANAGED",
+     "AWS_MANAGED"
+    ]
+   },
+   {
+    "path": "scheduledQueryArn",
+    "type": "string"
+   },
+   {
+    "path": "startTimeOffset",
+    "type": "integer"
+   },
+   {
+    "path": "state",
+    "type": "enum",
+    "enum": [
+     "DISABLED",
+     "ENABLED"
+    ]
+   },
+   {
+    "path": "timezone",
+    "type": "string"
+   }
+  ]
+ }
+]
