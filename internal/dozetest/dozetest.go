@@ -48,6 +48,7 @@ import (
 // failing can narrow it down with -run.
 func Main(m *testing.M, extra ...goleak.Option) {
 	code := m.Run()
+	runAtExit()
 	if code == 0 {
 		if err := verify(append(ignored(), extra...)...); err != nil {
 			fmt.Fprintf(os.Stderr, "goroutines outlived this package's tests:\n%v\n", err)
@@ -55,6 +56,45 @@ func Main(m *testing.M, extra ...goleak.Option) {
 		}
 	}
 	os.Exit(code)
+}
+
+// AtExit registers a teardown to run after the package's tests and BEFORE the
+// goroutine check.
+//
+// Every fixture in this tree is per-test, torn down by t.Cleanup, which is
+// right until something has to outlive a single test. A fuzz target is the
+// case that forces it: the target body runs millions of times, booting a stack
+// each time costs about seventy-five milliseconds, and a stack shared across
+// iterations has no *testing.T whose Cleanup could close it. Without somewhere
+// to hang that close, the shared stack is still running when goleak looks, and
+// the only ways out are to stop checking that package or to add its whole
+// goroutine set to the ignore list — both of which give up the assertion to
+// keep the fixture.
+//
+// Ordering is the whole point: teardown runs first, so what a package-level
+// fixture started still has to have stopped.
+func AtExit(f func()) {
+	atExitMu.Lock()
+	atExit = append(atExit, f)
+	atExitMu.Unlock()
+}
+
+var (
+	atExitMu sync.Mutex
+	atExit   []func()
+)
+
+// runAtExit runs the registered teardowns in reverse order of registration,
+// the way defer and t.Cleanup do — a fixture built on top of another must come
+// down first.
+func runAtExit() {
+	atExitMu.Lock()
+	fns := atExit
+	atExit = nil
+	atExitMu.Unlock()
+	for i := len(fns) - 1; i >= 0; i-- {
+		fns[i]()
+	}
 }
 
 // settle is how long a goroutine has to finish shutting down before it counts
@@ -177,6 +217,18 @@ func Quiet(t testing.TB) func(string, ...any) {
 	t.Cleanup(func() { w.Check(t) })
 	return w.logf
 }
+
+// Watcher is Quiet for a fixture that has no *testing.T to hang a Cleanup on —
+// a package-level stack shared by a fuzz target, in practice. The caller owns
+// the checking and must call Check itself.
+//
+// A zero PanicWatcher is NOT usable in its place: its marker would be the empty
+// string, every log line would match it, and the check would fail on the first
+// line of any output. Hence a constructor rather than an exported field.
+func Watcher() *PanicWatcher { return &PanicWatcher{marker: panicMarker} }
+
+// Logf returns the log function to hand to Options.Logf.
+func (w *PanicWatcher) Logf() func(string, ...any) { return w.logf }
 
 // panicMarker is the distinctive part of what internal/bg writes when it
 // contains a panic. If that wording changes, this finds nothing and every test

@@ -45,7 +45,7 @@ jobs:
           # matrix already had, one level up.
           count=$(echo '${{ steps.find.outputs.targets }}' | grep -o '"target"' | wc -l)
           echo "found $count target(s)"
-          [ "$count" -ge 12 ] || { echo "expected at least 12 fuzz targets, found $count"; exit 1; }
+          [ "$count" -ge 15 ] || { echo "expected at least 15 fuzz targets, found $count"; exit 1; }
 
   fuzz:
     needs: discover

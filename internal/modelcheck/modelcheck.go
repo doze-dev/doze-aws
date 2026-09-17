@@ -143,7 +143,7 @@ type segment struct {
 // run through markerRE on EVERY request, for every constraint in the table.
 // Validation runs on every request of every service, and Lambda's table has
 // 464 constraints, so that was 464 regex matches and 464 string splits per
-// call: profiling put splitSegment and strings.Split at over half the
+// call: profiling put SplitSegment and strings.Split at over half the
 // allocations in the whole validator.
 //
 // Parsed once here instead. A sync.Map rather than a plain map because tables
@@ -159,15 +159,19 @@ func parsePath(path string) []segment {
 	parts := strings.Split(path, ".")
 	segs := make([]segment, 0, len(parts))
 	for _, p := range parts {
-		name, markers := splitSegment(p)
+		name, markers := SplitSegment(p)
 		segs = append(segs, segment{name: name, lower: lowerFirst(name), markers: markers})
 	}
 	pathCache.Store(path, segs)
 	return segs
 }
 
-// splitSegment separates a segment into its member name and its markers.
-func splitSegment(seg string) (name string, markers []string) {
+// SplitSegment separates a segment into its member name and its markers.
+//
+// Exported only so the cross-check in internal/shapecheck can reach it: this
+// grammar has three implementations in the tree and nothing confirmed they
+// agree. See TestTheThreePathParsersAgree.
+func SplitSegment(seg string) (name string, markers []string) {
 	m := markerRE.FindStringSubmatch(seg)
 	if m == nil {
 		return seg, nil

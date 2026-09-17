@@ -33,7 +33,12 @@ import (
 // "[]" a list, "{}" a map, and both may appear on one segment.
 var segRE = regexp.MustCompile(`^([A-Za-z0-9]+)((?:\[\]|\{\})*)$`)
 
-func splitSegment(seg string) (string, []string) {
+// SplitSegment separates a segment into its member name and its markers.
+//
+// Exported only so the cross-check in internal/shapecheck can reach it: this
+// grammar has three implementations in the tree and nothing confirmed they
+// agree. See TestTheThreePathParsersAgree.
+func SplitSegment(seg string) (string, []string) {
 	m := segRE.FindStringSubmatch(seg)
 	if m == nil {
 		return seg, nil
@@ -63,7 +68,7 @@ func Apply(body map[string]any, exemplars map[string]any, path string, value any
 	cur := body
 
 	for i, seg := range segs[:len(segs)-1] {
-		name, markers := splitSegment(seg)
+		name, markers := SplitSegment(seg)
 		key := strings.Join(segs[:i+1], ".")
 		if _, present := cur[name]; !present {
 			ex, ok := exemplars[key]
@@ -106,7 +111,7 @@ func Apply(body map[string]any, exemplars map[string]any, path string, value any
 		return nil
 	}
 
-	leaf, markers := splitSegment(segs[len(segs)-1])
+	leaf, markers := SplitSegment(segs[len(segs)-1])
 	if value == nil {
 		delete(cur, leaf) // a @required case is the member's absence
 		return nil
