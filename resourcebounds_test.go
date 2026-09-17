@@ -25,10 +25,18 @@ package dozeaws_test
 // still moves several percent between runs, so the threshold has to sit above
 // that — which means this catches a leak measured in megabytes and NOT a map
 // that grew two thousand small entries. Those three audit bugs would each be a
-// few hundred kilobytes here, comfortably inside the noise. Closing that gap
-// needs a direct probe of the specific container per service, which is a
-// different piece of work; pretending this covers it would be worse than
-// saying it does not.
+// few hundred kilobytes here, comfortably inside the noise. Pretending this
+// covers it would be worse than saying it does not.
+//
+// The way to close it, for whoever takes it on: runtime.MemProfile is stdlib
+// and reports live bytes per ALLOCATION STACK. Snapshot at N rounds and at 2N,
+// key by stack, and a site whose live bytes grew with the round count is named
+// by file and line — four hundred kilobytes is invisible in a five-megabyte
+// total and obvious as a doubling at one call site. The costs are that
+// runtime.MemProfileRate has to come down from its 512 KiB default to see
+// allocations this small, which taxes the whole run, and that "grew with the
+// round count" needs a threshold that will not fire on caches which are
+// supposed to fill.
 
 import (
 	"context"
@@ -52,11 +60,15 @@ import (
 
 // rounds is the measurement point; the test runs 2×rounds in total.
 //
-// The default is sized for the normal suite. A round costs about 55ms — it is
-// seven calls, two of which create and destroy a bbolt-backed queue and so pay
-// an fsync — and the goroutine half, which is the sensitive half, is just as
-// conclusive at 150 as at 4,000. The heap half is not: a slow leak needs a long
-// run to climb out of the noise, which is what the nightly is for.
+// The default is sized for the normal suite. A round is seven calls, two of
+// which create and destroy a bbolt-backed queue and so pay an fsync, and the
+// cost of that is almost entirely the platform's: about 55ms on macOS, where
+// fsync means F_FULLFSYNC, against about 4ms on the Linux runners — 8,000
+// rounds take half a minute in CI and would take seven minutes here.
+//
+// The goroutine half, which is the sensitive half, is just as conclusive at 150
+// as at 4,000. The heap half is not: a slow leak needs a long run to climb out
+// of the noise, which is what the nightly is for.
 //
 //	DOZE_BOUND_ROUNDS=4000 go test -run TestResourcesStayBounded -timeout 30m .
 func roundCount(t *testing.T) int {
@@ -186,13 +198,46 @@ func TestResourcesStayBoundedUnderRepeatedUse(t *testing.T) {
 			base.goroutines, rounds, grown.goroutines, 2*rounds)
 	}
 
-	// Heap: a ratio, generously banded, for the reasons at the top of the file.
-	// The floor stops a small absolute baseline from making the ratio jumpy.
-	const heapFloor = 8 << 20
-	if grown.heapBytes > heapFloor && grown.heapBytes > base.heapBytes*3/2 {
-		t.Errorf("heap grew with use: %s after %d rounds, %s after %d — "+
-			"the live set is identical at both points, so this is retention",
-			base, rounds, grown, 2*rounds)
+	// Heap: growth is allowed up to whichever is larger — a fixed slack, so a
+	// small baseline does not make the comparison jumpy, or a fraction of the
+	// baseline, so a large one is not held to an unreasonable absolute number.
+	//
+	// This replaces a check that could never fire. It read
+	//
+	//	const heapFloor = 8 << 20
+	//	if grown.heapBytes > heapFloor && grown.heapBytes > base.heapBytes*3/2
+	//
+	// which demanded the heap be over 8 MiB BEFORE it would look at the ratio.
+	// The measured heap is four to five megabytes, so the second half was never
+	// evaluated and the assertion was decorative at every scale it runs at — it
+	// would have sat there passing next to any amount of growth. A floor meant
+	// to stop a small baseline being jumpy has to WIDEN THE ALLOWED GROWTH, not
+	// switch the check off below a size.
+	const minSlack = 1 << 20
+	allowed := base.heapBytes / 2
+	if allowed < minSlack {
+		allowed = minSlack
+	}
+
+	// Logged on every run, passing or not. Bytes-per-round is comparable across
+	// scales in a way that two absolute figures are not, and a number nobody
+	// can see is a number nobody notices moving.
+	//
+	// It is not zero today: the nightly reads about 210 bytes a round (4.4 MiB
+	// after 4,000 rounds, 5.2 after 8,000). That is inside the band on purpose.
+	// It is real retention over a workload whose live set is identical at both
+	// points, and it is NOT yet known to be a defect — bbolt files grow as
+	// queues are created and deleted and never shrink, which would account for
+	// all of it. Failing the nightly on an undiagnosed number would teach
+	// whoever sees it to ignore the nightly.
+	perRound := float64(int64(grown.heapBytes)-int64(base.heapBytes)) / float64(rounds)
+	t.Logf("heap moved %+.0f bytes per round across the second %d rounds", perRound, rounds)
+
+	if grown.heapBytes > base.heapBytes+allowed {
+		t.Errorf("heap grew with use: %s after %d rounds, %s after %d (%+.0f bytes "+
+			"per round, %d allowed in total) — the live set is identical at both "+
+			"points, so this is retention",
+			base, rounds, grown, 2*rounds, perRound, allowed)
 	}
 
 	dozetest.NoFaults(t, st)
