@@ -183,7 +183,7 @@ func (s *Store) CreateQueue(name string, attrs map[string]string, tags map[strin
 }
 
 func (s *Store) DeleteQueue(name string) error {
-	return s.db.Update(func(tx *bolt.Tx) error {
+	if err := s.db.Update(func(tx *bolt.Tx) error {
 		if _, err := s.getQueue(tx, name); err != nil {
 			return err
 		}
@@ -191,7 +191,21 @@ func (s *Store) DeleteQueue(name string) error {
 		_ = tx.DeleteBucket(msgBucket(name))
 		_ = tx.DeleteBucket(dedupBucket(name))
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+	// A receive registers interest before it checks the store, and a receive
+	// that SUCCEEDS returns without removing it — harmless while the queue
+	// lives, because the next Send signals it away, and permanent the moment
+	// the queue does not, because nothing can ever signal that name again. One
+	// stranded channel, one map entry and one string per deleted queue, for the
+	// life of the process.
+	//
+	// forget rather than signal: anyone still holding that channel is waiting
+	// on a queue that cannot deliver, and they have a long-poll deadline of
+	// their own. Closing it would be a wakeup with nothing behind it.
+	s.notify.forget(name)
+	return nil
 }
 
 func (s *Store) ListQueues(prefix string) ([]string, error) {

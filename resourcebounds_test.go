@@ -223,13 +223,20 @@ func TestResourcesStayBoundedUnderRepeatedUse(t *testing.T) {
 	// scales in a way that two absolute figures are not, and a number nobody
 	// can see is a number nobody notices moving.
 	//
-	// It is not zero today: the nightly reads about 210 bytes a round (4.4 MiB
-	// after 4,000 rounds, 5.2 after 8,000). That is inside the band on purpose.
-	// It is real retention over a workload whose live set is identical at both
-	// points, and it is NOT yet known to be a defect — bbolt files grow as
-	// queues are created and deleted and never shrink, which would account for
-	// all of it. Failing the nightly on an undiagnosed number would teach
-	// whoever sees it to ignore the nightly.
+	// It read +208 a round when it was first logged, and it was a real leak:
+	// every queue that was received from and then deleted stranded a wakeup
+	// channel in SQS's long-poll notifier, because a SUCCESSFUL receive removed
+	// its registration on neither of the two paths that remove one. See
+	// sqs/notify_leak_test.go. Fixed, and this now reads about -7, which is
+	// noise around zero.
+	//
+	// Worth noting which half of this file did that. The assertion below did
+	// not fire and should not have: a few hundred bytes a round is nowhere near
+	// any defensible band. The LOG LINE found it — a number visible on every
+	// run, consistent across two platforms and twenty-six times the scale, was
+	// enough to be worth attributing, and runtime.MemProfile named the site
+	// from there. A bound catches what is gross; a published number catches
+	// what is small and steady.
 	perRound := float64(int64(grown.heapBytes)-int64(base.heapBytes)) / float64(rounds)
 	t.Logf("heap moved %+.0f bytes per round across the second %d rounds", perRound, rounds)
 
