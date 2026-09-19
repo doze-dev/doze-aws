@@ -18,6 +18,13 @@ per-instance overhead and scan cost — are exactly what doze-aws does most of.
 The write cost people notice is **fsync, not the engine**. The batch operations
 now share one, which was worth more than the engine swap would have been.
 
+SQLite was asked about separately and measured the same way: pure-Go SQLite adds
+**4.40 MiB and nine modules**, Turso's embedded driver ships a native library
+per platform, and its pure-Go drivers are remote-only. See
+[SQLite and Turso](#sqlite-and-turso-asked-and-answered). The one place bbolt
+visibly costs is startup — 208 of the 220 ms boot is opening sixteen databases —
+and the first thing to try there is opening them lazily, not replacing them.
+
 ## The shape that decides it
 
 A storage comparison usually assumes one database. doze-aws has **sixteen** —
@@ -184,6 +191,100 @@ doze-aws ships as one static binary of about 30 MB. Pebble would take it past
 protobuf and the rest. For a tool whose pitch is "no Docker, no JVM, one
 binary", that is a real cost rather than a rounding error.
 
+## SQLite and Turso, asked and answered
+
+*Recorded September 2026.* The question came up directly — bbolt underpins a lot
+here, is something newer better? — so it was measured rather than argued about.
+
+### The criteria, written before measuring
+
+An alternative has to:
+
+1. keep the **pure-Go static cross-compiled binary**. Five platforms from one
+   `go build`, no toolchain per target, no runtime dependency to install.
+2. add **no more than ~2 MB**, against a 20.4 MiB stripped binary.
+3. not regress **write latency** on the paths `## The numbers` already measures.
+4. serve the existing access patterns: many small keyspaces, read- and
+   scan-heavy, one writer.
+
+The first two are the ones that decide it, and neither needs a benchmark.
+
+### What the options actually are
+
+| | embedded? | pure Go? | cost |
+|---|---|---|---|
+| `modernc.org/sqlite` | yes | yes | **+4.40 MiB, +10 modules** |
+| Turso `tursogo` | yes | no CGO, but **ships prebuilt native libraries** | a per-platform binary blob |
+| Turso `tursogo-serverless`, `libsql-client-go` | **no — remote only** | yes | needs a server |
+
+A correction worth recording, because the first draft of this section asserted
+it the other way: **Turso's embedded driver does not use CGO.** It uses purego
+FFI. That is genuinely clever and it does not help here — it still means
+shipping a native library per platform, which is the same promise broken by a
+different mechanism. "One static binary" is not a CGO claim, it is a
+*self-contained* claim.
+
+The remote drivers are pure Go and are remote: they need a libSQL server, which
+is a container beside the tool whose entire pitch is not needing one.
+
+That leaves `modernc.org/sqlite`, which is genuinely pure Go and genuinely
+embedded. Measured, both binaries `-trimpath -ldflags="-s -w"`:
+
+```
+bbolt only                1,924,994 bytes
+bbolt + modernc/sqlite    6,536,722 bytes     +4,611,728  (+4.40 MiB)
+```
+
+It also pulls in **nine new modules** — `modernc.org/libc`, `memory`, `mathutil`
+and `sqlite`, plus `go-humanize`, `uuid`, `go-isatty`, `go-strftime` and
+`bigfft`. (Ten arrive; `golang.org/x/sys` is already linked through bbolt.) The
+six modules that reach the binary today would become fifteen, and the binary
+would grow by **21%** of its current size.
+
+**It fails criterion 2 by more than double, and criterion 1 in every variant
+that would actually be adopted.** Write latency was never reached.
+
+### The honest part: what is bbolt actually costing?
+
+A spike that only measures the alternative is half a spike.
+
+**The single-writer constraint has not bitten.** It is visible in the design —
+`Regions` makes every region share one `_global` store for IAM and STS, because
+a second opener on one file blocks — but each service has its own database, so
+writes serialise per service rather than globally, and nothing in the soak or
+the simulation has contended on it. It is a constraint that has been worked
+around once, cheaply, and has produced no measured problem since.
+
+**Startup is the one place it visibly costs**, and that number is new:
+
+| | |
+|---|---|
+| Full stack boot | 220 ms |
+| One stateful service | ~13 ms |
+| STS, the one stateless service | **0.11 ms** |
+
+Opening sixteen bbolt databases is 208 of the 220 ms. STS keeps nothing on disk
+and starts 120× faster than its neighbours, which is the control that makes this
+a finding rather than a guess: **essentially none of doze-aws's startup is
+doze-aws.** Every stateful service also writes a 131,072-byte file before
+anything has been asked of it, so an untouched data directory is ~2.1 MB.
+
+Those are reproducible now — `BenchmarkBootPerService` and `task lightness` —
+which is what makes this record checkable rather than a snapshot.
+
+### The decision
+
+**Stay on bbolt.** Not because the alternative is bad, but because the two
+criteria that decide it are the two this project is named for, and SQLite fails
+both. A 4.40 MiB, ten-module dependency to fix a constraint that has not yet
+cost anything would be trading a measured property for a hypothetical one.
+
+The decision is enforced rather than remembered. Adding `modernc.org/sqlite` to
+`cmd/doze-aws` was tried, and `TestOnlyTheDeclaredModulesAreLinked` in
+`lightness_test.go` failed immediately, naming all nine new modules — one error
+line each, in a diff. Someone can still decide to take the trade; they cannot
+take it by accident, and they cannot take it without the number being visible.
+
 ## What would change the answer
 
 Not rhetorical — these are the conditions under which this should be revisited:
@@ -199,6 +300,16 @@ Not rhetorical — these are the conditions under which this should be revisited
 - **A write-dominated workload.** If doze-aws were used mainly to hammer
   millions of writes rather than to develop against, the balance inverts. Fix
   the batching first and re-measure before concluding it has.
+- **Startup mattering more than size.** 208 ms of the 220 ms boot is opening
+  sixteen databases. If starting a stack per test run became the main way people
+  use this, that is the number to attack — and the first thing to try is not a
+  new engine but opening the stores lazily, so a stack that only touches SQS
+  pays for one file rather than sixteen. Measure that before trading 4.40 MiB
+  for it.
+- **The single-writer constraint actually biting.** It has not. If two processes
+  needing the same data directory, or cross-service transactions, became real
+  requirements rather than hypotheticals, the calculus changes — and the cost of
+  the change is now a known number rather than a guess.
 
 ## Reproducing this
 
@@ -218,6 +329,14 @@ than take it:
 | scan cost, and what the engine is worth in it | `internal/ddb/store` — `BenchmarkScan10k`, `BenchmarkScanFiltered10k`, `BenchmarkQuery10k` |
 | per-item filter evaluation | `internal/ddb/expr` — `BenchmarkEvalCondition` |
 | the per-request cost above the store | `internal/sigparse`, `internal/gateway` |
+| boot is bbolt, not doze-aws | `BenchmarkBootPerService` (`task bench`) |
+| what an untouched service costs on disk | `task lightness` → `portable.services` |
+
+The SQLite size figures above are a two-file scratch module — a `main` importing
+bbolt, then the same importing `modernc.org/sqlite` as well — built with
+`-trimpath -ldflags="-s -w"` and compared with `stat`. Five minutes to redo when
+somebody doubts it, which is the point of writing down the method rather than
+the conclusion.
 
 The scan benchmarks were added after this record was written, and they are what
 produced the correction above: the claim about scans had rested entirely on an
