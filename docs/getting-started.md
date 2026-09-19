@@ -43,10 +43,18 @@ Setting it up needs sudo once — per machine, not per project.
 Set it up now? [Y/n]
 ```
 
-Say yes and it is done for good. Running as root (a container) it installs
-without asking, since there is nobody to ask. With no terminal at all — CI, or
-`doze-aws &` — it changes nothing and prints what to run, because a server that
-hangs waiting for a password nobody can type is worse than one that stops.
+Say yes and it is done for good. With no terminal at all — CI, or `doze-aws &`
+— it changes nothing and prints what to run, because a server that hangs
+waiting for a password nobody can type is worse than one that stops.
+
+Running as root it installs without asking, since there is nobody to ask.
+**Inside a container that install usually fails**, and doze-aws stops rather
+than starting half-configured: the setup applies a sysctl through
+`sysctl --system`, which reapplies the host's whole sysctl configuration, and
+most of `/proc/sys` is read-only in a container — so it fails on keys that have
+nothing to do with doze. Verified on `alpine`, `debian:stable-slim`, and
+Debian with `sudo` and `procps` installed. **In a container, use `--listen`**,
+which skips the name path entirely and is what the compose setup below does.
 
 The instance is named after the directory, so each project gets its own, and
 its state lands in `./data` — which doze-aws marks ignored as it creates it,

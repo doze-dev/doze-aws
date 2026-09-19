@@ -19,8 +19,9 @@ Setting it up needs sudo once — per machine, not per project.
 Set it up now? [Y/n]
 ```
 
-In a container it just does it; with no terminal to ask on (CI) it changes
-nothing and tells you the two ways forward.
+With no terminal to ask on (CI) it changes nothing and tells you the two ways
+forward. In a container, skip the name entirely and use `--listen` — see
+[getting-started.md](docs/getting-started.md#in-docker-if-that-is-where-your-team-already-is).
 
 Point any AWS SDK at it and go:
 
