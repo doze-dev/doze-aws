@@ -87,6 +87,11 @@ func databases(t *testing.T, dir string) []string {
 // empty one the way an absent database is, so generating them on demand would
 // be a different change with a different argument.
 var eagerFiles = []string{
+	// Written as the directory is created, because its whole job is to be
+	// there before git looks. Deferring it to first use would mean the one
+	// boot that matters — the first, in somebody's repository — is the boot
+	// without it. See ignoreSelf in instance.go.
+	".gitignore",
 	"instance.json",      // the account and region this data belongs to
 	"secretsmanager.key", // 32 bytes, generated once per region
 	"ssm.key",            // likewise

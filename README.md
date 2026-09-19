@@ -4,6 +4,8 @@ Local AWS services, built from scratch in Go. One small static binary that
 speaks the real AWS wire protocols — no Docker, no JVM, no cloud.
 
 ```sh
+curl -fsSL https://raw.githubusercontent.com/doze-dev/doze-aws/main/install.sh | sh
+
 cd ~/code/harbour && doze-aws
 # reachable at http://aws.harbour.doze
 ```

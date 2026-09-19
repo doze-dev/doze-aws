@@ -132,5 +132,32 @@ func stampInstance(dataDir string, id awsident.Identity, logf func(string, ...an
 	if err := os.WriteFile(path, append(blob, '\n'), 0o644); err != nil {
 		logf("doze-aws: could not record this instance's identity in %s: %v", path, err)
 	}
+	ignoreSelf(dataDir, logf)
 	return nil
+}
+
+// ignoreSelf drops a .gitignore into a data directory as it is created, so git
+// never offers to commit it.
+//
+// The default data directory is ./data, inside whatever project you ran
+// doze-aws in, and after one console load it holds sixteen bbolt files and two
+// encryption keys — two megabytes of local state that belongs to nobody's
+// repository. Telling people to add it to .gitignore is a documentation fix
+// for a problem the tool can just not have: a `*` here ignores the directory's
+// contents and the file itself, which is the standard shape.
+//
+// Written only when the directory is new and only when there is nothing there
+// already, so an existing checkout and anyone who has their own arrangement
+// are both left alone. A failure is logged and ignored — a data directory that
+// works is worth more than one that is tidy.
+func ignoreSelf(dataDir string, logf func(string, ...any)) {
+	path := filepath.Join(dataDir, ".gitignore")
+	if _, err := os.Stat(path); err == nil {
+		return
+	}
+	const body = "# doze-aws's local state: service databases, keys and blobs.\n" +
+		"# Not yours to commit — delete the directory and it rebuilds.\n*\n"
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		logf("doze-aws: could not write %s: %v", path, err)
+	}
 }

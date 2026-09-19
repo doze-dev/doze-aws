@@ -101,3 +101,50 @@ func TestNoDataDirIsNoStamp(t *testing.T) {
 		t.Fatalf("an empty data dir must be a no-op: %v", err)
 	}
 }
+
+// A data directory is local state that belongs to nobody's repository, and the
+// default one is ./data inside whatever project doze-aws was run in. This is
+// the difference between a tool that needs a line in your .gitignore and one
+// that does not.
+func TestANewDataDirectoryIgnoresItself(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "data")
+	if err := stampInstance(dir, awsident.Identity{}, quiet); err != nil {
+		t.Fatal(err)
+	}
+
+	body, err := os.ReadFile(filepath.Join(dir, ".gitignore"))
+	if err != nil {
+		t.Fatalf("a fresh data directory has no .gitignore: %v\n"+
+			"  After one console load this directory holds sixteen databases and "+
+			"two encryption\n  keys. Nothing should have to remember to ignore it.", err)
+	}
+	if !strings.Contains(string(body), "\n*\n") {
+		t.Errorf(".gitignore does not ignore everything:\n%s\n"+
+			"  A bare `*` covers the contents and the file itself, which is the "+
+			"shape that needs\n  no maintenance as services are added.", body)
+	}
+}
+
+// An existing one is left alone: somebody may have their own arrangement, and
+// overwriting it every boot would be worse than never writing one.
+func TestAnExistingGitignoreIsNotOverwritten(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "data")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	const mine = "# mine\n!keep-this\n"
+	if err := os.WriteFile(filepath.Join(dir, ".gitignore"), []byte(mine), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := stampInstance(dir, awsident.Identity{}, quiet); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(filepath.Join(dir, ".gitignore"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != mine {
+		t.Errorf(".gitignore was rewritten:\n got %q\nwant %q", got, mine)
+	}
+}

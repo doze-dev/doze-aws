@@ -7,8 +7,15 @@ both AWS SDK generations. No Docker, no JVM, no cloud.
 ## Run it
 
 ```sh
+curl -fsSL https://raw.githubusercontent.com/doze-dev/doze-aws/main/install.sh | sh
+
 cd ~/code/harbour && doze-aws
 ```
+
+The installer verifies a SHA-256 against the release checksums and puts one
+binary on your `PATH`. There is nothing else to install — no runtime, no
+daemon, no container. (`--uninstall` takes it away again and leaves your data
+alone.)
 
 It prints where it is and what to do next:
 
@@ -41,8 +48,13 @@ without asking, since there is nobody to ask. With no terminal at all — CI, or
 `doze-aws &` — it changes nothing and prints what to run, because a server that
 hangs waiting for a password nobody can type is worse than one that stops.
 
-The instance is named after the directory, so each project gets its own. Point
-any AWS SDK or the CLI at it:
+The instance is named after the directory, so each project gets its own, and
+its state lands in `./data` — which doze-aws marks ignored as it creates it,
+so git never offers to commit two megabytes of local databases.
+
+Point any AWS SDK at it, or the AWS CLI if you have one (doze-aws does not
+install or need it — the examples below are just the shortest way to show the
+thing working):
 
 ```sh
 eval "$(doze-aws env)"
