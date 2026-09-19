@@ -12,6 +12,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net"
 	"strings"
@@ -123,5 +124,43 @@ func TestANameResolvingHereAmongOthersIsKept(t *testing.T) {
 	if got := b.advertiseWith(quietLogger(), both); got != b.url {
 		t.Errorf("advertised %q, want the name %q — the answer names this "+
 			"listener among others", got, b.url)
+	}
+}
+
+// resolvesHere is the decision both the banner and `doze-aws env` now make,
+// from different processes and about different sources of truth — a live
+// listener and the registry. Its two halves are tested together because
+// dropping either one produces a plausible-looking check that is wrong in a
+// way only a container reveals.
+func TestResolvesHereNeedsBothAnAnswerAndTheRightOne(t *testing.T) {
+	const host, mine = "aws.harbour.doze", "127.0.0.17"
+
+	cases := []struct {
+		name   string
+		lookup lookupFunc
+		want   bool
+	}{
+		{"names this address", func(context.Context, string) ([]string, error) {
+			return []string{mine}, nil
+		}, true},
+		{"names it among others", func(context.Context, string) ([]string, error) {
+			return []string{"127.0.0.42", mine}, nil
+		}, true},
+		{"resolves somewhere else", func(context.Context, string) ([]string, error) {
+			return []string{"127.0.0.42"}, nil
+		}, false},
+		{"does not resolve", func(context.Context, string) ([]string, error) {
+			return nil, errors.New("no such host")
+		}, false},
+		{"answers with nothing", func(context.Context, string) ([]string, error) {
+			return nil, nil
+		}, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := resolvesHere(c.lookup, host, mine); got != c.want {
+				t.Errorf("resolvesHere = %v, want %v", got, c.want)
+			}
+		})
 	}
 }

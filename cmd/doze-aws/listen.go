@@ -136,9 +136,7 @@ func (b binding) advertiseWith(logger *slog.Logger, lookup lookupFunc) string {
 	if err != nil {
 		return b.url
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), resolveWait)
-	defer cancel()
-	if addrs, lerr := lookup(ctx, host); lerr == nil && slices.Contains(addrs, mine) {
+	if resolvesHere(lookup, host, mine) {
 		return b.url
 	}
 	addr := "http://" + b.ln.Addr().String()
@@ -152,6 +150,18 @@ func (b binding) advertiseWith(logger *slog.Logger, lookup lookupFunc) string {
 // resolveWait bounds the lookup above. Generous for a local resolver and short
 // enough that nobody notices it on a machine where the name is simply absent.
 const resolveWait = 750 * time.Millisecond
+
+// resolvesHere reports whether host resolves, on this machine, to wantIP.
+//
+// Both halves matter and the second is the one that is easy to skip. A
+// container inherits its host's DNS, so an answer can come from another
+// machine's registry and name an address that means something else here.
+func resolvesHere(lookup lookupFunc, host, wantIP string) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), resolveWait)
+	defer cancel()
+	addrs, err := lookup(ctx, host)
+	return err == nil && slices.Contains(addrs, wantIP)
+}
 
 // serve starts every listener on srv.
 func (l listeners) serve(srv *http.Server, logger *slog.Logger, errc chan<- error) {
@@ -246,7 +256,31 @@ func instanceAddress(cfg config.Config) (url, suffix string) {
 	if suffix == "" {
 		suffix = host
 	}
-	if u := names.Open(names.Home(), "doze-aws").URLFor(host); u != "" {
+	reg := names.Open(names.Home(), "doze-aws")
+	if u := reg.URLFor(host); u != "" {
+		// The same question the banner asks, asked by a different process.
+		//
+		// `doze-aws env` runs on its own, so it cannot look at the server's
+		// listener — but the registry records where the instance is, which is
+		// the same fact. Without this the banner correctly printed an address
+		// while the command it tells you to run next exported the NAME, and
+		// `eval "$(doze-aws env)"` in a container pointed every SDK at a
+		// hostname that does not resolve. The banner was honest and the shell
+		// was not.
+		if e, ok := reg.Snapshot()[host]; ok && e.Target != "" {
+			if ip, _, err := net.SplitHostPort(e.Target); err == nil &&
+				!resolvesHere(net.DefaultResolver.LookupHost, host, ip) {
+				// An explicit --suffix belongs to whoever set it — the proxy
+				// case — so it survives. A suffix DERIVED from the instance
+				// name does not: the per-service hostnames under it are the
+				// same name that just failed to resolve, and printing
+				// seventeen of them would be seventeen more dead endpoints.
+				if cfg.Suffix != "" {
+					return "http://" + e.Target, cfg.Suffix
+				}
+				return "http://" + e.Target, ""
+			}
+		}
 		return u, suffix
 	}
 	return "http://" + host, suffix
