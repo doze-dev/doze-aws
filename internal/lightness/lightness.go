@@ -105,6 +105,11 @@ type Shape struct {
 	// startup. The benchmarks in boot_bench_test.go are where a real
 	// regression is meant to be seen.
 	BootMillis Budget `json:"boot_millis"`
+	// BootWarmMicros is a second boot over the same data directory, and unlike
+	// the cold figure it gets a real band rather than a catastrophe ceiling:
+	// it is dominated by work this repo controls, not by the filesystem
+	// creating sixteen files.
+	BootWarmMicros Budget `json:"boot_warm_micros"`
 }
 
 // Recorded says where and when the observations were taken. It explains a diff

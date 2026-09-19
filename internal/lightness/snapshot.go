@@ -41,11 +41,18 @@ type Snapshot struct {
 	Goroutines  int   `json:"goroutines"`
 	CPUMicros   int64 `json:"cpu_micros"`
 	SchedEvents int64 `json:"sched_events"`
-	// BootMillis is how long the stack took to come up. Carried here because
-	// the process that measures the footprint has already paid for a boot, so
-	// timing it costs nothing — and because a stack you cannot start quickly
-	// is one you leave running, which changes how the whole tool feels.
+	// BootMillis is how long the stack took to come up on a FRESH data
+	// directory — the first run in a project, which creates every database.
 	BootMillis int64 `json:"boot_millis"`
+	// BootWarmMicros is a second boot over the same directory: every run after
+	// the first, which is the one that decides how the tool feels.
+	//
+	// In microseconds because it is three orders of magnitude smaller than the
+	// cold figure, and recording it in milliseconds would round the thing being
+	// watched down to zero. Watching only the cold number is how a 96ms
+	// per-service fsync at startup went unnoticed — it barely moved cold boot,
+	// where creating the files dominates, and was 99% of warm boot.
+	BootWarmMicros int64 `json:"boot_warm_micros"`
 }
 
 // Take reads the current cost. It forces two collections first: one is not

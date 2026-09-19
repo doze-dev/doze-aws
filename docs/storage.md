@@ -21,9 +21,10 @@ now share one, which was worth more than the engine swap would have been.
 SQLite was asked about separately and measured the same way: pure-Go SQLite adds
 **4.40 MiB and nine modules**, Turso's embedded driver ships a native library
 per platform, and its pure-Go drivers are remote-only. See
-[SQLite and Turso](#sqlite-and-turso-asked-and-answered). The one place bbolt
-visibly costs is startup — 208 of the 220 ms boot is opening sixteen databases —
-and the first thing to try there is opening them lazily, not replacing them.
+[SQLite and Turso](#sqlite-and-turso-asked-and-answered). Startup looked like
+bbolt's one visible cost and turned out not to be: warm start is **27 ms**, of
+which opening all sixteen databases is 441 µs. The 96 ms it used to be was a
+schema-version write doing an fsync per service to confirm nothing had changed.
 
 ## The shape that decides it
 
@@ -255,22 +256,42 @@ writes serialise per service rather than globally, and nothing in the soak or
 the simulation has contended on it. It is a constraint that has been worked
 around once, cheaply, and has produced no measured problem since.
 
-**Startup is the one place it visibly costs**, and that number is new:
+**Startup was the one place it visibly cost** — and chasing that number found
+the cost was not bbolt at all.
 
-| | |
-|---|---|
-| Full stack boot | 220 ms |
-| One stateful service | ~13 ms |
-| STS, the one stateless service | **0.11 ms** |
+The first measurement said a full stack boots in 220 ms, a stateful service
+takes ~13 ms and STS, which keeps nothing on disk, takes 0.11 ms. The obvious
+reading is "startup is bbolt", and it was written down that way. It was wrong,
+because every one of those benchmarks created its databases from scratch and
+**that is the first run in a project, not the recurring cost**:
 
-Opening sixteen bbolt databases is 208 of the 220 ms. STS keeps nothing on disk
-and starts 120× faster than its neighbours, which is the control that makes this
-a finding rather than a guess: **essentially none of doze-aws's startup is
-doze-aws.** Every stateful service also writes a 131,072-byte file before
-anything has been asked of it, so an untouched data directory is ~2.1 MB.
+| | before | after |
+|---|---|---|
+| Cold boot — creating sixteen databases | 225 ms | unchanged |
+| **Warm boot — the databases already there** | **96 ms** | **0.6 ms** |
+| Real binary, warm, process start included | 113 ms | **27 ms** |
 
-Those are reproducible now — `BenchmarkBootPerService` and `task lightness` —
-which is what makes this record checkable rather than a snapshot.
+Warm boot is the number that matters, and it was not the open. Opening sixteen
+existing bbolt files takes **441 µs, total**. The 96 ms was
+`schemaver.Ensure` — a write transaction per service, and bbolt commits a meta
+page and fsyncs on every writable transaction whether or not anything changed,
+so each service paid a disk flush at startup to be told its schema version was
+already correct. One service: 5.92 ms of a 6.98 ms boot, 85%.
+
+It reads before it writes now. Same validation, same errors, same stamping on a
+fresh or unversioned database — it simply does not take a write transaction to
+confirm that nothing needs writing.
+
+The remaining 27 ms of a warm start is process start, not storage. **Essentially
+none of doze-aws's startup is storage, and the part that looked like storage was
+a flush nobody needed.**
+
+Every stateful service still writes a 131,072-byte file before anything is asked
+of it, so an untouched data directory is ~2.1 MB. That, and the cold-boot cost,
+are genuinely bbolt.
+
+Reproducible: `BenchmarkBootWarm` and `BenchmarkBootPerService` (`task bench`),
+and `task lightness`.
 
 ### The decision
 
@@ -300,12 +321,15 @@ Not rhetorical — these are the conditions under which this should be revisited
 - **A write-dominated workload.** If doze-aws were used mainly to hammer
   millions of writes rather than to develop against, the balance inverts. Fix
   the batching first and re-measure before concluding it has.
-- **Startup mattering more than size.** 208 ms of the 220 ms boot is opening
-  sixteen databases. If starting a stack per test run became the main way people
-  use this, that is the number to attack — and the first thing to try is not a
-  new engine but opening the stores lazily, so a stack that only touches SQS
-  pays for one file rather than sixteen. Measure that before trading 4.40 MiB
-  for it.
+- **Startup mattering more than size.** This was the open question and it has
+  been answered: warm start is 27 ms, of which storage is under a millisecond.
+  Lazy store opening was the plan — open a service's database on first use
+  rather than at boot — and it is no longer worth building, because the thing
+  it would have deferred costs 441 µs for all sixteen. It would have moved
+  errors and schema migrations from startup to the first request for no
+  measurable gain, which is the trade that "if it breaks experience, we avoid
+  it" exists to refuse. Cold start still creates sixteen files; if THAT becomes
+  the complaint, lazy opening is the answer and the measurement is already here.
 - **The single-writer constraint actually biting.** It has not. If two processes
   needing the same data directory, or cross-service transactions, became real
   requirements rather than hypotheticals, the calculus changes — and the cost of

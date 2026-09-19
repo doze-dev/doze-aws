@@ -58,3 +58,33 @@ func benchBoot(b *testing.B, services []string) {
 		}
 	}
 }
+
+// BenchmarkBootWarm is the one that matters for how the tool feels.
+//
+// The benchmarks above create the databases every iteration, which is the first
+// run in a project and happens once. This reuses a directory, which is every
+// run after that — and the two turned out to be different questions by two
+// orders of magnitude. Measuring only the cold path led to "startup is bbolt",
+// which was true of creation and wrong about the recurring cost: that was a
+// schema-version write doing an fsync per service to confirm nothing had
+// changed. See internal/schemaver.
+func BenchmarkBootWarm(b *testing.B) {
+	dir := b.TempDir()
+	st, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: dir, Logf: dozetest.Quiet(b)})
+	if err != nil {
+		b.Fatal(err)
+	}
+	if err := st.Close(); err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		st, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: dir, Logf: dozetest.Quiet(b)})
+		if err != nil {
+			b.Fatal(err)
+		}
+		if err := st.Close(); err != nil {
+			b.Fatal(err)
+		}
+	}
+}

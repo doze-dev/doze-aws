@@ -86,13 +86,14 @@ func TestLightnessFootprint(t *testing.T) {
 		if *update {
 			cur := want.Local.Shapes[name]
 			want.Local.Shapes[name] = lightness.Shape{
-				Heap:        cur.Heap.Record(got.HeapAlloc, lightness.Footprint),
-				Retained:    cur.Retained.Record(got.Retained, lightness.Footprint),
-				MaxRSS:      cur.MaxRSS.Record(got.MaxRSS, lightness.Footprint),
-				Goroutines:  cur.Goroutines.Record(int64(got.Goroutines), lightness.Count),
-				CPUMicros:   cur.CPUMicros.Record(got.CPUMicros, lightness.Noisy),
-				SchedEvents: cur.SchedEvents.Record(got.SchedEvents, lightness.Noisy),
-				BootMillis:  cur.BootMillis.Record(got.BootMillis, lightness.Catastrophe),
+				Heap:           cur.Heap.Record(got.HeapAlloc, lightness.Footprint),
+				Retained:       cur.Retained.Record(got.Retained, lightness.Footprint),
+				MaxRSS:         cur.MaxRSS.Record(got.MaxRSS, lightness.Footprint),
+				Goroutines:     cur.Goroutines.Record(int64(got.Goroutines), lightness.Count),
+				CPUMicros:      cur.CPUMicros.Record(got.CPUMicros, lightness.Noisy),
+				SchedEvents:    cur.SchedEvents.Record(got.SchedEvents, lightness.Noisy),
+				BootMillis:     cur.BootMillis.Record(got.BootMillis, lightness.Catastrophe),
+				BootWarmMicros: cur.BootWarmMicros.Record(got.BootWarmMicros, lightness.Noisy),
 			}
 			continue
 		}
@@ -101,9 +102,9 @@ func TestLightnessFootprint(t *testing.T) {
 			t.Errorf("no budget for the %q shape — run `task lightness:update`", name)
 			continue
 		}
-		t.Logf("%-8s boot %dms · %d goroutines · heap %s · retained %s · peak RSS %s · "+
+		t.Logf("%-8s boot %dms cold, %dµs warm · %d goroutines · heap %s · retained %s · peak RSS %s · "+
 			"%d µs CPU and %d wakeups over %ds",
-			name, got.BootMillis, got.Goroutines, mib(got.HeapAlloc), mib(got.Retained),
+			name, got.BootMillis, got.BootWarmMicros, got.Goroutines, mib(got.HeapAlloc), mib(got.Retained),
 			mib(got.MaxRSS), got.CPUMicros, got.SchedEvents, want.Local.IdleWindowSeconds)
 
 		check(t, name, "live heap", budget.Heap, got.HeapAlloc,
@@ -116,7 +117,10 @@ func TestLightnessFootprint(t *testing.T) {
 			"a stack doing nothing should cost nothing")
 		check(t, name, "wakeups", budget.SchedEvents, got.SchedEvents,
 			"a woken core never reaches its deeper idle states, which is what a battery notices")
-		check(t, name, "boot time (ms)", budget.BootMillis, got.BootMillis,
+		check(t, name, "warm boot (µs)", budget.BootWarmMicros, got.BootWarmMicros,
+			"every run after the first — a per-service cost at startup lives here,\n  "+
+				"and barely shows in the cold figure below")
+		check(t, name, "cold boot (ms)", budget.BootMillis, got.BootMillis,
 			"twenty times the measurement, so this is not slowness — it is something "+
 				"blocking in NewStack")
 	}
@@ -185,12 +189,28 @@ func measureInChild(t *testing.T, shape string) {
 		fmt.Sscan(v, &window)
 	}
 
+	dir := t.TempDir()
 	start := time.Now()
 	st, err := dozeaws.NewStack(dozeaws.StackConfig{
-		DataDir: t.TempDir(), Services: services, Logf: dozetest.Quiet(t)})
+		DataDir: dir, Services: services, Logf: dozetest.Quiet(t)})
 	boot := time.Since(start)
 	if err != nil {
 		t.Fatalf("booting the %q shape: %v", shape, err)
+	}
+
+	// Boot a second time over the same directory and close it again. That is
+	// every run after the first, and it is the number a regression hides in:
+	// work added per service at startup barely moves the cold figure, where
+	// creating the files dominates, and can be the whole of the warm one.
+	if err := st.Close(); err != nil {
+		t.Fatalf("closing the first %q stack: %v", shape, err)
+	}
+	start = time.Now()
+	st, err = dozeaws.NewStack(dozeaws.StackConfig{
+		DataDir: dir, Services: services, Logf: dozetest.Quiet(t)})
+	warm := time.Since(start)
+	if err != nil {
+		t.Fatalf("re-booting the %q shape: %v", shape, err)
 	}
 	defer st.Close()
 
@@ -202,6 +222,7 @@ func measureInChild(t *testing.T, shape string) {
 	time.Sleep(time.Duration(window) * time.Second)
 	after := lightness.Take().Sub(before)
 	after.BootMillis = boot.Milliseconds()
+	after.BootWarmMicros = warm.Microseconds()
 
 	b, err := json.Marshal(after)
 	if err != nil {

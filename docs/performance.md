@@ -233,22 +233,38 @@ Two things that did **not** help, recorded so nobody spends the afternoon:
 and a per-service breakdown — where before, the only startup figure anywhere was
 the line above, hand-timed once.
 
+**There are two startup numbers and they differ by four hundred times.** Which
+one you get depends only on whether the data directory already exists.
+
 | | |
 |---|---|
-| All seventeen services | **220 ms**, 2.2 MB, 1,984 allocs |
-| `--services sqs,s3` | **27 ms**, 257 KB, 260 allocs |
-| One stateful service | ~13 ms |
+| **First run in a project** — creates sixteen databases | **225 ms** |
+| **Every run after** — the files are there | **0.6 ms** in-process, **27 ms** as a binary |
+| `--services sqs,s3`, first run | 27 ms |
+| One stateful service, first run | ~13 ms |
 | STS, the one stateless service | **0.11 ms** |
 
-**Startup is bbolt, almost entirely.** Every stateful service opens one database
-and that costs about 13 ms; sixteen of them is 208 ms of the 220. STS keeps
-nothing on disk and starts 120× faster than its neighbours, which is the control
-that makes the claim rather than a guess. The same shape shows on disk: a
-service that has never been asked for anything still writes a 131,072-byte
-bbolt file, so an untouched seventeen-service data directory is about 2.1 MB.
+**Cold start is bbolt; warm start is not.** Creating a database costs ~13 ms and
+sixteen of them is 208 of the 225 — STS, which keeps nothing on disk, starts
+120× faster than its neighbours, and that is the control that makes it a
+finding. But *opening* sixteen existing databases takes **441 µs in total**, so
+none of the recurring cost was ever storage.
 
-Two things follow. `--services` is worth reaching for — asking for two rather
-than seventeen is an eight-fold difference, and 27 ms is fast enough to start a
-stack per test run rather than leaving one up and losing track of its state. And
-if startup ever needs to be faster, the lever is bbolt, not doze-aws: nothing in
-these numbers is time spent in this repo's own code.
+It used to be 96 ms anyway, and that was `schemaver.Ensure`: a write
+transaction per service at startup, and bbolt commits a meta page and fsyncs on
+every writable transaction whether or not anything changed. Sixteen services
+each paid a disk flush to be told their schema version was already right — 85%
+of a warm boot. It reads before it writes now, and the recurring number went
+from 96 ms to 0.6.
+
+The lesson is in the measurement rather than the fix: the first benchmarks all
+used a fresh directory per iteration, which answers "how long to create a stack"
+when the question was "how long to start one". Both are worth knowing and only
+one of them happens more than once.
+
+What follows: warm start is fast enough to launch a stack per test run without
+thinking about it, `--services` is still worth reaching for on a cold first run,
+and the remaining 27 ms of a real warm start is process start rather than
+anything in this repo. The disk shape is unchanged — every stateful service
+writes a 131,072-byte file before it is asked for anything, so an untouched
+seventeen-service data directory is about 2.1 MB.
