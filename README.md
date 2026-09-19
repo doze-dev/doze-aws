@@ -157,7 +157,12 @@ serverless package && aws cloudformation deploy \
 Stacks are real: they own their resources, and `delete-stack` (or `cdk destroy`)
 takes them back. See [docs/cloudformation.md](docs/cloudformation.md).
 
-Per-service operation coverage lives in [docs/api-support](docs/api-support/).
+Per-service operation coverage lives in [docs/api-support](docs/api-support/),
+and what doze-aws **does not** build — with the argument for each, and the
+separate list of what is merely deferred — is
+**[docs/not-built.md](docs/not-built.md)**. It also states what the binary does
+not do at all: no outbound connections of its own, no account, no telemetry,
+nothing outside the data directory you name. Those are tests, not promises.
 
 ## Design ground rules
 
