@@ -147,6 +147,13 @@ var dialectProbes = map[string]string{
 	"positional predic.": `items[0]`,
 	"negative index":     `nums[-1]`,
 
+	// ---- the gaps jsonata_gaps.go fills ----
+	// Presence only; jsonata_gaps_test.go checks that the answers are right,
+	// which is a different question and the one that matters for new code.
+	// $assert's raising branch is in raisingProbes; this is the true branch,
+	// which must yield nothing and so is probed through $exists.
+	"$assert true": `$exists($assert(true, "fine")) = false`,
+
 	// ---- the five AWS adds, which are this repo's own code ----
 	"$partition": `$partition([1,2,3,4], 2)`,
 	"$range":     `$range(0, 3, 1)`,
@@ -170,12 +177,12 @@ var dialectProbes = map[string]string{
 // available—use $parse instead"), and $parse — AWS's prescribed replacement —
 // is implemented. Not having it is parity, not a gap.
 var unsupported = map[string]string{
-	"$assert": "raises when a condition is false. $error, the other raising " +
-		"function, IS present, and $assert(c, m) is c ? true : $error(m)",
-	"$formatInteger": "integer to words, ordinals or roman numerals (the ICU " +
-		"picture strings)",
-	"$parseInteger":   "the inverse of $formatInteger",
-	"string prettify": "the two-argument $string(value, prettify) form",
+	// $assert, $formatInteger, $parseInteger and the two-argument $string were
+	// all here until jsonata_gaps.go supplied them. They were supplied rather
+	// than documented because the extension mechanism already existed — the
+	// AWS additions use it, and $random already shadows a built-in with it — so
+	// the whole cost was writing the functions.
+	//
 	// These three are one missing feature, not three. The reference
 	// implementation carries a tuple stream through path evaluation, and all of
 	// %, @ and # ride on it; jsonata-go has no such machinery, so none of them
@@ -192,7 +199,9 @@ var unsupported = map[string]string{
 // raisingProbes exist in order to throw, so they have no value to check. They
 // are asserted on how they fail: raising is correct, being absent is not.
 var raisingProbes = map[string]string{
-	"$error": `$error("boom")`,
+	"$error":       `$error("boom")`,
+	"$assert":      `$assert(false, "boom")`,
+	"$assert bare": `$assert(false)`,
 }
 
 // awsExcluded must NOT work, because AWS does not offer it either. $eval is the
