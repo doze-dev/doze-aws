@@ -91,12 +91,22 @@ type Server struct {
 	logf        func(format string, args ...any)
 	now         func() time.Time
 	idleTimeout time.Duration
-	echo        bool                       // function output to Logf
-	shimDir     string                     // the embedded runtime clients, materialised
-	interps     lambdaruntime.Interpreters // configured interpreter overrides
-	guard       iamguard.Guard             // the function resource policy, under IAM soft/enforce
-	id          awsident.Identity          // the region and account this service mints ARNs for
-	suffix      string                     // stands in for amazonaws.com in hostnames
+	echo        bool // function output to Logf
+	// shims writes the embedded runtime clients to disk and returns the
+	// directory they are in (LAMBDA_RUNTIME_DIR), once, on the first call.
+	//
+	// Deferred for the same reason the databases are: a stack that never
+	// invokes a function has no use for 19.9 KB of bootstrap scripts, and
+	// writing them was the last thing standing between an untouched data
+	// directory and nothing at all. Unlike the databases there is no
+	// "already there" fast path to take — Materialize is content-addressed
+	// and rewrites only what changed, so it is cheap on a used directory
+	// and the once is about not repeating it per invocation.
+	shims   func() (string, error)
+	interps lambdaruntime.Interpreters // configured interpreter overrides
+	guard   iamguard.Guard             // the function resource policy, under IAM soft/enforce
+	id      awsident.Identity          // the region and account this service mints ARNs for
+	suffix  string                     // stands in for amazonaws.com in hostnames
 
 	mu       sync.Mutex
 	runners  map[string]*lambdaruntime.Pool // function name -> concurrency pool
@@ -124,12 +134,7 @@ func New(opts Options) (*Server, error) {
 			return nil, err
 		}
 	}
-	// The embedded runtime clients, written where a function process can
-	// read them (LAMBDA_RUNTIME_DIR).
-	shimDir, err := lambdaruntime.Materialize(filepath.Join(opts.DataDir, "shims"))
-	if err != nil {
-		return nil, err
-	}
+	shimRoot := filepath.Join(opts.DataDir, "shims")
 	db, err := lazybolt.Open(filepath.Join(opts.DataDir, "lambda.bolt"), nil,
 		func(db *bolt.DB) error { return schemaver.Ensure(db, "lambda", schemaver.Current) })
 	if err != nil {
@@ -150,12 +155,14 @@ func New(opts Options) (*Server, error) {
 		idleTimeout: opts.IdleTimeout,
 		echo:        !opts.QuietFunctions,
 		interps:     lambdaruntime.Interpreters(opts.Runtimes),
-		shimDir:     shimDir,
-		runners:     map[string]*lambdaruntime.Pool{},
-		sinks:       map[string]*logSink{},
-		mappings:    map[string]*esm{},
-		id:          opts.Identity,
-		suffix:      opts.Suffix,
+		shims: sync.OnceValues(func() (string, error) {
+			return lambdaruntime.Materialize(shimRoot)
+		}),
+		runners:  map[string]*lambdaruntime.Pool{},
+		sinks:    map[string]*logSink{},
+		mappings: map[string]*esm{},
+		id:       opts.Identity,
+		suffix:   opts.Suffix,
 	}
 	s.shutdown, s.endShutdown = context.WithCancel(context.Background())
 	s.store.id = opts.Identity

@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -119,11 +120,24 @@ func (s *Server) runInvokeInput(ctx context.Context, f *Function, in lambdarunti
 	ctx, cancel := context.WithTimeout(ctx,
 		lambdaruntime.MaxWait(time.Duration(f.Timeout)*time.Second))
 	defer cancel()
+	// The runtime shims are written here rather than at boot, so a stack that
+	// never invokes anything never writes them. Resolved BEFORE runnerFor
+	// because this is the last frame that can return an error: runnerFor hands
+	// back a pool and has no way to report one, so a failure there would have
+	// to become ErrPoolClosed and tell the caller the wrong thing.
+	//
+	// Once per server, not per invocation — the cost lands on whichever
+	// invocation is first, and it is a few milliseconds of writing three small
+	// files.
+	var shimDir string
+	if shimDir, err = s.shims(); err != nil {
+		return lambdaruntime.Result{}, fmt.Errorf("writing the runtime shims to %s: %w", s.dataDir, err)
+	}
 	// If the pool was stopped underneath us by a concurrent restart (code/config
 	// update), retry once against the freshly-created pool.
-	res, err = s.runnerFor(f).InvokeInput(ctx, in)
+	res, err = s.runnerFor(f, shimDir).InvokeInput(ctx, in)
 	if errors.Is(err, lambdaruntime.ErrPoolClosed) {
-		res, err = s.runnerFor(f).InvokeInput(ctx, in)
+		res, err = s.runnerFor(f, shimDir).InvokeInput(ctx, in)
 	}
 	return res, err
 }
@@ -267,7 +281,7 @@ func poolKey(f *Function) string {
 	return f.Name + ":" + f.Version
 }
 
-func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
+func (s *Server) runnerFor(f *Function, shimDir string) *lambdaruntime.Pool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	key := poolKey(f)
@@ -307,7 +321,7 @@ func (s *Server) runnerFor(f *Function) *lambdaruntime.Pool {
 		LogSink:      sink,
 		Version:      f.Version,
 		LayerDirs:    s.layerDirs(f),
-		ShimDir:      s.shimDir,
+		ShimDir:      shimDir,
 		Interpreters: s.interps,
 	}, max, s.logf)
 	if s.idleTimeout > 0 {

@@ -274,7 +274,7 @@ because every one of those benchmarks created its databases from scratch and
 | Cold boot — a fresh data directory | 225 ms | 225 ms | **2.8 ms** |
 | Warm boot — a directory already used | 96 ms | 0.6 ms | **0.3 ms** |
 | Real binary, cold, process start included | 793 ms | 793 ms | **~20 ms** |
-| Untouched data directory | 2.1 MB, 17 files | same | **20 KB, 6 files** |
+| Untouched data directory | 2.1 MB, 17 files | same | **158 B, 3 files** |
 
 **The warm number was the fsync.** Opening sixteen existing bbolt files takes
 **441 µs, total**, so the 96 ms was never the open — it was `schemaver.Ensure`
@@ -302,10 +302,16 @@ to find, so deferring it defers nothing but the cost. It also means the data
 directory answers the question by itself: **the databases that exist are the
 services in use.**
 
-What is left in a data directory nobody has used: `instance.json` (94 B), the
-two encryption keys SSM and Secrets Manager generate (32 B each), and Lambda's
-three runtime shims (19.9 KB). Those are eager on purpose — they are cheap, and
-two of them are keys whose absence is not equivalent to an empty database.
+Lambda's three runtime clients are deferred the same way. They are 19.9 KB of
+bootstrap scripts written where a function process can read them
+(`LAMBDA_RUNTIME_DIR`), and a stack that never invokes a function has no use for
+them, so they are written on the first invocation instead of at boot.
+
+What is left in a data directory nobody has used is **three files, 158 bytes**:
+`instance.json` (94 B) and the two encryption keys SSM and Secrets Manager
+generate (32 B each). Those stay eager because they are keys — an absent key is
+not equivalent to an empty one the way an absent database is, so deferring them
+would be a different change with a different argument.
 
 **One cost moved rather than vanished.** The console's rail counts fan out
 across every service, so loading it once creates all sixteen databases: 259 ms

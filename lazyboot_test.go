@@ -30,6 +30,7 @@ import (
 	"io/fs"
 	"net/http/httptest"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -39,14 +40,15 @@ import (
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/dozetest"
+	"github.com/doze-dev/doze-aws/internal/lightness"
 )
 
-// databases lists the bbolt files under dir, by base name.
-func databases(t *testing.T, dir string) []string {
+// written lists the files under dir, by base name, sorted.
+func written(t *testing.T, dir string) []string {
 	t.Helper()
 	var out []string
 	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() || !strings.HasSuffix(p, ".bolt") {
+		if err != nil || d.IsDir() {
 			return err
 		}
 		out = append(out, filepath.Base(p))
@@ -55,7 +57,39 @@ func databases(t *testing.T, dir string) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
+	sort.Strings(out)
 	return out
+}
+
+// databases is the subset of written that is a bbolt file.
+func databases(t *testing.T, dir string) []string {
+	t.Helper()
+	var out []string
+	for _, name := range written(t, dir) {
+		if strings.HasSuffix(name, ".bolt") {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+// eagerFiles is everything a seventeen-service stack is allowed to write before
+// anything has asked it for anything, by base name.
+//
+// A closed list rather than a byte ceiling, because the question it answers is
+// "was this deliberate" and a ceiling answers "is this big". Lambda's three
+// runtime shims were 19.9 KB and sat comfortably under every budget in the
+// tree; what made them worth deferring is that a stack which never invokes a
+// function has no use for them, and no ceiling can express that.
+//
+// Adding a name here is the decision to write something at startup. The two
+// keys are here because they are keys: an absent one is not equivalent to an
+// empty one the way an absent database is, so generating them on demand would
+// be a different change with a different argument.
+var eagerFiles = []string{
+	"instance.json",      // the account and region this data belongs to
+	"secretsmanager.key", // 32 bytes, generated once per region
+	"ssm.key",            // likewise
 }
 
 func TestAnUntouchedStackCreatesNoDatabases(t *testing.T) {
@@ -73,6 +107,23 @@ func TestAnUntouchedStackCreatesNoDatabases(t *testing.T) {
 			"  A service that must read at startup should use lazybolt's "+
 			"ViewIfExists, which answers \"nothing\" for a database that is not "+
 			"there instead of creating one to find out.", len(got), got)
+	}
+
+	// The wider claim, which the database check alone does not make: nothing
+	// ELSE is written either.
+	got := written(t, dir)
+	if added, removed := lightness.Diff(eagerFiles, got); len(added) > 0 || len(removed) > 0 {
+		if len(added) > 0 {
+			t.Errorf("booting every service wrote %v, which eagerFiles does not allow.\n"+
+				"  Something is being created at startup that nobody has asked for. "+
+				"Defer it to first use,\n  or add it to eagerFiles with the reason it "+
+				"has to be written before anyone asks.", added)
+		}
+		if len(removed) > 0 {
+			t.Errorf("eagerFiles expects %v, which boot no longer writes.\n"+
+				"  If that is the point of the change, delete the entries — a list "+
+				"of things that are\n  not written cannot catch anything.", removed)
+		}
 	}
 }
 

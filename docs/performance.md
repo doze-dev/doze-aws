@@ -133,7 +133,7 @@ go tool task lightness
 | CPU | **6.1 ms per 3 idle seconds** (0.2%) | `Rusage` utime+stime, `local.shapes.full.cpu_micros` |
 | Wakeups | 32 per 3 idle seconds | `/sched/latencies:seconds`, `local.shapes.full.sched_events` |
 | Goroutines | **25** | 23 service-owned plus the runtime's own |
-| Boot, fresh data directory | **2.8 ms** | `local.shapes.full.boot_cold_micros` |
+| Boot, fresh data directory | **2.5 ms** | `local.shapes.full.boot_cold_micros` |
 | Boot, directory already used | **0.3 ms** | `local.shapes.full.boot_warm_micros` |
 
 The goroutine figure is not a total that has to be trusted: `task lightness`
@@ -243,11 +243,11 @@ four hundred times.
 
 | | |
 |---|---|
-| **First run in a project** — a fresh data directory | **2.8 ms** in-process, **~20 ms** as a binary |
+| **First run in a project** — a fresh data directory | **2.5 ms** in-process, **~18 ms** as a binary |
 | **Every run after** | **0.3 ms** in-process |
-| `--services sqs,s3`, first run | 0.7 ms |
-| One service, first run | 0.2–1.7 ms |
-| STS, the one stateless service | **0.15 ms** |
+| `--services sqs,s3`, first run | 0.6 ms |
+| One service, first run | 0.4–1.2 ms, no outliers |
+| STS, the one stateless service | **0.5 ms** |
 
 It was 225 ms cold and 96 ms warm, and neither number was what it looked like.
 
@@ -278,11 +278,13 @@ stack" when the question was "how long to start one". Answering the wrong one
 put "startup is bbolt, almost entirely" into this document, where it stayed
 until someone measured the other.
 
-**On disk**, an untouched seventeen-service data directory is now about
-**20 KB across six files** — `instance.json`, two encryption keys, and Lambda's
-three runtime shims — where it used to be **2.1 MB across seventeen**, because
-every stateful service wrote a 131,072-byte bbolt file before it was asked for
-anything. A service's database appears the first time it is used.
+**On disk**, an untouched seventeen-service data directory is now **158 bytes
+across three files** — `instance.json` and the two encryption keys SSM and
+Secrets Manager generate — where it used to be **2.1 MB across seventeen**,
+because every stateful service wrote a 131,072-byte bbolt file before it was
+asked for anything. A service's database appears the first time it is used, and
+so do Lambda's 19.9 KB of runtime shims, which are written on the first
+invocation rather than at boot.
 
 One cost moved rather than disappearing: the console's rail counts fan out
 across every service, so opening it once creates all sixteen databases — 259 ms
