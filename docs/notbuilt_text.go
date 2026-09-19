@@ -39,6 +39,11 @@ For the person reviewing whether this is safe to run:
 - **No telemetry and no analytics**, in the binary or the console.
 - **Nothing outside the data directory you name.** Delete it and the state is
   gone; there is no other store, cache or profile.
+- **No TLS.** It serves plaintext HTTP/1.1 on a loopback address unless you
+  hand it one with ` + "`--listen`" + `, so there is no certificate to manage and
+  nothing to trust into a system store. An SDK takes the endpoint as given;
+  point it at ` + "`http://`" + ` and it works. Reaching it from beyond the machine is
+  a job for whatever already terminates TLS for you.
 - **Apache 2.0**, and it runs fully offline.
 
 ## Declined

@@ -107,9 +107,92 @@ before-and-after is kept because the shapes recur.
 
 ## What is not measured here
 
-Network, TLS and SDK client time. The benchmarks drive the handler directly,
-because those three are the parts doze-aws does not control — including them
-would measure the loopback interface and call it emulator performance.
+TLS, because there is none: doze-aws serves plaintext HTTP/1.1, which
+[not-built.md](not-built.md) records under "what it does not do, at all".
+
+Most benchmarks drive handlers directly, with no socket and no SDK client,
+because those are the parts doze-aws does not control. That exclusion used to
+be the whole of this section, and it left one question unanswerable, so the
+transport is now measured separately below.
+
+## The HTTP layer, and why it is still net/http
+
+**The question.** Would the API layer benefit from fasthttp or Hertz? It is
+asked about every Go service eventually, and it cannot be answered from numbers
+that exclude the transport.
+
+**What the transport costs** (`http_bench_test.go`, `task bench`):
+
+| | per request |
+|---|---|
+| `GetCallerIdentity`, handler only | **4.4 µs** |
+| `GetCallerIdentity` over a real socket | **43.9 µs** |
+| *the floor* — net/http answering `ok`, no doze-aws in it | **35.5 µs** |
+| `GetCallerIdentity` over a socket, 18 cores | **13.1 µs** (~77k req/s) |
+| `SendMessage`, handler only | **7.34 ms** |
+| `SendMessage` over a real socket | **7.43 ms** |
+
+Two operations chosen for opposite reasons. STS is the cheapest thing in the
+tree — stateless, no store, no fsync — so the transport's share of it is as
+large as it can possibly be, which makes it the case most favourable to
+switching. SQS SendMessage is the common one, and it fsyncs.
+
+**Read the loopback figures against the floor, not against zero.** A no-op
+net/http round trip is 35.5 µs, so of `GetCallerIdentity`'s 43.9 µs the
+transport is 39.5 and doze-aws is 4.4. And roughly half the floor is the
+*client*, which stays net/http whatever the server does, because it is the
+developer's AWS SDK. Whatever a different framework could win comes out of the
+server's share of 35.5 µs — not out of the 43.9.
+
+**Against a durable write it is 85 µs on 7.43 ms: 1.2%.** fsync outruns the
+transport by roughly two orders of magnitude, which is the same conclusion
+[storage.md](storage.md) reaches from the other side.
+
+**The internal traffic never touches the socket at all.** `peers.InProcess`
+round-trips straight into the sibling service's `http.Handler`
+(`peers/peers.go`), so Lambda→Logs, Lambda→CloudWatch, SQS→Lambda event source
+mappings and EventBridge→targets — the highest-volume traffic in a running
+stack — pay the 4.4 µs path, not the 43.9 µs one. That works *because*
+everything is an `http.Handler`.
+
+**What switching would cost**, priced the way [storage.md](storage.md) priced
+SQLite — scratch modules, `linux/amd64`, `CGO_ENABLED=0`, `-trimpath -s -w`:
+
+| | binary vs net/http | non-stdlib modules |
+|---|---|---|
+| fasthttp | −20 KB | **4** |
+| Hertz | **+1.95 MB** | **11** (incl. `bytedance/sonic`, `google.golang.org/protobuf`) |
+
+doze-aws links **six** modules today, gated exactly by
+`TestOnlyTheDeclaredModulesAreLinked`. And `net/http` stays linked either way —
+the AWS SDKs, the console and the Lambda Runtime API server all need it — so
+either is purely additive.
+
+The larger cost is `http.Handler` itself. **104 non-test files** touch
+`http.Handler` or `http.ResponseWriter` and **149 test files** use `httptest`:
+the gateway, `awshttp`'s response wrappers, `iamguard.StripHandler`, the
+console, the traffic recorder, and the in-process peer transport above. Neither
+fasthttp (`*fasthttp.RequestCtx`) nor Hertz (`app.RequestContext`) implements
+it.
+
+Two risks specific to this workload rather than to Go services generally: AWS
+SDKs lean on `Expect: 100-continue` and `Transfer-Encoding: aws-chunked` —
+there is an `internal/awschunk` package and `s3/putpipe.go` for exactly that —
+and fasthttp ships no HTTP/2 server, which would permanently foreclose
+`SubscribeToShard`, already recorded in [not-built.md](not-built.md) as needing
+HTTP/2 event streams.
+
+**Decision: stay on net/http.** Not because the frameworks are slow — they are
+not — but because the thing they make faster is 1.2% of a real request here,
+the workload is one developer's laptop rather than a fleet, and the interface
+they would replace is load-bearing well beyond serving requests.
+
+**What would change the answer.** A workload that is mostly cheap reads with no
+fsync — a test suite hammering `PutMetricData`, which is 30 µs and `NoSync` —
+could see the transport become a real share. If that day comes, the lever to
+reach for first is still not the framework: it is the 7.4 ms, via more batching
+of the kind that took `SendMessageBatch` from 71.8 ms to 7.6 ms, or a data
+directory on tmpfs.
 
 ## Idle cost
 
