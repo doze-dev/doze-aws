@@ -41,6 +41,11 @@ type Snapshot struct {
 	Goroutines  int   `json:"goroutines"`
 	CPUMicros   int64 `json:"cpu_micros"`
 	SchedEvents int64 `json:"sched_events"`
+	// BootMillis is how long the stack took to come up. Carried here because
+	// the process that measures the footprint has already paid for a boot, so
+	// timing it costs nothing — and because a stack you cannot start quickly
+	// is one you leave running, which changes how the whole tool feels.
+	BootMillis int64 `json:"boot_millis"`
 }
 
 // Take reads the current cost. It forces two collections first: one is not

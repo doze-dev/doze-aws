@@ -93,6 +93,18 @@ type Shape struct {
 	// SchedEvents is how many times a goroutine went runnable across the idle
 	// window — the wakeup proxy, and the number a laptop battery notices.
 	SchedEvents Budget `json:"sched_events"`
+	// BootMillis is how long NewStack took.
+	//
+	// Its ceiling is a catastrophe ceiling, twenty times the measurement, and
+	// that is deliberate rather than lazy. Wall-clock on a shared runner varies
+	// by tens of percent — .github/workflows/bench.yml refuses to gate on it
+	// for exactly that reason and is right — so any band tight enough to catch
+	// a slowdown would fire on noise and get deleted. Twenty times cannot fire
+	// on noise, and still catches what actually goes wrong here: a synchronous
+	// network call, a sleep, or an eager compile pass finding its way into
+	// startup. The benchmarks in boot_bench_test.go are where a real
+	// regression is meant to be seen.
+	BootMillis Budget `json:"boot_millis"`
 }
 
 // Recorded says where and when the observations were taken. It explains a diff
@@ -201,6 +213,14 @@ var (
 	// it still catches — a per-100ms ticker added to each of seventeen
 	// services is a 10x rise on its own.
 	Noisy Headroom = func(n int64) int64 { return atLeast(n*10, 1000) }
+
+	// Catastrophe is for wall-clock, where no honest band exists. Twenty
+	// times, with a floor, so it cannot fire on a slow runner and still fails
+	// on the things that actually break startup: a synchronous network call, a
+	// sleep, an eager compile pass. Anything subtler belongs in a benchmark,
+	// which is where this repo already decided timing regressions get looked
+	// at rather than gated.
+	Catastrophe Headroom = func(n int64) int64 { return atLeast(n*20, 5000) }
 )
 
 func atLeast(n, floor int64) int64 {

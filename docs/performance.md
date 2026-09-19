@@ -115,18 +115,60 @@ would measure the loopback interface and call it emulator performance.
 
 All seventeen services enabled, nothing being asked of them.
 
-| | |
-|---|---|
-| Physical footprint | **15 MB** |
-| CPU | **0.1% of one core** |
-| Wakeups | **0.1/second** |
-| Goroutines | 25 |
+**These numbers are now measured by a test rather than by hand.** Every figure
+in this section used to be a one-afternoon measurement written down and never
+checked again — the binary could have doubled and nothing would have noticed.
+`task lightness` reproduces them, `testdata/lightness.json` holds them with a
+ceiling each, and CI fails if one breaches. Run it yourself:
 
-**Quote the footprint, not RSS.** `ps` reports ~40 MB for the same process,
-because on macOS RSS counts file-backed pages — the binary's own text, the
-system libraries — that are shared and not the process's to give back. `vmmap`
-puts the dirty total at 15 MB, which is what Activity Monitor calls Memory and
-what Go's own `MemStats.Sys` agrees with to within a megabyte.
+```sh
+go tool task lightness
+```
+
+| | | where it comes from |
+|---|---|---|
+| Retained memory | **11.2 MB** | `MemStats.Sys − HeapReleased`, `local.shapes.full.retained_bytes` |
+| Peak RSS | 29.0 MB | `Rusage.Maxrss`, `local.shapes.full.max_rss_bytes` |
+| Live heap | 3.6 MB | `local.shapes.full.heap_alloc_bytes` |
+| CPU | **2.1 ms per 3 idle seconds** | `Rusage` utime+stime, `local.shapes.full.cpu_micros` |
+| Wakeups | 24 per 3 idle seconds | `/sched/latencies:seconds`, `local.shapes.full.sched_events` |
+| Goroutines | **25** | 23 service-owned plus the runtime's own |
+| Boot | **210 ms** | `local.shapes.full.boot_millis` |
+
+The goroutine figure is not a total that has to be trusted: `task lightness`
+measures each service's contribution as a delta across its own `NewStack`, so
+the budget records logs 4, stepfunctions 3, apigateway/cloudwatch/eventbridge/
+lambda 2 each, eight services 1 each, and cloudformation/iam/sts 0. A count
+that moves names the service it moved in.
+
+**Wakeups are counted from the scheduler, not from `Rusage.Nvcsw`.** Nvcsw is
+the field that looks right and is not: the runtime's `sysmon` parks and wakes at
+up to 10 ms intervals regardless of what the program does, which floors it near
+a thousand per ten-second window and buries the handful that are ours. `sysmon`
+is not a goroutine, which is exactly why the scheduler's own runnable-transition
+count is the right proxy.
+
+**Measured in a child process, which is what makes three of these honest.**
+`Maxrss` is a high-water mark for the whole process and CPU time is cumulative,
+so read from inside a test binary that also runs a 4,000-round bounds test they
+report what *that* did. The measurement re-execs itself with one stack and
+nothing else, `GOMAXPROCS` pinned to 4 so a laptop and a CI runner are
+comparing the same quantity.
+
+**Quote the footprint, not RSS.** RSS reads far higher for the same process,
+because on macOS it counts file-backed pages — the binary's own text, the
+system libraries — that are shared and not the process's to give back. `vmmap`'s
+dirty total is what Activity Monitor calls Memory, and Go's own
+`MemStats.Sys − HeapReleased` agrees with it to within a megabyte. That is why
+the budget records both and quotes the first.
+
+**The two sets of numbers on this page are not the same measurement**, and the
+difference is worth stating rather than smoothing over. The table above is the
+*test binary* with `GOMAXPROCS=4`; the prose below was measured by hand against
+the *real binary* on an unpinned laptop, where the scheduler allocates more
+per-P structures. Expect the hand figures to sit a few megabytes higher. Both
+are honest; only the first is reproducible, which is why it is the one a
+ceiling is attached to.
 
 **The CPU figure is the floor, not a target for more work.** A 30-second
 profile of an idle process collects 30ms of samples and *every one of them* is
@@ -184,3 +226,29 @@ Two things that did **not** help, recorded so nobody spends the afternoon:
   Go's scavenger has already returned what it can.
 - Lazy patterns did nothing for startup: 237 ms before, 245 ms after, which is
   noise. Compiling 527 regexes is not slow, it is just memory you keep forever.
+
+## Startup
+
+`task bench` now measures it — `BenchmarkBootFullStack`, `BenchmarkBootTwoServices`
+and a per-service breakdown — where before, the only startup figure anywhere was
+the line above, hand-timed once.
+
+| | |
+|---|---|
+| All seventeen services | **220 ms**, 2.2 MB, 1,984 allocs |
+| `--services sqs,s3` | **27 ms**, 257 KB, 260 allocs |
+| One stateful service | ~13 ms |
+| STS, the one stateless service | **0.11 ms** |
+
+**Startup is bbolt, almost entirely.** Every stateful service opens one database
+and that costs about 13 ms; sixteen of them is 208 ms of the 220. STS keeps
+nothing on disk and starts 120× faster than its neighbours, which is the control
+that makes the claim rather than a guess. The same shape shows on disk: a
+service that has never been asked for anything still writes a 131,072-byte
+bbolt file, so an untouched seventeen-service data directory is about 2.1 MB.
+
+Two things follow. `--services` is worth reaching for — asking for two rather
+than seventeen is an eight-fold difference, and 27 ms is fast enough to start a
+stack per test run rather than leaving one up and losing track of its state. And
+if startup ever needs to be faster, the lever is bbolt, not doze-aws: nothing in
+these numbers is time spent in this repo's own code.

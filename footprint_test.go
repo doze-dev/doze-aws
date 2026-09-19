@@ -92,6 +92,7 @@ func TestLightnessFootprint(t *testing.T) {
 				Goroutines:  cur.Goroutines.Record(int64(got.Goroutines), lightness.Count),
 				CPUMicros:   cur.CPUMicros.Record(got.CPUMicros, lightness.Noisy),
 				SchedEvents: cur.SchedEvents.Record(got.SchedEvents, lightness.Noisy),
+				BootMillis:  cur.BootMillis.Record(got.BootMillis, lightness.Catastrophe),
 			}
 			continue
 		}
@@ -100,10 +101,10 @@ func TestLightnessFootprint(t *testing.T) {
 			t.Errorf("no budget for the %q shape — run `task lightness:update`", name)
 			continue
 		}
-		t.Logf("%-8s %d goroutines · heap %s · retained %s · peak RSS %s · "+
+		t.Logf("%-8s boot %dms · %d goroutines · heap %s · retained %s · peak RSS %s · "+
 			"%d µs CPU and %d wakeups over %ds",
-			name, got.Goroutines, mib(got.HeapAlloc), mib(got.Retained), mib(got.MaxRSS),
-			got.CPUMicros, got.SchedEvents, want.Local.IdleWindowSeconds)
+			name, got.BootMillis, got.Goroutines, mib(got.HeapAlloc), mib(got.Retained),
+			mib(got.MaxRSS), got.CPUMicros, got.SchedEvents, want.Local.IdleWindowSeconds)
 
 		check(t, name, "live heap", budget.Heap, got.HeapAlloc,
 			"this is the absolute baseline resourcebounds_test.go cannot see")
@@ -115,6 +116,9 @@ func TestLightnessFootprint(t *testing.T) {
 			"a stack doing nothing should cost nothing")
 		check(t, name, "wakeups", budget.SchedEvents, got.SchedEvents,
 			"a woken core never reaches its deeper idle states, which is what a battery notices")
+		check(t, name, "boot time (ms)", budget.BootMillis, got.BootMillis,
+			"twenty times the measurement, so this is not slowness — it is something "+
+				"blocking in NewStack")
 	}
 
 	if *update {
@@ -181,8 +185,10 @@ func measureInChild(t *testing.T, shape string) {
 		fmt.Sscan(v, &window)
 	}
 
+	start := time.Now()
 	st, err := dozeaws.NewStack(dozeaws.StackConfig{
 		DataDir: t.TempDir(), Services: services, Logf: dozetest.Quiet(t)})
+	boot := time.Since(start)
 	if err != nil {
 		t.Fatalf("booting the %q shape: %v", shape, err)
 	}
@@ -195,6 +201,7 @@ func measureInChild(t *testing.T, shape string) {
 	before := lightness.Take()
 	time.Sleep(time.Duration(window) * time.Second)
 	after := lightness.Take().Sub(before)
+	after.BootMillis = boot.Milliseconds()
 
 	b, err := json.Marshal(after)
 	if err != nil {
