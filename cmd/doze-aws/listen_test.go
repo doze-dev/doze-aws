@@ -11,6 +11,7 @@ package main
 // that machine could dial it.
 
 import (
+	"context"
 	"log/slog"
 	"net"
 	"strings"
@@ -80,5 +81,47 @@ func TestTheFallbackSaysWhatToUseInstead(t *testing.T) {
 		if !strings.Contains(line, want) {
 			t.Errorf("the fallback log line does not mention %q:\n  %s", want, line)
 		}
+	}
+}
+
+// The case a real container produced, and the reason resolving alone is not
+// enough: Docker Desktop and Colima forward DNS to the HOST, so a developer
+// running doze on their laptop and again in a container gets an answer for
+// aws.<project>.doze out of the laptop's registry. It names a loopback address
+// that means something else inside the container.
+//
+// It was found by accident — the name answered and the endpoint worked, and it
+// worked only because both instances had been handed 127.0.0.17.
+func TestANameResolvingSomewhereElseIsNotAdvertised(t *testing.T) {
+	b := testBinding(t, "name", "http://aws.harbour.doze")
+
+	// Resolves fine. Just not to us.
+	elsewhere := func(context.Context, string) ([]string, error) {
+		return []string{"127.0.0.42"}, nil
+	}
+	got := b.advertiseWith(quietLogger(), elsewhere)
+	if got == b.url {
+		t.Errorf("advertised %s, which resolves to an address this instance is "+
+			"not listening on.\n  Resolving is not the question — resolving HERE "+
+			"is. A container inherits its\n  host's DNS, so the answer can come "+
+			"from another machine's registry entirely.", got)
+	}
+}
+
+// And the other half of that comparison: an answer that includes our address
+// is kept, even when it names others too. A name with several A records is
+// still this instance's name.
+func TestANameResolvingHereAmongOthersIsKept(t *testing.T) {
+	b := testBinding(t, "name", "http://aws.harbour.doze")
+	mine, _, err := net.SplitHostPort(b.ln.Addr().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	both := func(context.Context, string) ([]string, error) {
+		return []string{"127.0.0.42", mine}, nil
+	}
+	if got := b.advertiseWith(quietLogger(), both); got != b.url {
+		t.Errorf("advertised %q, want the name %q — the answer names this "+
+			"listener among others", got, b.url)
 	}
 }

@@ -53,6 +53,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/config"
@@ -104,7 +105,15 @@ func (l listeners) primary() binding { return l.all[0] }
 // timeout is there for the case where resolution is broken in a way that
 // hangs, because a server that is already listening must not wait on DNS to
 // say so.
+// lookupFunc is net.Resolver.LookupHost, injected so the comparison below can
+// be tested without arranging DNS. Same reason dnsready.go injects its check.
+type lookupFunc func(context.Context, string) ([]string, error)
+
 func (b binding) advertise(logger *slog.Logger) string {
+	return b.advertiseWith(logger, net.DefaultResolver.LookupHost)
+}
+
+func (b binding) advertiseWith(logger *slog.Logger, lookup lookupFunc) string {
 	if b.what != "name" {
 		return b.url
 	}
@@ -112,9 +121,24 @@ func (b binding) advertise(logger *slog.Logger) string {
 	if u, err := url.Parse(b.url); err == nil && u.Hostname() != "" {
 		host = u.Hostname()
 	}
+	// Resolving is not enough: it has to resolve HERE.
+	//
+	// A container inherits its host's DNS — Docker Desktop and Colima both
+	// forward to it — so a developer running doze on their laptop and again in
+	// a container gets an answer for aws.<project>.doze from the LAPTOP's
+	// registry, naming a loopback address that means something else inside the
+	// container. It happened while testing this: the name answered, and only
+	// worked because both instances had been handed the same address.
+	//
+	// So the answer has to name the address this listener is on. Same lookup,
+	// one comparison, and the check stops depending on a coincidence.
+	mine, _, err := net.SplitHostPort(b.ln.Addr().String())
+	if err != nil {
+		return b.url
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), resolveWait)
 	defer cancel()
-	if addrs, err := net.DefaultResolver.LookupHost(ctx, host); err == nil && len(addrs) > 0 {
+	if addrs, lerr := lookup(ctx, host); lerr == nil && slices.Contains(addrs, mine) {
 		return b.url
 	}
 	addr := "http://" + b.ln.Addr().String()
