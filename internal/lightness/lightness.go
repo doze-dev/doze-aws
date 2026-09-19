@@ -49,6 +49,50 @@ type Fixture struct {
 	Note     string   `json:"_"`
 	Recorded Recorded `json:"recorded"`
 	Portable Portable `json:"portable"`
+	Local    Local    `json:"local"`
+}
+
+// Local holds the numbers that move with the machine.
+//
+// Ceilings here are wide — several times the measurement — and that is the
+// point rather than a weakness. A band that can fire on a slower runner is a
+// band somebody disables, and a disabled band catches nothing at all. These
+// exist to catch a doubling, not a drift; the `measured` values next to them
+// are what catch a drift, by appearing in a diff.
+type Local struct {
+	// IdleWindowSeconds is how long a stack is left alone before its CPU and
+	// scheduler deltas are read.
+	IdleWindowSeconds int `json:"idle_window_seconds"`
+	// Shapes is what a given set of services costs at rest, keyed by a name
+	// the test knows: "full" is everything, "sqs+s3" is the two services
+	// resourcebounds_test.go drives.
+	Shapes map[string]Shape `json:"shapes"`
+}
+
+// Shape is one stack configuration, measured at rest.
+type Shape struct {
+	// Heap is the live heap after two collections — the absolute baseline that
+	// resourcebounds_test.go structurally cannot see, because it compares N
+	// rounds against 2N within a single run and so is blind to the starting
+	// point moving.
+	Heap Budget `json:"heap_alloc_bytes"`
+	// Retained is MemStats.Sys minus HeapReleased: what the runtime has taken
+	// from the OS and not given back. This is the footprint figure worth
+	// quoting, and the one docs/performance.md established agrees with vmmap's
+	// dirty total to within a megabyte.
+	Retained Budget `json:"retained_bytes"`
+	// MaxRSS is the process's peak resident size. Only meaningful because the
+	// measurement runs in its own process: as a high-water mark it would
+	// otherwise report whatever the largest test in the package did.
+	MaxRSS Budget `json:"max_rss_bytes"`
+	// Goroutines at rest, including the runtime's own.
+	Goroutines Budget `json:"goroutines"`
+	// CPUMicros is this process's own CPU time across the idle window. A
+	// busy neighbour cannot inflate it, which is why it can be gated at all.
+	CPUMicros Budget `json:"cpu_micros"`
+	// SchedEvents is how many times a goroutine went runnable across the idle
+	// window — the wakeup proxy, and the number a laptop battery notices.
+	SchedEvents Budget `json:"sched_events"`
 }
 
 // Recorded says where and when the observations were taken. It explains a diff
@@ -116,23 +160,57 @@ func (b Budget) Over(n int64) bool { return b.Ceiling > 0 && n > b.Ceiling }
 
 // Record sets Measured, and widens Ceiling only when the measurement has
 // passed it — so regenerating never silently tightens a band somebody chose.
-func (b Budget) Record(n int64) Budget {
+func (b Budget) Record(n int64, h Headroom) Budget {
 	b.Measured = n
 	if b.Ceiling == 0 || n > b.Ceiling {
-		b.Ceiling = headroom(n)
+		b.Ceiling = h(n)
 	}
 	return b
 }
 
-// headroom is the ceiling a fresh measurement gets: a quarter above, rounded
-// up to a kibibyte, with a 4 KiB floor so a tiny tree is not held to the byte.
-func headroom(n int64) int64 {
-	c := n + n/4
-	if c < n+4096 {
-		c = n + 4096
+// A Headroom turns a measurement into the ceiling it gets.
+//
+// There is no single right amount, and pretending otherwise produces a gate
+// that cannot fire. The first version of this file had one rule with a 4 KiB
+// floor — sensible for an asset tree, and it gave a goroutine count of 25 a
+// ceiling of 5,120. That is not a loose budget, it is no budget: the stack
+// would have to leak five thousand goroutines to trip it. Same shape as the
+// heap band a few commits ago that required 8 MiB before it would evaluate a
+// heap that is 3.8. A ceiling has to be chosen against the units it is in.
+type Headroom func(int64) int64
+
+var (
+	// Bytes is for deterministic byte counts — embedded trees, an untouched
+	// data directory. The value does not move unless someone moved it, so a
+	// quarter of room is generous.
+	Bytes Headroom = func(n int64) int64 { return roundKiB(atLeast(n+n/4, n+4096)) }
+
+	// Footprint is for memory measured on whatever machine is running: heap,
+	// retained, resident. Half again, with a mebibyte of floor, because these
+	// legitimately differ between a laptop and a CI runner and a band that
+	// fires on that difference is a band that gets deleted.
+	Footprint Headroom = func(n int64) int64 { return roundKiB(atLeast(n+n/2, n+1<<20)) }
+
+	// Count is for small exact-ish integers — goroutines at rest. Half again
+	// plus four, so 25 becomes 41: tight enough that a dozen leaked goroutines
+	// fire it, loose enough to absorb a GC worker appearing.
+	Count Headroom = func(n int64) int64 { return atLeast(n+n/2, n+4) }
+
+	// Noisy is for what a shared runner's slower cores stretch: CPU time and
+	// scheduler events. Ten times, which sounds absurd until you consider what
+	// it still catches — a per-100ms ticker added to each of seventeen
+	// services is a 10x rise on its own.
+	Noisy Headroom = func(n int64) int64 { return atLeast(n*10, 1000) }
+)
+
+func atLeast(n, floor int64) int64 {
+	if n < floor {
+		return floor
 	}
-	return (c + 1023) / 1024 * 1024
+	return n
 }
+
+func roundKiB(n int64) int64 { return (n + 1023) / 1024 * 1024 }
 
 // Load reads the fixture.
 func Load(path string) (*Fixture, error) {

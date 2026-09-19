@@ -116,7 +116,7 @@ func TestEmbeddedTreesFitTheirBudget(t *testing.T) {
 			}
 			cur := want.Portable.Embed[name]
 			want.Portable.Embed[name] = lightness.Tree{
-				Bytes: cur.Bytes.Record(bytes), Files: files,
+				Bytes: cur.Bytes.Record(bytes, lightness.Bytes), Files: files,
 			}
 		}
 		if err := lightness.Save(budgetPath, want); err != nil {
@@ -195,7 +195,7 @@ func TestEachServiceCostsWhatTheBudgetSays(t *testing.T) {
 		if *update {
 			cur := want.Portable.Services[svc]
 			want.Portable.Services[svc] = lightness.Service{
-				Goroutines: goroutines, DataDirBytes: cur.DataDirBytes.Record(bytes),
+				Goroutines: goroutines, DataDirBytes: cur.DataDirBytes.Record(bytes, lightness.Bytes),
 			}
 			continue
 		}

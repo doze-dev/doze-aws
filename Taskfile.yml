@@ -121,7 +121,7 @@ tasks:
       # Not part of `check`: this is the budget, and a budget that runs on
       # every pre-push is a budget people learn to skip. CI runs it, and it is
       # here for the moment you are deliberately making something bigger.
-      - go test -run 'TestLightness|TestOnlyTheDeclaredModules' -count=1 -v .
+      - go test -run 'TestLightness|TestEmbedded|TestEachService|TestOnlyTheDeclaredModules' -count=1 -v .
 
   lightness:update:
     desc: 'Record current measurements into testdata/lightness.json — then READ THE DIFF'
@@ -129,7 +129,7 @@ tasks:
       # The diff is the point. A number that moved because you meant it to is a
       # line in a commit; a number that moved because something regressed is
       # the same line, and only reading it tells you which you have.
-      - go test -run 'TestLightness|TestOnlyTheDeclaredModules' -count=1 -lightness.update .
+      - go test -run 'TestLightness|TestEmbedded|TestEachService|TestOnlyTheDeclaredModules' -count=1 -lightness.update .
       - git --no-pager diff --stat -- testdata/lightness.json
 
   soak:

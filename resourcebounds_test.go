@@ -219,6 +219,19 @@ func TestResourcesStayBoundedUnderRepeatedUse(t *testing.T) {
 		allowed = minSlack
 	}
 
+	// This test asks "does it grow?" and CANNOT ask "how big is it?" — the
+	// comparison is N rounds against 2N inside a single run, so the starting
+	// point is free to move. Verified rather than reasoned: retaining 5 MiB in
+	// sqs.New takes the baseline from 3.8 MiB to 8.8 and this test still
+	// passes, printing the doubled figure in the line below without a single
+	// assertion firing.
+	//
+	// Making it absolute does not work either, because the measurement point
+	// moves with DOZE_BOUND_ROUNDS and one number would be wrong at one of the
+	// two scales. So the absolute half lives in footprint_test.go, which boots
+	// the same sqs+s3 shape in its own process and holds it to a ceiling. The
+	// two together cover the question; neither does alone.
+	//
 	// Logged on every run, passing or not. Bytes-per-round is comparable across
 	// scales in a way that two absolute figures are not, and a number nobody
 	// can see is a number nobody notices moving.

@@ -60,7 +60,7 @@ jobs:
       # skips the parts that have to boot something. This is the one place the
       # budget gets a clean process to measure in.
       - name: Lightness budget
-        run: go test -run 'TestLightness|TestOnlyTheDeclaredModules' -count=1 -v .
+        run: go test -run 'TestLightness|TestEmbedded|TestEachService|TestOnlyTheDeclaredModules' -count=1 -v .
       - name: Full suite (race)
         run: go test -race ./...
         # CI keeps running the full race suite on every push and pull request.
