@@ -13,6 +13,157 @@
       "go.etcd.io/bbolt",
       "golang.org/x/sys",
       "gopkg.in/yaml.v3"
-    ]
+    ],
+    "embed": {
+      "console/static": {
+        "bytes": {
+          "measured": 1035847,
+          "ceiling": 1295360
+        },
+        "files": 36
+      },
+      "console/templates": {
+        "bytes": {
+          "measured": 542103,
+          "ceiling": 677888
+        },
+        "files": 27
+      },
+      "docs/api-support": {
+        "bytes": {
+          "measured": 161507,
+          "ceiling": 202752
+        },
+        "files": 18
+      },
+      "lambdaruntime/shims": {
+        "bytes": {
+          "measured": 19831,
+          "ceiling": 25600
+        },
+        "files": 3
+      }
+    },
+    "services": {
+      "apigateway": {
+        "goroutines": 2,
+        "datadir_bytes": {
+          "measured": 131166,
+          "ceiling": 164864
+        }
+      },
+      "cloudformation": {
+        "goroutines": 0,
+        "datadir_bytes": {
+          "measured": 131166,
+          "ceiling": 164864
+        }
+      },
+      "cloudwatch": {
+        "goroutines": 2,
+        "datadir_bytes": {
+          "measured": 131166,
+          "ceiling": 164864
+        }
+      },
+      "dynamodb": {
+        "goroutines": 1,
+        "datadir_bytes": {
+          "measured": 131166,
+          "ceiling": 164864
+        }
+      },
+      "eventbridge": {
+        "goroutines": 2,
+        "datadir_bytes": {
+          "measured": 131166,
+          "ceiling": 164864
+        }
+      },
+      "iam": {
+        "goroutines": 0,
+        "datadir_bytes": {
+          "measured": 131166,
+          "ceiling": 164864
+        }
+      },
+      "kinesis": {
+        "goroutines": 1,
+        "datadir_bytes": {
+          "measured": 131166,
+          "ceiling": 164864
+        }
+      },
+      "kms": {
+        "goroutines": 1,
+        "datadir_bytes": {
+          "measured": 131166,
+          "ceiling": 164864
+        }
+      },
+      "lambda": {
+        "goroutines": 2,
+        "datadir_bytes": {
+          "measured": 150997,
+          "ceiling": 189440
+        }
+      },
+      "logs": {
+        "goroutines": 4,
+        "datadir_bytes": {
+          "measured": 131166,
+          "ceiling": 164864
+        }
+      },
+      "s3": {
+        "goroutines": 1,
+        "datadir_bytes": {
+          "measured": 131166,
+          "ceiling": 164864
+        }
+      },
+      "secretsmanager": {
+        "goroutines": 1,
+        "datadir_bytes": {
+          "measured": 131198,
+          "ceiling": 164864
+        }
+      },
+      "sns": {
+        "goroutines": 1,
+        "datadir_bytes": {
+          "measured": 131166,
+          "ceiling": 164864
+        }
+      },
+      "sqs": {
+        "goroutines": 1,
+        "datadir_bytes": {
+          "measured": 131166,
+          "ceiling": 164864
+        }
+      },
+      "ssm": {
+        "goroutines": 1,
+        "datadir_bytes": {
+          "measured": 131198,
+          "ceiling": 164864
+        }
+      },
+      "stepfunctions": {
+        "goroutines": 3,
+        "datadir_bytes": {
+          "measured": 131166,
+          "ceiling": 164864
+        }
+      },
+      "sts": {
+        "goroutines": 0,
+        "datadir_bytes": {
+          "measured": 94,
+          "ceiling": 5120
+        }
+      }
+    }
   }
 }

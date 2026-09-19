@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"embed"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,6 +21,12 @@ import (
 
 //go:embed shims/bootstrap.py shims/bootstrap.mjs shims/bootstrap.rb
 var shimFS embed.FS
+
+// EmbeddedFS returns the shim tree, so testdata/lightness.json can weigh what
+// it contributes to the binary. The smallest of the four embed sites by a wide
+// margin, and included for completeness: a budget that weighs only the big
+// things teaches people that small things are free.
+func EmbeddedFS() fs.FS { return shimFS }
 
 // shimFiles maps a runtime family to its embedded client.
 var shimFiles = map[string]string{

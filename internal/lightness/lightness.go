@@ -38,7 +38,9 @@ package lightness
 import (
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"sort"
 )
 
@@ -65,6 +67,71 @@ type Portable struct {
 	// form of this fact: "+1 module" tells you nothing and
 	// "+github.com/aws/aws-sdk-go-v2" tells you what happened and who to ask.
 	Modules []string `json:"modules"`
+
+	// Embed is what each //go:embed tree weighs inside the binary, keyed by
+	// site. Per site rather than one total, so a failure says WHICH tree grew.
+	Embed map[string]Tree `json:"embed"`
+
+	// Services is what one service costs to start and to store, keyed by the
+	// name in dozeaws.Implemented.
+	Services map[string]Service `json:"services"`
+}
+
+// Tree is an embedded asset tree.
+type Tree struct {
+	Bytes Budget `json:"bytes"`
+	Files int    `json:"files"`
+}
+
+// Service is what one service costs before anything has asked it for anything.
+type Service struct {
+	// Goroutines is how many the constructor leaves running. Exact: a delta
+	// across one NewStack call, so it is immune to whatever else the test
+	// binary is doing, and a change in it is always deliberate.
+	Goroutines int `json:"goroutines"`
+	// DataDirBytes is what an untouched service writes to disk just by being
+	// enabled — bbolt's initial pages, mostly.
+	DataDirBytes Budget `json:"datadir_bytes"`
+}
+
+// Budget is a number with room above it.
+//
+// Ceiling gates; Measured records. Both, because they answer different
+// questions: the ceiling asks "has this become a problem", and the measured
+// value asks "did this move", which is the question a diff answers and an
+// assertion cannot. A creep from 1.0 to 1.4 MB under a 1.5 MB ceiling passes
+// every gate and is obvious in a review.
+//
+// Bytes get a ceiling rather than exact equality on purpose. Console assets are
+// edited routinely, and a gate that fires on a one-byte CSS change is a gate
+// that gets a `lightness:update` reflex rather than a reading — which is
+// exactly how a budget stops meaning anything.
+type Budget struct {
+	Measured int64 `json:"measured"`
+	Ceiling  int64 `json:"ceiling"`
+}
+
+// Over reports whether n breaches the ceiling.
+func (b Budget) Over(n int64) bool { return b.Ceiling > 0 && n > b.Ceiling }
+
+// Record sets Measured, and widens Ceiling only when the measurement has
+// passed it — so regenerating never silently tightens a band somebody chose.
+func (b Budget) Record(n int64) Budget {
+	b.Measured = n
+	if b.Ceiling == 0 || n > b.Ceiling {
+		b.Ceiling = headroom(n)
+	}
+	return b
+}
+
+// headroom is the ceiling a fresh measurement gets: a quarter above, rounded
+// up to a kibibyte, with a 4 KiB floor so a tiny tree is not held to the byte.
+func headroom(n int64) int64 {
+	c := n + n/4
+	if c < n+4096 {
+		c = n + 4096
+	}
+	return (c + 1023) / 1024 * 1024
 }
 
 // Load reads the fixture.
@@ -87,6 +154,42 @@ func Save(path string, f *Fixture) error {
 		return err
 	}
 	return os.WriteFile(path, append(b, '\n'), 0o644)
+}
+
+// FSBytes totals an embedded tree: the bytes that ship and the files they are
+// in. Walks the embed.FS rather than the directory, so it counts what is
+// compiled in and not what happens to be lying beside it on disk.
+func FSBytes(fsys fs.FS) (bytes int64, files int, err error) {
+	err = fs.WalkDir(fsys, ".", func(_ string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		bytes += info.Size()
+		files++
+		return nil
+	})
+	return bytes, files, err
+}
+
+// DirBytes totals a directory on disk: what a data directory costs.
+func DirBytes(root string) (bytes int64, files int, err error) {
+	err = filepath.WalkDir(root, func(_ string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		bytes += info.Size()
+		files++
+		return nil
+	})
+	return bytes, files, err
 }
 
 // Diff reports what moved between two sorted sets, as the two lists a reader

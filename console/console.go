@@ -10,6 +10,7 @@ import (
 	"errors"
 	"html/template"
 	"io"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"slices"
@@ -25,6 +26,22 @@ var templateFS embed.FS
 
 //go:embed static/* static/aws/*
 var staticFS embed.FS
+
+// EmbeddedFS returns the trees the console carries inside the binary, keyed by
+// the name the lightness budget knows them as.
+//
+// The console is the largest single addressable thing in the binary — roughly
+// 2.6 MB of assets and compiled Go, about 13% — and it is embedded whether or
+// not --console is on. That is a deliberate choice (one binary, one product,
+// and it works offline), but a deliberate choice deserves a number somebody
+// re-approves rather than one that drifts. This is how testdata/lightness.json
+// weighs it without this package exporting its embed.FS values as API.
+func EmbeddedFS() map[string]fs.FS {
+	return map[string]fs.FS{
+		"console/templates": templateFS,
+		"console/static":    staticFS,
+	}
+}
 
 // Console is the web-UI http.Handler. Mount it under a path prefix (default
 // "/_console") alongside the AWS gateway.

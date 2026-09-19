@@ -12,12 +12,20 @@ package dozeaws_test
 
 import (
 	"flag"
+	"io/fs"
 	"os"
 	"os/exec"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
+	dozeaws "github.com/doze-dev/doze-aws"
+	"github.com/doze-dev/doze-aws/console"
+	"github.com/doze-dev/doze-aws/docs"
+	"github.com/doze-dev/doze-aws/internal/dozetest"
+	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/lightness"
 )
 
@@ -82,6 +90,176 @@ func TestOnlyTheDeclaredModulesAreLinked(t *testing.T) {
 		t.Errorf("%s is in the budget but is no longer linked.\n"+
 			"  Good news, probably: run `task lightness:update` to record it.", m)
 	}
+}
+
+// TestEmbeddedTreesFitTheirBudget weighs what ships inside the binary.
+//
+// Per embed site rather than one total, because a total that moved tells you
+// nothing about which tree moved — and one of these four is the console, which
+// is ~13% of the binary and under routine development. The point is not to stop
+// it growing; it is that growing it should be a line somebody approved.
+func TestEmbeddedTreesFitTheirBudget(t *testing.T) {
+	want, err := lightness.Load(budgetPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	trees := embeddedTrees()
+
+	if *update {
+		if want.Portable.Embed == nil {
+			want.Portable.Embed = map[string]lightness.Tree{}
+		}
+		for name, fsys := range trees {
+			bytes, files, err := lightness.FSBytes(fsys)
+			if err != nil {
+				t.Fatalf("%s: %v", name, err)
+			}
+			cur := want.Portable.Embed[name]
+			want.Portable.Embed[name] = lightness.Tree{
+				Bytes: cur.Bytes.Record(bytes), Files: files,
+			}
+		}
+		if err := lightness.Save(budgetPath, want); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+
+	for name, fsys := range trees {
+		bytes, files, err := lightness.FSBytes(fsys)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		budget, ok := want.Portable.Embed[name]
+		if !ok {
+			t.Errorf("%s is embedded in the binary and is not in the budget — "+
+				"run `task lightness:update`", name)
+			continue
+		}
+		t.Logf("%-24s %8d bytes in %2d files (ceiling %d)", name, bytes, files, budget.Bytes.Ceiling)
+		if budget.Bytes.Over(bytes) {
+			t.Errorf("%s is %d bytes, over its %d ceiling by %d.\n"+
+				"  Every byte here ships to every user whether they open it or not.\n"+
+				"  If the growth is wanted, `task lightness:update` raises the ceiling\n"+
+				"  and puts the new number in the diff.",
+				name, bytes, budget.Bytes.Ceiling, bytes-budget.Bytes.Ceiling)
+		}
+		if files != budget.Files {
+			t.Errorf("%s ships %d files, budget says %d — a file appeared or "+
+				"vanished, which is worth a glance even when the bytes are fine",
+				name, files, budget.Files)
+		}
+	}
+}
+
+// embeddedTrees is every //go:embed tree in the binary.
+//
+// The console and the shims hand theirs out through an accessor rather than
+// exporting embed.FS values; docs.FS is already exported because console/info.go
+// reads the ledger at runtime to render the fidelity panel.
+func embeddedTrees() map[string]fs.FS {
+	trees := map[string]fs.FS{
+		"docs/api-support":    docs.FS,
+		"lambdaruntime/shims": lambdaruntime.EmbeddedFS(),
+	}
+	for name, fsys := range console.EmbeddedFS() {
+		trees[name] = fsys
+	}
+	return trees
+}
+
+// TestEachServiceCostsWhatTheBudgetSays measures one service at a time.
+//
+// Per service, not per stack, and as a DELTA across NewStack — which is what
+// makes it exact rather than approximate. An absolute count would be polluted
+// by whatever else the test binary has running; a delta is the service's own
+// contribution and nothing else's.
+//
+// It also localises a regression. "The full stack now starts 31 goroutines
+// instead of 27" sends you looking through seventeen services; "logs now
+// starts 5 instead of 4" does not.
+func TestEachServiceCostsWhatTheBudgetSays(t *testing.T) {
+	if testing.Short() {
+		t.Skip("boots every service in turn")
+	}
+	want, err := lightness.Load(budgetPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if *update && want.Portable.Services == nil {
+		want.Portable.Services = map[string]lightness.Service{}
+	}
+
+	for _, svc := range dozeaws.Implemented {
+		goroutines, bytes := measureService(t, svc)
+		if *update {
+			cur := want.Portable.Services[svc]
+			want.Portable.Services[svc] = lightness.Service{
+				Goroutines: goroutines, DataDirBytes: cur.DataDirBytes.Record(bytes),
+			}
+			continue
+		}
+		budget, ok := want.Portable.Services[svc]
+		if !ok {
+			t.Errorf("%s is implemented and is not in the budget — run `task lightness:update`", svc)
+			continue
+		}
+		t.Logf("%-16s %2d goroutines, %7d bytes on disk", svc, goroutines, bytes)
+		if goroutines != budget.Goroutines {
+			t.Errorf("%s starts %d long-lived goroutine(s), budget says %d.\n"+
+				"  A goroutine per service is a goroutine on every laptop running this,\n"+
+				"  awake or parked. If the new one is wanted, record it and say why in\n"+
+				"  the commit.", svc, goroutines, budget.Goroutines)
+		}
+		if budget.DataDirBytes.Over(bytes) {
+			t.Errorf("%s writes %d bytes to an untouched data directory, over its %d ceiling",
+				svc, bytes, budget.DataDirBytes.Ceiling)
+		}
+	}
+	if *update {
+		if err := lightness.Save(budgetPath, want); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// measureService boots one service alone and reports what it cost.
+func measureService(t *testing.T, svc string) (goroutines int, bytes int64) {
+	t.Helper()
+	dir := t.TempDir()
+	before := settled()
+	st, err := dozeaws.NewStack(dozeaws.StackConfig{
+		DataDir: dir, Services: []string{svc}, Logf: dozetest.Quiet(t)})
+	if err != nil {
+		t.Fatalf("booting %s alone: %v", svc, err)
+	}
+	after := settled()
+	if err := st.Close(); err != nil {
+		t.Fatalf("closing %s: %v", svc, err)
+	}
+	bytes, _, err = lightness.DirBytes(dir)
+	if err != nil {
+		t.Fatalf("measuring %s's data dir: %v", svc, err)
+	}
+	return after - before, bytes
+}
+
+// settled waits for the goroutine count to stop moving before reading it.
+//
+// Constructors start their workers asynchronously, so an immediate count races
+// them and lands anywhere. Waiting for two identical readings a tick apart is
+// enough, and far steadier than a fixed sleep chosen by guess.
+func settled() int {
+	last := runtime.NumGoroutine()
+	for i := 0; i < 100; i++ {
+		time.Sleep(10 * time.Millisecond)
+		n := runtime.NumGoroutine()
+		if n == last {
+			return n
+		}
+		last = n
+	}
+	return last
 }
 
 // linkedModules asks the toolchain which modules reach cmd/doze-aws.
