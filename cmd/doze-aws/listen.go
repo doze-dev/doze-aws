@@ -47,10 +47,13 @@ package main
 // it back.
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
+	"time"
 
 	"github.com/doze-dev/doze-aws/internal/config"
 	names "github.com/doze-dev/doze-names"
@@ -79,6 +82,52 @@ func (l listeners) close() {
 
 // primary is the address the console link and the "listening" line use.
 func (l listeners) primary() binding { return l.all[0] }
+
+// advertise returns the URL to put in front of a person: this binding's own,
+// unless it is a name that does not resolve here, in which case the address it
+// is actually listening on.
+//
+// # Why this asks DNS instead of asking the setup
+//
+// The setup knows a lot about whether names OUGHT to resolve — which resolver
+// manager is present, whether the route is installed, whether the platform can
+// do split DNS at all — and every one of those is a proxy for the thing that
+// actually matters. A container makes the difference obvious: the install
+// succeeds, apex names go into /etc/hosts and work, and
+// aws.<project>.doze still does not resolve because a slim image has neither
+// systemd-resolved nor dnsmasq. Reasoning from capability, the banner printed
+// a URL nothing could reach; resolving it answers the question directly.
+//
+// This runs once, after the name is registered and the listener is up, and it
+// is the last thing before the banner. A lookup of a name this machine is
+// meant to serve goes to the local resolver and returns in microseconds; the
+// timeout is there for the case where resolution is broken in a way that
+// hangs, because a server that is already listening must not wait on DNS to
+// say so.
+func (b binding) advertise(logger *slog.Logger) string {
+	if b.what != "name" {
+		return b.url
+	}
+	host := b.url
+	if u, err := url.Parse(b.url); err == nil && u.Hostname() != "" {
+		host = u.Hostname()
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), resolveWait)
+	defer cancel()
+	if addrs, err := net.DefaultResolver.LookupHost(ctx, host); err == nil && len(addrs) > 0 {
+		return b.url
+	}
+	addr := "http://" + b.ln.Addr().String()
+	// Said once, plainly: the name is still registered and still correct on a
+	// machine that can route the domain — it is this machine that cannot.
+	logger.Info("the instance name does not resolve here, so the address is what to use",
+		"name", host, "url", addr, "fix", "doze-aws doctor")
+	return addr
+}
+
+// resolveWait bounds the lookup above. Generous for a local resolver and short
+// enough that nobody notices it on a machine where the name is simply absent.
+const resolveWait = 750 * time.Millisecond
 
 // serve starts every listener on srv.
 func (l listeners) serve(srv *http.Server, logger *slog.Logger, errc chan<- error) {

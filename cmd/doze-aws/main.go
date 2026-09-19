@@ -460,6 +460,13 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	// Mount the web console alongside the AWS gateway on the same endpoint. The
 	// "/_console" prefix can never collide with a valid S3 bucket name (those
 	// forbid underscores), so path-style S3 routing is unaffected.
+	// What to put in front of a person, which is not always binds.primary().url:
+	// a name that does not resolve on this machine is worse than an address,
+	// and the console link has to agree with the endpoint or one of them is
+	// wrong. Resolved once, here, after the name is registered and the listener
+	// is up. See binding.advertise.
+	advertised := binds.primary().advertise(logger)
+
 	handler := http.Handler(regions)
 	consoleURL := ""
 	if cfg.Console {
@@ -495,14 +502,14 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		mux.Handle("/_console", http.RedirectHandler("/_console/", http.StatusFound))
 		mux.Handle("/", rec)
 		handler = mux
-		logger.Info("console", "url", binds.primary().url+"/_console/")
-		consoleURL = binds.primary().url + "/_console/"
+		logger.Info("console", "url", advertised+"/_console/")
+		consoleURL = advertised + "/_console/"
 	}
 
 	// The same facts as the log lines above, for the person rather than the
 	// parser. See ready.go for why this is stdout and they are stderr.
 	ready{
-		endpoint: binds.primary().url,
+		endpoint: advertised,
 		console:  consoleURL,
 		services: enabled,
 		region:   cfg.Identity().RegionName(),
