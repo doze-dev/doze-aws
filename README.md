@@ -115,8 +115,17 @@ models, and each service gets a rejection-parity suite as it lands
 **Operations first, cases second, and the order is the point.** The operation
 count is the claim that matters: every operation the model documents is either
 handled or refused by name, so nothing falls through to a confusing
-`InvalidAction`. That is enforced per service by a frozen model list
-(`*/coverage_test.go`). The case count underneath is the mechanical long tail —
+`InvalidAction`. That is enforced per service by a model-derived operation list
+(`*/coverage_test.go`, reading the committed `testdata/ops_*.json` that CI
+re-derives from AWS's models weekly) — for the fourteen services with an
+action-dispatched wire. S3, Lambda and both API Gateways dispatch by method and
+path with no action table, so their equivalent is the committed route table and
+the rejection-parity suite.
+
+Where the claim does not yet hold, the list says so rather than the prose
+rounding up: fifty-nine operations across Kinesis, KMS, IAM and SSM reach no
+handler and no named refusal today, each written into the owning service's
+coverage test so the gap cannot grow unnoticed. The case count underneath is the mechanical long tail —
 lengths, patterns, enums, required members — and it is a weaker number by
 nature: nobody writes a 513-character description by accident, and AWS would
 have caught it at deploy. It is worth having and it is not the score. A number

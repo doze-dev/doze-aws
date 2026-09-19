@@ -4,9 +4,16 @@ Tiers: **F** = functional (real local semantics, SDK-observable behavior
 matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) ·
 **S** = stub (clean error; emulating it locally would be a lie).
 
-All 176 documented IAM operations are accounted for: 91 are handled, 85 answer
-a clean refusal naming the reason. Nothing falls through to a bare
-`InvalidAction`.
+AWS documents **180** IAM operations. 176 are accounted for — handled, or
+refused by name with the reason — and **four are not**: `AcquireRole`,
+`GetAccountProperties`, `GetRoleTemplateVersion` and `PutAccountProperties`
+answer a bare `InvalidAction`, which tells a caller their action was
+unrecognised rather than that doze-aws does not serve it.
+
+They are AWS additions that landed after this service was written, and they are
+listed in `iam/coverage_model_test.go` so the gap cannot grow without the build
+failing. That count used to read "all 176" because the total was typed by hand;
+it comes from `testdata/ops_iam.json` now, which CI regenerates weekly.
 
 ## The three modes
 

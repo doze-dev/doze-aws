@@ -63,28 +63,36 @@ jobs:
             dir="${pair%%:*}"; model="${pair##*:}"
             # Fetches into .audit-models on a miss, which is what CI always is.
             go run ./cmd/dzaudit shapes "$model" > "$dir/testdata/shapes_$model.json"
+            go run ./cmd/dzaudit ops "$model" > "$dir/testdata/ops_$model.json"
           done
 
       - name: Fail if anything derived has moved
         run: |
-          if ! git diff --quiet -- '*/testdata/shapes_*.json'; then
+          if ! git diff --quiet -- '*/testdata/shapes_*.json' '*/testdata/ops_*.json'; then
             echo 'AWS has changed a service model since these fixtures were generated.'
             echo
-            git --no-pager diff --stat -- '*/testdata/shapes_*.json'
+            git --no-pager diff --stat -- '*/testdata/shapes_*.json' '*/testdata/ops_*.json'
             echo
             echo 'Regenerate locally and review the diff:'
             echo '  go run ./cmd/dzaudit shapes <model> > <service>/testdata/shapes_<model>.json'
+            echo '  go run ./cmd/dzaudit ops    <model> > <service>/testdata/ops_<model>.json'
+            echo
+            echo 'An ops_*.json diff means AWS ADDED OR REMOVED AN OPERATION. The per-service'
+            echo 'coverage test will then name it as unaccounted for, which is the point:'
+            echo 'it answers a generic InvalidAction until it is handled or refused by name.'
             echo
             echo 'Reviewing it is the point — these are the spec doze-aws is measured'
             echo 'against, so a change to them should be seen rather than absorbed.'
             exit 1
           fi
-          echo 'No drift: the committed shapes still match the published models.'
+          echo 'No drift: the committed shapes and operation lists still match the published models.'
 
       - name: Upload the regenerated fixtures
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: regenerated-shapes
-          path: '*/testdata/shapes_*.json'
+          path: |
+            */testdata/shapes_*.json
+            */testdata/ops_*.json
           retention-days: 14

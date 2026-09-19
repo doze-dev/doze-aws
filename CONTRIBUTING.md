@@ -74,7 +74,7 @@ enforces the list except the tests at the end of it:
 | `internal/gateway/gateway.go` | `Services`, and whichever routing rule finds it — `targetPrefixes` for a JSON protocol, `scopeServices` for the signature scope |
 | `cmd/doze-aws/env.go` | `signingNames`, so `doze-aws env` prints the right endpoint variable |
 | `console/catalog.go` | `catalog`, so it appears in the console nav |
-| `<service>/coverage_test.go` | which operations are implemented, and why the rest are not |
+| `<service>/coverage_test.go` | every operation in `testdata/ops_<model>.json` is handled, refused by name, or a written-down gap |
 | `<service>/rejection_parity_test.go` | that a refusal matches what AWS would say |
 | `cmd/dzaudit` | the model-derived input-validation audit |
 
@@ -89,9 +89,11 @@ runs in parallel.
 
 - **Contract tests** drive the real AWS SDK against the service. They are the
   ones that catch a wire-shape mistake, and they are gated off by `-short`.
-- **`coverage_test.go`** per service records which operations exist and why the
-  unimplemented ones are unimplemented. An operation with no surface and no
-  exemption is a failure, not a TODO.
+- **`coverage_test.go`** per service holds the dispatch table against the
+  operation list `dzaudit ops` derives from AWS's own model, committed as
+  `testdata/ops_<model>.json` and regenerated weekly by CI. An operation with
+  no handler, no named refusal and no entry in `Unreached` is a failure, not a
+  TODO — and an operation AWS adds becomes one without anybody running a tool.
 - **`rejection_parity_test.go`** checks that when doze-aws refuses something,
   it refuses it the way AWS does — same code, same status. A local emulator
   that accepts what the service rejects is worse than one that is missing the

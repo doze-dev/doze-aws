@@ -1,0 +1,13 @@
+[
+  "AssumeRole",
+  "AssumeRoleWithSAML",
+  "AssumeRoleWithWebIdentity",
+  "AssumeRoot",
+  "DecodeAuthorizationMessage",
+  "GetAccessKeyInfo",
+  "GetCallerIdentity",
+  "GetDelegatedAccessToken",
+  "GetFederationToken",
+  "GetSessionToken",
+  "GetWebIdentityToken"
+]

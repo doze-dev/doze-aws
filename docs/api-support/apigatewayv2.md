@@ -5,7 +5,7 @@ matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) �
 **S** = stub (clean error; emulating it locally would be a lie).
 
 doze-aws implements the HTTP API **create → route → serve** path: 37 of
-apigatewayv2's 98 operations, covering an API with CORS, its integrations,
+apigatewayv2's 103 operations, covering an API with CORS, its integrations,
 routes, REQUEST authorizers, stages, deployments and tags, served at the
 execute-api plane the way AWS serves them. WebSocket APIs and the families
 with no local counterpart are refused by name. The v1 REST API surface is

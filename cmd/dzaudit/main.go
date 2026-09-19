@@ -12,6 +12,13 @@
 //	dzaudit cases --op CreateTable dynamodb   # violating values, ready to send
 //	dzaudit summary lambda           # how much of the surface is constrained
 //	dzaudit coverage                 # which services have a usable model
+//	dzaudit routes s3                # the method+path each operation is served on
+//	dzaudit shapes sqs               # each operation's declared OUTPUT shape
+//	dzaudit ops sfn                  # every operation the model documents
+//
+// The last three emit the committed fixtures under */testdata/, which
+// .github/workflows/model-drift.yml regenerates weekly and diffs — so an
+// operation AWS adds is a red build rather than a discovery.
 //
 // A service id is the aws-models file name (dynamodb, secrets-manager,
 // api-gateway). Models are fetched once into --cache.
@@ -45,7 +52,11 @@ type finding struct {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: dzaudit [list|cases|routes|summary|coverage] [flags] <service>")
+		// Every subcommand, including the two that were missing: `shapes`,
+		// which is the one CI actually runs weekly, and `routes`. A tool whose
+		// own usage under-lists it is a tool whose commands get rediscovered by
+		// grep.
+		fmt.Fprintln(os.Stderr, "usage: dzaudit [list|cases|routes|shapes|ops|summary|coverage] [flags] <service>")
 		os.Exit(2)
 	}
 	// The subcommand comes first, so flags are parsed from what follows it —
@@ -88,6 +99,8 @@ func run(args []string, cache, opFilter string) error {
 		return emitRoutes(os.Stdout, m)
 	case "shapes":
 		return emitShapes(os.Stdout, m, opFilter)
+	case "ops":
+		return emitOps(os.Stdout, m)
 	}
 	return fmt.Errorf("unknown command %q", cmd)
 }
