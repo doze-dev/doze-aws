@@ -36,6 +36,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -90,12 +91,9 @@ func New(opts Options) (*Server, error) {
 	if err := os.MkdirAll(opts.DataDir, 0o755); err != nil {
 		return nil, err
 	}
-	db, err := bolt.Open(filepath.Join(opts.DataDir, "apigateway.bolt"), 0o600, nil)
+	db, err := lazybolt.Open(filepath.Join(opts.DataDir, "apigateway.bolt"), nil,
+		func(db *bolt.DB) error { return schemaver.Ensure(db, "apigateway", schemaver.Current) })
 	if err != nil {
-		return nil, err
-	}
-	if err := schemaver.Ensure(db, "apigateway", schemaver.Current); err != nil {
-		db.Close()
 		return nil, err
 	}
 	logf := opts.Logf

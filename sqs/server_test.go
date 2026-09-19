@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	bolt "go.etcd.io/bbolt"
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 
 	"github.com/doze-dev/doze-aws/internal/dozetest"
 )
@@ -17,7 +17,7 @@ import (
 // testStore opens a fresh white-box store (no server, no janitor).
 func testStore(t *testing.T) *Store {
 	t.Helper()
-	db, err := bolt.Open(filepath.Join(t.TempDir(), "sqs.bolt"), 0o600, nil)
+	db, err := lazybolt.Open(filepath.Join(t.TempDir(), "sqs.bolt"), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

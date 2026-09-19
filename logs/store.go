@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -76,13 +77,23 @@ func streamKey(group, stream string) []byte { return []byte(group + "\x00" + str
 
 // Store is the bbolt-backed log store.
 type Store struct {
-	db    *bolt.DB
+	db    *lazybolt.DB
 	clock func() time.Time
 	id    awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
-func newStore(db *bolt.DB) (*Store, error) {
-	err := db.Update(func(tx *bolt.Tx) error {
+func newStore(db *lazybolt.DB) *Store { return &Store{db: db, clock: time.Now} }
+
+// createBuckets makes the five buckets the read and write paths here assume
+// exist — PutGroup does tx.Bucket(bucketGroups).Put without a nil check, unlike
+// the other services, which create theirs per operation.
+//
+// It runs from the lazybolt open hook rather than from newStore, because a
+// write transaction at construction would open the database and so undo the
+// laziness for this service alone. Here it happens once, on the first use, in
+// the same place the schema version is stamped.
+func createBuckets(db *bolt.DB) error {
+	return db.Update(func(tx *bolt.Tx) error {
 		for _, b := range [][]byte{bucketGroups, bucketStreams, bucketEvents, bucketMeta, bucketSubscriptions} {
 			if _, err := tx.CreateBucketIfNotExists(b); err != nil {
 				return err
@@ -90,10 +101,6 @@ func newStore(db *bolt.DB) (*Store, error) {
 		}
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	return &Store{db: db, clock: time.Now}, nil
 }
 
 func (s *Store) now() int64 { return s.clock().UnixMilli() }

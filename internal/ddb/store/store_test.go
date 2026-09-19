@@ -4,12 +4,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	bolt "go.etcd.io/bbolt"
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 )
 
 func newTestStore(t *testing.T) *Store {
 	t.Helper()
-	db, err := bolt.Open(filepath.Join(t.TempDir(), "ddb.bolt"), 0o600, nil)
+	db, err := lazybolt.Open(filepath.Join(t.TempDir(), "ddb.bolt"), nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

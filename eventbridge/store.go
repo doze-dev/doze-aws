@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -90,11 +91,11 @@ func ruleKey(bus, name string) []byte {
 
 // Store is the bbolt-backed EventBridge state.
 type Store struct {
-	db *bolt.DB
+	db *lazybolt.DB
 	id awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
-func newStore(db *bolt.DB) *Store { return &Store{db: db} }
+func newStore(db *lazybolt.DB) *Store { return &Store{db: db} }
 
 func errRuleNotFound(name string) *awshttp.APIError {
 	return awshttp.Errf(400, "ResourceNotFoundException", "Rule %s does not exist", name)

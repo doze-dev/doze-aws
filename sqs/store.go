@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -91,7 +92,7 @@ type Message struct {
 
 // Store is the bbolt-backed SQS state.
 type Store struct {
-	db    *bolt.DB
+	db    *lazybolt.DB
 	clock func() time.Time
 	// id is the region and account ARNs are minted for. Stamped by New after
 	// construction, like clock: a queue decoded out of bbolt carries no pointer
@@ -100,7 +101,7 @@ type Store struct {
 	notify *notifier
 }
 
-func newStore(db *bolt.DB) *Store {
+func newStore(db *lazybolt.DB) *Store {
 	return &Store{db: db, clock: time.Now, notify: newNotifier()}
 }
 

@@ -41,17 +41,17 @@ type Snapshot struct {
 	Goroutines  int   `json:"goroutines"`
 	CPUMicros   int64 `json:"cpu_micros"`
 	SchedEvents int64 `json:"sched_events"`
-	// BootMillis is how long the stack took to come up on a FRESH data
-	// directory — the first run in a project, which creates every database.
-	BootMillis int64 `json:"boot_millis"`
+	// BootColdMicros is how long the stack took to come up on a FRESH data
+	// directory — the first run in a project.
+	BootColdMicros int64 `json:"boot_cold_micros"`
 	// BootWarmMicros is a second boot over the same directory: every run after
 	// the first, which is the one that decides how the tool feels.
 	//
-	// In microseconds because it is three orders of magnitude smaller than the
-	// cold figure, and recording it in milliseconds would round the thing being
-	// watched down to zero. Watching only the cold number is how a 96ms
-	// per-service fsync at startup went unnoticed — it barely moved cold boot,
-	// where creating the files dominates, and was 99% of warm boot.
+	// Both are in microseconds, and neither started that way. Recording a
+	// figure in units it rounds to zero in is how a measurement stops being
+	// able to move: a 96ms per-service fsync at startup went unnoticed because
+	// only the cold number was watched and it barely moved there, and then the
+	// cold number itself fell below a millisecond once lazy opening landed.
 	BootWarmMicros int64 `json:"boot_warm_micros"`
 }
 

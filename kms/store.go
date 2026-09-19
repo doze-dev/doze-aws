@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -62,14 +63,14 @@ func (k *Key) ARN() string { return k.id.ARN("kms", "key/"+k.ID) }
 
 // Store is the bbolt-backed KMS state.
 type Store struct {
-	db    *bolt.DB
+	db    *lazybolt.DB
 	clock func() time.Time
 	// id is the region and account ARNs are minted for. Stamped by New after
 	// construction, the same way clock is.
 	id awsident.Identity
 }
 
-func newStore(db *bolt.DB) *Store { return &Store{db: db, clock: time.Now} }
+func newStore(db *lazybolt.DB) *Store { return &Store{db: db, clock: time.Now} }
 
 // stamp marks a key with the identity that owns it. Every path that produces a
 // Key goes through here, so ARN() can stay a plain method on the record.

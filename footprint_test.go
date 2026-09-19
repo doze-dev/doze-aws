@@ -92,7 +92,7 @@ func TestLightnessFootprint(t *testing.T) {
 				Goroutines:     cur.Goroutines.Record(int64(got.Goroutines), lightness.Count),
 				CPUMicros:      cur.CPUMicros.Record(got.CPUMicros, lightness.Noisy),
 				SchedEvents:    cur.SchedEvents.Record(got.SchedEvents, lightness.Noisy),
-				BootMillis:     cur.BootMillis.Record(got.BootMillis, lightness.Catastrophe),
+				BootColdMicros: cur.BootColdMicros.Record(got.BootColdMicros, lightness.Catastrophe),
 				BootWarmMicros: cur.BootWarmMicros.Record(got.BootWarmMicros, lightness.Noisy),
 			}
 			continue
@@ -102,9 +102,9 @@ func TestLightnessFootprint(t *testing.T) {
 			t.Errorf("no budget for the %q shape — run `task lightness:update`", name)
 			continue
 		}
-		t.Logf("%-8s boot %dms cold, %dµs warm · %d goroutines · heap %s · retained %s · peak RSS %s · "+
+		t.Logf("%-8s boot %dµs cold, %dµs warm · %d goroutines · heap %s · retained %s · peak RSS %s · "+
 			"%d µs CPU and %d wakeups over %ds",
-			name, got.BootMillis, got.BootWarmMicros, got.Goroutines, mib(got.HeapAlloc), mib(got.Retained),
+			name, got.BootColdMicros, got.BootWarmMicros, got.Goroutines, mib(got.HeapAlloc), mib(got.Retained),
 			mib(got.MaxRSS), got.CPUMicros, got.SchedEvents, want.Local.IdleWindowSeconds)
 
 		check(t, name, "live heap", budget.Heap, got.HeapAlloc,
@@ -118,9 +118,8 @@ func TestLightnessFootprint(t *testing.T) {
 		check(t, name, "wakeups", budget.SchedEvents, got.SchedEvents,
 			"a woken core never reaches its deeper idle states, which is what a battery notices")
 		check(t, name, "warm boot (µs)", budget.BootWarmMicros, got.BootWarmMicros,
-			"every run after the first — a per-service cost at startup lives here,\n  "+
-				"and barely shows in the cold figure below")
-		check(t, name, "cold boot (ms)", budget.BootMillis, got.BootMillis,
+			"every run after the first, over a directory the previous boot left behind")
+		check(t, name, "cold boot (µs)", budget.BootColdMicros, got.BootColdMicros,
 			"twenty times the measurement, so this is not slowness — it is something "+
 				"blocking in NewStack")
 	}
@@ -221,7 +220,7 @@ func measureInChild(t *testing.T, shape string) {
 	before := lightness.Take()
 	time.Sleep(time.Duration(window) * time.Second)
 	after := lightness.Take().Sub(before)
-	after.BootMillis = boot.Milliseconds()
+	after.BootColdMicros = boot.Microseconds()
 	after.BootWarmMicros = warm.Microseconds()
 
 	b, err := json.Marshal(after)

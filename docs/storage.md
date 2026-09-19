@@ -22,9 +22,13 @@ SQLite was asked about separately and measured the same way: pure-Go SQLite adds
 **4.40 MiB and nine modules**, Turso's embedded driver ships a native library
 per platform, and its pure-Go drivers are remote-only. See
 [SQLite and Turso](#sqlite-and-turso-asked-and-answered). Startup looked like
-bbolt's one visible cost and turned out not to be: warm start is **27 ms**, of
-which opening all sixteen databases is 441 µs. The 96 ms it used to be was a
-schema-version write doing an fsync per service to confirm nothing had changed.
+bbolt's one visible cost and turned out to be two different costs wearing one
+number, both now gone: a schema-version write that fsynced per service to
+confirm nothing had changed, and sixteen databases created at boot whether or
+not anything used them. The binary starts in **~20 ms on a fresh data
+directory**, down from 790 ms, and leaves **six files** behind instead of
+seventeen. A database is created the first time its service is asked for
+something.
 
 ## The shape that decides it
 
@@ -265,33 +269,54 @@ reading is "startup is bbolt", and it was written down that way. It was wrong,
 because every one of those benchmarks created its databases from scratch and
 **that is the first run in a project, not the recurring cost**:
 
-| | before | after |
-|---|---|---|
-| Cold boot — creating sixteen databases | 225 ms | unchanged |
-| **Warm boot — the databases already there** | **96 ms** | **0.6 ms** |
-| Real binary, warm, process start included | 113 ms | **27 ms** |
+| | first measurement | after the fsync fix | after lazy opening |
+|---|---|---|---|
+| Cold boot — a fresh data directory | 225 ms | 225 ms | **2.8 ms** |
+| Warm boot — a directory already used | 96 ms | 0.6 ms | **0.3 ms** |
+| Real binary, cold, process start included | 793 ms | 793 ms | **~20 ms** |
+| Untouched data directory | 2.1 MB, 17 files | same | **20 KB, 6 files** |
 
-Warm boot is the number that matters, and it was not the open. Opening sixteen
-existing bbolt files takes **441 µs, total**. The 96 ms was
-`schemaver.Ensure` — a write transaction per service, and bbolt commits a meta
-page and fsyncs on every writable transaction whether or not anything changed,
-so each service paid a disk flush at startup to be told its schema version was
-already correct. One service: 5.92 ms of a 6.98 ms boot, 85%.
+**The warm number was the fsync.** Opening sixteen existing bbolt files takes
+**441 µs, total**, so the 96 ms was never the open — it was `schemaver.Ensure`
+taking a write transaction per service, and bbolt commits a meta page and
+fsyncs on every writable transaction whether or not anything changed. Each
+service paid a disk flush at startup to be told its schema version was already
+correct. One service: 5.92 ms of a 6.98 ms boot, 85%. It reads before it writes
+now — same validation, same errors, same stamping on a fresh or unversioned
+database, minus the write transaction that confirmed nothing needed writing.
 
-It reads before it writes now. Same validation, same errors, same stamping on a
-fresh or unversioned database — it simply does not take a write transaction to
-confirm that nothing needs writing.
+**The cold number was creation, and that is what lazy opening removed.** A
+writable transaction on a file that does not exist yet costs milliseconds, and
+standing a service up took three of them: create the file, stamp the schema,
+create the buckets. Sixteen services, ~13 ms each. `internal/lazybolt` changes
+the rule to *a database that does not exist is created on first use* — so a
+developer who touches SQS and S3 pays for SQS and S3, and the other fifteen
+services cost nothing but the memory their handlers occupy.
 
-The remaining 27 ms of a warm start is process start, not storage. **Essentially
-none of doze-aws's startup is storage, and the part that looked like storage was
-a flush nobody needed.**
+The rule is deliberately about **the file, not the service**: a database that
+is already there still opens at boot, because it costs 27 µs and because every
+error worth failing on — a bad permission, a failed lock, a schema written by a
+newer binary — belongs at startup rather than in the middle of someone's first
+request. A file that does not exist has no schema to migrate and no corruption
+to find, so deferring it defers nothing but the cost. It also means the data
+directory answers the question by itself: **the databases that exist are the
+services in use.**
 
-Every stateful service still writes a 131,072-byte file before anything is asked
-of it, so an untouched data directory is ~2.1 MB. That, and the cold-boot cost,
-are genuinely bbolt.
+What is left in a data directory nobody has used: `instance.json` (94 B), the
+two encryption keys SSM and Secrets Manager generate (32 B each), and Lambda's
+three runtime shims (19.9 KB). Those are eager on purpose — they are cheap, and
+two of them are keys whose absence is not equivalent to an empty database.
 
-Reproducible: `BenchmarkBootWarm` and `BenchmarkBootPerService` (`task bench`),
-and `task lightness`.
+**One cost moved rather than vanished.** The console's rail counts fan out
+across every service, so loading it once creates all sixteen databases: 259 ms
+on that first load, 14 ms on every one after. That is the same work, relocated
+from before the shell prompt returns to inside a page load that is already
+asynchronous, and a developer who never opens the console never pays it.
+
+Reproducible: `BenchmarkBootWarm`, `BenchmarkBootFullStack` and
+`BenchmarkBootPerService` (`task bench`), `task lightness`, and
+`TestAnUntouchedStackCreatesNoDatabases` / `TestUsingOneServiceCreatesOnlyItsOwnDatabase`,
+which are what stop this regressing.
 
 ### The decision
 
@@ -321,15 +346,13 @@ Not rhetorical — these are the conditions under which this should be revisited
 - **A write-dominated workload.** If doze-aws were used mainly to hammer
   millions of writes rather than to develop against, the balance inverts. Fix
   the batching first and re-measure before concluding it has.
-- **Startup mattering more than size.** This was the open question and it has
-  been answered: warm start is 27 ms, of which storage is under a millisecond.
-  Lazy store opening was the plan — open a service's database on first use
-  rather than at boot — and it is no longer worth building, because the thing
-  it would have deferred costs 441 µs for all sixteen. It would have moved
-  errors and schema migrations from startup to the first request for no
-  measurable gain, which is the trade that "if it breaks experience, we avoid
-  it" exists to refuse. Cold start still creates sixteen files; if THAT becomes
-  the complaint, lazy opening is the answer and the measurement is already here.
+- **Startup mattering more than size.** This was the open question and it is
+  closed: the binary starts in ~20 ms on a fresh data directory and storage is
+  not a measurable part of it. Both halves were fixed by not writing —
+  `schemaver.Ensure` reads before it writes, and `internal/lazybolt` creates a
+  database on first use. Neither moved an error or a migration to the first
+  request, which was the condition this would have failed on: a database that
+  already exists is still opened at boot.
 - **The single-writer constraint actually biting.** It has not. If two processes
   needing the same data directory, or cross-service transactions, became real
   requirements rather than hypotheticals, the calculus changes — and the cost of

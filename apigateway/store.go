@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -202,11 +203,11 @@ func (s *Store) PutAccount(a Account) error {
 
 // Store is the bbolt-backed API Gateway state.
 type Store struct {
-	db    *bolt.DB
+	db    *lazybolt.DB
 	clock func() time.Time
 }
 
-func newStore(db *bolt.DB) *Store { return &Store{db: db, clock: time.Now} }
+func newStore(db *lazybolt.DB) *Store { return &Store{db: db, clock: time.Now} }
 
 func (s *Store) now() time.Time { return s.clock() }
 

@@ -22,6 +22,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -102,7 +103,7 @@ func (t *Table) FindIndex(name string) *Index {
 
 // Store is the bbolt-backed DynamoDB engine.
 type Store struct {
-	db    *bolt.DB
+	db    *lazybolt.DB
 	clock func() time.Time
 	// id is the region and account table ARNs are minted for. Set by
 	// SetIdentity after construction, the same way the clock is.
@@ -110,7 +111,7 @@ type Store struct {
 }
 
 // New wraps an open bbolt DB.
-func New(db *bolt.DB) *Store { return &Store{db: db, clock: time.Now} }
+func New(db *lazybolt.DB) *Store { return &Store{db: db, clock: time.Now} }
 
 // SetClock overrides the clock (tests).
 func (s *Store) SetClock(fn func() time.Time) { s.clock = fn }
@@ -122,7 +123,7 @@ func (s *Store) SetIdentity(id awsident.Identity) { s.id = id }
 func (s *Store) now() time.Time { return s.clock() }
 
 // DB exposes the handle for Close.
-func (s *Store) DB() *bolt.DB { return s.db }
+func (s *Store) DB() *lazybolt.DB { return s.db }
 
 func errTableNotFound(name string) *awshttp.APIError {
 	return awshttp.Errf(400, "ResourceNotFoundException", "Requested resource not found: Table: %s not found", name)

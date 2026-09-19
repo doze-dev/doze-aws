@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"sort"
 
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -104,11 +105,11 @@ type EventSourceMapping struct {
 
 // Store is the bbolt-backed Lambda control-plane state.
 type Store struct {
-	db *bolt.DB
+	db *lazybolt.DB
 	id awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
-func newStore(db *bolt.DB) *Store { return &Store{db: db} }
+func newStore(db *lazybolt.DB) *Store { return &Store{db: db} }
 
 // stamp marks a function with the identity that owns it, so ARN() stays a plain
 // method on a record decoded out of bbolt with no pointer back here.
@@ -266,9 +267,17 @@ func (s *Store) DeleteMapping(uuid string) error {
 	})
 }
 
+// ListMappings returns every event source mapping.
+//
+// Read through ViewIfExists rather than View because New calls this to resume
+// enabled pollers, before anything has asked this service for anything, and a
+// database that has not been created cannot hold a mapping. Going through View
+// would create lambda.bolt on every boot to find it empty. The result is
+// unchanged either way: out stays nil when there is nothing, which is what an
+// empty bucket already produced.
 func (s *Store) ListMappings() ([]EventSourceMapping, error) {
 	var out []EventSourceMapping
-	err := s.db.View(func(tx *bolt.Tx) error {
+	_, err := s.db.ViewIfExists(func(tx *bolt.Tx) error {
 		b := tx.Bucket(mappingsBucket)
 		if b == nil {
 			return nil

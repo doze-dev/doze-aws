@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -51,13 +52,13 @@ type Version struct {
 
 // Store is the bbolt-backed secret store plus the value sealer.
 type Store struct {
-	db    *bolt.DB
+	db    *lazybolt.DB
 	gcm   cipher.AEAD
 	id    awsident.Identity // region and account ARNs are minted for; stamped by New
 	clock func() time.Time
 }
 
-func newStore(db *bolt.DB, keyPath string) (*Store, error) {
+func newStore(db *lazybolt.DB, keyPath string) (*Store, error) {
 	key, err := os.ReadFile(keyPath)
 	if errors.Is(err, os.ErrNotExist) {
 		key = make([]byte, 32)

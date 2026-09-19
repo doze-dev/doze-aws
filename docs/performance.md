@@ -127,13 +127,14 @@ go tool task lightness
 
 | | | where it comes from |
 |---|---|---|
-| Retained memory | **11.2 MB** | `MemStats.Sys − HeapReleased`, `local.shapes.full.retained_bytes` |
-| Peak RSS | 29.0 MB | `Rusage.Maxrss`, `local.shapes.full.max_rss_bytes` |
-| Live heap | 3.6 MB | `local.shapes.full.heap_alloc_bytes` |
-| CPU | **2.1 ms per 3 idle seconds** | `Rusage` utime+stime, `local.shapes.full.cpu_micros` |
-| Wakeups | 24 per 3 idle seconds | `/sched/latencies:seconds`, `local.shapes.full.sched_events` |
+| Retained memory | **11.7 MB** | `MemStats.Sys − HeapReleased`, `local.shapes.full.retained_bytes` |
+| Peak RSS | 28.5 MB | `Rusage.Maxrss`, `local.shapes.full.max_rss_bytes` |
+| Live heap | 3.8 MB | `local.shapes.full.heap_alloc_bytes` |
+| CPU | **6.1 ms per 3 idle seconds** (0.2%) | `Rusage` utime+stime, `local.shapes.full.cpu_micros` |
+| Wakeups | 32 per 3 idle seconds | `/sched/latencies:seconds`, `local.shapes.full.sched_events` |
 | Goroutines | **25** | 23 service-owned plus the runtime's own |
-| Boot | **210 ms** | `local.shapes.full.boot_millis` |
+| Boot, fresh data directory | **2.8 ms** | `local.shapes.full.boot_cold_micros` |
+| Boot, directory already used | **0.3 ms** | `local.shapes.full.boot_warm_micros` |
 
 The goroutine figure is not a total that has to be trusted: `task lightness`
 measures each service's contribution as a delta across its own `NewStack`, so
@@ -226,6 +227,9 @@ Two things that did **not** help, recorded so nobody spends the afternoon:
   Go's scavenger has already returned what it can.
 - Lazy patterns did nothing for startup: 237 ms before, 245 ms after, which is
   noise. Compiling 527 regexes is not slow, it is just memory you keep forever.
+  (Both figures are from before the startup work in the next section, when
+  creating sixteen databases was 208 ms of any boot and swamped everything
+  else. The conclusion holds; the baseline it was measured against is gone.)
 
 ## Startup
 
@@ -233,38 +237,54 @@ Two things that did **not** help, recorded so nobody spends the afternoon:
 and a per-service breakdown — where before, the only startup figure anywhere was
 the line above, hand-timed once.
 
-**There are two startup numbers and they differ by four hundred times.** Which
-one you get depends only on whether the data directory already exists.
+**Startup no longer depends on whether the data directory exists**, and that is
+the result of two fixes rather than the original state. It used to differ by
+four hundred times.
 
 | | |
 |---|---|
-| **First run in a project** — creates sixteen databases | **225 ms** |
-| **Every run after** — the files are there | **0.6 ms** in-process, **27 ms** as a binary |
-| `--services sqs,s3`, first run | 27 ms |
-| One stateful service, first run | ~13 ms |
-| STS, the one stateless service | **0.11 ms** |
+| **First run in a project** — a fresh data directory | **2.8 ms** in-process, **~20 ms** as a binary |
+| **Every run after** | **0.3 ms** in-process |
+| `--services sqs,s3`, first run | 0.7 ms |
+| One service, first run | 0.2–1.7 ms |
+| STS, the one stateless service | **0.15 ms** |
 
-**Cold start is bbolt; warm start is not.** Creating a database costs ~13 ms and
-sixteen of them is 208 of the 225 — STS, which keeps nothing on disk, starts
-120× faster than its neighbours, and that is the control that makes it a
-finding. But *opening* sixteen existing databases takes **441 µs in total**, so
-none of the recurring cost was ever storage.
+It was 225 ms cold and 96 ms warm, and neither number was what it looked like.
 
-It used to be 96 ms anyway, and that was `schemaver.Ensure`: a write
-transaction per service at startup, and bbolt commits a meta page and fsyncs on
-every writable transaction whether or not anything changed. Sixteen services
-each paid a disk flush to be told their schema version was already right — 85%
-of a warm boot. It reads before it writes now, and the recurring number went
-from 96 ms to 0.6.
+**The warm number was an fsync nobody needed.** *Opening* sixteen existing bbolt
+databases takes **441 µs in total**, so the recurring cost was never the open —
+it was `schemaver.Ensure` taking a write transaction per service, and bbolt
+commits a meta page and fsyncs on every writable transaction whether or not
+anything changed. Sixteen services each paid a disk flush to be told their
+schema version was already right: 85% of a warm boot. It reads before it writes
+now, and 96 ms became 0.6.
 
-The lesson is in the measurement rather than the fix: the first benchmarks all
-used a fresh directory per iteration, which answers "how long to create a stack"
-when the question was "how long to start one". Both are worth knowing and only
-one of them happens more than once.
+**The cold number was creating databases nobody had asked for.** A writable
+transaction on a file that does not exist costs milliseconds, and standing up a
+service took three — create, stamp, make buckets — about 13 ms each, 208 of the
+225. STS, which keeps nothing on disk, started 120× faster than its neighbours,
+and that control is what made it a finding. Databases are now created on first
+use, so a stack that nobody speaks to creates none at all.
 
-What follows: warm start is fast enough to launch a stack per test run without
-thinking about it, `--services` is still worth reaching for on a cold first run,
-and the remaining 27 ms of a real warm start is process start rather than
-anything in this repo. The disk shape is unchanged — every stateful service
-writes a 131,072-byte file before it is asked for anything, so an untouched
-seventeen-service data directory is about 2.1 MB.
+The rule is about the file rather than the service: a database that **already
+exists** is still opened at boot, where a permission error, a failed lock or a
+schema from a newer binary belongs. Only creation is deferred, because a file
+that does not exist has nothing to migrate and nothing to corrupt. See
+[storage.md](storage.md) for the design and `internal/lazybolt` for the code.
+
+The lesson is in the measurement rather than either fix: the first benchmarks
+all used a fresh directory per iteration, which answers "how long to create a
+stack" when the question was "how long to start one". Answering the wrong one
+put "startup is bbolt, almost entirely" into this document, where it stayed
+until someone measured the other.
+
+**On disk**, an untouched seventeen-service data directory is now about
+**20 KB across six files** — `instance.json`, two encryption keys, and Lambda's
+three runtime shims — where it used to be **2.1 MB across seventeen**, because
+every stateful service wrote a 131,072-byte bbolt file before it was asked for
+anything. A service's database appears the first time it is used.
+
+One cost moved rather than disappearing: the console's rail counts fan out
+across every service, so opening it once creates all sixteen databases — 259 ms
+on that first load, 14 ms after. A developer who never opens the console never
+pays it.

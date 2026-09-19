@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -48,11 +49,11 @@ type Subscription struct {
 
 // Store is the bbolt-backed SNS state.
 type Store struct {
-	db *bolt.DB
+	db *lazybolt.DB
 	id awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
-func newStore(db *bolt.DB) *Store { return &Store{db: db} }
+func newStore(db *lazybolt.DB) *Store { return &Store{db: db} }
 
 // apiError is the shared AWS API error type; internal/awsquery renders it
 // onto the wire in the Query error envelope.

@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	bolt "go.etcd.io/bbolt"
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 
 	"github.com/doze-dev/doze-aws/internal/ddb/expr"
 	"github.com/doze-dev/doze-aws/internal/ddb/item"
@@ -36,7 +36,7 @@ import (
 // has a realistic number of rows under one hash key rather than one or all.
 func benchStore(b *testing.B, n int) *Store {
 	b.Helper()
-	db, err := bolt.Open(filepath.Join(b.TempDir(), "ddb.bolt"), 0o600, nil)
+	db, err := lazybolt.Open(filepath.Join(b.TempDir(), "ddb.bolt"), nil, nil)
 	if err != nil {
 		b.Fatal(err)
 	}

@@ -93,7 +93,15 @@ type Shape struct {
 	// SchedEvents is how many times a goroutine went runnable across the idle
 	// window — the wakeup proxy, and the number a laptop battery notices.
 	SchedEvents Budget `json:"sched_events"`
-	// BootMillis is how long NewStack took.
+	// BootColdMicros is how long NewStack took on a FRESH data directory: the
+	// first run in a project.
+	//
+	// In microseconds, and it used to be milliseconds. That was right when this
+	// was 225 ms of bbolt creating sixteen databases and it stopped being right
+	// the moment lazy opening removed them — the number fell to well under a
+	// millisecond and the field recorded 0, which is a measurement that cannot
+	// move. The same trap the warm figure below was split out to avoid, sprung
+	// on the other one a commit later.
 	//
 	// Its ceiling is a catastrophe ceiling, twenty times the measurement, and
 	// that is deliberate rather than lazy. Wall-clock on a shared runner varies
@@ -104,11 +112,13 @@ type Shape struct {
 	// network call, a sleep, or an eager compile pass finding its way into
 	// startup. The benchmarks in boot_bench_test.go are where a real
 	// regression is meant to be seen.
-	BootMillis Budget `json:"boot_millis"`
-	// BootWarmMicros is a second boot over the same data directory, and unlike
-	// the cold figure it gets a real band rather than a catastrophe ceiling:
-	// it is dominated by work this repo controls, not by the filesystem
-	// creating sixteen files.
+	BootColdMicros Budget `json:"boot_cold_micros"`
+	// BootWarmMicros is a second boot over the same data directory.
+	//
+	// It is much closer to the cold figure than it used to be, and that is the
+	// result rather than a fault in the measurement: with databases created on
+	// first use, the difference between a fresh directory and a used one is
+	// Lambda's three runtime shims and two encryption keys, not sixteen files.
 	BootWarmMicros Budget `json:"boot_warm_micros"`
 }
 
@@ -219,13 +229,19 @@ var (
 	// services is a 10x rise on its own.
 	Noisy Headroom = func(n int64) int64 { return atLeast(n*10, 1000) }
 
-	// Catastrophe is for wall-clock, where no honest band exists. Twenty
-	// times, with a floor, so it cannot fire on a slow runner and still fails
-	// on the things that actually break startup: a synchronous network call, a
-	// sleep, an eager compile pass. Anything subtler belongs in a benchmark,
-	// which is where this repo already decided timing regressions get looked
-	// at rather than gated.
-	Catastrophe Headroom = func(n int64) int64 { return atLeast(n*20, 5000) }
+	// Catastrophe is for wall-clock MICROSECONDS, where no honest band exists.
+	// Twenty times, with a five-second floor, so it cannot fire on a slow
+	// runner and still fails on the things that actually break startup: a
+	// synchronous network call, a sleep, an eager compile pass. Anything
+	// subtler belongs in a benchmark, which is where this repo already decided
+	// timing regressions get looked at rather than gated.
+	//
+	// The floor is in the same units as the value, which is the whole of the
+	// note above about choosing a ceiling against its units. It read 5000 when
+	// boot was recorded in milliseconds and would have become a five-MILLISECOND
+	// catastrophe band the moment that field changed to microseconds — a
+	// ceiling a healthy stack breaches on any ordinary run.
+	Catastrophe Headroom = func(n int64) int64 { return atLeast(n*20, 5_000_000) }
 )
 
 func atLeast(n, floor int64) int64 {

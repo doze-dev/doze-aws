@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -63,14 +64,14 @@ type Activity struct {
 
 // Store is the persistence layer.
 type Store struct {
-	db    *bolt.DB
+	db    *lazybolt.DB
 	clock func() time.Time
 	// vol holds Express and TestState executions, which never reach bbolt.
 	vol *volatile
 	id  awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
-func newStore(db *bolt.DB) *Store {
+func newStore(db *lazybolt.DB) *Store {
 	return &Store{db: db, clock: time.Now, vol: newVolatile()}
 }
 

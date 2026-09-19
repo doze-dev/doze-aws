@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -48,14 +49,14 @@ func (p *Parameter) Latest() *Version { return &p.Versions[len(p.Versions)-1] }
 
 // Store is the bbolt-backed parameter store plus the SecureString sealer.
 type Store struct {
-	db    *bolt.DB
+	db    *lazybolt.DB
 	gcm   cipher.AEAD
 	clock func() time.Time
 }
 
 // newStore opens the store and loads (or mints) the per-data-dir SecureString
 // key at keyPath.
-func newStore(db *bolt.DB, keyPath string) (*Store, error) {
+func newStore(db *lazybolt.DB, keyPath string) (*Store, error) {
 	key, err := os.ReadFile(keyPath)
 	if errors.Is(err, os.ErrNotExist) {
 		key = make([]byte, 32)

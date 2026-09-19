@@ -254,17 +254,31 @@ func (s *Store) ListExecutionsFor(machineName string) ([]*Execution, error) {
 // EachRunning visits every RUNNING execution's key — what the engine resumes
 // on startup. Keys only: the engine loads on demand, so a thousand finished
 // executions cost nothing here.
+// EachRunning calls fn for every execution left RUNNING by a previous run.
+//
+// It reads through ViewIfExists rather than View: this is the engine's resume
+// scan, it runs once at startup before anything has asked this service for
+// anything, and a database that has not been created cannot hold an execution.
+// Going through View would create stepfunctions.bolt on every boot to discover
+// that there is nothing in it.
 func (s *Store) EachRunning(fn func(key string)) error {
-	return s.each(bucketExecutions, func(k, raw []byte) error {
-		var probe struct {
-			Status string `json:"status"`
+	_, err := s.db.ViewIfExists(func(tx *bolt.Tx) error {
+		b := tx.Bucket(bucketExecutions)
+		if b == nil {
+			return nil
 		}
-		if err := json.Unmarshal(raw, &probe); err != nil {
-			return err
-		}
-		if probe.Status == "RUNNING" {
-			fn(string(k))
-		}
-		return nil
+		return b.ForEach(func(k, raw []byte) error {
+			var probe struct {
+				Status string `json:"status"`
+			}
+			if err := json.Unmarshal(raw, &probe); err != nil {
+				return err
+			}
+			if probe.Status == "RUNNING" {
+				fn(string(k))
+			}
+			return nil
+		})
 	})
+	return err
 }

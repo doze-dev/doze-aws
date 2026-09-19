@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -129,13 +130,13 @@ type Consumer struct {
 
 // Store is the bbolt-backed Kinesis state.
 type Store struct {
-	db     *bolt.DB
+	db     *lazybolt.DB
 	clock  func() time.Time
 	notify *notifier
 	id     awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
-func newStore(db *bolt.DB) *Store {
+func newStore(db *lazybolt.DB) *Store {
 	return &Store{db: db, clock: time.Now, notify: newNotifier()}
 }
 

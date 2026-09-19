@@ -27,6 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -62,7 +63,7 @@ type Options struct {
 // Server is the CloudWatch service: an http.Handler over three protocols, and
 // an io.Closer that closes the store.
 type Server struct {
-	db    *bolt.DB
+	db    *lazybolt.DB
 	peers peers.Directory
 	logf  func(format string, args ...any)
 	now   func() time.Time
@@ -88,13 +89,10 @@ func New(opts Options) (*Server, error) {
 	// Samples are high-volume and disposable, so the store does not fsync per
 	// write — the same trade logs makes, and for the same reason: a metric
 	// published on every invocation must not make Invoke slow.
-	db, err := bolt.Open(filepath.Join(opts.DataDir, "cloudwatch.bolt"), 0o600,
-		&bolt.Options{NoSync: true, Timeout: 5 * time.Second})
+	db, err := lazybolt.Open(filepath.Join(opts.DataDir, "cloudwatch.bolt"),
+		&bolt.Options{NoSync: true, Timeout: 5 * time.Second},
+		func(db *bolt.DB) error { return schemaver.Ensure(db, "cloudwatch", schemaver.Current) })
 	if err != nil {
-		return nil, err
-	}
-	if err := schemaver.Ensure(db, "cloudwatch", schemaver.Current); err != nil {
-		db.Close()
 		return nil, err
 	}
 	logf := opts.Logf

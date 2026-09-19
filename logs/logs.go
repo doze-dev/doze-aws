@@ -24,6 +24,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -95,19 +96,18 @@ func New(opts Options) (*Server, error) {
 	}
 	// Logs are disposable and written on every invocation; a per-batch fsync
 	// is the one thing that would make this slow, so the store does not.
-	db, err := bolt.Open(filepath.Join(opts.DataDir, "logs.bolt"), 0o600, &bolt.Options{NoSync: true, Timeout: 5 * time.Second})
+	db, err := lazybolt.Open(filepath.Join(opts.DataDir, "logs.bolt"),
+		&bolt.Options{NoSync: true, Timeout: 5 * time.Second},
+		func(db *bolt.DB) error {
+			if err := schemaver.Ensure(db, "logs", schemaver.Current); err != nil {
+				return err
+			}
+			return createBuckets(db)
+		})
 	if err != nil {
 		return nil, err
 	}
-	if err := schemaver.Ensure(db, "logs", schemaver.Current); err != nil {
-		db.Close()
-		return nil, err
-	}
-	st, err := newStore(db)
-	if err != nil {
-		db.Close()
-		return nil, err
-	}
+	st := newStore(db)
 	logf := opts.Logf
 	if logf == nil {
 		logf = func(string, ...any) {}

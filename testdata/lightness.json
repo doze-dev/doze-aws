@@ -31,7 +31,7 @@
       },
       "docs/api-support": {
         "bytes": {
-          "measured": 161507,
+          "measured": 162919,
           "ceiling": 202752
         },
         "files": 18
@@ -48,113 +48,113 @@
       "apigateway": {
         "goroutines": 2,
         "datadir_bytes": {
-          "measured": 131166,
-          "ceiling": 164864
+          "measured": 94,
+          "ceiling": 5120
         }
       },
       "cloudformation": {
         "goroutines": 0,
         "datadir_bytes": {
-          "measured": 131166,
-          "ceiling": 164864
+          "measured": 94,
+          "ceiling": 5120
         }
       },
       "cloudwatch": {
         "goroutines": 2,
         "datadir_bytes": {
-          "measured": 131166,
-          "ceiling": 164864
+          "measured": 94,
+          "ceiling": 5120
         }
       },
       "dynamodb": {
         "goroutines": 1,
         "datadir_bytes": {
-          "measured": 131166,
-          "ceiling": 164864
+          "measured": 94,
+          "ceiling": 5120
         }
       },
       "eventbridge": {
         "goroutines": 2,
         "datadir_bytes": {
-          "measured": 131166,
-          "ceiling": 164864
+          "measured": 94,
+          "ceiling": 5120
         }
       },
       "iam": {
         "goroutines": 0,
         "datadir_bytes": {
-          "measured": 131166,
-          "ceiling": 164864
+          "measured": 94,
+          "ceiling": 5120
         }
       },
       "kinesis": {
         "goroutines": 1,
         "datadir_bytes": {
-          "measured": 131166,
-          "ceiling": 164864
+          "measured": 94,
+          "ceiling": 5120
         }
       },
       "kms": {
         "goroutines": 1,
         "datadir_bytes": {
-          "measured": 131166,
-          "ceiling": 164864
+          "measured": 94,
+          "ceiling": 5120
         }
       },
       "lambda": {
         "goroutines": 2,
         "datadir_bytes": {
-          "measured": 150997,
-          "ceiling": 189440
+          "measured": 19925,
+          "ceiling": 25600
         }
       },
       "logs": {
         "goroutines": 4,
         "datadir_bytes": {
-          "measured": 131166,
-          "ceiling": 164864
+          "measured": 94,
+          "ceiling": 5120
         }
       },
       "s3": {
         "goroutines": 1,
         "datadir_bytes": {
-          "measured": 131166,
-          "ceiling": 164864
+          "measured": 94,
+          "ceiling": 5120
         }
       },
       "secretsmanager": {
         "goroutines": 1,
         "datadir_bytes": {
-          "measured": 131198,
-          "ceiling": 164864
+          "measured": 126,
+          "ceiling": 5120
         }
       },
       "sns": {
         "goroutines": 1,
         "datadir_bytes": {
-          "measured": 131166,
-          "ceiling": 164864
+          "measured": 94,
+          "ceiling": 5120
         }
       },
       "sqs": {
         "goroutines": 1,
         "datadir_bytes": {
-          "measured": 131166,
-          "ceiling": 164864
+          "measured": 94,
+          "ceiling": 5120
         }
       },
       "ssm": {
         "goroutines": 1,
         "datadir_bytes": {
-          "measured": 131198,
-          "ceiling": 164864
+          "measured": 126,
+          "ceiling": 5120
         }
       },
       "stepfunctions": {
         "goroutines": 3,
         "datadir_bytes": {
-          "measured": 131166,
-          "ceiling": 164864
+          "measured": 94,
+          "ceiling": 5120
         }
       },
       "sts": {
@@ -171,15 +171,15 @@
     "shapes": {
       "full": {
         "heap_alloc_bytes": {
-          "measured": 3823008,
+          "measured": 3802064,
           "ceiling": 5709824
         },
         "retained_bytes": {
-          "measured": 11487496,
+          "measured": 11667720,
           "ceiling": 17317888
         },
         "max_rss_bytes": {
-          "measured": 31473664,
+          "measured": 28475392,
           "ceiling": 46104576
         },
         "goroutines": {
@@ -187,33 +187,33 @@
           "ceiling": 37
         },
         "cpu_micros": {
-          "measured": 2294,
+          "measured": 6077,
           "ceiling": 27120
         },
         "sched_events": {
-          "measured": 37,
+          "measured": 32,
           "ceiling": 1000
         },
-        "boot_millis": {
-          "measured": 215,
-          "ceiling": 5000
+        "boot_cold_micros": {
+          "measured": 2818,
+          "ceiling": 5000000
         },
         "boot_warm_micros": {
-          "measured": 702,
+          "measured": 328,
           "ceiling": 7020
         }
       },
       "sqs+s3": {
         "heap_alloc_bytes": {
-          "measured": 3608216,
+          "measured": 3600912,
           "ceiling": 5391360
         },
         "retained_bytes": {
-          "measured": 11282696,
+          "measured": 11348232,
           "ceiling": 16420864
         },
         "max_rss_bytes": {
-          "measured": 27049984,
+          "measured": 26525696,
           "ceiling": 39813120
         },
         "goroutines": {
@@ -221,19 +221,19 @@
           "ceiling": 8
         },
         "cpu_micros": {
-          "measured": 2022,
+          "measured": 6657,
           "ceiling": 25550
         },
         "sched_events": {
-          "measured": 24,
+          "measured": 37,
           "ceiling": 1000
         },
-        "boot_millis": {
-          "measured": 41,
-          "ceiling": 5000
+        "boot_cold_micros": {
+          "measured": 720,
+          "ceiling": 5000000
         },
         "boot_warm_micros": {
-          "measured": 210,
+          "measured": 159,
           "ceiling": 2100
         }
       }

@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
 
 	"github.com/doze-dev/doze-aws/internal/schemaver"
@@ -130,7 +131,7 @@ type Part struct {
 
 // Store is the S3 storage engine.
 type Store struct {
-	db    *bolt.DB
+	db    *lazybolt.DB
 	root  string // data dir: blobs/, tmp/ live under it
 	clock func() time.Time
 	Logf  func(format string, args ...any)
@@ -149,12 +150,9 @@ func Open(dataDir string) (*Store, error) {
 			_ = os.Remove(filepath.Join(dataDir, "tmp", e.Name()))
 		}
 	}
-	db, err := bolt.Open(filepath.Join(dataDir, "meta.bolt"), 0o600, nil)
+	db, err := lazybolt.Open(filepath.Join(dataDir, "meta.bolt"), nil,
+		func(db *bolt.DB) error { return schemaver.Ensure(db, "s3", schemaver.Current) })
 	if err != nil {
-		return nil, err
-	}
-	if err := schemaver.Ensure(db, "s3", schemaver.Current); err != nil {
-		db.Close()
 		return nil, err
 	}
 	return &Store{db: db, root: dataDir, clock: time.Now, Logf: func(string, ...any) {}}, nil
