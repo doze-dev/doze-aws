@@ -154,3 +154,41 @@ Resources:
 		t.Errorf("CDK short name: %q", got)
 	}
 }
+
+// A container image function is refused while the template is read, not after
+// half a stack exists.
+//
+// The ImageUri used to fall through to firstNonEmpty(key, ImageUri) and become
+// the function's local CODE PATH, so `cdk deploy` of an image function failed
+// with "code path ... does not exist" naming an ECR URL — a message about the
+// symptom, from a place that had already started provisioning.
+func TestAContainerImageFunctionIsRefusedWhileReadingTheTemplate(t *testing.T) {
+	const tmpl = `
+Resources:
+  Scorer:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: scorer
+      PackageType: Image
+      Role: arn:aws:iam::000000000000:role/r
+      Code:
+        ImageUri: 123.dkr.ecr.us-east-1.amazonaws.com/app:latest
+`
+	parsed, err := Parse([]byte(tmpl))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = Transpile(parsed, TranspileOptions{StackName: "app"})
+	if err == nil {
+		t.Fatal("an image-based function transpiled; doze-aws cannot run one")
+	}
+	msg := err.Error()
+	for _, want := range []string{"container image", "local processes", "app:latest", "scorer"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("the refusal does not mention %q:\n  %s", want, msg)
+		}
+	}
+	if strings.Contains(msg, "does not exist") {
+		t.Errorf("the image URI is still being treated as a code path:\n  %s", msg)
+	}
+}

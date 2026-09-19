@@ -124,6 +124,10 @@ type codeWire struct {
 	ZipFile  string `json:"ZipFile"`  // base64 zip
 	S3Bucket string `json:"S3Bucket"` // "_local_" for the in-place extension
 	S3Key    string `json:"S3Key"`    // absolute path when S3Bucket == "_local_"
+	// ImageUri is read only so the refusal can name it. doze-aws runs
+	// functions as host processes and pulls no images; see the default arm of
+	// materializeCode.
+	ImageUri string `json:"ImageUri"`
 }
 
 type createFunctionReq struct {
@@ -242,6 +246,16 @@ func (s *Server) materializeCode(name string, code codeWire) (codeDir, sha strin
 			return "", "", awshttp.Errf(400, "InvalidParameterValueException", "Code.ZipFile is not valid base64")
 		}
 		raw = decoded
+	case code.ImageUri != "":
+		// Say what was actually asked for. This used to fall into the default
+		// below and answer "Code.ZipFile ... is required", which reads as "you
+		// forgot to attach code" to somebody who attached exactly what AWS
+		// wanted — the wrong mistake, reported confidently.
+		return "", "", awshttp.Errf(400, "InvalidParameterValueException",
+			"container image functions are not supported: doze-aws runs functions as "+
+				"local processes and pulls no images (%s). Package the handler as a zip, "+
+				"or point Code.S3Bucket at \"_local_\" with S3Key an absolute path to run "+
+				"it in place.", code.ImageUri)
 	default:
 		return "", "", awshttp.Errf(400, "InvalidParameterValueException",
 			"Code.ZipFile, Code.S3Bucket/S3Key, or the _local_ extension is required")

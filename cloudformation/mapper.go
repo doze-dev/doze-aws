@@ -595,13 +595,34 @@ func (m *mapper) function(name string, props map[string]any) error {
 	// local path and a real `cdk deploy` fails on "code path … does not
 	// exist" with the zip sitting in S3. The _local_ bucket is the escape
 	// hatch for a directory on disk, and keeps the key as that path.
+	// A container image is refused by name, here, rather than downstream.
+	//
+	// It used to fall through to firstNonEmpty(key, ImageUri), which took the
+	// ECR URI as a LOCAL CODE PATH — so `cdk deploy` of an image function
+	// failed with "code path ... does not exist" naming a registry URL, which
+	// tells the reader nothing about the actual reason. doze-aws runs
+	// functions as host processes and pulls no images; that is the thing worth
+	// saying, and the stack is refused before anything is provisioned.
+	imageURI := ""
+	if code := propMap(props, "Code"); code != nil {
+		imageURI = propStr(code, "ImageUri")
+	}
+	if pkg := propStr(props, "PackageType"); imageURI != "" || pkg == "Image" {
+		detail := "PackageType: Image"
+		if imageURI != "" {
+			detail = imageURI
+		}
+		return fmt.Errorf("%s is a container image function (%s), which doze-aws does not run: "+
+			"functions are local processes and no image is pulled. Package the handler as a zip "+
+			"(SAM CodeUri, or Code.S3Bucket/S3Key) to deploy it here", name, detail)
+	}
 	if code := propMap(props, "Code"); code != nil {
 		bucket, key := propStr(code, "S3Bucket"), propStr(code, "S3Key")
 		switch {
 		case bucket != "" && bucket != "_local_" && key != "":
 			f.Code = "s3://" + bucket + "/" + key
 		default:
-			f.Code = firstNonEmpty(key, propStr(code, "ImageUri"))
+			f.Code = key
 		}
 	}
 	if uri := props["CodeUri"]; uri != nil { // SAM

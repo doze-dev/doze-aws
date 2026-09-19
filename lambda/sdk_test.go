@@ -241,3 +241,40 @@ func TestSDKEventSourceMapping(t *testing.T) {
 		t.Fatalf("DeleteEventSourceMapping: %v", err)
 	}
 }
+
+// A container image function is refused by name.
+//
+// It used to fall into the "Code.ZipFile, Code.S3Bucket/S3Key, or the _local_
+// extension is required" arm, which reads as "you forgot to attach code" to
+// somebody who attached exactly what AWS asks for. The refusal is right —
+// doze-aws runs functions as host processes and pulls no images — and saying
+// which of those two things happened is the whole difference.
+func TestSDKContainerImageIsRefusedByName(t *testing.T) {
+	ctx := context.Background()
+	c, _ := lambdaClient(t)
+
+	_, err := c.CreateFunction(ctx, &awslambda.CreateFunctionInput{
+		FunctionName: aws.String("imaged"),
+		Role:         aws.String("arn:aws:iam::000000000000:role/r"),
+		PackageType:  lamtypes.PackageTypeImage,
+		Code: &lamtypes.FunctionCode{
+			ImageUri: aws.String("123.dkr.ecr.us-east-1.amazonaws.com/app:latest"),
+		},
+	})
+	if err == nil {
+		t.Fatal("a container image function was accepted; doze-aws cannot run one")
+	}
+	msg := err.Error()
+	for _, want := range []string{"container image", "local processes", "zip"} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("the refusal does not mention %q:\n  %s", want, msg)
+		}
+	}
+	if !strings.Contains(msg, "app:latest") {
+		t.Errorf("the refusal does not quote the image it was given:\n  %s", msg)
+	}
+	if strings.Contains(msg, "is required") {
+		t.Errorf("the refusal still reads as missing code rather than an "+
+			"unsupported package type:\n  %s", msg)
+	}
+}
