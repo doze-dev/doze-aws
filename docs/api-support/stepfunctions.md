@@ -59,44 +59,44 @@ in `Parameters`, `Choice` comparisons and `Wait` paths. In JSONata
 with the AWS additions — `$states`, `$partition`, `$range`, `$hash`, `$random`,
 `$uuid`, `$parse`.
 
-The additions are this repo's code; the language underneath them is
-[blues/jsonata-go](https://github.com/blues/jsonata-go), an honest partial
-port, so "supports JSONata" is a claim about a dependency. It is measured
-rather than assumed: `internal/asl/jsonata_dialect_test.go` runs 92 probes
-covering the documented function library and the syntax, and freezes the
-result, so a dependency bump that closes a gap fails the test as loudly as a
-regression that opens one.
+### The JSONata dialect, measured
 
-**One gap remains: the path-binding operators `%`, `@` and `#`.**
+`%`, `@` and `#` — the path-binding operators — **do not work. Everything else
+in the JSONata function library and syntax does.**
 
-They are one missing feature, not three. The reference implementation carries a
-tuple stream through path evaluation and all three ride on it — `%` is resolved
-by *static analysis at compile time* — and the port has none of that machinery.
-No extension can add an operator to the parser, and a source rewrite does not
-work either: `Order.Product.%.OrderID` yields one `OrderID` per **product**, so
-dropping a path step changes the cardinality. Closing this would mean forking
-the dependency, which is not worth it for parent navigation.
-
-The workaround is a variable binding, which is what most JSONata is written
-with anyway:
+Use a variable binding in place of `%`, which is how most JSONata is written
+anyway:
 
 ```
 Order.($o := $; Product.($o.OrderID))
 ```
 
-**Four other gaps were closed rather than documented** —  `$assert`,
-`$formatInteger`, `$parseInteger` and the two-argument `$string(value,
-prettify)` are implemented in `internal/asl/jsonata_gaps.go`, registered
-through the same mechanism as the AWS additions. `$formatInteger` and
-`$parseInteger` accept the documented pictures (`0`/`#`/`,` decimal patterns,
-`a` `A` `i` `I` `w` `W` `Ww`, each optionally with `;o` for ordinals) and
-**refuse** anything else rather than falling back to decimal, because a picture
-this does not understand would behave differently on AWS.
+`$eval` is absent too, but that is parity rather than a gap: AWS does not offer
+it either — *"`$eval` is not available—use `$parse` instead"* — and `$parse` is
+implemented.
 
-**`$eval` is absent, and that is parity, not a gap.** AWS does not offer it
-either — *"`$eval` is not available—use `$parse` instead"* — and `$parse` is
-implemented. The test asserts `$eval` must **not** work, so a dependency bump
-that adds it cannot quietly introduce a divergence.
+That list is measured, not asserted. The AWS additions are this repo's code, but
+the language underneath is [blues/jsonata-go](https://github.com/blues/jsonata-go),
+a partial port — so "supports JSONata" is a claim about a dependency.
+`internal/asl/jsonata_dialect_test.go` probes the documented library and syntax
+and freezes the result in both directions: a dependency bump that closes a gap
+fails it as loudly as a regression that opens one.
+
+Two details behind the list, for anyone changing this:
+
+- The three operators are **one** missing feature. All of them ride on a tuple
+  stream carried through path evaluation, which the port does not implement, and
+  `%` is resolved by static analysis at compile time — so no extension function
+  can supply them, and a source rewrite cannot either
+  (`Order.Product.%.OrderID` yields one `OrderID` per *product*, so dropping a
+  path step changes the cardinality). It would take a fork.
+- Four functions the port omits — `$assert`, `$formatInteger`, `$parseInteger`
+  and the two-argument `$string(value, prettify)` — are supplied in
+  `internal/asl/jsonata_gaps.go`. The two integer pictures accept the documented
+  set (`0`/`#`/`,` decimal patterns, `a` `A` `i` `I` `w` `W` `Ww`, each
+  optionally with `;o` for ordinals) and refuse anything else rather than
+  falling back to decimal, since a picture they cannot read would behave
+  differently on AWS.
 
 Everything else in the library is there, including the parts most often
 missing from a port: `$sift`, `$each`, `$single`, `$zip`, `$distinct`,
