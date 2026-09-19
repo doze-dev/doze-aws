@@ -13,10 +13,20 @@
 // locally. Standard executions run on a single driver goroutine (engine.go,
 // scheduler.go) that owns every interpreter step and every bbolt write, with
 // Task calls on transient workers that never touch the store. Frames are the
-// schedule: a restart re-issues whatever each frame's status names. Express,
-// activities, redrive and TestState answer an honest
-// UnsupportedOperationException from notYet rather than accepting work they
-// would silently drop.
+// schedule: a restart re-issues whatever each frame's status names.
+//
+// All 37 operations the model documents are handled: notYet and stubActions
+// are both empty, and TestEveryModelOperationIsAccountedFor holds them that way.
+// Express (StartSyncExecution), activities, RedriveExecution and TestState are
+// among them — this comment claimed for a while that those four were refused
+// from notYet, which stopped being true when they landed and was exactly
+// backwards for anyone reading the package to find out what works.
+//
+// The gaps that remain are behavioural rather than missing operations, and
+// docs/api-support/stepfunctions.md lists them: at-least-once task dispatch
+// across a restart, one-second Wait resolution, immediate DeleteStateMachine,
+// and Express and TestState runs not surviving a restart. The JSONata dialect
+// has a gap of its own, measured in internal/asl/jsonata_dialect_test.go.
 //
 // See docs/api-support/stepfunctions.md for the operation-by-operation table.
 package stepfunctions

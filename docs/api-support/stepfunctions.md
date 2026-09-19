@@ -57,8 +57,34 @@ in `Parameters`, `Choice` comparisons and `Wait` paths. In JSONata
 (`"QueryLanguage": "JSONata"` on the machine or on one state) it evaluates
 `Arguments`, `Output`, `Assign`, `Condition`, `Items` and the `Wait` fields
 with the AWS additions — `$states`, `$partition`, `$range`, `$hash`, `$random`,
-`$uuid`, `$parse` — so a definition written in the current console runs
-unchanged.
+`$uuid`, `$parse`.
+
+The additions are this repo's code; the language underneath them is
+[blues/jsonata-go](https://github.com/blues/jsonata-go), an honest partial
+port, so "supports JSONata" is a claim about a dependency. It is measured
+rather than assumed: `internal/asl/jsonata_dialect_test.go` runs 84 probes
+covering the documented function library and the syntax, and freezes the
+result, so a dependency bump that closes a gap fails the test as loudly as a
+regression that opens one.
+
+**79 of 84 work. Five do not:**
+
+| missing | what it is |
+|---|---|
+| `$eval` | evaluates an expression string at runtime |
+| `$formatInteger` | integer to words or roman numerals (ICU picture strings) |
+| `$parseInteger` | the inverse of `$formatInteger` |
+| `$assert` | raises when a condition is false — note `$error`, the other raising function, **is** present |
+| `%` | the parent-node navigation operator; it does not parse |
+
+Everything else in the library is there, including the parts most often
+missing from a port: `$sift`, `$each`, `$single`, `$zip`, `$distinct`,
+`$type`, `$formatNumber`, `$formatBase`, `$toMillis`/`$fromMillis`, the
+transform operator `|…|…|`, the order-by operator `^(…)`, descendant `**`,
+and user-defined functions.
+
+So a definition written in the current console runs unchanged unless it uses
+one of those five.
 
 Task resources are the local integration set, each with `.waitForTaskToken`
 where AWS offers it:
