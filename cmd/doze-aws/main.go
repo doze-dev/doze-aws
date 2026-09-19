@@ -461,6 +461,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	// "/_console" prefix can never collide with a valid S3 bucket name (those
 	// forbid underscores), so path-style S3 routing is unaffected.
 	handler := http.Handler(regions)
+	consoleURL := ""
 	if cfg.Console {
 		// The recorder wraps the gateway for external SDK/CLI traffic; the
 		// console reads it for the Traffic tail but drives its own calls
@@ -495,7 +496,18 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		mux.Handle("/", rec)
 		handler = mux
 		logger.Info("console", "url", binds.primary().url+"/_console/")
+		consoleURL = binds.primary().url + "/_console/"
 	}
+
+	// The same facts as the log lines above, for the person rather than the
+	// parser. See ready.go for why this is stdout and they are stderr.
+	ready{
+		endpoint: binds.primary().url,
+		console:  consoleURL,
+		services: enabled,
+		region:   cfg.Identity().RegionName(),
+		account:  cfg.Identity().Account(),
+	}.write(os.Stdout)
 
 	srv := &http.Server{Handler: handler}
 

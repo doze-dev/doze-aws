@@ -27,6 +27,36 @@ eval "$(doze-aws env)"
 aws sts get-caller-identity
 ```
 
+It tells you where it is and what to do next:
+
+```
+  doze-aws is up.
+
+    endpoint  http://aws.harbour.doze
+    console   http://aws.harbour.doze/_console/   what your app is doing, live
+    serving   17 services in us-east-1, account 000000000000
+
+    eval "$(doze-aws env)"   point this shell at it
+    doze-aws doctor          when something looks wrong
+```
+
+**There is a console, and it opens on your own traffic.** Not a resource
+browser with a traffic tab — the home page *is* the wire: every call your app
+makes, in order, with the work each one caused nested underneath it, a request
+id you can quote, and a "copy as curl" on each row. Real AWS cannot offer that
+view, because real AWS is not sitting between your code and the answer.
+
+Alongside it: every service has pages that read and write real resources —
+browse and upload S3 objects, receive and redrive SQS messages, run PartiQL
+against DynamoDB, watch a Step Functions execution graph, invoke a Lambda and
+tail its logs, simulate an IAM policy. And a **fidelity ledger** per service
+saying which operations are functional, which are cosmetic round-trips, and
+which are honest stubs — the one table real AWS never has to show you.
+
+`doze-aws doctor` is the first thing to run when something is off: it reports
+what `.doze` needs on this machine, what is registered, and what to do about
+it. It always exits 0 — being told what is missing is the command working.
+
 An instance answers on **its own name**, taken from the project directory, and
 the AWS-shaped hostnames sit beneath it — so a URL it hands back differs from
 the real one by the suffix alone:

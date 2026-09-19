@@ -8,8 +8,24 @@ both AWS SDK generations. No Docker, no JVM, no cloud.
 
 ```sh
 cd ~/code/harbour && doze-aws
-# msg="reachable at" url=http://aws.harbour.doze as=name
 ```
+
+It prints where it is and what to do next:
+
+```
+  doze-aws is up.
+
+    endpoint  http://aws.harbour.doze
+    console   http://aws.harbour.doze/_console/   what your app is doing, live
+    serving   17 services in us-east-1, account 000000000000
+
+    eval "$(doze-aws env)"   point this shell at it
+    doze-aws doctor          when something looks wrong
+```
+
+That block goes to stdout; the structured log lines go to stderr, so
+`doze-aws 2>/dev/null` leaves just the summary and anything parsing the logs
+is unaffected.
 
 That is the whole setup. doze-aws addresses itself by name, so the first run
 on a machine offers to make `.doze` resolve:
@@ -38,6 +54,39 @@ aws dynamodb create-table --table-name t \
   --key-schema AttributeName=id,KeyType=HASH --billing-mode PAY_PER_REQUEST
 aws sqs create-queue --queue-name jobs
 ```
+
+## Open the console
+
+`http://aws.harbour.doze/_console/` — on by default, `--console=false` to turn
+it off.
+
+It opens on **the wire**: every call your app has made, newest first, with the
+work each one caused nested under it. An S3 upload that fired a notification
+that invoked a Lambda is drawn as one thing, not three unrelated rows. Each
+row carries the status, the duration, the request id the SDK printed, and a
+*copy as curl* button whose body is the redacted copy, so a repro you paste
+into a ticket keeps secrets masked.
+
+The calls the console makes on its own behalf never appear there — it talks to
+the services directly rather than through the recorder — so the tail is your
+app's traffic and nothing else.
+
+From there, every service has pages that do real work: browse and upload S3
+objects, actually receive (not peek at) SQS messages and redrive from a DLQ,
+run PartiQL against DynamoDB, watch a Step Functions execution graph, invoke a
+Lambda and tail its logs, simulate an IAM policy before you trust it.
+
+Two things worth knowing about:
+
+- **Connect** — the same endpoint written four ways: an AWS CLI profile, the
+  environment block, a Terraform provider, and the deploy commands. Built from
+  the address you reached the console on, with a button that runs a real
+  `GetCallerIdentity` to prove it works.
+- **The fidelity ledger**, on each service page — which operations are
+  functional, which are cosmetic round-trips that accept and return your
+  config without acting on it, and which are honest stubs. Real AWS never has
+  to answer "is this call real here"; an emulator does, and this is where it
+  does.
 
 Queue URLs, invoke URLs and function URLs come back AWS-shaped under the
 instance name — `http://sqs.us-east-1.aws.harbour.doze/000000000000/jobs` — so
