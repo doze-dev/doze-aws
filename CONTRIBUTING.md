@@ -102,6 +102,40 @@ runs in parallel.
   service from many goroutines under `-race`.
 - **e2e** (`e2e/`) drives the console in a browser.
 
+### When the budget fires
+
+`task lightness` holds what doze-aws weighs against `testdata/lightness.json` —
+binary bytes, embedded assets, the linked module set, per-service goroutines
+and disk, and the footprint of a stack at rest. CI runs it. It is deliberately
+**not** in `task check`, because a budget that runs on every pre-push is a
+budget people learn to skip.
+
+A failure is not a wall. It is asking which of two things happened:
+
+1. **You meant it.** A new asset, a service that starts a goroutine, a
+   dependency worth its size. Run `task lightness:update`, **read the diff**,
+   and commit it alongside the change that caused it with a line saying why.
+   The recorded number moving is the record; that is what the fixture is for.
+2. **You did not.** Then the number is telling you something, and the failure
+   names which: `TestOnlyTheDeclaredModulesAreLinked` names a module by path,
+   `TestEmbeddedTreesFitTheirBudget` names the embed site,
+   `TestEachServiceCostsWhatTheBudgetSays` names the service.
+
+Two things worth knowing before you reach for `lightness:update`:
+
+- **Exact numbers re-derive in both directions; observations only widen.** An
+  embedded tree or a data directory is identical on any machine, so its ceiling
+  follows its measurement down as well as up. Heap, RSS, CPU and boot do not —
+  re-deriving those from one quiet run would ratchet the band down and fail on
+  an ordinary one.
+- **Never widen a ceiling by hand to make a failure go away.** If the growth is
+  wanted, record it; if it is not, fix it. A ceiling edited in the same commit
+  as the thing that breached it is how a budget stops meaning anything.
+
+Adding a new budget: put the test's name in `BUDGET_TESTS` in `Taskfile.yml`.
+That is the only place the list lives — CI runs `go tool task lightness` rather
+than keeping its own copy.
+
 ### If you fix a bug, break it again first
 
 Every correctness fix in this repo is expected to come with a test, and the test

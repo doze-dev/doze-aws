@@ -96,6 +96,39 @@ suffix swapped.
 No DNS available (CI, a container)? `doze-aws --listen 127.0.0.1:4566` serves an
 address instead. See [endpoints.md](endpoints.md).
 
+### In Docker, if that is where your team already is
+
+doze-aws ships no image and no Dockerfile, deliberately — the whole argument
+against a 1.88 GB emulator container is weakened by shipping one, and a static
+binary with no runtime dependencies is a two-line `Dockerfile` anyone can write
+for themselves. If your team's stack is already `docker compose up`, this is
+enough:
+
+```dockerfile
+# Dockerfile
+FROM alpine:3
+COPY doze-aws /usr/local/bin/doze-aws
+ENTRYPOINT ["doze-aws", "--listen", "0.0.0.0:4566", "--data-dir", "/data"]
+```
+
+```yaml
+# compose.yaml
+services:
+  aws:
+    build: .
+    ports: ["4566:4566"]
+    volumes: ["aws-data:/data"] # drop this line to start clean every run
+volumes:
+  aws-data:
+```
+
+Then point the SDKs at `http://aws:4566` from sibling services, or
+`http://localhost:4566` from the host. Two things to know: `--listen` is
+required, because the `.doze` name resolution the default depends on is not
+there inside a container; and the data directory is worth a volume only if you
+want state to survive `down` — a test run usually does not, and starting clean
+is one line shorter.
+
 ## Configure
 
 Everything is a flag or a TOML key (flags win). Print the effective config:

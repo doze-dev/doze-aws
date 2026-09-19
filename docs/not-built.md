@@ -33,6 +33,11 @@ For the person reviewing whether this is safe to run:
   nothing to trust into a system store. An SDK takes the endpoint as given;
   point it at `http://` and it works. Reaching it from beyond the machine is
   a job for whatever already terminates TLS for you.
+- **No container image, and no Dockerfile.** Not an oversight: "no Docker" is
+  half the argument for this project, and a static binary with no runtime
+  dependencies does not need one. If your team already runs everything under
+  compose, [getting-started.md](getting-started.md) has the two-line
+  `Dockerfile` and the compose service to write yourself.
 - **Apache 2.0**, and it runs fully offline.
 
 ## Declined
