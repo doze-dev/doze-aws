@@ -17,16 +17,25 @@ package dozeaws_test
 //
 // # What this catches, and what it does not
 //
-// Goroutines are the sensitive half, and the reliable one: a count is exact,
+// Goroutines are the sensitive one, and the reliable one: a count is exact,
 // there is no noise to allow for, and "one goroutine per request, never
 // reaped" is a real failure mode that a 300ms test cannot see.
 //
-// Heap is the coarse half, and the band is wide on purpose. A Go heap after GC
+// Heap is the coarse one, and the band is wide on purpose. A Go heap after GC
 // still moves several percent between runs, so the threshold has to sit above
 // that — which means this catches a leak measured in megabytes and NOT a map
 // that grew two thousand small entries. Those three audit bugs would each be a
 // few hundred kilobytes here, comfortably inside the noise. Pretending this
 // covers it would be worse than saying it does not.
+//
+// Disk is the tightest of the three, because it is the only one that actually
+// plateaus: bbolt reuses freed pages, so this workload settles on a size and
+// stays there — the same number at 150 rounds and 300, and again at 600 and
+// 1,200. Zero growth, so the allowance can be four pages instead of a
+// fraction. It answers a question neither of the others can: heap says what
+// the process is holding, and disk says what it LEFT BEHIND. Making an S3
+// delete a no-op moves disk by 1,759 bytes a round and moves the heap check by
+// 47, which is nowhere near firing.
 //
 // The way to close it, for whoever takes it on: runtime.MemProfile is stdlib
 // and reports live bytes per ALLOCATION STACK. Snapshot at N rounds and at 2N,
@@ -56,6 +65,7 @@ import (
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/dozetest"
+	"github.com/doze-dev/doze-aws/internal/lightness"
 )
 
 // rounds is the measurement point; the test runs 2×rounds in total.
@@ -85,21 +95,27 @@ func roundCount(t *testing.T) int {
 type sample struct {
 	goroutines int
 	heapBytes  uint64
+	diskBytes  int64
 }
 
 // measure forces two collections before reading. One is not enough: the first
 // can queue finalisers whose objects are only freed by the second, and reading
 // after a single GC reports garbage as live.
-func measure() sample {
+func measure(t *testing.T, dir string) sample {
 	runtime.GC()
 	runtime.GC()
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-	return sample{goroutines: runtime.NumGoroutine(), heapBytes: m.HeapAlloc}
+	disk, _, err := lightness.DirBytes(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return sample{goroutines: runtime.NumGoroutine(), heapBytes: m.HeapAlloc, diskBytes: disk}
 }
 
 func (s sample) String() string {
-	return fmt.Sprintf("%d goroutines, %.1f MiB heap", s.goroutines, float64(s.heapBytes)/(1<<20))
+	return fmt.Sprintf("%d goroutines, %.1f MiB heap, %d bytes on disk",
+		s.goroutines, float64(s.heapBytes)/(1<<20), s.diskBytes)
 }
 
 func TestResourcesStayBoundedUnderRepeatedUse(t *testing.T) {
@@ -107,8 +123,9 @@ func TestResourcesStayBoundedUnderRepeatedUse(t *testing.T) {
 		t.Skip("drives a stack through hundreds of create/use/delete rounds")
 	}
 	rounds := roundCount(t)
+	dir := t.TempDir()
 	st, err := dozeaws.NewStack(dozeaws.StackConfig{
-		DataDir:  t.TempDir(),
+		DataDir:  dir,
 		Services: []string{"sqs", "s3"},
 		Logf:     dozetest.Quiet(t),
 	})
@@ -179,11 +196,11 @@ func TestResourcesStayBoundedUnderRepeatedUse(t *testing.T) {
 	for i := 0; i < rounds; i++ {
 		round(i)
 	}
-	base := measure()
+	base := measure(t, dir)
 	for i := rounds; i < 2*rounds; i++ {
 		round(i)
 	}
-	grown := measure()
+	grown := measure(t, dir)
 
 	t.Logf("after %d rounds: %s", rounds, base)
 	t.Logf("after %d rounds: %s", 2*rounds, grown)
@@ -258,6 +275,41 @@ func TestResourcesStayBoundedUnderRepeatedUse(t *testing.T) {
 			"per round, %d allowed in total) — the live set is identical at both "+
 			"points, so this is retention",
 			base, rounds, grown, 2*rounds, perRound, allowed)
+	}
+
+	// Disk: the tightest of the three, because it is the one that actually
+	// plateaus.
+	//
+	// bbolt never truncates. It grows the file when it needs pages and then
+	// reuses freed ones, so a steady-state workload settles at a size and stays
+	// there — measured, not assumed: this reads exactly the same number at 150
+	// rounds and at 300, and again at 600 and 1,200. Zero growth, not "a bit".
+	//
+	// So growth here is not page churn, it is something the workload created
+	// and did not remove: an S3 object whose delete leaves the blob, a logs
+	// retention sweeper that never runs, SQS tombstones accumulating. Each of
+	// those is proportional to the round count, which is exactly what comparing
+	// N against 2N sees.
+	//
+	// The slack is four pages rather than a byte count, because bbolt allocates
+	// in pages and a page is 4 KiB on the Linux runners and 16 KiB on an Apple
+	// laptop — a fixed number would be four times tighter on one than the
+	// other without saying so. Four pages is generous against a measured zero
+	// and still an order of magnitude under what a real leak produces: making
+	// s3store.DeleteObject a no-op grows this by 263,794 bytes, about 1.7 KiB
+	// a round, against a 64 KiB allowance here and 16 KiB on Linux.
+	diskSlack := int64(4 * os.Getpagesize())
+	diskPerRound := float64(grown.diskBytes-base.diskBytes) / float64(rounds)
+	t.Logf("disk moved %+.0f bytes per round across the second %d rounds", diskPerRound, rounds)
+
+	if grown.diskBytes > base.diskBytes+diskSlack {
+		t.Errorf("the data directory grew with use: %d bytes after %d rounds, "+
+			"%d after %d (%+.0f bytes per round, %d allowed).\n"+
+			"  The live set is identical at both points, so something a round "+
+			"creates is not being\n  removed. bbolt reuses freed pages, so this "+
+			"is not the file growing — it is content\n  staying in it, or a blob "+
+			"a delete did not unlink.",
+			base.diskBytes, rounds, grown.diskBytes, 2*rounds, diskPerRound, diskSlack)
 	}
 
 	dozetest.NoFaults(t, st)
