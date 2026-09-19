@@ -1,0 +1,18 @@
+{
+  "_": "The lightness budget. Regenerate with `task lightness:update`, review the diff, and commit it with the change that caused it. See docs/performance.md and internal/lightness.",
+  "recorded": {
+    "toolchain": "go1.27.0",
+    "host": "darwin/arm64",
+    "date": "2026-09-19"
+  },
+  "portable": {
+    "modules": [
+      "github.com/BurntSushi/toml",
+      "github.com/blues/jsonata-go",
+      "github.com/doze-dev/doze-names",
+      "go.etcd.io/bbolt",
+      "golang.org/x/sys",
+      "gopkg.in/yaml.v3"
+    ]
+  }
+}
