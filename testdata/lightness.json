@@ -31,7 +31,7 @@
       },
       "docs/api-support": {
         "bytes": {
-          "measured": 162919,
+          "measured": 162944,
           "ceiling": 203776
         },
         "files": 18
@@ -164,6 +164,18 @@
           "ceiling": 5120
         }
       }
+    },
+    "binary": {
+      "target": "linux/amd64",
+      "flags": "-trimpath -buildvcs=false -ldflags -s -w -X main.version=v0.0.0",
+      "bytes": {
+        "measured": 22565024,
+        "ceiling": 28207104
+      },
+      "gzipped_bytes": {
+        "measured": 8980066,
+        "ceiling": 11225088
+      }
     }
   },
   "local": {
@@ -171,15 +183,15 @@
     "shapes": {
       "full": {
         "heap_alloc_bytes": {
-          "measured": 3807464,
+          "measured": 3806560,
           "ceiling": 5709824
         },
         "retained_bytes": {
-          "measured": 12015896,
+          "measured": 11708680,
           "ceiling": 17317888
         },
         "max_rss_bytes": {
-          "measured": 28737536,
+          "measured": 28475392,
           "ceiling": 46104576
         },
         "goroutines": {
@@ -187,33 +199,33 @@
           "ceiling": 37
         },
         "cpu_micros": {
-          "measured": 5710,
+          "measured": 2591,
           "ceiling": 27120
         },
         "sched_events": {
-          "measured": 32,
+          "measured": 19,
           "ceiling": 1000
         },
         "boot_cold_micros": {
-          "measured": 2390,
+          "measured": 1654,
           "ceiling": 5000000
         },
         "boot_warm_micros": {
-          "measured": 225,
+          "measured": 157,
           "ceiling": 7020
         }
       },
       "sqs+s3": {
         "heap_alloc_bytes": {
-          "measured": 3600448,
+          "measured": 3605168,
           "ceiling": 5391360
         },
         "retained_bytes": {
-          "measured": 11192584,
+          "measured": 11168008,
           "ceiling": 16420864
         },
         "max_rss_bytes": {
-          "measured": 26787840,
+          "measured": 26869760,
           "ceiling": 39813120
         },
         "goroutines": {
@@ -221,19 +233,19 @@
           "ceiling": 8
         },
         "cpu_micros": {
-          "measured": 4681,
+          "measured": 2009,
           "ceiling": 25550
         },
         "sched_events": {
-          "measured": 31,
+          "measured": 24,
           "ceiling": 1000
         },
         "boot_cold_micros": {
-          "measured": 717,
+          "measured": 419,
           "ceiling": 5000000
         },
         "boot_warm_micros": {
-          "measured": 103,
+          "measured": 53,
           "ceiling": 2100
         }
       }

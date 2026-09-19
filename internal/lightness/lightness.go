@@ -146,6 +146,37 @@ type Portable struct {
 	// Services is what one service costs to start and to store, keyed by the
 	// name in dozeaws.Implemented.
 	Services map[string]Service `json:"services"`
+
+	// Binary is the size of the thing people download.
+	Binary Binary `json:"binary"`
+}
+
+// Binary is what a release artifact weighs.
+//
+// # Why one pinned target and not the host's
+//
+// The size of this project's binary was quoted in three documents and defended
+// by nothing, and it could not be defended while it was a local observation: a
+// darwin/arm64 build and a linux/amd64 build of the same commit differ by more
+// than a megabyte, so "20.4 MiB" was true only on the machine that measured it.
+//
+// Pinning ONE cross-compiled target is what turns it into a fact. It is the
+// same number on any host with the same toolchain — verified byte-identical
+// across repeat builds — so it can be gated exactly rather than banded.
+type Binary struct {
+	// Target is the GOOS/GOARCH this figure is for, recorded so the number is
+	// never read as "the binary" when it is one of five that ship.
+	Target string `json:"target"`
+	// Flags is the build that produced it, likewise. -X main.version is pinned
+	// to a fixed string: a real tag makes the binary longer by the difference
+	// in the version string's length, which is not a change worth a diff.
+	Flags string `json:"flags"`
+	// Bytes is the stripped binary.
+	Bytes Budget `json:"bytes"`
+	// Gzipped approximates the download, which ships as a .tar.gz. Compressed
+	// with the stdlib at best compression rather than the system gzip, so the
+	// number is reproducible from this repo alone.
+	Gzipped Budget `json:"gzipped_bytes"`
 }
 
 // Tree is an embedded asset tree.
