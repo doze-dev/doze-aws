@@ -185,17 +185,41 @@ type Budget struct {
 // Over reports whether n breaches the ceiling.
 func (b Budget) Over(n int64) bool { return b.Ceiling > 0 && n > b.Ceiling }
 
-// Record sets Measured, and widens Ceiling only when the measurement has
-// passed it — so regenerating never silently tightens a band somebody chose.
+// Record sets Measured and chooses Ceiling.
+//
+// A fresh entry, or one its measurement has outgrown, takes the policy's band.
+// After that the two halves part company, and the reason is the same
+// portable/local split the whole package is built on:
+//
+// An EXACT quantity follows its measurement down as well as up. It has to.
+// Twice now a number here fell by two orders of magnitude — a service's
+// untouched data directory going from 131,166 bytes to 94 when its database
+// stopped being created at boot, and Lambda's from 19,925 to 94 when its
+// runtime shims did — and both times regenerating left the old ceiling
+// standing, because widening-only cannot see a number get smaller. A 164,864
+// ceiling over a 94-byte measurement is not a loose band, it is no band: the
+// service would have to go back to creating the file to trip it, which is
+// exactly the regression it was meant to catch. Both had to be reset by hand,
+// and the second time was no more obvious than the first.
+//
+// An OBSERVATION does not, deliberately. Heap, resident memory, CPU and boot
+// latency move with the machine, so re-deriving from whatever the last run
+// happened to read would ratchet the band down to a quiet afternoon and fail
+// on an ordinary one. These ceilings are several times their measurement
+// precisely so they cannot fire on noise, and a gate that fires on noise is a
+// gate somebody mutes. A stale ceiling here costs less than a flaky one, and
+// the `measured` field is what makes the drift visible in a diff — which is
+// the division this file already argues for everywhere else.
 func (b Budget) Record(n int64, h Headroom) Budget {
 	b.Measured = n
-	if b.Ceiling == 0 || n > b.Ceiling {
-		b.Ceiling = h(n)
+	if b.Ceiling == 0 || n > b.Ceiling || h.Exact {
+		b.Ceiling = h.Ceiling(n)
 	}
 	return b
 }
 
-// A Headroom turns a measurement into the ceiling it gets.
+// A Headroom turns a measurement into the ceiling it gets, and says whether
+// that measurement is a fact or an observation.
 //
 // There is no single right amount, and pretending otherwise produces a gate
 // that cannot fire. The first version of this file had one rule with a 4 KiB
@@ -204,30 +228,52 @@ func (b Budget) Record(n int64, h Headroom) Budget {
 // would have to leak five thousand goroutines to trip it. Same shape as the
 // heap band a few commits ago that required 8 MiB before it would evaluate a
 // heap that is 3.8. A ceiling has to be chosen against the units it is in.
-type Headroom func(int64) int64
+type Headroom struct {
+	// Ceiling is the band a measurement of n gets.
+	Ceiling func(n int64) int64
+	// Exact marks a quantity that is identical on any machine for a given
+	// toolchain, so there is no noise for a ceiling to absorb and the band can
+	// be re-derived from any run. See Budget.Record for what that buys, and
+	// for why the observations deliberately do not get it.
+	Exact bool
+}
 
 var (
 	// Bytes is for deterministic byte counts — embedded trees, an untouched
 	// data directory. The value does not move unless someone moved it, so a
-	// quarter of room is generous.
-	Bytes Headroom = func(n int64) int64 { return roundKiB(atLeast(n+n/4, n+4096)) }
+	// quarter of room is generous, and its ceiling tracks it in both
+	// directions.
+	Bytes = Headroom{
+		Exact:   true,
+		Ceiling: func(n int64) int64 { return roundKiB(atLeast(n+n/4, n+4096)) },
+	}
 
 	// Footprint is for memory measured on whatever machine is running: heap,
 	// retained, resident. Half again, with a mebibyte of floor, because these
 	// legitimately differ between a laptop and a CI runner and a band that
 	// fires on that difference is a band that gets deleted.
-	Footprint Headroom = func(n int64) int64 { return roundKiB(atLeast(n+n/2, n+1<<20)) }
+	Footprint = Headroom{
+		Ceiling: func(n int64) int64 { return roundKiB(atLeast(n+n/2, n+1<<20)) },
+	}
 
 	// Count is for small exact-ish integers — goroutines at rest. Half again
 	// plus four, so 25 becomes 41: tight enough that a dozen leaked goroutines
 	// fire it, loose enough to absorb a GC worker appearing.
-	Count Headroom = func(n int64) int64 { return atLeast(n+n/2, n+4) }
+	//
+	// Exact-ish is not exact, which is why it is not marked so: the runtime
+	// can add a worker without this repo changing, and re-deriving from a run
+	// that happened to have one fewer would hand the next run a failure.
+	Count = Headroom{
+		Ceiling: func(n int64) int64 { return atLeast(n+n/2, n+4) },
+	}
 
 	// Noisy is for what a shared runner's slower cores stretch: CPU time and
 	// scheduler events. Ten times, which sounds absurd until you consider what
 	// it still catches — a per-100ms ticker added to each of seventeen
 	// services is a 10x rise on its own.
-	Noisy Headroom = func(n int64) int64 { return atLeast(n*10, 1000) }
+	Noisy = Headroom{
+		Ceiling: func(n int64) int64 { return atLeast(n*10, 1000) },
+	}
 
 	// Catastrophe is for wall-clock MICROSECONDS, where no honest band exists.
 	// Twenty times, with a five-second floor, so it cannot fire on a slow
@@ -241,7 +287,9 @@ var (
 	// boot was recorded in milliseconds and would have become a five-MILLISECOND
 	// catastrophe band the moment that field changed to microseconds — a
 	// ceiling a healthy stack breaches on any ordinary run.
-	Catastrophe Headroom = func(n int64) int64 { return atLeast(n*20, 5_000_000) }
+	Catastrophe = Headroom{
+		Ceiling: func(n int64) int64 { return atLeast(n*20, 5_000_000) },
+	}
 )
 
 func atLeast(n, floor int64) int64 {

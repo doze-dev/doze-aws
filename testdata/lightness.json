@@ -32,7 +32,7 @@
       "docs/api-support": {
         "bytes": {
           "measured": 162919,
-          "ceiling": 202752
+          "ceiling": 203776
         },
         "files": 18
       },
@@ -171,15 +171,15 @@
     "shapes": {
       "full": {
         "heap_alloc_bytes": {
-          "measured": 3802336,
+          "measured": 3807464,
           "ceiling": 5709824
         },
         "retained_bytes": {
-          "measured": 11946248,
+          "measured": 12015896,
           "ceiling": 17317888
         },
         "max_rss_bytes": {
-          "measured": 28508160,
+          "measured": 28737536,
           "ceiling": 46104576
         },
         "goroutines": {
@@ -187,33 +187,33 @@
           "ceiling": 37
         },
         "cpu_micros": {
-          "measured": 6798,
+          "measured": 5710,
           "ceiling": 27120
         },
         "sched_events": {
-          "measured": 35,
+          "measured": 32,
           "ceiling": 1000
         },
         "boot_cold_micros": {
-          "measured": 2510,
+          "measured": 2390,
           "ceiling": 5000000
         },
         "boot_warm_micros": {
-          "measured": 318,
+          "measured": 225,
           "ceiling": 7020
         }
       },
       "sqs+s3": {
         "heap_alloc_bytes": {
-          "measured": 3606200,
+          "measured": 3600448,
           "ceiling": 5391360
         },
         "retained_bytes": {
-          "measured": 11249928,
+          "measured": 11192584,
           "ceiling": 16420864
         },
         "max_rss_bytes": {
-          "measured": 26722304,
+          "measured": 26787840,
           "ceiling": 39813120
         },
         "goroutines": {
@@ -221,19 +221,19 @@
           "ceiling": 8
         },
         "cpu_micros": {
-          "measured": 3332,
+          "measured": 4681,
           "ceiling": 25550
         },
         "sched_events": {
-          "measured": 24,
+          "measured": 31,
           "ceiling": 1000
         },
         "boot_cold_micros": {
-          "measured": 613,
+          "measured": 717,
           "ceiling": 5000000
         },
         "boot_warm_micros": {
-          "measured": 98,
+          "measured": 103,
           "ceiling": 2100
         }
       }
