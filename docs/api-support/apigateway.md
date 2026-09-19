@@ -183,6 +183,48 @@ AWS.
   `AWS::ApiGateway::*` resource types.
 - [lambda.md](lambda.md) — the function runtime behind a proxy integration.
 
+## Differences from AWS
+
+- **No custom domains and no TLS.** A deployed API answers on the shared
+  endpoint at its invoke path, not at `d-xxxx.execute-api...` over HTTPS.
+  Domain names, base path mappings and client certificates are refused by
+  name — all three need DNS and certificate material that has no local form.
+- **No VPC links**, for the same reason: there is no VPC.
+- **Usage is not metered.** API keys and usage plans gate a method that
+  requires a key, which is the behaviour worth having; the quota and throttle
+  half is not enforced, so `GetUsage` has nothing to report and
+  `UpdateUsage` nothing to reset.
+- **Authorizer results are cached the way AWS caches them**, bounded and with
+  a TTL — but the cache is per-process, so restarting doze-aws clears it.
+
+## Verified against
+
+- **A deployed API actually serving** (`sdk_test.go`, `execute_test.go`): the
+  control-plane CRUD, then a real HTTP request reaching a Lambda function
+  through the resource/method tree, with AWS's own path-precedence rules —
+  greedy proxy last.
+- **Authorizers** (`authorize_test.go`, `apikey_test.go`): a TOKEN or REQUEST
+  Lambda authorizer gating a method with the policy the function returns, and
+  an API key gating a method that requires one.
+- **The authorizer cache** (`authcache_bound_test.go`,
+  `authcache_concurrency_test.go`): bounded under unique tokens, expired
+  entries evicted before live ones, and correct under one shared token from
+  many goroutines — a cache that grows forever was one of the audit's findings.
+- **HTTP APIs (v2)** (`v2_execute_test.go`, `v2_sdk_test.go`,
+  `v2_audit_test.go`): payload formats 1.0 and 2.0, route precedence, CORS,
+  quick-create, and an HTTP API serving into Lambda.
+- **Invoke URLs** (`invoke_url_test.go`): the URL follows the request host and
+  honours `X-Forwarded-Proto`, so what a client is told to call is what it can
+  reach.
+- **Stage logging** (`logging_sdk_test.go`): access and execution logs written
+  to CloudWatch Logs.
+- **Routes against their own tables** (`validate_hook_test.go`): every route
+  matches its own template and every constraint table has a route — the check
+  that stops a validation table being attached to nothing.
+- **Model-derived rejection parity** (`rejection_parity_test.go`, and
+  `v2_parity_test.go` for HTTP APIs) and the dispatch table against
+  `testdata/ops_api-gateway.json`.
+
 ## Input validation
 
 Separate from the tiers above. A tier says the operation is implemented; this

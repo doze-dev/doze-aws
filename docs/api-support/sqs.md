@@ -35,6 +35,39 @@ Dead-letter redrive (maxReceiveCount → DLQ move) and retention expiry run on
 the receive path plus a background janitor, so write-only queues are reclaimed
 too.
 
+## Differences from AWS
+
+- **The rules are hand-derived, because the model has none.** SQS's own service
+  model carries no `@range`, `@length` or `@pattern` traits — its constraints
+  live in prose — so queue names, visibility timeouts and redrive policies are
+  checked against the API reference rather than against a generated table. It
+  is the one service here where the audit could not be generated, and the
+  reason its bugs surfaced first.
+- **Redrive and retention run on the receive path and a janitor**, rather than
+  continuously server-side. A queue nobody reads is still swept, so the
+  observable result converges; the timing of a move to the DLQ does not have
+  to match AWS to the second.
+- **Delivery is in-process.** A message fans out to a Lambda event source
+  mapping or an S3 notification through the peers directory rather than over
+  the network, so there is no delivery delay to observe and no partial-region
+  failure to handle.
+
+## Verified against
+
+- **aws-sdk-go-v2** (`sdk_test.go`) and **v1** (`sdkv1_test.go`): both wire
+  protocols — AWS JSON 1.0 and the legacy Query/XML — against the same store,
+  with the MD5 body and attribute digests SDK client-side validation checks.
+- **Batch semantics** (`batch_txn_test.go`): a bad entry does not sink the
+  batch and is reported per entry, a missing queue fails the whole call.
+- **Attributes** (`attrs_roundtrip_test.go`): every settable attribute round
+  trips, computed ones cannot be overwritten, and clearing one removes it.
+- **Lifecycle janitors** (`hardening_test.go`): dedup entries expire, retention
+  sweeps, and a long poll wakes promptly rather than on its timeout.
+- **A leak, kept fixed** (`notify_leak_test.go`): a successful receive followed
+  by a queue delete used to strand a wakeup channel in the long-poll notifier.
+- **Model-derived rejection parity** (`rejection_parity_test.go`), which asserts
+  the error **code** an SDK sees rather than only that something failed.
+
 ## Input validation
 
 Separate from the tiers above. A tier says the operation is implemented; this

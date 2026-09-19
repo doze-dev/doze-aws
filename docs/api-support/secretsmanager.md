@@ -1,6 +1,8 @@
 # Secrets Manager — API support
 
-Tiers: **F** = functional · **C** = cosmetic round-trip · **S** = honest stub.
+Tiers: **F** = functional (real local semantics, SDK-observable behavior
+matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) ·
+**S** = stub (clean error; emulating it locally would be a lie).
 
 Secret values (string and binary) are genuinely encrypted at rest with a
 per-data-dir AES-256-GCM key; the KMS KeyId is recorded and returned
@@ -24,6 +26,36 @@ cosmetically.
 | ValidateResourcePolicy | C | always passes |
 | RotateSecret / CancelRotateSecret | F | RotateSecret invokes the configured rotation Lambda synchronously for the four steps (createSecret, setSecret, testSecret, finishSecret); the function moves the version stages, as on AWS. CancelRotateSecret clears the pending rotation |
 | ReplicateSecretToRegions / RemoveRegionsFromReplication / StopReplicationToReplica | S | exactly one region locally |
+
+## Differences from AWS
+
+- **One region, so no replicas.** `ReplicateSecretToRegions` and its siblings
+  are refused by name rather than pretended: a replica needs a second region
+  to exist.
+- **`ValidateResourcePolicy` always passes.** It is a linting service on AWS;
+  locally there is nothing behind it to lint against, and failing a policy
+  that AWS would accept is the worse error.
+- **Rotation runs your Lambda, and that is all it runs.** `RotateSecret`
+  invokes the function through the four rotation steps; there is no managed
+  rotation template and no scheduled trigger, so rotation happens when it is
+  asked for.
+- **Values are encrypted with a local key** in the data directory rather than
+  by KMS, with the same honest limit as SSM's: encrypted at rest, not
+  protected from anything that can read the directory.
+
+## Verified against
+
+- **aws-sdk-go-v2** (`sdk_test.go`): the secret lifecycle, the deletion
+  recovery window, partial-ARN lookup the way the console does it, version
+  stages and ids, binary values, tags and generated passwords, and the rule
+  that only one version may be `AWSPENDING`.
+- **aws-sdk-go v1** (`sdkv1_test.go`): the secret round trip through the older
+  client.
+- **Rotation end to end** (`rotate_test.go`): a real Lambda function driven
+  through `createSecret`, `setSecret`, `testSecret` and `finishSecret`, with
+  the stage moves each step is supposed to make.
+- **Model-derived rejection parity** (`rejection_parity_test.go`) and the
+  dispatch table against `testdata/ops_secrets-manager.json`.
 
 ## Input validation
 

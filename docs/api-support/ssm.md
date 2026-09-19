@@ -1,6 +1,8 @@
 # SSM — API support
 
-Tiers: **F** = functional · **C** = cosmetic round-trip · **S** = honest stub.
+Tiers: **F** = functional (real local semantics, SDK-observable behavior
+matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) ·
+**S** = stub (clean error; emulating it locally would be a lie).
 
 doze-aws implements the Parameter Store slice of SSM. SecureString values are
 genuinely encrypted at rest with a per-data-dir AES-256-GCM key the service
@@ -19,6 +21,32 @@ works with or without the kms service enabled.
 | LabelParameterVersion / UnlabelParameterVersion | F | a label names at most one version (moves on re-label) |
 | AddTagsToResource / RemoveTagsFromResource / ListTagsForResource | F | ResourceType Parameter only |
 | Documents, Automation, Run Command, Sessions, fleet/instances, associations, patching, inventory, compliance, maintenance windows, OpsCenter, resource data sync, service settings | S | need managed instances / agent infrastructure that does not exist locally; each answers UnsupportedOperationException |
+
+## Differences from AWS
+
+- **Parameter Store only.** The fleet-management half of SSM — Documents,
+  Automation, Run Command, Sessions, patching, inventory, maintenance windows
+  — answers `UnsupportedOperationException` by name. All of it manages managed
+  instances, and there are none.
+- **SecureString is encrypted with a local key**, generated once into the data
+  directory rather than held by KMS. The value is genuinely encrypted at rest
+  and genuinely not protected from anything with read access to that
+  directory.
+- **`DescribeParameters` filters on Name and Type.** Other filter keys are
+  accepted and ignored rather than refused, because a filter this does not
+  implement returning everything is a smaller surprise than a call that fails.
+
+## Verified against
+
+- **aws-sdk-go-v2** (`sdk_test.go`): versions and labels, SecureString
+  round-trips including the overwrite that must keep the type, GetParametersByPath
+  and DescribeParameters, delete and tags, and the fleet operations answering
+  honestly rather than silently.
+- **aws-sdk-go v1** (`sdkv1_test.go`): the parameter round trip through the
+  older client.
+- **Model-derived rejection parity** (`rejection_parity_test.go`), scoped to
+  the dispatched operations, plus the measurement of what the constraint table
+  is worth — see below.
 
 ## Input validation
 

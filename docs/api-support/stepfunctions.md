@@ -1,6 +1,8 @@
 # Step Functions — API support
 
-Tiers: **F** = functional · **C** = cosmetic round-trip · **S** = honest stub.
+Tiers: **F** = functional (real local semantics, SDK-observable behavior
+matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) ·
+**S** = stub (clean error; emulating it locally would be a lie).
 
 Standard and Express workflows run locally against the services this stack
 already serves. The Amazon States Language is parsed, statically checked and
@@ -241,6 +243,24 @@ executions to SUCCEEDED under `-race` alongside every other service, and
 the soak (`cmd/doze-aws/soak_test.go`) starts an execution per iteration and
 asserts, at each checkpoint, that the one from five hundred operations ago
 has finished.
+
+## Differences from AWS
+
+- **Three JSONata path operators are missing**, and they are the only gap in
+  the dialect: `%` (parent), `@` (item binding) and `#` (position binding).
+  Everything else in the JSONata function library and syntax works, measured
+  rather than asserted — see [the dialect section](#the-jsonata-dialect-measured)
+  for the probe and the rewrite to use instead.
+- **Express executions are durable.** AWS keeps Express history only in
+  CloudWatch Logs; here an Express run is stored like a Standard one, so you
+  can call `DescribeExecution` on it afterwards. More is visible locally than
+  would be on AWS, which is the direction worth erring in.
+- **No cross-account or cross-region service integrations.** `aws-sdk:`
+  integrations reach the local services; an ARN pointing somewhere else has
+  nowhere to go.
+- **Activity polling has no long-poll ceiling to speak of.** `GetActivityTask`
+  waits on a local condition rather than a 60-second server-side hold, so a
+  task token is handed over as soon as it exists.
 
 ## Input validation
 

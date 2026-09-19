@@ -19,6 +19,40 @@ matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) �
 All operations are served over the STS Query/XML protocol at the shared
 endpoint, and accept SigV2, SigV4, or no signature at all.
 
+## Differences from AWS
+
+- **One identity, always.** `GetCallerIdentity` answers account
+  `000000000000` and `user/test` whoever asks, and `GetAccessKeyInfo` maps
+  every key to that same account. There is no directory behind it that could
+  disagree.
+- **Assertions are reflected, not verified.** `AssumeRoleWithWebIdentity`
+  takes any JWT and `AssumeRoleWithSAML` any assertion; the subject, audience
+  and issuer come back in the response unchecked. Verifying them needs a real
+  identity provider, which is the thing you are running locally to avoid.
+- **Credentials are minted, not honoured.** `AssumeRole` returns fresh
+  ASIA-prefixed credentials for the duration requested, and every service here
+  accepts them — as it accepts any signature, or none at all. The session is
+  real to the SDK and means nothing to the gateway.
+- **The error code belongs to the protocol, not the house.** A refused request
+  answers `ValidationError`, where the awsJson services answer
+  `ValidationException`. Clients branch on it, so it follows the Query family
+  rather than a convention chosen here.
+
+## Verified against
+
+- **aws-sdk-go-v2** (`sdk_test.go`): every dispatched operation —
+  GetCallerIdentity, AssumeRole and its validation, the web-identity and SAML
+  paths, GetSessionToken and GetFederationToken, GetAccessKeyInfo — plus
+  DecodeAuthorizationMessage refusing as the honest stub it is.
+- **aws-sdk-go v1** (`sdkv1_test.go`): the same service through the older
+  client, including the Query-protocol error shape v1 callers branch on.
+- **Model-derived rejection parity** (`rejection_parity_test.go`): every case
+  `dzaudit` derives from AWS's own model, replayed from a baseline the test
+  first proves the service accepts.
+- **The dispatch table against the model** (`coverage_model_test.go`): every
+  operation AWS documents either reaches a handler or is a listed gap, checked
+  against `testdata/ops_sts.json` and regenerated weekly by CI.
+
 ## Input validation
 
 Separate from the tiers above. A tier says the operation is implemented; this

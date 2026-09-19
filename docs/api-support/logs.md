@@ -1,6 +1,8 @@
 # CloudWatch Logs — API support
 
-Tiers: **F** = functional · **C** = cosmetic round-trip · **S** = honest stub.
+Tiers: **F** = functional (real local semantics, SDK-observable behavior
+matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) ·
+**S** = stub (clean error; emulating it locally would be a lie).
 
 The slice of CloudWatch Logs a developer reads: log groups, streams and
 events, written by the services that write them on AWS and read by

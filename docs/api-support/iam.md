@@ -268,6 +268,42 @@ same default-version and delete-guard rules as AWS.
 - [../cloudformation.md](../cloudformation.md) — deploying with the AWS CLI, SAM, CDK or Serverless.
 - [cli.md](../cli.md) — the `--iam-mode` flag.
 
+## Differences from AWS
+
+- **Evaluation is on, enforcement is opt-in.** The default mode is `soft`:
+  every request that names a principal is evaluated and the verdict logged,
+  and nothing is ever denied. `enforce` denies for real; `off` skips
+  evaluation. That default is deliberate — an emulator that denies by surprise
+  is one people turn off entirely.
+- **One principal.** Every caller is the same local identity, so a policy is
+  evaluated against one subject. Conditions that turn on who is asking cannot
+  discriminate here, even though the policy language for them is implemented.
+- **No federation, no console, no Organizations.** SAML and OIDC providers,
+  login profiles and password policy, MFA devices, SSH and signing
+  credentials, and the whole Organizations surface are refused by name. Each
+  needs an identity provider, a sign-in page or an org tree that does not
+  exist locally.
+- **No credential reports.** They are derived from CloudTrail history, and
+  there is none.
+
+## Verified against
+
+- **aws-sdk-go-v2** (`sdk_test.go`): user and role lifecycle, trust policies,
+  managed policy versions, and the attach/detach surface.
+- **The three modes** (`enforce_test.go`): `off` never denies, `enforce`
+  allows and denies for real, and an explicit deny beats an allow — the rule
+  everything else depends on.
+- **Resource policies** (`resource_policy_test.go`, `resource_policy_2_test.go`,
+  `resource_policy_audit_test.go`): queue, topic, bucket, key, secret and
+  stream policies evaluated under `enforce`, key policies gating identity
+  policies, and batch actions evaluated as their base action rather than as a
+  separate one nobody wrote a policy for.
+- **Spoofing** (`spoofing_test.go`): a client cannot supply its own
+  `SourceArn` or the internal handoff headers — they are stripped on the way
+  in, because a header a caller can set is not one anything should trust.
+- **Model-derived rejection parity** (`rejection_parity_test.go`) and the
+  dispatch table against `testdata/ops_iam.json`.
+
 ## Input validation
 
 Separate from the tiers above. A tier says the operation is implemented; this

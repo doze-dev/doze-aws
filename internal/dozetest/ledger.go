@@ -87,6 +87,38 @@ type Totals struct {
 var totalsSentence = regexp.MustCompile(
 	`(\d+)/(\d+) model-derived constraints enforced across (?:all |the )?(?:(\d+) of (?:all |the )?)?(\d+)`)
 
+// LedgerTotals reports what docs/api-support/<svc>.md claims, and whether it
+// claims anything at all.
+//
+// Exported so README can be checked against the ledgers through the SAME regex
+// the parity suites are checked through. A second parser for the same sentence
+// is how one of them ends up accepting a wording the other rejects, which is
+// the defect docs/ledger.go was created to remove for the operation tables.
+func LedgerTotals(svc string) (Totals, bool) {
+	section := Section(svc)
+	if section == "" {
+		return Totals{}, false
+	}
+	_, m := findTotals(section)
+	if m == nil {
+		return Totals{}, false
+	}
+	got := Totals{
+		Enforced:      atoi(m[1]),
+		Cases:         atoi(m[2]),
+		DispatchedOps: atoi(m[4]),
+	}
+	if m[3] != "" {
+		got.AuditedOps = atoi(m[3])
+	} else {
+		got.AuditedOps = got.DispatchedOps
+	}
+	return got, true
+}
+
+// Section is the ledger's input-validation section, or "".
+func Section(svc string) string { return docs.Section(svc, "Input validation") }
+
 // AssertLedgerTotals fails when docs/api-support/<svc>.md disagrees with what
 // the caller measured.
 //

@@ -1,6 +1,8 @@
 # DynamoDB — API support
 
-Tiers: **F** = functional · **C** = cosmetic round-trip · **S** = honest stub.
+Tiers: **F** = functional (real local semantics, SDK-observable behavior
+matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) ·
+**S** = stub (clean error; emulating it locally would be a lie).
 
 Full item model (S, N, B, BOOL, NULL, M, L, SS, NS, BS) with arbitrary-precision
 numbers compared numerically. All five expression languages are really parsed
@@ -28,6 +30,38 @@ paths (`a.b[0].c`), and unused-reference rejection.
 | Streams (DescribeStream / GetRecords / GetShardIterator / ListStreams) | F | one open shard per stream-enabled table; TRIM_HORIZON / LATEST / AT_ and AFTER_SEQUENCE_NUMBER iterators; Lambda event source mappings poll it |
 | Global tables, DAX, Kinesis destinations | S | multi-region/cloud infrastructure |
 | Backups / exports / imports / PITR restore | S | copy the data directory instead |
+
+## Differences from AWS
+
+- **Capacity is not modelled.** There is no provisioned throughput and no
+  on-demand metering, so nothing is throttled, `ConsumedCapacity` is not
+  meaningful, and code that retries on
+  `ProvisionedThroughputExceededException` is not exercised.
+- **No backups, exports or point-in-time restore.** Copy the data directory
+  instead — it is the whole state, and that is a better local backup than
+  anything this could emulate.
+- **Streams are served, and nothing reads them but you.** The Streams API
+  works and Lambda event source mappings consume it; there is no cross-region
+  replication behind it, which is what global tables would need.
+- **Encryption at rest is a description.** `SSESpecification` round-trips and
+  `DescribeTable` reports it; items live in the data directory either way.
+
+## Verified against
+
+- **aws-sdk-go-v2** (`sdk_test.go`, `coverage_test.go`): CRUD with condition
+  and update expressions, query and scan including GSIs, batch and transaction
+  operations, table administration, and PartiQL including its batch and
+  transaction forms.
+- **aws-sdk-go v1** (`sdkv1_test.go`): the round trip through the older client.
+- **PartiQL under a fuzzer** (`partiql_fuzz_test.go`): `FuzzPartiQL` drives the
+  parser at malformed statements, which have to be refused rather than
+  mis-parsed or panic.
+- **TTL** (`ttl_test.go`) and **Streams** (`streams_test.go`): expiry actually
+  removes items, and the stream records it.
+- **SSE round-trips** (`sse_test.go`), including that an unencrypted table
+  reports no SSE description rather than an empty one.
+- **Model-derived rejection parity** (`rejection_parity_test.go`) and the
+  dispatch table against `testdata/ops_dynamodb.json`.
 
 ## Input validation
 

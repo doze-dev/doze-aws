@@ -1,6 +1,8 @@
 # EventBridge — API support
 
-Tiers: **F** = functional · **C** = cosmetic round-trip · **S** = honest stub.
+Tiers: **F** = functional (real local semantics, SDK-observable behavior
+matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) ·
+**S** = stub (clean error; emulating it locally would be a lie).
 
 Content-based routing is fully functional: the pattern language
 (internal/eventpattern) implements exact/prefix/suffix/equals-ignore-case/
@@ -48,6 +50,43 @@ the secret in the connection record, reports the ARN AWS would mint so a
 template's `GetAtt` resolves, and never returns a password, key value, client
 secret or secret parameter from `DescribeConnection` — the same shape as AWS,
 without the secret existing in the local Secrets Manager.
+
+## Differences from AWS
+
+- **Delivery is synchronous and in-process.** `PutEvents` matches every rule
+  on the bus and delivers to its targets before returning, so there is no
+  propagation delay and no at-least-once duplicate to defend against. A target
+  that fails fails inside your `PutEvents` call.
+- **Schedules tick at one second.** Cron and rate expressions are evaluated by
+  a single driver against the clock, which is AWS's own resolution for
+  minute-granularity rules and finer than it for nothing.
+- **No partner sources, no global endpoints, no schema registry.** Each needs
+  an account relationship, a second region, or a discovery service — none of
+  which has a local shape.
+- **Archive and replay are local.** Events are archived to the data directory
+  and replayed from it, so the retention you set is bounded by the disk you
+  have rather than by a service quota.
+
+## Verified against
+
+- **aws-sdk-go-v2** (`sdk_test.go`, `coverage_test.go`): rule and bus
+  administration, delivery to SQS, archive and replay, and input transformers.
+- **aws-sdk-go v1** (`sdkv1_test.go`): the rule lifecycle through the older
+  client.
+- **API destinations** (`apidest_sdk_test.go`, `apidest_revoke_test.go`): real
+  HTTP delivery with Basic, API-key and OAuth connections, the retry path, and
+  — the one worth having — that deauthorizing a connection or deactivating a
+  destination actually stops delivery rather than continuing with stale
+  credentials.
+- **Scheduling** (`scheduler_test.go`, `scheduled_delivery_test.go`): rate and
+  cron parsing, which schedules are due, and a scheduled rule delivering the
+  event it was supposed to deliver to the target it was pointed at.
+- **Targets** (`logs_target_sdk_test.go`): a rule writing to a CloudWatch
+  Logs group.
+- **Refusals are named** (`bus_refusal_sdk_test.go`): an unsupported operation
+  answers by name rather than falling through to a generic error.
+- **Model-derived rejection parity** (`rejection_parity_test.go`) and the
+  dispatch table against `testdata/ops_eventbridge.json`.
 
 ## Input validation
 

@@ -74,6 +74,48 @@ see [../cloudformation.md](../cloudformation.md#naming).
   CDK and Serverless.
 - [../cli.md](../cli.md) — `doze-aws apply` and `doze-aws export`.
 
+## Differences from AWS
+
+- **Apply is synchronous.** A stack converges before the call returns, so
+  there is never an operation in flight: `CancelUpdateStack`,
+  `ContinueUpdateRollback` and `RollbackStack` have nothing to act on and are
+  refused rather than faked. It also means `CREATE_IN_PROGRESS` is not a state
+  you can observe.
+- **Only local resource types.** A template referencing a resource doze-aws
+  does not serve is reported rather than silently skipped. There is no
+  extension registry, so custom resource providers and hooks have nothing to
+  register into.
+- **No drift detection.** Drift is the difference between a template and an
+  account that changed underneath it; the data directory is the account, and
+  nothing else writes to it.
+- **No StackSets and no Organizations.** Both need an org tree that does not
+  exist locally.
+
+## Verified against
+
+- **The service, end to end** (`service_test.go`): CreateStack provisions for
+  real, the change-set flow, and the resources it made are the resources the
+  other services report.
+- **Convergence** (`apply_test.go`): applying the same template twice is a
+  no-op, and a property-only edit is seen by a change set (`propdiff_test.go`).
+- **Real deployment shapes** (`sfn_apply_test.go`, `apigw_authorizer_apply_test.go`,
+  `apigwv2_apply_test.go`, `lambda_versioning_apply_test.go`,
+  `cloudwatch_apply_test.go`, `logs_subscription_apply_test.go`,
+  `s3_access_apply_test.go`, `nested_apply_test.go`): what `sam deploy` and
+  `cdk deploy` actually emit — nested stacks, authorizers, HTTP APIs, alarms
+  and metric filters, subscription filters, bucket access settings — deployed
+  and then deleted.
+- **Intrinsics** (`intrinsics_test.go`): `Ref`, `Fn::GetAtt`, `Fn::Sub`,
+  `Fn::Join` and the rest, including `Ref: AWS::NoValue` dropping a property
+  rather than setting it to null.
+- **Templates** (`template_test.go`): YAML short tags, JSON, and bad templates
+  refused as bad.
+- **Exports** (`export_conflict_test.go`): a second stack cannot claim an
+  existing export, and a stack can update without losing its own.
+- **Round-trip** (`emit_roundtrip_test.go`): every resource kind this serves
+  can be exported and re-applied.
+- **Model-derived rejection parity** (`rejection_parity_test.go`).
+
 ## Input validation
 
 Separate from the tiers above. A tier says the operation is implemented; this

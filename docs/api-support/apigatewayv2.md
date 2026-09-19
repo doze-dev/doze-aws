@@ -109,6 +109,35 @@ through the v2 control plane. `AWS::Serverless::HttpApi` and a function's
 block's Lambda authorizers carry over. `!GetAtt Api.ApiEndpoint` is the
 execute-api address. See [../cloudformation.md](../cloudformation.md).
 
+## Differences from AWS
+
+- **HTTP APIs only.** WebSocket APIs are not served: they need a persistent
+  connection registry and a management API that has no local counterpart, and
+  a half-served WebSocket API is worse than an absent one.
+- **No custom domains and no TLS.** An HTTP API answers on the shared endpoint
+  at its `$default` stage rather than at a domain name, so domain names, API
+  mappings and VPC links are refused by name.
+- **No developer portal.** Portals, portal products, product pages and routing
+  rules are a console surface with nothing behind it locally.
+- **Authorizer results are cached per-process**, so restarting doze-aws clears
+  them.
+
+## Verified against
+
+Served by the `apigateway` package, so the tests live there.
+
+- **An HTTP API actually serving** (`apigateway/v2_sdk_test.go`,
+  `apigateway/v2_execute_test.go`): a route reaching Lambda, payload formats
+  1.0 and 2.0, route precedence, and CORS answered from the route
+  configuration.
+- **Quick-create and route settings** (`apigateway/v2_audit_test.go`): a
+  quick-create call making the route, stage and integration it implies, and
+  route settings deleted by key.
+- **CloudFormation deployment** (`cloudformation/apigwv2_apply_test.go`): what
+  a CDK `HttpApi` and a SAM `HttpApi` event actually emit, deployed for real.
+- **Model-derived rejection parity** (`apigateway/v2_parity_test.go`) and the
+  dispatch table against `apigateway/testdata/ops_apigatewayv2.json`.
+
 ## Input validation
 
 **88/94 model-derived constraints enforced across all 36 routed operations

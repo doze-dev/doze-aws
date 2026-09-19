@@ -1,6 +1,8 @@
 # KMS — API support
 
-Tiers: **F** = functional · **C** = cosmetic round-trip · **S** = honest stub.
+Tiers: **F** = functional (real local semantics, SDK-observable behavior
+matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) ·
+**S** = stub (clean error; emulating it locally would be a lie).
 
 All three key families carry real standard-library crypto: symmetric keys are
 AES-256-GCM with the encryption context as authenticated data; RSA/ECC keys
@@ -29,6 +31,43 @@ returns genuine SPKI DER — signatures verify outside KMS.
 | RotateKeyOnDemand / ListKeyRotations | F | fresh backing material for a symmetric key, kept alongside the old so earlier ciphertexts still decrypt; the rotation list records each |
 | Grants (Create/Retire/Revoke/List) | S | grants are IAM machinery |
 | Custom key stores, ImportKeyMaterial, multi-region replication, DeriveSharedSecret | S | cloud-infrastructure-only |
+
+## Differences from AWS
+
+- **The crypto is real; the key custody is not.** Keys live in the data
+  directory, not in an HSM, and anything with read access to that directory
+  has the key material. That is the trade a local emulator makes, and it is
+  why the data directory is the security boundary rather than the API.
+- **Scheduled rotation has no clock.** `EnableKeyRotation` and
+  `RotationPeriodInDays` are stored and reported, and nothing fires on the
+  schedule — `RotateKeyOnDemand` is the switch, and it does the real thing.
+  Symmetric keys only, as on AWS.
+- **No key store you did not create here.** Custom key stores, imported key
+  material and multi-region replicas are refused by name — each needs
+  infrastructure (CloudHSM, an external key manager, another region) that has
+  no local counterpart.
+- **Every caller is the same principal**, so a key policy is evaluated against
+  one identity. Under IAM `soft` it is evaluated and logged; under `enforce` it
+  denies. What it cannot do is distinguish two callers.
+
+## Verified against
+
+- **aws-sdk-go-v2** (`sdk_test.go`): a symmetric round trip with encryption
+  context, the data-key envelope, asymmetric sign/verify including RSA-PSS,
+  HMAC, aliases and lifecycle, rotation, and `KeyUsage` actually enforced
+  rather than recorded.
+- **aws-sdk-go v1** (`sdkv1_test.go`): encrypt/decrypt and the error code the
+  older clients branch on.
+- **Administration** (`coverage_test.go`): key admin, rotation flags and
+  policies, and data-key pairs.
+- **Ciphertext under a fuzzer** (`blob_fuzz_test.go`): `FuzzOpenBlob` feeds
+  corrupted and truncated blobs at the parser, which has to refuse them rather
+  than mis-decrypt or panic.
+- **Model-derived rejection parity** (`rejection_parity_test.go`), which needs
+  more setup than any other service here — `Decrypt` needs ciphertext this key
+  produced, `Verify` a signature over the message it is given — because an
+  invented blob is refused for the wrong reason, which reads exactly like a
+  pass.
 
 ## Input validation
 

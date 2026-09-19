@@ -80,6 +80,35 @@ stream poller.
 Because doze-aws also implements DynamoDB, a KCL application's lease table works
 against the same endpoint.
 
+## Differences from AWS
+
+- **Nothing throttles.** There are no shard-level quotas, so `PutRecords`
+  answers `FailedRecordCount: 0` every time and a consumer never sees
+  `ProvisionedThroughputExceededException`. Code that handles partial batch
+  failure is not exercised here — that is the one thing worth knowing before
+  trusting a local pass.
+- **Enhanced fan-out is not served.** `SubscribeToShard` needs an HTTP/2 event
+  stream; register the consumer and poll `GetRecords` instead, which is what
+  the shared-throughput path does anyway.
+- **Encryption is a label.** `StartStreamEncryption` round-trips the `KeyId`
+  and `DescribeStream` echoes it; records live in the data directory the way
+  every other service's do. The KMS key is checked to exist and to be usable
+  — a disabled or pending-deletion key stops producers and consumers — but the
+  records are not wrapped with it.
+- **Account-level settings and warm throughput are accepted and inert**, since
+  there are no account quotas locally to raise or report against.
+
+## Verified against
+
+- **aws-sdk-go-v2** (`sdk_test.go`): stream lifecycle, partition-key routing
+  to the right shard, `ExplicitHashKey` overriding it, `PutRecords` batches,
+  and resharding with the parent/child lineage a consumer walks.
+- **The KMS boundary** (`kms_test.go`): an unknown key is refused, a disabled
+  key stops producers and consumers, a key pending deletion is an invalid
+  state, and a stream without encryption needs no KMS at all.
+- **Model-derived rejection parity** (`rejection_parity_test.go`) and the
+  dispatch table against `testdata/ops_kinesis.json`.
+
 ## Input validation
 
 Separate from the tiers above. A tier says the operation is implemented; this

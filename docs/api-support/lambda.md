@@ -1,6 +1,8 @@
 # Lambda — API support
 
-Tiers: **F** = functional · **C** = cosmetic round-trip · **S** = honest stub.
+Tiers: **F** = functional (real local semantics, SDK-observable behavior
+matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) ·
+**S** = stub (clean error; emulating it locally would be a lie).
 
 Functions run as **real supervised local processes** speaking the AWS Lambda
 Runtime API — no Docker, no image pulls. Each process is a child of doze-aws
@@ -115,6 +117,37 @@ that does not exist is refused at create and update, as on AWS.
 - Alias routing weights are accepted and not applied.
 - Function URLs answer at the endpoint's `/_aws/lambda-url/<id>/` path as
   well as the on.aws host, because a local client cannot always set `Host`.
+
+## Verified against
+
+- **aws-sdk-go-v2** (`sdk_test.go`, `coverage_test.go`): create and invoke,
+  the asynchronous path and lifecycle, function management, event source
+  mappings, and reserved concurrency of zero actually throttling.
+- **aws-sdk-go v1** (`sdkv1_test.go`): create, invoke and delete through the
+  older client.
+- **Real interpreters** (`runtimes_sdk_test.go`): Python, Node and Ruby
+  functions unpacked from a zip and run as host processes through the embedded
+  Runtime API clients — and a missing interpreter said at CreateFunction
+  rather than surfacing as a timeout on first invoke.
+- **Logs end to end** (`logs_sdk_test.go`): a function's output reaching the
+  CloudWatch Logs service, and a stack booted without that service still
+  running the function and echoing its output.
+- **Versions and aliases** (`versions_test.go`): a version freezes the code and
+  the configuration, and a `_local_` in-place directory is copied so an edit
+  reaches `$LATEST` and not the version.
+- **Function URLs** (`urls_test.go`, `urls_iam_test.go`): served for real, and
+  under IAM `enforce` needing the permission AWS would need.
+- **Permissions and layers** (`policy_layers_test.go`): AddPermission with
+  service and account principals, and the layer lifecycle including layers on
+  the search path.
+- **Package handling** (`treehash_test.go`): a zip whose tree hash would cost
+  more than it is worth is refused rather than expanded — the decompression
+  bound, checked at and under its limit.
+- **Endpoint injection** (`endpoint_test.go`): the `AWS_ENDPOINT_URL*`
+  variables a handler needs to reach its siblings, present when there is one
+  and absent when there is not.
+- **Model-derived rejection parity** (`rejection_parity_test.go`) and the
+  dispatch table against `testdata/ops_lambda.json`.
 
 ## Input validation
 

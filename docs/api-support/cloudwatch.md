@@ -1,6 +1,8 @@
 # CloudWatch — API support
 
-Tiers: **F** = functional · **C** = cosmetic round-trip · **S** = honest stub.
+Tiers: **F** = functional (real local semantics, SDK-observable behavior
+matches AWS) · **C** = cosmetic (accepted and round-tripped, no local effect) ·
+**S** = stub (clean error; emulating it locally would be a lie).
 
 The slice of CloudWatch a developer needs to write an alarm and believe it:
 metrics with their dimensions, statistics over real samples, and alarms that

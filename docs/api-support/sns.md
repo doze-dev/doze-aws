@@ -34,6 +34,39 @@ are matched against message attributes; `FilterPolicyScope: MessageBody` is
 stored and reported but the body is not matched — a body-scoped policy is
 applied as if attribute-scoped.
 
+## Differences from AWS
+
+- **Delivery is synchronous.** A `Publish` fans out to its subscriptions
+  before it returns, so there is no eventual delivery to wait for and no
+  retry schedule to observe. What a subscriber would eventually receive, it
+  has already received when the call answers.
+- **Four protocols are accepted and not delivered to.** `email`, `sms`,
+  `application` and `firehose` subscriptions are stored and logged rather
+  than sent — refusing them because nothing local sends mail would break a
+  subscription that works on AWS, which is the opposite of what this is for.
+  The delivery boundary is the `Subscribe` row in the table above.
+- **`FilterPolicyScope: MessageBody` is stored and applied as if it were
+  attribute-scoped.** The policy is not matched against the body, so a
+  body-scoped filter is more permissive here than on AWS.
+- **Data protection policies are stored, never evaluated.** Nothing is
+  redacted or denied on their account.
+
+## Verified against
+
+- **aws-sdk-go-v2** (`sdk_test.go`): fanout to SQS raw and enveloped, tags and
+  topic attributes, and the policy a topic carries.
+- **aws-sdk-go v1** (`sdkv1_test.go`): publish fanout through the older
+  client, and the mobile-push surface refusing as an honest stub rather than
+  pretending.
+- **Filter policies** (`filter_test.go`, `doze_match_test.go`): the numeric and
+  operator set shared with EventBridge, and — the part worth having — that the
+  console's "who would receive this" preview agrees with what delivery
+  actually does, including which key caused a rejection.
+- **Delivery status** (`deliverylog_sdk_test.go`): the per-subscription success
+  and failure lines land in CloudWatch Logs where AWS puts them.
+- **Model-derived rejection parity** (`rejection_parity_test.go`) and the
+  dispatch table against `testdata/ops_sns.json` (`coverage_model_test.go`).
+
 ## Input validation
 
 Separate from the tiers above. A tier says the operation is implemented; this
