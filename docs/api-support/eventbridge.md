@@ -54,10 +54,14 @@ without the secret existing in the local Secrets Manager.
 Separate from the tiers above. A tier says the operation is implemented; this
 says whether doze-aws **refuses what EventBridge refuses**.
 
-**438/438 model-derived constraints enforced across all 39 dispatched
-operations, with `knownGaps` empty.** Removing the constraint table makes 284 of
-those 438 cases slip through, so it is doing work the hand-written checks were
-not.
+**448/448 model-derived constraints enforced across all 40 dispatched
+operations, with `knownGaps` empty.** Removing the constraint table let the
+majority of them through when that was last measured — at 438 cases, 284 of them
+— so it is doing work the hand-written checks were not. That figure is from a
+one-off experiment against an older fixture and has not been re-run; it is kept
+because it is the only number here that says the audit *found* something rather
+than *covered* something, and marked as dated rather than quietly restated
+against a total it was not measured from.
 
 Generated with `dzaudit cases eventbridge`, committed to
 `testdata/cases_eventbridge.json`, and replayed case by case in

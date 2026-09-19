@@ -333,6 +333,10 @@ func TestSQSRejectsWhatTheModelForbids(t *testing.T) {
 	t.Logf("TOTAL: %d/%d model-derived constraints enforced across %d operations "+
 		"(%d skipped, %d unbuildable)",
 		total-gaps-unbuildable, total, len(ops)-len(needState), skipped, unbuildable)
+	dozetest.AssertLedgerTotals(t, "sqs", dozetest.Totals{
+		Enforced: total - gaps - unbuildable, Cases: total,
+		AuditedOps: len(ops) - len(needState), DispatchedOps: len(ops),
+	})
 	if unbuildable > 0 {
 		t.Errorf("%d cases could not be built — those cases tested nothing", unbuildable)
 	}

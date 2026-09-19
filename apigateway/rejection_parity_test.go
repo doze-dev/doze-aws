@@ -341,6 +341,10 @@ func TestAPIGatewayRejectsWhatTheModelForbids(t *testing.T) {
 	t.Logf("TOTAL: %d/%d model-derived constraints enforced across %d operations "+
 		"(%d unbuildable, %d not expressible on this wire)",
 		total-gaps-unbuildable-unwireable, total, len(ops), unbuildable, unwireable)
+	dozetest.AssertLedgerTotals(t, "apigateway", dozetest.Totals{
+		Enforced: total - gaps - unbuildable - unwireable, Cases: total,
+		AuditedOps: len(ops), DispatchedOps: len(ops),
+	})
 	if unbuildable > 0 {
 		t.Errorf("%d cases could not be built — those cases tested nothing", unbuildable)
 	}

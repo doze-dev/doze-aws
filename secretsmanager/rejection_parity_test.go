@@ -305,6 +305,10 @@ func TestSecretsManagerRejectsWhatTheModelForbids(t *testing.T) {
 	t.Logf("TOTAL: %d/%d model-derived constraints enforced across %d operations "+
 		"(%d skipped for a peer, %d unbuildable)",
 		total-gaps-unbuildable, total, len(ops)-len(needPeer), skipped, unbuildable)
+	dozetest.AssertLedgerTotals(t, "secretsmanager", dozetest.Totals{
+		Enforced: total - gaps - unbuildable, Cases: total,
+		AuditedOps: len(ops) - len(needPeer), DispatchedOps: len(ops),
+	})
 	if unbuildable > 0 {
 		t.Errorf("%d cases could not be built — those cases tested nothing", unbuildable)
 	}

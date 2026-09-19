@@ -801,6 +801,10 @@ func TestRejectsWhatTheModelForbids(t *testing.T) {
 
 	t.Logf("TOTAL: %d/%d model-derived constraints enforced across %d operations",
 		totalCases-totalGaps, totalCases, len(ops))
+	dozetest.AssertLedgerTotals(t, "dynamodb", dozetest.Totals{
+		Enforced: totalCases - totalGaps, Cases: totalCases,
+		AuditedOps: len(ops), DispatchedOps: len(ops),
+	})
 	if totalGaps > len(knownGaps) {
 		t.Errorf("%d gaps but only %d are known", totalGaps, len(knownGaps))
 	}

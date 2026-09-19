@@ -33,6 +33,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/doze-dev/doze-aws/internal/dozetest"
+
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/cloudwatch"
 	"github.com/doze-dev/doze-aws/internal/auditkit"
@@ -334,6 +336,19 @@ func TestCloudWatchRejectsWhatTheModelForbids(t *testing.T) {
 	base := baselines()
 	ex := exemplars()
 
+	// Recorded from ONE wire, not summed across them.
+	//
+	// The first version added the three up and reported 549/549 across 57,
+	// against a ledger saying 183/183 across 19 — which is exactly three times
+	// over, because all three wires replay the SAME cases. The whole point of
+	// the three-wire replay is that a case refusing on one wire and not another
+	// means the normalisation is lying; the cases are one set, and the ledger's
+	// figure is that set.
+	//
+	// It was nearly a bug with teeth: the reflex on a red ledger check is to
+	// edit the doc, and editing this one would have replaced a correct number
+	// with a tripled one.
+	var oneWire dozetest.Totals
 	for _, w := range wires {
 		t.Run(w.name, func(t *testing.T) {
 			// The previous wire's baseline pass consumed the doomed alarm and
@@ -387,8 +402,13 @@ func TestCloudWatchRejectsWhatTheModelForbids(t *testing.T) {
 			if gaps > len(knownGaps) {
 				t.Errorf("%d unlisted gaps", gaps-len(knownGaps))
 			}
+			oneWire = dozetest.Totals{
+				Enforced: checked, Cases: len(cases) - skipped,
+				AuditedOps: len(base), DispatchedOps: len(base),
+			}
 		})
 	}
+	dozetest.AssertLedgerTotals(t, "cloudwatch", oneWire)
 }
 
 // seedAudit puts the fixture in place: one series, the alarms and the

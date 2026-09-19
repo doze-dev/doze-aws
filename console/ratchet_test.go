@@ -37,6 +37,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/doze-dev/doze-aws/docs"
 )
 
 // trafficOnlyFloor is how many F-tier operations have no evidence of console
@@ -89,17 +91,15 @@ func TestTrafficTableIsNotSilentlyLoadBearing(t *testing.T) {
 	all := literalsIn(t, func(string) bool { return false })
 	real := literalsIn(t, func(f string) bool { return f == "traffic.go" })
 
-	docs, err := filepath.Glob("../docs/api-support/*.md")
-	if err != nil || len(docs) == 0 {
-		t.Skipf("no api-support ledger next to the console (%v)", err)
-	}
-
+	// Through the embedded ledger, not a ../ glob. The glob version skipped
+	// when it matched nothing, so renaming docs/api-support/ turned this
+	// ratchet — and the two in coverage_test.go — into silent passes. An
+	// embed with no matches does not compile.
 	total := 0
 	got := map[string]int{}
-	for _, doc := range docs {
-		svc := strings.TrimSuffix(filepath.Base(doc), ".md")
+	for _, svc := range docs.Services() {
 		n := 0
-		for _, op := range fTierOps(t, doc) {
+		for _, op := range docs.FTierOps(svc) {
 			if all[op] && !real[op] {
 				n++
 				total++

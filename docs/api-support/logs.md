@@ -116,7 +116,7 @@ line it wrote would invoke it again.
 
 ## Input validation
 
-**197/197 model-derived constraints enforced across the 21 dispatched
+**237/237 model-derived constraints enforced across all 25 dispatched
 operations, with `knownGaps` empty.** Generated with `dzaudit cases
 cloudwatch-logs`, scoped to the dispatched operations, committed to
 `testdata/cases_logs.json`, and replayed in `rejection_parity_test.go` from a

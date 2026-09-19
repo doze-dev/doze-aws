@@ -347,6 +347,10 @@ func TestSNSRejectsWhatTheModelForbids(t *testing.T) {
 	t.Logf("TOTAL: %d/%d model-derived constraints enforced across %d operations "+
 		"(%d un-auditable, %d unbuildable)",
 		total-gaps-unbuildable, total, len(ops)-len(cannotAudit), unauditable, unbuildable)
+	dozetest.AssertLedgerTotals(t, "sns", dozetest.Totals{
+		Enforced: total - gaps - unbuildable, Cases: total,
+		AuditedOps: len(ops) - len(cannotAudit), DispatchedOps: len(ops),
+	})
 	if unbuildable > 0 {
 		t.Errorf("%d cases could not be built — those cases tested nothing", unbuildable)
 	}

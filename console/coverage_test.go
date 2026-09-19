@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/doze-dev/doze-aws/docs"
 )
 
 // The SDK-coverage ratchet.
@@ -213,83 +215,6 @@ var exempt = map[string]map[string]exemption{
 	},
 }
 
-// docRow matches a row of an "| Operation | Tier | Notes |" table. Only those
-// tables: s3.md and sqs.md also carry "| Input | Status |" tables, and a
-// lenient parser would ingest "RedrivePolicy — target exists" as an operation.
-var (
-	opTableHead = regexp.MustCompile(`(?i)^\|\s*Operation\s*\|\s*Tier\s*\|`)
-	tableRow    = regexp.MustCompile(`^\|([^|]*)\|([^|]*)\|`)
-	opToken     = regexp.MustCompile(`^[A-Z][A-Za-z0-9]*$`)
-)
-
-// fTierOps reads one service's ledger and returns its functional operations.
-//
-// A cell listing several operations ("TagQueue / UntagQueue / ListQueueTags")
-// is split. A cell where ANY token fails to look like an operation name is
-// treated as prose and contributes nothing — that is what stops
-// "Mobile push (Platform applications/endpoints)" in sns.md from producing an
-// operation called "Mobile".
-func fTierOps(t *testing.T, path string) []string {
-	t.Helper()
-	b, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("read %s: %v", path, err)
-	}
-	var ops []string
-	inTable := false
-	for _, line := range strings.Split(string(b), "\n") {
-		if opTableHead.MatchString(line) {
-			inTable = true
-			continue
-		}
-		if !strings.HasPrefix(strings.TrimSpace(line), "|") {
-			inTable = false
-			continue
-		}
-		if !inTable {
-			continue
-		}
-		m := tableRow.FindStringSubmatch(line)
-		if m == nil {
-			continue
-		}
-		tier := strings.TrimSpace(strings.ReplaceAll(m[2], "*", ""))
-		// "C→F" and "S→F" mean "today C, planned F". Today is what counts.
-		if i := strings.Index(tier, "→"); i >= 0 {
-			tier = strings.TrimSpace(tier[:i])
-		}
-		if tier != "F" {
-			continue
-		}
-		cell := strings.NewReplacer("`", "", "*", "").Replace(m[1])
-		var toks []string
-		ok := true
-		for _, tok := range strings.FieldsFunc(cell, func(r rune) bool { return r == '/' || r == ',' }) {
-			tok = strings.TrimSpace(tok)
-			if tok == "" {
-				continue
-			}
-			// A bare verb is a fragment of a bundled row ("Put/Get/Update/
-			// List/DeleteFunctionEventInvokeConfig"), never an operation — only
-			// the token carrying the full name checks anything. Left in, the
-			// fragments got "covered" by whatever stray literal said "Get".
-			// (Publish IS a real op — SNS — so it is not in the set.)
-			if verbFragments[tok] {
-				continue
-			}
-			if !opToken.MatchString(tok) {
-				ok = false
-				break
-			}
-			toks = append(toks, tok)
-		}
-		if ok {
-			ops = append(ops, toks...)
-		}
-	}
-	return ops
-}
-
 // consoleCalls is every quoted string literal in the console's non-test Go
 // source. Reachability is "the operation name appears as a literal", which is
 // deliberately permissive: sqsBatch takes its action as a PARAMETER, so a
@@ -321,17 +246,12 @@ func consoleCalls(t *testing.T) map[string]bool {
 
 func TestSDKCoverage(t *testing.T) {
 	calls := consoleCalls(t)
-	docs, err := filepath.Glob("../docs/api-support/*.md")
-	if err != nil || len(docs) == 0 {
-		t.Skipf("no api-support ledger next to the console (%v)", err)
-	}
 
 	total, reached := 0, 0
 	byCategory := map[why]int{}
-	for _, doc := range docs {
-		svc := strings.TrimSuffix(filepath.Base(doc), ".md")
+	for _, svc := range docs.Services() {
 		var missing []string
-		for _, op := range fTierOps(t, doc) {
+		for _, op := range docs.FTierOps(svc) {
 			total++
 			if calls[op] {
 				reached++
@@ -390,13 +310,12 @@ func TestSDKCoverage(t *testing.T) {
 func TestExemptionsAreReal(t *testing.T) {
 	calls := consoleCalls(t)
 	for svc, ops := range exempt {
-		doc := filepath.Join("..", "docs", "api-support", svc+".md")
-		if _, err := os.Stat(doc); err != nil {
-			t.Errorf("exempt[%q] has no ledger at %s", svc, doc)
+		if _, err := docs.Read(svc); err != nil {
+			t.Errorf("exempt[%q] has no ledger: %v", svc, err)
 			continue
 		}
 		listed := map[string]bool{}
-		for _, op := range fTierOps(t, doc) {
+		for _, op := range docs.FTierOps(svc) {
 			listed[op] = true
 		}
 		for op, ex := range ops {
@@ -414,9 +333,4 @@ func TestExemptionsAreReal(t *testing.T) {
 			}
 		}
 	}
-}
-
-// verbFragments are the bare verbs a bundled ledger row splits into.
-var verbFragments = map[string]bool{
-	"Put": true, "Get": true, "Update": true, "List": true, "Delete": true, "Create": true,
 }
