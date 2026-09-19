@@ -31,6 +31,7 @@ import (
 	"testing"
 
 	dozeaws "github.com/doze-dev/doze-aws"
+	"github.com/doze-dev/doze-aws/cloudformation"
 	"github.com/doze-dev/doze-aws/internal/auditkit"
 )
 
@@ -407,4 +408,49 @@ func TestCloudFormationRejectsWhatTheModelForbids(t *testing.T) {
 	if gaps > len(knownGaps) {
 		t.Errorf("%d gaps but only %d are known", gaps, len(knownGaps))
 	}
+}
+
+// TestTheConstraintTableIsDoingWork measures the figure cloudformation.md
+// publishes: how many of these cases the hand-written checks would let through
+// on their own. See internal/dozetest.AssertSabotageFigure.
+//
+// The acceptance test here mirrors the parity suite's gap test exactly,
+// `pastValidation` included — for an operation with no accepted baseline, a
+// refusal only counts as enforcement when it is a VALIDATION refusal, so a
+// case that still 400s for some other reason has not been caught by the table.
+// Counting a bare non-200 as enforcement would understate what the table does.
+func TestTheConstraintTableIsDoingWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("replays every model-derived case a second time")
+	}
+	ts := cfnServer(t)
+	setUpFixture(t, ts)
+	base, ex := baselines(), exemplars()
+	n := 0
+	seq := func() int { n++; return n }
+
+	// The sabotage. Restored before the test returns; this package runs nothing
+	// in parallel, so no other test can observe the gap.
+	t.Cleanup(cloudformation.WithoutConstraintTables())
+
+	var replayed, slipped int
+	for _, c := range loadCases(t) {
+		b, ok := base[c.Operation]
+		if !ok {
+			continue
+		}
+		body := auditkit.DeepCopy(b).(map[string]any)
+		if err := auditkit.Apply(body, ex, c.Path, c.Value, true); err != nil {
+			continue // unbuildable: excluded here exactly as in the parity suite
+		}
+		prepare(t, ts, c.Operation, c.Path, body, seq())
+		replayed++
+		code, resp := call(t, ts, c.Operation, body)
+		_, past := pastValidation[c.Operation]
+		if code == http.StatusOK || (past && !isValidationRefusal(resp)) {
+			slipped++
+		}
+	}
+	t.Logf("SABOTAGE: %d of %d cases slip through without the constraint tables", slipped, replayed)
+	dozetest.AssertSabotageFigure(t, "cloudformation", slipped, replayed)
 }

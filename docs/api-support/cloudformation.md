@@ -80,7 +80,7 @@ Separate from the tiers above. A tier says the operation is implemented; this
 says whether doze-aws **refuses what CloudFormation refuses**.
 
 **182/182 model-derived constraints enforced across 22 of the 23 dispatched
-operations, with `knownGaps` empty.** Removing the constraint table makes 151 of
+operations, with `knownGaps` empty.** Removing the constraint table makes 155 of
 those 182 cases slip through, so it is doing work the hand-written checks were
 not. The twenty-third, `DescribeStackResources`, has no constrained members in
 the model at all — nothing to enforce rather than nothing enforced.

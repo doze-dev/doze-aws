@@ -148,20 +148,72 @@ func AssertLedgerTotals(t testing.TB, svc string, got Totals) {
 	}
 	t.Errorf("docs/api-support/%s.md is out of date:\n  %s\n\nThe line to fix:\n  %s\n\n"+
 		"It should read %d/%d … across %s. README's table row carries the same "+
-		"numbers and docs/consistency_test.go checks that they agree.",
+		"numbers; nothing checks that the two agree yet, so change it too.",
 		svc, strings.Join(wrong, "\n  "), strings.TrimSpace(line),
 		got.Enforced, got.Cases, describeOps(got))
 }
 
+// sabotageSentence matches the other claim six ledgers make:
+//
+//	Removing the constraint table makes 75 of those 100 cases slip through
+//
+// One wording, unlike the totals sentence above, because these six were
+// normalised to it when the measurement behind them was first written. They had
+// drifted into four phrasings — "29 of them", "165 of the first 219" — and "the
+// first 219" is the tell: it was measured against a partial fixture and then
+// never revisited, which is the whole reason this is now a test.
+var sabotageSentence = regexp.MustCompile(
+	`Removing the constraint table makes (\d+) of those (\d+) cases slip through`)
+
+// AssertSabotageFigure fails when docs/api-support/<svc>.md disagrees with what
+// the caller measured by replaying its cases with constraintTables removed.
+//
+// This is the only figure in the ledgers that says the audit FOUND something
+// rather than covered something — the answer to "is the model-derived table
+// doing work the hand-written checks were not". Six ledgers published one and
+// none of them had a procedure behind it.
+func AssertSabotageFigure(t testing.TB, svc string, slipped, cases int) {
+	t.Helper()
+	section := docs.Section(svc, "Input validation")
+	if section == "" {
+		t.Errorf("docs/api-support/%s.md has no ## Input validation section", svc)
+		return
+	}
+	line, m := findIn(section, sabotageSentence)
+	if m == nil {
+		t.Errorf("docs/api-support/%s.md has no sabotage sentence in its "+
+			"## Input validation section.\n"+
+			"  Expected the shape: Removing the constraint table makes %d of "+
+			"those %d cases slip through.", svc, slipped, cases)
+		return
+	}
+	if atoi(m[1]) == slipped && atoi(m[2]) == cases {
+		return
+	}
+	t.Errorf("docs/api-support/%s.md is out of date:\n"+
+		"  the ledger says %s of %s slip through, the replay measured %d of %d\n\n"+
+		"The line to fix:\n  %s\n\n"+
+		"This number is what the service ACCEPTS with its model-derived table "+
+		"removed, so it\nmoves whenever the cases change or a hand-written check "+
+		"is added. Both are fine;\nleaving the sentence behind is not.",
+		svc, m[1], m[2], slipped, cases, strings.TrimSpace(line))
+}
+
 // findTotals returns the line carrying the claim, and its submatches.
 func findTotals(text string) (string, []string) {
-	// The sentence wraps across lines in every ledger, so the match is made
-	// against a whitespace-collapsed copy while the ORIGINAL lines are what get
-	// quoted back — a failure naming a line nobody can find in the file is a
-	// failure that wastes the reader's time.
+	return findIn(text, totalsSentence)
+}
+
+// findIn returns the paragraph carrying a claim, and its submatches.
+//
+// The sentence wraps across lines in every ledger, so the match is made against
+// a whitespace-collapsed copy while the ORIGINAL paragraph is what gets quoted
+// back — a failure naming a line nobody can find in the file is a failure that
+// wastes the reader's time.
+func findIn(text string, re *regexp.Regexp) (string, []string) {
 	for para := range strings.SplitSeq(text, "\n\n") {
 		flat := strings.Join(strings.Fields(para), " ")
-		if m := totalsSentence.FindStringSubmatch(flat); m != nil {
+		if m := re.FindStringSubmatch(flat); m != nil {
 			return para, m
 		}
 	}

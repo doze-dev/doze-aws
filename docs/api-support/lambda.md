@@ -123,9 +123,9 @@ says whether doze-aws **refuses what Lambda refuses**.
 
 **612/621 model-derived constraints enforced across all 47 routed operations
 with constrained input, with `knownGaps` empty.** Removing the constraint table
-makes 452 of them slip through — the largest share of any service here, because
-Lambda's inputs are the widest: `CreateFunction` alone carries 76 constraints.
-The remaining nine cannot be put on this wire; see below.
+makes 431 of those 612 cases slip through — the largest share of any service
+here, because Lambda's inputs are the widest: `CreateFunction` alone carries 76
+constraints. The remaining nine cannot be put on this wire; see below.
 
 ### A member the emulator ignores still has to be refused
 

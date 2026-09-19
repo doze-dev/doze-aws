@@ -637,3 +637,42 @@ func TestIAMRejectsWhatTheModelForbids(t *testing.T) {
 		t.Errorf("%d gaps but only %d are known", gaps, len(knownGaps))
 	}
 }
+
+// TestTheConstraintTableIsDoingWork measures the figure iam.md publishes: how
+// many of these cases the hand-written checks would let through on their own.
+// See internal/dozetest.AssertSabotageFigure.
+func TestTheConstraintTableIsDoingWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("replays every model-derived case a second time")
+	}
+	ts := iamServer(t)
+	setUpFixture(t, ts)
+	base, ex := baselines(), exemplars()
+	n := 0
+	seq := func() int { n++; return n }
+
+	// The sabotage. Restored before the test returns; this package runs nothing
+	// in parallel, so no other test can observe the gap.
+	saved := constraintTables
+	t.Cleanup(func() { constraintTables = saved })
+	constraintTables = nil
+
+	var replayed, slipped int
+	for _, c := range loadCases(t) {
+		b, ok := base[c.Operation]
+		if !ok {
+			continue
+		}
+		body := auditkit.DeepCopy(b).(map[string]any)
+		if err := auditkit.Apply(body, ex, c.Path, c.Value, true); err != nil {
+			continue // unbuildable: excluded here exactly as in the parity suite
+		}
+		prepare(t, ts, c.Operation, c.Path, body, seq())
+		replayed++
+		if code, _ := call(t, ts, c.Operation, body); code == http.StatusOK {
+			slipped++
+		}
+	}
+	t.Logf("SABOTAGE: %d of %d cases slip through without the constraint tables", slipped, replayed)
+	dozetest.AssertSabotageFigure(t, "iam", slipped, replayed)
+}

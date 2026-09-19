@@ -190,8 +190,8 @@ says whether doze-aws **refuses what API Gateway refuses**.
 
 **118/126 model-derived constraints enforced across all 47 routed operations that
 have constrained input, with `knownGaps` empty.** Removing the constraint table
-makes 29 of them slip through. The remaining eight cannot be put on this wire at
-all — see below.
+makes 29 of those 118 cases slip through. The remaining eight cannot be put on
+this wire at all — see below.
 
 Generated with `dzaudit cases api-gateway`, committed to
 `testdata/cases_apigateway.json`, and replayed case by case in

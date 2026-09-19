@@ -539,3 +539,60 @@ func TestS3RejectsWhatTheModelForbids(t *testing.T) {
 		t.Errorf("%d gaps but only %d are known", gaps, len(knownGaps))
 	}
 }
+
+// TestTheConstraintTableIsDoingWork measures the figure s3.md publishes: how
+// many of these cases the hand-written checks would let through on their own.
+// See internal/dozetest.AssertSabotageFigure.
+//
+// Cases that cannot be put on this wire are skipped, exactly as the parity
+// suite skips them — S3's 60 of those are the largest share in the tree, and
+// they were never sent with the tables in place either.
+func TestTheConstraintTableIsDoingWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("replays every model-derived case a second time")
+	}
+	ts := s3Server(t)
+	f := setUpFixture(t, ts)
+	base := baselines(f)
+	n := 0
+	seq := func() int { n++; return n }
+
+	cases := loadCases(t)
+	bind := map[string]*binding{}
+	for _, c := range cases {
+		bind[c.Operation] = c.HTTP
+	}
+	for op, b := range loadRoutes(t) {
+		if _, ok := bind[op]; !ok {
+			bind[op] = b
+		}
+	}
+
+	// The sabotage. Restored before the test returns; this package runs nothing
+	// in parallel, so no other test can observe the gap.
+	saved := constraintTables
+	t.Cleanup(func() { constraintTables = saved })
+	constraintTables = nil
+
+	var replayed, slipped int
+	for _, c := range cases {
+		b, ok := base[c.Operation]
+		if !ok {
+			continue
+		}
+		if _, skip := unexpressibleOn(c, bind); skip {
+			continue
+		}
+		body := auditkit.DeepCopy(b).(map[string]any)
+		if err := auditkit.Apply(body, exemplars(), c.Path, c.Value, true); err != nil {
+			continue // unbuildable: excluded here exactly as in the parity suite
+		}
+		prepare(t, ts, f, c.Operation, c.Path, body, seq())
+		replayed++
+		if code, _ := call(t, ts, bind[c.Operation], body); code >= 200 && code <= 299 {
+			slipped++
+		}
+	}
+	t.Logf("SABOTAGE: %d of %d cases slip through without the constraint tables", slipped, replayed)
+	dozetest.AssertSabotageFigure(t, "s3", slipped, replayed)
+}
