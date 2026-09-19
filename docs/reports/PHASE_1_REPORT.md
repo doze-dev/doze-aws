@@ -2,6 +2,11 @@
 
 Date: 2026-07-10
 
+> **Historical.** A snapshot as of 2026-07-10, kept as written rather than
+> corrected. Counts, scope and any claim about what "remains" describe the
+> repo on that day — for current state see [docs/api-support](../api-support)
+> and [docs/not-built.md](../not-built.md).
+
 ## Scope delivered
 
 The repo exists, releases, and serves its first complete service. Everything a

@@ -2,6 +2,11 @@
 
 Date: 2026-07-12
 
+> **Historical.** A snapshot as of 2026-07-12, kept as written rather than
+> corrected. Counts, scope and any claim about what "remains" describe the
+> repo on that day — for current state see [docs/api-support](../api-support)
+> and [docs/not-built.md](../not-built.md).
+
 Phase 8 closes the functional gaps that Phases 1–7 deferred with honest stubs.
 Everything below is now Tier F (real, SDK-observable semantics), verified with
 both aws-sdk-go-v2 contract tests and white-box tests. The only remaining

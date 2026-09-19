@@ -11,7 +11,8 @@
   deferred and what it would take, and what the binary does not do at all
 - [performance.md](performance.md) — measured hot-path and whole-request costs, and what to do about the slow ones
 - [storage.md](storage.md) — why bbolt, what it costs, and what pebble was measured at
-- [reports/](reports/) — phase-by-phase build reports
+- [reports/](reports/) — phase-by-phase build reports, each a dated snapshot of
+  the day it was written rather than a description of today
 
 ## Design ground rules
 

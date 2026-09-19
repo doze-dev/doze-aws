@@ -2,6 +2,11 @@
 
 Date: 2026-07-11
 
+> **Historical.** A snapshot as of 2026-07-11, kept as written rather than
+> corrected. Counts, scope and any claim about what "remains" describe the
+> repo on that day — for current state see [docs/api-support](../api-support)
+> and [docs/not-built.md](../not-built.md).
+
 ## Scope delivered
 
 The last two services and the wiring that connects everything — doze-aws now
