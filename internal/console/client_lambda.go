@@ -13,8 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // ---- Lambda (REST-JSON, /2015-03-31) ----
@@ -417,7 +415,7 @@ func (b *backend) DeleteFunctionURL(ctx context.Context, name string) error {
 func (b *backend) CreateMapping(ctx context.Context, name, queueName string, batch int) error {
 	in := map[string]any{
 		"FunctionName":   name,
-		"EventSourceArn": awsident.ARN("sqs", queueName),
+		"EventSourceArn": b.id.ARN("sqs", queueName),
 	}
 	if batch > 0 {
 		in["BatchSize"] = batch

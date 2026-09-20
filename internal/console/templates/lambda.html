@@ -44,7 +44,7 @@
       </div></div>
       <div class="panel"><div class="panel-h"><h2>{{icon "search"}} Look up by ARN</h2></div><div class="form-b">
         <form hx-post="{{.Prefix}}/lambda/layers/find" hx-target="#layer-out" hx-select="" hx-swap="innerHTML">
-          <div class="field"><label>Layer version ARN</label><input class="input mono" name="arn" placeholder="arn:aws:lambda:us-east-1:000000000000:layer:shared-utils:3" required spellcheck="false"></div>
+          <div class="field"><label>Layer version ARN</label><input class="input mono" name="arn" placeholder="arn:aws:lambda:{{region}}:{{account}}:layer:shared-utils:3" required spellcheck="false"></div>
           <div class="fr-btn"><button class="btn btn-outline btn-sm" type="submit">Resolve</button></div>
         </form>
         <p class="mini-note">The ARN-addressed read a template or another account hands you.</p>

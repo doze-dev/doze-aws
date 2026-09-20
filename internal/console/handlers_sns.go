@@ -5,12 +5,10 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // topicARNOf rebuilds a topic ARN from its console path segment (the name).
-func topicARNOf(name string) string { return awsident.ARN("sns", name) }
+func (b *backend) topicARNOf(name string) string { return b.id.ARN("sns", name) }
 
 func (c *Console) snsTopics(w http.ResponseWriter, r *http.Request) {
 	topics, err := c.be.ListTopics(r.Context())
@@ -36,7 +34,7 @@ func (c *Console) snsCreateTopic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) snsDeleteTopic(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeleteTopic(r.Context(), topicARNOf(r.PathValue("topic"))); err != nil {
+	if err := c.be.DeleteTopic(r.Context(), c.be.topicARNOf(r.PathValue("topic"))); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -45,7 +43,7 @@ func (c *Console) snsDeleteTopic(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) snsTopic(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("topic")
-	arn := topicARNOf(name)
+	arn := c.be.topicARNOf(name)
 	attrs, err := c.be.TopicAttributes(r.Context(), arn)
 	if err != nil {
 		c.fail(w, err)
@@ -108,7 +106,7 @@ func subViews(subs []Subscription) []subView {
 }
 
 func (c *Console) snsSubsPartial(w http.ResponseWriter, r *http.Request, name string) {
-	arn := topicARNOf(name)
+	arn := c.be.topicARNOf(name)
 	subs, _ := c.be.ListSubscriptions(r.Context(), arn)
 	queues, _ := c.be.ListQueues(r.Context())
 	fns, _ := c.be.ListFunctions(r.Context())
@@ -120,7 +118,7 @@ func (c *Console) snsSubsPartial(w http.ResponseWriter, r *http.Request, name st
 
 func (c *Console) snsPublish(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("topic")
-	arn := topicARNOf(name)
+	arn := c.be.topicARNOf(name)
 	attrs := parseMsgAttrs(r.FormValue("attrs"))
 	// A count above one is PublishBatch — a different API, not a loop, because
 	// SNS reports per-ENTRY failures. One route dispatches on the field rather
@@ -195,7 +193,7 @@ func (c *Console) snsSubscribe(w http.ResponseWriter, r *http.Request) {
 	if r.FormValue("raw") == "on" || r.FormValue("raw") == "true" {
 		attrs["RawMessageDelivery"] = "true"
 	}
-	if err := c.be.Subscribe(r.Context(), topicARNOf(name), r.FormValue("protocol"), r.FormValue("endpoint"), attrs); err != nil {
+	if err := c.be.Subscribe(r.Context(), c.be.topicARNOf(name), r.FormValue("protocol"), r.FormValue("endpoint"), attrs); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -254,7 +252,7 @@ func (c *Console) snsConfirm(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, errors.New("Paste the token SNS posted to your endpoint — it is what proves the endpoint wanted this subscription."))
 		return
 	}
-	if err := c.be.ConfirmSubscription(r.Context(), topicARNOf(topic), token); err != nil {
+	if err := c.be.ConfirmSubscription(r.Context(), c.be.topicARNOf(topic), token); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -303,7 +301,7 @@ func (c *Console) snsSetAttribute(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, errors.New("Name the attribute to set — DisplayName, Policy or DeliveryPolicy."))
 		return
 	}
-	if err := c.be.SetTopicAttribute(r.Context(), topicARNOf(topic), name, r.FormValue("value")); err != nil {
+	if err := c.be.SetTopicAttribute(r.Context(), c.be.topicARNOf(topic), name, r.FormValue("value")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -322,13 +320,13 @@ func (c *Console) snsAddPermission(w http.ResponseWriter, r *http.Request) {
 	}
 	acct := strings.TrimSpace(r.FormValue("account"))
 	if acct == "" {
-		acct = awsident.AccountID
+		acct = c.be.id.Account()
 	}
 	action := strings.TrimSpace(r.FormValue("action"))
 	if action == "" {
 		action = "Publish"
 	}
-	if err := c.be.AddTopicPermission(r.Context(), topicARNOf(topic), label, acct, action); err != nil {
+	if err := c.be.AddTopicPermission(r.Context(), c.be.topicARNOf(topic), label, acct, action); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -337,7 +335,7 @@ func (c *Console) snsAddPermission(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) snsRemovePermission(w http.ResponseWriter, r *http.Request) {
 	topic := r.PathValue("topic")
-	if err := c.be.RemoveTopicPermission(r.Context(), topicARNOf(topic), r.FormValue("label")); err != nil {
+	if err := c.be.RemoveTopicPermission(r.Context(), c.be.topicARNOf(topic), r.FormValue("label")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -349,7 +347,7 @@ func (c *Console) snsRemovePermission(w http.ResponseWriter, r *http.Request) {
 // nothing is redacted locally however the policy reads.
 func (c *Console) snsDataProtection(w http.ResponseWriter, r *http.Request) {
 	topic := r.PathValue("topic")
-	if err := c.be.PutDataProtectionPolicy(r.Context(), topicARNOf(topic), r.FormValue("policy")); err != nil {
+	if err := c.be.PutDataProtectionPolicy(r.Context(), c.be.topicARNOf(topic), r.FormValue("policy")); err != nil {
 		c.fail(w, err)
 		return
 	}

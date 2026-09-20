@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"sort"
 	"strings"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // ---- Step Functions (JSON 1.0, target AWSStepFunctions) ----
@@ -407,9 +405,11 @@ func (b *backend) SendTaskResult(ctx context.Context, token string, success bool
 }
 
 // stateMachineARNOf rebuilds a machine ARN from its console path segment.
-func stateMachineARNOf(name string) string { return awsident.ARN("states", "stateMachine:"+name) }
+func (b *backend) stateMachineARNOf(name string) string {
+	return b.id.ARN("states", "stateMachine:"+name)
+}
 
 // executionARNOf rebuilds an execution ARN from the two path segments.
-func executionARNOf(machine, name string) string {
-	return awsident.ARN("states", "execution:"+machine+":"+name)
+func (b *backend) executionARNOf(machine, name string) string {
+	return b.id.ARN("states", "execution:"+machine+":"+name)
 }

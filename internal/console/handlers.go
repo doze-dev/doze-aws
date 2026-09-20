@@ -573,7 +573,7 @@ func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
 	data := c.sqsPanelData(r, name, attrs, msgs)
 	data["Attrs"] = attrs
 	data["IsDLQ"] = isDLQ
-	data["ARN"] = QueueARN(name)
+	data["ARN"] = c.be.QueueARN(name)
 	// The copyable queue URL, built from the host this page was asked through —
 	// the same rule SQS itself uses to mint one, so the chip and the API agree.
 	//
@@ -853,7 +853,7 @@ func (c *Console) sqsSetAttributes(w http.ResponseWriter, r *http.Request) {
 			maxr = "3"
 		}
 		rp, _ := json.Marshal(map[string]string{
-			"deadLetterTargetArn": QueueARN(dlq),
+			"deadLetterTargetArn": c.be.QueueARN(dlq),
 			"maxReceiveCount":     maxr,
 		})
 		attrs["RedrivePolicy"] = string(rp)

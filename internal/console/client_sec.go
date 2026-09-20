@@ -7,8 +7,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // ---- KMS (JSON 1.1, TrentService) ----
@@ -516,7 +514,7 @@ func (b *backend) ConfigureRotation(ctx context.Context, id, lambdaName string, 
 		_, err := b.json11(ctx, "secretsmanager", "CancelRotateSecret", in)
 		return err
 	}
-	in["RotationLambdaARN"] = "arn:aws:lambda:" + awsident.Region + ":" + awsident.AccountID + ":function:" + lambdaName
+	in["RotationLambdaARN"] = b.id.ARN("lambda", "function:"+lambdaName)
 	if days <= 0 {
 		days = 30
 	}

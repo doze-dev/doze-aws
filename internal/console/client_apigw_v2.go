@@ -11,8 +11,6 @@ import (
 	"net/url"
 	"sort"
 	"strings"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // HTTPAPI is one HTTP API as the list and detail pages show it.
@@ -215,7 +213,7 @@ func (b *backend) AddHTTPRoute(ctx context.Context, apiID, key, lambda, urlTarge
 	integ := map[string]any{}
 	switch {
 	case lambda != "":
-		integ["integrationType"], integ["integrationUri"] = "AWS_PROXY", awsident.ARN("lambda", "function:"+lambda)
+		integ["integrationType"], integ["integrationUri"] = "AWS_PROXY", b.id.ARN("lambda", "function:"+lambda)
 		integ["payloadFormatVersion"] = firstOf(payload, "2.0")
 	case urlTarget != "":
 		integ["integrationType"], integ["integrationUri"], integ["integrationMethod"] = "HTTP_PROXY", urlTarget, "ANY"
@@ -351,7 +349,7 @@ func (b *backend) HTTPAuthorizers(ctx context.Context, apiID string) ([]HTTPAuth
 func (b *backend) CreateHTTPAuthorizer(ctx context.Context, apiID, name, lambda, header string, ttl int) error {
 	_, err := b.apigwJSON(ctx, "POST", "/v2/apis/"+url.PathEscape(apiID)+"/authorizers", map[string]any{
 		"name": name, "authorizerType": "REQUEST",
-		"authorizerUri":                  "arn:aws:apigateway:" + awsident.Region + ":lambda:path/2015-03-31/functions/" + awsident.ARN("lambda", "function:"+lambda) + "/invocations",
+		"authorizerUri":                  "arn:aws:apigateway:" + b.id.RegionName() + ":lambda:path/2015-03-31/functions/" + b.id.ARN("lambda", "function:"+lambda) + "/invocations",
 		"identitySource":                 []string{"$request.header." + firstOf(header, "Authorization")},
 		"authorizerPayloadFormatVersion": "2.0", "enableSimpleResponses": true,
 		"authorizerResultTtlInSeconds": ttl,

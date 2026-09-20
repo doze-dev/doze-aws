@@ -119,7 +119,7 @@
       <div class="sec-title">Trace a target back</div>
       <div class="panel">
         <form class="tag-row-form" hx-post="{{.Prefix}}/eb/{{.Bus}}/rules-by-target" hx-target="#eb-by-target" hx-select="" hx-swap="outerHTML">
-          <input class="input mono" name="target" placeholder="arn:aws:sqs:us-east-1:000000000000:orders" required autocomplete="off">
+          <input class="input mono" name="target" placeholder="arn:aws:sqs:{{region}}:{{account}}:orders" required autocomplete="off">
           <button class="btn btn-outline btn-sm" type="submit">Which rules fire into this?</button>
         </form>
         <form class="tag-row-form" hx-get="{{.Prefix}}/eb/{{.Bus}}/detail" hx-target="#eb-detail" hx-select="" hx-swap="innerHTML">
@@ -181,7 +181,7 @@
 </div>
 <div class="panel" style="margin-top:12px"><div class="panel-h"><h2>{{icon "plus"}} Add target</h2></div><div style="padding:14px 16px">
   <form hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/add-target" hx-target="#eb-targets" hx-select="" hx-swap="outerHTML" @htmx:after:request="$el.reset()">
-    <div class="field"><label>Destination</label><select class="input" name="arn">{{range .Queues}}<option value="arn:aws:sqs:us-east-1:000000000000:{{.Name}}">SQS · {{.Name}}</option>{{end}}{{range .Functions}}<option value="{{.ARN}}">Lambda · {{.Name}}</option>{{end}}{{range .Destinations}}<option value="{{.ARN}}">API destination · {{.Name}}</option>{{end}}</select></div>
+    <div class="field"><label>Destination</label><select class="input" name="arn">{{range .Queues}}<option value="arn:aws:sqs:{{region}}:{{account}}:{{.Name}}">SQS · {{.Name}}</option>{{end}}{{range .Functions}}<option value="{{.ARN}}">Lambda · {{.Name}}</option>{{end}}{{range .Destinations}}<option value="{{.ARN}}">API destination · {{.Name}}</option>{{end}}</select></div>
     <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn btn-outline" type="submit">Add target</button></div>
   </form>
 </div></div>

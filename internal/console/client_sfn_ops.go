@@ -6,8 +6,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // ---- Step Functions: Express, TestState, redrive, Map Runs, activities ----
@@ -343,4 +341,4 @@ func (b *backend) GetActivityTask(ctx context.Context, arn, worker string) (*Act
 }
 
 // activityARNOf rebuilds an activity ARN from its console path segment.
-func activityARNOf(name string) string { return awsident.ARN("states", "activity:"+name) }
+func (b *backend) activityARNOf(name string) string { return b.id.ARN("states", "activity:"+name) }

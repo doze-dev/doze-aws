@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"strconv"
 	"strings"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // ---- API Gateway Lambda authorizers ----
@@ -44,7 +42,7 @@ func (b *backend) APIAuthorizers(ctx context.Context, apiID string) ([]APIAuthor
 // CreateAPIAuthorizer adds a TOKEN or REQUEST authorizer backed by a function.
 func (b *backend) CreateAPIAuthorizer(ctx context.Context, apiID, name, typ, function, source string, ttl int) error {
 	in := map[string]any{
-		"name": name, "type": typ, "authorizerUri": lambdaInvokeURI(function),
+		"name": name, "type": typ, "authorizerUri": b.lambdaInvokeURI(function),
 		"authorizerResultTtlInSeconds": ttl,
 	}
 	if source != "" {
@@ -85,9 +83,9 @@ func (b *backend) GetAPIAuthorizer(ctx context.Context, apiID, id string) (APIAu
 }
 
 // lambdaInvokeURI is the API Gateway invocation URI for a function.
-func lambdaInvokeURI(function string) string {
-	return "arn:aws:apigateway:" + awsident.Region + ":lambda:path/2015-03-31/functions/" +
-		awsident.ARN("lambda", "function:"+function) + "/invocations"
+func (b *backend) lambdaInvokeURI(function string) string {
+	return "arn:aws:apigateway:" + b.id.RegionName() + ":lambda:path/2015-03-31/functions/" +
+		b.id.ARN("lambda", "function:"+function) + "/invocations"
 }
 
 func itoa(n int) string { return strconv.Itoa(n) }

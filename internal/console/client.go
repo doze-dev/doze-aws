@@ -514,7 +514,7 @@ func (b *backend) queueURL(name string) string {
 	// LAST path segment alone (sqs/codec.go queueNameFromURL), so the account
 	// here is discarded. The copyable URL a user sees is re-minted from the
 	// request Host in handlers.go.
-	return b.base + "/" + awsident.AccountID + "/" + name
+	return b.base + "/" + b.id.Account() + "/" + name
 }
 
 func (b *backend) ListQueues(ctx context.Context) ([]Queue, error) {
@@ -690,8 +690,8 @@ func (b *backend) DLQSources(ctx context.Context, name string) []string {
 // StartRedrive moves every message from a DLQ back to dest.
 func (b *backend) StartRedrive(ctx context.Context, from, dest string) error {
 	_, err := b.sqs(ctx, "StartMessageMoveTask", map[string]any{
-		"SourceArn":      awsident.ARN("sqs", from),
-		"DestinationArn": awsident.ARN("sqs", dest),
+		"SourceArn":      b.id.ARN("sqs", from),
+		"DestinationArn": b.id.ARN("sqs", dest),
 	})
 	return err
 }
@@ -706,7 +706,7 @@ type MoveTask struct {
 
 func (b *backend) MoveTasks(ctx context.Context, name string) []MoveTask {
 	body, err := b.sqs(ctx, "ListMessageMoveTasks", map[string]any{
-		"SourceArn": awsident.ARN("sqs", name), "MaxResults": 5,
+		"SourceArn": b.id.ARN("sqs", name), "MaxResults": 5,
 	})
 	if err != nil {
 		return nil

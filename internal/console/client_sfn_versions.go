@@ -216,9 +216,11 @@ func (b *backend) ListMachineAliases(ctx context.Context, machineARN string) ([]
 }
 
 // versionARNOf builds a version ARN from the machine's console path segment.
-func versionARNOf(machine string, n int) string {
-	return stateMachineARNOf(machine) + ":" + strconv.Itoa(n)
+func (b *backend) versionARNOf(machine string, n int) string {
+	return b.stateMachineARNOf(machine) + ":" + strconv.Itoa(n)
 }
 
 // aliasARNOf builds an alias ARN from the two path segments.
-func aliasARNOf(machine, alias string) string { return stateMachineARNOf(machine) + ":" + alias }
+func (b *backend) aliasARNOf(machine, alias string) string {
+	return b.stateMachineARNOf(machine) + ":" + alias
+}

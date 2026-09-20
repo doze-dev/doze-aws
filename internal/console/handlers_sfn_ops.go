@@ -19,7 +19,7 @@ import (
 // proposition — a workflow behind a request — and the panel says so.
 func (c *Console) sfnStartSync(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("machine")
-	res, err := c.be.StartSyncExecution(r.Context(), startTargetOf(r, name), r.FormValue("name"), r.FormValue("input"))
+	res, err := c.be.StartSyncExecution(r.Context(), c.be.startTargetOf(r, name), r.FormValue("name"), r.FormValue("input"))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -35,7 +35,7 @@ func (c *Console) sfnTestState(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("machine")
 	definition := r.FormValue("definition")
 	if strings.TrimSpace(definition) == "" {
-		sm, err := c.be.DescribeStateMachine(r.Context(), stateMachineARNOf(name))
+		sm, err := c.be.DescribeStateMachine(r.Context(), c.be.stateMachineARNOf(name))
 		if err != nil {
 			c.fail(w, err)
 			return
@@ -69,7 +69,7 @@ func (c *Console) sfnTestState(w http.ResponseWriter, r *http.Request) {
 // the redrive count up by one — and the header is outside every live region.
 func (c *Console) sfnRedrive(w http.ResponseWriter, r *http.Request) {
 	machine, name := r.PathValue("machine"), r.PathValue("exec")
-	if err := c.be.RedriveExecution(r.Context(), executionARNOf(machine, name)); err != nil {
+	if err := c.be.RedriveExecution(r.Context(), c.be.executionARNOf(machine, name)); err != nil {
 		c.fail(w, err)
 		return
 	}

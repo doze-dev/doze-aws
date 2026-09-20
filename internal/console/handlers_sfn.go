@@ -55,7 +55,7 @@ func (c *Console) sfnValidate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sfnDelete(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeleteStateMachine(r.Context(), stateMachineARNOf(r.PathValue("machine"))); err != nil {
+	if err := c.be.DeleteStateMachine(r.Context(), c.be.stateMachineARNOf(r.PathValue("machine"))); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -64,7 +64,7 @@ func (c *Console) sfnDelete(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) sfnUpdateDefinition(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("machine")
-	if err := c.be.UpdateStateMachine(r.Context(), stateMachineARNOf(name), r.FormValue("definition"), r.FormValue("role")); err != nil {
+	if err := c.be.UpdateStateMachine(r.Context(), c.be.stateMachineARNOf(name), r.FormValue("definition"), r.FormValue("role")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -73,7 +73,7 @@ func (c *Console) sfnUpdateDefinition(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) sfnMachine(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("machine")
-	sm, err := c.be.DescribeStateMachine(r.Context(), stateMachineARNOf(name))
+	sm, err := c.be.DescribeStateMachine(r.Context(), c.be.stateMachineARNOf(name))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -109,7 +109,7 @@ func (c *Console) sfnMachine(w http.ResponseWriter, r *http.Request) {
 // sfnLogs is the Logs tab's poll: the machine's vended history.
 func (c *Console) sfnLogs(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("machine")
-	sm, err := c.be.DescribeStateMachine(r.Context(), stateMachineARNOf(name))
+	sm, err := c.be.DescribeStateMachine(r.Context(), c.be.stateMachineARNOf(name))
 	if err != nil || sm.LogGroup == "" {
 		c.fail(w, fmt.Errorf("state machine %s does not log to a group", name))
 		return
@@ -124,7 +124,7 @@ func (c *Console) sfnLogs(w http.ResponseWriter, r *http.Request) {
 // sfnExecutionsData is what the executions panel renders, shared by the page
 // and its poll. Running is what decides whether the region keeps polling.
 func (c *Console) sfnExecutionsData(r *http.Request, name string) map[string]any {
-	execs, _ := c.be.ListExecutions(r.Context(), stateMachineARNOf(name), r.URL.Query().Get("status"))
+	execs, _ := c.be.ListExecutions(r.Context(), c.be.stateMachineARNOf(name), r.URL.Query().Get("status"))
 	running := 0
 	parts := make([]string, 0, len(execs))
 	for _, e := range execs {
@@ -151,7 +151,7 @@ func (c *Console) sfnExecutions(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) sfnStart(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("machine")
-	arn, err := c.be.StartExecution(r.Context(), startTargetOf(r, name), r.FormValue("name"), r.FormValue("input"))
+	arn, err := c.be.StartExecution(r.Context(), c.be.startTargetOf(r, name), r.FormValue("name"), r.FormValue("input"))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -178,7 +178,7 @@ func parseExecutionARN(arn string) (machine, name string) {
 
 func (c *Console) sfnExecution(w http.ResponseWriter, r *http.Request) {
 	machine, name := r.PathValue("machine"), r.PathValue("exec")
-	arn := executionARNOf(machine, name)
+	arn := c.be.executionARNOf(machine, name)
 	ex, err := c.be.DescribeExecution(r.Context(), arn)
 	if err != nil {
 		c.fail(w, err)
@@ -208,7 +208,7 @@ func (c *Console) sfnExecution(w http.ResponseWriter, r *http.Request) {
 // execution's status rides along so the panel can stop polling — and show the
 // stop form — from the same fetch.
 func (c *Console) sfnHistoryData(r *http.Request, machine, name string) map[string]any {
-	arn := executionARNOf(machine, name)
+	arn := c.be.executionARNOf(machine, name)
 	ex, _ := c.be.DescribeExecution(r.Context(), arn)
 	evs, _ := c.be.ExecutionHistory(r.Context(), arn)
 	parts := []string{ex.Status, strconv.Itoa(len(evs))}
@@ -237,7 +237,7 @@ func (c *Console) sfnHistory(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) sfnStop(w http.ResponseWriter, r *http.Request) {
 	machine, name := r.PathValue("machine"), r.PathValue("exec")
-	if err := c.be.StopExecution(r.Context(), executionARNOf(machine, name), r.FormValue("error"), r.FormValue("cause")); err != nil {
+	if err := c.be.StopExecution(r.Context(), c.be.executionARNOf(machine, name), r.FormValue("error"), r.FormValue("cause")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -295,7 +295,7 @@ func graphOf(definition string, evs []HistoryEvent, running bool) (*sfngraph.Gra
 // hash is the history's: the picture changes exactly when the events do.
 func (c *Console) sfnGraphData(r *http.Request, machine, name string) map[string]any {
 	data := c.sfnHistoryData(r, machine, name)
-	definition, _ := c.be.ExecutionDefinition(r.Context(), executionARNOf(machine, name))
+	definition, _ := c.be.ExecutionDefinition(r.Context(), c.be.executionARNOf(machine, name))
 	ex := data["Exec"].(Execution)
 	evs := data["Events"].([]HistoryEvent)
 	if evs == nil {

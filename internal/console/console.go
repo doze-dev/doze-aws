@@ -84,7 +84,7 @@ func New(opts Options) (*Console, error) {
 	}
 	prefix = "/" + strings.Trim(prefix, "/")
 
-	tmpl, err := template.New("").Funcs(templateFuncs(prefix)).ParseFS(templateFS, "templates/*.html")
+	tmpl, err := template.New("").Funcs(templateFuncs(prefix, opts.Identity)).ParseFS(templateFS, "templates/*.html")
 	if err != nil {
 		return nil, err
 	}
@@ -724,9 +724,15 @@ func failView(err error) failReason {
 	return failReason{Message: err.Error(), State: "refused"}
 }
 
-func templateFuncs(prefix string) template.FuncMap {
+func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 	return template.FuncMap{
-		"prefix":    func() string { return prefix },
+		"prefix": func() string { return prefix },
+		// account and region are the INSTANCE's, not the package defaults. A
+		// template that hardcodes 000000000000 renders an ARN a user cannot
+		// paste anywhere under --account-id, and several of these sites are
+		// copy-as-CLI snippets and form values rather than placeholders.
+		"account":   id.Account,
+		"region":    id.RegionName,
 		"icon":      icon,
 		"count":     humanCount,
 		"hasPrefix": strings.HasPrefix,

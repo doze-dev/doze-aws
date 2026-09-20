@@ -18,8 +18,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // RestAPI is one REST API.
@@ -94,14 +92,14 @@ type APIStage struct {
 // apigwSign stamps the SigV4-shaped credential scope the gateway routes
 // unprefixed paths by. /restapis is recognised by path; /tags/{arn} is not —
 // a real SDK's signature names the service, so the console's does too.
-func apigwSign(req *http.Request) {
+func (b *backend) apigwSign(req *http.Request) {
 	req.Header.Set("Authorization",
-		"AWS4-HMAC-SHA256 Credential=test/20260101/"+awsident.Region+"/apigateway/aws4_request")
+		"AWS4-HMAC-SHA256 Credential=test/20260101/"+b.id.RegionName()+"/apigateway/aws4_request")
 }
 
 func (b *backend) apigwGet(ctx context.Context, path string, out any) error {
 	req, _ := http.NewRequestWithContext(ctx, "GET", b.base+path, nil)
-	apigwSign(req)
+	b.apigwSign(req)
 	body, err := b.do(req)
 	if err != nil {
 		return err
@@ -350,7 +348,7 @@ func (b *backend) apigwJSON(ctx context.Context, method, path string, in any) ([
 		body = bytes.NewReader(buf)
 	}
 	req, _ := http.NewRequestWithContext(ctx, method, b.base+path, body)
-	apigwSign(req)
+	b.apigwSign(req)
 	if in != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
@@ -446,8 +444,8 @@ func (b *backend) PutAPIIntegration(ctx context.Context, apiID, resourceID, verb
 	in := map[string]any{"type": typ}
 	switch typ {
 	case "AWS_PROXY", "AWS":
-		in["uri"] = "arn:aws:apigateway:" + awsident.Region + ":lambda:path/2015-03-31/functions/" +
-			awsident.ARN("lambda", "function:"+target) + "/invocations"
+		in["uri"] = "arn:aws:apigateway:" + b.id.RegionName() + ":lambda:path/2015-03-31/functions/" +
+			b.id.ARN("lambda", "function:"+target) + "/invocations"
 		in["integrationHttpMethod"] = "POST"
 	case "HTTP", "HTTP_PROXY":
 		in["uri"] = target

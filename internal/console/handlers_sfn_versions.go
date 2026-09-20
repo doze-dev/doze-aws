@@ -17,7 +17,7 @@ import (
 // sfnVersionsData is what the tab renders. It is also what the Start tab's
 // "Run as" select reads, so it is one function for both.
 func (c *Console) sfnVersionsData(r *http.Request, name string) map[string]any {
-	arn := stateMachineARNOf(name)
+	arn := c.be.stateMachineARNOf(name)
 	versions, _ := c.be.ListVersions(r.Context(), arn)
 	aliases, _ := c.be.ListMachineAliases(r.Context(), arn)
 	return map[string]any{"Versions": versions, "Aliases": aliases}
@@ -25,7 +25,7 @@ func (c *Console) sfnVersionsData(r *http.Request, name string) map[string]any {
 
 func (c *Console) sfnPublish(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("machine")
-	arn, err := c.be.PublishVersion(r.Context(), stateMachineARNOf(name), strings.TrimSpace(r.FormValue("description")))
+	arn, err := c.be.PublishVersion(r.Context(), c.be.stateMachineARNOf(name), strings.TrimSpace(r.FormValue("description")))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -42,7 +42,7 @@ func (c *Console) sfnVersion(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	sm, err := c.be.DescribeStateMachine(r.Context(), versionARNOf(name, n))
+	sm, err := c.be.DescribeStateMachine(r.Context(), c.be.versionARNOf(name, n))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -57,7 +57,7 @@ func (c *Console) sfnVersionDelete(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	if err := c.be.DeleteVersion(r.Context(), versionARNOf(name, n)); err != nil {
+	if err := c.be.DeleteVersion(r.Context(), c.be.versionARNOf(name, n)); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -69,7 +69,7 @@ func (c *Console) sfnVersionDelete(w http.ResponseWriter, r *http.Request) {
 // weights are the service's to check — one entry summing to 100 or two
 // that do — so a bad split is refused with the wire's own message rather
 // than a second, console-only rule.
-func routesFromForm(r *http.Request, machine string) []Route {
+func (b *backend) routesFromForm(r *http.Request, machine string) []Route {
 	var routes []Route
 	for _, i := range []string{"1", "2"} {
 		v := strings.TrimSpace(r.FormValue("v" + i))
@@ -78,7 +78,7 @@ func routesFromForm(r *http.Request, machine string) []Route {
 		}
 		n, _ := strconv.Atoi(v)
 		weight, _ := strconv.Atoi(strings.TrimSpace(r.FormValue("w" + i)))
-		routes = append(routes, Route{VersionARN: versionARNOf(machine, n), Version: n, Weight: weight})
+		routes = append(routes, Route{VersionARN: b.versionARNOf(machine, n), Version: n, Weight: weight})
 	}
 	// One row with no weight typed means all of it: the form's single-version
 	// case should not make anyone type 100.
@@ -91,7 +91,7 @@ func routesFromForm(r *http.Request, machine string) []Route {
 func (c *Console) sfnAliasCreate(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("machine")
 	alias := strings.TrimSpace(r.FormValue("name"))
-	_, err := c.be.CreateMachineAlias(r.Context(), alias, strings.TrimSpace(r.FormValue("description")), routesFromForm(r, name))
+	_, err := c.be.CreateMachineAlias(r.Context(), alias, strings.TrimSpace(r.FormValue("description")), c.be.routesFromForm(r, name))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -109,7 +109,7 @@ func (c *Console) sfnAliasUpdate(w http.ResponseWriter, r *http.Request) {
 		d := strings.TrimSpace(r.FormValue("description"))
 		description = &d
 	}
-	if err := c.be.UpdateMachineAlias(r.Context(), aliasARNOf(name, alias), description, routesFromForm(r, name)); err != nil {
+	if err := c.be.UpdateMachineAlias(r.Context(), c.be.aliasARNOf(name, alias), description, c.be.routesFromForm(r, name)); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -118,7 +118,7 @@ func (c *Console) sfnAliasUpdate(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) sfnAliasDelete(w http.ResponseWriter, r *http.Request) {
 	name, alias := r.PathValue("machine"), r.PathValue("alias")
-	if err := c.be.DeleteMachineAlias(r.Context(), aliasARNOf(name, alias)); err != nil {
+	if err := c.be.DeleteMachineAlias(r.Context(), c.be.aliasARNOf(name, alias)); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -129,8 +129,8 @@ func (c *Console) sfnAliasDelete(w http.ResponseWriter, r *http.Request) {
 // (""), or a version or alias qualifier. The qualifier is appended to the
 // machine's own ARN rather than taken as an ARN from the form, so the form
 // cannot start a different machine than the page it is on.
-func startTargetOf(r *http.Request, machine string) string {
-	arn := stateMachineARNOf(machine)
+func (b *backend) startTargetOf(r *http.Request, machine string) string {
+	arn := b.stateMachineARNOf(machine)
 	if q := strings.TrimSpace(r.FormValue("target")); q != "" {
 		arn += ":" + q
 	}

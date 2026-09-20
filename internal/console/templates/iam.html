@@ -725,14 +725,14 @@
           <div class="field" x-show="m==='federation'" x-cloak style="margin-top:8px"><label>Federated user name</label>
             <input class="input mono" name="name" placeholder="analyst-42" spellcheck="false"></div>
           <div class="fgrid" x-show="m==='root'" x-cloak style="margin-top:8px">
-            <div class="field"><label>Target principal <span class="dim">account id</span></label><input class="input mono" name="target" value="000000000000" spellcheck="false"></div>
+            <div class="field"><label>Target principal <span class="dim">account id</span></label><input class="input mono" name="target" value="{{account}}" spellcheck="false"></div>
             <div class="field"><label>Task policy ARN</label><input class="input mono" name="task" value="arn:aws:iam::aws:policy/root-task/IAMAuditRootUserCredentials" spellcheck="false"></div>
           </div>
           <div class="field" x-show="m==='web-identity'" x-cloak style="margin-top:8px"><label>Web identity token <span class="dim">JWT — accepted unverified locally; sub/aud/iss reflect into the response</span></label>
             <textarea class="input mono" name="token" rows="3" spellcheck="false" placeholder="eyJhbGciOi..."></textarea></div>
           <div x-show="m==='saml'" x-cloak style="margin-top:8px">
             <div class="field"><label>Principal ARN <span class="dim">the SAML provider</span></label>
-              <input class="input mono" name="provider" placeholder="arn:aws:iam::000000000000:saml-provider/corp-idp" spellcheck="false"></div>
+              <input class="input mono" name="provider" placeholder="arn:aws:iam::{{account}}:saml-provider/corp-idp" spellcheck="false"></div>
             <div class="field" style="margin-top:8px"><label>SAML assertion <span class="dim">base64 — accepted unverified locally</span></label>
               <textarea class="input mono" name="assertion" rows="3" spellcheck="false"></textarea></div>
           </div>
@@ -742,7 +742,7 @@
             <button class="btn" type="submit">{{icon "key"}} Mint credentials</button>
           </div>
           <div x-show="m==='assume-role'">
-            {{template "cli" "sts assume-role --role-arn arn:aws:iam::000000000000:role/$role --role-session-name $session [--duration-seconds $duration]"}}
+            {{template "cli" (printf "sts assume-role --role-arn arn:aws:iam::%s:role/$role --role-session-name $session [--duration-seconds $duration]" account)}}
           </div>
         </form>
         <div id="sts-out"></div>
@@ -851,7 +851,7 @@
             <select class="input pb-psel" title="Principal type" x-model="pr.type" @change="sync()">
               <template x-for="pt in principalTypes"><option x-text="pt"></option></template>
             </select>
-            <input class="input mono" placeholder="arn:aws:iam::000000000000:user/x, comma-separated" x-model="pr.vals" @input="sync()" spellcheck="false">
+            <input class="input mono" placeholder="arn:aws:iam::{{account}}:user/x, comma-separated" x-model="pr.vals" @input="sync()" spellcheck="false">
             <button type="button" class="icon-btn sm danger" @click="st.prows.splice(pi,1); if(!st.prows.length)st.pmode='none'; sync()">{{icon "x"}}</button>
           </div>
         </template>

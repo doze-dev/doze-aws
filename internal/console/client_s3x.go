@@ -14,8 +14,6 @@ import (
 	"io"
 	"sort"
 	"time"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // ---- S3 bucket properties ----
@@ -244,7 +242,7 @@ func (b *backend) CreateQueueFull(ctx context.Context, o SQSCreateOpts) error {
 			maxRecv = "3"
 		}
 		rp, _ := json.Marshal(map[string]string{
-			"deadLetterTargetArn": awsident.ARN("sqs", o.DLQName),
+			"deadLetterTargetArn": b.id.ARN("sqs", o.DLQName),
 			"maxReceiveCount":     maxRecv,
 		})
 		attrs["RedrivePolicy"] = string(rp)
@@ -287,7 +285,7 @@ func (b *backend) CreateQueueFull(ctx context.Context, o SQSCreateOpts) error {
 }
 
 // QueueARN builds the queue's ARN (fixed local identity).
-func QueueARN(name string) string { return awsident.ARN("sqs", name) }
+func (b *backend) QueueARN(name string) string { return b.id.ARN("sqs", name) }
 
 // humanCount formats large counts with a thin separator, e.g. 12,340.
 func humanCount(n int64) string {
@@ -467,10 +465,10 @@ func (b *backend) PutNotifications(ctx context.Context, bucket string, rules []N
 	var sb strings.Builder
 	sb.WriteString("<NotificationConfiguration>")
 	for i, r := range rules {
-		tag, target, arn := "QueueConfiguration", "Queue", awsident.ARN("sqs", r.Name)
+		tag, target, arn := "QueueConfiguration", "Queue", b.id.ARN("sqs", r.Name)
 		switch r.Kind {
 		case "sns":
-			tag, target, arn = "TopicConfiguration", "Topic", awsident.ARN("sns", r.Name)
+			tag, target, arn = "TopicConfiguration", "Topic", b.id.ARN("sns", r.Name)
 		case "lambda":
 			tag, target = "CloudFunctionConfiguration", "CloudFunction"
 			arn = "arn:aws:lambda:" + b.id.RegionName() + ":" + b.id.Account() + ":function:" + r.Name

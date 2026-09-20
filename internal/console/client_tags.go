@@ -8,8 +8,6 @@ import (
 	"net/url"
 	"sort"
 	"strings"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // One tag surface, many wire protocols. Each service tags a different
@@ -22,22 +20,22 @@ import (
 func (b *backend) tagARN(svc, id string) string {
 	switch svc {
 	case "sns":
-		return awsident.ARN("sns", id)
+		return b.id.ARN("sns", id)
 	case "ddb":
-		return awsident.ARN("dynamodb", "table/"+id)
+		return b.id.ARN("dynamodb", "table/"+id)
 	case "lambda":
-		return awsident.ARN("lambda", "function:"+id)
+		return b.id.ARN("lambda", "function:"+id)
 	case "eb":
-		return awsident.ARN("events", "rule/"+id)
+		return b.id.ARN("events", "rule/"+id)
 	case "sfn":
-		return awsident.ARN("states", "stateMachine:"+id)
+		return b.id.ARN("states", "stateMachine:"+id)
 	case "logs":
-		return awsident.ARN("logs", "log-group:"+id)
+		return b.id.ARN("logs", "log-group:"+id)
 	case "cw":
-		return awsident.ARN("cloudwatch", "alarm:"+id)
+		return b.id.ARN("cloudwatch", "alarm:"+id)
 	case "apigw":
 		// API Gateway ARNs carry no account and a path-shaped resource.
-		return "arn:aws:apigateway:" + awsident.Region + "::/restapis/" + id
+		return "arn:aws:apigateway:" + b.id.RegionName() + "::/restapis/" + id
 	default:
 		return id
 	}
