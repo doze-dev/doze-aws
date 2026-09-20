@@ -13,7 +13,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/asl"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
-	"github.com/doze-dev/doze-aws/internal/trace"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // The execution-facing operations: start, describe, stop, list, and the

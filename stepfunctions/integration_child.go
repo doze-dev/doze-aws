@@ -247,12 +247,12 @@ func (g *engine) resumeChildWaits(r *run) {
 
 // ---- store ----
 
-func (s *Store) putChildWait(childKey, parentKey string, frame int) error {
+func (s *store) putChildWait(childKey, parentKey string, frame int) error {
 	return s.put(bucketChildWaits, []byte(childKey), fmt.Sprintf("%s\x00%d", parentKey, frame))
 }
 
 // takeChildWait reads and deletes the wait row for a child.
-func (s *Store) takeChildWait(childKey string) (parentKey string, frame int, ok bool) {
+func (s *store) takeChildWait(childKey string) (parentKey string, frame int, ok bool) {
 	var v string
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketChildWaits)

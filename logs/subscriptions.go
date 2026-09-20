@@ -38,7 +38,7 @@ func subscriptionKey(group, name string) []byte { return []byte(group + "\x00" +
 
 // ---- store ----
 
-func (s *Store) PutSubscription(sub Subscription) error {
+func (s *store) PutSubscription(sub Subscription) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if tx.Bucket(bucketGroups).Get([]byte(sub.Group)) == nil {
 			return ErrNoGroup
@@ -60,7 +60,7 @@ func (s *Store) PutSubscription(sub Subscription) error {
 	})
 }
 
-func (s *Store) DeleteSubscription(group, name string) error {
+func (s *store) DeleteSubscription(group, name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketSubscriptions)
 		if b.Get(subscriptionKey(group, name)) == nil {
@@ -71,7 +71,7 @@ func (s *Store) DeleteSubscription(group, name string) error {
 }
 
 // Subscriptions lists a group's filters by name.
-func (s *Store) Subscriptions(group string) ([]Subscription, error) {
+func (s *store) Subscriptions(group string) ([]Subscription, error) {
 	var out []Subscription
 	err := s.db.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket(bucketSubscriptions).Cursor()

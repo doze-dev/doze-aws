@@ -53,7 +53,7 @@ func TestSDKV1RuleLifecycle(t *testing.T) {
 		Rule: awsv1.String("v1-rule"),
 		Targets: []*ebv1.Target{{
 			Id:  awsv1.String("t1"),
-			Arn: awsv1.String(awsident.ARN("sqs", "v1-eb")),
+			Arn: awsv1.String(awsident.Default().ARN("sqs", "v1-eb")),
 		}},
 	}); err != nil {
 		t.Fatalf("PutTargets: %v", err)

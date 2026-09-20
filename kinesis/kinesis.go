@@ -66,7 +66,7 @@ type Options struct {
 // Server is the Kinesis service: an http.Handler speaking AWS JSON 1.1, and an
 // io.Closer that stops the retention sweeper and closes the store.
 type Server struct {
-	store *Store
+	store *store
 	logf  func(format string, args ...any)
 	api   awsjson.API
 	now   func() time.Time

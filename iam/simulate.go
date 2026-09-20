@@ -28,7 +28,7 @@ type matchedStatementView struct {
 }
 
 // simulate runs every (action, resource) pair against a document set.
-func simulate(docs []*Document, actions, resources []string, ctx map[string][]string) []evalResultView {
+func simulate(docs []*document, actions, resources []string, ctx map[string][]string) []evalResultView {
 	if len(resources) == 0 {
 		resources = []string{"*"}
 	}
@@ -41,7 +41,7 @@ func simulate(docs []*Document, actions, resources []string, ctx map[string][]st
 			if target == "*" {
 				target = ""
 			}
-			decision, by := Evaluate(docs, Request{Action: action, Resource: target, Context: ctx})
+			decision, by := evaluate(docs, request{Action: action, Resource: target, Context: ctx})
 			res := evalResultView{
 				EvalActionName:   action,
 				EvalResourceName: resource,
@@ -79,9 +79,9 @@ func hSimulateCustomPolicy(_ *Server, p params) (any, *awshttp.APIError) {
 	if len(raw) == 0 {
 		return nil, errValidation("PolicyInputList is required")
 	}
-	docs := make([]*Document, 0, len(raw))
+	docs := make([]*document, 0, len(raw))
 	for i, item := range raw {
-		d, err := ParsePolicy(decodeDocument(item))
+		d, err := parsePolicy(decodeDocument(item))
 		if err != nil {
 			return nil, errMalformedPolicy("PolicyInputList.member.%d: %v", i+1, err)
 		}
@@ -114,7 +114,7 @@ func hSimulatePrincipalPolicy(s *Server, p params) (any, *awshttp.APIError) {
 	// Extra inline policies may be supplied to model a proposed change without
 	// attaching it — the "what if I added this?" question.
 	for i, item := range p.members("PolicyInputList") {
-		d, perr := ParsePolicy(decodeDocument(item))
+		d, perr := parsePolicy(decodeDocument(item))
 		if perr != nil {
 			return nil, errMalformedPolicy("PolicyInputList.member.%d: %v", i+1, perr)
 		}
@@ -137,7 +137,7 @@ func hSimulatePrincipalPolicy(s *Server, p params) (any, *awshttp.APIError) {
 // references, so a caller knows what to supply to Simulate. It is pure
 // analysis of documents doze-aws already holds, so it is answered for real.
 
-func contextKeysOf(docs []*Document) []string {
+func contextKeysOf(docs []*document) []string {
 	seen := map[string]bool{}
 	for _, d := range docs {
 		if d == nil {
@@ -159,10 +159,10 @@ func contextKeysOf(docs []*Document) []string {
 	return out
 }
 
-func parseInputList(p params) ([]*Document, *awshttp.APIError) {
-	var docs []*Document
+func parseInputList(p params) ([]*document, *awshttp.APIError) {
+	var docs []*document
 	for i, item := range p.members("PolicyInputList") {
-		d, err := ParsePolicy(decodeDocument(item))
+		d, err := parsePolicy(decodeDocument(item))
 		if err != nil {
 			return nil, errMalformedPolicy("PolicyInputList.member.%d: %v", i+1, err)
 		}

@@ -4,7 +4,7 @@ package cloudformation_test
 //
 // That is what makes Fn::ImportValue unambiguous, and it was not enforced: a
 // second stack declaring an export another stack already owned simply took the
-// name. Store.Exports() builds a map keyed by export name, so after the
+// name. store.Exports() builds a map keyed by export name, so after the
 // collision an importer resolved to whichever of the two stacks the iteration
 // happened to reach last — a third stack getting the wrong queue, with nothing
 // anywhere saying why.

@@ -35,9 +35,9 @@ const snsXMLNS = "http://sns.amazonaws.com/doc/2010-03-31/"
 // TagResource in aws-sdk-go-v2) require the node to be present.
 var qapi = awsquery.API{XMLNS: snsXMLNS, EmptyResult: true}
 
-// Attr is an SNS message attribute (String/Number use StringValue; Binary
+// attr is an SNS message attribute (String/Number use StringValue; Binary
 // uses BinaryValue) — the Query codec's decoded shape, used directly.
-type Attr = awsquery.MessageAttr
+type attr = awsquery.MessageAttr
 
 // writeError renders err in the Query error envelope, classifying the fault
 // from its status (4xx Sender, 5xx Receiver) the way real AWS does.
@@ -69,7 +69,7 @@ type Options struct {
 // Server is the SNS service: an http.Handler speaking the Query/XML protocol,
 // and an io.Closer that closes the store.
 type Server struct {
-	store *Store
+	store *store
 	peers peers.Directory
 	logf  func(format string, args ...any)
 	now   func() time.Time

@@ -146,7 +146,7 @@ func deleteToken(tx *bolt.Tx, tb *bolt.Bucket, token string) error {
 // the queue is empty. The claim and the token's detachment from the queue
 // are one transaction, so two workers polling the same activity can never
 // both receive a task — bbolt serialises writers.
-func (s *Store) ClaimActivityTask(name string) (*ActivityTask, error) {
+func (s *store) ClaimActivityTask(name string) (*ActivityTask, error) {
 	var out *ActivityTask
 	prefix := []byte(name + "\x00")
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -192,7 +192,7 @@ func (s *Store) ClaimActivityTask(name string) (*ActivityTask, error) {
 
 // ListActivityTasks returns one activity's unclaimed tasks, oldest first —
 // its queue depth is the length. This is what a console page reads.
-func (s *Store) ListActivityTasks(name string) ([]ActivityTask, error) {
+func (s *store) ListActivityTasks(name string) ([]ActivityTask, error) {
 	prefix := []byte(name + "\x00")
 	var out []ActivityTask
 	err := s.db.View(func(tx *bolt.Tx) error {

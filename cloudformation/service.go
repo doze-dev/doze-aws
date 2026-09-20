@@ -71,7 +71,7 @@ type Options struct {
 
 // Server is the CloudFormation service.
 type Server struct {
-	store    *Store
+	store    *store
 	gateway  http.Handler
 	peers    peers.Directory
 	logf     func(format string, args ...any)

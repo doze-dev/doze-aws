@@ -97,7 +97,7 @@ func TestStageLogsAreWritten(t *testing.T) {
 	// The stage's settings, patched the way CloudFormation patches them.
 	accessGroup := "/aws/apigateway/logged-access"
 	st, err := agw.UpdateStage(ctx, &awsapi.UpdateStageInput{RestApiId: api.Id, StageName: aws.String("prod"), PatchOperations: []apitypes.PatchOperation{
-		{Op: apitypes.OpReplace, Path: aws.String("/accessLogSettings/destinationArn"), Value: aws.String(awsident.ARN("logs", "log-group:"+accessGroup))},
+		{Op: apitypes.OpReplace, Path: aws.String("/accessLogSettings/destinationArn"), Value: aws.String(awsident.Default().ARN("logs", "log-group:"+accessGroup))},
 		{Op: apitypes.OpReplace, Path: aws.String("/accessLogSettings/format"), Value: aws.String(`{"requestId":"$context.requestId","method":"$context.httpMethod","resource":"$context.resourcePath","status":$context.status,"ip":"$context.identity.sourceIp","stage":"$context.stage"}`)},
 		{Op: apitypes.OpReplace, Path: aws.String("/*/*/logging/loglevel"), Value: aws.String("INFO")},
 		{Op: apitypes.OpReplace, Path: aws.String("/*/*/logging/dataTrace"), Value: aws.String("true")},

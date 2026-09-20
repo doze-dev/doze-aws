@@ -135,7 +135,7 @@ func TestIntegrationLambdaSinks(t *testing.T) {
 	// SQS event-source-mapping -> Lambda.
 	q, _ := sqs.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("jobs")})
 	if _, err := lam.CreateEventSourceMapping(ctx, &awslambda.CreateEventSourceMappingInput{
-		FunctionName: aws.String("sink"), EventSourceArn: aws.String(awsident.ARN("sqs", "jobs")),
+		FunctionName: aws.String("sink"), EventSourceArn: aws.String(awsident.Default().ARN("sqs", "jobs")),
 		BatchSize: aws.Int32(1), Enabled: aws.Bool(true),
 	}); err != nil {
 		t.Fatalf("CreateEventSourceMapping: %v", err)
@@ -318,7 +318,7 @@ func TestIntegrationKinesisToLambda(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("CreateStream: %v", err)
 	}
-	streamArn := awsident.ARN("kinesis", "stream/telemetry")
+	streamArn := awsident.Default().ARN("kinesis", "stream/telemetry")
 
 	if _, err := lam.CreateEventSourceMapping(ctx, &awslambda.CreateEventSourceMappingInput{
 		FunctionName: aws.String("sink"), EventSourceArn: aws.String(streamArn),
@@ -407,7 +407,7 @@ func TestIntegrationLambdaDLQ(t *testing.T) {
 		Role:             aws.String("arn:aws:iam::000000000000:role/r"),
 		Code:             &lamtypes.FunctionCode{S3Bucket: aws.String("_local_"), S3Key: aws.String(buildFailer(t))},
 		Timeout:          aws.Int32(10),
-		DeadLetterConfig: &lamtypes.DeadLetterConfig{TargetArn: aws.String(awsident.ARN("sqs", "dlq"))},
+		DeadLetterConfig: &lamtypes.DeadLetterConfig{TargetArn: aws.String(awsident.Default().ARN("sqs", "dlq"))},
 	}); err != nil {
 		t.Fatalf("CreateFunction: %v", err)
 	}
@@ -467,7 +467,7 @@ func TestIntegrationLambdaOnFailureDestination(t *testing.T) {
 		FunctionName:         aws.String("flaky2"),
 		MaximumRetryAttempts: aws.Int32(0),
 		DestinationConfig: &lamtypes.DestinationConfig{
-			OnFailure: &lamtypes.OnFailure{Destination: aws.String(awsident.ARN("sqs", "onfail"))},
+			OnFailure: &lamtypes.OnFailure{Destination: aws.String(awsident.Default().ARN("sqs", "onfail"))},
 		},
 	}); err != nil {
 		t.Fatalf("PutFunctionEventInvokeConfig: %v", err)
@@ -518,7 +518,7 @@ func TestIntegrationS3ToSNSToSQS(t *testing.T) {
 	q, _ := sqs.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("uploads-q")})
 	sns.Subscribe(ctx, &awssns.SubscribeInput{
 		TopicArn: top.TopicArn, Protocol: aws.String("sqs"),
-		Endpoint: aws.String(awsident.ARN("sqs", "uploads-q")), ReturnSubscriptionArn: true,
+		Endpoint: aws.String(awsident.Default().ARN("sqs", "uploads-q")), ReturnSubscriptionArn: true,
 	})
 	s3PutBucketNotifyToTopic(t, ctx, s3c, "uploads", aws.ToString(top.TopicArn))
 

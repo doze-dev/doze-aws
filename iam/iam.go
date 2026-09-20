@@ -118,7 +118,7 @@ type Options struct {
 // Server is the IAM service: an http.Handler speaking the Query/XML protocol,
 // and an io.Closer that closes the store.
 type Server struct {
-	store *Store
+	store *store
 	mode  Mode
 	rec   *recorder
 	logf  func(format string, args ...any)

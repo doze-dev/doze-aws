@@ -16,7 +16,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/awshost"
 	"github.com/doze-dev/doze-aws/internal/gateway"
 	"github.com/doze-dev/doze-aws/internal/rpcv2cbor"
-	"github.com/doze-dev/doze-aws/internal/trace"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // Recorder is gateway middleware that keeps a ring buffer of the most recent

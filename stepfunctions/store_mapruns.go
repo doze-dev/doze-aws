@@ -99,9 +99,9 @@ func mapRunARN(ident awsident.Identity, machine, execName, label, id string) str
 	return ident.ARN("states", res+":"+id)
 }
 
-func (s *Store) PutMapRun(m *MapRun) error { return s.put(bucketMapRuns, []byte(m.ARN), m) }
+func (s *store) PutMapRun(m *MapRun) error { return s.put(bucketMapRuns, []byte(m.ARN), m) }
 
-func (s *Store) GetMapRun(arn string) (*MapRun, error) {
+func (s *store) GetMapRun(arn string) (*MapRun, error) {
 	var m MapRun
 	found, err := s.get(bucketMapRuns, []byte(arn), &m)
 	if err != nil || !found {
@@ -111,7 +111,7 @@ func (s *Store) GetMapRun(arn string) (*MapRun, error) {
 }
 
 // MapRunsFor lists the Map Runs of one execution, in start order.
-func (s *Store) MapRunsFor(execKey string) ([]*MapRun, error) {
+func (s *store) MapRunsFor(execKey string) ([]*MapRun, error) {
 	var out []*MapRun
 	err := s.each(bucketMapRuns, func(k, raw []byte) error {
 		var m MapRun
@@ -130,12 +130,12 @@ func mapItemKey(arn string, index int) []byte {
 	return []byte(fmt.Sprintf("%s\x00%08d", arn, index))
 }
 
-func (s *Store) PutMapItem(arn string, it *MapItem) error {
+func (s *store) PutMapItem(arn string, it *MapItem) error {
 	return s.put(bucketMapItems, mapItemKey(arn, it.Index), it)
 }
 
 // MapItems reads every item outcome of a run, in index order.
-func (s *Store) MapItems(arn string) ([]*MapItem, error) {
+func (s *store) MapItems(arn string) ([]*MapItem, error) {
 	prefix := []byte(arn + "\x00")
 	var out []*MapItem
 	err := s.db.View(func(tx *bolt.Tx) error {

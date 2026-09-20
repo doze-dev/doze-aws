@@ -73,7 +73,7 @@ type Options struct {
 
 // Server is the API Gateway service.
 type Server struct {
-	store   *Store
+	store   *store
 	peers   peers.Directory
 	logf    func(format string, args ...any)
 	now     func() time.Time

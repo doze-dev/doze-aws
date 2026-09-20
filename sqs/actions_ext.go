@@ -7,7 +7,7 @@ type listTagsResult struct {
 	Tags kvAttrs `json:"Tags,omitempty" xml:"Tag"`
 }
 
-func hTagQueue(s *Store, req *request) (any, *apiError) {
+func hTagQueue(s *store, req *request) (any, *apiError) {
 	tags := req.p.tags()
 	if len(tags) == 0 {
 		return nil, errInvalid("at least one tag is required")
@@ -18,7 +18,7 @@ func hTagQueue(s *Store, req *request) (any, *apiError) {
 	return nil, nil
 }
 
-func hUntagQueue(s *Store, req *request) (any, *apiError) {
+func hUntagQueue(s *store, req *request) (any, *apiError) {
 	keys := req.p.tagKeys()
 	if len(keys) == 0 {
 		return nil, errInvalid("at least one tag key is required")
@@ -29,7 +29,7 @@ func hUntagQueue(s *Store, req *request) (any, *apiError) {
 	return nil, nil
 }
 
-func hListQueueTags(s *Store, req *request) (any, *apiError) {
+func hListQueueTags(s *store, req *request) (any, *apiError) {
 	tags, err := s.Tags(targetQueue(req))
 	if err != nil {
 		return nil, asAPIError(err)
@@ -41,7 +41,7 @@ type dlqSourcesResult struct {
 	QueueURLs []string `json:"queueUrls,omitempty" xml:"QueueUrl"`
 }
 
-func hListDeadLetterSourceQueues(s *Store, req *request) (any, *apiError) {
+func hListDeadLetterSourceQueues(s *store, req *request) (any, *apiError) {
 	names, err := s.DeadLetterSourceQueues(targetQueue(req))
 	if err != nil {
 		return nil, asAPIError(err)
@@ -71,7 +71,7 @@ type listMoveTasksResult struct {
 	Results []moveTaskView `json:"Results,omitempty" xml:"ListMessageMoveTasksResultEntry"`
 }
 
-func hStartMessageMoveTask(s *Store, req *request) (any, *apiError) {
+func hStartMessageMoveTask(s *store, req *request) (any, *apiError) {
 	source := arnQueueName(req.p.str("SourceArn"))
 	if source == "" {
 		return nil, errInvalid("SourceArn is required")
@@ -89,7 +89,7 @@ func hStartMessageMoveTask(s *Store, req *request) (any, *apiError) {
 	return startMoveResult{TaskHandle: task.Handle}, nil
 }
 
-func hListMessageMoveTasks(s *Store, req *request) (any, *apiError) {
+func hListMessageMoveTasks(s *store, req *request) (any, *apiError) {
 	source := arnQueueName(req.p.str("SourceArn"))
 	max := req.p.intDefault("MaxResults", 1)
 	tasks, err := s.ListMessageMoveTasks(source, max)
@@ -114,7 +114,7 @@ func hListMessageMoveTasks(s *Store, req *request) (any, *apiError) {
 	return res, nil
 }
 
-func hCancelMessageMoveTask(s *Store, req *request) (any, *apiError) {
+func hCancelMessageMoveTask(s *store, req *request) (any, *apiError) {
 	if req.p.str("TaskHandle") == "" {
 		return nil, errInvalid("TaskHandle is required")
 	}

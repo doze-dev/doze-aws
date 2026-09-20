@@ -48,8 +48,8 @@ import (
 	"github.com/doze-dev/doze-aws/internal/metricship"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
-	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // Options configures the service.
@@ -71,7 +71,7 @@ type Options struct {
 // Server is the Step Functions service: an http.Handler speaking AWS JSON 1.0,
 // and an io.Closer.
 type Server struct {
-	store   *Store
+	store   *store
 	peers   peers.Directory
 	logf    func(format string, args ...any)
 	api     awsjson.API

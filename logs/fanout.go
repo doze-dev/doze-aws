@@ -22,8 +22,8 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/peercall"
-	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // fanBuffer bounds how many batches wait for the worker before PutLogEvents
@@ -44,7 +44,7 @@ type compiledSub struct {
 }
 
 type fanout struct {
-	store *Store
+	store *store
 	peers peers.Directory
 	logf  func(string, ...any)
 	in    chan fanBatch
@@ -76,8 +76,8 @@ type fanout struct {
 	dead bool
 }
 
-func newFanout(store *Store, dir peers.Directory, logf func(string, ...any)) *fanout {
-	f := &fanout{store: store, peers: dir, logf: logf, in: make(chan fanBatch, fanBuffer), done: make(chan struct{}), quit: make(chan struct{}), cache: map[string][]compiledSub{}}
+func newFanout(st *store, dir peers.Directory, logf func(string, ...any)) *fanout {
+	f := &fanout{store: st, peers: dir, logf: logf, in: make(chan fanBatch, fanBuffer), done: make(chan struct{}), quit: make(chan struct{}), cache: map[string][]compiledSub{}}
 	go f.run()
 	return f
 }

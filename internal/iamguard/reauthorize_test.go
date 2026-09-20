@@ -45,7 +45,7 @@ const (
 // it could see on the wire); the service resolved the key the alias points
 // at. The identity verdict must be re-taken for the key.
 func TestReauthorizeAsksOnADifferentPair(t *testing.T) {
-	alice := awsident.GlobalARN("iam", "user/alice")
+	alice := awsident.Default().GlobalARN("iam", "user/alice")
 	r := request("enforce", alice, IdentityImplicitDeny, "")
 	r.Header.Set(HeaderAction, "kms:Encrypt")
 	r.Header.Set(HeaderResource, aliasARN)
@@ -69,7 +69,7 @@ func TestReauthorizeAsksOnADifferentPair(t *testing.T) {
 // a second evaluation, and a stamped verdict for the right pair is already
 // correct.
 func TestReauthorizeNotAskedWhenThePairAgrees(t *testing.T) {
-	alice := awsident.GlobalARN("iam", "user/alice")
+	alice := awsident.Default().GlobalARN("iam", "user/alice")
 	r := request("enforce", alice, IdentityAllowed, "")
 	r.Header.Set(HeaderAction, "kms:Encrypt")
 	r.Header.Set(HeaderResource, keyARN)
@@ -118,7 +118,7 @@ func TestReauthorizeIsNeverAskedForAServicePrincipal(t *testing.T) {
 // own pair but runs without the middleware (a direct peer call) still gets a
 // decision rather than a panic.
 func TestReauthorizeAbsentLeavesTheStampedVerdict(t *testing.T) {
-	alice := awsident.GlobalARN("iam", "user/alice")
+	alice := awsident.Default().GlobalARN("iam", "user/alice")
 	r := request("enforce", alice, IdentityImplicitDeny, "")
 	r.Header.Set(HeaderAction, "kms:Encrypt")
 	r.Header.Set(HeaderResource, aliasARN)
@@ -133,7 +133,7 @@ func TestReauthorizeAbsentLeavesTheStampedVerdict(t *testing.T) {
 // explicit Deny into an allow. The re-asked verdict is the identity half, and
 // an explicit deny on either half denies.
 func TestReauthorizeExplicitDenyStillDenies(t *testing.T) {
-	alice := awsident.GlobalARN("iam", "user/alice")
+	alice := awsident.Default().GlobalARN("iam", "user/alice")
 	r := request("enforce", alice, IdentityAllowed, "")
 	r.Header.Set(HeaderAction, "kms:Encrypt")
 	r.Header.Set(HeaderResource, aliasARN)
@@ -155,12 +155,12 @@ func TestReauthorizeExplicitDenyStillDenies(t *testing.T) {
 // TestStampAndStripRoundTrip: what the middleware writes is what Check reads,
 // and a client cannot pre-set any of it.
 func TestStampAndStripRoundTrip(t *testing.T) {
-	alice := awsident.GlobalARN("iam", "user/alice")
+	alice := awsident.Default().GlobalARN("iam", "user/alice")
 	r := httptest.NewRequest(http.MethodPost, "/", nil)
 
 	// A client claiming to be root, already allowed, for a different pair.
 	r.Header.Set(HeaderMode, "off")
-	r.Header.Set(HeaderPrincipal, awsident.GlobalARN("iam", "root"))
+	r.Header.Set(HeaderPrincipal, awsident.Default().GlobalARN("iam", "root"))
 	r.Header.Set(HeaderIdentity, IdentityAllowed)
 	r.Header.Set(HeaderAction, "sqs:*")
 	r.Header.Set(HeaderResource, "*")

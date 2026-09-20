@@ -49,7 +49,7 @@ func TestDeletedGroupStopsShipping(t *testing.T) {
 	group := "/aws/lambda/replaced"
 	c.CreateLogGroup(ctx, &cwl.CreateLogGroupInput{LogGroupName: aws.String(group)})
 	if _, err := c.PutSubscriptionFilter(ctx, &cwl.PutSubscriptionFilterInput{LogGroupName: aws.String(group), FilterName: aws.String("all"),
-		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.ARN("lambda", "function:sink"))}); err != nil {
+		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.Default().ARN("lambda", "function:sink"))}); err != nil {
 		t.Fatal(err)
 	}
 	put(t, c, group, "s1", 1000, "one")
@@ -93,7 +93,7 @@ func TestPutAfterCloseDoesNotPanic(t *testing.T) {
 	ctx := context.Background()
 	c.CreateLogGroup(ctx, &cwl.CreateLogGroupInput{LogGroupName: aws.String("/late")})
 	c.PutSubscriptionFilter(ctx, &cwl.PutSubscriptionFilterInput{LogGroupName: aws.String("/late"), FilterName: aws.String("all"),
-		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.ARN("lambda", "function:sink"))})
+		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.Default().ARN("lambda", "function:sink"))})
 	s.Close()
 	// A write after Close is refused or dropped, never a crash.
 	c.PutLogEvents(ctx, &cwl.PutLogEventsInput{LogGroupName: aws.String("/late"), LogStreamName: aws.String("s"),

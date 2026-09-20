@@ -41,8 +41,8 @@ func TestSDKRuleToLogGroupTarget(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := eb.PutTargets(ctx, &awseb.PutTargetsInput{Rule: aws.String("to-logs"), Targets: []ebtypes.Target{
-		{Id: aws.String("whole"), Arn: aws.String(awsident.ARN("logs", "log-group:"+group))},
-		{Id: aws.String("shaped"), Arn: aws.String(awsident.ARN("logs", "log-group:"+group+"-shaped:*")),
+		{Id: aws.String("whole"), Arn: aws.String(awsident.Default().ARN("logs", "log-group:"+group))},
+		{Id: aws.String("shaped"), Arn: aws.String(awsident.Default().ARN("logs", "log-group:"+group+"-shaped:*")),
 			InputTransformer: &ebtypes.InputTransformer{InputPathsMap: map[string]string{"id": "$.detail.orderId"}, InputTemplate: aws.String(`"order <id> arrived"`)}},
 	}}); err != nil {
 		t.Fatal(err)

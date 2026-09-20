@@ -68,7 +68,7 @@ func layerKey(name string, version int64) string {
 
 // ---- store ----
 
-func (s *Store) PutLayerVersion(l *LayerVersion) error {
+func (s *store) PutLayerVersion(l *LayerVersion) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(layerBucket)
 		if err != nil {
@@ -82,7 +82,7 @@ func (s *Store) PutLayerVersion(l *LayerVersion) error {
 	})
 }
 
-func (s *Store) GetLayerVersion(name string, version int64) (*LayerVersion, error) {
+func (s *store) GetLayerVersion(name string, version int64) (*LayerVersion, error) {
 	var out *LayerVersion
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(layerBucket)
@@ -103,7 +103,7 @@ func (s *Store) GetLayerVersion(name string, version int64) (*LayerVersion, erro
 	return out, err
 }
 
-func (s *Store) UpdateLayerVersion(name string, version int64, fn func(*LayerVersion) error) error {
+func (s *store) UpdateLayerVersion(name string, version int64, fn func(*LayerVersion) error) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(layerBucket)
 		if b == nil {
@@ -129,7 +129,7 @@ func (s *Store) UpdateLayerVersion(name string, version int64, fn func(*LayerVer
 	})
 }
 
-func (s *Store) DeleteLayerVersion(name string, version int64) error {
+func (s *store) DeleteLayerVersion(name string, version int64) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(layerBucket)
 		if b == nil {
@@ -140,7 +140,7 @@ func (s *Store) DeleteLayerVersion(name string, version int64) error {
 }
 
 // ListLayerVersions returns every version of one layer, newest first.
-func (s *Store) ListLayerVersions(name string) ([]LayerVersion, error) {
+func (s *store) ListLayerVersions(name string) ([]LayerVersion, error) {
 	var out []LayerVersion
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(layerBucket)
@@ -165,7 +165,7 @@ func (s *Store) ListLayerVersions(name string) ([]LayerVersion, error) {
 }
 
 // ListLayers returns the latest version of each distinct layer.
-func (s *Store) ListLayers() ([]LayerVersion, error) {
+func (s *store) ListLayers() ([]LayerVersion, error) {
 	latest := map[string]LayerVersion{}
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(layerBucket)
@@ -200,7 +200,7 @@ func sortLayers(ls []LayerVersion) {
 }
 
 // nextLayerVersion returns one past the highest version of a layer.
-func (s *Store) nextLayerVersion(name string) int64 {
+func (s *store) nextLayerVersion(name string) int64 {
 	versions, _ := s.ListLayerVersions(name)
 	var high int64
 	for _, l := range versions {

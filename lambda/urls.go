@@ -14,8 +14,8 @@ import (
 	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/iampolicy"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
-	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // Function URLs, served.

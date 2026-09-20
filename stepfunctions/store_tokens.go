@@ -43,7 +43,7 @@ const tokenTombstoneTTL = int64(24 * 60 * 60 * 1000)
 
 // GetToken resolves a token, nil when unknown (never issued, already
 // redeemed, or timed out).
-func (s *Store) GetToken(token string) (*TokenRef, error) {
+func (s *store) GetToken(token string) (*TokenRef, error) {
 	var ref TokenRef
 	found, err := s.get(bucketTokens, []byte(token), &ref)
 	if err != nil || !found {

@@ -11,7 +11,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/asl"
 	"github.com/doze-dev/doze-aws/internal/bg"
-	"github.com/doze-dev/doze-aws/internal/trace"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // The execution engine: one driver goroutine owns every interpreter step,

@@ -75,14 +75,14 @@ func eventKey(ts int64, stream string, seq int64) []byte {
 
 func streamKey(group, stream string) []byte { return []byte(group + "\x00" + stream) }
 
-// Store is the bbolt-backed log store.
-type Store struct {
+// store is the bbolt-backed log store.
+type store struct {
 	db    *lazybolt.DB
 	clock func() time.Time
 	id    awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
-func newStore(db *lazybolt.DB) *Store { return &Store{db: db, clock: time.Now} }
+func newStore(db *lazybolt.DB) *store { return &store{db: db, clock: time.Now} }
 
 // createBuckets makes the five buckets the read and write paths here assume
 // exist — PutGroup does tx.Bucket(bucketGroups).Put without a nil check, unlike
@@ -103,18 +103,18 @@ func createBuckets(db *bolt.DB) error {
 	})
 }
 
-func (s *Store) now() int64 { return s.clock().UnixMilli() }
+func (s *store) now() int64 { return s.clock().UnixMilli() }
 
 // ---- groups ----
 
-func (s *Store) PutGroup(g Group) error {
+func (s *store) PutGroup(g Group) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		raw, _ := json.Marshal(g)
 		return tx.Bucket(bucketGroups).Put([]byte(g.Name), raw)
 	})
 }
 
-func (s *Store) GetGroup(name string) (*Group, error) {
+func (s *store) GetGroup(name string) (*Group, error) {
 	var g *Group
 	err := s.db.View(func(tx *bolt.Tx) error {
 		raw := tx.Bucket(bucketGroups).Get([]byte(name))
@@ -128,7 +128,7 @@ func (s *Store) GetGroup(name string) (*Group, error) {
 }
 
 // DeleteGroup removes the group, its streams and its events.
-func (s *Store) DeleteGroup(name string) error {
+func (s *store) DeleteGroup(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if err := tx.Bucket(bucketGroups).Delete([]byte(name)); err != nil {
 			return err
@@ -157,7 +157,7 @@ func (s *Store) DeleteGroup(name string) error {
 
 // ListGroups answers groups by name prefix, sorted, as DescribeLogGroups
 // does.
-func (s *Store) ListGroups(prefix string) ([]Group, error) {
+func (s *store) ListGroups(prefix string) ([]Group, error) {
 	var out []Group
 	err := s.db.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket(bucketGroups).Cursor()
@@ -175,14 +175,14 @@ func (s *Store) ListGroups(prefix string) ([]Group, error) {
 
 // ---- streams ----
 
-func (s *Store) PutStream(st Stream) error {
+func (s *store) PutStream(st Stream) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		raw, _ := json.Marshal(st)
 		return tx.Bucket(bucketStreams).Put(streamKey(st.Group, st.Name), raw)
 	})
 }
 
-func (s *Store) GetStream(group, name string) (*Stream, error) {
+func (s *store) GetStream(group, name string) (*Stream, error) {
 	var st *Stream
 	err := s.db.View(func(tx *bolt.Tx) error {
 		raw := tx.Bucket(bucketStreams).Get(streamKey(group, name))
@@ -196,7 +196,7 @@ func (s *Store) GetStream(group, name string) (*Stream, error) {
 }
 
 // DeleteStream removes a stream and its events.
-func (s *Store) DeleteStream(group, name string) error {
+func (s *store) DeleteStream(group, name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if err := tx.Bucket(bucketStreams).Delete(streamKey(group, name)); err != nil {
 			return err
@@ -222,7 +222,7 @@ func (s *Store) DeleteStream(group, name string) error {
 }
 
 // ListStreams answers a group's streams by name prefix.
-func (s *Store) ListStreams(group, prefix string) ([]Stream, error) {
+func (s *store) ListStreams(group, prefix string) ([]Stream, error) {
 	var out []Stream
 	err := s.db.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket(bucketStreams).Cursor()
@@ -246,7 +246,7 @@ func (s *Store) ListStreams(group, prefix string) ([]Stream, error) {
 // line does. It returns ErrNoGroup when the group is unknown, and otherwise
 // the batch as stored, in time order with the sequence each event was
 // assigned — what a subscription filter forwards.
-func (s *Store) PutEvents(group, stream string, events []Event) ([]Stored, error) {
+func (s *store) PutEvents(group, stream string, events []Event) ([]Stored, error) {
 	now := s.now()
 	var stored []Stored
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -300,7 +300,7 @@ func (s *Store) PutEvents(group, stream string, events []Event) ([]Stored, error
 // 0 = open), after the cursor key (exclusive), keeping those whose stream
 // and message the predicates accept, up to limit. It returns the page and
 // whether more remain past it. backward walks newest-first.
-func (s *Store) Scan(group string, from, to int64, after []byte, limit int, backward bool,
+func (s *store) Scan(group string, from, to int64, after []byte, limit int, backward bool,
 	keep func(stream string, ev Event) bool) (page []Stored, more bool, err error) {
 	if limit <= 0 {
 		limit = 10000
@@ -385,7 +385,7 @@ func seqOfKey(k []byte) int64 {
 
 // Sweep drops events past their group's retention (or the default), then
 // trims each group to maxEvents oldest-first. Returns the number dropped.
-func (s *Store) Sweep(defaultRetention time.Duration, maxEvents int) (int, error) {
+func (s *store) Sweep(defaultRetention time.Duration, maxEvents int) (int, error) {
 	now := s.now()
 	dropped := 0
 	groups, err := s.ListGroups("")

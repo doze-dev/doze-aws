@@ -70,7 +70,7 @@ type Options struct {
 // Server is the logs service: an http.Handler speaking AWS JSON 1.1, and an
 // io.Closer that stops the sweeper and closes the store.
 type Server struct {
-	store     *Store
+	store     *store
 	logf      func(format string, args ...any)
 	api       awsjson.API
 	retention time.Duration

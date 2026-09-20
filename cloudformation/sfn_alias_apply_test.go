@@ -99,14 +99,14 @@ func TestApplyStateMachineAliasTemplate(t *testing.T) {
 	if _, ok := sf.Activities["cdk-worker"]; !ok {
 		t.Errorf("the activity was not mapped: %+v", sf.Activities)
 	}
-	if !strings.Contains(sm.Definition, awsident.ARN("states", "activity:cdk-worker")) {
+	if !strings.Contains(sm.Definition, awsident.Default().ARN("states", "activity:cdk-worker")) {
 		t.Errorf("GetAtt Worker.Arn did not resolve into the definition:\n%s", sm.Definition)
 	}
-	aliasARN := awsident.ARN("states", "stateMachine:aliased:live")
+	aliasARN := awsident.Default().ARN("states", "stateMachine:aliased:live")
 	if got := rep.Outputs["AliasArn"]; got != aliasARN {
 		t.Errorf("Ref Live = %q, want %q", got, aliasARN)
 	}
-	if got := rep.Outputs["ActivityArn"]; got != awsident.ARN("states", "activity:cdk-worker") {
+	if got := rep.Outputs["ActivityArn"]; got != awsident.Default().ARN("states", "activity:cdk-worker") {
 		t.Errorf("GetAtt Worker.Arn = %q", got)
 	}
 
@@ -130,12 +130,12 @@ func TestApplyStateMachineAliasTemplate(t *testing.T) {
 		t.Errorf("alias routes to %+v, want version 1 alone", alias.RoutingConfiguration)
 	}
 	versions, err := sfn.ListStateMachineVersions(ctx, &awssfn.ListStateMachineVersionsInput{
-		StateMachineArn: aws.String(awsident.ARN("states", "stateMachine:aliased")),
+		StateMachineArn: aws.String(awsident.Default().ARN("states", "stateMachine:aliased")),
 	})
 	if err != nil || len(versions.StateMachineVersions) != 1 {
 		t.Fatalf("two applies of an unchanged definition should leave one version, got %d (%v)", len(versions.StateMachineVersions), err)
 	}
-	if _, err := sfn.DescribeActivity(ctx, &awssfn.DescribeActivityInput{ActivityArn: aws.String(awsident.ARN("states", "activity:cdk-worker"))}); err != nil {
+	if _, err := sfn.DescribeActivity(ctx, &awssfn.DescribeActivityInput{ActivityArn: aws.String(awsident.Default().ARN("states", "activity:cdk-worker"))}); err != nil {
 		t.Fatalf("the deployed activity does not exist: %v", err)
 	}
 	// An execution started on the alias runs the version it routes to.

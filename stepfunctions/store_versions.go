@@ -112,7 +112,7 @@ func aliasesIn(tx *bolt.Tx, machine string) ([]Alias, error) {
 // PublishStateMachineVersion as idempotent on the current revision: a CDK
 // deploy that changed nothing publishes nothing. Counter bump and snapshot
 // land in one transaction so a crash cannot hand out a number twice.
-func (s *Store) PublishVersion(m *StateMachine, description string) (*Version, *awshttp.APIError) {
+func (s *store) PublishVersion(m *StateMachine, description string) (*Version, *awshttp.APIError) {
 	var out Version
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(bucketVersions)
@@ -160,7 +160,7 @@ func (s *Store) PublishVersion(m *StateMachine, description string) (*Version, *
 }
 
 // GetVersion reads one version, nil when absent.
-func (s *Store) GetVersion(machine string, n int) (*Version, *awshttp.APIError) {
+func (s *store) GetVersion(machine string, n int) (*Version, *awshttp.APIError) {
 	var v Version
 	found, err := s.get(bucketVersions, versionKey(machine, n), &v)
 	if err != nil {
@@ -173,7 +173,7 @@ func (s *Store) GetVersion(machine string, n int) (*Version, *awshttp.APIError) 
 }
 
 // ListVersions returns a machine's versions, ascending by number.
-func (s *Store) ListVersions(machine string) ([]Version, *awshttp.APIError) {
+func (s *store) ListVersions(machine string) ([]Version, *awshttp.APIError) {
 	var out []Version
 	err := s.db.View(func(tx *bolt.Tx) (err error) {
 		out, err = versionsIn(tx, machine)
@@ -189,7 +189,7 @@ func (s *Store) ListVersions(machine string) ([]Version, *awshttp.APIError) {
 // it — AWS's rule, and the one that stops an alias from pointing into
 // nothing. Deleting an absent version succeeds; the operation's model lists
 // no not-found error.
-func (s *Store) DeleteVersion(machine string, n int) *awshttp.APIError {
+func (s *store) DeleteVersion(machine string, n int) *awshttp.APIError {
 	arn := versionARN(s.id, machine, n)
 	return asAPIError(s.db.Update(func(tx *bolt.Tx) error {
 		aliases, err := aliasesIn(tx, machine)
@@ -219,7 +219,7 @@ func (s *Store) DeleteVersion(machine string, n int) *awshttp.APIError {
 // PutAlias stores an alias. AWS makes CreateStateMachineAlias idempotent on
 // name, description and routing: the same request again answers the
 // existing alias, anything else on a taken name is ConflictException.
-func (s *Store) PutAlias(a *Alias) (*Alias, *awshttp.APIError) {
+func (s *store) PutAlias(a *Alias) (*Alias, *awshttp.APIError) {
 	var existing Alias
 	found, err := s.get(bucketAliases, aliasKey(a.MachineName, a.Name), &existing)
 	if err != nil {
@@ -252,7 +252,7 @@ func sameRouting(a, b []Route) bool {
 }
 
 // GetAlias reads one alias, nil when absent.
-func (s *Store) GetAlias(machine, name string) (*Alias, *awshttp.APIError) {
+func (s *store) GetAlias(machine, name string) (*Alias, *awshttp.APIError) {
 	var a Alias
 	found, err := s.get(bucketAliases, aliasKey(machine, name), &a)
 	if err != nil {
@@ -266,7 +266,7 @@ func (s *Store) GetAlias(machine, name string) (*Alias, *awshttp.APIError) {
 
 // UpdateAlias applies UpdateStateMachineAlias: a nil description or routing
 // is left as it was. Answers nil for an absent alias.
-func (s *Store) UpdateAlias(machine, name string, description *string, routing []Route) (*Alias, *awshttp.APIError) {
+func (s *store) UpdateAlias(machine, name string, description *string, routing []Route) (*Alias, *awshttp.APIError) {
 	a, aerr := s.GetAlias(machine, name)
 	if aerr != nil || a == nil {
 		return nil, aerr
@@ -286,7 +286,7 @@ func (s *Store) UpdateAlias(machine, name string, description *string, routing [
 
 // DeleteAlias removes one alias. found reports whether there was one, so the
 // handler can answer ResourceNotFound the way the model lists it.
-func (s *Store) DeleteAlias(machine, name string) (found bool, aerr *awshttp.APIError) {
+func (s *store) DeleteAlias(machine, name string) (found bool, aerr *awshttp.APIError) {
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketAliases)
 		if b == nil {
@@ -303,7 +303,7 @@ func (s *Store) DeleteAlias(machine, name string) (found bool, aerr *awshttp.API
 }
 
 // ListAliases returns a machine's aliases in name order.
-func (s *Store) ListAliases(machine string) ([]Alias, *awshttp.APIError) {
+func (s *store) ListAliases(machine string) ([]Alias, *awshttp.APIError) {
 	var out []Alias
 	err := s.db.View(func(tx *bolt.Tx) (err error) {
 		out, err = aliasesIn(tx, machine)
@@ -318,7 +318,7 @@ func (s *Store) ListAliases(machine string) ([]Alias, *awshttp.APIError) {
 // DeleteVersionsAndAliases drops everything a machine owns, for
 // DeleteStateMachine — AWS deletes a machine's versions and aliases with it,
 // and the counter goes too, so a re-created machine numbers from 1.
-func (s *Store) DeleteVersionsAndAliases(machine string) *awshttp.APIError {
+func (s *store) DeleteVersionsAndAliases(machine string) *awshttp.APIError {
 	return asAPIError(s.db.Update(func(tx *bolt.Tx) error {
 		prefix := []byte(machine + "\x00")
 		for _, name := range [][]byte{bucketVersions, bucketAliases} {

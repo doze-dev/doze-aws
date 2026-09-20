@@ -61,7 +61,7 @@ func loadQueuePolicy(attrs map[string]string) queuePolicyDoc {
 
 // hAddPermission writes the statement AWS writes: Sid = Label, the AWS
 // account ids as principals, the actions prefixed sqs:, on the queue.
-func hAddPermission(s *Store, req *request) (any, *apiError) {
+func hAddPermission(s *store, req *request) (any, *apiError) {
 	name := targetQueue(req)
 	attrs, err := s.Attributes(name)
 	if err != nil {
@@ -113,7 +113,7 @@ func hAddPermission(s *Store, req *request) (any, *apiError) {
 	return nil, nil
 }
 
-func hRemovePermission(s *Store, req *request) (any, *apiError) {
+func hRemovePermission(s *store, req *request) (any, *apiError) {
 	name := targetQueue(req)
 	attrs, err := s.Attributes(name)
 	if err != nil {

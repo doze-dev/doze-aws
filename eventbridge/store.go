@@ -89,20 +89,20 @@ func ruleKey(bus, name string) []byte {
 	return []byte(bus + "\x00" + name)
 }
 
-// Store is the bbolt-backed EventBridge state.
-type Store struct {
+// store is the bbolt-backed EventBridge state.
+type store struct {
 	db *lazybolt.DB
 	id awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
-func newStore(db *lazybolt.DB) *Store { return &Store{db: db} }
+func newStore(db *lazybolt.DB) *store { return &store{db: db} }
 
 func errRuleNotFound(name string) *awshttp.APIError {
 	return awshttp.Errf(400, "ResourceNotFoundException", "Rule %s does not exist", name)
 }
 
 // busExists treats the default bus as always present.
-func (s *Store) busExists(tx *bolt.Tx, name string) bool {
+func (s *store) busExists(tx *bolt.Tx, name string) bool {
 	if name == DefaultBus {
 		return true
 	}
@@ -111,7 +111,7 @@ func (s *Store) busExists(tx *bolt.Tx, name string) bool {
 }
 
 // CreateBus registers a custom bus.
-func (s *Store) CreateBus(name string, tags map[string]string) error {
+func (s *store) CreateBus(name string, tags map[string]string) error {
 	if name == "" || name == DefaultBus || strings.ContainsAny(name, "/\\ ") {
 		return awshttp.Errf(400, "ValidationException", "invalid event bus name %q", name)
 	}
@@ -130,7 +130,7 @@ func (s *Store) CreateBus(name string, tags map[string]string) error {
 
 // UpdateBus applies a mutation to a stored bus. Used for the settings a bus
 // declares at creation that have no local behaviour but must read back.
-func (s *Store) UpdateBus(name string, fn func(*Bus)) error {
+func (s *store) UpdateBus(name string, fn func(*Bus)) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(busesBucket)
 		if b == nil {
@@ -154,7 +154,7 @@ func (s *Store) UpdateBus(name string, fn func(*Bus)) error {
 }
 
 // DeleteBus removes a custom bus and its rules.
-func (s *Store) DeleteBus(name string) error {
+func (s *store) DeleteBus(name string) error {
 	if name == DefaultBus {
 		return awshttp.Errf(400, "ValidationException", "the default event bus cannot be deleted")
 	}
@@ -178,7 +178,7 @@ func (s *Store) DeleteBus(name string) error {
 }
 
 // ListBuses returns the default bus plus custom buses, sorted.
-func (s *Store) ListBuses() ([]Bus, error) {
+func (s *store) ListBuses() ([]Bus, error) {
 	out := []Bus{{Name: DefaultBus}}
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(busesBucket)
@@ -198,7 +198,7 @@ func (s *Store) ListBuses() ([]Bus, error) {
 }
 
 // PutRule creates or updates a rule.
-func (s *Store) PutRule(r Rule) error {
+func (s *store) PutRule(r Rule) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if !s.busExists(tx, r.Bus) {
 			return awshttp.Errf(400, "ResourceNotFoundException", "event bus %s does not exist", r.Bus)
@@ -223,7 +223,7 @@ func (s *Store) PutRule(r Rule) error {
 }
 
 // GetRule loads one rule.
-func (s *Store) GetRule(bus, name string) (*Rule, error) {
+func (s *store) GetRule(bus, name string) (*Rule, error) {
 	var out *Rule
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(rulesBucket)
@@ -245,7 +245,7 @@ func (s *Store) GetRule(bus, name string) (*Rule, error) {
 }
 
 // UpdateRule applies fn to a rule.
-func (s *Store) UpdateRule(bus, name string, fn func(*Rule) error) error {
+func (s *store) UpdateRule(bus, name string, fn func(*Rule) error) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(rulesBucket)
 		if b == nil {
@@ -268,7 +268,7 @@ func (s *Store) UpdateRule(bus, name string, fn func(*Rule) error) error {
 }
 
 // DeleteRule removes a rule (Force semantics: targets go with it).
-func (s *Store) DeleteRule(bus, name string) error {
+func (s *store) DeleteRule(bus, name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if b := tx.Bucket(rulesBucket); b != nil {
 			_ = b.Delete(ruleKey(bus, name))
@@ -278,7 +278,7 @@ func (s *Store) DeleteRule(bus, name string) error {
 }
 
 // Rules lists a bus's rules, optionally by name prefix.
-func (s *Store) Rules(bus, prefix string) ([]Rule, error) {
+func (s *store) Rules(bus, prefix string) ([]Rule, error) {
 	var out []Rule
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(rulesBucket)

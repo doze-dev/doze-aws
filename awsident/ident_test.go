@@ -3,7 +3,7 @@ package awsident
 import "testing"
 
 func TestARN(t *testing.T) {
-	got := ARN("sqs", "jobs")
+	got := Default().ARN("sqs", "jobs")
 	want := "arn:aws:sqs:" + Region + ":" + AccountID + ":jobs"
 	if got != want {
 		t.Fatalf("ARN = %q, want %q", got, want)
@@ -12,12 +12,12 @@ func TestARN(t *testing.T) {
 
 func TestGlobalARN(t *testing.T) {
 	// GlobalARN omits the region segment (IAM-style) but keeps the account.
-	got := GlobalARN("iam", "role/app")
+	got := Default().GlobalARN("iam", "role/app")
 	want := "arn:aws:iam::" + AccountID + ":role/app"
 	if got != want {
 		t.Fatalf("GlobalARN = %q, want %q", got, want)
 	}
-	if r := ARN("iam", "role/app"); r == got {
+	if r := Default().ARN("iam", "role/app"); r == got {
 		t.Fatal("ARN and GlobalARN should differ (region segment)")
 	}
 }
@@ -46,18 +46,20 @@ func TestAnIdentityMintsItsOwnARNs(t *testing.T) {
 		}
 	}
 
-	// The package-level form is the default, and must not follow the instance.
-	if ARN("sqs", "orders") == id.ARN("sqs", "orders") {
-		t.Error("package-level ARN followed a non-default identity; it must stay the default")
-	}
 }
 
-// The zero value resolving to the defaults is what lets the tree migrate a
-// package at a time — see the note on Identity. If that ever stops being true,
-// every un-plumbed service starts minting arn:aws:sqs:::name.
+// The zero value resolves to the defaults, which is what makes an Identity
+// safe to pass everywhere — see the note on Identity. If that ever stops being
+// true, anything holding a zero one starts minting arn:aws:sqs:::name.
+//
+// This used to be phrased as what "lets the tree migrate a package at a time",
+// alongside package-level ARN and GlobalARN helpers that always used the
+// defaults. The migration is finished and those are gone: the console was the
+// last caller, and it was displaying the default account under --account-id
+// the whole time.
 func TestTheZeroIdentityIsTheDefault(t *testing.T) {
 	var zero Identity
-	if got, want := zero.ARN("sqs", "jobs"), ARN("sqs", "jobs"); got != want {
+	if got, want := zero.ARN("sqs", "jobs"), Default().ARN("sqs", "jobs"); got != want {
 		t.Errorf("zero Identity ARN = %q, want %q", got, want)
 	}
 	// A half-set identity fills only what is missing, so configuring an account

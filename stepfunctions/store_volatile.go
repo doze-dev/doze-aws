@@ -85,4 +85,4 @@ func isExpressARN(arn string) bool {
 }
 
 // DropVolatile forgets a volatile execution once its caller has read it.
-func (s *Store) DropVolatile(key string) { s.vol.drop(key) }
+func (s *store) DropVolatile(key string) { s.vol.drop(key) }

@@ -98,17 +98,17 @@ func TestSubscriptionFilterToLambda(t *testing.T) {
 		func(o *cwl.Options) { o.BaseEndpoint = aws.String(ts.URL); o.Retryer = aws.NopRetryer{} })
 	ctx := context.Background()
 
-	group, fn := "/aws/lambda/producer", awsident.ARN("lambda", "function:sink")
+	group, fn := "/aws/lambda/producer", awsident.Default().ARN("lambda", "function:sink")
 	if _, err := c.CreateLogGroup(ctx, &cwl.CreateLogGroupInput{LogGroupName: aws.String(group)}); err != nil {
 		t.Fatal(err)
 	}
 	// The producer cannot subscribe itself; Firehose is refused by name.
 	if _, err := c.PutSubscriptionFilter(ctx, &cwl.PutSubscriptionFilterInput{LogGroupName: aws.String(group), FilterName: aws.String("self"),
-		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.ARN("lambda", "function:producer"))}); err == nil || !strings.Contains(err.Error(), "own log group") {
+		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.Default().ARN("lambda", "function:producer"))}); err == nil || !strings.Contains(err.Error(), "own log group") {
 		t.Errorf("self-subscription should be refused, got %v", err)
 	}
 	if _, err := c.PutSubscriptionFilter(ctx, &cwl.PutSubscriptionFilterInput{LogGroupName: aws.String(group), FilterName: aws.String("fh"),
-		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.ARN("firehose", "deliverystream/x"))}); err == nil || !strings.Contains(err.Error(), "Firehose") {
+		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.Default().ARN("firehose", "deliverystream/x"))}); err == nil || !strings.Contains(err.Error(), "Firehose") {
 		t.Errorf("Firehose should be refused by name, got %v", err)
 	}
 	if _, err := c.PutSubscriptionFilter(ctx, &cwl.PutSubscriptionFilterInput{LogGroupName: aws.String(group), FilterName: aws.String("errors"),
@@ -206,7 +206,7 @@ func TestSubscriptionFilterToKinesis(t *testing.T) {
 	group := "/app/api"
 	c.CreateLogGroup(ctx, &cwl.CreateLogGroupInput{LogGroupName: aws.String(group)})
 	if _, err := c.PutSubscriptionFilter(ctx, &cwl.PutSubscriptionFilterInput{LogGroupName: aws.String(group), FilterName: aws.String("to-kinesis"),
-		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.ARN("kinesis", "stream/logs-out")),
+		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.Default().ARN("kinesis", "stream/logs-out")),
 		Distribution: cwltypes.DistributionByLogStream}); err != nil {
 		t.Fatal(err)
 	}
@@ -259,7 +259,7 @@ func TestSubscriptionFilterToKinesis(t *testing.T) {
 	c.CreateLogGroup(ctx, &cwl.CreateLogGroupInput{LogGroupName: aws.String(group2)})
 	if _, err := c.PutSubscriptionFilter(ctx, &cwl.PutSubscriptionFilterInput{
 		LogGroupName: aws.String(group2), FilterName: aws.String("default-dist"),
-		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.ARN("kinesis", "stream/logs-out")),
+		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.Default().ARN("kinesis", "stream/logs-out")),
 	}); err != nil {
 		t.Fatal(err)
 	}

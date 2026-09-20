@@ -118,7 +118,7 @@ func TestApplyCloudWatchAlarmsAndFilters(t *testing.T) {
 		t.Fatalf("the alarm mapped wrongly: %+v", a)
 	}
 	// !Ref on a topic resolves to its ARN, which is what an alarm action is.
-	if len(a.AlarmActions) != 1 || a.AlarmActions[0] != awsident.ARN("sns", "alerts") {
+	if len(a.AlarmActions) != 1 || a.AlarmActions[0] != awsident.Default().ARN("sns", "alerts") {
 		t.Fatalf("the alarm action did not resolve: %+v", a.AlarmActions)
 	}
 	group := sf.LogGroups["/app/api"]

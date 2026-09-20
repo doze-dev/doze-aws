@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/doze-dev/doze-aws/internal/trace"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // nopSink is a Sink that records nothing; the test is about the FIELD, not

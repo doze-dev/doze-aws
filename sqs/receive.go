@@ -12,7 +12,7 @@ import (
 
 // Receive returns up to max visible messages, applying visibility timeout, FIFO
 // group locking, DLQ redrive, and retention. waitSec long-polls when empty.
-func (s *Store) Receive(queue string, max, waitSec int, visibilityOverride int) ([]Message, error) {
+func (s *store) Receive(queue string, max, waitSec int, visibilityOverride int) ([]Message, error) {
 	if max <= 0 || max > maxReceiveBatch {
 		max = 1
 	}
@@ -56,7 +56,7 @@ func (s *Store) Receive(queue string, max, waitSec int, visibilityOverride int) 
 	}
 }
 
-func (s *Store) queueDefaultWait(queue string) int {
+func (s *store) queueDefaultWait(queue string) int {
 	w := 0
 	_ = s.db.View(func(tx *bolt.Tx) error {
 		if q, err := s.getQueue(tx, queue); err == nil {
@@ -70,7 +70,7 @@ func (s *Store) queueDefaultWait(queue string) int {
 // receiveOnce attempts one delivery pass. nextVisible is the earliest time an
 // in-flight or delayed message becomes available (zero if none), so the caller
 // can sleep precisely instead of polling.
-func (s *Store) receiveOnce(queue string, max, visibilityOverride int) (out []Message, nextVisible time.Time, err error) {
+func (s *store) receiveOnce(queue string, max, visibilityOverride int) (out []Message, nextVisible time.Time, err error) {
 	var dlqHit []string
 	var minVisible int64 // earliest future VisibleAt seen (nano), 0 if none
 	err = s.db.Update(func(tx *bolt.Tx) error {
@@ -181,7 +181,7 @@ func (s *Store) receiveOnce(queue string, max, visibilityOverride int) (out []Me
 // and ignores FIFO group locking — so it shows the FULL queue contents (every
 // message, not just the head of each message group, the way a plain Receive does).
 // Purely read-only; the returned handles are still valid for Delete.
-func (s *Store) Peek(queue string, max int) ([]Message, error) {
+func (s *store) Peek(queue string, max int) ([]Message, error) {
 	if max <= 0 {
 		max = 10
 	}
@@ -222,7 +222,7 @@ func (s *Store) Peek(queue string, max int) ([]Message, error) {
 // happened: if the DLQ no longer exists it returns (false, nil) so the caller
 // leaves the message in the source queue instead of destroying it (real SQS
 // does not lose the message when redrive can't complete).
-func (s *Store) moveToDLQ(tx *bolt.Tx, dlq string, m *Message) (bool, error) {
+func (s *store) moveToDLQ(tx *bolt.Tx, dlq string, m *Message) (bool, error) {
 	if _, err := s.getQueue(tx, dlq); err != nil {
 		return false, nil // DLQ gone; do not drop the message
 	}
@@ -241,7 +241,7 @@ func (s *Store) moveToDLQ(tx *bolt.Tx, dlq string, m *Message) (bool, error) {
 	return true, nil
 }
 
-func (s *Store) Delete(queue, handle string) error {
+func (s *store) Delete(queue, handle string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if _, err := s.getQueue(tx, queue); err != nil {
 			return err
@@ -255,7 +255,7 @@ func (s *Store) Delete(queue, handle string) error {
 // Per-handle failures are reported per entry rather than aborting, because
 // that is DeleteMessageBatch's contract — and because deleting is idempotent,
 // so a handle that names nothing is a success on AWS too.
-func (s *Store) DeleteBatch(queue string, handles []string) ([]error, error) {
+func (s *store) DeleteBatch(queue string, handles []string) ([]error, error) {
 	errs := make([]error, len(handles))
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		if _, err := s.getQueue(tx, queue); err != nil {
@@ -273,7 +273,7 @@ func (s *Store) DeleteBatch(queue string, handles []string) ([]error, error) {
 }
 
 // deleteIn is one delete inside a caller's transaction.
-func (s *Store) deleteIn(tx *bolt.Tx, queue, handle string) error {
+func (s *store) deleteIn(tx *bolt.Tx, queue, handle string) error {
 	seqKey, id, err := decodeHandle(handle)
 	if err != nil {
 		return errInvalid("invalid receipt handle")
@@ -296,7 +296,7 @@ func (s *Store) deleteIn(tx *bolt.Tx, queue, handle string) error {
 	return mb.Delete(seqKey)
 }
 
-func (s *Store) ChangeVisibility(queue, handle string, timeout int) error {
+func (s *store) ChangeVisibility(queue, handle string, timeout int) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if _, err := s.getQueue(tx, queue); err != nil {
 			return err
@@ -313,7 +313,7 @@ type VisibilityItem struct {
 
 // ChangeVisibilityBatch applies several visibility changes in ONE transaction,
 // and one fsync. Per-entry failures are reported per entry, as AWS does.
-func (s *Store) ChangeVisibilityBatch(queue string, items []VisibilityItem) ([]error, error) {
+func (s *store) ChangeVisibilityBatch(queue string, items []VisibilityItem) ([]error, error) {
 	errs := make([]error, len(items))
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		if _, err := s.getQueue(tx, queue); err != nil {
@@ -331,7 +331,7 @@ func (s *Store) ChangeVisibilityBatch(queue string, items []VisibilityItem) ([]e
 }
 
 // changeVisibilityIn is one change inside a caller's transaction.
-func (s *Store) changeVisibilityIn(tx *bolt.Tx, queue, handle string, timeout int) error {
+func (s *store) changeVisibilityIn(tx *bolt.Tx, queue, handle string, timeout int) error {
 	seqKey, id, err := decodeHandle(handle)
 	if err != nil {
 		return errInvalid("invalid receipt handle")
@@ -370,7 +370,7 @@ type dedupRec struct {
 	MD5Body string `json:"md5"`
 }
 
-func (s *Store) lookupDedup(tx *bolt.Tx, queue, dedupID string) (bool, *Message) {
+func (s *store) lookupDedup(tx *bolt.Tx, queue, dedupID string) (bool, *Message) {
 	b := tx.Bucket(dedupBucket(queue))
 	if b == nil {
 		return false, nil
@@ -389,7 +389,7 @@ func (s *Store) lookupDedup(tx *bolt.Tx, queue, dedupID string) (bool, *Message)
 	return true, &Message{ID: r.ID, MD5Body: r.MD5Body}
 }
 
-func (s *Store) recordDedup(tx *bolt.Tx, queue, dedupID string, m *Message) error {
+func (s *store) recordDedup(tx *bolt.Tx, queue, dedupID string, m *Message) error {
 	b, err := tx.CreateBucketIfNotExists(dedupBucket(queue))
 	if err != nil {
 		return err
@@ -400,7 +400,7 @@ func (s *Store) recordDedup(tx *bolt.Tx, queue, dedupID string, m *Message) erro
 }
 
 // gcDedup deletes dedup entries older than the dedup window.
-func (s *Store) gcDedup(b *bolt.Bucket) {
+func (s *store) gcDedup(b *bolt.Bucket) {
 	cutoff := s.now().Unix() - dedupWindow
 	var stale [][]byte
 	_ = b.ForEach(func(k, raw []byte) error {

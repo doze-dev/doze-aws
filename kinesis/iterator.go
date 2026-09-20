@@ -21,7 +21,7 @@ const iteratorTTL = 5 * time.Minute
 
 // streamARN takes an identity rather than reading a package constant: an ARN
 // belongs to the instance that minted it. Every caller has an s with an id,
-// whether it is a Server or a Store.
+// whether it is a Server or a store.
 func streamARN(id awsident.Identity, name string) string { return id.ARN("kinesis", "stream/"+name) }
 
 // shardID renders a shard number the way Kinesis does: shardId- and twelve

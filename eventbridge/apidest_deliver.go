@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/bg"
-	"github.com/doze-dev/doze-aws/internal/trace"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // Delivery to an API destination: a real HTTP request, built from the

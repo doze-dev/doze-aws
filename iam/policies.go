@@ -289,7 +289,7 @@ func putInline(s *Server, kind attachTarget, name, policyName, document string) 
 		return nil, errValidation("PolicyName is required")
 	}
 	doc := decodeDocument(document)
-	if _, err := ParsePolicy(doc); err != nil {
+	if _, err := parsePolicy(doc); err != nil {
 		return nil, errMalformedPolicy("PolicyDocument: %v", err)
 	}
 	err := s.store.updatePrincipal(kind, name, func(pr *Principal) error {
@@ -415,7 +415,7 @@ func hListRolePolicies(s *Server, p params) (any, *awshttp.APIError) {
 
 // ---- permissions boundaries ----
 //
-// The boundary is stored and returned, and Evaluate treats it as a ceiling
+// The boundary is stored and returned, and evaluate treats it as a ceiling
 // when one is set — an action must be allowed by both the identity policies
 // and the boundary.
 

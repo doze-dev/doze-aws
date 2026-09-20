@@ -95,7 +95,7 @@ func baselines() map[string]map[string]any {
 	group := map[string]any{"logGroupName": auditGroup}
 	// The tag operations take the ARN without the :* suffix DescribeLogGroups
 	// reports — the model's pattern for resourceArn has no *.
-	arn := map[string]any{"resourceArn": awsident.ARN("logs", "log-group:"+auditGroup)}
+	arn := map[string]any{"resourceArn": awsident.Default().ARN("logs", "log-group:"+auditGroup)}
 	return map[string]map[string]any{
 		"CreateLogGroup":        {"logGroupName": "/audit/created"},
 		"DeleteLogGroup":        {"logGroupName": "/audit/doomed"},
@@ -117,7 +117,7 @@ func baselines() map[string]map[string]any {
 		"UntagLogGroup":       {"logGroupName": auditGroup, "tags": []any{"team"}},
 		"ListTagsLogGroup":    group,
 		"PutSubscriptionFilter": {"logGroupName": auditGroup, "filterName": "audit-sub", "filterPattern": "ERROR",
-			"destinationArn": awsident.ARN("lambda", "function:audit-sink")},
+			"destinationArn": awsident.Default().ARN("lambda", "function:audit-sink")},
 		"DeleteSubscriptionFilter":    {"logGroupName": auditGroup, "filterName": "doomed-sub"},
 		"DescribeSubscriptionFilters": group,
 		"PutMetricFilter": {"logGroupName": auditGroup, "filterName": "audit-metric", "filterPattern": "ERROR",
@@ -188,7 +188,7 @@ func prepare(t *testing.T, ts *httptest.Server, op, mutating string, body map[st
 			group := fmt.Sprintf("/audit/sub-%d", n)
 			call(t, ts, "CreateLogGroup", map[string]any{"logGroupName": group})
 			call(t, ts, "PutSubscriptionFilter", map[string]any{"logGroupName": group, "filterName": "doomed-sub",
-				"filterPattern": "", "destinationArn": awsident.ARN("lambda", "function:audit-sink")})
+				"filterPattern": "", "destinationArn": awsident.Default().ARN("lambda", "function:audit-sink")})
 			body["logGroupName"] = group
 		}
 	case "DeleteMetricFilter":

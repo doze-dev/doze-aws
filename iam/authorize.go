@@ -39,7 +39,7 @@ type AccessEvent struct {
 	// from the request. Recorded honestly so a generated policy can say so
 	// rather than pretending to be resource-scoped.
 	ResourceKnown bool
-	// MatchedBy names the statement that decided. Evaluate returns it and this
+	// MatchedBy names the statement that decided. evaluate returns it and this
 	// dropped it on the floor, so the access log — the surface whose whole job
 	// is explaining what was allowed and what was not — structurally could not
 	// say WHY. Empty means nothing matched, which is not the same as a Deny
@@ -200,15 +200,15 @@ func (s *Server) evaluate(r *http.Request, action, resource string) Result {
 		s.logf("iam: policies for %s: %v", principal, err)
 		return Result{Decision: ImplicitDeny, Principal: principal, Action: action, Resource: resource, Identity: iamguard.IdentityImplicitDeny}
 	}
-	req := Request{Action: action, Resource: resource, Context: s.contextFor(r, principal, name)}
-	decision, by := Evaluate(docs, req)
+	req := request{Action: action, Resource: resource, Context: s.contextFor(r, principal, name)}
+	decision, by := evaluate(docs, req)
 
 	// A permissions boundary is a ceiling: the action must be allowed by the
 	// identity policies AND by the boundary.
 	if decision == Allowed {
 		if pr, err := s.store.principalOf(kind, name); err == nil && pr.PermissionsBoundary != "" {
 			if bd := s.boundaryDocs(pr.PermissionsBoundary); len(bd) > 0 {
-				if bdec, _ := Evaluate(bd, req); bdec != Allowed {
+				if bdec, _ := evaluate(bd, req); bdec != Allowed {
 					decision, by = ImplicitDeny, "permissions boundary"
 				}
 			}
@@ -230,16 +230,16 @@ func (s *Server) evaluate(r *http.Request, action, resource string) Result {
 	return res
 }
 
-func (s *Server) boundaryDocs(arn string) []*Document {
+func (s *Server) boundaryDocs(arn string) []*document {
 	pol, err := s.store.GetPolicy(arn)
 	if err != nil {
 		return nil
 	}
-	d, err := ParsePolicy(pol.Default())
+	d, err := parsePolicy(pol.Default())
 	if err != nil {
 		return nil
 	}
-	return []*Document{d}
+	return []*document{d}
 }
 
 // principalFor resolves the calling identity from the request's SigV4 access

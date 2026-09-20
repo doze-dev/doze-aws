@@ -176,7 +176,7 @@ type Account struct {
 var metaBucket = []byte("meta")
 
 // GetAccount reads the account record; a zero value when none was set.
-func (s *Store) GetAccount() Account {
+func (s *store) GetAccount() Account {
 	var a Account
 	s.db.View(func(tx *bolt.Tx) error {
 		if b := tx.Bucket(metaBucket); b != nil {
@@ -190,7 +190,7 @@ func (s *Store) GetAccount() Account {
 }
 
 // PutAccount writes the account record.
-func (s *Store) PutAccount(a Account) error {
+func (s *store) PutAccount(a Account) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(metaBucket)
 		if err != nil {
@@ -201,19 +201,19 @@ func (s *Store) PutAccount(a Account) error {
 	})
 }
 
-// Store is the bbolt-backed API Gateway state.
-type Store struct {
+// store is the bbolt-backed API Gateway state.
+type store struct {
 	db    *lazybolt.DB
 	clock func() time.Time
 }
 
-func newStore(db *lazybolt.DB) *Store { return &Store{db: db, clock: time.Now} }
+func newStore(db *lazybolt.DB) *store { return &store{db: db, clock: time.Now} }
 
-func (s *Store) now() time.Time { return s.clock() }
+func (s *store) now() time.Time { return s.clock() }
 
 // ---- API lifecycle ----
 
-func (s *Store) Create(name, description, version string, tags map[string]string) (*RestAPI, error) {
+func (s *store) Create(name, description, version string, tags map[string]string) (*RestAPI, error) {
 	if name == "" {
 		return nil, errBadRequest("Name is required")
 	}
@@ -232,7 +232,7 @@ func (s *Store) Create(name, description, version string, tags map[string]string
 	return api, s.Put(api)
 }
 
-func (s *Store) Get(id string) (*RestAPI, error) {
+func (s *store) Get(id string) (*RestAPI, error) {
 	var out *RestAPI
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiBucket)
@@ -253,7 +253,7 @@ func (s *Store) Get(id string) (*RestAPI, error) {
 	return out, err
 }
 
-func (s *Store) Put(api *RestAPI) error {
+func (s *store) Put(api *RestAPI) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(apiBucket)
 		if err != nil {
@@ -268,7 +268,7 @@ func (s *Store) Put(api *RestAPI) error {
 }
 
 // Update applies fn inside a write transaction.
-func (s *Store) Update(id string, fn func(*RestAPI) error) (*RestAPI, error) {
+func (s *store) Update(id string, fn func(*RestAPI) error) (*RestAPI, error) {
 	api, err := s.Get(id)
 	if err != nil {
 		return nil, err
@@ -281,7 +281,7 @@ func (s *Store) Update(id string, fn func(*RestAPI) error) (*RestAPI, error) {
 	return api, s.Put(api)
 }
 
-func (s *Store) Delete(id string) error {
+func (s *store) Delete(id string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiBucket)
 		if b == nil {
@@ -291,7 +291,7 @@ func (s *Store) Delete(id string) error {
 	})
 }
 
-func (s *Store) List() ([]RestAPI, error) {
+func (s *store) List() ([]RestAPI, error) {
 	var out []RestAPI
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiBucket)
@@ -369,7 +369,7 @@ func rebuildPaths(api *RestAPI) {
 // ---- ids ----
 
 // newID generates the 10-character lowercase alphanumeric id API Gateway uses.
-func (s *Store) newID() string {
+func (s *store) newID() string {
 	const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
 	n := s.now().UnixNano()
 	var b strings.Builder

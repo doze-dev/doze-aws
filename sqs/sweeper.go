@@ -13,7 +13,7 @@ import (
 // Sweep drops retention-expired messages and prunes stale dedup entries across
 // every queue. Receive does this lazily for read queues; a periodic Sweep also
 // reclaims write-only queues so nothing grows unbounded.
-func (s *Store) Sweep() {
+func (s *store) Sweep() {
 	var queues []string
 	_ = s.db.View(func(tx *bolt.Tx) error {
 		if b := tx.Bucket(metaBucket); b != nil {

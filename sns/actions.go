@@ -46,7 +46,7 @@ func subscribeAttributes(form url.Values) map[string]string {
 }
 
 // messageAttributes reads Publish's MessageAttributes.entry.N.* params.
-func messageAttributes(form url.Values) map[string]Attr {
+func messageAttributes(form url.Values) map[string]attr {
 	return awsquery.MessageAttrs(form, "MessageAttributes.entry")
 }
 

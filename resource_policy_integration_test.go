@@ -64,7 +64,7 @@ func TestEnforceS3ToLambdaNeedsPermission(t *testing.T) {
 	s3c := awss3.NewFromConfig(cfg, func(o *awss3.Options) { o.BaseEndpoint = aws.String(url); o.UsePathStyle = true })
 
 	marker := filepath.Join(t.TempDir(), "invocations.log")
-	fnARN := awsident.ARN("lambda", "function:sink")
+	fnARN := awsident.Default().ARN("lambda", "function:sink")
 	if _, err := lam.CreateFunction(ctx, &awslambda.CreateFunctionInput{
 		FunctionName: aws.String("sink"), Runtime: lamtypes.RuntimeProvidedal2, Handler: aws.String("bootstrap"),
 		Role:        aws.String("arn:aws:iam::000000000000:role/r"),
@@ -141,7 +141,7 @@ func TestEnforceSNSToSQSNeedsQueuePolicy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	queueARN := awsident.ARN("sqs", "uploads-q")
+	queueARN := awsident.Default().ARN("sqs", "uploads-q")
 	if _, err := sns.Subscribe(ctx, &awssns.SubscribeInput{
 		TopicArn: top.TopicArn, Protocol: aws.String("sqs"), Endpoint: aws.String(queueARN), ReturnSubscriptionArn: true,
 	}); err != nil {

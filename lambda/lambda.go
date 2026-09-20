@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/internal/trace"
+	"github.com/doze-dev/doze-aws/trace"
 
 	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
@@ -84,7 +84,7 @@ type Server struct {
 	// cannot exist when the services are built.
 	sink atomic.Pointer[trace.Sink]
 
-	store       *Store
+	store       *store
 	dataDir     string
 	peers       peers.Directory
 	endpoint    string

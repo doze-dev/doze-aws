@@ -69,7 +69,7 @@ type V2Authorizer struct {
 }
 
 // CreateHTTP creates an HTTP API record.
-func (s *Store) CreateHTTP(name, description, version string, tags map[string]string) (*RestAPI, error) {
+func (s *store) CreateHTTP(name, description, version string, tags map[string]string) (*RestAPI, error) {
 	if name == "" {
 		return nil, errBadRequest("Name is required")
 	}
@@ -90,7 +90,7 @@ func (s *Store) CreateHTTP(name, description, version string, tags map[string]st
 
 // GetHTTP is Get for the v2 control plane: a REST API's id is not an HTTP
 // API's, so the v2 surface answers NotFound for it, as AWS does.
-func (s *Store) GetHTTP(id string) (*RestAPI, error) {
+func (s *store) GetHTTP(id string) (*RestAPI, error) {
 	api, err := s.Get(id)
 	if err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func (s *Store) GetHTTP(id string) (*RestAPI, error) {
 }
 
 // UpdateHTTP is Update with the same protocol check.
-func (s *Store) UpdateHTTP(id string, fn func(*RestAPI) error) (*RestAPI, error) {
+func (s *store) UpdateHTTP(id string, fn func(*RestAPI) error) (*RestAPI, error) {
 	if _, err := s.GetHTTP(id); err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func (s *Store) UpdateHTTP(id string, fn func(*RestAPI) error) (*RestAPI, error)
 
 // ListProtocol lists the APIs of one protocol: "" for REST, "HTTP" for v2.
 // Each control plane lists only its own, as on AWS.
-func (s *Store) ListProtocol(protocol string) ([]RestAPI, error) {
+func (s *store) ListProtocol(protocol string) ([]RestAPI, error) {
 	all, err := s.List()
 	if err != nil {
 		return nil, err

@@ -25,7 +25,7 @@ const (
 	noPolicy = ""
 )
 
-func userARN(name string) string { return awsident.GlobalARN("iam", "user/"+name) }
+func userARN(name string) string { return awsident.Default().GlobalARN("iam", "user/"+name) }
 
 func wantDenied(t *testing.T, err error, what string, mentions ...string) {
 	t.Helper()
@@ -64,7 +64,7 @@ func TestQueuePolicyUnderEnforce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	queueARN := awsident.ARN("sqs", "orders")
+	queueARN := awsident.Default().ARN("sqs", "orders")
 	send := func(c *awssqs.Client) error {
 		_, err := c.SendMessage(ctx, &awssqs.SendMessageInput{QueueUrl: q.QueueUrl, MessageBody: aws.String("hi")})
 		return err
@@ -114,7 +114,7 @@ func TestQueuePolicyUnderEnforce(t *testing.T) {
 	}
 	attrs, _ := rootSQS.GetQueueAttributes(ctx, &awssqs.GetQueueAttributesInput{QueueUrl: q.QueueUrl, AttributeNames: []sqstypes.QueueAttributeName{"Policy"}})
 	pol := attrs.Attributes["Policy"]
-	for _, want := range []string{`"account"`, "SQS:SendMessage", awsident.GlobalARN("iam", "root"), queueARN} {
+	for _, want := range []string{`"account"`, "SQS:SendMessage", awsident.Default().GlobalARN("iam", "root"), queueARN} {
 		if !strings.Contains(pol, want) {
 			t.Fatalf("AddPermission policy lacks %q: %s", want, pol)
 		}
@@ -188,7 +188,7 @@ func TestTopicPolicyUnderEnforce(t *testing.T) {
 		t.Fatalf("AddPermission: %v", err)
 	}
 	got, _ = rootSNS.GetTopicAttributes(ctx, &awssns.GetTopicAttributesInput{TopicArn: top.TopicArn})
-	for _, want := range []string{`"readers"`, "SNS:GetTopicAttributes", awsident.GlobalARN("iam", "root"), "NoWriter"} {
+	for _, want := range []string{`"readers"`, "SNS:GetTopicAttributes", awsident.Default().GlobalARN("iam", "root"), "NoWriter"} {
 		if !strings.Contains(got.Attributes["Policy"], want) {
 			t.Fatalf("AddPermission policy lacks %q: %s", want, got.Attributes["Policy"])
 		}

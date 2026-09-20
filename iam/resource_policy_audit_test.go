@@ -41,7 +41,7 @@ func TestKeyPolicyCoversDecryptReEncryptAndAliases(t *testing.T) {
 	// The default root clause, scoped to the key ARN rather than "*", plus a
 	// Deny for bob on the crypto actions.
 	policy := `{"Version":"2012-10-17","Statement":[
-		{"Sid":"Enable IAM policies","Effect":"Allow","Principal":{"AWS":"` + awsident.GlobalARN("iam", "root") + `"},"Action":"kms:*","Resource":"` + aws.ToString(key.KeyMetadata.Arn) + `"},
+		{"Sid":"Enable IAM policies","Effect":"Allow","Principal":{"AWS":"` + awsident.Default().GlobalARN("iam", "root") + `"},"Action":"kms:*","Resource":"` + aws.ToString(key.KeyMetadata.Arn) + `"},
 		{"Sid":"NoBob","Effect":"Deny","Principal":{"AWS":"` + userARN("bob") + `"},"Action":["kms:Encrypt","kms:Decrypt","kms:ReEncryptFrom","kms:CreateAlias"],"Resource":"*"}]}`
 	if _, err := rootKMS.PutKeyPolicy(ctx, &awskms.PutKeyPolicyInput{KeyId: aws.String(keyID), PolicyName: aws.String("default"), Policy: aws.String(policy)}); err != nil {
 		t.Fatal(err)

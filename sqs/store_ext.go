@@ -1,6 +1,6 @@
 package sqs
 
-// Store operations added in the doze-aws port, beyond the original doze
+// store operations added in the doze-aws port, beyond the original doze
 // builtin's surface: queue tags, dead-letter source discovery, and message
 // move tasks (DLQ redrive).
 
@@ -15,7 +15,7 @@ import (
 var moveTasksBucket = []byte("movetasks")
 
 // TagQueue merges tags into a queue's tag set.
-func (s *Store) TagQueue(name string, tags map[string]string) error {
+func (s *store) TagQueue(name string, tags map[string]string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		q, err := s.getQueue(tx, name)
 		if err != nil {
@@ -32,7 +32,7 @@ func (s *Store) TagQueue(name string, tags map[string]string) error {
 }
 
 // UntagQueue removes the named tag keys.
-func (s *Store) UntagQueue(name string, keys []string) error {
+func (s *store) UntagQueue(name string, keys []string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		q, err := s.getQueue(tx, name)
 		if err != nil {
@@ -46,7 +46,7 @@ func (s *Store) UntagQueue(name string, keys []string) error {
 }
 
 // Tags returns a queue's tag set.
-func (s *Store) Tags(name string) (map[string]string, error) {
+func (s *store) Tags(name string) (map[string]string, error) {
 	var out map[string]string
 	err := s.db.View(func(tx *bolt.Tx) error {
 		q, err := s.getQueue(tx, name)
@@ -60,7 +60,7 @@ func (s *Store) Tags(name string) (map[string]string, error) {
 }
 
 // DeadLetterSourceQueues lists the queues whose redrive policy targets dlq.
-func (s *Store) DeadLetterSourceQueues(dlq string) ([]string, error) {
+func (s *store) DeadLetterSourceQueues(dlq string) ([]string, error) {
 	var out []string
 	err := s.db.View(func(tx *bolt.Tx) error {
 		if _, err := s.getQueue(tx, dlq); err != nil {
@@ -108,7 +108,7 @@ type MoveTask struct {
 // dest, synchronously — the local equivalent of a DLQ redrive. AWS moves
 // asynchronously with rate control; locally the volumes are small enough that
 // completing inline is simpler and deterministic.
-func (s *Store) StartMessageMoveTask(source, dest string) (*MoveTask, error) {
+func (s *store) StartMessageMoveTask(source, dest string) (*MoveTask, error) {
 	task := &MoveTask{
 		Handle:      newID(),
 		Status:      "COMPLETED",
@@ -161,7 +161,7 @@ func (s *Store) StartMessageMoveTask(source, dest string) (*MoveTask, error) {
 	return task, nil
 }
 
-func (s *Store) recordMoveTask(tx *bolt.Tx, task *MoveTask) error {
+func (s *store) recordMoveTask(tx *bolt.Tx, task *MoveTask) error {
 	b, err := tx.CreateBucketIfNotExists(moveTasksBucket)
 	if err != nil {
 		return err
@@ -172,7 +172,7 @@ func (s *Store) recordMoveTask(tx *bolt.Tx, task *MoveTask) error {
 
 // ListMessageMoveTasks returns the recorded tasks for a source queue, newest
 // first, up to max.
-func (s *Store) ListMessageMoveTasks(source string, max int) ([]MoveTask, error) {
+func (s *store) ListMessageMoveTasks(source string, max int) ([]MoveTask, error) {
 	if max <= 0 {
 		max = 1
 	}
@@ -200,7 +200,7 @@ func (s *Store) ListMessageMoveTasks(source string, max int) ([]MoveTask, error)
 // CancelMessageMoveTask always fails locally: moves complete synchronously, so
 // by the time a cancel arrives the task is already terminal — which is exactly
 // what AWS reports for a finished task.
-func (s *Store) CancelMessageMoveTask(handle string) error {
+func (s *store) CancelMessageMoveTask(handle string) error {
 	return &apiError{
 		Code:        "ResourceNotFoundException",
 		Status:      400,

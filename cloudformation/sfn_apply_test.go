@@ -111,7 +111,7 @@ func TestApplyStateMachineTemplate(t *testing.T) {
 	sqs := awssqs.NewFromConfig(cfg, func(o *awssqs.Options) { o.BaseEndpoint = aws.String(ts.URL) })
 
 	started, err := sfn.StartExecution(ctx, &awssfn.StartExecutionInput{
-		StateMachineArn: aws.String(awsident.ARN("states", "stateMachine:pipeline")),
+		StateMachineArn: aws.String(awsident.Default().ARN("states", "stateMachine:pipeline")),
 		Input:           aws.String(`{"msg": "deployed-and-running"}`),
 	})
 	if err != nil {

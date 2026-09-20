@@ -230,7 +230,7 @@ func errDestinationNotFound(name string) *awshttp.APIError {
 	return awshttp.Errf(400, "ResourceNotFoundException", "An api-destination '%s' does not exist.", name)
 }
 
-func (s *Store) CreateApiDestination(d ApiDestination) error {
+func (s *store) CreateApiDestination(d ApiDestination) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(apiDestinationsBucket)
 		if err != nil {
@@ -244,7 +244,7 @@ func (s *Store) CreateApiDestination(d ApiDestination) error {
 	})
 }
 
-func (s *Store) GetApiDestination(name string) (*ApiDestination, error) {
+func (s *store) GetApiDestination(name string) (*ApiDestination, error) {
 	var out *ApiDestination
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiDestinationsBucket)
@@ -265,7 +265,7 @@ func (s *Store) GetApiDestination(name string) (*ApiDestination, error) {
 	return out, err
 }
 
-func (s *Store) UpdateApiDestination(name string, fn func(*ApiDestination) error) (*ApiDestination, error) {
+func (s *store) UpdateApiDestination(name string, fn func(*ApiDestination) error) (*ApiDestination, error) {
 	var out *ApiDestination
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiDestinationsBucket)
@@ -286,7 +286,7 @@ func (s *Store) UpdateApiDestination(name string, fn func(*ApiDestination) error
 	return out, err
 }
 
-func (s *Store) DeleteApiDestination(name string) error {
+func (s *store) DeleteApiDestination(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiDestinationsBucket)
 		if b == nil || b.Get([]byte(name)) == nil {
@@ -297,7 +297,7 @@ func (s *Store) DeleteApiDestination(name string) error {
 }
 
 // ListApiDestinations filters by name prefix and connection ARN, sorted.
-func (s *Store) ListApiDestinations(prefix, connARN string) ([]ApiDestination, error) {
+func (s *store) ListApiDestinations(prefix, connARN string) ([]ApiDestination, error) {
 	var out []ApiDestination
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiDestinationsBucket)
@@ -332,7 +332,7 @@ func sameConnection(a, b string) bool {
 }
 
 // markDestinationsInactive flips every destination on a deleted connection.
-func (s *Store) markDestinationsInactive(connARN string) {
+func (s *store) markDestinationsInactive(connARN string) {
 	ds, _ := s.ListApiDestinations("", connARN)
 	for _, d := range ds {
 		s.UpdateApiDestination(d.Name, func(d *ApiDestination) error {

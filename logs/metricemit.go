@@ -17,8 +17,8 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/metricship"
-	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 const metricBuffer = 1024
@@ -36,7 +36,7 @@ type compiledFilter struct {
 }
 
 type metricEmitter struct {
-	store *Store
+	store *store
 	ship  *metricship.Shipper
 	logf  func(string, ...any)
 	in    chan metricBatch
@@ -55,9 +55,9 @@ type metricEmitter struct {
 	dead bool
 }
 
-func newMetricEmitter(store *Store, dir peers.Directory, logf func(string, ...any)) *metricEmitter {
+func newMetricEmitter(st *store, dir peers.Directory, logf func(string, ...any)) *metricEmitter {
 	m := &metricEmitter{
-		store: store, ship: metricship.New("logs", dir, logf), logf: logf,
+		store: st, ship: metricship.New("logs", dir, logf), logf: logf,
 		in: make(chan metricBatch, metricBuffer), done: make(chan struct{}), quit: make(chan struct{}),
 		cache: map[string][]compiledFilter{},
 	}

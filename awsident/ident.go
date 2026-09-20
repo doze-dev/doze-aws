@@ -99,17 +99,6 @@ func (id Identity) FunctionURL(urlID, endpoint string) string {
 	return "https://" + urlID + ".lambda-url." + id.withDefaults().Region + ".on.aws/"
 }
 
-// ARN builds an ARN under the default identity.
-//
-// Deprecated: use an instance's Identity. This exists so the tree can migrate a
-// package at a time; it will be removed once nothing calls it.
-func ARN(service, resource string) string { return Default().ARN(service, resource) }
-
-// GlobalARN builds a region-less ARN under the default identity.
-//
-// Deprecated: use an instance's Identity, for the reason on ARN.
-func GlobalARN(service, resource string) string { return Default().GlobalARN(service, resource) }
-
 // FunctionURLID is the 32-character lowercase id a Lambda function URL carries,
 // derived from the function name so a redeploy addresses the same URL and a
 // template can know it before the function exists.

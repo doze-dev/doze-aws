@@ -83,7 +83,7 @@ func TestConcurrencyStress(t *testing.T) {
 	}
 	if _, err := snsc.Subscribe(ctx, &awssns.SubscribeInput{
 		TopicArn: topic.TopicArn, Protocol: aws.String("sqs"),
-		Endpoint: aws.String(awsident.ARN("sqs", "stress")), ReturnSubscriptionArn: true,
+		Endpoint: aws.String(awsident.Default().ARN("sqs", "stress")), ReturnSubscriptionArn: true,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func TestConcurrencyStress(t *testing.T) {
 	}
 	if _, err := ebc.PutTargets(ctx, &awseb.PutTargetsInput{
 		Rule:    aws.String("stress"),
-		Targets: []ebtypes.Target{{Id: aws.String("1"), Arn: aws.String(awsident.ARN("sqs", "stress"))}},
+		Targets: []ebtypes.Target{{Id: aws.String("1"), Arn: aws.String(awsident.Default().ARN("sqs", "stress"))}},
 	}); err != nil {
 		t.Fatal(err)
 	}

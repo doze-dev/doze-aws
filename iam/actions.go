@@ -561,7 +561,7 @@ func hListRoles(s *Server, p params) (any, *awshttp.APIError) {
 
 func hUpdateAssumeRolePolicy(s *Server, p params) (any, *awshttp.APIError) {
 	doc := decodeDocument(p.str("PolicyDocument"))
-	if _, err := ParsePolicy(doc); err != nil {
+	if _, err := parsePolicy(doc); err != nil {
 		return nil, errMalformedPolicy("PolicyDocument: %v", err)
 	}
 	_, err := s.store.UpdateRole(p.str("RoleName"), func(r *Role) error {

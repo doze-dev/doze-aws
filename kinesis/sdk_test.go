@@ -573,7 +573,7 @@ func TestSDKTagsAndConsumers(t *testing.T) {
 	ctx := context.Background()
 	c := client(t)
 	mustCreate(t, c, "tagged", 1)
-	arn := awsident.ARN("kinesis", "stream/tagged")
+	arn := awsident.Default().ARN("kinesis", "stream/tagged")
 
 	if _, err := c.AddTagsToStream(ctx, &awskinesis.AddTagsToStreamInput{
 		StreamName: aws.String("tagged"), Tags: map[string]string{"team": "shop", "env": "local"},

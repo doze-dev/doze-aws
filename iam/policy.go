@@ -2,18 +2,20 @@ package iam
 
 // The policy engine lives in internal/iampolicy, shared with every service
 // that evaluates a resource policy of its own. These aliases keep the IAM
-// service's own vocabulary — and its public API — unchanged.
+// service's own vocabulary while the engine itself stays internal.
+//
+// Decision is the one that stays exported, because it is genuinely part of
+// the contract: the middleware in dozeaws.go re-authorizes through
+// ParseDecision and RecordResource, and anything holding a Decision needs
+// the three constants below to compare it against.
 
 import "github.com/doze-dev/doze-aws/internal/iampolicy"
 
-// Document is a parsed IAM policy document.
-type Document = iampolicy.Document
+// document is a parsed IAM policy document.
+type document = iampolicy.Document
 
-// Statement is one policy statement.
-type Statement = iampolicy.Statement
-
-// Request is one authorization question.
-type Request = iampolicy.Request
+// request is one authorization question.
+type request = iampolicy.Request
 
 // Decision is the outcome of evaluating a request against a policy set.
 type Decision = iampolicy.Decision
@@ -27,8 +29,10 @@ const (
 	ExplicitDeny = iampolicy.ExplicitDeny
 )
 
-// ParsePolicy parses and lightly validates a policy document.
-func ParsePolicy(raw string) (*Document, error) { return iampolicy.Parse(raw) }
+// parsePolicy parses and lightly validates a policy document.
+func parsePolicy(raw string) (*document, error) { return iampolicy.Parse(raw) }
 
-// Evaluate applies the AWS evaluation order across every supplied document.
-func Evaluate(docs []*Document, req Request) (Decision, string) { return iampolicy.Evaluate(docs, req) }
+// evaluate applies the AWS evaluation order across every supplied document.
+func evaluate(docs []*document, req request) (Decision, string) {
+	return iampolicy.Evaluate(docs, req)
+}

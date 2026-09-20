@@ -150,7 +150,7 @@ func TestDeployedAPIInvokesLambda(t *testing.T) {
 		t.Fatalf("PutMethod: %v", err)
 	}
 	uri := "arn:aws:apigateway:" + awsident.Region + ":lambda:path/2015-03-31/functions/" +
-		awsident.ARN("lambda", "function:echo") + "/invocations"
+		awsident.Default().ARN("lambda", "function:echo") + "/invocations"
 	if _, err := agw.PutIntegration(ctx, &awsapi.PutIntegrationInput{
 		RestApiId: api.Id, ResourceId: byID.Id, HttpMethod: aws.String("ANY"),
 		Type: apitypes.IntegrationTypeAwsProxy, IntegrationHttpMethod: aws.String("POST"),

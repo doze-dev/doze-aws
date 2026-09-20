@@ -55,7 +55,7 @@ type Options struct {
 // Server is the SQS service: an http.Handler speaking both SQS wire protocols,
 // and an io.Closer that stops the janitor and closes the store.
 type Server struct {
-	store *Store
+	store *store
 	logf  func(format string, args ...any)
 	stop  chan struct{}
 	// done closes when the janitor has returned, so Close waits for it before

@@ -50,15 +50,15 @@ type Version struct {
 	Created int64    `json:"created"`
 }
 
-// Store is the bbolt-backed secret store plus the value sealer.
-type Store struct {
+// store is the bbolt-backed secret store plus the value sealer.
+type store struct {
 	db    *lazybolt.DB
 	gcm   cipher.AEAD
 	id    awsident.Identity // region and account ARNs are minted for; stamped by New
 	clock func() time.Time
 }
 
-func newStore(db *lazybolt.DB, keyPath string) (*Store, error) {
+func newStore(db *lazybolt.DB, keyPath string) (*store, error) {
 	key, err := os.ReadFile(keyPath)
 	if errors.Is(err, os.ErrNotExist) {
 		key = make([]byte, 32)
@@ -77,16 +77,16 @@ func newStore(db *lazybolt.DB, keyPath string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Store{db: db, gcm: gcm, clock: time.Now}, nil
+	return &store{db: db, gcm: gcm, clock: time.Now}, nil
 }
 
-func (s *Store) now() time.Time { return s.clock() }
+func (s *store) now() time.Time { return s.clock() }
 
 func errSecretNotFound(id string) *awshttp.APIError {
 	return awshttp.Errf(400, "ResourceNotFoundException", "Secrets Manager can't find the specified secret: %s", id)
 }
 
-func (s *Store) seal(plaintext []byte) []byte {
+func (s *store) seal(plaintext []byte) []byte {
 	if plaintext == nil {
 		return nil
 	}
@@ -95,7 +95,7 @@ func (s *Store) seal(plaintext []byte) []byte {
 	return append(nonce, s.gcm.Seal(nil, nonce, plaintext, nil)...)
 }
 
-func (s *Store) open(sealed []byte) ([]byte, error) {
+func (s *store) open(sealed []byte) ([]byte, error) {
 	if sealed == nil {
 		return nil, nil
 	}
@@ -128,7 +128,7 @@ func candidateNames(id string) []string {
 }
 
 // get loads a secret inside a transaction.
-func (s *Store) get(tx *bolt.Tx, id string) (*Secret, error) {
+func (s *store) get(tx *bolt.Tx, id string) (*Secret, error) {
 	b := tx.Bucket(secretsBucket)
 	if b == nil {
 		return nil, errSecretNotFound(id)
@@ -147,7 +147,7 @@ func (s *Store) get(tx *bolt.Tx, id string) (*Secret, error) {
 	return nil, errSecretNotFound(id)
 }
 
-func (s *Store) put(tx *bolt.Tx, sec *Secret) error {
+func (s *store) put(tx *bolt.Tx, sec *Secret) error {
 	b, err := tx.CreateBucketIfNotExists(secretsBucket)
 	if err != nil {
 		return err
@@ -157,7 +157,7 @@ func (s *Store) put(tx *bolt.Tx, sec *Secret) error {
 }
 
 // Get loads a secret by name or ARN.
-func (s *Store) Get(id string) (*Secret, error) {
+func (s *store) Get(id string) (*Secret, error) {
 	var out *Secret
 	err := s.db.View(func(tx *bolt.Tx) error {
 		sec, err := s.get(tx, id)
@@ -171,7 +171,7 @@ func (s *Store) Get(id string) (*Secret, error) {
 }
 
 // Mutate applies fn to a secret and persists it.
-func (s *Store) Mutate(id string, fn func(*Secret) error) (*Secret, error) {
+func (s *store) Mutate(id string, fn func(*Secret) error) (*Secret, error) {
 	var out *Secret
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		sec, err := s.get(tx, id)
@@ -189,7 +189,7 @@ func (s *Store) Mutate(id string, fn func(*Secret) error) (*Secret, error) {
 }
 
 // Create makes a new secret with an initial version, or fails if it exists.
-func (s *Store) Create(name, description, kmsKeyID, token string, str, bin []byte, tags map[string]string) (*Secret, string, error) {
+func (s *store) Create(name, description, kmsKeyID, token string, str, bin []byte, tags map[string]string) (*Secret, string, error) {
 	if name == "" {
 		return nil, "", awshttp.Errf(400, "ValidationException", "Name is required")
 	}
@@ -236,7 +236,7 @@ func (s *Store) Create(name, description, kmsKeyID, token string, str, bin []byt
 
 // AddVersion appends a version and moves AWSCURRENT (old current becomes
 // AWSPREVIOUS), returning the new version id.
-func (s *Store) AddVersion(id, token string, str, bin []byte, stages []string) (*Secret, string, error) {
+func (s *store) AddVersion(id, token string, str, bin []byte, stages []string) (*Secret, string, error) {
 	if token == "" {
 		token = newUUID()
 	}
@@ -313,7 +313,7 @@ func (sec *Secret) Resolve(versionID, stage string) (string, *Version, *awshttp.
 }
 
 // List returns all secrets, sorted by name.
-func (s *Store) List() ([]Secret, error) {
+func (s *store) List() ([]Secret, error) {
 	var out []Secret
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(secretsBucket)
@@ -333,7 +333,7 @@ func (s *Store) List() ([]Secret, error) {
 }
 
 // Delete schedules (or forces) deletion.
-func (s *Store) Delete(id string, recoveryDays int, force bool) (*Secret, error) {
+func (s *store) Delete(id string, recoveryDays int, force bool) (*Secret, error) {
 	if force {
 		var out *Secret
 		err := s.db.Update(func(tx *bolt.Tx) error {
@@ -366,7 +366,7 @@ func (s *Store) Delete(id string, recoveryDays int, force bool) (*Secret, error)
 }
 
 // Restore cancels a scheduled deletion.
-func (s *Store) Restore(id string) (*Secret, error) {
+func (s *store) Restore(id string) (*Secret, error) {
 	return s.Mutate(id, func(sec *Secret) error {
 		sec.DeletedAt, sec.PurgeAt = 0, 0
 		return nil
@@ -374,7 +374,7 @@ func (s *Store) Restore(id string) (*Secret, error) {
 }
 
 // SweepDeleted purges secrets whose recovery window has passed.
-func (s *Store) SweepDeleted() {
+func (s *store) SweepDeleted() {
 	now := s.now().Unix()
 	_ = s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(secretsBucket)
@@ -396,7 +396,7 @@ func (s *Store) SweepDeleted() {
 	})
 }
 
-func (s *Store) secretARN(name string) string {
+func (s *store) secretARN(name string) string {
 	return s.id.ARN("secretsmanager", "secret:"+name+"-"+randSuffix())
 }
 

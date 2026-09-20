@@ -60,7 +60,7 @@ func TestScheduledRuleDeliversTheScheduledEvent(t *testing.T) {
 	defer s.Close()
 
 	rule := Rule{Bus: DefaultBus, Name: "nightly", Schedule: "rate(1 hour)", State: "ENABLED",
-		Targets: []Target{{ID: "t1", ARN: awsident.ARN("lambda", "function:sweeper")}}}
+		Targets: []Target{{ID: "t1", ARN: awsident.Default().ARN("lambda", "function:sweeper")}}}
 	if err := s.store.PutRule(rule); err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +113,7 @@ func TestScheduledRuleDeliversTheScheduledEvent(t *testing.T) {
 		t.Errorf("version = %v, want \"0\"", doc["version"])
 	}
 	res, _ := doc["resources"].([]any)
-	wantARN := awsident.ARN("events", "rule/nightly")
+	wantARN := awsident.Default().ARN("events", "rule/nightly")
 	if len(res) != 1 || res[0] != wantARN {
 		t.Errorf("resources = %v, want [%s] — this is how a target knows which rule woke it", res, wantARN)
 	}
@@ -165,9 +165,9 @@ func TestScheduledRuleDeliversToEveryTarget(t *testing.T) {
 
 	if err := s.store.PutRule(Rule{Bus: DefaultBus, Name: "fan", Schedule: "rate(1 minute)", State: "ENABLED",
 		Targets: []Target{
-			{ID: "gone", ARN: awsident.ARN("sqs", "no-such-queue")},
-			{ID: "a", ARN: awsident.ARN("lambda", "function:one")},
-			{ID: "b", ARN: awsident.ARN("lambda", "function:two")},
+			{ID: "gone", ARN: awsident.Default().ARN("sqs", "no-such-queue")},
+			{ID: "a", ARN: awsident.Default().ARN("lambda", "function:one")},
+			{ID: "b", ARN: awsident.Default().ARN("lambda", "function:two")},
 		}}); err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func TestDisabledScheduleDeliversNothing(t *testing.T) {
 	defer s.Close()
 
 	if err := s.store.PutRule(Rule{Bus: DefaultBus, Name: "off", Schedule: "rate(1 minute)", State: "DISABLED",
-		Targets: []Target{{ID: "t", ARN: awsident.ARN("lambda", "function:sweeper")}}}); err != nil {
+		Targets: []Target{{ID: "t", ARN: awsident.Default().ARN("lambda", "function:sweeper")}}}); err != nil {
 		t.Fatal(err)
 	}
 	lastFired := map[string]time.Time{}

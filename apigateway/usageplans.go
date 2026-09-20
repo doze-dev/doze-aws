@@ -99,7 +99,7 @@ func viewUsagePlanKey(k *APIKey) map[string]any {
 
 // ---- store ----
 
-func (s *Store) PutUsagePlan(p *UsagePlan) error {
+func (s *store) PutUsagePlan(p *UsagePlan) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(usagePlanBucket)
 		if err != nil {
@@ -110,7 +110,7 @@ func (s *Store) PutUsagePlan(p *UsagePlan) error {
 	})
 }
 
-func (s *Store) GetUsagePlan(id string) (*UsagePlan, error) {
+func (s *store) GetUsagePlan(id string) (*UsagePlan, error) {
 	var out *UsagePlan
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(usagePlanBucket)
@@ -127,7 +127,7 @@ func (s *Store) GetUsagePlan(id string) (*UsagePlan, error) {
 	return out, err
 }
 
-func (s *Store) DeleteUsagePlan(id string) error {
+func (s *store) DeleteUsagePlan(id string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(usagePlanBucket)
 		if b == nil || b.Get([]byte(id)) == nil {
@@ -138,7 +138,7 @@ func (s *Store) DeleteUsagePlan(id string) error {
 }
 
 // ListUsagePlans answers every plan, sorted by name.
-func (s *Store) ListUsagePlans() ([]*UsagePlan, error) {
+func (s *store) ListUsagePlans() ([]*UsagePlan, error) {
 	var out []*UsagePlan
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(usagePlanBucket)
@@ -400,7 +400,7 @@ func (s *Server) routeUsagePlanKeys(w http.ResponseWriter, r *http.Request, plan
 }
 
 // PlansCovering lists the plans that cover an API stage.
-func (s *Store) PlansCovering(apiID, stage string) []*UsagePlan {
+func (s *store) PlansCovering(apiID, stage string) []*UsagePlan {
 	plans, _ := s.ListUsagePlans()
 	var out []*UsagePlan
 	for _, p := range plans {

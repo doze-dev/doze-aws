@@ -7,7 +7,7 @@ import "testing"
 // naming a key that did not actually reject the message — which is worse than
 // naming none, because it sends someone to edit the wrong line.
 func TestRejectionReasonsNameTheKeyThatRefused(t *testing.T) {
-	attrs := map[string]Attr{
+	attrs := map[string]attr{
 		"eventType": {DataType: "String", StringValue: "order.created"},
 		"price":     {DataType: "Number", StringValue: "250"},
 	}
@@ -55,7 +55,7 @@ func TestRejectionReasonsNameTheKeyThatRefused(t *testing.T) {
 // refusal to one branch when it was the whole set that failed. It is reported
 // whole instead.
 func TestOrIsReportedWholeNotSplit(t *testing.T) {
-	attrs := map[string]Attr{"eventType": {DataType: "String", StringValue: "order.created"}}
+	attrs := map[string]attr{"eventType": {DataType: "String", StringValue: "order.created"}}
 	policy := `{"$or":[{"region":["eu-west-1"]},{"tier":["premium"]}]}`
 	if matchFilter(policy, attrs) {
 		t.Fatal("policy should not match — neither branch is satisfiable with these attributes")
@@ -75,7 +75,7 @@ func TestOrIsReportedWholeNotSplit(t *testing.T) {
 // for reaching for the convenient helper.
 func TestPreviewAgreesWithDeliveryOnTypedAttributes(t *testing.T) {
 	policy := `{"price":[{"numeric":[">",100]}]}`
-	typed := map[string]Attr{"price": {DataType: "Number", StringValue: "250"}}
+	typed := map[string]attr{"price": {DataType: "Number", StringValue: "250"}}
 
 	if !matchFilter(policy, typed) {
 		t.Fatal("delivery would deliver this; the preview predicate says no")

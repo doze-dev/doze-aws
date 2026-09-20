@@ -76,7 +76,7 @@ func TestSDKGroupsAndStreams(t *testing.T) {
 		t.Fatalf("DescribeLogGroups = %+v, %v", groups, err)
 	}
 	g := groups.LogGroups[0]
-	if aws.ToString(g.LogGroupName) != group || aws.ToInt32(g.RetentionInDays) != 7 || aws.ToString(g.Arn) != awsident.ARN("logs", "log-group:"+group+":*") {
+	if aws.ToString(g.LogGroupName) != group || aws.ToInt32(g.RetentionInDays) != 7 || aws.ToString(g.Arn) != awsident.Default().ARN("logs", "log-group:"+group+":*") {
 		t.Errorf("group = %+v", g)
 	}
 	tags, err := c.ListTagsForResource(ctx, &cwl.ListTagsForResourceInput{ResourceArn: g.LogGroupArn})

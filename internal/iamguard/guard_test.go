@@ -44,11 +44,11 @@ func request(mode, principal, identity, source string) *http.Request {
 // TestSameAccountRule is the combination table: the resource verdict and the
 // identity verdict, with and without KMS's gate.
 func TestSameAccountRule(t *testing.T) {
-	alice := awsident.GlobalARN("iam", "user/alice")
+	alice := awsident.Default().GlobalARN("iam", "user/alice")
 	allowAlice := `{"Effect":"Allow","Principal":{"AWS":"` + alice + `"},"Action":"sqs:*","Resource":"*"}`
 	denyAlice := `{"Effect":"Deny","Principal":{"AWS":"` + alice + `"},"Action":"sqs:SendMessage","Resource":"*"}`
 	denyAll := `{"Effect":"Deny","Principal":"*","Action":"sqs:SendMessage","Resource":"*"}`
-	allowRoot := `{"Effect":"Allow","Principal":{"AWS":"` + awsident.GlobalARN("iam", "root") + `"},"Action":"sqs:*","Resource":"*"}`
+	allowRoot := `{"Effect":"Allow","Principal":{"AWS":"` + awsident.Default().GlobalARN("iam", "root") + `"},"Action":"sqs:*","Resource":"*"}`
 	allowSNS := `{"Effect":"Allow","Principal":{"Service":"sns.amazonaws.com"},"Action":"sqs:SendMessage","Resource":"*"}`
 
 	cases := []struct {
@@ -104,7 +104,7 @@ func TestSameAccountRule(t *testing.T) {
 // TestModesAndHeaders: off is inert, soft logs and passes, the service's own
 // mode applies when no header arrived, and CheckIdentity ignores the gate.
 func TestModesAndHeaders(t *testing.T) {
-	alice := awsident.GlobalARN("iam", "user/alice")
+	alice := awsident.Default().GlobalARN("iam", "user/alice")
 	deny := `{"Effect":"Deny","Principal":"*","Action":"sqs:SendMessage","Resource":"*"}`
 
 	if err := (Guard{Mode: "enforce"}).Check(nil, request("off", alice, IdentityAllowed, ""), docs(t, deny), "sqs:SendMessage", resource); err != nil {

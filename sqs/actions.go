@@ -6,7 +6,7 @@ import (
 
 // handler implements one SQS action against the store. Returns the result value
 // (nil for empty-body actions) or an apiError.
-type handler func(s *Store, req *request) (any, *apiError)
+type handler func(s *store, req *request) (any, *apiError)
 
 var handlers = map[string]handler{
 	"CreateQueue":                  hCreateQueue,
@@ -40,7 +40,7 @@ var handlers = map[string]handler{
 // rebuilding it. Both halves are per-instance now: the host comes from the
 // request (so a queue reached through a name reports that name), and the
 // account from this instance's identity.
-func (s *Store) queueURL(host, name string) string {
+func (s *store) queueURL(host, name string) string {
 	// With no host there is no absolute URL worth minting. This used to fall
 	// back to "127.0.0.1" — no port, so http://127.0.0.1/<account>/<queue>,
 	// which is port 80 and has never been where doze-aws answers. It was wrong
@@ -72,7 +72,7 @@ func asAPIError(err error) *apiError {
 	return &apiError{Code: "InternalError", Status: 500, Message: err.Error()}
 }
 
-func hCreateQueue(s *Store, req *request) (any, *apiError) {
+func hCreateQueue(s *store, req *request) (any, *apiError) {
 	name := req.p.str("QueueName")
 	if _, err := s.CreateQueue(name, req.p.queueAttrs(), req.p.tags()); err != nil {
 		return nil, asAPIError(err)
@@ -80,14 +80,14 @@ func hCreateQueue(s *Store, req *request) (any, *apiError) {
 	return queueURLResult{QueueURL: s.queueURL(req.host, name)}, nil
 }
 
-func hDeleteQueue(s *Store, req *request) (any, *apiError) {
+func hDeleteQueue(s *store, req *request) (any, *apiError) {
 	if err := s.DeleteQueue(targetQueue(req)); err != nil {
 		return nil, asAPIError(err)
 	}
 	return nil, nil
 }
 
-func hListQueues(s *Store, req *request) (any, *apiError) {
+func hListQueues(s *store, req *request) (any, *apiError) {
 	names, err := s.ListQueues(req.p.str("QueueNamePrefix"))
 	if err != nil {
 		return nil, asAPIError(err)
@@ -99,7 +99,7 @@ func hListQueues(s *Store, req *request) (any, *apiError) {
 	return listQueuesResult{QueueURLs: urls}, nil
 }
 
-func hGetQueueURL(s *Store, req *request) (any, *apiError) {
+func hGetQueueURL(s *store, req *request) (any, *apiError) {
 	name := req.p.str("QueueName")
 	if _, err := s.Attributes(name); err != nil {
 		return nil, asAPIError(err)
@@ -107,7 +107,7 @@ func hGetQueueURL(s *Store, req *request) (any, *apiError) {
 	return queueURLResult{QueueURL: s.queueURL(req.host, name)}, nil
 }
 
-func hGetQueueAttributes(s *Store, req *request) (any, *apiError) {
+func hGetQueueAttributes(s *store, req *request) (any, *apiError) {
 	attrs, err := s.Attributes(targetQueue(req))
 	if err != nil {
 		return nil, asAPIError(err)
@@ -125,14 +125,14 @@ func hGetQueueAttributes(s *Store, req *request) (any, *apiError) {
 	return getAttrsResult{Attributes: kvAttrs(attrs)}, nil
 }
 
-func hSetQueueAttributes(s *Store, req *request) (any, *apiError) {
+func hSetQueueAttributes(s *store, req *request) (any, *apiError) {
 	if err := s.SetAttributes(targetQueue(req), req.p.queueAttrs()); err != nil {
 		return nil, asAPIError(err)
 	}
 	return nil, nil
 }
 
-func hSendMessage(s *Store, req *request) (any, *apiError) {
+func hSendMessage(s *store, req *request) (any, *apiError) {
 	delay := -1
 	if n, ok := req.p.intp("DelaySeconds"); ok {
 		delay = n
@@ -146,7 +146,7 @@ func hSendMessage(s *Store, req *request) (any, *apiError) {
 	return sendResult{MessageID: m.ID, MD5OfBody: m.MD5Body, MD5OfAttrs: m.MD5Attrs}, nil
 }
 
-func hSendMessageBatch(s *Store, req *request) (any, *apiError) {
+func hSendMessageBatch(s *store, req *request) (any, *apiError) {
 	queue := targetQueue(req)
 	// One transaction for the whole batch, and therefore one fsync. Looping
 	// over Send opened one per message, which made a ten-item batch cost ten
@@ -182,7 +182,7 @@ func hSendMessageBatch(s *Store, req *request) (any, *apiError) {
 	return res, nil
 }
 
-func hReceiveMessage(s *Store, req *request) (any, *apiError) {
+func hReceiveMessage(s *store, req *request) (any, *apiError) {
 	queue := targetQueue(req)
 	max := req.p.intDefault("MaxNumberOfMessages", 1)
 	wait := -1
@@ -219,7 +219,7 @@ func hReceiveMessage(s *Store, req *request) (any, *apiError) {
 // contents (every message, not just FIFO group heads) without consuming, hiding,
 // or bumping the receive count — so the dash inspector matches the queue depth and
 // repeated refreshes don't look like consumption.
-func hDozePeek(s *Store, req *request) (any, *apiError) {
+func hDozePeek(s *store, req *request) (any, *apiError) {
 	queue := targetQueue(req)
 	max := req.p.intDefault("MaxNumberOfMessages", 10)
 	attrNames := req.p.attributeNames()
@@ -244,14 +244,14 @@ func hDozePeek(s *Store, req *request) (any, *apiError) {
 	return res, nil
 }
 
-func hDeleteMessage(s *Store, req *request) (any, *apiError) {
+func hDeleteMessage(s *store, req *request) (any, *apiError) {
 	if err := s.Delete(targetQueue(req), req.p.str("ReceiptHandle")); err != nil {
 		return nil, asAPIError(err)
 	}
 	return nil, nil
 }
 
-func hDeleteMessageBatch(s *Store, req *request) (any, *apiError) {
+func hDeleteMessageBatch(s *store, req *request) (any, *apiError) {
 	queue := targetQueue(req)
 	entries := req.p.deleteBatchEntries()
 	handles := make([]string, len(entries))
@@ -274,7 +274,7 @@ func hDeleteMessageBatch(s *Store, req *request) (any, *apiError) {
 	return res, nil
 }
 
-func hChangeMessageVisibility(s *Store, req *request) (any, *apiError) {
+func hChangeMessageVisibility(s *store, req *request) (any, *apiError) {
 	timeout := req.p.intDefault("VisibilityTimeout", 0)
 	if err := s.ChangeVisibility(targetQueue(req), req.p.str("ReceiptHandle"), timeout); err != nil {
 		return nil, asAPIError(err)
@@ -285,7 +285,7 @@ func hChangeMessageVisibility(s *Store, req *request) (any, *apiError) {
 // hChangeMessageVisibilityBatch applies per-entry ChangeMessageVisibility
 // semantics: each entry succeeds or fails independently, exactly as AWS
 // reports a partial batch.
-func hChangeMessageVisibilityBatch(s *Store, req *request) (any, *apiError) {
+func hChangeMessageVisibilityBatch(s *store, req *request) (any, *apiError) {
 	queue := targetQueue(req)
 	entries := req.p.visibilityBatchEntries()
 	items := make([]VisibilityItem, len(entries))
@@ -308,7 +308,7 @@ func hChangeMessageVisibilityBatch(s *Store, req *request) (any, *apiError) {
 	return res, nil
 }
 
-func hPurgeQueue(s *Store, req *request) (any, *apiError) {
+func hPurgeQueue(s *store, req *request) (any, *apiError) {
 	if err := s.Purge(targetQueue(req)); err != nil {
 		return nil, asAPIError(err)
 	}

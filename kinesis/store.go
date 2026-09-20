@@ -128,23 +128,23 @@ type Consumer struct {
 	Status    string `json:"status"`
 }
 
-// Store is the bbolt-backed Kinesis state.
-type Store struct {
+// store is the bbolt-backed Kinesis state.
+type store struct {
 	db     *lazybolt.DB
 	clock  func() time.Time
 	notify *notifier
 	id     awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
-func newStore(db *lazybolt.DB) *Store {
-	return &Store{db: db, clock: time.Now, notify: newNotifier()}
+func newStore(db *lazybolt.DB) *store {
+	return &store{db: db, clock: time.Now, notify: newNotifier()}
 }
 
-func (s *Store) now() time.Time { return s.clock() }
+func (s *store) now() time.Time { return s.clock() }
 
 // ---- stream lifecycle ----
 
-func (s *Store) getStream(tx *bolt.Tx, name string) (*Stream, error) {
+func (s *store) getStream(tx *bolt.Tx, name string) (*Stream, error) {
 	b := tx.Bucket(metaBucket)
 	if b == nil {
 		return nil, errNoStream(s.id, name)
@@ -160,7 +160,7 @@ func (s *Store) getStream(tx *bolt.Tx, name string) (*Stream, error) {
 	return &st, nil
 }
 
-func (s *Store) putStream(tx *bolt.Tx, st *Stream) error {
+func (s *store) putStream(tx *bolt.Tx, st *Stream) error {
 	b, err := tx.CreateBucketIfNotExists(metaBucket)
 	if err != nil {
 		return err
@@ -173,7 +173,7 @@ func (s *Store) putStream(tx *bolt.Tx, st *Stream) error {
 }
 
 // Get returns a stream by name.
-func (s *Store) Get(name string) (*Stream, error) {
+func (s *store) Get(name string) (*Stream, error) {
 	var out *Stream
 	err := s.db.View(func(tx *bolt.Tx) error {
 		st, err := s.getStream(tx, name)
@@ -186,7 +186,7 @@ func (s *Store) Get(name string) (*Stream, error) {
 // Create makes a new stream with shardCount initial shards tiling the hash
 // space. Re-creating an existing stream is a ResourceInUseException, matching
 // AWS (unlike SQS, CreateStream is not idempotent).
-func (s *Store) Create(name string, shardCount int, mode string) (*Stream, error) {
+func (s *store) Create(name string, shardCount int, mode string) (*Stream, error) {
 	if err := validStreamName(name); err != nil {
 		return nil, err
 	}
@@ -247,7 +247,7 @@ func tileShards(st *Stream, shardCount int) []Shard {
 }
 
 // Delete removes a stream and every record bucket it owns.
-func (s *Store) Delete(name string) error {
+func (s *store) Delete(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		st, err := s.getStream(tx, name)
 		if err != nil {
@@ -275,7 +275,7 @@ func (s *Store) Delete(name string) error {
 }
 
 // List returns stream names in lexical order, starting after exclusiveStart.
-func (s *Store) List(exclusiveStart string, limit int) ([]string, bool, error) {
+func (s *store) List(exclusiveStart string, limit int) ([]string, bool, error) {
 	var names []string
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(metaBucket)
@@ -298,7 +298,7 @@ func (s *Store) List(exclusiveStart string, limit int) ([]string, bool, error) {
 }
 
 // Update applies fn to a stream inside a write transaction.
-func (s *Store) Update(name string, fn func(*Stream) error) (*Stream, error) {
+func (s *store) Update(name string, fn func(*Stream) error) (*Stream, error) {
 	var out *Stream
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		st, err := s.getStream(tx, name)
@@ -367,7 +367,7 @@ type PutResult struct {
 // entry is written in one transaction so a PutRecords batch is atomic — AWS
 // allows partial failure, but locally there is no throttling to cause one, and
 // atomicity is the more useful guarantee.
-func (s *Store) Put(stream string, entries []PutEntry) ([]PutResult, error) {
+func (s *store) Put(stream string, entries []PutEntry) ([]PutResult, error) {
 	if len(entries) == 0 {
 		return nil, errInvalid("at least one record is required")
 	}
@@ -429,7 +429,7 @@ func (s *Store) Put(stream string, entries []PutEntry) ([]PutResult, error) {
 // Fetch returns up to limit records from a shard with sequence > after,
 // stopping early at the response byte ceiling. next is the sequence to resume
 // from; behind reports the age of the last record returned.
-func (s *Store) Fetch(stream, shard string, after uint64, limit int) (recs []Record, next uint64, behind time.Duration, err error) {
+func (s *store) Fetch(stream, shard string, after uint64, limit int) (recs []Record, next uint64, behind time.Duration, err error) {
 	if limit <= 0 || limit > maxGetRecords {
 		limit = maxGetRecords
 	}
@@ -491,7 +491,7 @@ type arrivalOnly struct {
 // only the records at or after ts, which is the window the caller is about to
 // read anyway. The common case, "show me the last few minutes", stops almost
 // immediately instead of walking millions of records to get there.
-func (s *Store) SeqAtOrAfter(stream, shard string, ts time.Time) (uint64, error) {
+func (s *store) SeqAtOrAfter(stream, shard string, ts time.Time) (uint64, error) {
 	var after uint64
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(recBucket(stream, shard))
@@ -518,7 +518,7 @@ func (s *Store) SeqAtOrAfter(stream, shard string, ts time.Time) (uint64, error)
 
 // LatestSeq returns the highest sequence written to a shard, the starting
 // point for a LATEST iterator.
-func (s *Store) LatestSeq(stream, shard string) (uint64, error) {
+func (s *store) LatestSeq(stream, shard string) (uint64, error) {
 	var last uint64
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(recBucket(stream, shard))
@@ -535,7 +535,7 @@ func (s *Store) LatestSeq(stream, shard string) (uint64, error) {
 
 // TrimHorizonSeq returns the sequence just below the oldest surviving record,
 // so a TRIM_HORIZON iterator skips whatever retention has already reclaimed.
-func (s *Store) TrimHorizonSeq(stream, shard string) (uint64, error) {
+func (s *store) TrimHorizonSeq(stream, shard string) (uint64, error) {
 	var first uint64
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(recBucket(stream, shard))
@@ -557,7 +557,7 @@ func (s *Store) TrimHorizonSeq(stream, shard string) (uint64, error) {
 
 // Sweep drops records past their stream's retention window and removes closed
 // shards whose records are all gone. Returns the number of records reclaimed.
-func (s *Store) Sweep() int {
+func (s *store) Sweep() int {
 	n := 0
 	_ = s.db.Update(func(tx *bolt.Tx) error {
 		mb := tx.Bucket(metaBucket)
@@ -621,7 +621,7 @@ func (s *Store) Sweep() int {
 func consumerKey(streamARN, name string) []byte { return []byte(streamARN + "|" + name) }
 
 // RegisterConsumer registers an enhanced fan-out consumer.
-func (s *Store) RegisterConsumer(streamARN, name string) (*Consumer, error) {
+func (s *store) RegisterConsumer(streamARN, name string) (*Consumer, error) {
 	if name == "" {
 		return nil, errInvalid("ConsumerName is required")
 	}
@@ -660,7 +660,7 @@ func (s *Store) RegisterConsumer(streamARN, name string) (*Consumer, error) {
 }
 
 // FindConsumer resolves a consumer by (streamARN, name) or by consumer ARN.
-func (s *Store) FindConsumer(streamARN, name, consumerARN string) (*Consumer, error) {
+func (s *store) FindConsumer(streamARN, name, consumerARN string) (*Consumer, error) {
 	var out *Consumer
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(consumerBucket)
@@ -694,7 +694,7 @@ func (s *Store) FindConsumer(streamARN, name, consumerARN string) (*Consumer, er
 }
 
 // DeleteConsumer deregisters a consumer.
-func (s *Store) DeleteConsumer(c *Consumer) error {
+func (s *store) DeleteConsumer(c *Consumer) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(consumerBucket)
 		if b == nil {
@@ -705,7 +705,7 @@ func (s *Store) DeleteConsumer(c *Consumer) error {
 }
 
 // ListConsumers returns every consumer registered on a stream.
-func (s *Store) ListConsumers(streamARN string) ([]Consumer, error) {
+func (s *store) ListConsumers(streamARN string) ([]Consumer, error) {
 	var out []Consumer
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(consumerBucket)

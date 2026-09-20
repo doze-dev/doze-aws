@@ -47,13 +47,13 @@ type Subscription struct {
 	Extra map[string]string `json:"extra,omitempty"`
 }
 
-// Store is the bbolt-backed SNS state.
-type Store struct {
+// store is the bbolt-backed SNS state.
+type store struct {
 	db *lazybolt.DB
 	id awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
-func newStore(db *lazybolt.DB) *Store { return &Store{db: db} }
+func newStore(db *lazybolt.DB) *store { return &store{db: db} }
 
 // apiError is the shared AWS API error type; internal/awsquery renders it
 // onto the wire in the Query error envelope.
@@ -66,11 +66,11 @@ func errInvalid(msg string) *apiError {
 	return &apiError{Code: "InvalidParameter", Status: 400, Message: msg, SenderFault: true}
 }
 
-func (s *Store) topicARN(name string) string { return s.id.ARN("sns", name) }
+func (s *store) topicARN(name string) string { return s.id.ARN("sns", name) }
 
 // ---- topics ----
 
-func (s *Store) CreateTopic(name string, attrs, tags map[string]string) (*Topic, error) {
+func (s *store) CreateTopic(name string, attrs, tags map[string]string) (*Topic, error) {
 	if name == "" {
 		return nil, errInvalid("topic name is required")
 	}
@@ -103,7 +103,7 @@ func (s *Store) CreateTopic(name string, attrs, tags map[string]string) (*Topic,
 }
 
 // GetTopic returns a topic by ARN.
-func (s *Store) GetTopic(arn string) (*Topic, error) {
+func (s *store) GetTopic(arn string) (*Topic, error) {
 	var out *Topic
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(topicsBucket)
@@ -125,7 +125,7 @@ func (s *Store) GetTopic(arn string) (*Topic, error) {
 }
 
 // UpdateTopic applies fn to a topic and persists the result.
-func (s *Store) UpdateTopic(arn string, fn func(*Topic)) error {
+func (s *store) UpdateTopic(arn string, fn func(*Topic)) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(topicsBucket)
 		if b == nil {
@@ -145,7 +145,7 @@ func (s *Store) UpdateTopic(arn string, fn func(*Topic)) error {
 	})
 }
 
-func (s *Store) DeleteTopic(arn string) error {
+func (s *store) DeleteTopic(arn string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if b := tx.Bucket(topicsBucket); b != nil {
 			_ = b.Delete([]byte(arn))
@@ -168,7 +168,7 @@ func (s *Store) DeleteTopic(arn string) error {
 	})
 }
 
-func (s *Store) ListTopics() ([]Topic, error) {
+func (s *store) ListTopics() ([]Topic, error) {
 	var out []Topic
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(topicsBucket)
@@ -187,13 +187,13 @@ func (s *Store) ListTopics() ([]Topic, error) {
 	return out, err
 }
 
-func (s *Store) topicExists(tx *bolt.Tx, arn string) bool {
+func (s *store) topicExists(tx *bolt.Tx, arn string) bool {
 	b := tx.Bucket(topicsBucket)
 	return b != nil && b.Get([]byte(arn)) != nil
 }
 
 // TopicExists reports whether a topic ARN is known.
-func (s *Store) TopicExists(arn string) bool {
+func (s *store) TopicExists(arn string) bool {
 	ok := false
 	_ = s.db.View(func(tx *bolt.Tx) error {
 		ok = s.topicExists(tx, arn)
@@ -206,7 +206,7 @@ func (s *Store) TopicExists(arn string) bool {
 
 // Subscribe creates a subscription. SQS subscriptions are auto-confirmed; http(s)
 // ones start pending with a confirmation token until ConfirmSubscription.
-func (s *Store) Subscribe(topicARN, protocol, endpoint string, attrs map[string]string) (*Subscription, error) {
+func (s *store) Subscribe(topicARN, protocol, endpoint string, attrs map[string]string) (*Subscription, error) {
 	sub := &Subscription{
 		ARN:       topicARN + ":" + newID(),
 		TopicARN:  topicARN,
@@ -260,7 +260,7 @@ func applySubAttrs(sub *Subscription, attrs map[string]string) {
 }
 
 // GetSubscription returns one subscription by ARN.
-func (s *Store) GetSubscription(arn string) (*Subscription, error) {
+func (s *store) GetSubscription(arn string) (*Subscription, error) {
 	var sub *Subscription
 	err := s.db.View(func(tx *bolt.Tx) error {
 		got, err := s.getSub(tx, arn)
@@ -273,7 +273,7 @@ func (s *Store) GetSubscription(arn string) (*Subscription, error) {
 	return sub, err
 }
 
-func (s *Store) getSub(tx *bolt.Tx, arn string) (*Subscription, error) {
+func (s *store) getSub(tx *bolt.Tx, arn string) (*Subscription, error) {
 	b := tx.Bucket(subsBucket)
 	if b == nil {
 		return nil, errNotFound("subscription does not exist")
@@ -289,7 +289,7 @@ func (s *Store) getSub(tx *bolt.Tx, arn string) (*Subscription, error) {
 	return &sub, nil
 }
 
-func (s *Store) putSub(tx *bolt.Tx, sub *Subscription) error {
+func (s *store) putSub(tx *bolt.Tx, sub *Subscription) error {
 	b, err := tx.CreateBucketIfNotExists(subsBucket)
 	if err != nil {
 		return err
@@ -298,7 +298,7 @@ func (s *Store) putSub(tx *bolt.Tx, sub *Subscription) error {
 	return b.Put([]byte(sub.ARN), raw)
 }
 
-func (s *Store) Unsubscribe(arn string) error {
+func (s *store) Unsubscribe(arn string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if b := tx.Bucket(subsBucket); b != nil {
 			_ = b.Delete([]byte(arn))
@@ -307,7 +307,7 @@ func (s *Store) Unsubscribe(arn string) error {
 	})
 }
 
-func (s *Store) SetSubscriptionAttribute(arn, name, value string) error {
+func (s *store) SetSubscriptionAttribute(arn, name, value string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		sub, err := s.getSub(tx, arn)
 		if err != nil {
@@ -319,7 +319,7 @@ func (s *Store) SetSubscriptionAttribute(arn, name, value string) error {
 }
 
 // ConfirmByToken confirms a pending http(s) subscription given its token.
-func (s *Store) ConfirmByToken(token string) (*Subscription, error) {
+func (s *store) ConfirmByToken(token string) (*Subscription, error) {
 	var out *Subscription
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(subsBucket)
@@ -345,7 +345,7 @@ func (s *Store) ConfirmByToken(token string) (*Subscription, error) {
 	return out, err
 }
 
-func (s *Store) ListSubscriptions(topicFilter string) ([]Subscription, error) {
+func (s *store) ListSubscriptions(topicFilter string) ([]Subscription, error) {
 	var out []Subscription
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(subsBucket)
@@ -365,7 +365,7 @@ func (s *Store) ListSubscriptions(topicFilter string) ([]Subscription, error) {
 }
 
 // subsForTopic returns confirmed subscriptions of a topic (for delivery).
-func (s *Store) subsForTopic(arn string) ([]Subscription, error) {
+func (s *store) subsForTopic(arn string) ([]Subscription, error) {
 	all, err := s.ListSubscriptions(arn)
 	if err != nil {
 		return nil, err

@@ -111,15 +111,15 @@ type InstanceProfile struct {
 	Tags    map[string]string `json:"tags,omitempty"`
 }
 
-// Store is the bbolt-backed IAM state.
-type Store struct {
+// store is the bbolt-backed IAM state.
+type store struct {
 	db    *lazybolt.DB
 	clock func() time.Time
 }
 
-func newStore(db *lazybolt.DB) *Store { return &Store{db: db, clock: time.Now} }
+func newStore(db *lazybolt.DB) *store { return &store{db: db, clock: time.Now} }
 
-func (s *Store) now() time.Time { return s.clock() }
+func (s *store) now() time.Time { return s.clock() }
 
 // ---- generic helpers ----
 
@@ -196,7 +196,7 @@ func uniqueID(prefix string) string {
 
 // ---- users ----
 
-func (s *Store) CreateUser(name, path string, tags map[string]string) (*User, error) {
+func (s *store) CreateUser(name, path string, tags map[string]string) (*User, error) {
 	if err := validName("UserName", name); err != nil {
 		return nil, err
 	}
@@ -215,7 +215,7 @@ func (s *Store) CreateUser(name, path string, tags map[string]string) (*User, er
 	return out, err
 }
 
-func (s *Store) GetUser(name string) (*User, error) {
+func (s *store) GetUser(name string) (*User, error) {
 	var out *User
 	err := s.db.View(func(tx *bolt.Tx) error {
 		u, ok := getJSON[User](tx, userBucket, name)
@@ -228,7 +228,7 @@ func (s *Store) GetUser(name string) (*User, error) {
 	return out, err
 }
 
-func (s *Store) UpdateUser(name string, fn func(*User) error) (*User, error) {
+func (s *store) UpdateUser(name string, fn func(*User) error) (*User, error) {
 	var out *User
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		u, ok := getJSON[User](tx, userBucket, name)
@@ -252,7 +252,7 @@ func (s *Store) UpdateUser(name string, fn func(*User) error) (*User, error) {
 
 // DeleteUser refuses while the user still has attached policies or access
 // keys, matching AWS's DeleteConflict rather than silently orphaning them.
-func (s *Store) DeleteUser(name string) error {
+func (s *store) DeleteUser(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		u, ok := getJSON[User](tx, userBucket, name)
 		if !ok {
@@ -270,7 +270,7 @@ func (s *Store) DeleteUser(name string) error {
 	})
 }
 
-func (s *Store) ListUsers(pathPrefix string) ([]User, error) {
+func (s *store) ListUsers(pathPrefix string) ([]User, error) {
 	var out []User
 	err := s.db.View(func(tx *bolt.Tx) error {
 		for _, u := range listJSON[User](tx, userBucket) {
@@ -286,7 +286,7 @@ func (s *Store) ListUsers(pathPrefix string) ([]User, error) {
 
 // ---- groups ----
 
-func (s *Store) CreateGroup(name, path string) (*Group, error) {
+func (s *store) CreateGroup(name, path string) (*Group, error) {
 	if err := validName("GroupName", name); err != nil {
 		return nil, err
 	}
@@ -302,7 +302,7 @@ func (s *Store) CreateGroup(name, path string) (*Group, error) {
 	return out, err
 }
 
-func (s *Store) GetGroup(name string) (*Group, error) {
+func (s *store) GetGroup(name string) (*Group, error) {
 	var out *Group
 	err := s.db.View(func(tx *bolt.Tx) error {
 		g, ok := getJSON[Group](tx, groupBucket, name)
@@ -315,7 +315,7 @@ func (s *Store) GetGroup(name string) (*Group, error) {
 	return out, err
 }
 
-func (s *Store) UpdateGroup(name string, fn func(*Group) error) (*Group, error) {
+func (s *store) UpdateGroup(name string, fn func(*Group) error) (*Group, error) {
 	var out *Group
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		g, ok := getJSON[Group](tx, groupBucket, name)
@@ -336,7 +336,7 @@ func (s *Store) UpdateGroup(name string, fn func(*Group) error) (*Group, error) 
 	return out, err
 }
 
-func (s *Store) DeleteGroup(name string) error {
+func (s *store) DeleteGroup(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		g, ok := getJSON[Group](tx, groupBucket, name)
 		if !ok {
@@ -349,7 +349,7 @@ func (s *Store) DeleteGroup(name string) error {
 	})
 }
 
-func (s *Store) ListGroups(pathPrefix string) ([]Group, error) {
+func (s *store) ListGroups(pathPrefix string) ([]Group, error) {
 	var out []Group
 	err := s.db.View(func(tx *bolt.Tx) error {
 		for _, g := range listJSON[Group](tx, groupBucket) {
@@ -365,12 +365,12 @@ func (s *Store) ListGroups(pathPrefix string) ([]Group, error) {
 
 // ---- roles ----
 
-func (s *Store) CreateRole(name, path, assumeRolePolicy, description string, maxSession int, tags map[string]string) (*Role, error) {
+func (s *store) CreateRole(name, path, assumeRolePolicy, description string, maxSession int, tags map[string]string) (*Role, error) {
 	if err := validName("RoleName", name); err != nil {
 		return nil, err
 	}
 	if assumeRolePolicy != "" {
-		if _, err := ParsePolicy(assumeRolePolicy); err != nil {
+		if _, err := parsePolicy(assumeRolePolicy); err != nil {
 			return nil, errMalformedPolicy("AssumeRolePolicyDocument: %v", err)
 		}
 	}
@@ -391,7 +391,7 @@ func (s *Store) CreateRole(name, path, assumeRolePolicy, description string, max
 	return out, err
 }
 
-func (s *Store) GetRole(name string) (*Role, error) {
+func (s *store) GetRole(name string) (*Role, error) {
 	var out *Role
 	err := s.db.View(func(tx *bolt.Tx) error {
 		r, ok := getJSON[Role](tx, roleBucket, name)
@@ -404,7 +404,7 @@ func (s *Store) GetRole(name string) (*Role, error) {
 	return out, err
 }
 
-func (s *Store) UpdateRole(name string, fn func(*Role) error) (*Role, error) {
+func (s *store) UpdateRole(name string, fn func(*Role) error) (*Role, error) {
 	var out *Role
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		r, ok := getJSON[Role](tx, roleBucket, name)
@@ -420,7 +420,7 @@ func (s *Store) UpdateRole(name string, fn func(*Role) error) (*Role, error) {
 	return out, err
 }
 
-func (s *Store) DeleteRole(name string) error {
+func (s *store) DeleteRole(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		r, ok := getJSON[Role](tx, roleBucket, name)
 		if !ok {
@@ -433,7 +433,7 @@ func (s *Store) DeleteRole(name string) error {
 	})
 }
 
-func (s *Store) ListRoles(pathPrefix string) ([]Role, error) {
+func (s *store) ListRoles(pathPrefix string) ([]Role, error) {
 	var out []Role
 	err := s.db.View(func(tx *bolt.Tx) error {
 		for _, r := range listJSON[Role](tx, roleBucket) {
@@ -449,11 +449,11 @@ func (s *Store) ListRoles(pathPrefix string) ([]Role, error) {
 
 // ---- managed policies ----
 
-func (s *Store) CreatePolicy(name, path, document, description string, tags map[string]string) (*Policy, error) {
+func (s *store) CreatePolicy(name, path, document, description string, tags map[string]string) (*Policy, error) {
 	if err := validName("PolicyName", name); err != nil {
 		return nil, err
 	}
-	if _, err := ParsePolicy(document); err != nil {
+	if _, err := parsePolicy(document); err != nil {
 		return nil, errMalformedPolicy("PolicyDocument: %v", err)
 	}
 	var out *Policy
@@ -488,7 +488,7 @@ func policyKey(arn string) string {
 
 // GetPolicy resolves a policy ARN. AWS-managed ARNs are synthesized rather
 // than stored — see managed.go.
-func (s *Store) GetPolicy(arn string) (*Policy, error) {
+func (s *store) GetPolicy(arn string) (*Policy, error) {
 	if p, ok := managedPolicy(arn); ok {
 		return p, nil
 	}
@@ -508,7 +508,7 @@ func (s *Store) GetPolicy(arn string) (*Policy, error) {
 	return out, err
 }
 
-func (s *Store) UpdatePolicy(arn string, fn func(*Policy) error) (*Policy, error) {
+func (s *store) UpdatePolicy(arn string, fn func(*Policy) error) (*Policy, error) {
 	if isManagedARN(arn) {
 		return nil, errInvalidInput("Policy %s is an AWS managed policy and cannot be modified.", arn)
 	}
@@ -529,7 +529,7 @@ func (s *Store) UpdatePolicy(arn string, fn func(*Policy) error) (*Policy, error
 	return out, err
 }
 
-func (s *Store) DeletePolicy(arn string) error {
+func (s *store) DeletePolicy(arn string) error {
 	if isManagedARN(arn) {
 		return errInvalidInput("Policy %s is an AWS managed policy and cannot be deleted.", arn)
 	}
@@ -546,7 +546,7 @@ func (s *Store) DeletePolicy(arn string) error {
 	})
 }
 
-func (s *Store) ListPolicies(pathPrefix string) ([]Policy, error) {
+func (s *store) ListPolicies(pathPrefix string) ([]Policy, error) {
 	var out []Policy
 	err := s.db.View(func(tx *bolt.Tx) error {
 		for _, p := range listJSON[Policy](tx, policyBucket) {
@@ -561,8 +561,8 @@ func (s *Store) ListPolicies(pathPrefix string) ([]Policy, error) {
 }
 
 // AddPolicyVersion appends a version, enforcing the five-version ceiling.
-func (s *Store) AddPolicyVersion(arn, document string, setDefault bool) (string, error) {
-	if _, err := ParsePolicy(document); err != nil {
+func (s *store) AddPolicyVersion(arn, document string, setDefault bool) (string, error) {
+	if _, err := parsePolicy(document); err != nil {
 		return "", errMalformedPolicy("PolicyDocument: %v", err)
 	}
 	version := ""
@@ -594,7 +594,7 @@ func nextVersionNumber(order []string) int {
 	return high + 1
 }
 
-func (s *Store) DeletePolicyVersion(arn, version string) error {
+func (s *store) DeletePolicyVersion(arn, version string) error {
 	_, err := s.UpdatePolicy(arn, func(p *Policy) error {
 		if version == p.DefaultVersion {
 			return errDeleteConflict("Cannot delete the default version of a policy.")
@@ -622,7 +622,7 @@ const (
 
 // Attach adds a managed policy ARN to a principal. It is idempotent, and it
 // keeps the policy's attachment count in step so DeletePolicy can refuse.
-func (s *Store) Attach(kind attachTarget, name, policyARN string) error {
+func (s *store) Attach(kind attachTarget, name, policyARN string) error {
 	if _, err := s.GetPolicy(policyARN); err != nil {
 		return err
 	}
@@ -643,7 +643,7 @@ func (s *Store) Attach(kind attachTarget, name, policyARN string) error {
 	return nil
 }
 
-func (s *Store) Detach(kind attachTarget, name, policyARN string) error {
+func (s *store) Detach(kind attachTarget, name, policyARN string) error {
 	removed := false
 	if err := s.updatePrincipal(kind, name, func(p *Principal) error {
 		if !containsString(p.Attached, policyARN) {
@@ -668,7 +668,7 @@ func (s *Store) Detach(kind attachTarget, name, policyARN string) error {
 
 // updatePrincipal applies fn to the embedded Principal of any principal kind,
 // which is what lets attach/detach and inline-policy handling be written once.
-func (s *Store) updatePrincipal(kind attachTarget, name string, fn func(*Principal) error) error {
+func (s *store) updatePrincipal(kind attachTarget, name string, fn func(*Principal) error) error {
 	var err error
 	switch kind {
 	case targetUser:
@@ -682,7 +682,7 @@ func (s *Store) updatePrincipal(kind attachTarget, name string, fn func(*Princip
 }
 
 // principalOf fetches the embedded Principal for a kind and name.
-func (s *Store) principalOf(kind attachTarget, name string) (*Principal, error) {
+func (s *store) principalOf(kind attachTarget, name string) (*Principal, error) {
 	switch kind {
 	case targetUser:
 		u, err := s.GetUser(name)
@@ -707,7 +707,7 @@ func (s *Store) principalOf(kind attachTarget, name string) (*Principal, error) 
 
 // ---- access keys ----
 
-func (s *Store) CreateAccessKey(user string) (*AccessKey, error) {
+func (s *store) CreateAccessKey(user string) (*AccessKey, error) {
 	if _, err := s.GetUser(user); err != nil {
 		return nil, err
 	}
@@ -724,7 +724,7 @@ func (s *Store) CreateAccessKey(user string) (*AccessKey, error) {
 
 // LookupAccessKey resolves a key id to its key. This is the hot path for
 // enforcement: one point lookup, no scan.
-func (s *Store) LookupAccessKey(id string) (*AccessKey, bool) {
+func (s *store) LookupAccessKey(id string) (*AccessKey, bool) {
 	var out *AccessKey
 	_ = s.db.View(func(tx *bolt.Tx) error {
 		k, ok := getJSON[AccessKey](tx, keyBucket, id)
@@ -736,7 +736,7 @@ func (s *Store) LookupAccessKey(id string) (*AccessKey, bool) {
 	return out, out != nil
 }
 
-func (s *Store) ListAccessKeys(user string) ([]AccessKey, error) {
+func (s *store) ListAccessKeys(user string) ([]AccessKey, error) {
 	var out []AccessKey
 	err := s.db.View(func(tx *bolt.Tx) error {
 		for _, k := range listJSON[AccessKey](tx, keyBucket) {
@@ -750,7 +750,7 @@ func (s *Store) ListAccessKeys(user string) ([]AccessKey, error) {
 	return out, err
 }
 
-func (s *Store) UpdateAccessKey(id, status string) error {
+func (s *store) UpdateAccessKey(id, status string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		k, ok := getJSON[AccessKey](tx, keyBucket, id)
 		if !ok {
@@ -761,7 +761,7 @@ func (s *Store) UpdateAccessKey(id, status string) error {
 	})
 }
 
-func (s *Store) DeleteAccessKey(id string) error {
+func (s *store) DeleteAccessKey(id string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if _, ok := getJSON[AccessKey](tx, keyBucket, id); !ok {
 			return errNoEntity("The Access Key with id %s cannot be found.", id)
@@ -771,7 +771,7 @@ func (s *Store) DeleteAccessKey(id string) error {
 }
 
 // TouchAccessKey records last-used metadata, which GetAccessKeyLastUsed reads.
-func (s *Store) TouchAccessKey(id, service string) {
+func (s *store) TouchAccessKey(id, service string) {
 	_ = s.db.Update(func(tx *bolt.Tx) error {
 		k, ok := getJSON[AccessKey](tx, keyBucket, id)
 		if !ok {
@@ -784,7 +784,7 @@ func (s *Store) TouchAccessKey(id, service string) {
 
 // ---- instance profiles ----
 
-func (s *Store) CreateInstanceProfile(name, path string) (*InstanceProfile, error) {
+func (s *store) CreateInstanceProfile(name, path string) (*InstanceProfile, error) {
 	if err := validName("InstanceProfileName", name); err != nil {
 		return nil, err
 	}
@@ -800,7 +800,7 @@ func (s *Store) CreateInstanceProfile(name, path string) (*InstanceProfile, erro
 	return out, err
 }
 
-func (s *Store) GetInstanceProfile(name string) (*InstanceProfile, error) {
+func (s *store) GetInstanceProfile(name string) (*InstanceProfile, error) {
 	var out *InstanceProfile
 	err := s.db.View(func(tx *bolt.Tx) error {
 		p, ok := getJSON[InstanceProfile](tx, profileBucket, name)
@@ -813,7 +813,7 @@ func (s *Store) GetInstanceProfile(name string) (*InstanceProfile, error) {
 	return out, err
 }
 
-func (s *Store) UpdateInstanceProfile(name string, fn func(*InstanceProfile) error) error {
+func (s *store) UpdateInstanceProfile(name string, fn func(*InstanceProfile) error) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		p, ok := getJSON[InstanceProfile](tx, profileBucket, name)
 		if !ok {
@@ -826,7 +826,7 @@ func (s *Store) UpdateInstanceProfile(name string, fn func(*InstanceProfile) err
 	})
 }
 
-func (s *Store) DeleteInstanceProfile(name string) error {
+func (s *store) DeleteInstanceProfile(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if _, ok := getJSON[InstanceProfile](tx, profileBucket, name); !ok {
 			return errNoEntity("Instance Profile %s cannot be found.", name)
@@ -835,7 +835,7 @@ func (s *Store) DeleteInstanceProfile(name string) error {
 	})
 }
 
-func (s *Store) ListInstanceProfiles() ([]InstanceProfile, error) {
+func (s *store) ListInstanceProfiles() ([]InstanceProfile, error) {
 	var out []InstanceProfile
 	err := s.db.View(func(tx *bolt.Tx) error {
 		out = listJSON[InstanceProfile](tx, profileBucket)
@@ -847,7 +847,7 @@ func (s *Store) ListInstanceProfiles() ([]InstanceProfile, error) {
 
 // ---- account ----
 
-func (s *Store) AccountAlias() string {
+func (s *store) AccountAlias() string {
 	alias := ""
 	_ = s.db.View(func(tx *bolt.Tx) error {
 		if b := tx.Bucket(accountBucket); b != nil {
@@ -858,7 +858,7 @@ func (s *Store) AccountAlias() string {
 	return alias
 }
 
-func (s *Store) SetAccountAlias(alias string) error {
+func (s *store) SetAccountAlias(alias string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(accountBucket)
 		if err != nil {
@@ -875,8 +875,8 @@ func (s *Store) SetAccountAlias(alias string) error {
 
 // PoliciesFor gathers every policy document that applies to a principal:
 // inline, attached managed, and — for users — everything inherited from their
-// groups. This is what Evaluate is handed.
-func (s *Store) PoliciesFor(kind attachTarget, name string) ([]*Document, error) {
+// groups. This is what evaluate is handed.
+func (s *store) PoliciesFor(kind attachTarget, name string) ([]*document, error) {
 	p, err := s.principalOf(kind, name)
 	if err != nil {
 		return nil, err
@@ -899,15 +899,15 @@ func (s *Store) PoliciesFor(kind attachTarget, name string) ([]*Document, error)
 // documentsOf parses a principal's inline and attached policies. Unparseable
 // documents are skipped rather than failing the whole evaluation — they could
 // only have been stored before validation tightened.
-func (s *Store) documentsOf(p *Principal) []*Document {
-	var docs []*Document
+func (s *store) documentsOf(p *Principal) []*document {
+	var docs []*document
 	names := make([]string, 0, len(p.Inline))
 	for n := range p.Inline {
 		names = append(names, n)
 	}
-	sort.Strings(names) // deterministic attribution in Evaluate
+	sort.Strings(names) // deterministic attribution in evaluate
 	for _, n := range names {
-		if d, err := ParsePolicy(p.Inline[n]); err == nil {
+		if d, err := parsePolicy(p.Inline[n]); err == nil {
 			if d.ID == "" {
 				d.ID = n
 			}
@@ -919,7 +919,7 @@ func (s *Store) documentsOf(p *Principal) []*Document {
 		if err != nil {
 			continue
 		}
-		if d, err := ParsePolicy(pol.Default()); err == nil {
+		if d, err := parsePolicy(pol.Default()); err == nil {
 			if d.ID == "" {
 				d.ID = pol.Name
 			}

@@ -223,7 +223,7 @@ func errConnectionNotFound(name string) *awshttp.APIError {
 	return awshttp.Errf(400, "ResourceNotFoundException", "Connection %s does not exist", name)
 }
 
-func (s *Store) CreateConnection(c Connection) error {
+func (s *store) CreateConnection(c Connection) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(connectionsBucket)
 		if err != nil {
@@ -237,7 +237,7 @@ func (s *Store) CreateConnection(c Connection) error {
 	})
 }
 
-func (s *Store) GetConnection(name string) (*Connection, error) {
+func (s *store) GetConnection(name string) (*Connection, error) {
 	var out *Connection
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(connectionsBucket)
@@ -259,7 +259,7 @@ func (s *Store) GetConnection(name string) (*Connection, error) {
 }
 
 // UpdateConnection applies fn under the write lock.
-func (s *Store) UpdateConnection(name string, fn func(*Connection) error) (*Connection, error) {
+func (s *store) UpdateConnection(name string, fn func(*Connection) error) (*Connection, error) {
 	var out *Connection
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(connectionsBucket)
@@ -284,7 +284,7 @@ func (s *Store) UpdateConnection(name string, fn func(*Connection) error) (*Conn
 	return out, err
 }
 
-func (s *Store) DeleteConnection(name string) error {
+func (s *store) DeleteConnection(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(connectionsBucket)
 		if b == nil || b.Get([]byte(name)) == nil {
@@ -295,7 +295,7 @@ func (s *Store) DeleteConnection(name string) error {
 }
 
 // ListConnections filters by name prefix and state, sorted by name.
-func (s *Store) ListConnections(prefix, state string) ([]Connection, error) {
+func (s *store) ListConnections(prefix, state string) ([]Connection, error) {
 	var out []Connection
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(connectionsBucket)

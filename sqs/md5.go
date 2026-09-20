@@ -9,8 +9,8 @@ import (
 )
 
 // queueARN is a method rather than a free function because an ARN now depends
-// on which instance minted it, and the Store is what carries that.
-func (s *Store) queueARN(name string) string { return s.id.ARN("sqs", name) }
+// on which instance minted it, and the store is what carries that.
+func (s *store) queueARN(name string) string { return s.id.ARN("sqs", name) }
 
 // encodeHandle builds an opaque receipt handle from the message's sequence key
 // (8 bytes) and its unique id. Binding the id into the handle prevents aliasing:

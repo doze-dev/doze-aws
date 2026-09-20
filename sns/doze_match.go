@@ -83,7 +83,7 @@ func (srv *Server) dozeMatchSubscriptions(ctx context.Context, form url.Values, 
 // $or is the exception: it is a disjunction across keys and cannot be split
 // that way, so it is reported whole rather than mis-attributed to one of its
 // branches.
-func rejectionReasons(policyJSON string, attrs map[string]Attr) []matchReason {
+func rejectionReasons(policyJSON string, attrs map[string]attr) []matchReason {
 	var doc map[string]json.RawMessage
 	if json.Unmarshal([]byte(policyJSON), &doc) != nil {
 		return nil

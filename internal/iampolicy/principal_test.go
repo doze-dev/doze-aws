@@ -9,9 +9,9 @@ import (
 // TestPrincipalMatching walks the principal forms a resource policy can name
 // against the callers doze-aws stamps: identities, the root, services.
 func TestPrincipalMatching(t *testing.T) {
-	root := awsident.GlobalARN("iam", "root")
-	alice := awsident.GlobalARN("iam", "user/alice")
-	role := awsident.GlobalARN("iam", "role/worker")
+	root := awsident.Default().GlobalARN("iam", "root")
+	alice := awsident.Default().GlobalARN("iam", "user/alice")
+	role := awsident.Default().GlobalARN("iam", "role/worker")
 	other := "arn:aws:iam::111111111111:user/alice"
 
 	cases := []struct {
@@ -64,8 +64,8 @@ func TestPrincipalMatching(t *testing.T) {
 // named ones, and a statement with no Principal block (an identity policy)
 // matches every caller.
 func TestNotPrincipalInverts(t *testing.T) {
-	alice := awsident.GlobalARN("iam", "user/alice")
-	bob := awsident.GlobalARN("iam", "user/bob")
+	alice := awsident.Default().GlobalARN("iam", "user/alice")
+	bob := awsident.Default().GlobalARN("iam", "user/bob")
 	doc, err := Parse(`{"Version":"2012-10-17","Statement":[{"Effect":"Deny","NotPrincipal":{"AWS":"` + alice +
 		`"},"Action":"sqs:*","Resource":"*"}]}`)
 	if err != nil {

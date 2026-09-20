@@ -204,7 +204,7 @@ func TestSoftModeRecordsWithoutBlocking(t *testing.T) {
 
 	// And the generated policy covers exactly what was exercised.
 	policy := dozeCall(t, endpoint, "DozeGeneratePolicy", map[string]string{
-		"Principal": awsident.GlobalARN("iam", "user/observed"),
+		"Principal": awsident.Default().GlobalARN("iam", "user/observed"),
 	})
 	for _, want := range []string{"sqs:CreateQueue", "sqs:ListQueues"} {
 		if !strings.Contains(policy, want) {
@@ -227,7 +227,7 @@ func TestGeneratedPolicyIsAcceptedBack(t *testing.T) {
 	sqs.CreateQueue(ctx, &awssqs.CreateQueueInput{QueueName: aws.String("q")})
 
 	raw := dozeCall(t, endpoint, "DozeGeneratePolicy", map[string]string{
-		"Principal": awsident.GlobalARN("iam", "user/looped"),
+		"Principal": awsident.Default().GlobalARN("iam", "user/looped"),
 	})
 	doc := between(raw, "<PolicyDocument>", "</PolicyDocument>")
 	if doc == "" {

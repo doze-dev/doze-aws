@@ -54,7 +54,7 @@ type Options struct {
 // Server is the Secrets Manager service: an http.Handler speaking AWS JSON
 // 1.1, and an io.Closer that stops the janitor and closes the store.
 type Server struct {
-	store *Store
+	store *store
 	peers peers.Directory
 	logf  func(format string, args ...any)
 	api   awsjson.API

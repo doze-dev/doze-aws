@@ -15,7 +15,7 @@ import (
 )
 
 // testStore opens a fresh white-box store (no server, no janitor).
-func testStore(t *testing.T) *Store {
+func testStore(t *testing.T) *store {
 	t.Helper()
 	db, err := lazybolt.Open(filepath.Join(t.TempDir(), "sqs.bolt"), nil, nil)
 	if err != nil {

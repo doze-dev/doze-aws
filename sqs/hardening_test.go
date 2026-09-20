@@ -7,7 +7,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
-func bucketCount(s *Store, bucket []byte) int {
+func bucketCount(s *store, bucket []byte) int {
 	n := 0
 	_ = s.db.View(func(tx *bolt.Tx) error {
 		if b := tx.Bucket(bucket); b != nil {

@@ -35,7 +35,6 @@ import (
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/gateway"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
-	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/kinesis"
 	"github.com/doze-dev/doze-aws/kms"
 	"github.com/doze-dev/doze-aws/lambda"
@@ -48,6 +47,7 @@ import (
 	"github.com/doze-dev/doze-aws/ssm"
 	"github.com/doze-dev/doze-aws/stepfunctions"
 	"github.com/doze-dev/doze-aws/sts"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // Implemented lists the services this build of doze-aws can serve, in gateway

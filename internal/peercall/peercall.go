@@ -17,8 +17,8 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // A note on the account in the queue URLs below.

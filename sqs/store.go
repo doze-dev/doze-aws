@@ -90,8 +90,8 @@ type Message struct {
 	Seq      uint64            `json:"seq"`
 }
 
-// Store is the bbolt-backed SQS state.
-type Store struct {
+// store is the bbolt-backed SQS state.
+type store struct {
 	db    *lazybolt.DB
 	clock func() time.Time
 	// id is the region and account ARNs are minted for. Stamped by New after
@@ -101,21 +101,21 @@ type Store struct {
 	notify *notifier
 }
 
-func newStore(db *lazybolt.DB) *Store {
-	return &Store{db: db, clock: time.Now, notify: newNotifier()}
+func newStore(db *lazybolt.DB) *store {
+	return &store{db: db, clock: time.Now, notify: newNotifier()}
 }
 
-func (s *Store) now() time.Time { return s.clock() }
+func (s *store) now() time.Time { return s.clock() }
 
 // ---- queue lifecycle ----
 
 // lookupIn binds a transaction into a queueLookup, so attribute validation can
 // ask whether a queue it has been pointed at actually exists.
-func (s *Store) lookupIn(tx *bolt.Tx) queueLookup {
+func (s *store) lookupIn(tx *bolt.Tx) queueLookup {
 	return func(name string) (*Queue, error) { return s.getQueue(tx, name) }
 }
 
-func (s *Store) getQueue(tx *bolt.Tx, name string) (*Queue, error) {
+func (s *store) getQueue(tx *bolt.Tx, name string) (*Queue, error) {
 	b := tx.Bucket(metaBucket)
 	if b == nil {
 		return nil, errQueueMissing(name)
@@ -131,7 +131,7 @@ func (s *Store) getQueue(tx *bolt.Tx, name string) (*Queue, error) {
 	return &q, nil
 }
 
-func (s *Store) putQueue(tx *bolt.Tx, q *Queue) error {
+func (s *store) putQueue(tx *bolt.Tx, q *Queue) error {
 	b, err := tx.CreateBucketIfNotExists(metaBucket)
 	if err != nil {
 		return err
@@ -144,7 +144,7 @@ func (s *Store) putQueue(tx *bolt.Tx, q *Queue) error {
 }
 
 // CreateQueue creates (or, idempotently, updates the attributes of) a queue.
-func (s *Store) CreateQueue(name string, attrs map[string]string, tags map[string]string) (*Queue, error) {
+func (s *store) CreateQueue(name string, attrs map[string]string, tags map[string]string) (*Queue, error) {
 	if name == "" {
 		return nil, errInvalid("queue name is required")
 	}
@@ -183,7 +183,7 @@ func (s *Store) CreateQueue(name string, attrs map[string]string, tags map[strin
 	return out, err
 }
 
-func (s *Store) DeleteQueue(name string) error {
+func (s *store) DeleteQueue(name string) error {
 	if err := s.db.Update(func(tx *bolt.Tx) error {
 		if _, err := s.getQueue(tx, name); err != nil {
 			return err
@@ -209,7 +209,7 @@ func (s *Store) DeleteQueue(name string) error {
 	return nil
 }
 
-func (s *Store) ListQueues(prefix string) ([]string, error) {
+func (s *store) ListQueues(prefix string) ([]string, error) {
 	var names []string
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(metaBucket)
@@ -230,7 +230,7 @@ func (s *Store) ListQueues(prefix string) ([]string, error) {
 // ---- messages ----
 
 // Send enqueues a message. delay<0 means "use the queue default".
-func (s *Store) Send(queue, body string, attrs map[string]Attr, delay int, groupID, dedupID string, sysAttrs map[string]string) (*Message, error) {
+func (s *store) Send(queue, body string, attrs map[string]Attr, delay int, groupID, dedupID string, sysAttrs map[string]string) (*Message, error) {
 	var out *Message
 	enqueued := false
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -279,7 +279,7 @@ type SendResult struct {
 // per entry. A QUEUE-level failure (no such queue) returns an error and
 // nothing is written, which is also what AWS does — a bad QueueUrl fails the
 // request rather than every entry in it.
-func (s *Store) SendBatch(queue string, items []SendItem) ([]SendResult, error) {
+func (s *store) SendBatch(queue string, items []SendItem) ([]SendResult, error) {
 	results := make([]SendResult, len(items))
 	enqueued := false
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -308,7 +308,7 @@ func (s *Store) SendBatch(queue string, items []SendItem) ([]SendResult, error) 
 // sendIn is one message's work inside a caller's transaction. sent reports
 // whether anything was actually enqueued — a FIFO duplicate returns a message
 // and false, since it reports success without writing.
-func (s *Store) sendIn(tx *bolt.Tx, q *Queue, body string, attrs map[string]Attr, delay int, groupID, dedupID string, sysAttrs map[string]string) (out *Message, sent bool, err error) {
+func (s *store) sendIn(tx *bolt.Tx, q *Queue, body string, attrs map[string]Attr, delay int, groupID, dedupID string, sysAttrs map[string]string) (out *Message, sent bool, err error) {
 	queue := q.Name
 	if q.MaxMessageSize > 0 && len(body) > q.MaxMessageSize {
 		return nil, false, errInvalid(fmt.Sprintf("message length %d exceeds MaximumMessageSize %d", len(body), q.MaxMessageSize))
@@ -365,7 +365,7 @@ func (s *Store) sendIn(tx *bolt.Tx, q *Queue, body string, attrs map[string]Attr
 	return m, true, nil
 }
 
-func (s *Store) Purge(queue string) error {
+func (s *store) Purge(queue string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if _, err := s.getQueue(tx, queue); err != nil {
 			return err

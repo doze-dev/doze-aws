@@ -150,15 +150,15 @@ func baselines() map[string]map[string]any {
 		"ListDashboards":   {},
 		"DeleteDashboards": {"DashboardNames": []any{auditDoomedDashboard}},
 		"TagResource": {
-			"ResourceARN": awsident.ARN("cloudwatch", "alarm:"+auditAlarm),
+			"ResourceARN": awsident.Default().ARN("cloudwatch", "alarm:"+auditAlarm),
 			"Tags":        []any{map[string]any{"Key": "team", "Value": "audit"}},
 		},
 		"UntagResource": {
-			"ResourceARN": awsident.ARN("cloudwatch", "alarm:"+auditAlarm),
+			"ResourceARN": awsident.Default().ARN("cloudwatch", "alarm:"+auditAlarm),
 			"TagKeys":     []any{"team"},
 		},
 		"ListTagsForResource": {
-			"ResourceARN": awsident.ARN("cloudwatch", "alarm:"+auditAlarm),
+			"ResourceARN": awsident.Default().ARN("cloudwatch", "alarm:"+auditAlarm),
 		},
 	}
 }
@@ -442,7 +442,7 @@ func seedAudit(t *testing.T, base string) {
 	// TagResource's baseline adds this tag; UntagResource's removes it. The
 	// order the two baselines run in is map order, so the tag is seeded here
 	// and neither baseline depends on the other having gone first.
-	post("TagResource", `{"ResourceARN":"`+awsident.ARN("cloudwatch", "alarm:"+auditAlarm)+`",`+
+	post("TagResource", `{"ResourceARN":"`+awsident.Default().ARN("cloudwatch", "alarm:"+auditAlarm)+`",`+
 		`"Tags":[{"Key":"team","Value":"audit"}]}`)
 }
 

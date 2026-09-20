@@ -47,8 +47,8 @@ type Version struct {
 // Latest returns the newest version.
 func (p *Parameter) Latest() *Version { return &p.Versions[len(p.Versions)-1] }
 
-// Store is the bbolt-backed parameter store plus the SecureString sealer.
-type Store struct {
+// store is the bbolt-backed parameter store plus the SecureString sealer.
+type store struct {
 	db    *lazybolt.DB
 	gcm   cipher.AEAD
 	clock func() time.Time
@@ -56,7 +56,7 @@ type Store struct {
 
 // newStore opens the store and loads (or mints) the per-data-dir SecureString
 // key at keyPath.
-func newStore(db *lazybolt.DB, keyPath string) (*Store, error) {
+func newStore(db *lazybolt.DB, keyPath string) (*store, error) {
 	key, err := os.ReadFile(keyPath)
 	if errors.Is(err, os.ErrNotExist) {
 		key = make([]byte, 32)
@@ -75,24 +75,24 @@ func newStore(db *lazybolt.DB, keyPath string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Store{db: db, gcm: gcm, clock: time.Now}, nil
+	return &store{db: db, gcm: gcm, clock: time.Now}, nil
 }
 
-func (s *Store) now() time.Time { return s.clock() }
+func (s *store) now() time.Time { return s.clock() }
 
 func errParamNotFound(name string) *awshttp.APIError {
 	return awshttp.Errf(400, "ParameterNotFound", "parameter %q does not exist", name)
 }
 
 // seal encrypts a SecureString value.
-func (s *Store) seal(plaintext string) []byte {
+func (s *store) seal(plaintext string) []byte {
 	nonce := make([]byte, s.gcm.NonceSize())
 	rand.Read(nonce)
 	return append(nonce, s.gcm.Seal(nil, nonce, []byte(plaintext), nil)...)
 }
 
 // open decrypts a SecureString value.
-func (s *Store) open(sealed []byte) (string, error) {
+func (s *store) open(sealed []byte) (string, error) {
 	if len(sealed) < s.gcm.NonceSize() {
 		return "", errors.New("sealed value too short")
 	}
@@ -101,7 +101,7 @@ func (s *Store) open(sealed []byte) (string, error) {
 }
 
 // Put creates or overwrites a parameter, bumping the version.
-func (s *Store) Put(name, ptype, value, keyID, description, dataType, tier, policies string, expiresAt int64, tags map[string]string, overwrite bool) (int64, *awshttp.APIError) {
+func (s *store) Put(name, ptype, value, keyID, description, dataType, tier, policies string, expiresAt int64, tags map[string]string, overwrite bool) (int64, *awshttp.APIError) {
 	if name == "" {
 		return 0, awshttp.Errf(400, "ValidationException", "Name is required")
 	}
@@ -189,7 +189,7 @@ func (s *Store) Put(name, ptype, value, keyID, description, dataType, tier, poli
 }
 
 // Get resolves a selector: "name", "name:version", or "name:label".
-func (s *Store) Get(selector string, decrypt bool) (*Parameter, *Version, string, *awshttp.APIError) {
+func (s *store) Get(selector string, decrypt bool) (*Parameter, *Version, string, *awshttp.APIError) {
 	name, qualifier := selector, ""
 	// ARN form: arn:aws:ssm:region:acct:parameter/<name>.
 	if strings.HasPrefix(name, "arn:") {
@@ -253,7 +253,7 @@ func (s *Store) Get(selector string, decrypt bool) (*Parameter, *Version, string
 }
 
 // render produces the API-visible value for a version.
-func (s *Store) render(p *Parameter, v *Version, decrypt bool) (string, *awshttp.APIError) {
+func (s *store) render(p *Parameter, v *Version, decrypt bool) (string, *awshttp.APIError) {
 	if p.Type != "SecureString" {
 		return string(v.Value), nil
 	}
@@ -269,12 +269,12 @@ func (s *Store) render(p *Parameter, v *Version, decrypt bool) (string, *awshttp
 }
 
 // expired reports whether the parameter's Expiration policy has passed.
-func (s *Store) expired(p *Parameter) bool {
+func (s *store) expired(p *Parameter) bool {
 	return p.ExpiresAt > 0 && p.ExpiresAt <= s.now().Unix()
 }
 
 // Delete removes a parameter.
-func (s *Store) Delete(name string) *awshttp.APIError {
+func (s *store) Delete(name string) *awshttp.APIError {
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(paramsBucket)
 		if b == nil || b.Get([]byte(name)) == nil {
@@ -286,7 +286,7 @@ func (s *Store) Delete(name string) *awshttp.APIError {
 }
 
 // List returns all live parameters, sorted by name.
-func (s *Store) List() ([]Parameter, error) {
+func (s *store) List() ([]Parameter, error) {
 	var out []Parameter
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(paramsBucket)
@@ -306,7 +306,7 @@ func (s *Store) List() ([]Parameter, error) {
 }
 
 // ByPath returns parameters under a path, optionally recursive.
-func (s *Store) ByPath(path string, recursive bool) ([]Parameter, error) {
+func (s *store) ByPath(path string, recursive bool) ([]Parameter, error) {
 	if path == "" {
 		path = "/"
 	}
@@ -330,7 +330,7 @@ func (s *Store) ByPath(path string, recursive bool) ([]Parameter, error) {
 
 // Label attaches labels to a version, moving each label from any version that
 // had it (SSM semantics: a label names at most one version).
-func (s *Store) Label(name string, version int64, labels []string) (attached []string, aerr *awshttp.APIError) {
+func (s *store) Label(name string, version int64, labels []string) (attached []string, aerr *awshttp.APIError) {
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(paramsBucket)
 		if b == nil {
@@ -370,7 +370,7 @@ func (s *Store) Label(name string, version int64, labels []string) (attached []s
 }
 
 // Unlabel removes labels from a version.
-func (s *Store) Unlabel(name string, version int64, labels []string) (removed []string, aerr *awshttp.APIError) {
+func (s *store) Unlabel(name string, version int64, labels []string) (removed []string, aerr *awshttp.APIError) {
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(paramsBucket)
 		if b == nil {
@@ -402,7 +402,7 @@ func (s *Store) Unlabel(name string, version int64, labels []string) (removed []
 }
 
 // UpdateTags mutates a parameter's tags.
-func (s *Store) UpdateTags(name string, add map[string]string, removeKeys []string) *awshttp.APIError {
+func (s *store) UpdateTags(name string, add map[string]string, removeKeys []string) *awshttp.APIError {
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(paramsBucket)
 		if b == nil {
@@ -432,7 +432,7 @@ func (s *Store) UpdateTags(name string, add map[string]string, removeKeys []stri
 }
 
 // Tags returns a parameter's tags.
-func (s *Store) Tags(name string) (map[string]string, *awshttp.APIError) {
+func (s *store) Tags(name string) (map[string]string, *awshttp.APIError) {
 	var out map[string]string
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(paramsBucket)
@@ -454,7 +454,7 @@ func (s *Store) Tags(name string) (map[string]string, *awshttp.APIError) {
 }
 
 // SweepExpired deletes parameters whose Expiration policy has passed.
-func (s *Store) SweepExpired() {
+func (s *store) SweepExpired() {
 	now := s.now().Unix()
 	_ = s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(paramsBucket)

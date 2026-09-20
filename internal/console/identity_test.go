@@ -5,7 +5,7 @@ package console_test
 // Every other test here builds a console with no Identity, so every one of them
 // runs under the default account — and that is precisely why this went
 // unnoticed: the console held an Identity, passed it to its backend, and then
-// built ARNs with awsident.ARN(), which ignores it and uses the package
+// built ARNs with awsident.Default().ARN(), which ignores it and uses the package
 // defaults. Under `doze-aws --account-id 123456789012` the SQS service reported
 // arn:aws:sqs:us-east-1:123456789012:q and the console rendered
 // arn:aws:sqs:us-east-1:000000000000:q for the same queue.

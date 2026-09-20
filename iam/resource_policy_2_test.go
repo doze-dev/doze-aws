@@ -135,7 +135,7 @@ func TestStreamPolicyUnderEnforce(t *testing.T) {
 	if _, err := rootK.CreateStream(ctx, &awskinesis.CreateStreamInput{StreamName: aws.String("clicks"), ShardCount: aws.Int32(1)}); err != nil {
 		t.Fatal(err)
 	}
-	streamARN := awsident.ARN("kinesis", "stream/clicks")
+	streamARN := awsident.Default().ARN("kinesis", "stream/clicks")
 	put := func(c *awskinesis.Client) error {
 		_, err := c.PutRecord(ctx, &awskinesis.PutRecordInput{StreamName: aws.String("clicks"), PartitionKey: aws.String("k"), Data: []byte("x")})
 		return err
@@ -210,7 +210,7 @@ func TestOffModeIgnoresResourcePolicies(t *testing.T) {
 	c := s3Client(rootCfg(), endpoint)
 	c.CreateBucket(ctx, &awss3.CreateBucketInput{Bucket: aws.String("docs")})
 	if _, err := c.PutBucketPolicy(ctx, &awss3.PutBucketPolicyInput{Bucket: aws.String("docs"), Policy: aws.String(
-		`{"Version":"2012-10-17","Statement":[{"Effect":"Deny","Principal":{"AWS":"` + awsident.GlobalARN("iam", "root") +
+		`{"Version":"2012-10-17","Statement":[{"Effect":"Deny","Principal":{"AWS":"` + awsident.Default().GlobalARN("iam", "root") +
 			`"},"Action":"s3:*","Resource":["arn:aws:s3:::docs","arn:aws:s3:::docs/*"]}]}`)}); err != nil {
 		t.Fatal(err)
 	}

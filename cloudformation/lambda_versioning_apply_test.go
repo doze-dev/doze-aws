@@ -136,7 +136,7 @@ func TestApplyLambdaVersioningTemplate(t *testing.T) {
 	if l := sf.Layers["helpers"]; l.Code != layerDir || l.Description != "shared helpers" || len(l.Runtimes) != 1 {
 		t.Errorf("layer mapped as %+v", l)
 	}
-	aliasARN := awsident.ARN("lambda", "function:versioned:live")
+	aliasARN := awsident.Default().ARN("lambda", "function:versioned:live")
 	if got := rep.Outputs["AliasArn"]; got != aliasARN {
 		t.Errorf("Ref Live = %q, want %q", got, aliasARN)
 	}

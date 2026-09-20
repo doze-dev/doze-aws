@@ -40,7 +40,7 @@ var handlers = map[string]handler{
 }
 
 // groupARN is the ARN CloudWatch Logs reports for a group.
-func (s *Store) groupARN(name string) string {
+func (s *store) groupARN(name string) string {
 	return s.id.ARN("logs", "log-group:"+name+":*")
 }
 

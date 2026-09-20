@@ -115,7 +115,7 @@ func machineOfExecARN(arn string) string {
 
 // PutExecution writes the record. Every interpreter transition lands here —
 // that cadence is the durability contract.
-func (s *Store) PutExecution(e *Execution) error {
+func (s *store) PutExecution(e *Execution) error {
 	return s.put(bucketExecutions, []byte(e.Key()), e)
 }
 
@@ -123,7 +123,7 @@ func (s *Store) PutExecution(e *Execution) error {
 // events, and applies its token writes in ONE bbolt update. A crash between
 // any two would otherwise leave history claiming a transition the frames
 // don't show, or a PARKED frame whose token can never be redeemed.
-func (s *Store) SaveTransition(e *Execution, events []histEvent, tokens []tokenOp) error {
+func (s *store) SaveTransition(e *Execution, events []histEvent, tokens []tokenOp) error {
 	raw, err := json.Marshal(e)
 	if err != nil {
 		return err
@@ -179,7 +179,7 @@ func histKey(execKey string, id int64) string {
 
 // HistoryPage reads events for one execution with id > afterID, at most
 // limit, in ascending id order. more says a further page exists.
-func (s *Store) HistoryPage(execKey string, afterID int64, limit int) (events []histEvent, more bool, err error) {
+func (s *store) HistoryPage(execKey string, afterID int64, limit int) (events []histEvent, more bool, err error) {
 	if evs, more, ok := s.vol.history(execKey, afterID, limit); ok {
 		return evs, more, nil
 	}
@@ -208,7 +208,7 @@ func (s *Store) HistoryPage(execKey string, afterID int64, limit int) (events []
 }
 
 // GetExecution reads one execution, nil when absent.
-func (s *Store) GetExecution(machineName, execName string) (*Execution, error) {
+func (s *store) GetExecution(machineName, execName string) (*Execution, error) {
 	if e, ok := s.vol.get(execKey(machineName, execName)); ok {
 		return e, nil
 	}
@@ -221,7 +221,7 @@ func (s *Store) GetExecution(machineName, execName string) (*Execution, error) {
 }
 
 // GetExecutionByKey reads by the engine's run key.
-func (s *Store) GetExecutionByKey(key string) (*Execution, error) {
+func (s *store) GetExecutionByKey(key string) (*Execution, error) {
 	machine, name, ok := strings.Cut(key, "\x00")
 	if !ok {
 		return nil, nil
@@ -230,7 +230,7 @@ func (s *Store) GetExecutionByKey(key string) (*Execution, error) {
 }
 
 // ListExecutionsFor returns every execution of one machine, in key order.
-func (s *Store) ListExecutionsFor(machineName string) ([]*Execution, error) {
+func (s *store) ListExecutionsFor(machineName string) ([]*Execution, error) {
 	prefix := []byte(machineName + "\x00")
 	var out []*Execution
 	err := s.db.View(func(tx *bolt.Tx) error {
@@ -261,7 +261,7 @@ func (s *Store) ListExecutionsFor(machineName string) ([]*Execution, error) {
 // anything, and a database that has not been created cannot hold an execution.
 // Going through View would create stepfunctions.bolt on every boot to discover
 // that there is nothing in it.
-func (s *Store) EachRunning(fn func(key string)) error {
+func (s *store) EachRunning(fn func(key string)) error {
 	_, err := s.db.ViewIfExists(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketExecutions)
 		if b == nil {

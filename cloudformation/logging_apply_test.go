@@ -107,7 +107,7 @@ func TestApplyLoggingSettings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Transpile: %v", err)
 	}
-	if sm := sf.StateMachines["flow"]; !strings.Contains(sm.Logging.JSON, `"level":"ALL"`) || !strings.Contains(sm.Logging.JSON, `"logGroupArn":"`+awsident.ARN("logs", "log-group:/aws/vendedlogs/states/flow:*")+`"`) {
+	if sm := sf.StateMachines["flow"]; !strings.Contains(sm.Logging.JSON, `"level":"ALL"`) || !strings.Contains(sm.Logging.JSON, `"logGroupArn":"`+awsident.Default().ARN("logs", "log-group:/aws/vendedlogs/states/flow:*")+`"`) {
 		t.Errorf("the SAM Logging block should map to the API's camelCase loggingConfiguration, got %s", sm.Logging.JSON)
 	}
 	api := sf.APIs["shop"]
@@ -127,7 +127,7 @@ func TestApplyLoggingSettings(t *testing.T) {
 	logs := cwl.NewFromConfig(cfg, func(o *cwl.Options) { o.BaseEndpoint = aws.String(ts.URL) })
 
 	// The state machine logs to the group the template named.
-	desc, err := sfn.DescribeStateMachine(ctx, &awssfn.DescribeStateMachineInput{StateMachineArn: aws.String(awsident.ARN("states", "stateMachine:flow"))})
+	desc, err := sfn.DescribeStateMachine(ctx, &awssfn.DescribeStateMachineInput{StateMachineArn: aws.String(awsident.Default().ARN("states", "stateMachine:flow"))})
 	if err != nil || desc.LoggingConfiguration == nil || string(desc.LoggingConfiguration.Level) != "ALL" {
 		t.Fatalf("the deployed machine's logging = %+v (%v)", desc.LoggingConfiguration, err)
 	}

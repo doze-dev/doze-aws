@@ -48,7 +48,7 @@ type Key struct {
 	KeyUsage     string            `json:"key_usage"` // ENCRYPT_DECRYPT
 	MultiRegion  bool              `json:"multi_region"`
 
-	// id is the identity ARN() mints under, stamped on read by Store.stamp.
+	// id is the identity ARN() mints under, stamped on read by store.stamp.
 	// Unexported, so it is never written to bbolt — see stamp for why.
 	id awsident.Identity
 }
@@ -57,12 +57,12 @@ type Key struct {
 //
 // The identity comes off the record rather than a package constant, and is
 // stamped as the key is read (see stamp). A Key decoded out of bbolt has no
-// pointer back to the Store that owns it, so the alternative would have been an
+// pointer back to the store that owns it, so the alternative would have been an
 // identity argument at all thirteen call sites.
 func (k *Key) ARN() string { return k.id.ARN("kms", "key/"+k.ID) }
 
-// Store is the bbolt-backed KMS state.
-type Store struct {
+// store is the bbolt-backed KMS state.
+type store struct {
 	db    *lazybolt.DB
 	clock func() time.Time
 	// id is the region and account ARNs are minted for. Stamped by New after
@@ -70,7 +70,7 @@ type Store struct {
 	id awsident.Identity
 }
 
-func newStore(db *lazybolt.DB) *Store { return &Store{db: db, clock: time.Now} }
+func newStore(db *lazybolt.DB) *store { return &store{db: db, clock: time.Now} }
 
 // stamp marks a key with the identity that owns it. Every path that produces a
 // Key goes through here, so ARN() can stay a plain method on the record.
@@ -78,14 +78,14 @@ func newStore(db *lazybolt.DB) *Store { return &Store{db: db, clock: time.Now} }
 // It is not persisted — the field is unexported, so encoding/json skips it.
 // That is deliberate: the identity belongs to the instance serving the key, not
 // to the record, so a data directory stays portable between instances.
-func (s *Store) stamp(k *Key) *Key {
+func (s *store) stamp(k *Key) *Key {
 	if k != nil {
 		k.id = s.id
 	}
 	return k
 }
 
-func (s *Store) now() time.Time { return s.clock() }
+func (s *store) now() time.Time { return s.clock() }
 
 func errNotFound(keyID string) *awshttp.APIError {
 	return awshttp.Errf(400, "NotFoundException", "key %q does not exist", keyID)
@@ -93,7 +93,7 @@ func errNotFound(keyID string) *awshttp.APIError {
 
 // CreateKey mints a new key of the given spec. Material is the AES key
 // (symmetric), the HMAC secret, or the PKCS#8 DER private key (RSA/ECC).
-func (s *Store) CreateKey(spec, usage, description, policy string, tags map[string]string) (*Key, error) {
+func (s *store) CreateKey(spec, usage, description, policy string, tags map[string]string) (*Key, error) {
 	if spec == "" {
 		spec = "SYMMETRIC_DEFAULT"
 	}
@@ -131,7 +131,7 @@ func (s *Store) CreateKey(spec, usage, description, policy string, tags map[stri
 
 // Resolve maps any accepted key identifier — key id, key ARN, alias name,
 // alias ARN — to the key.
-func (s *Store) Resolve(ident string) (*Key, error) {
+func (s *store) Resolve(ident string) (*Key, error) {
 	var out *Key
 	err := s.db.View(func(tx *bolt.Tx) error {
 		k, err := s.resolve(tx, ident)
@@ -166,7 +166,7 @@ func isAWSManagedAlias(ident string) bool {
 // ensureAWSManaged materialises an AWS-managed key on first use, the way an
 // account does. It is idempotent: a concurrent caller that got there first
 // wins and its key is returned.
-func (s *Store) ensureAWSManaged(ident string) (*Key, error) {
+func (s *store) ensureAWSManaged(ident string) (*Key, error) {
 	if i := strings.Index(ident, ":alias/"); strings.HasPrefix(ident, "arn:") && i >= 0 {
 		ident = "alias/" + ident[i+len(":alias/"):]
 	}
@@ -184,7 +184,7 @@ func (s *Store) ensureAWSManaged(ident string) (*Key, error) {
 	return k, nil
 }
 
-func (s *Store) resolve(tx *bolt.Tx, ident string) (*Key, error) {
+func (s *store) resolve(tx *bolt.Tx, ident string) (*Key, error) {
 	if ident == "" {
 		return nil, awshttp.Errf(400, "ValidationException", "KeyId is required")
 	}
@@ -223,7 +223,7 @@ func (s *Store) resolve(tx *bolt.Tx, ident string) (*Key, error) {
 }
 
 // Update applies fn to a key resolved by ident and persists it.
-func (s *Store) Update(ident string, fn func(*Key) *awshttp.APIError) (*Key, error) {
+func (s *store) Update(ident string, fn func(*Key) *awshttp.APIError) (*Key, error) {
 	var out *Key
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		k, err := s.resolve(tx, ident)
@@ -241,7 +241,7 @@ func (s *Store) Update(ident string, fn func(*Key) *awshttp.APIError) (*Key, err
 }
 
 // List returns all keys, sorted by id.
-func (s *Store) List() ([]Key, error) {
+func (s *store) List() ([]Key, error) {
 	var out []Key
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(keysBucket)
@@ -264,7 +264,7 @@ func (s *Store) List() ([]Key, error) {
 // ---- aliases ----
 
 // SetAlias points an alias at a key (create or update).
-func (s *Store) SetAlias(name, keyIdent string, mustExist, mustNotExist bool) error {
+func (s *store) SetAlias(name, keyIdent string, mustExist, mustNotExist bool) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		k, err := s.resolve(tx, keyIdent)
 		if err != nil {
@@ -286,7 +286,7 @@ func (s *Store) SetAlias(name, keyIdent string, mustExist, mustNotExist bool) er
 }
 
 // DeleteAlias removes an alias.
-func (s *Store) DeleteAlias(name string) error {
+func (s *store) DeleteAlias(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(aliasesBucket)
 		if b == nil || b.Get([]byte(name)) == nil {
@@ -297,7 +297,7 @@ func (s *Store) DeleteAlias(name string) error {
 }
 
 // Aliases returns name→keyID, sorted by name.
-func (s *Store) Aliases() ([][2]string, error) {
+func (s *store) Aliases() ([][2]string, error) {
 	var out [][2]string
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(aliasesBucket)
@@ -314,7 +314,7 @@ func (s *Store) Aliases() ([][2]string, error) {
 }
 
 // SweepDeletions finalizes PendingDeletion keys whose date has passed.
-func (s *Store) SweepDeletions() {
+func (s *store) SweepDeletions() {
 	now := s.now().Unix()
 	_ = s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(keysBucket)

@@ -116,7 +116,7 @@ var computedAttrs = map[string]bool{
 }
 
 // Attributes returns the GetQueueAttributes view of a queue.
-func (s *Store) Attributes(name string) (map[string]string, error) {
+func (s *store) Attributes(name string) (map[string]string, error) {
 	out := map[string]string{}
 	err := s.db.View(func(tx *bolt.Tx) error {
 		q, err := s.getQueue(tx, name)
@@ -190,7 +190,7 @@ func (s *Store) Attributes(name string) (map[string]string, error) {
 	return out, err
 }
 
-func (s *Store) SetAttributes(name string, attrs map[string]string) error {
+func (s *store) SetAttributes(name string, attrs map[string]string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		q, err := s.getQueue(tx, name)
 		if err != nil {

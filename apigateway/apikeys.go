@@ -63,7 +63,7 @@ func newKeyValue() string {
 
 // ---- store ----
 
-func (s *Store) PutAPIKey(k *APIKey) error {
+func (s *store) PutAPIKey(k *APIKey) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(apiKeyBucket)
 		if err != nil {
@@ -74,7 +74,7 @@ func (s *Store) PutAPIKey(k *APIKey) error {
 	})
 }
 
-func (s *Store) GetAPIKey(id string) (*APIKey, error) {
+func (s *store) GetAPIKey(id string) (*APIKey, error) {
 	var out *APIKey
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiKeyBucket)
@@ -91,7 +91,7 @@ func (s *Store) GetAPIKey(id string) (*APIKey, error) {
 	return out, err
 }
 
-func (s *Store) DeleteAPIKey(id string) error {
+func (s *store) DeleteAPIKey(id string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiKeyBucket)
 		if b == nil || b.Get([]byte(id)) == nil {
@@ -128,7 +128,7 @@ func (s *Store) DeleteAPIKey(id string) error {
 }
 
 // ListAPIKeys answers every key, sorted by name.
-func (s *Store) ListAPIKeys() ([]*APIKey, error) {
+func (s *store) ListAPIKeys() ([]*APIKey, error) {
 	var out []*APIKey
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiKeyBucket)
@@ -149,7 +149,7 @@ func (s *Store) ListAPIKeys() ([]*APIKey, error) {
 }
 
 // FindAPIKeyByValue is the data plane's lookup.
-func (s *Store) FindAPIKeyByValue(value string) *APIKey {
+func (s *store) FindAPIKeyByValue(value string) *APIKey {
 	keys, _ := s.ListAPIKeys()
 	for _, k := range keys {
 		if k.Value == value {

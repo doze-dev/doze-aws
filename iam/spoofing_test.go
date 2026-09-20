@@ -111,7 +111,7 @@ func TestClientSuppliedDozeHeadersAreIgnored(t *testing.T) {
 	cfg := userConfig(t, root, "guest", noPolicy)
 	cfg.HTTPClient = headerInjector{inner: http.DefaultClient, headers: map[string]string{
 		"X-Doze-Iam-Mode":  "off",
-		"X-Doze-Principal": awsident.GlobalARN("iam", "root"),
+		"X-Doze-Principal": awsident.Default().GlobalARN("iam", "root"),
 		"X-Doze-Identity":  "allowed",
 		"X-Doze-Action":    "sqs:SendMessage",
 		"X-Doze-Resource":  "*",
@@ -171,7 +171,7 @@ func TestClientCannotUpgradeTheModeWhenIAMIsOff(t *testing.T) {
 	cfg := rootCfg()
 	cfg.HTTPClient = headerInjector{inner: http.DefaultClient, headers: map[string]string{
 		"X-Doze-Iam-Mode":  "enforce",
-		"X-Doze-Principal": awsident.GlobalARN("iam", "user/nobody"),
+		"X-Doze-Principal": awsident.Default().GlobalARN("iam", "user/nobody"),
 		"X-Doze-Identity":  "implicitDeny",
 	}}
 	spoofer := sqsClient(cfg, endpoint)
@@ -193,7 +193,7 @@ func TestClientCannotDowngradeTheMode(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	writer := awsident.GlobalARN("iam", "user/writer")
+	writer := awsident.Default().GlobalARN("iam", "user/writer")
 	if _, err := rootSQS.SetQueueAttributes(ctx, &awssqs.SetQueueAttributesInput{
 		QueueUrl: q.QueueUrl,
 		Attributes: map[string]string{"Policy": `{"Version":"2012-10-17","Statement":[{"Sid":"NoWriter",` +

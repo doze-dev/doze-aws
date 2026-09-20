@@ -10,7 +10,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/asl"
 	"github.com/doze-dev/doze-aws/internal/bg"
-	"github.com/doze-dev/doze-aws/internal/trace"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // The S3 halves of a Map Run: an ItemReader fetches the items, a

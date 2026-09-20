@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awsquery"
-	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // The untyped clients: one call per wire protocol, for a caller that knows

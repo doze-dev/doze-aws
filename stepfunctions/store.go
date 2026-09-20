@@ -62,8 +62,8 @@ type Activity struct {
 	CreatedAt int64  `json:"created_at"`
 }
 
-// Store is the persistence layer.
-type Store struct {
+// store is the persistence layer.
+type store struct {
 	db    *lazybolt.DB
 	clock func() time.Time
 	// vol holds Express and TestState executions, which never reach bbolt.
@@ -71,16 +71,16 @@ type Store struct {
 	id  awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
-func newStore(db *lazybolt.DB) *Store {
-	return &Store{db: db, clock: time.Now, vol: newVolatile()}
+func newStore(db *lazybolt.DB) *store {
+	return &store{db: db, clock: time.Now, vol: newVolatile()}
 }
 
-func (s *Store) now() int64 { return s.clock().UnixMilli() }
+func (s *store) now() int64 { return s.clock().UnixMilli() }
 
 // get reads one JSON record. found is false when the key is absent, which the
 // caller turns into the service's own not-found error — the store does not know
 // which of StateMachineDoesNotExist or ActivityDoesNotExist applies.
-func (s *Store) get(bucket, key []byte, dst any) (found bool, err error) {
+func (s *store) get(bucket, key []byte, dst any) (found bool, err error) {
 	err = s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
 		if b == nil {
@@ -96,7 +96,7 @@ func (s *Store) get(bucket, key []byte, dst any) (found bool, err error) {
 	return found, err
 }
 
-func (s *Store) put(bucket, key []byte, v any) error {
+func (s *store) put(bucket, key []byte, v any) error {
 	raw, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func (s *Store) put(bucket, key []byte, v any) error {
 	})
 }
 
-func (s *Store) delete(bucket, key []byte) error {
+func (s *store) delete(bucket, key []byte) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
 		if b == nil {
@@ -122,7 +122,7 @@ func (s *Store) delete(bucket, key []byte) error {
 
 // each walks a bucket in key order. bbolt cursors are already sorted, which is
 // what makes the List* operations return a stable order for free.
-func (s *Store) each(bucket []byte, fn func(key, raw []byte) error) error {
+func (s *store) each(bucket []byte, fn func(key, raw []byte) error) error {
 	return s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucket)
 		if b == nil {
@@ -134,7 +134,7 @@ func (s *Store) each(bucket []byte, fn func(key, raw []byte) error) error {
 
 // Tags are keyed by resource ARN and shared by every taggable resource type,
 // because ListTagsForResource takes an ARN and does not care what it points at.
-func (s *Store) tags(arn string) (map[string]string, error) {
+func (s *store) tags(arn string) (map[string]string, error) {
 	out := map[string]string{}
 	if _, err := s.get(bucketTags, []byte(arn), &out); err != nil {
 		return nil, err
@@ -142,7 +142,7 @@ func (s *Store) tags(arn string) (map[string]string, error) {
 	return out, nil
 }
 
-func (s *Store) setTags(arn string, tags map[string]string) error {
+func (s *store) setTags(arn string, tags map[string]string) error {
 	return s.put(bucketTags, []byte(arn), tags)
 }
 

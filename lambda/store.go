@@ -85,7 +85,7 @@ type Function struct {
 	VpcConfig          json.RawMessage `json:"vpc_config,omitempty"`
 	FileSystemConfigs  json.RawMessage `json:"file_system_configs,omitempty"`
 
-	// id is the identity ARN() mints under, stamped on read by Store.stamp.
+	// id is the identity ARN() mints under, stamped on read by store.stamp.
 	// Unexported, so it is never written to bbolt.
 	id awsident.Identity
 }
@@ -103,13 +103,13 @@ type EventSourceMapping struct {
 	State          string `json:"state"` // Enabled | Disabled
 }
 
-// Store is the bbolt-backed Lambda control-plane state.
-type Store struct {
+// store is the bbolt-backed Lambda control-plane state.
+type store struct {
 	db *lazybolt.DB
 	id awsident.Identity // region and account ARNs are minted for; stamped by New
 }
 
-func newStore(db *lazybolt.DB) *Store { return &Store{db: db} }
+func newStore(db *lazybolt.DB) *store { return &store{db: db} }
 
 // stamp marks a function with the identity that owns it, so ARN() stays a plain
 // method on a record decoded out of bbolt with no pointer back here.
@@ -120,7 +120,7 @@ func newStore(db *lazybolt.DB) *Store { return &Store{db: db} }
 //
 // The field is unexported and so never persisted — the identity belongs to the
 // instance, not the row.
-func (s *Store) stamp(f *Function) *Function {
+func (s *store) stamp(f *Function) *Function {
 	if f != nil {
 		f.id = s.id
 	}
@@ -133,7 +133,7 @@ func errFuncNotFound(name string) *awshttp.APIError {
 }
 
 // PutFunction stores a function.
-func (s *Store) PutFunction(f *Function) error {
+func (s *store) PutFunction(f *Function) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(funcsBucket)
 		if err != nil {
@@ -145,7 +145,7 @@ func (s *Store) PutFunction(f *Function) error {
 }
 
 // GetFunction loads a function by name.
-func (s *Store) GetFunction(name string) (*Function, error) {
+func (s *store) GetFunction(name string) (*Function, error) {
 	var out *Function
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(funcsBucket)
@@ -167,7 +167,7 @@ func (s *Store) GetFunction(name string) (*Function, error) {
 }
 
 // Update applies fn to a function.
-func (s *Store) Update(name string, fn func(*Function) error) (*Function, error) {
+func (s *store) Update(name string, fn func(*Function) error) (*Function, error) {
 	var out *Function
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(funcsBucket)
@@ -193,7 +193,7 @@ func (s *Store) Update(name string, fn func(*Function) error) (*Function, error)
 }
 
 // DeleteFunction removes a function.
-func (s *Store) DeleteFunction(name string) error {
+func (s *store) DeleteFunction(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(funcsBucket)
 		if b == nil || b.Get([]byte(name)) == nil {
@@ -204,7 +204,7 @@ func (s *Store) DeleteFunction(name string) error {
 }
 
 // ListFunctions returns all functions, sorted by name.
-func (s *Store) ListFunctions() ([]Function, error) {
+func (s *store) ListFunctions() ([]Function, error) {
 	var out []Function
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(funcsBucket)
@@ -226,7 +226,7 @@ func (s *Store) ListFunctions() ([]Function, error) {
 
 // ---- event source mappings ----
 
-func (s *Store) PutMapping(m *EventSourceMapping) error {
+func (s *store) PutMapping(m *EventSourceMapping) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(mappingsBucket)
 		if err != nil {
@@ -237,7 +237,7 @@ func (s *Store) PutMapping(m *EventSourceMapping) error {
 	})
 }
 
-func (s *Store) GetMapping(uuid string) (*EventSourceMapping, error) {
+func (s *store) GetMapping(uuid string) (*EventSourceMapping, error) {
 	var out *EventSourceMapping
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(mappingsBucket)
@@ -258,7 +258,7 @@ func (s *Store) GetMapping(uuid string) (*EventSourceMapping, error) {
 	return out, err
 }
 
-func (s *Store) DeleteMapping(uuid string) error {
+func (s *store) DeleteMapping(uuid string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if b := tx.Bucket(mappingsBucket); b != nil {
 			_ = b.Delete([]byte(uuid))
@@ -275,7 +275,7 @@ func (s *Store) DeleteMapping(uuid string) error {
 // would create lambda.bolt on every boot to find it empty. The result is
 // unchanged either way: out stays nil when there is nothing, which is what an
 // empty bucket already produced.
-func (s *Store) ListMappings() ([]EventSourceMapping, error) {
+func (s *store) ListMappings() ([]EventSourceMapping, error) {
 	var out []EventSourceMapping
 	_, err := s.db.ViewIfExists(func(tx *bolt.Tx) error {
 		b := tx.Bucket(mappingsBucket)

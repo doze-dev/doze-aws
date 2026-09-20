@@ -50,38 +50,38 @@ func TestResolveActionJSONProtocol(t *testing.T) {
 	}{
 		{"sqs by queue url", "sqs", "AmazonSQS.SendMessage",
 			`{"QueueUrl":"http://localhost:4566/000000000000/orders"}`,
-			"sqs:SendMessage", awsident.ARN("sqs", "orders")},
+			"sqs:SendMessage", awsident.Default().ARN("sqs", "orders")},
 		{"sqs by queue name", "sqs", "AmazonSQS.CreateQueue", `{"QueueName":"orders"}`,
-			"sqs:CreateQueue", awsident.ARN("sqs", "orders")},
+			"sqs:CreateQueue", awsident.Default().ARN("sqs", "orders")},
 		{"sqs batch is its base action", "sqs", "AmazonSQS.SendMessageBatch",
 			`{"QueueUrl":"http://h/000000000000/orders"}`,
-			"sqs:SendMessage", awsident.ARN("sqs", "orders")},
+			"sqs:SendMessage", awsident.Default().ARN("sqs", "orders")},
 		{"sqs delete batch", "sqs", "AmazonSQS.DeleteMessageBatch", `{"QueueName":"q"}`,
-			"sqs:DeleteMessage", awsident.ARN("sqs", "q")},
+			"sqs:DeleteMessage", awsident.Default().ARN("sqs", "q")},
 		{"sqs visibility batch", "sqs", "AmazonSQS.ChangeMessageVisibilityBatch", `{"QueueName":"q"}`,
-			"sqs:ChangeMessageVisibility", awsident.ARN("sqs", "q")},
+			"sqs:ChangeMessageVisibility", awsident.Default().ARN("sqs", "q")},
 		{"dynamodb table", "dynamodb", "DynamoDB_20120810.PutItem", `{"TableName":"orders"}`,
-			"dynamodb:PutItem", awsident.ARN("dynamodb", "table/orders")},
+			"dynamodb:PutItem", awsident.Default().ARN("dynamodb", "table/orders")},
 		{"kms key id", "kms", "TrentService.Encrypt", `{"KeyId":"abcd-1234"}`,
-			"kms:Encrypt", awsident.ARN("kms", "key/abcd-1234")},
+			"kms:Encrypt", awsident.Default().ARN("kms", "key/abcd-1234")},
 		{"kms alias stays an alias", "kms", "TrentService.Encrypt", `{"KeyId":"alias/app"}`,
-			"kms:Encrypt", awsident.ARN("kms", "alias/app")},
+			"kms:Encrypt", awsident.Default().ARN("kms", "alias/app")},
 		{"kms full arn passes through", "kms", "TrentService.Decrypt",
 			`{"KeyId":"arn:aws:kms:us-east-1:000000000000:key/k1"}`,
 			"kms:Decrypt", "arn:aws:kms:us-east-1:000000000000:key/k1"},
 		{"secret by name", "secretsmanager", "secretsmanager.GetSecretValue", `{"SecretId":"db"}`,
-			"secretsmanager:GetSecretValue", awsident.ARN("secretsmanager", "secret:db")},
+			"secretsmanager:GetSecretValue", awsident.Default().ARN("secretsmanager", "secret:db")},
 		{"secret by arn", "secretsmanager", "secretsmanager.GetSecretValue",
 			`{"SecretId":"arn:aws:secretsmanager:us-east-1:000000000000:secret:db-Ab12"}`,
 			"secretsmanager:GetSecretValue", "arn:aws:secretsmanager:us-east-1:000000000000:secret:db-Ab12"},
 		{"ssm parameter gets a leading slash", "ssm", "AmazonSSM.GetParameter", `{"Name":"app/key"}`,
-			"ssm:GetParameter", awsident.ARN("ssm", "parameter/app/key")},
+			"ssm:GetParameter", awsident.Default().ARN("ssm", "parameter/app/key")},
 		{"ssm parameter keeps its slash", "ssm", "AmazonSSM.GetParameter", `{"Name":"/app/key"}`,
-			"ssm:GetParameter", awsident.ARN("ssm", "parameter/app/key")},
+			"ssm:GetParameter", awsident.Default().ARN("ssm", "parameter/app/key")},
 		{"eventbridge signs as events", "eventbridge", "AWSEvents.PutRule", `{"Name":"nightly"}`,
-			"events:PutRule", awsident.ARN("events", "rule/nightly")},
+			"events:PutRule", awsident.Default().ARN("events", "rule/nightly")},
 		{"kinesis by name", "kinesis", "Kinesis_20131202.PutRecord", `{"StreamName":"telemetry"}`,
-			"kinesis:PutRecord", awsident.ARN("kinesis", "stream/telemetry")},
+			"kinesis:PutRecord", awsident.Default().ARN("kinesis", "stream/telemetry")},
 		{"kinesis by arn", "kinesis", "Kinesis_20131202.PutRecord",
 			`{"StreamARN":"arn:aws:kinesis:us-east-1:000000000000:stream/t"}`,
 			"kinesis:PutRecord", "arn:aws:kinesis:us-east-1:000000000000:stream/t"},
@@ -128,7 +128,7 @@ func TestResolveActionUnknownService(t *testing.T) {
 // TestResolveActionQueryProtocol: SNS and the legacy SQS wire put the
 // operation in an Action parameter, in the query string or the form body.
 func TestResolveActionQueryProtocol(t *testing.T) {
-	topic := awsident.ARN("sns", "alerts")
+	topic := awsident.Default().ARN("sns", "alerts")
 
 	t.Run("query string", func(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/?Action=Publish&TopicArn="+topic, nil)
@@ -279,7 +279,7 @@ func TestResolveS3WithServiceResolvedTarget(t *testing.T) {
 
 // TestResolveLambda walks every path family of the Lambda REST API.
 func TestResolveLambda(t *testing.T) {
-	fn := awsident.ARN("lambda", "function:worker")
+	fn := awsident.Default().ARN("lambda", "function:worker")
 
 	for _, c := range []struct {
 		name             string
@@ -371,7 +371,7 @@ func TestActionIsExportedForServices(t *testing.T) {
 func TestPeekRestoresTheBody(t *testing.T) {
 	const body = `{"TableName":"orders","Item":{"pk":{"S":"1"}}}`
 	r := req(http.MethodPost, "DynamoDB_20120810.PutItem", "/", body)
-	if _, resource := ResolveAction(awsident.Default(), r, "dynamodb"); resource != awsident.ARN("dynamodb", "table/orders") {
+	if _, resource := ResolveAction(awsident.Default(), r, "dynamodb"); resource != awsident.Default().ARN("dynamodb", "table/orders") {
 		t.Fatalf("resource = %q", resource)
 	}
 	got, err := io.ReadAll(r.Body)

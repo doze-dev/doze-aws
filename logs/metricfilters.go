@@ -58,7 +58,7 @@ func metricFilterKey(group, name string) []byte { return []byte(group + "\x00" +
 
 // ---- store ----
 
-func (s *Store) PutMetricFilter(f MetricFilter) error {
+func (s *store) PutMetricFilter(f MetricFilter) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if tx.Bucket(bucketGroups).Get([]byte(f.Group)) == nil {
 			return ErrNoGroup
@@ -83,7 +83,7 @@ func (s *Store) PutMetricFilter(f MetricFilter) error {
 	})
 }
 
-func (s *Store) DeleteMetricFilter(group, name string) error {
+func (s *store) DeleteMetricFilter(group, name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketMetricFilters)
 		if b == nil {
@@ -99,7 +99,7 @@ func (s *Store) DeleteMetricFilter(group, name string) error {
 
 // MetricFilters lists a group's filters, or every group's when group is
 // empty — which is what DescribeMetricFilters does with no group given.
-func (s *Store) MetricFilters(group, prefix string) ([]MetricFilter, error) {
+func (s *store) MetricFilters(group, prefix string) ([]MetricFilter, error) {
 	var out []MetricFilter
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketMetricFilters)

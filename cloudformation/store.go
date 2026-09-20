@@ -156,15 +156,15 @@ type Change struct {
 	Replacement string `json:"replacement,omitempty"`
 }
 
-// Store is the bbolt-backed CloudFormation state.
-type Store struct {
+// store is the bbolt-backed CloudFormation state.
+type store struct {
 	db    *lazybolt.DB
 	clock func() time.Time
 }
 
-func newStore(db *lazybolt.DB) *Store { return &Store{db: db, clock: time.Now} }
+func newStore(db *lazybolt.DB) *store { return &store{db: db, clock: time.Now} }
 
-func (s *Store) now() time.Time { return s.clock() }
+func (s *store) now() time.Time { return s.clock() }
 
 // StackARN builds the ARN a stack reports as its StackId.
 func StackARN(ident awsident.Identity, name, id string) string {
@@ -179,7 +179,7 @@ func StackARN(ident awsident.Identity, name, id string) string {
 // stack queryable BY ID with status DELETE_COMPLETE, while a lookup by NAME
 // reports it gone — and deploy tools depend on exactly that: `cdk destroy`
 // polls DescribeStacks by id and fails unless it sees DELETE_COMPLETE.
-func (s *Store) GetStack(name string) (*StackRecord, error) {
+func (s *store) GetStack(name string) (*StackRecord, error) {
 	byID := false
 	if i := strings.Index(name, ":stack/"); i >= 0 {
 		byID = true
@@ -209,7 +209,7 @@ func (s *Store) GetStack(name string) (*StackRecord, error) {
 	return out, err
 }
 
-func (s *Store) PutStack(st *StackRecord) error {
+func (s *store) PutStack(st *StackRecord) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(stackBucket)
 		if err != nil {
@@ -223,7 +223,7 @@ func (s *Store) PutStack(st *StackRecord) error {
 	})
 }
 
-func (s *Store) DeleteStack(name string) error {
+func (s *store) DeleteStack(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(stackBucket)
 		if b == nil {
@@ -233,7 +233,7 @@ func (s *Store) DeleteStack(name string) error {
 	})
 }
 
-func (s *Store) ListStacks() ([]StackRecord, error) {
+func (s *store) ListStacks() ([]StackRecord, error) {
 	var out []StackRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(stackBucket)
@@ -255,7 +255,7 @@ func (s *Store) ListStacks() ([]StackRecord, error) {
 // Exports collects every exported output across all stacks — the registry
 // Fn::ImportValue resolves against, which is what makes a multi-stack CDK app
 // work rather than failing on the first cross-stack reference.
-func (s *Store) Exports() (map[string]string, error) {
+func (s *store) Exports() (map[string]string, error) {
 	out := map[string]string{}
 	stacks, err := s.ListStacks()
 	if err != nil {
@@ -276,7 +276,7 @@ func (s *Store) Exports() (map[string]string, error) {
 // An export name is account-wide and belongs to exactly one stack: that is what
 // makes `Fn::ImportValue` unambiguous, and why AWS refuses a deploy that would
 // claim a name another stack already owns.
-func (s *Store) ExportOwner(export string) (string, bool) {
+func (s *store) ExportOwner(export string) (string, bool) {
 	stacks, err := s.ListStacks()
 	if err != nil {
 		return "", false
@@ -295,7 +295,7 @@ func (s *Store) ExportOwner(export string) (string, bool) {
 
 func changeSetKey(stack, name string) string { return stack + "\x00" + name }
 
-func (s *Store) PutChangeSet(cs *ChangeSetRecord) error {
+func (s *store) PutChangeSet(cs *ChangeSetRecord) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(changeSetBucket)
 		if err != nil {
@@ -311,7 +311,7 @@ func (s *Store) PutChangeSet(cs *ChangeSetRecord) error {
 
 // GetChangeSet resolves a change set by (stack, name) or by its ARN-shaped id,
 // both of which deploy tools use interchangeably.
-func (s *Store) GetChangeSet(stack, nameOrID string) (*ChangeSetRecord, error) {
+func (s *store) GetChangeSet(stack, nameOrID string) (*ChangeSetRecord, error) {
 	var out *ChangeSetRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(changeSetBucket)
@@ -346,7 +346,7 @@ func (s *Store) GetChangeSet(stack, nameOrID string) (*ChangeSetRecord, error) {
 	return out, err
 }
 
-func (s *Store) DeleteChangeSet(stack, name string) error {
+func (s *store) DeleteChangeSet(stack, name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(changeSetBucket)
 		if b == nil {
@@ -356,7 +356,7 @@ func (s *Store) DeleteChangeSet(stack, name string) error {
 	})
 }
 
-func (s *Store) ListChangeSets(stack string) ([]ChangeSetRecord, error) {
+func (s *store) ListChangeSets(stack string) ([]ChangeSetRecord, error) {
 	var out []ChangeSetRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(changeSetBucket)
@@ -377,7 +377,7 @@ func (s *Store) ListChangeSets(stack string) ([]ChangeSetRecord, error) {
 }
 
 // DeleteStackChangeSets drops every change set belonging to a stack.
-func (s *Store) DeleteStackChangeSets(stack string) error {
+func (s *store) DeleteStackChangeSets(stack string) error {
 	sets, err := s.ListChangeSets(stack)
 	if err != nil {
 		return err
@@ -394,7 +394,7 @@ func (s *Store) DeleteStackChangeSets(stack string) error {
 
 // newID generates the UUID-shaped identifier CloudFormation puts in stack and
 // change-set ARNs.
-func (s *Store) newID() string {
+func (s *store) newID() string {
 	// A monotonic clock-derived id keeps ordering stable and avoids pulling in
 	// randomness that would make tests non-deterministic.
 	n := s.now().UnixNano()

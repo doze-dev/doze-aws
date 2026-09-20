@@ -149,7 +149,7 @@ func writeGuardedResources(ctx context.Context, t *testing.T, url string) guarde
 	}
 	ids.writerCreds = aws.Config{Region: awsident.Region, Credentials: credentials.NewStaticCredentialsProvider(
 		aws.ToString(key.AccessKey.AccessKeyId), aws.ToString(key.AccessKey.SecretAccessKey), "")}
-	writer := awsident.GlobalARN("iam", "user/writer")
+	writer := awsident.Default().GlobalARN("iam", "user/writer")
 	deny := func(sid, action, resource string) string {
 		return `{"Version":"2012-10-17","Statement":[{"Sid":"` + sid + `","Effect":"Deny","Principal":{"AWS":"` +
 			writer + `"},"Action":"` + action + `","Resource":"` + resource + `"}]}`
@@ -168,7 +168,7 @@ func writeGuardedResources(ctx context.Context, t *testing.T, url string) guarde
 	ids.openURL = aws.ToString(open.QueueUrl)
 	if _, err := root.sqs.SetQueueAttributes(ctx, &awssqs.SetQueueAttributesInput{
 		QueueUrl:   q.QueueUrl,
-		Attributes: map[string]string{"Policy": deny("NoWriterQueue", "sqs:SendMessage", awsident.ARN("sqs", guardedQueue))},
+		Attributes: map[string]string{"Policy": deny("NoWriterQueue", "sqs:SendMessage", awsident.Default().ARN("sqs", guardedQueue))},
 	}); err != nil {
 		t.Fatalf("SetQueueAttributes: %v", err)
 	}
@@ -209,7 +209,7 @@ func writeGuardedResources(ctx context.Context, t *testing.T, url string) guarde
 	}
 	ids.keyID = aws.ToString(created.KeyMetadata.KeyId)
 	keyPolicy := `{"Version":"2012-10-17","Statement":[` +
-		`{"Sid":"Root","Effect":"Allow","Principal":{"AWS":"` + awsident.GlobalARN("iam", "root") + `"},"Action":"kms:*","Resource":"*"},` +
+		`{"Sid":"Root","Effect":"Allow","Principal":{"AWS":"` + awsident.Default().GlobalARN("iam", "root") + `"},"Action":"kms:*","Resource":"*"},` +
 		`{"Sid":"NoWriterKey","Effect":"Deny","Principal":{"AWS":"` + writer + `"},"Action":"kms:Encrypt","Resource":"*"}]}`
 	if _, err := root.kms.PutKeyPolicy(ctx, &awskms.PutKeyPolicyInput{
 		KeyId: aws.String(ids.keyID), PolicyName: aws.String("default"), Policy: aws.String(keyPolicy)}); err != nil {
@@ -236,7 +236,7 @@ func writeGuardedResources(ctx context.Context, t *testing.T, url string) guarde
 		t.Fatal(err)
 	}
 	if _, err := root.kin.PutResourcePolicy(ctx, &awskin.PutResourcePolicyInput{
-		ResourceARN: aws.String(awsident.ARN("kinesis", "stream/"+guardedStream)),
+		ResourceARN: aws.String(awsident.Default().ARN("kinesis", "stream/"+guardedStream)),
 		Policy:      aws.String(deny("NoWriterStream", "kinesis:PutRecord", "*")),
 	}); err != nil {
 		t.Fatalf("PutResourcePolicy stream: %v", err)
@@ -342,7 +342,7 @@ func assertPoliciesReadBack(ctx context.Context, t *testing.T, root policyClient
 	has("secret", aws.ToString(sp.ResourcePolicy), "NoWriterSecret")
 
 	rp, err := root.kin.GetResourcePolicy(ctx, &awskin.GetResourcePolicyInput{
-		ResourceARN: aws.String(awsident.ARN("kinesis", "stream/"+guardedStream))})
+		ResourceARN: aws.String(awsident.Default().ARN("kinesis", "stream/"+guardedStream))})
 	if err != nil {
 		t.Fatalf("GetResourcePolicy stream: %v", err)
 	}

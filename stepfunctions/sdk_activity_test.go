@@ -185,7 +185,7 @@ func TestSDKGetActivityTaskRefusals(t *testing.T) {
 	c := sfnClient(t)
 
 	_, err := c.GetActivityTask(ctx, &awssfn.GetActivityTaskInput{
-		ActivityArn: aws.String(awsident.ARN("states", "activity:nobody")),
+		ActivityArn: aws.String(awsident.Default().ARN("states", "activity:nobody")),
 	})
 	var missing *sfntypes.ActivityDoesNotExist
 	if !errors.As(err, &missing) {

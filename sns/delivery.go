@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/peercall"
-	"github.com/doze-dev/doze-aws/internal/trace"
 	"github.com/doze-dev/doze-aws/peers"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // snsNotification is the JSON envelope SNS delivers (non-raw subscriptions).
@@ -31,7 +31,7 @@ type notifyAttr struct {
 	Value string `json:"Value"`
 }
 
-func (srv *Server) envelope(msgID, topicARN, subject, message string, attrs map[string]Attr) snsNotification {
+func (srv *Server) envelope(msgID, topicARN, subject, message string, attrs map[string]attr) snsNotification {
 	n := snsNotification{
 		Type: "Notification", MessageID: msgID, TopicARN: topicARN,
 		Subject: subject, Message: message,
@@ -53,7 +53,7 @@ func (srv *Server) envelope(msgID, topicARN, subject, message string, attrs map[
 // deliver fans a published message out to every confirmed, filter-matching
 // subscription of the topic. Delivery is synchronous (simpler and
 // deterministic for local dev).
-func (srv *Server) deliver(ctx context.Context, msgID, topicARN, subject, message string, attrs map[string]Attr) {
+func (srv *Server) deliver(ctx context.Context, msgID, topicARN, subject, message string, attrs map[string]attr) {
 	// Every delivery is SNS's own call, on behalf of the topic: a queue policy
 	// or function permission sees sns.amazonaws.com and the topic ARN.
 	ctx = peers.WithPrincipal(ctx, "sns", topicARN)
@@ -81,7 +81,7 @@ func (srv *Server) deliver(ctx context.Context, msgID, topicARN, subject, messag
 	}
 }
 
-func (srv *Server) deliverSQS(ctx context.Context, sub Subscription, msgID, topicARN, subject, message string, attrs map[string]Attr) {
+func (srv *Server) deliverSQS(ctx context.Context, sub Subscription, msgID, topicARN, subject, message string, attrs map[string]attr) {
 	ep, ok := srv.peers.Endpoint("sqs")
 	if !ok {
 		srv.logf("sns: subscription %s targets SQS but no SQS peer is wired", sub.ARN)
@@ -126,7 +126,7 @@ func (srv *Server) postToSQS(ctx context.Context, ep peers.Endpoint, body []byte
 }
 
 // deliverLambda invokes a Lambda function (async) with the SNS event shape.
-func (srv *Server) deliverLambda(ctx context.Context, sub Subscription, msgID, topicARN, subject, message string, attrs map[string]Attr) {
+func (srv *Server) deliverLambda(ctx context.Context, sub Subscription, msgID, topicARN, subject, message string, attrs map[string]attr) {
 	fn := lastSegment(sub.Endpoint)
 	record := map[string]any{
 		"EventSource":          "aws:sns",
@@ -150,7 +150,7 @@ func (srv *Server) deliverLambda(ctx context.Context, sub Subscription, msgID, t
 }
 
 // toSQSAttrs converts SNS message attributes to the SQS SendMessage JSON shape.
-func toSQSAttrs(attrs map[string]Attr) map[string]any {
+func toSQSAttrs(attrs map[string]attr) map[string]any {
 	if len(attrs) == 0 {
 		return nil
 	}
@@ -169,7 +169,7 @@ func toSQSAttrs(attrs map[string]Attr) map[string]any {
 
 var httpDeliveryClient = &http.Client{Timeout: 5 * time.Second}
 
-func (srv *Server) deliverHTTP(sub Subscription, msgID, topicARN, subject, message string, attrs map[string]Attr) {
+func (srv *Server) deliverHTTP(sub Subscription, msgID, topicARN, subject, message string, attrs map[string]attr) {
 	body, _ := json.Marshal(srv.envelope(msgID, topicARN, subject, message, attrs))
 	req, err := http.NewRequest(http.MethodPost, sub.Endpoint, bytes.NewReader(body))
 	if err != nil {

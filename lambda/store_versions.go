@@ -20,7 +20,7 @@ func versionKey(name string, n int) []byte {
 }
 
 // PutVersion stores a frozen record under its number.
-func (s *Store) PutVersion(f *Function) error {
+func (s *store) PutVersion(f *Function) error {
 	n, err := strconv.Atoi(f.Version)
 	if err != nil {
 		return fmt.Errorf("version %q is not a number", f.Version)
@@ -36,7 +36,7 @@ func (s *Store) PutVersion(f *Function) error {
 }
 
 // GetVersion loads one frozen version, or the function-not-found error.
-func (s *Store) GetVersion(name string, n int) (*Function, error) {
+func (s *store) GetVersion(name string, n int) (*Function, error) {
 	var out *Function
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(versionsBucket)
@@ -58,7 +58,7 @@ func (s *Store) GetVersion(name string, n int) (*Function, error) {
 }
 
 // ListVersions answers a function's versions, oldest first.
-func (s *Store) ListVersions(name string) ([]*Function, error) {
+func (s *store) ListVersions(name string) ([]*Function, error) {
 	var out []*Function
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(versionsBucket)
@@ -80,7 +80,7 @@ func (s *Store) ListVersions(name string) ([]*Function, error) {
 }
 
 // DeleteVersion removes one version's record.
-func (s *Store) DeleteVersion(name string, n int) error {
+func (s *store) DeleteVersion(name string, n int) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(versionsBucket)
 		if b == nil {
@@ -91,7 +91,7 @@ func (s *Store) DeleteVersion(name string, n int) error {
 }
 
 // DeleteVersions removes every version of a function.
-func (s *Store) DeleteVersions(name string) error {
+func (s *store) DeleteVersions(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(versionsBucket)
 		if b == nil {

@@ -62,7 +62,7 @@ func memberTags(form url.Values) map[string]string {
 }
 
 // entryMessageAttributes parses a PublishBatch entry's MessageAttributes.
-func entryMessageAttributes(form url.Values, base string) map[string]Attr {
+func entryMessageAttributes(form url.Values, base string) map[string]attr {
 	return awsquery.MessageAttrs(form, base+"MessageAttributes.entry")
 }
 

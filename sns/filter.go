@@ -14,7 +14,7 @@ import (
 // attribute, attributes AND'd), so the shared eventpattern matcher backs both —
 // giving SNS the full operator set (numeric ranges, prefix/suffix, anything-but,
 // exists, wildcard) rather than a weaker re-implementation.
-func matchFilter(policyJSON string, attrs map[string]Attr) bool {
+func matchFilter(policyJSON string, attrs map[string]attr) bool {
 	if strings.TrimSpace(policyJSON) == "" {
 		return true
 	}
@@ -37,7 +37,7 @@ func matchFilter(policyJSON string, attrs map[string]Attr) bool {
 // attrMatchValue renders an SNS message attribute as the JSON value the pattern
 // matcher compares against: Number as a JSON number (so numeric operators work),
 // String.Array as a JSON array (any-element match), everything else as a string.
-func attrMatchValue(a Attr) any {
+func attrMatchValue(a attr) any {
 	switch a.DataType {
 	case "Number":
 		if f, err := strconv.ParseFloat(a.StringValue, 64); err == nil {
@@ -60,9 +60,9 @@ func attrMatchValue(a Attr) any {
 // show per-subscription routing without re-implementing the matcher. An empty
 // policy matches everything.
 func MatchPolicy(policyJSON string, attrs map[string]string) bool {
-	m := make(map[string]Attr, len(attrs))
+	m := make(map[string]attr, len(attrs))
 	for k, v := range attrs {
-		m[k] = Attr{DataType: "String", StringValue: v}
+		m[k] = attr{DataType: "String", StringValue: v}
 	}
 	return matchFilter(policyJSON, m)
 }

@@ -80,7 +80,7 @@ func loggingTo(group, level string, data bool) *sfntypes.LoggingConfiguration {
 	return &sfntypes.LoggingConfiguration{
 		Level: sfntypes.LogLevel(level), IncludeExecutionData: data,
 		Destinations: []sfntypes.LogDestination{{CloudWatchLogsLogGroup: &sfntypes.CloudWatchLogsLogGroup{
-			LogGroupArn: aws.String(awsident.ARN("logs", "log-group:"+group+":*"))}}},
+			LogGroupArn: aws.String(awsident.Default().ARN("logs", "log-group:"+group+":*"))}}},
 	}
 }
 
@@ -122,7 +122,7 @@ func TestHistoryIsVendedToTheLogGroup(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	sfn.StartExecution(ctx, &awssfn.StartExecutionInput{StateMachineArn: aws.String(awsident.ARN("states", "stateMachine:errs"))})
+	sfn.StartExecution(ctx, &awssfn.StartExecutionInput{StateMachineArn: aws.String(awsident.Default().ARN("states", "stateMachine:errs"))})
 	errRecs := vendedRecords(t, logs, "/aws/vendedlogs/states/errs", 1)
 	for _, r := range errRecs {
 		if !strings.HasSuffix(r.Type, "Failed") {
