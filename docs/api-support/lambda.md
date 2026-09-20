@@ -52,6 +52,73 @@ directory or binary runs the code **in place**: edit, invoke, no upload. A
 warm process keeps the old code until its idle timeout or a
 configuration update restarts it.
 
+Container images are refused by name, on both the API and the CloudFormation
+path — doze-aws runs functions as local processes and pulls no images. When
+what you needed the image for was a binary or a toolchain rather than the
+packaging, `Command` below is the way in.
+
+## Command: run anything that speaks the Runtime API
+
+`Command: ["..."]` on CreateFunction or UpdateFunctionConfiguration is a doze
+extension, and it is the escape hatch for everything the runtime table above
+does not cover. It **replaces the launch line entirely**: `Runtime` becomes a
+label, no interpreter is resolved, and no embedded client is used.
+
+```jsonc
+{
+  "FunctionName": "scorer",
+  "Runtime": "provided.al2023",          // a label; Command decides what runs
+  "Role": "arn:aws:iam::000000000000:role/r",
+  "Code": { "S3Bucket": "_local_", "S3Key": "/abs/path/to/scorer" },
+  "Command": ["/abs/path/to/scorer", "--serve"]
+}
+```
+
+The one rule is the contract, not the language: the process has to speak the
+**Lambda Runtime API**. It polls `GET $AWS_LAMBDA_RUNTIME_API/2018-06-01/runtime/invocation/next`
+and posts back a response or an error, which is exactly what AWS's own runtime
+interface clients do — `AWS_LAMBDA_RUNTIME_API` is in its environment, and a
+function built for `provided.al2023` already does this unmodified.
+
+Reach for it when:
+
+- **the runtime has no mapping here** — Rust, a custom bootstrap, a language
+  this table does not list;
+- **the interpreter is not the host's** — a specific Python from a venv or a
+  pinned toolchain, rather than whatever `python3` is;
+- **a Java function on macOS**, where the AWS Java client's HTTP layer is a
+  Linux-only native library (see the runtime table);
+- **what a container image would have carried** — a binary with its own
+  dependencies, invoked directly.
+
+One thing it does not do: `Command` is stored with the function and used on
+every launch, but **nothing reads it back**. `GetFunctionConfiguration` does
+not report it, because AWS has no field to report it in, and no doze extension
+exposes it either. It is visible where you set it, and otherwise only in what
+the process turns out to be.
+
+## Environment variables
+
+`Environment.Variables` works as it does on AWS, on CreateFunction and
+UpdateFunctionConfiguration, and reads back through GetFunctionConfiguration.
+
+What is worth knowing is the **precedence**, because doze-aws injects more
+into a function's environment than AWS does. The child's environment is built
+in three passes, each overwriting the last:
+
+1. Lambda's own set — `AWS_LAMBDA_FUNCTION_NAME`, `_HANDLER`,
+   `LAMBDA_TASK_ROOT`, the region, test credentials, `TZ=UTC`;
+2. the `AWS_ENDPOINT_URL*` variables that point a handler's SDK back at
+   doze-aws, which is what makes a function reach its sibling services with no
+   code change;
+3. **the function's own variables**, which therefore win over both.
+
+So setting `AWS_ENDPOINT_URL` yourself overrides the injected one — useful when
+a handler should talk to something else, and the reason a function that
+suddenly cannot reach SQS is worth checking here first. Layer search paths are
+applied last but only ever appended, so a `PYTHONPATH` the function sets keeps
+precedence over a layer's.
+
 ## Logs
 
 Everything a function prints — stdout, stderr, init output, and Lambda's own
