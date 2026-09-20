@@ -13,6 +13,8 @@ vars:
   # Every test that gates a number in testdata/lightness.json. One place, so
   # adding a budget does not mean remembering three.
   BUDGET_TESTS: 'TestLightness|TestEmbedded|TestEachService|TestOnlyTheDeclaredModules|TestTheShippedBinary'
+  # The API golden gate. Named here so `check` and `api:update` cannot drift.
+  API_TEST: 'TestThePublicAPIIsWhatWeSaidItWas'
 
 tasks:
   default:
@@ -134,6 +136,24 @@ tasks:
       # the same line, and only reading it tells you which you have.
       - go test -run '{{.BUDGET_TESTS}}' -count=1 -lightness.update .
       - git --no-pager diff --stat -- testdata/lightness.json
+
+  api:
+    desc: 'The public API surface, checked against testdata/api.txt'
+    cmds:
+      # After 1.0.0 every line in the golden is a promise semver will not let
+      # us withdraw before a v2. This runs inside `check`, so a new export is a
+      # failing test rather than a thing noticed at tag time.
+      - go test -run '{{.API_TEST}}' -count=1 -v .
+
+  api:update:
+    desc: 'Record the current surface into testdata/api.txt — then READ THE DIFF'
+    cmds:
+      # Same discipline as lightness:update. An export you meant to add is a
+      # line in a commit message explaining why it is worth freezing; an export
+      # that appeared by accident is the same line, and only reading the diff
+      # tells you which one you have.
+      - go test -run '{{.API_TEST}}' -count=1 -api.update .
+      - git --no-pager diff --stat -- testdata/api.txt
 
   soak:
     desc: 'Cross-service soak under sustained load (SOAK_DURATION=2m, SOAK_CHAOS=1 to restart mid-load)'
