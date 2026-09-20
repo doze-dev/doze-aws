@@ -233,7 +233,7 @@ test.describe('EventBridge', () => {
 
       // The console has no wired-up "delete bus" button (handlers_eb.go's
       // ebDeleteBus exists and is routed at POST /eb/{bus}/delete-bus, but no
-      // template calls it — grepped "delete-bus" across console/templates
+      // template calls it — grepped "delete-bus" across internal/console/templates
       // and found nothing), so this last piece of cleanup goes through the
       // same POST a UI button would use, via the API helper rather than a
       // click, since there's no element to click.

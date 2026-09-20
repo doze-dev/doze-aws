@@ -12,7 +12,7 @@ async function waitToastGone(page: Page) {
   await expect(page.locator('.toast:not(.err)').last()).toBeHidden({ timeout: 8000 });
 }
 
-// The shared tag editor (console/client_tags.go + templates/panes.html's
+// The shared tag editor (internal/console/client_tags.go + templates/panes.html's
 // tags_panel/tag_editor) is ONE generic UI fanning out to per-service wire
 // formats: SQS TagQueue, DDB TagResource (Key/Value), KMS TagResource
 // (TagKey/TagValue), SM TagResource+DescribeSecret, Lambda REST tags,

@@ -27,7 +27,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/console"
+	"github.com/doze-dev/doze-aws/internal/console"
 )
 
 func idTestStack(t *testing.T, logf func(string, ...any)) *httptest.Server {

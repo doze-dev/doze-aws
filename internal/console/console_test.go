@@ -17,7 +17,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/console"
+	"github.com/doze-dev/doze-aws/internal/console"
 	"github.com/doze-dev/doze-aws/peers"
 )
 

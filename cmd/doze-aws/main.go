@@ -34,9 +34,9 @@ import (
 	"time"
 
 	dozeaws "github.com/doze-dev/doze-aws"
-	"github.com/doze-dev/doze-aws/console"
 	"github.com/doze-dev/doze-aws/iam"
 	"github.com/doze-dev/doze-aws/internal/config"
+	"github.com/doze-dev/doze-aws/internal/console"
 	"github.com/doze-dev/doze-aws/peers"
 	"github.com/doze-dev/doze-aws/provision"
 )

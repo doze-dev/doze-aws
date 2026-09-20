@@ -7,10 +7,10 @@ import { postForm, createTopic, createQueue, createFunction } from '../fixtures/
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Per-resource "Connections" strip: the shared {{define "connections"}}
-// partial in console/templates/panes.html renders a resource's 1-hop wiring
+// partial in internal/console/templates/panes.html renders a resource's 1-hop wiring
 // as "Fed by" (Conn.Upstream) / "Drains to" (Conn.Downstream) chip columns,
 // each chip service-colored (--svc-<svc>) and linking to the neighbor's own
-// detail page. Backed by backend.Neighbors() in console/client_flow.go,
+// detail page. Backed by backend.Neighbors() in internal/console/client_flow.go,
 // which scans the full wiring graph for edges whose From/To match this
 // node's id and reports the edge Kind ("sub", "target", "esm", ...).
 //
@@ -43,7 +43,7 @@ const queueARN = (name: string) => `arn:aws:sqs:us-east-1:000000000000:${name}`;
 // directory (no build step) is enough to satisfy that check.
 const LAMBDA_CODE_DIR = path.resolve(__dirname, '../fixtures/lambda-handler');
 
-// backend.graphCached (console/client.go) memoizes the full wiring graph that
+// backend.graphCached (internal/console/client.go) memoizes the full wiring graph that
 // Neighbors() reads from, with a 750ms TTL shared across every request this
 // long-lived, multi-spec server receives — a deliberate perf tradeoff (it
 // collapses a burst of Flows-page polls into one crawl) but it means a

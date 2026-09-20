@@ -22,8 +22,8 @@ import (
 	"time"
 
 	dozeaws "github.com/doze-dev/doze-aws"
-	"github.com/doze-dev/doze-aws/console"
 	"github.com/doze-dev/doze-aws/docs"
+	"github.com/doze-dev/doze-aws/internal/console"
 	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/lightness"

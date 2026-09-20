@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/doze-dev/doze-aws/console"
+	"github.com/doze-dev/doze-aws/internal/console"
 )
 
 func TestRailLinksEveryCatalogService(t *testing.T) {

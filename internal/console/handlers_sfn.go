@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/console/sfngraph"
 	"github.com/doze-dev/doze-aws/internal/asl"
+	"github.com/doze-dev/doze-aws/internal/console/sfngraph"
 )
 
 // ---- Step Functions ----

@@ -6,11 +6,11 @@ import { createQueue } from '../fixtures/api';
 // peek panel (single-message delete, purge), DLQ redrive, the inline
 // attribute editor, and queue delete.
 //
-// `console/templates/sqs.html` is the source of truth for all selectors
-// below; `console/handlers.go` (grep `sqs`) for route/field names.
+// `internal/console/templates/sqs.html` is the source of truth for all selectors
+// below; `internal/console/handlers.go` (grep `sqs`) for route/field names.
 
 // The server computes the DLQ name from the main queue's name exactly this
-// way (see sqsCreateQueue in console/handlers.go) — mirrored here so tests
+// way (see sqsCreateQueue in internal/console/handlers.go) — mirrored here so tests
 // can address the auto-created DLQ without re-deriving it from the DOM.
 function dlqNameFor(mainQueueName: string, fifo: boolean): string {
   const base = mainQueueName.replace(/\.fifo$/, '');
@@ -65,7 +65,7 @@ test.describe('DLQ created alongside', () => {
 
     // The DLQ itself exists and wears the DLQ badge + "Fed by" connection.
     // Both are derived from the server's wiring graph, which is cached for
-    // graphTTL (750ms, see console/client.go) to collapse bursts of polls —
+    // graphTTL (750ms, see internal/console/client.go) to collapse bursts of polls —
     // so a goto() immediately after creation can briefly race a stale
     // snapshot. Reload-and-retry rides out that window instead of guessing
     // a fixed sleep.
@@ -158,7 +158,7 @@ test.describe('composer', () => {
     await expect(msg).toBeVisible();
     await expect(msg.locator('.mm.attr', { hasText: 'source' })).toContainText('e2e-suite');
     // Binary attribute values don't currently round-trip into the peek: the
-    // receive-message decode path in console/client.go (QueueDetail, ~L407)
+    // receive-message decode path in internal/console/client.go (QueueDetail, ~L407)
     // only reads StringValue off each attribute, dropping BinaryValue — so
     // "payload" renders with an empty value even though the send-side POST
     // body carried "aGVsbG8=" correctly (verified via network capture). This
@@ -196,7 +196,7 @@ test.describe('composer', () => {
     await expect(msg.locator('.mm', { hasText: 'group' })).toContainText(group);
     await expect(msg.locator('.mm', { hasText: 'dedup' })).toContainText(dedup);
     // Note: no SequenceNumber assertion — the backend never populates that
-    // attribute (grep confirms no writer for it outside console/client.go's
+    // attribute (grep confirms no writer for it outside internal/console/client.go's
     // read side), so the "seq" chip never renders in this emulator.
   });
 });

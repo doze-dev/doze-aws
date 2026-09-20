@@ -73,12 +73,12 @@ enforces the list except the tests at the end of it:
 | `dozeaws.go` | `Implemented`, and a `case` in `Stack.build` |
 | `internal/gateway/gateway.go` | `Services`, and whichever routing rule finds it — `targetPrefixes` for a JSON protocol, `scopeServices` for the signature scope |
 | `cmd/doze-aws/env.go` | `signingNames`, so `doze-aws env` prints the right endpoint variable |
-| `console/catalog.go` | `catalog`, so it appears in the console nav |
+| `internal/console/catalog.go` | `catalog`, so it appears in the console nav |
 | `<service>/coverage_test.go` | every operation in `testdata/ops_<model>.json` is handled, refused by name, or a written-down gap |
 | `<service>/rejection_parity_test.go` | that a refusal matches what AWS would say |
 | `cmd/dzaudit` | the model-derived input-validation audit |
 
-Two ratchets will tell you if you miss one. `console/coverage_test.go` fails
+Two ratchets will tell you if you miss one. `internal/console/coverage_test.go` fails
 when an operation stops being reachable from the console — including when you
 delete a backend method nothing called. `TestEveryServiceHasConcurrentCoverage`
 in the root package fails until the new service is driven by one of the two
@@ -169,7 +169,7 @@ attached to the thing you think it is.
 | `internal/awsjson/`, `awsquery/`, `rpcv2cbor/` | the wire protocols |
 | `internal/ddb/` | DynamoDB's expression language and item model |
 | `internal/asl/` | the Amazon States Language interpreter |
-| `console/` | the web console (server-rendered, htmx) |
+| `internal/console/` | the web console (server-rendered, htmx) |
 | `docs/` | per-service operation tables, and the decision records |
 | `e2e/`, `demo/` | Playwright suite, and the SDK-driven seeder |
 

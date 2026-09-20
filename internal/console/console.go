@@ -38,8 +38,8 @@ var staticFS embed.FS
 // weighs it without this package exporting its embed.FS values as API.
 func EmbeddedFS() map[string]fs.FS {
 	return map[string]fs.FS{
-		"console/templates": templateFS,
-		"console/static":    staticFS,
+		"internal/console/templates": templateFS,
+		"internal/console/static":    staticFS,
 	}
 }
 

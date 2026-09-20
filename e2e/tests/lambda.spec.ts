@@ -23,8 +23,8 @@ async function waitToastGone(page: Page) {
 // config edit persistence, an SQS event-source-mapping trigger, the function
 // URL create/delete surface, async (Event) invoke, and function delete.
 //
-// `console/templates/lambda.html` is the source of truth for selectors;
-// `console/handlers_lambda.go` / `lambda/*.go` for routes and semantics.
+// `internal/console/templates/lambda.html` is the source of truth for selectors;
+// `internal/console/handlers_lambda.go` / `lambda/*.go` for routes and semantics.
 //
 // This spec drives one function through its whole lifecycle in order, so
 // tests run serially (fullyParallel is the project default, which would

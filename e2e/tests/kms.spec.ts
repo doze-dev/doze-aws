@@ -7,7 +7,7 @@ import { createKey } from '../fixtures/api';
 // (no navigation between them), the previous toast can still be visible
 // when we look for the next one, and `.last()` happily reports it as
 // "visible" before the real new toast has even been appended. Toasts
-// self-remove after 3.2s (ok) / 6s (err) per console/static/shell.js, so
+// self-remove after 3.2s (ok) / 6s (err) per internal/console/static/shell.js, so
 // draining the current one first makes the next waitForToast() call
 // unambiguous.
 async function waitToastGone(page: Page) {

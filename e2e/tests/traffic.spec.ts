@@ -14,7 +14,7 @@ import { BASE_URL } from '../playwright.config';
 const GATEWAY_ROOT = new URL('/', BASE_URL).toString();
 
 /** Sends a raw AWS JSON-protocol request straight to the gateway root, the
- *  exact shape confirmed against console/console_test.go's
+ *  exact shape confirmed against internal/console/console_test.go's
  *  TestTrafficRecorder (X-Amz-Target header + application/x-amz-json-1.x
  *  Content-Type + JSON body — no console path involved). */
 async function rawAwsJson(

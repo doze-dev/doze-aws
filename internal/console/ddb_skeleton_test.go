@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/doze-dev/doze-aws/console"
+	"github.com/doze-dev/doze-aws/internal/console"
 )
 
 // The add-item editor opens with the table's key attributes already in it. The

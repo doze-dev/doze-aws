@@ -142,7 +142,7 @@ subscriber written against the cloud parses it unchanged.
   with an alarm, a dashboard and a metric filter deploys, the alarm reaches
   `ALARM` through the real evaluator, and the lot round-trips through export →
   emit → transpile.
-- **The console** (`console/cw_test.go`): the pane's own handlers, asserted on
+- **The console** (`internal/console/cw_test.go`): the pane's own handlers, asserted on
   rendered content rather than status.
 
 ## Input validation
