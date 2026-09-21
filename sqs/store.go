@@ -35,8 +35,8 @@ var metaBucket = []byte("queues")
 func msgBucket(queue string) []byte   { return []byte("q:" + queue) }
 func dedupBucket(queue string) []byte { return []byte("dedup:" + queue) }
 
-// Queue is a queue's durable definition.
-type Queue struct {
+// queue is a queue's durable definition.
+type queue struct {
 	Name              string `json:"name"`
 	FIFO              bool   `json:"fifo"`
 	ContentBasedDedup bool   `json:"content_based_dedup"`
@@ -61,18 +61,18 @@ type Queue struct {
 	Tags map[string]string `json:"tags,omitempty"`
 }
 
-// Attr is a message attribute (String/Number use StringValue; Binary uses BinaryValue).
-type Attr struct {
+// attr is a message attribute (String/Number use StringValue; Binary uses BinaryValue).
+type attr struct {
 	DataType    string `json:"data_type"`
 	StringValue string `json:"string_value,omitempty"`
 	BinaryValue []byte `json:"binary_value,omitempty"`
 }
 
-// Message is one stored message.
-type Message struct {
+// message is one stored message.
+type message struct {
 	ID            string          `json:"id"`
 	Body          string          `json:"body"`
-	Attrs         map[string]Attr `json:"attrs,omitempty"`
+	Attrs         map[string]attr `json:"attrs,omitempty"`
 	MD5Body       string          `json:"md5_body"`
 	MD5Attrs      string          `json:"md5_attrs,omitempty"`
 	Sent          int64           `json:"sent"`       // unixnano
@@ -112,10 +112,10 @@ func (s *store) now() time.Time { return s.clock() }
 // lookupIn binds a transaction into a queueLookup, so attribute validation can
 // ask whether a queue it has been pointed at actually exists.
 func (s *store) lookupIn(tx *bolt.Tx) queueLookup {
-	return func(name string) (*Queue, error) { return s.getQueue(tx, name) }
+	return func(name string) (*queue, error) { return s.getQueue(tx, name) }
 }
 
-func (s *store) getQueue(tx *bolt.Tx, name string) (*Queue, error) {
+func (s *store) getQueue(tx *bolt.Tx, name string) (*queue, error) {
 	b := tx.Bucket(metaBucket)
 	if b == nil {
 		return nil, errQueueMissing(name)
@@ -124,14 +124,14 @@ func (s *store) getQueue(tx *bolt.Tx, name string) (*Queue, error) {
 	if raw == nil {
 		return nil, errQueueMissing(name)
 	}
-	var q Queue
+	var q queue
 	if err := json.Unmarshal(raw, &q); err != nil {
 		return nil, err
 	}
 	return &q, nil
 }
 
-func (s *store) putQueue(tx *bolt.Tx, q *Queue) error {
+func (s *store) putQueue(tx *bolt.Tx, q *queue) error {
 	b, err := tx.CreateBucketIfNotExists(metaBucket)
 	if err != nil {
 		return err
@@ -144,7 +144,7 @@ func (s *store) putQueue(tx *bolt.Tx, q *Queue) error {
 }
 
 // CreateQueue creates (or, idempotently, updates the attributes of) a queue.
-func (s *store) CreateQueue(name string, attrs map[string]string, tags map[string]string) (*Queue, error) {
+func (s *store) CreateQueue(name string, attrs map[string]string, tags map[string]string) (*queue, error) {
 	if name == "" {
 		return nil, errInvalid("queue name is required")
 	}
@@ -155,11 +155,11 @@ func (s *store) CreateQueue(name string, attrs map[string]string, tags map[strin
 	if strings.HasSuffix(name, ".fifo") != fifoAttr && (fifoAttr || strings.HasSuffix(name, ".fifo")) {
 		return nil, errInvalid("FIFO queue names must end in .fifo and only FIFO queues may")
 	}
-	var out *Queue
+	var out *queue
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		q, err := s.getQueue(tx, name)
 		if err != nil {
-			q = &Queue{
+			q = &queue{
 				Name:              name,
 				FIFO:              fifoAttr,
 				VisibilityTimeout: defVisibilityTimeout,
@@ -230,8 +230,8 @@ func (s *store) ListQueues(prefix string) ([]string, error) {
 // ---- messages ----
 
 // Send enqueues a message. delay<0 means "use the queue default".
-func (s *store) Send(queue, body string, attrs map[string]Attr, delay int, groupID, dedupID string, sysAttrs map[string]string) (*Message, error) {
-	var out *Message
+func (s *store) Send(queue, body string, attrs map[string]attr, delay int, groupID, dedupID string, sysAttrs map[string]string) (*message, error) {
+	var out *message
 	enqueued := false
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		q, err := s.getQueue(tx, queue)
@@ -248,10 +248,10 @@ func (s *store) Send(queue, body string, attrs map[string]Attr, delay int, group
 	return out, err
 }
 
-// SendItem is one message in a SendBatch.
-type SendItem struct {
+// sendItem is one message in a SendBatch.
+type sendItem struct {
 	Body     string
-	Attrs    map[string]Attr
+	Attrs    map[string]attr
 	Delay    int // <0 means the queue default
 	GroupID  string
 	DedupID  string
@@ -261,8 +261,8 @@ type SendItem struct {
 // SendResult is one item's outcome. Err is that ITEM's failure, not the
 // batch's: AWS reports SendMessageBatch per entry, so one oversized body does
 // not sink the other nine.
-type SendResult struct {
-	Msg *Message
+type sendOutcome struct {
+	Msg *message
 	Err error
 }
 
@@ -279,8 +279,8 @@ type SendResult struct {
 // per entry. A QUEUE-level failure (no such queue) returns an error and
 // nothing is written, which is also what AWS does — a bad QueueUrl fails the
 // request rather than every entry in it.
-func (s *store) SendBatch(queue string, items []SendItem) ([]SendResult, error) {
-	results := make([]SendResult, len(items))
+func (s *store) SendBatch(queue string, items []sendItem) ([]sendOutcome, error) {
+	results := make([]sendOutcome, len(items))
 	enqueued := false
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		q, err := s.getQueue(tx, queue)
@@ -291,7 +291,7 @@ func (s *store) SendBatch(queue string, items []SendItem) ([]SendResult, error) 
 			m, sent, err := s.sendIn(tx, q, it.Body, it.Attrs, it.Delay, it.GroupID, it.DedupID, it.SysAttrs)
 			// Deliberately not returning err: a per-entry failure is reported
 			// per entry, and aborting would roll back the entries that worked.
-			results[i] = SendResult{Msg: m, Err: err}
+			results[i] = sendOutcome{Msg: m, Err: err}
 			enqueued = enqueued || sent
 		}
 		return nil
@@ -308,7 +308,7 @@ func (s *store) SendBatch(queue string, items []SendItem) ([]SendResult, error) 
 // sendIn is one message's work inside a caller's transaction. sent reports
 // whether anything was actually enqueued — a FIFO duplicate returns a message
 // and false, since it reports success without writing.
-func (s *store) sendIn(tx *bolt.Tx, q *Queue, body string, attrs map[string]Attr, delay int, groupID, dedupID string, sysAttrs map[string]string) (out *Message, sent bool, err error) {
+func (s *store) sendIn(tx *bolt.Tx, q *queue, body string, attrs map[string]attr, delay int, groupID, dedupID string, sysAttrs map[string]string) (out *message, sent bool, err error) {
 	queue := q.Name
 	if q.MaxMessageSize > 0 && len(body) > q.MaxMessageSize {
 		return nil, false, errInvalid(fmt.Sprintf("message length %d exceeds MaximumMessageSize %d", len(body), q.MaxMessageSize))
@@ -341,7 +341,7 @@ func (s *store) sendIn(tx *bolt.Tx, q *Queue, body string, attrs map[string]Attr
 	}
 	seq, _ := mb.NextSequence()
 	now := s.now()
-	m := &Message{
+	m := &message{
 		ID:        newID(),
 		Body:      body,
 		Attrs:     attrs,
@@ -381,7 +381,7 @@ func (s *store) Purge(queue string) error {
 
 // ---- helpers ----
 
-func putMessage(b *bolt.Bucket, m *Message) error {
+func putMessage(b *bolt.Bucket, m *message) error {
 	raw, err := json.Marshal(m)
 	if err != nil {
 		return err

@@ -11,7 +11,7 @@ import (
 // DescribeExecution, no history, no restart), and a TestState run exists for
 // exactly one API call. Keeping them out of bbolt is what makes Express
 // cheap, and it is also what makes the same engine serve both kinds: the
-// store branches on Execution.Volatile at the one write it does per
+// store branches on execution.Volatile at the one write it does per
 // transition, and the driver never knows the difference.
 //
 // The map holds marshalled bytes, not the engine's pointer, so a read from a
@@ -35,14 +35,14 @@ func (v *volatile) save(key string, raw []byte, events []histEvent) {
 	}
 }
 
-func (v *volatile) get(key string) (*Execution, bool) {
+func (v *volatile) get(key string) (*execution, bool) {
 	v.mu.Lock()
 	raw, ok := v.execs[key]
 	v.mu.Unlock()
 	if !ok {
 		return nil, false
 	}
-	var e Execution
+	var e execution
 	if json.Unmarshal(raw, &e) != nil {
 		return nil, false
 	}

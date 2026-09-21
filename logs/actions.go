@@ -58,7 +58,7 @@ func groupOf(p map[string]any) string {
 	return id
 }
 
-func (s *Server) mustGroup(p map[string]any) (*Group, *awshttp.APIError) {
+func (s *Server) mustGroup(p map[string]any) (*group, *awshttp.APIError) {
 	name := groupOf(p)
 	if name == "" {
 		return nil, errParam("logGroupName or logGroupIdentifier is required")
@@ -80,7 +80,7 @@ func (s *Server) createLogGroup(ctx context.Context, p map[string]any) (any, *aw
 	if g, _ := s.store.GetGroup(name); g != nil {
 		return nil, errExists("The specified log group already exists")
 	}
-	g := Group{Name: name, CreatedMs: s.store.now(), Tags: awsjson.StrMap(p, "tags")}
+	g := group{Name: name, CreatedMs: s.store.now(), Tags: awsjson.StrMap(p, "tags")}
 	if err := s.store.PutGroup(g); err != nil {
 		return nil, awshttp.Errf(500, "ServiceUnavailableException", "%v", err)
 	}
@@ -101,7 +101,7 @@ func (s *Server) deleteLogGroup(ctx context.Context, p map[string]any) (any, *aw
 	return map[string]any{}, nil
 }
 
-func (s *Server) groupView(g Group) map[string]any {
+func (s *Server) groupView(g group) map[string]any {
 	v := map[string]any{
 		"logGroupName":      g.Name,
 		"creationTime":      g.CreatedMs,
@@ -123,7 +123,7 @@ func (s *Server) describeLogGroups(ctx context.Context, p map[string]any) (any, 
 		return nil, awshttp.Errf(500, "ServiceUnavailableException", "%v", err)
 	}
 	if pat := awsjson.Str(p, "logGroupNamePattern"); pat != "" {
-		var kept []Group
+		var kept []group
 		for _, g := range groups {
 			if strings.Contains(g.Name, pat) {
 				kept = append(kept, g)
@@ -136,7 +136,7 @@ func (s *Server) describeLogGroups(ctx context.Context, p map[string]any) (any, 
 		for _, id := range ids {
 			want[groupOf(map[string]any{"logGroupIdentifier": id})] = true
 		}
-		var kept []Group
+		var kept []group
 		for _, g := range groups {
 			if want[g.Name] {
 				kept = append(kept, g)
@@ -253,7 +253,7 @@ func (s *Server) createLogStream(ctx context.Context, p map[string]any) (any, *a
 	if st, _ := s.store.GetStream(g.Name, name); st != nil {
 		return nil, errExists("The specified log stream already exists")
 	}
-	if err := s.store.PutStream(Stream{Group: g.Name, Name: name, CreatedMs: s.store.now()}); err != nil {
+	if err := s.store.PutStream(streamRecord{Group: g.Name, Name: name, CreatedMs: s.store.now()}); err != nil {
 		return nil, awshttp.Errf(500, "ServiceUnavailableException", "%v", err)
 	}
 	return map[string]any{}, nil
@@ -274,7 +274,7 @@ func (s *Server) deleteLogStream(ctx context.Context, p map[string]any) (any, *a
 	return map[string]any{}, nil
 }
 
-func (s *Server) streamView(g string, st Stream) map[string]any {
+func (s *Server) streamView(g string, st streamRecord) map[string]any {
 	v := map[string]any{
 		"logStreamName": st.Name,
 		"creationTime":  st.CreatedMs,
@@ -345,15 +345,15 @@ func (s *Server) putLogEvents(ctx context.Context, p map[string]any) (any, *awsh
 	if len(raw) == 0 {
 		return nil, errParam("logEvents must not be empty")
 	}
-	events := make([]Event, 0, len(raw))
+	events := make([]event, 0, len(raw))
 	for _, item := range raw {
 		m, _ := item.(map[string]any)
-		events = append(events, Event{TS: awsjson.Int64(m, "timestamp", 0), Msg: awsjson.Str(m, "message"), RequestID: awsjson.Str(m, "requestId")})
+		events = append(events, event{TS: awsjson.Int64(m, "timestamp", 0), Msg: awsjson.Str(m, "message"), RequestID: awsjson.Str(m, "requestId")})
 	}
 	if st, _ := s.store.GetStream(g.Name, stream); st == nil {
 		// AWS requires CreateLogStream first; locally a first PutLogEvents
 		// creates it, so a function's first line never bounces.
-		_ = s.store.PutStream(Stream{Group: g.Name, Name: stream, CreatedMs: s.store.now()})
+		_ = s.store.PutStream(streamRecord{Group: g.Name, Name: stream, CreatedMs: s.store.now()})
 	}
 	stored, err := s.store.PutEvents(g.Name, stream, events)
 	if err != nil {
@@ -392,7 +392,7 @@ func (s *Server) getLogEvents(ctx context.Context, p map[string]any) (any, *awsh
 			after = []byte(key)
 		}
 	}
-	page, more, err := s.store.Scan(g.Name, from, to, after, limit, !head, func(st string, _ Event) bool { return st == stream })
+	page, more, err := s.store.Scan(g.Name, from, to, after, limit, !head, func(st string, _ event) bool { return st == stream })
 	if err != nil {
 		return nil, awshttp.Errf(500, "ServiceUnavailableException", "%v", err)
 	}
@@ -445,7 +445,7 @@ func (s *Server) filterLogEvents(ctx context.Context, p map[string]any) (any, *a
 		after = []byte(t)
 	}
 	page, more, err := s.store.Scan(g.Name, awsjson.Int64(p, "startTime", 0), awsjson.Int64(p, "endTime", 0), after,
-		awsjson.Int(p, "limit", 10000), false, func(st string, ev Event) bool {
+		awsjson.Int(p, "limit", 10000), false, func(st string, ev event) bool {
 			if len(want) > 0 && !want[st] {
 				return false
 			}
@@ -486,7 +486,7 @@ func (s *Server) filterLogEvents(ctx context.Context, p map[string]any) (any, *a
 
 // ---- tags ----
 
-func (s *Server) groupOfARN(arn string) (*Group, *awshttp.APIError) {
+func (s *Server) groupOfARN(arn string) (*group, *awshttp.APIError) {
 	i := strings.Index(arn, ":log-group:")
 	if i < 0 {
 		return nil, errParam("resourceArn must be a log group ARN")
@@ -542,7 +542,7 @@ func (s *Server) listTagsLogGroup(ctx context.Context, p map[string]any) (any, *
 	return map[string]any{"tags": orEmpty(g.Tags)}, nil
 }
 
-func (s *Server) addTags(g *Group, tags map[string]string) (any, *awshttp.APIError) {
+func (s *Server) addTags(g *group, tags map[string]string) (any, *awshttp.APIError) {
 	if g.Tags == nil {
 		g.Tags = map[string]string{}
 	}
@@ -555,7 +555,7 @@ func (s *Server) addTags(g *Group, tags map[string]string) (any, *awshttp.APIErr
 	return map[string]any{}, nil
 }
 
-func (s *Server) removeTags(g *Group, keys []string) (any, *awshttp.APIError) {
+func (s *Server) removeTags(g *group, keys []string) (any, *awshttp.APIError) {
 	for _, k := range keys {
 		delete(g.Tags, k)
 	}

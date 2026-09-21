@@ -47,7 +47,7 @@ func TestFireDueSchedules(t *testing.T) {
 	// A scheduled rule with no targets: firing is a no-op delivery, but the
 	// due-logic (first-sighting arms, then fires after the interval) is what we
 	// assert via the lastFired bookkeeping.
-	if err := s.store.PutRule(Rule{Bus: DefaultBus, Name: "tick", Schedule: "rate(1 minute)", State: "ENABLED"}); err != nil {
+	if err := s.store.PutRule(rule{Bus: DefaultBus, Name: "tick", Schedule: "rate(1 minute)", State: "ENABLED"}); err != nil {
 		t.Fatal(err)
 	}
 	lastFired := map[string]time.Time{}
@@ -78,7 +78,7 @@ func TestFireDueSchedulesCron(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	if err := s.store.PutRule(Rule{Bus: DefaultBus, Name: "daily", Schedule: "cron(0 10 * * ? *)", State: "ENABLED"}); err != nil {
+	if err := s.store.PutRule(rule{Bus: DefaultBus, Name: "daily", Schedule: "cron(0 10 * * ? *)", State: "ENABLED"}); err != nil {
 		t.Fatal(err)
 	}
 	lastFired := map[string]time.Time{}
@@ -149,7 +149,7 @@ func TestReenabledScheduleArmsAfresh(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s.Close()
-	rule := Rule{Bus: DefaultBus, Name: "hourly", Schedule: "rate(1 hour)", State: "ENABLED"}
+	rule := rule{Bus: DefaultBus, Name: "hourly", Schedule: "rate(1 hour)", State: "ENABLED"}
 	if err := s.store.PutRule(rule); err != nil {
 		t.Fatal(err)
 	}

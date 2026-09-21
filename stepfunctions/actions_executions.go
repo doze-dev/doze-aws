@@ -95,7 +95,7 @@ func (s *Server) startExecution(ctx context.Context, p map[string]any) (any, *aw
 // fills it from the request; a states:startExecution Task fills it from its
 // Parameters, on the driver, with the parent's trace as the cause.
 type launchSpec struct {
-	Machine              *StateMachine
+	Machine              *stateMachine
 	VersionARN, AliasARN string
 	Name, Input          string
 	TraceHeader          string
@@ -107,7 +107,7 @@ type launchSpec struct {
 
 // launch writes a Standard execution's record and its ExecutionStarted event
 // in one transaction and nudges the driver.
-func (s *Server) launch(spec launchSpec) (*Execution, *awshttp.APIError) {
+func (s *Server) launch(spec launchSpec) (*execution, *awshttp.APIError) {
 	m := spec.Machine
 	def, perr := asl.Parse([]byte(m.Definition))
 	if perr != nil {
@@ -115,7 +115,7 @@ func (s *Server) launch(spec launchSpec) (*Execution, *awshttp.APIError) {
 	}
 	now := s.store.clock()
 	arn := execARN(s.id, m.Name, spec.Name)
-	e := &Execution{
+	e := &execution{
 		ARN: arn, MachineARN: m.ARN, Name: spec.Name,
 		Definition: m.Definition, RoleARN: m.RoleARN, RevisionID: m.RevisionID, Type: m.Type,
 		Status: "RUNNING", StartedAt: now.UnixMilli(), Input: spec.Input,
@@ -152,7 +152,7 @@ func (s *Server) launch(spec launchSpec) (*Execution, *awshttp.APIError) {
 // startedEvent is event 1 of every execution. An Express execution keeps no
 // history, so it is not stored for one — but it is still what its log group
 // opens with.
-func startedEvent(e *Execution) histEvent {
+func startedEvent(e *execution) histEvent {
 	return histEvent{
 		ID: 1, PrevID: 0, TS: e.StartedAt, Type: "ExecutionStarted",
 		DetailKey: "executionStartedEventDetails",
@@ -370,7 +370,7 @@ func (s *Server) listExecutions(ctx context.Context, p map[string]any) (any, *aw
 }
 
 // executionOf resolves the executionArn parameter to its record.
-func (s *Server) executionOf(p map[string]any) (*Execution, *awshttp.APIError) {
+func (s *Server) executionOf(p map[string]any) (*execution, *awshttp.APIError) {
 	arn := awsjson.Str(p, "executionArn")
 	if isExpressARN(arn) {
 		// An Express execution has no describable record — AWS keeps none,

@@ -102,7 +102,7 @@ func generateMaterial(spec string) ([]byte, error) {
 }
 
 // privateKey parses an asymmetric key's PKCS#8 material.
-func (k *Key) privateKey() (any, *awshttp.APIError) {
+func (k *key) privateKey() (any, *awshttp.APIError) {
 	priv, err := x509.ParsePKCS8PrivateKey(k.Material)
 	if err != nil {
 		return nil, awshttp.Errf(500, "KMSInternalException", "stored key material is corrupt")
@@ -111,7 +111,7 @@ func (k *Key) privateKey() (any, *awshttp.APIError) {
 }
 
 // publicKeyDER returns the DER-encoded SPKI public key for RSA/ECC keys.
-func (k *Key) publicKeyDER() ([]byte, *awshttp.APIError) {
+func (k *key) publicKeyDER() ([]byte, *awshttp.APIError) {
 	priv, aerr := k.privateKey()
 	if aerr != nil {
 		return nil, aerr
@@ -131,7 +131,7 @@ func (k *Key) publicKeyDER() ([]byte, *awshttp.APIError) {
 // requireUsage rejects a cryptographic operation whose required KeyUsage doesn't
 // match the key's — real KMS raises InvalidKeyUsageException (e.g. Sign with an
 // ENCRYPT_DECRYPT key, or Encrypt with a SIGN_VERIFY key).
-func requireUsage(k *Key, want string) *awshttp.APIError {
+func requireUsage(k *key, want string) *awshttp.APIError {
 	if k.KeyUsage != want {
 		return awshttp.Errf(400, "InvalidKeyUsageException",
 			"operation requires a key with KeyUsage %s, but key %s has KeyUsage %s", want, k.ID, k.KeyUsage)
@@ -140,7 +140,7 @@ func requireUsage(k *Key, want string) *awshttp.APIError {
 }
 
 // signingAlgorithms lists the algorithms a key advertises and accepts.
-func (k *Key) signingAlgorithms() []string {
+func (k *key) signingAlgorithms() []string {
 	si := specs[k.KeySpec]
 	switch {
 	case si.rsaBits > 0:
@@ -159,7 +159,7 @@ func (k *Key) signingAlgorithms() []string {
 }
 
 // encryptionAlgorithms lists the encryption algorithms a key supports.
-func (k *Key) encryptionAlgorithms() []string {
+func (k *key) encryptionAlgorithms() []string {
 	if specs[k.KeySpec].rsaBits > 0 {
 		return []string{"RSAES_OAEP_SHA_1", "RSAES_OAEP_SHA_256"}
 	}
@@ -170,7 +170,7 @@ func (k *Key) encryptionAlgorithms() []string {
 }
 
 // macAlgorithm returns the key's MAC algorithm name and hash constructor.
-func (k *Key) macAlgorithm() (string, func() hash.Hash) {
+func (k *key) macAlgorithm() (string, func() hash.Hash) {
 	switch k.KeySpec {
 	case "HMAC_224":
 		return "HMAC_SHA_224", sha256.New224
@@ -215,7 +215,7 @@ func digest(message []byte, messageType string, h crypto.Hash) ([]byte, *awshttp
 }
 
 // sign produces a signature with the named KMS algorithm.
-func (k *Key) sign(alg string, message []byte, messageType string) ([]byte, *awshttp.APIError) {
+func (k *key) sign(alg string, message []byte, messageType string) ([]byte, *awshttp.APIError) {
 	if !contains(k.signingAlgorithms(), alg) {
 		return nil, awshttp.Errf(400, "ValidationException", "algorithm %q is not valid for key spec %s", alg, k.KeySpec)
 	}
@@ -256,7 +256,7 @@ func (k *Key) sign(alg string, message []byte, messageType string) ([]byte, *aws
 
 // verify checks a signature; a mismatch is (false, nil) like real KMS's
 // KMSInvalidSignatureException path handled by the caller.
-func (k *Key) verify(alg string, message []byte, messageType string, sig []byte) (bool, *awshttp.APIError) {
+func (k *key) verify(alg string, message []byte, messageType string, sig []byte) (bool, *awshttp.APIError) {
 	if !contains(k.signingAlgorithms(), alg) {
 		return false, awshttp.Errf(400, "ValidationException", "algorithm %q is not valid for key spec %s", alg, k.KeySpec)
 	}
@@ -288,7 +288,7 @@ func (k *Key) verify(alg string, message []byte, messageType string, sig []byte)
 }
 
 // rsaEncrypt encrypts with RSAES_OAEP_SHA_1 or _SHA_256.
-func (k *Key) rsaEncrypt(alg string, plaintext []byte) ([]byte, *awshttp.APIError) {
+func (k *key) rsaEncrypt(alg string, plaintext []byte) ([]byte, *awshttp.APIError) {
 	priv, aerr := k.privateKey()
 	if aerr != nil {
 		return nil, aerr
@@ -309,7 +309,7 @@ func (k *Key) rsaEncrypt(alg string, plaintext []byte) ([]byte, *awshttp.APIErro
 }
 
 // rsaDecrypt decrypts an RSAES_OAEP ciphertext.
-func (k *Key) rsaDecrypt(alg string, ciphertext []byte) ([]byte, *awshttp.APIError) {
+func (k *key) rsaDecrypt(alg string, ciphertext []byte) ([]byte, *awshttp.APIError) {
 	priv, aerr := k.privateKey()
 	if aerr != nil {
 		return nil, aerr
@@ -340,7 +340,7 @@ func oaepHash(alg string) (hash.Hash, *awshttp.APIError) {
 }
 
 // mac computes the key's HMAC over message with the named algorithm.
-func (k *Key) mac(alg string, message []byte) ([]byte, *awshttp.APIError) {
+func (k *key) mac(alg string, message []byte) ([]byte, *awshttp.APIError) {
 	wantAlg, newHash := k.macAlgorithm()
 	if newHash == nil {
 		return nil, awshttp.Errf(400, "ValidationException", "key %s is not an HMAC key", k.ID)

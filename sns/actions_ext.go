@@ -80,7 +80,7 @@ func (srv *Server) setTopicAttributes(ctx context.Context, form url.Values, _ st
 	if name == "" {
 		return nil, errInvalid("AttributeName is required")
 	}
-	return nil, asErr(srv.store.UpdateTopic(form.Get("TopicArn"), func(t *Topic) {
+	return nil, asErr(srv.store.UpdateTopic(form.Get("TopicArn"), func(t *topic) {
 		if t.Attrs == nil {
 			t.Attrs = map[string]string{}
 		}
@@ -104,7 +104,7 @@ func (srv *Server) tagResource(ctx context.Context, form url.Values, _ string) (
 	if len(tags) == 0 {
 		return nil, errInvalid("at least one tag is required")
 	}
-	return nil, asErr(srv.store.UpdateTopic(form.Get("ResourceArn"), func(t *Topic) {
+	return nil, asErr(srv.store.UpdateTopic(form.Get("ResourceArn"), func(t *topic) {
 		if t.Tags == nil {
 			t.Tags = map[string]string{}
 		}
@@ -119,7 +119,7 @@ func (srv *Server) untagResource(ctx context.Context, form url.Values, _ string)
 	if len(keys) == 0 {
 		return nil, errInvalid("at least one tag key is required")
 	}
-	return nil, asErr(srv.store.UpdateTopic(form.Get("ResourceArn"), func(t *Topic) {
+	return nil, asErr(srv.store.UpdateTopic(form.Get("ResourceArn"), func(t *topic) {
 		for _, k := range keys {
 			delete(t.Tags, k)
 		}
@@ -142,7 +142,7 @@ func (srv *Server) listTagsForResource(ctx context.Context, form url.Values, _ s
 // succeed and change nothing.
 
 func (srv *Server) putDataProtectionPolicy(ctx context.Context, form url.Values, _ string) (any, *apiError) {
-	return nil, asErr(srv.store.UpdateTopic(form.Get("ResourceArn"), func(t *Topic) {
+	return nil, asErr(srv.store.UpdateTopic(form.Get("ResourceArn"), func(t *topic) {
 		t.DataProtectionPolicy = form.Get("DataProtectionPolicy")
 	}))
 }

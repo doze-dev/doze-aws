@@ -25,8 +25,8 @@ var (
 	replaysBucket       = []byte("replays")
 )
 
-// Archive is an event archive over one bus.
-type Archive struct {
+// archive is an event archive over one bus.
+type archive struct {
 	Name           string `json:"name"`
 	EventSourceArn string `json:"source_arn"` // bus ARN
 	Pattern        string `json:"pattern,omitempty"`
@@ -38,10 +38,10 @@ type Archive struct {
 	SizeBytes      int64  `json:"size_bytes"`
 }
 
-func (a *Archive) ARN(id awsident.Identity) string { return id.ARN("events", "archive/"+a.Name) }
+func (a *archive) ARN(id awsident.Identity) string { return id.ARN("events", "archive/"+a.Name) }
 
-// Replay is a completed (local replays run synchronously) archive replay.
-type Replay struct {
+// replay is a completed (local replays run synchronously) archive replay.
+type replay struct {
 	Name           string   `json:"name"`
 	EventSourceArn string   `json:"archive_arn"` // archive ARN
 	DestinationArn string   `json:"dest_arn"`    // bus ARN
@@ -55,7 +55,7 @@ type Replay struct {
 	LastEventTime  int64    `json:"last_event"`
 }
 
-func (r *Replay) ARN(id awsident.Identity) string { return id.ARN("events", "replay/"+r.Name) }
+func (r *replay) ARN(id awsident.Identity) string { return id.ARN("events", "replay/"+r.Name) }
 
 // storedEvent is one archived event with its ingestion time.
 type storedEvent struct {
@@ -75,7 +75,7 @@ func busFromArn(arn string) string {
 // ---- archive store ----
 
 // CreateArchive registers an archive over an existing bus.
-func (s *store) CreateArchive(a Archive) error {
+func (s *store) CreateArchive(a archive) error {
 	bus := busFromArn(a.EventSourceArn)
 	if a.Pattern != "" {
 		if _, err := eventpattern.Parse([]byte(a.Pattern)); err != nil {
@@ -99,8 +99,8 @@ func (s *store) CreateArchive(a Archive) error {
 }
 
 // GetArchive loads one archive.
-func (s *store) GetArchive(name string) (*Archive, error) {
-	var out *Archive
+func (s *store) GetArchive(name string) (*archive, error) {
+	var out *archive
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(archivesBucket)
 		if b == nil {
@@ -110,7 +110,7 @@ func (s *store) GetArchive(name string) (*Archive, error) {
 		if raw == nil {
 			return errArchiveNotFound(name)
 		}
-		var a Archive
+		var a archive
 		if err := json.Unmarshal(raw, &a); err != nil {
 			return err
 		}
@@ -125,15 +125,15 @@ func errArchiveNotFound(name string) *awshttp.APIError {
 }
 
 // ListArchives returns archives filtered by name prefix and/or source ARN, sorted.
-func (s *store) ListArchives(namePrefix, sourceArn string) ([]Archive, error) {
-	var out []Archive
+func (s *store) ListArchives(namePrefix, sourceArn string) ([]archive, error) {
+	var out []archive
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(archivesBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var a Archive
+			var a archive
 			if json.Unmarshal(raw, &a) != nil {
 				return nil
 			}
@@ -152,7 +152,7 @@ func (s *store) ListArchives(namePrefix, sourceArn string) ([]Archive, error) {
 }
 
 // UpdateArchive applies fn to an archive.
-func (s *store) UpdateArchive(name string, fn func(*Archive) error) error {
+func (s *store) UpdateArchive(name string, fn func(*archive) error) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(archivesBucket)
 		if b == nil {
@@ -162,7 +162,7 @@ func (s *store) UpdateArchive(name string, fn func(*Archive) error) error {
 		if raw == nil {
 			return errArchiveNotFound(name)
 		}
-		var a Archive
+		var a archive
 		if err := json.Unmarshal(raw, &a); err != nil {
 			return err
 		}
@@ -216,7 +216,7 @@ func (s *store) AppendArchiveEvent(name string, t int64, eventJSON []byte) error
 			return err
 		}
 		// Bump counters on the archive record.
-		var a Archive
+		var a archive
 		if json.Unmarshal(ab.Get([]byte(name)), &a) != nil {
 			return nil
 		}
@@ -264,7 +264,7 @@ func (s *store) ReplayEvents(name string, start, end int64, fn func(eventJSON []
 // ---- replay store ----
 
 // PutReplay stores a replay record.
-func (s *store) PutReplay(r Replay) error {
+func (s *store) PutReplay(r replay) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(replaysBucket)
 		if err != nil {
@@ -279,8 +279,8 @@ func (s *store) PutReplay(r Replay) error {
 }
 
 // GetReplay loads one replay.
-func (s *store) GetReplay(name string) (*Replay, error) {
-	var out *Replay
+func (s *store) GetReplay(name string) (*replay, error) {
+	var out *replay
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(replaysBucket)
 		if b == nil {
@@ -290,7 +290,7 @@ func (s *store) GetReplay(name string) (*Replay, error) {
 		if raw == nil {
 			return errReplayNotFound(name)
 		}
-		var r Replay
+		var r replay
 		if err := json.Unmarshal(raw, &r); err != nil {
 			return err
 		}
@@ -305,15 +305,15 @@ func errReplayNotFound(name string) *awshttp.APIError {
 }
 
 // ListReplays returns replays filtered by name prefix, sorted.
-func (s *store) ListReplays(namePrefix string) ([]Replay, error) {
-	var out []Replay
+func (s *store) ListReplays(namePrefix string) ([]replay, error) {
+	var out []replay
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(replaysBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var r Replay
+			var r replay
 			if json.Unmarshal(raw, &r) == nil {
 				if namePrefix == "" || strings.HasPrefix(r.Name, namePrefix) {
 					out = append(out, r)

@@ -126,7 +126,7 @@ func hListPolicyVersions(s *Server, p params) (any, *awshttp.APIError) {
 
 func hSetDefaultPolicyVersion(s *Server, p params) (any, *awshttp.APIError) {
 	version := p.str("VersionId")
-	_, err := s.store.UpdatePolicy(p.str("PolicyArn"), func(pol *Policy) error {
+	_, err := s.store.UpdatePolicy(p.str("PolicyArn"), func(pol *policy) error {
 		if _, ok := pol.Versions[version]; !ok {
 			return errNoEntity("Policy version %s does not exist.", version)
 		}
@@ -137,7 +137,7 @@ func hSetDefaultPolicyVersion(s *Server, p params) (any, *awshttp.APIError) {
 }
 
 func hTagPolicy(s *Server, p params) (any, *awshttp.APIError) {
-	_, err := s.store.UpdatePolicy(p.str("PolicyArn"), func(pol *Policy) error {
+	_, err := s.store.UpdatePolicy(p.str("PolicyArn"), func(pol *policy) error {
 		pol.Tags = mergeTags(pol.Tags, p.tags())
 		return nil
 	})
@@ -145,7 +145,7 @@ func hTagPolicy(s *Server, p params) (any, *awshttp.APIError) {
 }
 
 func hUntagPolicy(s *Server, p params) (any, *awshttp.APIError) {
-	_, err := s.store.UpdatePolicy(p.str("PolicyArn"), func(pol *Policy) error {
+	_, err := s.store.UpdatePolicy(p.str("PolicyArn"), func(pol *policy) error {
 		for _, k := range p.members("TagKeys") {
 			delete(pol.Tags, k)
 		}
@@ -292,7 +292,7 @@ func putInline(s *Server, kind attachTarget, name, policyName, document string) 
 	if _, err := parsePolicy(doc); err != nil {
 		return nil, errMalformedPolicy("PolicyDocument: %v", err)
 	}
-	err := s.store.updatePrincipal(kind, name, func(pr *Principal) error {
+	err := s.store.updatePrincipal(kind, name, func(pr *principal) error {
 		if pr.Inline == nil {
 			pr.Inline = map[string]string{}
 		}
@@ -317,7 +317,7 @@ func getInline(s *Server, kind attachTarget, name, policyName, nameField string)
 }
 
 func deleteInline(s *Server, kind attachTarget, name, policyName string) (any, *awshttp.APIError) {
-	err := s.store.updatePrincipal(kind, name, func(pr *Principal) error {
+	err := s.store.updatePrincipal(kind, name, func(pr *principal) error {
 		if _, ok := pr.Inline[policyName]; !ok {
 			return errNoEntity("The policy with name %s cannot be found.", policyName)
 		}
@@ -423,7 +423,7 @@ func setBoundary(s *Server, kind attachTarget, name, arn string) (any, *awshttp.
 	if _, err := s.store.GetPolicy(arn); err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	err := s.store.updatePrincipal(kind, name, func(pr *Principal) error {
+	err := s.store.updatePrincipal(kind, name, func(pr *principal) error {
 		pr.PermissionsBoundary = arn
 		return nil
 	})
@@ -431,7 +431,7 @@ func setBoundary(s *Server, kind attachTarget, name, arn string) (any, *awshttp.
 }
 
 func clearBoundary(s *Server, kind attachTarget, name string) (any, *awshttp.APIError) {
-	err := s.store.updatePrincipal(kind, name, func(pr *Principal) error {
+	err := s.store.updatePrincipal(kind, name, func(pr *principal) error {
 		pr.PermissionsBoundary = ""
 		return nil
 	})
@@ -529,14 +529,14 @@ func hGetAccountAuthorizationDetails(s *Server, _ params) (any, *awshttp.APIErro
 		AttachedManagedPolicies  []attachedPolicyView `xml:"AttachedManagedPolicies>member,omitempty"`
 	}
 
-	inlineOf := func(pr *Principal) []inlineView {
+	inlineOf := func(pr *principal) []inlineView {
 		var out []inlineView
 		for _, name := range sortedKeys(pr.Inline) {
 			out = append(out, inlineView{name, url.QueryEscape(pr.Inline[name])})
 		}
 		return out
 	}
-	attachedOf := func(pr *Principal) []attachedPolicyView {
+	attachedOf := func(pr *principal) []attachedPolicyView {
 		var out []attachedPolicyView
 		for _, arn := range pr.Attached {
 			display := arn
@@ -556,7 +556,7 @@ func hGetAccountAuthorizationDetails(s *Server, _ params) (any, *awshttp.APIErro
 			Path: u.Path, UserName: u.Name, UserId: u.ID,
 			Arn:            s.id.GlobalARN("iam", "user"+u.Path+u.Name),
 			CreateDate:     iso(u.Created),
-			UserPolicyList: inlineOf(&u.Principal), AttachedManagedPolicies: attachedOf(&u.Principal),
+			UserPolicyList: inlineOf(&u.principal), AttachedManagedPolicies: attachedOf(&u.principal),
 			GroupList: u.Groups,
 		})
 	}
@@ -569,8 +569,8 @@ func hGetAccountAuthorizationDetails(s *Server, _ params) (any, *awshttp.APIErro
 			Arn:                      s.id.GlobalARN("iam", "role"+r.Path+r.Name),
 			CreateDate:               iso(r.Created),
 			AssumeRolePolicyDocument: url.QueryEscape(r.AssumeRolePolicy),
-			RolePolicyList:           inlineOf(&r.Principal),
-			AttachedManagedPolicies:  attachedOf(&r.Principal),
+			RolePolicyList:           inlineOf(&r.principal),
+			AttachedManagedPolicies:  attachedOf(&r.principal),
 		})
 	}
 	return struct {

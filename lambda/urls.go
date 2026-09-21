@@ -49,7 +49,7 @@ func (s *Server) functionURL(urlID string) string { return s.id.FunctionURL(urlI
 // the answer is AWS's own <id>.lambda-url.<region>.<suffix> form; reach it at
 // a plain address and the answer is the path form that works there. Handing
 // back a name the caller has no DNS for would be worse than a plain URL.
-func (s *Server) urlFor(r *http.Request, f *Function) string {
+func (s *Server) urlFor(r *http.Request, f *function) string {
 	if f.FunctionURL == "" {
 		return ""
 	}
@@ -63,7 +63,7 @@ func (s *Server) urlFor(r *http.Request, f *Function) string {
 }
 
 // urlConfigView is the Create/Get/UpdateFunctionUrlConfig response.
-func (s *Server) urlConfigView(r *http.Request, f *Function, status int) map[string]any {
+func (s *Server) urlConfigView(r *http.Request, f *function, status int) map[string]any {
 	now := awshttp.ISO8601(s.now())
 	v := map[string]any{
 		"FunctionUrl": s.urlFor(r, f), "FunctionArn": f.ARN(), "AuthType": orStr(f.URLAuthType, "NONE"),
@@ -83,7 +83,7 @@ func (s *Server) routeFunctionURL(w http.ResponseWriter, r *http.Request, name s
 			Cors     json.RawMessage `json:"Cors"`
 		}
 		decode(r, &req)
-		f, err := s.store.Update(name, func(f *Function) error {
+		f, err := s.store.Update(name, func(f *function) error {
 			if f.URLId == "" {
 				f.URLId = urlID(name)
 			}
@@ -116,7 +116,7 @@ func (s *Server) routeFunctionURL(w http.ResponseWriter, r *http.Request, name s
 		writeJSON(w, 200, s.urlConfigView(r, f, 200))
 		return nil
 	case http.MethodDelete:
-		s.store.Update(name, func(f *Function) error {
+		s.store.Update(name, func(f *function) error {
 			f.FunctionURL, f.URLId, f.URLAuthType, f.URLCors = "", "", "", nil
 			return nil
 		})
@@ -127,7 +127,7 @@ func (s *Server) routeFunctionURL(w http.ResponseWriter, r *http.Request, name s
 }
 
 // functionByURL finds the function whose URL id a request addresses.
-func (s *Server) functionByURL(r *http.Request) (*Function, string) {
+func (s *Server) functionByURL(r *http.Request) (*function, string) {
 	id, rest := "", r.URL.Path
 	if strings.HasPrefix(r.URL.Path, "/_aws/lambda-url/") {
 		rest = strings.TrimPrefix(r.URL.Path, "/_aws/lambda-url/")
@@ -214,7 +214,7 @@ func errFunction(res lambdaruntime.Result) error { return functionError{res} }
 
 // urlEvent is the payload format 2.0 event a function URL delivers — the
 // same document an HTTP API route delivers, built by internal/httpevent.
-func urlEvent(id awsident.Identity, r *http.Request, path string, body []byte, f *Function) map[string]any {
+func urlEvent(id awsident.Identity, r *http.Request, path string, body []byte, f *function) map[string]any {
 	return httpevent.Event(httpevent.Request{
 		R: r, Path: path, Body: body,
 		APIID:      f.URLId,

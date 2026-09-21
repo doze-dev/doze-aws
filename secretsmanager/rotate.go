@@ -49,7 +49,7 @@ func (s *Server) rotateSecret(p map[string]any) (any, *awshttp.APIError) {
 		}
 	}
 
-	if _, err := s.store.Mutate(sec.Name, func(x *Secret) error {
+	if _, err := s.store.Mutate(sec.Name, func(x *secret) error {
 		x.RotationEnabled = true
 		x.RotationLambdaARN = lambdaARN
 		x.LastRotatedDate = s.store.now().Unix()
@@ -63,7 +63,7 @@ func (s *Server) rotateSecret(p map[string]any) (any, *awshttp.APIError) {
 // cancelRotateSecret disables rotation (leaving any in-flight AWSPENDING version
 // as-is, matching AWS).
 func (s *Server) cancelRotateSecret(p map[string]any) (any, *awshttp.APIError) {
-	sec, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(x *Secret) error {
+	sec, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(x *secret) error {
 		x.RotationEnabled = false
 		return nil
 	})

@@ -83,7 +83,7 @@ func (s *Server) createArchive(ctx context.Context, p map[string]any) (any, *aws
 	if n, ok := pnum(p, "RetentionDays"); ok {
 		ret = int(n)
 	}
-	a := Archive{
+	a := archive{
 		Name: name, EventSourceArn: src, Pattern: awsjson.Str(p, "EventPattern"),
 		RetentionDays: ret, Desc: awsjson.Str(p, "Description"),
 		State: "ENABLED", CreationTime: s.now().Unix(),
@@ -96,7 +96,7 @@ func (s *Server) createArchive(ctx context.Context, p map[string]any) (any, *aws
 	}, nil
 }
 
-func archiveView(id awsident.Identity, a *Archive) map[string]any {
+func archiveView(id awsident.Identity, a *archive) map[string]any {
 	out := map[string]any{
 		"ArchiveName":    a.Name,
 		"ArchiveArn":     a.ARN(id),
@@ -138,7 +138,7 @@ func (s *Server) listArchives(ctx context.Context, p map[string]any) (any, *awsh
 
 func (s *Server) updateArchive(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	name := awsjson.Str(p, "ArchiveName")
-	err := s.store.UpdateArchive(name, func(a *Archive) error {
+	err := s.store.UpdateArchive(name, func(a *archive) error {
 		if v := awsjson.Str(p, "EventPattern"); v != "" {
 			if _, e := eventpattern.Parse([]byte(v)); e != nil {
 				return awshttp.Errf(400, "InvalidEventPatternException", "%v", e)
@@ -213,7 +213,7 @@ func (s *Server) startReplay(ctx context.Context, p map[string]any) (any, *awsht
 		return nil, awshttp.AsAPIError(err)
 	}
 
-	r := Replay{
+	r := replay{
 		Name: name, EventSourceArn: archiveArn, DestinationArn: busArn,
 		EventStartTime: start, EventEndTime: end,
 		State: "COMPLETED", StateReason: fmt.Sprintf("Replayed %d event(s)", count),
@@ -231,7 +231,7 @@ func (s *Server) startReplay(ctx context.Context, p map[string]any) (any, *awsht
 	}, nil
 }
 
-func replayView(id awsident.Identity, r *Replay) map[string]any {
+func replayView(id awsident.Identity, r *replay) map[string]any {
 	out := map[string]any{
 		"ReplayName":      r.Name,
 		"ReplayArn":       r.ARN(id),

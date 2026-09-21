@@ -10,35 +10,35 @@ func TestMetricValueOfResolvesLiteralsAndReferences(t *testing.T) {
 	half := 0.5
 	for _, tc := range []struct {
 		name    string
-		t       MetricTransformation
+		t       metricTransformation
 		message string
 		want    float64
 		ok      bool
 	}{
-		{"a literal counts occurrences", MetricTransformation{Value: "1"}, "anything", 1, true},
-		{"a literal need not be one", MetricTransformation{Value: "2.5"}, "anything", 2.5, true},
+		{"a literal counts occurrences", metricTransformation{Value: "1"}, "anything", 1, true},
+		{"a literal need not be one", metricTransformation{Value: "2.5"}, "anything", 2.5, true},
 		{"a literal that is not a number publishes nothing",
-			MetricTransformation{Value: "lots"}, "anything", 0, false},
+			metricTransformation{Value: "lots"}, "anything", 0, false},
 		{"a reference reads the field",
-			MetricTransformation{Value: "$.latency"}, `{"latency": 42}`, 42, true},
+			metricTransformation{Value: "$.latency"}, `{"latency": 42}`, 42, true},
 		{"a reference reaches into nested objects",
-			MetricTransformation{Value: "$.http.status"}, `{"http": {"status": 503}}`, 503, true},
+			metricTransformation{Value: "$.http.status"}, `{"http": {"status": 503}}`, 503, true},
 		{"a number printed as a string still counts",
-			MetricTransformation{Value: "$.latency"}, `{"latency": "42"}`, 42, true},
+			metricTransformation{Value: "$.latency"}, `{"latency": "42"}`, 42, true},
 		{"a bool is one or zero",
-			MetricTransformation{Value: "$.cached"}, `{"cached": true}`, 1, true},
+			metricTransformation{Value: "$.cached"}, `{"cached": true}`, 1, true},
 		// The distinction defaultValue exists for: an unresolved reference
 		// publishes nothing, which is not the same as publishing zero.
 		{"an unresolved reference with no default publishes nothing",
-			MetricTransformation{Value: "$.latency"}, `{"other": 1}`, 0, false},
+			metricTransformation{Value: "$.latency"}, `{"other": 1}`, 0, false},
 		{"an unresolved reference falls back to the default",
-			MetricTransformation{Value: "$.latency", Default: &half}, `{"other": 1}`, 0.5, true},
+			metricTransformation{Value: "$.latency", Default: &half}, `{"other": 1}`, 0.5, true},
 		{"a non-JSON line cannot satisfy a reference",
-			MetricTransformation{Value: "$.latency"}, "ERROR boom", 0, false},
+			metricTransformation{Value: "$.latency"}, "ERROR boom", 0, false},
 		{"a non-JSON line still takes the default",
-			MetricTransformation{Value: "$.latency", Default: &half}, "ERROR boom", 0.5, true},
+			metricTransformation{Value: "$.latency", Default: &half}, "ERROR boom", 0.5, true},
 		{"an object at the leaf is not a number",
-			MetricTransformation{Value: "$.latency"}, `{"latency": {"p50": 1}}`, 0, false},
+			metricTransformation{Value: "$.latency"}, `{"latency": {"p50": 1}}`, 0, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got, ok := metricValueOf(tc.t, tc.message)

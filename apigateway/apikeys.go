@@ -22,8 +22,8 @@ import (
 
 var apiKeyBucket = []byte("apikeys")
 
-// APIKey is one key.
-type APIKey struct {
+// apiKey is one key.
+type apiKey struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
 	Description string            `json:"description,omitempty"`
@@ -36,7 +36,7 @@ type APIKey struct {
 	Tags        map[string]string `json:"tags,omitempty"`
 }
 
-func viewAPIKey(k *APIKey, withValue bool) map[string]any {
+func viewAPIKey(k *apiKey, withValue bool) map[string]any {
 	v := map[string]any{
 		"id": k.ID, "name": k.Name, "enabled": k.Enabled,
 		"createdDate": k.Created, "lastUpdatedDate": k.Updated,
@@ -63,7 +63,7 @@ func newKeyValue() string {
 
 // ---- store ----
 
-func (s *store) PutAPIKey(k *APIKey) error {
+func (s *store) PutAPIKey(k *apiKey) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(apiKeyBucket)
 		if err != nil {
@@ -74,14 +74,14 @@ func (s *store) PutAPIKey(k *APIKey) error {
 	})
 }
 
-func (s *store) GetAPIKey(id string) (*APIKey, error) {
-	var out *APIKey
+func (s *store) GetAPIKey(id string) (*apiKey, error) {
+	var out *apiKey
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiKeyBucket)
 		if b == nil || b.Get([]byte(id)) == nil {
 			return errNotFound("Invalid API Key identifier specified")
 		}
-		var k APIKey
+		var k apiKey
 		if err := json.Unmarshal(b.Get([]byte(id)), &k); err != nil {
 			return err
 		}
@@ -109,7 +109,7 @@ func (s *store) DeleteAPIKey(id string) error {
 		// own ForEach.
 		var rewrite [][2][]byte
 		pb.ForEach(func(pk, raw []byte) error {
-			var p UsagePlan
+			var p usagePlan
 			if json.Unmarshal(raw, &p) != nil || !p.hasKey(id) {
 				return nil
 			}
@@ -128,15 +128,15 @@ func (s *store) DeleteAPIKey(id string) error {
 }
 
 // ListAPIKeys answers every key, sorted by name.
-func (s *store) ListAPIKeys() ([]*APIKey, error) {
-	var out []*APIKey
+func (s *store) ListAPIKeys() ([]*apiKey, error) {
+	var out []*apiKey
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiKeyBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var k APIKey
+			var k apiKey
 			if err := json.Unmarshal(raw, &k); err != nil {
 				return err
 			}
@@ -149,7 +149,7 @@ func (s *store) ListAPIKeys() ([]*APIKey, error) {
 }
 
 // FindAPIKeyByValue is the data plane's lookup.
-func (s *store) FindAPIKeyByValue(value string) *APIKey {
+func (s *store) FindAPIKeyByValue(value string) *apiKey {
 	keys, _ := s.ListAPIKeys()
 	for _, k := range keys {
 		if k.Value == value {
@@ -219,7 +219,7 @@ func (s *Server) createAPIKey(w http.ResponseWriter, r *http.Request) *awshttp.A
 		return errBadRequest("API Key value should be at least 20 characters")
 	}
 	now := s.now().Unix()
-	k := &APIKey{
+	k := &apiKey{
 		ID: s.store.newID(), Name: req.Name, Description: req.Description, Value: req.Value,
 		// A key is disabled unless asked for, as on AWS (the CDK says
 		// enabled: true for exactly that reason).

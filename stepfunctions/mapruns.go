@@ -62,7 +62,7 @@ func (g *engine) beginMapRun(r *run, f *asl.Frame, cfg asl.MapRunConfig, items [
 		return
 	}
 	id := newToken()[2:18]
-	mr := &MapRun{
+	mr := &mapRun{
 		ARN: mapRunARN(g.srv.id, r.e.Exec.MachineName, r.e.Name, cfg.Label, id), ID: id,
 		ExecKey: r.key, ExecARN: r.e.ARN, MachineARN: r.e.MachineARN, Machine: r.e.Exec.MachineName,
 		Frame: f.ID, Label: cfg.Label, Status: "RUNNING", StartedAt: g.srv.store.now(),
@@ -84,7 +84,7 @@ func (g *engine) beginMapRun(r *run, f *asl.Frame, cfg asl.MapRunConfig, items [
 
 // launchMapChildren starts children up to the run's concurrency, and
 // settles an empty run.
-func (g *engine) launchMapChildren(r *run, f *asl.Frame, mr *MapRun) {
+func (g *engine) launchMapChildren(r *run, f *asl.Frame, mr *mapRun) {
 	limit := mr.MaxConcurrency
 	if limit <= 0 {
 		limit = mapRunLaunchCap
@@ -95,7 +95,7 @@ func (g *engine) launchMapChildren(r *run, f *asl.Frame, mr *MapRun) {
 		mr.Running++
 		if err := g.launchMapChild(r, mr, i); err != nil {
 			mr.Running--
-			g.srv.store.PutMapItem(mr.ARN, &MapItem{Index: i, Status: "FAILED", Input: mr.Inputs[i], Error: "States.Runtime", Cause: err.Error()})
+			g.srv.store.PutMapItem(mr.ARN, &mapItem{Index: i, Status: "FAILED", Input: mr.Inputs[i], Error: "States.Runtime", Cause: err.Error()})
 			mr.Failed++
 		}
 	}
@@ -106,8 +106,8 @@ func (g *engine) launchMapChildren(r *run, f *asl.Frame, mr *MapRun) {
 }
 
 // launchMapChild starts one item's execution of the processor.
-func (g *engine) launchMapChild(r *run, mr *MapRun, index int) error {
-	m := &StateMachine{
+func (g *engine) launchMapChild(r *run, mr *mapRun, index int) error {
+	m := &stateMachine{
 		Name: mr.Machine, ARN: mr.MachineARN, Definition: mr.Processor, RoleARN: mr.RoleARN, Type: mr.ExecutionType,
 	}
 	name := fmt.Sprintf("%s-%d", mr.ID, index)
@@ -136,12 +136,12 @@ func (g *engine) launchMapChild(r *run, mr *MapRun, index int) error {
 
 // mapChildFinished runs in a child's finalize: record the outcome, launch
 // the next item, and join when the last one is in.
-func (g *engine) mapChildFinished(child *Execution) {
+func (g *engine) mapChildFinished(child *execution) {
 	mr, err := g.srv.store.GetMapRun(child.MapRunARN)
 	if err != nil || mr == nil || mr.Status != "RUNNING" {
 		return
 	}
-	it := &MapItem{Index: child.MapIndex, Status: child.Status, Input: json.RawMessage(child.Input), Output: child.Output, Error: child.Error, Cause: child.Cause}
+	it := &mapItem{Index: child.MapIndex, Status: child.Status, Input: json.RawMessage(child.Input), Output: child.Output, Error: child.Error, Cause: child.Cause}
 	g.srv.store.PutMapItem(mr.ARN, it)
 	mr.Running--
 	switch child.Status {
@@ -174,7 +174,7 @@ func (g *engine) mapChildFinished(child *Execution) {
 }
 
 // completeMapRun joins the outcomes into the state's result and delivers.
-func (g *engine) completeMapRun(r *run, f *asl.Frame, mr *MapRun) {
+func (g *engine) completeMapRun(r *run, f *asl.Frame, mr *mapRun) {
 	items, _ := g.srv.store.MapItems(mr.ARN)
 	now := g.srv.store.now()
 	if mr.failures() > mr.tolerated() {
@@ -346,7 +346,7 @@ func rawProcessor(definition string, f *asl.Frame) (string, error) {
 }
 
 // mapRunOf reads the mapRunArn parameter's record.
-func (s *Server) mapRunOf(p map[string]any) (*MapRun, string) {
+func (s *Server) mapRunOf(p map[string]any) (*mapRun, string) {
 	arn := awsjson.Str(p, "mapRunArn")
 	mr, err := s.store.GetMapRun(arn)
 	if err != nil || mr == nil {

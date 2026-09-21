@@ -230,7 +230,7 @@ func refValue(m minting, typ, name string) string {
 // one cannot know: an alias ARN is its machine's ARN plus the alias name, and
 // the machine is two hops away — alias → version → StateMachineArn — through
 // unevaluated intrinsics.
-func aliasRefs(scope *Scope, resources map[string]*Resource, names map[string]string) {
+func aliasRefs(scope *scope, resources map[string]*Resource, names map[string]string) {
 	for id, r := range resources {
 		if r.Type != "AWS::StepFunctions::StateMachineAlias" {
 			continue
@@ -254,7 +254,7 @@ const PublishedVersion = "$published"
 // lambdaRefs completes the Ref and attributes of every Lambda Version, Alias
 // and Url, which pass one cannot know: each is named after its function,
 // which arrives through an unevaluated Ref or GetAtt.
-func lambdaRefs(scope *Scope, resources map[string]*Resource, names map[string]string, endpoint string) {
+func lambdaRefs(scope *scope, resources map[string]*Resource, names map[string]string, endpoint string) {
 	for id, r := range resources {
 		var fn string
 		switch r.Type {

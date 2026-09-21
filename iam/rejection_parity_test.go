@@ -104,9 +104,9 @@ func call(t *testing.T, ts *httptest.Server, action string, body map[string]any)
 }
 
 const (
-	user      = "audit-user"
-	group     = "audit-group"
-	role      = "audit-role"
+	userName  = "audit-user"
+	groupName = "audit-group"
+	roleName  = "audit-role"
 	profile   = "audit-profile"
 	policyDoc = `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"s3:GetObject","Resource":"*"}]}`
 	trustDoc  = `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"lambda.amazonaws.com"},"Action":"sts:AssumeRole"}]}`
@@ -129,22 +129,22 @@ func setUpFixture(t *testing.T, ts *httptest.Server) {
 		}
 		return resp
 	}
-	must("CreateUser", map[string]any{"UserName": user})
-	must("CreateGroup", map[string]any{"GroupName": group})
-	must("CreateRole", map[string]any{"RoleName": role, "AssumeRolePolicyDocument": trustDoc})
+	must("CreateUser", map[string]any{"UserName": userName})
+	must("CreateGroup", map[string]any{"GroupName": groupName})
+	must("CreateRole", map[string]any{"RoleName": roleName, "AssumeRolePolicyDocument": trustDoc})
 	must("CreatePolicy", map[string]any{"PolicyName": "audit-policy", "PolicyDocument": policyDoc})
 	must("CreateInstanceProfile", map[string]any{"InstanceProfileName": profile})
-	must("AddUserToGroup", map[string]any{"GroupName": group, "UserName": user})
-	must("AddRoleToInstanceProfile", map[string]any{"InstanceProfileName": profile, "RoleName": role})
-	must("AttachUserPolicy", map[string]any{"UserName": user, "PolicyArn": policyARN})
-	must("AttachGroupPolicy", map[string]any{"GroupName": group, "PolicyArn": policyARN})
-	must("AttachRolePolicy", map[string]any{"RoleName": role, "PolicyArn": policyARN})
-	must("PutUserPolicy", map[string]any{"UserName": user, "PolicyName": inline, "PolicyDocument": policyDoc})
-	must("PutGroupPolicy", map[string]any{"GroupName": group, "PolicyName": inline, "PolicyDocument": policyDoc})
-	must("PutRolePolicy", map[string]any{"RoleName": role, "PolicyName": inline, "PolicyDocument": policyDoc})
+	must("AddUserToGroup", map[string]any{"GroupName": groupName, "UserName": userName})
+	must("AddRoleToInstanceProfile", map[string]any{"InstanceProfileName": profile, "RoleName": roleName})
+	must("AttachUserPolicy", map[string]any{"UserName": userName, "PolicyArn": policyARN})
+	must("AttachGroupPolicy", map[string]any{"GroupName": groupName, "PolicyArn": policyARN})
+	must("AttachRolePolicy", map[string]any{"RoleName": roleName, "PolicyArn": policyARN})
+	must("PutUserPolicy", map[string]any{"UserName": userName, "PolicyName": inline, "PolicyDocument": policyDoc})
+	must("PutGroupPolicy", map[string]any{"GroupName": groupName, "PolicyName": inline, "PolicyDocument": policyDoc})
+	must("PutRolePolicy", map[string]any{"RoleName": roleName, "PolicyName": inline, "PolicyDocument": policyDoc})
 	must("CreatePolicyVersion", map[string]any{"PolicyArn": policyARN, "PolicyDocument": policyDoc})
 
-	resp := must("CreateAccessKey", map[string]any{"UserName": user})
+	resp := must("CreateAccessKey", map[string]any{"UserName": userName})
 	m := regexp.MustCompile(`<AccessKeyId>([^<]+)</AccessKeyId>`).FindStringSubmatch(resp)
 	if m == nil {
 		t.Fatalf("fixture CreateAccessKey returned no AccessKeyId: %s", resp)
@@ -157,9 +157,9 @@ func setUpFixture(t *testing.T, ts *httptest.Server) {
 // here so an operation with no prepare entry fails loudly rather than quietly
 // addressing the shared fixture.
 func baselines() map[string]map[string]any {
-	byUser := map[string]any{"UserName": user}
-	byGroup := map[string]any{"GroupName": group}
-	byRole := map[string]any{"RoleName": role}
+	byUser := map[string]any{"UserName": userName}
+	byGroup := map[string]any{"GroupName": groupName}
+	byRole := map[string]any{"RoleName": roleName}
 	byProfile := map[string]any{"InstanceProfileName": profile}
 	byPolicy := map[string]any{"PolicyArn": policyARN}
 	tags := []any{map[string]any{"Key": "env", "Value": "dev"}}
@@ -180,17 +180,17 @@ func baselines() map[string]map[string]any {
 			"AssumeRolePolicyDocument": trustDoc},
 		"GetRole":               byRole,
 		"ListRoles":             {},
-		"UpdateRole":            {"RoleName": role, "Description": "audited"},
-		"UpdateRoleDescription": {"RoleName": role, "Description": "audited"},
-		"UpdateAssumeRolePolicy": {"RoleName": role,
+		"UpdateRole":            {"RoleName": roleName, "Description": "audited"},
+		"UpdateRoleDescription": {"RoleName": roleName, "Description": "audited"},
+		"UpdateAssumeRolePolicy": {"RoleName": roleName,
 			"PolicyDocument": trustDoc},
 		"DeleteRole":              {"RoleName": "made-by-baseline"},
 		"CreateServiceLinkedRole": {"AWSServiceName": "made-by-baseline.amazonaws.com"},
 		"DeleteServiceLinkedRole": {"RoleName": "made-by-baseline"},
 
 		// Group membership.
-		"AddUserToGroup":      {"GroupName": group, "UserName": "made-by-baseline"},
-		"RemoveUserFromGroup": {"GroupName": group, "UserName": "made-by-baseline"},
+		"AddUserToGroup":      {"GroupName": groupName, "UserName": "made-by-baseline"},
+		"RemoveUserFromGroup": {"GroupName": groupName, "UserName": "made-by-baseline"},
 		"ListGroupsForUser":   byUser,
 
 		// Managed policies.
@@ -218,23 +218,23 @@ func baselines() map[string]map[string]any {
 		"ListAttachedRolePolicies":  byRole,
 
 		// Inline policies.
-		"PutUserPolicy":     {"UserName": user, "PolicyName": "made-by-baseline", "PolicyDocument": policyDoc},
-		"GetUserPolicy":     {"UserName": user, "PolicyName": inline},
+		"PutUserPolicy":     {"UserName": userName, "PolicyName": "made-by-baseline", "PolicyDocument": policyDoc},
+		"GetUserPolicy":     {"UserName": userName, "PolicyName": inline},
 		"ListUserPolicies":  byUser,
-		"DeleteUserPolicy":  {"UserName": user, "PolicyName": "made-by-baseline"},
-		"PutGroupPolicy":    {"GroupName": group, "PolicyName": "made-by-baseline", "PolicyDocument": policyDoc},
-		"GetGroupPolicy":    {"GroupName": group, "PolicyName": inline},
+		"DeleteUserPolicy":  {"UserName": userName, "PolicyName": "made-by-baseline"},
+		"PutGroupPolicy":    {"GroupName": groupName, "PolicyName": "made-by-baseline", "PolicyDocument": policyDoc},
+		"GetGroupPolicy":    {"GroupName": groupName, "PolicyName": inline},
 		"ListGroupPolicies": byGroup,
-		"DeleteGroupPolicy": {"GroupName": group, "PolicyName": "made-by-baseline"},
-		"PutRolePolicy":     {"RoleName": role, "PolicyName": "made-by-baseline", "PolicyDocument": policyDoc},
-		"GetRolePolicy":     {"RoleName": role, "PolicyName": inline},
+		"DeleteGroupPolicy": {"GroupName": groupName, "PolicyName": "made-by-baseline"},
+		"PutRolePolicy":     {"RoleName": roleName, "PolicyName": "made-by-baseline", "PolicyDocument": policyDoc},
+		"GetRolePolicy":     {"RoleName": roleName, "PolicyName": inline},
 		"ListRolePolicies":  byRole,
-		"DeleteRolePolicy":  {"RoleName": role, "PolicyName": "made-by-baseline"},
+		"DeleteRolePolicy":  {"RoleName": roleName, "PolicyName": "made-by-baseline"},
 
 		// Permissions boundaries.
-		"PutUserPermissionsBoundary":    {"UserName": user, "PermissionsBoundary": policyARN},
+		"PutUserPermissionsBoundary":    {"UserName": userName, "PermissionsBoundary": policyARN},
 		"DeleteUserPermissionsBoundary": {"UserName": "made-by-baseline"},
-		"PutRolePermissionsBoundary":    {"RoleName": role, "PermissionsBoundary": policyARN},
+		"PutRolePermissionsBoundary":    {"RoleName": roleName, "PermissionsBoundary": policyARN},
 		"DeleteRolePermissionsBoundary": {"RoleName": "made-by-baseline"},
 
 		// Instance profiles.
@@ -243,13 +243,13 @@ func baselines() map[string]map[string]any {
 		"ListInstanceProfiles":          {},
 		"ListInstanceProfilesForRole":   byRole,
 		"DeleteInstanceProfile":         {"InstanceProfileName": "made-by-baseline"},
-		"AddRoleToInstanceProfile":      {"InstanceProfileName": "made-by-baseline", "RoleName": role},
-		"RemoveRoleFromInstanceProfile": {"InstanceProfileName": "made-by-baseline", "RoleName": role},
+		"AddRoleToInstanceProfile":      {"InstanceProfileName": "made-by-baseline", "RoleName": roleName},
+		"RemoveRoleFromInstanceProfile": {"InstanceProfileName": "made-by-baseline", "RoleName": roleName},
 
 		// Access keys.
 		"CreateAccessKey":      {"UserName": "made-by-baseline"},
 		"ListAccessKeys":       byUser,
-		"UpdateAccessKey":      {"UserName": user, "AccessKeyId": "made-by-baseline", "Status": "Inactive"},
+		"UpdateAccessKey":      {"UserName": userName, "AccessKeyId": "made-by-baseline", "Status": "Inactive"},
 		"DeleteAccessKey":      {"UserName": "made-by-baseline", "AccessKeyId": "made-by-baseline"},
 		"GetAccessKeyLastUsed": {"AccessKeyId": "made-by-baseline"},
 
@@ -259,11 +259,11 @@ func baselines() map[string]map[string]any {
 		"ListAccountAliases": {},
 
 		// Tags.
-		"TagUser":                 {"UserName": user, "Tags": tags},
-		"UntagUser":               {"UserName": user, "TagKeys": []any{"made-by-baseline"}},
+		"TagUser":                 {"UserName": userName, "Tags": tags},
+		"UntagUser":               {"UserName": userName, "TagKeys": []any{"made-by-baseline"}},
 		"ListUserTags":            byUser,
-		"TagRole":                 {"RoleName": role, "Tags": tags},
-		"UntagRole":               {"RoleName": role, "TagKeys": []any{"made-by-baseline"}},
+		"TagRole":                 {"RoleName": roleName, "Tags": tags},
+		"UntagRole":               {"RoleName": roleName, "TagKeys": []any{"made-by-baseline"}},
 		"ListRoleTags":            byRole,
 		"TagPolicy":               {"PolicyArn": policyARN, "Tags": tags},
 		"UntagPolicy":             {"PolicyArn": policyARN, "TagKeys": []any{"made-by-baseline"}},
@@ -419,14 +419,14 @@ func prepare(t *testing.T, ts *httptest.Server, op, mutating string, body map[st
 		set("UserName", newUser())
 	case "RemoveUserFromGroup":
 		u := newUser()
-		mk("AddUserToGroup", map[string]any{"GroupName": group, "UserName": u})
+		mk("AddUserToGroup", map[string]any{"GroupName": groupName, "UserName": u})
 		set("UserName", u)
 	case "AddRoleToInstanceProfile":
 		// An instance profile holds at most one role.
 		set("InstanceProfileName", newProfile())
 	case "RemoveRoleFromInstanceProfile":
 		p := newProfile()
-		mk("AddRoleToInstanceProfile", map[string]any{"InstanceProfileName": p, "RoleName": role})
+		mk("AddRoleToInstanceProfile", map[string]any{"InstanceProfileName": p, "RoleName": roleName})
 		set("InstanceProfileName", p)
 	case "AttachUserPolicy":
 		set("UserName", newUser())
@@ -452,15 +452,15 @@ func prepare(t *testing.T, ts *httptest.Server, op, mutating string, body map[st
 		set("PolicyName", fmt.Sprintf("inline-%d", n))
 	case "DeleteUserPolicy":
 		name := fmt.Sprintf("doomed-inline-%d", n)
-		mk("PutUserPolicy", map[string]any{"UserName": user, "PolicyName": name, "PolicyDocument": policyDoc})
+		mk("PutUserPolicy", map[string]any{"UserName": userName, "PolicyName": name, "PolicyDocument": policyDoc})
 		set("PolicyName", name)
 	case "DeleteGroupPolicy":
 		name := fmt.Sprintf("doomed-inline-%d", n)
-		mk("PutGroupPolicy", map[string]any{"GroupName": group, "PolicyName": name, "PolicyDocument": policyDoc})
+		mk("PutGroupPolicy", map[string]any{"GroupName": groupName, "PolicyName": name, "PolicyDocument": policyDoc})
 		set("PolicyName", name)
 	case "DeleteRolePolicy":
 		name := fmt.Sprintf("doomed-inline-%d", n)
-		mk("PutRolePolicy", map[string]any{"RoleName": role, "PolicyName": name, "PolicyDocument": policyDoc})
+		mk("PutRolePolicy", map[string]any{"RoleName": roleName, "PolicyName": name, "PolicyDocument": policyDoc})
 		set("PolicyName", name)
 
 	// --- Permissions boundaries: delete needs one set.
@@ -501,9 +501,9 @@ func prepare(t *testing.T, ts *httptest.Server, op, mutating string, body map[st
 			tag := []any{map[string]any{"Key": key, "Value": "v"}}
 			switch op {
 			case "UntagUser":
-				mk("TagUser", map[string]any{"UserName": user, "Tags": tag})
+				mk("TagUser", map[string]any{"UserName": userName, "Tags": tag})
 			case "UntagRole":
-				mk("TagRole", map[string]any{"RoleName": role, "Tags": tag})
+				mk("TagRole", map[string]any{"RoleName": roleName, "Tags": tag})
 			case "UntagPolicy":
 				mk("TagPolicy", map[string]any{"PolicyArn": policyARN, "Tags": tag})
 			case "UntagInstanceProfile":

@@ -151,7 +151,7 @@ func hAddRoleToInstanceProfile(s *Server, p params) (any, *awshttp.APIError) {
 	if _, err := s.store.GetRole(role); err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	err := s.store.UpdateInstanceProfile(p.str("InstanceProfileName"), func(prof *InstanceProfile) error {
+	err := s.store.UpdateInstanceProfile(p.str("InstanceProfileName"), func(prof *instanceProfile) error {
 		// AWS allows exactly one role per instance profile.
 		if len(prof.Roles) > 0 && !containsString(prof.Roles, role) {
 			return errLimitExceeded("Cannot exceed quota for InstanceSessionsPerInstanceProfile: 1")
@@ -166,7 +166,7 @@ func hAddRoleToInstanceProfile(s *Server, p params) (any, *awshttp.APIError) {
 
 func hRemoveRoleFromInstanceProfile(s *Server, p params) (any, *awshttp.APIError) {
 	role := p.str("RoleName")
-	err := s.store.UpdateInstanceProfile(p.str("InstanceProfileName"), func(prof *InstanceProfile) error {
+	err := s.store.UpdateInstanceProfile(p.str("InstanceProfileName"), func(prof *instanceProfile) error {
 		prof.Roles = removeString(prof.Roles, role)
 		return nil
 	})
@@ -174,7 +174,7 @@ func hRemoveRoleFromInstanceProfile(s *Server, p params) (any, *awshttp.APIError
 }
 
 func hTagInstanceProfile(s *Server, p params) (any, *awshttp.APIError) {
-	err := s.store.UpdateInstanceProfile(p.str("InstanceProfileName"), func(prof *InstanceProfile) error {
+	err := s.store.UpdateInstanceProfile(p.str("InstanceProfileName"), func(prof *instanceProfile) error {
 		prof.Tags = mergeTags(prof.Tags, p.tags())
 		return nil
 	})
@@ -182,7 +182,7 @@ func hTagInstanceProfile(s *Server, p params) (any, *awshttp.APIError) {
 }
 
 func hUntagInstanceProfile(s *Server, p params) (any, *awshttp.APIError) {
-	err := s.store.UpdateInstanceProfile(p.str("InstanceProfileName"), func(prof *InstanceProfile) error {
+	err := s.store.UpdateInstanceProfile(p.str("InstanceProfileName"), func(prof *instanceProfile) error {
 		for _, k := range p.members("TagKeys") {
 			delete(prof.Tags, k)
 		}
@@ -202,7 +202,7 @@ func hListInstanceProfileTags(s *Server, p params) (any, *awshttp.APIError) {
 	}{tagViews(prof.Tags), false}, nil
 }
 
-func (s *Server) viewProfile(prof *InstanceProfile) instanceProfileView {
+func (s *Server) viewProfile(prof *instanceProfile) instanceProfileView {
 	var roles []roleView
 	for _, name := range prof.Roles {
 		if r, err := s.store.GetRole(name); err == nil {

@@ -26,7 +26,7 @@ const statesNamespace = "AWS/States"
 // Counted at StartExecution rather than when the engine picks the run up, so
 // ExecutionsStarted minus the terminal counts is the number in flight — which
 // is the arithmetic anyone reading these metrics does.
-func (s *Server) recordStarted(e *Execution) {
+func (s *Server) recordStarted(e *execution) {
 	if s.metrics == nil {
 		return
 	}
@@ -40,7 +40,7 @@ func (s *Server) recordStarted(e *Execution) {
 // ExecutionTime is published for every terminal status including failures,
 // matching AWS: a workflow that fails after ten minutes is a slow failure,
 // and dropping its duration would hide that.
-func (s *Server) recordFinished(e *Execution) {
+func (s *Server) recordFinished(e *execution) {
 	if s.metrics == nil {
 		return
 	}

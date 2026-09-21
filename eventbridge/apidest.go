@@ -19,8 +19,8 @@ import (
 
 var apiDestinationsBucket = []byte("api_destinations")
 
-// ApiDestination is one stored destination.
-type ApiDestination struct {
+// apiDestination is one stored destination.
+type apiDestination struct {
 	Name          string `json:"name"`
 	ID            string `json:"id"`
 	Desc          string `json:"description,omitempty"`
@@ -33,13 +33,13 @@ type ApiDestination struct {
 	ModifiedMs    int64  `json:"modified_ms"`
 }
 
-func (d *ApiDestination) ARN(id awsident.Identity) string {
+func (d *apiDestination) ARN(id awsident.Identity) string {
 	return id.ARN("events", "api-destination/"+d.Name+"/"+d.ID)
 }
 
 var httpMethods = map[string]bool{"POST": true, "GET": true, "HEAD": true, "OPTIONS": true, "PUT": true, "PATCH": true, "DELETE": true}
 
-func destinationView(id awsident.Identity, d *ApiDestination, full bool) map[string]any {
+func destinationView(id awsident.Identity, d *apiDestination, full bool) map[string]any {
 	v := map[string]any{
 		"Name": d.Name, "ApiDestinationArn": d.ARN(id), "ApiDestinationState": d.State,
 		"ConnectionArn": d.ConnectionARN, "InvocationEndpoint": d.Endpoint, "HttpMethod": d.Method,
@@ -66,8 +66,8 @@ func destinationFromARN(arn string) (name, id string, ok bool) {
 }
 
 // parseTargetHTTPParameters reads a target's HttpParameters block.
-func parseTargetHTTPParameters(hp map[string]any) *HTTPParameters {
-	out := &HTTPParameters{}
+func parseTargetHTTPParameters(hp map[string]any) *httpParameters {
+	out := &httpParameters{}
 	if vals, ok := hp["PathParameterValues"].([]any); ok {
 		for _, v := range vals {
 			if s, ok := v.(string); ok {
@@ -94,7 +94,7 @@ func parseTargetHTTPParameters(hp map[string]any) *HTTPParameters {
 }
 
 // targetHTTPParametersView renders the block as ListTargetsByRule does.
-func targetHTTPParametersView(hp *HTTPParameters) map[string]any {
+func targetHTTPParametersView(hp *httpParameters) map[string]any {
 	v := map[string]any{}
 	if len(hp.PathParameterValues) > 0 {
 		v["PathParameterValues"] = hp.PathParameterValues
@@ -111,7 +111,7 @@ func targetHTTPParametersView(hp *HTTPParameters) map[string]any {
 // ---- handlers ----
 
 func (s *Server) createApiDestination(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
-	d := ApiDestination{
+	d := apiDestination{
 		Name: awsjson.Str(p, "Name"), ID: newID(), Desc: awsjson.Str(p, "Description"),
 		ConnectionARN: awsjson.Str(p, "ConnectionArn"), Endpoint: awsjson.Str(p, "InvocationEndpoint"),
 		Method: strings.ToUpper(awsjson.Str(p, "HttpMethod")), RateLimit: awsjson.Int(p, "InvocationRateLimitPerSecond", 0),
@@ -131,7 +131,7 @@ func (s *Server) createApiDestination(ctx context.Context, p map[string]any) (an
 
 // checkDestination validates the endpoint, method and connection. http://
 // is accepted, unlike AWS, so a local test server can be a destination.
-func (s *Server) checkDestination(d *ApiDestination) *awshttp.APIError {
+func (s *Server) checkDestination(d *apiDestination) *awshttp.APIError {
 	if !httpMethods[d.Method] {
 		return awshttp.Errf(400, "ValidationException", "HttpMethod must be one of POST, GET, HEAD, OPTIONS, PUT, PATCH, DELETE")
 	}
@@ -161,7 +161,7 @@ func destinationConnection(arn string) (name, id string, ok bool) {
 
 func (s *Server) updateApiDestination(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	var check *awshttp.APIError
-	d, err := s.store.UpdateApiDestination(awsjson.Str(p, "Name"), func(d *ApiDestination) error {
+	d, err := s.store.UpdateApiDestination(awsjson.Str(p, "Name"), func(d *apiDestination) error {
 		if v, ok := p["Description"].(string); ok {
 			d.Desc = v
 		}
@@ -230,7 +230,7 @@ func errDestinationNotFound(name string) *awshttp.APIError {
 	return awshttp.Errf(400, "ResourceNotFoundException", "An api-destination '%s' does not exist.", name)
 }
 
-func (s *store) CreateApiDestination(d ApiDestination) error {
+func (s *store) CreateApiDestination(d apiDestination) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(apiDestinationsBucket)
 		if err != nil {
@@ -244,8 +244,8 @@ func (s *store) CreateApiDestination(d ApiDestination) error {
 	})
 }
 
-func (s *store) GetApiDestination(name string) (*ApiDestination, error) {
-	var out *ApiDestination
+func (s *store) GetApiDestination(name string) (*apiDestination, error) {
+	var out *apiDestination
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiDestinationsBucket)
 		if b == nil {
@@ -255,7 +255,7 @@ func (s *store) GetApiDestination(name string) (*ApiDestination, error) {
 		if raw == nil {
 			return errDestinationNotFound(name)
 		}
-		var d ApiDestination
+		var d apiDestination
 		if err := json.Unmarshal(raw, &d); err != nil {
 			return err
 		}
@@ -265,14 +265,14 @@ func (s *store) GetApiDestination(name string) (*ApiDestination, error) {
 	return out, err
 }
 
-func (s *store) UpdateApiDestination(name string, fn func(*ApiDestination) error) (*ApiDestination, error) {
-	var out *ApiDestination
+func (s *store) UpdateApiDestination(name string, fn func(*apiDestination) error) (*apiDestination, error) {
+	var out *apiDestination
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiDestinationsBucket)
 		if b == nil || b.Get([]byte(name)) == nil {
 			return errDestinationNotFound(name)
 		}
-		var d ApiDestination
+		var d apiDestination
 		if err := json.Unmarshal(b.Get([]byte(name)), &d); err != nil {
 			return err
 		}
@@ -297,15 +297,15 @@ func (s *store) DeleteApiDestination(name string) error {
 }
 
 // ListApiDestinations filters by name prefix and connection ARN, sorted.
-func (s *store) ListApiDestinations(prefix, connARN string) ([]ApiDestination, error) {
-	var out []ApiDestination
+func (s *store) ListApiDestinations(prefix, connARN string) ([]apiDestination, error) {
+	var out []apiDestination
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiDestinationsBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var d ApiDestination
+			var d apiDestination
 			if err := json.Unmarshal(raw, &d); err != nil {
 				return err
 			}
@@ -335,7 +335,7 @@ func sameConnection(a, b string) bool {
 func (s *store) markDestinationsInactive(connARN string) {
 	ds, _ := s.ListApiDestinations("", connARN)
 	for _, d := range ds {
-		s.UpdateApiDestination(d.Name, func(d *ApiDestination) error {
+		s.UpdateApiDestination(d.Name, func(d *apiDestination) error {
 			d.State = "INACTIVE"
 			return nil
 		})

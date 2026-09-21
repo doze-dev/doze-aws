@@ -21,7 +21,7 @@ func FuzzOpenBlob(f *testing.F) {
 		// closure with an empty key must not panic (it returns an error).
 		_ = keyID
 		if unseal != nil {
-			_, _ = unseal(&Key{Material: make([]byte, 32)}, nil)
+			_, _ = unseal(&key{Material: make([]byte, 32)}, nil)
 		}
 	})
 }

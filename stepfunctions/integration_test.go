@@ -54,7 +54,7 @@ func stubLambda(t *testing.T, calls *atomic.Int32) peers.Directory {
 	return peers.Static{"lambda": peers.Endpoint{Client: ts.Client(), BaseURL: ts.URL}}
 }
 
-func waitFailed(t *testing.T, s *Server, machine, name string) *Execution {
+func waitFailed(t *testing.T, s *Server, machine, name string) *execution {
 	t.Helper()
 	waitFor(t, func() bool {
 		e, _ := s.store.GetExecution(machine, name)

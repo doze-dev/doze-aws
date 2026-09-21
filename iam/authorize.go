@@ -29,8 +29,8 @@ import (
 
 func timeUnix(sec int64) time.Time { return time.Unix(sec, 0) }
 
-// AccessEvent is one recorded authorization question and its verdict.
-type AccessEvent struct {
+// accessEvent is one recorded authorization question and its verdict.
+type accessEvent struct {
 	Principal string
 	Action    string
 	Resource  string
@@ -60,15 +60,15 @@ type eventKey struct{ principal, action, resource string }
 // usefulness.
 type recorder struct {
 	mu     sync.Mutex
-	events map[eventKey]*AccessEvent
+	events map[eventKey]*accessEvent
 	now    func() time.Time
 }
 
 func newRecorder() *recorder {
-	return &recorder{events: map[eventKey]*AccessEvent{}, now: time.Now}
+	return &recorder{events: map[eventKey]*accessEvent{}, now: time.Now}
 }
 
-func (r *recorder) record(e AccessEvent) {
+func (r *recorder) record(e accessEvent) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	k := eventKey{e.Principal, e.Action, e.Resource}
@@ -92,10 +92,10 @@ func (r *recorder) record(e AccessEvent) {
 
 // snapshot returns the recorded events, newest-stable ordering by principal
 // then action so output is deterministic.
-func (r *recorder) snapshot() []AccessEvent {
+func (r *recorder) snapshot() []accessEvent {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	out := make([]AccessEvent, 0, len(r.events))
+	out := make([]accessEvent, 0, len(r.events))
 	for _, e := range r.events {
 		out = append(out, *e)
 	}
@@ -114,7 +114,7 @@ func (r *recorder) snapshot() []AccessEvent {
 func (r *recorder) reset() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.events = map[eventKey]*AccessEvent{}
+	r.events = map[eventKey]*accessEvent{}
 }
 
 // ---- authorization ----
@@ -186,7 +186,7 @@ func (s *Server) evaluate(r *http.Request, action, resource string) Result {
 	if !ok {
 		// No IAM identity behind this request; record it so soft mode still
 		// shows the action, but never block.
-		s.rec.record(AccessEvent{
+		s.rec.record(accessEvent{
 			Principal: principal, Action: action, Resource: resource,
 			Decision: Allowed, ResourceKnown: resource != "", Source: "identity",
 		})
@@ -215,7 +215,7 @@ func (s *Server) evaluate(r *http.Request, action, resource string) Result {
 		}
 	}
 
-	s.rec.record(AccessEvent{
+	s.rec.record(accessEvent{
 		Principal: principal, Action: action, Resource: resource,
 		Decision: decision, ResourceKnown: resource != "", MatchedBy: by, Source: "identity",
 	})
@@ -432,7 +432,7 @@ func sortedMapKeys(m map[string]map[string]bool) []string {
 // RecordResource keeps a service's resource-policy verdict, which arrives on
 // the response header the guard sets, beside the identity verdicts.
 func (s *Server) RecordResource(principal, action, resource string, decision Decision, matchedBy, source string) {
-	s.rec.record(AccessEvent{
+	s.rec.record(accessEvent{
 		Principal: principal, Action: action, Resource: resource,
 		Decision: decision, ResourceKnown: resource != "", MatchedBy: matchedBy, Source: source,
 	})

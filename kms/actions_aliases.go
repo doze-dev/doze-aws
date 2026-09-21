@@ -82,7 +82,7 @@ func (s *Server) aliasARN(name string) string {
 
 func (s *Server) tagResource(p map[string]any) (any, *awshttp.APIError) {
 	tags := ptags(p, "Tags")
-	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *Key) *awshttp.APIError {
+	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *key) *awshttp.APIError {
 		if k.Tags == nil {
 			k.Tags = map[string]string{}
 		}
@@ -96,7 +96,7 @@ func (s *Server) tagResource(p map[string]any) (any, *awshttp.APIError) {
 
 func (s *Server) untagResource(p map[string]any) (any, *awshttp.APIError) {
 	keys, _ := p["TagKeys"].([]any)
-	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *Key) *awshttp.APIError {
+	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *key) *awshttp.APIError {
 		for _, tk := range keys {
 			if name, ok := tk.(string); ok {
 				delete(k.Tags, name)

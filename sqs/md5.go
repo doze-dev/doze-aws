@@ -36,7 +36,7 @@ func decodeHandle(h string) (seqKey []byte, id string, err error) {
 // SDKs validate. Returns "" when there are no attributes. Each attribute, sorted
 // by name, contributes: len+name, len+dataType, then a transport-type byte
 // (1 for String/Number values, 2 for Binary) and len+value bytes.
-func md5Attributes(attrs map[string]Attr) string {
+func md5Attributes(attrs map[string]attr) string {
 	if len(attrs) == 0 {
 		return ""
 	}

@@ -28,7 +28,7 @@ func (s *Server) routeConcurrency(w http.ResponseWriter, r *http.Request, name s
 			return aerr
 		}
 		n := req.ReservedConcurrentExecutions
-		if _, err := s.store.Update(name, func(f *Function) error { f.ReservedConcurrency = &n; return nil }); err != nil {
+		if _, err := s.store.Update(name, func(f *function) error { f.ReservedConcurrency = &n; return nil }); err != nil {
 			return awshttp.AsAPIError(err)
 		}
 		writeJSON(w, 200, map[string]any{"ReservedConcurrentExecutions": n})
@@ -45,7 +45,7 @@ func (s *Server) routeConcurrency(w http.ResponseWriter, r *http.Request, name s
 		writeJSON(w, 200, out)
 		return nil
 	case http.MethodDelete:
-		s.store.Update(name, func(f *Function) error { f.ReservedConcurrency = nil; return nil })
+		s.store.Update(name, func(f *function) error { f.ReservedConcurrency = nil; return nil })
 		w.WriteHeader(204)
 		return nil
 	}
@@ -64,7 +64,7 @@ type eventInvokeReq struct {
 	MaximumEventAgeInSeconds *int            `json:"MaximumEventAgeInSeconds"`
 }
 
-func (s *Server) eventInvokeView(f *Function) map[string]any {
+func (s *Server) eventInvokeView(f *function) map[string]any {
 	v := map[string]any{
 		"FunctionArn": f.ARN() + ":$LATEST",
 		// EventInvokeConfig models LastModified as a unix-timestamp number
@@ -109,7 +109,7 @@ func (s *Server) routeEventInvokeConfig(w http.ResponseWriter, r *http.Request, 
 			return aerr
 		}
 		replace := r.Method == http.MethodPut
-		f, err := s.store.Update(name, func(f *Function) error {
+		f, err := s.store.Update(name, func(f *function) error {
 			if replace {
 				f.Destinations, f.MaxRetryAttempts, f.MaxEventAgeSeconds = nil, nil, nil
 			}
@@ -141,7 +141,7 @@ func (s *Server) routeEventInvokeConfig(w http.ResponseWriter, r *http.Request, 
 		writeJSON(w, 200, s.eventInvokeView(f))
 		return nil
 	case http.MethodDelete:
-		if _, err := s.store.Update(name, func(f *Function) error {
+		if _, err := s.store.Update(name, func(f *function) error {
 			f.Destinations, f.MaxRetryAttempts, f.MaxEventAgeSeconds, f.HasEventInvokeCfg = nil, nil, nil, false
 			return nil
 		}); err != nil {
@@ -169,7 +169,7 @@ func (s *Server) routeTags(w http.ResponseWriter, r *http.Request, segs []string
 		if aerr := decode(r, &req); aerr != nil {
 			return aerr
 		}
-		if _, err := s.store.Update(name, func(f *Function) error {
+		if _, err := s.store.Update(name, func(f *function) error {
 			if f.Tags == nil {
 				f.Tags = map[string]string{}
 			}
@@ -191,7 +191,7 @@ func (s *Server) routeTags(w http.ResponseWriter, r *http.Request, segs []string
 		return nil
 	case http.MethodDelete:
 		keys := r.URL.Query()["tagKeys"]
-		s.store.Update(name, func(f *Function) error {
+		s.store.Update(name, func(f *function) error {
 			for _, k := range keys {
 				delete(f.Tags, k)
 			}
@@ -245,7 +245,7 @@ func (s *Server) routeMappings(w http.ResponseWriter, r *http.Request, segs []st
 		case http.MethodDelete:
 			s.stopPoller(uuid)
 			s.store.DeleteMapping(uuid)
-			m := &EventSourceMapping{UUID: uuid, State: "Deleting"}
+			m := &eventSourceMapping{UUID: uuid, State: "Deleting"}
 			writeJSON(w, 202, mappingView(m))
 			return nil
 		case http.MethodPut:
@@ -277,7 +277,7 @@ func (s *Server) createMapping(w http.ResponseWriter, r *http.Request) *awshttp.
 	if req.Enabled != nil {
 		enabled = *req.Enabled
 	}
-	m := &EventSourceMapping{
+	m := &eventSourceMapping{
 		UUID: newUUID(), FunctionName: fnName, EventSourceArn: req.EventSourceArn,
 		BatchSize: orInt(req.BatchSize, 10), Enabled: enabled,
 		State: stateFor(enabled),
@@ -320,7 +320,7 @@ func (s *Server) updateMapping(w http.ResponseWriter, r *http.Request, uuid stri
 	return nil
 }
 
-func mappingView(m *EventSourceMapping) map[string]any {
+func mappingView(m *eventSourceMapping) map[string]any {
 	return map[string]any{
 		"UUID":                  m.UUID,
 		"FunctionArn":           "arn:aws:lambda:us-east-1:000000000000:function:" + m.FunctionName,
@@ -342,7 +342,7 @@ func stateFor(enabled bool) string {
 // own — a stream record carries no trace header — as a root on the wire, so
 // a DynamoDB or Kinesis delivery is visible where it used to be silent, and
 // a failure is logged rather than discarded.
-func (s *Server) invokeFromSource(f *Function, payload []byte, via string) {
+func (s *Server) invokeFromSource(f *function, payload []byte, via string) {
 	ctx := trace.With(context.Background(), s.traceSink(), 0)
 	err := trace.StepDetail(ctx, trace.Event{
 		Service: "lambda", Action: "Invoke (event source)", Resource: f.Name, Via: via,
@@ -404,7 +404,7 @@ type esm struct {
 
 func (e *esm) stop() { e.once.Do(func() { close(e.stopCh) }) }
 
-func (s *Server) startPoller(m *EventSourceMapping) {
+func (s *Server) startPoller(m *eventSourceMapping) {
 	s.mu.Lock()
 	if _, running := s.mappings[m.UUID]; running {
 		s.mu.Unlock()
@@ -455,7 +455,7 @@ func sleepOrStop(poller *esm, d time.Duration) bool {
 
 // pollSQS drives an SQS event source mapping: long-poll, deliver the batch, and
 // delete on successful invocation.
-func (s *Server) pollSQS(poller *esm, m *EventSourceMapping) {
+func (s *Server) pollSQS(poller *esm, m *eventSourceMapping) {
 	queue := m.EventSourceArn[strings.LastIndex(m.EventSourceArn, ":")+1:]
 	fnName := m.FunctionName
 	batch := m.BatchSize
@@ -525,7 +525,7 @@ func (s *Server) pollSQS(poller *esm, m *EventSourceMapping) {
 // pollDDBStream drives a DynamoDB-stream event source mapping: open a shard
 // iterator at the trim horizon, then GetRecords → invoke the function with the
 // change records, advancing the iterator each round (at-least-once, no ack).
-func (s *Server) pollDDBStream(poller *esm, m *EventSourceMapping) {
+func (s *Server) pollDDBStream(poller *esm, m *eventSourceMapping) {
 	streamArn := m.EventSourceArn
 	fnName := m.FunctionName
 	batch := m.BatchSize
@@ -584,7 +584,7 @@ func (s *Server) pollDDBStream(poller *esm, m *EventSourceMapping) {
 // reshard, so the poller keeps one iterator per shard and re-lists whenever a
 // shard drains (a nil NextShardIterator) — which is exactly how a closed parent
 // hands over to its children.
-func (s *Server) pollKinesis(poller *esm, m *EventSourceMapping) {
+func (s *Server) pollKinesis(poller *esm, m *eventSourceMapping) {
 	stream := m.EventSourceArn[strings.LastIndex(m.EventSourceArn, "/")+1:]
 	fnName := m.FunctionName
 	batch := m.BatchSize

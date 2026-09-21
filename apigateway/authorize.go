@@ -46,8 +46,8 @@ type authDenial struct {
 }
 
 // authorizeRequest runs the method's authorizer against the request.
-func (s *Server) authorizeRequest(ctx context.Context, api *RestAPI, stage string, res *Resource, m *Method,
-	a *Authorizer, params map[string]string, path string, r *http.Request, rl *requestLog) (*callCtx, *authDenial) {
+func (s *Server) authorizeRequest(ctx context.Context, api *restAPI, stage string, res *resource, m *method,
+	a *authorizer, params map[string]string, path string, r *http.Request, rl *requestLog) (*callCtx, *authDenial) {
 
 	arn := methodARN(s.id, api.ID, stage, r.Method, path)
 	values, ok := identityValues(a, r, params, api.Stages[stage])
@@ -118,7 +118,7 @@ func methodARN(id awsident.Identity, apiID, stage, method, path string) string {
 // caching on needs every named source, as AWS checks them to build the
 // cache key; with caching off AWS hands the request to the function as is,
 // and so does this — ok reports whether every source was present.
-func identityValues(a *Authorizer, r *http.Request, params map[string]string, st *Stage) ([]string, bool) {
+func identityValues(a *authorizer, r *http.Request, params map[string]string, st *stage) ([]string, bool) {
 	src := a.IdentitySource
 	if src == "" && a.Type == "TOKEN" {
 		src = "method.request.header.Authorization"

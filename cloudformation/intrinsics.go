@@ -23,7 +23,7 @@ import (
 // Scope carries everything an evaluation needs: resolved parameters, the
 // template's mappings and conditions, and what each resource's Ref and GetAtt
 // resolve to.
-type Scope struct {
+type scope struct {
 	StackName  string
 	Parameters map[string]any
 	Mappings   map[string]any
@@ -51,12 +51,12 @@ type Scope struct {
 
 // minting is the instance context the resource registry needs to build a
 // hostname or a URL rather than an ARN.
-func (s *Scope) minting() minting {
+func (s *scope) minting() minting {
 	return minting{id: s.Identity, suffix: s.Suffix, endpoint: s.Endpoint}
 }
 
 // pseudo resolves an AWS::* pseudo-parameter.
-func (s *Scope) pseudo(name string) (string, bool) {
+func (s *scope) pseudo(name string) (string, bool) {
 	switch name {
 	case "AWS::Region":
 		return s.Identity.RegionName(), true
@@ -77,7 +77,7 @@ func (s *Scope) pseudo(name string) (string, bool) {
 }
 
 // Eval resolves every intrinsic in v, returning a tree of plain values.
-func (s *Scope) Eval(v any) (any, error) {
+func (s *scope) Eval(v any) (any, error) {
 	switch t := v.(type) {
 	case map[string]any:
 		// An intrinsic is a single-key object whose key is Ref or Fn::*.
@@ -124,7 +124,7 @@ type noValue struct{}
 
 func isNoValue(v any) bool { _, ok := v.(noValue); return ok }
 
-func (s *Scope) call(key string, arg any) (any, error) {
+func (s *scope) call(key string, arg any) (any, error) {
 	switch key {
 	case "Ref":
 		return s.ref(fmt.Sprint(arg))
@@ -201,7 +201,7 @@ func (s *Scope) call(key string, arg any) (any, error) {
 }
 
 // ref resolves a parameter, pseudo-parameter or resource reference.
-func (s *Scope) ref(name string) (any, error) {
+func (s *scope) ref(name string) (any, error) {
 	if name == "AWS::NoValue" {
 		return noValue{}, nil
 	}
@@ -217,7 +217,7 @@ func (s *Scope) ref(name string) (any, error) {
 	return nil, fmt.Errorf("Ref %q: no such parameter or resource", name)
 }
 
-func (s *Scope) getAtt(arg any) (any, error) {
+func (s *scope) getAtt(arg any) (any, error) {
 	var logical, attr string
 	switch t := arg.(type) {
 	case []any:
@@ -250,7 +250,7 @@ func (s *Scope) getAtt(arg any) (any, error) {
 }
 
 // sub implements Fn::Sub, including the ${Logical.Attr} and ${!Literal} forms.
-func (s *Scope) sub(arg any) (any, error) {
+func (s *scope) sub(arg any) (any, error) {
 	var body string
 	extra := map[string]any{}
 	switch t := arg.(type) {
@@ -322,7 +322,7 @@ func (s *Scope) sub(arg any) (any, error) {
 	return out.String(), nil
 }
 
-func (s *Scope) join(arg any) (any, error) {
+func (s *scope) join(arg any) (any, error) {
 	parts, ok := arg.([]any)
 	if !ok || len(parts) != 2 {
 		return nil, fmt.Errorf("Fn::Join expects [delimiter, list]")
@@ -343,7 +343,7 @@ func (s *Scope) join(arg any) (any, error) {
 	return strings.Join(pieces, sep), nil
 }
 
-func (s *Scope) selectIdx(arg any) (any, error) {
+func (s *scope) selectIdx(arg any) (any, error) {
 	parts, ok := arg.([]any)
 	if !ok || len(parts) != 2 {
 		return nil, fmt.Errorf("Fn::Select expects [index, list]")
@@ -370,7 +370,7 @@ func (s *Scope) selectIdx(arg any) (any, error) {
 	return list[idx], nil
 }
 
-func (s *Scope) split(arg any) (any, error) {
+func (s *scope) split(arg any) (any, error) {
 	parts, ok := arg.([]any)
 	if !ok || len(parts) != 2 {
 		return nil, fmt.Errorf("Fn::Split expects [delimiter, string]")
@@ -388,7 +388,7 @@ func (s *Scope) split(arg any) (any, error) {
 	return out, nil
 }
 
-func (s *Scope) findInMap(arg any) (any, error) {
+func (s *scope) findInMap(arg any) (any, error) {
 	parts, ok := arg.([]any)
 	if !ok || len(parts) < 3 {
 		return nil, fmt.Errorf("Fn::FindInMap expects [mapName, topKey, secondKey]")
@@ -416,7 +416,7 @@ func (s *Scope) findInMap(arg any) (any, error) {
 	return v, nil
 }
 
-func (s *Scope) ifFn(arg any) (any, error) {
+func (s *scope) ifFn(arg any) (any, error) {
 	parts, ok := arg.([]any)
 	if !ok || len(parts) != 3 {
 		return nil, fmt.Errorf("Fn::If expects [conditionName, ifTrue, ifFalse]")
@@ -432,7 +432,7 @@ func (s *Scope) ifFn(arg any) (any, error) {
 	return s.Eval(parts[2])
 }
 
-func (s *Scope) equals(arg any) (any, error) {
+func (s *scope) equals(arg any) (any, error) {
 	parts, ok := arg.([]any)
 	if !ok || len(parts) != 2 {
 		return nil, fmt.Errorf("Fn::Equals expects two values")
@@ -449,7 +449,7 @@ func (s *Scope) equals(arg any) (any, error) {
 	return fmt.Sprint(a) == fmt.Sprint(b), nil
 }
 
-func (s *Scope) not(arg any) (any, error) {
+func (s *scope) not(arg any) (any, error) {
 	parts, ok := arg.([]any)
 	if !ok || len(parts) != 1 {
 		return nil, fmt.Errorf("Fn::Not expects a single condition")
@@ -465,7 +465,7 @@ func (s *Scope) not(arg any) (any, error) {
 	return !b, nil
 }
 
-func (s *Scope) andOr(arg any, isAnd bool) (any, error) {
+func (s *scope) andOr(arg any, isAnd bool) (any, error) {
 	parts, ok := arg.([]any)
 	if !ok || len(parts) < 2 {
 		return nil, fmt.Errorf("Fn::And/Fn::Or expect at least two conditions")
@@ -492,7 +492,7 @@ func (s *Scope) andOr(arg any, isAnd bool) (any, error) {
 // EvalConditions resolves the Conditions section. Conditions may reference one
 // another, so it iterates to a fixed point rather than assuming declaration
 // order — templates routinely define a condition before the one it builds on.
-func (s *Scope) EvalConditions(conditions map[string]any) error {
+func (s *scope) EvalConditions(conditions map[string]any) error {
 	if s.Conditions == nil {
 		s.Conditions = map[string]bool{}
 	}

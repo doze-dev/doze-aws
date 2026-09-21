@@ -84,7 +84,7 @@ func (g *engine) startChild(r *run, call asl.EffCallTask) {
 	if call.Token != "" {
 		g.registerToken(r, call)
 	}
-	var child *Execution
+	var child *execution
 	if m.Type == "EXPRESS" {
 		e, aerr := g.srv.newExpressExecution(g.workerCtx, m, map[string]any{"name": name, "input": string(rawInput)}, versionARN, aliasARN)
 		if aerr == nil {
@@ -147,7 +147,7 @@ func (g *engine) startChild(r *run, call asl.EffCallTask) {
 }
 
 // parkOnChild records that f waits for child and persists the park.
-func (g *engine) parkOnChild(r *run, f *asl.Frame, child *Execution) {
+func (g *engine) parkOnChild(r *run, f *asl.Frame, child *execution) {
 	f.Status = asl.FrameParked
 	f.WaitExec = child.Key()
 	_, resourceType, resourceAPI := taskFamily(childStartResource + ".sync")
@@ -161,7 +161,7 @@ func (g *engine) parkOnChild(r *run, f *asl.Frame, child *Execution) {
 
 // childFinished runs in the child's finalize: if a parent frame waits on
 // it, the child's outcome becomes that frame's task result.
-func (g *engine) childFinished(child *Execution) {
+func (g *engine) childFinished(child *execution) {
 	parentKey, frame, ok := g.srv.store.takeChildWait(child.Key())
 	if !ok {
 		return
@@ -190,7 +190,7 @@ func (g *engine) childFinished(child *Execution) {
 // string for .sync and as a value for .sync:2. A child that did not succeed
 // fails the task with States.TaskFailed and the description as the cause,
 // which is what a Catch on the parent gets to read.
-func childOutcome(child *Execution, parsedOutput bool) asl.TaskResult {
+func childOutcome(child *execution, parsedOutput bool) asl.TaskResult {
 	desc := map[string]any{
 		"ExecutionArn":    child.ARN,
 		"Name":            child.Name,

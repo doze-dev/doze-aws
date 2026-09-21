@@ -26,9 +26,9 @@ import (
 
 // v2Call is one data-plane request once its route is known.
 type v2Call struct {
-	api    *RestAPI
-	stage  *Stage
-	route  *V2Route
+	api    *restAPI
+	stage  *stage
+	route  *v2Route
 	params map[string]string
 	path   string // the path within the stage
 	rl     *requestLog
@@ -36,7 +36,7 @@ type v2Call struct {
 
 // serveExecuteV2 serves an HTTP API. remainder is what followed the api id
 // in the URL: "<stage>/<path>", or "<path>" for the $default stage.
-func (s *Server) serveExecuteV2(w http.ResponseWriter, r *http.Request, api *RestAPI, remainder string) {
+func (s *Server) serveExecuteV2(w http.ResponseWriter, r *http.Request, api *restAPI, remainder string) {
 	stageName, path := v2ResolveStage(api, remainder)
 	st, ok := api.Stages[stageName]
 	if !ok || st.DeploymentID == "" {
@@ -109,7 +109,7 @@ func (s *Server) serveExecuteV2(w http.ResponseWriter, r *http.Request, api *Res
 	case "AWS_PROXY":
 		s.v2InvokeLambda(w, r, call, integ, body, authorizer)
 	case "HTTP_PROXY":
-		v1 := &Integration{Type: "HTTP_PROXY", URI: integ.URI}
+		v1 := &integration{Type: "HTTP_PROXY", URI: integ.URI}
 		if integ.Method != "" && integ.Method != "ANY" {
 			v1.HTTPMethod = integ.Method
 		}
@@ -125,7 +125,7 @@ func (s *Server) serveExecuteV2(w http.ResponseWriter, r *http.Request, api *Res
 // v2ResolveStage splits the remainder into the stage and the path: a leading
 // segment naming a stage wins, "$default" may be spelled out, and otherwise
 // the whole remainder is the path on the $default stage.
-func v2ResolveStage(api *RestAPI, remainder string) (stage, path string) {
+func v2ResolveStage(api *restAPI, remainder string) (stage, path string) {
 	first, rest, _ := strings.Cut(remainder, "/")
 	if first != "" {
 		if _, ok := api.Stages[first]; ok {
@@ -136,11 +136,11 @@ func v2ResolveStage(api *RestAPI, remainder string) (stage, path string) {
 }
 
 // matchV2Route picks the route for a method and path.
-func matchV2Route(api *RestAPI, method, path string) (*V2Route, map[string]string, bool) {
+func matchV2Route(api *restAPI, method, path string) (*v2Route, map[string]string, bool) {
 	method = strings.ToUpper(method)
 	want := splitPath(path)
 	type candidate struct {
-		route  *V2Route
+		route  *v2Route
 		params map[string]string
 		proxy  bool
 		depth  int
@@ -148,7 +148,7 @@ func matchV2Route(api *RestAPI, method, path string) (*V2Route, map[string]strin
 		anyM   bool
 	}
 	var best *candidate
-	var fallback *V2Route
+	var fallback *v2Route
 	better := func(c, b *candidate) bool {
 		if b == nil {
 			return true
@@ -201,7 +201,7 @@ func matchV2Route(api *RestAPI, method, path string) (*V2Route, map[string]strin
 
 // ---- CORS ----
 
-func v2OriginAllowed(c *CORSConfig, origin string) bool {
+func v2OriginAllowed(c *corsConfig, origin string) bool {
 	if origin == "" {
 		return false
 	}
@@ -216,7 +216,7 @@ func v2OriginAllowed(c *CORSConfig, origin string) bool {
 // v2AllowOrigin is the Access-Control-Allow-Origin value: the literal "*"
 // when the configuration is "*", the request's origin when a pattern or an
 // exact entry admitted it — as AWS answers.
-func v2AllowOrigin(c *CORSConfig, origin string) string {
+func v2AllowOrigin(c *corsConfig, origin string) string {
 	for _, o := range c.AllowOrigins {
 		if o == "*" {
 			return "*"
@@ -225,7 +225,7 @@ func v2AllowOrigin(c *CORSConfig, origin string) string {
 	return origin
 }
 
-func v2CORSHeaders(h http.Header, r *http.Request, c *CORSConfig) {
+func v2CORSHeaders(h http.Header, r *http.Request, c *corsConfig) {
 	origin := r.Header.Get("Origin")
 	if !v2OriginAllowed(c, origin) {
 		return
@@ -243,7 +243,7 @@ func v2CORSHeaders(h http.Header, r *http.Request, c *CORSConfig) {
 // origin and method are allowed: 204 with the allow headers. It reports
 // false when the configuration does not match, and the request is then
 // routed like any other — an OPTIONS route may answer it, or nothing does.
-func v2Preflight(w http.ResponseWriter, r *http.Request, c *CORSConfig) bool {
+func v2Preflight(w http.ResponseWriter, r *http.Request, c *corsConfig) bool {
 	origin := r.Header.Get("Origin")
 	method := strings.ToUpper(r.Header.Get("Access-Control-Request-Method"))
 	methodOK := len(c.AllowMethods) == 0
@@ -297,7 +297,7 @@ func v2LambdaName(uri string) string {
 // v2Event builds the event for the integration's payload format version.
 func (s *Server) v2Event(r *http.Request, call *v2Call, version string, body []byte, authorizer map[string]any) []byte {
 	if version == "1.0" {
-		res := &Resource{ID: call.route.ID, Path: v2RoutePath(call.route)}
+		res := &resource{ID: call.route.ID, Path: v2RoutePath(call.route)}
 		ev := s.buildProxyEvent(r, call.api, call.stage.Name, res, call.params, call.path, body, nil, call.rl.id)
 		ev.RequestContext["routeKey"] = call.route.RouteKey
 		// requestContext.path carries the stage prefix for a named stage and
@@ -340,7 +340,7 @@ func v2StagePath(stage, path string) string {
 }
 
 // v2RoutePath is the path template of a route key, "/" for $default.
-func v2RoutePath(rt *V2Route) string {
+func v2RoutePath(rt *v2Route) string {
 	_, p := routeKeyParts(rt.RouteKey)
 	if p == "" {
 		return "/"
@@ -348,7 +348,7 @@ func v2RoutePath(rt *V2Route) string {
 	return p
 }
 
-func (s *Server) v2InvokeLambda(w http.ResponseWriter, r *http.Request, call *v2Call, integ *V2Integration, body []byte, authorizer map[string]any) {
+func (s *Server) v2InvokeLambda(w http.ResponseWriter, r *http.Request, call *v2Call, integ *v2Integration, body []byte, authorizer map[string]any) {
 	rl := call.rl
 	fn := v2LambdaName(integ.URI)
 	if fn == "" {

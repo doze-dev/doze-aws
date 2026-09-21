@@ -34,12 +34,12 @@ type fanBatch struct {
 	ctx    context.Context
 	group  string
 	stream string
-	events []Stored
+	events []storedEvent
 }
 
 // compiledSub is a subscription with its pattern compiled once.
 type compiledSub struct {
-	Subscription
+	subscription
 	match matcher
 }
 
@@ -84,7 +84,7 @@ func newFanout(st *store, dir peers.Directory, logf func(string, ...any)) *fanou
 
 // enqueue hands a stored batch to the worker. The request context is
 // detached so the delivery outlives the PutLogEvents call that caused it.
-func (f *fanout) enqueue(ctx context.Context, group, stream string, events []Stored) {
+func (f *fanout) enqueue(ctx context.Context, group, stream string, events []storedEvent) {
 	if len(events) == 0 {
 		return
 	}
@@ -185,7 +185,7 @@ func (f *fanout) subs(group string) []compiledSub {
 			f.logf("logs: subscription %s/%s has an unusable pattern: %v", group, sub.Name, err)
 			continue
 		}
-		cs = append(cs, compiledSub{Subscription: sub, match: m})
+		cs = append(cs, compiledSub{subscription: sub, match: m})
 	}
 	f.cache[group] = cs
 	return cs
@@ -193,7 +193,7 @@ func (f *fanout) subs(group string) []compiledSub {
 
 func (f *fanout) deliver(b fanBatch) {
 	for _, sub := range f.subs(b.group) {
-		var matched []Stored
+		var matched []storedEvent
 		for _, ev := range b.events {
 			if sub.match(ev.Msg) {
 				matched = append(matched, ev)
@@ -233,7 +233,7 @@ func (f *fanout) deliver(b fanBatch) {
 }
 
 // envelope is the CloudWatch Logs subscription message, gzip-compressed.
-func (f *fanout) envelope(group, stream, filter string, events []Stored) ([]byte, error) {
+func (f *fanout) envelope(group, stream, filter string, events []storedEvent) ([]byte, error) {
 	items := make([]map[string]any, 0, len(events))
 	for _, ev := range events {
 		// The same id FilterLogEvents reports, so a consumer can correlate.

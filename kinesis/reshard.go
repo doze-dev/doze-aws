@@ -19,7 +19,7 @@ import (
 )
 
 // closeShard marks a shard closed at the current end of the stream.
-func closeShard(st *Stream, sh *Shard) {
+func closeShard(st *streamRecord, sh *shard) {
 	sh.Closed = true
 	if st.NextSeq > 1 {
 		sh.EndSeq = st.NextSeq - 1
@@ -27,8 +27,8 @@ func closeShard(st *Stream, sh *Shard) {
 }
 
 // openChild appends a new open shard covering [lo, hi] with the given parents.
-func openChild(st *Stream, lo, hi *big.Int, parent, adjacent string) Shard {
-	sh := Shard{
+func openChild(st *streamRecord, lo, hi *big.Int, parent, adjacent string) shard {
+	sh := shard{
 		ID:         shardID(st.NextShardNum),
 		StartHash:  lo.String(),
 		EndHash:    hi.String(),
@@ -56,7 +56,7 @@ func hSplitShard(s *Server, p map[string]any) (any, *awshttp.APIError) {
 		return nil, errInvalid("NewStartingHashKey must be a decimal integer")
 	}
 
-	_, err := s.store.Update(stream, func(st *Stream) error {
+	_, err := s.store.Update(stream, func(st *streamRecord) error {
 		sh, found := st.shard(target)
 		if !found {
 			return errNoShard(s.id, target, stream)
@@ -97,7 +97,7 @@ func hMergeShards(s *Server, p map[string]any) (any, *awshttp.APIError) {
 		return nil, errInvalid("a shard cannot be merged with itself")
 	}
 
-	_, err := s.store.Update(stream, func(st *Stream) error {
+	_, err := s.store.Update(stream, func(st *streamRecord) error {
 		left, ok1 := st.shard(a)
 		right, ok2 := st.shard(b)
 		if !ok1 {
@@ -147,7 +147,7 @@ func hUpdateShardCount(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	}
 
 	var current int
-	out, err := s.store.Update(stream, func(st *Stream) error {
+	out, err := s.store.Update(stream, func(st *streamRecord) error {
 		if st.Mode == modeOnDemand {
 			return errValidation("shard count is managed automatically for ON_DEMAND streams")
 		}

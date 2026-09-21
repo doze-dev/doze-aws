@@ -20,7 +20,7 @@ func versionKey(name string, n int) []byte {
 }
 
 // PutVersion stores a frozen record under its number.
-func (s *store) PutVersion(f *Function) error {
+func (s *store) PutVersion(f *function) error {
 	n, err := strconv.Atoi(f.Version)
 	if err != nil {
 		return fmt.Errorf("version %q is not a number", f.Version)
@@ -36,8 +36,8 @@ func (s *store) PutVersion(f *Function) error {
 }
 
 // GetVersion loads one frozen version, or the function-not-found error.
-func (s *store) GetVersion(name string, n int) (*Function, error) {
-	var out *Function
+func (s *store) GetVersion(name string, n int) (*function, error) {
+	var out *function
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(versionsBucket)
 		if b == nil {
@@ -47,7 +47,7 @@ func (s *store) GetVersion(name string, n int) (*Function, error) {
 		if raw == nil {
 			return errFuncNotFound(name + ":" + strconv.Itoa(n))
 		}
-		var f Function
+		var f function
 		if err := json.Unmarshal(raw, &f); err != nil {
 			return err
 		}
@@ -58,8 +58,8 @@ func (s *store) GetVersion(name string, n int) (*Function, error) {
 }
 
 // ListVersions answers a function's versions, oldest first.
-func (s *store) ListVersions(name string) ([]*Function, error) {
-	var out []*Function
+func (s *store) ListVersions(name string) ([]*function, error) {
+	var out []*function
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(versionsBucket)
 		if b == nil {
@@ -68,7 +68,7 @@ func (s *store) ListVersions(name string) ([]*Function, error) {
 		prefix := []byte(name + "\x00")
 		c := b.Cursor()
 		for k, v := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = c.Next() {
-			var f Function
+			var f function
 			if err := json.Unmarshal(v, &f); err != nil {
 				return err
 			}

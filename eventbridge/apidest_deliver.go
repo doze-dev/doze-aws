@@ -36,7 +36,7 @@ type oauthToken struct {
 
 // dispatchAPIDestination resolves the target's destination and connection
 // and delivers in the background.
-func (s *Server) dispatchAPIDestination(ctx context.Context, rule Rule, target Target, payload []byte) {
+func (s *Server) dispatchAPIDestination(ctx context.Context, rule rule, target target, payload []byte) {
 	name, _, ok := destinationFromARN(target.ARN)
 	if !ok {
 		s.logf("eventbridge: rule %s target %s: %s is not an api-destination ARN", rule.Name, target.ID, target.ARN)
@@ -68,9 +68,9 @@ func (s *Server) dispatchAPIDestination(ctx context.Context, rule Rule, target T
 }
 
 // buildRequest assembles the request: URL, parameters, body and auth.
-func (s *Server) buildRequest(ctx context.Context, dest *ApiDestination, conn *Connection, target Target, payload []byte) (*http.Request, error) {
+func (s *Server) buildRequest(ctx context.Context, dest *apiDestination, conn *connection, target target, payload []byte) (*http.Request, error) {
 	endpoint := dest.Endpoint
-	var hp HTTPParameters
+	var hp httpParameters
 	if target.HttpParameters != nil {
 		hp = *target.HttpParameters
 	}
@@ -128,7 +128,7 @@ func (s *Server) buildRequest(ctx context.Context, dest *ApiDestination, conn *C
 }
 
 // applyAuth adds the connection's credential.
-func (s *Server) applyAuth(ctx context.Context, req *http.Request, conn *Connection) error {
+func (s *Server) applyAuth(ctx context.Context, req *http.Request, conn *connection) error {
 	switch {
 	case conn.Basic != nil:
 		req.SetBasicAuth(conn.Basic.Username, conn.Basic.Password)
@@ -146,7 +146,7 @@ func (s *Server) applyAuth(ctx context.Context, req *http.Request, conn *Connect
 
 // fetchToken runs the client-credentials grant against the connection's
 // authorization endpoint, caching the token until it expires.
-func (s *Server) fetchToken(ctx context.Context, conn *Connection) (string, error) {
+func (s *Server) fetchToken(ctx context.Context, conn *connection) (string, error) {
 	s.tokenMu.Lock()
 	if t, ok := s.tokens[conn.ARN(s.id)]; ok && s.now().Before(t.expires) {
 		s.tokenMu.Unlock()
@@ -245,7 +245,7 @@ func expiresIn(raw json.RawMessage) int {
 // deliverHTTP sends the request, once more after a second on a transport
 // error, 429, 5xx or — for an OAuth connection, whose cached token may have
 // been revoked — 401, and logs the outcome.
-func (s *Server) deliverHTTP(ctx context.Context, rule Rule, target Target, dest *ApiDestination, conn *Connection, payload []byte) {
+func (s *Server) deliverHTTP(ctx context.Context, rule rule, target target, dest *apiDestination, conn *connection, payload []byte) {
 	host := dest.Endpoint
 	if u, err := url.Parse(dest.Endpoint); err == nil {
 		host = u.Host

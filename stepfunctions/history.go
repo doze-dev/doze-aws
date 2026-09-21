@@ -10,7 +10,7 @@ import (
 // History event construction — the shape GetExecutionHistory must answer
 // with, and the two rules emulators most often get wrong:
 //
-// Ids are global (allocated from Execution.NextEventID) but previousEventId
+// Ids are global (allocated from execution.NextEventID) but previousEventId
 // chains are PER FRAME: nested Parallel/Map branches interleave globally
 // while each chains causally along its own branch, which is why Frame carries
 // PrevEventID. And every input/output/parameters detail is a JSON-encoded

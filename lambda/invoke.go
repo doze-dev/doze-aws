@@ -98,11 +98,11 @@ func (s *Server) invoke(w http.ResponseWriter, r *http.Request, name, qualifier 
 var errThrottled = errors.New("function throttled (reserved concurrency 0)")
 
 // runInvoke ensures the function's runner exists and drives one invocation.
-func (s *Server) runInvoke(ctx context.Context, f *Function, payload []byte) (lambdaruntime.Result, error) {
+func (s *Server) runInvoke(ctx context.Context, f *function, payload []byte) (lambdaruntime.Result, error) {
 	return s.runInvokeInput(ctx, f, lambdaruntime.Input{Payload: payload})
 }
 
-func (s *Server) runInvokeInput(ctx context.Context, f *Function, in lambdaruntime.Input) (lambdaruntime.Result, error) {
+func (s *Server) runInvokeInput(ctx context.Context, f *function, in lambdaruntime.Input) (lambdaruntime.Result, error) {
 	// Every invocation, sync and async, passes through here, so this is the
 	// one place AWS/Lambda's metrics have to be recorded from.
 	started := time.Now()
@@ -144,7 +144,7 @@ func (s *Server) runInvokeInput(ctx context.Context, f *Function, in lambdarunti
 
 // invokeAsync runs an Event invocation and routes failures to the DLQ /
 // destination (best-effort).
-func (s *Server) invokeAsync(f *Function, payload []byte) {
+func (s *Server) invokeAsync(f *function, payload []byte) {
 	var res lambdaruntime.Result
 	var err error
 	retries := 2 // AWS default for async invocations
@@ -166,7 +166,7 @@ func (s *Server) invokeAsync(f *Function, payload []byte) {
 }
 
 // routeDestination delivers to the OnSuccess/OnFailure destination if set.
-func (s *Server) routeDestination(f *Function, payload []byte, res lambdaruntime.Result, success bool) {
+func (s *Server) routeDestination(f *function, payload []byte, res lambdaruntime.Result, success bool) {
 	if len(f.Destinations) == 0 {
 		return
 	}
@@ -242,7 +242,7 @@ func (s *Server) warnRuntime(name, runtime, codeDir string, command []string) {
 // loggingEnv turns a function's LoggingConfig into the variables the runtime
 // clients read: AWS_LAMBDA_LOG_FORMAT and AWS_LAMBDA_LOG_LEVEL, unless the
 // function's own environment already sets them.
-func loggingEnv(f *Function) map[string]string {
+func loggingEnv(f *function) map[string]string {
 	env := map[string]string{}
 	for k, v := range f.Env {
 		env[k] = v
@@ -274,14 +274,14 @@ func loggingEnv(f *Function) map[string]string {
 // The pool's ceiling is the function's reserved concurrency, if set.
 // Pools are keyed by name and version: version 2 and $LATEST run different
 // code from different directories, so they cannot share a process.
-func poolKey(f *Function) string {
+func poolKey(f *function) string {
 	if f.Version == "" || f.Version == "$LATEST" {
 		return f.Name
 	}
 	return f.Name + ":" + f.Version
 }
 
-func (s *Server) runnerFor(f *Function, shimDir string) *lambdaruntime.Pool {
+func (s *Server) runnerFor(f *function, shimDir string) *lambdaruntime.Pool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	key := poolKey(f)

@@ -187,7 +187,7 @@ type userView struct {
 	Tags       []tagView `xml:"Tags>member,omitempty"`
 }
 
-func viewUser(id awsident.Identity, u *User) userView {
+func viewUser(id awsident.Identity, u *userRecord) userView {
 	return userView{
 		Path: u.Path, UserName: u.Name, UserId: u.ID,
 		Arn:        id.GlobalARN("iam", "user"+u.Path+u.Name),
@@ -203,7 +203,7 @@ type groupView struct {
 	CreateDate string `xml:"CreateDate"`
 }
 
-func viewGroup(id awsident.Identity, g *Group) groupView {
+func viewGroup(id awsident.Identity, g *groupRecord) groupView {
 	return groupView{
 		Path: g.Path, GroupName: g.Name, GroupId: g.ID,
 		Arn:        id.GlobalARN("iam", "group"+g.Path+g.Name),
@@ -223,7 +223,7 @@ type roleView struct {
 	Tags                     []tagView `xml:"Tags>member,omitempty"`
 }
 
-func viewRole(id awsident.Identity, r *Role) roleView {
+func viewRole(id awsident.Identity, r *roleRecord) roleView {
 	return roleView{
 		Path: r.Path, RoleName: r.Name, RoleId: r.ID,
 		Arn:        id.GlobalARN("iam", "role"+r.Path+r.Name),
@@ -251,7 +251,7 @@ type policyView struct {
 	Tags             []tagView `xml:"Tags>member,omitempty"`
 }
 
-func viewPolicy(p *Policy, arn string) policyView {
+func viewPolicy(p *policy, arn string) policyView {
 	return policyView{
 		PolicyName: p.Name, PolicyId: p.ID, Arn: arn, Path: p.Path,
 		DefaultVersionId: p.DefaultVersion, AttachmentCount: p.AttachCount,
@@ -325,7 +325,7 @@ func hGetUser(s *Server, p params) (any, *awshttp.APIError) {
 }
 
 func hUpdateUser(s *Server, p params) (any, *awshttp.APIError) {
-	_, err := s.store.UpdateUser(p.str("UserName"), func(u *User) error {
+	_, err := s.store.UpdateUser(p.str("UserName"), func(u *userRecord) error {
 		if v := p.str("NewUserName"); v != "" {
 			u.Name = v
 		}
@@ -357,7 +357,7 @@ func hListUsers(s *Server, p params) (any, *awshttp.APIError) {
 }
 
 func hTagUser(s *Server, p params) (any, *awshttp.APIError) {
-	_, err := s.store.UpdateUser(p.str("UserName"), func(u *User) error {
+	_, err := s.store.UpdateUser(p.str("UserName"), func(u *userRecord) error {
 		u.Tags = mergeTags(u.Tags, p.tags())
 		return nil
 	})
@@ -365,7 +365,7 @@ func hTagUser(s *Server, p params) (any, *awshttp.APIError) {
 }
 
 func hUntagUser(s *Server, p params) (any, *awshttp.APIError) {
-	_, err := s.store.UpdateUser(p.str("UserName"), func(u *User) error {
+	_, err := s.store.UpdateUser(p.str("UserName"), func(u *userRecord) error {
 		for _, k := range p.members("TagKeys") {
 			delete(u.Tags, k)
 		}
@@ -418,7 +418,7 @@ func hGetGroup(s *Server, p params) (any, *awshttp.APIError) {
 }
 
 func hUpdateGroup(s *Server, p params) (any, *awshttp.APIError) {
-	_, err := s.store.UpdateGroup(p.str("GroupName"), func(g *Group) error {
+	_, err := s.store.UpdateGroup(p.str("GroupName"), func(g *groupRecord) error {
 		if v := p.str("NewGroupName"); v != "" {
 			g.Name = v
 		}
@@ -454,7 +454,7 @@ func hAddUserToGroup(s *Server, p params) (any, *awshttp.APIError) {
 	if _, err := s.store.GetGroup(group); err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	_, err := s.store.UpdateUser(p.str("UserName"), func(u *User) error {
+	_, err := s.store.UpdateUser(p.str("UserName"), func(u *userRecord) error {
 		if !containsString(u.Groups, group) {
 			u.Groups = append(u.Groups, group)
 		}
@@ -465,7 +465,7 @@ func hAddUserToGroup(s *Server, p params) (any, *awshttp.APIError) {
 
 func hRemoveUserFromGroup(s *Server, p params) (any, *awshttp.APIError) {
 	group := p.str("GroupName")
-	_, err := s.store.UpdateUser(p.str("UserName"), func(u *User) error {
+	_, err := s.store.UpdateUser(p.str("UserName"), func(u *userRecord) error {
 		u.Groups = removeString(u.Groups, group)
 		return nil
 	})
@@ -515,7 +515,7 @@ func hGetRole(s *Server, p params) (any, *awshttp.APIError) {
 }
 
 func hUpdateRole(s *Server, p params) (any, *awshttp.APIError) {
-	_, err := s.store.UpdateRole(p.str("RoleName"), func(r *Role) error {
+	_, err := s.store.UpdateRole(p.str("RoleName"), func(r *roleRecord) error {
 		if v := p.str("Description"); v != "" {
 			r.Description = v
 		}
@@ -528,7 +528,7 @@ func hUpdateRole(s *Server, p params) (any, *awshttp.APIError) {
 }
 
 func hUpdateRoleDescription(s *Server, p params) (any, *awshttp.APIError) {
-	r, err := s.store.UpdateRole(p.str("RoleName"), func(r *Role) error {
+	r, err := s.store.UpdateRole(p.str("RoleName"), func(r *roleRecord) error {
 		r.Description = p.str("Description")
 		return nil
 	})
@@ -564,7 +564,7 @@ func hUpdateAssumeRolePolicy(s *Server, p params) (any, *awshttp.APIError) {
 	if _, err := parsePolicy(doc); err != nil {
 		return nil, errMalformedPolicy("PolicyDocument: %v", err)
 	}
-	_, err := s.store.UpdateRole(p.str("RoleName"), func(r *Role) error {
+	_, err := s.store.UpdateRole(p.str("RoleName"), func(r *roleRecord) error {
 		r.AssumeRolePolicy = doc
 		return nil
 	})
@@ -572,7 +572,7 @@ func hUpdateAssumeRolePolicy(s *Server, p params) (any, *awshttp.APIError) {
 }
 
 func hTagRole(s *Server, p params) (any, *awshttp.APIError) {
-	_, err := s.store.UpdateRole(p.str("RoleName"), func(r *Role) error {
+	_, err := s.store.UpdateRole(p.str("RoleName"), func(r *roleRecord) error {
 		r.Tags = mergeTags(r.Tags, p.tags())
 		return nil
 	})
@@ -580,7 +580,7 @@ func hTagRole(s *Server, p params) (any, *awshttp.APIError) {
 }
 
 func hUntagRole(s *Server, p params) (any, *awshttp.APIError) {
-	_, err := s.store.UpdateRole(p.str("RoleName"), func(r *Role) error {
+	_, err := s.store.UpdateRole(p.str("RoleName"), func(r *roleRecord) error {
 		for _, k := range p.members("TagKeys") {
 			delete(r.Tags, k)
 		}

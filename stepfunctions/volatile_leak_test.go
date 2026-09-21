@@ -77,7 +77,7 @@ func TestGivingUpFirstLeavesTheDropToTheDriver(t *testing.T) {
 	}
 
 	// Now the driver finishes. No waiter remains, so it drops.
-	r := &run{key: key, e: &Execution{Volatile: true}}
+	r := &run{key: key, e: &execution{Volatile: true}}
 	srv.engine.finished(r)
 	if n := vol.held(); n != 0 {
 		t.Errorf("the driver did not drop a record nobody was waiting for: held=%d", n)

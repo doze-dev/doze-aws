@@ -36,7 +36,7 @@ const maxNestingDepth = 5
 // order, so a later child can reference an earlier one's outputs, and
 // records them on the report. It runs after pass one, when every parent
 // resource's Ref and attributes are known.
-func nestedRefs(scope *Scope, t *Template, opts TranspileOptions, rep *Report) error {
+func nestedRefs(scope *scope, t *Template, opts TranspileOptions, rep *Report) error {
 	for _, id := range t.Order() {
 		r := t.Resources[id]
 		if r.Type != "AWS::CloudFormation::Stack" {

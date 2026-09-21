@@ -40,12 +40,12 @@ func hPutRecord(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	if aerr != nil {
 		return nil, aerr
 	}
-	entry := PutEntry{
+	entry := putEntry{
 		PartitionKey:    awsjson.Str(p, "PartitionKey"),
 		ExplicitHashKey: awsjson.Str(p, "ExplicitHashKey"),
 		Data:            data,
 	}
-	res, err := s.store.Put(stream, []PutEntry{entry})
+	res, err := s.store.Put(stream, []putEntry{entry})
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
@@ -70,7 +70,7 @@ func hPutRecords(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	if aerr := s.requireUsableKey(s.keyForStream(stream)); aerr != nil {
 		return nil, aerr
 	}
-	entries := make([]PutEntry, 0, len(raw))
+	entries := make([]putEntry, 0, len(raw))
 	for i, item := range raw {
 		rec, ok := item.(map[string]any)
 		if !ok {
@@ -80,7 +80,7 @@ func hPutRecords(s *Server, p map[string]any) (any, *awshttp.APIError) {
 		if aerr != nil {
 			return nil, aerr
 		}
-		entries = append(entries, PutEntry{
+		entries = append(entries, putEntry{
 			PartitionKey:    awsjson.Str(rec, "PartitionKey"),
 			ExplicitHashKey: awsjson.Str(rec, "ExplicitHashKey"),
 			Data:            data,
@@ -228,7 +228,7 @@ func hGetRecords(s *Server, p map[string]any) (any, *awshttp.APIError) {
 
 // childShards lists the shards that name parent as a parent, in the shape
 // GetRecords advertises them.
-func childShards(st *Stream, parent string) []map[string]any {
+func childShards(st *streamRecord, parent string) []map[string]any {
 	var out []map[string]any
 	for _, sh := range st.Shards {
 		if sh.ParentID != parent && sh.AdjacentID != parent {
@@ -271,7 +271,7 @@ func hListShards(s *Server, p map[string]any) (any, *awshttp.APIError) {
 }
 
 // shardWire shapes a shard for DescribeStream and ListShards.
-func shardWire(sh Shard) map[string]any {
+func shardWire(sh shard) map[string]any {
 	seqRange := map[string]any{"StartingSequenceNumber": formatSeq(sh.StartSeq)}
 	if sh.Closed && sh.EndSeq != 0 {
 		seqRange["EndingSequenceNumber"] = formatSeq(sh.EndSeq)
@@ -290,7 +290,7 @@ func shardWire(sh Shard) map[string]any {
 	return m
 }
 
-func hashRange(sh Shard) map[string]any {
+func hashRange(sh shard) map[string]any {
 	return map[string]any{"StartingHashKey": sh.StartHash, "EndingHashKey": sh.EndHash}
 }
 

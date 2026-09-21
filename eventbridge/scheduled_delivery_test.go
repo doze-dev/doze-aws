@@ -59,8 +59,8 @@ func TestScheduledRuleDeliversTheScheduledEvent(t *testing.T) {
 	}
 	defer s.Close()
 
-	rule := Rule{Bus: DefaultBus, Name: "nightly", Schedule: "rate(1 hour)", State: "ENABLED",
-		Targets: []Target{{ID: "t1", ARN: awsident.Default().ARN("lambda", "function:sweeper")}}}
+	rule := rule{Bus: DefaultBus, Name: "nightly", Schedule: "rate(1 hour)", State: "ENABLED",
+		Targets: []target{{ID: "t1", ARN: awsident.Default().ARN("lambda", "function:sweeper")}}}
 	if err := s.store.PutRule(rule); err != nil {
 		t.Fatal(err)
 	}
@@ -163,8 +163,8 @@ func TestScheduledRuleDeliversToEveryTarget(t *testing.T) {
 	}
 	defer s.Close()
 
-	if err := s.store.PutRule(Rule{Bus: DefaultBus, Name: "fan", Schedule: "rate(1 minute)", State: "ENABLED",
-		Targets: []Target{
+	if err := s.store.PutRule(rule{Bus: DefaultBus, Name: "fan", Schedule: "rate(1 minute)", State: "ENABLED",
+		Targets: []target{
 			{ID: "gone", ARN: awsident.Default().ARN("sqs", "no-such-queue")},
 			{ID: "a", ARN: awsident.Default().ARN("lambda", "function:one")},
 			{ID: "b", ARN: awsident.Default().ARN("lambda", "function:two")},
@@ -223,8 +223,8 @@ func TestDisabledScheduleDeliversNothing(t *testing.T) {
 	}
 	defer s.Close()
 
-	if err := s.store.PutRule(Rule{Bus: DefaultBus, Name: "off", Schedule: "rate(1 minute)", State: "DISABLED",
-		Targets: []Target{{ID: "t", ARN: awsident.Default().ARN("lambda", "function:sweeper")}}}); err != nil {
+	if err := s.store.PutRule(rule{Bus: DefaultBus, Name: "off", Schedule: "rate(1 minute)", State: "DISABLED",
+		Targets: []target{{ID: "t", ARN: awsident.Default().ARN("lambda", "function:sweeper")}}}); err != nil {
 		t.Fatal(err)
 	}
 	lastFired := map[string]time.Time{}
@@ -261,7 +261,7 @@ func TestArmedCountDrivesTheCadence(t *testing.T) {
 	}
 
 	// A pattern rule is not a schedule: it fires on PutEvents, never on a clock.
-	if err := s.store.PutRule(Rule{Bus: DefaultBus, Name: "onpattern", State: "ENABLED",
+	if err := s.store.PutRule(rule{Bus: DefaultBus, Name: "onpattern", State: "ENABLED",
 		Pattern: `{"source":["shop"]}`}); err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func TestArmedCountDrivesTheCadence(t *testing.T) {
 		t.Errorf("a pattern rule counted as armed (%d); only schedules need a clock", armed)
 	}
 
-	if err := s.store.PutRule(Rule{Bus: DefaultBus, Name: "hourly", State: "ENABLED",
+	if err := s.store.PutRule(rule{Bus: DefaultBus, Name: "hourly", State: "ENABLED",
 		Schedule: "rate(1 hour)"}); err != nil {
 		t.Fatal(err)
 	}
@@ -279,7 +279,7 @@ func TestArmedCountDrivesTheCadence(t *testing.T) {
 
 	// Disabling it must hand the clock back, or the stack keeps ticking for a
 	// rule that can never fire.
-	if err := s.store.PutRule(Rule{Bus: DefaultBus, Name: "hourly", State: "DISABLED",
+	if err := s.store.PutRule(rule{Bus: DefaultBus, Name: "hourly", State: "DISABLED",
 		Schedule: "rate(1 hour)"}); err != nil {
 		t.Fatal(err)
 	}

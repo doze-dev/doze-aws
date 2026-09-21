@@ -125,7 +125,7 @@ func (s *Server) fireDueSchedules(lastFired map[string]time.Time, compiled map[s
 
 // fireScheduled delivers the canonical EventBridge "Scheduled Event" to a rule's
 // targets (a scheduled rule fires on time, not by pattern match).
-func (s *Server) fireScheduled(rule Rule) {
+func (s *Server) fireScheduled(rule rule) {
 	doc := map[string]any{
 		"version":     "0",
 		"id":          awshttp.RequestID(),

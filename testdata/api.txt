@@ -1,68 +1,5 @@
 apigateway: const DefaultAuthorizerTTL
 apigateway: const ExecutePrefix
-apigateway: field APIKey.Created int64
-apigateway: field APIKey.CustomerID string
-apigateway: field APIKey.Description string
-apigateway: field APIKey.Enabled bool
-apigateway: field APIKey.ID string
-apigateway: field APIKey.Name string
-apigateway: field APIKey.StageKeys []string
-apigateway: field APIKey.Tags map[string]string
-apigateway: field APIKey.Updated int64
-apigateway: field APIKey.Value string
-apigateway: field AccessLogSettings.DestinationARN string
-apigateway: field AccessLogSettings.Format string
-apigateway: field Account.CloudwatchRoleARN string
-apigateway: field Authorizer.AuthType string
-apigateway: field Authorizer.Credentials string
-apigateway: field Authorizer.ID string
-apigateway: field Authorizer.IdentitySource string
-apigateway: field Authorizer.IdentityValidation string
-apigateway: field Authorizer.Name string
-apigateway: field Authorizer.ResultTTL int
-apigateway: field Authorizer.Type string
-apigateway: field Authorizer.URI string
-apigateway: field CORSConfig.AllowCredentials bool
-apigateway: field CORSConfig.AllowHeaders []string
-apigateway: field CORSConfig.AllowMethods []string
-apigateway: field CORSConfig.AllowOrigins []string
-apigateway: field CORSConfig.ExposeHeaders []string
-apigateway: field CORSConfig.MaxAge *int
-apigateway: field Deployment.AutoDeployed bool
-apigateway: field Deployment.Created int64
-apigateway: field Deployment.Description string
-apigateway: field Deployment.ID string
-apigateway: field Integration.CacheKeyParameters []string
-apigateway: field Integration.CacheNamespace string
-apigateway: field Integration.ConnectionType string
-apigateway: field Integration.ContentHandling string
-apigateway: field Integration.Credentials string
-apigateway: field Integration.HTTPMethod string
-apigateway: field Integration.PassthroughBehavior string
-apigateway: field Integration.RequestParameters map[string]string
-apigateway: field Integration.RequestTemplates map[string]string
-apigateway: field Integration.Responses map[string]*IntegrationResponse
-apigateway: field Integration.TimeoutInMillis int
-apigateway: field Integration.Type string
-apigateway: field Integration.URI string
-apigateway: field IntegrationResponse.ContentHandling string
-apigateway: field IntegrationResponse.ResponseParameters map[string]string
-apigateway: field IntegrationResponse.ResponseTemplates map[string]string
-apigateway: field IntegrationResponse.SelectionPattern string
-apigateway: field IntegrationResponse.StatusCode string
-apigateway: field Method.APIKeyRequired bool
-apigateway: field Method.AuthorizationType string
-apigateway: field Method.AuthorizerID string
-apigateway: field Method.HTTPMethod string
-apigateway: field Method.Integration *Integration
-apigateway: field Method.OperationName string
-apigateway: field Method.RequestModels map[string]string
-apigateway: field Method.RequestParameters map[string]bool
-apigateway: field Method.RequestValidatorID string
-apigateway: field Method.Responses map[string]*MethodResponse
-apigateway: field MethodResponse.ResponseModels map[string]string
-apigateway: field MethodResponse.ResponseParameters map[string]bool
-apigateway: field MethodResponse.StatusCode string
 apigateway: field Options.Clock func() time.Time
 apigateway: field Options.DataDir string
 apigateway: field Options.Endpoint string
@@ -70,99 +7,6 @@ apigateway: field Options.Identity awsident.Identity
 apigateway: field Options.Logf func(format string, args ...any)
 apigateway: field Options.Peers peers.Directory
 apigateway: field Options.Suffix string
-apigateway: field PlanStage.APIID string
-apigateway: field PlanStage.Stage string
-apigateway: field Quota.Limit int
-apigateway: field Quota.Offset int
-apigateway: field Quota.Period string
-apigateway: field Resource.ID string
-apigateway: field Resource.Methods map[string]*Method
-apigateway: field Resource.ParentID string
-apigateway: field Resource.Path string
-apigateway: field Resource.PathPart string
-apigateway: field RestAPI.APIKeySource string
-apigateway: field RestAPI.Authorizers map[string]*Authorizer
-apigateway: field RestAPI.BinaryMediaTypes []string
-apigateway: field RestAPI.CORS *CORSConfig
-apigateway: field RestAPI.Created int64
-apigateway: field RestAPI.Deployments map[string]*Deployment
-apigateway: field RestAPI.Description string
-apigateway: field RestAPI.DisableExecuteAPI bool
-apigateway: field RestAPI.DisableSchemaValidation bool
-apigateway: field RestAPI.EndpointTypes []string
-apigateway: field RestAPI.ID string
-apigateway: field RestAPI.IPAddressType string
-apigateway: field RestAPI.MinimumCompressionSize *int
-apigateway: field RestAPI.Name string
-apigateway: field RestAPI.Policy string
-apigateway: field RestAPI.Protocol string
-apigateway: field RestAPI.Resources map[string]*Resource
-apigateway: field RestAPI.RouteSelection string
-apigateway: field RestAPI.Stages map[string]*Stage
-apigateway: field RestAPI.Tags map[string]string
-apigateway: field RestAPI.V2Authorizers map[string]*V2Authorizer
-apigateway: field RestAPI.V2Integrations map[string]*V2Integration
-apigateway: field RestAPI.V2Routes map[string]*V2Route
-apigateway: field RestAPI.Version string
-apigateway: field Stage.AccessLog *AccessLogSettings
-apigateway: field Stage.AutoDeploy bool
-apigateway: field Stage.Created int64
-apigateway: field Stage.DefaultRouteSettings map[string]any
-apigateway: field Stage.DeploymentID string
-apigateway: field Stage.Description string
-apigateway: field Stage.MethodSettings map[string]map[string]any
-apigateway: field Stage.Name string
-apigateway: field Stage.RouteSettings map[string]map[string]any
-apigateway: field Stage.Tags map[string]string
-apigateway: field Stage.TracingEnabled bool
-apigateway: field Stage.Updated int64
-apigateway: field Stage.Variables map[string]string
-apigateway: field Throttle.Burst int
-apigateway: field Throttle.Rate float64
-apigateway: field UsagePlan.Created int64
-apigateway: field UsagePlan.Description string
-apigateway: field UsagePlan.ID string
-apigateway: field UsagePlan.KeyIDs []string
-apigateway: field UsagePlan.Name string
-apigateway: field UsagePlan.Quota *Quota
-apigateway: field UsagePlan.Stages []PlanStage
-apigateway: field UsagePlan.Tags map[string]string
-apigateway: field UsagePlan.Throttle *Throttle
-apigateway: field V2Authorizer.CredentialsARN string
-apigateway: field V2Authorizer.EnableSimpleResponses bool
-apigateway: field V2Authorizer.ID string
-apigateway: field V2Authorizer.IdentitySource []string
-apigateway: field V2Authorizer.Name string
-apigateway: field V2Authorizer.PayloadFormatVersion string
-apigateway: field V2Authorizer.ResultTTL int
-apigateway: field V2Authorizer.Type string
-apigateway: field V2Authorizer.URI string
-apigateway: field V2Integration.ConnectionID string
-apigateway: field V2Integration.ConnectionType string
-apigateway: field V2Integration.CredentialsARN string
-apigateway: field V2Integration.Description string
-apigateway: field V2Integration.ID string
-apigateway: field V2Integration.Method string
-apigateway: field V2Integration.PayloadFormatVersion string
-apigateway: field V2Integration.RequestParameters map[string]string
-apigateway: field V2Integration.ResponseParameters map[string]map[string]string
-apigateway: field V2Integration.TimeoutInMillis int
-apigateway: field V2Integration.Type string
-apigateway: field V2Integration.URI string
-apigateway: field V2Route.APIKeyRequired bool
-apigateway: field V2Route.AuthorizationScopes []string
-apigateway: field V2Route.AuthorizationType string
-apigateway: field V2Route.AuthorizerID string
-apigateway: field V2Route.ID string
-apigateway: field V2Route.ModelSelection string
-apigateway: field V2Route.OperationName string
-apigateway: field V2Route.RequestModels map[string]string
-apigateway: field V2Route.RequestParameters map[string]map[string]any
-apigateway: field V2Route.RouteKey string
-apigateway: field V2Route.Target string
-apigateway: func (*RestAPI) Children(parentID string) []*Resource
-apigateway: func (*RestAPI) Root() *Resource
-apigateway: func (*RestAPI) SortedResources() []*Resource
 apigateway: func (*Server) APIARN(apiID string) string
 apigateway: func (*Server) Close() error
 apigateway: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
@@ -171,28 +15,8 @@ apigateway: func InvokeURL(base, apiID, stage string) string
 apigateway: func New(opts Options) (*Server, error)
 apigateway: func OperationFor(r *http.Request) string
 apigateway: func V2Endpoint(base, apiID string) string
-apigateway: type APIKey struct
-apigateway: type AccessLogSettings struct
-apigateway: type Account struct
-apigateway: type Authorizer struct
-apigateway: type CORSConfig struct
-apigateway: type Deployment struct
-apigateway: type Integration struct
-apigateway: type IntegrationResponse struct
-apigateway: type Method struct
-apigateway: type MethodResponse struct
 apigateway: type Options struct
-apigateway: type PlanStage struct
-apigateway: type Quota struct
-apigateway: type Resource struct
-apigateway: type RestAPI struct
 apigateway: type Server struct
-apigateway: type Stage struct
-apigateway: type Throttle struct
-apigateway: type UsagePlan struct
-apigateway: type V2Authorizer struct
-apigateway: type V2Integration struct
-apigateway: type V2Route struct
 awsident: const AccessKeyID
 awsident: const AccountID
 awsident: const Region
@@ -217,23 +41,6 @@ cloudformation: const StatusDeleteComplete
 cloudformation: const StatusReviewInProgress
 cloudformation: const StatusUpdateComplete
 cloudformation: const StatusUpdateFailed
-cloudformation: field Change.Action string
-cloudformation: field Change.LogicalID string
-cloudformation: field Change.PhysicalID string
-cloudformation: field Change.Replacement string
-cloudformation: field Change.Type string
-cloudformation: field ChangeSetRecord.Changes []Change
-cloudformation: field ChangeSetRecord.Created int64
-cloudformation: field ChangeSetRecord.ExecutionStatus string
-cloudformation: field ChangeSetRecord.ID string
-cloudformation: field ChangeSetRecord.Name string
-cloudformation: field ChangeSetRecord.Parameters map[string]string
-cloudformation: field ChangeSetRecord.StackName string
-cloudformation: field ChangeSetRecord.Status string
-cloudformation: field ChangeSetRecord.StatusReason string
-cloudformation: field ChangeSetRecord.Tags map[string]string
-cloudformation: field ChangeSetRecord.TemplateBody string
-cloudformation: field ChangeSetRecord.Type string
 cloudformation: field Entry.Kind Kind
 cloudformation: field Entry.LogicalID string
 cloudformation: field Entry.Name string
@@ -276,59 +83,6 @@ cloudformation: field Resource.LogicalID string
 cloudformation: field Resource.Metadata map[string]any
 cloudformation: field Resource.Properties map[string]any
 cloudformation: field Resource.Type string
-cloudformation: field RollbackConfig.MonitoringTimeInMinutes *int
-cloudformation: field RollbackConfig.Triggers []RollbackTrigger
-cloudformation: field RollbackTrigger.Arn string
-cloudformation: field RollbackTrigger.Type string
-cloudformation: field Scope.Atts map[string]map[string]string
-cloudformation: field Scope.Conditions map[string]bool
-cloudformation: field Scope.Endpoint string
-cloudformation: field Scope.Exports map[string]string
-cloudformation: field Scope.Identity awsident.Identity
-cloudformation: field Scope.Mappings map[string]any
-cloudformation: field Scope.Parameters map[string]any
-cloudformation: field Scope.Refs map[string]string
-cloudformation: field Scope.StackName string
-cloudformation: field Scope.Suffix string
-cloudformation: field StackEvent.ID string
-cloudformation: field StackEvent.LogicalID string
-cloudformation: field StackEvent.PhysicalID string
-cloudformation: field StackEvent.Props string
-cloudformation: field StackEvent.Reason string
-cloudformation: field StackEvent.Status string
-cloudformation: field StackEvent.Timestamp int64
-cloudformation: field StackEvent.Type string
-cloudformation: field StackOutput.Description string
-cloudformation: field StackOutput.ExportName string
-cloudformation: field StackOutput.Key string
-cloudformation: field StackOutput.Value string
-cloudformation: field StackRecord.Capabilities []string
-cloudformation: field StackRecord.Created int64
-cloudformation: field StackRecord.DisableRollback bool
-cloudformation: field StackRecord.Events []StackEvent
-cloudformation: field StackRecord.ID string
-cloudformation: field StackRecord.Name string
-cloudformation: field StackRecord.NestedTemplates map[string]string
-cloudformation: field StackRecord.NotificationARNs []string
-cloudformation: field StackRecord.Outputs []StackOutput
-cloudformation: field StackRecord.Parameters map[string]string
-cloudformation: field StackRecord.ParentID string
-cloudformation: field StackRecord.Policy string
-cloudformation: field StackRecord.Resources []StackResource
-cloudformation: field StackRecord.Rollback *RollbackConfig
-cloudformation: field StackRecord.RootID string
-cloudformation: field StackRecord.Status string
-cloudformation: field StackRecord.StatusReason string
-cloudformation: field StackRecord.Tags map[string]string
-cloudformation: field StackRecord.TemplateBody string
-cloudformation: field StackRecord.TerminationProtection bool
-cloudformation: field StackRecord.Updated int64
-cloudformation: field StackResource.LogicalID string
-cloudformation: field StackResource.PhysicalID string
-cloudformation: field StackResource.Props string
-cloudformation: field StackResource.Reason string
-cloudformation: field StackResource.Status string
-cloudformation: field StackResource.Type string
 cloudformation: field Template.Conditions map[string]any
 cloudformation: field Template.Description string
 cloudformation: field Template.FormatVersion string
@@ -349,8 +103,6 @@ cloudformation: field TranspileOptions.StackName string
 cloudformation: field TranspileOptions.Suffix string
 cloudformation: func (*Report) Counts() (mapped, ignored, rejected int)
 cloudformation: func (*Report) Ignored() []Entry
-cloudformation: func (*Scope) Eval(v any) (any, error)
-cloudformation: func (*Scope) EvalConditions(conditions map[string]any) error
 cloudformation: func (*Server) Close() error
 cloudformation: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
 cloudformation: func (*Template) IsSAM() bool
@@ -363,8 +115,6 @@ cloudformation: func New(opts Options) (*Server, error)
 cloudformation: func Parse(raw []byte) (*Template, error)
 cloudformation: func StackARN(ident awsident.Identity, name, id string) string
 cloudformation: func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, error)
-cloudformation: type Change struct
-cloudformation: type ChangeSetRecord struct
 cloudformation: type Entry struct
 cloudformation: type Kind defined
 cloudformation: type NestedStack struct
@@ -373,14 +123,7 @@ cloudformation: type Output struct
 cloudformation: type Parameter struct
 cloudformation: type Report struct
 cloudformation: type Resource struct
-cloudformation: type RollbackConfig struct
-cloudformation: type RollbackTrigger struct
-cloudformation: type Scope struct
 cloudformation: type Server struct
-cloudformation: type StackEvent struct
-cloudformation: type StackOutput struct
-cloudformation: type StackRecord struct
-cloudformation: type StackResource struct
 cloudformation: type Template struct
 cloudformation: type TranspileOptions struct
 cloudwatch: field Options.Clock func() time.Time
@@ -482,171 +225,28 @@ dynamodb: func New(opts Options) (*Server, error)
 dynamodb: type Options struct
 dynamodb: type Server struct
 eventbridge: const DefaultBus
-eventbridge: field APIKeyAuth.Name string
-eventbridge: field APIKeyAuth.Value string
-eventbridge: field ApiDestination.ConnectionARN string
-eventbridge: field ApiDestination.CreatedMs int64
-eventbridge: field ApiDestination.Desc string
-eventbridge: field ApiDestination.Endpoint string
-eventbridge: field ApiDestination.ID string
-eventbridge: field ApiDestination.Method string
-eventbridge: field ApiDestination.ModifiedMs int64
-eventbridge: field ApiDestination.Name string
-eventbridge: field ApiDestination.RateLimit int
-eventbridge: field ApiDestination.State string
-eventbridge: field Archive.CreationTime int64
-eventbridge: field Archive.Desc string
-eventbridge: field Archive.EventCount int64
-eventbridge: field Archive.EventSourceArn string
-eventbridge: field Archive.Name string
-eventbridge: field Archive.Pattern string
-eventbridge: field Archive.RetentionDays int
-eventbridge: field Archive.SizeBytes int64
-eventbridge: field Archive.State string
-eventbridge: field BasicAuth.Password string
-eventbridge: field BasicAuth.Username string
-eventbridge: field Bus.DeadLetterARN string
-eventbridge: field Bus.Description string
-eventbridge: field Bus.KmsKeyIdentifier string
-eventbridge: field Bus.Name string
-eventbridge: field Bus.Policy string
-eventbridge: field Bus.Tags map[string]string
-eventbridge: field Connection.APIKey *APIKeyAuth
-eventbridge: field Connection.AuthType string
-eventbridge: field Connection.Basic *BasicAuth
-eventbridge: field Connection.CreatedMs int64
-eventbridge: field Connection.Desc string
-eventbridge: field Connection.ID string
-eventbridge: field Connection.Invocation HTTPParams
-eventbridge: field Connection.ModifiedMs int64
-eventbridge: field Connection.Name string
-eventbridge: field Connection.OAuth *OAuthAuth
-eventbridge: field Connection.State string
-eventbridge: field HTTPParameters.HeaderParameters map[string]string
-eventbridge: field HTTPParameters.PathParameterValues []string
-eventbridge: field HTTPParameters.QueryStringParameters map[string]string
-eventbridge: field HTTPParams.Body []Param
-eventbridge: field HTTPParams.Header []Param
-eventbridge: field HTTPParams.Query []Param
-eventbridge: field InputTransformer.PathsMap map[string]string
-eventbridge: field InputTransformer.Template string
-eventbridge: field OAuthAuth.ClientID string
-eventbridge: field OAuthAuth.ClientSecret string
-eventbridge: field OAuthAuth.Endpoint string
-eventbridge: field OAuthAuth.Method string
-eventbridge: field OAuthAuth.Params HTTPParams
 eventbridge: field Options.Clock func() time.Time
 eventbridge: field Options.DataDir string
 eventbridge: field Options.Identity awsident.Identity
 eventbridge: field Options.Logf func(format string, args ...any)
 eventbridge: field Options.Peers peers.Directory
-eventbridge: field Param.IsSecret bool
-eventbridge: field Param.Key string
-eventbridge: field Param.Value string
-eventbridge: field Replay.DestinationArn string
-eventbridge: field Replay.EndTime int64
-eventbridge: field Replay.EventEndTime int64
-eventbridge: field Replay.EventSourceArn string
-eventbridge: field Replay.EventStartTime int64
-eventbridge: field Replay.FilterArns []string
-eventbridge: field Replay.LastEventTime int64
-eventbridge: field Replay.Name string
-eventbridge: field Replay.StartTime int64
-eventbridge: field Replay.State string
-eventbridge: field Replay.StateReason string
-eventbridge: field Rule.Bus string
-eventbridge: field Rule.Desc string
-eventbridge: field Rule.Name string
-eventbridge: field Rule.Pattern string
-eventbridge: field Rule.RoleArn string
-eventbridge: field Rule.Schedule string
-eventbridge: field Rule.State string
-eventbridge: field Rule.Tags map[string]string
-eventbridge: field Rule.Targets []Target
-eventbridge: field Target.ARN string
-eventbridge: field Target.HttpParameters *HTTPParameters
-eventbridge: field Target.ID string
-eventbridge: field Target.Input string
-eventbridge: field Target.InputPath string
-eventbridge: field Target.InputTransformer *InputTransformer
-eventbridge: func (*ApiDestination) ARN(id awsident.Identity) string
-eventbridge: func (*Archive) ARN(id awsident.Identity) string
-eventbridge: func (*Connection) ARN(id awsident.Identity) string
-eventbridge: func (*Connection) SecretARN(id awsident.Identity) string
-eventbridge: func (*Replay) ARN(id awsident.Identity) string
-eventbridge: func (*Rule) ARN(id awsident.Identity) string
 eventbridge: func (*Server) Close() error
 eventbridge: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
 eventbridge: func New(opts Options) (*Server, error)
-eventbridge: type APIKeyAuth struct
-eventbridge: type ApiDestination struct
-eventbridge: type Archive struct
-eventbridge: type BasicAuth struct
-eventbridge: type Bus struct
-eventbridge: type Connection struct
-eventbridge: type HTTPParameters struct
-eventbridge: type HTTPParams struct
-eventbridge: type InputTransformer struct
-eventbridge: type OAuthAuth struct
 eventbridge: type Options struct
-eventbridge: type Param struct
-eventbridge: type Replay struct
-eventbridge: type Rule struct
 eventbridge: type Server struct
-eventbridge: type Target struct
 iam: const Allowed
 iam: const ExplicitDeny
 iam: const ImplicitDeny
 iam: const ModeEnforce
 iam: const ModeOff
 iam: const ModeSoft
-iam: field AccessEvent.Action string
-iam: field AccessEvent.Count int
-iam: field AccessEvent.Decision Decision
-iam: field AccessEvent.Last int64
-iam: field AccessEvent.MatchedBy string
-iam: field AccessEvent.Principal string
-iam: field AccessEvent.Resource string
-iam: field AccessEvent.ResourceKnown bool
-iam: field AccessEvent.Source string
-iam: field AccessKey.Created int64
-iam: field AccessKey.ID string
-iam: field AccessKey.LastSvc string
-iam: field AccessKey.LastUsed int64
-iam: field AccessKey.Secret string
-iam: field AccessKey.Status string
-iam: field AccessKey.UserName string
-iam: field InstanceProfile.Created int64
-iam: field InstanceProfile.ID string
-iam: field InstanceProfile.Name string
-iam: field InstanceProfile.Path string
-iam: field InstanceProfile.Roles []string
-iam: field InstanceProfile.Tags map[string]string
 iam: field Options.Clock func() time.Time
 iam: field Options.DataDir string
 iam: field Options.Identity awsident.Identity
 iam: field Options.Logf func(format string, args ...any)
 iam: field Options.Mode Mode
 iam: field Options.Peers peers.Directory
-iam: field Policy.AttachCount int
-iam: field Policy.Created int64
-iam: field Policy.DefaultVersion string
-iam: field Policy.Description string
-iam: field Policy.ID string
-iam: field Policy.Name string
-iam: field Policy.Path string
-iam: field Policy.Tags map[string]string
-iam: field Policy.Updated int64
-iam: field Policy.VersionOrder []string
-iam: field Policy.Versions map[string]string
-iam: field Principal.Attached []string
-iam: field Principal.Created int64
-iam: field Principal.ID string
-iam: field Principal.Inline map[string]string
-iam: field Principal.Name string
-iam: field Principal.Path string
-iam: field Principal.PermissionsBoundary string
-iam: field Principal.Tags map[string]string
 iam: field Result.Action string
 iam: field Result.Decision Decision
 iam: field Result.Err *awshttp.APIError
@@ -654,12 +254,6 @@ iam: field Result.Identity string
 iam: field Result.MatchedBy string
 iam: field Result.Principal string
 iam: field Result.Resource string
-iam: field Role.AssumeRolePolicy string
-iam: field Role.Description string
-iam: field Role.MaxSessionDuration int
-iam: field User.Groups []string
-iam: func (*Policy) ARN(id awsident.Identity) string
-iam: func (*Policy) Default() string
 iam: func (*Server) Authorize(r *http.Request, service string) Result
 iam: func (*Server) Close() error
 iam: func (*Server) Identity(r *http.Request, action, resource string) string
@@ -669,25 +263,12 @@ iam: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
 iam: func New(opts Options) (*Server, error)
 iam: func ParseDecision(s string) (Decision, bool)
 iam: func ParseMode(s string) (Mode, error)
-iam: type AccessEvent struct
-iam: type AccessKey struct
 iam: type Decision = alias
-iam: type Group struct
-iam: type InstanceProfile struct
 iam: type Mode defined
 iam: type Options struct
-iam: type Policy struct
-iam: type Principal struct
 iam: type Result struct
-iam: type Role struct
 iam: type Server struct
-iam: type User struct
 iam: var ResourcePolicyServices
-kinesis: field Consumer.ARN string
-kinesis: field Consumer.Created int64
-kinesis: field Consumer.Name string
-kinesis: field Consumer.Status string
-kinesis: field Consumer.StreamARN string
 kinesis: field Options.Clock func() time.Time
 kinesis: field Options.DataDir string
 kinesis: field Options.IAMMode string
@@ -695,132 +276,22 @@ kinesis: field Options.Identity awsident.Identity
 kinesis: field Options.Logf func(format string, args ...any)
 kinesis: field Options.Peers peers.Directory
 kinesis: field Options.SweepInterval time.Duration
-kinesis: field PutEntry.Data []byte
-kinesis: field PutEntry.ExplicitHashKey string
-kinesis: field PutEntry.PartitionKey string
-kinesis: field PutResult.Seq uint64
-kinesis: field PutResult.ShardID string
-kinesis: field Record.ArrivedNs int64
-kinesis: field Record.Data []byte
-kinesis: field Record.ExplicitHashKey string
-kinesis: field Record.PartitionKey string
-kinesis: field Record.Seq uint64
-kinesis: field Shard.AdjacentID string
-kinesis: field Shard.Closed bool
-kinesis: field Shard.EndHash string
-kinesis: field Shard.EndSeq uint64
-kinesis: field Shard.ID string
-kinesis: field Shard.ParentID string
-kinesis: field Shard.StartHash string
-kinesis: field Shard.StartSeq uint64
-kinesis: field Stream.Created int64
-kinesis: field Stream.EncryptionType string
-kinesis: field Stream.EnhancedMetrics []string
-kinesis: field Stream.KeyID string
-kinesis: field Stream.Mode string
-kinesis: field Stream.Name string
-kinesis: field Stream.NextSeq uint64
-kinesis: field Stream.NextShardNum int
-kinesis: field Stream.ResourcePolicy string
-kinesis: field Stream.RetentionHours int
-kinesis: field Stream.Shards []Shard
-kinesis: field Stream.Tags map[string]string
 kinesis: func (*Server) Close() error
 kinesis: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
-kinesis: func (*Stream) OpenShards() []Shard
 kinesis: func New(opts Options) (*Server, error)
-kinesis: type Consumer struct
 kinesis: type Options struct
-kinesis: type PutEntry struct
-kinesis: type PutResult struct
-kinesis: type Record struct
 kinesis: type Server struct
-kinesis: type Shard struct
-kinesis: type Stream struct
-kms: field Key.Created int64
-kms: field Key.DeletionAt int64
-kms: field Key.Description string
-kms: field Key.ID string
-kms: field Key.KeySpec string
-kms: field Key.KeyUsage string
-kms: field Key.Material []byte
-kms: field Key.MultiRegion bool
-kms: field Key.OldMaterials [][]byte
-kms: field Key.Policy string
-kms: field Key.RotationDays int
-kms: field Key.RotationOn bool
-kms: field Key.Rotations []int64
-kms: field Key.State string
-kms: field Key.Tags map[string]string
 kms: field Options.Clock func() time.Time
 kms: field Options.DataDir string
 kms: field Options.IAMMode string
 kms: field Options.Identity awsident.Identity
 kms: field Options.Logf func(format string, args ...any)
 kms: field Options.Peers peers.Directory
-kms: func (*Key) ARN() string
 kms: func (*Server) Close() error
 kms: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
 kms: func New(opts Options) (*Server, error)
-kms: type Key struct
 kms: type Options struct
 kms: type Server struct
-lambda: field EventSourceMapping.BatchSize int
-lambda: field EventSourceMapping.Enabled bool
-lambda: field EventSourceMapping.EventSourceArn string
-lambda: field EventSourceMapping.FunctionName string
-lambda: field EventSourceMapping.State string
-lambda: field EventSourceMapping.UUID string
-lambda: field Function.AliasDescriptions map[string]string
-lambda: field Function.Aliases map[string]string
-lambda: field Function.Architectures []string
-lambda: field Function.CodeDir string
-lambda: field Function.CodeSHA256 string
-lambda: field Function.CodeSigningConfigArn string
-lambda: field Function.Command []string
-lambda: field Function.DeadLetterArn string
-lambda: field Function.Description string
-lambda: field Function.Destinations json.RawMessage
-lambda: field Function.Env map[string]string
-lambda: field Function.EphemeralStorageMB int
-lambda: field Function.FileSystemConfigs json.RawMessage
-lambda: field Function.FunctionURL string
-lambda: field Function.Handler string
-lambda: field Function.HasEventInvokeCfg bool
-lambda: field Function.KMSKeyArn string
-lambda: field Function.LastMod int64
-lambda: field Function.Layers []string
-lambda: field Function.LoggingConfig json.RawMessage
-lambda: field Function.MaxEventAgeSeconds *int
-lambda: field Function.MaxRetryAttempts *int
-lambda: field Function.MemorySize int
-lambda: field Function.Name string
-lambda: field Function.Policy []PolicyStatement
-lambda: field Function.ReservedConcurrency *int
-lambda: field Function.Revision string
-lambda: field Function.Role string
-lambda: field Function.Runtime string
-lambda: field Function.SnapStart json.RawMessage
-lambda: field Function.Tags map[string]string
-lambda: field Function.Timeout int
-lambda: field Function.TracingMode string
-lambda: field Function.URLAuthType string
-lambda: field Function.URLCors json.RawMessage
-lambda: field Function.URLId string
-lambda: field Function.Version string
-lambda: field Function.VpcConfig json.RawMessage
-lambda: field LayerVersion.CodeSHA256 string
-lambda: field LayerVersion.CodeSize int64
-lambda: field LayerVersion.CompatibleArchs []string
-lambda: field LayerVersion.CompatibleRuntimes []string
-lambda: field LayerVersion.ContentPath string
-lambda: field LayerVersion.CreatedDate string
-lambda: field LayerVersion.Description string
-lambda: field LayerVersion.ExtractedDir string
-lambda: field LayerVersion.LayerName string
-lambda: field LayerVersion.LicenseInfo string
-lambda: field LayerVersion.Policy []PolicyStatement
-lambda: field LayerVersion.Version int64
 lambda: field Options.Clock func() time.Time
 lambda: field Options.DataDir string
 lambda: field Options.Endpoint string
@@ -832,47 +303,15 @@ lambda: field Options.Peers peers.Directory
 lambda: field Options.QuietFunctions bool
 lambda: field Options.Runtimes map[string]string
 lambda: field Options.Suffix string
-lambda: field PolicyStatement.Action string
-lambda: field PolicyStatement.Condition json.RawMessage
-lambda: field PolicyStatement.Effect string
-lambda: field PolicyStatement.Principal any
-lambda: field PolicyStatement.Resource string
-lambda: field PolicyStatement.Sid string
-lambda: func (*Function) ARN() string
-lambda: func (*LayerVersion) ARN(id awsident.Identity) string
-lambda: func (*LayerVersion) LayerARN(id awsident.Identity) string
 lambda: func (*Server) Close() error
 lambda: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
 lambda: func (*Server) SetTraceSink(sink trace.Sink)
 lambda: func New(opts Options) (*Server, error)
 lambda: func OperationFor(r *http.Request) string
-lambda: type EventSourceMapping struct
-lambda: type Function struct
-lambda: type LayerVersion struct
 lambda: type Options struct
-lambda: type PolicyStatement struct
 lambda: type Server struct
 logs: const DefaultMaxEvents
 logs: const DefaultRetention
-logs: field Event.Ingest int64
-logs: field Event.Msg string
-logs: field Event.RequestID string
-logs: field Event.TS int64
-logs: field Group.CreatedMs int64
-logs: field Group.Name string
-logs: field Group.RetentionDays int
-logs: field Group.Tags map[string]string
-logs: field MetricFilter.CreatedMs int64
-logs: field MetricFilter.Group string
-logs: field MetricFilter.Name string
-logs: field MetricFilter.Pattern string
-logs: field MetricFilter.Transformations []MetricTransformation
-logs: field MetricTransformation.Default *float64
-logs: field MetricTransformation.Dimensions map[string]string
-logs: field MetricTransformation.MetricName string
-logs: field MetricTransformation.Namespace string
-logs: field MetricTransformation.Unit string
-logs: field MetricTransformation.Value string
 logs: field Options.Clock func() time.Time
 logs: field Options.DataDir string
 logs: field Options.Identity awsident.Identity
@@ -880,36 +319,12 @@ logs: field Options.Logf func(format string, args ...any)
 logs: field Options.MaxEvents int
 logs: field Options.Peers peers.Directory
 logs: field Options.Retention time.Duration
-logs: field Stored.Seq int64
-logs: field Stored.Stream string
-logs: field Stream.CreatedMs int64
-logs: field Stream.FirstMs int64
-logs: field Stream.Group string
-logs: field Stream.LastIngestMs int64
-logs: field Stream.LastMs int64
-logs: field Stream.Name string
-logs: field Subscription.CreatedMs int64
-logs: field Subscription.Destination string
-logs: field Subscription.Distribution string
-logs: field Subscription.Group string
-logs: field Subscription.Name string
-logs: field Subscription.Pattern string
-logs: field Subscription.RoleARN string
 logs: func (*Server) Close() error
 logs: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
 logs: func (*Server) SweepNow() int
-logs: func (Stored) ID() string
-logs: func (Stored) Key() []byte
 logs: func New(opts Options) (*Server, error)
-logs: type Event struct
-logs: type Group struct
-logs: type MetricFilter struct
-logs: type MetricTransformation struct
 logs: type Options struct
 logs: type Server struct
-logs: type Stored struct
-logs: type Stream struct
-logs: type Subscription struct
 logs: var ErrNoFilter
 logs: var ErrNoGroup
 peers: const HeaderPeer
@@ -1288,306 +703,62 @@ secretsmanager: field Options.IAMMode string
 secretsmanager: field Options.Identity awsident.Identity
 secretsmanager: field Options.Logf func(format string, args ...any)
 secretsmanager: field Options.Peers peers.Directory
-secretsmanager: field Secret.ARN string
-secretsmanager: field Secret.Created int64
-secretsmanager: field Secret.DeletedAt int64
-secretsmanager: field Secret.Description string
-secretsmanager: field Secret.KMSKeyID string
-secretsmanager: field Secret.LastChanged int64
-secretsmanager: field Secret.LastRotatedDate int64
-secretsmanager: field Secret.Name string
-secretsmanager: field Secret.Policy string
-secretsmanager: field Secret.PurgeAt int64
-secretsmanager: field Secret.RotationEnabled bool
-secretsmanager: field Secret.RotationLambdaARN string
-secretsmanager: field Secret.Tags map[string]string
-secretsmanager: field Secret.Versions map[string]Version
-secretsmanager: field Version.Binary []byte
-secretsmanager: field Version.Created int64
-secretsmanager: field Version.Stages []string
-secretsmanager: field Version.String []byte
-secretsmanager: func (*Secret) Resolve(versionID, stage string) (string, *Version, *awshttp.APIError)
 secretsmanager: func (*Server) Close() error
 secretsmanager: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
 secretsmanager: func New(opts Options) (*Server, error)
 secretsmanager: type Options struct
-secretsmanager: type Secret struct
 secretsmanager: type Server struct
-secretsmanager: type Version struct
 sns: field Options.Clock func() time.Time
 sns: field Options.DataDir string
 sns: field Options.IAMMode string
 sns: field Options.Identity awsident.Identity
 sns: field Options.Logf func(format string, args ...any)
 sns: field Options.Peers peers.Directory
-sns: field Subscription.ARN string
-sns: field Subscription.Confirmed bool
-sns: field Subscription.Endpoint string
-sns: field Subscription.Extra map[string]string
-sns: field Subscription.FilterPolicy string
-sns: field Subscription.Protocol string
-sns: field Subscription.RawDelivery bool
-sns: field Subscription.Token string
-sns: field Subscription.TopicARN string
-sns: field Topic.ARN string
-sns: field Topic.Attrs map[string]string
-sns: field Topic.DataProtectionPolicy string
-sns: field Topic.Name string
-sns: field Topic.Tags map[string]string
 sns: func (*Server) Close() error
 sns: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
 sns: func MatchPolicy(policyJSON string, attrs map[string]string) bool
 sns: func New(opts Options) (*Server, error)
 sns: type Options struct
 sns: type Server struct
-sns: type Subscription struct
-sns: type Topic struct
-sqs: field Attr.BinaryValue []byte
-sqs: field Attr.DataType string
-sqs: field Attr.StringValue string
-sqs: field Message.Attrs map[string]Attr
-sqs: field Message.Body string
-sqs: field Message.DedupID string
-sqs: field Message.FirstReceived int64
-sqs: field Message.GroupID string
-sqs: field Message.ID string
-sqs: field Message.MD5Attrs string
-sqs: field Message.MD5Body string
-sqs: field Message.ReceiveCount int
-sqs: field Message.Sent int64
-sqs: field Message.Seq uint64
-sqs: field Message.SysAttrs map[string]string
-sqs: field Message.VisibleAt int64
-sqs: field MoveTask.Destination string
-sqs: field MoveTask.Handle string
-sqs: field MoveTask.Moved int
-sqs: field MoveTask.Source string
-sqs: field MoveTask.StartedAt int64
-sqs: field MoveTask.Status string
 sqs: field Options.Clock func() time.Time
 sqs: field Options.DataDir string
 sqs: field Options.IAMMode string
 sqs: field Options.Identity awsident.Identity
 sqs: field Options.Logf func(format string, args ...any)
 sqs: field Options.Peers peers.Directory
-sqs: field Queue.Attrs map[string]string
-sqs: field Queue.ContentBasedDedup bool
-sqs: field Queue.Created int64
-sqs: field Queue.DeadLetterTarget string
-sqs: field Queue.DelaySeconds int
-sqs: field Queue.FIFO bool
-sqs: field Queue.MaxMessageSize int
-sqs: field Queue.MaxReceiveCount int
-sqs: field Queue.Modified int64
-sqs: field Queue.Name string
-sqs: field Queue.RetentionPeriod int
-sqs: field Queue.Tags map[string]string
-sqs: field Queue.VisibilityTimeout int
-sqs: field Queue.WaitTimeSeconds int
-sqs: field SendItem.Attrs map[string]Attr
-sqs: field SendItem.Body string
-sqs: field SendItem.DedupID string
-sqs: field SendItem.Delay int
-sqs: field SendItem.GroupID string
-sqs: field SendItem.SysAttrs map[string]string
-sqs: field SendResult.Err error
-sqs: field SendResult.Msg *Message
-sqs: field VisibilityItem.Handle string
-sqs: field VisibilityItem.Timeout int
-sqs: func (*Message) Handle() string
 sqs: func (*Server) Close() error
 sqs: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
 sqs: func New(opts Options) (*Server, error)
-sqs: type Attr struct
-sqs: type Message struct
-sqs: type MoveTask struct
 sqs: type Options struct
-sqs: type Queue struct
-sqs: type SendItem struct
-sqs: type SendResult struct
 sqs: type Server struct
-sqs: type VisibilityItem struct
 ssm: field Options.Clock func() time.Time
 ssm: field Options.DataDir string
 ssm: field Options.Identity awsident.Identity
 ssm: field Options.Logf func(format string, args ...any)
 ssm: field Options.Peers peers.Directory
-ssm: field Parameter.DataType string
-ssm: field Parameter.Description string
-ssm: field Parameter.ExpiresAt int64
-ssm: field Parameter.KeyID string
-ssm: field Parameter.Name string
-ssm: field Parameter.Policies string
-ssm: field Parameter.Tags map[string]string
-ssm: field Parameter.Tier string
-ssm: field Parameter.Type string
-ssm: field Parameter.Versions []Version
-ssm: field Version.Created int64
-ssm: field Version.Labels []string
-ssm: field Version.Value []byte
-ssm: field Version.Version int64
-ssm: func (*Parameter) Latest() *Version
 ssm: func (*Server) Close() error
 ssm: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
 ssm: func New(opts Options) (*Server, error)
 ssm: type Options struct
-ssm: type Parameter struct
 ssm: type Server struct
-ssm: type Version struct
-stepfunctions: field Activity.ARN string
-stepfunctions: field Activity.CreatedAt int64
-stepfunctions: field Activity.Name string
-stepfunctions: field ActivityTask.Activity string
-stepfunctions: field ActivityTask.ExecKey string
-stepfunctions: field ActivityTask.Frame int
-stepfunctions: field ActivityTask.Input string
-stepfunctions: field ActivityTask.ScheduledAt int64
-stepfunctions: field ActivityTask.Token string
-stepfunctions: field Alias.ARN string
-stepfunctions: field Alias.CreatedAt int64
-stepfunctions: field Alias.Description string
-stepfunctions: field Alias.MachineName string
-stepfunctions: field Alias.Name string
-stepfunctions: field Alias.Routing []Route
-stepfunctions: field Alias.UpdatedAt int64
-stepfunctions: field Execution.ARN string
-stepfunctions: field Execution.AliasARN string
-stepfunctions: field Execution.Cause string
-stepfunctions: field Execution.Deadline int64
-stepfunctions: field Execution.Definition string
-stepfunctions: field Execution.Error string
-stepfunctions: field Execution.Exec *asl.Exec
-stepfunctions: field Execution.Input string
-stepfunctions: field Execution.MachineARN string
-stepfunctions: field Execution.MapIndex int
-stepfunctions: field Execution.MapRunARN string
-stepfunctions: field Execution.Name string
-stepfunctions: field Execution.NextEventID int64
-stepfunctions: field Execution.Output json.RawMessage
-stepfunctions: field Execution.RedriveCount int
-stepfunctions: field Execution.RedriveDate int64
-stepfunctions: field Execution.RedriveToken string
-stepfunctions: field Execution.RevisionID string
-stepfunctions: field Execution.RoleARN string
-stepfunctions: field Execution.StartedAt int64
-stepfunctions: field Execution.StartedBy string
-stepfunctions: field Execution.Status string
-stepfunctions: field Execution.StoppedAt int64
-stepfunctions: field Execution.Test *TestSpec
-stepfunctions: field Execution.TestOutcome *TestOutcome
-stepfunctions: field Execution.TraceHeader string
-stepfunctions: field Execution.Type string
-stepfunctions: field Execution.VersionARN string
-stepfunctions: field Execution.Volatile bool
-stepfunctions: field Execution.XRayHeader string
-stepfunctions: field MapItem.Cause string
-stepfunctions: field MapItem.Error string
-stepfunctions: field MapItem.Index int
-stepfunctions: field MapItem.Input json.RawMessage
-stepfunctions: field MapItem.Output json.RawMessage
-stepfunctions: field MapItem.Status string
-stepfunctions: field MapRun.ARN string
-stepfunctions: field MapRun.Aborted int
-stepfunctions: field MapRun.ExecARN string
-stepfunctions: field MapRun.ExecKey string
-stepfunctions: field MapRun.ExecutionType string
-stepfunctions: field MapRun.Failed int
-stepfunctions: field MapRun.Frame int
-stepfunctions: field MapRun.ID string
-stepfunctions: field MapRun.Inputs []json.RawMessage
-stepfunctions: field MapRun.Label string
-stepfunctions: field MapRun.Machine string
-stepfunctions: field MapRun.MachineARN string
-stepfunctions: field MapRun.MaxConcurrency int
-stepfunctions: field MapRun.Next int
-stepfunctions: field MapRun.Processor string
-stepfunctions: field MapRun.RedriveCount int
-stepfunctions: field MapRun.RedriveDate int64
-stepfunctions: field MapRun.ResultWriter json.RawMessage
-stepfunctions: field MapRun.ResultsWritten int
-stepfunctions: field MapRun.RoleARN string
-stepfunctions: field MapRun.Running int
-stepfunctions: field MapRun.StartedAt int64
-stepfunctions: field MapRun.Status string
-stepfunctions: field MapRun.StoppedAt int64
-stepfunctions: field MapRun.Succeeded int
-stepfunctions: field MapRun.TimedOut int
-stepfunctions: field MapRun.ToleratedFailureCount *int
-stepfunctions: field MapRun.ToleratedFailurePercentage *float64
 stepfunctions: field Options.Clock func() time.Time
 stepfunctions: field Options.DataDir string
 stepfunctions: field Options.Identity awsident.Identity
 stepfunctions: field Options.Logf func(format string, args ...any)
 stepfunctions: field Options.Peers peers.Directory
-stepfunctions: field Route.VersionARN string
-stepfunctions: field Route.Weight int
-stepfunctions: field StateMachine.ARN string
-stepfunctions: field StateMachine.CreatedAt int64
-stepfunctions: field StateMachine.Definition string
-stepfunctions: field StateMachine.EncryptionConfiguration json.RawMessage
-stepfunctions: field StateMachine.LoggingConfiguration json.RawMessage
-stepfunctions: field StateMachine.Name string
-stepfunctions: field StateMachine.RevisionID string
-stepfunctions: field StateMachine.RoleARN string
-stepfunctions: field StateMachine.Status string
-stepfunctions: field StateMachine.TracingConfiguration json.RawMessage
-stepfunctions: field StateMachine.Type string
 stepfunctions: field TaskTarget.Action string
 stepfunctions: field TaskTarget.Kind taskKind
 stepfunctions: field TaskTarget.Parks bool
 stepfunctions: field TaskTarget.Raw string
 stepfunctions: field TaskTarget.Service string
-stepfunctions: field TestOutcome.Cause string
-stepfunctions: field TestOutcome.Error string
-stepfunctions: field TestOutcome.NextState string
-stepfunctions: field TestOutcome.Result json.RawMessage
-stepfunctions: field TestOutcome.Status string
-stepfunctions: field TestOutcome.TaskInput json.RawMessage
-stepfunctions: field TestSpec.HasMock bool
-stepfunctions: field TestSpec.MockCause string
-stepfunctions: field TestSpec.MockError string
-stepfunctions: field TestSpec.MockOut json.RawMessage
-stepfunctions: field TestSpec.State string
-stepfunctions: field TokenRef.ExecKey string
-stepfunctions: field TokenRef.Frame int
-stepfunctions: field TokenRef.IssuedAt int64
-stepfunctions: field TokenRef.Queue string
-stepfunctions: field TokenRef.TimedOut int64
-stepfunctions: field Version.ARN string
-stepfunctions: field Version.CreatedAt int64
-stepfunctions: field Version.Definition string
-stepfunctions: field Version.Description string
-stepfunctions: field Version.EncryptionConfiguration json.RawMessage
-stepfunctions: field Version.LoggingConfiguration json.RawMessage
-stepfunctions: field Version.MachineName string
-stepfunctions: field Version.Number int
-stepfunctions: field Version.RevisionID string
-stepfunctions: field Version.RoleARN string
-stepfunctions: field Version.TracingConfiguration json.RawMessage
-stepfunctions: field Version.Type string
-stepfunctions: func (*Execution) Key() string
-stepfunctions: func (*MapRun) Pending() int
-stepfunctions: func (*MapRun) Total() int
 stepfunctions: func (*Server) Close() error
 stepfunctions: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
 stepfunctions: func (*Server) SetTraceSink(sink trace.Sink)
 stepfunctions: func New(opts Options) (*Server, error)
 stepfunctions: func ParseResource(resource string) (TaskTarget, error)
-stepfunctions: type Activity struct
-stepfunctions: type ActivityTask struct
-stepfunctions: type Alias struct
-stepfunctions: type Execution struct
-stepfunctions: type MapItem struct
-stepfunctions: type MapRun struct
 stepfunctions: type Options struct
-stepfunctions: type Route struct
 stepfunctions: type Server struct
-stepfunctions: type StateMachine struct
 stepfunctions: type TaskTarget struct
-stepfunctions: type TestOutcome struct
-stepfunctions: type TestSpec struct
-stepfunctions: type TokenRef struct
-stepfunctions: type Version struct
 sts: field Options.Clock func() time.Time
 sts: field Options.DataDir string
 sts: field Options.Identity awsident.Identity

@@ -35,17 +35,17 @@ var bucketMetricFilters = []byte("metricfilters") // group \x00 name → MetricF
 // maxMetricFiltersPerGroup is AWS's limit.
 const maxMetricFiltersPerGroup = 100
 
-// MetricFilter is one filter on a group.
-type MetricFilter struct {
+// metricFilter is one filter on a group.
+type metricFilter struct {
 	Group           string                 `json:"group"`
 	Name            string                 `json:"name"`
 	Pattern         string                 `json:"pattern"`
-	Transformations []MetricTransformation `json:"transformations"`
+	Transformations []metricTransformation `json:"transformations"`
 	CreatedMs       int64                  `json:"created"`
 }
 
-// MetricTransformation says what metric a match produces.
-type MetricTransformation struct {
+// metricTransformation says what metric a match produces.
+type metricTransformation struct {
 	Namespace  string            `json:"namespace"`
 	MetricName string            `json:"metric_name"`
 	Value      string            `json:"value"`
@@ -58,7 +58,7 @@ func metricFilterKey(group, name string) []byte { return []byte(group + "\x00" +
 
 // ---- store ----
 
-func (s *store) PutMetricFilter(f MetricFilter) error {
+func (s *store) PutMetricFilter(f metricFilter) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if tx.Bucket(bucketGroups).Get([]byte(f.Group)) == nil {
 			return ErrNoGroup
@@ -99,15 +99,15 @@ func (s *store) DeleteMetricFilter(group, name string) error {
 
 // MetricFilters lists a group's filters, or every group's when group is
 // empty — which is what DescribeMetricFilters does with no group given.
-func (s *store) MetricFilters(group, prefix string) ([]MetricFilter, error) {
-	var out []MetricFilter
+func (s *store) MetricFilters(group, prefix string) ([]metricFilter, error) {
+	var out []metricFilter
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketMetricFilters)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(k, v []byte) error {
-			var f MetricFilter
+			var f metricFilter
 			if json.Unmarshal(v, &f) != nil {
 				return nil
 			}
@@ -138,7 +138,7 @@ func (s *store) MetricFilters(group, prefix string) ([]MetricFilter, error) {
 // reference that does not resolve, with no defaultValue, produces nothing —
 // which is different from producing zero, and is why defaultValue is a
 // pointer rather than a float with a zero that means "unset".
-func metricValueOf(t MetricTransformation, message string) (float64, bool) {
+func metricValueOf(t metricTransformation, message string) (float64, bool) {
 	if !strings.HasPrefix(t.Value, "$") {
 		// A literal. AWS accepts any number here; "1" is the counting case.
 		f, err := strconv.ParseFloat(t.Value, 64)

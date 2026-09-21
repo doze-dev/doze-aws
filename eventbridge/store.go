@@ -20,8 +20,8 @@ var (
 // DefaultBus is the implicit bus every account has.
 const DefaultBus = "default"
 
-// Bus is a custom event bus.
-type Bus struct {
+// bus is a custom event bus.
+type bus struct {
 	Name string            `json:"name"`
 	Tags map[string]string `json:"tags,omitempty"`
 	// Declared on the bus and reported back, but inert locally: there is no
@@ -34,32 +34,32 @@ type Bus struct {
 	Policy           string `json:"policy,omitempty"`
 }
 
-// Target is one rule target.
-type Target struct {
+// target is one rule target.
+type target struct {
 	ID               string            `json:"id"`
 	ARN              string            `json:"arn"`
 	Input            string            `json:"input,omitempty"`      // literal input override
 	InputPath        string            `json:"input_path,omitempty"` // $.path extraction
-	InputTransformer *InputTransformer `json:"input_transformer,omitempty"`
-	HttpParameters   *HTTPParameters   `json:"http_parameters,omitempty"` // API destination targets only
+	InputTransformer *inputTransformer `json:"input_transformer,omitempty"`
+	HttpParameters   *httpParameters   `json:"http_parameters,omitempty"` // API destination targets only
 }
 
 // HTTPParameters shape the request an API destination target makes: values
 // for the endpoint's `*` path segments, plus headers and query parameters.
-type HTTPParameters struct {
+type httpParameters struct {
 	PathParameterValues   []string          `json:"path,omitempty"`
 	HeaderParameters      map[string]string `json:"headers,omitempty"`
 	QueryStringParameters map[string]string `json:"query,omitempty"`
 }
 
-// InputTransformer maps event paths into a template.
-type InputTransformer struct {
+// inputTransformer maps event paths into a template.
+type inputTransformer struct {
 	PathsMap map[string]string `json:"paths_map,omitempty"`
 	Template string            `json:"template"`
 }
 
-// Rule is one rule on a bus.
-type Rule struct {
+// rule is one rule on a bus.
+type rule struct {
 	Bus      string `json:"bus"`
 	Name     string `json:"name"`
 	Pattern  string `json:"pattern,omitempty"`  // event pattern JSON
@@ -69,12 +69,12 @@ type Rule struct {
 	// RoleArn is the role EventBridge would assume to deliver. Nothing local
 	// assumes a role, but aws_cloudwatch_event_rule tracks it.
 	RoleArn string            `json:"role_arn,omitempty"`
-	Targets []Target          `json:"targets,omitempty"`
+	Targets []target          `json:"targets,omitempty"`
 	Tags    map[string]string `json:"tags,omitempty"`
 }
 
 // ARN returns the rule ARN.
-func (r *Rule) ARN(id awsident.Identity) string {
+func (r *rule) ARN(id awsident.Identity) string {
 	if r.Bus == DefaultBus {
 		return id.ARN("events", "rule/"+r.Name)
 	}
@@ -123,14 +123,14 @@ func (s *store) CreateBus(name string, tags map[string]string) error {
 		if b.Get([]byte(name)) != nil {
 			return awshttp.Errf(400, "ResourceAlreadyExistsException", "event bus %s already exists", name)
 		}
-		raw, _ := json.Marshal(Bus{Name: name, Tags: tags})
+		raw, _ := json.Marshal(bus{Name: name, Tags: tags})
 		return b.Put([]byte(name), raw)
 	})
 }
 
 // UpdateBus applies a mutation to a stored bus. Used for the settings a bus
 // declares at creation that have no local behaviour but must read back.
-func (s *store) UpdateBus(name string, fn func(*Bus)) error {
+func (s *store) UpdateBus(name string, fn func(*bus)) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(busesBucket)
 		if b == nil {
@@ -140,7 +140,7 @@ func (s *store) UpdateBus(name string, fn func(*Bus)) error {
 		if raw == nil {
 			return nil
 		}
-		var bus Bus
+		var bus bus
 		if err := json.Unmarshal(raw, &bus); err != nil {
 			return err
 		}
@@ -178,15 +178,15 @@ func (s *store) DeleteBus(name string) error {
 }
 
 // ListBuses returns the default bus plus custom buses, sorted.
-func (s *store) ListBuses() ([]Bus, error) {
-	out := []Bus{{Name: DefaultBus}}
+func (s *store) ListBuses() ([]bus, error) {
+	out := []bus{{Name: DefaultBus}}
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(busesBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var bus Bus
+			var bus bus
 			if json.Unmarshal(raw, &bus) == nil {
 				out = append(out, bus)
 			}
@@ -198,7 +198,7 @@ func (s *store) ListBuses() ([]Bus, error) {
 }
 
 // PutRule creates or updates a rule.
-func (s *store) PutRule(r Rule) error {
+func (s *store) PutRule(r rule) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if !s.busExists(tx, r.Bus) {
 			return awshttp.Errf(400, "ResourceNotFoundException", "event bus %s does not exist", r.Bus)
@@ -209,7 +209,7 @@ func (s *store) PutRule(r Rule) error {
 		}
 		// Preserve existing targets across PutRule updates.
 		if raw := b.Get(ruleKey(r.Bus, r.Name)); raw != nil {
-			var old Rule
+			var old rule
 			if json.Unmarshal(raw, &old) == nil {
 				r.Targets = old.Targets
 				if len(old.Tags) > 0 && r.Tags == nil {
@@ -223,8 +223,8 @@ func (s *store) PutRule(r Rule) error {
 }
 
 // GetRule loads one rule.
-func (s *store) GetRule(bus, name string) (*Rule, error) {
-	var out *Rule
+func (s *store) GetRule(bus, name string) (*rule, error) {
+	var out *rule
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(rulesBucket)
 		if b == nil {
@@ -234,7 +234,7 @@ func (s *store) GetRule(bus, name string) (*Rule, error) {
 		if raw == nil {
 			return errRuleNotFound(name)
 		}
-		var r Rule
+		var r rule
 		if err := json.Unmarshal(raw, &r); err != nil {
 			return err
 		}
@@ -245,7 +245,7 @@ func (s *store) GetRule(bus, name string) (*Rule, error) {
 }
 
 // UpdateRule applies fn to a rule.
-func (s *store) UpdateRule(bus, name string, fn func(*Rule) error) error {
+func (s *store) UpdateRule(bus, name string, fn func(*rule) error) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(rulesBucket)
 		if b == nil {
@@ -255,7 +255,7 @@ func (s *store) UpdateRule(bus, name string, fn func(*Rule) error) error {
 		if raw == nil {
 			return errRuleNotFound(name)
 		}
-		var r Rule
+		var r rule
 		if err := json.Unmarshal(raw, &r); err != nil {
 			return err
 		}
@@ -278,8 +278,8 @@ func (s *store) DeleteRule(bus, name string) error {
 }
 
 // Rules lists a bus's rules, optionally by name prefix.
-func (s *store) Rules(bus, prefix string) ([]Rule, error) {
-	var out []Rule
+func (s *store) Rules(bus, prefix string) ([]rule, error) {
+	var out []rule
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(rulesBucket)
 		if b == nil {
@@ -288,7 +288,7 @@ func (s *store) Rules(bus, prefix string) ([]Rule, error) {
 		busPrefix := []byte(bus + "\x00" + prefix)
 		c := b.Cursor()
 		for k, raw := c.Seek(busPrefix); k != nil && strings.HasPrefix(string(k), string(busPrefix)); k, raw = c.Next() {
-			var r Rule
+			var r rule
 			if json.Unmarshal(raw, &r) == nil {
 				out = append(out, r)
 			}

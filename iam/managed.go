@@ -65,7 +65,7 @@ var lambdaLogActions = []string{"logs:CreateLogGroup", "logs:CreateLogStream", "
 
 // managedPolicy synthesizes an AWS-managed policy from its ARN, or reports
 // that the name matches no known convention.
-func managedPolicy(arn string) (*Policy, bool) {
+func managedPolicy(arn string) (*policy, bool) {
 	if !isManagedARN(arn) {
 		return nil, false
 	}
@@ -80,7 +80,7 @@ func managedPolicy(arn string) (*Policy, bool) {
 	if !ok {
 		return nil, false
 	}
-	return &Policy{
+	return &policy{
 		Name: name, Path: path, ID: "ANPAI" + strings.ToUpper(stableSuffix(name)),
 		Description:    "AWS managed policy, synthesized by doze-aws from its name",
 		DefaultVersion: "v1",

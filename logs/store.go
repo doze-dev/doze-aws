@@ -29,16 +29,16 @@ var (
 	bucketMeta    = []byte("meta")    // "seq" → last sequence
 )
 
-// Group is a log group.
-type Group struct {
+// group is a log group.
+type group struct {
 	Name          string            `json:"name"`
 	CreatedMs     int64             `json:"created"`
 	RetentionDays int               `json:"retention,omitempty"`
 	Tags          map[string]string `json:"tags,omitempty"`
 }
 
-// Stream is a log stream inside a group.
-type Stream struct {
+// streamRecord is a log stream inside a group.
+type streamRecord struct {
 	Group        string `json:"group"`
 	Name         string `json:"name"`
 	CreatedMs    int64  `json:"created"`
@@ -47,27 +47,27 @@ type Stream struct {
 	LastIngestMs int64  `json:"ingest,omitempty"`
 }
 
-// Event is one log line. RequestID is the doze extension carried by Lambda's
+// event is one log line. RequestID is the doze extension carried by Lambda's
 // PutLogEvents so a console can show one invocation without a pattern.
-type Event struct {
+type event struct {
 	TS        int64  `json:"t"`
 	Ingest    int64  `json:"i"`
 	Msg       string `json:"m"`
 	RequestID string `json:"r,omitempty"`
 }
 
-// Stored is an event with the identity the read APIs answer.
-type Stored struct {
-	Event
+// storedEvent is an event with the identity the read APIs answer.
+type storedEvent struct {
+	event
 	Stream string
 	Seq    int64
 }
 
 // ID is the eventId: timestamp and sequence, digits only, unique.
-func (s Stored) ID() string { return fmt.Sprintf("%d%010d", s.TS, s.Seq) }
+func (s storedEvent) ID() string { return fmt.Sprintf("%d%010d", s.TS, s.Seq) }
 
 // Key is the bucket key: the cursor a page continues from.
-func (s Stored) Key() []byte { return eventKey(s.TS, s.Stream, s.Seq) }
+func (s storedEvent) Key() []byte { return eventKey(s.TS, s.Stream, s.Seq) }
 
 func eventKey(ts int64, stream string, seq int64) []byte {
 	return []byte(fmt.Sprintf("%013d\x00%s\x00%010d", ts, stream, seq))
@@ -107,21 +107,21 @@ func (s *store) now() int64 { return s.clock().UnixMilli() }
 
 // ---- groups ----
 
-func (s *store) PutGroup(g Group) error {
+func (s *store) PutGroup(g group) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		raw, _ := json.Marshal(g)
 		return tx.Bucket(bucketGroups).Put([]byte(g.Name), raw)
 	})
 }
 
-func (s *store) GetGroup(name string) (*Group, error) {
-	var g *Group
+func (s *store) GetGroup(name string) (*group, error) {
+	var g *group
 	err := s.db.View(func(tx *bolt.Tx) error {
 		raw := tx.Bucket(bucketGroups).Get([]byte(name))
 		if raw == nil {
 			return nil
 		}
-		g = &Group{}
+		g = &group{}
 		return json.Unmarshal(raw, g)
 	})
 	return g, err
@@ -157,12 +157,12 @@ func (s *store) DeleteGroup(name string) error {
 
 // ListGroups answers groups by name prefix, sorted, as DescribeLogGroups
 // does.
-func (s *store) ListGroups(prefix string) ([]Group, error) {
-	var out []Group
+func (s *store) ListGroups(prefix string) ([]group, error) {
+	var out []group
 	err := s.db.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket(bucketGroups).Cursor()
 		for k, v := c.Seek([]byte(prefix)); k != nil && bytes.HasPrefix(k, []byte(prefix)); k, v = c.Next() {
-			var g Group
+			var g group
 			if err := json.Unmarshal(v, &g); err != nil {
 				return err
 			}
@@ -175,21 +175,21 @@ func (s *store) ListGroups(prefix string) ([]Group, error) {
 
 // ---- streams ----
 
-func (s *store) PutStream(st Stream) error {
+func (s *store) PutStream(st streamRecord) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		raw, _ := json.Marshal(st)
 		return tx.Bucket(bucketStreams).Put(streamKey(st.Group, st.Name), raw)
 	})
 }
 
-func (s *store) GetStream(group, name string) (*Stream, error) {
-	var st *Stream
+func (s *store) GetStream(group, name string) (*streamRecord, error) {
+	var st *streamRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
 		raw := tx.Bucket(bucketStreams).Get(streamKey(group, name))
 		if raw == nil {
 			return nil
 		}
-		st = &Stream{}
+		st = &streamRecord{}
 		return json.Unmarshal(raw, st)
 	})
 	return st, err
@@ -222,13 +222,13 @@ func (s *store) DeleteStream(group, name string) error {
 }
 
 // ListStreams answers a group's streams by name prefix.
-func (s *store) ListStreams(group, prefix string) ([]Stream, error) {
-	var out []Stream
+func (s *store) ListStreams(group, prefix string) ([]streamRecord, error) {
+	var out []streamRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket(bucketStreams).Cursor()
 		p := streamKey(group, prefix)
 		for k, v := c.Seek(p); k != nil && bytes.HasPrefix(k, p); k, v = c.Next() {
-			var st Stream
+			var st streamRecord
 			if err := json.Unmarshal(v, &st); err != nil {
 				return err
 			}
@@ -246,19 +246,19 @@ func (s *store) ListStreams(group, prefix string) ([]Stream, error) {
 // line does. It returns ErrNoGroup when the group is unknown, and otherwise
 // the batch as stored, in time order with the sequence each event was
 // assigned — what a subscription filter forwards.
-func (s *store) PutEvents(group, stream string, events []Event) ([]Stored, error) {
+func (s *store) PutEvents(group, stream string, events []event) ([]storedEvent, error) {
 	now := s.now()
-	var stored []Stored
+	var stored []storedEvent
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		if tx.Bucket(bucketGroups).Get([]byte(group)) == nil {
 			return ErrNoGroup
 		}
 		sb := tx.Bucket(bucketStreams)
-		var st Stream
+		var st streamRecord
 		if raw := sb.Get(streamKey(group, stream)); raw != nil {
 			_ = json.Unmarshal(raw, &st)
 		} else {
-			st = Stream{Group: group, Name: stream, CreatedMs: now}
+			st = streamRecord{Group: group, Name: stream, CreatedMs: now}
 		}
 		eb, err := tx.Bucket(bucketEvents).CreateBucketIfNotExists([]byte(group))
 		if err != nil {
@@ -269,7 +269,7 @@ func (s *store) PutEvents(group, stream string, events []Event) ([]Stored, error
 		if raw := mb.Get([]byte("seq")); raw != nil {
 			fmt.Sscan(string(raw), &seq)
 		}
-		sorted := append([]Event(nil), events...)
+		sorted := append([]event(nil), events...)
 		sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].TS < sorted[j].TS })
 		for _, ev := range sorted {
 			seq++
@@ -278,7 +278,7 @@ func (s *store) PutEvents(group, stream string, events []Event) ([]Stored, error
 			if err := eb.Put(eventKey(ev.TS, stream, seq), raw); err != nil {
 				return err
 			}
-			stored = append(stored, Stored{Event: ev, Stream: stream, Seq: seq})
+			stored = append(stored, storedEvent{event: ev, Stream: stream, Seq: seq})
 			if st.FirstMs == 0 || ev.TS < st.FirstMs {
 				st.FirstMs = ev.TS
 			}
@@ -301,7 +301,7 @@ func (s *store) PutEvents(group, stream string, events []Event) ([]Stored, error
 // and message the predicates accept, up to limit. It returns the page and
 // whether more remain past it. backward walks newest-first.
 func (s *store) Scan(group string, from, to int64, after []byte, limit int, backward bool,
-	keep func(stream string, ev Event) bool) (page []Stored, more bool, err error) {
+	keep func(stream string, ev event) bool) (page []storedEvent, more bool, err error) {
 	if limit <= 0 {
 		limit = 10000
 	}
@@ -346,13 +346,13 @@ func (s *store) Scan(group string, from, to int64, after []byte, limit int, back
 				break
 			}
 			stream := streamOfKey(k)
-			var ev Event
+			var ev event
 			if err := json.Unmarshal(v, &ev); err == nil && keep(stream, ev) {
 				if len(page) == limit {
 					more = true
 					break
 				}
-				page = append(page, Stored{Event: ev, Stream: stream, Seq: seqOfKey(k)})
+				page = append(page, storedEvent{event: ev, Stream: stream, Seq: seqOfKey(k)})
 			}
 			if backward {
 				k, v = c.Prev()

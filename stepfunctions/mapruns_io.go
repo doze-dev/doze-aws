@@ -149,7 +149,7 @@ func parseItems(inputType, headerLoc string, headers []string, body []byte) ([]j
 // writeResults stores the outcomes through the ResultWriter on a worker:
 // manifest.json, SUCCEEDED_0.json and FAILED_0.json under the prefix, the
 // layout AWS documents, then delivers the pointer as the state's result.
-func (g *engine) writeResults(r *run, f *asl.Frame, mr *MapRun, items []*MapItem) {
+func (g *engine) writeResults(r *run, f *asl.Frame, mr *mapRun, items []*mapItem) {
 	key, frame, header := r.key, f.ID, r.e.TraceHeader
 	writer := mr.ResultWriter
 	arn := mr.ARN
@@ -166,7 +166,7 @@ func (g *engine) writeResults(r *run, f *asl.Frame, mr *MapRun, items []*MapItem
 	}()
 }
 
-func (s *Server) storeResults(ctx context.Context, writer json.RawMessage, arn string, items []*MapItem) asl.TaskResult {
+func (s *Server) storeResults(ctx context.Context, writer json.RawMessage, arn string, items []*mapItem) asl.TaskResult {
 	var w struct {
 		Resource   string `json:"Resource"`
 		Parameters struct {

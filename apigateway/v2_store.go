@@ -11,7 +11,7 @@ import (
 
 // CORSConfig is the API's CORS configuration; the data plane answers
 // preflights from it and stamps the headers on every response.
-type CORSConfig struct {
+type corsConfig struct {
 	AllowCredentials bool     `json:"allow_credentials,omitempty"`
 	AllowHeaders     []string `json:"allow_headers,omitempty"`
 	AllowMethods     []string `json:"allow_methods,omitempty"`
@@ -22,7 +22,7 @@ type CORSConfig struct {
 
 // V2Route is one route: a key such as "GET /items/{id}", "ANY /{proxy+}" or
 // "$default", and the integration it targets.
-type V2Route struct {
+type v2Route struct {
 	ID                  string   `json:"id"`
 	RouteKey            string   `json:"route_key"`
 	Target              string   `json:"target,omitempty"` // "integrations/<id>"
@@ -39,7 +39,7 @@ type V2Route struct {
 
 // V2Integration is a route's backend: AWS_PROXY to a Lambda function with a
 // payload format version, or HTTP_PROXY to a URL.
-type V2Integration struct {
+type v2Integration struct {
 	ID                   string                       `json:"id"`
 	Type                 string                       `json:"type"`
 	URI                  string                       `json:"uri,omitempty"`
@@ -56,7 +56,7 @@ type V2Integration struct {
 
 // V2Authorizer is a REQUEST Lambda authorizer for an HTTP API (JWT
 // authorizers are refused at create: there is no identity provider locally).
-type V2Authorizer struct {
+type v2Authorizer struct {
 	ID                    string   `json:"id"`
 	Name                  string   `json:"name"`
 	Type                  string   `json:"type"` // REQUEST
@@ -69,19 +69,19 @@ type V2Authorizer struct {
 }
 
 // CreateHTTP creates an HTTP API record.
-func (s *store) CreateHTTP(name, description, version string, tags map[string]string) (*RestAPI, error) {
+func (s *store) CreateHTTP(name, description, version string, tags map[string]string) (*restAPI, error) {
 	if name == "" {
 		return nil, errBadRequest("Name is required")
 	}
-	api := &RestAPI{
+	api := &restAPI{
 		ID: s.newID(), Name: name, Description: description, Version: version,
 		Created: s.now().Unix(), Tags: tags, Protocol: "HTTP",
-		Resources:      map[string]*Resource{},
-		Deployments:    map[string]*Deployment{},
-		Stages:         map[string]*Stage{},
-		V2Routes:       map[string]*V2Route{},
-		V2Integrations: map[string]*V2Integration{},
-		V2Authorizers:  map[string]*V2Authorizer{},
+		Resources:      map[string]*resource{},
+		Deployments:    map[string]*deployment{},
+		Stages:         map[string]*stage{},
+		V2Routes:       map[string]*v2Route{},
+		V2Integrations: map[string]*v2Integration{},
+		V2Authorizers:  map[string]*v2Authorizer{},
 		RouteSelection: "$request.method $request.path",
 		IPAddressType:  "ipv4",
 	}
@@ -90,7 +90,7 @@ func (s *store) CreateHTTP(name, description, version string, tags map[string]st
 
 // GetHTTP is Get for the v2 control plane: a REST API's id is not an HTTP
 // API's, so the v2 surface answers NotFound for it, as AWS does.
-func (s *store) GetHTTP(id string) (*RestAPI, error) {
+func (s *store) GetHTTP(id string) (*restAPI, error) {
 	api, err := s.Get(id)
 	if err != nil {
 		return nil, err
@@ -102,26 +102,26 @@ func (s *store) GetHTTP(id string) (*RestAPI, error) {
 }
 
 // UpdateHTTP is Update with the same protocol check.
-func (s *store) UpdateHTTP(id string, fn func(*RestAPI) error) (*RestAPI, error) {
+func (s *store) UpdateHTTP(id string, fn func(*restAPI) error) (*restAPI, error) {
 	if _, err := s.GetHTTP(id); err != nil {
 		return nil, err
 	}
-	return s.Update(id, func(api *RestAPI) error {
+	return s.Update(id, func(api *restAPI) error {
 		// The maps are omitted from the record while empty.
 		if api.V2Routes == nil {
-			api.V2Routes = map[string]*V2Route{}
+			api.V2Routes = map[string]*v2Route{}
 		}
 		if api.V2Integrations == nil {
-			api.V2Integrations = map[string]*V2Integration{}
+			api.V2Integrations = map[string]*v2Integration{}
 		}
 		if api.V2Authorizers == nil {
-			api.V2Authorizers = map[string]*V2Authorizer{}
+			api.V2Authorizers = map[string]*v2Authorizer{}
 		}
 		if api.Deployments == nil {
-			api.Deployments = map[string]*Deployment{}
+			api.Deployments = map[string]*deployment{}
 		}
 		if api.Stages == nil {
-			api.Stages = map[string]*Stage{}
+			api.Stages = map[string]*stage{}
 		}
 		return fn(api)
 	})
@@ -129,7 +129,7 @@ func (s *store) UpdateHTTP(id string, fn func(*RestAPI) error) (*RestAPI, error)
 
 // ListProtocol lists the APIs of one protocol: "" for REST, "HTTP" for v2.
 // Each control plane lists only its own, as on AWS.
-func (s *store) ListProtocol(protocol string) ([]RestAPI, error) {
+func (s *store) ListProtocol(protocol string) ([]restAPI, error) {
 	all, err := s.List()
 	if err != nil {
 		return nil, err

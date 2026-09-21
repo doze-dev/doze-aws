@@ -19,7 +19,7 @@ import (
 
 // TestSpec is what a TestState run carries on its execution record for the
 // driver to find: the state under test and the mock, if any.
-type TestSpec struct {
+type testSpec struct {
 	State     string          `json:"state"`
 	MockOut   json.RawMessage `json:"mock_out,omitempty"`
 	MockError string          `json:"mock_error,omitempty"`
@@ -27,7 +27,7 @@ type TestSpec struct {
 	HasMock   bool            `json:"has_mock,omitempty"`
 }
 
-func (t *TestSpec) run() *testRun {
+func (t *testSpec) run() *testRun {
 	tr := &testRun{state: t.State}
 	if t.HasMock {
 		res := asl.TaskResult{Output: t.MockOut}
@@ -64,7 +64,7 @@ func (s *Server) testState(ctx context.Context, p map[string]any) (any, *awshttp
 		level = "INFO"
 	}
 
-	spec := &TestSpec{State: stateName}
+	spec := &testSpec{State: stateName}
 	if mock, ok := p["mock"].(map[string]any); ok {
 		switch state.Type {
 		case asl.Task, asl.Map, asl.Parallel:
@@ -90,7 +90,7 @@ func (s *Server) testState(ctx context.Context, p map[string]any) (any, *awshttp
 	now := s.store.clock()
 	id := newToken()[2:18]
 	arn := expressExecARN(s.id, "TestState", stateName, id)
-	e := &Execution{
+	e := &execution{
 		ARN: arn, MachineARN: machineARN(s.id, "TestState"), Name: stateName,
 		Definition: frozen, RoleARN: awsjson.Str(p, "roleArn"), Type: "STANDARD",
 		Status: "RUNNING", StartedAt: now.UnixMilli(), Input: input,
@@ -177,7 +177,7 @@ func nextTargets(st map[string]any) []string {
 }
 
 // testStateOutput renders the API's answer from the finished run.
-func testStateOutput(def *asl.Definition, stateName string, e *Execution, level string) map[string]any {
+func testStateOutput(def *asl.Definition, stateName string, e *execution, level string) map[string]any {
 	out := map[string]any{}
 	status, next, errName, cause := e.Status, "", e.Error, e.Cause
 	var result, taskInput json.RawMessage

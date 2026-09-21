@@ -17,8 +17,8 @@ var (
 	mappingsBucket = []byte("mappings")
 )
 
-// Function is a stored function definition.
-type Function struct {
+// function is a stored function definition.
+type function struct {
 	Name        string            `json:"name"`
 	Runtime     string            `json:"runtime"`
 	Handler     string            `json:"handler"`
@@ -53,7 +53,7 @@ type Function struct {
 
 	// Policy holds the function's resource-policy statements (AddPermission).
 	// Nothing locally gates invocation on it; it round-trips for templates.
-	Policy []PolicyStatement `json:"policy,omitempty"`
+	Policy []policyStatement `json:"policy,omitempty"`
 
 	Aliases map[string]string `json:"aliases,omitempty"` // alias -> version
 	// AliasDescriptions holds each alias's description, by alias name.
@@ -91,10 +91,10 @@ type Function struct {
 }
 
 // ARN returns the function ARN.
-func (f *Function) ARN() string { return f.id.ARN("lambda", "function:"+f.Name) }
+func (f *function) ARN() string { return f.id.ARN("lambda", "function:"+f.Name) }
 
-// EventSourceMapping is one SQS→function poller definition.
-type EventSourceMapping struct {
+// eventSourceMapping is one SQS→function poller definition.
+type eventSourceMapping struct {
 	UUID           string `json:"uuid"`
 	FunctionName   string `json:"function_name"`
 	EventSourceArn string `json:"event_source_arn"`
@@ -120,7 +120,7 @@ func newStore(db *lazybolt.DB) *store { return &store{db: db} }
 //
 // The field is unexported and so never persisted — the identity belongs to the
 // instance, not the row.
-func (s *store) stamp(f *Function) *Function {
+func (s *store) stamp(f *function) *function {
 	if f != nil {
 		f.id = s.id
 	}
@@ -133,7 +133,7 @@ func errFuncNotFound(name string) *awshttp.APIError {
 }
 
 // PutFunction stores a function.
-func (s *store) PutFunction(f *Function) error {
+func (s *store) PutFunction(f *function) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(funcsBucket)
 		if err != nil {
@@ -145,8 +145,8 @@ func (s *store) PutFunction(f *Function) error {
 }
 
 // GetFunction loads a function by name.
-func (s *store) GetFunction(name string) (*Function, error) {
-	var out *Function
+func (s *store) GetFunction(name string) (*function, error) {
+	var out *function
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(funcsBucket)
 		if b == nil {
@@ -156,7 +156,7 @@ func (s *store) GetFunction(name string) (*Function, error) {
 		if raw == nil {
 			return errFuncNotFound(name)
 		}
-		var f Function
+		var f function
 		if err := json.Unmarshal(raw, &f); err != nil {
 			return err
 		}
@@ -167,8 +167,8 @@ func (s *store) GetFunction(name string) (*Function, error) {
 }
 
 // Update applies fn to a function.
-func (s *store) Update(name string, fn func(*Function) error) (*Function, error) {
-	var out *Function
+func (s *store) Update(name string, fn func(*function) error) (*function, error) {
+	var out *function
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(funcsBucket)
 		if b == nil {
@@ -178,7 +178,7 @@ func (s *store) Update(name string, fn func(*Function) error) (*Function, error)
 		if raw == nil {
 			return errFuncNotFound(name)
 		}
-		var f Function
+		var f function
 		if err := json.Unmarshal(raw, &f); err != nil {
 			return err
 		}
@@ -204,15 +204,15 @@ func (s *store) DeleteFunction(name string) error {
 }
 
 // ListFunctions returns all functions, sorted by name.
-func (s *store) ListFunctions() ([]Function, error) {
-	var out []Function
+func (s *store) ListFunctions() ([]function, error) {
+	var out []function
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(funcsBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var f Function
+			var f function
 			if json.Unmarshal(raw, &f) == nil {
 				s.stamp(&f)
 				out = append(out, f)
@@ -226,7 +226,7 @@ func (s *store) ListFunctions() ([]Function, error) {
 
 // ---- event source mappings ----
 
-func (s *store) PutMapping(m *EventSourceMapping) error {
+func (s *store) PutMapping(m *eventSourceMapping) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(mappingsBucket)
 		if err != nil {
@@ -237,8 +237,8 @@ func (s *store) PutMapping(m *EventSourceMapping) error {
 	})
 }
 
-func (s *store) GetMapping(uuid string) (*EventSourceMapping, error) {
-	var out *EventSourceMapping
+func (s *store) GetMapping(uuid string) (*eventSourceMapping, error) {
+	var out *eventSourceMapping
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(mappingsBucket)
 		if b == nil {
@@ -248,7 +248,7 @@ func (s *store) GetMapping(uuid string) (*EventSourceMapping, error) {
 		if raw == nil {
 			return errMappingNotFound(uuid)
 		}
-		var m EventSourceMapping
+		var m eventSourceMapping
 		if err := json.Unmarshal(raw, &m); err != nil {
 			return err
 		}
@@ -275,15 +275,15 @@ func (s *store) DeleteMapping(uuid string) error {
 // would create lambda.bolt on every boot to find it empty. The result is
 // unchanged either way: out stays nil when there is nothing, which is what an
 // empty bucket already produced.
-func (s *store) ListMappings() ([]EventSourceMapping, error) {
-	var out []EventSourceMapping
+func (s *store) ListMappings() ([]eventSourceMapping, error) {
+	var out []eventSourceMapping
 	_, err := s.db.ViewIfExists(func(tx *bolt.Tx) error {
 		b := tx.Bucket(mappingsBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var m EventSourceMapping
+			var m eventSourceMapping
 			if json.Unmarshal(raw, &m) == nil {
 				out = append(out, m)
 			}

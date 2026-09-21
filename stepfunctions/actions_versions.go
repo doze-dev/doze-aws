@@ -103,7 +103,7 @@ func publishParams(p map[string]any) (publish bool, description string, aerr *aw
 }
 
 // publishInto publishes m and adds stateMachineVersionArn to out.
-func (s *Server) publishInto(out map[string]any, m *StateMachine, description string) *awshttp.APIError {
+func (s *Server) publishInto(out map[string]any, m *stateMachine, description string) *awshttp.APIError {
 	v, aerr := s.store.PublishVersion(m, description)
 	if aerr != nil {
 		return aerr
@@ -220,7 +220,7 @@ func (s *Server) describeQualified(arn, name, qualifier string) (any, *awshttp.A
 	if v.Description != "" {
 		out["description"] = v.Description
 	}
-	putConfigs(out, &StateMachine{
+	putConfigs(out, &stateMachine{
 		LoggingConfiguration:    v.LoggingConfiguration,
 		TracingConfiguration:    v.TracingConfiguration,
 		EncryptionConfiguration: v.EncryptionConfiguration,
@@ -235,7 +235,7 @@ func (s *Server) describeQualified(arn, name, qualifier string) (any, *awshttp.A
 // the execution will run, while ARN and Name stay the machine's own — the
 // execution's stateMachineArn is unqualified on AWS too, and the version
 // and alias travel as their own fields.
-func (s *Server) startTarget(arn string) (m *StateMachine, versionARN, aliasARN string, aerr *awshttp.APIError) {
+func (s *Server) startTarget(arn string) (m *stateMachine, versionARN, aliasARN string, aerr *awshttp.APIError) {
 	name, qualifier, ok := splitMachineARN(arn)
 	if !ok {
 		return nil, "", "", errInvalidARN(arn)
@@ -278,7 +278,7 @@ func (s *Server) startTarget(arn string) (m *StateMachine, versionARN, aliasARN 
 // pickRoute chooses a version by weight. One entry is deterministic (its
 // weight is 100 by construction); two entries split as AWS does, "randomly
 // chooses which version runs a given execution based on the percentage".
-func pickRoute(routes []Route) string {
+func pickRoute(routes []route) string {
 	if len(routes) == 1 {
 		return routes[0].VersionARN
 	}
@@ -319,7 +319,7 @@ func (s *Server) executionQualifier(arn, name, qualifier string) (versionARN, al
 // putQualifiers adds stateMachineVersionArn and stateMachineAliasArn to a
 // DescribeExecution or ListExecutions item when the execution was started
 // through one; an execution of the bare machine carries neither.
-func putQualifiers(out map[string]any, e *Execution) {
+func putQualifiers(out map[string]any, e *execution) {
 	if e.VersionARN != "" {
 		out["stateMachineVersionArn"] = e.VersionARN
 	}

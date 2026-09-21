@@ -55,7 +55,7 @@ func (s *Server) sendTaskHeartbeat(ctx context.Context, p map[string]any) (any, 
 // tokenOf resolves the taskToken parameter. An unknown token — never issued,
 // or already redeemed — answers TaskDoesNotExist; one whose task timed out
 // answers TaskTimedOut for a day, the distinction AWS keeps.
-func (s *Server) tokenOf(p map[string]any) (*TokenRef, *awshttp.APIError) {
+func (s *Server) tokenOf(p map[string]any) (*tokenRef, *awshttp.APIError) {
 	token := awsjson.Str(p, "taskToken")
 	if token == "" {
 		return nil, awshttp.Errf(400, "InvalidToken", "Invalid Token: 'must not be empty'")
@@ -74,7 +74,7 @@ func (s *Server) tokenOf(p map[string]any) (*TokenRef, *awshttp.APIError) {
 }
 
 // redeem hands a token's result to the driver and waits for it to apply.
-func (g *engine) redeem(ref *TokenRef, token string, res asl.TaskResult) bool {
+func (g *engine) redeem(ref *tokenRef, token string, res asl.TaskResult) bool {
 	reply := make(chan struct{})
 	d := delivery{key: ref.ExecKey, frame: ref.Frame, kind: dlvSendTask, result: res, reply: reply}
 	select {
@@ -91,7 +91,7 @@ func (g *engine) redeem(ref *TokenRef, token string, res asl.TaskResult) bool {
 }
 
 // heartbeat refreshes a parked frame's heartbeat clock; fire-and-forget.
-func (g *engine) heartbeat(ref *TokenRef) {
+func (g *engine) heartbeat(ref *tokenRef) {
 	select {
 	case g.deliveries <- delivery{key: ref.ExecKey, frame: ref.Frame, kind: dlvHeartbeat}:
 	case <-g.stop:

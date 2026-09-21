@@ -38,7 +38,7 @@ func TestEnqueueDuringCloseDoesNotPanic(t *testing.T) {
 				defer wg.Done()
 				<-start
 				for range 50 {
-					f.enqueue(context.Background(), "g", "s", []Stored{{Msg: "x"}})
+					f.enqueue(context.Background(), "g", "s", []storedEvent{{Msg: "x"}})
 				}
 			}()
 		}
@@ -74,7 +74,7 @@ func TestMetricEmitterEnqueueDuringCloseDoesNotPanic(t *testing.T) {
 				defer wg.Done()
 				<-start
 				for range 50 {
-					m.enqueue(context.Background(), "g", []Stored{{Msg: "x"}})
+					m.enqueue(context.Background(), "g", []storedEvent{{Msg: "x"}})
 				}
 			}()
 		}
@@ -108,7 +108,7 @@ func TestAPanickingEmitterStillClosesItsShipper(t *testing.T) {
 
 	// A nil store makes evaluate panic, which bg.Recover contains and which
 	// runs die() — the state the bug needed.
-	m.enqueue(context.Background(), "g", []Stored{{Msg: "x"}})
+	m.enqueue(context.Background(), "g", []storedEvent{{Msg: "x"}})
 
 	// Wait for the worker to have died, so the close below is the one that has
 	// to cope with it rather than a race against it.

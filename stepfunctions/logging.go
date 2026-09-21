@@ -40,7 +40,7 @@ type logPolicy struct {
 
 // policyOf reads a machine's configuration. Express machines fall back to
 // the default group at ALL.
-func policyOf(m *StateMachine) logPolicy {
+func policyOf(m *stateMachine) logPolicy {
 	var cfg struct {
 		Level                string `json:"level"`
 		IncludeExecutionData bool   `json:"includeExecutionData"`
@@ -150,7 +150,7 @@ func (l *machineLogs) stream(machine string) string {
 
 // record ships an execution's newly persisted events. TestState runs are
 // not executions and write nothing.
-func (l *machineLogs) record(e *Execution, events []histEvent) {
+func (l *machineLogs) record(e *execution, events []histEvent) {
 	if len(events) == 0 || e.Test != nil {
 		return
 	}
@@ -175,7 +175,7 @@ func (l *machineLogs) record(e *Execution, events []histEvent) {
 }
 
 // vendedRecord is the JSON line AWS writes for one history event.
-func vendedRecord(e *Execution, ev histEvent, includeData bool) string {
+func vendedRecord(e *execution, ev histEvent, includeData bool) string {
 	rec := map[string]any{
 		"id":                strconv.FormatInt(ev.ID, 10),
 		"type":              ev.Type,

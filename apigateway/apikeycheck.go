@@ -12,7 +12,7 @@ import "net/http"
 // checkAPIKey returns the key the request presented, or nil when the method
 // needs none; denied is set when the method needs one and the request did
 // not qualify.
-func (s *Server) checkAPIKey(api *RestAPI, stage string, m *Method, r *http.Request, cc *callCtx) (key *APIKey, denied *authDenial) {
+func (s *Server) checkAPIKey(api *restAPI, stage string, m *method, r *http.Request, cc *callCtx) (key *apiKey, denied *authDenial) {
 	if !m.APIKeyRequired {
 		return nil, nil
 	}

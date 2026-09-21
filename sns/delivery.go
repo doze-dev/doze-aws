@@ -81,7 +81,7 @@ func (srv *Server) deliver(ctx context.Context, msgID, topicARN, subject, messag
 	}
 }
 
-func (srv *Server) deliverSQS(ctx context.Context, sub Subscription, msgID, topicARN, subject, message string, attrs map[string]attr) {
+func (srv *Server) deliverSQS(ctx context.Context, sub subscription, msgID, topicARN, subject, message string, attrs map[string]attr) {
 	ep, ok := srv.peers.Endpoint("sqs")
 	if !ok {
 		srv.logf("sns: subscription %s targets SQS but no SQS peer is wired", sub.ARN)
@@ -126,7 +126,7 @@ func (srv *Server) postToSQS(ctx context.Context, ep peers.Endpoint, body []byte
 }
 
 // deliverLambda invokes a Lambda function (async) with the SNS event shape.
-func (srv *Server) deliverLambda(ctx context.Context, sub Subscription, msgID, topicARN, subject, message string, attrs map[string]attr) {
+func (srv *Server) deliverLambda(ctx context.Context, sub subscription, msgID, topicARN, subject, message string, attrs map[string]attr) {
 	fn := lastSegment(sub.Endpoint)
 	record := map[string]any{
 		"EventSource":          "aws:sns",
@@ -169,7 +169,7 @@ func toSQSAttrs(attrs map[string]attr) map[string]any {
 
 var httpDeliveryClient = &http.Client{Timeout: 5 * time.Second}
 
-func (srv *Server) deliverHTTP(sub Subscription, msgID, topicARN, subject, message string, attrs map[string]attr) {
+func (srv *Server) deliverHTTP(sub subscription, msgID, topicARN, subject, message string, attrs map[string]attr) {
 	body, _ := json.Marshal(srv.envelope(msgID, topicARN, subject, message, attrs))
 	req, err := http.NewRequest(http.MethodPost, sub.Endpoint, bytes.NewReader(body))
 	if err != nil {
@@ -197,7 +197,7 @@ func (srv *Server) deliverHTTP(sub Subscription, msgID, topicARN, subject, messa
 
 // sendConfirmation posts a SubscriptionConfirmation to an http(s) endpoint so
 // it can confirm by fetching SubscribeURL (or calling ConfirmSubscription).
-func (srv *Server) sendConfirmation(sub Subscription, host string) {
+func (srv *Server) sendConfirmation(sub subscription, host string) {
 	body := map[string]string{
 		"Type":      "SubscriptionConfirmation",
 		"TopicArn":  sub.TopicARN,

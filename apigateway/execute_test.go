@@ -14,9 +14,9 @@ import (
 // Getting this wrong sends /users/me to the /users/{id} handler, which is the
 // kind of bug that only shows up against real traffic.
 func TestMatchResourcePrecedence(t *testing.T) {
-	api := &RestAPI{Resources: map[string]*Resource{}}
+	api := &restAPI{Resources: map[string]*resource{}}
 	add := func(id, path string) {
-		api.Resources[id] = &Resource{ID: id, Path: path}
+		api.Resources[id] = &resource{ID: id, Path: path}
 	}
 	add("root", "/")
 	add("users", "/users")
@@ -63,7 +63,7 @@ func TestMatchResourcePrecedence(t *testing.T) {
 }
 
 func TestMatchResourceNoMatch(t *testing.T) {
-	api := &RestAPI{Resources: map[string]*Resource{
+	api := &restAPI{Resources: map[string]*resource{
 		"root":  {ID: "root", Path: "/"},
 		"users": {ID: "users", Path: "/users"},
 	}}
@@ -96,7 +96,7 @@ func TestLambdaFromURI(t *testing.T) {
 }
 
 func TestRebuildPaths(t *testing.T) {
-	api := &RestAPI{Resources: map[string]*Resource{
+	api := &restAPI{Resources: map[string]*resource{
 		"root": {ID: "root", Path: "/"},
 		"a":    {ID: "a", ParentID: "root", PathPart: "users"},
 		"b":    {ID: "b", ParentID: "a", PathPart: "{id}"},

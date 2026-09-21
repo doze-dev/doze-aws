@@ -34,7 +34,7 @@ func (s *store) Sweep() {
 			if mb := tx.Bucket(msgBucket(qn)); mb != nil && q.RetentionPeriod > 0 {
 				var stale [][]byte
 				_ = mb.ForEach(func(k, raw []byte) error {
-					var m Message
+					var m message
 					if json.Unmarshal(raw, &m) == nil && now.Sub(time.Unix(0, m.Sent)) > time.Duration(q.RetentionPeriod)*time.Second {
 						stale = append(stale, append([]byte(nil), k...))
 					}

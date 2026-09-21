@@ -26,7 +26,7 @@ const gatewayNamespace = "AWS/ApiGateway"
 // which includes the integration rather than excluding it (`IntegrationLatency`
 // is the separate metric for the inner half, and doze-aws does not time the
 // integration separately, so it is not published rather than published wrong).
-func (s *Server) recordRequest(api *RestAPI, stage string, rl *requestLog) {
+func (s *Server) recordRequest(api *restAPI, stage string, rl *requestLog) {
 	if s.metrics == nil {
 		return
 	}

@@ -15,14 +15,14 @@ import (
 // Rows are written by SaveTransition, in the transaction that parks the
 // frame and writes its token, and are removed either by a worker's claim
 // (ClaimActivityTask) or by the token's own deletion (a timeout, a stop)
-// through TokenRef.Queue. A restart therefore finds exactly the tasks no
+// through tokenRef.Queue. A restart therefore finds exactly the tasks no
 // worker has taken, which is what makes a queued task survive one.
 
 var bucketActivityQueue = []byte("activityqueue")
 
 // ActivityTask is one queued task: what GetActivityTask hands a worker, plus
 // where it came from for the console.
-type ActivityTask struct {
+type activityTask struct {
 	Activity    string `json:"activity"`
 	Token       string `json:"token"`
 	Input       string `json:"input"`
@@ -85,7 +85,7 @@ func tombstoneToken(tx *bolt.Tx, tb *bolt.Bucket, token string, now int64) error
 	if raw == nil {
 		return nil
 	}
-	var ref TokenRef
+	var ref tokenRef
 	if err := json.Unmarshal(raw, &ref); err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func tombstoneToken(tx *bolt.Tx, tb *bolt.Bucket, token string, now int64) error
 	}
 	var expired [][]byte
 	if err := tb.ForEach(func(k, v []byte) error {
-		var old TokenRef
+		var old tokenRef
 		if json.Unmarshal(v, &old) == nil && old.TimedOut != 0 && now-old.TimedOut > tokenTombstoneTTL {
 			expired = append(expired, append([]byte(nil), k...))
 		}
@@ -128,7 +128,7 @@ func deleteToken(tx *bolt.Tx, tb *bolt.Bucket, token string) error {
 	if raw == nil {
 		return nil
 	}
-	var ref TokenRef
+	var ref tokenRef
 	if err := json.Unmarshal(raw, &ref); err != nil {
 		return err
 	}
@@ -146,8 +146,8 @@ func deleteToken(tx *bolt.Tx, tb *bolt.Bucket, token string) error {
 // the queue is empty. The claim and the token's detachment from the queue
 // are one transaction, so two workers polling the same activity can never
 // both receive a task — bbolt serialises writers.
-func (s *store) ClaimActivityTask(name string) (*ActivityTask, error) {
-	var out *ActivityTask
+func (s *store) ClaimActivityTask(name string) (*activityTask, error) {
+	var out *activityTask
 	prefix := []byte(name + "\x00")
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		qb := tx.Bucket(bucketActivityQueue)
@@ -159,7 +159,7 @@ func (s *store) ClaimActivityTask(name string) (*ActivityTask, error) {
 		if k == nil || !bytes.HasPrefix(k, prefix) {
 			return nil
 		}
-		var task ActivityTask
+		var task activityTask
 		if err := json.Unmarshal(raw, &task); err != nil {
 			return err
 		}
@@ -170,7 +170,7 @@ func (s *store) ClaimActivityTask(name string) (*ActivityTask, error) {
 		// reach for a row that is gone — harmless, but honest.
 		if tb := tx.Bucket(bucketTokens); tb != nil {
 			if rawRef := tb.Get([]byte(task.Token)); rawRef != nil {
-				var ref TokenRef
+				var ref tokenRef
 				if err := json.Unmarshal(rawRef, &ref); err != nil {
 					return err
 				}
@@ -192,9 +192,9 @@ func (s *store) ClaimActivityTask(name string) (*ActivityTask, error) {
 
 // ListActivityTasks returns one activity's unclaimed tasks, oldest first —
 // its queue depth is the length. This is what a console page reads.
-func (s *store) ListActivityTasks(name string) ([]ActivityTask, error) {
+func (s *store) ListActivityTasks(name string) ([]activityTask, error) {
 	prefix := []byte(name + "\x00")
-	var out []ActivityTask
+	var out []activityTask
 	err := s.db.View(func(tx *bolt.Tx) error {
 		qb := tx.Bucket(bucketActivityQueue)
 		if qb == nil {
@@ -202,7 +202,7 @@ func (s *store) ListActivityTasks(name string) ([]ActivityTask, error) {
 		}
 		c := qb.Cursor()
 		for k, raw := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, raw = c.Next() {
-			var task ActivityTask
+			var task activityTask
 			if err := json.Unmarshal(raw, &task); err != nil {
 				return err
 			}

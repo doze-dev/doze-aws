@@ -137,7 +137,7 @@ func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, e
 		_ = v
 	}
 
-	scope := &Scope{
+	scope := &scope{
 		StackName:  opts.StackName,
 		Parameters: params,
 		Mappings:   t.Mappings,

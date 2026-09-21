@@ -23,8 +23,8 @@ var (
 	bucketMapItems = []byte("mapitems")
 )
 
-// MapRun is the stored record.
-type MapRun struct {
+// mapRun is the stored record.
+type mapRun struct {
 	ARN        string `json:"arn"`
 	ExecKey    string `json:"exec_key"`
 	ExecARN    string `json:"exec_arn"`
@@ -61,8 +61,8 @@ type MapRun struct {
 	RedriveDate    int64 `json:"redrive_date,omitempty"`
 }
 
-// MapItem is one item's outcome.
-type MapItem struct {
+// mapItem is one item's outcome.
+type mapItem struct {
 	Index  int             `json:"index"`
 	Status string          `json:"status"` // SUCCEEDED FAILED TIMED_OUT ABORTED
 	Input  json.RawMessage `json:"input"`
@@ -71,15 +71,15 @@ type MapItem struct {
 	Cause  string          `json:"cause,omitempty"`
 }
 
-func (m *MapRun) Total() int   { return len(m.Inputs) }
-func (m *MapRun) Pending() int { return m.Total() - m.Next }
-func (m *MapRun) done() bool   { return m.Next == m.Total() && m.Running == 0 }
+func (m *mapRun) Total() int   { return len(m.Inputs) }
+func (m *mapRun) Pending() int { return m.Total() - m.Next }
+func (m *mapRun) done() bool   { return m.Next == m.Total() && m.Running == 0 }
 
 // failures is Failed plus TimedOut plus Aborted — what the tolerance counts.
-func (m *MapRun) failures() int { return m.Failed + m.TimedOut + m.Aborted }
+func (m *mapRun) failures() int { return m.Failed + m.TimedOut + m.Aborted }
 
 // tolerated reports how many item failures the state allows.
-func (m *MapRun) tolerated() int {
+func (m *mapRun) tolerated() int {
 	switch {
 	case m.ToleratedFailureCount != nil:
 		return *m.ToleratedFailureCount
@@ -99,10 +99,10 @@ func mapRunARN(ident awsident.Identity, machine, execName, label, id string) str
 	return ident.ARN("states", res+":"+id)
 }
 
-func (s *store) PutMapRun(m *MapRun) error { return s.put(bucketMapRuns, []byte(m.ARN), m) }
+func (s *store) PutMapRun(m *mapRun) error { return s.put(bucketMapRuns, []byte(m.ARN), m) }
 
-func (s *store) GetMapRun(arn string) (*MapRun, error) {
-	var m MapRun
+func (s *store) GetMapRun(arn string) (*mapRun, error) {
+	var m mapRun
 	found, err := s.get(bucketMapRuns, []byte(arn), &m)
 	if err != nil || !found {
 		return nil, err
@@ -111,10 +111,10 @@ func (s *store) GetMapRun(arn string) (*MapRun, error) {
 }
 
 // MapRunsFor lists the Map Runs of one execution, in start order.
-func (s *store) MapRunsFor(execKey string) ([]*MapRun, error) {
-	var out []*MapRun
+func (s *store) MapRunsFor(execKey string) ([]*mapRun, error) {
+	var out []*mapRun
 	err := s.each(bucketMapRuns, func(k, raw []byte) error {
-		var m MapRun
+		var m mapRun
 		if err := json.Unmarshal(raw, &m); err != nil {
 			return err
 		}
@@ -130,14 +130,14 @@ func mapItemKey(arn string, index int) []byte {
 	return []byte(fmt.Sprintf("%s\x00%08d", arn, index))
 }
 
-func (s *store) PutMapItem(arn string, it *MapItem) error {
+func (s *store) PutMapItem(arn string, it *mapItem) error {
 	return s.put(bucketMapItems, mapItemKey(arn, it.Index), it)
 }
 
 // MapItems reads every item outcome of a run, in index order.
-func (s *store) MapItems(arn string) ([]*MapItem, error) {
+func (s *store) MapItems(arn string) ([]*mapItem, error) {
 	prefix := []byte(arn + "\x00")
-	var out []*MapItem
+	var out []*mapItem
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketMapItems)
 		if b == nil {
@@ -145,7 +145,7 @@ func (s *store) MapItems(arn string) ([]*MapItem, error) {
 		}
 		c := b.Cursor()
 		for k, raw := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, raw = c.Next() {
-			var it MapItem
+			var it mapItem
 			if err := json.Unmarshal(raw, &it); err != nil {
 				return err
 			}

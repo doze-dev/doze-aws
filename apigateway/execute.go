@@ -126,7 +126,7 @@ func (s *Server) serveExecute(w http.ResponseWriter, r *http.Request, rest strin
 }
 
 // methodFor picks the method that serves a verb, honouring ANY.
-func (s *Server) methodFor(res *Resource, verb string) *Method {
+func (s *Server) methodFor(res *resource, verb string) *method {
 	if m, ok := res.Methods[strings.ToUpper(verb)]; ok {
 		return m
 	}
@@ -137,12 +137,12 @@ func (s *Server) methodFor(res *Resource, verb string) *Method {
 
 // matchResource resolves a request path against the API's resource tree,
 // returning the matched resource and any captured path parameters.
-func matchResource(api *RestAPI, path string) (*Resource, map[string]string, bool) {
+func matchResource(api *restAPI, path string) (*resource, map[string]string, bool) {
 	want := splitPath(path)
 
-	var bestExact *Resource
+	var bestExact *resource
 	var bestExactParams map[string]string
-	var bestProxy *Resource
+	var bestProxy *resource
 	var bestProxyParams map[string]string
 	bestProxyDepth := -1
 
@@ -217,8 +217,8 @@ func paramCount(segs []string) int {
 
 // ---- integrations ----
 
-func (s *Server) invokeIntegration(w http.ResponseWriter, r *http.Request, api *RestAPI,
-	stage string, res *Resource, method *Method, params map[string]string, path string, cc *callCtx, rl *requestLog) {
+func (s *Server) invokeIntegration(w http.ResponseWriter, r *http.Request, api *restAPI,
+	stage string, res *resource, method *method, params map[string]string, path string, cc *callCtx, rl *requestLog) {
 
 	integ := method.Integration
 	body, _ := io.ReadAll(io.LimitReader(r.Body, 16<<20))
@@ -252,9 +252,9 @@ func (s *Server) invokeIntegration(w http.ResponseWriter, r *http.Request, api *
 
 // invokeMock answers from the integration's own response templates, which is
 // what MOCK integrations are for — CORS preflights, mostly.
-func (s *Server) invokeMock(w http.ResponseWriter, method *Method, integ *Integration) {
+func (s *Server) invokeMock(w http.ResponseWriter, method *method, integ *integration) {
 	status := "200"
-	var chosen *IntegrationResponse
+	var chosen *integrationResponse
 	for code, ir := range integ.Responses {
 		if chosen == nil || code < status {
 			chosen, status = ir, code
@@ -287,7 +287,7 @@ func (s *Server) invokeMock(w http.ResponseWriter, method *Method, integ *Integr
 }
 
 // invokeHTTP forwards to a real HTTP endpoint.
-func (s *Server) invokeHTTP(w http.ResponseWriter, r *http.Request, integ *Integration,
+func (s *Server) invokeHTTP(w http.ResponseWriter, r *http.Request, integ *integration,
 	params map[string]string, body []byte) {
 
 	target := expandURI(integ.URI, params)

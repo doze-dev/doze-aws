@@ -19,7 +19,7 @@ func (s *Server) createConnection(ctx context.Context, p map[string]any) (any, *
 		return nil, aerr
 	}
 	now := s.now().UnixMilli()
-	c := Connection{
+	c := connection{
 		Name: name, ID: newID(), Desc: awsjson.Str(p, "Description"), AuthType: authType,
 		State: "AUTHORIZED", Basic: basic, APIKey: key, OAuth: oauth, Invocation: invocation,
 		CreatedMs: now, ModifiedMs: now,
@@ -35,7 +35,7 @@ func (s *Server) createConnection(ctx context.Context, p map[string]any) (any, *
 
 func (s *Server) updateConnection(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	name := awsjson.Str(p, "Name")
-	c, err := s.store.UpdateConnection(name, func(c *Connection) error {
+	c, err := s.store.UpdateConnection(name, func(c *connection) error {
 		if d, ok := p["Description"].(string); ok {
 			c.Desc = d
 		}
@@ -63,7 +63,7 @@ func (s *Server) updateConnection(ctx context.Context, p map[string]any) (any, *
 }
 
 func (s *Server) deauthorizeConnection(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
-	c, err := s.store.UpdateConnection(awsjson.Str(p, "Name"), func(c *Connection) error {
+	c, err := s.store.UpdateConnection(awsjson.Str(p, "Name"), func(c *connection) error {
 		c.Basic, c.APIKey, c.OAuth = nil, nil, nil
 		c.State = "DEAUTHORIZED"
 		c.ModifiedMs = s.now().UnixMilli()
@@ -114,7 +114,7 @@ func (s *Server) listConnections(ctx context.Context, p map[string]any) (any, *a
 }
 
 // connectionStateView is the Update/Deauthorize/Delete answer.
-func connectionStateView(id awsident.Identity, c *Connection) map[string]any {
+func connectionStateView(id awsident.Identity, c *connection) map[string]any {
 	return map[string]any{
 		"ConnectionArn": c.ARN(id), "ConnectionState": c.State,
 		"CreationTime": float64(c.CreatedMs) / 1000, "LastModifiedTime": float64(c.ModifiedMs) / 1000,

@@ -133,7 +133,7 @@ func (s *Server) createStateMachine(ctx context.Context, p map[string]any) (any,
 		return nil, errValidation("type must be STANDARD or EXPRESS, got %q", typ)
 	}
 
-	m := &StateMachine{
+	m := &stateMachine{
 		Name: name, ARN: machineARN(s.id, name), Definition: definition,
 		RoleARN: awsjson.Str(p, "roleArn"), Type: typ,
 		LoggingConfiguration:    rawOf(p, "loggingConfiguration"),
@@ -196,7 +196,7 @@ func (s *Server) describeStateMachine(ctx context.Context, p map[string]any) (an
 // the caller stored, or AWS's defaults when they passed none — logging off,
 // tracing disabled, an AWS-owned key. A describe with the blocks missing
 // reads as a different machine to a tool that diffs against them.
-func putConfigs(out map[string]any, m *StateMachine) {
+func putConfigs(out map[string]any, m *stateMachine) {
 	putRawDefault(out, "loggingConfiguration", m.LoggingConfiguration, map[string]any{"level": "OFF", "includeExecutionData": false})
 	putRawDefault(out, "tracingConfiguration", m.TracingConfiguration, map[string]any{"enabled": false})
 	putRawDefault(out, "encryptionConfiguration", m.EncryptionConfiguration, map[string]any{"type": "AWS_OWNED_KEY"})
@@ -341,7 +341,7 @@ func (s *Server) createActivity(ctx context.Context, p map[string]any) (any, *aw
 	if aerr := checkName(name); aerr != nil {
 		return nil, aerr
 	}
-	a, aerr := s.store.PutActivity(&Activity{Name: name, ARN: activityARN(s.id, name)})
+	a, aerr := s.store.PutActivity(&activity{Name: name, ARN: activityARN(s.id, name)})
 	if aerr != nil {
 		return nil, aerr
 	}

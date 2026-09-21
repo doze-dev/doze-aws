@@ -14,8 +14,8 @@ import (
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
-// Authorizer is one Lambda authorizer on an API.
-type Authorizer struct {
+// authorizer is one Lambda authorizer on an API.
+type authorizer struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Type string `json:"type"` // TOKEN | REQUEST
@@ -39,7 +39,7 @@ type Authorizer struct {
 // DefaultAuthorizerTTL is AWS's default authorizerResultTtlInSeconds.
 const DefaultAuthorizerTTL = 300
 
-func viewAuthorizer(a *Authorizer) map[string]any {
+func viewAuthorizer(a *authorizer) map[string]any {
 	v := map[string]any{
 		"id": a.ID, "name": a.Name, "type": a.Type,
 		"authorizerUri": a.URI, "authorizerResultTtlInSeconds": a.ResultTTL,
@@ -88,7 +88,7 @@ func (s *Server) routeAuthorizers(w http.ResponseWriter, r *http.Request, apiID 
 		case http.MethodPatch:
 			return s.patchAuthorizer(w, r, apiID, id)
 		case http.MethodDelete:
-			if _, err := s.store.Update(apiID, func(api *RestAPI) error {
+			if _, err := s.store.Update(apiID, func(api *restAPI) error {
 				if _, ok := api.Authorizers[id]; !ok {
 					return errNotFound("Invalid Authorizer identifier specified")
 				}
@@ -120,7 +120,7 @@ func (s *Server) createAuthorizer(w http.ResponseWriter, r *http.Request, apiID 
 	if aerr := decode(r, &req); aerr != nil {
 		return aerr
 	}
-	a := &Authorizer{
+	a := &authorizer{
 		ID: s.store.newID(), Name: req.Name, Type: req.Type, URI: req.AuthorizerURI,
 		Credentials: req.Credentials, IdentitySource: req.IdentitySource,
 		IdentityValidation: req.IdentityValidation, ResultTTL: DefaultAuthorizerTTL, AuthType: req.AuthType,
@@ -131,14 +131,14 @@ func (s *Server) createAuthorizer(w http.ResponseWriter, r *http.Request, apiID 
 	if aerr := checkAuthorizer(a); aerr != nil {
 		return aerr
 	}
-	if _, err := s.store.Update(apiID, func(api *RestAPI) error {
+	if _, err := s.store.Update(apiID, func(api *restAPI) error {
 		for _, other := range api.Authorizers {
 			if other.Name == a.Name {
 				return errConflict("Authorizer name must be unique. Authorizer %s already exists in this RestApi.", a.Name)
 			}
 		}
 		if api.Authorizers == nil {
-			api.Authorizers = map[string]*Authorizer{}
+			api.Authorizers = map[string]*authorizer{}
 		}
 		api.Authorizers[a.ID] = a
 		return nil
@@ -151,7 +151,7 @@ func (s *Server) createAuthorizer(w http.ResponseWriter, r *http.Request, apiID 
 
 // checkAuthorizer refuses what cannot work: a Cognito authorizer with no user
 // pool behind it, and a Lambda authorizer with no function URI.
-func checkAuthorizer(a *Authorizer) *awshttp.APIError {
+func checkAuthorizer(a *authorizer) *awshttp.APIError {
 	switch a.Type {
 	case "COGNITO_USER_POOLS":
 		return errBadRequest("COGNITO_USER_POOLS authorizers need a Cognito user pool, which does not exist locally; use a TOKEN or REQUEST Lambda authorizer")
@@ -176,8 +176,8 @@ func (s *Server) patchAuthorizer(w http.ResponseWriter, r *http.Request, apiID, 
 	if aerr != nil {
 		return aerr
 	}
-	var out *Authorizer
-	api, err := s.store.Update(apiID, func(api *RestAPI) error {
+	var out *authorizer
+	api, err := s.store.Update(apiID, func(api *restAPI) error {
 		a, ok := api.Authorizers[id]
 		if !ok {
 			return errNotFound("Invalid Authorizer identifier specified")
@@ -223,7 +223,7 @@ func (s *Server) patchAuthorizer(w http.ResponseWriter, r *http.Request, apiID, 
 }
 
 // authorizerFor resolves a method's CUSTOM authorizer, or nil.
-func authorizerFor(api *RestAPI, m *Method) *Authorizer {
+func authorizerFor(api *restAPI, m *method) *authorizer {
 	if !strings.EqualFold(m.AuthorizationType, "CUSTOM") || m.AuthorizerID == "" {
 		return nil
 	}

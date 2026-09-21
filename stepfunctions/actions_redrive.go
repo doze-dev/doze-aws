@@ -25,7 +25,7 @@ func errNotRedrivable(why string) *awshttp.APIError {
 }
 
 // redrivable reports whether an execution can be redriven, and why not.
-func redrivable(e *Execution, now int64) (bool, string) {
+func redrivable(e *execution, now int64) (bool, string) {
 	switch {
 	case e.Type == "EXPRESS":
 		return false, "EXPRESS executions are not redrivable"
@@ -89,7 +89,7 @@ func (s *Server) redriveExecution(ctx context.Context, p map[string]any) (any, *
 }
 
 // putRedrive fills DescribeExecution's redrive members.
-func (s *Server) putRedrive(out map[string]any, e *Execution) {
+func (s *Server) putRedrive(out map[string]any, e *execution) {
 	out["redriveCount"] = e.RedriveCount
 	if e.RedriveDate != 0 {
 		out["redriveDate"] = epoch(e.RedriveDate)

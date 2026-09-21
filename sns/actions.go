@@ -180,7 +180,7 @@ func (srv *Server) getTopicAttributes(ctx context.Context, form url.Values, _ st
 	return res, nil
 }
 
-func countConfirmed(subs []Subscription) int {
+func countConfirmed(subs []subscription) int {
 	n := 0
 	for _, s := range subs {
 		if s.Confirmed {

@@ -43,7 +43,7 @@ type paramView struct {
 	LastModifiedDate float64 `json:"LastModifiedDate"`
 }
 
-func (s *Server) view(p *Parameter, v *Version, value, selector string) paramView {
+func (s *Server) view(p *parameter, v *paramVersion, value, selector string) paramView {
 	return paramView{
 		Name:             p.Name,
 		Type:             p.Type,
@@ -255,7 +255,7 @@ func (s *Server) describeParameters(p map[string]any) (any, *awshttp.APIError) {
 // applyFilters implements the common ParameterFilters: Name (Equals/BeginsWith)
 // and Type (Equals). Other filter keys are ignored rather than erroring — SDKs
 // send them speculatively.
-func applyFilters(all []Parameter, p map[string]any) ([]Parameter, *awshttp.APIError) {
+func applyFilters(all []parameter, p map[string]any) ([]parameter, *awshttp.APIError) {
 	filters, ok := p["ParameterFilters"].([]any)
 	if !ok || len(filters) == 0 {
 		return all, nil
@@ -269,10 +269,10 @@ func applyFilters(all []Parameter, p map[string]any) ([]Parameter, *awshttp.APIE
 		key, _ := fm["Key"].(string)
 		option, _ := fm["Option"].(string)
 		values := awsjson.Strs(fm, "Values")
-		match := func(param *Parameter) bool { return true }
+		match := func(param *parameter) bool { return true }
 		switch key {
 		case "Name":
-			match = func(param *Parameter) bool {
+			match = func(param *parameter) bool {
 				for _, v := range values {
 					if option == "BeginsWith" && strings.HasPrefix(param.Name, v) {
 						return true
@@ -284,7 +284,7 @@ func applyFilters(all []Parameter, p map[string]any) ([]Parameter, *awshttp.APIE
 				return false
 			}
 		case "Type":
-			match = func(param *Parameter) bool {
+			match = func(param *parameter) bool {
 				for _, v := range values {
 					if param.Type == v {
 						return true
@@ -293,7 +293,7 @@ func applyFilters(all []Parameter, p map[string]any) ([]Parameter, *awshttp.APIE
 				return false
 			}
 		}
-		var next []Parameter
+		var next []parameter
 		for _, param := range out {
 			if match(&param) {
 				next = append(next, param)

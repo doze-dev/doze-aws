@@ -31,7 +31,7 @@ type keyMetadata struct {
 	MultiRegion           bool     `json:"MultiRegion"`
 }
 
-func metadataFor(k *Key) keyMetadata {
+func metadataFor(k *key) keyMetadata {
 	md := keyMetadata{
 		AWSAccountId:          "000000000000",
 		KeyId:                 k.ID,
@@ -102,7 +102,7 @@ func (s *Server) listKeys(map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) enableKey(p map[string]any) (any, *awshttp.APIError) {
-	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *Key) *awshttp.APIError {
+	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *key) *awshttp.APIError {
 		if k.State == statePendingDeletion {
 			return awshttp.Errf(400, "KMSInvalidStateException", "key %s is pending deletion", k.ID)
 		}
@@ -113,7 +113,7 @@ func (s *Server) enableKey(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) disableKey(p map[string]any) (any, *awshttp.APIError) {
-	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *Key) *awshttp.APIError {
+	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *key) *awshttp.APIError {
 		if k.State == statePendingDeletion {
 			return awshttp.Errf(400, "KMSInvalidStateException", "key %s is pending deletion", k.ID)
 		}
@@ -129,7 +129,7 @@ func (s *Server) scheduleKeyDeletion(p map[string]any) (any, *awshttp.APIError) 
 		return nil, awshttp.Errf(400, "ValidationException", "PendingWindowInDays must be between 7 and 30, got %d", days)
 	}
 	var when time.Time
-	k, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *Key) *awshttp.APIError {
+	k, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *key) *awshttp.APIError {
 		when = s.store.now().Add(time.Duration(days) * 24 * time.Hour)
 		k.State = statePendingDeletion
 		k.DeletionAt = when.Unix()
@@ -147,7 +147,7 @@ func (s *Server) scheduleKeyDeletion(p map[string]any) (any, *awshttp.APIError) 
 }
 
 func (s *Server) cancelKeyDeletion(p map[string]any) (any, *awshttp.APIError) {
-	k, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *Key) *awshttp.APIError {
+	k, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *key) *awshttp.APIError {
 		if k.State != statePendingDeletion {
 			return awshttp.Errf(400, "KMSInvalidStateException", "key %s is not pending deletion", k.ID)
 		}
@@ -162,7 +162,7 @@ func (s *Server) cancelKeyDeletion(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) updateKeyDescription(p map[string]any) (any, *awshttp.APIError) {
-	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *Key) *awshttp.APIError {
+	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *key) *awshttp.APIError {
 		k.Description = awsjson.Str(p, "Description")
 		return nil
 	})
@@ -201,7 +201,7 @@ func (s *Server) disableKeyRotation(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) setRotation(p map[string]any, on bool) (any, *awshttp.APIError) {
-	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *Key) *awshttp.APIError {
+	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *key) *awshttp.APIError {
 		if k.KeySpec != "SYMMETRIC_DEFAULT" {
 			return awshttp.Errf(400, "UnsupportedOperationException", "rotation applies to symmetric keys only")
 		}
@@ -220,7 +220,7 @@ func (s *Server) setRotation(p map[string]any, on bool) (any, *awshttp.APIError)
 // retiring the old material (kept so pre-rotation ciphertexts still decrypt) and
 // recording the rotation time. New encryptions use the new material.
 func (s *Server) rotateKeyOnDemand(p map[string]any) (any, *awshttp.APIError) {
-	key, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *Key) *awshttp.APIError {
+	key, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *key) *awshttp.APIError {
 		if k.KeySpec != "SYMMETRIC_DEFAULT" {
 			return awshttp.Errf(400, "UnsupportedOperationException", "on-demand rotation applies to symmetric keys only")
 		}

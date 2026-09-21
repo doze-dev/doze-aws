@@ -79,7 +79,7 @@ func (p params) intDefault(name string, def int) int {
 }
 
 // messageAttrs reads custom message attributes (SendMessage).
-func (p params) messageAttrs() map[string]Attr {
+func (p params) messageAttrs() map[string]attr {
 	if p.form != nil {
 		return fromQueryAttrs(awsquery.MessageAttrs(p.form, "MessageAttribute"))
 	}
@@ -88,18 +88,18 @@ func (p params) messageAttrs() map[string]Attr {
 
 // fromQueryAttrs converts the shared Query codec's attribute shape into SQS's
 // persisted Attr.
-func fromQueryAttrs(in map[string]awsquery.MessageAttr) map[string]Attr {
+func fromQueryAttrs(in map[string]awsquery.MessageAttr) map[string]attr {
 	if len(in) == 0 {
 		return nil
 	}
-	out := make(map[string]Attr, len(in))
+	out := make(map[string]attr, len(in))
 	for k, a := range in {
-		out[k] = Attr{DataType: a.DataType, StringValue: a.StringValue, BinaryValue: a.BinaryValue}
+		out[k] = attr{DataType: a.DataType, StringValue: a.StringValue, BinaryValue: a.BinaryValue}
 	}
 	return out
 }
 
-func jsonMessageAttrs(raw json.RawMessage) map[string]Attr {
+func jsonMessageAttrs(raw json.RawMessage) map[string]attr {
 	if len(raw) == 0 {
 		return nil
 	}
@@ -111,9 +111,9 @@ func jsonMessageAttrs(raw json.RawMessage) map[string]Attr {
 	if json.Unmarshal(raw, &in) != nil {
 		return nil
 	}
-	out := map[string]Attr{}
+	out := map[string]attr{}
 	for k, v := range in {
-		a := Attr{DataType: v.DataType, StringValue: v.StringValue}
+		a := attr{DataType: v.DataType, StringValue: v.StringValue}
 		if v.BinaryValue != "" {
 			a.BinaryValue, _ = base64.StdEncoding.DecodeString(v.BinaryValue)
 		}
@@ -170,7 +170,7 @@ type sendEntry struct {
 	Delay   *int
 	GroupID string
 	DedupID string
-	Attrs   map[string]Attr
+	Attrs   map[string]attr
 }
 
 // delEntry is one DeleteMessageBatch entry.

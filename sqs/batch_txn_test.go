@@ -20,12 +20,12 @@ func TestABadEntryDoesNotSinkTheBatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	items := make([]SendItem, 0, 10)
+	items := make([]sendItem, 0, 10)
 	for i := range 9 {
-		items = append(items, SendItem{Body: "ok-" + string(rune('a'+i)), Delay: -1})
+		items = append(items, sendItem{Body: "ok-" + string(rune('a'+i)), Delay: -1})
 	}
 	// One entry over the queue's MaximumMessageSize.
-	items = append(items, SendItem{Body: strings.Repeat("x", 2048), Delay: -1})
+	items = append(items, sendItem{Body: strings.Repeat("x", 2048), Delay: -1})
 
 	res, err := s.SendBatch("orders", items)
 	if err != nil {
@@ -58,7 +58,7 @@ func TestABadEntryDoesNotSinkTheBatch(t *testing.T) {
 // written and the request fails, which is what AWS does with a bad QueueUrl.
 func TestAMissingQueueFailsTheWholeBatch(t *testing.T) {
 	s := testStore(t)
-	_, err := s.SendBatch("nope", []SendItem{{Body: "a", Delay: -1}})
+	_, err := s.SendBatch("nope", []sendItem{{Body: "a", Delay: -1}})
 	if err == nil {
 		t.Fatal("sending to a missing queue succeeded")
 	}

@@ -41,10 +41,10 @@ func atoiAttr(attr, v string) (int, error) {
 // queueLookup resolves a queue by name so redrive can be validated against
 // what actually exists. Passing nil skips the checks that need it, which is
 // what the pure attribute tests do.
-type queueLookup func(name string) (*Queue, error)
+type queueLookup func(name string) (*queue, error)
 
 // applyAttrs folds an SQS attribute map into a queue definition.
-func applyAttrs(q *Queue, attrs map[string]string, lookup queueLookup) error {
+func applyAttrs(q *queue, attrs map[string]string, lookup queueLookup) error {
 	for k, v := range attrs {
 		switch k {
 		case "FifoQueue":
@@ -137,7 +137,7 @@ func (s *store) Attributes(name string) (map[string]string, error) {
 		now := s.now().UnixNano()
 		if mb := tx.Bucket(msgBucket(name)); mb != nil {
 			_ = mb.ForEach(func(_, raw []byte) error {
-				var m Message
+				var m message
 				if json.Unmarshal(raw, &m) == nil {
 					switch {
 					case m.VisibleAt <= now:
@@ -214,7 +214,7 @@ func (s *store) SetAttributes(name string, attrs map[string]string) error {
 // leaves moveToDLQ correctly declining to drop the message, so the queue
 // redelivers forever, the dead-letter queue never fills, and
 // GetQueueAttributes echoes the policy back as though it had taken.
-func applyRedrive(q *Queue, v string, lookup queueLookup) error {
+func applyRedrive(q *queue, v string, lookup queueLookup) error {
 	var rp struct {
 		DeadLetterTargetArn string          `json:"deadLetterTargetArn"`
 		MaxReceiveCount     json.RawMessage `json:"maxReceiveCount"`

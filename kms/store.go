@@ -30,8 +30,8 @@ const (
 	statePendingDeletion = "PendingDeletion"
 )
 
-// Key is one customer master key.
-type Key struct {
+// key is one customer master key.
+type key struct {
 	ID           string            `json:"id"` // UUID
 	Material     []byte            `json:"material"`
 	OldMaterials [][]byte          `json:"old_materials,omitempty"` // superseded backing keys, newest first, kept so pre-rotation ciphertexts still decrypt
@@ -59,7 +59,7 @@ type Key struct {
 // stamped as the key is read (see stamp). A Key decoded out of bbolt has no
 // pointer back to the store that owns it, so the alternative would have been an
 // identity argument at all thirteen call sites.
-func (k *Key) ARN() string { return k.id.ARN("kms", "key/"+k.ID) }
+func (k *key) ARN() string { return k.id.ARN("kms", "key/"+k.ID) }
 
 // store is the bbolt-backed KMS state.
 type store struct {
@@ -78,7 +78,7 @@ func newStore(db *lazybolt.DB) *store { return &store{db: db, clock: time.Now} }
 // It is not persisted — the field is unexported, so encoding/json skips it.
 // That is deliberate: the identity belongs to the instance serving the key, not
 // to the record, so a data directory stays portable between instances.
-func (s *store) stamp(k *Key) *Key {
+func (s *store) stamp(k *key) *key {
 	if k != nil {
 		k.id = s.id
 	}
@@ -93,7 +93,7 @@ func errNotFound(keyID string) *awshttp.APIError {
 
 // CreateKey mints a new key of the given spec. Material is the AES key
 // (symmetric), the HMAC secret, or the PKCS#8 DER private key (RSA/ECC).
-func (s *store) CreateKey(spec, usage, description, policy string, tags map[string]string) (*Key, error) {
+func (s *store) CreateKey(spec, usage, description, policy string, tags map[string]string) (*key, error) {
 	if spec == "" {
 		spec = "SYMMETRIC_DEFAULT"
 	}
@@ -107,7 +107,7 @@ func (s *store) CreateKey(spec, usage, description, policy string, tags map[stri
 	if err != nil {
 		return nil, err
 	}
-	k := &Key{
+	k := &key{
 		ID:          newUUID(),
 		Material:    material,
 		State:       stateEnabled,
@@ -131,8 +131,8 @@ func (s *store) CreateKey(spec, usage, description, policy string, tags map[stri
 
 // Resolve maps any accepted key identifier — key id, key ARN, alias name,
 // alias ARN — to the key.
-func (s *store) Resolve(ident string) (*Key, error) {
-	var out *Key
+func (s *store) Resolve(ident string) (*key, error) {
+	var out *key
 	err := s.db.View(func(tx *bolt.Tx) error {
 		k, err := s.resolve(tx, ident)
 		if err != nil {
@@ -166,7 +166,7 @@ func isAWSManagedAlias(ident string) bool {
 // ensureAWSManaged materialises an AWS-managed key on first use, the way an
 // account does. It is idempotent: a concurrent caller that got there first
 // wins and its key is returned.
-func (s *store) ensureAWSManaged(ident string) (*Key, error) {
+func (s *store) ensureAWSManaged(ident string) (*key, error) {
 	if i := strings.Index(ident, ":alias/"); strings.HasPrefix(ident, "arn:") && i >= 0 {
 		ident = "alias/" + ident[i+len(":alias/"):]
 	}
@@ -184,7 +184,7 @@ func (s *store) ensureAWSManaged(ident string) (*Key, error) {
 	return k, nil
 }
 
-func (s *store) resolve(tx *bolt.Tx, ident string) (*Key, error) {
+func (s *store) resolve(tx *bolt.Tx, ident string) (*key, error) {
 	if ident == "" {
 		return nil, awshttp.Errf(400, "ValidationException", "KeyId is required")
 	}
@@ -215,7 +215,7 @@ func (s *store) resolve(tx *bolt.Tx, ident string) (*Key, error) {
 	if raw == nil {
 		return nil, errNotFound(ident)
 	}
-	var k Key
+	var k key
 	if err := json.Unmarshal(raw, &k); err != nil {
 		return nil, err
 	}
@@ -223,8 +223,8 @@ func (s *store) resolve(tx *bolt.Tx, ident string) (*Key, error) {
 }
 
 // Update applies fn to a key resolved by ident and persists it.
-func (s *store) Update(ident string, fn func(*Key) *awshttp.APIError) (*Key, error) {
-	var out *Key
+func (s *store) Update(ident string, fn func(*key) *awshttp.APIError) (*key, error) {
+	var out *key
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		k, err := s.resolve(tx, ident)
 		if err != nil {
@@ -241,15 +241,15 @@ func (s *store) Update(ident string, fn func(*Key) *awshttp.APIError) (*Key, err
 }
 
 // List returns all keys, sorted by id.
-func (s *store) List() ([]Key, error) {
-	var out []Key
+func (s *store) List() ([]key, error) {
+	var out []key
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(keysBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var k Key
+			var k key
 			if json.Unmarshal(raw, &k) == nil {
 				s.stamp(&k)
 				out = append(out, k)
@@ -323,7 +323,7 @@ func (s *store) SweepDeletions() {
 		}
 		var doomed []string
 		_ = b.ForEach(func(id, raw []byte) error {
-			var k Key
+			var k key
 			if json.Unmarshal(raw, &k) == nil && k.State == statePendingDeletion && k.DeletionAt > 0 && k.DeletionAt <= now {
 				doomed = append(doomed, string(id))
 			}
@@ -356,7 +356,7 @@ const blobMagic = "DZKMS"
 
 // usable rejects operations on keys that are not in the Enabled state, with
 // the error codes real KMS uses.
-func usable(k *Key) *awshttp.APIError {
+func usable(k *key) *awshttp.APIError {
 	switch k.State {
 	case stateEnabled:
 		return nil
@@ -369,7 +369,7 @@ func usable(k *Key) *awshttp.APIError {
 
 // seal encrypts plaintext under the key with the encryption context bound as
 // additional authenticated data.
-func seal(k *Key, plaintext []byte, context map[string]string) ([]byte, error) {
+func seal(k *key, plaintext []byte, context map[string]string) ([]byte, error) {
 	block, err := aes.NewCipher(k.Material)
 	if err != nil {
 		return nil, err
@@ -393,7 +393,7 @@ func seal(k *Key, plaintext []byte, context map[string]string) ([]byte, error) {
 
 // openBlob parses a ciphertext blob and returns the embedded key id and the
 // function that finishes decryption once the key is loaded.
-func openBlob(blob []byte) (keyID string, unseal func(*Key, map[string]string) ([]byte, error), err *awshttp.APIError) {
+func openBlob(blob []byte) (keyID string, unseal func(*key, map[string]string) ([]byte, error), err *awshttp.APIError) {
 	bad := awshttp.Errf(400, "InvalidCiphertextException", "ciphertext is malformed or was not produced by this KMS")
 	if len(blob) < len(blobMagic)+2 || string(blob[:len(blobMagic)]) != blobMagic || blob[len(blobMagic)] != 1 {
 		return "", nil, bad
@@ -405,7 +405,7 @@ func openBlob(blob []byte) (keyID string, unseal func(*Key, map[string]string) (
 	}
 	keyID = string(rest[:idLen])
 	rest = rest[idLen:]
-	return keyID, func(k *Key, context map[string]string) ([]byte, error) {
+	return keyID, func(k *key, context map[string]string) ([]byte, error) {
 		// Try the current backing key, then any superseded ones (rotation keeps
 		// old material so ciphertexts predating a rotation still decrypt).
 		aad := canonicalContext(context)

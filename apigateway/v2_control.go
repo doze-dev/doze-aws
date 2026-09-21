@@ -95,7 +95,7 @@ func (s *Server) routeV2APIs(w http.ResponseWriter, r *http.Request, segs []stri
 		return s.routeV2Deployments(w, r, apiID, segs[2:])
 	case "cors":
 		if r.Method == http.MethodDelete {
-			if _, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error { api.CORS = nil; return nil }); err != nil {
+			if _, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error { api.CORS = nil; return nil }); err != nil {
 				return awshttp.AsAPIError(err)
 			}
 			w.WriteHeader(204)
@@ -139,8 +139,8 @@ type v2CORSInput struct {
 	MaxAge           *int     `json:"maxAge"`
 }
 
-func (in *v2CORSInput) config() *CORSConfig {
-	c := &CORSConfig{
+func (in *v2CORSInput) config() *corsConfig {
+	c := &corsConfig{
 		AllowHeaders: in.AllowHeaders, AllowMethods: in.AllowMethods,
 		AllowOrigins: in.AllowOrigins, ExposeHeaders: in.ExposeHeaders, MaxAge: in.MaxAge,
 	}
@@ -169,7 +169,7 @@ func (s *Server) v2CreateAPI(w http.ResponseWriter, r *http.Request) *awshttp.AP
 	if err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	api, err := s.store.UpdateHTTP(created.ID, func(api *RestAPI) error {
+	api, err := s.store.UpdateHTTP(created.ID, func(api *restAPI) error {
 		if err := applyV2APIInput(api, &req); err != nil {
 			return err
 		}
@@ -192,8 +192,8 @@ func (s *Server) v2CreateAPI(w http.ResponseWriter, r *http.Request) *awshttp.AP
 // v2QuickCreate is CreateApi's target shortcut: one integration, one route
 // (ANY /{proxy+} unless a key is given) and a $default stage that auto
 // deploys — what `aws apigatewayv2 create-api --target` makes.
-func (s *Server) v2QuickCreate(api *RestAPI, target, routeKey string) error {
-	integ := &V2Integration{ID: s.store.newID(), TimeoutInMillis: 30000, PayloadFormatVersion: "2.0"}
+func (s *Server) v2QuickCreate(api *restAPI, target, routeKey string) error {
+	integ := &v2Integration{ID: s.store.newID(), TimeoutInMillis: 30000, PayloadFormatVersion: "2.0"}
 	if strings.HasPrefix(target, "arn:") {
 		integ.Type, integ.URI = "AWS_PROXY", target
 	} else {
@@ -210,16 +210,16 @@ func (s *Server) v2QuickCreate(api *RestAPI, target, routeKey string) error {
 	if method, path := routeKeyParts(routeKey); method != "" {
 		routeKey = method + " " + path
 	}
-	route := &V2Route{ID: s.store.newID(), RouteKey: routeKey, Target: "integrations/" + integ.ID, AuthorizationType: "NONE"}
+	route := &v2Route{ID: s.store.newID(), RouteKey: routeKey, Target: "integrations/" + integ.ID, AuthorizationType: "NONE"}
 	api.V2Routes[route.ID] = route
 	now := s.now().Unix()
-	dep := &Deployment{ID: s.store.newID(), Created: now, AutoDeployed: true}
+	dep := &deployment{ID: s.store.newID(), Created: now, AutoDeployed: true}
 	api.Deployments[dep.ID] = dep
-	api.Stages["$default"] = &Stage{Name: "$default", AutoDeploy: true, DeploymentID: dep.ID, Created: now, Updated: now}
+	api.Stages["$default"] = &stage{Name: "$default", AutoDeploy: true, DeploymentID: dep.ID, Created: now, Updated: now}
 	return nil
 }
 
-func applyV2APIInput(api *RestAPI, in *v2APIInput) error {
+func applyV2APIInput(api *restAPI, in *v2APIInput) error {
 	if in.Name != nil && *in.Name != "" {
 		api.Name = *in.Name
 	}
@@ -266,7 +266,7 @@ func (s *Server) v2UpdateAPI(w http.ResponseWriter, r *http.Request, apiID strin
 	if aerr := decode(r, &req); aerr != nil {
 		return aerr
 	}
-	api, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+	api, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 		if err := applyV2APIInput(api, &req); err != nil {
 			return err
 		}
@@ -292,14 +292,14 @@ func (s *Server) routeV2Deployments(w http.ResponseWriter, r *http.Request, apiI
 			if aerr := decode(r, &req); aerr != nil {
 				return aerr
 			}
-			var dep *Deployment
-			_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+			var dep *deployment
+			_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 				if req.StageName != "" {
 					if _, ok := api.Stages[req.StageName]; !ok {
 						return errNotFound("Invalid stage identifier specified")
 					}
 				}
-				dep = &Deployment{ID: s.store.newID(), Description: req.Description, Created: s.now().Unix()}
+				dep = &deployment{ID: s.store.newID(), Description: req.Description, Created: s.now().Unix()}
 				api.Deployments[dep.ID] = dep
 				if req.StageName != "" {
 					api.Stages[req.StageName].DeploymentID = dep.ID
@@ -345,8 +345,8 @@ func (s *Server) routeV2Deployments(w http.ResponseWriter, r *http.Request, apiI
 		if aerr := decode(r, &req); aerr != nil {
 			return aerr
 		}
-		var dep *Deployment
-		_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+		var dep *deployment
+		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 			d, ok := api.Deployments[depID]
 			if !ok {
 				return errNotFound("Invalid deployment identifier specified %s", depID)
@@ -363,7 +363,7 @@ func (s *Server) routeV2Deployments(w http.ResponseWriter, r *http.Request, apiI
 		writeJSON(w, 200, viewV2Deployment(dep))
 		return nil
 	case http.MethodDelete:
-		_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 			if _, ok := api.Deployments[depID]; !ok {
 				return errNotFound("Invalid deployment identifier specified %s", depID)
 			}
@@ -387,12 +387,12 @@ func (s *Server) routeV2Deployments(w http.ResponseWriter, r *http.Request, apiI
 // autoDeployV2 makes the deployment an auto-deploy stage makes on every
 // route or integration change, and points the stage at it. Called inside a
 // store Update.
-func (s *Server) autoDeployV2(api *RestAPI) {
+func (s *Server) autoDeployV2(api *restAPI) {
 	for _, st := range api.Stages {
 		if !st.AutoDeploy {
 			continue
 		}
-		dep := &Deployment{ID: s.store.newID(), Created: s.now().Unix(), AutoDeployed: true, Description: "Automatic deployment triggered by changes to the Api configuration"}
+		dep := &deployment{ID: s.store.newID(), Created: s.now().Unix(), AutoDeployed: true, Description: "Automatic deployment triggered by changes to the Api configuration"}
 		api.Deployments[dep.ID] = dep
 		st.DeploymentID = dep.ID
 		st.Updated = dep.Created
@@ -406,12 +406,12 @@ func (s *Server) autoDeployV2(api *RestAPI) {
 // forever; the ones a stage serves are never dropped.
 const keptAutoDeployments = 10
 
-func pruneAutoDeployments(api *RestAPI) {
+func pruneAutoDeployments(api *restAPI) {
 	inUse := map[string]bool{}
 	for _, st := range api.Stages {
 		inUse[st.DeploymentID] = true
 	}
-	var auto []*Deployment
+	var auto []*deployment
 	for _, d := range api.Deployments {
 		if d.AutoDeployed && !inUse[d.ID] {
 			auto = append(auto, d)
@@ -446,7 +446,7 @@ func (s *Server) V2APIARN(apiID string) string {
 	return "arn:aws:apigateway:" + s.id.RegionName() + "::/apis/" + apiID
 }
 
-func viewV2API(base string, api *RestAPI) map[string]any {
+func viewV2API(base string, api *restAPI) map[string]any {
 	v := map[string]any{
 		"apiId":                     api.ID,
 		"name":                      api.Name,
@@ -468,7 +468,7 @@ func viewV2API(base string, api *RestAPI) map[string]any {
 	return v
 }
 
-func viewCORS(c *CORSConfig) map[string]any {
+func viewCORS(c *corsConfig) map[string]any {
 	v := map[string]any{"allowCredentials": c.AllowCredentials}
 	if len(c.AllowHeaders) > 0 {
 		v["allowHeaders"] = c.AllowHeaders
@@ -488,7 +488,7 @@ func viewCORS(c *CORSConfig) map[string]any {
 	return v
 }
 
-func viewV2Deployment(d *Deployment) map[string]any {
+func viewV2Deployment(d *deployment) map[string]any {
 	v := map[string]any{
 		"deploymentId": d.ID, "createdDate": v2Time(d.Created),
 		"deploymentStatus": "DEPLOYED", "autoDeployed": d.AutoDeployed,

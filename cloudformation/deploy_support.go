@@ -118,10 +118,10 @@ func (s *Server) fetchS3(bucket, key string) (string, error) {
 // resource that was already in place gets no create event, and a failure
 // carries the real error. The final event is always a terminal stack-level
 // status, because that is what stops the poller.
-func (s *Server) synthesizeEvents(st *StackRecord, applyRep *provision.Report, isUpdate bool) []StackEvent {
+func (s *Server) synthesizeEvents(st *stackRecord, applyRep *provision.Report, isUpdate bool) []stackEvent {
 	now := s.now().Unix()
 	verb := statusVerb(isUpdate)
-	events := []StackEvent{{
+	events := []stackEvent{{
 		ID: s.store.newID(), Timestamp: now, LogicalID: st.Name,
 		Type: "AWS::CloudFormation::Stack", PhysicalID: st.ID,
 		Status: verb + "_IN_PROGRESS", Reason: "User Initiated",
@@ -152,17 +152,17 @@ func (s *Server) synthesizeEvents(st *StackRecord, applyRep *provision.Report, i
 			reason = "no change"
 		}
 		events = append(events,
-			StackEvent{
+			stackEvent{
 				ID: s.store.newID(), Timestamp: now, LogicalID: r.LogicalID,
 				Type: r.Type, PhysicalID: r.PhysicalID, Status: verb + "_IN_PROGRESS",
 			},
-			StackEvent{
+			stackEvent{
 				ID: s.store.newID(), Timestamp: now, LogicalID: r.LogicalID,
 				Type: r.Type, PhysicalID: r.PhysicalID, Status: status, Reason: reason,
 			})
 	}
 
-	events = append(events, StackEvent{
+	events = append(events, stackEvent{
 		ID: s.store.newID(), Timestamp: now, LogicalID: st.Name,
 		Type: "AWS::CloudFormation::Stack", PhysicalID: st.ID,
 		Status: st.Status, Reason: st.StatusReason,

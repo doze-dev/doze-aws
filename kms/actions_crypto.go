@@ -233,7 +233,7 @@ func (s *Server) dataKeyPair(p map[string]any, withPlaintext bool) (any, *awshtt
 	if gerr != nil {
 		return nil, awshttp.AsAPIError(gerr)
 	}
-	pubDER, aerr := (&Key{Material: privDER}).publicKeyDER()
+	pubDER, aerr := (&key{Material: privDER}).publicKeyDER()
 	if aerr != nil {
 		return nil, aerr
 	}

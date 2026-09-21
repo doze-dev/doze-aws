@@ -33,7 +33,7 @@ func aliasOf(p map[string]any) (machine, alias string, aerr *awshttp.APIError) {
 // is ResourceNotFound rather than ValidationException because the request
 // was well-formed. machine, when non-empty, is the alias's own machine
 // (UpdateStateMachineAlias), which the versions must belong to.
-func (s *Server) routingOf(p map[string]any, machine string) ([]Route, string, *awshttp.APIError) {
+func (s *Server) routingOf(p map[string]any, machine string) ([]route, string, *awshttp.APIError) {
 	raw, ok := p["routingConfiguration"].([]any)
 	if !ok {
 		return nil, "", errRequired("routingConfiguration")
@@ -41,7 +41,7 @@ func (s *Server) routingOf(p map[string]any, machine string) ([]Route, string, *
 	if len(raw) < 1 || len(raw) > 2 {
 		return nil, "", errValidation("1 validation error detected: Value at 'routingConfiguration' failed to satisfy constraint: Member must have length between 1 and 2")
 	}
-	routes := make([]Route, 0, len(raw))
+	routes := make([]route, 0, len(raw))
 	sum := 0
 	for _, item := range raw {
 		entry, _ := item.(map[string]any)
@@ -75,7 +75,7 @@ func (s *Server) routingOf(p map[string]any, machine string) ([]Route, string, *
 		if v == nil {
 			return nil, "", errQualifiedNotFound(arn)
 		}
-		routes = append(routes, Route{VersionARN: arn, Weight: weight})
+		routes = append(routes, route{VersionARN: arn, Weight: weight})
 		sum += weight
 	}
 	if sum != 100 {
@@ -116,7 +116,7 @@ func (s *Server) createStateMachineAlias(ctx context.Context, p map[string]any) 
 	if aerr != nil {
 		return nil, aerr
 	}
-	a := &Alias{MachineName: machine, Name: name, ARN: aliasARN(s.id, machine, name), Routing: routes}
+	a := &alias{MachineName: machine, Name: name, ARN: aliasARN(s.id, machine, name), Routing: routes}
 	if description != nil {
 		a.Description = *description
 	}
@@ -168,7 +168,7 @@ func (s *Server) updateStateMachineAlias(ctx context.Context, p map[string]any) 
 	if aerr != nil {
 		return nil, aerr
 	}
-	var routes []Route
+	var routes []route
 	if _, ok := p["routingConfiguration"]; ok {
 		if routes, _, aerr = s.routingOf(p, machine); aerr != nil {
 			return nil, aerr
@@ -250,7 +250,7 @@ func (s *Server) listStateMachineAliases(ctx context.Context, p map[string]any) 
 	return page(p, "stateMachineAliases", items)
 }
 
-func routesTo(a Alias, versionARN string) bool {
+func routesTo(a alias, versionARN string) bool {
 	for _, r := range a.Routing {
 		if r.VersionARN == versionARN {
 			return true

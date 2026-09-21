@@ -17,8 +17,8 @@ import (
 // are all identical, in which case AWS returns the existing one. That exception
 // is what makes `cdk deploy` of an unchanged stack succeed instead of erroring,
 // so it is not a detail to skip.
-func (s *store) PutMachine(m *StateMachine) (*StateMachine, *awshttp.APIError) {
-	var existing StateMachine
+func (s *store) PutMachine(m *stateMachine) (*stateMachine, *awshttp.APIError) {
+	var existing stateMachine
 	found, err := s.get(bucketMachines, []byte(m.Name), &existing)
 	if err != nil {
 		return nil, asAPIError(err)
@@ -39,8 +39,8 @@ func (s *store) PutMachine(m *StateMachine) (*StateMachine, *awshttp.APIError) {
 }
 
 // GetMachine reads one by name.
-func (s *store) GetMachine(name string) (*StateMachine, *awshttp.APIError) {
-	var m StateMachine
+func (s *store) GetMachine(name string) (*stateMachine, *awshttp.APIError) {
+	var m stateMachine
 	found, err := s.get(bucketMachines, []byte(name), &m)
 	if err != nil {
 		return nil, asAPIError(err)
@@ -60,7 +60,7 @@ type machineConfigs struct {
 	Logging, Tracing, Encryption json.RawMessage
 }
 
-func (s *store) UpdateMachine(name string, definition, roleARN *string, configs machineConfigs) (*StateMachine, *awshttp.APIError) {
+func (s *store) UpdateMachine(name string, definition, roleARN *string, configs machineConfigs) (*stateMachine, *awshttp.APIError) {
 	m, aerr := s.GetMachine(name)
 	if aerr != nil {
 		return nil, aerr
@@ -107,10 +107,10 @@ func (s *store) DeleteMachine(name string) *awshttp.APIError {
 }
 
 // ListMachines returns every machine, in name order (bbolt's cursor order).
-func (s *store) ListMachines() ([]StateMachine, *awshttp.APIError) {
-	var out []StateMachine
+func (s *store) ListMachines() ([]stateMachine, *awshttp.APIError) {
+	var out []stateMachine
 	err := s.each(bucketMachines, func(_, raw []byte) error {
-		var m StateMachine
+		var m stateMachine
 		if err := json.Unmarshal(raw, &m); err != nil {
 			return err
 		}
@@ -124,8 +124,8 @@ func (s *store) ListMachines() ([]StateMachine, *awshttp.APIError) {
 }
 
 // PutActivity stores an activity, refusing a duplicate.
-func (s *store) PutActivity(a *Activity) (*Activity, *awshttp.APIError) {
-	var existing Activity
+func (s *store) PutActivity(a *activity) (*activity, *awshttp.APIError) {
+	var existing activity
 	found, err := s.get(bucketActivities, []byte(a.Name), &existing)
 	if err != nil {
 		return nil, asAPIError(err)
@@ -142,8 +142,8 @@ func (s *store) PutActivity(a *Activity) (*Activity, *awshttp.APIError) {
 	return a, nil
 }
 
-func (s *store) GetActivity(name string) (*Activity, *awshttp.APIError) {
-	var a Activity
+func (s *store) GetActivity(name string) (*activity, *awshttp.APIError) {
+	var a activity
 	found, err := s.get(bucketActivities, []byte(name), &a)
 	if err != nil {
 		return nil, asAPIError(err)
@@ -158,10 +158,10 @@ func (s *store) DeleteActivity(name string) *awshttp.APIError {
 	return asAPIError(s.delete(bucketActivities, []byte(name)))
 }
 
-func (s *store) ListActivities() ([]Activity, *awshttp.APIError) {
-	var out []Activity
+func (s *store) ListActivities() ([]activity, *awshttp.APIError) {
+	var out []activity
 	err := s.each(bucketActivities, func(_, raw []byte) error {
-		var a Activity
+		var a activity
 		if err := json.Unmarshal(raw, &a); err != nil {
 			return err
 		}

@@ -177,7 +177,7 @@ func (s *Server) matchAndDispatch(ctx context.Context, bus string, eventJSON []b
 }
 
 // dispatch delivers one matched event to one target, applying input shaping.
-func (s *Server) dispatch(ctx context.Context, rule Rule, target Target, eventJSON []byte) {
+func (s *Server) dispatch(ctx context.Context, rule rule, target target, eventJSON []byte) {
 	// A delivery is EventBridge's own call, on behalf of the rule.
 	ctx = peers.WithPrincipal(ctx, "events", rule.ARN(s.id))
 	payload, err := shapeInput(target, eventJSON)
@@ -222,7 +222,7 @@ func (s *Server) dispatch(ctx context.Context, rule Rule, target Target, eventJS
 }
 
 // shapeInput applies Input / InputPath / InputTransformer.
-func shapeInput(target Target, eventJSON []byte) ([]byte, error) {
+func shapeInput(target target, eventJSON []byte) ([]byte, error) {
 	switch {
 	case target.Input != "":
 		return []byte(target.Input), nil
@@ -311,7 +311,7 @@ func (s *Server) putRule(ctx context.Context, p map[string]any) (any, *awshttp.A
 	if state == "" {
 		state = "ENABLED"
 	}
-	r := Rule{
+	r := rule{
 		Bus: busOrDefault(p), Name: name, Pattern: pattern, Schedule: schedule,
 		State: state, Desc: awsjson.Str(p, "Description"),
 		RoleArn: awsjson.Str(p, "RoleArn"),
@@ -326,7 +326,7 @@ func (s *Server) deleteRule(ctx context.Context, p map[string]any) (any, *awshtt
 	return nil, awshttp.AsAPIErrorOrNil(s.store.DeleteRule(busOrDefault(p), awsjson.Str(p, "Name")))
 }
 
-func ruleView(id awsident.Identity, r *Rule) map[string]any {
+func ruleView(id awsident.Identity, r *rule) map[string]any {
 	out := map[string]any{
 		"Name":         r.Name,
 		"Arn":          r.ARN(id),
@@ -369,14 +369,14 @@ func (s *Server) listRules(ctx context.Context, p map[string]any) (any, *awshttp
 }
 
 func (s *Server) enableRule(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
-	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(busOrDefault(p), awsjson.Str(p, "Name"), func(r *Rule) error {
+	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(busOrDefault(p), awsjson.Str(p, "Name"), func(r *rule) error {
 		r.State = "ENABLED"
 		return nil
 	}))
 }
 
 func (s *Server) disableRule(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
-	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(busOrDefault(p), awsjson.Str(p, "Name"), func(r *Rule) error {
+	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(busOrDefault(p), awsjson.Str(p, "Name"), func(r *rule) error {
 		r.State = "DISABLED"
 		return nil
 	}))
@@ -389,17 +389,17 @@ func (s *Server) putTargets(ctx context.Context, p map[string]any) (any, *awshtt
 	if len(targetsRaw) == 0 {
 		return nil, awshttp.Errf(400, "ValidationException", "Targets is required")
 	}
-	var targets []Target
+	var targets []target
 	for _, tr := range targetsRaw {
 		tm, _ := tr.(map[string]any)
-		t := Target{
+		t := target{
 			ID:        awsjson.Str(tm, "Id"),
 			ARN:       awsjson.Str(tm, "Arn"),
 			Input:     awsjson.Str(tm, "Input"),
 			InputPath: awsjson.Str(tm, "InputPath"),
 		}
 		if it, ok := tm["InputTransformer"].(map[string]any); ok {
-			trans := &InputTransformer{Template: awsjson.Str(it, "InputTemplate"), PathsMap: map[string]string{}}
+			trans := &inputTransformer{Template: awsjson.Str(it, "InputTemplate"), PathsMap: map[string]string{}}
 			if pm, ok := it["InputPathsMap"].(map[string]any); ok {
 				for k, v := range pm {
 					if sv, ok := v.(string); ok {
@@ -417,7 +417,7 @@ func (s *Server) putTargets(ctx context.Context, p map[string]any) (any, *awshtt
 		}
 		targets = append(targets, t)
 	}
-	err := s.store.UpdateRule(busOrDefault(p), awsjson.Str(p, "Rule"), func(r *Rule) error {
+	err := s.store.UpdateRule(busOrDefault(p), awsjson.Str(p, "Rule"), func(r *rule) error {
 		for _, nt := range targets {
 			replaced := false
 			for i := range r.Targets {
@@ -441,7 +441,7 @@ func (s *Server) putTargets(ctx context.Context, p map[string]any) (any, *awshtt
 
 func (s *Server) removeTargets(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
 	idsRaw, _ := p["Ids"].([]any)
-	err := s.store.UpdateRule(busOrDefault(p), awsjson.Str(p, "Rule"), func(r *Rule) error {
+	err := s.store.UpdateRule(busOrDefault(p), awsjson.Str(p, "Rule"), func(r *rule) error {
 		for _, idAny := range idsRaw {
 			id, _ := idAny.(string)
 			for i := range r.Targets {
@@ -515,7 +515,7 @@ func (s *Server) createEventBus(ctx context.Context, p map[string]any) (any, *aw
 	// Declared on the bus and reported back, though nothing local acts on any
 	// of it: a bus that accepts these and then describes itself without them
 	// is a bus Terraform keeps planning to change.
-	if err := s.store.UpdateBus(name, func(b *Bus) {
+	if err := s.store.UpdateBus(name, func(b *bus) {
 		b.Description = awsjson.Str(p, "Description")
 		b.KmsKeyIdentifier = awsjson.Str(p, "KmsKeyIdentifier")
 		if dlq, ok := p["DeadLetterConfig"].(map[string]any); ok {
@@ -558,7 +558,7 @@ func (s *Server) updateEventBus(ctx context.Context, p map[string]any) (any, *aw
 	if !found {
 		return nil, awshttp.Errf(404, "ResourceNotFoundException", "Event bus %s does not exist.", name)
 	}
-	if err := s.store.UpdateBus(name, func(b *Bus) {
+	if err := s.store.UpdateBus(name, func(b *bus) {
 		b.Description = awsjson.Str(p, "Description")
 		b.KmsKeyIdentifier = awsjson.Str(p, "KmsKeyIdentifier")
 		b.DeadLetterARN = ""
@@ -643,7 +643,7 @@ func (s *Server) tagResource(ctx context.Context, p map[string]any) (any, *awsht
 		return nil, aerr
 	}
 	tagsRaw, _ := p["Tags"].([]any)
-	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(bus, name, func(r *Rule) error {
+	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(bus, name, func(r *rule) error {
 		for _, tr := range tagsRaw {
 			tm, _ := tr.(map[string]any)
 			k, _ := tm["Key"].(string)
@@ -665,7 +665,7 @@ func (s *Server) untagResource(ctx context.Context, p map[string]any) (any, *aws
 		return nil, aerr
 	}
 	keysRaw, _ := p["TagKeys"].([]any)
-	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(bus, name, func(r *Rule) error {
+	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(bus, name, func(r *rule) error {
 		for _, kAny := range keysRaw {
 			if k, ok := kAny.(string); ok {
 				delete(r.Tags, k)

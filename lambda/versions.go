@@ -24,7 +24,7 @@ import (
 // fingerprint is what a version freezes: the code and the configuration
 // AWS snapshots. Two functions with the same fingerprint are the same
 // version.
-func fingerprint(f *Function) string {
+func fingerprint(f *function) string {
 	raw, _ := json.Marshal(map[string]any{
 		"code": f.CodeSHA256, "runtime": f.Runtime, "handler": f.Handler, "env": f.Env, "timeout": f.Timeout,
 		"memory": f.MemorySize, "layers": f.Layers, "role": f.Role, "command": f.Command,
@@ -127,7 +127,7 @@ func splitQualifier(ref string) (name, qualifier string) {
 // qualifier or $LATEST, a frozen version for a number, and an alias's
 // target otherwise. It answers the qualifier that was used, for the ARN the
 // function sees and the X-Amz-Executed-Version header.
-func (s *Server) resolve(ref, qualifier string) (*Function, string, *awshttp.APIError) {
+func (s *Server) resolve(ref, qualifier string) (*function, string, *awshttp.APIError) {
 	name, inRef := splitQualifier(ref)
 	if qualifier == "" {
 		qualifier = inRef

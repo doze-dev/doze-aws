@@ -29,7 +29,7 @@ func (m kvAttrs) MarshalXML(e *xml.Encoder, _ xml.StartElement) error {
 
 // msgAttrs is the custom message-attribute map: a JSON object of typed values,
 // or repeated <MessageAttribute> elements in XML.
-type msgAttrs map[string]Attr
+type msgAttrs map[string]attr
 
 func (m msgAttrs) MarshalJSON() ([]byte, error) {
 	type jsonAttr struct {

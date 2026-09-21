@@ -72,8 +72,8 @@ func (s *Server) routeV2Routes(w http.ResponseWriter, r *http.Request, apiID str
 		if aerr := decode(r, &req); aerr != nil {
 			return aerr
 		}
-		var out *V2Route
-		_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+		var out *v2Route
+		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 			rt, ok := api.V2Routes[routeID]
 			if !ok {
 				return errNotFound("Invalid route identifier specified %s", routeID)
@@ -91,7 +91,7 @@ func (s *Server) routeV2Routes(w http.ResponseWriter, r *http.Request, apiID str
 		writeJSON(w, 200, viewV2Route(out))
 		return nil
 	case http.MethodDelete:
-		_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 			if _, ok := api.V2Routes[routeID]; !ok {
 				return errNotFound("Invalid route identifier specified %s", routeID)
 			}
@@ -116,9 +116,9 @@ func (s *Server) v2CreateRoute(w http.ResponseWriter, r *http.Request, apiID str
 	if req.RouteKey == nil || *req.RouteKey == "" {
 		return errBadRequest("routeKey is required")
 	}
-	var out *V2Route
-	_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
-		rt := &V2Route{ID: s.store.newID(), AuthorizationType: "NONE"}
+	var out *v2Route
+	_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
+		rt := &v2Route{ID: s.store.newID(), AuthorizationType: "NONE"}
 		if err := applyV2RouteInput(api, rt, &req); err != nil {
 			return err
 		}
@@ -137,7 +137,7 @@ func (s *Server) v2CreateRoute(w http.ResponseWriter, r *http.Request, apiID str
 // applyV2RouteInput validates and applies the fields a create or update
 // sent. A route key must be well formed and unique in the API; a target
 // must name an integration that exists; CUSTOM needs an authorizer.
-func applyV2RouteInput(api *RestAPI, rt *V2Route, in *v2RouteInput) error {
+func applyV2RouteInput(api *restAPI, rt *v2Route, in *v2RouteInput) error {
 	if in.RouteKey != nil {
 		key := strings.TrimSpace(*in.RouteKey)
 		if !validRouteKey(key) {
@@ -210,7 +210,7 @@ func applyV2RouteInput(api *RestAPI, rt *V2Route, in *v2RouteInput) error {
 	return nil
 }
 
-func viewV2Route(rt *V2Route) map[string]any {
+func viewV2Route(rt *v2Route) map[string]any {
 	v := map[string]any{
 		"routeId": rt.ID, "routeKey": rt.RouteKey, "apiGatewayManaged": false,
 		"apiKeyRequired": rt.APIKeyRequired, "authorizationType": rt.AuthorizationType,
@@ -259,9 +259,9 @@ func (s *Server) routeV2Integrations(w http.ResponseWriter, r *http.Request, api
 			if req.IntegrationType == nil {
 				return errBadRequest("integrationType is required")
 			}
-			var out *V2Integration
-			_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
-				integ := &V2Integration{ID: s.store.newID(), TimeoutInMillis: 30000, ConnectionType: "INTERNET"}
+			var out *v2Integration
+			_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
+				integ := &v2Integration{ID: s.store.newID(), TimeoutInMillis: 30000, ConnectionType: "INTERNET"}
 				if err := applyV2IntegrationInput(integ, &req); err != nil {
 					return err
 				}
@@ -313,8 +313,8 @@ func (s *Server) routeV2Integrations(w http.ResponseWriter, r *http.Request, api
 		if aerr := decode(r, &req); aerr != nil {
 			return aerr
 		}
-		var out *V2Integration
-		_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+		var out *v2Integration
+		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 			integ, ok := api.V2Integrations[integID]
 			if !ok {
 				return errNotFound("Invalid integration identifier specified %s", integID)
@@ -332,7 +332,7 @@ func (s *Server) routeV2Integrations(w http.ResponseWriter, r *http.Request, api
 		writeJSON(w, 200, viewV2Integration(out))
 		return nil
 	case http.MethodDelete:
-		_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 			if _, ok := api.V2Integrations[integID]; !ok {
 				return errNotFound("Invalid integration identifier specified %s", integID)
 			}
@@ -358,7 +358,7 @@ func (s *Server) routeV2Integrations(w http.ResponseWriter, r *http.Request, api
 // HTTP APIs run AWS_PROXY (a Lambda function, payload 1.0 or 2.0) and
 // HTTP_PROXY (a URL); the WebSocket kinds and AWS service integrations are
 // refused by name rather than stored and then failing on the data plane.
-func applyV2IntegrationInput(integ *V2Integration, in *v2IntegrationInput) error {
+func applyV2IntegrationInput(integ *v2Integration, in *v2IntegrationInput) error {
 	if in.IntegrationType != nil {
 		switch strings.ToUpper(*in.IntegrationType) {
 		case "AWS_PROXY", "HTTP_PROXY":
@@ -432,7 +432,7 @@ func applyV2IntegrationInput(integ *V2Integration, in *v2IntegrationInput) error
 	return nil
 }
 
-func viewV2Integration(integ *V2Integration) map[string]any {
+func viewV2Integration(integ *v2Integration) map[string]any {
 	v := map[string]any{
 		"integrationId": integ.ID, "integrationType": integ.Type, "apiGatewayManaged": false,
 		"timeoutInMillis": integ.TimeoutInMillis, "connectionType": integ.ConnectionType,
@@ -477,14 +477,14 @@ func (s *Server) routeV2Authorizers(w http.ResponseWriter, r *http.Request, apiI
 			if req.Name == nil || *req.Name == "" {
 				return errBadRequest("name is required")
 			}
-			var out *V2Authorizer
-			_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+			var out *v2Authorizer
+			_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 				for _, other := range api.V2Authorizers {
 					if other.Name == *req.Name {
 						return errConflict("Authorizer name %s already exists", *req.Name)
 					}
 				}
-				a := &V2Authorizer{ID: s.store.newID(), PayloadFormatVersion: "2.0"}
+				a := &v2Authorizer{ID: s.store.newID(), PayloadFormatVersion: "2.0"}
 				if err := applyV2AuthorizerInput(a, &req); err != nil {
 					return err
 				}
@@ -529,8 +529,8 @@ func (s *Server) routeV2Authorizers(w http.ResponseWriter, r *http.Request, apiI
 		if aerr := decode(r, &req); aerr != nil {
 			return aerr
 		}
-		var out *V2Authorizer
-		_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+		var out *v2Authorizer
+		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 			a, ok := api.V2Authorizers[authID]
 			if !ok {
 				return errNotFound("Invalid authorizer identifier specified %s", authID)
@@ -548,7 +548,7 @@ func (s *Server) routeV2Authorizers(w http.ResponseWriter, r *http.Request, apiI
 		writeJSON(w, 200, viewV2Authorizer(out))
 		return nil
 	case http.MethodDelete:
-		_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 			if _, ok := api.V2Authorizers[authID]; !ok {
 				return errNotFound("Invalid authorizer identifier specified %s", authID)
 			}
@@ -570,7 +570,7 @@ func (s *Server) routeV2Authorizers(w http.ResponseWriter, r *http.Request, apiI
 	return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on an authorizer")
 }
 
-func applyV2AuthorizerInput(a *V2Authorizer, in *v2AuthorizerInput) error {
+func applyV2AuthorizerInput(a *v2Authorizer, in *v2AuthorizerInput) error {
 	if in.Name != nil {
 		a.Name = *in.Name
 	}
@@ -622,7 +622,7 @@ func applyV2AuthorizerInput(a *V2Authorizer, in *v2AuthorizerInput) error {
 	return nil
 }
 
-func viewV2Authorizer(a *V2Authorizer) map[string]any {
+func viewV2Authorizer(a *v2Authorizer) map[string]any {
 	v := map[string]any{
 		"authorizerId": a.ID, "name": a.Name, "authorizerType": a.Type,
 		"authorizerUri": a.URI, "identitySource": a.IdentitySource,

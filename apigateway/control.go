@@ -206,7 +206,7 @@ func (s *Server) patchRestAPI(w http.ResponseWriter, r *http.Request, apiID stri
 	if aerr != nil {
 		return aerr
 	}
-	api, err := s.store.Update(apiID, func(api *RestAPI) error {
+	api, err := s.store.Update(apiID, func(api *restAPI) error {
 		for _, op := range ops {
 			switch op.Path {
 			case "/name":
@@ -288,8 +288,8 @@ func (s *Server) createResource(w http.ResponseWriter, r *http.Request, apiID, p
 	if req.PathPart == "" {
 		return errBadRequest("pathPart is required")
 	}
-	var created *Resource
-	_, err := s.store.Update(apiID, func(api *RestAPI) error {
+	var created *resource
+	_, err := s.store.Update(apiID, func(api *restAPI) error {
 		if _, ok := api.Resources[parentID]; !ok {
 			return errNotFound("Invalid Resource identifier specified")
 		}
@@ -298,7 +298,7 @@ func (s *Server) createResource(w http.ResponseWriter, r *http.Request, apiID, p
 				return errConflict("Another resource with the same parent already has this name: %s", req.PathPart)
 			}
 		}
-		created = &Resource{ID: s.store.newID(), ParentID: parentID, PathPart: req.PathPart}
+		created = &resource{ID: s.store.newID(), ParentID: parentID, PathPart: req.PathPart}
 		api.Resources[created.ID] = created
 		return nil
 	})
@@ -310,7 +310,7 @@ func (s *Server) createResource(w http.ResponseWriter, r *http.Request, apiID, p
 }
 
 func (s *Server) deleteResource(w http.ResponseWriter, apiID, resourceID string) *awshttp.APIError {
-	_, err := s.store.Update(apiID, func(api *RestAPI) error {
+	_, err := s.store.Update(apiID, func(api *restAPI) error {
 		res, ok := api.Resources[resourceID]
 		if !ok {
 			return errNotFound("Invalid Resource identifier specified")
@@ -341,8 +341,8 @@ func (s *Server) patchResource(w http.ResponseWriter, r *http.Request, apiID, re
 	if aerr != nil {
 		return aerr
 	}
-	var out *Resource
-	_, err := s.store.Update(apiID, func(api *RestAPI) error {
+	var out *resource
+	_, err := s.store.Update(apiID, func(api *restAPI) error {
 		res := api.Resources[resourceID]
 		if res == nil {
 			return errNotFound("Invalid Resource identifier specified")
@@ -376,7 +376,7 @@ func (s *Server) routeMethods(w http.ResponseWriter, r *http.Request, apiID, res
 		case http.MethodGet:
 			return s.getMethod(w, apiID, resourceID, verb)
 		case http.MethodDelete:
-			return s.mutateMethod(w, apiID, resourceID, verb, 204, func(res *Resource) error {
+			return s.mutateMethod(w, apiID, resourceID, verb, 204, func(res *resource) error {
 				delete(res.Methods, verb)
 				return nil
 			})
@@ -398,8 +398,8 @@ func (s *Server) routeMethods(w http.ResponseWriter, r *http.Request, apiID, res
 }
 
 // mutateMethod applies fn to the owning resource and writes an empty response.
-func (s *Server) mutateMethod(w http.ResponseWriter, apiID, resourceID, verb string, status int, fn func(*Resource) error) *awshttp.APIError {
-	_, err := s.store.Update(apiID, func(api *RestAPI) error {
+func (s *Server) mutateMethod(w http.ResponseWriter, apiID, resourceID, verb string, status int, fn func(*resource) error) *awshttp.APIError {
+	_, err := s.store.Update(apiID, func(api *restAPI) error {
 		res := api.Resources[resourceID]
 		if res == nil {
 			return errNotFound("Invalid Resource identifier specified")
@@ -426,16 +426,16 @@ func (s *Server) putMethod(w http.ResponseWriter, r *http.Request, apiID, resour
 	if aerr := decode(r, &req); aerr != nil {
 		return aerr
 	}
-	var out *Method
-	_, err := s.store.Update(apiID, func(api *RestAPI) error {
+	var out *method
+	_, err := s.store.Update(apiID, func(api *restAPI) error {
 		res := api.Resources[resourceID]
 		if res == nil {
 			return errNotFound("Invalid Resource identifier specified")
 		}
 		if res.Methods == nil {
-			res.Methods = map[string]*Method{}
+			res.Methods = map[string]*method{}
 		}
-		m := &Method{
+		m := &method{
 			HTTPMethod: verb, AuthorizationType: req.AuthorizationType,
 			AuthorizerID: req.AuthorizerID, APIKeyRequired: req.APIKeyRequired,
 			OperationName: req.OperationName, RequestParameters: req.RequestParameters,
@@ -477,7 +477,7 @@ func (s *Server) getMethod(w http.ResponseWriter, apiID, resourceID, verb string
 	return nil
 }
 
-func (s *Server) lookupMethod(apiID, resourceID, verb string) (*Method, *awshttp.APIError) {
+func (s *Server) lookupMethod(apiID, resourceID, verb string) (*method, *awshttp.APIError) {
 	api, err := s.store.Get(apiID)
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
@@ -510,7 +510,7 @@ func (s *Server) routeIntegration(w http.ResponseWriter, r *http.Request, apiID,
 			writeJSON(w, 200, viewIntegration(m.Integration))
 			return nil
 		case http.MethodDelete:
-			return s.mutateMethod(w, apiID, resourceID, verb, 204, func(res *Resource) error {
+			return s.mutateMethod(w, apiID, resourceID, verb, 204, func(res *resource) error {
 				if m := res.Methods[verb]; m != nil {
 					m.Integration = nil
 				}
@@ -551,8 +551,8 @@ func (s *Server) putIntegration(w http.ResponseWriter, r *http.Request, apiID, r
 	if method == "" {
 		method = req.HTTPMethod
 	}
-	var out *Integration
-	_, err := s.store.Update(apiID, func(api *RestAPI) error {
+	var out *integration
+	_, err := s.store.Update(apiID, func(api *restAPI) error {
 		res := api.Resources[resourceID]
 		if res == nil {
 			return errNotFound("Invalid Resource identifier specified")
@@ -561,7 +561,7 @@ func (s *Server) putIntegration(w http.ResponseWriter, r *http.Request, apiID, r
 		if m == nil {
 			return errNotFound("Invalid Method identifier specified")
 		}
-		integ := &Integration{
+		integ := &integration{
 			Type: strings.ToUpper(req.Type), HTTPMethod: method, URI: req.URI,
 			ConnectionType: req.ConnectionType, Credentials: req.Credentials,
 			PassthroughBehavior: req.PassthroughBehavior, TimeoutInMillis: req.TimeoutInMillis,
@@ -593,16 +593,16 @@ func (s *Server) routeMethodResponse(w http.ResponseWriter, r *http.Request, api
 		if aerr := decode(r, &req); aerr != nil {
 			return aerr
 		}
-		var out *MethodResponse
-		_, err := s.store.Update(apiID, func(api *RestAPI) error {
+		var out *methodResponse
+		_, err := s.store.Update(apiID, func(api *restAPI) error {
 			m, err := methodOf(api, resourceID, verb)
 			if err != nil {
 				return err
 			}
 			if m.Responses == nil {
-				m.Responses = map[string]*MethodResponse{}
+				m.Responses = map[string]*methodResponse{}
 			}
-			out = &MethodResponse{StatusCode: status, ResponseModels: req.ResponseModels, ResponseParameters: req.ResponseParameters}
+			out = &methodResponse{StatusCode: status, ResponseModels: req.ResponseModels, ResponseParameters: req.ResponseParameters}
 			m.Responses[status] = out
 			return nil
 		})
@@ -623,7 +623,7 @@ func (s *Server) routeMethodResponse(w http.ResponseWriter, r *http.Request, api
 		writeJSON(w, 200, viewMethodResponse(mr))
 		return nil
 	case http.MethodDelete:
-		return s.mutateMethod(w, apiID, resourceID, verb, 204, func(res *Resource) error {
+		return s.mutateMethod(w, apiID, resourceID, verb, 204, func(res *resource) error {
 			if m := res.Methods[verb]; m != nil {
 				delete(m.Responses, status)
 			}
@@ -645,8 +645,8 @@ func (s *Server) routeIntegrationResponse(w http.ResponseWriter, r *http.Request
 		if aerr := decode(r, &req); aerr != nil {
 			return aerr
 		}
-		var out *IntegrationResponse
-		_, err := s.store.Update(apiID, func(api *RestAPI) error {
+		var out *integrationResponse
+		_, err := s.store.Update(apiID, func(api *restAPI) error {
 			m, err := methodOf(api, resourceID, verb)
 			if err != nil {
 				return err
@@ -655,9 +655,9 @@ func (s *Server) routeIntegrationResponse(w http.ResponseWriter, r *http.Request
 				return errNotFound("Invalid Integration identifier specified")
 			}
 			if m.Integration.Responses == nil {
-				m.Integration.Responses = map[string]*IntegrationResponse{}
+				m.Integration.Responses = map[string]*integrationResponse{}
 			}
-			out = &IntegrationResponse{
+			out = &integrationResponse{
 				StatusCode: status, SelectionPattern: req.SelectionPattern,
 				ResponseTemplates: req.ResponseTemplates, ResponseParameters: req.ResponseParameters,
 				ContentHandling: req.ContentHandling,
@@ -681,7 +681,7 @@ func (s *Server) routeIntegrationResponse(w http.ResponseWriter, r *http.Request
 		writeJSON(w, 200, viewIntegrationResponse(m.Integration.Responses[status]))
 		return nil
 	case http.MethodDelete:
-		return s.mutateMethod(w, apiID, resourceID, verb, 204, func(res *Resource) error {
+		return s.mutateMethod(w, apiID, resourceID, verb, 204, func(res *resource) error {
 			if m := res.Methods[verb]; m != nil && m.Integration != nil {
 				delete(m.Integration.Responses, status)
 			}
@@ -691,7 +691,7 @@ func (s *Server) routeIntegrationResponse(w http.ResponseWriter, r *http.Request
 	return awshttp.Errf(405, "MethodNotAllowed", "unsupported integration-response operation")
 }
 
-func methodOf(api *RestAPI, resourceID, verb string) (*Method, error) {
+func methodOf(api *restAPI, resourceID, verb string) (*method, error) {
 	res, ok := api.Resources[resourceID]
 	if !ok {
 		return nil, errNotFound("Invalid Resource identifier specified")
@@ -738,7 +738,7 @@ func (s *Server) routeDeployments(w http.ResponseWriter, r *http.Request, apiID 
 			writeJSON(w, 200, viewDeployment(dep))
 			return nil
 		case http.MethodDelete:
-			if _, err := s.store.Update(apiID, func(api *RestAPI) error {
+			if _, err := s.store.Update(apiID, func(api *restAPI) error {
 				delete(api.Deployments, depID)
 				return nil
 			}); err != nil {
@@ -761,21 +761,21 @@ func (s *Server) createDeployment(w http.ResponseWriter, r *http.Request, apiID 
 	if aerr := decode(r, &req); aerr != nil {
 		return aerr
 	}
-	var dep *Deployment
-	_, err := s.store.Update(apiID, func(api *RestAPI) error {
+	var dep *deployment
+	_, err := s.store.Update(apiID, func(api *restAPI) error {
 		now := s.now().Unix()
-		dep = &Deployment{ID: s.store.newID(), Description: req.Description, Created: now}
+		dep = &deployment{ID: s.store.newID(), Description: req.Description, Created: now}
 		if api.Deployments == nil {
-			api.Deployments = map[string]*Deployment{}
+			api.Deployments = map[string]*deployment{}
 		}
 		api.Deployments[dep.ID] = dep
 		// CreateDeployment with a stageName creates the stage too, which is
 		// how most templates and the CLI deploy in one call.
 		if req.StageName != "" {
 			if api.Stages == nil {
-				api.Stages = map[string]*Stage{}
+				api.Stages = map[string]*stage{}
 			}
-			api.Stages[req.StageName] = &Stage{
+			api.Stages[req.StageName] = &stage{
 				Name: req.StageName, DeploymentID: dep.ID, Description: req.StageDescription,
 				Variables: req.Variables, Created: now, Updated: now,
 			}
@@ -825,7 +825,7 @@ func (s *Server) routeStages(w http.ResponseWriter, r *http.Request, apiID strin
 		case http.MethodPatch:
 			return s.patchStage(w, r, apiID, name)
 		case http.MethodDelete:
-			if _, err := s.store.Update(apiID, func(api *RestAPI) error {
+			if _, err := s.store.Update(apiID, func(api *restAPI) error {
 				delete(api.Stages, name)
 				return nil
 			}); err != nil {
@@ -853,19 +853,19 @@ func (s *Server) createStage(w http.ResponseWriter, r *http.Request, apiID strin
 	if req.StageName == "" {
 		return errBadRequest("stageName is required")
 	}
-	var out *Stage
-	_, err := s.store.Update(apiID, func(api *RestAPI) error {
+	var out *stage
+	_, err := s.store.Update(apiID, func(api *restAPI) error {
 		if _, exists := api.Stages[req.StageName]; exists {
 			return errConflict("Stage already exists: %s", req.StageName)
 		}
 		now := s.now().Unix()
-		out = &Stage{
+		out = &stage{
 			Name: req.StageName, DeploymentID: req.DeploymentID, Description: req.Description,
 			Variables: req.Variables, Tags: req.Tags, TracingEnabled: req.TracingEnabled,
 			Created: now, Updated: now,
 		}
 		if api.Stages == nil {
-			api.Stages = map[string]*Stage{}
+			api.Stages = map[string]*stage{}
 		}
 		api.Stages[req.StageName] = out
 		return nil
@@ -882,8 +882,8 @@ func (s *Server) patchStage(w http.ResponseWriter, r *http.Request, apiID, name 
 	if aerr != nil {
 		return aerr
 	}
-	var out *Stage
-	_, err := s.store.Update(apiID, func(api *RestAPI) error {
+	var out *stage
+	_, err := s.store.Update(apiID, func(api *restAPI) error {
 		st, ok := api.Stages[name]
 		if !ok {
 			return errNotFound("Invalid stage identifier specified")
@@ -910,7 +910,7 @@ func (s *Server) patchStage(w http.ResponseWriter, r *http.Request, apiID, name 
 				st.AccessLog = nil
 			case op.Path == "/accessLogSettings/destinationArn", op.Path == "/accessLogSettings/format":
 				if st.AccessLog == nil {
-					st.AccessLog = &AccessLogSettings{}
+					st.AccessLog = &accessLogSettings{}
 				}
 				if op.Path == "/accessLogSettings/destinationArn" {
 					if op.Value != "" && logGroupFromARN(op.Value) == "" {
@@ -976,7 +976,7 @@ func (s *Server) routeTags(w http.ResponseWriter, r *http.Request, segs []string
 		if aerr := decode(r, &req); aerr != nil {
 			return aerr
 		}
-		if _, err := s.store.Update(apiID, func(api *RestAPI) error {
+		if _, err := s.store.Update(apiID, func(api *restAPI) error {
 			if api.Tags == nil {
 				api.Tags = map[string]string{}
 			}
@@ -994,7 +994,7 @@ func (s *Server) routeTags(w http.ResponseWriter, r *http.Request, segs []string
 		if len(keys) == 0 {
 			return errBadRequest("tagKeys is required")
 		}
-		if _, err := s.store.Update(apiID, func(api *RestAPI) error {
+		if _, err := s.store.Update(apiID, func(api *restAPI) error {
 			for _, k := range keys {
 				delete(api.Tags, k)
 			}

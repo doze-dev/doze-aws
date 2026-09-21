@@ -23,8 +23,8 @@ var bucketSubscriptions = []byte("subscriptions") // group \x00 name → Subscri
 // maxSubscriptionsPerGroup is AWS's limit.
 const maxSubscriptionsPerGroup = 2
 
-// Subscription is one subscription filter on a group.
-type Subscription struct {
+// subscription is one subscription filter on a group.
+type subscription struct {
 	Group        string `json:"group"`
 	Name         string `json:"name"`
 	Pattern      string `json:"pattern"`
@@ -38,7 +38,7 @@ func subscriptionKey(group, name string) []byte { return []byte(group + "\x00" +
 
 // ---- store ----
 
-func (s *store) PutSubscription(sub Subscription) error {
+func (s *store) PutSubscription(sub subscription) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		if tx.Bucket(bucketGroups).Get([]byte(sub.Group)) == nil {
 			return ErrNoGroup
@@ -71,13 +71,13 @@ func (s *store) DeleteSubscription(group, name string) error {
 }
 
 // Subscriptions lists a group's filters by name.
-func (s *store) Subscriptions(group string) ([]Subscription, error) {
-	var out []Subscription
+func (s *store) Subscriptions(group string) ([]subscription, error) {
+	var out []subscription
 	err := s.db.View(func(tx *bolt.Tx) error {
 		c := tx.Bucket(bucketSubscriptions).Cursor()
 		prefix := subscriptionKey(group, "")
 		for k, v := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, v = c.Next() {
-			var sub Subscription
+			var sub subscription
 			if json.Unmarshal(v, &sub) == nil {
 				out = append(out, sub)
 			}
@@ -120,7 +120,7 @@ func (s *Server) putSubscriptionFilter(ctx context.Context, p map[string]any) (a
 	if aerr := s.checkDestination(g.Name, dest); aerr != nil {
 		return nil, aerr
 	}
-	sub := Subscription{
+	sub := subscription{
 		Group: g.Name, Name: awsjson.Str(p, "filterName"), Pattern: pattern, Destination: dest,
 		RoleARN: awsjson.Str(p, "roleArn"), Distribution: awsjson.Str(p, "distribution"),
 		CreatedMs: s.store.now(),
@@ -185,7 +185,7 @@ func (s *Server) describeSubscriptionFilters(ctx context.Context, p map[string]a
 	return pageByName(items, "subscriptionFilters", "filterName", awsjson.Str(p, "nextToken"), awsjson.Int(p, "limit", 50)), nil
 }
 
-func subscriptionView(sub Subscription) map[string]any {
+func subscriptionView(sub subscription) map[string]any {
 	v := map[string]any{
 		"filterName": sub.Name, "logGroupName": sub.Group, "filterPattern": sub.Pattern,
 		"destinationArn": sub.Destination, "creationTime": sub.CreatedMs,

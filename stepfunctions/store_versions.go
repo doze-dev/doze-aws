@@ -29,7 +29,7 @@ import (
 // carries everything DescribeStateMachine answers for a version ARN, config
 // blocks included, so the describe does not have to reach back to the
 // (possibly changed) machine.
-type Version struct {
+type version struct {
 	MachineName string `json:"machine_name"`
 	Number      int    `json:"number"`
 	ARN         string `json:"arn"`
@@ -47,18 +47,18 @@ type Version struct {
 
 // Alias is a named pointer at one or two versions of the same machine, with
 // the traffic split StartExecution honours.
-type Alias struct {
+type alias struct {
 	MachineName string  `json:"machine_name"`
 	Name        string  `json:"name"`
 	ARN         string  `json:"arn"`
 	Description string  `json:"description,omitempty"`
-	Routing     []Route `json:"routing"`
+	Routing     []route `json:"routing"`
 	CreatedAt   int64   `json:"created_at"`
 	UpdatedAt   int64   `json:"updated_at"`
 }
 
-// Route is one routingConfiguration entry.
-type Route struct {
+// route is one routingConfiguration entry.
+type route struct {
 	VersionARN string `json:"version_arn"`
 	Weight     int    `json:"weight"`
 }
@@ -70,16 +70,16 @@ func versionKey(machine string, n int) []byte {
 func aliasKey(machine, alias string) []byte { return []byte(machine + "\x00" + alias) }
 
 // versionsIn reads every version of one machine inside tx, ascending.
-func versionsIn(tx *bolt.Tx, machine string) ([]Version, error) {
+func versionsIn(tx *bolt.Tx, machine string) ([]version, error) {
 	b := tx.Bucket(bucketVersions)
 	if b == nil {
 		return nil, nil
 	}
 	prefix := []byte(machine + "\x00")
-	var out []Version
+	var out []version
 	c := b.Cursor()
 	for k, raw := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, raw = c.Next() {
-		var v Version
+		var v version
 		if err := json.Unmarshal(raw, &v); err != nil {
 			return nil, err
 		}
@@ -89,16 +89,16 @@ func versionsIn(tx *bolt.Tx, machine string) ([]Version, error) {
 }
 
 // aliasesIn reads every alias of one machine inside tx, in name order.
-func aliasesIn(tx *bolt.Tx, machine string) ([]Alias, error) {
+func aliasesIn(tx *bolt.Tx, machine string) ([]alias, error) {
 	b := tx.Bucket(bucketAliases)
 	if b == nil {
 		return nil, nil
 	}
 	prefix := []byte(machine + "\x00")
-	var out []Alias
+	var out []alias
 	c := b.Cursor()
 	for k, raw := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, raw = c.Next() {
-		var a Alias
+		var a alias
 		if err := json.Unmarshal(raw, &a); err != nil {
 			return nil, err
 		}
@@ -112,8 +112,8 @@ func aliasesIn(tx *bolt.Tx, machine string) ([]Alias, error) {
 // PublishStateMachineVersion as idempotent on the current revision: a CDK
 // deploy that changed nothing publishes nothing. Counter bump and snapshot
 // land in one transaction so a crash cannot hand out a number twice.
-func (s *store) PublishVersion(m *StateMachine, description string) (*Version, *awshttp.APIError) {
-	var out Version
+func (s *store) PublishVersion(m *stateMachine, description string) (*version, *awshttp.APIError) {
+	var out version
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(bucketVersions)
 		if err != nil {
@@ -135,7 +135,7 @@ func (s *store) PublishVersion(m *StateMachine, description string) (*Version, *
 			}
 			next = last + 1
 		}
-		out = Version{
+		out = version{
 			MachineName: m.Name, Number: next, ARN: versionARN(s.id, m.Name, next),
 			Definition: m.Definition, RoleARN: m.RoleARN, Type: m.Type,
 			RevisionID: m.RevisionID, Description: description, CreatedAt: s.now(),
@@ -160,8 +160,8 @@ func (s *store) PublishVersion(m *StateMachine, description string) (*Version, *
 }
 
 // GetVersion reads one version, nil when absent.
-func (s *store) GetVersion(machine string, n int) (*Version, *awshttp.APIError) {
-	var v Version
+func (s *store) GetVersion(machine string, n int) (*version, *awshttp.APIError) {
+	var v version
 	found, err := s.get(bucketVersions, versionKey(machine, n), &v)
 	if err != nil {
 		return nil, asAPIError(err)
@@ -173,8 +173,8 @@ func (s *store) GetVersion(machine string, n int) (*Version, *awshttp.APIError) 
 }
 
 // ListVersions returns a machine's versions, ascending by number.
-func (s *store) ListVersions(machine string) ([]Version, *awshttp.APIError) {
-	var out []Version
+func (s *store) ListVersions(machine string) ([]version, *awshttp.APIError) {
+	var out []version
 	err := s.db.View(func(tx *bolt.Tx) (err error) {
 		out, err = versionsIn(tx, machine)
 		return err
@@ -219,8 +219,8 @@ func (s *store) DeleteVersion(machine string, n int) *awshttp.APIError {
 // PutAlias stores an alias. AWS makes CreateStateMachineAlias idempotent on
 // name, description and routing: the same request again answers the
 // existing alias, anything else on a taken name is ConflictException.
-func (s *store) PutAlias(a *Alias) (*Alias, *awshttp.APIError) {
-	var existing Alias
+func (s *store) PutAlias(a *alias) (*alias, *awshttp.APIError) {
+	var existing alias
 	found, err := s.get(bucketAliases, aliasKey(a.MachineName, a.Name), &existing)
 	if err != nil {
 		return nil, asAPIError(err)
@@ -239,7 +239,7 @@ func (s *store) PutAlias(a *Alias) (*Alias, *awshttp.APIError) {
 	return a, nil
 }
 
-func sameRouting(a, b []Route) bool {
+func sameRouting(a, b []route) bool {
 	if len(a) != len(b) {
 		return false
 	}
@@ -252,8 +252,8 @@ func sameRouting(a, b []Route) bool {
 }
 
 // GetAlias reads one alias, nil when absent.
-func (s *store) GetAlias(machine, name string) (*Alias, *awshttp.APIError) {
-	var a Alias
+func (s *store) GetAlias(machine, name string) (*alias, *awshttp.APIError) {
+	var a alias
 	found, err := s.get(bucketAliases, aliasKey(machine, name), &a)
 	if err != nil {
 		return nil, asAPIError(err)
@@ -266,7 +266,7 @@ func (s *store) GetAlias(machine, name string) (*Alias, *awshttp.APIError) {
 
 // UpdateAlias applies UpdateStateMachineAlias: a nil description or routing
 // is left as it was. Answers nil for an absent alias.
-func (s *store) UpdateAlias(machine, name string, description *string, routing []Route) (*Alias, *awshttp.APIError) {
+func (s *store) UpdateAlias(machine, name string, description *string, routing []route) (*alias, *awshttp.APIError) {
 	a, aerr := s.GetAlias(machine, name)
 	if aerr != nil || a == nil {
 		return nil, aerr
@@ -303,8 +303,8 @@ func (s *store) DeleteAlias(machine, name string) (found bool, aerr *awshttp.API
 }
 
 // ListAliases returns a machine's aliases in name order.
-func (s *store) ListAliases(machine string) ([]Alias, *awshttp.APIError) {
-	var out []Alias
+func (s *store) ListAliases(machine string) ([]alias, *awshttp.APIError) {
+	var out []alias
 	err := s.db.View(func(tx *bolt.Tx) (err error) {
 		out, err = aliasesIn(tx, machine)
 		return err

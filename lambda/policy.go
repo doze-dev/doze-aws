@@ -19,7 +19,7 @@ import (
 // PolicyStatement is one statement of a function's resource policy, kept in the
 // shape AWS returns rather than a normalised form, so GetPolicy echoes exactly
 // what AddPermission was given.
-type PolicyStatement struct {
+type policyStatement struct {
 	Sid       string          `json:"Sid"`
 	Effect    string          `json:"Effect"`
 	Principal any             `json:"Principal"`
@@ -33,7 +33,7 @@ type PolicyStatement struct {
 type policyDoc struct {
 	Version   string            `json:"Version"`
 	Id        string            `json:"Id"`
-	Statement []PolicyStatement `json:"Statement"`
+	Statement []policyStatement `json:"Statement"`
 }
 
 func (s *Server) routePolicy(w http.ResponseWriter, r *http.Request, name string, segs []string) *awshttp.APIError {
@@ -118,12 +118,12 @@ func (s *Server) addPermission(w http.ResponseWriter, r *http.Request, name stri
 		}
 	}
 
-	stmt := PolicyStatement{
+	stmt := policyStatement{
 		Sid: req.StatementId, Effect: "Allow", Principal: principal,
 		Action: req.Action, Resource: resource, Condition: cond,
 	}
 
-	updated, err := s.store.Update(name, func(f *Function) error {
+	updated, err := s.store.Update(name, func(f *function) error {
 		for _, existing := range f.Policy {
 			if existing.Sid == req.StatementId {
 				return awshttp.Errf(409, "ResourceConflictException",
@@ -167,7 +167,7 @@ func (s *Server) removePermission(w http.ResponseWriter, name, statementID strin
 	if statementID == "" {
 		return awshttp.Errf(400, "InvalidParameterValueException", "StatementId is required")
 	}
-	_, err := s.store.Update(name, func(f *Function) error {
+	_, err := s.store.Update(name, func(f *function) error {
 		for i, stmt := range f.Policy {
 			if stmt.Sid == statementID {
 				f.Policy = append(f.Policy[:i], f.Policy[i+1:]...)

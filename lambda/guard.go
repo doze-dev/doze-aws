@@ -41,7 +41,7 @@ func (s *Server) guardRequest(w http.ResponseWriter, r *http.Request) *awshttp.A
 
 // functionPolicyDocs parses a function's permission statements into the
 // engine's shape. GetPolicy renders the same document to callers.
-func functionPolicyDocs(f *Function) []*iampolicy.Document {
+func functionPolicyDocs(f *function) []*iampolicy.Document {
 	if len(f.Policy) == 0 {
 		return nil
 	}

@@ -196,7 +196,7 @@ func hUpdateStreamMode(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	if mode != modeProvisioned && mode != modeOnDemand {
 		return nil, errValidation("StreamModeDetails.StreamMode must be %s or %s", modeProvisioned, modeOnDemand)
 	}
-	if _, err := s.store.Update(stream, func(st *Stream) error {
+	if _, err := s.store.Update(stream, func(st *streamRecord) error {
 		st.Mode = mode
 		return nil
 	}); err != nil {
@@ -225,7 +225,7 @@ func setRetention(s *Server, p map[string]any, increase bool) (any, *awshttp.API
 	if hours < minRetentionHours || hours > maxRetentionHours {
 		return nil, errInvalid("RetentionPeriodHours must be between %d and %d", minRetentionHours, maxRetentionHours)
 	}
-	_, err := s.store.Update(stream, func(st *Stream) error {
+	_, err := s.store.Update(stream, func(st *streamRecord) error {
 		// AWS rejects an "increase" that shortens the window and vice versa —
 		// the asymmetry is the whole point of having two operations.
 		if increase && hours < st.RetentionHours {
@@ -254,7 +254,7 @@ func hDecreaseRetention(s *Server, p map[string]any) (any, *awshttp.APIError) {
 // ---- tags ----
 
 func addTags(s *Server, stream string, tags map[string]string) *awshttp.APIError {
-	_, err := s.store.Update(stream, func(st *Stream) error {
+	_, err := s.store.Update(stream, func(st *streamRecord) error {
 		if st.Tags == nil {
 			st.Tags = map[string]string{}
 		}
@@ -267,7 +267,7 @@ func addTags(s *Server, stream string, tags map[string]string) *awshttp.APIError
 }
 
 func removeTags(s *Server, stream string, keys []string) *awshttp.APIError {
-	_, err := s.store.Update(stream, func(st *Stream) error {
+	_, err := s.store.Update(stream, func(st *streamRecord) error {
 		for _, k := range keys {
 			delete(st.Tags, k)
 		}
@@ -409,7 +409,7 @@ func hListConsumers(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	return map[string]any{"Consumers": out}, nil
 }
 
-func consumerWire(c *Consumer) map[string]any {
+func consumerWire(c *consumer) map[string]any {
 	return map[string]any{
 		"ConsumerName":              c.Name,
 		"ConsumerARN":               c.ARN,
@@ -428,14 +428,14 @@ func consumerWire(c *Consumer) map[string]any {
 // faithfully rather than refused, because SDK code paths that set them should
 // keep working.
 
-func encTypeOf(st *Stream) string {
+func encTypeOf(st *streamRecord) string {
 	if st.EncryptionType == "" {
 		return "NONE"
 	}
 	return st.EncryptionType
 }
 
-func enhancedWire(st *Stream) []map[string]any {
+func enhancedWire(st *streamRecord) []map[string]any {
 	metrics := st.EnhancedMetrics
 	if metrics == nil {
 		metrics = []string{}
@@ -457,7 +457,7 @@ func hStartEncryption(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	if aerr := s.requireUsableKey(keyID); aerr != nil {
 		return nil, aerr
 	}
-	_, err := s.store.Update(stream, func(st *Stream) error {
+	_, err := s.store.Update(stream, func(st *streamRecord) error {
 		st.EncryptionType, st.KeyID = "KMS", keyID
 		return nil
 	})
@@ -469,7 +469,7 @@ func hStopEncryption(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	if aerr != nil {
 		return nil, aerr
 	}
-	_, err := s.store.Update(stream, func(st *Stream) error {
+	_, err := s.store.Update(stream, func(st *streamRecord) error {
 		st.EncryptionType, st.KeyID = "NONE", ""
 		return nil
 	})
@@ -483,7 +483,7 @@ func setMonitoring(s *Server, p map[string]any, enable bool) (any, *awshttp.APIE
 	}
 	req := awsjson.Strs(p, "ShardLevelMetrics")
 	var before, after []string
-	_, err := s.store.Update(stream, func(st *Stream) error {
+	_, err := s.store.Update(stream, func(st *streamRecord) error {
 		before = append([]string{}, st.EnhancedMetrics...)
 		set := map[string]bool{}
 		for _, m := range st.EnhancedMetrics {
@@ -570,7 +570,7 @@ func hPutResourcePolicy(s *Server, p map[string]any) (any, *awshttp.APIError) {
 	if policy == "" {
 		return nil, errValidation("Policy is required")
 	}
-	_, uerr := s.store.Update(stream, func(st *Stream) error {
+	_, uerr := s.store.Update(stream, func(st *streamRecord) error {
 		st.ResourcePolicy = policy
 		return nil
 	})
@@ -597,7 +597,7 @@ func hDeleteResourcePolicy(s *Server, p map[string]any) (any, *awshttp.APIError)
 	if err != nil {
 		return nil, err.(*apiError)
 	}
-	_, uerr := s.store.Update(stream, func(st *Stream) error {
+	_, uerr := s.store.Update(stream, func(st *streamRecord) error {
 		st.ResourcePolicy = ""
 		return nil
 	})

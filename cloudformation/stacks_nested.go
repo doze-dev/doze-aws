@@ -31,18 +31,18 @@ func (s *Server) fetcher(stored map[string]string) func(string) ([]byte, error) 
 // recordNested writes one StackRecord per child, owned by the parent, and
 // keeps the child bodies on the parent for delete. The parent's own resource
 // list already names each child as an AWS::CloudFormation::Stack.
-func (s *Server) recordNested(parent *StackRecord, rep *Report, isUpdate bool) error {
+func (s *Server) recordNested(parent *stackRecord, rep *Report, isUpdate bool) error {
 	parent.NestedTemplates = map[string]string{}
 	root := parent.RootID
 	if root == "" {
 		root = parent.ID
 	}
-	var walk func(owner *StackRecord, children []*NestedStack) error
-	walk = func(owner *StackRecord, children []*NestedStack) error {
+	var walk func(owner *stackRecord, children []*NestedStack) error
+	walk = func(owner *stackRecord, children []*NestedStack) error {
 		for _, child := range children {
 			parent.NestedTemplates[child.TemplateURL] = child.TemplateBody
 			now := s.now().Unix()
-			rec := &StackRecord{
+			rec := &stackRecord{
 				Name: child.Name, TemplateBody: child.TemplateBody, Parameters: child.Parameters,
 				Created: now, Updated: now, ParentID: owner.ID, RootID: root,
 				Status: parent.Status, StatusReason: parent.StatusReason,
@@ -56,16 +56,16 @@ func (s *Server) recordNested(parent *StackRecord, rep *Report, isUpdate bool) e
 				if e.Kind != Mapped {
 					continue
 				}
-				rec.Resources = append(rec.Resources, StackResource{
+				rec.Resources = append(rec.Resources, stackResource{
 					LogicalID: e.LogicalID, Type: e.Type, PhysicalID: e.Name,
 					Status: statusVerb(isUpdate) + "_COMPLETE", Props: e.Props,
 				})
 			}
 			for k, v := range child.Report.Outputs {
-				rec.Outputs = append(rec.Outputs, StackOutput{Key: k, Value: v})
+				rec.Outputs = append(rec.Outputs, stackOutput{Key: k, Value: v})
 			}
 			sort.Slice(rec.Outputs, func(i, j int) bool { return rec.Outputs[i].Key < rec.Outputs[j].Key })
-			rec.Events = []StackEvent{{
+			rec.Events = []stackEvent{{
 				ID: s.store.newID(), Timestamp: now, LogicalID: child.Name,
 				Type: "AWS::CloudFormation::Stack", PhysicalID: rec.ID, Status: rec.Status,
 			}}
@@ -93,7 +93,7 @@ func (s *Server) recordNested(parent *StackRecord, rep *Report, isUpdate bool) e
 // dropRemovedChildren removes the records of children an update no longer
 // declares; a child that stayed would otherwise keep its old record, owned
 // by the parent and refusing deletion, forever.
-func (s *Server) dropRemovedChildren(parent *StackRecord, rep *Report) error {
+func (s *Server) dropRemovedChildren(parent *stackRecord, rep *Report) error {
 	kept := map[string]bool{}
 	var collect func(children []*NestedStack)
 	collect = func(children []*NestedStack) {
@@ -123,7 +123,7 @@ func (s *Server) dropRemovedChildren(parent *StackRecord, rep *Report) error {
 
 // deleteNested marks every child of a deleted stack DELETE_COMPLETE; the
 // resources went with the parent's Destroy, which ran on the merged graph.
-func (s *Server) deleteNested(parent *StackRecord) {
+func (s *Server) deleteNested(parent *stackRecord) {
 	stacks, _ := s.store.ListStacks()
 	for i := range stacks {
 		st := &stacks[i]
@@ -134,7 +134,7 @@ func (s *Server) deleteNested(parent *StackRecord) {
 		now := s.now().Unix()
 		st.Status, st.StatusReason, st.Updated = StatusDeleteComplete, "", now
 		st.Resources, st.Outputs = nil, nil
-		st.Events = append(st.Events, StackEvent{
+		st.Events = append(st.Events, stackEvent{
 			ID: s.store.newID(), Timestamp: now, LogicalID: st.Name,
 			Type: "AWS::CloudFormation::Stack", PhysicalID: st.ID, Status: StatusDeleteComplete,
 		})
@@ -145,7 +145,7 @@ func (s *Server) deleteNested(parent *StackRecord) {
 // refuseChildDelete is the check DeleteStack runs first: a nested stack goes
 // with its parent, never on its own — deleting it alone would leave the
 // parent describing resources that no longer exist.
-func refuseChildDelete(st *StackRecord) error {
+func refuseChildDelete(st *stackRecord) error {
 	if st.ParentID == "" || st.Status == StatusDeleteComplete {
 		return nil
 	}

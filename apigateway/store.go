@@ -20,8 +20,8 @@ import (
 
 var apiBucket = []byte("restapis")
 
-// RestAPI is one REST API and everything under it.
-type RestAPI struct {
+// restAPI is one REST API and everything under it.
+type restAPI struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
 	Description string            `json:"description,omitempty"`
@@ -31,12 +31,12 @@ type RestAPI struct {
 
 	// Resources are keyed by resource id. The root resource ("/") is created
 	// with the API and cannot be deleted.
-	Resources map[string]*Resource `json:"resources"`
+	Resources map[string]*resource `json:"resources"`
 	// Deployments and Stages are keyed by id and stage name.
-	Deployments map[string]*Deployment `json:"deployments,omitempty"`
-	Stages      map[string]*Stage      `json:"stages,omitempty"`
+	Deployments map[string]*deployment `json:"deployments,omitempty"`
+	Stages      map[string]*stage      `json:"stages,omitempty"`
 	// Authorizers are keyed by id (authorizers.go).
-	Authorizers map[string]*Authorizer `json:"authorizers,omitempty"`
+	Authorizers map[string]*authorizer `json:"authorizers,omitempty"`
 
 	// Round-tripped configuration with no local effect.
 	APIKeySource           string   `json:"api_key_source,omitempty"`
@@ -50,18 +50,18 @@ type RestAPI struct {
 	// the same stages, deployments and tags, but routes and integrations by
 	// id instead of a resource tree (v2_store.go). Protocol "" is a REST API.
 	Protocol       string                    `json:"protocol,omitempty"`
-	CORS           *CORSConfig               `json:"cors,omitempty"`
-	V2Routes       map[string]*V2Route       `json:"v2_routes,omitempty"`
-	V2Integrations map[string]*V2Integration `json:"v2_integrations,omitempty"`
-	V2Authorizers  map[string]*V2Authorizer  `json:"v2_authorizers,omitempty"`
+	CORS           *corsConfig               `json:"cors,omitempty"`
+	V2Routes       map[string]*v2Route       `json:"v2_routes,omitempty"`
+	V2Integrations map[string]*v2Integration `json:"v2_integrations,omitempty"`
+	V2Authorizers  map[string]*v2Authorizer  `json:"v2_authorizers,omitempty"`
 	// Round-tripped HTTP API settings with no local effect.
 	RouteSelection          string `json:"route_selection,omitempty"`
 	DisableSchemaValidation bool   `json:"disable_schema_validation,omitempty"`
 	IPAddressType           string `json:"ip_address_type,omitempty"`
 }
 
-// Resource is one node of the API's path tree.
-type Resource struct {
+// resource is one node of the API's path tree.
+type resource struct {
 	ID       string `json:"id"`
 	ParentID string `json:"parent_id,omitempty"`
 	PathPart string `json:"path_part,omitempty"`
@@ -69,11 +69,11 @@ type Resource struct {
 	// request-time lookup never has to walk parents.
 	Path string `json:"path"`
 	// Methods are keyed by uppercase HTTP method, plus "ANY".
-	Methods map[string]*Method `json:"methods,omitempty"`
+	Methods map[string]*method `json:"methods,omitempty"`
 }
 
-// Method is one HTTP method on a resource.
-type Method struct {
+// method is one HTTP method on a resource.
+type method struct {
 	HTTPMethod         string            `json:"http_method"`
 	AuthorizationType  string            `json:"authorization_type,omitempty"`
 	AuthorizerID       string            `json:"authorizer_id,omitempty"`
@@ -83,12 +83,12 @@ type Method struct {
 	RequestModels      map[string]string `json:"request_models,omitempty"`
 	RequestValidatorID string            `json:"request_validator_id,omitempty"`
 
-	Integration *Integration               `json:"integration,omitempty"`
-	Responses   map[string]*MethodResponse `json:"responses,omitempty"`
+	Integration *integration               `json:"integration,omitempty"`
+	Responses   map[string]*methodResponse `json:"responses,omitempty"`
 }
 
-// Integration is how a method reaches a backend.
-type Integration struct {
+// integration is how a method reaches a backend.
+type integration struct {
 	// Type is AWS_PROXY, AWS, HTTP, HTTP_PROXY or MOCK.
 	Type                string            `json:"type"`
 	HTTPMethod          string            `json:"http_method,omitempty"`
@@ -103,18 +103,18 @@ type Integration struct {
 	CacheKeyParameters  []string          `json:"cache_key_parameters,omitempty"`
 	CacheNamespace      string            `json:"cache_namespace,omitempty"`
 
-	Responses map[string]*IntegrationResponse `json:"integration_responses,omitempty"`
+	Responses map[string]*integrationResponse `json:"integration_responses,omitempty"`
 }
 
-// MethodResponse declares a status code the method can return.
-type MethodResponse struct {
+// methodResponse declares a status code the method can return.
+type methodResponse struct {
 	StatusCode         string            `json:"status_code"`
 	ResponseModels     map[string]string `json:"response_models,omitempty"`
 	ResponseParameters map[string]bool   `json:"response_parameters,omitempty"`
 }
 
-// IntegrationResponse maps a backend result onto a method response.
-type IntegrationResponse struct {
+// integrationResponse maps a backend result onto a method response.
+type integrationResponse struct {
 	StatusCode         string            `json:"status_code"`
 	SelectionPattern   string            `json:"selection_pattern,omitempty"`
 	ResponseTemplates  map[string]string `json:"response_templates,omitempty"`
@@ -122,13 +122,13 @@ type IntegrationResponse struct {
 	ContentHandling    string            `json:"content_handling,omitempty"`
 }
 
-// Deployment is a point-in-time release of the API.
+// deployment is a point-in-time release of the API.
 //
 // Real API Gateway snapshots the API into a deployment. doze-aws serves the
 // LIVE API instead: locally you want an edit to take effect without
 // redeploying, and a stale snapshot is a debugging trap rather than a feature.
 // The deployment record exists so the control plane and CloudFormation behave.
-type Deployment struct {
+type deployment struct {
 	ID          string `json:"id"`
 	Description string `json:"description,omitempty"`
 	Created     int64  `json:"created"`
@@ -136,8 +136,8 @@ type Deployment struct {
 	AutoDeployed bool `json:"auto_deployed,omitempty"`
 }
 
-// Stage is a named, addressable release.
-type Stage struct {
+// stage is a named, addressable release.
+type stage struct {
 	Name           string            `json:"name"`
 	DeploymentID   string            `json:"deployment_id,omitempty"`
 	Description    string            `json:"description,omitempty"`
@@ -148,7 +148,7 @@ type Stage struct {
 	TracingEnabled bool              `json:"tracing_enabled,omitempty"`
 	// AccessLog is the stage's access log setting: a log group and the
 	// $context format each request is written in.
-	AccessLog *AccessLogSettings `json:"access_log,omitempty"`
+	AccessLog *accessLogSettings `json:"access_log,omitempty"`
 	// MethodSettings holds the per-method settings UpdateStage patches, keyed
 	// the way AWS keys them — "*/*" for the whole stage, or
 	// "<resource path>/<METHOD>" — with the values AWS reports.
@@ -161,23 +161,23 @@ type Stage struct {
 	RouteSettings        map[string]map[string]any `json:"route_settings,omitempty"`
 }
 
-// AccessLogSettings is where a stage's access log goes and what it says.
-type AccessLogSettings struct {
+// accessLogSettings is where a stage's access log goes and what it says.
+type accessLogSettings struct {
 	DestinationARN string `json:"destination_arn"`
 	Format         string `json:"format"`
 }
 
 // Account is the account-level record: the CloudWatch role UpdateAccount
 // sets, which AWS needs before a stage may log and doze-aws only keeps.
-type Account struct {
+type account struct {
 	CloudwatchRoleARN string `json:"cloudwatch_role_arn,omitempty"`
 }
 
 var metaBucket = []byte("meta")
 
 // GetAccount reads the account record; a zero value when none was set.
-func (s *store) GetAccount() Account {
-	var a Account
+func (s *store) GetAccount() account {
+	var a account
 	s.db.View(func(tx *bolt.Tx) error {
 		if b := tx.Bucket(metaBucket); b != nil {
 			if raw := b.Get([]byte("account")); raw != nil {
@@ -190,7 +190,7 @@ func (s *store) GetAccount() Account {
 }
 
 // PutAccount writes the account record.
-func (s *store) PutAccount(a Account) error {
+func (s *store) PutAccount(a account) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(metaBucket)
 		if err != nil {
@@ -213,27 +213,27 @@ func (s *store) now() time.Time { return s.clock() }
 
 // ---- API lifecycle ----
 
-func (s *store) Create(name, description, version string, tags map[string]string) (*RestAPI, error) {
+func (s *store) Create(name, description, version string, tags map[string]string) (*restAPI, error) {
 	if name == "" {
 		return nil, errBadRequest("Name is required")
 	}
-	api := &RestAPI{
+	api := &restAPI{
 		ID: s.newID(), Name: name, Description: description, Version: version,
 		Created: s.now().Unix(), Tags: tags,
-		Resources:    map[string]*Resource{},
-		Deployments:  map[string]*Deployment{},
-		Stages:       map[string]*Stage{},
+		Resources:    map[string]*resource{},
+		Deployments:  map[string]*deployment{},
+		Stages:       map[string]*stage{},
 		APIKeySource: "HEADER",
 	}
 	// Every API is born with a root resource; it has no path part and cannot
 	// be removed.
-	root := &Resource{ID: s.newID(), Path: "/"}
+	root := &resource{ID: s.newID(), Path: "/"}
 	api.Resources[root.ID] = root
 	return api, s.Put(api)
 }
 
-func (s *store) Get(id string) (*RestAPI, error) {
-	var out *RestAPI
+func (s *store) Get(id string) (*restAPI, error) {
+	var out *restAPI
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiBucket)
 		if b == nil {
@@ -243,7 +243,7 @@ func (s *store) Get(id string) (*RestAPI, error) {
 		if raw == nil {
 			return errNotFound("Invalid API identifier specified")
 		}
-		var api RestAPI
+		var api restAPI
 		if err := json.Unmarshal(raw, &api); err != nil {
 			return err
 		}
@@ -253,7 +253,7 @@ func (s *store) Get(id string) (*RestAPI, error) {
 	return out, err
 }
 
-func (s *store) Put(api *RestAPI) error {
+func (s *store) Put(api *restAPI) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(apiBucket)
 		if err != nil {
@@ -268,7 +268,7 @@ func (s *store) Put(api *RestAPI) error {
 }
 
 // Update applies fn inside a write transaction.
-func (s *store) Update(id string, fn func(*RestAPI) error) (*RestAPI, error) {
+func (s *store) Update(id string, fn func(*restAPI) error) (*restAPI, error) {
 	api, err := s.Get(id)
 	if err != nil {
 		return nil, err
@@ -291,15 +291,15 @@ func (s *store) Delete(id string) error {
 	})
 }
 
-func (s *store) List() ([]RestAPI, error) {
-	var out []RestAPI
+func (s *store) List() ([]restAPI, error) {
+	var out []restAPI
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(apiBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var api RestAPI
+			var api restAPI
 			if json.Unmarshal(raw, &api) == nil {
 				out = append(out, api)
 			}
@@ -313,7 +313,7 @@ func (s *store) List() ([]RestAPI, error) {
 // ---- tree helpers ----
 
 // Root returns the API's root resource.
-func (api *RestAPI) Root() *Resource {
+func (api *restAPI) Root() *resource {
 	for _, r := range api.Resources {
 		if r.ParentID == "" {
 			return r
@@ -323,8 +323,8 @@ func (api *RestAPI) Root() *Resource {
 }
 
 // Children returns a resource's direct children, in a stable order.
-func (api *RestAPI) Children(parentID string) []*Resource {
-	var out []*Resource
+func (api *restAPI) Children(parentID string) []*resource {
+	var out []*resource
 	for _, r := range api.Resources {
 		if r.ParentID == parentID {
 			out = append(out, r)
@@ -336,8 +336,8 @@ func (api *RestAPI) Children(parentID string) []*Resource {
 
 // SortedResources returns every resource ordered by path, so listings are
 // deterministic.
-func (api *RestAPI) SortedResources() []*Resource {
-	out := make([]*Resource, 0, len(api.Resources))
+func (api *restAPI) SortedResources() []*resource {
+	out := make([]*resource, 0, len(api.Resources))
 	for _, r := range api.Resources {
 		out = append(out, r)
 	}
@@ -346,14 +346,14 @@ func (api *RestAPI) SortedResources() []*Resource {
 }
 
 // rebuildPaths recomputes every resource's full Path from the tree.
-func rebuildPaths(api *RestAPI) {
+func rebuildPaths(api *restAPI) {
 	root := api.Root()
 	if root == nil {
 		return
 	}
 	root.Path = "/"
-	var walk func(parent *Resource)
-	walk = func(parent *Resource) {
+	var walk func(parent *resource)
+	walk = func(parent *resource) {
 		for _, child := range api.Children(parent.ID) {
 			if parent.Path == "/" {
 				child.Path = "/" + child.PathPart

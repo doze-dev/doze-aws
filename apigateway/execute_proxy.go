@@ -33,7 +33,7 @@ type proxyEvent struct {
 // buildProxyEvent shapes the request as API Gateway hands it to a function.
 // cc, when an authorizer ran, lands under requestContext.authorizer with the
 // principal, as on AWS.
-func (s *Server) buildProxyEvent(r *http.Request, api *RestAPI, stage string, res *Resource,
+func (s *Server) buildProxyEvent(r *http.Request, api *restAPI, stage string, res *resource,
 	params map[string]string, path string, body []byte, cc *callCtx, rid string) proxyEvent {
 
 	ev := proxyEvent{
@@ -96,8 +96,8 @@ func (s *Server) buildProxyEvent(r *http.Request, api *RestAPI, stage string, re
 	return ev
 }
 
-func (s *Server) invokeLambdaProxy(w http.ResponseWriter, r *http.Request, api *RestAPI,
-	stage string, res *Resource, integ *Integration, params map[string]string, path string, body []byte, cc *callCtx, rl *requestLog) {
+func (s *Server) invokeLambdaProxy(w http.ResponseWriter, r *http.Request, api *restAPI,
+	stage string, res *resource, integ *integration, params map[string]string, path string, body []byte, cc *callCtx, rl *requestLog) {
 
 	fn := lambdaFromURI(integ.URI)
 	if fn == "" {

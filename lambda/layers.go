@@ -31,8 +31,8 @@ import (
 
 var layerBucket = []byte("layers")
 
-// LayerVersion is one published version of a layer.
-type LayerVersion struct {
+// layerVersion is one published version of a layer.
+type layerVersion struct {
 	LayerName          string   `json:"layer_name"`
 	Version            int64    `json:"version"`
 	Description        string   `json:"description,omitempty"`
@@ -48,16 +48,16 @@ type LayerVersion struct {
 	// with on its search paths.
 	ExtractedDir string `json:"extracted_dir,omitempty"`
 	// Policy is the layer version's resource policy statements.
-	Policy []PolicyStatement `json:"policy,omitempty"`
+	Policy []policyStatement `json:"policy,omitempty"`
 }
 
 // ARN returns the versioned layer ARN.
-func (l *LayerVersion) ARN(id awsident.Identity) string {
+func (l *layerVersion) ARN(id awsident.Identity) string {
 	return id.ARN("lambda", fmt.Sprintf("layer:%s:%d", l.LayerName, l.Version))
 }
 
 // LayerARN returns the unversioned layer ARN.
-func (l *LayerVersion) LayerARN(id awsident.Identity) string {
+func (l *layerVersion) LayerARN(id awsident.Identity) string {
 	return id.ARN("lambda", "layer:"+l.LayerName)
 }
 
@@ -68,7 +68,7 @@ func layerKey(name string, version int64) string {
 
 // ---- store ----
 
-func (s *store) PutLayerVersion(l *LayerVersion) error {
+func (s *store) PutLayerVersion(l *layerVersion) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(layerBucket)
 		if err != nil {
@@ -82,8 +82,8 @@ func (s *store) PutLayerVersion(l *LayerVersion) error {
 	})
 }
 
-func (s *store) GetLayerVersion(name string, version int64) (*LayerVersion, error) {
-	var out *LayerVersion
+func (s *store) GetLayerVersion(name string, version int64) (*layerVersion, error) {
+	var out *layerVersion
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(layerBucket)
 		if b == nil {
@@ -93,7 +93,7 @@ func (s *store) GetLayerVersion(name string, version int64) (*LayerVersion, erro
 		if raw == nil {
 			return errNoLayer(name, version)
 		}
-		var l LayerVersion
+		var l layerVersion
 		if err := json.Unmarshal(raw, &l); err != nil {
 			return err
 		}
@@ -103,7 +103,7 @@ func (s *store) GetLayerVersion(name string, version int64) (*LayerVersion, erro
 	return out, err
 }
 
-func (s *store) UpdateLayerVersion(name string, version int64, fn func(*LayerVersion) error) error {
+func (s *store) UpdateLayerVersion(name string, version int64, fn func(*layerVersion) error) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(layerBucket)
 		if b == nil {
@@ -114,7 +114,7 @@ func (s *store) UpdateLayerVersion(name string, version int64, fn func(*LayerVer
 		if raw == nil {
 			return errNoLayer(name, version)
 		}
-		var l LayerVersion
+		var l layerVersion
 		if err := json.Unmarshal(raw, &l); err != nil {
 			return err
 		}
@@ -140,8 +140,8 @@ func (s *store) DeleteLayerVersion(name string, version int64) error {
 }
 
 // ListLayerVersions returns every version of one layer, newest first.
-func (s *store) ListLayerVersions(name string) ([]LayerVersion, error) {
-	var out []LayerVersion
+func (s *store) ListLayerVersions(name string) ([]layerVersion, error) {
+	var out []layerVersion
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(layerBucket)
 		if b == nil {
@@ -150,7 +150,7 @@ func (s *store) ListLayerVersions(name string) ([]LayerVersion, error) {
 		prefix := []byte(name + "\x00")
 		c := b.Cursor()
 		for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
-			var l LayerVersion
+			var l layerVersion
 			if json.Unmarshal(v, &l) == nil {
 				out = append(out, l)
 			}
@@ -165,15 +165,15 @@ func (s *store) ListLayerVersions(name string) ([]LayerVersion, error) {
 }
 
 // ListLayers returns the latest version of each distinct layer.
-func (s *store) ListLayers() ([]LayerVersion, error) {
-	latest := map[string]LayerVersion{}
+func (s *store) ListLayers() ([]layerVersion, error) {
+	latest := map[string]layerVersion{}
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(layerBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, v []byte) error {
-			var l LayerVersion
+			var l layerVersion
 			if json.Unmarshal(v, &l) != nil {
 				return nil
 			}
@@ -183,7 +183,7 @@ func (s *store) ListLayers() ([]LayerVersion, error) {
 			return nil
 		})
 	})
-	out := make([]LayerVersion, 0, len(latest))
+	out := make([]layerVersion, 0, len(latest))
 	for _, l := range latest {
 		out = append(out, l)
 	}
@@ -191,7 +191,7 @@ func (s *store) ListLayers() ([]LayerVersion, error) {
 	return out, err
 }
 
-func sortLayers(ls []LayerVersion) {
+func sortLayers(ls []layerVersion) {
 	for i := 1; i < len(ls); i++ {
 		for j := i; j > 0 && ls[j].LayerName < ls[j-1].LayerName; j-- {
 			ls[j], ls[j-1] = ls[j-1], ls[j]
@@ -321,7 +321,7 @@ func (s *Server) publishLayerVersion(w http.ResponseWriter, r *http.Request, nam
 	}
 
 	version := s.store.nextLayerVersion(name)
-	l := &LayerVersion{
+	l := &layerVersion{
 		LayerName:          name,
 		Version:            version,
 		Description:        req.Description,
@@ -446,7 +446,7 @@ func (s *Server) listLayers(w http.ResponseWriter) *awshttp.APIError {
 
 // layerVersionView shapes a layer version. withContent adds the Content block,
 // which list responses omit.
-func layerVersionView(id awsident.Identity, l *LayerVersion, withContent bool) map[string]any {
+func layerVersionView(id awsident.Identity, l *layerVersion, withContent bool) map[string]any {
 	v := map[string]any{
 		"LayerVersionArn": l.ARN(id),
 		"LayerArn":        l.LayerARN(id),
@@ -495,12 +495,12 @@ func (s *Server) routeLayerPolicy(w http.ResponseWriter, r *http.Request, name s
 		if err != nil {
 			return awshttp.AsAPIError(err)
 		}
-		stmt := PolicyStatement{
+		stmt := policyStatement{
 			Sid: req.StatementId, Effect: "Allow",
 			Principal: map[string]string{"AWS": req.Principal},
 			Action:    req.Action, Resource: l.ARN(s.id),
 		}
-		if err := s.store.UpdateLayerVersion(name, version, func(l *LayerVersion) error {
+		if err := s.store.UpdateLayerVersion(name, version, func(l *layerVersion) error {
 			for _, existing := range l.Policy {
 				if existing.Sid == req.StatementId {
 					return awshttp.Errf(409, "ResourceConflictException",
@@ -536,7 +536,7 @@ func (s *Server) routeLayerPolicy(w http.ResponseWriter, r *http.Request, name s
 		if sid == "" {
 			sid = r.URL.Query().Get("StatementId")
 		}
-		if err := s.store.UpdateLayerVersion(name, version, func(l *LayerVersion) error {
+		if err := s.store.UpdateLayerVersion(name, version, func(l *layerVersion) error {
 			for i, stmt := range l.Policy {
 				if stmt.Sid == sid {
 					l.Policy = append(l.Policy[:i], l.Policy[i+1:]...)
@@ -610,7 +610,7 @@ func (s *Server) checkLayers(arns []string) *awshttp.APIError {
 // layerDirs resolves a function's layers to their unpacked directories, in
 // order. A layer published before unpacking existed, or a _local_ zip, has
 // no directory and contributes nothing.
-func (s *Server) layerDirs(f *Function) []string {
+func (s *Server) layerDirs(f *function) []string {
 	var dirs []string
 	for _, arn := range f.Layers {
 		name, version, ok := parseLayerARN(arn)

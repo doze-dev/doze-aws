@@ -26,7 +26,7 @@ func (s *Server) putKeyPolicy(p map[string]any) (any, *awshttp.APIError) {
 	if policy != "" && !json.Valid([]byte(policy)) {
 		return nil, awshttp.Errf(400, "MalformedPolicyDocumentException", "Policy is not valid JSON")
 	}
-	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *Key) *awshttp.APIError {
+	_, err := s.store.Update(awsjson.Str(p, "KeyId"), func(k *key) *awshttp.APIError {
 		k.Policy = policy
 		return nil
 	})

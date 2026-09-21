@@ -22,8 +22,8 @@ import (
 
 var paramsBucket = []byte("params")
 
-// Parameter is one parameter with its full version history.
-type Parameter struct {
+// parameter is one parameter with its full version history.
+type parameter struct {
 	Name        string            `json:"name"`
 	Type        string            `json:"type"` // String | StringList | SecureString
 	KeyID       string            `json:"key_id,omitempty"`
@@ -33,11 +33,11 @@ type Parameter struct {
 	Policies    string            `json:"policies,omitempty"`   // raw policy JSON round-trip
 	ExpiresAt   int64             `json:"expires_at,omitempty"` // parsed Expiration policy, unix seconds
 	Tags        map[string]string `json:"tags,omitempty"`
-	Versions    []Version         `json:"versions"` // ascending version order
+	Versions    []paramVersion    `json:"versions"` // ascending version order
 }
 
-// Version is one parameter version.
-type Version struct {
+// paramVersion is one parameter version.
+type paramVersion struct {
 	Value   []byte   `json:"value"` // encrypted for SecureString
 	Version int64    `json:"version"`
 	Labels  []string `json:"labels,omitempty"`
@@ -45,7 +45,7 @@ type Version struct {
 }
 
 // Latest returns the newest version.
-func (p *Parameter) Latest() *Version { return &p.Versions[len(p.Versions)-1] }
+func (p *parameter) Latest() *paramVersion { return &p.Versions[len(p.Versions)-1] }
 
 // store is the bbolt-backed parameter store plus the SecureString sealer.
 type store struct {
@@ -125,7 +125,7 @@ func (s *store) Put(name, ptype, value, keyID, description, dataType, tier, poli
 		if err != nil {
 			return err
 		}
-		var p Parameter
+		var p parameter
 		if raw := b.Get([]byte(name)); raw != nil {
 			if err := json.Unmarshal(raw, &p); err != nil {
 				return err
@@ -143,7 +143,7 @@ func (s *store) Put(name, ptype, value, keyID, description, dataType, tier, poli
 			if t == "" {
 				t = "String"
 			}
-			p = Parameter{Name: name, Type: t, DataType: "text"}
+			p = parameter{Name: name, Type: t, DataType: "text"}
 		}
 		// Seal according to the effective (stored) type, not the request type.
 		if p.Type == "SecureString" && p.KeyID == "" && keyID == "" {
@@ -176,7 +176,7 @@ func (s *store) Put(name, ptype, value, keyID, description, dataType, tier, poli
 			p.Tags[k] = v
 		}
 		version = int64(len(p.Versions)) + 1
-		p.Versions = append(p.Versions, Version{
+		p.Versions = append(p.Versions, paramVersion{
 			Value: stored, Version: version, Created: s.now().Unix(),
 		})
 		raw, _ := json.Marshal(p)
@@ -189,7 +189,7 @@ func (s *store) Put(name, ptype, value, keyID, description, dataType, tier, poli
 }
 
 // Get resolves a selector: "name", "name:version", or "name:label".
-func (s *store) Get(selector string, decrypt bool) (*Parameter, *Version, string, *awshttp.APIError) {
+func (s *store) Get(selector string, decrypt bool) (*parameter, *paramVersion, string, *awshttp.APIError) {
 	name, qualifier := selector, ""
 	// ARN form: arn:aws:ssm:region:acct:parameter/<name>.
 	if strings.HasPrefix(name, "arn:") {
@@ -200,7 +200,7 @@ func (s *store) Get(selector string, decrypt bool) (*Parameter, *Version, string
 	if i := strings.LastIndex(name, ":"); i > 0 {
 		name, qualifier = name[:i], name[i+1:]
 	}
-	var p Parameter
+	var p parameter
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(paramsBucket)
 		if b == nil {
@@ -219,7 +219,7 @@ func (s *store) Get(selector string, decrypt bool) (*Parameter, *Version, string
 		return nil, nil, "", errParamNotFound(name)
 	}
 
-	var v *Version
+	var v *paramVersion
 	if qualifier == "" {
 		v = p.Latest()
 	} else if n, nerr := strconv.ParseInt(qualifier, 10, 64); nerr == nil {
@@ -253,7 +253,7 @@ func (s *store) Get(selector string, decrypt bool) (*Parameter, *Version, string
 }
 
 // render produces the API-visible value for a version.
-func (s *store) render(p *Parameter, v *Version, decrypt bool) (string, *awshttp.APIError) {
+func (s *store) render(p *parameter, v *paramVersion, decrypt bool) (string, *awshttp.APIError) {
 	if p.Type != "SecureString" {
 		return string(v.Value), nil
 	}
@@ -269,7 +269,7 @@ func (s *store) render(p *Parameter, v *Version, decrypt bool) (string, *awshttp
 }
 
 // expired reports whether the parameter's Expiration policy has passed.
-func (s *store) expired(p *Parameter) bool {
+func (s *store) expired(p *parameter) bool {
 	return p.ExpiresAt > 0 && p.ExpiresAt <= s.now().Unix()
 }
 
@@ -286,15 +286,15 @@ func (s *store) Delete(name string) *awshttp.APIError {
 }
 
 // List returns all live parameters, sorted by name.
-func (s *store) List() ([]Parameter, error) {
-	var out []Parameter
+func (s *store) List() ([]parameter, error) {
+	var out []parameter
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(paramsBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var p Parameter
+			var p parameter
 			if json.Unmarshal(raw, &p) == nil && !s.expired(&p) {
 				out = append(out, p)
 			}
@@ -306,7 +306,7 @@ func (s *store) List() ([]Parameter, error) {
 }
 
 // ByPath returns parameters under a path, optionally recursive.
-func (s *store) ByPath(path string, recursive bool) ([]Parameter, error) {
+func (s *store) ByPath(path string, recursive bool) ([]parameter, error) {
 	if path == "" {
 		path = "/"
 	}
@@ -315,7 +315,7 @@ func (s *store) ByPath(path string, recursive bool) ([]Parameter, error) {
 	if err != nil {
 		return nil, err
 	}
-	var out []Parameter
+	var out []parameter
 	for _, p := range all {
 		if !strings.HasPrefix(p.Name, prefix) {
 			continue
@@ -340,14 +340,14 @@ func (s *store) Label(name string, version int64, labels []string) (attached []s
 		if raw == nil {
 			return errParamNotFound(name)
 		}
-		var p Parameter
+		var p parameter
 		if err := json.Unmarshal(raw, &p); err != nil {
 			return err
 		}
 		if version == 0 {
 			version = p.Latest().Version
 		}
-		var target *Version
+		var target *paramVersion
 		for i := range p.Versions {
 			if p.Versions[i].Version == version {
 				target = &p.Versions[i]
@@ -380,7 +380,7 @@ func (s *store) Unlabel(name string, version int64, labels []string) (removed []
 		if raw == nil {
 			return errParamNotFound(name)
 		}
-		var p Parameter
+		var p parameter
 		if err := json.Unmarshal(raw, &p); err != nil {
 			return err
 		}
@@ -412,7 +412,7 @@ func (s *store) UpdateTags(name string, add map[string]string, removeKeys []stri
 		if raw == nil {
 			return errParamNotFound(name)
 		}
-		var p Parameter
+		var p parameter
 		if err := json.Unmarshal(raw, &p); err != nil {
 			return err
 		}
@@ -443,7 +443,7 @@ func (s *store) Tags(name string) (map[string]string, *awshttp.APIError) {
 		if raw == nil {
 			return errParamNotFound(name)
 		}
-		var p Parameter
+		var p parameter
 		if err := json.Unmarshal(raw, &p); err != nil {
 			return err
 		}
@@ -463,7 +463,7 @@ func (s *store) SweepExpired() {
 		}
 		var doomed [][]byte
 		_ = b.ForEach(func(k, raw []byte) error {
-			var p Parameter
+			var p parameter
 			if json.Unmarshal(raw, &p) == nil && p.ExpiresAt > 0 && p.ExpiresAt <= now {
 				doomed = append(doomed, append([]byte(nil), k...))
 			}

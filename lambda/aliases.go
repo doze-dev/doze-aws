@@ -53,7 +53,7 @@ func (s *Server) routeAliases(w http.ResponseWriter, r *http.Request, name strin
 		case http.MethodPut:
 			return s.updateAlias(w, r, name, alias)
 		case http.MethodDelete:
-			s.store.Update(name, func(f *Function) error {
+			s.store.Update(name, func(f *function) error {
 				delete(f.Aliases, alias)
 				delete(f.AliasDescriptions, alias)
 				return nil
@@ -80,7 +80,7 @@ func (s *Server) createAlias(w http.ResponseWriter, r *http.Request, name string
 		return aerr
 	}
 	var conflict *awshttp.APIError
-	f, err := s.store.Update(name, func(f *Function) error {
+	f, err := s.store.Update(name, func(f *function) error {
 		if _, exists := f.Aliases[req.Name]; exists {
 			conflict = awshttp.Errf(409, "ResourceConflictException", "Alias already exists: %s:%s", f.ARN(), req.Name)
 			return nil
@@ -118,7 +118,7 @@ func (s *Server) updateAlias(w http.ResponseWriter, r *http.Request, name, alias
 		}
 	}
 	var missing *awshttp.APIError
-	f, err := s.store.Update(name, func(f *Function) error {
+	f, err := s.store.Update(name, func(f *function) error {
 		if _, ok := f.Aliases[alias]; !ok {
 			missing = awshttp.Errf(404, "ResourceNotFoundException", "Cannot find alias arn: %s:%s", f.ARN(), alias)
 			return nil
@@ -153,7 +153,7 @@ func (s *Server) checkAliasTarget(name, version string) *awshttp.APIError {
 	return nil
 }
 
-func setAliasDescription(f *Function, alias, description string) {
+func setAliasDescription(f *function, alias, description string) {
 	if description == "" {
 		delete(f.AliasDescriptions, alias)
 		return
@@ -164,7 +164,7 @@ func setAliasDescription(f *Function, alias, description string) {
 	f.AliasDescriptions[alias] = description
 }
 
-func aliasView(f *Function, alias string) map[string]any {
+func aliasView(f *function, alias string) map[string]any {
 	version := f.Aliases[alias]
 	if version == "" {
 		version = "$LATEST"

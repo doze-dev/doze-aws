@@ -22,15 +22,15 @@ import (
 
 var secretsBucket = []byte("secrets")
 
-// Secret is one secret with its version map.
-type Secret struct {
+// secret is one secret with its version map.
+type secret struct {
 	ARN         string             `json:"arn"`
 	Name        string             `json:"name"`
 	Description string             `json:"description,omitempty"`
 	KMSKeyID    string             `json:"kms_key_id,omitempty"`
 	Tags        map[string]string  `json:"tags,omitempty"`
 	Policy      string             `json:"policy,omitempty"` // resource policy round-trip
-	Versions    map[string]Version `json:"versions"`
+	Versions    map[string]version `json:"versions"`
 	Created     int64              `json:"created"`
 	LastChanged int64              `json:"last_changed"`
 
@@ -43,7 +43,7 @@ type Secret struct {
 
 // Version is one secret version. Exactly one of String/Binary was set by the
 // caller; both are sealed at rest.
-type Version struct {
+type version struct {
 	String  []byte   `json:"string,omitempty"` // sealed
 	Binary  []byte   `json:"binary,omitempty"` // sealed
 	Stages  []string `json:"stages,omitempty"`
@@ -128,7 +128,7 @@ func candidateNames(id string) []string {
 }
 
 // get loads a secret inside a transaction.
-func (s *store) get(tx *bolt.Tx, id string) (*Secret, error) {
+func (s *store) get(tx *bolt.Tx, id string) (*secret, error) {
 	b := tx.Bucket(secretsBucket)
 	if b == nil {
 		return nil, errSecretNotFound(id)
@@ -138,7 +138,7 @@ func (s *store) get(tx *bolt.Tx, id string) (*Secret, error) {
 		if raw == nil {
 			continue
 		}
-		var sec Secret
+		var sec secret
 		if err := json.Unmarshal(raw, &sec); err != nil {
 			return nil, err
 		}
@@ -147,7 +147,7 @@ func (s *store) get(tx *bolt.Tx, id string) (*Secret, error) {
 	return nil, errSecretNotFound(id)
 }
 
-func (s *store) put(tx *bolt.Tx, sec *Secret) error {
+func (s *store) put(tx *bolt.Tx, sec *secret) error {
 	b, err := tx.CreateBucketIfNotExists(secretsBucket)
 	if err != nil {
 		return err
@@ -157,8 +157,8 @@ func (s *store) put(tx *bolt.Tx, sec *Secret) error {
 }
 
 // Get loads a secret by name or ARN.
-func (s *store) Get(id string) (*Secret, error) {
-	var out *Secret
+func (s *store) Get(id string) (*secret, error) {
+	var out *secret
 	err := s.db.View(func(tx *bolt.Tx) error {
 		sec, err := s.get(tx, id)
 		if err != nil {
@@ -171,8 +171,8 @@ func (s *store) Get(id string) (*Secret, error) {
 }
 
 // Mutate applies fn to a secret and persists it.
-func (s *store) Mutate(id string, fn func(*Secret) error) (*Secret, error) {
-	var out *Secret
+func (s *store) Mutate(id string, fn func(*secret) error) (*secret, error) {
+	var out *secret
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		sec, err := s.get(tx, id)
 		if err != nil {
@@ -189,7 +189,7 @@ func (s *store) Mutate(id string, fn func(*Secret) error) (*Secret, error) {
 }
 
 // Create makes a new secret with an initial version, or fails if it exists.
-func (s *store) Create(name, description, kmsKeyID, token string, str, bin []byte, tags map[string]string) (*Secret, string, error) {
+func (s *store) Create(name, description, kmsKeyID, token string, str, bin []byte, tags map[string]string) (*secret, string, error) {
 	if name == "" {
 		return nil, "", awshttp.Errf(400, "ValidationException", "Name is required")
 	}
@@ -197,13 +197,13 @@ func (s *store) Create(name, description, kmsKeyID, token string, str, bin []byt
 		token = newUUID()
 	}
 	now := s.now().Unix()
-	sec := &Secret{
+	sec := &secret{
 		ARN:         s.secretARN(name),
 		Name:        name,
 		Description: description,
 		KMSKeyID:    kmsKeyID,
 		Tags:        tags,
-		Versions:    map[string]Version{},
+		Versions:    map[string]version{},
 		Created:     now,
 		LastChanged: now,
 	}
@@ -221,7 +221,7 @@ func (s *store) Create(name, description, kmsKeyID, token string, str, bin []byt
 			return awshttp.Errf(400, "ResourceExistsException", "the secret %s already exists", name)
 		}
 		if str != nil || bin != nil {
-			sec.Versions[token] = Version{
+			sec.Versions[token] = version{
 				String: s.seal(str), Binary: s.seal(bin),
 				Stages: []string{"AWSCURRENT"}, Created: now,
 			}
@@ -236,14 +236,14 @@ func (s *store) Create(name, description, kmsKeyID, token string, str, bin []byt
 
 // AddVersion appends a version and moves AWSCURRENT (old current becomes
 // AWSPREVIOUS), returning the new version id.
-func (s *store) AddVersion(id, token string, str, bin []byte, stages []string) (*Secret, string, error) {
+func (s *store) AddVersion(id, token string, str, bin []byte, stages []string) (*secret, string, error) {
 	if token == "" {
 		token = newUUID()
 	}
 	if len(stages) == 0 {
 		stages = []string{"AWSCURRENT"}
 	}
-	sec, err := s.Mutate(id, func(sec *Secret) error {
+	sec, err := s.Mutate(id, func(sec *secret) error {
 		if sec.DeletedAt > 0 {
 			return errDeleted(sec.Name)
 		}
@@ -275,7 +275,7 @@ func (s *store) AddVersion(id, token string, str, bin []byte, stages []string) (
 				}
 			}
 		}
-		sec.Versions[token] = Version{
+		sec.Versions[token] = version{
 			String: s.seal(str), Binary: s.seal(bin),
 			Stages: stages, Created: s.now().Unix(),
 		}
@@ -293,7 +293,7 @@ func errDeleted(name string) *awshttp.APIError {
 }
 
 // Resolve picks a version by id or stage (default AWSCURRENT).
-func (sec *Secret) Resolve(versionID, stage string) (string, *Version, *awshttp.APIError) {
+func (sec *secret) Resolve(versionID, stage string) (string, *version, *awshttp.APIError) {
 	if versionID != "" {
 		v, ok := sec.Versions[versionID]
 		if !ok {
@@ -313,15 +313,15 @@ func (sec *Secret) Resolve(versionID, stage string) (string, *Version, *awshttp.
 }
 
 // List returns all secrets, sorted by name.
-func (s *store) List() ([]Secret, error) {
-	var out []Secret
+func (s *store) List() ([]secret, error) {
+	var out []secret
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(secretsBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var sec Secret
+			var sec secret
 			if json.Unmarshal(raw, &sec) == nil {
 				out = append(out, sec)
 			}
@@ -333,9 +333,9 @@ func (s *store) List() ([]Secret, error) {
 }
 
 // Delete schedules (or forces) deletion.
-func (s *store) Delete(id string, recoveryDays int, force bool) (*Secret, error) {
+func (s *store) Delete(id string, recoveryDays int, force bool) (*secret, error) {
 	if force {
-		var out *Secret
+		var out *secret
 		err := s.db.Update(func(tx *bolt.Tx) error {
 			sec, err := s.get(tx, id)
 			if err != nil {
@@ -355,7 +355,7 @@ func (s *store) Delete(id string, recoveryDays int, force bool) (*Secret, error)
 	if recoveryDays < 7 || recoveryDays > 30 {
 		return nil, awshttp.Errf(400, "InvalidParameterException", "RecoveryWindowInDays must be between 7 and 30, got %d", recoveryDays)
 	}
-	return s.Mutate(id, func(sec *Secret) error {
+	return s.Mutate(id, func(sec *secret) error {
 		if sec.DeletedAt > 0 {
 			return errDeleted(sec.Name)
 		}
@@ -366,8 +366,8 @@ func (s *store) Delete(id string, recoveryDays int, force bool) (*Secret, error)
 }
 
 // Restore cancels a scheduled deletion.
-func (s *store) Restore(id string) (*Secret, error) {
-	return s.Mutate(id, func(sec *Secret) error {
+func (s *store) Restore(id string) (*secret, error) {
+	return s.Mutate(id, func(sec *secret) error {
 		sec.DeletedAt, sec.PurgeAt = 0, 0
 		return nil
 	})
@@ -383,7 +383,7 @@ func (s *store) SweepDeleted() {
 		}
 		var doomed [][]byte
 		_ = b.ForEach(func(k, raw []byte) error {
-			var sec Secret
+			var sec secret
 			if json.Unmarshal(raw, &sec) == nil && sec.PurgeAt > 0 && sec.PurgeAt <= now {
 				doomed = append(doomed, append([]byte(nil), k...))
 			}

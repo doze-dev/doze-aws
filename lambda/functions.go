@@ -186,7 +186,7 @@ func (s *Server) createFunction(w http.ResponseWriter, r *http.Request) *awshttp
 		return aerr
 	}
 	s.warnRuntime(req.FunctionName, req.Runtime, codeDir, req.Command)
-	f := &Function{
+	f := &function{
 		Name: req.FunctionName, Runtime: req.Runtime, Handler: req.Handler,
 		Role: req.Role, Description: req.Description,
 		Timeout: orInt(req.Timeout, 3), MemorySize: orInt(req.MemorySize, 512),
@@ -408,7 +408,7 @@ func (s *Server) updateConfiguration(w http.ResponseWriter, r *http.Request, nam
 	if aerr := s.checkLayers(req.Layers); aerr != nil {
 		return aerr
 	}
-	f, err := s.store.Update(name, func(f *Function) error {
+	f, err := s.store.Update(name, func(f *function) error {
 		if req.Runtime != "" {
 			f.Runtime = req.Runtime
 			s.warnRuntime(name, req.Runtime, f.CodeDir, f.Command)
@@ -460,7 +460,7 @@ func (s *Server) updateCode(w http.ResponseWriter, r *http.Request, name string)
 	if aerr != nil {
 		return aerr
 	}
-	f, err := s.store.Update(name, func(f *Function) error {
+	f, err := s.store.Update(name, func(f *function) error {
 		f.CodeDir, f.CodeSHA256 = codeDir, sha
 		f.LastMod = s.now().Unix()
 		f.Revision = newRevision()
@@ -495,7 +495,7 @@ func (s *Server) routeCodeSigning(w http.ResponseWriter, r *http.Request, name s
 		if aerr := decode(r, &req); aerr != nil {
 			return aerr
 		}
-		if _, err := s.store.Update(name, func(f *Function) error {
+		if _, err := s.store.Update(name, func(f *function) error {
 			f.CodeSigningConfigArn = req.CodeSigningConfigArn
 			return nil
 		}); err != nil {
@@ -506,7 +506,7 @@ func (s *Server) routeCodeSigning(w http.ResponseWriter, r *http.Request, name s
 		})
 		return nil
 	case http.MethodDelete:
-		if _, err := s.store.Update(name, func(f *Function) error {
+		if _, err := s.store.Update(name, func(f *function) error {
 			f.CodeSigningConfigArn = ""
 			return nil
 		}); err != nil {
@@ -519,7 +519,7 @@ func (s *Server) routeCodeSigning(w http.ResponseWriter, r *http.Request, name s
 }
 
 // configView renders a FunctionConfiguration.
-func (s *Server) configView(f *Function) map[string]any {
+func (s *Server) configView(f *function) map[string]any {
 	view := map[string]any{
 		"FunctionName":     f.Name,
 		"FunctionArn":      f.ARN(),
@@ -586,7 +586,7 @@ func (s *Server) configView(f *Function) map[string]any {
 
 // archOf reports the architectures the function declared, defaulting the way
 // AWS does when none was given.
-func archOf(f *Function) []string {
+func archOf(f *function) []string {
 	if len(f.Architectures) > 0 {
 		return f.Architectures
 	}

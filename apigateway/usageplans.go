@@ -18,38 +18,38 @@ import (
 
 var usagePlanBucket = []byte("usageplans")
 
-// UsagePlan is one plan.
-type UsagePlan struct {
+// usagePlan is one plan.
+type usagePlan struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
 	Description string            `json:"description,omitempty"`
-	Stages      []PlanStage       `json:"stages,omitempty"`
-	Throttle    *Throttle         `json:"throttle,omitempty"`
-	Quota       *Quota            `json:"quota,omitempty"`
+	Stages      []planStage       `json:"stages,omitempty"`
+	Throttle    *throttle         `json:"throttle,omitempty"`
+	Quota       *quota            `json:"quota,omitempty"`
 	KeyIDs      []string          `json:"key_ids,omitempty"`
 	Created     int64             `json:"created"`
 	Tags        map[string]string `json:"tags,omitempty"`
 }
 
-// PlanStage is one API stage a plan covers.
-type PlanStage struct {
+// planStage is one API stage a plan covers.
+type planStage struct {
 	APIID string `json:"api_id"`
 	Stage string `json:"stage"`
 }
 
-// Throttle and Quota are stored and reported; nothing is metered locally.
-type Throttle struct {
+// throttle and quota are stored and reported; nothing is metered locally.
+type throttle struct {
 	Rate  float64 `json:"rate"`
 	Burst int     `json:"burst"`
 }
 
-type Quota struct {
+type quota struct {
 	Limit  int    `json:"limit"`
 	Offset int    `json:"offset"`
 	Period string `json:"period"` // DAY | WEEK | MONTH
 }
 
-func (p *UsagePlan) hasKey(id string) bool {
+func (p *usagePlan) hasKey(id string) bool {
 	for _, k := range p.KeyIDs {
 		if k == id {
 			return true
@@ -58,7 +58,7 @@ func (p *UsagePlan) hasKey(id string) bool {
 	return false
 }
 
-func (p *UsagePlan) removeKey(id string) {
+func (p *usagePlan) removeKey(id string) {
 	kept := p.KeyIDs[:0]
 	for _, k := range p.KeyIDs {
 		if k != id {
@@ -68,7 +68,7 @@ func (p *UsagePlan) removeKey(id string) {
 	p.KeyIDs = kept
 }
 
-func (p *UsagePlan) covers(apiID, stage string) bool {
+func (p *usagePlan) covers(apiID, stage string) bool {
 	for _, st := range p.Stages {
 		if st.APIID == apiID && st.Stage == stage {
 			return true
@@ -77,7 +77,7 @@ func (p *UsagePlan) covers(apiID, stage string) bool {
 	return false
 }
 
-func viewUsagePlan(p *UsagePlan) map[string]any {
+func viewUsagePlan(p *usagePlan) map[string]any {
 	stages := []any{}
 	for _, st := range p.Stages {
 		stages = append(stages, map[string]any{"apiId": st.APIID, "stage": st.Stage})
@@ -93,13 +93,13 @@ func viewUsagePlan(p *UsagePlan) map[string]any {
 	return v
 }
 
-func viewUsagePlanKey(k *APIKey) map[string]any {
+func viewUsagePlanKey(k *apiKey) map[string]any {
 	return map[string]any{"id": k.ID, "type": "API_KEY", "value": k.Value, "name": k.Name}
 }
 
 // ---- store ----
 
-func (s *store) PutUsagePlan(p *UsagePlan) error {
+func (s *store) PutUsagePlan(p *usagePlan) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(usagePlanBucket)
 		if err != nil {
@@ -110,14 +110,14 @@ func (s *store) PutUsagePlan(p *UsagePlan) error {
 	})
 }
 
-func (s *store) GetUsagePlan(id string) (*UsagePlan, error) {
-	var out *UsagePlan
+func (s *store) GetUsagePlan(id string) (*usagePlan, error) {
+	var out *usagePlan
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(usagePlanBucket)
 		if b == nil || b.Get([]byte(id)) == nil {
 			return errNotFound("Invalid Usage Plan ID specified")
 		}
-		var p UsagePlan
+		var p usagePlan
 		if err := json.Unmarshal(b.Get([]byte(id)), &p); err != nil {
 			return err
 		}
@@ -138,15 +138,15 @@ func (s *store) DeleteUsagePlan(id string) error {
 }
 
 // ListUsagePlans answers every plan, sorted by name.
-func (s *store) ListUsagePlans() ([]*UsagePlan, error) {
-	var out []*UsagePlan
+func (s *store) ListUsagePlans() ([]*usagePlan, error) {
+	var out []*usagePlan
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(usagePlanBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var p UsagePlan
+			var p usagePlan
 			if err := json.Unmarshal(raw, &p); err != nil {
 				return err
 			}
@@ -220,18 +220,18 @@ func (s *Server) createUsagePlan(w http.ResponseWriter, r *http.Request) *awshtt
 	if aerr := decode(r, &req); aerr != nil {
 		return aerr
 	}
-	p := &UsagePlan{ID: s.store.newID(), Name: req.Name, Description: req.Description, Tags: req.Tags, Created: s.now().Unix()}
+	p := &usagePlan{ID: s.store.newID(), Name: req.Name, Description: req.Description, Tags: req.Tags, Created: s.now().Unix()}
 	for _, st := range req.APIStages {
 		if _, err := s.store.Get(st.APIID); err != nil {
 			return errBadRequest("Invalid API identifier specified %s", st.APIID)
 		}
-		p.Stages = append(p.Stages, PlanStage{APIID: st.APIID, Stage: st.Stage})
+		p.Stages = append(p.Stages, planStage{APIID: st.APIID, Stage: st.Stage})
 	}
 	if req.Throttle != nil {
-		p.Throttle = &Throttle{Rate: req.Throttle.RateLimit, Burst: req.Throttle.BurstLimit}
+		p.Throttle = &throttle{Rate: req.Throttle.RateLimit, Burst: req.Throttle.BurstLimit}
 	}
 	if req.Quota != nil {
-		p.Quota = &Quota{Limit: req.Quota.Limit, Offset: req.Quota.Offset, Period: req.Quota.Period}
+		p.Quota = &quota{Limit: req.Quota.Limit, Offset: req.Quota.Offset, Period: req.Quota.Period}
 	}
 	if err := s.store.PutUsagePlan(p); err != nil {
 		return awshttp.AsAPIError(err)
@@ -286,7 +286,7 @@ func (s *Server) patchUsagePlan(w http.ResponseWriter, r *http.Request, id strin
 				if _, err := s.store.Get(apiID); err != nil {
 					return errBadRequest("Invalid API identifier specified %s", apiID)
 				}
-				p.Stages = append(p.Stages, PlanStage{APIID: apiID, Stage: stage})
+				p.Stages = append(p.Stages, planStage{APIID: apiID, Stage: stage})
 			}
 		case strings.HasPrefix(op.Path, "/throttle"):
 			if op.Op == "remove" {
@@ -294,7 +294,7 @@ func (s *Server) patchUsagePlan(w http.ResponseWriter, r *http.Request, id strin
 				continue
 			}
 			if p.Throttle == nil {
-				p.Throttle = &Throttle{}
+				p.Throttle = &throttle{}
 			}
 			switch op.Path {
 			case "/throttle/rateLimit":
@@ -308,7 +308,7 @@ func (s *Server) patchUsagePlan(w http.ResponseWriter, r *http.Request, id strin
 				continue
 			}
 			if p.Quota == nil {
-				p.Quota = &Quota{}
+				p.Quota = &quota{}
 			}
 			switch op.Path {
 			case "/quota/limit":
@@ -400,9 +400,9 @@ func (s *Server) routeUsagePlanKeys(w http.ResponseWriter, r *http.Request, plan
 }
 
 // PlansCovering lists the plans that cover an API stage.
-func (s *store) PlansCovering(apiID, stage string) []*UsagePlan {
+func (s *store) PlansCovering(apiID, stage string) []*usagePlan {
 	plans, _ := s.ListUsagePlans()
-	var out []*UsagePlan
+	var out []*usagePlan
 	for _, p := range plans {
 		if p.covers(apiID, stage) {
 			out = append(out, p)

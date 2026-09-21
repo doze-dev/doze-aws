@@ -152,13 +152,13 @@ func hSendMessageBatch(s *store, req *request) (any, *apiError) {
 	// over Send opened one per message, which made a ten-item batch cost ten
 	// times a single send — all of it durability rather than work.
 	entries := req.p.sendBatchEntries()
-	items := make([]SendItem, len(entries))
+	items := make([]sendItem, len(entries))
 	for i, e := range entries {
 		delay := -1
 		if e.Delay != nil {
 			delay = *e.Delay
 		}
-		items[i] = SendItem{Body: e.Body, Attrs: e.Attrs, Delay: delay, GroupID: e.GroupID, DedupID: e.DedupID}
+		items[i] = sendItem{Body: e.Body, Attrs: e.Attrs, Delay: delay, GroupID: e.GroupID, DedupID: e.DedupID}
 	}
 	out, err := s.SendBatch(queue, items)
 	if err != nil {
@@ -208,7 +208,7 @@ func hReceiveMessage(s *store, req *request) (any, *apiError) {
 		}
 		if ma := filterAttrs(m.Attrs, maNames); len(ma) > 0 {
 			mv.MessageAttributes = ma
-			mv.MD5OfMessageAttributes = md5Attributes(map[string]Attr(ma))
+			mv.MD5OfMessageAttributes = md5Attributes(map[string]attr(ma))
 		}
 		res.Messages = append(res.Messages, mv)
 	}
@@ -237,7 +237,7 @@ func hDozePeek(s *store, req *request) (any, *apiError) {
 		}
 		if ma := filterAttrs(m.Attrs, maNames); len(ma) > 0 {
 			mv.MessageAttributes = ma
-			mv.MD5OfMessageAttributes = md5Attributes(map[string]Attr(ma))
+			mv.MD5OfMessageAttributes = md5Attributes(map[string]attr(ma))
 		}
 		res.Messages = append(res.Messages, mv)
 	}
@@ -288,9 +288,9 @@ func hChangeMessageVisibility(s *store, req *request) (any, *apiError) {
 func hChangeMessageVisibilityBatch(s *store, req *request) (any, *apiError) {
 	queue := targetQueue(req)
 	entries := req.p.visibilityBatchEntries()
-	items := make([]VisibilityItem, len(entries))
+	items := make([]visibilityItem, len(entries))
 	for i, e := range entries {
-		items[i] = VisibilityItem{Handle: e.ReceiptHandle, Timeout: e.Timeout}
+		items[i] = visibilityItem{Handle: e.ReceiptHandle, Timeout: e.Timeout}
 	}
 	errs, err := s.ChangeVisibilityBatch(queue, items)
 	if err != nil {
@@ -316,7 +316,7 @@ func hPurgeQueue(s *store, req *request) (any, *apiError) {
 }
 
 // systemAttrs builds the requested message system attributes.
-func systemAttrs(m Message, names []string) kvAttrs {
+func systemAttrs(m message, names []string) kvAttrs {
 	if len(names) == 0 {
 		return nil
 	}
@@ -350,7 +350,7 @@ func systemAttrs(m Message, names []string) kvAttrs {
 	return out
 }
 
-func filterAttrs(all map[string]Attr, names []string) msgAttrs {
+func filterAttrs(all map[string]attr, names []string) msgAttrs {
 	if len(all) == 0 || len(names) == 0 {
 		return nil
 	}

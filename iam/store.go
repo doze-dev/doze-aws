@@ -37,7 +37,7 @@ const maxPolicyVersions = 5
 
 // Principal is the behaviour users, groups and roles share: an identity that
 // can carry inline and attached policies.
-type Principal struct {
+type principal struct {
 	Name                string            `json:"name"`
 	Path                string            `json:"path"`
 	ID                  string            `json:"id"`
@@ -48,28 +48,28 @@ type Principal struct {
 	PermissionsBoundary string            `json:"boundary,omitempty"`
 }
 
-// User is an IAM user.
-type User struct {
-	Principal
+// userRecord is an IAM user.
+type userRecord struct {
+	principal
 	Groups []string `json:"groups,omitempty"`
 }
 
-// Group is an IAM group.
-type Group struct {
-	Principal
+// groupRecord is an IAM group.
+type groupRecord struct {
+	principal
 }
 
-// Role is an IAM role. AssumeRolePolicy is the trust policy; it is stored and
-// returned faithfully, and STS consults it when a role is assumed.
-type Role struct {
-	Principal
+// roleRecord is an IAM role. AssumeRolePolicy is the trust policy; it is
+// stored and returned faithfully, and STS consults it when a role is assumed.
+type roleRecord struct {
+	principal
 	AssumeRolePolicy   string `json:"assume_role_policy,omitempty"`
 	Description        string `json:"description,omitempty"`
 	MaxSessionDuration int    `json:"max_session_duration,omitempty"`
 }
 
-// Policy is a customer-managed policy with its version history.
-type Policy struct {
+// policy is a customer-managed policy with its version history.
+type policy struct {
 	Name           string            `json:"name"`
 	Path           string            `json:"path"`
 	ID             string            `json:"id"`
@@ -84,14 +84,14 @@ type Policy struct {
 }
 
 // ARN is the policy's customer-managed ARN.
-func (p *Policy) ARN(id awsident.Identity) string { return id.GlobalARN("iam", "policy"+p.Path+p.Name) }
+func (p *policy) ARN(id awsident.Identity) string { return id.GlobalARN("iam", "policy"+p.Path+p.Name) }
 
 // Default returns the document of the default version.
-func (p *Policy) Default() string { return p.Versions[p.DefaultVersion] }
+func (p *policy) Default() string { return p.Versions[p.DefaultVersion] }
 
 // AccessKey is a credential pair bound to a user. The secret is stored because
 // a local emulator has to hand it back; it authenticates nothing.
-type AccessKey struct {
+type accessKey struct {
 	ID       string `json:"id"`
 	Secret   string `json:"secret"`
 	UserName string `json:"user"`
@@ -101,8 +101,8 @@ type AccessKey struct {
 	LastSvc  string `json:"last_service,omitempty"`
 }
 
-// InstanceProfile wraps a role; CloudFormation templates create them freely.
-type InstanceProfile struct {
+// instanceProfile wraps a role; CloudFormation templates create them freely.
+type instanceProfile struct {
 	Name    string            `json:"name"`
 	Path    string            `json:"path"`
 	ID      string            `json:"id"`
@@ -196,16 +196,16 @@ func uniqueID(prefix string) string {
 
 // ---- users ----
 
-func (s *store) CreateUser(name, path string, tags map[string]string) (*User, error) {
+func (s *store) CreateUser(name, path string, tags map[string]string) (*userRecord, error) {
 	if err := validName("UserName", name); err != nil {
 		return nil, err
 	}
-	var out *User
+	var out *userRecord
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		if _, ok := getJSON[User](tx, userBucket, name); ok {
+		if _, ok := getJSON[userRecord](tx, userBucket, name); ok {
 			return errEntityExists("User with name %s already exists.", name)
 		}
-		u := &User{Principal: Principal{
+		u := &userRecord{principal: principal{
 			Name: name, Path: normPath(path), ID: uniqueID("AIDA"),
 			Created: s.now().Unix(), Tags: tags,
 		}}
@@ -215,10 +215,10 @@ func (s *store) CreateUser(name, path string, tags map[string]string) (*User, er
 	return out, err
 }
 
-func (s *store) GetUser(name string) (*User, error) {
-	var out *User
+func (s *store) GetUser(name string) (*userRecord, error) {
+	var out *userRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
-		u, ok := getJSON[User](tx, userBucket, name)
+		u, ok := getJSON[userRecord](tx, userBucket, name)
 		if !ok {
 			return errNoEntity("The user with name %s cannot be found.", name)
 		}
@@ -228,10 +228,10 @@ func (s *store) GetUser(name string) (*User, error) {
 	return out, err
 }
 
-func (s *store) UpdateUser(name string, fn func(*User) error) (*User, error) {
-	var out *User
+func (s *store) UpdateUser(name string, fn func(*userRecord) error) (*userRecord, error) {
+	var out *userRecord
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		u, ok := getJSON[User](tx, userBucket, name)
+		u, ok := getJSON[userRecord](tx, userBucket, name)
 		if !ok {
 			return errNoEntity("The user with name %s cannot be found.", name)
 		}
@@ -254,14 +254,14 @@ func (s *store) UpdateUser(name string, fn func(*User) error) (*User, error) {
 // keys, matching AWS's DeleteConflict rather than silently orphaning them.
 func (s *store) DeleteUser(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		u, ok := getJSON[User](tx, userBucket, name)
+		u, ok := getJSON[userRecord](tx, userBucket, name)
 		if !ok {
 			return errNoEntity("The user with name %s cannot be found.", name)
 		}
 		if len(u.Attached) > 0 {
 			return errDeleteConflict("Cannot delete entity, must detach all policies first.")
 		}
-		for _, k := range listJSON[AccessKey](tx, keyBucket) {
+		for _, k := range listJSON[accessKey](tx, keyBucket) {
 			if k.UserName == name {
 				return errDeleteConflict("Cannot delete entity, must delete access keys first.")
 			}
@@ -270,10 +270,10 @@ func (s *store) DeleteUser(name string) error {
 	})
 }
 
-func (s *store) ListUsers(pathPrefix string) ([]User, error) {
-	var out []User
+func (s *store) ListUsers(pathPrefix string) ([]userRecord, error) {
+	var out []userRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
-		for _, u := range listJSON[User](tx, userBucket) {
+		for _, u := range listJSON[userRecord](tx, userBucket) {
 			if pathPrefix == "" || strings.HasPrefix(u.Path, pathPrefix) {
 				out = append(out, u)
 			}
@@ -286,26 +286,26 @@ func (s *store) ListUsers(pathPrefix string) ([]User, error) {
 
 // ---- groups ----
 
-func (s *store) CreateGroup(name, path string) (*Group, error) {
+func (s *store) CreateGroup(name, path string) (*groupRecord, error) {
 	if err := validName("GroupName", name); err != nil {
 		return nil, err
 	}
-	var out *Group
+	var out *groupRecord
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		if _, ok := getJSON[Group](tx, groupBucket, name); ok {
+		if _, ok := getJSON[groupRecord](tx, groupBucket, name); ok {
 			return errEntityExists("Group with name %s already exists.", name)
 		}
-		g := &Group{Principal{Name: name, Path: normPath(path), ID: uniqueID("AGPA"), Created: s.now().Unix()}}
+		g := &groupRecord{principal{Name: name, Path: normPath(path), ID: uniqueID("AGPA"), Created: s.now().Unix()}}
 		out = g
 		return putJSON(tx, groupBucket, name, g)
 	})
 	return out, err
 }
 
-func (s *store) GetGroup(name string) (*Group, error) {
-	var out *Group
+func (s *store) GetGroup(name string) (*groupRecord, error) {
+	var out *groupRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
-		g, ok := getJSON[Group](tx, groupBucket, name)
+		g, ok := getJSON[groupRecord](tx, groupBucket, name)
 		if !ok {
 			return errNoEntity("The group with name %s cannot be found.", name)
 		}
@@ -315,10 +315,10 @@ func (s *store) GetGroup(name string) (*Group, error) {
 	return out, err
 }
 
-func (s *store) UpdateGroup(name string, fn func(*Group) error) (*Group, error) {
-	var out *Group
+func (s *store) UpdateGroup(name string, fn func(*groupRecord) error) (*groupRecord, error) {
+	var out *groupRecord
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		g, ok := getJSON[Group](tx, groupBucket, name)
+		g, ok := getJSON[groupRecord](tx, groupBucket, name)
 		if !ok {
 			return errNoEntity("The group with name %s cannot be found.", name)
 		}
@@ -338,7 +338,7 @@ func (s *store) UpdateGroup(name string, fn func(*Group) error) (*Group, error) 
 
 func (s *store) DeleteGroup(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		g, ok := getJSON[Group](tx, groupBucket, name)
+		g, ok := getJSON[groupRecord](tx, groupBucket, name)
 		if !ok {
 			return errNoEntity("The group with name %s cannot be found.", name)
 		}
@@ -349,10 +349,10 @@ func (s *store) DeleteGroup(name string) error {
 	})
 }
 
-func (s *store) ListGroups(pathPrefix string) ([]Group, error) {
-	var out []Group
+func (s *store) ListGroups(pathPrefix string) ([]groupRecord, error) {
+	var out []groupRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
-		for _, g := range listJSON[Group](tx, groupBucket) {
+		for _, g := range listJSON[groupRecord](tx, groupBucket) {
 			if pathPrefix == "" || strings.HasPrefix(g.Path, pathPrefix) {
 				out = append(out, g)
 			}
@@ -365,7 +365,7 @@ func (s *store) ListGroups(pathPrefix string) ([]Group, error) {
 
 // ---- roles ----
 
-func (s *store) CreateRole(name, path, assumeRolePolicy, description string, maxSession int, tags map[string]string) (*Role, error) {
+func (s *store) CreateRole(name, path, assumeRolePolicy, description string, maxSession int, tags map[string]string) (*roleRecord, error) {
 	if err := validName("RoleName", name); err != nil {
 		return nil, err
 	}
@@ -374,13 +374,13 @@ func (s *store) CreateRole(name, path, assumeRolePolicy, description string, max
 			return nil, errMalformedPolicy("AssumeRolePolicyDocument: %v", err)
 		}
 	}
-	var out *Role
+	var out *roleRecord
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		if _, ok := getJSON[Role](tx, roleBucket, name); ok {
+		if _, ok := getJSON[roleRecord](tx, roleBucket, name); ok {
 			return errEntityExists("Role with name %s already exists.", name)
 		}
-		r := &Role{
-			Principal:          Principal{Name: name, Path: normPath(path), ID: uniqueID("AROA"), Created: s.now().Unix(), Tags: tags},
+		r := &roleRecord{
+			principal:          principal{Name: name, Path: normPath(path), ID: uniqueID("AROA"), Created: s.now().Unix(), Tags: tags},
 			AssumeRolePolicy:   assumeRolePolicy,
 			Description:        description,
 			MaxSessionDuration: orDefault(maxSession, 3600),
@@ -391,10 +391,10 @@ func (s *store) CreateRole(name, path, assumeRolePolicy, description string, max
 	return out, err
 }
 
-func (s *store) GetRole(name string) (*Role, error) {
-	var out *Role
+func (s *store) GetRole(name string) (*roleRecord, error) {
+	var out *roleRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
-		r, ok := getJSON[Role](tx, roleBucket, name)
+		r, ok := getJSON[roleRecord](tx, roleBucket, name)
 		if !ok {
 			return errNoEntity("The role with name %s cannot be found.", name)
 		}
@@ -404,10 +404,10 @@ func (s *store) GetRole(name string) (*Role, error) {
 	return out, err
 }
 
-func (s *store) UpdateRole(name string, fn func(*Role) error) (*Role, error) {
-	var out *Role
+func (s *store) UpdateRole(name string, fn func(*roleRecord) error) (*roleRecord, error) {
+	var out *roleRecord
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		r, ok := getJSON[Role](tx, roleBucket, name)
+		r, ok := getJSON[roleRecord](tx, roleBucket, name)
 		if !ok {
 			return errNoEntity("The role with name %s cannot be found.", name)
 		}
@@ -422,7 +422,7 @@ func (s *store) UpdateRole(name string, fn func(*Role) error) (*Role, error) {
 
 func (s *store) DeleteRole(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		r, ok := getJSON[Role](tx, roleBucket, name)
+		r, ok := getJSON[roleRecord](tx, roleBucket, name)
 		if !ok {
 			return errNoEntity("The role with name %s cannot be found.", name)
 		}
@@ -433,10 +433,10 @@ func (s *store) DeleteRole(name string) error {
 	})
 }
 
-func (s *store) ListRoles(pathPrefix string) ([]Role, error) {
-	var out []Role
+func (s *store) ListRoles(pathPrefix string) ([]roleRecord, error) {
+	var out []roleRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
-		for _, r := range listJSON[Role](tx, roleBucket) {
+		for _, r := range listJSON[roleRecord](tx, roleBucket) {
 			if pathPrefix == "" || strings.HasPrefix(r.Path, pathPrefix) {
 				out = append(out, r)
 			}
@@ -449,21 +449,21 @@ func (s *store) ListRoles(pathPrefix string) ([]Role, error) {
 
 // ---- managed policies ----
 
-func (s *store) CreatePolicy(name, path, document, description string, tags map[string]string) (*Policy, error) {
+func (s *store) CreatePolicy(name, path, document, description string, tags map[string]string) (*policy, error) {
 	if err := validName("PolicyName", name); err != nil {
 		return nil, err
 	}
 	if _, err := parsePolicy(document); err != nil {
 		return nil, errMalformedPolicy("PolicyDocument: %v", err)
 	}
-	var out *Policy
+	var out *policy
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		key := normPath(path) + name
-		if _, ok := getJSON[Policy](tx, policyBucket, key); ok {
+		if _, ok := getJSON[policy](tx, policyBucket, key); ok {
 			return errEntityExists("A policy called %s already exists.", name)
 		}
 		now := s.now().Unix()
-		p := &Policy{
+		p := &policy{
 			Name: name, Path: normPath(path), ID: uniqueID("ANPA"),
 			Created: now, Updated: now, Description: description,
 			DefaultVersion: "v1",
@@ -488,7 +488,7 @@ func policyKey(arn string) string {
 
 // GetPolicy resolves a policy ARN. AWS-managed ARNs are synthesized rather
 // than stored — see managed.go.
-func (s *store) GetPolicy(arn string) (*Policy, error) {
+func (s *store) GetPolicy(arn string) (*policy, error) {
 	if p, ok := managedPolicy(arn); ok {
 		return p, nil
 	}
@@ -496,9 +496,9 @@ func (s *store) GetPolicy(arn string) (*Policy, error) {
 	if key == "" {
 		return nil, errNoEntity("Policy %s does not exist or is not attachable.", arn)
 	}
-	var out *Policy
+	var out *policy
 	err := s.db.View(func(tx *bolt.Tx) error {
-		p, ok := getJSON[Policy](tx, policyBucket, key)
+		p, ok := getJSON[policy](tx, policyBucket, key)
 		if !ok {
 			return errNoEntity("Policy %s does not exist or is not attachable.", arn)
 		}
@@ -508,14 +508,14 @@ func (s *store) GetPolicy(arn string) (*Policy, error) {
 	return out, err
 }
 
-func (s *store) UpdatePolicy(arn string, fn func(*Policy) error) (*Policy, error) {
+func (s *store) UpdatePolicy(arn string, fn func(*policy) error) (*policy, error) {
 	if isManagedARN(arn) {
 		return nil, errInvalidInput("Policy %s is an AWS managed policy and cannot be modified.", arn)
 	}
 	key := policyKey(arn)
-	var out *Policy
+	var out *policy
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		p, ok := getJSON[Policy](tx, policyBucket, key)
+		p, ok := getJSON[policy](tx, policyBucket, key)
 		if !ok {
 			return errNoEntity("Policy %s does not exist or is not attachable.", arn)
 		}
@@ -535,7 +535,7 @@ func (s *store) DeletePolicy(arn string) error {
 	}
 	key := policyKey(arn)
 	return s.db.Update(func(tx *bolt.Tx) error {
-		p, ok := getJSON[Policy](tx, policyBucket, key)
+		p, ok := getJSON[policy](tx, policyBucket, key)
 		if !ok {
 			return errNoEntity("Policy %s does not exist or is not attachable.", arn)
 		}
@@ -546,10 +546,10 @@ func (s *store) DeletePolicy(arn string) error {
 	})
 }
 
-func (s *store) ListPolicies(pathPrefix string) ([]Policy, error) {
-	var out []Policy
+func (s *store) ListPolicies(pathPrefix string) ([]policy, error) {
+	var out []policy
 	err := s.db.View(func(tx *bolt.Tx) error {
-		for _, p := range listJSON[Policy](tx, policyBucket) {
+		for _, p := range listJSON[policy](tx, policyBucket) {
 			if pathPrefix == "" || strings.HasPrefix(p.Path, pathPrefix) {
 				out = append(out, p)
 			}
@@ -566,7 +566,7 @@ func (s *store) AddPolicyVersion(arn, document string, setDefault bool) (string,
 		return "", errMalformedPolicy("PolicyDocument: %v", err)
 	}
 	version := ""
-	_, err := s.UpdatePolicy(arn, func(p *Policy) error {
+	_, err := s.UpdatePolicy(arn, func(p *policy) error {
 		if len(p.VersionOrder) >= maxPolicyVersions {
 			return errLimitExceeded("A managed policy can have up to %d versions. Delete an existing version first.", maxPolicyVersions)
 		}
@@ -595,7 +595,7 @@ func nextVersionNumber(order []string) int {
 }
 
 func (s *store) DeletePolicyVersion(arn, version string) error {
-	_, err := s.UpdatePolicy(arn, func(p *Policy) error {
+	_, err := s.UpdatePolicy(arn, func(p *policy) error {
 		if version == p.DefaultVersion {
 			return errDeleteConflict("Cannot delete the default version of a policy.")
 		}
@@ -627,7 +627,7 @@ func (s *store) Attach(kind attachTarget, name, policyARN string) error {
 		return err
 	}
 	added := false
-	if err := s.updatePrincipal(kind, name, func(p *Principal) error {
+	if err := s.updatePrincipal(kind, name, func(p *principal) error {
 		if containsString(p.Attached, policyARN) {
 			return nil
 		}
@@ -638,14 +638,14 @@ func (s *store) Attach(kind attachTarget, name, policyARN string) error {
 		return err
 	}
 	if added && !isManagedARN(policyARN) {
-		_, _ = s.UpdatePolicy(policyARN, func(p *Policy) error { p.AttachCount++; return nil })
+		_, _ = s.UpdatePolicy(policyARN, func(p *policy) error { p.AttachCount++; return nil })
 	}
 	return nil
 }
 
 func (s *store) Detach(kind attachTarget, name, policyARN string) error {
 	removed := false
-	if err := s.updatePrincipal(kind, name, func(p *Principal) error {
+	if err := s.updatePrincipal(kind, name, func(p *principal) error {
 		if !containsString(p.Attached, policyARN) {
 			return errNoEntity("Policy %s is not attached to entity %s.", policyARN, name)
 		}
@@ -656,7 +656,7 @@ func (s *store) Detach(kind attachTarget, name, policyARN string) error {
 		return err
 	}
 	if removed && !isManagedARN(policyARN) {
-		_, _ = s.UpdatePolicy(policyARN, func(p *Policy) error {
+		_, _ = s.UpdatePolicy(policyARN, func(p *policy) error {
 			if p.AttachCount > 0 {
 				p.AttachCount--
 			}
@@ -668,50 +668,50 @@ func (s *store) Detach(kind attachTarget, name, policyARN string) error {
 
 // updatePrincipal applies fn to the embedded Principal of any principal kind,
 // which is what lets attach/detach and inline-policy handling be written once.
-func (s *store) updatePrincipal(kind attachTarget, name string, fn func(*Principal) error) error {
+func (s *store) updatePrincipal(kind attachTarget, name string, fn func(*principal) error) error {
 	var err error
 	switch kind {
 	case targetUser:
-		_, err = s.UpdateUser(name, func(u *User) error { return fn(&u.Principal) })
+		_, err = s.UpdateUser(name, func(u *userRecord) error { return fn(&u.principal) })
 	case targetGroup:
-		_, err = s.UpdateGroup(name, func(g *Group) error { return fn(&g.Principal) })
+		_, err = s.UpdateGroup(name, func(g *groupRecord) error { return fn(&g.principal) })
 	case targetRole:
-		_, err = s.UpdateRole(name, func(r *Role) error { return fn(&r.Principal) })
+		_, err = s.UpdateRole(name, func(r *roleRecord) error { return fn(&r.principal) })
 	}
 	return err
 }
 
 // principalOf fetches the embedded Principal for a kind and name.
-func (s *store) principalOf(kind attachTarget, name string) (*Principal, error) {
+func (s *store) principalOf(kind attachTarget, name string) (*principal, error) {
 	switch kind {
 	case targetUser:
 		u, err := s.GetUser(name)
 		if err != nil {
 			return nil, err
 		}
-		return &u.Principal, nil
+		return &u.principal, nil
 	case targetGroup:
 		g, err := s.GetGroup(name)
 		if err != nil {
 			return nil, err
 		}
-		return &g.Principal, nil
+		return &g.principal, nil
 	default:
 		r, err := s.GetRole(name)
 		if err != nil {
 			return nil, err
 		}
-		return &r.Principal, nil
+		return &r.principal, nil
 	}
 }
 
 // ---- access keys ----
 
-func (s *store) CreateAccessKey(user string) (*AccessKey, error) {
+func (s *store) CreateAccessKey(user string) (*accessKey, error) {
 	if _, err := s.GetUser(user); err != nil {
 		return nil, err
 	}
-	k := &AccessKey{
+	k := &accessKey{
 		ID:       uniqueID("AKIA"),
 		Secret:   randomSecret(),
 		UserName: user,
@@ -724,10 +724,10 @@ func (s *store) CreateAccessKey(user string) (*AccessKey, error) {
 
 // LookupAccessKey resolves a key id to its key. This is the hot path for
 // enforcement: one point lookup, no scan.
-func (s *store) LookupAccessKey(id string) (*AccessKey, bool) {
-	var out *AccessKey
+func (s *store) LookupAccessKey(id string) (*accessKey, bool) {
+	var out *accessKey
 	_ = s.db.View(func(tx *bolt.Tx) error {
-		k, ok := getJSON[AccessKey](tx, keyBucket, id)
+		k, ok := getJSON[accessKey](tx, keyBucket, id)
 		if ok {
 			out = k
 		}
@@ -736,10 +736,10 @@ func (s *store) LookupAccessKey(id string) (*AccessKey, bool) {
 	return out, out != nil
 }
 
-func (s *store) ListAccessKeys(user string) ([]AccessKey, error) {
-	var out []AccessKey
+func (s *store) ListAccessKeys(user string) ([]accessKey, error) {
+	var out []accessKey
 	err := s.db.View(func(tx *bolt.Tx) error {
-		for _, k := range listJSON[AccessKey](tx, keyBucket) {
+		for _, k := range listJSON[accessKey](tx, keyBucket) {
 			if k.UserName == user {
 				out = append(out, k)
 			}
@@ -752,7 +752,7 @@ func (s *store) ListAccessKeys(user string) ([]AccessKey, error) {
 
 func (s *store) UpdateAccessKey(id, status string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		k, ok := getJSON[AccessKey](tx, keyBucket, id)
+		k, ok := getJSON[accessKey](tx, keyBucket, id)
 		if !ok {
 			return errNoEntity("The Access Key with id %s cannot be found.", id)
 		}
@@ -763,7 +763,7 @@ func (s *store) UpdateAccessKey(id, status string) error {
 
 func (s *store) DeleteAccessKey(id string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		if _, ok := getJSON[AccessKey](tx, keyBucket, id); !ok {
+		if _, ok := getJSON[accessKey](tx, keyBucket, id); !ok {
 			return errNoEntity("The Access Key with id %s cannot be found.", id)
 		}
 		return tx.Bucket(keyBucket).Delete([]byte(id))
@@ -773,7 +773,7 @@ func (s *store) DeleteAccessKey(id string) error {
 // TouchAccessKey records last-used metadata, which GetAccessKeyLastUsed reads.
 func (s *store) TouchAccessKey(id, service string) {
 	_ = s.db.Update(func(tx *bolt.Tx) error {
-		k, ok := getJSON[AccessKey](tx, keyBucket, id)
+		k, ok := getJSON[accessKey](tx, keyBucket, id)
 		if !ok {
 			return nil
 		}
@@ -784,26 +784,26 @@ func (s *store) TouchAccessKey(id, service string) {
 
 // ---- instance profiles ----
 
-func (s *store) CreateInstanceProfile(name, path string) (*InstanceProfile, error) {
+func (s *store) CreateInstanceProfile(name, path string) (*instanceProfile, error) {
 	if err := validName("InstanceProfileName", name); err != nil {
 		return nil, err
 	}
-	var out *InstanceProfile
+	var out *instanceProfile
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		if _, ok := getJSON[InstanceProfile](tx, profileBucket, name); ok {
+		if _, ok := getJSON[instanceProfile](tx, profileBucket, name); ok {
 			return errEntityExists("Instance Profile %s already exists.", name)
 		}
-		p := &InstanceProfile{Name: name, Path: normPath(path), ID: uniqueID("AIPA"), Created: s.now().Unix()}
+		p := &instanceProfile{Name: name, Path: normPath(path), ID: uniqueID("AIPA"), Created: s.now().Unix()}
 		out = p
 		return putJSON(tx, profileBucket, name, p)
 	})
 	return out, err
 }
 
-func (s *store) GetInstanceProfile(name string) (*InstanceProfile, error) {
-	var out *InstanceProfile
+func (s *store) GetInstanceProfile(name string) (*instanceProfile, error) {
+	var out *instanceProfile
 	err := s.db.View(func(tx *bolt.Tx) error {
-		p, ok := getJSON[InstanceProfile](tx, profileBucket, name)
+		p, ok := getJSON[instanceProfile](tx, profileBucket, name)
 		if !ok {
 			return errNoEntity("Instance Profile %s cannot be found.", name)
 		}
@@ -813,9 +813,9 @@ func (s *store) GetInstanceProfile(name string) (*InstanceProfile, error) {
 	return out, err
 }
 
-func (s *store) UpdateInstanceProfile(name string, fn func(*InstanceProfile) error) error {
+func (s *store) UpdateInstanceProfile(name string, fn func(*instanceProfile) error) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		p, ok := getJSON[InstanceProfile](tx, profileBucket, name)
+		p, ok := getJSON[instanceProfile](tx, profileBucket, name)
 		if !ok {
 			return errNoEntity("Instance Profile %s cannot be found.", name)
 		}
@@ -828,17 +828,17 @@ func (s *store) UpdateInstanceProfile(name string, fn func(*InstanceProfile) err
 
 func (s *store) DeleteInstanceProfile(name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		if _, ok := getJSON[InstanceProfile](tx, profileBucket, name); !ok {
+		if _, ok := getJSON[instanceProfile](tx, profileBucket, name); !ok {
 			return errNoEntity("Instance Profile %s cannot be found.", name)
 		}
 		return tx.Bucket(profileBucket).Delete([]byte(name))
 	})
 }
 
-func (s *store) ListInstanceProfiles() ([]InstanceProfile, error) {
-	var out []InstanceProfile
+func (s *store) ListInstanceProfiles() ([]instanceProfile, error) {
+	var out []instanceProfile
 	err := s.db.View(func(tx *bolt.Tx) error {
-		out = listJSON[InstanceProfile](tx, profileBucket)
+		out = listJSON[instanceProfile](tx, profileBucket)
 		return nil
 	})
 	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
@@ -888,7 +888,7 @@ func (s *store) PoliciesFor(kind attachTarget, name string) ([]*document, error)
 		if err == nil {
 			for _, gname := range u.Groups {
 				if g, err := s.GetGroup(gname); err == nil {
-					docs = append(docs, s.documentsOf(&g.Principal)...)
+					docs = append(docs, s.documentsOf(&g.principal)...)
 				}
 			}
 		}
@@ -899,7 +899,7 @@ func (s *store) PoliciesFor(kind attachTarget, name string) ([]*document, error)
 // documentsOf parses a principal's inline and attached policies. Unparseable
 // documents are skipped rather than failing the whole evaluation — they could
 // only have been stored before validation tightened.
-func (s *store) documentsOf(p *Principal) []*document {
+func (s *store) documentsOf(p *principal) []*document {
 	var docs []*document
 	names := make([]string, 0, len(p.Inline))
 	for n := range p.Inline {

@@ -19,8 +19,8 @@ var (
 	subsBucket   = []byte("subs")
 )
 
-// Topic is a declared/created SNS topic.
-type Topic struct {
+// topic is a declared/created SNS topic.
+type topic struct {
 	ARN  string `json:"arn"`
 	Name string `json:"name"`
 	// Attrs round-trips SetTopicAttributes/CreateTopic attributes
@@ -32,8 +32,8 @@ type Topic struct {
 	DataProtectionPolicy string `json:"data_protection_policy,omitempty"`
 }
 
-// Subscription is one subscription to a topic.
-type Subscription struct {
+// subscription is one subscription to a topic.
+type subscription struct {
 	ARN          string `json:"arn"`
 	TopicARN     string `json:"topic_arn"`
 	Protocol     string `json:"protocol"` // sqs | http | https
@@ -70,11 +70,11 @@ func (s *store) topicARN(name string) string { return s.id.ARN("sns", name) }
 
 // ---- topics ----
 
-func (s *store) CreateTopic(name string, attrs, tags map[string]string) (*Topic, error) {
+func (s *store) CreateTopic(name string, attrs, tags map[string]string) (*topic, error) {
 	if name == "" {
 		return nil, errInvalid("topic name is required")
 	}
-	t := &Topic{ARN: s.topicARN(name), Name: name}
+	t := &topic{ARN: s.topicARN(name), Name: name}
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(topicsBucket)
 		if err != nil {
@@ -103,8 +103,8 @@ func (s *store) CreateTopic(name string, attrs, tags map[string]string) (*Topic,
 }
 
 // GetTopic returns a topic by ARN.
-func (s *store) GetTopic(arn string) (*Topic, error) {
-	var out *Topic
+func (s *store) GetTopic(arn string) (*topic, error) {
+	var out *topic
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(topicsBucket)
 		if b == nil {
@@ -114,7 +114,7 @@ func (s *store) GetTopic(arn string) (*Topic, error) {
 		if raw == nil {
 			return errNotFound("topic does not exist: " + arn)
 		}
-		var t Topic
+		var t topic
 		if err := json.Unmarshal(raw, &t); err != nil {
 			return err
 		}
@@ -125,7 +125,7 @@ func (s *store) GetTopic(arn string) (*Topic, error) {
 }
 
 // UpdateTopic applies fn to a topic and persists the result.
-func (s *store) UpdateTopic(arn string, fn func(*Topic)) error {
+func (s *store) UpdateTopic(arn string, fn func(*topic)) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(topicsBucket)
 		if b == nil {
@@ -135,7 +135,7 @@ func (s *store) UpdateTopic(arn string, fn func(*Topic)) error {
 		if raw == nil {
 			return errNotFound("topic does not exist: " + arn)
 		}
-		var t Topic
+		var t topic
 		if err := json.Unmarshal(raw, &t); err != nil {
 			return err
 		}
@@ -154,7 +154,7 @@ func (s *store) DeleteTopic(arn string) error {
 		if sb := tx.Bucket(subsBucket); sb != nil {
 			var stale [][]byte
 			_ = sb.ForEach(func(k, raw []byte) error {
-				var sub Subscription
+				var sub subscription
 				if json.Unmarshal(raw, &sub) == nil && sub.TopicARN == arn {
 					stale = append(stale, append([]byte(nil), k...))
 				}
@@ -168,15 +168,15 @@ func (s *store) DeleteTopic(arn string) error {
 	})
 }
 
-func (s *store) ListTopics() ([]Topic, error) {
-	var out []Topic
+func (s *store) ListTopics() ([]topic, error) {
+	var out []topic
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(topicsBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var t Topic
+			var t topic
 			if json.Unmarshal(raw, &t) == nil {
 				out = append(out, t)
 			}
@@ -206,8 +206,8 @@ func (s *store) TopicExists(arn string) bool {
 
 // Subscribe creates a subscription. SQS subscriptions are auto-confirmed; http(s)
 // ones start pending with a confirmation token until ConfirmSubscription.
-func (s *store) Subscribe(topicARN, protocol, endpoint string, attrs map[string]string) (*Subscription, error) {
-	sub := &Subscription{
+func (s *store) Subscribe(topicARN, protocol, endpoint string, attrs map[string]string) (*subscription, error) {
+	sub := &subscription{
 		ARN:       topicARN + ":" + newID(),
 		TopicARN:  topicARN,
 		Protocol:  protocol,
@@ -230,7 +230,7 @@ func (s *store) Subscribe(topicARN, protocol, endpoint string, attrs map[string]
 		// reuses the existing subscription's ARN and just refreshes its attributes, so
 		// a re-converge on every boot can't pile up identical subscriptions.
 		_ = b.ForEach(func(_, raw []byte) error {
-			var have Subscription
+			var have subscription
 			if json.Unmarshal(raw, &have) == nil &&
 				have.TopicARN == topicARN && have.Protocol == protocol && have.Endpoint == endpoint {
 				sub.ARN, sub.Token, sub.Confirmed = have.ARN, have.Token, have.Confirmed
@@ -243,7 +243,7 @@ func (s *store) Subscribe(topicARN, protocol, endpoint string, attrs map[string]
 	return sub, err
 }
 
-func applySubAttrs(sub *Subscription, attrs map[string]string) {
+func applySubAttrs(sub *subscription, attrs map[string]string) {
 	for k, v := range attrs {
 		switch k {
 		case "RawMessageDelivery":
@@ -260,8 +260,8 @@ func applySubAttrs(sub *Subscription, attrs map[string]string) {
 }
 
 // GetSubscription returns one subscription by ARN.
-func (s *store) GetSubscription(arn string) (*Subscription, error) {
-	var sub *Subscription
+func (s *store) GetSubscription(arn string) (*subscription, error) {
+	var sub *subscription
 	err := s.db.View(func(tx *bolt.Tx) error {
 		got, err := s.getSub(tx, arn)
 		if err != nil {
@@ -273,7 +273,7 @@ func (s *store) GetSubscription(arn string) (*Subscription, error) {
 	return sub, err
 }
 
-func (s *store) getSub(tx *bolt.Tx, arn string) (*Subscription, error) {
+func (s *store) getSub(tx *bolt.Tx, arn string) (*subscription, error) {
 	b := tx.Bucket(subsBucket)
 	if b == nil {
 		return nil, errNotFound("subscription does not exist")
@@ -282,14 +282,14 @@ func (s *store) getSub(tx *bolt.Tx, arn string) (*Subscription, error) {
 	if raw == nil {
 		return nil, errNotFound("subscription does not exist: " + arn)
 	}
-	var sub Subscription
+	var sub subscription
 	if err := json.Unmarshal(raw, &sub); err != nil {
 		return nil, err
 	}
 	return &sub, nil
 }
 
-func (s *store) putSub(tx *bolt.Tx, sub *Subscription) error {
+func (s *store) putSub(tx *bolt.Tx, sub *subscription) error {
 	b, err := tx.CreateBucketIfNotExists(subsBucket)
 	if err != nil {
 		return err
@@ -319,16 +319,16 @@ func (s *store) SetSubscriptionAttribute(arn, name, value string) error {
 }
 
 // ConfirmByToken confirms a pending http(s) subscription given its token.
-func (s *store) ConfirmByToken(token string) (*Subscription, error) {
-	var out *Subscription
+func (s *store) ConfirmByToken(token string) (*subscription, error) {
+	var out *subscription
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(subsBucket)
 		if b == nil {
 			return errNotFound("no such token")
 		}
-		var found *Subscription
+		var found *subscription
 		_ = b.ForEach(func(_, raw []byte) error {
-			var sub Subscription
+			var sub subscription
 			if json.Unmarshal(raw, &sub) == nil && sub.Token == token {
 				found = &sub
 			}
@@ -345,15 +345,15 @@ func (s *store) ConfirmByToken(token string) (*Subscription, error) {
 	return out, err
 }
 
-func (s *store) ListSubscriptions(topicFilter string) ([]Subscription, error) {
-	var out []Subscription
+func (s *store) ListSubscriptions(topicFilter string) ([]subscription, error) {
+	var out []subscription
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(subsBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var sub Subscription
+			var sub subscription
 			if json.Unmarshal(raw, &sub) == nil && (topicFilter == "" || sub.TopicARN == topicFilter) {
 				out = append(out, sub)
 			}
@@ -365,7 +365,7 @@ func (s *store) ListSubscriptions(topicFilter string) ([]Subscription, error) {
 }
 
 // subsForTopic returns confirmed subscriptions of a topic (for delivery).
-func (s *store) subsForTopic(arn string) ([]Subscription, error) {
+func (s *store) subsForTopic(arn string) ([]subscription, error) {
 	all, err := s.ListSubscriptions(arn)
 	if err != nil {
 		return nil, err

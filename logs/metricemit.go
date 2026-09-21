@@ -26,12 +26,12 @@ const metricBuffer = 1024
 type metricBatch struct {
 	ctx    context.Context
 	group  string
-	events []Stored
+	events []storedEvent
 }
 
 // compiledFilter is a metric filter with its pattern compiled once.
 type compiledFilter struct {
-	MetricFilter
+	metricFilter
 	match matcher
 }
 
@@ -67,7 +67,7 @@ func newMetricEmitter(st *store, dir peers.Directory, logf func(string, ...any))
 
 // enqueue hands a stored batch to the worker, detaching the request context
 // so evaluation outlives the PutLogEvents that caused it.
-func (m *metricEmitter) enqueue(ctx context.Context, group string, events []Stored) {
+func (m *metricEmitter) enqueue(ctx context.Context, group string, events []storedEvent) {
 	if len(events) == 0 {
 		return
 	}
@@ -179,7 +179,7 @@ func (m *metricEmitter) filtersFor(group string) []compiledFilter {
 			m.logf("logs: metric filter %s/%s has an unusable pattern: %v", f.Group, f.Name, err)
 			continue
 		}
-		out = append(out, compiledFilter{MetricFilter: f, match: m2})
+		out = append(out, compiledFilter{metricFilter: f, match: m2})
 	}
 	m.mu.Lock()
 	m.cache[group] = out

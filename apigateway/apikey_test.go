@@ -28,10 +28,10 @@ func TestAPIKeyGate(t *testing.T) {
 	defer ts.Close()
 	apiID := authorizedAPI(t, s, 300)
 	// GET /keyed requires a key and no authorizer.
-	s.store.Update(apiID, func(a *RestAPI) error {
-		res := &Resource{ID: "keyed-id", ParentID: rootID(a), PathPart: "keyed", Path: "/keyed", Methods: map[string]*Method{}}
-		res.Methods["GET"] = &Method{HTTPMethod: "GET", AuthorizationType: "NONE", APIKeyRequired: true,
-			Integration: &Integration{Type: "AWS_PROXY", HTTPMethod: "POST", URI: "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:000000000000:function:backend/invocations"}}
+	s.store.Update(apiID, func(a *restAPI) error {
+		res := &resource{ID: "keyed-id", ParentID: rootID(a), PathPart: "keyed", Path: "/keyed", Methods: map[string]*method{}}
+		res.Methods["GET"] = &method{HTTPMethod: "GET", AuthorizationType: "NONE", APIKeyRequired: true,
+			Integration: &integration{Type: "AWS_PROXY", HTTPMethod: "POST", URI: "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:000000000000:function:backend/invocations"}}
 		a.Resources[res.ID] = res
 		return nil
 	})
@@ -51,12 +51,12 @@ func TestAPIKeyGate(t *testing.T) {
 	if code, body := get(""); code != 403 || !strings.Contains(body, "Forbidden") {
 		t.Errorf("no key: %d %s", code, body)
 	}
-	key := &APIKey{ID: "k1", Name: "partner", Value: "partner-key-value-0123456789", Enabled: true}
+	key := &apiKey{ID: "k1", Name: "partner", Value: "partner-key-value-0123456789", Enabled: true}
 	s.store.PutAPIKey(key)
 	if code, _ := get(key.Value); code != 403 {
 		t.Errorf("a key in no plan should be forbidden, got %d", code)
 	}
-	plan := &UsagePlan{ID: "p1", Name: "basic", Stages: []PlanStage{{APIID: apiID, Stage: "v1"}}, KeyIDs: []string{"k1"}}
+	plan := &usagePlan{ID: "p1", Name: "basic", Stages: []planStage{{APIID: apiID, Stage: "v1"}}, KeyIDs: []string{"k1"}}
 	s.store.PutUsagePlan(plan)
 	if code, _ := get(key.Value); code != 200 {
 		t.Errorf("a key in a covering plan should pass, got %d", code)
@@ -68,13 +68,13 @@ func TestAPIKeyGate(t *testing.T) {
 	}
 	key.Enabled = true
 	s.store.PutAPIKey(key)
-	plan.Stages = []PlanStage{{APIID: apiID, Stage: "other"}}
+	plan.Stages = []planStage{{APIID: apiID, Stage: "other"}}
 	s.store.PutUsagePlan(plan)
 	if code, _ := get(key.Value); code != 403 {
 		t.Errorf("a plan covering another stage should not admit the key, got %d", code)
 	}
 	// Deleting the key detaches it from its plans.
-	plan.Stages = []PlanStage{{APIID: apiID, Stage: "v1"}}
+	plan.Stages = []planStage{{APIID: apiID, Stage: "v1"}}
 	s.store.PutUsagePlan(plan)
 	if err := s.store.DeleteAPIKey("k1"); err != nil {
 		t.Fatal(err)

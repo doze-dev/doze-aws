@@ -44,7 +44,7 @@ func execInputs(p map[string]any) (name, input string, aerr *awshttp.APIError) {
 // newExpressExecution builds the volatile record for one Express run. The
 // deadline is the machine's TimeoutSeconds or AWS's 5-minute Express cap,
 // whichever is sooner.
-func (s *Server) newExpressExecution(ctx context.Context, m *StateMachine, p map[string]any, versionARN, aliasARN string) (*Execution, *awshttp.APIError) {
+func (s *Server) newExpressExecution(ctx context.Context, m *stateMachine, p map[string]any, versionARN, aliasARN string) (*execution, *awshttp.APIError) {
 	execName, input, aerr := execInputs(p)
 	if aerr != nil {
 		return nil, aerr
@@ -55,7 +55,7 @@ func (s *Server) newExpressExecution(ctx context.Context, m *StateMachine, p map
 	}
 	now := s.store.clock()
 	arn := expressExecARN(s.id, m.Name, execName, newToken()[2:18])
-	e := &Execution{
+	e := &execution{
 		ARN: arn, MachineARN: m.ARN, Name: execName,
 		Definition: m.Definition, RoleARN: m.RoleARN, RevisionID: m.RevisionID, Type: "EXPRESS",
 		Status: "RUNNING", StartedAt: now.UnixMilli(), Input: input,
@@ -78,7 +78,7 @@ func (s *Server) newExpressExecution(ctx context.Context, m *StateMachine, p map
 }
 
 // startExpress is StartExecution's Express branch: fire and forget.
-func (s *Server) startExpress(ctx context.Context, m *StateMachine, p map[string]any, versionARN, aliasARN string) (any, *awshttp.APIError) {
+func (s *Server) startExpress(ctx context.Context, m *stateMachine, p map[string]any, versionARN, aliasARN string) (any, *awshttp.APIError) {
 	e, aerr := s.newExpressExecution(ctx, m, p, versionARN, aliasARN)
 	if aerr != nil {
 		return nil, aerr
@@ -145,7 +145,7 @@ func (s *Server) startSyncExecution(ctx context.Context, p map[string]any) (any,
 }
 
 // billedMillis rounds a duration up to AWS's 100ms billing granularity.
-func billedMillis(e *Execution) int64 {
+func billedMillis(e *execution) int64 {
 	d := e.StoppedAt - e.StartedAt
 	if d <= 0 {
 		return 100

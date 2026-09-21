@@ -22,7 +22,7 @@ import (
 )
 
 // v2IdentityValues reads the authorizer's identity sources from the request.
-func v2IdentityValues(a *V2Authorizer, r *http.Request, call *v2Call) ([]string, bool) {
+func v2IdentityValues(a *v2Authorizer, r *http.Request, call *v2Call) ([]string, bool) {
 	sources := a.IdentitySource
 	if len(sources) == 0 {
 		sources = []string{"$request.header.Authorization"}
@@ -67,7 +67,7 @@ type v2AuthResponse struct {
 
 // v2Authorize runs the route's authorizer. It returns the context the
 // integration event carries under requestContext.authorizer, or a denial.
-func (s *Server) v2Authorize(r *http.Request, call *v2Call, a *V2Authorizer) (map[string]any, *authDenial) {
+func (s *Server) v2Authorize(r *http.Request, call *v2Call, a *v2Authorizer) (map[string]any, *authDenial) {
 	rl := call.rl
 	values, ok := v2IdentityValues(a, r, call)
 	if !ok {
@@ -85,7 +85,7 @@ func (s *Server) v2Authorize(r *http.Request, call *v2Call, a *V2Authorizer) (ma
 	fn := lambdaFromURI(a.URI)
 	var payload []byte
 	if a.PayloadFormatVersion == "1.0" {
-		res := &Resource{ID: call.route.ID, Path: v2RoutePath(call.route)}
+		res := &resource{ID: call.route.ID, Path: v2RoutePath(call.route)}
 		ev := s.buildProxyEvent(r, call.api, call.stage.Name, res, call.params, call.path, nil, nil, rl.id)
 		m := map[string]any{
 			"version": "1.0", "type": "REQUEST", "methodArn": arn, "identitySource": strings.Join(values, ","),
@@ -130,7 +130,7 @@ func (s *Server) v2Authorize(r *http.Request, call *v2Call, a *V2Authorizer) (ma
 // v2ParseAuth reads the function's answer in the shape the authorizer is
 // configured for, into the cache's record: a simple response is kept as a
 // synthetic policy so one cache serves both.
-func (s *Server) v2ParseAuth(out []byte, a *V2Authorizer) (*authorizerResponse, error) {
+func (s *Server) v2ParseAuth(out []byte, a *v2Authorizer) (*authorizerResponse, error) {
 	if a.EnableSimpleResponses {
 		var simple v2AuthResponse
 		if err := json.Unmarshal(out, &simple); err != nil || simple.IsAuthorized == nil {
@@ -151,7 +151,7 @@ func (s *Server) v2ParseAuth(out []byte, a *V2Authorizer) (*authorizerResponse, 
 
 // v2Decide turns the answer into a verdict; the context lands on the
 // integration event, with the principal when a policy named one.
-func (s *Server) v2Decide(resp *authorizerResponse, a *V2Authorizer, arn string, rl *requestLog) (map[string]any, *authDenial) {
+func (s *Server) v2Decide(resp *authorizerResponse, a *v2Authorizer, arn string, rl *requestLog) (map[string]any, *authDenial) {
 	if !a.EnableSimpleResponses {
 		rl.principal = resp.PrincipalID
 	}

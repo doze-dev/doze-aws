@@ -53,7 +53,7 @@ var maxHash = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 128), big.NewInt(
 // and its EndSeq, consumers drain it to the end and then move to the children.
 // That parent/child lineage is what preserves per-partition-key ordering across
 // a reshard, so it is modelled properly rather than faked.
-type Shard struct {
+type shard struct {
 	ID         string `json:"id"`
 	StartHash  string `json:"start_hash"`
 	EndHash    string `json:"end_hash"`
@@ -67,12 +67,12 @@ type Shard struct {
 // Stream is a stream's durable definition. Shards are held inline: a local
 // stream has tens of shards at most, and keeping them with the stream makes
 // every reshard a single atomic write.
-type Stream struct {
+type streamRecord struct {
 	Name           string            `json:"name"`
 	Created        int64             `json:"created"` // unix seconds
 	RetentionHours int               `json:"retention_hours"`
 	Mode           string            `json:"mode"`
-	Shards         []Shard           `json:"shards"`
+	Shards         []shard           `json:"shards"`
 	NextShardNum   int               `json:"next_shard_num"`
 	NextSeq        uint64            `json:"next_seq"`
 	Tags           map[string]string `json:"tags,omitempty"`
@@ -88,8 +88,8 @@ type Stream struct {
 }
 
 // OpenShards returns the shards still accepting writes, in shard order.
-func (s *Stream) OpenShards() []Shard {
-	var out []Shard
+func (s *streamRecord) OpenShards() []shard {
+	var out []shard
 	for _, sh := range s.Shards {
 		if !sh.Closed {
 			out = append(out, sh)
@@ -99,7 +99,7 @@ func (s *Stream) OpenShards() []Shard {
 }
 
 // shard returns the shard with the given id.
-func (s *Stream) shard(id string) (*Shard, bool) {
+func (s *streamRecord) shard(id string) (*shard, bool) {
 	for i := range s.Shards {
 		if s.Shards[i].ID == id {
 			return &s.Shards[i], true
@@ -108,8 +108,8 @@ func (s *Stream) shard(id string) (*Shard, bool) {
 	return nil, false
 }
 
-// Record is one stored record.
-type Record struct {
+// record is one stored record.
+type record struct {
 	Seq             uint64 `json:"seq"`
 	PartitionKey    string `json:"pk"`
 	ExplicitHashKey string `json:"ehk,omitempty"`
@@ -120,7 +120,7 @@ type Record struct {
 // Consumer is an enhanced fan-out consumer registration. The registration is
 // real (SDKs list and describe it); only the SubscribeToShard data plane, which
 // needs HTTP/2 event-stream framing, is refused.
-type Consumer struct {
+type consumer struct {
 	Name      string `json:"name"`
 	StreamARN string `json:"stream_arn"`
 	ARN       string `json:"arn"`
@@ -144,7 +144,7 @@ func (s *store) now() time.Time { return s.clock() }
 
 // ---- stream lifecycle ----
 
-func (s *store) getStream(tx *bolt.Tx, name string) (*Stream, error) {
+func (s *store) getStream(tx *bolt.Tx, name string) (*streamRecord, error) {
 	b := tx.Bucket(metaBucket)
 	if b == nil {
 		return nil, errNoStream(s.id, name)
@@ -153,14 +153,14 @@ func (s *store) getStream(tx *bolt.Tx, name string) (*Stream, error) {
 	if raw == nil {
 		return nil, errNoStream(s.id, name)
 	}
-	var st Stream
+	var st streamRecord
 	if err := json.Unmarshal(raw, &st); err != nil {
 		return nil, err
 	}
 	return &st, nil
 }
 
-func (s *store) putStream(tx *bolt.Tx, st *Stream) error {
+func (s *store) putStream(tx *bolt.Tx, st *streamRecord) error {
 	b, err := tx.CreateBucketIfNotExists(metaBucket)
 	if err != nil {
 		return err
@@ -173,8 +173,8 @@ func (s *store) putStream(tx *bolt.Tx, st *Stream) error {
 }
 
 // Get returns a stream by name.
-func (s *store) Get(name string) (*Stream, error) {
-	var out *Stream
+func (s *store) Get(name string) (*streamRecord, error) {
+	var out *streamRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
 		st, err := s.getStream(tx, name)
 		out = st
@@ -186,7 +186,7 @@ func (s *store) Get(name string) (*Stream, error) {
 // Create makes a new stream with shardCount initial shards tiling the hash
 // space. Re-creating an existing stream is a ResourceInUseException, matching
 // AWS (unlike SQS, CreateStream is not idempotent).
-func (s *store) Create(name string, shardCount int, mode string) (*Stream, error) {
+func (s *store) Create(name string, shardCount int, mode string) (*streamRecord, error) {
 	if err := validStreamName(name); err != nil {
 		return nil, err
 	}
@@ -203,12 +203,12 @@ func (s *store) Create(name string, shardCount int, mode string) (*Stream, error
 		return nil, errInvalid("ShardCount must be at least 1")
 	}
 
-	var out *Stream
+	var out *streamRecord
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		if _, err := s.getStream(tx, name); err == nil {
 			return errInUse("stream %s already exists", name)
 		}
-		st := &Stream{
+		st := &streamRecord{
 			Name:           name,
 			Created:        s.now().Unix(),
 			RetentionHours: defRetentionHours,
@@ -224,8 +224,8 @@ func (s *store) Create(name string, shardCount int, mode string) (*Stream, error
 
 // tileShards builds shardCount shards splitting [0, maxHash] evenly, assigning
 // ids from the stream's shard counter.
-func tileShards(st *Stream, shardCount int) []Shard {
-	shards := make([]Shard, 0, shardCount)
+func tileShards(st *streamRecord, shardCount int) []shard {
+	shards := make([]shard, 0, shardCount)
 	n := big.NewInt(int64(shardCount))
 	span := new(big.Int).Div(new(big.Int).Add(maxHash, big.NewInt(1)), n)
 	lo := big.NewInt(0)
@@ -234,7 +234,7 @@ func tileShards(st *Stream, shardCount int) []Shard {
 		if i == shardCount-1 {
 			hi = new(big.Int).Set(maxHash) // last shard absorbs the remainder
 		}
-		shards = append(shards, Shard{
+		shards = append(shards, shard{
 			ID:        shardID(st.NextShardNum),
 			StartHash: lo.String(),
 			EndHash:   hi.String(),
@@ -261,7 +261,7 @@ func (s *store) Delete(name string) error {
 			c := cb.Cursor()
 			var kill [][]byte
 			for k, v := c.First(); k != nil; k, v = c.Next() {
-				var cs Consumer
+				var cs consumer
 				if json.Unmarshal(v, &cs) == nil && cs.StreamARN == arn {
 					kill = append(kill, append([]byte(nil), k...))
 				}
@@ -298,8 +298,8 @@ func (s *store) List(exclusiveStart string, limit int) ([]string, bool, error) {
 }
 
 // Update applies fn to a stream inside a write transaction.
-func (s *store) Update(name string, fn func(*Stream) error) (*Stream, error) {
-	var out *Stream
+func (s *store) Update(name string, fn func(*streamRecord) error) (*streamRecord, error) {
+	var out *streamRecord
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		st, err := s.getStream(tx, name)
 		if err != nil {
@@ -327,7 +327,7 @@ func hashOf(partitionKey string) *big.Int {
 
 // shardFor picks the open shard whose hash range contains key. An explicit hash
 // key overrides the partition key, as in AWS.
-func shardFor(st *Stream, partitionKey, explicitHashKey string) (*Shard, error) {
+func shardFor(st *streamRecord, partitionKey, explicitHashKey string) (*shard, error) {
 	h := hashOf(partitionKey)
 	if explicitHashKey != "" {
 		v, ok := new(big.Int).SetString(explicitHashKey, 10)
@@ -350,15 +350,15 @@ func shardFor(st *Stream, partitionKey, explicitHashKey string) (*Shard, error) 
 	return nil, errInvalid("no open shard covers hash %s", h)
 }
 
-// PutEntry is one record to append.
-type PutEntry struct {
+// putEntry is one record to append.
+type putEntry struct {
 	PartitionKey    string
 	ExplicitHashKey string
 	Data            []byte
 }
 
-// PutResult is where an appended record landed.
-type PutResult struct {
+// putResult is where an appended record landed.
+type putResult struct {
 	ShardID string
 	Seq     uint64
 }
@@ -367,14 +367,14 @@ type PutResult struct {
 // entry is written in one transaction so a PutRecords batch is atomic — AWS
 // allows partial failure, but locally there is no throttling to cause one, and
 // atomicity is the more useful guarantee.
-func (s *store) Put(stream string, entries []PutEntry) ([]PutResult, error) {
+func (s *store) Put(stream string, entries []putEntry) ([]putResult, error) {
 	if len(entries) == 0 {
 		return nil, errInvalid("at least one record is required")
 	}
 	if len(entries) > maxPutRecords {
 		return nil, errInvalid("a PutRecords request supports at most %d records", maxPutRecords)
 	}
-	results := make([]PutResult, len(entries))
+	results := make([]putResult, len(entries))
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		st, err := s.getStream(tx, stream)
 		if err != nil {
@@ -399,7 +399,7 @@ func (s *store) Put(stream string, entries []PutEntry) ([]PutResult, error) {
 			if err != nil {
 				return err
 			}
-			rec := Record{
+			rec := record{
 				Seq:             st.NextSeq,
 				PartitionKey:    e.PartitionKey,
 				ExplicitHashKey: e.ExplicitHashKey,
@@ -414,7 +414,7 @@ func (s *store) Put(stream string, entries []PutEntry) ([]PutResult, error) {
 			if err := b.Put(seqKey(rec.Seq), raw); err != nil {
 				return err
 			}
-			results[i] = PutResult{ShardID: sh.ID, Seq: rec.Seq}
+			results[i] = putResult{ShardID: sh.ID, Seq: rec.Seq}
 		}
 		return s.putStream(tx, st)
 	})
@@ -429,7 +429,7 @@ func (s *store) Put(stream string, entries []PutEntry) ([]PutResult, error) {
 // Fetch returns up to limit records from a shard with sequence > after,
 // stopping early at the response byte ceiling. next is the sequence to resume
 // from; behind reports the age of the last record returned.
-func (s *store) Fetch(stream, shard string, after uint64, limit int) (recs []Record, next uint64, behind time.Duration, err error) {
+func (s *store) Fetch(stream, shard string, after uint64, limit int) (recs []record, next uint64, behind time.Duration, err error) {
 	if limit <= 0 || limit > maxGetRecords {
 		limit = maxGetRecords
 	}
@@ -453,7 +453,7 @@ func (s *store) Fetch(stream, shard string, after uint64, limit int) (recs []Rec
 			if len(recs) >= limit || bytes+len(v) > maxGetBytes {
 				break
 			}
-			var rec Record
+			var rec record
 			if err := json.Unmarshal(v, &rec); err != nil {
 				return err
 			}
@@ -564,9 +564,9 @@ func (s *store) Sweep() int {
 		if mb == nil {
 			return nil
 		}
-		var streams []*Stream
+		var streams []*streamRecord
 		if err := mb.ForEach(func(_, v []byte) error {
-			var st Stream
+			var st streamRecord
 			if err := json.Unmarshal(v, &st); err != nil {
 				return nil // skip unreadable entries rather than stall the sweep
 			}
@@ -578,13 +578,13 @@ func (s *store) Sweep() int {
 		for _, st := range streams {
 			cutoff := s.now().Add(-time.Duration(st.RetentionHours) * time.Hour).UnixNano()
 			changed := false
-			var live []Shard
+			var live []shard
 			for _, sh := range st.Shards {
 				b := tx.Bucket(recBucket(st.Name, sh.ID))
 				if b != nil {
 					var kill [][]byte
 					_ = b.ForEach(func(k, v []byte) error {
-						var rec Record
+						var rec record
 						if json.Unmarshal(v, &rec) == nil && rec.ArrivedNs < cutoff {
 							kill = append(kill, append([]byte(nil), k...))
 						}
@@ -621,7 +621,7 @@ func (s *store) Sweep() int {
 func consumerKey(streamARN, name string) []byte { return []byte(streamARN + "|" + name) }
 
 // RegisterConsumer registers an enhanced fan-out consumer.
-func (s *store) RegisterConsumer(streamARN, name string) (*Consumer, error) {
+func (s *store) RegisterConsumer(streamARN, name string) (*consumer, error) {
 	if name == "" {
 		return nil, errInvalid("ConsumerName is required")
 	}
@@ -629,7 +629,7 @@ func (s *store) RegisterConsumer(streamARN, name string) (*Consumer, error) {
 	if err != nil {
 		return nil, err
 	}
-	var out *Consumer
+	var out *consumer
 	err = s.db.Update(func(tx *bolt.Tx) error {
 		if _, err := s.getStream(tx, stream); err != nil {
 			return err
@@ -642,7 +642,7 @@ func (s *store) RegisterConsumer(streamARN, name string) (*Consumer, error) {
 			return errInUse("consumer %s is already registered on %s", name, stream)
 		}
 		now := s.now()
-		c := &Consumer{
+		c := &consumer{
 			Name:      name,
 			StreamARN: streamARN,
 			ARN:       streamARN + "/consumer/" + name + ":" + itoa64(now.Unix()),
@@ -660,8 +660,8 @@ func (s *store) RegisterConsumer(streamARN, name string) (*Consumer, error) {
 }
 
 // FindConsumer resolves a consumer by (streamARN, name) or by consumer ARN.
-func (s *store) FindConsumer(streamARN, name, consumerARN string) (*Consumer, error) {
-	var out *Consumer
+func (s *store) FindConsumer(streamARN, name, consumerARN string) (*consumer, error) {
+	var out *consumer
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(consumerBucket)
 		if b == nil {
@@ -669,7 +669,7 @@ func (s *store) FindConsumer(streamARN, name, consumerARN string) (*Consumer, er
 		}
 		if consumerARN != "" {
 			return b.ForEach(func(_, v []byte) error {
-				var c Consumer
+				var c consumer
 				if json.Unmarshal(v, &c) == nil && c.ARN == consumerARN {
 					out = &c
 				}
@@ -680,7 +680,7 @@ func (s *store) FindConsumer(streamARN, name, consumerARN string) (*Consumer, er
 		if raw == nil {
 			return errNoConsumer(name)
 		}
-		var c Consumer
+		var c consumer
 		if err := json.Unmarshal(raw, &c); err != nil {
 			return err
 		}
@@ -694,7 +694,7 @@ func (s *store) FindConsumer(streamARN, name, consumerARN string) (*Consumer, er
 }
 
 // DeleteConsumer deregisters a consumer.
-func (s *store) DeleteConsumer(c *Consumer) error {
+func (s *store) DeleteConsumer(c *consumer) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket(consumerBucket)
 		if b == nil {
@@ -705,15 +705,15 @@ func (s *store) DeleteConsumer(c *Consumer) error {
 }
 
 // ListConsumers returns every consumer registered on a stream.
-func (s *store) ListConsumers(streamARN string) ([]Consumer, error) {
-	var out []Consumer
+func (s *store) ListConsumers(streamARN string) ([]consumer, error) {
+	var out []consumer
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(consumerBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, v []byte) error {
-			var c Consumer
+			var c consumer
 			if json.Unmarshal(v, &c) == nil && c.StreamARN == streamARN {
 				out = append(out, c)
 			}

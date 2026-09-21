@@ -43,17 +43,17 @@ const (
 	StatusReviewInProgress = "REVIEW_IN_PROGRESS"
 )
 
-// StackRecord is a deployed stack.
-type StackRecord struct {
+// stackRecord is a deployed stack.
+type stackRecord struct {
 	Name         string            `json:"name"`
 	ID           string            `json:"id"`
 	Status       string            `json:"status"`
 	StatusReason string            `json:"status_reason,omitempty"`
 	TemplateBody string            `json:"template"`
 	Parameters   map[string]string `json:"parameters,omitempty"`
-	Outputs      []StackOutput     `json:"outputs,omitempty"`
-	Resources    []StackResource   `json:"resources,omitempty"`
-	Events       []StackEvent      `json:"events,omitempty"`
+	Outputs      []stackOutput     `json:"outputs,omitempty"`
+	Resources    []stackResource   `json:"resources,omitempty"`
+	Events       []stackEvent      `json:"events,omitempty"`
 	Tags         map[string]string `json:"tags,omitempty"`
 	Created      int64             `json:"created"`
 	Updated      int64             `json:"updated"`
@@ -67,7 +67,7 @@ type StackRecord struct {
 	// without them is a stack Terraform will keep planning to change.
 	Capabilities     []string        `json:"capabilities,omitempty"`
 	NotificationARNs []string        `json:"notification_arns,omitempty"`
-	Rollback         *RollbackConfig `json:"rollback,omitempty"`
+	Rollback         *rollbackConfig `json:"rollback,omitempty"`
 	DisableRollback  bool            `json:"disable_rollback,omitempty"`
 	// ParentID and RootID are set on a nested stack's record; a child is
 	// created and deleted with its parent and refuses a direct delete.
@@ -80,19 +80,19 @@ type StackRecord struct {
 
 // RollbackConfig is the alarm-watch configuration a stack declares. Nothing
 // local watches alarms; it is kept so a describe reports what was set.
-type RollbackConfig struct {
+type rollbackConfig struct {
 	MonitoringTimeInMinutes *int              `json:"monitoring_minutes,omitempty"`
-	Triggers                []RollbackTrigger `json:"triggers,omitempty"`
+	Triggers                []rollbackTrigger `json:"triggers,omitempty"`
 }
 
-// RollbackTrigger is one alarm a rollback configuration watches.
-type RollbackTrigger struct {
+// rollbackTrigger is one alarm a rollback configuration watches.
+type rollbackTrigger struct {
 	Arn  string `json:"arn"`
 	Type string `json:"type"`
 }
 
-// StackOutput is one output, with its export name when it declares one.
-type StackOutput struct {
+// stackOutput is one output, with its export name when it declares one.
+type stackOutput struct {
 	Key         string `json:"key"`
 	Value       string `json:"value"`
 	Description string `json:"description,omitempty"`
@@ -101,7 +101,7 @@ type StackOutput struct {
 
 // StackResource is one resource a stack owns. PhysicalID is the name doze-aws
 // gave it, which is what DeleteStack needs to reclaim it.
-type StackResource struct {
+type stackResource struct {
 	LogicalID  string `json:"logical_id"`
 	Type       string `json:"type"`
 	PhysicalID string `json:"physical_id"`
@@ -116,7 +116,7 @@ type StackResource struct {
 
 // StackEvent is one synthesized progress event. Deploy tools poll these until
 // a terminal stack-level status appears, so the final event must always be one.
-type StackEvent struct {
+type stackEvent struct {
 	ID         string `json:"id"`
 	Timestamp  int64  `json:"ts"`
 	LogicalID  string `json:"logical_id"`
@@ -131,8 +131,8 @@ type StackEvent struct {
 	Props string `json:"props,omitempty"`
 }
 
-// ChangeSetRecord is a pending change set.
-type ChangeSetRecord struct {
+// changeSetRecord is a pending change set.
+type changeSetRecord struct {
 	Name            string            `json:"name"`
 	ID              string            `json:"id"`
 	StackName       string            `json:"stack_name"`
@@ -142,13 +142,13 @@ type ChangeSetRecord struct {
 	TemplateBody    string            `json:"template"`
 	Parameters      map[string]string `json:"parameters,omitempty"`
 	Type            string            `json:"type"` // CREATE | UPDATE
-	Changes         []Change          `json:"changes,omitempty"`
+	Changes         []change          `json:"changes,omitempty"`
 	Tags            map[string]string `json:"tags,omitempty"`
 	Created         int64             `json:"created"`
 }
 
-// Change is one entry of a change set.
-type Change struct {
+// change is one entry of a change set.
+type change struct {
 	Action      string `json:"action"` // Add | Modify | Remove
 	LogicalID   string `json:"logical_id"`
 	Type        string `json:"type"`
@@ -179,14 +179,14 @@ func StackARN(ident awsident.Identity, name, id string) string {
 // stack queryable BY ID with status DELETE_COMPLETE, while a lookup by NAME
 // reports it gone — and deploy tools depend on exactly that: `cdk destroy`
 // polls DescribeStacks by id and fails unless it sees DELETE_COMPLETE.
-func (s *store) GetStack(name string) (*StackRecord, error) {
+func (s *store) GetStack(name string) (*stackRecord, error) {
 	byID := false
 	if i := strings.Index(name, ":stack/"); i >= 0 {
 		byID = true
 		rest := name[i+len(":stack/"):]
 		name, _, _ = strings.Cut(rest, "/")
 	}
-	var out *StackRecord
+	var out *stackRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(stackBucket)
 		if b == nil {
@@ -196,7 +196,7 @@ func (s *store) GetStack(name string) (*StackRecord, error) {
 		if raw == nil {
 			return errStackNotFound(name)
 		}
-		var st StackRecord
+		var st stackRecord
 		if err := json.Unmarshal(raw, &st); err != nil {
 			return err
 		}
@@ -209,7 +209,7 @@ func (s *store) GetStack(name string) (*StackRecord, error) {
 	return out, err
 }
 
-func (s *store) PutStack(st *StackRecord) error {
+func (s *store) PutStack(st *stackRecord) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(stackBucket)
 		if err != nil {
@@ -233,15 +233,15 @@ func (s *store) DeleteStack(name string) error {
 	})
 }
 
-func (s *store) ListStacks() ([]StackRecord, error) {
-	var out []StackRecord
+func (s *store) ListStacks() ([]stackRecord, error) {
+	var out []stackRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(stackBucket)
 		if b == nil {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var st StackRecord
+			var st stackRecord
 			if json.Unmarshal(raw, &st) == nil {
 				out = append(out, st)
 			}
@@ -295,7 +295,7 @@ func (s *store) ExportOwner(export string) (string, bool) {
 
 func changeSetKey(stack, name string) string { return stack + "\x00" + name }
 
-func (s *store) PutChangeSet(cs *ChangeSetRecord) error {
+func (s *store) PutChangeSet(cs *changeSetRecord) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(changeSetBucket)
 		if err != nil {
@@ -311,8 +311,8 @@ func (s *store) PutChangeSet(cs *ChangeSetRecord) error {
 
 // GetChangeSet resolves a change set by (stack, name) or by its ARN-shaped id,
 // both of which deploy tools use interchangeably.
-func (s *store) GetChangeSet(stack, nameOrID string) (*ChangeSetRecord, error) {
-	var out *ChangeSetRecord
+func (s *store) GetChangeSet(stack, nameOrID string) (*changeSetRecord, error) {
+	var out *changeSetRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(changeSetBucket)
 		if b == nil {
@@ -320,7 +320,7 @@ func (s *store) GetChangeSet(stack, nameOrID string) (*ChangeSetRecord, error) {
 		}
 		if stack != "" {
 			if raw := b.Get([]byte(changeSetKey(stack, nameOrID))); raw != nil {
-				var cs ChangeSetRecord
+				var cs changeSetRecord
 				if err := json.Unmarshal(raw, &cs); err != nil {
 					return err
 				}
@@ -330,7 +330,7 @@ func (s *store) GetChangeSet(stack, nameOrID string) (*ChangeSetRecord, error) {
 		}
 		// Fall back to an id scan.
 		return b.ForEach(func(_, raw []byte) error {
-			var cs ChangeSetRecord
+			var cs changeSetRecord
 			if json.Unmarshal(raw, &cs) != nil {
 				return nil
 			}
@@ -356,8 +356,8 @@ func (s *store) DeleteChangeSet(stack, name string) error {
 	})
 }
 
-func (s *store) ListChangeSets(stack string) ([]ChangeSetRecord, error) {
-	var out []ChangeSetRecord
+func (s *store) ListChangeSets(stack string) ([]changeSetRecord, error) {
+	var out []changeSetRecord
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(changeSetBucket)
 		if b == nil {
@@ -366,7 +366,7 @@ func (s *store) ListChangeSets(stack string) ([]ChangeSetRecord, error) {
 		prefix := []byte(stack + "\x00")
 		c := b.Cursor()
 		for k, v := c.Seek(prefix); k != nil && strings.HasPrefix(string(k), string(prefix)); k, v = c.Next() {
-			var cs ChangeSetRecord
+			var cs changeSetRecord
 			if json.Unmarshal(v, &cs) == nil {
 				out = append(out, cs)
 			}

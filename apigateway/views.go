@@ -17,7 +17,7 @@ import (
 	"github.com/doze-dev/doze-aws/peers"
 )
 
-func viewAPI(api *RestAPI) map[string]any {
+func viewAPI(api *restAPI) map[string]any {
 	v := map[string]any{
 		"id":           api.ID,
 		"name":         api.Name,
@@ -44,14 +44,14 @@ func viewAPI(api *RestAPI) map[string]any {
 	return v
 }
 
-func rootID(api *RestAPI) string {
+func rootID(api *restAPI) string {
 	if r := api.Root(); r != nil {
 		return r.ID
 	}
 	return ""
 }
 
-func viewResource(res *Resource) map[string]any {
+func viewResource(res *resource) map[string]any {
 	v := map[string]any{"id": res.ID, "path": res.Path}
 	putIfStr(v, "parentId", res.ParentID)
 	putIfStr(v, "pathPart", res.PathPart)
@@ -65,7 +65,7 @@ func viewResource(res *Resource) map[string]any {
 	return v
 }
 
-func viewMethod(m *Method) map[string]any {
+func viewMethod(m *method) map[string]any {
 	v := map[string]any{
 		"httpMethod":        m.HTTPMethod,
 		"authorizationType": m.AuthorizationType,
@@ -93,7 +93,7 @@ func viewMethod(m *Method) map[string]any {
 	return v
 }
 
-func viewIntegration(i *Integration) map[string]any {
+func viewIntegration(i *integration) map[string]any {
 	v := map[string]any{"type": i.Type}
 	putIfStr(v, "httpMethod", i.HTTPMethod)
 	putIfStr(v, "uri", i.URI)
@@ -124,7 +124,7 @@ func viewIntegration(i *Integration) map[string]any {
 	return v
 }
 
-func viewMethodResponse(mr *MethodResponse) map[string]any {
+func viewMethodResponse(mr *methodResponse) map[string]any {
 	v := map[string]any{"statusCode": mr.StatusCode}
 	if len(mr.ResponseModels) > 0 {
 		v["responseModels"] = mr.ResponseModels
@@ -135,7 +135,7 @@ func viewMethodResponse(mr *MethodResponse) map[string]any {
 	return v
 }
 
-func viewIntegrationResponse(ir *IntegrationResponse) map[string]any {
+func viewIntegrationResponse(ir *integrationResponse) map[string]any {
 	v := map[string]any{"statusCode": ir.StatusCode}
 	putIfStr(v, "selectionPattern", ir.SelectionPattern)
 	putIfStr(v, "contentHandling", ir.ContentHandling)
@@ -148,13 +148,13 @@ func viewIntegrationResponse(ir *IntegrationResponse) map[string]any {
 	return v
 }
 
-func viewDeployment(d *Deployment) map[string]any {
+func viewDeployment(d *deployment) map[string]any {
 	v := map[string]any{"id": d.ID, "createdDate": d.Created}
 	putIfStr(v, "description", d.Description)
 	return v
 }
 
-func viewStage(base, apiID string, st *Stage) map[string]any {
+func viewStage(base, apiID string, st *stage) map[string]any {
 	v := map[string]any{
 		"stageName":           st.Name,
 		"createdDate":         st.Created,

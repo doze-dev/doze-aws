@@ -94,7 +94,7 @@ func (srv *Server) addPermission(ctx context.Context, form url.Values, _ string)
 		"Action": acts, "Resource": arn,
 	})
 	raw, _ := json.Marshal(doc)
-	return nil, asErr(srv.store.UpdateTopic(arn, func(t *Topic) {
+	return nil, asErr(srv.store.UpdateTopic(arn, func(t *topic) {
 		if t.Attrs == nil {
 			t.Attrs = map[string]string{}
 		}
@@ -124,7 +124,7 @@ func (srv *Server) removePermission(ctx context.Context, form url.Values, _ stri
 	}
 	doc.Statement = kept
 	raw, _ := json.Marshal(doc)
-	return nil, asErr(srv.store.UpdateTopic(arn, func(t *Topic) {
+	return nil, asErr(srv.store.UpdateTopic(arn, func(t *topic) {
 		if t.Attrs == nil {
 			t.Attrs = map[string]string{}
 		}

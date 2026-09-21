@@ -64,7 +64,7 @@ var methodSettingPaths = map[string]struct {
 // applyMethodSettingPatch applies a patch whose path is
 // /<resource>/<METHOD>/<group>/<name>, where <resource> is * or a path with
 // its slashes escaped as ~1. It reports false for a path that is not one.
-func applyMethodSettingPatch(st *Stage, op patchOp) (bool, error) {
+func applyMethodSettingPatch(st *stage, op patchOp) (bool, error) {
 	segs := strings.Split(strings.TrimPrefix(op.Path, "/"), "/")
 	if len(segs) < 4 {
 		return false, nil
@@ -121,7 +121,7 @@ func applyMethodSettingPatch(st *Stage, op patchOp) (bool, error) {
 
 // settingFor is the method setting that governs one request: the method's
 // own, else the stage-wide "*/*", else the defaults.
-func (st *Stage) settingFor(resourcePath, method string) map[string]any {
+func (st *stage) settingFor(resourcePath, method string) map[string]any {
 	if ms, ok := st.MethodSettings[resourcePath+"/"+strings.ToUpper(method)]; ok {
 		return ms
 	}
@@ -223,7 +223,7 @@ func (l *stageLogs) stream(apiID, stage string) string {
 // record writes what a finished request produced: an access-log line when
 // the stage has a destination, and the execution narrative when its method
 // setting asks for one.
-func (l *stageLogs) record(st *Stage, rl *requestLog) {
+func (l *stageLogs) record(st *stage, rl *requestLog) {
 	now := time.Now().UnixMilli()
 	if st.AccessLog != nil && st.AccessLog.DestinationARN != "" {
 		if group := logGroupFromARN(st.AccessLog.DestinationARN); group != "" {

@@ -33,7 +33,7 @@ var (
 // AST. DescribeStateMachine must return what was sent — CDK and Terraform both
 // diff the definition they get back against the one they hold, and a
 // round-trip that reorders keys or drops a comment shows as permanent drift.
-type StateMachine struct {
+type stateMachine struct {
 	Name       string `json:"name"`
 	ARN        string `json:"arn"`
 	Definition string `json:"definition"`
@@ -55,8 +55,8 @@ type StateMachine struct {
 	EncryptionConfiguration json.RawMessage `json:"encryption,omitempty"`
 }
 
-// Activity is a stored activity — a task an external worker polls for.
-type Activity struct {
+// activity is a stored activity — a task an external worker polls for.
+type activity struct {
 	Name      string `json:"name"`
 	ARN       string `json:"arn"`
 	CreatedAt int64  `json:"created_at"`

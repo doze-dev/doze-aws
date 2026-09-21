@@ -73,20 +73,20 @@ func authorizedAPI(t *testing.T, s *Server, ttl int) (apiID string) {
 	uri := func(fn string) string {
 		return "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:000000000000:function:" + fn + "/invocations"
 	}
-	tokenAuth := &Authorizer{ID: "tok1", Name: "token", Type: "TOKEN", URI: uri("auth"), ResultTTL: ttl}
-	reqAuth := &Authorizer{ID: "req1", Name: "request", Type: "REQUEST", URI: uri("auth"), IdentitySource: "method.request.header.X-Token", ResultTTL: 0}
-	_, err = s.store.Update(api.ID, func(a *RestAPI) error {
-		a.Authorizers = map[string]*Authorizer{"tok1": tokenAuth, "req1": reqAuth}
+	tokenAuth := &authorizer{ID: "tok1", Name: "token", Type: "TOKEN", URI: uri("auth"), ResultTTL: ttl}
+	reqAuth := &authorizer{ID: "req1", Name: "request", Type: "REQUEST", URI: uri("auth"), IdentitySource: "method.request.header.X-Token", ResultTTL: 0}
+	_, err = s.store.Update(api.ID, func(a *restAPI) error {
+		a.Authorizers = map[string]*authorizer{"tok1": tokenAuth, "req1": reqAuth}
 		for _, spec := range []struct{ path, auth string }{{"items", "tok1"}, {"open", "req1"}} {
-			res := &Resource{ID: spec.path + "-id", ParentID: rootID(a), PathPart: spec.path, Path: "/" + spec.path, Methods: map[string]*Method{}}
-			res.Methods["GET"] = &Method{HTTPMethod: "GET", AuthorizationType: "CUSTOM", AuthorizerID: spec.auth,
-				Integration: &Integration{Type: "AWS_PROXY", HTTPMethod: "POST", URI: uri("backend")}}
+			res := &resource{ID: spec.path + "-id", ParentID: rootID(a), PathPart: spec.path, Path: "/" + spec.path, Methods: map[string]*method{}}
+			res.Methods["GET"] = &method{HTTPMethod: "GET", AuthorizationType: "CUSTOM", AuthorizerID: spec.auth,
+				Integration: &integration{Type: "AWS_PROXY", HTTPMethod: "POST", URI: uri("backend")}}
 			a.Resources[res.ID] = res
 		}
 		if a.Stages == nil {
-			a.Stages = map[string]*Stage{}
+			a.Stages = map[string]*stage{}
 		}
-		a.Stages["v1"] = &Stage{Name: "v1", DeploymentID: "d1"}
+		a.Stages["v1"] = &stage{Name: "v1", DeploymentID: "d1"}
 		return nil
 	})
 	if err != nil {

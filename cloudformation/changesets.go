@@ -73,12 +73,12 @@ func hCreateChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 	if existing != nil {
 		stackID = existing.ID
 	} else {
-		review := &StackRecord{
+		review := &stackRecord{
 			Name: stackName, ID: StackARN(s.id, stackName, s.store.newID()),
 			Status: StatusReviewInProgress, TemplateBody: body,
 			Parameters: params, Created: now, Updated: now,
 		}
-		review.Events = []StackEvent{{
+		review.Events = []stackEvent{{
 			ID: s.store.newID(), Timestamp: now, LogicalID: stackName,
 			Type: "AWS::CloudFormation::Stack", PhysicalID: review.ID,
 			Status: StatusReviewInProgress, Reason: "User Initiated",
@@ -89,7 +89,7 @@ func hCreateChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 		stackID = review.ID
 	}
 
-	cs := &ChangeSetRecord{
+	cs := &changeSetRecord{
 		Name:      csName,
 		ID:        stackID + "/changeSet/" + csName,
 		StackName: stackName,
@@ -126,14 +126,14 @@ func hCreateChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 // change set that saw no difference would land in FAILED with "the submitted
 // information didn't contain changes" — telling a local `cdk deploy` there was
 // nothing to do when there was.
-func diffChanges(existing *StackRecord, rep *Report) []Change {
-	current := map[string]StackResource{}
+func diffChanges(existing *stackRecord, rep *Report) []change {
+	current := map[string]stackResource{}
 	if existing != nil {
 		for _, r := range existing.Resources {
 			current[r.LogicalID] = r
 		}
 	}
-	var out []Change
+	var out []change
 	seen := map[string]bool{}
 	for _, e := range rep.Entries {
 		if e.Kind != Mapped {
@@ -143,10 +143,10 @@ func diffChanges(existing *StackRecord, rep *Report) []Change {
 		prev, had := current[e.LogicalID]
 		switch {
 		case !had:
-			out = append(out, Change{Action: "Add", LogicalID: e.LogicalID, Type: e.Type, PhysicalID: e.Name})
+			out = append(out, change{Action: "Add", LogicalID: e.LogicalID, Type: e.Type, PhysicalID: e.Name})
 		case prev.PhysicalID != e.Name:
 			// A renamed physical resource is a replacement in AWS's model.
-			out = append(out, Change{
+			out = append(out, change{
 				Action: "Modify", LogicalID: e.LogicalID, Type: e.Type,
 				PhysicalID: e.Name, Replacement: "True",
 			})
@@ -154,7 +154,7 @@ func diffChanges(existing *StackRecord, rep *Report) []Change {
 			// Same resource, edited properties. An empty stored fingerprint is
 			// a record written before this existed, and means "unknown" rather
 			// than "changed".
-			out = append(out, Change{
+			out = append(out, change{
 				Action: "Modify", LogicalID: e.LogicalID, Type: e.Type,
 				PhysicalID: e.Name,
 			})
@@ -162,7 +162,7 @@ func diffChanges(existing *StackRecord, rep *Report) []Change {
 	}
 	for id, r := range current {
 		if !seen[id] {
-			out = append(out, Change{Action: "Remove", LogicalID: id, Type: r.Type, PhysicalID: r.PhysicalID})
+			out = append(out, change{Action: "Remove", LogicalID: id, Type: r.Type, PhysicalID: r.PhysicalID})
 		}
 	}
 	return out

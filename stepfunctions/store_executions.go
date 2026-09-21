@@ -28,7 +28,7 @@ var (
 // fields, and the interpreter's Exec embedded whole. One key, one marshal,
 // one write per transition — executions are small at local scale, and deltas
 // would be complexity with no payoff.
-type Execution struct {
+type execution struct {
 	ARN        string `json:"arn"`
 	MachineARN string `json:"machine_arn"`
 	Name       string `json:"name"`
@@ -42,7 +42,7 @@ type Execution struct {
 	StartedAt int64  `json:"started_at"`
 	StoppedAt int64  `json:"stopped_at,omitempty"`
 	// Input is kept as the exact text the caller supplied — the same
-	// round-trip-fidelity rule as StateMachine.Definition; json.RawMessage
+	// round-trip-fidelity rule as stateMachine.Definition; json.RawMessage
 	// would be compacted on every store write.
 	Input  string          `json:"input"`
 	Output json.RawMessage `json:"output,omitempty"`
@@ -82,8 +82,8 @@ type Execution struct {
 	// Test is set on a TestState run — the state under test and its mock —
 	// for the driver to find when it loads the run; TestOutcome is what the
 	// run reports back (express.go, actions_teststate.go).
-	Test        *TestSpec    `json:"test_spec,omitempty"`
-	TestOutcome *TestOutcome `json:"test,omitempty"`
+	Test        *testSpec    `json:"test_spec,omitempty"`
+	TestOutcome *testOutcome `json:"test,omitempty"`
 
 	Exec        *asl.Exec `json:"exec"`
 	NextEventID int64     `json:"next_event_id"`
@@ -92,7 +92,7 @@ type Execution struct {
 // Key is the store key of this execution, also used as the engine's run key.
 // An Express execution keys on name plus id, because AWS lets two Express
 // executions share a name and only the id tells them apart.
-func (e *Execution) Key() string {
+func (e *execution) Key() string {
 	if machine, name, id := parseExpressARN(e.ARN); id != "" {
 		return execKey(machine, name+"/"+id)
 	}
@@ -115,7 +115,7 @@ func machineOfExecARN(arn string) string {
 
 // PutExecution writes the record. Every interpreter transition lands here —
 // that cadence is the durability contract.
-func (s *store) PutExecution(e *Execution) error {
+func (s *store) PutExecution(e *execution) error {
 	return s.put(bucketExecutions, []byte(e.Key()), e)
 }
 
@@ -123,7 +123,7 @@ func (s *store) PutExecution(e *Execution) error {
 // events, and applies its token writes in ONE bbolt update. A crash between
 // any two would otherwise leave history claiming a transition the frames
 // don't show, or a PARKED frame whose token can never be redeemed.
-func (s *store) SaveTransition(e *Execution, events []histEvent, tokens []tokenOp) error {
+func (s *store) SaveTransition(e *execution, events []histEvent, tokens []tokenOp) error {
 	raw, err := json.Marshal(e)
 	if err != nil {
 		return err
@@ -208,11 +208,11 @@ func (s *store) HistoryPage(execKey string, afterID int64, limit int) (events []
 }
 
 // GetExecution reads one execution, nil when absent.
-func (s *store) GetExecution(machineName, execName string) (*Execution, error) {
+func (s *store) GetExecution(machineName, execName string) (*execution, error) {
 	if e, ok := s.vol.get(execKey(machineName, execName)); ok {
 		return e, nil
 	}
-	var e Execution
+	var e execution
 	found, err := s.get(bucketExecutions, []byte(execKey(machineName, execName)), &e)
 	if err != nil || !found {
 		return nil, err
@@ -221,7 +221,7 @@ func (s *store) GetExecution(machineName, execName string) (*Execution, error) {
 }
 
 // GetExecutionByKey reads by the engine's run key.
-func (s *store) GetExecutionByKey(key string) (*Execution, error) {
+func (s *store) GetExecutionByKey(key string) (*execution, error) {
 	machine, name, ok := strings.Cut(key, "\x00")
 	if !ok {
 		return nil, nil
@@ -230,9 +230,9 @@ func (s *store) GetExecutionByKey(key string) (*Execution, error) {
 }
 
 // ListExecutionsFor returns every execution of one machine, in key order.
-func (s *store) ListExecutionsFor(machineName string) ([]*Execution, error) {
+func (s *store) ListExecutionsFor(machineName string) ([]*execution, error) {
 	prefix := []byte(machineName + "\x00")
-	var out []*Execution
+	var out []*execution
 	err := s.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket(bucketExecutions)
 		if b == nil {
@@ -240,7 +240,7 @@ func (s *store) ListExecutionsFor(machineName string) ([]*Execution, error) {
 		}
 		c := b.Cursor()
 		for k, raw := c.Seek(prefix); k != nil && bytes.HasPrefix(k, prefix); k, raw = c.Next() {
-			var e Execution
+			var e execution
 			if err := json.Unmarshal(raw, &e); err != nil {
 				return err
 			}

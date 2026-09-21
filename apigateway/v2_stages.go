@@ -40,13 +40,13 @@ func (s *Server) routeV2Stages(w http.ResponseWriter, r *http.Request, apiID str
 			if req.StageName == "" {
 				return errBadRequest("stageName is required")
 			}
-			var out *Stage
-			_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+			var out *stage
+			_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 				if _, exists := api.Stages[req.StageName]; exists {
 					return errConflict("Stage already exists: %s", req.StageName)
 				}
 				now := s.now().Unix()
-				st := &Stage{Name: req.StageName, Created: now, Updated: now}
+				st := &stage{Name: req.StageName, Created: now, Updated: now}
 				if err := applyV2StageInput(api, st, &req); err != nil {
 					return err
 				}
@@ -97,8 +97,8 @@ func (s *Server) routeV2Stages(w http.ResponseWriter, r *http.Request, apiID str
 		if aerr := decode(r, &req); aerr != nil {
 			return aerr
 		}
-		var out *Stage
-		_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+		var out *stage
+		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 			st, ok := api.Stages[name]
 			if !ok {
 				return errNotFound("Invalid stage identifier specified %s", name)
@@ -119,7 +119,7 @@ func (s *Server) routeV2Stages(w http.ResponseWriter, r *http.Request, apiID str
 		writeJSON(w, 200, viewV2Stage(s.invokeBase(r), apiID, out))
 		return nil
 	case http.MethodDelete:
-		_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 			if _, ok := api.Stages[name]; !ok {
 				return errNotFound("Invalid stage identifier specified %s", name)
 			}
@@ -141,8 +141,8 @@ func (s *Server) routeV2StageSub(w http.ResponseWriter, r *http.Request, apiID, 
 	if r.Method != http.MethodDelete {
 		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on %s", segs[0])
 	}
-	mutate := func(fn func(st *Stage) error) *awshttp.APIError {
-		_, err := s.store.UpdateHTTP(apiID, func(api *RestAPI) error {
+	mutate := func(fn func(st *stage) error) *awshttp.APIError {
+		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 			st, ok := api.Stages[name]
 			if !ok {
 				return errNotFound("Invalid stage identifier specified %s", name)
@@ -161,7 +161,7 @@ func (s *Server) routeV2StageSub(w http.ResponseWriter, r *http.Request, apiID, 
 	}
 	switch segs[0] {
 	case "accesslogsettings":
-		return mutate(func(st *Stage) error { st.AccessLog = nil; return nil })
+		return mutate(func(st *stage) error { st.AccessLog = nil; return nil })
 	case "routesettings":
 		// The key ("GET /items/{id}") arrives percent-encoded and the router
 		// split the decoded path, so it is re-read from the escaped one.
@@ -169,7 +169,7 @@ func (s *Server) routeV2StageSub(w http.ResponseWriter, r *http.Request, apiID, 
 		if key == "" {
 			return errNotFound("a route key is required")
 		}
-		return mutate(func(st *Stage) error {
+		return mutate(func(st *stage) error {
 			if _, ok := st.RouteSettings[key]; !ok {
 				return errNotFound("Invalid route key specified %s", key)
 			}
@@ -195,7 +195,7 @@ func (s *Server) routeV2StageSub(w http.ResponseWriter, r *http.Request, apiID, 
 	return errNotFound("unknown stage subresource %s", segs[0])
 }
 
-func applyV2StageInput(api *RestAPI, st *Stage, in *v2StageInput) error {
+func applyV2StageInput(api *restAPI, st *stage, in *v2StageInput) error {
 	if in.AutoDeploy != nil {
 		st.AutoDeploy = *in.AutoDeploy
 	}
@@ -220,7 +220,7 @@ func applyV2StageInput(api *RestAPI, st *Stage, in *v2StageInput) error {
 		if in.AccessLogSettings.DestinationARN != "" && logGroupFromARN(in.AccessLogSettings.DestinationARN) == "" {
 			return errBadRequest("Invalid accessLogSettings.destinationArn %q: a CloudWatch Logs log group ARN is required", in.AccessLogSettings.DestinationARN)
 		}
-		st.AccessLog = &AccessLogSettings{DestinationARN: in.AccessLogSettings.DestinationARN, Format: in.AccessLogSettings.Format}
+		st.AccessLog = &accessLogSettings{DestinationARN: in.AccessLogSettings.DestinationARN, Format: in.AccessLogSettings.Format}
 	}
 	if in.DefaultRouteSettings != nil {
 		st.DefaultRouteSettings = in.DefaultRouteSettings
@@ -244,7 +244,7 @@ func applyV2StageInput(api *RestAPI, st *Stage, in *v2StageInput) error {
 	return nil
 }
 
-func viewV2Stage(base, apiID string, st *Stage) map[string]any {
+func viewV2Stage(base, apiID string, st *stage) map[string]any {
 	v := map[string]any{
 		"stageName":            st.Name,
 		"apiGatewayManaged":    false,

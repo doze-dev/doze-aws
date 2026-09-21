@@ -31,7 +31,7 @@ import (
 type run struct {
 	key string
 	def *asl.Definition
-	e   *Execution
+	e   *execution
 	// pending buffers history events, and tokens the token writes, between
 	// persists; SaveTransition applies them and the execution record in one
 	// transaction.
@@ -597,7 +597,7 @@ func (g *engine) registerToken(r *run, call asl.EffCallTask) {
 	g.event(r, r.e.Exec.Frame(call.Frame), "TaskSubmitted", "taskSubmittedEventDetails", map[string]any{
 		"resourceType": resourceType, "resource": resourceAPI,
 	})
-	r.tokens = append(r.tokens, tokenOp{Token: call.Token, Ref: &TokenRef{
+	r.tokens = append(r.tokens, tokenOp{Token: call.Token, Ref: &tokenRef{
 		ExecKey: r.key, Frame: call.Frame, IssuedAt: g.srv.store.now(),
 	}})
 }

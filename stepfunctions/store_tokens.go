@@ -8,8 +8,8 @@ package stepfunctions
 
 var bucketTokens = []byte("tokens")
 
-// TokenRef locates the frame a token redeems.
-type TokenRef struct {
+// tokenRef locates the frame a token redeems.
+type tokenRef struct {
 	ExecKey  string `json:"exec_key"`
 	Frame    int    `json:"frame"`
 	IssuedAt int64  `json:"issued_at"`
@@ -31,8 +31,8 @@ type TokenRef struct {
 // delete into a tombstone.
 type tokenOp struct {
 	Token    string
-	Ref      *TokenRef
-	Task     *ActivityTask
+	Ref      *tokenRef
+	Task     *activityTask
 	TimedOut bool
 }
 
@@ -43,8 +43,8 @@ const tokenTombstoneTTL = int64(24 * 60 * 60 * 1000)
 
 // GetToken resolves a token, nil when unknown (never issued, already
 // redeemed, or timed out).
-func (s *store) GetToken(token string) (*TokenRef, error) {
-	var ref TokenRef
+func (s *store) GetToken(token string) (*tokenRef, error) {
+	var ref tokenRef
 	found, err := s.get(bucketTokens, []byte(token), &ref)
 	if err != nil || !found {
 		return nil, err

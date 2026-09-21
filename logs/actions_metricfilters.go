@@ -30,13 +30,13 @@ func (s *Server) putMetricFilter(ctx context.Context, p map[string]any) (any, *a
 		return nil, awshttp.Errf(400, "InvalidParameterException",
 			"metricTransformations is required")
 	}
-	var transforms []MetricTransformation
+	var transforms []metricTransformation
 	for _, item := range raw {
 		t, ok := item.(map[string]any)
 		if !ok {
 			continue
 		}
-		mt := MetricTransformation{
+		mt := metricTransformation{
 			Namespace:  awsjson.Str(t, "metricNamespace"),
 			MetricName: awsjson.Str(t, "metricName"),
 			Value:      awsjson.Str(t, "metricValue"),
@@ -60,7 +60,7 @@ func (s *Server) putMetricFilter(ctx context.Context, p map[string]any) (any, *a
 		transforms = append(transforms, mt)
 	}
 
-	f := MetricFilter{Group: group, Name: name, Pattern: awsjson.Str(p, "filterPattern"),
+	f := metricFilter{Group: group, Name: name, Pattern: awsjson.Str(p, "filterPattern"),
 		Transformations: transforms, CreatedMs: s.store.now()}
 	if err := s.store.PutMetricFilter(f); err != nil {
 		if errors.Is(err, ErrNoGroup) {

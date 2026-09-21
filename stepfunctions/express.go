@@ -89,7 +89,7 @@ func (g *engine) finished(r *run) {
 
 // TestOutcome is what a TestState run leaves on its volatile execution for
 // the handler to read: the state's outcome in the API's vocabulary.
-type TestOutcome struct {
+type testOutcome struct {
 	Status    string `json:"status"` // SUCCEEDED | FAILED | RETRIABLE | CAUGHT_ERROR
 	NextState string `json:"next_state,omitempty"`
 	Error     string `json:"error,omitempty"`
@@ -107,7 +107,7 @@ type TestOutcome struct {
 type testRun struct {
 	state string
 	mock  *asl.TaskResult
-	out   TestOutcome
+	out   testOutcome
 }
 
 // testStep inspects one interpreter step of a TestState run and, when the
@@ -123,7 +123,7 @@ func (g *engine) testStep(r *run, eff asl.Effect, notes []asl.Note) bool {
 		case asl.NoteCaught:
 			var ec struct{ Error, Cause string }
 			json.Unmarshal(n.Data, &ec)
-			r.test.out = TestOutcome{Status: "CAUGHT_ERROR", NextState: root.State, Error: ec.Error, Cause: ec.Cause,
+			r.test.out = testOutcome{Status: "CAUGHT_ERROR", NextState: root.State, Error: ec.Error, Cause: ec.Cause,
 				Result: r.test.out.Result, TaskInput: r.test.out.TaskInput}
 			g.finishTest(r, root.Input)
 			return true
@@ -131,7 +131,7 @@ func (g *engine) testStep(r *run, eff asl.Effect, notes []asl.Note) bool {
 			var ec struct{ Error, Cause string }
 			json.Unmarshal(n.Data, &ec)
 			// AWS reports RETRIABLE without waiting out the backoff.
-			r.test.out = TestOutcome{Status: "RETRIABLE", Error: ec.Error, Cause: ec.Cause,
+			r.test.out = testOutcome{Status: "RETRIABLE", Error: ec.Error, Cause: ec.Cause,
 				Result: r.test.out.Result, TaskInput: r.test.out.TaskInput}
 			g.finishTest(r, nil)
 			return true
@@ -212,7 +212,7 @@ func (g *engine) recordTestResult(r *run, res asl.TaskResult) {
 
 // startVolatile persists a volatile execution, registers a waiter, and
 // nudges the driver. The caller blocks on the returned channel.
-func (s *Server) startVolatile(e *Execution) (<-chan struct{}, error) {
+func (s *Server) startVolatile(e *execution) (<-chan struct{}, error) {
 	e.Volatile = true
 	key := e.Key()
 	ch := s.engine.waiters.add(key)
@@ -255,7 +255,7 @@ func (s *Server) giveUp(key string) {
 // final record, dropped from memory. A caller that stops waiting (context
 // cancelled) leaves the run to finish on its own; whichever side loses the
 // handover race does the dropping — see giveUp.
-func (s *Server) awaitVolatile(ctx context.Context, key string, ch <-chan struct{}) (*Execution, bool) {
+func (s *Server) awaitVolatile(ctx context.Context, key string, ch <-chan struct{}) (*execution, bool) {
 	select {
 	case <-ch:
 	case <-ctx.Done():

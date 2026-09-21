@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func newScope() *Scope {
-	return &Scope{
+func newScope() *scope {
+	return &scope{
 		StackName:  "test-stack",
 		Parameters: map[string]any{"Env": "prod", "Count": "3"},
 		Mappings: map[string]any{
@@ -23,7 +23,7 @@ func newScope() *Scope {
 	}
 }
 
-func evalOK(t *testing.T, s *Scope, v any) any {
+func evalOK(t *testing.T, s *scope, v any) any {
 	t.Helper()
 	got, err := s.Eval(v)
 	if err != nil {
@@ -32,7 +32,7 @@ func evalOK(t *testing.T, s *Scope, v any) any {
 	return got
 }
 
-func evalErr(t *testing.T, s *Scope, v any, wantSubstr string) {
+func evalErr(t *testing.T, s *scope, v any, wantSubstr string) {
 	t.Helper()
 	_, err := s.Eval(v)
 	if err == nil {
@@ -212,7 +212,7 @@ func TestConditionFunctions(t *testing.T) {
 // TestEvalConditionsOutOfOrder covers the case that breaks naive
 // implementations: a condition defined before the one it depends on.
 func TestEvalConditionsOutOfOrder(t *testing.T) {
-	s := &Scope{Parameters: map[string]any{"Env": "prod"}}
+	s := &scope{Parameters: map[string]any{"Env": "prod"}}
 	err := s.EvalConditions(map[string]any{
 		// AlsoProd depends on IsProd, and sorts before it alphabetically.
 		"AlsoProd": map[string]any{"Fn::Not": []any{map[string]any{"Condition": "IsNotProd"}}},
@@ -229,7 +229,7 @@ func TestEvalConditionsOutOfOrder(t *testing.T) {
 }
 
 func TestEvalConditionsReportsUnresolvable(t *testing.T) {
-	s := &Scope{}
+	s := &scope{}
 	err := s.EvalConditions(map[string]any{
 		"Broken": map[string]any{"Condition": "NeverDefined"},
 	})

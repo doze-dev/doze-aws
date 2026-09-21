@@ -71,7 +71,7 @@ func (s *store) DeadLetterSourceQueues(dlq string) ([]string, error) {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var q Queue
+			var q queue
 			if json.Unmarshal(raw, &q) == nil && q.DeadLetterTarget == dlq {
 				out = append(out, q.Name)
 			}
@@ -95,7 +95,7 @@ func (s *store) DeadLetterSourceQueues(dlq string) ([]string, error) {
 // never assigned anywhere in the tree, so ListMessageMoveTasks reported an empty
 // FailureReason forever. The wire view keeps the field (AWS has it, and it is
 // omitempty) but nothing pretends to fill it.
-type MoveTask struct {
+type moveTask struct {
 	Handle      string `json:"handle"`
 	Status      string `json:"status"` // always COMPLETED — see above
 	Source      string `json:"source"` // queue name
@@ -108,8 +108,8 @@ type MoveTask struct {
 // dest, synchronously — the local equivalent of a DLQ redrive. AWS moves
 // asynchronously with rate control; locally the volumes are small enough that
 // completing inline is simpler and deterministic.
-func (s *store) StartMessageMoveTask(source, dest string) (*MoveTask, error) {
-	task := &MoveTask{
+func (s *store) StartMessageMoveTask(source, dest string) (*moveTask, error) {
+	task := &moveTask{
 		Handle:      newID(),
 		Status:      "COMPLETED",
 		Source:      source,
@@ -133,7 +133,7 @@ func (s *store) StartMessageMoveTask(source, dest string) (*MoveTask, error) {
 		}
 		var keys [][]byte
 		_ = src.ForEach(func(k, raw []byte) error {
-			var m Message
+			var m message
 			if json.Unmarshal(raw, &m) != nil {
 				return nil
 			}
@@ -161,7 +161,7 @@ func (s *store) StartMessageMoveTask(source, dest string) (*MoveTask, error) {
 	return task, nil
 }
 
-func (s *store) recordMoveTask(tx *bolt.Tx, task *MoveTask) error {
+func (s *store) recordMoveTask(tx *bolt.Tx, task *moveTask) error {
 	b, err := tx.CreateBucketIfNotExists(moveTasksBucket)
 	if err != nil {
 		return err
@@ -172,11 +172,11 @@ func (s *store) recordMoveTask(tx *bolt.Tx, task *MoveTask) error {
 
 // ListMessageMoveTasks returns the recorded tasks for a source queue, newest
 // first, up to max.
-func (s *store) ListMessageMoveTasks(source string, max int) ([]MoveTask, error) {
+func (s *store) ListMessageMoveTasks(source string, max int) ([]moveTask, error) {
 	if max <= 0 {
 		max = 1
 	}
-	var out []MoveTask
+	var out []moveTask
 	err := s.db.View(func(tx *bolt.Tx) error {
 		if _, err := s.getQueue(tx, source); err != nil {
 			return err
@@ -187,7 +187,7 @@ func (s *store) ListMessageMoveTasks(source string, max int) ([]MoveTask, error)
 		}
 		c := b.Cursor()
 		for k, raw := c.Last(); k != nil && len(out) < max; k, raw = c.Prev() {
-			var t MoveTask
+			var t moveTask
 			if json.Unmarshal(raw, &t) == nil && t.Source == source {
 				out = append(out, t)
 			}

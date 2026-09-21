@@ -102,31 +102,31 @@ type driftInfo struct {
 // Nothing here watches alarms; the value is reported so a converging tool sees
 // what it set.
 type rollbackView struct {
-	RollbackTriggers        []rollbackTrigger `xml:"RollbackTriggers>member,omitempty"`
-	MonitoringTimeInMinutes *int              `xml:"MonitoringTimeInMinutes,omitempty"`
+	RollbackTriggers        []rollbackTriggerView `xml:"RollbackTriggers>member,omitempty"`
+	MonitoringTimeInMinutes *int                  `xml:"MonitoringTimeInMinutes,omitempty"`
 }
 
-type rollbackTrigger struct {
+type rollbackTriggerView struct {
 	Arn  string `xml:"Arn"`
 	Type string `xml:"Type"`
 }
 
 // viewRollback renders a stored rollback configuration for a describe.
-func viewRollback(rc *RollbackConfig) *rollbackView {
+func viewRollback(rc *rollbackConfig) *rollbackView {
 	if rc == nil {
 		return nil
 	}
 	v := &rollbackView{MonitoringTimeInMinutes: rc.MonitoringTimeInMinutes}
 	for _, t := range rc.Triggers {
-		v.RollbackTriggers = append(v.RollbackTriggers, rollbackTrigger{Arn: t.Arn, Type: t.Type})
+		v.RollbackTriggers = append(v.RollbackTriggers, rollbackTriggerView{Arn: t.Arn, Type: t.Type})
 	}
 	return v
 }
 
 // readRollback pulls RollbackConfiguration off the wire, where it arrives as
 // nested Query members rather than as JSON.
-func readRollback(p params) *RollbackConfig {
-	rc := &RollbackConfig{}
+func readRollback(p params) *rollbackConfig {
+	rc := &rollbackConfig{}
 	if v := p.str("RollbackConfiguration.MonitoringTimeInMinutes"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil {
 			rc.MonitoringTimeInMinutes = &n
@@ -138,7 +138,7 @@ func readRollback(p params) *RollbackConfig {
 		if arn == "" {
 			break
 		}
-		rc.Triggers = append(rc.Triggers, RollbackTrigger{Arn: arn, Type: p.str(base + ".Type")})
+		rc.Triggers = append(rc.Triggers, rollbackTrigger{Arn: arn, Type: p.str(base + ".Type")})
 	}
 	if rc.MonitoringTimeInMinutes == nil && len(rc.Triggers) == 0 {
 		return nil
@@ -149,7 +149,7 @@ func readRollback(p params) *RollbackConfig {
 // readDeployFields folds the declared-but-inert stack settings off the wire.
 // Every real deploy sets at least capabilities, and a stack that accepts them
 // and describes itself without them never stops looking changed.
-func readDeployFields(st *StackRecord, p params) {
+func readDeployFields(st *stackRecord, p params) {
 	if caps := p.members("Capabilities"); len(caps) > 0 {
 		st.Capabilities = caps
 	}
@@ -187,7 +187,7 @@ type eventView struct {
 	ResourceStatusReason string `xml:"ResourceStatusReason,omitempty"`
 }
 
-func viewStack(st *StackRecord) stackView {
+func viewStack(st *stackRecord) stackView {
 	v := stackView{
 		StackId:                     st.ID,
 		StackName:                   st.Name,
@@ -254,7 +254,7 @@ func hCreateStack(s *Server, p params) (any, *awshttp.APIError) {
 
 // recordDeployFields stores the settings a deploy declares but nothing local
 // acts on, so a describe reports them back.
-func (s *Server) recordDeployFields(st *StackRecord, p params) *awshttp.APIError {
+func (s *Server) recordDeployFields(st *stackRecord, p params) *awshttp.APIError {
 	before := *st
 	readDeployFields(st, p)
 	if before.DisableRollback == st.DisableRollback &&
@@ -310,7 +310,7 @@ func hUpdateStack(s *Server, p params) (any, *awshttp.APIError) {
 // terminal status; doing the work before returning means the very first poll
 // succeeds, which is both faster and more honest than reporting IN_PROGRESS
 // for something that already finished.
-func (s *Server) deploy(name, body string, params, tags map[string]string, isUpdate bool) (*StackRecord, *awshttp.APIError) {
+func (s *Server) deploy(name, body string, params, tags map[string]string, isUpdate bool) (*stackRecord, *awshttp.APIError) {
 	tmpl, err := Parse([]byte(body))
 	if err != nil {
 		return nil, errValidation("%v", err)
@@ -337,7 +337,7 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 
 	now := s.now().Unix()
 	prev, _ := s.store.GetStack(name)
-	st := &StackRecord{
+	st := &stackRecord{
 		Name: name, TemplateBody: body, Parameters: params, Tags: tags,
 		Created: now, Updated: now,
 	}
@@ -358,14 +358,14 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 		if e.Kind != Mapped {
 			continue
 		}
-		st.Resources = append(st.Resources, StackResource{
+		st.Resources = append(st.Resources, stackResource{
 			LogicalID: e.LogicalID, Type: e.Type, PhysicalID: e.Name,
 			Status: statusVerb(isUpdate) + "_COMPLETE",
 			Props:  e.Props,
 		})
 	}
 	for name, value := range rep.Outputs {
-		out := StackOutput{Key: name, Value: value}
+		out := stackOutput{Key: name, Value: value}
 		if decl, ok := tmpl.Outputs[name]; ok && decl.ExportName != nil {
 			// The export name may itself be an intrinsic; it was evaluated
 			// during transpile, so re-evaluate against the same scope.
@@ -407,12 +407,12 @@ func (s *Server) recordFailure(name, body string, params, tags map[string]string
 	now := s.now().Unix()
 	st, _ := s.store.GetStack(name)
 	if st == nil {
-		st = &StackRecord{Name: name, ID: StackARN(s.id, name, s.store.newID()), Created: now}
+		st = &stackRecord{Name: name, ID: StackARN(s.id, name, s.store.newID()), Created: now}
 	}
 	st.TemplateBody, st.Parameters, st.Tags, st.Updated = body, params, tags, now
 	st.Status = pick(isUpdate, StatusUpdateFailed, StatusCreateFailed)
 	st.StatusReason = reason
-	st.Events = append(st.Events, StackEvent{
+	st.Events = append(st.Events, stackEvent{
 		ID: s.store.newID(), Timestamp: now, LogicalID: name,
 		Type: "AWS::CloudFormation::Stack", PhysicalID: st.ID,
 		Status: st.Status, Reason: reason,
@@ -485,7 +485,7 @@ func hDeleteStack(s *Server, p params) (any, *awshttp.APIError) {
 	st.Updated = now
 	st.Resources = nil
 	st.Outputs = nil
-	st.Events = append(st.Events, StackEvent{
+	st.Events = append(st.Events, stackEvent{
 		ID: s.store.newID(), Timestamp: now, LogicalID: st.Name,
 		Type: "AWS::CloudFormation::Stack", PhysicalID: st.ID,
 		Status: StatusDeleteComplete,
@@ -499,7 +499,7 @@ func hDeleteStack(s *Server, p params) (any, *awshttp.APIError) {
 
 // stackIR re-derives the resource graph a stack created, so Destroy can undo
 // exactly what Apply did.
-func (s *Server) stackIR(st *StackRecord) (*provision.Stack, error) {
+func (s *Server) stackIR(st *stackRecord) (*provision.Stack, error) {
 	tmpl, err := Parse([]byte(st.TemplateBody))
 	if err != nil {
 		return nil, err
@@ -606,7 +606,7 @@ func hDescribeStackEvents(s *Server, p params) (any, *awshttp.APIError) {
 	}{views}, nil
 }
 
-func (s *Server) resourceViews(st *StackRecord) []resourceView {
+func (s *Server) resourceViews(st *stackRecord) []resourceView {
 	out := make([]resourceView, 0, len(st.Resources))
 	for _, r := range st.Resources {
 		out = append(out, resourceView{
@@ -926,7 +926,7 @@ func exportNameOf(ident awsident.Identity, t *Template, output string, params ma
 	if decl.ExportName == nil {
 		return "", nil
 	}
-	scope := &Scope{StackName: stackName, Exports: exports, Parameters: map[string]any{}, Identity: ident}
+	scope := &scope{StackName: stackName, Exports: exports, Parameters: map[string]any{}, Identity: ident}
 	for k, v := range params {
 		scope.Parameters[k] = v
 	}

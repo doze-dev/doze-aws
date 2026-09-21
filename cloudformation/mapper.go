@@ -18,7 +18,7 @@ import (
 // mapper accumulates the stack while walking resources, deferring the
 // attachments that can only be wired once every resource exists.
 type mapper struct {
-	scope    *Scope
+	scope    *scope
 	stack    *provision.Stack
 	template *Template
 	deferred []func() error

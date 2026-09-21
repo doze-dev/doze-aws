@@ -127,11 +127,11 @@ func (s *Server) updateMapRun(ctx context.Context, p map[string]any) (any, *awsh
 }
 
 // putMapRun fills DescribeExecution's mapRunArn for a child execution.
-func putMapRun(out map[string]any, e *Execution) {
+func putMapRun(out map[string]any, e *execution) {
 	if e.MapRunARN != "" {
 		out["mapRunArn"] = e.MapRunARN
 	}
 }
 
 // mapChildName is what a run's child executions are called.
-func mapChildName(mr *MapRun, index int) string { return fmt.Sprintf("%s-%d", mr.ID, index) }
+func mapChildName(mr *mapRun, index int) string { return fmt.Sprintf("%s-%d", mr.ID, index) }

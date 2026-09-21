@@ -12,7 +12,7 @@ import (
 
 // Receive returns up to max visible messages, applying visibility timeout, FIFO
 // group locking, DLQ redrive, and retention. waitSec long-polls when empty.
-func (s *store) Receive(queue string, max, waitSec int, visibilityOverride int) ([]Message, error) {
+func (s *store) Receive(queue string, max, waitSec int, visibilityOverride int) ([]message, error) {
 	if max <= 0 || max > maxReceiveBatch {
 		max = 1
 	}
@@ -70,7 +70,7 @@ func (s *store) queueDefaultWait(queue string) int {
 // receiveOnce attempts one delivery pass. nextVisible is the earliest time an
 // in-flight or delayed message becomes available (zero if none), so the caller
 // can sleep precisely instead of polling.
-func (s *store) receiveOnce(queue string, max, visibilityOverride int) (out []Message, nextVisible time.Time, err error) {
+func (s *store) receiveOnce(queue string, max, visibilityOverride int) (out []message, nextVisible time.Time, err error) {
 	var dlqHit []string
 	var minVisible int64 // earliest future VisibleAt seen (nano), 0 if none
 	err = s.db.Update(func(tx *bolt.Tx) error {
@@ -93,7 +93,7 @@ func (s *store) receiveOnce(queue string, max, visibilityOverride int) (out []Me
 		// First pass (FIFO): mark groups that already have an in-flight message.
 		if q.FIFO {
 			_ = mb.ForEach(func(_, raw []byte) error {
-				var m Message
+				var m message
 				if json.Unmarshal(raw, &m) == nil && m.VisibleAt > nowN && m.GroupID != "" {
 					lockedGroups[m.GroupID] = true
 				}
@@ -105,11 +105,11 @@ func (s *store) receiveOnce(queue string, max, visibilityOverride int) (out []Me
 		// afterward: bbolt's cursor gives undefined results if the bucket is
 		// mutated (Delete/Put) while the cursor is live.
 		var expireKeys [][]byte
-		var dlqMsgs []Message
-		var deliver []Message
+		var dlqMsgs []message
+		var deliver []message
 		c := mb.Cursor()
 		for k, raw := c.First(); k != nil && len(deliver) < max; k, raw = c.Next() {
-			var m Message
+			var m message
 			if json.Unmarshal(raw, &m) != nil {
 				continue
 			}
@@ -181,11 +181,11 @@ func (s *store) receiveOnce(queue string, max, visibilityOverride int) (out []Me
 // and ignores FIFO group locking — so it shows the FULL queue contents (every
 // message, not just the head of each message group, the way a plain Receive does).
 // Purely read-only; the returned handles are still valid for Delete.
-func (s *store) Peek(queue string, max int) ([]Message, error) {
+func (s *store) Peek(queue string, max int) ([]message, error) {
 	if max <= 0 {
 		max = 10
 	}
-	var out []Message
+	var out []message
 	err := s.db.View(func(tx *bolt.Tx) error {
 		q, err := s.getQueue(tx, queue)
 		if err != nil {
@@ -199,7 +199,7 @@ func (s *store) Peek(queue string, max int) ([]Message, error) {
 		nowN := now.UnixNano()
 		c := mb.Cursor()
 		for k, raw := c.First(); k != nil && len(out) < max; k, raw = c.Next() {
-			var m Message
+			var m message
 			if json.Unmarshal(raw, &m) != nil {
 				continue
 			}
@@ -222,7 +222,7 @@ func (s *store) Peek(queue string, max int) ([]Message, error) {
 // happened: if the DLQ no longer exists it returns (false, nil) so the caller
 // leaves the message in the source queue instead of destroying it (real SQS
 // does not lose the message when redrive can't complete).
-func (s *store) moveToDLQ(tx *bolt.Tx, dlq string, m *Message) (bool, error) {
+func (s *store) moveToDLQ(tx *bolt.Tx, dlq string, m *message) (bool, error) {
 	if _, err := s.getQueue(tx, dlq); err != nil {
 		return false, nil // DLQ gone; do not drop the message
 	}
@@ -286,7 +286,7 @@ func (s *store) deleteIn(tx *bolt.Tx, queue, handle string) error {
 	if raw == nil {
 		return nil // already deleted — idempotent, like real SQS
 	}
-	var m Message
+	var m message
 	if err := json.Unmarshal(raw, &m); err != nil {
 		return err
 	}
@@ -305,15 +305,15 @@ func (s *store) ChangeVisibility(queue, handle string, timeout int) error {
 	})
 }
 
-// VisibilityItem is one entry of a ChangeMessageVisibilityBatch.
-type VisibilityItem struct {
+// visibilityItem is one entry of a ChangeMessageVisibilityBatch.
+type visibilityItem struct {
 	Handle  string
 	Timeout int
 }
 
 // ChangeVisibilityBatch applies several visibility changes in ONE transaction,
 // and one fsync. Per-entry failures are reported per entry, as AWS does.
-func (s *store) ChangeVisibilityBatch(queue string, items []VisibilityItem) ([]error, error) {
+func (s *store) ChangeVisibilityBatch(queue string, items []visibilityItem) ([]error, error) {
 	errs := make([]error, len(items))
 	err := s.db.Update(func(tx *bolt.Tx) error {
 		if _, err := s.getQueue(tx, queue); err != nil {
@@ -344,7 +344,7 @@ func (s *store) changeVisibilityIn(tx *bolt.Tx, queue, handle string, timeout in
 	if raw == nil {
 		return nil
 	}
-	var m Message
+	var m message
 	if err := json.Unmarshal(raw, &m); err != nil {
 		return err
 	}
@@ -358,7 +358,7 @@ func (s *store) changeVisibilityIn(tx *bolt.Tx, queue, handle string, timeout in
 // Handle encodes the message's position AND identity; Delete/ChangeVisibility
 // decode both and verify the id so a stale handle can't act on a different
 // message that later reused the same sequence number.
-func (m *Message) Handle() string { return encodeHandle(seqKey(m.Seq), m.ID) }
+func (m *message) Handle() string { return encodeHandle(seqKey(m.Seq), m.ID) }
 
 // ---- dedup tracking (FIFO) ----
 
@@ -370,7 +370,7 @@ type dedupRec struct {
 	MD5Body string `json:"md5"`
 }
 
-func (s *store) lookupDedup(tx *bolt.Tx, queue, dedupID string) (bool, *Message) {
+func (s *store) lookupDedup(tx *bolt.Tx, queue, dedupID string) (bool, *message) {
 	b := tx.Bucket(dedupBucket(queue))
 	if b == nil {
 		return false, nil
@@ -386,10 +386,10 @@ func (s *store) lookupDedup(tx *bolt.Tx, queue, dedupID string) (bool, *Message)
 	if s.now().Unix()-r.At > dedupWindow {
 		return false, nil
 	}
-	return true, &Message{ID: r.ID, MD5Body: r.MD5Body}
+	return true, &message{ID: r.ID, MD5Body: r.MD5Body}
 }
 
-func (s *store) recordDedup(tx *bolt.Tx, queue, dedupID string, m *Message) error {
+func (s *store) recordDedup(tx *bolt.Tx, queue, dedupID string, m *message) error {
 	b, err := tx.CreateBucketIfNotExists(dedupBucket(queue))
 	if err != nil {
 		return err

@@ -102,8 +102,8 @@ func (g *engine) scheduleActivity(r *run, call asl.EffCallTask) {
 	now := g.srv.store.now()
 	r.tokens = append(r.tokens, tokenOp{
 		Token: call.Token,
-		Ref:   &TokenRef{ExecKey: r.key, Frame: call.Frame, IssuedAt: now},
-		Task: &ActivityTask{
+		Ref:   &tokenRef{ExecKey: r.key, Frame: call.Frame, IssuedAt: now},
+		Task: &activityTask{
 			Activity: name, Token: call.Token, Input: string(call.Input),
 			ExecKey: r.key, Frame: call.Frame, ScheduledAt: now,
 		},
@@ -151,7 +151,7 @@ func (g *engine) activityFailureEvent(r *run, f *asl.Frame, errName, cause strin
 // awaitActivityTask claims the next task of name, long-polling until one is
 // queued or the deadline, the request or the engine ends. nil, nil is the
 // empty poll.
-func (g *engine) awaitActivityTask(ctx context.Context, name string) (*ActivityTask, error) {
+func (g *engine) awaitActivityTask(ctx context.Context, name string) (*activityTask, error) {
 	timer := time.NewTimer(activityPollTimeout)
 	defer timer.Stop()
 	for {
@@ -215,7 +215,7 @@ func (s *Server) getActivityTask(ctx context.Context, p map[string]any) (any, *a
 // deliverActivityStarted tells the driver a worker took the task;
 // fire-and-forget, like a heartbeat. It is queued before anything the worker
 // can send back, so ActivityStarted always precedes ActivitySucceeded.
-func (g *engine) deliverActivityStarted(task *ActivityTask, worker string) {
+func (g *engine) deliverActivityStarted(task *activityTask, worker string) {
 	select {
 	case g.deliveries <- delivery{key: task.ExecKey, frame: task.Frame, kind: dlvActivityStarted, worker: worker}:
 	case <-g.stop:

@@ -115,7 +115,7 @@ func (s *Server) getSecretValue(p map[string]any) (any, *awshttp.APIError) {
 	return s.renderValue(sec, vid, v)
 }
 
-func (s *Server) renderValue(sec *Secret, vid string, v *Version) (map[string]any, *awshttp.APIError) {
+func (s *Server) renderValue(sec *secret, vid string, v *version) (map[string]any, *awshttp.APIError) {
 	out := map[string]any{
 		"ARN":           sec.ARN,
 		"Name":          sec.Name,
@@ -203,7 +203,7 @@ func (s *Server) updateSecret(p map[string]any) (any, *awshttp.APIError) {
 		return nil, aerr
 	}
 	id := awsjson.Str(p, "SecretId")
-	sec, err := s.store.Mutate(id, func(sec *Secret) error {
+	sec, err := s.store.Mutate(id, func(sec *secret) error {
 		if sec.DeletedAt > 0 {
 			return errDeleted(sec.Name)
 		}
@@ -256,7 +256,7 @@ func (s *Server) restoreSecret(p map[string]any) (any, *awshttp.APIError) {
 }
 
 // describe renders the DescribeSecret/ListSecrets entry shape.
-func describe(sec *Secret) map[string]any {
+func describe(sec *secret) map[string]any {
 	stages := map[string][]string{}
 	for vid, v := range sec.Versions {
 		if len(v.Stages) > 0 {
@@ -365,7 +365,7 @@ func (s *Server) updateSecretVersionStage(p map[string]any) (any, *awshttp.APIEr
 		return nil, awshttp.Errf(400, "InvalidParameterException",
 			"you can't remove the AWSCURRENT staging label from a version unless you move it to another version first")
 	}
-	sec, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *Secret) error {
+	sec, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *secret) error {
 		if removeFrom != "" {
 			v, ok := sec.Versions[removeFrom]
 			if !ok || !contains(v.Stages, stage) {
@@ -424,7 +424,7 @@ func (s *Server) updateSecretVersionStage(p map[string]any) (any, *awshttp.APIEr
 
 func (s *Server) tagResource(p map[string]any) (any, *awshttp.APIError) {
 	tags := ptaglist(p, "Tags")
-	_, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *Secret) error {
+	_, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *secret) error {
 		if sec.Tags == nil {
 			sec.Tags = map[string]string{}
 		}
@@ -436,7 +436,7 @@ func (s *Server) tagResource(p map[string]any) (any, *awshttp.APIError) {
 
 func (s *Server) untagResource(p map[string]any) (any, *awshttp.APIError) {
 	keys, _ := p["TagKeys"].([]any)
-	_, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *Secret) error {
+	_, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *secret) error {
 		for _, k := range keys {
 			if name, ok := k.(string); ok {
 				delete(sec.Tags, name)
@@ -478,7 +478,7 @@ func (s *Server) getRandomPassword(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) putResourcePolicy(p map[string]any) (any, *awshttp.APIError) {
-	sec, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *Secret) error {
+	sec, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *secret) error {
 		sec.Policy = awsjson.Str(p, "ResourcePolicy")
 		return nil
 	})
@@ -501,7 +501,7 @@ func (s *Server) getResourcePolicy(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) deleteResourcePolicy(p map[string]any) (any, *awshttp.APIError) {
-	sec, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *Secret) error {
+	sec, err := s.store.Mutate(awsjson.Str(p, "SecretId"), func(sec *secret) error {
 		sec.Policy = ""
 		return nil
 	})
