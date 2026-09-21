@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 // layer maps AWS::Lambda::LayerVersion. Content is {S3Bucket, S3Key} — the

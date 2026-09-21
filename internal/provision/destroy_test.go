@@ -45,7 +45,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 // liveStack boots an in-process stack and returns its handler plus a config

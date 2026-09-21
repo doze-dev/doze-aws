@@ -3,7 +3,7 @@ package cloudformation
 // Export of KMS keys and their aliases. A key is addressed by its alias, which is how nameProperty declares it.
 
 import (
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 func emitKeys(s *provision.Stack, add func(prefix, name, typ string, props map[string]any)) {

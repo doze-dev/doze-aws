@@ -7,7 +7,7 @@ package cloudformation
 import (
 	"fmt"
 
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 func (m *mapper) apiKey(name string, props map[string]any) error {

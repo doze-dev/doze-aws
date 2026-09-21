@@ -16,7 +16,7 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 // Report is the outcome of a transpile: what was mapped, ignored and rejected.

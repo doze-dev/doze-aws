@@ -3,7 +3,7 @@ package cloudformation
 // Export of Secrets Manager secrets.
 
 import (
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 func emitSecrets(s *provision.Stack, add func(prefix, name, typ string, props map[string]any)) {

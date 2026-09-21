@@ -5,7 +5,7 @@ package cloudformation
 import (
 	"strings"
 
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 func emitTopics(s *provision.Stack, add func(prefix, name, typ string, props map[string]any)) {

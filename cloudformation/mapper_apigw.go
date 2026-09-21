@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 // apiNode is one AWS::ApiGateway::Resource as declared: resolved to a path

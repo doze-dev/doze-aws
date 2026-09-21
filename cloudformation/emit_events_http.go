@@ -5,7 +5,7 @@ package cloudformation
 // placeholder is more useful than one that fails to parse.
 
 import (
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 func emitEventsHTTP(s *provision.Stack, add func(prefix, name, typ string, props map[string]any)) {

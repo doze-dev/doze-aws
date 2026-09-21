@@ -3,7 +3,7 @@ package cloudformation
 // Export of SSM Parameter Store parameters.
 
 import (
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 func emitParameters(s *provision.Stack, add func(prefix, name, typ string, props map[string]any)) {

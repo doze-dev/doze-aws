@@ -3,7 +3,7 @@ package cloudformation
 // Export of SQS queues, including the redrive policy that names a dead-letter queue.
 
 import (
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 func emitQueues(s *provision.Stack, add func(prefix, name, typ string, props map[string]any)) {

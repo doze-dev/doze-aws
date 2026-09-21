@@ -13,7 +13,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshost"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 func unix(sec int64) time.Time { return time.Unix(sec, 0) }

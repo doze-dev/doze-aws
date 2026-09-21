@@ -3,7 +3,7 @@ package cloudformation
 // Export of Step Functions state machines, their published versions and aliases, and activities.
 
 import (
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 func emitStateMachines(s *provision.Stack, add func(prefix, name, typ string, props map[string]any)) {

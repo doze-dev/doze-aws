@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 // NestedStack is one child stack a transpile produced.

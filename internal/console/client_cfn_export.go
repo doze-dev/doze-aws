@@ -19,7 +19,7 @@ import (
 	"net/http"
 
 	"github.com/doze-dev/doze-aws/cloudformation"
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 // gatewayHandler presents the console's service fanout as the http.Handler

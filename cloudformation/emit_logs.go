@@ -3,7 +3,7 @@ package cloudformation
 // Export of CloudWatch Logs log groups and their subscription filters.
 
 import (
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 func emitLogs(s *provision.Stack, add func(prefix, name, typ string, props map[string]any)) {

@@ -15,7 +15,7 @@ import (
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/cloudformation"
 	"github.com/doze-dev/doze-aws/internal/config"
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 	names "github.com/doze-dev/doze-names"
 )
 

@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 // v2Integration is one AWS::ApiGatewayV2::Integration as declared.

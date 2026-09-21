@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 func (m *mapper) alarm(name string, props map[string]any) error {

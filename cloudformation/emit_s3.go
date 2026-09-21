@@ -5,7 +5,7 @@ package cloudformation
 import (
 	"fmt"
 
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 func emitBuckets(s *provision.Stack, add func(prefix, name, typ string, props map[string]any)) {

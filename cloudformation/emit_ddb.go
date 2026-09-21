@@ -3,7 +3,7 @@ package cloudformation
 // Export of DynamoDB tables: the key schema, secondary indexes and TTL.
 
 import (
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 func emitTables(s *provision.Stack, add func(prefix, name, typ string, props map[string]any)) {

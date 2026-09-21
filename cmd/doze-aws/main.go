@@ -37,8 +37,8 @@ import (
 	"github.com/doze-dev/doze-aws/iam"
 	"github.com/doze-dev/doze-aws/internal/config"
 	"github.com/doze-dev/doze-aws/internal/console"
+	"github.com/doze-dev/doze-aws/internal/provision"
 	"github.com/doze-dev/doze-aws/peers"
-	"github.com/doze-dev/doze-aws/provision"
 )
 
 // version is the build version, injected by the release tooling

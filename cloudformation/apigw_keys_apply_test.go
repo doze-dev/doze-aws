@@ -21,7 +21,7 @@ import (
 	"github.com/doze-dev/doze-aws/apigateway"
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/cloudformation"
-	"github.com/doze-dev/doze-aws/provision"
+	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
 const samKeyedTemplate = `
