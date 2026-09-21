@@ -10,7 +10,11 @@ package cloudformation
 // string wrong turns a no-op redeploy into a hard error.
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 )
 
 func hCreateChangeSet(s *Server, p params) (any, *awshttp.APIError) {
@@ -51,12 +55,12 @@ func hCreateChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 
 	// Transpile now so a broken template fails at change-set creation, which is
 	// where the deploy tool expects to see it.
-	tmpl, err := Parse([]byte(body))
+	tmpl, err := cfn.Parse([]byte(body))
 	if err != nil {
 		return nil, errValidation("%v", err)
 	}
 	exports, _ := s.store.Exports()
-	_, rep, err := Transpile(tmpl, TranspileOptions{
+	_, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{
 		Identity:  s.id,
 		StackName: stackName, Parameters: params, Exports: exports, Endpoint: s.endpoint,
 		FetchTemplate: s.fetcher(nil),
@@ -74,7 +78,7 @@ func hCreateChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 		stackID = existing.ID
 	} else {
 		review := &stackRecord{
-			Name: stackName, ID: StackARN(s.id, stackName, s.store.newID()),
+			Name: stackName, ID: cfn.StackARN(s.id, stackName, s.store.newID()),
 			Status: StatusReviewInProgress, TemplateBody: body,
 			Parameters: params, Created: now, Updated: now,
 		}
@@ -126,7 +130,7 @@ func hCreateChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 // change set that saw no difference would land in FAILED with "the submitted
 // information didn't contain changes" — telling a local `cdk deploy` there was
 // nothing to do when there was.
-func diffChanges(existing *stackRecord, rep *Report) []change {
+func diffChanges(existing *stackRecord, rep *cfn.Report) []change {
 	current := map[string]stackResource{}
 	if existing != nil {
 		for _, r := range existing.Resources {
@@ -136,7 +140,7 @@ func diffChanges(existing *stackRecord, rep *Report) []change {
 	var out []change
 	seen := map[string]bool{}
 	for _, e := range rep.Entries {
-		if e.Kind != Mapped {
+		if e.Kind != cfn.Mapped {
 			continue
 		}
 		seen[e.LogicalID] = true
@@ -196,7 +200,7 @@ func hDescribeChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 		})
 	}
 	var paramViews []parameterView
-	for _, k := range sortedKeys(cs.Parameters) {
+	for _, k := range slices.Sorted(maps.Keys(cs.Parameters)) {
 		paramViews = append(paramViews, parameterView{k, cs.Parameters[k]})
 	}
 	return struct {
@@ -211,7 +215,7 @@ func hDescribeChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 		Parameters      []parameterView `xml:"Parameters>member,omitempty"`
 		Changes         []change        `xml:"Changes>member,omitempty"`
 	}{
-		cs.Name, cs.ID, StackARN(s.id, cs.StackName, ""), cs.StackName,
+		cs.Name, cs.ID, cfn.StackARN(s.id, cs.StackName, ""), cs.StackName,
 		cs.Status, cs.StatusReason, cs.ExecutionStatus,
 		awshttp.ISO8601(unix(cs.Created)), paramViews, changes,
 	}, nil
@@ -264,7 +268,7 @@ func hListChangeSets(s *Server, p params) (any, *awshttp.APIError) {
 	out := make([]summary, 0, len(sets))
 	for _, cs := range sets {
 		out = append(out, summary{
-			cs.ID, cs.Name, StackARN(s.id, cs.StackName, ""), cs.StackName,
+			cs.ID, cs.Name, cfn.StackARN(s.id, cs.StackName, ""), cs.StackName,
 			cs.Status, cs.StatusReason, cs.ExecutionStatus,
 			awshttp.ISO8601(unix(cs.Created)),
 		})

@@ -19,8 +19,6 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
-
-	"github.com/doze-dev/doze-aws/awsident"
 )
 
 var (
@@ -165,11 +163,6 @@ type store struct {
 func newStore(db *lazybolt.DB) *store { return &store{db: db, clock: time.Now} }
 
 func (s *store) now() time.Time { return s.clock() }
-
-// StackARN builds the ARN a stack reports as its StackId.
-func StackARN(ident awsident.Identity, name, id string) string {
-	return ident.ARN("cloudformation", "stack/"+name+"/"+id)
-}
 
 // ---- stacks ----
 

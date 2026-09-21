@@ -6,6 +6,8 @@ package cloudformation
 import (
 	"fmt"
 	"sort"
+
+	"github.com/doze-dev/doze-aws/internal/cfn"
 )
 
 // fetcher reads a nested stack's TemplateURL from the local S3, or from the
@@ -31,14 +33,14 @@ func (s *Server) fetcher(stored map[string]string) func(string) ([]byte, error) 
 // recordNested writes one StackRecord per child, owned by the parent, and
 // keeps the child bodies on the parent for delete. The parent's own resource
 // list already names each child as an AWS::CloudFormation::Stack.
-func (s *Server) recordNested(parent *stackRecord, rep *Report, isUpdate bool) error {
+func (s *Server) recordNested(parent *stackRecord, rep *cfn.Report, isUpdate bool) error {
 	parent.NestedTemplates = map[string]string{}
 	root := parent.RootID
 	if root == "" {
 		root = parent.ID
 	}
-	var walk func(owner *stackRecord, children []*NestedStack) error
-	walk = func(owner *stackRecord, children []*NestedStack) error {
+	var walk func(owner *stackRecord, children []*cfn.NestedStack) error
+	walk = func(owner *stackRecord, children []*cfn.NestedStack) error {
 		for _, child := range children {
 			parent.NestedTemplates[child.TemplateURL] = child.TemplateBody
 			now := s.now().Unix()
@@ -50,10 +52,10 @@ func (s *Server) recordNested(parent *stackRecord, rep *Report, isUpdate bool) e
 			if prev, _ := s.store.GetStack(child.Name); prev != nil {
 				rec.ID, rec.Created = prev.ID, prev.Created
 			} else {
-				rec.ID = StackARN(s.id, child.Name, s.store.newID())
+				rec.ID = cfn.StackARN(s.id, child.Name, s.store.newID())
 			}
 			for _, e := range child.Report.Entries {
-				if e.Kind != Mapped {
+				if e.Kind != cfn.Mapped {
 					continue
 				}
 				rec.Resources = append(rec.Resources, stackResource{
@@ -93,10 +95,10 @@ func (s *Server) recordNested(parent *stackRecord, rep *Report, isUpdate bool) e
 // dropRemovedChildren removes the records of children an update no longer
 // declares; a child that stayed would otherwise keep its old record, owned
 // by the parent and refusing deletion, forever.
-func (s *Server) dropRemovedChildren(parent *stackRecord, rep *Report) error {
+func (s *Server) dropRemovedChildren(parent *stackRecord, rep *cfn.Report) error {
 	kept := map[string]bool{}
-	var collect func(children []*NestedStack)
-	collect = func(children []*NestedStack) {
+	var collect func(children []*cfn.NestedStack)
+	collect = func(children []*cfn.NestedStack) {
 		for _, c := range children {
 			kept[c.Name] = true
 			collect(c.Report.Nested)

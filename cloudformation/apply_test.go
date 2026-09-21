@@ -21,7 +21,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -98,11 +98,11 @@ func TestApplyTemplateToLiveStack(t *testing.T) {
 	defer ts.Close()
 
 	// Transpile, then converge with the existing stack-file apply.
-	tmpl, err := cloudformation.Parse([]byte(template))
+	tmpl, err := cfn.Parse([]byte(template))
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
-	sf, rep, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "shop"})
+	sf, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "shop"})
 	if err != nil {
 		t.Fatalf("Transpile: %v", err)
 	}
@@ -204,11 +204,11 @@ func TestApplyIsConvergent(t *testing.T) {
 	defer stack.Close()
 
 	apply := func() (created, updated, skipped int) {
-		tmpl, err := cloudformation.Parse([]byte(template))
+		tmpl, err := cfn.Parse([]byte(template))
 		if err != nil {
 			t.Fatal(err)
 		}
-		sf, _, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "shop"})
+		sf, _, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "shop"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -247,7 +247,7 @@ func TestLooksLikeTemplate(t *testing.T) {
 		{"empty", "", false},
 	}
 	for _, c := range cases {
-		if got := cloudformation.LooksLikeTemplate([]byte(c.raw)); got != c.want {
+		if got := cfn.LooksLikeTemplate([]byte(c.raw)); got != c.want {
 			t.Errorf("%s: LooksLikeTemplate = %v, want %v", c.name, got, c.want)
 		}
 	}

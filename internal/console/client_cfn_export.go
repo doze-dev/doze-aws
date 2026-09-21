@@ -9,7 +9,7 @@ package console
 // resource types this emulator supports before you can type anything true.
 //
 // The work was already done and tested (provision.Export walks the live
-// services, cloudformation.Emit writes the template, and emit_roundtrip_test
+// services, cfn.Emit writes the template, and emit_roundtrip_test
 // proves Export -> Emit -> Parse -> Transpile survives the trip). All that was
 // missing was a way to reach it from a browser.
 
@@ -18,7 +18,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -62,5 +62,5 @@ func (b *backend) ExportTemplate(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return cloudformation.Emit(s)
+	return cfn.Emit(s)
 }

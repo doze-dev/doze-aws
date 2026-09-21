@@ -30,7 +30,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 )
 
 const applyTemplate = `AWSTemplateFormatVersion: '2010-09-09'
@@ -296,11 +296,11 @@ func TestExportCommandEmitsATemplate(t *testing.T) {
 		t.Fatal("export wrote nothing to stdout")
 	}
 	// The contract is that what comes out goes back in.
-	parsed, err := cloudformation.Parse([]byte(stdout))
+	parsed, err := cfn.Parse([]byte(stdout))
 	if err != nil {
 		t.Fatalf("export output is not a template we can read back: %v\n%s", err, stdout)
 	}
-	back, _, err := cloudformation.Transpile(parsed, cloudformation.TranspileOptions{StackName: "round"})
+	back, _, err := cfn.Transpile(parsed, cfn.TranspileOptions{StackName: "round"})
 	if err != nil {
 		t.Fatalf("export output does not transpile: %v\n%s", err, stdout)
 	}

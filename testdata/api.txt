@@ -31,29 +31,12 @@ awsident: func (Identity) RegionName() string
 awsident: func Default() Identity
 awsident: func FunctionURLID(name string) string
 awsident: type Identity struct
-cloudformation: const Ignored
-cloudformation: const Mapped
-cloudformation: const PublishedVersion
-cloudformation: const Rejected
 cloudformation: const StatusCreateComplete
 cloudformation: const StatusCreateFailed
 cloudformation: const StatusDeleteComplete
 cloudformation: const StatusReviewInProgress
 cloudformation: const StatusUpdateComplete
 cloudformation: const StatusUpdateFailed
-cloudformation: field Entry.Kind Kind
-cloudformation: field Entry.LogicalID string
-cloudformation: field Entry.Name string
-cloudformation: field Entry.Props string
-cloudformation: field Entry.Reason string
-cloudformation: field Entry.Type string
-cloudformation: field NestedStack.LogicalID string
-cloudformation: field NestedStack.Name string
-cloudformation: field NestedStack.Parameters map[string]string
-cloudformation: field NestedStack.Report *Report
-cloudformation: field NestedStack.Stack *provision.Stack
-cloudformation: field NestedStack.TemplateBody string
-cloudformation: field NestedStack.TemplateURL string
 cloudformation: field Options.Clock func() time.Time
 cloudformation: field Options.DataDir string
 cloudformation: field Options.Endpoint string
@@ -62,70 +45,11 @@ cloudformation: field Options.Identity awsident.Identity
 cloudformation: field Options.Logf func(format string, args ...any)
 cloudformation: field Options.Peers peers.Directory
 cloudformation: field Options.Suffix string
-cloudformation: field Output.Condition string
-cloudformation: field Output.Description string
-cloudformation: field Output.ExportName any
-cloudformation: field Output.Value any
-cloudformation: field Parameter.AllowedValues []any
-cloudformation: field Parameter.Default any
-cloudformation: field Parameter.Description string
-cloudformation: field Parameter.NoEcho bool
-cloudformation: field Parameter.Type string
-cloudformation: field Report.Entries []Entry
-cloudformation: field Report.Nested []*NestedStack
-cloudformation: field Report.Outputs map[string]string
-cloudformation: field Report.SAM bool
-cloudformation: field Report.StackName string
-cloudformation: field Resource.Condition string
-cloudformation: field Resource.DeletionPolicy string
-cloudformation: field Resource.DependsOn []string
-cloudformation: field Resource.LogicalID string
-cloudformation: field Resource.Metadata map[string]any
-cloudformation: field Resource.Properties map[string]any
-cloudformation: field Resource.Type string
-cloudformation: field Template.Conditions map[string]any
-cloudformation: field Template.Description string
-cloudformation: field Template.FormatVersion string
-cloudformation: field Template.Globals map[string]any
-cloudformation: field Template.Mappings map[string]any
-cloudformation: field Template.Outputs map[string]Output
-cloudformation: field Template.Parameters map[string]Parameter
-cloudformation: field Template.Resources map[string]*Resource
-cloudformation: field Template.Transform []string
-cloudformation: field TranspileOptions.AllowUnsupported bool
-cloudformation: field TranspileOptions.Endpoint string
-cloudformation: field TranspileOptions.Exports map[string]string
-cloudformation: field TranspileOptions.FetchTemplate func(url string) ([]byte, error)
-cloudformation: field TranspileOptions.Identity awsident.Identity
-cloudformation: field TranspileOptions.NamePrefix string
-cloudformation: field TranspileOptions.Parameters map[string]string
-cloudformation: field TranspileOptions.StackName string
-cloudformation: field TranspileOptions.Suffix string
-cloudformation: func (*Report) Counts() (mapped, ignored, rejected int)
-cloudformation: func (*Report) Ignored() []Entry
 cloudformation: func (*Server) Close() error
 cloudformation: func (*Server) ServeHTTP(w http.ResponseWriter, r *http.Request)
-cloudformation: func (*Template) IsSAM() bool
-cloudformation: func (*Template) Order() []string
-cloudformation: func (Kind) String() string
-cloudformation: func Emit(s *provision.Stack) ([]byte, error)
-cloudformation: func IsMappable(typ string) bool
-cloudformation: func LooksLikeTemplate(raw []byte) bool
 cloudformation: func New(opts Options) (*Server, error)
-cloudformation: func Parse(raw []byte) (*Template, error)
-cloudformation: func StackARN(ident awsident.Identity, name, id string) string
-cloudformation: func Transpile(t *Template, opts TranspileOptions) (*provision.Stack, *Report, error)
-cloudformation: type Entry struct
-cloudformation: type Kind defined
-cloudformation: type NestedStack struct
 cloudformation: type Options struct
-cloudformation: type Output struct
-cloudformation: type Parameter struct
-cloudformation: type Report struct
-cloudformation: type Resource struct
 cloudformation: type Server struct
-cloudformation: type Template struct
-cloudformation: type TranspileOptions struct
 cloudwatch: field Options.Clock func() time.Time
 cloudwatch: field Options.DataDir string
 cloudwatch: field Options.IAMMode string

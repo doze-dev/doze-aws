@@ -20,7 +20,7 @@ import (
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/apigateway"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -120,11 +120,11 @@ func TestApplyCDKHTTPAPI(t *testing.T) {
 	ts := httptest.NewServer(stack.Handler())
 	defer ts.Close()
 
-	tmpl, err := cloudformation.Parse([]byte(strings.NewReplacer("BACKEND_DIR", backendDir, "GATE_DIR", gateDir).Replace(cdkHTTPAPITemplate)))
+	tmpl, err := cfn.Parse([]byte(strings.NewReplacer("BACKEND_DIR", backendDir, "GATE_DIR", gateDir).Replace(cdkHTTPAPITemplate)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sf, rep, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "items"})
+	sf, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "items"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -252,11 +252,11 @@ Resources:
 `
 
 func TestTranspileSAMHttpApiEvents(t *testing.T) {
-	tmpl, err := cloudformation.Parse([]byte(samHTTPAPITemplate))
+	tmpl, err := cfn.Parse([]byte(samHTTPAPITemplate))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sf, rep, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "sam"})
+	sf, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "sam"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -282,8 +282,8 @@ func TestTranspileSAMHttpApiEvents(t *testing.T) {
 		t.Fatalf("GET route: %+v", get)
 	}
 	// A WebSocket API is refused by name.
-	ws, _ := cloudformation.Parse([]byte("Resources:\n  Ws:\n    Type: AWS::ApiGatewayV2::Api\n    Properties:\n      Name: ws\n      ProtocolType: WEBSOCKET\n"))
-	if _, _, err := cloudformation.Transpile(ws, cloudformation.TranspileOptions{StackName: "ws"}); err == nil || !strings.Contains(err.Error(), "WebSocket") {
+	ws, _ := cfn.Parse([]byte("Resources:\n  Ws:\n    Type: AWS::ApiGatewayV2::Api\n    Properties:\n      Name: ws\n      ProtocolType: WEBSOCKET\n"))
+	if _, _, err := cfn.Transpile(ws, cfn.TranspileOptions{StackName: "ws"}); err == nil || !strings.Contains(err.Error(), "WebSocket") {
 		t.Fatalf("a WebSocket API should be refused by name, got %v", err)
 	}
 }

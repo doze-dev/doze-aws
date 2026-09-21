@@ -19,7 +19,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -78,11 +78,11 @@ func TestApplyStateMachineAliasTemplate(t *testing.T) {
 	ts := httptest.NewServer(stack.Handler())
 	defer ts.Close()
 
-	tmpl, err := cloudformation.Parse([]byte(sfnAliasTemplate))
+	tmpl, err := cfn.Parse([]byte(sfnAliasTemplate))
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
-	sf, rep, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "sfn"})
+	sf, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "sfn"})
 	if err != nil {
 		t.Fatalf("Transpile: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestApplyStateMachineAliasTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Export: %v", err)
 	}
-	out, err := cloudformation.Emit(exported)
+	out, err := cfn.Emit(exported)
 	if err != nil {
 		t.Fatalf("Emit: %v", err)
 	}
@@ -163,11 +163,11 @@ func TestApplyStateMachineAliasTemplate(t *testing.T) {
 			t.Errorf("exported template lacks %s:\n%s", want, out)
 		}
 	}
-	again, err := cloudformation.Parse(out)
+	again, err := cfn.Parse(out)
 	if err != nil {
 		t.Fatalf("exported template does not parse: %v", err)
 	}
-	round, _, err := cloudformation.Transpile(again, cloudformation.TranspileOptions{StackName: "sfn"})
+	round, _, err := cfn.Transpile(again, cfn.TranspileOptions{StackName: "sfn"})
 	if err != nil {
 		t.Fatalf("exported template does not transpile: %v", err)
 	}

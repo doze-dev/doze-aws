@@ -19,7 +19,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -67,11 +67,11 @@ func TestApplyLogsSubscriptionFilters(t *testing.T) {
 	ts := httptest.NewServer(stack.Handler())
 	defer ts.Close()
 
-	tmpl, err := cloudformation.Parse([]byte(logsSubscriptionTemplate))
+	tmpl, err := cfn.Parse([]byte(logsSubscriptionTemplate))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sf, rep, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "subs"})
+	sf, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "subs"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,12 +113,12 @@ func TestApplyLogsSubscriptionFilters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out, err := cloudformation.Emit(exported)
+	out, err := cfn.Emit(exported)
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, _ := cloudformation.Parse(out)
-	round, _, err := cloudformation.Transpile(again, cloudformation.TranspileOptions{StackName: "subs"})
+	again, _ := cfn.Parse(out)
+	round, _, err := cfn.Transpile(again, cfn.TranspileOptions{StackName: "subs"})
 	if err != nil {
 		t.Fatalf("exported template does not transpile: %v\n%s", err, out)
 	}

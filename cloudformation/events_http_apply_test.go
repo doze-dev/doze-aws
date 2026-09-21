@@ -22,7 +22,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -89,11 +89,11 @@ func TestApplyEventsHTTP(t *testing.T) {
 	}))
 	defer hook.Close()
 
-	tmpl, err := cloudformation.Parse([]byte(strings.ReplaceAll(eventsHTTPTemplate, "ENDPOINT", hook.URL)))
+	tmpl, err := cfn.Parse([]byte(strings.ReplaceAll(eventsHTTPTemplate, "ENDPOINT", hook.URL)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sf, rep, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "hooks"})
+	sf, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "hooks"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -145,15 +145,15 @@ func TestApplyEventsHTTP(t *testing.T) {
 	if c := exported.Connections["hook-conn"]; c.APIKey == nil || c.APIKey.Name != "X-Api-Key" || c.APIKey.Value != "" {
 		t.Errorf("export should carry the key name and blank the value: %+v", c)
 	}
-	out, err := cloudformation.Emit(exported)
+	out, err := cfn.Emit(exported)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(string(out), "k-42") {
 		t.Errorf("the exported template leaks the key value:\n%s", out)
 	}
-	again, _ := cloudformation.Parse(out)
-	round, _, err := cloudformation.Transpile(again, cloudformation.TranspileOptions{StackName: "hooks"})
+	again, _ := cfn.Parse(out)
+	round, _, err := cfn.Transpile(again, cfn.TranspileOptions{StackName: "hooks"})
 	if err != nil {
 		t.Fatalf("exported template does not transpile: %v\n%s", err, out)
 	}

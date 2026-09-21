@@ -25,7 +25,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -112,11 +112,11 @@ func TestApplyLambdaVersioningTemplate(t *testing.T) {
 	ts := httptest.NewServer(stack.Handler())
 	defer ts.Close()
 
-	tmpl, err := cloudformation.Parse([]byte(template))
+	tmpl, err := cfn.Parse([]byte(template))
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
-	sf, rep, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "lam", Endpoint: ts.URL})
+	sf, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "lam", Endpoint: ts.URL})
 	if err != nil {
 		t.Fatalf("Transpile: %v", err)
 	}
@@ -204,7 +204,7 @@ func TestApplyLambdaVersioningTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Export: %v", err)
 	}
-	emitted, err := cloudformation.Emit(exported)
+	emitted, err := cfn.Emit(exported)
 	if err != nil {
 		t.Fatalf("Emit: %v", err)
 	}
@@ -213,11 +213,11 @@ func TestApplyLambdaVersioningTemplate(t *testing.T) {
 			t.Errorf("exported template lacks %s:\n%s", want, emitted)
 		}
 	}
-	again, err := cloudformation.Parse(emitted)
+	again, err := cfn.Parse(emitted)
 	if err != nil {
 		t.Fatalf("exported template does not parse: %v", err)
 	}
-	round, _, err := cloudformation.Transpile(again, cloudformation.TranspileOptions{StackName: "lam"})
+	round, _, err := cfn.Transpile(again, cfn.TranspileOptions{StackName: "lam"})
 	if err != nil {
 		t.Fatalf("exported template does not transpile: %v", err)
 	}

@@ -13,7 +13,7 @@ import (
 	"time"
 
 	dozeaws "github.com/doze-dev/doze-aws"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/config"
 	"github.com/doze-dev/doze-aws/internal/provision"
 	names "github.com/doze-dev/doze-names"
@@ -144,14 +144,14 @@ func runApply(args []string) int {
 // loadTemplate parses a CloudFormation or SAM template into the resource graph
 // apply converges. doze-aws once had its own stack.yaml dialect; it was
 // removed, because a format only doze-aws speaks is one nobody wants to learn.
-func loadTemplate(data []byte, file string, vars map[string]string) (*provision.Stack, *cloudformation.Report, error) {
-	tmpl, err := cloudformation.Parse(data)
+func loadTemplate(data []byte, file string, vars map[string]string) (*provision.Stack, *cfn.Report, error) {
+	tmpl, err := cfn.Parse(data)
 	if err != nil {
 		return nil, nil, err
 	}
 	name := strings.TrimSuffix(filepath.Base(file), filepath.Ext(file))
 	// --var doubles as the template-parameter channel.
-	s, rep, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{
+	s, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{
 		StackName:  name,
 		Parameters: vars,
 	})
@@ -164,7 +164,7 @@ func loadTemplate(data []byte, file string, vars map[string]string) (*provision.
 // printTranspileReport shows what the template mapped to — and, critically,
 // what it did not. A silently skipped resource is the failure mode the whole
 // transpiler is designed to avoid, so ignored entries are always printed.
-func printTranspileReport(rep *cloudformation.Report) {
+func printTranspileReport(rep *cfn.Report) {
 	if rep == nil {
 		return
 	}
@@ -177,9 +177,9 @@ func printTranspileReport(rep *cloudformation.Report) {
 		kind, mapped, ignored, rejected)
 	for _, e := range rep.Entries {
 		switch e.Kind {
-		case cloudformation.Ignored:
+		case cfn.Ignored:
 			fmt.Fprintf(os.Stderr, "  ≈ %s (%s) — %s\n", e.LogicalID, e.Type, e.Reason)
-		case cloudformation.Rejected:
+		case cfn.Rejected:
 			fmt.Fprintf(os.Stderr, "  ✗ %s (%s) — %s\n", e.LogicalID, e.Type, e.Reason)
 		}
 	}
@@ -214,7 +214,7 @@ func runExport(args []string) int {
 	}
 	// The running stack comes back as a CloudFormation template, so what you
 	// export is something the rest of your tooling can read.
-	out, err := cloudformation.Emit(s)
+	out, err := cfn.Emit(s)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "export:", err)
 		return 1

@@ -21,7 +21,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -70,11 +70,11 @@ func TestApplyStateMachineTemplate(t *testing.T) {
 	ts := httptest.NewServer(stack.Handler())
 	defer ts.Close()
 
-	tmpl, err := cloudformation.Parse([]byte(sfnTemplate))
+	tmpl, err := cfn.Parse([]byte(sfnTemplate))
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
-	sf, rep, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "sfn"})
+	sf, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "sfn"})
 	if err != nil {
 		t.Fatalf("Transpile: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestApplyStateMachineTemplate(t *testing.T) {
 // TestTranspileSAMStateMachine: the SAM spelling normalises onto the plain
 // resource — Name, Role and an inline Definition object.
 func TestTranspileSAMStateMachine(t *testing.T) {
-	tmpl, err := cloudformation.Parse([]byte(`
+	tmpl, err := cfn.Parse([]byte(`
 Transform: AWS::Serverless-2016-10-31
 Resources:
   Approval:
@@ -167,7 +167,7 @@ Resources:
 	if err != nil {
 		t.Fatal(err)
 	}
-	sf, _, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "sam"})
+	sf, _, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "sam"})
 	if err != nil {
 		t.Fatalf("Transpile: %v", err)
 	}
@@ -207,11 +207,11 @@ Resources:
 `, "DefinitionString"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			tmpl, err := cloudformation.Parse([]byte(tc.tmpl))
+			tmpl, err := cfn.Parse([]byte(tc.tmpl))
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, _, err = cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "x"})
+			_, _, err = cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "x"})
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("err = %v, want it to mention %s", err, tc.want)
 			}

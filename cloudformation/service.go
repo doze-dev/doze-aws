@@ -1,7 +1,5 @@
-package cloudformation
-
-// The CloudFormation service: enough of the real API that `sam deploy` and
-// `cdk deploy` work unmodified.
+// Package cloudformation is doze-aws's local CloudFormation: enough of the
+// real API that `sam deploy` and `cdk deploy` work unmodified.
 //
 // What those tools actually do is narrower than CloudFormation's surface
 // suggests. They upload a template, create a change set (or call CreateStack
@@ -19,6 +17,13 @@ package cloudformation
 // tracks the physical resources it created, so DeleteStack can reclaim them —
 // which is what makes a local stack feel like a stack rather than an
 // accumulating pile.
+//
+// The transpiler this service calls on CreateStack lives in internal/cfn.
+// That split is deliberate: what this package promises is a stack service —
+// New, Close, ServeHTTP — and not a template compiler. A caller who wants
+// to turn a template into a stack without running a service is doing
+// something doze-aws does through the CLI, not through this API.
+package cloudformation
 
 import (
 	"context"

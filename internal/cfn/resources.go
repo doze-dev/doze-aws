@@ -1,0 +1,687 @@
+package cfn
+
+// The resource type registry: how each AWS::* type maps onto the stackfile IR.
+//
+// Three outcomes are possible for a resource, and the distinction is the whole
+// point of this file:
+//
+//	mapped    doze-aws models it — it becomes stackfile IR and is provisioned.
+//	ignored   doze-aws has no analogue but the template is still valid without
+//	          it (IAM roles, log groups, permissions). Accepted and REPORTED.
+//	rejected  the type belongs to a service doze-aws does not serve. The
+//	          template fails rather than deploying half of itself.
+//
+// The "ignored" tier is a deliberate exception to the project's no-silent-no-op
+// rule. Real templates are full of AWS::IAM::Role; refusing them would fail
+// essentially every template. So they are accepted — and every one of them
+// appears in the report, so nobody discovers the gap in production instead.
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	"github.com/doze-dev/doze-aws/awsident"
+)
+
+// ignoredTypes are accepted and skipped, with the reason shown in the report.
+var ignoredTypes = map[string]string{
+	"AWS::IAM::Role":                           "no IAM evaluation during apply; create the role via the iam service if you need it",
+	"AWS::IAM::Policy":                         "no IAM evaluation during apply",
+	"AWS::IAM::ManagedPolicy":                  "no IAM evaluation during apply",
+	"AWS::IAM::InstanceProfile":                "no EC2 locally",
+	"AWS::IAM::User":                           "no IAM evaluation during apply",
+	"AWS::IAM::Group":                          "no IAM evaluation during apply",
+	"AWS::IAM::ServiceLinkedRole":              "no IAM evaluation during apply",
+	"AWS::Logs::LogStream":                     "a stream is created by the first PutLogEvents; a template need not declare one",
+	"AWS::CDK::Metadata":                       "CDK bookkeeping, no resource behind it",
+	"AWS::ECR::Repository":                     "there is no container registry locally (CDK's bootstrap declares one)",
+	"AWS::CloudFormation::WaitCondition":       "nothing to wait for locally",
+	"AWS::CloudFormation::WaitConditionHandle": "nothing to wait for locally",
+	"AWS::SSM::Parameter::Value":               "a parameter reference, not a resource",
+}
+
+// Kind classifies what happened to one resource.
+type Kind int
+
+const (
+	// Mapped means the resource became stackfile IR.
+	Mapped Kind = iota
+	// Ignored means it was accepted with no local effect.
+	Ignored
+	// Rejected means doze-aws refused it.
+	Rejected
+)
+
+func (k Kind) String() string {
+	switch k {
+	case Mapped:
+		return "mapped"
+	case Ignored:
+		return "ignored"
+	default:
+		return "rejected"
+	}
+}
+
+// Entry is one line of the transpile report.
+type Entry struct {
+	LogicalID string
+	Type      string
+	Kind      Kind
+	// Name is the stack-file name a mapped resource took.
+	Name string
+	// Reason explains an ignored or rejected resource.
+	Reason string
+	// Props fingerprints the resource's declared properties, so a change set
+	// can tell an edited resource from an untouched one. Resource identity —
+	// added, removed, renamed — is not enough: changing a queue's
+	// VisibilityTimeout leaves every identity the same, and a change set that
+	// reported "no changes" for it would make a local `cdk diff` lie.
+	Props string
+}
+
+// fingerprint hashes a resource's declared properties. It is deliberately over
+// the template text rather than the resolved values: resolving needs the whole
+// scope, and a fingerprint that changes when the template changes is the safe
+// direction to be wrong in — it shows a change that resolves identically, where
+// the alternative hides one that does not.
+func fingerprint(props map[string]any) string {
+	if len(props) == 0 {
+		return ""
+	}
+	raw, err := json.Marshal(canonical(props))
+	if err != nil {
+		return ""
+	}
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:8])
+}
+
+// canonical rewrites a decoded template value into something json.Marshal
+// encodes deterministically. Go already sorts map keys; this exists so nested
+// maps of any concrete type are reduced to the same shape.
+func canonical(v any) any {
+	switch t := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(t))
+		for k, val := range t {
+			out[k] = canonical(val)
+		}
+		return out
+	case []any:
+		out := make([]any, len(t))
+		for i, val := range t {
+			out[i] = canonical(val)
+		}
+		return out
+	default:
+		return fmt.Sprint(v)
+	}
+}
+
+// nameProperty names the property that carries an explicit physical name for
+// each mapped type. When a template sets it, that name is used; otherwise the
+// logical ID is.
+var nameProperty = map[string]string{
+	"AWS::SQS::Queue":                         "QueueName",
+	"AWS::SNS::Topic":                         "TopicName",
+	"AWS::S3::Bucket":                         "BucketName",
+	"AWS::DynamoDB::Table":                    "TableName",
+	"AWS::DynamoDB::GlobalTable":              "TableName",
+	"AWS::Lambda::Function":                   "FunctionName",
+	"AWS::Serverless::Function":               "FunctionName",
+	"AWS::Events::Rule":                       "Name",
+	"AWS::Events::EventBus":                   "Name",
+	"AWS::Events::Connection":                 "Name",
+	"AWS::Events::ApiDestination":             "Name",
+	"AWS::KMS::Key":                           "", // keys are addressed by alias
+	"AWS::KMS::Alias":                         "AliasName",
+	"AWS::SecretsManager::Secret":             "Name",
+	"AWS::SSM::Parameter":                     "Name",
+	"AWS::Kinesis::Stream":                    "Name",
+	"AWS::Serverless::SimpleTable":            "TableName",
+	"AWS::StepFunctions::StateMachine":        "StateMachineName",
+	"AWS::StepFunctions::Activity":            "Name",
+	"AWS::StepFunctions::StateMachineVersion": "",
+	"AWS::StepFunctions::StateMachineAlias":   "Name",
+	"AWS::Logs::LogGroup":                     "LogGroupName",
+	"AWS::Logs::SubscriptionFilter":           "FilterName",
+	"AWS::Serverless::StateMachine":           "Name",
+	"AWS::SNS::Subscription":                  "",
+	"AWS::Lambda::EventSourceMapping":         "",
+	"AWS::Lambda::Permission":                 "",
+	"AWS::S3::BucketPolicy":                   "",
+	"AWS::SQS::QueuePolicy":                   "",
+	"AWS::SNS::TopicPolicy":                   "",
+	"AWS::Lambda::LayerVersion":               "LayerName",
+	"AWS::Lambda::Alias":                      "Name",
+	"AWS::Lambda::Version":                    "",
+	"AWS::Lambda::Url":                        "",
+	"AWS::Serverless::Api":                    "Name",
+	"AWS::Serverless::HttpApi":                "Name",
+	"AWS::ApiGateway::RestApi":                "Name",
+	"AWS::ApiGatewayV2::Api":                  "Name",
+	"AWS::ApiGatewayV2::Integration":          "",
+	"AWS::ApiGatewayV2::Route":                "",
+	"AWS::ApiGatewayV2::Stage":                "StageName",
+	"AWS::ApiGatewayV2::Deployment":           "",
+	"AWS::ApiGatewayV2::Authorizer":           "Name",
+	"AWS::ApiGateway::Deployment":             "",
+	"AWS::ApiGateway::Stage":                  "StageName",
+	"AWS::ApiGateway::Resource":               "",
+	"AWS::ApiGateway::Method":                 "",
+	"AWS::ApiGateway::Authorizer":             "Name",
+	"AWS::ApiGateway::ApiKey":                 "Name",
+	"AWS::ApiGateway::UsagePlan":              "UsagePlanName",
+	"AWS::ApiGateway::UsagePlanKey":           "",
+	"AWS::CloudFormation::Stack":              "",
+	"AWS::ApiGateway::Account":                "",
+	"AWS::CloudWatch::Alarm":                  "AlarmName",
+	"AWS::CloudWatch::Dashboard":              "DashboardName",
+	"AWS::Logs::MetricFilter":                 "FilterName",
+}
+
+// IsMappable reports whether doze-aws models a resource type.
+func IsMappable(typ string) bool {
+	_, ok := nameProperty[typ]
+	return ok
+}
+
+// refValue is what `!Ref` on a resource of this type yields, following AWS's
+// per-type rules — Ref on a queue is its URL, on a topic its ARN, on a bucket
+// its name.
+func refValue(m minting, typ, name string) string {
+	id := m.id
+	switch typ {
+	case "AWS::SQS::Queue":
+		return m.queueURL(name)
+	case "AWS::SNS::Topic":
+		return id.ARN("sns", name)
+	case "AWS::KMS::Key":
+		return name
+	case "AWS::Lambda::LayerVersion":
+		return id.ARN("lambda", "layer:"+name+":1")
+	case "AWS::SecretsManager::Secret":
+		return id.ARN("secretsmanager", "secret:"+name)
+	case "AWS::Kinesis::Stream":
+		return name
+	case "AWS::StepFunctions::StateMachine", "AWS::Serverless::StateMachine":
+		// Ref on a state machine is its ARN, not its name.
+		return id.ARN("states", "stateMachine:"+name)
+	case "AWS::StepFunctions::Activity":
+		return id.ARN("states", "activity:"+name)
+	case "AWS::StepFunctions::StateMachineVersion":
+		// The version number is only known once the machine is published, so
+		// the Ref is a placeholder the alias mapping resolves by logical id.
+		return id.ARN("states", "stateMachineVersion:"+name)
+	case "AWS::StepFunctions::StateMachineAlias":
+		// Completed by aliasRefs once the machine is known: the alias ARN is
+		// the machine's with the alias name appended.
+		return id.ARN("states", "stateMachineAlias:"+name)
+	}
+	// Buckets, tables, functions, rules and parameters all Ref to their name.
+	return name
+}
+
+// aliasRefs completes the Ref and Arn of every StateMachineAlias, which pass
+// one cannot know: an alias ARN is its machine's ARN plus the alias name, and
+// the machine is two hops away — alias → version → StateMachineArn — through
+// unevaluated intrinsics.
+func aliasRefs(scope *Scope, resources map[string]*Resource, names map[string]string) {
+	for id, r := range resources {
+		if r.Type != "AWS::StepFunctions::StateMachineAlias" {
+			continue
+		}
+		machine := machineOfAlias(r.Properties, resources, names)
+		if machine == "" {
+			continue // the mapper reports the unresolvable reference
+		}
+		arn := scope.Identity.ARN("states", "stateMachine:"+machine+":"+names[id])
+		scope.Refs[id] = arn
+		scope.Atts[id] = map[string]string{"Arn": arn}
+	}
+}
+
+// PublishedVersion is the placeholder a Lambda version's number carries
+// through a template: the number is only known once the function is
+// published, and an alias or output that names it means "the version this
+// deploy publishes".
+const PublishedVersion = "$published"
+
+// lambdaRefs completes the Ref and attributes of every Lambda Version, Alias
+// and Url, which pass one cannot know: each is named after its function,
+// which arrives through an unevaluated Ref or GetAtt.
+func lambdaRefs(scope *Scope, resources map[string]*Resource, names map[string]string, endpoint string) {
+	for id, r := range resources {
+		var fn string
+		switch r.Type {
+		case "AWS::Lambda::Version", "AWS::Lambda::Alias":
+			fn = functionOf(r.Properties["FunctionName"], names)
+		case "AWS::Lambda::Url":
+			fn = functionOf(r.Properties["TargetFunctionArn"], names)
+		default:
+			continue
+		}
+		if fn == "" {
+			continue // the mapper reports the unresolvable reference
+		}
+		arn := scope.Identity.ARN("lambda", "function:"+fn)
+		switch r.Type {
+		case "AWS::Lambda::Version":
+			scope.Refs[id] = arn + ":" + PublishedVersion
+			scope.Atts[id] = map[string]string{"Version": PublishedVersion, "FunctionArn": arn}
+		case "AWS::Lambda::Alias":
+			scope.Refs[id] = arn + ":" + names[id]
+			scope.Atts[id] = map[string]string{"AliasArn": arn + ":" + names[id]}
+		case "AWS::Lambda::Url":
+			scope.Refs[id] = arn
+			scope.Atts[id] = map[string]string{
+				"FunctionArn": arn,
+				"FunctionUrl": scope.Identity.FunctionURL(awsident.FunctionURLID(fn), endpoint),
+			}
+		}
+	}
+}
+
+// functionOf resolves a FunctionName-style property — a name, an ARN, or a
+// Ref/GetAtt to the function resource — to the function's name.
+func functionOf(v any, names map[string]string) string {
+	if s, ok := v.(string); ok {
+		return nameFromARN(s)
+	}
+	return names[logicalOfIntrinsic(v)]
+}
+
+func machineOfAlias(props map[string]any, resources map[string]*Resource, names map[string]string) string {
+	var versionRef any
+	if rc, ok := props["RoutingConfiguration"].([]any); ok && len(rc) > 0 {
+		if first, ok := rc[0].(map[string]any); ok {
+			versionRef = first["StateMachineVersionArn"]
+		}
+	}
+	if dp, ok := props["DeploymentPreference"].(map[string]any); ok && versionRef == nil {
+		versionRef = dp["StateMachineVersionArn"]
+	}
+	versionID := logicalOfIntrinsic(versionRef)
+	version, ok := resources[versionID]
+	if !ok || version.Type != "AWS::StepFunctions::StateMachineVersion" {
+		return ""
+	}
+	machineRef := version.Properties["StateMachineArn"]
+	if s, ok := machineRef.(string); ok {
+		return nameFromARN(s)
+	}
+	return names[logicalOfIntrinsic(machineRef)]
+}
+
+// logicalOfIntrinsic reads the logical id out of a raw {Ref} or {Fn::GetAtt}.
+func logicalOfIntrinsic(v any) string {
+	m, ok := v.(map[string]any)
+	if !ok {
+		return ""
+	}
+	if ref, ok := m["Ref"].(string); ok {
+		return ref
+	}
+	switch att := m["Fn::GetAtt"].(type) {
+	case []any:
+		if len(att) > 0 {
+			s, _ := att[0].(string)
+			return s
+		}
+	case string:
+		return strings.SplitN(att, ".", 2)[0]
+	}
+	return ""
+}
+
+// minting is the instance context a GetAtt value needs when it is a hostname
+// or a URL rather than an ARN.
+//
+// These attributes used to be literals: <bucket>.s3.localhost,
+// http://127.0.0.1:4566/_aws/execute-api/<id>, http://127.0.0.1/<acct>/<queue>,
+// <acct>.dkr.ecr.<region>.localhost. Every one of them is something a user
+// reads out of a template and then tries to use, and not one of them pointed
+// anywhere doze-aws answers.
+type minting struct {
+	id awsident.Identity
+	// suffix stands in for amazonaws.com. Empty means this instance mints no
+	// AWS-shaped hostnames, and URL attributes fall back to endpoint or a path.
+	suffix string
+	// endpoint is where this instance answers, when it is known.
+	endpoint string
+}
+
+// domain is what stands in for amazonaws.com in a hostname-shaped attribute.
+//
+// These attributes must ALWAYS resolve. Fn::GetAtt on an absent one is an
+// error naming what is available, and for the ignored tier in particular the
+// entire point is that a reference resolves rather than exploding — a template
+// full of ${Repo.RepositoryUri} has to transpile.
+//
+// So there is no empty case. With a suffix the answer is this instance's own
+// hostname space, which is the good case and now the default. Without one —
+// --listen, where doze-aws has no hostname of its own — the answer is AWS's
+// real domain, because that is what the attribute MEANS and what a template
+// passing it onward expects to see. It is not an address doze-aws claims to
+// serve, which is the distinction that matters: the alternative, a
+// .localhost form, looked local and worked nowhere.
+func (m minting) domain() string {
+	if m.suffix != "" {
+		return m.suffix
+	}
+	return "amazonaws.com"
+}
+
+// host builds an AWS-shaped hostname for a service.
+func (m minting) host(signing string) string {
+	return signing + "." + m.id.RegionName() + "." + m.domain()
+}
+
+// apiEndpoint is the GetAtt ApiEndpoint of an HTTP API: AWS's own
+// <id>.execute-api.<region>.<suffix> when this instance has a suffix, else the
+// path form under whatever endpoint it knows about.
+func (m minting) apiEndpoint(apiID string) string {
+	// Unlike the hostname attributes, this one has a working local form: the
+	// gateway serves /_aws/execute-api/<id>. So with no suffix it uses that
+	// under whatever endpoint is known, rather than an amazonaws.com host that
+	// would not answer.
+	if m.suffix != "" {
+		return "http://" + apiID + ".execute-api." + m.id.RegionName() + "." + m.suffix
+	}
+	return strings.TrimRight(m.endpoint, "/") + "/_aws/execute-api/" + apiID
+}
+
+// attributes are the Fn::GetAtt values doze-aws can answer for a resource.
+// Anything absent here produces an explicit error naming what IS available,
+// rather than an empty string that silently corrupts a property.
+func attributes(m minting, typ, name string) map[string]string {
+	id := m.id
+	switch typ {
+	case "AWS::SQS::Queue":
+		return map[string]string{
+			"Arn":       id.ARN("sqs", name),
+			"QueueName": name,
+			"QueueUrl":  m.queueURL(name),
+		}
+	case "AWS::SNS::Topic":
+		return map[string]string{
+			"TopicArn":  id.ARN("sns", name),
+			"TopicName": name,
+			"Arn":       id.ARN("sns", name),
+		}
+	case "AWS::S3::Bucket":
+		// AWS answers <bucket>.s3.amazonaws.com here; doze-aws answers the same
+		// shape with its own suffix in place of amazonaws.com, which is exactly
+		// what the suffix is for. These used to be .s3.localhost literals.
+		return map[string]string{
+			"Arn":                s3ARN(name),
+			"DomainName":         name + ".s3." + m.domain(),
+			"RegionalDomainName": name + "." + m.host("s3"),
+			"WebsiteURL":         "http://" + name + ".s3-website." + m.id.RegionName() + "." + m.domain(),
+		}
+	case "AWS::DynamoDB::Table", "AWS::DynamoDB::GlobalTable", "AWS::Serverless::SimpleTable":
+		return map[string]string{
+			"Arn":       id.ARN("dynamodb", "table/"+name),
+			"StreamArn": id.ARN("dynamodb", "table/"+name+"/stream/local"),
+		}
+	case "AWS::Lambda::Function", "AWS::Serverless::Function":
+		return map[string]string{
+			"Arn": id.ARN("lambda", "function:"+name),
+		}
+	case "AWS::Events::Rule":
+		return map[string]string{"Arn": id.ARN("events", "rule/"+name)}
+	case "AWS::ApiGateway::RestApi", "AWS::Serverless::Api":
+		return map[string]string{
+			"RootResourceId": "root",
+			"Arn":            id.ARN("apigateway", "/restapis/"+name),
+			"ApiId":          name,
+		}
+	case "AWS::ApiGatewayV2::Api", "AWS::Serverless::HttpApi":
+		// Ref and ApiId are the name; provision resolves it to the id the
+		// service mints. The endpoint is where the $default stage answers.
+		return map[string]string{
+			"ApiId":       name,
+			"ApiEndpoint": m.apiEndpoint(name),
+			"Arn":         id.ARN("apigateway", "/apis/"+name),
+		}
+	case "AWS::ApiGatewayV2::Integration":
+		return map[string]string{"IntegrationId": name}
+	case "AWS::ApiGatewayV2::Route":
+		return map[string]string{"RouteId": name}
+	case "AWS::ApiGatewayV2::Authorizer":
+		return map[string]string{"AuthorizerId": name}
+	case "AWS::ApiGateway::Authorizer":
+		// Ref and AuthorizerId are the name; provision resolves it to the id
+		// the service mints at apply.
+		return map[string]string{"AuthorizerId": name}
+	case "AWS::ApiGateway::ApiKey":
+		return map[string]string{"APIKeyId": name}
+	case "AWS::ApiGateway::UsagePlan":
+		return map[string]string{"Id": name}
+	case "AWS::Events::EventBus":
+		return map[string]string{
+			"Arn":  id.ARN("events", "event-bus/"+name),
+			"Name": name,
+		}
+	case "AWS::Events::Connection":
+		// Name-form ARNs: the service mints the id segment at apply time and
+		// resolves a connection or destination by name when it is absent.
+		return map[string]string{
+			"Arn":       id.ARN("events", "connection/"+name),
+			"SecretArn": id.ARN("secretsmanager", "secret:events!connection/"+name),
+		}
+	case "AWS::Events::ApiDestination":
+		return map[string]string{"Arn": id.ARN("events", "api-destination/"+name)}
+	case "AWS::KMS::Key":
+		return map[string]string{
+			"Arn":   id.ARN("kms", "key/"+name),
+			"KeyId": name,
+		}
+	case "AWS::SecretsManager::Secret":
+		return map[string]string{"Id": id.ARN("secretsmanager", "secret:"+name)}
+	case "AWS::SSM::Parameter":
+		return map[string]string{"Type": "String", "Value": name}
+	case "AWS::Kinesis::Stream":
+		return map[string]string{
+			"Arn":  id.ARN("kinesis", "stream/"+name),
+			"Name": name,
+		}
+	case "AWS::Lambda::LayerVersion":
+		return map[string]string{"LayerVersionArn": id.ARN("lambda", "layer:"+name+":1")}
+	case "AWS::StepFunctions::StateMachine", "AWS::Serverless::StateMachine":
+		return map[string]string{
+			"Arn":  id.ARN("states", "stateMachine:"+name),
+			"Name": name,
+		}
+	case "AWS::StepFunctions::Activity":
+		return map[string]string{
+			"Arn":  id.ARN("states", "activity:"+name),
+			"Name": name,
+		}
+	case "AWS::StepFunctions::StateMachineVersion":
+		return map[string]string{"Arn": id.ARN("states", "stateMachineVersion:"+name)}
+	case "AWS::StepFunctions::StateMachineAlias":
+		return map[string]string{"Arn": id.ARN("states", "stateMachineAlias:"+name)}
+	case "AWS::Logs::LogGroup":
+		// Ref is the name; Arn ends in :* as CloudWatch Logs reports it.
+		return map[string]string{"Arn": id.ARN("logs", "log-group:"+name+":*")}
+	case "AWS::CloudWatch::Alarm":
+		return map[string]string{"Arn": id.ARN("cloudwatch", "alarm:"+name)}
+	}
+	return map[string]string{}
+}
+
+// s3ARN builds a bucket ARN, which has no region or account segment.
+func s3ARN(bucket string) string { return "arn:aws:s3:::" + bucket }
+
+// queueURL matches the URL shape the SQS service hands out.
+//
+// It used to be the literal http://127.0.0.1/<account>/<queue> — port 80,
+// where doze-aws has never answered. A template's Ref to a queue therefore
+// produced a URL nothing could use, and it looked fine.
+func (m minting) queueURL(name string) string {
+	// m.host is NOT used unguarded here: with no suffix it falls back to
+	// amazonaws.com, which is right for a decorative hostname attribute and
+	// very wrong for a queue URL something will actually call — it would send
+	// a local send to real SQS. A queue URL has a working local form, so it
+	// takes that instead.
+	if m.suffix != "" {
+		return "http://" + m.host("sqs") + "/" + m.id.Account() + "/" + name
+	}
+	if m.endpoint != "" {
+		return strings.TrimRight(m.endpoint, "/") + "/" + m.id.Account() + "/" + name
+	}
+	return "/" + m.id.Account() + "/" + name
+}
+
+// classify decides what will happen to a resource type before any mapping is
+// attempted, so the report can be produced even when a template is rejected.
+func classify(typ string) (Kind, string) {
+	if IsMappable(typ) {
+		return Mapped, ""
+	}
+	if reason, ok := ignoredTypes[typ]; ok {
+		return Ignored, reason
+	}
+	// Serverless types get a reason naming the missing service specifically.
+	if reason, ok := samReason(typ); ok {
+		return Rejected, reason
+	}
+	// A whole-service refusal is more useful than "unknown type".
+	if service, ok := serviceOf(typ); ok {
+		return Rejected, "doze-aws does not serve " + service
+	}
+	return Rejected, "unsupported resource type"
+}
+
+// serviceOf extracts the service name from an AWS::Service::Type identifier.
+func serviceOf(typ string) (string, bool) {
+	parts := strings.Split(typ, "::")
+	if len(parts) < 2 {
+		return "", false
+	}
+	return parts[1], true
+}
+
+// ---- identities for ignored resources ----
+//
+// An ignored resource has no local behaviour, but it still has an IDENTITY,
+// and templates lean on that constantly: `Role: !GetAtt ExecutionRole.Arn` is
+// in almost every function, and CDK's bootstrap outputs `!Ref
+// ContainerAssetsRepository`. Dropping an ignored resource from the reference
+// scope would make those templates fail on a resource nobody needed.
+//
+// So ignored resources get a synthesized name and a plausible ARN. Nothing
+// consumes them — they exist so a reference resolves rather than exploding.
+
+// ghostName is the physical name an ignored resource takes: an explicit name
+// property when the template gives one, else the logical ID.
+func ghostName(r *Resource, props map[string]any) string {
+	// AlarmName is deliberately absent: AWS::CloudWatch::Alarm is mapped now,
+	// so a ghost name for one would be a name nothing ever created.
+	for _, field := range []string{"RoleName", "GroupName", "UserName", "PolicyName",
+		"LogGroupName", "RepositoryName", "ManagedPolicyName", "InstanceProfileName"} {
+		if v, ok := props[field]; ok {
+			if s := fmt.Sprint(v); s != "" && s != "<nil>" && !strings.Contains(s, "map[") {
+				return s
+			}
+		}
+	}
+	return r.LogicalID
+}
+
+// ghostIdentity returns the Ref value and attributes for an ignored resource.
+func ghostIdentity(m minting, typ, name string) (string, map[string]string) {
+	id := m.id
+	service, kind := serviceAndKind(typ)
+	arn := ghostARN(id, service, kind, name)
+	atts := map[string]string{"Arn": arn, "Name": name}
+
+	switch typ {
+	case "AWS::IAM::Role":
+		atts["RoleId"] = "AROA" + strings.ToUpper(name)
+		atts["RoleName"] = name
+	case "AWS::IAM::User":
+		atts["UserName"] = name
+	case "AWS::IAM::Group":
+		atts["GroupName"] = name
+	case "AWS::IAM::InstanceProfile":
+		// Ref on an instance profile is its name, but GetAtt Arn is common.
+	case "AWS::ECR::Repository":
+		atts["RepositoryName"] = name
+		atts["RepositoryUri"] = id.Account() + ".dkr.ecr." + id.RegionName() + "." + m.domain() + "/" + name
+	}
+
+	// Ref semantics differ by type: an IAM role Refs to its name, a managed
+	// policy to its ARN.
+	ref := name
+	if typ == "AWS::IAM::ManagedPolicy" || typ == "AWS::IAM::Policy" {
+		ref = arn
+	}
+	return ref, atts
+}
+
+// serviceAndKind splits AWS::Service::Kind.
+func serviceAndKind(typ string) (string, string) {
+	parts := strings.Split(typ, "::")
+	if len(parts) < 3 {
+		return "", ""
+	}
+	return strings.ToLower(parts[1]), strings.ToLower(parts[2])
+}
+
+// ghostARN builds a plausible ARN for a resource doze-aws does not model. IAM
+// is global, so it has no region segment.
+func ghostARN(id awsident.Identity, service, kind, name string) string {
+	if service == "iam" {
+		return id.GlobalARN("iam", kind+"/"+name)
+	}
+	if service == "" {
+		return name
+	}
+	return id.ARN(service, kind+"/"+name)
+}
+
+// derivedName sanitises a name taken from a logical ID so it satisfies the
+// naming rules of the service it belongs to.
+//
+// This only applies to DERIVED names. An explicit name in the template is
+// passed through untouched, so a template that would be rejected by real
+// CloudFormation is rejected here too rather than being quietly rewritten.
+//
+// S3 is the strict case: bucket names must be lowercase, and a logical ID like
+// `ServerlessDeploymentBucket` is not one.
+func derivedName(typ, logicalID string) string {
+	switch typ {
+	case "AWS::S3::Bucket":
+		return s3SafeName(logicalID)
+	}
+	return logicalID
+}
+
+// s3SafeName lowercases and filters a name into the S3 bucket charset.
+func s3SafeName(name string) string {
+	var b strings.Builder
+	for _, r := range name {
+		switch {
+		case r >= 'A' && r <= 'Z':
+			b.WriteRune(r + 32)
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r == '-', r == '.':
+			b.WriteRune(r)
+		default:
+			b.WriteByte('-')
+		}
+	}
+	out := strings.Trim(b.String(), "-.")
+	for len(out) < 3 {
+		out += "0"
+	}
+	if len(out) > 63 {
+		out = strings.Trim(out[:63], "-.")
+	}
+	return out
+}

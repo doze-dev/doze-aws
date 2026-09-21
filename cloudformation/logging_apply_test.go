@@ -23,7 +23,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -99,11 +99,11 @@ func TestApplyLoggingSettings(t *testing.T) {
 	ts := httptest.NewServer(stack.Handler())
 	defer ts.Close()
 
-	tmpl, err := cloudformation.Parse([]byte(strings.ReplaceAll(loggingTemplate, "CODE_DIR", codeDir)))
+	tmpl, err := cfn.Parse([]byte(strings.ReplaceAll(loggingTemplate, "CODE_DIR", codeDir)))
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
-	sf, _, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "logged"})
+	sf, _, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "logged"})
 	if err != nil {
 		t.Fatalf("Transpile: %v", err)
 	}

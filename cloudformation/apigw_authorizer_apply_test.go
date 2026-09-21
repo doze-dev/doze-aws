@@ -20,7 +20,7 @@ import (
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/apigateway"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -155,11 +155,11 @@ func TestApplyCDKRestAPIWithAuthorizer(t *testing.T) {
 	ts := httptest.NewServer(stack.Handler())
 	defer ts.Close()
 
-	tmpl, err := cloudformation.Parse([]byte(strings.NewReplacer("BACKEND_DIR", backendDir, "GATE_DIR", gateDir).Replace(cdkRestAPITemplate)))
+	tmpl, err := cfn.Parse([]byte(strings.NewReplacer("BACKEND_DIR", backendDir, "GATE_DIR", gateDir).Replace(cdkRestAPITemplate)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sf, rep, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "orders"})
+	sf, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "orders"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -227,8 +227,8 @@ func TestApplyCDKRestAPIWithAuthorizer(t *testing.T) {
 	}
 
 	// A Cognito authorizer is refused at transpile, by name.
-	cog, _ := cloudformation.Parse([]byte(cognitoAuthorizerTemplate))
-	if _, _, err := cloudformation.Transpile(cog, cloudformation.TranspileOptions{StackName: "pooled"}); err == nil || !strings.Contains(err.Error(), "Cognito") {
+	cog, _ := cfn.Parse([]byte(cognitoAuthorizerTemplate))
+	if _, _, err := cfn.Transpile(cog, cfn.TranspileOptions{StackName: "pooled"}); err == nil || !strings.Contains(err.Error(), "Cognito") {
 		t.Errorf("a Cognito authorizer should be refused by name, got %v", err)
 	}
 }

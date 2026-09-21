@@ -25,7 +25,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -109,11 +109,11 @@ func TestEmitRoundTripsEveryResourceKind(t *testing.T) {
 	ts := httptest.NewServer(stack.Handler())
 	defer ts.Close()
 
-	tmpl, err := cloudformation.Parse([]byte(roundTripTemplate))
+	tmpl, err := cfn.Parse([]byte(roundTripTemplate))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sf, rep, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "shop"})
+	sf, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "shop"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestEmitRoundTripsEveryResourceKind(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Export: %v", err)
 	}
-	out, err := cloudformation.Emit(exported)
+	out, err := cfn.Emit(exported)
 	if err != nil {
 		t.Fatalf("Emit: %v", err)
 	}
@@ -149,11 +149,11 @@ func TestEmitRoundTripsEveryResourceKind(t *testing.T) {
 		}
 	}
 
-	again, err := cloudformation.Parse(out)
+	again, err := cfn.Parse(out)
 	if err != nil {
 		t.Fatalf("the exported template does not parse: %v\n%s", err, out)
 	}
-	round, _, err := cloudformation.Transpile(again, cloudformation.TranspileOptions{StackName: "shop"})
+	round, _, err := cfn.Transpile(again, cfn.TranspileOptions{StackName: "shop"})
 	if err != nil {
 		t.Fatalf("the exported template does not transpile: %v\n%s", err, out)
 	}

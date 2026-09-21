@@ -113,7 +113,7 @@ line it wrote would invoke it again.
   `/aws/lambda/<fn>` bracketed by START, END and REPORT; a stack started
   without the logs service still runs the function and echoes its output to
   the terminal.
-- **CloudFormation** (`cloudformation/regression_test.go`): `AWS::Logs::LogGroup`
+- **CloudFormation** (`internal/cfn/regression_test.go`): `AWS::Logs::LogGroup`
   maps to a real group with its retention, where it used to be ignored.
 
 ## Input validation

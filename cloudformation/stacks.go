@@ -6,12 +6,15 @@ package cloudformation
 import (
 	"encoding/xml"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -206,7 +209,7 @@ func viewStack(st *stackRecord) stackView {
 	if st.Updated != 0 && st.Updated != st.Created {
 		v.LastUpdatedTime = awshttp.ISO8601(unix(st.Updated))
 	}
-	for _, k := range sortedKeys(st.Parameters) {
+	for _, k := range slices.Sorted(maps.Keys(st.Parameters)) {
 		v.Parameters = append(v.Parameters, parameterView{k, st.Parameters[k]})
 	}
 	for _, o := range st.Outputs {
@@ -215,7 +218,7 @@ func viewStack(st *stackRecord) stackView {
 			Description: o.Description, ExportName: o.ExportName,
 		})
 	}
-	for _, k := range sortedKeys(st.Tags) {
+	for _, k := range slices.Sorted(maps.Keys(st.Tags)) {
 		v.Tags = append(v.Tags, tagView{k, st.Tags[k]})
 	}
 	return v
@@ -311,12 +314,12 @@ func hUpdateStack(s *Server, p params) (any, *awshttp.APIError) {
 // succeeds, which is both faster and more honest than reporting IN_PROGRESS
 // for something that already finished.
 func (s *Server) deploy(name, body string, params, tags map[string]string, isUpdate bool) (*stackRecord, *awshttp.APIError) {
-	tmpl, err := Parse([]byte(body))
+	tmpl, err := cfn.Parse([]byte(body))
 	if err != nil {
 		return nil, errValidation("%v", err)
 	}
 	exports, _ := s.store.Exports()
-	sf, rep, err := Transpile(tmpl, TranspileOptions{
+	sf, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{
 		Identity:      s.id,
 		StackName:     name,
 		Parameters:    params,
@@ -346,7 +349,7 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 		st.TerminationProtection, st.Policy = prev.TerminationProtection, prev.Policy
 		st.ParentID, st.RootID = prev.ParentID, prev.RootID
 	} else {
-		st.ID = StackARN(s.id, name, s.store.newID())
+		st.ID = cfn.StackARN(s.id, name, s.store.newID())
 	}
 
 	ctx, cancel := s.ctx()
@@ -355,7 +358,7 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 
 	// Resources the stack now owns, from the transpile report.
 	for _, e := range rep.Entries {
-		if e.Kind != Mapped {
+		if e.Kind != cfn.Mapped {
 			continue
 		}
 		st.Resources = append(st.Resources, stackResource{
@@ -407,7 +410,7 @@ func (s *Server) recordFailure(name, body string, params, tags map[string]string
 	now := s.now().Unix()
 	st, _ := s.store.GetStack(name)
 	if st == nil {
-		st = &stackRecord{Name: name, ID: StackARN(s.id, name, s.store.newID()), Created: now}
+		st = &stackRecord{Name: name, ID: cfn.StackARN(s.id, name, s.store.newID()), Created: now}
 	}
 	st.TemplateBody, st.Parameters, st.Tags, st.Updated = body, params, tags, now
 	st.Status = pick(isUpdate, StatusUpdateFailed, StatusCreateFailed)
@@ -500,12 +503,12 @@ func hDeleteStack(s *Server, p params) (any, *awshttp.APIError) {
 // stackIR re-derives the resource graph a stack created, so Destroy can undo
 // exactly what Apply did.
 func (s *Server) stackIR(st *stackRecord) (*provision.Stack, error) {
-	tmpl, err := Parse([]byte(st.TemplateBody))
+	tmpl, err := cfn.Parse([]byte(st.TemplateBody))
 	if err != nil {
 		return nil, err
 	}
 	exports, _ := s.store.Exports()
-	sf, _, err := Transpile(tmpl, TranspileOptions{
+	sf, _, err := cfn.Transpile(tmpl, cfn.TranspileOptions{
 		Identity:  s.id,
 		StackName: st.Name, Parameters: st.Parameters, Exports: exports,
 		AllowUnsupported: true, Endpoint: s.endpoint, Suffix: s.suffix, FetchTemplate: s.fetcher(st.NestedTemplates),
@@ -708,7 +711,7 @@ func hGetTemplateSummary(s *Server, p params) (any, *awshttp.APIError) {
 		}
 		body = st.TemplateBody
 	}
-	tmpl, err := Parse([]byte(body))
+	tmpl, err := cfn.Parse([]byte(body))
 	if err != nil {
 		return nil, errValidation("%v", err)
 	}
@@ -720,7 +723,7 @@ func hGetTemplateSummary(s *Server, p params) (any, *awshttp.APIError) {
 		Description   string `xml:"Description,omitempty"`
 	}
 	var decls []paramDecl
-	for _, name := range sortedAnyKeys(toAnyMap(tmpl.Parameters)) {
+	for _, name := range slices.Sorted(maps.Keys(toAnyMap(tmpl.Parameters))) {
 		decl := tmpl.Parameters[name]
 		d := paramDecl{
 			ParameterKey: name, ParameterType: decl.Type,
@@ -754,7 +757,7 @@ func hValidateTemplate(s *Server, p params) (any, *awshttp.APIError) {
 	if aerr != nil {
 		return nil, aerr
 	}
-	tmpl, err := Parse([]byte(body))
+	tmpl, err := cfn.Parse([]byte(body))
 	if err != nil {
 		return nil, errValidation("%v", err)
 	}
@@ -765,7 +768,7 @@ func hValidateTemplate(s *Server, p params) (any, *awshttp.APIError) {
 		Description  string `xml:"Description,omitempty"`
 	}
 	var decls []paramDecl
-	for _, name := range sortedAnyKeys(toAnyMap(tmpl.Parameters)) {
+	for _, name := range slices.Sorted(maps.Keys(toAnyMap(tmpl.Parameters))) {
 		decl := tmpl.Parameters[name]
 		d := paramDecl{ParameterKey: name, NoEcho: decl.NoEcho, Description: decl.Description}
 		if decl.Default != nil {
@@ -899,7 +902,7 @@ func toAnyMap[T any](m map[string]T) map[string]any {
 // deploy creates nothing. AWS surfaces this asynchronously as a stack event and
 // a rollback; this service is synchronous by design (see service.go), so it is
 // the same refusal at the only moment this service has.
-func (s *Server) refuseExportConflict(tmpl *Template, name string, params, exports map[string]string) *awshttp.APIError {
+func (s *Server) refuseExportConflict(tmpl *cfn.Template, name string, params, exports map[string]string) *awshttp.APIError {
 	// Sorted: a template with two conflicting exports must name the same one
 	// every run, or the error message depends on map iteration order.
 	outputs := make([]string, 0, len(tmpl.Outputs))
@@ -921,12 +924,12 @@ func (s *Server) refuseExportConflict(tmpl *Template, name string, params, expor
 	return nil
 }
 
-func exportNameOf(ident awsident.Identity, t *Template, output string, params map[string]string, exports map[string]string, stackName string) (string, error) {
+func exportNameOf(ident awsident.Identity, t *cfn.Template, output string, params map[string]string, exports map[string]string, stackName string) (string, error) {
 	decl := t.Outputs[output]
 	if decl.ExportName == nil {
 		return "", nil
 	}
-	scope := &scope{StackName: stackName, Exports: exports, Parameters: map[string]any{}, Identity: ident}
+	scope := &cfn.Scope{StackName: stackName, Exports: exports, Parameters: map[string]any{}, Identity: ident}
 	for k, v := range params {
 		scope.Parameters[k] = v
 	}

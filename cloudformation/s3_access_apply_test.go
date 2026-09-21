@@ -18,7 +18,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -65,11 +65,11 @@ func TestApplyBucketAccessSettings(t *testing.T) {
 
 	transpile := func(block string) *provision.Stack {
 		t.Helper()
-		tmpl, err := cloudformation.Parse([]byte(strings.ReplaceAll(bucketAccessTemplate, "BLOCK_POLICY", block)))
+		tmpl, err := cfn.Parse([]byte(strings.ReplaceAll(bucketAccessTemplate, "BLOCK_POLICY", block)))
 		if err != nil {
 			t.Fatal(err)
 		}
-		sf, _, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "site"})
+		sf, _, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "site"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -108,12 +108,12 @@ func TestApplyBucketAccessSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out, err := cloudformation.Emit(exported)
+	out, err := cfn.Emit(exported)
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, _ := cloudformation.Parse(out)
-	round, _, err := cloudformation.Transpile(again, cloudformation.TranspileOptions{StackName: "site"})
+	again, _ := cfn.Parse(out)
+	round, _, err := cfn.Transpile(again, cfn.TranspileOptions{StackName: "site"})
 	if err != nil {
 		t.Fatalf("exported template does not transpile: %v\n%s", err, out)
 	}

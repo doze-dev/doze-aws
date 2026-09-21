@@ -20,7 +20,7 @@ import (
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/apigateway"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -113,11 +113,11 @@ func TestApplyAPIKeysAndUsagePlans(t *testing.T) {
 	ts := httptest.NewServer(stack.Handler())
 	defer ts.Close()
 
-	tmpl, err := cloudformation.Parse([]byte(strings.ReplaceAll(samKeyedTemplate, "CODE_DIR", codeDir)))
+	tmpl, err := cfn.Parse([]byte(strings.ReplaceAll(samKeyedTemplate, "CODE_DIR", codeDir)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sf, _, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "keyed"})
+	sf, _, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "keyed"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,8 +179,8 @@ func TestApplyAPIKeysAndUsagePlans(t *testing.T) {
 	}
 
 	// The plain CloudFormation spelling.
-	plain, _ := cloudformation.Parse([]byte(cfnKeyedTemplate))
-	psf, _, err := cloudformation.Transpile(plain, cloudformation.TranspileOptions{StackName: "plain"})
+	plain, _ := cfn.Parse([]byte(cfnKeyedTemplate))
+	psf, _, err := cfn.Transpile(plain, cfn.TranspileOptions{StackName: "plain"})
 	if err != nil {
 		t.Fatal(err)
 	}

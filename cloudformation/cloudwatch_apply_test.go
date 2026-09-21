@@ -24,7 +24,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
-	"github.com/doze-dev/doze-aws/cloudformation"
+	"github.com/doze-dev/doze-aws/internal/cfn"
 	"github.com/doze-dev/doze-aws/internal/provision"
 )
 
@@ -88,11 +88,11 @@ func TestApplyCloudWatchAlarmsAndFilters(t *testing.T) {
 	ts := httptest.NewServer(stack.Handler())
 	defer ts.Close()
 
-	tmpl, err := cloudformation.Parse([]byte(cloudwatchTemplate))
+	tmpl, err := cfn.Parse([]byte(cloudwatchTemplate))
 	if err != nil {
 		t.Fatal(err)
 	}
-	sf, rep, err := cloudformation.Transpile(tmpl, cloudformation.TranspileOptions{StackName: "shop"})
+	sf, rep, err := cfn.Transpile(tmpl, cfn.TranspileOptions{StackName: "shop"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestApplyCloudWatchAlarmsAndFilters(t *testing.T) {
 	// Nothing may be reported as ignored: that was the old behaviour, and it
 	// is what made a template like this deploy without an alarm.
 	for _, e := range rep.Entries {
-		if e.Kind == cloudformation.Ignored {
+		if e.Kind == cfn.Ignored {
 			t.Errorf("%s (%s) is still ignored: %s", e.LogicalID, e.Type, e.Reason)
 		}
 	}
@@ -223,15 +223,15 @@ func TestApplyCloudWatchAlarmsAndFilters(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	out, err := cloudformation.Emit(exported)
+	out, err := cfn.Emit(exported)
 	if err != nil {
 		t.Fatal(err)
 	}
-	again, err := cloudformation.Parse(out)
+	again, err := cfn.Parse(out)
 	if err != nil {
 		t.Fatal(err)
 	}
-	round, _, err := cloudformation.Transpile(again, cloudformation.TranspileOptions{StackName: "shop"})
+	round, _, err := cfn.Transpile(again, cfn.TranspileOptions{StackName: "shop"})
 	if err != nil {
 		t.Fatal(err)
 	}

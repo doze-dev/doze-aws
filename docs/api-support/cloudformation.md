@@ -105,10 +105,10 @@ see [../cloudformation.md](../cloudformation.md#naming).
   `cdk deploy` actually emit — nested stacks, authorizers, HTTP APIs, alarms
   and metric filters, subscription filters, bucket access settings — deployed
   and then deleted.
-- **Intrinsics** (`intrinsics_test.go`): `Ref`, `Fn::GetAtt`, `Fn::Sub`,
+- **Intrinsics** (`internal/cfn/intrinsics_test.go`): `Ref`, `Fn::GetAtt`, `Fn::Sub`,
   `Fn::Join` and the rest, including `Ref: AWS::NoValue` dropping a property
   rather than setting it to null.
-- **Templates** (`template_test.go`): YAML short tags, JSON, and bad templates
+- **Templates** (`internal/cfn/template_test.go`): YAML short tags, JSON, and bad templates
   refused as bad.
 - **Exports** (`export_conflict_test.go`): a second stack cannot claim an
   existing export, and a stack can update without losing its own.
