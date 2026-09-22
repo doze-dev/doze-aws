@@ -17,31 +17,18 @@ binary on your `PATH`. There is nothing else to install — no runtime, no
 daemon, no container. (`--uninstall` takes it away again and leaves your data
 alone.)
 
-It prints where it is and what to do next:
-
-```
-  doze-aws is up.
-
-    endpoint  http://aws.harbour.doze
-    console   http://aws.harbour.doze/_console/   what your app is doing, live
-    serving   17 services in us-east-1, account 000000000000
-
-    eval "$(doze-aws env)"   point this shell at it
-    doze-aws doctor          when something looks wrong
-```
+It prints where it is and what to do next: the endpoint, the console URL, how
+many services it is serving in which region and account, and the two commands
+worth knowing — `doze-aws env` and `doze-aws doctor`. The
+[README](../README.md#doze-aws) shows the block in full.
 
 That block goes to stdout; the structured log lines go to stderr, so
 `doze-aws 2>/dev/null` leaves just the summary and anything parsing the logs
 is unaffected.
 
 That is the whole setup. doze-aws addresses itself by name, so the first run
-on a machine offers to make `.doze` resolve:
-
-```
-doze-aws addresses itself by name, and .doze does not resolve on this machine yet.
-Setting it up needs sudo once — per machine, not per project.
-Set it up now? [Y/n]
-```
+on a machine offers to make `.doze` resolve — one prompt, one sudo, never
+again; the [README](../README.md#doze-aws) has the exact wording.
 
 Say yes and it is done for good. With no terminal at all — CI, or `doze-aws &`
 — it changes nothing and prints what to run, because a server that hangs
@@ -71,11 +58,10 @@ eval "$(doze-aws env)"
 
 aws s3 mb s3://my-bucket
 aws s3 cp ./file.txt s3://my-bucket/
-aws dynamodb create-table --table-name t \
-  --attribute-definitions AttributeName=id,AttributeType=S \
-  --key-schema AttributeName=id,KeyType=HASH --billing-mode PAY_PER_REQUEST
-aws sqs create-queue --queue-name jobs
 ```
+
+[cli.md](cli.md#talking-to-it) has the longer set — DynamoDB, SQS,
+the by-hand `export` block, and the per-service endpoint variables.
 
 ## Open the console
 
@@ -160,15 +146,10 @@ doze-aws config print
 ```
 
 Copy [`doze-aws.example.toml`](../doze-aws.example.toml) to `./doze-aws.toml`
-(auto-loaded) to name the instance, enable a subset of services, or set the
-data directory:
-
-```toml
-name     = "harbour"
-region   = "ap-south-1"
-data-dir = "data"       # relative to THIS FILE, not to your shell
-services = ["s3", "dynamodb", "sqs"]
-```
+— it is auto-loaded from the working directory — to name the instance, pick a
+region, enable a subset of services, or set the data directory. Every key is
+optional, paths resolve against the file rather than your shell, and
+[cli.md](cli.md#config-file) documents the lot.
 
 ## Persistence
 

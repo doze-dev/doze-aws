@@ -11,19 +11,5 @@
   deferred and what it would take, and what the binary does not do at all
 - [performance.md](performance.md) — measured hot-path and whole-request costs, and what to do about the slow ones
 - [storage.md](storage.md) — why bbolt, what it costs, and what pebble was measured at
-- [reports/](reports/) — phase-by-phase build reports, each a dated snapshot of
-  the day it was written rather than a description of today
 
-## Design ground rules
-
-- **Lightweight above all.** Five runtime dependencies: bbolt, a TOML parser, a
-  YAML parser (for CloudFormation templates), a JSONata evaluator (Step
-  Functions) and doze-names (the `.doze` zone); the AWS SDKs are test-only.
-  Data persists under one deletable directory.
-- **Real protocols, both SDK generations.** Every service speaks the actual AWS
-  wire protocol and is verified against `aws-sdk-go-v2` and the legacy
-  `aws-sdk-go`, with SigV2 and SigV4 accepted.
-- **Honest boundaries.** Every documented operation of an implemented service
-  gets a handler — functional where locally meaningful, a faithful config
-  round-trip where the effect is cloud-only, and a clean error where emulation
-  would be a lie. No silent no-ops.
+The design ground rules live in the [project README](../README.md#design-ground-rules) — one copy, so the two cannot drift apart.

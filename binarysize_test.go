@@ -14,7 +14,7 @@ package dozeaws_test
 // # Why it could not be gated before
 //
 // Because it was a local observation. That 20.4 MiB was darwin/arm64; the same
-// commit cross-compiled for linux/amd64 is 21.5 MiB. A gate on "the binary"
+// commit cross-compiled for linux/amd64 is 21.6 MiB. A gate on "the binary"
 // would therefore have failed or passed depending on who ran it, and a gate
 // like that gets deleted.
 //
@@ -22,13 +22,26 @@ package dozeaws_test
 // byte-identical across repeat builds (checked), which means it can be gated
 // exactly — no band, no headroom for noise, because there is no noise.
 //
-// # Why the numbers here are not the numbers in a GitHub release
+// # How this relates to the binary in a GitHub release
 //
-// They are, as of the commit that added -trimpath to .goreleaser.yaml. Before
-// that the shipped binary was 57,344 bytes LARGER, because absolute build
-// paths were baked into it. If those two ever diverge again this file is
-// measuring a build nobody ships, so the flags are recorded in the fixture
-// beside the number rather than living only here.
+// Same size, different bytes, and the distinction is worth stating because the
+// comment in .goreleaser.yaml used to claim byte-identity.
+//
+// Same size because both pass -trimpath and the same -ldflags. Before
+// -trimpath was added there the shipped binary was 57,344 bytes LARGER,
+// absolute build paths baked in, and this file was measuring something nobody
+// downloaded.
+//
+// Different bytes for two reasons that cannot be removed. The release stamps
+// vcs.revision and vcs.time, which this build turns off with -buildvcs=false
+// so repeat builds compare equal; and it carries the real tag where this pins
+// v0.0.0, because a tag's length would move the number. Measured on the
+// commit that wrote this comment: both 22,622,368 bytes, first differing at
+// byte 265.
+//
+// So the budget gates the SIZE of what people download, which is the claim
+// worth making. The flags are recorded in the fixture beside the number rather
+// than living only here, so a build that diverges again shows up in a diff.
 
 import (
 	"compress/gzip"

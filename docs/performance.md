@@ -198,23 +198,25 @@ directory on tmpfs.
 
 | | | where it comes from |
 |---|---|---|
-| Binary, stripped | **21.5 MiB** (22,565,024 B) | `portable.binary.bytes` |
+| Binary, stripped | **21.6 MiB** (22,622,368 B) | `portable.binary.bytes` |
 | Gzipped | **8.6 MiB** | `portable.binary.gzipped_bytes` |
 | Linked non-stdlib modules | **6** | `portable.modules`, from `go list -deps` |
-| Embedded assets | 1.76 MB across 84 files | `portable.embed`, **per embed site** |
+| Embedded assets | 1.79 MB across 67 files | `portable.embed`, **per embed site** |
 
 **One target, cross-compiled, or the number means nothing.** The same commit is
-21.5 MiB for `linux/amd64` and 20.4 MiB for `darwin/arm64`, so "the binary is N"
+21.6 MiB for `linux/amd64` and 20.4 MiB for `darwin/arm64`, so "the binary is N"
 is only true on the machine that said it. `binarysize_test.go` pins
 `linux/amd64` with the flags a release uses, records them in the fixture beside
 the number, and the build is byte-identical across repeat runs — which is what
 lets this be gated at all.
 
 `.goreleaser.yaml` passes `-trimpath` so the artifact people download is the
-artifact this measures. It was not there before, and without it every shipped
-binary carried 57,344 bytes of the CI runner's absolute build paths.
+same SIZE as the one this measures — not the same bytes, since a release also
+stamps its VCS revision and carries the real tag. It was not there before, and
+without it every shipped binary carried 57,344 bytes of the CI runner's
+absolute build paths.
 
-Roughly half of that 21.5 MiB is Go's own runtime metadata — an irreducible
+Roughly half of that 21.6 MiB is Go's own runtime metadata — an irreducible
 floor, not something this repo can spend. Of what is left, the console is the
 largest single item: 1.58 MB of the embedded assets above are its static files
 and templates, and its compiled Go is on top of that. It ships whether or not

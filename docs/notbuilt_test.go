@@ -171,9 +171,14 @@ func renderRegister() string {
 			ops += countOps(r.ops)
 		}
 	}
-	fmt.Fprintf(&b, "\n%d entries below, covering about %d operations across %d services. "+
-		"A row is one decision, which is often a family — \"Custom domains and base path "+
-		"mappings (12 operations)\" is one argument, not twelve.\n",
+	// Sections, not services: there are eighteen of them for seventeen
+	// services, because API Gateway's REST and HTTP APIs are documented apart.
+	// Calling that number "services" is how this page came to claim doze-aws
+	// implements eighteen.
+	fmt.Fprintf(&b, "\n%d entries below, covering about %d operations across all %d "+
+		"sections of docs/SUPPORT.md. A row is one decision, which is often a family — "+
+		"\"Custom domains and base path mappings (12 operations)\" is one argument, "+
+		"not twelve.\n",
 		total, ops, len(Services()))
 
 	for _, v := range verdicts {

@@ -5,6 +5,12 @@ with the reason. One document because it is one question: a reader deciding
 whether to trust this emulator should not have to open eighteen files to find
 out that the one operation they need is a stub.
 
+There are **eighteen sections for seventeen services**. API Gateway is one
+service with two separate APIs — REST (v1) and HTTP (v2) — and they differ
+enough in operations, routing and authorizers that one table for both would
+answer neither question. Everywhere else in the project the count is
+seventeen, which is what `doze-aws` serves and what the banner reports.
+
 This table is also shipped code. The console renders its fidelity panel by
 parsing the sections below at runtime, so the format is an interface — see
 docs/ledger.go.

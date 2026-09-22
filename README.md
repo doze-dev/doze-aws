@@ -169,9 +169,11 @@ nothing outside the data directory you name. Those are tests, not promises.
 
 ## Design ground rules
 
-- **Lightweight above all.** Five runtime dependencies: bbolt, a TOML parser, a
-  YAML parser, a JSONata evaluator (Step Functions) and doze-names (the `.doze`
-  zone). Data persists across restarts under one directory you can delete.
+- **Lightweight above all.** Five dependencies we chose: bbolt, a TOML parser,
+  a YAML parser, a JSONata evaluator (Step Functions) and doze-names (the
+  `.doze` zone). Six modules reach the binary — `golang.org/x/sys` arrives
+  through bbolt — and a test fails if a seventh ever does. Data persists across
+  restarts under one directory you can delete.
 - **Real protocols, honest boundaries.** Every documented operation of an
   implemented service gets a handler: functional where locally meaningful,
   faithful config round-trips where the effect is cloud-infrastructure-only,

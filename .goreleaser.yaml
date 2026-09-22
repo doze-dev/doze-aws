@@ -29,10 +29,15 @@ builds:
         goarch: arm64 # uncommon; drop it to keep the asset list tidy.
     flags:
       # Reproducible, and 57,344 bytes smaller: without it the absolute build
-      # path of the CI runner is baked into every binary that ships. It also
-      # makes the release artifact byte-identical to the one
+      # path of the CI runner is baked into every binary that ships.
+      #
+      # It also makes this artifact the same SIZE as the one
       # binarysize_test.go measures, so the budget gates what people download
-      # rather than something near it.
+      # rather than something near it. Not the same BYTES: this build stamps
+      # vcs.revision and vcs.time (the test passes -buildvcs=false), and
+      # carries the real tag where the test pins v0.0.0 so its number does not
+      # move with the version string. Measured: both are 22,622,368 bytes and
+      # they differ from byte 265.
       - -trimpath
     ldflags:
       - -s -w -X main.version={{ .Version }}

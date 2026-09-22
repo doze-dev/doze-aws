@@ -43,7 +43,7 @@ For the person reviewing whether this is safe to run:
 ## Declined
 
 
-81 entries below, covering about 336 operations across 18 services. A row is one decision, which is often a family — "Custom domains and base path mappings (12 operations)" is one argument, not twelve.
+81 entries below, covering about 336 operations across all 18 sections of docs/SUPPORT.md. A row is one decision, which is often a family — "Custom domains and base path mappings (12 operations)" is one argument, not twelve.
 
 ### It acts on cloud infrastructure
 

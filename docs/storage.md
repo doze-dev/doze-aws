@@ -207,7 +207,7 @@ An alternative has to:
 
 1. keep the **pure-Go static cross-compiled binary**. Five platforms from one
    `go build`, no toolchain per target, no runtime dependency to install.
-2. add **no more than ~2 MB**, against a **21.5 MiB** stripped binary
+2. add **no more than ~2 MB**, against a **21.6 MiB** stripped binary
    (linux/amd64, the target `testdata/lightness.json` pins and
    `binarysize_test.go` gates; the 20.4 MiB this criterion was first written
    against was darwin/arm64, which is why the target is named now).
