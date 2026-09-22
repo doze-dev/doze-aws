@@ -1,5 +1,6 @@
-// Resource policies under enforce, continued: KMS's gate, Secrets Manager,
-// Kinesis; then soft mode's record and off mode's indifference.
+// Resource policies beyond the enforce-mode basics in resource_policy_test.go:
+// KMS's gate, Secrets Manager and Kinesis under enforce, then what the other
+// two modes do — soft records a verdict without blocking, off does not look.
 package iam_test
 
 import (

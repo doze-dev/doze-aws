@@ -847,7 +847,7 @@ paths (`a.b[0].c`), and unused-reference rejection.
 
 ### Verified against
 
-- **aws-sdk-go-v2** (`sdk_test.go`, `coverage_test.go`): CRUD with condition
+- **aws-sdk-go-v2** (`sdk_test.go`, `sdk_coverage_test.go`): CRUD with condition
   and update expressions, query and scan including GSIs, batch and transaction
   operations, table administration, and PartiQL including its batch and
   transaction forms.
@@ -929,7 +929,7 @@ exports/imports, Kinesis streaming, table resource policies (stored nowhere;
 the IAM service reads identity policies only), `ListContributorInsights`
 (CloudWatch) and `SearchVectors` (a vector index) — cloud infrastructure
 rather than local behaviour, each refused by name with a reason. A frozen
-list of the model's 58 operations (`model_coverage_test.go`) fails the build
+list of the model's 58 operations (`coverage_model_test.go`) fails the build
 if one is ever neither handled nor refused, so nothing answers a bare
 `InvalidAction`.
 
@@ -1005,7 +1005,7 @@ without the secret existing in the local Secrets Manager.
 
 ### Verified against
 
-- **aws-sdk-go-v2** (`sdk_test.go`, `coverage_test.go`): rule and bus
+- **aws-sdk-go-v2** (`sdk_test.go`, `sdk_coverage_test.go`): rule and bus
   administration, delivery to SQS, archive and replay, and input transformers.
 - **aws-sdk-go v1** (`sdkv1_test.go`): the rule lifecycle through the older
   client.
@@ -1360,7 +1360,7 @@ same default-version and delete-guard rules as AWS.
 - **The three modes** (`enforce_test.go`): `off` never denies, `enforce`
   allows and denies for real, and an explicit deny beats an allow — the rule
   everything else depends on.
-- **Resource policies** (`resource_policy_test.go`, `resource_policy_2_test.go`,
+- **Resource policies** (`resource_policy_test.go`, `resource_policy_modes_test.go`,
   `resource_policy_audit_test.go`): queue, topic, bucket, key, secret and
   stream policies evaluated under `enforce`, key policies gating identity
   policies, and batch actions evaluated as their base action rather than as a
@@ -1627,7 +1627,7 @@ returns genuine SPKI DER — signatures verify outside KMS.
   rather than recorded.
 - **aws-sdk-go v1** (`sdkv1_test.go`): encrypt/decrypt and the error code the
   older clients branch on.
-- **Administration** (`coverage_test.go`): key admin, rotation flags and
+- **Administration** (`sdk_coverage_test.go`): key admin, rotation flags and
   policies, and data-key pairs.
 - **Ciphertext under a fuzzer** (`blob_fuzz_test.go`): `FuzzOpenBlob` feeds
   corrupted and truncated blobs at the parser, which has to refuse them rather
@@ -1854,7 +1854,7 @@ that does not exist is refused at create and update, as on AWS.
 
 ### Verified against
 
-- **aws-sdk-go-v2** (`sdk_test.go`, `coverage_test.go`): create and invoke,
+- **aws-sdk-go-v2** (`sdk_test.go`, `sdk_coverage_test.go`): create and invoke,
   the asynchronous path and lifecycle, function management, event source
   mappings, and reserved concurrency of zero actually throttling.
 - **aws-sdk-go v1** (`sdkv1_test.go`): create, invoke and delete through the
@@ -2223,7 +2223,7 @@ the safe direction for a setting whose job is catching an exposed bucket.
 
 ### Verified against
 
-- **aws-sdk-go-v2** (`sdk_test.go`, `coverage_test.go`, `coverage2_test.go`):
+- **aws-sdk-go-v2** (`sdk_test.go`, `sdk_coverage_test.go`):
   the put/get round trip, the full checksum and range matrix, versioning and
   suspended versioning, multipart, tagging, CORS and preflight, and copy-to-self
   refused the way AWS refuses it.
