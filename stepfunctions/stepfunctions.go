@@ -23,12 +23,12 @@
 // backwards for anyone reading the package to find out what works.
 //
 // The gaps that remain are behavioural rather than missing operations, and
-// docs/api-support/stepfunctions.md lists them: at-least-once task dispatch
+// docs/SUPPORT.md lists them: at-least-once task dispatch
 // across a restart, one-second Wait resolution, immediate DeleteStateMachine,
 // and Express and TestState runs not surviving a restart. The JSONata dialect
 // has a gap of its own, measured in internal/asl/jsonata_dialect_test.go.
 //
-// See docs/api-support/stepfunctions.md for the operation-by-operation table.
+// See docs/SUPPORT.md for the operation-by-operation table.
 package stepfunctions
 
 import (

@@ -15,7 +15,7 @@ package asl
 // can add an operator to the parser, and a source-level rewrite does not work
 // either — `Order.Product.%.OrderID` yields one OrderID per PRODUCT, so dropping
 // a path step changes the cardinality. They would need a fork of the dependency,
-// and docs/api-support/stepfunctions.md says so rather than implying otherwise.
+// and docs/SUPPORT.md says so rather than implying otherwise.
 
 import (
 	"encoding/json"

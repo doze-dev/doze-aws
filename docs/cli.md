@@ -46,7 +46,7 @@ Flags apply to serving and to `config print`.
 | `--suffix <host>` | the instance's own name | What stands in for `amazonaws.com` in minted hostnames. Set this when a proxy owns the name and forwards to doze-aws on an address. |
 | `--services <a,b,…>` | all implemented | Comma-separated subset of services to enable. Unknown names are an error. |
 | `--template <path>` | `./template.yaml` if present | CloudFormation/SAM template to apply at boot. See [cloudformation.md](cloudformation.md). |
-| `--iam-mode <mode>` | `soft` | IAM enforcement: `soft` (evaluate and record, never block), `off` (no evaluation at all), `enforce` (real denials). See [api-support/iam.md](api-support/iam.md). |
+| `--iam-mode <mode>` | `soft` | IAM enforcement: `soft` (evaluate and record, never block), `off` (no evaluation at all), `enforce` (real denials). See [SUPPORT.md](SUPPORT.md#iam--api-support). |
 | `--console` | on | Serve the web management console at `/_console`. |
 | `--lambda-idle <duration>` | `10m` | How long a warm Lambda keeps its process before scaling to zero. |
 | `--yes` | off | Answer yes to the confirmation described below. For scripts, and for anyone who does this daily. |
@@ -174,5 +174,5 @@ regions are separate directories and the old one's resources are still there.
 - [cloudformation.md](cloudformation.md) — deploying with the AWS CLI, SAM, CDK
   or Serverless.
 - [embedding.md](embedding.md) — use doze-aws as a Go library instead of a CLI.
-- [api-support/](api-support/) — per-service operation support (Functional /
+- [SUPPORT.md](SUPPORT.md) — per-service operation support (Functional /
   Cosmetic / honest Stub).

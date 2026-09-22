@@ -201,7 +201,7 @@ func TestRedriveAcceptsUnquotedMaxReceiveCount(t *testing.T) {
 	}
 }
 
-// TestQueueNameCharset closes the gap docs/api-support/sqs.md carried as
+// TestQueueNameCharset closes the gap docs/SUPPORT.md carried as
 // "❌ `bad name!` is accepted". SQS's model states no pattern or length for
 // QueueName — the rule is prose only, which is exactly why nothing had ever
 // cross-checked it — so these expectations are hand-derived from the API

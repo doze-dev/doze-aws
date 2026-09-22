@@ -2,7 +2,7 @@
 
 How a function runs on doze-aws, how to get one in, and how to see what it
 did. The operation-by-operation ledger is
-[api-support/lambda.md](api-support/lambda.md).
+[SUPPORT.md](SUPPORT.md#lambda--api-support).
 
 ## How a function runs
 
@@ -106,7 +106,7 @@ aws logs filter-log-events --log-group-name /aws/lambda/hello \
 ```
 
 Retention is a day by default, or the group's `RetentionInDays` — see
-[api-support/logs.md](api-support/logs.md).
+[SUPPORT.md](SUPPORT.md#cloudwatch-logs--api-support).
 
 **The console.** A function's **Logs** tab is a live tail across its
 streams, with a request-id chip that narrows to one invocation and a filter

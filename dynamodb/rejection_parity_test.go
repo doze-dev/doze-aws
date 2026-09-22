@@ -116,7 +116,7 @@ func freshTable(t *testing.T, ts *httptest.Server, name string) string {
 // model-stated constraints on its inputs. Operations it does not dispatch —
 // the stubs, and the ones with no handler at all — refuse every request
 // including the baseline, so they cannot be audited by this method; that fact
-// is recorded in docs/api-support/dynamodb.md rather than papered over here.
+// is recorded in docs/SUPPORT.md rather than papered over here.
 var specs = map[string]opSpec{
 	"CreateTable": {
 		// Deliberately richer than the minimum: PROVISIONED billing with a

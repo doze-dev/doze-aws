@@ -66,7 +66,7 @@ func init() {
 func stub(name string) handler {
 	return func(*Server, map[string]any) (any, *awshttp.APIError) {
 		return nil, awshttp.Errf(400, "UnsupportedOperationException",
-			"%s is not supported by doze-aws (see docs/api-support/kms.md)", name)
+			"%s is not supported by doze-aws (see docs/SUPPORT.md)", name)
 	}
 }
 

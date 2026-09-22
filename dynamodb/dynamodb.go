@@ -11,7 +11,7 @@
 // mapping. Global tables, DAX, and backup/export are cloud infrastructure and
 // answer honestly.
 //
-// See docs/api-support/dynamodb.md for the operation-by-operation table.
+// See docs/SUPPORT.md for the operation-by-operation table.
 package dynamodb
 
 import (

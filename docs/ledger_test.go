@@ -1,23 +1,24 @@
 package docs
 
-// The shape every ledger has to have.
+// The shape every section of docs/SUPPORT.md has to have.
 //
 // # What this is and is not
 //
-// Eighteen files, each written by hand, each the thing an evaluator reads to
-// decide whether to trust this project. The prose in them is the asset and is
-// deliberately NOT generated — endpoints.md carries a published retraction of a
-// promise it once made, and no template produces that.
+// Eighteen sections, each written by hand, together the thing an evaluator
+// reads to decide whether to trust this project. The prose in them is the
+// asset and is deliberately NOT generated — endpoints.md carries a published
+// retraction of a promise it once made, and no template produces that.
 //
 // So this enforces STRUCTURE and VOCABULARY, never wording. A heading has to be
 // there; what you write under it is yours. The one exception is the tier
 // legend, which is byte-equal against the const, because a legend is a key
 // rather than prose: two wordings of it means two readers get two different
-// definitions of what "S" promises.
+// definitions of what "S" promises. That check is now document-wide rather
+// than per-service — see TestTheTierLegendIsWrittenOnce.
 //
 // # The weak check, named as weak
 //
-// `## Verified against` cites files. This asserts those files EXIST, which
+// `### Verified against` cites files. This asserts those files EXIST, which
 // proves the citation is not stale and proves nothing about whether the cited
 // test covers the claim. That is worth having and worth being honest about: a
 // path that has been renamed is a lie the reader cannot detect, and a path that
@@ -32,7 +33,7 @@ import (
 )
 
 var (
-	ledgerH1     = regexp.MustCompile(`^# (.+?) — API support\s*$`)
+	ledgerH1     = regexp.MustCompile(`^## (.+?) — API support\s*$`)
 	citedPath    = regexp.MustCompile("`([a-zA-Z0-9_./-]+\\.(?:go|json|md))`")
 	totalsClaim  = regexp.MustCompile(`\d+/\d+ model-derived constraints enforced across`)
 	validTiers   = map[string]bool{"F": true, "C": true, "S": true}
@@ -52,29 +53,47 @@ func TestEveryLedgerHasTheSameShape(t *testing.T) {
 			}
 			first, _, _ := strings.Cut(text, "\n")
 			if !ledgerH1.MatchString(first) {
-				t.Errorf("first line is %q, want `# <Service> — API support`.\n"+
-					"  README is matched to this file by that name, so the heading "+
+				t.Errorf("first line is %q, want `## <Service> — API support`.\n"+
+					"  README is matched to this section by that name, so the heading "+
 					"is load-bearing.", first)
-			}
-			if !strings.Contains(flatten(text), flatten(TierLegend)) {
-				t.Errorf("the tier legend does not appear verbatim.\n"+
-					"  It is byte-equal on purpose: a legend is a key, not prose, and "+
-					"two wordings\n  means two readers get two definitions of what "+
-					"a stub promises. Paste:\n\n%s", TierLegend)
 			}
 			for _, h := range requiredHead {
 				if Section(svc, h) == "" {
-					t.Errorf("no `## %s` section.", h)
+					t.Errorf("no `### %s` section.", h)
 				}
 			}
 			if !totalsClaim.MatchString(flatten(Section(svc, "Input validation"))) {
-				t.Errorf("`## Input validation` carries no totals sentence.\n" +
+				t.Errorf("`### Input validation` carries no totals sentence.\n" +
 					"  The parity suite asserts it through dozetest.AssertLedgerTotals; " +
 					"without the\n  sentence there is nothing for it to assert against.")
 			}
 			checkRows(t, svc)
 			checkCitations(t, svc)
 		})
+	}
+}
+
+// TestTheTierLegendIsWrittenOnce is what the eighteen per-file byte-equality
+// checks collapsed into.
+//
+// The legend used to be repeated in every ledger and asserted in every one,
+// because eighteen copies of a key is eighteen chances to reword one. There is
+// one copy now, so there is one assertion: it is present, byte-equal to the
+// const, and it is not present twice.
+func TestTheTierLegendIsWrittenOnce(t *testing.T) {
+	doc := flatten(support())
+	switch n := strings.Count(doc, flatten(TierLegend)); n {
+	case 1:
+		return
+	case 0:
+		t.Errorf("the tier legend does not appear verbatim.\n"+
+			"  It is byte-equal on purpose: a legend is a key, not prose, and two "+
+			"wordings\n  means two readers get two definitions of what a stub "+
+			"promises. Paste:\n\n%s", TierLegend)
+	default:
+		t.Errorf("the tier legend appears %d times, want 1.\n"+
+			"  Collapsing eighteen copies into one was the point; a second copy is "+
+			"the drift\n  starting again.", n)
 	}
 }
 
@@ -107,7 +126,7 @@ func checkRows(t *testing.T, svc string) {
 	t.Logf("%d rows, %d stubs", len(rows), stubs)
 }
 
-// checkCitations proves the files `## Verified against` names are still there.
+// checkCitations proves the files `### Verified against` names are still there.
 func checkCitations(t *testing.T, svc string) {
 	t.Helper()
 	section := Section(svc, "Verified against")
@@ -116,7 +135,7 @@ func checkCitations(t *testing.T, svc string) {
 	}
 	cited := citedPath.FindAllStringSubmatch(section, -1)
 	if len(cited) == 0 {
-		t.Errorf("`## Verified against` cites no file.\n" +
+		t.Errorf("`### Verified against` cites no file.\n" +
 			"  The section exists to point at what backs the claims above it; " +
 			"without a path it is\n  an assertion about itself.")
 		return
@@ -137,7 +156,7 @@ func checkCitations(t *testing.T, svc string) {
 			}
 		}
 		if !found {
-			t.Errorf("`## Verified against` cites %s, which is not on disk.\n"+
+			t.Errorf("`### Verified against` cites %s, which is not on disk.\n"+
 				"  Looked in the repo root and in %s/. A renamed file leaves a "+
 				"citation that reads\n  as evidence and is not.", path, svc)
 		}

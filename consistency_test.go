@@ -5,7 +5,7 @@ package dozeaws_test
 // # The drift edge this closes
 //
 // Every parity suite now asserts its own ledger's numbers, so
-// docs/api-support/<svc>.md cannot fall behind the code. README carries the
+// docs/SUPPORT.md (<svc>) cannot fall behind the code. README carries the
 // SAME numbers a second time — "21 of 22 dispatched operations · 48/48
 // constraint cases", seventeen times — and nothing checked those at all. The
 // drift the ledger work removed at one edge was still wide open at the next
@@ -48,7 +48,7 @@ var (
 	// The two numbers a row carries, worded as the ledgers word them.
 	readmeCases = regexp.MustCompile(`(\d+)/(\d+) constraint cases`)
 	readmeOps   = regexp.MustCompile(`(?:all |the )?(?:(\d+) of (?:all |the )?)?(\d+) (?:dispatched |routed )?operations`)
-	ledgerTitle = regexp.MustCompile(`^# (.+?) — API support`)
+	ledgerTitle = regexp.MustCompile(`^## (.+?) — API support`)
 )
 
 // titleToService maps a ledger's H1 to its filename, derived rather than
@@ -63,7 +63,7 @@ func titleToService(t *testing.T) map[string]string {
 		}
 		m := ledgerTitle.FindStringSubmatch(text)
 		if m == nil {
-			t.Errorf("docs/api-support/%s.md has no `# <Service> — API support` "+
+			t.Errorf("docs/SUPPORT.md (%s) has no `## <Service> — API support` "+
 				"heading, so README cannot be matched to it by name", svc)
 			continue
 		}
@@ -102,7 +102,7 @@ func TestREADMEAgreesWithTheLedgers(t *testing.T) {
 
 		want, ok := dozetest.LedgerTotals(svc)
 		if !ok {
-			t.Errorf("%s: docs/api-support/%s.md has no totals sentence to check "+
+			t.Errorf("%s: docs/SUPPORT.md (%s) has no totals sentence to check "+
 				"README against", name, svc)
 			continue
 		}
@@ -114,7 +114,7 @@ func TestREADMEAgreesWithTheLedgers(t *testing.T) {
 			}
 			if atoi(cm[1]) != want.Enforced || atoi(cm[2]) != want.Cases {
 				t.Errorf("constraint cases: README says %s/%s, "+
-					"docs/api-support/%s.md says %d/%d.\n"+
+					"docs/SUPPORT.md (%s) says %d/%d.\n"+
 					"  The ledger is the one the parity suite asserts, so it is "+
 					"the one that is right.",
 					cm[1], cm[2], svc, want.Enforced, want.Cases)
@@ -130,7 +130,7 @@ func TestREADMEAgreesWithTheLedgers(t *testing.T) {
 				gotAudited = atoi(om[1])
 			}
 			if gotAudited != want.AuditedOps || gotDispatched != want.DispatchedOps {
-				t.Errorf("operations: README says %s, docs/api-support/%s.md says %s.",
+				t.Errorf("operations: README says %s, docs/SUPPORT.md (%s) says %s.",
 					strings.TrimSpace(om[0]), svc, describeReadmeOps(want))
 			}
 		})
@@ -141,7 +141,7 @@ func TestREADMEAgreesWithTheLedgers(t *testing.T) {
 		if seen[svc] || svc == "apigatewayv2" {
 			continue
 		}
-		t.Errorf("docs/api-support/%s.md has no row in README's service table.\n"+
+		t.Errorf("docs/SUPPORT.md (%s) has no row in README's service table.\n"+
 			"  Every ledger is summarised there except apigatewayv2, which shares "+
 			"the API Gateway row\n  because the two ship as one feature.", svc)
 	}
@@ -159,8 +159,8 @@ func TestTheServiceCountIsNotFolklore(t *testing.T) {
 	}
 	for _, svc := range dozeaws.Implemented {
 		if _, err := docs.Read(svc); err != nil {
-			t.Errorf("%s is implemented and has no docs/api-support/%s.md: %v",
-				svc, svc, err)
+			t.Errorf("%s is implemented and has no section in docs/SUPPORT.md: %v",
+				svc, err)
 		}
 	}
 }

@@ -13,7 +13,7 @@ package asl
 // — and freezes the result. A name in unsupported is a promise that it does NOT
 // work here; a name absent from it must work. Both directions fail the test, so
 // a dependency bump that fixes something is as loud as a regression that breaks
-// something, and docs/api-support/stepfunctions.md can cite a measured list
+// something, and docs/SUPPORT.md can cite a measured list
 // instead of a shrug.
 
 import (
@@ -275,7 +275,7 @@ func TestTheJSONataDialectIsWhatWeSayItIs(t *testing.T) {
 	}
 	for _, f := range fixed {
 		t.Errorf("%s is listed unsupported but works — remove it from the list "+
-			"and from docs/api-support/stepfunctions.md, which cites it", f)
+			"and from docs/SUPPORT.md, which cites it", f)
 	}
 	t.Logf("%d value probes + %d raising + %d AWS-excluded, %d unsupported",
 		len(dialectProbes), len(raisingProbes), len(awsExcluded), len(unsupported))

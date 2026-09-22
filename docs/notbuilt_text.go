@@ -3,7 +3,7 @@ package docs
 import "flag"
 
 var updateRegister = flag.Bool("register.update", false,
-	"rewrite docs/not-built.md from docs/notbuilt.go and the ledgers")
+	"rewrite docs/not-built.md from docs/notbuilt.go and docs/SUPPORT.md")
 
 // registerPreamble and registerFooter are the hand-written half of
 // docs/not-built.md. The tables between them are generated from the verdicts
@@ -12,7 +12,7 @@ var updateRegister = flag.Bool("register.update", false,
 const registerPreamble = `# What doze-aws does not build, and why
 
 Every absence on this page is deliberate, and every one is also an S-tier row in
-[docs/api-support/](api-support/). A test reconciles the two in both directions,
+[docs/SUPPORT.md](SUPPORT.md). A test reconciles the two in both directions,
 so this page cannot fall behind the code without the build failing: a new
 refusal with no verdict fails, and a verdict for something that has since been
 implemented fails too.

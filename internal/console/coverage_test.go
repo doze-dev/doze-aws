@@ -13,7 +13,7 @@ import (
 
 // The SDK-coverage ratchet.
 //
-// docs/api-support/*.md is a complete, well-maintained ledger of every
+// docs/SUPPORT.md is a complete, well-maintained ledger of every
 // operation each service implements and at what fidelity: F = functional (real
 // local semantics), C = cosmetic (accepted, no local effect), S = stub (clean
 // refusal). Nothing enforced it. It was referenced only by prose comments in

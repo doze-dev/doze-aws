@@ -6,7 +6,7 @@
 // queues (group ordering + deduplication), dead-letter redrive, queue tags,
 // and message move tasks.
 //
-// See docs/api-support/sqs.md for the operation-by-operation support table.
+// See docs/SUPPORT.md for the operation-by-operation support table.
 package sqs
 
 import (

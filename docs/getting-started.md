@@ -189,12 +189,12 @@ routes to its targets, a Lambda handler reaches every sibling service.
 
 Functions run as **real local processes** speaking the AWS Lambda Runtime API.
 For quick local iteration, point a function at code in place instead of zipping
-it (the `_local_` extension — see [api-support/lambda.md](api-support/lambda.md)).
+it (the `_local_` extension — see [SUPPORT.md](SUPPORT.md#lambda--api-support)).
 
 ## Coverage
 
 Every implemented service documents its operation support in
-[api-support/](api-support/): **F**unctional (real local semantics),
+[SUPPORT.md](SUPPORT.md): **F**unctional (real local semantics),
 **C**osmetic (config round-trips, no local effect), or an honest **S**tub for
 what's physically meaningless locally.
 

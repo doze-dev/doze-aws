@@ -5,7 +5,7 @@
 // out to SQS queues (via the peers directory) and to http(s) webhooks with the
 // subscription-confirmation handshake.
 //
-// See docs/api-support/sns.md for the operation-by-operation support table.
+// See docs/SUPPORT.md for the operation-by-operation support table.
 package sns
 
 import (

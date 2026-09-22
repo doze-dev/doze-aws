@@ -1,13 +1,25 @@
-// Package docs embeds the per-service API-support ledgers and reads them.
+// Package docs embeds the API-support ledger and reads it.
 //
 // # The ledger is shipped code, not just documentation
 //
-// docs/api-support/*.md records every operation each service implements and at
-// what tier — F functional, C cosmetic, S honest stub — and that table is
-// parsed at RUNTIME to render the console's fidelity panel. For an emulator it
-// is the most useful table a UI can show: real AWS never has to answer "is this
-// call real here". So the format is an interface, and a change to it is a
-// change to the product.
+// docs/SUPPORT.md records every operation each service implements and at what
+// tier — F functional, C cosmetic, S honest stub — and that table is parsed at
+// RUNTIME to render the console's fidelity panel. For an emulator it is the
+// most useful table a UI can show: real AWS never has to answer "is this call
+// real here". So the format is an interface, and a change to it is a change to
+// the product.
+//
+// # One document, eighteen sections
+//
+// This was eighteen files under docs/api-support/. They were one question
+// asked eighteen times — "what works here" — and answering it meant opening
+// every file to find the one stub that mattered. They are now sections of one
+// document, each opened by an `<!-- svc:name -->` anchor that names the
+// service key, because the key is not derivable from the heading: "CloudWatch
+// Logs" is logs and "API Gateway v2 (HTTP APIs)" is apigatewayv2.
+//
+// The tier legend used to be repeated byte-for-byte in all eighteen. It
+// appears once now, which is what a key should do.
 //
 // # Why one parser and not two
 //
@@ -22,20 +34,30 @@
 // console tests and the runtime panel all go through the same code.
 //
 // It also removes a hole. Both console tests used filepath.Glob("../docs/...")
-// and SKIPPED when it matched nothing, so renaming this directory turned three
+// and SKIPPED when it matched nothing, so renaming what they read turned three
 // ratchets into three silent passes. Reading through the embedded FS cannot do
-// that: //go:embed with no matches is a compile error.
+// that: //go:embed with no matches is a compile error — which is also what now
+// guarantees SUPPORT.md is there for Read to slice.
 package docs
 
 import (
 	"embed"
+	"io/fs"
 	"regexp"
 	"sort"
 	"strings"
 )
 
-//go:embed api-support/*.md
+//go:embed SUPPORT.md
 var FS embed.FS
+
+// svcAnchor marks where one service's section begins.
+//
+// The service KEY cannot be derived from the heading: "CloudWatch Logs" is
+// logs, "API Gateway v2 (HTTP APIs)" is apigatewayv2, and any normalisation
+// that gets those right is a rule waiting to be broken by the next service.
+// So the key is written down, in a comment that renders as nothing.
+var svcAnchor = regexp.MustCompile(`(?m)^<!-- svc:([a-z0-9]+) -->$`)
 
 // TierLegend is the one wording every ledger carries.
 //
@@ -83,24 +105,44 @@ var verbFragments = map[string]bool{
 	"Put": true, "Get": true, "Update": true, "List": true, "Delete": true, "Create": true,
 }
 
+// support returns the whole document, or panics — the embed guarantees it is
+// there, so an error here is a build that should not have compiled.
+func support() string {
+	b, err := FS.ReadFile("SUPPORT.md")
+	if err != nil {
+		panic("docs: SUPPORT.md is embedded but unreadable: " + err.Error())
+	}
+	return string(b)
+}
+
 // Services is every service with a ledger, sorted.
 func Services() []string {
-	entries, err := FS.ReadDir("api-support")
-	if err != nil {
-		return nil
-	}
-	out := make([]string, 0, len(entries))
-	for _, e := range entries {
-		out = append(out, strings.TrimSuffix(e.Name(), ".md"))
+	ms := svcAnchor.FindAllStringSubmatch(support(), -1)
+	out := make([]string, 0, len(ms))
+	for _, m := range ms {
+		out = append(out, m[1])
 	}
 	sort.Strings(out)
 	return out
 }
 
-// Read returns a ledger's raw text.
+// Read returns one service's section of SUPPORT.md: its anchor through to the
+// next service's, which is the same text the per-service file used to hold
+// minus the H1 and the legend the document now carries once.
 func Read(svc string) (string, error) {
-	b, err := FS.ReadFile("api-support/" + svc + ".md")
-	return string(b), err
+	text := support()
+	idx := svcAnchor.FindAllStringSubmatchIndex(text, -1)
+	for i, m := range idx {
+		if text[m[2]:m[3]] != svc {
+			continue
+		}
+		end := len(text)
+		if i+1 < len(idx) {
+			end = idx[i+1][0]
+		}
+		return strings.TrimSpace(text[m[1]:end]) + "\n", nil
+	}
+	return "", fs.ErrNotExist
 }
 
 // Rows parses one service's operation tables, keeping every tier, ordered
@@ -199,22 +241,27 @@ func forEachTableRow(text string, fn func(m []string)) {
 	}
 }
 
-// Section returns the body of a "## heading" section, up to the next heading of
-// the same level. Used to find the paragraph a claim lives in without caring
-// where in the file it sits.
+// Section returns the body of a "### heading" section, up to the next heading
+// of the same level. Used to find the paragraph a claim lives in without
+// caring where in the document it sits.
+//
+// Three hashes, not two: the service heading is the H2 now, so everything a
+// ledger used to call ## is one level deeper. The terminator is level-exact —
+// "#### Not audited" does not have the prefix "### ", so a subsection stays
+// inside the section that owns it.
 func Section(svc, heading string) string {
 	text, err := Read(svc)
 	if err != nil {
 		return ""
 	}
-	want := "## " + heading
+	want := "### " + heading
 	var b strings.Builder
 	in := false
 	for _, line := range strings.Split(text, "\n") {
 		switch {
 		case strings.HasPrefix(line, want):
 			in = true
-		case in && strings.HasPrefix(line, "## "):
+		case in && strings.HasPrefix(line, "### "):
 			return b.String()
 		case in:
 			b.WriteString(line)

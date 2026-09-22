@@ -26,7 +26,7 @@
 // Non-proxy AWS integrations with Velocity mapping templates are refused —
 // emulating VTL badly is worse than saying so.
 //
-// See docs/api-support/apigateway.md for the operation-by-operation table.
+// See docs/SUPPORT.md for the operation-by-operation table.
 package apigateway
 
 import (

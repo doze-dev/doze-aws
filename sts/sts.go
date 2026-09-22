@@ -8,7 +8,7 @@
 // The service is stateless: Options.DataDir is accepted for constructor
 // uniformity with the other services and never used.
 //
-// See docs/api-support/sts.md for the operation-by-operation support table.
+// See docs/SUPPORT.md for the operation-by-operation support table.
 package sts
 
 import (
@@ -72,7 +72,7 @@ func (s *Server) Close() error { return nil }
 type handler func(s *Server, p params) (any, *awshttp.APIError)
 
 // handlers maps every documented STS action. This table IS the coverage
-// statement: an action absent here answers InvalidAction, and the api-support
+// statement: an action absent here answers InvalidAction, and the SUPPORT.md
 // doc is generated from the same names.
 var handlers = map[string]handler{
 	"AssumeRole":                 (*Server).assumeRole,

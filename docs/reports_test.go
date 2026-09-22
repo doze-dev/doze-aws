@@ -103,7 +103,7 @@ func wantNote(date string) string {
 	return fmt.Sprintf("  Add this immediately after the `Date:` line:\n\n"+
 		"> **Historical.** A snapshot as of %s, kept as written rather than\n"+
 		"> corrected. Counts, scope and any claim about what \"remains\" describe the\n"+
-		"> repo on that day — for current state see [docs/api-support](../api-support)\n"+
+		"> repo on that day — for current state see [docs/SUPPORT.md](../SUPPORT.md)\n"+
 		"> and [docs/not-built.md](../not-built.md).\n\n"+
 		"  These reports are the record of how this was built and are worth keeping.\n"+
 		"  Editing one to match today destroys what it is; saying what it is does not.",

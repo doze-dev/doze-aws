@@ -8,7 +8,7 @@
 // partner event sources and the schemas registry are cloud
 // infrastructure and answer honestly.
 //
-// See docs/api-support/eventbridge.md for the operation table.
+// See docs/SUPPORT.md for the operation table.
 package eventbridge
 
 import (

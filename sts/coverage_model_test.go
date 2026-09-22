@@ -23,7 +23,7 @@ func TestEveryModelOperationIsAccountedFor(t *testing.T) {
 		Tables: []dozetest.Table{{Name: "handlers", Ops: dozetest.Names(handlers)}},
 		Unreached: []string{
 			// Both mint a token for a federated identity that has to come from
-			// a real identity provider. docs/api-support/sts.md carries the
+			// a real identity provider. docs/SUPPORT.md carries the
 			// argument; there is nothing local for either to assert about.
 			"GetDelegatedAccessToken",
 			"GetWebIdentityToken",

@@ -17,7 +17,7 @@ import (
 //
 // Both operations carry AWS's `sync-` host prefix, which the SDK applies
 // even to a custom endpoint — sync-127.0.0.1 resolves nowhere. This is the
-// escape hatch, and it is what docs/api-support/stepfunctions.md tells IP
+// escape hatch, and it is what docs/SUPPORT.md tells IP
 // endpoint users to do: an Initialize middleware that marks the hostname
 // immutable. (Against aws.doze the prefix resolves, because doze-aws claims
 // sync-aws.doze beside the apex.)

@@ -212,7 +212,7 @@ func (b *backend) SendMessageBatch(ctx context.Context, name string, bodies []st
 
 // AddPermission and RemovePermission write the queue's resource policy.
 //
-// Both are tier C in docs/api-support/sqs.md: "no IAM locally: succeeds,
+// Both are tier C in docs/SUPPORT.md: "no IAM locally: succeeds,
 // changes nothing". They are exposed anyway, and labelled as cosmetic in the
 // UI, because the point of an emulator is that your code's calls behave — a
 // deploy script that calls AddPermission should not fail here, and you should

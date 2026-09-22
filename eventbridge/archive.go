@@ -17,7 +17,7 @@ import (
 // Locally this is real: PutEvents appends every matching event to the archive's
 // event log, and StartReplay re-injects the windowed events back through the
 // destination bus's rules. Retention is stored but not actively expired (the
-// stack is ephemeral) — documented in docs/api-support/eventbridge.md.
+// stack is ephemeral) — documented in docs/SUPPORT.md.
 
 var (
 	archivesBucket      = []byte("archives")

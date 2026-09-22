@@ -10,7 +10,7 @@
 //
 // Runtime = a per-function concurrency pool of supervised processes that grows
 // with demand (capped) and scales back to zero after an idle window, so an
-// unused function holds no processes. See docs/api-support/lambda.md.
+// unused function holds no processes. See docs/SUPPORT.md.
 package lambda
 
 import (

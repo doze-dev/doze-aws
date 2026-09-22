@@ -21,7 +21,7 @@ func validate(body []byte, table []modelcheck.Constraint) *awshttp.APIError {
 // An operation missing from this map either states no constraints on its
 // inputs or is one doze-aws does not dispatch — the latter refuses every
 // request including a valid one, so it cannot be audited by replaying
-// cases at all, and docs/api-support/dynamodb.md records which.
+// cases at all, and docs/SUPPORT.md records which.
 var constraintTables = map[string][]modelcheck.Constraint{
 	"BatchExecuteStatement": {
 		{Path: "ReturnConsumedCapacity", Kind: modelcheck.KindEnum, Enum: []string{"INDEXES", "TOTAL", "NONE"}},

@@ -4,7 +4,7 @@ Date: 2026-07-10
 
 > **Historical.** A snapshot as of 2026-07-10, kept as written rather than
 > corrected. Counts, scope and any claim about what "remains" describe the
-> repo on that day — for current state see [docs/api-support](../api-support)
+> repo on that day — for current state see [docs/SUPPORT.md](../SUPPORT.md)
 > and [docs/not-built.md](../not-built.md).
 
 ## Scope delivered
@@ -31,7 +31,7 @@ later phase needs to add a service is in place:
   - `gateway` — shared-endpoint router: X-Amz-Target prefix → SigV4 scope →
     Lambda path → Query Action table → S3 fallback. Body-preserving Action
     peek. Central presigned-expiry rejection.
-- **STS**: all 9 documented operations (8×F, 1×S — see docs/api-support/sts.md).
+- **STS**: all 9 documented operations (8×F, 1×S — see docs/SUPPORT.md).
   Query/XML wire format, JWT/SAML claim reflection, duration validation.
 - **cmd/doze-aws**: serve (default) / `config print` / `version`; flags > TOML
   file > defaults with unknown-key rejection; graceful SIGTERM drain;

@@ -16,7 +16,7 @@
 // Enhanced fan-out is registered and described honestly, but SubscribeToShard
 // needs HTTP/2 event-stream framing and is refused rather than faked.
 //
-// See docs/api-support/kinesis.md for the operation-by-operation support table.
+// See docs/SUPPORT.md for the operation-by-operation support table.
 package kinesis
 
 import (

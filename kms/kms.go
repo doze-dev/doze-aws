@@ -14,7 +14,7 @@
 // the one spec that answers UnsupportedOperationException — Go's standard
 // library has no secp256k1, and doze-aws does not take crypto dependencies.
 //
-// See docs/api-support/kms.md for the operation-by-operation support table.
+// See docs/SUPPORT.md for the operation-by-operation support table.
 package kms
 
 import (

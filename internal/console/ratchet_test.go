@@ -92,7 +92,7 @@ func TestTrafficTableIsNotSilentlyLoadBearing(t *testing.T) {
 	real := literalsIn(t, func(f string) bool { return f == "traffic.go" })
 
 	// Through the embedded ledger, not a ../ glob. The glob version skipped
-	// when it matched nothing, so renaming docs/api-support/ turned this
+	// when it matched nothing, so renaming docs/SUPPORT.md turned this
 	// ratchet — and the two in coverage_test.go — into silent passes. An
 	// embed with no matches does not compile.
 	total := 0

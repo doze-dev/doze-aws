@@ -10,7 +10,7 @@
 // OpsCenter, maintenance windows) needs managed instances that don't exist
 // here; those operations answer a clean UnsupportedOperationException.
 //
-// See docs/api-support/ssm.md for the operation-by-operation support table.
+// See docs/SUPPORT.md for the operation-by-operation support table.
 package ssm
 
 import (
@@ -170,7 +170,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // fleetOps names the SSM surface that cannot exist locally (Tier S). The list
-// is prefix-matched conceptually but enumerated for exactness in api-support.
+// is prefix-matched conceptually but enumerated for exactness in docs/SUPPORT.md.
 var fleetOps = map[string]bool{}
 
 func init() {

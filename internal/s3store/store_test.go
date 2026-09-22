@@ -270,7 +270,7 @@ func md5hex(s string) string {
 	return h
 }
 
-// TestBucketNameRejectsIPForm closes the gap docs/api-support/s3.md carried as
+// TestBucketNameRejectsIPForm closes the gap docs/SUPPORT.md carried as
 // "❌ 10.0.0.1 is accepted". The instructive part is that validation here was
 // not missing — it checked case, charset and length and then stopped, which is
 // harder to spot by reading than an absent check.

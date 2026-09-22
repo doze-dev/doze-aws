@@ -119,6 +119,15 @@ func TestEmbeddedTreesFitTheirBudget(t *testing.T) {
 				Bytes: cur.Bytes.Record(bytes, lightness.Bytes), Files: files,
 			}
 		}
+		// Drop budgets for trees that no longer exist, or an embed site that is
+		// renamed leaves its old entry behind forever. Adding one was already a
+		// failure; removing one was silent until docs/api-support became
+		// docs/SUPPORT.md and left a 196,765-byte budget for nothing.
+		for name := range want.Portable.Embed {
+			if _, live := trees[name]; !live {
+				delete(want.Portable.Embed, name)
+			}
+		}
 		if err := lightness.Save(budgetPath, want); err != nil {
 			t.Fatal(err)
 		}
@@ -150,6 +159,16 @@ func TestEmbeddedTreesFitTheirBudget(t *testing.T) {
 				name, files, budget.Files)
 		}
 	}
+
+	// And the other direction: a budget entry for a tree nothing embeds any
+	// more is a number that reads as a fact about the binary and is not one.
+	for name := range want.Portable.Embed {
+		if _, live := trees[name]; !live {
+			t.Errorf("the budget has %s, which nothing embeds any more.\n"+
+				"  A stale entry describes a binary that no longer exists — "+
+				"run `task lightness:update`\n  to drop it.", name)
+		}
+	}
 }
 
 // embeddedTrees is every //go:embed tree in the binary.
@@ -159,7 +178,7 @@ func TestEmbeddedTreesFitTheirBudget(t *testing.T) {
 // reads the ledger at runtime to render the fidelity panel.
 func embeddedTrees() map[string]fs.FS {
 	trees := map[string]fs.FS{
-		"docs/api-support":    docs.FS,
+		"docs/SUPPORT.md":     docs.FS,
 		"lambdaruntime/shims": lambdaruntime.EmbeddedFS(),
 	}
 	for name, fsys := range console.EmbeddedFS() {

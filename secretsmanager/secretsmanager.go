@@ -8,7 +8,7 @@
 // rotation Lambda via peers. Cross-region replication is physically meaningless
 // locally and answers honestly.
 //
-// See docs/api-support/secretsmanager.md for the support table.
+// See docs/SUPPORT.md for the support table.
 package secretsmanager
 
 import (

@@ -4,7 +4,7 @@ Date: 2026-07-11
 
 > **Historical.** A snapshot as of 2026-07-11, kept as written rather than
 > corrected. Counts, scope and any claim about what "remains" describe the
-> repo on that day — for current state see [docs/api-support](../api-support)
+> repo on that day — for current state see [docs/SUPPORT.md](../SUPPORT.md)
 > and [docs/not-built.md](../not-built.md).
 
 ## Scope delivered
@@ -18,7 +18,7 @@ functional) and ready to tag v0.1.0.
   clean.
 - **User docs**: getting-started (run/point-an-SDK/configure/persistence),
   embedding (stack + single-service + peers wiring), a docs index, and the
-  per-service api-support tables completed in each phase.
+  per-service SUPPORT.md tables completed in each phase.
 - **Fuzz CI** now covers six targets (sigparse, awschunk, ddb decimal/keyenc/
   expr, eventpattern) on the weekly schedule.
 - Release plumbing (goreleaser, checksum-verifying install.sh, the CI matrix)

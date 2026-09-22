@@ -12,7 +12,7 @@
 // its matching lines to a Lambda function or a Kinesis stream in the gzip
 // envelope AWS sends (fanout.go).
 //
-// See docs/api-support/logs.md for the operation-by-operation table.
+// See docs/SUPPORT.md for the operation-by-operation table.
 package logs
 
 import (

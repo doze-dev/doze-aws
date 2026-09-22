@@ -4,7 +4,7 @@ Date: 2026-07-12
 
 > **Historical.** A snapshot as of 2026-07-12, kept as written rather than
 > corrected. Counts, scope and any claim about what "remains" describe the
-> repo on that day — for current state see [docs/api-support](../api-support)
+> repo on that day — for current state see [docs/SUPPORT.md](../SUPPORT.md)
 > and [docs/not-built.md](../not-built.md).
 
 Phase 8 closes the functional gaps that Phases 1–7 deferred with honest stubs.
@@ -59,7 +59,7 @@ deferral is DynamoDB Streams (post-1.0, per the original scope decision).
 EventBridge API destinations + connections, partner event sources, global
 endpoints, cross-account permissions, and the schemas registry; DynamoDB global
 tables + DAX; and the per-service stubs enumerated in each service's
-`docs/api-support/*.md`.
+`docs/SUPPORT.md`.
 
 ## Status
 
@@ -70,4 +70,4 @@ tables + DAX; and the per-service stubs enumerated in each service's
 
 Deferred to post-1.0: DynamoDB Streams (and the Lambda triggers that ride on it).
 
-> Update (2026-09-08): DynamoDB Streams and the Lambda triggers on them shipped after this report; see docs/api-support/dynamodb.md.
+> Update (2026-09-08): DynamoDB Streams and the Lambda triggers on them shipped after this report; see docs/SUPPORT.md.

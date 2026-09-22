@@ -8,7 +8,7 @@
 // expiration enforced by a janitor, object lock (retention + legal hold), and
 // bucket-website index/error serving are all functional.
 //
-// See docs/api-support/s3.md for the operation-by-operation support table.
+// See docs/SUPPORT.md for the operation-by-operation support table.
 package s3
 
 import (

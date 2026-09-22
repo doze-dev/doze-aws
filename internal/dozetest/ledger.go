@@ -87,7 +87,7 @@ type Totals struct {
 var totalsSentence = regexp.MustCompile(
 	`(\d+)/(\d+) model-derived constraints enforced across (?:all |the )?(?:(\d+) of (?:all |the )?)?(\d+)`)
 
-// LedgerTotals reports what docs/api-support/<svc>.md claims, and whether it
+// LedgerTotals reports what docs/SUPPORT.md (<svc>) claims, and whether it
 // claims anything at all.
 //
 // Exported so README can be checked against the ledgers through the SAME regex
@@ -119,7 +119,7 @@ func LedgerTotals(svc string) (Totals, bool) {
 // Section is the ledger's input-validation section, or "".
 func Section(svc string) string { return docs.Section(svc, "Input validation") }
 
-// AssertLedgerTotals fails when docs/api-support/<svc>.md disagrees with what
+// AssertLedgerTotals fails when docs/SUPPORT.md (<svc>) disagrees with what
 // the caller measured.
 //
 // One line at the end of a parity suite, replacing nothing — the t.Logf stays,
@@ -136,12 +136,12 @@ func AssertLedgerTotals(t testing.TB, svc string, got Totals) {
 	// narrative section tomorrow, reporting the wrong line as stale.
 	section := docs.Section(svc, "Input validation")
 	if section == "" {
-		t.Errorf("docs/api-support/%s.md has no ## Input validation section", svc)
+		t.Errorf("docs/SUPPORT.md (%s) has no ### Input validation section", svc)
 		return
 	}
 	line, m := findTotals(section)
 	if m == nil {
-		t.Errorf("docs/api-support/%s.md has no totals sentence in its "+
+		t.Errorf("docs/SUPPORT.md (%s) has no totals sentence in its "+
 			"## Input validation section.\n"+
 			"  Expected the shape: **%d/%d model-derived constraints enforced "+
 			"across %s, with `knownGaps` empty.**",
@@ -178,7 +178,7 @@ func AssertLedgerTotals(t testing.TB, svc string, got Totals) {
 	if len(wrong) == 0 {
 		return
 	}
-	t.Errorf("docs/api-support/%s.md is out of date:\n  %s\n\nThe line to fix:\n  %s\n\n"+
+	t.Errorf("docs/SUPPORT.md (%s) is out of date:\n  %s\n\nThe line to fix:\n  %s\n\n"+
 		"It should read %d/%d … across %s. README's table row carries the same "+
 		"numbers; nothing checks that the two agree yet, so change it too.",
 		svc, strings.Join(wrong, "\n  "), strings.TrimSpace(line),
@@ -197,7 +197,7 @@ func AssertLedgerTotals(t testing.TB, svc string, got Totals) {
 var sabotageSentence = regexp.MustCompile(
 	`Removing the constraint table makes (\d+) of those (\d+) cases slip through`)
 
-// AssertSabotageFigure fails when docs/api-support/<svc>.md disagrees with what
+// AssertSabotageFigure fails when docs/SUPPORT.md (<svc>) disagrees with what
 // the caller measured by replaying its cases with constraintTables removed.
 //
 // This is the only figure in the ledgers that says the audit FOUND something
@@ -208,12 +208,12 @@ func AssertSabotageFigure(t testing.TB, svc string, slipped, cases int) {
 	t.Helper()
 	section := docs.Section(svc, "Input validation")
 	if section == "" {
-		t.Errorf("docs/api-support/%s.md has no ## Input validation section", svc)
+		t.Errorf("docs/SUPPORT.md (%s) has no ### Input validation section", svc)
 		return
 	}
 	line, m := findIn(section, sabotageSentence)
 	if m == nil {
-		t.Errorf("docs/api-support/%s.md has no sabotage sentence in its "+
+		t.Errorf("docs/SUPPORT.md (%s) has no sabotage sentence in its "+
 			"## Input validation section.\n"+
 			"  Expected the shape: Removing the constraint table makes %d of "+
 			"those %d cases slip through.", svc, slipped, cases)
@@ -222,7 +222,7 @@ func AssertSabotageFigure(t testing.TB, svc string, slipped, cases int) {
 	if atoi(m[1]) == slipped && atoi(m[2]) == cases {
 		return
 	}
-	t.Errorf("docs/api-support/%s.md is out of date:\n"+
+	t.Errorf("docs/SUPPORT.md (%s) is out of date:\n"+
 		"  the ledger says %s of %s slip through, the replay measured %d of %d\n\n"+
 		"The line to fix:\n  %s\n\n"+
 		"This number is what the service ACCEPTS with its model-derived table "+

@@ -33,7 +33,7 @@
 // AWS-managed policies are synthesized from their naming convention rather
 // than vendored as a multi-megabyte table — see managed.go.
 //
-// See docs/api-support/iam.md for the operation-by-operation support table.
+// See docs/SUPPORT.md for the operation-by-operation support table.
 package iam
 
 import (

@@ -2,7 +2,7 @@ package console
 
 // The fidelity Info panel.
 //
-// docs/api-support/*.md records every operation each service implements and at
+// docs/SUPPORT.md records every operation each service implements and at
 // what tier: F = functional (real local semantics), C = cosmetic (accepted,
 // stored maybe, no local effect), S = stub (clean refusal). For an emulator
 // this is the most useful table a console page can show — real AWS cannot offer
