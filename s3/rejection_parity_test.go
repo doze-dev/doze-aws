@@ -49,14 +49,10 @@ type binding struct {
 	XMLNames map[string]string  `json:"xml_names"`
 }
 
+// auditCase is dozetest.Case plus what only this suite needs.
 type auditCase struct {
-	Operation   string           `json:"operation"`
-	Path        string           `json:"path"`
-	Why         string           `json:"why"`
-	Value       any              `json:"value"`
-	ValueRepeat *auditkit.Repeat `json:"value_repeat,omitempty"`
-	Constraint  string           `json:"constraint"`
-	HTTP        *binding         `json:"http"`
+	dozetest.Case
+	HTTP *binding `json:"http"`
 }
 
 func s3Server(t *testing.T) *httptest.Server {
@@ -211,22 +207,7 @@ func deref(v any) any {
 
 func loadCases(t *testing.T) []auditCase {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("testdata", "cases_s3.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var cs []auditCase
-	if err := json.Unmarshal(raw, &cs); err != nil {
-		t.Fatal(err)
-	}
-	// A max-length case stores the shape of its padding rather than the run
-	// itself: written out, those runs were 35 MB of the 37.5 MB of fixtures.
-	for i := range cs {
-		cs[i].Value = auditkit.Materialize(cs[i].Value, cs[i].ValueRepeat)
-	}
-	if len(cs) == 0 {
-		t.Fatal("no cases: the audit would pass vacuously")
-	}
+	cs := dozetest.LoadCasesInto(t, "cases_s3.json", func(c *auditCase) *dozetest.Case { return &c.Case })
 	return cs
 }
 

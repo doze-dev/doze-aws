@@ -42,26 +42,18 @@ import (
 	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/doze-dev/doze-aws/dynamodb"
-	"github.com/doze-dev/doze-aws/internal/auditkit"
 )
 
+// auditCase is dozetest.Case plus what only this suite needs.
 type auditCase struct {
-	Operation       string           `json:"operation"`
-	Target          string           `json:"target"`
-	Path            string           `json:"path"`
-	Why             string           `json:"why"`
-	Value           any              `json:"value"`
-	ValueRepeat     *auditkit.Repeat `json:"value_repeat,omitempty"`
-	Constraint      string           `json:"constraint"`
-	RequiredMembers []string         `json:"required_members"`
+	dozetest.Case
+	RequiredMembers []string `json:"required_members"`
 }
 
 // fixture is the state the baselines are written against: one table with a
@@ -596,22 +588,7 @@ func send(t *testing.T, ts *httptest.Server, target string, body map[string]any)
 
 func loadCases(t *testing.T) []auditCase {
 	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("testdata", "cases_dynamodb.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var cs []auditCase
-	if err := json.Unmarshal(raw, &cs); err != nil {
-		t.Fatal(err)
-	}
-	// A max-length case stores the shape of its padding rather than the run
-	// itself: written out, those runs were 35 MB of the 37.5 MB of fixtures.
-	for i := range cs {
-		cs[i].Value = auditkit.Materialize(cs[i].Value, cs[i].ValueRepeat)
-	}
-	if len(cs) == 0 {
-		t.Fatal("no cases: the audit would pass vacuously")
-	}
+	cs := dozetest.LoadCasesInto(t, "cases_dynamodb.json", func(c *auditCase) *dozetest.Case { return &c.Case })
 	return cs
 }
 

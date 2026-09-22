@@ -19,15 +19,12 @@ package iam
 // addresses its own resource.
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -37,14 +34,8 @@ import (
 	"github.com/doze-dev/doze-aws/internal/auditkit"
 )
 
-type auditCase struct {
-	Operation   string           `json:"operation"`
-	Path        string           `json:"path"`
-	Why         string           `json:"why"`
-	Value       any              `json:"value"`
-	ValueRepeat *auditkit.Repeat `json:"value_repeat,omitempty"`
-	Constraint  string           `json:"constraint"`
-}
+// auditCase is the shared shape; see dozetest.Case.
+type auditCase = dozetest.Case
 
 func iamServer(t *testing.T) *httptest.Server {
 	t.Helper()
@@ -520,27 +511,6 @@ var knownGaps = map[string]bool{
 	// Empty, and that is the goal.
 }
 
-func loadCases(t *testing.T) []auditCase {
-	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("testdata", "cases_iam.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var cs []auditCase
-	if err := json.Unmarshal(raw, &cs); err != nil {
-		t.Fatal(err)
-	}
-	// A max-length case stores the shape of its padding rather than the run
-	// itself: written out, those runs were 35 MB of the 37.5 MB of fixtures.
-	for i := range cs {
-		cs[i].Value = auditkit.Materialize(cs[i].Value, cs[i].ValueRepeat)
-	}
-	if len(cs) == 0 {
-		t.Fatal("no cases: the audit would pass vacuously")
-	}
-	return cs
-}
-
 func TestIAMRejectsWhatTheModelForbids(t *testing.T) {
 	ts := iamServer(t)
 	setUpFixture(t, ts)
@@ -549,7 +519,7 @@ func TestIAMRejectsWhatTheModelForbids(t *testing.T) {
 	seq := func() int { n++; return n }
 
 	byOp := map[string][]auditCase{}
-	for _, c := range loadCases(t) {
+	for _, c := range dozetest.LoadCases(t, "cases_iam.json") {
 		byOp[c.Operation] = append(byOp[c.Operation], c)
 	}
 	ops := make([]string, 0, len(byOp))
@@ -658,7 +628,7 @@ func TestTheConstraintTableIsDoingWork(t *testing.T) {
 	constraintTables = nil
 
 	var replayed, slipped int
-	for _, c := range loadCases(t) {
+	for _, c := range dozetest.LoadCases(t, "cases_iam.json") {
 		b, ok := base[c.Operation]
 		if !ok {
 			continue

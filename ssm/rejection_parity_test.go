@@ -21,23 +21,14 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"sort"
 	"testing"
 
 	"github.com/doze-dev/doze-aws/internal/auditkit"
 )
 
-type auditCase struct {
-	Operation   string           `json:"operation"`
-	Target      string           `json:"target"`
-	Path        string           `json:"path"`
-	Why         string           `json:"why"`
-	Value       any              `json:"value"`
-	ValueRepeat *auditkit.Repeat `json:"value_repeat,omitempty"`
-	Constraint  string           `json:"constraint"`
-}
+// auditCase is the shared shape; see dozetest.Case.
+type auditCase = dozetest.Case
 
 func ssmServer(t *testing.T) *httptest.Server {
 	t.Helper()
@@ -186,27 +177,6 @@ var knownGaps = map[string]bool{
 	// Empty, and that is the goal.
 }
 
-func loadCases(t *testing.T) []auditCase {
-	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("testdata", "cases_ssm.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var cs []auditCase
-	if err := json.Unmarshal(raw, &cs); err != nil {
-		t.Fatal(err)
-	}
-	// A max-length case stores the shape of its padding rather than the run
-	// itself: written out, those runs were 35 MB of the 37.5 MB of fixtures.
-	for i := range cs {
-		cs[i].Value = auditkit.Materialize(cs[i].Value, cs[i].ValueRepeat)
-	}
-	if len(cs) == 0 {
-		t.Fatal("no cases: the audit would pass vacuously")
-	}
-	return cs
-}
-
 func TestSSMRejectsWhatTheModelForbids(t *testing.T) {
 	ts := ssmServer(t)
 	setUpFixture(t, ts)
@@ -215,7 +185,7 @@ func TestSSMRejectsWhatTheModelForbids(t *testing.T) {
 	seq := func() int { n++; return n }
 
 	byOp := map[string][]auditCase{}
-	for _, c := range loadCases(t) {
+	for _, c := range dozetest.LoadCases(t, "cases_ssm.json") {
 		byOp[c.Operation] = append(byOp[c.Operation], c)
 	}
 	ops := make([]string, 0, len(byOp))
@@ -328,7 +298,7 @@ func TestTheConstraintTableIsDoingWork(t *testing.T) {
 	constraintTables = nil
 
 	var total, slipped int
-	for _, c := range loadCases(t) {
+	for _, c := range dozetest.LoadCases(t, "cases_ssm.json") {
 		b, ok := base[c.Operation]
 		if !ok {
 			continue

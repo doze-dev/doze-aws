@@ -16,15 +16,12 @@ package cloudformation_test
 // stack rather than the one handler.
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/doze-dev/doze-aws/internal/dozetest"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
-	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -35,14 +32,8 @@ import (
 	"github.com/doze-dev/doze-aws/internal/auditkit"
 )
 
-type auditCase struct {
-	Operation   string           `json:"operation"`
-	Path        string           `json:"path"`
-	Why         string           `json:"why"`
-	Value       any              `json:"value"`
-	ValueRepeat *auditkit.Repeat `json:"value_repeat,omitempty"`
-	Constraint  string           `json:"constraint"`
-}
+// auditCase is the shared shape; see dozetest.Case.
+type auditCase = dozetest.Case
 
 // auditTemplate is deliberately the smallest thing CloudFormation will accept
 // and provision — every case creates or updates a stack, and a heavier template
@@ -274,27 +265,6 @@ func isValidationRefusal(body string) bool {
 	return strings.Contains(body, "validation error detected:")
 }
 
-func loadCases(t *testing.T) []auditCase {
-	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("testdata", "cases_cloudformation.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var cs []auditCase
-	if err := json.Unmarshal(raw, &cs); err != nil {
-		t.Fatal(err)
-	}
-	// A max-length case stores the shape of its padding rather than the run
-	// itself: written out, those runs were 35 MB of the 37.5 MB of fixtures.
-	for i := range cs {
-		cs[i].Value = auditkit.Materialize(cs[i].Value, cs[i].ValueRepeat)
-	}
-	if len(cs) == 0 {
-		t.Fatal("no cases: the audit would pass vacuously")
-	}
-	return cs
-}
-
 func TestCloudFormationRejectsWhatTheModelForbids(t *testing.T) {
 	if testing.Short() {
 		t.Skip("stands up a full stack and provisions for real")
@@ -306,7 +276,7 @@ func TestCloudFormationRejectsWhatTheModelForbids(t *testing.T) {
 	seq := func() int { n++; return n }
 
 	byOp := map[string][]auditCase{}
-	for _, c := range loadCases(t) {
+	for _, c := range dozetest.LoadCases(t, "cases_cloudformation.json") {
 		byOp[c.Operation] = append(byOp[c.Operation], c)
 	}
 	ops := make([]string, 0, len(byOp))
@@ -434,7 +404,7 @@ func TestTheConstraintTableIsDoingWork(t *testing.T) {
 	t.Cleanup(cloudformation.WithoutConstraintTables())
 
 	var replayed, slipped int
-	for _, c := range loadCases(t) {
+	for _, c := range dozetest.LoadCases(t, "cases_cloudformation.json") {
 		b, ok := base[c.Operation]
 		if !ok {
 			continue

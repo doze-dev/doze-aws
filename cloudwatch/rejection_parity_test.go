@@ -28,8 +28,6 @@ package cloudwatch_test
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -41,15 +39,8 @@ import (
 	"github.com/doze-dev/doze-aws/internal/rpcv2cbor"
 )
 
-type auditCase struct {
-	Operation   string           `json:"operation"`
-	Target      string           `json:"target"`
-	Path        string           `json:"path"`
-	Why         string           `json:"why"`
-	Value       any              `json:"value"`
-	ValueRepeat *auditkit.Repeat `json:"value_repeat,omitempty"`
-	Constraint  string           `json:"constraint"`
-}
+// auditCase is the shared shape; see dozetest.Case.
+type auditCase = dozetest.Case
 
 // dispatched is the set of operations with a real handler. A case against a
 // refused operation proves nothing — it answers UnsupportedOperationException
@@ -58,30 +49,6 @@ type auditCase struct {
 // Derived from the dispatch table itself: this was a hand-written list, and
 // it silently excluded every alarm operation from the day they landed.
 var dispatched = cloudwatch.Dispatched()
-
-func loadCases(t *testing.T) []auditCase {
-	t.Helper()
-	raw, err := os.ReadFile(filepath.Join("testdata", "cases_cloudwatch.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	var all []auditCase
-	if err := json.Unmarshal(raw, &all); err != nil {
-		t.Fatal(err)
-	}
-	var cs []auditCase
-	for _, c := range all {
-		// A max-length case stores the shape of its padding, not the run.
-		c.Value = auditkit.Materialize(c.Value, c.ValueRepeat)
-		if dispatched[c.Operation] {
-			cs = append(cs, c)
-		}
-	}
-	if len(cs) == 0 {
-		t.Fatal("no cases: the audit would pass vacuously")
-	}
-	return cs
-}
 
 // baselines is one request per dispatched operation that the service is
 // expected to accept. Everything below is a mutation of one of these.
@@ -332,7 +299,20 @@ func TestCloudWatchRejectsWhatTheModelForbids(t *testing.T) {
 	// One series so the read operations have something real to address.
 	seedAudit(t, ts.URL)
 
-	cases := loadCases(t)
+	// Scoped to what this build dispatches. The model covers CloudWatch's
+	// whole surface; replaying a mutation against an operation that refuses
+	// everything proves nothing, so those cases are out of scope rather than
+	// gaps. This used to live inside the loader, where the scoping was
+	// invisible at the only place it changes what the numbers mean.
+	cases := make([]auditCase, 0)
+	for _, c := range dozetest.LoadCases(t, "cases_cloudwatch.json") {
+		if dispatched[c.Operation] {
+			cases = append(cases, c)
+		}
+	}
+	if len(cases) == 0 {
+		t.Fatal("no dispatched cases: the audit would pass vacuously")
+	}
 	base := baselines()
 	ex := exemplars()
 
