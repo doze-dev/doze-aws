@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net"
@@ -71,7 +72,17 @@ func TestTheMachineWideApexIsNeverClaimed(t *testing.T) {
 		}
 	}
 	// And nothing is listening for it, which is the part a user would notice.
+	//
+	// A machine with no .doze offers no name to listen on, so there are no
+	// listeners to check — which is a fact about the runner, not a failure.
+	// Said out loud rather than skipped silently: the registry half above runs
+	// everywhere and is the half that guards the regression, and CI's Linux
+	// leg reaches this half because its runner can write /etc/hosts.
 	binds, err := openListeners(config.Default(), z, quietLogger())
+	if errors.Is(err, errNothingToListenOn) {
+		t.Log("no name resolves on this machine; the listener half of this test did not run")
+		return
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -141,6 +152,14 @@ func TestAHeldNameSaysWhoHasItAndWhatToDo(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "doctor") {
 		t.Errorf("the no-names error should point at doctor:\n%s", err)
+	}
+	// And it must stay matchable. TestTheMachineWideApexIsNeverClaimed tells
+	// "this machine has no name" apart from a real failure with errors.Is, so a
+	// return to fmt.Errorf here would turn that test red on every machine
+	// without .doze — which is what a clean CI runner is, and is exactly how
+	// the macOS leg came to be red for four days.
+	if !errors.Is(err, errNothingToListenOn) {
+		t.Errorf("the no-names error is not errNothingToListenOn, so callers cannot match it:\n%s", err)
 	}
 }
 

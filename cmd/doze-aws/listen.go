@@ -48,6 +48,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -216,13 +217,22 @@ func openListeners(cfg config.Config, z *zone, logger *slog.Logger) (listeners, 
 				z.held.Host, z.held.PID, z.held.Owner)
 		}
 		// ensureNames already explained the DNS half; this is the other way in.
-		return listeners{}, fmt.Errorf(
-			"doze-aws: nothing to listen on — .doze gave no name and no --listen was set.\n" +
-				"  doze-aws doctor             show what is missing\n" +
-				"  doze-aws --listen host:port serve on an address instead")
+		return listeners{}, errNothingToListenOn
 	}
 	return out, nil
 }
+
+// errNothingToListenOn is "this machine offered no name and no --listen was
+// set" — a statement about the machine, not a failure of openListeners.
+//
+// A sentinel because a test needs to tell it apart from a real error. On a
+// machine without .doze there are no listeners to assert anything about, and
+// a CI runner is exactly that machine: the macOS leg failed on it for four
+// days while the Linux leg, whose runner can write /etc/hosts as root, passed.
+var errNothingToListenOn = errors.New(
+	"doze-aws: nothing to listen on — .doze gave no name and no --listen was set.\n" +
+		"  doze-aws doctor             show what is missing\n" +
+		"  doze-aws --listen host:port serve on an address instead")
 
 // namePort is the port the name's own address binds. It is not the port anyone
 // types — the front door serves the name port-less on :80 — but a listener
