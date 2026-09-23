@@ -45,12 +45,18 @@ jobs:
   # booted by playwright.config.ts's webServer and only lives for the duration
   # of `playwright test`, so there is nothing for a later step to seed.
   #
-  # It needs node, python3 and ruby on PATH — the demo's four Lambda functions
-  # are deliberately one runtime each, and they run as real supervised
-  # processes. The ubuntu-latest image ships all three. If this job ever goes
-  # red on "the function process exited", check that before suspecting the
-  # emulator: a version-manager shim with no pinned version fails exactly that
-  # way, which is what it does on a dev machine using proto.
+  # It needs node, python3 and ruby on PATH — three of the demo's four Lambda
+  # functions are interpreted, deliberately one runtime each, and they run as
+  # real supervised processes. The ubuntu-latest image ships all three. If this
+  # job ever goes red on "the function process exited", check that before
+  # suspecting the emulator: a version-manager shim with no pinned version
+  # fails exactly that way, which is what it does on a dev machine using proto.
+  #
+  # The fourth is provided.al2023, where the handler IS a compiled binary, and
+  # demo/.gitignore keeps 9 MB of it out of the repo. That is why it is built
+  # below: without it the seed failed on "fork/exec .../bootstrap: no such file
+  # or directory" — which it had done on every run since the function landed,
+  # because this job is not a gate anything waits on.
   seed:
     runs-on: ubuntu-latest
     steps:
@@ -62,6 +68,11 @@ jobs:
       - name: Install demo dependencies
         working-directory: demo
         run: bun install --frozen-lockfile
+      # Its own module, so GOWORK=off and a build in place. The name is
+      # "bootstrap" because that is what provided.al2023 executes.
+      - name: Build the demo's Go function
+        working-directory: demo/functions/price-calculator
+        run: GOWORK=off go build -o bootstrap .
       - name: Seed a stack with the real SDKs
         env:
           AWS_ENDPOINT_URL: http://127.0.0.1:4566
