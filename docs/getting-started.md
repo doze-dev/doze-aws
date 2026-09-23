@@ -35,8 +35,17 @@ Say yes and it is done for good. With no terminal at all — CI, or `doze-aws &`
 waiting for a password nobody can type is worse than one that stops.
 
 Running as root it installs without asking, since there is nobody to ask — a
-container, usually. That path is exercised on `alpine` and `debian:stable-slim`
-with no `sudo` present: the hosts block is written and the server starts.
+container, usually. That path is checked by hand before a release on `alpine`
+and `debian:stable-slim`, both with no `sudo` present and no DNS: the hosts
+block is written and the server starts.
+
+It is checked on both because they differ in a way that mattered. `alpine`
+ships `/etc/sysctl.d`; `debian:stable-slim` does not, and writing into a
+directory that is not there took the whole install down with it — doze-aws
+exited fatally and the container could not start. The setup script creates the
+directory now and is allowed to fail on that step, which was always the
+intent: the sysctl only lets an *unprivileged* process bind :80, and a
+container runs as root.
 
 **In a container, still prefer `--listen`.** What a plain container cannot do
 is resolve the per-instance name in the banner: apex names (`aws.doze`) go in
