@@ -19,15 +19,18 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
 
 ### Breaking
 
-- **The Go API is 380 exported symbols, down from 1,867.** If you imported
+- **The Go API is 370 exported symbols, down from 1,867.** If you imported
   doze-aws as a library at 0.x, the packages you called are still there and
   still work — `New(Options) → *Server`, `dozeaws.NewStack`, `peers`,
   `awsident` — but everything that was never part of that contract is gone.
   What left: the thirteen `Store` types and their ~260 methods, 94 domain-model
   types (`sqs.Message`, `lambda.Function`, `iam.Role`, `apigateway.RestAPI` and
   the rest) that no exported function took or returned, the `console` and
-  `provision` packages and the CloudFormation transpiler, all now under
-  `internal/`. `awsident.ARN` and `awsident.GlobalARN` are deleted — use an
+  `provision` packages, the CloudFormation transpiler, and the 0.x
+  data-directory migration, all now under `internal/`. The migration still runs
+  automatically at startup — upgrading from 0.1.0–0.3.0 works as before; it is
+  simply no longer something you can call.
+  `awsident.ARN` and `awsident.GlobalARN` are deleted — use an
   `Identity`. They were the package-level helpers that always used the default
   account, and under `--account-id` the console displayed that default
   everywhere: computed ARNs, queue URLs and the credential scopes used for
