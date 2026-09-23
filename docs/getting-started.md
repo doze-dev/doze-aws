@@ -8,14 +8,22 @@ both AWS SDK generations. No Docker, no JVM, no cloud.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/doze-dev/doze-aws/main/install.sh | sh
+exec $SHELL          # or: export PATH="$HOME/.doze-aws/bin:$PATH"
 
 cd ~/code/harbour && doze-aws
 ```
 
 The installer verifies a SHA-256 against the release checksums and puts one
-binary on your `PATH`. There is nothing else to install — no runtime, no
+binary in `~/.doze-aws/bin`. There is nothing else to install — no runtime, no
 daemon, no container. (`--uninstall` takes it away again and leaves your data
 alone.)
+
+**The new shell is not optional.** The installer adds that directory to your
+`.zshrc` or `.bashrc`, but it cannot change the PATH of the shell that ran it —
+no process can do that to its parent. So `doze-aws` is found in the next shell,
+and `exec $SHELL` is the shortest way to get one. If your `$SHELL` is neither
+zsh nor bash the installer will not guess at a profile; it prints the `export`
+line for you to put wherever you keep such things.
 
 It prints where it is and what to do next: the endpoint, the console URL, how
 many services it is serving in which region and account, and the two commands

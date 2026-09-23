@@ -5,6 +5,7 @@ speaks the real AWS wire protocols — no Docker, no JVM, no cloud.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/doze-dev/doze-aws/main/install.sh | sh
+exec $SHELL          # or: export PATH="$HOME/.doze-aws/bin:$PATH"
 
 cd ~/code/harbour && doze-aws
 # reachable at http://aws.harbour.doze
