@@ -81,53 +81,12 @@ func (c *Console) apiGlance(w http.ResponseWriter, r *http.Request) {
 // changed ones are not.
 func (c *Console) glanceSnapshot(ctx context.Context) glanceResponse {
 	resp := glanceResponse{}
-
-	// The wire + per-service call sparklines, from the in-memory ring.
-	perSvc := map[string][]int{}
-	perSvcTotal := map[string]int{}
-	if c.rec != nil {
-		resp.Recorder = true
-		now := time.Now()
-		resp.Rate60 = make([]int, glanceSparkBuckets)
-		total := 0
-		bucket := func(at time.Time) (int, bool) {
-			age := now.Sub(at)
-			if age < 0 || age >= glanceWindow {
-				return 0, false
-			}
-			// newest at the right edge
-			i := glanceSparkBuckets - 1 - int(age*time.Duration(glanceSparkBuckets)/glanceWindow)
-			if i < 0 {
-				i = 0
-			}
-			return i, true
-		}
-		for _, e := range c.rec.Entries(0) {
-			if len(resp.Wire) < glanceWireMax {
-				resp.Wire = append(resp.Wire, glanceWire{
-					Seq: e.Seq, T: e.At.Local().Format("15:04:05.0"), Svc: e.Service, Action: e.Action,
-					Res: e.Resource, Code: e.Status, Millis: e.Millis, Err: e.Status >= 400,
-				})
-			}
-			if i, ok := bucket(e.At); ok {
-				total++
-				resp.Rate60[i]++
-				sp := perSvc[e.Service]
-				if sp == nil {
-					sp = make([]int, glanceSparkBuckets)
-					perSvc[e.Service] = sp
-				}
-				sp[i]++
-				perSvcTotal[e.Service]++
-			}
-		}
-		resp.Rate = fmt.Sprintf("%d/min", total)
-	}
+	perSvc, perSvcTotal := c.glanceWire(&resp)
 
 	// A service with nothing in it is omitted. The rail already lists all
 	// thirteen with counts; a board repeating "0 buckets · 0 queues · 0 topics"
 	// is noise, and it made "is this stack empty" unanswerable from here.
-	svc := func(key string, n int, label, state string, warn bool) {
+	add := func(key string, n int, label, state string, warn bool) {
 		if n == 0 {
 			return
 		}
@@ -137,11 +96,135 @@ func (c *Console) glanceSnapshot(ctx context.Context) glanceResponse {
 		})
 	}
 
+	// The order of these is the board's reading order. Each service that has
+	// something to say beyond a count says it in its own method below; the
+	// ones that are a count and nothing else stay here, because a method
+	// wrapping two lines hides more than it explains.
+
 	// s3
 	buckets, _ := c.be.ListBuckets(ctx)
-	svc("s3", len(buckets), plural(len(buckets), "bucket"), "", false)
+	add("s3", len(buckets), plural(len(buckets), "bucket"), "", false)
 
-	// sqs — depths and dead letters come from the same attrs fetch
+	c.glanceSQS(ctx, &resp, add)
+
+	// sns
+	topics, _ := c.be.ListTopics(ctx)
+	subs := 0
+	for _, t := range topics {
+		subs += t.Subs
+	}
+	add("sns", len(topics), plural(len(topics), "topic"), plural(subs, "subscription"), false)
+
+	// dynamodb
+	tables, _ := c.be.ListTables(ctx)
+	items := int64(0)
+	for _, t := range tables {
+		items += t.ItemCount
+	}
+	add("ddb", len(tables), plural(len(tables), "table"), plural(int(items), "item"), false)
+
+	c.glanceEventBridge(ctx, add)
+	c.glanceLambda(ctx, add)
+
+	// kms
+	if n, err := c.be.CountKeys(ctx); err == nil {
+		add("kms", n, plural(n, "key"), "", false)
+	}
+
+	c.glanceSSM(ctx, add)
+
+	// secrets manager
+	secrets, _ := c.be.ListSecrets(ctx)
+	add("sm", len(secrets), plural(len(secrets), "secret"), "", false)
+
+	// The board stopped at nine services while apiCounts already counted
+	// thirteen, so a stack whose only resources were streams or stacks looked
+	// empty from here.
+	if n, err := c.be.CountStreams(ctx); err == nil && n > 0 {
+		add("kinesis", n, plural(n, "stream"), "", false)
+	}
+	if n, err := c.be.CountStacks(ctx); err == nil && n > 0 {
+		add("cfn", n, plural(n, "stack"), "", false)
+	}
+	if n, err := c.be.CountRestAPIs(ctx); err == nil && n > 0 {
+		add("apigw", n, plural(n, "API"), "", false)
+	}
+
+	c.glanceStepFunctions(ctx, add)
+
+	if groups, err := c.be.ListLogGroups(ctx); err == nil && len(groups) > 0 {
+		add("logs", len(groups), plural(len(groups), "log group"), "", false)
+	}
+
+	c.glanceCloudWatch(ctx, add)
+
+	if n, err := c.be.CountPrincipals(ctx); err == nil && n > 0 {
+		add("iam", n, plural(n, "principal"), "", false)
+	}
+
+	c.glanceUnwired(ctx, &resp)
+	return resp
+}
+
+// glanceAdd appends one service to the board, or does nothing when the service
+// is empty. glanceSnapshot owns the rule; each section is handed the closure so
+// it cannot forget it.
+type glanceAdd func(key string, n int, label, state string, warn bool)
+
+// glanceWire fills the wire tail and the call sparklines from the in-memory
+// ring, and reports the per-service buckets the board hangs off. Recorder stays
+// false when there is no recorder, so an empty wire reads as capture-off rather
+// than as a quiet stack.
+func (c *Console) glanceWire(resp *glanceResponse) (perSvc map[string][]int, perSvcTotal map[string]int) {
+	perSvc = map[string][]int{}
+	perSvcTotal = map[string]int{}
+	if c.rec == nil {
+		return perSvc, perSvcTotal
+	}
+	resp.Recorder = true
+	now := time.Now()
+	resp.Rate60 = make([]int, glanceSparkBuckets)
+	total := 0
+	bucket := func(at time.Time) (int, bool) {
+		age := now.Sub(at)
+		if age < 0 || age >= glanceWindow {
+			return 0, false
+		}
+		// newest at the right edge
+		i := glanceSparkBuckets - 1 - int(age*time.Duration(glanceSparkBuckets)/glanceWindow)
+		if i < 0 {
+			i = 0
+		}
+		return i, true
+	}
+	for _, e := range c.rec.Entries(0) {
+		if len(resp.Wire) < glanceWireMax {
+			resp.Wire = append(resp.Wire, glanceWire{
+				Seq: e.Seq, T: e.At.Local().Format("15:04:05.0"), Svc: e.Service, Action: e.Action,
+				Res: e.Resource, Code: e.Status, Millis: e.Millis, Err: e.Status >= 400,
+			})
+		}
+		if i, ok := bucket(e.At); ok {
+			total++
+			resp.Rate60[i]++
+			sp := perSvc[e.Service]
+			if sp == nil {
+				sp = make([]int, glanceSparkBuckets)
+				perSvc[e.Service] = sp
+			}
+			sp[i]++
+			perSvcTotal[e.Service]++
+		}
+	}
+	resp.Rate = fmt.Sprintf("%d/min", total)
+	return perSvc, perSvcTotal
+}
+
+// glanceSQS reports queue depth with dead letters counted apart, because a
+// thousand messages waiting to be processed and a thousand that failed are
+// opposite situations that a single total would report identically. A non-empty
+// DLQ is also the one queue fact worth raising to Attention.
+func (c *Console) glanceSQS(ctx context.Context, resp *glanceResponse, add glanceAdd) {
 	queues, _ := c.be.ListQueues(ctx)
 	depth, dlqDepth := 0, 0
 	dlqNames := map[string]bool{}
@@ -171,67 +254,56 @@ func (c *Console) glanceSnapshot(ctx context.Context) glanceResponse {
 		}
 		state += "dlq " + strconv.Itoa(dlqDepth) + " ⚠"
 	}
-	svc("sqs", len(queues), plural(len(queues), "queue"), state, dlqDepth > 0)
+	add("sqs", len(queues), plural(len(queues), "queue"), state, dlqDepth > 0)
 	if dlqDepth > 0 {
 		resp.Attention = append(resp.Attention, glanceAttention{
 			Text: worstDLQ + " holds " + plural(dlqDepth, "message"),
 			Slug: "sqs/" + worstDLQ,
 		})
 	}
+}
 
-	// sns
-	topics, _ := c.be.ListTopics(ctx)
-	subs := 0
-	for _, t := range topics {
-		subs += t.Subs
-	}
-	svc("sns", len(topics), plural(len(topics), "topic"), plural(subs, "subscription"), false)
-
-	// dynamodb
-	tables, _ := c.be.ListTables(ctx)
-	items := int64(0)
-	for _, t := range tables {
-		items += t.ItemCount
-	}
-	svc("ddb", len(tables), plural(len(tables), "table"), plural(int(items), "item"), false)
-
-	// eventbridge
+// glanceEventBridge counts rules, and buses beyond the default one.
+//
+// The default bus always exists — nobody made it — so counting it makes a
+// fresh stack look populated. EventBridge is on the board when there is
+// something in it: another bus, or a rule.
+func (c *Console) glanceEventBridge(ctx context.Context, add glanceAdd) {
 	buses, _ := c.be.ListBuses(ctx)
 	rules := 0
 	for _, b := range buses {
 		rules += b.Rules
 	}
-	// The default bus always exists — nobody made it — so counting it makes a
-	// fresh stack look populated. EventBridge is on the board when there is
-	// something in it: another bus, or a rule.
-	ebN := rules
+	n := rules
 	if len(buses) > 1 {
-		ebN += len(buses) - 1
+		n += len(buses) - 1
 	}
-	svc("eb", ebN, plural(len(buses), "bus")+" · "+plural(rules, "rule"), "", false)
+	add("eb", n, plural(len(buses), "bus")+" · "+plural(rules, "rule"), "", false)
+}
 
-	// lambda — the scale-to-zero story belongs on the board
+// glanceLambda puts the scale-to-zero story on the board: one warm function
+// makes the stack warm, and the countdown to sleep is the part worth seeing.
+func (c *Console) glanceLambda(ctx context.Context, add glanceAdd) {
 	fns, _ := c.be.ListFunctions(ctx)
-	lamState := ""
+	state := ""
 	for _, f := range fns {
 		rt := c.be.LambdaRuntime(ctx, f.Name)
 		if rt.Warm {
-			lamState = "warm"
+			state = "warm"
 			if left := rt.SleepLeft(); left > 0 {
-				lamState += " · sleeps in " + shortDur(left)
+				state += " · sleeps in " + shortDur(left)
 			}
 			break
 		}
 	}
-	if lamState == "" && len(fns) > 0 {
-		lamState = "cold · wakes on invoke"
+	if state == "" && len(fns) > 0 {
+		state = "cold · wakes on invoke"
 	}
-	svc("lambda", len(fns), plural(len(fns), "function"), lamState, false)
+	add("lambda", len(fns), plural(len(fns), "function"), state, false)
+}
 
-	// kms / ssm / secrets — cheap counts
-	if n, err := c.be.CountKeys(ctx); err == nil {
-		svc("kms", n, plural(n, "key"), "", false)
-	}
+// glanceSSM counts parameters, calling out the encrypted ones.
+func (c *Console) glanceSSM(ctx context.Context, add glanceAdd) {
 	params, _ := c.be.ListParameters(ctx)
 	secure := 0
 	for _, p := range params {
@@ -239,76 +311,68 @@ func (c *Console) glanceSnapshot(ctx context.Context) glanceResponse {
 			secure++
 		}
 	}
-	st := ""
+	state := ""
 	if secure > 0 {
-		st = plural(secure, "SecureString")
+		state = plural(secure, "SecureString")
 	}
-	svc("ssm", len(params), plural(len(params), "param"), st, false)
-	secrets, _ := c.be.ListSecrets(ctx)
-	svc("sm", len(secrets), plural(len(secrets), "secret"), "", false)
-
-	// The board stopped at nine services while apiCounts already counted
-	// thirteen, so a stack whose only resources were streams or stacks looked
-	// empty from here.
-	if n, err := c.be.CountStreams(ctx); err == nil && n > 0 {
-		svc("kinesis", n, plural(n, "stream"), "", false)
-	}
-	if n, err := c.be.CountStacks(ctx); err == nil && n > 0 {
-		svc("cfn", n, plural(n, "stack"), "", false)
-	}
-	if n, err := c.be.CountRestAPIs(ctx); err == nil && n > 0 {
-		svc("apigw", n, plural(n, "API"), "", false)
-	}
-	// Step Functions: a running execution is the state worth a glance, since
-	// one that is stuck on a task token looks exactly like one that is busy.
-	if sms, err := c.be.ListStateMachines(ctx); err == nil && len(sms) > 0 {
-		running := 0
-		for _, m := range sms {
-			if execs, err := c.be.ListExecutions(ctx, m.ARN, "RUNNING"); err == nil {
-				running += len(execs)
-			}
-		}
-		st := ""
-		if running > 0 {
-			st = plural(running, "running execution")
-		}
-		svc("sfn", len(sms), plural(len(sms), "state machine"), st, false)
-	}
-	if groups, err := c.be.ListLogGroups(ctx); err == nil && len(groups) > 0 {
-		svc("logs", len(groups), plural(len(groups), "log group"), "", false)
-	}
-	if alarms, err := c.be.ListAlarms(ctx); err == nil && len(alarms) > 0 {
-		// An alarm in ALARM is the one thing on this page worth reading first.
-		firing := 0
-		for _, a := range alarms {
-			if a.State == "ALARM" {
-				firing++
-			}
-		}
-		note := ""
-		if firing > 0 {
-			note = plural(firing, "alarm") + " firing"
-		}
-		svc("cw", len(alarms), plural(len(alarms), "alarm"), note, firing > 0)
-	}
-	if n, err := c.be.CountPrincipals(ctx); err == nil && n > 0 {
-		svc("iam", n, plural(n, "principal"), "", false)
-	}
-
-	// Unwired: resources nothing is wired to. Computed by layoutFlows on every
-	// Neighbors() call and thrown away since the flows page was deleted.
-	if g := c.be.graphCached(ctx); g.NodeCount > 0 {
-		resp.Nodes = g.NodeCount
-		for _, n := range g.Unwired {
-			resp.Unwired = append(resp.Unwired, glanceUnwired{
-				Svc: n.Svc, Name: n.Name, Slug: strings.TrimPrefix(n.URL, "/"),
-			})
-		}
-	}
-	return resp
+	add("ssm", len(params), plural(len(params), "param"), state, false)
 }
 
-// shortDur renders a countdown compactly: "6m", "45s", "1h2m".
+// glanceStepFunctions counts running executions, which is the state worth a
+// glance: one stuck on a task token looks exactly like one that is busy.
+func (c *Console) glanceStepFunctions(ctx context.Context, add glanceAdd) {
+	sms, err := c.be.ListStateMachines(ctx)
+	if err != nil || len(sms) == 0 {
+		return
+	}
+	running := 0
+	for _, m := range sms {
+		if execs, err := c.be.ListExecutions(ctx, m.ARN, "RUNNING"); err == nil {
+			running += len(execs)
+		}
+	}
+	state := ""
+	if running > 0 {
+		state = plural(running, "running execution")
+	}
+	add("sfn", len(sms), plural(len(sms), "state machine"), state, false)
+}
+
+// glanceCloudWatch counts alarms. An alarm in ALARM is the one thing on this
+// page worth reading first, so it warns.
+func (c *Console) glanceCloudWatch(ctx context.Context, add glanceAdd) {
+	alarms, err := c.be.ListAlarms(ctx)
+	if err != nil || len(alarms) == 0 {
+		return
+	}
+	firing := 0
+	for _, a := range alarms {
+		if a.State == "ALARM" {
+			firing++
+		}
+	}
+	note := ""
+	if firing > 0 {
+		note = plural(firing, "alarm") + " firing"
+	}
+	add("cw", len(alarms), plural(len(alarms), "alarm"), note, firing > 0)
+}
+
+// glanceUnwired lists resources nothing is wired to. layoutFlows computes this
+// on every Neighbors() call and used to throw it away once the flows page was
+// deleted.
+func (c *Console) glanceUnwired(ctx context.Context, resp *glanceResponse) {
+	g := c.be.graphCached(ctx)
+	if g.NodeCount == 0 {
+		return
+	}
+	resp.Nodes = g.NodeCount
+	for _, n := range g.Unwired {
+		resp.Unwired = append(resp.Unwired, glanceUnwired{
+			Svc: n.Svc, Name: n.Name, Slug: strings.TrimPrefix(n.URL, "/"),
+		})
+	}
+}
 func shortDur(secs int) string {
 	switch {
 	case secs >= 3600:
