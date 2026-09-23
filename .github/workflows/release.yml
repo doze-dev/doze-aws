@@ -1,15 +1,69 @@
 name: Release
 
+# A tag is the one build nobody re-runs. This workflow used to go straight to
+# GoReleaser: `git push --tags` published binaries without running a single
+# test, and nothing tied the tag to a green CI run — CI triggers on branch
+# pushes, so a tag on a commit that never reached main had never been tested at
+# all.
+#
+# The verify job below is that gate. It is the same set CI runs on every push,
+# against the tagged tree, and goreleaser needs it.
+
 on:
   push:
     tags: ['v*']
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  goreleaser:
+  verify:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      # The interpreters the embedded Lambda runtime clients run on. Tests that
+      # need one skip when it is absent, so without these the shims would not
+      # be exercised and the leg would still pass.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      # gofmt, vet, deadcode, the short suite and then the full race suite.
+      # Through the task so this cannot drift from what a developer runs.
+      - name: Gates
+        run: go tool task check:full
+      # Its own step, and deliberately not under -race: the detector inflates
+      # heap and resident memory several-fold, so footprint ceilings measured
+      # under it would be measuring the detector.
+      - name: Lightness budget
+        run: go tool task lightness
+      # go.mod must already be tidy. The release build used to run `go mod
+      # tidy` itself, which meant the published tree could differ from the
+      # tested one; now a tag whose go.mod is untidy fails here instead.
+      - name: go.mod is tidy
+        run: |
+          cp go.mod go.mod.orig && cp go.sum go.sum.orig
+          go mod tidy
+          if ! diff -q go.mod go.mod.orig || ! diff -q go.sum go.sum.orig; then
+            echo "go mod tidy changed go.mod/go.sum — commit the result and re-tag:"
+            diff -u go.mod.orig go.mod || true
+            diff -u go.sum.orig go.sum || true
+            exit 1
+          fi
+
+  goreleaser:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -17,10 +71,26 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+      # The notes are hand-written. CHANGELOG.md holds a section per version;
+      # this pulls out the one for the tag being built, and fails the release
+      # if the tag has no section — a release whose notes say nothing is worse
+      # than one that does not happen.
+      - name: Release notes for this tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            $0 ~ "^## " v " " || $0 == "## " v { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > /tmp/release-notes.md
+          if [ ! -s /tmp/release-notes.md ]; then
+            echo "CHANGELOG.md has no '## $version' section"; exit 1
+          fi
+          echo "--- notes for $version ---"; cat /tmp/release-notes.md
       - uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: '~> v2'
-          args: release --clean
+          args: release --clean --release-notes=/tmp/release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

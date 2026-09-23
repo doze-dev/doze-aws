@@ -7,9 +7,10 @@ version: 2
 
 project_name: doze-aws
 
-before:
-  hooks:
-    - go mod tidy
+# No before: hooks. `go mod tidy` used to run here, which means the tree that
+# gets built is not the tree CI tested: tidy can add, drop or reorder a
+# requirement, and a release is the one build where that must not happen.
+# CI runs tidy checks on every push instead.
 
 builds:
   - id: doze-aws
@@ -17,16 +18,24 @@ builds:
     binary: doze-aws
     env:
       - CGO_ENABLED=0 # pure Go: fully static, no libc dependency.
+    # Linux and macOS only. Windows was in this list and could not build: the
+    # .doze zone comes from doze-names, which locks its registry with
+    # syscall.Flock and manages the hosts file through Unix-only paths, so
+    # `GOOS=windows go build ./cmd/doze-aws` fails to compile. v0.3.0 shipped
+    # Windows binaries because doze-names was not a dependency yet; it joined
+    # a month later and nothing has been released since, so the breakage was
+    # never seen. GoReleaser builds every matrix entry, so the next tag would
+    # have failed the whole release rather than just the Windows asset.
+    #
+    # Supporting Windows means porting doze-names' registry locking and
+    # resolver setup, which is a project rather than a build flag. Until then
+    # saying so beats shipping a target that does not exist.
     goos:
       - linux
       - darwin
-      - windows
     goarch:
       - amd64
       - arm64
-    ignore:
-      - goos: windows
-        goarch: arm64 # uncommon; drop it to keep the asset list tidy.
     flags:
       # Reproducible, and 57,344 bytes smaller: without it the absolute build
       # path of the CI runner is baked into every binary that ships.
@@ -48,9 +57,6 @@ archives:
     # Matches what install.sh expects: doze-aws_<version>_<os>_<arch>.<ext>
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     formats: [tar.gz]
-    format_overrides:
-      - goos: windows
-        formats: [zip]
     files:
       - README.md
       - LICENSE
@@ -61,14 +67,16 @@ checksum:
   name_template: checksums.txt
   algorithm: sha256
 
+# The notes are hand-written in CHANGELOG.md, and release.yml passes the
+# section for the tag with --release-notes.
+#
+# The generator was configured to exclude "^docs:", "^test:" and "^chore:",
+# which assumes Conventional Commits. This repo writes prose subjects: of the
+# 341 commits between v0.3.0 and 1.0.0, those filters match 7. The generated
+# notes would have been 334 sentences in commit order, which is a log rather
+# than a changelog.
 changelog:
-  sort: asc
-  filters:
-    exclude:
-      - "^docs:"
-      - "^test:"
-      - "^chore:"
-      - "Merge pull request"
+  disable: true
 
 release:
   draft: false

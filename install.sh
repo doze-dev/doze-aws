@@ -154,7 +154,7 @@ os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 case "$os" in
 linux) os=linux ;;
 darwin) os=darwin ;;
-*) die "unsupported OS '$os'. This installer covers Linux and macOS; for anything else (Windows included) grab a binary from https://github.com/$REPO/releases." ;;
+*) die "unsupported OS '$os'. doze-aws builds for Linux and macOS only: the .doze name setup is Unix-only, so there is no Windows or BSD binary to fetch. See https://github.com/$REPO/blob/main/CHANGELOG.md" ;;
 esac
 
 arch="$(uname -m)"
