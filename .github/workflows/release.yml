@@ -94,3 +94,23 @@ jobs:
           args: release --clean --release-notes=/tmp/release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Check the OUTCOME, not the input.
+      #
+      # v1.0.0 published with an empty body. The step above extracted the right
+      # notes, refused to continue on an empty file, and printed them; the flag
+      # was passed; GoReleaser exited 0 — and the release had no body, because
+      # .goreleaser.yaml also said `changelog: disable: true` and the two cancel.
+      # Every check in the chain passed while the thing they existed to protect
+      # did not happen.
+      - name: The release must carry its notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          body=$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json body --jq '.body')
+          if [ -z "$(printf '%s' "$body" | tr -d '[:space:]')" ]; then
+            echo "$GITHUB_REF_NAME published with an empty body."
+            echo "The notes were extracted and passed to --release-notes, so this is"
+            echo "GoReleaser discarding them — check that changelog.disable is NOT set."
+            exit 1
+          fi
+          printf '%s\n' "notes present: $(printf '%s' "$body" | wc -l) lines"

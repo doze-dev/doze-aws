@@ -68,15 +68,27 @@ checksum:
   algorithm: sha256
 
 # The notes are hand-written in CHANGELOG.md, and release.yml passes the
-# section for the tag with --release-notes.
+# section for the tag with --release-notes, which replaces the generated
+# changelog outright.
 #
-# The generator was configured to exclude "^docs:", "^test:" and "^chore:",
-# which assumes Conventional Commits. This repo writes prose subjects: of the
-# 341 commits between v0.3.0 and 1.0.0, those filters match 7. The generated
-# notes would have been 334 sentences in commit order, which is a log rather
-# than a changelog.
+# NOT `disable: true`, which is what v1.0.0 shipped with and why its body was
+# empty. Disabling skips the changelog step entirely, and --release-notes
+# overrides that step's output — so together they cancel: GoReleaser accepted
+# the flag without complaint, published five assets, and set no body at all.
+# One of the two, and the flag is the one that puts words there.
+#
+# The filters below apply only if someone releases WITHOUT the flag, which the
+# workflow never does. They are the reason the flag exists: they assume
+# Conventional Commits, and of the 341 commits between v0.3.0 and 1.0.0 they
+# match 7 — the generated notes would have been 334 sentences in commit order.
 changelog:
-  disable: true
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "Merge pull request"
 
 release:
   draft: false
