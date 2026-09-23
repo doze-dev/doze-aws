@@ -6,6 +6,7 @@
 - [cloudformation.md](cloudformation.md) — deploying with the AWS CLI, SAM, CDK or Serverless
 - [lambda.md](lambda.md) — how a function runs (host processes, no Docker), the runtimes, in-place code, logs three ways, versions, layers and function URLs
 - [embedding.md](embedding.md) — use doze-aws as a Go library, with a complete example
+- [COMPATIBILITY.md](COMPATIBILITY.md) — what 1.0.0 promises, surface by surface, and what it does not
 - [SUPPORT.md](SUPPORT.md) — per-service operation support tables (Functional / Cosmetic / Stub)
 - [not-built.md](not-built.md) — what doze-aws declines and why, what is merely
   deferred and what it would take, and what the binary does not do at all

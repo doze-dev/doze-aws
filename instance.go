@@ -40,7 +40,7 @@ import (
 )
 
 // InstanceFile is the stamp's name inside the data directory. It sits beside
-// the per-region folders and _global; NeedsMigration only looks for service
+// the per-region folders and _global; internal/migrate only looks for service
 // directories by name, so a file here is invisible to it.
 const InstanceFile = "instance.json"
 

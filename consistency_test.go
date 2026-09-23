@@ -29,6 +29,8 @@ package dozeaws_test
 import (
 	_ "embed"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -41,6 +43,9 @@ import (
 
 //go:embed README.md
 var readmeMD string
+
+//go:embed docs/COMPATIBILITY.md
+var compatibilityMD string
 
 var (
 	// A row of the service table: name | operations | input validation.
@@ -173,3 +178,44 @@ func describeReadmeOps(t dozetest.Totals) string {
 }
 
 func atoi(s string) int { n, _ := strconv.Atoi(s); return n }
+
+// docs/COMPATIBILITY.md names the size of the frozen API surface, which is the
+// one number on that page a reader might check for themselves — and the one
+// most likely to rot, since every added export moves it.
+//
+// The surface itself is gated by TestThePublicAPIIsWhatWeSaidItWas. This gates
+// the sentence about it, because a compatibility statement that miscounts what
+// it is promising is worse than one that gives no number at all.
+func TestCompatibilityCountsTheRealSurface(t *testing.T) {
+	raw, err := os.ReadFile(filepath.Join("testdata", "api.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := len(strings.Split(strings.TrimSpace(string(raw)), "\n"))
+
+	m := regexp.MustCompile(`(\d+) of them, across (\d+) packages`).
+		FindStringSubmatch(flattenSpace(compatibilityMD))
+	if m == nil {
+		t.Fatal("docs/COMPATIBILITY.md no longer says `N of them, across M packages`.\n" +
+			"  That sentence is how the page states the size of what 1.0.0 freezes.")
+	}
+	if got := atoi(m[1]); got != want {
+		t.Errorf("docs/COMPATIBILITY.md says %d exported symbols, testdata/api.txt has %d.\n"+
+			"  Run `task api:update`, then correct the sentence.", got, want)
+	}
+
+	pkgs := map[string]bool{}
+	for _, line := range strings.Split(strings.TrimSpace(string(raw)), "\n") {
+		if pkg, _, ok := strings.Cut(line, ":"); ok {
+			pkgs[pkg] = true
+		}
+	}
+	if got := atoi(m[2]); got != len(pkgs) {
+		t.Errorf("docs/COMPATIBILITY.md says %d packages, testdata/api.txt covers %d.", got, len(pkgs))
+	}
+}
+
+// flattenSpace collapses runs of whitespace so a sentence that wraps across
+// lines in markdown matches the one-line form. The ledger tests learned this
+// the hard way twice; see docs/ledger_test.go.
+func flattenSpace(s string) string { return strings.Join(strings.Fields(s), " ") }

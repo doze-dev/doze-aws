@@ -1,4 +1,4 @@
-package dozeaws
+package migrate
 
 // Moving an existing data directory into the per-region layout.
 //
@@ -20,14 +20,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/doze-dev/doze-aws"
 )
 
-// NeedsMigration reports whether dataDir is in the pre-region layout: at least
+// Needed reports whether dataDir is in the pre-region layout: at least
 // one service store sitting directly under it.
 //
 // The check is by known service name rather than "any directory", so an
 // unrelated folder someone left in the data directory is never moved.
-func NeedsMigration(dataDir string) bool {
+func Needed(dataDir string) bool {
 	return len(oldLayoutServices(dataDir)) > 0
 }
 
@@ -37,7 +39,7 @@ func oldLayoutServices(dataDir string) []string {
 		return nil
 	}
 	var found []string
-	for _, name := range Implemented {
+	for _, name := range dozeaws.Implemented {
 		if fi, err := os.Stat(filepath.Join(dataDir, name)); err == nil && fi.IsDir() {
 			found = append(found, name)
 		}
@@ -45,37 +47,37 @@ func oldLayoutServices(dataDir string) []string {
 	return found
 }
 
-// MigrationPlan is what a migration would do, so it can be printed before it
+// Steps is what a migration would do, so it can be printed before it
 // runs — and so a caller can offer a dry run.
-type MigrationPlan struct {
+type Steps struct {
 	// Moves holds the renames, in the order they would be applied.
-	Moves []MigrationMove
+	Moves []Move
 }
 
-// MigrationMove is one service's directory rename.
-type MigrationMove struct {
+// Move is one service's directory rename.
+type Move struct {
 	Service string
 	From    string
 	To      string
 }
 
-// PlanMigration works out what moving dataDir into the per-region layout would
+// Plan works out what moving dataDir into the per-region layout would
 // do. region names the region the existing data is treated as belonging to:
 // there was only one before this change, so its identity is the instance's.
-func PlanMigration(dataDir, region string) MigrationPlan {
-	var p MigrationPlan
+func Plan(dataDir, region string) Steps {
+	var p Steps
 	for _, name := range oldLayoutServices(dataDir) {
-		p.Moves = append(p.Moves, MigrationMove{
+		p.Moves = append(p.Moves, Move{
 			Service: name,
 			From:    filepath.Join(dataDir, name),
-			To:      filepath.Join(dataDir, ServiceDir(region, name)),
+			To:      filepath.Join(dataDir, dozeaws.ServiceDir(region, name)),
 		})
 	}
 	return p
 }
 
 // Describe renders the plan as lines to print. Empty when there is nothing to do.
-func (p MigrationPlan) Describe() []string {
+func (p Steps) Describe() []string {
 	if len(p.Moves) == 0 {
 		return nil
 	}
@@ -93,8 +95,8 @@ func (p MigrationPlan) Describe() []string {
 // It stops at the first problem rather than continuing, and never overwrites:
 // a destination that already exists means two stores for one service, which is
 // a question for a person rather than something to resolve by guessing.
-func Migrate(dataDir, region string) (MigrationPlan, error) {
-	p := PlanMigration(dataDir, region)
+func Apply(dataDir, region string) (Steps, error) {
+	p := Plan(dataDir, region)
 	for _, m := range p.Moves {
 		if _, err := os.Stat(m.To); err == nil {
 			return p, fmt.Errorf("dozeaws: cannot migrate %s: %s already exists; "+

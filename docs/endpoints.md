@@ -10,12 +10,6 @@ There are two ways to reach an instance, and deliberately only two.
 They are **exclusive**. With `--listen`, no `.doze` name is claimed at all: one
 instance, one address, one answer to "where is it".
 
-> **This page previously promised that `http://127.0.0.1:4566` was permanent.**
-> That promise is withdrawn. It was the LocalStack drop-in, and doze-aws is not
-> chasing LocalStack's users — a shared address cannot carry what a name
-> carries, which is the rest of this page. `doze-aws --listen 127.0.0.1:4566`
-> restores the old behaviour exactly.
-
 ## Why a name
 
 AWS puts the service and the region in the hostname, and doze-aws mints the
@@ -236,6 +230,12 @@ resolves `.doze`, and doze-kafka's names work when doze-aws is the one running.
 - **Every URL is minted from the request's `Host`**, so moving between the two
   strands nothing.
 
-Withdrawn: `http://127.0.0.1:4566` as a default bind, and `http://aws.doze` as a
-machine-wide name. Both are reachable deliberately — the first with `--listen`,
+**Not promised**, and never a default: `http://127.0.0.1:4566` as the address
+doze-aws binds on its own, and `http://aws.doze` as a machine-wide name. An
+early version of this page said the first was permanent. It was the LocalStack
+drop-in, and a shared address cannot carry what a name carries — which is the
+rest of this page. Both are still reachable, deliberately: the first with
+`doze-aws --listen 127.0.0.1:4566`, which restores that behaviour exactly, and
 the second by naming an instance.
+
+See [COMPATIBILITY.md](COMPATIBILITY.md) for what the other surfaces promise.

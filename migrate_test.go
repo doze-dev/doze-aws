@@ -10,6 +10,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/migrate"
 )
 
 // The migration's whole job is that nothing is lost. A rename that drops a
@@ -52,18 +53,18 @@ func TestMigrationKeepsEveryResource(t *testing.T) {
 	_ = os.Remove(filepath.Join(dir, awsident.Region))
 	_ = os.Remove(filepath.Join(dir, dozeaws.GlobalDir))
 
-	if !dozeaws.NeedsMigration(dir) {
+	if !migrate.Needed(dir) {
 		t.Fatal("NeedsMigration = false on an old-layout directory; the fixture did not take")
 	}
 
-	plan, err := dozeaws.Migrate(dir, awsident.Region)
+	plan, err := migrate.Apply(dir, awsident.Region)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(plan.Moves) != 3 {
 		t.Fatalf("moved %d services, want 3: %+v", len(plan.Moves), plan.Moves)
 	}
-	if dozeaws.NeedsMigration(dir) {
+	if migrate.Needed(dir) {
 		t.Error("still reports NeedsMigration after migrating")
 	}
 
@@ -113,7 +114,7 @@ func TestMigrationRefusesToOverwrite(t *testing.T) {
 	mk("sqs")                                 // old layout
 	mk(filepath.Join(awsident.Region, "sqs")) // and a new-layout one already there
 
-	_, err := dozeaws.Migrate(dir, awsident.Region)
+	_, err := migrate.Apply(dir, awsident.Region)
 	if err == nil {
 		t.Fatal("migrated over an existing destination; want a refusal")
 	}
@@ -132,10 +133,10 @@ func TestMigrationIgnoresUnknownDirectories(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(dir, "notes"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if dozeaws.NeedsMigration(dir) {
+	if migrate.Needed(dir) {
 		t.Error("a stray directory triggered a migration")
 	}
-	plan, err := dozeaws.Migrate(dir, awsident.Region)
+	plan, err := migrate.Apply(dir, awsident.Region)
 	if err != nil {
 		t.Fatal(err)
 	}

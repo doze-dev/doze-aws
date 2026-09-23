@@ -4,6 +4,11 @@ doze-aws is a library first. Every service is a plain Go package exporting an
 `http.Handler`, and `dozeaws.NewStack` assembles any subset behind one gateway.
 The binary is a thin wrapper around exactly that API.
 
+From 1.0.0 that API is under semver: what `testdata/api.txt` records cannot
+change without a major release. [COMPATIBILITY.md](COMPATIBILITY.md) says what
+else is covered — the CLI, the data directory, the `msg=listening` line and the
+`.doze` names — and what is not.
+
 ## The whole stack behind one handler
 
 ```go

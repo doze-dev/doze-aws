@@ -37,6 +37,7 @@ import (
 	"github.com/doze-dev/doze-aws/iam"
 	"github.com/doze-dev/doze-aws/internal/config"
 	"github.com/doze-dev/doze-aws/internal/console"
+	"github.com/doze-dev/doze-aws/internal/migrate"
 	"github.com/doze-dev/doze-aws/internal/provision"
 	"github.com/doze-dev/doze-aws/peers"
 )
@@ -381,12 +382,12 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	// the root; they belong under <region>/ now. This is a directory rename per
 	// service and it happens once, but it happens to somebody's data — so it is
 	// announced before it runs rather than discovered afterwards.
-	if dozeaws.NeedsMigration(cfg.DataDir) {
-		plan := dozeaws.PlanMigration(cfg.DataDir, cfg.Identity().RegionName())
+	if migrate.Needed(cfg.DataDir) {
+		plan := migrate.Plan(cfg.DataDir, cfg.Identity().RegionName())
 		for _, line := range plan.Describe() {
 			logger.Info(line)
 		}
-		if _, err := dozeaws.Migrate(cfg.DataDir, cfg.Identity().RegionName()); err != nil {
+		if _, err := migrate.Apply(cfg.DataDir, cfg.Identity().RegionName()); err != nil {
 			return err
 		}
 		logger.Info("data directory migrated", "services", len(plan.Moves))

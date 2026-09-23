@@ -167,6 +167,10 @@ separate list of what is merely deferred — is
 not do at all: no outbound connections of its own, no account, no telemetry,
 nothing outside the data directory you name. Those are tests, not promises.
 
+What a 1.x release will and will not change — the Go API, the CLI, the data
+directory, the one log line worth parsing, and the `.doze` names — is
+**[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)**.
+
 ## Design ground rules
 
 - **Lightweight above all.** Five dependencies we chose: bbolt, a TOML parser,

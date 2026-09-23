@@ -86,10 +86,6 @@ dozeaws: field ErrAccountChanged.Stored string
 dozeaws: field Fault.Code string
 dozeaws: field Fault.RequestID string
 dozeaws: field Fault.Status int
-dozeaws: field MigrationMove.From string
-dozeaws: field MigrationMove.Service string
-dozeaws: field MigrationMove.To string
-dozeaws: field MigrationPlan.Moves []MigrationMove
 dozeaws: field StackConfig.Clock func() time.Time
 dozeaws: field StackConfig.DataDir string
 dozeaws: field StackConfig.Endpoint string
@@ -118,19 +114,13 @@ dozeaws: func (*Stack) Handler() http.Handler
 dozeaws: func (*Stack) Identity() awsident.Identity
 dozeaws: func (*Stack) Service(name string) http.Handler
 dozeaws: func (*Stack) SetTraceSink(sink trace.Sink)
-dozeaws: func (MigrationPlan) Describe() []string
-dozeaws: func Migrate(dataDir, region string) (MigrationPlan, error)
-dozeaws: func NeedsMigration(dataDir string) bool
 dozeaws: func NewRegions(cfg StackConfig, regions []string) (*Regions, error)
 dozeaws: func NewShared(cfg StackConfig) (*Shared, error)
 dozeaws: func NewStack(cfg StackConfig) (*Stack, error)
 dozeaws: func OperationResolvers() map[string]func(*http.Request) string
-dozeaws: func PlanMigration(dataDir, region string) MigrationPlan
 dozeaws: func ServiceDir(region, service string) string
 dozeaws: type ErrAccountChanged struct
 dozeaws: type Fault struct
-dozeaws: type MigrationMove struct
-dozeaws: type MigrationPlan struct
 dozeaws: type Regions struct
 dozeaws: type Shared struct
 dozeaws: type Stack struct
