@@ -222,6 +222,13 @@ func prepare(t *testing.T, ts *httptest.Server, op, mutating string, body map[st
 			call(t, ts, "CreateStack", map[string]any{"StackName": name, "TemplateBody": auditTemplate})
 			body["StackName"] = name
 		}
+	case "UpdateStack":
+		// An update has to change something: the same template twice is
+		// refused with "No updates are to be performed", as on AWS, and that
+		// would be every case refused for the wrong reason.
+		if mutating != "TemplateBody" {
+			body["TemplateBody"] = changedTemplate(n)
+		}
 	case "CreateChangeSet":
 		if mutating != "ChangeSetName" {
 			body["ChangeSetName"] = fmt.Sprintf("created-cs-%d", n)

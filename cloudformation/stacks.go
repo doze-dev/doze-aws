@@ -7,6 +7,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"maps"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -226,10 +227,26 @@ func viewStack(st *stackRecord) stackView {
 
 // ---- create / update ----
 
+// stackName is what a new stack may be called: a letter, then letters, digits
+// and hyphens, 128 at most. An underscore was accepted, and made a stack whose
+// ARN and whose every generated resource name no real stack could have.
+var stackName = regexp.MustCompile(`^[A-Za-z][-A-Za-z0-9]{0,127}$`)
+
+func validStackName(name string) *awshttp.APIError {
+	if stackName.MatchString(name) {
+		return nil
+	}
+	return errValidation("1 validation error detected: Value '%s' at 'stackName' failed to satisfy constraint: "+
+		"Member must satisfy regular expression pattern: [a-zA-Z][-a-zA-Z0-9]*", name)
+}
+
 func hCreateStack(s *Server, p params) (any, *awshttp.APIError) {
 	name := p.str("StackName")
 	if name == "" {
 		return nil, errValidation("StackName is required")
+	}
+	if aerr := validStackName(name); aerr != nil {
+		return nil, aerr
 	}
 	// A stack sitting in REVIEW_IN_PROGRESS was materialised by a change set
 	// and has no resources yet, so CreateStack may still claim it.
@@ -295,7 +312,16 @@ func hUpdateStack(s *Server, p params) (any, *awshttp.APIError) {
 			merged[k] = v
 		}
 	}
-	st, aerr := s.deploy(name, body, merged, p.keyValues("Tags", "Key", "Value"), true)
+	// An update has to update something. The same template with the same
+	// parameters and tags was re-applied and reported UPDATE_COMPLETE; AWS
+	// refuses it, and deploy tools rely on that refusal to say "no changes".
+	tags := p.keyValues("Tags", "Key", "Value")
+	if body == existing.TemplateBody && maps.Equal(merged, existing.Parameters) &&
+		(len(tags) == 0 || maps.Equal(tags, existing.Tags)) &&
+		(existing.Status == StatusCreateComplete || existing.Status == StatusUpdateComplete) {
+		return nil, errValidation("No updates are to be performed.")
+	}
+	st, aerr := s.deploy(name, body, merged, tags, true)
 	if aerr != nil {
 		return nil, aerr
 	}
@@ -316,6 +342,11 @@ func hUpdateStack(s *Server, p params) (any, *awshttp.APIError) {
 func (s *Server) deploy(name, body string, params, tags map[string]string, isUpdate bool) (*stackRecord, *awshttp.APIError) {
 	tmpl, err := cfn.Parse([]byte(body))
 	if err != nil {
+		return nil, errValidation("%v", err)
+	}
+	// Refused at the call, as CloudFormation refuses it, and before a failed
+	// stack is recorded: nothing was attempted.
+	if err := tmpl.CheckReferences(); err != nil {
 		return nil, errValidation("%v", err)
 	}
 	exports, _ := s.store.Exports()
@@ -384,6 +415,7 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 	if applyErr != nil {
 		st.Status = pick(isUpdate, StatusUpdateFailed, StatusCreateFailed)
 		st.StatusReason = applyErr.Error()
+		markFailed(st, applyRep, applyErr, isUpdate)
 	} else {
 		st.Status = pick(isUpdate, StatusUpdateComplete, StatusCreateComplete)
 	}
@@ -402,6 +434,39 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 	}
 	s.logf("cloudformation: stack %s %s (%d resources)", name, st.Status, len(st.Resources))
 	return st, nil
+}
+
+// markFailed corrects the resources of a stack whose apply failed.
+//
+// Every resource is recorded as COMPLETE before apply's outcome is known,
+// which is right when it succeeds. When it did not, the event trail said the
+// resource that failed had reached CREATE_COMPLETE — and so did every
+// resource apply never got to. A deploy tool reads that trail to say what
+// went wrong, and it said nothing had.
+//
+// The resource the error names carries the error. On a create, the ones
+// apply never reached were not created, and say so in the words CloudFormation
+// uses for a sibling of a failure. On an update they are left alone: they
+// exist, from before.
+func markFailed(st *stackRecord, rep *provision.Report, applyErr error, isUpdate bool) {
+	touched := map[string]bool{}
+	if rep != nil {
+		for _, a := range rep.Actions {
+			if i := strings.Index(a.Resource, "/"); i >= 0 {
+				touched[a.Resource[i+1:]] = true
+			}
+		}
+	}
+	msg := applyErr.Error()
+	for i := range st.Resources {
+		r := &st.Resources[i]
+		switch {
+		case strings.Contains(msg, `"`+r.LogicalID+`"`) || strings.Contains(msg, `"`+r.PhysicalID+`"`):
+			r.Status, r.Reason = statusVerb(isUpdate)+"_FAILED", msg
+		case !isUpdate && !touched[r.PhysicalID]:
+			r.Status, r.Reason = "CREATE_FAILED", "Resource creation cancelled"
+		}
+	}
 }
 
 // recordFailure stores a stack that could not even be transpiled, so the
@@ -715,6 +780,9 @@ func hGetTemplateSummary(s *Server, p params) (any, *awshttp.APIError) {
 	if err != nil {
 		return nil, errValidation("%v", err)
 	}
+	if err := tmpl.CheckReferences(); err != nil {
+		return nil, errValidation("%v", err)
+	}
 	type paramDecl struct {
 		ParameterKey  string `xml:"ParameterKey"`
 		DefaultValue  string `xml:"DefaultValue,omitempty"`
@@ -759,6 +827,9 @@ func hValidateTemplate(s *Server, p params) (any, *awshttp.APIError) {
 	}
 	tmpl, err := cfn.Parse([]byte(body))
 	if err != nil {
+		return nil, errValidation("%v", err)
+	}
+	if err := tmpl.CheckReferences(); err != nil {
 		return nil, errValidation("%v", err)
 	}
 	type paramDecl struct {

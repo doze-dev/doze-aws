@@ -151,6 +151,11 @@ func (s *Server) synthesizeEvents(st *stackRecord, applyRep *provision.Report, i
 		default:
 			reason = "no change"
 		}
+		// A resource the apply failed on, or never reached: markFailed has
+		// already said so, and the trail must not say otherwise.
+		if strings.HasSuffix(r.Status, "_FAILED") {
+			status, reason = r.Status, r.Reason
+		}
 		events = append(events,
 			stackEvent{
 				ID: s.store.newID(), Timestamp: now, LogicalID: r.LogicalID,
