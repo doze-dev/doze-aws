@@ -153,7 +153,7 @@ func (c *Console) cfnCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.be.bustGraph()
-	c.redirect(w, r, c.prefix+"/cfn/"+name, "Stack created and deployed")
+	c.redirect(w, r, c.stackLanding(r, name), c.stackOutcome(r, name, "Stack created and deployed"))
 }
 
 func (c *Console) cfnUpdate(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +179,40 @@ func (c *Console) cfnUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.be.bustGraph()
-	c.redirect(w, r, c.prefix+"/cfn/"+name+"?tab=events", "Stack update deployed")
+	c.redirect(w, r, c.prefix+"/cfn/"+name+"?tab=events", c.stackOutcome(r, name, "Stack update deployed"))
+}
+
+// stackOutcome is what to tell someone after a deploy the API accepted.
+//
+// "Accepted" is all a 200 means. A resource that fails rolls the stack back,
+// as on AWS, and the call still succeeds — so the message has to come from
+// the stack, not from the call. Saying "created and deployed" over a stack
+// that had just undone itself is the one thing worse than saying nothing.
+func (c *Console) stackOutcome(r *http.Request, name, ok string) string {
+	st, err := c.be.StackDetail(r.Context(), name)
+	if err != nil || st == nil {
+		return ok
+	}
+	switch st.Status {
+	case "ROLLBACK_COMPLETE":
+		return "A resource failed and the stack was rolled back — nothing it created was kept. The events say which."
+	case "UPDATE_ROLLBACK_COMPLETE":
+		return "A resource failed and the update was rolled back — the stack is as it was before. The events say which."
+	case "CREATE_FAILED", "UPDATE_FAILED":
+		return "A resource failed and the stack was left as it fell (rollback is disabled). The events say which."
+	case "ROLLBACK_FAILED", "UPDATE_ROLLBACK_FAILED":
+		return "A resource failed, and so did rolling it back. The events say what is left."
+	}
+	return ok
+}
+
+// stackLanding is where to send someone after a create: the events, when the
+// stack did not come up, because that is the only page that says why.
+func (c *Console) stackLanding(r *http.Request, name string) string {
+	if st, err := c.be.StackDetail(r.Context(), name); err == nil && st != nil && st.Status != "CREATE_COMPLETE" {
+		return c.prefix + "/cfn/" + name + "?tab=events"
+	}
+	return c.prefix + "/cfn/" + name
 }
 
 func (c *Console) cfnExecuteCS(w http.ResponseWriter, r *http.Request) {
@@ -189,7 +222,7 @@ func (c *Console) cfnExecuteCS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.be.bustGraph()
-	c.redirect(w, r, c.prefix+"/cfn/"+stack+"?tab=events", "Change set "+cs+" executed")
+	c.redirect(w, r, c.prefix+"/cfn/"+stack+"?tab=events", c.stackOutcome(r, stack, "Change set "+cs+" executed"))
 }
 
 func (c *Console) cfnDeleteCS(w http.ResponseWriter, r *http.Request) {
