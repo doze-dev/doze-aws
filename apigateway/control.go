@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -278,6 +279,17 @@ func (s *Server) routeResources(w http.ResponseWriter, r *http.Request, apiID st
 	return errNotFound("unknown resource subresource")
 }
 
+// pathPart is one segment of a resource path: literal characters, or a path
+// variable in braces, greedy with a trailing plus. The model gives it no
+// pattern, so "has space" made a resource no request path could ever reach.
+var pathPart = regexp.MustCompile(`^([a-zA-Z0-9._\-:]+|\{[a-zA-Z0-9._\-]+\+?\})$`)
+
+// restMethods are the verbs a REST API method may be put under.
+var restMethods = map[string]bool{
+	"GET": true, "POST": true, "PUT": true, "DELETE": true, "PATCH": true,
+	"HEAD": true, "OPTIONS": true, "ANY": true,
+}
+
 func (s *Server) createResource(w http.ResponseWriter, r *http.Request, apiID, parentID string) *awshttp.APIError {
 	var req struct {
 		PathPart string `json:"pathPart"`
@@ -287,6 +299,10 @@ func (s *Server) createResource(w http.ResponseWriter, r *http.Request, apiID, p
 	}
 	if req.PathPart == "" {
 		return errBadRequest("pathPart is required")
+	}
+	if !pathPart.MatchString(req.PathPart) {
+		return errBadRequest("Resource's path part only allow a-zA-Z0-9._-: or a valid greedy path variable " +
+			"and curly braces at the beginning and the end and an optional plus sign before the closing brace.")
 	}
 	var created *resource
 	_, err := s.store.Update(apiID, func(api *restAPI) error {
@@ -425,6 +441,10 @@ func (s *Server) putMethod(w http.ResponseWriter, r *http.Request, apiID, resour
 	}
 	if aerr := decode(r, &req); aerr != nil {
 		return aerr
+	}
+	// "FETCH" was stored as a method, and no request could ever match it.
+	if !restMethods[strings.ToUpper(verb)] {
+		return errBadRequest("Invalid HTTP method specified")
 	}
 	var out *method
 	_, err := s.store.Update(apiID, func(api *restAPI) error {
@@ -763,6 +783,22 @@ func (s *Server) createDeployment(w http.ResponseWriter, r *http.Request, apiID 
 	}
 	var dep *deployment
 	_, err := s.store.Update(apiID, func(api *restAPI) error {
+		// A deployment is a snapshot of something that can answer. An API
+		// with no methods, or a method with no integration behind it, is
+		// refused — it used to deploy, and then 404 or 500 on every request,
+		// which reads as a routing bug rather than as an unfinished API.
+		methods := 0
+		for _, res := range api.Resources {
+			for _, m := range res.Methods {
+				methods++
+				if m.Integration == nil {
+					return errBadRequest("No integration defined for method")
+				}
+			}
+		}
+		if methods == 0 {
+			return errBadRequest("The REST API doesn't contain any methods")
+		}
 		now := s.now().Unix()
 		dep = &deployment{ID: s.store.newID(), Description: req.Description, Created: now}
 		if api.Deployments == nil {

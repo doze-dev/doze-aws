@@ -34,6 +34,21 @@ func TestSDKListsAPIKeysAndUsagePlans(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// GET / behind a MOCK integration: an API with nothing in it cannot be
+	// deployed, here as on AWS.
+	res, err := agw.GetResources(ctx, &awsapi.GetResourcesInput{RestApiId: api.Id})
+	if err != nil || len(res.Items) == 0 {
+		t.Fatalf("GetResources: %v", err)
+	}
+	root := res.Items[0].Id
+	if _, err := agw.PutMethod(ctx, &awsapi.PutMethodInput{RestApiId: api.Id, ResourceId: root,
+		HttpMethod: aws.String("GET"), AuthorizationType: aws.String("NONE")}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := agw.PutIntegration(ctx, &awsapi.PutIntegrationInput{RestApiId: api.Id, ResourceId: root,
+		HttpMethod: aws.String("GET"), Type: apitypes.IntegrationTypeMock}); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := agw.CreateDeployment(ctx, &awsapi.CreateDeploymentInput{RestApiId: api.Id, StageName: aws.String("prod")}); err != nil {
 		t.Fatal(err)
 	}
