@@ -1,0 +1,27 @@
+name: conformance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  boto3:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.19"
+      # Builds and boots the real binary (conformance/harness/target.py), then
+      # drives it with boto3. No AWS credentials: this leg only ever compares
+      # against the recordings committed under conformance/snapshots/.
+      - name: boto3 scenarios
+        working-directory: conformance
+        run: uv run --frozen pytest

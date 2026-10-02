@@ -39,3 +39,8 @@ testdata/rapid/
 # writes it here, and an 8.5 MB platform-specific artifact was committed twice
 # before anyone noticed. Run it with `go run ./cmd/dzaudit` instead.
 /dzaudit
+
+# conformance/ (boto3 scenarios — uv.lock and .python-version ARE committed).
+conformance/.venv/
+conformance/.pytest_cache/
+__pycache__/

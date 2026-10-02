@@ -1,0 +1,16 @@
+[project]
+name = "doze-aws-conformance"
+version = "0"
+description = "boto3 scenarios run against doze-aws, and compared with what real AWS answered"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3",
+    "pytest",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["selftest", "tests"]
+addopts = "-ra -q"
