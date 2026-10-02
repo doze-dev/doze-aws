@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -70,9 +71,18 @@ func (s *store) topicARN(name string) string { return s.id.ARN("sns", name) }
 
 // ---- topics ----
 
+// topicName is what SNS accepts for a topic: letters, digits, hyphens and
+// underscores, 1 to 256 of them, and ".fifo" on the end of a FIFO topic.
+//
+// Hand-derived — the service model types Name as a bare string — and it was
+// not enforced at all: "my topic!" made a topic. The name becomes the last
+// segment of the ARN, so a name AWS would refuse produced an ARN no policy,
+// subscription or template written against AWS could ever contain.
+var topicName = regexp.MustCompile(`^[A-Za-z0-9_-]{1,256}(\.fifo)?$`)
+
 func (s *store) CreateTopic(name string, attrs, tags map[string]string) (*topic, error) {
-	if name == "" {
-		return nil, errInvalid("topic name is required")
+	if !topicName.MatchString(name) {
+		return nil, errInvalid("Invalid parameter: Topic Name")
 	}
 	t := &topic{ARN: s.topicARN(name), Name: name}
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -83,6 +93,11 @@ func (s *store) CreateTopic(name string, attrs, tags map[string]string) (*topic,
 		// Idempotent: re-creating merges onto the existing definition.
 		if raw := b.Get([]byte(t.ARN)); raw != nil {
 			_ = json.Unmarshal(raw, t)
+		} else if strings.HasSuffix(name, ".fifo") != (attrs["FifoTopic"] == "true") {
+			// The suffix and the attribute say the same thing or the topic is
+			// refused: ".fifo" is not a name a standard topic can have, and a
+			// FIFO topic cannot be called anything else.
+			return errInvalid("Invalid parameter: Topic Name")
 		}
 		for k, v := range attrs {
 			if t.Attrs == nil {

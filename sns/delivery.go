@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/peercall"
@@ -97,6 +98,13 @@ func (srv *Server) deliverSQS(ctx context.Context, sub subscription, msgID, topi
 	} else {
 		body, _ := json.Marshal(srv.envelope(msgID, topicARN, subject, message, attrs))
 		payload["MessageBody"] = string(body)
+	}
+	// A FIFO queue takes nothing without a group. The topic's group and
+	// deduplication id go with the message; a standard queue subscribed to the
+	// same topic gets neither, as it has no use for them.
+	if f, ok := fifoFrom(ctx); ok && strings.HasSuffix(queue, ".fifo") {
+		payload["MessageGroupId"] = f.group
+		payload["MessageDeduplicationId"] = f.dedup
 	}
 	body, _ := json.Marshal(payload)
 	// Built here rather than via peercall.SQSSend because the payload shape is

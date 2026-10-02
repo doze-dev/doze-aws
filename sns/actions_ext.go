@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
+	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awsquery"
 )
@@ -75,10 +76,41 @@ func sortedAttrKeys(m map[string]string) []string {
 	return out
 }
 
+// topicAttributes is what SetTopicAttributes may write. Hand-derived from the
+// API reference; the model types AttributeName as a bare string.
+//
+// It used to store anything under any name, and GetTopicAttributes handed it
+// back — so a misspelt "DisplyName" was accepted, kept, and reported as an
+// attribute the topic has. FifoTopic is deliberately absent: it is decided at
+// CreateTopic and cannot be changed afterwards.
+var topicAttributes = map[string]bool{
+	"DeliveryPolicy": true, "DisplayName": true, "Policy": true,
+	"TracingConfig": true, "KmsMasterKeyId": true, "SignatureVersion": true,
+	"ContentBasedDeduplication": true, "ArchivePolicy": true, "FifoThroughputScope": true,
+}
+
+// settableTopicAttribute also admits the delivery-status attributes, which
+// are a family rather than a list: one role and sample rate per protocol.
+func settableTopicAttribute(name string) bool {
+	if topicAttributes[name] {
+		return true
+	}
+	for _, protocol := range []string{"HTTP", "Firehose", "Lambda", "Application", "SQS"} {
+		switch strings.TrimPrefix(name, protocol) {
+		case "SuccessFeedbackRoleArn", "SuccessFeedbackSampleRate", "FailureFeedbackRoleArn":
+			return strings.HasPrefix(name, protocol)
+		}
+	}
+	return false
+}
+
 func (srv *Server) setTopicAttributes(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	name, value := form.Get("AttributeName"), form.Get("AttributeValue")
 	if name == "" {
 		return nil, errInvalid("AttributeName is required")
+	}
+	if !settableTopicAttribute(name) {
+		return nil, errInvalid("Invalid parameter: AttributeName")
 	}
 	return nil, asErr(srv.store.UpdateTopic(form.Get("TopicArn"), func(t *topic) {
 		if t.Attrs == nil {

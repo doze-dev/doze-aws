@@ -62,7 +62,8 @@ type confirmResult struct {
 	SubscriptionArn string `xml:"SubscriptionArn"`
 }
 type publishResult struct {
-	MessageID string `xml:"MessageId"`
+	MessageID      string `xml:"MessageId"`
+	SequenceNumber string `xml:"SequenceNumber,omitempty"`
 }
 type topicMember struct {
 	TopicArn string `xml:"TopicArn"`
@@ -94,8 +95,17 @@ type getTopicAttrsResult struct {
 	} `xml:"Attributes"`
 }
 type pbSuccess struct {
-	ID        string `xml:"Id"`
-	MessageID string `xml:"MessageId"`
+	ID             string `xml:"Id"`
+	MessageID      string `xml:"MessageId"`
+	SequenceNumber string `xml:"SequenceNumber,omitempty"`
+}
+
+// pbFailure is one entry of a batch that could not be published; the rest go.
+type pbFailure struct {
+	ID          string `xml:"Id"`
+	Code        string `xml:"Code"`
+	Message     string `xml:"Message"`
+	SenderFault bool   `xml:"SenderFault"`
 }
 type publishBatchResult struct {
 	Successful struct {
@@ -317,15 +327,51 @@ func (srv *Server) publish(ctx context.Context, form url.Values, _ string) (any,
 	if !srv.store.TopicExists(topicArn) {
 		return nil, errNotFound("topic does not exist: " + topicArn)
 	}
-	id := newID()
-	srv.deliver(ctx, id, topicArn, form.Get("Subject"), form.Get("Message"), messageAttributes(form))
-	return publishResult{MessageID: id}, nil
+	// A notification with nothing in it is refused, not delivered empty. The
+	// model only says Message is required, and an empty string is present.
+	if form.Get("Message") == "" {
+		return nil, errInvalid("Invalid parameter: Empty message")
+	}
+	f, fifo, aerr := srv.fifoFor(topicArn, form.Get("Message"), form.Get("MessageGroupId"), form.Get("MessageDeduplicationId"))
+	if aerr != nil {
+		return nil, aerr
+	}
+	res := publishResult{MessageID: newID()}
+	if fifo {
+		ctx = withFIFO(ctx, f)
+		res.SequenceNumber = sequenceNumber()
+	}
+	srv.deliver(ctx, res.MessageID, topicArn, form.Get("Subject"), form.Get("Message"), messageAttributes(form))
+	return res, nil
 }
 
 func (srv *Server) publishBatch(ctx context.Context, form url.Values, _ string) (any, *apiError) {
 	topicArn := form.Get("TopicArn")
 	if !srv.store.TopicExists(topicArn) {
 		return nil, errNotFound("topic does not exist: " + topicArn)
+	}
+	// The batch is held to its shape before any entry is published: it used
+	// to publish whatever it was given, two entries under one Id included.
+	seen := map[string]bool{}
+	n := 0
+	for ; ; n++ {
+		id := form.Get(fmt.Sprintf("PublishBatchRequestEntries.member.%d.Id", n+1))
+		if id == "" {
+			break
+		}
+		if seen[id] {
+			return nil, &apiError{Code: "BatchEntryIdsNotDistinct", Status: 400, SenderFault: true,
+				Message: "Two or more batch entries in the request have the same Id."}
+		}
+		seen[id] = true
+	}
+	switch {
+	case n == 0:
+		return nil, &apiError{Code: "EmptyBatchRequest", Status: 400, SenderFault: true,
+			Message: "The batch request doesn't contain any entries."}
+	case n > 10:
+		return nil, &apiError{Code: "TooManyEntriesInBatchRequest", Status: 400, SenderFault: true,
+			Message: "The batch request contains more entries than permissible."}
 	}
 	var res publishBatchResult
 	for i := 1; ; i++ {
@@ -334,9 +380,19 @@ func (srv *Server) publishBatch(ctx context.Context, form url.Values, _ string) 
 		if id == "" {
 			break
 		}
-		mid := newID()
-		srv.deliver(ctx, mid, topicArn, form.Get(base+"Subject"), form.Get(base+"Message"), entryMessageAttributes(form, base))
-		res.Successful.Member = append(res.Successful.Member, pbSuccess{ID: id, MessageID: mid})
+		f, fifo, aerr := srv.fifoFor(topicArn, form.Get(base+"Message"), form.Get(base+"MessageGroupId"), form.Get(base+"MessageDeduplicationId"))
+		if aerr != nil {
+			res.Failed.Member = append(res.Failed.Member, pbFailure{ID: id, Code: aerr.Code, Message: aerr.Message, SenderFault: true})
+			continue
+		}
+		ok := pbSuccess{ID: id, MessageID: newID()}
+		ectx := ctx
+		if fifo {
+			ectx = withFIFO(ctx, f)
+			ok.SequenceNumber = sequenceNumber()
+		}
+		srv.deliver(ectx, ok.MessageID, topicArn, form.Get(base+"Subject"), form.Get(base+"Message"), entryMessageAttributes(form, base))
+		res.Successful.Member = append(res.Successful.Member, ok)
 	}
 	return res, nil
 }
