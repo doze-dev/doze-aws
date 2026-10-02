@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/ddb/item"
 )
 
@@ -86,7 +87,9 @@ func TestConditions(t *testing.T) {
 		{"name substitution", "#cat = :v", map[string]string{"#cat": "ProductCategory"}, `{":v": {"S": "Bicycle"}}`, true},
 		{"missing attr comparison", "Discontinued = :v", nil, `{":v": {"BOOL": true}}`, false},
 		{"type mismatch ordered", "Title > :n", nil, `{":n": {"N": "5"}}`, false},
-		{"attr named size", "size = :v", nil, `{":v": {"S": "L"}}`, false}, // attribute "size" absent -> false, not a parse error
+		// An attribute really called "size" is reached through a #ref: bare, it
+		// is a reserved word (TestReservedWords). Absent -> false, not an error.
+		{"attr named size", "#s = :v", map[string]string{"#s": "size"}, `{":v": {"S": "L"}}`, false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -236,8 +239,8 @@ func TestKeyCondition(t *testing.T) {
 	}
 
 	// Reversed clause order still finds the equality.
-	env2 := NewEnv(nil, values(t, `{":a": {"S": "X"}, ":lo": {"N": "1"}, ":hi": {"N": "9"}}`))
-	kc2, aerr := ParseKeyCondition("Year BETWEEN :lo AND :hi AND Artist = :a", env2)
+	env2 := NewEnv(map[string]string{"#y": "Year"}, values(t, `{":a": {"S": "X"}, ":lo": {"N": "1"}, ":hi": {"N": "9"}}`))
+	kc2, aerr := ParseKeyCondition("#y BETWEEN :lo AND :hi AND Artist = :a", env2)
 	if aerr != nil {
 		t.Fatal(aerr)
 	}
@@ -262,7 +265,7 @@ func TestKeyCondition(t *testing.T) {
 func TestProjection(t *testing.T) {
 	it := testItem(t)
 	env := NewEnv(map[string]string{"#pc": "ProductCategory"}, nil)
-	pr, aerr := ParseProjection("Title, #pc, ProductReviews.FiveStar, Missing", env)
+	pr, aerr := ParseProjection("Title, #pc, ProductReviews.FiveStar, Absent", env)
 	if aerr != nil {
 		t.Fatal(aerr)
 	}
@@ -273,7 +276,7 @@ func TestProjection(t *testing.T) {
 	if len(out["ProductReviews"].M["FiveStar"].L) != 1 {
 		t.Errorf("nested projection: %v", out["ProductReviews"].DebugString())
 	}
-	if _, ok := out["Missing"]; ok {
+	if _, ok := out["Absent"]; ok {
 		t.Error("missing path materialized")
 	}
 	if _, ok := out["Price"]; ok {
@@ -307,4 +310,72 @@ func FuzzParsers(f *testing.F) {
 			p.Apply(it)
 		}
 	})
+}
+
+// A bare reserved word is refused in every expression, in any case, at any
+// depth of a path, under the name of the expression it was found in — and is
+// allowed through a #ref, and as the function it also names.
+func TestReservedWords(t *testing.T) {
+	one := values(t, `{":v": {"S": "x"}}`)
+	refused := []struct {
+		what, word string
+		parse      func() *awshttp.APIError
+	}{
+		{"UpdateExpression", "name", func() *awshttp.APIError {
+			_, aerr := ParseUpdate("SET name = :v", NewEnv(nil, one))
+			return aerr
+		}},
+		{"UpdateExpression", "Status", func() *awshttp.APIError {
+			_, aerr := ParseUpdate("REMOVE profile.Status", NewEnv(nil, nil))
+			return aerr
+		}},
+		{"ConditionExpression", "TYPE", func() *awshttp.APIError {
+			_, aerr := ParseCondition("attribute_exists(TYPE)", NewEnv(nil, nil))
+			return aerr
+		}},
+		{"ConditionExpression", "size", func() *awshttp.APIError {
+			_, aerr := ParseCondition("size = :v", NewEnv(nil, one))
+			return aerr
+		}},
+		{"FilterExpression", "data", func() *awshttp.APIError {
+			_, aerr := ParseFilter("data = :v", NewEnv(nil, one))
+			return aerr
+		}},
+		{"KeyConditionExpression", "Year", func() *awshttp.APIError {
+			_, aerr := ParseKeyCondition("Year = :v", NewEnv(nil, one))
+			return aerr
+		}},
+		{"ProjectionExpression", "count", func() *awshttp.APIError {
+			_, aerr := ParseProjection("Title, count", NewEnv(nil, nil))
+			return aerr
+		}},
+	}
+	for _, tc := range refused {
+		aerr := tc.parse()
+		want := "Invalid " + tc.what + ": Attribute name is a reserved keyword; reserved keyword: " + tc.word
+		if aerr == nil || aerr.Code != "ValidationException" || aerr.Message != want {
+			t.Errorf("%s with %q: got %v, want %s", tc.what, tc.word, aerr, want)
+		}
+	}
+
+	names := map[string]string{"#n": "name"}
+	if _, aerr := ParseUpdate("SET #n = :v", NewEnv(names, one)); aerr != nil {
+		t.Errorf("a reserved word through a #ref: %v", aerr)
+	}
+	// SIZE is reserved and is also a function; the call is not an attribute name.
+	if _, aerr := ParseCondition("size(Title) > :v", NewEnv(nil, one)); aerr != nil {
+		t.Errorf("size() as a function: %v", aerr)
+	}
+	// Containing a reserved word is not being one.
+	if _, aerr := ParseUpdate("SET username = :v", NewEnv(nil, one)); aerr != nil {
+		t.Errorf("username: %v", aerr)
+	}
+}
+
+// The list is AWS's and it is 573 words. A word dropped while editing would
+// turn a refusal back into an acceptance, silently.
+func TestReservedWordCount(t *testing.T) {
+	if len(reservedList) != 573 || len(reservedWords) != 573 {
+		t.Fatalf("reserved words: %d listed, %d distinct, want 573", len(reservedList), len(reservedWords))
+	}
 }

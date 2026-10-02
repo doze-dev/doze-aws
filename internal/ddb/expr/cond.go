@@ -17,13 +17,23 @@ type condNode interface {
 	eval(it item.Item) (bool, *awshttp.APIError)
 }
 
-// ParseCondition parses a condition or filter expression against env.
+// ParseCondition parses a ConditionExpression against env.
 func ParseCondition(src string, env *Env) (*Cond, *awshttp.APIError) {
+	return parseCond(src, env, "ConditionExpression")
+}
+
+// ParseFilter parses a FilterExpression. It is the same language as a
+// condition; only the name DynamoDB reports an error under differs.
+func ParseFilter(src string, env *Env) (*Cond, *awshttp.APIError) {
+	return parseCond(src, env, "FilterExpression")
+}
+
+func parseCond(src string, env *Env, what string) (*Cond, *awshttp.APIError) {
 	toks, aerr := lex(src)
 	if aerr != nil {
 		return nil, aerr
 	}
-	p := &parser{toks: toks, env: env}
+	p := &parser{toks: toks, env: env, what: what}
 	node, aerr := p.parseOr()
 	if aerr != nil {
 		return nil, aerr

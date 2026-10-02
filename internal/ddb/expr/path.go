@@ -128,8 +128,12 @@ func (p *parser) parsePathHead() (pathSeg, *awshttp.APIError) {
 	t := p.next()
 	switch t.kind {
 	case tokIdent:
+		if aerr := p.bareName(t); aerr != nil {
+			return pathSeg{}, aerr
+		}
 		return pathSeg{attr: t.text}, nil
 	case tokNameRef:
+		// Through a #ref any name is allowed — that is what the ref is for.
 		name, aerr := p.env.resolveName(t.text)
 		if aerr != nil {
 			return pathSeg{}, aerr

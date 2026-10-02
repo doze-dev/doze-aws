@@ -155,6 +155,9 @@ type parser struct {
 	toks []token
 	pos  int
 	env  *Env
+	// what names the expression being parsed the way the request does
+	// ("UpdateExpression"), for the errors DynamoDB words that way.
+	what string
 }
 
 func (p *parser) peek() token { return p.toks[p.pos] }

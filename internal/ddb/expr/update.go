@@ -43,7 +43,7 @@ func ParseUpdate(src string, env *Env) (*Update, *awshttp.APIError) {
 	if aerr != nil {
 		return nil, aerr
 	}
-	p := &parser{toks: toks, env: env}
+	p := &parser{toks: toks, env: env, what: "UpdateExpression"}
 	out := &Update{}
 	seen := map[string]bool{}
 	for !p.atEOF() {

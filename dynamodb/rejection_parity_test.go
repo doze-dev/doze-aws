@@ -353,12 +353,15 @@ var specs = map[string]opSpec{
 
 	"UpdateTimeToLive": {
 		baseline: func(t *testing.T, ts *httptest.Server, f fixture, n int) map[string]any {
-			return map[string]any{"TableName": f.table, "TimeToLiveSpecification": map[string]any{
-				"Enabled": false, "AttributeName": "ttl",
+			// Enabling, on a table of its own where TTL is still off: a switch
+			// to the state a table is already in is refused, as on AWS, so a
+			// baseline that is sent more than once cannot share its table.
+			return map[string]any{"TableName": freshTable(t, ts, fmt.Sprintf("ttl-%d", n)), "TimeToLiveSpecification": map[string]any{
+				"Enabled": true, "AttributeName": "ttl",
 			}}
 		},
 		exemplars: map[string]any{
-			"TimeToLiveSpecification": map[string]any{"Enabled": false, "AttributeName": "ttl"},
+			"TimeToLiveSpecification": map[string]any{"Enabled": true, "AttributeName": "ttl"},
 		},
 	},
 	"UpdateContinuousBackups": {

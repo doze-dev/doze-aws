@@ -373,6 +373,16 @@ func (s *Server) updateTTL(body []byte) (any, *awshttp.APIError) {
 		return nil, awshttp.Errf(400, "SerializationException", "%v", err)
 	}
 	_, err := s.store.UpdateTable(req.TableName, func(t *store.Table) error {
+		// TTL is switched, not set: asking for the state it is already in
+		// is refused. It used to be accepted, so a deploy that enables TTL
+		// on every run passed here and failed on its second run against AWS.
+		if t.TTLEnabled == req.TimeToLiveSpecification.Enabled {
+			state := "disabled"
+			if t.TTLEnabled {
+				state = "enabled"
+			}
+			return awshttp.Errf(400, "ValidationException", "TimeToLive is already %s", state)
+		}
 		t.TTLAttribute = req.TimeToLiveSpecification.AttributeName
 		t.TTLEnabled = req.TimeToLiveSpecification.Enabled
 		return nil

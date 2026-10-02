@@ -29,7 +29,7 @@ func ParseKeyCondition(src string, env *Env) (*KeyCondition, *awshttp.APIError) 
 	if aerr != nil {
 		return nil, aerr
 	}
-	p := &parser{toks: toks, env: env}
+	p := &parser{toks: toks, env: env, what: "KeyConditionExpression"}
 	out := &KeyCondition{}
 
 	first, aerr := p.parseKeyClause()
@@ -132,6 +132,9 @@ func (p *parser) parseKeyName() (string, *awshttp.APIError) {
 	t := p.next()
 	switch t.kind {
 	case tokIdent:
+		if aerr := p.bareName(t); aerr != nil {
+			return "", aerr
+		}
 		return t.text, nil
 	case tokNameRef:
 		return p.env.resolveName(t.text)
@@ -158,7 +161,7 @@ func ParseProjection(src string, env *Env) (*Projection, *awshttp.APIError) {
 	if aerr != nil {
 		return nil, aerr
 	}
-	p := &parser{toks: toks, env: env}
+	p := &parser{toks: toks, env: env, what: "ProjectionExpression"}
 	out := &Projection{}
 	for {
 		path, aerr := p.parsePath()

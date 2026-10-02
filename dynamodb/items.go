@@ -3,6 +3,7 @@ package dynamodb
 // Item operation handlers: CRUD, Query/Scan, batches, transactions.
 
 import (
+	"bytes"
 	"encoding/json"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -228,6 +229,41 @@ func diffAttrs(old, new_, from item.Item) item.Item {
 	return changed
 }
 
+// indexReadRules are the two things a read may ask of a table and may not ask
+// of a global secondary index.
+//
+// Every read here is consistent, because there is one copy of the data — so
+// both of these were simply answered. On AWS a GSI is replicated
+// asynchronously and holds only what it projects, and code that asks it for a
+// consistent read, or for attributes it does not carry, is refused. The
+// refusal is the useful part: it is how you find out the query needs the
+// table, not the index.
+//
+// A local secondary index shares the table's partition and can do both.
+func (s *Server) indexReadRules(table, index string, consistent bool, sel string) *awshttp.APIError {
+	if index == "" {
+		return nil
+	}
+	t, err := s.store.GetTable(table)
+	if err != nil {
+		return nil // the read itself reports a missing table, in its own words
+	}
+	for _, idx := range t.Indexes {
+		if idx.Name != index || idx.Local {
+			continue
+		}
+		if consistent {
+			return awshttp.Errf(400, "ValidationException",
+				"Consistent reads are not supported on global secondary indexes")
+		}
+		if sel == "ALL_ATTRIBUTES" && idx.Projection != "" && idx.Projection != "ALL" {
+			return awshttp.Errf(400, "ValidationException",
+				"One or more parameter values were invalid: Select type ALL_ATTRIBUTES is not supported for global secondary index %s because its projection type is not ALL", index)
+		}
+	}
+	return nil
+}
+
 func (s *Server) query(body []byte) (any, *awshttp.APIError) {
 	var req struct {
 		TableName         string          `json:"TableName"`
@@ -236,10 +272,14 @@ func (s *Server) query(body []byte) (any, *awshttp.APIError) {
 		ScanIndexForward  *bool           `json:"ScanIndexForward"`
 		ExclusiveStartKey json.RawMessage `json:"ExclusiveStartKey"`
 		Select            string          `json:"Select"`
+		ConsistentRead    bool            `json:"ConsistentRead"`
 		exprCommon
 	}
 	if err := json.Unmarshal(body, &req); err != nil {
 		return nil, awshttp.Errf(400, "SerializationException", "%v", err)
+	}
+	if aerr := s.indexReadRules(req.TableName, req.IndexName, req.ConsistentRead, req.Select); aerr != nil {
+		return nil, aerr
 	}
 	if req.KeyConditionExpression == "" {
 		return nil, awshttp.Errf(400, "ValidationException", "KeyConditionExpression is required")
@@ -254,7 +294,7 @@ func (s *Server) query(body []byte) (any, *awshttp.APIError) {
 	}
 	var filter *expr.Cond
 	if req.FilterExpression != "" {
-		filter, aerr = expr.ParseCondition(req.FilterExpression, env)
+		filter, aerr = expr.ParseFilter(req.FilterExpression, env)
 		if aerr != nil {
 			return nil, aerr
 		}
@@ -293,10 +333,14 @@ func (s *Server) scan(body []byte) (any, *awshttp.APIError) {
 		Segment           int             `json:"Segment"`
 		TotalSegments     int             `json:"TotalSegments"`
 		Select            string          `json:"Select"`
+		ConsistentRead    bool            `json:"ConsistentRead"`
 		exprCommon
 	}
 	if err := json.Unmarshal(body, &req); err != nil {
 		return nil, awshttp.Errf(400, "SerializationException", "%v", err)
+	}
+	if aerr := s.indexReadRules(req.TableName, req.IndexName, req.ConsistentRead, req.Select); aerr != nil {
+		return nil, aerr
 	}
 	env, aerr := req.env()
 	if aerr != nil {
@@ -304,7 +348,7 @@ func (s *Server) scan(body []byte) (any, *awshttp.APIError) {
 	}
 	var filter *expr.Cond
 	if req.FilterExpression != "" {
-		filter, aerr = expr.ParseCondition(req.FilterExpression, env)
+		filter, aerr = expr.ParseFilter(req.FilterExpression, env)
 		if aerr != nil {
 			return nil, aerr
 		}
@@ -422,6 +466,33 @@ func (s *Server) batchWrite(body []byte) (any, *awshttp.APIError) {
 	if total == 0 || total > 25 {
 		return nil, awshttp.Errf(400, "ValidationException", "BatchWriteItem accepts 1-25 requests, got %d", total)
 	}
+	// One write per item per batch. Two requests for the same key used to be
+	// applied in order, the second over the first; DynamoDB refuses the whole
+	// batch, because it makes no promise about the order within one.
+	for table, ops := range req.RequestItems {
+		t, err := s.store.GetTable(table)
+		if err != nil {
+			continue // the write below reports the missing table in its own words
+		}
+		seen := map[string]bool{}
+		for _, op := range ops {
+			raw := json.RawMessage(nil)
+			switch {
+			case op.PutRequest != nil:
+				raw = op.PutRequest.Item
+			case op.DeleteRequest != nil:
+				raw = op.DeleteRequest.Key
+			}
+			k, ok := batchKey(t, raw)
+			if !ok {
+				continue
+			}
+			if seen[k] {
+				return nil, awshttp.Errf(400, "ValidationException", "Provided list of item keys contains duplicates")
+			}
+			seen[k] = true
+		}
+	}
 	for table, ops := range req.RequestItems {
 		for _, op := range ops {
 			switch {
@@ -439,6 +510,33 @@ func (s *Server) batchWrite(body []byte) (any, *awshttp.APIError) {
 		}
 	}
 	return map[string]any{"UnprocessedItems": map[string]any{}}, nil
+}
+
+// batchKey is an item's primary key as one comparable string: the wire form of
+// its key attributes, compacted so that spacing does not make two spellings of
+// one key look different. ok is false when the key is not all there, which the
+// write itself then refuses.
+func batchKey(t *store.Table, raw json.RawMessage) (string, bool) {
+	var attrs map[string]json.RawMessage
+	if json.Unmarshal(raw, &attrs) != nil {
+		return "", false
+	}
+	parts := []store.KeyPart{t.Hash}
+	if t.Range != nil {
+		parts = append(parts, *t.Range)
+	}
+	var key bytes.Buffer
+	for _, p := range parts {
+		v, ok := attrs[p.Name]
+		if !ok {
+			return "", false
+		}
+		if json.Compact(&key, v) != nil {
+			return "", false
+		}
+		key.WriteByte(0)
+	}
+	return key.String(), true
 }
 
 // ---- transactions ----
