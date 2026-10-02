@@ -69,6 +69,9 @@ type request struct {
 	wire       wire
 	params     params
 	wantsQuery bool // the caller asked for legacy Query error codes
+	// peer is true when a sibling service made the call rather than a client.
+	// It cannot be forged: the gateway strips the header that says so.
+	peer bool
 }
 
 // parseRequest decodes whichever protocol this is.

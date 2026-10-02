@@ -62,6 +62,12 @@ func (s *Server) putMetricAlarm(req *request) (any, *awshttp.APIError) {
 	}
 	statistic := req.params.Str("Statistic")
 	if ext := req.params.Str("ExtendedStatistic"); ext != "" {
+		// One or the other. Given both, the percentile won and the alarm
+		// evaluated something other than the Statistic it was created with.
+		if statistic != "" {
+			return nil, errf("InvalidParameterCombinationException",
+				"The parameters Statistic and ExtendedStatistic are mutually exclusive and you have specified both.")
+		}
 		statistic = ext
 	}
 	if statistic == "" {

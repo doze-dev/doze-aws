@@ -12,6 +12,7 @@ package cloudwatch
 import (
 	"encoding/base64"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -76,6 +77,13 @@ func (s *Server) putMetricData(req *request) (any, *awshttp.APIError) {
 	ns := req.params.Str("Namespace")
 	if ns == "" {
 		return nil, errMissingParameter("The parameter Namespace is required.")
+	}
+	// AWS/ is where the services publish, and only they may. Lambda, Step
+	// Functions and the rest write their own metrics here through this same
+	// call, as peers; a client naming the namespace is refused, as on AWS,
+	// where it would otherwise be writing AWS/Lambda Errors by hand.
+	if strings.HasPrefix(ns, "AWS/") && !req.peer {
+		return nil, errInvalidParameter("The value AWS/ for parameter Namespace is invalid.")
 	}
 	data := req.params.List("MetricData")
 	if len(data) == 0 {
@@ -225,6 +233,12 @@ func parseDatum(ns string, md params) (datum, *awshttp.APIError) {
 	// legal value — so presence is the question, not truthiness.
 	v, ok := md.Float("Value")
 	if sv := md.Map("StatisticValues"); sv != nil {
+		// One observation or a summary of several, not both: given both, the
+		// summary was kept and the value quietly dropped.
+		if ok {
+			return datum{}, errf("InvalidParameterCombinationException",
+				"The parameters MetricData.member.Value and MetricData.member.StatisticValues are mutually exclusive and you have specified both.")
+		}
 		stats, aerr := parseStatisticValues(sv)
 		if aerr != nil {
 			return datum{}, aerr

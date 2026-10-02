@@ -191,6 +191,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeParseError(w, r, aerr)
 		return
 	}
+	req.peer = peers.IsPeer(r)
 	h, ok := handlers[req.action]
 	if !ok {
 		if why, refused := notHere[req.action]; refused {
