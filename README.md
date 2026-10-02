@@ -83,41 +83,55 @@ generations (aws-sdk-go v1 and aws-sdk-go-v2 / boto3-era and modern), both
 signature versions (SigV2 and SigV4), and the legacy Query protocols older
 clients still speak.
 
-| Service | Operations | Input validation |
-|---|---|---|
-| STS | ✅ | **fully audited**: 7 of 8 dispatched operations · 108/108 constraint cases · no known gaps |
-| SQS | ✅ both protocols, FIFO, DLQ redrive, long polling, move tasks, tags | **fully audited**: 21 of 22 dispatched operations · 48/48 constraint cases, plus hand-derived attribute and queue-name checks · no known gaps |
-| SNS | ✅ fanout to SQS/Lambda/webhooks, filter policies, confirmation handshake, delivery status logs to CloudWatch Logs | **fully audited**: all 19 dispatched operations · 53/53 constraint cases · no known gaps |
-| KMS | ✅ symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto | **fully audited**: all 36 dispatched operations · 263/263 constraint cases · no known gaps |
-| SSM Parameter Store | ✅ versions, labels, hierarchies, SecureString at-rest encryption | **fully audited**: all 13 dispatched operations · 100/100 constraint cases · no known gaps |
-| Secrets Manager | ✅ version stages, recovery-window deletion, encrypted at rest | **fully audited**: 19 of 20 dispatched operations · 132/132 constraint cases · no known gaps |
-| S3 | ✅ versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website, public access block enforced on bucket policies | **fully audited**: all 74 routed operations · 236/296 constraint cases · 60 not expressible on the wire · no known gaps |
-| DynamoDB | ✅ full expression engine, GSI/LSI, transactions, TTL, paging semantics | **fully audited**: all 27 dispatched operations · 333/333 constraint cases · no known gaps |
-| EventBridge | ✅ full pattern language, SQS/SNS/Lambda/CloudWatch Logs/API destination targets, cron and rate schedules, connections with real Basic/API key/OAuth delivery, input transformers | **fully audited**: all 40 dispatched operations · 448/448 constraint cases · no known gaps |
-| Lambda | ✅ real host processes speaking the Runtime API (no Docker) — Python, Node and Ruby through embedded clients on the host interpreter, Go and `provided.*` as is, Java and .NET with AWS's own packaging; edit-in-place code; every line logged with its request id; versions that freeze, aliases, layers on the search paths, function URLs served, SQS/DynamoDB/Kinesis event source mappings | **fully audited**: all 47 routed operations with constrained input · 612/621 constraint cases · 9 not expressible on the wire · no known gaps |
-| Kinesis | ✅ native Go (no JVM), real partition-key routing, resharding with parent/child lineage | **fully audited**: 32 of 35 dispatched operations · 356/356 constraint cases · no known gaps |
-| IAM | ✅ real policy evaluation, on by default in `soft` — evaluated and logged, never blocked — with least-privilege generation; under `soft` and `enforce` bucket, queue, topic, key, secret and stream policies and Lambda permissions are evaluated too, so an S3 notification needs its Lambda permission exactly as on AWS | **fully audited**: 89 of 93 dispatched operations · 702/702 constraint cases · no known gaps |
-| CloudFormation | ✅ stacks, nested stacks, change sets, deletion — `sam deploy`, `cdk deploy` and Serverless all work | **fully audited**: 22 of 23 dispatched operations · 182/182 constraint cases · no known gaps |
-| API Gateway | ✅ REST v1 and HTTP APIs (v2) — deployed APIs actually serve into Lambda over a real HTTP endpoint; an HTTP API answers at its `$default` stage with payload 2.0 events, CORS and REQUEST authorizers; TOKEN and REQUEST Lambda authorizers gate methods with the policy the function answers; API keys and usage plans gate methods that require a key; stage access and execution logs written to CloudWatch Logs; a CDK `RestApi`'s Resource and Method tree deploys as declared | **fully audited**: all 47 routed operations with constrained input · 118/126 constraint cases · 8 not expressible on the wire · no known gaps |
-| Step Functions | ✅ All 37 operations: Standard and Express, JSONPath and JSONata (all but the `%`/`@`/`#` path operators — [measured](docs/SUPPORT.md#the-jsonata-dialect-measured)), versions and aliases, activities, redrive, Distributed Map with Map Runs, child executions (`.sync`), task tokens; Lambda/SQS/SNS/DynamoDB/EventBridge and `aws-sdk:` integrations for every local service; history vended to CloudWatch Logs per `loggingConfiguration`, Express runs included | **fully audited**: 33 of 37 operations · 229/229 constraint cases · 19 cases consume the state they address · no known gaps |
-| CloudWatch Logs | ✅ log groups, streams and events — Lambda output, Step Functions history, API Gateway access and execution logs, EventBridge deliveries and SNS delivery status land where they do on AWS, each line with its request id, and `aws logs tail --follow`, `sam logs` and the console read it; subscription filters forward matching lines to Lambda and Kinesis in AWS's gzip envelope; metric filters turn matching lines into CloudWatch metrics on ingest | **fully audited**: the 25 dispatched operations · 237/237 constraint cases · 93 refused by name · no known gaps |
-| CloudWatch | ✅ metrics with dimension-correct identity, statistics and exact percentiles over retained samples, and alarms that evaluate M-of-N over completed periods with `TreatMissingData` and notify SNS topics and Lambda functions with AWS's own alarm JSON — the alarm you would deploy, testable before you deploy it; Lambda, API Gateway and Step Functions publish their `AWS/*` metrics unasked, and EMF lines and log metric filters make custom ones. Served on **all three wires**: RPC v2 CBOR (Go v2, Java, Rust), JSON 1.0 (**the AWS CLI**, boto3, JS v3) and Query | **fully audited**: the 19 dispatched operations · 183/183 constraint cases on each of the three wires · 31 refused by name · no known gaps |
+| Service | Operations | Refusals the AWS model states | Behaviour held against real AWS |
+|---|---|---|---|
+| STS | ✅ | 7 of 8 dispatched operations · 108/108 constraint cases | 2 boto3 scenarios · recordings pending |
+| SQS | ✅ both protocols, FIFO, DLQ redrive, long polling, move tasks, tags | 21 of 22 dispatched operations · 48/48 constraint cases, plus hand-derived attribute and queue-name checks | 8 boto3 scenarios · recordings pending |
+| SNS | ✅ fanout to SQS/Lambda/webhooks, filter policies, confirmation handshake, delivery status logs to CloudWatch Logs | all 19 dispatched operations · 53/53 constraint cases | 7 boto3 scenarios · recordings pending |
+| KMS | ✅ symmetric + asymmetric (RSA/ECC) + HMAC, real stdlib crypto | all 36 dispatched operations · 263/263 constraint cases | 5 boto3 scenarios · recordings pending |
+| SSM Parameter Store | ✅ versions, labels, hierarchies, SecureString at-rest encryption | all 13 dispatched operations · 100/100 constraint cases | 4 boto3 scenarios · recordings pending |
+| Secrets Manager | ✅ version stages, recovery-window deletion, encrypted at rest | 19 of 20 dispatched operations · 132/132 constraint cases | 4 boto3 scenarios · recordings pending |
+| S3 | ✅ versioning, multipart, full checksum/chunked matrix, CORS, lifecycle, object lock, website, public access block enforced on bucket policies | all 74 routed operations · 236/296 constraint cases · 60 not expressible on the wire | 10 boto3 scenarios · recordings pending |
+| DynamoDB | ✅ full expression engine, GSI/LSI, transactions, TTL, paging semantics | all 27 dispatched operations · 333/333 constraint cases | 7 boto3 scenarios · recordings pending |
+| EventBridge | ✅ full pattern language, SQS/SNS/Lambda/CloudWatch Logs/API destination targets, cron and rate schedules, connections with real Basic/API key/OAuth delivery, input transformers | all 40 dispatched operations · 448/448 constraint cases | 7 boto3 scenarios · recordings pending |
+| Lambda | ✅ real host processes speaking the Runtime API (no Docker) — Python, Node and Ruby through embedded clients on the host interpreter, Go and `provided.*` as is, Java and .NET with AWS's own packaging; edit-in-place code; every line logged with its request id; versions that freeze, aliases, layers on the search paths, function URLs served, SQS/DynamoDB/Kinesis event source mappings | all 47 routed operations with constrained input · 612/621 constraint cases · 9 not expressible on the wire | no scenarios yet |
+| Kinesis | ✅ native Go (no JVM), real partition-key routing, resharding with parent/child lineage | 32 of 35 dispatched operations · 356/356 constraint cases | 4 boto3 scenarios · recordings pending |
+| IAM | ✅ real policy evaluation, on by default in `soft` — evaluated and logged, never blocked — with least-privilege generation; under `soft` and `enforce` bucket, queue, topic, key, secret and stream policies and Lambda permissions are evaluated too, so an S3 notification needs its Lambda permission exactly as on AWS | 89 of 93 dispatched operations · 702/702 constraint cases | 5 boto3 scenarios · recordings pending |
+| CloudFormation | ✅ stacks, nested stacks, change sets, deletion — `sam deploy`, `cdk deploy` and Serverless all work | 22 of 23 dispatched operations · 182/182 constraint cases | no scenarios yet |
+| API Gateway | ✅ REST v1 and HTTP APIs (v2) — deployed APIs actually serve into Lambda over a real HTTP endpoint; an HTTP API answers at its `$default` stage with payload 2.0 events, CORS and REQUEST authorizers; TOKEN and REQUEST Lambda authorizers gate methods with the policy the function answers; API keys and usage plans gate methods that require a key; stage access and execution logs written to CloudWatch Logs; a CDK `RestApi`'s Resource and Method tree deploys as declared | all 47 routed operations with constrained input · 118/126 constraint cases · 8 not expressible on the wire | no scenarios yet |
+| Step Functions | ✅ All 37 operations: Standard and Express, JSONPath and JSONata (all but the `%`/`@`/`#` path operators — [measured](docs/SUPPORT.md#the-jsonata-dialect-measured)), versions and aliases, activities, redrive, Distributed Map with Map Runs, child executions (`.sync`), task tokens; Lambda/SQS/SNS/DynamoDB/EventBridge and `aws-sdk:` integrations for every local service; history vended to CloudWatch Logs per `loggingConfiguration`, Express runs included | 33 of 37 operations · 229/229 constraint cases · 19 cases consume the state they address | no scenarios yet |
+| CloudWatch Logs | ✅ log groups, streams and events — Lambda output, Step Functions history, API Gateway access and execution logs, EventBridge deliveries and SNS delivery status land where they do on AWS, each line with its request id, and `aws logs tail --follow`, `sam logs` and the console read it; subscription filters forward matching lines to Lambda and Kinesis in AWS's gzip envelope; metric filters turn matching lines into CloudWatch metrics on ingest | the 25 dispatched operations · 237/237 constraint cases · 93 refused by name | 3 boto3 scenarios · recordings pending |
+| CloudWatch | ✅ metrics with dimension-correct identity, statistics and exact percentiles over retained samples, and alarms that evaluate M-of-N over completed periods with `TreatMissingData` and notify SNS topics and Lambda functions with AWS's own alarm JSON — the alarm you would deploy, testable before you deploy it; Lambda, API Gateway and Step Functions publish their `AWS/*` metrics unasked, and EMF lines and log metric filters make custom ones. Served on **all three wires**: RPC v2 CBOR (Go v2, Java, Rust), JSON 1.0 (**the AWS CLI**, boto3, JS v3) and Query | the 19 dispatched operations · 183/183 constraint cases on each of the three wires · 31 refused by name | no scenarios yet |
 
-**Why two columns.** A ✅ means every documented operation of that service has a
+**Why three columns, and why none of them says "done".** A ✅ means every documented operation of that service has a
 real handler, verified against both AWS SDK generations. It does **not** mean
 doze-aws refuses everything AWS refuses, and those are different promises. An
 emulator that is too permissive is the more dangerous kind: your code passes
 here and fails on deploy, which is the one place the cost is real.
 
-The right-hand column says where that has actually been checked. "Not yet
-audited" means exactly that — no claim either way, not a known failure. The
-audit is in progress and its state lives in [`docs/SUPPORT.md`](docs/SUPPORT.md),
-one page per service; `cmd/dzaudit` derives the checklist from AWS's own service
-models, and each service gets a rejection-parity suite as it lands
-(`*/rejection_parity_test.go`).
+**The middle column is what AWS's own service models state**, checked
+mechanically: `cmd/dzaudit` derives the cases from the models, and each service
+replays them (`*/rejection_parity_test.go`). Its state lives in
+[`docs/SUPPORT.md`](docs/SUPPORT.md), one section per service. Every case in
+it is enforced. That is a true statement about the models and a much smaller
+one about AWS, because the models leave most of the rules out: that a queue
+cannot be re-created with different attributes, that `name` is a reserved word
+in a DynamoDB expression, that a rule with targets cannot be deleted, what a
+topic may be called. This column used to read "fully audited · no known gaps".
+Then a second SDK was pointed at doze-aws, and in 66 scenarios it found about
+forty places where doze-aws accepted what AWS refuses — every one of them in a
+service carrying that label, and not one of them in a model.
 
-**Operations first, cases second, and the order is the point.** The operation
-count is the claim that matters: every operation the model documents is either
+**The right-hand column is the one that can say "the same as AWS".** The
+scenarios in [`conformance/`](conformance/) are written once, in boto3. Run
+against a real account they record what AWS answered; run against doze-aws they
+are compared with it. Until a service's recordings exist, its scenarios show
+that boto3 can drive it and that it refuses what the scenario says AWS refuses
+— written by a person, from the documentation — and nothing here will call
+that verified. `recordings pending` means exactly that.
+
+**Operations first, cases second, and the order is the point.** In the middle
+column the operation count is the claim that matters: every operation the model documents is either
 handled or refused by name, so nothing falls through to a confusing
 `InvalidAction`. That is enforced per service by a model-derived operation list
 (`*/coverage_test.go`, reading the committed `testdata/ops_*.json` that CI
@@ -135,8 +149,9 @@ nature: nobody writes a 513-character description by accident, and AWS would
 have caught it at deploy. It is worth having and it is not the score. A number
 that goes up when you generate more padding should never be the headline.
 
-If a gap above bites you, it is a bug worth reporting — the goal is an empty
-right-hand column.
+doze-aws is not meant to be more forgiving than AWS anywhere. If it accepts
+something AWS refuses, or answers differently, that is a bug worth reporting —
+and the fix lands with a scenario, so it stays fixed.
 
 All 17 services talk to each other: EventBridge→SQS/SNS/Lambda/HTTP API destinations, S3
 notifications→SQS/SNS/Lambda, SNS→SQS/Lambda/webhooks, SQS/DynamoDB
