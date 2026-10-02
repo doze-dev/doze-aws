@@ -8,6 +8,7 @@ package iam
 // surfaces as a silently empty field rather than an error.
 
 import (
+	"encoding/json"
 	"net/url"
 	"strconv"
 	"strings"
@@ -561,8 +562,8 @@ func hListRoles(s *Server, p params) (any, *awshttp.APIError) {
 
 func hUpdateAssumeRolePolicy(s *Server, p params) (any, *awshttp.APIError) {
 	doc := decodeDocument(p.str("PolicyDocument"))
-	if _, err := parsePolicy(doc); err != nil {
-		return nil, errMalformedPolicy("PolicyDocument: %v", err)
+	if _, aerr := parseTrustPolicy("PolicyDocument", doc); aerr != nil {
+		return nil, aerr
 	}
 	_, err := s.store.UpdateRole(p.str("RoleName"), func(r *roleRecord) error {
 		r.AssumeRolePolicy = doc
@@ -615,7 +616,16 @@ func hCreateServiceLinkedRole(s *Server, p params) (any, *awshttp.APIError) {
 	if suffix := p.str("CustomSuffix"); suffix != "" {
 		name += "_" + suffix
 	}
-	trust := jsonDoc("Allow", "Action", []string{"sts:AssumeRole"}, []string{"*"})
+	// The service is the principal: that is what makes the role its own. This
+	// used to be a permissions statement (Action and Resource, no Principal),
+	// which GetRole then reported as the role's trust policy.
+	trustDoc, _ := json.Marshal(map[string]any{
+		"Version": "2012-10-17",
+		"Statement": []map[string]any{{
+			"Effect": "Allow", "Principal": map[string]string{"Service": svc}, "Action": "sts:AssumeRole",
+		}},
+	})
+	trust := string(trustDoc)
 	r, err := s.store.CreateRole(name, "/aws-service-role/"+svc+"/", trust, p.str("Description"), 3600, nil)
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)

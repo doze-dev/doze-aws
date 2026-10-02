@@ -370,8 +370,8 @@ func (s *store) CreateRole(name, path, assumeRolePolicy, description string, max
 		return nil, err
 	}
 	if assumeRolePolicy != "" {
-		if _, err := parsePolicy(assumeRolePolicy); err != nil {
-			return nil, errMalformedPolicy("AssumeRolePolicyDocument: %v", err)
+		if _, aerr := parseTrustPolicy("AssumeRolePolicyDocument", assumeRolePolicy); aerr != nil {
+			return nil, aerr
 		}
 	}
 	var out *roleRecord
@@ -453,8 +453,8 @@ func (s *store) CreatePolicy(name, path, document, description string, tags map[
 	if err := validName("PolicyName", name); err != nil {
 		return nil, err
 	}
-	if _, err := parsePolicy(document); err != nil {
-		return nil, errMalformedPolicy("PolicyDocument: %v", err)
+	if _, aerr := parseIdentityPolicy(document); aerr != nil {
+		return nil, aerr
 	}
 	var out *policy
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -562,8 +562,8 @@ func (s *store) ListPolicies(pathPrefix string) ([]policy, error) {
 
 // AddPolicyVersion appends a version, enforcing the five-version ceiling.
 func (s *store) AddPolicyVersion(arn, document string, setDefault bool) (string, error) {
-	if _, err := parsePolicy(document); err != nil {
-		return "", errMalformedPolicy("PolicyDocument: %v", err)
+	if _, aerr := parseIdentityPolicy(document); aerr != nil {
+		return "", aerr
 	}
 	version := ""
 	_, err := s.UpdatePolicy(arn, func(p *policy) error {

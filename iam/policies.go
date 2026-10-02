@@ -289,8 +289,8 @@ func putInline(s *Server, kind attachTarget, name, policyName, document string) 
 		return nil, errValidation("PolicyName is required")
 	}
 	doc := decodeDocument(document)
-	if _, err := parsePolicy(doc); err != nil {
-		return nil, errMalformedPolicy("PolicyDocument: %v", err)
+	if _, aerr := parseIdentityPolicy(doc); aerr != nil {
+		return nil, aerr
 	}
 	err := s.store.updatePrincipal(kind, name, func(pr *principal) error {
 		if pr.Inline == nil {

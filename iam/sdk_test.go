@@ -21,6 +21,10 @@ import (
 	"github.com/doze-dev/doze-aws/iam"
 )
 
+// ec2Trust is a trust policy: a principal, and no resource. The tests below
+// used adminPolicy for this, which IAM refuses as a role's trust document.
+const ec2Trust = `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ec2.amazonaws.com"},"Action":"sts:AssumeRole"}]}`
+
 const adminPolicy = `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"s3:*","Resource":"*"}]}`
 
 func client(t *testing.T) *awsiam.Client {
@@ -284,7 +288,7 @@ func TestSDKSynthesizedManagedPolicies(t *testing.T) {
 
 	// A managed policy attaches like any other.
 	c.CreateRole(ctx, &awsiam.CreateRoleInput{
-		RoleName: aws.String("r"), AssumeRolePolicyDocument: aws.String(adminPolicy),
+		RoleName: aws.String("r"), AssumeRolePolicyDocument: aws.String(ec2Trust),
 	})
 	if _, err := c.AttachRolePolicy(ctx, &awsiam.AttachRolePolicyInput{
 		RoleName: aws.String("r"), PolicyArn: aws.String("arn:aws:iam::aws:policy/AmazonS3FullAccess"),
@@ -365,7 +369,7 @@ func TestSDKInstanceProfiles(t *testing.T) {
 	c := client(t)
 
 	c.CreateRole(ctx, &awsiam.CreateRoleInput{
-		RoleName: aws.String("ec2-role"), AssumeRolePolicyDocument: aws.String(adminPolicy),
+		RoleName: aws.String("ec2-role"), AssumeRolePolicyDocument: aws.String(ec2Trust),
 	})
 	if _, err := c.CreateInstanceProfile(ctx, &awsiam.CreateInstanceProfileInput{
 		InstanceProfileName: aws.String("web"),
@@ -383,7 +387,7 @@ func TestSDKInstanceProfiles(t *testing.T) {
 	}
 	// AWS allows exactly one role per profile.
 	c.CreateRole(ctx, &awsiam.CreateRoleInput{
-		RoleName: aws.String("other"), AssumeRolePolicyDocument: aws.String(adminPolicy),
+		RoleName: aws.String("other"), AssumeRolePolicyDocument: aws.String(ec2Trust),
 	})
 	_, err = c.AddRoleToInstanceProfile(ctx, &awsiam.AddRoleToInstanceProfileInput{
 		InstanceProfileName: aws.String("web"), RoleName: aws.String("other"),
