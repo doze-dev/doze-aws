@@ -43,7 +43,7 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   shipped Windows because that dependency did not exist yet. Supporting it
   means porting the resolver setup, which is a project, not a build flag.
 
-- **About forty requests that used to succeed are now refused, because AWS
+- **About sixty requests that used to succeed are now refused, because AWS
   refuses them.** If something that worked at 0.x fails after upgrading, it
   would have failed on deploy. Found by driving doze-aws with boto3
   (`conformance/`); almost none of these rules are in AWS's service models,
@@ -71,12 +71,25 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
     create it), and a batch out of time order.
   - **Secrets Manager, KMS**: a secret name with characters it does not allow,
     a secret given both a string and a binary, and writes under `alias/aws/`.
+  - **Lambda**: an update addressed to a published version or an alias (it
+    used to change `$LATEST` instead); an invoke whose payload is not JSON;
+    an event source mapping to a queue that does not exist.
+  - **CloudFormation**: a stack name outside `[a-zA-Z][-a-zA-Z0-9]*`; a
+    template whose `Ref`, `Fn::GetAtt` or `DependsOn` names nothing it
+    declares; an `UpdateStack` that changes nothing ("No updates are to be
+    performed.").
+  - **API Gateway**: a path part or HTTP method it does not accept, and a
+    deployment of an API with no methods or a method with no integration.
+  - **CloudWatch**: `PutMetricData` under `AWS/` from a client; a datum
+    with both a value and statistics; an alarm with both `Statistic` and
+    `ExtendedStatistic`.
+  - **Step Functions**: a `roleArn` that is not a role's ARN.
 
 ### Added since 0.3.0
 
 - **SNS FIFO topics deliver.** They were accepted and delivered nothing: the
   group id never reached the FIFO queue. `Publish` returns a `SequenceNumber`.
-- **`conformance/`**: 66 boto3 scenarios across 12 services, written to be
+- **`conformance/`**: 89 boto3 scenarios across all 17 services, written to be
   recorded against a real AWS account and compared with doze-aws. No
   recordings yet; the suite reports every response as unverified until there
   are.
@@ -117,6 +130,8 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   refused until now — returns `SenderId` on every message, and
   `SequenceNumber` on FIFO sends and receives.
 - EventBridge buses can be tagged. `TagResource` used to refuse a bus ARN.
+- A stack whose resource fails says so in its events. The trail used to
+  report every resource, the failed one included, as `CREATE_COMPLETE`.
 - Cold start is ~20 ms and an untouched data directory is 158 bytes across
   three files. Databases are created on first use, so a stack nobody speaks to
   creates none. It was 793 ms and 2.1 MB across seventeen files.
