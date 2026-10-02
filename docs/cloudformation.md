@@ -30,11 +30,20 @@ poll are synthesized afterwards from what apply actually did. A deploy tool's
 first poll therefore succeeds, which is both faster and more honest than
 reporting `IN_PROGRESS` for work that already finished.
 
-One consequence worth knowing: a bad template comes back as a `400` from
-`CreateStack` itself, where real CloudFormation would return `200` and report
-the failure later through events. Both are also recorded on the stack, so a
-client that only polls still sees them — but locally, failing at your terminal
-beats burying it in an event trail.
+**When a resource fails, the stack does what it does on AWS.** `CreateStack`
+still answers `200`: the call was accepted, and it is the stack that failed.
+What the failed create had made is deleted and the stack ends
+`ROLLBACK_COMPLETE`; a failed update puts the previous template back and ends
+`UPDATE_ROLLBACK_COMPLETE`. `DisableRollback`, `OnFailure=DO_NOTHING` and
+`OnFailure=DELETE` are honoured, and the events say what happened in the
+order CloudFormation would — only all at once, since the work is finished
+before the call returns. A rollback deletes only what the failed deploy itself
+created, so a resource that already existed under a name the template uses is
+left alone.
+
+A template that cannot be read at all — bad syntax, a `Ref` to something it
+does not declare, a missing parameter — is still refused at the call with a
+`400`, as on AWS.
 
 ## The three outcomes
 
@@ -278,8 +287,10 @@ values are deliberately left blank.
 
 ## What this is not
 
-There is no drift detection, no rollback, no StackSets and no resource
-registry. Those describe cloud-side machinery with no local counterpart to
+There is no drift detection, no StackSets and no resource registry. (Stacks
+do roll back when a resource fails; what is absent is `RollbackStack` and
+`ContinueUpdateRollback`, which act on an operation in flight, and there
+never is one.) Those describe cloud-side machinery with no local counterpart to
 inspect; each is refused by name with the reason. See
 [SUPPORT.md](SUPPORT.md#cloudformation--api-support).
 

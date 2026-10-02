@@ -118,7 +118,7 @@ func (s *Server) fetchS3(bucket, key string) (string, error) {
 // resource that was already in place gets no create event, and a failure
 // carries the real error. The final event is always a terminal stack-level
 // status, because that is what stops the poller.
-func (s *Server) synthesizeEvents(st *stackRecord, applyRep *provision.Report, isUpdate bool) []stackEvent {
+func (s *Server) synthesizeEvents(st *stackRecord, applyRep *provision.Report, isUpdate bool, cleanup []stackEvent) []stackEvent {
 	now := s.now().Unix()
 	verb := statusVerb(isUpdate)
 	events := []stackEvent{{
@@ -167,19 +167,14 @@ func (s *Server) synthesizeEvents(st *stackRecord, applyRep *provision.Report, i
 			})
 	}
 
+	// What an update deleted, between its resources and its last word.
+	events = append(events, cleanup...)
 	events = append(events, stackEvent{
 		ID: s.store.newID(), Timestamp: now, LogicalID: st.Name,
 		Type: "AWS::CloudFormation::Stack", PhysicalID: st.ID,
 		Status: st.Status, Reason: st.StatusReason,
 	})
-	// Keep the trail bounded: a stack redeployed in a loop should not grow
-	// without limit, and only the latest deploy is ever interesting.
-	const maxEvents = 500
-	all := append(st.Events, events...)
-	if len(all) > maxEvents {
-		all = all[len(all)-maxEvents:]
-	}
-	return all
+	return boundEvents(append(st.Events, events...))
 }
 
 // ---- gateway plumbing ----

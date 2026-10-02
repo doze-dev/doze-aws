@@ -32,6 +32,8 @@ const (
 	StatusCreateComplete = "CREATE_COMPLETE"
 	StatusUpdateComplete = "UPDATE_COMPLETE"
 	StatusCreateFailed   = "CREATE_FAILED"
+	// StatusUpdateFailed is where a failed update ends: rolled back to the
+	// template before it. The name predates the rollback; the value is AWS's.
 	StatusUpdateFailed   = "UPDATE_ROLLBACK_COMPLETE"
 	StatusDeleteComplete = "DELETE_COMPLETE"
 	// StatusReviewInProgress is the one non-terminal status that must exist:

@@ -491,9 +491,9 @@ bootstrap`, `cdk deploy`, `cdk destroy` and Serverless Framework output. See
 
 | Operation | Tier | Notes |
 |---|---|---|
-| CreateStack | F | transpiles, provisions and returns CREATE_COMPLETE synchronously; a duplicate name is AlreadyExistsException |
-| UpdateStack | F | merges parameters with the stack's existing ones; `UsePreviousTemplate` honoured |
-| DeleteStack | F | **reclaims the resources the stack created**, then retains the record as DELETE_COMPLETE; idempotent; refuses while another stack imports an export |
+| CreateStack | F | transpiles, provisions and returns CREATE_COMPLETE synchronously; a resource failure rolls back to ROLLBACK_COMPLETE (`DisableRollback` and `OnFailure` honoured); a duplicate name is AlreadyExistsException |
+| UpdateStack | F | merges parameters with the stack's existing ones; `UsePreviousTemplate` honoured; **deletes what the new template drops**; a resource failure restores the previous template and ends UPDATE_ROLLBACK_COMPLETE; an update that changes nothing is refused |
+| DeleteStack | F | **reclaims the resources the stack created**, except those with `DeletionPolicy: Retain`, then retains the record as DELETE_COMPLETE; idempotent; refuses while another stack imports an export |
 | DescribeStacks | F | by name or StackId; a deleted stack resolves by id only, as in AWS |
 | ListStacks | F | `StackStatusFilter` honoured |
 | DescribeStackEvents | F | synthesized from what apply actually did — a resource already in place gets no create event; newest first, and the newest is always terminal |
@@ -533,10 +533,14 @@ does exist is `REVIEW_IN_PROGRESS`, because real CloudFormation materialises a
 stack the moment a CREATE change set is made and deploy tools poll its events
 between `CreateChangeSet` and `ExecuteChangeSet`.
 
-**Failures surface early.** A template that cannot be transpiled returns a
-`400` from `CreateStack`, where AWS would return `200` and report the failure
-through events later. The failure is *also* written to the stack's status and
-events, so a client that only polls still sees it.
+**A resource failure rolls the stack back, all at once.** `CreateStack` and
+`UpdateStack` answer `200` when a resource fails, as on AWS, and the stack
+ends `ROLLBACK_COMPLETE` or `UPDATE_ROLLBACK_COMPLETE` with what the failed
+deploy made deleted and, for an update, the previous template re-applied.
+`DisableRollback` and `OnFailure` are honoured. The difference from AWS is
+only that it has already happened when the call returns: the events are all
+there on the first poll. A template that cannot be transpiled at all is
+refused with a `400`.
 
 **Physical names are logical IDs.** No `mystack-MyQueue-1A2B3C4D` suffixes —
 see [../cloudformation.md](../cloudformation.md#naming).

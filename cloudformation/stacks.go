@@ -260,7 +260,7 @@ func hCreateStack(s *Server, p params) (any, *awshttp.APIError) {
 		return nil, aerr
 	}
 	st, aerr := s.deploy(name, body, p.keyValues("Parameters", "ParameterKey", "ParameterValue"),
-		p.keyValues("Tags", "Key", "Value"), false)
+		p.keyValues("Tags", "Key", "Value"), false, policyOf(p))
 	if aerr != nil {
 		return nil, aerr
 	}
@@ -289,11 +289,29 @@ func (s *Server) recordDeployFields(st *stackRecord, p params) *awshttp.APIError
 	return nil
 }
 
+// refuseUpdate is the states a stack cannot be updated from. One whose
+// creation was rolled back holds nothing to update: it can only be deleted,
+// and CloudFormation says so rather than letting an update create it after all.
+func refuseUpdate(st *stackRecord) *awshttp.APIError {
+	switch st.Status {
+	case statusRollbackComplete, statusRollbackFailed, StatusCreateFailed:
+		return errValidation("Stack:%s is in %s state and can not be updated.", st.ID, st.Status)
+	case StatusDeleteComplete:
+		// The record outlives the stack so it stays queryable by id; to an
+		// update, the stack is gone.
+		return errStackNotFound(st.Name)
+	}
+	return nil
+}
+
 func hUpdateStack(s *Server, p params) (any, *awshttp.APIError) {
 	name := p.str("StackName")
 	existing, err := s.store.GetStack(name)
 	if err != nil {
 		return nil, awshttp.AsAPIError(err)
+	}
+	if aerr := refuseUpdate(existing); aerr != nil {
+		return nil, aerr
 	}
 	body, aerr := s.templateOf(p)
 	if aerr != nil {
@@ -321,7 +339,7 @@ func hUpdateStack(s *Server, p params) (any, *awshttp.APIError) {
 		(existing.Status == StatusCreateComplete || existing.Status == StatusUpdateComplete) {
 		return nil, errValidation("No updates are to be performed.")
 	}
-	st, aerr := s.deploy(name, body, merged, tags, true)
+	st, aerr := s.deploy(name, body, merged, tags, true, policyOf(p))
 	if aerr != nil {
 		return nil, aerr
 	}
@@ -339,7 +357,7 @@ func hUpdateStack(s *Server, p params) (any, *awshttp.APIError) {
 // terminal status; doing the work before returning means the very first poll
 // succeeds, which is both faster and more honest than reporting IN_PROGRESS
 // for something that already finished.
-func (s *Server) deploy(name, body string, params, tags map[string]string, isUpdate bool) (*stackRecord, *awshttp.APIError) {
+func (s *Server) deploy(name, body string, params, tags map[string]string, isUpdate bool, policy failurePolicy) (*stackRecord, *awshttp.APIError) {
 	tmpl, err := cfn.Parse([]byte(body))
 	if err != nil {
 		return nil, errValidation("%v", err)
@@ -347,6 +365,9 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 	// Refused at the call, as CloudFormation refuses it, and before a failed
 	// stack is recorded: nothing was attempted.
 	if err := tmpl.CheckReferences(); err != nil {
+		return nil, errValidation("%v", err)
+	}
+	if err := tmpl.CheckParameters(params); err != nil {
 		return nil, errValidation("%v", err)
 	}
 	exports, _ := s.store.Exports()
@@ -361,8 +382,14 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 	})
 	if err != nil {
 		// A template that cannot be transpiled records a failed stack rather
-		// than vanishing, so `describe-stacks` explains what went wrong.
-		s.recordFailure(name, body, params, tags, isUpdate, err.Error())
+		// than vanishing, so `describe-stacks` explains what went wrong — on
+		// a create. An update that cannot be transpiled attempted nothing, and
+		// the stack it was aimed at is left exactly as it was: recording the
+		// failure used to replace its template with the one that had just
+		// been refused, under a status that claimed a rollback.
+		if !isUpdate {
+			s.recordFailure(name, body, params, tags, err.Error())
+		}
 		return nil, errValidation("%v", err)
 	}
 	if aerr := s.refuseExportConflict(tmpl, name, params, exports); aerr != nil {
@@ -381,6 +408,15 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 		st.ParentID, st.RootID = prev.ParentID, prev.RootID
 	} else {
 		st.ID = cfn.StackARN(s.id, name, s.store.newID())
+	}
+
+	// What the stack is made of before this deploy touches it. An update
+	// deletes what the new template drops, and a failed one is put back to
+	// this — neither can be worked out once the record has been replaced.
+	var prevIR *provision.Stack
+	if isUpdate && prev != nil {
+		prevIR, _ = s.stackIR(prev)
+		st.Events = prev.Events
 	}
 
 	ctx, cancel := s.ctx()
@@ -413,13 +449,20 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 	sort.Slice(st.Outputs, func(i, j int) bool { return st.Outputs[i].Key < st.Outputs[j].Key })
 
 	if applyErr != nil {
-		st.Status = pick(isUpdate, StatusUpdateFailed, StatusCreateFailed)
-		st.StatusReason = applyErr.Error()
-		markFailed(st, applyRep, applyErr, isUpdate)
-	} else {
-		st.Status = pick(isUpdate, StatusUpdateComplete, StatusCreateComplete)
+		// The call succeeded; the stack did not. See rollback.go.
+		st = s.settleFailure(ctx, failure{
+			st: st, prev: prev, ir: sf, prevIR: prevIR, rep: applyRep, err: applyErr,
+			update: isUpdate && prev != nil, policy: policy,
+		})
+		if err := s.store.PutStack(st); err != nil {
+			return nil, awshttp.AsAPIError(err)
+		}
+		s.logf("cloudformation: stack %s %s: %v", name, st.Status, applyErr)
+		return st, nil
 	}
-	st.Events = s.synthesizeEvents(st, applyRep, isUpdate)
+	st.Status = pick(isUpdate, StatusUpdateComplete, StatusCreateComplete)
+	cleanup := s.removeDropped(ctx, st, prev, sf, prevIR)
+	st.Events = s.synthesizeEvents(st, applyRep, isUpdate, cleanup)
 	if len(rep.Nested) > 0 {
 		if err := s.recordNested(st, rep, isUpdate); err != nil {
 			return nil, awshttp.AsAPIError(err)
@@ -429,56 +472,43 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 	if err := s.store.PutStack(st); err != nil {
 		return nil, awshttp.AsAPIError(err)
 	}
-	if applyErr != nil {
-		return nil, errValidation("apply failed: %v", applyErr)
-	}
 	s.logf("cloudformation: stack %s %s (%d resources)", name, st.Status, len(st.Resources))
 	return st, nil
 }
 
-// markFailed corrects the resources of a stack whose apply failed.
+// markFailed finds the resource an apply failed on, marks it, and returns the
+// logical ids it marked.
 //
 // Every resource is recorded as COMPLETE before apply's outcome is known,
 // which is right when it succeeds. When it did not, the event trail said the
-// resource that failed had reached CREATE_COMPLETE — and so did every
-// resource apply never got to. A deploy tool reads that trail to say what
-// went wrong, and it said nothing had.
-//
-// The resource the error names carries the error. On a create, the ones
-// apply never reached were not created, and say so in the words CloudFormation
-// uses for a sibling of a failure. On an update they are left alone: they
-// exist, from before.
-func markFailed(st *stackRecord, rep *provision.Report, applyErr error, isUpdate bool) {
-	touched := map[string]bool{}
-	if rep != nil {
-		for _, a := range rep.Actions {
-			if i := strings.Index(a.Resource, "/"); i >= 0 {
-				touched[a.Resource[i+1:]] = true
-			}
-		}
-	}
+// resource that failed had reached CREATE_COMPLETE, and a deploy tool reads
+// that trail to say what went wrong. The resource the error names carries the
+// error; the ones apply never reached are left for the caller, which reports
+// nothing for a resource nothing was started on.
+func markFailed(st *stackRecord, applyErr error, isUpdate bool) []string {
 	msg := applyErr.Error()
+	var failed []string
 	for i := range st.Resources {
 		r := &st.Resources[i]
-		switch {
-		case strings.Contains(msg, `"`+r.LogicalID+`"`) || strings.Contains(msg, `"`+r.PhysicalID+`"`):
+		if strings.Contains(msg, `"`+r.LogicalID+`"`) || strings.Contains(msg, `"`+r.PhysicalID+`"`) {
 			r.Status, r.Reason = statusVerb(isUpdate)+"_FAILED", msg
-		case !isUpdate && !touched[r.PhysicalID]:
-			r.Status, r.Reason = "CREATE_FAILED", "Resource creation cancelled"
+			failed = append(failed, r.LogicalID)
 		}
 	}
+	sort.Strings(failed)
+	return failed
 }
 
 // recordFailure stores a stack that could not even be transpiled, so the
 // failure is visible through the normal describe path.
-func (s *Server) recordFailure(name, body string, params, tags map[string]string, isUpdate bool, reason string) {
+func (s *Server) recordFailure(name, body string, params, tags map[string]string, reason string) {
 	now := s.now().Unix()
 	st, _ := s.store.GetStack(name)
 	if st == nil {
 		st = &stackRecord{Name: name, ID: cfn.StackARN(s.id, name, s.store.newID()), Created: now}
 	}
 	st.TemplateBody, st.Parameters, st.Tags, st.Updated = body, params, tags, now
-	st.Status = pick(isUpdate, StatusUpdateFailed, StatusCreateFailed)
+	st.Status = StatusCreateFailed
 	st.StatusReason = reason
 	st.Events = append(st.Events, stackEvent{
 		ID: s.store.newID(), Timestamp: now, LogicalID: name,
@@ -529,7 +559,16 @@ func hDeleteStack(s *Server, p params) (any, *awshttp.APIError) {
 	// This is the capability the transpiler alone could not have: the stack
 	// recorded its own template, so it can be re-transpiled into the exact IR
 	// that created it and handed to Destroy.
-	if sf, terr := s.stackIR(st); terr == nil {
+	if st.Status == statusRollbackComplete {
+		// Its creation was undone, so it owns nothing. The template still
+		// names resources — possibly ones that existed before it and were
+		// never its own — and destroying those would be deleting someone
+		// else's.
+	} else if sf, terr := s.stackIR(st); terr == nil {
+		// Less what the template says to keep: DeletionPolicy was parsed and
+		// then ignored, so a Retain bucket went with its stack.
+		retain := retained(st.TemplateBody, st.Resources, false)
+		sf = provision.Subset(sf, func(_, name string) bool { return !retain[name] })
 		rep, derr := provision.Destroy(ctx, s.gateway, sf, s.id)
 		if derr != nil {
 			s.logf("cloudformation: stack %s delete left resources behind: %v", name, derr)

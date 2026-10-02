@@ -230,11 +230,21 @@ func hExecuteChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 		return nil, awshttp.Errf(400, "InvalidChangeSetStatus",
 			"ChangeSet [%s] cannot be executed in its current status of [%s]", cs.Name, cs.Status)
 	}
-	if _, aerr := s.deploy(cs.StackName, cs.TemplateBody, cs.Parameters, cs.Tags,
-		cs.Type == "UPDATE"); aerr != nil {
+	st, aerr := s.deploy(cs.StackName, cs.TemplateBody, cs.Parameters, cs.Tags,
+		cs.Type == "UPDATE", policyOf(p))
+	if aerr != nil {
 		cs.ExecutionStatus = "EXECUTE_FAILED"
 		_ = s.store.PutChangeSet(cs)
 		return nil, aerr
+	}
+	// The execution was accepted either way. Whether it worked is the
+	// stack's to say — and the change set's: one whose stack was rolled back
+	// did not execute.
+	if st.Status != StatusCreateComplete && st.Status != StatusUpdateComplete {
+		cs.ExecutionStatus = "EXECUTE_FAILED"
+		cs.StatusReason = st.StatusReason
+		_ = s.store.PutChangeSet(cs)
+		return nil, nil
 	}
 	cs.ExecutionStatus = "EXECUTE_COMPLETE"
 	_ = s.store.PutChangeSet(cs)
