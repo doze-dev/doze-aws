@@ -85,11 +85,30 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
     `ExtendedStatistic`.
   - **Step Functions**: a `roleArn` that is not a role's ARN.
 
+- **A stack that fails rolls back, and the call that started it answers 200.**
+  `CreateStack` used to answer `400` when a resource failed, leave the stack
+  in `CREATE_FAILED`, and leave whatever had been created in place. It now
+  does what CloudFormation does: the call is accepted, what the failed create
+  made is deleted, and the stack ends `ROLLBACK_COMPLETE`. A failed
+  `UpdateStack` re-applies the previous template and ends
+  `UPDATE_ROLLBACK_COMPLETE`, keeping the template it had before.
+  `DisableRollback`, `OnFailure=DO_NOTHING` and `OnFailure=DELETE` are
+  honoured. If you scripted against the `400`, poll the stack instead — as you
+  would on AWS. A rollback deletes only what the failed deploy itself created.
+- **`UpdateStack` deletes what the new template drops.** A resource taken out
+  of a template used to stay running, owned by no stack.
+- **`DeletionPolicy: Retain` is honoured**, by `DeleteStack`, by an update
+  that drops the resource, and by a rollback. It was parsed and ignored, so a
+  retained bucket went with its stack.
+- **Template parameter constraints are enforced**: `AllowedValues`,
+  `MinValue`/`MaxValue`, `MinLength`/`MaxLength` and `AllowedPattern`. A value
+  the template forbids is refused at the call and no stack is made.
+
 ### Added since 0.3.0
 
 - **SNS FIFO topics deliver.** They were accepted and delivered nothing: the
   group id never reached the FIFO queue. `Publish` returns a `SequenceNumber`.
-- **`conformance/`**: 89 boto3 scenarios across all 17 services, written to be
+- **`conformance/`**: 92 boto3 scenarios across all 17 services, written to be
   recorded against a real AWS account and compared with doze-aws. No
   recordings yet; the suite reports every response as unverified until there
   are.

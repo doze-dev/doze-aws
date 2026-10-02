@@ -156,6 +156,10 @@ def test_a_resource_that_fails_rolls_the_stack_back(client, names, cleanup, snap
 
     snapshot.match("status", eventually(settled, timeout=300, every=2))
     snapshot.error("the-good-queue-was-taken-back", lambda: sqs.get_queue_url(QueueName=queue))
+    snapshot.error("a-rolled-back-stack-cannot-be-updated", lambda: cfn.update_stack(
+        StackName=name, TemplateBody=json.dumps({"Resources": {"Good": template["Resources"]["Good"]}})))
+    snapshot.error("nor-created-over", lambda: cfn.create_stack(
+        StackName=name, TemplateBody=json.dumps({"Resources": {"Good": template["Resources"]["Good"]}})))
     events = cfn.describe_stack_events(StackName=name)["StackEvents"]
     statuses = {(e["LogicalResourceId"], e["ResourceStatus"]) for e in events}
     # Whatever else the trail says, it must say that Bad failed and must
@@ -217,3 +221,104 @@ def test_refusals(client, names, cleanup, snapshot):
         StackName=name, LogicalResourceId="Ghost"))
     snapshot.error("absent-change-set", lambda: cfn.describe_change_set(
         StackName=name, ChangeSetName=absent))
+
+
+def settled(cfn, eventually, name):
+    """Wait for a stack to stop moving, and return where it stopped."""
+    def read():
+        s = cfn.describe_stacks(StackName=name)["Stacks"][0]
+        assert not s["StackStatus"].endswith("IN_PROGRESS"), s["StackStatus"]
+        return s["StackStatus"]
+    return eventually(read, timeout=300, every=2)
+
+
+# An SSM parameter SSM refuses: it fails after the queues beside it are made,
+# which is the situation a rollback exists for.
+BAD = {"Type": "AWS::SSM::Parameter",
+       "Properties": {"Name": "/dzc/has space", "Type": "String", "Value": "v"}}
+
+
+def trail(cfn, name):
+    """A stack's events, oldest first, as (logical id, status)."""
+    events = cfn.describe_stack_events(StackName=name)["StackEvents"]
+    return [(e["LogicalResourceId"], e["ResourceStatus"]) for e in reversed(events)]
+
+
+def test_a_failed_update_goes_back_to_the_previous_template(client, names, cleanup, snapshot, eventually):
+    cfn, sqs = client("cloudformation"), client("sqs")
+    queue, extra = names("queue"), names("extra")
+    v1 = {"Resources": {"Q": {"Type": "AWS::SQS::Queue",
+                              "Properties": {"QueueName": queue, "VisibilityTimeout": 30}}}}
+    name, _ = stack(cfn, names, cleanup, v1)
+    cfn.get_waiter("stack_create_complete").wait(StackName=name, WaiterConfig=FAST)
+    url = sqs.get_queue_url(QueueName=queue)["QueueUrl"]
+
+    v2 = {"Resources": {
+        "Q": {"Type": "AWS::SQS::Queue", "Properties": {"QueueName": queue, "VisibilityTimeout": 45}},
+        "Extra": {"Type": "AWS::SQS::Queue", "Properties": {"QueueName": extra}},
+        "Bad": {**BAD, "DependsOn": ["Q", "Extra"]},
+    }}
+    snapshot.match("update", cfn.update_stack(StackName=name, TemplateBody=json.dumps(v2)))
+    snapshot.match("status", settled(cfn, eventually, name))
+    snapshot.match("the-queue-is-as-it-was", sqs.get_queue_attributes(
+        QueueUrl=url, AttributeNames=["VisibilityTimeout"]))
+    snapshot.error("what-the-update-added-is-gone", lambda: sqs.get_queue_url(QueueName=extra))
+    snapshot.match("the-template-is-the-old-one",
+                   sorted(cfn.get_template(StackName=name)["TemplateBody"]["Resources"]))
+    statuses = set(trail(cfn, name))
+    assert ("Bad", "CREATE_FAILED") in statuses or ("Bad", "UPDATE_FAILED") in statuses, sorted(statuses)
+    snapshot.match("stack-level-events", [s for who, s in trail(cfn, name) if who == name])
+
+    # It is a working stack again.
+    snapshot.match("a-good-update-after", cfn.update_stack(StackName=name, TemplateBody=json.dumps(
+        {"Resources": {"Q": {"Type": "AWS::SQS::Queue",
+                             "Properties": {"QueueName": queue, "VisibilityTimeout": 60}}}})))
+    snapshot.match("status-after", settled(cfn, eventually, name))
+
+
+def test_an_update_deletes_what_its_template_drops(client, names, cleanup, snapshot, eventually):
+    cfn, sqs = client("cloudformation"), client("sqs")
+    keep, drop, held = names("keep"), names("drop"), names("held")
+    q = lambda n, **extra: {"Type": "AWS::SQS::Queue", "Properties": {"QueueName": n}, **extra}
+    name, _ = stack(cfn, names, cleanup, {"Resources": {
+        "Keep": q(keep), "Drop": q(drop), "Held": q(held, DeletionPolicy="Retain")}})
+    cfn.get_waiter("stack_create_complete").wait(StackName=name, WaiterConfig=FAST)
+    cleanup(lambda: sqs.delete_queue(QueueUrl=sqs.get_queue_url(QueueName=held)["QueueUrl"]))
+
+    cfn.update_stack(StackName=name, TemplateBody=json.dumps({"Resources": {"Keep": q(keep)}}))
+    snapshot.match("status", settled(cfn, eventually, name))
+    snapshot.error("the-dropped-queue-is-gone", lambda: sqs.get_queue_url(QueueName=drop))
+    snapshot.match("the-kept-queue", sqs.get_queue_url(QueueName=keep))
+    snapshot.match("the-retained-queue-outlives-its-stack-entry", sqs.get_queue_url(QueueName=held))
+    snapshot.match("resources", sorted(r["LogicalResourceId"] for r in cfn.list_stack_resources(
+        StackName=name)["StackResourceSummaries"]))
+    snapshot.match("stack-level-events", [s for who, s in trail(cfn, name) if who == name])
+
+
+def test_a_failed_create_can_be_left_or_deleted(client, names, cleanup, snapshot, eventually):
+    cfn, sqs = client("cloudformation"), client("sqs")
+    kept_q, gone_q = names("kept-queue"), names("gone-queue")
+    body = lambda queue: json.dumps({"Resources": {
+        "Good": {"Type": "AWS::SQS::Queue", "Properties": {"QueueName": queue}},
+        "Bad": {**BAD, "DependsOn": "Good"}}})
+
+    kept = names("kept")
+    cleanup(lambda: (cfn.delete_stack(StackName=kept),
+                     cfn.get_waiter("stack_delete_complete").wait(StackName=kept, WaiterConfig=FAST)))
+    cfn.create_stack(StackName=kept, TemplateBody=body(kept_q), DisableRollback=True)
+    snapshot.match("disable-rollback-status", settled(cfn, eventually, kept))
+    snapshot.match("what-was-made-is-left", sqs.get_queue_url(QueueName=kept_q))
+    snapshot.error("a-failed-create-cannot-be-updated", lambda: cfn.update_stack(
+        StackName=kept, TemplateBody=body(kept_q).replace("has space", "fine")))
+
+    gone = names("gone")
+    made = cfn.create_stack(StackName=gone, TemplateBody=body(gone_q), OnFailure="DELETE")
+
+    def deleted():
+        s = cfn.describe_stacks(StackName=made["StackId"])["Stacks"][0]
+        assert s["StackStatus"] == "DELETE_COMPLETE", s["StackStatus"]
+        return s["StackStatus"]
+
+    snapshot.match("on-failure-delete-status", eventually(deleted, timeout=300, every=2))
+    snapshot.error("what-was-made-is-deleted", lambda: sqs.get_queue_url(QueueName=gone_q))
+    snapshot.error("the-stack-is-gone-by-name", lambda: cfn.describe_stacks(StackName=gone))
