@@ -120,6 +120,13 @@ test.describe('API Gateway gates', () => {
     await page.locator('#apigw-routes a:has(.chip:text("GET"))').click();
     await expect(page.locator('#method-out .sub')).toContainText('CUSTOM · authorizer');
 
+    // Something has to answer the method before the API will deploy: a
+    // method with no integration is refused, here as on AWS. This test used
+    // to deploy with nothing behind it.
+    await page.locator('#method-out select[name="type"]').selectOption('MOCK');
+    await page.locator('#method-out').getByRole('button', { name: 'Save integration' }).click();
+    await waitForToast();
+
     // Keys page: a key, a plan on the deployed stage, the key attached.
     await page.goto(apiURL + '?tab=stages');
     await page.locator('input[name="stage"]').fill('v1');

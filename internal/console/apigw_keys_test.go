@@ -1,6 +1,7 @@
 package console_test
 
 import (
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -13,6 +14,7 @@ func TestConsoleAPIGatewayKeysAndPlans(t *testing.T) {
 	h := newConsole(t)
 	loc := create(t, h, "/_console/apigw/create", url.Values{"name": {"keyed"}})
 	api := regexp.MustCompile(`/apigw/([a-z0-9]+)`).FindStringSubmatch(loc)[1]
+	giveAPIAMethod(t, h, api)
 	if rec := req(t, h, "POST", "/_console/apigw/"+api+"/deploy", url.Values{"stage": {"v1"}}); rec.Code >= 400 {
 		t.Fatalf("deploy: %d\n%s", rec.Code, rec.Body)
 	}
@@ -57,5 +59,28 @@ func TestConsoleAPIGatewayKeysAndPlans(t *testing.T) {
 	}
 	if rec := req(t, h, "POST", "/_console/apigw-keys/delete", url.Values{"id": {keyID}}); rec.Code != 200 || !strings.Contains(rec.Body.String(), "No API keys yet") {
 		t.Fatalf("delete key: %d\n%s", rec.Code, rec.Body)
+	}
+}
+
+var apigwRootID = regexp.MustCompile(`addM={id:&#34;([a-z0-9]+)&#34;, path:&#34;/&#34;}`)
+
+// giveAPIAMethod puts GET / on a REST API, backed by a MOCK integration: the
+// least an API needs before API Gateway will deploy it. An API with no
+// methods, or a method with nothing behind it, is refused — here as on AWS.
+func giveAPIAMethod(t *testing.T, h http.Handler, api string) {
+	t.Helper()
+	page := req(t, h, "GET", "/_console/apigw/"+api, nil).Body.String()
+	root := apigwRootID.FindStringSubmatch(page)
+	if root == nil {
+		t.Fatalf("no root resource on the API page:\n%s", truncateBody(page))
+	}
+	at := url.Values{"resource": {root[1]}, "verb": {"GET"}}
+	if rec := req(t, h, "POST", "/_console/apigw/"+api+"/put-method", url.Values{
+		"resource": at["resource"], "verb": at["verb"], "auth": {"NONE"}}); rec.Code >= 400 {
+		t.Fatalf("put-method: %d\n%s", rec.Code, rec.Body)
+	}
+	if rec := req(t, h, "POST", "/_console/apigw/"+api+"/put-integration", url.Values{
+		"resource": at["resource"], "verb": at["verb"], "type": {"MOCK"}}); rec.Code >= 400 {
+		t.Fatalf("put-integration: %d\n%s", rec.Code, rec.Body)
 	}
 }

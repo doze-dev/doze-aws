@@ -366,6 +366,8 @@ func seedFixtures(t *testing.T, c http.Handler) {
 		rec := postForm(t, c, "/apigw/create", url.Values{"name": {"fixture-api"}})
 		if m := apigwID.FindStringSubmatch(flashOf(rec)); m != nil {
 			fixtures["{api}"] = m[1]
+			// Deployable: an API with no methods is refused, as on AWS.
+			giveAPIAMethod(t, c, m[1])
 		}
 	}
 	// The HTTP API fixture, likewise id-addressed and consumed by its delete
@@ -510,6 +512,12 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 		return nil, url.Values{"arn": {"arn:aws:iam::000000000000:policy/fixture-policy"}}
 	case "/iam/user/{name}/keys/delete":
 		return nil, url.Values{"id": {discovered["accessKey"]}}
+	case "/cfn/{stack}/update":
+		// An update has to change something — the same template again is
+		// refused, as on AWS — so each one carries a description of its own.
+		return nil, url.Values{"template": {fmt.Sprintf(
+			`{"Description":"update %d","Resources":{"FixtureQueue":{"Type":"AWS::SQS::Queue","Properties":{"QueueName":"fixture-cfn-q"}}}}`,
+			time.Now().UnixNano())}}
 	case "/sns/{topic}/attribute":
 		// An attribute SNS has. A made-up name is refused, as it is on AWS.
 		return nil, url.Values{"name": {"DisplayName"}, "value": {"Fixture"}}
