@@ -490,7 +490,10 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 			url.Values{"id": {discovered["accessKey2"]}, "active": {"1"}}
 	case "/iam/profile/{name}/role":
 		return map[string]string{"{name}": "fixture-profile"}, url.Values{"role": {"fixture-role"}}
-	case "/iam/role/{name}/trust", "/iam/role/{name}/meta":
+	case "/iam/role/{name}/trust":
+		// A trust policy, not a permissions one: a principal and no resource.
+		return map[string]string{"{name}": "fixture-role"}, url.Values{"document": {`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"states.amazonaws.com"},"Action":"sts:AssumeRole"}]}`}}
+	case "/iam/role/{name}/meta":
 		return map[string]string{"{name}": "fixture-role"}, nil
 	case "/iam/policy/new-version", "/iam/policy/set-default", "/iam/policy/delete-version":
 		v := url.Values{"arn": {"arn:aws:iam::000000000000:policy/fixture-vpolicy"}, "document": {policyDoc}}
@@ -507,6 +510,9 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 		return nil, url.Values{"arn": {"arn:aws:iam::000000000000:policy/fixture-policy"}}
 	case "/iam/user/{name}/keys/delete":
 		return nil, url.Values{"id": {discovered["accessKey"]}}
+	case "/sns/{topic}/attribute":
+		// An attribute SNS has. A made-up name is refused, as it is on AWS.
+		return nil, url.Values{"name": {"DisplayName"}, "value": {"Fixture"}}
 	case "/kinesis/{stream}/encryption":
 		// The key has to be one KMS will admit to holding.
 		return nil, url.Values{"key": {fixtures["{key}"]}}

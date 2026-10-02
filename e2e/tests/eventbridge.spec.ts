@@ -132,13 +132,19 @@ test.describe('EventBridge', () => {
       await page.getByRole('button', { name: 'Enable' }).click();
       await expect(page.locator('.det-title')).toContainText('ENABLED');
 
+      // A schedule is the default bus's alone, here as on AWS. The form on a
+      // custom bus does not offer one; it says so and points at the bus that
+      // does. This step used to create a scheduled rule on the test's own bus.
       await page.goto(`eb/${bus}/create-rule`);
+      await expect(page.locator('input[name="schedule"]')).toHaveCount(0);
+      await page.getByRole('link', { name: 'Create one there' }).click();
+      await page.waitForURL(/\/eb\/default\/create-rule$/);
       await page.locator('input[name="name"]').fill(scheduleRuleName);
       await page.locator('input[name="schedule"]').fill('rate(5 minutes)');
       // Pattern textarea intentionally left blank — this "Phase 8" case used
       // to be rejected server-side; now it must succeed as a schedule-only rule.
       await page.getByRole('button', { name: 'Create rule' }).click();
-      await page.waitForURL(new RegExp(`/eb/${bus}/rule/${scheduleRuleName}(\\?|$)`));
+      await page.waitForURL(new RegExp(`/eb/default/rule/${scheduleRuleName}(\\?|$)`));
       await expect(page.locator('#flashbar')).toContainText(scheduleRuleName);
       await expect(page.locator('.sec-title').first()).toContainText('Schedule');
       await expect(page.locator('.code-out pre')).toContainText('rate(5 minutes)');
@@ -225,10 +231,10 @@ test.describe('EventBridge', () => {
       await page.waitForURL(new RegExp(`/eb/${bus}(\\?|$)`));
       await expect(page.locator('#eb-rules')).not.toContainText(ruleName);
 
-      await page.goto(`eb/${bus}/rule/${scheduleRuleName}`);
+      await page.goto(`eb/default/rule/${scheduleRuleName}`);
       await page.getByRole('button', { name: 'Delete' }).click();
       await confirmDialog('accept');
-      await page.waitForURL(new RegExp(`/eb/${bus}(\\?|$)`));
+      await page.waitForURL(new RegExp(`/eb/default(\\?|$)`));
       await expect(page.locator('#eb-rules')).not.toContainText(scheduleRuleName);
 
       // The console has no wired-up "delete bus" button (handlers_eb.go's

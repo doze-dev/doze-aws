@@ -155,14 +155,21 @@
 {{define "eb_rule_create"}}{{template "shell_top" .}}
   {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bus)}}
   <section class="detail"><div class="form-page">
-    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create rule</div><p class="det-sub" style="margin-bottom:18px">A rule on the <b>{{.Bus}}</b> bus matches by pattern, schedule, or both.</p>
+    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create rule</div><p class="det-sub" style="margin-bottom:18px">A rule on the <b>{{.Bus}}</b> bus matches {{if eq .Bus "default"}}by pattern, schedule, or both{{else}}events by pattern{{end}}.</p>
     <form hx-post="{{.Prefix}}/eb/{{.Bus}}/create-rule" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Rule name</label><input class="input" name="name" placeholder="on-order-created" required pattern="[a-zA-Z0-9_\-.]{1,64}" autocomplete="off" autofocus></div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Match</h2></div><div class="form-b">
         <div class="field" style="margin-bottom:12px"><label>Event pattern</label>
         {{template "pattern_builder" dict "Prefix" .Prefix "Field" "pattern" "Value" "" "Rows" 7 "UID" "rule-create" "Test" true}}</div>
-        <div class="field"><label>Schedule <span class="dim">optional</span></label><input class="input" name="schedule" placeholder="rate(5 minutes)"></div>
+        {{/* A schedule is the default bus's alone, on AWS and here. The form
+             used to offer the field on every bus and let the API refuse it. */}}
+        {{if eq .Bus "default"}}
+        <div class="field"><label>Schedule <span class="dim">optional</span></label><input class="input" name="schedule" placeholder="rate(5 minutes)"><span class="hint">rate(1 minute), rate(5 minutes), or cron(0 12 * * ? *) — the unit is singular only for 1</span></div>
         {{template "cli" "events put-rule --name $name [--event-pattern $pattern] [--schedule-expression $schedule]"}}
+        {{else}}
+        <div class="field"><label>Schedule</label><span class="hint">Scheduled rules run on the default bus only, as on AWS. <a href="{{.Prefix}}/eb/default/create-rule">Create one there</a>.</span></div>
+        {{template "cli" (printf "events put-rule --event-bus-name %s --name $name --event-pattern $pattern" .Bus)}}
+        {{end}}
       </div></div>
       {{template "form_actions" dict "Cancel" (printf "%s/eb/%s" .Prefix .Bus) "Submit" "Create rule"}}
     </form>

@@ -235,7 +235,7 @@
         <button type="button" class="btn btn-outline btn-sm" @click="open=!open" x-text="open ? 'Close' : 'Edit'"></button></div>
       <div x-show="open" x-cloak style="padding:14px 16px">
         <form hx-post="{{.Prefix}}/s3/{{.Bucket}}/policy" hx-target="#s3-props" hx-select="" hx-swap="outerHTML">
-          {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .BucketPolicy "Rows" 12 "UID" "bucketpol" "Check" false}}
+          {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .BucketPolicy "Rows" 12 "UID" "bucketpol" "Check" false "Resource" (printf "arn:aws:s3:::%s,arn:aws:s3:::%s/*" .Bucket .Bucket)}}
           <div class="fr-btn"><button class="btn" type="submit">Save bucket policy</button></div>
         </form>
         <p class="mini-note">Stored and returned; not evaluated locally. Save an empty document to remove it.</p>

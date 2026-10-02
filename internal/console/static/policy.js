@@ -52,11 +52,15 @@
 
   function emitList(vals) { return vals.length === 1 ? vals[0] : vals; }
 
-  function newStatement() {
+  /* res: what a new statement's Resource starts as. "*" is right for an
+   * identity policy and wrong for a resource policy that may only name its
+   * own resource — S3 refuses a bucket policy on "*" outright — so a panel
+   * that knows its resource says so (data-resource on the .pb root). */
+  function newStatement(res) {
     return {
       sid: "", effect: "Allow",
       actions: [], notAction: false, actionDraft: "",
-      resources: ["*"], notResource: false, resourceDraft: "",
+      resources: res && res.length ? res.slice() : ["*"], notResource: false, resourceDraft: "",
       pmode: "none", pnot: false, prows: [], // pmode: none | any | typed
       conds: [],
     };
@@ -209,6 +213,8 @@
 
       init: function (ta) {
         this.ta = ta;
+        var root = ta && ta.closest ? ta.closest(".pb") : null;
+        this.defRes = ((root && root.dataset.resource) || "").split(",").filter(Boolean);
         var meta = this.parse(initial);
         this.representable = meta !== null;
         if (meta) {
@@ -217,7 +223,7 @@
           this.mode = "builder";
         }
         if (!(initial || "").trim()) {
-          this.stmts = [newStatement()];
+          this.stmts = [newStatement(this.defRes)];
           this.representable = true; this.mode = "builder";
         }
       },
@@ -241,10 +247,10 @@
         if (window.dozeEditor) dozeEditor.set(this.ta, json); else if (this.ta) this.ta.value = json;
         this.representable = true;
       },
-      addStatement: function () { this.stmts.push(newStatement()); this.sync(); },
+      addStatement: function () { this.stmts.push(newStatement(this.defRes)); this.sync(); },
       removeStatement: function (i) {
         this.stmts.splice(i, 1);
-        if (!this.stmts.length) this.stmts.push(newStatement());
+        if (!this.stmts.length) this.stmts.push(newStatement(this.defRes));
         this.sync();
       },
       /* Chip lists: commit the draft on Enter/comma/blur, never lose it. */

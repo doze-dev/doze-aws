@@ -22,6 +22,7 @@ func putLogs(t *testing.T, gw http.Handler, group, stream string, lines ...strin
 		return w
 	}
 	post("CreateLogGroup", `{"logGroupName":"`+group+`"}`)
+	post("CreateLogStream", `{"logGroupName":"`+group+`","logStreamName":"`+stream+`"}`)
 	var events []string
 	for i, l := range lines {
 		events = append(events, `{"timestamp":`+itoa(time.Now().UnixMilli()-1000+int64(i)*10)+`,"message":"`+l+`","requestId":"req-`+itoa(int64(i/2))+`"}`)
