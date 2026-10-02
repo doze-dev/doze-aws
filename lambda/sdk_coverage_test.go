@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -108,6 +109,7 @@ func TestSDKEventSourceMappingCRUD(t *testing.T) {
 	ctx := context.Background()
 	c, _ := lambdaClient(t)
 	createEcho(t, ctx, c, "esm")
+	makeQueue(t, aws.ToString(c.Options().BaseEndpoint), "jobs")
 
 	m, err := c.CreateEventSourceMapping(ctx, &awslambda.CreateEventSourceMappingInput{
 		FunctionName:   aws.String("esm"),
@@ -141,6 +143,7 @@ func TestListEventSourceMappingsFilter(t *testing.T) {
 	c, _ := lambdaClient(t)
 	createEcho(t, ctx, c, "fnA")
 	createEcho(t, ctx, c, "fnB")
+	makeQueue(t, aws.ToString(c.Options().BaseEndpoint), "shared")
 
 	src := aws.String("arn:aws:sqs:us-east-1:000000000000:shared")
 	if _, err := c.CreateEventSourceMapping(ctx, &awslambda.CreateEventSourceMappingInput{
@@ -306,5 +309,26 @@ func TestSDKUpdateAliasMovesIt(t *testing.T) {
 	}
 	if v := aws.ToString(got.FunctionVersion); v != aws.ToString(v2.Version) {
 		t.Fatalf("alias still points at %q, want %q", v, aws.ToString(v2.Version))
+	}
+}
+
+// makeQueue creates the SQS queue a mapping is about to read. A mapping to a
+// queue that does not exist is refused, here as on AWS, so the tests that
+// used an ARN nothing stood behind have to stand something behind it.
+func makeQueue(t *testing.T, endpoint, name string) {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodPost, endpoint+"/", strings.NewReader(`{"QueueName":"`+name+`"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/x-amz-json-1.0")
+	req.Header.Set("X-Amz-Target", "AmazonSQS.CreateQueue")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("CreateQueue(%s) = %s", name, resp.Status)
 	}
 }

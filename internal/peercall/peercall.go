@@ -33,6 +33,23 @@ import (
 // cost a parameter on a dozen exported helpers. Every URL a USER sees is minted
 // elsewhere, from the instance's own identity and the request's Host.
 
+// SQSQueueMissing reports whether SQS says a queue does not exist. It is false
+// when the queue is there AND when nobody can say — no SQS in this stack, or
+// SQS failing for some other reason — because the caller is deciding whether
+// to refuse something, and "I could not find out" is not grounds to refuse.
+func SQSQueueMissing(ctx context.Context, dir peers.Directory, queue string) bool {
+	ep, ok := dir.Endpoint("sqs")
+	if !ok {
+		return false
+	}
+	err := postJSON(ctx, ep, "AmazonSQS.GetQueueUrl", "application/x-amz-json-1.0",
+		map[string]any{"QueueName": queue})
+	// Both spellings: the Query protocol's code, and the JSON protocol's
+	// shape name, which is the one this call gets back.
+	return err != nil && (strings.Contains(err.Error(), "NonExistentQueue") ||
+		strings.Contains(err.Error(), "QueueDoesNotExist"))
+}
+
 // SQSSend sends one message to a queue by name (SQS JSON protocol).
 func SQSSend(ctx context.Context, dir peers.Directory, queue, body string, attrs map[string]string) error {
 	ep, ok := dir.Endpoint("sqs")

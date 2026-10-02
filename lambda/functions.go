@@ -56,6 +56,9 @@ func (s *Server) routeFunctions(w http.ResponseWriter, r *http.Request, segs []s
 	if len(segs) == 4 && segs[3] == "configuration" {
 		switch r.Method {
 		case http.MethodPut:
+			if aerr := onlyLatest(qualifier); aerr != nil {
+				return aerr
+			}
 			return s.updateConfiguration(w, r, name)
 		case http.MethodGet:
 			// GetFunctionConfiguration. Terraform and the CLI both read this
@@ -70,6 +73,9 @@ func (s *Server) routeFunctions(w http.ResponseWriter, r *http.Request, segs []s
 	}
 	// /functions/{name}/code
 	if len(segs) == 4 && segs[3] == "code" && r.Method == http.MethodPut {
+		if aerr := onlyLatest(qualifier); aerr != nil {
+			return aerr
+		}
 		return s.updateCode(w, r, name)
 	}
 	// /functions/{name}/versions — PublishVersion (POST) and
@@ -651,6 +657,18 @@ const (
 	timeoutMinS = 1
 	timeoutMaxS = 5400
 )
+
+// onlyLatest refuses a change addressed to anything but the live function. A
+// published version is frozen — that is what publishing means — and an alias
+// only points at one. The qualifier used to be split off and dropped, so an
+// update to "fn:1" quietly changed $LATEST and reported success.
+func onlyLatest(qualifier string) *awshttp.APIError {
+	if qualifier == "" || qualifier == "$LATEST" {
+		return nil
+	}
+	return awshttp.Errf(400, "InvalidParameterValueException",
+		"The operation can only be performed on the $LATEST version of a function, not on %q", qualifier)
+}
 
 func validSizing(memoryMB, timeoutS int) *awshttp.APIError {
 	if memoryMB != 0 && (memoryMB < memoryMinMB || memoryMB > memoryMaxMB) {

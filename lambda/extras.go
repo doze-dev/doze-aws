@@ -273,6 +273,18 @@ func (s *Server) createMapping(w http.ResponseWriter, r *http.Request) *awshttp.
 	if _, err := s.store.GetFunction(fnName); err != nil {
 		return awshttp.AsAPIError(err)
 	}
+	// A mapping to a queue that is not there is refused, as Lambda refuses it
+	// when its first ReceiveMessage fails. It used to be accepted, and then a
+	// poller ran forever against nothing: Enabled, healthy to look at, and
+	// the function never called.
+	if strings.Contains(req.EventSourceArn, ":sqs:") {
+		queue := req.EventSourceArn[strings.LastIndex(req.EventSourceArn, ":")+1:]
+		if peercall.SQSQueueMissing(r.Context(), s.peers, queue) {
+			return awshttp.Errf(400, "InvalidParameterValueException",
+				"Error occurred while ReceiveMessage. SQS Error Code: AWS.SimpleQueueService.NonExistentQueue. "+
+					"SQS Error Message: The specified queue does not exist.")
+		}
+	}
 	enabled := true
 	if req.Enabled != nil {
 		enabled = *req.Enabled

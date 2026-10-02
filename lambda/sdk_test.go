@@ -220,6 +220,7 @@ func TestSDKEventSourceMapping(t *testing.T) {
 		Timeout:      aws.Int32(10),
 	})
 
+	makeQueue(t, ts, "work")
 	// Create a mapping and confirm it reports Enabled.
 	m, err := lam.CreateEventSourceMapping(ctx, &awslambda.CreateEventSourceMappingInput{
 		FunctionName:   aws.String("consumer"),

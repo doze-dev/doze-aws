@@ -38,6 +38,12 @@ func (s *Server) invoke(w http.ResponseWriter, r *http.Request, name, qualifier 
 	if len(payload) == 0 {
 		payload = []byte("{}")
 	}
+	// An event is JSON. Anything else used to be handed to the function's
+	// runtime, which is where it failed — as the function's error, in the
+	// function's logs, for something the function never saw.
+	if !json.Valid(payload) {
+		return awshttp.Errf(400, "InvalidRequestContentException", "Could not parse request body into json: the payload is not valid JSON")
+	}
 	invType := r.Header.Get("X-Amz-Invocation-Type")
 	if invType == "" {
 		invType = "RequestResponse"
