@@ -121,6 +121,9 @@ func (s *Server) createStateMachine(ctx context.Context, p map[string]any) (any,
 		return nil, aerr
 	}
 
+	if aerr := validRoleARN(awsjson.Str(p, "roleArn")); aerr != nil {
+		return nil, aerr
+	}
 	publish, versionDescription, aerr := publishParams(p)
 	if aerr != nil {
 		return nil, aerr
@@ -224,6 +227,9 @@ func (s *Server) updateStateMachine(ctx context.Context, p map[string]any) (any,
 		definition = &raw
 	}
 	if raw, ok := p["roleArn"].(string); ok {
+		if aerr := validRoleARN(raw); aerr != nil {
+			return nil, aerr
+		}
 		roleARN = &raw
 	}
 	configs := machineConfigs{
