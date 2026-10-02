@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -80,6 +81,53 @@ func newStore(db *lazybolt.DB, keyPath string) (*store, error) {
 
 func (s *store) now() time.Time { return s.clock() }
 
+// What a parameter may be called. None of it is in the service model, which
+// gives Name a length and nothing else, so none of it was enforced: a name
+// with a space in it, or one in the namespace AWS keeps for itself, made a
+// parameter here that no deployed stack could ever hold.
+var (
+	paramSegment = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
+	reservedName = regexp.MustCompile(`(?i)^(aws|ssm)`)
+)
+
+const (
+	paramNameRule = `Parameter name: can't be prefixed with "aws" or "ssm" (case-insensitive). ` +
+		`If formed as a path, it can consist of sub-paths divided by slash symbol; each sub-path can be ` +
+		`formed as a mix of letters, numbers and the following 3 symbols .-_`
+	paramPathRule = `The parameter doesn't meet the parameter name requirements. The parameter name must ` +
+		`begin with a forward slash "/". It can't be prefixed with "aws" or "ssm" (case-insensitive). ` +
+		`It must use only letters, numbers, or the following symbols: . (period), - (hyphen), _ (underscore). ` +
+		`Special characters are not allowed. All sub-paths, if specified, must use the forward slash symbol "/". ` +
+		`Valid example: /get/parameters2-/by1./path0_.`
+	maxParamLevels = 15
+)
+
+// validParameterName holds a name being WRITTEN to SSM's rules. Reads are not
+// held to the reserved prefixes: /aws/service/... is where the public
+// parameters live, and reading them is the point of them.
+func validParameterName(name string) *awshttp.APIError {
+	bad := awshttp.Errf(400, "ValidationException", "%s", paramNameRule)
+	segs := strings.Split(strings.TrimPrefix(name, "/"), "/")
+	if len(segs) > maxParamLevels {
+		return bad
+	}
+	for _, seg := range segs {
+		if !paramSegment.MatchString(seg) {
+			return bad
+		}
+	}
+	// A plain name may not start with the reserved words at all; a path may
+	// not live under /aws or /ssm.
+	if strings.HasPrefix(name, "/") {
+		if first := strings.ToLower(segs[0]); first == "aws" || first == "ssm" {
+			return bad
+		}
+	} else if reservedName.MatchString(name) {
+		return bad
+	}
+	return nil
+}
+
 func errParamNotFound(name string) *awshttp.APIError {
 	return awshttp.Errf(400, "ParameterNotFound", "parameter %q does not exist", name)
 }
@@ -105,8 +153,8 @@ func (s *store) Put(name, ptype, value, keyID, description, dataType, tier, poli
 	if name == "" {
 		return 0, awshttp.Errf(400, "ValidationException", "Name is required")
 	}
-	if strings.Contains(name, "//") || strings.HasSuffix(name, "/") {
-		return 0, awshttp.Errf(400, "ValidationException", "parameter name %q is malformed", name)
+	if aerr := validParameterName(name); aerr != nil {
+		return 0, aerr
 	}
 	// Whether the caller explicitly supplied a Type. On overwrite an omitted
 	// Type must inherit the existing parameter's type — defaulting it to
@@ -139,11 +187,13 @@ func (s *store) Put(name, ptype, value, keyID, description, dataType, tier, poli
 				return awshttp.Errf(400, "ValidationException", "cannot change type of parameter %q from %s to %s", name, p.Type, ptype)
 			}
 		} else {
-			t := ptype
-			if t == "" {
-				t = "String"
+			// A new parameter has to say what it is. Defaulting to String
+			// meant a put with the Type forgotten worked here and was refused
+			// on AWS — and a SecureString written that way sat in plaintext.
+			if !typeGiven {
+				return awshttp.Errf(400, "ValidationException", "A parameter type is required when you create a parameter.")
 			}
-			p = parameter{Name: name, Type: t, DataType: "text"}
+			p = parameter{Name: name, Type: ptype, DataType: "text"}
 		}
 		// Seal according to the effective (stored) type, not the request type.
 		if p.Type == "SecureString" && p.KeyID == "" && keyID == "" {
@@ -309,6 +359,11 @@ func (s *store) List() ([]parameter, error) {
 func (s *store) ByPath(path string, recursive bool) ([]parameter, error) {
 	if path == "" {
 		path = "/"
+	}
+	// A path is a path: "app/db" used to be read as "/app/db" would be, and
+	// AWS refuses it.
+	if !strings.HasPrefix(path, "/") {
+		return nil, awshttp.Errf(400, "ValidationException", "%s", paramPathRule)
 	}
 	prefix := strings.TrimSuffix(path, "/") + "/"
 	all, err := s.List()

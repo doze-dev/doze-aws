@@ -2695,7 +2695,7 @@ Separate from the tiers above. A tier says the operation is implemented; this
 says whether doze-aws **refuses what SSM refuses**.
 
 **100/100 model-derived constraints enforced across all 13 dispatched
-operations, with `knownGaps` empty.** Removing the constraint table makes 75 of
+operations, with `knownGaps` empty.** Removing the constraint table makes 74 of
 those 100 cases slip through, so it is doing work the hand-written checks were
 not.
 

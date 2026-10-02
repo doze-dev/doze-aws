@@ -4,6 +4,7 @@ package kms
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
@@ -12,7 +13,7 @@ import (
 // ---- aliases ----
 
 func (s *Server) createAlias(p map[string]any) (any, *awshttp.APIError) {
-	name, aerr := aliasName(awsjson.Str(p, "AliasName"))
+	name, aerr := ownAliasName(awsjson.Str(p, "AliasName"))
 	if aerr != nil {
 		return nil, aerr
 	}
@@ -20,7 +21,7 @@ func (s *Server) createAlias(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) updateAlias(p map[string]any) (any, *awshttp.APIError) {
-	name, aerr := aliasName(awsjson.Str(p, "AliasName"))
+	name, aerr := ownAliasName(awsjson.Str(p, "AliasName"))
 	if aerr != nil {
 		return nil, aerr
 	}
@@ -28,7 +29,7 @@ func (s *Server) updateAlias(p map[string]any) (any, *awshttp.APIError) {
 }
 
 func (s *Server) deleteAlias(p map[string]any) (any, *awshttp.APIError) {
-	name, aerr := aliasName(awsjson.Str(p, "AliasName"))
+	name, aerr := ownAliasName(awsjson.Str(p, "AliasName"))
 	if aerr != nil {
 		return nil, aerr
 	}
@@ -40,6 +41,20 @@ func aliasName(full string) (string, *awshttp.APIError) {
 		return "", awshttp.Errf(400, "ValidationException", "AliasName must start with alias/")
 	}
 	return full[6:], nil
+}
+
+// ownAliasName is aliasName for the calls that write: alias/aws/ belongs to
+// the keys AWS manages (alias/aws/s3, alias/aws/ssm), and a caller may read
+// through those names but not create, repoint or delete one.
+func ownAliasName(full string) (string, *awshttp.APIError) {
+	name, aerr := aliasName(full)
+	if aerr != nil {
+		return "", aerr
+	}
+	if strings.HasPrefix(name, "aws/") {
+		return "", awshttp.Errf(400, "NotAuthorizedException", "%s is reserved for AWS managed keys", full)
+	}
+	return name, nil
 }
 
 func (s *Server) listAliases(p map[string]any) (any, *awshttp.APIError) {
