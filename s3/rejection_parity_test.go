@@ -168,6 +168,14 @@ func call(t *testing.T, ts *httptest.Server, b *binding, body map[string]any) (i
 			}
 			headers[strings.TrimPrefix(bind, "header:")] = fmt.Sprint(deref(v))
 		case bind == "payload":
+			// A string payload is the body, as it is: PutBucketPolicy sends
+			// the policy's JSON and nothing around it. This used to wrap it in
+			// an XML element, which only passed while S3 stored whatever it
+			// was sent as a policy.
+			if s, ok := deref(v).(string); ok {
+				payload = strings.NewReader(s)
+				continue
+			}
 			var buf bytes.Buffer
 			toXML(name, v, name, b, &buf)
 			payload = bytes.NewReader(buf.Bytes())

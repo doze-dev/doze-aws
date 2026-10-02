@@ -89,7 +89,8 @@ func TestSDKPolicyAndACL(t *testing.T) {
 	c := s3Client(t, startS3(t).URL, true)
 	c.CreateBucket(ctx, &awss3.CreateBucketInput{Bucket: aws.String("bkpol")})
 
-	pol := `{"Version":"2012-10-17","Statement":[]}`
+	// A policy with a statement, about this bucket: S3 refuses an empty one.
+	pol := `{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":"arn:aws:iam::000000000000:root"},"Action":"s3:GetObject","Resource":"arn:aws:s3:::bkpol/*"}]}`
 	if _, err := c.PutBucketPolicy(ctx, &awss3.PutBucketPolicyInput{Bucket: aws.String("bkpol"), Policy: aws.String(pol)}); err != nil {
 		t.Fatalf("PutBucketPolicy: %v", err)
 	}

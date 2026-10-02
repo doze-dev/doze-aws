@@ -6,8 +6,10 @@ import (
 	"net/url"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/iampolicy"
 	"github.com/doze-dev/doze-aws/internal/s3store"
 )
 
@@ -325,9 +327,35 @@ func (s *Server) getBucketPolicy(w http.ResponseWriter, bucket string) *awshttp.
 	return nil
 }
 
+// validBucketPolicy holds a bucket policy to the two things S3 checks before
+// it stores one: it is a policy, and it is about this bucket.
+//
+// Whatever was sent used to be stored — text that is not JSON included, and
+// GetBucketPolicy handed it back. A policy naming another bucket's objects was
+// stored too, where it could never match a request and so granted nothing,
+// silently.
+func validBucketPolicy(bucket, doc string) *awshttp.APIError {
+	parsed, err := iampolicy.Parse(doc)
+	if err != nil {
+		return awshttp.Errf(400, "MalformedPolicy", "Policies must be valid JSON and the first byte must be '{'")
+	}
+	own := "arn:aws:s3:::" + bucket
+	for _, st := range parsed.Statement {
+		for _, res := range append(append([]string{}, st.Resource...), st.NotResource...) {
+			if res != own && !strings.HasPrefix(res, own+"/") {
+				return awshttp.Errf(400, "MalformedPolicy", "Policy has invalid resource")
+			}
+		}
+	}
+	return nil
+}
+
 func (s *Server) putBucketPolicy(w http.ResponseWriter, r *http.Request, bucket string) *awshttp.APIError {
 	doc, aerr := readBodyString(r)
 	if aerr != nil {
+		return aerr
+	}
+	if aerr := validBucketPolicy(bucket, doc); aerr != nil {
 		return aerr
 	}
 	var blocked bool

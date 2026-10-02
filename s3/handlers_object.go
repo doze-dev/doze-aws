@@ -147,20 +147,28 @@ func (s *Server) getObject(w http.ResponseWriter, r *http.Request, bucket, key s
 		}
 	}
 
+	// Range handling: one range honored; multiple ranges fall back to 200
+	// (documented limitation, common among emulators). Parsed before any
+	// header is written, so a 416 is an error and nothing else — it used to
+	// go out carrying the object's ETag and checksum.
+	start, length, isRange, aerr := parseRange(r.Header.Get("Range"), v.Size)
+	if aerr != nil {
+		return aerr
+	}
+
 	writeCommonHeaders(w, v)
-	if strings.EqualFold(r.Header.Get("x-amz-checksum-mode"), "ENABLED") && v.ChecksumAlg != "" {
+	// The stored checksum is of the whole object, so it is only sent with the
+	// whole object. An SDK validates whatever checksum header arrives against
+	// the bytes it was actually given: with botocore's defaults every upload
+	// has a CRC32 and every download asks for it, so a ranged read answered
+	// with the full-object value raised FlexibleChecksumError in the client,
+	// on every ranged read of every object boto3 had written.
+	if !isRange && strings.EqualFold(r.Header.Get("x-amz-checksum-mode"), "ENABLED") && v.ChecksumAlg != "" {
 		w.Header().Set("x-amz-checksum-"+strings.ToLower(v.ChecksumAlg), v.ChecksumVal)
 		w.Header().Set("x-amz-checksum-type", orDefault(v.ChecksumType, "FULL_OBJECT"))
 	}
 	if len(v.Tags) > 0 {
 		w.Header().Set("x-amz-tagging-count", strconv.Itoa(len(v.Tags)))
-	}
-
-	// Range handling: one range honored; multiple ranges fall back to 200
-	// (documented limitation, common among emulators).
-	start, length, isRange, aerr := parseRange(r.Header.Get("Range"), v.Size)
-	if aerr != nil {
-		return aerr
 	}
 	if headOnly {
 		if isRange {
