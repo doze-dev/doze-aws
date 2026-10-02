@@ -200,7 +200,7 @@ export async function messaging() {
     }, 'events:PutRule + PutTargets');
   }
 
-  // TagResource on this service takes rule ARNs, not bus ARNs — the same as AWS.
+  // TagResource takes a rule's ARN or a bus's, as on AWS. This tags the rule.
   await step('tagged the order-placed rule', () =>
     events.send(new EbTag({
       ResourceARN: arn('events', `rule/${BUS}/harbour-order-placed`),
@@ -208,17 +208,20 @@ export async function messaging() {
     })), 'events:TagResource');
 
   await step('a nightly stock reconciliation, on a schedule', async () => {
+    // On the DEFAULT bus. A schedule belongs to it alone — EventBridge
+    // refuses one on a custom bus, and so does doze-aws; this used to put it
+    // on the domain bus, which only worked here.
     await events.send(new PutRuleCommand({
-      Name: 'harbour-nightly-reconcile', EventBusName: BUS,
+      Name: 'harbour-nightly-reconcile',
       Description: 'Kicks off the depot stock reconciliation',
       ScheduleExpression: 'cron(0 2 * * ? *)', State: 'ENABLED',
     }));
     await events.send(new PutTargetsCommand({
-      Rule: 'harbour-nightly-reconcile', EventBusName: BUS,
+      Rule: 'harbour-nightly-reconcile',
       Targets: [{ Id: 'reconcile-to-queue', Arn: arn('sqs', QUEUE_ORDERS) }],
     }));
   }, 'events:PutRule (schedule)');
-  note('a schedule rule is the one thing that makes the bus tick on its own');
+  note('a schedule rule lives on the default bus, and is the one thing that ticks on its own');
 
   await step('archived everything the bus sees', () =>
     events.send(new CreateArchiveCommand({
