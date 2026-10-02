@@ -43,7 +43,43 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   shipped Windows because that dependency did not exist yet. Supporting it
   means porting the resolver setup, which is a project, not a build flag.
 
+- **About forty requests that used to succeed are now refused, because AWS
+  refuses them.** If something that worked at 0.x fails after upgrading, it
+  would have failed on deploy. Found by driving doze-aws with boto3
+  (`conformance/`); almost none of these rules are in AWS's service models,
+  which is how a model-derived audit missed them.
+  - **SQS**: `CreateQueue` on an existing name with different attributes
+    (`QueueNameExists` — it used to rewrite the queue); a batch that is empty,
+    over ten, or repeats an `Id`; a visibility timeout past twelve hours; an
+    attribute SQS does not have.
+  - **SNS**: a topic name outside `[A-Za-z0-9_-]`; an empty message; an
+    unknown topic attribute; a malformed `PublishBatch`; a FIFO name without
+    `FifoTopic`, or the reverse.
+  - **DynamoDB**: a bare reserved word in any expression (`SET name = :v`);
+    a consistent read, or `ALL_ATTRIBUTES`, on a GSI that cannot give it; two
+    writes to one key in a `BatchWriteItem`; `UpdateTimeToLive` to the state
+    the table is already in.
+  - **S3**: a bucket policy that is not JSON, or names another bucket.
+  - **SSM**: a parameter name with characters SSM does not allow or in the
+    `aws`/`ssm` namespace; `PutParameter` creating without a `Type`;
+    `GetParametersByPath` without a leading slash.
+  - **EventBridge**: `DeleteRule` on a rule that still has targets; a
+    schedule on a custom bus; `rate(5 minute)`.
+  - **IAM**: a permissions document as a trust policy, or a trust document as
+    a permissions policy.
+  - **CloudWatch Logs**: `PutLogEvents` to a stream nobody created (it used to
+    create it), and a batch out of time order.
+  - **Secrets Manager, KMS**: a secret name with characters it does not allow,
+    a secret given both a string and a binary, and writes under `alias/aws/`.
+
 ### Added since 0.3.0
+
+- **SNS FIFO topics deliver.** They were accepted and delivered nothing: the
+  group id never reached the FIFO queue. `Publish` returns a `SequenceNumber`.
+- **`conformance/`**: 66 boto3 scenarios across 12 services, written to be
+  recorded against a real AWS account and compared with doze-aws. No
+  recordings yet; the suite reports every response as unverified until there
+  are.
 
 - **Seven services**: IAM (three enforcement modes, resource policies,
   least-privilege generation), CloudFormation and SAM (transpiled onto the
@@ -73,6 +109,14 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
 
 ### Changed
 
+- A ranged S3 `GetObject` no longer carries the full-object checksum. boto3
+  validates whatever checksum arrives against the bytes it received, so every
+  ranged read of an object it had uploaded raised `FlexibleChecksumError`.
+- SQS accepts message attribute names in `ReceiveMessage.AttributeNames`
+  (`SentTimestamp` and the rest) — the spelling boto3's documentation uses,
+  refused until now — returns `SenderId` on every message, and
+  `SequenceNumber` on FIFO sends and receives.
+- EventBridge buses can be tagged. `TagResource` used to refuse a bus ARN.
 - Cold start is ~20 ms and an untouched data directory is 158 bytes across
   three files. Databases are created on first use, so a stack nobody speaks to
   creates none. It was 793 ms and 2.1 MB across seventeen files.
