@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/lazybolt"
@@ -86,8 +87,8 @@ func (s *store) now() time.Time { return s.clock() }
 // with a space in it, or one in the namespace AWS keeps for itself, made a
 // parameter here that no deployed stack could ever hold.
 var (
-	paramSegment = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
-	reservedName = regexp.MustCompile(`(?i)^(aws|ssm)`)
+	paramSegment = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`^[A-Za-z0-9_.-]+$`) })
+	reservedName = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`(?i)^(aws|ssm)`) })
 )
 
 const (
@@ -112,7 +113,7 @@ func validParameterName(name string) *awshttp.APIError {
 		return bad
 	}
 	for _, seg := range segs {
-		if !paramSegment.MatchString(seg) {
+		if !paramSegment().MatchString(seg) {
 			return bad
 		}
 	}
@@ -122,7 +123,7 @@ func validParameterName(name string) *awshttp.APIError {
 		if first := strings.ToLower(segs[0]); first == "aws" || first == "ssm" {
 			return bad
 		}
-	} else if reservedName.MatchString(name) {
+	} else if reservedName().MatchString(name) {
 		return bad
 	}
 	return nil

@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -230,10 +231,10 @@ func viewStack(st *stackRecord) stackView {
 // stackName is what a new stack may be called: a letter, then letters, digits
 // and hyphens, 128 at most. An underscore was accepted, and made a stack whose
 // ARN and whose every generated resource name no real stack could have.
-var stackName = regexp.MustCompile(`^[A-Za-z][-A-Za-z0-9]{0,127}$`)
+var stackName = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`^[A-Za-z][-A-Za-z0-9]{0,127}$`) })
 
 func validStackName(name string) *awshttp.APIError {
-	if stackName.MatchString(name) {
+	if stackName().MatchString(name) {
 		return nil
 	}
 	return errValidation("1 validation error detected: Value '%s' at 'stackName' failed to satisfy constraint: "+

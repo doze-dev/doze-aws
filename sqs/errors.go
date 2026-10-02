@@ -6,6 +6,7 @@ package sqs
 import (
 	"regexp"
 	"strconv"
+	"sync"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
@@ -35,7 +36,7 @@ func errBatch(code, msg string) *apiError {
 	return &apiError{Code: "AWS.SimpleQueueService." + code, Status: 400, Message: msg, SenderFault: true}
 }
 
-var batchEntryID = regexp.MustCompile(`^[A-Za-z0-9_-]{1,80}$`)
+var batchEntryID = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`^[A-Za-z0-9_-]{1,80}$`) })
 
 // checkBatch holds a batch's entry ids to the rules SQS applies before it
 // touches a single entry. op is the request entry's shape name, which is how
@@ -55,7 +56,7 @@ func checkBatch(op string, ids []string) *apiError {
 	}
 	seen := map[string]bool{}
 	for _, id := range ids {
-		if !batchEntryID.MatchString(id) {
+		if !batchEntryID().MatchString(id) {
 			return errBatch("InvalidBatchEntryId",
 				"A batch entry id can only contain alphanumeric characters, hyphens and underscores. It can be at most 80 letters long.")
 		}

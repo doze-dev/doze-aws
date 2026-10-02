@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/doze-dev/doze-aws/internal/lazybolt"
 	bolt "go.etcd.io/bbolt"
@@ -78,10 +79,10 @@ func (s *store) topicARN(name string) string { return s.id.ARN("sns", name) }
 // not enforced at all: "my topic!" made a topic. The name becomes the last
 // segment of the ARN, so a name AWS would refuse produced an ARN no policy,
 // subscription or template written against AWS could ever contain.
-var topicName = regexp.MustCompile(`^[A-Za-z0-9_-]{1,256}(\.fifo)?$`)
+var topicName = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`^[A-Za-z0-9_-]{1,256}(\.fifo)?$`) })
 
 func (s *store) CreateTopic(name string, attrs, tags map[string]string) (*topic, error) {
-	if !topicName.MatchString(name) {
+	if !topicName().MatchString(name) {
 		return nil, errInvalid("Invalid parameter: Topic Name")
 	}
 	t := &topic{ARN: s.topicARN(name), Name: name}

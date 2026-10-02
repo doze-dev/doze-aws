@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/awsjson"
@@ -90,7 +91,7 @@ func values(p map[string]any) (str, bin []byte, aerr *awshttp.APIError) {
 
 // secretName is what Secrets Manager accepts for a name. Hand-derived: the
 // model gives Name a length and no pattern.
-var secretName = regexp.MustCompile(`^[A-Za-z0-9/_+=.@!-]{1,512}$`)
+var secretName = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`^[A-Za-z0-9/_+=.@!-]{1,512}$`) })
 
 // ---- handlers ----
 
@@ -99,7 +100,7 @@ func (s *Server) createSecret(p map[string]any) (any, *awshttp.APIError) {
 	if aerr != nil {
 		return nil, aerr
 	}
-	if !secretName.MatchString(awsjson.Str(p, "Name")) {
+	if !secretName().MatchString(awsjson.Str(p, "Name")) {
 		return nil, awshttp.Errf(400, "InvalidRequestException",
 			"Invalid name. Must be a valid name containing alphanumeric characters, or any of the following: -/_+=.@!")
 	}

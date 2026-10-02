@@ -7,12 +7,12 @@ import "testing"
 
 func TestPathPartsAndMethodsAreHeldToWhatAPIGatewayAccepts(t *testing.T) {
 	for _, part := range []string{"orders", "v1.2", "a_b-c:d", "{id}", "{proxy+}"} {
-		if !pathPart.MatchString(part) {
+		if !pathPart().MatchString(part) {
 			t.Errorf("path part %q refused", part)
 		}
 	}
 	for _, part := range []string{"has space", "a/b", "{id", "id}", "{id}x", "{a b}", "{+}", "sla$h"} {
-		if pathPart.MatchString(part) {
+		if pathPart().MatchString(part) {
 			t.Errorf("path part %q accepted", part)
 		}
 	}

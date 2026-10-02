@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
@@ -282,7 +283,7 @@ func (s *Server) routeResources(w http.ResponseWriter, r *http.Request, apiID st
 // pathPart is one segment of a resource path: literal characters, or a path
 // variable in braces, greedy with a trailing plus. The model gives it no
 // pattern, so "has space" made a resource no request path could ever reach.
-var pathPart = regexp.MustCompile(`^([a-zA-Z0-9._\-:]+|\{[a-zA-Z0-9._\-]+\+?\})$`)
+var pathPart = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`^([a-zA-Z0-9._\-:]+|\{[a-zA-Z0-9._\-]+\+?\})$`) })
 
 // restMethods are the verbs a REST API method may be put under.
 var restMethods = map[string]bool{
@@ -300,7 +301,7 @@ func (s *Server) createResource(w http.ResponseWriter, r *http.Request, apiID, p
 	if req.PathPart == "" {
 		return errBadRequest("pathPart is required")
 	}
-	if !pathPart.MatchString(req.PathPart) {
+	if !pathPart().MatchString(req.PathPart) {
 		return errBadRequest("Resource's path part only allow a-zA-Z0-9._-: or a valid greedy path variable " +
 			"and curly braces at the beginning and the end and an optional plus sign before the closing brace.")
 	}

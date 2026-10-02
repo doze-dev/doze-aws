@@ -375,7 +375,7 @@ func TestReservedWords(t *testing.T) {
 // The list is AWS's and it is 573 words. A word dropped while editing would
 // turn a refusal back into an acceptance, silently.
 func TestReservedWordCount(t *testing.T) {
-	if len(reservedList) != 573 || len(reservedWords) != 573 {
-		t.Fatalf("reserved words: %d listed, %d distinct, want 573", len(reservedList), len(reservedWords))
+	if len(reservedList) != 573 || len(reservedWords()) != 573 {
+		t.Fatalf("reserved words: %d listed, %d distinct, want 573", len(reservedList), len(reservedWords()))
 	}
 }

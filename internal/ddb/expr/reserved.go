@@ -15,22 +15,25 @@ package expr
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
-var reservedWords = func() map[string]bool {
+// Built the first time an expression is parsed, not when the package loads: a
+// stack nobody sends DynamoDB an expression costs nothing for it.
+var reservedWords = sync.OnceValue(func() map[string]bool {
 	m := make(map[string]bool, len(reservedList))
 	for _, w := range reservedList {
 		m[w] = true
 	}
 	return m
-}()
+})
 
 // bareName refuses an identifier used as an attribute name if it is reserved.
 // The word comes back as the caller wrote it, the way DynamoDB reports it.
 func (p *parser) bareName(t token) *awshttp.APIError {
-	if !reservedWords[strings.ToUpper(t.text)] {
+	if !reservedWords()[strings.ToUpper(t.text)] {
 		return nil
 	}
 	return awshttp.Errf(400, "ValidationException",

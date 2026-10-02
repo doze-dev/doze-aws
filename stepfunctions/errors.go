@@ -2,6 +2,7 @@ package stepfunctions
 
 import (
 	"regexp"
+	"sync"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
@@ -38,10 +39,10 @@ func errInvalidARN(arn string) *awshttp.APIError {
 // roleARN is the shape of an IAM role's ARN. The model gives roleArn a length
 // and nothing else, so "not-an-arn" made a machine — one that reports a role
 // that cannot exist, and that no deployed copy of the same call would create.
-var roleARN = regexp.MustCompile(`^arn:aws[a-z-]*:iam::\d{12}:role/.+$`)
+var roleARN = sync.OnceValue(func() *regexp.Regexp { return regexp.MustCompile(`^arn:aws[a-z-]*:iam::\d{12}:role/.+$`) })
 
 func validRoleARN(arn string) *awshttp.APIError {
-	if roleARN.MatchString(arn) {
+	if roleARN().MatchString(arn) {
 		return nil
 	}
 	return awshttp.Errf(400, "InvalidArn", "Invalid Role Arn: '%s'", arn)
