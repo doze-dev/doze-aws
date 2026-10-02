@@ -1976,7 +1976,7 @@ per-invocation fsync is the one thing that would make Invoke slow.
 | DescribeLogGroups / ListLogGroups | F | prefix, pattern and identifier filters; `limit` and a name-keyed `nextToken` |
 | PutRetentionPolicy / DeleteRetentionPolicy | F | only the values AWS accepts (1, 3, 5, 7, 14, 30, … 3653); the sweeper honours them |
 | CreateLogStream / DeleteLogStream / DescribeLogStreams | F | prefix, `orderBy LastEventTime`, `descending`, paging; first/last event and ingestion times are real |
-| PutLogEvents | F | a first put on a stream nobody created creates it, so a function's first line never bounces; accepts a per-event `requestId` (doze extension) |
+| PutLogEvents | F | refused with `ResourceNotFoundException` until `CreateLogStream` has made the stream, and refused whole if the batch is not in time order, as on AWS; accepts a per-event `requestId` (doze extension) |
 | GetLogEvents | F | forward and backward tokens; the end-of-stream token repeats, which is what stops an SDK paginator |
 | FilterLogEvents | F | interleaved across streams in time order, `startTime`/`endTime`, stream names or prefix, `filterPattern`, `nextToken` only while more remain, unique `eventId`s — the contract `aws logs tail` and `sam logs` poll; `requestId` (doze extension) selects one invocation |
 | TagResource / UntagResource / ListTagsForResource, TagLogGroup / UntagLogGroup / ListTagsLogGroup | F | the current and the deprecated spellings; the ARN form takes the ARN without the `:*` suffix DescribeLogGroups reports, as on AWS |

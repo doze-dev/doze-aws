@@ -10,6 +10,8 @@ package logship
 import (
 	"context"
 	"errors"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -206,7 +208,22 @@ func (s *Shipper) ship(k key, events []Event) {
 		}
 		s.ensured[k] = true
 	}
-	if err := peercall.LogsPut(ctx, s.peers, k.group, k.stream, events); err != nil {
+	// Lines from concurrent invocations reach one stream in arrival order,
+	// which is nearly but not exactly time order — and PutLogEvents refuses
+	// a batch that is not in order, whole.
+	sort.SliceStable(events, func(i, j int) bool { return events[i].Timestamp < events[j].Timestamp })
+	err := peercall.LogsPut(ctx, s.peers, k.group, k.stream, events)
+	if err != nil && strings.Contains(err.Error(), "ResourceNotFoundException") {
+		// Somebody deleted the group or the stream while this process was
+		// writing to it. Lambda on AWS makes them again and carries on; so
+		// does this, once, rather than dropping every line from here on.
+		s.ensured[k] = false
+		if err = peercall.LogsEnsure(ctx, s.peers, k.group, k.stream); err == nil {
+			s.ensured[k] = true
+			err = peercall.LogsPut(ctx, s.peers, k.group, k.stream, events)
+		}
+	}
+	if err != nil {
 		s.fail(err)
 	}
 }

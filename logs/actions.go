@@ -350,10 +350,21 @@ func (s *Server) putLogEvents(ctx context.Context, p map[string]any) (any, *awsh
 		m, _ := item.(map[string]any)
 		events = append(events, event{TS: awsjson.Int64(m, "timestamp", 0), Msg: awsjson.Str(m, "message"), RequestID: awsjson.Str(m, "requestId")})
 	}
+	// A batch is in time order or it is refused whole. Sorting it quietly would
+	// be kinder and would be wrong: a writer that batches out of order loses
+	// every batch on AWS, and should find that out here.
+	for i := 1; i < len(events); i++ {
+		if events[i].TS < events[i-1].TS {
+			return nil, errParam("Log events in a single PutLogEvents request must be in chronological order.")
+		}
+	}
 	if st, _ := s.store.GetStream(g.Name, stream); st == nil {
-		// AWS requires CreateLogStream first; locally a first PutLogEvents
-		// creates it, so a function's first line never bounces.
-		_ = s.store.PutStream(streamRecord{Group: g.Name, Name: stream, CreatedMs: s.store.now()})
+		// CreateLogStream comes first, as on AWS. A put used to create the
+		// stream it was missing, so that a function's first line never
+		// bounced — and so a writer that forgot CreateLogStream worked here
+		// and lost every line once deployed. doze-aws's own writers never
+		// needed the favour: internal/logship ensures the stream itself.
+		return nil, errNotFound("The specified log stream does not exist.")
 	}
 	stored, err := s.store.PutEvents(g.Name, stream, events)
 	if err != nil {

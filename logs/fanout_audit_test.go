@@ -94,6 +94,7 @@ func TestPutAfterCloseDoesNotPanic(t *testing.T) {
 	c.CreateLogGroup(ctx, &cwl.CreateLogGroupInput{LogGroupName: aws.String("/late")})
 	c.PutSubscriptionFilter(ctx, &cwl.PutSubscriptionFilterInput{LogGroupName: aws.String("/late"), FilterName: aws.String("all"),
 		FilterPattern: aws.String(""), DestinationArn: aws.String(awsident.Default().ARN("lambda", "function:sink"))})
+	c.CreateLogStream(ctx, &cwl.CreateLogStreamInput{LogGroupName: aws.String("/late"), LogStreamName: aws.String("s")})
 	s.Close()
 	// A write after Close is refused or dropped, never a crash.
 	c.PutLogEvents(ctx, &cwl.PutLogEventsInput{LogGroupName: aws.String("/late"), LogStreamName: aws.String("s"),

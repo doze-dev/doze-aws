@@ -46,6 +46,13 @@ func put(t *testing.T, c *cwl.Client, group, stream string, base int64, msgs ...
 	for i, m := range msgs {
 		events = append(events, cwltypes.InputLogEvent{Timestamp: aws.Int64(base + int64(i)*10), Message: aws.String(m)})
 	}
+	// The stream first, as a writer must on AWS. Already there is fine.
+	var exists *cwltypes.ResourceAlreadyExistsException
+	if _, err := c.CreateLogStream(context.Background(), &cwl.CreateLogStreamInput{
+		LogGroupName: aws.String(group), LogStreamName: aws.String(stream),
+	}); err != nil && !errors.As(err, &exists) {
+		t.Fatalf("CreateLogStream: %v", err)
+	}
 	if _, err := c.PutLogEvents(context.Background(), &cwl.PutLogEventsInput{
 		LogGroupName: aws.String(group), LogStreamName: aws.String(stream), LogEvents: events,
 	}); err != nil {
