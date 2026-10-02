@@ -62,6 +62,12 @@ type Parameter struct {
 	Description   string
 	AllowedValues []any
 	NoEcho        bool
+	// The rest of what a declaration can require of its value. nil and ""
+	// mean the template did not say.
+	MinValue, MaxValue    *float64
+	MinLength, MaxLength  *int
+	AllowedPattern        string
+	ConstraintDescription string
 }
 
 // Resource is one template resource.
@@ -131,6 +137,10 @@ func Parse(raw []byte) (*Template, error) {
 			if allowed, ok := decl["AllowedValues"].([]any); ok {
 				p.AllowedValues = allowed
 			}
+			p.MinValue, p.MaxValue = number(decl["MinValue"]), number(decl["MaxValue"])
+			p.MinLength, p.MaxLength = whole(decl["MinLength"]), whole(decl["MaxLength"])
+			p.AllowedPattern = str(decl["AllowedPattern"])
+			p.ConstraintDescription = str(decl["ConstraintDescription"])
 			t.Parameters[name] = p
 		}
 	}
