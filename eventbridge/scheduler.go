@@ -164,7 +164,13 @@ func parseRate(expr string) (time.Duration, bool) {
 	if err != nil || n <= 0 {
 		return 0, false
 	}
-	unit := strings.TrimSuffix(strings.ToLower(fields[1]), "s")
+	// The unit agrees with the number: rate(1 minute), rate(5 minutes).
+	// EventBridge refuses "1 minutes" and "5 minute" alike, and a schedule
+	// accepted here in the wrong number is one a deploy then rejects.
+	unit, plural := strings.CutSuffix(strings.ToLower(fields[1]), "s")
+	if plural != (n > 1) {
+		return 0, false
+	}
 	switch unit {
 	case "minute":
 		return time.Duration(n) * time.Minute, true

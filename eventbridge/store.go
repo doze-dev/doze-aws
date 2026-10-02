@@ -153,6 +153,35 @@ func (s *store) UpdateBus(name string, fn func(*bus)) error {
 	})
 }
 
+// MutateBus applies fn to a bus that must exist, and stores the result. It is
+// how a bus is tagged — and how its tags are read, with an fn that only looks.
+//
+// The default bus exists without ever having been stored, so the first write
+// to it stores it; ListBuses knows not to list it twice.
+func (s *store) MutateBus(name string, fn func(*bus)) error {
+	return s.db.Update(func(tx *bolt.Tx) error {
+		if !s.busExists(tx, name) {
+			return awshttp.Errf(400, "ResourceNotFoundException", "event bus %s does not exist", name)
+		}
+		b, err := tx.CreateBucketIfNotExists(busesBucket)
+		if err != nil {
+			return err
+		}
+		stored := bus{Name: name}
+		if raw := b.Get([]byte(name)); raw != nil {
+			if err := json.Unmarshal(raw, &stored); err != nil {
+				return err
+			}
+		}
+		fn(&stored)
+		out, err := json.Marshal(stored)
+		if err != nil {
+			return err
+		}
+		return b.Put([]byte(name), out)
+	})
+}
+
 // DeleteBus removes a custom bus and its rules.
 func (s *store) DeleteBus(name string) error {
 	if name == DefaultBus {
@@ -186,10 +215,16 @@ func (s *store) ListBuses() ([]bus, error) {
 			return nil
 		}
 		return b.ForEach(func(_, raw []byte) error {
-			var bus bus
-			if json.Unmarshal(raw, &bus) == nil {
-				out = append(out, bus)
+			var stored bus
+			if json.Unmarshal(raw, &stored) != nil {
+				return nil
 			}
+			if stored.Name == DefaultBus {
+				// Stored once it has been tagged; it is already first in out.
+				out[0] = stored
+				return nil
+			}
+			out = append(out, stored)
 			return nil
 		})
 	})
@@ -267,13 +302,26 @@ func (s *store) UpdateRule(bus, name string, fn func(*rule) error) error {
 	})
 }
 
-// DeleteRule removes a rule (Force semantics: targets go with it).
+// DeleteRule removes a rule that has no targets left. Deleting one that is
+// not there is not an error.
+//
+// It used to take the targets with it. EventBridge does not: a rule with
+// targets is refused until RemoveTargets has emptied it, and teardown code
+// that skips that step works here and fails against AWS. The provisioner and
+// the console already removed targets first, which is how this went unseen.
 func (s *store) DeleteRule(bus, name string) error {
 	return s.db.Update(func(tx *bolt.Tx) error {
-		if b := tx.Bucket(rulesBucket); b != nil {
-			_ = b.Delete(ruleKey(bus, name))
+		b := tx.Bucket(rulesBucket)
+		if b == nil {
+			return nil
 		}
-		return nil
+		if raw := b.Get(ruleKey(bus, name)); raw != nil {
+			var r rule
+			if json.Unmarshal(raw, &r) == nil && len(r.Targets) > 0 {
+				return awshttp.Errf(400, "ValidationException", "Rule can't be deleted since it has targets.")
+			}
+		}
+		return b.Delete(ruleKey(bus, name))
 	})
 }
 

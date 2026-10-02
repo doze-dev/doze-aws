@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/doze-dev/doze-aws/awsident"
@@ -299,6 +300,13 @@ func (s *Server) putRule(ctx context.Context, p map[string]any) (any, *awshttp.A
 		}
 	}
 	if schedule != "" {
+		// Schedules belong to the default bus. A scheduled rule on a custom
+		// bus was accepted and then fired, which is a rule that works here
+		// and cannot be created at all on AWS.
+		if busOrDefault(p) != DefaultBus {
+			return nil, awshttp.Errf(400, "ValidationException",
+				"ScheduleExpression is supported only on the default event bus.")
+		}
 		// Both forms are driven by the local ticker; a malformed one is
 		// refused with AWS's message.
 		if _, ok := parseRate(schedule); !ok {
@@ -636,13 +644,32 @@ func (s *Server) testEventPattern(ctx context.Context, p map[string]any) (any, *
 	return map[string]any{"Result": matched}, nil
 }
 
-// Tags apply to rules (by ARN); buses share the mechanism.
+// Tags apply to rules and to event buses, both addressed by ARN.
+//
+// The comment here used to say buses shared the mechanism, and the code under
+// it parsed every ARN as a rule's: tagging a bus was refused as "not a rule
+// ARN". CDK and Terraform both tag the buses they create.
 func (s *Server) tagResource(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
+	tagsRaw, _ := p["Tags"].([]any)
+	if busName, ok := busFromARN(awsjson.Str(p, "ResourceARN")); ok {
+		return nil, awshttp.AsAPIErrorOrNil(s.store.MutateBus(busName, func(b *bus) {
+			for _, tr := range tagsRaw {
+				tm, _ := tr.(map[string]any)
+				k, _ := tm["Key"].(string)
+				v, _ := tm["Value"].(string)
+				if k != "" {
+					if b.Tags == nil {
+						b.Tags = map[string]string{}
+					}
+					b.Tags[k] = v
+				}
+			}
+		}))
+	}
 	bus, name, aerr := ruleFromARN(awsjson.Str(p, "ResourceARN"))
 	if aerr != nil {
 		return nil, aerr
 	}
-	tagsRaw, _ := p["Tags"].([]any)
 	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(bus, name, func(r *rule) error {
 		for _, tr := range tagsRaw {
 			tm, _ := tr.(map[string]any)
@@ -660,11 +687,20 @@ func (s *Server) tagResource(ctx context.Context, p map[string]any) (any, *awsht
 }
 
 func (s *Server) untagResource(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
+	keysRaw, _ := p["TagKeys"].([]any)
+	if busName, ok := busFromARN(awsjson.Str(p, "ResourceARN")); ok {
+		return nil, awshttp.AsAPIErrorOrNil(s.store.MutateBus(busName, func(b *bus) {
+			for _, kAny := range keysRaw {
+				if k, ok := kAny.(string); ok {
+					delete(b.Tags, k)
+				}
+			}
+		}))
+	}
 	bus, name, aerr := ruleFromARN(awsjson.Str(p, "ResourceARN"))
 	if aerr != nil {
 		return nil, aerr
 	}
-	keysRaw, _ := p["TagKeys"].([]any)
 	return nil, awshttp.AsAPIErrorOrNil(s.store.UpdateRule(bus, name, func(r *rule) error {
 		for _, kAny := range keysRaw {
 			if k, ok := kAny.(string); ok {
@@ -676,26 +712,48 @@ func (s *Server) untagResource(ctx context.Context, p map[string]any) (any, *aws
 }
 
 func (s *Server) listTagsForResource(ctx context.Context, p map[string]any) (any, *awshttp.APIError) {
-	bus, name, aerr := ruleFromARN(awsjson.Str(p, "ResourceARN"))
-	if aerr != nil {
-		return nil, aerr
+	var have map[string]string
+	if busName, ok := busFromARN(awsjson.Str(p, "ResourceARN")); ok {
+		if err := s.store.MutateBus(busName, func(b *bus) { have = b.Tags }); err != nil {
+			return nil, awshttp.AsAPIError(err)
+		}
+	} else {
+		bus, name, aerr := ruleFromARN(awsjson.Str(p, "ResourceARN"))
+		if aerr != nil {
+			return nil, aerr
+		}
+		r, err := s.store.GetRule(bus, name)
+		if err != nil {
+			return nil, awshttp.AsAPIError(err)
+		}
+		have = r.Tags
 	}
-	r, err := s.store.GetRule(bus, name)
-	if err != nil {
-		return nil, awshttp.AsAPIError(err)
+	keys := make([]string, 0, len(have))
+	for k := range have {
+		keys = append(keys, k)
 	}
+	sort.Strings(keys)
 	tags := []map[string]string{}
-	for k, v := range r.Tags {
-		tags = append(tags, map[string]string{"Key": k, "Value": v})
+	for _, k := range keys {
+		tags = append(tags, map[string]string{"Key": k, "Value": have[k]})
 	}
 	return map[string]any{"Tags": tags}, nil
+}
+
+// busFromARN parses arn:aws:events:...:event-bus/name.
+func busFromARN(arn string) (string, bool) {
+	i := strings.Index(arn, ":event-bus/")
+	if i < 0 {
+		return "", false
+	}
+	return arn[i+len(":event-bus/"):], true
 }
 
 // ruleFromARN parses arn:aws:events:...:rule/[bus/]name.
 func ruleFromARN(arn string) (bus, name string, aerr *awshttp.APIError) {
 	i := strings.Index(arn, ":rule/")
 	if i < 0 {
-		return "", "", awshttp.Errf(400, "ValidationException", "%q is not a rule ARN", arn)
+		return "", "", awshttp.Errf(400, "ValidationException", "%q is not the ARN of a rule or an event bus", arn)
 	}
 	rest := arn[i+len(":rule/"):]
 	if b, n, ok := strings.Cut(rest, "/"); ok {
