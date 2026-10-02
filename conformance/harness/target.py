@@ -46,6 +46,10 @@ class Target:
     def normalizer(self):
         raise NotImplementedError
 
+    def execute_api_url(self, api_id, stage, path):
+        """Where a deployed REST or HTTP API answers."""
+        raise NotImplementedError
+
     def close(self):
         pass
 
@@ -106,6 +110,10 @@ class Doze(Target):
     def normalizer(self):
         return Normalizer(self.account, endpoints=[self.endpoint], region=self.region)
 
+    def execute_api_url(self, api_id, stage, path):
+        # The path form of the execute-api plane: it needs no .doze DNS.
+        return f"{self.endpoint}/_aws/execute-api/{api_id}/{stage}/{path.lstrip('/')}"
+
     def close(self):
         if self.proc is not None:
             self.proc.terminate()
@@ -142,6 +150,9 @@ class AWS(Target):
 
     def normalizer(self):
         return Normalizer(self.account, endpoint_patterns=[AWS_HOST], region=self.region)
+
+    def execute_api_url(self, api_id, stage, path):
+        return f"https://{api_id}.execute-api.{self.region}.amazonaws.com/{stage}/{path.lstrip('/')}"
 
 
 def open_target():

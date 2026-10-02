@@ -4,6 +4,7 @@
     names      names("queue") — a name unique to this run, and stable in a snapshot
     cleanup    cleanup(fn, **kw) — undo it at the end of the test, last in first out
     snapshot   snapshot.match("label", response) — hold it against real AWS
+    service_role  service_role("lambda") — a role that service can assume
     eventually eventually(fn) — retry until fn stops raising AssertionError
 """
 
@@ -18,6 +19,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from deviations import DEVIATIONS
+from harness.helpers import make_role
 from harness.snapshot import Snapshot, Store, Tally
 from harness.target import open_target
 
@@ -98,6 +100,24 @@ def cleanup():
             fn(*a, **kw)
         except ClientError:
             pass  # already gone is the common case, and the test has its verdict
+
+
+@pytest.fixture
+def service_role(client, names, cleanup, target):
+    """service_role("lambda", *managed_policy_arns, inline=doc) -> role ARN.
+
+    Gone again when the test ends.
+    """
+    count = iter(range(1, 100))
+
+    def make(service, *managed, inline=None):
+        arn, undo = make_role(
+            client("iam"), names(f"role-{next(count)}"), service, managed, inline,
+            propagate=10 if target.name == "aws" else 0)
+        cleanup(undo)
+        return arn
+
+    return make
 
 
 @pytest.fixture
