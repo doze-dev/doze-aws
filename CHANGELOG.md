@@ -130,6 +130,14 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   refused until now — returns `SenderId` on every message, and
   `SequenceNumber` on FIFO sends and receives.
 - EventBridge buses can be tagged. `TagResource` used to refuse a bus ARN.
+- A Lambda function's output is all there when `Invoke` returns. Under load
+  the last lines of an invocation could arrive after its `END`, or under the
+  next invocation's request id, because nothing made the output pipe drain
+  before the result was acted on.
+- A function process that died leaving a line without its newline no longer
+  hangs its runner. The reaper deadlocked on its own lock, so the invocation
+  waited out its whole timeout and every later invoke of that function
+  blocked.
 - A stack whose resource fails says so in its events. The trail used to
   report every resource, the failed one included, as `CREATE_COMPLETE`.
 - Cold start is ~20 ms and an untouched data directory is 158 bytes across

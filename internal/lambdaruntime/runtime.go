@@ -174,6 +174,7 @@ type Runner struct {
 	pending map[string]*invocation
 	logTail *ringBuffer
 	out     *lineSplitter // the child's stdout and stderr, one writer
+	pump    *outputPump   // reads the child's output into out, and can be drained
 	stream  string        // the log stream this process writes
 	started bool
 	stopped bool
@@ -310,6 +311,12 @@ func (r *Runner) withTiming(res Result, inv *invocation) Result {
 // not measure the child's RSS, and a plausible-looking number nobody computed
 // is worse than a missing field — someone would size a function from it.
 func (r *Runner) report(res Result, inv *invocation) {
+	// A timed-out invocation never reported a result, so nothing has drained
+	// its output yet; one that did report has nothing left, and this is free.
+	r.mu.Lock()
+	pump := r.pump
+	r.mu.Unlock()
+	pump.drain()
 	ms := float64(res.Exec) / float64(time.Millisecond)
 	billed := int64(math.Ceil(ms))
 	var b strings.Builder
@@ -372,13 +379,24 @@ func (r *Runner) ensureStarted() error {
 		ln.Close()
 		return err
 	}
+	pump, err := newOutputPump(cmd, r.out)
+	if err != nil {
+		ln.Close()
+		return fmt.Errorf("function output pipe: %w", err)
+	}
 	r.cmd = cmd
 	if err := cmd.Start(); err != nil {
+		pump.close()
 		ln.Close()
 		return fmt.Errorf("start function process: %w", err)
 	}
+	pump.started()
+	r.pump = pump
 	r.started = true
-	bg.Go(r.logf, "lambda: runtime reaper", r.reap)
+	// The reaper is handed the process it reaps, and that process's output:
+	// by the time it runs its last lines, a restart may have replaced r's.
+	out := r.out
+	bg.Go(r.logf, "lambda: runtime reaper", func() { r.reap(cmd, pump, out) })
 	return nil
 }
 
@@ -416,10 +434,8 @@ func (r *Runner) buildCommand(runtimeAPI string) (*exec.Cmd, error) {
 	cmd := exec.Command(argv[0], argv[1:]...)
 	cmd.Dir = r.spec.Dir
 	cmd.Env = r.childEnv(runtimeAPI, r.stream)
-	// The same writer for both pipes is what makes os/exec serialise them
-	// onto one stream instead of copying each through its own goroutine.
-	cmd.Stdout = r.out
-	cmd.Stderr = r.out
+	// Stdout and Stderr are set by newOutputPump, which owns the pipe they
+	// share — see output_unix.go for why os/exec is not left to copy it.
 	return cmd, nil
 }
 
@@ -504,11 +520,17 @@ func (r *Runner) handleInvocationResult(w http.ResponseWriter, req *http.Request
 	r.mu.Lock()
 	inv := r.pending[id]
 	delete(r.pending, id)
+	pump := r.pump
 	r.mu.Unlock()
 	if inv == nil {
 		w.WriteHeader(400)
 		return
 	}
+	// Everything the function printed before it reported this result is in
+	// the pipe by now. Take it BEFORE the result is acted on and before the
+	// function is answered: once it has its 202 it fetches the next piece of
+	// work, and from then on a late line would be the next invocation's.
+	pump.drain()
 	res := Result{Payload: body, Logs: r.logTail.snapshot(), RequestID: id}
 	if kind == "error" {
 		// AWS's header is "Unhandled" whatever Lambda-Runtime-Function-Error-Type
@@ -529,8 +551,21 @@ func (r *Runner) handleInitError(w http.ResponseWriter, req *http.Request) {
 }
 
 // reap waits for the process to exit and fails any in-flight invocation.
-func (r *Runner) reap() {
-	err := r.cmd.Wait()
+func (r *Runner) reap(cmd *exec.Cmd, pump *outputPump, out *lineSplitter) {
+	err := cmd.Wait()
+	// The process's last words, before anything else and OUTSIDE r.mu.
+	//
+	// Emitting a line asks which invocation is current, and that takes r.mu.
+	// flushPartial used to be called further down with r.mu held, so a
+	// process that died leaving a line without its newline — a panic message,
+	// a print with no line ending — deadlocked the reaper on its own lock.
+	// The in-flight invocation then waited out its whole timeout instead of
+	// being told the process had exited, and every later Invoke, and Stop,
+	// blocked forever.
+	pump.drain()
+	pump.close()
+	out.flushPartial()
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.started = false
@@ -542,8 +577,6 @@ func (r *Runner) reap() {
 		msg = fmt.Sprintf("the function process exited: %v", err)
 	}
 	r.logf("lambda %s: %s", r.spec.Name, msg)
-	// A last line with no newline — what a crash leaves — reaches the sink.
-	r.out.flushPartial()
 	if r.spec.LogSink != nil {
 		r.spec.LogSink.Flush()
 	}
