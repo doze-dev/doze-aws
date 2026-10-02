@@ -140,6 +140,8 @@ type sendResult struct {
 	MessageID  string `json:"MessageId" xml:"MessageId"`
 	MD5OfBody  string `json:"MD5OfMessageBody" xml:"MD5OfMessageBody"`
 	MD5OfAttrs string `json:"MD5OfMessageAttributes,omitempty" xml:"MD5OfMessageAttributes,omitempty"`
+	// SequenceNumber is a FIFO queue's alone: where the message sits in its group.
+	SequenceNumber string `json:"SequenceNumber,omitempty" xml:"SequenceNumber,omitempty"`
 }
 
 type receiveResult struct {
@@ -148,10 +150,11 @@ type receiveResult struct {
 
 // batch entries
 type sendBatchOK struct {
-	ID         string `json:"Id" xml:"Id"`
-	MessageID  string `json:"MessageId" xml:"MessageId"`
-	MD5OfBody  string `json:"MD5OfMessageBody" xml:"MD5OfMessageBody"`
-	MD5OfAttrs string `json:"MD5OfMessageAttributes,omitempty" xml:"MD5OfMessageAttributes,omitempty"`
+	ID             string `json:"Id" xml:"Id"`
+	MessageID      string `json:"MessageId" xml:"MessageId"`
+	MD5OfBody      string `json:"MD5OfMessageBody" xml:"MD5OfMessageBody"`
+	MD5OfAttrs     string `json:"MD5OfMessageAttributes,omitempty" xml:"MD5OfMessageAttributes,omitempty"`
+	SequenceNumber string `json:"SequenceNumber,omitempty" xml:"SequenceNumber,omitempty"`
 }
 
 type batchErr struct {

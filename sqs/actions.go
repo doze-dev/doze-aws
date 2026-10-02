@@ -1,7 +1,11 @@
 package sqs
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
+
+	"github.com/doze-dev/doze-aws/awsident"
 )
 
 // handler implements one SQS action against the store. Returns the result value
@@ -143,7 +147,7 @@ func hSendMessage(s *store, req *request) (any, *apiError) {
 	if err != nil {
 		return nil, asAPIError(err)
 	}
-	return sendResult{MessageID: m.ID, MD5OfBody: m.MD5Body, MD5OfAttrs: m.MD5Attrs}, nil
+	return sendResult{MessageID: m.ID, MD5OfBody: m.MD5Body, MD5OfAttrs: m.MD5Attrs, SequenceNumber: sequenceNumber(m)}, nil
 }
 
 func hSendMessageBatch(s *store, req *request) (any, *apiError) {
@@ -152,6 +156,13 @@ func hSendMessageBatch(s *store, req *request) (any, *apiError) {
 	// over Send opened one per message, which made a ten-item batch cost ten
 	// times a single send — all of it durability rather than work.
 	entries := req.p.sendBatchEntries()
+	ids := make([]string, len(entries))
+	for i, e := range entries {
+		ids[i] = e.ID
+	}
+	if aerr := checkBatch("SendMessageBatchRequestEntry", ids); aerr != nil {
+		return nil, aerr
+	}
 	items := make([]sendItem, len(entries))
 	for i, e := range entries {
 		delay := -1
@@ -177,6 +188,7 @@ func hSendMessageBatch(s *store, req *request) (any, *apiError) {
 		}
 		res.Successful = append(res.Successful, sendBatchOK{
 			ID: e.ID, MessageID: r.Msg.ID, MD5OfBody: r.Msg.MD5Body, MD5OfAttrs: r.Msg.MD5Attrs,
+			SequenceNumber: sequenceNumber(r.Msg),
 		})
 	}
 	return res, nil
@@ -255,8 +267,13 @@ func hDeleteMessageBatch(s *store, req *request) (any, *apiError) {
 	queue := targetQueue(req)
 	entries := req.p.deleteBatchEntries()
 	handles := make([]string, len(entries))
+	ids := make([]string, len(entries))
 	for i, e := range entries {
 		handles[i] = e.ReceiptHandle
+		ids[i] = e.ID
+	}
+	if aerr := checkBatch("DeleteMessageBatchRequestEntry", ids); aerr != nil {
+		return nil, aerr
 	}
 	errs, err := s.DeleteBatch(queue, handles)
 	if err != nil {
@@ -289,8 +306,13 @@ func hChangeMessageVisibilityBatch(s *store, req *request) (any, *apiError) {
 	queue := targetQueue(req)
 	entries := req.p.visibilityBatchEntries()
 	items := make([]visibilityItem, len(entries))
+	ids := make([]string, len(entries))
 	for i, e := range entries {
 		items[i] = visibilityItem{Handle: e.ReceiptHandle, Timeout: e.Timeout}
+		ids[i] = e.ID
+	}
+	if aerr := checkBatch("ChangeMessageVisibilityBatchRequestEntry", ids); aerr != nil {
+		return nil, aerr
 	}
 	errs, err := s.ChangeVisibilityBatch(queue, items)
 	if err != nil {
@@ -328,11 +350,18 @@ func systemAttrs(m message, names []string) kvAttrs {
 	}
 	add("ApproximateReceiveCount", strconv.Itoa(m.ReceiveCount))
 	add("SentTimestamp", strconv.FormatInt(m.Sent/1e6, 10))
+	// Every message has a sender on AWS. Here there is one identity, so it is
+	// the id GetCallerIdentity reports — absent, "All" came back one short and
+	// a consumer reading Attributes["SenderId"] found nothing.
+	add("SenderId", "AIDADOZE"+strings.ToUpper(awsident.AccessKeyID))
 	if m.FirstReceived > 0 {
 		add("ApproximateFirstReceiveTimestamp", strconv.FormatInt(m.FirstReceived/1e6, 10))
 	}
 	if m.GroupID != "" {
 		add("MessageGroupId", m.GroupID)
+	}
+	if seq := sequenceNumber(&m); seq != "" {
+		add("SequenceNumber", seq)
 	}
 	if m.DedupID != "" {
 		add("MessageDeduplicationId", m.DedupID)
@@ -348,6 +377,17 @@ func systemAttrs(m message, names []string) kvAttrs {
 		return nil
 	}
 	return out
+}
+
+// sequenceNumber is a FIFO message's position, as SendMessage reports it and
+// ReceiveMessage repeats it: twenty digits, increasing within the queue. A
+// standard queue's messages have none. It was missing altogether, so a FIFO
+// send came back without the one field that says the queue is FIFO.
+func sequenceNumber(m *message) string {
+	if m.GroupID == "" {
+		return ""
+	}
+	return fmt.Sprintf("%020d", uint64(10_000_000_000_000_000_000)+m.Seq)
 }
 
 func filterAttrs(all map[string]attr, names []string) msgAttrs {

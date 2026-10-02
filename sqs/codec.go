@@ -356,6 +356,11 @@ func jsonErrorType(code string) string {
 		return "QueueDeletedRecently"
 	case "AWS.SimpleQueueService.QueueNameExists", "QueueAlreadyExists":
 		return "QueueNameExists"
+	case "AWS.SimpleQueueService.EmptyBatchRequest",
+		"AWS.SimpleQueueService.TooManyEntriesInBatchRequest",
+		"AWS.SimpleQueueService.BatchEntryIdsNotDistinct",
+		"AWS.SimpleQueueService.InvalidBatchEntryId":
+		return strings.TrimPrefix(code, "AWS.SimpleQueueService.")
 	default:
 		return code
 	}

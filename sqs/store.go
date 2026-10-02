@@ -143,7 +143,14 @@ func (s *store) putQueue(tx *bolt.Tx, q *queue) error {
 	return b.Put([]byte(q.Name), raw)
 }
 
-// CreateQueue creates (or, idempotently, updates the attributes of) a queue.
+// CreateQueue creates a queue, or answers with the one that is already there.
+//
+// It used to update an existing queue with whatever attributes came with the
+// call. That is not idempotence: CreateQueue with a different VisibilityTimeout
+// quietly rewrote a queue that was already in use, and returned success. AWS
+// refuses it — a second CreateQueue is only allowed to agree with the first.
+// The attributes it is given are held against the queue's, and the first one
+// that differs is named in the refusal. Changing a queue is SetQueueAttributes.
 func (s *store) CreateQueue(name string, attrs map[string]string, tags map[string]string) (*queue, error) {
 	if name == "" {
 		return nil, errInvalid("queue name is required")
@@ -157,16 +164,28 @@ func (s *store) CreateQueue(name string, attrs map[string]string, tags map[strin
 	}
 	var out *queue
 	err := s.db.Update(func(tx *bolt.Tx) error {
-		q, err := s.getQueue(tx, name)
-		if err != nil {
-			q = &queue{
-				Name:              name,
-				FIFO:              fifoAttr,
-				VisibilityTimeout: defVisibilityTimeout,
-				RetentionPeriod:   defRetentionPeriod,
-				MaxMessageSize:    defMaxMessageSize,
-				Created:           s.now().Unix(),
+		if q, err := s.getQueue(tx, name); err == nil {
+			have := s.configuredAttrs(q)
+			keys := make([]string, 0, len(attrs))
+			for k := range attrs {
+				keys = append(keys, k)
 			}
+			sort.Strings(keys)
+			for _, k := range keys {
+				if !sameAttrValue(have[k], attrs[k]) {
+					return errQueueExists(k)
+				}
+			}
+			out = q
+			return nil
+		}
+		q := &queue{
+			Name:              name,
+			FIFO:              fifoAttr,
+			VisibilityTimeout: defVisibilityTimeout,
+			RetentionPeriod:   defRetentionPeriod,
+			MaxMessageSize:    defMaxMessageSize,
+			Created:           s.now().Unix(),
 		}
 		if err := applyAttrs(q, attrs, s.lookupIn(tx)); err != nil {
 			return err

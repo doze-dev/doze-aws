@@ -5,6 +5,7 @@ package sqs
 
 import (
 	"encoding/json"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -95,6 +96,13 @@ func applyAttrs(q *queue, attrs map[string]string, lookup queueLookup) error {
 			if computedAttrs[k] {
 				continue
 			}
+			// Only what SQS has. Anything else used to be stored and handed
+			// back by GetQueueAttributes, so a misspelt "VisibiltyTimeout"
+			// was accepted, did nothing, and read back as if it had.
+			if !storedAttrs[k] {
+				return &apiError{Code: "InvalidAttributeName", Status: 400, SenderFault: true,
+					Message: "Unknown Attribute " + k + "."}
+			}
 			if q.Attrs == nil {
 				q.Attrs = map[string]string{}
 			}
@@ -106,6 +114,14 @@ func applyAttrs(q *queue, attrs map[string]string, lookup queueLookup) error {
 		}
 	}
 	return nil
+}
+
+// storedAttrs are the settable attributes that have no local behaviour of
+// their own: kept as written and returned as written.
+var storedAttrs = map[string]bool{
+	"Policy": true, "RedriveAllowPolicy": true,
+	"KmsMasterKeyId": true, "KmsDataKeyReusePeriodSeconds": true, "SqsManagedSseEnabled": true,
+	"DeduplicationScope": true, "FifoThroughputLimit": true,
 }
 
 // computedAttrs are derived by the queue itself and are read-only.
@@ -151,15 +167,9 @@ func (s *store) Attributes(name string) (map[string]string, error) {
 				return nil
 			})
 		}
-		// Stored attributes first, so the computed ones below always win.
-		for k, v := range q.Attrs {
+		for k, v := range s.configuredAttrs(q) {
 			out[k] = v
 		}
-		out["VisibilityTimeout"] = strconv.Itoa(q.VisibilityTimeout)
-		out["DelaySeconds"] = strconv.Itoa(q.DelaySeconds)
-		out["MessageRetentionPeriod"] = strconv.Itoa(q.RetentionPeriod)
-		out["MaximumMessageSize"] = strconv.Itoa(q.MaxMessageSize)
-		out["ReceiveMessageWaitTimeSeconds"] = strconv.Itoa(q.WaitTimeSeconds)
 		out["CreatedTimestamp"] = strconv.FormatInt(q.Created, 10)
 		modified := q.Modified
 		if modified == 0 {
@@ -170,24 +180,72 @@ func (s *store) Attributes(name string) (map[string]string, error) {
 		out["ApproximateNumberOfMessagesNotVisible"] = strconv.Itoa(inflight)
 		out["ApproximateNumberOfMessagesDelayed"] = strconv.Itoa(delayed)
 		out["QueueArn"] = s.queueARN(name)
-		if q.FIFO {
-			out["FifoQueue"] = "true"
-			out["ContentBasedDeduplication"] = strconv.FormatBool(q.ContentBasedDedup)
-		}
-		if q.DeadLetterTarget != "" {
-			// maxReceiveCount is a NUMBER in AWS's response, not a string.
-			// Terraform sets the policy and then polls GetQueueAttributes until
-			// what it reads back equals what it wrote — a stringified count
-			// never compares equal, so the resource never converges.
-			rp, _ := json.Marshal(map[string]any{
-				"deadLetterTargetArn": s.queueARN(q.DeadLetterTarget),
-				"maxReceiveCount":     q.MaxReceiveCount,
-			})
-			out["RedrivePolicy"] = string(rp)
-		}
 		return nil
 	})
 	return out, err
+}
+
+// configuredAttrs is the part of a queue's attributes somebody chose: what
+// CreateQueue and SetQueueAttributes can write, as GetQueueAttributes spells
+// it. The counters, the timestamps and the ARN are not in it.
+func (s *store) configuredAttrs(q *queue) map[string]string {
+	out := map[string]string{}
+	// Stored attributes first, so the computed ones below always win.
+	for k, v := range q.Attrs {
+		out[k] = v
+	}
+	out["VisibilityTimeout"] = strconv.Itoa(q.VisibilityTimeout)
+	out["DelaySeconds"] = strconv.Itoa(q.DelaySeconds)
+	out["MessageRetentionPeriod"] = strconv.Itoa(q.RetentionPeriod)
+	out["MaximumMessageSize"] = strconv.Itoa(q.MaxMessageSize)
+	out["ReceiveMessageWaitTimeSeconds"] = strconv.Itoa(q.WaitTimeSeconds)
+	if q.FIFO {
+		out["FifoQueue"] = "true"
+		out["ContentBasedDeduplication"] = strconv.FormatBool(q.ContentBasedDedup)
+	}
+	if q.DeadLetterTarget != "" {
+		// maxReceiveCount is a NUMBER in AWS's response, not a string.
+		// Terraform sets the policy and then polls GetQueueAttributes until
+		// what it reads back equals what it wrote — a stringified count
+		// never compares equal, so the resource never converges.
+		rp, _ := json.Marshal(map[string]any{
+			"deadLetterTargetArn": s.queueARN(q.DeadLetterTarget),
+			"maxReceiveCount":     q.MaxReceiveCount,
+		})
+		out["RedrivePolicy"] = string(rp)
+	}
+	return out
+}
+
+// sameAttrValue reports whether two spellings of an attribute value mean the
+// same thing. The JSON-valued attributes (RedrivePolicy, Policy) are compared
+// as documents, and a count written "3" equals one written 3 — which is how
+// the same policy reads back from GetQueueAttributes.
+func sameAttrValue(a, b string) bool {
+	if a == b {
+		return true
+	}
+	var ja, jb any
+	if json.Unmarshal([]byte(a), &ja) != nil || json.Unmarshal([]byte(b), &jb) != nil {
+		return false
+	}
+	return reflect.DeepEqual(looseJSON(ja), looseJSON(jb))
+}
+
+func looseJSON(v any) any {
+	switch t := v.(type) {
+	case map[string]any:
+		for k, e := range t {
+			t[k] = looseJSON(e)
+		}
+	case []any:
+		for i, e := range t {
+			t[i] = looseJSON(e)
+		}
+	case float64:
+		return strconv.FormatFloat(t, 'f', -1, 64)
+	}
+	return v
 }
 
 func (s *store) SetAttributes(name string, attrs map[string]string) error {

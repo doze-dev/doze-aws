@@ -5,6 +5,7 @@ package sqs
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	bolt "go.etcd.io/bbolt"
@@ -335,6 +336,11 @@ func (s *store) changeVisibilityIn(tx *bolt.Tx, queue, handle string, timeout in
 	seqKey, id, err := decodeHandle(handle)
 	if err != nil {
 		return errInvalid("invalid receipt handle")
+	}
+	// Twelve hours is as long as a message can be held. The model gives this
+	// member no range, so 43201 was accepted — and so was -1.
+	if timeout < 0 || timeout > 43200 {
+		return errInvalid(fmt.Sprintf("Value %d for parameter VisibilityTimeout is invalid. Reason: Must be between 0 and 43200.", timeout))
 	}
 	mb := tx.Bucket(msgBucket(queue))
 	if mb == nil {
