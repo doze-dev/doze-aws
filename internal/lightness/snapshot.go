@@ -53,18 +53,28 @@ type Snapshot struct {
 	// only the cold number was watched and it barely moved there, and then the
 	// cold number itself fell below a millisecond once lazy opening landed.
 	BootWarmMicros int64 `json:"boot_warm_micros"`
+
+	// entryCPU and entrySched are the two running totals as they stood when
+	// Take was CALLED, before it collected. See Sub.
+	entryCPU, entrySched int64
 }
 
 // Take reads the current cost. It forces two collections first: one is not
 // enough, because the first can queue finalisers whose objects only become
 // free in the second, and reading after a single GC reports garbage as live.
 func Take() Snapshot {
+	// The running totals first, before this function disturbs them: the two
+	// collections below are work, and they are this function's work.
+	entryCPU, _ := rusage()
+	entrySched := schedEvents()
+
 	runtime.GC()
 	runtime.GC()
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	cpu, rss := rusage()
 	return Snapshot{
+		entryCPU: entryCPU, entrySched: entrySched,
 		HeapAlloc:   int64(m.HeapAlloc),
 		Retained:    int64(m.Sys - m.HeapReleased),
 		MaxRSS:      rss,
@@ -97,8 +107,18 @@ func schedEvents() int64 {
 // Sub reports what happened between two snapshots: the deltas that only make
 // sense as differences, carried alongside the absolute values from the later
 // one.
+//
+// The window runs from the end of the earlier snapshot to the START of this
+// one — after the earlier one's collections, before this one's. It used to
+// run to the end of this one, so the closing snapshot counted its own two
+// collections as something the idle process had done. On a quiet machine that
+// is a few dozen scheduling events and nobody noticed. On a shared CI runner
+// the collector's workers are preempted and rescheduled, each time a
+// goroutine going runnable, and the "idle wakeups" of a stack that normally
+// measures thirty came out at 613, 1,752 and 7,061 on three different runs —
+// the measurement reporting the runner's weather as the product's weight.
 func (s Snapshot) Sub(earlier Snapshot) Snapshot {
-	s.CPUMicros -= earlier.CPUMicros
-	s.SchedEvents -= earlier.SchedEvents
+	s.CPUMicros = s.entryCPU - earlier.CPUMicros
+	s.SchedEvents = s.entrySched - earlier.SchedEvents
 	return s
 }
