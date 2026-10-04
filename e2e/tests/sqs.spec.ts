@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/console';
 import { createQueue } from '../fixtures/api';
+import { ORIGIN } from '../playwright.config';
 
 // SQS console coverage: create (standard + FIFO, with/without an
 // auto-created DLQ), the composer (attributes, FIFO group/dedup), the live
@@ -343,11 +344,11 @@ test('the composer renders its own aws CLI command live', async ({ page, request
   await openComposer(page);
   await page.locator('.cli-btn').first().click();
   const pre = page.locator('.cli-out pre').first();
-  await expect(pre).toContainText(`sqs send-message --queue-url http://127.0.0.1:14566/000000000000/${queue}`);
+  await expect(pre).toContainText(`sqs send-message --queue-url ${ORIGIN}/000000000000/${queue}`);
   await expect(pre).not.toContainText('--delay-seconds');
   await setEditor('textarea[name="body"]', '{"hello":"cli"}');
   await page.locator('input[name="delay"]').fill('45');
   await expect(pre).toContainText(`--message-body '{"hello":"cli"}'`);
   await expect(pre).toContainText('--delay-seconds 45');
-  await expect(pre).toContainText('--endpoint-url http://127.0.0.1:14566');
+  await expect(pre).toContainText(`--endpoint-url ${ORIGIN}`);
 });

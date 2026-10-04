@@ -105,6 +105,7 @@ func (c *Console) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	c.noteRoute(r)
 	c.mux.ServeHTTP(w, r)
 }
 

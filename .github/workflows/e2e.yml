@@ -25,7 +25,10 @@ jobs:
       - name: Run Playwright suite
         working-directory: e2e
         # webServer in playwright.config.ts builds and boots the real
-        # binary on a fixed port against an isolated data dir.
+        # binary on a fixed port against an isolated data dir. The route gate
+        # (route-gate.ts) fails the run when a console route goes undriven.
+        env:
+          E2E_ROUTE_GATE: "1"
         run: bunx --bun playwright test
       - name: Upload report on failure
         if: failure()

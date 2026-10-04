@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/console';
 import { postForm, createBucket } from '../fixtures/api';
+import { ORIGIN } from '../playwright.config';
 
 // CloudFormation console coverage: the deploy path (template in → validate →
 // parameters generated from the template → create), the change-set workflow
@@ -121,7 +122,7 @@ test.describe('CloudFormation console', () => {
       Resources: { Work: { Type: 'AWS::SQS::Queue', Properties: { QueueName: { 'Fn::Sub': '${Prefix}-work' } } } },
       Outputs: { WorkArn: { Value: { 'Fn::GetAtt': ['Work', 'Arn'] } } },
     });
-    const put = await page.request.put(`http://127.0.0.1:14566/${bucket}/child.json`, { data: child });
+    const put = await page.request.put(`${ORIGIN}/${bucket}/child.json`, { data: child });
     expect(put.ok()).toBeTruthy();
     await postForm(page.request, 'cfn/create', {
       name: parent,

@@ -172,7 +172,8 @@ tasks:
       # --bun matters: the playwright bin has a #!/usr/bin/env node shebang, and
       # plain bunx honours it. Where node is a version-manager shim with nothing
       # pinned, that fails before Playwright starts. --bun runs it with bun.
-      - cd e2e && bunx --bun playwright test
+      # E2E_ROUTE_GATE: every console route is driven, or route-gaps.txt says why.
+      - cd e2e && E2E_ROUTE_GATE=1 bunx --bun playwright test
 
   test:conformance:
     desc: "boto3 scenarios against a real binary, compared with what real AWS answered (see conformance/README.md; not part of check)"

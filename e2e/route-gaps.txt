@@ -1,0 +1,189 @@
+# Console routes no browser test drives yet. See route-gate.ts.
+#
+# One route per line, then "# " and why it is not driven. The gate fails when
+# a route is missing from the run and from this list, and when a route listed
+# here is reached — so the list only ever shrinks.
+GET (prefix)                                               # not driven yet
+
+# api
+GET /api/glance                                            # not driven yet
+GET /api/resolve                                           # not driven yet
+
+# apigw
+GET /apigw/{api}/authorizer/{auth}                         # not driven yet
+POST /apigw/{api}/create-stage                             # not driven yet
+POST /apigw/{api}/delete                                   # not driven yet
+POST /apigw/{api}/delete-authorizer                        # not driven yet
+POST /apigw/{api}/delete-deployment                        # not driven yet
+POST /apigw/{api}/delete-integration                       # not driven yet
+POST /apigw/{api}/delete-method                            # not driven yet
+POST /apigw/{api}/delete-resource                          # not driven yet
+POST /apigw/{api}/delete-response                          # not driven yet
+POST /apigw/{api}/delete-stage                             # not driven yet
+POST /apigw/{api}/rename-resource                          # not driven yet
+POST /apigw/{api}/update-authorizer                        # not driven yet
+POST /apigw/{api}/update-stage                             # not driven yet
+
+# apigw-http
+POST /apigw-http/{api}/create-authorizer                   # not driven yet
+POST /apigw-http/{api}/delete-authorizer                   # not driven yet
+POST /apigw-http/{api}/delete-route                        # not driven yet
+POST /apigw-http/{api}/delete-stage                        # not driven yet
+POST /apigw-http/{api}/deploy                              # not driven yet
+POST /apigw-http/create                                    # not driven yet
+
+# apigw-keys
+POST /apigw-keys/delete                                    # not driven yet
+GET /apigw-keys/plans/{plan}                               # not driven yet
+POST /apigw-keys/plans/{plan}/add-stage                    # not driven yet
+POST /apigw-keys/plans/{plan}/detach-key                   # not driven yet
+POST /apigw-keys/plans/delete                              # not driven yet
+POST /apigw-keys/toggle                                    # not driven yet
+
+# cfn
+POST /cfn/{stack}/changeset/{cs}/delete                    # not driven yet
+POST /cfn/{stack}/delete                                   # not driven yet
+
+# connect
+POST /connect/verify                                       # not driven yet
+
+# cw
+POST /cw/alarm/{name}/actions                              # not driven yet
+
+# ddb
+POST /ddb/{table}/batch-get                                # not driven yet
+POST /ddb/{table}/delete-table                             # not driven yet
+
+# eb
+GET /eb/{bus}/archive/{archive}                            # not driven yet
+POST /eb/{bus}/archive/{archive}/update                    # not driven yet
+GET /eb/{bus}/detail                                       # not driven yet
+GET /eb/{bus}/replay/{replay}                              # not driven yet
+POST /eb/{bus}/rule/{rule}/remove-target                   # not driven yet
+POST /eb/{bus}/rules-by-target                             # not driven yet
+GET /eb/create-bus                                         # not driven yet
+POST /eb/destinations/connection/{conn}/deauthorize        # not driven yet
+POST /eb/destinations/connection/{conn}/update             # not driven yet
+POST /eb/destinations/delete-connection                    # not driven yet
+POST /eb/destinations/delete-destination                   # not driven yet
+GET /eb/destinations/destination/{dest}                    # not driven yet
+POST /eb/destinations/destination/{dest}/update            # not driven yet
+
+# iam
+POST /iam/{kind}/{name}/delete                             # not driven yet
+POST /iam/{kind}/{name}/detach                             # not driven yet
+POST /iam/{kind}/{name}/inline                             # not driven yet
+POST /iam/{kind}/{name}/inline/delete                      # not driven yet
+POST /iam/account/details                                  # not driven yet
+POST /iam/generate                                         # not driven yet
+POST /iam/policy/delete                                    # not driven yet
+POST /iam/policy/delete-version                            # not driven yet
+POST /iam/profile/{name}/role                              # not driven yet
+POST /iam/role/{name}/meta                                 # not driven yet
+POST /iam/role/{name}/trust                                # not driven yet
+POST /iam/user/{name}/join-group                           # not driven yet
+POST /iam/user/{name}/keys/delete                          # not driven yet
+POST /iam/user/{name}/rename                               # not driven yet
+
+# kinesis
+POST /kinesis/{stream}/consumers/add                       # not driven yet
+POST /kinesis/{stream}/consumers/del                       # not driven yet
+GET /kinesis/{stream}/details                              # not driven yet
+POST /kinesis/{stream}/encryption                          # not driven yet
+POST /kinesis/{stream}/merge                               # not driven yet
+POST /kinesis/{stream}/metrics                             # not driven yet
+POST /kinesis/{stream}/mode                                # not driven yet
+POST /kinesis/{stream}/policy                              # not driven yet
+GET /kinesis/{stream}/record                               # not driven yet
+POST /kinesis/{stream}/records/query                       # not driven yet
+POST /kinesis/{stream}/retention                           # not driven yet
+POST /kinesis/{stream}/scale                               # not driven yet
+POST /kinesis/{stream}/split                               # not driven yet
+GET /kinesis/{stream}/tags                                 # not driven yet
+
+# kms
+POST /kms/{key}/description                                # not driven yet
+POST /kms/{key}/policy                                     # not driven yet
+POST /kms/{key}/public-key                                 # not driven yet
+POST /kms/{key}/reencrypt                                  # not driven yet
+POST /kms/{key}/update-alias                               # not driven yet
+GET /kms/create                                            # not driven yet
+POST /kms/random                                           # not driven yet
+
+# lambda
+POST /lambda/{fn}/code                                     # not driven yet
+POST /lambda/{fn}/reset-async                              # not driven yet
+POST /lambda/{fn}/update-url                               # not driven yet
+POST /lambda/layers/find                                   # not driven yet
+
+# logs
+GET /logs/create                                           # not driven yet
+POST /logs/delete                                          # not driven yet
+POST /logs/delete-stream                                   # not driven yet
+POST /logs/retention                                       # not driven yet
+GET /logs/tail                                             # not driven yet
+
+# s3
+POST /s3/{bucket}/abort-upload                             # not driven yet
+POST /s3/{bucket}/add-tag                                  # not driven yet
+POST /s3/{bucket}/combine                                  # not driven yet
+POST /s3/{bucket}/folder                                   # not driven yet
+POST /s3/{bucket}/legal-hold                               # not driven yet
+POST /s3/{bucket}/lock-config                              # not driven yet
+POST /s3/{bucket}/notify-remove                            # not driven yet
+POST /s3/{bucket}/object-tags                              # not driven yet
+POST /s3/{bucket}/remove-tag                               # not driven yet
+POST /s3/{bucket}/retention                                # not driven yet
+POST /s3/{bucket}/versioning                               # not driven yet
+
+# sfn
+POST /sfn/{machine}/alias/{alias}/delete                   # not driven yet
+POST /sfn/{machine}/alias/{alias}/update                   # not driven yet
+POST /sfn/{machine}/delete                                 # not driven yet
+GET /sfn/{machine}/execution/{exec}/graph                  # not driven yet
+POST /sfn/{machine}/execution/{exec}/heartbeat             # not driven yet
+POST /sfn/{machine}/execution/{exec}/maprun                # not driven yet
+GET /sfn/{machine}/execution/{exec}/maprun-children        # not driven yet
+POST /sfn/{machine}/execution/{exec}/task-result           # not driven yet
+GET /sfn/{machine}/executions                              # not driven yet
+GET /sfn/{machine}/logs                                    # not driven yet
+POST /sfn/{machine}/test-state                             # not driven yet
+POST /sfn/{machine}/version/{n}/delete                     # not driven yet
+POST /sfn/activities/{activity}/delete                     # not driven yet
+POST /sfn/activities/heartbeat                             # not driven yet
+
+# sm
+POST /sm/policy                                            # not driven yet
+POST /sm/promote                                           # not driven yet
+POST /sm/update                                            # not driven yet
+
+# sns
+POST /sns/{topic}/attribute                                # not driven yet
+POST /sns/{topic}/confirm                                  # not driven yet
+POST /sns/{topic}/data-protection                          # not driven yet
+POST /sns/{topic}/permission                               # not driven yet
+POST /sns/{topic}/permission/delete                        # not driven yet
+
+# sqs
+POST /sqs/{queue}/cancel-move                              # not driven yet
+POST /sqs/{queue}/delete-batch                             # not driven yet
+GET /sqs/{queue}/messages                                  # not driven yet
+POST /sqs/{queue}/permission                               # not driven yet
+POST /sqs/{queue}/permission/delete                        # not driven yet
+POST /sqs/{queue}/receive                                  # not driven yet
+POST /sqs/{queue}/send-batch                               # not driven yet
+POST /sqs/{queue}/visibility                               # not driven yet
+POST /sqs/{queue}/visibility-batch                         # not driven yet
+
+# ssm
+GET /ssm/create                                            # not driven yet
+POST /ssm/delete-path                                      # not driven yet
+POST /ssm/path                                             # not driven yet
+POST /ssm/unlabel                                          # not driven yet
+
+# tags
+POST /tags/remove                                          # not driven yet
+POST /tags/set                                             # not driven yet
+
+# traffic
+POST /traffic/clear                                        # not driven yet

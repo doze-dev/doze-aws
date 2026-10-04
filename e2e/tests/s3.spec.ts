@@ -1,6 +1,7 @@
 import { test, expect } from '../fixtures/console';
 import { createBucket, createQueue } from '../fixtures/api';
 import type { Page, Locator } from '@playwright/test';
+import { ORIGIN } from '../playwright.config';
 
 // S3 is the deepest surface in the console: buckets, objects, versions,
 // presigned links, copy/move, notifications, and the CORS/lifecycle JSON
@@ -377,7 +378,7 @@ test.describe('batch and config surfaces', () => {
     const bucket = uniqueName('e2e-s3-batch');
     await createBucket(request, bucket);
     for (const n of ['x.txt', 'y.txt', 'z.txt']) {
-      await request.post(`http://127.0.0.1:14566/_console/s3/${bucket}/upload`, {
+      await request.post(`${ORIGIN}/_console/s3/${bucket}/upload`, {
         multipart: {
           prefix: '',
           file: { name: n, mimeType: 'text/plain', buffer: Buffer.from(`body of ${n}`) },

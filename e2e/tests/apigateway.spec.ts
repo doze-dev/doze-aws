@@ -1,4 +1,5 @@
 import { test, expect } from '../fixtures/console';
+import { ORIGIN } from '../playwright.config';
 
 // API Gateway console coverage: the build-an-API path end to end — create,
 // grow the resource tree, declare a method, wire a MOCK integration with a
@@ -209,7 +210,7 @@ test.describe('API Gateway gates', () => {
     await page.getByRole('button', { name: 'Deploy API' }).click();
     await expect(page.locator('#flashbar')).toContainText('v1');
 
-    const invoke = `http://127.0.0.1:14566/_aws/execute-api/${apiID}/v1/`;
+    const invoke = `${ORIGIN}/_aws/execute-api/${apiID}/v1/`;
 
     // No key: Forbidden. This is the assertion the whole feature exists for.
     const bare = await request.get(invoke);

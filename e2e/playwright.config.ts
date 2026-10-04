@@ -6,11 +6,19 @@ import { defineConfig, devices } from '@playwright/test';
 // The port is deliberately off 4566 so it never collides with a dev instance
 // already running on the machine. It is not "the default port" any more:
 // doze-aws answers on its name by default and binds no address at all.
-const PORT = 14566;
-export const BASE_URL = `http://127.0.0.1:${PORT}/_console/`;
+//
+// E2E_PORT moves it, so two runs (one spec each, say) can share a machine;
+// each port gets its own binary and data dir.
+const PORT = Number(process.env.E2E_PORT ?? 14566);
+// Every console route a request lands on is written here; route-gate.ts
+// reads it after the run.
+export const ROUTES_FILE = `.tmp/routes-${PORT}.txt`;
+export const ORIGIN = `http://127.0.0.1:${PORT}`;
+export const BASE_URL = `${ORIGIN}/_console/`;
 
 export default defineConfig({
   testDir: './tests',
+  globalSetup: './route-gate.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -32,14 +40,15 @@ export default defineConfig({
   // sees a stray stack.yaml/doze-aws.toml that doze-aws auto-loads.
   webServer: {
     command:
-      'sh -c "cd .. && GOWORK=off go build -o e2e/.tmp/bin/doze-aws ./cmd/doze-aws && ' +
+      // -tags e2e records which console routes were reached (route-gate.ts).
+      `sh -c "cd .. && GOWORK=off go build -tags e2e -o e2e/.tmp/bin/doze-aws-${PORT} ./cmd/doze-aws && ` +
       // A FRESH data dir every run. It used to persist, so resources piled up
       // across runs and tests began interfering with each other — the failing
       // set shifted between identical runs, and three KMS tests "failed" purely
       // from accumulated state. A suite whose result depends on how many times
       // it has been run before cannot tell you anything.
-      'cd e2e/.tmp && rm -rf data && mkdir -p data && ' +
-      `./bin/doze-aws --listen 127.0.0.1:${PORT} --data-dir data --console"`,
+      `cd e2e/.tmp && rm -rf data-${PORT} routes-${PORT}.txt && mkdir -p data-${PORT} && ` +
+      `DOZE_E2E_ROUTES=routes-${PORT}.txt ./bin/doze-aws-${PORT} --listen 127.0.0.1:${PORT} --data-dir data-${PORT} --console"`,
     url: BASE_URL,
     // Never reuse. The data dir is wiped in the boot command, so a reused
     // server KEEPS its state and the wipe never runs — resources accumulated
