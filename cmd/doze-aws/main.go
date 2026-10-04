@@ -33,6 +33,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/iam"
 	"github.com/doze-dev/doze-aws/internal/config"
@@ -41,6 +43,18 @@ import (
 	"github.com/doze-dev/doze-aws/internal/provision"
 	"github.com/doze-dev/doze-aws/peers"
 )
+
+// withConsole serves the console beside the gateway on one endpoint. chi,
+// unlike http.ServeMux, does not clean the path and redirect: a request reaches
+// the gateway as it was sent, so an S3 key with two slashes in a row is two
+// slashes, console or no console.
+func withConsole(con, gateway http.Handler) http.Handler {
+	mux := chi.NewRouter()
+	mux.Handle("/_console", http.RedirectHandler("/_console/", http.StatusFound))
+	mux.Handle("/_console/*", con)
+	mux.Handle("/*", gateway)
+	return mux
+}
 
 // version is the build version, injected by the release tooling
 // (-ldflags "-X main.version=..."). It defaults to "dev" for local builds.
@@ -498,11 +512,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		if err != nil {
 			return err
 		}
-		mux := http.NewServeMux()
-		mux.Handle("/_console/", con)
-		mux.Handle("/_console", http.RedirectHandler("/_console/", http.StatusFound))
-		mux.Handle("/", rec)
-		handler = mux
+		handler = withConsole(con, rec)
 		logger.Info("console", "url", advertised+"/_console/")
 		consoleURL = advertised + "/_console/"
 	}

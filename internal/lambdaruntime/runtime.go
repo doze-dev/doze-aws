@@ -34,6 +34,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/bg"
 )
@@ -439,12 +441,16 @@ func (r *Runner) buildCommand(runtimeAPI string) (*exec.Cmd, error) {
 	return cmd, nil
 }
 
-// routes serves the Runtime API.
+// routes serves the Runtime API: the three calls a function's runtime makes.
+// A runtime fetches work with GET next, reports it with POST {id}/response or
+// {id}/error, and reports a failed start with POST init/error.
 func (r *Runner) routes() http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/2018-06-01/runtime/invocation/next", r.handleNext)
-	mux.HandleFunc("/2018-06-01/runtime/invocation/", r.handleInvocationResult)
-	mux.HandleFunc("/2018-06-01/runtime/init/error", r.handleInitError)
+	mux := chi.NewRouter()
+	mux.Route("/2018-06-01/runtime", func(mux chi.Router) {
+		mux.Get("/invocation/next", r.handleNext)
+		mux.Post("/invocation/{id}/{kind:response|error}", r.handleInvocationResult)
+		mux.Post("/init/error", r.handleInitError)
+	})
 	return mux
 }
 
@@ -508,14 +514,10 @@ func traceID(given string) string {
 		time.Now().Unix(), hex.EncodeToString(b[:]), hex.EncodeToString(b[:8]))
 }
 
-// handleInvocationResult routes /{id}/response and /{id}/error.
+// handleInvocationResult takes a runtime's report of an invocation: its
+// response, or the error it ended in.
 func (r *Runner) handleInvocationResult(w http.ResponseWriter, req *http.Request) {
-	path := strings.TrimPrefix(req.URL.Path, "/2018-06-01/runtime/invocation/")
-	id, kind, ok := strings.Cut(path, "/")
-	if !ok {
-		w.WriteHeader(400)
-		return
-	}
+	id, kind := chi.URLParam(req, "id"), chi.URLParam(req, "kind")
 	body, _ := io.ReadAll(io.LimitReader(req.Body, 8<<20))
 	r.mu.Lock()
 	inv := r.pending[id]

@@ -183,6 +183,9 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
 - The console is routed with chi, group by group (`routes_<area>.go`), and an
   unmatched GET is the console's own not-found page at any depth. A route list
   held to the 371 the old router served (`testdata/routes.txt`) guards the move.
+- With the console enabled, an S3 key with two slashes in a row (or a `.`
+  segment) reaches S3 as it was sent. The top-level `http.ServeMux` used to
+  clean the path and redirect it, so the key you wrote was not the key you got.
 - API Gateway ids are random. They were taken from the clock, so two REST
   APIs, HTTP APIs, keys or usage plans created in the same instant got the
   same id and the second silently replaced the first.
