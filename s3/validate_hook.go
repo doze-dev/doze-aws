@@ -18,147 +18,37 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
+	"github.com/doze-dev/doze-aws/internal/restroute"
 )
 
 // codeREST is what S3 calls a refused input.
 const codeREST = "InvalidRequest"
 
-// matchRoute finds the operation a request addresses. Routes are ordered
-// most-specific first, so the first whose method, path shape and sub-resource
-// markers all match wins.
-func matchRoute(method, path string, query map[string][]string, headers http.Header) (route, map[string]string, bool) {
-	// Two passes. The first requires every path segment to be there; only if
-	// nothing matches does the second allow a greedy {Key+} to be empty.
-	//
-	// The order matters both ways. Without the second pass, GET /bucket?retention
-	// matches nothing — there is no bucket-level retention operation — so it is
-	// never validated, and doze-aws answers a request that should be refused for
-	// a missing key. With the second pass running first, DELETE /bucket?tagging
-	// would be claimed by DeleteObjectTagging with an empty key and a legitimate
-	// DeleteBucketTagging would be refused.
-	if rt, labels, ok := matchExact(method, path, query, headers, false); ok {
-		return rt, labels, true
-	}
-	return matchExact(method, path, query, headers, true)
-}
-
-func matchExact(method, path string, query map[string][]string, headers http.Header, emptyKey bool) (route, map[string]string, bool) {
-	// Interior empty segments are kept: "//key" is a request whose bucket is
-	// empty, and dropping it would make every @required label pass vacuously.
-	// A single trailing empty is dropped, because "/bucket/" is how a bucket
-	// listing is spelled, not an object whose key is blank.
-	segs := strings.Split(strings.TrimPrefix(path, "/"), "/")
-	if len(segs) > 1 && segs[len(segs)-1] == "" {
-		segs = segs[:len(segs)-1]
-	}
-	if len(segs) == 1 && segs[0] == "" {
-		segs = nil
-	}
+// routeFor is the model's route for an operation.
+func routeFor(op string) (route, bool) {
 	for _, rt := range routes {
-		if rt.Method != method {
-			continue
+		if rt.Op == op {
+			return rt, true
 		}
-		switch {
-		case rt.Greedy && emptyKey:
-			// The greedy label swallows nothing: the caller left the key out.
-			if len(segs) != len(rt.Segs)-1 {
-				continue
-			}
-		case rt.Greedy:
-			if len(segs) < len(rt.Segs) {
-				continue
-			}
-		default:
-			if len(segs) != len(rt.Segs) {
-				continue
-			}
-		}
-		marked := true
-		for k, want := range rt.Marks {
-			v, ok := query[k]
-			if !ok || (want != "" && (len(v) == 0 || v[0] != want)) {
-				marked = false
-				break
-			}
-		}
-		if !marked {
-			continue
-		}
-		// A marker the route does not declare belongs to a different operation.
-		// Without this, ListObjects — which declares none — claims
-		// GET /bucket?legal-hold and answers with a bucket listing.
-		for k := range query {
-			if markerKeys[k] && rt.Marks[k] == "" {
-				if _, declared := rt.Marks[k]; !declared {
-					marked = false
-					break
-				}
-			}
-		}
-		if !marked {
-			continue
-		}
-		for _, h := range rt.NeedHeaders {
-			if _, ok := headers[http.CanonicalHeaderKey(h)]; !ok {
-				marked = false
-				break
-			}
-		}
-		for _, q := range rt.NeedQuery {
-			if _, ok := query[q]; !ok {
-				marked = false
-				break
-			}
-		}
-		if !marked {
-			continue
-		}
-		labels, ok := bindLabels(rt, segs, emptyKey)
-		if !ok {
-			continue
-		}
-		return rt, labels, true
 	}
-	return route{}, nil, false
+	return route{}, false
 }
 
-// bindLabels fills the route's labels from the path segments. A greedy label
-// takes every remaining segment, slashes included — that is what {Key+} means.
-func bindLabels(rt route, segs []string, emptyKey bool) (map[string]string, bool) {
-	out := map[string]string{}
-	for i, want := range rt.Segs {
-		last := i == len(rt.Segs)-1
-		if rt.Greedy && last && emptyKey {
-			out[rt.Labels[i]] = ""
-			continue
-		}
-		if want != "" {
-			if segs[i] != want {
-				return nil, false
-			}
-			continue
-		}
-		if rt.Greedy && last {
-			out[rt.Labels[i]] = strings.Join(segs[i:], "/")
-			continue
-		}
-		out[rt.Labels[i]] = segs[i]
-	}
-	return out, true
-}
-
-// validateControl reassembles the operation's input and walks its constraints.
-// It returns the body it read so the handler can still decode it — reading a
-// request body consumes it, and a validator that ate the input would break
-// every operation it was meant to protect.
-func validateControl(r *http.Request) (body []byte, aerr *awshttp.APIError) {
-	rt, labels, ok := matchRoute(r.Method, r.URL.Path, r.URL.Query(), r.Header)
+// validateRequest reassembles the operation's input and walks its constraints.
+// The operation is the one the router matched, so a request that matched no
+// route is not validated — the router refuses it. It leaves a document body
+// readable for the handler: reading a request body consumes it, and a
+// validator that ate the input would break every operation it was meant to
+// protect.
+func validateRequest(r *http.Request) (aerr *awshttp.APIError) {
+	var body []byte
+	rt, ok := routeFor(restroute.Op(r))
 	if !ok {
-		return nil, nil
+		return nil
 	}
 	table := constraintTables[rt.Op]
 	if len(table) == 0 {
-		return nil, nil
+		return nil
 	}
 	// Only an XML document body is read. An object body is the payload of
 	// PutObject and friends, and can be gigabytes — buffering it to check
@@ -168,7 +58,7 @@ func validateControl(r *http.Request) (body []byte, aerr *awshttp.APIError) {
 		body, err = io.ReadAll(io.LimitReader(r.Body, 8<<20))
 		r.Body.Close()
 		if err != nil {
-			return nil, awshttp.Errf(400, "MalformedXML", "read request body: %v", err)
+			return awshttp.Errf(400, "MalformedXML", "read request body: %v", err)
 		}
 		r.Body = io.NopCloser(bytes.NewReader(body))
 	}
@@ -179,12 +69,18 @@ func validateControl(r *http.Request) (body []byte, aerr *awshttp.APIError) {
 			input[rt.Payload] = normalizeXML(doc, rt.Payload, rt, table)
 		}
 	}
-	for name, value := range labels {
+	for i, name := range rt.Labels {
 		// An omitted path label is not an absent field, it is an empty segment.
-		if value == "" {
+		if name == "" {
 			continue
 		}
-		input[name] = value
+		value := restroute.Param(r, name)
+		if rt.Greedy && i == len(rt.Labels)-1 {
+			value = restroute.Wildcard(r)
+		}
+		if value != "" {
+			input[name] = value
+		}
 	}
 	query := r.URL.Query()
 	for param, member := range rt.Query {
@@ -220,7 +116,7 @@ func validateControl(r *http.Request) (body []byte, aerr *awshttp.APIError) {
 		}
 		input[member] = v[0]
 	}
-	return body, modelcheck.ValidateMapAs(input, table, codeREST)
+	return modelcheck.ValidateMapAs(input, table, codeREST)
 }
 
 // xmlToMap turns an XML document into the map shape modelcheck walks. Repeated
@@ -395,21 +291,4 @@ func memberFor(tag, path string, rt route) string {
 		}
 	}
 	return tag
-}
-
-// OperationFor reports the S3 operation a request addresses, or "" when no
-// route matches.
-//
-// Exported for the console's traffic classifier, which otherwise names S3
-// operations by mapping the HTTP method — collapsing all 64 of them onto five
-// strings, so GetBucketVersioning is displayed as GetObject. The route table is
-// already the source of truth for which operation a request IS (the validator
-// picks the constraint set with it), and a wire that names it differently from
-// the validator is a wire that lies about what happened.
-func OperationFor(r *http.Request) string {
-	rt, _, ok := matchRoute(r.Method, r.URL.Path, r.URL.Query(), r.Header)
-	if !ok {
-		return ""
-	}
-	return rt.Op
 }

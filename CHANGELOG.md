@@ -172,6 +172,14 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   were `404`), and an unknown path is a `404` naming the path. The families
   doze-aws does not model (`models`, `domainnames`, `portals`, …) are still
   refused with `501`, now as explicit routes.
+- S3 is routed from the model's table too, and the operation a request is —
+  not a second `q.Has` chain — decides its validation and its handler. A
+  virtual-hosted request is validated exactly as a path-style one is (it never
+  was). Requests that used to fall through to the nearest handler are refused
+  with a `405`: an object-only operation sent to a bucket (`GET /bucket?retention`
+  used to list it), a request with no bucket, and a DELETE of `?logging`,
+  `?accelerate`, `?requestPayment` or `?notification` — none of which is an S3
+  operation.
 - API Gateway ids are random. They were taken from the clock, so two REST
   APIs, HTTP APIs, keys or usage plans created in the same instant got the
   same id and the second silently replaced the first.

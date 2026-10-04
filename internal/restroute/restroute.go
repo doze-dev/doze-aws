@@ -18,6 +18,7 @@
 package restroute
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -64,6 +65,12 @@ type Options struct {
 	// model says it must. S3 keeps its slashes: a key may end in one, and may
 	// contain two in a row.
 	Tolerant bool
+	// Unmatched, when set, handles the router's own refusals — no route, the
+	// wrong method, no candidate that picks — in place of OnError, for a
+	// service whose checks must run on a request that matched nothing too (S3's
+	// IAM guard and its unimplemented-sub-resource refusal both did, before the
+	// router). It receives the refusal the router would have written.
+	Unmatched func(w http.ResponseWriter, r *http.Request, e *awshttp.APIError)
 	// Use wraps every route, innermost last. It runs after the route has
 	// matched, so Op(r) is already set — which is why validation and the IAM
 	// guard are here and not on the router: before matching there is no
@@ -94,10 +101,18 @@ func Build(routes []Route, o Options) *Router {
 		rt.mux.Use(normalize)
 	}
 
+	refuse := func(w http.ResponseWriter, r *http.Request, e *awshttp.APIError) {
+		if o.Unmatched != nil {
+			o.Unmatched(w, r, e)
+			return
+		}
+		o.OnError(w, r, e)
+	}
+
 	wrap := func(rr Route) http.Handler {
 		var h http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if rr.Handler == nil {
-				o.OnError(w, r, o.NotFound(r))
+				refuse(w, r, o.NotFound(r))
 				return
 			}
 			if e := rr.Handler(w, r); e != nil {
@@ -146,16 +161,27 @@ func Build(routes []Route, o Options) *Router {
 					return
 				}
 			}
-			o.OnError(w, r, o.NotFound(r))
+			refuse(w, r, o.NotFound(r))
 		}))
 	}
-	rt.mux.NotFound(func(w http.ResponseWriter, r *http.Request) { o.OnError(w, r, o.NotFound(r)) })
-	rt.mux.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) { o.OnError(w, r, o.MethodNotAllowed(r)) })
+	rt.mux.NotFound(func(w http.ResponseWriter, r *http.Request) { refuse(w, r, o.NotFound(r)) })
+	rt.mux.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) { refuse(w, r, o.MethodNotAllowed(r)) })
 	return rt
 }
 
 // ServeHTTP serves the request.
-func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) { rt.mux.ServeHTTP(w, r) }
+//
+// A Router is a service, never a sub-router. chi treats a request whose
+// context already holds a route context as a call from a parent router and
+// reuses its method and path — so a handler that calls a sibling service
+// in-process (S3 telling Lambda about an upload) would hand it S3's route and
+// be answered 405. The inherited context is cleared first.
+func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if chi.RouteContext(r.Context()) != nil {
+		r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, (*chi.Context)(nil)))
+	}
+	rt.mux.ServeHTTP(w, r)
+}
 
 // Op is the operation r addresses, or "" when no route matches. It matches
 // without serving, so it can name a call from outside the handler chain — the

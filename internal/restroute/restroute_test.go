@@ -251,3 +251,25 @@ func TestAnyMethodRoutesAndPerMethodLabelNames(t *testing.T) {
 		}
 	}
 }
+
+// A handler that calls another service in-process passes its request context
+// along, route context and all. The callee is a separate router and must route
+// the call it was made, not the one its caller was serving.
+func TestARouterIgnoresARouteContextItInheritedFromACaller(t *testing.T) {
+	callee := restroute.Build([]restroute.Route{
+		{Op: "Invoke", Method: "POST", Pattern: "/functions/{Fn}/invocations", Handler: func(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
+			return reply(w, r, restroute.Param(r, "Fn"))
+		}},
+	}, options(t))
+	caller := restroute.Build([]restroute.Route{
+		{Op: "PutObject", Method: "PUT", Pattern: "/{Bucket}/*", Handler: func(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
+			// The notification: a new request carrying this request's context.
+			req := httptest.NewRequest("POST", "/functions/sink/invocations", nil).WithContext(r.Context())
+			callee.ServeHTTP(w, req)
+			return nil
+		}},
+	}, options(t))
+	if code, body := do(caller, "PUT", "/bucket/key"); code != 200 || body != "Invoke|sink" {
+		t.Errorf("callee answered %d %q, want its own route", code, body)
+	}
+}

@@ -24,6 +24,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
+	"github.com/doze-dev/doze-aws/internal/restroute"
 	"github.com/doze-dev/doze-aws/internal/s3store"
 	"github.com/doze-dev/doze-aws/internal/sigparse"
 	"github.com/doze-dev/doze-aws/peers"
@@ -55,10 +56,12 @@ const maxVhostWarned = 64
 // Server is the S3 service: an http.Handler + io.Closer.
 type Server struct {
 	store *s3store.Store
-	peers peers.Directory
-	logf  func(format string, args ...any)
-	now   func() time.Time
-	stop  chan struct{}
+	// router is the chi router, built on the first request (router.go).
+	router func() *restroute.Router
+	peers  peers.Directory
+	logf   func(format string, args ...any)
+	now    func() time.Time
+	stop   chan struct{}
 	// done closes when the janitor has returned, so Close waits for it before
 	// closing bbolt — a sweep mid-transaction against a closed DB is a panic.
 	done chan struct{}
@@ -104,6 +107,7 @@ func New(opts Options) (*Server, error) {
 		id:          opts.Identity,
 		suffix:      opts.Suffix,
 	}
+	s.router = sync.OnceValue(s.buildRouter)
 	if s.peers == nil {
 		s.peers = peers.None()
 	}
@@ -238,7 +242,7 @@ func (s *Server) warnLostVHost(r *http.Request) {
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	bucket, key := s.resolvePath(r)
+	bucket, _ := s.resolvePath(r)
 	q := r.URL.Query()
 
 	// Presigned-URL expiry is enforced here as well as at the gateway, so a
@@ -258,246 +262,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.applyCORS(w, r, bucket, origin)
 	}
 
-	// Model-derived input validation runs before the dispatch, for every routed
-	// operation at once — coverage is then a property of the route table rather
-	// than something each handler has to remember.
-	if _, verr := validateControl(r); verr != nil {
-		s.logf("s3: %s %s -> %s", r.Method, r.URL.Path, verr.Code)
-		writeS3Error(w, verr)
-		return
-	}
-
-	if aerr := s.guardRequest(w, r, bucket, key); aerr != nil {
-		s.logf("s3: %s /%s/%s -> %s", r.Method, bucket, key, aerr.Code)
-		writeS3Error(w, aerr)
-		return
-	}
-
-	var aerr *awshttp.APIError
-	switch {
-	case bucket == "":
-		aerr = s.serviceLevel(w, r)
-	case key == "":
-		aerr = s.bucketLevel(w, r, bucket, q)
-	default:
-		aerr = s.objectLevel(w, r, bucket, key, q)
-	}
-	if aerr != nil {
-		s.logf("s3: %s /%s/%s -> %s", r.Method, bucket, key, aerr.Code)
-		writeS3Error(w, aerr)
-	}
-}
-
-// serviceLevel handles requests with no bucket in the path.
-func (s *Server) serviceLevel(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
-	if r.Method != http.MethodGet {
-		return awshttp.Errf(405, "MethodNotAllowed", "unsupported service-level method %s", r.Method)
-	}
-	return s.listBuckets(w)
-}
-
-// bucketLevel dispatches bucket-scoped operations by method + query flag.
-func (s *Server) bucketLevel(w http.ResponseWriter, r *http.Request, bucket string, q url.Values) *awshttp.APIError {
-	// A sub-resource this build does not implement must be refused here: every
-	// method below ends in a default arm that is a DIFFERENT operation.
-	if aerr := checkBucketSubresource(q); aerr != nil {
-		return aerr
-	}
-	switch r.Method {
-	case http.MethodHead:
-		return s.headBucket(w, bucket)
-	case http.MethodGet:
-		switch {
-		case q.Has("location"):
-			return s.getBucketLocation(w, bucket)
-		case q.Has("versioning"):
-			return s.getBucketVersioning(w, bucket)
-		case q.Has("versions"):
-			return s.listObjectVersions(w, bucket, q)
-		case q.Has("uploads"):
-			return s.listMultipartUploads(w, bucket, q)
-		case q.Has("tagging"):
-			return s.getBucketTagging(w, bucket)
-		case q.Has("cors"):
-			return s.getBucketDoc(w, bucket, "cors")
-		case q.Has("lifecycle"):
-			return s.getBucketDoc(w, bucket, "lifecycle")
-		case q.Has("website"):
-			return s.getBucketDoc(w, bucket, "website")
-		case q.Has("object-lock"):
-			return s.getBucketDoc(w, bucket, "object-lock")
-		case q.Has("policy"):
-			return s.getBucketPolicy(w, bucket)
-		case q.Has("policyStatus"):
-			return s.getBucketPolicyStatus(w, bucket)
-		case q.Has("publicAccessBlock"):
-			return s.getBucketDoc(w, bucket, "publicAccessBlock")
-		case q.Has("ownershipControls"):
-			return s.getBucketDoc(w, bucket, "ownershipControls")
-		case q.Has("acl"):
-			return s.getBucketACL(w, bucket)
-		case q.Has("encryption"):
-			return s.getBucketDoc(w, bucket, "encryption")
-		case q.Has("notification"):
-			return s.getBucketDoc(w, bucket, "notification")
-		case q.Has("replication"):
-			return s.getBucketDoc(w, bucket, "replication")
-		case q.Has("logging"):
-			return s.getBucketDoc(w, bucket, "logging")
-		case q.Has("accelerate"):
-			return s.getBucketDoc(w, bucket, "accelerate")
-		case q.Has("requestPayment"):
-			return s.getBucketDoc(w, bucket, "requestPayment")
-		default:
-			return s.listObjects(w, r, bucket, q)
-		}
-	case http.MethodPut:
-		switch {
-		case q.Has("versioning"):
-			return s.putBucketVersioning(w, r, bucket)
-		case q.Has("tagging"):
-			return s.putBucketTagging(w, r, bucket)
-		case q.Has("cors"):
-			return s.putBucketDoc(w, r, bucket, "cors")
-		case q.Has("lifecycle"):
-			return s.putBucketDoc(w, r, bucket, "lifecycle")
-		case q.Has("website"):
-			return s.putBucketDoc(w, r, bucket, "website")
-		case q.Has("object-lock"):
-			return s.putBucketDoc(w, r, bucket, "object-lock")
-		case q.Has("policy"):
-			return s.putBucketPolicy(w, r, bucket)
-		case q.Has("publicAccessBlock"):
-			return s.putPublicAccessBlock(w, r, bucket)
-		case q.Has("ownershipControls"):
-			return s.putBucketOwnershipControls(w, r, bucket)
-		case q.Has("acl"):
-			return s.putBucketACL(w, r, bucket)
-		case q.Has("encryption"):
-			return s.putBucketDoc(w, r, bucket, "encryption")
-		case q.Has("notification"):
-			return s.putBucketDoc(w, r, bucket, "notification")
-		case q.Has("replication"):
-			return s.putBucketDoc(w, r, bucket, "replication")
-		case q.Has("logging"):
-			return s.putBucketDoc(w, r, bucket, "logging")
-		case q.Has("accelerate"):
-			return s.putBucketDoc(w, r, bucket, "accelerate")
-		case q.Has("requestPayment"):
-			return s.putBucketDoc(w, r, bucket, "requestPayment")
-		default:
-			return s.createBucket(w, r, bucket)
-		}
-	case http.MethodDelete:
-		switch {
-		case q.Has("tagging"):
-			return s.deleteBucketDoc(w, bucket, "tagging")
-		case q.Has("cors"):
-			return s.deleteBucketDoc(w, bucket, "cors")
-		case q.Has("lifecycle"):
-			return s.deleteBucketDoc(w, bucket, "lifecycle")
-		case q.Has("website"):
-			return s.deleteBucketDoc(w, bucket, "website")
-		case q.Has("policy"):
-			return s.deleteBucketDoc(w, bucket, "policy")
-		case q.Has("publicAccessBlock"):
-			return s.deleteBucketDoc(w, bucket, "publicAccessBlock")
-		case q.Has("ownershipControls"):
-			return s.deleteBucketDoc(w, bucket, "ownershipControls")
-		case q.Has("encryption"):
-			return s.deleteBucketDoc(w, bucket, "encryption")
-		case q.Has("replication"):
-			return s.deleteBucketDoc(w, bucket, "replication")
-		case q.Has("notification"):
-			return s.deleteBucketDoc(w, bucket, "notification")
-		case q.Has("logging"):
-			return s.deleteBucketDoc(w, bucket, "logging")
-		case q.Has("accelerate"):
-			return s.deleteBucketDoc(w, bucket, "accelerate")
-		case q.Has("requestPayment"):
-			return s.deleteBucketDoc(w, bucket, "requestPayment")
-		case len(q) == 0:
-			return s.deleteBucket(w, bucket)
-		default:
-			// A subresource DELETE we don't model (publicAccessBlock,
-			// ownershipControls, analytics, …). Never fall through to
-			// deleting the whole bucket — real S3 removes only the config.
-			w.WriteHeader(204)
-			return nil
-		}
-	case http.MethodPost:
-		if q.Has("delete") {
-			return s.deleteObjects(w, r, bucket)
-		}
-	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported bucket-level request")
-}
-
-// objectLevel dispatches object-scoped operations.
-func (s *Server) objectLevel(w http.ResponseWriter, r *http.Request, bucket, key string, q url.Values) *awshttp.APIError {
-	// See bucketLevel: an unrecognised object sub-resource would otherwise
-	// fall through to putObject or, worse, deleteObject.
-	if aerr := checkObjectSubresource(q); aerr != nil {
-		return aerr
-	}
-	switch r.Method {
-	case http.MethodHead:
-		return s.getObject(w, r, bucket, key, q, true)
-	case http.MethodGet:
-		switch {
-		case q.Has("tagging"):
-			return s.getObjectTagging(w, bucket, key, q.Get("versionId"))
-		case q.Has("attributes"):
-			return s.getObjectAttributes(w, r, bucket, key, q.Get("versionId"))
-		case q.Has("retention"):
-			return s.getObjectRetention(w, bucket, key, q.Get("versionId"))
-		case q.Has("legal-hold"):
-			return s.getObjectLegalHold(w, bucket, key, q.Get("versionId"))
-		case q.Has("acl"):
-			return s.getObjectACL(w, bucket, key)
-		case q.Has("uploadId"):
-			return s.listParts(w, bucket, key, q.Get("uploadId"))
-		default:
-			return s.getObject(w, r, bucket, key, q, false)
-		}
-	case http.MethodPut:
-		switch {
-		case q.Has("tagging"):
-			return s.putObjectTagging(w, r, bucket, key, q.Get("versionId"))
-		case q.Has("retention"):
-			return s.putObjectRetention(w, r, bucket, key, q)
-		case q.Has("legal-hold"):
-			return s.putObjectLegalHold(w, r, bucket, key, q.Get("versionId"))
-		case q.Has("acl"):
-			return s.putObjectACL(w, r, bucket, key)
-		case q.Has("partNumber") && q.Has("uploadId"):
-			if r.Header.Get("x-amz-copy-source") != "" {
-				return s.uploadPartCopy(w, r, bucket, key, q)
-			}
-			return s.uploadPart(w, r, bucket, key, q)
-		case r.Header.Get("x-amz-copy-source") != "":
-			return s.copyObject(w, r, bucket, key)
-		default:
-			return s.putObject(w, r, bucket, key)
-		}
-	case http.MethodPost:
-		switch {
-		case q.Has("uploads"):
-			return s.createMultipartUpload(w, r, bucket, key)
-		case q.Has("uploadId"):
-			return s.completeMultipartUpload(w, r, bucket, key, q.Get("uploadId"))
-		}
-	case http.MethodDelete:
-		switch {
-		case q.Has("uploadId"):
-			return s.abortMultipartUpload(w, bucket, key, q.Get("uploadId"))
-		case q.Has("tagging"):
-			return s.deleteObjectTagging(w, bucket, key, q.Get("versionId"))
-		default:
-			return s.deleteObject(w, r, bucket, key, q)
-		}
-	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported object-level request")
+	// Everything else is the router's: it matches the request once and runs
+	// validation, the IAM guard and the sub-resource refusal with its operation
+	// known — see router.go. A virtual-hosted request's bucket joins the path
+	// first, so there is one shape to match.
+	s.router().ServeHTTP(w, routed(r, awshost.Parse(r.Host, s.suffix).Bucket))
 }
 
 // SweepLifecycleNow runs one lifecycle sweep immediately (tests drive this
