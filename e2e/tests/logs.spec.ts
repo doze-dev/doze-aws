@@ -1,8 +1,12 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { APIRequestContext } from '@playwright/test';
 import { test, expect } from '../fixtures/console';
 import { postForm, createFunction } from '../fixtures/api';
 import { ORIGIN } from '../playwright.config';
+
+// ES modules have no __dirname.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // CloudWatch Logs: the group page's Subscriptions tab puts a filter on a
 // group, lists it as a link to the function it forwards to, and removes it.

@@ -167,10 +167,8 @@ test.describe('keyboard list navigation', () => {
   });
 });
 
-// Asks the page to go back or forward. The traversal destroys the execution context
-// the call ran in, which is the call working, not failing.
 const history = (page: import('@playwright/test').Page, dir: 'back' | 'forward') =>
-  page.evaluate((d) => window.history[d](), dir).catch(() => {});
+  (dir === 'back' ? page.goBack() : page.goForward()).catch(() => {});
 
 test.describe('htmx-boosted navigation', () => {
   test('rail links swap #workspace and back/forward work', async ({ page }) => {
@@ -179,23 +177,17 @@ test.describe('htmx-boosted navigation', () => {
     await page.waitForURL(/\/sqs$/);
     await expect(page.locator('.rail .ri.on', { hasText: 'SQS' })).toBeVisible();
 
-    // (history.back() from the page: htmx reloads after a traversal, and Playwright's
-    // goBack() reports the load it supersedes as an aborted navigation.)
-    await page.evaluate(() => { (window as any).__beforeTraversal = true; });
     await history(page, 'back');
     await page.waitForURL((url) => !/\/sqs$/.test(url.pathname));
-    await page.waitForFunction(() => !(window as any).__beforeTraversal);
 
-    await page.evaluate(() => { (window as any).__beforeTraversal = true; });
     await history(page, 'forward');
     await page.waitForURL(/\/sqs$/);
-    await page.waitForFunction(() => !(window as any).__beforeTraversal);
   });
 });
 
 // Back and Forward are the first thing a person tries after following a link. A
 // history restore that replaced <body>'s contents would detach every node shell.js
-// holds (the confirm dialog, the palette, the appearance buttons) and leave the page
+// held (the confirm dialog, the palette, the appearance buttons) and leave the page
 // looking right and doing nothing, so the check is on what the chrome DOES afterwards,
 // not on the URL.
 test.describe('history navigation', () => {
@@ -206,20 +198,9 @@ test.describe('history navigation', () => {
     await page.goto(`s3/${bucket}`);
     await expect(page.getByRole('button', { name: 'Delete' }).first()).toBeVisible();
 
-    // A history traversal is followed by the page reloading itself (that is the
-    // point: see htmx-config in layout.html). page.goBack() waits for the traversal's
-    // own load, which the reload then supersedes and Playwright reports as an aborted
-    // navigation, so the traversal is asked for from the page and the step waits for
-    // the URL and then for the reload to settle.
     const traverse = async (go: () => Promise<unknown>, url: RegExp) => {
-      await page.evaluate(() => { (window as any).__beforeTraversal = true; });
       await go();
       await page.waitForURL(url);
-      // The URL changes first and the reload follows a moment later; carrying on in
-      // between would act on a page that is about to be replaced. The marker is gone
-      // once the reload has happened.
-      await page.waitForFunction(() => !(window as any).__beforeTraversal);
-      await page.waitForLoadState('load');
       await expect(page.locator('#workspace')).toBeVisible();
     };
     await page.locator('.rail .ri', { hasText: 'SQS' }).click();

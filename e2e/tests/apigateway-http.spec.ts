@@ -1,6 +1,10 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test, expect } from '../fixtures/console';
 import { createFunction } from '../fixtures/api';
+
+// ES modules have no __dirname.
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // HTTP API (apigatewayv2) console coverage: create one from the shared
 // create page, add a URL route and a $default stage, call it through the

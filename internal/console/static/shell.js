@@ -21,7 +21,11 @@
   // Three states, not two. "system" is the absence of data-theme, which is what
   // lets the media query in app.css answer — so following the OS costs no JS at
   // all once the attribute is cleared, including on the pre-paint script.
-  var seg = document.getElementById("appearance");
+  // Chrome is looked up when it is used and listened to from the document. A
+  // history restore can swap <body> and detach every node captured at load; a
+  // listener on a detached node never fires again, and a captured reference
+  // points at nothing.
+  function seg() { return document.getElementById("appearance"); }
   function currentMode() {
     try { return localStorage.getItem("theme") || "system"; } catch (e) { return "system"; }
   }
@@ -32,19 +36,20 @@
       if (mode === "system") localStorage.removeItem("theme");
       else localStorage.setItem("theme", mode);
     } catch (e) {}
-    if (!seg) return;
-    var buttons = seg.querySelectorAll("button");
+    var group = seg();
+    if (!group) return;
+    var buttons = group.querySelectorAll("button");
     for (var i = 0; i < buttons.length; i++) {
       buttons[i].setAttribute("aria-pressed", String(buttons[i].dataset.mode === mode));
     }
   }
-  if (seg) {
-    seg.addEventListener("click", function (e) {
-      var b = e.target.closest("button[data-mode]");
-      if (b) applyMode(b.dataset.mode);
-    });
-    applyMode(currentMode());
-  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("#appearance button[data-mode]");
+    if (b) applyMode(b.dataset.mode);
+  });
+  applyMode(currentMode());
+  // A swapped-in body arrives with the server's idea of the pressed state.
+  document.addEventListener("htmx:after:history:restore", function () { applyMode(currentMode()); });
 
   // ---------- collapsible rail ----------
   function railSlim() { return document.documentElement.getAttribute("data-rail") === "slim"; }
@@ -56,8 +61,9 @@
     else document.documentElement.setAttribute("data-rail", "wide");
     try { localStorage.setItem("rail", slim ? "slim" : "wide"); } catch (e) {}
   }
-  var railToggle = document.getElementById("rail-toggle");
-  if (railToggle) railToggle.addEventListener("click", function () { setRail(!railSlim()); });
+  document.addEventListener("click", function (e) {
+    if (e.target.closest && e.target.closest("#rail-toggle")) setRail(!railSlim());
+  });
   // Flyout labels in slim mode: position fixed on hover so the rail's own
   // scroll/overflow can never clip them.
   document.addEventListener("mouseover", function (e) {
@@ -287,8 +293,8 @@
   });
 
   // ---------- styled confirm (intercepts hx-confirm) ----------
-  var confirmBox = document.getElementById("confirm");
   document.addEventListener("htmx:confirm", function (e) {
+    var confirmBox = document.getElementById("confirm");
     var q = e.detail.ctx && e.detail.ctx.confirm;
     if (!q || !confirmBox) return;
     e.preventDefault();
@@ -341,7 +347,9 @@
   });
 
   // ---------- command palette ----------
-  var pal = document.getElementById("palette"), palQ = document.getElementById("pal-q"), palList = document.getElementById("pal-list");
+  var pal, palQ, palList;
+  function palRefs() { pal = document.getElementById("palette"); palQ = document.getElementById("pal-q"); palList = document.getElementById("pal-list"); }
+  palRefs();
   var palItems = [], palSel = 0;
   // The catalogue comes from the server. These were four hand-maintained arrays
   // — NAV, ACTS, KIND and SVCSET — each covering nine of thirteen services, and
@@ -406,6 +414,7 @@
   window.addEventListener("popstate", syncRail);
 
   function openPalette() {
+    palRefs();
     if (!pal) return;
     pal.hidden = false; palQ.value = ""; palSel = 0;
     var here = location.pathname + location.search;
@@ -455,6 +464,7 @@
   // second copy here is a second thing that can be wrong.
   var resolveTimer = null;
   function maybeResolve() {
+    palRefs();
     var q = palQ.value.trim();
     clearTimeout(resolveTimer);
     if (q.indexOf("arn:") !== 0 && q.indexOf("://") < 0) return;
@@ -471,6 +481,8 @@
     }, 180);
   }
   function renderPal() {
+    palRefs();
+    if (!palList) return;
     var items = palFiltered();
     if (palSel >= items.length) palSel = Math.max(0, items.length - 1);
     palList.innerHTML = "";
@@ -488,11 +500,15 @@
     });
   }
   function closePalette() {
+    palRefs();
     if (window.dozeTrap) dozeTrap(document.getElementById("palette"), false); if (pal) pal.hidden = true; }
-  var opener = document.getElementById("palette-open");
-  if (opener) opener.addEventListener("click", openPalette);
-  if (palQ) palQ.addEventListener("input", function () { palSel = 0; renderPal(); maybeResolve(); });
-  if (pal) pal.addEventListener("click", function (e) { if (e.target === pal) closePalette(); });
+  document.addEventListener("click", function (e) {
+    if (e.target.closest && e.target.closest("#palette-open")) openPalette();
+    else if (e.target.id === "palette") closePalette();
+  });
+  document.addEventListener("input", function (e) {
+    if (e.target.id === "pal-q") { palSel = 0; renderPal(); maybeResolve(); }
+  });
 
   // ---------- keyboard ----------
   var cursor = -1;
@@ -506,7 +522,8 @@
     rows[cursor].scrollIntoView({ block: "nearest" });
   }
   document.addEventListener("keydown", function (e) {
-    var inPal = !pal.hidden;
+    palRefs();
+    var inPal = !!pal && !pal.hidden;
     if (inPal) {
       var items = palFiltered();
       if (e.key === "Escape") { closePalette(); e.preventDefault(); }
