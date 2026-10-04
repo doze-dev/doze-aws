@@ -31,7 +31,7 @@ var infoSvc = map[string]string{
 
 // svcInfo renders one service's fidelity table.
 func (c *Console) svcInfo(w http.ResponseWriter, r *http.Request) {
-	svc := r.PathValue("svc")
+	svc := param(r, "svc")
 	if mapped, ok := infoSvc[svc]; ok {
 		svc = mapped
 	}

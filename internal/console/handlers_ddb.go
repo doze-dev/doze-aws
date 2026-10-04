@@ -17,7 +17,7 @@ func (c *Console) ddbTables(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(tables) > 0 {
-		r.SetPathValue("table", tables[0].Name)
+		setParam(r, "table", tables[0].Name)
 		c.ddbTable(w, r)
 		return
 	}
@@ -71,7 +71,7 @@ func def(v, fallback string) string {
 }
 
 func (c *Console) ddbDeleteTable(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeleteTable(r.Context(), r.PathValue("table")); err != nil {
+	if err := c.be.DeleteTable(r.Context(), param(r, "table")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -79,7 +79,7 @@ func (c *Console) ddbDeleteTable(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ddbTable(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("table")
+	name := param(r, "table")
 	t, err := c.be.DescribeTable(r.Context(), name)
 	if err != nil {
 		c.fail(w, err)
@@ -176,7 +176,7 @@ func boolInt(b bool) int {
 // condition on the base table or a GSI), or PartiQL. All render the same item
 // table so the drawer/edit/delete flow is identical regardless of mode.
 func (c *Console) ddbExplore(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("table")
+	name := param(r, "table")
 	t, err := c.be.DescribeTable(r.Context(), name)
 	if err != nil {
 		c.fail(w, err)
@@ -268,7 +268,7 @@ func (c *Console) ddbExplore(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ddbPutItem(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("table")
+	name := param(r, "table")
 	item := r.FormValue("item")
 	// orig_item is set only when this dialog was opened by the drawer's Edit
 	// button, and carries the item as it stood. Adding an item does not send it.
@@ -295,7 +295,7 @@ func (c *Console) ddbPutItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ddbDeleteItem(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("table")
+	name := param(r, "table")
 	if err := c.be.DeleteItem(r.Context(), name, r.FormValue("key")); err != nil {
 		c.fail(w, err)
 		return
@@ -306,7 +306,7 @@ func (c *Console) ddbDeleteItem(w http.ResponseWriter, r *http.Request) {
 
 // ddbItemsScan re-scans and swaps the item table after a mutation.
 func (c *Console) ddbItemsScan(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("table")
+	name := param(r, "table")
 	t, err := c.be.DescribeTable(r.Context(), name)
 	if err != nil {
 		c.fail(w, err)
@@ -323,7 +323,7 @@ func (c *Console) ddbItemsScan(w http.ResponseWriter, r *http.Request) {
 
 // ddbSetTTL enables or disables TTL on a table.
 func (c *Console) ddbSetTTL(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("table")
+	name := param(r, "table")
 	if err := c.be.SetTTL(r.Context(), name, strings.TrimSpace(r.FormValue("attr"))); err != nil {
 		c.fail(w, err)
 		return
@@ -334,7 +334,7 @@ func (c *Console) ddbSetTTL(w http.ResponseWriter, r *http.Request) {
 
 // ddbAddGSI adds a global secondary index post-create.
 func (c *Console) ddbAddGSI(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("table")
+	name := param(r, "table")
 	g := GSICreate{
 		Name: r.FormValue("gsi_name"), HashKey: r.FormValue("gsi_hash"), HashType: r.FormValue("gsi_hash_type"),
 		RangeKey: r.FormValue("gsi_range"), RangeType: r.FormValue("gsi_range_type"),
@@ -355,7 +355,7 @@ func (c *Console) ddbAddGSI(w http.ResponseWriter, r *http.Request) {
 
 // ddbDeleteGSI drops a global secondary index.
 func (c *Console) ddbDeleteGSI(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("table")
+	name := param(r, "table")
 	if err := c.be.DeleteGSI(r.Context(), name, r.FormValue("index")); err != nil {
 		c.fail(w, err)
 		return
@@ -388,7 +388,7 @@ func selectedKeys(r *http.Request) ([]string, error) {
 // item table — BatchGetItem normally, TransactGetItems when the transactional
 // switch asks for one consistent snapshot.
 func (c *Console) ddbBatchGet(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("table")
+	name := param(r, "table")
 	t, err := c.be.DescribeTable(r.Context(), name)
 	if err != nil {
 		c.fail(w, err)
@@ -422,7 +422,7 @@ func (c *Console) ddbBatchDelete(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	n, err := c.be.BatchDeleteItems(r.Context(), r.PathValue("table"), keys, r.FormValue("atomic") != "")
+	n, err := c.be.BatchDeleteItems(r.Context(), param(r, "table"), keys, r.FormValue("atomic") != "")
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -441,7 +441,7 @@ func (c *Console) ddbUpdateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fvals, fnames, _ := filterBindings(r, expr)
-	if err := c.be.UpdateItemExpr(r.Context(), r.PathValue("table"), r.FormValue("key"), expr, fvals, fnames); err != nil {
+	if err := c.be.UpdateItemExpr(r.Context(), param(r, "table"), r.FormValue("key"), expr, fvals, fnames); err != nil {
 		c.fail(w, err)
 		return
 	}

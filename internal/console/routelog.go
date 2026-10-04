@@ -4,6 +4,6 @@ package console
 
 import "net/http"
 
-// noteRoute records which route served a request, for the e2e suite's route
+// recordRoute notes which route served a request, for the e2e suite's route
 // gate (routelog_e2e.go). A release build records nothing.
-func (c *Console) noteRoute(*http.Request) {}
+func (c *Console) recordRoute(next http.Handler) http.Handler { return next }

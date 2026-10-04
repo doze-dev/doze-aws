@@ -17,7 +17,7 @@ func (c *Console) snsTopics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(topics) > 0 {
-		r.SetPathValue("topic", topics[0].Name)
+		setParam(r, "topic", topics[0].Name)
 		c.snsTopic(w, r)
 		return
 	}
@@ -34,7 +34,7 @@ func (c *Console) snsCreateTopic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) snsDeleteTopic(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeleteTopic(r.Context(), c.be.topicARNOf(r.PathValue("topic"))); err != nil {
+	if err := c.be.DeleteTopic(r.Context(), c.be.topicARNOf(param(r, "topic"))); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -42,7 +42,7 @@ func (c *Console) snsDeleteTopic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) snsTopic(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("topic")
+	name := param(r, "topic")
 	arn := c.be.topicARNOf(name)
 	attrs, err := c.be.TopicAttributes(r.Context(), arn)
 	if err != nil {
@@ -117,7 +117,7 @@ func (c *Console) snsSubsPartial(w http.ResponseWriter, r *http.Request, name st
 }
 
 func (c *Console) snsPublish(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("topic")
+	name := param(r, "topic")
 	arn := c.be.topicARNOf(name)
 	attrs := parseMsgAttrs(r.FormValue("attrs"))
 	// A count above one is PublishBatch — a different API, not a loop, because
@@ -184,7 +184,7 @@ func (c *Console) snsPublish(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) snsSubscribe(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("topic")
+	name := param(r, "topic")
 	// Optional filter policy + raw delivery applied at subscribe time.
 	attrs := map[string]string{}
 	if fp := strings.TrimSpace(r.FormValue("policy")); fp != "" {
@@ -202,7 +202,7 @@ func (c *Console) snsSubscribe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) snsUnsubscribe(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("topic")
+	name := param(r, "topic")
 	if err := c.be.Unsubscribe(r.Context(), r.FormValue("arn")); err != nil {
 		c.fail(w, err)
 		return
@@ -214,7 +214,7 @@ func (c *Console) snsUnsubscribe(w http.ResponseWriter, r *http.Request) {
 // snsSubFilter sets a subscription's filter policy (a message only reaches the
 // subscriber when its attributes match). An empty policy clears the filter.
 func (c *Console) snsSubFilter(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("topic")
+	name := param(r, "topic")
 	if err := c.be.SetSubscriptionAttribute(r.Context(), r.FormValue("arn"), "FilterPolicy", strings.TrimSpace(r.FormValue("policy"))); err != nil {
 		c.fail(w, err)
 		return
@@ -226,7 +226,7 @@ func (c *Console) snsSubFilter(w http.ResponseWriter, r *http.Request) {
 // snsSubRaw toggles raw message delivery (deliver the bare message body instead
 // of the SNS JSON envelope).
 func (c *Console) snsSubRaw(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("topic")
+	name := param(r, "topic")
 	value := "false"
 	if r.FormValue("raw") == "on" || r.FormValue("raw") == "true" {
 		value = "true"
@@ -246,7 +246,7 @@ func (c *Console) snsSubRaw(w http.ResponseWriter, r *http.Request) {
 // exists, lists, and receives nothing — which reads exactly like a delivery bug
 // and is why this needed a surface rather than a CLI.
 func (c *Console) snsConfirm(w http.ResponseWriter, r *http.Request) {
-	topic := r.PathValue("topic")
+	topic := param(r, "topic")
 	token := strings.TrimSpace(r.FormValue("token"))
 	if token == "" {
 		c.fail(w, errors.New("Paste the token SNS posted to your endpoint — it is what proves the endpoint wanted this subscription."))
@@ -295,7 +295,7 @@ func (c *Console) allSubs(r *http.Request) []Subscription {
 // stored and returned by GetTopicAttributes and changes nothing about how the
 // topic behaves.
 func (c *Console) snsSetAttribute(w http.ResponseWriter, r *http.Request) {
-	topic := r.PathValue("topic")
+	topic := param(r, "topic")
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
 		c.fail(w, errors.New("Name the attribute to set — DisplayName, Policy or DeliveryPolicy."))
@@ -312,7 +312,7 @@ func (c *Console) snsSetAttribute(w http.ResponseWriter, r *http.Request) {
 // Same shape as the SQS queue policy: the statement is written, and under IAM
 // soft and enforce the topic evaluates the policy on every request.
 func (c *Console) snsAddPermission(w http.ResponseWriter, r *http.Request) {
-	topic := r.PathValue("topic")
+	topic := param(r, "topic")
 	label := strings.TrimSpace(r.FormValue("label"))
 	if label == "" {
 		c.fail(w, errors.New("A permission needs a label — it is how RemovePermission finds it again."))
@@ -334,7 +334,7 @@ func (c *Console) snsAddPermission(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) snsRemovePermission(w http.ResponseWriter, r *http.Request) {
-	topic := r.PathValue("topic")
+	topic := param(r, "topic")
 	if err := c.be.RemoveTopicPermission(r.Context(), c.be.topicARNOf(topic), r.FormValue("label")); err != nil {
 		c.fail(w, err)
 		return
@@ -346,7 +346,7 @@ func (c *Console) snsRemovePermission(w http.ResponseWriter, r *http.Request) {
 // out loud: it is handed back verbatim and never applied to a message, so
 // nothing is redacted locally however the policy reads.
 func (c *Console) snsDataProtection(w http.ResponseWriter, r *http.Request) {
-	topic := r.PathValue("topic")
+	topic := param(r, "topic")
 	if err := c.be.PutDataProtectionPolicy(r.Context(), c.be.topicARNOf(topic), r.FormValue("policy")); err != nil {
 		c.fail(w, err)
 		return

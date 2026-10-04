@@ -180,6 +180,9 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   used to list it), a request with no bucket, and a DELETE of `?logging`,
   `?accelerate`, `?requestPayment` or `?notification` — none of which is an S3
   operation.
+- The console is routed with chi, group by group (`routes_<area>.go`), and an
+  unmatched GET is the console's own not-found page at any depth. A route list
+  held to the 371 the old router served (`testdata/routes.txt`) guards the move.
 - API Gateway ids are random. They were taken from the clock, so two REST
   APIs, HTTP APIs, keys or usage plans created in the same instant got the
   same id and the second silently replaced the first.

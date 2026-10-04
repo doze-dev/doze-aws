@@ -4,7 +4,7 @@ package console_test
 // that redirects must send the browser somewhere inside the console, and that
 // somewhere must render.
 //
-// The routes are read out of console.go rather than listed here, so a route
+// The routes are read out of the router rather than listed here, so a route
 // added later is covered without anyone remembering to add it. The check does
 // not require the mutation to succeed — a handler given bad input renders an
 // error instead of redirecting, and that is fine. What is never fine is doing
@@ -30,6 +30,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/doze-dev/doze-aws/internal/console"
 )
 
 // redirectFloor is how many routes this sweep is known to drive as far as a
@@ -43,20 +45,16 @@ const redirectFloor = 89
 // inside the single shard of a freshly created stream.
 const splitPoint = "170141183460469231731687303715884105728"
 
-var postRoutePattern = regexp.MustCompile(`"POST "\+p\+"([^"]*)",\s*c\.(\w+)\)`)
-
 // postRoutes reads the registered mutation routes, and the handler each one
 // dispatches to, from the router itself.
-func postRoutes(t *testing.T) (routes []string, handlers map[string]string) {
+func postRoutes(t *testing.T, h http.Handler) (routes []string, handlers map[string]string) {
 	t.Helper()
-	src, err := os.ReadFile("console.go")
-	if err != nil {
-		t.Fatalf("read router: %v", err)
-	}
 	handlers = map[string]string{}
-	for _, m := range postRoutePattern.FindAllStringSubmatch(string(src), -1) {
-		routes = append(routes, m[1])
-		handlers[m[1]] = m[2]
+	for route, handler := range console.RouteHandlers(h) {
+		if path, ok := strings.CutPrefix(route, "POST "); ok {
+			routes = append(routes, path)
+			handlers[path] = handler
+		}
 	}
 	if len(routes) < 50 {
 		t.Fatalf("only found %d POST routes; the router's shape must have changed", len(routes))
@@ -65,29 +63,23 @@ func postRoutes(t *testing.T) (routes []string, handlers map[string]string) {
 	return routes, handlers
 }
 
-var getRoutePattern = regexp.MustCompile(`"GET "\+p\+"([^"]*)",\s*c\.(\w+)\)`)
-
 // getRoutes returns the GET patterns that serve a specific page, dropping the
-// subtree ones. This matters more than it looks: the router registers
-// "GET /" as a catch-all, so *any* path under the console renders the flows
-// page with 200 — which would make "the target must render" true by
-// construction. Requiring the target to match a route that actually exists is
-// what turns that half of the property back into a check.
-func getRoutes(t *testing.T) []string {
+// subtree ones. This matters more than it looks: an unmatched GET renders the
+// wire with 200, so *any* path under the console would make "the target must
+// render" true by construction. Requiring the target to match a route that
+// actually exists is what turns that half of the property back into a check.
+func getRoutes(t *testing.T, h http.Handler) []string {
 	t.Helper()
-	src, err := os.ReadFile("console.go")
-	if err != nil {
-		t.Fatalf("read router: %v", err)
-	}
 	var out []string
-	for _, m := range getRoutePattern.FindAllStringSubmatch(string(src), -1) {
-		if !strings.HasSuffix(m[1], "/") {
-			out = append(out, m[1])
+	for route := range console.RouteHandlers(h) {
+		if path, ok := strings.CutPrefix(route, "GET "); ok && !strings.HasSuffix(path, "/") {
+			out = append(out, path)
 		}
 	}
 	if len(out) < 30 {
 		t.Fatalf("only found %d specific GET routes; the router's shape must have changed", len(out))
 	}
+	sort.Strings(out)
 	return out
 }
 
@@ -667,8 +659,8 @@ func TestEveryMutationRedirectStaysInTheConsole(t *testing.T) {
 	// Owned by the parent so it outlives every subtest that seeds a function.
 	discovered["code"] = t.TempDir()
 
-	routes, handlers := postRoutes(t)
-	pages := getRoutes(t)
+	routes, handlers := postRoutes(t, c)
+	pages := getRoutes(t, c)
 	bodies := consoleFuncBodies(t)
 	capable := map[string]bool{}
 	for _, route := range routes {

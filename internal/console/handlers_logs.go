@@ -16,7 +16,7 @@ import (
 // lambdaLogs is the Lambda page's Logs tab partial:
 // GET /lambda/{fn}/logs?rid=&q=&h=
 func (c *Console) lambdaLogs(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("fn")
+	name := param(r, "fn")
 	data := c.logTailData(r, "/aws/lambda/"+name, c.prefix+"/lambda/"+name+"/logs")
 	if liveUnchanged(w, r, data["Hash"].(string)) {
 		return

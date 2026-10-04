@@ -18,7 +18,7 @@ import (
 // outcome where the form was. StartSyncExecution IS the Express value
 // proposition — a workflow behind a request — and the panel says so.
 func (c *Console) sfnStartSync(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("machine")
+	name := param(r, "machine")
 	res, err := c.be.StartSyncExecution(r.Context(), c.be.startTargetOf(r, name), r.FormValue("name"), r.FormValue("input"))
 	if err != nil {
 		c.fail(w, err)
@@ -32,7 +32,7 @@ func (c *Console) sfnStartSync(w http.ResponseWriter, r *http.Request) {
 // where it would go next. The mock is optional and only a Task, Map or
 // Parallel can take one; the service refuses the rest by name.
 func (c *Console) sfnTestState(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("machine")
+	name := param(r, "machine")
 	definition := r.FormValue("definition")
 	if strings.TrimSpace(definition) == "" {
 		sm, err := c.be.DescribeStateMachine(r.Context(), c.be.stateMachineARNOf(name))
@@ -68,7 +68,7 @@ func (c *Console) sfnTestState(w http.ResponseWriter, r *http.Request) {
 // finish. It redirects because the header changes — status back to RUNNING,
 // the redrive count up by one — and the header is outside every live region.
 func (c *Console) sfnRedrive(w http.ResponseWriter, r *http.Request) {
-	machine, name := r.PathValue("machine"), r.PathValue("exec")
+	machine, name := param(r, "machine"), param(r, "exec")
 	if err := c.be.RedriveExecution(r.Context(), c.be.executionARNOf(machine, name)); err != nil {
 		c.fail(w, err)
 		return
@@ -116,7 +116,7 @@ func (c *Console) sfnMapRunUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toast(w, "Concurrency set to "+strconv.Itoa(n)+" — a raised limit takes effect at the next launch")
-	c.partial(w, "sfn_history", c.sfnHistoryData(r, r.PathValue("machine"), r.PathValue("exec")))
+	c.partial(w, "sfn_history", c.sfnHistoryData(r, param(r, "machine"), param(r, "exec")))
 }
 
 // sfnMapRunChildren lists one run's child executions — the executions the
@@ -142,7 +142,7 @@ func (c *Console) sfnMapRunChildren(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.partial(w, "sfn_map_children", map[string]any{
-		"Machine": r.PathValue("machine"), "Name": r.PathValue("exec"),
+		"Machine": param(r, "machine"), "Name": param(r, "exec"),
 		"Label": mapRunLabel(arn), "Execs": execs, "ARN": arn,
 		"Hash": hash, "Running": running,
 	})

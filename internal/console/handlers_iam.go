@@ -36,7 +36,7 @@ func (c *Console) iamHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) iamPrincipal(w http.ResponseWriter, r *http.Request) {
-	kind, name := r.PathValue("kind"), r.PathValue("name")
+	kind, name := param(r, "kind"), param(r, "name")
 	// Groups and instance profiles share the /iam/{kind}/{name} shape but
 	// are not principals; they get their own pages.
 	switch kind {
@@ -228,7 +228,7 @@ func (c *Console) iamCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) iamAttach(w http.ResponseWriter, r *http.Request) {
-	kind, name := r.PathValue("kind"), r.PathValue("name")
+	kind, name := param(r, "kind"), param(r, "name")
 	arn := r.FormValue("arn")
 	if arn == "" {
 		c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "Pick a policy to attach")
@@ -242,7 +242,7 @@ func (c *Console) iamAttach(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) iamDetach(w http.ResponseWriter, r *http.Request) {
-	kind, name := r.PathValue("kind"), r.PathValue("name")
+	kind, name := param(r, "kind"), param(r, "name")
 	if err := c.be.DetachPolicy(r.Context(), kind, name, r.FormValue("arn")); err != nil {
 		c.fail(w, err)
 		return
@@ -251,7 +251,7 @@ func (c *Console) iamDetach(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) iamDeletePrincipal(w http.ResponseWriter, r *http.Request) {
-	kind, name := r.PathValue("kind"), r.PathValue("name")
+	kind, name := param(r, "kind"), param(r, "name")
 	switch {
 	case kind == "group":
 		if err := c.be.DeleteIAMGroup(r.Context(), name); err != nil {
@@ -294,7 +294,7 @@ func (c *Console) iamDeletePolicy(w http.ResponseWriter, r *http.Request) {
 // again, exactly as AWS does it, so it is carried in the flash rather than
 // stored anywhere the page could re-read.
 func (c *Console) iamNewKey(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	name := param(r, "name")
 	id, secret, err := c.be.NewAccessKey(r.Context(), name)
 	if err != nil {
 		c.fail(w, err)
@@ -305,7 +305,7 @@ func (c *Console) iamNewKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) iamDeleteKey(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	name := param(r, "name")
 	if err := c.be.DeleteAccessKey(r.Context(), name, r.FormValue("id")); err != nil {
 		c.fail(w, err)
 		return
@@ -317,7 +317,7 @@ func (c *Console) iamDeleteKey(w http.ResponseWriter, r *http.Request) {
 // most often granted locally — one document on one principal, with nothing to
 // attach — so editing one in place is worth more than a separate screen.
 func (c *Console) iamPutInline(w http.ResponseWriter, r *http.Request) {
-	kind, name := r.PathValue("kind"), r.PathValue("name")
+	kind, name := param(r, "kind"), param(r, "name")
 	policyName := strings.TrimSpace(r.FormValue("policy"))
 	if policyName == "" {
 		c.redirect(w, r, c.prefix+"/iam/"+kind+"/"+name, "An inline policy needs a name")
@@ -331,7 +331,7 @@ func (c *Console) iamPutInline(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) iamDeleteInline(w http.ResponseWriter, r *http.Request) {
-	kind, name := r.PathValue("kind"), r.PathValue("name")
+	kind, name := param(r, "kind"), param(r, "name")
 	if err := c.be.DeleteInlinePolicy(r.Context(), kind, name, r.FormValue("policy")); err != nil {
 		c.fail(w, err)
 		return
@@ -371,7 +371,7 @@ func (c *Console) iamProfilePage(w http.ResponseWriter, r *http.Request, name st
 }
 
 func (c *Console) iamGroupMember(w http.ResponseWriter, r *http.Request) {
-	group := r.PathValue("name")
+	group := param(r, "name")
 	user := strings.TrimSpace(r.FormValue("user"))
 	var err error
 	if r.FormValue("remove") != "" {
@@ -391,7 +391,7 @@ func (c *Console) iamGroupMember(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) iamGroupRename(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	name := param(r, "name")
 	newName := strings.TrimSpace(r.FormValue("new"))
 	if err := c.be.RenameIAMGroup(r.Context(), name, newName); err != nil {
 		c.fail(w, err)
@@ -401,7 +401,7 @@ func (c *Console) iamGroupRename(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) iamProfileRole(w http.ResponseWriter, r *http.Request) {
-	profile := r.PathValue("name")
+	profile := param(r, "name")
 	role := strings.TrimSpace(r.FormValue("role"))
 	var err error
 	if r.FormValue("remove") != "" {
@@ -462,7 +462,7 @@ func (c *Console) iamAuthDetails(w http.ResponseWriter, r *http.Request) {
 // iamKeyToggle flips an access key Active/Inactive — the
 // revoke-without-deleting step of a rotation.
 func (c *Console) iamKeyToggle(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	name := param(r, "name")
 	active := r.FormValue("active") != ""
 	if err := c.be.SetAccessKeyActive(r.Context(), name, r.FormValue("id"), active); err != nil {
 		c.fail(w, err)
@@ -478,7 +478,7 @@ func (c *Console) iamKeyToggle(w http.ResponseWriter, r *http.Request) {
 
 // iamTrust replaces a role's assume-role policy (the study-3 leftover).
 func (c *Console) iamTrust(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	name := param(r, "name")
 	if err := c.be.UpdateTrustPolicy(r.Context(), name, r.FormValue("document")); err != nil {
 		c.fail(w, err)
 		return
@@ -488,7 +488,7 @@ func (c *Console) iamTrust(w http.ResponseWriter, r *http.Request) {
 
 // iamRoleMeta writes description and session duration.
 func (c *Console) iamRoleMeta(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	name := param(r, "name")
 	if err := c.be.UpdateRoleMeta(r.Context(), name,
 		r.FormValue("description"), atoi(r.FormValue("session"))); err != nil {
 		c.fail(w, err)
@@ -498,7 +498,7 @@ func (c *Console) iamRoleMeta(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) iamRenameUser(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	name := param(r, "name")
 	newName := strings.TrimSpace(r.FormValue("new"))
 	if err := c.be.RenameUser(r.Context(), name, newName); err != nil {
 		c.fail(w, err)
@@ -541,7 +541,7 @@ func (c *Console) iamDeleteVersion(w http.ResponseWriter, r *http.Request) {
 
 // iamJoinGroup is AddUserToGroup from the user's side of the relationship.
 func (c *Console) iamJoinGroup(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	name := param(r, "name")
 	group := r.FormValue("group")
 	if err := c.be.AddUserToGroup(r.Context(), group, name); err != nil {
 		c.fail(w, err)

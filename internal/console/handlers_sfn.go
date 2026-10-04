@@ -25,7 +25,7 @@ func (c *Console) sfnMachines(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(sms) > 0 {
-		r.SetPathValue("machine", sms[0].Name)
+		setParam(r, "machine", sms[0].Name)
 		c.sfnMachine(w, r)
 		return
 	}
@@ -55,7 +55,7 @@ func (c *Console) sfnValidate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sfnDelete(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeleteStateMachine(r.Context(), c.be.stateMachineARNOf(r.PathValue("machine"))); err != nil {
+	if err := c.be.DeleteStateMachine(r.Context(), c.be.stateMachineARNOf(param(r, "machine"))); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -63,7 +63,7 @@ func (c *Console) sfnDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sfnUpdateDefinition(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("machine")
+	name := param(r, "machine")
 	if err := c.be.UpdateStateMachine(r.Context(), c.be.stateMachineARNOf(name), r.FormValue("definition"), r.FormValue("role")); err != nil {
 		c.fail(w, err)
 		return
@@ -72,7 +72,7 @@ func (c *Console) sfnUpdateDefinition(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sfnMachine(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("machine")
+	name := param(r, "machine")
 	sm, err := c.be.DescribeStateMachine(r.Context(), c.be.stateMachineARNOf(name))
 	if err != nil {
 		c.fail(w, err)
@@ -108,7 +108,7 @@ func (c *Console) sfnMachine(w http.ResponseWriter, r *http.Request) {
 
 // sfnLogs is the Logs tab's poll: the machine's vended history.
 func (c *Console) sfnLogs(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("machine")
+	name := param(r, "machine")
 	sm, err := c.be.DescribeStateMachine(r.Context(), c.be.stateMachineARNOf(name))
 	if err != nil || sm.LogGroup == "" {
 		c.fail(w, fmt.Errorf("state machine %s does not log to a group", name))
@@ -142,7 +142,7 @@ func (c *Console) sfnExecutionsData(r *http.Request, name string) map[string]any
 
 // sfnExecutions is the polled executions partial: 204 when unchanged.
 func (c *Console) sfnExecutions(w http.ResponseWriter, r *http.Request) {
-	data := c.sfnExecutionsData(r, r.PathValue("machine"))
+	data := c.sfnExecutionsData(r, param(r, "machine"))
 	if liveUnchanged(w, r, data["Hash"].(string)) {
 		return
 	}
@@ -150,7 +150,7 @@ func (c *Console) sfnExecutions(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sfnStart(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("machine")
+	name := param(r, "machine")
 	arn, err := c.be.StartExecution(r.Context(), c.be.startTargetOf(r, name), r.FormValue("name"), r.FormValue("input"))
 	if err != nil {
 		c.fail(w, err)
@@ -177,7 +177,7 @@ func parseExecutionARN(arn string) (machine, name string) {
 }
 
 func (c *Console) sfnExecution(w http.ResponseWriter, r *http.Request) {
-	machine, name := r.PathValue("machine"), r.PathValue("exec")
+	machine, name := param(r, "machine"), param(r, "exec")
 	arn := c.be.executionARNOf(machine, name)
 	ex, err := c.be.DescribeExecution(r.Context(), arn)
 	if err != nil {
@@ -228,7 +228,7 @@ func (c *Console) sfnHistoryData(r *http.Request, machine, name string) map[stri
 
 // sfnHistory is the polled history partial: 204 when unchanged.
 func (c *Console) sfnHistory(w http.ResponseWriter, r *http.Request) {
-	data := c.sfnHistoryData(r, r.PathValue("machine"), r.PathValue("exec"))
+	data := c.sfnHistoryData(r, param(r, "machine"), param(r, "exec"))
 	if liveUnchanged(w, r, data["Hash"].(string)) {
 		return
 	}
@@ -236,7 +236,7 @@ func (c *Console) sfnHistory(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sfnStop(w http.ResponseWriter, r *http.Request) {
-	machine, name := r.PathValue("machine"), r.PathValue("exec")
+	machine, name := param(r, "machine"), param(r, "exec")
 	if err := c.be.StopExecution(r.Context(), c.be.executionARNOf(machine, name), r.FormValue("error"), r.FormValue("cause")); err != nil {
 		c.fail(w, err)
 		return
@@ -261,7 +261,7 @@ func (c *Console) sfnTaskResult(w http.ResponseWriter, r *http.Request) {
 		msg = "Task failed — Retry and Catch decide what happens next"
 	}
 	toast(w, msg)
-	c.partial(w, "sfn_history", c.sfnHistoryData(r, r.PathValue("machine"), r.PathValue("exec")))
+	c.partial(w, "sfn_history", c.sfnHistoryData(r, param(r, "machine"), param(r, "exec")))
 }
 
 // ---- the graph ----
@@ -307,7 +307,7 @@ func (c *Console) sfnGraphData(r *http.Request, machine, name string) map[string
 
 // sfnGraph is the polled graph partial: 204 when unchanged.
 func (c *Console) sfnGraph(w http.ResponseWriter, r *http.Request) {
-	data := c.sfnGraphData(r, r.PathValue("machine"), r.PathValue("exec"))
+	data := c.sfnGraphData(r, param(r, "machine"), param(r, "exec"))
 	if liveUnchanged(w, r, data["Hash"].(string)) {
 		return
 	}

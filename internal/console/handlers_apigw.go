@@ -14,7 +14,7 @@ func (c *Console) apigwList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(apis) > 0 {
-		r.SetPathValue("api", apis[0].ID)
+		setParam(r, "api", apis[0].ID)
 		if apis[0].Protocol == "HTTP" {
 			c.apigwHTTP(w, r)
 			return
@@ -26,7 +26,7 @@ func (c *Console) apigwList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwAPI(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	api, err := c.be.RestAPI(r.Context(), id)
 	if err != nil {
 		// A link built from an execute-api ARN cannot tell the two kinds
@@ -64,7 +64,7 @@ func (c *Console) apigwAPI(w http.ResponseWriter, r *http.Request) {
 // apigwInvoke sends a request through the deployed stage. Whether an
 // integration actually answers is the one thing a definition cannot tell you.
 func (c *Console) apigwInvoke(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	res, err := c.be.InvokeAPI(r.Context(), id,
 		r.FormValue("stage"), r.FormValue("method"), r.FormValue("path"), r.FormValue("body"))
 	if err != nil {
@@ -104,7 +104,7 @@ func (c *Console) apigwCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwUpdate(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	ops := map[string]string{}
 	if v := strings.TrimSpace(r.FormValue("name")); v != "" {
 		ops["/name"] = v
@@ -118,7 +118,7 @@ func (c *Console) apigwUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwDelete(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	if err := c.be.DeleteRestAPI(r.Context(), id); err != nil {
 		c.fail(w, err)
 		return
@@ -128,7 +128,7 @@ func (c *Console) apigwDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwAddResource(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	part := strings.Trim(strings.TrimSpace(r.FormValue("part")), "/")
 	if err := c.be.CreateAPIResource(r.Context(), id, r.FormValue("parent"), part); err != nil {
 		c.fail(w, err)
@@ -139,7 +139,7 @@ func (c *Console) apigwAddResource(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwDeleteResource(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	if err := c.be.DeleteAPIResource(r.Context(), id, r.FormValue("resource")); err != nil {
 		c.fail(w, err)
 		return
@@ -149,7 +149,7 @@ func (c *Console) apigwDeleteResource(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwRenameResource(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	part := strings.Trim(strings.TrimSpace(r.FormValue("part")), "/")
 	if err := c.be.RenameAPIResource(r.Context(), id, r.FormValue("resource"), part); err != nil {
 		c.fail(w, err)
@@ -160,7 +160,7 @@ func (c *Console) apigwRenameResource(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwPutMethod(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	verb := r.FormValue("verb")
 	if err := c.be.PutAPIMethod(r.Context(), id, r.FormValue("resource"), verb,
 		r.FormValue("auth"), r.FormValue("authorizer"), r.FormValue("apikey") != ""); err != nil {
@@ -172,7 +172,7 @@ func (c *Console) apigwPutMethod(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwDeleteMethod(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	if err := c.be.DeleteAPIMethod(r.Context(), id, r.FormValue("resource"), r.FormValue("verb")); err != nil {
 		c.fail(w, err)
 		return
@@ -184,7 +184,7 @@ func (c *Console) apigwDeleteMethod(w http.ResponseWriter, r *http.Request) {
 // apigwMethodPanel renders one method in full — integration, both response
 // halves — with the forms to edit each.
 func (c *Console) apigwMethodPanel(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	d, err := c.be.APIMethodDetail(r.Context(), id, r.FormValue("resource"), r.FormValue("verb"))
 	if err != nil {
 		c.fail(w, err)
@@ -196,7 +196,7 @@ func (c *Console) apigwMethodPanel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwPutIntegration(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	if err := c.be.PutAPIIntegration(r.Context(), id, r.FormValue("resource"), r.FormValue("verb"),
 		r.FormValue("type"), strings.TrimSpace(r.FormValue("target"))); err != nil {
 		c.fail(w, err)
@@ -208,7 +208,7 @@ func (c *Console) apigwPutIntegration(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwDeleteIntegration(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	if err := c.be.DeleteAPIIntegration(r.Context(), id, r.FormValue("resource"), r.FormValue("verb")); err != nil {
 		c.fail(w, err)
 		return
@@ -221,7 +221,7 @@ func (c *Console) apigwDeleteIntegration(w http.ResponseWriter, r *http.Request)
 // apigwPutResponse and apigwDeleteResponse cover both halves of the response
 // contract; the "half" form field picks method vs integration.
 func (c *Console) apigwPutResponse(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	res, verb, status := r.FormValue("resource"), r.FormValue("verb"), strings.TrimSpace(r.FormValue("status"))
 	var err error
 	if r.FormValue("half") == "integration" {
@@ -238,7 +238,7 @@ func (c *Console) apigwPutResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwDeleteResponse(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	res, verb, status := r.FormValue("resource"), r.FormValue("verb"), r.FormValue("status")
 	var err error
 	if r.FormValue("half") == "integration" {
@@ -255,7 +255,7 @@ func (c *Console) apigwDeleteResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwDeploy(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	stage := strings.TrimSpace(r.FormValue("stage"))
 	if err := c.be.CreateAPIDeployment(r.Context(), id, stage, r.FormValue("description")); err != nil {
 		c.fail(w, err)
@@ -266,7 +266,7 @@ func (c *Console) apigwDeploy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwDeleteDeployment(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	if err := c.be.DeleteAPIDeployment(r.Context(), id, r.FormValue("deployment")); err != nil {
 		c.fail(w, err)
 		return
@@ -275,7 +275,7 @@ func (c *Console) apigwDeleteDeployment(w http.ResponseWriter, r *http.Request) 
 }
 
 func (c *Console) apigwCreateStage(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	name := strings.TrimSpace(r.FormValue("name"))
 	if err := c.be.CreateAPIStage(r.Context(), id, name, r.FormValue("deployment"), r.FormValue("description")); err != nil {
 		c.fail(w, err)
@@ -285,7 +285,7 @@ func (c *Console) apigwCreateStage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwUpdateStage(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	name := r.FormValue("name")
 	if err := c.be.UpdateAPIStage(r.Context(), id, name,
 		map[string]string{"/deploymentId": r.FormValue("deployment")}); err != nil {
@@ -296,7 +296,7 @@ func (c *Console) apigwUpdateStage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwDeleteStage(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	name := r.FormValue("name")
 	if err := c.be.DeleteAPIStage(r.Context(), id, name); err != nil {
 		c.fail(w, err)

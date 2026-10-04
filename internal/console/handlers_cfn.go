@@ -44,7 +44,7 @@ func (c *Console) cfnStacks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) cfnStack(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("stack")
+	name := param(r, "stack")
 	st, err := c.be.StackDetail(r.Context(), name)
 	if err != nil {
 		c.fail(w, err)
@@ -84,7 +84,7 @@ func (c *Console) cfnStack(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) cfnDelete(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("stack")
+	name := param(r, "stack")
 	if err := c.be.DeleteStack(r.Context(), name); err != nil {
 		c.fail(w, err)
 		return
@@ -157,7 +157,7 @@ func (c *Console) cfnCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) cfnUpdate(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("stack")
+	name := param(r, "stack")
 	body := r.FormValue("template")
 	if r.FormValue("useprev") != "" {
 		// UsePreviousTemplate: parameters only, template stays as deployed.
@@ -216,7 +216,7 @@ func (c *Console) stackLanding(r *http.Request, name string) string {
 }
 
 func (c *Console) cfnExecuteCS(w http.ResponseWriter, r *http.Request) {
-	stack, cs := r.PathValue("stack"), r.PathValue("cs")
+	stack, cs := param(r, "stack"), param(r, "cs")
 	if err := c.be.ExecuteChangeSet(r.Context(), stack, cs); err != nil {
 		c.fail(w, err)
 		return
@@ -226,7 +226,7 @@ func (c *Console) cfnExecuteCS(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) cfnDeleteCS(w http.ResponseWriter, r *http.Request) {
-	stack, cs := r.PathValue("stack"), r.PathValue("cs")
+	stack, cs := param(r, "stack"), param(r, "cs")
 	if err := c.be.DeleteChangeSet(r.Context(), stack, cs); err != nil {
 		c.fail(w, err)
 		return
@@ -237,7 +237,7 @@ func (c *Console) cfnDeleteCS(w http.ResponseWriter, r *http.Request) {
 // cfnResource is the single-resource drill-down (DescribeStackResource): the
 // resources table plus the status reason and timestamp it does not show.
 func (c *Console) cfnResource(w http.ResponseWriter, r *http.Request) {
-	info, err := c.be.StackResource1(r.Context(), r.PathValue("stack"), r.FormValue("logical"))
+	info, err := c.be.StackResource1(r.Context(), param(r, "stack"), r.FormValue("logical"))
 	if err != nil {
 		c.fail(w, err)
 		return

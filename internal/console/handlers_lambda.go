@@ -142,7 +142,7 @@ func (c *Console) lambdaLayersPartial(w http.ResponseWriter, r *http.Request) {
 
 // lambdaUpdateCode points the function at new code (UpdateFunctionCode).
 func (c *Console) lambdaUpdateCode(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("fn")
+	name := param(r, "fn")
 	path := strings.TrimSpace(r.FormValue("path"))
 	if path == "" {
 		c.fail(w, fmt.Errorf("a code path is required"))
@@ -159,7 +159,7 @@ func (c *Console) lambdaUpdateCode(w http.ResponseWriter, r *http.Request) {
 // lambdaResetAsync discards the async invoke policy back to defaults
 // (DeleteFunctionEventInvokeConfig).
 func (c *Console) lambdaResetAsync(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("fn")
+	name := param(r, "fn")
 	if err := c.be.ResetEventInvokeConfig(r.Context(), name); err != nil {
 		c.fail(w, err)
 		return
@@ -169,7 +169,7 @@ func (c *Console) lambdaResetAsync(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) lambdaFn(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("fn")
+	name := param(r, "fn")
 	f, err := c.be.GetFunction(r.Context(), name)
 	if err != nil {
 		c.fail(w, err)
@@ -226,7 +226,7 @@ func lambdaDiagram(f *Function, conn Neighborhood) map[string][]diagNode {
 // lambdaRuntimeBadge is the polled live partial for a function's process state:
 // 204 when unchanged, otherwise the morph-swapped badge.
 func (c *Console) lambdaRuntimeBadge(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("fn")
+	name := param(r, "fn")
 	rt := c.be.LambdaRuntime(r.Context(), name)
 	hash := lambdaRuntimeHash(rt)
 	if liveUnchanged(w, r, hash) {
@@ -238,7 +238,7 @@ func (c *Console) lambdaRuntimeBadge(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) lambdaInvoke(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("fn")
+	name := param(r, "fn")
 	payload := r.FormValue("payload")
 	if payload == "" {
 		payload = "{}"
@@ -287,7 +287,7 @@ func (c *Console) lambdaCreate(w http.ResponseWriter, r *http.Request) {
 
 // lambdaSaveConfig edits env / timeout / memory.
 func (c *Console) lambdaSaveConfig(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("fn")
+	name := param(r, "fn")
 	if err := c.be.UpdateConfig(r.Context(), name,
 		atoi(r.FormValue("timeout")), atoi(r.FormValue("memory")),
 		strings.TrimSpace(r.FormValue("runtime")), strings.TrimSpace(r.FormValue("handler")),
@@ -311,7 +311,7 @@ func (c *Console) lambdaConfigPartial(w http.ResponseWriter, r *http.Request, na
 
 // lambdaUpdateURL changes the function URL's auth type.
 func (c *Console) lambdaUpdateURL(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("fn")
+	name := param(r, "fn")
 	auth := r.FormValue("auth_type")
 	if auth != "NONE" && auth != "AWS_IAM" {
 		c.fail(w, fmt.Errorf("auth type must be NONE or AWS_IAM"))
@@ -327,7 +327,7 @@ func (c *Console) lambdaUpdateURL(w http.ResponseWriter, r *http.Request) {
 
 // lambdaCreateURL / lambdaDeleteURL manage the function URL.
 func (c *Console) lambdaCreateURL(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("fn")
+	name := param(r, "fn")
 	if _, err := c.be.CreateFunctionURL(r.Context(), name); err != nil {
 		c.fail(w, err)
 		return
@@ -337,7 +337,7 @@ func (c *Console) lambdaCreateURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) lambdaDeleteURL(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("fn")
+	name := param(r, "fn")
 	if err := c.be.DeleteFunctionURL(r.Context(), name); err != nil {
 		c.fail(w, err)
 		return
@@ -348,7 +348,7 @@ func (c *Console) lambdaDeleteURL(w http.ResponseWriter, r *http.Request) {
 
 // lambdaAddMapping wires an SQS event source mapping.
 func (c *Console) lambdaAddMapping(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("fn")
+	name := param(r, "fn")
 	queue := r.FormValue("queue")
 	if queue == "" {
 		c.fail(w, &apiErr{status: 400, body: "pick a queue"})
@@ -369,7 +369,7 @@ func (c *Console) lambdaAddMapping(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) lambdaDelete(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeleteFunction(r.Context(), r.PathValue("fn")); err != nil {
+	if err := c.be.DeleteFunction(r.Context(), param(r, "fn")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -378,7 +378,7 @@ func (c *Console) lambdaDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) lambdaDeleteMapping(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("fn")
+	name := param(r, "fn")
 	if err := c.be.DeleteMapping(r.Context(), r.FormValue("uuid")); err != nil {
 		c.fail(w, err)
 		return

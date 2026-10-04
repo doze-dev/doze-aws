@@ -47,7 +47,7 @@ func (c *Console) sfnActivityCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sfnActivityDelete(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("activity")
+	name := param(r, "activity")
 	if err := c.be.DeleteActivity(r.Context(), c.be.activityARNOf(name)); err != nil {
 		c.fail(w, err)
 		return
@@ -59,7 +59,7 @@ func (c *Console) sfnActivityDelete(w http.ResponseWriter, r *http.Request) {
 // DescribeActivity first: an activity that is not there is that error, not
 // an empty poll, and the two read very differently.
 func (c *Console) sfnActivityTake(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("activity")
+	name := param(r, "activity")
 	act, err := c.be.DescribeActivity(r.Context(), c.be.activityARNOf(name))
 	if err != nil {
 		c.fail(w, err)

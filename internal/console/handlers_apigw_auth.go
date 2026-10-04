@@ -19,7 +19,7 @@ func (c *Console) apigwAuthorizersPartial(w http.ResponseWriter, r *http.Request
 }
 
 func (c *Console) apigwCreateAuthorizer(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	if err := c.be.CreateAPIAuthorizer(r.Context(), id, strings.TrimSpace(r.FormValue("name")), r.FormValue("type"),
 		strings.TrimSpace(r.FormValue("function")), strings.TrimSpace(r.FormValue("source")), atoiDefault(r.FormValue("ttl"), 300)); err != nil {
 		c.fail(w, err)
@@ -30,7 +30,7 @@ func (c *Console) apigwCreateAuthorizer(w http.ResponseWriter, r *http.Request) 
 }
 
 func (c *Console) apigwUpdateAuthorizer(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	if err := c.be.UpdateAPIAuthorizer(r.Context(), id, r.FormValue("id"), atoiDefault(r.FormValue("ttl"), 300)); err != nil {
 		c.fail(w, err)
 		return
@@ -40,7 +40,7 @@ func (c *Console) apigwUpdateAuthorizer(w http.ResponseWriter, r *http.Request) 
 }
 
 func (c *Console) apigwDeleteAuthorizer(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	if err := c.be.DeleteAPIAuthorizer(r.Context(), id, r.FormValue("id")); err != nil {
 		c.fail(w, err)
 		return
@@ -51,10 +51,10 @@ func (c *Console) apigwDeleteAuthorizer(w http.ResponseWriter, r *http.Request) 
 
 // apigwAuthorizer is one authorizer's detail row (GetAuthorizer).
 func (c *Console) apigwAuthorizer(w http.ResponseWriter, r *http.Request) {
-	a, err := c.be.GetAPIAuthorizer(r.Context(), r.PathValue("api"), r.PathValue("auth"))
+	a, err := c.be.GetAPIAuthorizer(r.Context(), param(r, "api"), param(r, "auth"))
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
-	c.partial(w, "apigw_authorizer_detail", map[string]any{"API": map[string]any{"ID": r.PathValue("api")}, "A": a})
+	c.partial(w, "apigw_authorizer_detail", map[string]any{"API": map[string]any{"ID": param(r, "api")}, "A": a})
 }

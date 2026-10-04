@@ -55,7 +55,7 @@ func (c *Console) cwHome(w http.ResponseWriter, r *http.Request) {
 
 // cwAlarm is one alarm's page: what it watches, its state, and its history.
 func (c *Console) cwAlarm(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	name := param(r, "name")
 	alarms, err := c.be.ListAlarms(r.Context())
 	if err != nil {
 		c.fail(w, err)
@@ -163,7 +163,7 @@ func (c *Console) cwCreateAlarm(w http.ResponseWriter, r *http.Request) {
 // alarm's actions without waiting for a metric to breach, which is how a
 // developer checks that the topic behind the alarm is wired up.
 func (c *Console) cwSetState(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	name := param(r, "name")
 	state := r.FormValue("state")
 	if state != "OK" && state != "ALARM" && state != "INSUFFICIENT_DATA" {
 		c.fail(w, fmt.Errorf("state must be OK, ALARM or INSUFFICIENT_DATA"))
@@ -178,7 +178,7 @@ func (c *Console) cwSetState(w http.ResponseWriter, r *http.Request) {
 
 // cwSetActions enables or disables an alarm's actions: POST /cw/alarm/{name}/actions
 func (c *Console) cwSetActions(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	name := param(r, "name")
 	enabled := r.FormValue("enabled") == "true"
 	if err := c.be.SetAlarmActions(r.Context(), name, enabled); err != nil {
 		c.fail(w, err)
@@ -193,7 +193,7 @@ func (c *Console) cwSetActions(w http.ResponseWriter, r *http.Request) {
 
 // cwDeleteAlarm removes one: POST /cw/alarm/{name}/delete
 func (c *Console) cwDeleteAlarm(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	name := param(r, "name")
 	if err := c.be.DeleteAlarm(r.Context(), name); err != nil {
 		c.fail(w, err)
 		return

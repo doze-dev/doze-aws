@@ -6,6 +6,7 @@
 package console
 
 import (
+	"context"
 	"embed"
 	"errors"
 	"html/template"
@@ -17,7 +18,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/restroute"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -47,7 +51,7 @@ func EmbeddedFS() map[string]fs.FS {
 // "/_console") alongside the AWS gateway.
 type Console struct {
 	be     *backend
-	mux    *http.ServeMux
+	mux    *chi.Mux
 	tmpl   *template.Template
 	prefix string
 	rec    *Recorder
@@ -94,20 +98,22 @@ func New(opts Options) (*Console, error) {
 }
 
 func (c *Console) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// CSRF / DNS-rebinding defense: a state-changing request must originate from
-	// the console itself. Browsers always send Origin on cross-origin (and most
-	// same-origin) POSTs; when present it must match the Host we're serving on.
-	// This blocks a malicious page from driving destructive actions against a
-	// developer's localhost console.
-	if r.Method != http.MethodGet && r.Method != http.MethodHead {
-		if origin := r.Header.Get("Origin"); origin != "" && !originMatchesHost(origin, r.Host) {
-			http.Error(w, "cross-origin request refused", http.StatusForbidden)
-			return
-		}
+	// The console is a router of its own, never a sub-router of whatever calls
+	// it: chi reads a route context already on the request as a parent's and
+	// would route by its method and path.
+	if chi.RouteContext(r.Context()) != nil {
+		r = r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, (*chi.Context)(nil)))
 	}
-	c.noteRoute(r)
 	c.mux.ServeHTTP(w, r)
 }
+
+// param is a path label's value as the client meant it: decoded, with an
+// escaped slash kept inside its segment. It stands where r.PathValue stood.
+func param(r *http.Request, name string) string { return restroute.Param(r, name) }
+
+// setParam sets a path label, for a list page that opens its first item by
+// handing the request to the detail handler.
+func setParam(r *http.Request, name, value string) { restroute.SetParam(r, name, value) }
 
 // originMatchesHost reports whether an Origin header's host authority matches the
 // request Host (the console's own address).
@@ -117,433 +123,6 @@ func originMatchesHost(origin, host string) bool {
 		return false
 	}
 	return u.Host == host
-}
-
-func (c *Console) routes() {
-	m := http.NewServeMux()
-	p := c.prefix
-
-	// Static assets (htmx, css) — embedded, served locally (no CDN). Embedded
-	// files have a zero modtime, so plain FileServerFS gives the browser no
-	// validator at all and every hard reload re-downloads ~700KB (font,
-	// CodeMirror, htmx, Alpine). cacheStatic adds content ETags + max-age.
-	m.Handle("GET "+p+"/static/", http.StripPrefix(p+"/", cacheStatic(http.FileServerFS(staticFS))))
-
-	// The wire is the home surface: the question people open this to answer is
-	// "what did my app just do", not "what resources exist".
-	m.HandleFunc("GET "+p+"/", c.traffic)
-	m.HandleFunc("GET "+p, c.traffic)
-	m.HandleFunc("GET "+p+"/traffic", c.traffic)
-	m.HandleFunc("GET "+p+"/connect", c.connect)
-	m.HandleFunc("POST "+p+"/connect/verify", c.connectVerify)
-	m.HandleFunc("GET "+p+"/deck", c.deck)                   // the stack at a glance
-	m.HandleFunc("GET "+p+"/traffic/feed", c.trafficFeed)    // polled live tail
-	m.HandleFunc("GET "+p+"/traffic/entry", c.trafficEntry)  // inspector drawer
-	m.HandleFunc("POST "+p+"/traffic/clear", c.trafficClear) // empty the ring
-
-	// Resource index for the command palette.
-	m.HandleFunc("GET "+p+"/api/resources", c.apiResources)
-	m.HandleFunc("GET "+p+"/api/palette", c.apiPalette)
-	m.HandleFunc("GET "+p+"/api/resolve", c.apiResolve)
-	m.HandleFunc("GET "+p+"/api/counts", c.apiCounts)
-	m.HandleFunc("GET "+p+"/api/glance", c.apiGlance) // one-call feed for the doze dash page
-	m.HandleFunc("GET "+p+"/tags/view", c.tagsView)
-	m.HandleFunc("GET "+p+"/info/{svc}", c.svcInfo)  // HTMX partial (the fidelity ledger)
-	m.HandleFunc("POST "+p+"/tags/save", c.tagsSave) // the whole set, explicitly
-
-	// Create forms render inside the shell (list pane + detail).
-	m.HandleFunc("GET "+p+"/s3/create", c.createPage("s3", "s3_create"))
-	m.HandleFunc("GET "+p+"/sqs/create", c.createPage("sqs", "sqs_create"))
-	m.HandleFunc("GET "+p+"/ddb/create", c.createPage("ddb", "ddb_create"))
-	m.HandleFunc("GET "+p+"/sns/create", c.createPage("sns", "sns_create"))
-	m.HandleFunc("GET "+p+"/kinesis/create", c.createPage("kinesis", "kinesis_create"))
-	m.HandleFunc("GET "+p+"/eb/create-bus", c.createPage("eb", "eb_bus_create"))
-	m.HandleFunc("GET "+p+"/eb/{bus}/create-rule", c.ebRuleCreatePage)
-	m.HandleFunc("GET "+p+"/kms/create", c.createPage("kms", "kms_create"))
-	m.HandleFunc("GET "+p+"/ssm/create", c.createPage("ssm", "ssm_create"))
-	m.HandleFunc("GET "+p+"/sm/create", c.createPage("sm", "sm_create"))
-
-	// S3.
-	m.HandleFunc("GET "+p+"/s3", c.s3Buckets)
-	m.HandleFunc("POST "+p+"/s3/create", c.s3CreateBucket)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/delete-bucket", c.s3DeleteBucket)
-	m.HandleFunc("GET "+p+"/s3/{bucket}", c.s3Objects)
-	m.HandleFunc("GET "+p+"/s3/{bucket}/object", c.s3GetObject)
-	m.HandleFunc("GET "+p+"/s3/{bucket}/meta", c.s3Meta)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/upload", c.s3Upload)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/folder", c.s3NewFolder)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/delete", c.s3DeleteObject)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/delete-batch", c.s3BulkDelete)  // HTMX partial (DeleteObjects)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/combine", c.s3Combine)          // HTMX partial (UploadPartCopy)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/uploads", c.s3MPUploads)        // HTMX partial (ListMultipartUploads)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/abort-upload", c.s3AbortUpload) // HTMX partial (AbortMultipartUpload)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/website", c.s3Website)          // HTMX partial (PutBucketWebsite/DeleteBucketWebsite)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/lock-config", c.s3LockConfig)   // HTMX partial (PutObjectLockConfiguration)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/object-tags", c.s3ObjTagsSave)  // HTMX partial (PutObjectTagging)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/retention", c.s3Retention)      // HTMX partial (PutObjectRetention)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/legal-hold", c.s3LegalHold)     // HTMX partial (PutObjectLegalHold)
-	m.HandleFunc("POST "+p+"/s3/check-name", c.s3CheckName)              // HTMX partial (HeadBucket)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/versioning", c.s3Versioning)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/add-tag", c.s3AddTag)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/remove-tag", c.s3RemoveTag)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/presign", c.s3Presign)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/copy", c.s3Copy)
-	m.HandleFunc("GET "+p+"/s3/{bucket}/versions", c.s3Versions)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/restore-version", c.s3RestoreVersion)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/delete-version", c.s3DeleteVersion)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/notify-add", c.s3NotifyAdd)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/notify-remove", c.s3NotifyRemove)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/cors", c.s3SaveCORS)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/policy", c.s3SavePolicy)          // HTMX partial (PutBucketPolicy)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/public-access", c.s3PublicAccess) // HTMX partial (PutPublicAccessBlock / DeletePublicAccessBlock; GetPublicAccessBlock and GetBucketPolicyStatus render the row)
-	m.HandleFunc("POST "+p+"/s3/{bucket}/lifecycle", c.s3SaveLifecycle)
-
-	// SQS.
-	m.HandleFunc("GET "+p+"/sqs", c.sqsQueues)
-	m.HandleFunc("POST "+p+"/sqs/create", c.sqsCreateQueue)
-	m.HandleFunc("GET "+p+"/sqs/{queue}", c.sqsQueue)
-	m.HandleFunc("GET "+p+"/sqs/{queue}/messages", c.sqsMessages) // HTMX partial (polled)
-	m.HandleFunc("POST "+p+"/sqs/{queue}/send", c.sqsSend)
-	m.HandleFunc("POST "+p+"/sqs/{queue}/purge", c.sqsPurge)
-	m.HandleFunc("POST "+p+"/sqs/{queue}/attributes", c.sqsSetAttributes)
-	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-message", c.sqsDeleteMessage)
-	m.HandleFunc("POST "+p+"/sqs/{queue}/redrive", c.sqsRedrive)
-	m.HandleFunc("POST "+p+"/sqs/{queue}/receive", c.sqsReceive)                    // a REAL receive, not a peek
-	m.HandleFunc("POST "+p+"/sqs/{queue}/visibility", c.sqsChangeVisibility)        // re-hide or release one
-	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-batch", c.sqsDeleteBatch)           // DeleteMessageBatch
-	m.HandleFunc("POST "+p+"/sqs/{queue}/visibility-batch", c.sqsVisibilityBatch)   // ChangeMessageVisibilityBatch
-	m.HandleFunc("POST "+p+"/sqs/{queue}/permission", c.sqsAddPermission)           // AddPermission (C-tier)
-	m.HandleFunc("POST "+p+"/sqs/{queue}/permission/delete", c.sqsRemovePermission) // RemovePermission (C-tier)
-	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-queue", c.sqsDeleteQueue)
-
-	// DynamoDB.
-	m.HandleFunc("GET "+p+"/ddb", c.ddbTables)
-	m.HandleFunc("POST "+p+"/ddb/create", c.ddbCreateTable)
-	m.HandleFunc("GET "+p+"/ddb/{table}", c.ddbTable)
-	m.HandleFunc("POST "+p+"/ddb/{table}/explore", c.ddbExplore) // HTMX partial (scan/query/partiql)
-	m.HandleFunc("POST "+p+"/ddb/{table}/put", c.ddbPutItem)
-	m.HandleFunc("POST "+p+"/ddb/{table}/delete-item", c.ddbDeleteItem)
-	m.HandleFunc("POST "+p+"/ddb/{table}/batch-get", c.ddbBatchGet)       // HTMX partial (BatchGetItem / TransactGetItems)
-	m.HandleFunc("POST "+p+"/ddb/{table}/batch-delete", c.ddbBatchDelete) // HTMX partial (BatchWriteItem / TransactWriteItems)
-	m.HandleFunc("POST "+p+"/ddb/{table}/update-item", c.ddbUpdateItem)   // HTMX partial (UpdateItem)
-	m.HandleFunc("POST "+p+"/ddb/{table}/delete-table", c.ddbDeleteTable)
-	m.HandleFunc("POST "+p+"/ddb/{table}/ttl", c.ddbSetTTL)
-	m.HandleFunc("POST "+p+"/ddb/{table}/add-gsi", c.ddbAddGSI)
-	m.HandleFunc("POST "+p+"/ddb/{table}/delete-gsi", c.ddbDeleteGSI)
-
-	// SNS.
-	// Kinesis.
-	// IAM.
-	m.HandleFunc("GET "+p+"/iam", c.iamHome)
-	m.HandleFunc("GET "+p+"/iam/policy", c.iamPolicy)
-	m.HandleFunc("GET "+p+"/iam/{kind}/{name}", c.iamPrincipal)
-	m.HandleFunc("POST "+p+"/iam/simulate", c.iamSimulate)
-	m.HandleFunc("POST "+p+"/iam/simulate-inline", c.iamSimInline) // HTMX partial (the builder's live check)
-	m.HandleFunc("POST "+p+"/iam/generate", c.iamGenerate)
-	m.HandleFunc("GET "+p+"/iam/create", c.iamCreatePage)
-	m.HandleFunc("GET "+p+"/iam/account", c.iamAccount)
-	m.HandleFunc("GET "+p+"/iam/sts", c.iamSTS)
-	m.HandleFunc("POST "+p+"/iam/sts/mint", c.iamSTSMint)        // HTMX partial (AssumeRole and friends)
-	m.HandleFunc("POST "+p+"/iam/sts/key-info", c.iamSTSKeyInfo) // HTMX partial (GetAccessKeyInfo)
-	m.HandleFunc("POST "+p+"/iam/account/alias", c.iamAlias)
-	m.HandleFunc("POST "+p+"/iam/account/details", c.iamAuthDetails) // HTMX partial (GetAccountAuthorizationDetails)
-	m.HandleFunc("POST "+p+"/iam/policy/new-version", c.iamNewPolicyVersion)
-	m.HandleFunc("POST "+p+"/iam/policy/set-default", c.iamSetDefaultVersion)
-	m.HandleFunc("POST "+p+"/iam/policy/delete-version", c.iamDeleteVersion)
-	m.HandleFunc("POST "+p+"/iam/group/{name}/member", c.iamGroupMember)
-	m.HandleFunc("POST "+p+"/iam/group/{name}/rename", c.iamGroupRename)
-	m.HandleFunc("POST "+p+"/iam/profile/{name}/role", c.iamProfileRole)
-	m.HandleFunc("POST "+p+"/iam/user/{name}/keys/toggle", c.iamKeyToggle)
-	m.HandleFunc("POST "+p+"/iam/user/{name}/rename", c.iamRenameUser)
-	m.HandleFunc("POST "+p+"/iam/user/{name}/join-group", c.iamJoinGroup)
-	m.HandleFunc("POST "+p+"/iam/role/{name}/trust", c.iamTrust)
-	m.HandleFunc("POST "+p+"/iam/role/{name}/meta", c.iamRoleMeta)
-	m.HandleFunc("POST "+p+"/iam/create", c.iamCreate)
-	m.HandleFunc("POST "+p+"/iam/policy/delete", c.iamDeletePolicy)
-	m.HandleFunc("POST "+p+"/iam/{kind}/{name}/attach", c.iamAttach)
-	m.HandleFunc("POST "+p+"/iam/{kind}/{name}/detach", c.iamDetach)
-	m.HandleFunc("POST "+p+"/iam/{kind}/{name}/delete", c.iamDeletePrincipal)
-	m.HandleFunc("POST "+p+"/iam/{kind}/{name}/inline", c.iamPutInline)
-	m.HandleFunc("POST "+p+"/iam/{kind}/{name}/inline/delete", c.iamDeleteInline)
-	m.HandleFunc("POST "+p+"/iam/user/{name}/keys", c.iamNewKey)
-	m.HandleFunc("POST "+p+"/iam/user/{name}/keys/delete", c.iamDeleteKey)
-
-	// API Gateway.
-	m.HandleFunc("GET "+p+"/apigw", c.apigwList)
-	m.HandleFunc("GET "+p+"/apigw/create", c.createPage("apigw", "apigw_create"))
-	m.HandleFunc("GET "+p+"/apigw-keys", c.apigwKeys)                                   // GetApiKeys, GetUsagePlans, GetUsagePlanKeys
-	m.HandleFunc("POST "+p+"/apigw-keys/create", c.apigwCreateKey)                      // CreateApiKey
-	m.HandleFunc("GET "+p+"/apigw-keys/key/{key}/reveal", c.apigwRevealKey)             // GetApiKey
-	m.HandleFunc("POST "+p+"/apigw-keys/toggle", c.apigwToggleKey)                      // UpdateApiKey
-	m.HandleFunc("POST "+p+"/apigw-keys/delete", c.apigwDeleteKey)                      // DeleteApiKey
-	m.HandleFunc("POST "+p+"/apigw-keys/plans/create", c.apigwCreatePlan)               // CreateUsagePlan
-	m.HandleFunc("GET "+p+"/apigw-keys/plans/{plan}", c.apigwPlanDetail)                // GetUsagePlan, GetUsagePlanKey
-	m.HandleFunc("POST "+p+"/apigw-keys/plans/{plan}/add-stage", c.apigwPlanAddStage)   // UpdateUsagePlan
-	m.HandleFunc("POST "+p+"/apigw-keys/plans/delete", c.apigwDeletePlan)               // DeleteUsagePlan
-	m.HandleFunc("POST "+p+"/apigw-keys/plans/{plan}/attach-key", c.apigwPlanAttachKey) // CreateUsagePlanKey
-	m.HandleFunc("POST "+p+"/apigw-keys/plans/{plan}/detach-key", c.apigwPlanDetachKey) // DeleteUsagePlanKey
-	m.HandleFunc("POST "+p+"/apigw/create", c.apigwCreate)
-	m.HandleFunc("GET "+p+"/apigw-http/{api}", c.apigwHTTP)                          // GetApis, GetRoutes, GetIntegrations, GetStages, GetAuthorizers
-	m.HandleFunc("POST "+p+"/apigw-http/{api}/update", c.apigwHTTPUpdate)            // UpdateApi, DeleteCorsConfiguration
-	m.HandleFunc("POST "+p+"/apigw-http/{api}/delete", c.apigwHTTPDelete)            // DeleteApi
-	m.HandleFunc("POST "+p+"/apigw-http/{api}/add-route", c.apigwHTTPAddRoute)       // HTMX partial (CreateIntegration, CreateRoute)
-	m.HandleFunc("POST "+p+"/apigw-http/{api}/delete-route", c.apigwHTTPDeleteRoute) // HTMX partial (DeleteRoute, DeleteIntegration)
-	m.HandleFunc("POST "+p+"/apigw-http/{api}/invoke", c.apigwHTTPInvoke)
-	m.HandleFunc("POST "+p+"/apigw-http/{api}/create-stage", c.apigwHTTPCreateStage)           // CreateStage
-	m.HandleFunc("POST "+p+"/apigw-http/{api}/delete-stage", c.apigwHTTPDeleteStage)           // DeleteStage
-	m.HandleFunc("POST "+p+"/apigw-http/{api}/deploy", c.apigwHTTPDeploy)                      // CreateDeployment
-	m.HandleFunc("POST "+p+"/apigw-http/{api}/create-authorizer", c.apigwHTTPCreateAuthorizer) // CreateAuthorizer
-	m.HandleFunc("POST "+p+"/apigw-http/{api}/delete-authorizer", c.apigwHTTPDeleteAuthorizer) // DeleteAuthorizer
-	m.HandleFunc("GET "+p+"/apigw/{api}", c.apigwAPI)
-	m.HandleFunc("POST "+p+"/apigw/{api}/invoke", c.apigwInvoke)
-	m.HandleFunc("POST "+p+"/apigw/{api}/update", c.apigwUpdate)
-	m.HandleFunc("POST "+p+"/apigw/{api}/delete", c.apigwDelete)
-	m.HandleFunc("POST "+p+"/apigw/{api}/add-resource", c.apigwAddResource)       // HTMX partial (CreateResource)
-	m.HandleFunc("POST "+p+"/apigw/{api}/delete-resource", c.apigwDeleteResource) // HTMX partial (DeleteResource)
-	m.HandleFunc("POST "+p+"/apigw/{api}/rename-resource", c.apigwRenameResource) // HTMX partial (UpdateResource)
-	m.HandleFunc("POST "+p+"/apigw/{api}/put-method", c.apigwPutMethod)           // HTMX partial (PutMethod)
-	m.HandleFunc("POST "+p+"/apigw/{api}/delete-method", c.apigwDeleteMethod)     // HTMX partial (DeleteMethod)
-	m.HandleFunc("POST "+p+"/apigw/{api}/method", c.apigwMethodPanel)             // HTMX partial (GetMethod)
-	m.HandleFunc("POST "+p+"/apigw/{api}/put-integration", c.apigwPutIntegration) // HTMX partial (PutIntegration)
-	m.HandleFunc("POST "+p+"/apigw/{api}/delete-integration", c.apigwDeleteIntegration)
-	m.HandleFunc("POST "+p+"/apigw/{api}/put-response", c.apigwPutResponse) // method + integration halves
-	m.HandleFunc("POST "+p+"/apigw/{api}/delete-response", c.apigwDeleteResponse)
-	m.HandleFunc("POST "+p+"/apigw/{api}/deploy", c.apigwDeploy) // CreateDeployment
-	m.HandleFunc("POST "+p+"/apigw/{api}/delete-deployment", c.apigwDeleteDeployment)
-	m.HandleFunc("POST "+p+"/apigw/{api}/create-stage", c.apigwCreateStage)
-	m.HandleFunc("POST "+p+"/apigw/{api}/update-stage", c.apigwUpdateStage)
-	m.HandleFunc("POST "+p+"/apigw/{api}/delete-stage", c.apigwDeleteStage)
-	m.HandleFunc("POST "+p+"/apigw/{api}/create-authorizer", c.apigwCreateAuthorizer) // HTMX partial (CreateAuthorizer, GetAuthorizers)
-	m.HandleFunc("POST "+p+"/apigw/{api}/update-authorizer", c.apigwUpdateAuthorizer) // HTMX partial (UpdateAuthorizer)
-	m.HandleFunc("POST "+p+"/apigw/{api}/delete-authorizer", c.apigwDeleteAuthorizer) // HTMX partial (DeleteAuthorizer)
-	m.HandleFunc("GET "+p+"/apigw/{api}/authorizer/{auth}", c.apigwAuthorizer)        // HTMX partial (GetAuthorizer)
-
-	// CloudFormation.
-	m.HandleFunc("GET "+p+"/cfn", c.cfnStacks)
-	m.HandleFunc("GET "+p+"/cfn/create", c.createPage("cfn", "cfn_create"))
-	m.HandleFunc("GET "+p+"/cfn/export-template", c.cfnExportTemplate) // seeds the create page from what is running
-	m.HandleFunc("POST "+p+"/cfn/create", c.cfnCreate)
-	m.HandleFunc("POST "+p+"/cfn/validate", c.cfnValidate) // HTMX partial (ValidateTemplate)
-	m.HandleFunc("POST "+p+"/cfn/summary", c.cfnSummary)   // HTMX partial (GetTemplateSummary)
-	m.HandleFunc("GET "+p+"/cfn/{stack}", c.cfnStack)
-	m.HandleFunc("POST "+p+"/cfn/{stack}/delete", c.cfnDelete)
-	m.HandleFunc("POST "+p+"/cfn/{stack}/update", c.cfnUpdate)
-	m.HandleFunc("POST "+p+"/cfn/{stack}/changeset/{cs}/execute", c.cfnExecuteCS)
-	m.HandleFunc("POST "+p+"/cfn/{stack}/changeset/{cs}/delete", c.cfnDeleteCS)
-	m.HandleFunc("POST "+p+"/cfn/{stack}/resource", c.cfnResource) // HTMX partial (DescribeStackResource)
-
-	m.HandleFunc("GET "+p+"/kinesis", c.kinesisStreams)
-	m.HandleFunc("POST "+p+"/kinesis/create", c.kinesisCreate)
-	m.HandleFunc("GET "+p+"/kinesis/{stream}", c.kinesisStream)
-	m.HandleFunc("GET "+p+"/kinesis/{stream}/records", c.kinesisRecords)
-	m.HandleFunc("GET "+p+"/kinesis/{stream}/details", c.kinesisDetails)
-	m.HandleFunc("GET "+p+"/kinesis/{stream}/tags", c.kinesisTags)
-	m.HandleFunc("POST "+p+"/kinesis/{stream}/merge", c.kinesisMerge)
-	m.HandleFunc("POST "+p+"/kinesis/{stream}/scale", c.kinesisScale)
-	m.HandleFunc("POST "+p+"/kinesis/{stream}/mode", c.kinesisMode)
-	m.HandleFunc("POST "+p+"/kinesis/{stream}/encryption", c.kinesisEncryption)
-	m.HandleFunc("POST "+p+"/kinesis/{stream}/metrics", c.kinesisMetrics)
-	m.HandleFunc("POST "+p+"/kinesis/{stream}/consumers/add", c.kinesisConsumerAdd)
-	m.HandleFunc("POST "+p+"/kinesis/{stream}/consumers/del", c.kinesisConsumerDel)
-	m.HandleFunc("POST "+p+"/kinesis/{stream}/policy", c.kinesisPolicy)
-	m.HandleFunc("POST "+p+"/kinesis/{stream}/records/query", c.kinesisRecordsQuery)
-	m.HandleFunc("GET "+p+"/kinesis/{stream}/record", c.kinesisRecord)
-	m.HandleFunc("GET "+p+"/kinesis/{stream}/shards/{shard}/depth", c.kinesisShardDepth)
-	m.HandleFunc("POST "+p+"/kinesis/{stream}/delete", c.kinesisDelete)
-	m.HandleFunc("POST "+p+"/kinesis/{stream}/put", c.kinesisPut)
-	m.HandleFunc("POST "+p+"/kinesis/{stream}/split", c.kinesisSplit)
-	m.HandleFunc("POST "+p+"/kinesis/{stream}/retention", c.kinesisRetention)
-
-	m.HandleFunc("GET "+p+"/sns", c.snsTopics)
-	m.HandleFunc("POST "+p+"/sns/create", c.snsCreateTopic)
-	m.HandleFunc("GET "+p+"/sns/{topic}", c.snsTopic)
-	m.HandleFunc("POST "+p+"/sns/{topic}/publish", c.snsPublish)
-	m.HandleFunc("POST "+p+"/sns/{topic}/subscribe", c.snsSubscribe)
-	m.HandleFunc("POST "+p+"/sns/{topic}/confirm", c.snsConfirm)
-	m.HandleFunc("POST "+p+"/sns/{topic}/attribute", c.snsSetAttribute)             // SetTopicAttributes (C)
-	m.HandleFunc("POST "+p+"/sns/{topic}/permission", c.snsAddPermission)           // AddPermission (C)
-	m.HandleFunc("POST "+p+"/sns/{topic}/permission/delete", c.snsRemovePermission) // RemovePermission (C)
-	m.HandleFunc("POST "+p+"/sns/{topic}/data-protection", c.snsDataProtection)     // PutDataProtectionPolicy (C) // ConfirmSubscription
-	m.HandleFunc("POST "+p+"/sns/{topic}/unsubscribe", c.snsUnsubscribe)
-	m.HandleFunc("POST "+p+"/sns/{topic}/sub-filter", c.snsSubFilter)
-	m.HandleFunc("POST "+p+"/sns/{topic}/sub-raw", c.snsSubRaw)
-	m.HandleFunc("POST "+p+"/sns/{topic}/delete-topic", c.snsDeleteTopic)
-
-	// EventBridge.
-	m.HandleFunc("POST "+p+"/eb/test-pattern", c.ebTestPattern) // HTMX partial (TestEventPattern)
-	m.HandleFunc("GET "+p+"/eb", c.ebBuses)
-	m.HandleFunc("GET "+p+"/eb/destinations", c.ebDestinations)                                         // ListConnections, ListApiDestinations
-	m.HandleFunc("POST "+p+"/eb/destinations/create-connection", c.ebCreateConnection)                  // CreateConnection
-	m.HandleFunc("POST "+p+"/eb/destinations/delete-connection", c.ebDeleteConnection)                  // DeleteConnection
-	m.HandleFunc("GET "+p+"/eb/destinations/connection/{conn}", c.ebConnection)                         // DescribeConnection
-	m.HandleFunc("POST "+p+"/eb/destinations/connection/{conn}/update", c.ebUpdateConnection)           // UpdateConnection
-	m.HandleFunc("POST "+p+"/eb/destinations/connection/{conn}/deauthorize", c.ebDeauthorizeConnection) // DeauthorizeConnection
-	m.HandleFunc("POST "+p+"/eb/destinations/create-destination", c.ebCreateDestination)                // CreateApiDestination
-	m.HandleFunc("POST "+p+"/eb/destinations/delete-destination", c.ebDeleteDestination)                // DeleteApiDestination
-	m.HandleFunc("GET "+p+"/eb/destinations/destination/{dest}", c.ebDestination)                       // DescribeApiDestination
-	m.HandleFunc("POST "+p+"/eb/destinations/destination/{dest}/update", c.ebUpdateDestination)         // UpdateApiDestination
-	m.HandleFunc("POST "+p+"/eb/create-bus", c.ebCreateBus)
-	m.HandleFunc("POST "+p+"/eb/{bus}/delete-bus", c.ebDeleteBus)
-	m.HandleFunc("GET "+p+"/eb/{bus}", c.ebBus)
-	m.HandleFunc("POST "+p+"/eb/{bus}/create-rule", c.ebCreateRule)
-	m.HandleFunc("POST "+p+"/eb/{bus}/test-event", c.ebTestEvent)
-	m.HandleFunc("POST "+p+"/eb/{bus}/match", c.ebMatch) // HTMX partial (live rule matcher)
-	m.HandleFunc("POST "+p+"/eb/{bus}/create-archive", c.ebCreateArchive)
-	m.HandleFunc("POST "+p+"/eb/{bus}/delete-archive", c.ebDeleteArchive)
-	m.HandleFunc("POST "+p+"/eb/{bus}/replay", c.ebReplay)
-	m.HandleFunc("GET  "+p+"/eb/{bus}/archive/{archive}", c.ebArchive)              // DescribeArchive
-	m.HandleFunc("POST "+p+"/eb/{bus}/archive/{archive}/update", c.ebUpdateArchive) // UpdateArchive
-	m.HandleFunc("GET  "+p+"/eb/{bus}/replay/{replay}", c.ebReplayDetail)           // DescribeReplay
-	m.HandleFunc("GET  "+p+"/eb/{bus}/detail", c.ebBusDetail)                       // DescribeEventBus
-	m.HandleFunc("POST "+p+"/eb/{bus}/rules-by-target", c.ebRulesByTarget)          // ListRuleNamesByTarget
-	m.HandleFunc("GET "+p+"/eb/{bus}/rule/{rule}", c.ebRule)
-	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/add-target", c.ebAddTarget)
-	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/remove-target", c.ebRemoveTarget)
-	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/delete-rule", c.ebDeleteRule)
-	m.HandleFunc("POST "+p+"/eb/{bus}/rule/{rule}/toggle", c.ebToggleRule)
-
-	// Step Functions. validate and create sit before {machine} so a machine
-	// called "create" cannot shadow them.
-	m.HandleFunc("POST "+p+"/sfn/validate", c.sfnValidate) // HTMX partial (ValidateStateMachineDefinition)
-	m.HandleFunc("GET "+p+"/sfn", c.sfnMachines)
-	m.HandleFunc("GET "+p+"/sfn/create", c.createPage("sfn", "sfn_create"))
-	m.HandleFunc("POST "+p+"/sfn/create", c.sfnCreate)
-	m.HandleFunc("GET "+p+"/sfn/{machine}", c.sfnMachine)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/start", c.sfnStart)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/delete", c.sfnDelete)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/definition", c.sfnUpdateDefinition)
-	m.HandleFunc("GET "+p+"/sfn/{machine}/executions", c.sfnExecutions) // HTMX partial (polled ListExecutions)
-	m.HandleFunc("GET "+p+"/sfn/{machine}/logs", c.sfnLogs)             // HTMX partial (polled FilterLogEvents)
-	m.HandleFunc("GET "+p+"/sfn/{machine}/execution/{exec}", c.sfnExecution)
-	m.HandleFunc("GET "+p+"/sfn/{machine}/execution/{exec}/history", c.sfnHistory) // HTMX partial (polled GetExecutionHistory)
-	m.HandleFunc("GET "+p+"/sfn/{machine}/execution/{exec}/graph", c.sfnGraph)     // HTMX partial (polled GetExecutionHistory over DescribeStateMachineForExecution)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/stop", c.sfnStop)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/task-result", c.sfnTaskResult) // HTMX partial (SendTaskSuccess / SendTaskFailure)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/heartbeat", c.sfnHeartbeat)    // HTMX partial (SendTaskHeartbeat)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/redrive", c.sfnRedrive)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/execution/{exec}/maprun", c.sfnMapRunUpdate)           // HTMX partial (UpdateMapRun)
-	m.HandleFunc("GET "+p+"/sfn/{machine}/execution/{exec}/maprun-children", c.sfnMapRunChildren) // HTMX partial (ListExecutions by mapRunArn)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/start-sync", c.sfnStartSync)                           // HTMX partial (StartSyncExecution)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/test-state", c.sfnTestState)                           // HTMX partial (TestState)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/publish", c.sfnPublish)
-	m.HandleFunc("GET "+p+"/sfn/{machine}/version/{n}", c.sfnVersion) // HTMX partial (DescribeStateMachine on a version ARN)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/version/{n}/delete", c.sfnVersionDelete)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/alias/create", c.sfnAliasCreate)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/alias/{alias}/update", c.sfnAliasUpdate)
-	m.HandleFunc("POST "+p+"/sfn/{machine}/alias/{alias}/delete", c.sfnAliasDelete)
-	// Activities are machine-independent, so they live beside the machines
-	// rather than under one. The literal segment wins over {machine}.
-	m.HandleFunc("GET "+p+"/sfn/activities", c.sfnActivities)
-	m.HandleFunc("POST "+p+"/sfn/activities/create", c.sfnActivityCreate)
-	m.HandleFunc("POST "+p+"/sfn/activities/task-result", c.sfnActivityTaskResult) // HTMX partial (SendTaskSuccess / SendTaskFailure)
-	m.HandleFunc("POST "+p+"/sfn/activities/heartbeat", c.sfnHeartbeat)            // HTMX partial (SendTaskHeartbeat)
-	m.HandleFunc("POST "+p+"/sfn/activities/{activity}/take", c.sfnActivityTake)   // HTMX partial (GetActivityTask)
-	m.HandleFunc("POST "+p+"/sfn/activities/{activity}/delete", c.sfnActivityDelete)
-
-	// Lambda.
-	m.HandleFunc("GET "+p+"/lambda", c.lambdaFns)
-	m.HandleFunc("GET "+p+"/lambda/create", c.createPage("lambda", "lambda_create"))
-	m.HandleFunc("POST "+p+"/lambda/create", c.lambdaCreate)
-	m.HandleFunc("GET "+p+"/lambda/{fn}", c.lambdaFn)
-	m.HandleFunc("GET "+p+"/lambda/{fn}/runtime", c.lambdaRuntimeBadge) // HTMX partial (polled)
-	m.HandleFunc("GET "+p+"/lambda/{fn}/logs", c.lambdaLogs)            // HTMX partial (polled FilterLogEvents)
-
-	// CloudWatch Logs: groups by name in the query, since names carry slashes.
-	m.HandleFunc("GET "+p+"/logs", c.logsHome)
-	m.HandleFunc("GET "+p+"/logs/create", c.createPage("logs", "logs_create"))
-	m.HandleFunc("POST "+p+"/logs/create", c.logsCreate)
-	m.HandleFunc("POST "+p+"/logs/delete-stream", c.logsDeleteStream)
-	m.HandleFunc("GET "+p+"/logs/group", c.logsGroup)
-	m.HandleFunc("GET "+p+"/logs/tail", c.logsTail) // HTMX partial (polled FilterLogEvents)
-	m.HandleFunc("POST "+p+"/logs/retention", c.logsRetention)
-	m.HandleFunc("POST "+p+"/logs/delete", c.logsDelete)
-	m.HandleFunc("POST "+p+"/logs/subscribe", c.logsSubscribe)                     // PutSubscriptionFilter
-	m.HandleFunc("POST "+p+"/logs/unsubscribe", c.logsUnsubscribe)                 // DeleteSubscriptionFilter
-	m.HandleFunc("POST "+p+"/logs/metric-filter", c.logsPutMetricFilter)           // PutMetricFilter
-	m.HandleFunc("POST "+p+"/logs/delete-metric-filter", c.logsDeleteMetricFilter) // DeleteMetricFilter
-	m.HandleFunc("POST "+p+"/logs/test-metric-filter", c.logsTestMetricFilter)     // TestMetricFilter
-
-	// CloudWatch: alarms by name in the path, metrics by an encoded key in the
-	// query — a metric identity is namespace + name + its dimension set, which
-	// does not fit in a path segment.
-	m.HandleFunc("GET "+p+"/cw/create", c.createPage("cw", "cw_create"))
-	m.HandleFunc("GET "+p+"/cw", c.cwHome)                             // DescribeAlarms, ListMetrics
-	m.HandleFunc("GET "+p+"/cw/metric", c.cwMetric)                    // GetMetricData, DescribeAlarmsForMetric
-	m.HandleFunc("GET "+p+"/cw/alarm/{name}", c.cwAlarm)               // DescribeAlarmHistory
-	m.HandleFunc("POST "+p+"/cw/create-alarm", c.cwCreateAlarm)        // PutMetricAlarm
-	m.HandleFunc("POST "+p+"/cw/alarm/{name}/state", c.cwSetState)     // SetAlarmState
-	m.HandleFunc("POST "+p+"/cw/alarm/{name}/actions", c.cwSetActions) // Enable/DisableAlarmActions
-	m.HandleFunc("POST "+p+"/cw/alarm/{name}/delete", c.cwDeleteAlarm) // DeleteAlarms
-	m.HandleFunc("POST "+p+"/lambda/{fn}/invoke", c.lambdaInvoke)
-	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-fn", c.lambdaDelete)
-	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-mapping", c.lambdaDeleteMapping)
-	m.HandleFunc("POST "+p+"/lambda/{fn}/add-mapping", c.lambdaAddMapping)
-	m.HandleFunc("POST "+p+"/lambda/{fn}/config", c.lambdaSaveConfig)
-	m.HandleFunc("POST "+p+"/lambda/{fn}/code", c.lambdaUpdateCode)          // UpdateFunctionCode
-	m.HandleFunc("POST "+p+"/lambda/{fn}/reset-async", c.lambdaResetAsync)   // DeleteFunctionEventInvokeConfig
-	m.HandleFunc("POST "+p+"/lambda/layers/publish", c.lambdaLayerPublish)   // PublishLayerVersion
-	m.HandleFunc("POST "+p+"/lambda/layers/versions", c.lambdaLayerVersions) // HTMX partial (ListLayerVersions)
-	m.HandleFunc("POST "+p+"/lambda/layers/version", c.lambdaLayerVersion)   // HTMX partial (GetLayerVersion)
-	m.HandleFunc("POST "+p+"/lambda/layers/find", c.lambdaLayerFind)         // HTMX partial (GetLayerVersionByArn)
-	m.HandleFunc("POST "+p+"/lambda/layers/delete", c.lambdaLayerDelete)     // DeleteLayerVersion
-	m.HandleFunc("POST "+p+"/lambda/layers/grant", c.lambdaLayerGrant)       // AddLayerVersionPermission
-	m.HandleFunc("POST "+p+"/lambda/layers/revoke", c.lambdaLayerRevoke)     // RemoveLayerVersionPermission
-	m.HandleFunc("POST "+p+"/lambda/{fn}/create-url", c.lambdaCreateURL)
-	m.HandleFunc("POST "+p+"/lambda/{fn}/delete-url", c.lambdaDeleteURL)
-	m.HandleFunc("POST "+p+"/lambda/{fn}/update-url", c.lambdaUpdateURL)
-
-	// KMS.
-	m.HandleFunc("GET "+p+"/kms", c.kmsKeys)
-	m.HandleFunc("POST "+p+"/kms/create", c.kmsCreateKey)
-	m.HandleFunc("GET "+p+"/kms/{key}", c.kmsKey)
-	m.HandleFunc("POST "+p+"/kms/{key}/toggle-enabled", c.kmsToggleEnabled)
-	m.HandleFunc("POST "+p+"/kms/{key}/policy", c.kmsSavePolicy) // HTMX partial (PutKeyPolicy)
-	m.HandleFunc("POST "+p+"/kms/{key}/toggle-rotation", c.kmsToggleRotation)
-	m.HandleFunc("POST "+p+"/kms/{key}/rotate-now", c.kmsRotateNow)
-	m.HandleFunc("POST "+p+"/kms/{key}/schedule-deletion", c.kmsScheduleDeletion)
-	m.HandleFunc("POST "+p+"/kms/{key}/encrypt", c.kmsEncrypt)
-	m.HandleFunc("POST "+p+"/kms/{key}/decrypt", c.kmsDecrypt)
-	m.HandleFunc("POST "+p+"/kms/{key}/sign", c.kmsSign)
-	m.HandleFunc("POST "+p+"/kms/{key}/verify", c.kmsVerify)
-	m.HandleFunc("POST "+p+"/kms/{key}/mac", c.kmsMac)
-	m.HandleFunc("POST "+p+"/kms/{key}/verify-mac", c.kmsVerifyMac)
-	m.HandleFunc("POST "+p+"/kms/{key}/add-alias", c.kmsAddAlias)
-	m.HandleFunc("POST "+p+"/kms/{key}/description", c.kmsDescription)  // UpdateKeyDescription
-	m.HandleFunc("POST "+p+"/kms/random", c.kmsRandom)                  // GenerateRandom — no key needed
-	m.HandleFunc("POST "+p+"/kms/{key}/public-key", c.kmsPublicKey)     // GetPublicKey
-	m.HandleFunc("POST "+p+"/kms/{key}/reencrypt", c.kmsReEncrypt)      // ReEncrypt
-	m.HandleFunc("POST "+p+"/kms/{key}/update-alias", c.kmsUpdateAlias) // UpdateAlias
-	m.HandleFunc("POST "+p+"/kms/{key}/delete-alias", c.kmsDeleteAlias)
-	m.HandleFunc("POST "+p+"/kms/{key}/cancel-deletion", c.kmsCancelDeletion)
-
-	// SSM Parameter Store (names contain slashes -> query params).
-	m.HandleFunc("GET "+p+"/ssm", c.ssmParams)
-	m.HandleFunc("POST "+p+"/ssm/create", c.ssmCreate)
-	m.HandleFunc("GET "+p+"/ssm/param", c.ssmParam)
-	m.HandleFunc("GET "+p+"/ssm/diff", c.ssmDiff)
-	m.HandleFunc("POST "+p+"/ssm/put", c.ssmPut)
-	m.HandleFunc("POST "+p+"/ssm/delete", c.ssmDelete)
-	m.HandleFunc("POST "+p+"/ssm/label", c.ssmLabel)
-	m.HandleFunc("POST "+p+"/ssm/unlabel", c.ssmUnlabel)        // UnlabelParameterVersion
-	m.HandleFunc("POST "+p+"/ssm/path", c.ssmPath)              // GetParametersByPath
-	m.HandleFunc("POST "+p+"/ssm/delete-path", c.ssmDeletePath) // DeleteParameters
-
-	// Secrets Manager (names may contain slashes -> query params).
-	m.HandleFunc("GET "+p+"/sm", c.smSecrets)
-	m.HandleFunc("POST "+p+"/sm/create", c.smCreate)
-	m.HandleFunc("POST "+p+"/sm/restore", c.smRestore)
-	m.HandleFunc("POST "+p+"/sm/promote", c.smPromote)   // UpdateSecretVersionStage — the rollback
-	m.HandleFunc("POST "+p+"/sm/update", c.smUpdateMeta) // UpdateSecret
-	m.HandleFunc("POST "+p+"/sm/rotation", c.smConfigureRotation)
-	m.HandleFunc("POST "+p+"/sm/rotate-now", c.smRotateNow)
-	m.HandleFunc("POST "+p+"/sm/policy", c.smSavePolicy) // PutResourcePolicy / DeleteResourcePolicy
-	m.HandleFunc("GET "+p+"/sm/password", c.smPassword)
-	m.HandleFunc("GET "+p+"/sm/secret", c.smSecret)
-	m.HandleFunc("GET "+p+"/sm/diff", c.smDiff)
-	m.HandleFunc("POST "+p+"/sm/put", c.smPut)
-	m.HandleFunc("POST "+p+"/sm/delete", c.smDelete)
-
-	c.mux = m
 }
 
 // render writes a full page (layout + named content template). The request is

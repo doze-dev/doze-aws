@@ -71,7 +71,7 @@ func (c *Console) createPage(svc, tmpl string) http.HandlerFunc {
 // ebRuleCreatePage is scoped to a bus.
 func (c *Console) ebRuleCreatePage(w http.ResponseWriter, r *http.Request) {
 	buses, _ := c.be.ListBuses(r.Context())
-	c.render(w, r, "eb_rule_create", map[string]any{"Bus": r.PathValue("bus"), "Svc": "eb", "List": buses, "Title": "Create rule"})
+	c.render(w, r, "eb_rule_create", map[string]any{"Bus": param(r, "bus"), "Svc": "eb", "List": buses, "Title": "Create rule"})
 }
 
 // apiResources feeds the command palette.

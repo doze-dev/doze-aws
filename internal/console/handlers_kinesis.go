@@ -22,7 +22,7 @@ func (c *Console) kinesisStreams(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(streams) > 0 {
-		r.SetPathValue("stream", streams[0].Name)
+		setParam(r, "stream", streams[0].Name)
 		c.kinesisStream(w, r)
 		return
 	}
@@ -49,7 +49,7 @@ func (c *Console) streamPage(r *http.Request, name string) (map[string]any, erro
 }
 
 func (c *Console) kinesisStream(w http.ResponseWriter, r *http.Request) {
-	data, err := c.streamPage(r, r.PathValue("stream"))
+	data, err := c.streamPage(r, param(r, "stream"))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -62,7 +62,7 @@ func (c *Console) kinesisStream(w http.ResponseWriter, r *http.Request) {
 // API, so this reads — which is exactly why it is not on the page's critical
 // path and why it is allowed to answer "1000+".
 func (c *Console) kinesisShardDepth(w http.ResponseWriter, r *http.Request) {
-	n, err := c.be.CountShard(r.Context(), r.PathValue("stream"), r.PathValue("shard"))
+	n, err := c.be.CountShard(r.Context(), param(r, "stream"), param(r, "shard"))
 	if err != nil {
 		// A count is decoration; failing it should not blank out the row.
 		c.partial(w, "kinesis_depth", map[string]any{"Err": true})
@@ -151,7 +151,7 @@ func (c *Console) recordQuery(r *http.Request, stream string, shards []Shard) Re
 
 // kinesisRecords is the explorer's own view.
 func (c *Console) kinesisRecords(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("stream")
+	name := param(r, "stream")
 	data, err := c.streamPage(r, name)
 	if err != nil {
 		c.fail(w, err)
@@ -174,7 +174,7 @@ func (c *Console) kinesisRecords(w http.ResponseWriter, r *http.Request) {
 // kinesisRecordsQuery runs a query from the filter bar or a cursor. A cursor
 // means rows are being appended, so only the rows come back.
 func (c *Console) kinesisRecordsQuery(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("stream")
+	name := param(r, "stream")
 	shards, err := c.be.ListShards(r.Context(), name)
 	if err != nil {
 		c.fail(w, err)
@@ -223,7 +223,7 @@ func fillResults(data map[string]any, q RecordQuery, page *RecordPage) {
 // a megabyte each is not something to hand a browser on the chance someone
 // looks.
 func (c *Console) kinesisRecord(w http.ResponseWriter, r *http.Request) {
-	rec, err := c.be.ReadOne(r.Context(), r.PathValue("stream"),
+	rec, err := c.be.ReadOne(r.Context(), param(r, "stream"),
 		r.FormValue("shard"), r.FormValue("seq"))
 	if err != nil {
 		c.fail(w, err)
@@ -235,7 +235,7 @@ func (c *Console) kinesisRecord(w http.ResponseWriter, r *http.Request) {
 // kinesisDetails is the configuration tab: everything about a stream that is
 // set rather than read.
 func (c *Console) kinesisDetails(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("stream")
+	name := param(r, "stream")
 	data, err := c.streamPage(r, name)
 	if err != nil {
 		c.fail(w, err)
@@ -269,7 +269,7 @@ func (c *Console) kinesisDetails(w http.ResponseWriter, r *http.Request) {
 // pairs the service will accept, so a rejection here means the layout changed
 // under the page rather than that someone picked badly.
 func (c *Console) kinesisMerge(w http.ResponseWriter, r *http.Request) {
-	stream := r.PathValue("stream")
+	stream := param(r, "stream")
 	left, right := r.FormValue("left"), r.FormValue("right")
 	if left == "" || right == "" {
 		c.redirect(w, r, c.prefix+"/kinesis/"+stream+"/details", "Pick two adjacent shards to merge")
@@ -283,7 +283,7 @@ func (c *Console) kinesisMerge(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kinesisScale(w http.ResponseWriter, r *http.Request) {
-	stream := r.PathValue("stream")
+	stream := param(r, "stream")
 	target, _ := strconv.Atoi(r.FormValue("shards"))
 	if err := c.be.UpdateShardCount(r.Context(), stream, target); err != nil {
 		c.fail(w, err)
@@ -293,7 +293,7 @@ func (c *Console) kinesisScale(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kinesisMode(w http.ResponseWriter, r *http.Request) {
-	stream := r.PathValue("stream")
+	stream := param(r, "stream")
 	summary, err := c.be.StreamSummary(r.Context(), stream)
 	if err != nil {
 		c.fail(w, err)
@@ -310,7 +310,7 @@ func (c *Console) kinesisMode(w http.ResponseWriter, r *http.Request) {
 // kinesisEncryption sets or clears the stream's KMS key. This is metadata:
 // the local store is not encrypted either way, and the page says so.
 func (c *Console) kinesisEncryption(w http.ResponseWriter, r *http.Request) {
-	stream := r.PathValue("stream")
+	stream := param(r, "stream")
 	key := r.FormValue("key")
 	var err error
 	msg := "Encryption cleared"
@@ -328,7 +328,7 @@ func (c *Console) kinesisEncryption(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kinesisMetrics(w http.ResponseWriter, r *http.Request) {
-	stream := r.PathValue("stream")
+	stream := param(r, "stream")
 	if err := r.ParseForm(); err != nil {
 		c.fail(w, err)
 		return
@@ -341,7 +341,7 @@ func (c *Console) kinesisMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kinesisConsumerAdd(w http.ResponseWriter, r *http.Request) {
-	stream := r.PathValue("stream")
+	stream := param(r, "stream")
 	summary, err := c.be.StreamSummary(r.Context(), stream)
 	if err != nil {
 		c.fail(w, err)
@@ -355,7 +355,7 @@ func (c *Console) kinesisConsumerAdd(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kinesisConsumerDel(w http.ResponseWriter, r *http.Request) {
-	stream := r.PathValue("stream")
+	stream := param(r, "stream")
 	summary, err := c.be.StreamSummary(r.Context(), stream)
 	if err != nil {
 		c.fail(w, err)
@@ -369,7 +369,7 @@ func (c *Console) kinesisConsumerDel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kinesisPolicy(w http.ResponseWriter, r *http.Request) {
-	stream := r.PathValue("stream")
+	stream := param(r, "stream")
 	summary, err := c.be.StreamSummary(r.Context(), stream)
 	if err != nil {
 		c.fail(w, err)
@@ -403,7 +403,7 @@ func (c *Console) kinesisCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kinesisDelete(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeleteStream(r.Context(), r.PathValue("stream")); err != nil {
+	if err := c.be.DeleteStream(r.Context(), param(r, "stream")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -412,7 +412,7 @@ func (c *Console) kinesisDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kinesisPut(w http.ResponseWriter, r *http.Request) {
-	stream := r.PathValue("stream")
+	stream := param(r, "stream")
 	key := r.FormValue("partitionKey")
 	if key == "" {
 		key = "console"
@@ -454,7 +454,7 @@ func (c *Console) kinesisPut(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kinesisSplit(w http.ResponseWriter, r *http.Request) {
-	stream := r.PathValue("stream")
+	stream := param(r, "stream")
 	shard := r.FormValue("shard")
 	at := r.FormValue("at")
 	if at == "" {
@@ -469,7 +469,7 @@ func (c *Console) kinesisSplit(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kinesisRetention(w http.ResponseWriter, r *http.Request) {
-	stream := r.PathValue("stream")
+	stream := param(r, "stream")
 	hours, _ := strconv.Atoi(r.FormValue("hours"))
 	if err := c.be.SetRetention(r.Context(), stream, hours); err != nil {
 		c.fail(w, err)
@@ -482,7 +482,7 @@ func (c *Console) kinesisRetention(w http.ResponseWriter, r *http.Request) {
 // than ?tab=, so this needs one of its own — the other services' Tags tab is a
 // query parameter on a page that already exists.
 func (c *Console) kinesisTags(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("stream")
+	name := param(r, "stream")
 	data, err := c.streamPage(r, name)
 	if err != nil {
 		c.fail(w, err)

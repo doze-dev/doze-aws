@@ -4,5 +4,4 @@
 # a route is missing from the run and from this list, and when a route listed
 # here is reached — so the list only ever shrinks.
 
-GET (prefix)        # the binary redirects a bare /_console to /_console/ before the console sees it (cmd/doze-aws/main.go); the route serves hosts that mount the handler without that redirect
 GET /api/glance     # a JSON feed for the separate doze dashboard; no console page calls it

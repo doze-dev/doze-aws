@@ -24,7 +24,7 @@ func (c *Console) sfnVersionsData(r *http.Request, name string) map[string]any {
 }
 
 func (c *Console) sfnPublish(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("machine")
+	name := param(r, "machine")
 	arn, err := c.be.PublishVersion(r.Context(), c.be.stateMachineARNOf(name), strings.TrimSpace(r.FormValue("description")))
 	if err != nil {
 		c.fail(w, err)
@@ -36,8 +36,8 @@ func (c *Console) sfnPublish(w http.ResponseWriter, r *http.Request) {
 // sfnVersion is the detail partial for one version: DescribeStateMachine on
 // the version ARN, which answers the snapshot rather than the machine.
 func (c *Console) sfnVersion(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("machine")
-	n, err := strconv.Atoi(r.PathValue("n"))
+	name := param(r, "machine")
+	n, err := strconv.Atoi(param(r, "n"))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -51,8 +51,8 @@ func (c *Console) sfnVersion(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sfnVersionDelete(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("machine")
-	n, err := strconv.Atoi(r.PathValue("n"))
+	name := param(r, "machine")
+	n, err := strconv.Atoi(param(r, "n"))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -89,7 +89,7 @@ func (b *backend) routesFromForm(r *http.Request, machine string) []Route {
 }
 
 func (c *Console) sfnAliasCreate(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("machine")
+	name := param(r, "machine")
 	alias := strings.TrimSpace(r.FormValue("name"))
 	_, err := c.be.CreateMachineAlias(r.Context(), alias, strings.TrimSpace(r.FormValue("description")), c.be.routesFromForm(r, name))
 	if err != nil {
@@ -102,7 +102,7 @@ func (c *Console) sfnAliasCreate(w http.ResponseWriter, r *http.Request) {
 // sfnAliasUpdate is the inline routing edit. The description travels only
 // when the form carries the field, so the routing row cannot blank it.
 func (c *Console) sfnAliasUpdate(w http.ResponseWriter, r *http.Request) {
-	name, alias := r.PathValue("machine"), r.PathValue("alias")
+	name, alias := param(r, "machine"), param(r, "alias")
 	r.ParseForm()
 	var description *string
 	if _, ok := r.Form["description"]; ok {
@@ -117,7 +117,7 @@ func (c *Console) sfnAliasUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sfnAliasDelete(w http.ResponseWriter, r *http.Request) {
-	name, alias := r.PathValue("machine"), r.PathValue("alias")
+	name, alias := param(r, "machine"), param(r, "alias")
 	if err := c.be.DeleteMachineAlias(r.Context(), c.be.aliasARNOf(name, alias)); err != nil {
 		c.fail(w, err)
 		return

@@ -64,7 +64,7 @@ func (c *Console) ebDeleteConnection(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ebConnection(w http.ResponseWriter, r *http.Request) {
-	conn, err := c.be.DescribeConnection(r.Context(), r.PathValue("conn"))
+	conn, err := c.be.DescribeConnection(r.Context(), param(r, "conn"))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -74,7 +74,7 @@ func (c *Console) ebConnection(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) ebUpdateConnection(w http.ResponseWriter, r *http.Request) {
 	f := c.connectionForm(r)
-	f.Name = r.PathValue("conn")
+	f.Name = param(r, "conn")
 	if err := c.be.UpdateConnection(r.Context(), f); err != nil {
 		c.fail(w, err)
 		return
@@ -84,7 +84,7 @@ func (c *Console) ebUpdateConnection(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ebDeauthorizeConnection(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeauthorizeConnection(r.Context(), r.PathValue("conn")); err != nil {
+	if err := c.be.DeauthorizeConnection(r.Context(), param(r, "conn")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -113,7 +113,7 @@ func (c *Console) ebDeleteDestination(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ebDestination(w http.ResponseWriter, r *http.Request) {
-	d, err := c.be.DescribeDestination(r.Context(), r.PathValue("dest"))
+	d, err := c.be.DescribeDestination(r.Context(), param(r, "dest"))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -123,7 +123,7 @@ func (c *Console) ebDestination(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ebUpdateDestination(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.UpdateDestination(r.Context(), r.PathValue("dest"), r.FormValue("connection"),
+	if err := c.be.UpdateDestination(r.Context(), param(r, "dest"), r.FormValue("connection"),
 		strings.TrimSpace(r.FormValue("endpoint")), r.FormValue("method"), strings.TrimSpace(r.FormValue("description")),
 		atoiDefault(r.FormValue("rate"), 0)); err != nil {
 		c.fail(w, err)

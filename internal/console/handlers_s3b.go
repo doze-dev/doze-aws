@@ -15,7 +15,7 @@ import (
 // s3Presign renders a working share link. doze-aws enforces the expiry, so
 // the honest durations actually mean something.
 func (c *Console) s3Presign(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	key := r.FormValue("key")
 	ttl, err := time.ParseDuration(r.FormValue("ttl"))
 	if err != nil || ttl <= 0 || ttl > 7*24*time.Hour {
@@ -29,7 +29,7 @@ func (c *Console) s3Presign(w http.ResponseWriter, r *http.Request) {
 
 // s3Copy copies or moves (copy + delete) an object.
 func (c *Console) s3Copy(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	src := r.FormValue("src")
 	dst := strings.TrimSpace(r.FormValue("dst"))
 	if dst == "" || dst == src {
@@ -54,7 +54,7 @@ func (c *Console) s3Copy(w http.ResponseWriter, r *http.Request) {
 
 // s3Versions renders an object's version history (the drawer section).
 func (c *Console) s3Versions(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	key := r.URL.Query().Get("key")
 	vs, err := c.be.ObjectVersions(r.Context(), bucket, key)
 	if err != nil {
@@ -70,7 +70,7 @@ func (c *Console) s3Versions(w http.ResponseWriter, r *http.Request) {
 // s3RestoreVersion makes an old version current again (CopyObject from the
 // version onto the same key — the S3-native "restore").
 func (c *Console) s3RestoreVersion(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	key, vid := r.FormValue("key"), r.FormValue("versionId")
 	if err := c.be.CopyObject(r.Context(), bucket, key, key, vid); err != nil {
 		c.fail(w, err)
@@ -82,7 +82,7 @@ func (c *Console) s3RestoreVersion(w http.ResponseWriter, r *http.Request) {
 
 // s3DeleteVersion permanently removes one version or delete marker.
 func (c *Console) s3DeleteVersion(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	key, vid := r.FormValue("key"), r.FormValue("versionId")
 	if err := c.be.DeleteObjectVersion(r.Context(), bucket, key, vid); err != nil {
 		c.fail(w, err)
@@ -102,7 +102,7 @@ func (c *Console) s3VersionsRefresh(w http.ResponseWriter, r *http.Request, buck
 
 // s3NotifyAdd wires a new bucket notification (read-modify-write of the config).
 func (c *Console) s3NotifyAdd(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	kind, name, ok := strings.Cut(r.FormValue("dest"), ":")
 	if !ok || name == "" {
 		c.fail(w, &apiErr{status: 400, body: "pick a destination"})
@@ -128,7 +128,7 @@ func (c *Console) s3NotifyAdd(w http.ResponseWriter, r *http.Request) {
 
 // s3NotifyRemove deletes one notification by list index.
 func (c *Console) s3NotifyRemove(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	idx := atoi(r.FormValue("index"))
 	rules := c.be.Notifications(r.Context(), bucket)
 	if idx < 0 || idx >= len(rules) {
@@ -156,7 +156,7 @@ func (c *Console) s3NotifyPartial(w http.ResponseWriter, r *http.Request, bucket
 
 // s3SaveCORS / s3SaveLifecycle persist the validated-JSON editors.
 func (c *Console) s3SaveCORS(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	if err := c.be.PutCORSJSON(r.Context(), bucket, r.FormValue("rules")); err != nil {
 		c.fail(w, err)
 		return
@@ -166,7 +166,7 @@ func (c *Console) s3SaveCORS(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) s3SaveLifecycle(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	if err := c.be.PutLifecycleJSON(r.Context(), bucket, r.FormValue("rules")); err != nil {
 		c.fail(w, err)
 		return
@@ -179,7 +179,7 @@ func (c *Console) s3SaveLifecycle(w http.ResponseWriter, r *http.Request) {
 
 // s3BulkDelete deletes the selected keys in one DeleteObjects call.
 func (c *Console) s3BulkDelete(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	var keys []string
 	if err := json.Unmarshal([]byte(r.FormValue("keys")), &keys); err != nil || len(keys) == 0 {
 		c.fail(w, errors.New("no objects selected"))
@@ -197,7 +197,7 @@ func (c *Console) s3BulkDelete(w http.ResponseWriter, r *http.Request) {
 // s3Combine concatenates the selected objects, in name order, into one new
 // object — UploadPartCopy per source, no byte leaving the service.
 func (c *Console) s3Combine(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	var keys []string
 	if err := json.Unmarshal([]byte(r.FormValue("keys")), &keys); err != nil || len(keys) < 2 {
 		c.fail(w, errors.New("select at least two objects to combine"))
@@ -220,7 +220,7 @@ func (c *Console) s3Combine(w http.ResponseWriter, r *http.Request) {
 // s3MPUploads renders the in-progress multipart uploads — storage that exists
 // and bills but which no object listing shows — each with its parts.
 func (c *Console) s3MPUploads(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	ups, err := c.be.ListMPUploads(r.Context(), bucket)
 	if err != nil {
 		c.fail(w, err)
@@ -245,7 +245,7 @@ func (c *Console) s3MPUploads(w http.ResponseWriter, r *http.Request) {
 
 // s3AbortUpload discards one in-progress upload and frees its parts.
 func (c *Console) s3AbortUpload(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	if err := c.be.AbortMPUpload(r.Context(), bucket, r.FormValue("key"), r.FormValue("upload")); err != nil {
 		c.fail(w, err)
 		return
@@ -256,7 +256,7 @@ func (c *Console) s3AbortUpload(w http.ResponseWriter, r *http.Request) {
 
 // s3Website enables or disables static website hosting.
 func (c *Console) s3Website(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	if r.FormValue("disable") != "" {
 		if err := c.be.DeleteBucketWebsite(r.Context(), bucket); err != nil {
 			c.fail(w, err)
@@ -276,7 +276,7 @@ func (c *Console) s3Website(w http.ResponseWriter, r *http.Request) {
 
 // s3LockConfig sets the bucket's default object-lock retention rule.
 func (c *Console) s3LockConfig(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	if err := c.be.PutObjectLockConfig(r.Context(), bucket,
 		r.FormValue("mode"), atoi(r.FormValue("days"))); err != nil {
 		c.fail(w, err)
@@ -294,7 +294,7 @@ func (c *Console) metaAgain(w http.ResponseWriter, r *http.Request, key string) 
 
 // s3ObjTagsSave replaces one object's tag set (empty deletes the tagging).
 func (c *Console) s3ObjTagsSave(w http.ResponseWriter, r *http.Request) {
-	bucket, key := r.PathValue("bucket"), r.FormValue("key")
+	bucket, key := param(r, "bucket"), r.FormValue("key")
 	r.ParseForm() //nolint:errcheck // best-effort, as elsewhere
 	var tags []KV
 	for i, k := range r.Form["tag_key"] {
@@ -317,7 +317,7 @@ func (c *Console) s3ObjTagsSave(w http.ResponseWriter, r *http.Request) {
 
 // s3Retention locks one object until a date; s3LegalHold flips the hold flag.
 func (c *Console) s3Retention(w http.ResponseWriter, r *http.Request) {
-	bucket, key := r.PathValue("bucket"), r.FormValue("key")
+	bucket, key := param(r, "bucket"), r.FormValue("key")
 	until := r.FormValue("until") + "T00:00:00Z"
 	if err := c.be.PutObjectRetention(r.Context(), bucket, key, r.FormValue("mode"), until); err != nil {
 		c.fail(w, err)
@@ -328,7 +328,7 @@ func (c *Console) s3Retention(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) s3LegalHold(w http.ResponseWriter, r *http.Request) {
-	bucket, key := r.PathValue("bucket"), r.FormValue("key")
+	bucket, key := param(r, "bucket"), r.FormValue("key")
 	on := r.FormValue("on") != ""
 	if err := c.be.PutObjectLegalHold(r.Context(), bucket, key, on); err != nil {
 		c.fail(w, err)
@@ -353,7 +353,7 @@ func (c *Console) s3CheckName(w http.ResponseWriter, r *http.Request) {
 
 // s3SavePolicy replaces the bucket policy from the builder; empty deletes it.
 func (c *Console) s3SavePolicy(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	doc := strings.TrimSpace(r.FormValue("document"))
 	if err := c.be.PutBucketPolicyDoc(r.Context(), bucket, doc); err != nil {
 		c.fail(w, err)
@@ -371,7 +371,7 @@ func (c *Console) s3SavePolicy(w http.ResponseWriter, r *http.Request) {
 // (PutPublicAccessBlock), off removes the configuration
 // (DeletePublicAccessBlock), so a public policy can be put.
 func (c *Console) s3PublicAccess(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	on := r.FormValue("enable") == "true"
 	if err := c.be.SetBlockPublicAccess(r.Context(), bucket, on); err != nil {
 		c.fail(w, err)

@@ -20,7 +20,7 @@ func (c *Console) kmsKeys(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(keys) > 0 {
-		r.SetPathValue("key", keys[0].ID)
+		setParam(r, "key", keys[0].ID)
 		c.kmsKey(w, r)
 		return
 	}
@@ -39,7 +39,7 @@ func (c *Console) kmsCreateKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kmsKey(w http.ResponseWriter, r *http.Request) {
-	key, err := c.be.DescribeKey(r.Context(), r.PathValue("key"))
+	key, err := c.be.DescribeKey(r.Context(), param(r, "key"))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -51,7 +51,7 @@ func (c *Console) kmsKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kmsKeyPartial(w http.ResponseWriter, r *http.Request) {
-	key, err := c.be.DescribeKey(r.Context(), r.PathValue("key"))
+	key, err := c.be.DescribeKey(r.Context(), param(r, "key"))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -61,7 +61,7 @@ func (c *Console) kmsKeyPartial(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kmsToggleEnabled(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("key")
+	id := param(r, "key")
 	key, err := c.be.DescribeKey(r.Context(), id)
 	if err != nil {
 		c.fail(w, err)
@@ -80,7 +80,7 @@ func (c *Console) kmsToggleEnabled(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kmsToggleRotation(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("key")
+	id := param(r, "key")
 	key, err := c.be.DescribeKey(r.Context(), id)
 	if err != nil {
 		c.fail(w, err)
@@ -99,7 +99,7 @@ func (c *Console) kmsToggleRotation(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kmsRotateNow(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.RotateKeyNow(r.Context(), r.PathValue("key")); err != nil {
+	if err := c.be.RotateKeyNow(r.Context(), param(r, "key")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -108,7 +108,7 @@ func (c *Console) kmsRotateNow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kmsScheduleDeletion(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.ScheduleKeyDeletion(r.Context(), r.PathValue("key")); err != nil {
+	if err := c.be.ScheduleKeyDeletion(r.Context(), param(r, "key")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -117,7 +117,7 @@ func (c *Console) kmsScheduleDeletion(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kmsEncrypt(w http.ResponseWriter, r *http.Request) {
-	out, err := c.be.KMSEncrypt(r.Context(), r.PathValue("key"), r.FormValue("plaintext"))
+	out, err := c.be.KMSEncrypt(r.Context(), param(r, "key"), r.FormValue("plaintext"))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -125,7 +125,7 @@ func (c *Console) kmsEncrypt(w http.ResponseWriter, r *http.Request) {
 	c.partial(w, "kms_crypto_result", map[string]any{
 		"Label": "Ciphertext (base64)", "Value": out,
 		// One-click round-trip: the result card can decrypt itself.
-		"DecryptURL": c.prefix + "/kms/" + r.PathValue("key") + "/decrypt",
+		"DecryptURL": c.prefix + "/kms/" + param(r, "key") + "/decrypt",
 	})
 }
 
@@ -140,7 +140,7 @@ func (c *Console) kmsDecrypt(w http.ResponseWriter, r *http.Request) {
 
 // kmsSign / kmsVerify — asymmetric signing playground.
 func (c *Console) kmsSign(w http.ResponseWriter, r *http.Request) {
-	key := r.PathValue("key")
+	key := param(r, "key")
 	sig, err := c.be.KMSSign(r.Context(), key, r.FormValue("algo"), r.FormValue("message"))
 	if err != nil {
 		c.fail(w, err)
@@ -153,13 +153,13 @@ func (c *Console) kmsSign(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kmsVerify(w http.ResponseWriter, r *http.Request) {
-	err := c.be.KMSVerify(r.Context(), r.PathValue("key"), r.FormValue("algo"), r.FormValue("message"), r.FormValue("signature"))
+	err := c.be.KMSVerify(r.Context(), param(r, "key"), r.FormValue("algo"), r.FormValue("message"), r.FormValue("signature"))
 	c.partial(w, "kms_verdict", map[string]any{"Valid": err == nil, "What": "signature"})
 }
 
 // kmsMac / kmsVerifyMac — HMAC playground.
 func (c *Console) kmsMac(w http.ResponseWriter, r *http.Request) {
-	key := r.PathValue("key")
+	key := param(r, "key")
 	mac, err := c.be.KMSGenerateMac(r.Context(), key, r.FormValue("algo"), r.FormValue("message"))
 	if err != nil {
 		c.fail(w, err)
@@ -172,12 +172,12 @@ func (c *Console) kmsMac(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kmsVerifyMac(w http.ResponseWriter, r *http.Request) {
-	err := c.be.KMSVerifyMac(r.Context(), r.PathValue("key"), r.FormValue("algo"), r.FormValue("message"), r.FormValue("mac"))
+	err := c.be.KMSVerifyMac(r.Context(), param(r, "key"), r.FormValue("algo"), r.FormValue("message"), r.FormValue("mac"))
 	c.partial(w, "kms_verdict", map[string]any{"Valid": err == nil, "What": "MAC"})
 }
 
 func (c *Console) kmsAddAlias(w http.ResponseWriter, r *http.Request) {
-	key := r.PathValue("key")
+	key := param(r, "key")
 	if err := c.be.KMSAddAlias(r.Context(), key, r.FormValue("alias")); err != nil {
 		c.fail(w, err)
 		return
@@ -196,7 +196,7 @@ func (c *Console) kmsDeleteAlias(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) kmsCancelDeletion(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.KMSCancelDeletion(r.Context(), r.PathValue("key")); err != nil {
+	if err := c.be.KMSCancelDeletion(r.Context(), param(r, "key")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -512,7 +512,7 @@ func (c *Console) smUpdateMeta(w http.ResponseWriter, r *http.Request) {
 // kmsDescribe updates a key's description. See UpdateKeyDescription for why
 // this was worth a route.
 func (c *Console) kmsDescription(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("key")
+	id := param(r, "key")
 	if err := c.be.UpdateKeyDescription(r.Context(), id, strings.TrimSpace(r.FormValue("description"))); err != nil {
 		c.fail(w, err)
 		return
@@ -537,7 +537,7 @@ func (c *Console) kmsRandom(w http.ResponseWriter, r *http.Request) {
 
 // kmsPublicKey exports the verifying half of an asymmetric key.
 func (c *Console) kmsPublicKey(w http.ResponseWriter, r *http.Request) {
-	out, err := c.be.PublicKey(r.Context(), r.PathValue("key"))
+	out, err := c.be.PublicKey(r.Context(), param(r, "key"))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -568,7 +568,7 @@ func (c *Console) kmsReEncrypt(w http.ResponseWriter, r *http.Request) {
 // kmsUpdateAlias repoints an alias. Delete-and-recreate would leave it briefly
 // absent, and anything resolving it in that window fails.
 func (c *Console) kmsUpdateAlias(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("key")
+	id := param(r, "key")
 	alias := strings.TrimSpace(r.FormValue("existing_alias"))
 	if alias == "" {
 		c.fail(w, errors.New("Name the alias to repoint at this key."))
@@ -644,7 +644,7 @@ func (c *Console) kmsSavePolicy(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, errors.New("a key policy cannot be empty — KMS always has one"))
 		return
 	}
-	if err := c.be.PutKeyPolicy(r.Context(), r.PathValue("key"), doc); err != nil {
+	if err := c.be.PutKeyPolicy(r.Context(), param(r, "key"), doc); err != nil {
 		c.fail(w, err)
 		return
 	}

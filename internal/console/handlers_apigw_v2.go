@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Console) apigwHTTP(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	api, err := c.be.HTTPAPI(r.Context(), id)
 	if err != nil {
 		c.fail(w, err)
@@ -49,7 +49,7 @@ func (c *Console) apigwHTTPCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwHTTPUpdate(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	var cors *HTTPCORS
 	if origins := splitCSV(r.FormValue("cors_origins")); len(origins) > 0 {
 		cors = &HTTPCORS{
@@ -76,7 +76,7 @@ func splitCSV(s string) []string {
 }
 
 func (c *Console) apigwHTTPDelete(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeleteHTTPAPI(r.Context(), r.PathValue("api")); err != nil {
+	if err := c.be.DeleteHTTPAPI(r.Context(), param(r, "api")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -87,7 +87,7 @@ func (c *Console) apigwHTTPDelete(w http.ResponseWriter, r *http.Request) {
 // apigwHTTPAddRoute adds a route: "METHOD /path" or $default, forwarding to
 // a function or a URL, optionally behind an authorizer.
 func (c *Console) apigwHTTPAddRoute(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	key := strings.TrimSpace(r.FormValue("key"))
 	if key == "" {
 		method := strings.ToUpper(strings.TrimSpace(r.FormValue("method")))
@@ -112,7 +112,7 @@ func (c *Console) apigwHTTPAddRoute(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwHTTPDeleteRoute(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	if err := c.be.DeleteHTTPRoute(r.Context(), id, r.FormValue("route")); err != nil {
 		c.fail(w, err)
 		return
@@ -138,7 +138,7 @@ func (c *Console) apigwHTTPRoutesPartial(w http.ResponseWriter, r *http.Request,
 }
 
 func (c *Console) apigwHTTPInvoke(w http.ResponseWriter, r *http.Request) {
-	res, err := c.be.InvokeHTTPAPI(r.Context(), r.PathValue("api"),
+	res, err := c.be.InvokeHTTPAPI(r.Context(), param(r, "api"),
 		r.FormValue("stage"), r.FormValue("method"), r.FormValue("path"), r.FormValue("body"))
 	if err != nil {
 		c.partial(w, "apigw_result", map[string]any{"Err": errText(err)})
@@ -148,7 +148,7 @@ func (c *Console) apigwHTTPInvoke(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwHTTPCreateStage(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	name := strings.TrimSpace(r.FormValue("name"))
 	if name == "" {
 		name = "$default"
@@ -161,7 +161,7 @@ func (c *Console) apigwHTTPCreateStage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwHTTPDeleteStage(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	if err := c.be.DeleteHTTPStage(r.Context(), id, r.FormValue("name")); err != nil {
 		c.fail(w, err)
 		return
@@ -170,7 +170,7 @@ func (c *Console) apigwHTTPDeleteStage(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwHTTPDeploy(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	if err := c.be.DeployHTTPStage(r.Context(), id, r.FormValue("stage")); err != nil {
 		c.fail(w, err)
 		return
@@ -179,7 +179,7 @@ func (c *Console) apigwHTTPDeploy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwHTTPCreateAuthorizer(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	ttl, _ := strconv.Atoi(r.FormValue("ttl"))
 	if err := c.be.CreateHTTPAuthorizer(r.Context(), id, strings.TrimSpace(r.FormValue("name")), r.FormValue("lambda"),
 		strings.TrimSpace(r.FormValue("header")), ttl); err != nil {
@@ -190,7 +190,7 @@ func (c *Console) apigwHTTPCreateAuthorizer(w http.ResponseWriter, r *http.Reque
 }
 
 func (c *Console) apigwHTTPDeleteAuthorizer(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("api")
+	id := param(r, "api")
 	if err := c.be.DeleteHTTPAuthorizer(r.Context(), id, r.FormValue("id")); err != nil {
 		c.fail(w, err)
 		return

@@ -15,7 +15,7 @@ func (c *Console) ebBuses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(buses) > 0 {
-		r.SetPathValue("bus", buses[0].Name)
+		setParam(r, "bus", buses[0].Name)
 		c.ebBus(w, r)
 		return
 	}
@@ -32,15 +32,15 @@ func (c *Console) ebCreateBus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ebDeleteBus(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeleteBus(r.Context(), r.PathValue("bus")); err != nil {
+	if err := c.be.DeleteBus(r.Context(), param(r, "bus")); err != nil {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/eb", "Event bus “"+r.PathValue("bus")+"” deleted")
+	c.redirect(w, r, c.prefix+"/eb", "Event bus “"+param(r, "bus")+"” deleted")
 }
 
 func (c *Console) ebBus(w http.ResponseWriter, r *http.Request) {
-	bus := r.PathValue("bus")
+	bus := param(r, "bus")
 	rules, err := c.be.ListRules(r.Context(), bus)
 	if err != nil {
 		c.fail(w, err)
@@ -71,7 +71,7 @@ func (c *Console) ebArchivesPartial(w http.ResponseWriter, r *http.Request, bus 
 }
 
 func (c *Console) ebCreateArchive(w http.ResponseWriter, r *http.Request) {
-	bus := r.PathValue("bus")
+	bus := param(r, "bus")
 	if err := c.be.CreateArchive(r.Context(), r.FormValue("name"), busARN(bus), r.FormValue("pattern")); err != nil {
 		c.fail(w, err)
 		return
@@ -81,7 +81,7 @@ func (c *Console) ebCreateArchive(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ebDeleteArchive(w http.ResponseWriter, r *http.Request) {
-	bus := r.PathValue("bus")
+	bus := param(r, "bus")
 	if err := c.be.DeleteArchive(r.Context(), r.FormValue("name")); err != nil {
 		c.fail(w, err)
 		return
@@ -91,7 +91,7 @@ func (c *Console) ebDeleteArchive(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ebReplay(w http.ResponseWriter, r *http.Request) {
-	bus := r.PathValue("bus")
+	bus := param(r, "bus")
 	arc := r.FormValue("name")
 	// Replay the whole archive: a window from the epoch to now covers every
 	// stored event. The replay name must be unique per run.
@@ -112,7 +112,7 @@ func (c *Console) ebRulesPartial(w http.ResponseWriter, r *http.Request, bus str
 }
 
 func (c *Console) ebCreateRule(w http.ResponseWriter, r *http.Request) {
-	bus := r.PathValue("bus")
+	bus := param(r, "bus")
 	name := r.FormValue("name")
 	if err := c.be.PutRule(r.Context(), bus, name, r.FormValue("pattern"), r.FormValue("schedule")); err != nil {
 		c.fail(w, err)
@@ -122,8 +122,8 @@ func (c *Console) ebCreateRule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ebDeleteRule(w http.ResponseWriter, r *http.Request) {
-	bus := r.PathValue("bus")
-	if err := c.be.DeleteRule(r.Context(), bus, r.PathValue("rule")); err != nil {
+	bus := param(r, "bus")
+	if err := c.be.DeleteRule(r.Context(), bus, param(r, "rule")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -132,7 +132,7 @@ func (c *Console) ebDeleteRule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ebTestEvent(w http.ResponseWriter, r *http.Request) {
-	bus := r.PathValue("bus")
+	bus := param(r, "bus")
 	detail := r.FormValue("detail")
 	if detail == "" {
 		detail = "{}"
@@ -149,7 +149,7 @@ func (c *Console) ebTestEvent(w http.ResponseWriter, r *http.Request) {
 // service's own TestEventPattern evaluator — the loop the SDK can't close
 // without a hand-rolled script.
 func (c *Console) ebMatch(w http.ResponseWriter, r *http.Request) {
-	bus := r.PathValue("bus")
+	bus := param(r, "bus")
 	rules, _ := c.be.ListRules(r.Context(), bus)
 	detail := strings.TrimSpace(r.FormValue("detail"))
 	if detail == "" {
@@ -192,7 +192,7 @@ func (c *Console) ebMatch(w http.ResponseWriter, r *http.Request) {
 
 // ebToggleRule flips a rule between ENABLED and DISABLED.
 func (c *Console) ebToggleRule(w http.ResponseWriter, r *http.Request) {
-	bus, name := r.PathValue("bus"), r.PathValue("rule")
+	bus, name := param(r, "bus"), param(r, "rule")
 	rule, err := c.be.GetRule(r.Context(), bus, name)
 	if err != nil {
 		c.fail(w, err)
@@ -212,7 +212,7 @@ func (c *Console) ebToggleRule(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ebRule(w http.ResponseWriter, r *http.Request) {
-	bus, name := r.PathValue("bus"), r.PathValue("rule")
+	bus, name := param(r, "bus"), param(r, "rule")
 	rule, err := c.be.GetRule(r.Context(), bus, name)
 	if err != nil {
 		c.fail(w, err)
@@ -248,7 +248,7 @@ func (c *Console) ebTargetsPartial(w http.ResponseWriter, r *http.Request, bus, 
 }
 
 func (c *Console) ebAddTarget(w http.ResponseWriter, r *http.Request) {
-	bus, name := r.PathValue("bus"), r.PathValue("rule")
+	bus, name := param(r, "bus"), param(r, "rule")
 	arn := r.FormValue("arn")
 	id := "t" + shortID(arn)
 	if err := c.be.AddTarget(r.Context(), bus, name, id, arn); err != nil {
@@ -260,7 +260,7 @@ func (c *Console) ebAddTarget(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) ebRemoveTarget(w http.ResponseWriter, r *http.Request) {
-	bus, name := r.PathValue("bus"), r.PathValue("rule")
+	bus, name := param(r, "bus"), param(r, "rule")
 	if err := c.be.RemoveTarget(r.Context(), bus, name, r.FormValue("id")); err != nil {
 		c.fail(w, err)
 		return
@@ -296,19 +296,19 @@ func shortID(s string) string {
 // alternative is deleting the archive, which discards everything already
 // captured.
 func (c *Console) ebArchive(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("archive")
+	name := param(r, "archive")
 	arc, reason, err := c.be.DescribeArchive(r.Context(), name)
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
 	c.partial(w, "eb_archive_detail", map[string]any{
-		"Prefix": c.prefix, "Bus": r.PathValue("bus"), "A": arc, "Reason": reason,
+		"Prefix": c.prefix, "Bus": param(r, "bus"), "A": arc, "Reason": reason,
 	})
 }
 
 func (c *Console) ebUpdateArchive(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("archive")
+	name := param(r, "archive")
 	if err := c.be.UpdateArchive(r.Context(), name,
 		strings.TrimSpace(r.FormValue("pattern")), atoiDefault(r.FormValue("retention"), 0)); err != nil {
 		c.fail(w, err)
@@ -321,22 +321,22 @@ func (c *Console) ebUpdateArchive(w http.ResponseWriter, r *http.Request) {
 // ebReplayDetail explains a replay that reports COMPLETED having delivered
 // nothing — the window and the state reason, neither of which the list carries.
 func (c *Console) ebReplayDetail(w http.ResponseWriter, r *http.Request) {
-	fields, err := c.be.DescribeReplay(r.Context(), r.PathValue("replay"))
+	fields, err := c.be.DescribeReplay(r.Context(), param(r, "replay"))
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
-	c.partial(w, "eb_kv_detail", map[string]any{"Title": "Replay " + r.PathValue("replay"), "Fields": fields})
+	c.partial(w, "eb_kv_detail", map[string]any{"Title": "Replay " + param(r, "replay"), "Fields": fields})
 }
 
 // ebBusDetail carries the bus's resource policy, which nothing else shows.
 func (c *Console) ebBusDetail(w http.ResponseWriter, r *http.Request) {
-	fields, err := c.be.DescribeEventBus(r.Context(), r.PathValue("bus"))
+	fields, err := c.be.DescribeEventBus(r.Context(), param(r, "bus"))
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
-	c.partial(w, "eb_kv_detail", map[string]any{"Title": "Bus " + r.PathValue("bus"), "Fields": fields})
+	c.partial(w, "eb_kv_detail", map[string]any{"Title": "Bus " + param(r, "bus"), "Fields": fields})
 }
 
 // ebRulesByTarget is the reverse lookup — which rules fire into this ARN. The
@@ -348,13 +348,13 @@ func (c *Console) ebRulesByTarget(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, errors.New("Paste the ARN of the queue, function or stream you want traced back."))
 		return
 	}
-	names, err := c.be.RuleNamesByTarget(r.Context(), target, r.PathValue("bus"))
+	names, err := c.be.RuleNamesByTarget(r.Context(), target, param(r, "bus"))
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
 	c.partial(w, "eb_rules_by_target", map[string]any{
-		"Prefix": c.prefix, "Bus": r.PathValue("bus"), "Target": target, "Names": names,
+		"Prefix": c.prefix, "Bus": param(r, "bus"), "Target": target, "Names": names,
 	})
 }
 

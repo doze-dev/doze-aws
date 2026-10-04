@@ -65,7 +65,7 @@ func (c *Console) apigwCreateKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwRevealKey(w http.ResponseWriter, r *http.Request) {
-	k, err := c.be.RevealAPIKey(r.Context(), r.PathValue("key"))
+	k, err := c.be.RevealAPIKey(r.Context(), param(r, "key"))
 	if err != nil {
 		c.fail(w, err)
 		return
@@ -103,7 +103,7 @@ func (c *Console) apigwCreatePlan(w http.ResponseWriter, r *http.Request) {
 
 func (c *Console) apigwPlanAddStage(w http.ResponseWriter, r *http.Request) {
 	apiID, stage, _ := strings.Cut(r.FormValue("stage"), ":")
-	if err := c.be.AddUsagePlanStage(r.Context(), r.PathValue("plan"), apiID, stage); err != nil {
+	if err := c.be.AddUsagePlanStage(r.Context(), param(r, "plan"), apiID, stage); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -121,7 +121,7 @@ func (c *Console) apigwDeletePlan(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwPlanAttachKey(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.AttachUsagePlanKey(r.Context(), r.PathValue("plan"), r.FormValue("key")); err != nil {
+	if err := c.be.AttachUsagePlanKey(r.Context(), param(r, "plan"), r.FormValue("key")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -130,7 +130,7 @@ func (c *Console) apigwPlanAttachKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) apigwPlanDetachKey(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DetachUsagePlanKey(r.Context(), r.PathValue("plan"), r.FormValue("key")); err != nil {
+	if err := c.be.DetachUsagePlanKey(r.Context(), param(r, "plan"), r.FormValue("key")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -140,14 +140,14 @@ func (c *Console) apigwPlanDetachKey(w http.ResponseWriter, r *http.Request) {
 
 // apigwPlanDetail is GetUsagePlan plus one key's GetUsagePlanKey row.
 func (c *Console) apigwPlanDetail(w http.ResponseWriter, r *http.Request) {
-	fields, err := c.be.GetUsagePlan(r.Context(), r.PathValue("plan"))
+	fields, err := c.be.GetUsagePlan(r.Context(), param(r, "plan"))
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
 	data := map[string]any{"Title": "Usage plan " + fields["name"], "Fields": fields}
 	if key := r.URL.Query().Get("key"); key != "" {
-		if k, err := c.be.UsagePlanKey(r.Context(), r.PathValue("plan"), key); err == nil {
+		if k, err := c.be.UsagePlanKey(r.Context(), param(r, "plan"), key); err == nil {
 			fields["key "+k.Name] = k.Value
 		}
 	}

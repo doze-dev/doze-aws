@@ -27,7 +27,7 @@ import (
 
 // sqsReceive performs a real ReceiveMessage and renders the batch it got.
 func (c *Console) sqsReceive(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
+	name := param(r, "queue")
 	o := ReceiveOpts{
 		Max:        atoiDefault(r.FormValue("max"), 10),
 		Wait:       atoiDefault(r.FormValue("wait"), 0),
@@ -46,7 +46,7 @@ func (c *Console) sqsReceive(w http.ResponseWriter, r *http.Request) {
 
 // sqsChangeVisibility re-hides or releases one in-flight message.
 func (c *Console) sqsChangeVisibility(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
+	name := param(r, "queue")
 	secs := atoiDefault(r.FormValue("seconds"), 0)
 	if err := c.be.ChangeVisibility(r.Context(), name, r.FormValue("handle"), secs); err != nil {
 		c.fail(w, err)
@@ -65,7 +65,7 @@ func (c *Console) sqsChangeVisibility(w http.ResponseWriter, r *http.Request) {
 // ChangeMessageVisibilityBatch are reachable from the console at all — a batch
 // endpoint with no multi-select is an endpoint you cannot call.
 func (c *Console) sqsDeleteBatch(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
+	name := param(r, "queue")
 	handles := parseIDs(r.FormValue("ids"))
 	if len(handles) == 0 {
 		c.partial(w, "sqs_consumed", c.consumeData(r, name, nil, ReceiveOpts{Max: 10, Visibility: -1}, "Nothing selected"))
@@ -82,7 +82,7 @@ func (c *Console) sqsDeleteBatch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sqsVisibilityBatch(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
+	name := param(r, "queue")
 	handles := parseIDs(r.FormValue("ids"))
 	secs := atoiDefault(r.FormValue("seconds"), 0)
 	if len(handles) == 0 {
@@ -209,7 +209,7 @@ func tagsFromRows(r *http.Request) map[string]string {
 // AddPermission writes the statement AWS writes; under IAM soft and enforce the
 // queue evaluates the policy on every request, so a grant here is real.
 func (c *Console) sqsAddPermission(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
+	name := param(r, "queue")
 	label := strings.TrimSpace(r.FormValue("label"))
 	if label == "" {
 		c.fail(w, errors.New("a permission needs a label"))
@@ -232,7 +232,7 @@ func (c *Console) sqsAddPermission(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sqsRemovePermission(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
+	name := param(r, "queue")
 	if err := c.be.RemovePermission(r.Context(), name, r.FormValue("label")); err != nil {
 		c.fail(w, err)
 		return

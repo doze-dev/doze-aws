@@ -63,7 +63,7 @@ func (c *Console) s3List(r *http.Request) []Bucket {
 func (c *Console) s3Buckets(w http.ResponseWriter, r *http.Request) {
 	list := c.s3List(r)
 	if len(list) > 0 {
-		r.SetPathValue("bucket", list[0].Name)
+		setParam(r, "bucket", list[0].Name)
 		c.s3Objects(w, r)
 		return
 	}
@@ -85,7 +85,7 @@ func (c *Console) s3CreateBucket(w http.ResponseWriter, r *http.Request) {
 
 // s3Versioning toggles versioning from the Properties tab.
 func (c *Console) s3Versioning(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	enable := r.FormValue("enable") == "true"
 	if err := c.be.SetBucketVersioning(r.Context(), bucket, enable); err != nil {
 		c.fail(w, err)
@@ -101,7 +101,7 @@ func (c *Console) s3Versioning(w http.ResponseWriter, r *http.Request) {
 
 // s3AddTag appends one tag to the bucket's tag set.
 func (c *Console) s3AddTag(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	k, v := strings.TrimSpace(r.FormValue("key")), strings.TrimSpace(r.FormValue("value"))
 	if k == "" {
 		c.fail(w, &apiErr{status: 400, body: "tag key is required"})
@@ -129,7 +129,7 @@ func (c *Console) s3AddTag(w http.ResponseWriter, r *http.Request) {
 
 // s3RemoveTag removes one tag from the bucket's tag set.
 func (c *Console) s3RemoveTag(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	k := r.FormValue("key")
 	props, err := c.be.GetBucketProps(r.Context(), bucket)
 	if err != nil {
@@ -174,7 +174,7 @@ func (c *Console) s3PropsPartial(w http.ResponseWriter, r *http.Request, bucket 
 }
 
 func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	prefix := r.URL.Query().Get("prefix")
 	tab := tabOf(r, "objects")
 
@@ -235,7 +235,7 @@ func (c *Console) s3Objects(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) s3GetObject(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	key := r.URL.Query().Get("key")
 	if vid := r.URL.Query().Get("versionId"); vid != "" {
 		body, ctype, err := c.be.GetObjectVersion(r.Context(), bucket, key, vid)
@@ -293,7 +293,7 @@ func inlineSafeContentType(ctype string) bool {
 const previewCap = 64 << 10
 
 func (c *Console) s3Meta(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	key := r.URL.Query().Get("key")
 	meta, err := c.be.HeadObject(r.Context(), bucket, key)
 	if err != nil {
@@ -358,7 +358,7 @@ func (c *Console) s3Meta(w http.ResponseWriter, r *http.Request) {
 // with nothing under it is invisible, so without this you cannot make a place
 // to put something before you have the something.
 func (c *Console) s3NewFolder(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	prefix := r.FormValue("prefix")
 	name := strings.Trim(strings.TrimSpace(r.FormValue("name")), "/")
 	switch {
@@ -378,7 +378,7 @@ func (c *Console) s3NewFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) s3Upload(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	prefix := r.FormValue("prefix")
 	if err := r.ParseMultipartForm(64 << 20); err != nil {
 		c.fail(w, err)
@@ -417,7 +417,7 @@ func (c *Console) s3Upload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) s3DeleteObject(w http.ResponseWriter, r *http.Request) {
-	bucket := r.PathValue("bucket")
+	bucket := param(r, "bucket")
 	key := r.FormValue("key")
 	prefix := r.FormValue("prefix")
 	if err := c.be.DeleteObject(r.Context(), bucket, key); err != nil {
@@ -429,7 +429,7 @@ func (c *Console) s3DeleteObject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) s3DeleteBucket(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeleteBucket(r.Context(), r.PathValue("bucket")); err != nil {
+	if err := c.be.DeleteBucket(r.Context(), param(r, "bucket")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -491,7 +491,7 @@ func (c *Console) sqsList(r *http.Request) []Queue {
 func (c *Console) sqsQueues(w http.ResponseWriter, r *http.Request) {
 	list := c.sqsList(r)
 	if len(list) > 0 {
-		r.SetPathValue("queue", list[0].Name)
+		setParam(r, "queue", list[0].Name)
 		c.sqsQueue(w, r)
 		return
 	}
@@ -548,7 +548,7 @@ func (c *Console) sqsCreateQueue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sqsDeleteQueue(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.DeleteQueue(r.Context(), r.PathValue("queue")); err != nil {
+	if err := c.be.DeleteQueue(r.Context(), param(r, "queue")); err != nil {
 		c.fail(w, err)
 		return
 	}
@@ -556,7 +556,7 @@ func (c *Console) sqsDeleteQueue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sqsQueue(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
+	name := param(r, "queue")
 	attrs, msgs, err := c.be.QueueDetail(r.Context(), name)
 	if err != nil {
 		c.fail(w, err)
@@ -716,7 +716,7 @@ func (c *Console) sqsPanelData(r *http.Request, name string, attrs map[string]st
 
 // sqsMessages is the polled live partial: 204 when unchanged, morph otherwise.
 func (c *Console) sqsMessages(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
+	name := param(r, "queue")
 	attrs, msgs, err := c.be.QueueDetail(r.Context(), name)
 	if err != nil {
 		c.fail(w, err)
@@ -731,7 +731,7 @@ func (c *Console) sqsMessages(w http.ResponseWriter, r *http.Request) {
 
 // sqsDeleteMessage removes one message from the peek.
 func (c *Console) sqsDeleteMessage(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
+	name := param(r, "queue")
 	if err := c.be.DeleteMessage(r.Context(), name, r.FormValue("handle")); err != nil {
 		c.fail(w, err)
 		return
@@ -742,7 +742,7 @@ func (c *Console) sqsDeleteMessage(w http.ResponseWriter, r *http.Request) {
 
 // sqsRedrive starts moving every message from this DLQ back to a source.
 func (c *Console) sqsRedrive(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
+	name := param(r, "queue")
 	dest := r.FormValue("dest")
 	if dest == "" {
 		c.fail(w, &apiErr{status: 400, body: "pick a destination queue"})
@@ -757,7 +757,7 @@ func (c *Console) sqsRedrive(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) sqsSend(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
+	name := param(r, "queue")
 	body := r.FormValue("body")
 	opts := SendOpts{
 		GroupID: strings.TrimSpace(r.FormValue("group")),
@@ -814,7 +814,7 @@ func parseMsgAttrs(raw string) []MsgAttr {
 }
 
 func (c *Console) sqsPurge(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
+	name := param(r, "queue")
 	if err := c.be.PurgeQueue(r.Context(), name); err != nil {
 		c.fail(w, err)
 		return
@@ -825,7 +825,7 @@ func (c *Console) sqsPurge(w http.ResponseWriter, r *http.Request) {
 
 // sqsSetAttributes edits the queue's mutable delivery settings.
 func (c *Console) sqsSetAttributes(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
+	name := param(r, "queue")
 	attrs := map[string]string{}
 	if v := strings.TrimSpace(r.FormValue("visibility")); v != "" {
 		attrs["VisibilityTimeout"] = v
