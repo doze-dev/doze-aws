@@ -390,7 +390,7 @@ func (b *backend) UpdateFunctionURL(ctx context.Context, name, authType string) 
 // CreateFunctionURL provisions a function URL (idempotent).
 func (b *backend) CreateFunctionURL(ctx context.Context, name string) (string, error) {
 	req, _ := http.NewRequestWithContext(ctx, "POST",
-		b.base+"/2021-10-31/functions/"+url.PathEscape(name)+"/urls", bytes.NewReader([]byte("{}")))
+		b.base+"/2021-10-31/functions/"+url.PathEscape(name)+"/url", bytes.NewReader([]byte(`{"AuthType":"NONE"}`)))
 	req.Header.Set("Content-Type", "application/json")
 	body, err := b.do(req)
 	if err != nil {
@@ -485,7 +485,7 @@ type LambdaAccount struct {
 }
 
 func (b *backend) LambdaAccount(ctx context.Context) (*LambdaAccount, error) {
-	req, _ := http.NewRequestWithContext(ctx, "GET", b.base+"/2015-03-31/account-settings", nil)
+	req, _ := http.NewRequestWithContext(ctx, "GET", b.base+"/2016-08-19/account-settings", nil)
 	body, err := b.do(req)
 	if err != nil {
 		return nil, err

@@ -14,10 +14,10 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/modelcheck"
+	"github.com/doze-dev/doze-aws/internal/restroute"
 )
 
 // codeREST is what Lambda calls a refused input — the code its own handlers
@@ -25,59 +25,29 @@ import (
 // BadRequestException, which is API Gateway's.
 const codeREST = "InvalidParameterValueException"
 
-// matchRoute finds the operation a request addresses and pulls out its path
-// labels. Routes are ordered most-specific first, so the first match wins.
-func matchRoute(method, path string) (op string, labels map[string]string, ok bool) {
-	segs := strings.Split(strings.Trim(path, "/"), "/")
-	if len(segs) == 1 && segs[0] == "" {
-		return "", nil, false
-	}
-	for _, rt := range routes {
-		if rt.Method != method || len(rt.Segs) != len(segs) {
-			continue
-		}
-		got := map[string]string{}
-		matched := true
-		for i, want := range rt.Segs {
-			if want == "" {
-				got[rt.Labels[i]] = segs[i]
-				continue
-			}
-			if want != segs[i] {
-				matched = false
-				break
-			}
-		}
-		if matched {
-			return rt.Op, got, true
-		}
-	}
-	return "", nil, false
-}
-
-// validateControl reassembles the operation's input and walks its constraints.
-// It returns the body it read so the handler can still decode it — reading a
-// request body consumes it, and a validator that ate the input would break
-// every operation it was meant to protect.
-func validateControl(r *http.Request) (body []byte, aerr *awshttp.APIError) {
+// validateRequest reassembles the operation's input and walks its constraints.
+// The operation is the one the router matched, so a request that matched no
+// route is not validated — the router refuses it. It leaves the body readable
+// for the handler: reading a request body consumes it, and a validator that
+// ate the input would break every operation it was meant to protect.
+func validateRequest(r *http.Request) (aerr *awshttp.APIError) {
+	var body []byte
 	if r.Body != nil {
 		var err error
 		body, err = io.ReadAll(io.LimitReader(r.Body, 16<<20))
 		r.Body.Close()
 		if err != nil {
-			return nil, awshttp.Errf(400, "InvalidRequestContentException", "read request body: %v", err)
+			return awshttp.Errf(400, "InvalidRequestContentException", "read request body: %v", err)
 		}
 		r.Body = io.NopCloser(bytes.NewReader(body))
 	}
 
-	op, labels, ok := matchRoute(r.Method, r.URL.Path)
-	if !ok {
-		return body, nil
-	}
+	op := restroute.Op(r)
 	table := constraintTables[op]
 	if len(table) == 0 {
-		return body, nil
+		return nil
 	}
+	rt := routeFor(op)
 
 	input := map[string]any{}
 	if len(body) > 0 {
@@ -87,16 +57,17 @@ func validateControl(r *http.Request) (body []byte, aerr *awshttp.APIError) {
 			input = map[string]any{}
 		}
 	}
-	for name, value := range labels {
-		// An omitted path label is not an absent field, it is an empty segment:
-		// GET /restapis//resources. Recording it as present would let every
-		// @required label pass, since a label is never missing from the map.
-		if value == "" {
+	for _, name := range rt.Labels {
+		// A route without the label (RemovePermission's query form) has no
+		// value for it, and an empty one is not a present field: recording it
+		// would let every @required label pass.
+		if name == "" {
 			continue
 		}
-		input[name] = value
+		if value := restroute.Param(r, name); value != "" {
+			input[name] = value
+		}
 	}
-	rt := routeFor(op)
 	query := r.URL.Query()
 	for param, member := range rt.Query {
 		// Presence, not non-emptiness: "?Qualifier=" supplies the member as an
@@ -123,7 +94,7 @@ func validateControl(r *http.Request) (body []byte, aerr *awshttp.APIError) {
 			input[member] = v[0]
 		}
 	}
-	return body, modelcheck.ValidateMapAs(input, table, codeREST)
+	return modelcheck.ValidateMapAs(input, table, codeREST)
 }
 
 func routeFor(op string) route {
@@ -133,15 +104,4 @@ func routeFor(op string) route {
 		}
 	}
 	return route{}
-}
-
-// OperationFor reports the Lambda operation a request addresses, or "" when no
-// route matches. Exported for the console's traffic classifier — see the note
-// on s3.OperationFor.
-func OperationFor(r *http.Request) string {
-	op, _, ok := matchRoute(r.Method, r.URL.Path)
-	if !ok {
-		return ""
-	}
-	return op
 }

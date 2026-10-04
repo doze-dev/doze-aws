@@ -13,43 +13,44 @@ import (
 	"github.com/doze-dev/doze-aws/internal/bg"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/peercall"
+	"github.com/doze-dev/doze-aws/internal/restroute"
 	"github.com/doze-dev/doze-aws/trace"
 )
 
 // ---- concurrency (Tier C) ----
 
-func (s *Server) routeConcurrency(w http.ResponseWriter, r *http.Request, name string) *awshttp.APIError {
-	switch r.Method {
-	case http.MethodPut:
-		var req struct {
-			ReservedConcurrentExecutions int `json:"ReservedConcurrentExecutions"`
-		}
-		if aerr := decode(r, &req); aerr != nil {
-			return aerr
-		}
-		n := req.ReservedConcurrentExecutions
-		if _, err := s.store.Update(name, func(f *function) error { f.ReservedConcurrency = &n; return nil }); err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		writeJSON(w, 200, map[string]any{"ReservedConcurrentExecutions": n})
-		return nil
-	case http.MethodGet:
-		f, err := s.store.GetFunction(name)
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		out := map[string]any{}
-		if f.ReservedConcurrency != nil {
-			out["ReservedConcurrentExecutions"] = *f.ReservedConcurrency
-		}
-		writeJSON(w, 200, out)
-		return nil
-	case http.MethodDelete:
-		s.store.Update(name, func(f *function) error { f.ReservedConcurrency = nil; return nil })
-		w.WriteHeader(204)
-		return nil
+func (s *Server) putConcurrency(w http.ResponseWriter, r *http.Request, name string) *awshttp.APIError {
+	var req struct {
+		ReservedConcurrentExecutions int `json:"ReservedConcurrentExecutions"`
 	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported concurrency request")
+	if aerr := decode(r, &req); aerr != nil {
+		return aerr
+	}
+	n := req.ReservedConcurrentExecutions
+	if _, err := s.store.Update(name, func(f *function) error { f.ReservedConcurrency = &n; return nil }); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	writeJSON(w, 200, map[string]any{"ReservedConcurrentExecutions": n})
+	return nil
+}
+
+func (s *Server) getConcurrency(w http.ResponseWriter, name string) *awshttp.APIError {
+	f, err := s.store.GetFunction(name)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	out := map[string]any{}
+	if f.ReservedConcurrency != nil {
+		out["ReservedConcurrentExecutions"] = *f.ReservedConcurrency
+	}
+	writeJSON(w, 200, out)
+	return nil
+}
+
+func (s *Server) deleteConcurrency(w http.ResponseWriter, name string) *awshttp.APIError {
+	s.store.Update(name, func(f *function) error { f.ReservedConcurrency = nil; return nil })
+	w.WriteHeader(204)
+	return nil
 }
 
 // ---- event invoke config (async destinations / retries) ----
@@ -83,176 +84,163 @@ func (s *Server) eventInvokeView(f *function) map[string]any {
 	return v
 }
 
-func (s *Server) routeEventInvokeConfig(w http.ResponseWriter, r *http.Request, name string, segs []string) *awshttp.APIError {
-	// GET /event-invoke-config/list enumerates the (0 or 1) configs.
-	if len(segs) == 5 && segs[4] == "list" && r.Method == http.MethodGet {
-		f, err := s.store.GetFunction(name)
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		list := []any{}
-		if f.HasEventInvokeCfg {
-			list = append(list, s.eventInvokeView(f))
-		}
-		writeJSON(w, 200, map[string]any{"FunctionEventInvokeConfigs": list})
-		return nil
+// listEventInvokeConfigs enumerates the (0 or 1) configs.
+func (s *Server) listEventInvokeConfigs(w http.ResponseWriter, name string) *awshttp.APIError {
+	f, err := s.store.GetFunction(name)
+	if err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	if len(segs) != 4 {
-		return awshttp.Errf(404, "ResourceNotFoundException", "unknown event-invoke-config path")
+	list := []any{}
+	if f.HasEventInvokeCfg {
+		list = append(list, s.eventInvokeView(f))
 	}
+	writeJSON(w, 200, map[string]any{"FunctionEventInvokeConfigs": list})
+	return nil
+}
 
-	switch r.Method {
-	// PUT fully replaces the config; POST merges (UpdateFunctionEventInvokeConfig).
-	case http.MethodPut, http.MethodPost:
-		var req eventInvokeReq
-		if aerr := decode(r, &req); aerr != nil {
-			return aerr
-		}
-		replace := r.Method == http.MethodPut
-		f, err := s.store.Update(name, func(f *function) error {
-			if replace {
-				f.Destinations, f.MaxRetryAttempts, f.MaxEventAgeSeconds = nil, nil, nil
-			}
-			if len(req.DestinationConfig) > 0 {
-				f.Destinations = req.DestinationConfig
-			}
-			if req.MaximumRetryAttempts != nil {
-				f.MaxRetryAttempts = req.MaximumRetryAttempts
-			}
-			if req.MaximumEventAgeInSeconds != nil {
-				f.MaxEventAgeSeconds = req.MaximumEventAgeInSeconds
-			}
-			f.HasEventInvokeCfg = true
-			return nil
-		})
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		writeJSON(w, 200, s.eventInvokeView(f))
-		return nil
-	case http.MethodGet:
-		f, err := s.store.GetFunction(name)
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		if !f.HasEventInvokeCfg {
-			return awshttp.Errf(404, "ResourceNotFoundException", "no event invoke config for %s", name)
-		}
-		writeJSON(w, 200, s.eventInvokeView(f))
-		return nil
-	case http.MethodDelete:
-		if _, err := s.store.Update(name, func(f *function) error {
-			f.Destinations, f.MaxRetryAttempts, f.MaxEventAgeSeconds, f.HasEventInvokeCfg = nil, nil, nil, false
-			return nil
-		}); err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		w.WriteHeader(204)
-		return nil
+// putEventInvokeConfig serves both spellings: PUT fully replaces the config,
+// POST merges (UpdateFunctionEventInvokeConfig).
+func (s *Server) putEventInvokeConfig(w http.ResponseWriter, r *http.Request, name string, replace bool) *awshttp.APIError {
+	var req eventInvokeReq
+	if aerr := decode(r, &req); aerr != nil {
+		return aerr
 	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported event-invoke-config request")
+	f, err := s.store.Update(name, func(f *function) error {
+		if replace {
+			f.Destinations, f.MaxRetryAttempts, f.MaxEventAgeSeconds = nil, nil, nil
+		}
+		if len(req.DestinationConfig) > 0 {
+			f.Destinations = req.DestinationConfig
+		}
+		if req.MaximumRetryAttempts != nil {
+			f.MaxRetryAttempts = req.MaximumRetryAttempts
+		}
+		if req.MaximumEventAgeInSeconds != nil {
+			f.MaxEventAgeSeconds = req.MaximumEventAgeInSeconds
+		}
+		f.HasEventInvokeCfg = true
+		return nil
+	})
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	writeJSON(w, 200, s.eventInvokeView(f))
+	return nil
+}
+
+func (s *Server) getEventInvokeConfig(w http.ResponseWriter, name string) *awshttp.APIError {
+	f, err := s.store.GetFunction(name)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	if !f.HasEventInvokeCfg {
+		return awshttp.Errf(404, "ResourceNotFoundException", "no event invoke config for %s", name)
+	}
+	writeJSON(w, 200, s.eventInvokeView(f))
+	return nil
+}
+
+func (s *Server) deleteEventInvokeConfig(w http.ResponseWriter, name string) *awshttp.APIError {
+	if _, err := s.store.Update(name, func(f *function) error {
+		f.Destinations, f.MaxRetryAttempts, f.MaxEventAgeSeconds, f.HasEventInvokeCfg = nil, nil, nil, false
+		return nil
+	}); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	w.WriteHeader(204)
+	return nil
 }
 
 // ---- tags ----
 
-func (s *Server) routeTags(w http.ResponseWriter, r *http.Request, segs []string) *awshttp.APIError {
-	if len(segs) < 3 {
-		return awshttp.Errf(400, "InvalidParameterValueException", "tags requires a resource ARN")
+// tagTarget is the function a tags request names: its ARN's last segment.
+func tagTarget(r *http.Request) string {
+	arn := restroute.Param(r, "Resource")
+	return arn[strings.LastIndex(arn, ":")+1:]
+}
+
+func (s *Server) tagResource(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
+	var req struct {
+		Tags map[string]string `json:"Tags"`
 	}
-	arn := strings.Join(segs[2:], "/")
-	name := arn[strings.LastIndex(arn, ":")+1:]
-	switch r.Method {
-	case http.MethodPost:
-		var req struct {
-			Tags map[string]string `json:"Tags"`
-		}
-		if aerr := decode(r, &req); aerr != nil {
-			return aerr
-		}
-		if _, err := s.store.Update(name, func(f *function) error {
-			if f.Tags == nil {
-				f.Tags = map[string]string{}
-			}
-			for k, v := range req.Tags {
-				f.Tags[k] = v
-			}
-			return nil
-		}); err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		w.WriteHeader(204)
-		return nil
-	case http.MethodGet:
-		f, err := s.store.GetFunction(name)
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		writeJSON(w, 200, map[string]any{"Tags": f.Tags})
-		return nil
-	case http.MethodDelete:
-		keys := r.URL.Query()["tagKeys"]
-		s.store.Update(name, func(f *function) error {
-			for _, k := range keys {
-				delete(f.Tags, k)
-			}
-			return nil
-		})
-		w.WriteHeader(204)
-		return nil
+	if aerr := decode(r, &req); aerr != nil {
+		return aerr
 	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported tags request")
+	if _, err := s.store.Update(tagTarget(r), func(f *function) error {
+		if f.Tags == nil {
+			f.Tags = map[string]string{}
+		}
+		for k, v := range req.Tags {
+			f.Tags[k] = v
+		}
+		return nil
+	}); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	w.WriteHeader(204)
+	return nil
+}
+
+func (s *Server) listTags(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
+	f, err := s.store.GetFunction(tagTarget(r))
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	writeJSON(w, 200, map[string]any{"Tags": f.Tags})
+	return nil
+}
+
+func (s *Server) untagResource(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
+	keys := r.URL.Query()["tagKeys"]
+	s.store.Update(tagTarget(r), func(f *function) error {
+		for _, k := range keys {
+			delete(f.Tags, k)
+		}
+		return nil
+	})
+	w.WriteHeader(204)
+	return nil
 }
 
 // ---- event source mappings ----
 
-func (s *Server) routeMappings(w http.ResponseWriter, r *http.Request, segs []string) *awshttp.APIError {
-	if len(segs) == 2 {
-		switch r.Method {
-		case http.MethodPost:
-			return s.createMapping(w, r)
-		case http.MethodGet:
-			maps, _ := s.store.ListMappings()
-			// Honor the FunctionName / EventSourceArn filters — returning every
-			// mapping regardless cross-wires triggers when two functions share a
-			// source queue (stackfile apply/export builds its state from this).
-			q := r.URL.Query()
-			wantFn := functionNameFromARN(q.Get("FunctionName"))
-			wantSrc := q.Get("EventSourceArn")
-			views := []any{}
-			for i := range maps {
-				if wantFn != "" && maps[i].FunctionName != wantFn {
-					continue
-				}
-				if wantSrc != "" && maps[i].EventSourceArn != wantSrc {
-					continue
-				}
-				views = append(views, mappingView(&maps[i]))
-			}
-			writeJSON(w, 200, map[string]any{"EventSourceMappings": views})
-			return nil
+func (s *Server) listMappings(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
+	maps, _ := s.store.ListMappings()
+	// Honor the FunctionName / EventSourceArn filters — returning every
+	// mapping regardless cross-wires triggers when two functions share a
+	// source queue (stackfile apply/export builds its state from this).
+	q := r.URL.Query()
+	wantFn := functionNameFromARN(q.Get("FunctionName"))
+	wantSrc := q.Get("EventSourceArn")
+	views := []any{}
+	for i := range maps {
+		if wantFn != "" && maps[i].FunctionName != wantFn {
+			continue
 		}
-	}
-	if len(segs) == 3 {
-		uuid := segs[2]
-		switch r.Method {
-		case http.MethodGet:
-			m, err := s.store.GetMapping(uuid)
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			writeJSON(w, 200, mappingView(m))
-			return nil
-		case http.MethodDelete:
-			s.stopPoller(uuid)
-			s.store.DeleteMapping(uuid)
-			m := &eventSourceMapping{UUID: uuid, State: "Deleting"}
-			writeJSON(w, 202, mappingView(m))
-			return nil
-		case http.MethodPut:
-			return s.updateMapping(w, r, uuid)
+		if wantSrc != "" && maps[i].EventSourceArn != wantSrc {
+			continue
 		}
+		views = append(views, mappingView(&maps[i]))
 	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported mapping request")
+	writeJSON(w, 200, map[string]any{"EventSourceMappings": views})
+	return nil
+}
+
+func (s *Server) getMapping(w http.ResponseWriter, uuid string) *awshttp.APIError {
+	m, err := s.store.GetMapping(uuid)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	writeJSON(w, 200, mappingView(m))
+	return nil
+}
+
+func (s *Server) deleteMapping(w http.ResponseWriter, uuid string) *awshttp.APIError {
+	s.stopPoller(uuid)
+	s.store.DeleteMapping(uuid)
+	m := &eventSourceMapping{UUID: uuid, State: "Deleting"}
+	writeJSON(w, 202, mappingView(m))
+	return nil
 }
 
 func (s *Server) createMapping(w http.ResponseWriter, r *http.Request) *awshttp.APIError {

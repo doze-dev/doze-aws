@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/restroute"
 )
 
 // PolicyStatement is one statement of a function's resource policy, kept in the
@@ -36,24 +37,13 @@ type policyDoc struct {
 	Statement []policyStatement `json:"Statement"`
 }
 
-func (s *Server) routePolicy(w http.ResponseWriter, r *http.Request, name string, segs []string) *awshttp.APIError {
-	// /functions/{name}/policy/{statementId} is the remove form.
-	statementID := ""
-	if len(segs) >= 5 {
-		statementID = segs[4]
+// statementID is the statement a RemovePermission names: the path label, or
+// ?StatementId= for the form that has no label.
+func statementID(r *http.Request) string {
+	if sid := restroute.Param(r, "StatementId"); sid != "" {
+		return sid
 	}
-	switch r.Method {
-	case http.MethodPost:
-		return s.addPermission(w, r, name)
-	case http.MethodGet:
-		return s.getPolicy(w, name)
-	case http.MethodDelete:
-		if statementID == "" {
-			statementID = r.URL.Query().Get("StatementId")
-		}
-		return s.removePermission(w, name, statementID)
-	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on function policy")
+	return r.URL.Query().Get("StatementId")
 }
 
 func (s *Server) addPermission(w http.ResponseWriter, r *http.Request, name string) *awshttp.APIError {

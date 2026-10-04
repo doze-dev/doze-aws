@@ -19,6 +19,7 @@ package restroute
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -54,6 +55,14 @@ type Options struct {
 	// service's wire format. Required.
 	NotFound         func(r *http.Request) *awshttp.APIError
 	MethodNotAllowed func(r *http.Request) *awshttp.APIError
+	// Tolerant makes the router forgive what the REST/JSON services always
+	// have: a trailing slash is trimmed (the v1 Go SDK sends
+	// /2015-03-31/functions/), and an empty path label is a label with no
+	// value rather than a missing route — /functions//aliases reaches
+	// CreateAlias with an empty FunctionName, which validation refuses as the
+	// model says it must. S3 keeps its slashes: a key may end in one, and may
+	// contain two in a row.
+	Tolerant bool
 	// Use wraps every route, innermost last. It runs after the route has
 	// matched, so Op(r) is already set — which is why validation and the IAM
 	// guard are here and not on the router: before matching there is no
@@ -64,7 +73,8 @@ type Options struct {
 // Router is a built chi router that can also say which operation a request is
 // without serving it.
 type Router struct {
-	mux *chi.Mux
+	mux      *chi.Mux
+	tolerant bool
 	// byKey holds every route by "METHOD pattern", in the order given, for Op.
 	byKey map[string][]Route
 	keys  []string
@@ -75,7 +85,10 @@ type Router struct {
 // those are programming errors in a table that is fixed at build time, and a
 // test builds every service's router.
 func Build(routes []Route, o Options) *Router {
-	rt := &Router{mux: chi.NewRouter(), byKey: map[string][]Route{}}
+	rt := &Router{mux: chi.NewRouter(), byKey: map[string][]Route{}, tolerant: o.Tolerant}
+	if o.Tolerant {
+		rt.mux.Use(normalize)
+	}
 
 	wrap := func(rr Route) http.Handler {
 		var h http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +151,11 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) { rt.mux.Ser
 // console's wire page does.
 func (rt *Router) Op(r *http.Request) string {
 	rctx := chi.NewRouteContext()
-	if !rt.mux.Match(rctx, r.Method, routePath(r)) {
+	path := routePath(r)
+	if rt.tolerant {
+		path = tidy(path)
+	}
+	if !rt.mux.Match(rctx, r.Method, path) {
 		return ""
 	}
 	for _, c := range rt.byKey[r.Method+" "+rctx.RoutePattern()] {
@@ -160,4 +177,39 @@ func routePath(r *http.Request) string {
 		return r.URL.RawPath
 	}
 	return r.URL.Path
+}
+
+// emptySeg stands in, while routing, for a path segment with nothing in it.
+// chi will not match an empty label (and matches one inconsistently), so the
+// router is given something to match and Param gives it back as empty.
+const emptySeg = "\x00"
+
+// tidy trims a trailing slash and marks interior empty segments.
+func tidy(p string) string {
+	if len(p) > 1 && strings.HasSuffix(p, "/") {
+		p = strings.TrimRight(p, "/")
+		if p == "" {
+			return "/"
+		}
+	}
+	if !strings.Contains(p, "//") {
+		return p
+	}
+	parts := strings.Split(p, "/")
+	for i := 1; i < len(parts); i++ {
+		if parts[i] == "" {
+			parts[i] = emptySeg
+		}
+	}
+	return strings.Join(parts, "/")
+}
+
+// normalize applies tidy before routing, by setting the path chi routes on.
+func normalize(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if rctx := chi.RouteContext(r.Context()); rctx != nil {
+			rctx.RoutePath = tidy(routePath(r))
+		}
+		next.ServeHTTP(w, r)
+	})
 }

@@ -75,55 +75,67 @@ func (s *Server) urlConfigView(r *http.Request, f *function, status int) map[str
 	return v
 }
 
-func (s *Server) routeFunctionURL(w http.ResponseWriter, r *http.Request, name string) *awshttp.APIError {
-	switch r.Method {
-	case http.MethodPost, http.MethodPut:
-		var req struct {
-			AuthType string          `json:"AuthType"`
-			Cors     json.RawMessage `json:"Cors"`
-		}
-		decode(r, &req)
-		f, err := s.store.Update(name, func(f *function) error {
-			if f.URLId == "" {
-				f.URLId = urlID(name)
-			}
-			f.FunctionURL = s.functionURL(f.URLId)
-			if req.AuthType != "" {
-				f.URLAuthType = req.AuthType
-			}
-			if len(req.Cors) > 0 {
-				f.URLCors = req.Cors
-			}
-			return nil
-		})
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		status := 201
-		if r.Method == http.MethodPut {
-			status = 200
-		}
-		writeJSON(w, status, s.urlConfigView(r, f, status))
-		return nil
-	case http.MethodGet:
-		f, err := s.store.GetFunction(name)
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		if f.FunctionURL == "" {
-			return awshttp.Errf(404, "ResourceNotFoundException", "The resource you requested does not exist.")
-		}
-		writeJSON(w, 200, s.urlConfigView(r, f, 200))
-		return nil
-	case http.MethodDelete:
-		s.store.Update(name, func(f *function) error {
-			f.FunctionURL, f.URLId, f.URLAuthType, f.URLCors = "", "", "", nil
-			return nil
-		})
-		w.WriteHeader(204)
-		return nil
+// putFunctionURL serves CreateFunctionUrlConfig (POST, 201) and
+// UpdateFunctionUrlConfig (PUT, 200).
+func (s *Server) putFunctionURL(w http.ResponseWriter, r *http.Request, name string, status int) *awshttp.APIError {
+	var req struct {
+		AuthType string          `json:"AuthType"`
+		Cors     json.RawMessage `json:"Cors"`
 	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported function-url request")
+	decode(r, &req)
+	f, err := s.store.Update(name, func(f *function) error {
+		if f.URLId == "" {
+			f.URLId = urlID(name)
+		}
+		f.FunctionURL = s.functionURL(f.URLId)
+		if req.AuthType != "" {
+			f.URLAuthType = req.AuthType
+		}
+		if len(req.Cors) > 0 {
+			f.URLCors = req.Cors
+		}
+		return nil
+	})
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	writeJSON(w, status, s.urlConfigView(r, f, status))
+	return nil
+}
+
+func (s *Server) getFunctionURL(w http.ResponseWriter, r *http.Request, name string) *awshttp.APIError {
+	f, err := s.store.GetFunction(name)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	if f.FunctionURL == "" {
+		return awshttp.Errf(404, "ResourceNotFoundException", "The resource you requested does not exist.")
+	}
+	writeJSON(w, 200, s.urlConfigView(r, f, 200))
+	return nil
+}
+
+// listFunctionURLs is ListFunctionUrlConfigs: a function has at most one.
+func (s *Server) listFunctionURLs(w http.ResponseWriter, r *http.Request, name string) *awshttp.APIError {
+	f, err := s.store.GetFunction(name)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	list := []any{}
+	if f.FunctionURL != "" {
+		list = append(list, s.urlConfigView(r, f, 200))
+	}
+	writeJSON(w, 200, map[string]any{"FunctionUrlConfigs": list})
+	return nil
+}
+
+func (s *Server) deleteFunctionURL(w http.ResponseWriter, name string) *awshttp.APIError {
+	s.store.Update(name, func(f *function) error {
+		f.FunctionURL, f.URLId, f.URLAuthType, f.URLCors = "", "", "", nil
+		return nil
+	})
+	w.WriteHeader(204)
+	return nil
 }
 
 // functionByURL finds the function whose URL id a request addresses.

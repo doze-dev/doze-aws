@@ -10,6 +10,7 @@
       "github.com/BurntSushi/toml",
       "github.com/blues/jsonata-go",
       "github.com/doze-dev/doze-names",
+      "github.com/go-chi/chi/v5",
       "go.etcd.io/bbolt",
       "golang.org/x/sys",
       "gopkg.in/yaml.v3"
@@ -24,15 +25,15 @@
       },
       "internal/console/static": {
         "bytes": {
-          "measured": 1036373,
-          "ceiling": 1296384
+          "measured": 1040965,
+          "ceiling": 1301504
         },
         "files": 36
       },
       "internal/console/templates": {
         "bytes": {
-          "measured": 542939,
-          "ceiling": 678912
+          "measured": 548596,
+          "ceiling": 686080
         },
         "files": 27
       },
@@ -169,12 +170,12 @@
       "target": "linux/amd64",
       "flags": "-trimpath -buildvcs=false -ldflags -s -w -X main.version=v0.0.0",
       "bytes": {
-        "measured": 22773920,
-        "ceiling": 28468224
+        "measured": 22929568,
+        "ceiling": 28662784
       },
       "gzipped_bytes": {
-        "measured": 9049389,
-        "ceiling": 11312128
+        "measured": 9102955,
+        "ceiling": 11379712
       }
     }
   },
@@ -183,15 +184,15 @@
     "shapes": {
       "full": {
         "heap_alloc_bytes": {
-          "measured": 3824616,
+          "measured": 3825296,
           "ceiling": 5709824
         },
         "retained_bytes": {
-          "measured": 11954440,
+          "measured": 11991320,
           "ceiling": 17317888
         },
         "max_rss_bytes": {
-          "measured": 28573696,
+          "measured": 28983296,
           "ceiling": 46104576
         },
         "goroutines": {
@@ -199,7 +200,7 @@
           "ceiling": 37
         },
         "cpu_micros": {
-          "measured": 92,
+          "measured": 243,
           "ceiling": 27120
         },
         "sched_events": {
@@ -207,25 +208,25 @@
           "ceiling": 1000
         },
         "boot_cold_micros": {
-          "measured": 1770,
+          "measured": 1737,
           "ceiling": 5000000
         },
         "boot_warm_micros": {
-          "measured": 154,
+          "measured": 146,
           "ceiling": 7020
         }
       },
       "sqs+s3": {
         "heap_alloc_bytes": {
-          "measured": 3622440,
+          "measured": 3628800,
           "ceiling": 5391360
         },
         "retained_bytes": {
-          "measured": 10995976,
+          "measured": 11258120,
           "ceiling": 16420864
         },
         "max_rss_bytes": {
-          "measured": 27033600,
+          "measured": 27066368,
           "ceiling": 39813120
         },
         "goroutines": {
@@ -233,19 +234,19 @@
           "ceiling": 8
         },
         "cpu_micros": {
-          "measured": 139,
+          "measured": 66,
           "ceiling": 25550
         },
         "sched_events": {
-          "measured": 0,
+          "measured": 1,
           "ceiling": 1000
         },
         "boot_cold_micros": {
-          "measured": 945,
+          "measured": 988,
           "ceiling": 5000000
         },
         "boot_warm_micros": {
-          "measured": 88,
+          "measured": 93,
           "ceiling": 2100
         }
       }

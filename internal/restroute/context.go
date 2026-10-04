@@ -27,6 +27,9 @@ func Op(r *http.Request) string {
 // again would turn a literal "%41" into "A".
 func Param(r *http.Request, name string) string {
 	v := chi.URLParam(r, name)
+	if v == emptySeg {
+		return ""
+	}
 	if r.URL.RawPath == "" {
 		return v
 	}

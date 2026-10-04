@@ -16,53 +16,42 @@ import (
 // stored: locally a deploy converges instantly to its target version, which
 // is where a weighted shift ends up anyway.
 
-func (s *Server) routeAliases(w http.ResponseWriter, r *http.Request, name string, segs []string) *awshttp.APIError {
-	if len(segs) == 4 { // /functions/{name}/aliases
-		switch r.Method {
-		case http.MethodPost:
-			return s.createAlias(w, r, name)
-		case http.MethodGet:
-			f, err := s.store.GetFunction(name)
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			views := []any{}
-			for _, alias := range slices.Sorted(maps.Keys(f.Aliases)) {
-				if strings.HasPrefix(alias, "$") {
-					continue
-				}
-				views = append(views, aliasView(f, alias))
-			}
-			writeJSON(w, 200, map[string]any{"Aliases": views})
-			return nil
-		}
+func (s *Server) listAliases(w http.ResponseWriter, name string) *awshttp.APIError {
+	f, err := s.store.GetFunction(name)
+	if err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	if len(segs) == 5 { // /functions/{name}/aliases/{alias}
-		alias := segs[4]
-		switch r.Method {
-		case http.MethodGet:
-			f, err := s.store.GetFunction(name)
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			if _, ok := f.Aliases[alias]; !ok {
-				return awshttp.Errf(404, "ResourceNotFoundException", "Cannot find alias arn: %s:%s", f.ARN(), alias)
-			}
-			writeJSON(w, 200, aliasView(f, alias))
-			return nil
-		case http.MethodPut:
-			return s.updateAlias(w, r, name, alias)
-		case http.MethodDelete:
-			s.store.Update(name, func(f *function) error {
-				delete(f.Aliases, alias)
-				delete(f.AliasDescriptions, alias)
-				return nil
-			})
-			w.WriteHeader(204)
-			return nil
+	views := []any{}
+	for _, alias := range slices.Sorted(maps.Keys(f.Aliases)) {
+		if strings.HasPrefix(alias, "$") {
+			continue
 		}
+		views = append(views, aliasView(f, alias))
 	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported alias request")
+	writeJSON(w, 200, map[string]any{"Aliases": views})
+	return nil
+}
+
+func (s *Server) getAlias(w http.ResponseWriter, name, alias string) *awshttp.APIError {
+	f, err := s.store.GetFunction(name)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	if _, ok := f.Aliases[alias]; !ok {
+		return awshttp.Errf(404, "ResourceNotFoundException", "Cannot find alias arn: %s:%s", f.ARN(), alias)
+	}
+	writeJSON(w, 200, aliasView(f, alias))
+	return nil
+}
+
+func (s *Server) deleteAlias(w http.ResponseWriter, name, alias string) *awshttp.APIError {
+	s.store.Update(name, func(f *function) error {
+		delete(f.Aliases, alias)
+		delete(f.AliasDescriptions, alias)
+		return nil
+	})
+	w.WriteHeader(204)
+	return nil
 }
 
 // createAlias is CreateAlias: a second create of the same name is a

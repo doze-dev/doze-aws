@@ -18,111 +18,36 @@ import (
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/peercall"
+	"github.com/doze-dev/doze-aws/internal/restroute"
 )
 
-// routeFunctions dispatches /functions[/name[/...]] requests.
-func (s *Server) routeFunctions(w http.ResponseWriter, r *http.Request, segs []string) *awshttp.APIError {
-	// /2015-03-31/functions
-	if len(segs) == 2 {
-		switch r.Method {
-		case http.MethodPost:
-			return s.createFunction(w, r)
-		case http.MethodGet:
-			return s.listFunctions(w)
-		}
-		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on functions")
-	}
-	// The name segment may be a name, name:qualifier, or an ARN with or
-	// without a qualifier; ?Qualifier= is the other spelling. The bare name
-	// addresses the record, the qualifier picks the version.
-	name, qualifier := splitQualifier(segs[2])
+// fnRef is the function a request addresses and the qualifier it names. The
+// path label may be a name, name:qualifier, or an ARN with or without a
+// qualifier; ?Qualifier= is the other spelling. The bare name addresses the
+// record, the qualifier picks the version.
+func fnRef(r *http.Request) (name, qualifier string) {
+	name, qualifier = splitQualifier(restroute.Param(r, "FunctionName"))
 	if q := r.URL.Query().Get("Qualifier"); q != "" {
 		qualifier = q
 	}
-	// /functions/{name}
-	if len(segs) == 3 {
-		switch r.Method {
-		case http.MethodGet:
-			return s.getFunction(w, name, qualifier)
-		case http.MethodDelete:
-			return s.deleteFunction(w, name, qualifier)
-		}
+	return name, qualifier
+}
+
+// fnName is fnRef without the qualifier, for the operations that have none.
+func fnName(r *http.Request) string {
+	name, _ := fnRef(r)
+	return name
+}
+
+// getConfiguration is GetFunctionConfiguration. Terraform and the CLI both
+// read this directly rather than going through GetFunction.
+func (s *Server) getConfiguration(w http.ResponseWriter, name, qualifier string) *awshttp.APIError {
+	f, _, aerr := s.resolve(name, qualifier)
+	if aerr != nil {
+		return aerr
 	}
-	// /functions/{name}/invocations
-	if len(segs) == 4 && segs[3] == "invocations" {
-		return s.invoke(w, r, name, qualifier)
-	}
-	// /functions/{name}/configuration
-	if len(segs) == 4 && segs[3] == "configuration" {
-		switch r.Method {
-		case http.MethodPut:
-			if aerr := onlyLatest(qualifier); aerr != nil {
-				return aerr
-			}
-			return s.updateConfiguration(w, r, name)
-		case http.MethodGet:
-			// GetFunctionConfiguration. Terraform and the CLI both read this
-			// directly rather than going through GetFunction.
-			f, _, aerr := s.resolve(name, qualifier)
-			if aerr != nil {
-				return aerr
-			}
-			writeJSON(w, 200, s.configView(f))
-			return nil
-		}
-	}
-	// /functions/{name}/code
-	if len(segs) == 4 && segs[3] == "code" && r.Method == http.MethodPut {
-		if aerr := onlyLatest(qualifier); aerr != nil {
-			return aerr
-		}
-		return s.updateCode(w, r, name)
-	}
-	// /functions/{name}/versions — PublishVersion (POST) and
-	// ListVersionsByFunction (GET). Terraform calls the GET form after every
-	// create to determine the function's latest version.
-	if len(segs) == 4 && segs[3] == "versions" {
-		switch r.Method {
-		case http.MethodPost:
-			return s.publishVersion(w, r, name)
-		case http.MethodGet:
-			return s.listVersions(w, name)
-		}
-	}
-	// /functions/{name}/aliases
-	if len(segs) >= 4 && segs[3] == "aliases" {
-		return s.routeAliases(w, r, name, segs)
-	}
-	// /functions/{name}/code-signing-config
-	//
-	// Terraform reads this on every function refresh, so an unrouted path
-	// fails the whole resource. Code signing is cloud-only — nothing here
-	// verifies a signature — but reporting "no config" is the honest answer
-	// for a function that has none.
-	if len(segs) == 4 && segs[3] == "code-signing-config" {
-		return s.routeCodeSigning(w, r, name)
-	}
-	// /functions/{name}/policy[/{statementId}]  (AWS::Lambda::Permission)
-	if len(segs) >= 4 && segs[3] == "policy" {
-		return s.routePolicy(w, r, name, segs)
-	}
-	// /functions/{name}/concurrency
-	if len(segs) == 4 && segs[3] == "concurrency" {
-		return s.routeConcurrency(w, r, name)
-	}
-	// /functions/{name}/urls or url  (Function URL config)
-	if len(segs) >= 4 && (segs[3] == "url" || segs[3] == "urls") {
-		return s.routeFunctionURL(w, r, name)
-	}
-	// /functions/{name}/event-invoke-config[/list]  (async destinations/retries)
-	if len(segs) >= 4 && segs[3] == "event-invoke-config" {
-		return s.routeEventInvokeConfig(w, r, name, segs)
-	}
-	// /functions/{name}/doze-runtime  (doze extension: warm/idle process state)
-	if len(segs) == 4 && segs[3] == "doze-runtime" && r.Method == http.MethodGet {
-		return s.dozeRuntime(w, name)
-	}
-	return awshttp.Errf(404, "ResourceNotFoundException", "unknown function subresource")
+	writeJSON(w, 200, s.configView(f))
+	return nil
 }
 
 // codeWire is the request Code member.
@@ -480,48 +405,52 @@ func (s *Server) updateCode(w http.ResponseWriter, r *http.Request, name string)
 	return nil
 }
 
-// routeCodeSigning serves the code-signing config as a faithful round-trip.
-func (s *Server) routeCodeSigning(w http.ResponseWriter, r *http.Request, name string) *awshttp.APIError {
+// The code-signing config is served as a faithful round-trip. Terraform reads
+// it on every function refresh, so an unrouted path fails the whole resource.
+// Code signing is cloud-only — nothing here verifies a signature — but
+// reporting "no config" is the honest answer for a function that has none.
+
+func (s *Server) getCodeSigning(w http.ResponseWriter, name string) *awshttp.APIError {
 	f, err := s.store.GetFunction(name)
 	if err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	switch r.Method {
-	case http.MethodGet:
-		out := map[string]any{"FunctionName": name}
-		if f.CodeSigningConfigArn != "" {
-			out["CodeSigningConfigArn"] = f.CodeSigningConfigArn
-		}
-		writeJSON(w, 200, out)
-		return nil
-	case http.MethodPut:
-		var req struct {
-			CodeSigningConfigArn string `json:"CodeSigningConfigArn"`
-		}
-		if aerr := decode(r, &req); aerr != nil {
-			return aerr
-		}
-		if _, err := s.store.Update(name, func(f *function) error {
-			f.CodeSigningConfigArn = req.CodeSigningConfigArn
-			return nil
-		}); err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		writeJSON(w, 200, map[string]any{
-			"FunctionName": name, "CodeSigningConfigArn": req.CodeSigningConfigArn,
-		})
-		return nil
-	case http.MethodDelete:
-		if _, err := s.store.Update(name, func(f *function) error {
-			f.CodeSigningConfigArn = ""
-			return nil
-		}); err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		w.WriteHeader(204)
-		return nil
+	out := map[string]any{"FunctionName": name}
+	if f.CodeSigningConfigArn != "" {
+		out["CodeSigningConfigArn"] = f.CodeSigningConfigArn
 	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported code-signing-config request")
+	writeJSON(w, 200, out)
+	return nil
+}
+
+func (s *Server) putCodeSigning(w http.ResponseWriter, r *http.Request, name string) *awshttp.APIError {
+	var req struct {
+		CodeSigningConfigArn string `json:"CodeSigningConfigArn"`
+	}
+	if aerr := decode(r, &req); aerr != nil {
+		return aerr
+	}
+	if _, err := s.store.Update(name, func(f *function) error {
+		f.CodeSigningConfigArn = req.CodeSigningConfigArn
+		return nil
+	}); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	writeJSON(w, 200, map[string]any{
+		"FunctionName": name, "CodeSigningConfigArn": req.CodeSigningConfigArn,
+	})
+	return nil
+}
+
+func (s *Server) deleteCodeSigning(w http.ResponseWriter, name string) *awshttp.APIError {
+	if _, err := s.store.Update(name, func(f *function) error {
+		f.CodeSigningConfigArn = ""
+		return nil
+	}); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	w.WriteHeader(204)
+	return nil
 }
 
 // configView renders a FunctionConfiguration.

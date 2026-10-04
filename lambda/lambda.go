@@ -19,7 +19,6 @@ import (
 
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -32,12 +31,12 @@ import (
 
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 
-	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/gateway"
 	"github.com/doze-dev/doze-aws/internal/iamguard"
 	"github.com/doze-dev/doze-aws/internal/lambdaruntime"
 	"github.com/doze-dev/doze-aws/internal/logship"
 	"github.com/doze-dev/doze-aws/internal/metricship"
+	"github.com/doze-dev/doze-aws/internal/restroute"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -108,6 +107,10 @@ type Server struct {
 	id      awsident.Identity          // the region and account this service mints ARNs for
 	suffix  string                     // stands in for amazonaws.com in hostnames
 
+	// router is the control plane's chi router, built on the first request: a
+	// stack that never calls Lambda never builds it.
+	router func() *restroute.Router
+
 	mu       sync.Mutex
 	runners  map[string]*lambdaruntime.Pool // function name -> concurrency pool
 	sinks    map[string]*logSink            // function name -> its log sink, closed with the pool
@@ -165,6 +168,7 @@ func New(opts Options) (*Server, error) {
 		suffix:   opts.Suffix,
 	}
 	s.shutdown, s.endShutdown = context.WithCancel(context.Background())
+	s.router = sync.OnceValue(s.buildRouter)
 	s.store.id = opts.Identity
 	if s.peers == nil {
 		s.peers = peers.None()
@@ -227,47 +231,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.serveFunctionURL(w, r)
 		return
 	}
-	// Model-derived input validation runs before the router, for every routed
-	// operation at once — coverage is then a property of the route table rather
-	// than something each handler has to remember.
-	if _, aerr := validateControl(r); aerr != nil {
-		s.logf("lambda: %s %s -> %s", r.Method, r.URL.Path, aerr.Code)
-		writeError(w, aerr)
-		return
-	}
-	if aerr := s.guardRequest(w, r); aerr != nil {
-		s.logf("lambda: %s %s -> %s", r.Method, r.URL.Path, aerr.Code)
-		writeError(w, aerr)
-		return
-	}
-	// Lambda's REST API routes by method + path. Dispatch on the path shape.
-	if aerr := s.route(w, r); aerr != nil {
-		s.logf("lambda: %s %s -> %s", r.Method, r.URL.Path, aerr.Code)
-		writeError(w, aerr)
-	}
-}
-
-// route dispatches one request.
-func (s *Server) route(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
-	p := strings.Trim(r.URL.Path, "/")
-	segs := strings.Split(p, "/")
-	// segs[0] is the API version date; segs[1] is the resource collection.
-	if len(segs) < 2 {
-		return awshttp.Errf(404, "ResourceNotFoundException", "unknown path %q", r.URL.Path)
-	}
-	switch segs[1] {
-	case "functions":
-		return s.routeFunctions(w, r, segs)
-	case "event-source-mappings":
-		return s.routeMappings(w, r, segs)
-	case "tags":
-		return s.routeTags(w, r, segs)
-	case "layers":
-		return s.routeLayers(w, r, segs)
-	case "account-settings":
-		return s.accountSettings(w, r)
-	}
-	return awshttp.Errf(404, "ResourceNotFoundException", "unknown resource %q", segs[1])
+	// Everything else is the control plane. The router matches the request once
+	// and runs validation and the IAM guard with its operation known — see
+	// router.go.
+	s.router().ServeHTTP(w, r)
 }
 
 // SetTraceSink tells the pollers where to report the work a queued message

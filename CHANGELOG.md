@@ -158,6 +158,15 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   refused until now — returns `SenderId` on every message, and
   `SequenceNumber` on FIFO sends and receives.
 - EventBridge buses can be tagged. `TagResource` used to refuse a bus ARN.
+- Lambda's control plane is routed from AWS's own service model (chi), and
+  the operation a request matched is what validation, the IAM guard and the
+  wire page read. Three visible effects:
+  - A Lambda path carries its operation's API date, as an SDK sends it —
+    concurrency under `2017-10-31` (read under `2019-09-30`), account settings
+    under `2016-08-19`. The old dispatch ignored the date.
+  - A known path with the wrong method is a `405`; some used to be `404`.
+  - `ListFunctionUrlConfigs` returns `{"FunctionUrlConfigs": [...]}` (empty
+    for a function with no URL) instead of a `404`.
 - API Gateway ids are random. They were taken from the clock, so two REST
   APIs, HTTP APIs, keys or usage plans created in the same instant got the
   same id and the second silently replaced the first.

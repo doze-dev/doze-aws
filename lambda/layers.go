@@ -27,6 +27,7 @@ import (
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/peercall"
+	"github.com/doze-dev/doze-aws/internal/restroute"
 )
 
 var layerBucket = []byte("layers")
@@ -218,71 +219,33 @@ func errNoLayer(name string, version int64) *awshttp.APIError {
 
 // ---- routing ----
 
-// routeLayers dispatches the /layers family:
-//
-//	/layers                                          list
-//	/layers/{name}/versions                          publish, list versions
-//	/layers/{name}/versions/{v}                      get, delete
-//	/layers/{name}/versions/{v}/policy[/{sid}]       layer version policy
-func (s *Server) routeLayers(w http.ResponseWriter, r *http.Request, segs []string) *awshttp.APIError {
-	if len(segs) == 2 {
-		if r.Method != http.MethodGet {
-			return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on layers")
-		}
-		// GetLayerVersionByArn is GET /layers?find=LayerVersion&Arn=... — the
-		// one operation in the family addressed by query rather than path.
-		if arn := r.URL.Query().Get("Arn"); arn != "" {
-			layerName, version, ok := parseLayerARN(arn)
-			if !ok {
-				return awshttp.Errf(400, "InvalidParameterValueException", "malformed layer ARN %q", arn)
-			}
-			return s.getLayerVersion(w, layerName, version)
-		}
-		return s.listLayers(w)
+// layerRef is the layer version a request names by ARN — the query form
+// (GetLayerVersionByArn is GET /layers?find=LayerVersion&Arn=…, the one
+// operation in the family addressed by query) or the /layers/{arn} spelling
+// some clients use.
+func (s *Server) getLayerVersionByARN(w http.ResponseWriter, arn string) *awshttp.APIError {
+	layerName, version, ok := parseLayerARN(arn)
+	if !ok {
+		return awshttp.Errf(400, "InvalidParameterValueException", "malformed layer ARN %q", arn)
 	}
-	name := segs[2]
+	return s.getLayerVersion(w, layerName, version)
+}
 
-	// Some clients spell it /layers/{arn} instead; resolve that too.
-	if strings.HasPrefix(name, "arn:") {
-		layerName, version, ok := parseLayerARN(name)
-		if !ok {
-			return awshttp.Errf(400, "InvalidParameterValueException", "malformed layer ARN %q", name)
-		}
-		return s.getLayerVersion(w, layerName, version)
+// layerVersionNumber is the {VersionNumber} label, which must be a number.
+func layerVersionNumber(r *http.Request) (int64, *awshttp.APIError) {
+	v, err := strconv.ParseInt(restroute.Param(r, "VersionNumber"), 10, 64)
+	if err != nil {
+		return 0, awshttp.Errf(400, "InvalidParameterValueException", "layer version must be a number")
 	}
+	return v, nil
+}
 
-	if len(segs) >= 4 && segs[3] == "versions" {
-		// /layers/{name}/versions
-		if len(segs) == 4 {
-			switch r.Method {
-			case http.MethodPost:
-				return s.publishLayerVersion(w, r, name)
-			case http.MethodGet:
-				return s.listLayerVersions(w, name)
-			}
-			return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on layer versions")
-		}
-		version, err := strconv.ParseInt(segs[4], 10, 64)
-		if err != nil {
-			return awshttp.Errf(400, "InvalidParameterValueException", "layer version must be a number")
-		}
-		// /layers/{name}/versions/{v}/policy
-		if len(segs) >= 6 && segs[5] == "policy" {
-			return s.routeLayerPolicy(w, r, name, version, segs)
-		}
-		// /layers/{name}/versions/{v}
-		switch r.Method {
-		case http.MethodGet:
-			return s.getLayerVersion(w, name, version)
-		case http.MethodDelete:
-			if err := s.store.DeleteLayerVersion(name, version); err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			w.WriteHeader(204)
-			return nil
-		}
+func (s *Server) deleteLayerVersion(w http.ResponseWriter, name string, version int64) *awshttp.APIError {
+	if err := s.store.DeleteLayerVersion(name, version); err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	return awshttp.Errf(404, "ResourceNotFoundException", "unknown layers subresource")
+	w.WriteHeader(204)
+	return nil
 }
 
 // parseLayerARN splits arn:aws:lambda:region:account:layer:{name}:{version}.
@@ -475,82 +438,73 @@ func layerVersionView(id awsident.Identity, l *layerVersion, withContent bool) m
 
 // ---- layer version policy ----
 
-func (s *Server) routeLayerPolicy(w http.ResponseWriter, r *http.Request, name string, version int64, segs []string) *awshttp.APIError {
-	switch r.Method {
-	case http.MethodPost:
-		var req struct {
-			StatementId    string `json:"StatementId"`
-			Action         string `json:"Action"`
-			Principal      string `json:"Principal"`
-			OrganizationId string `json:"OrganizationId"`
-		}
-		if aerr := decode(r, &req); aerr != nil {
-			return aerr
-		}
-		if req.StatementId == "" || req.Action == "" || req.Principal == "" {
-			return awshttp.Errf(400, "InvalidParameterValueException",
-				"StatementId, Action and Principal are all required")
-		}
-		l, err := s.store.GetLayerVersion(name, version)
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		stmt := policyStatement{
-			Sid: req.StatementId, Effect: "Allow",
-			Principal: map[string]string{"AWS": req.Principal},
-			Action:    req.Action, Resource: l.ARN(s.id),
-		}
-		if err := s.store.UpdateLayerVersion(name, version, func(l *layerVersion) error {
-			for _, existing := range l.Policy {
-				if existing.Sid == req.StatementId {
-					return awshttp.Errf(409, "ResourceConflictException",
-						"The statement id (%s) provided already exists.", req.StatementId)
-				}
-			}
-			l.Policy = append(l.Policy, stmt)
-			return nil
-		}); err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		raw, _ := json.Marshal(stmt)
-		writeJSON(w, 201, map[string]any{"Statement": string(raw), "RevisionId": "1"})
-		return nil
-
-	case http.MethodGet:
-		l, err := s.store.GetLayerVersion(name, version)
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		if len(l.Policy) == 0 {
-			return awshttp.Errf(404, "ResourceNotFoundException", "The resource you requested does not exist.")
-		}
-		raw, _ := json.Marshal(policyDoc{Version: "2012-10-17", Id: "default", Statement: l.Policy})
-		writeJSON(w, 200, map[string]any{"Policy": string(raw), "RevisionId": "1"})
-		return nil
-
-	case http.MethodDelete:
-		sid := ""
-		if len(segs) >= 7 {
-			sid = segs[6]
-		}
-		if sid == "" {
-			sid = r.URL.Query().Get("StatementId")
-		}
-		if err := s.store.UpdateLayerVersion(name, version, func(l *layerVersion) error {
-			for i, stmt := range l.Policy {
-				if stmt.Sid == sid {
-					l.Policy = append(l.Policy[:i], l.Policy[i+1:]...)
-					return nil
-				}
-			}
-			return awshttp.Errf(404, "ResourceNotFoundException", "The resource you requested does not exist.")
-		}); err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		w.WriteHeader(204)
-		return nil
+func (s *Server) addLayerVersionPermission(w http.ResponseWriter, r *http.Request, name string, version int64) *awshttp.APIError {
+	var req struct {
+		StatementId    string `json:"StatementId"`
+		Action         string `json:"Action"`
+		Principal      string `json:"Principal"`
+		OrganizationId string `json:"OrganizationId"`
 	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on layer policy")
+	if aerr := decode(r, &req); aerr != nil {
+		return aerr
+	}
+	if req.StatementId == "" || req.Action == "" || req.Principal == "" {
+		return awshttp.Errf(400, "InvalidParameterValueException",
+			"StatementId, Action and Principal are all required")
+	}
+	l, err := s.store.GetLayerVersion(name, version)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	stmt := policyStatement{
+		Sid: req.StatementId, Effect: "Allow",
+		Principal: map[string]string{"AWS": req.Principal},
+		Action:    req.Action, Resource: l.ARN(s.id),
+	}
+	if err := s.store.UpdateLayerVersion(name, version, func(l *layerVersion) error {
+		for _, existing := range l.Policy {
+			if existing.Sid == req.StatementId {
+				return awshttp.Errf(409, "ResourceConflictException",
+					"The statement id (%s) provided already exists.", req.StatementId)
+			}
+		}
+		l.Policy = append(l.Policy, stmt)
+		return nil
+	}); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	raw, _ := json.Marshal(stmt)
+	writeJSON(w, 201, map[string]any{"Statement": string(raw), "RevisionId": "1"})
+	return nil
+}
+
+func (s *Server) getLayerVersionPolicy(w http.ResponseWriter, name string, version int64) *awshttp.APIError {
+	l, err := s.store.GetLayerVersion(name, version)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	if len(l.Policy) == 0 {
+		return awshttp.Errf(404, "ResourceNotFoundException", "The resource you requested does not exist.")
+	}
+	raw, _ := json.Marshal(policyDoc{Version: "2012-10-17", Id: "default", Statement: l.Policy})
+	writeJSON(w, 200, map[string]any{"Policy": string(raw), "RevisionId": "1"})
+	return nil
+}
+
+func (s *Server) removeLayerVersionPermission(w http.ResponseWriter, name string, version int64, sid string) *awshttp.APIError {
+	if err := s.store.UpdateLayerVersion(name, version, func(l *layerVersion) error {
+		for i, stmt := range l.Policy {
+			if stmt.Sid == sid {
+				l.Policy = append(l.Policy[:i], l.Policy[i+1:]...)
+				return nil
+			}
+		}
+		return awshttp.Errf(404, "ResourceNotFoundException", "The resource you requested does not exist.")
+	}); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	w.WriteHeader(204)
+	return nil
 }
 
 // sha256Base64 is the CodeSha256 encoding AWS uses for layer and function code.
@@ -561,10 +515,7 @@ func sha256Base64(b []byte) string {
 
 // accountSettings answers GetAccountSettings with live counts. There are no
 // account quotas locally, so the limits are nominal and the usage is real.
-func (s *Server) accountSettings(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
-	if r.Method != http.MethodGet {
-		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on account-settings")
-	}
+func (s *Server) accountSettings(w http.ResponseWriter) *awshttp.APIError {
 	fns, err := s.store.ListFunctions()
 	if err != nil {
 		return awshttp.AsAPIError(err)

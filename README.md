@@ -189,10 +189,12 @@ directory, the one log line worth parsing, and the `.doze` names — is
 
 ## Design ground rules
 
-- **Lightweight above all.** Five dependencies we chose: bbolt, a TOML parser,
-  a YAML parser, a JSONata evaluator (Step Functions) and doze-names (the
-  `.doze` zone). Six modules reach the binary — `golang.org/x/sys` arrives
-  through bbolt — and a test fails if a seventh ever does. Data persists across
+- **Lightweight above all.** Six dependencies we chose: bbolt, a TOML parser,
+  a YAML parser, a JSONata evaluator (Step Functions), chi (the router the REST
+  services and the console share — it has no dependencies of its own) and
+  doze-names (the `.doze` zone). Seven modules reach the binary —
+  `golang.org/x/sys` arrives through bbolt — and a test fails if an eighth ever
+  does. Data persists across
   restarts under one directory you can delete.
 - **Real protocols, honest boundaries.** Every documented operation of an
   implemented service gets a handler: functional where locally meaningful,

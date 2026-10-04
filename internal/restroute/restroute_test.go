@@ -201,3 +201,26 @@ func TestSetParamLetAHandlerRedispatch(t *testing.T) {
 		t.Errorf("body = %q", body)
 	}
 }
+
+// The JSON services have always forgiven a trailing slash and read an empty
+// label as a label with no value, which validation then refuses; S3 must not,
+// because a key may end in a slash and hold two in a row.
+func TestTolerantRoutersTrimSlashesAndReadEmptyLabelsAsEmpty(t *testing.T) {
+	o := options(t)
+	o.Tolerant = true
+	rt := restroute.Build([]restroute.Route{
+		{Op: "ListFunctions", Method: "GET", Pattern: "/f", Handler: func(w http.ResponseWriter, r *http.Request) *awshttp.APIError { return reply(w, r) }},
+		{Op: "CreateAlias", Method: "POST", Pattern: "/f/{Fn}/aliases", Handler: func(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
+			return reply(w, r, "["+restroute.Param(r, "Fn")+"]")
+		}},
+	}, o)
+	if code, body := do(rt, "GET", "/f/"); code != 200 || body != "ListFunctions|" {
+		t.Errorf("trailing slash = %d %q", code, body)
+	}
+	if code, body := do(rt, "POST", "/f//aliases"); code != 200 || body != "CreateAlias|[]" {
+		t.Errorf("empty label = %d %q, want CreateAlias with an empty Fn", code, body)
+	}
+	if got := rt.Op(httptest.NewRequest("POST", "/f//aliases", nil)); got != "CreateAlias" {
+		t.Errorf("Op of an empty label = %q", got)
+	}
+}
