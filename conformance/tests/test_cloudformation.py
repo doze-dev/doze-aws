@@ -344,4 +344,6 @@ def test_a_taken_name_fails_the_create(client, names, cleanup, snapshot, eventua
 
     cfn.delete_stack(StackName=name)
     cfn.get_waiter("stack_delete_complete").wait(StackName=name, WaiterConfig=FAST)
+    # Unnamed, DescribeStacks lists live stacks only.
+    assert name not in [s["StackName"] for s in cfn.describe_stacks()["Stacks"]]
     snapshot.match("their-queue-outlives-the-stack", sqs.get_queue_url(QueueName=theirs))

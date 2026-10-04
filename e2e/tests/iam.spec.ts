@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/console';
 import { postForm } from '../fixtures/api';
+import { ORIGIN } from '../playwright.config';
 
 // IAM console coverage for the burn-down surfaces: groups (a whole subsystem
 // that had no UI), instance profiles, policy versioning, the draft-policy
@@ -245,4 +246,298 @@ test('a refused policy document errors next to the builder and clears on retry',
   await page.getByRole('button', { name: 'Create policy' }).click();
   await expect(page.locator('#flashbar')).toContainText(`Created ${name}`);
   await expect(page.locator('[data-doze-err]')).toHaveCount(0);
+});
+
+// ---------------------------------------------------------------------------
+// Remaining IAM mutations, each driven from the control a user would click:
+// role trust/settings/inline policies/detach/delete, user group-join/key
+// delete/delete, policy version + policy delete, instance-profile role and
+// delete, the account export, and the access-log policy generator.
+
+const allow = (action: string, sid?: string) =>
+  JSON.stringify({
+    Version: '2012-10-17',
+    Statement: [{ ...(sid ? { Sid: sid } : {}), Effect: 'Allow', Action: action, Resource: '*' }],
+  });
+
+/** Writes a policy document into the builder textarea under `scope`, the way
+ *  the builder's own JSON view does (CodeMirror + input event so the rows
+ *  stay in step with what posts). */
+async function setPolicyDoc(page: import('@playwright/test').Page, scope: string, doc: string) {
+  const sel = `${scope} textarea[name="document"]`;
+  await page.waitForFunction((s) => !!(document.querySelector(s) as any)?.__cm, sel);
+  await page.evaluate(
+    ([s, d]) => {
+      const ta = document.querySelector(s)!;
+      (window as any).dozeEditor.set(ta, d);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+    [sel, doc]
+  );
+}
+
+test.describe('IAM role page', () => {
+  test('trust policy, role settings, inline policy lifecycle, detach, delete', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+  }) => {
+    const role = uniqueName('e2e-iam-role');
+    await postForm(request, 'iam/create', { kind: 'role', name: role });
+    await postForm(request, `iam/role/${role}/attach`, {
+      arn: 'arn:aws:iam::aws:policy/ReadOnlyAccess',
+    });
+    await page.goto(`iam/role/${role}`);
+
+    // --- Trust policy: Edit -> new document -> Save ---
+    const trustPanel = page.locator('.panel', { has: page.locator('form[hx-post$="/trust"]') });
+    await trustPanel.locator('.panel-h').getByRole('button', { name: 'Edit' }).click();
+    const trust = JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        { Effect: 'Allow', Principal: { Service: 'ecs-tasks.amazonaws.com' }, Action: 'sts:AssumeRole' },
+      ],
+    });
+    await setPolicyDoc(page, 'form[hx-post$="/trust"]', trust);
+    await trustPanel.getByRole('button', { name: 'Save trust policy' }).click();
+    await expect(page.locator('#flashbar')).toContainText('Trust policy updated');
+    await expect(
+      page.locator('.panel', { has: page.locator('form[hx-post$="/trust"]') }).locator('.code-out pre')
+    ).toContainText('ecs-tasks.amazonaws.com');
+
+    // --- Role settings: description + max session ---
+    const meta = page.locator('form[hx-post$="/meta"]');
+    await meta.locator('input[name="description"]').fill('e2e role description');
+    await meta.locator('input[name="session"]').fill('7200');
+    await meta.getByRole('button', { name: 'Save' }).click();
+    await expect(page.locator('#flashbar')).toContainText('Role settings saved');
+    await page.reload();
+    await expect(page.locator('form[hx-post$="/meta"] input[name="description"]')).toHaveValue(
+      'e2e role description'
+    );
+    await expect(page.locator('form[hx-post$="/meta"] input[name="session"]')).toHaveValue('7200');
+
+    // --- Inline policy: add ---
+    const inlineName = uniqueName('inline');
+    const addPanel = page.locator('.panel', { has: page.locator('h2', { hasText: 'Add an inline policy' }) });
+    await addPanel.locator('.panel-h').getByRole('button', { name: 'Add' }).click();
+    await addPanel.locator('input[name="policy"]').fill(inlineName);
+    await setPolicyDoc(page, `form[hx-post$="/iam/role/${role}/inline"]:has(input[name="policy"]:not([type=hidden]))`, allow('sqs:SendMessage'));
+    await addPanel.locator('form').getByRole('button', { name: 'Add', exact: true }).click();
+    await expect(page.locator('#flashbar')).toContainText(`Saved ${inlineName}`);
+    const inlinePanel = page.locator('.panel', { has: page.locator('h2', { hasText: inlineName }) });
+    await expect(inlinePanel.locator('.code-out pre')).toContainText('sqs:SendMessage');
+
+    // --- Inline policy: edit in place ---
+    await inlinePanel.locator('.panel-h').getByRole('button', { name: 'Edit' }).click();
+    await setPolicyDoc(
+      page,
+      `form[hx-post$="/inline"]:has(input[type=hidden][name="policy"][value="${inlineName}"])`,
+      allow('sqs:ReceiveMessage')
+    );
+    await inlinePanel.getByRole('button', { name: 'Save' }).click();
+    await expect(page.locator('#flashbar')).toContainText(`Saved ${inlineName}`);
+    await expect(inlinePanel.locator('.code-out pre')).toContainText('sqs:ReceiveMessage');
+    await expect(inlinePanel.locator('.code-out pre')).not.toContainText('sqs:SendMessage');
+
+    // --- Inline policy: remove ---
+    await inlinePanel.getByRole('button', { name: 'Remove' }).click();
+    await confirmDialog('accept');
+    await expect(page.locator('#flashbar')).toContainText('Removed inline policy');
+    await expect(inlinePanel).toHaveCount(0);
+
+    // --- Detach the managed policy ---
+    const attachedRow = page.locator('.tbl tr', { hasText: 'arn:aws:iam::aws:policy/ReadOnlyAccess' });
+    await expect(attachedRow).toBeVisible();
+    await attachedRow.getByRole('button', { name: 'Detach' }).click();
+    await confirmDialog('accept');
+    await expect(page.locator('#flashbar')).toContainText('Detached');
+    await expect(page.locator('.tbl').first()).toContainText('No managed policies attached');
+
+    // --- Delete the role ---
+    await page.locator('.det-title .acts').getByRole('button', { name: 'Delete' }).click();
+    await expect(page.locator('#confirm-msg')).toContainText(role);
+    await confirmDialog('accept');
+    await page.waitForURL(/\/iam(\?.*)?$/);
+    await expect(page.locator('#flashbar')).toContainText(`Deleted ${role}`);
+    await expect(page.locator('.listpane .li', { hasText: role })).toHaveCount(0);
+  });
+});
+
+test.describe('IAM user page', () => {
+  test('join a group, delete an access key, delete the user', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+  }) => {
+    const user = uniqueName('e2e-iam-u');
+    const group = uniqueName('e2e-iam-g');
+    await postForm(request, 'iam/create', { kind: 'user', name: user });
+    await postForm(request, 'iam/create', { kind: 'group', name: group });
+    await postForm(request, `iam/user/${user}/keys`, {});
+
+    await page.goto(`iam/user/${user}`);
+    await expect(page.locator('.mini-note', { hasText: 'In no group.' })).toBeVisible();
+
+    // --- Join a group from the user's side ---
+    const join = page.locator(`form[hx-post$="/iam/user/${user}/join-group"]`);
+    await join.locator('select[name="group"]').selectOption(group);
+    await join.getByRole('button', { name: 'Add' }).click();
+    await expect(page.locator('#flashbar')).toContainText(`${user} added to ${group}`);
+    await expect(page.locator('.chips a.badge', { hasText: group })).toBeVisible();
+    // …and the group sees the member.
+    await page.goto(`iam/group/${group}`);
+    await expect(page.locator('.badge', { hasText: user })).toBeVisible();
+
+    // --- Delete the access key ---
+    await page.goto(`iam/user/${user}`);
+    const keyRow = page.locator('.tbl tbody tr', { has: page.locator('.chip', { hasText: 'Active' }) });
+    await expect(keyRow).toHaveCount(1);
+    const keyId = ((await keyRow.locator('td').first().textContent()) ?? '').trim();
+    await keyRow.getByRole('button', { name: 'Delete key' }).click();
+    await expect(page.locator('#confirm-msg')).toContainText(keyId);
+    await confirmDialog('accept');
+    await expect(page.locator('#flashbar')).toContainText('Key deleted');
+    await expect(page.locator('.tbl tbody', { hasText: 'No access keys' })).toBeVisible();
+    await expect(page.locator('.tbl', { hasText: keyId })).toHaveCount(0);
+
+    // --- Delete the user (leave the group first: IAM refuses a member) ---
+    await page.goto(`iam/group/${group}`);
+    // The × carries its meaning only in title=, so its accessible name is "×".
+    await page.locator(`button[title="Remove ${user} from the group"]`).click();
+    await confirmDialog('accept');
+    await expect(page.locator('#flashbar')).toContainText(`${user} removed from ${group}`);
+
+    await page.goto(`iam/user/${user}`);
+    await page.locator('.det-title .acts').getByRole('button', { name: 'Delete' }).click();
+    await expect(page.locator('#confirm-msg')).toContainText(user);
+    await confirmDialog('accept');
+    await page.waitForURL(/\/iam(\?.*)?$/);
+    await expect(page.locator('#flashbar')).toContainText(`Deleted ${user}`);
+    await expect(page.locator('.listpane .li', { hasText: user })).toHaveCount(0);
+  });
+
+  // Regression (fixed in 1.0): POST /iam/user/{name}/rename (UpdateUser) has a handler but the user
+  // page renders no rename control — groups have one, users do not.
+  test('rename a user from its page', async ({ page, request, uniqueName, confirmDialog }) => {
+    const user = uniqueName('e2e-iam-ren');
+    await postForm(request, 'iam/create', { kind: 'user', name: user });
+    await page.goto(`iam/user/${user}`);
+    const form = page.locator(`form[hx-post$="/iam/user/${user}/rename"]`);
+    await form.locator('input[name="new"]').fill(`${user}-renamed`);
+    await form.getByRole('button', { name: 'Rename' }).click();
+    if (await page.locator('#confirm').isVisible()) await confirmDialog('accept');
+    await page.waitForURL(new RegExp(`/iam/user/${user}-renamed$`));
+    await expect(page.locator('#flashbar')).toContainText(`User renamed to ${user}-renamed`);
+  });
+});
+
+test.describe('IAM managed policy page', () => {
+  test('delete a non-default version, then delete the policy', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+  }) => {
+    const policy = uniqueName('e2e-iam-delpol');
+    const arn = `arn:aws:iam::000000000000:policy/${policy}`;
+    await postForm(request, 'iam/create', { kind: 'policy', name: policy, document: allow('s3:GetObject') });
+    await postForm(request, 'iam/policy/new-version', { arn, document: allow('s3:*'), default: '1' });
+
+    await page.goto(`iam/policy?arn=${arn}`);
+    const v1 = page.locator('.tbl tbody tr', { has: page.locator('td.mono', { hasText: /^v1$/ }) });
+    await expect(v1).toHaveCount(1);
+    await v1.getByRole('button', { name: 'Delete version v1' }).click();
+    await expect(page.locator('#confirm-msg')).toContainText('v1');
+    await confirmDialog('accept');
+    await expect(page.locator('#flashbar')).toContainText('Version deleted');
+    await expect(v1).toHaveCount(0);
+    await expect(page.locator('.tbl tbody tr', { hasText: 'v2' }).locator('.badge')).toHaveText('default');
+
+    await page.locator('.det-h .acts').getByRole('button', { name: 'Delete' }).click();
+    await expect(page.locator('#confirm-msg')).toContainText(policy);
+    await confirmDialog('accept');
+    await page.waitForURL(/\/iam(\?.*)?$/);
+    await expect(page.locator('#flashbar')).toContainText('Policy deleted');
+    await expect(page.locator('.listpane .li', { hasText: policy })).toHaveCount(0);
+  });
+});
+
+test.describe('IAM instance profile page', () => {
+  test('add a role, remove it, delete the profile', async ({ page, request, uniqueName, confirmDialog }) => {
+    const profile = uniqueName('e2e-iam-ip');
+    const role = uniqueName('e2e-iam-iprole');
+    await postForm(request, 'iam/create', { kind: 'role', name: role });
+    await postForm(request, 'iam/create', { kind: 'profile', name: profile });
+
+    await page.goto(`iam/profile/${profile}`);
+    await expect(page.getByText('Empty — an instance with this profile has no permissions.')).toBeVisible();
+    const add = page.locator(`form[hx-post$="/iam/profile/${profile}/role"]`);
+    await add.locator('select[name="role"]').selectOption(role);
+    await add.getByRole('button', { name: 'Add' }).click();
+    await expect(page.locator('#flashbar')).toContainText('Profile updated');
+    await expect(page.locator('.chips .badge a', { hasText: role })).toBeVisible();
+    // A profile holds one role: the add form is gone.
+    await expect(add).toHaveCount(0);
+    // The role page lists the profile back.
+    await page.goto(`iam/role/${role}`);
+    await expect(page.locator('a.badge', { hasText: profile })).toBeVisible();
+
+    await page.goto(`iam/profile/${profile}`);
+    await page.locator(`button[title="Remove ${role}"]`).click();
+    await confirmDialog('accept');
+    await expect(page.locator('#flashbar')).toContainText('Profile updated');
+    await expect(page.getByText('Empty — an instance with this profile has no permissions.')).toBeVisible();
+
+    await page.locator('.det-title .acts').getByRole('button', { name: 'Delete' }).click();
+    await expect(page.locator('#confirm-msg')).toContainText(profile);
+    await confirmDialog('accept');
+    await page.waitForURL(/\/iam(\?.*)?$/);
+    await expect(page.locator('#flashbar')).toContainText(`Instance profile ${profile} deleted`);
+    await expect(page.locator('.listpane .li', { hasText: profile })).toHaveCount(0);
+  });
+});
+
+test.describe('IAM account and access log', () => {
+  // Regression (fixed in 1.0): the "Load the export" button does nothing. Its wrapper uses
+  // hx-trigger="click from:find button", which htmx 4's trigger parser splits
+  // at the space (from="find", then a stray "button"), so no listener is bound
+  // and POST /iam/account/details is never sent (templates/iam.html:687).
+  test('authorization export loads on demand', async ({ page, request, uniqueName }) => {
+    const user = uniqueName('e2e-iam-audit');
+    await postForm(request, 'iam/create', { kind: 'user', name: user });
+    await page.goto('iam/account');
+    await expect(page.locator('#iam-auth-out')).toBeEmpty();
+    await page.getByRole('button', { name: 'Load the export' }).click();
+    await expect(page.locator('#iam-auth-out pre')).toContainText(user);
+  });
+
+  test('generate a least-privilege policy from what was recorded', async ({ page, request }) => {
+    // Something has to be on the record. Console mutations do not pass
+    // through the IAM middleware, so arrange one real SDK-shaped call (SQS
+    // ListQueues, root credentials): soft mode records it.
+    const res = await request.post(ORIGIN + '/', {
+      form: { Action: 'ListQueues', Version: '2012-11-05' },
+      headers: {
+        Authorization:
+          'AWS4-HMAC-SHA256 Credential=AKIAIOSFODNN7EXAMPLE/20260101/us-east-1/sqs/aws4_request, SignedHeaders=host, Signature=00',
+        'X-Amz-Date': '20260101T000000Z',
+      },
+    });
+    expect(res.ok()).toBeTruthy();
+
+    await page.goto('iam');
+    await expect(page.locator('.chip', { hasText: 'mode: soft' })).toBeVisible();
+    await expect(page.locator('.tbl td', { hasText: 'sqs:ListQueues' }).first()).toBeVisible();
+    const gen = page.locator('form[hx-post$="/iam/generate"]');
+    await gen.locator('select[name="principal"]').selectOption('');
+    await gen.getByRole('button', { name: 'Generate' }).click();
+    const out = page.locator('#iam-generated');
+    await expect(out.locator('pre')).toContainText('sqs:ListQueues');
+    await expect(out.locator('.err')).toHaveCount(0);
+    // The document can be saved as a policy in one step.
+    await expect(out.getByRole('button', { name: 'Create policy' })).toBeVisible();
+  });
 });

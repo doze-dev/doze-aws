@@ -280,13 +280,16 @@
     {{if not $.Query.Shard}}<td class="mono dim sub">{{.Shard}}</td>{{end}}
     <td class="mono sub">{{.Partition}}</td>
     <td class="dim sub">{{.Arrived}}</td>
-    <td class="mono sub trunc" style="max-width:420px">
-      {{if .Binary}}<span class="chip">base64</span> {{end}}{{.Data}}{{if .Truncated}}<span class="dim">…</span>
-      <button class="btn btn-outline btn-sm" style="margin-left:6px"
+    <td class="sub"><div class="kin-data">
+      {{/* The data truncates in its own span and the button sits beside it:
+           inside one no-wrap truncating cell the button was clipped out of
+           view, and a truncated record could never be opened. */}}
+      {{if .Binary}}<span class="chip">base64</span>{{end}}<span class="mono trunc">{{.Data}}{{if .Truncated}}<span class="dim">…</span>{{end}}</span>
+      {{if .Truncated}}<button class="btn btn-outline btn-sm"
               hx-get="{{$.Prefix}}/kinesis/{{$.Stream}}/record?shard={{.Shard}}&seq={{.Seq}}"
               hx-target="#drawer-inner" hx-select="" hx-swap="innerHTML"
               @click="drawer=true">{{icon "search"}} Full</button>{{end}}
-    </td>
+    </div></td>
     <td class="num dim sub">{{.Bytes}}</td>
   </tr>
 {{end}}

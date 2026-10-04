@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -146,6 +147,22 @@ type apiErr struct {
 }
 
 func (e *apiErr) Error() string { return fmt.Sprintf("aws %d: %s", e.status, e.body) }
+
+// errText is an error as a result panel shows it: a refused call reduced to
+// its code and message, the way c.fail renders one, instead of the raw
+// envelope. Anything else is its own text.
+func errText(err error) string {
+	var ae *apiErr
+	if errors.As(err, &ae) {
+		if ref := parseRefusal(ae.status, ae.body); ref != nil && ref.Message != "" {
+			if ref.Code != "" {
+				return ref.Code + ": " + ref.Message
+			}
+			return ref.Message
+		}
+	}
+	return err.Error()
+}
 
 // ---- S3 ----
 
@@ -630,26 +647,34 @@ func (b *backend) SendMessage(ctx context.Context, name, body string, o SendOpts
 	if o.Delay != "" && o.Delay != "0" {
 		in["DelaySeconds"] = atoi(o.Delay)
 	}
-	if len(o.Attrs) > 0 {
-		mattrs := map[string]any{}
-		for _, a := range o.Attrs {
-			if a.Name == "" {
-				continue
-			}
-			t := a.Type
-			if t == "" {
-				t = "String"
-			}
-			if t == "Binary" { // value is base64 on the wire
-				mattrs[a.Name] = map[string]string{"DataType": t, "BinaryValue": a.Value}
-			} else {
-				mattrs[a.Name] = map[string]string{"DataType": t, "StringValue": a.Value}
-			}
-		}
+	if mattrs := msgAttrsWire(o.Attrs); mattrs != nil {
 		in["MessageAttributes"] = mattrs
 	}
 	_, err := b.sqs(ctx, "SendMessage", in)
 	return err
+}
+
+// msgAttrsWire is the composer's attribute rows as SQS takes them, or nil.
+func msgAttrsWire(attrs []MsgAttr) map[string]any {
+	mattrs := map[string]any{}
+	for _, a := range attrs {
+		if a.Name == "" {
+			continue
+		}
+		t := a.Type
+		if t == "" {
+			t = "String"
+		}
+		if t == "Binary" { // value is base64 on the wire
+			mattrs[a.Name] = map[string]string{"DataType": t, "BinaryValue": a.Value}
+		} else {
+			mattrs[a.Name] = map[string]string{"DataType": t, "StringValue": a.Value}
+		}
+	}
+	if len(mattrs) == 0 {
+		return nil
+	}
+	return mattrs
 }
 
 // DeleteMessage removes one message by receipt handle (peek handles are

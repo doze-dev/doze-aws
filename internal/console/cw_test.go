@@ -109,9 +109,9 @@ func TestConsoleCloudWatchFlow(t *testing.T) {
 
 	// Tags go through the shared panel, which reaches CloudWatch's own tag
 	// shape — a list of Key/Value, not the map CloudWatch Logs uses.
-	if r := req(t, h, "POST", "/_console/tags/set", url.Values{
+	if r := req(t, h, "POST", "/_console/tags/save", url.Values{
 		"svc": {"cw"}, "id": {"checkouts-low"},
-		"key": {"team"}, "value": {"shop"}}); r.Code != 200 {
+		"tag_key": {"team"}, "tag_val": {"shop"}}); r.Code != 200 {
 		t.Fatalf("tag alarm: %d\n%s", r.Code, r.Body)
 	}
 	// The panel loads its rows through /tags/view, so that is where the tag is.

@@ -103,7 +103,7 @@
           <input type="hidden" name="name" value="{{.S.Name}}">
           {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .Policy "Rows" 10 "UID" "secpol" "Check" false}}
           <div class="fr-btn"><button class="btn" type="submit">Save policy</button>
-            {{if .Policy}}<button class="btn btn-outline danger" type="submit" name="remove" value="1" hx-confirm="Remove the resource policy? Only identity policies will decide access.">Remove</button>{{end}}</div>
+            {{if .Policy}}<button class="btn btn-outline danger" type="button" hx-post="{{.Prefix}}/sm/policy" hx-include="closest form" hx-vals='{"remove":"1"}' hx-target="#sm-detail" hx-select="" hx-swap="outerHTML" hx-confirm="Remove the resource policy? Only identity policies will decide access.">Remove</button>{{end}}</div>
         </form>
       </div>
     </div>

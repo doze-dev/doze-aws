@@ -169,7 +169,8 @@ func clampInt(v, lo, hi int) int {
 // SendMessageBatch publishes up to ten messages per call, chunked the same way
 // the receipt-handle batches are. Same reason: ten is a wire limit, and a
 // person composing a burst of test messages should not have to know it.
-func (b *backend) SendMessageBatch(ctx context.Context, name string, bodies []string, delay string, groupID string) ([]BatchFailure, error) {
+func (b *backend) SendMessageBatch(ctx context.Context, name string, bodies []string, o SendOpts) ([]BatchFailure, error) {
+	delay, groupID, mattrs := o.Delay, o.GroupID, msgAttrsWire(o.Attrs)
 	var failed []BatchFailure
 	for start := 0; start < len(bodies); start += 10 {
 		end := min(start+10, len(bodies))
@@ -186,6 +187,9 @@ func (b *backend) SendMessageBatch(ctx context.Context, name string, bodies []st
 				// one batch would then collapse into one message. Giving each
 				// entry its own id keeps "I sent five" meaning five.
 				e["MessageDeduplicationId"] = strconv.FormatInt(time.Now().UnixNano(), 36) + strconv.Itoa(start+i)
+			}
+			if mattrs != nil {
+				e["MessageAttributes"] = mattrs
 			}
 			entries = append(entries, e)
 		}
@@ -229,17 +233,5 @@ func (b *backend) RemovePermission(ctx context.Context, name, label string) erro
 	_, err := b.sqs(ctx, "RemovePermission", map[string]any{
 		"QueueUrl": b.queueURL(name), "Label": label,
 	})
-	return err
-}
-
-// CancelMessageMoveTask stops an in-progress redrive.
-//
-// Locally this always answers "task is not active", because doze-aws completes
-// a move synchronously — the volumes are small enough that there is no window
-// to cancel in. That answer matches what AWS says about a task that has already
-// finished, so the button is honest rather than fake: it makes the real call
-// and shows the real refusal.
-func (b *backend) CancelMessageMoveTask(ctx context.Context, taskHandle string) error {
-	_, err := b.sqs(ctx, "CancelMessageMoveTask", map[string]any{"TaskHandle": taskHandle})
 	return err
 }

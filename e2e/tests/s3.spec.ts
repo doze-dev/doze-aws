@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/console';
-import { createBucket, createQueue } from '../fixtures/api';
+import { createBucket, createQueue, postForm } from '../fixtures/api';
 import type { Page, Locator } from '@playwright/test';
 import { ORIGIN } from '../playwright.config';
 
@@ -511,5 +511,304 @@ test.describe('block public access', () => {
     await expect(row().locator('.badge').first()).toContainText('Off');
     await page.reload();
     await expect(row().locator('.badge').first()).toContainText('Off');
+  });
+});
+
+// ---- Route-coverage pass: folders, bucket tags, the versioning switch,
+// object tags, object lock (bucket default, legal hold, retention),
+// notification removal, combine, and aborting a multipart upload. ----
+
+// Arrange-only: puts an object through the console's own upload route.
+async function putObject(
+  request: import('@playwright/test').APIRequestContext,
+  bucket: string,
+  key: string,
+  body: Buffer | string
+) {
+  const res = await request.post(`${ORIGIN}/_console/s3/${bucket}/upload`, {
+    multipart: {
+      prefix: '',
+      file: { name: key, mimeType: 'application/octet-stream', buffer: Buffer.isBuffer(body) ? body : Buffer.from(body) },
+    },
+  });
+  expect(res.ok()).toBeTruthy();
+}
+
+test.describe('folders', () => {
+  test('New folder creates a prefix you can open; a nested one lands inside it', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const bucket = uniqueName('e2e-s3-folder');
+    await createBucket(request, bucket);
+    await page.goto(`s3/${bucket}`);
+
+    await page.locator('.acts').getByRole('button', { name: 'New folder' }).click();
+    const form = page.locator('form.newfolder');
+    await expect(form).toBeVisible();
+    await expect(form.locator('.nf-at')).toHaveText(`${bucket}/`);
+    await form.locator('input[name=name]').fill('invoices');
+    await form.getByRole('button', { name: 'Create' }).click();
+    expect(await waitForToast()).toContain('Folder “invoices” created');
+    await expect(form).toBeHidden();
+
+    const folder = page.locator('#object-table tr.folder', { hasText: 'invoices' });
+    await expect(folder).toBeVisible();
+    await folder.locator('a.cell-name').click();
+    await expect(page.locator('#object-table nav.bc')).toContainText('invoices');
+
+    // Nested: the form reads the prefix being browsed.
+    await page.locator('.acts').getByRole('button', { name: 'New folder' }).click();
+    await expect(form.locator('.nf-at')).toHaveText(`${bucket}/invoices/`);
+    await form.locator('input[name=name]').fill('2026');
+    await form.getByRole('button', { name: 'Create' }).click();
+    expect(await waitForToast()).toContain('Folder “2026” created');
+    await expect(page.locator('#object-table tr.folder', { hasText: '2026' })).toBeVisible();
+
+    // AWS-side: the folder object is invoices/2026/, not 2026/ at the root.
+    await page.goto(`s3/${bucket}`);
+    await expect(page.locator('#object-table tr.folder', { hasText: '2026' })).toHaveCount(0);
+  });
+});
+
+test.describe('bucket properties', () => {
+  test('tags add and remove from the Properties tab', async ({ page, request, uniqueName, waitForToast }) => {
+    const bucket = uniqueName('e2e-s3-tags');
+    await createBucket(request, bucket);
+    await page.goto(`s3/${bucket}?tab=properties`);
+    const props = page.locator('#s3-props');
+    await expect(props).toContainText('No tags yet.');
+
+    const form = props.locator('form[hx-post$="/add-tag"]');
+    await form.locator('input[name=key]').fill('team');
+    await form.locator('input[name=value]').fill('platform');
+    await form.getByRole('button', { name: 'Add' }).click();
+    expect(await waitForToast()).toContain('Tag added');
+    const row = page.locator('#s3-props tr', { hasText: 'team' });
+    await expect(row).toContainText('platform');
+
+    await page.reload();
+    await expect(page.locator('#s3-props tr', { hasText: 'team' })).toContainText('platform');
+
+    await page.locator('#s3-props tr', { hasText: 'team' }).getByRole('button', { name: 'Remove tag' }).click();
+    expect(await waitForToast()).toContain('Tag removed');
+    await expect(page.locator('#s3-props tr', { hasText: 'team' })).toHaveCount(0);
+    await expect(page.locator('#s3-props')).toContainText('No tags yet.');
+  });
+
+  test('the versioning switch enables, then suspends', async ({ page, request, uniqueName, waitForToast }) => {
+    const bucket = uniqueName('e2e-s3-ver');
+    await createBucket(request, bucket);
+    await page.goto(`s3/${bucket}?tab=properties`);
+    const row = () => page.locator('#s3-props .opt-row', { hasText: 'Keep every version' });
+    await expect(row().locator('.badge')).toHaveText('Disabled');
+
+    await row().locator('label.switch').click();
+    expect(await waitForToast()).toContain('Versioning enabled');
+    await expect(row().locator('.badge')).toHaveText('Enabled');
+    await expect(row().locator('input[type=checkbox]')).toBeChecked();
+
+    await row().locator('label.switch').click();
+    expect(await waitForToast()).toContain('Versioning suspended');
+    await expect(row().locator('.badge')).toHaveText('Suspended');
+
+    await page.reload();
+    await expect(row().locator('.badge')).toHaveText('Suspended');
+  });
+
+  test('a notification is removed behind the confirm dialog', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+    waitForToast,
+  }) => {
+    const bucket = uniqueName('e2e-s3-unnotify');
+    const queue = await createQueue(request, uniqueName('e2e-s3-unnotify-q'));
+    await createBucket(request, bucket);
+    // Arrange: the wiring, through the console's own add route.
+    await postForm(request, `s3/${bucket}/notify-add`, { dest: `sqs:${queue}`, event: 's3:ObjectCreated:*' });
+
+    await page.goto(`s3/${bucket}?tab=properties`);
+    const sub = page.locator('#s3-notify .sub-row', { hasText: queue });
+    await expect(sub).toBeVisible();
+    await sub.getByRole('button', { name: 'Remove this notification' }).click();
+    await confirmDialog('accept');
+    expect(await waitForToast()).toContain('Notification removed');
+    await expect(page.locator('#s3-notify .sub-row', { hasText: queue })).toHaveCount(0);
+    await expect(page.locator('#s3-notify')).toContainText('No notifications');
+
+    await page.reload();
+    await expect(page.locator('#s3-notify')).toContainText('No notifications');
+  });
+});
+
+test.describe('object tags', () => {
+  // The Tags section sits below the fold of the drawer at 720px.
+  test.use({ viewport: { width: 1280, height: 1100 } });
+
+  test('added in the drawer, saved, and read back on reopen', async ({ page, request, uniqueName, waitForToast }) => {
+    const bucket = uniqueName('e2e-s3-otags');
+    await createBucket(request, bucket);
+    await putObject(request, bucket, 'tagged.txt', 'hi');
+    await page.goto(`s3/${bucket}`);
+    await openDrawer(page, 'tagged.txt');
+
+    const sec = page.locator('#drawer-inner .drawer-sec', { hasText: 'Tags' });
+    await sec.getByRole('button', { name: 'Add tag' }).click();
+    await sec.locator('input[name=tag_key]').last().fill('env');
+    await sec.locator('input[name=tag_val]').last().fill('prod');
+    await clickInDrawer(sec.getByRole('button', { name: 'Save tags' }));
+    expect(await waitForToast()).toContain('Object tags saved');
+
+    // The drawer re-rendered from GetObjectTagging.
+    const again = page.locator('#drawer-inner .drawer-sec', { hasText: 'Tags' });
+    await expect(again.locator('input[name=tag_key]')).toHaveValue('env');
+    await expect(again.locator('input[name=tag_val]')).toHaveValue('prod');
+
+    // And survives a fresh page.
+    await page.reload();
+    await openDrawer(page, 'tagged.txt');
+    await expect(page.locator('#drawer-inner input[name=tag_val]')).toHaveValue('prod');
+  });
+});
+
+test.describe('object lock', () => {
+  // The lock section sits low in the drawer; see the "versions" block above.
+  test.use({ viewport: { width: 1280, height: 1100 } });
+
+  test('bucket default retention saves from the Properties tab', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const bucket = uniqueName('e2e-s3-lockcfg');
+    await createBucket(request, bucket, { objectLock: true });
+    await page.goto(`s3/${bucket}?tab=properties`);
+    const form = page.locator('#s3-props form[hx-post$="/lock-config"]');
+    await form.locator('select[name=mode]').selectOption('GOVERNANCE');
+    await form.locator('input[name=days]').fill('3');
+    await form.getByRole('button', { name: 'Save' }).click();
+    expect(await waitForToast()).toContain('Default retention saved');
+
+    await page.reload();
+    const again = page.locator('#s3-props form[hx-post$="/lock-config"]');
+    await expect(again.locator('select[name=mode]')).toHaveValue('GOVERNANCE');
+    await expect(again.locator('input[name=days]')).toHaveValue('3');
+  });
+
+  test('legal hold on and off, then a retention date, from the object drawer', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const bucket = uniqueName('e2e-s3-lockobj');
+    await createBucket(request, bucket, { objectLock: true });
+    await putObject(request, bucket, 'held.txt', 'evidence');
+    await page.goto(`s3/${bucket}`);
+    await openDrawer(page, 'held.txt');
+
+    const lock = () => page.locator('#drawer-inner .drawer-sec', { hasText: 'Object lock' });
+    await expect(lock()).toContainText('Legal hold off');
+    await clickInDrawer(lock().getByRole('button', { name: 'Hold' }));
+    expect(await waitForToast()).toContain('Legal hold ON');
+    await expect(lock().locator('.badge')).toHaveText('ON');
+
+    await clickInDrawer(lock().getByRole('button', { name: 'Release' }));
+    expect(await waitForToast()).toContain('Legal hold released');
+    await expect(lock().locator('.badge')).toHaveText('off');
+
+    const until = new Date(Date.now() + 3 * 86400_000).toISOString().slice(0, 10);
+    await lock().locator('select[name=mode]').selectOption('GOVERNANCE');
+    await lock().locator('input[name=until]').fill(until);
+    await clickInDrawer(lock().getByRole('button', { name: 'Retain' }));
+    expect(await waitForToast()).toContain('Retention set');
+    await expect(lock()).toContainText(`Retained under GOVERNANCE until ${until}`);
+  });
+});
+
+test.describe('combine', () => {
+  test('two selected objects concatenate into a new one', async ({ page, request, uniqueName, waitForToast }) => {
+    const bucket = uniqueName('e2e-s3-combine');
+    await createBucket(request, bucket);
+    // Every piece but the last must be >= 5 MiB: the multipart rule is real.
+    const big = Buffer.alloc(5 * 1024 * 1024, 'a');
+    await putObject(request, bucket, 'part-1.log', big);
+    await putObject(request, bucket, 'part-2.log', 'tail');
+    await page.goto(`s3/${bucket}`);
+
+    await page.locator('tbody input.rowck[value="part-1.log"]').click();
+    await page.locator('tbody input.rowck[value="part-2.log"]').click();
+    const bar = page.locator('.bulkbar');
+    await expect(bar.locator('.bb-n')).toContainText('2');
+    await bar.locator('input[name=dest]').fill('all.log');
+    await bar.getByRole('button', { name: /Combine into/ }).click();
+    expect(await waitForToast()).toContain('Combined 2 objects into all.log');
+    await expect(page.locator('#object-table tr', { hasText: 'all.log' })).toBeVisible();
+
+    // AWS-side: the bytes are the concatenation, in name order.
+    const res = await request.get(`s3/${bucket}/object?key=all.log`);
+    const body = await res.body();
+    expect(body.length).toBe(big.length + 4);
+    expect(body.subarray(body.length - 4).toString()).toBe('tail');
+  });
+});
+
+test.describe('multipart uploads', () => {
+  test('an in-progress upload is listed and aborted from the Properties tab', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+    waitForToast,
+  }) => {
+    const bucket = uniqueName('e2e-s3-mpu');
+    await createBucket(request, bucket);
+    // Arrange: start an upload through the S3 API and leave it open.
+    const init = await request.post(`${ORIGIN}/${bucket}/big.bin?uploads`);
+    expect(init.ok()).toBeTruthy();
+    const uploadId = /<UploadId>([^<]+)<\/UploadId>/.exec(await init.text())![1];
+    const part = await request.put(`${ORIGIN}/${bucket}/big.bin?partNumber=1&uploadId=${encodeURIComponent(uploadId)}`, {
+      data: Buffer.from('part one'),
+    });
+    expect(part.ok()).toBeTruthy();
+
+    await page.goto(`s3/${bucket}?tab=properties`);
+    const row = page.locator('#s3-props tr', { hasText: 'big.bin' });
+    await expect(row).toContainText(uploadId.slice(0, 8));
+    await row.getByRole('button', { name: 'Abort this upload' }).click();
+    await confirmDialog('accept');
+    expect(await waitForToast()).toContain('Upload aborted');
+
+    // AWS-side: ListMultipartUploads no longer has it.
+    await page.reload();
+    await expect(page.locator('#s3-props')).toContainText('None in progress');
+    await expect(page.locator('#s3-props tr', { hasText: 'big.bin' })).toHaveCount(0);
+  });
+
+  // Regression (fixed in 1.0): the abort button (s3.html, s3_mp_uploads) targets hx-target="closest div",
+  // which is the row's own .cs-acts cell. The re-rendered uploads list — "None in
+  // progress…" — is swapped INTO that cell, and the aborted row stays on screen
+  // beside it until a reload. It should replace the whole uploads section.
+  test('the aborted upload leaves the list in place, without a reload', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+  }) => {
+    const bucket = uniqueName('e2e-s3-mpu2');
+    await createBucket(request, bucket);
+    const init = await request.post(`${ORIGIN}/${bucket}/big.bin?uploads`);
+    expect(init.ok()).toBeTruthy();
+    await page.goto(`s3/${bucket}?tab=properties`);
+    const row = page.locator('#s3-props tr', { hasText: 'big.bin' });
+    await row.getByRole('button', { name: 'Abort this upload' }).click();
+    await confirmDialog('accept');
+    await expect(page.locator('#s3-props tr', { hasText: 'big.bin' })).toHaveCount(0);
+    await expect(page.locator('#s3-props .cs-acts')).toHaveCount(0);
   });
 });

@@ -148,9 +148,7 @@ func (c *Console) routes() {
 	m.HandleFunc("GET "+p+"/api/counts", c.apiCounts)
 	m.HandleFunc("GET "+p+"/api/glance", c.apiGlance) // one-call feed for the doze dash page
 	m.HandleFunc("GET "+p+"/tags/view", c.tagsView)
-	m.HandleFunc("GET "+p+"/info/{svc}", c.svcInfo) // HTMX partial (the fidelity ledger)
-	m.HandleFunc("POST "+p+"/tags/set", c.tagsSet)
-	m.HandleFunc("POST "+p+"/tags/remove", c.tagsRemove)
+	m.HandleFunc("GET "+p+"/info/{svc}", c.svcInfo)  // HTMX partial (the fidelity ledger)
 	m.HandleFunc("POST "+p+"/tags/save", c.tagsSave) // the whole set, explicitly
 
 	// Create forms render inside the shell (list pane + detail).
@@ -214,10 +212,8 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/sqs/{queue}/visibility", c.sqsChangeVisibility)        // re-hide or release one
 	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-batch", c.sqsDeleteBatch)           // DeleteMessageBatch
 	m.HandleFunc("POST "+p+"/sqs/{queue}/visibility-batch", c.sqsVisibilityBatch)   // ChangeMessageVisibilityBatch
-	m.HandleFunc("POST "+p+"/sqs/{queue}/send-batch", c.sqsSendBatch)               // SendMessageBatch
 	m.HandleFunc("POST "+p+"/sqs/{queue}/permission", c.sqsAddPermission)           // AddPermission (C-tier)
 	m.HandleFunc("POST "+p+"/sqs/{queue}/permission/delete", c.sqsRemovePermission) // RemovePermission (C-tier)
-	m.HandleFunc("POST "+p+"/sqs/{queue}/cancel-move", c.sqsCancelMove)             // CancelMessageMoveTask
 	m.HandleFunc("POST "+p+"/sqs/{queue}/delete-queue", c.sqsDeleteQueue)
 
 	// DynamoDB.
@@ -288,7 +284,6 @@ func (c *Console) routes() {
 	m.HandleFunc("POST "+p+"/apigw-keys/plans/{plan}/detach-key", c.apigwPlanDetachKey) // DeleteUsagePlanKey
 	m.HandleFunc("POST "+p+"/apigw/create", c.apigwCreate)
 	m.HandleFunc("GET "+p+"/apigw-http/{api}", c.apigwHTTP)                          // GetApis, GetRoutes, GetIntegrations, GetStages, GetAuthorizers
-	m.HandleFunc("POST "+p+"/apigw-http/create", c.apigwHTTPCreate)                  // CreateApi
 	m.HandleFunc("POST "+p+"/apigw-http/{api}/update", c.apigwHTTPUpdate)            // UpdateApi, DeleteCorsConfiguration
 	m.HandleFunc("POST "+p+"/apigw-http/{api}/delete", c.apigwHTTPDelete)            // DeleteApi
 	m.HandleFunc("POST "+p+"/apigw-http/{api}/add-route", c.apigwHTTPAddRoute)       // HTMX partial (CreateIntegration, CreateRoute)

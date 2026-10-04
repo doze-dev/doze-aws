@@ -1067,8 +1067,8 @@ func TestTagsEverywhere(t *testing.T) {
 	}
 	for _, c := range cases {
 		// Set a tag, then it round-trips back through the editor.
-		set := req(t, h, "POST", "/_console/tags/set", url.Values{
-			"svc": {c.svc}, "id": {c.id}, "key": {"env"}, "value": {"staging"},
+		set := req(t, h, "POST", "/_console/tags/save", url.Values{
+			"svc": {c.svc}, "id": {c.id}, "tag_key": {"env"}, "tag_val": {"staging"},
 		}).Body.String()
 		if !strings.Contains(set, "env") || !strings.Contains(set, "staging") {
 			t.Fatalf("%s tag not reflected after set:\n%s", c.svc, set)
@@ -1078,9 +1078,9 @@ func TestTagsEverywhere(t *testing.T) {
 		if !strings.Contains(view, "staging") {
 			t.Fatalf("%s tag not shown on reload:\n%s", c.svc, view)
 		}
-		// Remove it.
-		rm := req(t, h, "POST", "/_console/tags/remove", url.Values{
-			"svc": {c.svc}, "id": {c.id}, "key": {"env"},
+		// Remove it: the saved set no longer has it.
+		rm := req(t, h, "POST", "/_console/tags/save", url.Values{
+			"svc": {c.svc}, "id": {c.id},
 		}).Body.String()
 		if strings.Contains(rm, "staging") {
 			t.Fatalf("%s tag still present after remove:\n%s", c.svc, rm)

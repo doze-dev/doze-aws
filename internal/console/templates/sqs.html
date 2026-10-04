@@ -98,7 +98,7 @@
               <div class="panel-h"><h2>{{icon "send"}} Send a message</h2>
                 <button type="button" class="icon-btn sm" title="Close" @click="open=false">{{icon "x"}}</button></div>
               <div class="form-b">
-              <form x-data hx-post="{{.Prefix}}/sqs/{{.Queue}}/send" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML"
+              <form x-data="{n:1}" hx-post="{{.Prefix}}/sqs/{{.Queue}}/send" hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML"
                     @htmx:after:request="if(($event.detail.ctx.response.status < 400)){requestAnimationFrame(()=>{var m=document.querySelectorAll('#message-panel-wrap .msg');if(m.length)m[m.length-1].classList.add('landed')})}">
                 <div class="field"><label>Message body</label><textarea name="body" data-editor rows="7" placeholder='{"hello":"world"}' required></textarea></div>
                 {{if .Config.FIFO}}
@@ -113,7 +113,8 @@
                 {{template "attr_editor" .}}
                 <div class="send-foot">
                   <span class="dim send-hint"><span class="kbd">⌘⏎</span> sends · lands in the peek</span>
-                  <button class="btn" type="submit">{{icon "send"}} Send</button>
+                  <label class="dim send-copies" title="More than one goes as a single SendMessageBatch">Copies <input class="input" name="repeat" type="number" min="1" max="10" x-model.number="n"></label>
+                  <button class="btn" type="submit">{{icon "send"}} <span x-text="n > 1 ? 'Send ' + n : 'Send'">Send</span></button>
                 </div>
               </form>
               </div>
@@ -194,16 +195,18 @@
      slot absent from the current page matches nothing and is dropped in
      silence, so the panel ships both unconditionally.
 
-     hidden, because htmx only extracts out-of-band elements during a SWAP. On
+     hidden, because htmx only extracts out-of-band elements during a SWAP. A
+     <div hidden>, not a <template>: a template's children live in its .content,
+     where the out-of-band scan never looks, so the counts stopped moving. On
      a full page load nothing consumes them, so they render as literal text —
      a stray "3 3" under the message list, which is how it shipped for exactly
      one commit. */}}
-<template>
+<div hidden>
 <span hx-swap-oob="innerHTML:#lr-sqs-{{slug .Queue}}">{{.Available}}</span>
 <span hx-swap-oob="innerHTML:#tabct-sqs-{{slug .Queue}}-messages">{{.Available}}</span>
 <span hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-visible">{{.Available}}</span>
 <span hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-inflight">{{.InFlight}}</span>
-</template>
+</div>
 {{end}}
 
 {{define "sqs_config"}}
@@ -438,11 +441,11 @@
      tab demonstrates — so the numbers outside this panel have to move with it.
      Same tail as message_panel, same slots. hidden, because htmx only extracts
      out-of-band elements during a swap and a full page load is not one. */}}
-<template>
+<div hidden>
 <span hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-visible">{{.Available}}</span>
 <span hx-swap-oob="innerHTML:#sum-sqs-{{slug .Queue}}-inflight">{{.InFlight}}</span>
 <span hx-swap-oob="innerHTML:#lr-sqs-{{slug .Queue}}">{{.Available}}</span>
 <span hx-swap-oob="innerHTML:#tabct-sqs-{{slug .Queue}}-messages">{{.Available}}</span>
-</template>
+</div>
 </div>
 {{end}}

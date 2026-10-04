@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/console';
 import { postForm, createFunction } from '../fixtures/api';
 
@@ -256,5 +257,147 @@ test.describe('delete with recovery window', () => {
     await expect(page.locator('.badge.dlq')).toHaveCount(0);
     await expect(page.locator('.pub-receipt.warn')).toHaveCount(0);
     await expect(page.locator('.acts').getByRole('button', { name: 'Delete' })).toBeVisible();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Metadata edits (UpdateSecret), the rollback button (UpdateSecretVersionStage)
+// and the resource policy panel (Put/DeleteResourcePolicy).
+
+test.describe('secret details', () => {
+  test('pencil -> edit description -> Save updates without a new version', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const name = uniqueName('e2e-sm-meta');
+    await postForm(request, 'sm/create', { name, description: 'old description', value: '{"k":"v"}' });
+
+    await page.goto(`sm/secret?name=${name}`);
+    await expect(page.locator('.det-sub')).toContainText('old description');
+    await page.getByRole('button', { name: 'Edit details' }).click();
+    const form = page.locator('form[hx-post$="/sm/update"]');
+    await expect(form).toBeVisible();
+    await form.locator('input[name="description"]').fill('new description');
+    await form.getByRole('button', { name: 'Save' }).click();
+    expect(await waitForToast()).toContain('Secret details updated');
+    await expect(page.locator('.det-sub')).toContainText('new description');
+    // Metadata only: still one version.
+    await expect(page.locator('.meta-cellx', { hasText: 'Versions' }).locator('.v2')).toHaveText('1');
+  });
+});
+
+test.describe('rollback', () => {
+  // Regression (fixed in 1.0): "Make current" blanks the whole workspace. The promote form
+  // (templates/workspace.html:83) carries no hx-target/hx-select="", so it
+  // inherits #workspace + hx-select="#workspace" from the layout; smPromote
+  // answers with the #sm-detail partial, which has no #workspace, so the swap
+  // replaces the page with nothing. The rollback itself does happen (a reload
+  // shows it) — the user just gets an empty screen.
+  test('Make current on the previous version rolls the value back', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+    waitForToast,
+  }) => {
+    const name = uniqueName('e2e-sm-roll');
+    await postForm(request, 'sm/create', { name, value: '{"pw":"first"}' });
+    await postForm(request, 'sm/put', { name, value: '{"pw":"second"}' });
+
+    await page.goto(`sm/secret?name=${name}&tab=versions`);
+    const prevRow = page.locator('.tbl tbody tr', {
+      has: page.locator('.badge', { hasText: 'AWSPREVIOUS' }),
+    });
+    const prevId = ((await prevRow.locator('td.ver-id').getAttribute('title')) ?? '').trim();
+    expect(prevId).toBeTruthy();
+    await prevRow.getByRole('button', { name: 'Make current' }).click();
+    await expect(page.locator('#confirm-msg')).toContainText('Make this version current');
+    await confirmDialog('accept');
+    expect(await waitForToast()).toContain('Rolled back');
+
+    // The version that was previous now carries AWSCURRENT, on the same tab.
+    const nowCurrent = page.locator('.tbl tbody tr', { has: page.locator(`td.ver-id[title="${prevId}"]`) });
+    await expect(nowCurrent.locator('.badge', { hasText: 'AWSCURRENT' })).toBeVisible();
+    await expect(nowCurrent.getByRole('button', { name: 'Make current' })).toHaveCount(0);
+    // Exactly one detail panel: the swap replaced it rather than nesting.
+    await expect(page.locator('#sm-detail')).toHaveCount(1);
+
+    // And the value really is the old one again.
+    await page.goto(`sm/secret?name=${name}`);
+    await page.locator('.ws-toolbar').getByRole('button', { name: 'Reveal' }).click();
+    await expect(page.locator('#sm-detail .ws-view > span').nth(1)).toContainText('first');
+  });
+});
+
+test.describe('resource policy', () => {
+  const policyPanel = (page: Page) =>
+    page.locator('.panel', { has: page.locator('form[hx-post$="/sm/policy"]') });
+  const docSel = 'form[hx-post$="/sm/policy"] textarea[name="document"]';
+
+  async function savePolicy(page: Page, sid: string) {
+    await policyPanel(page).locator('.panel-h').getByRole('button', { name: 'Edit' }).click();
+    const doc = JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        { Sid: sid, Effect: 'Allow', Principal: { AWS: 'arn:aws:iam::000000000000:root' }, Action: 'secretsmanager:GetSecretValue', Resource: '*' },
+      ],
+    });
+    await page.waitForFunction((s) => !!(document.querySelector(s) as any)?.__cm, docSel);
+    await page.evaluate(
+      ([s, d]) => {
+        const ta = document.querySelector(s)!;
+        (window as any).dozeEditor.set(ta, d);
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+      },
+      [docSel, doc]
+    );
+    await policyPanel(page).getByRole('button', { name: 'Save policy' }).click();
+  }
+
+  test('Edit -> Save policy stores it and the badge flips to Configured', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const name = uniqueName('e2e-sm-pol');
+    await postForm(request, 'sm/create', { name, value: '{"k":"v"}' });
+    await page.goto(`sm/secret?name=${name}`);
+    await expect(policyPanel(page).locator('.panel-h .badge')).toHaveText('Not set');
+
+    const sid = uniqueName('E2ESm').replace(/-/g, '');
+    await savePolicy(page, sid);
+    expect(await waitForToast()).toContain('Resource policy saved');
+    await expect(policyPanel(page).locator('.panel-h .badge')).toHaveText('Configured');
+    // GetResourcePolicy round-trips it.
+    await page.reload();
+    await expect(page.locator(docSel)).toHaveValue(new RegExp(sid));
+  });
+
+  // Regression (fixed in 1.0): "Remove" deletes the resource policy with no confirmation. Its
+  // hx-confirm sits on the submit button (templates/sm.html:107), but htmx 4
+  // reads hx-confirm from the triggering element — the form — so the styled
+  // confirm never opens and DeleteResourcePolicy runs on the first click.
+  test('Remove asks first, then deletes the policy', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+    waitForToast,
+  }) => {
+    const name = uniqueName('e2e-sm-polrm');
+    await postForm(request, 'sm/create', { name, value: '{"k":"v"}' });
+    await page.goto(`sm/secret?name=${name}`);
+    await savePolicy(page, uniqueName('E2ESm').replace(/-/g, ''));
+    expect(await waitForToast()).toContain('Resource policy saved');
+
+    await policyPanel(page).locator('.panel-h').getByRole('button', { name: 'Edit' }).click();
+    await policyPanel(page).getByRole('button', { name: 'Remove', exact: true }).click();
+    await expect(page.locator('#confirm-msg')).toContainText('Remove the resource policy');
+    await confirmDialog('accept');
+    expect(await waitForToast()).toContain('Resource policy removed');
+    await expect(policyPanel(page).locator('.panel-h .badge')).toHaveText('Not set');
   });
 });

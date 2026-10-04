@@ -269,3 +269,253 @@ test.describe('API Gateway gates', () => {
     expect(wrong.status()).toBe(403);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Editing and tearing down what the build tests above only ever add: every
+// structural delete/rename on the route tree, both halves of the response
+// contract, the stage/deployment lifecycle, authorizer detail/TTL/delete, and
+// deleting the API itself. Arrangement goes through the same UI (there is no
+// API-side arrange helper for REST APIs), the action under test is always a
+// click on the control a user would use.
+
+type ToastFn = (opts?: { kind?: 'ok' | 'err' }) => Promise<string>;
+
+async function newRestApi(page: import('@playwright/test').Page, waitForToast: ToastFn, name: string) {
+  await page.goto('apigw/create');
+  await page.locator('input[name="name"]').fill(name);
+  await page.getByRole('button', { name: 'Create API' }).click();
+  await page.waitForURL(/\/apigw\/[a-z0-9]+$/);
+  await waitForToast();
+  const url = page.url();
+  return { url, id: url.split('/').pop()! };
+}
+
+/** A GET on the root answered by MOCK — the least an API needs to deploy. */
+async function addMockRootGet(page: import('@playwright/test').Page, waitForToast: ToastFn) {
+  await page.locator('button[title="Add method on /"]').click();
+  const mDlg = page.locator('.overlay[aria-label="Add method"]');
+  await mDlg.locator('select[name="verb"]').selectOption('GET');
+  await mDlg.getByRole('button', { name: 'Add method' }).click();
+  await waitForToast();
+  await page.locator('#apigw-routes a:has(.chip:text("GET"))').first().click();
+  const panel = page.locator('#method-out');
+  await panel.locator('select[name="type"]').selectOption('MOCK');
+  await panel.getByRole('button', { name: 'Save integration' }).click();
+  await waitForToast();
+}
+
+test.describe('API Gateway editing', () => {
+  test('responses, integration, method and resource each come apart from the UI', async ({
+    page,
+    uniqueName,
+    waitForToast,
+    confirmDialog,
+  }) => {
+    await newRestApi(page, waitForToast, uniqueName('e2e-apigw-edit'));
+    const routes = page.locator('#apigw-routes');
+
+    // /orders with a GET, MOCK-wired, both response halves declared.
+    await page.locator('button[title="Add child resource under /"]').click();
+    const resDlg = page.locator('.overlay[aria-label="Add resource"]');
+    await resDlg.locator('input[name="part"]').fill('orders');
+    await resDlg.getByRole('button', { name: 'Add resource' }).click();
+    await waitForToast();
+    await page.locator('button[title="Add method on /orders"]').click();
+    const mDlg = page.locator('.overlay[aria-label="Add method"]');
+    await mDlg.locator('select[name="verb"]').selectOption('GET');
+    await mDlg.getByRole('button', { name: 'Add method' }).click();
+    await waitForToast();
+    await routes.locator('a:has(.chip:text("GET"))').click();
+    const panel = page.locator('#method-out');
+    await panel.locator('select[name="type"]').selectOption('MOCK');
+    await panel.getByRole('button', { name: 'Save integration' }).click();
+    await waitForToast();
+    await panel.locator('form:has(button:has-text("Declare")) input[name="status"]').fill('200');
+    await panel.getByRole('button', { name: 'Declare' }).click();
+    await waitForToast();
+    await panel.locator('form:has(button:has-text("Map")) input[name="status"]').fill('200');
+    await panel.locator('input[name="template"]').fill('{"ok": true}');
+    await panel.getByRole('button', { name: 'Map' }).click();
+    await waitForToast();
+
+    // Integration response 200: the trash in its table row.
+    const intTable = panel.locator('table.tbl:has(th:text("Template"))');
+    await expect(intTable.locator('tbody tr', { hasText: '200' })).toBeVisible();
+    await intTable.getByRole('button', { name: 'Remove 200' }).click();
+    expect(await waitForToast()).toContain('Response 200 removed');
+    await expect(panel).toContainText('none — proxy integrations pass');
+
+    // Method response 200: the × on its chip.
+    const chips = panel.locator('.chips');
+    await expect(chips.locator('.badge', { hasText: '200' })).toBeVisible();
+    // Its accessible name is the "×" glyph, not the title, so address it by title.
+    await chips.locator('button[title="Remove 200"]').click();
+    expect(await waitForToast()).toContain('Response 200 removed');
+    await expect(chips).toContainText('none declared');
+
+    // The integration, behind a confirm: the method stays, unwired.
+    await panel.getByRole('button', { name: 'Remove integration' }).click();
+    await confirmDialog('accept');
+    expect(await waitForToast()).toContain('Integration removed');
+    await expect(panel).toContainText('Unwired');
+    await expect(panel.getByRole('button', { name: 'Remove integration' })).toHaveCount(0);
+
+    // The method row's trash, behind a confirm.
+    await routes.getByRole('button', { name: 'Delete GET on /orders' }).click();
+    await confirmDialog('accept');
+    expect(await waitForToast()).toContain('Method deleted');
+    await expect(routes.locator('.chip', { hasText: 'GET' })).toHaveCount(0);
+
+    // Rename /orders to /purchases through its dialog.
+    await routes.getByRole('button', { name: 'Rename /orders' }).click();
+    const renDlg = page.locator('.overlay[aria-label="Rename resource"]');
+    await expect(renDlg).toBeVisible();
+    await renDlg.locator('input[name="part"]').fill('purchases');
+    await renDlg.getByRole('button', { name: 'Rename' }).click();
+    expect(await waitForToast()).toContain('Resource renamed');
+    await expect(renDlg).toBeHidden();
+    await expect(routes.locator('b', { hasText: '/purchases' })).toBeVisible();
+    await expect(routes.locator('b', { hasText: '/orders' })).toHaveCount(0);
+
+    // And delete it, behind a confirm.
+    await routes.getByRole('button', { name: 'Delete /purchases' }).click();
+    await confirmDialog('accept');
+    expect(await waitForToast()).toContain('Resource deleted');
+    await expect(routes.locator('b', { hasText: '/purchases' })).toHaveCount(0);
+    await expect(routes.locator('b', { hasText: /^\/$/ })).toBeVisible();
+  });
+
+  test('a stage from an old deployment, repointed, deleted; then the deployment goes', async ({
+    page,
+    uniqueName,
+    waitForToast,
+    confirmDialog,
+  }) => {
+    const { url } = await newRestApi(page, waitForToast, uniqueName('e2e-apigw-stg'));
+    await addMockRootGet(page, waitForToast);
+
+    // Two deployments to dev: the older one is what "rollback" points at.
+    await page.goto(url + '?tab=stages');
+    for (const desc of ['first', 'second']) {
+      await page.locator('input[name="stage"]').fill('dev');
+      await page.locator('input[name="description"]').fill(desc);
+      await page.getByRole('button', { name: 'Deploy API' }).click();
+      expect(await waitForToast()).toContain('Deployed to dev');
+    }
+    const depTable = page.locator('table.tbl:has(th:text("Description"))');
+    const idOf = async (desc: string) =>
+      (await depTable.locator('tbody tr', { hasText: desc }).locator('td').first().textContent())!.trim();
+    const older = await idOf('first');
+    const newer = await idOf('second');
+    expect(older).not.toBe(newer);
+
+    // Create a stage from the old deployment.
+    const createForm = page.locator('form[hx-post$="/create-stage"]');
+    await createForm.locator('input[name="name"]').fill('rollback');
+    await createForm.locator('select[name="deployment"]').selectOption(older);
+    await createForm.getByRole('button', { name: 'Create stage' }).click();
+    expect(await waitForToast()).toContain('Stage rollback created');
+    const stageRow = page.locator('table.tbl tbody tr', { has: page.locator('td.mono', { hasText: /^rollback$/ }) });
+    await expect(stageRow.locator('select[name="deployment"]')).toHaveValue(older);
+
+    // Repoint it: the select submits on change.
+    await stageRow.locator('select[name="deployment"]').selectOption(newer);
+    expect(await waitForToast()).toContain('Stage rollback repointed');
+    await expect(stageRow.locator('select[name="deployment"]')).toHaveValue(newer);
+
+    // Delete the stage, behind a confirm.
+    await stageRow.getByRole('button', { name: 'Delete stage rollback' }).click();
+    await confirmDialog('accept');
+    expect(await waitForToast()).toContain('Stage rollback deleted');
+    await expect(stageRow).toHaveCount(0);
+
+    // The older deployment now has no stage on it; delete its record.
+    await depTable.getByRole('button', { name: `Delete deployment ${older}` }).click();
+    await confirmDialog('accept');
+    expect(await waitForToast()).toContain('Deployment deleted');
+    await expect(depTable.locator('tbody tr', { hasText: older })).toHaveCount(0);
+    await expect(depTable.locator('tbody tr', { hasText: newer })).toBeVisible();
+  });
+
+  test('an authorizer opens its detail, takes a new TTL, and is deleted', async ({
+    page,
+    uniqueName,
+    waitForToast,
+    confirmDialog,
+  }) => {
+    const { url } = await newRestApi(page, waitForToast, uniqueName('e2e-apigw-auth'));
+    await page.goto(url + '?tab=settings');
+    const auths = page.locator('#apigw-authorizers');
+    const authName = uniqueName('gate');
+    await auths.locator('input[name="name"]').fill(authName);
+    await auths.locator('input[name="function"]').fill('gatekeeper');
+    await auths.locator('input[name="source"]').fill('X-Token');
+    await auths.getByRole('button', { name: 'Add authorizer' }).click();
+    await waitForToast();
+
+    // The name opens GetAuthorizer's detail under the table.
+    await auths.locator('button.linkish', { hasText: authName }).click();
+    const detail = page.locator('#apigw-authorizer-detail');
+    await expect(detail).toContainText('gatekeeper');
+    await expect(detail).toContainText('X-Token');
+    await expect(detail).toContainText('300 s');
+
+    // Set TTL from the row.
+    const row = page.locator('#apigw-authorizers tbody tr', { hasText: authName });
+    await row.locator('input[name="ttl"]').fill('60');
+    await row.getByRole('button', { name: 'Set TTL' }).click();
+    expect(await waitForToast()).toContain('Authorizer updated');
+    await expect(page.locator('#apigw-authorizers tbody tr', { hasText: authName }).locator('input[name="ttl"]')).toHaveValue('60');
+    // The AWS side agrees: reopen the detail.
+    await page.locator('#apigw-authorizers button.linkish', { hasText: authName }).click();
+    await expect(page.locator('#apigw-authorizer-detail')).toContainText('60 s');
+
+    // Delete, behind a confirm.
+    await page.locator('#apigw-authorizers tbody tr', { hasText: authName }).getByRole('button', { name: 'Delete authorizer' }).click();
+    await confirmDialog('accept');
+    expect(await waitForToast()).toContain('Authorizer deleted');
+    await expect(page.locator('#apigw-authorizers')).toContainText('No authorizers');
+  });
+
+  test('the header Delete removes the API', async ({ page, uniqueName, waitForToast, confirmDialog }) => {
+    const name = uniqueName('e2e-apigw-del');
+    const { id } = await newRestApi(page, waitForToast, name);
+    await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
+    await confirmDialog('accept');
+    await page.waitForURL(/\/apigw(\?|$)/);
+    expect(await waitForToast()).toContain('API deleted');
+    await expect(page.locator('.li .nm', { hasText: name })).toHaveCount(0);
+    // And it is gone, not just unlisted.
+    const res = await page.request.get(`apigw/${id}`);
+    expect(res.ok()).toBe(false);
+  });
+});
+
+test.describe('API Gateway deployment guard', () => {
+  // Regression (fixed in 1.0): REST DeleteDeployment (apigateway/control.go, the DELETE case under
+  // /restapis/{id}/deployments/{dep}) deletes a deployment a stage still
+  // serves; AWS answers BadRequestException "Active stages pointing to this
+  // deployment must be moved or deleted" (the v2 plane already does). The
+  // console's confirm copy ("A stage still pointing at it keeps serving")
+  // documents the wrong behaviour.
+  test('deleting the deployment a stage serves is refused', async ({
+    page,
+    uniqueName,
+    waitForToast,
+    confirmDialog,
+  }) => {
+    const { url } = await newRestApi(page, waitForToast, uniqueName('e2e-apigw-depg'));
+    await addMockRootGet(page, waitForToast);
+    await page.goto(url + '?tab=stages');
+    await page.locator('input[name="stage"]').fill('dev');
+    await page.getByRole('button', { name: 'Deploy API' }).click();
+    await waitForToast();
+    const depTable = page.locator('table.tbl:has(th:text("Description"))');
+    const dep = (await depTable.locator('tbody tr').first().locator('td').first().textContent())!.trim();
+    await depTable.getByRole('button', { name: `Delete deployment ${dep}` }).click();
+    await confirmDialog('accept');
+    await expect(page.locator('.err[role="alert"]').last()).toContainText('Active stages');
+    await page.reload();
+    await expect(depTable.locator('tbody tr', { hasText: dep })).toBeVisible();
+  });
+});

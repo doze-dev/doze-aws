@@ -657,7 +657,12 @@ func hDescribeStacks(s *Server, p params) (any, *awshttp.APIError) {
 		if err != nil {
 			return nil, awshttp.AsAPIError(err)
 		}
+		// Unnamed, AWS lists live stacks only: a deleted one answers to its
+		// id, and ListStacks keeps the record.
 		for i := range stacks {
+			if stacks[i].Status == StatusDeleteComplete {
+				continue
+			}
 			views = append(views, viewStack(&stacks[i]))
 		}
 	}

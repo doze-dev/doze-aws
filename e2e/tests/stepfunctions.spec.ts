@@ -1,7 +1,10 @@
 import { test, expect } from '../fixtures/console';
 import {
   createActivity,
+  createAlias,
   createStateMachine,
+  postForm,
+  publishVersion,
   startExecution,
 } from '../fixtures/api';
 
@@ -334,5 +337,329 @@ test.describe('Step Functions console', () => {
       await waitForLive('#sfn-history', (t) => t.includes('SUCCEEDED'));
       await expect(page.locator('#sfn-history')).toContainText('ActivitySucceeded');
     });
+  });
+});
+
+// ---- route coverage: the controls the tests above do not press ----
+
+// Pass → Wait briefly → Succeed: RUNNING long enough for a page to open on it,
+// short enough that the live regions watch it finish.
+const BRIEF = JSON.stringify({
+  StartAt: 'Prepare',
+  States: {
+    Prepare: { Type: 'Pass', Next: 'Hold' },
+    Hold: { Type: 'Wait', Seconds: 3, Next: 'Done' },
+    Done: { Type: 'Succeed' },
+  },
+});
+
+test.describe('Step Functions console: live regions', () => {
+  test('the executions list fills in an execution started elsewhere', async ({
+    page,
+    request,
+    uniqueName,
+  }) => {
+    const machine = uniqueName('e2e-sfn-live');
+    await createStateMachine(request, machine, DEFINITION);
+
+    await page.goto(`sfn/${machine}`);
+    await expect(page.locator('#sfn-executions')).toContainText('No executions yet');
+    // Started behind the page's back: only the poll can bring it in.
+    await startExecution(request, machine, 'from-sdk');
+    const row = page.locator('#sfn-executions tr', { hasText: 'from-sdk' });
+    await expect(row).toBeVisible({ timeout: 15000 });
+    await expect(row.locator('.badge[data-status]')).toHaveText('SUCCEEDED', { timeout: 15000 });
+  });
+
+  test('an Express machine’s Logs tab tails the history it vends', async ({
+    page,
+    request,
+    uniqueName,
+  }) => {
+    const machine = uniqueName('e2e-sfn-xlogs');
+    await createStateMachine(request, machine, DEFINITION, { type: 'EXPRESS' });
+
+    await page.goto(`sfn/${machine}?tab=logs`);
+    await expect(page.locator('.det-b .panel-h')).toContainText(`/aws/vendedlogs/states/${machine}`);
+    const tail = page.locator('#log-tail');
+    await expect(tail).toBeVisible();
+    await expect(tail).not.toContainText('ExecutionSucceeded');
+    // A synchronous run from elsewhere; the tail's poll picks its lines up.
+    await postForm(request, `sfn/${machine}/start-sync`, { input: '{"orderId":"L-1"}' });
+    await expect(tail).toContainText('ExecutionSucceeded', { timeout: 15000 });
+  });
+
+  test('the execution graph colours states in as the execution moves', async ({
+    page,
+    request,
+    uniqueName,
+  }) => {
+    const machine = uniqueName('e2e-sfn-gr');
+    await createStateMachine(request, machine, BRIEF);
+    await startExecution(request, machine, 'run-1');
+
+    await page.goto(`sfn/${machine}/execution/run-1?tab=graph`);
+    // Opened mid-flight: Done has not been entered yet.
+    await expect(page.locator('.gn[data-state="Hold"]')).toHaveClass(/gn-running/);
+    await expect(page.locator('.gn[data-state="Done"]')).not.toHaveClass(/gn-succeeded/);
+    // Only the graph's poll can repaint it.
+    await expect(page.locator('.gn[data-state="Done"]')).toHaveClass(/gn-succeeded/, { timeout: 15000 });
+    await expect(page.locator('.gn[data-state="Hold"]')).toHaveClass(/gn-succeeded/);
+    await expect(page.locator('#sfn-graph')).toHaveAttribute('data-live-paused', '1');
+  });
+});
+
+test.describe('Step Functions console: machine management', () => {
+  test('deleting a machine returns to the list without it', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+    waitForToast,
+  }) => {
+    const machine = uniqueName('e2e-sfn-del');
+    await createStateMachine(request, machine, DEFINITION);
+
+    await page.goto(`sfn/${machine}`);
+    await page.getByRole('button', { name: 'Delete' }).click();
+    await confirmDialog('accept');
+    const msg = await waitForToast();
+    expect(msg).toMatch(/State machine deleted/);
+    await page.waitForURL(/\/sfn$/);
+    await expect(page.locator('.listpane')).not.toContainText(machine);
+  });
+
+  test('testing one state of the definition shows its output and next state', async ({
+    page,
+    request,
+    uniqueName,
+    setEditor,
+  }) => {
+    const machine = uniqueName('e2e-sfn-ts');
+    await createStateMachine(request, machine, DEFINITION);
+
+    await page.goto(`sfn/${machine}?tab=definition`);
+    await page.locator('select[name="state"]').selectOption('Prepare');
+    await page.locator('select[name="level"]').selectOption('DEBUG');
+    await setEditor('form[hx-post$="/test-state"] textarea[name="input"]', '{"orderId":"T-1"}');
+    await page.getByRole('button', { name: 'Run state' }).click();
+    const out = page.locator('#sfn-test-out');
+    await expect(out.locator('.badge[data-status]')).toHaveText('SUCCEEDED');
+    await expect(out.locator('.fact', { hasText: 'Next' })).toContainText('Done');
+    await expect(out).toContainText('"ready": true');
+    await expect(out).toContainText('T-1');
+    await expect(out).toContainText('Inspection');
+  });
+
+  test('versions and aliases: re-route an alias, delete it, then delete the version', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+    waitForToast,
+  }) => {
+    const machine = uniqueName('e2e-sfn-va');
+    await createStateMachine(request, machine, DEFINITION);
+    await publishVersion(request, machine, 'one');
+    // A second revision, so the second publish is a second version.
+    await postForm(request, `sfn/${machine}/definition`, {
+      definition: DEFINITION.replace('"ready":true', '"ready":false'),
+    });
+    await publishVersion(request, machine, 'two');
+    await createAlias(request, machine, 'LIVE', [{ version: 1 }]);
+
+    await page.goto(`sfn/${machine}?tab=versions`);
+    const aliasRow = page.locator('.tbl tr', { hasText: 'LIVE' });
+    await expect(aliasRow).toContainText('v1 100%');
+
+    await test.step('edit the routing inline to point at v2', async () => {
+      await aliasRow.getByRole('button', { name: 'Edit routing of LIVE' }).click();
+      const form = aliasRow.locator('form');
+      await expect(form).toBeVisible();
+      await form.locator('input[name="v1"]').fill('2');
+      await form.getByRole('button', { name: 'Save' }).click();
+      const msg = await waitForToast();
+      expect(msg).toMatch(/Alias “LIVE” updated/);
+      await expect(page.locator('.tbl tr', { hasText: 'LIVE' })).toContainText('v2 100%');
+    });
+
+    await test.step('v1 is free now: delete it', async () => {
+      await page.getByRole('button', { name: 'Delete version 1' }).click();
+      await confirmDialog('accept');
+      const msg = await waitForToast();
+      expect(msg).toMatch(/Version 1 deleted/);
+      await expect(page.getByRole('button', { name: 'v1', exact: true })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: 'v2', exact: true })).toBeVisible();
+    });
+
+    await test.step('delete the alias', async () => {
+      await page.getByRole('button', { name: 'Delete alias LIVE' }).click();
+      await confirmDialog('accept');
+      const msg = await waitForToast();
+      expect(msg).toMatch(/Alias “LIVE” deleted/);
+      await expect(page.getByText('No aliases.')).toBeVisible();
+    });
+  });
+
+  test('deleting an activity removes it from the list', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+    waitForToast,
+  }) => {
+    const activity = uniqueName('e2e-act-del');
+    await createActivity(request, activity);
+
+    await page.goto('sfn/activities');
+    await expect(page.locator('.tbl tr', { hasText: activity })).toBeVisible();
+    await page.getByRole('button', { name: `Delete activity ${activity}` }).click();
+    await confirmDialog('accept');
+    const msg = await waitForToast();
+    expect(msg).toMatch(new RegExp(`Activity “${activity}” deleted`));
+    await expect(page.locator('.tbl tr', { hasText: activity })).toHaveCount(0);
+  });
+});
+
+test.describe('Step Functions console: being the worker', () => {
+  test('heartbeat a task taken from an activity', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const activity = uniqueName('e2e-hb-act');
+    const arn = await createActivity(request, activity);
+    const machine = uniqueName('e2e-sfn-hb');
+    await createStateMachine(
+      request,
+      machine,
+      JSON.stringify({
+        StartAt: 'Work',
+        States: { Work: { Type: 'Task', Resource: arn, HeartbeatSeconds: 60, End: true } },
+      })
+    );
+    await startExecution(request, machine, 'hb-1');
+
+    await page.goto('sfn/activities');
+    await page.locator('.tbl tr', { hasText: activity }).getByRole('button', { name: 'Take a task' }).click();
+    const out = page.locator('#sfn-task-out');
+    await expect(out).toContainText(`Task from ${activity}`, { timeout: 10000 });
+    // Taking a task toasts too; consume it so the next wait is the heartbeat's.
+    expect(await waitForToast()).toMatch(/Took a task/);
+    await out.getByRole('button', { name: 'Heartbeat' }).click();
+    const msg = await waitForToast();
+    expect(msg).toMatch(/Heartbeat sent/);
+    // A heartbeat answers nothing: the task is still the worker's to finish.
+    await expect(out).toContainText(`Task from ${activity}`);
+    await out.getByRole('button', { name: 'Send' }).click();
+    await expect(out).toContainText('Task succeeded');
+  });
+
+  test('a .waitForTaskToken task answered from the execution page: heartbeat, then failure', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+    waitForLive,
+  }) => {
+    const machine = uniqueName('e2e-sfn-tok');
+    // putEvents to the default bus needs nothing else to exist; the token
+    // rides in the Parameters, which is where the history shows it.
+    await createStateMachine(
+      request,
+      machine,
+      JSON.stringify({
+        StartAt: 'Ask',
+        States: {
+          Ask: {
+            Type: 'Task',
+            Resource: 'arn:aws:states:::events:putEvents.waitForTaskToken',
+            Parameters: {
+              Entries: [{ Source: 'e2e', DetailType: 'approval', Detail: { 'TaskToken.$': '$$.Task.Token' } }],
+            },
+            End: true,
+          },
+        },
+      })
+    );
+    await startExecution(request, machine, 'ask-1');
+
+    await page.goto(`sfn/${machine}/execution/ask-1`);
+    await waitForLive('#sfn-history', (t) => t.includes('TaskSubmitted') || t.includes('TaskScheduled'));
+
+    // The worker's view: open the TaskScheduled row, copy its token.
+    const scheduled = page.locator('.sfn-hist tr.sfn-x', { hasText: 'TaskScheduled' });
+    await scheduled.click();
+    const tokenCell = page.locator('.sfn-hist tr.sfn-det:visible .sfn-det-token .sfn-det-body');
+    await expect(tokenCell).not.toBeEmpty();
+    const token = ((await tokenCell.textContent()) ?? '').trim();
+    expect(token.length).toBeGreaterThan(10);
+
+    const form = page.locator('#sfn-history form[hx-post$="/task-result"]');
+    await form.locator('input[name="token"]').fill(token);
+    await form.getByRole('button', { name: 'Heartbeat' }).click();
+    let msg = await waitForToast();
+    expect(msg).toMatch(/Heartbeat sent/);
+    await expect(page.locator('#sum-sfn-exec-status .badge')).toHaveText('RUNNING');
+
+    await form.getByRole('link', { name: 'Failure' }).click();
+    await form.locator('input[name="error"]').fill('Human.Rejected');
+    await form.locator('input[name="cause"]').fill('nope');
+    await form.getByRole('button', { name: 'Send' }).click();
+    msg = await waitForToast();
+    expect(msg).toMatch(/Task failed/);
+    await expect(page.locator('#sfn-history')).toContainText('FAILED');
+    await expect(page.locator('#sfn-history')).toContainText('Human.Rejected');
+  });
+
+  test('a distributed Map run: raise its concurrency and list its children', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const machine = uniqueName('e2e-sfn-map');
+    await createStateMachine(
+      request,
+      machine,
+      JSON.stringify({
+        StartAt: 'Fan',
+        States: {
+          Fan: {
+            Type: 'Map', End: true, Label: 'items', MaxConcurrency: 1,
+            ItemProcessor: {
+              ProcessorConfig: { Mode: 'DISTRIBUTED', ExecutionType: 'STANDARD' },
+              StartAt: 'Slow',
+              States: { Slow: { Type: 'Wait', Seconds: 300, End: true } },
+            },
+          },
+        },
+      })
+    );
+    await startExecution(request, machine, 'fan-1', { input: '[1,2,3]' });
+
+    try {
+      await page.goto(`sfn/${machine}/execution/fan-1`);
+      const run = page.locator('.sfn-maprun');
+      await expect(run).toBeVisible({ timeout: 15000 });
+      await expect(run.locator('[data-maprun-status]')).toHaveText('RUNNING');
+      await expect(run.locator('input[name="max"]')).toHaveValue('1');
+
+      await run.locator('input[name="max"]').fill('2');
+      await run.getByRole('button', { name: 'Set concurrency' }).click();
+      const msg = await waitForToast();
+      expect(msg).toMatch(/Concurrency set to 2/);
+      await expect(page.locator('.sfn-maprun input[name="max"]')).toHaveValue('2');
+
+      await page.locator('.sfn-maprun').getByRole('button', { name: 'Child executions' }).click();
+      const children = page.locator('#sfn-map-children');
+      await expect(children).toContainText('Child executions');
+      // Concurrency 2 now: a second child launches, and the list fills in.
+      await expect(children.locator('tbody tr')).toHaveCount(2, { timeout: 15000 });
+      await expect(children.locator('.badge[data-status]').first()).toHaveText('RUNNING');
+    } finally {
+      await postForm(request, `sfn/${machine}/execution/fan-1/stop`, {});
+    }
   });
 });

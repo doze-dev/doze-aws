@@ -62,7 +62,7 @@
         <span class="chip">{{len .Events}} recorded</span>
       </div>
       <p class="mini-note" style="margin-top:6px">
-        {{if eq .Mode "off"}}IAM is not on the request path, so nothing is being decided and this log stays empty. Start with <span class="mono">--iam soft</span> to record what your code asks for without refusing anything.
+        {{if eq .Mode "off"}}IAM is not on the request path, so nothing is being decided and this log stays empty. Start with <span class="mono">--iam-mode soft</span> to record what your code asks for without refusing anything.
         {{else if eq .Mode "soft"}}Soft mode: every request is recorded and none is refused. Run your tests, then generate the policy they actually needed.
         {{else}}Enforce mode: a request that is not allowed is refused, exactly as it would be in AWS.{{end}}
       </p>
@@ -426,6 +426,15 @@
         </div>
       </div>
       {{end}}
+
+      {{if eq .P.Kind "user"}}
+      {{/* Users and groups rename (UpdateUser / UpdateGroup); roles cannot, on AWS either. */}}
+      <div class="sec-title">Rename</div>
+      <form class="ex-grid rename-form" hx-post="{{.Prefix}}/iam/user/{{.P.Name}}/rename" hx-confirm="Rename the user? Policies and keys follow; references by name elsewhere do not.">
+        <div class="field" style="flex:1"><label>New name</label><input class="input" name="new" value="{{.P.Name}}" required></div>
+        <button class="btn btn-outline btn-sm" type="submit">Rename</button>
+      </form>
+      {{end}}
     </div>
   </section>
 {{template "shell_bottom" .}}{{end}}
@@ -611,7 +620,7 @@
       </form>
 
       <div class="sec-title">Rename</div>
-      <form class="ex-grid" style="align-items:end;max-width:420px" hx-post="{{.Prefix}}/iam/group/{{.G.Name}}/rename" hx-confirm="Rename the group? References by name elsewhere do not follow.">
+      <form class="ex-grid rename-form" hx-post="{{.Prefix}}/iam/group/{{.G.Name}}/rename" hx-confirm="Rename the group? References by name elsewhere do not follow.">
         <div class="field" style="flex:1"><label>New name</label><input class="input" name="new" value="{{.G.Name}}" required></div>
         <button class="btn btn-outline btn-sm" type="submit">Rename</button>
       </form>
@@ -673,7 +682,7 @@
         {{range .Aliases}}<span class="badge type ver-stage">{{.}}<button type="button" class="lbl-x" title="Remove alias" hx-post="{{$.Prefix}}/iam/account/alias" hx-vals='{"delete":"{{.}}"}'>&times;</button></span>
         {{else}}<span class="mini-note">None set.</span>{{end}}
       </div>
-      <form class="ex-grid" style="align-items:end;max-width:420px" hx-post="{{.Prefix}}/iam/account/alias">
+      <form class="ex-grid rename-form" hx-post="{{.Prefix}}/iam/account/alias">
         <div class="field" style="flex:1"><label>Set alias</label><input class="input mono" name="alias" placeholder="my-team" required pattern="[a-z0-9][a-z0-9\-]*" spellcheck="false"></div>
         <button class="btn btn-outline btn-sm" type="submit">Set</button>
       </form>
@@ -684,8 +693,8 @@
       {{end}}
 
       <div class="sec-title">Authorization details <span class="dim">— the whole IAM database in one read</span></div>
-      <div hx-post="{{.Prefix}}/iam/account/details" hx-trigger="click from:find button" hx-target="#iam-auth-out" hx-select="" hx-swap="innerHTML">
-        <button type="button" class="btn btn-outline btn-sm">{{icon "download"}} Load the export</button>
+      <div>
+        <button type="button" class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/iam/account/details" hx-target="#iam-auth-out" hx-select="" hx-swap="innerHTML">{{icon "download"}} Load the export</button>
         <p class="mini-note">GetAccountAuthorizationDetails: every user, role, group and policy with documents attached — what an auditor pulls first.</p>
       </div>
       <div id="iam-auth-out"></div>
@@ -796,7 +805,7 @@
   <div class="kv-modes" x-show="representable || mode==='builder'">
     <span class="ws-seg">
       <a href="#" @click.prevent="toBuilder()" :class="mode==='builder' && 'on'">Builder</a>
-      <a href="#" @click@click.prevent="toText()" :class="mode==='json' && 'on'">JSON</a>
+      <a href="#" @click.prevent="toText()" :class="mode==='json' && 'on'">JSON</a>
     </span>
     <span class="dim kv-note" x-show="mode==='builder'" x-cloak>A view of the JSON — both stay in step.</span>
   </div>

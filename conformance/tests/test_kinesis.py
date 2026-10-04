@@ -41,6 +41,20 @@ def test_stream_lifecycle(client, names, cleanup, snapshot):
     snapshot.error("describe-deleted", lambda: kinesis.describe_stream_summary(StreamName=name))
 
 
+def test_a_split_closes_the_parent_even_if_it_never_held_a_record(client, names, cleanup, snapshot):
+    kinesis = client("kinesis")
+    name = stream(kinesis, names, cleanup)
+    parent = kinesis.list_shards(StreamName=name)["Shards"][0]
+    mid = int(parent["HashKeyRange"]["EndingHashKey"]) // 2
+    snapshot.match("split", kinesis.split_shard(
+        StreamName=name, ShardToSplit=parent["ShardId"], NewStartingHashKey=str(mid)))
+    kinesis.get_waiter("stream_exists").wait(StreamName=name, WaiterConfig=FAST)
+    shards = kinesis.list_shards(StreamName=name)["Shards"]
+    closed = [s for s in shards if s["ShardId"] == parent["ShardId"]][0]
+    assert "EndingSequenceNumber" in closed["SequenceNumberRange"], closed
+    snapshot.match("shards", shards, opaque=MINTED)
+
+
 def test_records_are_read_back_in_order(client, names, cleanup, snapshot, eventually):
     kinesis = client("kinesis")
     name = stream(kinesis, names, cleanup)

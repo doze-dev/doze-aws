@@ -106,6 +106,9 @@ const (
 	// Terraform or CloudFormation change applies instead of failing; an edit
 	// form would only change values nothing here consults.
 	inert
+	// neverLocal: acts on a state doze-aws never enters. A control for it
+	// would be rendered against a condition no local run can produce.
+	neverLocal
 )
 
 func (w why) String() string {
@@ -118,6 +121,8 @@ func (w why) String() string {
 		return "withheld"
 	case inert:
 		return "inert"
+	case neverLocal:
+		return "never-local"
 	}
 	return "unknown"
 }
@@ -166,6 +171,9 @@ var exempt = map[string]map[string]exemption{
 			"anything new."},
 	},
 	"sqs": {
+		"CancelMessageMoveTask": {neverLocal, "a redrive here completes inside the call that " +
+			"starts it, so no task is ever RUNNING and there is nothing to cancel. AWS offers " +
+			"Cancel only on a running task; a button here could only ever be refused"},
 		"GetQueueUrl": {redundant, "the console builds the URL from base + account + name " +
 			"(backend.queueURL), which is exact and saves a round trip on every " +
 			"render. Calling it would be a request whose answer we already know."},

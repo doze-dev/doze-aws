@@ -13,6 +13,12 @@ import { BASE_URL } from '../playwright.config';
 // reach the raw gateway.
 const GATEWAY_ROOT = new URL('/', BASE_URL).toString();
 
+// In order, in one worker. The last test presses "clear", which empties the
+// recorder's ring for every viewer; run beside the others it wiped rows they
+// were still waiting to see (verified: two of them failed that way). 'default'
+// rather than 'serial' so one failure does not skip the rest.
+test.describe.configure({ mode: 'default' });
+
 /** Sends a raw AWS JSON-protocol request straight to the gateway root, the
  *  exact shape confirmed against internal/console/console_test.go's
  *  TestTrafficRecorder (X-Amz-Target header + application/x-amz-json-1.x
@@ -197,5 +203,37 @@ test.describe('secret redaction', () => {
     expect(body).not.toContain(marker);
     expect(body).toContain('••••••'); // •••••• mask (redactKey's `mask` const)
     expect(body).toContain(secretName); // the non-secret Name field survives untouched
+  });
+});
+
+// "clear" empties the recorder's ring for everyone. Only this file reads the
+// feed, so the other tests here are what it could disturb; this test asserts
+// only on its own row disappearing, never on an empty feed, so a sibling's
+// call landing afterwards cannot fail it.
+test.describe('clear', () => {
+  test('the clear chip empties the feed and recorded calls stay gone', async ({
+    page,
+    request,
+    uniqueName,
+    waitForLive,
+  }) => {
+    const queueName = uniqueName('e2e-traffic-clear');
+    const res = await rawAwsJson(request, 'AmazonSQS.CreateQueue', { QueueName: queueName });
+    expect(res.ok()).toBeTruthy();
+
+    await page.goto('traffic');
+    await waitForLive('#traffic-feed', (text) => text.includes(queueName));
+
+    const [resp] = await Promise.all([
+      page.waitForResponse((r) => r.url().includes('/traffic/clear') && r.request().method() === 'POST'),
+      page.locator('button.chip', { hasText: 'clear' }).click(),
+    ]);
+    expect(resp.ok()).toBeTruthy();
+    await expect(page.locator('#traffic-feed').first()).not.toContainText(queueName);
+
+    // Not just a repaint: a fresh load of the page still lacks the call.
+    await page.reload();
+    await expect(page.locator('#traffic-feed').first()).toBeVisible();
+    await expect(page.locator('#traffic-feed').first()).not.toContainText(queueName);
   });
 });

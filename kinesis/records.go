@@ -273,8 +273,11 @@ func hListShards(s *Server, p map[string]any) (any, *awshttp.APIError) {
 // shardWire shapes a shard for DescribeStream and ListShards.
 func shardWire(sh shard) map[string]any {
 	seqRange := map[string]any{"StartingSequenceNumber": formatSeq(sh.StartSeq)}
-	if sh.Closed && sh.EndSeq != 0 {
-		seqRange["EndingSequenceNumber"] = formatSeq(sh.EndSeq)
+	// A closed shard always has an end: it is what tells a consumer the shard
+	// is closed. One that never held a record ends where it started — leaving
+	// the field out reported a resharded parent as open.
+	if sh.Closed {
+		seqRange["EndingSequenceNumber"] = formatSeq(max(sh.EndSeq, sh.StartSeq))
 	}
 	m := map[string]any{
 		"ShardId":             sh.ID,

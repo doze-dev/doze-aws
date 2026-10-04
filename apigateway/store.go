@@ -10,6 +10,7 @@ package apigateway
 
 import (
 	"encoding/json"
+	"math/rand/v2"
 	"sort"
 	"strings"
 	"time"
@@ -369,16 +370,13 @@ func rebuildPaths(api *restAPI) {
 // ---- ids ----
 
 // newID generates the 10-character lowercase alphanumeric id API Gateway uses.
+// Random, not clock-derived: two creates in the same tick used to get the same
+// id, and the second Put silently replaced the first API.
 func (s *store) newID() string {
 	const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
-	n := s.now().UnixNano()
 	var b strings.Builder
 	for range 10 {
-		b.WriteByte(alphabet[n%int64(len(alphabet))])
-		n /= int64(len(alphabet))
-		if n == 0 {
-			n = s.now().UnixNano()
-		}
+		b.WriteByte(alphabet[rand.IntN(len(alphabet))])
 	}
 	return b.String()
 }

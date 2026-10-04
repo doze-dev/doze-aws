@@ -768,6 +768,23 @@ func (c *Console) sqsSend(w http.ResponseWriter, r *http.Request) {
 	if strings.HasSuffix(name, ".fifo") && opts.GroupID == "" {
 		opts.GroupID = "default"
 	}
+	// More than one copy is a burst, and a burst goes as one SendMessageBatch
+	// — pressing Send N times has a different timing profile than a real
+	// batch. Each FIFO entry gets its own dedup id, so N copies stay N.
+	if n := min(atoiDefault(r.FormValue("repeat"), 1), 10); n > 1 {
+		bodies := make([]string, n)
+		for i := range bodies {
+			bodies[i] = body
+		}
+		failed, err := c.be.SendMessageBatch(r.Context(), name, bodies, opts)
+		if err != nil {
+			c.fail(w, err)
+			return
+		}
+		toast(w, batchNote(n, failed, "sent"))
+		c.sqsMessages(w, r)
+		return
+	}
 	if err := c.be.SendMessage(r.Context(), name, body, opts); err != nil {
 		c.fail(w, err)
 		return

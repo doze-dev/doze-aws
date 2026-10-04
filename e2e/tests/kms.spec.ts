@@ -199,3 +199,154 @@ test.describe('GENERATE_VERIFY_MAC key', () => {
     await expect(cryptoOut).toContainText('MAC valid');
   });
 });
+
+// ---------------------------------------------------------------------------
+// The rest of the key page: the create form itself, description, key policy,
+// GenerateRandom, ReEncrypt, GetPublicKey and UpdateAlias — each driven from
+// its own control on the page.
+
+test.describe('create key form', () => {
+  test('New -> fill -> Create key lands on the detail page', async ({ page, request, uniqueName, waitForToast }) => {
+    // At least one key so /kms renders the list pane rather than the empty state.
+    await createKey(request, { alias: uniqueName('e2e-kms-seed') });
+    const alias = uniqueName('e2e-kms-new');
+    await page.goto('kms');
+    await page.locator('.listpane .new-link').click();
+    await page.waitForURL(/\/kms\/create$/);
+    await page.locator('select[name="spec"]').selectOption('ECC_NIST_P256');
+    await page.locator('select[name="usage"]').selectOption('SIGN_VERIFY');
+    await page.locator('input[name="alias"]').fill(alias);
+    await page.locator('input[name="description"]').fill('made by the e2e create form');
+    await page.getByRole('button', { name: 'Create key' }).click();
+    expect(await waitForToast()).toContain('Key created');
+    await page.waitForURL(/\/kms\/[0-9a-f-]{36}$/);
+    await expect(page.locator('.tbl.kv')).toContainText('ECC_NIST_P256');
+    await expect(page.locator('.tbl.kv')).toContainText('SIGN_VERIFY');
+    await expect(page.locator('.sub-row', { hasText: alias })).toBeVisible();
+    await expect(page.locator('form[hx-post$="/description"] input[name="description"]')).toHaveValue(
+      'made by the e2e create form'
+    );
+  });
+});
+
+test.describe('key settings', () => {
+  test('description and key policy save and persist', async ({ page, request, uniqueName, waitForToast }) => {
+    const keyId = await createKey(request, { alias: uniqueName('e2e-kms-set'), description: 'before' });
+    await page.goto(`kms/${keyId}`);
+
+    // --- Description (UpdateKeyDescription) ---
+    const desc = page.locator('form[hx-post$="/description"]');
+    await expect(desc.locator('input[name="description"]')).toHaveValue('before');
+    await desc.locator('input[name="description"]').fill('after — edited in place');
+    await desc.getByRole('button', { name: 'Save' }).click();
+    expect(await waitForToast()).toContain('Description updated');
+    await page.reload();
+    await expect(page.locator('form[hx-post$="/description"] input[name="description"]')).toHaveValue(
+      'after — edited in place'
+    );
+
+    // --- Key policy (PutKeyPolicy) ---
+    const sid = uniqueName('E2ESid').replace(/-/g, '');
+    const doc = JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        { Sid: sid, Effect: 'Allow', Principal: { AWS: 'arn:aws:iam::000000000000:root' }, Action: 'kms:*', Resource: '*' },
+      ],
+    });
+    const polPanel = page.locator('.panel', { has: page.locator('form[hx-post$="/policy"]') });
+    await polPanel.locator('.panel-h').getByRole('button', { name: 'Edit' }).click();
+    const sel = 'form[hx-post$="/policy"] textarea[name="document"]';
+    await page.waitForFunction((s) => !!(document.querySelector(s) as any)?.__cm, sel);
+    await page.evaluate(
+      ([s, d]) => {
+        const ta = document.querySelector(s)!;
+        (window as any).dozeEditor.set(ta, d);
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+      },
+      [sel, doc]
+    );
+    await polPanel.getByRole('button', { name: 'Save key policy' }).click();
+    expect(await waitForToast()).toContain('Key policy saved');
+    // GetKeyPolicy round-trips it: reload and the editor holds the new Sid.
+    await page.reload();
+    await expect(page.locator(sel)).toHaveValue(new RegExp(sid));
+  });
+});
+
+test.describe('key-less and cross-key operations', () => {
+  test('GenerateRandom returns the asked-for number of bytes', async ({ page, request, uniqueName }) => {
+    const keyId = await createKey(request, { alias: uniqueName('e2e-kms-rnd') });
+    await page.goto(`kms/${keyId}`);
+    const form = page.locator('form[hx-post$="/kms/random"]');
+    await form.locator('input[name="bytes"]').fill('16');
+    await form.getByRole('button', { name: 'Generate' }).click();
+    const out = page.locator('#kms-op-out');
+    await expect(out).toContainText('Random bytes (base64)');
+    const b64 = ((await out.locator('pre').textContent()) ?? '').trim();
+    expect(Buffer.from(b64, 'base64').length).toBe(16);
+  });
+
+  test('ReEncrypt moves ciphertext to another key; it decrypts there', async ({ page, request, uniqueName }) => {
+    const src = await createKey(request, { alias: uniqueName('e2e-kms-src') });
+    const dst = await createKey(request, { alias: uniqueName('e2e-kms-dst') });
+    const plaintext = `moved-${uniqueName('pt')}`;
+
+    await page.goto(`kms/${src}`);
+    const enc = page.locator('form:has(textarea[name="plaintext"])');
+    await enc.locator('textarea[name="plaintext"]').fill(plaintext);
+    await enc.getByRole('button', { name: 'Encrypt' }).click();
+    const cryptoOut = page.locator('#kms-crypto-out pre');
+    await expect(cryptoOut).toBeVisible();
+    const ciphertext = ((await cryptoOut.textContent()) ?? '').trim();
+
+    const re = page.locator('form[hx-post$="/reencrypt"]');
+    await re.locator('textarea[name="ciphertext"]').fill(ciphertext);
+    await re.locator('select[name="dest"]').selectOption(dst);
+    await re.getByRole('button', { name: 'Re-encrypt' }).click();
+    const out = page.locator('#kms-op-out');
+    await expect(out).toContainText(`Ciphertext under ${dst}`);
+    await expect(out).toContainText('The plaintext never came back');
+    const moved = ((await out.locator('pre').textContent()) ?? '').trim();
+    expect(moved).toBeTruthy();
+    expect(moved).not.toBe(ciphertext);
+
+    // The destination key decrypts it back to the original plaintext.
+    await page.goto(`kms/${dst}`);
+    const dec = page.locator('form:has(textarea[name="ciphertext"]):has(button:text-is("Decrypt"))');
+    await dec.locator('textarea[name="ciphertext"]').fill(moved);
+    await dec.getByRole('button', { name: 'Decrypt', exact: true }).click();
+    await expect(page.locator('#kms-crypto-out')).toContainText('Plaintext');
+    await expect(page.locator('#kms-crypto-out pre')).toHaveText(plaintext);
+  });
+
+  test('Export public key on a SIGN_VERIFY key', async ({ page, request, uniqueName }) => {
+    const keyId = await createKey(request, { spec: 'RSA_2048', usage: 'SIGN_VERIFY', alias: uniqueName('e2e-kms-pub') });
+    await page.goto(`kms/${keyId}`);
+    await page.getByRole('button', { name: 'Export public key' }).click();
+    const out = page.locator('#kms-op-out');
+    await expect(out).toContainText('Public key (base64 DER)');
+    const der = Buffer.from(((await out.locator('pre').textContent()) ?? '').trim(), 'base64');
+    // An RSA-2048 SubjectPublicKeyInfo is a DER SEQUENCE of ~294 bytes.
+    expect(der[0]).toBe(0x30);
+    expect(der.length).toBeGreaterThan(250);
+  });
+
+  test('Repoint here moves an existing alias onto this key', async ({ page, request, uniqueName, waitForToast }) => {
+    const alias = uniqueName('e2e-kms-mv');
+    const from = await createKey(request, { alias });
+    const to = await createKey(request, { alias: uniqueName('e2e-kms-to') });
+
+    await page.goto(`kms/${to}`);
+    await expect(page.locator('.sub-row', { hasText: alias })).toHaveCount(0);
+    const form = page.locator('form[hx-post$="/update-alias"]');
+    await form.locator('input[name="existing_alias"]').fill(`alias/${alias}`);
+    await form.getByRole('button', { name: 'Repoint here' }).click();
+    expect(await waitForToast()).toContain('now points here');
+    await expect(page.locator('.sub-row', { hasText: alias })).toBeVisible();
+
+    // …and it left the old key (one step, not delete-and-recreate).
+    await page.goto(`kms/${from}`);
+    await expect(page.locator('.det-title')).toContainText(from);
+    await expect(page.locator('.sub-row', { hasText: alias })).toHaveCount(0);
+  });
+});

@@ -370,6 +370,19 @@ func seedFixtures(t *testing.T, c http.Handler) {
 			giveAPIAMethod(t, c, m[1])
 		}
 	}
+	// A deployment no stage serves, for the delete-deployment route: one that
+	// a stage still points at is refused, as on AWS. Deploy to a throwaway
+	// stage, read off the id that appeared, and delete the stage.
+	if id := fixtures["{api}"]; id != "" {
+		before := deploymentIDs(c, id)
+		postForm(t, c, "/apigw/"+id+"/deploy", url.Values{"stage": {"spare"}})
+		for d := range deploymentIDs(c, id) {
+			if !before[d] {
+				discovered["spareDeployment"] = d
+			}
+		}
+		postForm(t, c, "/apigw/"+id+"/delete-stage", url.Values{"name": {"spare"}})
+	}
 	// The HTTP API fixture, likewise id-addressed and consumed by its delete
 	// route; it carries a stage, a route and an authorizer for the routes
 	// that address one, whose ids are read back from the page.
@@ -444,6 +457,7 @@ var (
 	apigwID     = regexp.MustCompile(`/apigw/([a-z0-9]{6,})`)
 	httpAPIID   = regexp.MustCompile(`/apigw-http/([a-z0-9]{6,})`)
 	httpRouteID = regexp.MustCompile(`\{"route":"([a-z0-9]+)"\}`)
+	deployID    = regexp.MustCompile(`\{"deployment":"([a-z0-9]+)"\}`)
 	httpAuthID  = regexp.MustCompile(`\{"id":"([a-z0-9]{6,})"\}`)
 )
 
@@ -545,8 +559,6 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 		// The finished fixture execution SUCCEEDED, which is the one status
 		// that can never be redriven; the aborted Wait can.
 		return map[string]string{"{machine}": "fixture-slow", "{exec}": "fixture-halted"}, nil
-	case "/apigw-http/create":
-		return nil, url.Values{"name": {"fixture-made-http"}}
 	case "/apigw-http/{api}/create-authorizer":
 		return map[string]string{"{api}": fixtures["{httpapi}"]}, url.Values{"name": {"fixture-made-gate"}, "lambda": {"fixture-sink"}}
 	case "/apigw-http/{api}/delete-authorizer":
@@ -561,6 +573,8 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 		return map[string]string{"{api}": fixtures["{httpapi}"]}, url.Values{"method": {"POST"}, "path": {"/made"}, "url": {"http://127.0.0.1:1/"}}
 	case "/apigw-http/{api}/delete", "/apigw-http/{api}/update", "/apigw-http/{api}/invoke":
 		return map[string]string{"{api}": fixtures["{httpapi}"]}, nil
+	case "/apigw/{api}/delete-deployment":
+		return nil, url.Values{"deployment": {discovered["spareDeployment"]}}
 	case "/apigw/{api}/update-stage":
 		// The stage the deploy subtest created; mutationForm's generic name
 		// would PATCH a stage that does not exist.
@@ -754,4 +768,15 @@ func truncate(s string) string {
 		return s[:200] + "…"
 	}
 	return s
+}
+
+// deploymentIDs reads the deployment ids off a REST API's stages tab.
+func deploymentIDs(c http.Handler, api string) map[string]bool {
+	rec := httptest.NewRecorder()
+	c.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/_console/apigw/"+api+"?tab=stages", nil))
+	out := map[string]bool{}
+	for _, m := range deployID.FindAllStringSubmatch(rec.Body.String(), -1) {
+		out[m[1]] = true
+	}
+	return out
 }

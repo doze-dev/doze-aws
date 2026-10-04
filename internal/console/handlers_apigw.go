@@ -70,7 +70,7 @@ func (c *Console) apigwInvoke(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// A transport failure is the answer here, not a page error: it is what
 		// the caller would have seen.
-		c.partial(w, "apigw_result", map[string]any{"Err": err.Error()})
+		c.partial(w, "apigw_result", map[string]any{"Err": errText(err)})
 		return
 	}
 	c.partial(w, "apigw_result", map[string]any{"Res": res})

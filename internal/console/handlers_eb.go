@@ -363,7 +363,7 @@ func (c *Console) ebRulesByTarget(w http.ResponseWriter, r *http.Request) {
 func (c *Console) ebTestPattern(w http.ResponseWriter, r *http.Request) {
 	ok, err := c.be.TestEventPattern(r.Context(), r.FormValue("pattern"), r.FormValue("event"))
 	if err != nil {
-		c.partial(w, "eb_pattern_verdict", map[string]any{"Err": err.Error()})
+		c.partial(w, "eb_pattern_verdict", map[string]any{"Err": errText(err)})
 		return
 	}
 	c.partial(w, "eb_pattern_verdict", map[string]any{"Match": ok, "Ran": true})

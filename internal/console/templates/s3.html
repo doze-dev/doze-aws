@@ -263,7 +263,7 @@
     </div></div>
 
     <div class="sec-title">Multipart uploads <span class="dim">&mdash; in progress; storage no listing shows</span></div>
-    <div hx-post="{{.Prefix}}/s3/{{.Bucket}}/uploads" hx-trigger="load" hx-target="this" hx-select="" hx-swap="innerHTML"><p class="mini-note">loading&hellip;</p></div>
+    <div id="s3-mp-uploads" hx-post="{{.Prefix}}/s3/{{.Bucket}}/uploads" hx-trigger="load" hx-target="this" hx-select="" hx-swap="innerHTML"><p class="mini-note">loading&hellip;</p></div>
 
     <div class="sec-title">Other configurations</div>
     {{range .Props.Configs}}{{if and (ne .Name "CORS") (ne .Name "Lifecycle") (ne .Name "Notifications") (ne .Name "Website") (ne .Name "Policy")}}
@@ -439,7 +439,7 @@
       <td class="sub num">{{len .Parts}}{{if .Parts}} · {{humanSize .Size}}{{end}}</td>
       <td class="dim sub mono trunc" style="max-width:200px">{{.UploadID}}</td>
       <td class="dim sub mono">{{.Initiated}}</td>
-      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Abort this upload" hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/abort-upload" hx-vals='{"key":"{{.Key}}","upload":"{{.UploadID}}"}' hx-target="closest div" hx-select="" hx-swap="innerHTML" hx-confirm="Abort the upload of {{.Key}}? Its {{len .Parts}} uploaded parts are discarded.">{{icon "trash"}}</button></div></td>
+      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Abort this upload" hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/abort-upload" hx-vals='{"key":"{{.Key}}","upload":"{{.UploadID}}"}' hx-target="#s3-mp-uploads" hx-select="" hx-swap="innerHTML" hx-confirm="Abort the upload of {{.Key}}? Its {{len .Parts}} uploaded parts are discarded.">{{icon "trash"}}</button></div></td>
     </tr>
   {{end}}
   </tbody>

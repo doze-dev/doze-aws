@@ -180,3 +180,125 @@ test.describe('Connections strip', () => {
     await expect(backChip).toHaveAttribute('href', `/_console/sns/${topic}`);
   });
 });
+
+// EventBridge connections and API destinations (eb/destinations): the
+// describe panels a name opens, their update forms, Deauthorize, and the row
+// deletes. Creation is covered in eventbridge.spec.ts and only arranged here.
+// The file's serial mode applies to this block too; it is independent of the
+// Connections-strip chain above.
+test.describe('API destination management', () => {
+  test('describe, update, deauthorize and delete connections and destinations', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+    confirmDialog,
+  }) => {
+    const connA = uniqueName('e2e-apid-conna');
+    const connB = uniqueName('e2e-apid-connb');
+    const dest = uniqueName('e2e-apid-dest');
+    const orphan = uniqueName('e2e-apid-orphan');
+    await postForm(request, 'eb/destinations/create-connection', {
+      name: connA, auth_type: 'API_KEY', api_key_name: 'X-Api-Key', api_key_value: 'hunter2',
+    });
+    await postForm(request, 'eb/destinations/create-connection', {
+      name: connB, auth_type: 'BASIC', username: 'svc', password: 'pw',
+    });
+    const connARN = async (name: string) => {
+      const res = await request.get(`eb/destinations/connection/${name}`);
+      const m = (await res.text()).match(/arn:aws:events:[^"<\s]*:connection\/[^"<\s]+/);
+      if (!m) throw new Error(`no ARN for connection ${name}`);
+      return m[0];
+    };
+    const arnA = await connARN(connA);
+    const arnB = await connARN(connB);
+    await postForm(request, 'eb/destinations/create-destination', {
+      name: dest, connection: arnA, endpoint: 'http://127.0.0.1:1/old/*', method: 'POST',
+    });
+    await postForm(request, 'eb/destinations/create-destination', {
+      name: orphan, connection: arnB, endpoint: 'http://127.0.0.1:1/orphan', method: 'POST',
+    });
+
+    await page.goto('eb/destinations');
+    const tables = page.locator('#eb-http-tables');
+
+    await test.step('describe and update the destination', async () => {
+      await tables.locator('button.linkish', { hasText: dest }).click();
+      const panel = page.locator('#eb-destination-detail');
+      await expect(panel.locator('.panel-h')).toContainText(dest);
+      await expect(panel).toContainText(arnA);
+
+      await panel.locator('select[name="connection"]').selectOption(arnB);
+      await panel.locator('input[name="endpoint"]').fill('http://127.0.0.1:1/new/*');
+      await panel.locator('select[name="method"]').selectOption('PUT');
+      await panel.locator('input[name="description"]').fill('moved to B');
+      await panel.getByRole('button', { name: 'Update destination' }).click();
+      expect(await waitForToast()).toMatch(/API destination updated/);
+      await expect(panel).toContainText(arnB);
+      await expect(panel.locator('input[name="description"]')).toHaveValue('moved to B');
+
+      // The list reflects the stored record after a reload.
+      await page.reload();
+      await expect(
+        page.locator('#eb-http-tables tr', { hasText: dest })
+      ).toContainText('PUT http://127.0.0.1:1/new/*');
+    });
+
+    await test.step('describe and update the connection: re-authorize with a new header', async () => {
+      await tables.locator('button.linkish', { hasText: connA }).click();
+      const panel = page.locator('#eb-connection-detail');
+      await expect(panel.locator('.panel-h')).toContainText(connA);
+      await expect(panel).toContainText('header X-Api-Key');
+
+      await panel.locator('input[name="description"]').fill('rotated');
+      await panel.locator('select[name="auth_type"]').selectOption('API_KEY');
+      await panel.locator('input[name="api_key_name"]').fill('X-Rotated-Key');
+      await panel.locator('input[name="api_key_value"]').fill('s3cret-two');
+      await panel.getByRole('button', { name: 'Update connection' }).click();
+      expect(await waitForToast()).toMatch(/Connection updated/);
+      await expect(panel).toContainText('header X-Rotated-Key');
+      await expect(panel).toContainText('rotated');
+      await expect(panel).not.toContainText('s3cret-two');
+    });
+
+    await test.step('deauthorize the connection', async () => {
+      const panel = page.locator('#eb-connection-detail');
+      const before = (await panel.locator('.panel-h .badge').textContent())?.trim();
+      await panel.getByRole('button', { name: 'Deauthorize' }).click();
+      await expect(page.locator('#confirm-msg')).toContainText(connA);
+      await confirmDialog('accept');
+      expect(await waitForToast()).toMatch(/Credential removed/);
+      await expect(panel.locator('.panel-h .badge')).not.toHaveText(before ?? '');
+      await expect(panel.locator('.panel-h .badge')).toHaveText(/DEAUTHORI[SZ]/);
+    });
+
+    await test.step('delete the destination from its row', async () => {
+      await page.reload();
+      const row = page.locator('#eb-http-tables tr', { hasText: dest });
+      await row.getByRole('button', { name: 'Delete destination' }).click();
+      await expect(page.locator('#confirm-msg')).toContainText(dest);
+      await confirmDialog('accept');
+      expect(await waitForToast()).toMatch(/API destination deleted/);
+      await expect(page.locator('#eb-http-tables')).not.toContainText(dest);
+    });
+
+    await test.step('delete a connection: its remaining destination goes INACTIVE', async () => {
+      const row = page.locator('#eb-http-tables tr', { hasText: connB });
+      await row.getByRole('button', { name: 'Delete connection' }).click();
+      await expect(page.locator('#confirm-msg')).toContainText(connB);
+      await confirmDialog('accept');
+      expect(await waitForToast()).toMatch(/Connection deleted/);
+      const t = page.locator('#eb-http-tables');
+      await expect(t.locator('tr', { hasText: connB })).toHaveCount(0);
+      await expect(t.locator('tr', { hasText: orphan })).toContainText('INACTIVE');
+
+      // Clean up what is left, through the same row buttons.
+      await t.locator('tr', { hasText: orphan }).getByRole('button', { name: 'Delete destination' }).click();
+      await confirmDialog('accept');
+      await expect(page.locator('#eb-http-tables tr', { hasText: orphan })).toHaveCount(0);
+      await page.locator('#eb-http-tables tr', { hasText: connA }).getByRole('button', { name: 'Delete connection' }).click();
+      await confirmDialog('accept');
+      await expect(page.locator('#eb-http-tables tr', { hasText: connA })).toHaveCount(0);
+    });
+  });
+});

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/console';
 import { createQueue, postForm } from '../fixtures/api';
+import { ORIGIN } from '../playwright.config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -433,5 +434,122 @@ test.describe('python runtime', () => {
     await page.goto(`lambda/${fnName}?tab=logs`);
     await expect(page.locator('#log-tail')).toContainText('python fixture init');
     await expect(page.locator('#log-tail')).toContainText('py handled');
+  });
+});
+
+// ---- route coverage: the Configuration tab's other controls, and layer
+// lookup by ARN. Each test owns its own function, so none depends on the
+// lifecycle above beyond the fixture build in beforeAll.
+
+test.describe('configuration controls', () => {
+  test('updating the code path: a function with no bootstrap starts working', async ({
+    page,
+    request,
+    uniqueName,
+    setEditor,
+    waitForToast,
+  }) => {
+    const fn = uniqueName('lam-code');
+    // A directory with nothing runnable in it: the function exists, but an
+    // invoke cannot start a process.
+    const empty = path.resolve(__dirname, `../.tmp/lambda-empty-${fn}`);
+    fs.mkdirSync(empty, { recursive: true });
+    await postForm(request, 'lambda/create', {
+      name: fn, runtime: 'provided.al2', handler: 'bootstrap', code: empty, timeout: 10,
+    });
+
+    await page.goto(`lambda/${fn}`);
+    await setEditor('textarea[name=payload][data-editor]', JSON.stringify({ try: 1 }));
+    await page.getByRole('button', { name: 'Invoke' }).click();
+    const result = page.locator('#invoke-result');
+    await expect(result).not.toContainText('succeeded', { timeout: 20000 });
+    await expect(result).toContainText(/fail|error/i, { timeout: 20000 });
+
+    await page.goto(`lambda/${fn}?tab=config`);
+    await page.locator('form[hx-post$="/code"] input[name="path"]').fill(FIXTURE_DIR);
+    await page.getByRole('button', { name: 'Update code' }).click();
+    const toast = await waitForToast();
+    expect(toast).toContain('Code updated');
+
+    await page.goto(`lambda/${fn}`);
+    await setEditor('textarea[name=payload][data-editor]', JSON.stringify({ try: 2 }));
+    await page.getByRole('button', { name: 'Invoke' }).click();
+    await expect(result.locator('.co-h').first()).toContainText('succeeded', { timeout: 20000 });
+    await expect(result.locator('pre').first()).toContainText('"try": 2');
+  });
+
+  test('changing a function URL’s auth type', async ({ page, request, uniqueName, waitForToast }) => {
+    const fn = uniqueName('lam-urlauth');
+    await postForm(request, 'lambda/create', {
+      name: fn, runtime: 'provided.al2', handler: 'bootstrap', code: FIXTURE_DIR,
+    });
+    await postForm(request, `lambda/${fn}/create-url`, {});
+
+    await page.goto(`lambda/${fn}?tab=config`);
+    const auth = page.locator('select[name="auth_type"]');
+    await expect(auth).toHaveValue('NONE');
+    await auth.selectOption('AWS_IAM');
+    await page.getByRole('button', { name: 'Save auth type' }).click();
+    const toast = await waitForToast();
+    expect(toast).toContain('Function URL updated');
+    await expect(page.locator('select[name="auth_type"]')).toHaveValue('AWS_IAM');
+    await page.reload();
+    await expect(page.locator('select[name="auth_type"]')).toHaveValue('AWS_IAM');
+  });
+
+  test('resetting the async invoke policy clears its destinations', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+    waitForToast,
+  }) => {
+    const fn = uniqueName('lam-async');
+    const queue = await createQueue(request, uniqueName('lam-dest'));
+    await postForm(request, 'lambda/create', {
+      name: fn, runtime: 'provided.al2', handler: 'bootstrap', code: FIXTURE_DIR,
+    });
+    // Arrange: PutFunctionEventInvokeConfig on the Lambda REST API — the
+    // console has no form for setting destinations, only for resetting them.
+    const res = await request.put(
+      `${ORIGIN}/2019-09-25/functions/${fn}/event-invoke-config`,
+      {
+        data: {
+          MaximumRetryAttempts: 1,
+          DestinationConfig: { OnSuccess: { Destination: `arn:aws:sqs:us-east-1:000000000000:${queue}` } },
+        },
+      }
+    );
+    expect(res.status(), await res.text()).toBeLessThan(300);
+
+    await page.goto(`lambda/${fn}?tab=config`);
+    await expect(page.getByText('Async destinations')).toBeVisible();
+    await expect(page.locator('#lambda-config')).toContainText(queue);
+
+    await page.getByRole('button', { name: 'Reset async policy' }).click();
+    await confirmDialog('accept');
+    const toast = await waitForToast();
+    expect(toast).toContain('Async invoke policy reset to defaults');
+    await expect(page.getByText('Async destinations')).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByText('Async destinations')).toHaveCount(0);
+  });
+});
+
+test.describe('layer lookup', () => {
+  test('resolving a layer version by its ARN shows the version', async ({ page, request, uniqueName }) => {
+    const layer = uniqueName('e2e-find');
+    await postForm(request, 'lambda/layers/publish', {
+      name: layer, runtimes: 'provided.al2', description: 'found by arn', path: FIXTURE_DIR,
+    });
+
+    await page.goto('lambda');
+    const form = page.locator('form[hx-post$="/lambda/layers/find"]');
+    await form.locator('input[name="arn"]').fill(`arn:aws:lambda:us-east-1:000000000000:layer:${layer}:1`);
+    await form.getByRole('button', { name: 'Resolve' }).click();
+    const out = page.locator('#layer-out');
+    await expect(out.locator('.panel-h h2')).toContainText(`${layer} v1`);
+    await expect(out).toContainText('found by arn');
+    await expect(out).toContainText('provided.al2');
   });
 });

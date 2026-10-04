@@ -144,3 +144,41 @@ test.describe('cloudwatch metrics and alarms', () => {
     await expect(page.locator('.factstrip')).toContainText('Tmpl/Errors');
   });
 });
+
+// The alarm page's actions switch: disabling leaves the alarm evaluating but
+// notifying nothing, and the header says so with an "actions off" badge.
+test.describe('cloudwatch alarm actions', () => {
+  test('disable and re-enable an alarm’s actions', async ({ page, request, uniqueName, waitForToast }) => {
+    const alarmName = uniqueName('e2e-acts');
+    await postForm(request, 'cw/create-alarm', {
+      name: alarmName,
+      metric: `${uniqueName('E2E')}|Errors`,
+      statistic: 'Sum',
+      operator: 'GreaterThanThreshold',
+      threshold: 1,
+      period: 60,
+      evaluation: 1,
+    });
+
+    await page.goto(`cw/alarm/${alarmName}`);
+    const title = page.locator('.det-title');
+    await expect(title).not.toContainText('actions off');
+    await expect(page.getByRole('heading', { name: 'Actions enabled' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Disable actions' }).click();
+    let msg = await waitForToast();
+    expect(msg).toContain(`Actions disabled for “${alarmName}”`);
+    await expect(title).toContainText('actions off');
+    await expect(page.getByRole('heading', { name: 'Actions disabled' })).toBeVisible();
+
+    // Still off after a reload: it is the alarm's state, not the page's.
+    await page.reload();
+    await expect(page.locator('.det-title')).toContainText('actions off');
+
+    await page.getByRole('button', { name: 'Enable actions' }).click();
+    msg = await waitForToast();
+    expect(msg).toContain(`Actions enabled for “${alarmName}”`);
+    await expect(page.locator('.det-title')).not.toContainText('actions off');
+    await expect(page.getByRole('button', { name: 'Disable actions' })).toBeVisible();
+  });
+});

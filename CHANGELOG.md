@@ -158,6 +158,36 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   refused until now — returns `SenderId` on every message, and
   `SequenceNumber` on FIFO sends and receives.
 - EventBridge buses can be tagged. `TagResource` used to refuse a bus ARN.
+- API Gateway ids are random. They were taken from the clock, so two REST
+  APIs, HTTP APIs, keys or usage plans created in the same instant got the
+  same id and the second silently replaced the first.
+- REST `DeleteDeployment` refuses a deployment a stage still serves, and one
+  that does not exist, as AWS and the HTTP plane already did. It used to
+  delete it and leave the stage pointing at nothing.
+- `DescribeStacks` without a name lists live stacks only. Deleted ones still
+  answer to their id and still appear in `ListStacks`, as on AWS.
+- A Kinesis shard closed by a reshard always reports its
+  `EndingSequenceNumber`. One that never held a record left it out, so
+  `ListShards` and the console showed the parent as still open.
+- Console, found by driving every route from a browser:
+  - Pasting an ARN into ⌘K finds its resource.
+  - The SQS page's counts outside the message panel follow sends and
+    receives without a reload.
+  - The SQS composer sends a burst: Copies above one goes as a single
+    `SendMessageBatch`.
+  - Secrets Manager "Make current" no longer blanks the page.
+  - Removing a secret's resource policy asks first.
+  - The IAM authorization export loads, and an IAM user can be renamed from
+    its page.
+  - A truncated Kinesis record opens in full, and stream encryption can be
+    turned off.
+  - Aborting an S3 multipart upload updates the list in place.
+  - Drawers scroll on a short window, so an S3 object's tags and lock
+    settings are reachable.
+  - A result panel shows an AWS refusal as its code and message, not the
+    XML envelope.
+  - A success banner no longer reappears when you move to another tab right
+    after it.
 - A Lambda function's output is all there when `Invoke` returns. Under load
   the last lines of an invocation could arrive after its `END`, or under the
   next invocation's request id, because nothing made the output pipe drain

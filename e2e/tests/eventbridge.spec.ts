@@ -330,3 +330,166 @@ test.describe('API destinations', () => {
     ).toHaveCount(1);
   });
 });
+
+// Routes a user reaches from the bus and rule pages that the long flow above
+// never touches: creating a bus from the list pane, removing a rule's target,
+// the Trace tab (reverse lookup + DescribeEventBus), and the archive/replay
+// describe panels. Preconditions are arranged through the console's own create
+// routes; every action under test is a click.
+const sqsARN = (name: string) => `arn:aws:sqs:us-east-1:000000000000:${name}`;
+
+test.describe('EventBridge bus and rule pages', () => {
+  test('create a bus from the list pane\'s New link', async ({ page, request, uniqueName }) => {
+    const bus = uniqueName('e2e-eb-newbus');
+    await page.goto('eb');
+    await page.locator('.listpane .new-link').click();
+    await page.waitForURL(/\/eb\/create-bus$/);
+    await expect(page.locator('.det-title')).toContainText('Create event bus');
+
+    await page.getByLabel('Bus name').fill(bus);
+    await page.getByRole('button', { name: 'Create event bus' }).click();
+    await page.waitForURL(new RegExp(`/eb/${bus}(\\?|$)`));
+    await expect(page.locator('#flashbar')).toContainText(bus);
+    await expect(page.locator('.det-title')).toContainText(bus);
+    // The list pane now carries it.
+    await expect(page.locator('.listpane .li', { hasText: bus })).toBeVisible();
+
+    await postForm(request, `eb/${bus}/delete-bus`, {});
+  });
+
+  test('remove a target from a rule', async ({ page, request, uniqueName, confirmDialog, waitForToast }) => {
+    const bus = await createBus(request, uniqueName('e2e-eb-rt-bus'));
+    const queue = await createQueue(request, uniqueName('e2e-eb-rt-q'));
+    const rule = uniqueName('e2e-eb-rt-rule');
+    await postForm(request, `eb/${bus}/create-rule`, { name: rule, pattern: PATTERN });
+    await postForm(request, `eb/${bus}/rule/${rule}/add-target`, { arn: sqsARN(queue) });
+
+    await page.goto(`eb/${bus}/rule/${rule}`);
+    const targets = page.locator('#eb-targets');
+    const row = targets.locator('tr', { hasText: queue });
+    await expect(row).toBeVisible();
+
+    // Cancel first: the target stays.
+    await row.getByRole('button', { name: 'Remove target' }).click();
+    await confirmDialog('cancel');
+    await expect(row).toBeVisible();
+
+    await row.getByRole('button', { name: 'Remove target' }).click();
+    await confirmDialog('accept');
+    expect(await waitForToast()).toMatch(/Target removed/);
+    // The first panel is the target list; the second is the Add-target form,
+    // whose dropdown still (rightly) offers the queue.
+    const list = targets.locator('.panel').first();
+    await expect(list).not.toContainText(queue);
+    await expect(list).toContainText('No targets');
+    await expect(list.locator('.panel-h .badge')).toHaveText('0');
+
+    // And the service agrees: a fresh load shows no target either.
+    await page.reload();
+    await expect(page.locator('#eb-targets .panel').first()).not.toContainText(queue);
+  });
+
+  test('Trace tab: which rules fire into a target, and describe the bus', async ({
+    page,
+    request,
+    uniqueName,
+  }) => {
+    const bus = await createBus(request, uniqueName('e2e-eb-tr-bus'));
+    const queue = await createQueue(request, uniqueName('e2e-eb-tr-q'));
+    const stranger = await createQueue(request, uniqueName('e2e-eb-tr-none'));
+    const rule = uniqueName('e2e-eb-tr-rule');
+    await postForm(request, `eb/${bus}/create-rule`, { name: rule, pattern: PATTERN });
+    await postForm(request, `eb/${bus}/rule/${rule}/add-target`, { arn: sqsARN(queue) });
+
+    await page.goto(`eb/${bus}`);
+    await page.locator('.tabbar a', { hasText: 'Trace' }).click();
+    await page.waitForURL(/tab=trace/);
+
+    const target = page.locator('input[name="target"]');
+    const ask = page.getByRole('button', { name: 'Which rules fire into this?' });
+    const byTarget = page.locator('#eb-by-target');
+
+    await target.fill(sqsARN(queue));
+    await ask.click();
+    await expect(byTarget).toContainText('Rules firing into this target');
+    const link = byTarget.getByRole('link', { name: rule });
+    await expect(link).toBeVisible();
+
+    // A queue no rule targets gets the explicit negative, not an empty panel.
+    await target.fill(sqsARN(stranger));
+    await ask.click();
+    await expect(byTarget).toContainText('No rule on this bus targets');
+    await expect(byTarget).toContainText(stranger);
+
+    await page.getByRole('button', { name: 'Describe this bus' }).click();
+    const detail = page.locator('#eb-detail');
+    await expect(detail).toContainText(`Bus ${bus}`);
+    await expect(detail).toContainText(`event-bus/${bus}`);
+
+    // The rule link from the reverse lookup goes to the rule.
+    await target.fill(sqsARN(queue));
+    await ask.click();
+    await byTarget.getByRole('link', { name: rule }).click();
+    await page.waitForURL(new RegExp(`/eb/${bus}/rule/${rule}$`));
+  });
+
+  test('archive describe + edit, and replay describe', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const bus = await createBus(request, uniqueName('e2e-eb-ad-bus'));
+    const archive = uniqueName('e2e-eb-ad-arc');
+    await postForm(request, `eb/${bus}/create-archive`, { name: archive });
+    await postForm(request, `eb/${bus}/replay`, { name: archive });
+
+    await page.goto(`eb/${bus}?tab=archives`);
+    await page.locator('#eb-archives').getByRole('button', { name: archive }).click();
+    const panel = page.locator('#eb-archive-detail');
+    await expect(panel).toBeVisible();
+    await expect(panel.locator('.panel-h')).toContainText(archive);
+
+    // Edit the retention and an event pattern, then save.
+    await panel.locator('input[name="retention"]').fill('7');
+    await panel.locator('.ws-seg a', { hasText: 'JSON' }).click();
+    await setPattern(page, '#eb-archive-detail textarea[name="pattern"]', JSON.stringify({ source: ['orders'] }));
+    await panel.getByRole('button', { name: 'Save archive' }).click();
+    expect(await waitForToast()).toMatch(/Archive updated/);
+    await expect(panel.locator('.panel-h')).toContainText('7 day retention');
+
+    // A fresh describe shows what was stored, not what the form remembered.
+    await page.reload();
+    await page.locator('#eb-archives').getByRole('button', { name: archive }).click();
+    await expect(page.locator('#eb-archive-detail .panel-h')).toContainText('7 day retention');
+    await expect
+      .poll(() =>
+        page.evaluate(() => (document.querySelector('#eb-archive-detail textarea[name="pattern"]') as HTMLTextAreaElement).value)
+      )
+      .toContain('orders');
+
+    // Replay detail: the replay row's name opens its describe panel.
+    const replayBtn = page.locator('#eb-replays button.linkish', { hasText: archive }).first();
+    const replayName = (await replayBtn.textContent())!.trim();
+    await replayBtn.click();
+    const detail = page.locator('#eb-detail');
+    await expect(detail).toContainText(`Replay ${replayName}`);
+    await expect(detail).toContainText('COMPLETED');
+    await expect(detail).toContainText(archive);
+  });
+});
+
+// The archive's pattern box is a pattern-builder textarea upgraded to
+// CodeMirror; dozeEditor.set keeps both in sync, and an input event lets the
+// builder's Alpine state see the change.
+async function setPattern(page: import('@playwright/test').Page, selector: string, value: string) {
+  await page.waitForFunction((sel) => !!(document.querySelector(sel) as any)?.__cm, selector);
+  await page.evaluate(
+    ([sel, val]) => {
+      const ta = document.querySelector(sel) as HTMLTextAreaElement;
+      (window as any).dozeEditor.set(ta, val);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+    [selector, value]
+  );
+}

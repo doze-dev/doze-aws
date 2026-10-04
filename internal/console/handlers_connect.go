@@ -41,7 +41,7 @@ func (c *Console) connect(w http.ResponseWriter, r *http.Request) {
 func (c *Console) connectVerify(w http.ResponseWriter, r *http.Request) {
 	acct, arn, err := c.be.CallerIdentity(r.Context())
 	if err != nil {
-		c.partial(w, "connect_result", map[string]any{"Err": err.Error()})
+		c.partial(w, "connect_result", map[string]any{"Err": errText(err)})
 		return
 	}
 	c.partial(w, "connect_result", map[string]any{"Account": acct, "ARN": arn})

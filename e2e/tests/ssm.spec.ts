@@ -162,3 +162,134 @@ test.describe('delete', () => {
     await expect(page.locator('.ssm-group', { hasText: dir })).toHaveCount(0);
   });
 });
+
+// ---- Route coverage: the create page, the path tools, and unlabel ----
+
+test.describe('create', () => {
+  test('New opens the create page, and the form creates the parameter', async ({
+    page,
+    uniqueName,
+    setEditor,
+    waitForToast,
+  }) => {
+    const dir = '/' + uniqueName('e2e-ssm');
+    const name = `${dir}/created`;
+    const value = `db.${dir.slice(1)}.local:5432`;
+
+    await page.goto('ssm');
+    await page.locator('.listpane a.new-link').click();
+    await page.waitForURL(/\/ssm\/create$/);
+    await expect(page.getByText('Create parameter').first()).toBeVisible();
+
+    await page.locator('input[name="name"]').fill(name);
+    await page.locator('select[name="type"]').selectOption('StringList');
+    await setEditor('textarea[name="value"]', value);
+    await page.getByRole('button', { name: 'Create parameter' }).click();
+
+    expect(await waitForToast()).toContain(`Parameter “${name}” created`);
+    await page.waitForURL(/\/ssm\/param\?name=/);
+    await expect(page.locator('.det-title')).toContainText(name);
+    await expect(page.locator('.det-title .badge.type')).toHaveText('StringList');
+    await expect(page.locator('.ws-view')).toHaveText(value);
+    await expect(page.locator('.ssm-group', { hasText: dir })).toBeVisible();
+  });
+});
+
+test.describe('path tools', () => {
+  test('a path query lists everything under it, masking SecureStrings', async ({
+    page,
+    request,
+    uniqueName,
+  }) => {
+    const dir = '/' + uniqueName('e2e-ssm');
+    await postForm(request, 'ssm/create', { name: `${dir}/a/host`, type: 'String', value: 'host-value' });
+    await postForm(request, 'ssm/create', { name: `${dir}/b/pass`, type: 'SecureString', value: 'pass-value' });
+
+    await page.goto('ssm');
+    await page.locator('input[name="path"]').fill(dir);
+    await page.getByRole('button', { name: 'List everything under it' }).click();
+
+    const out = page.locator('#ssm-path-out');
+    await expect(out.locator('.panel-h')).toContainText(dir);
+    await expect(out.locator('.panel-h')).toContainText('2 parameters');
+    // Recursive: both nested leaves come back.
+    const host = out.locator('tbody tr', { hasText: `${dir}/a/host` });
+    const pass = out.locator('tbody tr', { hasText: `${dir}/b/pass` });
+    await expect(host).toContainText('host-value');
+    await expect(pass).toContainText('SecureString');
+    await expect(pass).not.toContainText('pass-value');
+  });
+
+  test('a path with nothing under it says so', async ({ page, request, uniqueName }) => {
+    // The home pane's path tools only render once Parameter Store has any
+    // parameter at all, so make sure one exists.
+    const dir = '/' + uniqueName('e2e-ssm');
+    await postForm(request, 'ssm/create', { name: `${dir}/x`, type: 'String', value: 'x' });
+    const empty = '/' + uniqueName('e2e-ssm-none');
+
+    await page.goto('ssm');
+    await page.locator('input[name="path"]').fill(empty);
+    await page.getByRole('button', { name: 'List everything under it' }).click();
+    await expect(page.locator('#ssm-path-out')).toContainText(`Nothing under ${empty}`);
+  });
+
+  test('delete everything under a path asks first, then removes the whole folder', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+    waitForToast,
+  }) => {
+    const dir = '/' + uniqueName('e2e-ssm');
+    const keep = '/' + uniqueName('e2e-ssm-keep');
+    await postForm(request, 'ssm/create', { name: `${dir}/one`, type: 'String', value: '1' });
+    await postForm(request, 'ssm/create', { name: `${dir}/two`, type: 'String', value: '2' });
+    await postForm(request, 'ssm/create', { name: `${keep}/one`, type: 'String', value: 'kept' });
+
+    await page.goto('ssm');
+    await page.locator('input[name="path"]').fill(dir);
+    await page.getByRole('button', { name: 'List everything under it' }).click();
+    await page.getByRole('button', { name: `Delete everything under ${dir}` }).click();
+    await expect(page.locator('#confirm-msg')).toContainText(`Delete all 2 parameters under ${dir}`);
+    await confirmDialog('accept');
+
+    expect(await waitForToast()).toContain('2 parameters deleted');
+    await expect(page.locator('.ssm-group', { hasText: dir })).toHaveCount(0);
+    // A sibling path is untouched.
+    await expect(page.locator('.ssm-group', { hasText: keep })).toBeVisible();
+  });
+});
+
+test.describe('unlabel', () => {
+  test('the × on a label removes it from that version', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const dir = '/' + uniqueName('e2e-ssm');
+    const name = `${dir}/unlabeled`;
+    await postForm(request, 'ssm/create', { name, type: 'String', value: 'v1-value' });
+    await postForm(request, 'ssm/label', { name, version: 1, label: 'e2e-keep' });
+    await postForm(request, 'ssm/label', { name, version: 1, label: 'e2e-drop' });
+
+    await page.goto('ssm/param?name=' + encodeURIComponent(name) + '&tab=versions');
+    const row = page.locator('.tbl tbody tr', { hasText: 'v1' });
+    const drop = row.locator('.badge.type', { hasText: 'e2e-drop' });
+    await expect(drop).toBeVisible();
+
+    // The × has text content, so its accessible name is "×", not its title.
+    await drop.getByTitle('Remove this label').click();
+    expect(await waitForToast()).toMatch(/Label\s*.e2e-drop.\s*removed/);
+
+    const after = page.locator('.tbl tbody tr', { hasText: 'v1' });
+    await expect(after.locator('.badge.type', { hasText: 'e2e-drop' })).toHaveCount(0);
+    await expect(after.locator('.badge.type', { hasText: 'e2e-keep' })).toBeVisible();
+
+    // Persisted service-side, not just dropped from the swapped fragment.
+    await page.reload();
+    await expect(
+      page.locator('.tbl tbody tr', { hasText: 'v1' }).locator('.badge.type', { hasText: 'e2e-drop' })
+    ).toHaveCount(0);
+  });
+});

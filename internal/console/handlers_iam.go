@@ -141,7 +141,7 @@ func (c *Console) iamSimulate(w http.ResponseWriter, r *http.Request) {
 		ctxKeys, _ = c.be.ContextKeysForPrincipal(r.Context(), arn)
 	}
 	if err != nil {
-		c.partial(w, "iam_sim_result", map[string]any{"Err": err.Error()})
+		c.partial(w, "iam_sim_result", map[string]any{"Err": errText(err)})
 		return
 	}
 	c.partial(w, "iam_sim_result", map[string]any{"Results": res, "CtxKeys": ctxKeys, "Draft": doc != ""})
@@ -151,7 +151,7 @@ func (c *Console) iamSimulate(w http.ResponseWriter, r *http.Request) {
 func (c *Console) iamGenerate(w http.ResponseWriter, r *http.Request) {
 	doc, err := c.be.GeneratedPolicy(r.Context(), r.FormValue("principal"))
 	if err != nil {
-		c.partial(w, "iam_generated", map[string]any{"Err": err.Error()})
+		c.partial(w, "iam_generated", map[string]any{"Err": errText(err)})
 		return
 	}
 	c.partial(w, "iam_generated", map[string]any{"Document": doc})
@@ -646,7 +646,7 @@ func (c *Console) iamSimInline(w http.ResponseWriter, r *http.Request) {
 	}
 	res, err := c.be.SimulateCustom(r.Context(), doc, actions, r.FormValue("resource"))
 	if err != nil {
-		c.partial(w, "iam_sim_inline", map[string]any{"Err": err.Error()})
+		c.partial(w, "iam_sim_inline", map[string]any{"Err": errText(err)})
 		return
 	}
 	// A draft's conditions evaluate against an EMPTY context here, so a deny

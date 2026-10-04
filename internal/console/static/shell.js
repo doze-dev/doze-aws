@@ -419,6 +419,7 @@
     // Searching the service key too means typing "sqs" finds the queues.
     var exact = [], fuzzy = [];
     palItems.forEach(function (it) {
+      if (it.q) { if (it.q.toLowerCase() === q) exact.unshift(it); return; }
       var hay = (it.n + " " + (it.k || "") + " " + (it.s || "")).toLowerCase();
       if (hay.indexOf(q) >= 0) exact.push(it);
       else if (subseq(hay, q)) fuzzy.push(it);
@@ -439,7 +440,9 @@
         .then(function (r) { return r.json(); })
         .then(function (ref) {
           if (!ref || !ref.u || palQ.value.trim() !== q) return;
-          palItems = [{ s: ref.s, n: ref.n, u: ref.u, k: ref.k || "resource" }].concat(palItems);
+          // q is the ARN itself, which matches no name: the item carries the
+          // query that found it, so the filter keeps it.
+          palItems = [{ s: ref.s, n: ref.n, u: ref.u, k: ref.k || "resource", q: q }].concat(palItems);
           renderPal();
         }).catch(function () {});
     }, 180);
@@ -873,13 +876,17 @@
   // painted moments ago and is no longer in the document.
   var recentFlash = null;
   function paintFlash() {
+    var rescued = false;
     if (!pendingFlash && recentFlash && Date.now() - recentFlash.at < 3000 && !document.getElementById("flashbar")) {
       pendingFlash = recentFlash.f;
+      rescued = true;
     }
     if (!pendingFlash) return;
     var f = pendingFlash;
     pendingFlash = null;
-    recentFlash = { f: f, at: Date.now() };
+    // One rescue, never a second: the swap that destroys the banner happens
+    // once, and a later settle is some other navigation.
+    recentFlash = rescued ? null : { f: f, at: Date.now() };
     var host = document.getElementById("workspace") || document.body;
     // One at a time. Stacking is AWS's behaviour, but AWS's messages come from
     // many sources; ours all come from the thing you just clicked, so a stack
@@ -920,6 +927,12 @@
   // A value that cannot be retrieved again also gets a copy button.
   window.addEventListener("doze:flash-sticky", function (e) { queueFlash(e, true); });
   document.addEventListener("htmx:after:settle", paintFlash);
+  // The follow-up GET a redirect issues is not the user's doing; anything
+  // they click or type after the banner is. A tab clicked a second after
+  // "Stream deleted" used to bring the message back as if it were new.
+  function disarmFlash() { recentFlash = null; }
+  document.addEventListener("pointerdown", disarmFlash, true);
+  document.addEventListener("keydown", disarmFlash, true);
 
   // ---------- div-buttons ----------
   // A div carrying hx-get is a button to the user and nothing to a keyboard.

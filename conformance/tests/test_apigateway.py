@@ -85,8 +85,13 @@ def test_rest_api_with_a_mock_integration(client, names, cleanup, snapshot, targ
     snapshot.match("integration-response", api.put_integration_response(
         **at, statusCode="200", responseTemplates={"application/json": '{"pong": true}'}))
 
-    snapshot.match("deploy", api.create_deployment(restApiId=rid, stageName="dev"), opaque=IDS + CLOCK)
+    deployed = snapshot.match("deploy", api.create_deployment(restApiId=rid, stageName="dev"), opaque=IDS + CLOCK)
     snapshot.match("stage", api.get_stage(restApiId=rid, stageName="dev"), opaque=IDS + CLOCK)
+    # A deployment a stage serves cannot be deleted out from under it.
+    snapshot.error("delete-a-served-deployment", lambda: api.delete_deployment(
+        restApiId=rid, deploymentId=deployed["id"]))
+    snapshot.error("delete-an-absent-deployment", lambda: api.delete_deployment(
+        restApiId=rid, deploymentId="nonesuch"))
 
     def answered():
         r = call(target.execute_api_url(rid, "dev", "ping"))

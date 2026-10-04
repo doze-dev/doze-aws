@@ -146,3 +146,79 @@ test.describe('CloudFormation console', () => {
     await expect(page.locator('.detail')).toContainText(`${parent}-work`);
   });
 });
+
+// ---- Route-coverage pass: deleting a change set, and deleting a stack. ----
+
+test.describe('CloudFormation deletes', () => {
+  const queueStack = (q: string) =>
+    JSON.stringify({ Resources: { Q: { Type: 'AWS::SQS::Queue', Properties: { QueueName: q } } } });
+
+  test('a change set is discarded from the Change sets tab; the stack is untouched', async ({
+    page,
+    uniqueName,
+    confirmDialog,
+  }) => {
+    const stack = uniqueName('e2e-cfn-csdel');
+    const cs = 'review-' + stack.split('-').pop();
+    // Arrange: a stack under review, via the create form's own POST.
+    await postForm(page.request, 'cfn/create', {
+      name: stack,
+      template: queueStack(`${stack}-q`),
+      review: true,
+      changeset: cs,
+    });
+
+    await page.goto(`cfn/${stack}?tab=changesets`);
+    const row = page.locator('.det-b tr', { hasText: cs });
+    await expect(row).toBeVisible();
+    await row.getByRole('button', { name: `Delete change set ${cs}` }).click();
+    await confirmDialog('accept');
+
+    await page.waitForURL(/tab=changesets/);
+    await expect(page.locator('#flashbar')).toContainText(`Change set ${cs} deleted`);
+    await expect(page.locator('.det-b tr', { hasText: cs })).toHaveCount(0);
+    await expect(page.locator('.det-b .empty')).toContainText('No change sets');
+    await expect(page.locator('.det-title')).toContainText(stack);
+  });
+
+  test('a stack is deleted from its page, and what it created goes with it', async ({
+    page,
+    uniqueName,
+    confirmDialog,
+  }) => {
+    const stack = uniqueName('e2e-cfn-del');
+    const queue = `${stack}-q`;
+    await postForm(page.request, 'cfn/create', { name: stack, template: queueStack(queue) });
+
+    await page.goto(`cfn/${stack}`);
+    await expect(page.locator('.det-h .chip').first()).toContainText('CREATE_COMPLETE');
+    await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
+    await confirmDialog('accept');
+
+    await page.waitForURL(/\/cfn(\?|$)/);
+    await expect(page.locator('#flashbar')).toContainText(`Deleted ${stack}`);
+    // The home page keeps the record, as CloudFormation does, under its own heading.
+    const deleted = page.locator('.det-b .table-wrap', { hasText: 'DELETE_COMPLETE' }).locator('tr', { hasText: stack });
+    await expect(deleted).toContainText('DELETE_COMPLETE');
+
+    // AWS-side: the stack's queue was deleted with it.
+    await page.goto('sqs');
+    await expect(page.locator('.li', { hasText: queue })).toHaveCount(0);
+  });
+
+  // Regression (fixed in 1.0): a deleted stack stays in the CloudFormation list pane (with an
+  // output count of 0), right beside the home page's "Deleted stacks — the
+  // record the stack list no longer shows". The list comes from DescribeStacks
+  // with no StackName (console/client_cfn.go:140), and the emulator's
+  // hDescribeStacks (cloudformation/stacks.go:655) returns DELETE_COMPLETE
+  // records there; AWS omits deleted stacks from an unnamed DescribeStacks.
+  test('a deleted stack leaves the list pane', async ({ page, uniqueName, confirmDialog }) => {
+    const stack = uniqueName('e2e-cfn-dellp');
+    await postForm(page.request, 'cfn/create', { name: stack, template: queueStack(`${stack}-q`) });
+    await page.goto(`cfn/${stack}`);
+    await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
+    await confirmDialog('accept');
+    await page.waitForURL(/\/cfn(\?|$)/);
+    await expect(page.locator('.li', { hasText: stack })).toHaveCount(0);
+  });
+});

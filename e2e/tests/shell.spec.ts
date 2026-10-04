@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/console';
-import { createBucket } from '../fixtures/api';
+import { createBucket, createQueue } from '../fixtures/api';
+import { BASE_URL } from '../playwright.config';
 
 // Console-chrome behaviors that live outside #workspace and so must survive
 // every htmx swap: theme, rail, palette, confirm dialogs, toasts, keyboard
@@ -197,5 +198,66 @@ test.describe('fidelity info panel', () => {
     await page.goto('ddb');
     await page.locator('.info-btn').click();
     await expect(page.locator('.info-body')).toContainText('TransactWriteItems');
+  });
+});
+
+test.describe('bare console prefix', () => {
+  test('typing the console address without a trailing slash lands on the wire', async ({ page }) => {
+    // ORIGIN + '/_console', no slash: the address a person types or pastes.
+    // page.goto('') would add the slash (baseURL ends in one), so build it.
+    //
+    // This does NOT reach the console's own "GET {prefix}" route: the binary's
+    // mux answers first with a 302 to /_console/ (cmd/doze-aws/main.go, the
+    // RedirectHandler beside mux.Handle("/_console/", con)). The user-visible
+    // promise — the bare address works — is what this test holds.
+    const res = await page.goto(BASE_URL.replace(/\/$/, ''));
+    expect(new URL(page.url()).pathname).toBe('/_console/');
+    expect(res?.status()).toBe(200);
+    // The wire is the console home; its rail item is lit and its feed renders.
+    await expect(page.locator('.rail .ri.on')).toBeVisible();
+    await expect(page.locator('#traffic-feed').first()).toBeVisible();
+  });
+});
+
+test.describe('connect page', () => {
+  test('reached from the rail, Run get-caller-identity reports the account', async ({ page }) => {
+    await page.goto('');
+    await page.locator('.rail .ri', { hasText: 'Connect' }).click();
+    await page.waitForURL(/\/connect$/);
+    const result = page.locator('#cn-result');
+    await expect(result).toContainText('Runs STS GetCallerIdentity');
+
+    await page.getByRole('button', { name: 'Run get-caller-identity' }).click();
+    await expect(result.locator('.cn-ok')).toContainText('Connected');
+    await expect(result.locator('.cn-arn')).toContainText(/^arn:aws:(iam|sts)::\d{12}:/);
+    await expect(result).toContainText(/account \d{12}/);
+  });
+});
+
+test.describe('palette resolves a pasted ARN', () => {
+  // Regression (fixed in 1.0): /api/resolve answers with the queue's page, and maybeResolve (static/shell.js ~438) prepends it to palItems, but renderPal -> palFiltered then drops it because the ARN is not a substring/subsequence of "name kind svc" — the palette shows "Nothing matches".
+  test('an ARN pasted into ⌘K offers its resource and Enter opens it', async ({
+    page,
+    request,
+    uniqueName,
+    openPalette,
+  }) => {
+    const queue = await createQueue(request, uniqueName('e2e-resolve-q'));
+    const arn = `arn:aws:sqs:us-east-1:000000000000:${queue}`;
+
+    await page.goto('');
+    await openPalette();
+    const resolved = page.waitForResponse((r) => r.url().includes('/api/resolve'));
+    await page.locator('#pal-q').fill(arn);
+    const ref = await (await resolved).json();
+    // The server half works: the ARN resolves to the queue's page.
+    expect(ref.u).toMatch(new RegExp(`/sqs/${queue}$`));
+
+    const item = page.locator('.pal-item', { hasText: queue });
+    await expect(item).toBeVisible();
+    await expect(item).toHaveAttribute('href', new RegExp(`/sqs/${queue}$`));
+    await page.keyboard.press('Enter');
+    await page.waitForURL(new RegExp(`/sqs/${queue}$`));
+    await expect(page.locator('.det-title')).toContainText(queue);
   });
 });

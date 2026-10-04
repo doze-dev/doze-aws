@@ -80,7 +80,7 @@
                moving the AWSCURRENT label yourself — a two-version-id CLI call,
                which is why it does not get done under pressure. */}}
           {{if and $.PromoteURL (not (has $st "AWSCURRENT"))}}
-          <form class="inline-form" hx-post="{{$.PromoteURL}}" hx-confirm="Make this version current? The one that is current now becomes AWSPREVIOUS.">
+          <form class="inline-form" hx-post="{{$.PromoteURL}}" hx-target="#sm-detail" hx-select="" hx-swap="outerHTML" hx-confirm="Make this version current? The one that is current now becomes AWSPREVIOUS.">
             <input type="hidden" name="name" value="{{$.SaveVal}}"><input type="hidden" name="version" value="{{$id}}">
             <button class="btn btn-outline btn-sm" type="submit">{{icon "rotate"}} Make current</button>
           </form>

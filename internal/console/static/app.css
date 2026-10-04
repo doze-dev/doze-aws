@@ -540,7 +540,11 @@ tr:hover .row-actions { opacity: 1; }
 .drawer-h { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--border); }
 .drawer-h .ic { color: var(--muted-foreground); }
 .drawer-h .title { font-weight: 600; font-size: 14px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.drawer-b { padding: 14px 16px; overflow-y: auto; flex: 1; }
+.drawer-b { padding: 14px 16px; overflow-y: auto; flex: 1; min-height: 0; }
+/* The drawers load into #drawer-inner, so it has to carry the column too —
+   as a plain block it let .drawer-b grow past the bottom of the screen, and a
+   short window could not reach an object's tags or lock settings at all. */
+.drawer > #drawer-inner { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .preview { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 14px; background: color-mix(in srgb, var(--muted) 40%, transparent); display: grid; place-items: center; min-height: 90px; }
 .preview img { max-width: 100%; max-height: 220px; display: block; }
 .preview .ph-ic { padding: 26px; color: var(--muted-foreground); }
@@ -2131,3 +2135,13 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 /* The filter row in the traffic header is a chip, not a field. */
 .ds-chip { width: auto; }
 .ds-trigger.chip { cursor: pointer; }
+
+/* The composer's copy count: more than one goes as a single SendMessageBatch. */
+.send-copies { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+.send-copies .input { width: 64px; height: 28px; }
+/* Rename forms on the IAM user and group pages. */
+.rename-form { align-items: end; max-width: 420px; }
+/* A Kinesis record's data cell: the payload truncates, the Full button stays. */
+.kin-data { display: flex; align-items: center; gap: 6px; max-width: 460px; }
+.kin-data .trunc { min-width: 0; flex: 1; }
+.kin-data .btn { flex: none; }

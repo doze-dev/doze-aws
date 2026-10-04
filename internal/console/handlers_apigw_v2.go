@@ -141,7 +141,7 @@ func (c *Console) apigwHTTPInvoke(w http.ResponseWriter, r *http.Request) {
 	res, err := c.be.InvokeHTTPAPI(r.Context(), r.PathValue("api"),
 		r.FormValue("stage"), r.FormValue("method"), r.FormValue("path"), r.FormValue("body"))
 	if err != nil {
-		c.partial(w, "apigw_result", map[string]any{"Err": err.Error()})
+		c.partial(w, "apigw_result", map[string]any{"Err": errText(err)})
 		return
 	}
 	c.partial(w, "apigw_result", map[string]any{"Res": res})

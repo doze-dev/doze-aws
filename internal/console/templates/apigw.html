@@ -273,7 +273,7 @@
       <td class="mono sub">{{.ID}}</td>
       <td class="dim sub">{{if .Description}}{{.Description}}{{else}}—{{end}}</td>
       <td class="dim sub">{{.Created}}</td>
-      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete deployment {{.ID}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-deployment" hx-vals='{"deployment":"{{.ID}}"}' hx-confirm="Delete deployment {{.ID}}? A stage still pointing at it keeps serving; only the record goes.">{{icon "trash"}}</button></div></td>
+      <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete deployment {{.ID}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-deployment" hx-vals='{"deployment":"{{.ID}}"}' hx-confirm="Delete deployment {{.ID}}? One a stage still serves is refused — move or delete the stage first.">{{icon "trash"}}</button></div></td>
     </tr>
   {{else}}
     <tr><td colspan="4" class="mini-note">No deployments yet.</td></tr>

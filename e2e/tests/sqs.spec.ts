@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/console';
-import { createQueue } from '../fixtures/api';
+import { createQueue, postForm } from '../fixtures/api';
 import { ORIGIN } from '../playwright.config';
 
 // SQS console coverage: create (standard + FIFO, with/without an
@@ -352,3 +352,155 @@ test('the composer renders its own aws CLI command live', async ({ page, request
   await expect(pre).toContainText('--delay-seconds 45');
   await expect(pre).toContainText(`--endpoint-url ${ORIGIN}`);
 });
+
+// ---- Route-coverage pass: the live peek poll, the Consume tab, the queue
+// policy grants, and the two batch/redrive controls that have no way in. ----
+
+// A message produced by "someone else" while the page sits open. postForm
+// hits the console's own send route — an ARRANGE step, so the action under
+// test (the peek's own poll) is the only thing that can make it appear.
+async function sendViaApi(request: import('@playwright/test').APIRequestContext, queue: string, body: string) {
+  await postForm(request, `sqs/${queue}/send`, { body });
+}
+
+test.describe('live peek', () => {
+  test('a message sent elsewhere appears in the open peek without a reload', async ({
+    page,
+    request,
+    uniqueName,
+    waitForLive,
+  }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-live'));
+    await page.goto(`sqs/${name}`);
+    await expect(page.locator('#message-panel-wrap .empty')).toContainText('No visible messages');
+
+    const body = `{"live":"${Date.now()}"}`;
+    const polled = page.waitForResponse(
+      (r) => r.url().includes(`/sqs/${name}/messages`) && r.status() === 200
+    );
+    await sendViaApi(request, name, body);
+    await polled;
+    await waitForLive('#message-panel-wrap', (t) => t.includes(body));
+    await expect(page.locator('#message-panel-wrap .panel-head .badge').first()).toHaveText('1');
+  });
+});
+
+test.describe('consume tab', () => {
+  test('receive hides messages; release one; release and delete the rest as a batch', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-consume'), { visibility: 300 });
+    for (const n of ['a', 'b', 'c']) await sendViaApi(request, name, `{"rcv":"${n}"}`);
+
+    await page.goto(`sqs/${name}?tab=consume`);
+    const consumed = page.locator('#sqs-consumed');
+    await expect(consumed.locator('.empty')).toContainText('Nothing received yet');
+
+    // Receive: a real ReceiveMessage, so all three go in flight.
+    const receive = () => page.getByRole('button', { name: 'Receive', exact: true }).click();
+    await receive();
+    await expect(consumed.locator('.rcv-row')).toHaveCount(3);
+    await expect(consumed.locator('.rcv-meta').first()).toContainText('received 1×');
+
+    // Release one: ChangeMessageVisibility to 0.
+    await consumed.locator('.rcv-row').first().getByRole('button', { name: 'Release' }).click();
+    expect(await waitForToast()).toContain('Released — visible again now');
+    await expect(consumed.locator('.rcv-note')).toContainText('Released');
+
+    // Receiving again returns ONLY the released one (the other two are still
+    // hidden for 300s), and its receive count has climbed.
+    await receive();
+    await expect(consumed.locator('.rcv-row')).toHaveCount(1);
+    await expect(consumed.locator('.rcv-meta').first()).toContainText('received 2×');
+
+    // Release it through the multi-select: ChangeMessageVisibilityBatch.
+    await consumed.locator('.rcv-row input[type=checkbox]').first().check();
+    await consumed.getByRole('button', { name: 'Release selected' }).click();
+    expect(await waitForToast()).toContain('1 released');
+
+    // It is receivable again; delete it through the multi-select:
+    // DeleteMessageBatch.
+    await receive();
+    await expect(consumed.locator('.rcv-row')).toHaveCount(1);
+    await expect(consumed.locator('.rcv-meta').first()).toContainText('received 3×');
+    await consumed.locator('.rcv-row input[type=checkbox]').first().check();
+    await consumed.getByRole('button', { name: 'Delete selected' }).click();
+    expect(await waitForToast()).toContain('1 deleted');
+
+    // AWS-side, read back through a fresh page: one deleted, two in flight.
+    await page.goto(`sqs/${name}`);
+    const fact = (k: string) => page.locator('.factstrip .fact', { hasText: k }).locator('.fx-v');
+    await expect(fact('Visible')).toHaveText('0');
+    await expect(fact('In flight')).toHaveText('2');
+  });
+
+  // Regression (fixed in 1.0): the out-of-band count tail (sqs.html, <template> wrapping the
+  // hx-swap-oob spans after message_panel / sqs_consumed) never applies under
+  // htmx 4 — a parsed <template>'s children live in .content, so the OOB scan
+  // never finds them. The strip, tab count and list-row count stay stale after
+  // send / receive / poll until a full reload.
+  test('counts outside the panel follow a receive without a reload', async ({ page, request, uniqueName }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-oob'));
+    await sendViaApi(request, name, '{"oob":1}');
+    await page.goto(`sqs/${name}?tab=consume`);
+    const fact = (k: string) => page.locator('.factstrip .fact', { hasText: k }).locator('.fx-v');
+    await expect(fact('Visible')).toHaveText('1');
+    await page.getByRole('button', { name: 'Receive', exact: true }).click();
+    await expect(page.locator('#sqs-consumed .rcv-row')).toHaveCount(1);
+    await expect(fact('In flight')).toHaveText('1');
+    await expect(fact('Visible')).toHaveText('0');
+  });
+});
+
+test.describe('queue policy', () => {
+  test('grant adds a statement row; revoke removes it', async ({ page, request, uniqueName, waitForToast }) => {
+    const name = await createQueue(request, uniqueName('e2e-sqs-perm'));
+    await page.goto(`sqs/${name}?tab=config`);
+    const cfg = page.locator('#sqs-config');
+    await expect(cfg.locator('.perm-none')).toBeVisible();
+
+    const label = 'e2eGrant';
+    const form = cfg.locator('form.tag-row-form');
+    await form.locator('input[name=label]').fill(label);
+    await form.locator('input[name=account]').fill('111122223333');
+    await form.locator('select[name=action]').selectOption('ReceiveMessage');
+    await form.getByRole('button', { name: 'Grant' }).click();
+    expect(await waitForToast()).toContain(`Permission “${label}” added`);
+
+    const row = page.locator('#sqs-config tr', { hasText: label, has: page.getByRole('button', { name: 'Revoke' }) });
+    await expect(row).toContainText('111122223333');
+    await expect(row).toContainText('ReceiveMessage');
+    // AWS-side: the statement landed in the Policy attribute.
+    await page.getByRole('button', { name: 'Show raw attributes' }).click();
+    await expect(page.locator('#sqs-config .tbl.kv tr', { hasText: 'Policy' })).toContainText(label);
+
+    await row.getByRole('button', { name: 'Revoke' }).click();
+    expect(await waitForToast()).toContain('Permission removed');
+    await expect(page.locator('#sqs-config').getByRole('button', { name: 'Revoke' })).toHaveCount(0);
+    await expect(page.locator('#sqs-config .perm-none')).toBeVisible();
+  });
+});
+
+// Regression (fixed in 1.0): POST /sqs/{queue}/send-batch has no UI entry point. The handler's own
+// comment describes it as "the composer's send N mode", but no template
+// renders a repeat/batch control (grep send-batch in templates/: nothing).
+test('composer sends a burst of N messages as one SendMessageBatch', async ({
+  page,
+  request,
+  uniqueName,
+  setEditor,
+  waitForToast,
+}) => {
+  const name = await createQueue(request, uniqueName('e2e-sqs-batch'));
+  await page.goto(`sqs/${name}`);
+  await openComposer(page);
+  await setEditor('textarea[name=body][data-editor]', '{"burst":1}');
+  await page.locator('.sqs-compose input[name=repeat]').fill('3');
+  await page.locator('.sqs-compose').getByRole('button', { name: /Send 3|Send batch/ }).click();
+  expect(await waitForToast()).toContain('3 sent');
+  await expect(page.locator('.msg', { hasText: '"burst":1' })).toHaveCount(3);
+});
+

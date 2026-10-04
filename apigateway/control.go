@@ -759,7 +759,17 @@ func (s *Server) routeDeployments(w http.ResponseWriter, r *http.Request, apiID 
 			writeJSON(w, 200, viewDeployment(dep))
 			return nil
 		case http.MethodDelete:
+			// As the HTTP plane does (v2_control.go): a deployment a stage still
+			// serves is refused, and so is one that does not exist.
 			if _, err := s.store.Update(apiID, func(api *restAPI) error {
+				if _, ok := api.Deployments[depID]; !ok {
+					return errNotFound("Invalid Deployment identifier specified")
+				}
+				for _, st := range api.Stages {
+					if st.DeploymentID == depID {
+						return errBadRequest("Active stages pointing to this deployment must be moved or deleted")
+					}
+				}
 				delete(api.Deployments, depID)
 				return nil
 			}); err != nil {

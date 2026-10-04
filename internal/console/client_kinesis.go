@@ -766,9 +766,15 @@ func (b *backend) StartEncryption(ctx context.Context, stream, keyID string) err
 	return err
 }
 
+// StopEncryption turns a stream's encryption off. AWS wants the key that is
+// on now named in the call, so it is read off the stream first.
 func (b *backend) StopEncryption(ctx context.Context, stream string) error {
-	_, err := b.kinesis(ctx, "StopStreamEncryption", map[string]any{
-		"StreamName": stream, "EncryptionType": "KMS",
+	cur, err := b.StreamSummary(ctx, stream)
+	if err != nil {
+		return err
+	}
+	_, err = b.kinesis(ctx, "StopStreamEncryption", map[string]any{
+		"StreamName": stream, "EncryptionType": "KMS", "KeyId": cur.KeyID,
 	})
 	return err
 }

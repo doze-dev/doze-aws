@@ -660,3 +660,29 @@ func TestSDKValidation(t *testing.T) {
 	})
 	assertCode(t, err, "ResourceNotFoundException")
 }
+
+// A parent split before anything was written is just as closed: it reports an
+// end, or every consumer and console would keep treating it as open.
+func TestSDKSplittingAnEmptyShardStillClosesIt(t *testing.T) {
+	ctx := context.Background()
+	c := client(t)
+	mustCreate(t, c, "never-written", 1)
+	d, _ := c.DescribeStream(ctx, &awskinesis.DescribeStreamInput{StreamName: aws.String("never-written")})
+	parent := d.StreamDescription.Shards[0]
+	hi, _ := new(big.Int).SetString(aws.ToString(parent.HashKeyRange.EndingHashKey), 10)
+	if _, err := c.SplitShard(ctx, &awskinesis.SplitShardInput{
+		StreamName: aws.String("never-written"), ShardToSplit: parent.ShardId,
+		NewStartingHashKey: aws.String(new(big.Int).Div(hi, big.NewInt(2)).String()),
+	}); err != nil {
+		t.Fatalf("SplitShard: %v", err)
+	}
+	shards, err := c.ListShards(ctx, &awskinesis.ListShardsInput{StreamName: aws.String("never-written")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, sh := range shards.Shards {
+		if aws.ToString(sh.ShardId) == aws.ToString(parent.ShardId) && sh.SequenceNumberRange.EndingSequenceNumber == nil {
+			t.Fatal("the split parent reports no EndingSequenceNumber, so it reads as open")
+		}
+	}
+}

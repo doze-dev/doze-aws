@@ -205,39 +205,6 @@ func tagsFromRows(r *http.Request) map[string]string {
 	return out
 }
 
-// sqsSendBatch publishes several messages in one call — the composer's
-// "send N" mode. SendMessageBatch was implemented by the emulator and had no
-// way in from the console, which meant the only way to produce a burst was to
-// press Send repeatedly and get a different timing profile than a real batch.
-func (c *Console) sqsSendBatch(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("queue")
-	var bodies []string
-	for _, b := range r.Form["body"] {
-		if strings.TrimSpace(b) != "" {
-			bodies = append(bodies, b)
-		}
-	}
-	// "Repeat this body N times" is the common case when what you want is
-	// depth rather than distinct payloads.
-	if n := atoiDefault(r.FormValue("repeat"), 0); n > 1 && len(bodies) == 1 {
-		for i := 1; i < min(n, 10); i++ {
-			bodies = append(bodies, bodies[0])
-		}
-	}
-	if len(bodies) == 0 {
-		c.fail(w, errors.New("a batch needs at least one message body"))
-		return
-	}
-	failed, err := c.be.SendMessageBatch(r.Context(), name, bodies,
-		r.FormValue("delay"), r.FormValue("group"))
-	if err != nil {
-		c.fail(w, err)
-		return
-	}
-	toast(w, batchNote(len(bodies), failed, "sent"))
-	c.sqsMessages(w, r)
-}
-
 // sqsAddPermission and sqsRemovePermission write the queue's resource policy.
 // AddPermission writes the statement AWS writes; under IAM soft and enforce the
 // queue evaluates the policy on every request, so a grant here is real.
@@ -272,19 +239,6 @@ func (c *Console) sqsRemovePermission(w http.ResponseWriter, r *http.Request) {
 	}
 	toast(w, "Permission removed")
 	c.sqsConfigPartial(w, r, name)
-}
-
-// sqsCancelMove stops an in-progress redrive. Locally the move already
-// completed synchronously, so this reliably answers "task is not active" —
-// which is exactly what AWS says about a finished task. The button makes the
-// real call and shows the real answer rather than pretending either way.
-func (c *Console) sqsCancelMove(w http.ResponseWriter, r *http.Request) {
-	if err := c.be.CancelMessageMoveTask(r.Context(), r.FormValue("handle")); err != nil {
-		c.fail(w, err)
-		return
-	}
-	toast(w, "Move task cancelled")
-	c.sqsMessages(w, r)
 }
 
 // sqsPermission is one statement of the queue's resource policy, rendered as a

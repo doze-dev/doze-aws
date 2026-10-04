@@ -381,3 +381,73 @@ test.describe('post-create editing', () => {
     await expect(page.locator('input[name=attr]')).toBeVisible();
   });
 });
+
+// ---- Route-coverage pass: the bulk bar's re-read, and table delete. ----
+
+test.describe('bulk re-read', () => {
+  test('re-read selected picks up a write made elsewhere; transactional reads one snapshot', async ({
+    page,
+    request,
+    uniqueName,
+  }) => {
+    const table = await createTable(request, uniqueName('e2e-ddb-reread'));
+    for (const pk of ['r-1', 'r-2', 'r-3']) {
+      await postForm(request, `ddb/${table}/put`, { item: JSON.stringify({ pk, n: 1 }) });
+    }
+    await page.goto(`ddb/${table}`);
+    const rows = page.locator('#ddb-items tbody tr:not(.load-more)');
+    await expect(rows).toHaveCount(3);
+
+    // Select two, then change one of them behind the page's back.
+    await rows.filter({ hasText: 'r-1' }).locator('input.rowck').click();
+    await rows.filter({ hasText: 'r-2' }).locator('input.rowck').click();
+    const bar = page.locator('.bulkbar');
+    await expect(bar.locator('.bb-n')).toContainText('2');
+    await postForm(request, `ddb/${table}/put`, { item: JSON.stringify({ pk: 'r-1', n: 4242 }) });
+    await expect(page.locator('#ddb-items')).not.toContainText('4242');
+
+    // BatchGetItem: exactly the selected keys, fresh.
+    await bar.getByRole('button', { name: 'Re-read selected' }).click();
+    await expect(page.locator('#ddb-items .tbl-foot')).toContainText('2 items re-read (BatchGetItem)');
+    await expect(rows).toHaveCount(2);
+    await expect(page.locator('#ddb-items')).toContainText('4242');
+    await expect(page.locator('#ddb-items')).not.toContainText('r-3');
+
+    // Transactional switch: the same control becomes TransactGetItems.
+    await page.locator('thead .ck-col input').click(); // select-all on the re-read page
+    await expect(bar.locator('.bb-n')).toContainText('2');
+    await bar.locator('label.bb-txn input').click();
+    await bar.getByRole('button', { name: 'Re-read selected' }).click();
+    await expect(page.locator('#ddb-items .tbl-foot')).toContainText(
+      '2 items read in one snapshot (TransactGetItems)'
+    );
+  });
+});
+
+test.describe('delete table', () => {
+  test('deletes behind the confirm dialog and leaves the list', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+  }) => {
+    const table = await createTable(request, uniqueName('e2e-ddb-deltbl'));
+    await postForm(request, `ddb/${table}/put`, { item: JSON.stringify({ pk: 'doomed' }) });
+    await page.goto(`ddb/${table}`);
+
+    // Cancel first: nothing happens.
+    await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
+    await confirmDialog('cancel');
+    await expect(page.locator('.det-title')).toContainText(table);
+
+    await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
+    await confirmDialog('accept');
+    await page.waitForURL(/\/ddb(\?|$)/);
+    await expect(page.locator('#flashbar')).toContainText('Table deleted');
+    await expect(page.locator('.li', { hasText: table })).toHaveCount(0);
+
+    // AWS-side: the table is gone, not merely hidden.
+    const res = await request.get(`ddb/${table}`);
+    expect(res.ok()).toBe(false);
+  });
+});

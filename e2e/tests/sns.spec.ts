@@ -1,4 +1,6 @@
 import type { APIRequestContext } from '@playwright/test';
+import { createServer, type Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { test, expect } from '../fixtures/console';
 import { createTopic, createQueue, postForm } from '../fixtures/api';
 
@@ -244,5 +246,160 @@ test.describe('SNS console', () => {
     await confirmDialog('accept');
     await page.waitForURL(/\/sns(\?|$)/);
     await expect(page.locator('#flashbar')).toContainText('Topic deleted');
+  });
+});
+
+// ---- Route coverage: confirmation, and the Details tab's writes ----
+
+/**
+ * A throwaway HTTP endpoint for an http subscription. doze-aws POSTs the
+ * SubscriptionConfirmation (Token included) here, exactly as SNS would, so the
+ * test can paste the token into the console the way a user copies it from
+ * their webhook's log.
+ */
+async function confirmationEndpoint() {
+  const tokens: string[] = [];
+  const server: Server = createServer((req, res) => {
+    let body = '';
+    req.on('data', (c) => (body += c));
+    req.on('end', () => {
+      try {
+        const msg = JSON.parse(body);
+        if (msg.Type === 'SubscriptionConfirmation' && msg.Token) tokens.push(msg.Token);
+      } catch {
+        // not a confirmation — ignore
+      }
+      res.writeHead(200).end();
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  return {
+    url: `http://127.0.0.1:${port}/hook`,
+    async token() {
+      await expect.poll(() => tokens.length, { timeout: 10_000 }).toBeGreaterThan(0);
+      return tokens[0];
+    },
+    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+  };
+}
+
+test.describe('SNS subscription confirmation', () => {
+  test('a pending http subscription is confirmed by pasting its token', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const topic = uniqueName('e2e-sns-confirm');
+    await createTopic(request, topic);
+    const hook = await confirmationEndpoint();
+    try {
+      await postForm(request, `sns/${topic}/subscribe`, { protocol: 'http', endpoint: hook.url });
+      const token = await hook.token();
+
+      await page.goto(`sns/${topic}`);
+      const pendingPanel = page.locator('.confirm-panel');
+      await expect(pendingPanel).toBeVisible();
+      await expect(pendingPanel.locator('.badge')).toHaveText('1');
+      const sub = page.locator('.sub-item', { hasText: hook.url });
+      await expect(sub.locator('.badge', { hasText: 'pending' })).toBeVisible();
+
+      await pendingPanel.locator('input[name="token"]').fill(token);
+      await pendingPanel.getByRole('button', { name: 'Confirm' }).click();
+      expect(await waitForToast()).toContain('Subscription confirmed');
+
+      await expect(page.locator('.confirm-panel')).toHaveCount(0);
+      const confirmed = page.locator('.sub-item', { hasText: hook.url });
+      await expect(confirmed).toBeVisible();
+      await expect(confirmed.locator('.badge', { hasText: 'pending' })).toHaveCount(0);
+      // A confirmed subscription gets its delivery settings back.
+      await expect(confirmed.locator('button[title="Delivery settings"]')).toBeVisible();
+    } finally {
+      await hook.close();
+    }
+  });
+});
+
+test.describe('SNS topic details', () => {
+  test('setting DisplayName stores it and the attribute table shows it', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const topic = uniqueName('e2e-sns-attr');
+    await createTopic(request, topic);
+    const display = `Display ${topic}`;
+
+    await page.goto(`sns/${topic}`);
+    await page.getByRole('link', { name: 'Details', exact: true }).click();
+    await page.waitForURL(/tab=details/);
+
+    const form = page.locator('form:has(select[name="name"])');
+    await form.locator('select[name="name"]').selectOption('DisplayName');
+    await form.locator('input[name="value"]').fill(display);
+    await form.getByRole('button', { name: 'Set' }).click();
+    expect(await waitForToast()).toContain('Attribute “DisplayName” stored');
+
+    const row = page.locator('.tbl.kv tr', { has: page.locator('td', { hasText: /^DisplayName$/ }) });
+    await expect(row).toContainText(display);
+  });
+
+  test('a permission is granted, listed, and revoked', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const topic = uniqueName('e2e-sns-perm');
+    await createTopic(request, topic);
+    const label = uniqueName('grant');
+
+    await page.goto(`sns/${topic}?tab=details`);
+    const form = page.locator('form:has(input[name="label"])');
+    await form.locator('input[name="label"]').fill(label);
+    await form.locator('input[name="account"]').fill('111122223333');
+    await form.locator('select[name="action"]').selectOption('Publish');
+    await form.getByRole('button', { name: 'Grant' }).click();
+    expect(await waitForToast()).toContain(`Permission “${label}” added`);
+
+    // Scoped to the grants table: the attribute table above also lists the
+    // Policy document, which carries the label as its Sid.
+    const grants = page.locator('.tbl:has(th:text-is("Sid")) tbody tr');
+    const row = grants.filter({ hasText: label });
+    await expect(row).toHaveCount(1);
+    await expect(row).toContainText('111122223333');
+    await expect(row).toContainText('Publish');
+    // Written into the topic's stored Policy attribute (GetTopicAttributes).
+    await expect(page.locator('.tbl.kv tr', { hasText: label })).toHaveCount(1);
+
+    await row.getByRole('button', { name: 'Revoke' }).click();
+    expect(await waitForToast()).toContain('Permission removed');
+    await expect(grants.filter({ hasText: label })).toHaveCount(0);
+    // Gone from the stored Policy document too, not just the grants table.
+    await expect(page.locator('.tbl.kv tr', { hasText: label })).toHaveCount(0);
+  });
+
+  test('a data protection policy is stored and handed back', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+    setEditor,
+  }) => {
+    const topic = uniqueName('e2e-sns-dpp');
+    await createTopic(request, topic);
+    const policyName = uniqueName('redact');
+    const policy = JSON.stringify({ Name: policyName, Description: '', Version: '2021-06-01', Statement: [] });
+
+    await page.goto(`sns/${topic}?tab=details`);
+    const sel = 'form[hx-post$="/data-protection"] textarea[name="policy"]';
+    await setEditor(sel, policy);
+    await page.getByRole('button', { name: 'Store policy' }).click();
+    expect(await waitForToast()).toContain('Data protection policy stored');
+
+    await page.reload();
+    await expect(page.locator(sel)).toHaveValue(new RegExp(policyName));
   });
 });
