@@ -216,6 +216,7 @@ test.describe('clear', () => {
     request,
     uniqueName,
     waitForLive,
+    confirmDialog,
   }) => {
     const queueName = uniqueName('e2e-traffic-clear');
     const res = await rawAwsJson(request, 'AmazonSQS.CreateQueue', { QueueName: queueName });
@@ -226,7 +227,10 @@ test.describe('clear', () => {
 
     const [resp] = await Promise.all([
       page.waitForResponse((r) => r.url().includes('/traffic/clear') && r.request().method() === 'POST'),
-      page.locator('button.chip', { hasText: 'clear' }).click(),
+      (async () => {
+        await page.locator('button.chip', { hasText: 'clear' }).click();
+        await confirmDialog('accept');
+      })(),
     ]);
     expect(resp.ok()).toBeTruthy();
     await expect(page.locator('#traffic-feed').first()).not.toContainText(queueName);

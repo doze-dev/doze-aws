@@ -117,7 +117,7 @@
     <div class="field" style="flex:1"><label>Principal <span class="dim">account id, or *</span></label><input class="input mono" name="principal" placeholder="123456789012" required spellcheck="false"></div>
     <button class="btn btn-outline btn-sm" type="submit">Grant</button>
   </form>
-  <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/lambda/layers/revoke" hx-vals='{"layer":"{{.L.Name}}","version":"{{.L.Version}}"}' hx-target="#layer-out" hx-select="" hx-swap="innerHTML">
+  <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/lambda/layers/revoke" hx-vals='{"layer":"{{.L.Name}}","version":"{{.L.Version}}"}' hx-target="#layer-out" hx-select="" hx-swap="innerHTML" hx-confirm="Revoke this permission on the layer version?">
     <div class="field" style="flex:1"><label>Revoke statement id</label><input class="input mono" name="sid" placeholder="share-1" required spellcheck="false"></div>
     <button class="btn btn-outline btn-sm danger" type="submit">Revoke</button>
   </form>

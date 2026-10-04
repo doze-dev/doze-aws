@@ -32,7 +32,7 @@
     <select class="chip" title="Filter by service" x-model="svc" style="cursor:pointer;background:var(--card)"><option value="">all services</option>{{range list "s3" "ddb" "sqs" "sns" "eb" "kinesis" "lambda" "apigw" "sfn" "logs" "cw" "kms" "sm" "ssm" "iam" "cfn" "sts"}}<option>{{.}}</option>{{end}}</select>
     <button type="button" class="chip" style="cursor:pointer" x-text="paused ? '▶ resume' : '⏸ pause'"
             @click="paused=!paused; const f=document.getElementById('traffic-feed'); if(paused){f.setAttribute('data-live-paused','1')}else{f.removeAttribute('data-live-paused')}"></button>
-    <button type="button" class="chip" style="cursor:pointer" hx-post="{{.Prefix}}/traffic/clear" hx-target="#traffic-feed" hx-select="" hx-swap="outerHTML" @click="sel=null">{{icon "trash"}} clear</button>
+    <button type="button" class="chip" style="cursor:pointer" hx-post="{{.Prefix}}/traffic/clear" hx-confirm="Clear the feed? Calls already recorded are dropped from this view." hx-target="#traffic-feed" hx-select="" hx-swap="outerHTML" @click="sel=null">{{icon "trash"}} clear</button>
   </div>
   <div class="tr-wrap" :class="sel!==null && 'open'">
     {{template "traffic_rows" .}}

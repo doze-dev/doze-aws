@@ -574,7 +574,7 @@ test.describe('folders', () => {
 });
 
 test.describe('bucket properties', () => {
-  test('tags add and remove from the Properties tab', async ({ page, request, uniqueName, waitForToast }) => {
+  test('tags add and remove from the Properties tab', async ({ page, request, uniqueName, waitForToast, confirmDialog }) => {
     const bucket = uniqueName('e2e-s3-tags');
     await createBucket(request, bucket);
     await page.goto(`s3/${bucket}?tab=properties`);
@@ -593,6 +593,7 @@ test.describe('bucket properties', () => {
     await expect(page.locator('#s3-props tr', { hasText: 'team' })).toContainText('platform');
 
     await page.locator('#s3-props tr', { hasText: 'team' }).getByRole('button', { name: 'Remove tag' }).click();
+    await confirmDialog('accept');
     expect(await waitForToast()).toContain('Tag removed');
     await expect(page.locator('#s3-props tr', { hasText: 'team' })).toHaveCount(0);
     await expect(page.locator('#s3-props')).toContainText('No tags yet.');

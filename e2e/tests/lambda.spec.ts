@@ -390,6 +390,7 @@ test.describe('layers registry', () => {
     await expect(out.locator('.code-out')).toContainText('share-1');
     await out.locator('form:has(button:has-text("Revoke")) input[name="sid"]').fill('share-1');
     await out.getByRole('button', { name: 'Revoke' }).click();
+    await confirmDialog('accept');
     toast = await waitForToast();
     expect(toast).toContain('Permission removed');
     await expect(out).toContainText('Private — no statements');
