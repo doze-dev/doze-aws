@@ -509,7 +509,7 @@
               {{template "policy_builder" dict "Prefix" $.Prefix "Field" "policy" "Value" .Policy "Rows" 8 "UID" (printf "kinpol-%s" .Stream) "Check" false}}
             </div>
             <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
-              <span class="mini-note" style="margin:0">Nothing evaluates this locally — it round-trips for templates and SDK code that set it.</span>
+              <span class="mini-note" style="margin:0">Under IAM soft and enforce, a request on this stream is checked against it as well as the caller's own policies.</span>
               <button class="btn btn-outline" type="submit">{{icon "check"}} Save</button>
             </div>
           </form>

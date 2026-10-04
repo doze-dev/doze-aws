@@ -58,7 +58,7 @@
             {{template "policy_builder" dict "Prefix" .Prefix "Field" "document" "Value" .KeyPolicy "Rows" 12 "UID" "keypol" "Check" false}}
             <div class="fr-btn"><button class="btn" type="submit">Save key policy</button></div>
           </form>
-          <p class="mini-note">Stored and returned; nothing local evaluates it — enforcement here is IAM's, not the key's.</p>
+          <p class="mini-note">Checked on every request for this key under IAM soft and enforce. An identity policy only counts if this policy lets the account in, so a policy that names nobody locks everyone out — as on AWS.</p>
         </div>
       </div>
       {{/* The description was set-once: the create form offered it and nothing
