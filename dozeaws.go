@@ -170,6 +170,9 @@ type Stack struct {
 	// iam is retained so Handler can install the authorization middleware. It
 	// is nil when the service is disabled, and unused when its mode is off.
 	iam *iam.Server
+	// s3 is retained so the authorization middleware can ask it what permission
+	// a request is authorized as (it names it from its own router).
+	s3 *s3.Server
 	// lambda is retained so its event-source pollers can be given a trace sink
 	// after the recorder exists.
 	lambda *lambda.Server
@@ -325,6 +328,9 @@ func (st *Stack) build(name string, cfg StackConfig, logf func(string, ...any)) 
 	switch name {
 	case "s3":
 		s, err := s3.New(s3.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, IAMMode: string(cfg.IAMMode), Identity: cfg.Identity, Suffix: cfg.Suffix})
+		if err == nil {
+			st.s3 = s
+		}
 		return s, s, err
 	case "dynamodb":
 		s, err := dynamodb.New(dynamodb.Options{DataDir: dataDir, Clock: cfg.Clock, Peers: dir, Logf: logf, Identity: cfg.Identity})
@@ -441,7 +447,11 @@ func (s *Stack) authorized(h http.Handler) http.Handler {
 		// A client cannot claim a principal or a verdict: the handoff headers
 		// are the middleware's to write.
 		iamguard.Strip(r)
-		res := s.iam.Authorize(r, gateway.Route(s.id, s.suffix, r))
+		service := gateway.Route(s.id, s.suffix, r)
+		// S3 and Lambda name the permission a request is authorized as from their
+		// own router and AWS's own list, so the middleware asks them.
+		r = iamguard.WithResolver(r, s.resolver(service))
+		res := s.iam.Authorize(r, service)
 		if res.Err != nil {
 			writeDenied(w, res.Err)
 			return
@@ -465,6 +475,18 @@ func (s *Stack) authorized(h http.Handler) http.Handler {
 			s.iam.RecordResource(res.Principal, res.Action, res.Resource, dec, by, source)
 		}
 	})
+}
+
+// resolver is the REST service that resolves its own requests to a permission,
+// or nil for the services whose requests name it on the wire.
+func (s *Stack) resolver(service string) iamguard.Resolver {
+	switch {
+	case service == "s3" && s.s3 != nil:
+		return iamguard.ResolverFor(s.s3)
+	case service == "lambda" && s.lambda != nil:
+		return iamguard.ResolverFor(s.lambda)
+	}
+	return nil
 }
 
 // writeDenied renders an AccessDenied. The requester's protocol is not

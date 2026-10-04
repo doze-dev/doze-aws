@@ -30,6 +30,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -72,6 +73,44 @@ type reauthKey struct{}
 // WithReauthorize returns the request with a Reauthorize on its context.
 func WithReauthorize(r *http.Request, fn Reauthorize) *http.Request {
 	return r.WithContext(context.WithValue(r.Context(), reauthKey{}, fn))
+}
+
+// A REST service says how it resolves its own requests by registering itself,
+// and the stack that built it asks for the resolver by the instance it holds.
+// Internal, so nothing public grows to carry it: the services' exported surface
+// is frozen, and a method on each only to be called by the stack that made it
+// would be a promise made for plumbing.
+var resolvers sync.Map // service instance → Resolver
+
+// RegisterResolver records how a service instance resolves its requests.
+func RegisterResolver(service any, fn Resolver) { resolvers.Store(service, fn) }
+
+// UnregisterResolver forgets an instance, when it is closed.
+func UnregisterResolver(service any) { resolvers.Delete(service) }
+
+// ResolverFor is the resolver a service instance registered, or nil.
+func ResolverFor(service any) Resolver {
+	fn, _ := resolvers.Load(service)
+	r, _ := fn.(Resolver)
+	return r
+}
+
+type resolverKey struct{}
+
+// WithResolver returns the request with a REST service's Resolver on its
+// context, for ResolveAction to find. The stack that built the service is the
+// one that knows it, so it is the stack that hands it over — per request, as the
+// middleware is built per stack.
+func WithResolver(r *http.Request, fn Resolver) *http.Request {
+	if fn == nil {
+		return r
+	}
+	return r.WithContext(context.WithValue(r.Context(), resolverKey{}, fn))
+}
+
+func resolverOf(r *http.Request) Resolver {
+	fn, _ := r.Context().Value(resolverKey{}).(Resolver)
+	return fn
 }
 
 func reauthorizer(r *http.Request) Reauthorize {

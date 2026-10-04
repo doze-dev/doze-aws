@@ -108,6 +108,7 @@ func New(opts Options) (*Server, error) {
 		suffix:      opts.Suffix,
 	}
 	s.router = sync.OnceValue(s.buildRouter)
+	iamguard.RegisterResolver(s, s.resolveIAM)
 	if s.peers == nil {
 		s.peers = peers.None()
 	}
@@ -122,6 +123,7 @@ func New(opts Options) (*Server, error) {
 
 // Close stops the janitor and closes the store.
 func (s *Server) Close() error {
+	iamguard.UnregisterResolver(s)
 	var err error
 	s.stopOnce.Do(func() {
 		close(s.stop)
@@ -151,7 +153,6 @@ func (s *Server) janitor() {
 // resolvePath splits a request into (bucket, key) handling both addressing
 // styles. bucket=="" means a service-level request (ListBuckets).
 func (s *Server) resolvePath(r *http.Request) (bucket, key string) {
-	path := strings.TrimPrefix(r.URL.EscapedPath(), "/")
 	// Virtual-hosted style has one shape now: <bucket>.s3.<region>.<suffix>,
 	// AWS's own, read by internal/awshost.
 	//
@@ -167,19 +168,27 @@ func (s *Server) resolvePath(r *http.Request) (bucket, key string) {
 	// returns the zero Info, and Parse("s3.<region>.<suffix>", …) finds the
 	// infix in leading position and refuses to read a resource name from it —
 	// both leave bucket empty and fall through to path style.
-	bucket = awshost.Parse(r.Host, s.suffix).Bucket
-	if bucket == "" {
+	bucket, key, vhost := s.addressOf(r)
+	if !vhost {
 		s.warnLostVHost(r)
 	}
-	if bucket != "" {
+	return bucket, key
+}
+
+// addressOf is resolvePath without the warning, and says which style the
+// request was: the IAM resolver asks too, and a line per request is a line
+// nobody reads.
+func (s *Server) addressOf(r *http.Request) (bucket, key string, vhost bool) {
+	path := strings.TrimPrefix(r.URL.EscapedPath(), "/")
+	if bucket = awshost.Parse(r.Host, s.suffix).Bucket; bucket != "" {
 		key, _ = url.PathUnescape(path)
-		return bucket, key
+		return bucket, key, true
 	}
 	// Path style: /bucket/key...
 	b, rest, _ := strings.Cut(path, "/")
 	bucket, _ = url.PathUnescape(b)
 	key, _ = url.PathUnescape(rest)
-	return bucket, key
+	return bucket, key, false
 }
 
 // warnLostVHost says so when a request LOOKS like virtual-hosted addressing

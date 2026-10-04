@@ -15,6 +15,26 @@ import (
 	"github.com/doze-dev/doze-aws/internal/iampolicy"
 )
 
+// resolveIAM is the permission a request is authorized as and the function it names,
+// as the stack's authorization middleware and this service's own guard both
+// ask it. The operation is the one the router matches, and the action is the one
+// AWS's model gives it — Invoke is lambda:InvokeFunction, AddPermission is
+// lambda:AddPermission — never a guess from the path. A request that names a
+// function is evaluated against its ARN; one that does not (ListFunctions,
+// layers, mappings) against none, so only an identity policy can grant it.
+// An operation with no action (doze's own runtime probe) is not evaluated.
+func (s *Server) resolveIAM(r *http.Request) (action, resource string) {
+	op, labels := opsOnly().Match(r)
+	action = iamActions()[op]
+	if action == "" {
+		return "", ""
+	}
+	if name := labels["FunctionName"]; name != "" {
+		resource = iamguard.LambdaFunctionARN(s.id, name)
+	}
+	return action, resource
+}
+
 // guardRequest runs the guard for a function-scoped request. Requests that
 // name no function (ListFunctions, layers, mappings), or one that does not
 // exist, carry no resource policy: the identity verdict alone decides.
@@ -22,7 +42,7 @@ func (s *Server) guardRequest(w http.ResponseWriter, r *http.Request) *awshttp.A
 	if s.guard.Mode == "" && r.Header.Get(iamguard.HeaderMode) == "" {
 		return nil
 	}
-	action, resource := iamguard.ResolveAction(s.id, r, "lambda")
+	action, resource := s.resolveIAM(r)
 	if action == "" {
 		return nil
 	}

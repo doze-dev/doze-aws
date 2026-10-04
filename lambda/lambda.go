@@ -169,6 +169,7 @@ func New(opts Options) (*Server, error) {
 	}
 	s.shutdown, s.endShutdown = context.WithCancel(context.Background())
 	s.router = sync.OnceValue(s.buildRouter)
+	iamguard.RegisterResolver(s, s.resolveIAM)
 	s.store.id = opts.Identity
 	if s.peers == nil {
 		s.peers = peers.None()
@@ -193,6 +194,7 @@ func New(opts Options) (*Server, error) {
 // ESM poller goroutines to actually exit so none can call into sibling services
 // (or log) after Close returns.
 func (s *Server) Close() error {
+	iamguard.UnregisterResolver(s)
 	s.mu.Lock()
 	for _, r := range s.runners {
 		r.Stop()

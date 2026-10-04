@@ -15,6 +15,7 @@
 //	dzaudit routes s3                # the method+path each operation is served on
 //	dzaudit shapes sqs               # each operation's declared OUTPUT shape
 //	dzaudit ops sfn                  # every operation the model documents
+//	dzaudit iam lambda               # the IAM action each operation is authorized as
 //
 // The last three emit the committed fixtures under */testdata/, which
 // .github/workflows/model-drift.yml regenerates weekly and diffs — so an
@@ -56,7 +57,7 @@ func main() {
 		// which is the one CI actually runs weekly, and `routes`. A tool whose
 		// own usage under-lists it is a tool whose commands get rediscovered by
 		// grep.
-		fmt.Fprintln(os.Stderr, "usage: dzaudit [list|cases|routes|shapes|ops|summary|coverage] [flags] <service>")
+		fmt.Fprintln(os.Stderr, "usage: dzaudit [list|cases|routes|shapes|ops|iam|summary|coverage] [flags] <service>")
 		os.Exit(2)
 	}
 	// The subcommand comes first, so flags are parsed from what follows it —
@@ -65,15 +66,20 @@ func main() {
 	fs := flag.NewFlagSet(cmd, flag.ExitOnError)
 	cache := fs.String("cache", ".audit-models", "directory to cache fetched models in")
 	op := fs.String("op", "", "restrict to one operation")
+	goPkg := fs.String("go", "", "iam: emit the table as Go source for this package")
 	if err := fs.Parse(os.Args[2:]); err != nil {
 		os.Exit(2)
 	}
+	iamGoPackage = *goPkg
 
 	if err := run(append([]string{cmd}, fs.Args()...), *cache, *op); err != nil {
 		fmt.Fprintln(os.Stderr, "dzaudit:", err)
 		os.Exit(1)
 	}
 }
+
+// iamGoPackage is the -go flag: set, "iam" writes Go source for that package.
+var iamGoPackage string
 
 func run(args []string, cache, opFilter string) error {
 	cmd := args[0]
@@ -101,6 +107,11 @@ func run(args []string, cache, opFilter string) error {
 		return emitShapes(os.Stdout, m, opFilter)
 	case "ops":
 		return emitOps(os.Stdout, m)
+	case "iam":
+		if iamGoPackage != "" {
+			return emitIAMGo(os.Stdout, m, cache, iamGoPackage)
+		}
+		return emitIAM(os.Stdout, m, cache)
 	}
 	return fmt.Errorf("unknown command %q", cmd)
 }

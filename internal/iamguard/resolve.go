@@ -7,8 +7,12 @@ package iamguard
 //
 //   - JSON services carry the operation in X-Amz-Target: exact, free.
 //   - Query services carry it in the Action parameter: exact, free.
-//   - REST services (S3, Lambda) encode it in method + path, which has to be
-//     mapped by hand.
+//   - REST services (S3, Lambda) encode it in method + path. Their router
+//     matches it against AWS's own table, and the permission it is authorized
+//     as comes from AWS's own list — so they resolve it themselves, and the
+//     stack hands each one's resolver (Resolver) to the middleware. This
+//     package never guesses it from a path: it used to, and got twenty of
+//     Lambda's and about as many of S3's wrong.
 //
 // The action is always resolved. The resource is resolved when it can be read
 // cheaply and unambiguously, and left EMPTY otherwise — never guessed. An
@@ -138,6 +142,12 @@ func ensureLeadingSlash(v string) string {
 	return "/" + v
 }
 
+// Resolver is how a REST service names the permission a request is authorized
+// as and the resource it names: its router says which operation the request is,
+// and AWS's own list says what that operation is authorized as. An empty action
+// means the request is not to be evaluated.
+type Resolver func(r *http.Request) (action, resource string)
+
 // ResolveAction maps a request onto the IAM action it exercises and, where it
 // can be determined, the resource ARN. An empty action means doze-aws cannot
 // classify the request and it should not be evaluated.
@@ -154,12 +164,13 @@ func ResolveAction(id awsident.Identity, r *http.Request, service string) (actio
 		}
 	}
 
-	// 2. REST services encode the operation in method + path.
-	switch service {
-	case "s3":
-		return resolveS3(r)
-	case "lambda":
-		return resolveLambda(id, r, prefix)
+	// 2. REST services are resolved by their own resolver (Resolver), which the
+	// middleware is handed; with none, they are not evaluated here.
+	if service == "s3" || service == "lambda" {
+		if resolve := resolverOf(r); resolve != nil {
+			return resolve(r)
+		}
+		return "", ""
 	}
 
 	// 3. Query protocol: the Action parameter, in the query string or the form.
@@ -193,201 +204,6 @@ func iamAction(prefix, op string) string {
 		return "sns:Publish"
 	}
 	return prefix + ":" + op
-}
-
-// resolveS3 maps an S3 REST request onto an action. S3's mapping is
-// well-defined by method and path shape, which is why it can be done at all —
-// bucket operations are distinguished from object ones by whether a key is
-// present, and sub-resources by the query string.
-// ResolveS3 maps an S3 request onto its action and resource given the bucket
-// and key the service itself resolved (path-style or virtual-hosted); the
-// middleware, which only sees the path, calls it with the path-style pair.
-func ResolveS3(r *http.Request, bucket, key string) (string, string) {
-	return resolveS3With(r, bucket, key)
-}
-
-func resolveS3(r *http.Request) (string, string) {
-	bucket, key := s3Target(r)
-	return resolveS3With(r, bucket, key)
-}
-
-func resolveS3With(r *http.Request, bucket, key string) (string, string) {
-	arn := ""
-	switch {
-	case bucket != "" && key != "":
-		arn = "arn:aws:s3:::" + bucket + "/" + key
-	case bucket != "":
-		arn = "arn:aws:s3:::" + bucket
-	}
-
-	q := r.URL.Query()
-	// Multipart uploads are authorized as AWS names them: the parts and the
-	// completion as PutObject, an abort and a listing by their own names.
-	if _, ok := q["uploads"]; ok {
-		if key == "" {
-			return "s3:ListBucketMultipartUploads", arn
-		}
-		return "s3:PutObject", arn
-	}
-	if _, ok := q["uploadId"]; ok {
-		switch r.Method {
-		case http.MethodDelete:
-			return "s3:AbortMultipartUpload", arn
-		case http.MethodGet:
-			return "s3:ListMultipartUploadParts", arn
-		}
-		return "s3:PutObject", arn
-	}
-	// Sub-resource operations are named by the query parameter present.
-	for param, suffix := range map[string]string{
-		"acl": "Acl", "policy": "BucketPolicy", "versioning": "BucketVersioning",
-		"tagging": "BucketTagging", "lifecycle": "LifecycleConfiguration",
-		"cors": "BucketCORS", "notification": "BucketNotification",
-		"website": "BucketWebsite", "encryption": "EncryptionConfiguration",
-		"replication": "ReplicationConfiguration",
-	} {
-		if _, ok := q[param]; ok {
-			verb := "Get"
-			switch r.Method {
-			case http.MethodPut, http.MethodPost:
-				verb = "Put"
-			case http.MethodDelete:
-				verb = "Delete"
-			}
-			if param == "tagging" && key != "" {
-				return "s3:" + verb + "ObjectTagging", arn
-			}
-			return "s3:" + verb + suffix, arn
-		}
-	}
-
-	if key == "" {
-		switch r.Method {
-		case http.MethodGet:
-			if bucket == "" {
-				return "s3:ListAllMyBuckets", ""
-			}
-			return "s3:ListBucket", arn
-		case http.MethodHead:
-			return "s3:ListBucket", arn
-		case http.MethodPut:
-			return "s3:CreateBucket", arn
-		case http.MethodDelete:
-			return "s3:DeleteBucket", arn
-		case http.MethodPost:
-			return "s3:DeleteObject", arn // POST ?delete= is the batch delete
-		}
-		return "", arn
-	}
-	switch r.Method {
-	case http.MethodGet, http.MethodHead:
-		return "s3:GetObject", arn
-	case http.MethodPut:
-		// A copy carries the source header; AWS authorizes it as PutObject on
-		// the destination.
-		return "s3:PutObject", arn
-	case http.MethodPost:
-		return "s3:PutObject", arn
-	case http.MethodDelete:
-		return "s3:DeleteObject", arn
-	}
-	return "", arn
-}
-
-// s3Target extracts (bucket, key) from a path-style S3 request. Virtual-host
-// style is not decoded here: the Host-based form needs the configured S3 host
-// to split correctly, and guessing would produce a wrong ARN.
-func s3Target(r *http.Request) (bucket, key string) {
-	p := strings.TrimPrefix(r.URL.Path, "/")
-	if p == "" {
-		return "", ""
-	}
-	bucket, key, _ = strings.Cut(p, "/")
-	return bucket, key
-}
-
-// resolveLambda maps the Lambda REST API onto actions by path family.
-func resolveLambda(id awsident.Identity, r *http.Request, prefix string) (string, string) {
-	segs := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	if len(segs) < 2 {
-		return "", ""
-	}
-	arn := ""
-	if len(segs) >= 3 && segs[1] == "functions" {
-		arn = LambdaFunctionARN(id, segs[2])
-	}
-	switch segs[1] {
-	case "functions":
-		if len(segs) >= 4 {
-			switch segs[3] {
-			case "invocations":
-				return prefix + ":InvokeFunction", arn
-			case "configuration":
-				if r.Method == http.MethodGet {
-					return prefix + ":GetFunctionConfiguration", arn
-				}
-				return prefix + ":UpdateFunctionConfiguration", arn
-			case "code":
-				return prefix + ":UpdateFunctionCode", arn
-			case "versions":
-				return prefix + ":PublishVersion", arn
-			case "aliases":
-				return prefix + ":" + methodVerb(r, "Alias"), arn
-			case "concurrency":
-				return prefix + ":PutFunctionConcurrency", arn
-			case "policy":
-				return prefix + ":" + methodVerb(r, "Permission"), arn
-			case "url", "urls":
-				return prefix + ":" + methodVerb(r, "FunctionUrlConfig"), arn
-			case "event-invoke-config":
-				return prefix + ":" + methodVerb(r, "FunctionEventInvokeConfig"), arn
-			}
-		}
-		switch r.Method {
-		case http.MethodGet:
-			if len(segs) == 2 {
-				return prefix + ":ListFunctions", ""
-			}
-			return prefix + ":GetFunction", arn
-		case http.MethodPost:
-			return prefix + ":CreateFunction", arn
-		case http.MethodDelete:
-			return prefix + ":DeleteFunction", arn
-		}
-	case "event-source-mappings":
-		switch r.Method {
-		case http.MethodGet:
-			return prefix + ":ListEventSourceMappings", ""
-		case http.MethodPost:
-			return prefix + ":CreateEventSourceMapping", ""
-		case http.MethodPut:
-			return prefix + ":UpdateEventSourceMapping", ""
-		case http.MethodDelete:
-			return prefix + ":DeleteEventSourceMapping", ""
-		}
-	case "tags":
-		if r.Method == http.MethodPost {
-			return prefix + ":TagResource", ""
-		}
-		if r.Method == http.MethodDelete {
-			return prefix + ":UntagResource", ""
-		}
-		return prefix + ":ListTags", ""
-	case "layers":
-		return prefix + ":" + methodVerb(r, "LayerVersion"), ""
-	}
-	return "", arn
-}
-
-func methodVerb(r *http.Request, noun string) string {
-	switch r.Method {
-	case http.MethodPost, http.MethodPut:
-		return "Create" + noun
-	case http.MethodDelete:
-		return "Delete" + noun
-	default:
-		return "Get" + noun
-	}
 }
 
 // ---- resource extraction ----

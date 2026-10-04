@@ -14,6 +14,7 @@ package main
 
 import (
 	"encoding/json"
+	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -205,5 +206,66 @@ func TestOpenEndedLengthRendersWithoutAFalseMaximum(t *testing.T) {
 	}
 	if s := cs[0].String(); !strings.Contains(s, "1") {
 		t.Errorf("rendered %q, which does not mention the minimum", s)
+	}
+}
+
+// The IAM table is what a policy is matched against. A model that names the
+// action says it; one that says nothing falls to AWS's reference, which is
+// found in the cache — never a table of default names that would look like an
+// answer.
+func TestIAMActionsComeFromTheModelOrTheReference(t *testing.T) {
+	withTrait := &model{Shapes: map[string]shape{
+		"x#Svc": {Type: "service", Operations: []ref{{Target: "x#Invoke"}, {Target: "x#GetThing"}},
+			Traits: map[string]json.RawMessage{"aws.api#service": json.RawMessage(`{"arnNamespace":"svc"}`)}},
+		"x#Invoke":   {Type: "operation", Traits: map[string]json.RawMessage{"aws.iam#iamAction": json.RawMessage(`{"name":"InvokeFunction"}`)}},
+		"x#GetThing": {Type: "operation", Traits: map[string]json.RawMessage{"aws.iam#iamAction": json.RawMessage(`{}`)}},
+	}}
+	got, err := buildIAM(withTrait, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Actions["Invoke"] != "svc:InvokeFunction" || got.Actions["GetThing"] != "svc:GetThing" {
+		t.Errorf("actions = %v, want the rename and the default", got.Actions)
+	}
+
+	// No trait: the reference decides, and a version has an action of its own.
+	cache := t.TempDir()
+	os.WriteFile(cache+"/svc.reference.json", []byte(`{
+	  "Actions": [{"Name":"GetThing"},{"Name":"GetThingTagging"},{"Name":"PutBucketCORS"},{"Name":"GetObject"},{"Name":"GetObjectVersion"}],
+	  "Operations": [
+	    {"Name":"GetThing","AuthorizedActions":[{"Name":"GetThing","Service":"svc-other"},{"Name":"GetThingTagging","Service":"svc"}]},
+	    {"Name":"DeleteBucketCors","AuthorizedActions":[{"Name":"PutBucketCORS","Service":"svc"}]},
+	    {"Name":"GetObject","AuthorizedActions":[{"Name":"GetObject","Service":"svc"},{"Name":"GetObjectVersion","Service":"svc"}]},
+	    {"Name":"CopyObject","AuthorizedActions":[{"Name":"GetObject","Service":"svc"},{"Name":"PutObject","Service":"svc"}]},
+	    {"Name":"ListThings","AuthorizedActions":[{"Name":"GetObjectAcl","Service":"svc"},{"Name":"ListBucket","Service":"svc"}]},
+	    {"Name":"DeleteObjects","AuthorizedActions":[{"Name":"BypassGovernanceRetention","Service":"svc"},{"Name":"DeleteObject","Service":"svc"}]}
+	  ]}`), 0o644)
+	bare := &model{Shapes: map[string]shape{
+		"x#Svc": {Type: "service", Operations: []ref{{Target: "x#GetThing"}, {Target: "x#DeleteBucketCors"}, {Target: "x#GetObject"}, {Target: "x#CopyObject"}, {Target: "x#DeleteObjects"}, {Target: "x#ListThings"}},
+			Traits: map[string]json.RawMessage{"aws.api#service": json.RawMessage(`{"arnNamespace":"svc"}`)}},
+		"x#GetThing": {Type: "operation"}, "x#DeleteBucketCors": {Type: "operation"}, "x#GetObject": {Type: "operation"},
+		"x#CopyObject": {Type: "operation"}, "x#DeleteObjects": {Type: "operation"}, "x#ListThings": {Type: "operation"},
+	}}
+	got, err = buildIAM(bare, cache)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Actions["DeleteBucketCors"] != "svc:PutBucketCORS" {
+		t.Errorf("DeleteBucketCors = %q, want the reference's svc:PutBucketCORS", got.Actions["DeleteBucketCors"])
+	}
+	if got.Actions["GetThing"] != "svc:GetThingTagging" {
+		t.Errorf("GetThing = %q: only an action of this service is the operation's own", got.Actions["GetThing"])
+	}
+	if got.Actions["CopyObject"] != "svc:PutObject" {
+		t.Errorf("CopyObject = %q, want the destination's write, not the source's read", got.Actions["CopyObject"])
+	}
+	if got.Actions["ListThings"] != "svc:ListBucket" {
+		t.Errorf("ListThings = %q, want ListBucket, not the GetObjectAcl the reference lists first", got.Actions["ListThings"])
+	}
+	if got.Actions["DeleteObjects"] != "svc:DeleteObject" {
+		t.Errorf("DeleteObjects = %q, want DeleteObject, not the governance bypass listed first", got.Actions["DeleteObjects"])
+	}
+	if got.Versioned["svc:GetObject"] != "svc:GetObjectVersion" {
+		t.Errorf("versioned = %v, want GetObject → GetObjectVersion", got.Versioned)
 	}
 }

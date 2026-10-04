@@ -13,6 +13,47 @@ import (
 	"github.com/doze-dev/doze-aws/internal/iampolicy"
 )
 
+// resolveIAM is the permission a request is authorized as and the resource it names,
+// as the stack's authorization middleware and this service's own guard both
+// ask it. The operation is the one the router matches — virtual-hosted requests
+// included, which a path-guessing resolver could not read — and the action is
+// the one AWS's Service Authorization Reference gives it: DeleteBucketCors is
+// s3:PutBucketCORS, ListObjectVersions is s3:ListBucketVersions.
+func (s *Server) resolveIAM(r *http.Request) (action, resource string) {
+	bucket, key, vhost := s.addressOf(r)
+	vb := ""
+	if vhost {
+		vb = bucket
+	}
+	return s.iamOf(routed(r, vb), bucket, key)
+}
+
+// iamOf resolves a request already in the router's shape to its action and
+// resource.
+func (s *Server) iamOf(r *http.Request, bucket, key string) (action, resource string) {
+	op, _ := opsOnly().Match(r)
+	action = iamActions()[op]
+	if action == "" && op == "ListDirectoryBuckets" {
+		action = "s3:ListAllMyBuckets" // S3 Express: not in the reference this table comes from
+	}
+	if action == "" {
+		return "", ""
+	}
+	// A request that names a version is authorized as the version's action.
+	if r.URL.Query().Get("versionId") != "" {
+		if v, ok := iamVersioned()[action]; ok {
+			action = v
+		}
+	}
+	switch {
+	case bucket != "" && key != "":
+		resource = "arn:aws:s3:::" + bucket + "/" + key
+	case bucket != "":
+		resource = "arn:aws:s3:::" + bucket
+	}
+	return action, resource
+}
+
 // guardRequest runs the guard for a request that names a bucket. A copy
 // (PutObject or UploadPart with x-amz-copy-source) reads its source too, so
 // the source is authorized for s3:GetObject against its own bucket's policy
@@ -21,7 +62,7 @@ func (s *Server) guardRequest(w http.ResponseWriter, r *http.Request, bucket, ke
 	if s.guard.Mode == "" && r.Header.Get(iamguard.HeaderMode) == "" {
 		return nil
 	}
-	action, resource := iamguard.ResolveS3(r, bucket, key)
+	action, resource := s.iamOf(r, bucket, key)
 	if action == "" {
 		return nil
 	}

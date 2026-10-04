@@ -65,17 +65,27 @@ jobs:
             go run ./cmd/dzaudit shapes "$model" > "$dir/testdata/shapes_$model.json"
             go run ./cmd/dzaudit ops "$model" > "$dir/testdata/ops_$model.json"
           done
+          # The IAM action each operation is authorized as: from the model's own
+          # aws.iam#iamAction trait where it has one (Lambda), and from AWS's
+          # Service Authorization Reference where it does not (S3).
+          go run ./cmd/dzaudit iam lambda > lambda/testdata/iam_lambda.json
+          go run ./cmd/dzaudit iam s3 > s3/testdata/iam_s3.json
 
       - name: Fail if anything derived has moved
         run: |
-          if ! git diff --quiet -- '*/testdata/shapes_*.json' '*/testdata/ops_*.json'; then
+          if ! git diff --quiet -- '*/testdata/shapes_*.json' '*/testdata/ops_*.json' '*/testdata/iam_*.json'; then
             echo 'AWS has changed a service model since these fixtures were generated.'
             echo
-            git --no-pager diff --stat -- '*/testdata/shapes_*.json' '*/testdata/ops_*.json'
+            git --no-pager diff --stat -- '*/testdata/shapes_*.json' '*/testdata/ops_*.json' '*/testdata/iam_*.json'
             echo
             echo 'Regenerate locally and review the diff:'
             echo '  go run ./cmd/dzaudit shapes <model> > <service>/testdata/shapes_<model>.json'
             echo '  go run ./cmd/dzaudit ops    <model> > <service>/testdata/ops_<model>.json'
+            echo '  go run ./cmd/dzaudit iam lambda > lambda/testdata/iam_lambda.json (and s3)'
+            echo
+            echo 'An iam_*.json diff means AWS RENAMED OR ADDED A PERMISSION. Regenerate the Go'
+            echo 'table too (dzaudit iam -go <pkg> <model> > <pkg>/iam_actions.go): a policy is'
+            echo 'matched against these names, and a stale one denies what AWS allows.'
             echo
             echo 'An ops_*.json diff means AWS ADDED OR REMOVED AN OPERATION. The per-service'
             echo 'coverage test will then name it as unaccounted for, which is the point:'
@@ -95,4 +105,5 @@ jobs:
           path: |
             */testdata/shapes_*.json
             */testdata/ops_*.json
+            */testdata/iam_*.json
           retention-days: 14

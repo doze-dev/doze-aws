@@ -26,11 +26,16 @@ func Op(r *http.Request) string {
 // then: with no RawPath the router saw the decoded path, and decoding it
 // again would turn a literal "%41" into "A".
 func Param(r *http.Request, name string) string {
-	v := chi.URLParam(r, name)
+	return decodeLabel(chi.URLParam(r, name), r.URL.RawPath != "")
+}
+
+// decodeLabel is a label's value as the client meant it. escaped says the
+// router saw the escaped path, so the value is still escaped.
+func decodeLabel(v string, escaped bool) string {
 	if v == emptySeg {
 		return ""
 	}
-	if r.URL.RawPath == "" {
+	if !escaped {
 		return v
 	}
 	if u, err := url.PathUnescape(v); err == nil {

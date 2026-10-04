@@ -273,3 +273,23 @@ func TestARouterIgnoresARouteContextItInheritedFromACaller(t *testing.T) {
 		t.Errorf("callee answered %d %q, want its own route", code, body)
 	}
 }
+
+// Match says what a request names without serving it: the operation and its
+// labels, decoded as a handler would read them.
+func TestMatchReturnsTheOperationAndItsLabels(t *testing.T) {
+	h := func(w http.ResponseWriter, r *http.Request) *awshttp.APIError { return nil }
+	rt := restroute.Build([]restroute.Route{
+		{Op: "GetAlias", Method: "GET", Pattern: "/f/{Fn}/aliases/{Name}", Handler: h},
+		{Op: "ListTags", Method: "GET", Pattern: "/tags/*", Handler: h},
+	}, options(t))
+	op, labels := rt.Match(httptest.NewRequest("GET", "/f/orders%3Av1/aliases/live", nil))
+	if op != "GetAlias" || labels["Fn"] != "orders:v1" || labels["Name"] != "live" {
+		t.Errorf("Match = %q %v", op, labels)
+	}
+	if op, labels := rt.Match(httptest.NewRequest("GET", "/tags/arn%3Aaws%3Alambda%3A%3Afunction%2Fx", nil)); op != "ListTags" || labels["*"] != "arn:aws:lambda::function/x" {
+		t.Errorf("greedy label = %q %v", op, labels)
+	}
+	if op, labels := rt.Match(httptest.NewRequest("GET", "/nothing", nil)); op != "" || labels != nil {
+		t.Errorf("no route = %q %v", op, labels)
+	}
+}

@@ -195,133 +195,25 @@ func TestResolveActionQueryProtocol(t *testing.T) {
 	})
 }
 
-// TestResolveS3 is the mapping that shipped wrong: an object addressed in the
-// host was read as a bucket operation on a bucket named after the key. The
-// path-style and the service-resolved forms are both here.
-func TestResolveS3(t *testing.T) {
-	const b = "arn:aws:s3:::docs"
-	const o = "arn:aws:s3:::docs/report.pdf"
-
-	for _, c := range []struct {
-		name             string
-		method, path     string
-		action, resource string
-	}{
-		{"list buckets", "GET", "/", "s3:ListAllMyBuckets", ""},
-		{"list a bucket", "GET", "/docs", "s3:ListBucket", b},
-		{"head a bucket", "HEAD", "/docs", "s3:ListBucket", b},
-		{"create a bucket", "PUT", "/docs", "s3:CreateBucket", b},
-		{"delete a bucket", "DELETE", "/docs", "s3:DeleteBucket", b},
-		{"batch delete", "POST", "/docs?delete=", "s3:DeleteObject", b},
-		{"get an object", "GET", "/docs/report.pdf", "s3:GetObject", o},
-		{"head an object", "HEAD", "/docs/report.pdf", "s3:GetObject", o},
-		{"put an object", "PUT", "/docs/report.pdf", "s3:PutObject", o},
-		{"post an object", "POST", "/docs/report.pdf", "s3:PutObject", o},
-		{"delete an object", "DELETE", "/docs/report.pdf", "s3:DeleteObject", o},
-
-		// Sub-resources are named by the query parameter, and the verb by the
-		// method.
-		{"get bucket policy", "GET", "/docs?policy=", "s3:GetBucketPolicy", b},
-		{"put bucket policy", "PUT", "/docs?policy=", "s3:PutBucketPolicy", b},
-		{"delete bucket policy", "DELETE", "/docs?policy=", "s3:DeleteBucketPolicy", b},
-		{"get bucket acl", "GET", "/docs?acl=", "s3:GetAcl", b},
-		{"put versioning", "PUT", "/docs?versioning=", "s3:PutBucketVersioning", b},
-		{"get cors", "GET", "/docs?cors=", "s3:GetBucketCORS", b},
-		{"put notification", "PUT", "/docs?notification=", "s3:PutBucketNotification", b},
-		{"put encryption", "PUT", "/docs?encryption=", "s3:PutEncryptionConfiguration", b},
-		{"put lifecycle", "PUT", "/docs?lifecycle=", "s3:PutLifecycleConfiguration", b},
-		{"put website", "PUT", "/docs?website=", "s3:PutBucketWebsite", b},
-		{"put replication", "PUT", "/docs?replication=", "s3:PutReplicationConfiguration", b},
-		// Tagging is the one sub-resource whose action depends on whether a
-		// key is present.
-		{"bucket tagging", "PUT", "/docs?tagging=", "s3:PutBucketTagging", b},
-		{"object tagging", "PUT", "/docs/report.pdf?tagging=", "s3:PutObjectTagging", o},
-		{"object tagging read", "GET", "/docs/report.pdf?tagging=", "s3:GetObjectTagging", o},
-
-		// Multipart, authorized as AWS names it.
-		{"list multipart uploads", "GET", "/docs?uploads=", "s3:ListBucketMultipartUploads", b},
-		{"initiate multipart", "POST", "/docs/report.pdf?uploads=", "s3:PutObject", o},
-		{"upload a part", "PUT", "/docs/report.pdf?uploadId=x&partNumber=1", "s3:PutObject", o},
-		{"complete multipart", "POST", "/docs/report.pdf?uploadId=x", "s3:PutObject", o},
-		{"abort multipart", "DELETE", "/docs/report.pdf?uploadId=x", "s3:AbortMultipartUpload", o},
-		{"list parts", "GET", "/docs/report.pdf?uploadId=x", "s3:ListMultipartUploadParts", o},
-
-		{"an unmapped method on a bucket", "OPTIONS", "/docs", "", b},
-		{"an unmapped method on an object", "OPTIONS", "/docs/report.pdf", "", o},
-	} {
-		t.Run(c.name, func(t *testing.T) {
-			action, resource := ResolveAction(awsident.Default(), httptest.NewRequest(c.method, c.path, nil), "s3")
-			if action != c.action || resource != c.resource {
-				t.Errorf("got (%q, %q), want (%q, %q)", action, resource, c.action, c.resource)
-			}
-		})
+// The REST services are not resolved here: S3 and Lambda name the permission
+// from their own routers and AWS's own lists (s3/iam_test.go, lambda/iam_test.go),
+// and ResolveAction hands them the request only through the resolver the stack
+// installs. With none, they are not evaluated.
+func TestRESTServicesAreResolvedByTheirOwnResolver(t *testing.T) {
+	r := httptest.NewRequest("GET", "/docs/report.pdf", nil)
+	if action, _ := ResolveAction(awsident.Default(), r, "s3"); action != "" {
+		t.Errorf("s3 with no resolver = %q, want it left unevaluated", action)
 	}
-}
-
-// TestResolveS3WithServiceResolvedTarget: the virtual-host form. The path
-// alone says "/report.pdf", so the middleware resolves a bucket called
-// "report.pdf" and no key — which is how an object read came to be evaluated
-// as a bucket operation. The service knows better and passes the real pair.
-func TestResolveS3WithServiceResolvedTarget(t *testing.T) {
-	r := httptest.NewRequest(http.MethodGet, "/report.pdf", nil)
-	r.Host = "docs.s3.localhost"
-
-	action, resource := ResolveAction(awsident.Default(), r, "s3")
-	if action != "s3:ListBucket" || resource != "arn:aws:s3:::report.pdf" {
-		t.Fatalf("the path-only reading is the one the guard must correct: got (%q, %q)", action, resource)
+	r = WithResolver(r, func(*http.Request) (string, string) { return "s3:GetObject", "arn:aws:s3:::docs/report.pdf" })
+	if action, resource := ResolveAction(awsident.Default(), r, "s3"); action != "s3:GetObject" || resource != "arn:aws:s3:::docs/report.pdf" {
+		t.Errorf("s3 with a resolver = (%q, %q), want what it said", action, resource)
 	}
-
-	action, resource = ResolveS3(r, "docs", "report.pdf")
-	if action != "s3:GetObject" || resource != "arn:aws:s3:::docs/report.pdf" {
-		t.Errorf("with the service's own (bucket, key): got (%q, %q), want (s3:GetObject, arn:aws:s3:::docs/report.pdf)", action, resource)
-	}
-}
-
-// TestResolveLambda walks every path family of the Lambda REST API.
-func TestResolveLambda(t *testing.T) {
-	fn := awsident.Default().ARN("lambda", "function:worker")
-
-	for _, c := range []struct {
-		name             string
-		method, path     string
-		action, resource string
-	}{
-		{"invoke", "POST", "/2015-03-31/functions/worker/invocations", "lambda:InvokeFunction", fn},
-		{"get a function", "GET", "/2015-03-31/functions/worker", "lambda:GetFunction", fn},
-		{"list functions", "GET", "/2015-03-31/functions", "lambda:ListFunctions", ""},
-		{"create", "POST", "/2015-03-31/functions", "lambda:CreateFunction", ""},
-		{"delete", "DELETE", "/2015-03-31/functions/worker", "lambda:DeleteFunction", fn},
-		{"get configuration", "GET", "/2015-03-31/functions/worker/configuration", "lambda:GetFunctionConfiguration", fn},
-		{"update configuration", "PUT", "/2015-03-31/functions/worker/configuration", "lambda:UpdateFunctionConfiguration", fn},
-		{"update code", "PUT", "/2015-03-31/functions/worker/code", "lambda:UpdateFunctionCode", fn},
-		{"publish a version", "POST", "/2015-03-31/functions/worker/versions", "lambda:PublishVersion", fn},
-		{"create an alias", "POST", "/2015-03-31/functions/worker/aliases", "lambda:CreateAlias", fn},
-		{"get an alias", "GET", "/2015-03-31/functions/worker/aliases/live", "lambda:GetAlias", fn},
-		{"delete an alias", "DELETE", "/2015-03-31/functions/worker/aliases/live", "lambda:DeleteAlias", fn},
-		{"concurrency", "PUT", "/2015-03-31/functions/worker/concurrency", "lambda:PutFunctionConcurrency", fn},
-		{"add permission", "POST", "/2015-03-31/functions/worker/policy", "lambda:CreatePermission", fn},
-		{"remove permission", "DELETE", "/2015-03-31/functions/worker/policy/sid", "lambda:DeletePermission", fn},
-		{"get policy", "GET", "/2015-03-31/functions/worker/policy", "lambda:GetPermission", fn},
-		{"create a function url", "POST", "/2021-10-31/functions/worker/url", "lambda:CreateFunctionUrlConfig", fn},
-		{"event invoke config", "PUT", "/2019-09-25/functions/worker/event-invoke-config", "lambda:CreateFunctionEventInvokeConfig", fn},
-		{"list event source mappings", "GET", "/2015-03-31/event-source-mappings", "lambda:ListEventSourceMappings", ""},
-		{"create event source mapping", "POST", "/2015-03-31/event-source-mappings", "lambda:CreateEventSourceMapping", ""},
-		{"update event source mapping", "PUT", "/2015-03-31/event-source-mappings/id", "lambda:UpdateEventSourceMapping", ""},
-		{"delete event source mapping", "DELETE", "/2015-03-31/event-source-mappings/id", "lambda:DeleteEventSourceMapping", ""},
-		{"tag", "POST", "/2017-03-31/tags/arn", "lambda:TagResource", ""},
-		{"untag", "DELETE", "/2017-03-31/tags/arn", "lambda:UntagResource", ""},
-		{"list tags", "GET", "/2017-03-31/tags/arn", "lambda:ListTags", ""},
-		{"publish a layer version", "POST", "/2018-10-31/layers/util/versions", "lambda:CreateLayerVersion", ""},
-		{"get a layer version", "GET", "/2018-10-31/layers/util/versions/1", "lambda:GetLayerVersion", ""},
-		{"an unknown family", "GET", "/2015-03-31/account-settings", "", ""},
-		{"too few segments", "GET", "/2015-03-31", "", ""},
-	} {
-		t.Run(c.name, func(t *testing.T) {
-			action, resource := ResolveAction(awsident.Default(), httptest.NewRequest(c.method, c.path, nil), "lambda")
-			if action != c.action || resource != c.resource {
-				t.Errorf("got (%q, %q), want (%q, %q)", action, resource, c.action, c.resource)
-			}
-		})
+	// A resolver is for the REST services; a JSON service names its own.
+	jr := httptest.NewRequest("POST", "/", nil)
+	jr.Header.Set("X-Amz-Target", "AmazonSQS.SendMessage")
+	jr = WithResolver(jr, func(*http.Request) (string, string) { return "wrong:Action", "" })
+	if action, _ := ResolveAction(awsident.Default(), jr, "sqs"); action != "sqs:SendMessage" {
+		t.Errorf("sqs = %q, want its own operation", action)
 	}
 }
 

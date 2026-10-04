@@ -187,13 +187,22 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // without serving, so it can name a call from outside the handler chain — the
 // console's wire page does.
 func (rt *Router) Op(r *http.Request) string {
+	op, _ := rt.Match(r)
+	return op
+}
+
+// Match is Op with the path labels the request carries, decoded as a handler
+// would read them (an empty label is "", and a greedy one is under "*"). It is
+// how a caller with no handler chain learns what a request names: the IAM
+// guard asks it for the function a Lambda call is addressed to.
+func (rt *Router) Match(r *http.Request) (op string, labels map[string]string) {
 	rctx := chi.NewRouteContext()
 	path := routePath(r)
 	if rt.tolerant {
 		path = tidy(path)
 	}
 	if !rt.mux.Match(rctx, r.Method, path) {
-		return ""
+		return "", nil
 	}
 	cands := rt.byKey[r.Method+" "+rctx.RoutePattern()]
 	if len(cands) == 0 {
@@ -201,10 +210,14 @@ func (rt *Router) Op(r *http.Request) string {
 	}
 	for _, c := range cands {
 		if c.Pick == nil || c.Pick(r) {
-			return c.Op
+			labels = make(map[string]string, len(rctx.URLParams.Keys))
+			for i, k := range rctx.URLParams.Keys {
+				labels[k] = decodeLabel(rctx.URLParams.Values[i], r.URL.RawPath != "")
+			}
+			return c.Op, labels
 		}
 	}
-	return ""
+	return "", nil
 }
 
 // Routes lists every registered "METHOD pattern", in registration order. A

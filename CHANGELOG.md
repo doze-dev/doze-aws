@@ -186,6 +186,21 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
 - With the console enabled, an S3 key with two slashes in a row (or a `.`
   segment) reaches S3 as it was sent. The top-level `http.ServeMux` used to
   clean the path and redirect it, so the key you wrote was not the key you got.
+- **Enforce mode authorizes S3 and Lambda as AWS names the permission.** The
+  action was guessed from the method and path, and was wrong for about forty
+  operations — a policy that allowed `lambda:AddPermission` denied
+  AddPermission (the guess was `lambda:CreatePermission`), one that allowed
+  `s3:PutBucketCORS` could not delete a bucket's CORS, and an access log
+  generated policies full of actions AWS has never heard of (`s3:GetAcl`,
+  `lambda:GetPermission`). The operation is now the one the router matches and
+  the action is the one AWS publishes: from the service model's own
+  `aws.iam#iamAction` for Lambda, from the Service Authorization Reference for
+  S3 (`dzaudit iam`). A request naming `?versionId` is `s3:GetObjectVersion`
+  (and its kin), and a virtual-hosted request is authorized as the object it
+  names, not as a bucket called after its key. The weekly drift check now
+  refreshes the tables. If a policy you wrote for AWS was denied here, this is
+  why; if you wrote one against the old names (`lambda:CreatePermission`), it
+  grants nothing on AWS either.
 - API Gateway ids are random. They were taken from the clock, so two REST
   APIs, HTTP APIs, keys or usage plans created in the same instant got the
   same id and the second silently replaced the first.
