@@ -4,12 +4,12 @@ import { createQueue, createTable, createKey } from '../fixtures/api';
 
 // waitForToast's `.last()` locator is only race-free when at most one toast
 // is alive at a time — the "Tag saved" toast from the add can still be
-// visible (toasts self-remove after 3.2s/6s) when we immediately trigger the
+// visible (toasts self-remove after 7s/10s (hovering holds them)) when we immediately trigger the
 // remove's toast, so `.last()` can report the stale one as "visible" before
 // the new one lands. Drain the current toast before firing the next
 // toast-producing action (same pattern as kms.spec.ts).
 async function waitToastGone(page: Page) {
-  await expect(page.locator('.toast:not(.err)').last()).toBeHidden({ timeout: 8000 });
+  await page.evaluate(() => document.querySelectorAll('.toast:not(.err)').forEach((e) => e.remove()));
 }
 
 // The shared tag editor (internal/console/client_tags.go + templates/panes.html's

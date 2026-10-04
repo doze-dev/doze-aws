@@ -70,7 +70,7 @@ test.describe('HTTP API console', () => {
     await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
     await confirmDialog('accept');
     await page.waitForURL(/\/apigw(\?|$)/);
-    await expect(page.locator('#flashbar')).toContainText('HTTP API deleted');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('HTTP API deleted');
     await expect(page.locator('.li .nm', { hasText: name })).toHaveCount(0);
   });
 });

@@ -73,7 +73,7 @@ test.describe('CloudFormation console', () => {
     await current.fill('prod2');
     await page.getByRole('button', { name: 'Update stack' }).click();
     await page.waitForURL(/tab=events/);
-    await expect(page.locator('#flashbar')).toContainText('Stack update deployed');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Stack update deployed');
     await page.goto(`cfn/${stack}`);
     await expect(page.locator('.det-b')).toContainText('prod2');
 
@@ -175,7 +175,7 @@ test.describe('CloudFormation deletes', () => {
     await confirmDialog('accept');
 
     await page.waitForURL(/tab=changesets/);
-    await expect(page.locator('#flashbar')).toContainText(`Change set ${cs} deleted`);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Change set ${cs} deleted`);
     await expect(page.locator('.det-b tr', { hasText: cs })).toHaveCount(0);
     await expect(page.locator('.det-b .empty')).toContainText('No change sets');
     await expect(page.locator('.det-title')).toContainText(stack);
@@ -196,7 +196,7 @@ test.describe('CloudFormation deletes', () => {
     await confirmDialog('accept');
 
     await page.waitForURL(/\/cfn(\?|$)/);
-    await expect(page.locator('#flashbar')).toContainText(`Deleted ${stack}`);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Deleted ${stack}`);
     // The home page keeps the record, as CloudFormation does, under its own heading.
     const deleted = page.locator('.det-b .table-wrap', { hasText: 'DELETE_COMPLETE' }).locator('tr', { hasText: stack });
     await expect(deleted).toContainText('DELETE_COMPLETE');

@@ -7,11 +7,11 @@ import { createKey } from '../fixtures/api';
 // (no navigation between them), the previous toast can still be visible
 // when we look for the next one, and `.last()` happily reports it as
 // "visible" before the real new toast has even been appended. Toasts
-// self-remove after 3.2s (ok) / 6s (err) per internal/console/static/shell.js, so
+// self-remove after 7s (ok) / 10s (err) per internal/console/static/shell.js, so
 // draining the current one first makes the next waitForToast() call
 // unambiguous.
 async function waitToastGone(page: Page) {
-  await expect(page.locator('.toast:not(.err)').last()).toBeHidden({ timeout: 8000 });
+  await page.evaluate(() => document.querySelectorAll('.toast:not(.err)').forEach((e) => e.remove()));
 }
 
 // KMS console coverage: the crypto playground is usage-gated (a key gets

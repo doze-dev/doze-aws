@@ -18,7 +18,7 @@ type ConsoleFixtures = {
   openPalette: () => Promise<void>;
 
   /** Waits for a toast (success by default) and returns its text. Toasts
-   *  self-remove after 3.2s/6s, so callers should assert on the returned
+   *  self-remove after 7s/10s (hovering holds them), so callers should assert on the returned
    *  text immediately rather than re-querying the DOM later. */
   waitForToast: (opts?: { kind?: 'ok' | 'err' }) => Promise<string>;
 

@@ -15,7 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // we look for the next one. Draining the current one first (as kms.spec.ts
 // does) makes the next waitForToast() call unambiguous.
 async function waitToastGone(page: Page) {
-  await expect(page.locator('.toast:not(.err)').last()).toBeHidden({ timeout: 8000 });
+  await page.evaluate(() => document.querySelectorAll('.toast:not(.err)').forEach((e) => e.remove()));
 }
 
 // Lambda console coverage: create-from-UI against a REAL invokable function

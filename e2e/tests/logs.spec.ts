@@ -27,7 +27,7 @@ test.describe('log group subscriptions', () => {
     await page.locator('select[name="destination"]').selectOption({ label: `Lambda · ${fnName}` });
     await page.getByRole('button', { name: 'Subscribe' }).click();
     await page.waitForURL(/tab=subscriptions/);
-    await expect(page.locator('#flashbar')).toContainText('errors');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('errors');
     const row = page.locator('table.tbl tr', { hasText: 'errors' });
     await expect(row).toContainText('ERROR');
     await expect(row.locator('a.conn-chip')).toHaveAttribute('href', new RegExp(`/lambda/${fnName}`));
@@ -67,7 +67,7 @@ test.describe('log group metric filters', () => {
     await page.locator('input[name="metric"]').fill('Errors');
     await page.getByRole('button', { name: 'Create filter' }).click();
     await page.waitForURL(/tab=metrics/);
-    await expect(page.locator('#flashbar')).toContainText('Errors');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Errors');
     const row = page.locator('table.tbl tr', { hasText: 'error-count' });
     await expect(row).toContainText('E2E / Errors');
 
@@ -115,7 +115,7 @@ test.describe('log group lifecycle', () => {
       await page.locator('input[name="name"]').fill(group);
       await page.locator('select[name="days"]').selectOption('7');
       await page.getByRole('button', { name: 'Create log group' }).click();
-      await expect(page.locator("#flashbar")).toContainText(`Log group “${group}” created`);
+      await expect(page.locator("#toasts .toast:not(.err)").last()).toContainText(`Log group “${group}” created`);
       await page.waitForURL(/\/logs\/group\?name=/);
       await expect(page.locator('.det-title')).toContainText(group);
       await expect(page.locator('.det-title .badge')).toHaveText('7d retention');
@@ -142,7 +142,7 @@ test.describe('log group lifecycle', () => {
       await expect(row).toBeVisible();
       await row.getByRole('button').click();
       await confirmDialog('accept');
-      await expect(page.locator("#flashbar")).toContainText('Stream deleted');
+      await expect(page.locator("#toasts .toast:not(.err)").last()).toContainText('Stream deleted');
       await expect(page.getByText('No streams yet.')).toBeVisible();
     });
 
@@ -151,20 +151,20 @@ test.describe('log group lifecycle', () => {
       await page.waitForURL(/tab=settings/);
       await page.locator('select[name="days"]').selectOption('30');
       await page.getByRole('button', { name: 'Save' }).click();
-      await expect(page.locator("#flashbar")).toContainText(`Retention set to 30 days for ${group}`);
+      await expect(page.locator("#toasts .toast:not(.err)").last()).toContainText(`Retention set to 30 days for ${group}`);
       await expect(page.locator('.det-title .badge')).toHaveText('30d retention');
       await expect(page.locator('select[name="days"]')).toHaveValue('30');
 
       await page.locator('select[name="days"]').selectOption('0');
       await page.getByRole('button', { name: 'Save' }).click();
-      await expect(page.locator("#flashbar")).toContainText(`Retention cleared for ${group}`);
+      await expect(page.locator("#toasts .toast:not(.err)").last()).toContainText(`Retention cleared for ${group}`);
       await expect(page.locator('.det-title .badge')).toHaveText('default retention');
     });
 
     await test.step('delete the group', async () => {
       await page.locator('.det-title').getByRole('button', { name: 'Delete' }).click();
       await confirmDialog('accept');
-      await expect(page.locator("#flashbar")).toContainText(`Log group “${group}” deleted`);
+      await expect(page.locator("#toasts .toast:not(.err)").last()).toContainText(`Log group “${group}” deleted`);
       await page.waitForURL(/\/logs$/);
       await expect(page.locator('.listpane')).not.toContainText(group);
     });

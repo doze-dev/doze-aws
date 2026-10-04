@@ -2157,3 +2157,13 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .kin-data { display: flex; align-items: center; gap: 6px; max-width: 460px; }
 .kin-data .trunc { min-width: 0; flex: 1; }
 .kin-data .btn { flex: none; }
+
+/* The close button the shell adds to a detail panel (shell.js, "where a result lands"). */
+.eb-detail, [id$="-detail"] { position: relative; }
+.dz-close { position: absolute; top: 6px; right: 6px; z-index: 1; }
+
+/* Below 768px the console is not designed to fit; say so rather than pretend. */
+.narrow-note { display: none; }
+@media (max-width: 767px) {
+  .narrow-note { display: block; margin: 8px 16px 0; padding: 8px 12px; font-size: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--muted); color: var(--muted-foreground); }
+}

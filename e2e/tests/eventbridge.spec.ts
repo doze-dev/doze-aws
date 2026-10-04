@@ -53,8 +53,8 @@ test.describe('EventBridge', () => {
       await setEditor('textarea[name="pattern"]', PATTERN);
       await page.getByRole('button', { name: 'Create rule' }).click();
       await page.waitForURL(new RegExp(`/eb/${bus}/rule/${ruleName}(\\?|$)`));
-      await expect(page.locator('#flashbar')).toContainText(ruleName);
-      await expect(page.locator('#flashbar')).toContainText('created');
+      await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(ruleName);
+      await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('created');
 
       // Add the queue as a target (separate form on the rule detail page).
       await page
@@ -145,7 +145,7 @@ test.describe('EventBridge', () => {
       // to be rejected server-side; now it must succeed as a schedule-only rule.
       await page.getByRole('button', { name: 'Create rule' }).click();
       await page.waitForURL(new RegExp(`/eb/default/rule/${scheduleRuleName}(\\?|$)`));
-      await expect(page.locator('#flashbar')).toContainText(scheduleRuleName);
+      await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(scheduleRuleName);
       await expect(page.locator('.sec-title').first()).toContainText('Schedule');
       await expect(page.locator('.code-out pre')).toContainText('rate(5 minutes)');
     });
@@ -349,7 +349,7 @@ test.describe('EventBridge bus and rule pages', () => {
     await page.getByLabel('Bus name').fill(bus);
     await page.getByRole('button', { name: 'Create event bus' }).click();
     await page.waitForURL(new RegExp(`/eb/${bus}(\\?|$)`));
-    await expect(page.locator('#flashbar')).toContainText(bus);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(bus);
     await expect(page.locator('.det-title')).toContainText(bus);
     // The list pane now carries it.
     await expect(page.locator('.listpane .li', { hasText: bus })).toBeVisible();
@@ -425,6 +425,12 @@ test.describe('EventBridge bus and rule pages', () => {
     const detail = page.locator('#eb-detail');
     await expect(detail).toContainText(`Bus ${bus}`);
     await expect(detail).toContainText(`event-bus/${bus}`);
+
+    // A detail panel can be closed; the shell adds the button.
+    await detail.getByRole('button', { name: 'Close' }).click();
+    await expect(detail).toBeEmpty();
+    await page.getByRole('button', { name: 'Describe this bus' }).click();
+    await expect(detail).toContainText(`Bus ${bus}`);
 
     // The rule link from the reverse lookup goes to the rule.
     await target.fill(sqsARN(queue));
@@ -505,7 +511,7 @@ test('a custom bus is deleted from its own page; the default bus offers no Delet
   await page.locator('.det-h').getByRole('button', { name: 'Delete' }).click();
   await confirmDialog('accept');
   await page.waitForURL(/\/eb$/);
-  await expect(page.locator('#flashbar')).toContainText(`Event bus “${bus}” deleted`);
+  await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Event bus “${bus}” deleted`);
   await expect(page.locator('.listpane')).not.toContainText(bus);
 
   await page.goto('eb/default');

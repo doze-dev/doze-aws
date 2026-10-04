@@ -150,6 +150,19 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
 
 ### Changed
 
+- Console: the SQS Consume tab keeps the messages a receive returned, with a
+  countdown on each, until they are deleted, released or their visibility
+  timeout lapses; acting on one used to hide the rest while they stayed
+  invisible on the queue.
+- Console: a success message is a toast that stays seven seconds and waits
+  while hovered or focused, wherever the action came from. A banner is kept
+  only for a value you must copy before it leaves (a new access key's secret).
+  Errors stay beside the control that failed.
+- Console: detail and output panels scroll into view when a button fills them,
+  and detail panels have a close button. Traffic, DynamoDB item and SQS message
+  rows no longer nest controls inside a button role; a real button in each row
+  carries the keyboard and screen-reader behaviour.
+- Console: below 768px it says it is built for desktop widths.
 - A ranged S3 `GetObject` no longer carries the full-object checksum. boto3
   validates whatever checksum arrives against the bytes it received, so every
   ranged read of an object it had uploaded raised `FlexibleChecksumError`.

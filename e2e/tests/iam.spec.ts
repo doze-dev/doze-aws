@@ -26,7 +26,7 @@ test.describe('IAM console', () => {
     // Membership from the group's side…
     await page.locator('select[name="user"]').selectOption(user);
     await page.locator('form:has(select[name="user"])').getByRole('button', { name: 'Add', exact: true }).click();
-    await expect(page.locator('#flashbar')).toContainText(`${user} added to ${group}`);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`${user} added to ${group}`);
     await expect(page.locator('.badge', { hasText: user })).toBeVisible();
 
     // …reflected on the user's side (ListGroupsForUser).
@@ -67,12 +67,12 @@ test.describe('IAM console', () => {
     await page.getByRole('button', { name: 'Edit as new version' }).click();
     await page.evaluate((d) => window.dozeEditor.set('form[action=""] textarea[name="document"], form textarea[name="document"]', d), doc('s3:*'));
     await page.getByRole('button', { name: 'Publish version' }).click();
-    await expect(page.locator('#flashbar')).toContainText('New version published');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('New version published');
     // v2 is default (the checkbox defaults on); v1 offers rollback.
     const v1row = page.locator('tr', { hasText: 'v1' });
     await v1row.getByRole('button', { name: 'Make default' }).click();
     await page.locator('#confirm-yes').click();
-    await expect(page.locator('#flashbar')).toContainText('v1 is now the default');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('v1 is now the default');
 
     // The draft simulator: check a policy that exists nowhere.
     await page.goto('iam');
@@ -114,7 +114,7 @@ test.describe('IAM console', () => {
     await expect(page.locator('.factstrip .fact', { hasText: 'Users' })).toBeVisible();
     await page.locator('input[name="alias"]').fill(alias);
     await page.getByRole('button', { name: 'Set' }).click();
-    await expect(page.locator('#flashbar')).toContainText(`Account alias set to ${alias}`);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Account alias set to ${alias}`);
     await expect(page.locator('.badge', { hasText: alias })).toBeVisible();
   });
 });
@@ -213,7 +213,7 @@ test.describe('policy builder', () => {
     });
     await page.locator('input[name="name"]').fill(name);
     await page.getByRole('button', { name: 'Create policy' }).click();
-    await expect(page.locator('#flashbar')).toContainText(`Created ${name}`);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Created ${name}`);
   });
 });
 
@@ -244,7 +244,7 @@ test('a refused policy document errors next to the builder and clears on retry',
     window.dozeEditor.set(ta, JSON.stringify({ Version: '2012-10-17', Statement: [{ Effect: 'Allow', Action: 's3:*', Resource: '*' }] }));
   });
   await page.getByRole('button', { name: 'Create policy' }).click();
-  await expect(page.locator('#flashbar')).toContainText(`Created ${name}`);
+  await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Created ${name}`);
   await expect(page.locator('[data-doze-err]')).toHaveCount(0);
 });
 
@@ -301,7 +301,7 @@ test.describe('IAM role page', () => {
     });
     await setPolicyDoc(page, 'form[hx-post$="/trust"]', trust);
     await trustPanel.getByRole('button', { name: 'Save trust policy' }).click();
-    await expect(page.locator('#flashbar')).toContainText('Trust policy updated');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Trust policy updated');
     await expect(
       page.locator('.panel', { has: page.locator('form[hx-post$="/trust"]') }).locator('.code-out pre')
     ).toContainText('ecs-tasks.amazonaws.com');
@@ -311,7 +311,7 @@ test.describe('IAM role page', () => {
     await meta.locator('input[name="description"]').fill('e2e role description');
     await meta.locator('input[name="session"]').fill('7200');
     await meta.getByRole('button', { name: 'Save' }).click();
-    await expect(page.locator('#flashbar')).toContainText('Role settings saved');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Role settings saved');
     await page.reload();
     await expect(page.locator('form[hx-post$="/meta"] input[name="description"]')).toHaveValue(
       'e2e role description'
@@ -325,7 +325,7 @@ test.describe('IAM role page', () => {
     await addPanel.locator('input[name="policy"]').fill(inlineName);
     await setPolicyDoc(page, `form[hx-post$="/iam/role/${role}/inline"]:has(input[name="policy"]:not([type=hidden]))`, allow('sqs:SendMessage'));
     await addPanel.locator('form').getByRole('button', { name: 'Add', exact: true }).click();
-    await expect(page.locator('#flashbar')).toContainText(`Saved ${inlineName}`);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Saved ${inlineName}`);
     const inlinePanel = page.locator('.panel', { has: page.locator('h2', { hasText: inlineName }) });
     await expect(inlinePanel.locator('.code-out pre')).toContainText('sqs:SendMessage');
 
@@ -337,14 +337,14 @@ test.describe('IAM role page', () => {
       allow('sqs:ReceiveMessage')
     );
     await inlinePanel.getByRole('button', { name: 'Save' }).click();
-    await expect(page.locator('#flashbar')).toContainText(`Saved ${inlineName}`);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Saved ${inlineName}`);
     await expect(inlinePanel.locator('.code-out pre')).toContainText('sqs:ReceiveMessage');
     await expect(inlinePanel.locator('.code-out pre')).not.toContainText('sqs:SendMessage');
 
     // --- Inline policy: remove ---
     await inlinePanel.getByRole('button', { name: 'Remove' }).click();
     await confirmDialog('accept');
-    await expect(page.locator('#flashbar')).toContainText('Removed inline policy');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Removed inline policy');
     await expect(inlinePanel).toHaveCount(0);
 
     // --- Detach the managed policy ---
@@ -352,7 +352,7 @@ test.describe('IAM role page', () => {
     await expect(attachedRow).toBeVisible();
     await attachedRow.getByRole('button', { name: 'Detach' }).click();
     await confirmDialog('accept');
-    await expect(page.locator('#flashbar')).toContainText('Detached');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Detached');
     await expect(page.locator('.tbl').first()).toContainText('No managed policies attached');
 
     // --- Delete the role ---
@@ -360,7 +360,7 @@ test.describe('IAM role page', () => {
     await expect(page.locator('#confirm-msg')).toContainText(role);
     await confirmDialog('accept');
     await page.waitForURL(/\/iam(\?.*)?$/);
-    await expect(page.locator('#flashbar')).toContainText(`Deleted ${role}`);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Deleted ${role}`);
     await expect(page.locator('.listpane .li', { hasText: role })).toHaveCount(0);
   });
 });
@@ -385,7 +385,7 @@ test.describe('IAM user page', () => {
     const join = page.locator(`form[hx-post$="/iam/user/${user}/join-group"]`);
     await join.locator('select[name="group"]').selectOption(group);
     await join.getByRole('button', { name: 'Add', exact: true }).click();
-    await expect(page.locator('#flashbar')).toContainText(`${user} added to ${group}`);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`${user} added to ${group}`);
     await expect(page.locator('.chips a.badge', { hasText: group })).toBeVisible();
     // …and the group sees the member.
     await page.goto(`iam/group/${group}`);
@@ -399,7 +399,7 @@ test.describe('IAM user page', () => {
     await keyRow.getByRole('button', { name: 'Delete key' }).click();
     await expect(page.locator('#confirm-msg')).toContainText(keyId);
     await confirmDialog('accept');
-    await expect(page.locator('#flashbar')).toContainText('Key deleted');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Key deleted');
     await expect(page.locator('.tbl tbody', { hasText: 'No access keys' })).toBeVisible();
     await expect(page.locator('.tbl', { hasText: keyId })).toHaveCount(0);
 
@@ -408,14 +408,14 @@ test.describe('IAM user page', () => {
     // The × carries its meaning only in title=, so its accessible name is "×".
     await page.locator(`button[title="Remove ${user} from the group"]`).click();
     await confirmDialog('accept');
-    await expect(page.locator('#flashbar')).toContainText(`${user} removed from ${group}`);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`${user} removed from ${group}`);
 
     await page.goto(`iam/user/${user}`);
     await page.locator('.det-title .acts').getByRole('button', { name: 'Delete' }).click();
     await expect(page.locator('#confirm-msg')).toContainText(user);
     await confirmDialog('accept');
     await page.waitForURL(/\/iam(\?.*)?$/);
-    await expect(page.locator('#flashbar')).toContainText(`Deleted ${user}`);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Deleted ${user}`);
     await expect(page.locator('.listpane .li', { hasText: user })).toHaveCount(0);
   });
 
@@ -430,7 +430,7 @@ test.describe('IAM user page', () => {
     await form.getByRole('button', { name: 'Rename' }).click();
     if (await page.locator('#confirm').isVisible()) await confirmDialog('accept');
     await page.waitForURL(new RegExp(`/iam/user/${user}-renamed$`));
-    await expect(page.locator('#flashbar')).toContainText(`User renamed to ${user}-renamed`);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`User renamed to ${user}-renamed`);
   });
 });
 
@@ -452,7 +452,7 @@ test.describe('IAM managed policy page', () => {
     await v1.getByRole('button', { name: 'Delete version v1' }).click();
     await expect(page.locator('#confirm-msg')).toContainText('v1');
     await confirmDialog('accept');
-    await expect(page.locator('#flashbar')).toContainText('Version deleted');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Version deleted');
     await expect(v1).toHaveCount(0);
     await expect(page.locator('.tbl tbody tr', { hasText: 'v2' }).locator('.badge')).toHaveText('default');
 
@@ -460,7 +460,7 @@ test.describe('IAM managed policy page', () => {
     await expect(page.locator('#confirm-msg')).toContainText(policy);
     await confirmDialog('accept');
     await page.waitForURL(/\/iam(\?.*)?$/);
-    await expect(page.locator('#flashbar')).toContainText('Policy deleted');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Policy deleted');
     await expect(page.locator('.listpane .li', { hasText: policy })).toHaveCount(0);
   });
 });
@@ -477,7 +477,7 @@ test.describe('IAM instance profile page', () => {
     const add = page.locator(`form[hx-post$="/iam/profile/${profile}/role"]`);
     await add.locator('select[name="role"]').selectOption(role);
     await add.getByRole('button', { name: 'Add', exact: true }).click();
-    await expect(page.locator('#flashbar')).toContainText('Profile updated');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Profile updated');
     await expect(page.locator('.chips .badge a', { hasText: role })).toBeVisible();
     // A profile holds one role: the add form is gone.
     await expect(add).toHaveCount(0);
@@ -488,14 +488,14 @@ test.describe('IAM instance profile page', () => {
     await page.goto(`iam/profile/${profile}`);
     await page.locator(`button[title="Remove ${role}"]`).click();
     await confirmDialog('accept');
-    await expect(page.locator('#flashbar')).toContainText('Profile updated');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Profile updated');
     await expect(page.getByText('Empty — an instance with this profile has no permissions.')).toBeVisible();
 
     await page.locator('.det-title .acts').getByRole('button', { name: 'Delete' }).click();
     await expect(page.locator('#confirm-msg')).toContainText(profile);
     await confirmDialog('accept');
     await page.waitForURL(/\/iam(\?.*)?$/);
-    await expect(page.locator('#flashbar')).toContainText(`Instance profile ${profile} deleted`);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Instance profile ${profile} deleted`);
     await expect(page.locator('.listpane .li', { hasText: profile })).toHaveCount(0);
   });
 });

@@ -2,14 +2,14 @@ import type { Page } from '@playwright/test';
 import { test, expect } from '../fixtures/console';
 import { postForm, createTable } from '../fixtures/api';
 
-// Toasts stack and self-remove after ~3.2s; waitForToast() grabs whichever is
+// Toasts stack and self-remove after ~7s; waitForToast() grabs whichever is
 // `.last()` in the DOM at the moment it's called. Two toast-producing actions
 // fired back to back can race: the previous toast may still be visible when
 // we ask for the next one, so we'd read stale text. Draining first (bounded
 // by the toast's own auto-remove timeout) guarantees the next waitForToast()
 // call observes a fresh one.
 async function drainToasts(page: Page) {
-  await expect(page.locator('.toast:not(.err)')).toHaveCount(0, { timeout: 5000 });
+  await page.evaluate(() => document.querySelectorAll('.toast:not(.err)').forEach((e) => e.remove()));
 }
 
 // DynamoDB console coverage: table creation (partition+sort key, GSI, TTL) via
@@ -41,7 +41,7 @@ test.describe('create table', () => {
 
     await page.getByRole('button', { name: 'Create table' }).click();
     await page.waitForURL(new RegExp(`/ddb/${table}(\\?|$)`));
-    await expect(page.locator('#flashbar')).toContainText('created');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('created');
 
     await page.goto(`ddb/${table}?tab=details`);
     const details = page.locator('#ddb-details');
@@ -443,7 +443,7 @@ test.describe('delete table', () => {
     await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
     await confirmDialog('accept');
     await page.waitForURL(/\/ddb(\?|$)/);
-    await expect(page.locator('#flashbar')).toContainText('Table deleted');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Table deleted');
     await expect(page.locator('.li', { hasText: table })).toHaveCount(0);
 
     // AWS-side: the table is gone, not merely hidden.

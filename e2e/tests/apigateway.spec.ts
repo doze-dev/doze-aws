@@ -63,7 +63,7 @@ test.describe('API Gateway console', () => {
     await page.waitForURL(/tab=stages/);
     await page.locator('input[name="stage"]').fill('dev');
     await page.getByRole('button', { name: 'Deploy API' }).click();
-    await expect(page.locator('#flashbar')).toContainText('Deployed to dev');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Deployed to dev');
     await expect(page.locator('tbody td', { hasText: 'dev' }).first()).toBeVisible();
 
     // The proof: a request through the execute-api plane gets the MOCK's
@@ -80,7 +80,7 @@ test.describe('API Gateway console', () => {
     await page.locator('.tabbar a', { hasText: 'Settings' }).click();
     await page.locator('form[hx-post$="/update"] input[name="name"]').fill(`${name}-v2`);
     await page.getByRole('button', { name: 'Save settings' }).click();
-    await expect(page.locator('#flashbar')).toContainText('API settings saved');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('API settings saved');
     await expect(page.locator('.det-title')).toContainText(`${name}-v2`);
   });
 });
@@ -132,7 +132,7 @@ test.describe('API Gateway gates', () => {
     await page.goto(apiURL + '?tab=stages');
     await page.locator('input[name="stage"]').fill('v1');
     await page.getByRole('button', { name: 'Deploy API' }).click();
-    await expect(page.locator('#flashbar')).toContainText('v1');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('v1');
     await page.locator('a', { hasText: 'API keys' }).first().click();
     await page.waitForURL(/apigw-keys/);
     const body = () => page.locator('#apigw-keys-body');
@@ -208,7 +208,7 @@ test.describe('API Gateway gates', () => {
     await page.goto(apiURL + '?tab=stages');
     await page.locator('input[name="stage"]').fill('v1');
     await page.getByRole('button', { name: 'Deploy API' }).click();
-    await expect(page.locator('#flashbar')).toContainText('v1');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('v1');
 
     const invoke = `${ORIGIN}/_aws/execute-api/${apiID}/v1/`;
 

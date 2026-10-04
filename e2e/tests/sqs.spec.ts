@@ -330,7 +330,7 @@ test.describe('delete queue', () => {
     await confirmDialog('accept');
 
     await page.waitForURL(/\/sqs(\?|$)/);
-    await expect(page.locator('#flashbar')).toContainText('Queue deleted');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Queue deleted');
     await expect(page.locator('.li', { hasText: name })).toHaveCount(0);
   });
 });

@@ -201,12 +201,12 @@ test.describe('rotation', () => {
       page.locator('.meta-cellx', { hasText: 'Rotation' }).locator('.badge.state-on')
     ).toContainText(/every \d+d/);
 
-    // Toasts self-remove after 3.2s and waitForToast() just grabs whatever
+    // Toasts self-remove after 7s and waitForToast() just grabs whatever
     // `.toast:not(.err)` element is currently last in the DOM — if the
     // "Rotation configured" toast from the previous step is still showing
     // when we click "Rotate now", it (not the new toast) satisfies the
     // visibility check first. Let it clear before triggering the next one.
-    await expect(page.locator('.toast')).toHaveCount(0, { timeout: 5000 });
+    await page.evaluate(() => document.querySelectorAll('.toast').forEach((e) => e.remove()));
 
     await page.getByRole('button', { name: 'Rotate now' }).click();
     const rotateToast = await waitForToast();
@@ -253,7 +253,7 @@ test.describe('delete with recovery window', () => {
     // message through the redirect's query string.
     await restoreBtn.click();
     await page.waitForURL(new RegExp(`name=${name}`));
-    await expect(page.locator('#flashbar')).toContainText('restored');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('restored');
     await expect(page.locator('.badge.dlq')).toHaveCount(0);
     await expect(page.locator('.pub-receipt.warn')).toHaveCount(0);
     await expect(page.locator('.acts').getByRole('button', { name: 'Delete' })).toBeVisible();

@@ -76,7 +76,7 @@ test.describe('cloudwatch metrics and alarms', () => {
     await page.locator('input[name="threshold"]').fill('100');
     await page.getByRole('button', { name: 'Create alarm' }).click();
     await page.waitForURL(new RegExp(`/cw/alarm/${alarmName}`));
-    await expect(page.locator('#flashbar')).toContainText(alarmName);
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(alarmName);
 
     // A fresh alarm reads INSUFFICIENT_DATA: the evaluator judges completed
     // periods only, so nothing has been decided yet.

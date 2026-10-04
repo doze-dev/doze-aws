@@ -239,7 +239,7 @@ test.describe('delete flows', () => {
     await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
     await confirmDialog('accept');
     await page.waitForURL(/\/s3(\?|$)/);
-    await expect(page.locator('#flashbar')).toContainText('Bucket deleted');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Bucket deleted');
   });
 
   test('delete a specific version, leaving the current version intact', async ({

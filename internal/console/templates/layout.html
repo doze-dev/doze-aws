@@ -187,6 +187,7 @@ return"= "+p.join(" ");};</script>
          own — #attributeValue returns "" before it ever consults the parent,
          and the swap path treats "" as no-select. */}}
     <main id="workspace" class="workspace" hx-boost:inherited="true" hx-target:inherited="#workspace" hx-select:inherited="#workspace" hx-swap:inherited="outerHTML show:none">
+      <div class="narrow-note" role="note">The console is built for desktop-width windows (768px and up). Everything still works here, but it will not fit well.</div>
       {{if .Flash}}
       <div class="flash anim" id="flashbar">
         {{icon "check"}} <span>{{.Flash}}</span>

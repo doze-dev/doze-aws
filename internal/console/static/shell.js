@@ -136,6 +136,7 @@
     if (!box) return;
     var el = document.createElement("div");
     el.className = "toast anim" + (kind === "err" ? " err" : "");
+    el.setAttribute("role", kind === "err" ? "alert" : "status");
     el.innerHTML = '<span class="t-ic">' + (kind === "err" ? "⚠" : "✓") + '</span><span></span><span class="tclose">✕</span>';
     el.children[1].textContent = msg;
     el.querySelector(".tclose").onclick = function () { el.remove(); };
@@ -147,8 +148,21 @@
     // thought it had seen.
     var id = nextSeq();
     el.dataset.seq = String(id);
+    // One success at a time: they all come from the thing you just clicked, so a
+    // second one replaces the first rather than saying it twice.
+    if (kind !== "err") box.querySelectorAll(".toast:not(.err)").forEach(function (old) { old.remove(); });
     box.appendChild(el);
-    setTimeout(function () { el.remove(); }, kind === "err" ? 6000 : 3200);
+    // Long enough to look up from the button and read, and it waits while you are
+    // reading: hovering or focusing it stops the clock. 3.2s was the complaint that
+    // once moved success messages onto a banner.
+    var life = kind === "err" ? 10000 : 7000, timer;
+    function arm() { clearTimeout(timer); timer = setTimeout(function () { el.remove(); }, life); }
+    function hold() { clearTimeout(timer); }
+    el.addEventListener("mouseenter", hold);
+    el.addEventListener("mouseleave", arm);
+    el.addEventListener("focusin", hold);
+    el.addEventListener("focusout", arm);
+    arm();
   }
   window.addEventListener("toast", function (e) { toast(e.detail.value !== undefined ? e.detail.value : e.detail, "ok"); });
   window.addEventListener("toast-error", function (e) { toast(e.detail.value !== undefined ? e.detail.value : e.detail, "err"); });
@@ -929,6 +943,10 @@
   function queueFlash(e, sticky) {
     var msg = String(e.detail && (e.detail.value !== undefined ? e.detail.value : e.detail) || "");
     if (!msg) return;
+    // A success is a toast, which lives outside #workspace and so survives the
+    // swap a redirect is about to make. Only a value you must copy before it
+    // leaves (a secret) stays a banner.
+    if (!sticky) { toast(msg, "ok"); return; }
     pendingFlash = { msg: msg, sticky: sticky };
     setTimeout(paintFlash, 120); // no navigation coming — paint it anyway
   }
@@ -1042,4 +1060,35 @@
   }
 
   window.dozeShell = { toast: toast, openPalette: openPalette, clearFilter: clearFilter };
+})();
+
+// ---------- where a result lands ----------
+// Detail and output panels are filled by a button somewhere else on the page, so
+// the result can open below the fold with nothing to say it did. After a swap
+// into one, bring it into view, and give a detail panel a way to close it.
+// Scoped to the ids the console gives such panels (…-detail, …-out, …-result)
+// so nothing that is polled or morphed in place is touched.
+(function () {
+  var PANEL = /-(detail|out|result)$/;
+  document.addEventListener("htmx:after:swap", function (e) {
+    var ctx = e.detail && e.detail.ctx;
+    var t = ctx && ctx.target;
+    if (!t || !t.id || !PANEL.test(t.id)) return;
+    var host = document.getElementById(t.id); // an outerHTML swap leaves ctx.target detached
+    if (!host || !host.textContent.trim()) return;
+    if (/-detail$/.test(host.id) && !host.querySelector(":scope > .dz-close")) {
+      var x = document.createElement("button");
+      x.type = "button";
+      x.className = "icon-btn sm dz-close";
+      x.setAttribute("aria-label", "Close");
+      x.title = "Close";
+      x.textContent = "×";
+      x.addEventListener("click", function () { host.innerHTML = ""; });
+      host.insertBefore(x, host.firstChild);
+    }
+    var r = host.getBoundingClientRect();
+    if (r.top >= 0 && r.bottom <= window.innerHeight) return; // already in view
+    var calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    host.scrollIntoView({ block: "nearest", behavior: calm ? "auto" : "smooth" });
+  });
 })();

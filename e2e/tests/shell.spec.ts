@@ -132,7 +132,7 @@ test.describe('styled confirm + toasts', () => {
     await deleteBtn.click();
     await confirmDialog('accept');
     await page.waitForURL(/\/s3(\?|$)/);
-    await expect(page.locator('#flashbar')).toContainText('Bucket deleted');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Bucket deleted');
   });
 });
 

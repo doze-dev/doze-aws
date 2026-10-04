@@ -245,7 +245,7 @@ test.describe('SNS console', () => {
     await expect(page.locator('#confirm-msg')).toContainText(topic);
     await confirmDialog('accept');
     await page.waitForURL(/\/sns(\?|$)/);
-    await expect(page.locator('#flashbar')).toContainText('Topic deleted');
+    await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Topic deleted');
   });
 });
 

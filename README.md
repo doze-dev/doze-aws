@@ -57,6 +57,9 @@ tail its logs, simulate an IAM policy. And a **fidelity ledger** per service
 saying which operations are functional, which are cosmetic round-trips, and
 which are honest stubs — the one table real AWS never has to show you.
 
+The console is built for desktop-width windows, 768px and up. Below that it
+still works and says so, but it is not designed to fit a phone.
+
 `doze-aws doctor` is the first thing to run when something is off: it reports
 what `.doze` needs on this machine, what is registered, and what to do about
 it. It always exits 0 — being told what is missing is the command working.
