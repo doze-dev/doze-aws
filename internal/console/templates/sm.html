@@ -8,6 +8,7 @@
 {{end}}
 
 {{define "sm_home"}}{{template "shell_top" .}}
+  <h1 class="sr-only">Secrets Manager</h1>
   {{template "sm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   {{template "empty_detail" dict "Svc" "sm" "Prefix" $.Prefix "Empty" (not .List)}}
 {{template "shell_bottom" .}}{{end}}

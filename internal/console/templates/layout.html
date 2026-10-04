@@ -126,7 +126,7 @@ return"= "+p.join(" ");};</script>
   </header>
 
   <div class="body">
-    <nav class="rail" hx-boost:inherited="true" hx-target:inherited="#workspace" hx-select:inherited="#workspace" hx-swap:inherited="outerHTML">
+    <nav class="rail" aria-label="Services" hx-boost:inherited="true" hx-target:inherited="#workspace" hx-select:inherited="#workspace" hx-swap:inherited="outerHTML">
       {{/* Grouped by what you are doing, not by AWS's product taxonomy.
            "Provisioning" was a heading from the docs holding three services, only
            one of which provisions anything: API Gateway is a traffic surface with

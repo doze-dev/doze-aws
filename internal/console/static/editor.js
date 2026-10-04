@@ -114,6 +114,10 @@
     var name = ta.getAttribute("aria-label") || ta.getAttribute("title") ||
       (fieldLabel && fieldLabel.textContent.trim()) || ta.name || "Editor";
     cm.getInputField().setAttribute("aria-label", name);
+    // The scroller is scrollable; give it a focus target of its own so it is not an
+    // unreachable scrolling region. 0 so it is a keyboard stop for scrolling long content; the input above
+    // is the one that types.
+    cm.getScrollerElement().setAttribute("tabindex", "0");
     cm.on("change", function () {
       cm.save();
       if (!explicit) { // only auto-detect when the caller didn't name a mode

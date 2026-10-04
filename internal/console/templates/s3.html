@@ -93,7 +93,7 @@
 
 {{define "object_table"}}
 <div id="object-table" data-prefix="{{.KeyPrefix}}">
-<nav class="bc">
+<nav class="bc" aria-label="Breadcrumb">
   <a hx-get="{{.Prefix}}/s3/{{.Bucket}}?partial=1" hx-target="#object-table" hx-select="" hx-swap="outerHTML" href="{{.Prefix}}/s3/{{.Bucket}}">{{.Bucket}}</a>
   {{range .Crumbs}}{{icon "chevron"}}<a hx-get="{{$.Prefix}}/s3/{{$.Bucket}}?partial=1&prefix={{.Prefix}}" hx-target="#object-table" hx-select="" hx-swap="outerHTML" href="{{$.Prefix}}/s3/{{$.Bucket}}?prefix={{.Prefix}}">{{.Name}}</a>{{end}}
 </nav>
@@ -294,13 +294,13 @@
     {{end}}</div>
     {{else}}<div class="empty" style="border:0"><p>No notifications — object events go nowhere yet.</p></div>{{end}}
     <form class="sub-add" hx-post="{{.Prefix}}/s3/{{.Bucket}}/notify-add" hx-target="#s3-notify" hx-select="" hx-swap="outerHTML">
-      <select class="input" title="Destination service" name="dest" required>
+      <select aria-label="Destination service" class="input" title="Destination service" name="dest" required>
         <option value="">— destination —</option>
         {{range .Queues}}<option value="sqs:{{.Name}}">SQS · {{.Name}}</option>{{end}}
         {{range .Topics}}<option value="sns:{{.Name}}">SNS · {{.Name}}</option>{{end}}
         {{range .Functions}}<option value="lambda:{{.Name}}">Lambda · {{.Name}}</option>{{end}}
       </select>
-      <select class="input" title="S3 event type" name="event" style="width:170px;flex:none">
+      <select aria-label="S3 event type" class="input" title="S3 event type" name="event" style="width:170px;flex:none">
         <option value="s3:ObjectCreated:*">ObjectCreated:*</option>
         <option value="s3:ObjectRemoved:*">ObjectRemoved:*</option>
       </select>
@@ -349,7 +349,7 @@
   <div class="drawer-sec">
     <div class="ds-title">{{icon "copy"}} Copy / move</div>
     <form class="ds-col" x-data hx-post="{{.Prefix}}/s3/{{.Bucket}}/copy" hx-vals='{"src":"{{.Meta.Key}}","prefix":"{{.KeyPrefix}}"}' hx-target="#object-table" hx-select="" hx-swap="outerHTML" @htmx:after:request="if(($event.detail.ctx.response.status < 400))drawer=false">
-      <input class="input" name="dst" value="{{.Meta.Key}}" spellcheck="false" title="New key — include folders in the path">
+      <input aria-label="New key — include folders in the path" class="input" name="dst" value="{{.Meta.Key}}" spellcheck="false" title="New key — include folders in the path">
       <div class="ds-row" style="justify-content:flex-end">
         <button class="btn btn-outline btn-sm" type="submit">Copy</button>
         <button class="btn btn-outline btn-sm" type="submit" name="move" value="true">Move</button>

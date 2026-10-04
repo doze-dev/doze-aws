@@ -8,6 +8,7 @@
 {{end}}
 
 {{define "lambda_home"}}{{template "shell_top" .}}
+  <h1 class="sr-only">Lambda functions</h1>
   {{template "lambda_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   {{if and (not .List) (not .Layers)}}
   {{/* This was the only real first-run state in the console and it was written

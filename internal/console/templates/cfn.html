@@ -11,6 +11,7 @@
 {{end}}
 
 {{define "cfn_home"}}{{template "shell_top" .}}
+  <h1 class="sr-only">CloudFormation stacks</h1>
   {{template "cfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   {{if not .List}}
   {{template "empty_detail" dict "Svc" "cfn" "Prefix" $.Prefix "Empty" true}}

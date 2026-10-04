@@ -81,3 +81,12 @@ func TestRefKeyDisambiguatesEventBridgeRules(t *testing.T) {
 		t.Errorf("bus and rule share key %q", bus.Key)
 	}
 }
+
+// A CloudWatch call's resource can be the topic an alarm notifies. That is the
+// topic's page, not an alarm named after an ARN (which was a 404 in Traffic).
+func TestCloudWatchResourceThatIsAnotherServicesARN(t *testing.T) {
+	got := resourceURL("cw", "arn:aws:sns:us-east-1:000000000000:ops-alerts")
+	if got.Path != "/sns/ops-alerts" {
+		t.Errorf("Path = %q, want /sns/ops-alerts", got.Path)
+	}
+}

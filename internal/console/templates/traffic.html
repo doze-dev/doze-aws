@@ -29,7 +29,7 @@
 <div x-data="{errOnly:false, svc:'', sel:null, paused:false}">
   <div class="chips" style="margin-bottom:10px">
     <label class="chip" style="cursor:pointer"><input type="checkbox" x-model="errOnly" style="margin-right:6px;vertical-align:-1px"> only errors</label>
-    <select class="chip" title="Filter by service" x-model="svc" style="cursor:pointer;background:var(--card)"><option value="">all services</option>{{range list "s3" "ddb" "sqs" "sns" "eb" "kinesis" "lambda" "apigw" "sfn" "logs" "cw" "kms" "sm" "ssm" "iam" "cfn" "sts"}}<option>{{.}}</option>{{end}}</select>
+    <select aria-label="Filter by service" class="chip" title="Filter by service" x-model="svc" style="cursor:pointer;background:var(--card)"><option value="">all services</option>{{range list "s3" "ddb" "sqs" "sns" "eb" "kinesis" "lambda" "apigw" "sfn" "logs" "cw" "kms" "sm" "ssm" "iam" "cfn" "sts"}}<option>{{.}}</option>{{end}}</select>
     <button type="button" class="chip" style="cursor:pointer" x-text="paused ? '▶ resume' : '⏸ pause'"
             @click="paused=!paused; const f=document.getElementById('traffic-feed'); if(paused){f.setAttribute('data-live-paused','1')}else{f.removeAttribute('data-live-paused')}"></button>
     <button type="button" class="chip" style="cursor:pointer" hx-post="{{.Prefix}}/traffic/clear" hx-confirm="Clear the feed? Calls already recorded are dropped from this view." hx-target="#traffic-feed" hx-select="" hx-swap="outerHTML" @click="sel=null">{{icon "trash"}} clear</button>

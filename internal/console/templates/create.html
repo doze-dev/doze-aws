@@ -5,7 +5,7 @@
 {{define "s3_create"}}{{template "shell_top" .}}
   {{template "s3_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page">
-    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create bucket</div>
+    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create bucket</div>
     <p class="det-sub" style="margin-bottom:18px">Buckets hold objects. Names are 3–63 lowercase characters.</p>
     <form hx-post="{{.Prefix}}/s3/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Bucket name</label>
@@ -25,7 +25,7 @@
 {{define "sqs_create"}}{{template "shell_top" .}}
   {{template "sqs_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page">
-    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create queue</div>
+    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create queue</div>
     <p class="det-sub" style="margin-bottom:18px">Every setting can also be changed later.</p>
     <form hx-post="{{.Prefix}}/sqs/create" hx-indicator="#submit-spin" x-data="{fifo:false, dlq:'new', name:''}">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
@@ -91,7 +91,7 @@
 {{define "ddb_create"}}{{template "shell_top" .}}
   {{template "ddb_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page" x-data="{sk:false, gsis:[], ttl:false}">
-    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create table</div>
+    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create table</div>
     <p class="det-sub" style="margin-bottom:18px">On-demand capacity. Add secondary indexes and TTL here — or later via the SDK.</p>
     <form hx-post="{{.Prefix}}/ddb/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Table name</label><input class="input" name="name" placeholder="users" required pattern="[a-zA-Z0-9_.\-]{3,255}" autocomplete="off" autofocus></div></div></div>
@@ -139,7 +139,7 @@
 {{define "sns_create"}}{{template "shell_top" .}}
   {{template "sns_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page">
-    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create topic</div><p class="det-sub" style="margin-bottom:18px">Publish once, deliver to every subscription.</p>
+    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create topic</div><p class="det-sub" style="margin-bottom:18px">Publish once, deliver to every subscription.</p>
     <form hx-post="{{.Prefix}}/sns/create" hx-indicator="#submit-spin"><div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Topic name</label><input class="input" name="name" placeholder="order-events" required pattern="[a-zA-Z0-9_\-]{1,256}" autocomplete="off" autofocus></div></div></div>{{template "cli" "sns create-topic --name $name"}}{{template "form_actions" dict "Cancel" (printf "%s/sns" .Prefix) "Submit" "Create topic"}}</form>
   </div></section>
 {{template "shell_bottom" .}}{{end}}
@@ -147,7 +147,7 @@
 {{define "eb_bus_create"}}{{template "shell_top" .}}
   {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page">
-    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create event bus</div><p class="det-sub" style="margin-bottom:18px">Rules on a custom bus only match events sent to that bus.</p>
+    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create event bus</div><p class="det-sub" style="margin-bottom:18px">Rules on a custom bus only match events sent to that bus.</p>
     <form hx-post="{{.Prefix}}/eb/create-bus" hx-indicator="#submit-spin"><div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Bus name</label><input class="input" name="name" placeholder="orders-bus" required pattern="[a-zA-Z0-9_\-.]{1,256}" autocomplete="off" autofocus></div></div></div>{{template "form_actions" dict "Cancel" (printf "%s/eb" .Prefix) "Submit" "Create event bus"}}</form>
   </div></section>
 {{template "shell_bottom" .}}{{end}}
@@ -155,7 +155,7 @@
 {{define "eb_rule_create"}}{{template "shell_top" .}}
   {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bus)}}
   <section class="detail"><div class="form-page">
-    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create rule</div><p class="det-sub" style="margin-bottom:18px">A rule on the <b>{{.Bus}}</b> bus matches {{if eq .Bus "default"}}by pattern, schedule, or both{{else}}events by pattern{{end}}.</p>
+    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create rule</div><p class="det-sub" style="margin-bottom:18px">A rule on the <b>{{.Bus}}</b> bus matches {{if eq .Bus "default"}}by pattern, schedule, or both{{else}}events by pattern{{end}}.</p>
     <form hx-post="{{.Prefix}}/eb/{{.Bus}}/create-rule" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="field"><label>Rule name</label><input class="input" name="name" placeholder="on-order-created" required pattern="[a-zA-Z0-9_\-.]{1,64}" autocomplete="off" autofocus></div></div></div>
       <div class="panel form-sec"><div class="panel-h"><h2>Match</h2></div><div class="form-b">
@@ -179,7 +179,7 @@
 {{define "kms_create"}}{{template "shell_top" .}}
   {{template "kms_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page">
-    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create key</div><p class="det-sub" style="margin-bottom:18px">Symmetric keys encrypt/decrypt; RSA/ECC sign/verify; HMAC generate MACs.</p>
+    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create key</div><p class="det-sub" style="margin-bottom:18px">Symmetric keys encrypt/decrypt; RSA/ECC sign/verify; HMAC generate MACs.</p>
     <form hx-post="{{.Prefix}}/kms/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>Key type</h2></div><div class="form-b"><div class="fgrid">
         <div class="field"><label>Key spec</label><select class="input" name="spec"><option value="SYMMETRIC_DEFAULT">SYMMETRIC_DEFAULT</option><option value="RSA_2048">RSA_2048</option><option value="RSA_3072">RSA_3072</option><option value="RSA_4096">RSA_4096</option><option value="ECC_NIST_P256">ECC_NIST_P256</option><option value="ECC_NIST_P384">ECC_NIST_P384</option><option value="HMAC_256">HMAC_256</option></select></div>
@@ -197,7 +197,7 @@
 {{define "ssm_create"}}{{template "shell_top" .}}
   {{template "ssm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page">
-    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create parameter</div><p class="det-sub" style="margin-bottom:18px">Path-style names like <span class="mono">/app/db/host</span> group related config.</p>
+    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create parameter</div><p class="det-sub" style="margin-bottom:18px">Path-style names like <span class="mono">/app/db/host</span> group related config.</p>
     <form hx-post="{{.Prefix}}/ssm/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="fgrid">
         <div class="field"><label>Name</label><input class="input mono" name="name" placeholder="/app/db/host" required autocomplete="off" autofocus></div>
@@ -213,7 +213,7 @@
 {{define "sm_create"}}{{template "shell_top" .}}
   {{template "sm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page">
-    <div class="det-title" style="font-size:18px;margin-bottom:2px">Store a new secret</div><p class="det-sub" style="margin-bottom:18px">Encrypted at rest. JSON key/value is conventional; any string works.</p>
+    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Store a new secret</div><p class="det-sub" style="margin-bottom:18px">Encrypted at rest. JSON key/value is conventional; any string works.</p>
     <form hx-post="{{.Prefix}}/sm/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="fgrid">
         <div class="field"><label>Secret name</label><input class="input mono" name="name" placeholder="prod/db/credentials" required autocomplete="off" autofocus></div>
@@ -229,7 +229,7 @@
 {{define "sfn_create"}}{{template "shell_top" .}}
   {{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page">
-    <div class="det-title fp-title">Create state machine</div>
+    <div class="det-title fp-title" role="heading" aria-level="1">Create state machine</div>
     <p class="det-sub fp-sub">Write the workflow in the States Language; Validate runs the same analyser CreateStateMachine does, so what passes here deploys.</p>
     <form hx-post="{{.Prefix}}/sfn/create" hx-indicator="#submit-spin" data-err-slot="#sfn-validate-out">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
@@ -281,7 +281,7 @@
 {{define "cfn_create"}}{{template "shell_top" .}}
   {{template "cfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page">
-    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create stack</div>
+    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create stack</div>
     <p class="det-sub" style="margin-bottom:18px">Paste a template, answer what it asks, deploy &mdash; or make a change set and review the diff first.</p>
     <form hx-post="{{.Prefix}}/cfn/create" hx-indicator="#submit-spin" x-data="{review:false}" data-err-slot="#cfn-validate-out">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
@@ -325,7 +325,7 @@
 {{define "apigw_create"}}{{template "shell_top" .}}
   {{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page">
-    <div class="det-title" style="font-size:18px;margin-bottom:2px">Create API</div>
+    <div class="det-title" role="heading" aria-level="1" style="font-size:18px;margin-bottom:2px">Create API</div>
     <p class="det-sub" style="margin-bottom:18px">A REST API is a resource tree with methods and integrations, deployed to a stage. An HTTP API is routes by key, answering at <span class="mono">$default</span> as soon as a route exists.</p>
     <form hx-post="{{.Prefix}}/apigw/create" hx-indicator="#submit-spin" x-data="{proto:'REST'}">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">
@@ -347,7 +347,7 @@
 {{define "logs_create"}}{{template "shell_top" .}}
   {{template "logs_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page">
-    <div class="det-title fp-title">Create log group</div><p class="det-sub fp-sub">A function makes its own group (<span class="mono">/aws/lambda/&lt;name&gt;</span>) the first time it prints. Create one here for an application that writes with PutLogEvents, or to set retention before a function exists.</p>
+    <div class="det-title fp-title" role="heading" aria-level="1">Create log group</div><p class="det-sub fp-sub">A function makes its own group (<span class="mono">/aws/lambda/&lt;name&gt;</span>) the first time it prints. Create one here for an application that writes with PutLogEvents, or to set retention before a function exists.</p>
     <form hx-post="{{.Prefix}}/logs/create" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b"><div class="fgrid">
         <div class="field"><label>Name</label><input class="input mono" name="name" placeholder="/app/api" required autocomplete="off" autofocus spellcheck="false"></div>
@@ -366,7 +366,7 @@
 {{define "cw_create"}}{{template "shell_top" .}}
   {{template "cw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail"><div class="form-page">
-    <div class="det-title fp-title">Create alarm</div><p class="det-sub fp-sub">An alarm watches one metric over a window and notifies when it crosses a threshold. It is evaluated over <b>completed</b> periods — the period containing now is still filling, so a fresh alarm reads INSUFFICIENT_DATA until one period has closed.</p>
+    <div class="det-title fp-title" role="heading" aria-level="1">Create alarm</div><p class="det-sub fp-sub">An alarm watches one metric over a window and notifies when it crosses a threshold. It is evaluated over <b>completed</b> periods — the period containing now is still filling, so a fresh alarm reads INSUFFICIENT_DATA until one period has closed.</p>
     {{if .Metrics}}
     <form hx-post="{{.Prefix}}/cw/create-alarm" hx-indicator="#submit-spin">
       <div class="panel form-sec"><div class="panel-h"><h2>General</h2></div><div class="form-b">

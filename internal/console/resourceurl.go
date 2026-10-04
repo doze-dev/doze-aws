@@ -152,6 +152,10 @@ func resourceURL(svc, id string) resourceRef {
 		} else if rest, ok := strings.CutPrefix(id, "metric/"); ok {
 			ref.Name = rest // a namespace or metric: nothing local renders one
 			return ref
+		} else if strings.HasPrefix(id, "arn:") {
+			// A CloudWatch call's resource can be what an alarm notifies — an SNS
+			// topic or a Lambda function — and that is not an alarm name.
+			return resourceFromARN(id)
 		} else {
 			ref.Name, ref.Path = id, "/cw/alarm/"+id
 		}

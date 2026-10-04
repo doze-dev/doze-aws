@@ -44,3 +44,6 @@ testdata/rapid/
 conformance/.venv/
 conformance/.pytest_cache/
 __pycache__/
+
+# UX crawl output.
+/e2e/audit/out/

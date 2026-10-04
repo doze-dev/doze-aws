@@ -85,7 +85,7 @@
             <td class="num dim sub">{{.Count}}</td>
           </tr>
         {{else}}
-          <tr><td colspan="5" class="mini-note">Nothing recorded yet. Make some calls with IAM on and they appear here.</td></tr>
+          <tr><td colspan="6" class="mini-note">Nothing recorded yet. Make some calls with IAM on and they appear here.</td></tr>
         {{end}}
         </tbody>
       </table></div>
@@ -413,7 +413,7 @@
             </div></td>
           </tr>
         {{else}}
-          <tr><td colspan="4" class="mini-note">No access keys. Locally any credentials are accepted unless IAM is enforcing, so a user without keys still works.</td></tr>
+          <tr><td colspan="5" class="mini-note">No access keys. Locally any credentials are accepted unless IAM is enforcing, so a user without keys still works.</td></tr>
         {{end}}
         </tbody>
       </table></div>
@@ -849,7 +849,7 @@
         <div class="pb-row">
           <span class="pb-l">Principal</span>
           <div class="pb-chips">
-            <select class="input pb-psel" title="How this statement names its principal" x-model="st.pmode" @change="if(st.pmode==='typed'&&!st.prows.length)addPrincipalRow(st); sync()">
+            <select aria-label="How this statement names its principal" class="input pb-psel" title="How this statement names its principal" x-model="st.pmode" @change="if(st.pmode==='typed'&&!st.prows.length)addPrincipalRow(st); sync()">
               <option value="none">— none —</option><option value="any">* (anyone)</option><option value="typed">by type</option>
             </select>
             <button type="button" class="pb-not" x-show="st.pmode!=='none'" :class="st.pnot && 'on'" title="NotPrincipal" @click="st.pnot=!st.pnot; sync()">not</button>
@@ -857,7 +857,7 @@
         </div>
         <template x-for="(pr, pi) in st.prows" :key="pi">
           <div class="pb-row pb-sub" x-show="st.pmode==='typed'">
-            <select class="input pb-psel" title="Principal type" x-model="pr.type" @change="sync()">
+            <select aria-label="Principal type" class="input pb-psel" title="Principal type" x-model="pr.type" @change="sync()">
               <template x-for="pt in principalTypes"><option x-text="pt"></option></template>
             </select>
             <input class="input mono" placeholder="arn:aws:iam::{{account}}:user/x, comma-separated" x-model="pr.vals" @input="sync()" spellcheck="false">
@@ -870,7 +870,7 @@
 
         <template x-for="(cd, ci) in st.conds" :key="ci">
           <div class="pb-row pb-cond">
-            <select class="input" x-model="cd.mod" @change="sync()" title="How a multi-valued context key is compared">
+            <select aria-label="How a multi-valued context key is compared" class="input" x-model="cd.mod" @change="sync()" title="How a multi-valued context key is compared">
               <option value="">each</option><option value="ForAllValues:">ForAllValues:</option><option value="ForAnyValue:">ForAnyValue:</option>
             </select>
             <select class="input" x-model="cd.op" @change="sync()">

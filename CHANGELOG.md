@@ -163,6 +163,14 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   rows no longer nest controls inside a button role; a real button in each row
   carries the keyboard and screen-reader behaviour.
 - Console: below 768px it says it is built for desktop widths.
+- Console accessibility sweep, from a crawl of every page with axe: form controls
+  that had only a title now have a name; every page has a level-one heading;
+  the rail, breadcrumbs and other navigation are told apart; the Step Functions
+  graph no longer nests focusable states inside an image; editors can be
+  scrolled from the keyboard; the OK badge meets contrast on a selected row. A
+  Traffic row for a CloudWatch call whose resource is an SNS topic now links to
+  the topic instead of to an alarm named after its ARN (a 404). The crawl is in
+  `e2e/audit/crawl.ts`.
 - A ranged S3 `GetObject` no longer carries the full-object checksum. boto3
   validates whatever checksum arrives against the bytes it received, so every
   ranged read of an object it had uploaded raised `FlexibleChecksumError`.

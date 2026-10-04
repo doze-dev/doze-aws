@@ -13,6 +13,7 @@
 {{end}}
 
 {{define "ssm_home"}}{{template "shell_top" .}}
+  <h1 class="sr-only">Parameter Store</h1>
   {{template "ssm_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   {{if not .List}}
   {{template "empty_detail" dict "Svc" "ssm" "Prefix" $.Prefix "Empty" true}}
