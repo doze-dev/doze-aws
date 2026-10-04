@@ -105,9 +105,11 @@ var emptyCopyBySvc = map[string]emptyCopy{
 		CTAPath: "/cw/create",
 	},
 	"logs": {
-		Short: "No log groups yet",
-		None:  "No log groups yet. A function writes one under /aws/lambda/<name> the first time it prints, and `aws logs tail --follow` reads the same lines you see here.",
-		Unsel: "Select a log group to tail it, filter it, or read one invocation's lines.",
+		Short:   "No log groups yet",
+		None:    "No log groups yet. A function writes one under /aws/lambda/<name> the first time it prints, and `aws logs tail --follow` reads the same lines you see here.",
+		Unsel:   "Select a log group to tail it, filter it, or read one invocation's lines.",
+		CTA:     "New log group",
+		CTAPath: "/logs/create",
 	},
 	"kms": {
 		Short:   "No keys yet",

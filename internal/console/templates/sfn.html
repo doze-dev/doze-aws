@@ -26,7 +26,7 @@
   {{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Name "ActCount" .ActCount)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "sfn"}} {{.Name}} <span class="badge type">{{.Machine.Type}}</span>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "sfn"}} {{.Name}} <span class="badge type">{{.Machine.Type}}</span>
         <div class="acts">
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/sfn/{{.Name}}/delete" hx-confirm="Delete state machine “{{.Name}}”? Its executions and their history go with it.">{{icon "trash"}} Delete</button>
         </div></div>
@@ -191,7 +191,7 @@
   {{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Machine "ActCount" .ActCount)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title"><a class="dim" href="{{.Prefix}}/sfn/{{.Machine}}">{{awsIcon "sfn"}} {{.Machine}}</a> <span class="dim">/</span> {{.Name}}
+      <div class="det-title" role="heading" aria-level="1"><a class="dim" href="{{.Prefix}}/sfn/{{.Machine}}">{{awsIcon "sfn"}} {{.Machine}}</a> <span class="dim">/</span> {{.Name}}
         <div class="acts">
           {{/* Redrive is offered exactly when DescribeExecution says
                REDRIVABLE: finished other than SUCCEEDED, Standard, within

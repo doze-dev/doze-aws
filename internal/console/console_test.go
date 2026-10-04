@@ -1062,8 +1062,21 @@ func TestTagsEverywhere(t *testing.T) {
 		"name": {"tagged-rule"}, "pattern": {`{"source":["x"]}`},
 	})
 
+	// Both kinds of API: their ARNs differ (/restapis/ vs /apis/), and the
+	// HTTP API tab used to send the REST shape and be refused.
+	apiID := func(loc string) string {
+		id := strings.TrimPrefix(strings.TrimPrefix(loc, "/_console/apigw-http/"), "/_console/apigw/")
+		if i := strings.IndexAny(id, "?/"); i >= 0 {
+			id = id[:i]
+		}
+		return id
+	}
+	restID := apiID(create(t, h, "/_console/apigw/create", url.Values{"name": {"tagged-rest"}}))
+	httpID := apiID(create(t, h, "/_console/apigw/create", url.Values{"name": {"tagged-http"}, "protocol": {"HTTP"}}))
+
 	cases := []struct{ svc, id string }{
 		{"sqs", "jobs"}, {"ddb", "users"}, {"kms", keyID}, {"eb", "tagged-rule"},
+		{"apigw", restID}, {"apigw-http", httpID},
 	}
 	for _, c := range cases {
 		// Set a tag, then it round-trips back through the editor.

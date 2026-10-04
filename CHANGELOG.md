@@ -188,6 +188,28 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
     XML envelope.
   - A success banner no longer reappears when you move to another tab right
     after it.
+- Console, found by crawling every page with axe and a screenshot at two
+  widths and two themes:
+  - Every link the wire renders opens a real page. A dashboard and a metric
+    namespace were linked as alarms, a KMS alias as a key id, a secret with a
+    slash as its last segment, and a Lambda concurrency call was named
+    `PutObject`.
+  - Step Functions calls on the wire link to their machine, and the service
+    filter offers every service rather than eleven.
+  - The HTTP API Tags tab works; it sent the REST API ARN shape and was
+    refused.
+  - Accessibility: the page declares its language, has a main landmark and a
+    level-one heading; every code editor, switch, select and icon button has
+    a name; scrolling code and log panes are reachable from the keyboard;
+    text meets WCAG AA contrast in both themes.
+  - Deleting messages, revoking an SQS or SNS permission, removing an API
+    response, detaching a key from a plan and repointing a live stage ask
+    first. A declined repoint puts the picker back.
+  - An EventBridge bus can be deleted from its page; log groups have a New
+    button.
+  - Service names fit their list header, log groups show the part of the
+    name that tells them apart, and latencies read `0.22ms`, not
+    `0.215416ms`.
 - A Lambda function's output is all there when `Invoke` returns. Under load
   the last lines of an invocation could arrive after its `END`, or under the
   next invocation's request id, because nothing made the output pipe drain

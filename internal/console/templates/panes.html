@@ -30,7 +30,10 @@
          in layout.html for why chrome outside the swap target needs one. */}}
     <span class="l">{{awsIcon .Svc}} <span class="lp-name" title="{{.Label}}">{{.Label}}</span> <span class="lp-ct" id="lph-{{.Svc}}">{{.Count}}</span></span>
     {{template "info_button" dict "Svc" .Svc "Prefix" .Prefix}}
-    {{if .NewURL}}<a class="new-link" href="{{.NewURL}}">{{icon "plus"}} New</a>{{end}}
+    {{/* A square "+" rather than "+ New": with the text, nine of sixteen
+         service names were cut short ("API G…") in their own header. The
+         name and the tooltip still say New. */}}
+    {{if .NewURL}}<a class="new-link" href="{{.NewURL}}" title="New" aria-label="New">{{icon "plus"}}</a>{{end}}
   </div>
   <label class="filter">{{icon "search"}}<input type="text" placeholder="Filter…" x-data x-model="$store.filter.q" spellcheck="false"></label>
   <div class="lp-scroll" x-data>
@@ -203,7 +206,7 @@
         {{range .Attention}}<a class="dk-att" href="{{$.Prefix}}/{{.Slug}}">{{icon "alert"}} {{.Text}}</a>{{end}}
       {{end}}
       {{if .Unwired}}
-        <span class="dk-unwired" title="{{range .Unwired}}{{.Name}} {{end}}">{{len .Unwired}} wired to nothing</span>
+        <span class="dk-unwired" title="Nothing sends to them and they send to nothing: {{range .Unwired}}{{.Name}} {{end}}">{{len .Unwired}} not connected to anything</span>
       {{end}}
       {{if and (not .Attention) (not .Unwired)}}
         <span class="dk-quiet">Nothing needs attention</span>
@@ -243,7 +246,7 @@
     <div class="attr-row">
       <input class="input" name="tag_key" placeholder="Key" x-model="row.k" autocomplete="off">
       <input class="input" name="tag_val" placeholder="Value" x-model="row.v" autocomplete="off">
-      <button type="button" class="icon-btn danger" @click="rows.splice(i,1)" aria-label="Remove tag">{{icon "trash"}}</button>
+      <button type="button" class="icon-btn danger" @click="rows.splice(i,1)" aria-label="Remove tag" title="Remove tag">{{icon "trash"}}</button>
     </div>
   </template>
   <button type="button" class="btn btn-outline btn-sm" @click="rows.push({k:'',v:''})">{{icon "plus"}} Add tag</button>

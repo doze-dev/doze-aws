@@ -493,3 +493,21 @@ async function setPattern(page: import('@playwright/test').Page, selector: strin
     [selector, value]
   );
 }
+
+test('a custom bus is deleted from its own page; the default bus offers no Delete', async ({
+  page,
+  request,
+  uniqueName,
+  confirmDialog,
+}) => {
+  const bus = await createBus(request, uniqueName('e2e-eb-delbus'));
+  await page.goto(`eb/${bus}`);
+  await page.locator('.det-h').getByRole('button', { name: 'Delete' }).click();
+  await confirmDialog('accept');
+  await page.waitForURL(/\/eb$/);
+  await expect(page.locator('#flashbar')).toContainText(`Event bus “${bus}” deleted`);
+  await expect(page.locator('.listpane')).not.toContainText(bus);
+
+  await page.goto('eb/default');
+  await expect(page.locator('.det-h').getByRole('button', { name: 'Delete' })).toHaveCount(0);
+});

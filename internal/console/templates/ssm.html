@@ -71,7 +71,7 @@
 {{define "ssm_param_detail"}}
 <div id="ssm-detail" x-data="{reveal:false}">
   <div class="det-h">
-    <div class="det-title">{{awsIcon "ssm"}} <span class="mono" style="font-size:16px">{{.P.Name}}</span> <span class="badge type {{if .Secure}}state-warn{{end}}">{{.P.Type}}</span> <span class="badge">v{{.P.Version}}</span>
+    <div class="det-title" role="heading" aria-level="1">{{awsIcon "ssm"}} <span class="mono" style="font-size:16px">{{.P.Name}}</span> <span class="badge type {{if .Secure}}state-warn{{end}}">{{.P.Type}}</span> <span class="badge">v{{.P.Version}}</span>
       <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/ssm/delete" hx-vals='{"name":"{{.P.Name}}"}' hx-confirm="Delete parameter “{{.P.Name}}” and its history?">{{icon "trash"}} Delete</button></div>
     </div>
     <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .P.ARN}}</div>

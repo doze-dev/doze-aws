@@ -18,7 +18,7 @@
   {{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" .API.ID)}}
   <section class="detail" x-data="{addRes:null, addM:null, ren:null, authM:'NONE'}">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "apigw"}} {{.API.Name}}
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "apigw"}} {{.API.Name}}
         <div class="acts">
           <a class="btn btn-outline" href="{{.Prefix}}/apigw-keys">{{icon "key"}} API keys</a>
           <a class="btn" href="{{.Prefix}}/apigw/{{.API.ID}}?tab=stages">{{icon "send"}} Deploy</a>
@@ -181,7 +181,7 @@
       <div class="sec-title" style="margin-top:0">Method responses <span class="dim">— the contract callers see</span></div>
       <div class="chips">
         {{range .M.MethodResponses}}
-        <span class="badge type ver-stage">{{.}}<button type="button" class="lbl-x" title="Remove {{.}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-response" hx-vals='{"resource":"{{$.M.ResourceID}}","verb":"{{$.M.Verb}}","path":"{{$.M.Path}}","status":"{{.}}","half":"method"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">&times;</button></span>
+        <span class="badge type ver-stage">{{.}}<button type="button" class="lbl-x" title="Remove {{.}}" aria-label="Remove {{.}}" hx-confirm="Remove the {{.}} method response?" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-response" hx-vals='{"resource":"{{$.M.ResourceID}}","verb":"{{$.M.Verb}}","path":"{{$.M.Path}}","status":"{{.}}","half":"method"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML" aria-label="Remove {{.}}">&times;</button></span>
         {{else}}<span class="mini-note">none declared</span>{{end}}
       </div>
       <form class="ex-grid" style="margin-top:8px;align-items:end" hx-post="{{.Prefix}}/apigw/{{.API.ID}}/put-response" hx-vals='{"resource":"{{.M.ResourceID}}","verb":"{{.M.Verb}}","path":"{{.M.Path}}","half":"method"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">
@@ -195,7 +195,7 @@
         <thead><tr><th style="width:80px">Status</th><th>Template</th><th style="width:40px"></th></tr></thead>
         <tbody>{{range .M.IntegrationResps}}
         <tr><td class="mono sub">{{.Status}}</td><td class="dim sub mono trunc" style="max-width:220px">{{if .Template}}{{.Template}}{{else}}passthrough{{end}}</td>
-          <td><div class="cs-acts"><button class="icon-btn sm danger" title="Remove {{.Status}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-response" hx-vals='{"resource":"{{$.M.ResourceID}}","verb":"{{$.M.Verb}}","path":"{{$.M.Path}}","status":"{{.Status}}","half":"integration"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">{{icon "trash"}}</button></div></td></tr>
+          <td><div class="cs-acts"><button class="icon-btn sm danger" title="Remove {{.Status}}" hx-confirm="Remove the {{.Status}} integration response?" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-response" hx-vals='{"resource":"{{$.M.ResourceID}}","verb":"{{$.M.Verb}}","path":"{{$.M.Path}}","status":"{{.Status}}","half":"integration"}' hx-target="#method-out" hx-select="" hx-swap="innerHTML">{{icon "trash"}}</button></div></td></tr>
         {{end}}</tbody>
       </table></div>
       {{else}}<p class="mini-note">none — proxy integrations pass the backend's answer straight through</p>{{end}}
@@ -246,9 +246,9 @@
       <td class="mono sub">{{.Name}}</td>
       <td>
         {{/* Repointing IS UpdateStage; the select submits on change. */}}
-        <form hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/update-stage" hx-trigger="change">
+        <form hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/update-stage" hx-trigger="change" hx-confirm="Repoint stage “{{.Name}}” to this deployment? Callers get it straight away.">
           <input type="hidden" name="name" value="{{.Name}}">
-          <select class="input mono" name="deployment" style="font-size:11px">
+          <select class="input mono" name="deployment" style="font-size:11px" title="Deployment stage {{.Name}} serves" aria-label="Deployment stage {{.Name}} serves">
             {{$cur := .DeploymentID}}{{range $.Deployments}}<option value="{{.ID}}" {{if eq .ID $cur}}selected{{end}}>{{.ID}}</option>{{end}}
           </select>
         </form>

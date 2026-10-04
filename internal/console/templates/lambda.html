@@ -1,7 +1,7 @@
 {{define "lambda_lp"}}
 {{template "lp_head" dict "Svc" "lambda" "Prefix" .Prefix "Label" "Lambda" "NewURL" (printf "%s/lambda/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
-  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/lambda/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{.Runtime}}</span></a>
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/lambda/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm" title="{{.Name}}">{{.Name}}</span><span class="sb">{{.Runtime}}</span></a>
   {{else}}{{template "lp_empty" dict "Svc" "lambda" "Prefix" $.Prefix}}
     {{end}}
 {{template "lp_foot" .}}
@@ -128,7 +128,7 @@
   {{template "lambda_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Fn.Name)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "lambda"}} {{.Fn.Name}} <span class="badge type">{{.Fn.Runtime}}</span>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "lambda"}} {{.Fn.Name}} <span class="badge type">{{.Fn.Runtime}}</span>
         <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/delete-fn" hx-confirm="Delete function “{{.Fn.Name}}”?">{{icon "trash"}} Delete</button></div>
       </div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .Fn.ARN}}</div>
@@ -218,7 +218,7 @@
 {{if .Res.Async}}
 <div class="pub-receipt"><div class="pr-h">✓ Event accepted · queued for async execution</div><div class="pr-row dim">The response isn't returned for async invokes — watch the destination/DLQ, or the diagram above.</div></div>
 {{else}}
-<div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>{{if .Res.FnError}}<span class="co-err">✗ function error</span>{{else}}<span class="co-ok">✓ succeeded</span>{{end}}</span><button class="copy-btn" data-copy="{{.Res.Payload}}">{{icon "copy"}}</button></div><pre>{{.Res.Payload}}</pre></div>
+<div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>{{if .Res.FnError}}<span class="co-err">✗ function error</span>{{else}}<span class="co-ok">✓ succeeded</span>{{end}}</span><button class="copy-btn" title="Copy" aria-label="Copy" data-copy="{{.Res.Payload}}">{{icon "copy"}}</button></div><pre>{{.Res.Payload}}</pre></div>
 
 {{/* The timing split is the thing AWS's console cannot show you: init is the
      process coming up, execution is your handler. A slow local invoke is
@@ -230,7 +230,7 @@
   <span class="tm"><span class="tm-k">round trip</span><span class="tm-v num">{{.Res.Duration}}</span></span>
 </div>
 
-{{if .Res.Logs}}<div class="code-out"><div class="co-h"><span>logs (tail){{if .Res.RequestID}} · <a href="{{.Prefix}}/lambda/{{.Name}}?tab=logs&rid={{.Res.RequestID}}" title="Every line this invocation printed, in the Logs tab">open this invocation's logs</a>{{end}}</span><button class="copy-btn" data-copy="{{.Res.Logs}}">{{icon "copy"}}</button></div><pre>{{.Res.Logs}}</pre></div>{{end}}
+{{if .Res.Logs}}<div class="code-out"><div class="co-h"><span>logs (tail){{if .Res.RequestID}} · <a href="{{.Prefix}}/lambda/{{.Name}}?tab=logs&rid={{.Res.RequestID}}" title="Every line this invocation printed, in the Logs tab">open this invocation's logs</a>{{end}}</span><button class="copy-btn" title="Copy" aria-label="Copy" data-copy="{{.Res.Logs}}">{{icon "copy"}}</button></div><pre>{{.Res.Logs}}</pre></div>{{end}}
 {{end}}
 {{end}}
 
@@ -260,7 +260,7 @@
     <tr><td class="mono trunc dim" style="font-size:11.5px;max-width:320px" title="{{.SourceARN}}">{{.SourceARN}}</td><td class="right num">{{.BatchSize}}</td><td class="right"><span class="badge {{if eq .State "Enabled"}}state-on{{else}}state-off{{end}}">{{.State}}</span></td><td><div class="row-actions"><button class="icon-btn sm danger" title="Remove trigger" hx-post="{{$.Prefix}}/lambda/{{$.Fn.Name}}/delete-mapping" hx-vals='{"uuid":"{{.UUID}}"}' hx-target="#lambda-triggers" hx-select="" hx-swap="outerHTML" hx-confirm="Remove this trigger?">{{icon "trash"}}</button></div></td></tr>
   {{end}}</tbody></table>{{else}}<div class="empty" style="border:0"><p>No triggers yet. Poll an SQS queue below, or subscribe this function to SNS/EventBridge.</p></div>{{end}}
   <form class="sub-add" hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/add-mapping" hx-target="#lambda-triggers" hx-select="" hx-swap="outerHTML">
-    <select class="input" name="queue" required style="flex:1"><option value="">— SQS queue to poll —</option>{{range .Queues}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
+    <select class="input" name="queue" required style="flex:1" title="SQS queue to poll" aria-label="SQS queue to poll"><option value="">— SQS queue to poll —</option>{{range .Queues}}<option value="{{.Name}}">{{.Name}}</option>{{end}}</select>
     <input class="input" name="batch" type="number" min="1" max="10000" placeholder="batch 10" style="width:110px;flex:none">
     <button class="btn btn-outline btn-sm" type="submit">{{icon "plus"}} Add trigger</button>
   </form>
@@ -346,7 +346,7 @@
     <div class="attr-row" style="grid-template-columns:1fr 1.4fr 30px">
       <input class="input" name="env_key" placeholder="KEY" x-model="row.k" spellcheck="false">
       <input class="input" name="env_val" placeholder="value" x-model="row.v" spellcheck="false">
-      <button type="button" class="icon-btn sm danger" @click="rows.splice(i,1)">{{icon "x"}}</button>
+      <button type="button" class="icon-btn sm danger" title="Remove" aria-label="Remove" @click="rows.splice(i,1)">{{icon "x"}}</button>
     </div>
   </template>
   <button type="button" class="btn btn-outline btn-sm" style="margin-top:6px" @click="rows.push({k:'',v:''})">{{icon "plus"}} Add variable</button>

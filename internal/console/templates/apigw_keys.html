@@ -5,7 +5,7 @@
   {{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "apigw"}} API keys and usage plans</div>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "apigw"}} API keys and usage plans</div>
       <div class="chips"><span class="dim">a key opens a method that requires one, when a plan covering that stage admits it</span></div>
     </div>
     <div class="det-b">
@@ -45,7 +45,7 @@
         <table class="tbl kv"><tbody>
           <tr><td>Stages</td><td>{{range .Stages}}<span class="chip"><a href="{{$.Prefix}}/apigw/{{.APIID}}?tab=stages">{{if .APIName}}{{.APIName}}{{else}}{{.APIID}}{{end}}</a> · {{.Stage}}</span> {{else}}<span class="dim">none — no method is opened by this plan</span>{{end}}
             <form class="ex-grid" hx-post="{{$.Prefix}}/apigw-keys/plans/{{.ID}}/add-stage" hx-target="#apigw-keys-body" hx-select="" hx-swap="outerHTML"><select class="input" title="API stage" name="stage">{{range $.Stages}}<option value="{{.APIID}}:{{.Stage}}">{{.APIName}} · {{.Stage}}</option>{{end}}</select><button class="btn btn-outline btn-sm" type="submit">Add stage</button></form></td></tr>
-          <tr><td>Keys</td><td>{{$plan := .}}{{range .Keys}}<span class="chip">{{.Name}} <button type="button" class="linkish" hx-post="{{$.Prefix}}/apigw-keys/plans/{{$plan.ID}}/detach-key" hx-vals='{"key":"{{.ID}}"}' hx-target="#apigw-keys-body" hx-select="" hx-swap="outerHTML" title="Detach">✕</button></span> {{else}}<span class="dim">none</span>{{end}}
+          <tr><td>Keys</td><td>{{$plan := .}}{{range .Keys}}<span class="chip">{{.Name}} <button type="button" class="linkish" hx-confirm="Detach “{{.Name}}” from this plan? Calls with it are refused where the plan applied." hx-post="{{$.Prefix}}/apigw-keys/plans/{{$plan.ID}}/detach-key" hx-vals='{"key":"{{.ID}}"}' hx-target="#apigw-keys-body" hx-select="" hx-swap="outerHTML" title="Detach" aria-label="Detach">✕</button></span> {{else}}<span class="dim">none</span>{{end}}
             <form class="ex-grid" hx-post="{{$.Prefix}}/apigw-keys/plans/{{.ID}}/attach-key" hx-target="#apigw-keys-body" hx-select="" hx-swap="outerHTML"><select class="input" title="API key" name="key">{{range $.Keys}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select><button class="btn btn-outline btn-sm" type="submit">Attach key</button></form></td></tr>
         </tbody></table>
       </div>

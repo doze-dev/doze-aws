@@ -25,7 +25,7 @@ test.describe('IAM console', () => {
 
     // Membership from the group's side…
     await page.locator('select[name="user"]').selectOption(user);
-    await page.locator('form:has(select[name="user"])').getByRole('button', { name: 'Add' }).click();
+    await page.locator('form:has(select[name="user"])').getByRole('button', { name: 'Add', exact: true }).click();
     await expect(page.locator('#flashbar')).toContainText(`${user} added to ${group}`);
     await expect(page.locator('.badge', { hasText: user })).toBeVisible();
 
@@ -40,7 +40,7 @@ test.describe('IAM console', () => {
       .first()
       .getAttribute('value');
     await page.locator('select[name="arn"]').selectOption({ index: 0 });
-    await page.locator('form:has(select[name="arn"])').getByRole('button', { name: 'Attach' }).click();
+    await page.locator('form:has(select[name="arn"])').getByRole('button', { name: 'Attach', exact: true }).click();
     // This used to be toContainText(''), which is true of any content at all —
     // an empty flashbar, an error, a page that never attached anything. The
     // attached policy has to show up in the Attached policies table.
@@ -321,7 +321,7 @@ test.describe('IAM role page', () => {
     // --- Inline policy: add ---
     const inlineName = uniqueName('inline');
     const addPanel = page.locator('.panel', { has: page.locator('h2', { hasText: 'Add an inline policy' }) });
-    await addPanel.locator('.panel-h').getByRole('button', { name: 'Add' }).click();
+    await addPanel.locator('.panel-h').getByRole('button', { name: 'Add', exact: true }).click();
     await addPanel.locator('input[name="policy"]').fill(inlineName);
     await setPolicyDoc(page, `form[hx-post$="/iam/role/${role}/inline"]:has(input[name="policy"]:not([type=hidden]))`, allow('sqs:SendMessage'));
     await addPanel.locator('form').getByRole('button', { name: 'Add', exact: true }).click();
@@ -384,7 +384,7 @@ test.describe('IAM user page', () => {
     // --- Join a group from the user's side ---
     const join = page.locator(`form[hx-post$="/iam/user/${user}/join-group"]`);
     await join.locator('select[name="group"]').selectOption(group);
-    await join.getByRole('button', { name: 'Add' }).click();
+    await join.getByRole('button', { name: 'Add', exact: true }).click();
     await expect(page.locator('#flashbar')).toContainText(`${user} added to ${group}`);
     await expect(page.locator('.chips a.badge', { hasText: group })).toBeVisible();
     // …and the group sees the member.
@@ -476,7 +476,7 @@ test.describe('IAM instance profile page', () => {
     await expect(page.getByText('Empty — an instance with this profile has no permissions.')).toBeVisible();
     const add = page.locator(`form[hx-post$="/iam/profile/${profile}/role"]`);
     await add.locator('select[name="role"]').selectOption(role);
-    await add.getByRole('button', { name: 'Add' }).click();
+    await add.getByRole('button', { name: 'Add', exact: true }).click();
     await expect(page.locator('#flashbar')).toContainText('Profile updated');
     await expect(page.locator('.chips .badge a', { hasText: role })).toBeVisible();
     // A profile holds one role: the add form is gone.

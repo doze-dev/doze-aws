@@ -20,7 +20,7 @@
   <section class="detail" x-data="s3page('{{.Prefix}}','{{.Bucket}}')" x-init="syncPrefix()"
              @htmx:after:swap.window="syncPrefix(); if($event.detail.ctx.target && $event.detail.ctx.target.id==='object-table') sel=[]">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "s3"}} {{.Bucket}}
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "s3"}} {{.Bucket}}
         <div class="acts">
           {{if eq .Tab "objects"}}<button class="btn btn-outline" @click="syncPrefix(); newFolder=!newFolder">{{icon "plus"}} New folder</button>
             <button class="btn btn-outline" onclick="this.closest('.detail').querySelector('input[type=file]').click()">{{icon "upload"}} Upload</button>{{end}}
@@ -150,14 +150,14 @@
           <div><div class="opt-l">Versioning
             {{if eq .Props.Versioning "Enabled"}}<span class="badge state-on">Enabled</span>{{else if eq .Props.Versioning "Suspended"}}<span class="badge state-warn">Suspended</span>{{else}}<span class="badge state-off">Disabled</span>{{end}}
           </div><div class="opt-d">Keep every version of every object</div></div>
-          <label class="switch"><input type="checkbox" {{if eq .Props.Versioning "Enabled"}}checked{{end}} hx-post="{{.Prefix}}/s3/{{.Bucket}}/versioning" hx-vals='{"enable":"{{if eq .Props.Versioning "Enabled"}}false{{else}}true{{end}}"}' hx-target="#s3-props" hx-select="" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label>
+          <label class="switch"><input aria-label="Versioning" type="checkbox" {{if eq .Props.Versioning "Enabled"}}checked{{end}} hx-post="{{.Prefix}}/s3/{{.Bucket}}/versioning" hx-vals='{"enable":"{{if eq .Props.Versioning "Enabled"}}false{{else}}true{{end}}"}' hx-target="#s3-props" hx-select="" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label>
         </div>
         <div class="opt-row">
           <div><div class="opt-l">Block public access
             {{if .Props.BlockPublic}}<span class="badge state-on">On</span>{{else}}<span class="badge state-warn">Off</span>{{end}}
             {{if .Props.PolicyPublic}}<span class="badge state-bad" title="GetBucketPolicyStatus: the bucket policy grants to everyone">Policy is public</span>{{end}}
           </div><div class="opt-d">A policy that grants to everyone is refused while on; every new bucket starts on, as on AWS</div></div>
-          <label class="switch"><input type="checkbox" {{if .Props.BlockPublic}}checked{{end}} hx-post="{{.Prefix}}/s3/{{.Bucket}}/public-access" hx-vals='{"enable":"{{if .Props.BlockPublic}}false{{else}}true{{end}}"}' hx-target="#s3-props" hx-select="" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label>
+          <label class="switch"><input aria-label="Block public access" type="checkbox" {{if .Props.BlockPublic}}checked{{end}} hx-post="{{.Prefix}}/s3/{{.Bucket}}/public-access" hx-vals='{"enable":"{{if .Props.BlockPublic}}false{{else}}true{{end}}"}' hx-target="#s3-props" hx-select="" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label>
         </div>
         <div class="opt-row"><div><div class="opt-l">Object lock {{if .Props.ObjectLock}}<span class="badge state-on">Enabled</span>{{else}}<span class="badge state-off">Disabled</span>{{end}}</div><div class="opt-d">Set at creation, immutable after</div></div></div>
         {{if .Props.ObjectLock}}
@@ -366,7 +366,7 @@
         <div class="attr-row" style="grid-template-columns:1fr 1.2fr 30px">
           <input class="input" name="tag_key" placeholder="key" x-model="row.k" spellcheck="false">
           <input class="input" name="tag_val" placeholder="value" x-model="row.v" spellcheck="false">
-          <button type="button" class="icon-btn sm danger" @click="rows.splice(i,1)">{{icon "x"}}</button>
+          <button type="button" class="icon-btn sm danger" title="Remove" aria-label="Remove" @click="rows.splice(i,1)">{{icon "x"}}</button>
         </div>
       </template>
       <div class="ds-row" style="justify-content:space-between">

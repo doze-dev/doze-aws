@@ -93,6 +93,7 @@ test.describe('API keys and usage plans', () => {
     const keyChip = () => plan().locator('.chip', { hasText: keyName });
     await expect(keyChip()).toBeVisible();
     await keyChip().getByRole('button').click();
+    await confirmDialog('accept');
     expect(await waitForToast()).toContain('Key detached');
     await expect(keyChip()).toHaveCount(0);
 

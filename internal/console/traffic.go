@@ -222,7 +222,7 @@ func (rec *Recorder) ReserveCascade() trace.Cause { return trace.Cause(rec.reser
 func (rec *Recorder) EmitCascade(e trace.Event) {
 	// The id was reserved before the work ran, so children could name it.
 	rec.addAt(int64(e.Self), TrafficEntry{
-		At: e.At, Service: e.Service, Action: e.Action, Resource: e.Resource,
+		At: e.At, Service: shortLabel(e.Service), Action: e.Action, Resource: e.Resource,
 		Millis: e.Millis, Parent: int64(e.Cause), Via: e.Via,
 		Status: cascadeStatus(e.Err), RespBody: e.Err,
 		Detail: e.Detail, DetailURL: e.DetailURL,
@@ -344,6 +344,17 @@ var consoleLabel = map[string]string{
 	"cloudformation": "cfn",
 	"apigateway":     "apigw",
 	"cloudwatch":     "cw",
+	"stepfunctions":  "sfn",
+}
+
+// shortLabel is a service name in the console's spelling. A cascade row names
+// its service the way the emitting package does ("cloudwatch"), and showed it
+// that way beside rows that said "cw" for the same service.
+func shortLabel(svc string) string {
+	if short, ok := consoleLabel[svc]; ok {
+		return short
+	}
+	return svc
 }
 
 // labelFor resolves a request to the console's service label using the
@@ -393,7 +404,13 @@ func classify(id awsident.Identity, r *http.Request, capturedBody string, rec *R
 	// /2019-09-25/. The old check knew only the first, so a layer call fell
 	// through this branch entirely and the S3 fallback below named it — a
 	// PublishLayerVersion showed on the wire as a PutObject.
-	if strings.HasPrefix(r.URL.Path, "/2015-03-31/") ||
+	//
+	// And more dates than those: concurrency is /2017-10-31/, tags
+	// /2017-03-31/, account settings /2016-08-19/. A request the gateway
+	// already routed to Lambda is Lambda whatever its date — a
+	// PutFunctionConcurrency used to be named PutObject.
+	if svc == "lambda" ||
+		strings.HasPrefix(r.URL.Path, "/2015-03-31/") ||
 		strings.HasPrefix(r.URL.Path, "/2018-10-31/") ||
 		strings.HasPrefix(r.URL.Path, "/2019-09-25/") {
 		parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
@@ -471,6 +488,8 @@ func lambdaRESTAction(r *http.Request, parts []string) string {
 			return map[string]string{"POST": "PublishVersion", "GET": "ListVersionsByFunction"}[m]
 		case "policy":
 			return map[string]string{"POST": "AddPermission", "GET": "GetPolicy", "DELETE": "RemovePermission"}[m]
+		case "concurrency":
+			return map[string]string{"PUT": "PutFunctionConcurrency", "GET": "GetFunctionConcurrency", "DELETE": "DeleteFunctionConcurrency"}[m]
 		case "":
 			if sub(2) == "" {
 				return map[string]string{"GET": "ListFunctions", "POST": "CreateFunction"}[m]
@@ -827,12 +846,14 @@ func jsonResource(svc, body string) string {
 	case "ddb":
 		return str("TableName")
 	case "kms":
-		return leafName(str("KeyId"))
+		// An alias stays an alias: cut to its last segment it read as a key
+		// id, and the link went to a key that does not exist.
+		return kmsRef(str("KeyId"))
 	case "ssm":
 		return str("Name")
 	case "sm":
 		if id := str("SecretId"); id != "" {
-			return leafName(id)
+			return secretRef(id)
 		}
 		// CreateSecret is the one operation that addresses by Name — there is
 		// no SecretId yet, because this call is what mints it. Without this
@@ -860,18 +881,45 @@ func jsonResource(svc, body string) string {
 		}
 		return leafName(str("logGroupIdentifier"))
 	case "cw":
+		// In resourceURL's spelling, so only an alarm becomes a link: a
+		// dashboard and a metric namespace have no page, and as bare names
+		// they were linked as alarms that do not exist.
 		if n := str("AlarmName"); n != "" {
-			return n
+			return "alarm:" + n
 		}
 		if n := str("DashboardName"); n != "" {
-			return n
+			return "dashboard/" + n
 		}
 		if ns, name := str("Namespace"), str("MetricName"); ns != "" && name != "" {
-			return ns + "/" + name
+			return "metric/" + ns + "/" + name
 		}
-		return str("Namespace")
+		if ns := str("Namespace"); ns != "" {
+			return "metric/" + ns
+		}
+		return ""
 	}
 	return ""
+}
+
+// kmsRef is a KeyId as resourceURL reads it: "alias/name" or "key/id" out of
+// an ARN, and anything else as given.
+func kmsRef(s string) string {
+	if strings.HasPrefix(s, "arn:") {
+		if parts := strings.SplitN(s, ":", 6); len(parts) == 6 {
+			return parts[5]
+		}
+	}
+	return s
+}
+
+// secretRef is a SecretId as resourceURL reads it. A name may hold slashes
+// (prod/db), so it is kept whole; an ARN becomes "secret:<name>-XXXXXX", the
+// one form whose random suffix resourceURL strips.
+func secretRef(s string) string {
+	if i := strings.Index(s, ":secret:"); i >= 0 && strings.HasPrefix(s, "arn:") {
+		return s[i+1:]
+	}
+	return s
 }
 
 // leafName trims a URL or ARN down to its final path/name segment.

@@ -56,7 +56,7 @@
   {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" "access")}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "iam"}} Access log</div>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "iam"}} Access log</div>
       <div class="chips">
         <span class="chip {{if eq .Mode "enforce"}}bad{{end}}">mode: {{.Mode}}</span>
         <span class="chip">{{len .Events}} recorded</span>
@@ -215,7 +215,7 @@
   {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" .P.ARN)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "iam"}} {{.P.Name}}
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "iam"}} {{.P.Name}}
         <div class="acts">
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/iam/{{.P.Kind}}/{{.P.Name}}/delete"
                   hx-confirm="Delete {{.P.Kind}} “{{.P.Name}}”?">{{icon "trash"}} Delete</button>
@@ -446,7 +446,7 @@
   {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" .ARN)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "iam"}} {{.Name}}</div>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "iam"}} {{.Name}}</div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}</div>
       <div class="acts" style="margin-top:8px">
         <form hx-post="{{.Prefix}}/iam/policy/delete" hx-confirm="Delete policy “{{.Name}}”? Detach it from every principal first.">
@@ -522,7 +522,7 @@
   {{template "iam_actions_datalist" .SeenActions}}
   {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" "")}}
   <section class="detail">
-    <div class="det-h"><div class="det-title">{{awsIcon "iam"}} New</div></div>
+    <div class="det-h"><div class="det-title" role="heading" aria-level="1">{{awsIcon "iam"}} New</div></div>
     <div class="det-b" x-data="{kind:'{{if .Kind}}{{.Kind}}{{else}}user{{end}}'}">
       {{/* Everything IAM can hold. */}}
       <div class="seg" style="margin-bottom:14px">
@@ -580,7 +580,7 @@
   {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" .G.Name)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "iam"}} {{.G.Name}} <span class="badge type">group</span>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "iam"}} {{.G.Name}} <span class="badge type">group</span>
         <div class="acts">
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/iam/group/{{.G.Name}}/delete" hx-confirm="Delete group “{{.G.Name}}”? Members keep their own permissions; they lose the group's.">{{icon "trash"}} Delete</button>
         </div>
@@ -590,7 +590,7 @@
     <div class="det-b">
       <div class="sec-title">Members <span class="dim">— every policy on this group applies to each of them</span></div>
       <div class="chips" style="margin-bottom:8px">
-        {{range .G.Members}}<span class="badge type ver-stage"><a href="{{$.Prefix}}/iam/user/{{.}}" style="color:inherit">{{.}}</a><button type="button" class="lbl-x" title="Remove {{.}} from the group" hx-post="{{$.Prefix}}/iam/group/{{$.G.Name}}/member" hx-vals='{"user":"{{.}}","remove":"1"}' hx-confirm="Remove {{.}} from {{$.G.Name}}?">&times;</button></span>
+        {{range .G.Members}}<span class="badge type ver-stage"><a href="{{$.Prefix}}/iam/user/{{.}}" style="color:inherit">{{.}}</a><button type="button" class="lbl-x" title="Remove {{.}} from the group" hx-post="{{$.Prefix}}/iam/group/{{$.G.Name}}/member" hx-vals='{"user":"{{.}}","remove":"1"}' hx-confirm="Remove {{.}} from {{$.G.Name}}?" aria-label="Remove {{.}} from the group">&times;</button></span>
         {{else}}<span class="mini-note">No members yet.</span>{{end}}
       </div>
       <form class="ex-grid" style="align-items:end" hx-post="{{.Prefix}}/iam/group/{{.G.Name}}/member">
@@ -634,7 +634,7 @@
   {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" .IP.Name)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "iam"}} {{.IP.Name}} <span class="badge type">instance profile</span>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "iam"}} {{.IP.Name}} <span class="badge type">instance profile</span>
         <div class="acts">
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/iam/profile/{{.IP.Name}}/delete" hx-confirm="Delete instance profile “{{.IP.Name}}”? Remove its role first if one is attached.">{{icon "trash"}} Delete</button>
         </div>
@@ -644,7 +644,7 @@
     <div class="det-b">
       <div class="sec-title">Role <span class="dim">— what an instance with this profile becomes</span></div>
       <div class="chips" style="margin-bottom:8px">
-        {{range .IP.Roles}}<span class="badge type ver-stage"><a href="{{$.Prefix}}/iam/role/{{.}}" style="color:inherit">{{.}}</a><button type="button" class="lbl-x" title="Remove {{.}}" hx-post="{{$.Prefix}}/iam/profile/{{$.IP.Name}}/role" hx-vals='{"role":"{{.}}","remove":"1"}' hx-confirm="Remove role {{.}} from the profile?">&times;</button></span>
+        {{range .IP.Roles}}<span class="badge type ver-stage"><a href="{{$.Prefix}}/iam/role/{{.}}" style="color:inherit">{{.}}</a><button type="button" class="lbl-x" title="Remove {{.}}" hx-post="{{$.Prefix}}/iam/profile/{{$.IP.Name}}/role" hx-vals='{"role":"{{.}}","remove":"1"}' hx-confirm="Remove role {{.}} from the profile?" aria-label="Remove {{.}}">&times;</button></span>
         {{else}}<span class="mini-note">Empty — an instance with this profile has no permissions.</span>{{end}}
       </div>
       {{if not .IP.Roles}}
@@ -665,7 +665,7 @@
 {{define "iam_account"}}{{template "shell_top" .}}
   {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" "account")}}
   <section class="detail">
-    <div class="det-h"><div class="det-title">{{awsIcon "iam"}} Account</div></div>
+    <div class="det-h"><div class="det-title" role="heading" aria-level="1">{{awsIcon "iam"}} Account</div></div>
     <div class="det-b">
       {{with .Summary}}
       <div class="sec-title" style="margin-top:0">Summary <span class="dim">— GetAccountSummary, live</span></div>
@@ -679,7 +679,7 @@
 
       <div class="sec-title">Account alias <span class="dim">— the name sign-in URLs would carry</span></div>
       <div class="chips" style="margin-bottom:8px">
-        {{range .Aliases}}<span class="badge type ver-stage">{{.}}<button type="button" class="lbl-x" title="Remove alias" hx-post="{{$.Prefix}}/iam/account/alias" hx-vals='{"delete":"{{.}}"}'>&times;</button></span>
+        {{range .Aliases}}<span class="badge type ver-stage">{{.}}<button type="button" class="lbl-x" title="Remove alias" hx-post="{{$.Prefix}}/iam/account/alias" hx-vals='{"delete":"{{.}}"}' aria-label="Remove alias">&times;</button></span>
         {{else}}<span class="mini-note">None set.</span>{{end}}
       </div>
       <form class="ex-grid rename-form" hx-post="{{.Prefix}}/iam/account/alias">
@@ -711,7 +711,7 @@
 {{define "iam_sts"}}{{template "shell_top" .}}
   {{template "iam_lp" (dict "Prefix" .Prefix "Principals" .Principals "Policies" .Policies "NavGroups" .NavGroups "NavProfiles" .NavProfiles "Sel" "sts")}}
   <section class="detail">
-    <div class="det-h"><div class="det-title">{{awsIcon "iam"}} STS credentials</div>
+    <div class="det-h"><div class="det-title" role="heading" aria-level="1">{{awsIcon "iam"}} STS credentials</div>
       <p class="mini-note" style="margin-top:6px">Minted against the local account — paste the export line into a shell and that shell IS the principal. With IAM enforcing, this is how you test what a role can actually do.</p>
     </div>
     <div class="det-b">
@@ -827,7 +827,7 @@
             <button type="button" class="pb-not" :class="st.notAction && 'on'" title="Match everything EXCEPT these" @click="st.notAction=!st.notAction; sync()">not</button></span>
           <div class="pb-chips">
             <template x-for="(a, ai) in st.actions" :key="ai">
-              <span class="badge type ver-stage"><span x-text="a"></span><button type="button" class="lbl-x" @click="dropChip(st.actions, ai)">&times;</button></span>
+              <span class="badge type ver-stage"><span x-text="a"></span><button type="button" class="lbl-x" title="Remove action" aria-label="Remove action" @click="dropChip(st.actions, ai)">&times;</button></span>
             </template>
             <input class="pb-add mono" list="iam-actions" placeholder="s3:GetObject" spellcheck="false"
                    x-model="st.actionDraft" @keydown.enter.prevent="commitDraft(st,'action')" @change="commitDraft(st,'action')" @blur="commitDraft(st,'action')">
@@ -839,7 +839,7 @@
             <button type="button" class="pb-not" :class="st.notResource && 'on'" title="Match everything EXCEPT these" @click="st.notResource=!st.notResource; sync()">not</button></span>
           <div class="pb-chips">
             <template x-for="(rr, ri) in st.resources" :key="ri">
-              <span class="badge type ver-stage"><span x-text="rr"></span><button type="button" class="lbl-x" @click="dropChip(st.resources, ri)">&times;</button></span>
+              <span class="badge type ver-stage"><span x-text="rr"></span><button type="button" class="lbl-x" title="Remove resource" aria-label="Remove resource" @click="dropChip(st.resources, ri)">&times;</button></span>
             </template>
             <input class="pb-add mono" placeholder="arn:aws:s3:::bucket/* or *" spellcheck="false"
                    x-model="st.resourceDraft" @keydown.enter.prevent="commitDraft(st,'resource')" @blur="commitDraft(st,'resource')">
@@ -861,7 +861,7 @@
               <template x-for="pt in principalTypes"><option x-text="pt"></option></template>
             </select>
             <input class="input mono" placeholder="arn:aws:iam::{{account}}:user/x, comma-separated" x-model="pr.vals" @input="sync()" spellcheck="false">
-            <button type="button" class="icon-btn sm danger" @click="st.prows.splice(pi,1); if(!st.prows.length)st.pmode='none'; sync()">{{icon "x"}}</button>
+            <button type="button" class="icon-btn sm danger" title="Remove principal" aria-label="Remove principal" @click="st.prows.splice(pi,1); if(!st.prows.length)st.pmode='none'; sync()">{{icon "x"}}</button>
           </div>
         </template>
         <div class="pb-row pb-sub" x-show="st.pmode==='typed'">
@@ -879,7 +879,7 @@
             <label class="bb-txn" title="Passes when the key is absent entirely"><input type="checkbox" x-model="cd.ifExists" @change="sync()"> IfExists</label>
             <input class="input mono" list="iam-context-keys" placeholder="aws:SourceIp" x-model="cd.key" @input="sync()" spellcheck="false">
             <input class="input mono" placeholder="values, comma-separated" x-model="cd.vals" @input="sync()" spellcheck="false">
-            <button type="button" class="icon-btn sm danger" @click="st.conds.splice(ci,1); sync()">{{icon "x"}}</button>
+            <button type="button" class="icon-btn sm danger" title="Remove condition" aria-label="Remove condition" @click="st.conds.splice(ci,1); sync()">{{icon "x"}}</button>
           </div>
         </template>
         <div class="pb-row pb-sub">

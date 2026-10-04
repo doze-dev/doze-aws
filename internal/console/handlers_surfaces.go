@@ -124,7 +124,7 @@ func (c *Console) trafficEntry(w http.ResponseWriter, r *http.Request) {
 	}
 	c.partial(w, "traffic_drawer", map[string]any{
 		"E": e, "Req": req, "Resp": resp,
-		"Millis": strconv.FormatFloat(e.Millis, 'f', -1, 64),
+		"Millis": fmtMillis(e.Millis),
 		"Time":   e.At.Local().Format("15:04:05.000"),
 		"State":  callState(e.Status, e.Failure()),
 	})
@@ -225,12 +225,26 @@ func (c *Console) trafficEntries(since int64) []trafficRow {
 	return rows
 }
 
+// fmtMillis is a duration as the wire column shows it: two significant
+// places under ten milliseconds, whole milliseconds above. Full float
+// precision ("0.215416") made every row a different width and said nothing a
+// person reads a latency for.
+func fmtMillis(ms float64) string {
+	switch {
+	case ms < 10:
+		return strconv.FormatFloat(ms, 'f', 2, 64)
+	case ms < 100:
+		return strconv.FormatFloat(ms, 'f', 1, 64)
+	}
+	return strconv.FormatFloat(ms, 'f', 0, 64)
+}
+
 func rowOf(e TrafficEntry, depth int) trafficRow {
 	ref := e.Failure()
 	return trafficRow{
 		Time:    e.At.Local().Format("15:04:05.000"),
 		Service: e.Service, Action: e.Action, Resource: e.Resource,
-		Status: e.Status, Millis: strconv.FormatFloat(e.Millis, 'f', -1, 64),
+		Status: e.Status, Millis: fmtMillis(e.Millis),
 		IsErr: e.Status >= 400, Body: e.ReqBody, Curl: e.Curl(), Seq: e.Seq,
 		Refused: ref, State: callState(e.Status, ref),
 		Depth: depth, Cascade: e.IsCascade(), Via: e.Via,

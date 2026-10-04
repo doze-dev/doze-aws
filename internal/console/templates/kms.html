@@ -21,7 +21,7 @@
 {{define "kms_key_detail"}}
 <div id="kms-detail">
   <div class="det-h">
-    <div class="det-title">{{awsIcon "kms"}} {{if .Key.Alias}}{{.Key.Alias}}{{else}}{{.Key.ID}}{{end}} <span class="badge {{if eq .Key.State "PendingDeletion"}}dlq{{else if .Key.Enabled}}state-on{{else}}state-warn{{end}}">{{.Key.State}}</span>
+    <div class="det-title" role="heading" aria-level="1">{{awsIcon "kms"}} {{if .Key.Alias}}{{.Key.Alias}}{{else}}{{.Key.ID}}{{end}} <span class="badge {{if eq .Key.State "PendingDeletion"}}dlq{{else if .Key.Enabled}}state-on{{else}}state-warn{{end}}">{{.Key.State}}</span>
       <div class="acts">
         {{if eq .Key.State "PendingDeletion"}}
         <button class="btn" hx-post="{{.Prefix}}/kms/{{.Key.ID}}/cancel-deletion" hx-target="#kms-detail" hx-select="" hx-swap="outerHTML">{{icon "rotate"}} Cancel deletion</button>
@@ -37,8 +37,8 @@
   <div class="det-b"><div class="split">
     <div>
       <div class="panel"><div class="panel-h"><h2>{{icon "settings"}} Key settings</h2></div><div style="padding:4px 16px 10px">
-        <div class="opt-row"><div><div class="opt-l">Enabled</div><div class="opt-d">Disabled keys refuse all cryptographic operations</div></div><label class="switch"><input type="checkbox" {{if .Key.Enabled}}checked{{end}} hx-post="{{.Prefix}}/kms/{{.Key.ID}}/toggle-enabled" hx-target="#kms-detail" hx-select="" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label></div>
-        {{if eq .Key.Usage "ENCRYPT_DECRYPT"}}<div class="opt-row"><div><div class="opt-l">Automatic rotation</div><div class="opt-d">New backing material yearly; old ciphertexts still decrypt</div></div><label class="switch"><input type="checkbox" {{if .Key.RotationOn}}checked{{end}} hx-post="{{.Prefix}}/kms/{{.Key.ID}}/toggle-rotation" hx-target="#kms-detail" hx-select="" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label></div>
+        <div class="opt-row"><div><div class="opt-l">Enabled</div><div class="opt-d">Disabled keys refuse all cryptographic operations</div></div><label class="switch"><input aria-label="Enabled" type="checkbox" {{if .Key.Enabled}}checked{{end}} hx-post="{{.Prefix}}/kms/{{.Key.ID}}/toggle-enabled" hx-target="#kms-detail" hx-select="" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label></div>
+        {{if eq .Key.Usage "ENCRYPT_DECRYPT"}}<div class="opt-row"><div><div class="opt-l">Automatic rotation</div><div class="opt-d">New backing material yearly; old ciphertexts still decrypt</div></div><label class="switch"><input aria-label="Automatic rotation" type="checkbox" {{if .Key.RotationOn}}checked{{end}} hx-post="{{.Prefix}}/kms/{{.Key.ID}}/toggle-rotation" hx-target="#kms-detail" hx-select="" hx-swap="outerHTML"><span class="track"></span><span class="thumb"></span></label></div>
         {{if .Key.Rotations}}<p class="mini-note">Rotated on demand {{len .Key.Rotations}} time{{if ne (len .Key.Rotations) 1}}s{{end}}, last {{index .Key.Rotations 0}}; every earlier ciphertext still decrypts.</p>{{end}}{{end}}
       </div></div>
       <div class="sec-title">Details</div><div class="table-wrap"><table class="tbl kv"><tbody><tr><td>Spec</td><td>{{.Key.Spec}}</td></tr><tr><td>Usage</td><td>{{.Key.Usage}}</td></tr><tr><td>Created</td><td title="{{.Key.Created}}">{{ago .Key.Created}}</td></tr></tbody></table></div>
@@ -170,7 +170,7 @@
 
 {{/* Sign result → one-click Verify (round-trip like encrypt/decrypt). */}}
 {{define "kms_sign_result"}}
-<div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>Signature (base64) · {{.Algo}}</span><button class="copy-btn" data-copy="{{.Signature}}">{{icon "copy"}}</button></div><pre>{{.Signature}}</pre></div>
+<div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>Signature (base64) · {{.Algo}}</span><button class="copy-btn" title="Copy" aria-label="Copy" data-copy="{{.Signature}}">{{icon "copy"}}</button></div><pre>{{.Signature}}</pre></div>
 <form hx-post="{{.Prefix}}/kms/{{.Key}}/verify" hx-target="#kms-crypto-out" hx-select="" hx-swap="beforeend">
   <input type="hidden" name="message" value="{{.Message}}"><input type="hidden" name="algo" value="{{.Algo}}"><input type="hidden" name="signature" value="{{.Signature}}">
   <button class="btn btn-outline btn-sm" type="submit">Verify this signature →</button>
@@ -178,7 +178,7 @@
 {{end}}
 
 {{define "kms_mac_result"}}
-<div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>MAC (base64) · {{.Algo}}</span><button class="copy-btn" data-copy="{{.Mac}}">{{icon "copy"}}</button></div><pre>{{.Mac}}</pre></div>
+<div class="code-out" style="margin-bottom:10px"><div class="co-h"><span>MAC (base64) · {{.Algo}}</span><button class="copy-btn" title="Copy" aria-label="Copy" data-copy="{{.Mac}}">{{icon "copy"}}</button></div><pre>{{.Mac}}</pre></div>
 <form hx-post="{{.Prefix}}/kms/{{.Key}}/verify-mac" hx-target="#kms-crypto-out" hx-select="" hx-swap="beforeend">
   <input type="hidden" name="message" value="{{.Message}}"><input type="hidden" name="algo" value="{{.Algo}}"><input type="hidden" name="mac" value="{{.Mac}}">
   <button class="btn btn-outline btn-sm" type="submit">Verify this MAC →</button>
@@ -189,13 +189,13 @@
 <div class="pub-receipt {{if not .Valid}}warn{{end}}" style="margin-top:10px"><div class="pr-h">{{if .Valid}}✓ {{.What}} valid — the {{.What}} matches this key and message{{else}}✗ {{.What}} does NOT verify{{end}}</div></div>
 {{end}}
 
-{{define "kms_crypto_result"}}<div class="code-out"><div class="co-h"><span>{{.Label}}</span><span style="display:flex;align-items:center;gap:8px">{{if .DecryptURL}}<button class="btn btn-outline btn-sm" hx-post="{{.DecryptURL}}" hx-vals='{"ciphertext":"{{.Value}}"}' hx-target="#kms-crypto-out" hx-select="" hx-swap="innerHTML">Decrypt this →</button>{{end}}<button class="copy-btn" data-copy="{{.Value}}">{{icon "copy"}}</button></span></div><pre>{{.Value}}</pre></div>{{end}}
+{{define "kms_crypto_result"}}<div class="code-out"><div class="co-h"><span>{{.Label}}</span><span style="display:flex;align-items:center;gap:8px">{{if .DecryptURL}}<button class="btn btn-outline btn-sm" hx-post="{{.DecryptURL}}" hx-vals='{"ciphertext":"{{.Value}}"}' hx-target="#kms-crypto-out" hx-select="" hx-swap="innerHTML">Decrypt this →</button>{{end}}<button class="copy-btn" title="Copy" aria-label="Copy" data-copy="{{.Value}}">{{icon "copy"}}</button></span></div><pre>{{.Value}}</pre></div>{{end}}
 
 {{/* One output block for GenerateRandom, GetPublicKey and ReEncrypt — all
      three answer with a single base64 value and differ only in what it is. */}}
 {{define "kms_out"}}
 <div class="code-out">
-  <div class="co-h"><span>{{.Label}}</span><button class="copy-btn" data-copy="{{.Value}}">{{icon "copy"}}</button></div>
+  <div class="co-h"><span>{{.Label}}</span><button class="copy-btn" title="Copy" aria-label="Copy" data-copy="{{.Value}}">{{icon "copy"}}</button></div>
   <pre>{{.Value}}</pre>
 </div>
 {{if .Note}}<p class="mini-note">{{.Note}}</p>{{end}}

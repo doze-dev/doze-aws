@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 // ---- flow graph: the live wiring map ----
@@ -343,6 +344,9 @@ func (b *backend) bucketNotifications(ctx context.Context, bucket string) []reso
 func plural(n int, unit string) string {
 	if n == 1 {
 		return "1 " + unit
+	}
+	if strings.HasSuffix(unit, "s") || strings.HasSuffix(unit, "x") || strings.HasSuffix(unit, "ch") || strings.HasSuffix(unit, "sh") {
+		return strconv.Itoa(n) + " " + unit + "es" // buses, not "buss"
 	}
 	return strconv.Itoa(n) + " " + unit + "s"
 }

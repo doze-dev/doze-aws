@@ -170,3 +170,9 @@ test.describe('log group lifecycle', () => {
     });
   });
 });
+
+test('the list pane offers New, like every other service', async ({ page }) => {
+  await page.goto('logs');
+  await page.locator('.listpane .new-link').click();
+  await page.waitForURL(/\/logs\/create$/);
+});

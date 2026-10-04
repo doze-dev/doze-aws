@@ -19,7 +19,7 @@
       <td class="right mono"><button type="button" class="link-btn" hx-get="{{$.Prefix}}/sfn/{{$.Name}}/version/{{.Number}}" hx-target="#sfn-version-out" hx-select="" hx-swap="innerHTML" title="{{.ARN}}">v{{.Number}}</button></td>
       <td>{{if .Description}}{{.Description}}{{else}}<span class="dim">—</span>{{end}}</td>
       <td class="dim" title="{{.Created}}">{{ago .Created}}</td>
-      <td class="right"><button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/{{$.Name}}/version/{{.Number}}/delete" hx-confirm="Delete version {{.Number}}? An alias still routing to it refuses." aria-label="Delete version {{.Number}}">{{icon "trash"}}</button></td>
+      <td class="right"><button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/{{$.Name}}/version/{{.Number}}/delete" hx-confirm="Delete version {{.Number}}? An alias still routing to it refuses." aria-label="Delete version {{.Number}}" title="Delete version {{.Number}}">{{icon "trash"}}</button></td>
     </tr>
   {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No versions yet — Publish freezes the definition as it stands, so an alias can point at it while you keep editing.</p></div>{{end}}
 </div>
@@ -48,7 +48,7 @@
       <td class="dim" title="{{.Updated}}">{{ago .Updated}}</td>
       <td class="right">
         <button type="button" class="icon-btn" @click="edit=!edit" title="Edit routing" aria-label="Edit routing of {{.Name}}">{{icon "pencil"}}</button>
-        <button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/{{$.Name}}/alias/{{.Name}}/delete" hx-confirm="Delete alias “{{.Name}}”? Its versions stay; anything starting executions through the alias will find nothing." aria-label="Delete alias {{.Name}}">{{icon "trash"}}</button>
+        <button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/{{$.Name}}/alias/{{.Name}}/delete" hx-confirm="Delete alias “{{.Name}}”? Its versions stay; anything starting executions through the alias will find nothing." aria-label="Delete alias {{.Name}}" title="Delete alias {{.Name}}">{{icon "trash"}}</button>
       </td>
     </tr>
   {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No aliases. An alias is a name — PROD, canary — that StartExecution accepts in place of the machine and that routes to one or two versions by weight.</p></div>{{end}}
@@ -204,7 +204,7 @@
   {{template "sfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" "@activities" "ActCount" .ActCount)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "sfn"}} Activities <span class="badge">{{len .Activities}}</span></div>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "sfn"}} Activities <span class="badge">{{len .Activities}}</span></div>
       <p class="det-sub">An activity is a queue with no code behind it. A Task whose Resource is the activity ARN parks with a token; a worker polls GetActivityTask, does the work, and answers with SendTaskSuccess or SendTaskFailure. Here, the worker can be you.</p>
     </div>
     <div class="det-b">
@@ -227,7 +227,7 @@
             <td class="right">
               <button type="button" class="btn btn-outline btn-sm" hx-post="{{$.Prefix}}/sfn/activities/{{.Name}}/take" hx-target="#sfn-task-out" hx-select="" hx-swap="innerHTML" hx-indicator="#take-spin-{{slug .Name}}" data-err-slot="#sfn-task-out">{{icon "download"}} Take a task</button>
               <span id="take-spin-{{slug .Name}}" class="dim htmx-indicator">polling…</span>
-              <button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/activities/{{.Name}}/delete" hx-confirm="Delete activity “{{.Name}}”? A Task state naming it will fail to schedule." aria-label="Delete activity {{.Name}}">{{icon "trash"}}</button>
+              <button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/activities/{{.Name}}/delete" hx-confirm="Delete activity “{{.Name}}”? A Task state naming it will fail to schedule." aria-label="Delete activity {{.Name}}" title="Delete activity {{.Name}}">{{icon "trash"}}</button>
             </td>
           </tr>
         {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No activities. Create one, then name its ARN as a Task's Resource — the execution parks there until a worker answers.</p></div>{{end}}

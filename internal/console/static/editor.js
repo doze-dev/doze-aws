@@ -106,6 +106,14 @@
     opts.gutters = ["CodeMirror-linenumbers", GUTTER];
     var cm = CodeMirror.fromTextArea(ta, opts);
     ta.__cm = cm;
+    // CodeMirror types into a hidden textarea of its own, and that is what a
+    // screen reader lands on. It borrows the original's name: an aria-label,
+    // a title, the field's label, or failing those what the field is called.
+    var field = ta.closest(".field");
+    var fieldLabel = field && field.querySelector(":scope > label");
+    var name = ta.getAttribute("aria-label") || ta.getAttribute("title") ||
+      (fieldLabel && fieldLabel.textContent.trim()) || ta.name || "Editor";
+    cm.getInputField().setAttribute("aria-label", name);
     cm.on("change", function () {
       cm.save();
       if (!explicit) { // only auto-detect when the caller didn't name a mode

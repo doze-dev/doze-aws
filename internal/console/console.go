@@ -723,6 +723,13 @@ func failView(err error) failReason {
 func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 	return template.FuncMap{
 		"prefix": func() string { return prefix },
+		// splitPath cuts "/aws/lambda/orders" into its directory and leaf, so
+		// a list can let the shared part shrink and keep the part that
+		// tells the entries apart.
+		"splitPath": func(p string) []string {
+			i := strings.LastIndex(p, "/")
+			return []string{p[:i+1], p[i+1:]}
+		},
 		// account and region are the INSTANCE's, not the package defaults. A
 		// template that hardcodes 000000000000 renders an ARN a user cannot
 		// paste anywhere under --account-id, and several of these sites are

@@ -16,7 +16,7 @@
      connects, none of which changes with what you are looking at. */}}
 {{define "kinesis_head"}}
 <div class="det-h">
-  <div class="det-title">{{awsIcon "kinesis"}} {{.Stream}}
+  <div class="det-title" role="heading" aria-level="1">{{awsIcon "kinesis"}} {{.Stream}}
     <div class="acts">
       <button class="btn btn-outline danger" hx-post="{{.Prefix}}/kinesis/{{.Stream}}/delete" hx-confirm="Delete stream “{{.Stream}}”? Its records go with it.">{{icon "trash"}} Delete</button>
     </div>
@@ -188,7 +188,7 @@
         <option value="latest" {{if eq $s "latest"}}selected{{end}}>tip (new only)</option>
       </select>
     </div>
-    <div class="field" style="width:90px"><label>Read</label>
+    <div class="field" style="width:90px"><label>Records</label>
       <select class="input" name="limit">
         {{$l := .Query.Limit}}
         <option {{if eq $l 50}}selected{{end}}>50</option>
@@ -538,7 +538,7 @@
 {{define "kinesis_create"}}{{template "shell_top" .}}
   {{template "kinesis_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail">
-    <div class="det-h"><div class="det-title">{{awsIcon "kinesis"}} New stream</div></div>
+    <div class="det-h"><div class="det-title" role="heading" aria-level="1">{{awsIcon "kinesis"}} New stream</div></div>
     <div class="det-b">
       <div class="panel" style="max-width:520px">
         <div style="padding:16px">

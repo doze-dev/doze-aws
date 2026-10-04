@@ -391,6 +391,7 @@ test.describe('consume tab', () => {
     request,
     uniqueName,
     waitForToast,
+    confirmDialog,
   }) => {
     const name = await createQueue(request, uniqueName('e2e-sqs-consume'), { visibility: 300 });
     for (const n of ['a', 'b', 'c']) await sendViaApi(request, name, `{"rcv":"${n}"}`);
@@ -428,6 +429,7 @@ test.describe('consume tab', () => {
     await expect(consumed.locator('.rcv-meta').first()).toContainText('received 3×');
     await consumed.locator('.rcv-row input[type=checkbox]').first().check();
     await consumed.getByRole('button', { name: 'Delete selected' }).click();
+    await confirmDialog('accept');
     expect(await waitForToast()).toContain('1 deleted');
 
     // AWS-side, read back through a fresh page: one deleted, two in flight.
@@ -456,7 +458,7 @@ test.describe('consume tab', () => {
 });
 
 test.describe('queue policy', () => {
-  test('grant adds a statement row; revoke removes it', async ({ page, request, uniqueName, waitForToast }) => {
+  test('grant adds a statement row; revoke removes it', async ({ page, request, uniqueName, waitForToast, confirmDialog }) => {
     const name = await createQueue(request, uniqueName('e2e-sqs-perm'));
     await page.goto(`sqs/${name}?tab=config`);
     const cfg = page.locator('#sqs-config');
@@ -478,6 +480,7 @@ test.describe('queue policy', () => {
     await expect(page.locator('#sqs-config .tbl.kv tr', { hasText: 'Policy' })).toContainText(label);
 
     await row.getByRole('button', { name: 'Revoke' }).click();
+    await confirmDialog('accept');
     expect(await waitForToast()).toContain('Permission removed');
     await expect(page.locator('#sqs-config').getByRole('button', { name: 'Revoke' })).toHaveCount(0);
     await expect(page.locator('#sqs-config .perm-none')).toBeVisible();

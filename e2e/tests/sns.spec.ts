@@ -351,6 +351,7 @@ test.describe('SNS topic details', () => {
     request,
     uniqueName,
     waitForToast,
+    confirmDialog,
   }) => {
     const topic = uniqueName('e2e-sns-perm');
     await createTopic(request, topic);
@@ -375,6 +376,7 @@ test.describe('SNS topic details', () => {
     await expect(page.locator('.tbl.kv tr', { hasText: label })).toHaveCount(1);
 
     await row.getByRole('button', { name: 'Revoke' }).click();
+    await confirmDialog('accept');
     expect(await waitForToast()).toContain('Permission removed');
     await expect(grants.filter({ hasText: label })).toHaveCount(0);
     // Gone from the stored Policy document too, not just the grants table.

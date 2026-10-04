@@ -289,7 +289,16 @@
     function settle(ok) {
       if (settled) return;
       settled = true;
-      if (ok) e.detail.issueRequest(); else e.detail.dropRequest();
+      if (ok) { e.detail.issueRequest(); return; }
+      e.detail.dropRequest();
+      // A control that asks on change (a stage's deployment picker) has
+      // already changed by the time it asks. Declined, it goes back to what is
+      // actually in effect rather than showing a value nothing applied.
+      var src = e.target && e.target.closest && e.target.closest("form");
+      if (src && /\bchange\b/.test(src.getAttribute("hx-trigger") || "")) {
+        src.reset();
+        src.querySelectorAll("select").forEach(function (s) { s.dispatchEvent(new Event("ds:sync")); });
+      }
     }
     // The QUESTION goes in the message, and the title stays the static "Are you
     // sure?" the markup ships with. Making the question the title instead left
@@ -949,6 +958,17 @@
     e.preventDefault();
     t.click();
   });
+  // ---------- scrollable regions ----------
+  // A code block, a log pane or a wide table that scrolls has to be reachable
+  // from the keyboard, or its overflow can only be read with a mouse wheel.
+  function focusableScrollers(root) {
+    (root || document).querySelectorAll(".code-out pre, pre, .log-lines, .table-wrap").forEach(function (el) {
+      if (el.hasAttribute("tabindex")) return;
+      if (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) el.setAttribute("tabindex", "0");
+    });
+  }
+  document.addEventListener("DOMContentLoaded", function () { focusableScrollers(); });
+  document.addEventListener("htmx:after:settle", function (e) { focusableScrollers(e.target); });
   // ---------- focus trap ----------
   // The drawers and the confirm dialog already handled Escape and a scrim
   // click; what none of them did was focus. Tab escaped into the page behind,

@@ -342,6 +342,7 @@ test.describe('API Gateway editing', () => {
     const intTable = panel.locator('table.tbl:has(th:text("Template"))');
     await expect(intTable.locator('tbody tr', { hasText: '200' })).toBeVisible();
     await intTable.getByRole('button', { name: 'Remove 200' }).click();
+    await confirmDialog('accept');
     expect(await waitForToast()).toContain('Response 200 removed');
     await expect(panel).toContainText('none — proxy integrations pass');
 
@@ -350,6 +351,7 @@ test.describe('API Gateway editing', () => {
     await expect(chips.locator('.badge', { hasText: '200' })).toBeVisible();
     // Its accessible name is the "×" glyph, not the title, so address it by title.
     await chips.locator('button[title="Remove 200"]').click();
+    await confirmDialog('accept');
     expect(await waitForToast()).toContain('Response 200 removed');
     await expect(chips).toContainText('none declared');
 
@@ -419,7 +421,12 @@ test.describe('API Gateway editing', () => {
     await expect(stageRow.locator('select[name="deployment"]')).toHaveValue(older);
 
     // Repoint it: the select submits on change.
+    // Declined, the picker goes back to what the stage actually serves.
     await stageRow.locator('select[name="deployment"]').selectOption(newer);
+    await confirmDialog('cancel');
+    await expect(stageRow.locator('select[name="deployment"]')).toHaveValue(older);
+    await stageRow.locator('select[name="deployment"]').selectOption(newer);
+    await confirmDialog('accept');
     expect(await waitForToast()).toContain('Stage rollback repointed');
     await expect(stageRow.locator('select[name="deployment"]')).toHaveValue(newer);
 

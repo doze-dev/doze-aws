@@ -36,6 +36,9 @@ func (b *backend) tagARN(svc, id string) string {
 	case "apigw":
 		// API Gateway ARNs carry no account and a path-shaped resource.
 		return "arn:aws:apigateway:" + b.id.RegionName() + "::/restapis/" + id
+	case "apigw-http":
+		// An HTTP API is /apis/, and the service refuses the other shape.
+		return "arn:aws:apigateway:" + b.id.RegionName() + "::/apis/" + id
 	default:
 		return id
 	}
@@ -133,7 +136,7 @@ func (b *backend) ResourceTags(ctx context.Context, svc, id string) ([]KV, error
 			m = out.Tags
 		}
 		err = e
-	case "apigw":
+	case "apigw", "apigw-http":
 		// GetTags — the control plane's tag read, addressed by ARN in the path.
 		var out struct {
 			Tags map[string]string `json:"tags"`
@@ -244,7 +247,7 @@ func (b *backend) SetResourceTag(ctx context.Context, svc, id, key, value string
 		return err
 	case "lambda":
 		return b.lambdaTagsSet(ctx, b.tagARN(svc, id), map[string]string{key: value})
-	case "apigw":
+	case "apigw", "apigw-http":
 		_, err := b.apigwJSON(ctx, "PUT", "/tags/"+url.PathEscape(b.tagARN(svc, id)),
 			map[string]any{"tags": map[string]string{key: value}})
 		return err
@@ -308,7 +311,7 @@ func (b *backend) RemoveResourceTag(ctx context.Context, svc, id, key string) er
 		return err
 	case "lambda":
 		return b.lambdaTagsRemove(ctx, b.tagARN(svc, id), key)
-	case "apigw":
+	case "apigw", "apigw-http":
 		_, err := b.apigwJSON(ctx, "DELETE",
 			"/tags/"+url.PathEscape(b.tagARN(svc, id))+"?tagKeys="+url.QueryEscape(key), nil)
 		return err

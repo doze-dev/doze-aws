@@ -84,7 +84,7 @@
   {{template "cw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "cw"}} CloudWatch
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "cw"}} CloudWatch
         <div class="acts"><a class="btn" href="{{.Prefix}}/cw/create">{{icon "plus"}} Create alarm</a></div>
       </div>
       <div class="chips">{{template "copychip" dict "Label" "list" "Value" "aws cloudwatch describe-alarms"}}</div>
@@ -112,7 +112,7 @@
   {{template "cw_lp" (dict "Prefix" .Prefix "List" .List "Sel" "")}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "cw"}} <span class="mono">{{.M.Namespace}}/{{.M.Name}}</span></div>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "cw"}} <span class="mono">{{.M.Namespace}}/{{.M.Name}}</span></div>
       <div class="chips">{{template "copychip" dict "Label" "dimensions" "Value" .M.Label}}</div>
     </div>
     <div class="det-b">
@@ -137,7 +137,7 @@
   {{template "cw_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Sel)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "cw"}} {{.A.Name}} {{template "cw_state" .A.State}}
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "cw"}} {{.A.Name}} {{template "cw_state" .A.State}}
         {{if not .A.Enabled}}<span class="badge dim">actions off</span>{{end}}
         <div class="acts">
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/cw/alarm/{{.A.Name}}/delete" hx-confirm="Delete alarm “{{.A.Name}}”? Its history goes with it.">{{icon "trash"}} Delete</button>

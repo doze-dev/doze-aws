@@ -73,6 +73,11 @@
       var lb = document.querySelector('label[for="' + sel.id + '"]');
       if (!lb.id) lb.id = "dslbl-" + Math.random().toString(36).slice(2, 8);
       trigger.setAttribute("aria-labelledby", lb.id);
+    } else {
+      // The console's usual shape: <div class="field"><label>X</label><select>,
+      // a label beside the control rather than tied to it.
+      var fl = sel.closest(".field") && sel.closest(".field").querySelector(":scope > label");
+      if (fl && fl.textContent.trim()) trigger.setAttribute("aria-label", fl.textContent.trim());
     }
     if (sel.disabled) trigger.disabled = true;
     if (inlineHeight) trigger.style.height = inlineHeight;

@@ -20,7 +20,7 @@
 {{define "sm_secret_detail"}}
 <div id="sm-detail" x-data="{reveal:false}">
   <div class="det-h">
-    <div class="det-title">{{awsIcon "sm"}} {{.S.Name}}
+    <div class="det-title" role="heading" aria-level="1">{{awsIcon "sm"}} {{.S.Name}}
       {{if .S.Deleted}}<span class="badge dlq">pending deletion</span>{{end}}
       <div class="acts">
         {{if .S.Deleted}}

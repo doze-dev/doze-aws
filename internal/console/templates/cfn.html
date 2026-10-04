@@ -50,7 +50,7 @@
   {{template "cfn_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Stack.Name)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "cfn"}} {{.Stack.Name}}
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "cfn"}} {{.Stack.Name}}
         <div class="acts">
           <a class="btn" href="{{.Prefix}}/cfn/{{.Stack.Name}}?tab=update">{{icon "pencil"}} Update</a>
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/cfn/{{.Stack.Name}}/delete"
@@ -154,7 +154,7 @@
              with the stack's existing set, so blank means unchanged. */}}
         <form hx-post="{{.Prefix}}/cfn/{{.Stack.Name}}/update" hx-indicator="#submit-spin" x-data="{useprev:false, review:false}" x-effect="if(!useprev)$nextTick(()=>window.dozeEditor&&dozeEditor.refresh($el))">
           <div class="panel form-sec"><div class="panel-h"><h2>Template</h2></div><div class="form-b">
-            <div class="opt-row"><div><div class="opt-l">Use previous template</div><div class="opt-d">Change only parameters; the template stays as deployed</div></div><label class="switch"><input type="checkbox" name="useprev" x-model="useprev"><span class="track"></span><span class="thumb"></span></label></div>
+            <div class="opt-row"><div><div class="opt-l">Use previous template</div><div class="opt-d">Change only parameters; the template stays as deployed</div></div><label class="switch"><input aria-label="Use previous template" type="checkbox" name="useprev" x-model="useprev"><span class="track"></span><span class="thumb"></span></label></div>
             <div class="field" x-show="!useprev" style="margin-top:10px"><label>Template <span class="dim">JSON or YAML</span></label>
               <textarea name="template" data-editor rows="14" spellcheck="false">{{.Template}}</textarea></div>
           </div></div>
@@ -166,7 +166,7 @@
             {{end}}{{else}}<p class="mini-note">The deployed template declares no parameters. If the new template does, reload from template above.</p>{{end}}
           </div></div>
           <div class="panel form-sec"><div class="panel-h"><h2>How to deploy</h2></div><div class="form-b">
-            <div class="opt-row"><div><div class="opt-l">Create a change set instead</div><div class="opt-d">Review the resource-level diff before anything deploys</div></div><label class="switch"><input type="checkbox" name="review" x-model="review"><span class="track"></span><span class="thumb"></span></label></div>
+            <div class="opt-row"><div><div class="opt-l">Create a change set instead</div><div class="opt-d">Review the resource-level diff before anything deploys</div></div><label class="switch"><input aria-label="Create a change set instead" type="checkbox" name="review" x-model="review"><span class="track"></span><span class="thumb"></span></label></div>
             <div class="field" x-show="review" x-cloak style="margin-top:10px"><label>Change set name</label><input class="input mono" name="changeset" value="{{.CSDefault}}" pattern="[a-zA-Z][a-zA-Z0-9\-]*" spellcheck="false"></div>
           </div></div>
           {{template "form_actions" dict "Cancel" (printf "%s/cfn/%s" .Prefix .Stack.Name) "Submit" "Update stack"}}

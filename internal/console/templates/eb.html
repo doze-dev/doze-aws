@@ -16,7 +16,7 @@
   {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bus)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "eb"}} {{.Bus}}<div class="acts"><a class="btn btn-outline" href="{{.Prefix}}/eb/destinations">{{icon "send"}} API destinations</a><a class="btn" href="{{.Prefix}}/eb/{{.Bus}}/create-rule">{{icon "plus"}} Create rule</a></div></div>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "eb"}} {{.Bus}}<div class="acts"><a class="btn btn-outline" href="{{.Prefix}}/eb/destinations">{{icon "send"}} API destinations</a><a class="btn" href="{{.Prefix}}/eb/{{.Bus}}/create-rule">{{icon "plus"}} Create rule</a>{{if ne .Bus "default"}}<button class="btn btn-outline danger" hx-post="{{.Prefix}}/eb/{{.Bus}}/delete-bus" hx-confirm="Delete event bus “{{.Bus}}”? Its rules must be deleted first.">{{icon "trash"}} Delete</button>{{end}}</div></div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .BusARN}}</div>
       {{/* Tabs, as every other detail page has. All six panels used to render
            at once, two columns deep, and they are never the same height: an
@@ -150,7 +150,7 @@
   {{template "eb_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bus)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "eb"}} {{.Rule.Name}} <span class="badge {{if eq .Rule.State "ENABLED"}}state-on{{else}}state-off{{end}}">{{.Rule.State}}</span>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "eb"}} {{.Rule.Name}} <span class="badge {{if eq .Rule.State "ENABLED"}}state-on{{else}}state-off{{end}}">{{.Rule.State}}</span>
         <div class="acts">
           <button class="btn btn-outline" hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/toggle" title="{{if eq .Rule.State "ENABLED"}}Stop this rule matching events{{else}}Resume matching events{{end}}">{{if eq .Rule.State "ENABLED"}}{{icon "x"}} Disable{{else}}{{icon "play"}} Enable{{end}}</button>
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/eb/{{.Bus}}/rule/{{.Rule.Name}}/delete-rule" hx-confirm="Delete rule “{{.Rule.Name}}” and its targets?">{{icon "trash"}} Delete</button>
@@ -162,7 +162,7 @@
     </div>
     <div class="det-b"><div class="split">
       <div><div class="sec-title" style="margin-top:0">{{if .Rule.Schedule}}Schedule{{else}}Event pattern{{end}}</div>
-        <div class="code-out"><div class="co-h"><span>{{if .Rule.Schedule}}expression{{else}}pattern.json{{end}}</span><button class="copy-btn" data-copy="{{if .Rule.Schedule}}{{.Rule.Schedule}}{{else}}{{.Rule.Pattern}}{{end}}">{{icon "copy"}}</button></div><pre>{{if .Rule.Schedule}}{{.Rule.Schedule}}{{else}}{{.Rule.Pattern}}{{end}}</pre></div>
+        <div class="code-out"><div class="co-h"><span>{{if .Rule.Schedule}}expression{{else}}pattern.json{{end}}</span><button class="copy-btn" title="Copy" aria-label="Copy" data-copy="{{if .Rule.Schedule}}{{.Rule.Schedule}}{{else}}{{.Rule.Pattern}}{{end}}">{{icon "copy"}}</button></div><pre>{{if .Rule.Schedule}}{{.Rule.Schedule}}{{else}}{{.Rule.Pattern}}{{end}}</pre></div>
         {{$tid := .Rule.Name}}{{if ne .Bus "default"}}{{$tid = printf "%s/%s" .Bus .Rule.Name}}{{end}}
         {{template "tags_panel" dict "Prefix" .Prefix "Svc" "eb" "ID" $tid}}
       </div>
@@ -274,7 +274,7 @@
         <div class="pb-row">
           <div class="pb-chips">
             <template x-for="(c, ci) in r.conds" :key="ci">
-              <span class="badge type ver-stage"><span class="mono" x-text="condLabel(c)"></span><button type="button" class="lbl-x" @click="dropCond(r, ci)">&times;</button></span>
+              <span class="badge type ver-stage"><span class="mono" x-text="condLabel(c)"></span><button type="button" class="lbl-x" title="Remove condition" aria-label="Remove condition" @click="dropCond(r, ci)">&times;</button></span>
             </template>
           </div>
         </div>

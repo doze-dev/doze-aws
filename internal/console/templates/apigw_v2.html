@@ -7,7 +7,7 @@
   {{template "apigw_lp" (dict "Prefix" .Prefix "List" .List "Sel" .API.ID)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "apigw"}} {{.API.Name}} <span class="badge" title="HTTP API (apigatewayv2)">HTTP</span>
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "apigw"}} {{.API.Name}} <span class="badge" title="HTTP API (apigatewayv2)">HTTP</span>
         <div class="acts">
           <a class="btn" href="{{.Prefix}}/apigw-http/{{.API.ID}}?tab=invoke">{{icon "send"}} Invoke</a>
           <button class="btn btn-outline danger" hx-post="{{.Prefix}}/apigw-http/{{.API.ID}}/delete" hx-confirm="Delete HTTP API “{{.API.Name}}” and every route, stage and authorizer under it?">{{icon "trash"}} Delete</button>
@@ -34,7 +34,7 @@
       {{else if eq .Tab "settings"}}
         {{template "apigw_http_settings" .}}
       {{else if eq .Tab "tags"}}
-        {{template "tags_panel" dict "Prefix" .Prefix "Svc" "apigw" "ID" .API.ID}}
+        {{template "tags_panel" dict "Prefix" .Prefix "Svc" "apigw-http" "ID" .API.ID}}
       {{else}}
         {{template "apigw_http_routes" .}}
       {{end}}

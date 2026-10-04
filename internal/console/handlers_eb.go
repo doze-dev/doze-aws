@@ -36,7 +36,7 @@ func (c *Console) ebDeleteBus(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	c.redirect(w, r, c.prefix+"/eb", "Event bus deleted")
+	c.redirect(w, r, c.prefix+"/eb", "Event bus “"+r.PathValue("bus")+"” deleted")
 }
 
 func (c *Console) ebBus(w http.ResponseWriter, r *http.Request) {

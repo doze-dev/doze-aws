@@ -149,6 +149,9 @@ func resourceURL(svc, id string) resourceRef {
 		} else if rest, ok := strings.CutPrefix(id, "dashboard/"); ok {
 			ref.Name = rest
 			return ref
+		} else if rest, ok := strings.CutPrefix(id, "metric/"); ok {
+			ref.Name = rest // a namespace or metric: nothing local renders one
+			return ref
 		} else {
 			ref.Name, ref.Path = id, "/cw/alarm/"+id
 		}
@@ -192,8 +195,10 @@ func resourceURL(svc, id string) resourceRef {
 		ref.Name, ref.Path = n, "/kms/"+n
 	case "sm":
 		// secret:prod/db-AbCdEf — Secrets Manager appends six random characters.
-		n := strings.TrimPrefix(id, "secret:")
-		if i := strings.LastIndex(n, "-"); i > 0 && len(n)-i == 7 {
+		// Only an ARN carries the suffix; a bare name ending in six
+		// characters after a dash is just a name.
+		n, fromARN := strings.CutPrefix(id, "secret:")
+		if i := strings.LastIndex(n, "-"); fromARN && i > 0 && len(n)-i == 7 {
 			n = n[:i]
 		}
 		ref.Name, ref.Path = n, "/sm/secret?name="+url.QueryEscape(n)

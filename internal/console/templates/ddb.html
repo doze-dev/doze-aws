@@ -20,7 +20,7 @@
   <section class="detail" x-data="{drawer:false, put:false, upd:false, updKey:'', putOrig:'', sel:[]}"
            @htmx:after:swap="if($event.detail.ctx.target && $event.detail.ctx.target.id==='ddb-items') sel=[]">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "ddb"}} {{.Table.Name}}
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "ddb"}} {{.Table.Name}}
         <div class="acts"><button class="btn" @click="putOrig=''; put=true">{{icon "plus"}} Add item</button><button class="btn btn-outline danger" hx-post="{{.Prefix}}/ddb/{{.Table.Name}}/delete-table" hx-confirm="Delete table “{{.Table.Name}}” and ALL its items?">{{icon "trash"}} Delete</button></div>
       </div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .Table.ARN}}</div>

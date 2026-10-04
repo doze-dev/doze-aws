@@ -46,7 +46,7 @@
   --accent: #202020;
   --destructive: #c0281c;
   --destructive-foreground: #ffffff;
-  --success: #1a7f4b;
+  --success: #176e41;
   --warning: #8a5200;
   --denied: #6b3fa0;
   --border: #dddddd;
@@ -113,25 +113,25 @@
   /* ink tier — the same hue at text contrast. Reach for this whenever a
      service colour carries WORDS rather than a 16px mark: the icon tier
      clears 3:1, which is right for a glyph and not enough for a label. */
-  --svc-s3-ink: #0f8851;
-  --svc-ssm-ink: #4b850a;
-  --svc-cfn-ink: #7d7916;
-  --svc-lambda-ink: #b85e0d;
-  --svc-sm-ink: #9f6d05;
-  --svc-kms-ink: #e42b21;
-  --svc-sqs-ink: #de2283;
-  --svc-sns-ink: #a83bf0;
-  --svc-iam-ink: #6a4dfb;
-  --svc-ddb-ink: #2e6bff;
-  --svc-kinesis-ink: #087eaf;
-  --svc-eb-ink: #00857a;
-  --svc-apigw-ink: #00866b;
+  --svc-s3-ink: #0c7143;
+  --svc-ssm-ink: #3e6d08;
+  --svc-cfn-ink: #676412;
+  --svc-lambda-ink: #974d0b;
+  --svc-sm-ink: #815904;
+  --svc-kms-ink: #c02017;
+  --svc-sqs-ink: #b71b6c;
+  --svc-sns-ink: #9212e6;
+  --svc-iam-ink: #5939fb;
+  --svc-ddb-ink: #004aff;
+  --svc-kinesis-ink: #076992;
+  --svc-eb-ink: #006b63;
+  --svc-apigw-ink: #006c57;
   --svc-sfn-ink: #b81f68;
   --svc-logs-ink: #a4315a;
-  --svc-cw-ink: #bd2f68;
-  --svc-sts-ink: #6b7688;
+  --svc-cw-ink: #b12c61;
+  --svc-sts-ink: #596271;
 
-  --syn-str: #0f8851; --syn-num: #b85e0d; --syn-kw: #a83bf0; --syn-meta: #5c5c5c;
+  --syn-str: #0c7143; --syn-num: #974d0b; --syn-kw: #9212e6; --syn-meta: #5c5c5c;
   --mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
 }
 
@@ -206,7 +206,7 @@
   --primary: #202020; --primary-foreground: #ffffff;
   --secondary: #e4e4e4; --secondary-foreground: #202020; --accent: #202020;
   --destructive: #c0281c; --destructive-foreground: #ffffff;
-  --success: #1a7f4b; --warning: #8a5200; --denied: #6b3fa0;
+  --success: #176e41; --warning: #8a5200; --denied: #6b3fa0;
   --border: #dddddd; --input: #d2d2d2; --ring: #202020;
   --svc-s3: #12a05f;
   --svc-ssm: #5ea60c;
@@ -229,25 +229,25 @@
   /* ink tier — the same hue at text contrast. Reach for this whenever a
      service colour carries WORDS rather than a 16px mark: the icon tier
      clears 3:1, which is right for a glyph and not enough for a label. */
-  --svc-s3-ink: #0f8851;
-  --svc-ssm-ink: #4b850a;
-  --svc-cfn-ink: #7d7916;
-  --svc-lambda-ink: #b85e0d;
-  --svc-sm-ink: #9f6d05;
-  --svc-kms-ink: #e42b21;
-  --svc-sqs-ink: #de2283;
-  --svc-sns-ink: #a83bf0;
-  --svc-iam-ink: #6a4dfb;
-  --svc-ddb-ink: #2e6bff;
-  --svc-kinesis-ink: #087eaf;
-  --svc-eb-ink: #00857a;
-  --svc-apigw-ink: #00866b;
+  --svc-s3-ink: #0c7143;
+  --svc-ssm-ink: #3e6d08;
+  --svc-cfn-ink: #676412;
+  --svc-lambda-ink: #974d0b;
+  --svc-sm-ink: #815904;
+  --svc-kms-ink: #c02017;
+  --svc-sqs-ink: #b71b6c;
+  --svc-sns-ink: #9212e6;
+  --svc-iam-ink: #5939fb;
+  --svc-ddb-ink: #004aff;
+  --svc-kinesis-ink: #076992;
+  --svc-eb-ink: #006b63;
+  --svc-apigw-ink: #006c57;
   --svc-sfn-ink: #b81f68;
   --svc-logs-ink: #a4315a;
-  --svc-cw-ink: #bd2f68;
-  --svc-sts-ink: #6b7688;
+  --svc-cw-ink: #b12c61;
+  --svc-sts-ink: #596271;
 
-  --syn-str: #0f8851; --syn-num: #b85e0d; --syn-kw: #a83bf0; --syn-meta: #5c5c5c;
+  --syn-str: #0c7143; --syn-num: #974d0b; --syn-kw: #9212e6; --syn-meta: #5c5c5c;
 }
 
 :root[data-theme="dark"] {
@@ -906,7 +906,7 @@ tr:hover .kv-copy .copy-btn, .kv-copy:hover .copy-btn { opacity: 1; }
 .CodeMirror-focused { border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 20%, transparent); }
 .CodeMirror-scroll { min-height: inherit; max-height: inherit; }
 .CodeMirror-gutters { background: color-mix(in srgb, var(--muted) 50%, transparent); border-right: 1px solid var(--border); }
-.CodeMirror-linenumber { color: var(--muted-foreground); opacity: 0.7; font-size: 11px; }
+.CodeMirror-linenumber { color: var(--muted-foreground); font-size: 11px; } /* full strength: at 0.7 the numbers failed contrast */
 .CodeMirror-cursor { border-left-color: var(--foreground); }
 .CodeMirror-selected { background: color-mix(in srgb, var(--accent) 18%, transparent) !important; }
 .CodeMirror-placeholder { color: var(--muted-foreground) !important; }
@@ -973,7 +973,7 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 }
 .rail .rgroup {
   font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
-  color: color-mix(in srgb, var(--muted-foreground) 80%, transparent); padding: 12px 10px 4px; white-space: nowrap;
+  color: var(--muted-foreground); padding: 12px 10px 4px; white-space: nowrap; /* full strength: at 80% the labels failed WCAG AA contrast */
 }
 .rail .rgroup:first-child { padding-top: 4px; }
 :root[data-rail="slim"] .rail .rgroup { height: 9px; padding: 8px 0 0; overflow: hidden; visibility: hidden; }
@@ -1034,7 +1034,9 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 12px 12px 8px; font-weight: 600; font-size: 14px; letter-spacing: -0.01em;
 }
-.lp-h .aws-ic { width: 22px; height: 22px; border-radius: var(--radius); }
+/* No service icon here: the highlighted rail item beside it already shows
+   one, and the 30px it took is what "CloudWatch Logs (6)" needed to fit. */
+.lp-h .aws-ic { display: none; }
 /* min-width:0 + nowrap/ellipsis: a long service name (CloudFormation) was
    pushing the New button past the pane edge, clipping it to "+ Ne…". The name
    gives way; the action stays whole. */
@@ -1074,6 +1076,8 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
 }
 .new-link:hover { opacity: 0.9; }
 .new-link .ic { width: 12px; height: 12px; }
+.lp-h .new-link { width: 26px; height: 26px; justify-content: center; padding: 0; }
+.lp-h .new-link .ic { width: 14px; height: 14px; }
 .listpane .filter { margin: 0 10px 8px; display: block; }
 .listpane .filter input { width: 100%; height: 30px; }
 .listpane .li {
@@ -1216,7 +1220,7 @@ tr:hover .tag-v .icon-btn, .tag-v .icon-btn:focus-visible { opacity: 1; }
   border-radius: 999px; font-size: 12px; font-weight: 500; vertical-align: middle;
   border: 1px solid var(--border); background: var(--muted); color: var(--muted-foreground); }
 .rt-badge .rt-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: color-mix(in srgb, var(--muted-foreground) 60%, transparent); }
-.rt-badge .rt-sub { font-weight: 400; opacity: 0.85; }
+.rt-badge .rt-sub { font-weight: 400; }
 .rt-warm { border-color: color-mix(in srgb, var(--success) 40%, transparent); background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); }
 .rt-warm .rt-dot { background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 18%, transparent); }
 
@@ -2043,7 +2047,11 @@ a.log-rid:hover { color: var(--foreground); text-decoration: underline; }
 .log-start .log-msg, .log-end .log-msg, .log-report .log-msg { color: var(--muted-foreground); }
 .log-start { border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); margin-top: 2px; padding-top: 3px; }
 .log-err .log-msg { color: var(--destructive); }
-.log-group-name { font-size: 12px; }
+.log-group-name { font-size: 12px; display: flex; min-width: 0; }
+/* The directory gives way first: six groups under /aws/lambda/harbour- used
+   to differ only in the characters the ellipsis hid. */
+.log-group-name .lg-dir { flex: 0 1000 auto; min-width: 2ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted-foreground); }
+.log-group-name .lg-leaf { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .log-title { font-size: 16px; }
 
 /* ---------- CloudWatch ---------- */

@@ -19,7 +19,7 @@
   {{template "sqs_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Queue)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title">{{awsIcon "sqs"}} {{.Queue}}
+      <div class="det-title" role="heading" aria-level="1">{{awsIcon "sqs"}} {{.Queue}}
         {{if .Config.FIFO}}<span class="badge type" title="First-in-first-out: strict ordering per message group{{if .Config.ContentDedup}} · content-based deduplication{{end}}">FIFO</span>{{end}}
         {{if .IsDLQ}}<span class="badge dlq" title="This queue is a dead-letter target — failed messages from other queues land here (see Fed by)">DLQ</span>{{end}}
         <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/sqs/{{.Queue}}/delete-queue" hx-confirm="Delete queue “{{.Queue}}”?">{{icon "trash"}} Delete</button></div>
@@ -173,7 +173,7 @@
       {{end}}
     </div>
   {{end}}</div>
-  {{else}}<div class="empty"><span class="ic-lg">{{icon "inbox"}}</span><p>No visible messages. Compose one on the right — it lands here.</p></div>{{end}}
+  {{else}}<div class="empty"><span class="ic-lg">{{icon "inbox"}}</span><p>No visible messages. Send one below — it lands here.</p></div>{{end}}
 </div>
 {{/* The out-of-band tail. Everything above repaints #message-panel-wrap; these
      two repaint the numbers that live OUTSIDE it and were therefore stale —
@@ -326,7 +326,7 @@
     {{if .Perms}}
     <div class="table-wrap"><table class="tbl"><thead><tr><th>Label</th><th>Principal</th><th>Action</th><th></th></tr></thead><tbody>
       {{range .Perms}}<tr><td class="mono">{{.Label}}</td><td class="mono">{{.Account}}</td><td class="mono">{{.Action}}</td>
-        <td class="right"><form hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/permission/delete" hx-target="#sqs-config" hx-select="" hx-swap="outerHTML" hx-vals='{"label":"{{.Label}}"}'>
+        <td class="right"><form hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/permission/delete" hx-confirm="Revoke “{{.Label}}”? Account {{.Account}} loses {{.Action}} on this queue." hx-target="#sqs-config" hx-select="" hx-swap="outerHTML" hx-vals='{"label":"{{.Label}}"}'>
           <button class="btn btn-ghost btn-sm" type="submit">Revoke</button></form></td></tr>{{end}}
     </tbody></table></div>
     {{else}}
@@ -395,7 +395,7 @@
   {{if .Received}}
   <div class="bulkbar" x-show="sel.length" x-cloak>
     <span class="bb-n"><span x-text="sel.length"></span> selected</span>
-    <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/delete-batch" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
+    <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/delete-batch" hx-confirm="Delete the selected messages? They are gone for good." hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
       <input type="hidden" name="ids" :value="JSON.stringify(sel)">
       <button class="btn btn-outline danger btn-sm" type="submit">{{icon "trash"}} Delete selected</button>
     </form>
@@ -425,7 +425,7 @@
           <input type="hidden" name="seconds" value="0">
           <button class="btn btn-ghost btn-sm" type="submit" title="Make visible again immediately">Release</button>
         </form>
-        <form hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
+        <form hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-confirm="Delete this message? It is gone for good." hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
           <input type="hidden" name="handle" value="{{.ReceiptHandle}}">
           <button class="btn btn-outline danger btn-sm" type="submit" title="Acknowledge — removes it for good">{{icon "trash"}} Delete</button>
         </form>
