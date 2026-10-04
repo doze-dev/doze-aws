@@ -1,0 +1,163 @@
+// Package restroute serves the REST-style AWS services (Lambda, API Gateway,
+// S3) from a chi router built out of AWS's own service model.
+//
+// Each of those services used to dispatch by splitting the path into segments
+// and switching on the method, while a separate table generated from the model
+// said which operation a request was — for validation and for naming the call
+// on the console's wire page — and a third matcher in the IAM guard guessed
+// the permission. Three answers to one question, and they disagreed. Here the
+// model's table is the router: a request is matched once, the operation it
+// matched is on its context, and validation, the guard, logging and the
+// handler all read it from there.
+//
+// chi cannot match on a query string or a header, and S3 tells some
+// operations apart only by those (?tagging, ?versioning, x-amz-copy-source).
+// A Route that shares its method and path with another carries a Pick
+// function; the candidates are tried in the order they were given, most
+// specific first, as LocalStack's op_router does with a score.
+package restroute
+
+import (
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+
+	"github.com/doze-dev/doze-aws/internal/awshttp"
+)
+
+// Handler is what every service's handlers already are: it writes its success
+// response itself and returns the API error to answer with otherwise.
+type Handler func(w http.ResponseWriter, r *http.Request) *awshttp.APIError
+
+// Route is one operation's binding.
+type Route struct {
+	// Op is the AWS operation name.
+	Op string
+	// Method is the HTTP method.
+	Method string
+	// Pattern is a chi pattern; Pattern converts a model template to one.
+	Pattern string
+	// Pick, when set, must return true for this route to serve a request that
+	// matched its method and pattern. Routes sharing a method and pattern are
+	// tried in order, and one without a Pick is the fallback.
+	Pick func(*http.Request) bool
+	// Handler serves it. Nil leaves the route to Options.Unhandled.
+	Handler Handler
+}
+
+// Options says how a service answers what the router cannot.
+type Options struct {
+	// OnError writes (and logs) the API error a Handler returned, and the
+	// ones the router raises itself. Required.
+	OnError func(w http.ResponseWriter, r *http.Request, e *awshttp.APIError)
+	// NotFound and MethodNotAllowed are the router's own refusals, in the
+	// service's wire format. Required.
+	NotFound         func(r *http.Request) *awshttp.APIError
+	MethodNotAllowed func(r *http.Request) *awshttp.APIError
+	// Use wraps every route, innermost last. It runs after the route has
+	// matched, so Op(r) is already set — which is why validation and the IAM
+	// guard are here and not on the router: before matching there is no
+	// operation to read.
+	Use []func(http.Handler) http.Handler
+}
+
+// Router is a built chi router that can also say which operation a request is
+// without serving it.
+type Router struct {
+	mux *chi.Mux
+	// byKey holds every route by "METHOD pattern", in the order given, for Op.
+	byKey map[string][]Route
+	keys  []string
+}
+
+// Build makes the router. It panics on a route chi cannot register (a
+// duplicate method and pattern without a Pick on both, a malformed pattern):
+// those are programming errors in a table that is fixed at build time, and a
+// test builds every service's router.
+func Build(routes []Route, o Options) *Router {
+	rt := &Router{mux: chi.NewRouter(), byKey: map[string][]Route{}}
+
+	wrap := func(rr Route) http.Handler {
+		var h http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if rr.Handler == nil {
+				o.OnError(w, r, o.NotFound(r))
+				return
+			}
+			if e := rr.Handler(w, r); e != nil {
+				o.OnError(w, r, e)
+			}
+		})
+		for i := len(o.Use) - 1; i >= 0; i-- {
+			h = o.Use[i](h)
+		}
+		op := rr.Op
+		inner := h
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			inner.ServeHTTP(w, withOp(r, op))
+		})
+	}
+
+	for _, rr := range routes {
+		key := rr.Method + " " + rr.Pattern
+		if _, seen := rt.byKey[key]; !seen {
+			rt.keys = append(rt.keys, key)
+		}
+		rt.byKey[key] = append(rt.byKey[key], rr)
+	}
+	for _, key := range rt.keys {
+		cands := rt.byKey[key]
+		method, pattern := cands[0].Method, cands[0].Pattern
+		chains := make([]http.Handler, len(cands))
+		for i, c := range cands {
+			chains[i] = wrap(c)
+		}
+		if len(cands) == 1 && cands[0].Pick == nil {
+			rt.mux.Method(method, pattern, chains[0])
+			continue
+		}
+		rt.mux.Method(method, pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			for i, c := range cands {
+				if c.Pick == nil || c.Pick(r) {
+					chains[i].ServeHTTP(w, r)
+					return
+				}
+			}
+			o.OnError(w, r, o.NotFound(r))
+		}))
+	}
+	rt.mux.NotFound(func(w http.ResponseWriter, r *http.Request) { o.OnError(w, r, o.NotFound(r)) })
+	rt.mux.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) { o.OnError(w, r, o.MethodNotAllowed(r)) })
+	return rt
+}
+
+// ServeHTTP serves the request.
+func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) { rt.mux.ServeHTTP(w, r) }
+
+// Op is the operation r addresses, or "" when no route matches. It matches
+// without serving, so it can name a call from outside the handler chain — the
+// console's wire page does.
+func (rt *Router) Op(r *http.Request) string {
+	rctx := chi.NewRouteContext()
+	if !rt.mux.Match(rctx, r.Method, routePath(r)) {
+		return ""
+	}
+	for _, c := range rt.byKey[r.Method+" "+rctx.RoutePattern()] {
+		if c.Pick == nil || c.Pick(r) {
+			return c.Op
+		}
+	}
+	return ""
+}
+
+// Routes lists every registered "METHOD pattern", in registration order. A
+// test walks it to hold a router to the model it was built from.
+func (rt *Router) Routes() []string { return append([]string(nil), rt.keys...) }
+
+// routePath is the path chi routes on: the escaped form when the request has
+// one, so a %2F inside an S3 key or an ARN in a tag path stays one segment.
+func routePath(r *http.Request) string {
+	if r.URL.RawPath != "" {
+		return r.URL.RawPath
+	}
+	return r.URL.Path
+}

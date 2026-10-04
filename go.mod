@@ -28,6 +28,7 @@ require (
 	github.com/aws/smithy-go v1.28.1
 	github.com/blues/jsonata-go v1.5.4
 	github.com/doze-dev/doze-names v0.1.0
+	github.com/go-chi/chi/v5 v5.3.2
 	go.etcd.io/bbolt v1.5.0
 	go.uber.org/goleak v1.3.0
 	gopkg.in/yaml.v3 v3.0.1
