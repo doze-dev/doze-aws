@@ -21,25 +21,25 @@
     </a>
     <div class="side-label">Principals</div>
     {{range .Principals}}
-    <a class="li {{if eq .ARN $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/{{.Kind}}/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+    <a class="li {{if eq .ARN $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/{{.Kind}}/{{.Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())">
       <span class="nm">{{.Name}}</span><span class="sb">{{.Kind}}</span>
     </a>
     {{end}}
     {{if .NavGroups}}<div class="side-label">Groups</div>
     {{range .NavGroups}}
-    <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/group/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+    <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/group/{{.Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())">
       <span class="nm">{{.Name}}</span><span class="sb">group</span>
     </a>
     {{end}}{{end}}
     {{if .NavProfiles}}<div class="side-label">Instance profiles</div>
     {{range .NavProfiles}}
-    <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/profile/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+    <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/profile/{{.Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())">
       <span class="nm">{{.Name}}</span><span class="sb">profile</span>
     </a>
     {{end}}{{end}}
     <div class="side-label">Customer policies</div>
     {{range .Policies}}
-    <a class="li {{if eq .ARN $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/policy?arn={{.ARN}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+    <a class="li {{if eq .ARN $.Sel}}on{{end}}" href="{{$.Prefix}}/iam/policy?arn={{.ARN}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())">
       <span class="nm">{{.Name}}</span><span class="sb">{{.Attached}}</span>
     </a>
     {{else}}

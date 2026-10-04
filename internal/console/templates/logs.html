@@ -49,7 +49,7 @@
 {{define "logs_lp"}}
 {{template "lp_head" dict "Svc" "logs" "Prefix" .Prefix "Label" "CloudWatch Logs" "NewURL" (printf "%s/logs/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
-  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/logs/group?name={{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm mono log-group-name" title="{{.Name}}">{{with splitPath .Name}}<span class="lg-dir">{{index . 0}}</span><span class="lg-leaf">{{index . 1}}</span>{{end}}</span>{{if .RetentionDays}}<span class="sb dim">{{.RetentionDays}}d</span>{{end}}</a>
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/logs/group?name={{.Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm mono log-group-name" title="{{.Name}}">{{with splitPath .Name}}<span class="lg-dir">{{index . 0}}</span><span class="lg-leaf">{{index . 1}}</span>{{end}}</span>{{if .RetentionDays}}<span class="sb dim">{{.RetentionDays}}d</span>{{end}}</a>
   {{else}}{{template "lp_empty" dict "Svc" "logs" "Prefix" $.Prefix}}
   {{end}}
 {{template "lp_foot" .}}

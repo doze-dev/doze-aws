@@ -1,7 +1,7 @@
 {{define "sfn_lp"}}
 {{template "lp_head" dict "Svc" "sfn" "Prefix" .Prefix "Label" "Step Functions" "NewURL" (printf "%s/sfn/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
-  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sfn/{{.Name}}" x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{if eq .Type "EXPRESS"}}express{{else}}standard{{end}}</span></a>
+  <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sfn/{{.Name}}" data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())"><span class="nm">{{.Name}}</span><span class="sb">{{if eq .Type "EXPRESS"}}express{{else}}standard{{end}}</span></a>
   {{else}}{{template "lp_empty" dict "Svc" "sfn" "Prefix" $.Prefix}}
     {{end}}
   {{/* Activities belong to no machine, so they are a row under the machines

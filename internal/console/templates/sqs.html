@@ -2,7 +2,7 @@
 {{template "lp_head" dict "Svc" "sqs" "Prefix" .Prefix "Label" "SQS" "NewURL" (printf "%s/sqs/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/sqs/{{.Name}}"
-     x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+     data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())">
     <span class="nm">{{.Name}}</span><span class="sb" id="lr-sqs-{{slug .Name}}">{{.Available}}</span>
   </a>
   {{else}}{{template "lp_empty" dict "Svc" "sqs" "Prefix" $.Prefix}}
@@ -229,9 +229,9 @@
   <div class="panel" x-show="edit" x-cloak>
     <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/attributes" hx-target="#sqs-config" hx-select="" hx-swap="outerHTML">
       <div class="edit-grid">
-        <div class="field" x-data="{v:'{{.Config.Visibility}}'}"><label>Visibility <span class="dim">s</span></label><input class="input" name="visibility" type="number" min="0" max="43200" value="{{.Config.Visibility}}" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
-        <div class="field" x-data="{v:'{{.Config.Retention}}'}"><label>Retention <span class="dim">s</span></label><input class="input" name="retention" type="number" min="60" max="1209600" value="{{.Config.Retention}}" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
-        <div class="field" x-data="{v:'{{.Config.Delay}}'}"><label>Delay <span class="dim">s</span></label><input class="input" name="delay" type="number" min="0" max="900" value="{{if .Config.Delay}}{{.Config.Delay}}{{else}}0{{end}}" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
+        <div class="field" data-v="{{.Config.Visibility}}" x-data="{v: $el.dataset.v}"><label>Visibility <span class="dim">s</span></label><input class="input" name="visibility" type="number" min="0" max="43200" value="{{.Config.Visibility}}" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
+        <div class="field" data-v="{{.Config.Retention}}" x-data="{v: $el.dataset.v}"><label>Retention <span class="dim">s</span></label><input class="input" name="retention" type="number" min="60" max="1209600" value="{{.Config.Retention}}" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
+        <div class="field" data-v="{{.Config.Delay}}" x-data="{v: $el.dataset.v}"><label>Delay <span class="dim">s</span></label><input class="input" name="delay" type="number" min="0" max="900" value="{{if .Config.Delay}}{{.Config.Delay}}{{else}}0{{end}}" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
       </div>
       <div class="edit-grid" style="padding-top:0">
         <div class="field" style="grid-column:span 2"><label>Dead-letter queue</label>
@@ -254,7 +254,7 @@
            SetQueueAttributes is F-tier and takes all of these; the gap was
            entirely in this form. */}}
       <div class="edit-grid edit-grid-tight">
-        <div class="field" x-data="{v:'{{index .Attrs "ReceiveMessageWaitTimeSeconds"}}'}">
+        <div class="field" data-v="{{index .Attrs "ReceiveMessageWaitTimeSeconds"}}" x-data="{v: $el.dataset.v}">
           <label>Receive wait <span class="dim">s · long polling</span></label>
           <input class="input" name="receive_wait" type="number" min="0" max="20" value="{{index .Attrs "ReceiveMessageWaitTimeSeconds"}}" x-model="v">
           <span class="hint" x-text="v > 0 ? 'consumers wait up to ' + v + 's for a message' : '0 = short polling: a receive returns immediately, empty or not'"></span></div>

@@ -2,7 +2,7 @@
 {{template "lp_head" dict "Svc" "s3" "Prefix" .Prefix "Label" "S3" "NewURL" (printf "%s/s3/create" .Prefix) "Count" (len .List)}}
   {{range .List}}
   <a class="li {{if eq .Name $.Sel}}on{{end}}" href="{{$.Prefix}}/s3/{{.Name}}"
-     x-data x-show="!$store.filter.q || '{{.Name}}'.toLowerCase().includes($store.filter.q.toLowerCase())">
+     data-name="{{.Name}}" x-data x-show="!$store.filter.q || $el.dataset.name.toLowerCase().includes($store.filter.q.toLowerCase())">
     <span class="nm">{{.Name}}</span>
   </a>
   {{else}}{{template "lp_empty" dict "Svc" "s3" "Prefix" $.Prefix}}
@@ -17,7 +17,7 @@
 
 {{define "s3_objects"}}{{template "shell_top" .}}
   {{template "s3_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Bucket)}}
-  <section class="detail" x-data="s3page('{{.Prefix}}','{{.Bucket}}')" x-init="syncPrefix()"
+  <section class="detail" data-prefix="{{.Prefix}}" data-bucket="{{.Bucket}}" x-data="s3page($el.dataset.prefix, $el.dataset.bucket)" x-init="syncPrefix()"
              @htmx:after:swap.window="syncPrefix(); if($event.detail.ctx.target && $event.detail.ctx.target.id==='object-table') sel=[]">
     <div class="det-h">
       <div class="det-title" role="heading" aria-level="1">{{awsIcon "s3"}} {{.Bucket}}

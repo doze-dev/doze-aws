@@ -6,6 +6,12 @@
      silently renders at the 16px default instead of the 13px the page sets. -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* Back and Forward must be a real page load. htmx 4's default restore fetches the
+     page and swaps it into <body>, which detaches every node shell.js holds (the
+     confirm dialog, the palette, the appearance and rail buttons) and leaves the
+     page looking right and answering nothing. Pages render in milliseconds, so
+     "reload" costs nothing, and leaves nothing stale. */}}
+<meta name="htmx-config" content='{"history":"reload"}'>
 <title>{{if .Title}}{{.Title}} — {{end}}doze-aws</title>
 <link rel="icon" type="image/svg+xml" href="{{.Prefix}}/static/favicon.svg">
 <!-- Vendor CSS before app.css: app.css re-themes CodeMirror (background, syntax

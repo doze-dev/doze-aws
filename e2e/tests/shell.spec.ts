@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/console';
-import { createBucket, createQueue } from '../fixtures/api';
+import { createBucket, createQueue, postForm } from '../fixtures/api';
 import { BASE_URL } from '../playwright.config';
 
 // Console-chrome behaviors that live outside #workspace and so must survive
@@ -167,6 +167,11 @@ test.describe('keyboard list navigation', () => {
   });
 });
 
+// Asks the page to go back or forward. The traversal destroys the execution context
+// the call ran in, which is the call working, not failing.
+const history = (page: import('@playwright/test').Page, dir: 'back' | 'forward') =>
+  page.evaluate((d) => window.history[d](), dir).catch(() => {});
+
 test.describe('htmx-boosted navigation', () => {
   test('rail links swap #workspace and back/forward work', async ({ page }) => {
     await page.goto('');
@@ -174,11 +179,103 @@ test.describe('htmx-boosted navigation', () => {
     await page.waitForURL(/\/sqs$/);
     await expect(page.locator('.rail .ri.on', { hasText: 'SQS' })).toBeVisible();
 
-    await page.goBack();
+    // (history.back() from the page: htmx reloads after a traversal, and Playwright's
+    // goBack() reports the load it supersedes as an aborted navigation.)
+    await page.evaluate(() => { (window as any).__beforeTraversal = true; });
+    await history(page, 'back');
     await page.waitForURL((url) => !/\/sqs$/.test(url.pathname));
+    await page.waitForFunction(() => !(window as any).__beforeTraversal);
 
-    await page.goForward();
+    await page.evaluate(() => { (window as any).__beforeTraversal = true; });
+    await history(page, 'forward');
     await page.waitForURL(/\/sqs$/);
+    await page.waitForFunction(() => !(window as any).__beforeTraversal);
+  });
+});
+
+// Back and Forward are the first thing a person tries after following a link. A
+// history restore that replaced <body>'s contents would detach every node shell.js
+// holds (the confirm dialog, the palette, the appearance buttons) and leave the page
+// looking right and doing nothing, so the check is on what the chrome DOES afterwards,
+// not on the URL.
+test.describe('history navigation', () => {
+  test('after Back and Forward the dialogs, palette and appearance control still work', async ({
+    page, request, uniqueName, openPalette, confirmDialog,
+  }) => {
+    const bucket = await createBucket(request, uniqueName('hist'));
+    await page.goto(`s3/${bucket}`);
+    await expect(page.getByRole('button', { name: 'Delete' }).first()).toBeVisible();
+
+    // A history traversal is followed by the page reloading itself (that is the
+    // point: see htmx-config in layout.html). page.goBack() waits for the traversal's
+    // own load, which the reload then supersedes and Playwright reports as an aborted
+    // navigation, so the traversal is asked for from the page and the step waits for
+    // the URL and then for the reload to settle.
+    const traverse = async (go: () => Promise<unknown>, url: RegExp) => {
+      await page.evaluate(() => { (window as any).__beforeTraversal = true; });
+      await go();
+      await page.waitForURL(url);
+      // The URL changes first and the reload follows a moment later; carrying on in
+      // between would act on a page that is about to be replaced. The marker is gone
+      // once the reload has happened.
+      await page.waitForFunction(() => !(window as any).__beforeTraversal);
+      await page.waitForLoadState('load');
+      await expect(page.locator('#workspace')).toBeVisible();
+    };
+    await page.locator('.rail .ri', { hasText: 'SQS' }).click();
+    await page.waitForURL(/\/sqs$/);
+    await traverse(() => history(page, 'back'), new RegExp(`/s3/${bucket}$`));
+    await traverse(() => history(page, 'forward'), /\/sqs$/);
+    await traverse(() => history(page, 'back'), new RegExp(`/s3/${bucket}$`));
+
+    // The styled confirm dialog (it replaces the native one for every hx-confirm).
+    await page.getByRole('button', { name: 'Delete' }).first().click();
+    await expect(page.locator('#confirm')).toBeVisible();
+    await confirmDialog('cancel');
+
+    // The command palette.
+    await openPalette();
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#palette')).toBeHidden();
+
+    // The appearance control, and the rail toggle.
+    await page.locator('#appearance button[data-mode="dark"]').click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await page.locator('#appearance button[data-mode="system"]').click();
+    await page.locator('#rail-toggle').click();
+    await expect(page.locator('html')).toHaveAttribute('data-rail', 'slim');
+    await page.locator('#rail-toggle').click();
+
+    // And the page is still one page: a restore that nested a copy of the
+    // workspace inside itself would leave two.
+    await expect(page.locator('#workspace')).toHaveCount(1);
+  });
+});
+
+// A resource's name is data. The sidebar filter used to put it inside a script string
+// ('{{.Name}}'.toLowerCase()), so a name with a quote in it ended the string and
+// whatever followed ran. API Gateway names are free text, so one can really be this.
+test.describe('names are data', () => {
+  test('a name with quotes and script in it is inert, and still filterable', async ({ page, uniqueName }) => {
+    const hostile = `${uniqueName('q')}'+(window.__pwned=1)+'"<b>`;
+    await postForm(page.request, 'apigw/create', { name: hostile });
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+
+    await page.goto('apigw');
+    const row = page.locator('.listpane .li', { hasText: 'window.__pwned=1' });
+    await expect(row).toBeVisible();
+
+    const filter = page.locator('.listpane .filter input');
+    await filter.fill("'+(window");
+    await expect(row).toBeVisible();          // matches by what the name says...
+    await filter.fill('no-such-name-anywhere');
+    await expect(row).toBeHidden();            // ...and is hidden when it does not.
+    await filter.fill('');
+    await expect(row).toBeVisible();
+
+    expect(await page.evaluate(() => (window as any).__pwned)).toBeUndefined();
+    expect(errors).toEqual([]);
   });
 });
 
