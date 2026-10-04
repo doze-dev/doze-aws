@@ -224,3 +224,30 @@ func TestTolerantRoutersTrimSlashesAndReadEmptyLabelsAsEmpty(t *testing.T) {
 		t.Errorf("Op of an empty label = %q", got)
 	}
 }
+
+// A family a service refuses as a whole is one route for every method; and two
+// methods may name the same position differently (CreateResource's {parentId}
+// beside DeleteResource's {resourceId}).
+func TestAnyMethodRoutesAndPerMethodLabelNames(t *testing.T) {
+	h := func(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
+		return reply(w, r, restroute.Param(r, "parentId")+restroute.Param(r, "resourceId"))
+	}
+	rt := restroute.Build([]restroute.Route{
+		{Op: "CreateResource", Method: "POST", Pattern: "/r/{parentId}", Handler: h},
+		{Op: "DeleteResource", Method: "DELETE", Pattern: "/r/{resourceId}", Handler: h},
+		{Method: "", Pattern: "/gone/*", Handler: func(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
+			return awshttp.Errf(501, "NotImplemented", "no")
+		}},
+	}, options(t))
+	if _, body := do(rt, "POST", "/r/abc"); body != "CreateResource|abc" {
+		t.Errorf("POST = %q", body)
+	}
+	if _, body := do(rt, "DELETE", "/r/xyz"); body != "DeleteResource|xyz" {
+		t.Errorf("DELETE = %q", body)
+	}
+	for _, m := range []string{"GET", "PUT", "PATCH", "DELETE"} {
+		if code, _ := do(rt, m, "/gone/a/b"); code != 501 {
+			t.Errorf("%s /gone/a/b = %d, want 501", m, code)
+		}
+	}
+}

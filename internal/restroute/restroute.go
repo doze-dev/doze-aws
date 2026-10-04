@@ -34,7 +34,8 @@ type Handler func(w http.ResponseWriter, r *http.Request) *awshttp.APIError
 type Route struct {
 	// Op is the AWS operation name.
 	Op string
-	// Method is the HTTP method.
+	// Method is the HTTP method; empty means every method (a family the
+	// service refuses as a whole).
 	Method string
 	// Pattern is a chi pattern; Pattern converts a model template to one.
 	Pattern string
@@ -69,6 +70,9 @@ type Options struct {
 	// operation to read.
 	Use []func(http.Handler) http.Handler
 }
+
+// anyMethod is the key a route with no Method is held under.
+const anyMethod = "*"
 
 // Router is a built chi router that can also say which operation a request is
 // without serving it.
@@ -111,6 +115,9 @@ func Build(routes []Route, o Options) *Router {
 	}
 
 	for _, rr := range routes {
+		if rr.Method == "" {
+			rr.Method = anyMethod
+		}
 		key := rr.Method + " " + rr.Pattern
 		if _, seen := rt.byKey[key]; !seen {
 			rt.keys = append(rt.keys, key)
@@ -125,7 +132,11 @@ func Build(routes []Route, o Options) *Router {
 			chains[i] = wrap(c)
 		}
 		if len(cands) == 1 && cands[0].Pick == nil {
-			rt.mux.Method(method, pattern, chains[0])
+			if method == anyMethod {
+				rt.mux.Handle(pattern, chains[0])
+			} else {
+				rt.mux.Method(method, pattern, chains[0])
+			}
 			continue
 		}
 		rt.mux.Method(method, pattern, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -158,7 +169,11 @@ func (rt *Router) Op(r *http.Request) string {
 	if !rt.mux.Match(rctx, r.Method, path) {
 		return ""
 	}
-	for _, c := range rt.byKey[r.Method+" "+rctx.RoutePattern()] {
+	cands := rt.byKey[r.Method+" "+rctx.RoutePattern()]
+	if len(cands) == 0 {
+		cands = rt.byKey[anyMethod+" "+rctx.RoutePattern()]
+	}
+	for _, c := range cands {
 		if c.Pick == nil || c.Pick(r) {
 			return c.Op
 		}

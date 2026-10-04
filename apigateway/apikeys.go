@@ -161,42 +161,30 @@ func (s *store) FindAPIKeyByValue(value string) *apiKey {
 
 // ---- handlers ----
 
-// routeAPIKeys serves /apikeys[/{id}].
-func (s *Server) routeAPIKeys(w http.ResponseWriter, r *http.Request, segs []string) *awshttp.APIError {
-	if len(segs) == 1 {
-		switch r.Method {
-		case http.MethodPost:
-			if r.URL.Query().Get("mode") == "import" {
-				return awshttp.Errf(501, "NotImplemented", "ImportApiKeys reads a CSV of keys; create them one at a time with CreateApiKey")
-			}
-			return s.createAPIKey(w, r)
-		case http.MethodGet:
-			return s.listAPIKeys(w, r)
-		}
-		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on /apikeys")
+// createAPIKeyOrImport is POST /apikeys: CreateApiKey, or — with ?mode=import —
+// ImportApiKeys, which reads a CSV and is not modelled.
+func (s *Server) createAPIKeyOrImport(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
+	if r.URL.Query().Get("mode") == "import" {
+		return awshttp.Errf(501, "NotImplemented", "ImportApiKeys reads a CSV of keys; create them one at a time with CreateApiKey")
 	}
-	if len(segs) == 2 {
-		id := segs[1]
-		switch r.Method {
-		case http.MethodGet:
-			k, err := s.store.GetAPIKey(id)
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			writeJSON(w, 200, viewAPIKey(k, r.URL.Query().Get("includeValue") == "true"))
-			return nil
-		case http.MethodPatch:
-			return s.patchAPIKey(w, r, id)
-		case http.MethodDelete:
-			if err := s.store.DeleteAPIKey(id); err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			w.WriteHeader(202)
-			return nil
-		}
-		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on an API key")
+	return s.createAPIKey(w, r)
+}
+
+func (s *Server) getAPIKey(w http.ResponseWriter, r *http.Request, id string) *awshttp.APIError {
+	k, err := s.store.GetAPIKey(id)
+	if err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	return errNotFound("unknown API key path")
+	writeJSON(w, 200, viewAPIKey(k, r.URL.Query().Get("includeValue") == "true"))
+	return nil
+}
+
+func (s *Server) deleteAPIKey(w http.ResponseWriter, id string) *awshttp.APIError {
+	if err := s.store.DeleteAPIKey(id); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	w.WriteHeader(202)
+	return nil
 }
 
 func (s *Server) createAPIKey(w http.ResponseWriter, r *http.Request) *awshttp.APIError {

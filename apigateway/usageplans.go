@@ -160,42 +160,21 @@ func (s *store) ListUsagePlans() ([]*usagePlan, error) {
 
 // ---- handlers ----
 
-// routeUsagePlans serves /usageplans[/{id}[/keys[/{keyId}]]].
-func (s *Server) routeUsagePlans(w http.ResponseWriter, r *http.Request, segs []string) *awshttp.APIError {
-	switch {
-	case len(segs) == 1 && r.Method == http.MethodPost:
-		return s.createUsagePlan(w, r)
-	case len(segs) == 1 && r.Method == http.MethodGet:
-		return s.listUsagePlans(w, r)
-	case len(segs) == 2:
-		return s.routeUsagePlan(w, r, segs[1])
-	case len(segs) >= 3 && segs[2] == "usage":
-		return awshttp.Errf(501, "NotImplemented", "doze-aws does not meter requests, so there is no usage to report or reset")
-	case len(segs) >= 3 && segs[2] == "keys":
-		return s.routeUsagePlanKeys(w, r, segs[1], segs[3:])
+func (s *Server) getUsagePlan(w http.ResponseWriter, id string) *awshttp.APIError {
+	p, err := s.store.GetUsagePlan(id)
+	if err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	return errNotFound("unknown usage plan path")
+	writeJSON(w, 200, viewUsagePlan(p))
+	return nil
 }
 
-func (s *Server) routeUsagePlan(w http.ResponseWriter, r *http.Request, id string) *awshttp.APIError {
-	switch r.Method {
-	case http.MethodGet:
-		p, err := s.store.GetUsagePlan(id)
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		writeJSON(w, 200, viewUsagePlan(p))
-		return nil
-	case http.MethodPatch:
-		return s.patchUsagePlan(w, r, id)
-	case http.MethodDelete:
-		if err := s.store.DeleteUsagePlan(id); err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		w.WriteHeader(202)
-		return nil
+func (s *Server) deleteUsagePlan(w http.ResponseWriter, id string) *awshttp.APIError {
+	if err := s.store.DeleteUsagePlan(id); err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on a usage plan")
+	w.WriteHeader(202)
+	return nil
 }
 
 func (s *Server) createUsagePlan(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
@@ -329,74 +308,84 @@ func (s *Server) patchUsagePlan(w http.ResponseWriter, r *http.Request, id strin
 	return nil
 }
 
-// routeUsagePlanKeys serves /usageplans/{id}/keys[/{keyId}].
-func (s *Server) routeUsagePlanKeys(w http.ResponseWriter, r *http.Request, planID string, rest []string) *awshttp.APIError {
+func (s *Server) createUsagePlanKey(w http.ResponseWriter, r *http.Request, planID string) *awshttp.APIError {
 	p, err := s.store.GetUsagePlan(planID)
 	if err != nil {
 		return awshttp.AsAPIError(err)
 	}
-	if len(rest) == 0 {
-		switch r.Method {
-		case http.MethodPost:
-			var req struct {
-				KeyID   string `json:"keyId"`
-				KeyType string `json:"keyType"`
-			}
-			if aerr := decode(r, &req); aerr != nil {
-				return aerr
-			}
-			if req.KeyType != "API_KEY" {
-				return errBadRequest("Invalid key type %s: API_KEY is the only key type", req.KeyType)
-			}
-			k, err := s.store.GetAPIKey(req.KeyID)
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			if p.hasKey(k.ID) {
-				return errConflict("API Key already exists in the usage plan")
-			}
-			p.KeyIDs = append(p.KeyIDs, k.ID)
-			if err := s.store.PutUsagePlan(p); err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			writeJSON(w, 201, viewUsagePlanKey(k))
-			return nil
-		case http.MethodGet:
-			prefix := r.URL.Query().Get("name")
-			items := []any{}
-			for _, id := range p.KeyIDs {
-				k, err := s.store.GetAPIKey(id)
-				if err != nil || (prefix != "" && !strings.HasPrefix(k.Name, prefix)) {
-					continue
-				}
-				items = append(items, viewUsagePlanKey(k))
-			}
-			writeJSON(w, 200, map[string]any{"item": items})
-			return nil
-		}
-		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on usage plan keys")
+	var req struct {
+		KeyID   string `json:"keyId"`
+		KeyType string `json:"keyType"`
 	}
-	keyID := rest[0]
+	if aerr := decode(r, &req); aerr != nil {
+		return aerr
+	}
+	if req.KeyType != "API_KEY" {
+		return errBadRequest("Invalid key type %s: API_KEY is the only key type", req.KeyType)
+	}
+	k, err := s.store.GetAPIKey(req.KeyID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	if p.hasKey(k.ID) {
+		return errConflict("API Key already exists in the usage plan")
+	}
+	p.KeyIDs = append(p.KeyIDs, k.ID)
+	if err := s.store.PutUsagePlan(p); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	writeJSON(w, 201, viewUsagePlanKey(k))
+	return nil
+}
+
+func (s *Server) getUsagePlanKeys(w http.ResponseWriter, r *http.Request, planID string) *awshttp.APIError {
+	p, err := s.store.GetUsagePlan(planID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	prefix := r.URL.Query().Get("name")
+	items := []any{}
+	for _, id := range p.KeyIDs {
+		k, err := s.store.GetAPIKey(id)
+		if err != nil || (prefix != "" && !strings.HasPrefix(k.Name, prefix)) {
+			continue
+		}
+		items = append(items, viewUsagePlanKey(k))
+	}
+	writeJSON(w, 200, map[string]any{"item": items})
+	return nil
+}
+
+func (s *Server) getUsagePlanKey(w http.ResponseWriter, planID, keyID string) *awshttp.APIError {
+	p, err := s.store.GetUsagePlan(planID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
 	if !p.hasKey(keyID) {
 		return errNotFound("Invalid Usage Plan Key identifier specified")
 	}
-	switch r.Method {
-	case http.MethodGet:
-		k, err := s.store.GetAPIKey(keyID)
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		writeJSON(w, 200, viewUsagePlanKey(k))
-		return nil
-	case http.MethodDelete:
-		p.removeKey(keyID)
-		if err := s.store.PutUsagePlan(p); err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		w.WriteHeader(202)
-		return nil
+	k, err := s.store.GetAPIKey(keyID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on a usage plan key")
+	writeJSON(w, 200, viewUsagePlanKey(k))
+	return nil
+}
+
+func (s *Server) deleteUsagePlanKey(w http.ResponseWriter, planID, keyID string) *awshttp.APIError {
+	p, err := s.store.GetUsagePlan(planID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	if !p.hasKey(keyID) {
+		return errNotFound("Invalid Usage Plan Key identifier specified")
+	}
+	p.removeKey(keyID)
+	if err := s.store.PutUsagePlan(p); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	w.WriteHeader(202)
+	return nil
 }
 
 // PlansCovering lists the plans that cover an API stage.

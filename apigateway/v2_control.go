@@ -15,96 +15,49 @@ import (
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
-// routeV2 dispatches everything under /v2/.
-func (s *Server) routeV2(w http.ResponseWriter, r *http.Request, segs []string) *awshttp.APIError {
-	if len(segs) < 2 {
-		return errNotFound("unknown v2 resource")
+func (s *Server) v2ListAPIs(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
+	apis, err := s.store.ListProtocol("HTTP")
+	if err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	switch segs[1] {
-	case "apis":
-		return s.routeV2APIs(w, r, segs[2:])
-	case "tags":
-		return s.routeTags(w, r, segs[1:])
-	case "domainnames", "vpclinks":
-		return awshttp.Errf(501, "NotImplemented",
-			"doze-aws does not implement API Gateway v2 %s: there is no DNS, TLS termination or VPC locally", segs[1])
-	case "portals", "portalproducts":
-		return awshttp.Errf(501, "NotImplemented", "doze-aws does not implement API Gateway v2 portals")
+	items := make([]any, 0, len(apis))
+	for i := range apis {
+		items = append(items, viewV2API(s.invokeBase(r), &apis[i]))
 	}
-	return errNotFound("unknown v2 resource %s", segs[1])
+	writeJSON(w, 200, map[string]any{"items": items})
+	return nil
 }
 
-// routeV2APIs handles /v2/apis and everything beneath one API.
-func (s *Server) routeV2APIs(w http.ResponseWriter, r *http.Request, segs []string) *awshttp.APIError {
-	if len(segs) == 0 {
-		switch r.Method {
-		case http.MethodPost:
-			return s.v2CreateAPI(w, r)
-		case http.MethodGet:
-			apis, err := s.store.ListProtocol("HTTP")
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			items := make([]any, 0, len(apis))
-			for i := range apis {
-				items = append(items, viewV2API(s.invokeBase(r), &apis[i]))
-			}
-			writeJSON(w, 200, map[string]any{"items": items})
-			return nil
-		}
-		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on /v2/apis")
+func (s *Server) v2GetAPI(w http.ResponseWriter, r *http.Request, apiID string) *awshttp.APIError {
+	api, err := s.store.GetHTTP(apiID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	apiID := segs[0]
-	if len(segs) == 1 {
-		switch r.Method {
-		case http.MethodGet:
-			api, err := s.store.GetHTTP(apiID)
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			writeJSON(w, 200, viewV2API(s.invokeBase(r), api))
-			return nil
-		case http.MethodPatch:
-			return s.v2UpdateAPI(w, r, apiID)
-		case http.MethodDelete:
-			api, err := s.store.GetHTTP(apiID)
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			if err := s.store.Delete(apiID); err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			for id := range api.V2Authorizers {
-				s.authCache.forget(id)
-			}
-			w.WriteHeader(204)
-			return nil
-		}
-		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on an HTTP API")
+	writeJSON(w, 200, viewV2API(s.invokeBase(r), api))
+	return nil
+}
+
+func (s *Server) v2DeleteAPI(w http.ResponseWriter, apiID string) *awshttp.APIError {
+	api, err := s.store.GetHTTP(apiID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	switch segs[1] {
-	case "routes":
-		return s.routeV2Routes(w, r, apiID, segs[2:])
-	case "integrations":
-		return s.routeV2Integrations(w, r, apiID, segs[2:])
-	case "authorizers":
-		return s.routeV2Authorizers(w, r, apiID, segs[2:])
-	case "stages":
-		return s.routeV2Stages(w, r, apiID, segs[2:])
-	case "deployments":
-		return s.routeV2Deployments(w, r, apiID, segs[2:])
-	case "cors":
-		if r.Method == http.MethodDelete {
-			if _, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error { api.CORS = nil; return nil }); err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			w.WriteHeader(204)
-			return nil
-		}
-	case "models", "exports", "routingrules":
-		return awshttp.Errf(501, "NotImplemented", "doze-aws does not implement API Gateway v2 %s", segs[1])
+	if err := s.store.Delete(apiID); err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	return errNotFound("unknown HTTP API subresource %s", segs[1])
+	for id := range api.V2Authorizers {
+		s.authCache.forget(id)
+	}
+	w.WriteHeader(204)
+	return nil
+}
+
+func (s *Server) v2DeleteCORS(w http.ResponseWriter, apiID string) *awshttp.APIError {
+	if _, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error { api.CORS = nil; return nil }); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	w.WriteHeader(204)
+	return nil
 }
 
 // ---- APIs ----
@@ -281,107 +234,105 @@ func (s *Server) v2UpdateAPI(w http.ResponseWriter, r *http.Request, apiID strin
 
 // ---- deployments ----
 
-func (s *Server) routeV2Deployments(w http.ResponseWriter, r *http.Request, apiID string, segs []string) *awshttp.APIError {
-	if len(segs) == 0 {
-		switch r.Method {
-		case http.MethodPost:
-			var req struct {
-				Description string `json:"description"`
-				StageName   string `json:"stageName"`
-			}
-			if aerr := decode(r, &req); aerr != nil {
-				return aerr
-			}
-			var dep *deployment
-			_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
-				if req.StageName != "" {
-					if _, ok := api.Stages[req.StageName]; !ok {
-						return errNotFound("Invalid stage identifier specified")
-					}
-				}
-				dep = &deployment{ID: s.store.newID(), Description: req.Description, Created: s.now().Unix()}
-				api.Deployments[dep.ID] = dep
-				if req.StageName != "" {
-					api.Stages[req.StageName].DeploymentID = dep.ID
-				}
-				return nil
-			})
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			writeJSON(w, 201, viewV2Deployment(dep))
-			return nil
-		case http.MethodGet:
-			api, err := s.store.GetHTTP(apiID)
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			items := make([]any, 0, len(api.Deployments))
-			for _, id := range sortedKeys(api.Deployments) {
-				items = append(items, viewV2Deployment(api.Deployments[id]))
-			}
-			writeJSON(w, 200, map[string]any{"items": items})
-			return nil
-		}
-		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on deployments")
+func (s *Server) v2CreateDeployment(w http.ResponseWriter, r *http.Request, apiID string) *awshttp.APIError {
+	var req struct {
+		Description string `json:"description"`
+		StageName   string `json:"stageName"`
 	}
-	depID := segs[0]
-	switch r.Method {
-	case http.MethodGet:
-		api, err := s.store.GetHTTP(apiID)
-		if err != nil {
-			return awshttp.AsAPIError(err)
+	if aerr := decode(r, &req); aerr != nil {
+		return aerr
+	}
+	var dep *deployment
+	_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
+		if req.StageName != "" {
+			if _, ok := api.Stages[req.StageName]; !ok {
+				return errNotFound("Invalid stage identifier specified")
+			}
 		}
-		dep, ok := api.Deployments[depID]
+		dep = &deployment{ID: s.store.newID(), Description: req.Description, Created: s.now().Unix()}
+		api.Deployments[dep.ID] = dep
+		if req.StageName != "" {
+			api.Stages[req.StageName].DeploymentID = dep.ID
+		}
+		return nil
+	})
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	writeJSON(w, 201, viewV2Deployment(dep))
+	return nil
+}
+
+func (s *Server) v2GetDeployments(w http.ResponseWriter, apiID string) *awshttp.APIError {
+	api, err := s.store.GetHTTP(apiID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	items := make([]any, 0, len(api.Deployments))
+	for _, id := range sortedKeys(api.Deployments) {
+		items = append(items, viewV2Deployment(api.Deployments[id]))
+	}
+	writeJSON(w, 200, map[string]any{"items": items})
+	return nil
+}
+
+func (s *Server) v2GetDeployment(w http.ResponseWriter, apiID, depID string) *awshttp.APIError {
+	api, err := s.store.GetHTTP(apiID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	dep, ok := api.Deployments[depID]
+	if !ok {
+		return errNotFound("Invalid deployment identifier specified %s", depID)
+	}
+	writeJSON(w, 200, viewV2Deployment(dep))
+	return nil
+}
+
+func (s *Server) v2UpdateDeployment(w http.ResponseWriter, r *http.Request, apiID, depID string) *awshttp.APIError {
+	var req struct {
+		Description *string `json:"description"`
+	}
+	if aerr := decode(r, &req); aerr != nil {
+		return aerr
+	}
+	var dep *deployment
+	_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
+		d, ok := api.Deployments[depID]
 		if !ok {
 			return errNotFound("Invalid deployment identifier specified %s", depID)
 		}
-		writeJSON(w, 200, viewV2Deployment(dep))
+		if req.Description != nil {
+			d.Description = *req.Description
+		}
+		dep = d
 		return nil
-	case http.MethodPatch:
-		var req struct {
-			Description *string `json:"description"`
-		}
-		if aerr := decode(r, &req); aerr != nil {
-			return aerr
-		}
-		var dep *deployment
-		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
-			d, ok := api.Deployments[depID]
-			if !ok {
-				return errNotFound("Invalid deployment identifier specified %s", depID)
-			}
-			if req.Description != nil {
-				d.Description = *req.Description
-			}
-			dep = d
-			return nil
-		})
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		writeJSON(w, 200, viewV2Deployment(dep))
-		return nil
-	case http.MethodDelete:
-		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
-			if _, ok := api.Deployments[depID]; !ok {
-				return errNotFound("Invalid deployment identifier specified %s", depID)
-			}
-			for _, st := range api.Stages {
-				if st.DeploymentID == depID {
-					return errBadRequest("Active stages pointing to this deployment must be moved or deleted")
-				}
-			}
-			delete(api.Deployments, depID)
-			return nil
-		})
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		w.WriteHeader(204)
-		return nil
+	})
+	if err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on a deployment")
+	writeJSON(w, 200, viewV2Deployment(dep))
+	return nil
+}
+
+func (s *Server) v2DeleteDeployment(w http.ResponseWriter, apiID, depID string) *awshttp.APIError {
+	_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
+		if _, ok := api.Deployments[depID]; !ok {
+			return errNotFound("Invalid deployment identifier specified %s", depID)
+		}
+		for _, st := range api.Stages {
+			if st.DeploymentID == depID {
+				return errBadRequest("Active stages pointing to this deployment must be moved or deleted")
+			}
+		}
+		delete(api.Deployments, depID)
+		return nil
+	})
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	w.WriteHeader(204)
+	return nil
 }
 
 // autoDeployV2 makes the deployment an auto-deploy stage makes on every

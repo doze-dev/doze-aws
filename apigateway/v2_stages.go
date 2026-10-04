@@ -7,8 +7,6 @@ package apigateway
 
 import (
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
@@ -29,170 +27,162 @@ type v2StageInput struct {
 	ClientCertificateID  *string                   `json:"clientCertificateId"`
 }
 
-func (s *Server) routeV2Stages(w http.ResponseWriter, r *http.Request, apiID string, segs []string) *awshttp.APIError {
-	if len(segs) == 0 {
-		switch r.Method {
-		case http.MethodPost:
-			var req v2StageInput
-			if aerr := decode(r, &req); aerr != nil {
-				return aerr
-			}
-			if req.StageName == "" {
-				return errBadRequest("stageName is required")
-			}
-			var out *stage
-			_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
-				if _, exists := api.Stages[req.StageName]; exists {
-					return errConflict("Stage already exists: %s", req.StageName)
-				}
-				now := s.now().Unix()
-				st := &stage{Name: req.StageName, Created: now, Updated: now}
-				if err := applyV2StageInput(api, st, &req); err != nil {
-					return err
-				}
-				api.Stages[st.Name] = st
-				if st.AutoDeploy && st.DeploymentID == "" {
-					s.autoDeployV2(api)
-				}
-				out = st
-				return nil
-			})
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			writeJSON(w, 201, viewV2Stage(s.invokeBase(r), apiID, out))
-			return nil
-		case http.MethodGet:
-			api, err := s.store.GetHTTP(apiID)
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			items := make([]any, 0, len(api.Stages))
-			for _, name := range sortedKeys(api.Stages) {
-				items = append(items, viewV2Stage(s.invokeBase(r), apiID, api.Stages[name]))
-			}
-			writeJSON(w, 200, map[string]any{"items": items})
-			return nil
-		}
-		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on stages")
+func (s *Server) v2CreateStage(w http.ResponseWriter, r *http.Request, apiID string) *awshttp.APIError {
+	var req v2StageInput
+	if aerr := decode(r, &req); aerr != nil {
+		return aerr
 	}
-	name := segs[0]
-	if len(segs) > 1 {
-		return s.routeV2StageSub(w, r, apiID, name, segs[1:])
+	if req.StageName == "" {
+		return errBadRequest("stageName is required")
 	}
-	switch r.Method {
-	case http.MethodGet:
-		api, err := s.store.GetHTTP(apiID)
-		if err != nil {
-			return awshttp.AsAPIError(err)
+	var out *stage
+	_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
+		if _, exists := api.Stages[req.StageName]; exists {
+			return errConflict("Stage already exists: %s", req.StageName)
 		}
+		now := s.now().Unix()
+		st := &stage{Name: req.StageName, Created: now, Updated: now}
+		if err := applyV2StageInput(api, st, &req); err != nil {
+			return err
+		}
+		api.Stages[st.Name] = st
+		if st.AutoDeploy && st.DeploymentID == "" {
+			s.autoDeployV2(api)
+		}
+		out = st
+		return nil
+	})
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	writeJSON(w, 201, viewV2Stage(s.invokeBase(r), apiID, out))
+	return nil
+}
+
+func (s *Server) v2GetStages(w http.ResponseWriter, r *http.Request, apiID string) *awshttp.APIError {
+	api, err := s.store.GetHTTP(apiID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	items := make([]any, 0, len(api.Stages))
+	for _, name := range sortedKeys(api.Stages) {
+		items = append(items, viewV2Stage(s.invokeBase(r), apiID, api.Stages[name]))
+	}
+	writeJSON(w, 200, map[string]any{"items": items})
+	return nil
+}
+
+func (s *Server) v2GetStage(w http.ResponseWriter, r *http.Request, apiID, name string) *awshttp.APIError {
+	api, err := s.store.GetHTTP(apiID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	st, ok := api.Stages[name]
+	if !ok {
+		return errNotFound("Invalid stage identifier specified %s", name)
+	}
+	writeJSON(w, 200, viewV2Stage(s.invokeBase(r), apiID, st))
+	return nil
+}
+
+func (s *Server) v2UpdateStage(w http.ResponseWriter, r *http.Request, apiID, name string) *awshttp.APIError {
+	var req v2StageInput
+	if aerr := decode(r, &req); aerr != nil {
+		return aerr
+	}
+	var out *stage
+	_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
 		st, ok := api.Stages[name]
 		if !ok {
 			return errNotFound("Invalid stage identifier specified %s", name)
 		}
-		writeJSON(w, 200, viewV2Stage(s.invokeBase(r), apiID, st))
-		return nil
-	case http.MethodPatch:
-		var req v2StageInput
-		if aerr := decode(r, &req); aerr != nil {
-			return aerr
+		if err := applyV2StageInput(api, st, &req); err != nil {
+			return err
 		}
-		var out *stage
-		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
-			st, ok := api.Stages[name]
-			if !ok {
-				return errNotFound("Invalid stage identifier specified %s", name)
-			}
-			if err := applyV2StageInput(api, st, &req); err != nil {
-				return err
-			}
-			st.Updated = s.now().Unix()
-			if st.AutoDeploy && st.DeploymentID == "" {
-				s.autoDeployV2(api)
-			}
-			out = st
-			return nil
-		})
-		if err != nil {
-			return awshttp.AsAPIError(err)
+		st.Updated = s.now().Unix()
+		if st.AutoDeploy && st.DeploymentID == "" {
+			s.autoDeployV2(api)
 		}
-		writeJSON(w, 200, viewV2Stage(s.invokeBase(r), apiID, out))
+		out = st
 		return nil
-	case http.MethodDelete:
-		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
-			if _, ok := api.Stages[name]; !ok {
-				return errNotFound("Invalid stage identifier specified %s", name)
-			}
-			delete(api.Stages, name)
-			return nil
-		})
-		if err != nil {
-			return awshttp.AsAPIError(err)
-		}
-		w.WriteHeader(204)
-		return nil
+	})
+	if err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on a stage")
+	writeJSON(w, 200, viewV2Stage(s.invokeBase(r), apiID, out))
+	return nil
 }
 
-// routeV2StageSub is the three DELETEs beneath a stage: its access log
-// settings, one route's settings, and the authorizer cache.
-func (s *Server) routeV2StageSub(w http.ResponseWriter, r *http.Request, apiID, name string, segs []string) *awshttp.APIError {
-	if r.Method != http.MethodDelete {
-		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on %s", segs[0])
-	}
-	mutate := func(fn func(st *stage) error) *awshttp.APIError {
-		_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
-			st, ok := api.Stages[name]
-			if !ok {
-				return errNotFound("Invalid stage identifier specified %s", name)
-			}
-			if err := fn(st); err != nil {
-				return err
-			}
-			st.Updated = s.now().Unix()
-			return nil
-		})
-		if err != nil {
-			return awshttp.AsAPIError(err)
+func (s *Server) v2DeleteStage(w http.ResponseWriter, apiID, name string) *awshttp.APIError {
+	_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
+		if _, ok := api.Stages[name]; !ok {
+			return errNotFound("Invalid stage identifier specified %s", name)
 		}
-		w.WriteHeader(204)
+		delete(api.Stages, name)
 		return nil
+	})
+	if err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	switch segs[0] {
-	case "accesslogsettings":
-		return mutate(func(st *stage) error { st.AccessLog = nil; return nil })
-	case "routesettings":
-		// The key ("GET /items/{id}") arrives percent-encoded and the router
-		// split the decoded path, so it is re-read from the escaped one.
-		key := v2RouteKeyLabel(r)
-		if key == "" {
-			return errNotFound("a route key is required")
+	w.WriteHeader(204)
+	return nil
+}
+
+// The three DELETEs beneath a stage: its access log settings, one route's
+// settings, and the authorizer cache.
+
+// mutateV2Stage applies fn to a stage and answers 204.
+func (s *Server) mutateV2Stage(w http.ResponseWriter, apiID, name string, fn func(st *stage) error) *awshttp.APIError {
+	_, err := s.store.UpdateHTTP(apiID, func(api *restAPI) error {
+		st, ok := api.Stages[name]
+		if !ok {
+			return errNotFound("Invalid stage identifier specified %s", name)
 		}
-		return mutate(func(st *stage) error {
-			if _, ok := st.RouteSettings[key]; !ok {
-				return errNotFound("Invalid route key specified %s", key)
-			}
-			delete(st.RouteSettings, key)
-			return nil
-		})
-	case "cache":
-		if len(segs) == 2 && segs[1] == "authorizers" {
-			api, err := s.store.GetHTTP(apiID)
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			if _, ok := api.Stages[name]; !ok {
-				return errNotFound("Invalid stage identifier specified %s", name)
-			}
-			for id := range api.V2Authorizers {
-				s.authCache.forget(id)
-			}
-			w.WriteHeader(204)
-			return nil
+		if err := fn(st); err != nil {
+			return err
 		}
+		st.Updated = s.now().Unix()
+		return nil
+	})
+	if err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	return errNotFound("unknown stage subresource %s", segs[0])
+	w.WriteHeader(204)
+	return nil
+}
+
+func (s *Server) v2DeleteAccessLogSettings(w http.ResponseWriter, apiID, name string) *awshttp.APIError {
+	return s.mutateV2Stage(w, apiID, name, func(st *stage) error { st.AccessLog = nil; return nil })
+}
+
+// v2DeleteRouteSettings drops one route's settings. The key ("GET /items/{id}")
+// arrives percent-encoded and is one label.
+func (s *Server) v2DeleteRouteSettings(w http.ResponseWriter, apiID, name, key string) *awshttp.APIError {
+	if key == "" {
+		return errNotFound("a route key is required")
+	}
+	return s.mutateV2Stage(w, apiID, name, func(st *stage) error {
+		if _, ok := st.RouteSettings[key]; !ok {
+			return errNotFound("Invalid route key specified %s", key)
+		}
+		delete(st.RouteSettings, key)
+		return nil
+	})
+}
+
+func (s *Server) v2ResetAuthorizersCache(w http.ResponseWriter, apiID, name string) *awshttp.APIError {
+	api, err := s.store.GetHTTP(apiID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	if _, ok := api.Stages[name]; !ok {
+		return errNotFound("Invalid stage identifier specified %s", name)
+	}
+	for id := range api.V2Authorizers {
+		s.authCache.forget(id)
+	}
+	w.WriteHeader(204)
+	return nil
 }
 
 func applyV2StageInput(api *restAPI, st *stage, in *v2StageInput) error {
@@ -285,21 +275,4 @@ func orEmptyAny(m map[string]any) map[string]any {
 		return map[string]any{}
 	}
 	return m
-}
-
-// v2RouteKeyLabel reads the route key label of a .../routesettings/{routeKey}
-// path from the escaped path, since the decoded one has the key's own "/"
-// in it. "" when the path carries no key.
-func v2RouteKeyLabel(r *http.Request) string {
-	segs := strings.Split(strings.Trim(r.URL.EscapedPath(), "/"), "/")
-	for i, seg := range segs {
-		if seg == "routesettings" && i+1 < len(segs) {
-			key, err := url.PathUnescape(strings.Join(segs[i+1:], "/"))
-			if err != nil {
-				return ""
-			}
-			return key
-		}
-	}
-	return ""
 }

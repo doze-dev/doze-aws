@@ -51,59 +51,45 @@ func viewAuthorizer(a *authorizer) map[string]any {
 	return v
 }
 
-// routeAuthorizers serves /restapis/{id}/authorizers[/{authorizerId}].
-func (s *Server) routeAuthorizers(w http.ResponseWriter, r *http.Request, apiID string, segs []string) *awshttp.APIError {
-	if len(segs) == 3 {
-		switch r.Method {
-		case http.MethodPost:
-			return s.createAuthorizer(w, r, apiID)
-		case http.MethodGet:
-			api, err := s.store.Get(apiID)
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			items := make([]any, 0, len(api.Authorizers))
-			for _, id := range sortedKeys(api.Authorizers) {
-				items = append(items, viewAuthorizer(api.Authorizers[id]))
-			}
-			writeJSON(w, 200, map[string]any{"item": items})
-			return nil
-		}
-		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on /authorizers")
+func (s *Server) getAuthorizers(w http.ResponseWriter, apiID string) *awshttp.APIError {
+	api, err := s.store.Get(apiID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
 	}
-	if len(segs) == 4 {
-		id := segs[3]
-		switch r.Method {
-		case http.MethodGet:
-			api, err := s.store.Get(apiID)
-			if err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			a, ok := api.Authorizers[id]
-			if !ok {
-				return errNotFound("Invalid Authorizer identifier specified")
-			}
-			writeJSON(w, 200, viewAuthorizer(a))
-			return nil
-		case http.MethodPatch:
-			return s.patchAuthorizer(w, r, apiID, id)
-		case http.MethodDelete:
-			if _, err := s.store.Update(apiID, func(api *restAPI) error {
-				if _, ok := api.Authorizers[id]; !ok {
-					return errNotFound("Invalid Authorizer identifier specified")
-				}
-				delete(api.Authorizers, id)
-				return nil
-			}); err != nil {
-				return awshttp.AsAPIError(err)
-			}
-			s.authCache.forget(id)
-			w.WriteHeader(202)
-			return nil
-		}
-		return awshttp.Errf(405, "MethodNotAllowed", "unsupported method on an authorizer")
+	items := make([]any, 0, len(api.Authorizers))
+	for _, id := range sortedKeys(api.Authorizers) {
+		items = append(items, viewAuthorizer(api.Authorizers[id]))
 	}
-	return errNotFound("unknown authorizer path")
+	writeJSON(w, 200, map[string]any{"item": items})
+	return nil
+}
+
+func (s *Server) getAuthorizer(w http.ResponseWriter, apiID, id string) *awshttp.APIError {
+	api, err := s.store.Get(apiID)
+	if err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	a, ok := api.Authorizers[id]
+	if !ok {
+		return errNotFound("Invalid Authorizer identifier specified")
+	}
+	writeJSON(w, 200, viewAuthorizer(a))
+	return nil
+}
+
+func (s *Server) deleteAuthorizer(w http.ResponseWriter, apiID, id string) *awshttp.APIError {
+	if _, err := s.store.Update(apiID, func(api *restAPI) error {
+		if _, ok := api.Authorizers[id]; !ok {
+			return errNotFound("Invalid Authorizer identifier specified")
+		}
+		delete(api.Authorizers, id)
+		return nil
+	}); err != nil {
+		return awshttp.AsAPIError(err)
+	}
+	s.authCache.forget(id)
+	w.WriteHeader(202)
+	return nil
 }
 
 func (s *Server) createAuthorizer(w http.ResponseWriter, r *http.Request, apiID string) *awshttp.APIError {

@@ -167,6 +167,11 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   - A known path with the wrong method is a `405`; some used to be `404`.
   - `ListFunctionUrlConfigs` returns `{"FunctionUrlConfigs": [...]}` (empty
     for a function with no URL) instead of a `404`.
+- API Gateway's control planes (REST and HTTP) are routed the same way, from
+  the model's tables. A known path with the wrong method is a `405` (some
+  were `404`), and an unknown path is a `404` naming the path. The families
+  doze-aws does not model (`models`, `domainnames`, `portals`, …) are still
+  refused with `501`, now as explicit routes.
 - API Gateway ids are random. They were taken from the clock, so two REST
   APIs, HTTP APIs, keys or usage plans created in the same instant got the
   same id and the second silently replaced the first.

@@ -34,6 +34,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/lazybolt"
@@ -41,8 +42,8 @@ import (
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshost"
-	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/metricship"
+	"github.com/doze-dev/doze-aws/internal/restroute"
 	"github.com/doze-dev/doze-aws/internal/schemaver"
 	"github.com/doze-dev/doze-aws/peers"
 )
@@ -84,6 +85,10 @@ type Server struct {
 	id        awsident.Identity // the region and account this service mints ARNs for
 	suffix    string            // stands in for amazonaws.com in hostnames
 	endpoint  string            // the stack's reachable base URL, for in-process callers with no request
+
+	// v1 and v2 are the control planes' chi routers, built on the first
+	// request that reaches each (router.go).
+	v1, v2 func() *restroute.Router
 }
 
 // New opens the store under DataDir.
@@ -111,6 +116,8 @@ func New(opts Options) (*Server, error) {
 	s.logs = newStageLogs(s)
 	s.metrics = newMetrics(s)
 	s.authCache = newAuthCache()
+	s.v1 = sync.OnceValue(s.buildV1)
+	s.v2 = sync.OnceValue(s.buildV2)
 	return s, nil
 }
 
@@ -132,18 +139,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.serveExecute(w, r, apiID+"/"+rest)
 		return
 	}
-	// Model-derived input validation runs before the router, for every routed
-	// operation at once — coverage is then a property of the route table rather
-	// than something each handler has to remember.
-	if _, aerr := validateControl(r); aerr != nil {
-		s.logf("apigateway: %s %s -> %s", r.Method, r.URL.Path, aerr.Code)
-		writeError(w, aerr)
-		return
-	}
-	if aerr := s.routeControl(w, r); aerr != nil {
-		s.logf("apigateway: %s %s -> %s", r.Method, r.URL.Path, aerr.Code)
-		writeError(w, aerr)
-	}
+	// Everything else is a control plane. The router matches the request once
+	// and runs validation with its operation known — see router.go.
+	s.serveControl(w, r)
 }
 
 // virtualHostExecute detects the {apiId}.execute-api.<region>.<suffix>
@@ -158,34 +156,6 @@ func (s *Server) virtualHostExecute(r *http.Request) (apiID, rest string, ok boo
 		return "", "", false
 	}
 	return id, strings.TrimPrefix(r.URL.Path, "/"), true
-}
-
-// routeControl dispatches the control plane by path family.
-func (s *Server) routeControl(w http.ResponseWriter, r *http.Request) *awshttp.APIError {
-	segs := splitPath(r.URL.Path)
-	if len(segs) == 0 {
-		return errNotFound("unknown resource")
-	}
-	switch segs[0] {
-	case "restapis":
-		return s.routeRestAPIs(w, r, segs)
-	case "tags":
-		return s.routeTags(w, r, segs)
-	case "account":
-		return s.routeAccount(w, r)
-	case "apikeys":
-		return s.routeAPIKeys(w, r, segs)
-	case "usageplans":
-		return s.routeUsagePlans(w, r, segs)
-	case "v2":
-		return s.routeV2(w, r, segs)
-	case "clientcertificates", "domainnames", "vpclinks", "sdktypes":
-		// Recognised families doze-aws does not model. Refusing by name beats
-		// a bare 404 that looks like a routing bug.
-		return awshttp.Errf(501, "NotImplemented",
-			"doze-aws does not implement API Gateway %s", segs[0])
-	}
-	return errNotFound("unknown resource %s", segs[0])
 }
 
 func splitPath(p string) []string {
