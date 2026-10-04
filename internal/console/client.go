@@ -486,6 +486,7 @@ type SQSMessage struct {
 	Receives      string // ApproximateReceiveCount (real receives; peeks don't count)
 	Attrs         []MsgAttr
 	Sum           MsgSummary // display form, filled by the handler before render
+	Left          int        // Consume tab: seconds until the message is visible again
 }
 
 // ReceiveState says how close this message is to being dead-lettered, which is

@@ -47,12 +47,12 @@
   {{if .Entries}}
   {{range .Entries}}
   <div x-data x-show="(!errOnly || {{if .IsErr}}true{{else}}false{{end}}) && (svc==='' || svc==='{{.Service}}')">
-    <div class="tr-row {{if .IsErr}}{{.State}}{{end}}{{if .Cascade}} tr-child{{end}}" role="button" tabindex="0" aria-label="Inspect {{.Action}} {{.Resource}}" data-depth="{{.Depth}}" :class="sel==={{.Seq}} && 'sel'"
+    <div class="tr-row {{if .IsErr}}{{.State}}{{end}}{{if .Cascade}} tr-child{{end}}" data-depth="{{.Depth}}" :class="sel==={{.Seq}} && 'sel'"
          hx-get="{{$.Prefix}}/traffic/entry?seq={{.Seq}}" hx-target="#t-drawer-inner" hx-select="" hx-swap="innerHTML"
          @click="sel = (sel==={{.Seq}} ? null : {{.Seq}})">
       <span class="ts">{{.Time}}</span>
       <span class="svcb" style="--svc-ink:var(--svc-{{.Service}}-ink);padding-left:{{mul .Depth 14}}px">{{if .Cascade}}<span class="tr-branch" title="caused by the call above">└</span>{{end}}{{.Service}}</span>
-      <span class="act">{{.Action}}{{with .Via}}<span class="tr-via" title="what emitted this work">via {{.}}</span>{{end}}</span>
+      <button type="button" class="act rowopen" aria-label="Inspect {{.Action}} {{.Resource}}">{{.Action}}{{with .Via}}<span class="tr-via" title="what emitted this work">via {{.}}</span>{{end}}</button>
       {{/* The three hx-* attributes here are load-bearing. The row sets
            hx-target="#t-drawer-inner" and hx-select="", and htmx
            inheritance hands both to any link inside it — so a boosted click

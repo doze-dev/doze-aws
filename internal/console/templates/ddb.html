@@ -290,14 +290,14 @@
      for each "Load more" (the trigger row replaces itself with the next page). */}}
 {{define "ddb_item_rows"}}
 {{range .Items}}
-  <tr class="ddb-row" role="button" tabindex="0" x-data='{itemJSON: {{printf "%q" .JSON}}, keyJSON: {{printf "%q" .KeyJSON}}}'
+  <tr class="ddb-row" x-data='{itemJSON: {{printf "%q" .JSON}}, keyJSON: {{printf "%q" .KeyJSON}}}'
       @click="drawer=true; const d=document.getElementById('drawer-inner');
               d.innerHTML='<div class=\'drawer-h\'><span class=\'title\'>Item</span></div><div class=\'drawer-b\'><div class=\'code-out\'><pre></pre></div><div class=\'drawer-actions\' style=\'margin-top:12px\'><button class=\'btn btn-outline\' id=\'dw-edit\'>Edit item</button><button class=\'btn btn-outline\' id=\'dw-upd\'>Update attributes</button></div></div>';
               d.querySelector('pre').textContent=itemJSON;
               d.querySelector('#dw-edit').onclick=()=>{drawer=false;putOrig=itemJSON;put=true;$nextTick(()=>dozeEditor.set('#ddb-item-editor',itemJSON));};
               d.querySelector('#dw-upd').onclick=()=>{drawer=false;upd=true;updKey=keyJSON;}">
     <td @click.stop><input type="checkbox" class="rowck" value="{{.KeyJSON}}" x-model="sel" aria-label="Select this item"></td>
-    <td class="mono" style="font-size:11.5px;font-weight:550">{{.PK}}</td>
+    <td class="mono" style="font-size:11.5px;font-weight:550"><button type="button" class="rowopen" aria-label="Open item {{.PK}}">{{.PK}}</button></td>
     {{if $.Table.RangeKey}}<td class="mono dim" style="font-size:11.5px">{{.SK}}</td>{{end}}
     {{if $.Cols}}{{$it := .}}{{range $.Cols}}<td class="mono dim trunc" style="font-size:11px;max-width:220px">{{index $it.Attrs .}}</td>{{end}}
     {{else}}<td class="dim mono trunc" style="font-size:11px;max-width:420px">{{if .Preview}}{{.Preview}}{{else}}<span style="opacity:.5">keys only</span>{{end}}</td>{{end}}

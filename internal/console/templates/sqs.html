@@ -154,8 +154,8 @@
   {{if .Messages}}
   <div class="msgs">{{range .Messages}}
     <div class="msg" id="m-{{.MessageID}}" x-data="{open:false}" :class="open && 'open'">
-      <div class="msg-h" role="button" tabindex="0" :aria-expanded="open" style="cursor:pointer" @click="open=!open">
-        <span class="msg-line"><span class="chev">▸</span>{{if .Sum.Kind}}<span class="evt"{{if .Sum.Svc}} style="--svc-ink:var(--svc-{{.Sum.Svc}}-ink);--svc-mark:var(--svc-{{.Sum.Svc}})"{{end}}>{{.Sum.Kind}}</span>{{end}}<span class="msum">{{.Sum.Line}}</span></span>
+      <div class="msg-h" style="cursor:pointer" @click="open=!open">
+        <button type="button" class="msg-line rowopen" :aria-expanded="open"><span class="chev">▸</span>{{if .Sum.Kind}}<span class="evt"{{if .Sum.Svc}} style="--svc-ink:var(--svc-{{.Sum.Svc}}-ink);--svc-mark:var(--svc-{{.Sum.Svc}})"{{end}}>{{.Sum.Kind}}</span>{{end}}<span class="msum">{{.Sum.Line}}</span></button>
         <span style="display:flex;align-items:center;gap:8px;flex:none"><span class="dim num" title="{{.SentAt}}">{{ago .SentAt}}</span>
         <button class="icon-btn sm danger msg-del" title="Delete this message" @click.stop hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-vals='{"handle":"{{.ReceiptHandle}}"}' hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" hx-confirm="Delete this one message?">{{icon "trash"}}</button></span></div>
       <div class="msg-detail" x-show="open" x-cloak>
@@ -383,7 +383,7 @@
     </form>
   </div>
 </div>
-{{template "sqs_consumed" dict "Prefix" .Prefix "Queue" .Queue "Received" (list) "EffVis" .Config.Visibility "MaxReceive" .MaxReceive "Note" "" "Available" .Available "InFlight" .InFlight}}
+{{template "sqs_consumed" dict "Prefix" .Prefix "Queue" .Queue "Received" .Held "EffVis" .Config.Visibility "MaxReceive" .MaxReceive "Note" "" "Available" .Available "InFlight" .InFlight}}
 {{end}}
 
 {{/* The received batch. Selection is plain Alpine state on this wrapper — no
@@ -406,9 +406,9 @@
     </form>
     <button type="button" class="btn btn-ghost btn-sm" @click="sel=[]">Clear</button>
   </div>
-  <div class="rcv-list" data-sleep-left="{{.EffVis}}" data-sleep-done="visible again">
+  <div class="rcv-list">
     {{range .Received}}
-    <div class="rcv-row">
+    <div class="rcv-row" data-sleep-left="{{.Left}}" data-sleep-done="visible again">
       <label class="rcv-pick">
         <input type="checkbox" value="{{.ReceiptHandle}}" x-model="sel" aria-label="Select this message">
       </label>
@@ -426,6 +426,7 @@
           <button class="btn btn-ghost btn-sm" type="submit" title="Make visible again immediately">Release</button>
         </form>
         <form hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-confirm="Delete this message? It is gone for good." hx-target="#sqs-consumed" hx-select="" hx-swap="outerHTML">
+          <input type="hidden" name="from" value="consume">
           <input type="hidden" name="handle" value="{{.ReceiptHandle}}">
           <button class="btn btn-outline danger btn-sm" type="submit" title="Acknowledge — removes it for good">{{icon "trash"}} Delete</button>
         </form>

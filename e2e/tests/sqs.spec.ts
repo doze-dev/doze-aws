@@ -411,26 +411,32 @@ test.describe('consume tab', () => {
     expect(await waitForToast()).toContain('Released — visible again now');
     await expect(consumed.locator('.rcv-note')).toContainText('Released');
 
+    // The two still held stay on screen while their neighbour is released.
+    await expect(consumed.locator('.rcv-row')).toHaveCount(2);
+
     // Receiving again returns ONLY the released one (the other two are still
-    // hidden for 300s), and its receive count has climbed.
+    // hidden for 300s), its receive count has climbed, and it joins the two
+    // already held.
     await receive();
-    await expect(consumed.locator('.rcv-row')).toHaveCount(1);
-    await expect(consumed.locator('.rcv-meta').first()).toContainText('received 2×');
+    await expect(consumed.locator('.rcv-row')).toHaveCount(3);
+    await expect(consumed.locator('.rcv-meta').last()).toContainText('received 2×');
 
     // Release it through the multi-select: ChangeMessageVisibilityBatch.
-    await consumed.locator('.rcv-row input[type=checkbox]').first().check();
+    await consumed.locator('.rcv-row input[type=checkbox]').last().check();
     await consumed.getByRole('button', { name: 'Release selected' }).click();
     expect(await waitForToast()).toContain('1 released');
+    await expect(consumed.locator('.rcv-row')).toHaveCount(2);
 
     // It is receivable again; delete it through the multi-select:
     // DeleteMessageBatch.
     await receive();
-    await expect(consumed.locator('.rcv-row')).toHaveCount(1);
-    await expect(consumed.locator('.rcv-meta').first()).toContainText('received 3×');
-    await consumed.locator('.rcv-row input[type=checkbox]').first().check();
+    await expect(consumed.locator('.rcv-row')).toHaveCount(3);
+    await expect(consumed.locator('.rcv-meta').last()).toContainText('received 3×');
+    await consumed.locator('.rcv-row input[type=checkbox]').last().check();
     await consumed.getByRole('button', { name: 'Delete selected' }).click();
     await confirmDialog('accept');
     expect(await waitForToast()).toContain('1 deleted');
+    await expect(consumed.locator('.rcv-row')).toHaveCount(2);
 
     // AWS-side, read back through a fresh page: one deleted, two in flight.
     await page.goto(`sqs/${name}`);

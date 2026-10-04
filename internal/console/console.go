@@ -55,6 +55,7 @@ type Console struct {
 	tmpl   *template.Template
 	prefix string
 	rec    *Recorder
+	held   heldSet // what the SQS Consume tab has received and not yet let go
 }
 
 // Options configures the console.

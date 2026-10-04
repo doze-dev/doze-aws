@@ -591,6 +591,10 @@ tr:hover .row-actions { opacity: 1; }
 .msg-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 12px; }
 .msg-h code { font-family: var(--mono); color: var(--muted-foreground); }
 /* summary row: what the message IS, not its UUID */
+/* The one real button in a row that is clickable all over for the mouse: it carries the
+   keyboard and screen-reader behaviour, so the row itself needs no button role (a
+   control cannot contain controls). Click bubbles to the row's own handler. */
+.rowopen { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; }
 .msg-line { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 .msg-line .chev { font-size: 10px; font-family: var(--mono); color: var(--muted-foreground); flex: none; transition: transform 0.12s; }
 .msg.open .msg-line .chev { transform: rotate(90deg); }

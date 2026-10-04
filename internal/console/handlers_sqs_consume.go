@@ -20,10 +20,10 @@ import (
 // all. You would drop to the CLI, and then the console was not the place you
 // worked.
 //
-// A received batch is NOT stored. It exists in the response that produced it,
-// which is honest: the receipt handles are only good for this visibility
-// window, and a page that kept showing them after they expired would be
-// offering buttons that fail.
+// What a receive returns is held (see held.go) until each message is deleted,
+// released or its visibility timeout lapses. The receipt handles are only good
+// for that window, so a row never outlives it: a page that kept showing them
+// would be offering buttons that fail.
 
 // sqsReceive performs a real ReceiveMessage and renders the batch it got.
 func (c *Console) sqsReceive(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +52,12 @@ func (c *Console) sqsChangeVisibility(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	handle := map[string]bool{r.FormValue("handle"): true}
+	if secs == 0 {
+		c.held.drop(name, handle)
+	} else {
+		c.held.rehide(name, handle, secs)
+	}
 	note := fmt.Sprintf("Visibility set to %ds", secs)
 	if secs == 0 {
 		note = "Released — visible again now"
@@ -76,6 +82,7 @@ func (c *Console) sqsDeleteBatch(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
+	c.held.drop(name, settled(handles, failed))
 	note := batchNote(len(handles), failed, "deleted")
 	toast(w, note)
 	c.partial(w, "sqs_consumed", c.consumeData(r, name, nil, ReceiveOpts{Max: 10, Visibility: -1}, note))
@@ -93,6 +100,11 @@ func (c *Console) sqsVisibilityBatch(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		c.fail(w, err)
 		return
+	}
+	if secs == 0 {
+		c.held.drop(name, settled(handles, failed))
+	} else {
+		c.held.rehide(name, settled(handles, failed), secs)
 	}
 	verb := fmt.Sprintf("set to %ds", secs)
 	if secs == 0 {
@@ -116,9 +128,10 @@ func (c *Console) consumeData(r *http.Request, name string, msgs []SQSMessage, o
 	if vis < 0 {
 		vis = atoi(attrs["VisibilityTimeout"])
 	}
+	c.held.add(name, msgs, vis)
 	return map[string]any{
 		"Prefix": c.prefix, "Queue": name,
-		"Received": msgs, "Note": note,
+		"Received": c.held.live(name), "Note": note,
 		"Max": o.Max, "Wait": o.Wait, "Visibility": o.Visibility,
 		// EffVis is what the countdown counts down from: the override when one
 		// was given, the queue's own setting otherwise. Showing the queue's

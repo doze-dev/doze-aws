@@ -711,6 +711,8 @@ func (c *Console) sqsPanelData(r *http.Request, name string, attrs map[string]st
 		"Hash": sqsMsgHash(attrs, msgs, tasks),
 		// What AddPermission wrote, read back from the Policy attribute.
 		"Perms": sqsPermissionsOf(attrs["Policy"]),
+		// Messages the Consume tab received and is still holding.
+		"Held": c.held.live(name),
 	}
 }
 
@@ -737,6 +739,11 @@ func (c *Console) sqsDeleteMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toast(w, "Message deleted")
+	if r.FormValue("from") == "consume" {
+		c.held.drop(name, map[string]bool{r.FormValue("handle"): true})
+		c.partial(w, "sqs_consumed", c.consumeData(r, name, nil, ReceiveOpts{Max: 10, Visibility: -1}, "Message deleted"))
+		return
+	}
 	c.sqsMessages(w, r)
 }
 
