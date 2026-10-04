@@ -422,7 +422,11 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 
 	ctx, cancel := s.ctx()
 	defer cancel()
-	applyRep, applyErr := provision.Apply(ctx, s.gateway, sf, s.id)
+	var applyRep *provision.Report
+	applyErr := s.refuseTaken(ctx, sf, prev, prevIR, rep)
+	if applyErr == nil {
+		applyRep, applyErr = provision.Apply(ctx, s.gateway, sf, s.id)
+	}
 
 	// Resources the stack now owns, from the transpile report.
 	for _, e := range rep.Entries {
@@ -487,11 +491,12 @@ func (s *Server) deploy(name, body string, params, tags map[string]string, isUpd
 // error; the ones apply never reached are left for the caller, which reports
 // nothing for a resource nothing was started on.
 func markFailed(st *stackRecord, applyErr error, isUpdate bool) []string {
-	msg := applyErr.Error()
+	msg, taken := applyErr.Error(), takenName(applyErr)
 	var failed []string
 	for i := range st.Resources {
 		r := &st.Resources[i]
-		if strings.Contains(msg, `"`+r.LogicalID+`"`) || strings.Contains(msg, `"`+r.PhysicalID+`"`) {
+		if taken != "" && r.PhysicalID == taken ||
+			taken == "" && (strings.Contains(msg, `"`+r.LogicalID+`"`) || strings.Contains(msg, `"`+r.PhysicalID+`"`)) {
 			r.Status, r.Reason = statusVerb(isUpdate)+"_FAILED", msg
 			failed = append(failed, r.LogicalID)
 		}

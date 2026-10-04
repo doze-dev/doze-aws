@@ -37,9 +37,16 @@ What the failed create had made is deleted and the stack ends
 `UPDATE_ROLLBACK_COMPLETE`. `DisableRollback`, `OnFailure=DO_NOTHING` and
 `OnFailure=DELETE` are honoured, and the events say what happened in the
 order CloudFormation would — only all at once, since the work is finished
-before the call returns. A rollback deletes only what the failed deploy itself
-created, so a resource that already existed under a name the template uses is
-left alone.
+before the call returns.
+
+**A stack never takes over what it did not make.** A template that names a
+resource already there — a queue made by hand, a table another stack owns —
+fails that resource's create with `Resource of type 'AWS::SQS::Queue' with
+identifier 'orders' already exists.` and rolls back, as on AWS. The existing
+resource is not changed, and deleting the stack leaves it. Names AWS does not
+hold unique (a REST API's, an API key's, a usage plan's) never collide.
+`doze-aws apply` is different on purpose: a stackfile describes the account
+and converges onto whatever is already in it.
 
 A template that cannot be read at all — bad syntax, a `Ref` to something it
 does not declare, a missing parameter — is still refused at the call with a

@@ -9,6 +9,7 @@ package cloudformation_test
 import (
 	"bytes"
 	"fmt"
+	"html"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -159,26 +160,71 @@ func TestAFailedCreateIsRolledBack(t *testing.T) {
 	}
 }
 
-// A template can name a resource that already exists. The rollback of a stack
-// that never made it must leave it alone, and so must deleting that stack.
-func TestARollbackDeletesOnlyWhatItMade(t *testing.T) {
+// A stack never adopts what it did not make. AWS fails the create of a named
+// resource whose name is taken and rolls the stack back; the queue that was
+// there is not changed, not deleted by the rollback, and not deleted later
+// with the stack.
+func TestACreateOverAnExistingNameFailsAndLeavesItAlone(t *testing.T) {
 	ts := cfnServer(t)
-	if code, body := rbSQS(t, ts, "CreateQueue", `{"QueueName":"rb-mine"}`); code != http.StatusOK {
+	if code, body := rbSQS(t, ts, "CreateQueue", `{"QueueName":"rb-mine","Attributes":{"VisibilityTimeout":"5"}}`); code != http.StatusOK {
 		t.Fatalf("CreateQueue = %d: %s", code, body)
 	}
-	rbCreate(t, ts, "adopter", rbTemplate(rbQueue("Mine", "rb-mine", 30, ""), rbQueue("New", "rb-new", 30, ""), badParameter), nil)
+	rbCreate(t, ts, "adopter", rbTemplate(rbQueue("Mine", "rb-mine", 30, ""), rbQueue("New", "rb-new", 30, "")), nil)
 	if got := stackStatus(t, ts, "adopter"); got != "ROLLBACK_COMPLETE" {
 		t.Fatalf("status = %s, want ROLLBACK_COMPLETE", got)
 	}
-	if queueExists(t, ts, "rb-new") {
-		t.Error("the queue the stack made was not rolled back")
+	_, body := call(t, ts, "DescribeStackEvents", map[string]any{"StackName": "adopter"})
+	if !strings.Contains(html.UnescapeString(body), "Resource of type 'AWS::SQS::Queue' with identifier 'rb-mine' already exists.") {
+		t.Errorf("the events do not say the name is taken:\n%s", body)
 	}
-	if !queueExists(t, ts, "rb-mine") {
-		t.Fatal("the rollback deleted a queue that existed before the stack did")
+	if missing := inOrder(trail(t, ts, "adopter"), "Mine CREATE_FAILED", "adopter ROLLBACK_COMPLETE"); missing != "" {
+		t.Errorf("trail lacks %q:\n%s", missing, strings.Join(trail(t, ts, "adopter"), "\n"))
+	}
+	if queueExists(t, ts, "rb-new") {
+		t.Error("the stack made a queue after its create had failed")
+	}
+	if got := queueTimeout(t, ts, "rb-mine"); got != "5" {
+		t.Errorf("the existing queue was changed: VisibilityTimeout = %s, want 5", got)
 	}
 	call(t, ts, "DeleteStack", map[string]any{"StackName": "adopter"})
 	if !queueExists(t, ts, "rb-mine") {
 		t.Fatal("deleting the rolled-back stack deleted a queue it never owned")
+	}
+}
+
+// An update that adds a resource under a taken name fails the same way, and
+// the stack goes back to what it was. What the stack already owns is its own
+// to change.
+func TestAnUpdateAddingATakenNameRollsBack(t *testing.T) {
+	ts := cfnServer(t)
+	if code, body := rbSQS(t, ts, "CreateQueue", `{"QueueName":"rb-theirs"}`); code != http.StatusOK {
+		t.Fatalf("CreateQueue = %d: %s", code, body)
+	}
+	rbCreate(t, ts, "grower", rbTemplate(rbQueue("Q", "rb-ours", 30, "")), nil)
+	if got := stackStatus(t, ts, "grower"); got != "CREATE_COMPLETE" {
+		t.Fatalf("create: status = %s", got)
+	}
+	v2 := rbTemplate(rbQueue("Q", "rb-ours", 45, ""), rbQueue("Theirs", "rb-theirs", 30, ""))
+	if code, body := call(t, ts, "UpdateStack", map[string]any{"StackName": "grower", "TemplateBody": v2}); code != http.StatusOK {
+		t.Fatalf("UpdateStack = %d: %s", code, body)
+	}
+	if got := stackStatus(t, ts, "grower"); got != "UPDATE_ROLLBACK_COMPLETE" {
+		t.Fatalf("status = %s, want UPDATE_ROLLBACK_COMPLETE", got)
+	}
+	if got := queueTimeout(t, ts, "rb-ours"); got != "30" {
+		t.Errorf("the stack's own queue = %s, want 30 (the update never ran)", got)
+	}
+	if !queueExists(t, ts, "rb-theirs") {
+		t.Fatal("the rollback deleted a queue the stack never owned")
+	}
+
+	// Updating what it does own is not a collision.
+	v3 := rbTemplate(rbQueue("Q", "rb-ours", 60, ""))
+	if code, body := call(t, ts, "UpdateStack", map[string]any{"StackName": "grower", "TemplateBody": v3}); code != http.StatusOK {
+		t.Fatalf("UpdateStack = %d: %s", code, body)
+	}
+	if got := stackStatus(t, ts, "grower"); got != "UPDATE_COMPLETE" {
+		t.Errorf("updating its own queue: status = %s, want UPDATE_COMPLETE", got)
 	}
 }
 

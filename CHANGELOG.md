@@ -95,6 +95,15 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
   `DisableRollback`, `OnFailure=DO_NOTHING` and `OnFailure=DELETE` are
   honoured. If you scripted against the `400`, poll the stack instead — as you
   would on AWS. A rollback deletes only what the failed deploy itself created.
+- **A stack no longer takes over a resource it did not make.** A template
+  naming a queue, table, bucket, function, topic, secret, parameter, log
+  group, rule, alias, alarm, dashboard, state machine, connection or API
+  destination that already existed used to adopt it — change it to match, and
+  delete it with the stack. AWS fails that create (`Resource of type ... with
+  identifier ... already exists.`) and rolls back, and so does doze-aws now,
+  leaving the existing resource untouched. An update that adds such a name
+  fails and rolls back the same way. `doze-aws apply` with a stackfile still
+  converges onto what is there; it describes the account, it does not own it.
 - **`UpdateStack` deletes what the new template drops.** A resource taken out
   of a template used to stay running, owned by no stack.
 - **`DeletionPolicy: Retain` is honoured**, by `DeleteStack`, by an update

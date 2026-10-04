@@ -322,3 +322,26 @@ def test_a_failed_create_can_be_left_or_deleted(client, names, cleanup, snapshot
     snapshot.match("on-failure-delete-status", eventually(deleted, timeout=300, every=2))
     snapshot.error("what-was-made-is-deleted", lambda: sqs.get_queue_url(QueueName=gone_q))
     snapshot.error("the-stack-is-gone-by-name", lambda: cfn.describe_stacks(StackName=gone))
+
+
+def test_a_taken_name_fails_the_create(client, names, cleanup, snapshot, eventually):
+    """A stack never takes over a resource it did not make: the create fails,
+    and the queue that was there is neither changed nor deleted with it."""
+    cfn, sqs = client("cloudformation"), client("sqs")
+    theirs = names("theirs")
+    url = sqs.create_queue(QueueName=theirs, Attributes={"VisibilityTimeout": "5"})["QueueUrl"]
+    cleanup(sqs.delete_queue, QueueUrl=url)
+    name, _ = stack(cfn, names, cleanup, {"Resources": {
+        "Theirs": {"Type": "AWS::SQS::Queue",
+                   "Properties": {"QueueName": theirs, "VisibilityTimeout": 30}}}})
+
+    snapshot.match("status", settled(cfn, eventually, name))
+    events = cfn.describe_stack_events(StackName=name)["StackEvents"]
+    snapshot.match("why", [e.get("ResourceStatusReason") for e in events
+                           if e["LogicalResourceId"] == "Theirs" and e["ResourceStatus"] == "CREATE_FAILED"])
+    snapshot.match("their-queue-is-unchanged", sqs.get_queue_attributes(
+        QueueUrl=url, AttributeNames=["VisibilityTimeout"]))
+
+    cfn.delete_stack(StackName=name)
+    cfn.get_waiter("stack_delete_complete").wait(StackName=name, WaiterConfig=FAST)
+    snapshot.match("their-queue-outlives-the-stack", sqs.get_queue_url(QueueName=theirs))
