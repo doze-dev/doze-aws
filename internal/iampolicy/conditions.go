@@ -55,13 +55,23 @@ func conditionMatches(op, key string, want []string, ctx map[string][]string) bo
 		return ifExists || isNegated(op)
 	}
 
+	// Several values are alternatives: one match is enough. A NEGATED operator
+	// reads the other way — StringNotEquals [a, b] means "neither a nor b" — so
+	// the value has to pass the negated test against every one of them. Treating
+	// it as an alternative too made "deny unless it is one of these" deny no
+	// one: any value differs from at least one entry in a list of two.
+	negated := isNegated(op)
 	test := func(v string) bool {
 		for _, w := range want {
-			if applyOperator(op, v, w) {
+			ok := applyOperator(op, v, w)
+			if negated && !ok {
+				return false
+			}
+			if !negated && ok {
 				return true
 			}
 		}
-		return false
+		return negated
 	}
 	switch quant {
 	case "all":

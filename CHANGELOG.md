@@ -170,6 +170,13 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
     in; JSON errors carry their message as both `message` and `Message`, so SDKs
     whose model spells it the second way (Secrets Manager) no longer show an empty
     one.
+- **IAM conditions**: a negated operator over a list of values — `StringNotEquals`,
+  `StringNotLike`, `ArnNotLike`, `NotIpAddress`, `NumericNotEquals`, `DateNotEquals` —
+  is true only when the value matches NONE of them, as in AWS. It was true when the
+  value differed from ANY, so "Deny unless the caller is one of these" denied no
+  one under `--iam-mode enforce`. Found by mutation testing the policy engine
+  (`task mutate -- internal/iampolicy`), which also showed its condition operators
+  had no tests; they have them now.
 - The model-drift check could never pass: enum values were listed in map order.
   They are sorted now, and the fixtures regenerated.
 - Lambda output written during init could be attributed to the first invocation on
