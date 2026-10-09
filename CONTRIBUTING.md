@@ -42,7 +42,24 @@ go tool task test:e2e     # Playwright against the console (builds + boots a rea
 go tool task bench        # benchmarks for the hot paths; BENCHTIME=5s to lengthen
 go tool task fuzz         # 30s on the signature parser
 go tool task soak         # 2m mixed-service load; SOAK_CHAOS=1 restarts mid-load
+go tool task coverage     # ~4 min — merged coverage must not fall below testdata/coverage.txt
+go tool task test:conformance      # boto3 scenarios (compared with AWS once recorded)
+go tool task test:deploy -- sam    # deploy with terraform | sam | cdk | serverless (needs the tool)
+go tool task mutate -- internal/iampolicy   # mutation-test one package; read the LIVED lines
 ```
+
+Three of those exist because a green suite had not noticed something real:
+**`test:deploy`** (the real tools found a dozen bugs the SDK suites could not, since
+a Terraform provider or `sam deploy` asks questions in an order nobody scripts),
+**`mutate`** (it found a policy-evaluation bug in code that had tests), and
+**`coverage`** (so neither of the others can quietly erode). The first two are for
+code whose bugs cost the most — authorization, routing, deployment — not for
+everything.
+
+The data-directory fixture (`testdata/datadir-1.0.0`) is recorded once, at the
+release, with `go test -run TestRecordUpgradeFixture -datadir.record .`, and never
+again. If `TestDataDirFromV1StillOpens` fails, the change is the problem: write the
+migration, do not re-record.
 
 For the e2e suite, note `bunx --bun` rather than plain `bunx`: the Playwright
 binary carries a `#!/usr/bin/env node` shebang and plain `bunx` honours it,
