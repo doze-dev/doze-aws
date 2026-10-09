@@ -154,8 +154,8 @@
     "path": "redriveStatus",
     "type": "enum",
     "enum": [
-     "REDRIVABLE",
      "NOT_REDRIVABLE",
+     "REDRIVABLE",
      "REDRIVABLE_BY_MAP_RUN"
     ]
    },
@@ -186,12 +186,12 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "ABORTED",
+     "FAILED",
+     "PENDING_REDRIVE",
      "RUNNING",
      "SUCCEEDED",
-     "FAILED",
-     "TIMED_OUT",
-     "ABORTED",
-     "PENDING_REDRIVE"
+     "TIMED_OUT"
     ]
    },
    {
@@ -347,10 +347,10 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "RUNNING",
-     "SUCCEEDED",
+     "ABORTED",
      "FAILED",
-     "ABORTED"
+     "RUNNING",
+     "SUCCEEDED"
     ]
    },
    {
@@ -486,8 +486,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "STANDARD",
-     "EXPRESS"
+     "EXPRESS",
+     "STANDARD"
     ]
    },
    {
@@ -574,8 +574,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "CUSTOMER_MANAGED_KMS_KEY",
-     "AWS_OWNED_KEY"
+     "AWS_OWNED_KEY",
+     "CUSTOMER_MANAGED_KMS_KEY"
     ]
    },
    {
@@ -610,10 +610,10 @@
     "path": "loggingConfiguration.level",
     "type": "enum",
     "enum": [
+     "ALL",
      "ERROR",
      "FATAL",
-     "OFF",
-     "ALL"
+     "OFF"
     ]
    },
    {
@@ -1347,68 +1347,68 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "ExecutionStarted",
-     "LambdaFunctionScheduled",
-     "ParallelStateAborted",
-     "TaskStateExited",
-     "EvaluationFailed",
-     "SucceedStateExited",
-     "ExecutionTimedOut",
-     "MapIterationStarted",
-     "MapStateFailed",
+     "ActivityFailed",
+     "ActivityScheduleFailed",
+     "ActivityScheduled",
      "ActivityStarted",
+     "ActivitySucceeded",
+     "ActivityTimedOut",
+     "ChoiceStateEntered",
+     "ChoiceStateExited",
+     "EvaluationFailed",
+     "ExecutionAborted",
+     "ExecutionFailed",
+     "ExecutionRedriven",
+     "ExecutionStarted",
+     "ExecutionSucceeded",
+     "ExecutionTimedOut",
+     "FailStateEntered",
+     "LambdaFunctionFailed",
+     "LambdaFunctionScheduleFailed",
+     "LambdaFunctionScheduled",
      "LambdaFunctionStartFailed",
-     "MapStateAborted",
-     "PassStateExited",
-     "SucceedStateEntered",
-     "WaitStateEntered",
-     "MapRunStarted",
-     "TaskSubmitFailed",
-     "WaitStateExited",
+     "LambdaFunctionStarted",
+     "LambdaFunctionSucceeded",
      "LambdaFunctionTimedOut",
      "MapIterationAborted",
      "MapIterationFailed",
-     "ParallelStateSucceeded",
-     "TaskStarted",
-     "FailStateEntered",
-     "PassStateEntered",
-     "TaskScheduled",
-     "MapStateSucceeded",
-     "MapRunFailed",
-     "ExecutionRedriven",
-     "ExecutionSucceeded",
-     "TaskFailed",
-     "TaskTimedOut",
-     "LambdaFunctionFailed",
-     "TaskStateEntered",
-     "MapRunRedriven",
-     "TaskSucceeded",
-     "ExecutionAborted",
-     "LambdaFunctionStarted",
-     "MapStateEntered",
-     "ParallelStateExited",
-     "ParallelStateStarted",
-     "ActivityScheduleFailed",
-     "ActivityTimedOut",
-     "MapStateExited",
-     "ParallelStateFailed",
-     "TaskStateAborted",
-     "WaitStateAborted",
-     "MapRunAborted",
-     "MapRunSucceeded",
-     "ActivityScheduled",
-     "ActivitySucceeded",
-     "LambdaFunctionSucceeded",
-     "TaskStartFailed",
-     "ChoiceStateEntered",
-     "ExecutionFailed",
-     "MapStateStarted",
-     "TaskSubmitted",
+     "MapIterationStarted",
      "MapIterationSucceeded",
-     "ActivityFailed",
+     "MapRunAborted",
+     "MapRunFailed",
+     "MapRunRedriven",
+     "MapRunStarted",
+     "MapRunSucceeded",
+     "MapStateAborted",
+     "MapStateEntered",
+     "MapStateExited",
+     "MapStateFailed",
+     "MapStateStarted",
+     "MapStateSucceeded",
+     "ParallelStateAborted",
      "ParallelStateEntered",
-     "ChoiceStateExited",
-     "LambdaFunctionScheduleFailed"
+     "ParallelStateExited",
+     "ParallelStateFailed",
+     "ParallelStateStarted",
+     "ParallelStateSucceeded",
+     "PassStateEntered",
+     "PassStateExited",
+     "SucceedStateEntered",
+     "SucceedStateExited",
+     "TaskFailed",
+     "TaskScheduled",
+     "TaskStartFailed",
+     "TaskStarted",
+     "TaskStateAborted",
+     "TaskStateEntered",
+     "TaskStateExited",
+     "TaskSubmitFailed",
+     "TaskSubmitted",
+     "TaskSucceeded",
+     "TaskTimedOut",
+     "WaitStateAborted",
+     "WaitStateEntered",
+     "WaitStateExited"
     ]
    },
    {
@@ -1513,12 +1513,12 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "ABORTED",
+     "FAILED",
+     "PENDING_REDRIVE",
      "RUNNING",
      "SUCCEEDED",
-     "FAILED",
-     "TIMED_OUT",
-     "ABORTED",
-     "PENDING_REDRIVE"
+     "TIMED_OUT"
     ]
    },
    {
@@ -1811,8 +1811,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "SUCCEEDED",
      "FAILED",
+     "SUCCEEDED",
      "TIMED_OUT"
     ]
    },
@@ -1990,9 +1990,9 @@
     "path": "status",
     "type": "enum",
     "enum": [
+     "CAUGHT_ERROR",
      "FAILED",
      "RETRIABLE",
-     "CAUGHT_ERROR",
      "SUCCEEDED"
     ]
    }
@@ -2069,8 +2069,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "OK",
-     "FAIL"
+     "FAIL",
+     "OK"
     ]
    },
    {

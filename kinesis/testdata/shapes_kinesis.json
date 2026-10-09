@@ -1,5 +1,268 @@
 [
  {
+  "operation": "CreateChannel",
+  "output": "CreateChannelOutput",
+  "members": [
+   {
+    "path": "ChannelDescription",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelCreationTimestamp",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "ACTIVE",
+     "CREATING",
+     "DELETING",
+     "FAILED",
+     "UPDATING"
+    ]
+   },
+   {
+    "path": "ChannelDescription.ChannelStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.EncryptionConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.EncryptionConfiguration.EncryptionType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "KMS"
+    ]
+   },
+   {
+    "path": "ChannelDescription.EncryptionConfiguration.KeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration.CloudWatchLogs",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration.CloudWatchLogs.Enabled",
+    "type": "boolean",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration.CloudWatchLogs.LogGroupName",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration.CloudWatchLogs.LogStreamName",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DataFreshnessInSeconds",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DeadLetterQueueS3Configuration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DeadLetterQueueS3Configuration.BucketARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DeadLetterQueueS3Configuration.ErrorOutputPrefix",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DeadLetterQueueS3Configuration.ExpectedBucketOwner",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.BucketARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.CompressionType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "GZIP",
+     "NONE",
+     "ZSTD"
+    ]
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.ExpectedBucketOwner",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.OutputKeyTemplate",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.StorageClass",
+    "type": "enum",
+    "enum": [
+     "GLACIER_IR",
+     "INTELLIGENT_TIERING",
+     "STANDARD"
+    ]
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DataFreshnessInSeconds",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DeadLetterQueueS3Configuration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DeadLetterQueueS3Configuration.BucketARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DeadLetterQueueS3Configuration.ErrorOutputPrefix",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DeadLetterQueueS3Configuration.ExpectedBucketOwner",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[]",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].CompressionType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "NONE",
+     "SNAPPY",
+     "ZSTD"
+    ]
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].Namespace",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].PartitionSpec",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].TableBucketARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].TableName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ServiceExecutionRoleARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[]",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].RecordConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].RecordConfiguration.GSRSchemaARN",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].RecordConfiguration.RecordFormatType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "BYTE_ARRAY",
+     "GSR_JSON",
+     "JSON",
+     "STRING"
+    ]
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].StreamARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].StreamCreationTimestamp",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
   "operation": "DescribeAccountSettings",
   "output": "DescribeAccountSettingsOutput",
   "members": [
@@ -24,10 +287,273 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "ENABLED",
      "DISABLED",
+     "ENABLED",
      "ENABLED_UNTIL_EARLIEST_ALLOWED_END"
     ]
+   }
+  ]
+ },
+ {
+  "operation": "DescribeChannel",
+  "output": "DescribeChannelOutput",
+  "members": [
+   {
+    "path": "ChannelDescription",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelCreationTimestamp",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "ACTIVE",
+     "CREATING",
+     "DELETING",
+     "FAILED",
+     "UPDATING"
+    ]
+   },
+   {
+    "path": "ChannelDescription.ChannelStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.EncryptionConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.EncryptionConfiguration.EncryptionType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "KMS"
+    ]
+   },
+   {
+    "path": "ChannelDescription.EncryptionConfiguration.KeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration.CloudWatchLogs",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration.CloudWatchLogs.Enabled",
+    "type": "boolean",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration.CloudWatchLogs.LogGroupName",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration.CloudWatchLogs.LogStreamName",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DataFreshnessInSeconds",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DeadLetterQueueS3Configuration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DeadLetterQueueS3Configuration.BucketARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DeadLetterQueueS3Configuration.ErrorOutputPrefix",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DeadLetterQueueS3Configuration.ExpectedBucketOwner",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.BucketARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.CompressionType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "GZIP",
+     "NONE",
+     "ZSTD"
+    ]
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.ExpectedBucketOwner",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.OutputKeyTemplate",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.StorageClass",
+    "type": "enum",
+    "enum": [
+     "GLACIER_IR",
+     "INTELLIGENT_TIERING",
+     "STANDARD"
+    ]
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DataFreshnessInSeconds",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DeadLetterQueueS3Configuration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DeadLetterQueueS3Configuration.BucketARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DeadLetterQueueS3Configuration.ErrorOutputPrefix",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DeadLetterQueueS3Configuration.ExpectedBucketOwner",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[]",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].CompressionType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "NONE",
+     "SNAPPY",
+     "ZSTD"
+    ]
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].Namespace",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].PartitionSpec",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].TableBucketARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].TableName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ServiceExecutionRoleARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[]",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].RecordConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].RecordConfiguration.GSRSchemaARN",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].RecordConfiguration.RecordFormatType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "BYTE_ARRAY",
+     "GSR_JSON",
+     "JSON",
+     "STRING"
+    ]
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].StreamARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].StreamCreationTimestamp",
+    "type": "timestamp",
+    "required": true
    }
   ]
  },
@@ -35,6 +561,14 @@
   "operation": "DescribeLimits",
   "output": "DescribeLimitsOutput",
   "members": [
+   {
+    "path": "ChannelCount",
+    "type": "integer"
+   },
+   {
+    "path": "ChannelCountLimit",
+    "type": "integer"
+   },
    {
     "path": "OnDemandStreamCount",
     "type": "integer",
@@ -70,8 +604,8 @@
     "path": "StreamDescription.EncryptionType",
     "type": "enum",
     "enum": [
-     "NONE",
-     "KMS"
+     "KMS",
+     "NONE"
     ]
    },
    {
@@ -91,14 +625,14 @@
     "path": "StreamDescription.EnhancedMonitoring[].ShardLevelMetrics[]",
     "type": "enum",
     "enum": [
-     "WriteProvisionedThroughputExceeded",
-     "ReadProvisionedThroughputExceeded",
-     "IteratorAgeMilliseconds",
      "ALL",
      "IncomingBytes",
      "IncomingRecords",
+     "IteratorAgeMilliseconds",
      "OutgoingBytes",
-     "OutgoingRecords"
+     "OutgoingRecords",
+     "ReadProvisionedThroughputExceeded",
+     "WriteProvisionedThroughputExceeded"
     ]
    },
    {
@@ -185,8 +719,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "PROVISIONED",
-     "ON_DEMAND"
+     "ON_DEMAND",
+     "PROVISIONED"
     ]
    },
    {
@@ -199,10 +733,10 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "DELETING",
      "ACTIVE",
-     "UPDATING",
-     "CREATING"
+     "CREATING",
+     "DELETING",
+     "UPDATING"
     ]
    }
   ]
@@ -236,9 +770,9 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "DELETING",
-     "ACTIVE"
+     "DELETING"
     ]
    },
    {
@@ -258,6 +792,10 @@
     "required": true
    },
    {
+    "path": "StreamDescriptionSummary.ChannelCount",
+    "type": "integer"
+   },
+   {
     "path": "StreamDescriptionSummary.ConsumerCount",
     "type": "integer"
    },
@@ -265,8 +803,8 @@
     "path": "StreamDescriptionSummary.EncryptionType",
     "type": "enum",
     "enum": [
-     "NONE",
-     "KMS"
+     "KMS",
+     "NONE"
     ]
    },
    {
@@ -286,14 +824,14 @@
     "path": "StreamDescriptionSummary.EnhancedMonitoring[].ShardLevelMetrics[]",
     "type": "enum",
     "enum": [
-     "IteratorAgeMilliseconds",
      "ALL",
      "IncomingBytes",
      "IncomingRecords",
+     "IteratorAgeMilliseconds",
      "OutgoingBytes",
      "OutgoingRecords",
-     "WriteProvisionedThroughputExceeded",
-     "ReadProvisionedThroughputExceeded"
+     "ReadProvisionedThroughputExceeded",
+     "WriteProvisionedThroughputExceeded"
     ]
    },
    {
@@ -308,6 +846,14 @@
     "path": "StreamDescriptionSummary.OpenShardCount",
     "type": "integer",
     "required": true
+   },
+   {
+    "path": "StreamDescriptionSummary.RecordDistributionStrategy",
+    "type": "enum",
+    "enum": [
+     "AUTO",
+     "USER_PARTITION_KEY"
+    ]
    },
    {
     "path": "StreamDescriptionSummary.RetentionPeriodHours",
@@ -337,8 +883,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "PROVISIONED",
-     "ON_DEMAND"
+     "ON_DEMAND",
+     "PROVISIONED"
     ]
    },
    {
@@ -351,10 +897,10 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UPDATING",
+     "ACTIVE",
      "CREATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -383,14 +929,14 @@
     "path": "CurrentShardLevelMetrics[]",
     "type": "enum",
     "enum": [
+     "ALL",
      "IncomingBytes",
      "IncomingRecords",
+     "IteratorAgeMilliseconds",
      "OutgoingBytes",
      "OutgoingRecords",
-     "WriteProvisionedThroughputExceeded",
      "ReadProvisionedThroughputExceeded",
-     "IteratorAgeMilliseconds",
-     "ALL"
+     "WriteProvisionedThroughputExceeded"
     ]
    },
    {
@@ -401,14 +947,14 @@
     "path": "DesiredShardLevelMetrics[]",
     "type": "enum",
     "enum": [
-     "OutgoingBytes",
-     "OutgoingRecords",
-     "WriteProvisionedThroughputExceeded",
-     "ReadProvisionedThroughputExceeded",
-     "IteratorAgeMilliseconds",
      "ALL",
      "IncomingBytes",
-     "IncomingRecords"
+     "IncomingRecords",
+     "IteratorAgeMilliseconds",
+     "OutgoingBytes",
+     "OutgoingRecords",
+     "ReadProvisionedThroughputExceeded",
+     "WriteProvisionedThroughputExceeded"
     ]
    },
    {
@@ -433,14 +979,14 @@
     "path": "CurrentShardLevelMetrics[]",
     "type": "enum",
     "enum": [
-     "OutgoingBytes",
-     "OutgoingRecords",
-     "WriteProvisionedThroughputExceeded",
-     "ReadProvisionedThroughputExceeded",
-     "IteratorAgeMilliseconds",
      "ALL",
      "IncomingBytes",
-     "IncomingRecords"
+     "IncomingRecords",
+     "IteratorAgeMilliseconds",
+     "OutgoingBytes",
+     "OutgoingRecords",
+     "ReadProvisionedThroughputExceeded",
+     "WriteProvisionedThroughputExceeded"
     ]
    },
    {
@@ -451,14 +997,14 @@
     "path": "DesiredShardLevelMetrics[]",
     "type": "enum",
     "enum": [
-     "OutgoingBytes",
-     "OutgoingRecords",
-     "WriteProvisionedThroughputExceeded",
-     "ReadProvisionedThroughputExceeded",
-     "IteratorAgeMilliseconds",
      "ALL",
      "IncomingBytes",
-     "IncomingRecords"
+     "IncomingRecords",
+     "IteratorAgeMilliseconds",
+     "OutgoingBytes",
+     "OutgoingRecords",
+     "ReadProvisionedThroughputExceeded",
+     "WriteProvisionedThroughputExceeded"
     ]
    },
    {
@@ -542,14 +1088,13 @@
     "path": "Records[].EncryptionType",
     "type": "enum",
     "enum": [
-     "NONE",
-     "KMS"
+     "KMS",
+     "NONE"
     ]
    },
    {
     "path": "Records[].PartitionKey",
-    "type": "string",
-    "required": true
+    "type": "string"
    },
    {
     "path": "Records[].SequenceNumber",
@@ -575,6 +1120,89 @@
   "members": [
    {
     "path": "ShardIterator",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "ListChannels",
+  "output": "ListChannelsOutput",
+  "members": [
+   {
+    "path": "ChannelSummaries",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "ChannelSummaries[]",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelSummaries[].ChannelARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelSummaries[].ChannelCreationTimestamp",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "ChannelSummaries[].ChannelDestinationType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "S3",
+     "S3_TABLES"
+    ]
+   },
+   {
+    "path": "ChannelSummaries[].ChannelId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelSummaries[].ChannelName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelSummaries[].ChannelStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "ACTIVE",
+     "CREATING",
+     "DELETING",
+     "FAILED",
+     "UPDATING"
+    ]
+   },
+   {
+    "path": "ChannelSummaries[].ChannelStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "ChannelSummaries[].Streams",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "ChannelSummaries[].Streams[]",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelSummaries[].Streams[].StreamARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelSummaries[].Streams[].StreamCreationTimestamp",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "NextToken",
     "type": "string"
    }
   ]
@@ -671,9 +1299,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "DELETING",
      "ACTIVE",
-     "CREATING"
+     "CREATING",
+     "DELETING"
     ]
    },
    {
@@ -730,8 +1358,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "PROVISIONED",
-     "ON_DEMAND"
+     "ON_DEMAND",
+     "PROVISIONED"
     ]
    },
    {
@@ -744,9 +1372,9 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "ACTIVE",
      "CREATING",
      "DELETING",
-     "ACTIVE",
      "UPDATING"
     ]
    }
@@ -812,8 +1440,8 @@
     "path": "EncryptionType",
     "type": "enum",
     "enum": [
-     "NONE",
-     "KMS"
+     "KMS",
+     "NONE"
     ]
    },
    {
@@ -836,8 +1464,8 @@
     "path": "EncryptionType",
     "type": "enum",
     "enum": [
-     "NONE",
-     "KMS"
+     "KMS",
+     "NONE"
     ]
    },
    {
@@ -900,9 +1528,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "DELETING",
      "ACTIVE",
-     "CREATING"
+     "CREATING",
+     "DELETING"
     ]
    }
   ]
@@ -944,9 +1572,272 @@
     "required": true,
     "enum": [
      "DISABLED",
-     "ENABLED_UNTIL_EARLIEST_ALLOWED_END",
-     "ENABLED"
+     "ENABLED",
+     "ENABLED_UNTIL_EARLIEST_ALLOWED_END"
     ]
+   }
+  ]
+ },
+ {
+  "operation": "UpdateChannel",
+  "output": "UpdateChannelOutput",
+  "members": [
+   {
+    "path": "ChannelDescription",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelCreationTimestamp",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ChannelStatus",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "ACTIVE",
+     "CREATING",
+     "DELETING",
+     "FAILED",
+     "UPDATING"
+    ]
+   },
+   {
+    "path": "ChannelDescription.ChannelStatusReason",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.EncryptionConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.EncryptionConfiguration.EncryptionType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "KMS"
+    ]
+   },
+   {
+    "path": "ChannelDescription.EncryptionConfiguration.KeyId",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration.CloudWatchLogs",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration.CloudWatchLogs.Enabled",
+    "type": "boolean",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration.CloudWatchLogs.LogGroupName",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.LoggingConfiguration.CloudWatchLogs.LogStreamName",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DataFreshnessInSeconds",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DeadLetterQueueS3Configuration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DeadLetterQueueS3Configuration.BucketARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DeadLetterQueueS3Configuration.ErrorOutputPrefix",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.DeadLetterQueueS3Configuration.ExpectedBucketOwner",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.BucketARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.CompressionType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "GZIP",
+     "NONE",
+     "ZSTD"
+    ]
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.ExpectedBucketOwner",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.OutputKeyTemplate",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.S3DestinationConfiguration.StorageConfiguration.StorageClass",
+    "type": "enum",
+    "enum": [
+     "GLACIER_IR",
+     "INTELLIGENT_TIERING",
+     "STANDARD"
+    ]
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DataFreshnessInSeconds",
+    "type": "integer",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DeadLetterQueueS3Configuration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DeadLetterQueueS3Configuration.BucketARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DeadLetterQueueS3Configuration.ErrorOutputPrefix",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.DeadLetterQueueS3Configuration.ExpectedBucketOwner",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[]",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].CompressionType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "NONE",
+     "SNAPPY",
+     "ZSTD"
+    ]
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].Namespace",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].PartitionSpec",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].TableBucketARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.S3TablesDestinationConfiguration.S3TablesConfigurationList[].TableName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.ServiceExecutionRoleARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[]",
+    "type": "structure"
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].RecordConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].RecordConfiguration.GSRSchemaARN",
+    "type": "string"
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].RecordConfiguration.RecordFormatType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "BYTE_ARRAY",
+     "GSR_JSON",
+     "JSON",
+     "STRING"
+    ]
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].StreamARN",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ChannelDescription.StreamConfigurationList[].StreamCreationTimestamp",
+    "type": "timestamp",
+    "required": true
    }
   ]
  },

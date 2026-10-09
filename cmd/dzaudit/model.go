@@ -14,6 +14,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"time"
 )
@@ -238,5 +239,9 @@ func (m *model) enumValues(s shape) []string {
 			vals = append(vals, v)
 		}
 	}
+	// The members are a JSON object, so Go yields them in a different order every
+	// run; an unsorted list made every regeneration differ from the last and the
+	// weekly drift check could never pass.
+	sort.Strings(vals)
 	return vals
 }

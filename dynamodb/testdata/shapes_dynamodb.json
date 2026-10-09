@@ -115,17 +115,17 @@
     "path": "Responses[].Error.Code",
     "type": "enum",
     "enum": [
+     "AccessDenied",
      "ConditionalCheckFailed",
+     "DuplicateItem",
+     "InternalServerError",
      "ItemCollectionSizeLimitExceeded",
      "ProvisionedThroughputExceeded",
-     "ResourceNotFound",
-     "AccessDenied",
-     "DuplicateItem",
      "RequestLimitExceeded",
-     "ValidationError",
-     "TransactionConflict",
+     "ResourceNotFound",
      "ThrottlingError",
-     "InternalServerError"
+     "TransactionConflict",
+     "ValidationError"
     ]
    },
    {
@@ -513,9 +513,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "DELETED",
      "AVAILABLE",
-     "CREATING"
+     "CREATING",
+     "DELETED"
     ]
    },
    {
@@ -524,8 +524,8 @@
     "required": true,
     "enum": [
      "AWS_BACKUP",
-     "USER",
-     "SYSTEM"
+     "SYSTEM",
+     "USER"
     ]
    }
   ]
@@ -554,8 +554,8 @@
     "path": "GlobalTableDescription.GlobalTableStatus",
     "type": "enum",
     "enum": [
-     "CREATING",
      "ACTIVE",
+     "CREATING",
      "DELETING",
      "UPDATING"
     ]
@@ -580,8 +580,8 @@
     "path": "GlobalTableDescription.ReplicationGroup[].GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
+     "ENABLED",
      "ENABLED_WITH_OVERRIDES"
     ]
    },
@@ -621,16 +621,16 @@
     "path": "GlobalTableDescription.ReplicationGroup[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "CREATION_FAILED",
-     "UPDATING",
      "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
+     "CREATION_FAILED",
      "DELETING",
-     "REGION_DISABLED",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING"
+     "REGION_DISABLED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -669,14 +669,14 @@
     "path": "GlobalTableDescription.ReplicationGroup[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
+     "ARCHIVING",
+     "CREATING",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "REPLICATION_NOT_AUTHORIZED",
-     "CREATING"
+     "UPDATING"
     ]
    },
    {
@@ -727,9 +727,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "S",
+     "B",
      "N",
-     "B"
+     "S"
     ]
    },
    {
@@ -784,10 +784,10 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -827,8 +827,8 @@
     "type": "enum",
     "enum": [
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "INCLUDE",
+     "KEYS_ONLY"
     ]
    },
    {
@@ -867,10 +867,10 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -881,8 +881,8 @@
     "path": "TableDescription.GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
+     "ENABLED",
      "ENABLED_WITH_OVERRIDES"
     ]
    },
@@ -906,9 +906,9 @@
     "path": "TableDescription.GlobalTableWitnesses[].WitnessStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "DELETING",
-     "ACTIVE"
+     "DELETING"
     ]
    },
    {
@@ -990,16 +990,16 @@
     "type": "enum",
     "enum": [
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "INCLUDE",
+     "KEYS_ONLY"
     ]
    },
    {
     "path": "TableDescription.MultiRegionConsistency",
     "type": "enum",
     "enum": [
-     "STRONG",
-     "EVENTUAL"
+     "EVENTUAL",
+     "STRONG"
     ]
    },
    {
@@ -1059,8 +1059,8 @@
     "type": "enum",
     "enum": [
      "DISABLED",
-     "ENABLED_WITH_OVERRIDES",
-     "ENABLED"
+     "ENABLED",
+     "ENABLED_WITH_OVERRIDES"
     ]
    },
    {
@@ -1099,16 +1099,16 @@
     "path": "TableDescription.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "CREATING",
-     "DELETING",
-     "REGION_DISABLED",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
-     "CREATION_FAILED",
-     "UPDATING",
      "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED"
+     "ARCHIVING",
+     "CREATING",
+     "CREATION_FAILED",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REGION_DISABLED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -1148,13 +1148,13 @@
     "type": "enum",
     "enum": [
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
-     "UPDATING",
-     "DELETING"
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -1207,11 +1207,11 @@
     "path": "TableDescription.SSEDescription.Status",
     "type": "enum",
     "enum": [
-     "DISABLING",
      "DISABLED",
-     "UPDATING",
+     "DISABLING",
+     "ENABLED",
      "ENABLING",
-     "ENABLED"
+     "UPDATING"
     ]
    },
    {
@@ -1227,10 +1227,10 @@
     "path": "TableDescription.StreamSpecification.StreamViewType",
     "type": "enum",
     "enum": [
-     "OLD_IMAGE",
-     "NEW_AND_OLD_IMAGES",
      "KEYS_ONLY",
-     "NEW_IMAGE"
+     "NEW_AND_OLD_IMAGES",
+     "NEW_IMAGE",
+     "OLD_IMAGE"
     ]
    },
    {
@@ -1269,14 +1269,14 @@
     "path": "TableDescription.TableStatus",
     "type": "enum",
     "enum": [
-     "ARCHIVING",
-     "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS"
+     "ARCHIVED",
+     "ARCHIVING",
+     "CREATING",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -1320,10 +1320,10 @@
     "path": "TableDescription.VectorIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -1342,8 +1342,8 @@
     "path": "TableDescription.VectorIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
-     "INCLUDE",
      "ALL",
+     "INCLUDE",
      "KEYS_ONLY"
     ]
    },
@@ -1376,13 +1376,13 @@
     "path": "TableDescription.WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
      "UPDATING"
     ]
    },
@@ -1432,9 +1432,9 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "AVAILABLE",
      "CREATING",
-     "DELETED",
-     "AVAILABLE"
+     "DELETED"
     ]
    },
    {
@@ -1442,9 +1442,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "USER",
+     "AWS_BACKUP",
      "SYSTEM",
-     "AWS_BACKUP"
+     "USER"
     ]
    },
    {
@@ -1455,8 +1455,8 @@
     "path": "BackupDescription.SourceTableDetails.BillingMode",
     "type": "enum",
     "enum": [
-     "PROVISIONED",
-     "PAY_PER_REQUEST"
+     "PAY_PER_REQUEST",
+     "PROVISIONED"
     ]
    },
    {
@@ -1482,8 +1482,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "RANGE",
-     "HASH"
+     "HASH",
+     "RANGE"
     ]
    },
    {
@@ -1612,11 +1612,11 @@
     "path": "BackupDescription.SourceTableFeatureDetails.SSEDescription.Status",
     "type": "enum",
     "enum": [
-     "UPDATING",
-     "ENABLING",
-     "ENABLED",
+     "DISABLED",
      "DISABLING",
-     "DISABLED"
+     "ENABLED",
+     "ENABLING",
+     "UPDATING"
     ]
    },
    {
@@ -1632,10 +1632,10 @@
     "path": "BackupDescription.SourceTableFeatureDetails.StreamDescription.StreamViewType",
     "type": "enum",
     "enum": [
-     "NEW_IMAGE",
-     "OLD_IMAGE",
+     "KEYS_ONLY",
      "NEW_AND_OLD_IMAGES",
-     "KEYS_ONLY"
+     "NEW_IMAGE",
+     "OLD_IMAGE"
     ]
    },
    {
@@ -1650,10 +1650,10 @@
     "path": "BackupDescription.SourceTableFeatureDetails.TimeToLiveDescription.TimeToLiveStatus",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
-     "ENABLING",
-     "DISABLING"
+     "DISABLING",
+     "ENABLED",
+     "ENABLING"
     ]
    },
    {
@@ -1672,9 +1672,9 @@
     "path": "BackupDescription.SourceTableFeatureDetails.VectorIndexes[].DistanceFunction",
     "type": "enum",
     "enum": [
+     "COSINE",
      "DOT_PRODUCT",
-     "EUCLIDEAN",
-     "COSINE"
+     "EUCLIDEAN"
     ]
    },
    {
@@ -1873,9 +1873,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "S",
+     "B",
      "N",
-     "B"
+     "S"
     ]
    },
    {
@@ -1930,10 +1930,10 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -1973,8 +1973,8 @@
     "type": "enum",
     "enum": [
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "INCLUDE",
+     "KEYS_ONLY"
     ]
    },
    {
@@ -2013,10 +2013,10 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -2027,8 +2027,8 @@
     "path": "TableDescription.GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
+     "ENABLED",
      "ENABLED_WITH_OVERRIDES"
     ]
    },
@@ -2052,9 +2052,9 @@
     "path": "TableDescription.GlobalTableWitnesses[].WitnessStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "DELETING",
-     "ACTIVE"
+     "DELETING"
     ]
    },
    {
@@ -2136,8 +2136,8 @@
     "type": "enum",
     "enum": [
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "INCLUDE",
+     "KEYS_ONLY"
     ]
    },
    {
@@ -2204,8 +2204,8 @@
     "path": "TableDescription.Replicas[].GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
+     "ENABLED",
      "ENABLED_WITH_OVERRIDES"
     ]
    },
@@ -2245,16 +2245,16 @@
     "path": "TableDescription.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "CREATION_FAILED",
-     "UPDATING",
      "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
+     "CREATION_FAILED",
      "DELETING",
-     "REGION_DISABLED",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING"
+     "REGION_DISABLED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -2293,14 +2293,14 @@
     "path": "TableDescription.Replicas[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
+     "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -2353,11 +2353,11 @@
     "path": "TableDescription.SSEDescription.Status",
     "type": "enum",
     "enum": [
-     "ENABLED",
-     "DISABLING",
      "DISABLED",
-     "UPDATING",
-     "ENABLING"
+     "DISABLING",
+     "ENABLED",
+     "ENABLING",
+     "UPDATING"
     ]
    },
    {
@@ -2373,10 +2373,10 @@
     "path": "TableDescription.StreamSpecification.StreamViewType",
     "type": "enum",
     "enum": [
-     "OLD_IMAGE",
-     "NEW_AND_OLD_IMAGES",
      "KEYS_ONLY",
-     "NEW_IMAGE"
+     "NEW_AND_OLD_IMAGES",
+     "NEW_IMAGE",
+     "OLD_IMAGE"
     ]
    },
    {
@@ -2395,8 +2395,8 @@
     "path": "TableDescription.TableClassSummary.TableClass",
     "type": "enum",
     "enum": [
-     "STANDARD_INFREQUENT_ACCESS",
-     "STANDARD"
+     "STANDARD",
+     "STANDARD_INFREQUENT_ACCESS"
     ]
    },
    {
@@ -2415,14 +2415,14 @@
     "path": "TableDescription.TableStatus",
     "type": "enum",
     "enum": [
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
+     "ARCHIVING",
+     "CREATING",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "REPLICATION_NOT_AUTHORIZED",
-     "CREATING"
+     "UPDATING"
     ]
    },
    {
@@ -2445,9 +2445,9 @@
     "path": "TableDescription.VectorIndexes[].DistanceFunction",
     "type": "enum",
     "enum": [
-     "EUCLIDEAN",
      "COSINE",
-     "DOT_PRODUCT"
+     "DOT_PRODUCT",
+     "EUCLIDEAN"
     ]
    },
    {
@@ -2466,9 +2466,9 @@
     "path": "TableDescription.VectorIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
-     "DELETING",
      "ACTIVE",
      "CREATING",
+     "DELETING",
      "UPDATING"
     ]
    },
@@ -2488,8 +2488,8 @@
     "path": "TableDescription.VectorIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
-     "INCLUDE",
      "ALL",
+     "INCLUDE",
      "KEYS_ONLY"
     ]
    },
@@ -2522,14 +2522,14 @@
     "path": "TableDescription.WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
+     "ARCHIVED",
+     "ARCHIVING",
+     "CREATING",
+     "DELETING",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING"
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -2578,9 +2578,9 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "AVAILABLE",
      "CREATING",
-     "DELETED",
-     "AVAILABLE"
+     "DELETED"
     ]
    },
    {
@@ -2588,9 +2588,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "USER",
+     "AWS_BACKUP",
      "SYSTEM",
-     "AWS_BACKUP"
+     "USER"
     ]
    },
    {
@@ -2601,8 +2601,8 @@
     "path": "BackupDescription.SourceTableDetails.BillingMode",
     "type": "enum",
     "enum": [
-     "PROVISIONED",
-     "PAY_PER_REQUEST"
+     "PAY_PER_REQUEST",
+     "PROVISIONED"
     ]
    },
    {
@@ -2628,8 +2628,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "RANGE",
-     "HASH"
+     "HASH",
+     "RANGE"
     ]
    },
    {
@@ -2758,10 +2758,10 @@
     "path": "BackupDescription.SourceTableFeatureDetails.SSEDescription.Status",
     "type": "enum",
     "enum": [
-     "ENABLING",
-     "ENABLED",
-     "DISABLING",
      "DISABLED",
+     "DISABLING",
+     "ENABLED",
+     "ENABLING",
      "UPDATING"
     ]
    },
@@ -2778,10 +2778,10 @@
     "path": "BackupDescription.SourceTableFeatureDetails.StreamDescription.StreamViewType",
     "type": "enum",
     "enum": [
-     "NEW_IMAGE",
-     "OLD_IMAGE",
+     "KEYS_ONLY",
      "NEW_AND_OLD_IMAGES",
-     "KEYS_ONLY"
+     "NEW_IMAGE",
+     "OLD_IMAGE"
     ]
    },
    {
@@ -2796,10 +2796,10 @@
     "path": "BackupDescription.SourceTableFeatureDetails.TimeToLiveDescription.TimeToLiveStatus",
     "type": "enum",
     "enum": [
-     "ENABLING",
+     "DISABLED",
      "DISABLING",
      "ENABLED",
-     "DISABLED"
+     "ENABLING"
     ]
    },
    {
@@ -2818,9 +2818,9 @@
     "path": "BackupDescription.SourceTableFeatureDetails.VectorIndexes[].DistanceFunction",
     "type": "enum",
     "enum": [
-     "EUCLIDEAN",
      "COSINE",
-     "DOT_PRODUCT"
+     "DOT_PRODUCT",
+     "EUCLIDEAN"
     ]
    },
    {
@@ -2854,8 +2854,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "ENABLED",
-     "DISABLED"
+     "DISABLED",
+     "ENABLED"
     ]
    },
    {
@@ -2874,8 +2874,8 @@
     "path": "ContinuousBackupsDescription.PointInTimeRecoveryDescription.PointInTimeRecoveryStatus",
     "type": "enum",
     "enum": [
-     "ENABLED",
-     "DISABLED"
+     "DISABLED",
+     "ENABLED"
     ]
    },
    {
@@ -2908,10 +2908,10 @@
     "path": "ContributorInsightsStatus",
     "type": "enum",
     "enum": [
-     "ENABLING",
-     "ENABLED",
-     "DISABLING",
      "DISABLED",
+     "DISABLING",
+     "ENABLED",
+     "ENABLING",
      "FAILED"
     ]
    },
@@ -3006,9 +3006,9 @@
     "path": "ExportDescription.ExportStatus",
     "type": "enum",
     "enum": [
-     "IN_PROGRESS",
      "COMPLETED",
-     "FAILED"
+     "FAILED",
+     "IN_PROGRESS"
     ]
    },
    {
@@ -3019,8 +3019,8 @@
     "path": "ExportDescription.ExportType",
     "type": "enum",
     "enum": [
-     "INCREMENTAL_EXPORT",
-     "FULL_EXPORT"
+     "FULL_EXPORT",
+     "INCREMENTAL_EXPORT"
     ]
    },
    {
@@ -3029,6 +3029,38 @@
    },
    {
     "path": "ExportDescription.FailureMessage",
+    "type": "string"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification",
+    "type": "structure"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.ExpressionAttributeNames",
+    "type": "map"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.ExpressionAttributeNames{}",
+    "type": "string"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.ExpressionAttributeValues",
+    "type": "map"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.ExpressionAttributeValues{}",
+    "type": "any"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.FilterExpression",
+    "type": "string"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.KeyConditionExpression",
+    "type": "string"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.ProjectionExpression",
     "type": "string"
    },
    {
@@ -3047,8 +3079,8 @@
     "path": "ExportDescription.IncrementalExportSpecification.ExportViewType",
     "type": "enum",
     "enum": [
-     "NEW_IMAGE",
-     "NEW_AND_OLD_IMAGES"
+     "NEW_AND_OLD_IMAGES",
+     "NEW_IMAGE"
     ]
    },
    {
@@ -3118,9 +3150,9 @@
     "type": "enum",
     "enum": [
      "ACTIVE",
+     "CREATING",
      "DELETING",
-     "UPDATING",
-     "CREATING"
+     "UPDATING"
     ]
    },
    {
@@ -3143,9 +3175,9 @@
     "path": "GlobalTableDescription.ReplicationGroup[].GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED_WITH_OVERRIDES",
+     "DISABLED",
      "ENABLED",
-     "DISABLED"
+     "ENABLED_WITH_OVERRIDES"
     ]
    },
    {
@@ -3184,16 +3216,16 @@
     "path": "GlobalTableDescription.ReplicationGroup[].ReplicaStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "DELETING",
-     "REGION_DISABLED",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
+     "CREATING",
      "CREATION_FAILED",
-     "UPDATING",
-     "ACTIVE"
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REGION_DISABLED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -3232,14 +3264,14 @@
     "path": "GlobalTableDescription.ReplicationGroup[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "ARCHIVED",
      "ARCHIVING",
-     "ARCHIVED"
+     "CREATING",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -3277,8 +3309,8 @@
     "path": "ReplicaSettings[].ReplicaBillingModeSummary.BillingMode",
     "type": "enum",
     "enum": [
-     "PROVISIONED",
-     "PAY_PER_REQUEST"
+     "PAY_PER_REQUEST",
+     "PROVISIONED"
     ]
    },
    {
@@ -3302,10 +3334,10 @@
     "path": "ReplicaSettings[].ReplicaGlobalSecondaryIndexSettings[].IndexStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -3392,16 +3424,16 @@
     "path": "ReplicaSettings[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "CREATION_FAILED",
-     "UPDATING",
      "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
+     "CREATION_FAILED",
      "DELETING",
-     "REGION_DISABLED",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING"
+     "REGION_DISABLED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -3463,11 +3495,11 @@
     "path": "ImportTableDescription.ImportStatus",
     "type": "enum",
     "enum": [
-     "IN_PROGRESS",
-     "COMPLETED",
-     "CANCELLING",
      "CANCELLED",
-     "FAILED"
+     "CANCELLING",
+     "COMPLETED",
+     "FAILED",
+     "IN_PROGRESS"
     ]
    },
    {
@@ -3479,17 +3511,17 @@
     "type": "enum",
     "enum": [
      "GZIP",
-     "ZSTD",
-     "NONE"
+     "NONE",
+     "ZSTD"
     ]
    },
    {
     "path": "ImportTableDescription.InputFormat",
     "type": "enum",
     "enum": [
-     "ION",
      "CSV",
-     "DYNAMODB_JSON"
+     "DYNAMODB_JSON",
+     "ION"
     ]
    },
    {
@@ -3568,17 +3600,17 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "S",
+     "B",
      "N",
-     "B"
+     "S"
     ]
    },
    {
     "path": "ImportTableDescription.TableCreationParameters.BillingMode",
     "type": "enum",
     "enum": [
-     "PROVISIONED",
-     "PAY_PER_REQUEST"
+     "PAY_PER_REQUEST",
+     "PROVISIONED"
     ]
    },
    {
@@ -3635,8 +3667,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "RANGE",
-     "HASH"
+     "HASH",
+     "RANGE"
     ]
    },
    {
@@ -3762,12 +3794,12 @@
     "path": "KinesisDataStreamDestinations[].DestinationStatus",
     "type": "enum",
     "enum": [
-     "DISABLING",
+     "ACTIVE",
      "DISABLED",
+     "DISABLING",
      "ENABLE_FAILED",
-     "UPDATING",
      "ENABLING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -3848,9 +3880,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "S",
+     "B",
      "N",
-     "B"
+     "S"
     ]
    },
    {
@@ -3861,8 +3893,8 @@
     "path": "Table.BillingModeSummary.BillingMode",
     "type": "enum",
     "enum": [
-     "PROVISIONED",
-     "PAY_PER_REQUEST"
+     "PAY_PER_REQUEST",
+     "PROVISIONED"
     ]
    },
    {
@@ -3905,10 +3937,10 @@
     "path": "Table.GlobalSecondaryIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "CREATING"
+     "CREATING",
+     "DELETING",
+     "UPDATING"
     ]
    },
    {
@@ -3948,8 +3980,8 @@
     "type": "enum",
     "enum": [
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "INCLUDE",
+     "KEYS_ONLY"
     ]
    },
    {
@@ -3988,10 +4020,10 @@
     "path": "Table.GlobalSecondaryIndexes[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -4002,8 +4034,8 @@
     "path": "Table.GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
+     "ENABLED",
      "ENABLED_WITH_OVERRIDES"
     ]
    },
@@ -4027,9 +4059,9 @@
     "path": "Table.GlobalTableWitnesses[].WitnessStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "DELETING",
-     "ACTIVE"
+     "DELETING"
     ]
    },
    {
@@ -4111,16 +4143,16 @@
     "type": "enum",
     "enum": [
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "INCLUDE",
+     "KEYS_ONLY"
     ]
    },
    {
     "path": "Table.MultiRegionConsistency",
     "type": "enum",
     "enum": [
-     "STRONG",
-     "EVENTUAL"
+     "EVENTUAL",
+     "STRONG"
     ]
    },
    {
@@ -4179,8 +4211,8 @@
     "path": "Table.Replicas[].GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
+     "ENABLED",
      "ENABLED_WITH_OVERRIDES"
     ]
    },
@@ -4220,16 +4252,16 @@
     "path": "Table.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "CREATION_FAILED",
-     "UPDATING",
      "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
+     "CREATION_FAILED",
      "DELETING",
-     "REGION_DISABLED",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING"
+     "REGION_DISABLED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -4269,13 +4301,13 @@
     "type": "enum",
     "enum": [
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
-     "UPDATING",
-     "DELETING"
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -4320,8 +4352,8 @@
     "path": "Table.SSEDescription.SSEType",
     "type": "enum",
     "enum": [
-     "KMS",
-     "AES256"
+     "AES256",
+     "KMS"
     ]
    },
    {
@@ -4329,10 +4361,10 @@
     "type": "enum",
     "enum": [
      "DISABLED",
-     "UPDATING",
-     "ENABLING",
+     "DISABLING",
      "ENABLED",
-     "DISABLING"
+     "ENABLING",
+     "UPDATING"
     ]
    },
    {
@@ -4348,10 +4380,10 @@
     "path": "Table.StreamSpecification.StreamViewType",
     "type": "enum",
     "enum": [
-     "OLD_IMAGE",
-     "NEW_AND_OLD_IMAGES",
      "KEYS_ONLY",
-     "NEW_IMAGE"
+     "NEW_AND_OLD_IMAGES",
+     "NEW_IMAGE",
+     "OLD_IMAGE"
     ]
    },
    {
@@ -4391,13 +4423,13 @@
     "type": "enum",
     "enum": [
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
-     "UPDATING",
-     "DELETING"
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -4420,9 +4452,9 @@
     "path": "Table.VectorIndexes[].DistanceFunction",
     "type": "enum",
     "enum": [
-     "EUCLIDEAN",
      "COSINE",
-     "DOT_PRODUCT"
+     "DOT_PRODUCT",
+     "EUCLIDEAN"
     ]
    },
    {
@@ -4441,10 +4473,10 @@
     "path": "Table.VectorIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -4463,8 +4495,8 @@
     "path": "Table.VectorIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
-     "INCLUDE",
      "ALL",
+     "INCLUDE",
      "KEYS_ONLY"
     ]
    },
@@ -4497,14 +4529,14 @@
     "path": "Table.WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "ARCHIVING",
-     "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS"
+     "ARCHIVED",
+     "ARCHIVING",
+     "CREATING",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -4593,16 +4625,16 @@
     "path": "TableAutoScalingDescription.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "REGION_DISABLED",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
-     "CREATION_FAILED",
-     "UPDATING",
      "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
-     "DELETING"
+     "CREATION_FAILED",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REGION_DISABLED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -4613,13 +4645,13 @@
     "path": "TableAutoScalingDescription.TableStatus",
     "type": "enum",
     "enum": [
-     "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
      "UPDATING"
     ]
    }
@@ -4641,10 +4673,10 @@
     "path": "TimeToLiveDescription.TimeToLiveStatus",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
-     "ENABLING",
-     "DISABLING"
+     "DISABLING",
+     "ENABLED",
+     "ENABLING"
     ]
    }
   ]
@@ -4657,12 +4689,12 @@
     "path": "DestinationStatus",
     "type": "enum",
     "enum": [
-     "DISABLING",
+     "ACTIVE",
      "DISABLED",
+     "DISABLING",
      "ENABLE_FAILED",
-     "UPDATING",
      "ENABLING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -4673,8 +4705,8 @@
     "path": "EnableKinesisStreamingConfiguration.ApproximateCreationDateTimePrecision",
     "type": "enum",
     "enum": [
-     "MILLISECOND",
-     "MICROSECOND"
+     "MICROSECOND",
+     "MILLISECOND"
     ]
    },
    {
@@ -4696,11 +4728,11 @@
     "type": "enum",
     "enum": [
      "ACTIVE",
-     "DISABLING",
      "DISABLED",
+     "DISABLING",
      "ENABLE_FAILED",
-     "UPDATING",
-     "ENABLING"
+     "ENABLING",
+     "UPDATING"
     ]
    },
    {
@@ -5005,9 +5037,9 @@
     "path": "ExportDescription.ExportStatus",
     "type": "enum",
     "enum": [
+     "COMPLETED",
      "FAILED",
-     "IN_PROGRESS",
-     "COMPLETED"
+     "IN_PROGRESS"
     ]
    },
    {
@@ -5031,6 +5063,38 @@
     "type": "string"
    },
    {
+    "path": "ExportDescription.FilterSpecification",
+    "type": "structure"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.ExpressionAttributeNames",
+    "type": "map"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.ExpressionAttributeNames{}",
+    "type": "string"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.ExpressionAttributeValues",
+    "type": "map"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.ExpressionAttributeValues{}",
+    "type": "any"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.FilterExpression",
+    "type": "string"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.KeyConditionExpression",
+    "type": "string"
+   },
+   {
+    "path": "ExportDescription.FilterSpecification.ProjectionExpression",
+    "type": "string"
+   },
+   {
     "path": "ExportDescription.IncrementalExportSpecification",
     "type": "structure"
    },
@@ -5046,8 +5110,8 @@
     "path": "ExportDescription.IncrementalExportSpecification.ExportViewType",
     "type": "enum",
     "enum": [
-     "NEW_IMAGE",
-     "NEW_AND_OLD_IMAGES"
+     "NEW_AND_OLD_IMAGES",
+     "NEW_IMAGE"
     ]
    },
    {
@@ -5070,8 +5134,8 @@
     "path": "ExportDescription.S3SseAlgorithm",
     "type": "enum",
     "enum": [
-     "KMS",
-     "AES256"
+     "AES256",
+     "KMS"
     ]
    },
    {
@@ -5253,9 +5317,9 @@
     "path": "ImportTableDescription.ImportStatus",
     "type": "enum",
     "enum": [
-     "COMPLETED",
-     "CANCELLING",
      "CANCELLED",
+     "CANCELLING",
+     "COMPLETED",
      "FAILED",
      "IN_PROGRESS"
     ]
@@ -5269,8 +5333,8 @@
     "type": "enum",
     "enum": [
      "GZIP",
-     "ZSTD",
-     "NONE"
+     "NONE",
+     "ZSTD"
     ]
    },
    {
@@ -5358,17 +5422,17 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "S",
+     "B",
      "N",
-     "B"
+     "S"
     ]
    },
    {
     "path": "ImportTableDescription.TableCreationParameters.BillingMode",
     "type": "enum",
     "enum": [
-     "PROVISIONED",
-     "PAY_PER_REQUEST"
+     "PAY_PER_REQUEST",
+     "PROVISIONED"
     ]
    },
    {
@@ -5564,17 +5628,17 @@
     "path": "BackupSummaries[].BackupStatus",
     "type": "enum",
     "enum": [
+     "AVAILABLE",
      "CREATING",
-     "DELETED",
-     "AVAILABLE"
+     "DELETED"
     ]
    },
    {
     "path": "BackupSummaries[].BackupType",
     "type": "enum",
     "enum": [
-     "SYSTEM",
      "AWS_BACKUP",
+     "SYSTEM",
      "USER"
     ]
    },
@@ -5620,11 +5684,11 @@
     "path": "ContributorInsightsSummaries[].ContributorInsightsStatus",
     "type": "enum",
     "enum": [
-     "FAILED",
-     "ENABLING",
-     "ENABLED",
+     "DISABLED",
      "DISABLING",
-     "DISABLED"
+     "ENABLED",
+     "ENABLING",
+     "FAILED"
     ]
    },
    {
@@ -5661,9 +5725,9 @@
     "path": "ExportSummaries[].ExportStatus",
     "type": "enum",
     "enum": [
-     "IN_PROGRESS",
      "COMPLETED",
-     "FAILED"
+     "FAILED",
+     "IN_PROGRESS"
     ]
    },
    {
@@ -5742,20 +5806,20 @@
     "path": "ImportSummaryList[].ImportStatus",
     "type": "enum",
     "enum": [
-     "IN_PROGRESS",
-     "COMPLETED",
-     "CANCELLING",
      "CANCELLED",
-     "FAILED"
+     "CANCELLING",
+     "COMPLETED",
+     "FAILED",
+     "IN_PROGRESS"
     ]
    },
    {
     "path": "ImportSummaryList[].InputFormat",
     "type": "enum",
     "enum": [
+     "CSV",
      "DYNAMODB_JSON",
-     "ION",
-     "CSV"
+     "ION"
     ]
    },
    {
@@ -6139,8 +6203,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "N",
      "B",
+     "N",
      "S"
     ]
    },
@@ -6152,8 +6216,8 @@
     "path": "TableDescription.BillingModeSummary.BillingMode",
     "type": "enum",
     "enum": [
-     "PROVISIONED",
-     "PAY_PER_REQUEST"
+     "PAY_PER_REQUEST",
+     "PROVISIONED"
     ]
    },
    {
@@ -6198,8 +6262,8 @@
     "enum": [
      "ACTIVE",
      "CREATING",
-     "UPDATING",
-     "DELETING"
+     "DELETING",
+     "UPDATING"
     ]
    },
    {
@@ -6239,8 +6303,8 @@
     "type": "enum",
     "enum": [
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "INCLUDE",
+     "KEYS_ONLY"
     ]
    },
    {
@@ -6279,9 +6343,9 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "DELETING",
      "ACTIVE",
      "CREATING",
+     "DELETING",
      "UPDATING"
     ]
    },
@@ -6293,8 +6357,8 @@
     "path": "TableDescription.GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
+     "ENABLED",
      "ENABLED_WITH_OVERRIDES"
     ]
    },
@@ -6318,9 +6382,9 @@
     "path": "TableDescription.GlobalTableWitnesses[].WitnessStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "DELETING",
-     "ACTIVE"
+     "DELETING"
     ]
    },
    {
@@ -6401,9 +6465,9 @@
     "path": "TableDescription.LocalSecondaryIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
-     "KEYS_ONLY",
+     "ALL",
      "INCLUDE",
-     "ALL"
+     "KEYS_ONLY"
     ]
    },
    {
@@ -6471,8 +6535,8 @@
     "type": "enum",
     "enum": [
      "DISABLED",
-     "ENABLED_WITH_OVERRIDES",
-     "ENABLED"
+     "ENABLED",
+     "ENABLED_WITH_OVERRIDES"
     ]
    },
    {
@@ -6511,16 +6575,16 @@
     "path": "TableDescription.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
-     "CREATION_FAILED",
-     "UPDATING",
      "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
+     "CREATION_FAILED",
      "DELETING",
-     "REGION_DISABLED"
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REGION_DISABLED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -6559,13 +6623,13 @@
     "path": "TableDescription.Replicas[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
      "UPDATING"
     ]
    },
@@ -6619,11 +6683,11 @@
     "path": "TableDescription.SSEDescription.Status",
     "type": "enum",
     "enum": [
-     "UPDATING",
-     "ENABLING",
-     "ENABLED",
+     "DISABLED",
      "DISABLING",
-     "DISABLED"
+     "ENABLED",
+     "ENABLING",
+     "UPDATING"
     ]
    },
    {
@@ -6640,9 +6704,9 @@
     "type": "enum",
     "enum": [
      "KEYS_ONLY",
+     "NEW_AND_OLD_IMAGES",
      "NEW_IMAGE",
-     "OLD_IMAGE",
-     "NEW_AND_OLD_IMAGES"
+     "OLD_IMAGE"
     ]
    },
    {
@@ -6681,14 +6745,14 @@
     "path": "TableDescription.TableStatus",
     "type": "enum",
     "enum": [
-     "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
+     "ARCHIVED",
+     "ARCHIVING",
+     "CREATING",
+     "DELETING",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING"
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -6732,10 +6796,10 @@
     "path": "TableDescription.VectorIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -6755,8 +6819,8 @@
     "type": "enum",
     "enum": [
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "INCLUDE",
+     "KEYS_ONLY"
     ]
    },
    {
@@ -6788,13 +6852,13 @@
     "path": "TableDescription.WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
      "UPDATING"
     ]
    },
@@ -6846,9 +6910,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "S",
+     "B",
      "N",
-     "B"
+     "S"
     ]
    },
    {
@@ -6859,8 +6923,8 @@
     "path": "TableDescription.BillingModeSummary.BillingMode",
     "type": "enum",
     "enum": [
-     "PROVISIONED",
-     "PAY_PER_REQUEST"
+     "PAY_PER_REQUEST",
+     "PROVISIONED"
     ]
    },
    {
@@ -6903,10 +6967,10 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "CREATING"
+     "CREATING",
+     "DELETING",
+     "UPDATING"
     ]
    },
    {
@@ -6946,8 +7010,8 @@
     "type": "enum",
     "enum": [
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "INCLUDE",
+     "KEYS_ONLY"
     ]
    },
    {
@@ -6986,10 +7050,10 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -7001,8 +7065,8 @@
     "type": "enum",
     "enum": [
      "DISABLED",
-     "ENABLED_WITH_OVERRIDES",
-     "ENABLED"
+     "ENABLED",
+     "ENABLED_WITH_OVERRIDES"
     ]
    },
    {
@@ -7025,9 +7089,9 @@
     "path": "TableDescription.GlobalTableWitnesses[].WitnessStatus",
     "type": "enum",
     "enum": [
-     "DELETING",
      "ACTIVE",
-     "CREATING"
+     "CREATING",
+     "DELETING"
     ]
    },
    {
@@ -7108,9 +7172,9 @@
     "path": "TableDescription.LocalSecondaryIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
-     "KEYS_ONLY",
+     "ALL",
      "INCLUDE",
-     "ALL"
+     "KEYS_ONLY"
     ]
    },
    {
@@ -7177,8 +7241,8 @@
     "path": "TableDescription.Replicas[].GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
+     "ENABLED",
      "ENABLED_WITH_OVERRIDES"
     ]
    },
@@ -7218,16 +7282,16 @@
     "path": "TableDescription.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "REGION_DISABLED",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
-     "CREATION_FAILED",
-     "UPDATING",
      "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
-     "DELETING"
+     "CREATION_FAILED",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REGION_DISABLED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -7266,14 +7330,14 @@
     "path": "TableDescription.Replicas[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
+     "ARCHIVED",
+     "ARCHIVING",
+     "CREATING",
+     "DELETING",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING"
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -7326,11 +7390,11 @@
     "path": "TableDescription.SSEDescription.Status",
     "type": "enum",
     "enum": [
-     "DISABLING",
      "DISABLED",
-     "UPDATING",
+     "DISABLING",
+     "ENABLED",
      "ENABLING",
-     "ENABLED"
+     "UPDATING"
     ]
    },
    {
@@ -7346,10 +7410,10 @@
     "path": "TableDescription.StreamSpecification.StreamViewType",
     "type": "enum",
     "enum": [
-     "NEW_IMAGE",
-     "OLD_IMAGE",
+     "KEYS_ONLY",
      "NEW_AND_OLD_IMAGES",
-     "KEYS_ONLY"
+     "NEW_IMAGE",
+     "OLD_IMAGE"
     ]
    },
    {
@@ -7368,8 +7432,8 @@
     "path": "TableDescription.TableClassSummary.TableClass",
     "type": "enum",
     "enum": [
-     "STANDARD_INFREQUENT_ACCESS",
-     "STANDARD"
+     "STANDARD",
+     "STANDARD_INFREQUENT_ACCESS"
     ]
    },
    {
@@ -7389,13 +7453,13 @@
     "type": "enum",
     "enum": [
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
-     "UPDATING",
-     "DELETING"
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -7439,10 +7503,10 @@
     "path": "TableDescription.VectorIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "CREATING"
+     "CREATING",
+     "DELETING",
+     "UPDATING"
     ]
    },
    {
@@ -7462,8 +7526,8 @@
     "type": "enum",
     "enum": [
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "INCLUDE",
+     "KEYS_ONLY"
     ]
    },
    {
@@ -7495,14 +7559,14 @@
     "path": "TableDescription.WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
+     "ARCHIVING",
+     "CREATING",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "REPLICATION_NOT_AUTHORIZED",
-     "CREATING"
+     "UPDATING"
     ]
    },
    {
@@ -7936,8 +8000,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "ENABLED",
-     "DISABLED"
+     "DISABLED",
+     "ENABLED"
     ]
    },
    {
@@ -7956,8 +8020,8 @@
     "path": "ContinuousBackupsDescription.PointInTimeRecoveryDescription.PointInTimeRecoveryStatus",
     "type": "enum",
     "enum": [
-     "ENABLED",
-     "DISABLED"
+     "DISABLED",
+     "ENABLED"
     ]
    },
    {
@@ -7974,18 +8038,18 @@
     "path": "ContributorInsightsMode",
     "type": "enum",
     "enum": [
-     "THROTTLED_KEYS",
-     "ACCESSED_AND_THROTTLED_KEYS"
+     "ACCESSED_AND_THROTTLED_KEYS",
+     "THROTTLED_KEYS"
     ]
    },
    {
     "path": "ContributorInsightsStatus",
     "type": "enum",
     "enum": [
-     "ENABLING",
-     "ENABLED",
-     "DISABLING",
      "DISABLED",
+     "DISABLING",
+     "ENABLED",
+     "ENABLING",
      "FAILED"
     ]
    },
@@ -8023,10 +8087,10 @@
     "path": "GlobalTableDescription.GlobalTableStatus",
     "type": "enum",
     "enum": [
-     "DELETING",
-     "UPDATING",
+     "ACTIVE",
      "CREATING",
-     "ACTIVE"
+     "DELETING",
+     "UPDATING"
     ]
    },
    {
@@ -8049,8 +8113,8 @@
     "path": "GlobalTableDescription.ReplicationGroup[].GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
+     "ENABLED",
      "ENABLED_WITH_OVERRIDES"
     ]
    },
@@ -8090,16 +8154,16 @@
     "path": "GlobalTableDescription.ReplicationGroup[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "CREATING",
-     "DELETING",
-     "REGION_DISABLED",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
-     "CREATION_FAILED",
-     "UPDATING",
      "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED"
+     "ARCHIVING",
+     "CREATING",
+     "CREATION_FAILED",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REGION_DISABLED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -8122,8 +8186,8 @@
     "path": "GlobalTableDescription.ReplicationGroup[].ReplicaTableClassSummary.TableClass",
     "type": "enum",
     "enum": [
-     "STANDARD_INFREQUENT_ACCESS",
-     "STANDARD"
+     "STANDARD",
+     "STANDARD_INFREQUENT_ACCESS"
     ]
    },
    {
@@ -8139,13 +8203,13 @@
     "type": "enum",
     "enum": [
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
-     "UPDATING",
-     "DELETING"
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -8208,9 +8272,9 @@
     "path": "ReplicaSettings[].ReplicaGlobalSecondaryIndexSettings[].IndexStatus",
     "type": "enum",
     "enum": [
-     "DELETING",
      "ACTIVE",
      "CREATING",
+     "DELETING",
      "UPDATING"
     ]
    },
@@ -8298,16 +8362,16 @@
     "path": "ReplicaSettings[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "CREATING",
-     "DELETING",
-     "REGION_DISABLED",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
-     "CREATION_FAILED",
-     "UPDATING",
      "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED"
+     "ARCHIVING",
+     "CREATING",
+     "CREATION_FAILED",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REGION_DISABLED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -8462,12 +8526,12 @@
     "path": "DestinationStatus",
     "type": "enum",
     "enum": [
-     "ENABLE_FAILED",
-     "UPDATING",
-     "ENABLING",
      "ACTIVE",
+     "DISABLED",
      "DISABLING",
-     "DISABLED"
+     "ENABLE_FAILED",
+     "ENABLING",
+     "UPDATING"
     ]
    },
    {
@@ -8534,9 +8598,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "S",
+     "B",
      "N",
-     "B"
+     "S"
     ]
    },
    {
@@ -8547,8 +8611,8 @@
     "path": "TableDescription.BillingModeSummary.BillingMode",
     "type": "enum",
     "enum": [
-     "PROVISIONED",
-     "PAY_PER_REQUEST"
+     "PAY_PER_REQUEST",
+     "PROVISIONED"
     ]
    },
    {
@@ -8591,10 +8655,10 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -8633,8 +8697,8 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
-     "INCLUDE",
      "ALL",
+     "INCLUDE",
      "KEYS_ONLY"
     ]
    },
@@ -8674,10 +8738,10 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -8688,8 +8752,8 @@
     "path": "TableDescription.GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
+     "ENABLED",
      "ENABLED_WITH_OVERRIDES"
     ]
    },
@@ -8713,9 +8777,9 @@
     "path": "TableDescription.GlobalTableWitnesses[].WitnessStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "DELETING",
-     "ACTIVE"
+     "DELETING"
     ]
    },
    {
@@ -8797,16 +8861,16 @@
     "type": "enum",
     "enum": [
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "INCLUDE",
+     "KEYS_ONLY"
     ]
    },
    {
     "path": "TableDescription.MultiRegionConsistency",
     "type": "enum",
     "enum": [
-     "STRONG",
-     "EVENTUAL"
+     "EVENTUAL",
+     "STRONG"
     ]
    },
    {
@@ -8866,8 +8930,8 @@
     "type": "enum",
     "enum": [
      "DISABLED",
-     "ENABLED_WITH_OVERRIDES",
-     "ENABLED"
+     "ENABLED",
+     "ENABLED_WITH_OVERRIDES"
     ]
    },
    {
@@ -8906,16 +8970,16 @@
     "path": "TableDescription.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
-     "CREATION_FAILED",
-     "UPDATING",
      "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
+     "CREATION_FAILED",
      "DELETING",
-     "REGION_DISABLED"
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REGION_DISABLED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -8954,14 +9018,14 @@
     "path": "TableDescription.Replicas[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
+     "ARCHIVING",
+     "CREATING",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "REPLICATION_NOT_AUTHORIZED",
-     "CREATING"
+     "UPDATING"
     ]
    },
    {
@@ -9014,11 +9078,11 @@
     "path": "TableDescription.SSEDescription.Status",
     "type": "enum",
     "enum": [
-     "ENABLED",
-     "DISABLING",
      "DISABLED",
-     "UPDATING",
-     "ENABLING"
+     "DISABLING",
+     "ENABLED",
+     "ENABLING",
+     "UPDATING"
     ]
    },
    {
@@ -9034,10 +9098,10 @@
     "path": "TableDescription.StreamSpecification.StreamViewType",
     "type": "enum",
     "enum": [
-     "OLD_IMAGE",
-     "NEW_AND_OLD_IMAGES",
      "KEYS_ONLY",
-     "NEW_IMAGE"
+     "NEW_AND_OLD_IMAGES",
+     "NEW_IMAGE",
+     "OLD_IMAGE"
     ]
    },
    {
@@ -9076,14 +9140,14 @@
     "path": "TableDescription.TableStatus",
     "type": "enum",
     "enum": [
-     "CREATING",
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED"
+     "ARCHIVING",
+     "CREATING",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -9127,10 +9191,10 @@
     "path": "TableDescription.VectorIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "UPDATING"
     ]
    },
    {
@@ -9150,8 +9214,8 @@
     "type": "enum",
     "enum": [
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "INCLUDE",
+     "KEYS_ONLY"
     ]
    },
    {
@@ -9184,13 +9248,13 @@
     "type": "enum",
     "enum": [
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
-     "UPDATING",
-     "DELETING"
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -9279,16 +9343,16 @@
     "path": "TableAutoScalingDescription.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "REGION_DISABLED",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
-     "CREATION_FAILED",
-     "UPDATING",
      "ACTIVE",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
+     "ARCHIVING",
      "CREATING",
-     "DELETING"
+     "CREATION_FAILED",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REGION_DISABLED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    },
    {
@@ -9299,14 +9363,14 @@
     "path": "TableAutoScalingDescription.TableStatus",
     "type": "enum",
     "enum": [
-     "ARCHIVING",
-     "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS"
+     "ARCHIVED",
+     "ARCHIVING",
+     "CREATING",
+     "DELETING",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "REPLICATION_NOT_AUTHORIZED",
+     "UPDATING"
     ]
    }
   ]

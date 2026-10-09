@@ -33,10 +33,10 @@
     "path": "importStatus",
     "type": "enum",
     "enum": [
-     "IN_PROGRESS",
      "CANCELLED",
      "COMPLETED",
-     "FAILED"
+     "FAILED",
+     "IN_PROGRESS"
     ]
    },
    {
@@ -65,9 +65,9 @@
     "path": "delivery.deliveryDestinationType",
     "type": "enum",
     "enum": [
-     "S3",
      "CWL",
      "FH",
+     "S3",
      "XRAY"
     ]
    },
@@ -226,10 +226,10 @@
     "type": "enum",
     "enum": [
      "DATA_PROTECTION_POLICY",
-     "SUBSCRIPTION_FILTER_POLICY",
      "FIELD_INDEX_POLICY",
-     "TRANSFORMER_POLICY",
-     "METRIC_EXTRACTION_POLICY"
+     "METRIC_EXTRACTION_POLICY",
+     "SUBSCRIPTION_FILTER_POLICY",
+     "TRANSFORMER_POLICY"
     ]
    },
    {
@@ -298,10 +298,10 @@
     "type": "enum",
     "enum": [
      "json",
+     "parquet",
      "plain",
-     "w3c",
      "raw",
-     "parquet"
+     "w3c"
     ]
    },
    {
@@ -344,9 +344,9 @@
     "path": "configurationTemplates[].deliveryDestinationType",
     "type": "enum",
     "enum": [
-     "S3",
      "CWL",
      "FH",
+     "S3",
      "XRAY"
     ]
    },
@@ -385,11 +385,11 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "string",
      "boolean",
-     "int",
      "double",
-     "long"
+     "int",
+     "long",
+     "string"
     ]
    },
    {
@@ -446,9 +446,9 @@
     "path": "deliveries[].deliveryDestinationType",
     "type": "enum",
     "enum": [
-     "S3",
      "CWL",
      "FH",
+     "S3",
      "XRAY"
     ]
    },
@@ -527,9 +527,9 @@
     "path": "deliveryDestinations[].deliveryDestinationType",
     "type": "enum",
     "enum": [
-     "S3",
      "CWL",
      "FH",
+     "S3",
      "XRAY"
     ]
    },
@@ -542,10 +542,10 @@
     "type": "enum",
     "enum": [
      "json",
+     "parquet",
      "plain",
-     "w3c",
      "raw",
-     "parquet"
+     "w3c"
     ]
    },
    {
@@ -729,12 +729,12 @@
     "path": "exportTasks[].status.code",
     "type": "enum",
     "enum": [
-     "PENDING",
-     "PENDING_CANCEL",
-     "RUNNING",
      "CANCELLED",
      "COMPLETED",
-     "FAILED"
+     "FAILED",
+     "PENDING",
+     "PENDING_CANCEL",
+     "RUNNING"
     ]
    },
    {
@@ -783,10 +783,10 @@
     "path": "fieldIndexes[].indexCategory",
     "type": "enum",
     "enum": [
-     "CUSTOM",
      "AUTO",
-     "INACTIVE",
-     "DEFAULT"
+     "CUSTOM",
+     "DEFAULT",
+     "INACTIVE"
     ]
    },
    {
@@ -841,10 +841,10 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "IN_PROGRESS",
      "CANCELLED",
      "COMPLETED",
-     "FAILED"
+     "FAILED",
+     "IN_PROGRESS"
     ]
    },
    {
@@ -1003,10 +1003,10 @@
     "path": "logGroups[].dataProtectionStatus",
     "type": "enum",
     "enum": [
-     "DISABLED",
      "ACTIVATED",
+     "ARCHIVED",
      "DELETED",
-     "ARCHIVED"
+     "DISABLED"
     ]
    },
    {
@@ -1036,9 +1036,9 @@
     "path": "logGroups[].logGroupClass",
     "type": "enum",
     "enum": [
-     "STANDARD",
+     "DELIVERY",
      "INFREQUENT_ACCESS",
-     "DELIVERY"
+     "STANDARD"
     ]
    },
    {
@@ -1246,33 +1246,33 @@
     "path": "metricFilters[].metricTransformations[].unit",
     "type": "enum",
     "enum": [
+     "Bits",
+     "Bits/Second",
+     "Bytes",
+     "Bytes/Second",
+     "Count",
+     "Count/Second",
+     "Gigabits",
+     "Gigabits/Second",
+     "Gigabytes",
+     "Gigabytes/Second",
+     "Kilobits",
+     "Kilobits/Second",
+     "Kilobytes",
+     "Kilobytes/Second",
+     "Megabits",
      "Megabits/Second",
+     "Megabytes",
+     "Megabytes/Second",
      "Microseconds",
      "Milliseconds",
-     "Gigabits",
-     "Count",
-     "Bits/Second",
-     "Terabits/Second",
-     "Count/Second",
-     "Seconds",
-     "Bytes",
-     "Kilobytes",
-     "Megabytes",
-     "Terabytes",
-     "Terabits",
      "None",
-     "Gigabytes",
-     "Bits",
-     "Megabits",
-     "Bytes/Second",
-     "Gigabits/Second",
-     "Kilobits",
      "Percent",
-     "Kilobytes/Second",
-     "Megabytes/Second",
-     "Gigabytes/Second",
-     "Terabytes/Second",
-     "Kilobits/Second"
+     "Seconds",
+     "Terabits",
+     "Terabits/Second",
+     "Terabytes",
+     "Terabytes/Second"
     ]
    },
    {
@@ -1322,8 +1322,8 @@
     "type": "enum",
     "enum": [
      "CWLI",
-     "SQL",
-     "PPL"
+     "PPL",
+     "SQL"
     ]
    },
    {
@@ -1334,11 +1334,11 @@
     "path": "queries[].status",
     "type": "enum",
     "enum": [
-     "Scheduled",
-     "Running",
+     "Cancelled",
      "Complete",
      "Failed",
-     "Cancelled",
+     "Running",
+     "Scheduled",
      "Timeout",
      "Unknown"
     ]
@@ -1411,8 +1411,8 @@
     "type": "enum",
     "enum": [
      "CWLI",
-     "SQL",
-     "PPL"
+     "PPL",
+     "SQL"
     ]
    },
    {
@@ -1499,8 +1499,8 @@
     "path": "subscriptionFilters[].distribution",
     "type": "enum",
     "enum": [
-     "Random",
-     "ByLogStream"
+     "ByLogStream",
+     "Random"
     ]
    },
    {
@@ -1635,10 +1635,10 @@
     "path": "delivery.deliveryDestinationType",
     "type": "enum",
     "enum": [
+     "CWL",
      "FH",
-     "XRAY",
      "S3",
-     "CWL"
+     "XRAY"
     ]
    },
    {
@@ -1708,10 +1708,10 @@
     "path": "deliveryDestination.deliveryDestinationType",
     "type": "enum",
     "enum": [
+     "CWL",
      "FH",
-     "XRAY",
      "S3",
-     "CWL"
+     "XRAY"
     ]
    },
    {
@@ -1723,10 +1723,10 @@
     "type": "enum",
     "enum": [
      "json",
+     "parquet",
      "plain",
-     "w3c",
      "raw",
-     "parquet"
+     "w3c"
     ]
    },
    {
@@ -1838,9 +1838,9 @@
     "path": "integrationStatus",
     "type": "enum",
     "enum": [
-     "PROVISIONING",
      "ACTIVE",
-     "FAILED"
+     "FAILED",
+     "PROVISIONING"
     ]
    },
    {
@@ -1861,10 +1861,10 @@
     "type": "enum",
     "enum": [
      "ANALYZING",
-     "FAILED",
      "DELETED",
-     "PAUSED",
+     "FAILED",
      "INITIALIZING",
+     "PAUSED",
      "TRAINING"
     ]
    },
@@ -1884,12 +1884,12 @@
     "path": "evaluationFrequency",
     "type": "enum",
     "enum": [
-     "TEN_MIN",
      "FIFTEEN_MIN",
-     "THIRTY_MIN",
+     "FIVE_MIN",
      "ONE_HOUR",
      "ONE_MIN",
-     "FIVE_MIN"
+     "TEN_MIN",
+     "THIRTY_MIN"
     ]
    },
    {
@@ -2095,8 +2095,8 @@
     "type": "enum",
     "enum": [
      "CWLI",
-     "SQL",
-     "PPL"
+     "PPL",
+     "SQL"
     ]
    },
    {
@@ -2155,11 +2155,11 @@
     "path": "status",
     "type": "enum",
     "enum": [
-     "Scheduled",
-     "Running",
+     "Cancelled",
      "Complete",
      "Failed",
-     "Cancelled",
+     "Running",
+     "Scheduled",
      "Timeout",
      "Unknown"
     ]
@@ -2246,10 +2246,10 @@
     "path": "lastExecutionStatus",
     "type": "enum",
     "enum": [
-     "Running",
-     "InvalidQuery",
      "Complete",
      "Failed",
+     "InvalidQuery",
+     "Running",
      "Timeout"
     ]
    },
@@ -2278,8 +2278,8 @@
     "type": "enum",
     "enum": [
      "CWLI",
-     "SQL",
-     "PPL"
+     "PPL",
+     "SQL"
     ]
    },
    {
@@ -2302,8 +2302,8 @@
     "path": "scheduleType",
     "type": "enum",
     "enum": [
-     "CUSTOMER_MANAGED",
-     "AWS_MANAGED"
+     "AWS_MANAGED",
+     "CUSTOMER_MANAGED"
     ]
    },
    {
@@ -2318,8 +2318,8 @@
     "path": "state",
     "type": "enum",
     "enum": [
-     "ENABLED",
-     "DISABLED"
+     "DISABLED",
+     "ENABLED"
     ]
    },
    {
@@ -2368,8 +2368,8 @@
     "path": "triggerHistory[].destinations[].destinationType",
     "type": "enum",
     "enum": [
-     "S3",
-     "LOOKUP_TABLE"
+     "LOOKUP_TABLE",
+     "S3"
     ]
    },
    {
@@ -2384,10 +2384,10 @@
     "path": "triggerHistory[].destinations[].status",
     "type": "enum",
     "enum": [
-     "IN_PROGRESS",
      "CLIENT_ERROR",
+     "COMPLETE",
      "FAILED",
-     "COMPLETE"
+     "IN_PROGRESS"
     ]
    },
    {
@@ -2398,11 +2398,11 @@
     "path": "triggerHistory[].executionStatus",
     "type": "enum",
     "enum": [
+     "Complete",
      "Failed",
-     "Timeout",
-     "Running",
      "InvalidQuery",
-     "Complete"
+     "Running",
+     "Timeout"
     ]
    },
    {
@@ -2427,8 +2427,8 @@
     "path": "storageTier",
     "type": "enum",
     "enum": [
-     "STANDARD",
-     "INTELLIGENT_TIERING"
+     "INTELLIGENT_TIERING",
+     "STANDARD"
     ]
    }
   ]
@@ -2588,8 +2588,8 @@
     "path": "transformerConfig[].listToMap.flattenedElement",
     "type": "enum",
     "enum": [
-     "last",
-     "first"
+     "first",
+     "last"
     ]
    },
    {
@@ -2713,11 +2713,11 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "AWSWAF",
      "CloudTrail",
-     "Route53Resolver",
-     "VPCFlow",
      "EKSAudit",
-     "AWSWAF"
+     "Route53Resolver",
+     "VPCFlow"
     ]
    },
    {
@@ -3005,8 +3005,8 @@
     "required": true,
     "enum": [
      "Active",
-     "Suppressed",
-     "Baseline"
+     "Baseline",
+     "Suppressed"
     ]
    },
    {
@@ -3047,9 +3047,9 @@
     "path": "integrationSummaries[].integrationStatus",
     "type": "enum",
     "enum": [
-     "PROVISIONING",
      "ACTIVE",
-     "FAILED"
+     "FAILED",
+     "PROVISIONING"
     ]
    },
    {
@@ -3081,12 +3081,12 @@
     "path": "anomalyDetectors[].anomalyDetectorStatus",
     "type": "enum",
     "enum": [
-     "PAUSED",
-     "INITIALIZING",
-     "TRAINING",
      "ANALYZING",
+     "DELETED",
      "FAILED",
-     "DELETED"
+     "INITIALIZING",
+     "PAUSED",
+     "TRAINING"
     ]
    },
    {
@@ -3105,12 +3105,12 @@
     "path": "anomalyDetectors[].evaluationFrequency",
     "type": "enum",
     "enum": [
-     "ONE_MIN",
-     "FIVE_MIN",
-     "TEN_MIN",
      "FIFTEEN_MIN",
-     "THIRTY_MIN",
-     "ONE_HOUR"
+     "FIVE_MIN",
+     "ONE_HOUR",
+     "ONE_MIN",
+     "TEN_MIN",
+     "THIRTY_MIN"
     ]
    },
    {
@@ -3159,9 +3159,9 @@
     "path": "logGroups[].logGroupClass",
     "type": "enum",
     "enum": [
-     "STANDARD",
+     "DELIVERY",
      "INFREQUENT_ACCESS",
-     "DELIVERY"
+     "STANDARD"
     ]
    },
    {
@@ -3268,10 +3268,10 @@
     "path": "scheduledQueries[].lastExecutionStatus",
     "type": "enum",
     "enum": [
-     "Running",
-     "InvalidQuery",
      "Complete",
      "Failed",
+     "InvalidQuery",
+     "Running",
      "Timeout"
     ]
    },
@@ -3295,8 +3295,8 @@
     "path": "scheduledQueries[].scheduleType",
     "type": "enum",
     "enum": [
-     "CUSTOMER_MANAGED",
-     "AWS_MANAGED"
+     "AWS_MANAGED",
+     "CUSTOMER_MANAGED"
     ]
    },
    {
@@ -3363,9 +3363,9 @@
     "type": "enum",
     "enum": [
      "ACTIVE",
-     "UNHEALTHY",
+     "DATA_SOURCE_DELETE_IN_PROGRESS",
      "FAILED",
-     "DATA_SOURCE_DELETE_IN_PROGRESS"
+     "UNHEALTHY"
     ]
    },
    {
@@ -3467,11 +3467,11 @@
     "path": "accountPolicy.policyType",
     "type": "enum",
     "enum": [
-     "SUBSCRIPTION_FILTER_POLICY",
+     "DATA_PROTECTION_POLICY",
      "FIELD_INDEX_POLICY",
-     "TRANSFORMER_POLICY",
      "METRIC_EXTRACTION_POLICY",
-     "DATA_PROTECTION_POLICY"
+     "SUBSCRIPTION_FILTER_POLICY",
+     "TRANSFORMER_POLICY"
     ]
    },
    {
@@ -3530,9 +3530,9 @@
     "path": "deliveryDestination.deliveryDestinationType",
     "type": "enum",
     "enum": [
-     "S3",
      "CWL",
      "FH",
+     "S3",
      "XRAY"
     ]
    },
@@ -3544,11 +3544,11 @@
     "path": "deliveryDestination.outputFormat",
     "type": "enum",
     "enum": [
-     "w3c",
-     "raw",
-     "parquet",
      "json",
-     "plain"
+     "parquet",
+     "plain",
+     "raw",
+     "w3c"
     ]
    },
    {
@@ -3724,9 +3724,9 @@
     "path": "integrationStatus",
     "type": "enum",
     "enum": [
-     "PROVISIONING",
      "ACTIVE",
-     "FAILED"
+     "FAILED",
+     "PROVISIONING"
     ]
    }
   ]
@@ -3748,13 +3748,13 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "InvalidEntity",
-     "InvalidTypeValue",
-     "InvalidKeyAttributes",
-     "InvalidAttributes",
      "EntitySizeTooLarge",
-     "UnsupportedLogGroupType",
-     "MissingRequiredFields"
+     "InvalidAttributes",
+     "InvalidEntity",
+     "InvalidKeyAttributes",
+     "InvalidTypeValue",
+     "MissingRequiredFields",
+     "UnsupportedLogGroupType"
     ]
    },
    {
@@ -3839,8 +3839,8 @@
     "path": "storageTier",
     "type": "enum",
     "enum": [
-     "STANDARD",
-     "INTELLIGENT_TIERING"
+     "INTELLIGENT_TIERING",
+     "STANDARD"
     ]
    }
   ]
@@ -4025,10 +4025,10 @@
     "path": "lastExecutionStatus",
     "type": "enum",
     "enum": [
-     "Running",
-     "InvalidQuery",
      "Complete",
      "Failed",
+     "InvalidQuery",
+     "Running",
      "Timeout"
     ]
    },
@@ -4057,8 +4057,8 @@
     "type": "enum",
     "enum": [
      "CWLI",
-     "SQL",
-     "PPL"
+     "PPL",
+     "SQL"
     ]
    },
    {

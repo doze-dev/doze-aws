@@ -22,6 +22,14 @@ func TestEveryModelOperationIsAccountedFor(t *testing.T) {
 			{Name: "handlers", Ops: dozetest.Names(handlers)},
 			{Name: "stubActions", Ops: dozetest.Names(stubActions)},
 		},
+		// The Channels family, added to the model after this service was
+		// written. They should be refused by name with what they would need;
+		// until then the gap is here so it cannot grow unnoticed.
+		Unreached: []string{
+			"CreateChannel", "DeleteChannel", "DescribeChannel",
+			"ListChannels", "UpdateChannel",
+			"UpdateStreamRecordDistributionStrategy",
+		},
 	})
 	t.Logf("%d operations in the kinesis model", len(ops))
 }

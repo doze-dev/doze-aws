@@ -101,9 +101,9 @@
     "path": "type",
     "type": "enum",
     "enum": [
-     "TOKEN",
+     "COGNITO_USER_POOLS",
      "REQUEST",
-     "COGNITO_USER_POOLS"
+     "TOKEN"
     ]
    }
   ]
@@ -197,18 +197,18 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "MODEL",
-     "REQUEST_HEADER",
-     "REQUEST_BODY",
-     "RESPONSE",
-     "RESPONSE_HEADER",
-     "RESPONSE_BODY",
      "API",
      "AUTHORIZER",
-     "RESOURCE",
      "METHOD",
+     "MODEL",
      "PATH_PARAMETER",
-     "QUERY_PARAMETER"
+     "QUERY_PARAMETER",
+     "REQUEST_BODY",
+     "REQUEST_HEADER",
+     "RESOURCE",
+     "RESPONSE",
+     "RESPONSE_BODY",
+     "RESPONSE_HEADER"
     ]
    },
    {
@@ -276,11 +276,11 @@
     "type": "enum",
     "enum": [
      "AVAILABLE",
-     "UPDATING",
+     "FAILED",
      "PENDING",
      "PENDING_CERTIFICATE_REIMPORT",
      "PENDING_OWNERSHIP_VERIFICATION",
-     "FAILED"
+     "UPDATING"
     ]
    },
    {
@@ -303,8 +303,8 @@
     "path": "endpointConfiguration.ipAddressType",
     "type": "enum",
     "enum": [
-     "ipv4",
-     "dualstack"
+     "dualstack",
+     "ipv4"
     ]
    },
    {
@@ -315,9 +315,9 @@
     "path": "endpointConfiguration.types[]",
     "type": "enum",
     "enum": [
-     "REGIONAL",
      "EDGE",
-     "PRIVATE"
+     "PRIVATE",
+     "REGIONAL"
     ]
    },
    {
@@ -389,18 +389,20 @@
     "path": "securityPolicy",
     "type": "enum",
     "enum": [
-     "SecurityPolicy_TLS13_1_2_2021_06",
      "SecurityPolicy_TLS12_2018_EDGE",
-     "TLS_1_2",
-     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
-     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
-     "SecurityPolicy_TLS13_2025_EDGE",
      "SecurityPolicy_TLS12_PFS_2025_EDGE",
-     "TLS_1_0",
-     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_1_2_Ext2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_Ext2_PQ_2025_09",
      "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_PQ_2025_09"
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "TLS_1_0",
+     "TLS_1_2"
     ]
    },
    {
@@ -646,11 +648,11 @@
     "path": "resourceMethods{}.methodIntegration.type",
     "type": "enum",
     "enum": [
-     "HTTP",
      "AWS",
-     "MOCK",
+     "AWS_PROXY",
+     "HTTP",
      "HTTP_PROXY",
-     "AWS_PROXY"
+     "MOCK"
     ]
    },
    {
@@ -711,18 +713,18 @@
     "path": "apiKeySource",
     "type": "enum",
     "enum": [
-     "HEADER",
-     "AUTHORIZER"
+     "AUTHORIZER",
+     "HEADER"
     ]
    },
    {
     "path": "apiStatus",
     "type": "enum",
     "enum": [
-     "UPDATING",
      "AVAILABLE",
+     "FAILED",
      "PENDING",
-     "FAILED"
+     "UPDATING"
     ]
    },
    {
@@ -765,8 +767,8 @@
     "path": "endpointConfiguration.ipAddressType",
     "type": "enum",
     "enum": [
-     "ipv4",
-     "dualstack"
+     "dualstack",
+     "ipv4"
     ]
    },
    {
@@ -777,9 +779,9 @@
     "path": "endpointConfiguration.types[]",
     "type": "enum",
     "enum": [
-     "REGIONAL",
      "EDGE",
-     "PRIVATE"
+     "PRIVATE",
+     "REGIONAL"
     ]
    },
    {
@@ -814,18 +816,20 @@
     "path": "securityPolicy",
     "type": "enum",
     "enum": [
-     "TLS_1_0",
-     "SecurityPolicy_TLS13_1_3_2025_09",
-     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_2021_06",
      "SecurityPolicy_TLS12_2018_EDGE",
-     "TLS_1_2",
-     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
-     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS12_PFS_2025_EDGE",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_1_2_Ext2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_Ext2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
      "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
      "SecurityPolicy_TLS13_2025_EDGE",
-     "SecurityPolicy_TLS12_PFS_2025_EDGE"
+     "TLS_1_0",
+     "TLS_1_2"
     ]
    },
    {
@@ -876,23 +880,23 @@
     "enum": [
      "0.5",
      "1.6",
-     "6.1",
+     "118",
      "13.5",
+     "237",
      "28.4",
      "58.2",
-     "118",
-     "237"
+     "6.1"
     ]
    },
    {
     "path": "cacheClusterStatus",
     "type": "enum",
     "enum": [
-     "CREATE_IN_PROGRESS",
      "AVAILABLE",
+     "CREATE_IN_PROGRESS",
      "DELETE_IN_PROGRESS",
-     "NOT_AVAILABLE",
-     "FLUSH_IN_PROGRESS"
+     "FLUSH_IN_PROGRESS",
+     "NOT_AVAILABLE"
     ]
    },
    {
@@ -991,8 +995,8 @@
     "path": "methodSettings{}.unauthorizedCacheControlHeaderStrategy",
     "type": "enum",
     "enum": [
-     "SUCCEED_WITHOUT_RESPONSE_HEADER",
      "FAIL_WITH_403",
+     "SUCCEED_WITHOUT_RESPONSE_HEADER",
      "SUCCEED_WITH_RESPONSE_HEADER"
     ]
    },
@@ -1095,8 +1099,8 @@
     "type": "enum",
     "enum": [
      "DAY",
-     "WEEK",
-     "MONTH"
+     "MONTH",
+     "WEEK"
     ]
    },
    {
@@ -1163,9 +1167,9 @@
     "path": "status",
     "type": "enum",
     "enum": [
+     "AVAILABLE",
      "DELETING",
      "FAILED",
-     "AVAILABLE",
      "PENDING"
     ]
    },
@@ -1435,9 +1439,9 @@
     "path": "type",
     "type": "enum",
     "enum": [
-     "TOKEN",
+     "COGNITO_USER_POOLS",
      "REQUEST",
-     "COGNITO_USER_POOLS"
+     "TOKEN"
     ]
    }
   ]
@@ -1498,9 +1502,9 @@
     "path": "items[].type",
     "type": "enum",
     "enum": [
-     "TOKEN",
+     "COGNITO_USER_POOLS",
      "REQUEST",
-     "COGNITO_USER_POOLS"
+     "TOKEN"
     ]
    },
    {
@@ -1752,16 +1756,16 @@
     "enum": [
      "API",
      "AUTHORIZER",
-     "RESOURCE",
      "METHOD",
+     "MODEL",
      "PATH_PARAMETER",
      "QUERY_PARAMETER",
-     "MODEL",
-     "REQUEST_HEADER",
      "REQUEST_BODY",
+     "REQUEST_HEADER",
+     "RESOURCE",
      "RESPONSE",
-     "RESPONSE_HEADER",
-     "RESPONSE_BODY"
+     "RESPONSE_BODY",
+     "RESPONSE_HEADER"
     ]
    },
    {
@@ -1811,18 +1815,18 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "RESPONSE_HEADER",
-     "RESPONSE_BODY",
      "API",
      "AUTHORIZER",
-     "RESOURCE",
      "METHOD",
+     "MODEL",
      "PATH_PARAMETER",
      "QUERY_PARAMETER",
-     "MODEL",
-     "REQUEST_HEADER",
      "REQUEST_BODY",
-     "RESPONSE"
+     "REQUEST_HEADER",
+     "RESOURCE",
+     "RESPONSE",
+     "RESPONSE_BODY",
+     "RESPONSE_HEADER"
     ]
    },
    {
@@ -1924,11 +1928,11 @@
     "type": "enum",
     "enum": [
      "AVAILABLE",
-     "UPDATING",
+     "FAILED",
      "PENDING",
      "PENDING_CERTIFICATE_REIMPORT",
      "PENDING_OWNERSHIP_VERIFICATION",
-     "FAILED"
+     "UPDATING"
     ]
    },
    {
@@ -1951,8 +1955,8 @@
     "path": "endpointConfiguration.ipAddressType",
     "type": "enum",
     "enum": [
-     "ipv4",
-     "dualstack"
+     "dualstack",
+     "ipv4"
     ]
    },
    {
@@ -1963,9 +1967,9 @@
     "path": "endpointConfiguration.types[]",
     "type": "enum",
     "enum": [
-     "REGIONAL",
      "EDGE",
-     "PRIVATE"
+     "PRIVATE",
+     "REGIONAL"
     ]
    },
    {
@@ -2028,9 +2032,9 @@
     "path": "routingMode",
     "type": "enum",
     "enum": [
-     "ROUTING_RULE_THEN_BASE_PATH_MAPPING",
      "BASE_PATH_MAPPING_ONLY",
-     "ROUTING_RULE_ONLY"
+     "ROUTING_RULE_ONLY",
+     "ROUTING_RULE_THEN_BASE_PATH_MAPPING"
     ]
    },
    {
@@ -2038,17 +2042,19 @@
     "type": "enum",
     "enum": [
      "SecurityPolicy_TLS12_2018_EDGE",
-     "TLS_1_2",
-     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
-     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
-     "SecurityPolicy_TLS13_2025_EDGE",
      "SecurityPolicy_TLS12_PFS_2025_EDGE",
-     "TLS_1_0",
-     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_1_2_Ext2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_Ext2_PQ_2025_09",
      "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
      "SecurityPolicy_TLS13_1_2_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_2021_06"
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "TLS_1_0",
+     "TLS_1_2"
     ]
    },
    {
@@ -2155,11 +2161,11 @@
     "type": "enum",
     "enum": [
      "AVAILABLE",
-     "UPDATING",
+     "FAILED",
      "PENDING",
      "PENDING_CERTIFICATE_REIMPORT",
      "PENDING_OWNERSHIP_VERIFICATION",
-     "FAILED"
+     "UPDATING"
     ]
    },
    {
@@ -2182,8 +2188,8 @@
     "path": "items[].endpointConfiguration.ipAddressType",
     "type": "enum",
     "enum": [
-     "ipv4",
-     "dualstack"
+     "dualstack",
+     "ipv4"
     ]
    },
    {
@@ -2194,9 +2200,9 @@
     "path": "items[].endpointConfiguration.types[]",
     "type": "enum",
     "enum": [
-     "REGIONAL",
      "EDGE",
-     "PRIVATE"
+     "PRIVATE",
+     "REGIONAL"
     ]
    },
    {
@@ -2268,18 +2274,20 @@
     "path": "items[].securityPolicy",
     "type": "enum",
     "enum": [
-     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_2021_06",
      "SecurityPolicy_TLS12_2018_EDGE",
-     "TLS_1_2",
-     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
-     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
-     "SecurityPolicy_TLS13_2025_EDGE",
      "SecurityPolicy_TLS12_PFS_2025_EDGE",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_1_2_Ext2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_Ext2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_2025_EDGE",
      "TLS_1_0",
-     "SecurityPolicy_TLS13_1_3_2025_09"
+     "TLS_1_2"
     ]
    },
    {
@@ -2342,27 +2350,27 @@
     "path": "responseType",
     "type": "enum",
     "enum": [
-     "QUOTA_EXCEEDED",
-     "INTEGRATION_TIMEOUT",
-     "API_CONFIGURATION_ERROR",
-     "UNAUTHORIZED",
-     "AUTHORIZER_FAILURE",
-     "BAD_REQUEST_PARAMETERS",
-     "BAD_REQUEST_BODY",
-     "DEFAULT_5XX",
-     "UNSUPPORTED_MEDIA_TYPE",
-     "DEFAULT_4XX",
-     "RESOURCE_NOT_FOUND",
-     "INVALID_API_KEY",
      "ACCESS_DENIED",
+     "API_CONFIGURATION_ERROR",
      "AUTHORIZER_CONFIGURATION_ERROR",
-     "INTEGRATION_FAILURE",
-     "REQUEST_TOO_LARGE",
-     "WAF_FILTERED",
-     "INVALID_SIGNATURE",
+     "AUTHORIZER_FAILURE",
+     "BAD_REQUEST_BODY",
+     "BAD_REQUEST_PARAMETERS",
+     "DEFAULT_4XX",
+     "DEFAULT_5XX",
      "EXPIRED_TOKEN",
+     "INTEGRATION_FAILURE",
+     "INTEGRATION_TIMEOUT",
+     "INVALID_API_KEY",
+     "INVALID_SIGNATURE",
      "MISSING_AUTHENTICATION_TOKEN",
-     "THROTTLED"
+     "QUOTA_EXCEEDED",
+     "REQUEST_TOO_LARGE",
+     "RESOURCE_NOT_FOUND",
+     "THROTTLED",
+     "UNAUTHORIZED",
+     "UNSUPPORTED_MEDIA_TYPE",
+     "WAF_FILTERED"
     ]
    },
    {
@@ -2407,27 +2415,27 @@
     "path": "items[].responseType",
     "type": "enum",
     "enum": [
-     "QUOTA_EXCEEDED",
-     "INTEGRATION_TIMEOUT",
-     "API_CONFIGURATION_ERROR",
-     "UNAUTHORIZED",
-     "AUTHORIZER_FAILURE",
-     "BAD_REQUEST_PARAMETERS",
-     "BAD_REQUEST_BODY",
-     "DEFAULT_5XX",
-     "UNSUPPORTED_MEDIA_TYPE",
-     "DEFAULT_4XX",
-     "RESOURCE_NOT_FOUND",
-     "INVALID_API_KEY",
      "ACCESS_DENIED",
+     "API_CONFIGURATION_ERROR",
      "AUTHORIZER_CONFIGURATION_ERROR",
-     "INTEGRATION_FAILURE",
-     "REQUEST_TOO_LARGE",
-     "WAF_FILTERED",
-     "INVALID_SIGNATURE",
+     "AUTHORIZER_FAILURE",
+     "BAD_REQUEST_BODY",
+     "BAD_REQUEST_PARAMETERS",
+     "DEFAULT_4XX",
+     "DEFAULT_5XX",
      "EXPIRED_TOKEN",
+     "INTEGRATION_FAILURE",
+     "INTEGRATION_TIMEOUT",
+     "INVALID_API_KEY",
+     "INVALID_SIGNATURE",
      "MISSING_AUTHENTICATION_TOKEN",
-     "THROTTLED"
+     "QUOTA_EXCEEDED",
+     "REQUEST_TOO_LARGE",
+     "RESOURCE_NOT_FOUND",
+     "THROTTLED",
+     "UNAUTHORIZED",
+     "UNSUPPORTED_MEDIA_TYPE",
+     "WAF_FILTERED"
     ]
    },
    {
@@ -2464,8 +2472,8 @@
     "path": "connectionType",
     "type": "enum",
     "enum": [
-     "VPC_LINK",
-     "INTERNET"
+     "INTERNET",
+     "VPC_LINK"
     ]
    },
    {
@@ -2572,11 +2580,11 @@
     "path": "type",
     "type": "enum",
     "enum": [
-     "HTTP",
      "AWS",
-     "MOCK",
+     "AWS_PROXY",
+     "HTTP",
      "HTTP_PROXY",
-     "AWS_PROXY"
+     "MOCK"
     ]
    },
    {
@@ -2783,11 +2791,11 @@
     "path": "methodIntegration.type",
     "type": "enum",
     "enum": [
-     "HTTP",
      "AWS",
-     "MOCK",
+     "AWS_PROXY",
+     "HTTP",
      "HTTP_PROXY",
-     "AWS_PROXY"
+     "MOCK"
     ]
    },
    {
@@ -3088,8 +3096,8 @@
     "path": "resourceMethods{}.methodIntegration.contentHandling",
     "type": "enum",
     "enum": [
-     "CONVERT_TO_TEXT",
-     "CONVERT_TO_BINARY"
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
     ]
    },
    {
@@ -3156,11 +3164,11 @@
     "path": "resourceMethods{}.methodIntegration.type",
     "type": "enum",
     "enum": [
-     "HTTP",
      "AWS",
-     "MOCK",
+     "AWS_PROXY",
+     "HTTP",
      "HTTP_PROXY",
-     "AWS_PROXY"
+     "MOCK"
     ]
    },
    {
@@ -3307,18 +3315,18 @@
     "path": "apiKeySource",
     "type": "enum",
     "enum": [
-     "HEADER",
-     "AUTHORIZER"
+     "AUTHORIZER",
+     "HEADER"
     ]
    },
    {
     "path": "apiStatus",
     "type": "enum",
     "enum": [
-     "UPDATING",
      "AVAILABLE",
+     "FAILED",
      "PENDING",
-     "FAILED"
+     "UPDATING"
     ]
    },
    {
@@ -3349,8 +3357,8 @@
     "path": "endpointAccessMode",
     "type": "enum",
     "enum": [
-     "STRICT",
-     "BASIC"
+     "BASIC",
+     "STRICT"
     ]
    },
    {
@@ -3361,8 +3369,8 @@
     "path": "endpointConfiguration.ipAddressType",
     "type": "enum",
     "enum": [
-     "ipv4",
-     "dualstack"
+     "dualstack",
+     "ipv4"
     ]
    },
    {
@@ -3410,18 +3418,20 @@
     "path": "securityPolicy",
     "type": "enum",
     "enum": [
-     "TLS_1_2",
-     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
-     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
-     "SecurityPolicy_TLS13_2025_EDGE",
+     "SecurityPolicy_TLS12_2018_EDGE",
      "SecurityPolicy_TLS12_PFS_2025_EDGE",
-     "TLS_1_0",
-     "SecurityPolicy_TLS13_1_3_2025_09",
-     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
      "SecurityPolicy_TLS13_1_2_2021_06",
-     "SecurityPolicy_TLS12_2018_EDGE"
+     "SecurityPolicy_TLS13_1_2_Ext2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_Ext2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "TLS_1_0",
+     "TLS_1_2"
     ]
    },
    {
@@ -3462,18 +3472,18 @@
     "path": "items[].apiKeySource",
     "type": "enum",
     "enum": [
-     "HEADER",
-     "AUTHORIZER"
+     "AUTHORIZER",
+     "HEADER"
     ]
    },
    {
     "path": "items[].apiStatus",
     "type": "enum",
     "enum": [
-     "FAILED",
-     "UPDATING",
      "AVAILABLE",
-     "PENDING"
+     "FAILED",
+     "PENDING",
+     "UPDATING"
     ]
    },
    {
@@ -3516,8 +3526,8 @@
     "path": "items[].endpointConfiguration.ipAddressType",
     "type": "enum",
     "enum": [
-     "ipv4",
-     "dualstack"
+     "dualstack",
+     "ipv4"
     ]
    },
    {
@@ -3528,9 +3538,9 @@
     "path": "items[].endpointConfiguration.types[]",
     "type": "enum",
     "enum": [
-     "REGIONAL",
      "EDGE",
-     "PRIVATE"
+     "PRIVATE",
+     "REGIONAL"
     ]
    },
    {
@@ -3565,18 +3575,20 @@
     "path": "items[].securityPolicy",
     "type": "enum",
     "enum": [
-     "SecurityPolicy_TLS13_1_2_2021_06",
      "SecurityPolicy_TLS12_2018_EDGE",
-     "TLS_1_2",
-     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
-     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
-     "SecurityPolicy_TLS13_2025_EDGE",
      "SecurityPolicy_TLS12_PFS_2025_EDGE",
-     "TLS_1_0",
-     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_1_2_Ext2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_Ext2_PQ_2025_09",
      "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_PQ_2025_09"
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "TLS_1_0",
+     "TLS_1_2"
     ]
    },
    {
@@ -3747,14 +3759,14 @@
     "path": "cacheClusterSize",
     "type": "enum",
     "enum": [
-     "118",
-     "237",
      "0.5",
      "1.6",
-     "6.1",
+     "118",
      "13.5",
+     "237",
      "28.4",
-     "58.2"
+     "58.2",
+     "6.1"
     ]
    },
    {
@@ -3762,10 +3774,10 @@
     "type": "enum",
     "enum": [
      "AVAILABLE",
+     "CREATE_IN_PROGRESS",
      "DELETE_IN_PROGRESS",
-     "NOT_AVAILABLE",
      "FLUSH_IN_PROGRESS",
-     "CREATE_IN_PROGRESS"
+     "NOT_AVAILABLE"
     ]
    },
    {
@@ -3864,8 +3876,8 @@
     "path": "methodSettings{}.unauthorizedCacheControlHeaderStrategy",
     "type": "enum",
     "enum": [
-     "SUCCEED_WITHOUT_RESPONSE_HEADER",
      "FAIL_WITH_403",
+     "SUCCEED_WITHOUT_RESPONSE_HEADER",
      "SUCCEED_WITH_RESPONSE_HEADER"
     ]
    },
@@ -3931,25 +3943,25 @@
     "path": "item[].cacheClusterSize",
     "type": "enum",
     "enum": [
-     "6.1",
+     "0.5",
+     "1.6",
+     "118",
      "13.5",
+     "237",
      "28.4",
      "58.2",
-     "118",
-     "237",
-     "0.5",
-     "1.6"
+     "6.1"
     ]
    },
    {
     "path": "item[].cacheClusterStatus",
     "type": "enum",
     "enum": [
-     "CREATE_IN_PROGRESS",
      "AVAILABLE",
+     "CREATE_IN_PROGRESS",
      "DELETE_IN_PROGRESS",
-     "NOT_AVAILABLE",
-     "FLUSH_IN_PROGRESS"
+     "FLUSH_IN_PROGRESS",
+     "NOT_AVAILABLE"
     ]
    },
    {
@@ -4049,8 +4061,8 @@
     "type": "enum",
     "enum": [
      "FAIL_WITH_403",
-     "SUCCEED_WITH_RESPONSE_HEADER",
-     "SUCCEED_WITHOUT_RESPONSE_HEADER"
+     "SUCCEED_WITHOUT_RESPONSE_HEADER",
+     "SUCCEED_WITH_RESPONSE_HEADER"
     ]
    },
    {
@@ -4204,8 +4216,8 @@
     "type": "enum",
     "enum": [
      "DAY",
-     "WEEK",
-     "MONTH"
+     "MONTH",
+     "WEEK"
     ]
    },
    {
@@ -4350,8 +4362,8 @@
     "path": "items[].quota.period",
     "type": "enum",
     "enum": [
-     "MONTH",
      "DAY",
+     "MONTH",
      "WEEK"
     ]
    },
@@ -4402,9 +4414,9 @@
     "type": "enum",
     "enum": [
      "AVAILABLE",
-     "PENDING",
      "DELETING",
-     "FAILED"
+     "FAILED",
+     "PENDING"
     ]
    },
    {
@@ -4458,9 +4470,9 @@
     "type": "enum",
     "enum": [
      "AVAILABLE",
-     "PENDING",
      "DELETING",
-     "FAILED"
+     "FAILED",
+     "PENDING"
     ]
    },
    {
@@ -4541,18 +4553,18 @@
     "path": "apiKeySource",
     "type": "enum",
     "enum": [
-     "HEADER",
-     "AUTHORIZER"
+     "AUTHORIZER",
+     "HEADER"
     ]
    },
    {
     "path": "apiStatus",
     "type": "enum",
     "enum": [
-     "FAILED",
-     "UPDATING",
      "AVAILABLE",
-     "PENDING"
+     "FAILED",
+     "PENDING",
+     "UPDATING"
     ]
    },
    {
@@ -4595,8 +4607,8 @@
     "path": "endpointConfiguration.ipAddressType",
     "type": "enum",
     "enum": [
-     "ipv4",
-     "dualstack"
+     "dualstack",
+     "ipv4"
     ]
    },
    {
@@ -4607,9 +4619,9 @@
     "path": "endpointConfiguration.types[]",
     "type": "enum",
     "enum": [
-     "REGIONAL",
      "EDGE",
-     "PRIVATE"
+     "PRIVATE",
+     "REGIONAL"
     ]
    },
    {
@@ -4644,17 +4656,19 @@
     "path": "securityPolicy",
     "type": "enum",
     "enum": [
-     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
-     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
-     "SecurityPolicy_TLS13_2025_EDGE",
-     "SecurityPolicy_TLS12_PFS_2025_EDGE",
-     "TLS_1_0",
-     "SecurityPolicy_TLS13_1_3_2025_09",
-     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_2021_06",
      "SecurityPolicy_TLS12_2018_EDGE",
+     "SecurityPolicy_TLS12_PFS_2025_EDGE",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_1_2_Ext2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_Ext2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "TLS_1_0",
      "TLS_1_2"
     ]
    },
@@ -4708,27 +4722,27 @@
     "path": "responseType",
     "type": "enum",
     "enum": [
-     "INTEGRATION_TIMEOUT",
-     "API_CONFIGURATION_ERROR",
-     "UNAUTHORIZED",
-     "AUTHORIZER_FAILURE",
-     "BAD_REQUEST_PARAMETERS",
-     "BAD_REQUEST_BODY",
-     "DEFAULT_5XX",
-     "UNSUPPORTED_MEDIA_TYPE",
-     "DEFAULT_4XX",
-     "RESOURCE_NOT_FOUND",
-     "INVALID_API_KEY",
      "ACCESS_DENIED",
+     "API_CONFIGURATION_ERROR",
      "AUTHORIZER_CONFIGURATION_ERROR",
-     "INTEGRATION_FAILURE",
-     "REQUEST_TOO_LARGE",
-     "WAF_FILTERED",
-     "INVALID_SIGNATURE",
+     "AUTHORIZER_FAILURE",
+     "BAD_REQUEST_BODY",
+     "BAD_REQUEST_PARAMETERS",
+     "DEFAULT_4XX",
+     "DEFAULT_5XX",
      "EXPIRED_TOKEN",
+     "INTEGRATION_FAILURE",
+     "INTEGRATION_TIMEOUT",
+     "INVALID_API_KEY",
+     "INVALID_SIGNATURE",
      "MISSING_AUTHENTICATION_TOKEN",
+     "QUOTA_EXCEEDED",
+     "REQUEST_TOO_LARGE",
+     "RESOURCE_NOT_FOUND",
      "THROTTLED",
-     "QUOTA_EXCEEDED"
+     "UNAUTHORIZED",
+     "UNSUPPORTED_MEDIA_TYPE",
+     "WAF_FILTERED"
     ]
    },
    {
@@ -4761,8 +4775,8 @@
     "path": "connectionType",
     "type": "enum",
     "enum": [
-     "VPC_LINK",
-     "INTERNET"
+     "INTERNET",
+     "VPC_LINK"
     ]
    },
    {
@@ -4869,10 +4883,10 @@
     "path": "type",
     "type": "enum",
     "enum": [
-     "HTTP_PROXY",
+     "AWS",
      "AWS_PROXY",
      "HTTP",
-     "AWS",
+     "HTTP_PROXY",
      "MOCK"
     ]
    },
@@ -5060,8 +5074,8 @@
     "path": "methodIntegration.responseTransferMode",
     "type": "enum",
     "enum": [
-     "STREAM",
-     "BUFFERED"
+     "BUFFERED",
+     "STREAM"
     ]
    },
    {
@@ -5081,10 +5095,10 @@
     "type": "enum",
     "enum": [
      "AWS",
-     "MOCK",
-     "HTTP_PROXY",
      "AWS_PROXY",
-     "HTTP"
+     "HTTP",
+     "HTTP_PROXY",
+     "MOCK"
     ]
    },
    {
@@ -5187,10 +5201,10 @@
     "path": "apiStatus",
     "type": "enum",
     "enum": [
-     "FAILED",
-     "UPDATING",
      "AVAILABLE",
-     "PENDING"
+     "FAILED",
+     "PENDING",
+     "UPDATING"
     ]
    },
    {
@@ -5233,8 +5247,8 @@
     "path": "endpointConfiguration.ipAddressType",
     "type": "enum",
     "enum": [
-     "ipv4",
-     "dualstack"
+     "dualstack",
+     "ipv4"
     ]
    },
    {
@@ -5245,9 +5259,9 @@
     "path": "endpointConfiguration.types[]",
     "type": "enum",
     "enum": [
-     "REGIONAL",
      "EDGE",
-     "PRIVATE"
+     "PRIVATE",
+     "REGIONAL"
     ]
    },
    {
@@ -5282,18 +5296,20 @@
     "path": "securityPolicy",
     "type": "enum",
     "enum": [
-     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_2021_06",
      "SecurityPolicy_TLS12_2018_EDGE",
-     "TLS_1_2",
-     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
-     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
-     "SecurityPolicy_TLS13_2025_EDGE",
      "SecurityPolicy_TLS12_PFS_2025_EDGE",
-     "TLS_1_0",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_1_2_Ext2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_Ext2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
      "SecurityPolicy_TLS13_1_3_2025_09",
-     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09"
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
+     "SecurityPolicy_TLS13_2025_EDGE",
+     "TLS_1_0",
+     "TLS_1_2"
     ]
    },
    {
@@ -5542,9 +5558,9 @@
     "path": "type",
     "type": "enum",
     "enum": [
-     "TOKEN",
+     "COGNITO_USER_POOLS",
      "REQUEST",
-     "COGNITO_USER_POOLS"
+     "TOKEN"
     ]
    }
   ]
@@ -5672,18 +5688,18 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "RESPONSE_HEADER",
-     "RESPONSE_BODY",
      "API",
      "AUTHORIZER",
-     "RESOURCE",
      "METHOD",
+     "MODEL",
      "PATH_PARAMETER",
      "QUERY_PARAMETER",
-     "MODEL",
-     "REQUEST_HEADER",
      "REQUEST_BODY",
-     "RESPONSE"
+     "REQUEST_HEADER",
+     "RESOURCE",
+     "RESPONSE",
+     "RESPONSE_BODY",
+     "RESPONSE_HEADER"
     ]
    },
    {
@@ -5751,11 +5767,11 @@
     "type": "enum",
     "enum": [
      "AVAILABLE",
-     "UPDATING",
+     "FAILED",
      "PENDING",
      "PENDING_CERTIFICATE_REIMPORT",
      "PENDING_OWNERSHIP_VERIFICATION",
-     "FAILED"
+     "UPDATING"
     ]
    },
    {
@@ -5766,8 +5782,8 @@
     "path": "endpointAccessMode",
     "type": "enum",
     "enum": [
-     "STRICT",
-     "BASIC"
+     "BASIC",
+     "STRICT"
     ]
    },
    {
@@ -5790,9 +5806,9 @@
     "path": "endpointConfiguration.types[]",
     "type": "enum",
     "enum": [
-     "REGIONAL",
      "EDGE",
-     "PRIVATE"
+     "PRIVATE",
+     "REGIONAL"
     ]
    },
    {
@@ -5864,18 +5880,20 @@
     "path": "securityPolicy",
     "type": "enum",
     "enum": [
-     "TLS_1_0",
-     "SecurityPolicy_TLS13_1_3_2025_09",
-     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_2021_06",
      "SecurityPolicy_TLS12_2018_EDGE",
-     "TLS_1_2",
-     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
-     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS12_PFS_2025_EDGE",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_1_2_Ext2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_Ext2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
      "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
      "SecurityPolicy_TLS13_2025_EDGE",
-     "SecurityPolicy_TLS12_PFS_2025_EDGE"
+     "TLS_1_0",
+     "TLS_1_2"
     ]
    },
    {
@@ -5916,27 +5934,27 @@
     "path": "responseType",
     "type": "enum",
     "enum": [
-     "DEFAULT_5XX",
-     "UNSUPPORTED_MEDIA_TYPE",
-     "DEFAULT_4XX",
-     "RESOURCE_NOT_FOUND",
-     "INVALID_API_KEY",
      "ACCESS_DENIED",
-     "AUTHORIZER_CONFIGURATION_ERROR",
-     "INTEGRATION_FAILURE",
-     "REQUEST_TOO_LARGE",
-     "WAF_FILTERED",
-     "INVALID_SIGNATURE",
-     "EXPIRED_TOKEN",
-     "MISSING_AUTHENTICATION_TOKEN",
-     "THROTTLED",
-     "QUOTA_EXCEEDED",
-     "INTEGRATION_TIMEOUT",
      "API_CONFIGURATION_ERROR",
-     "UNAUTHORIZED",
+     "AUTHORIZER_CONFIGURATION_ERROR",
      "AUTHORIZER_FAILURE",
+     "BAD_REQUEST_BODY",
      "BAD_REQUEST_PARAMETERS",
-     "BAD_REQUEST_BODY"
+     "DEFAULT_4XX",
+     "DEFAULT_5XX",
+     "EXPIRED_TOKEN",
+     "INTEGRATION_FAILURE",
+     "INTEGRATION_TIMEOUT",
+     "INVALID_API_KEY",
+     "INVALID_SIGNATURE",
+     "MISSING_AUTHENTICATION_TOKEN",
+     "QUOTA_EXCEEDED",
+     "REQUEST_TOO_LARGE",
+     "RESOURCE_NOT_FOUND",
+     "THROTTLED",
+     "UNAUTHORIZED",
+     "UNSUPPORTED_MEDIA_TYPE",
+     "WAF_FILTERED"
     ]
    },
    {
@@ -6057,8 +6075,8 @@
     "path": "responseTransferMode",
     "type": "enum",
     "enum": [
-     "STREAM",
-     "BUFFERED"
+     "BUFFERED",
+     "STREAM"
     ]
    },
    {
@@ -6077,11 +6095,11 @@
     "path": "type",
     "type": "enum",
     "enum": [
-     "HTTP",
      "AWS",
-     "MOCK",
+     "AWS_PROXY",
+     "HTTP",
      "HTTP_PROXY",
-     "AWS_PROXY"
+     "MOCK"
     ]
    },
    {
@@ -6288,10 +6306,10 @@
     "path": "methodIntegration.type",
     "type": "enum",
     "enum": [
-     "HTTP_PROXY",
+     "AWS",
      "AWS_PROXY",
      "HTTP",
-     "AWS",
+     "HTTP_PROXY",
      "MOCK"
     ]
    },
@@ -6503,8 +6521,8 @@
     "path": "resourceMethods{}.methodIntegration.connectionType",
     "type": "enum",
     "enum": [
-     "VPC_LINK",
-     "INTERNET"
+     "INTERNET",
+     "VPC_LINK"
     ]
    },
    {
@@ -6579,11 +6597,11 @@
     "path": "resourceMethods{}.methodIntegration.type",
     "type": "enum",
     "enum": [
+     "AWS",
      "AWS_PROXY",
      "HTTP",
-     "AWS",
-     "MOCK",
-     "HTTP_PROXY"
+     "HTTP_PROXY",
+     "MOCK"
     ]
    },
    {
@@ -6644,18 +6662,18 @@
     "path": "apiKeySource",
     "type": "enum",
     "enum": [
-     "HEADER",
-     "AUTHORIZER"
+     "AUTHORIZER",
+     "HEADER"
     ]
    },
    {
     "path": "apiStatus",
     "type": "enum",
     "enum": [
-     "PENDING",
+     "AVAILABLE",
      "FAILED",
-     "UPDATING",
-     "AVAILABLE"
+     "PENDING",
+     "UPDATING"
     ]
    },
    {
@@ -6698,8 +6716,8 @@
     "path": "endpointConfiguration.ipAddressType",
     "type": "enum",
     "enum": [
-     "ipv4",
-     "dualstack"
+     "dualstack",
+     "ipv4"
     ]
    },
    {
@@ -6710,9 +6728,9 @@
     "path": "endpointConfiguration.types[]",
     "type": "enum",
     "enum": [
-     "REGIONAL",
      "EDGE",
-     "PRIVATE"
+     "PRIVATE",
+     "REGIONAL"
     ]
    },
    {
@@ -6747,18 +6765,20 @@
     "path": "securityPolicy",
     "type": "enum",
     "enum": [
-     "TLS_1_0",
-     "SecurityPolicy_TLS13_1_3_2025_09",
-     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
-     "SecurityPolicy_TLS13_1_2_2021_06",
      "SecurityPolicy_TLS12_2018_EDGE",
-     "TLS_1_2",
-     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
-     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS12_PFS_2025_EDGE",
+     "SecurityPolicy_TLS13_1_2_2021_06",
+     "SecurityPolicy_TLS13_1_2_Ext2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_Ext2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_FIPS_PFS_PQ_2025_09",
      "SecurityPolicy_TLS13_1_2_FIPS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PFS_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_2_PQ_2025_09",
+     "SecurityPolicy_TLS13_1_3_2025_09",
+     "SecurityPolicy_TLS13_1_3_FIPS_2025_09",
      "SecurityPolicy_TLS13_2025_EDGE",
-     "SecurityPolicy_TLS12_PFS_2025_EDGE"
+     "TLS_1_0",
+     "TLS_1_2"
     ]
    },
    {
@@ -6807,13 +6827,13 @@
     "path": "cacheClusterSize",
     "type": "enum",
     "enum": [
-     "13.5",
-     "28.4",
-     "58.2",
-     "118",
-     "237",
      "0.5",
      "1.6",
+     "118",
+     "13.5",
+     "237",
+     "28.4",
+     "58.2",
      "6.1"
     ]
    },
@@ -6821,11 +6841,11 @@
     "path": "cacheClusterStatus",
     "type": "enum",
     "enum": [
-     "DELETE_IN_PROGRESS",
-     "NOT_AVAILABLE",
-     "FLUSH_IN_PROGRESS",
+     "AVAILABLE",
      "CREATE_IN_PROGRESS",
-     "AVAILABLE"
+     "DELETE_IN_PROGRESS",
+     "FLUSH_IN_PROGRESS",
+     "NOT_AVAILABLE"
     ]
    },
    {
@@ -6925,8 +6945,8 @@
     "type": "enum",
     "enum": [
      "FAIL_WITH_403",
-     "SUCCEED_WITH_RESPONSE_HEADER",
-     "SUCCEED_WITHOUT_RESPONSE_HEADER"
+     "SUCCEED_WITHOUT_RESPONSE_HEADER",
+     "SUCCEED_WITH_RESPONSE_HEADER"
     ]
    },
    {
@@ -7066,8 +7086,8 @@
     "type": "enum",
     "enum": [
      "DAY",
-     "WEEK",
-     "MONTH"
+     "MONTH",
+     "WEEK"
     ]
    },
    {
@@ -7112,9 +7132,9 @@
     "path": "status",
     "type": "enum",
     "enum": [
+     "AVAILABLE",
      "DELETING",
      "FAILED",
-     "AVAILABLE",
      "PENDING"
     ]
    },

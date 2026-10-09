@@ -1,11 +1,14 @@
 [
   "AddTagsToStream",
+  "CreateChannel",
   "CreateStream",
   "DecreaseStreamRetentionPeriod",
+  "DeleteChannel",
   "DeleteResourcePolicy",
   "DeleteStream",
   "DeregisterStreamConsumer",
   "DescribeAccountSettings",
+  "DescribeChannel",
   "DescribeLimits",
   "DescribeStream",
   "DescribeStreamConsumer",
@@ -16,6 +19,7 @@
   "GetResourcePolicy",
   "GetShardIterator",
   "IncreaseStreamRetentionPeriod",
+  "ListChannels",
   "ListShards",
   "ListStreamConsumers",
   "ListStreams",
@@ -34,8 +38,10 @@
   "TagResource",
   "UntagResource",
   "UpdateAccountSettings",
+  "UpdateChannel",
   "UpdateMaxRecordSize",
   "UpdateShardCount",
   "UpdateStreamMode",
+  "UpdateStreamRecordDistributionStrategy",
   "UpdateStreamWarmThroughput"
 ]

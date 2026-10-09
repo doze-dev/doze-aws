@@ -21,6 +21,11 @@ func TestEveryModelOperationIsAccountedFor(t *testing.T) {
 		// reads it. Neither has an AWS equivalent because neither question
 		// arises when IAM is the real thing.
 		LocalOnly: []string{"DozeAccessLog", "DozeGeneratePolicy"},
+		// Added to the model after this service was written.
+		Unreached: []string{
+			"AcquireRole", "GetAccountProperties",
+			"GetRoleTemplateVersion", "PutAccountProperties",
+		},
 	})
 	t.Logf("%d operations in the iam model", len(ops))
 }

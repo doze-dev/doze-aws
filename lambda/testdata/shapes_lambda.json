@@ -127,14 +127,14 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "CANCELLED",
+     "FAILED",
      "PENDING",
      "READY",
-     "SUCCEEDED",
-     "FAILED",
-     "CANCELLED",
-     "TIMED_OUT",
+     "STARTED",
      "STOPPED",
-     "STARTED"
+     "SUCCEEDED",
+     "TIMED_OUT"
     ]
    },
    {
@@ -166,12 +166,12 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "CONTEXT",
-     "STEP",
-     "WAIT",
      "CALLBACK",
      "CHAINED_INVOKE",
-     "EXECUTION"
+     "CONTEXT",
+     "EXECUTION",
+     "STEP",
+     "WAIT"
     ]
    },
    {
@@ -293,8 +293,8 @@
     "path": "CapacityProvider.InstanceRequirements.Architectures[]",
     "type": "enum",
     "enum": [
-     "x86_64",
-     "arm64"
+     "arm64",
+     "x86_64"
     ]
    },
    {
@@ -339,8 +339,8 @@
     "path": "CapacityProvider.PropagateTags.Mode",
     "type": "enum",
     "enum": [
-     "None",
-     "Explicit"
+     "Explicit",
+     "None"
     ]
    },
    {
@@ -348,10 +348,10 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "Pending",
      "Active",
+     "Deleting",
      "Failed",
-     "Deleting"
+     "Pending"
     ]
    },
    {
@@ -442,8 +442,8 @@
     "path": "CodeSigningConfig.CodeSigningPolicies.UntrustedArtifactOnDeployment",
     "type": "enum",
     "enum": [
-     "Warn",
-     "Enforce"
+     "Enforce",
+     "Warn"
     ]
    },
    {
@@ -487,6 +487,7 @@
     "enum": [
      "BASIC_AUTH",
      "CLIENT_CERTIFICATE_TLS_AUTH",
+     "OAUTHBEARER_AUTH",
      "SERVER_ROOT_CA_CERTIFICATE"
     ]
    },
@@ -566,8 +567,8 @@
     "path": "DocumentDBEventSourceConfig.FullDocument",
     "type": "enum",
     "enum": [
-     "UpdateLookup",
-     "Default"
+     "Default",
+     "UpdateLookup"
     ]
    },
    {
@@ -641,9 +642,9 @@
     "path": "LoggingConfig.SystemLogLevel",
     "type": "enum",
     "enum": [
+     "DEBUG",
      "INFO",
-     "WARN",
-     "DEBUG"
+     "WARN"
     ]
    },
    {
@@ -671,8 +672,8 @@
     "type": "enum",
     "enum": [
      "ErrorCount",
-     "KafkaMetrics",
-     "EventCount"
+     "EventCount",
+     "KafkaMetrics"
     ]
    },
    {
@@ -753,6 +754,7 @@
     "enum": [
      "BASIC_AUTH",
      "CLIENT_CERTIFICATE_TLS_AUTH",
+     "OAUTHBEARER_AUTH",
      "SERVER_ROOT_CA_CERTIFICATE"
     ]
    },
@@ -801,13 +803,20 @@
     "type": "enum",
     "enum": [
      "BASIC_AUTH",
-     "VPC_SUBNET",
-     "VPC_SECURITY_GROUP",
-     "SASL_SCRAM_512_AUTH",
-     "SASL_SCRAM_256_AUTH",
-     "VIRTUAL_HOST",
      "CLIENT_CERTIFICATE_TLS_AUTH",
-     "SERVER_ROOT_CA_CERTIFICATE"
+     "IAM_AUTH",
+     "IAM_OAUTHBEARER_AUTH",
+     "OAUTHBEARER_AUDIENCE",
+     "OAUTHBEARER_AUTH",
+     "OAUTHBEARER_IDENTITY_POOL",
+     "OAUTHBEARER_LOGICAL_CLUSTER",
+     "OAUTHBEARER_SCOPE",
+     "SASL_SCRAM_256_AUTH",
+     "SASL_SCRAM_512_AUTH",
+     "SERVER_ROOT_CA_CERTIFICATE",
+     "VIRTUAL_HOST",
+     "VPC_SECURITY_GROUP",
+     "VPC_SUBNET"
     ]
    },
    {
@@ -818,8 +827,8 @@
     "path": "StartingPosition",
     "type": "enum",
     "enum": [
-     "LATEST",
      "AT_TIMESTAMP",
+     "LATEST",
      "TRIM_HORIZON"
     ]
    },
@@ -865,8 +874,8 @@
     "path": "Architectures[]",
     "type": "enum",
     "enum": [
-     "x86_64",
-     "arm64"
+     "arm64",
+     "x86_64"
     ]
    },
    {
@@ -983,6 +992,19 @@
     "required": true
    },
    {
+    "path": "FileSystemConfigs[].S3FilesConfig",
+    "type": "structure"
+   },
+   {
+    "path": "FileSystemConfigs[].S3FilesConfig.DirectS3Read",
+    "type": "enum",
+    "enum": [
+     "AUTO",
+     "DISABLED",
+     "ENABLED"
+    ]
+   },
+   {
     "path": "FunctionArn",
     "type": "string"
    },
@@ -1046,9 +1068,9 @@
     "path": "LastUpdateStatus",
     "type": "enum",
     "enum": [
-     "Successful",
      "Failed",
-     "InProgress"
+     "InProgress",
+     "Successful"
     ]
    },
    {
@@ -1059,42 +1081,42 @@
     "path": "LastUpdateStatusReasonCode",
     "type": "enum",
     "enum": [
-     "SubnetOutOfIPAddresses",
+     "CapacityProviderScalingLimitExceeded",
+     "DependencyError",
+     "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "EC2RequestLimitExceeded",
      "EFSIOError",
-     "FunctionError.InvalidEntryPoint",
-     "FunctionError.InvalidWorkingDirectory",
-     "InvalidSubnet",
-     "ImageAccessDenied",
-     "KMSKeyAccessDenied",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "KMSKeyNotFound",
-     "InvalidStateKMSKey",
      "EFSMountConnectivityError",
      "EFSMountFailure",
+     "EFSMountTimeout",
+     "EniLimitExceeded",
+     "FunctionError",
+     "FunctionError.ExtensionInitError",
+     "FunctionError.InitResourceExhausted",
+     "FunctionError.InitTimeout",
+     "FunctionError.InvalidEntryPoint",
+     "FunctionError.InvalidWorkingDirectory",
+     "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
      "InvalidRuntime",
      "InvalidSecurityGroup",
-     "DisabledKMSKey",
-     "ServiceQuotaExceededException",
-     "FunctionError.TooManyExtensions",
-     "FunctionError.InitResourceExhausted",
-     "DependencyError",
-     "InvalidConfiguration",
-     "InternalError",
-     "EFSMountTimeout",
-     "FunctionError",
-     "CapacityProviderScalingLimitExceeded",
-     "InsufficientCapacity",
-     "FunctionError.ExtensionInitError",
-     "FunctionError.PermissionDenied",
-     "ImageDeleted",
-     "VcpuLimitExceeded",
-     "FunctionError.RuntimeInitError",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
      "InvalidZipFileException",
-     "EC2RequestLimitExceeded",
-     "FunctionError.InitTimeout",
-     "DisallowedByVpcEncryptionControl",
-     "EniLimitExceeded"
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
+     "ServiceQuotaExceededException",
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -1129,11 +1151,11 @@
     "path": "LoggingConfig.ApplicationLogLevel",
     "type": "enum",
     "enum": [
+     "DEBUG",
      "ERROR",
      "FATAL",
-     "TRACE",
-     "DEBUG",
      "INFO",
+     "TRACE",
      "WARN"
     ]
    },
@@ -1170,8 +1192,8 @@
     "path": "PackageType",
     "type": "enum",
     "enum": [
-     "Zip",
-     "Image"
+     "Image",
+     "Zip"
     ]
    },
    {
@@ -1186,57 +1208,57 @@
     "path": "Runtime",
     "type": "enum",
     "enum": [
-     "ruby4.0",
-     "provided.al2023",
-     "python3.15",
-     "python3.13",
-     "nodejs24.x",
-     "nodejs",
-     "nodejs6.10",
-     "python3.9",
-     "nodejs26.x",
-     "python3.6",
-     "python3.7",
-     "python3.14",
      "dotnet10",
-     "nodejs4.3",
-     "nodejs22.x",
-     "java11",
-     "python2.7",
-     "dotnetcore2.0",
      "dotnet6",
      "dotnet8",
-     "nodejs10.x",
-     "java21",
      "dotnetcore1.0",
+     "dotnetcore2.0",
      "dotnetcore2.1",
-     "nodejs4.3-edge",
-     "python3.10",
-     "java8",
-     "nodejs16.x",
-     "nodejs20.x",
-     "python3.8",
      "dotnetcore3.1",
-     "ruby3.4",
-     "provided",
-     "nodejs14.x",
-     "java8.al2",
-     "ruby3.2",
-     "ruby3.3",
-     "provided.al2",
-     "java8.al2023",
-     "java11.al2023",
-     "java17.al2023",
-     "nodejs12.x",
-     "nodejs18.x",
-     "java17",
-     "java25",
-     "python3.11",
      "go1.x",
+     "java11",
+     "java11.al2023",
+     "java17",
+     "java17.al2023",
+     "java21",
+     "java25",
+     "java8",
+     "java8.al2",
+     "java8.al2023",
+     "nodejs",
+     "nodejs10.x",
+     "nodejs12.x",
+     "nodejs14.x",
+     "nodejs16.x",
+     "nodejs18.x",
+     "nodejs20.x",
+     "nodejs22.x",
+     "nodejs24.x",
+     "nodejs26.x",
+     "nodejs4.3",
+     "nodejs4.3-edge",
+     "nodejs6.10",
+     "nodejs8.10",
+     "provided",
+     "provided.al2",
+     "provided.al2023",
+     "python2.7",
+     "python3.10",
+     "python3.11",
+     "python3.12",
+     "python3.13",
+     "python3.14",
+     "python3.15",
+     "python3.6",
+     "python3.7",
+     "python3.8",
+     "python3.9",
      "ruby2.5",
      "ruby2.7",
-     "nodejs8.10",
-     "python3.12"
+     "ruby3.2",
+     "ruby3.3",
+     "ruby3.4",
+     "ruby4.0"
     ]
    },
    {
@@ -1275,30 +1297,30 @@
     "path": "SnapStart.ApplyOn",
     "type": "enum",
     "enum": [
-     "PublishedVersions",
-     "None"
+     "None",
+     "PublishedVersions"
     ]
    },
    {
     "path": "SnapStart.OptimizationStatus",
     "type": "enum",
     "enum": [
-     "On",
-     "Off"
+     "Off",
+     "On"
     ]
    },
    {
     "path": "State",
     "type": "enum",
     "enum": [
-     "ActiveNonInvocable",
-     "Deleting",
-     "Pending",
      "Active",
-     "Inactive",
-     "Failed",
+     "ActiveNonInvocable",
+     "Deactivated",
      "Deactivating",
-     "Deactivated"
+     "Deleting",
+     "Failed",
+     "Inactive",
+     "Pending"
     ]
    },
    {
@@ -1309,46 +1331,46 @@
     "path": "StateReasonCode",
     "type": "enum",
     "enum": [
-     "InvalidSubnet",
-     "ImageDeleted",
-     "InsufficientCapacity",
-     "Restoring",
-     "SubnetOutOfIPAddresses",
-     "InvalidSecurityGroup",
+     "CapacityProviderScalingLimitExceeded",
+     "Creating",
+     "DependencyError",
      "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "DrainingDurableExecutions",
+     "EC2RequestLimitExceeded",
      "EFSIOError",
      "EFSMountConnectivityError",
+     "EFSMountFailure",
      "EFSMountTimeout",
+     "EniLimitExceeded",
      "FunctionError",
-     "InvalidConfiguration",
-     "InternalError",
-     "ImageAccessDenied",
-     "InvalidRuntime",
-     "FunctionError.InitTimeout",
-     "FunctionError.RuntimeInitError",
-     "DisallowedByVpcEncryptionControl",
-     "DependencyError",
-     "KMSKeyAccessDenied",
-     "InvalidStateKMSKey",
-     "CapacityProviderScalingLimitExceeded",
      "FunctionError.ExtensionInitError",
      "FunctionError.InitResourceExhausted",
-     "DrainingDurableExecutions",
-     "EniLimitExceeded",
-     "KMSKeyNotFound",
-     "InvalidZipFileException",
-     "FunctionError.TooManyExtensions",
-     "VcpuLimitExceeded",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "FunctionError.InvalidWorkingDirectory",
-     "EFSMountFailure",
-     "ServiceQuotaExceededException",
-     "EC2RequestLimitExceeded",
+     "FunctionError.InitTimeout",
      "FunctionError.InvalidEntryPoint",
+     "FunctionError.InvalidWorkingDirectory",
      "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
      "Idle",
-     "Creating"
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
+     "InvalidRuntime",
+     "InvalidSecurityGroup",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
+     "InvalidZipFileException",
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
+     "Restoring",
+     "ServiceQuotaExceededException",
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -1422,8 +1444,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "NONE",
-     "AWS_IAM"
+     "AWS_IAM",
+     "NONE"
     ]
    },
    {
@@ -1612,8 +1634,8 @@
     "path": "CapacityProvider.PropagateTags.Mode",
     "type": "enum",
     "enum": [
-     "None",
-     "Explicit"
+     "Explicit",
+     "None"
     ]
    },
    {
@@ -1621,10 +1643,10 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "Deleting",
-     "Pending",
      "Active",
-     "Failed"
+     "Deleting",
+     "Failed",
+     "Pending"
     ]
    },
    {
@@ -1643,9 +1665,9 @@
     "path": "CapacityProvider.TelemetryConfig.LoggingConfig.SystemLogLevel",
     "type": "enum",
     "enum": [
+     "DEBUG",
      "INFO",
-     "WARN",
-     "DEBUG"
+     "WARN"
     ]
    },
    {
@@ -1703,6 +1725,7 @@
     "enum": [
      "BASIC_AUTH",
      "CLIENT_CERTIFICATE_TLS_AUTH",
+     "OAUTHBEARER_AUTH",
      "SERVER_ROOT_CA_CERTIFICATE"
     ]
    },
@@ -1782,8 +1805,8 @@
     "path": "DocumentDBEventSourceConfig.FullDocument",
     "type": "enum",
     "enum": [
-     "UpdateLookup",
-     "Default"
+     "Default",
+     "UpdateLookup"
     ]
    },
    {
@@ -1857,9 +1880,9 @@
     "path": "LoggingConfig.SystemLogLevel",
     "type": "enum",
     "enum": [
-     "WARN",
      "DEBUG",
-     "INFO"
+     "INFO",
+     "WARN"
     ]
    },
    {
@@ -1886,9 +1909,9 @@
     "path": "MetricsConfig.Metrics[]",
     "type": "enum",
     "enum": [
-     "KafkaMetrics",
+     "ErrorCount",
      "EventCount",
-     "ErrorCount"
+     "KafkaMetrics"
     ]
    },
    {
@@ -1969,6 +1992,7 @@
     "enum": [
      "BASIC_AUTH",
      "CLIENT_CERTIFICATE_TLS_AUTH",
+     "OAUTHBEARER_AUTH",
      "SERVER_ROOT_CA_CERTIFICATE"
     ]
    },
@@ -2016,14 +2040,21 @@
     "path": "SourceAccessConfigurations[].Type",
     "type": "enum",
     "enum": [
-     "VPC_SUBNET",
-     "VPC_SECURITY_GROUP",
-     "SASL_SCRAM_512_AUTH",
-     "SASL_SCRAM_256_AUTH",
-     "VIRTUAL_HOST",
+     "BASIC_AUTH",
      "CLIENT_CERTIFICATE_TLS_AUTH",
+     "IAM_AUTH",
+     "IAM_OAUTHBEARER_AUTH",
+     "OAUTHBEARER_AUDIENCE",
+     "OAUTHBEARER_AUTH",
+     "OAUTHBEARER_IDENTITY_POOL",
+     "OAUTHBEARER_LOGICAL_CLUSTER",
+     "OAUTHBEARER_SCOPE",
+     "SASL_SCRAM_256_AUTH",
+     "SASL_SCRAM_512_AUTH",
      "SERVER_ROOT_CA_CERTIFICATE",
-     "BASIC_AUTH"
+     "VIRTUAL_HOST",
+     "VPC_SECURITY_GROUP",
+     "VPC_SUBNET"
     ]
    },
    {
@@ -2034,8 +2065,8 @@
     "path": "StartingPosition",
     "type": "enum",
     "enum": [
-     "LATEST",
      "AT_TIMESTAMP",
+     "LATEST",
      "TRIM_HORIZON"
     ]
    },
@@ -2230,8 +2261,8 @@
     "path": "CapacityProvider.InstanceRequirements.Architectures[]",
     "type": "enum",
     "enum": [
-     "x86_64",
-     "arm64"
+     "arm64",
+     "x86_64"
     ]
    },
    {
@@ -2285,10 +2316,10 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "Deleting",
-     "Pending",
      "Active",
-     "Failed"
+     "Deleting",
+     "Failed",
+     "Pending"
     ]
    },
    {
@@ -2307,9 +2338,9 @@
     "path": "CapacityProvider.TelemetryConfig.LoggingConfig.SystemLogLevel",
     "type": "enum",
     "enum": [
-     "WARN",
      "DEBUG",
-     "INFO"
+     "INFO",
+     "WARN"
     ]
    },
    {
@@ -2379,8 +2410,8 @@
     "path": "CodeSigningConfig.CodeSigningPolicies.UntrustedArtifactOnDeployment",
     "type": "enum",
     "enum": [
-     "Warn",
-     "Enforce"
+     "Enforce",
+     "Warn"
     ]
    },
    {
@@ -2479,11 +2510,11 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "SUCCEEDED",
      "FAILED",
-     "TIMED_OUT",
+     "RUNNING",
      "STOPPED",
-     "RUNNING"
+     "SUCCEEDED",
+     "TIMED_OUT"
     ]
    },
    {
@@ -2732,30 +2763,30 @@
     "path": "Events[].EventType",
     "type": "enum",
     "enum": [
-     "WaitStarted",
-     "StepStarted",
-     "ChainedInvokeSucceeded",
-     "CallbackStarted",
      "CallbackFailed",
-     "ExecutionFailed",
-     "ContextFailed",
-     "ChainedInvokeStarted",
-     "ChainedInvokeTimedOut",
-     "ChainedInvokeStopped",
-     "InvocationCompleted",
-     "StepSucceeded",
-     "ExecutionStarted",
-     "ContextStarted",
-     "WaitSucceeded",
-     "WaitCancelled",
-     "ChainedInvokeFailed",
+     "CallbackStarted",
      "CallbackSucceeded",
      "CallbackTimedOut",
+     "ChainedInvokeFailed",
+     "ChainedInvokeStarted",
+     "ChainedInvokeStopped",
+     "ChainedInvokeSucceeded",
+     "ChainedInvokeTimedOut",
+     "ContextFailed",
+     "ContextStarted",
+     "ContextSucceeded",
+     "ExecutionFailed",
+     "ExecutionStarted",
+     "ExecutionStopped",
      "ExecutionSucceeded",
      "ExecutionTimedOut",
+     "InvocationCompleted",
      "StepFailed",
-     "ExecutionStopped",
-     "ContextSucceeded"
+     "StepStarted",
+     "StepSucceeded",
+     "WaitCancelled",
+     "WaitStarted",
+     "WaitSucceeded"
     ]
    },
    {
@@ -3146,14 +3177,14 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "SUCCEEDED",
-     "FAILED",
      "CANCELLED",
-     "TIMED_OUT",
-     "STOPPED",
-     "STARTED",
+     "FAILED",
      "PENDING",
-     "READY"
+     "READY",
+     "STARTED",
+     "STOPPED",
+     "SUCCEEDED",
+     "TIMED_OUT"
     ]
    },
    {
@@ -3201,12 +3232,12 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "EXECUTION",
-     "CONTEXT",
-     "STEP",
-     "WAIT",
      "CALLBACK",
-     "CHAINED_INVOKE"
+     "CHAINED_INVOKE",
+     "CONTEXT",
+     "EXECUTION",
+     "STEP",
+     "WAIT"
     ]
    },
    {
@@ -3247,9 +3278,10 @@
     "path": "AmazonManagedKafkaEventSourceConfig.SchemaRegistryConfig.AccessConfigs[].Type",
     "type": "enum",
     "enum": [
+     "BASIC_AUTH",
      "CLIENT_CERTIFICATE_TLS_AUTH",
-     "SERVER_ROOT_CA_CERTIFICATE",
-     "BASIC_AUTH"
+     "OAUTHBEARER_AUTH",
+     "SERVER_ROOT_CA_CERTIFICATE"
     ]
    },
    {
@@ -3328,8 +3360,8 @@
     "path": "DocumentDBEventSourceConfig.FullDocument",
     "type": "enum",
     "enum": [
-     "UpdateLookup",
-     "Default"
+     "Default",
+     "UpdateLookup"
     ]
    },
    {
@@ -3432,8 +3464,8 @@
     "path": "MetricsConfig.Metrics[]",
     "type": "enum",
     "enum": [
-     "EventCount",
      "ErrorCount",
+     "EventCount",
      "KafkaMetrics"
     ]
    },
@@ -3513,9 +3545,10 @@
     "path": "SelfManagedKafkaEventSourceConfig.SchemaRegistryConfig.AccessConfigs[].Type",
     "type": "enum",
     "enum": [
+     "BASIC_AUTH",
      "CLIENT_CERTIFICATE_TLS_AUTH",
-     "SERVER_ROOT_CA_CERTIFICATE",
-     "BASIC_AUTH"
+     "OAUTHBEARER_AUTH",
+     "SERVER_ROOT_CA_CERTIFICATE"
     ]
    },
    {
@@ -3562,14 +3595,21 @@
     "path": "SourceAccessConfigurations[].Type",
     "type": "enum",
     "enum": [
-     "VPC_SUBNET",
-     "VPC_SECURITY_GROUP",
-     "SASL_SCRAM_512_AUTH",
-     "SASL_SCRAM_256_AUTH",
-     "VIRTUAL_HOST",
+     "BASIC_AUTH",
      "CLIENT_CERTIFICATE_TLS_AUTH",
+     "IAM_AUTH",
+     "IAM_OAUTHBEARER_AUTH",
+     "OAUTHBEARER_AUDIENCE",
+     "OAUTHBEARER_AUTH",
+     "OAUTHBEARER_IDENTITY_POOL",
+     "OAUTHBEARER_LOGICAL_CLUSTER",
+     "OAUTHBEARER_SCOPE",
+     "SASL_SCRAM_256_AUTH",
+     "SASL_SCRAM_512_AUTH",
      "SERVER_ROOT_CA_CERTIFICATE",
-     "BASIC_AUTH"
+     "VIRTUAL_HOST",
+     "VPC_SECURITY_GROUP",
+     "VPC_SUBNET"
     ]
    },
    {
@@ -3581,8 +3621,8 @@
     "type": "enum",
     "enum": [
      "AT_TIMESTAMP",
-     "TRIM_HORIZON",
-     "LATEST"
+     "LATEST",
+     "TRIM_HORIZON"
     ]
    },
    {
@@ -3809,6 +3849,19 @@
     "required": true
    },
    {
+    "path": "Configuration.FileSystemConfigs[].S3FilesConfig",
+    "type": "structure"
+   },
+   {
+    "path": "Configuration.FileSystemConfigs[].S3FilesConfig.DirectS3Read",
+    "type": "enum",
+    "enum": [
+     "AUTO",
+     "DISABLED",
+     "ENABLED"
+    ]
+   },
+   {
     "path": "Configuration.FunctionArn",
     "type": "string"
    },
@@ -3872,9 +3925,9 @@
     "path": "Configuration.LastUpdateStatus",
     "type": "enum",
     "enum": [
+     "Failed",
      "InProgress",
-     "Successful",
-     "Failed"
+     "Successful"
     ]
    },
    {
@@ -3885,42 +3938,42 @@
     "path": "Configuration.LastUpdateStatusReasonCode",
     "type": "enum",
     "enum": [
-     "KMSKeyAccessDenied",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "KMSKeyNotFound",
-     "InvalidStateKMSKey",
+     "CapacityProviderScalingLimitExceeded",
+     "DependencyError",
+     "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "EC2RequestLimitExceeded",
+     "EFSIOError",
      "EFSMountConnectivityError",
      "EFSMountFailure",
-     "InvalidRuntime",
-     "InvalidSecurityGroup",
-     "DisabledKMSKey",
-     "ServiceQuotaExceededException",
-     "FunctionError.TooManyExtensions",
-     "FunctionError.InitResourceExhausted",
-     "DependencyError",
-     "InvalidConfiguration",
-     "InternalError",
      "EFSMountTimeout",
-     "FunctionError",
-     "CapacityProviderScalingLimitExceeded",
-     "InsufficientCapacity",
-     "FunctionError.ExtensionInitError",
-     "FunctionError.PermissionDenied",
-     "ImageDeleted",
-     "VcpuLimitExceeded",
-     "FunctionError.RuntimeInitError",
-     "InvalidZipFileException",
-     "EC2RequestLimitExceeded",
-     "FunctionError.InitTimeout",
-     "DisallowedByVpcEncryptionControl",
      "EniLimitExceeded",
-     "SubnetOutOfIPAddresses",
-     "EFSIOError",
+     "FunctionError",
+     "FunctionError.ExtensionInitError",
+     "FunctionError.InitResourceExhausted",
+     "FunctionError.InitTimeout",
      "FunctionError.InvalidEntryPoint",
      "FunctionError.InvalidWorkingDirectory",
+     "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
+     "InvalidRuntime",
+     "InvalidSecurityGroup",
+     "InvalidStateKMSKey",
      "InvalidSubnet",
-     "ImageAccessDenied"
+     "InvalidZipFileException",
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
+     "ServiceQuotaExceededException",
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -3956,11 +4009,11 @@
     "type": "enum",
     "enum": [
      "DEBUG",
-     "INFO",
-     "WARN",
      "ERROR",
      "FATAL",
-     "TRACE"
+     "INFO",
+     "TRACE",
+     "WARN"
     ]
    },
    {
@@ -3996,8 +4049,8 @@
     "path": "Configuration.PackageType",
     "type": "enum",
     "enum": [
-     "Zip",
-     "Image"
+     "Image",
+     "Zip"
     ]
    },
    {
@@ -4012,57 +4065,57 @@
     "path": "Configuration.Runtime",
     "type": "enum",
     "enum": [
-     "ruby2.7",
-     "nodejs8.10",
-     "python3.12",
-     "ruby4.0",
-     "provided.al2023",
-     "python3.15",
-     "python3.13",
-     "nodejs24.x",
-     "nodejs",
-     "nodejs6.10",
-     "python3.9",
-     "nodejs26.x",
-     "python3.6",
-     "python3.7",
-     "python3.14",
      "dotnet10",
-     "nodejs4.3",
-     "nodejs22.x",
-     "java11",
-     "python2.7",
-     "dotnetcore2.0",
      "dotnet6",
      "dotnet8",
-     "nodejs10.x",
-     "java21",
      "dotnetcore1.0",
+     "dotnetcore2.0",
      "dotnetcore2.1",
-     "nodejs4.3-edge",
-     "python3.10",
-     "java8",
-     "nodejs16.x",
-     "nodejs20.x",
-     "python3.8",
      "dotnetcore3.1",
-     "ruby3.4",
-     "provided",
-     "nodejs14.x",
+     "go1.x",
+     "java11",
+     "java11.al2023",
+     "java17",
+     "java17.al2023",
+     "java21",
+     "java25",
+     "java8",
      "java8.al2",
+     "java8.al2023",
+     "nodejs",
+     "nodejs10.x",
+     "nodejs12.x",
+     "nodejs14.x",
+     "nodejs16.x",
+     "nodejs18.x",
+     "nodejs20.x",
+     "nodejs22.x",
+     "nodejs24.x",
+     "nodejs26.x",
+     "nodejs4.3",
+     "nodejs4.3-edge",
+     "nodejs6.10",
+     "nodejs8.10",
+     "provided",
+     "provided.al2",
+     "provided.al2023",
+     "python2.7",
+     "python3.10",
+     "python3.11",
+     "python3.12",
+     "python3.13",
+     "python3.14",
+     "python3.15",
+     "python3.6",
+     "python3.7",
+     "python3.8",
+     "python3.9",
+     "ruby2.5",
+     "ruby2.7",
      "ruby3.2",
      "ruby3.3",
-     "provided.al2",
-     "java8.al2023",
-     "java11.al2023",
-     "java17.al2023",
-     "nodejs12.x",
-     "nodejs18.x",
-     "java17",
-     "java25",
-     "python3.11",
-     "go1.x",
-     "ruby2.5"
+     "ruby3.4",
+     "ruby4.0"
     ]
    },
    {
@@ -4101,30 +4154,30 @@
     "path": "Configuration.SnapStart.ApplyOn",
     "type": "enum",
     "enum": [
-     "PublishedVersions",
-     "None"
+     "None",
+     "PublishedVersions"
     ]
    },
    {
     "path": "Configuration.SnapStart.OptimizationStatus",
     "type": "enum",
     "enum": [
-     "On",
-     "Off"
+     "Off",
+     "On"
     ]
    },
    {
     "path": "Configuration.State",
     "type": "enum",
     "enum": [
-     "Inactive",
-     "Failed",
-     "Deactivating",
-     "Deactivated",
+     "Active",
      "ActiveNonInvocable",
+     "Deactivated",
+     "Deactivating",
      "Deleting",
-     "Pending",
-     "Active"
+     "Failed",
+     "Inactive",
+     "Pending"
     ]
    },
    {
@@ -4135,46 +4188,46 @@
     "path": "Configuration.StateReasonCode",
     "type": "enum",
     "enum": [
-     "InvalidSubnet",
-     "ImageDeleted",
-     "InsufficientCapacity",
-     "Restoring",
-     "SubnetOutOfIPAddresses",
-     "InvalidSecurityGroup",
+     "CapacityProviderScalingLimitExceeded",
+     "Creating",
+     "DependencyError",
      "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "DrainingDurableExecutions",
+     "EC2RequestLimitExceeded",
      "EFSIOError",
      "EFSMountConnectivityError",
+     "EFSMountFailure",
      "EFSMountTimeout",
+     "EniLimitExceeded",
      "FunctionError",
-     "InvalidConfiguration",
-     "InternalError",
-     "ImageAccessDenied",
-     "InvalidRuntime",
-     "FunctionError.InitTimeout",
-     "FunctionError.RuntimeInitError",
-     "DisallowedByVpcEncryptionControl",
-     "DependencyError",
-     "KMSKeyAccessDenied",
-     "InvalidStateKMSKey",
-     "CapacityProviderScalingLimitExceeded",
      "FunctionError.ExtensionInitError",
      "FunctionError.InitResourceExhausted",
-     "DrainingDurableExecutions",
-     "EniLimitExceeded",
-     "KMSKeyNotFound",
-     "InvalidZipFileException",
-     "FunctionError.TooManyExtensions",
-     "VcpuLimitExceeded",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "FunctionError.InvalidWorkingDirectory",
-     "EFSMountFailure",
-     "ServiceQuotaExceededException",
-     "EC2RequestLimitExceeded",
+     "FunctionError.InitTimeout",
      "FunctionError.InvalidEntryPoint",
+     "FunctionError.InvalidWorkingDirectory",
      "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
      "Idle",
-     "Creating"
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
+     "InvalidRuntime",
+     "InvalidSecurityGroup",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
+     "InvalidZipFileException",
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
+     "Restoring",
+     "ServiceQuotaExceededException",
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -4299,8 +4352,8 @@
     "path": "Architectures[]",
     "type": "enum",
     "enum": [
-     "x86_64",
-     "arm64"
+     "arm64",
+     "x86_64"
     ]
    },
    {
@@ -4417,6 +4470,19 @@
     "required": true
    },
    {
+    "path": "FileSystemConfigs[].S3FilesConfig",
+    "type": "structure"
+   },
+   {
+    "path": "FileSystemConfigs[].S3FilesConfig.DirectS3Read",
+    "type": "enum",
+    "enum": [
+     "AUTO",
+     "DISABLED",
+     "ENABLED"
+    ]
+   },
+   {
     "path": "FunctionArn",
     "type": "string"
    },
@@ -4480,9 +4546,9 @@
     "path": "LastUpdateStatus",
     "type": "enum",
     "enum": [
-     "Successful",
      "Failed",
-     "InProgress"
+     "InProgress",
+     "Successful"
     ]
    },
    {
@@ -4493,42 +4559,42 @@
     "path": "LastUpdateStatusReasonCode",
     "type": "enum",
     "enum": [
-     "FunctionError.InvalidWorkingDirectory",
-     "InvalidSubnet",
-     "ImageAccessDenied",
-     "KMSKeyAccessDenied",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "KMSKeyNotFound",
-     "InvalidStateKMSKey",
+     "CapacityProviderScalingLimitExceeded",
+     "DependencyError",
+     "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "EC2RequestLimitExceeded",
+     "EFSIOError",
      "EFSMountConnectivityError",
      "EFSMountFailure",
+     "EFSMountTimeout",
+     "EniLimitExceeded",
+     "FunctionError",
+     "FunctionError.ExtensionInitError",
+     "FunctionError.InitResourceExhausted",
+     "FunctionError.InitTimeout",
+     "FunctionError.InvalidEntryPoint",
+     "FunctionError.InvalidWorkingDirectory",
+     "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
      "InvalidRuntime",
      "InvalidSecurityGroup",
-     "DisabledKMSKey",
-     "ServiceQuotaExceededException",
-     "FunctionError.TooManyExtensions",
-     "FunctionError.InitResourceExhausted",
-     "DependencyError",
-     "InvalidConfiguration",
-     "InternalError",
-     "EFSMountTimeout",
-     "FunctionError",
-     "CapacityProviderScalingLimitExceeded",
-     "InsufficientCapacity",
-     "FunctionError.ExtensionInitError",
-     "FunctionError.PermissionDenied",
-     "ImageDeleted",
-     "VcpuLimitExceeded",
-     "FunctionError.RuntimeInitError",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
      "InvalidZipFileException",
-     "EC2RequestLimitExceeded",
-     "FunctionError.InitTimeout",
-     "DisallowedByVpcEncryptionControl",
-     "EniLimitExceeded",
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
+     "ServiceQuotaExceededException",
      "SubnetOutOfIPAddresses",
-     "EFSIOError",
-     "FunctionError.InvalidEntryPoint"
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -4563,20 +4629,20 @@
     "path": "LoggingConfig.ApplicationLogLevel",
     "type": "enum",
     "enum": [
-     "TRACE",
      "DEBUG",
-     "INFO",
-     "WARN",
      "ERROR",
-     "FATAL"
+     "FATAL",
+     "INFO",
+     "TRACE",
+     "WARN"
     ]
    },
    {
     "path": "LoggingConfig.LogFormat",
     "type": "enum",
     "enum": [
-     "Text",
-     "JSON"
+     "JSON",
+     "Text"
     ]
    },
    {
@@ -4620,57 +4686,57 @@
     "path": "Runtime",
     "type": "enum",
     "enum": [
-     "python3.6",
-     "python3.7",
-     "python3.14",
      "dotnet10",
-     "nodejs4.3",
-     "nodejs22.x",
-     "java11",
-     "python2.7",
-     "dotnetcore2.0",
      "dotnet6",
      "dotnet8",
-     "nodejs10.x",
-     "java21",
      "dotnetcore1.0",
+     "dotnetcore2.0",
      "dotnetcore2.1",
-     "nodejs4.3-edge",
-     "python3.10",
-     "java8",
-     "nodejs16.x",
-     "nodejs20.x",
-     "python3.8",
      "dotnetcore3.1",
-     "ruby3.4",
-     "provided",
-     "nodejs14.x",
-     "java8.al2",
-     "ruby3.2",
-     "ruby3.3",
-     "provided.al2",
-     "java8.al2023",
-     "java11.al2023",
-     "java17.al2023",
-     "nodejs12.x",
-     "nodejs18.x",
-     "java17",
-     "java25",
-     "python3.11",
      "go1.x",
+     "java11",
+     "java11.al2023",
+     "java17",
+     "java17.al2023",
+     "java21",
+     "java25",
+     "java8",
+     "java8.al2",
+     "java8.al2023",
+     "nodejs",
+     "nodejs10.x",
+     "nodejs12.x",
+     "nodejs14.x",
+     "nodejs16.x",
+     "nodejs18.x",
+     "nodejs20.x",
+     "nodejs22.x",
+     "nodejs24.x",
+     "nodejs26.x",
+     "nodejs4.3",
+     "nodejs4.3-edge",
+     "nodejs6.10",
+     "nodejs8.10",
+     "provided",
+     "provided.al2",
+     "provided.al2023",
+     "python2.7",
+     "python3.10",
+     "python3.11",
+     "python3.12",
+     "python3.13",
+     "python3.14",
+     "python3.15",
+     "python3.6",
+     "python3.7",
+     "python3.8",
+     "python3.9",
      "ruby2.5",
      "ruby2.7",
-     "nodejs8.10",
-     "python3.12",
-     "ruby4.0",
-     "provided.al2023",
-     "python3.15",
-     "python3.13",
-     "nodejs24.x",
-     "nodejs",
-     "nodejs6.10",
-     "python3.9",
-     "nodejs26.x"
+     "ruby3.2",
+     "ruby3.3",
+     "ruby3.4",
+     "ruby4.0"
     ]
    },
    {
@@ -4709,30 +4775,30 @@
     "path": "SnapStart.ApplyOn",
     "type": "enum",
     "enum": [
-     "PublishedVersions",
-     "None"
+     "None",
+     "PublishedVersions"
     ]
    },
    {
     "path": "SnapStart.OptimizationStatus",
     "type": "enum",
     "enum": [
-     "On",
-     "Off"
+     "Off",
+     "On"
     ]
    },
    {
     "path": "State",
     "type": "enum",
     "enum": [
-     "Deactivated",
-     "ActiveNonInvocable",
-     "Deleting",
-     "Pending",
      "Active",
-     "Inactive",
+     "ActiveNonInvocable",
+     "Deactivated",
+     "Deactivating",
+     "Deleting",
      "Failed",
-     "Deactivating"
+     "Inactive",
+     "Pending"
     ]
    },
    {
@@ -4743,46 +4809,46 @@
     "path": "StateReasonCode",
     "type": "enum",
     "enum": [
-     "Idle",
+     "CapacityProviderScalingLimitExceeded",
      "Creating",
-     "InvalidSubnet",
-     "ImageDeleted",
-     "InsufficientCapacity",
-     "Restoring",
-     "SubnetOutOfIPAddresses",
-     "InvalidSecurityGroup",
+     "DependencyError",
      "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "DrainingDurableExecutions",
+     "EC2RequestLimitExceeded",
      "EFSIOError",
      "EFSMountConnectivityError",
+     "EFSMountFailure",
      "EFSMountTimeout",
+     "EniLimitExceeded",
      "FunctionError",
-     "InvalidConfiguration",
-     "InternalError",
-     "ImageAccessDenied",
-     "InvalidRuntime",
-     "FunctionError.InitTimeout",
-     "FunctionError.RuntimeInitError",
-     "DisallowedByVpcEncryptionControl",
-     "DependencyError",
-     "KMSKeyAccessDenied",
-     "InvalidStateKMSKey",
-     "CapacityProviderScalingLimitExceeded",
      "FunctionError.ExtensionInitError",
      "FunctionError.InitResourceExhausted",
-     "DrainingDurableExecutions",
-     "EniLimitExceeded",
-     "KMSKeyNotFound",
-     "InvalidZipFileException",
-     "FunctionError.TooManyExtensions",
-     "VcpuLimitExceeded",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "FunctionError.InvalidWorkingDirectory",
-     "EFSMountFailure",
-     "ServiceQuotaExceededException",
-     "EC2RequestLimitExceeded",
+     "FunctionError.InitTimeout",
      "FunctionError.InvalidEntryPoint",
-     "FunctionError.PermissionDenied"
+     "FunctionError.InvalidWorkingDirectory",
+     "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
+     "Idle",
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
+     "InvalidRuntime",
+     "InvalidSecurityGroup",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
+     "InvalidZipFileException",
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
+     "Restoring",
+     "ServiceQuotaExceededException",
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -4897,8 +4963,8 @@
     "path": "RecursiveLoop",
     "type": "enum",
     "enum": [
-     "Terminate",
-     "Allow"
+     "Allow",
+     "Terminate"
     ]
    }
   ]
@@ -4946,8 +5012,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "NONE",
-     "AWS_IAM"
+     "AWS_IAM",
+     "NONE"
     ]
    },
    {
@@ -5048,57 +5114,57 @@
     "path": "CompatibleRuntimes[]",
     "type": "enum",
     "enum": [
-     "nodejs22.x",
-     "java11",
-     "python2.7",
-     "dotnetcore2.0",
+     "dotnet10",
      "dotnet6",
      "dotnet8",
-     "nodejs10.x",
-     "java21",
      "dotnetcore1.0",
+     "dotnetcore2.0",
      "dotnetcore2.1",
-     "nodejs4.3-edge",
-     "python3.10",
-     "java8",
-     "nodejs16.x",
-     "nodejs20.x",
-     "python3.8",
      "dotnetcore3.1",
-     "ruby3.4",
-     "provided",
-     "nodejs14.x",
-     "java8.al2",
-     "ruby3.2",
-     "ruby3.3",
-     "provided.al2",
-     "java8.al2023",
-     "java11.al2023",
-     "java17.al2023",
-     "nodejs12.x",
-     "nodejs18.x",
-     "java17",
-     "java25",
-     "python3.11",
      "go1.x",
-     "ruby2.5",
-     "ruby2.7",
-     "nodejs8.10",
-     "python3.12",
-     "ruby4.0",
-     "provided.al2023",
-     "python3.15",
-     "python3.13",
-     "nodejs24.x",
+     "java11",
+     "java11.al2023",
+     "java17",
+     "java17.al2023",
+     "java21",
+     "java25",
+     "java8",
+     "java8.al2",
+     "java8.al2023",
      "nodejs",
-     "nodejs6.10",
-     "python3.9",
+     "nodejs10.x",
+     "nodejs12.x",
+     "nodejs14.x",
+     "nodejs16.x",
+     "nodejs18.x",
+     "nodejs20.x",
+     "nodejs22.x",
+     "nodejs24.x",
      "nodejs26.x",
+     "nodejs4.3",
+     "nodejs4.3-edge",
+     "nodejs6.10",
+     "nodejs8.10",
+     "provided",
+     "provided.al2",
+     "provided.al2023",
+     "python2.7",
+     "python3.10",
+     "python3.11",
+     "python3.12",
+     "python3.13",
+     "python3.14",
+     "python3.15",
      "python3.6",
      "python3.7",
-     "python3.14",
-     "dotnet10",
-     "nodejs4.3"
+     "python3.8",
+     "python3.9",
+     "ruby2.5",
+     "ruby2.7",
+     "ruby3.2",
+     "ruby3.3",
+     "ruby3.4",
+     "ruby4.0"
     ]
    },
    {
@@ -5179,8 +5245,8 @@
     "path": "CompatibleArchitectures[]",
     "type": "enum",
     "enum": [
-     "x86_64",
-     "arm64"
+     "arm64",
+     "x86_64"
     ]
    },
    {
@@ -5191,57 +5257,57 @@
     "path": "CompatibleRuntimes[]",
     "type": "enum",
     "enum": [
-     "python3.8",
-     "dotnetcore3.1",
-     "ruby3.4",
-     "provided",
-     "nodejs14.x",
-     "java8.al2",
-     "ruby3.2",
-     "ruby3.3",
-     "provided.al2",
-     "java8.al2023",
-     "java11.al2023",
-     "java17.al2023",
-     "nodejs12.x",
-     "nodejs18.x",
-     "java17",
-     "java25",
-     "python3.11",
-     "go1.x",
-     "ruby2.5",
-     "ruby2.7",
-     "nodejs8.10",
-     "python3.12",
-     "ruby4.0",
-     "provided.al2023",
-     "python3.15",
-     "python3.13",
-     "nodejs24.x",
-     "nodejs",
-     "nodejs6.10",
-     "python3.9",
-     "nodejs26.x",
-     "python3.6",
-     "python3.7",
-     "python3.14",
      "dotnet10",
-     "nodejs4.3",
-     "nodejs22.x",
-     "java11",
-     "python2.7",
-     "dotnetcore2.0",
      "dotnet6",
      "dotnet8",
-     "nodejs10.x",
-     "java21",
      "dotnetcore1.0",
+     "dotnetcore2.0",
      "dotnetcore2.1",
-     "nodejs4.3-edge",
-     "python3.10",
+     "dotnetcore3.1",
+     "go1.x",
+     "java11",
+     "java11.al2023",
+     "java17",
+     "java17.al2023",
+     "java21",
+     "java25",
      "java8",
+     "java8.al2",
+     "java8.al2023",
+     "nodejs",
+     "nodejs10.x",
+     "nodejs12.x",
+     "nodejs14.x",
      "nodejs16.x",
-     "nodejs20.x"
+     "nodejs18.x",
+     "nodejs20.x",
+     "nodejs22.x",
+     "nodejs24.x",
+     "nodejs26.x",
+     "nodejs4.3",
+     "nodejs4.3-edge",
+     "nodejs6.10",
+     "nodejs8.10",
+     "provided",
+     "provided.al2",
+     "provided.al2023",
+     "python2.7",
+     "python3.10",
+     "python3.11",
+     "python3.12",
+     "python3.13",
+     "python3.14",
+     "python3.15",
+     "python3.6",
+     "python3.7",
+     "python3.8",
+     "python3.9",
+     "ruby2.5",
+     "ruby2.7",
+     "ruby3.2",
+     "ruby3.3",
+     "ruby3.4",
+     "ruby4.0"
     ]
    },
    {
@@ -5362,13 +5428,27 @@
     "path": "Status",
     "type": "enum",
     "enum": [
+     "FAILED",
      "IN_PROGRESS",
-     "READY",
-     "FAILED"
+     "READY"
     ]
    },
    {
     "path": "StatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "GetResourcePolicy",
+  "output": "GetResourcePolicyResponse",
+  "members": [
+   {
+    "path": "Policy",
+    "type": "string"
+   },
+   {
+    "path": "RevisionId",
     "type": "string"
    }
   ]
@@ -5390,8 +5470,8 @@
     "type": "enum",
     "enum": [
      "Auto",
-     "Manual",
-     "FunctionUpdate"
+     "FunctionUpdate",
+     "Manual"
     ]
    }
   ]
@@ -5616,8 +5696,8 @@
     "path": "CapacityProviders[].PropagateTags.Mode",
     "type": "enum",
     "enum": [
-     "None",
-     "Explicit"
+     "Explicit",
+     "None"
     ]
    },
    {
@@ -5625,10 +5705,10 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "Pending",
      "Active",
+     "Deleting",
      "Failed",
-     "Deleting"
+     "Pending"
     ]
    },
    {
@@ -5726,8 +5806,8 @@
     "path": "CodeSigningConfigs[].CodeSigningPolicies.UntrustedArtifactOnDeployment",
     "type": "enum",
     "enum": [
-     "Warn",
-     "Enforce"
+     "Enforce",
+     "Warn"
     ]
    },
    {
@@ -5790,11 +5870,11 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "RUNNING",
-     "SUCCEEDED",
      "FAILED",
-     "TIMED_OUT",
-     "STOPPED"
+     "RUNNING",
+     "STOPPED",
+     "SUCCEEDED",
+     "TIMED_OUT"
     ]
    },
    {
@@ -5835,8 +5915,8 @@
     "path": "EventSourceMappings[].AmazonManagedKafkaEventSourceConfig.SchemaRegistryConfig.EventRecordFormat",
     "type": "enum",
     "enum": [
-     "SOURCE",
-     "JSON"
+     "JSON",
+     "SOURCE"
     ]
    },
    {
@@ -5891,8 +5971,8 @@
     "path": "EventSourceMappings[].DocumentDBEventSourceConfig.FullDocument",
     "type": "enum",
     "enum": [
-     "UpdateLookup",
-     "Default"
+     "Default",
+     "UpdateLookup"
     ]
    },
    {
@@ -5991,8 +6071,8 @@
     "path": "EventSourceMappings[].MetricsConfig.Metrics[]",
     "type": "enum",
     "enum": [
-     "EventCount",
      "ErrorCount",
+     "EventCount",
      "KafkaMetrics"
     ]
    },
@@ -6088,14 +6168,21 @@
     "path": "EventSourceMappings[].SourceAccessConfigurations[].Type",
     "type": "enum",
     "enum": [
-     "SERVER_ROOT_CA_CERTIFICATE",
      "BASIC_AUTH",
-     "VPC_SUBNET",
-     "VPC_SECURITY_GROUP",
-     "SASL_SCRAM_512_AUTH",
+     "CLIENT_CERTIFICATE_TLS_AUTH",
+     "IAM_AUTH",
+     "IAM_OAUTHBEARER_AUTH",
+     "OAUTHBEARER_AUDIENCE",
+     "OAUTHBEARER_AUTH",
+     "OAUTHBEARER_IDENTITY_POOL",
+     "OAUTHBEARER_LOGICAL_CLUSTER",
+     "OAUTHBEARER_SCOPE",
      "SASL_SCRAM_256_AUTH",
+     "SASL_SCRAM_512_AUTH",
+     "SERVER_ROOT_CA_CERTIFICATE",
      "VIRTUAL_HOST",
-     "CLIENT_CERTIFICATE_TLS_AUTH"
+     "VPC_SECURITY_GROUP",
+     "VPC_SUBNET"
     ]
    },
    {
@@ -6106,9 +6193,9 @@
     "path": "EventSourceMappings[].StartingPosition",
     "type": "enum",
     "enum": [
-     "TRIM_HORIZON",
+     "AT_TIMESTAMP",
      "LATEST",
-     "AT_TIMESTAMP"
+     "TRIM_HORIZON"
     ]
    },
    {
@@ -6217,8 +6304,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "NONE",
-     "AWS_IAM"
+     "AWS_IAM",
+     "NONE"
     ]
    },
    {
@@ -6327,14 +6414,14 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "Deactivating",
-     "Deactivated",
-     "ActiveNonInvocable",
-     "Deleting",
-     "Pending",
      "Active",
+     "ActiveNonInvocable",
+     "Deactivated",
+     "Deactivating",
+     "Deleting",
+     "Failed",
      "Inactive",
-     "Failed"
+     "Pending"
     ]
    },
    {
@@ -6363,8 +6450,8 @@
     "path": "Functions[].Architectures[]",
     "type": "enum",
     "enum": [
-     "x86_64",
-     "arm64"
+     "arm64",
+     "x86_64"
     ]
    },
    {
@@ -6481,6 +6568,10 @@
     "required": true
    },
    {
+    "path": "Functions[].FileSystemConfigs[].S3FilesConfig",
+    "type": "structure"
+   },
+   {
     "path": "Functions[].FunctionArn",
     "type": "string"
    },
@@ -6536,9 +6627,9 @@
     "path": "Functions[].LastUpdateStatus",
     "type": "enum",
     "enum": [
-     "Successful",
      "Failed",
-     "InProgress"
+     "InProgress",
+     "Successful"
     ]
    },
    {
@@ -6549,42 +6640,42 @@
     "path": "Functions[].LastUpdateStatusReasonCode",
     "type": "enum",
     "enum": [
-     "KMSKeyAccessDenied",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "KMSKeyNotFound",
-     "InvalidStateKMSKey",
+     "CapacityProviderScalingLimitExceeded",
+     "DependencyError",
+     "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "EC2RequestLimitExceeded",
+     "EFSIOError",
      "EFSMountConnectivityError",
      "EFSMountFailure",
-     "InvalidRuntime",
-     "InvalidSecurityGroup",
-     "DisabledKMSKey",
-     "ServiceQuotaExceededException",
-     "FunctionError.TooManyExtensions",
-     "FunctionError.InitResourceExhausted",
-     "DependencyError",
-     "InvalidConfiguration",
-     "InternalError",
      "EFSMountTimeout",
-     "FunctionError",
-     "CapacityProviderScalingLimitExceeded",
-     "InsufficientCapacity",
-     "FunctionError.ExtensionInitError",
-     "FunctionError.PermissionDenied",
-     "ImageDeleted",
-     "VcpuLimitExceeded",
-     "FunctionError.RuntimeInitError",
-     "InvalidZipFileException",
-     "EC2RequestLimitExceeded",
-     "FunctionError.InitTimeout",
-     "DisallowedByVpcEncryptionControl",
      "EniLimitExceeded",
-     "SubnetOutOfIPAddresses",
-     "EFSIOError",
+     "FunctionError",
+     "FunctionError.ExtensionInitError",
+     "FunctionError.InitResourceExhausted",
+     "FunctionError.InitTimeout",
      "FunctionError.InvalidEntryPoint",
      "FunctionError.InvalidWorkingDirectory",
+     "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
+     "InvalidRuntime",
+     "InvalidSecurityGroup",
+     "InvalidStateKMSKey",
      "InvalidSubnet",
-     "ImageAccessDenied"
+     "InvalidZipFileException",
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
+     "ServiceQuotaExceededException",
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -6619,12 +6710,12 @@
     "path": "Functions[].LoggingConfig.ApplicationLogLevel",
     "type": "enum",
     "enum": [
-     "TRACE",
      "DEBUG",
-     "INFO",
-     "WARN",
      "ERROR",
-     "FATAL"
+     "FATAL",
+     "INFO",
+     "TRACE",
+     "WARN"
     ]
    },
    {
@@ -6643,9 +6734,9 @@
     "path": "Functions[].LoggingConfig.SystemLogLevel",
     "type": "enum",
     "enum": [
+     "DEBUG",
      "INFO",
-     "WARN",
-     "DEBUG"
+     "WARN"
     ]
    },
    {
@@ -6660,8 +6751,8 @@
     "path": "Functions[].PackageType",
     "type": "enum",
     "enum": [
-     "Zip",
-     "Image"
+     "Image",
+     "Zip"
     ]
    },
    {
@@ -6676,57 +6767,57 @@
     "path": "Functions[].Runtime",
     "type": "enum",
     "enum": [
-     "python3.6",
-     "python3.7",
-     "python3.14",
      "dotnet10",
-     "nodejs4.3",
-     "nodejs22.x",
-     "java11",
-     "python2.7",
-     "dotnetcore2.0",
      "dotnet6",
      "dotnet8",
-     "nodejs10.x",
-     "java21",
      "dotnetcore1.0",
+     "dotnetcore2.0",
      "dotnetcore2.1",
-     "nodejs4.3-edge",
-     "python3.10",
-     "java8",
-     "nodejs16.x",
-     "nodejs20.x",
-     "python3.8",
      "dotnetcore3.1",
-     "ruby3.4",
-     "provided",
-     "nodejs14.x",
-     "java8.al2",
-     "ruby3.2",
-     "ruby3.3",
-     "provided.al2",
-     "java8.al2023",
-     "java11.al2023",
-     "java17.al2023",
-     "nodejs12.x",
-     "nodejs18.x",
-     "java17",
-     "java25",
-     "python3.11",
      "go1.x",
+     "java11",
+     "java11.al2023",
+     "java17",
+     "java17.al2023",
+     "java21",
+     "java25",
+     "java8",
+     "java8.al2",
+     "java8.al2023",
+     "nodejs",
+     "nodejs10.x",
+     "nodejs12.x",
+     "nodejs14.x",
+     "nodejs16.x",
+     "nodejs18.x",
+     "nodejs20.x",
+     "nodejs22.x",
+     "nodejs24.x",
+     "nodejs26.x",
+     "nodejs4.3",
+     "nodejs4.3-edge",
+     "nodejs6.10",
+     "nodejs8.10",
+     "provided",
+     "provided.al2",
+     "provided.al2023",
+     "python2.7",
+     "python3.10",
+     "python3.11",
+     "python3.12",
+     "python3.13",
+     "python3.14",
+     "python3.15",
+     "python3.6",
+     "python3.7",
+     "python3.8",
+     "python3.9",
      "ruby2.5",
      "ruby2.7",
-     "nodejs8.10",
-     "python3.12",
-     "ruby4.0",
-     "provided.al2023",
-     "python3.15",
-     "python3.13",
-     "nodejs24.x",
-     "nodejs",
-     "nodejs6.10",
-     "python3.9",
-     "nodejs26.x"
+     "ruby3.2",
+     "ruby3.3",
+     "ruby3.4",
+     "ruby4.0"
     ]
    },
    {
@@ -6765,30 +6856,30 @@
     "path": "Functions[].SnapStart.ApplyOn",
     "type": "enum",
     "enum": [
-     "PublishedVersions",
-     "None"
+     "None",
+     "PublishedVersions"
     ]
    },
    {
     "path": "Functions[].SnapStart.OptimizationStatus",
     "type": "enum",
     "enum": [
-     "On",
-     "Off"
+     "Off",
+     "On"
     ]
    },
    {
     "path": "Functions[].State",
     "type": "enum",
     "enum": [
-     "Deleting",
-     "Pending",
      "Active",
-     "Inactive",
-     "Failed",
-     "Deactivating",
+     "ActiveNonInvocable",
      "Deactivated",
-     "ActiveNonInvocable"
+     "Deactivating",
+     "Deleting",
+     "Failed",
+     "Inactive",
+     "Pending"
     ]
    },
    {
@@ -6800,45 +6891,45 @@
     "type": "enum",
     "enum": [
      "CapacityProviderScalingLimitExceeded",
-     "FunctionError.ExtensionInitError",
-     "FunctionError.InitResourceExhausted",
-     "DrainingDurableExecutions",
-     "EniLimitExceeded",
-     "KMSKeyNotFound",
-     "InvalidZipFileException",
-     "FunctionError.TooManyExtensions",
-     "VcpuLimitExceeded",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "FunctionError.InvalidWorkingDirectory",
-     "EFSMountFailure",
-     "ServiceQuotaExceededException",
-     "EC2RequestLimitExceeded",
-     "FunctionError.InvalidEntryPoint",
-     "FunctionError.PermissionDenied",
-     "Idle",
      "Creating",
-     "InvalidSubnet",
-     "ImageDeleted",
-     "InsufficientCapacity",
-     "Restoring",
-     "SubnetOutOfIPAddresses",
-     "InvalidSecurityGroup",
+     "DependencyError",
      "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "DrainingDurableExecutions",
+     "EC2RequestLimitExceeded",
      "EFSIOError",
      "EFSMountConnectivityError",
+     "EFSMountFailure",
      "EFSMountTimeout",
+     "EniLimitExceeded",
      "FunctionError",
-     "InvalidConfiguration",
-     "InternalError",
-     "ImageAccessDenied",
-     "InvalidRuntime",
+     "FunctionError.ExtensionInitError",
+     "FunctionError.InitResourceExhausted",
      "FunctionError.InitTimeout",
+     "FunctionError.InvalidEntryPoint",
+     "FunctionError.InvalidWorkingDirectory",
+     "FunctionError.PermissionDenied",
      "FunctionError.RuntimeInitError",
-     "DisallowedByVpcEncryptionControl",
-     "DependencyError",
+     "FunctionError.TooManyExtensions",
+     "Idle",
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
+     "InvalidRuntime",
+     "InvalidSecurityGroup",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
+     "InvalidZipFileException",
      "KMSKeyAccessDenied",
-     "InvalidStateKMSKey"
+     "KMSKeyNotFound",
+     "Restoring",
+     "ServiceQuotaExceededException",
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -6957,57 +7048,57 @@
     "path": "LayerVersions[].CompatibleRuntimes[]",
     "type": "enum",
     "enum": [
-     "nodejs14.x",
-     "java8.al2",
-     "ruby3.2",
-     "ruby3.3",
-     "provided.al2",
-     "java8.al2023",
-     "java11.al2023",
-     "java17.al2023",
-     "nodejs12.x",
-     "nodejs18.x",
-     "java17",
-     "java25",
-     "python3.11",
-     "go1.x",
-     "ruby2.5",
-     "ruby2.7",
-     "nodejs8.10",
-     "python3.12",
-     "ruby4.0",
-     "provided.al2023",
-     "python3.15",
-     "python3.13",
-     "nodejs24.x",
-     "nodejs",
-     "nodejs6.10",
-     "python3.9",
-     "nodejs26.x",
-     "python3.6",
-     "python3.7",
-     "python3.14",
      "dotnet10",
-     "nodejs4.3",
-     "nodejs22.x",
-     "java11",
-     "python2.7",
-     "dotnetcore2.0",
      "dotnet6",
      "dotnet8",
-     "nodejs10.x",
-     "java21",
      "dotnetcore1.0",
+     "dotnetcore2.0",
      "dotnetcore2.1",
-     "nodejs4.3-edge",
-     "python3.10",
-     "java8",
-     "nodejs16.x",
-     "nodejs20.x",
-     "python3.8",
      "dotnetcore3.1",
+     "go1.x",
+     "java11",
+     "java11.al2023",
+     "java17",
+     "java17.al2023",
+     "java21",
+     "java25",
+     "java8",
+     "java8.al2",
+     "java8.al2023",
+     "nodejs",
+     "nodejs10.x",
+     "nodejs12.x",
+     "nodejs14.x",
+     "nodejs16.x",
+     "nodejs18.x",
+     "nodejs20.x",
+     "nodejs22.x",
+     "nodejs24.x",
+     "nodejs26.x",
+     "nodejs4.3",
+     "nodejs4.3-edge",
+     "nodejs6.10",
+     "nodejs8.10",
+     "provided",
+     "provided.al2",
+     "provided.al2023",
+     "python2.7",
+     "python3.10",
+     "python3.11",
+     "python3.12",
+     "python3.13",
+     "python3.14",
+     "python3.15",
+     "python3.6",
+     "python3.7",
+     "python3.8",
+     "python3.9",
+     "ruby2.5",
+     "ruby2.7",
+     "ruby3.2",
+     "ruby3.3",
      "ruby3.4",
-     "provided"
+     "ruby4.0"
     ]
    },
    {
@@ -7060,8 +7151,8 @@
     "path": "Layers[].LatestMatchingVersion.CompatibleArchitectures[]",
     "type": "enum",
     "enum": [
-     "x86_64",
-     "arm64"
+     "arm64",
+     "x86_64"
     ]
    },
    {
@@ -7072,57 +7163,57 @@
     "path": "Layers[].LatestMatchingVersion.CompatibleRuntimes[]",
     "type": "enum",
     "enum": [
-     "python3.7",
-     "python3.14",
      "dotnet10",
-     "nodejs4.3",
-     "nodejs22.x",
-     "java11",
-     "python2.7",
-     "dotnetcore2.0",
      "dotnet6",
      "dotnet8",
-     "nodejs10.x",
-     "java21",
      "dotnetcore1.0",
+     "dotnetcore2.0",
      "dotnetcore2.1",
-     "nodejs4.3-edge",
-     "python3.10",
-     "java8",
-     "nodejs16.x",
-     "nodejs20.x",
-     "python3.8",
      "dotnetcore3.1",
-     "ruby3.4",
-     "provided",
-     "nodejs14.x",
-     "java8.al2",
-     "ruby3.2",
-     "ruby3.3",
-     "provided.al2",
-     "java8.al2023",
-     "java11.al2023",
-     "java17.al2023",
-     "nodejs12.x",
-     "nodejs18.x",
-     "java17",
-     "java25",
-     "python3.11",
      "go1.x",
+     "java11",
+     "java11.al2023",
+     "java17",
+     "java17.al2023",
+     "java21",
+     "java25",
+     "java8",
+     "java8.al2",
+     "java8.al2023",
+     "nodejs",
+     "nodejs10.x",
+     "nodejs12.x",
+     "nodejs14.x",
+     "nodejs16.x",
+     "nodejs18.x",
+     "nodejs20.x",
+     "nodejs22.x",
+     "nodejs24.x",
+     "nodejs26.x",
+     "nodejs4.3",
+     "nodejs4.3-edge",
+     "nodejs6.10",
+     "nodejs8.10",
+     "provided",
+     "provided.al2",
+     "provided.al2023",
+     "python2.7",
+     "python3.10",
+     "python3.11",
+     "python3.12",
+     "python3.13",
+     "python3.14",
+     "python3.15",
+     "python3.6",
+     "python3.7",
+     "python3.8",
+     "python3.9",
      "ruby2.5",
      "ruby2.7",
-     "nodejs8.10",
-     "python3.12",
-     "ruby4.0",
-     "provided.al2023",
-     "python3.15",
-     "python3.13",
-     "nodejs24.x",
-     "nodejs",
-     "nodejs6.10",
-     "python3.9",
-     "nodejs26.x",
-     "python3.6"
+     "ruby3.2",
+     "ruby3.3",
+     "ruby3.4",
+     "ruby4.0"
     ]
    },
    {
@@ -7199,9 +7290,9 @@
     "path": "ProvisionedConcurrencyConfigs[].Status",
     "type": "enum",
     "enum": [
+     "FAILED",
      "IN_PROGRESS",
-     "READY",
-     "FAILED"
+     "READY"
     ]
    },
    {
@@ -7366,6 +7457,10 @@
     "required": true
    },
    {
+    "path": "Versions[].FileSystemConfigs[].S3FilesConfig",
+    "type": "structure"
+   },
+   {
     "path": "Versions[].FunctionArn",
     "type": "string"
    },
@@ -7421,9 +7516,9 @@
     "path": "Versions[].LastUpdateStatus",
     "type": "enum",
     "enum": [
-     "Successful",
      "Failed",
-     "InProgress"
+     "InProgress",
+     "Successful"
     ]
    },
    {
@@ -7434,42 +7529,42 @@
     "path": "Versions[].LastUpdateStatusReasonCode",
     "type": "enum",
     "enum": [
-     "SubnetOutOfIPAddresses",
+     "CapacityProviderScalingLimitExceeded",
+     "DependencyError",
+     "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "EC2RequestLimitExceeded",
      "EFSIOError",
-     "FunctionError.InvalidEntryPoint",
-     "FunctionError.InvalidWorkingDirectory",
-     "InvalidSubnet",
-     "ImageAccessDenied",
-     "KMSKeyAccessDenied",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "KMSKeyNotFound",
-     "InvalidStateKMSKey",
      "EFSMountConnectivityError",
      "EFSMountFailure",
+     "EFSMountTimeout",
+     "EniLimitExceeded",
+     "FunctionError",
+     "FunctionError.ExtensionInitError",
+     "FunctionError.InitResourceExhausted",
+     "FunctionError.InitTimeout",
+     "FunctionError.InvalidEntryPoint",
+     "FunctionError.InvalidWorkingDirectory",
+     "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
      "InvalidRuntime",
      "InvalidSecurityGroup",
-     "DisabledKMSKey",
-     "ServiceQuotaExceededException",
-     "FunctionError.TooManyExtensions",
-     "FunctionError.InitResourceExhausted",
-     "DependencyError",
-     "InvalidConfiguration",
-     "InternalError",
-     "EFSMountTimeout",
-     "FunctionError",
-     "CapacityProviderScalingLimitExceeded",
-     "InsufficientCapacity",
-     "FunctionError.ExtensionInitError",
-     "FunctionError.PermissionDenied",
-     "ImageDeleted",
-     "VcpuLimitExceeded",
-     "FunctionError.RuntimeInitError",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
      "InvalidZipFileException",
-     "EC2RequestLimitExceeded",
-     "FunctionError.InitTimeout",
-     "DisallowedByVpcEncryptionControl",
-     "EniLimitExceeded"
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
+     "ServiceQuotaExceededException",
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -7504,12 +7599,12 @@
     "path": "Versions[].LoggingConfig.ApplicationLogLevel",
     "type": "enum",
     "enum": [
-     "TRACE",
      "DEBUG",
-     "INFO",
-     "WARN",
      "ERROR",
-     "FATAL"
+     "FATAL",
+     "INFO",
+     "TRACE",
+     "WARN"
     ]
    },
    {
@@ -7545,8 +7640,8 @@
     "path": "Versions[].PackageType",
     "type": "enum",
     "enum": [
-     "Zip",
-     "Image"
+     "Image",
+     "Zip"
     ]
    },
    {
@@ -7561,57 +7656,57 @@
     "path": "Versions[].Runtime",
     "type": "enum",
     "enum": [
-     "dotnetcore2.0",
+     "dotnet10",
      "dotnet6",
      "dotnet8",
-     "nodejs10.x",
-     "java21",
      "dotnetcore1.0",
+     "dotnetcore2.0",
      "dotnetcore2.1",
-     "nodejs4.3-edge",
-     "python3.10",
-     "java8",
-     "nodejs16.x",
-     "nodejs20.x",
-     "python3.8",
      "dotnetcore3.1",
-     "ruby3.4",
-     "provided",
-     "nodejs14.x",
-     "java8.al2",
-     "ruby3.2",
-     "ruby3.3",
-     "provided.al2",
-     "java8.al2023",
-     "java11.al2023",
-     "java17.al2023",
-     "nodejs12.x",
-     "nodejs18.x",
-     "java17",
-     "java25",
-     "python3.11",
      "go1.x",
-     "ruby2.5",
-     "ruby2.7",
-     "nodejs8.10",
-     "python3.12",
-     "ruby4.0",
-     "provided.al2023",
-     "python3.15",
-     "python3.13",
-     "nodejs24.x",
+     "java11",
+     "java11.al2023",
+     "java17",
+     "java17.al2023",
+     "java21",
+     "java25",
+     "java8",
+     "java8.al2",
+     "java8.al2023",
      "nodejs",
-     "nodejs6.10",
-     "python3.9",
+     "nodejs10.x",
+     "nodejs12.x",
+     "nodejs14.x",
+     "nodejs16.x",
+     "nodejs18.x",
+     "nodejs20.x",
+     "nodejs22.x",
+     "nodejs24.x",
      "nodejs26.x",
+     "nodejs4.3",
+     "nodejs4.3-edge",
+     "nodejs6.10",
+     "nodejs8.10",
+     "provided",
+     "provided.al2",
+     "provided.al2023",
+     "python2.7",
+     "python3.10",
+     "python3.11",
+     "python3.12",
+     "python3.13",
+     "python3.14",
+     "python3.15",
      "python3.6",
      "python3.7",
-     "python3.14",
-     "dotnet10",
-     "nodejs4.3",
-     "nodejs22.x",
-     "java11",
-     "python2.7"
+     "python3.8",
+     "python3.9",
+     "ruby2.5",
+     "ruby2.7",
+     "ruby3.2",
+     "ruby3.3",
+     "ruby3.4",
+     "ruby4.0"
     ]
    },
    {
@@ -7650,30 +7745,30 @@
     "path": "Versions[].SnapStart.ApplyOn",
     "type": "enum",
     "enum": [
-     "PublishedVersions",
-     "None"
+     "None",
+     "PublishedVersions"
     ]
    },
    {
     "path": "Versions[].SnapStart.OptimizationStatus",
     "type": "enum",
     "enum": [
-     "On",
-     "Off"
+     "Off",
+     "On"
     ]
    },
    {
     "path": "Versions[].State",
     "type": "enum",
     "enum": [
-     "Pending",
      "Active",
-     "Inactive",
-     "Failed",
-     "Deactivating",
-     "Deactivated",
      "ActiveNonInvocable",
-     "Deleting"
+     "Deactivated",
+     "Deactivating",
+     "Deleting",
+     "Failed",
+     "Inactive",
+     "Pending"
     ]
    },
    {
@@ -7684,46 +7779,46 @@
     "path": "Versions[].StateReasonCode",
     "type": "enum",
     "enum": [
-     "InvalidRuntime",
-     "FunctionError.InitTimeout",
-     "FunctionError.RuntimeInitError",
-     "DisallowedByVpcEncryptionControl",
-     "DependencyError",
-     "KMSKeyAccessDenied",
-     "InvalidStateKMSKey",
      "CapacityProviderScalingLimitExceeded",
-     "FunctionError.ExtensionInitError",
-     "FunctionError.InitResourceExhausted",
-     "DrainingDurableExecutions",
-     "EniLimitExceeded",
-     "KMSKeyNotFound",
-     "InvalidZipFileException",
-     "FunctionError.TooManyExtensions",
-     "VcpuLimitExceeded",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "FunctionError.InvalidWorkingDirectory",
-     "EFSMountFailure",
-     "ServiceQuotaExceededException",
-     "EC2RequestLimitExceeded",
-     "FunctionError.InvalidEntryPoint",
-     "FunctionError.PermissionDenied",
-     "Idle",
      "Creating",
-     "InvalidSubnet",
-     "ImageDeleted",
-     "InsufficientCapacity",
-     "Restoring",
-     "SubnetOutOfIPAddresses",
-     "InvalidSecurityGroup",
+     "DependencyError",
      "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "DrainingDurableExecutions",
+     "EC2RequestLimitExceeded",
      "EFSIOError",
      "EFSMountConnectivityError",
+     "EFSMountFailure",
      "EFSMountTimeout",
+     "EniLimitExceeded",
      "FunctionError",
-     "InvalidConfiguration",
+     "FunctionError.ExtensionInitError",
+     "FunctionError.InitResourceExhausted",
+     "FunctionError.InitTimeout",
+     "FunctionError.InvalidEntryPoint",
+     "FunctionError.InvalidWorkingDirectory",
+     "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
+     "Idle",
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
      "InternalError",
-     "ImageAccessDenied"
+     "InvalidConfiguration",
+     "InvalidImage",
+     "InvalidRuntime",
+     "InvalidSecurityGroup",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
+     "InvalidZipFileException",
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
+     "Restoring",
+     "ServiceQuotaExceededException",
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -7800,8 +7895,8 @@
     "path": "CompatibleArchitectures[]",
     "type": "enum",
     "enum": [
-     "x86_64",
-     "arm64"
+     "arm64",
+     "x86_64"
     ]
    },
    {
@@ -7812,57 +7907,57 @@
     "path": "CompatibleRuntimes[]",
     "type": "enum",
     "enum": [
-     "nodejs18.x",
-     "java17",
-     "java25",
-     "python3.11",
-     "go1.x",
-     "ruby2.5",
-     "ruby2.7",
-     "nodejs8.10",
-     "python3.12",
-     "ruby4.0",
-     "provided.al2023",
-     "python3.15",
-     "python3.13",
-     "nodejs24.x",
-     "nodejs",
-     "nodejs6.10",
-     "python3.9",
-     "nodejs26.x",
-     "python3.6",
-     "python3.7",
-     "python3.14",
      "dotnet10",
-     "nodejs4.3",
-     "nodejs22.x",
-     "java11",
-     "python2.7",
-     "dotnetcore2.0",
      "dotnet6",
      "dotnet8",
-     "nodejs10.x",
-     "java21",
      "dotnetcore1.0",
+     "dotnetcore2.0",
      "dotnetcore2.1",
-     "nodejs4.3-edge",
-     "python3.10",
-     "java8",
-     "nodejs16.x",
-     "nodejs20.x",
-     "python3.8",
      "dotnetcore3.1",
-     "ruby3.4",
-     "provided",
-     "nodejs14.x",
+     "go1.x",
+     "java11",
+     "java11.al2023",
+     "java17",
+     "java17.al2023",
+     "java21",
+     "java25",
+     "java8",
      "java8.al2",
+     "java8.al2023",
+     "nodejs",
+     "nodejs10.x",
+     "nodejs12.x",
+     "nodejs14.x",
+     "nodejs16.x",
+     "nodejs18.x",
+     "nodejs20.x",
+     "nodejs22.x",
+     "nodejs24.x",
+     "nodejs26.x",
+     "nodejs4.3",
+     "nodejs4.3-edge",
+     "nodejs6.10",
+     "nodejs8.10",
+     "provided",
+     "provided.al2",
+     "provided.al2023",
+     "python2.7",
+     "python3.10",
+     "python3.11",
+     "python3.12",
+     "python3.13",
+     "python3.14",
+     "python3.15",
+     "python3.6",
+     "python3.7",
+     "python3.8",
+     "python3.9",
+     "ruby2.5",
+     "ruby2.7",
      "ruby3.2",
      "ruby3.3",
-     "provided.al2",
-     "java8.al2023",
-     "java11.al2023",
-     "java17.al2023",
-     "nodejs12.x"
+     "ruby3.4",
+     "ruby4.0"
     ]
    },
    {
@@ -7943,8 +8038,8 @@
     "path": "Architectures[]",
     "type": "enum",
     "enum": [
-     "x86_64",
-     "arm64"
+     "arm64",
+     "x86_64"
     ]
    },
    {
@@ -8061,6 +8156,19 @@
     "required": true
    },
    {
+    "path": "FileSystemConfigs[].S3FilesConfig",
+    "type": "structure"
+   },
+   {
+    "path": "FileSystemConfigs[].S3FilesConfig.DirectS3Read",
+    "type": "enum",
+    "enum": [
+     "AUTO",
+     "DISABLED",
+     "ENABLED"
+    ]
+   },
+   {
     "path": "FunctionArn",
     "type": "string"
    },
@@ -8124,9 +8232,9 @@
     "path": "LastUpdateStatus",
     "type": "enum",
     "enum": [
+     "Failed",
      "InProgress",
-     "Successful",
-     "Failed"
+     "Successful"
     ]
    },
    {
@@ -8138,41 +8246,41 @@
     "type": "enum",
     "enum": [
      "CapacityProviderScalingLimitExceeded",
-     "InsufficientCapacity",
-     "FunctionError.ExtensionInitError",
-     "FunctionError.PermissionDenied",
-     "ImageDeleted",
-     "VcpuLimitExceeded",
-     "FunctionError.RuntimeInitError",
-     "InvalidZipFileException",
-     "EC2RequestLimitExceeded",
-     "FunctionError.InitTimeout",
+     "DependencyError",
+     "DisabledKMSKey",
      "DisallowedByVpcEncryptionControl",
-     "EniLimitExceeded",
-     "SubnetOutOfIPAddresses",
+     "EC2RequestLimitExceeded",
      "EFSIOError",
-     "FunctionError.InvalidEntryPoint",
-     "FunctionError.InvalidWorkingDirectory",
-     "InvalidSubnet",
-     "ImageAccessDenied",
-     "KMSKeyAccessDenied",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "KMSKeyNotFound",
-     "InvalidStateKMSKey",
      "EFSMountConnectivityError",
      "EFSMountFailure",
+     "EFSMountTimeout",
+     "EniLimitExceeded",
+     "FunctionError",
+     "FunctionError.ExtensionInitError",
+     "FunctionError.InitResourceExhausted",
+     "FunctionError.InitTimeout",
+     "FunctionError.InvalidEntryPoint",
+     "FunctionError.InvalidWorkingDirectory",
+     "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
      "InvalidRuntime",
      "InvalidSecurityGroup",
-     "DisabledKMSKey",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
+     "InvalidZipFileException",
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
      "ServiceQuotaExceededException",
-     "FunctionError.TooManyExtensions",
-     "FunctionError.InitResourceExhausted",
-     "DependencyError",
-     "InvalidConfiguration",
-     "InternalError",
-     "EFSMountTimeout",
-     "FunctionError"
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -8207,12 +8315,12 @@
     "path": "LoggingConfig.ApplicationLogLevel",
     "type": "enum",
     "enum": [
-     "INFO",
-     "WARN",
+     "DEBUG",
      "ERROR",
      "FATAL",
+     "INFO",
      "TRACE",
-     "DEBUG"
+     "WARN"
     ]
    },
    {
@@ -8248,8 +8356,8 @@
     "path": "PackageType",
     "type": "enum",
     "enum": [
-     "Zip",
-     "Image"
+     "Image",
+     "Zip"
     ]
    },
    {
@@ -8264,57 +8372,57 @@
     "path": "Runtime",
     "type": "enum",
     "enum": [
-     "python3.6",
-     "python3.7",
-     "python3.14",
      "dotnet10",
-     "nodejs4.3",
-     "nodejs22.x",
-     "java11",
-     "python2.7",
-     "dotnetcore2.0",
      "dotnet6",
      "dotnet8",
-     "nodejs10.x",
-     "java21",
      "dotnetcore1.0",
+     "dotnetcore2.0",
      "dotnetcore2.1",
-     "nodejs4.3-edge",
-     "python3.10",
-     "java8",
-     "nodejs16.x",
-     "nodejs20.x",
-     "python3.8",
      "dotnetcore3.1",
-     "ruby3.4",
-     "provided",
-     "nodejs14.x",
-     "java8.al2",
-     "ruby3.2",
-     "ruby3.3",
-     "provided.al2",
-     "java8.al2023",
-     "java11.al2023",
-     "java17.al2023",
-     "nodejs12.x",
-     "nodejs18.x",
-     "java17",
-     "java25",
-     "python3.11",
      "go1.x",
+     "java11",
+     "java11.al2023",
+     "java17",
+     "java17.al2023",
+     "java21",
+     "java25",
+     "java8",
+     "java8.al2",
+     "java8.al2023",
+     "nodejs",
+     "nodejs10.x",
+     "nodejs12.x",
+     "nodejs14.x",
+     "nodejs16.x",
+     "nodejs18.x",
+     "nodejs20.x",
+     "nodejs22.x",
+     "nodejs24.x",
+     "nodejs26.x",
+     "nodejs4.3",
+     "nodejs4.3-edge",
+     "nodejs6.10",
+     "nodejs8.10",
+     "provided",
+     "provided.al2",
+     "provided.al2023",
+     "python2.7",
+     "python3.10",
+     "python3.11",
+     "python3.12",
+     "python3.13",
+     "python3.14",
+     "python3.15",
+     "python3.6",
+     "python3.7",
+     "python3.8",
+     "python3.9",
      "ruby2.5",
      "ruby2.7",
-     "nodejs8.10",
-     "python3.12",
-     "ruby4.0",
-     "provided.al2023",
-     "python3.15",
-     "python3.13",
-     "nodejs24.x",
-     "nodejs",
-     "nodejs6.10",
-     "python3.9",
-     "nodejs26.x"
+     "ruby3.2",
+     "ruby3.3",
+     "ruby3.4",
+     "ruby4.0"
     ]
    },
    {
@@ -8353,30 +8461,30 @@
     "path": "SnapStart.ApplyOn",
     "type": "enum",
     "enum": [
-     "PublishedVersions",
-     "None"
+     "None",
+     "PublishedVersions"
     ]
    },
    {
     "path": "SnapStart.OptimizationStatus",
     "type": "enum",
     "enum": [
-     "On",
-     "Off"
+     "Off",
+     "On"
     ]
    },
    {
     "path": "State",
     "type": "enum",
     "enum": [
-     "Failed",
-     "Deactivating",
-     "Deactivated",
-     "ActiveNonInvocable",
-     "Deleting",
-     "Pending",
      "Active",
-     "Inactive"
+     "ActiveNonInvocable",
+     "Deactivated",
+     "Deactivating",
+     "Deleting",
+     "Failed",
+     "Inactive",
+     "Pending"
     ]
    },
    {
@@ -8387,46 +8495,46 @@
     "path": "StateReasonCode",
     "type": "enum",
     "enum": [
-     "Restoring",
-     "SubnetOutOfIPAddresses",
-     "InvalidSecurityGroup",
+     "CapacityProviderScalingLimitExceeded",
+     "Creating",
+     "DependencyError",
      "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "DrainingDurableExecutions",
+     "EC2RequestLimitExceeded",
      "EFSIOError",
      "EFSMountConnectivityError",
+     "EFSMountFailure",
      "EFSMountTimeout",
+     "EniLimitExceeded",
      "FunctionError",
-     "InvalidConfiguration",
-     "InternalError",
-     "ImageAccessDenied",
-     "InvalidRuntime",
-     "FunctionError.InitTimeout",
-     "FunctionError.RuntimeInitError",
-     "DisallowedByVpcEncryptionControl",
-     "DependencyError",
-     "KMSKeyAccessDenied",
-     "InvalidStateKMSKey",
-     "CapacityProviderScalingLimitExceeded",
      "FunctionError.ExtensionInitError",
      "FunctionError.InitResourceExhausted",
-     "DrainingDurableExecutions",
-     "EniLimitExceeded",
-     "KMSKeyNotFound",
-     "InvalidZipFileException",
-     "FunctionError.TooManyExtensions",
-     "VcpuLimitExceeded",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "FunctionError.InvalidWorkingDirectory",
-     "EFSMountFailure",
-     "ServiceQuotaExceededException",
-     "EC2RequestLimitExceeded",
+     "FunctionError.InitTimeout",
      "FunctionError.InvalidEntryPoint",
+     "FunctionError.InvalidWorkingDirectory",
      "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
      "Idle",
-     "Creating",
-     "InvalidSubnet",
+     "ImageAccessDenied",
      "ImageDeleted",
-     "InsufficientCapacity"
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
+     "InvalidRuntime",
+     "InvalidSecurityGroup",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
+     "InvalidZipFileException",
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
+     "Restoring",
+     "ServiceQuotaExceededException",
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -8582,12 +8690,12 @@
     "type": "enum",
     "enum": [
      "Active",
-     "Inactive",
-     "Failed",
-     "Deactivating",
-     "Deactivated",
      "ActiveNonInvocable",
+     "Deactivated",
+     "Deactivating",
      "Deleting",
+     "Failed",
+     "Inactive",
      "Pending"
     ]
    }
@@ -8617,13 +8725,27 @@
     "path": "Status",
     "type": "enum",
     "enum": [
-     "READY",
      "FAILED",
-     "IN_PROGRESS"
+     "IN_PROGRESS",
+     "READY"
     ]
    },
    {
     "path": "StatusReason",
+    "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "PutResourcePolicy",
+  "output": "PutResourcePolicyResponse",
+  "members": [
+   {
+    "path": "Policy",
+    "type": "string"
+   },
+   {
+    "path": "RevisionId",
     "type": "string"
    }
   ]
@@ -8647,8 +8769,8 @@
     "required": true,
     "enum": [
      "Auto",
-     "Manual",
-     "FunctionUpdate"
+     "FunctionUpdate",
+     "Manual"
     ]
    }
   ]
@@ -8773,8 +8895,8 @@
     "path": "CapacityProvider.InstanceRequirements.Architectures[]",
     "type": "enum",
     "enum": [
-     "x86_64",
-     "arm64"
+     "arm64",
+     "x86_64"
     ]
    },
    {
@@ -8819,8 +8941,8 @@
     "path": "CapacityProvider.PropagateTags.Mode",
     "type": "enum",
     "enum": [
-     "None",
-     "Explicit"
+     "Explicit",
+     "None"
     ]
    },
    {
@@ -8828,10 +8950,10 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "Pending",
      "Active",
+     "Deleting",
      "Failed",
-     "Deleting"
+     "Pending"
     ]
    },
    {
@@ -8850,9 +8972,9 @@
     "path": "CapacityProvider.TelemetryConfig.LoggingConfig.SystemLogLevel",
     "type": "enum",
     "enum": [
-     "WARN",
      "DEBUG",
-     "INFO"
+     "INFO",
+     "WARN"
     ]
    },
    {
@@ -8922,8 +9044,8 @@
     "path": "CodeSigningConfig.CodeSigningPolicies.UntrustedArtifactOnDeployment",
     "type": "enum",
     "enum": [
-     "Warn",
-     "Enforce"
+     "Enforce",
+     "Warn"
     ]
    },
    {
@@ -8967,6 +9089,7 @@
     "enum": [
      "BASIC_AUTH",
      "CLIENT_CERTIFICATE_TLS_AUTH",
+     "OAUTHBEARER_AUTH",
      "SERVER_ROOT_CA_CERTIFICATE"
     ]
    },
@@ -9046,8 +9169,8 @@
     "path": "DocumentDBEventSourceConfig.FullDocument",
     "type": "enum",
     "enum": [
-     "UpdateLookup",
-     "Default"
+     "Default",
+     "UpdateLookup"
     ]
    },
    {
@@ -9150,8 +9273,8 @@
     "path": "MetricsConfig.Metrics[]",
     "type": "enum",
     "enum": [
-     "EventCount",
      "ErrorCount",
+     "EventCount",
      "KafkaMetrics"
     ]
    },
@@ -9231,9 +9354,10 @@
     "path": "SelfManagedKafkaEventSourceConfig.SchemaRegistryConfig.AccessConfigs[].Type",
     "type": "enum",
     "enum": [
-     "SERVER_ROOT_CA_CERTIFICATE",
      "BASIC_AUTH",
-     "CLIENT_CERTIFICATE_TLS_AUTH"
+     "CLIENT_CERTIFICATE_TLS_AUTH",
+     "OAUTHBEARER_AUTH",
+     "SERVER_ROOT_CA_CERTIFICATE"
     ]
    },
    {
@@ -9264,8 +9388,8 @@
     "path": "SelfManagedKafkaEventSourceConfig.SchemaRegistryConfig.SchemaValidationConfigs[].Attribute",
     "type": "enum",
     "enum": [
-     "VALUE",
-     "KEY"
+     "KEY",
+     "VALUE"
     ]
    },
    {
@@ -9280,14 +9404,21 @@
     "path": "SourceAccessConfigurations[].Type",
     "type": "enum",
     "enum": [
-     "SASL_SCRAM_256_AUTH",
-     "VIRTUAL_HOST",
-     "CLIENT_CERTIFICATE_TLS_AUTH",
-     "SERVER_ROOT_CA_CERTIFICATE",
      "BASIC_AUTH",
-     "VPC_SUBNET",
+     "CLIENT_CERTIFICATE_TLS_AUTH",
+     "IAM_AUTH",
+     "IAM_OAUTHBEARER_AUTH",
+     "OAUTHBEARER_AUDIENCE",
+     "OAUTHBEARER_AUTH",
+     "OAUTHBEARER_IDENTITY_POOL",
+     "OAUTHBEARER_LOGICAL_CLUSTER",
+     "OAUTHBEARER_SCOPE",
+     "SASL_SCRAM_256_AUTH",
+     "SASL_SCRAM_512_AUTH",
+     "SERVER_ROOT_CA_CERTIFICATE",
+     "VIRTUAL_HOST",
      "VPC_SECURITY_GROUP",
-     "SASL_SCRAM_512_AUTH"
+     "VPC_SUBNET"
     ]
    },
    {
@@ -9298,9 +9429,9 @@
     "path": "StartingPosition",
     "type": "enum",
     "enum": [
-     "TRIM_HORIZON",
+     "AT_TIMESTAMP",
      "LATEST",
-     "AT_TIMESTAMP"
+     "TRIM_HORIZON"
     ]
    },
    {
@@ -9345,8 +9476,8 @@
     "path": "Architectures[]",
     "type": "enum",
     "enum": [
-     "x86_64",
-     "arm64"
+     "arm64",
+     "x86_64"
     ]
    },
    {
@@ -9461,6 +9592,19 @@
     "path": "FileSystemConfigs[].LocalMountPath",
     "type": "string",
     "required": true
+   },
+   {
+    "path": "FileSystemConfigs[].S3FilesConfig",
+    "type": "structure"
+   },
+   {
+    "path": "FileSystemConfigs[].S3FilesConfig.DirectS3Read",
+    "type": "enum",
+    "enum": [
+     "AUTO",
+     "DISABLED",
+     "ENABLED"
+    ]
    },
    {
     "path": "FunctionArn",
@@ -9539,42 +9683,42 @@
     "path": "LastUpdateStatusReasonCode",
     "type": "enum",
     "enum": [
-     "InvalidStateKMSKey",
+     "CapacityProviderScalingLimitExceeded",
+     "DependencyError",
+     "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "EC2RequestLimitExceeded",
+     "EFSIOError",
      "EFSMountConnectivityError",
      "EFSMountFailure",
-     "InvalidRuntime",
-     "InvalidSecurityGroup",
-     "DisabledKMSKey",
-     "ServiceQuotaExceededException",
-     "FunctionError.TooManyExtensions",
-     "FunctionError.InitResourceExhausted",
-     "DependencyError",
-     "InvalidConfiguration",
-     "InternalError",
      "EFSMountTimeout",
-     "FunctionError",
-     "CapacityProviderScalingLimitExceeded",
-     "InsufficientCapacity",
-     "FunctionError.ExtensionInitError",
-     "FunctionError.PermissionDenied",
-     "ImageDeleted",
-     "VcpuLimitExceeded",
-     "FunctionError.RuntimeInitError",
-     "InvalidZipFileException",
-     "EC2RequestLimitExceeded",
-     "FunctionError.InitTimeout",
-     "DisallowedByVpcEncryptionControl",
      "EniLimitExceeded",
-     "SubnetOutOfIPAddresses",
-     "EFSIOError",
+     "FunctionError",
+     "FunctionError.ExtensionInitError",
+     "FunctionError.InitResourceExhausted",
+     "FunctionError.InitTimeout",
      "FunctionError.InvalidEntryPoint",
      "FunctionError.InvalidWorkingDirectory",
-     "InvalidSubnet",
+     "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
      "ImageAccessDenied",
-     "KMSKeyAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
      "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
      "InvalidImage",
-     "KMSKeyNotFound"
+     "InvalidRuntime",
+     "InvalidSecurityGroup",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
+     "InvalidZipFileException",
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
+     "ServiceQuotaExceededException",
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -9609,12 +9753,12 @@
     "path": "LoggingConfig.ApplicationLogLevel",
     "type": "enum",
     "enum": [
-     "INFO",
-     "WARN",
+     "DEBUG",
      "ERROR",
      "FATAL",
+     "INFO",
      "TRACE",
-     "DEBUG"
+     "WARN"
     ]
    },
    {
@@ -9650,8 +9794,8 @@
     "path": "PackageType",
     "type": "enum",
     "enum": [
-     "Zip",
-     "Image"
+     "Image",
+     "Zip"
     ]
    },
    {
@@ -9666,57 +9810,57 @@
     "path": "Runtime",
     "type": "enum",
     "enum": [
-     "python3.10",
-     "java8",
-     "nodejs16.x",
-     "nodejs20.x",
-     "python3.8",
-     "dotnetcore3.1",
-     "ruby3.4",
-     "provided",
-     "nodejs14.x",
-     "java8.al2",
-     "ruby3.2",
-     "ruby3.3",
-     "provided.al2",
-     "java8.al2023",
-     "java11.al2023",
-     "java17.al2023",
-     "nodejs12.x",
-     "nodejs18.x",
-     "java17",
-     "java25",
-     "python3.11",
-     "go1.x",
-     "ruby2.5",
-     "ruby2.7",
-     "nodejs8.10",
-     "python3.12",
-     "ruby4.0",
-     "provided.al2023",
-     "python3.15",
-     "python3.13",
-     "nodejs24.x",
-     "nodejs",
-     "nodejs6.10",
-     "python3.9",
-     "nodejs26.x",
-     "python3.6",
-     "python3.7",
-     "python3.14",
      "dotnet10",
-     "nodejs4.3",
-     "nodejs22.x",
-     "java11",
-     "python2.7",
-     "dotnetcore2.0",
      "dotnet6",
      "dotnet8",
-     "nodejs10.x",
-     "java21",
      "dotnetcore1.0",
+     "dotnetcore2.0",
      "dotnetcore2.1",
-     "nodejs4.3-edge"
+     "dotnetcore3.1",
+     "go1.x",
+     "java11",
+     "java11.al2023",
+     "java17",
+     "java17.al2023",
+     "java21",
+     "java25",
+     "java8",
+     "java8.al2",
+     "java8.al2023",
+     "nodejs",
+     "nodejs10.x",
+     "nodejs12.x",
+     "nodejs14.x",
+     "nodejs16.x",
+     "nodejs18.x",
+     "nodejs20.x",
+     "nodejs22.x",
+     "nodejs24.x",
+     "nodejs26.x",
+     "nodejs4.3",
+     "nodejs4.3-edge",
+     "nodejs6.10",
+     "nodejs8.10",
+     "provided",
+     "provided.al2",
+     "provided.al2023",
+     "python2.7",
+     "python3.10",
+     "python3.11",
+     "python3.12",
+     "python3.13",
+     "python3.14",
+     "python3.15",
+     "python3.6",
+     "python3.7",
+     "python3.8",
+     "python3.9",
+     "ruby2.5",
+     "ruby2.7",
+     "ruby3.2",
+     "ruby3.3",
+     "ruby3.4",
+     "ruby4.0"
     ]
    },
    {
@@ -9755,30 +9899,30 @@
     "path": "SnapStart.ApplyOn",
     "type": "enum",
     "enum": [
-     "PublishedVersions",
-     "None"
+     "None",
+     "PublishedVersions"
     ]
    },
    {
     "path": "SnapStart.OptimizationStatus",
     "type": "enum",
     "enum": [
-     "On",
-     "Off"
+     "Off",
+     "On"
     ]
    },
    {
     "path": "State",
     "type": "enum",
     "enum": [
-     "ActiveNonInvocable",
-     "Deleting",
-     "Pending",
      "Active",
-     "Inactive",
-     "Failed",
+     "ActiveNonInvocable",
+     "Deactivated",
      "Deactivating",
-     "Deactivated"
+     "Deleting",
+     "Failed",
+     "Inactive",
+     "Pending"
     ]
    },
    {
@@ -9789,46 +9933,46 @@
     "path": "StateReasonCode",
     "type": "enum",
     "enum": [
-     "KMSKeyNotFound",
-     "InvalidZipFileException",
-     "FunctionError.TooManyExtensions",
-     "VcpuLimitExceeded",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "FunctionError.InvalidWorkingDirectory",
-     "EFSMountFailure",
-     "ServiceQuotaExceededException",
-     "EC2RequestLimitExceeded",
-     "FunctionError.InvalidEntryPoint",
-     "FunctionError.PermissionDenied",
-     "Idle",
+     "CapacityProviderScalingLimitExceeded",
      "Creating",
-     "InvalidSubnet",
-     "ImageDeleted",
-     "InsufficientCapacity",
-     "Restoring",
-     "SubnetOutOfIPAddresses",
-     "InvalidSecurityGroup",
+     "DependencyError",
      "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "DrainingDurableExecutions",
+     "EC2RequestLimitExceeded",
      "EFSIOError",
      "EFSMountConnectivityError",
+     "EFSMountFailure",
      "EFSMountTimeout",
+     "EniLimitExceeded",
      "FunctionError",
-     "InvalidConfiguration",
-     "InternalError",
-     "ImageAccessDenied",
-     "InvalidRuntime",
-     "FunctionError.InitTimeout",
-     "FunctionError.RuntimeInitError",
-     "DisallowedByVpcEncryptionControl",
-     "DependencyError",
-     "KMSKeyAccessDenied",
-     "InvalidStateKMSKey",
-     "CapacityProviderScalingLimitExceeded",
      "FunctionError.ExtensionInitError",
      "FunctionError.InitResourceExhausted",
-     "DrainingDurableExecutions",
-     "EniLimitExceeded"
+     "FunctionError.InitTimeout",
+     "FunctionError.InvalidEntryPoint",
+     "FunctionError.InvalidWorkingDirectory",
+     "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
+     "Idle",
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
+     "InvalidRuntime",
+     "InvalidSecurityGroup",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
+     "InvalidZipFileException",
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
+     "Restoring",
+     "ServiceQuotaExceededException",
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -9905,8 +10049,8 @@
     "path": "Architectures[]",
     "type": "enum",
     "enum": [
-     "x86_64",
-     "arm64"
+     "arm64",
+     "x86_64"
     ]
    },
    {
@@ -10023,6 +10167,19 @@
     "required": true
    },
    {
+    "path": "FileSystemConfigs[].S3FilesConfig",
+    "type": "structure"
+   },
+   {
+    "path": "FileSystemConfigs[].S3FilesConfig.DirectS3Read",
+    "type": "enum",
+    "enum": [
+     "AUTO",
+     "DISABLED",
+     "ENABLED"
+    ]
+   },
+   {
     "path": "FunctionArn",
     "type": "string"
    },
@@ -10086,9 +10243,9 @@
     "path": "LastUpdateStatus",
     "type": "enum",
     "enum": [
-     "Successful",
      "Failed",
-     "InProgress"
+     "InProgress",
+     "Successful"
     ]
    },
    {
@@ -10099,41 +10256,41 @@
     "path": "LastUpdateStatusReasonCode",
     "type": "enum",
     "enum": [
-     "FunctionError.RuntimeInitError",
-     "InvalidZipFileException",
-     "EC2RequestLimitExceeded",
-     "FunctionError.InitTimeout",
+     "CapacityProviderScalingLimitExceeded",
+     "DependencyError",
+     "DisabledKMSKey",
      "DisallowedByVpcEncryptionControl",
-     "EniLimitExceeded",
-     "SubnetOutOfIPAddresses",
+     "EC2RequestLimitExceeded",
      "EFSIOError",
-     "FunctionError.InvalidEntryPoint",
-     "FunctionError.InvalidWorkingDirectory",
-     "InvalidSubnet",
-     "ImageAccessDenied",
-     "KMSKeyAccessDenied",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "KMSKeyNotFound",
-     "InvalidStateKMSKey",
      "EFSMountConnectivityError",
      "EFSMountFailure",
+     "EFSMountTimeout",
+     "EniLimitExceeded",
+     "FunctionError",
+     "FunctionError.ExtensionInitError",
+     "FunctionError.InitResourceExhausted",
+     "FunctionError.InitTimeout",
+     "FunctionError.InvalidEntryPoint",
+     "FunctionError.InvalidWorkingDirectory",
+     "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
      "InvalidRuntime",
      "InvalidSecurityGroup",
-     "DisabledKMSKey",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
+     "InvalidZipFileException",
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
      "ServiceQuotaExceededException",
-     "FunctionError.TooManyExtensions",
-     "FunctionError.InitResourceExhausted",
-     "DependencyError",
-     "InvalidConfiguration",
-     "InternalError",
-     "EFSMountTimeout",
-     "FunctionError",
-     "CapacityProviderScalingLimitExceeded",
-     "InsufficientCapacity",
-     "FunctionError.ExtensionInitError",
-     "FunctionError.PermissionDenied",
-     "ImageDeleted",
+     "SubnetOutOfIPAddresses",
      "VcpuLimitExceeded"
     ]
    },
@@ -10169,20 +10326,20 @@
     "path": "LoggingConfig.ApplicationLogLevel",
     "type": "enum",
     "enum": [
-     "TRACE",
      "DEBUG",
-     "INFO",
-     "WARN",
      "ERROR",
-     "FATAL"
+     "FATAL",
+     "INFO",
+     "TRACE",
+     "WARN"
     ]
    },
    {
     "path": "LoggingConfig.LogFormat",
     "type": "enum",
     "enum": [
-     "Text",
-     "JSON"
+     "JSON",
+     "Text"
     ]
    },
    {
@@ -10210,8 +10367,8 @@
     "path": "PackageType",
     "type": "enum",
     "enum": [
-     "Zip",
-     "Image"
+     "Image",
+     "Zip"
     ]
    },
    {
@@ -10226,57 +10383,57 @@
     "path": "Runtime",
     "type": "enum",
     "enum": [
+     "dotnet10",
      "dotnet6",
      "dotnet8",
-     "nodejs10.x",
-     "java21",
      "dotnetcore1.0",
+     "dotnetcore2.0",
      "dotnetcore2.1",
-     "nodejs4.3-edge",
-     "python3.10",
-     "java8",
-     "nodejs16.x",
-     "nodejs20.x",
-     "python3.8",
      "dotnetcore3.1",
-     "ruby3.4",
-     "provided",
-     "nodejs14.x",
-     "java8.al2",
-     "ruby3.2",
-     "ruby3.3",
-     "provided.al2",
-     "java8.al2023",
-     "java11.al2023",
-     "java17.al2023",
-     "nodejs12.x",
-     "nodejs18.x",
-     "java17",
-     "java25",
-     "python3.11",
      "go1.x",
-     "ruby2.5",
-     "ruby2.7",
-     "nodejs8.10",
-     "python3.12",
-     "ruby4.0",
-     "provided.al2023",
-     "python3.15",
-     "python3.13",
-     "nodejs24.x",
+     "java11",
+     "java11.al2023",
+     "java17",
+     "java17.al2023",
+     "java21",
+     "java25",
+     "java8",
+     "java8.al2",
+     "java8.al2023",
      "nodejs",
-     "nodejs6.10",
-     "python3.9",
+     "nodejs10.x",
+     "nodejs12.x",
+     "nodejs14.x",
+     "nodejs16.x",
+     "nodejs18.x",
+     "nodejs20.x",
+     "nodejs22.x",
+     "nodejs24.x",
      "nodejs26.x",
+     "nodejs4.3",
+     "nodejs4.3-edge",
+     "nodejs6.10",
+     "nodejs8.10",
+     "provided",
+     "provided.al2",
+     "provided.al2023",
+     "python2.7",
+     "python3.10",
+     "python3.11",
+     "python3.12",
+     "python3.13",
+     "python3.14",
+     "python3.15",
      "python3.6",
      "python3.7",
-     "python3.14",
-     "dotnet10",
-     "nodejs4.3",
-     "nodejs22.x",
-     "java11",
-     "python2.7",
-     "dotnetcore2.0"
+     "python3.8",
+     "python3.9",
+     "ruby2.5",
+     "ruby2.7",
+     "ruby3.2",
+     "ruby3.3",
+     "ruby3.4",
+     "ruby4.0"
     ]
    },
    {
@@ -10315,30 +10472,30 @@
     "path": "SnapStart.ApplyOn",
     "type": "enum",
     "enum": [
-     "PublishedVersions",
-     "None"
+     "None",
+     "PublishedVersions"
     ]
    },
    {
     "path": "SnapStart.OptimizationStatus",
     "type": "enum",
     "enum": [
-     "On",
-     "Off"
+     "Off",
+     "On"
     ]
    },
    {
     "path": "State",
     "type": "enum",
     "enum": [
-     "Pending",
      "Active",
-     "Inactive",
-     "Failed",
-     "Deactivating",
-     "Deactivated",
      "ActiveNonInvocable",
-     "Deleting"
+     "Deactivated",
+     "Deactivating",
+     "Deleting",
+     "Failed",
+     "Inactive",
+     "Pending"
     ]
    },
    {
@@ -10349,46 +10506,46 @@
     "path": "StateReasonCode",
     "type": "enum",
     "enum": [
-     "EniLimitExceeded",
-     "KMSKeyNotFound",
-     "InvalidZipFileException",
-     "FunctionError.TooManyExtensions",
-     "VcpuLimitExceeded",
-     "InsufficientRolePermissions",
-     "InvalidImage",
-     "FunctionError.InvalidWorkingDirectory",
-     "EFSMountFailure",
-     "ServiceQuotaExceededException",
-     "EC2RequestLimitExceeded",
-     "FunctionError.InvalidEntryPoint",
-     "FunctionError.PermissionDenied",
-     "Idle",
+     "CapacityProviderScalingLimitExceeded",
      "Creating",
-     "InvalidSubnet",
-     "ImageDeleted",
-     "InsufficientCapacity",
-     "Restoring",
-     "SubnetOutOfIPAddresses",
-     "InvalidSecurityGroup",
+     "DependencyError",
      "DisabledKMSKey",
+     "DisallowedByVpcEncryptionControl",
+     "DrainingDurableExecutions",
+     "EC2RequestLimitExceeded",
      "EFSIOError",
      "EFSMountConnectivityError",
+     "EFSMountFailure",
      "EFSMountTimeout",
+     "EniLimitExceeded",
      "FunctionError",
-     "InvalidConfiguration",
-     "InternalError",
-     "ImageAccessDenied",
-     "InvalidRuntime",
-     "FunctionError.InitTimeout",
-     "FunctionError.RuntimeInitError",
-     "DisallowedByVpcEncryptionControl",
-     "DependencyError",
-     "KMSKeyAccessDenied",
-     "InvalidStateKMSKey",
-     "CapacityProviderScalingLimitExceeded",
      "FunctionError.ExtensionInitError",
      "FunctionError.InitResourceExhausted",
-     "DrainingDurableExecutions"
+     "FunctionError.InitTimeout",
+     "FunctionError.InvalidEntryPoint",
+     "FunctionError.InvalidWorkingDirectory",
+     "FunctionError.PermissionDenied",
+     "FunctionError.RuntimeInitError",
+     "FunctionError.TooManyExtensions",
+     "Idle",
+     "ImageAccessDenied",
+     "ImageDeleted",
+     "InsufficientCapacity",
+     "InsufficientRolePermissions",
+     "InternalError",
+     "InvalidConfiguration",
+     "InvalidImage",
+     "InvalidRuntime",
+     "InvalidSecurityGroup",
+     "InvalidStateKMSKey",
+     "InvalidSubnet",
+     "InvalidZipFileException",
+     "KMSKeyAccessDenied",
+     "KMSKeyNotFound",
+     "Restoring",
+     "ServiceQuotaExceededException",
+     "SubnetOutOfIPAddresses",
+     "VcpuLimitExceeded"
     ]
    },
    {
@@ -10504,8 +10661,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "NONE",
-     "AWS_IAM"
+     "AWS_IAM",
+     "NONE"
     ]
    },
    {

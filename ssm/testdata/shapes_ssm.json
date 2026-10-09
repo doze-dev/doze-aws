@@ -99,11 +99,11 @@
     "path": "AssociationDescription.ComplianceSeverity",
     "type": "enum",
     "enum": [
-     "LOW",
-     "UNSPECIFIED",
      "CRITICAL",
      "HIGH",
-     "MEDIUM"
+     "LOW",
+     "MEDIUM",
+     "UNSPECIFIED"
     ]
    },
    {
@@ -373,8 +373,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNKNOWN",
-     "ALARM"
+     "ALARM",
+     "UNKNOWN"
     ]
    }
   ]
@@ -432,11 +432,11 @@
     "path": "Failed[].Entry.ComplianceSeverity",
     "type": "enum",
     "enum": [
-     "MEDIUM",
-     "LOW",
-     "UNSPECIFIED",
      "CRITICAL",
-     "HIGH"
+     "HIGH",
+     "LOW",
+     "MEDIUM",
+     "UNSPECIFIED"
     ]
    },
    {
@@ -594,11 +594,11 @@
     "path": "Successful[].ComplianceSeverity",
     "type": "enum",
     "enum": [
-     "MEDIUM",
-     "LOW",
-     "UNSPECIFIED",
      "CRITICAL",
-     "HIGH"
+     "HIGH",
+     "LOW",
+     "MEDIUM",
+     "UNSPECIFIED"
     ]
    },
    {
@@ -724,17 +724,17 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "Failed",
      "Pending",
-     "Success",
-     "Failed"
+     "Success"
     ]
    },
    {
     "path": "Successful[].SyncCompliance",
     "type": "enum",
     "enum": [
-     "MANUAL",
-     "AUTO"
+     "AUTO",
+     "MANUAL"
     ]
    },
    {
@@ -835,8 +835,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNKNOWN",
-     "ALARM"
+     "ALARM",
+     "UNKNOWN"
     ]
    }
   ]
@@ -915,32 +915,32 @@
     "path": "DocumentDescription.DocumentFormat",
     "type": "enum",
     "enum": [
-     "YAML",
      "JSON",
-     "TEXT"
+     "TEXT",
+     "YAML"
     ]
    },
    {
     "path": "DocumentDescription.DocumentType",
     "type": "enum",
     "enum": [
-     "Session",
-     "Package",
-     "DeploymentStrategy",
-     "Automation.ChangeTemplate",
-     "AutoApprovalPolicy",
-     "Automation",
-     "ProblemAnalysisTemplate",
-     "CloudFormation",
-     "QuickSetup",
-     "ManualApprovalPolicy",
-     "Policy",
      "ApplicationConfiguration",
      "ApplicationConfigurationSchema",
+     "AutoApprovalPolicy",
+     "Automation",
+     "Automation.ChangeTemplate",
      "ChangeCalendar",
-     "ProblemAnalysis",
+     "CloudFormation",
+     "Command",
      "ConformancePackTemplate",
-     "Command"
+     "DeploymentStrategy",
+     "ManualApprovalPolicy",
+     "Package",
+     "Policy",
+     "ProblemAnalysis",
+     "ProblemAnalysisTemplate",
+     "QuickSetup",
+     "Session"
     ]
    },
    {
@@ -955,8 +955,8 @@
     "path": "DocumentDescription.HashType",
     "type": "enum",
     "enum": [
-     "Sha256",
-     "Sha1"
+     "Sha1",
+     "Sha256"
     ]
    },
    {
@@ -1011,9 +1011,9 @@
     "path": "DocumentDescription.PlatformTypes[]",
     "type": "enum",
     "enum": [
-     "Windows",
      "Linux",
-     "MacOS"
+     "MacOS",
+     "Windows"
     ]
    },
    {
@@ -1089,11 +1089,11 @@
     "path": "DocumentDescription.Status",
     "type": "enum",
     "enum": [
-     "Creating",
      "Active",
-     "Updating",
+     "Creating",
      "Deleting",
-     "Failed"
+     "Failed",
+     "Updating"
     ]
    },
    {
@@ -1452,8 +1452,8 @@
     "enum": [
      "CRITICAL",
      "HIGH",
-     "MEDIUM",
      "LOW",
+     "MEDIUM",
      "UNSPECIFIED"
     ]
    },
@@ -1580,9 +1580,9 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "Failed",
      "Pending",
-     "Success",
-     "Failed"
+     "Success"
     ]
    },
    {
@@ -1724,8 +1724,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNKNOWN",
-     "ALARM"
+     "ALARM",
+     "UNKNOWN"
     ]
    }
   ]
@@ -1871,8 +1871,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNKNOWN",
-     "ALARM"
+     "ALARM",
+     "UNKNOWN"
     ]
    },
    {
@@ -1922,33 +1922,33 @@
     "path": "AutomationExecutionMetadataList[].AutomationExecutionStatus",
     "type": "enum",
     "enum": [
-     "Pending",
-     "TimedOut",
-     "Rejected",
-     "ChangeCalendarOverrideApproved",
-     "CompletedWithFailure",
-     "Exited",
-     "Waiting",
-     "Cancelled",
-     "Failed",
-     "PendingApproval",
-     "Scheduled",
-     "RunbookInProgress",
-     "CompletedWithSuccess",
-     "InProgress",
-     "Success",
      "Approved",
-     "PendingChangeCalendarOverride",
+     "Cancelled",
+     "Cancelling",
+     "ChangeCalendarOverrideApproved",
      "ChangeCalendarOverrideRejected",
-     "Cancelling"
+     "CompletedWithFailure",
+     "CompletedWithSuccess",
+     "Exited",
+     "Failed",
+     "InProgress",
+     "Pending",
+     "PendingApproval",
+     "PendingChangeCalendarOverride",
+     "Rejected",
+     "RunbookInProgress",
+     "Scheduled",
+     "Success",
+     "TimedOut",
+     "Waiting"
     ]
    },
    {
     "path": "AutomationExecutionMetadataList[].AutomationSubtype",
     "type": "enum",
     "enum": [
-     "ChangeRequest",
-     "AccessRequest"
+     "AccessRequest",
+     "ChangeRequest"
     ]
    },
    {
@@ -2158,8 +2158,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNKNOWN",
-     "ALARM"
+     "ALARM",
+     "UNKNOWN"
     ]
    },
    {
@@ -2320,25 +2320,25 @@
     "path": "StepExecutions[].StepStatus",
     "type": "enum",
     "enum": [
-     "Cancelling",
-     "Pending",
-     "TimedOut",
-     "Rejected",
-     "ChangeCalendarOverrideApproved",
-     "CompletedWithFailure",
-     "Exited",
-     "Waiting",
-     "Cancelled",
-     "Failed",
-     "PendingApproval",
-     "Scheduled",
-     "RunbookInProgress",
-     "CompletedWithSuccess",
-     "InProgress",
-     "Success",
      "Approved",
+     "Cancelled",
+     "Cancelling",
+     "ChangeCalendarOverrideApproved",
+     "ChangeCalendarOverrideRejected",
+     "CompletedWithFailure",
+     "CompletedWithSuccess",
+     "Exited",
+     "Failed",
+     "InProgress",
+     "Pending",
+     "PendingApproval",
      "PendingChangeCalendarOverride",
-     "ChangeCalendarOverrideRejected"
+     "Rejected",
+     "RunbookInProgress",
+     "Scheduled",
+     "Success",
+     "TimedOut",
+     "Waiting"
     ]
    },
    {
@@ -2452,8 +2452,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNKNOWN",
-     "ALARM"
+     "ALARM",
+     "UNKNOWN"
     ]
    },
    {
@@ -2656,9 +2656,9 @@
     "path": "Document.DocumentFormat",
     "type": "enum",
     "enum": [
-     "YAML",
      "JSON",
-     "TEXT"
+     "TEXT",
+     "YAML"
     ]
    },
    {
@@ -2667,21 +2667,21 @@
     "enum": [
      "ApplicationConfiguration",
      "ApplicationConfigurationSchema",
-     "ChangeCalendar",
-     "ProblemAnalysis",
-     "ConformancePackTemplate",
-     "Command",
-     "Session",
-     "Package",
-     "DeploymentStrategy",
-     "Automation.ChangeTemplate",
      "AutoApprovalPolicy",
      "Automation",
-     "ProblemAnalysisTemplate",
+     "Automation.ChangeTemplate",
+     "ChangeCalendar",
      "CloudFormation",
-     "QuickSetup",
+     "Command",
+     "ConformancePackTemplate",
+     "DeploymentStrategy",
      "ManualApprovalPolicy",
-     "Policy"
+     "Package",
+     "Policy",
+     "ProblemAnalysis",
+     "ProblemAnalysisTemplate",
+     "QuickSetup",
+     "Session"
     ]
    },
    {
@@ -2696,8 +2696,8 @@
     "path": "Document.HashType",
     "type": "enum",
     "enum": [
-     "Sha256",
-     "Sha1"
+     "Sha1",
+     "Sha256"
     ]
    },
    {
@@ -2752,9 +2752,9 @@
     "path": "Document.PlatformTypes[]",
     "type": "enum",
     "enum": [
-     "Windows",
      "Linux",
-     "MacOS"
+     "MacOS",
+     "Windows"
     ]
    },
    {
@@ -2830,11 +2830,11 @@
     "path": "Document.Status",
     "type": "enum",
     "enum": [
-     "Creating",
      "Active",
-     "Updating",
+     "Creating",
      "Deleting",
-     "Failed"
+     "Failed",
+     "Updating"
     ]
    },
    {
@@ -3071,9 +3071,9 @@
     "enum": [
      "CRITICAL",
      "HIGH",
-     "MEDIUM",
-     "LOW",
      "INFORMATIONAL",
+     "LOW",
+     "MEDIUM",
      "UNSPECIFIED"
     ]
    },
@@ -3082,9 +3082,9 @@
     "type": "enum",
     "enum": [
      "APPROVED",
-     "PENDING_APPROVAL",
      "EXPLICIT_APPROVED",
-     "EXPLICIT_REJECTED"
+     "EXPLICIT_REJECTED",
+     "PENDING_APPROVAL"
     ]
    },
    {
@@ -3247,9 +3247,9 @@
     "path": "InstanceInformationList[].PingStatus",
     "type": "enum",
     "enum": [
-     "Online",
      "ConnectionLost",
-     "Inactive"
+     "Inactive",
+     "Online"
     ]
    },
    {
@@ -3260,9 +3260,9 @@
     "path": "InstanceInformationList[].PlatformType",
     "type": "enum",
     "enum": [
-     "Windows",
      "Linux",
-     "MacOS"
+     "MacOS",
+     "Windows"
     ]
    },
    {
@@ -3376,8 +3376,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "Scan",
-     "Install"
+     "Install",
+     "Scan"
     ]
    },
    {
@@ -3407,8 +3407,8 @@
     "path": "InstancePatchStates[].RebootOption",
     "type": "enum",
     "enum": [
-     "RebootIfNeeded",
-     "NoReboot"
+     "NoReboot",
+     "RebootIfNeeded"
     ]
    },
    {
@@ -3500,8 +3500,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "Scan",
-     "Install"
+     "Install",
+     "Scan"
     ]
    },
    {
@@ -3598,14 +3598,14 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "NOT_APPLICABLE",
-     "FAILED",
      "AVAILABLE_SECURITY_UPDATE",
+     "FAILED",
      "INSTALLED",
      "INSTALLED_OTHER",
      "INSTALLED_PENDING_REBOOT",
      "INSTALLED_REJECTED",
-     "MISSING"
+     "MISSING",
+     "NOT_APPLICABLE"
     ]
    },
    {
@@ -3719,9 +3719,9 @@
     "path": "InstanceProperties[].PingStatus",
     "type": "enum",
     "enum": [
-     "Online",
      "ConnectionLost",
-     "Inactive"
+     "Inactive",
+     "Online"
     ]
    },
    {
@@ -3732,9 +3732,9 @@
     "path": "InstanceProperties[].PlatformType",
     "type": "enum",
     "enum": [
-     "Windows",
      "Linux",
-     "MacOS"
+     "MacOS",
+     "Windows"
     ]
    },
    {
@@ -3761,10 +3761,10 @@
     "path": "InstanceProperties[].SourceType",
     "type": "enum",
     "enum": [
-     "Microsoft.Compute/virtualMachines",
      "AWS::EC2::Instance",
      "AWS::IoT::Thing",
-     "AWS::SSM::ManagedInstance"
+     "AWS::SSM::ManagedInstance",
+     "Microsoft.Compute/virtualMachines"
     ]
    },
    {
@@ -3817,8 +3817,8 @@
     "path": "InventoryDeletions[].LastStatus",
     "type": "enum",
     "enum": [
-     "InProgress",
-     "Complete"
+     "Complete",
+     "InProgress"
     ]
    },
    {
@@ -3883,14 +3883,14 @@
     "path": "WindowExecutionTaskInvocationIdentities[].Status",
     "type": "enum",
     "enum": [
-     "PENDING",
-     "IN_PROGRESS",
-     "SUCCESS",
-     "FAILED",
-     "TIMED_OUT",
-     "CANCELLING",
      "CANCELLED",
-     "SKIPPED_OVERLAPPING"
+     "CANCELLING",
+     "FAILED",
+     "IN_PROGRESS",
+     "PENDING",
+     "SKIPPED_OVERLAPPING",
+     "SUCCESS",
+     "TIMED_OUT"
     ]
    },
    {
@@ -3905,10 +3905,10 @@
     "path": "WindowExecutionTaskInvocationIdentities[].TaskType",
     "type": "enum",
     "enum": [
-     "RUN_COMMAND",
      "AUTOMATION",
-     "STEP_FUNCTIONS",
-     "LAMBDA"
+     "LAMBDA",
+     "RUN_COMMAND",
+     "STEP_FUNCTIONS"
     ]
    },
    {
@@ -3967,13 +3967,13 @@
     "type": "enum",
     "enum": [
      "CANCELLED",
-     "SKIPPED_OVERLAPPING",
-     "PENDING",
-     "IN_PROGRESS",
-     "SUCCESS",
+     "CANCELLING",
      "FAILED",
-     "TIMED_OUT",
-     "CANCELLING"
+     "IN_PROGRESS",
+     "PENDING",
+     "SKIPPED_OVERLAPPING",
+     "SUCCESS",
+     "TIMED_OUT"
     ]
    },
    {
@@ -3992,10 +3992,10 @@
     "path": "WindowExecutionTaskIdentities[].TaskType",
     "type": "enum",
     "enum": [
-     "RUN_COMMAND",
      "AUTOMATION",
-     "STEP_FUNCTIONS",
-     "LAMBDA"
+     "LAMBDA",
+     "RUN_COMMAND",
+     "STEP_FUNCTIONS"
     ]
    },
    {
@@ -4016,8 +4016,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNKNOWN",
-     "ALARM"
+     "ALARM",
+     "UNKNOWN"
     ]
    },
    {
@@ -4055,13 +4055,13 @@
     "type": "enum",
     "enum": [
      "CANCELLED",
-     "SKIPPED_OVERLAPPING",
-     "PENDING",
-     "IN_PROGRESS",
-     "SUCCESS",
+     "CANCELLING",
      "FAILED",
-     "TIMED_OUT",
-     "CANCELLING"
+     "IN_PROGRESS",
+     "PENDING",
+     "SKIPPED_OVERLAPPING",
+     "SUCCESS",
+     "TIMED_OUT"
     ]
    },
    {
@@ -4207,8 +4207,8 @@
     "path": "Tasks[].CutoffBehavior",
     "type": "enum",
     "enum": [
-     "CONTINUE_TASK",
-     "CANCEL_TASK"
+     "CANCEL_TASK",
+     "CONTINUE_TASK"
     ]
    },
    {
@@ -4289,10 +4289,10 @@
     "path": "Tasks[].Type",
     "type": "enum",
     "enum": [
-     "RUN_COMMAND",
      "AUTOMATION",
-     "STEP_FUNCTIONS",
-     "LAMBDA"
+     "LAMBDA",
+     "RUN_COMMAND",
+     "STEP_FUNCTIONS"
     ]
    },
    {
@@ -4493,26 +4493,26 @@
     "path": "OpsItemSummaries[].Status",
     "type": "enum",
     "enum": [
-     "Rejected",
-     "Closed",
-     "InProgress",
-     "CompletedWithSuccess",
-     "CompletedWithFailure",
+     "Approved",
+     "Cancelled",
+     "Cancelling",
      "ChangeCalendarOverrideApproved",
      "ChangeCalendarOverrideRejected",
-     "Open",
-     "TimedOut",
-     "Cancelling",
-     "Cancelled",
-     "RunbookInProgress",
-     "PendingChangeCalendarOverride",
-     "PendingApproval",
-     "Approved",
-     "Resolved",
-     "Pending",
+     "Closed",
+     "CompletedWithFailure",
+     "CompletedWithSuccess",
      "Failed",
+     "InProgress",
+     "Open",
+     "Pending",
+     "PendingApproval",
+     "PendingChangeCalendarOverride",
+     "Rejected",
+     "Resolved",
+     "Revoked",
+     "RunbookInProgress",
      "Scheduled",
-     "Revoked"
+     "TimedOut"
     ]
    },
    {
@@ -4602,9 +4602,9 @@
     "path": "Parameters[].Type",
     "type": "enum",
     "enum": [
+     "SecureString",
      "String",
-     "StringList",
-     "SecureString"
+     "StringList"
     ]
    },
    {
@@ -4646,20 +4646,20 @@
     "type": "enum",
     "enum": [
      "ALMA_LINUX",
-     "AMAZON_LINUX_2023",
+     "AMAZON_LINUX",
      "AMAZON_LINUX_2",
-     "SUSE",
-     "MACOS",
-     "ROCKY_LINUX",
      "AMAZON_LINUX_2022",
-     "UBUNTU",
-     "REDHAT_ENTERPRISE_LINUX",
+     "AMAZON_LINUX_2023",
      "CENTOS",
-     "ORACLE_LINUX",
      "DEBIAN",
+     "MACOS",
+     "ORACLE_LINUX",
      "RASPBIAN",
-     "WINDOWS",
-     "AMAZON_LINUX"
+     "REDHAT_ENTERPRISE_LINUX",
+     "ROCKY_LINUX",
+     "SUSE",
+     "UBUNTU",
+     "WINDOWS"
     ]
    },
    {
@@ -4762,21 +4762,21 @@
     "path": "Mappings[].BaselineIdentity.OperatingSystem",
     "type": "enum",
     "enum": [
-     "AMAZON_LINUX_2022",
-     "UBUNTU",
-     "REDHAT_ENTERPRISE_LINUX",
-     "CENTOS",
-     "ORACLE_LINUX",
-     "DEBIAN",
-     "RASPBIAN",
-     "WINDOWS",
-     "AMAZON_LINUX",
      "ALMA_LINUX",
-     "AMAZON_LINUX_2023",
+     "AMAZON_LINUX",
      "AMAZON_LINUX_2",
-     "SUSE",
+     "AMAZON_LINUX_2022",
+     "AMAZON_LINUX_2023",
+     "CENTOS",
+     "DEBIAN",
      "MACOS",
-     "ROCKY_LINUX"
+     "ORACLE_LINUX",
+     "RASPBIAN",
+     "REDHAT_ENTERPRISE_LINUX",
+     "ROCKY_LINUX",
+     "SUSE",
+     "UBUNTU",
+     "WINDOWS"
     ]
    },
    {
@@ -4886,9 +4886,9 @@
      "Connected",
      "Connecting",
      "Disconnected",
+     "Failed",
      "Terminated",
-     "Terminating",
-     "Failed"
+     "Terminating"
     ]
    },
    {
@@ -4905,11 +4905,11 @@
     "path": "AccessRequestStatus",
     "type": "enum",
     "enum": [
-     "Pending",
      "Approved",
+     "Expired",
+     "Pending",
      "Rejected",
-     "Revoked",
-     "Expired"
+     "Revoked"
     ]
    },
    {
@@ -4980,33 +4980,33 @@
     "path": "AutomationExecution.AutomationExecutionStatus",
     "type": "enum",
     "enum": [
-     "Pending",
-     "TimedOut",
-     "Rejected",
-     "ChangeCalendarOverrideApproved",
-     "CompletedWithFailure",
-     "Exited",
-     "Waiting",
-     "Cancelled",
-     "Failed",
-     "PendingApproval",
-     "Scheduled",
-     "RunbookInProgress",
-     "CompletedWithSuccess",
-     "InProgress",
-     "Success",
      "Approved",
-     "PendingChangeCalendarOverride",
+     "Cancelled",
+     "Cancelling",
+     "ChangeCalendarOverrideApproved",
      "ChangeCalendarOverrideRejected",
-     "Cancelling"
+     "CompletedWithFailure",
+     "CompletedWithSuccess",
+     "Exited",
+     "Failed",
+     "InProgress",
+     "Pending",
+     "PendingApproval",
+     "PendingChangeCalendarOverride",
+     "Rejected",
+     "RunbookInProgress",
+     "Scheduled",
+     "Success",
+     "TimedOut",
+     "Waiting"
     ]
    },
    {
     "path": "AutomationExecution.AutomationSubtype",
     "type": "enum",
     "enum": [
-     "ChangeRequest",
-     "AccessRequest"
+     "AccessRequest",
+     "ChangeRequest"
     ]
    },
    {
@@ -5330,25 +5330,25 @@
     "path": "AutomationExecution.StepExecutions[].StepStatus",
     "type": "enum",
     "enum": [
-     "Scheduled",
-     "RunbookInProgress",
-     "CompletedWithSuccess",
-     "InProgress",
-     "Success",
      "Approved",
-     "PendingChangeCalendarOverride",
-     "ChangeCalendarOverrideRejected",
-     "Cancelling",
-     "Pending",
-     "TimedOut",
-     "Rejected",
-     "ChangeCalendarOverrideApproved",
-     "CompletedWithFailure",
-     "Exited",
-     "Waiting",
      "Cancelled",
+     "Cancelling",
+     "ChangeCalendarOverrideApproved",
+     "ChangeCalendarOverrideRejected",
+     "CompletedWithFailure",
+     "CompletedWithSuccess",
+     "Exited",
      "Failed",
-     "PendingApproval"
+     "InProgress",
+     "Pending",
+     "PendingApproval",
+     "PendingChangeCalendarOverride",
+     "Rejected",
+     "RunbookInProgress",
+     "Scheduled",
+     "Success",
+     "TimedOut",
+     "Waiting"
     ]
    },
    {
@@ -5574,8 +5574,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNKNOWN",
-     "ALARM"
+     "ALARM",
+     "UNKNOWN"
     ]
    },
    {
@@ -5612,8 +5612,8 @@
     "path": "State",
     "type": "enum",
     "enum": [
-     "OPEN",
-     "CLOSED"
+     "CLOSED",
+     "OPEN"
     ]
    }
   ]
@@ -5732,14 +5732,14 @@
     "path": "Status",
     "type": "enum",
     "enum": [
-     "Delayed",
-     "Success",
      "Cancelled",
-     "TimedOut",
-     "Failed",
      "Cancelling",
+     "Delayed",
+     "Failed",
+     "InProgress",
      "Pending",
-     "InProgress"
+     "Success",
+     "TimedOut"
     ]
    },
    {
@@ -5778,21 +5778,21 @@
     "path": "OperatingSystem",
     "type": "enum",
     "enum": [
-     "RASPBIAN",
-     "WINDOWS",
-     "AMAZON_LINUX",
      "ALMA_LINUX",
-     "AMAZON_LINUX_2023",
+     "AMAZON_LINUX",
      "AMAZON_LINUX_2",
-     "SUSE",
-     "MACOS",
-     "ROCKY_LINUX",
      "AMAZON_LINUX_2022",
-     "UBUNTU",
-     "REDHAT_ENTERPRISE_LINUX",
+     "AMAZON_LINUX_2023",
      "CENTOS",
+     "DEBIAN",
+     "MACOS",
      "ORACLE_LINUX",
-     "DEBIAN"
+     "RASPBIAN",
+     "REDHAT_ENTERPRISE_LINUX",
+     "ROCKY_LINUX",
+     "SUSE",
+     "UBUNTU",
+     "WINDOWS"
     ]
    }
   ]
@@ -5870,32 +5870,32 @@
     "path": "DocumentFormat",
     "type": "enum",
     "enum": [
-     "YAML",
      "JSON",
-     "TEXT"
+     "TEXT",
+     "YAML"
     ]
    },
    {
     "path": "DocumentType",
     "type": "enum",
     "enum": [
-     "Command",
-     "Session",
-     "Package",
-     "DeploymentStrategy",
-     "Automation.ChangeTemplate",
-     "AutoApprovalPolicy",
-     "Automation",
-     "ProblemAnalysisTemplate",
-     "CloudFormation",
-     "QuickSetup",
-     "ManualApprovalPolicy",
-     "Policy",
      "ApplicationConfiguration",
      "ApplicationConfigurationSchema",
+     "AutoApprovalPolicy",
+     "Automation",
+     "Automation.ChangeTemplate",
      "ChangeCalendar",
+     "CloudFormation",
+     "Command",
+     "ConformancePackTemplate",
+     "DeploymentStrategy",
+     "ManualApprovalPolicy",
+     "Package",
+     "Policy",
      "ProblemAnalysis",
-     "ConformancePackTemplate"
+     "ProblemAnalysisTemplate",
+     "QuickSetup",
+     "Session"
     ]
    },
    {
@@ -5935,21 +5935,21 @@
     "path": "ReviewStatus",
     "type": "enum",
     "enum": [
-     "PENDING",
-     "REJECTED",
      "APPROVED",
-     "NOT_REVIEWED"
+     "NOT_REVIEWED",
+     "PENDING",
+     "REJECTED"
     ]
    },
    {
     "path": "Status",
     "type": "enum",
     "enum": [
-     "Updating",
+     "Active",
+     "Creating",
      "Deleting",
      "Failed",
-     "Creating",
-     "Active"
+     "Updating"
     ]
    },
    {
@@ -5982,10 +5982,10 @@
     "path": "Status",
     "type": "enum",
     "enum": [
-     "Pending",
+     "Failed",
      "InProgress",
-     "Success",
-     "Failed"
+     "Pending",
+     "Success"
     ]
    },
    {
@@ -6077,8 +6077,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "string",
-     "number"
+     "number",
+     "string"
     ]
    },
    {
@@ -6183,14 +6183,14 @@
     "path": "Status",
     "type": "enum",
     "enum": [
-     "SUCCESS",
-     "FAILED",
-     "TIMED_OUT",
-     "CANCELLING",
      "CANCELLED",
-     "SKIPPED_OVERLAPPING",
+     "CANCELLING",
+     "FAILED",
+     "IN_PROGRESS",
      "PENDING",
-     "IN_PROGRESS"
+     "SKIPPED_OVERLAPPING",
+     "SUCCESS",
+     "TIMED_OUT"
     ]
    },
    {
@@ -6265,14 +6265,14 @@
     "path": "Status",
     "type": "enum",
     "enum": [
-     "PENDING",
-     "IN_PROGRESS",
-     "SUCCESS",
-     "FAILED",
-     "TIMED_OUT",
-     "CANCELLING",
      "CANCELLED",
-     "SKIPPED_OVERLAPPING"
+     "CANCELLING",
+     "FAILED",
+     "IN_PROGRESS",
+     "PENDING",
+     "SKIPPED_OVERLAPPING",
+     "SUCCESS",
+     "TIMED_OUT"
     ]
    },
    {
@@ -6325,18 +6325,18 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNKNOWN",
-     "ALARM"
+     "ALARM",
+     "UNKNOWN"
     ]
    },
    {
     "path": "Type",
     "type": "enum",
     "enum": [
-     "STEP_FUNCTIONS",
+     "AUTOMATION",
      "LAMBDA",
      "RUN_COMMAND",
-     "AUTOMATION"
+     "STEP_FUNCTIONS"
     ]
    },
    {
@@ -6377,14 +6377,14 @@
     "path": "Status",
     "type": "enum",
     "enum": [
-     "FAILED",
-     "TIMED_OUT",
-     "CANCELLING",
      "CANCELLED",
-     "SKIPPED_OVERLAPPING",
-     "PENDING",
+     "CANCELLING",
+     "FAILED",
      "IN_PROGRESS",
-     "SUCCESS"
+     "PENDING",
+     "SKIPPED_OVERLAPPING",
+     "SUCCESS",
+     "TIMED_OUT"
     ]
    },
    {
@@ -6399,10 +6399,10 @@
     "path": "TaskType",
     "type": "enum",
     "enum": [
-     "RUN_COMMAND",
      "AUTOMATION",
-     "STEP_FUNCTIONS",
-     "LAMBDA"
+     "LAMBDA",
+     "RUN_COMMAND",
+     "STEP_FUNCTIONS"
     ]
    },
    {
@@ -6445,8 +6445,8 @@
     "path": "CutoffBehavior",
     "type": "enum",
     "enum": [
-     "CONTINUE_TASK",
-     "CANCEL_TASK"
+     "CANCEL_TASK",
+     "CONTINUE_TASK"
     ]
    },
    {
@@ -6583,8 +6583,8 @@
     "path": "TaskInvocationParameters.RunCommand.DocumentHashType",
     "type": "enum",
     "enum": [
-     "Sha256",
-     "Sha1"
+     "Sha1",
+     "Sha256"
     ]
    },
    {
@@ -6607,12 +6607,12 @@
     "path": "TaskInvocationParameters.RunCommand.NotificationConfig.NotificationEvents[]",
     "type": "enum",
     "enum": [
-     "Failed",
      "All",
+     "Cancelled",
+     "Failed",
      "InProgress",
      "Success",
-     "TimedOut",
-     "Cancelled"
+     "TimedOut"
     ]
    },
    {
@@ -6683,10 +6683,10 @@
     "path": "TaskType",
     "type": "enum",
     "enum": [
-     "RUN_COMMAND",
      "AUTOMATION",
-     "STEP_FUNCTIONS",
-     "LAMBDA"
+     "LAMBDA",
+     "RUN_COMMAND",
+     "STEP_FUNCTIONS"
     ]
    },
    {
@@ -6763,8 +6763,8 @@
     "path": "OpsItem.OperationalData{}.Type",
     "type": "enum",
     "enum": [
-     "String",
-     "SearchableString"
+     "SearchableString",
+     "String"
     ]
    },
    {
@@ -6820,26 +6820,26 @@
     "path": "OpsItem.Status",
     "type": "enum",
     "enum": [
-     "Resolved",
-     "Pending",
-     "Failed",
-     "Scheduled",
-     "Revoked",
-     "Rejected",
-     "Closed",
-     "InProgress",
-     "CompletedWithSuccess",
-     "CompletedWithFailure",
+     "Approved",
+     "Cancelled",
+     "Cancelling",
      "ChangeCalendarOverrideApproved",
      "ChangeCalendarOverrideRejected",
+     "Closed",
+     "CompletedWithFailure",
+     "CompletedWithSuccess",
+     "Failed",
+     "InProgress",
      "Open",
-     "TimedOut",
-     "Cancelling",
-     "Cancelled",
-     "RunbookInProgress",
-     "PendingChangeCalendarOverride",
+     "Pending",
      "PendingApproval",
-     "Approved"
+     "PendingChangeCalendarOverride",
+     "Rejected",
+     "Resolved",
+     "Revoked",
+     "RunbookInProgress",
+     "Scheduled",
+     "TimedOut"
     ]
    },
    {
@@ -6952,9 +6952,9 @@
     "path": "Parameter.Type",
     "type": "enum",
     "enum": [
+     "SecureString",
      "String",
-     "StringList",
-     "SecureString"
+     "StringList"
     ]
    },
    {
@@ -7043,18 +7043,18 @@
     "path": "Parameters[].Tier",
     "type": "enum",
     "enum": [
-     "Standard",
      "Advanced",
-     "Intelligent-Tiering"
+     "Intelligent-Tiering",
+     "Standard"
     ]
    },
    {
     "path": "Parameters[].Type",
     "type": "enum",
     "enum": [
+     "SecureString",
      "String",
-     "StringList",
-     "SecureString"
+     "StringList"
     ]
    },
    {
@@ -7115,9 +7115,9 @@
     "path": "Parameters[].Type",
     "type": "enum",
     "enum": [
+     "SecureString",
      "String",
-     "StringList",
-     "SecureString"
+     "StringList"
     ]
    },
    {
@@ -7174,9 +7174,9 @@
     "path": "Parameters[].Type",
     "type": "enum",
     "enum": [
+     "SecureString",
      "String",
-     "StringList",
-     "SecureString"
+     "StringList"
     ]
    },
    {
@@ -7220,9 +7220,9 @@
     "enum": [
      "CRITICAL",
      "HIGH",
-     "MEDIUM",
-     "LOW",
      "INFORMATIONAL",
+     "LOW",
+     "MEDIUM",
      "UNSPECIFIED"
     ]
    },
@@ -7248,12 +7248,12 @@
     "path": "ApprovedPatchesComplianceLevel",
     "type": "enum",
     "enum": [
+     "CRITICAL",
      "HIGH",
-     "MEDIUM",
-     "LOW",
      "INFORMATIONAL",
-     "UNSPECIFIED",
-     "CRITICAL"
+     "LOW",
+     "MEDIUM",
+     "UNSPECIFIED"
     ]
    },
    {
@@ -7302,25 +7302,25 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "SECTION",
-     "PRIORITY",
-     "SEVERITY",
-     "VERSION",
-     "CVE_ID",
-     "SECURITY",
      "ADVISORY_ID",
-     "PRODUCT_FAMILY",
-     "MSRC_SEVERITY",
-     "REPOSITORY",
-     "RELEASE",
      "ARCH",
      "BUGZILLA_ID",
-     "PATCH_SET",
+     "CLASSIFICATION",
+     "CVE_ID",
+     "EPOCH",
+     "MSRC_SEVERITY",
      "NAME",
      "PATCH_ID",
+     "PATCH_SET",
+     "PRIORITY",
      "PRODUCT",
-     "CLASSIFICATION",
-     "EPOCH"
+     "PRODUCT_FAMILY",
+     "RELEASE",
+     "REPOSITORY",
+     "SECTION",
+     "SECURITY",
+     "SEVERITY",
+     "VERSION"
     ]
    },
    {
@@ -7344,21 +7344,21 @@
     "path": "OperatingSystem",
     "type": "enum",
     "enum": [
-     "WINDOWS",
-     "AMAZON_LINUX",
      "ALMA_LINUX",
-     "AMAZON_LINUX_2023",
+     "AMAZON_LINUX",
      "AMAZON_LINUX_2",
-     "SUSE",
-     "MACOS",
-     "ROCKY_LINUX",
      "AMAZON_LINUX_2022",
-     "UBUNTU",
-     "REDHAT_ENTERPRISE_LINUX",
+     "AMAZON_LINUX_2023",
      "CENTOS",
-     "ORACLE_LINUX",
      "DEBIAN",
-     "RASPBIAN"
+     "MACOS",
+     "ORACLE_LINUX",
+     "RASPBIAN",
+     "REDHAT_ENTERPRISE_LINUX",
+     "ROCKY_LINUX",
+     "SUSE",
+     "UBUNTU",
+     "WINDOWS"
     ]
    },
    {
@@ -7426,21 +7426,21 @@
     "path": "OperatingSystem",
     "type": "enum",
     "enum": [
-     "ORACLE_LINUX",
-     "DEBIAN",
-     "RASPBIAN",
-     "WINDOWS",
-     "AMAZON_LINUX",
      "ALMA_LINUX",
-     "AMAZON_LINUX_2023",
+     "AMAZON_LINUX",
      "AMAZON_LINUX_2",
-     "SUSE",
-     "MACOS",
-     "ROCKY_LINUX",
      "AMAZON_LINUX_2022",
-     "UBUNTU",
+     "AMAZON_LINUX_2023",
+     "CENTOS",
+     "DEBIAN",
+     "MACOS",
+     "ORACLE_LINUX",
+     "RASPBIAN",
      "REDHAT_ENTERPRISE_LINUX",
-     "CENTOS"
+     "ROCKY_LINUX",
+     "SUSE",
+     "UBUNTU",
+     "WINDOWS"
     ]
    },
    {
@@ -7577,8 +7577,8 @@
     "enum": [
      "CRITICAL",
      "HIGH",
-     "MEDIUM",
      "LOW",
+     "MEDIUM",
      "UNSPECIFIED"
     ]
    },
@@ -7968,12 +7968,12 @@
     "path": "CommandInvocations[].CommandPlugins[].Status",
     "type": "enum",
     "enum": [
-     "InProgress",
-     "Success",
-     "TimedOut",
      "Cancelled",
      "Failed",
-     "Pending"
+     "InProgress",
+     "Pending",
+     "Success",
+     "TimedOut"
     ]
    },
    {
@@ -8016,20 +8016,20 @@
     "path": "CommandInvocations[].NotificationConfig.NotificationEvents[]",
     "type": "enum",
     "enum": [
-     "TimedOut",
+     "All",
      "Cancelled",
      "Failed",
-     "All",
      "InProgress",
-     "Success"
+     "Success",
+     "TimedOut"
     ]
    },
    {
     "path": "CommandInvocations[].NotificationConfig.NotificationType",
     "type": "enum",
     "enum": [
-     "Invocation",
-     "Command"
+     "Command",
+     "Invocation"
     ]
    },
    {
@@ -8052,14 +8052,14 @@
     "path": "CommandInvocations[].Status",
     "type": "enum",
     "enum": [
-     "Delayed",
-     "Success",
      "Cancelled",
-     "TimedOut",
-     "Failed",
      "Cancelling",
+     "Delayed",
+     "Failed",
+     "InProgress",
      "Pending",
-     "InProgress"
+     "Success",
+     "TimedOut"
     ]
    },
    {
@@ -8181,12 +8181,12 @@
     "path": "Commands[].NotificationConfig.NotificationEvents[]",
     "type": "enum",
     "enum": [
-     "Success",
-     "TimedOut",
+     "All",
      "Cancelled",
      "Failed",
-     "All",
-     "InProgress"
+     "InProgress",
+     "Success",
+     "TimedOut"
     ]
    },
    {
@@ -8233,13 +8233,13 @@
     "path": "Commands[].Status",
     "type": "enum",
     "enum": [
-     "InProgress",
-     "Success",
      "Cancelled",
-     "Failed",
-     "TimedOut",
      "Cancelling",
-     "Pending"
+     "Failed",
+     "InProgress",
+     "Pending",
+     "Success",
+     "TimedOut"
     ]
    },
    {
@@ -8288,8 +8288,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNKNOWN",
-     "ALARM"
+     "ALARM",
+     "UNKNOWN"
     ]
    },
    {
@@ -8357,9 +8357,9 @@
     "enum": [
      "CRITICAL",
      "HIGH",
-     "MEDIUM",
-     "LOW",
      "INFORMATIONAL",
+     "LOW",
+     "MEDIUM",
      "UNSPECIFIED"
     ]
    },
@@ -8563,9 +8563,9 @@
     "path": "DocumentVersions[].DocumentFormat",
     "type": "enum",
     "enum": [
+     "JSON",
      "TEXT",
-     "YAML",
-     "JSON"
+     "YAML"
     ]
    },
    {
@@ -8595,10 +8595,10 @@
     "type": "enum",
     "enum": [
      "Active",
-     "Updating",
+     "Creating",
      "Deleting",
      "Failed",
-     "Creating"
+     "Updating"
     ]
    },
    {
@@ -8643,32 +8643,32 @@
     "path": "DocumentIdentifiers[].DocumentFormat",
     "type": "enum",
     "enum": [
-     "YAML",
      "JSON",
-     "TEXT"
+     "TEXT",
+     "YAML"
     ]
    },
    {
     "path": "DocumentIdentifiers[].DocumentType",
     "type": "enum",
     "enum": [
-     "Policy",
      "ApplicationConfiguration",
      "ApplicationConfigurationSchema",
-     "ChangeCalendar",
-     "ProblemAnalysis",
-     "ConformancePackTemplate",
-     "Command",
-     "Session",
-     "Package",
-     "DeploymentStrategy",
-     "Automation.ChangeTemplate",
      "AutoApprovalPolicy",
      "Automation",
-     "ProblemAnalysisTemplate",
+     "Automation.ChangeTemplate",
+     "ChangeCalendar",
      "CloudFormation",
+     "Command",
+     "ConformancePackTemplate",
+     "DeploymentStrategy",
+     "ManualApprovalPolicy",
+     "Package",
+     "Policy",
+     "ProblemAnalysis",
+     "ProblemAnalysisTemplate",
      "QuickSetup",
-     "ManualApprovalPolicy"
+     "Session"
     ]
    },
    {
@@ -8691,9 +8691,9 @@
     "path": "DocumentIdentifiers[].PlatformTypes[]",
     "type": "enum",
     "enum": [
-     "Windows",
      "Linux",
-     "MacOS"
+     "MacOS",
+     "Windows"
     ]
    },
    {
@@ -8725,10 +8725,10 @@
     "path": "DocumentIdentifiers[].ReviewStatus",
     "type": "enum",
     "enum": [
-     "PENDING",
-     "REJECTED",
      "APPROVED",
-     "NOT_REVIEWED"
+     "NOT_REVIEWED",
+     "PENDING",
+     "REJECTED"
     ]
    },
    {
@@ -9142,9 +9142,9 @@
     "enum": [
      "CRITICAL",
      "HIGH",
-     "MEDIUM",
-     "LOW",
      "INFORMATIONAL",
+     "LOW",
+     "MEDIUM",
      "UNSPECIFIED"
     ]
    },
@@ -9186,9 +9186,9 @@
     "path": "ResourceDataSyncItems[].LastStatus",
     "type": "enum",
     "enum": [
-     "Successful",
      "Failed",
-     "InProgress"
+     "InProgress",
+     "Successful"
     ]
    },
    {
@@ -9342,9 +9342,9 @@
     "path": "Tier",
     "type": "enum",
     "enum": [
-     "Standard",
      "Advanced",
-     "Intelligent-Tiering"
+     "Intelligent-Tiering",
+     "Standard"
     ]
    },
    {
@@ -9569,12 +9569,12 @@
     "path": "Command.NotificationConfig.NotificationEvents[]",
     "type": "enum",
     "enum": [
-     "TimedOut",
+     "All",
      "Cancelled",
      "Failed",
-     "All",
      "InProgress",
-     "Success"
+     "Success",
+     "TimedOut"
     ]
    },
    {
@@ -9621,13 +9621,13 @@
     "path": "Command.Status",
     "type": "enum",
     "enum": [
-     "Pending",
-     "InProgress",
-     "Success",
      "Cancelled",
+     "Cancelling",
      "Failed",
-     "TimedOut",
-     "Cancelling"
+     "InProgress",
+     "Pending",
+     "Success",
+     "TimedOut"
     ]
    },
    {
@@ -9680,8 +9680,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNKNOWN",
-     "ALARM"
+     "ALARM",
+     "UNKNOWN"
     ]
    }
   ]
@@ -9842,11 +9842,11 @@
     "path": "AssociationDescription.ComplianceSeverity",
     "type": "enum",
     "enum": [
-     "UNSPECIFIED",
      "CRITICAL",
      "HIGH",
+     "LOW",
      "MEDIUM",
-     "LOW"
+     "UNSPECIFIED"
     ]
    },
    {
@@ -10116,8 +10116,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNKNOWN",
-     "ALARM"
+     "ALARM",
+     "UNKNOWN"
     ]
    }
   ]
@@ -10188,11 +10188,11 @@
     "path": "AssociationDescription.ComplianceSeverity",
     "type": "enum",
     "enum": [
+     "CRITICAL",
      "HIGH",
-     "MEDIUM",
      "LOW",
-     "UNSPECIFIED",
-     "CRITICAL"
+     "MEDIUM",
+     "UNSPECIFIED"
     ]
    },
    {
@@ -10318,9 +10318,9 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "Failed",
      "Pending",
-     "Success",
-     "Failed"
+     "Success"
     ]
    },
    {
@@ -10462,8 +10462,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNKNOWN",
-     "ALARM"
+     "ALARM",
+     "UNKNOWN"
     ]
    }
   ]
@@ -10542,32 +10542,32 @@
     "path": "DocumentDescription.DocumentFormat",
     "type": "enum",
     "enum": [
+     "JSON",
      "TEXT",
-     "YAML",
-     "JSON"
+     "YAML"
     ]
    },
    {
     "path": "DocumentDescription.DocumentType",
     "type": "enum",
     "enum": [
-     "Policy",
      "ApplicationConfiguration",
      "ApplicationConfigurationSchema",
-     "ChangeCalendar",
-     "ProblemAnalysis",
-     "ConformancePackTemplate",
-     "Command",
-     "Session",
-     "Package",
-     "DeploymentStrategy",
-     "Automation.ChangeTemplate",
      "AutoApprovalPolicy",
      "Automation",
-     "ProblemAnalysisTemplate",
+     "Automation.ChangeTemplate",
+     "ChangeCalendar",
      "CloudFormation",
+     "Command",
+     "ConformancePackTemplate",
+     "DeploymentStrategy",
+     "ManualApprovalPolicy",
+     "Package",
+     "Policy",
+     "ProblemAnalysis",
+     "ProblemAnalysisTemplate",
      "QuickSetup",
-     "ManualApprovalPolicy"
+     "Session"
     ]
    },
    {
@@ -10582,8 +10582,8 @@
     "path": "DocumentDescription.HashType",
     "type": "enum",
     "enum": [
-     "Sha256",
-     "Sha1"
+     "Sha1",
+     "Sha256"
     ]
    },
    {
@@ -10638,9 +10638,9 @@
     "path": "DocumentDescription.PlatformTypes[]",
     "type": "enum",
     "enum": [
-     "Windows",
      "Linux",
-     "MacOS"
+     "MacOS",
+     "Windows"
     ]
    },
    {
@@ -10716,10 +10716,10 @@
     "path": "DocumentDescription.Status",
     "type": "enum",
     "enum": [
+     "Active",
+     "Creating",
      "Deleting",
      "Failed",
-     "Creating",
-     "Active",
      "Updating"
     ]
    },
@@ -11045,8 +11045,8 @@
     "path": "TaskInvocationParameters.RunCommand.DocumentHashType",
     "type": "enum",
     "enum": [
-     "Sha256",
-     "Sha1"
+     "Sha1",
+     "Sha256"
     ]
    },
    {
@@ -11070,11 +11070,11 @@
     "type": "enum",
     "enum": [
      "All",
+     "Cancelled",
+     "Failed",
      "InProgress",
      "Success",
-     "TimedOut",
-     "Cancelled",
-     "Failed"
+     "TimedOut"
     ]
    },
    {
@@ -11190,12 +11190,12 @@
     "path": "ApprovalRules.PatchRules[].ComplianceLevel",
     "type": "enum",
     "enum": [
-     "UNSPECIFIED",
      "CRITICAL",
      "HIGH",
-     "MEDIUM",
+     "INFORMATIONAL",
      "LOW",
-     "INFORMATIONAL"
+     "MEDIUM",
+     "UNSPECIFIED"
     ]
    },
    {
@@ -11222,9 +11222,9 @@
     "enum": [
      "CRITICAL",
      "HIGH",
-     "MEDIUM",
-     "LOW",
      "INFORMATIONAL",
+     "LOW",
+     "MEDIUM",
      "UNSPECIFIED"
     ]
    },
@@ -11274,25 +11274,25 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "PRODUCT",
-     "CLASSIFICATION",
-     "EPOCH",
-     "SECTION",
-     "PRIORITY",
-     "SEVERITY",
-     "VERSION",
-     "CVE_ID",
-     "SECURITY",
      "ADVISORY_ID",
-     "PRODUCT_FAMILY",
-     "MSRC_SEVERITY",
-     "REPOSITORY",
-     "RELEASE",
      "ARCH",
      "BUGZILLA_ID",
-     "PATCH_SET",
+     "CLASSIFICATION",
+     "CVE_ID",
+     "EPOCH",
+     "MSRC_SEVERITY",
      "NAME",
-     "PATCH_ID"
+     "PATCH_ID",
+     "PATCH_SET",
+     "PRIORITY",
+     "PRODUCT",
+     "PRODUCT_FAMILY",
+     "RELEASE",
+     "REPOSITORY",
+     "SECTION",
+     "SECURITY",
+     "SEVERITY",
+     "VERSION"
     ]
    },
    {
@@ -11316,21 +11316,21 @@
     "path": "OperatingSystem",
     "type": "enum",
     "enum": [
-     "AMAZON_LINUX_2022",
-     "UBUNTU",
-     "REDHAT_ENTERPRISE_LINUX",
-     "CENTOS",
-     "ORACLE_LINUX",
-     "DEBIAN",
-     "RASPBIAN",
-     "WINDOWS",
-     "AMAZON_LINUX",
      "ALMA_LINUX",
-     "AMAZON_LINUX_2023",
+     "AMAZON_LINUX",
      "AMAZON_LINUX_2",
-     "SUSE",
+     "AMAZON_LINUX_2022",
+     "AMAZON_LINUX_2023",
+     "CENTOS",
+     "DEBIAN",
      "MACOS",
-     "ROCKY_LINUX"
+     "ORACLE_LINUX",
+     "RASPBIAN",
+     "REDHAT_ENTERPRISE_LINUX",
+     "ROCKY_LINUX",
+     "SUSE",
+     "UBUNTU",
+     "WINDOWS"
     ]
    },
    {
@@ -11399,14 +11399,14 @@
     "type": "enum",
     "enum": [
      "AwsRoleAssumptionFailed",
-     "WebIdentityTokenFailed",
-     "ProviderCredentialCreationFailed",
-     "TargetInaccessible",
-     "TargetUnusable",
      "OutboundWebIdentityFederationDisabled",
-     "TenantSummary",
+     "ProviderCredentialCreationFailed",
      "SubscriptionAccessible",
-     "TargetStateWarning"
+     "TargetInaccessible",
+     "TargetStateWarning",
+     "TargetUnusable",
+     "TenantSummary",
+     "WebIdentityTokenFailed"
     ]
    },
    {
@@ -11429,17 +11429,17 @@
     "path": "ValidationFindings[].Scope.Type",
     "type": "enum",
     "enum": [
-     "azure:tenant",
-     "azure:subscription"
+     "azure:subscription",
+     "azure:tenant"
     ]
    },
    {
     "path": "ValidationFindings[].Type",
     "type": "enum",
     "enum": [
-     "WARN",
      "ERROR",
-     "INFO"
+     "INFO",
+     "WARN"
     ]
    }
   ]
