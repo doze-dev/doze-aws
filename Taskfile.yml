@@ -163,8 +163,10 @@ tasks:
       # shims count there; a machine without node or ruby measures lower and
       # should not be the one that moves the floor.
       - |
-        out="$(mktemp)"
-        go test -coverpkg=./... -coverprofile="$out" ./... >/dev/null
+        out="$(mktemp)"; log="$(mktemp)"
+        go test -coverpkg=./... -coverprofile="$out" ./... >"$log" 2>&1 || {
+          echo "the suite failed under coverage:"; grep -E '^(--- FAIL|FAIL|panic)|_test.go:[0-9]+:' "$log" | head -40; exit 1
+        }
         total="$(go tool cover -func="$out" | awk '/^total:/ {gsub("%", "", $NF); print $NF}')"
         floor="$(cat testdata/coverage.txt)"
         echo "coverage $total% (floor $floor%)"
@@ -178,8 +180,10 @@ tasks:
     desc: 'Raise the floor in testdata/coverage.txt to the current coverage (never lowers it) — then READ THE DIFF'
     cmds:
       - |
-        out="$(mktemp)"
-        go test -coverpkg=./... -coverprofile="$out" ./... >/dev/null
+        out="$(mktemp)"; log="$(mktemp)"
+        go test -coverpkg=./... -coverprofile="$out" ./... >"$log" 2>&1 || {
+          echo "the suite failed under coverage:"; grep -E '^(--- FAIL|FAIL|panic)|_test.go:[0-9]+:' "$log" | head -40; exit 1
+        }
         total="$(go tool cover -func="$out" | awk '/^total:/ {gsub("%", "", $NF); print $NF}')"
         floor="$(cat testdata/coverage.txt)"
         # Rounded DOWN to a tenth: a floor equal to the measurement fails on the
