@@ -11,12 +11,12 @@
     "path": "State",
     "type": "enum",
     "enum": [
+     "FAILED",
      "STARTING",
      "RUNNING",
      "CANCELLING",
      "COMPLETED",
-     "CANCELLED",
-     "FAILED"
+     "CANCELLED"
     ]
    },
    {
@@ -67,12 +67,12 @@
     "path": "State",
     "type": "enum",
     "enum": [
-     "UPDATING",
-     "CREATE_FAILED",
      "UPDATE_FAILED",
      "ENABLED",
      "DISABLED",
-     "CREATING"
+     "CREATING",
+     "UPDATING",
+     "CREATE_FAILED"
     ]
    },
    {
@@ -93,15 +93,15 @@
     "path": "ConnectionState",
     "type": "enum",
     "enum": [
-     "DELETING",
-     "AUTHORIZING",
      "CREATING",
      "AUTHORIZED",
      "DEAUTHORIZED",
-     "DEAUTHORIZING",
-     "ACTIVE",
+     "AUTHORIZING",
      "FAILED_CONNECTIVITY",
-     "UPDATING"
+     "UPDATING",
+     "DELETING",
+     "DEAUTHORIZING",
+     "ACTIVE"
     ]
    },
    {
@@ -147,8 +147,8 @@
     "path": "ReplicationConfig.State",
     "type": "enum",
     "enum": [
-     "DISABLED",
-     "ENABLED"
+     "ENABLED",
+     "DISABLED"
     ]
    },
    {
@@ -188,13 +188,13 @@
     "path": "State",
     "type": "enum",
     "enum": [
-     "CREATING",
      "UPDATING",
      "DELETING",
      "CREATE_FAILED",
      "UPDATE_FAILED",
      "DELETE_FAILED",
-     "ACTIVE"
+     "ACTIVE",
+     "CREATING"
     ]
    }
   ]
@@ -269,15 +269,15 @@
     "path": "ConnectionState",
     "type": "enum",
     "enum": [
-     "ACTIVE",
+     "AUTHORIZED",
+     "DEAUTHORIZED",
+     "AUTHORIZING",
      "FAILED_CONNECTIVITY",
      "UPDATING",
      "DELETING",
-     "AUTHORIZING",
-     "CREATING",
-     "AUTHORIZED",
-     "DEAUTHORIZED",
-     "DEAUTHORIZING"
+     "DEAUTHORIZING",
+     "ACTIVE",
+     "CREATING"
     ]
    },
    {
@@ -306,15 +306,15 @@
     "path": "ConnectionState",
     "type": "enum",
     "enum": [
-     "UPDATING",
      "DELETING",
-     "AUTHORIZING",
+     "DEAUTHORIZING",
+     "ACTIVE",
      "CREATING",
      "AUTHORIZED",
      "DEAUTHORIZED",
-     "DEAUTHORIZING",
-     "ACTIVE",
-     "FAILED_CONNECTIVITY"
+     "AUTHORIZING",
+     "FAILED_CONNECTIVITY",
+     "UPDATING"
     ]
    },
    {
@@ -363,13 +363,13 @@
     "path": "HttpMethod",
     "type": "enum",
     "enum": [
+     "PUT",
+     "PATCH",
+     "DELETE",
      "POST",
      "GET",
      "HEAD",
-     "OPTIONS",
-     "PUT",
-     "PATCH",
-     "DELETE"
+     "OPTIONS"
     ]
    },
    {
@@ -438,12 +438,12 @@
     "path": "State",
     "type": "enum",
     "enum": [
+     "DISABLED",
+     "CREATING",
      "UPDATING",
      "CREATE_FAILED",
      "UPDATE_FAILED",
-     "ENABLED",
-     "DISABLED",
-     "CREATING"
+     "ENABLED"
     ]
    },
    {
@@ -616,9 +616,9 @@
     "path": "AuthorizationType",
     "type": "enum",
     "enum": [
-     "API_KEY",
      "BASIC",
-     "OAUTH_CLIENT_CREDENTIALS"
+     "OAUTH_CLIENT_CREDENTIALS",
+     "API_KEY"
     ]
    },
    {
@@ -629,15 +629,15 @@
     "path": "ConnectionState",
     "type": "enum",
     "enum": [
-     "UPDATING",
-     "DELETING",
-     "AUTHORIZING",
      "CREATING",
      "AUTHORIZED",
      "DEAUTHORIZED",
+     "AUTHORIZING",
+     "FAILED_CONNECTIVITY",
+     "UPDATING",
+     "DELETING",
      "DEAUTHORIZING",
-     "ACTIVE",
-     "FAILED_CONNECTIVITY"
+     "ACTIVE"
     ]
    },
    {
@@ -746,8 +746,8 @@
     "path": "ReplicationConfig.State",
     "type": "enum",
     "enum": [
-     "DISABLED",
-     "ENABLED"
+     "ENABLED",
+     "DISABLED"
     ]
    },
    {
@@ -842,8 +842,8 @@
     "path": "LogConfig.IncludeDetail",
     "type": "enum",
     "enum": [
-     "NONE",
-     "FULL"
+     "FULL",
+     "NONE"
     ]
    },
    {
@@ -894,9 +894,9 @@
     "path": "State",
     "type": "enum",
     "enum": [
+     "PENDING",
      "ACTIVE",
-     "DELETED",
-     "PENDING"
+     "DELETED"
     ]
    }
   ]
@@ -976,12 +976,12 @@
     "path": "State",
     "type": "enum",
     "enum": [
-     "COMPLETED",
-     "CANCELLED",
-     "FAILED",
      "STARTING",
      "RUNNING",
-     "CANCELLING"
+     "CANCELLING",
+     "COMPLETED",
+     "CANCELLED",
+     "FAILED"
     ]
    },
    {
@@ -1077,13 +1077,13 @@
     "path": "ApiDestinations[].HttpMethod",
     "type": "enum",
     "enum": [
+     "PUT",
+     "PATCH",
      "DELETE",
      "POST",
      "GET",
      "HEAD",
-     "OPTIONS",
-     "PUT",
-     "PATCH"
+     "OPTIONS"
     ]
    },
    {
@@ -1195,15 +1195,15 @@
     "path": "Connections[].ConnectionState",
     "type": "enum",
     "enum": [
+     "CREATING",
+     "AUTHORIZED",
      "DEAUTHORIZED",
-     "DEAUTHORIZING",
-     "ACTIVE",
+     "AUTHORIZING",
      "FAILED_CONNECTIVITY",
      "UPDATING",
      "DELETING",
-     "AUTHORIZING",
-     "CREATING",
-     "AUTHORIZED"
+     "DEAUTHORIZING",
+     "ACTIVE"
     ]
    },
    {
@@ -1324,13 +1324,13 @@
     "path": "Endpoints[].State",
     "type": "enum",
     "enum": [
-     "ACTIVE",
      "CREATING",
      "UPDATING",
      "DELETING",
      "CREATE_FAILED",
      "UPDATE_FAILED",
-     "DELETE_FAILED"
+     "DELETE_FAILED",
+     "ACTIVE"
     ]
    },
    {
@@ -1464,9 +1464,9 @@
     "path": "PartnerEventSourceAccounts[].State",
     "type": "enum",
     "enum": [
+     "PENDING",
      "ACTIVE",
-     "DELETED",
-     "PENDING"
+     "DELETED"
     ]
    }
   ]
@@ -1629,9 +1629,9 @@
     "path": "Rules[].State",
     "type": "enum",
     "enum": [
-     "ENABLED_WITH_ALL_CLOUDTRAIL_MANAGEMENT_EVENTS",
      "ENABLED",
-     "DISABLED"
+     "DISABLED",
+     "ENABLED_WITH_ALL_CLOUDTRAIL_MANAGEMENT_EVENTS"
     ]
    }
   ]
@@ -2183,12 +2183,12 @@
     "path": "State",
     "type": "enum",
     "enum": [
+     "ENABLED",
+     "DISABLED",
      "CREATING",
      "UPDATING",
      "CREATE_FAILED",
-     "UPDATE_FAILED",
-     "ENABLED",
-     "DISABLED"
+     "UPDATE_FAILED"
     ]
    },
    {
@@ -2209,15 +2209,15 @@
     "path": "ConnectionState",
     "type": "enum",
     "enum": [
+     "AUTHORIZED",
+     "DEAUTHORIZED",
+     "AUTHORIZING",
      "FAILED_CONNECTIVITY",
      "UPDATING",
      "DELETING",
-     "AUTHORIZING",
-     "CREATING",
-     "AUTHORIZED",
-     "DEAUTHORIZED",
      "DEAUTHORIZING",
-     "ACTIVE"
+     "ACTIVE",
+     "CREATING"
     ]
    },
    {
@@ -2367,10 +2367,10 @@
     "path": "LogConfig.Level",
     "type": "enum",
     "enum": [
-     "OFF",
      "ERROR",
      "INFO",
-     "TRACE"
+     "TRACE",
+     "OFF"
     ]
    },
    {

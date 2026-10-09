@@ -103,11 +103,11 @@
     "path": "ServerSideEncryption",
     "type": "enum",
     "enum": [
-     "aws:kms:dsse",
      "AES256",
      "aws:fsx",
      "aws:backup",
-     "aws:kms"
+     "aws:kms",
+     "aws:kms:dsse"
     ]
    },
    {
@@ -219,11 +219,11 @@
     "path": "ServerSideEncryption",
     "type": "enum",
     "enum": [
-     "aws:kms:dsse",
      "AES256",
      "aws:fsx",
      "aws:backup",
-     "aws:kms"
+     "aws:kms",
+     "aws:kms:dsse"
     ]
    },
    {
@@ -271,15 +271,15 @@
     "type": "enum",
     "enum": [
      "CRC32",
-     "SHA1",
-     "XXHASH64",
      "CRC32C",
      "SHA256",
-     "CRC64NVME",
-     "SHA512",
      "MD5",
+     "XXHASH64",
      "XXHASH3",
-     "XXHASH128"
+     "XXHASH128",
+     "SHA1",
+     "CRC64NVME",
+     "SHA512"
     ]
    },
    {
@@ -582,11 +582,11 @@
     "path": "Grants[].Permission",
     "type": "enum",
     "enum": [
+     "READ_ACP",
+     "FULL_CONTROL",
      "WRITE",
      "WRITE_ACP",
-     "READ",
-     "READ_ACP",
-     "FULL_CONTROL"
+     "READ"
     ]
    },
    {
@@ -735,11 +735,11 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "AES256",
-     "aws:fsx",
      "aws:backup",
      "aws:kms",
-     "aws:kms:dsse"
+     "aws:kms:dsse",
+     "AES256",
+     "aws:fsx"
     ]
    },
    {
@@ -885,9 +885,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "CSV",
      "ORC",
-     "Parquet"
+     "Parquet",
+     "CSV"
     ]
    },
    {
@@ -930,22 +930,22 @@
     "path": "InventoryConfiguration.OptionalFields[]",
     "type": "enum",
     "enum": [
+     "Size",
+     "IsMultipartUploaded",
+     "EncryptionStatus",
+     "ObjectOwner",
+     "LastModifiedDate",
+     "StorageClass",
      "ReplicationStatus",
      "ObjectLockLegalHoldStatus",
-     "StorageClass",
+     "IntelligentTieringAccessTier",
+     "BucketKeyStatus",
      "ETag",
-     "EncryptionStatus",
+     "LifecycleExpirationDate",
      "ObjectLockRetainUntilDate",
      "ObjectLockMode",
-     "ObjectAccessControlList",
-     "LifecycleExpirationDate",
-     "Size",
-     "LastModifiedDate",
-     "BucketKeyStatus",
-     "ObjectOwner",
-     "IsMultipartUploaded",
-     "IntelligentTieringAccessTier",
-     "ChecksumAlgorithm"
+     "ChecksumAlgorithm",
+     "ObjectAccessControlList"
     ]
    },
    {
@@ -1086,12 +1086,12 @@
     "path": "Rules[].NoncurrentVersionTransitions[].StorageClass",
     "type": "enum",
     "enum": [
+     "DEEP_ARCHIVE",
+     "GLACIER_IR",
      "GLACIER",
      "STANDARD_IA",
      "ONEZONE_IA",
-     "INTELLIGENT_TIERING",
-     "DEEP_ARCHIVE",
-     "GLACIER_IR"
+     "INTELLIGENT_TIERING"
     ]
    },
    {
@@ -1127,12 +1127,12 @@
     "path": "Rules[].Transitions[].StorageClass",
     "type": "enum",
     "enum": [
+     "INTELLIGENT_TIERING",
+     "DEEP_ARCHIVE",
      "GLACIER_IR",
      "GLACIER",
      "STANDARD_IA",
-     "ONEZONE_IA",
-     "INTELLIGENT_TIERING",
-     "DEEP_ARCHIVE"
+     "ONEZONE_IA"
     ]
    },
    {
@@ -1153,44 +1153,44 @@
     "path": "LocationConstraint",
     "type": "enum",
     "enum": [
-     "ap-southeast-1",
-     "us-east-2",
-     "af-south-1",
-     "ap-east-1",
-     "ap-northeast-1",
-     "eu-north-1",
-     "eu-south-1",
-     "ap-northeast-3",
-     "EU",
-     "eu-central-2",
-     "il-central-1",
-     "cn-north-1",
-     "eu-south-2",
-     "us-gov-east-1",
-     "ap-south-2",
-     "ap-southeast-4",
-     "ca-central-1",
-     "eu-west-3",
-     "me-central-1",
-     "me-south-1",
-     "ap-southeast-2",
-     "ap-southeast-7",
-     "ca-west-1",
-     "cn-northwest-1",
      "eu-central-1",
-     "mx-central-1",
-     "ap-east-2",
-     "ap-south-1",
-     "ap-southeast-5",
-     "eu-west-1",
-     "us-west-1",
-     "us-west-2",
-     "ap-northeast-2",
-     "ap-southeast-3",
-     "ap-southeast-6",
-     "eu-west-2",
+     "ap-southeast-1",
      "sa-east-1",
-     "us-gov-west-1"
+     "eu-west-2",
+     "me-central-1",
+     "us-gov-east-1",
+     "ap-east-2",
+     "ap-northeast-1",
+     "ap-southeast-7",
+     "me-south-1",
+     "us-gov-west-1",
+     "ap-southeast-5",
+     "ca-central-1",
+     "EU",
+     "us-west-2",
+     "eu-south-1",
+     "eu-west-1",
+     "ap-southeast-4",
+     "ap-southeast-6",
+     "af-south-1",
+     "ap-south-2",
+     "ap-southeast-2",
+     "ca-west-1",
+     "ap-northeast-2",
+     "eu-central-2",
+     "eu-north-1",
+     "cn-northwest-1",
+     "mx-central-1",
+     "us-east-2",
+     "us-west-1",
+     "ap-northeast-3",
+     "ap-south-1",
+     "eu-south-2",
+     "eu-west-3",
+     "ap-east-1",
+     "ap-southeast-3",
+     "cn-north-1",
+     "il-central-1"
     ]
    }
   ]
@@ -1304,8 +1304,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "DISABLED",
-     "ENABLED"
+     "ENABLED",
+     "DISABLED"
     ]
    },
    {
@@ -1545,36 +1545,36 @@
     "path": "LambdaFunctionConfigurations[].Events[]",
     "type": "enum",
     "enum": [
-     "s3:ObjectCreated:Put",
-     "s3:ObjectCreated:Post",
-     "s3:ObjectRemoved:DeleteMarkerCreated",
+     "s3:ObjectTagging:Put",
+     "s3:Replication:OperationReplicatedAfterThreshold",
+     "s3:LifecycleTransition",
      "s3:LifecycleExpiration:DeleteMarkerCreated",
+     "s3:ObjectCreated:Post",
+     "s3:ObjectAnnotation:Put",
+     "s3:ObjectAnnotation:Delete",
+     "s3:ReducedRedundancyLostObject",
+     "s3:LifecycleExpiration:*",
+     "s3:ObjectTagging:Delete",
+     "s3:ObjectRestore:Delete",
+     "s3:ObjectRemoved:DeleteMarkerCreated",
+     "s3:Replication:*",
+     "s3:LifecycleExpiration:Delete",
+     "s3:ObjectTagging:*",
+     "s3:ObjectCreated:Copy",
+     "s3:ObjectRemoved:Delete",
+     "s3:ObjectRestore:Post",
+     "s3:ObjectRestore:Completed",
+     "s3:Replication:OperationMissedThreshold",
+     "s3:ObjectCreated:*",
      "s3:ObjectRemoved:*",
      "s3:ObjectRestore:*",
      "s3:Replication:OperationFailedReplication",
-     "s3:Replication:OperationMissedThreshold",
-     "s3:LifecycleExpiration:*",
-     "s3:ObjectTagging:Put",
-     "s3:ReducedRedundancyLostObject",
-     "s3:ObjectRemoved:Delete",
-     "s3:ObjectRestore:Post",
-     "s3:IntelligentTiering",
-     "s3:ObjectTagging:Delete",
-     "s3:ObjectCreated:CompleteMultipartUpload",
-     "s3:LifecycleTransition",
-     "s3:Replication:*",
-     "s3:ObjectCreated:*",
-     "s3:ObjectTagging:*",
-     "s3:ObjectAnnotation:Delete",
-     "s3:Replication:OperationNotTracked",
-     "s3:ObjectAcl:Put",
-     "s3:LifecycleExpiration:Delete",
-     "s3:ObjectAnnotation:Put",
-     "s3:ObjectCreated:Copy",
      "s3:ObjectAnnotation:*",
-     "s3:Replication:OperationReplicatedAfterThreshold",
-     "s3:ObjectRestore:Delete",
-     "s3:ObjectRestore:Completed"
+     "s3:ObjectCreated:Put",
+     "s3:ObjectCreated:CompleteMultipartUpload",
+     "s3:Replication:OperationNotTracked",
+     "s3:IntelligentTiering",
+     "s3:ObjectAcl:Put"
     ]
    },
    {
@@ -1615,35 +1615,35 @@
     "path": "QueueConfigurations[].Events[]",
     "type": "enum",
     "enum": [
-     "s3:ObjectTagging:Delete",
-     "s3:ObjectCreated:CompleteMultipartUpload",
-     "s3:LifecycleTransition",
-     "s3:Replication:*",
-     "s3:ObjectCreated:*",
-     "s3:ObjectTagging:*",
-     "s3:ObjectAnnotation:Delete",
-     "s3:Replication:OperationNotTracked",
      "s3:ObjectAcl:Put",
-     "s3:LifecycleExpiration:Delete",
-     "s3:ObjectAnnotation:Put",
-     "s3:ObjectCreated:Copy",
-     "s3:ObjectAnnotation:*",
+     "s3:ObjectTagging:Put",
      "s3:Replication:OperationReplicatedAfterThreshold",
-     "s3:ObjectRestore:Delete",
-     "s3:ObjectRestore:Completed",
-     "s3:ObjectCreated:Put",
-     "s3:ObjectCreated:Post",
-     "s3:ObjectRemoved:DeleteMarkerCreated",
+     "s3:LifecycleTransition",
      "s3:LifecycleExpiration:DeleteMarkerCreated",
+     "s3:ObjectCreated:Post",
+     "s3:ObjectAnnotation:Put",
+     "s3:ObjectAnnotation:Delete",
+     "s3:ReducedRedundancyLostObject",
+     "s3:LifecycleExpiration:*",
+     "s3:ObjectTagging:Delete",
+     "s3:ObjectRestore:Delete",
+     "s3:ObjectRemoved:DeleteMarkerCreated",
+     "s3:Replication:*",
+     "s3:LifecycleExpiration:Delete",
+     "s3:ObjectTagging:*",
+     "s3:ObjectCreated:Copy",
+     "s3:ObjectRemoved:Delete",
+     "s3:ObjectRestore:Post",
+     "s3:ObjectRestore:Completed",
+     "s3:Replication:OperationMissedThreshold",
+     "s3:ObjectCreated:*",
      "s3:ObjectRemoved:*",
      "s3:ObjectRestore:*",
      "s3:Replication:OperationFailedReplication",
-     "s3:Replication:OperationMissedThreshold",
-     "s3:LifecycleExpiration:*",
-     "s3:ObjectTagging:Put",
-     "s3:ReducedRedundancyLostObject",
-     "s3:ObjectRemoved:Delete",
-     "s3:ObjectRestore:Post",
+     "s3:ObjectAnnotation:*",
+     "s3:ObjectCreated:Put",
+     "s3:ObjectCreated:CompleteMultipartUpload",
+     "s3:Replication:OperationNotTracked",
      "s3:IntelligentTiering"
     ]
    },
@@ -1685,36 +1685,36 @@
     "path": "TopicConfigurations[].Events[]",
     "type": "enum",
     "enum": [
-     "s3:ObjectCreated:*",
-     "s3:ObjectTagging:*",
-     "s3:ObjectAnnotation:Delete",
-     "s3:Replication:OperationNotTracked",
-     "s3:ObjectAcl:Put",
-     "s3:LifecycleExpiration:Delete",
-     "s3:ObjectAnnotation:Put",
-     "s3:ObjectCreated:Copy",
-     "s3:ObjectAnnotation:*",
-     "s3:Replication:OperationReplicatedAfterThreshold",
-     "s3:ObjectRestore:Delete",
-     "s3:ObjectRestore:Completed",
-     "s3:ObjectCreated:Put",
-     "s3:ObjectCreated:Post",
      "s3:ObjectRemoved:DeleteMarkerCreated",
-     "s3:LifecycleExpiration:DeleteMarkerCreated",
+     "s3:Replication:*",
+     "s3:LifecycleExpiration:Delete",
+     "s3:ObjectTagging:*",
+     "s3:ObjectCreated:Copy",
+     "s3:ObjectRemoved:Delete",
+     "s3:ObjectRestore:Post",
+     "s3:ObjectRestore:Completed",
+     "s3:Replication:OperationMissedThreshold",
+     "s3:ObjectCreated:*",
      "s3:ObjectRemoved:*",
      "s3:ObjectRestore:*",
      "s3:Replication:OperationFailedReplication",
-     "s3:Replication:OperationMissedThreshold",
-     "s3:LifecycleExpiration:*",
-     "s3:ObjectTagging:Put",
-     "s3:ReducedRedundancyLostObject",
-     "s3:ObjectRemoved:Delete",
-     "s3:ObjectRestore:Post",
-     "s3:IntelligentTiering",
-     "s3:ObjectTagging:Delete",
+     "s3:ObjectAnnotation:*",
+     "s3:ObjectCreated:Put",
      "s3:ObjectCreated:CompleteMultipartUpload",
+     "s3:Replication:OperationNotTracked",
+     "s3:IntelligentTiering",
+     "s3:ObjectAcl:Put",
+     "s3:ObjectTagging:Put",
+     "s3:Replication:OperationReplicatedAfterThreshold",
      "s3:LifecycleTransition",
-     "s3:Replication:*"
+     "s3:LifecycleExpiration:DeleteMarkerCreated",
+     "s3:ObjectCreated:Post",
+     "s3:ObjectAnnotation:Put",
+     "s3:ObjectAnnotation:Delete",
+     "s3:ReducedRedundancyLostObject",
+     "s3:LifecycleExpiration:*",
+     "s3:ObjectTagging:Delete",
+     "s3:ObjectRestore:Delete"
     ]
    },
    {
@@ -1762,9 +1762,9 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "ObjectWriter",
      "BucketOwnerEnforced",
-     "BucketOwnerPreferred",
-     "ObjectWriter"
+     "BucketOwnerPreferred"
     ]
    }
   ]
@@ -1861,21 +1861,21 @@
     "path": "ReplicationConfiguration.Rules[].Destination.StorageClass",
     "type": "enum",
     "enum": [
-     "AWS_BACKUP_LOW_COST_WARM",
-     "STANDARD",
-     "ONEZONE_IA",
-     "DEEP_ARCHIVE",
      "OUTPOSTS",
      "GLACIER_IR",
-     "FSX_OPENZFS",
-     "REDUCED_REDUNDANCY",
-     "SNOW",
      "EXPRESS_ONEZONE",
-     "FSX_ONTAP",
-     "STANDARD_IA",
+     "STANDARD",
      "INTELLIGENT_TIERING",
+     "DEEP_ARCHIVE",
+     "AWS_BACKUP_WARM",
+     "AWS_BACKUP_LOW_COST_WARM",
+     "REDUCED_REDUNDANCY",
+     "STANDARD_IA",
      "GLACIER",
-     "AWS_BACKUP_WARM"
+     "SNOW",
+     "ONEZONE_IA",
+     "FSX_OPENZFS",
+     "FSX_ONTAP"
     ]
    },
    {
@@ -1936,8 +1936,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "Disabled",
-     "Enabled"
+     "Enabled",
+     "Disabled"
     ]
    }
   ]
@@ -2229,8 +2229,8 @@
     "path": "ObjectLockMode",
     "type": "enum",
     "enum": [
-     "COMPLIANCE",
-     "GOVERNANCE"
+     "GOVERNANCE",
+     "COMPLIANCE"
     ]
    },
    {
@@ -2245,11 +2245,11 @@
     "path": "ReplicationStatus",
     "type": "enum",
     "enum": [
+     "PENDING",
      "FAILED",
      "REPLICA",
      "COMPLETED",
-     "COMPLETE",
-     "PENDING"
+     "COMPLETE"
     ]
    },
    {
@@ -2290,21 +2290,21 @@
     "path": "StorageClass",
     "type": "enum",
     "enum": [
-     "STANDARD",
+     "AWS_BACKUP_WARM",
+     "AWS_BACKUP_LOW_COST_WARM",
+     "REDUCED_REDUNDANCY",
+     "STANDARD_IA",
+     "GLACIER",
+     "SNOW",
      "ONEZONE_IA",
-     "DEEP_ARCHIVE",
+     "FSX_OPENZFS",
+     "FSX_ONTAP",
      "OUTPOSTS",
      "GLACIER_IR",
-     "FSX_OPENZFS",
-     "REDUCED_REDUNDANCY",
-     "SNOW",
      "EXPRESS_ONEZONE",
-     "FSX_ONTAP",
-     "STANDARD_IA",
+     "STANDARD",
      "INTELLIGENT_TIERING",
-     "GLACIER",
-     "AWS_BACKUP_WARM",
-     "AWS_BACKUP_LOW_COST_WARM"
+     "DEEP_ARCHIVE"
     ]
    },
    {
@@ -2354,9 +2354,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "Group",
      "CanonicalUser",
-     "AmazonCustomerByEmail"
+     "AmazonCustomerByEmail",
+     "Group"
     ]
    },
    {
@@ -2367,11 +2367,11 @@
     "path": "Grants[].Permission",
     "type": "enum",
     "enum": [
+     "FULL_CONTROL",
+     "WRITE",
      "WRITE_ACP",
      "READ",
-     "READ_ACP",
-     "FULL_CONTROL",
-     "WRITE"
+     "READ_ACP"
     ]
    },
    {
@@ -2435,8 +2435,8 @@
     "path": "ChecksumType",
     "type": "enum",
     "enum": [
-     "FULL_OBJECT",
-     "COMPOSITE"
+     "COMPOSITE",
+     "FULL_OBJECT"
     ]
    },
    {
@@ -2471,11 +2471,11 @@
     "path": "ReplicationStatus",
     "type": "enum",
     "enum": [
-     "COMPLETED",
-     "COMPLETE",
      "PENDING",
      "FAILED",
-     "REPLICA"
+     "REPLICA",
+     "COMPLETED",
+     "COMPLETE"
     ]
    },
    {
@@ -2489,11 +2489,11 @@
     "path": "ServerSideEncryption",
     "type": "enum",
     "enum": [
+     "aws:backup",
+     "aws:kms",
      "aws:kms:dsse",
      "AES256",
-     "aws:fsx",
-     "aws:backup",
-     "aws:kms"
+     "aws:fsx"
     ]
    }
   ]
@@ -2661,21 +2661,21 @@
     "path": "StorageClass",
     "type": "enum",
     "enum": [
-     "STANDARD",
+     "STANDARD_IA",
+     "GLACIER",
+     "SNOW",
      "ONEZONE_IA",
-     "DEEP_ARCHIVE",
+     "FSX_OPENZFS",
+     "FSX_ONTAP",
      "OUTPOSTS",
      "GLACIER_IR",
-     "FSX_OPENZFS",
-     "REDUCED_REDUNDANCY",
-     "SNOW",
      "EXPRESS_ONEZONE",
-     "FSX_ONTAP",
-     "STANDARD_IA",
+     "STANDARD",
      "INTELLIGENT_TIERING",
-     "GLACIER",
+     "DEEP_ARCHIVE",
      "AWS_BACKUP_WARM",
-     "AWS_BACKUP_LOW_COST_WARM"
+     "AWS_BACKUP_LOW_COST_WARM",
+     "REDUCED_REDUNDANCY"
     ]
    },
    {
@@ -2923,8 +2923,8 @@
     "path": "ChecksumType",
     "type": "enum",
     "enum": [
-     "FULL_OBJECT",
-     "COMPOSITE"
+     "COMPOSITE",
+     "FULL_OBJECT"
     ]
    },
    {
@@ -3023,11 +3023,11 @@
     "path": "ReplicationStatus",
     "type": "enum",
     "enum": [
+     "COMPLETED",
      "COMPLETE",
      "PENDING",
      "FAILED",
-     "REPLICA",
-     "COMPLETED"
+     "REPLICA"
     ]
    },
    {
@@ -3068,21 +3068,21 @@
     "path": "StorageClass",
     "type": "enum",
     "enum": [
-     "REDUCED_REDUNDANCY",
-     "SNOW",
-     "EXPRESS_ONEZONE",
-     "FSX_ONTAP",
-     "STANDARD_IA",
-     "INTELLIGENT_TIERING",
-     "GLACIER",
-     "AWS_BACKUP_WARM",
-     "AWS_BACKUP_LOW_COST_WARM",
-     "STANDARD",
-     "ONEZONE_IA",
-     "DEEP_ARCHIVE",
      "OUTPOSTS",
      "GLACIER_IR",
-     "FSX_OPENZFS"
+     "EXPRESS_ONEZONE",
+     "STANDARD",
+     "INTELLIGENT_TIERING",
+     "DEEP_ARCHIVE",
+     "AWS_BACKUP_WARM",
+     "AWS_BACKUP_LOW_COST_WARM",
+     "REDUCED_REDUNDANCY",
+     "STANDARD_IA",
+     "GLACIER",
+     "SNOW",
+     "ONEZONE_IA",
+     "FSX_OPENZFS",
+     "FSX_ONTAP"
     ]
    },
    {
@@ -3297,9 +3297,9 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "Parquet",
      "CSV",
-     "ORC",
-     "Parquet"
+     "ORC"
     ]
    },
    {
@@ -3325,8 +3325,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "All",
-     "Current"
+     "Current",
+     "All"
     ]
    },
    {
@@ -3342,22 +3342,22 @@
     "path": "InventoryConfigurationList[].OptionalFields[]",
     "type": "enum",
     "enum": [
-     "Size",
-     "LastModifiedDate",
-     "BucketKeyStatus",
-     "ObjectOwner",
-     "IsMultipartUploaded",
      "IntelligentTieringAccessTier",
-     "ChecksumAlgorithm",
-     "ReplicationStatus",
-     "ObjectLockLegalHoldStatus",
-     "StorageClass",
+     "BucketKeyStatus",
      "ETag",
-     "EncryptionStatus",
+     "LifecycleExpirationDate",
      "ObjectLockRetainUntilDate",
      "ObjectLockMode",
+     "ChecksumAlgorithm",
      "ObjectAccessControlList",
-     "LifecycleExpirationDate"
+     "Size",
+     "IsMultipartUploaded",
+     "EncryptionStatus",
+     "ObjectOwner",
+     "LastModifiedDate",
+     "StorageClass",
+     "ReplicationStatus",
+     "ObjectLockLegalHoldStatus"
     ]
    },
    {
@@ -3581,24 +3581,24 @@
     "path": "Uploads[].ChecksumAlgorithm",
     "type": "enum",
     "enum": [
-     "CRC32C",
-     "SHA256",
+     "SHA1",
      "CRC64NVME",
      "SHA512",
-     "MD5",
-     "XXHASH3",
-     "XXHASH128",
      "CRC32",
-     "SHA1",
-     "XXHASH64"
+     "CRC32C",
+     "SHA256",
+     "MD5",
+     "XXHASH64",
+     "XXHASH3",
+     "XXHASH128"
     ]
    },
    {
     "path": "Uploads[].ChecksumType",
     "type": "enum",
     "enum": [
-     "FULL_OBJECT",
-     "COMPOSITE"
+     "COMPOSITE",
+     "FULL_OBJECT"
     ]
    },
    {
@@ -3637,20 +3637,20 @@
     "path": "Uploads[].StorageClass",
     "type": "enum",
     "enum": [
-     "STANDARD_IA",
-     "INTELLIGENT_TIERING",
-     "GLACIER",
-     "AWS_BACKUP_WARM",
-     "AWS_BACKUP_LOW_COST_WARM",
-     "STANDARD",
-     "ONEZONE_IA",
-     "DEEP_ARCHIVE",
      "OUTPOSTS",
      "GLACIER_IR",
-     "FSX_OPENZFS",
-     "REDUCED_REDUNDANCY",
-     "SNOW",
      "EXPRESS_ONEZONE",
+     "STANDARD",
+     "INTELLIGENT_TIERING",
+     "DEEP_ARCHIVE",
+     "AWS_BACKUP_WARM",
+     "AWS_BACKUP_LOW_COST_WARM",
+     "REDUCED_REDUNDANCY",
+     "STANDARD_IA",
+     "GLACIER",
+     "SNOW",
+     "ONEZONE_IA",
+     "FSX_OPENZFS",
      "FSX_ONTAP"
     ]
    },
@@ -3693,16 +3693,16 @@
     "path": "Annotations[].ChecksumAlgorithm[]",
     "type": "enum",
     "enum": [
-     "CRC32C",
-     "SHA256",
      "CRC64NVME",
      "SHA512",
+     "CRC32",
+     "CRC32C",
+     "SHA256",
      "MD5",
+     "XXHASH64",
      "XXHASH3",
      "XXHASH128",
-     "CRC32",
-     "SHA1",
-     "XXHASH64"
+     "SHA1"
     ]
    },
    {
@@ -3881,16 +3881,16 @@
     "path": "Versions[].ChecksumAlgorithm[]",
     "type": "enum",
     "enum": [
+     "CRC32",
      "CRC32C",
      "SHA256",
-     "CRC64NVME",
-     "SHA512",
      "MD5",
+     "XXHASH64",
      "XXHASH3",
      "XXHASH128",
-     "CRC32",
      "SHA1",
-     "XXHASH64"
+     "CRC64NVME",
+     "SHA512"
     ]
    },
    {
@@ -3990,16 +3990,16 @@
     "path": "Contents[].ChecksumAlgorithm[]",
     "type": "enum",
     "enum": [
+     "CRC32",
      "CRC32C",
      "SHA256",
-     "CRC64NVME",
-     "SHA512",
      "MD5",
+     "XXHASH64",
      "XXHASH3",
      "XXHASH128",
-     "CRC32",
      "SHA1",
-     "XXHASH64"
+     "CRC64NVME",
+     "SHA512"
     ]
    },
    {
@@ -4054,21 +4054,21 @@
     "path": "Contents[].StorageClass",
     "type": "enum",
     "enum": [
-     "OUTPOSTS",
-     "SNOW",
-     "AWS_BACKUP_WARM",
      "REDUCED_REDUNDANCY",
-     "GLACIER",
-     "GLACIER_IR",
-     "EXPRESS_ONEZONE",
-     "STANDARD",
-     "FSX_OPENZFS",
-     "FSX_ONTAP",
      "STANDARD_IA",
-     "ONEZONE_IA",
+     "OUTPOSTS",
      "AWS_BACKUP_LOW_COST_WARM",
+     "STANDARD",
      "INTELLIGENT_TIERING",
-     "DEEP_ARCHIVE"
+     "GLACIER_IR",
+     "FSX_ONTAP",
+     "GLACIER",
+     "ONEZONE_IA",
+     "DEEP_ARCHIVE",
+     "SNOW",
+     "EXPRESS_ONEZONE",
+     "AWS_BACKUP_WARM",
+     "FSX_OPENZFS"
     ]
    },
    {
@@ -4147,16 +4147,16 @@
     "path": "Contents[].ChecksumAlgorithm[]",
     "type": "enum",
     "enum": [
+     "SHA512",
+     "CRC32",
      "CRC32C",
      "SHA256",
-     "CRC64NVME",
-     "SHA512",
      "MD5",
+     "XXHASH64",
      "XXHASH3",
      "XXHASH128",
-     "CRC32",
      "SHA1",
-     "XXHASH64"
+     "CRC64NVME"
     ]
    },
    {
@@ -4211,21 +4211,21 @@
     "path": "Contents[].StorageClass",
     "type": "enum",
     "enum": [
-     "GLACIER",
-     "GLACIER_IR",
-     "EXPRESS_ONEZONE",
-     "STANDARD",
      "FSX_OPENZFS",
-     "FSX_ONTAP",
+     "REDUCED_REDUNDANCY",
      "STANDARD_IA",
-     "ONEZONE_IA",
-     "AWS_BACKUP_LOW_COST_WARM",
-     "INTELLIGENT_TIERING",
-     "DEEP_ARCHIVE",
      "OUTPOSTS",
+     "AWS_BACKUP_LOW_COST_WARM",
+     "STANDARD",
+     "INTELLIGENT_TIERING",
+     "GLACIER_IR",
+     "FSX_ONTAP",
+     "GLACIER",
+     "ONEZONE_IA",
+     "DEEP_ARCHIVE",
      "SNOW",
-     "AWS_BACKUP_WARM",
-     "REDUCED_REDUNDANCY"
+     "EXPRESS_ONEZONE",
+     "AWS_BACKUP_WARM"
     ]
    },
    {
@@ -4300,16 +4300,16 @@
     "path": "ChecksumAlgorithm",
     "type": "enum",
     "enum": [
-     "XXHASH64",
      "CRC32C",
      "SHA256",
-     "CRC64NVME",
-     "SHA512",
      "MD5",
+     "XXHASH64",
      "XXHASH3",
      "XXHASH128",
-     "CRC32",
-     "SHA1"
+     "SHA1",
+     "CRC64NVME",
+     "SHA512",
+     "CRC32"
     ]
    },
    {
@@ -4440,20 +4440,20 @@
     "type": "enum",
     "enum": [
      "STANDARD_IA",
-     "INTELLIGENT_TIERING",
      "GLACIER",
-     "AWS_BACKUP_WARM",
-     "AWS_BACKUP_LOW_COST_WARM",
-     "STANDARD",
+     "SNOW",
      "ONEZONE_IA",
-     "DEEP_ARCHIVE",
+     "FSX_OPENZFS",
+     "FSX_ONTAP",
      "OUTPOSTS",
      "GLACIER_IR",
-     "FSX_OPENZFS",
-     "REDUCED_REDUNDANCY",
-     "SNOW",
      "EXPRESS_ONEZONE",
-     "FSX_ONTAP"
+     "STANDARD",
+     "INTELLIGENT_TIERING",
+     "DEEP_ARCHIVE",
+     "AWS_BACKUP_WARM",
+     "AWS_BACKUP_LOW_COST_WARM",
+     "REDUCED_REDUNDANCY"
     ]
    },
    {
@@ -4516,8 +4516,8 @@
     "path": "ChecksumType",
     "type": "enum",
     "enum": [
-     "COMPOSITE",
-     "FULL_OBJECT"
+     "FULL_OBJECT",
+     "COMPOSITE"
     ]
    },
    {
@@ -4637,8 +4637,8 @@
     "path": "ChecksumType",
     "type": "enum",
     "enum": [
-     "FULL_OBJECT",
-     "COMPOSITE"
+     "COMPOSITE",
+     "FULL_OBJECT"
     ]
    },
    {
@@ -4676,11 +4676,11 @@
     "path": "ServerSideEncryption",
     "type": "enum",
     "enum": [
-     "AES256",
      "aws:fsx",
      "aws:backup",
      "aws:kms",
-     "aws:kms:dsse"
+     "aws:kms:dsse",
+     "AES256"
     ]
    }
   ]

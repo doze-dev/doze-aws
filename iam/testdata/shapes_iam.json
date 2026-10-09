@@ -1,112 +1,5 @@
 [
  {
-  "operation": "AcquireRole",
-  "output": "AcquireRoleResponse",
-  "members": [
-   {
-    "path": "Role",
-    "type": "structure",
-    "required": true
-   },
-   {
-    "path": "Role.Arn",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "Role.AssumeRolePolicyDocument",
-    "type": "string"
-   },
-   {
-    "path": "Role.CreateDate",
-    "type": "timestamp",
-    "required": true
-   },
-   {
-    "path": "Role.Description",
-    "type": "string"
-   },
-   {
-    "path": "Role.MaxSessionDuration",
-    "type": "integer"
-   },
-   {
-    "path": "Role.Path",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "Role.PermissionsBoundary",
-    "type": "structure"
-   },
-   {
-    "path": "Role.PermissionsBoundary.PermissionsBoundaryArn",
-    "type": "string"
-   },
-   {
-    "path": "Role.PermissionsBoundary.PermissionsBoundaryType",
-    "type": "enum",
-    "enum": [
-     "PermissionsBoundaryPolicy"
-    ]
-   },
-   {
-    "path": "Role.RoleId",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "Role.RoleLastUsed",
-    "type": "structure"
-   },
-   {
-    "path": "Role.RoleLastUsed.LastUsedDate",
-    "type": "timestamp"
-   },
-   {
-    "path": "Role.RoleLastUsed.Region",
-    "type": "string"
-   },
-   {
-    "path": "Role.RoleName",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "Role.SourceRoleTemplate",
-    "type": "structure"
-   },
-   {
-    "path": "Role.SourceRoleTemplate.TemplateArn",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "Role.SourceRoleTemplate.TemplateMinorVersion",
-    "type": "integer",
-    "required": true
-   },
-   {
-    "path": "Role.Tags",
-    "type": "list"
-   },
-   {
-    "path": "Role.Tags[]",
-    "type": "structure"
-   },
-   {
-    "path": "Role.Tags[].Key",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "Role.Tags[].Value",
-    "type": "string",
-    "required": true
-   }
-  ]
- },
- {
   "operation": "CreateAccessKey",
   "output": "CreateAccessKeyResponse",
   "members": [
@@ -134,9 +27,9 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "Expired",
      "Active",
-     "Inactive",
-     "Expired"
+     "Inactive"
     ]
    },
    {
@@ -301,20 +194,6 @@
    {
     "path": "InstanceProfile.Roles[].RoleName",
     "type": "string",
-    "required": true
-   },
-   {
-    "path": "InstanceProfile.Roles[].SourceRoleTemplate",
-    "type": "structure"
-   },
-   {
-    "path": "InstanceProfile.Roles[].SourceRoleTemplate.TemplateArn",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "InstanceProfile.Roles[].SourceRoleTemplate.TemplateMinorVersion",
-    "type": "integer",
     "required": true
    },
    {
@@ -570,20 +449,6 @@
     "required": true
    },
    {
-    "path": "Role.SourceRoleTemplate",
-    "type": "structure"
-   },
-   {
-    "path": "Role.SourceRoleTemplate.TemplateArn",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "Role.SourceRoleTemplate.TemplateMinorVersion",
-    "type": "integer",
-    "required": true
-   },
-   {
     "path": "Role.Tags",
     "type": "list"
    },
@@ -701,20 +566,6 @@
    {
     "path": "Role.RoleName",
     "type": "string",
-    "required": true
-   },
-   {
-    "path": "Role.SourceRoleTemplate",
-    "type": "structure"
-   },
-   {
-    "path": "Role.SourceRoleTemplate.TemplateArn",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "Role.SourceRoleTemplate.TemplateMinorVersion",
-    "type": "integer",
     "required": true
    },
    {
@@ -1004,8 +855,8 @@
     "path": "EnabledFeatures[]",
     "type": "enum",
     "enum": [
-     "RootSessions",
-     "RootCredentialsManagement"
+     "RootCredentialsManagement",
+     "RootSessions"
     ]
    },
    {
@@ -1102,9 +953,9 @@
     "path": "State",
     "type": "enum",
     "enum": [
-     "STARTED",
      "INPROGRESS",
-     "COMPLETE"
+     "COMPLETE",
+     "STARTED"
     ]
    }
   ]
@@ -1611,20 +1462,6 @@
   ]
  },
  {
-  "operation": "GetAccountProperties",
-  "output": "GetAccountPropertiesResponse",
-  "members": [
-   {
-    "path": "Properties",
-    "type": "map"
-   },
-   {
-    "path": "Properties{}",
-    "type": "string"
-   }
-  ]
- },
- {
   "operation": "GetAccountSummary",
   "output": "GetAccountSummaryResponse",
   "members": [
@@ -2104,20 +1941,6 @@
     "required": true
    },
    {
-    "path": "InstanceProfile.Roles[].SourceRoleTemplate",
-    "type": "structure"
-   },
-   {
-    "path": "InstanceProfile.Roles[].SourceRoleTemplate.TemplateArn",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "InstanceProfile.Roles[].SourceRoleTemplate.TemplateMinorVersion",
-    "type": "integer",
-    "required": true
-   },
-   {
     "path": "InstanceProfile.Roles[].Tags",
     "type": "list"
    },
@@ -2520,20 +2343,6 @@
     "required": true
    },
    {
-    "path": "Role.SourceRoleTemplate",
-    "type": "structure"
-   },
-   {
-    "path": "Role.SourceRoleTemplate.TemplateArn",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "Role.SourceRoleTemplate.TemplateMinorVersion",
-    "type": "integer",
-    "required": true
-   },
-   {
     "path": "Role.Tags",
     "type": "list"
    },
@@ -2571,186 +2380,6 @@
     "path": "RoleName",
     "type": "string",
     "required": true
-   }
-  ]
- },
- {
-  "operation": "GetRoleTemplateVersion",
-  "output": "GetRoleTemplateVersionResponse",
-  "members": [
-   {
-    "path": "RoleTemplateVersion",
-    "type": "structure",
-    "required": true
-   },
-   {
-    "path": "RoleTemplateVersion.AssumeRolePolicyDocumentTemplate",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.CreateTimestamp",
-    "type": "timestamp"
-   },
-   {
-    "path": "RoleTemplateVersion.DefaultMinorVersion",
-    "type": "integer"
-   },
-   {
-    "path": "RoleTemplateVersion.Description",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.Enabled",
-    "type": "boolean"
-   },
-   {
-    "path": "RoleTemplateVersion.InlinePolicyTemplates",
-    "type": "list"
-   },
-   {
-    "path": "RoleTemplateVersion.InlinePolicyTemplates[]",
-    "type": "structure"
-   },
-   {
-    "path": "RoleTemplateVersion.InlinePolicyTemplates[].PolicyDocument",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "RoleTemplateVersion.InlinePolicyTemplates[].PolicyName",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "RoleTemplateVersion.MajorVersion",
-    "type": "integer"
-   },
-   {
-    "path": "RoleTemplateVersion.ManagedByType",
-    "type": "enum",
-    "enum": [
-     "Service"
-    ]
-   },
-   {
-    "path": "RoleTemplateVersion.ManagedByValue",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.ManagedPolicyArns",
-    "type": "list"
-   },
-   {
-    "path": "RoleTemplateVersion.ManagedPolicyArns[]",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.MaxSessionDuration",
-    "type": "integer"
-   },
-   {
-    "path": "RoleTemplateVersion.MinorVersion",
-    "type": "integer"
-   },
-   {
-    "path": "RoleTemplateVersion.ParametersDefinition",
-    "type": "list"
-   },
-   {
-    "path": "RoleTemplateVersion.ParametersDefinition[]",
-    "type": "structure"
-   },
-   {
-    "path": "RoleTemplateVersion.ParametersDefinition[].DefaultValue",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.ParametersDefinition[].Description",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.ParametersDefinition[].Immutable",
-    "type": "boolean"
-   },
-   {
-    "path": "RoleTemplateVersion.ParametersDefinition[].IsRequired",
-    "type": "boolean"
-   },
-   {
-    "path": "RoleTemplateVersion.ParametersDefinition[].Name",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "RoleTemplateVersion.ParametersDefinition[].SubType",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.ParametersDefinition[].Type",
-    "type": "enum",
-    "required": true,
-    "enum": [
-     "String",
-     "StringList",
-     "Number",
-     "NumberList",
-     "Arn",
-     "ArnList"
-    ]
-   },
-   {
-    "path": "RoleTemplateVersion.PermissionBoundaryArn",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.RoleDescriptionPattern",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.RoleNamePattern",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.RolePathPattern",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.RoleTagsTemplate",
-    "type": "list"
-   },
-   {
-    "path": "RoleTemplateVersion.RoleTagsTemplate[]",
-    "type": "structure"
-   },
-   {
-    "path": "RoleTemplateVersion.RoleTagsTemplate[].Key",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "RoleTemplateVersion.RoleTagsTemplate[].Value",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "RoleTemplateVersion.TemplateArn",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.TemplateName",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.TemplateVersionId",
-    "type": "string"
-   },
-   {
-    "path": "RoleTemplateVersion.UpdateTimestamp",
-    "type": "timestamp"
-   },
-   {
-    "path": "RoleTemplateVersion.VersionEnabled",
-    "type": "boolean"
    }
   ]
  },
@@ -3090,9 +2719,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "GROUP",
      "USER",
-     "ROLE"
+     "ROLE",
+     "GROUP"
     ]
    },
    {
@@ -3180,10 +2809,10 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "NOT_STARTED",
      "SUCCEEDED",
      "IN_PROGRESS",
-     "FAILED"
+     "FAILED",
+     "NOT_STARTED"
     ]
    }
   ]
@@ -3307,9 +2936,9 @@
     "path": "AccessKeyMetadata[].Status",
     "type": "enum",
     "enum": [
-     "Expired",
      "Active",
-     "Inactive"
+     "Inactive",
+     "Expired"
     ]
    },
    {
@@ -3543,13 +3172,13 @@
     "path": "DelegationRequests[].State",
     "type": "enum",
     "enum": [
-     "REJECTED",
-     "EXPIRED",
      "UNASSIGNED",
      "ASSIGNED",
      "PENDING_APPROVAL",
      "FINALIZED",
-     "ACCEPTED"
+     "ACCEPTED",
+     "REJECTED",
+     "EXPIRED"
     ]
    },
    {
@@ -3873,10 +3502,6 @@
     "required": true
    },
    {
-    "path": "InstanceProfiles[].Roles[].SourceRoleTemplate",
-    "type": "structure"
-   },
-   {
     "path": "InstanceProfiles[].Roles[].Tags",
     "type": "list"
    },
@@ -3999,10 +3624,6 @@
     "path": "InstanceProfiles[].Roles[].RoleName",
     "type": "string",
     "required": true
-   },
-   {
-    "path": "InstanceProfiles[].Roles[].SourceRoleTemplate",
-    "type": "structure"
    },
    {
     "path": "InstanceProfiles[].Roles[].Tags",
@@ -4543,20 +4164,6 @@
     "required": true
    },
    {
-    "path": "Roles[].SourceRoleTemplate",
-    "type": "structure"
-   },
-   {
-    "path": "Roles[].SourceRoleTemplate.TemplateArn",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "Roles[].SourceRoleTemplate.TemplateMinorVersion",
-    "type": "integer",
-    "required": true
-   },
-   {
     "path": "Roles[].Tags",
     "type": "list"
    },
@@ -4665,9 +4272,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "Active",
      "Inactive",
-     "Expired"
+     "Expired",
+     "Active"
     ]
    },
    {
@@ -4818,9 +4425,9 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "Expired",
      "Active",
-     "Inactive",
-     "Expired"
+     "Inactive"
     ]
    },
    {
@@ -5219,9 +4826,9 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "implicitDeny",
      "allowed",
-     "explicitDeny",
-     "implicitDeny"
+     "explicitDeny"
     ]
    },
    {
@@ -5256,13 +4863,13 @@
     "path": "EvaluationResults[].MatchedStatements[].SourcePolicyType",
     "type": "enum",
     "enum": [
+     "none",
+     "user",
      "group",
      "role",
      "aws-managed",
      "user-managed",
-     "resource",
-     "none",
-     "user"
+     "resource"
     ]
    },
    {
@@ -5401,13 +5008,13 @@
     "path": "EvaluationResults[].MatchedStatements[].SourcePolicyType",
     "type": "enum",
     "enum": [
+     "user-managed",
+     "resource",
      "none",
      "user",
      "group",
      "role",
-     "aws-managed",
-     "user-managed",
-     "resource"
+     "aws-managed"
     ]
    },
    {
@@ -5560,20 +5167,6 @@
     "required": true
    },
    {
-    "path": "Role.SourceRoleTemplate",
-    "type": "structure"
-   },
-   {
-    "path": "Role.SourceRoleTemplate.TemplateArn",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "Role.SourceRoleTemplate.TemplateMinorVersion",
-    "type": "integer",
-    "required": true
-   },
-   {
     "path": "Role.Tags",
     "type": "list"
    },
@@ -5631,9 +5224,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "Expired",
      "Active",
-     "Inactive"
+     "Inactive",
+     "Expired"
     ]
    },
    {

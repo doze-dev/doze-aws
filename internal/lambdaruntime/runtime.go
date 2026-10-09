@@ -464,6 +464,16 @@ func (r *Runner) handleNext(w http.ResponseWriter, req *http.Request) {
 		// return instead of blocking this goroutine forever on the queue.
 		return
 	}
+	// Whatever the function printed before it asked for this work is in the pipe
+	// already — it wrote it before it made this request. Take it now, while the
+	// current id is still the previous one (or none): the pump reads on its own
+	// schedule, and on a slow machine a line from init, or from after the last
+	// result, was read after the id changed and carried this invocation's.
+	r.mu.Lock()
+	pump := r.pump
+	r.mu.Unlock()
+	pump.drain()
+
 	r.mu.Lock()
 	r.current = inv
 	r.pending[inv.id] = inv

@@ -33,10 +33,10 @@
     "path": "importStatus",
     "type": "enum",
     "enum": [
-     "COMPLETED",
-     "FAILED",
      "IN_PROGRESS",
-     "CANCELLED"
+     "CANCELLED",
+     "COMPLETED",
+     "FAILED"
     ]
    },
    {
@@ -65,10 +65,10 @@
     "path": "delivery.deliveryDestinationType",
     "type": "enum",
     "enum": [
-     "FH",
-     "XRAY",
      "S3",
-     "CWL"
+     "CWL",
+     "FH",
+     "XRAY"
     ]
    },
    {
@@ -177,8 +177,8 @@
     "path": "state",
     "type": "enum",
     "enum": [
-     "ENABLED",
-     "DISABLED"
+     "DISABLED",
+     "ENABLED"
     ]
    }
   ]
@@ -344,10 +344,10 @@
     "path": "configurationTemplates[].deliveryDestinationType",
     "type": "enum",
     "enum": [
+     "S3",
      "CWL",
      "FH",
-     "XRAY",
-     "S3"
+     "XRAY"
     ]
    },
    {
@@ -446,10 +446,10 @@
     "path": "deliveries[].deliveryDestinationType",
     "type": "enum",
     "enum": [
-     "XRAY",
      "S3",
      "CWL",
-     "FH"
+     "FH",
+     "XRAY"
     ]
    },
    {
@@ -541,12 +541,16 @@
     "path": "deliveryDestinations[].outputFormat",
     "type": "enum",
     "enum": [
+     "json",
      "plain",
      "w3c",
      "raw",
-     "parquet",
-     "json"
+     "parquet"
     ]
+   },
+   {
+    "path": "deliveryDestinations[].roleArn",
+    "type": "string"
    },
    {
     "path": "deliveryDestinations[].tags",
@@ -725,12 +729,12 @@
     "path": "exportTasks[].status.code",
     "type": "enum",
     "enum": [
+     "PENDING",
      "PENDING_CANCEL",
      "RUNNING",
      "CANCELLED",
      "COMPLETED",
-     "FAILED",
-     "PENDING"
+     "FAILED"
     ]
    },
    {
@@ -779,10 +783,10 @@
     "path": "fieldIndexes[].indexCategory",
     "type": "enum",
     "enum": [
-     "DEFAULT",
      "CUSTOM",
      "AUTO",
-     "INACTIVE"
+     "INACTIVE",
+     "DEFAULT"
     ]
    },
    {
@@ -913,10 +917,10 @@
     "path": "imports[].importStatus",
     "type": "enum",
     "enum": [
-     "IN_PROGRESS",
      "CANCELLED",
      "COMPLETED",
-     "FAILED"
+     "FAILED",
+     "IN_PROGRESS"
     ]
    },
    {
@@ -999,10 +1003,10 @@
     "path": "logGroups[].dataProtectionStatus",
     "type": "enum",
     "enum": [
-     "DELETED",
-     "ARCHIVED",
      "DISABLED",
-     "ACTIVATED"
+     "ACTIVATED",
+     "DELETED",
+     "ARCHIVED"
     ]
    },
    {
@@ -1242,33 +1246,33 @@
     "path": "metricFilters[].metricTransformations[].unit",
     "type": "enum",
     "enum": [
-     "Megabits",
-     "Bytes/Second",
-     "None",
-     "Milliseconds",
-     "Kilobits",
-     "Gigabits",
-     "Terabits",
-     "Count",
-     "Megabytes/Second",
-     "Gigabytes/Second",
-     "Gigabits/Second",
-     "Gigabytes",
-     "Terabytes/Second",
      "Megabits/Second",
+     "Microseconds",
+     "Milliseconds",
+     "Gigabits",
+     "Count",
+     "Bits/Second",
      "Terabits/Second",
      "Count/Second",
+     "Seconds",
+     "Bytes",
      "Kilobytes",
      "Megabytes",
      "Terabytes",
+     "Terabits",
+     "None",
+     "Gigabytes",
+     "Bits",
+     "Megabits",
+     "Bytes/Second",
+     "Gigabits/Second",
+     "Kilobits",
      "Percent",
      "Kilobytes/Second",
-     "Bits/Second",
-     "Kilobits/Second",
-     "Seconds",
-     "Microseconds",
-     "Bytes",
-     "Bits"
+     "Megabytes/Second",
+     "Gigabytes/Second",
+     "Terabytes/Second",
+     "Kilobits/Second"
     ]
    },
    {
@@ -1330,13 +1334,13 @@
     "path": "queries[].status",
     "type": "enum",
     "enum": [
+     "Scheduled",
+     "Running",
      "Complete",
      "Failed",
      "Cancelled",
      "Timeout",
-     "Unknown",
-     "Scheduled",
-     "Running"
+     "Unknown"
     ]
    },
    {
@@ -1631,10 +1635,10 @@
     "path": "delivery.deliveryDestinationType",
     "type": "enum",
     "enum": [
-     "S3",
-     "CWL",
      "FH",
-     "XRAY"
+     "XRAY",
+     "S3",
+     "CWL"
     ]
    },
    {
@@ -1704,10 +1708,10 @@
     "path": "deliveryDestination.deliveryDestinationType",
     "type": "enum",
     "enum": [
-     "CWL",
      "FH",
      "XRAY",
-     "S3"
+     "S3",
+     "CWL"
     ]
    },
    {
@@ -1724,6 +1728,10 @@
      "raw",
      "parquet"
     ]
+   },
+   {
+    "path": "deliveryDestination.roleArn",
+    "type": "string"
    },
    {
     "path": "deliveryDestination.tags",
@@ -1876,12 +1884,12 @@
     "path": "evaluationFrequency",
     "type": "enum",
     "enum": [
-     "ONE_MIN",
-     "FIVE_MIN",
      "TEN_MIN",
      "FIFTEEN_MIN",
      "THIRTY_MIN",
-     "ONE_HOUR"
+     "ONE_HOUR",
+     "ONE_MIN",
+     "FIVE_MIN"
     ]
    },
    {
@@ -2147,13 +2155,13 @@
     "path": "status",
     "type": "enum",
     "enum": [
+     "Scheduled",
+     "Running",
      "Complete",
      "Failed",
      "Cancelled",
      "Timeout",
-     "Unknown",
-     "Scheduled",
-     "Running"
+     "Unknown"
     ]
    }
   ]
@@ -2580,8 +2588,8 @@
     "path": "transformerConfig[].listToMap.flattenedElement",
     "type": "enum",
     "enum": [
-     "first",
-     "last"
+     "last",
+     "first"
     ]
    },
    {
@@ -3039,9 +3047,9 @@
     "path": "integrationSummaries[].integrationStatus",
     "type": "enum",
     "enum": [
-     "FAILED",
      "PROVISIONING",
-     "ACTIVE"
+     "ACTIVE",
+     "FAILED"
     ]
    },
    {
@@ -3073,12 +3081,12 @@
     "path": "anomalyDetectors[].anomalyDetectorStatus",
     "type": "enum",
     "enum": [
-     "ANALYZING",
-     "FAILED",
-     "DELETED",
      "PAUSED",
      "INITIALIZING",
-     "TRAINING"
+     "TRAINING",
+     "ANALYZING",
+     "FAILED",
+     "DELETED"
     ]
    },
    {
@@ -3287,8 +3295,8 @@
     "path": "scheduledQueries[].scheduleType",
     "type": "enum",
     "enum": [
-     "AWS_MANAGED",
-     "CUSTOMER_MANAGED"
+     "CUSTOMER_MANAGED",
+     "AWS_MANAGED"
     ]
    },
    {
@@ -3299,8 +3307,8 @@
     "path": "scheduledQueries[].state",
     "type": "enum",
     "enum": [
-     "ENABLED",
-     "DISABLED"
+     "DISABLED",
+     "ENABLED"
     ]
    },
    {
@@ -3354,10 +3362,10 @@
     "path": "sources[].status",
     "type": "enum",
     "enum": [
-     "DATA_SOURCE_DELETE_IN_PROGRESS",
      "ACTIVE",
      "UNHEALTHY",
-     "FAILED"
+     "FAILED",
+     "DATA_SOURCE_DELETE_IN_PROGRESS"
     ]
    },
    {
@@ -3459,11 +3467,11 @@
     "path": "accountPolicy.policyType",
     "type": "enum",
     "enum": [
+     "SUBSCRIPTION_FILTER_POLICY",
+     "FIELD_INDEX_POLICY",
      "TRANSFORMER_POLICY",
      "METRIC_EXTRACTION_POLICY",
-     "DATA_PROTECTION_POLICY",
-     "SUBSCRIPTION_FILTER_POLICY",
-     "FIELD_INDEX_POLICY"
+     "DATA_PROTECTION_POLICY"
     ]
    },
    {
@@ -3522,10 +3530,10 @@
     "path": "deliveryDestination.deliveryDestinationType",
     "type": "enum",
     "enum": [
+     "S3",
      "CWL",
      "FH",
-     "XRAY",
-     "S3"
+     "XRAY"
     ]
    },
    {
@@ -3536,12 +3544,16 @@
     "path": "deliveryDestination.outputFormat",
     "type": "enum",
     "enum": [
-     "json",
-     "plain",
      "w3c",
      "raw",
-     "parquet"
+     "parquet",
+     "json",
+     "plain"
     ]
+   },
+   {
+    "path": "deliveryDestination.roleArn",
+    "type": "string"
    },
    {
     "path": "deliveryDestination.tags",
@@ -3797,8 +3809,8 @@
     "path": "resourcePolicy.policyScope",
     "type": "enum",
     "enum": [
-     "RESOURCE",
-     "ACCOUNT"
+     "ACCOUNT",
+     "RESOURCE"
     ]
    },
    {
@@ -4044,9 +4056,9 @@
     "path": "queryLanguage",
     "type": "enum",
     "enum": [
+     "CWLI",
      "SQL",
-     "PPL",
-     "CWLI"
+     "PPL"
     ]
    },
    {
@@ -4069,8 +4081,8 @@
     "path": "scheduleType",
     "type": "enum",
     "enum": [
-     "CUSTOMER_MANAGED",
-     "AWS_MANAGED"
+     "AWS_MANAGED",
+     "CUSTOMER_MANAGED"
     ]
    },
    {

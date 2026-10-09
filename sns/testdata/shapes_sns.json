@@ -202,9 +202,9 @@
     "path": "PhoneNumbers[].NumberCapabilities[]",
     "type": "enum",
     "enum": [
-     "SMS",
      "MMS",
-     "VOICE"
+     "VOICE",
+     "SMS"
     ]
    },
    {

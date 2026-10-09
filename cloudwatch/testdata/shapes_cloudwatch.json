@@ -1,5 +1,48 @@
 [
  {
+  "operation": "CreateResourceMetricsConfiguration",
+  "output": "CreateResourceMetricsConfigurationOutput",
+  "members": [
+   {
+    "path": "ResourceMetricsConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ResourceMetricsConfiguration.CreatedAt",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "ResourceMetricsConfiguration.MetricSelections",
+    "type": "list"
+   },
+   {
+    "path": "ResourceMetricsConfiguration.MetricSelections[]",
+    "type": "structure"
+   },
+   {
+    "path": "ResourceMetricsConfiguration.MetricSelections[].IncludeMetrics",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "ResourceMetricsConfiguration.MetricSelections[].IncludeMetrics[]",
+    "type": "string"
+   },
+   {
+    "path": "ResourceMetricsConfiguration.ResourceArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ResourceMetricsConfiguration.UpdatedAt",
+    "type": "timestamp",
+    "required": true
+   }
+  ]
+ },
+ {
   "operation": "DeleteInsightRules",
   "output": "DeleteInsightRulesOutput",
   "members": [
@@ -103,9 +146,9 @@
     "path": "AlarmHistoryItems[].AlarmType",
     "type": "enum",
     "enum": [
-     "CompositeAlarm",
      "MetricAlarm",
-     "LogAlarm"
+     "LogAlarm",
+     "CompositeAlarm"
     ]
    },
    {
@@ -116,11 +159,11 @@
     "path": "AlarmHistoryItems[].HistoryItemType",
     "type": "enum",
     "enum": [
+     "ConfigurationUpdate",
      "StateUpdate",
      "Action",
      "AlarmContributorStateUpdate",
-     "AlarmContributorAction",
-     "ConfigurationUpdate"
+     "AlarmContributorAction"
     ]
    },
    {
@@ -157,9 +200,9 @@
     "path": "CompositeAlarms[].ActionsSuppressedBy",
     "type": "enum",
     "enum": [
-     "WaitPeriod",
      "ExtensionPeriod",
-     "Alarm"
+     "Alarm",
+     "WaitPeriod"
     ]
    },
    {
@@ -295,13 +338,13 @@
     "path": "LogAlarms[].ComparisonOperator",
     "type": "enum",
     "enum": [
+     "LessThanLowerThreshold",
+     "GreaterThanUpperThreshold",
+     "GreaterThanOrEqualToThreshold",
      "GreaterThanThreshold",
      "LessThanThreshold",
      "LessThanOrEqualToThreshold",
-     "LessThanLowerOrGreaterThanUpperThreshold",
-     "LessThanLowerThreshold",
-     "GreaterThanUpperThreshold",
-     "GreaterThanOrEqualToThreshold"
+     "LessThanLowerOrGreaterThanUpperThreshold"
     ]
    },
    {
@@ -481,13 +524,13 @@
     "path": "MetricAlarms[].ComparisonOperator",
     "type": "enum",
     "enum": [
-     "GreaterThanUpperThreshold",
      "GreaterThanOrEqualToThreshold",
      "GreaterThanThreshold",
      "LessThanThreshold",
      "LessThanOrEqualToThreshold",
      "LessThanLowerOrGreaterThanUpperThreshold",
-     "LessThanLowerThreshold"
+     "LessThanLowerThreshold",
+     "GreaterThanUpperThreshold"
     ]
    },
    {
@@ -639,11 +682,11 @@
     "path": "MetricAlarms[].Statistic",
     "type": "enum",
     "enum": [
+     "Minimum",
+     "Maximum",
      "SampleCount",
      "Average",
-     "Sum",
-     "Minimum",
-     "Maximum"
+     "Sum"
     ]
    },
    {
@@ -662,33 +705,33 @@
     "path": "MetricAlarms[].Unit",
     "type": "enum",
     "enum": [
-     "Bits",
+     "None",
+     "Seconds",
+     "Microseconds",
+     "Milliseconds",
+     "Megabytes",
+     "Terabytes",
+     "Bytes/Second",
+     "Gigabytes/Second",
+     "Terabytes/Second",
+     "Bytes",
      "Kilobits",
-     "Megabits",
-     "Megabytes/Second",
+     "Gigabits",
+     "Percent",
+     "Bits/Second",
      "Megabits/Second",
      "Gigabits/Second",
      "Terabits/Second",
      "Kilobytes",
-     "Megabytes",
-     "Gigabits",
-     "Bytes/Second",
-     "Gigabytes/Second",
-     "Terabytes/Second",
-     "Kilobits/Second",
-     "Seconds",
      "Gigabytes",
-     "Terabits",
-     "Percent",
-     "Count",
-     "Bits/Second",
-     "Count/Second",
-     "None",
-     "Microseconds",
-     "Bytes",
-     "Terabytes",
+     "Bits",
      "Kilobytes/Second",
-     "Milliseconds"
+     "Megabytes/Second",
+     "Count/Second",
+     "Megabits",
+     "Terabits",
+     "Count",
+     "Kilobits/Second"
     ]
    },
    {
@@ -754,13 +797,13 @@
     "path": "MetricAlarms[].ComparisonOperator",
     "type": "enum",
     "enum": [
-     "GreaterThanOrEqualToThreshold",
      "GreaterThanThreshold",
      "LessThanThreshold",
      "LessThanOrEqualToThreshold",
      "LessThanLowerOrGreaterThanUpperThreshold",
      "LessThanLowerThreshold",
-     "GreaterThanUpperThreshold"
+     "GreaterThanUpperThreshold",
+     "GreaterThanOrEqualToThreshold"
     ]
    },
    {
@@ -805,9 +848,9 @@
     "path": "MetricAlarms[].EvaluationState",
     "type": "enum",
     "enum": [
+     "PARTIAL_DATA",
      "EVALUATION_FAILURE",
-     "EVALUATION_ERROR",
-     "PARTIAL_DATA"
+     "EVALUATION_ERROR"
     ]
    },
    {
@@ -903,9 +946,9 @@
     "path": "MetricAlarms[].StateValue",
     "type": "enum",
     "enum": [
-     "OK",
      "ALARM",
-     "INSUFFICIENT_DATA"
+     "INSUFFICIENT_DATA",
+     "OK"
     ]
    },
    {
@@ -935,33 +978,33 @@
     "path": "MetricAlarms[].Unit",
     "type": "enum",
     "enum": [
+     "Seconds",
+     "Microseconds",
+     "Milliseconds",
+     "Megabytes",
+     "Terabytes",
      "Bytes/Second",
      "Gigabytes/Second",
      "Terabytes/Second",
-     "Kilobits/Second",
-     "Seconds",
-     "Gigabytes",
-     "Terabits",
-     "Percent",
-     "Count",
-     "Bits/Second",
-     "Count/Second",
-     "None",
-     "Microseconds",
      "Bytes",
-     "Terabytes",
-     "Kilobytes/Second",
-     "Milliseconds",
-     "Bits",
      "Kilobits",
-     "Megabits",
-     "Megabytes/Second",
+     "Gigabits",
+     "Percent",
+     "Bits/Second",
      "Megabits/Second",
      "Gigabits/Second",
      "Terabits/Second",
      "Kilobytes",
-     "Megabytes",
-     "Gigabits"
+     "Gigabytes",
+     "Bits",
+     "Kilobytes/Second",
+     "Megabytes/Second",
+     "Count/Second",
+     "Megabits",
+     "Terabits",
+     "Count",
+     "Kilobits/Second",
+     "None"
     ]
    },
    {
@@ -1567,33 +1610,33 @@
     "path": "Datapoints[].Unit",
     "type": "enum",
     "enum": [
-     "Terabytes",
-     "Kilobytes/Second",
-     "Milliseconds",
-     "Bits",
-     "Kilobits",
      "Megabits",
-     "Megabytes/Second",
+     "Terabits",
+     "Count",
+     "Kilobits/Second",
+     "None",
+     "Seconds",
+     "Microseconds",
+     "Milliseconds",
+     "Megabytes",
+     "Terabytes",
+     "Bytes/Second",
+     "Gigabytes/Second",
+     "Terabytes/Second",
+     "Bytes",
+     "Kilobits",
+     "Gigabits",
+     "Percent",
+     "Bits/Second",
      "Megabits/Second",
      "Gigabits/Second",
      "Terabits/Second",
      "Kilobytes",
-     "Megabytes",
-     "Gigabits",
-     "Bytes/Second",
-     "Gigabytes/Second",
-     "Terabytes/Second",
-     "Kilobits/Second",
-     "Seconds",
      "Gigabytes",
-     "Terabits",
-     "Percent",
-     "Count",
-     "Bits/Second",
-     "Count/Second",
-     "None",
-     "Microseconds",
-     "Bytes"
+     "Bits",
+     "Kilobytes/Second",
+     "Megabytes/Second",
+     "Count/Second"
     ]
    },
    {
@@ -1674,9 +1717,9 @@
     "path": "OutputFormat",
     "type": "enum",
     "enum": [
-     "opentelemetry1.0",
      "json",
-     "opentelemetry0.7"
+     "opentelemetry0.7",
+     "opentelemetry1.0"
     ]
    },
    {
@@ -1740,6 +1783,52 @@
   "output": "GetOTelEnrichmentOutput",
   "members": [
    {
+    "path": "CreatedAt",
+    "type": "timestamp"
+   },
+   {
+    "path": "ExcludeFilters",
+    "type": "list"
+   },
+   {
+    "path": "ExcludeFilters[]",
+    "type": "structure"
+   },
+   {
+    "path": "ExcludeFilters[].MetricNames",
+    "type": "list"
+   },
+   {
+    "path": "ExcludeFilters[].MetricNames[]",
+    "type": "string"
+   },
+   {
+    "path": "ExcludeFilters[].Namespace",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "IncludeFilters",
+    "type": "list"
+   },
+   {
+    "path": "IncludeFilters[]",
+    "type": "structure"
+   },
+   {
+    "path": "IncludeFilters[].MetricNames",
+    "type": "list"
+   },
+   {
+    "path": "IncludeFilters[].MetricNames[]",
+    "type": "string"
+   },
+   {
+    "path": "IncludeFilters[].Namespace",
+    "type": "string",
+    "required": true
+   },
+   {
     "path": "Status",
     "type": "enum",
     "required": true,
@@ -1747,6 +1836,53 @@
      "Running",
      "Stopped"
     ]
+   },
+   {
+    "path": "UpdatedAt",
+    "type": "timestamp"
+   }
+  ]
+ },
+ {
+  "operation": "GetResourceMetricsConfiguration",
+  "output": "GetResourceMetricsConfigurationOutput",
+  "members": [
+   {
+    "path": "ResourceMetricsConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ResourceMetricsConfiguration.CreatedAt",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "ResourceMetricsConfiguration.MetricSelections",
+    "type": "list"
+   },
+   {
+    "path": "ResourceMetricsConfiguration.MetricSelections[]",
+    "type": "structure"
+   },
+   {
+    "path": "ResourceMetricsConfiguration.MetricSelections[].IncludeMetrics",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "ResourceMetricsConfiguration.MetricSelections[].IncludeMetrics[]",
+    "type": "string"
+   },
+   {
+    "path": "ResourceMetricsConfiguration.ResourceArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ResourceMetricsConfiguration.UpdatedAt",
+    "type": "timestamp",
+    "required": true
    }
   ]
  },
@@ -1903,9 +2039,9 @@
     "path": "Entries[].OutputFormat",
     "type": "enum",
     "enum": [
+     "json",
      "opentelemetry0.7",
-     "opentelemetry1.0",
-     "json"
+     "opentelemetry1.0"
     ]
    },
    {
@@ -2063,6 +2199,161 @@
    {
     "path": "Arn",
     "type": "string"
+   }
+  ]
+ },
+ {
+  "operation": "StartOTelEnrichment",
+  "output": "StartOTelEnrichmentOutput",
+  "members": [
+   {
+    "path": "CreatedAt",
+    "type": "timestamp"
+   },
+   {
+    "path": "ExcludeFilters",
+    "type": "list"
+   },
+   {
+    "path": "ExcludeFilters[]",
+    "type": "structure"
+   },
+   {
+    "path": "ExcludeFilters[].MetricNames",
+    "type": "list"
+   },
+   {
+    "path": "ExcludeFilters[].MetricNames[]",
+    "type": "string"
+   },
+   {
+    "path": "ExcludeFilters[].Namespace",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "IncludeFilters",
+    "type": "list"
+   },
+   {
+    "path": "IncludeFilters[]",
+    "type": "structure"
+   },
+   {
+    "path": "IncludeFilters[].MetricNames",
+    "type": "list"
+   },
+   {
+    "path": "IncludeFilters[].MetricNames[]",
+    "type": "string"
+   },
+   {
+    "path": "IncludeFilters[].Namespace",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "UpdatedAt",
+    "type": "timestamp"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateOTelEnrichment",
+  "output": "UpdateOTelEnrichmentOutput",
+  "members": [
+   {
+    "path": "CreatedAt",
+    "type": "timestamp"
+   },
+   {
+    "path": "ExcludeFilters",
+    "type": "list"
+   },
+   {
+    "path": "ExcludeFilters[]",
+    "type": "structure"
+   },
+   {
+    "path": "ExcludeFilters[].MetricNames",
+    "type": "list"
+   },
+   {
+    "path": "ExcludeFilters[].MetricNames[]",
+    "type": "string"
+   },
+   {
+    "path": "ExcludeFilters[].Namespace",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "IncludeFilters",
+    "type": "list"
+   },
+   {
+    "path": "IncludeFilters[]",
+    "type": "structure"
+   },
+   {
+    "path": "IncludeFilters[].MetricNames",
+    "type": "list"
+   },
+   {
+    "path": "IncludeFilters[].MetricNames[]",
+    "type": "string"
+   },
+   {
+    "path": "IncludeFilters[].Namespace",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "UpdatedAt",
+    "type": "timestamp"
+   }
+  ]
+ },
+ {
+  "operation": "UpdateResourceMetricsConfiguration",
+  "output": "UpdateResourceMetricsConfigurationOutput",
+  "members": [
+   {
+    "path": "ResourceMetricsConfiguration",
+    "type": "structure",
+    "required": true
+   },
+   {
+    "path": "ResourceMetricsConfiguration.CreatedAt",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "ResourceMetricsConfiguration.MetricSelections",
+    "type": "list"
+   },
+   {
+    "path": "ResourceMetricsConfiguration.MetricSelections[]",
+    "type": "structure"
+   },
+   {
+    "path": "ResourceMetricsConfiguration.MetricSelections[].IncludeMetrics",
+    "type": "list",
+    "required": true
+   },
+   {
+    "path": "ResourceMetricsConfiguration.MetricSelections[].IncludeMetrics[]",
+    "type": "string"
+   },
+   {
+    "path": "ResourceMetricsConfiguration.ResourceArn",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "ResourceMetricsConfiguration.UpdatedAt",
+    "type": "timestamp",
+    "required": true
    }
   ]
  }

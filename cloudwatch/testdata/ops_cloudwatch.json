@@ -1,11 +1,13 @@
 [
   "AssociateDatasetKmsKey",
+  "CreateResourceMetricsConfiguration",
   "DeleteAlarmMuteRule",
   "DeleteAlarms",
   "DeleteAnomalyDetector",
   "DeleteDashboards",
   "DeleteInsightRules",
   "DeleteMetricStream",
+  "DeleteResourceMetricsConfiguration",
   "DescribeAlarmContributors",
   "DescribeAlarmHistory",
   "DescribeAlarms",
@@ -26,6 +28,7 @@
   "GetMetricStream",
   "GetMetricWidgetImage",
   "GetOTelEnrichment",
+  "GetResourceMetricsConfiguration",
   "ListAlarmMuteRules",
   "ListDashboards",
   "ListManagedInsightRules",
@@ -48,5 +51,7 @@
   "StopMetricStreams",
   "StopOTelEnrichment",
   "TagResource",
-  "UntagResource"
+  "UntagResource",
+  "UpdateOTelEnrichment",
+  "UpdateResourceMetricsConfiguration"
 ]

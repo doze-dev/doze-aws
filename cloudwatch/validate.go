@@ -297,6 +297,12 @@ func init() {
 		"OpenTelemetry enrichment is an account-level ingestion feature with no " +
 			"local equivalent": {
 			"GetOTelEnrichment", "StartOTelEnrichment", "StopOTelEnrichment",
+			"UpdateOTelEnrichment",
+		},
+		"resource metrics configuration chooses which resource-level metrics the " +
+			"account ingests, a cloud-side setting with no local counterpart": {
+			"CreateResourceMetricsConfiguration", "DeleteResourceMetricsConfiguration",
+			"GetResourceMetricsConfiguration", "UpdateResourceMetricsConfiguration",
 		},
 		"datasets and their KMS association are cloud-side storage configuration": {
 			"GetDataset", "AssociateDatasetKmsKey", "DisassociateDatasetKmsKey",

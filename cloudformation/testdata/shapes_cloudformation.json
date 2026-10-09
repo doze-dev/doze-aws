@@ -37,9 +37,9 @@
     "path": "Errors[].TypeConfigurationIdentifier.Type",
     "type": "enum",
     "enum": [
+     "RESOURCE",
      "MODULE",
-     "HOOK",
-     "RESOURCE"
+     "HOOK"
     ]
    },
    {
@@ -106,9 +106,9 @@
     "path": "UnprocessedTypeConfigurations[].Type",
     "type": "enum",
     "enum": [
+     "RESOURCE",
      "MODULE",
-     "HOOK",
-     "RESOURCE"
+     "HOOK"
     ]
    },
    {
@@ -331,12 +331,12 @@
     "path": "Changes[].ResourceChange.PolicyAction",
     "type": "enum",
     "enum": [
-     "ReplaceAndDelete",
-     "ReplaceAndRetain",
-     "ReplaceAndSnapshot",
      "Delete",
      "Retain",
-     "Snapshot"
+     "Snapshot",
+     "ReplaceAndDelete",
+     "ReplaceAndRetain",
+     "ReplaceAndSnapshot"
     ]
    },
    {
@@ -347,9 +347,9 @@
     "path": "Changes[].ResourceChange.Replacement",
     "type": "enum",
     "enum": [
+     "True",
      "False",
-     "Conditional",
-     "True"
+     "Conditional"
     ]
    },
    {
@@ -364,12 +364,12 @@
     "path": "Changes[].ResourceChange.ResourceDriftStatus",
     "type": "enum",
     "enum": [
-     "NOT_CHECKED",
-     "UNKNOWN",
      "UNSUPPORTED",
      "IN_SYNC",
      "MODIFIED",
-     "DELETED"
+     "DELETED",
+     "NOT_CHECKED",
+     "UNKNOWN"
     ]
    },
    {
@@ -384,13 +384,13 @@
     "path": "Changes[].ResourceChange.Scope[]",
     "type": "enum",
     "enum": [
-     "Metadata",
      "CreationPolicy",
      "UpdatePolicy",
      "DeletionPolicy",
      "UpdateReplacePolicy",
      "Tags",
-     "Properties"
+     "Properties",
+     "Metadata"
     ]
    },
    {
@@ -435,12 +435,12 @@
     "path": "ExecutionStatus",
     "type": "enum",
     "enum": [
+     "UNAVAILABLE",
      "AVAILABLE",
      "EXECUTE_IN_PROGRESS",
      "EXECUTE_COMPLETE",
      "EXECUTE_FAILED",
-     "OBSOLETE",
-     "UNAVAILABLE"
+     "OBSOLETE"
     ]
    },
    {
@@ -534,10 +534,10 @@
     "path": "StackDriftStatus",
     "type": "enum",
     "enum": [
-     "NOT_CHECKED",
      "DRIFTED",
      "IN_SYNC",
-     "UNKNOWN"
+     "UNKNOWN",
+     "NOT_CHECKED"
     ]
    },
    {
@@ -552,14 +552,14 @@
     "path": "Status",
     "type": "enum",
     "enum": [
-     "CREATE_COMPLETE",
-     "DELETE_PENDING",
      "DELETE_IN_PROGRESS",
      "DELETE_COMPLETE",
      "DELETE_FAILED",
      "FAILED",
      "CREATE_PENDING",
-     "CREATE_IN_PROGRESS"
+     "CREATE_IN_PROGRESS",
+     "CREATE_COMPLETE",
+     "DELETE_PENDING"
     ]
    },
    {
@@ -637,12 +637,12 @@
     "path": "Hooks[].TargetDetails.ResourceTargetDetails.ResourceAction",
     "type": "enum",
     "enum": [
+     "SyncWithActual",
      "Add",
      "Modify",
      "Remove",
      "Import",
-     "Dynamic",
-     "SyncWithActual"
+     "Dynamic"
     ]
    },
    {
@@ -715,8 +715,8 @@
     "path": "OperationEvents[].DetailedStatus",
     "type": "enum",
     "enum": [
-     "VALIDATION_FAILED",
-     "CONFIGURATION_COMPLETE"
+     "CONFIGURATION_COMPLETE",
+     "VALIDATION_FAILED"
     ]
    },
    {
@@ -742,8 +742,8 @@
     "path": "OperationEvents[].HookFailureMode",
     "type": "enum",
     "enum": [
-     "WARN",
-     "FAIL"
+     "FAIL",
+     "WARN"
     ]
    },
    {
@@ -757,10 +757,10 @@
     "path": "OperationEvents[].HookStatus",
     "type": "enum",
     "enum": [
+     "HOOK_COMPLETE_SUCCEEDED",
      "HOOK_COMPLETE_FAILED",
      "HOOK_FAILED",
-     "HOOK_IN_PROGRESS",
-     "HOOK_COMPLETE_SUCCEEDED"
+     "HOOK_IN_PROGRESS"
     ]
    },
    {
@@ -792,12 +792,12 @@
     "path": "OperationEvents[].OperationType",
     "type": "enum",
     "enum": [
+     "CREATE_CHANGESET",
      "CREATE_STACK",
      "UPDATE_STACK",
      "DELETE_STACK",
      "CONTINUE_ROLLBACK",
-     "ROLLBACK",
-     "CREATE_CHANGESET"
+     "ROLLBACK"
     ]
    },
    {
@@ -812,34 +812,34 @@
     "path": "OperationEvents[].ResourceStatus",
     "type": "enum",
     "enum": [
-     "IMPORT_FAILED",
-     "IMPORT_IN_PROGRESS",
-     "IMPORT_ROLLBACK_COMPLETE",
-     "UPDATE_ROLLBACK_IN_PROGRESS",
-     "DELETE_COMPLETE",
-     "IMPORT_COMPLETE",
-     "EXPORT_IN_PROGRESS",
-     "EXPORT_ROLLBACK_FAILED",
-     "ROLLBACK_IN_PROGRESS",
-     "ROLLBACK_COMPLETE",
-     "DELETE_IN_PROGRESS",
-     "UPDATE_FAILED",
-     "UPDATE_COMPLETE",
-     "EXPORT_COMPLETE",
-     "UPDATE_ROLLBACK_COMPLETE",
-     "ROLLBACK_FAILED",
+     "CREATE_FAILED",
      "CREATE_COMPLETE",
+     "DELETE_FAILED",
      "DELETE_SKIPPED",
      "UPDATE_IN_PROGRESS",
-     "IMPORT_ROLLBACK_FAILED",
-     "EXPORT_FAILED",
+     "EXPORT_COMPLETE",
+     "EXPORT_IN_PROGRESS",
+     "DELETE_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "IMPORT_COMPLETE",
+     "IMPORT_ROLLBACK_IN_PROGRESS",
+     "IMPORT_ROLLBACK_COMPLETE",
+     "EXPORT_ROLLBACK_FAILED",
+     "UPDATE_ROLLBACK_IN_PROGRESS",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "CREATE_IN_PROGRESS",
+     "UPDATE_FAILED",
+     "UPDATE_COMPLETE",
      "EXPORT_ROLLBACK_IN_PROGRESS",
      "EXPORT_ROLLBACK_COMPLETE",
      "UPDATE_ROLLBACK_FAILED",
-     "IMPORT_ROLLBACK_IN_PROGRESS",
-     "CREATE_IN_PROGRESS",
-     "CREATE_FAILED",
-     "DELETE_FAILED"
+     "ROLLBACK_IN_PROGRESS",
+     "ROLLBACK_FAILED",
+     "IMPORT_IN_PROGRESS",
+     "IMPORT_ROLLBACK_FAILED",
+     "EXPORT_FAILED",
+     "ROLLBACK_COMPLETE",
+     "IMPORT_FAILED"
     ]
    },
    {
@@ -882,8 +882,8 @@
     "path": "OperationEvents[].ValidationStatus",
     "type": "enum",
     "enum": [
-     "SKIPPED",
-     "FAILED"
+     "FAILED",
+     "SKIPPED"
     ]
    },
    {
@@ -986,11 +986,11 @@
     "path": "Resources[].Warnings[].Type",
     "type": "enum",
     "enum": [
-     "EXCLUDED_PROPERTIES",
-     "EXCLUDED_RESOURCES",
      "MUTUALLY_EXCLUSIVE_PROPERTIES",
      "UNSUPPORTED_PROPERTIES",
-     "MUTUALLY_EXCLUSIVE_TYPES"
+     "MUTUALLY_EXCLUSIVE_TYPES",
+     "EXCLUDED_PROPERTIES",
+     "EXCLUDED_RESOURCES"
     ]
    },
    {
@@ -1001,14 +1001,14 @@
     "path": "Status",
     "type": "enum",
     "enum": [
+     "COMPLETE",
+     "CREATE_PENDING",
+     "UPDATE_PENDING",
      "DELETE_PENDING",
      "CREATE_IN_PROGRESS",
      "UPDATE_IN_PROGRESS",
      "DELETE_IN_PROGRESS",
-     "FAILED",
-     "COMPLETE",
-     "CREATE_PENDING",
-     "UPDATE_PENDING"
+     "FAILED"
     ]
    },
    {
@@ -1143,10 +1143,10 @@
     "path": "Status",
     "type": "enum",
     "enum": [
-     "EXPIRED",
      "IN_PROGRESS",
      "FAILED",
-     "COMPLETE"
+     "COMPLETE",
+     "EXPIRED"
     ]
    },
    {
@@ -1294,34 +1294,34 @@
     "path": "StackEvents[].ResourceStatus",
     "type": "enum",
     "enum": [
-     "ROLLBACK_IN_PROGRESS",
-     "ROLLBACK_COMPLETE",
-     "DELETE_IN_PROGRESS",
-     "UPDATE_FAILED",
-     "UPDATE_COMPLETE",
-     "EXPORT_COMPLETE",
-     "UPDATE_ROLLBACK_COMPLETE",
-     "ROLLBACK_FAILED",
+     "IMPORT_FAILED",
+     "CREATE_FAILED",
      "CREATE_COMPLETE",
+     "DELETE_FAILED",
      "DELETE_SKIPPED",
      "UPDATE_IN_PROGRESS",
-     "IMPORT_ROLLBACK_FAILED",
-     "EXPORT_FAILED",
+     "EXPORT_COMPLETE",
+     "EXPORT_IN_PROGRESS",
+     "DELETE_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "IMPORT_COMPLETE",
+     "IMPORT_ROLLBACK_IN_PROGRESS",
+     "IMPORT_ROLLBACK_COMPLETE",
+     "EXPORT_ROLLBACK_FAILED",
+     "UPDATE_ROLLBACK_IN_PROGRESS",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "CREATE_IN_PROGRESS",
+     "UPDATE_FAILED",
+     "UPDATE_COMPLETE",
      "EXPORT_ROLLBACK_IN_PROGRESS",
      "EXPORT_ROLLBACK_COMPLETE",
      "UPDATE_ROLLBACK_FAILED",
-     "IMPORT_ROLLBACK_IN_PROGRESS",
-     "CREATE_IN_PROGRESS",
-     "CREATE_FAILED",
-     "DELETE_FAILED",
-     "IMPORT_FAILED",
+     "ROLLBACK_IN_PROGRESS",
+     "ROLLBACK_FAILED",
      "IMPORT_IN_PROGRESS",
-     "IMPORT_ROLLBACK_COMPLETE",
-     "UPDATE_ROLLBACK_IN_PROGRESS",
-     "DELETE_COMPLETE",
-     "IMPORT_COMPLETE",
-     "EXPORT_IN_PROGRESS",
-     "EXPORT_ROLLBACK_FAILED"
+     "IMPORT_ROLLBACK_FAILED",
+     "EXPORT_FAILED",
+     "ROLLBACK_COMPLETE"
     ]
    },
    {
@@ -1423,14 +1423,14 @@
     "path": "StackInstance.StackInstanceStatus.DetailedStatus",
     "type": "enum",
     "enum": [
-     "PENDING",
      "RUNNING",
      "SUCCEEDED",
      "FAILED",
      "CANCELLED",
      "INOPERABLE",
      "SKIPPED_SUSPENDED_ACCOUNT",
-     "FAILED_IMPORT"
+     "FAILED_IMPORT",
+     "PENDING"
     ]
    },
    {
@@ -1441,9 +1441,9 @@
     "path": "StackInstance.Status",
     "type": "enum",
     "enum": [
+     "CURRENT",
      "OUTDATED",
-     "INOPERABLE",
-     "CURRENT"
+     "INOPERABLE"
     ]
    },
    {
@@ -1464,15 +1464,15 @@
     "path": "ExecutionStatus",
     "type": "enum",
     "enum": [
-     "OBSOLETE",
-     "EXECUTE_IN_PROGRESS",
-     "EXECUTE_FAILED",
-     "EXECUTE_COMPLETE",
-     "ROLLBACK_IN_PROGRESS",
-     "ROLLBACK_COMPLETE",
      "ROLLBACK_FAILED",
      "UNAVAILABLE",
-     "AVAILABLE"
+     "AVAILABLE",
+     "OBSOLETE",
+     "EXECUTE_COMPLETE",
+     "EXECUTE_FAILED",
+     "ROLLBACK_IN_PROGRESS",
+     "EXECUTE_IN_PROGRESS",
+     "ROLLBACK_COMPLETE"
     ]
    },
    {
@@ -1495,12 +1495,12 @@
     "path": "Status",
     "type": "enum",
     "enum": [
-     "CREATE_FAILED",
-     "DELETE_IN_PROGRESS",
      "DELETE_COMPLETE",
      "DELETE_FAILED",
      "CREATE_IN_PROGRESS",
-     "CREATE_COMPLETE"
+     "CREATE_COMPLETE",
+     "CREATE_FAILED",
+     "DELETE_IN_PROGRESS"
     ]
    },
    {
@@ -1534,12 +1534,12 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "UNSUPPORTED",
      "IN_SYNC",
      "MODIFIED",
      "DELETED",
      "NOT_CHECKED",
-     "UNKNOWN",
-     "UNSUPPORTED"
+     "UNKNOWN"
     ]
    },
    {
@@ -1577,34 +1577,34 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "EXPORT_FAILED",
-     "EXPORT_ROLLBACK_IN_PROGRESS",
      "EXPORT_ROLLBACK_COMPLETE",
      "UPDATE_ROLLBACK_FAILED",
-     "IMPORT_ROLLBACK_IN_PROGRESS",
-     "CREATE_IN_PROGRESS",
-     "CREATE_FAILED",
-     "DELETE_FAILED",
-     "IMPORT_FAILED",
-     "IMPORT_IN_PROGRESS",
-     "IMPORT_ROLLBACK_COMPLETE",
-     "UPDATE_ROLLBACK_IN_PROGRESS",
-     "DELETE_COMPLETE",
-     "IMPORT_COMPLETE",
-     "EXPORT_IN_PROGRESS",
-     "EXPORT_ROLLBACK_FAILED",
      "ROLLBACK_IN_PROGRESS",
-     "ROLLBACK_COMPLETE",
-     "DELETE_IN_PROGRESS",
-     "UPDATE_FAILED",
-     "UPDATE_COMPLETE",
-     "EXPORT_COMPLETE",
-     "UPDATE_ROLLBACK_COMPLETE",
      "ROLLBACK_FAILED",
+     "IMPORT_IN_PROGRESS",
+     "IMPORT_ROLLBACK_FAILED",
+     "EXPORT_FAILED",
+     "ROLLBACK_COMPLETE",
+     "IMPORT_FAILED",
+     "CREATE_FAILED",
      "CREATE_COMPLETE",
+     "DELETE_FAILED",
      "DELETE_SKIPPED",
      "UPDATE_IN_PROGRESS",
-     "IMPORT_ROLLBACK_FAILED"
+     "EXPORT_COMPLETE",
+     "EXPORT_IN_PROGRESS",
+     "DELETE_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "IMPORT_COMPLETE",
+     "IMPORT_ROLLBACK_IN_PROGRESS",
+     "IMPORT_ROLLBACK_COMPLETE",
+     "EXPORT_ROLLBACK_FAILED",
+     "UPDATE_ROLLBACK_IN_PROGRESS",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "CREATE_IN_PROGRESS",
+     "UPDATE_FAILED",
+     "UPDATE_COMPLETE",
+     "EXPORT_ROLLBACK_IN_PROGRESS"
     ]
    },
    {
@@ -1742,12 +1742,12 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "IN_SYNC",
-     "MODIFIED",
      "DELETED",
      "NOT_CHECKED",
      "UNKNOWN",
-     "UNSUPPORTED"
+     "UNSUPPORTED",
+     "IN_SYNC",
+     "MODIFIED"
     ]
    },
    {
@@ -1786,12 +1786,12 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "IN_SYNC",
      "MODIFIED",
      "DELETED",
      "NOT_CHECKED",
      "UNKNOWN",
-     "UNSUPPORTED"
+     "UNSUPPORTED",
+     "IN_SYNC"
     ]
    },
    {
@@ -1820,34 +1820,34 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "IMPORT_FAILED",
+     "CREATE_FAILED",
+     "CREATE_COMPLETE",
+     "DELETE_FAILED",
+     "DELETE_SKIPPED",
+     "UPDATE_IN_PROGRESS",
+     "EXPORT_COMPLETE",
+     "EXPORT_IN_PROGRESS",
+     "DELETE_IN_PROGRESS",
+     "DELETE_COMPLETE",
+     "IMPORT_COMPLETE",
+     "IMPORT_ROLLBACK_IN_PROGRESS",
+     "IMPORT_ROLLBACK_COMPLETE",
+     "EXPORT_ROLLBACK_FAILED",
+     "UPDATE_ROLLBACK_IN_PROGRESS",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "CREATE_IN_PROGRESS",
+     "UPDATE_FAILED",
+     "UPDATE_COMPLETE",
      "EXPORT_ROLLBACK_IN_PROGRESS",
      "EXPORT_ROLLBACK_COMPLETE",
      "UPDATE_ROLLBACK_FAILED",
-     "IMPORT_ROLLBACK_IN_PROGRESS",
-     "CREATE_IN_PROGRESS",
-     "CREATE_FAILED",
-     "DELETE_FAILED",
-     "IMPORT_FAILED",
-     "IMPORT_IN_PROGRESS",
-     "IMPORT_ROLLBACK_COMPLETE",
-     "UPDATE_ROLLBACK_IN_PROGRESS",
-     "DELETE_COMPLETE",
-     "IMPORT_COMPLETE",
-     "EXPORT_IN_PROGRESS",
-     "EXPORT_ROLLBACK_FAILED",
      "ROLLBACK_IN_PROGRESS",
-     "ROLLBACK_COMPLETE",
-     "DELETE_IN_PROGRESS",
-     "UPDATE_FAILED",
-     "UPDATE_COMPLETE",
-     "EXPORT_COMPLETE",
-     "UPDATE_ROLLBACK_COMPLETE",
      "ROLLBACK_FAILED",
-     "CREATE_COMPLETE",
-     "DELETE_SKIPPED",
-     "UPDATE_IN_PROGRESS",
+     "IMPORT_IN_PROGRESS",
      "IMPORT_ROLLBACK_FAILED",
-     "EXPORT_FAILED"
+     "EXPORT_FAILED",
+     "ROLLBACK_COMPLETE"
     ]
    },
    {
@@ -1995,11 +1995,11 @@
     "path": "StackSet.StackSetDriftDetectionDetails.DriftDetectionStatus",
     "type": "enum",
     "enum": [
-     "IN_PROGRESS",
-     "STOPPED",
      "COMPLETED",
      "FAILED",
-     "PARTIAL_SUCCESS"
+     "PARTIAL_SUCCESS",
+     "IN_PROGRESS",
+     "STOPPED"
     ]
    },
    {
@@ -2087,10 +2087,10 @@
     "path": "StackSetOperation.Action",
     "type": "enum",
     "enum": [
-     "CREATE",
      "UPDATE",
      "DELETE",
-     "DETECT_DRIFT"
+     "DETECT_DRIFT",
+     "CREATE"
     ]
    },
    {
@@ -2109,10 +2109,10 @@
     "path": "StackSetOperation.DeploymentTargets.AccountFilterType",
     "type": "enum",
     "enum": [
-     "NONE",
-     "INTERSECTION",
      "DIFFERENCE",
-     "UNION"
+     "UNION",
+     "NONE",
+     "INTERSECTION"
     ]
    },
    {
@@ -2203,20 +2203,20 @@
     "path": "StackSetOperation.StackSetDriftDetectionDetails.DriftDetectionStatus",
     "type": "enum",
     "enum": [
+     "IN_PROGRESS",
      "STOPPED",
      "COMPLETED",
      "FAILED",
-     "PARTIAL_SUCCESS",
-     "IN_PROGRESS"
+     "PARTIAL_SUCCESS"
     ]
    },
    {
     "path": "StackSetOperation.StackSetDriftDetectionDetails.DriftStatus",
     "type": "enum",
     "enum": [
+     "DRIFTED",
      "IN_SYNC",
-     "NOT_CHECKED",
-     "DRIFTED"
+     "NOT_CHECKED"
     ]
    },
    {
@@ -2251,12 +2251,12 @@
     "path": "StackSetOperation.Status",
     "type": "enum",
     "enum": [
-     "STOPPING",
-     "STOPPED",
-     "QUEUED",
      "RUNNING",
      "SUCCEEDED",
-     "FAILED"
+     "FAILED",
+     "STOPPING",
+     "STOPPED",
+     "QUEUED"
     ]
    },
    {
@@ -2335,8 +2335,8 @@
     "path": "Stacks[].DeploymentConfig.Mode",
     "type": "enum",
     "enum": [
-     "STANDARD",
-     "EXPRESS"
+     "EXPRESS",
+     "STANDARD"
     ]
    },
    {
@@ -2368,10 +2368,10 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "DRIFTED",
      "IN_SYNC",
      "UNKNOWN",
-     "NOT_CHECKED"
+     "NOT_CHECKED",
+     "DRIFTED"
     ]
    },
    {
@@ -2394,12 +2394,12 @@
     "path": "Stacks[].LastOperations[].OperationType",
     "type": "enum",
     "enum": [
+     "CREATE_CHANGESET",
      "CREATE_STACK",
      "UPDATE_STACK",
      "DELETE_STACK",
      "CONTINUE_ROLLBACK",
-     "ROLLBACK",
-     "CREATE_CHANGESET"
+     "ROLLBACK"
     ]
    },
    {
@@ -2508,29 +2508,29 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "CREATE_COMPLETE",
-     "DELETE_IN_PROGRESS",
      "DELETE_COMPLETE",
-     "UPDATE_IN_PROGRESS",
-     "REVIEW_IN_PROGRESS",
-     "IMPORT_ROLLBACK_IN_PROGRESS",
      "IMPORT_ROLLBACK_COMPLETE",
-     "ROLLBACK_IN_PROGRESS",
-     "ROLLBACK_FAILED",
-     "DELETE_FAILED",
-     "UPDATE_ROLLBACK_COMPLETE",
-     "UPDATE_FAILED",
-     "UPDATE_ROLLBACK_IN_PROGRESS",
      "CREATE_IN_PROGRESS",
-     "CREATE_FAILED",
+     "CREATE_COMPLETE",
+     "ROLLBACK_FAILED",
+     "UPDATE_COMPLETE",
+     "UPDATE_FAILED",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "REVIEW_IN_PROGRESS",
+     "IMPORT_IN_PROGRESS",
+     "ROLLBACK_IN_PROGRESS",
      "ROLLBACK_COMPLETE",
      "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS",
      "UPDATE_ROLLBACK_FAILED",
-     "IMPORT_COMPLETE",
-     "UPDATE_COMPLETE",
      "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
-     "IMPORT_IN_PROGRESS",
-     "IMPORT_ROLLBACK_FAILED"
+     "IMPORT_COMPLETE",
+     "IMPORT_ROLLBACK_IN_PROGRESS",
+     "IMPORT_ROLLBACK_FAILED",
+     "CREATE_FAILED",
+     "DELETE_IN_PROGRESS",
+     "DELETE_FAILED",
+     "UPDATE_IN_PROGRESS",
+     "UPDATE_ROLLBACK_IN_PROGRESS"
     ]
    },
    {
@@ -2643,9 +2643,9 @@
     "path": "ProvisioningType",
     "type": "enum",
     "enum": [
+     "NON_PROVISIONABLE",
      "IMMUTABLE",
-     "FULLY_MUTABLE",
-     "NON_PROVISIONABLE"
+     "FULLY_MUTABLE"
     ]
    },
    {
@@ -2713,10 +2713,10 @@
     "path": "TypeTestsStatus",
     "type": "enum",
     "enum": [
+     "NOT_TESTED",
      "PASSED",
      "FAILED",
-     "IN_PROGRESS",
-     "NOT_TESTED"
+     "IN_PROGRESS"
     ]
    },
    {
@@ -2879,12 +2879,12 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "IN_SYNC",
      "MODIFIED",
      "DELETED",
      "NOT_CHECKED",
      "UNKNOWN",
-     "UNSUPPORTED",
-     "IN_SYNC"
+     "UNSUPPORTED"
     ]
    },
    {
@@ -2922,14 +2922,14 @@
     "path": "Status",
     "type": "enum",
     "enum": [
+     "UPDATE_PENDING",
+     "DELETE_PENDING",
      "CREATE_IN_PROGRESS",
      "UPDATE_IN_PROGRESS",
      "DELETE_IN_PROGRESS",
      "FAILED",
      "COMPLETE",
-     "CREATE_PENDING",
-     "UPDATE_PENDING",
-     "DELETE_PENDING"
+     "CREATE_PENDING"
     ]
    },
    {
@@ -2966,11 +2966,11 @@
     "path": "Annotations[].SeverityLevel",
     "type": "enum",
     "enum": [
-     "CRITICAL",
      "INFORMATIONAL",
      "LOW",
      "MEDIUM",
-     "HIGH"
+     "HIGH",
+     "CRITICAL"
     ]
    },
    {
@@ -2990,8 +2990,8 @@
     "path": "FailureMode",
     "type": "enum",
     "enum": [
-     "FAIL",
-     "WARN"
+     "WARN",
+     "FAIL"
     ]
    },
    {
@@ -3021,10 +3021,10 @@
     "path": "Status",
     "type": "enum",
     "enum": [
+     "HOOK_IN_PROGRESS",
      "HOOK_COMPLETE_SUCCEEDED",
      "HOOK_COMPLETE_FAILED",
-     "HOOK_FAILED",
-     "HOOK_IN_PROGRESS"
+     "HOOK_FAILED"
     ]
    },
    {
@@ -3036,10 +3036,10 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "CREATE",
      "UPDATE",
      "DELETE",
-     "IMPORT",
-     "CREATE"
+     "IMPORT"
     ]
    },
    {
@@ -3287,12 +3287,12 @@
     "path": "Summaries[].ExecutionStatus",
     "type": "enum",
     "enum": [
-     "OBSOLETE",
      "UNAVAILABLE",
      "AVAILABLE",
      "EXECUTE_IN_PROGRESS",
      "EXECUTE_COMPLETE",
-     "EXECUTE_FAILED"
+     "EXECUTE_FAILED",
+     "OBSOLETE"
     ]
    },
    {
@@ -3323,14 +3323,14 @@
     "path": "Summaries[].Status",
     "type": "enum",
     "enum": [
+     "CREATE_PENDING",
+     "CREATE_IN_PROGRESS",
      "CREATE_COMPLETE",
      "DELETE_PENDING",
      "DELETE_IN_PROGRESS",
      "DELETE_COMPLETE",
      "DELETE_FAILED",
-     "FAILED",
-     "CREATE_PENDING",
-     "CREATE_IN_PROGRESS"
+     "FAILED"
     ]
    },
    {
@@ -3486,10 +3486,10 @@
     "path": "HookResults[].TargetType",
     "type": "enum",
     "enum": [
+     "STACK",
      "RESOURCE",
      "CLOUD_CONTROL",
-     "CHANGE_SET",
-     "STACK"
+     "CHANGE_SET"
     ]
    },
    {
@@ -3658,10 +3658,10 @@
     "path": "ResourceScanSummaries[].Status",
     "type": "enum",
     "enum": [
+     "COMPLETE",
      "EXPIRED",
      "IN_PROGRESS",
-     "FAILED",
-     "COMPLETE"
+     "FAILED"
     ]
    },
    {
@@ -3761,12 +3761,12 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "UNSUPPORTED",
      "IN_SYNC",
      "MODIFIED",
      "DELETED",
      "NOT_CHECKED",
-     "UNKNOWN"
+     "UNKNOWN",
+     "UNSUPPORTED"
     ]
    },
    {
@@ -3834,14 +3834,14 @@
     "path": "Summaries[].StackInstanceStatus.DetailedStatus",
     "type": "enum",
     "enum": [
+     "RUNNING",
+     "SUCCEEDED",
+     "FAILED",
      "CANCELLED",
      "INOPERABLE",
      "SKIPPED_SUSPENDED_ACCOUNT",
      "FAILED_IMPORT",
-     "PENDING",
-     "RUNNING",
-     "SUCCEEDED",
-     "FAILED"
+     "PENDING"
     ]
    },
    {
@@ -3896,8 +3896,8 @@
     "path": "StackRefactorActions[].Detection",
     "type": "enum",
     "enum": [
-     "AUTO",
-     "MANUAL"
+     "MANUAL",
+     "AUTO"
     ]
    },
    {
@@ -4007,15 +4007,15 @@
     "path": "StackRefactorSummaries[].ExecutionStatus",
     "type": "enum",
     "enum": [
+     "EXECUTE_COMPLETE",
+     "EXECUTE_FAILED",
+     "ROLLBACK_IN_PROGRESS",
+     "EXECUTE_IN_PROGRESS",
+     "ROLLBACK_COMPLETE",
+     "ROLLBACK_FAILED",
      "UNAVAILABLE",
      "AVAILABLE",
-     "OBSOLETE",
-     "EXECUTE_IN_PROGRESS",
-     "EXECUTE_FAILED",
-     "EXECUTE_COMPLETE",
-     "ROLLBACK_IN_PROGRESS",
-     "ROLLBACK_COMPLETE",
-     "ROLLBACK_FAILED"
+     "OBSOLETE"
     ]
    },
    {
@@ -4030,12 +4030,12 @@
     "path": "StackRefactorSummaries[].Status",
     "type": "enum",
     "enum": [
+     "DELETE_FAILED",
      "CREATE_IN_PROGRESS",
      "CREATE_COMPLETE",
      "CREATE_FAILED",
      "DELETE_IN_PROGRESS",
-     "DELETE_COMPLETE",
-     "DELETE_FAILED"
+     "DELETE_COMPLETE"
     ]
    },
    {
@@ -4112,34 +4112,34 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "EXPORT_IN_PROGRESS",
+     "IMPORT_ROLLBACK_COMPLETE",
      "EXPORT_ROLLBACK_FAILED",
-     "ROLLBACK_IN_PROGRESS",
-     "ROLLBACK_COMPLETE",
-     "DELETE_IN_PROGRESS",
+     "UPDATE_ROLLBACK_IN_PROGRESS",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "CREATE_IN_PROGRESS",
      "UPDATE_FAILED",
      "UPDATE_COMPLETE",
-     "EXPORT_COMPLETE",
-     "UPDATE_ROLLBACK_COMPLETE",
-     "ROLLBACK_FAILED",
-     "CREATE_COMPLETE",
-     "DELETE_SKIPPED",
-     "UPDATE_IN_PROGRESS",
-     "IMPORT_ROLLBACK_FAILED",
-     "EXPORT_FAILED",
      "EXPORT_ROLLBACK_IN_PROGRESS",
      "EXPORT_ROLLBACK_COMPLETE",
      "UPDATE_ROLLBACK_FAILED",
-     "IMPORT_ROLLBACK_IN_PROGRESS",
-     "CREATE_IN_PROGRESS",
-     "CREATE_FAILED",
-     "DELETE_FAILED",
-     "IMPORT_FAILED",
+     "ROLLBACK_IN_PROGRESS",
+     "ROLLBACK_FAILED",
      "IMPORT_IN_PROGRESS",
-     "IMPORT_ROLLBACK_COMPLETE",
-     "UPDATE_ROLLBACK_IN_PROGRESS",
+     "IMPORT_ROLLBACK_FAILED",
+     "EXPORT_FAILED",
+     "ROLLBACK_COMPLETE",
+     "IMPORT_FAILED",
+     "CREATE_FAILED",
+     "CREATE_COMPLETE",
+     "DELETE_FAILED",
+     "DELETE_SKIPPED",
+     "UPDATE_IN_PROGRESS",
+     "EXPORT_COMPLETE",
+     "EXPORT_IN_PROGRESS",
+     "DELETE_IN_PROGRESS",
      "DELETE_COMPLETE",
-     "IMPORT_COMPLETE"
+     "IMPORT_COMPLETE",
+     "IMPORT_ROLLBACK_IN_PROGRESS"
     ]
    },
    {
@@ -4211,9 +4211,9 @@
     "path": "Summaries[].AccountGateResult.Status",
     "type": "enum",
     "enum": [
-     "SKIPPED",
      "SUCCEEDED",
-     "FAILED"
+     "FAILED",
+     "SKIPPED"
     ]
    },
    {
@@ -4265,10 +4265,10 @@
     "path": "Summaries[].Action",
     "type": "enum",
     "enum": [
-     "DELETE",
-     "DETECT_DRIFT",
      "CREATE",
-     "UPDATE"
+     "UPDATE",
+     "DELETE",
+     "DETECT_DRIFT"
     ]
    },
    {
@@ -4331,12 +4331,12 @@
     "path": "Summaries[].Status",
     "type": "enum",
     "enum": [
+     "FAILED",
      "STOPPING",
      "STOPPED",
      "QUEUED",
      "RUNNING",
-     "SUCCEEDED",
-     "FAILED"
+     "SUCCEEDED"
     ]
    },
    {
@@ -4397,10 +4397,10 @@
     "path": "Summaries[].DriftStatus",
     "type": "enum",
     "enum": [
+     "NOT_CHECKED",
      "DRIFTED",
      "IN_SYNC",
-     "UNKNOWN",
-     "NOT_CHECKED"
+     "UNKNOWN"
     ]
    },
    {
@@ -4479,10 +4479,10 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "NOT_CHECKED",
-     "DRIFTED",
      "IN_SYNC",
-     "UNKNOWN"
+     "UNKNOWN",
+     "NOT_CHECKED",
+     "DRIFTED"
     ]
    },
    {
@@ -4501,12 +4501,12 @@
     "path": "StackSummaries[].LastOperations[].OperationType",
     "type": "enum",
     "enum": [
+     "CREATE_STACK",
+     "UPDATE_STACK",
      "DELETE_STACK",
      "CONTINUE_ROLLBACK",
      "ROLLBACK",
-     "CREATE_CHANGESET",
-     "CREATE_STACK",
-     "UPDATE_STACK"
+     "CREATE_CHANGESET"
     ]
    },
    {
@@ -4535,29 +4535,29 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "CREATE_FAILED",
+     "IMPORT_IN_PROGRESS",
+     "ROLLBACK_IN_PROGRESS",
      "ROLLBACK_COMPLETE",
      "UPDATE_COMPLETE_CLEANUP_IN_PROGRESS",
      "UPDATE_ROLLBACK_FAILED",
-     "IMPORT_COMPLETE",
-     "UPDATE_COMPLETE",
      "UPDATE_ROLLBACK_COMPLETE_CLEANUP_IN_PROGRESS",
-     "IMPORT_IN_PROGRESS",
-     "IMPORT_ROLLBACK_FAILED",
-     "CREATE_COMPLETE",
-     "DELETE_IN_PROGRESS",
-     "DELETE_COMPLETE",
-     "UPDATE_IN_PROGRESS",
-     "REVIEW_IN_PROGRESS",
+     "IMPORT_COMPLETE",
      "IMPORT_ROLLBACK_IN_PROGRESS",
-     "IMPORT_ROLLBACK_COMPLETE",
-     "ROLLBACK_IN_PROGRESS",
-     "ROLLBACK_FAILED",
+     "IMPORT_ROLLBACK_FAILED",
+     "CREATE_FAILED",
+     "DELETE_IN_PROGRESS",
      "DELETE_FAILED",
-     "UPDATE_ROLLBACK_COMPLETE",
-     "UPDATE_FAILED",
+     "UPDATE_IN_PROGRESS",
      "UPDATE_ROLLBACK_IN_PROGRESS",
-     "CREATE_IN_PROGRESS"
+     "DELETE_COMPLETE",
+     "IMPORT_ROLLBACK_COMPLETE",
+     "CREATE_IN_PROGRESS",
+     "CREATE_COMPLETE",
+     "ROLLBACK_FAILED",
+     "UPDATE_COMPLETE",
+     "UPDATE_FAILED",
+     "UPDATE_ROLLBACK_COMPLETE",
+     "REVIEW_IN_PROGRESS"
     ]
    },
    {
@@ -4695,9 +4695,9 @@
     "path": "TypeSummaries[].PublisherIdentity",
     "type": "enum",
     "enum": [
-     "AWS_Marketplace",
      "GitHub",
-     "Bitbucket"
+     "Bitbucket",
+     "AWS_Marketplace"
     ]
    },
    {
@@ -4867,9 +4867,9 @@
     "path": "Capabilities[]",
     "type": "enum",
     "enum": [
-     "CAPABILITY_IAM",
      "CAPABILITY_NAMED_IAM",
-     "CAPABILITY_AUTO_EXPAND"
+     "CAPABILITY_AUTO_EXPAND",
+     "CAPABILITY_IAM"
     ]
    },
    {

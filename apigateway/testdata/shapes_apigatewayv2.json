@@ -91,8 +91,8 @@
     "path": "IpAddressType",
     "type": "enum",
     "enum": [
-     "ipv4",
-     "dualstack"
+     "dualstack",
+     "ipv4"
     ]
    },
    {
@@ -103,8 +103,8 @@
     "path": "ProtocolType",
     "type": "enum",
     "enum": [
-     "WEBSOCKET",
-     "HTTP"
+     "HTTP",
+     "WEBSOCKET"
     ]
    },
    {
@@ -179,8 +179,8 @@
     "path": "AuthorizerType",
     "type": "enum",
     "enum": [
-     "REQUEST",
-     "JWT"
+     "JWT",
+     "REQUEST"
     ]
    },
    {
@@ -245,9 +245,9 @@
     "path": "DeploymentStatus",
     "type": "enum",
     "enum": [
-     "PENDING",
      "FAILED",
-     "DEPLOYED"
+     "DEPLOYED",
+     "PENDING"
     ]
    },
    {
@@ -304,10 +304,10 @@
     "path": "DomainNameConfigurations[].DomainNameStatus",
     "type": "enum",
     "enum": [
+     "PENDING_OWNERSHIP_VERIFICATION",
      "AVAILABLE",
      "UPDATING",
-     "PENDING_CERTIFICATE_REIMPORT",
-     "PENDING_OWNERSHIP_VERIFICATION"
+     "PENDING_CERTIFICATE_REIMPORT"
     ]
    },
    {
@@ -318,8 +318,8 @@
     "path": "DomainNameConfigurations[].EndpointType",
     "type": "enum",
     "enum": [
-     "REGIONAL",
-     "EDGE"
+     "EDGE",
+     "REGIONAL"
     ]
    },
    {
@@ -441,11 +441,11 @@
     "path": "IntegrationType",
     "type": "enum",
     "enum": [
+     "AWS_PROXY",
      "AWS",
      "HTTP",
      "MOCK",
-     "HTTP_PROXY",
-     "AWS_PROXY"
+     "HTTP_PROXY"
     ]
    },
    {
@@ -456,9 +456,9 @@
     "path": "PassthroughBehavior",
     "type": "enum",
     "enum": [
+     "WHEN_NO_TEMPLATES",
      "WHEN_NO_MATCH",
-     "NEVER",
-     "WHEN_NO_TEMPLATES"
+     "NEVER"
     ]
    },
    {
@@ -721,12 +721,12 @@
     "path": "PublishStatus",
     "type": "enum",
     "enum": [
-     "DISABLE_IN_PROGRESS",
-     "DISABLE_FAILED",
-     "DISABLED",
      "PUBLISHED",
      "PUBLISH_IN_PROGRESS",
-     "PUBLISH_FAILED"
+     "PUBLISH_FAILED",
+     "DISABLE_IN_PROGRESS",
+     "DISABLE_FAILED",
+     "DISABLED"
     ]
    },
    {
@@ -1196,9 +1196,9 @@
     "path": "DefaultRouteSettings.LoggingLevel",
     "type": "enum",
     "enum": [
-     "ERROR",
      "INFO",
-     "OFF"
+     "OFF",
+     "ERROR"
     ]
    },
    {
@@ -1324,11 +1324,11 @@
     "path": "VpcLinkStatus",
     "type": "enum",
     "enum": [
-     "INACTIVE",
      "PENDING",
      "AVAILABLE",
      "DELETING",
-     "FAILED"
+     "FAILED",
+     "INACTIVE"
     ]
    },
    {
@@ -1446,8 +1446,8 @@
     "path": "IpAddressType",
     "type": "enum",
     "enum": [
-     "dualstack",
-     "ipv4"
+     "ipv4",
+     "dualstack"
     ]
    },
    {
@@ -1868,9 +1868,9 @@
     "path": "DeploymentStatus",
     "type": "enum",
     "enum": [
+     "DEPLOYED",
      "PENDING",
-     "FAILED",
-     "DEPLOYED"
+     "FAILED"
     ]
    },
    {
@@ -2249,11 +2249,11 @@
     "path": "IntegrationType",
     "type": "enum",
     "enum": [
-     "AWS",
      "HTTP",
      "MOCK",
      "HTTP_PROXY",
-     "AWS_PROXY"
+     "AWS_PROXY",
+     "AWS"
     ]
    },
    {
@@ -2264,9 +2264,9 @@
     "path": "PassthroughBehavior",
     "type": "enum",
     "enum": [
+     "WHEN_NO_TEMPLATES",
      "WHEN_NO_MATCH",
-     "NEVER",
-     "WHEN_NO_TEMPLATES"
+     "NEVER"
     ]
    },
    {
@@ -2327,8 +2327,8 @@
     "path": "ContentHandlingStrategy",
     "type": "enum",
     "enum": [
-     "CONVERT_TO_TEXT",
-     "CONVERT_TO_BINARY"
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
     ]
    },
    {
@@ -2480,11 +2480,11 @@
     "path": "Items[].IntegrationType",
     "type": "enum",
     "enum": [
-     "AWS_PROXY",
      "AWS",
      "HTTP",
      "MOCK",
-     "HTTP_PROXY"
+     "HTTP_PROXY",
+     "AWS_PROXY"
     ]
    },
    {
@@ -2495,9 +2495,9 @@
     "path": "Items[].PassthroughBehavior",
     "type": "enum",
     "enum": [
+     "WHEN_NO_MATCH",
      "NEVER",
-     "WHEN_NO_TEMPLATES",
-     "WHEN_NO_MATCH"
+     "WHEN_NO_TEMPLATES"
     ]
    },
    {
@@ -2776,9 +2776,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "PREVIEW_IN_PROGRESS",
      "PREVIEW_FAILED",
-     "PREVIEW_READY"
+     "PREVIEW_READY",
+     "PREVIEW_IN_PROGRESS"
     ]
    },
    {
@@ -2801,12 +2801,12 @@
     "path": "PublishStatus",
     "type": "enum",
     "enum": [
+     "PUBLISHED",
+     "PUBLISH_IN_PROGRESS",
      "PUBLISH_FAILED",
      "DISABLE_IN_PROGRESS",
      "DISABLE_FAILED",
-     "DISABLED",
-     "PUBLISHED",
-     "PUBLISH_IN_PROGRESS"
+     "DISABLED"
     ]
    },
    {
@@ -3073,10 +3073,10 @@
     "path": "AuthorizationType",
     "type": "enum",
     "enum": [
+     "NONE",
      "AWS_IAM",
      "CUSTOM",
-     "JWT",
-     "NONE"
+     "JWT"
     ]
    },
    {
@@ -3487,9 +3487,9 @@
     "path": "RouteSettings{}.LoggingLevel",
     "type": "enum",
     "enum": [
-     "ERROR",
      "INFO",
-     "OFF"
+     "OFF",
+     "ERROR"
     ]
    },
    {
@@ -3725,11 +3725,11 @@
     "path": "VpcLinkStatus",
     "type": "enum",
     "enum": [
+     "FAILED",
+     "INACTIVE",
      "PENDING",
      "AVAILABLE",
-     "DELETING",
-     "FAILED",
-     "INACTIVE"
+     "DELETING"
     ]
    },
    {
@@ -3801,11 +3801,11 @@
     "path": "Items[].VpcLinkStatus",
     "type": "enum",
     "enum": [
+     "INACTIVE",
      "PENDING",
      "AVAILABLE",
      "DELETING",
-     "FAILED",
-     "INACTIVE"
+     "FAILED"
     ]
    },
    {
@@ -3929,8 +3929,8 @@
     "path": "ProtocolType",
     "type": "enum",
     "enum": [
-     "WEBSOCKET",
-     "HTTP"
+     "HTTP",
+     "WEBSOCKET"
     ]
    },
    {
@@ -4142,9 +4142,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "PREVIEW_IN_PROGRESS",
      "PREVIEW_FAILED",
-     "PREVIEW_READY"
+     "PREVIEW_READY",
+     "PREVIEW_IN_PROGRESS"
     ]
    },
    {
@@ -4709,8 +4709,8 @@
     "path": "IpAddressType",
     "type": "enum",
     "enum": [
-     "ipv4",
-     "dualstack"
+     "dualstack",
+     "ipv4"
     ]
    },
    {
@@ -4863,9 +4863,9 @@
     "path": "DeploymentStatus",
     "type": "enum",
     "enum": [
-     "PENDING",
      "FAILED",
-     "DEPLOYED"
+     "DEPLOYED",
+     "PENDING"
     ]
    },
    {
@@ -4960,8 +4960,8 @@
     "path": "DomainNameConfigurations[].SecurityPolicy",
     "type": "enum",
     "enum": [
-     "TLS_1_0",
-     "TLS_1_2"
+     "TLS_1_2",
+     "TLS_1_0"
     ]
    },
    {
@@ -5059,11 +5059,11 @@
     "path": "IntegrationType",
     "type": "enum",
     "enum": [
+     "AWS_PROXY",
      "AWS",
      "HTTP",
      "MOCK",
-     "HTTP_PROXY",
-     "AWS_PROXY"
+     "HTTP_PROXY"
     ]
    },
    {
@@ -5137,8 +5137,8 @@
     "path": "ContentHandlingStrategy",
     "type": "enum",
     "enum": [
-     "CONVERT_TO_TEXT",
-     "CONVERT_TO_BINARY"
+     "CONVERT_TO_BINARY",
+     "CONVERT_TO_TEXT"
     ]
    },
    {
@@ -5344,9 +5344,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "PREVIEW_IN_PROGRESS",
      "PREVIEW_FAILED",
-     "PREVIEW_READY"
+     "PREVIEW_READY",
+     "PREVIEW_IN_PROGRESS"
     ]
    },
    {
@@ -5623,10 +5623,10 @@
     "path": "AuthorizationType",
     "type": "enum",
     "enum": [
+     "AWS_IAM",
      "CUSTOM",
      "JWT",
-     "NONE",
-     "AWS_IAM"
+     "NONE"
     ]
    },
    {
@@ -5765,9 +5765,9 @@
     "path": "DefaultRouteSettings.LoggingLevel",
     "type": "enum",
     "enum": [
+     "OFF",
      "ERROR",
-     "INFO",
-     "OFF"
+     "INFO"
     ]
    },
    {
@@ -5814,9 +5814,9 @@
     "path": "RouteSettings{}.LoggingLevel",
     "type": "enum",
     "enum": [
-     "ERROR",
      "INFO",
-     "OFF"
+     "OFF",
+     "ERROR"
     ]
    },
    {
@@ -5893,11 +5893,11 @@
     "path": "VpcLinkStatus",
     "type": "enum",
     "enum": [
-     "DELETING",
-     "FAILED",
      "INACTIVE",
      "PENDING",
-     "AVAILABLE"
+     "AVAILABLE",
+     "DELETING",
+     "FAILED"
     ]
    },
    {

@@ -115,17 +115,17 @@
     "path": "Responses[].Error.Code",
     "type": "enum",
     "enum": [
-     "RequestLimitExceeded",
-     "ValidationError",
-     "ThrottlingError",
-     "InternalServerError",
-     "DuplicateItem",
+     "ConditionalCheckFailed",
      "ItemCollectionSizeLimitExceeded",
      "ProvisionedThroughputExceeded",
-     "TransactionConflict",
      "ResourceNotFound",
      "AccessDenied",
-     "ConditionalCheckFailed"
+     "DuplicateItem",
+     "RequestLimitExceeded",
+     "ValidationError",
+     "TransactionConflict",
+     "ThrottlingError",
+     "InternalServerError"
     ]
    },
    {
@@ -513,9 +513,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "CREATING",
      "DELETED",
-     "AVAILABLE"
+     "AVAILABLE",
+     "CREATING"
     ]
    },
    {
@@ -523,9 +523,9 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "AWS_BACKUP",
      "USER",
-     "SYSTEM",
-     "AWS_BACKUP"
+     "SYSTEM"
     ]
    }
   ]
@@ -580,9 +580,9 @@
     "path": "GlobalTableDescription.ReplicationGroup[].GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED_WITH_OVERRIDES",
      "ENABLED",
-     "DISABLED"
+     "DISABLED",
+     "ENABLED_WITH_OVERRIDES"
     ]
    },
    {
@@ -623,14 +623,14 @@
     "enum": [
      "CREATION_FAILED",
      "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "REGION_DISABLED",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
+     "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
      "CREATING",
-     "ARCHIVED"
+     "DELETING",
+     "REGION_DISABLED",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "ARCHIVING"
     ]
    },
    {
@@ -669,14 +669,14 @@
     "path": "GlobalTableDescription.ReplicationGroup[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
+     "UPDATING",
+     "DELETING",
+     "ACTIVE",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
      "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "UPDATING",
-     "DELETING",
-     "ACTIVE"
+     "CREATING"
     ]
    },
    {
@@ -740,8 +740,8 @@
     "path": "TableDescription.BillingModeSummary.BillingMode",
     "type": "enum",
     "enum": [
-     "PROVISIONED",
-     "PAY_PER_REQUEST"
+     "PAY_PER_REQUEST",
+     "PROVISIONED"
     ]
    },
    {
@@ -933,8 +933,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "RANGE",
-     "HASH"
+     "HASH",
+     "RANGE"
     ]
    },
    {
@@ -989,9 +989,9 @@
     "path": "TableDescription.LocalSecondaryIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
-     "INCLUDE",
      "ALL",
-     "KEYS_ONLY"
+     "KEYS_ONLY",
+     "INCLUDE"
     ]
    },
    {
@@ -1058,9 +1058,9 @@
     "path": "TableDescription.Replicas[].GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
-     "ENABLED_WITH_OVERRIDES"
+     "ENABLED_WITH_OVERRIDES",
+     "ENABLED"
     ]
    },
    {
@@ -1099,16 +1099,16 @@
     "path": "TableDescription.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "CREATION_FAILED",
-     "UPDATING",
+     "CREATING",
      "DELETING",
-     "ACTIVE",
      "REGION_DISABLED",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "ARCHIVED"
+     "CREATION_FAILED",
+     "UPDATING",
+     "ACTIVE",
+     "ARCHIVED",
+     "REPLICATION_NOT_AUTHORIZED"
     ]
    },
    {
@@ -1147,14 +1147,14 @@
     "path": "TableDescription.Replicas[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
      "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
      "CREATING",
      "UPDATING",
-     "DELETING",
-     "ACTIVE"
+     "DELETING"
     ]
    },
    {
@@ -1207,11 +1207,11 @@
     "path": "TableDescription.SSEDescription.Status",
     "type": "enum",
     "enum": [
-     "ENABLING",
-     "ENABLED",
      "DISABLING",
      "DISABLED",
-     "UPDATING"
+     "UPDATING",
+     "ENABLING",
+     "ENABLED"
     ]
    },
    {
@@ -1227,10 +1227,10 @@
     "path": "TableDescription.StreamSpecification.StreamViewType",
     "type": "enum",
     "enum": [
+     "OLD_IMAGE",
      "NEW_AND_OLD_IMAGES",
      "KEYS_ONLY",
-     "NEW_IMAGE",
-     "OLD_IMAGE"
+     "NEW_IMAGE"
     ]
    },
    {
@@ -1269,14 +1269,14 @@
     "path": "TableDescription.TableStatus",
     "type": "enum",
     "enum": [
-     "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
      "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
      "CREATING",
      "UPDATING",
-     "DELETING"
+     "DELETING",
+     "ACTIVE",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS"
     ]
    },
    {
@@ -1320,10 +1320,10 @@
     "path": "TableDescription.VectorIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
-     "DELETING",
-     "ACTIVE",
      "CREATING",
-     "UPDATING"
+     "UPDATING",
+     "DELETING",
+     "ACTIVE"
     ]
    },
    {
@@ -1342,9 +1342,9 @@
     "path": "TableDescription.VectorIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
-     "KEYS_ONLY",
      "INCLUDE",
-     "ALL"
+     "ALL",
+     "KEYS_ONLY"
     ]
    },
    {
@@ -1376,14 +1376,14 @@
     "path": "TableDescription.WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "UPDATING",
      "DELETING",
      "ACTIVE",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING"
+     "ARCHIVING",
+     "ARCHIVED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "CREATING",
+     "UPDATING"
     ]
    },
    {
@@ -1482,8 +1482,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "HASH",
-     "RANGE"
+     "RANGE",
+     "HASH"
     ]
    },
    {
@@ -1612,11 +1612,11 @@
     "path": "BackupDescription.SourceTableFeatureDetails.SSEDescription.Status",
     "type": "enum",
     "enum": [
+     "UPDATING",
      "ENABLING",
      "ENABLED",
      "DISABLING",
-     "DISABLED",
-     "UPDATING"
+     "DISABLED"
     ]
    },
    {
@@ -1650,10 +1650,10 @@
     "path": "BackupDescription.SourceTableFeatureDetails.TimeToLiveDescription.TimeToLiveStatus",
     "type": "enum",
     "enum": [
+     "ENABLED",
      "DISABLED",
      "ENABLING",
-     "DISABLING",
-     "ENABLED"
+     "DISABLING"
     ]
    },
    {
@@ -1672,9 +1672,9 @@
     "path": "BackupDescription.SourceTableFeatureDetails.VectorIndexes[].DistanceFunction",
     "type": "enum",
     "enum": [
-     "COSINE",
      "DOT_PRODUCT",
-     "EUCLIDEAN"
+     "EUCLIDEAN",
+     "COSINE"
     ]
    },
    {
@@ -1886,8 +1886,8 @@
     "path": "TableDescription.BillingModeSummary.BillingMode",
     "type": "enum",
     "enum": [
-     "PROVISIONED",
-     "PAY_PER_REQUEST"
+     "PAY_PER_REQUEST",
+     "PROVISIONED"
     ]
    },
    {
@@ -1930,10 +1930,10 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
-     "DELETING",
-     "ACTIVE",
      "CREATING",
-     "UPDATING"
+     "UPDATING",
+     "DELETING",
+     "ACTIVE"
     ]
    },
    {
@@ -1972,9 +1972,9 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
-     "INCLUDE",
      "ALL",
-     "KEYS_ONLY"
+     "KEYS_ONLY",
+     "INCLUDE"
     ]
    },
    {
@@ -2013,10 +2013,10 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "ACTIVE",
      "CREATING",
      "UPDATING",
-     "DELETING"
+     "DELETING",
+     "ACTIVE"
     ]
    },
    {
@@ -2079,8 +2079,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "RANGE",
-     "HASH"
+     "HASH",
+     "RANGE"
     ]
    },
    {
@@ -2144,8 +2144,8 @@
     "path": "TableDescription.MultiRegionConsistency",
     "type": "enum",
     "enum": [
-     "STRONG",
-     "EVENTUAL"
+     "EVENTUAL",
+     "STRONG"
     ]
    },
    {
@@ -2245,16 +2245,16 @@
     "path": "TableDescription.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "ARCHIVING",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "ARCHIVED",
      "CREATION_FAILED",
      "UPDATING",
-     "DELETING",
      "ACTIVE",
+     "ARCHIVED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "CREATING",
+     "DELETING",
      "REGION_DISABLED",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS"
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "ARCHIVING"
     ]
    },
    {
@@ -2293,14 +2293,14 @@
     "path": "TableDescription.Replicas[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "ARCHIVING",
+     "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
      "CREATING",
      "UPDATING",
      "DELETING",
-     "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
-     "ARCHIVED"
+     "ACTIVE"
     ]
    },
    {
@@ -2353,11 +2353,11 @@
     "path": "TableDescription.SSEDescription.Status",
     "type": "enum",
     "enum": [
-     "ENABLING",
      "ENABLED",
      "DISABLING",
      "DISABLED",
-     "UPDATING"
+     "UPDATING",
+     "ENABLING"
     ]
    },
    {
@@ -2373,10 +2373,10 @@
     "path": "TableDescription.StreamSpecification.StreamViewType",
     "type": "enum",
     "enum": [
-     "NEW_IMAGE",
      "OLD_IMAGE",
      "NEW_AND_OLD_IMAGES",
-     "KEYS_ONLY"
+     "KEYS_ONLY",
+     "NEW_IMAGE"
     ]
    },
    {
@@ -2395,8 +2395,8 @@
     "path": "TableDescription.TableClassSummary.TableClass",
     "type": "enum",
     "enum": [
-     "STANDARD",
-     "STANDARD_INFREQUENT_ACCESS"
+     "STANDARD_INFREQUENT_ACCESS",
+     "STANDARD"
     ]
    },
    {
@@ -2415,14 +2415,14 @@
     "path": "TableDescription.TableStatus",
     "type": "enum",
     "enum": [
+     "UPDATING",
+     "DELETING",
+     "ACTIVE",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
      "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "UPDATING",
-     "DELETING",
-     "ACTIVE"
+     "CREATING"
     ]
    },
    {
@@ -2445,9 +2445,9 @@
     "path": "TableDescription.VectorIndexes[].DistanceFunction",
     "type": "enum",
     "enum": [
+     "EUCLIDEAN",
      "COSINE",
-     "DOT_PRODUCT",
-     "EUCLIDEAN"
+     "DOT_PRODUCT"
     ]
    },
    {
@@ -2466,10 +2466,10 @@
     "path": "TableDescription.VectorIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
-     "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "ACTIVE",
+     "CREATING",
+     "UPDATING"
     ]
    },
    {
@@ -2488,9 +2488,9 @@
     "path": "TableDescription.VectorIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
+     "INCLUDE",
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "KEYS_ONLY"
     ]
    },
    {
@@ -2628,8 +2628,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "HASH",
-     "RANGE"
+     "RANGE",
+     "HASH"
     ]
    },
    {
@@ -2758,11 +2758,11 @@
     "path": "BackupDescription.SourceTableFeatureDetails.SSEDescription.Status",
     "type": "enum",
     "enum": [
-     "UPDATING",
      "ENABLING",
      "ENABLED",
      "DISABLING",
-     "DISABLED"
+     "DISABLED",
+     "UPDATING"
     ]
    },
    {
@@ -2796,10 +2796,10 @@
     "path": "BackupDescription.SourceTableFeatureDetails.TimeToLiveDescription.TimeToLiveStatus",
     "type": "enum",
     "enum": [
-     "DISABLED",
      "ENABLING",
      "DISABLING",
-     "ENABLED"
+     "ENABLED",
+     "DISABLED"
     ]
    },
    {
@@ -2818,9 +2818,9 @@
     "path": "BackupDescription.SourceTableFeatureDetails.VectorIndexes[].DistanceFunction",
     "type": "enum",
     "enum": [
+     "EUCLIDEAN",
      "COSINE",
-     "DOT_PRODUCT",
-     "EUCLIDEAN"
+     "DOT_PRODUCT"
     ]
    },
    {
@@ -2908,11 +2908,11 @@
     "path": "ContributorInsightsStatus",
     "type": "enum",
     "enum": [
+     "ENABLING",
      "ENABLED",
      "DISABLING",
      "DISABLED",
-     "FAILED",
-     "ENABLING"
+     "FAILED"
     ]
    },
    {
@@ -3019,8 +3019,8 @@
     "path": "ExportDescription.ExportType",
     "type": "enum",
     "enum": [
-     "FULL_EXPORT",
-     "INCREMENTAL_EXPORT"
+     "INCREMENTAL_EXPORT",
+     "FULL_EXPORT"
     ]
    },
    {
@@ -3047,8 +3047,8 @@
     "path": "ExportDescription.IncrementalExportSpecification.ExportViewType",
     "type": "enum",
     "enum": [
-     "NEW_AND_OLD_IMAGES",
-     "NEW_IMAGE"
+     "NEW_IMAGE",
+     "NEW_AND_OLD_IMAGES"
     ]
    },
    {
@@ -3117,10 +3117,10 @@
     "path": "GlobalTableDescription.GlobalTableStatus",
     "type": "enum",
     "enum": [
-     "CREATING",
      "ACTIVE",
      "DELETING",
-     "UPDATING"
+     "UPDATING",
+     "CREATING"
     ]
    },
    {
@@ -3143,9 +3143,9 @@
     "path": "GlobalTableDescription.ReplicationGroup[].GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
+     "ENABLED_WITH_OVERRIDES",
      "ENABLED",
-     "DISABLED",
-     "ENABLED_WITH_OVERRIDES"
+     "DISABLED"
     ]
    },
    {
@@ -3184,15 +3184,15 @@
     "path": "GlobalTableDescription.ReplicationGroup[].ReplicaStatus",
     "type": "enum",
     "enum": [
+     "ARCHIVED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "CREATING",
+     "DELETING",
      "REGION_DISABLED",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "ARCHIVED",
      "CREATION_FAILED",
      "UPDATING",
-     "DELETING",
      "ACTIVE"
     ]
    },
@@ -3216,8 +3216,8 @@
     "path": "GlobalTableDescription.ReplicationGroup[].ReplicaTableClassSummary.TableClass",
     "type": "enum",
     "enum": [
-     "STANDARD_INFREQUENT_ACCESS",
-     "STANDARD"
+     "STANDARD",
+     "STANDARD_INFREQUENT_ACCESS"
     ]
    },
    {
@@ -3232,14 +3232,14 @@
     "path": "GlobalTableDescription.ReplicationGroup[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
      "CREATING",
      "UPDATING",
      "DELETING",
      "ACTIVE",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING"
+     "ARCHIVING",
+     "ARCHIVED"
     ]
    },
    {
@@ -3394,14 +3394,14 @@
     "enum": [
      "CREATION_FAILED",
      "UPDATING",
-     "DELETING",
      "ACTIVE",
-     "REGION_DISABLED",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
+     "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
      "CREATING",
-     "ARCHIVED"
+     "DELETING",
+     "REGION_DISABLED",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "ARCHIVING"
     ]
    },
    {
@@ -3416,8 +3416,8 @@
     "path": "ReplicaSettings[].ReplicaTableClassSummary.TableClass",
     "type": "enum",
     "enum": [
-     "STANDARD_INFREQUENT_ACCESS",
-     "STANDARD"
+     "STANDARD",
+     "STANDARD_INFREQUENT_ACCESS"
     ]
    }
   ]
@@ -3487,9 +3487,9 @@
     "path": "ImportTableDescription.InputFormat",
     "type": "enum",
     "enum": [
-     "DYNAMODB_JSON",
      "ION",
-     "CSV"
+     "CSV",
+     "DYNAMODB_JSON"
     ]
    },
    {
@@ -3568,9 +3568,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "B",
      "S",
-     "N"
+     "N",
+     "B"
     ]
    },
    {
@@ -3635,8 +3635,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "HASH",
-     "RANGE"
+     "RANGE",
+     "HASH"
     ]
    },
    {
@@ -3708,9 +3708,9 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "COSINE",
      "DOT_PRODUCT",
-     "EUCLIDEAN",
-     "COSINE"
+     "EUCLIDEAN"
     ]
    },
    {
@@ -3754,20 +3754,20 @@
     "path": "KinesisDataStreamDestinations[].ApproximateCreationDateTimePrecision",
     "type": "enum",
     "enum": [
-     "MILLISECOND",
-     "MICROSECOND"
+     "MICROSECOND",
+     "MILLISECOND"
     ]
    },
    {
     "path": "KinesisDataStreamDestinations[].DestinationStatus",
     "type": "enum",
     "enum": [
+     "DISABLING",
      "DISABLED",
      "ENABLE_FAILED",
      "UPDATING",
      "ENABLING",
-     "ACTIVE",
-     "DISABLING"
+     "ACTIVE"
     ]
    },
    {
@@ -3861,8 +3861,8 @@
     "path": "Table.BillingModeSummary.BillingMode",
     "type": "enum",
     "enum": [
-     "PAY_PER_REQUEST",
-     "PROVISIONED"
+     "PROVISIONED",
+     "PAY_PER_REQUEST"
     ]
    },
    {
@@ -3905,10 +3905,10 @@
     "path": "Table.GlobalSecondaryIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
-     "CREATING",
      "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "ACTIVE",
+     "CREATING"
     ]
    },
    {
@@ -4220,16 +4220,16 @@
     "path": "Table.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "ARCHIVING",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "ARCHIVED",
      "CREATION_FAILED",
      "UPDATING",
-     "DELETING",
      "ACTIVE",
+     "ARCHIVED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "CREATING",
+     "DELETING",
      "REGION_DISABLED",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS"
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "ARCHIVING"
     ]
    },
    {
@@ -4320,19 +4320,19 @@
     "path": "Table.SSEDescription.SSEType",
     "type": "enum",
     "enum": [
-     "AES256",
-     "KMS"
+     "KMS",
+     "AES256"
     ]
    },
    {
     "path": "Table.SSEDescription.Status",
     "type": "enum",
     "enum": [
+     "DISABLED",
+     "UPDATING",
      "ENABLING",
      "ENABLED",
-     "DISABLING",
-     "DISABLED",
-     "UPDATING"
+     "DISABLING"
     ]
    },
    {
@@ -4348,10 +4348,10 @@
     "path": "Table.StreamSpecification.StreamViewType",
     "type": "enum",
     "enum": [
+     "OLD_IMAGE",
      "NEW_AND_OLD_IMAGES",
      "KEYS_ONLY",
-     "NEW_IMAGE",
-     "OLD_IMAGE"
+     "NEW_IMAGE"
     ]
    },
    {
@@ -4390,14 +4390,14 @@
     "path": "Table.TableStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
      "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
      "CREATING",
      "UPDATING",
-     "DELETING",
-     "ACTIVE"
+     "DELETING"
     ]
    },
    {
@@ -4463,9 +4463,9 @@
     "path": "Table.VectorIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
+     "INCLUDE",
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "KEYS_ONLY"
     ]
    },
    {
@@ -4497,14 +4497,14 @@
     "path": "Table.WarmThroughput.Status",
     "type": "enum",
     "enum": [
+     "ARCHIVING",
      "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
      "CREATING",
      "UPDATING",
      "DELETING",
      "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING"
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS"
     ]
    },
    {
@@ -4593,16 +4593,16 @@
     "path": "TableAutoScalingDescription.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "CREATION_FAILED",
-     "UPDATING",
-     "DELETING",
-     "ACTIVE",
      "REGION_DISABLED",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
+     "CREATION_FAILED",
+     "UPDATING",
+     "ACTIVE",
+     "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
      "CREATING",
-     "ARCHIVED"
+     "DELETING"
     ]
    },
    {
@@ -4613,14 +4613,14 @@
     "path": "TableAutoScalingDescription.TableStatus",
     "type": "enum",
     "enum": [
-     "CREATING",
-     "UPDATING",
      "DELETING",
      "ACTIVE",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED"
+     "REPLICATION_NOT_AUTHORIZED",
+     "CREATING",
+     "UPDATING"
     ]
    }
   ]
@@ -4641,10 +4641,10 @@
     "path": "TimeToLiveDescription.TimeToLiveStatus",
     "type": "enum",
     "enum": [
+     "ENABLED",
      "DISABLED",
      "ENABLING",
-     "DISABLING",
-     "ENABLED"
+     "DISABLING"
     ]
    }
   ]
@@ -4657,12 +4657,12 @@
     "path": "DestinationStatus",
     "type": "enum",
     "enum": [
-     "ENABLING",
-     "ACTIVE",
      "DISABLING",
      "DISABLED",
      "ENABLE_FAILED",
-     "UPDATING"
+     "UPDATING",
+     "ENABLING",
+     "ACTIVE"
     ]
    },
    {
@@ -4695,12 +4695,12 @@
     "path": "DestinationStatus",
     "type": "enum",
     "enum": [
-     "ENABLING",
      "ACTIVE",
      "DISABLING",
      "DISABLED",
      "ENABLE_FAILED",
-     "UPDATING"
+     "UPDATING",
+     "ENABLING"
     ]
    },
    {
@@ -4711,8 +4711,8 @@
     "path": "EnableKinesisStreamingConfiguration.ApproximateCreationDateTimePrecision",
     "type": "enum",
     "enum": [
-     "MILLISECOND",
-     "MICROSECOND"
+     "MICROSECOND",
+     "MILLISECOND"
     ]
    },
    {
@@ -5005,9 +5005,9 @@
     "path": "ExportDescription.ExportStatus",
     "type": "enum",
     "enum": [
+     "FAILED",
      "IN_PROGRESS",
-     "COMPLETED",
-     "FAILED"
+     "COMPLETED"
     ]
    },
    {
@@ -5070,8 +5070,8 @@
     "path": "ExportDescription.S3SseAlgorithm",
     "type": "enum",
     "enum": [
-     "AES256",
-     "KMS"
+     "KMS",
+     "AES256"
     ]
    },
    {
@@ -5277,9 +5277,9 @@
     "path": "ImportTableDescription.InputFormat",
     "type": "enum",
     "enum": [
+     "CSV",
      "DYNAMODB_JSON",
-     "ION",
-     "CSV"
+     "ION"
     ]
    },
    {
@@ -5498,9 +5498,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "EUCLIDEAN",
      "COSINE",
-     "DOT_PRODUCT"
+     "DOT_PRODUCT",
+     "EUCLIDEAN"
     ]
    },
    {
@@ -5573,9 +5573,9 @@
     "path": "BackupSummaries[].BackupType",
     "type": "enum",
     "enum": [
-     "USER",
      "SYSTEM",
-     "AWS_BACKUP"
+     "AWS_BACKUP",
+     "USER"
     ]
    },
    {
@@ -5620,11 +5620,11 @@
     "path": "ContributorInsightsSummaries[].ContributorInsightsStatus",
     "type": "enum",
     "enum": [
+     "FAILED",
      "ENABLING",
      "ENABLED",
      "DISABLING",
-     "DISABLED",
-     "FAILED"
+     "DISABLED"
     ]
    },
    {
@@ -5661,9 +5661,9 @@
     "path": "ExportSummaries[].ExportStatus",
     "type": "enum",
     "enum": [
-     "FAILED",
      "IN_PROGRESS",
-     "COMPLETED"
+     "COMPLETED",
+     "FAILED"
     ]
    },
    {
@@ -5753,9 +5753,9 @@
     "path": "ImportSummaryList[].InputFormat",
     "type": "enum",
     "enum": [
+     "DYNAMODB_JSON",
      "ION",
-     "CSV",
-     "DYNAMODB_JSON"
+     "CSV"
     ]
    },
    {
@@ -6139,9 +6139,9 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "S",
      "N",
-     "B"
+     "B",
+     "S"
     ]
    },
    {
@@ -6196,10 +6196,10 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].IndexStatus",
     "type": "enum",
     "enum": [
+     "ACTIVE",
      "CREATING",
      "UPDATING",
-     "DELETING",
-     "ACTIVE"
+     "DELETING"
     ]
    },
    {
@@ -6279,720 +6279,13 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "ACTIVE",
-     "CREATING",
-     "UPDATING",
-     "DELETING"
-    ]
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.WriteUnitsPerSecond",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.GlobalTableSettingsReplicationMode",
-    "type": "enum",
-    "enum": [
-     "ENABLED",
-     "DISABLED",
-     "ENABLED_WITH_OVERRIDES"
-    ]
-   },
-   {
-    "path": "TableDescription.GlobalTableVersion",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.GlobalTableWitnesses",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.GlobalTableWitnesses[]",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.GlobalTableWitnesses[].RegionName",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.GlobalTableWitnesses[].WitnessStatus",
-    "type": "enum",
-    "enum": [
-     "ACTIVE",
-     "CREATING",
-     "DELETING"
-    ]
-   },
-   {
-    "path": "TableDescription.ItemCount",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.KeySchema",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.KeySchema[]",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.KeySchema[].AttributeName",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "TableDescription.KeySchema[].KeyType",
-    "type": "enum",
-    "required": true,
-    "enum": [
-     "HASH",
-     "RANGE"
-    ]
-   },
-   {
-    "path": "TableDescription.LatestStreamArn",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.LatestStreamLabel",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.LocalSecondaryIndexes",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.LocalSecondaryIndexes[]",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.LocalSecondaryIndexes[].IndexArn",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.LocalSecondaryIndexes[].IndexName",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.LocalSecondaryIndexes[].IndexSizeBytes",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.LocalSecondaryIndexes[].ItemCount",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.LocalSecondaryIndexes[].KeySchema",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.LocalSecondaryIndexes[].KeySchema[]",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.LocalSecondaryIndexes[].Projection",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.LocalSecondaryIndexes[].Projection.NonKeyAttributes",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.LocalSecondaryIndexes[].Projection.ProjectionType",
-    "type": "enum",
-    "enum": [
-     "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
-    ]
-   },
-   {
-    "path": "TableDescription.MultiRegionConsistency",
-    "type": "enum",
-    "enum": [
-     "EVENTUAL",
-     "STRONG"
-    ]
-   },
-   {
-    "path": "TableDescription.OnDemandThroughput",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.OnDemandThroughput.MaxReadRequestUnits",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.OnDemandThroughput.MaxWriteRequestUnits",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.ProvisionedThroughput",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.ProvisionedThroughput.LastDecreaseDateTime",
-    "type": "timestamp"
-   },
-   {
-    "path": "TableDescription.ProvisionedThroughput.LastIncreaseDateTime",
-    "type": "timestamp"
-   },
-   {
-    "path": "TableDescription.ProvisionedThroughput.NumberOfDecreasesToday",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.ProvisionedThroughput.ReadCapacityUnits",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.ProvisionedThroughput.WriteCapacityUnits",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.Replicas",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.Replicas[]",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.Replicas[].GlobalSecondaryIndexes",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.Replicas[].GlobalSecondaryIndexes[]",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.Replicas[].GlobalTableSettingsReplicationMode",
-    "type": "enum",
-    "enum": [
-     "ENABLED",
-     "DISABLED",
-     "ENABLED_WITH_OVERRIDES"
-    ]
-   },
-   {
-    "path": "TableDescription.Replicas[].KMSMasterKeyId",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.Replicas[].OnDemandThroughputOverride",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.Replicas[].OnDemandThroughputOverride.MaxReadRequestUnits",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.Replicas[].ProvisionedThroughputOverride",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.Replicas[].ProvisionedThroughputOverride.ReadCapacityUnits",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.Replicas[].RegionName",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.Replicas[].ReplicaArn",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.Replicas[].ReplicaInaccessibleDateTime",
-    "type": "timestamp"
-   },
-   {
-    "path": "TableDescription.Replicas[].ReplicaStatus",
-    "type": "enum",
-    "enum": [
      "DELETING",
      "ACTIVE",
-     "REGION_DISABLED",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
-     "REPLICATION_NOT_AUTHORIZED",
      "CREATING",
-     "ARCHIVED",
-     "CREATION_FAILED",
      "UPDATING"
     ]
    },
    {
-    "path": "TableDescription.Replicas[].ReplicaStatusDescription",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.Replicas[].ReplicaStatusPercentProgress",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.Replicas[].ReplicaTableClassSummary",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.Replicas[].ReplicaTableClassSummary.LastUpdateDateTime",
-    "type": "timestamp"
-   },
-   {
-    "path": "TableDescription.Replicas[].ReplicaTableClassSummary.TableClass",
-    "type": "enum",
-    "enum": [
-     "STANDARD",
-     "STANDARD_INFREQUENT_ACCESS"
-    ]
-   },
-   {
-    "path": "TableDescription.Replicas[].WarmThroughput",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.Replicas[].WarmThroughput.ReadUnitsPerSecond",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.Replicas[].WarmThroughput.Status",
-    "type": "enum",
-    "enum": [
-     "CREATING",
-     "UPDATING",
-     "DELETING",
-     "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
-     "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED"
-    ]
-   },
-   {
-    "path": "TableDescription.Replicas[].WarmThroughput.WriteUnitsPerSecond",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.RestoreSummary",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.RestoreSummary.RestoreDateTime",
-    "type": "timestamp",
-    "required": true
-   },
-   {
-    "path": "TableDescription.RestoreSummary.RestoreInProgress",
-    "type": "boolean",
-    "required": true
-   },
-   {
-    "path": "TableDescription.RestoreSummary.SourceBackupArn",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.RestoreSummary.SourceTableArn",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.SSEDescription",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.SSEDescription.InaccessibleEncryptionDateTime",
-    "type": "timestamp"
-   },
-   {
-    "path": "TableDescription.SSEDescription.KMSMasterKeyArn",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.SSEDescription.SSEType",
-    "type": "enum",
-    "enum": [
-     "AES256",
-     "KMS"
-    ]
-   },
-   {
-    "path": "TableDescription.SSEDescription.Status",
-    "type": "enum",
-    "enum": [
-     "ENABLED",
-     "DISABLING",
-     "DISABLED",
-     "UPDATING",
-     "ENABLING"
-    ]
-   },
-   {
-    "path": "TableDescription.StreamSpecification",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.StreamSpecification.StreamEnabled",
-    "type": "boolean",
-    "required": true
-   },
-   {
-    "path": "TableDescription.StreamSpecification.StreamViewType",
-    "type": "enum",
-    "enum": [
-     "NEW_IMAGE",
-     "OLD_IMAGE",
-     "NEW_AND_OLD_IMAGES",
-     "KEYS_ONLY"
-    ]
-   },
-   {
-    "path": "TableDescription.TableArn",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.TableClassSummary",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.TableClassSummary.LastUpdateDateTime",
-    "type": "timestamp"
-   },
-   {
-    "path": "TableDescription.TableClassSummary.TableClass",
-    "type": "enum",
-    "enum": [
-     "STANDARD_INFREQUENT_ACCESS",
-     "STANDARD"
-    ]
-   },
-   {
-    "path": "TableDescription.TableId",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.TableName",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.TableSizeBytes",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.TableStatus",
-    "type": "enum",
-    "enum": [
-     "CREATING",
-     "UPDATING",
-     "DELETING",
-     "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
-     "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED"
-    ]
-   },
-   {
-    "path": "TableDescription.VectorIndexes",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.VectorIndexes[]",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].Backfilling",
-    "type": "boolean"
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].Dimensions",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].DistanceFunction",
-    "type": "enum",
-    "enum": [
-     "COSINE",
-     "DOT_PRODUCT",
-     "EUCLIDEAN"
-    ]
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].IndexArn",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].IndexName",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].IndexSizeBytes",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].IndexStatus",
-    "type": "enum",
-    "enum": [
-     "CREATING",
-     "UPDATING",
-     "DELETING",
-     "ACTIVE"
-    ]
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].ItemCount",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].Projection",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].Projection.NonKeyAttributes",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].Projection.ProjectionType",
-    "type": "enum",
-    "enum": [
-     "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
-    ]
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].SearchSchema",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].SearchSchema[]",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].VectorAttribute",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.VectorIndexes[].VectorAttribute.AttributeName",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "TableDescription.WarmThroughput",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.WarmThroughput.ReadUnitsPerSecond",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.WarmThroughput.Status",
-    "type": "enum",
-    "enum": [
-     "UPDATING",
-     "DELETING",
-     "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
-     "ARCHIVING",
-     "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING"
-    ]
-   },
-   {
-    "path": "TableDescription.WarmThroughput.WriteUnitsPerSecond",
-    "type": "integer"
-   }
-  ]
- },
- {
-  "operation": "RestoreTableToPointInTime",
-  "output": "RestoreTableToPointInTimeOutput",
-  "members": [
-   {
-    "path": "TableDescription",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.ArchivalSummary",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.ArchivalSummary.ArchivalBackupArn",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.ArchivalSummary.ArchivalDateTime",
-    "type": "timestamp"
-   },
-   {
-    "path": "TableDescription.ArchivalSummary.ArchivalReason",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.AttributeDefinitions",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.AttributeDefinitions[]",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.AttributeDefinitions[].AttributeName",
-    "type": "string",
-    "required": true
-   },
-   {
-    "path": "TableDescription.AttributeDefinitions[].AttributeType",
-    "type": "enum",
-    "required": true,
-    "enum": [
-     "B",
-     "S",
-     "N"
-    ]
-   },
-   {
-    "path": "TableDescription.BillingModeSummary",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.BillingModeSummary.BillingMode",
-    "type": "enum",
-    "enum": [
-     "PAY_PER_REQUEST",
-     "PROVISIONED"
-    ]
-   },
-   {
-    "path": "TableDescription.BillingModeSummary.LastUpdateToPayPerRequestDateTime",
-    "type": "timestamp"
-   },
-   {
-    "path": "TableDescription.CreationDateTime",
-    "type": "timestamp"
-   },
-   {
-    "path": "TableDescription.DeletionProtectionEnabled",
-    "type": "boolean"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[]",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].Backfilling",
-    "type": "boolean"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].IndexArn",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].IndexName",
-    "type": "string"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].IndexSizeBytes",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].IndexStatus",
-    "type": "enum",
-    "enum": [
-     "CREATING",
-     "UPDATING",
-     "DELETING",
-     "ACTIVE"
-    ]
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].ItemCount",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].KeySchema",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].KeySchema[]",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].OnDemandThroughput",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].OnDemandThroughput.MaxReadRequestUnits",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].OnDemandThroughput.MaxWriteRequestUnits",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].Projection",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].Projection.NonKeyAttributes",
-    "type": "list"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].Projection.ProjectionType",
-    "type": "enum",
-    "enum": [
-     "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
-    ]
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].ProvisionedThroughput",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].ProvisionedThroughput.LastDecreaseDateTime",
-    "type": "timestamp"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].ProvisionedThroughput.LastIncreaseDateTime",
-    "type": "timestamp"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].ProvisionedThroughput.NumberOfDecreasesToday",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].ProvisionedThroughput.ReadCapacityUnits",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].ProvisionedThroughput.WriteCapacityUnits",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput",
-    "type": "structure"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.ReadUnitsPerSecond",
-    "type": "integer"
-   },
-   {
-    "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.Status",
-    "type": "enum",
-    "enum": [
-     "CREATING",
-     "UPDATING",
-     "DELETING",
-     "ACTIVE"
-    ]
-   },
-   {
     "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.WriteUnitsPerSecond",
     "type": "integer"
    },
@@ -7108,9 +6401,9 @@
     "path": "TableDescription.LocalSecondaryIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
-     "ALL",
      "KEYS_ONLY",
-     "INCLUDE"
+     "INCLUDE",
+     "ALL"
     ]
    },
    {
@@ -7218,16 +6511,16 @@
     "path": "TableDescription.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "DELETING",
-     "ACTIVE",
-     "REGION_DISABLED",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
+     "CREATION_FAILED",
+     "UPDATING",
+     "ACTIVE",
+     "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
      "CREATING",
-     "ARCHIVED",
-     "CREATION_FAILED",
-     "UPDATING"
+     "DELETING",
+     "REGION_DISABLED"
     ]
    },
    {
@@ -7326,11 +6619,718 @@
     "path": "TableDescription.SSEDescription.Status",
     "type": "enum",
     "enum": [
+     "UPDATING",
      "ENABLING",
      "ENABLED",
      "DISABLING",
-     "DISABLED",
+     "DISABLED"
+    ]
+   },
+   {
+    "path": "TableDescription.StreamSpecification",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.StreamSpecification.StreamEnabled",
+    "type": "boolean",
+    "required": true
+   },
+   {
+    "path": "TableDescription.StreamSpecification.StreamViewType",
+    "type": "enum",
+    "enum": [
+     "KEYS_ONLY",
+     "NEW_IMAGE",
+     "OLD_IMAGE",
+     "NEW_AND_OLD_IMAGES"
+    ]
+   },
+   {
+    "path": "TableDescription.TableArn",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.TableClassSummary",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.TableClassSummary.LastUpdateDateTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "TableDescription.TableClassSummary.TableClass",
+    "type": "enum",
+    "enum": [
+     "STANDARD",
+     "STANDARD_INFREQUENT_ACCESS"
+    ]
+   },
+   {
+    "path": "TableDescription.TableId",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.TableName",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.TableSizeBytes",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.TableStatus",
+    "type": "enum",
+    "enum": [
+     "ARCHIVED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "CREATING",
+     "UPDATING",
+     "DELETING",
+     "ACTIVE",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "ARCHIVING"
+    ]
+   },
+   {
+    "path": "TableDescription.VectorIndexes",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.VectorIndexes[]",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].Backfilling",
+    "type": "boolean"
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].Dimensions",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].DistanceFunction",
+    "type": "enum",
+    "enum": [
+     "COSINE",
+     "DOT_PRODUCT",
+     "EUCLIDEAN"
+    ]
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].IndexArn",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].IndexName",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].IndexSizeBytes",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].IndexStatus",
+    "type": "enum",
+    "enum": [
+     "CREATING",
+     "UPDATING",
+     "DELETING",
+     "ACTIVE"
+    ]
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].ItemCount",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].Projection",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].Projection.NonKeyAttributes",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].Projection.ProjectionType",
+    "type": "enum",
+    "enum": [
+     "ALL",
+     "KEYS_ONLY",
+     "INCLUDE"
+    ]
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].SearchSchema",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].SearchSchema[]",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].VectorAttribute",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.VectorIndexes[].VectorAttribute.AttributeName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "TableDescription.WarmThroughput",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.WarmThroughput.ReadUnitsPerSecond",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.WarmThroughput.Status",
+    "type": "enum",
+    "enum": [
+     "DELETING",
+     "ACTIVE",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "ARCHIVING",
+     "ARCHIVED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "CREATING",
      "UPDATING"
+    ]
+   },
+   {
+    "path": "TableDescription.WarmThroughput.WriteUnitsPerSecond",
+    "type": "integer"
+   }
+  ]
+ },
+ {
+  "operation": "RestoreTableToPointInTime",
+  "output": "RestoreTableToPointInTimeOutput",
+  "members": [
+   {
+    "path": "TableDescription",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.ArchivalSummary",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.ArchivalSummary.ArchivalBackupArn",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.ArchivalSummary.ArchivalDateTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "TableDescription.ArchivalSummary.ArchivalReason",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.AttributeDefinitions",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.AttributeDefinitions[]",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.AttributeDefinitions[].AttributeName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "TableDescription.AttributeDefinitions[].AttributeType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "S",
+     "N",
+     "B"
+    ]
+   },
+   {
+    "path": "TableDescription.BillingModeSummary",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.BillingModeSummary.BillingMode",
+    "type": "enum",
+    "enum": [
+     "PROVISIONED",
+     "PAY_PER_REQUEST"
+    ]
+   },
+   {
+    "path": "TableDescription.BillingModeSummary.LastUpdateToPayPerRequestDateTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "TableDescription.CreationDateTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "TableDescription.DeletionProtectionEnabled",
+    "type": "boolean"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[]",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].Backfilling",
+    "type": "boolean"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].IndexArn",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].IndexName",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].IndexSizeBytes",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].IndexStatus",
+    "type": "enum",
+    "enum": [
+     "UPDATING",
+     "DELETING",
+     "ACTIVE",
+     "CREATING"
+    ]
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].ItemCount",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].KeySchema",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].KeySchema[]",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].OnDemandThroughput",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].OnDemandThroughput.MaxReadRequestUnits",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].OnDemandThroughput.MaxWriteRequestUnits",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].Projection",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].Projection.NonKeyAttributes",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].Projection.ProjectionType",
+    "type": "enum",
+    "enum": [
+     "ALL",
+     "KEYS_ONLY",
+     "INCLUDE"
+    ]
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].ProvisionedThroughput",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].ProvisionedThroughput.LastDecreaseDateTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].ProvisionedThroughput.LastIncreaseDateTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].ProvisionedThroughput.NumberOfDecreasesToday",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].ProvisionedThroughput.ReadCapacityUnits",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].ProvisionedThroughput.WriteCapacityUnits",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.ReadUnitsPerSecond",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.Status",
+    "type": "enum",
+    "enum": [
+     "CREATING",
+     "UPDATING",
+     "DELETING",
+     "ACTIVE"
+    ]
+   },
+   {
+    "path": "TableDescription.GlobalSecondaryIndexes[].WarmThroughput.WriteUnitsPerSecond",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.GlobalTableSettingsReplicationMode",
+    "type": "enum",
+    "enum": [
+     "DISABLED",
+     "ENABLED_WITH_OVERRIDES",
+     "ENABLED"
+    ]
+   },
+   {
+    "path": "TableDescription.GlobalTableVersion",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.GlobalTableWitnesses",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.GlobalTableWitnesses[]",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.GlobalTableWitnesses[].RegionName",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.GlobalTableWitnesses[].WitnessStatus",
+    "type": "enum",
+    "enum": [
+     "DELETING",
+     "ACTIVE",
+     "CREATING"
+    ]
+   },
+   {
+    "path": "TableDescription.ItemCount",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.KeySchema",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.KeySchema[]",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.KeySchema[].AttributeName",
+    "type": "string",
+    "required": true
+   },
+   {
+    "path": "TableDescription.KeySchema[].KeyType",
+    "type": "enum",
+    "required": true,
+    "enum": [
+     "HASH",
+     "RANGE"
+    ]
+   },
+   {
+    "path": "TableDescription.LatestStreamArn",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.LatestStreamLabel",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.LocalSecondaryIndexes",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.LocalSecondaryIndexes[]",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.LocalSecondaryIndexes[].IndexArn",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.LocalSecondaryIndexes[].IndexName",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.LocalSecondaryIndexes[].IndexSizeBytes",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.LocalSecondaryIndexes[].ItemCount",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.LocalSecondaryIndexes[].KeySchema",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.LocalSecondaryIndexes[].KeySchema[]",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.LocalSecondaryIndexes[].Projection",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.LocalSecondaryIndexes[].Projection.NonKeyAttributes",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.LocalSecondaryIndexes[].Projection.ProjectionType",
+    "type": "enum",
+    "enum": [
+     "KEYS_ONLY",
+     "INCLUDE",
+     "ALL"
+    ]
+   },
+   {
+    "path": "TableDescription.MultiRegionConsistency",
+    "type": "enum",
+    "enum": [
+     "EVENTUAL",
+     "STRONG"
+    ]
+   },
+   {
+    "path": "TableDescription.OnDemandThroughput",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.OnDemandThroughput.MaxReadRequestUnits",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.OnDemandThroughput.MaxWriteRequestUnits",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.ProvisionedThroughput",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.ProvisionedThroughput.LastDecreaseDateTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "TableDescription.ProvisionedThroughput.LastIncreaseDateTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "TableDescription.ProvisionedThroughput.NumberOfDecreasesToday",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.ProvisionedThroughput.ReadCapacityUnits",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.ProvisionedThroughput.WriteCapacityUnits",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.Replicas",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.Replicas[]",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.Replicas[].GlobalSecondaryIndexes",
+    "type": "list"
+   },
+   {
+    "path": "TableDescription.Replicas[].GlobalSecondaryIndexes[]",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.Replicas[].GlobalTableSettingsReplicationMode",
+    "type": "enum",
+    "enum": [
+     "ENABLED",
+     "DISABLED",
+     "ENABLED_WITH_OVERRIDES"
+    ]
+   },
+   {
+    "path": "TableDescription.Replicas[].KMSMasterKeyId",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.Replicas[].OnDemandThroughputOverride",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.Replicas[].OnDemandThroughputOverride.MaxReadRequestUnits",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.Replicas[].ProvisionedThroughputOverride",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.Replicas[].ProvisionedThroughputOverride.ReadCapacityUnits",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.Replicas[].RegionName",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.Replicas[].ReplicaArn",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.Replicas[].ReplicaInaccessibleDateTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "TableDescription.Replicas[].ReplicaStatus",
+    "type": "enum",
+    "enum": [
+     "REGION_DISABLED",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "ARCHIVING",
+     "CREATION_FAILED",
+     "UPDATING",
+     "ACTIVE",
+     "ARCHIVED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "CREATING",
+     "DELETING"
+    ]
+   },
+   {
+    "path": "TableDescription.Replicas[].ReplicaStatusDescription",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.Replicas[].ReplicaStatusPercentProgress",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.Replicas[].ReplicaTableClassSummary",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.Replicas[].ReplicaTableClassSummary.LastUpdateDateTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "TableDescription.Replicas[].ReplicaTableClassSummary.TableClass",
+    "type": "enum",
+    "enum": [
+     "STANDARD",
+     "STANDARD_INFREQUENT_ACCESS"
+    ]
+   },
+   {
+    "path": "TableDescription.Replicas[].WarmThroughput",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.Replicas[].WarmThroughput.ReadUnitsPerSecond",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.Replicas[].WarmThroughput.Status",
+    "type": "enum",
+    "enum": [
+     "ARCHIVED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "CREATING",
+     "UPDATING",
+     "DELETING",
+     "ACTIVE",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
+     "ARCHIVING"
+    ]
+   },
+   {
+    "path": "TableDescription.Replicas[].WarmThroughput.WriteUnitsPerSecond",
+    "type": "integer"
+   },
+   {
+    "path": "TableDescription.RestoreSummary",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.RestoreSummary.RestoreDateTime",
+    "type": "timestamp",
+    "required": true
+   },
+   {
+    "path": "TableDescription.RestoreSummary.RestoreInProgress",
+    "type": "boolean",
+    "required": true
+   },
+   {
+    "path": "TableDescription.RestoreSummary.SourceBackupArn",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.RestoreSummary.SourceTableArn",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.SSEDescription",
+    "type": "structure"
+   },
+   {
+    "path": "TableDescription.SSEDescription.InaccessibleEncryptionDateTime",
+    "type": "timestamp"
+   },
+   {
+    "path": "TableDescription.SSEDescription.KMSMasterKeyArn",
+    "type": "string"
+   },
+   {
+    "path": "TableDescription.SSEDescription.SSEType",
+    "type": "enum",
+    "enum": [
+     "AES256",
+     "KMS"
+    ]
+   },
+   {
+    "path": "TableDescription.SSEDescription.Status",
+    "type": "enum",
+    "enum": [
+     "DISABLING",
+     "DISABLED",
+     "UPDATING",
+     "ENABLING",
+     "ENABLED"
     ]
    },
    {
@@ -7368,8 +7368,8 @@
     "path": "TableDescription.TableClassSummary.TableClass",
     "type": "enum",
     "enum": [
-     "STANDARD",
-     "STANDARD_INFREQUENT_ACCESS"
+     "STANDARD_INFREQUENT_ACCESS",
+     "STANDARD"
     ]
    },
    {
@@ -7461,9 +7461,9 @@
     "path": "TableDescription.VectorIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
+     "ALL",
      "KEYS_ONLY",
-     "INCLUDE",
-     "ALL"
+     "INCLUDE"
     ]
    },
    {
@@ -7495,14 +7495,14 @@
     "path": "TableDescription.WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "CREATING",
      "UPDATING",
      "DELETING",
      "ACTIVE",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED"
+     "REPLICATION_NOT_AUTHORIZED",
+     "CREATING"
     ]
    },
    {
@@ -7974,8 +7974,8 @@
     "path": "ContributorInsightsMode",
     "type": "enum",
     "enum": [
-     "ACCESSED_AND_THROTTLED_KEYS",
-     "THROTTLED_KEYS"
+     "THROTTLED_KEYS",
+     "ACCESSED_AND_THROTTLED_KEYS"
     ]
    },
    {
@@ -8023,10 +8023,10 @@
     "path": "GlobalTableDescription.GlobalTableStatus",
     "type": "enum",
     "enum": [
+     "DELETING",
      "UPDATING",
      "CREATING",
-     "ACTIVE",
-     "DELETING"
+     "ACTIVE"
     ]
    },
    {
@@ -8049,9 +8049,9 @@
     "path": "GlobalTableDescription.ReplicationGroup[].GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
+     "ENABLED",
      "DISABLED",
-     "ENABLED_WITH_OVERRIDES",
-     "ENABLED"
+     "ENABLED_WITH_OVERRIDES"
     ]
    },
    {
@@ -8090,16 +8090,16 @@
     "path": "GlobalTableDescription.ReplicationGroup[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "CREATION_FAILED",
-     "UPDATING",
+     "CREATING",
      "DELETING",
-     "ACTIVE",
      "REGION_DISABLED",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "ARCHIVED"
+     "CREATION_FAILED",
+     "UPDATING",
+     "ACTIVE",
+     "ARCHIVED",
+     "REPLICATION_NOT_AUTHORIZED"
     ]
    },
    {
@@ -8122,8 +8122,8 @@
     "path": "GlobalTableDescription.ReplicationGroup[].ReplicaTableClassSummary.TableClass",
     "type": "enum",
     "enum": [
-     "STANDARD",
-     "STANDARD_INFREQUENT_ACCESS"
+     "STANDARD_INFREQUENT_ACCESS",
+     "STANDARD"
     ]
    },
    {
@@ -8183,8 +8183,8 @@
     "path": "ReplicaSettings[].ReplicaBillingModeSummary.BillingMode",
     "type": "enum",
     "enum": [
-     "PROVISIONED",
-     "PAY_PER_REQUEST"
+     "PAY_PER_REQUEST",
+     "PROVISIONED"
     ]
    },
    {
@@ -8208,10 +8208,10 @@
     "path": "ReplicaSettings[].ReplicaGlobalSecondaryIndexSettings[].IndexStatus",
     "type": "enum",
     "enum": [
-     "CREATING",
-     "UPDATING",
      "DELETING",
-     "ACTIVE"
+     "ACTIVE",
+     "CREATING",
+     "UPDATING"
     ]
    },
    {
@@ -8298,16 +8298,16 @@
     "path": "ReplicaSettings[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "CREATION_FAILED",
-     "UPDATING",
+     "CREATING",
      "DELETING",
-     "ACTIVE",
      "REGION_DISABLED",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "ARCHIVED"
+     "CREATION_FAILED",
+     "UPDATING",
+     "ACTIVE",
+     "ARCHIVED",
+     "REPLICATION_NOT_AUTHORIZED"
     ]
    },
    {
@@ -8462,12 +8462,12 @@
     "path": "DestinationStatus",
     "type": "enum",
     "enum": [
+     "ENABLE_FAILED",
      "UPDATING",
      "ENABLING",
      "ACTIVE",
      "DISABLING",
-     "DISABLED",
-     "ENABLE_FAILED"
+     "DISABLED"
     ]
    },
    {
@@ -8486,8 +8486,8 @@
     "path": "UpdateKinesisStreamingConfiguration.ApproximateCreationDateTimePrecision",
     "type": "enum",
     "enum": [
-     "MILLISECOND",
-     "MICROSECOND"
+     "MICROSECOND",
+     "MILLISECOND"
     ]
    }
   ]
@@ -8633,9 +8633,9 @@
     "path": "TableDescription.GlobalSecondaryIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
+     "INCLUDE",
      "ALL",
-     "KEYS_ONLY",
-     "INCLUDE"
+     "KEYS_ONLY"
     ]
    },
    {
@@ -8688,9 +8688,9 @@
     "path": "TableDescription.GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED_WITH_OVERRIDES",
      "ENABLED",
-     "DISABLED"
+     "DISABLED",
+     "ENABLED_WITH_OVERRIDES"
     ]
    },
    {
@@ -8805,8 +8805,8 @@
     "path": "TableDescription.MultiRegionConsistency",
     "type": "enum",
     "enum": [
-     "EVENTUAL",
-     "STRONG"
+     "STRONG",
+     "EVENTUAL"
     ]
    },
    {
@@ -8865,9 +8865,9 @@
     "path": "TableDescription.Replicas[].GlobalTableSettingsReplicationMode",
     "type": "enum",
     "enum": [
-     "ENABLED",
      "DISABLED",
-     "ENABLED_WITH_OVERRIDES"
+     "ENABLED_WITH_OVERRIDES",
+     "ENABLED"
     ]
    },
    {
@@ -8906,16 +8906,16 @@
     "path": "TableDescription.Replicas[].ReplicaStatus",
     "type": "enum",
     "enum": [
-     "CREATION_FAILED",
-     "UPDATING",
-     "DELETING",
-     "ACTIVE",
-     "REGION_DISABLED",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
+     "CREATION_FAILED",
+     "UPDATING",
+     "ACTIVE",
+     "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
      "CREATING",
-     "ARCHIVED"
+     "DELETING",
+     "REGION_DISABLED"
     ]
    },
    {
@@ -8954,14 +8954,14 @@
     "path": "TableDescription.Replicas[].WarmThroughput.Status",
     "type": "enum",
     "enum": [
+     "UPDATING",
      "DELETING",
      "ACTIVE",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
      "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "UPDATING"
+     "CREATING"
     ]
    },
    {
@@ -9014,11 +9014,11 @@
     "path": "TableDescription.SSEDescription.Status",
     "type": "enum",
     "enum": [
-     "ENABLING",
      "ENABLED",
      "DISABLING",
      "DISABLED",
-     "UPDATING"
+     "UPDATING",
+     "ENABLING"
     ]
    },
    {
@@ -9034,10 +9034,10 @@
     "path": "TableDescription.StreamSpecification.StreamViewType",
     "type": "enum",
     "enum": [
+     "OLD_IMAGE",
      "NEW_AND_OLD_IMAGES",
      "KEYS_ONLY",
-     "NEW_IMAGE",
-     "OLD_IMAGE"
+     "NEW_IMAGE"
     ]
    },
    {
@@ -9076,14 +9076,14 @@
     "path": "TableDescription.TableStatus",
     "type": "enum",
     "enum": [
+     "CREATING",
+     "UPDATING",
      "DELETING",
      "ACTIVE",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "UPDATING"
+     "REPLICATION_NOT_AUTHORIZED"
     ]
    },
    {
@@ -9149,9 +9149,9 @@
     "path": "TableDescription.VectorIndexes[].Projection.ProjectionType",
     "type": "enum",
     "enum": [
+     "ALL",
      "KEYS_ONLY",
-     "INCLUDE",
-     "ALL"
+     "INCLUDE"
     ]
    },
    {
@@ -9183,14 +9183,14 @@
     "path": "TableDescription.WarmThroughput.Status",
     "type": "enum",
     "enum": [
-     "CREATING",
-     "UPDATING",
-     "DELETING",
      "ACTIVE",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
      "ARCHIVED",
-     "REPLICATION_NOT_AUTHORIZED"
+     "REPLICATION_NOT_AUTHORIZED",
+     "CREATING",
+     "UPDATING",
+     "DELETING"
     ]
    },
    {
@@ -9282,13 +9282,13 @@
      "REGION_DISABLED",
      "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
-     "REPLICATION_NOT_AUTHORIZED",
-     "CREATING",
-     "ARCHIVED",
      "CREATION_FAILED",
      "UPDATING",
-     "DELETING",
-     "ACTIVE"
+     "ACTIVE",
+     "ARCHIVED",
+     "REPLICATION_NOT_AUTHORIZED",
+     "CREATING",
+     "DELETING"
     ]
    },
    {
@@ -9299,14 +9299,14 @@
     "path": "TableAutoScalingDescription.TableStatus",
     "type": "enum",
     "enum": [
-     "DELETING",
-     "ACTIVE",
-     "INACCESSIBLE_ENCRYPTION_CREDENTIALS",
      "ARCHIVING",
      "ARCHIVED",
      "REPLICATION_NOT_AUTHORIZED",
      "CREATING",
-     "UPDATING"
+     "UPDATING",
+     "DELETING",
+     "ACTIVE",
+     "INACCESSIBLE_ENCRYPTION_CREDENTIALS"
     ]
    }
   ]

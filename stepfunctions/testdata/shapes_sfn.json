@@ -186,12 +186,12 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "RUNNING",
+     "SUCCEEDED",
      "FAILED",
      "TIMED_OUT",
      "ABORTED",
-     "PENDING_REDRIVE",
-     "RUNNING",
-     "SUCCEEDED"
+     "PENDING_REDRIVE"
     ]
    },
    {
@@ -347,10 +347,10 @@
     "type": "enum",
     "required": true,
     "enum": [
+     "RUNNING",
      "SUCCEEDED",
      "FAILED",
-     "ABORTED",
-     "RUNNING"
+     "ABORTED"
     ]
    },
    {
@@ -440,10 +440,10 @@
     "path": "loggingConfiguration.level",
     "type": "enum",
     "enum": [
-     "FATAL",
-     "OFF",
      "ALL",
-     "ERROR"
+     "ERROR",
+     "FATAL",
+     "OFF"
     ]
    },
    {
@@ -574,8 +574,8 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "AWS_OWNED_KEY",
-     "CUSTOMER_MANAGED_KMS_KEY"
+     "CUSTOMER_MANAGED_KMS_KEY",
+     "AWS_OWNED_KEY"
     ]
    },
    {
@@ -610,10 +610,10 @@
     "path": "loggingConfiguration.level",
     "type": "enum",
     "enum": [
-     "ALL",
      "ERROR",
      "FATAL",
-     "OFF"
+     "OFF",
+     "ALL"
     ]
    },
    {
@@ -1347,68 +1347,68 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "MapStateExited",
-     "MapRunRedriven",
-     "LambdaFunctionSucceeded",
+     "ExecutionStarted",
+     "LambdaFunctionScheduled",
+     "ParallelStateAborted",
+     "TaskStateExited",
+     "EvaluationFailed",
+     "SucceedStateExited",
+     "ExecutionTimedOut",
+     "MapIterationStarted",
+     "MapStateFailed",
+     "ActivityStarted",
+     "LambdaFunctionStartFailed",
+     "MapStateAborted",
+     "PassStateExited",
+     "SucceedStateEntered",
+     "WaitStateEntered",
+     "MapRunStarted",
+     "TaskSubmitFailed",
+     "WaitStateExited",
+     "LambdaFunctionTimedOut",
+     "MapIterationAborted",
      "MapIterationFailed",
      "ParallelStateSucceeded",
-     "TaskTimedOut",
-     "MapRunSucceeded",
-     "ActivityFailed",
-     "WaitStateEntered",
-     "MapRunAborted",
-     "MapStateSucceeded",
-     "ParallelStateStarted",
-     "SucceedStateExited",
-     "TaskStateAborted",
-     "ActivityScheduled",
-     "MapStateEntered",
-     "PassStateExited",
-     "TaskFailed",
-     "WaitStateAborted",
-     "ActivityStarted",
-     "LambdaFunctionFailed",
-     "MapRunFailed",
-     "MapIterationSucceeded",
-     "ParallelStateExited",
-     "TaskStateExited",
-     "LambdaFunctionScheduleFailed",
-     "MapStateAborted",
-     "MapStateFailed",
+     "TaskStarted",
+     "FailStateEntered",
      "PassStateEntered",
-     "ActivityTimedOut",
-     "MapIterationStarted",
-     "ParallelStateFailed",
+     "TaskScheduled",
+     "MapStateSucceeded",
+     "MapRunFailed",
+     "ExecutionRedriven",
+     "ExecutionSucceeded",
+     "TaskFailed",
+     "TaskTimedOut",
+     "LambdaFunctionFailed",
+     "TaskStateEntered",
+     "MapRunRedriven",
      "TaskSucceeded",
+     "ExecutionAborted",
+     "LambdaFunctionStarted",
+     "MapStateEntered",
+     "ParallelStateExited",
+     "ParallelStateStarted",
+     "ActivityScheduleFailed",
+     "ActivityTimedOut",
+     "MapStateExited",
+     "ParallelStateFailed",
+     "TaskStateAborted",
+     "WaitStateAborted",
+     "MapRunAborted",
+     "MapRunSucceeded",
+     "ActivityScheduled",
+     "ActivitySucceeded",
+     "LambdaFunctionSucceeded",
+     "TaskStartFailed",
      "ChoiceStateEntered",
      "ExecutionFailed",
-     "SucceedStateEntered",
-     "TaskSubmitFailed",
-     "LambdaFunctionStarted",
-     "LambdaFunctionTimedOut",
      "MapStateStarted",
-     "ParallelStateEntered",
-     "ActivityScheduleFailed",
-     "ExecutionSucceeded",
-     "ExecutionTimedOut",
-     "WaitStateExited",
-     "MapRunStarted",
-     "ExecutionRedriven",
-     "ChoiceStateExited",
-     "FailStateEntered",
-     "LambdaFunctionScheduled",
-     "ActivitySucceeded",
-     "ExecutionAborted",
-     "ExecutionStarted",
-     "LambdaFunctionStartFailed",
-     "MapIterationAborted",
-     "ParallelStateAborted",
-     "TaskStarted",
-     "TaskStartFailed",
-     "TaskScheduled",
-     "TaskStateEntered",
      "TaskSubmitted",
-     "EvaluationFailed"
+     "MapIterationSucceeded",
+     "ActivityFailed",
+     "ParallelStateEntered",
+     "ChoiceStateExited",
+     "LambdaFunctionScheduleFailed"
     ]
    },
    {
@@ -1513,12 +1513,12 @@
     "type": "enum",
     "required": true,
     "enum": [
-     "PENDING_REDRIVE",
      "RUNNING",
      "SUCCEEDED",
      "FAILED",
      "TIMED_OUT",
-     "ABORTED"
+     "ABORTED",
+     "PENDING_REDRIVE"
     ]
    },
    {
@@ -1990,10 +1990,10 @@
     "path": "status",
     "type": "enum",
     "enum": [
+     "FAILED",
      "RETRIABLE",
      "CAUGHT_ERROR",
-     "SUCCEEDED",
-     "FAILED"
+     "SUCCEEDED"
     ]
    }
   ]
