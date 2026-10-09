@@ -211,6 +211,7 @@ func (w *world) createTable(rt *rapid.T) {
 	name := rapid.SampledFrom(simTables).Draw(rt, "table")
 	_, err := w.ddb.CreateTable(w.ctx(), &awsddb.CreateTableInput{
 		TableName:            aws.String(name),
+		BillingMode:          ddbtypes.BillingModePayPerRequest,
 		AttributeDefinitions: []ddbtypes.AttributeDefinition{{AttributeName: aws.String("pk"), AttributeType: ddbtypes.ScalarAttributeTypeS}},
 		KeySchema:            []ddbtypes.KeySchemaElement{{AttributeName: aws.String("pk"), KeyType: ddbtypes.KeyTypeHash}},
 	})

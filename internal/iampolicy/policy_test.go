@@ -214,3 +214,28 @@ func TestConditionSetQuantifiers(t *testing.T) {
 		t.Error("ForAnyValue should pass on a single overlap")
 	}
 }
+
+// "Deny plain HTTP" is written with a JSON boolean, and numeric limits with a
+// JSON number; IAM reads each as its text. A parser that wanted strings refused
+// the policy Serverless puts on its deployment bucket.
+func TestConditionValuesMayBeBooleansAndNumbers(t *testing.T) {
+	d, err := Parse(`{"Statement":[{"Effect":"Deny","Action":"s3:*","Resource":"*","Principal":"*",
+		"Condition":{"Bool":{"aws:SecureTransport":false},"NumericLessThan":{"s3:max-keys":[10, 25.5]}}}]}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := d.Statement[0].Condition
+	if got := c["Bool"]["aws:SecureTransport"]; len(got) != 1 || got[0] != "false" {
+		t.Errorf("Bool value = %v, want [false]", got)
+	}
+	if got := c["NumericLessThan"]["s3:max-keys"]; len(got) != 2 || got[0] != "10" || got[1] != "25.5" {
+		t.Errorf("numeric values = %v, want [10 25.5]", got)
+	}
+	// Actions and resources stay strings: AWS refuses a number there.
+	if _, err := Parse(`{"Statement":[{"Effect":"Allow","Action":5,"Resource":"*"}]}`); err == nil {
+		t.Error("a numeric Action was accepted")
+	}
+	if _, err := Parse(`{"Statement":[{"Effect":"Allow","Action":"s3:*","Resource":"*","Condition":{"Bool":{"k":{"nested":1}}}}]}`); err == nil {
+		t.Error("an object condition value was accepted")
+	}
+}

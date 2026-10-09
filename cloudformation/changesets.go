@@ -83,7 +83,7 @@ func hCreateChangeSet(s *Server, p params) (any, *awshttp.APIError) {
 			Parameters: params, Created: now, Updated: now,
 		}
 		review.Events = []stackEvent{{
-			ID: s.store.newID(), Timestamp: now, LogicalID: stackName,
+			ID: s.store.newID(), Timestamp: now, TimeMs: s.now().UnixMilli(), LogicalID: stackName,
 			Type: "AWS::CloudFormation::Stack", PhysicalID: review.ID,
 			Status: StatusReviewInProgress, Reason: "User Initiated",
 		}}

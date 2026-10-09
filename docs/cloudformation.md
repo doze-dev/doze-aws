@@ -1,16 +1,32 @@
 # CloudFormation, SAM, CDK and Serverless
 
 doze-aws speaks CloudFormation, so the deployment tool you already use works
-against it unmodified. All four of these are verified against a running
-doze-aws, not inferred:
+against it unmodified. All of these are exercised against a
+running doze-aws on every push (`e2e/deploy/` — Terraform's AWS provider, SAM, CDK and
+Serverless), not inferred:
 
 ```sh
 aws cloudformation deploy --template-file template.yaml --stack-name shop
 sam deploy --stack-name shop --s3-bucket artifacts
 cdk bootstrap && cdk deploy
-serverless package && aws cloudformation deploy \
-  --template-file .serverless/cloudformation-template-update-stack.json --stack-name sls-dev
+serverless package    # then the create/upload/update steps below
 ```
+
+`serverless deploy` itself cannot be pointed at a local endpoint — the framework
+ships its own AWS SDK, which ignores `AWS_ENDPOINT_URL`. What it does is three
+calls you make yourself: create the stack that holds the deployment bucket,
+upload the packaged zip to it, update the stack to the full template:
+
+```sh
+aws cloudformation deploy --stack-name sls-dev --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+  --template-file .serverless/cloudformation-template-create-stack.json
+aws s3 cp .serverless/service.zip s3://<deployment bucket>/<the Code.S3Key in the update template>
+aws cloudformation deploy --stack-name sls-dev --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+  --template-file .serverless/cloudformation-template-update-stack.json
+```
+
+`e2e/deploy/serverless/smoke.sh` is that sequence, run against a live doze-aws on
+every push.
 
 There is no doze-specific file format. There used to be — a `stack.yaml`
 dialect — and it was removed, because a format only doze-aws speaks is a format

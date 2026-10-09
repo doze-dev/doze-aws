@@ -373,14 +373,14 @@ func logicalIDs(resources []stackResource, status string) []string {
 
 func (s *Server) stackEvent(st *stackRecord, status, reason string) stackEvent {
 	return stackEvent{
-		ID: s.store.newID(), Timestamp: s.now().Unix(), LogicalID: st.Name,
+		ID: s.store.newID(), Timestamp: s.now().Unix(), TimeMs: s.now().UnixMilli(), LogicalID: st.Name,
 		Type: "AWS::CloudFormation::Stack", PhysicalID: st.ID, Status: status, Reason: reason,
 	}
 }
 
 func (s *Server) resourceEvent(r stackResource, status, reason string) stackEvent {
 	return stackEvent{
-		ID: s.store.newID(), Timestamp: s.now().Unix(), LogicalID: r.LogicalID,
+		ID: s.store.newID(), Timestamp: s.now().Unix(), TimeMs: s.now().UnixMilli(), LogicalID: r.LogicalID,
 		Type: r.Type, PhysicalID: r.PhysicalID, Status: status, Reason: reason,
 	}
 }

@@ -190,3 +190,22 @@ func TestFIFOMessagesCarryASequenceNumber(t *testing.T) {
 		t.Errorf("received SequenceNumber %q, sent %q", got, sa)
 	}
 }
+
+// A new queue is encrypted with an SQS-owned key unless it says otherwise, and
+// GetQueueAttributes says so. Terraform polls for the attribute after
+// CreateQueue and keeps polling when it is missing.
+func TestQueuesReportSqsManagedSseByDefault(t *testing.T) {
+	s := testStore(t)
+	if _, err := s.CreateQueue("plain", nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.Attributes("plain"); got["SqsManagedSseEnabled"] != "true" {
+		t.Errorf("SqsManagedSseEnabled = %q, want true", got["SqsManagedSseEnabled"])
+	}
+	if _, err := s.CreateQueue("keyed", map[string]string{"KmsMasterKeyId": "alias/app"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.Attributes("keyed"); got["SqsManagedSseEnabled"] != "false" {
+		t.Errorf("a queue with its own KMS key reports SqsManagedSseEnabled = %q, want false", got["SqsManagedSseEnabled"])
+	}
+}

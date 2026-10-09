@@ -41,7 +41,8 @@ func TestTTLExpiry(t *testing.T) {
 	}, func(o *awsddb.Options) { o.BaseEndpoint = aws.String(ts.URL) })
 
 	if _, err := c.CreateTable(ctx, &awsddb.CreateTableInput{
-		TableName: aws.String("sessions"),
+		TableName:   aws.String("sessions"),
+		BillingMode: ddbtypes.BillingModePayPerRequest,
 		AttributeDefinitions: []ddbtypes.AttributeDefinition{
 			{AttributeName: aws.String("id"), AttributeType: ddbtypes.ScalarAttributeTypeS},
 		},

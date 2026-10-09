@@ -617,6 +617,7 @@ func (m *mapper) function(name string, props map[string]any) error {
 			"(SAM CodeUri, or Code.S3Bucket/S3Key) to deploy it here", name, detail)
 	}
 	if code := propMap(props, "Code"); code != nil {
+		f.Inline = propStr(code, "ZipFile")
 		bucket, key := propStr(code, "S3Bucket"), propStr(code, "S3Key")
 		switch {
 		case bucket != "" && bucket != "_local_" && key != "":

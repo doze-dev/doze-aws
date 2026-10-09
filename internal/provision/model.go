@@ -424,9 +424,12 @@ type LSI struct {
 }
 
 type Function struct {
-	Runtime   string
-	Handler   string
-	Code      string // local path (the _local_ extension)
+	Runtime string
+	Handler string
+	Code    string // local path (the _local_ extension)
+	// Inline is Code.ZipFile: the handler's source, which Lambda writes to
+	// index.py or index.js and packages itself. Wins over Code when both are set.
+	Inline    string
 	Command   []string
 	Env       map[string]string
 	Timeout   int

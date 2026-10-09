@@ -68,7 +68,7 @@ func (s *Server) recordNested(parent *stackRecord, rep *cfn.Report, isUpdate boo
 			}
 			sort.Slice(rec.Outputs, func(i, j int) bool { return rec.Outputs[i].Key < rec.Outputs[j].Key })
 			rec.Events = []stackEvent{{
-				ID: s.store.newID(), Timestamp: now, LogicalID: child.Name,
+				ID: s.store.newID(), Timestamp: now, TimeMs: s.now().UnixMilli(), LogicalID: child.Name,
 				Type: "AWS::CloudFormation::Stack", PhysicalID: rec.ID, Status: rec.Status,
 			}}
 			if err := s.store.PutStack(rec); err != nil {
@@ -137,7 +137,7 @@ func (s *Server) deleteNested(parent *stackRecord) {
 		st.Status, st.StatusReason, st.Updated = StatusDeleteComplete, "", now
 		st.Resources, st.Outputs = nil, nil
 		st.Events = append(st.Events, stackEvent{
-			ID: s.store.newID(), Timestamp: now, LogicalID: st.Name,
+			ID: s.store.newID(), Timestamp: now, TimeMs: s.now().UnixMilli(), LogicalID: st.Name,
 			Type: "AWS::CloudFormation::Stack", PhysicalID: st.ID, Status: StatusDeleteComplete,
 		})
 		_ = s.store.PutStack(st)

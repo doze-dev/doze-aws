@@ -55,6 +55,9 @@ type Index struct {
 	Projection  string   `json:"projection"` // ALL | KEYS_ONLY | INCLUDE
 	NonKeyAttrs []string `json:"non_key_attrs,omitempty"`
 	Local       bool     `json:"local"`
+	// Provisioned capacity of a global secondary index; zero on an on-demand table.
+	ReadCap  int64 `json:"read_cap,omitempty"`
+	WriteCap int64 `json:"write_cap,omitempty"`
 }
 
 // Table is a table definition.
@@ -71,7 +74,10 @@ type Table struct {
 	Tags map[string]string `json:"tags,omitempty"`
 
 	// Cosmetic round-trips.
-	BillingMode        string `json:"billing_mode,omitempty"`
+	BillingMode string `json:"billing_mode,omitempty"`
+	// Provisioned capacity; zero when the table is on demand.
+	ReadCap            int64  `json:"read_cap,omitempty"`
+	WriteCap           int64  `json:"write_cap,omitempty"`
 	DeletionProtection bool   `json:"deletion_protection,omitempty"`
 	StreamSpec         string `json:"stream_spec,omitempty"` // the StreamSpecification as sent; streams themselves are real (dynamodb/streams*.go)
 	// SSE round-trips the table's server-side-encryption setting. Nothing is

@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
@@ -517,7 +518,7 @@ func (s *Server) recordFailure(name, body string, params, tags map[string]string
 	st.Status = StatusCreateFailed
 	st.StatusReason = reason
 	st.Events = append(st.Events, stackEvent{
-		ID: s.store.newID(), Timestamp: now, LogicalID: name,
+		ID: s.store.newID(), Timestamp: now, TimeMs: s.now().UnixMilli(), LogicalID: name,
 		Type: "AWS::CloudFormation::Stack", PhysicalID: st.ID,
 		Status: st.Status, Reason: reason,
 	})
@@ -599,7 +600,7 @@ func hDeleteStack(s *Server, p params) (any, *awshttp.APIError) {
 	st.Resources = nil
 	st.Outputs = nil
 	st.Events = append(st.Events, stackEvent{
-		ID: s.store.newID(), Timestamp: now, LogicalID: st.Name,
+		ID: s.store.newID(), Timestamp: now, TimeMs: s.now().UnixMilli(), LogicalID: st.Name,
 		Type: "AWS::CloudFormation::Stack", PhysicalID: st.ID,
 		Status: StatusDeleteComplete,
 	})
@@ -715,7 +716,7 @@ func hDescribeStackEvents(s *Server, p params) (any, *awshttp.APIError) {
 		views = append(views, eventView{
 			StackId: st.ID, StackName: st.Name, EventId: e.ID,
 			LogicalResourceId: e.LogicalID, PhysicalResourceId: e.PhysicalID,
-			ResourceType: e.Type, Timestamp: awshttp.ISO8601(unix(e.Timestamp)),
+			ResourceType: e.Type, Timestamp: eventTime(e),
 			ResourceStatus: e.Status, ResourceStatusReason: e.Reason,
 		})
 	}
@@ -1067,3 +1068,14 @@ func exportNameOf(ident awsident.Identity, t *cfn.Template, output string, param
 }
 
 var _ = xml.Name{} // the view structs are rendered by awsquery's encoder
+
+// eventTime renders an event's time the way CloudFormation does, with
+// milliseconds. The precision is not cosmetic: a client that tails a deploy
+// (SAM does) shows only events newer than the last it saw, and a stack that
+// finishes inside the second the change set was made would otherwise have none.
+func eventTime(e stackEvent) string {
+	if e.TimeMs == 0 {
+		return awshttp.ISO8601(unix(e.Timestamp))
+	}
+	return time.UnixMilli(e.TimeMs).UTC().Format("2006-01-02T15:04:05.000Z")
+}

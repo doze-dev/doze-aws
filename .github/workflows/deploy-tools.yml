@@ -1,0 +1,45 @@
+name: Deploy tools
+
+# README promises that Terraform, SAM, CDK and the Serverless Framework work
+# against doze-aws. Each is run for real here: a small application is deployed,
+# its function is invoked, a second plan or deploy must find nothing to change,
+# and everything is taken down again. e2e/deploy/<tool>/smoke.sh is the script.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [terraform, sam, cdk, serverless]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      # The runtimes the deployed functions run on: doze-aws starts the process
+      # on this machine, so they have to be on the PATH it is started with.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: hashicorp/setup-terraform@v3
+        if: matrix.tool == 'terraform'
+        with:
+          terraform_wrapper: false
+      - name: Install SAM
+        if: matrix.tool == 'sam'
+        run: pip install aws-sam-cli
+      # The AWS CLI v2 is on the runner image; SAM and Serverless drive it.
+      - name: Deploy with ${{ matrix.tool }}
+        run: e2e/deploy/run.sh ${{ matrix.tool }}

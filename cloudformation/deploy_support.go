@@ -122,7 +122,7 @@ func (s *Server) synthesizeEvents(st *stackRecord, applyRep *provision.Report, i
 	now := s.now().Unix()
 	verb := statusVerb(isUpdate)
 	events := []stackEvent{{
-		ID: s.store.newID(), Timestamp: now, LogicalID: st.Name,
+		ID: s.store.newID(), Timestamp: now, TimeMs: s.now().UnixMilli(), LogicalID: st.Name,
 		Type: "AWS::CloudFormation::Stack", PhysicalID: st.ID,
 		Status: verb + "_IN_PROGRESS", Reason: "User Initiated",
 	}}
@@ -158,11 +158,11 @@ func (s *Server) synthesizeEvents(st *stackRecord, applyRep *provision.Report, i
 		}
 		events = append(events,
 			stackEvent{
-				ID: s.store.newID(), Timestamp: now, LogicalID: r.LogicalID,
+				ID: s.store.newID(), Timestamp: now, TimeMs: s.now().UnixMilli(), LogicalID: r.LogicalID,
 				Type: r.Type, PhysicalID: r.PhysicalID, Status: verb + "_IN_PROGRESS",
 			},
 			stackEvent{
-				ID: s.store.newID(), Timestamp: now, LogicalID: r.LogicalID,
+				ID: s.store.newID(), Timestamp: now, TimeMs: s.now().UnixMilli(), LogicalID: r.LogicalID,
 				Type: r.Type, PhysicalID: r.PhysicalID, Status: status, Reason: reason,
 			})
 	}
@@ -170,7 +170,7 @@ func (s *Server) synthesizeEvents(st *stackRecord, applyRep *provision.Report, i
 	// What an update deleted, between its resources and its last word.
 	events = append(events, cleanup...)
 	events = append(events, stackEvent{
-		ID: s.store.newID(), Timestamp: now, LogicalID: st.Name,
+		ID: s.store.newID(), Timestamp: now, TimeMs: s.now().UnixMilli(), LogicalID: st.Name,
 		Type: "AWS::CloudFormation::Stack", PhysicalID: st.ID,
 		Status: st.Status, Reason: st.StatusReason,
 	})

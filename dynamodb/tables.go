@@ -27,9 +27,16 @@ type projectionWire struct {
 }
 
 type gsiWire struct {
-	IndexName  string          `json:"IndexName"`
-	KeySchema  []keySchemaEl   `json:"KeySchema"`
-	Projection *projectionWire `json:"Projection,omitempty"`
+	IndexName             string          `json:"IndexName"`
+	KeySchema             []keySchemaEl   `json:"KeySchema"`
+	Projection            *projectionWire `json:"Projection,omitempty"`
+	ProvisionedThroughput *throughputWire `json:"ProvisionedThroughput,omitempty"`
+}
+
+// throughputWire is a ProvisionedThroughput as sent.
+type throughputWire struct {
+	ReadCapacityUnits  *int64 `json:"ReadCapacityUnits"`
+	WriteCapacityUnits *int64 `json:"WriteCapacityUnits"`
 }
 
 type createTableReq struct {
@@ -39,6 +46,7 @@ type createTableReq struct {
 	GlobalSecondaryIndexes []gsiWire       `json:"GlobalSecondaryIndexes"`
 	LocalSecondaryIndexes  []gsiWire       `json:"LocalSecondaryIndexes"`
 	BillingMode            string          `json:"BillingMode"`
+	ProvisionedThroughput  *throughputWire `json:"ProvisionedThroughput"`
 	DeletionProtection     bool            `json:"DeletionProtectionEnabled"`
 	StreamSpecification    json.RawMessage `json:"StreamSpecification"`
 	SSESpecification       *struct {
@@ -141,9 +149,23 @@ func (s *Server) createTable(body []byte) (any, *awshttp.APIError) {
 	if aerr != nil {
 		return nil, aerr
 	}
+	mode, rcu, wcu, aerr := billingFor(req.BillingMode, req.ProvisionedThroughput)
+	if aerr != nil {
+		return nil, aerr
+	}
+	for _, w := range req.GlobalSecondaryIndexes {
+		if mode == "PROVISIONED" && w.ProvisionedThroughput == nil {
+			return nil, awshttp.Errf(400, "ValidationException",
+				"One or more parameter values were invalid: ProvisionedThroughput must be specified for index: %s", w.IndexName)
+		}
+		if mode == "PAY_PER_REQUEST" && w.ProvisionedThroughput != nil {
+			return nil, awshttp.Errf(400, "ValidationException",
+				"One or more parameter values were invalid: ProvisionedThroughput should not be specified for index: %s when BillingMode is PAY_PER_REQUEST", w.IndexName)
+		}
+	}
 	t := store.Table{
 		Name: req.TableName, Hash: hash, Range: rng,
-		BillingMode:        orDefault(req.BillingMode, "PAY_PER_REQUEST"),
+		BillingMode: mode, ReadCap: rcu, WriteCap: wcu,
 		DeletionProtection: req.DeletionProtection,
 	}
 	if len(req.StreamSpecification) > 0 {
@@ -164,6 +186,9 @@ func (s *Server) createTable(body []byte) (any, *awshttp.APIError) {
 		idx, aerr := indexFromWire(w, req.AttributeDefinitions, false)
 		if aerr != nil {
 			return nil, aerr
+		}
+		if w.ProvisionedThroughput != nil {
+			idx.ReadCap, idx.WriteCap = capacity(w.ProvisionedThroughput)
 		}
 		t.Indexes = append(t.Indexes, idx)
 	}
@@ -211,6 +236,10 @@ func (s *Server) describe(t *store.Table) map[string]any {
 			"Projection": proj,
 			"IndexArn":   t.ARN() + "/index/" + idx.Name,
 		}
+		if !idx.Local {
+			desc["ProvisionedThroughput"] = provisioned(idx.ReadCap, idx.WriteCap)
+			desc["WarmThroughput"] = warm(orDefault(t.BillingMode, "PAY_PER_REQUEST"))
+		}
 		if idx.Local {
 			lsis = append(lsis, desc)
 		} else {
@@ -239,6 +268,8 @@ func (s *Server) describe(t *store.Table) map[string]any {
 		"TableSizeBytes":            0,
 		"BillingModeSummary":        map[string]any{"BillingMode": orDefault(t.BillingMode, "PAY_PER_REQUEST")},
 		"DeletionProtectionEnabled": t.DeletionProtection,
+		"ProvisionedThroughput":     provisioned(t.ReadCap, t.WriteCap),
+		"WarmThroughput":            warm(orDefault(t.BillingMode, "PAY_PER_REQUEST")),
 	}
 	if len(gsis) > 0 {
 		out["GlobalSecondaryIndexes"] = gsis
@@ -300,11 +331,12 @@ func (s *Server) listTables(body []byte) (any, *awshttp.APIError) {
 
 func (s *Server) updateTable(body []byte) (any, *awshttp.APIError) {
 	var req struct {
-		TableName            string    `json:"TableName"`
-		AttributeDefinitions []attrDef `json:"AttributeDefinitions"`
-		BillingMode          string    `json:"BillingMode"`
-		DeletionProtection   *bool     `json:"DeletionProtectionEnabled"`
-		SSESpecification     *struct {
+		TableName             string          `json:"TableName"`
+		AttributeDefinitions  []attrDef       `json:"AttributeDefinitions"`
+		BillingMode           string          `json:"BillingMode"`
+		ProvisionedThroughput *throughputWire `json:"ProvisionedThroughput"`
+		DeletionProtection    *bool           `json:"DeletionProtectionEnabled"`
+		SSESpecification      *struct {
 			Enabled        bool   `json:"Enabled"`
 			SSEType        string `json:"SSEType"`
 			KMSMasterKeyID string `json:"KMSMasterKeyId"`
@@ -320,8 +352,20 @@ func (s *Server) updateTable(body []byte) (any, *awshttp.APIError) {
 		return nil, awshttp.Errf(400, "SerializationException", "%v", err)
 	}
 	t, err := s.store.UpdateTable(req.TableName, func(t *store.Table) error {
-		if req.BillingMode != "" {
-			t.BillingMode = req.BillingMode
+		if req.BillingMode != "" || req.ProvisionedThroughput != nil {
+			mode := orDefault(req.BillingMode, orDefault(t.BillingMode, "PAY_PER_REQUEST"))
+			rcu, wcu := t.ReadCap, t.WriteCap
+			if req.ProvisionedThroughput != nil {
+				rcu, wcu = capacity(req.ProvisionedThroughput)
+			}
+			m, r, w, aerr := billingFor(mode, &throughputWire{ReadCapacityUnits: &rcu, WriteCapacityUnits: &wcu})
+			if mode == "PAY_PER_REQUEST" {
+				m, r, w, aerr = mode, 0, 0, nil
+			}
+			if aerr != nil {
+				return aerr
+			}
+			t.BillingMode, t.ReadCap, t.WriteCap = m, r, w
 		}
 		if req.DeletionProtection != nil {
 			t.DeletionProtection = *req.DeletionProtection
@@ -536,3 +580,59 @@ func orDefault(s, def string) string {
 
 // CreateTable's input validation lives in validate.go, with the model-derived
 // constraint table it runs.
+
+// billingFor settles a table's capacity mode from what CreateTable was given.
+// With no BillingMode the table is PROVISIONED and must say how much; asking for
+// on-demand while naming capacity is a contradiction DynamoDB refuses.
+func billingFor(mode string, tp *throughputWire) (string, int64, int64, *awshttp.APIError) {
+	bad := func(format string, a ...any) *awshttp.APIError {
+		return awshttp.Errf(400, "ValidationException", format, a...)
+	}
+	switch mode {
+	case "":
+		if tp == nil {
+			return "", 0, 0, bad("No provisioned throughput specified for the table")
+		}
+		mode = "PROVISIONED"
+	case "PAY_PER_REQUEST":
+		if tp != nil {
+			return "", 0, 0, bad("One or more parameter values were invalid: Neither ReadCapacityUnits nor WriteCapacityUnits can be specified when BillingMode is PAY_PER_REQUEST")
+		}
+		return mode, 0, 0, nil
+	}
+	if tp == nil || tp.ReadCapacityUnits == nil || tp.WriteCapacityUnits == nil {
+		return "", 0, 0, bad("One or more parameter values were invalid: ReadCapacityUnits and WriteCapacityUnits must both be specified when BillingMode is PROVISIONED")
+	}
+	if *tp.ReadCapacityUnits < 1 || *tp.WriteCapacityUnits < 1 {
+		return "", 0, 0, bad("One or more parameter values were invalid: ReadCapacityUnits and WriteCapacityUnits must both be at least 1")
+	}
+	r, w := capacity(tp)
+	return mode, r, w, nil
+}
+
+func capacity(tp *throughputWire) (r, w int64) {
+	if tp.ReadCapacityUnits != nil {
+		r = *tp.ReadCapacityUnits
+	}
+	if tp.WriteCapacityUnits != nil {
+		w = *tp.WriteCapacityUnits
+	}
+	return r, w
+}
+
+// provisioned is the ProvisionedThroughput block every description carries —
+// zeros for an on-demand table, which is how DynamoDB reports one.
+func provisioned(r, w int64) map[string]any {
+	return map[string]any{"ReadCapacityUnits": r, "WriteCapacityUnits": w, "NumberOfDecreasesToday": 0}
+}
+
+// warm is the warm throughput a new table starts with. Terraform's AWS provider
+// waits for it to read ACTIVE after create, and a description without it makes
+// that wait fail with "couldn't find resource".
+func warm(mode string) map[string]any {
+	r, w := int64(12000), int64(4000)
+	if mode == "PROVISIONED" {
+		r, w = 3000, 1000
+	}
+	return map[string]any{"ReadUnitsPerSecond": r, "WriteUnitsPerSecond": w, "Status": "ACTIVE"}
+}

@@ -156,10 +156,12 @@ func viewOf(a *alarm) alarmView {
 		Period:                             a.Period,
 		Unit:                               a.Unit,
 		EvaluationPeriods:                  a.EvaluationPeriods,
-		DatapointsToAlarm:                  a.DatapointsToAlarm,
 		Threshold:                          a.Threshold,
 		ComparisonOperator:                 a.ComparisonOp,
 		TreatMissingData:                   a.TreatMissingData,
+	}
+	if a.DatapointsSet {
+		v.DatapointsToAlarm = a.DatapointsToAlarm
 	}
 	if strings.HasPrefix(a.Statistic, "p") {
 		v.ExtendedStatistic = a.Statistic

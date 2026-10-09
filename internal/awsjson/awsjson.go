@@ -170,6 +170,12 @@ func (a API) WriteError(w http.ResponseWriter, e *awshttp.APIError) {
 	payload := map[string]any{
 		"__type":  e.Code,
 		"message": e.Message,
+		// The member is spelled differently by service, and sometimes by exception
+		// within one: DynamoDB and KMS model `message`, Secrets Manager `Message`,
+		// SSM both. An SDK decoding a modeled exception reads exactly its own
+		// spelling and reports an empty message otherwise ("InvalidRequestException: "
+		// with nothing after it), so both are sent.
+		"Message": e.Message,
 	}
 	if len(e.Item) > 0 {
 		payload["Item"] = json.RawMessage(e.Item)

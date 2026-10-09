@@ -1,0 +1,8 @@
+{
+  "name": "doze-aws-serverless-smoke",
+  "private": true,
+  "version": "0.0.0",
+  "devDependencies": {
+    "serverless": "^3"
+  }
+}

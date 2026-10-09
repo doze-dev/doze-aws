@@ -73,15 +73,19 @@ type alarm struct {
 	// EvaluationPeriods is how many periods are examined; DatapointsToAlarm
 	// is how many of them must breach. AWS calls the pair "M out of N", and
 	// DatapointsToAlarm defaults to EvaluationPeriods when omitted.
-	EvaluationPeriods int      `json:"evaluation_periods"`
-	DatapointsToAlarm int      `json:"datapoints_to_alarm"`
-	ComparisonOp      string   `json:"comparison_operator"`
-	Threshold         float64  `json:"threshold"`
-	TreatMissingData  string   `json:"treat_missing_data,omitempty"`
-	ActionsEnabled    bool     `json:"actions_enabled"`
-	AlarmActions      []string `json:"alarm_actions,omitempty"`
-	OKActions         []string `json:"ok_actions,omitempty"`
-	InsufficientData  []string `json:"insufficient_data_actions,omitempty"`
+	EvaluationPeriods int `json:"evaluation_periods"`
+	DatapointsToAlarm int `json:"datapoints_to_alarm"`
+	// DatapointsSet records that the caller named DatapointsToAlarm. DescribeAlarms
+	// reports it only then: Terraform's field is optional with no default, so an
+	// alarm that echoes the implied value reads back as a change.
+	DatapointsSet    bool     `json:"datapoints_set,omitempty"`
+	ComparisonOp     string   `json:"comparison_operator"`
+	Threshold        float64  `json:"threshold"`
+	TreatMissingData string   `json:"treat_missing_data,omitempty"`
+	ActionsEnabled   bool     `json:"actions_enabled"`
+	AlarmActions     []string `json:"alarm_actions,omitempty"`
+	OKActions        []string `json:"ok_actions,omitempty"`
+	InsufficientData []string `json:"insufficient_data_actions,omitempty"`
 
 	State       string `json:"state"`
 	StateReason string `json:"state_reason,omitempty"`

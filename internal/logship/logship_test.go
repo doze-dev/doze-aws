@@ -10,6 +10,10 @@ package logship
 // the shutdown.
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -56,5 +60,48 @@ func TestCloseIsIdempotentAndPutAfterCloseIsInert(t *testing.T) {
 	case <-done:
 	case <-time.After(5 * time.Second):
 		t.Fatal("Put or Flush blocked after Close")
+	}
+}
+
+type fakeLogs struct{ url string }
+
+func (f fakeLogs) Endpoint(string) (peers.Endpoint, bool) {
+	return peers.Endpoint{Client: http.DefaultClient, BaseURL: f.url}, true
+}
+
+// PutLogEvents refuses an event whose message is empty, and refuses the batch
+// that holds it. A blank line in a traceback must not take the rest with it.
+func TestBlankLinesAreNotShipped(t *testing.T) {
+	var mu sync.Mutex
+	var puts [][]string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.Header.Get("X-Amz-Target"), "PutLogEvents") {
+			var req struct {
+				LogEvents []struct{ Message string } `json:"logEvents"`
+			}
+			_ = json.NewDecoder(r.Body).Decode(&req)
+			var msgs []string
+			for _, e := range req.LogEvents {
+				msgs = append(msgs, e.Message)
+			}
+			mu.Lock()
+			puts = append(puts, msgs)
+			mu.Unlock()
+		}
+		w.Header().Set("Content-Type", "application/x-amz-json-1.1")
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	s := New("test", fakeLogs{srv.URL}, func(string, ...any) {})
+	s.Put("/g", "s", Event{Timestamp: 1, Message: "first"}, Event{Timestamp: 2, Message: ""}, Event{Timestamp: 3, Message: "third"})
+	s.Put("/g", "s2", Event{Timestamp: 1, Message: ""}) // nothing but a blank: no call at all
+	s.Flush()
+	s.Close()
+
+	mu.Lock()
+	defer mu.Unlock()
+	if len(puts) != 1 || len(puts[0]) != 2 || puts[0][0] != "first" || puts[0][1] != "third" {
+		t.Errorf("PutLogEvents calls = %v, want one call with first and third", puts)
 	}
 }

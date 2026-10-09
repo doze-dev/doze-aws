@@ -208,6 +208,18 @@ func (s *Shipper) ship(k key, events []Event) {
 		}
 		s.ensured[k] = true
 	}
+	// A blank line is not an event. PutLogEvents refuses a message shorter than
+	// one character, and it refuses the WHOLE batch — so one empty line (a blank
+	// line in a traceback is enough) used to cost every line shipped with it.
+	kept := events[:0:0]
+	for _, e := range events {
+		if e.Message != "" {
+			kept = append(kept, e)
+		}
+	}
+	if events = kept; len(events) == 0 {
+		return
+	}
 	// Lines from concurrent invocations reach one stream in arrival order,
 	// which is nearly but not exactly time order — and PutLogEvents refuses
 	// a batch that is not in order, whole.

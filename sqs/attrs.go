@@ -199,6 +199,12 @@ func (s *store) configuredAttrs(q *queue) map[string]string {
 	out["MessageRetentionPeriod"] = strconv.Itoa(q.RetentionPeriod)
 	out["MaximumMessageSize"] = strconv.Itoa(q.MaxMessageSize)
 	out["ReceiveMessageWaitTimeSeconds"] = strconv.Itoa(q.WaitTimeSeconds)
+	// Every queue is encrypted at rest with an SQS-owned key unless it was given a
+	// KMS key of its own or SSE was switched off; AWS reports that rather than
+	// leaving the attribute out, and Terraform polls for it after CreateQueue.
+	if _, set := out["SqsManagedSseEnabled"]; !set {
+		out["SqsManagedSseEnabled"] = strconv.FormatBool(out["KmsMasterKeyId"] == "")
+	}
 	if q.FIFO {
 		out["FifoQueue"] = "true"
 		out["ContentBasedDeduplication"] = strconv.FormatBool(q.ContentBasedDedup)

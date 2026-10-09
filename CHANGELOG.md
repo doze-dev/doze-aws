@@ -150,6 +150,30 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
 
 ### Changed
 
+- Found by deploying with the real tools (`e2e/deploy/`, run on every push):
+  - **Terraform's AWS provider** applies a 22-resource stack and plans no drift.
+    DescribeTable now carries `ProvisionedThroughput` and `WarmThroughput` (its
+    absence made the provider fail with "couldn't find resource"), tables keep
+    their provisioned capacity and their indexes', and CreateTable refuses a table
+    that does not say how it is billed. GetQueueAttributes reports
+    `SqsManagedSseEnabled`. An alarm no longer echoes a `DatapointsToAlarm` it was
+    not given.
+  - **`sam deploy`** no longer waits forever: stack events share one EventId no
+    more, and carry milliseconds, which SAM's progress display needs to see the
+    stack finish.
+  - **`cdk deploy`** of an inline function: `Code.ZipFile` (CDK's
+    `Code.fromInline`) was ignored and the function had no code.
+  - **Serverless**: its deployment bucket's policy, which uses a JSON boolean in a
+    condition, was refused as malformed. Condition values may be booleans and
+    numbers. The Serverless instructions were incomplete and are corrected.
+  - A blank line in a function's output no longer costs the batch it was shipped
+    in; JSON errors carry their message as both `message` and `Message`, so SDKs
+    whose model spells it the second way (Secrets Manager) no longer show an empty
+    one.
+- The model-drift check could never pass: enum values were listed in map order.
+  They are sorted now, and the fixtures regenerated.
+- Lambda output written during init could be attributed to the first invocation on
+  a slow machine.
 - Console: the SQS Consume tab keeps the messages a receive returned, with a
   countdown on each, until they are deleted, released or their visibility
   timeout lapses; acting on one used to hide the rest while they stayed

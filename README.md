@@ -172,9 +172,24 @@ the endpoint and it works:
 aws cloudformation deploy --template-file template.yaml --stack-name shop
 sam deploy --stack-name shop --s3-bucket artifacts
 cdk bootstrap && cdk deploy
-serverless package && aws cloudformation deploy \
-  --template-file .serverless/cloudformation-template-update-stack.json --stack-name sls-dev
+serverless package    # then the create/upload/update steps below
 ```
+
+`serverless deploy` itself cannot be pointed at a local endpoint — the framework
+ships its own AWS SDK, which ignores `AWS_ENDPOINT_URL`. What it does is three
+calls you make yourself: create the stack that holds the deployment bucket,
+upload the packaged zip to it, update the stack to the full template:
+
+```sh
+aws cloudformation deploy --stack-name sls-dev --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+  --template-file .serverless/cloudformation-template-create-stack.json
+aws s3 cp .serverless/service.zip s3://<deployment bucket>/<the Code.S3Key in the update template>
+aws cloudformation deploy --stack-name sls-dev --capabilities CAPABILITY_IAM CAPABILITY_NAMED_IAM \
+  --template-file .serverless/cloudformation-template-update-stack.json
+```
+
+`e2e/deploy/serverless/smoke.sh` is that sequence, run against a live doze-aws on
+every push.
 
 Stacks are real: they own their resources, and `delete-stack` (or `cdk destroy`)
 takes them back. See [docs/cloudformation.md](docs/cloudformation.md).

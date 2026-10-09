@@ -69,6 +69,7 @@ func TestTheStackClockReachesItsServices(t *testing.T) {
 		c := awsddb.NewFromConfig(cfg, func(o *awsddb.Options) { o.BaseEndpoint = ep })
 		out, err := c.CreateTable(ctx, &awsddb.CreateTableInput{
 			TableName:            aws.String("clock"),
+			BillingMode:          ddbtypes.BillingModePayPerRequest,
 			AttributeDefinitions: []ddbtypes.AttributeDefinition{{AttributeName: aws.String("pk"), AttributeType: ddbtypes.ScalarAttributeTypeS}},
 			KeySchema:            []ddbtypes.KeySchemaElement{{AttributeName: aws.String("pk"), KeyType: ddbtypes.KeyTypeHash}},
 		})

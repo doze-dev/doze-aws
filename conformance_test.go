@@ -306,6 +306,7 @@ func drive(ctx context.Context, t *testing.T, cfg aws.Config, ep *string) {
 
 	// DynamoDB
 	_, err = ddb.CreateTable(ctx, &awsddb.CreateTableInput{
+		BillingMode:          ddbtypes.BillingModePayPerRequest,
 		TableName:            aws.String("conf"),
 		AttributeDefinitions: []ddbtypes.AttributeDefinition{{AttributeName: aws.String("pk"), AttributeType: ddbtypes.ScalarAttributeTypeS}},
 		KeySchema:            []ddbtypes.KeySchemaElement{{AttributeName: aws.String("pk"), KeyType: ddbtypes.KeyTypeHash}},

@@ -229,3 +229,18 @@ func TestWriteError(t *testing.T) {
 		t.Errorf("body = %v", out)
 	}
 }
+
+// A modeled exception is decoded by member name, and services spell it
+// differently; an error with only one spelling reads as an empty message in the
+// SDK whose service chose the other.
+func TestErrorsCarryTheMessageUnderBothSpellings(t *testing.T) {
+	rec := httptest.NewRecorder()
+	API{}.WriteError(rec, awshttp.Errf(400, "InvalidRequestException", "the reason"))
+	var got map[string]string
+	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got["message"] != "the reason" || got["Message"] != "the reason" {
+		t.Errorf("body = %v, want the reason under message and Message", got)
+	}
+}

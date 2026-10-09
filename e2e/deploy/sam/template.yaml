@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A small SAM application, deployed with `sam deploy`.
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 10
+    MemorySize: 128
+
+Resources:
+  Orders:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+
+  Queue:
+    Type: AWS::SQS::Queue
+
+  Api:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.handler
+      Environment:
+        Variables:
+          TABLE: !Ref Orders
+          QUEUE: !Ref Queue
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Orders
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt Queue.QueueName
+      Events:
+        Put:
+          Type: Api
+          Properties:
+            Path: /orders
+            Method: post
+
+  Worker:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.worker
+      Events:
+        FromQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt Queue.Arn
+            BatchSize: 1
+
+Outputs:
+  TableName:
+    Value: !Ref Orders
+  FunctionName:
+    Value: !Ref Api

@@ -3,7 +3,10 @@ package provision
 // Lambda apply + export: functions, async destinations, triggers, and tags.
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -54,7 +57,12 @@ func applyFunctions(ctx context.Context, c *client, s *Stack, rep *Report) error
 		// Code is either a path on disk (the _local_ extension) or an
 		// s3://bucket/key that a deploy tool staged. Both spellings reach
 		// Lambda as a Code block; only the local one needs to exist here.
-		codeBlock, err := codeLocation(name, f.Code)
+		var codeBlock map[string]string
+		if f.Inline != "" {
+			codeBlock, err = inlineCode(name, f.Runtime, f.Inline)
+		} else {
+			codeBlock, err = codeLocation(name, f.Code)
+		}
 		if err != nil {
 			return err
 		}
@@ -321,4 +329,32 @@ func destFromARN(arn string) *Dest {
 		return &Dest{Lambda: strings.TrimPrefix(leaf, "function:")}
 	}
 	return nil
+}
+
+// inlineCode packages Code.ZipFile the way CloudFormation does: the text becomes
+// index.py or index.js in a zip, so the handler is "index.handler". Only Node.js
+// and Python accept inline source, and AWS says so.
+func inlineCode(name, runtime, source string) (map[string]string, error) {
+	var file string
+	switch {
+	case strings.HasPrefix(runtime, "python"):
+		file = "index.py"
+	case strings.HasPrefix(runtime, "nodejs"):
+		file = "index.js"
+	default:
+		return nil, fmt.Errorf("function %q: Code.ZipFile is supported only for Node.js and Python runtimes, not %q", name, runtime)
+	}
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	w, err := zw.Create(file)
+	if err != nil {
+		return nil, fmt.Errorf("function %q: %w", name, err)
+	}
+	if _, err := w.Write([]byte(source)); err != nil {
+		return nil, fmt.Errorf("function %q: %w", name, err)
+	}
+	if err := zw.Close(); err != nil {
+		return nil, fmt.Errorf("function %q: %w", name, err)
+	}
+	return map[string]string{"ZipFile": base64.StdEncoding.EncodeToString(buf.Bytes())}, nil
 }

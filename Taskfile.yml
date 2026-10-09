@@ -215,6 +215,11 @@ tasks:
     cmds:
       - cd conformance && uv run --frozen pytest {{.CLI_ARGS}}
 
+  test:deploy:
+    desc: 'Deploy with Terraform, SAM, CDK and Serverless against a live doze-aws (needs those tools; CI has them)'
+    cmds:
+      - e2e/deploy/run.sh {{.CLI_ARGS}}
+
   clean:
     desc: Remove build output and local service data
     cmds:

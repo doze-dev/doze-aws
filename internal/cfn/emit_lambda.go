@@ -16,7 +16,9 @@ func emitFunctions(s *provision.Stack, add func(prefix, name, typ string, props 
 		putIfStr(props, "Handler", f.Handler)
 		putIfNum(props, "Timeout", f.Timeout)
 		putIfNum(props, "MemorySize", f.Memory)
-		if f.Code != "" {
+		if f.Inline != "" {
+			props["Code"] = map[string]any{"ZipFile": f.Inline}
+		} else if f.Code != "" {
 			// The _local_ convention is what makes an exported template
 			// redeployable against doze-aws without a build step.
 			props["Code"] = map[string]any{"S3Bucket": "_local_", "S3Key": f.Code}

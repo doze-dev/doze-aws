@@ -113,7 +113,48 @@ func (p principalBlock) MarshalJSON() ([]byte, error) {
 }
 
 // conditionBlock is {Operator: {Key: value-or-list}}.
-type conditionBlock map[string]map[string]stringList
+type conditionBlock map[string]map[string]conditionValues
+
+// conditionValues is a condition's value or list of values. Unlike an Action or a
+// Resource, which are strings, a condition value may be a JSON boolean or number
+// — `"aws:SecureTransport": false` is how every "deny plain HTTP" policy is
+// written, Serverless's deployment bucket policy among them — and IAM reads each
+// as its text. Refusing them rejected policies AWS stores.
+type conditionValues stringList
+
+func (c *conditionValues) UnmarshalJSON(b []byte) error {
+	var raw []json.RawMessage
+	if trim := strings.TrimSpace(string(b)); strings.HasPrefix(trim, "[") {
+		if err := json.Unmarshal(b, &raw); err != nil {
+			return fmt.Errorf("expected a value or array of values")
+		}
+	} else {
+		raw = []json.RawMessage{b}
+	}
+	out := make(conditionValues, 0, len(raw))
+	for _, r := range raw {
+		var str string
+		if json.Unmarshal(r, &str) == nil {
+			out = append(out, str)
+			continue
+		}
+		var scalar any
+		if err := json.Unmarshal(r, &scalar); err != nil {
+			return err
+		}
+		switch v := scalar.(type) {
+		case bool, float64:
+			// The number's own text, not a float's: "10" stays "10".
+			out = append(out, strings.TrimSpace(string(r)))
+		default:
+			return fmt.Errorf("a condition value must be a string, number or boolean, not %T", v)
+		}
+	}
+	*c = out
+	return nil
+}
+
+func (c conditionValues) MarshalJSON() ([]byte, error) { return stringList(c).MarshalJSON() }
 
 // Parse parses and lightly validates a policy document. Validation is
 // deliberately shallow: AWS rejects malformed JSON and missing Effect, but is

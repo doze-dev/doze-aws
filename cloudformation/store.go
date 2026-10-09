@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/doze-dev/doze-aws/internal/lazybolt"
@@ -117,8 +118,11 @@ type stackResource struct {
 // StackEvent is one synthesized progress event. Deploy tools poll these until
 // a terminal stack-level status appears, so the final event must always be one.
 type stackEvent struct {
-	ID         string `json:"id"`
-	Timestamp  int64  `json:"ts"`
+	ID        string `json:"id"`
+	Timestamp int64  `json:"ts"`
+	// TimeMs is the same instant to the millisecond, as CloudFormation reports it.
+	// Zero on events written before it existed, which fall back to Timestamp.
+	TimeMs     int64  `json:"ms,omitempty"`
 	LogicalID  string `json:"logical_id"`
 	Type       string `json:"type"`
 	PhysicalID string `json:"physical_id,omitempty"`
@@ -160,6 +164,7 @@ type change struct {
 type store struct {
 	db    *lazybolt.DB
 	clock func() time.Time
+	seq   atomic.Int64 // keeps ids minted in the same tick apart
 }
 
 func newStore(db *lazybolt.DB) *store { return &store{db: db, clock: time.Now} }
@@ -392,7 +397,12 @@ func (s *store) DeleteStackChangeSets(stack string) error {
 func (s *store) newID() string {
 	// A monotonic clock-derived id keeps ordering stable and avoids pulling in
 	// randomness that would make tests non-deterministic.
-	n := s.now().UnixNano()
+	//
+	// Two ids minted in the same tick must still differ: events within one
+	// deploy are told apart by EventId, and SAM's progress display skips an event
+	// whose id it has already seen — a repeated one hid the stack's own
+	// CREATE_COMPLETE and `sam deploy` waited on it forever.
+	n := s.now().UnixNano() + s.seq.Add(1)
 	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x",
 		uint32(n>>32), uint16(n>>16), uint16(n), uint16(n>>48), uint64(n)&0xffffffffffff)
 }
