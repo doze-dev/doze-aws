@@ -227,7 +227,7 @@ tasks:
       # A test suite that still passes has not noticed it. Run this on the code
       # whose bugs cost the most (policy evaluation, routing, authorization) and
       # read the LIVED lines: each is a behaviour nothing asserts.
-      - go run github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0 unleash ./{{.CLI_ARGS}}
+      - go run github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0 unleash --timeout-coefficient 10 --workers 2 ./{{.CLI_ARGS}}
 
   clean:
     desc: Remove build output and local service data
