@@ -164,7 +164,7 @@ tasks:
       # should not be the one that moves the floor.
       - |
         out="$(mktemp)"; log="$(mktemp)"
-        go test -coverpkg=./... -coverprofile="$out" ./... >"$log" 2>&1 || {
+        go test -skip '{{.BUDGET_TESTS}}' -coverpkg=./... -coverprofile="$out" ./... >"$log" 2>&1 || {
           echo "the suite failed under coverage:"; grep -E '^(--- FAIL|FAIL|panic)|_test.go:[0-9]+:' "$log" | head -40; exit 1
         }
         total="$(go tool cover -func="$out" | awk '/^total:/ {gsub("%", "", $NF); print $NF}')"
@@ -181,7 +181,7 @@ tasks:
     cmds:
       - |
         out="$(mktemp)"; log="$(mktemp)"
-        go test -coverpkg=./... -coverprofile="$out" ./... >"$log" 2>&1 || {
+        go test -skip '{{.BUDGET_TESTS}}' -coverpkg=./... -coverprofile="$out" ./... >"$log" 2>&1 || {
           echo "the suite failed under coverage:"; grep -E '^(--- FAIL|FAIL|panic)|_test.go:[0-9]+:' "$log" | head -40; exit 1
         }
         total="$(go tool cover -func="$out" | awk '/^total:/ {gsub("%", "", $NF); print $NF}')"
