@@ -163,13 +163,13 @@ test.describe('cloudwatch alarm actions', () => {
     await page.goto(`cw/alarm/${alarmName}`);
     const title = page.locator('.det-title');
     await expect(title).not.toContainText('actions off');
-    await expect(page.getByRole('heading', { name: 'Actions enabled' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Actions are enabled' })).toBeVisible();
 
     await page.getByRole('button', { name: 'Disable actions' }).click();
     let msg = await waitForToast();
     expect(msg).toContain(`Actions disabled for “${alarmName}”`);
     await expect(title).toContainText('actions off');
-    await expect(page.getByRole('heading', { name: 'Actions disabled' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Actions are disabled' })).toBeVisible();
 
     // Still off after a reload: it is the alarm's state, not the page's.
     await page.reload();

@@ -69,3 +69,24 @@ jobs:
         # CI keeps running the full race suite on every push and pull request.
         # `task check` is the fast local stage; this is the one that gates a
         # merge, so splitting the local gate cost nothing here.
+
+  # The suite's merged statement coverage may rise and may not fall. The floor is
+  # testdata/coverage.txt; `task coverage:update` raises it.
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - name: Coverage floor
+        run: go tool task coverage

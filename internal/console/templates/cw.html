@@ -205,7 +205,7 @@
       </div>
 
       <div class="panel">
-        <div class="panel-h"><h2>{{icon "power"}} Actions {{if .A.Enabled}}enabled{{else}}disabled{{end}}</h2><span class="dim">an alarm with actions off still changes state, it just notifies nothing</span></div>
+        <div class="panel-h"><h2>{{icon "power"}} Actions are {{if .A.Enabled}}enabled{{else}}disabled{{end}}</h2><span class="dim">an alarm with actions off still changes state, it just notifies nothing</span></div>
         <form class="form-b" hx-post="{{.Prefix}}/cw/alarm/{{.A.Name}}/actions">
           <input type="hidden" name="enabled" value="{{if .A.Enabled}}false{{else}}true{{end}}">
           <button class="btn btn-outline" type="submit">{{if .A.Enabled}}Disable actions{{else}}Enable actions{{end}}</button>

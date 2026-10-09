@@ -155,6 +155,41 @@ tasks:
       - go test -run '{{.API_TEST}}' -count=1 -api.update .
       - git --no-pager diff --stat -- testdata/api.txt
 
+  coverage:
+    desc: 'Merged statement coverage of the whole suite, held at or above testdata/coverage.txt'
+    cmds:
+      # Not part of `check`: it runs the full suite with instrumentation, about
+      # four minutes. CI runs it, with every interpreter installed, so the Lambda
+      # shims count there; a machine without node or ruby measures lower and
+      # should not be the one that moves the floor.
+      - |
+        out="$(mktemp)"
+        go test -coverpkg=./... -coverprofile="$out" ./... >/dev/null
+        total="$(go tool cover -func="$out" | awk '/^total:/ {gsub("%", "", $NF); print $NF}')"
+        floor="$(cat testdata/coverage.txt)"
+        echo "coverage $total% (floor $floor%)"
+        awk -v t="$total" -v f="$floor" 'BEGIN { exit !(t + 0 >= f + 0) }' || {
+          echo "coverage fell below the floor. Test what you added, or — if code was"
+          echo "deleted along with its tests — lower testdata/coverage.txt by hand and say why."
+          exit 1
+        }
+
+  coverage:update:
+    desc: 'Raise the floor in testdata/coverage.txt to the current coverage (never lowers it) — then READ THE DIFF'
+    cmds:
+      - |
+        out="$(mktemp)"
+        go test -coverpkg=./... -coverprofile="$out" ./... >/dev/null
+        total="$(go tool cover -func="$out" | awk '/^total:/ {gsub("%", "", $NF); print $NF}')"
+        floor="$(cat testdata/coverage.txt)"
+        # Rounded DOWN to a tenth: a floor equal to the measurement fails on the
+        # next run's rounding.
+        new="$(awk -v t="$total" 'BEGIN { printf "%.1f", int(t * 10) / 10 }')"
+        if awk -v n="$new" -v f="$floor" 'BEGIN { exit !(n + 0 > f + 0) }'; then
+          echo "$new" > testdata/coverage.txt
+        fi
+      - git --no-pager diff --stat -- testdata/coverage.txt
+
   soak:
     desc: 'Cross-service soak under sustained load (SOAK_DURATION=2m, SOAK_CHAOS=1 to restart mid-load)'
     env:
