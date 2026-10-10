@@ -42,6 +42,7 @@ import (
 	"github.com/doze-dev/doze-aws/internal/migrate"
 	"github.com/doze-dev/doze-aws/internal/provision"
 	"github.com/doze-dev/doze-aws/peers"
+	names "github.com/doze-dev/doze-names"
 )
 
 // withConsole serves the console beside the gateway on one endpoint. chi,
@@ -191,6 +192,10 @@ func dispatch(args []string) (code int, ok bool) {
 }
 
 func main() {
+	// On a Mac, dns-setup installs a copy of this program as the .doze zone's
+	// network daemon; this is where that copy becomes it.
+	names.Helper()
+
 	if code, handled := dispatch(os.Args[1:]); handled {
 		os.Exit(code)
 	}

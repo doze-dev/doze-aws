@@ -37,6 +37,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -103,7 +104,7 @@ func joinZone(ctx context.Context, logger *slog.Logger, instance string) *zone {
 // not cover it and it has to be claimed rather than assumed.
 func (z *zone) claimSync(l *names.Lease, logger *slog.Logger) {
 	n := names.Name{Host: "sync-" + l.Name.Host, Tier: l.Name.Tier}
-	if s, err := z.reg.ClaimAt(n, l.IP); err == nil {
+	if s, err := l.Twin(n); err == nil {
 		z.sync = append(z.sync, s)
 	} else {
 		logger.Debug("zone: could not claim the sync- name", "name", n.Host, "err", err)
@@ -122,7 +123,11 @@ func (z *zone) listenOn(l *names.Lease, logger *slog.Logger, port string) net.Li
 		return nil
 	}
 	addr := net.JoinHostPort(l.IP.String(), port)
-	ln, err := net.Listen("tcp", addr)
+	// Through the lease, not net.Listen: on macOS the name's address is not one
+	// a process can bind, and the zone's network daemon translates it to a
+	// private port. The listener reports the public address either way.
+	n, _ := strconv.Atoi(port)
+	ln, err := l.Listen(n)
 	if errors.Is(err, syscall.EADDRINUSE) {
 		// The port is an internal detail. Nobody types it — the front door
 		// serves the name port-less, and URLFor reads whatever port we publish
@@ -133,7 +138,7 @@ func (z *zone) listenOn(l *names.Lease, logger *slog.Logger, port string) net.Li
 		// something else on this machine bound THIS address and port, not merely
 		// that another doze-aws is running.
 		var reerr error
-		if ln, reerr = net.Listen("tcp", net.JoinHostPort(l.IP.String(), "0")); reerr == nil {
+		if ln, reerr = l.Listen(0); reerr == nil {
 			logger.Info("zone: the preferred port was taken, took another",
 				"name", l.Name.Host, "wanted", addr, "using", ln.Addr().String())
 			addr, err = ln.Addr().String(), nil
@@ -142,7 +147,7 @@ func (z *zone) listenOn(l *names.Lease, logger *slog.Logger, port string) net.Li
 	if err != nil {
 		// Both remaining causes leave the name resolving to an address that
 		// answers nothing, so say which one it is — the remedies are opposites.
-		hint := "run `doze-aws dns-setup` once to alias the loopback pool"
+		hint := "run `doze-aws dns-setup` once, so each name has an address of its own"
 		if errors.Is(err, syscall.EADDRINUSE) {
 			hint = "something else already holds " + addr + "; free it, or that name will not work"
 		}
