@@ -180,6 +180,13 @@ func hSendMessageBatch(s *store, req *request) (any, *apiError) {
 	if aerr := checkBatch("SendMessageBatchRequestEntry", ids); aerr != nil {
 		return nil, aerr
 	}
+	total := 0
+	for _, e := range entries {
+		total += messageSize(e.Body, e.Attrs)
+	}
+	if total > maxBatchBytes {
+		return nil, errBatch("BatchRequestTooLong", "Batch requests cannot be longer than "+strconv.Itoa(maxBatchBytes)+" bytes. You have sent "+strconv.Itoa(total)+" bytes.")
+	}
 	items := make([]sendItem, len(entries))
 	for i, e := range entries {
 		delay := -1

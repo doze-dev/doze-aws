@@ -375,6 +375,10 @@ type dedupRec struct {
 	At      int64  `json:"at"` // unix seconds
 	ID      string `json:"id"`
 	MD5Body string `json:"md5"`
+	// Seq and GroupID are what a duplicate is answered with: the original's
+	// MessageId and its SequenceNumber (doc: SendMessage, FIFO queues).
+	Seq     uint64 `json:"seq,omitempty"`
+	GroupID string `json:"group,omitempty"`
 }
 
 func (s *store) lookupDedup(tx *bolt.Tx, queue, dedupID string) (bool, *message) {
@@ -393,7 +397,7 @@ func (s *store) lookupDedup(tx *bolt.Tx, queue, dedupID string) (bool, *message)
 	if s.now().Unix()-r.At > dedupWindow {
 		return false, nil
 	}
-	return true, &message{ID: r.ID, MD5Body: r.MD5Body}
+	return true, &message{ID: r.ID, MD5Body: r.MD5Body, Seq: r.Seq, GroupID: r.GroupID}
 }
 
 func (s *store) recordDedup(tx *bolt.Tx, queue, dedupID string, m *message) error {
@@ -402,7 +406,7 @@ func (s *store) recordDedup(tx *bolt.Tx, queue, dedupID string, m *message) erro
 		return err
 	}
 	s.gcDedup(b) // prune entries past the window so the bucket can't grow unbounded
-	raw, _ := json.Marshal(dedupRec{At: s.now().Unix(), ID: m.ID, MD5Body: m.MD5Body})
+	raw, _ := json.Marshal(dedupRec{At: s.now().Unix(), ID: m.ID, MD5Body: m.MD5Body, Seq: m.Seq, GroupID: m.GroupID})
 	return b.Put([]byte(dedupID), raw)
 }
 

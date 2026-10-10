@@ -346,11 +346,31 @@ func (s *store) SendBatch(queue string, items []sendItem) ([]sendOutcome, error)
 // and false, since it reports success without writing.
 func (s *store) sendIn(tx *bolt.Tx, q *queue, body string, attrs map[string]attr, delay int, groupID, dedupID string, sysAttrs map[string]string) (out *message, sent bool, err error) {
 	queue := q.Name
-	if q.MaxMessageSize > 0 && len(body) > q.MaxMessageSize {
-		return nil, false, errInvalid(fmt.Sprintf("message length %d exceeds MaximumMessageSize %d", len(body), q.MaxMessageSize))
+	if aerr := validateBody(body); aerr != nil {
+		return nil, false, aerr
 	}
-	if q.FIFO && groupID == "" {
-		return nil, false, errInvalid("MessageGroupId is required for FIFO queues")
+	if aerr := validateMessageAttrs(attrs); aerr != nil {
+		return nil, false, aerr
+	}
+	if size := messageSize(body, attrs); q.MaxMessageSize > 0 && size > q.MaxMessageSize {
+		return nil, false, errInvalid(fmt.Sprintf("One or more parameters are invalid. Reason: Message must be shorter than %d bytes (the body and its attributes were %d).", q.MaxMessageSize, size))
+	}
+	if q.FIFO {
+		if groupID == "" {
+			return nil, false, errInvalid("The request must contain the parameter MessageGroupId.")
+		}
+		if !validFIFOID(groupID) {
+			return nil, false, errInvalid("Value " + groupID + " for parameter MessageGroupId is invalid. Reason: MessageGroupId can contain up to 128 alphanumeric characters and punctuation (!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~).")
+		}
+		if dedupID != "" && !validFIFOID(dedupID) {
+			return nil, false, errInvalid("Value " + dedupID + " for parameter MessageDeduplicationId is invalid. Reason: MessageDeduplicationId can contain up to 128 alphanumeric characters and punctuation (!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~).")
+		}
+		// A FIFO queue has its queue's delay and no other (doc: SendMessage).
+		if delay >= 0 {
+			return nil, false, errInvalid("The request include parameter that is not valid for this queue type: a FIFO queue does not take DelaySeconds on a message.")
+		}
+	} else if groupID != "" || dedupID != "" {
+		return nil, false, errInvalid("The request include parameter that is not valid for this queue type: MessageGroupId and MessageDeduplicationId belong to FIFO queues.")
 	}
 	if delay < 0 {
 		delay = q.DelaySeconds
