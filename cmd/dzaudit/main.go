@@ -35,6 +35,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -233,11 +234,16 @@ func (m *model) walk(op, shapeID, path string, depth int, seen map[string]bool, 
 	}
 }
 
-// sample is a value that satisfies its shape, for building a list or a map
-// around when the rule under test is the container's. It answers ok only for a
-// shape with nothing to break — a plain string, a number, a boolean — because a
-// case whose element is itself invalid fails for the element, and reports the
-// container's rule as enforced when it is not.
+// sample is a value that SATISFIES its shape, for building a list or a map
+// around when the rule under test is the container's. A case whose element is
+// itself invalid fails for the element and reports the container's rule as
+// enforced when it is not, so the value is checked against every rule the shape
+// states and ok is false when none of the candidates passes, or when a rule
+// cannot be evaluated here (a pattern Go's regexp cannot compile).
+//
+// It has to work on constrained shapes: a tag map's value is a TagValue with a
+// length and a pattern, and refusing to sample one left every tag-key rule with
+// no case, which is the rule this was written to reach.
 func (m *model) sample(shapeID string) (any, bool) {
 	s, ok := m.Shapes[shapeID]
 	if !ok {
@@ -251,18 +257,84 @@ func (m *model) sample(shapeID string) (any, bool) {
 		}
 		return nil, false
 	}
-	if len(constraintsOf(s.Traits)) > 0 {
-		return nil, false
-	}
+	cs := constraintsOf(s.Traits)
 	switch s.Type {
+	case "enum":
+		if vals := m.enumValues(s); len(vals) > 0 {
+			return vals[0], true
+		}
 	case "string":
-		return "a", true
+		for _, cand := range sampleStrings(cs) {
+			if satisfies(cand, cs) {
+				return cand, true
+			}
+		}
 	case "integer", "long":
-		return float64(1), true
+		n := float64(1)
+		for _, c := range cs {
+			if c.Kind == "range" && c.Min != nil && n < *c.Min {
+				n = *c.Min
+			}
+		}
+		for _, c := range cs {
+			if c.Kind == "range" && c.Max != nil && n > *c.Max {
+				return nil, false
+			}
+		}
+		return n, true
 	case "boolean":
 		return true, true
 	}
 	return nil, false
+}
+
+// sampleStrings are candidate values for a constrained string, plainest first:
+// one repeated character at the shape's minimum length and a little past it,
+// then a few shapes AWS identifiers take. The first that satisfies every rule
+// is the sample; none of them is special, they only have to be valid.
+func sampleStrings(cs []constraint) []string {
+	min := 1
+	for _, c := range cs {
+		if c.Kind == "length" && c.Min != nil && int(*c.Min) > min {
+			min = int(*c.Min)
+		}
+	}
+	var out []string
+	for _, n := range []int{min, min + 1, min + 2, 8, 12, 20, 32, 36} {
+		if n < min {
+			continue
+		}
+		for _, unit := range []string{"a", "A", "1"} {
+			out = append(out, strings.Repeat(unit, n))
+		}
+	}
+	return append(out,
+		"a1", "a-1", "a_1", "a.b", "/a", "/a/b",
+		"00000000-0000-0000-0000-000000000000",
+		"arn:aws:iam::123456789012:role/a",
+		"https://example.com/a",
+		"2026-01-01T00:00:00Z",
+	)
+}
+
+// satisfies reports whether a string meets every rule, and false when a rule
+// cannot be checked.
+func satisfies(v string, cs []constraint) bool {
+	for _, c := range cs {
+		switch c.Kind {
+		case "length":
+			n := float64(len([]rune(v)))
+			if (c.Min != nil && n < *c.Min) || (c.Max != nil && n > *c.Max) {
+				return false
+			}
+		case "pattern":
+			re, err := regexp.Compile(c.Pattern)
+			if err != nil || !re.MatchString(v) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func list(m *model, found []finding, opFilter string) error {

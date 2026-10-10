@@ -227,7 +227,13 @@ func (c constraint) core() string {
 // The two renderings differ only for enums, and only above the display cutoff.
 func (c constraint) Full() string {
 	if c.Kind == "enum" {
-		return "enum " + strings.Join(c.Values, "|")
+		full := "enum " + strings.Join(c.Values, "|")
+		// The container is part of what the rule is: a map KEY's enum is not
+		// the member's.
+		if c.Container == "mapKey" {
+			return "map key " + full
+		}
+		return full
 	}
 	return c.String()
 }

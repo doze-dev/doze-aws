@@ -367,14 +367,49 @@ func TestContainerCasesBreakOnlyTheContainersRule(t *testing.T) {
 		t.Error("no map-key case")
 	}
 
-	// A list whose element is itself constrained has no case: it would fail for
-	// the element and report the list's rule as enforced.
+	// A list whose element is itself constrained is built from elements that
+	// satisfy the element's rule, so the case fails for the list's rule alone.
 	for _, f := range byPath["Nested"] {
 		if f.Constraint.Container != "list" {
 			continue
 		}
-		if _, ok := containerViolations(f.Constraint); ok {
-			t.Error("a case was built around an element that is invalid on its own")
+		for _, v := range mustViolations(t, f.Constraint) {
+			l, _ := v.Value.([]any)
+			if len(l) != 5 {
+				t.Errorf("over a maximum of 4 is %d elements, want 5", len(l))
+			}
+			for _, e := range l {
+				if s, _ := e.(string); len(s) < 2 {
+					t.Errorf("element %q breaks its own minimum length of 2: the case would fail for the element", e)
+				}
+			}
+		}
+	}
+}
+
+// A sample satisfies every rule its shape states, and there is none when a rule
+// cannot be met or cannot be checked: a case built around a bad element reports
+// the container's rule as enforced when the service only refused the element.
+func TestASampleSatisfiesItsShapeOrThereIsNone(t *testing.T) {
+	m := modelFrom(t, `{"shapes": {
+	  "x#Tag":    {"type": "string", "traits": {"smithy.api#length": {"min": 3, "max": 8}, "smithy.api#pattern": "^[a-z]+$"}},
+	  "x#Digits": {"type": "string", "traits": {"smithy.api#pattern": "^[0-9]{2}$"}},
+	  "x#Never":  {"type": "string", "traits": {"smithy.api#pattern": "^\\p{IsNoSuchClass}+$"}},
+	  "x#Tight":  {"type": "string", "traits": {"smithy.api#length": {"min": 5, "max": 2}}},
+	  "x#Port":   {"type": "integer", "traits": {"smithy.api#range": {"min": 1024, "max": 65535}}},
+	  "x#None":   {"type": "integer", "traits": {"smithy.api#range": {"min": 9, "max": 3}}},
+	  "x#Kind":   {"type": "enum", "members": {"B": {"traits": {"smithy.api#enumValue": "b"}}, "A": {"traits": {"smithy.api#enumValue": "a"}}}},
+	  "x#Thing":  {"type": "structure", "members": {}}
+	}}`)
+	for shape, want := range map[string]any{"x#Tag": "aaa", "x#Digits": "11", "x#Port": float64(1024), "x#Kind": "a"} {
+		got, ok := m.sample(shape)
+		if !ok || got != want {
+			t.Errorf("sample(%s) = %v, %v; want %v", shape, got, ok, want)
+		}
+	}
+	for _, shape := range []string{"x#Never", "x#Tight", "x#None", "x#Thing", "x#Missing"} {
+		if got, ok := m.sample(shape); ok {
+			t.Errorf("sample(%s) = %v, want none", shape, got)
 		}
 	}
 }
