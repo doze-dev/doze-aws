@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/doze-dev/doze-aws/awsident"
+	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/gateway"
 	"github.com/doze-dev/doze-aws/peers"
 )
@@ -127,9 +128,12 @@ func (t fanoutTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if !ok {
 		return &http.Response{
 			StatusCode: http.StatusServiceUnavailable,
-			Header:     http.Header{"Content-Type": []string{"application/json"}},
-			Body:       io.NopCloser(strings.NewReader(`{"__type":"ServiceUnavailable","message":"the ` + svc + ` service is not running"}`)),
-			Request:    req,
+			// A service the stack was started without is a choice about this
+			// stack, not the emulator breaking, so it is stamped as one of
+			// doze-aws's own limits rather than read as a 5xx fault.
+			Header:  http.Header{"Content-Type": []string{"application/json"}, awshttp.LocalLimitHeader: []string{"service-not-running"}},
+			Body:    io.NopCloser(strings.NewReader(`{"__type":"ServiceUnavailable","message":"the ` + svc + ` service is not running"}`)),
+			Request: req,
 		}, nil
 	}
 	out, err := http.NewRequestWithContext(req.Context(), req.Method, ep.URL(req.URL.RequestURI()), bytes.NewReader(body))

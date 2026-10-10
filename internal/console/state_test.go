@@ -67,3 +67,15 @@ func TestEveryStateHasItsOwnWords(t *testing.T) {
 		t.Error("declined and deferred read the same, but one is a decision and the other is a todo")
 	}
 }
+
+// A service the stack was started without answers 503 from the console's own
+// transport. That is a choice about this stack, not the emulator breaking, so
+// the stamp outranks the 5xx reading.
+func TestAServiceThatIsNotRunningIsNotAFault(t *testing.T) {
+	if got := callState(503, &Refusal{Code: "ServiceUnavailable"}, wireFacts{Local: "service-not-running"}); got != "refusedhere" {
+		t.Errorf("a stamped 503 reads %q, want refusedhere", got)
+	}
+	if got := callState(503, &Refusal{Code: "ServiceUnavailable"}, wireFacts{}); got != "error" {
+		t.Errorf("an unstamped 503 reads %q, want error", got)
+	}
+}

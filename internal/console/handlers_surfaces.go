@@ -325,10 +325,10 @@ func callState(status int, ref *Refusal, f wireFacts) string {
 		return "notbuilt"
 	case f.Denied != "":
 		return "denied"
-	case status >= 500:
-		return "error"
 	case f.Local != "" && status >= 400:
 		return "refusedhere"
+	case status >= 500:
+		return "error"
 	case status >= 400:
 		return "refused"
 	}
