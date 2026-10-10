@@ -90,8 +90,11 @@ func setUpFixture(t *testing.T, ts *httptest.Server) {
 	}); code != http.StatusOK {
 		t.Fatalf("fixture SendMessage = %d: %s", code, body)
 	}
+	// Held for a long time: a visibility change is only accepted for a message
+	// that is in flight, so a handle that had been released at once would make
+	// every ChangeMessageVisibility baseline a refusal for that reason.
 	code, body := call(t, ts, "ReceiveMessage", map[string]any{
-		"QueueUrl": auditURL, "MaxNumberOfMessages": 1, "VisibilityTimeout": 0,
+		"QueueUrl": auditURL, "MaxNumberOfMessages": 1, "VisibilityTimeout": 43200,
 	})
 	if code != http.StatusOK {
 		t.Fatalf("fixture ReceiveMessage = %d: %s", code, body)

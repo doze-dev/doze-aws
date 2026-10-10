@@ -343,20 +343,29 @@ func (s *store) changeVisibilityIn(tx *bolt.Tx, queue, handle string, timeout in
 	if timeout < 0 || timeout > 43200 {
 		return errInvalid(fmt.Sprintf("Value %d for parameter VisibilityTimeout is invalid. Reason: Must be between 0 and 43200.", timeout))
 	}
+	gone := errInvalid("Value " + handle + " for parameter ReceiptHandle is invalid. Reason: Message does not exist or is not available for visibility timeout change.")
 	mb := tx.Bucket(msgBucket(queue))
 	if mb == nil {
-		return nil
+		return gone
 	}
 	raw := mb.Get(seqKey)
 	if raw == nil {
-		return nil
+		return gone // deleted, purged or moved
 	}
 	var m message
 	if err := json.Unmarshal(raw, &m); err != nil {
 		return err
 	}
 	if m.ID != id {
-		return nil // stale handle; don't disturb the current occupant of this seq
+		return gone // stale handle; the current occupant of this seq is another message
+	}
+	// Only a message that is held can have its hold changed. One that is
+	// visible again (its timeout ran out, or was set to 0) was not received by
+	// this handle any more, and re-hiding it would hand the same message to a
+	// second consumer's receive as if it were already taken.
+	if m.VisibleAt <= s.now().UnixNano() {
+		return &apiError{Code: "AWS.SimpleQueueService.MessageNotInflight", Status: 400, SenderFault: true,
+			Message: "Value " + handle + " for parameter ReceiptHandle is invalid. Reason: The message referred to is not in flight."}
 	}
 	m.VisibleAt = s.now().Add(time.Duration(timeout) * time.Second).UnixNano()
 	return putMessage(mb, &m)

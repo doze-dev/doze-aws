@@ -144,7 +144,9 @@ func TestChangeVisibilityIsHeldToTwelveHours(t *testing.T) {
 			t.Errorf("VisibilityTimeout=%d: %v", timeout, err)
 		}
 	}
-	for _, timeout := range []int{0, 43200} {
+	// Each accepted value is applied to a message that is in flight: 0 releases
+	// it, so the next is made on a fresh receipt.
+	for _, timeout := range []int{43200, 0} {
 		if err := s.ChangeVisibility("q", got[0].Handle(), timeout); err != nil {
 			t.Errorf("VisibilityTimeout=%d: %v", timeout, err)
 		}
