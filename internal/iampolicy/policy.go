@@ -161,24 +161,37 @@ func (c conditionValues) MarshalJSON() ([]byte, error) { return stringList(c).Ma
 // permissive about most everything else, and being stricter locally would fail
 // policies that work in the cloud.
 func Parse(raw string) (*Document, error) {
+	d, p := parse(raw)
+	if p != nil {
+		return nil, p
+	}
+	return d, nil
+}
+
+// parse is Parse with its failure typed, so the resource-policy check can say
+// which rule was broken without reading the message back.
+func parse(raw string) (*Document, *Problem) {
 	if strings.TrimSpace(raw) == "" {
-		return nil, fmt.Errorf("policy document is empty")
+		return nil, &Problem{Kind: NotAPolicy, Statement: -1, Detail: "policy document is empty"}
 	}
 	var d Document
 	if err := json.Unmarshal([]byte(raw), &d); err != nil {
-		return nil, fmt.Errorf("policy document is not valid JSON: %v", err)
+		return nil, &Problem{Kind: NotAPolicy, Statement: -1,
+			Detail: fmt.Sprintf("policy document is not valid JSON: %v", err)}
 	}
 	if len(d.Statement) == 0 {
-		return nil, fmt.Errorf("policy document has no Statement")
+		return nil, &Problem{Kind: NoStatement, Statement: -1, Detail: "policy document has no Statement"}
 	}
 	for i, st := range d.Statement {
 		switch st.Effect {
 		case "Allow", "Deny":
 		default:
-			return nil, fmt.Errorf("statement %d: Effect must be Allow or Deny, got %q", i, st.Effect)
+			return nil, &Problem{Kind: BadEffect, Statement: i,
+				Detail: fmt.Sprintf("statement %d: Effect must be Allow or Deny, got %q", i, st.Effect)}
 		}
 		if len(st.Action) == 0 && len(st.NotAction) == 0 {
-			return nil, fmt.Errorf("statement %d: one of Action or NotAction is required", i)
+			return nil, &Problem{Kind: NoAction, Statement: i,
+				Detail: fmt.Sprintf("statement %d: one of Action or NotAction is required", i)}
 		}
 	}
 	return &d, nil

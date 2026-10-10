@@ -22,6 +22,7 @@ is met and its test is named; "partly" says what is left.
 | B6 the 501 refusal and its proof | landed | 4241369, 9fa0829 | `awshttp.NotBuilt`; no Go v1/v2, boto3 or JavaScript SDK retries it. |
 | B6 the model sweep | partly | 0223f75 | Harness and a frozen baseline of 653 entries (542 legacy refusals, 111 false "unknown") are in. Each service moves its entries to `notbuilt` in its own stage. |
 | B7 blob lengths in bytes | landed | bed7d64 | KMS, Kinesis, Secrets Manager. SSM and Lambda have a blob member only on operations the service refuses. |
+| B9 one stored-policy validator | partly | (next commit) | `iampolicy.ValidateResourcePolicy` and its table test are in. S3 and IAM already validate their own; the other five wire it in their stages. |
 | B12 `provision` has two callers | landed | (next commit) | Resolved without a mode: `Force` already carries it. Pinned by `TestApplyAdoptsWhatIsThereAndDeletesNothing`. CFN-1 is a one-line mapper change in the CloudFormation stage. |
 | B8 what the generator drops | open | | Found so far: see the note under B8. |
 
@@ -363,8 +364,21 @@ a policy (`"not json"`, `{"hello":1}`) and the guard then silently ignores it.
 SQS is not established.
 
 **Done when.** One function validates a resource policy when it is stored, the
-way IAM's own create does, and every service that stores one calls it. A
-document that cannot be parsed is refused with the service's own code.
+way IAM's own create does. A document that cannot be parsed is refused with the
+service's own code.
+
+**Landed as `iampolicy.ValidateResourcePolicy`**, which returns a typed
+`Problem` (not an error) so each service says it in its own code and words: SQS
+`InvalidAttributeValue`, KMS and Secrets Manager `MalformedPolicyDocumentException`,
+API Gateway `BadRequestException`, Kinesis and SNS their own, each a `doc`
+claim in that service's document until recorded. It checks what every
+resource policy shares: a policy at all, a Statement, only the two Versions IAM
+accepts, Effect, Action or NotAction, a Principal or NotPrincipal (the rule an
+identity policy does not have), a Resource or NotResource, and not both of a
+pair. The service's own rules (a key policy's Resource is `*`, a bucket policy
+names its own bucket) run after it. **Wiring is per service, in its stage**,
+because the code and the wording are the service's: SQS-8, SNS-16, KIN-3,
+KMS-3, SM (policy), AGW-7.
 
 ### B10. The guard passes every condition key the ledger says it does — P0
 
