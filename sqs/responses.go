@@ -130,6 +130,7 @@ type queueURLResult struct {
 
 type listQueuesResult struct {
 	QueueURLs []string `json:"QueueUrls,omitempty" xml:"QueueUrl"`
+	NextToken string   `json:"NextToken,omitempty" xml:"NextToken,omitempty"`
 }
 
 type getAttrsResult struct {

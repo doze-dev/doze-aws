@@ -3,6 +3,12 @@ package sqs
 // Handlers added in the doze-aws port: tags, dead-letter source discovery,
 // message move tasks, and the permission no-ops.
 
+import (
+	"sort"
+
+	"github.com/doze-dev/doze-aws/internal/awspage"
+)
+
 type listTagsResult struct {
 	Tags kvAttrs `json:"Tags,omitempty" xml:"Tag"`
 }
@@ -39,18 +45,29 @@ func hListQueueTags(s *store, req *request) (any, *apiError) {
 
 type dlqSourcesResult struct {
 	QueueURLs []string `json:"queueUrls,omitempty" xml:"QueueUrl"`
+	NextToken string   `json:"NextToken,omitempty" xml:"NextToken,omitempty"`
 }
 
 func hListDeadLetterSourceQueues(s *store, req *request) (any, *apiError) {
+	limit, _, aerr := req.p.intParam("MaxResults", 1, maxListQueues)
+	if aerr != nil {
+		return nil, aerr
+	}
 	names, err := s.DeadLetterSourceQueues(targetQueue(req))
 	if err != nil {
 		return nil, asAPIError(err)
 	}
-	urls := make([]string, 0, len(names))
-	for _, n := range names {
+	sort.Strings(names)
+	page, next, perr := awspage.Slice(names, func(n string) string { return n }, req.p.str("NextToken"),
+		awspage.Limit(limit, maxListQueues, maxListQueues))
+	if perr != nil {
+		return nil, errInvalid("Value for parameter NextToken is invalid. Reason: the token is not one this listing issued.")
+	}
+	urls := make([]string, 0, len(page))
+	for _, n := range page {
 		urls = append(urls, s.queueURL(req.host, n))
 	}
-	return dlqSourcesResult{QueueURLs: urls}, nil
+	return dlqSourcesResult{QueueURLs: urls, NextToken: next}, nil
 }
 
 type startMoveResult struct {

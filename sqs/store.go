@@ -27,6 +27,7 @@ const (
 	maxWaitTimeSeconds   = 20     // long-poll ceiling
 	dedupWindow          = 5 * 60 // seconds, FIFO dedup window
 	maxReceiveBatch      = 10
+	maxListQueues        = 1000  // MaxResults on ListQueues, and a page's size
 	maxDelaySeconds      = 900   // DelaySeconds on a send, and on a queue
 	maxVisibilityTimeout = 43200 // 12 hours, in seconds
 )
