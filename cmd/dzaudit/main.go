@@ -161,10 +161,54 @@ func (m *model) walk(op, shapeID, path string, depth int, seen map[string]bool, 
 			m.walk(op, mem.Target, child, depth+1, seen, out)
 		}
 	case "list", "set":
+		// The list's own rule: how many elements it may hold.
+		for _, c := range constraintsOf(s.Traits) {
+			if c.Kind != "length" {
+				continue
+			}
+			c.Container = "list"
+			if s.Member != nil {
+				c.Sample, c.HasSample = m.sample(s.Member.Target)
+			}
+			*out = append(*out, finding{op, path, shortName(shapeID), c})
+		}
 		if s.Member != nil {
 			m.walk(op, s.Member.Target, path+"[]", depth+1, seen, out)
 		}
 	case "map":
+		var valueSample any
+		var haveValue bool
+		if s.Value != nil {
+			valueSample, haveValue = m.sample(s.Value.Target)
+		}
+		// How many entries, and the rule on every KEY. A key is not a value of
+		// the map, so it has no path of its own in the grammar; its cases are
+		// the map itself, holding one entry with a key that breaks the rule.
+		for _, c := range constraintsOf(s.Traits) {
+			if c.Kind != "length" {
+				continue
+			}
+			c.Container, c.Sample, c.HasSample = "map", valueSample, haveValue
+			*out = append(*out, finding{op, path, shortName(shapeID), c})
+		}
+		if s.Key != nil {
+			if ks, ok := m.Shapes[s.Key.Target]; ok {
+				if ks.Type == "enum" {
+					if vals := m.enumValues(ks); len(vals) > 0 {
+						*out = append(*out, finding{op, path, shortName(s.Key.Target), constraint{
+							Kind: "enum", Values: vals, Container: "mapKey", Sample: valueSample, HasSample: haveValue}})
+					}
+				} else {
+					for _, c := range constraintsOf(ks.Traits) {
+						if c.Kind == "required" {
+							continue
+						}
+						c.Container, c.Sample, c.HasSample = "mapKey", valueSample, haveValue
+						*out = append(*out, finding{op, path, shortName(s.Key.Target), c})
+					}
+				}
+			}
+		}
 		if s.Value != nil {
 			m.walk(op, s.Value.Target, path+"{}", depth+1, seen, out)
 		}
@@ -179,6 +223,38 @@ func (m *model) walk(op, shapeID, path string, depth int, seen map[string]bool, 
 			*out = append(*out, finding{op, path, shortName(shapeID), c})
 		}
 	}
+}
+
+// sample is a value that satisfies its shape, for building a list or a map
+// around when the rule under test is the container's. It answers ok only for a
+// shape with nothing to break — a plain string, a number, a boolean — because a
+// case whose element is itself invalid fails for the element, and reports the
+// container's rule as enforced when it is not.
+func (m *model) sample(shapeID string) (any, bool) {
+	s, ok := m.Shapes[shapeID]
+	if !ok {
+		switch shapeID {
+		case "smithy.api#String":
+			return "a", true
+		case "smithy.api#Integer", "smithy.api#Long":
+			return float64(1), true
+		case "smithy.api#Boolean":
+			return true, true
+		}
+		return nil, false
+	}
+	if len(constraintsOf(s.Traits)) > 0 {
+		return nil, false
+	}
+	switch s.Type {
+	case "string":
+		return "a", true
+	case "integer", "long":
+		return float64(1), true
+	case "boolean":
+		return true, true
+	}
+	return nil, false
 }
 
 func list(m *model, found []finding, opFilter string) error {

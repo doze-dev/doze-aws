@@ -27,6 +27,7 @@ type shape struct {
 	Type    string                     `json:"type"`
 	Members map[string]member          `json:"members"`
 	Member  *member                    `json:"member"` // list/set element
+	Key     *member                    `json:"key"`    // map key
 	Value   *member                    `json:"value"`  // map value
 	Input   *ref                       `json:"input"`
 	Output  *ref                       `json:"output"`
@@ -163,15 +164,42 @@ type constraint struct {
 	// blob travels as base64 text, and the model's length is of the BYTES, so a
 	// value that breaks it has to be that many bytes encoded, not that many
 	// characters. See violations.
-	Blob    bool
-	Kind    string   // range | length | pattern | enum | required
-	Min     *float64 // range, length
-	Max     *float64 // range, length
-	Pattern string
-	Values  []string // enum members
+	Blob bool
+	// Container says what a length (or a key rule) is OF when it is not a
+	// string: "list" is the number of elements, "map" the number of entries and
+	// "mapKey" a rule on every key. Empty is the member's own value, which is
+	// what range, pattern and a string's length always were.
+	//
+	// The walk used to read the rules on a value's shape and never those on a
+	// list or a map, and had no field for a map's KEY at all, so a length on a
+	// tag list and a pattern on a tag key were not in any audit. Logs found the
+	// key rule unenforced by hand, which is how this was noticed.
+	Container string
+	// Sample is a valid element (or value) for building a case around a list or
+	// a map; HasSample is false when the element is itself constrained or is a
+	// structure, and no case can be built that would fail for the rule alone.
+	Sample    any
+	HasSample bool
+	Kind      string   // range | length | pattern | enum | required
+	Min       *float64 // range, length
+	Max       *float64 // range, length
+	Pattern   string
+	Values    []string // enum members
 }
 
 func (c constraint) String() string {
+	switch c.Container {
+	case "list":
+		return "list " + c.core()
+	case "map":
+		return "map " + c.core()
+	case "mapKey":
+		return "map key " + c.core()
+	}
+	return c.core()
+}
+
+func (c constraint) core() string {
 	switch c.Kind {
 	case "range", "length":
 		lo, hi := "-", "-"

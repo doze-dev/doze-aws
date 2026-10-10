@@ -26,6 +26,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -137,6 +138,78 @@ func violations(c constraint) []struct {
 	return nil
 }
 
+// maxContainerCase bounds a generated list or map. A rule over this is real and
+// is listed; a fixture holding a thousand-element array is not a useful one.
+const maxContainerCase = 200
+
+// containerViolations is violations for a rule about a list, a map's size or a
+// map's key. ok is false when no case can be built that fails for that rule
+// alone.
+func containerViolations(c constraint) ([]struct {
+	Why   string
+	Value any
+}, bool) {
+	type v = struct {
+		Why   string
+		Value any
+	}
+	if !c.HasSample {
+		return nil, false
+	}
+	switch c.Container {
+	case "list", "map":
+		if c.Kind != "length" {
+			return nil, false
+		}
+		build := func(n int) any {
+			if c.Container == "list" {
+				out := make([]any, n)
+				for i := range out {
+					out[i] = c.Sample
+				}
+				return out
+			}
+			out := make(map[string]any, n)
+			for i := 0; i < n; i++ {
+				out[fmt.Sprintf("k%03d", i)] = c.Sample
+			}
+			return out
+		}
+		what := "entries"
+		if c.Container == "list" {
+			what = "elements"
+		}
+		var out []v
+		if c.Min != nil && *c.Min > 0 {
+			n := int(*c.Min) - 1
+			out = append(out, v{fmt.Sprintf("fewer than the minimum of %s %s", trimNum(*c.Min), what), build(n)})
+		}
+		if c.Max != nil {
+			if *c.Max+1 > maxContainerCase {
+				return nil, false
+			}
+			out = append(out, v{fmt.Sprintf("more than the maximum of %s %s", trimNum(*c.Max), what), build(int(*c.Max) + 1)})
+		}
+		return out, len(out) > 0
+	case "mapKey":
+		inner := c
+		inner.Container = ""
+		var out []v
+		for _, viol := range violations(inner) {
+			key, ok := viol.Value.(string)
+			if !ok {
+				continue
+			}
+			if len(key) > 512 {
+				return nil, false
+			}
+			out = append(out, v{"a map key " + strings.TrimPrefix(viol.Why, "the value "), map[string]any{key: c.Sample}})
+		}
+		return out, len(out) > 0
+	}
+	return nil, false
+}
+
 // emitCases writes the cases for a service as JSON.
 func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 	id, proto, ops := m.service()
@@ -157,7 +230,26 @@ func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 		}
 	}
 	var cases []Case
+	skipped := 0
 	for _, f := range found {
+		// A list's length, a map's size and a map's key are cases about the
+		// container: the member itself is set to a list or a map that breaks the
+		// rule. They are built only around an element that is valid on its own.
+		if f.Constraint.Container != "" {
+			vs, ok := containerViolations(f.Constraint)
+			if !ok {
+				skipped++
+				continue
+			}
+			for _, v := range vs {
+				cases = append(cases, Case{
+					Operation: f.Op, Target: targetFor(id, proto, f.Op), Path: f.Path,
+					Why: v.Why, Value: v.Value, Constraint: f.Constraint.Full(),
+					RequiredMembers: required[f.Op], HTTP: bindings[f.Op],
+				})
+			}
+			continue
+		}
 		// A required member is its own case; it is not also a value violation.
 		for _, v := range violations(f.Constraint) {
 			value, repeat := auditkit.FoldRepeat(v.Value)
@@ -175,11 +267,18 @@ func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 			})
 		}
 	}
+	if skipped > 0 {
+		fmt.Fprintf(os.Stderr, "dzaudit: %d list/map constraint(s) have no case: the element is itself constrained, "+
+			"is a structure, or the bound is above %d. They are in 'list', not in the cases.\n", skipped, maxContainerCase)
+	}
 	sort.Slice(cases, func(i, j int) bool {
 		if cases[i].Operation != cases[j].Operation {
 			return cases[i].Operation < cases[j].Operation
 		}
-		return cases[i].Path < cases[j].Path
+		if cases[i].Path != cases[j].Path {
+			return cases[i].Path < cases[j].Path
+		}
+		return cases[i].Why < cases[j].Why
 	})
 
 	enc := json.NewEncoder(w)

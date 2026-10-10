@@ -78,6 +78,52 @@ jobs:
             go run ./cmd/dzaudit routes "$model" > "$dir/testdata/modelroutes_$model.json"
           done
 
+      # The committed cases_*.json are not under the drift check above, and they
+      # have drifted: they were generated once and each service's stage
+      # regenerates its own, fixing what the new cases find. Until a stage has
+      # done that this prints how far behind the committed file is, so the
+      # staleness is in the log rather than silent. It never fails the job: a
+      # stage that has not run is behind by design, and one that has is current.
+      - name: Report how far the committed cases have drifted
+        env:
+          GOWORK: off
+        run: |
+          set -euo pipefail
+          # dir:model:the name the committed file carries (they do not all match).
+          triples="
+          apigateway:api-gateway:apigateway
+          apigateway:apigatewayv2:apigatewayv2
+          cloudformation:cloudformation:cloudformation
+          cloudwatch:cloudwatch:cloudwatch
+          dynamodb:dynamodb:dynamodb
+          eventbridge:eventbridge:eventbridge
+          iam:iam:iam
+          kinesis:kinesis:kinesis
+          kms:kms:kms
+          lambda:lambda:lambda
+          logs:cloudwatch-logs:logs
+          s3:s3:s3
+          secretsmanager:secrets-manager:secretsmanager
+          sns:sns:sns
+          sqs:sqs:sqs
+          ssm:ssm:ssm
+          stepfunctions:sfn:sfn
+          sts:sts:sts
+          "
+          {
+            echo '### Committed cases against the current models'
+            echo
+            echo '| service | committed | regenerated |'
+            echo '|---|---:|---:|'
+            for t in $triples; do
+              dir="${t%%:*}"; rest="${t#*:}"; model="${rest%%:*}"; name="${rest##*:}"
+              file="$dir/testdata/cases_$name.json"
+              fresh=$(go run ./cmd/dzaudit cases "$model" 2>/dev/null | grep -v '^//' | jq 'length')
+              if [ -f "$file" ]; then have=$(jq 'length' "$file"); else have='none'; fi
+              echo "| $model | $have | $fresh |"
+            done
+          } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
       - name: Fail if anything derived has moved
         run: |
           if ! git diff --quiet -- '*/testdata/shapes_*.json' '*/testdata/ops_*.json' '*/testdata/iam_*.json' '*/testdata/modelroutes_*.json'; then

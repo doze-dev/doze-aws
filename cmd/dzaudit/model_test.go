@@ -269,3 +269,124 @@ func TestIAMActionsComeFromTheModelOrTheReference(t *testing.T) {
 		t.Errorf("versioned = %v, want GetObject → GetObjectVersion", got.Versioned)
 	}
 }
+
+// A rule on a list or on a map's keys is a rule on the member, and the walk
+// used to read only what sat on the shape of a VALUE: a list's length and a
+// tag key's pattern were in no audit. Logs found the key rule unenforced by
+// hand, which is how this was noticed.
+const containerModel = `{"shapes": {
+  "com.example#Svc": {"type": "service", "traits": {"aws.protocols#awsJson1_1": {}},
+    "operations": [{"target": "com.example#Put"}]},
+  "com.example#Put": {"type": "operation", "input": {"target": "com.example#PutInput"}},
+  "com.example#PutInput": {"type": "structure", "members": {
+    "Names":  {"target": "com.example#NameList"},
+    "Tags":   {"target": "com.example#TagMap"},
+    "Nested": {"target": "com.example#NestedList"}
+  }},
+  "com.example#NameList": {"type": "list", "member": {"target": "smithy.api#String"},
+    "traits": {"smithy.api#length": {"min": 1, "max": 3}}},
+  "com.example#TagKey":   {"type": "string", "traits": {"smithy.api#length": {"min": 1, "max": 5}}},
+  "com.example#TagMap":   {"type": "map", "key": {"target": "com.example#TagKey"}, "value": {"target": "smithy.api#String"},
+    "traits": {"smithy.api#length": {"max": 2}}},
+  "com.example#Short":    {"type": "string", "traits": {"smithy.api#length": {"min": 2}}},
+  "com.example#NestedList": {"type": "list", "member": {"target": "com.example#Short"},
+    "traits": {"smithy.api#length": {"max": 4}}}
+}}`
+
+func TestAListsLengthAndAMapsKeyAreAudited(t *testing.T) {
+	m := modelFrom(t, containerModel)
+	found := m.audit("")
+	have := map[string]bool{}
+	for _, f := range found {
+		have[f.Path+"|"+f.Constraint.String()] = true
+	}
+	for _, want := range []string{
+		"Names|list length 1..3",
+		"Tags|map key length 1..5",
+		"Tags|map length -..2",
+		"Nested|list length -..4",
+	} {
+		if !have[want] {
+			t.Errorf("not found: %q\nhave: %v", want, have)
+		}
+	}
+}
+
+func TestContainerCasesBreakOnlyTheContainersRule(t *testing.T) {
+	m := modelFrom(t, containerModel)
+	byPath := map[string][]finding{}
+	for _, f := range m.audit("") {
+		byPath[f.Path] = append(byPath[f.Path], f)
+	}
+
+	// A list of plain strings: one over the maximum, and an empty one under the minimum.
+	var names []string
+	for _, f := range byPath["Names"] {
+		vs, ok := containerViolations(f.Constraint)
+		if !ok {
+			t.Fatal("no case for a list of plain strings")
+		}
+		for _, v := range vs {
+			names = append(names, v.Why)
+			l, _ := v.Value.([]any)
+			if strings.Contains(v.Why, "more than") && len(l) != 4 {
+				t.Errorf("over the maximum is %d elements, want 4", len(l))
+			}
+			if strings.Contains(v.Why, "fewer than") && len(l) != 0 {
+				t.Errorf("under the minimum is %d elements, want 0", len(l))
+			}
+		}
+	}
+	if len(names) != 2 {
+		t.Errorf("want two cases for 1..3, got %v", names)
+	}
+
+	// A map key: the value of the map is the only entry and its key is too long.
+	var sawKey bool
+	for _, f := range byPath["Tags"] {
+		if f.Constraint.Container != "mapKey" {
+			continue
+		}
+		for _, v := range mustViolations(t, f.Constraint) {
+			sawKey = true
+			mp, _ := v.Value.(map[string]any)
+			if len(mp) != 1 {
+				t.Fatalf("a key case should hold one entry, has %d", len(mp))
+			}
+			for k, val := range mp {
+				if len(k) >= 1 && len(k) <= 5 {
+					t.Errorf("key %q does not break 1..5", k)
+				}
+				if val != "a" {
+					t.Errorf("the value was %v: the case must fail for the key alone", val)
+				}
+			}
+		}
+	}
+	if !sawKey {
+		t.Error("no map-key case")
+	}
+
+	// A list whose element is itself constrained has no case: it would fail for
+	// the element and report the list's rule as enforced.
+	for _, f := range byPath["Nested"] {
+		if f.Constraint.Container != "list" {
+			continue
+		}
+		if _, ok := containerViolations(f.Constraint); ok {
+			t.Error("a case was built around an element that is invalid on its own")
+		}
+	}
+}
+
+func mustViolations(t *testing.T, c constraint) []struct {
+	Why   string
+	Value any
+} {
+	t.Helper()
+	vs, ok := containerViolations(c)
+	if !ok {
+		t.Fatalf("no case for %+v", c)
+	}
+	return vs
+}
