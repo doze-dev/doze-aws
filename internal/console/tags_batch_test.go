@@ -5,6 +5,8 @@ import (
 	"html"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -58,9 +60,40 @@ func TestTagSaveWritesTheWholeDraftAndOnlyTheDifference(t *testing.T) {
 	create(t, h, "/_console/kinesis/create", url.Values{"name": {"telemetry"}, "shards": {"1"}})
 	create(t, h, "/_console/ddb/create", url.Values{"name": {"users"}, "hash_key": {"id"}, "hash_type": {"S"}})
 	req(t, h, "POST", "/_console/eb/default/create-rule", url.Values{"name": {"r"}, "pattern": {`{"source":["x"]}`}})
+	create(t, h, "/_console/ssm/create", url.Values{"name": {"/app/p"}, "type": {"String"}, "value": {"v"}})
+	create(t, h, "/_console/logs/create", url.Values{"name": {"/app/g"}})
+	create(t, h, "/_console/iam/create", url.Values{"kind": {"user"}, "name": {"bob"}})
+	create(t, h, "/_console/sfn/create", url.Values{"name": {"machine"}, "role": {sfnTestRole},
+		"definition": {`{"StartAt":"W","States":{"W":{"Type":"Wait","Seconds":1,"End":true}}}`}})
+	// The id of a thing the service names itself is the last path segment of
+	// where its create form redirects.
+	tail := func(loc string) string {
+		if i := strings.IndexByte(loc, '?'); i >= 0 {
+			loc = loc[:i]
+		}
+		return loc[strings.LastIndexByte(loc, '/')+1:]
+	}
+	keyID := tail(create(t, h, "/_console/kms/create", url.Values{"spec": {"SYMMETRIC_DEFAULT"}}))
+	restID := tail(create(t, h, "/_console/apigw/create", url.Values{"name": {"rest"}}))
+	httpID := tail(create(t, h, "/_console/apigw/create", url.Values{"name": {"http"}, "protocol": {"HTTP"}}))
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "bootstrap"), []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	create(t, h, "/_console/lambda/create", url.Values{"name": {"fn"}, "runtime": {"provided.al2"}, "handler": {"bootstrap"}, "code": {dir}})
 
+	create(t, h, "/_console/cw/create-alarm", url.Values{
+		"name": {"low"}, "metric": {"Custom|Hits"}, "statistic": {"Sum"}, "operator": {"LessThanThreshold"},
+		"threshold": {"3"}, "period": {"60"}, "evaluation": {"1"}, "missing": {"notBreaching"},
+	})
+
+	// Every service whose tags the editor writes, each with its own wire shape
+	// for a batch: a JSON map, a list of Key/Value under three spellings, form
+	// members numbered from one, and keys repeated in a query string.
 	for _, c := range []struct{ svc, id string }{
 		{"sqs", "jobs"}, {"sns", "alerts"}, {"sm", "db"}, {"kinesis", "telemetry"}, {"ddb", "users"}, {"eb", "r"},
+		{"ssm", "/app/p"}, {"logs", "/app/g"}, {"iam-user", "bob"}, {"sfn", "machine"}, {"kms", keyID},
+		{"apigw", restID}, {"apigw-http", httpID}, {"lambda", "fn"}, {"cw", "low"},
 	} {
 		t.Run(c.svc, func(t *testing.T) {
 			// Eleven tags in one save: past Kinesis's ten per call, so the
