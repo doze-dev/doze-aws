@@ -138,7 +138,9 @@ func hSetQueueAttributes(s *store, req *request) (any, *apiError) {
 
 func hSendMessage(s *store, req *request) (any, *apiError) {
 	delay := -1
-	if n, ok := req.p.intp("DelaySeconds"); ok {
+	if n, present, aerr := req.p.intParam("DelaySeconds", 0, maxDelaySeconds); aerr != nil {
+		return nil, aerr
+	} else if present {
 		delay = n
 	}
 	m, err := s.Send(targetQueue(req), req.p.str("MessageBody"), req.p.messageAttrs(),
@@ -166,10 +168,16 @@ func hSendMessageBatch(s *store, req *request) (any, *apiError) {
 	items := make([]sendItem, len(entries))
 	for i, e := range entries {
 		delay := -1
-		if e.Delay != nil {
-			delay = *e.Delay
-		}
 		items[i] = sendItem{Body: e.Body, Attrs: e.Attrs, Delay: delay, GroupID: e.GroupID, DedupID: e.DedupID}
+		if e.Delay != nil {
+			// An entry's own number is judged as its own failure.
+			if *e.Delay < 0 || *e.Delay > maxDelaySeconds {
+				items[i].Invalid = errInvalid("Value " + strconv.Itoa(*e.Delay) +
+					" for parameter DelaySeconds is invalid. Reason: Must be between 0 and " + strconv.Itoa(maxDelaySeconds) + ", if provided.")
+				continue
+			}
+			items[i].Delay = *e.Delay
+		}
 	}
 	out, err := s.SendBatch(queue, items)
 	if err != nil {
@@ -196,13 +204,22 @@ func hSendMessageBatch(s *store, req *request) (any, *apiError) {
 
 func hReceiveMessage(s *store, req *request) (any, *apiError) {
 	queue := targetQueue(req)
-	max := req.p.intDefault("MaxNumberOfMessages", 1)
+	max := 1
+	if n, present, aerr := req.p.intParam("MaxNumberOfMessages", 1, maxReceiveBatch); aerr != nil {
+		return nil, aerr
+	} else if present {
+		max = n
+	}
 	wait := -1
-	if n, ok := req.p.intp("WaitTimeSeconds"); ok {
+	if n, present, aerr := req.p.intParam("WaitTimeSeconds", 0, maxWaitTimeSeconds); aerr != nil {
+		return nil, aerr
+	} else if present {
 		wait = n
 	}
 	vis := -1
-	if n, ok := req.p.intp("VisibilityTimeout"); ok {
+	if n, present, aerr := req.p.intParam("VisibilityTimeout", 0, maxVisibilityTimeout); aerr != nil {
+		return nil, aerr
+	} else if present {
 		vis = n
 	}
 	attrNames := req.p.attributeNames()

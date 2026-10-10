@@ -71,6 +71,31 @@ func (p params) intp(name string) (int, bool) {
 	return n, err == nil
 }
 
+// intParam reads an integer request parameter that has a stated range.
+//
+// A parameter that is not there is not present, and the caller applies its
+// default. One that is there is held to the range, and one that is not a whole
+// number is refused rather than read as absent: intp reads "banana" as
+// "not given", which let a wrong value stand in for the default behind a 200.
+//
+// doze: the ranges are the API reference's, parameter by parameter (SQS's
+// service model states none).
+func (p params) intParam(name string, lo, hi int) (n int, present bool, err *apiError) {
+	s := p.str(name)
+	if s == "" {
+		return 0, false, nil
+	}
+	n, e := strconv.Atoi(s)
+	if e != nil {
+		return 0, true, errInvalid("Value " + s + " for parameter " + name + " is invalid. Reason: Must be a whole number.")
+	}
+	if n < lo || n > hi {
+		return n, true, errInvalid("Value " + s + " for parameter " + name + " is invalid. Reason: Must be between " +
+			strconv.Itoa(lo) + " and " + strconv.Itoa(hi) + ", if provided.")
+	}
+	return n, true, nil
+}
+
 func (p params) intDefault(name string, def int) int {
 	if n, ok := p.intp(name); ok {
 		return n

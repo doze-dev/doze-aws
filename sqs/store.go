@@ -27,6 +27,8 @@ const (
 	maxWaitTimeSeconds   = 20     // long-poll ceiling
 	dedupWindow          = 5 * 60 // seconds, FIFO dedup window
 	maxReceiveBatch      = 10
+	maxDelaySeconds      = 900   // DelaySeconds on a send, and on a queue
+	maxVisibilityTimeout = 43200 // 12 hours, in seconds
 )
 
 // metaBucket holds queue definitions; message buckets are named msgBucket(name).
@@ -275,6 +277,9 @@ type sendItem struct {
 	GroupID  string
 	DedupID  string
 	SysAttrs map[string]string
+	// Invalid is a refusal decided before the item reached the store (a number
+	// out of its range). The entry fails with it, alone.
+	Invalid *apiError
 }
 
 // SendResult is one item's outcome. Err is that ITEM's failure, not the
@@ -307,6 +312,10 @@ func (s *store) SendBatch(queue string, items []sendItem) ([]sendOutcome, error)
 			return err
 		}
 		for i, it := range items {
+			if it.Invalid != nil {
+				results[i] = sendOutcome{Err: it.Invalid}
+				continue
+			}
 			m, sent, err := s.sendIn(tx, q, it.Body, it.Attrs, it.Delay, it.GroupID, it.DedupID, it.SysAttrs)
 			// Deliberately not returning err: a per-entry failure is reported
 			// per entry, and aborting would roll back the entries that worked.

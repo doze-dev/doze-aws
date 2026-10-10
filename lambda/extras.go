@@ -453,6 +453,9 @@ func sleepOrStop(poller *esm, d time.Duration) bool {
 	}
 }
 
+// maxSQSReceive is the most messages one ReceiveMessage returns.
+const maxSQSReceive = 10
+
 // pollSQS drives an SQS event source mapping: long-poll, deliver the batch, and
 // delete on successful invocation.
 func (s *Server) pollSQS(poller *esm, m *eventSourceMapping) {
@@ -465,8 +468,30 @@ func (s *Server) pollSQS(poller *esm, m *eventSourceMapping) {
 			return
 		default:
 		}
-		msgs, err := peercall.SQSReceive(context.Background(), s.peers, queue, batch, 2)
-		if err != nil {
+		// SQS answers at most ten messages to one receive and refuses a larger
+		// ask, and a trigger's batch size can be many times that. So the batch
+		// is gathered in receives of at most ten: the first long-polls, and the
+		// rest only take what is already there, so a partly full queue is
+		// delivered now and not after another wait.
+		want := batch
+		if want <= 0 {
+			want = 10
+		}
+		var msgs []peercall.SQSMessage
+		var err error
+		for len(msgs) < want {
+			wait := 2
+			if len(msgs) > 0 {
+				wait = 0
+			}
+			var got []peercall.SQSMessage
+			got, err = peercall.SQSReceive(context.Background(), s.peers, queue, min(maxSQSReceive, want-len(msgs)), wait)
+			if err != nil || len(got) == 0 {
+				break
+			}
+			msgs = append(msgs, got...)
+		}
+		if err != nil && len(msgs) == 0 {
 			if sleepOrStop(poller, time.Second) {
 				return
 			}
