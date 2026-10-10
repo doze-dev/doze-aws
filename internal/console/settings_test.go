@@ -1,7 +1,7 @@
 package console_test
 
 import (
-	"os"
+	"net/url"
 	"regexp"
 	"strconv"
 	"testing"
@@ -19,23 +19,35 @@ import (
 // This is the worked example for SQS. A service's stage adds its own rows and
 // every form field that shows a number has to be one of them.
 
+// shownSettings: a form field, the setting it sets and the page it is on.
 type shownSetting struct {
-	svc, template, field, setting string
+	svc, page, field, setting string
 }
 
 var shownSettings = []shownSetting{
-	{"sqs", "templates/sqs.html", "visibility", "VisibilityTimeout"},
-	{"sqs", "templates/sqs.html", "retention", "MessageRetentionPeriod"},
-	{"sqs", "templates/create.html", "visibility", "VisibilityTimeout"},
-	{"sqs", "templates/create.html", "delay", "DelaySeconds"},
-	{"sqs", "templates/create.html", "retention", "MessageRetentionPeriod"},
-	{"sqs", "templates/create.html", "max_bytes", "MaximumMessageSize"},
-	{"sqs", "templates/create.html", "receive_wait", "ReceiveMessageWaitTimeSeconds"},
+	{"sqs", "/_console/sqs/orders?tab=config", "visibility", "VisibilityTimeout"},
+	{"sqs", "/_console/sqs/orders?tab=config", "retention", "MessageRetentionPeriod"},
+	{"sqs", "/_console/sqs/orders?tab=config", "delay", "DelaySeconds"},
+	{"sqs", "/_console/sqs/orders?tab=config", "receive_wait", "ReceiveMessageWaitTimeSeconds"},
+	{"sqs", "/_console/sqs/orders?tab=config", "max_bytes", "MaximumMessageSize"},
+	{"sqs", "/_console/sqs/create", "visibility", "VisibilityTimeout"},
+	{"sqs", "/_console/sqs/create", "delay", "DelaySeconds"},
+	{"sqs", "/_console/sqs/create", "retention", "MessageRetentionPeriod"},
+	{"sqs", "/_console/sqs/create", "max_bytes", "MaximumMessageSize"},
+	{"sqs", "/_console/sqs/create", "receive_wait", "ReceiveMessageWaitTimeSeconds"},
 }
 
 func TestFormConstraintsAreTheServicesOwnRange(t *testing.T) {
+	h := newConsole(t)
+	req(t, h, "POST", "/_console/sqs/create", url.Values{"name": {"orders"}, "dlq_mode": {"none"}})
+	pages := map[string]string{}
 	for _, c := range shownSettings {
-		t.Run(c.svc+"/"+c.setting+"@"+c.template+":"+c.field, func(t *testing.T) {
+		if _, ok := pages[c.page]; !ok {
+			pages[c.page] = req(t, h, "GET", c.page, nil).Body.String()
+		}
+	}
+	for _, c := range shownSettings {
+		t.Run(c.svc+"/"+c.setting+"@"+c.page+":"+c.field, func(t *testing.T) {
 			rec, ok := settings.Lookup(c.svc, c.setting)
 			if !ok {
 				t.Fatalf("the form shows %s and no record describes it", c.setting)
@@ -43,24 +55,18 @@ func TestFormConstraintsAreTheServicesOwnRange(t *testing.T) {
 			if rec.Min == nil || rec.Max == nil {
 				t.Fatalf("%s has no stated range to hold the form to", c.setting)
 			}
-			raw, err := os.ReadFile("../../internal/console/" + c.template)
-			if err != nil {
-				t.Fatal(err)
-			}
-			// Every <input> of that name in the file must carry the range, and at
-			// least one must exist: a field renamed in the template fails here
-			// rather than going unchecked.
+			// Every <input> of that name on the RENDERED page must carry the
+			// range, and at least one must exist: a field renamed in a template
+			// fails here rather than going unchecked.
 			input := regexp.MustCompile(`<input[^>]*\bname="` + c.field + `"[^>]*>`)
-			found := input.FindAllString(string(raw), -1)
+			found := input.FindAllString(pages[c.page], -1)
 			if len(found) == 0 {
-				t.Fatalf("no <input name=%q> in %s", c.field, c.template)
+				t.Fatalf("no <input name=%q> on %s", c.field, c.page)
 			}
 			for _, tag := range found {
 				for attr, want := range map[string]int64{"min": *rec.Min, "max": *rec.Max} {
 					m := regexp.MustCompile(`\b` + attr + `="(\d+)"`).FindStringSubmatch(tag)
 					if m == nil {
-						// A field with no bound on a side is a different bug (the
-						// service would refuse what the page offered); name it.
 						t.Errorf("%s has no %s, the service's is %d", tag, attr, want)
 						continue
 					}

@@ -1706,6 +1706,10 @@ a.lo-card:hover { border-color: var(--accent); }
 .kv-note { font-size: 12px; }
 .kv-rows { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .kv-item { width: 100%; }
+
+/* The notice for a window narrower than the console is built for. */
+.narrow-note { display: none; padding: 8px 14px; font-size: 12px; background: color-mix(in srgb, var(--warning) 12%, var(--card)); border-bottom: 1px solid var(--border); color: var(--foreground); }
+@media (max-width: 1023px) { .narrow-note { display: block; } }
 .info-sec { margin: 14px 0 6px; font-size: 13px; font-weight: 600; }
 .kv-row { display: flex; gap: 6px; width: 100%; align-items: center; }
 .kv-row .kv-k { flex: 0 0 34%; font-family: var(--mono); }

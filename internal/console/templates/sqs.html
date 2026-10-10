@@ -19,37 +19,22 @@
   {{template "sqs_lp" (dict "Prefix" .Prefix "List" .List "Sel" .Queue)}}
   <section class="detail">
     <div class="det-h">
-      <div class="det-title" role="heading" aria-level="1">{{awsIcon "sqs"}} {{.Queue}}
-        {{if .Config.FIFO}}<span class="badge type" title="First-in-first-out: strict ordering per message group{{if .Config.ContentDedup}} · content-based deduplication{{end}}">FIFO</span>{{end}}
-        {{if .IsDLQ}}<span class="badge dlq" title="This queue is a dead-letter target — failed messages from other queues land here (see Fed by)">DLQ</span>{{end}}
-        <div class="acts"><button class="btn btn-outline danger" hx-post="{{.Prefix}}/sqs/{{.Queue}}/delete-queue" hx-confirm="Delete queue “{{.Queue}}”?">{{icon "trash"}} Delete</button></div>
-      </div>
-      <div class="chips">
-        {{template "copychip" dict "Label" "arn" "Value" .ARN}}
-        {{template "copychip" dict "Label" "url" "Value" .URL}}
-      </div>
-      {{/* The summary container: the identifying facts, above the tabs, always
-           visible — AWS's "General configuration" block. This page previously
-           went title -> two ARN chips -> tabs, so the things you actually want
-           to know about a queue (is it FIFO, how long is the visibility
-           timeout, where do failures go) were either buried in the
-           Configuration tab or nowhere.
-
-           A dash for an absent value rather than a blank cell, which is
-           Cloudscape's rule and a good one: blank reads as "not loaded", "-"
-           reads as "there is nothing here".
-
-           Visible and In flight carry slot ids, so the out-of-band tail keeps
-           them honest as messages arrive — the same patch that updates the tab
-           and the list row. */}}
-      <div class="factstrip">
-        <div class="fact"><div class="fx-k">Type</div><div class="fx-v">{{if .Config.FIFO}}FIFO{{else}}Standard{{end}}</div></div>
-        <div class="fact"><div class="fx-k">Visible</div><div class="fx-v num" id="sum-sqs-{{slug .Queue}}-visible">{{.Available}}</div></div>
-        <div class="fact"><div class="fx-k">In flight</div><div class="fx-v num" id="sum-sqs-{{slug .Queue}}-inflight">{{.InFlight}}</div></div>
-        <div class="fact"><div class="fx-k">Visibility timeout</div><div class="fx-v">{{secs .Config.Visibility}}</div></div>
-        <div class="fact"><div class="fx-k">Retention</div><div class="fx-v">{{secs .Config.Retention}}</div></div>
-        <div class="fact"><div class="fx-k">Dead-letter</div><div class="fx-v">{{if .Config.DLQ}}<a href="{{.Prefix}}/sqs/{{.Config.DLQ}}">{{.Config.DLQ}}</a>{{if .Config.MaxReceive}} <span class="dim">after {{.Config.MaxReceive}}</span>{{end}}{{else}}—{{end}}</div></div>
-      </div>
+      {{/* The kit's header: the same title, badges, delete, chips and fact
+           strip this page drew by hand, from one template. The slot ids on
+           Visible and In flight are what the out-of-band tail patches. */}}
+      {{template "res_header" (dict "Svc" "sqs" "Title" .Queue "Prefix" .Prefix
+        "Badges" (list
+          (dict "Show" .Config.FIFO "Text" "FIFO" "Class" "type" "Title" (printf "First-in-first-out: strict ordering per message group%s" (or (and .Config.ContentDedup " · content-based deduplication") "")))
+          (dict "Show" .IsDLQ "Text" "DLQ" "Class" "dlq" "Title" "This queue is a dead-letter target — failed messages from other queues land here (see Fed by)"))
+        "Delete" (dict "URL" (printf "%s/sqs/%s/delete-queue" .Prefix .Queue) "Confirm" (printf "Delete queue “%s”?" .Queue))
+        "Chips" (list (dict "Label" "arn" "Value" .ARN) (dict "Label" "url" "Value" .URL))
+        "Facts" (list
+          (dict "K" "Type" "V" (or (and .Config.FIFO "FIFO") "Standard"))
+          (dict "K" "Visible" "V" .Available "Num" true "ID" (printf "sum-sqs-%s-visible" (slug .Queue)))
+          (dict "K" "In flight" "V" .InFlight "Num" true "ID" (printf "sum-sqs-%s-inflight" (slug .Queue)))
+          (dict "K" "Visibility timeout" "V" (secs .Config.Visibility))
+          (dict "K" "Retention" "V" (secs .Config.Retention))
+          (dict "K" "Dead-letter" "V" .Config.DLQ "Link" (and .Config.DLQ (printf "%s/sqs/%s" .Prefix .Config.DLQ)) "Sub" (and .Config.DLQ .Config.MaxReceive (printf "after %v" .Config.MaxReceive)))))}}
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
         (dict "Key" "messages" "Label" "Messages" "Icon" "inbox" "CtID" (printf "tabct-sqs-%s-messages" (slug .Queue)) "Ct" .Available "URL" (printf "%s/sqs/%s" .Prefix .Queue))
         (dict "Key" "consume" "Label" "Consume" "Icon" "play" "URL" (printf "%s/sqs/%s?tab=consume" .Prefix .Queue))
@@ -229,9 +214,9 @@
   <div class="panel" x-show="edit" x-cloak>
     <form hx-post="{{.Prefix}}/sqs/{{.Queue}}/attributes" hx-target="#sqs-config" hx-select="" hx-swap="outerHTML">
       <div class="edit-grid">
-        <div class="field" data-v="{{.Config.Visibility}}" x-data="{v: $el.dataset.v}"><label>Visibility <span class="dim">s</span></label><input class="input" name="visibility" type="number" min="0" max="43200" value="{{.Config.Visibility}}" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
-        <div class="field" data-v="{{.Config.Retention}}" x-data="{v: $el.dataset.v}"><label>Retention <span class="dim">s</span></label><input class="input" name="retention" type="number" min="60" max="1209600" value="{{.Config.Retention}}" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
-        <div class="field" data-v="{{.Config.Delay}}" x-data="{v: $el.dataset.v}"><label>Delay <span class="dim">s</span></label><input class="input" name="delay" type="number" min="0" max="900" value="{{if .Config.Delay}}{{.Config.Delay}}{{else}}0{{end}}" x-model="v"><span class="dur-echo" x-text="dozeDur(v)"></span></div>
+        {{template "setting_field" (dict "Svc" "sqs" "Name" "VisibilityTimeout" "Field" "visibility" "Label" "Visibility" "Value" .Config.Visibility "Teach" "How long a received message stays hidden from other consumers while one works on it.")}}
+        {{template "setting_field" (dict "Svc" "sqs" "Name" "MessageRetentionPeriod" "Field" "retention" "Label" "Retention" "Value" .Config.Retention "Teach" "How long an unconsumed message is kept before it is dropped.")}}
+        {{template "setting_field" (dict "Svc" "sqs" "Name" "DelaySeconds" "Field" "delay" "Label" "Delay" "Value" .Config.Delay "Teach" "How long a new message waits before it can be received.")}}
       </div>
       <div class="edit-grid" style="padding-top:0">
         <div class="field" style="grid-column:span 2"><label>Dead-letter queue</label>
@@ -254,12 +239,8 @@
            SetQueueAttributes is F-tier and takes all of these; the gap was
            entirely in this form. */}}
       <div class="edit-grid edit-grid-tight">
-        <div class="field" data-v="{{index .Attrs "ReceiveMessageWaitTimeSeconds"}}" x-data="{v: $el.dataset.v}">
-          <label>Receive wait <span class="dim">s · long polling</span></label>
-          <input class="input" name="receive_wait" type="number" min="0" max="20" value="{{index .Attrs "ReceiveMessageWaitTimeSeconds"}}" x-model="v">
-          <span class="hint" x-text="v > 0 ? 'consumers wait up to ' + v + 's for a message' : '0 = short polling: a receive returns immediately, empty or not'"></span></div>
-        <div class="field"><label>Max message size <span class="dim">bytes</span></label>
-          <input class="input" name="max_bytes" type="number" min="1024" max="262144" value="{{index .Attrs "MaximumMessageSize"}}"></div>
+        {{template "setting_field" (dict "Svc" "sqs" "Name" "ReceiveMessageWaitTimeSeconds" "Field" "receive_wait" "Label" "Receive wait" "Value" (index .Attrs "ReceiveMessageWaitTimeSeconds") "Teach" "How long a receive waits for a message before it returns empty. 0 is short polling: it returns at once.")}}
+        {{template "setting_field" (dict "Svc" "sqs" "Name" "MaximumMessageSize" "Field" "max_bytes" "Label" "Max message size" "Value" (index .Attrs "MaximumMessageSize") "Teach" "The largest message body a send is accepted with.")}}
       </div>
       <div class="edit-grid edit-grid-tight">
         <div class="field"><label>KMS key ID <span class="dim">optional</span></label>

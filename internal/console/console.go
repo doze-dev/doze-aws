@@ -22,6 +22,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/restroute"
+	"github.com/doze-dev/doze-aws/internal/settings"
 	"github.com/doze-dev/doze-aws/peers"
 )
 
@@ -326,7 +327,13 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 		// template that hardcodes 000000000000 renders an ARN a user cannot
 		// paste anywhere under --account-id, and several of these sites are
 		// copy-as-CLI snippets and form values rather than placeholders.
-		"account":   id.Account,
+		"account": id.Account,
+		// setting is a service's record of one setting (internal/settings), which
+		// the kit's setting_field reads its bounds, unit and default from.
+		"setting": func(svc, name string) settings.Setting {
+			s, _ := settings.Lookup(svc, name)
+			return s
+		},
 		"region":    id.RegionName,
 		"icon":      icon,
 		"count":     humanCount,

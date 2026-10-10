@@ -1,0 +1,55 @@
+{{/* The kit: the pieces a service page is assembled from.
+
+     Every service had grown its own header, its own number field and its own
+     hint under it, and they drifted: the same range typed twice, a unit in one
+     label and not the next, a delete button in a different place on each page.
+     These are the shared ones. A page built from them looks the same as every
+     other, and what it teaches about a setting is read from the service's own
+     record (internal/settings), so the page and the rule cannot disagree.
+
+     Adoption is per service, in that service's stage; SQS is the first. */}}
+
+{{/* res_header is the top of a resource's page: its name, what it is, the one
+     destructive action, the identifiers worth copying, and the facts that
+     answer "what is this" before a tab is opened, as a strip.
+
+     dict:
+       Svc      the service key, for the icon
+       Title    the resource's name
+       Badges   [] of dict Show, Text, Title, Class ("type", "dlq"); only
+                the ones whose Show is true are drawn
+       Delete   dict URL, Confirm, Label (optional)
+       Chips    [] of dict Label, Value (copyable)
+       Facts    [] of dict K, V, and optionally ID (a live slot id), Link, Sub,
+                Num (right-aligned digits)
+       Prefix */}}
+{{define "res_header"}}
+<div class="det-title" role="heading" aria-level="1">{{awsIcon .Svc}} {{.Title}}
+  {{range .Badges}}{{if .Show}}<span class="badge {{.Class}}"{{if .Title}} title="{{.Title}}"{{end}}>{{.Text}}</span>{{end}}{{end}}
+  {{with .Delete}}<div class="acts"><button class="btn btn-outline danger" hx-post="{{.URL}}" hx-confirm="{{.Confirm}}">{{icon "trash"}} {{if .Label}}{{.Label}}{{else}}Delete{{end}}</button></div>{{end}}
+</div>
+{{if .Chips}}<div class="chips">{{range .Chips}}{{template "copychip" dict "Label" .Label "Value" .Value}}{{end}}</div>{{end}}
+{{if .Facts}}<div class="factstrip">
+  {{range .Facts}}<div class="fact"><div class="fx-k">{{.K}}</div><div class="fx-v{{if .Num}} num{{end}}"{{if .ID}} id="{{.ID}}"{{end}}>{{if .Link}}<a href="{{.Link}}">{{.V}}</a>{{else if or .V .Num}}{{.V}}{{else}}—{{end}}{{if .Sub}} <span class="dim">{{.Sub}}</span>{{end}}</div></div>{{end}}
+</div>{{end}}
+{{end}}
+
+{{/* setting_field is one numeric setting, taught.
+
+     The bounds, the unit and the default come from the service's record of the
+     setting, never from this call site, so the input refuses what the service
+     refuses and the line under it states what the service does. What the call
+     site adds is the one sentence of what changing it does.
+
+     dict: Svc, Name (the API's name for the setting), Field (the form field),
+     Label, Value, Teach (a sentence), optional Hint (a live expression for
+     Alpine, in terms of v, for a hint that depends on the value). */}}
+{{define "setting_field"}}
+{{$s := setting .Svc .Name}}
+<div class="field" data-v="{{.Value}}" x-data="{v: $el.dataset.v}">
+  <label>{{.Label}}{{if $s.Unit}} <span class="dim">{{$s.Unit}}</span>{{end}}</label>
+  <input class="input" name="{{.Field}}" type="number" {{if $s.Min}}min="{{$s.Min}}"{{end}} {{if $s.Max}}max="{{$s.Max}}"{{end}} value="{{.Value}}" x-model="v">
+  {{if eq $s.Unit "seconds"}}<span class="dur-echo" x-text="dozeDur(v)"></span>{{end}}
+  <span class="hint">{{.Teach}}{{if $s.Default}} Default {{$s.Default}}{{if $s.Unit}} {{$s.Unit}}{{end}}.{{end}}{{if and $s.Min $s.Max}} Between {{$s.Min}} and {{$s.Max}}{{if $s.Unit}} {{$s.Unit}}{{end}}.{{end}}</span>
+</div>
+{{end}}

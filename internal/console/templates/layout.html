@@ -153,6 +153,10 @@ return"= "+p.join(" ");};</script>
      Both failures were extension-activation problems, not morphing problems.
      A built-in swap style has no activation to get wrong. */}}
 <body>
+{{/* Below 1024px the notice says what is true: this is a desk-width tool. A
+     phone is not a supported way to use it, and saying so beats a layout that
+     half-works. It is shown by CSS alone, so it costs nothing above 1024. */}}
+<div class="narrow-note" role="note">This console is built for a window at least 1024&nbsp;px wide. Phones are not supported; a narrower window works but is cramped.</div>
 <div class="app">
   <header class="topbar">
     <div class="brand"><img src="{{.Prefix}}/static/favicon.svg" alt="" style="width:17px;height:17px"> doze-aws <span class="sub">console</span></div>
