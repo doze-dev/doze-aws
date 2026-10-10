@@ -109,12 +109,54 @@ func applyQueues(ctx context.Context, c *client, s *Stack, rep *Report) error {
 		}
 		return nil
 	}
-	for _, name := range sortedNames(s.Queues) {
+	for _, name := range queueApplyOrder(s.Queues) {
 		if err := ensure(name, s.Queues[name]); err != nil {
 			return fmt.Errorf("queue %q: %w", name, err)
 		}
 	}
 	return nil
+}
+
+// queueApplyOrder lists the queues so that one is applied after the dead-letter
+// queue its redrive policy names, when that queue is declared in the same
+// spec. Name order is not that: orders sorts before orders-dlq, so a queue was
+// created with a redrive target that did not exist yet and the stack rolled
+// back (SQS-1). The redrive target is a dependency, so it is ordered as one.
+//
+// Ties and everything independent stay in name order, which keeps a run's
+// report stable. A cycle (a dead-letters to b and b to a) cannot be ordered;
+// its members are left in name order and the service says what it thinks of
+// the policy, as it would for the same two queues made by hand.
+func queueApplyOrder(queues map[string]Queue) []string {
+	names := sortedNames(queues)
+	target := func(n string) string {
+		q := queues[n]
+		if q.DLQ == "" || q.DLQ == "auto" || q.DLQ == n {
+			return ""
+		}
+		if _, declared := queues[q.DLQ]; !declared {
+			return ""
+		}
+		return q.DLQ
+	}
+	out := make([]string, 0, len(names))
+	state := map[string]int{} // 0 not seen, 1 in progress, 2 placed
+	var place func(n string)
+	place = func(n string) {
+		if state[n] != 0 {
+			return
+		}
+		state[n] = 1
+		if t := target(n); t != "" {
+			place(t)
+		}
+		state[n] = 2
+		out = append(out, n)
+	}
+	for _, n := range names {
+		place(n)
+	}
+	return out
 }
 
 func ensureBareQueue(ctx context.Context, c *client, rep *Report, name string, fifo bool) error {
