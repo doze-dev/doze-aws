@@ -107,6 +107,7 @@
           </div>
         </div>
       {{end}}
+      {{template "res_wire" dict "Prefix" .Prefix "Svc" "sqs" "Resource" .Queue "Noun" "queue"}}
     </div>
   </section>
 {{template "shell_bottom" .}}{{end}}
@@ -141,7 +142,7 @@
     <div class="msg" id="m-{{.MessageID}}" x-data="{open:false}" :class="open && 'open'">
       <div class="msg-h" style="cursor:pointer" @click="open=!open">
         <button type="button" class="msg-line rowopen" :aria-expanded="open"><span class="chev">▸</span>{{if .Sum.Kind}}<span class="evt"{{if .Sum.Svc}} style="--svc-ink:var(--svc-{{.Sum.Svc}}-ink);--svc-mark:var(--svc-{{.Sum.Svc}})"{{end}}>{{.Sum.Kind}}</span>{{end}}<span class="msum">{{.Sum.Line}}</span></button>
-        <span style="display:flex;align-items:center;gap:8px;flex:none"><span class="dim num" title="{{.SentAt}}">{{ago .SentAt}}</span>
+        <span style="display:flex;align-items:center;gap:8px;flex:none"><span class="dim num" title="{{zoned .SentAt}}">{{ago .SentAt}}</span>
         <button class="icon-btn sm danger msg-del" title="Delete this message" @click.stop hx-post="{{$.Prefix}}/sqs/{{$.Queue}}/delete-message" hx-vals='{"handle":"{{.ReceiptHandle}}"}' hx-target="#message-panel-wrap" hx-select="" hx-swap="outerHTML" hx-confirm="Delete this one message?">{{icon "trash"}}</button></span></div>
       <div class="msg-detail" x-show="open" x-cloak>
         <div class="msg-id"><code>{{.MessageID}}</code>{{if .Sum.Note}} · {{.Sum.Note}}{{end}}<button class="copy-btn" data-copy="{{.Sum.Raw}}" title="Copy message body" @click.stop>{{icon "copy"}}</button></div>
@@ -208,7 +209,7 @@
       <tr><td>Message retention</td><td>{{secs .Config.Retention}}</td></tr>
       <tr><td>Delivery delay</td><td>{{if .Config.Delay}}{{secs .Config.Delay}}{{else}}0s{{end}}</td></tr>
       {{if .Config.DLQ}}<tr><td>Dead-letter queue</td><td><a href="{{.Prefix}}/sqs/{{.Config.DLQ}}" style="color:var(--accent)">{{.Config.DLQ}}</a> <span class="dim">after {{.Config.MaxReceive}} receives</span></td></tr>{{end}}
-      {{if .Config.Created}}<tr><td>Created</td><td title="{{.Config.Created}}">{{ago .Config.Created}}</td></tr>{{end}}
+      {{if .Config.Created}}<tr><td>Created</td><td title="{{zoned .Config.Created}}">{{ago .Config.Created}}</td></tr>{{end}}
     </tbody></table></div>
   </div>
   <div class="panel" x-show="edit" x-cloak>

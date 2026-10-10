@@ -47,6 +47,7 @@ func (c *Console) routes() {
 		r.Get("/traffic", c.traffic)
 		r.Get("/traffic/feed", c.trafficFeed)    // polled live tail
 		r.Get("/traffic/entry", c.trafficEntry)  // inspector drawer
+		r.Get("/traffic/for", c.trafficFor)      // one resource's calls (the kit's wire dock)
 		r.Post("/traffic/clear", c.trafficClear) // empty the ring
 		r.Get("/connect", c.connect)
 		r.Post("/connect/verify", c.connectVerify)

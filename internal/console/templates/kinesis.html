@@ -279,7 +279,7 @@
     <td class="num mono dim sub">{{.Seq}}</td>
     {{if not $.Query.Shard}}<td class="mono dim sub">{{.Shard}}</td>{{end}}
     <td class="mono sub">{{.Partition}}</td>
-    <td class="dim sub">{{.Arrived}}</td>
+    <td class="dim sub"><time title="{{zoned .Arrived}}">{{.Arrived}}</time></td>
     <td class="sub"><div class="kin-data">
       {{/* The data truncates in its own span and the button sits beside it:
            inside one no-wrap truncating cell the button was clipped out of
@@ -472,7 +472,7 @@
               <td class="mono sub">{{.Name}}</td>
               <td class="mono dim sub trunc" style="max-width:320px">{{.ARN}}</td>
               <td><span class="chip">{{.Status}}</span></td>
-              <td class="dim sub">{{.Created}}</td>
+              <td class="dim sub"><time title="{{zoned .Created}}">{{.Created}}</time></td>
               <td class="right">
                 <form hx-post="{{$.Prefix}}/kinesis/{{$.Stream}}/consumers/del" hx-confirm="Deregister “{{.Name}}”?">
                   <input type="hidden" name="name" value="{{.Name}}">

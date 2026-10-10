@@ -50,7 +50,7 @@
     <div class="tr-row {{if .IsErr}}{{.State}}{{end}}{{if .Cascade}} tr-child{{end}}" data-depth="{{.Depth}}" :class="sel==={{.Seq}} && 'sel'"
          hx-get="{{$.Prefix}}/traffic/entry?seq={{.Seq}}" hx-target="#t-drawer-inner" hx-select="" hx-swap="innerHTML"
          @click="sel = (sel==={{.Seq}} ? null : {{.Seq}})">
-      <span class="ts">{{.Time}}</span>
+      <span class="ts"><time title="{{zoned .Time}}">{{.Time}}</time></span>
       <span class="svcb" style="--svc-ink:var(--svc-{{.Service}}-ink);padding-left:{{mul .Depth 14}}px">{{if .Cascade}}<span class="tr-branch" title="caused by the call above">└</span>{{end}}{{.Service}}</span>
       <button type="button" class="act rowopen" aria-label="Inspect {{.Action}} {{.Resource}}">{{.Action}}{{with .Via}}<span class="tr-via" title="what emitted this work">via {{.}}</span>{{end}}</button>
       {{/* The three hx-* attributes here are load-bearing. The row sets

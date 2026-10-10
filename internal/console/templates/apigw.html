@@ -255,7 +255,7 @@
       </td>
       <td class="mono sub trunc" style="max-width:340px">{{template "copychip" dict "Value" .InvokeBase}}</td>
       <td class="sub">{{if .AccessLogGroup}}<a href="{{$.Prefix}}/logs/group?name={{.AccessLogGroup}}" title="{{.AccessLogGroup}}">access</a>{{end}}{{if .ExecutionLogGroup}}{{if .AccessLogGroup}} · {{end}}<a href="{{$.Prefix}}/logs/group?name={{.ExecutionLogGroup}}" title="{{.ExecutionLogGroup}}">execution ({{.LogLevel}})</a>{{end}}{{if not (or .AccessLogGroup .ExecutionLogGroup)}}<span class="dim">off</span>{{end}}</td>
-      <td class="dim sub">{{.Created}}</td>
+      <td class="dim sub"><time title="{{zoned .Created}}">{{.Created}}</time></td>
       <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete stage {{.Name}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-stage" hx-vals='{"name":"{{.Name}}"}' hx-confirm="Delete stage “{{.Name}}”? Callers using its URL get 404s; the deployment stays.">{{icon "trash"}}</button></div></td>
     </tr>
   {{else}}
@@ -272,7 +272,7 @@
     <tr>
       <td class="mono sub">{{.ID}}</td>
       <td class="dim sub">{{if .Description}}{{.Description}}{{else}}—{{end}}</td>
-      <td class="dim sub">{{.Created}}</td>
+      <td class="dim sub"><time title="{{zoned .Created}}">{{.Created}}</time></td>
       <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete deployment {{.ID}}" hx-post="{{$.Prefix}}/apigw/{{$.API.ID}}/delete-deployment" hx-vals='{"deployment":"{{.ID}}"}' hx-confirm="Delete deployment {{.ID}}? One a stage still serves is refused — move or delete the stage first.">{{icon "trash"}}</button></div></td>
     </tr>
   {{else}}

@@ -49,3 +49,30 @@ func clockMillis(t time.Time) string { return t.Local().Format(layoutClockMillis
 
 // clockTenths is a time of day to a tenth of a second, for the tightest column.
 func clockTenths(t time.Time) string { return t.Local().Format(layoutClockTenths) }
+
+// zoned is what a displayed time says on hover: the same instant with its zone
+// named and its offset, and in UTC. The page shows the local wall clock because
+// that is the one the reader compares it to; a log line from somewhere else, or
+// AWS's own console, is in UTC, and this is where the two are put side by side.
+//
+// It takes the string a formatter above produced and reads it back, so a
+// template can add the hover to a value it already has without the view model
+// carrying the instant twice. A value that is not a time (a dash, an empty
+// cell) has no hover, and says so with "".
+func zoned(shown string) string {
+	for _, layout := range []string{layoutStampMillis, layoutStamp, layoutStampMinute} {
+		if t, err := time.ParseInLocation(layout, shown, time.Local); err == nil {
+			return t.Format("2006-01-02 15:04:05 MST") + " (UTC" + t.Format("-07:00") + ") · " +
+				t.UTC().Format("2006-01-02 15:04:05") + " UTC"
+		}
+	}
+	// A time of day alone is today's: a feed row, a record's arrival.
+	now := time.Now().In(time.Local)
+	for _, layout := range []string{layoutClockMillis, layoutClockTenths, layoutClock} {
+		if c, err := time.ParseInLocation(layout, shown, time.Local); err == nil {
+			t := time.Date(now.Year(), now.Month(), now.Day(), c.Hour(), c.Minute(), c.Second(), c.Nanosecond(), time.Local)
+			return t.Format("15:04:05 MST") + " (UTC" + t.Format("-07:00") + ") · " + t.UTC().Format("15:04:05") + " UTC"
+		}
+	}
+	return ""
+}

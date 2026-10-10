@@ -165,7 +165,7 @@
     {{if .Execs}}<table class="tbl"><thead><tr><th>Execution</th><th>Started</th><th>Stopped</th><th class="right">Status</th></tr></thead><tbody>{{range .Execs}}
       <tr>
         <td><a class="cell-name" href="{{$.Prefix}}/sfn/{{$.Name}}/execution/{{.Name}}">{{icon "route"}} {{.Name}}</a></td>
-        <td class="dim" title="{{.Started}}">{{ago .Started}}</td>
+        <td class="dim" title="{{zoned .Started}}">{{ago .Started}}</td>
         <td class="dim" title="{{.Stopped}}">{{if .Stopped}}{{ago .Stopped}}{{else}}—{{end}}</td>
         <td class="right">{{template "sfn_status" .Status}}</td>
       </tr>
@@ -203,7 +203,7 @@
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .ARN}}{{with .Exec.MapRunARN}}{{template "copychip" dict "Label" "map run" "Value" .}}{{end}}</div>
       <div class="factstrip">
         <div class="fact"><div class="fx-k">Status</div><div class="fx-v" id="sum-sfn-exec-status">{{template "sfn_status" .Exec.Status}}</div></div>
-        <div class="fact"><div class="fx-k">Started</div><div class="fx-v" title="{{.Exec.Started}}">{{ago .Exec.Started}}</div></div>
+        <div class="fact"><div class="fx-k">Started</div><div class="fx-v" title="{{zoned .Exec.Started}}">{{ago .Exec.Started}}</div></div>
         <div class="fact"><div class="fx-k">Stopped</div><div class="fx-v" title="{{.Exec.Stopped}}">{{if .Exec.Stopped}}{{ago .Exec.Stopped}}{{else}}—{{end}}</div></div>
         {{if .Exec.Error}}<div class="fact"><div class="fx-k">Error</div><div class="fx-v mono"><span class="bad" title="{{.Exec.Cause}}">{{.Exec.Error}}</span></div></div>{{end}}
         {{with .Exec.StartedVia}}<div class="fact"><div class="fx-k">Started via</div><div class="fx-v mono">{{.}}</div></div>{{end}}
@@ -276,7 +276,7 @@
         <td class="trunc"><span class="sfn-ev-type"><span class="chev">{{if .HasDetail}}▶{{end}}</span><span class="sfn-dot"></span>{{.Type}}</span>{{if .Error}}<div class="sfn-err trunc" title="{{.Error}}{{with .Cause}} — {{.}}{{end}}"><b>{{.Error}}</b>{{with .Cause}} <span class="dim">{{.}}</span>{{end}}</div>{{end}}</td>
         <td class="mono trunc" title="{{.State}}">{{.State}}</td>
         <td class="mono dim trunc" title="{{.Resource}}">{{.Resource}}</td>
-        <td class="mono dim num" title="{{.When}}">{{.Clock}}</td>
+        <td class="mono dim num" title="{{.When}}"><time title="{{zoned .Clock}}">{{.Clock}}</time></td>
         <td class="right num"><span class="mono">{{.Elapsed}}</span>{{with .Delta}}<span class="dim sfn-delta">Δ {{.}}</span>{{end}}</td>
       </tr>
       {{if .HasDetail}}<tr class="sfn-det" x-show="open" x-cloak><td colspan="6">

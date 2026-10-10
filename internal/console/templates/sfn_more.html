@@ -18,7 +18,7 @@
     <tr>
       <td class="right mono"><button type="button" class="link-btn" hx-get="{{$.Prefix}}/sfn/{{$.Name}}/version/{{.Number}}" hx-target="#sfn-version-out" hx-select="" hx-swap="innerHTML" title="{{.ARN}}">v{{.Number}}</button></td>
       <td>{{if .Description}}{{.Description}}{{else}}<span class="dim">—</span>{{end}}</td>
-      <td class="dim" title="{{.Created}}">{{ago .Created}}</td>
+      <td class="dim" title="{{zoned .Created}}">{{ago .Created}}</td>
       <td class="right"><button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/{{$.Name}}/version/{{.Number}}/delete" hx-confirm="Delete version {{.Number}}? An alias still routing to it refuses." aria-label="Delete version {{.Number}}" title="Delete version {{.Number}}">{{icon "trash"}}</button></td>
     </tr>
   {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No versions yet — Publish freezes the definition as it stands, so an alias can point at it while you keep editing.</p></div>{{end}}
@@ -45,7 +45,7 @@
         </form>
       </td>
       <td>{{if .Description}}{{.Description}}{{else}}<span class="dim">—</span>{{end}}</td>
-      <td class="dim" title="{{.Updated}}">{{ago .Updated}}</td>
+      <td class="dim" title="{{zoned .Updated}}">{{ago .Updated}}</td>
       <td class="right">
         <button type="button" class="icon-btn" @click="edit=!edit" title="Edit routing" aria-label="Edit routing of {{.Name}}">{{icon "pencil"}}</button>
         <button type="button" class="icon-btn danger" hx-post="{{$.Prefix}}/sfn/{{$.Name}}/alias/{{.Name}}/delete" hx-confirm="Delete alias “{{.Name}}”? Its versions stay; anything starting executions through the alias will find nothing." aria-label="Delete alias {{.Name}}" title="Delete alias {{.Name}}">{{icon "trash"}}</button>
@@ -94,7 +94,7 @@
   <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .Result.ARN}}</div>
   <div class="factstrip">
     <div class="fact"><div class="fx-k">Name</div><div class="fx-v mono">{{.Result.Name}}</div></div>
-    <div class="fact"><div class="fx-k">Started</div><div class="fx-v" title="{{.Result.Started}}">{{ago .Result.Started}}</div></div>
+    <div class="fact"><div class="fx-k">Started</div><div class="fx-v" title="{{zoned .Result.Started}}">{{ago .Result.Started}}</div></div>
     <div class="fact"><div class="fx-k">Billed</div><div class="fx-v num">{{.Result.BilledMs}} ms · {{.Result.BilledMB}} MB</div></div>
   </div>
   {{if .Result.Error}}<div class="err err-refused"><div class="err-h mono">{{.Result.Error}}</div><p class="err-msg">{{.Result.Cause}}</p></div>
@@ -190,7 +190,7 @@
   {{if .Execs}}<table class="tbl"><thead><tr><th>Execution</th><th>Started</th><th>Stopped</th><th class="right">Status</th></tr></thead><tbody>{{range .Execs}}
     <tr>
       <td><a class="cell-name" href="{{$.Prefix}}/sfn/{{.Machine}}/execution/{{.Name}}">{{icon "route"}} {{.Name}}</a></td>
-      <td class="dim" title="{{.Started}}">{{ago .Started}}</td>
+      <td class="dim" title="{{zoned .Started}}">{{ago .Started}}</td>
       <td class="dim" title="{{.Stopped}}">{{if .Stopped}}{{ago .Stopped}}{{else}}—{{end}}</td>
       <td class="right">{{template "sfn_status" .Status}}</td>
     </tr>
@@ -223,7 +223,7 @@
           <tr>
             <td class="mono">{{.Name}}</td>
             <td>{{template "copychip" dict "Label" "" "Value" .ARN}}</td>
-            <td class="dim" title="{{.Created}}">{{ago .Created}}</td>
+            <td class="dim" title="{{zoned .Created}}">{{ago .Created}}</td>
             <td class="right">
               <button type="button" class="btn btn-outline btn-sm" hx-post="{{$.Prefix}}/sfn/activities/{{.Name}}/take" hx-target="#sfn-task-out" hx-select="" hx-swap="innerHTML" hx-indicator="#take-spin-{{slug .Name}}" data-err-slot="#sfn-task-out">{{icon "download"}} Take a task</button>
               <span id="take-spin-{{slug .Name}}" class="dim htmx-indicator">polling…</span>

@@ -40,7 +40,7 @@
     <div class="sec-title">Deleted stacks <span class="dim">&mdash; the record the stack list no longer shows</span></div>
     <div class="table-wrap"><table class="tbl">
       <thead><tr><th>Name</th><th style="width:170px">Status</th><th style="width:150px">Created</th></tr></thead>
-      <tbody>{{range .Deleted}}<tr><td class="mono sub">{{.Name}}</td><td><span class="chip">{{.Status}}</span></td><td class="dim sub mono">{{.Created}}</td></tr>{{end}}</tbody>
+      <tbody>{{range .Deleted}}<tr><td class="mono sub">{{.Name}}</td><td><span class="chip">{{.Status}}</span></td><td class="dim sub mono"><time title="{{zoned .Created}}">{{.Created}}</time></td></tr>{{end}}</tbody>
     </table></div>
     {{end}}
   </div></section>
@@ -83,7 +83,7 @@
           <tbody>
           {{range .Events}}
             <tr {{if .Failed}}class="bad-row"{{end}}>
-              <td class="dim sub mono">{{.Time}}</td>
+              <td class="dim sub mono"><time title="{{zoned .Time}}">{{.Time}}</time></td>
               <td class="mono sub">{{.LogicalID}}</td>
               <td><span class="chip {{if .Failed}}bad{{end}}">{{.Status}}</span></td>
               <td class="dim sub">{{if .Reason}}{{.Reason}}{{else}}—{{end}}</td>
@@ -109,7 +109,7 @@
               <td class="mono sub"><a href="{{$.Prefix}}/cfn/{{$.Stack.Name}}?tab=changesets&cs={{.Name}}">{{.Name}}</a></td>
               <td><span class="chip {{if eq .Status "FAILED"}}bad{{end}}">{{.Status}}</span></td>
               <td><span class="chip">{{.ExecutionStatus}}</span></td>
-              <td class="dim sub mono">{{.Created}}</td>
+              <td class="dim sub mono"><time title="{{zoned .Created}}">{{.Created}}</time></td>
               <td><div class="cs-acts">
                 {{if .Executable}}<button class="btn btn-sm" hx-post="{{$.Prefix}}/cfn/{{$.Stack.Name}}/changeset/{{.Name}}/execute" hx-confirm="Execute change set “{{.Name}}”? The reviewed template deploys.">{{icon "zap"}} Execute</button>{{end}}
                 <button class="icon-btn sm danger" title="Delete change set {{.Name}}" hx-post="{{$.Prefix}}/cfn/{{$.Stack.Name}}/changeset/{{.Name}}/delete" hx-confirm="Delete change set “{{.Name}}”? The diff is discarded; the stack is untouched.">{{icon "trash"}}</button>
@@ -264,6 +264,6 @@
   <tr><td>Physical ID</td><td class="mono">{{if .R.PhysicalID}}{{.R.PhysicalID}}{{else}}<span class="dim">&mdash;</span>{{end}}</td></tr>
   <tr><td>Status</td><td><span class="chip">{{.R.Status}}</span></td></tr>
   <tr><td>Status reason</td><td>{{if .R.Reason}}{{.R.Reason}}{{else}}<span class="dim">&mdash;</span>{{end}}</td></tr>
-  <tr><td>Last updated</td><td class="mono">{{.R.Updated}}</td></tr>
+  <tr><td>Last updated</td><td class="mono"><time title="{{zoned .R.Updated}}">{{.R.Updated}}</time></td></tr>
 </tbody></table></div>
 {{end}}

@@ -59,3 +59,29 @@ func TestFormattersAreLocal(t *testing.T) {
 		}
 	}
 }
+
+func TestTheHoverNamesTheZoneAndGivesUTC(t *testing.T) {
+	prev := time.Local
+	time.Local = time.FixedZone("TST", 5*3600+1800)
+	defer func() { time.Local = prev }()
+
+	at := time.Date(2026, 10, 10, 6, 30, 45, 0, time.UTC)
+	want := "2026-10-10 12:00:45 TST (UTC+05:30) · 2026-10-10 06:30:45 UTC"
+	if got := zoned(stamp(at)); got != want {
+		t.Errorf("zoned(stamp) = %q, want %q", got, want)
+	}
+	if got := zoned(stampMinute(at)); got != "2026-10-10 12:00:00 TST (UTC+05:30) · 2026-10-10 06:30:00 UTC" {
+		t.Errorf("zoned(stampMinute) = %q", got)
+	}
+	if got := zoned(stampMillis(at)); got != want {
+		t.Errorf("zoned(stampMillis) = %q", got)
+	}
+	if got := zoned(clock(at)); got != "12:00:45 TST (UTC+05:30) · 06:30:45 UTC" {
+		t.Errorf("zoned(clock) = %q", got)
+	}
+	for _, notATime := range []string{"", "—", "just now", "3 days"} {
+		if got := zoned(notATime); got != "" {
+			t.Errorf("zoned(%q) = %q, want no hover", notATime, got)
+		}
+	}
+}

@@ -393,7 +393,7 @@
           <tr>
             <td class="mono sub">{{.ID}}</td><td><span class="chip {{if ne .Status "Active"}}bad{{end}}">{{.Status}}</span></td>
             <td class="dim sub">{{if .LastUsed}}{{.LastUsed}}{{else}}never{{end}}</td>
-            <td class="dim sub">{{.Created}}</td>
+            <td class="dim sub"><time title="{{zoned .Created}}">{{.Created}}</time></td>
             <td class="right"><div class="cs-acts">
               {{/* Deactivating is the revoke-without-deleting step of a
                    rotation (UpdateAccessKey). */}}
@@ -478,7 +478,7 @@
           <tr>
             <td class="mono sub">{{.ID}}</td>
             <td>{{if .Default}}<span class="badge state-on">default</span>{{end}}</td>
-            <td class="dim sub">{{.Created}}</td>
+            <td class="dim sub"><time title="{{zoned .Created}}">{{.Created}}</time></td>
             <td><div class="cs-acts">
               {{if not .Default}}
               <form hx-post="{{$.Prefix}}/iam/policy/set-default" data-confirm-verb="Make default" data-confirm-destructive="false" hx-confirm="Make {{.ID}} the default? Every attachment evaluates it from the next request on.">

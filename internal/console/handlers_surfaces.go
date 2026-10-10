@@ -133,6 +133,46 @@ func (c *Console) trafficFeed(w http.ResponseWriter, r *http.Request) {
 	c.partial(w, "traffic_rows", map[string]any{"Entries": entries, "Hash": hash, "Endpoint": endpointHost(r)})
 }
 
+// resWireRows is how many of a resource's calls its dock shows. The dock is a
+// glance; the wire is the list.
+const resWireRows = 8
+
+// trafficFor renders the wire dock under a resource: the recorded calls made
+// to that one resource, newest first. svc is the console's service key, which
+// is the label the recorder files a call under, and res is the name it records
+// (a queue's name, a bucket's).
+func (c *Console) trafficFor(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	svc, res := q.Get("svc"), q.Get("res")
+	hash := "0"
+	if c.rec != nil {
+		if s := c.rec.LastSeq(); s > 0 {
+			hash = strconv.FormatInt(s, 10)
+		}
+	}
+	if liveUnchanged(w, r, hash) {
+		return
+	}
+	var rows []trafficRow
+	more := 0
+	if c.rec != nil {
+		for _, e := range c.rec.Entries(0) { // newest first
+			if e.Service != svc || e.Resource != res {
+				continue
+			}
+			if len(rows) == resWireRows {
+				more++
+				continue
+			}
+			rows = append(rows, rowOf(e, 0))
+		}
+	}
+	c.partial(w, "res_wire_rows", map[string]any{
+		"Svc": svc, "Resource": res, "Noun": q.Get("noun"), "Hash": hash,
+		"Rows": rows, "More": more, "Enabled": c.rec != nil,
+	})
+}
+
 // trafficEntry renders the inspector drawer for one recorded call.
 func (c *Console) trafficEntry(w http.ResponseWriter, r *http.Request) {
 	seq, _ := strconv.ParseInt(r.URL.Query().Get("seq"), 10, 64)

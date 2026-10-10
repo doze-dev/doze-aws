@@ -34,6 +34,40 @@
 </div>{{end}}
 {{end}}
 
+{{/* res_wire is the wire underneath a resource: the calls the app made to THIS
+     resource, newest first, live. It answers "is anything actually talking to
+     this" without leaving the page; the whole stream, and the inspector for a
+     call, are on the wire itself. The console's own requests are never
+     recorded, so what is here is the app's traffic only.
+
+     It is drawn in two steps so the page's handler does not have to know about
+     it: res_wire is the slot, which loads res_wire_rows as soon as it is on the
+     page, and res_wire_rows is the live region that keeps itself current.
+
+     dict: Prefix, Svc (the console's service key), Resource (the name the wire
+     records for it), Noun ("queue"). */}}
+{{define "res_wire"}}
+<div id="res-wire" class="res-wire" hx-get="{{.Prefix}}/traffic/for?svc={{.Svc}}&res={{.Resource}}&noun={{.Noun}}" hx-trigger="load" hx-target="this" hx-select="" hx-swap="outerHTML"></div>
+{{end}}
+
+{{define "res_wire_rows"}}
+<div id="res-wire" class="res-wire" data-live="{{.Prefix}}/traffic/for?svc={{.Svc}}&res={{.Resource}}&noun={{.Noun}}" data-hash="{{.Hash}}">
+  <div class="rw-h"><span class="rw-t">On the wire</span><span class="dim">calls your app made to this {{.Noun}}, newest first</span><a class="rw-all" href="{{.Prefix}}/traffic">The wire &rarr;</a></div>
+  {{if not .Enabled}}<p class="mini-note">Traffic capture is off for this instance.</p>
+  {{else if .Rows}}
+  {{range .Rows}}<div class="rw-row {{if .IsErr}}{{.State}}{{end}}">
+    <span class="ts"><time title="{{zoned .Time}}">{{.Time}}</time></span>
+    <span class="rw-act">{{.Action}}{{with .Via}} <span class="tr-via">via {{.}}</span>{{end}}</span>
+    <span class="st {{.State}}">{{.Status}}</span>
+    <span class="tr-why">{{with .Refused}}<span title="{{.Message}}">{{.Code}}</span>{{end}}</span>
+    <span class="dur">{{.Millis}}ms</span>
+  </div>{{end}}
+  {{if .More}}<p class="mini-note">{{.More}} earlier call{{if ne .More 1}}s{{end}} on the wire.</p>{{end}}
+  {{else}}<p class="mini-note">Nothing yet. A call your app makes to this {{.Noun}} shows here as it happens; the console's own requests are not counted.</p>
+  {{end}}
+</div>
+{{end}}
+
 {{/* setting_field is one numeric setting, taught.
 
      The bounds, the unit and the default come from the service's record of the

@@ -551,3 +551,32 @@ test('a failing poll does not take focus or draw a failure', async ({ page, requ
   await expect(filter).toBeFocused();
   await expect(filter).toHaveValue('abc');
 });
+
+// The wire underneath a queue: what the app sent to THIS queue, live, without
+// leaving the page. The console's own requests are not the app's and are not in it.
+test('the wire under a queue shows the app’s calls to it as they happen', async ({ page, request, uniqueName }) => {
+  const queue = uniqueName('e2e-sqs-wire');
+  const other = uniqueName('e2e-sqs-wire-other');
+  await createQueue(request, queue);
+  await createQueue(request, other);
+  const gateway = new URL('/', ORIGIN + '/').toString();
+  const send = (q: string, body: Record<string, unknown>) =>
+    request.post(gateway, {
+      headers: { 'Content-Type': 'application/x-amz-json-1.0', 'X-Amz-Target': 'AmazonSQS.SendMessage' },
+      data: JSON.stringify({ QueueUrl: `${ORIGIN}/${ACCOUNT_ID}/${q}`, ...body }),
+    });
+
+  await page.goto(`sqs/${queue}`);
+  const dock = page.locator('#res-wire');
+  await expect(dock).toContainText('Nothing yet');
+
+  await send(queue, { MessageBody: 'one' });
+  await send(other, { MessageBody: 'not ours' });
+  await send(queue, {}); // no body: refused
+  await expect(dock.locator('.rw-row')).toHaveCount(2, { timeout: 10_000 });
+  await expect(dock.locator('.rw-row.refused')).toHaveCount(1);
+  await expect(dock.locator('.rw-row').first()).toContainText('SendMessage');
+
+  // A time says its zone and UTC on hover.
+  await expect(dock.locator('.rw-row time').first()).toHaveAttribute('title', /\(UTC[+-]\d\d:\d\d\) · \d\d:\d\d:\d\d UTC/);
+});

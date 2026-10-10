@@ -127,7 +127,7 @@
     <tr>
       <td><input type="checkbox" class="rowck" value="{{.Key}}" x-model="sel" aria-label="Select {{.Key}}"></td>
       <td><span class="cell-name link" role="button" tabindex="0" hx-get="{{$.Prefix}}/s3/{{$.Bucket}}/meta?key={{.Key}}&prefix={{$.KeyPrefix}}" hx-target="#drawer-inner" hx-select="" hx-swap="innerHTML" @click="drawer=true">{{icon "file"}} {{trimPrefixKey .Key $.KeyPrefix}}</span></td>
-      <td class="right dim num">{{humanSize .Size}}</td><td class="right dim num" title="{{.LastModified}}">{{ago .LastModified}}</td>
+      <td class="right dim num">{{humanSize .Size}}</td><td class="right dim num" title="{{zoned .LastModified}}">{{ago .LastModified}}</td>
       <td><div class="row-actions">
         <a class="icon-btn sm" title="Download" href="{{$.Prefix}}/s3/{{$.Bucket}}/object?key={{.Key}}" target="_blank">{{icon "download"}}</a>
         <button class="icon-btn sm danger" title="Delete" hx-post="{{$.Prefix}}/s3/{{$.Bucket}}/delete" hx-vals='{"key":"{{.Key}}","prefix":"{{$.KeyPrefix}}"}' hx-target="#object-table" hx-select="" hx-swap="outerHTML" hx-confirm="Delete {{.Key}}?">{{icon "trash"}}</button>
@@ -325,7 +325,7 @@
     <div class="meta-row"><span class="k">Type</span><span class="v">{{if .Meta.ContentType}}{{.Meta.ContentType}}{{else}}—{{end}}</span></div>
     <div class="meta-row"><span class="k">Size</span><span class="v">{{.Meta.Size}}</span></div>
     <div class="meta-row"><span class="k">ETag</span><span class="v">{{.Meta.ETag}}</span></div>
-    <div class="meta-row"><span class="k">Modified</span><span class="v">{{.Meta.LastModified}}</span></div>
+    <div class="meta-row"><span class="k">Modified</span><span class="v"><time title="{{zoned .Meta.LastModified}}">{{.Meta.LastModified}}</time></span></div>
     <div class="meta-row"><span class="k">Storage class</span><span class="v">{{.Meta.StorageClass}}</span></div>
     {{with .Attrs}}{{if gt .Parts 0}}<div class="meta-row"><span class="k">Parts</span><span class="v">{{.Parts}} &mdash; uploaded multipart</span></div>{{end}}{{end}}
   </div>

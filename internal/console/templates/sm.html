@@ -65,7 +65,7 @@
         "TagsURL" (printf "%s/sm/secret?name=%s&tab=tags" .Prefix (urlquery .S.Name)) "TagsSvc" "sm"
         "Target" "#sm-detail" "Stages" .S.Stages)}}
     <div class="meta-grid">
-      <div class="meta-cellx"><div class="k2">Last changed</div><div class="v2" title="{{.S.Changed}}">{{ago .S.Changed}}</div></div>
+      <div class="meta-cellx"><div class="k2">Last changed</div><div class="v2" title="{{zoned .S.Changed}}">{{ago .S.Changed}}</div></div>
       <div class="meta-cellx"><div class="k2">Versions</div><div class="v2">{{len .S.Stages}}</div></div>
       <div class="meta-cellx"><div class="k2">Rotation</div><div class="v2">{{if .S.RotationOn}}<span class="badge state-on">every {{.S.RotationDays}}d</span>{{else}}manual{{end}}</div></div>
     </div>

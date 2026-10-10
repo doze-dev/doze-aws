@@ -117,7 +117,7 @@
     {{if .C.Headers}}<tr><td>Headers</td><td class="mono">{{range .C.Headers}}{{.Key}}={{if .Secret}}••••{{else}}{{.Value}}{{end}}<br>{{end}}</td></tr>{{end}}
     {{if .C.Query}}<tr><td>Query</td><td class="mono">{{range .C.Query}}{{.Key}}={{if .Secret}}••••{{else}}{{.Value}}{{end}}<br>{{end}}</td></tr>{{end}}
     {{if .C.Body}}<tr><td>Body</td><td class="mono">{{range .C.Body}}{{.Key}}={{if .Secret}}••••{{else}}{{.Value}}{{end}}<br>{{end}}</td></tr>{{end}}
-    <tr><td>Created</td><td>{{.C.Created}}</td></tr>
+    <tr><td>Created</td><td><time title="{{zoned .C.Created}}">{{.C.Created}}</time></td></tr>
   </tbody></table>
   <div class="form-b">
     <p class="mini-note">Secrets are stored with the connection and never reported; the Secret ARN is the one AWS would mint, so a template's GetAtt resolves.</p>
@@ -142,7 +142,7 @@
   <table class="tbl kv"><tbody>
     <tr><td>ARN</td><td>{{template "kvcopy" .D.ARN}}</td></tr>
     <tr><td>Connection</td><td>{{template "kvcopy" .D.ConnectionARN}}</td></tr>
-    <tr><td>Created</td><td>{{.D.Created}}</td></tr>
+    <tr><td>Created</td><td><time title="{{zoned .D.Created}}">{{.D.Created}}</time></td></tr>
   </tbody></table>
   <div class="form-b">
     {{if eq .D.State "INACTIVE"}}<p class="mini-note">INACTIVE: its connection was deleted. Point it at another connection to reactivate.</p>{{end}}

@@ -69,7 +69,7 @@
       <td class="mono sub"><a href="javascript:void(0)" hx-post="{{$.Prefix}}/lambda/layers/versions" hx-vals='{"layer":"{{.Name}}"}' hx-target="#layer-out" hx-select="" hx-swap="innerHTML" title="List versions">{{.Name}}</a></td>
       <td class="sub num">v{{.Version}}</td>
       <td class="dim sub mono">{{if .Runtimes}}{{range $i, $rt := .Runtimes}}{{if $i}}, {{end}}{{$rt}}{{end}}{{else}}any{{end}}</td>
-      <td class="dim sub mono">{{.Created}}</td>
+      <td class="dim sub mono"><time title="{{zoned .Created}}">{{.Created}}</time></td>
     </tr>
   {{end}}
   </tbody>
@@ -87,7 +87,7 @@
     <tr>
       <td class="sub num"><a href="javascript:void(0)" hx-post="{{$.Prefix}}/lambda/layers/version" hx-vals='{"layer":"{{.Name}}","version":"{{.Version}}"}' hx-target="#layer-out" hx-select="" hx-swap="innerHTML" title="Version detail">v{{.Version}}</a></td>
       <td class="dim sub">{{if .Description}}{{.Description}}{{else}}&mdash;{{end}}</td>
-      <td class="dim sub mono">{{.Created}}</td>
+      <td class="dim sub mono"><time title="{{zoned .Created}}">{{.Created}}</time></td>
       <td><div class="cs-acts"><button class="icon-btn sm danger" title="Delete version {{.Version}}" hx-post="{{$.Prefix}}/lambda/layers/delete" hx-vals='{"layer":"{{.Name}}","version":"{{.Version}}"}' hx-target="#lam-layers" hx-select="" hx-swap="outerHTML" hx-confirm="Delete {{.Name}} v{{.Version}}? Functions already configured with it keep running.">{{icon "trash"}}</button></div></td>
     </tr>
   {{else}}
@@ -107,7 +107,7 @@
   <tr><td>Compatible runtimes</td><td class="mono">{{if .L.Runtimes}}{{range $i, $rt := .L.Runtimes}}{{if $i}}, {{end}}{{$rt}}{{end}}{{else}}<span class="dim">any</span>{{end}}</td></tr>
   <tr><td>Size</td><td>{{humanSize .L.CodeSize}}</td></tr>
   <tr><td>Content</td><td class="mono" style="font-size:11px">{{if .L.Location}}{{.L.Location}}{{else}}<span class="dim">none &mdash; metadata-only version</span>{{end}}</td></tr>
-  <tr><td>Published</td><td class="mono">{{.L.Created}}</td></tr>
+  <tr><td>Published</td><td class="mono"><time title="{{zoned .L.Created}}">{{.L.Created}}</time></td></tr>
 </tbody></table></div>
 <div class="form-b">
   <div class="sec-title" style="margin-top:0">Permissions <span class="dim">&mdash; who else may GetLayerVersion</span></div>

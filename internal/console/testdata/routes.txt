@@ -105,6 +105,7 @@ GET /tags/view
 GET /traffic
 GET /traffic/entry
 GET /traffic/feed
+GET /traffic/for
 POST /apigw-http/{api}/add-route
 POST /apigw-http/{api}/create-authorizer
 POST /apigw-http/{api}/create-stage

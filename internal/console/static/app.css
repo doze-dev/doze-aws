@@ -1709,6 +1709,26 @@ a.lo-card:hover { border-color: var(--accent); }
 .kv-note { font-size: 12px; }
 .kv-rows { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .kv-item { width: 100%; }
+
+/* The wire underneath a resource (kit.html res_wire): a quiet dock, the same
+   row vocabulary as the wire itself at a glance's size. */
+.res-wire { margin-top: 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+.res-wire:empty { display: none; }
+.res-wire .mini-note { margin: 0; padding: 8px 12px; }
+.rw-h { display: flex; align-items: baseline; gap: 10px; padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.rw-t { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted-foreground); }
+.rw-all { margin-left: auto; color: inherit; }
+.rw-row { display: grid; grid-template-columns: 96px minmax(0, 1fr) 44px minmax(0, 220px) 70px; column-gap: 12px; align-items: center; min-height: 26px; padding: 0 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
+.rw-row:last-child { border-bottom: 0; }
+.rw-row .ts, .rw-row .dur { font-family: var(--mono); color: var(--muted-foreground); }
+.rw-row .dur { text-align: right; }
+.rw-act { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rw-row.refused, .rw-row.refusedhere { background: color-mix(in srgb, var(--refused) 7%, var(--card)); }
+.rw-row.denied { background: color-mix(in srgb, var(--warning) 7%, var(--card)); }
+.rw-row.error { background: color-mix(in srgb, var(--destructive) 7%, var(--card)); }
+.rw-row.refused .tr-why, .rw-row.refusedhere .tr-why { color: var(--refused); }
+.rw-row.denied .tr-why { color: var(--warning); }
+.rw-row.notbuilt .tr-why { color: var(--muted-foreground); }
 .info-sec { margin: 14px 0 6px; font-size: 13px; font-weight: 600; }
 .kv-row { display: flex; gap: 6px; width: 100%; align-items: center; }
 .kv-row .kv-k { flex: 0 0 34%; font-family: var(--mono); }

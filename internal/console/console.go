@@ -351,6 +351,7 @@ func templateFuncs(prefix string, id awsident.Identity) template.FuncMap {
 		"tagsJSON":  tagsJSON,
 		"secs":      humanSecs,
 		"ago":       ago,
+		"zoned":     zoned,
 		"list":      func(items ...any) []any { return items },
 		"join":      strings.Join,
 		"masked":    maskedValue,

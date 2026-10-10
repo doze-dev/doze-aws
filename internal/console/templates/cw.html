@@ -155,7 +155,7 @@
       <div class="panel">
         <div class="panel-h"><h2>{{icon "history"}} History <span class="badge">{{len .History}}</span></h2><span class="dim">newest first</span></div>
         {{if .History}}<table class="tbl"><thead><tr><th>When</th><th>Type</th><th>What happened</th></tr></thead><tbody>{{range .History}}
-          <tr><td class="dim">{{.When}}</td><td><span class="badge type">{{.Type}}</span></td><td>{{.Summary}}</td></tr>
+          <tr><td class="dim"><time title="{{zoned .When}}">{{.When}}</time></td><td><span class="badge type">{{.Type}}</span></td><td>{{.Summary}}</td></tr>
         {{end}}</tbody></table>{{else}}<div class="empty flat"><p>No history yet.</p></div>{{end}}
       </div>
       {{else if eq .Tab "metric"}}
