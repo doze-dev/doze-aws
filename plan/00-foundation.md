@@ -22,6 +22,7 @@ is met and its test is named; "partly" says what is left.
 | B6 the 501 refusal and its proof | landed | 4241369, 9fa0829 | `awshttp.NotBuilt`; no Go v1/v2, boto3 or JavaScript SDK retries it. |
 | B6 the model sweep | partly | 0223f75 | Harness and a frozen baseline of 653 entries (542 legacy refusals, 111 false "unknown") are in. Each service moves its entries to `notbuilt` in its own stage. |
 | B7 blob lengths in bytes | landed | bed7d64 | KMS, Kinesis, Secrets Manager. SSM and Lambda have a blob member only on operations the service refuses. |
+| B2 suites under a second identity | partly | (next commit) | The e2e suite boots under `E2E_ACCOUNT_ID`/`E2E_REGION`. Of 238 tests, 234 passed on the first run; the 4 failures were two test literals (fixed) and two **product bugs**: EventBridge archives made from the console (hard-coded bus ARN) and the S3 share link (signs for `us-east-1`). Each is fixed in its stage, and then the second pass joins CI. The Go side already has `TestEveryServiceMintsTheConfiguredIdentity`. |
 | A1 a refusal's code, from every wire shape | landed | (next commit) | S3's bare `<Error>` root and the code-in-a-header shape of Lambda and API Gateway. `TestParseRefusalReadsEveryShape`, and `TestTheConsoleCanReadEveryServicesRefusal` drives a real refusal from each of 18 services. Red for the header shape; the S3 shape is pinned by the table. |
 | B3 mutation per package | landed | (next commit) | `task mutate:record` / `mutate:check`; baselines in `testdata/mutation.json`. |
 | A8 identity written into code | partly | (next commit) | The check and a frozen list of 12 sites are in; each site is fixed in its service's stage. |
@@ -163,8 +164,9 @@ Each item was reported by more than one service's grounding. "Seen in" names the
 
   **The check landed** as `identityliterals_test.go`, which reads the source
   and freezes today's sites in `testdata/identity_literals.txt`, both ways, so
-  a new literal fails and a fixed one has to leave the list. Twelve sites in ten
-  files, each fixed in the stage that owns it (KMS `defaultKeyPolicy` and
+  a new literal fails and a fixed one has to leave the list. Seventeen sites in eleven
+  files (the first scan found twelve; matching the region as a substring found the
+  S3 share link's signing scope and CloudFormation's internal S3 call), each fixed in the stage that owns it (KMS `defaultKeyPolicy` and
   `AWSAccountId`, SNS `subscriptionList`, Lambda `mappingView`, `functions.go`
   and the event's `awsRegion`, EventBridge's console ARNs and test event,
   `client_lambda.go`'s role, `provision`'s role, `asl/inspect.go`). Four files

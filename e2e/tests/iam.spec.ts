@@ -1,6 +1,6 @@
 import { test, expect } from '../fixtures/console';
 import { postForm } from '../fixtures/api';
-import { ORIGIN } from '../playwright.config';
+import { ACCOUNT_ID, ORIGIN } from '../playwright.config';
 
 // IAM console coverage for the burn-down surfaces: groups (a whole subsystem
 // that had no UI), instance profiles, policy versioning, the draft-policy
@@ -135,7 +135,7 @@ test.describe('STS credentials', () => {
 
     await page.locator('input[name="id"]').fill('AKIAEXAMPLE1234567890');
     await page.getByRole('button', { name: 'Look up' }).click();
-    await expect(page.locator('#keyinfo-out')).toContainText('000000000000');
+    await expect(page.locator('#keyinfo-out')).toContainText(ACCOUNT_ID);
   });
 });
 

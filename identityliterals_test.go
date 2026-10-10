@@ -28,7 +28,9 @@ import (
 	"testing"
 )
 
-var identityLiterals = []string{"000000000000", `"us-east-1"`}
+// The region is matched as a substring, not as a whole string: a signing scope
+// ".../us-east-1/s3/aws4_request" is exactly where it hid.
+var identityLiterals = []string{"000000000000", "us-east-1"}
 
 // notIdentity are files where the digits are something other than an account.
 // Each says what, so an entry is a claim somebody can check.
@@ -37,6 +39,7 @@ var notIdentity = map[string]string{
 	"dynamodb/streams.go":            "the shard id AWS gives a DynamoDB stream shard: twenty zeros then eight",
 	"internal/peercall/peercall.go":  "the same shard id, as the peer name for it",
 	"internal/lambdaruntime/util.go": "the all-zero UUID returned when the system cannot make a random one",
+	"cmd/dzaudit/iam.go":             "the host of AWS's own service reference, a us-east-1 endpoint",
 }
 
 func TestNoIdentityIsWrittenIntoCode(t *testing.T) {

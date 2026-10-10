@@ -20,6 +20,10 @@ export const ROUTES_FILE = `.tmp/routes-${PORT}.txt`;
 const IDENTITY_FLAGS =
   (process.env.E2E_ACCOUNT_ID ? ` --account-id ${process.env.E2E_ACCOUNT_ID}` : '') +
   (process.env.E2E_REGION ? ` --region ${process.env.E2E_REGION}` : '');
+// The identity the instance was booted with, for a test that asserts what a page
+// prints. Tests that merely send an ARN in are unaffected: it comes back as sent.
+export const ACCOUNT_ID = process.env.E2E_ACCOUNT_ID ?? '000000000000';
+export const REGION = process.env.E2E_REGION ?? 'us-east-1';
 export const ORIGIN = `http://127.0.0.1:${PORT}`;
 export const BASE_URL = `${ORIGIN}/_console/`;
 
