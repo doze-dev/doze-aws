@@ -84,16 +84,10 @@
 </div>
 <div class="td-meta"><span class="{{if ge .E.Status 400}}err{{else}}ok{{end}}">{{.E.Status}}</span> · {{.Millis}}ms · {{.Time}}</div>
 {{with .E.Failure}}
-<div class="td-sec td-refused">
-  <div class="td-k">{{if eq $.State "denied"}}Denied{{else if eq $.State "error"}}Failed{{else}}Refused{{end}} · {{.Code}}</div>
+<div class="td-sec td-{{$.State}}">
+  <div class="td-k">{{$.Copy.Label}}{{if .Code}} · {{.Code}}{{end}}</div>
   <p class="td-why">{{.Message}}</p>
-  {{if eq $.State "denied"}}
-  <p class="mini-note">A policy decided this, not the input. The request was well-formed; IAM evaluated it and said no — so the fix is the policy, not the call. <a href="{{$.Prefix}}/iam">Access log and policy generator →</a></p>
-  {{else if eq $.State "error"}}
-  <p class="mini-note">This one is doze-aws failing, not refusing. A 5xx here is a bug in the emulator rather than in the caller, and is worth reporting.</p>
-  {{else}}
-  <p class="mini-note">doze-aws refuses this because AWS does. The rule comes from AWS's own service model, so a call that fails here would have failed on deploy.</p>
-  {{end}}
+  <p class="mini-note">{{$.Copy.Why}}{{if $.Copy.LinkPath}} <a href="{{$.Prefix}}{{$.Copy.LinkPath}}">{{$.Copy.LinkText}} →</a>{{end}}</p>
 </div>
 {{end}}
 <div class="td-sec">

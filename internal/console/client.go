@@ -147,6 +147,8 @@ type apiErr struct {
 	// errType is the response's x-amzn-ErrorType, for the services that carry
 	// the code there and not in the body.
 	errType string
+	// facts are the provenance headers (see TrafficEntry).
+	facts wireFacts
 }
 
 func (e *apiErr) Error() string { return fmt.Sprintf("aws %d: %s", e.status, e.body) }
@@ -189,7 +191,7 @@ func (b *backend) do(req *http.Request) ([]byte, error) {
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode/100 != 2 {
-		return nil, &apiErr{status: resp.StatusCode, body: string(body), errType: resp.Header.Get("x-amzn-ErrorType")}
+		return nil, &apiErr{status: resp.StatusCode, body: string(body), errType: resp.Header.Get("x-amzn-ErrorType"), facts: factsOf(resp.Header)}
 	}
 	if graphMutation(req) {
 		b.bustGraph()

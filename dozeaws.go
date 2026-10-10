@@ -496,6 +496,7 @@ func writeDenied(w http.ResponseWriter, e *awshttp.APIError) {
 	body, _ := json.Marshal(map[string]string{"__type": e.Code, "message": e.Message})
 	w.Header().Set("Content-Type", "application/x-amz-json-1.1")
 	w.Header().Set("x-amzn-ErrorType", e.Code)
+	awshttp.StampHeaders(w, e)
 	w.WriteHeader(e.Status)
 	w.Write(body)
 }

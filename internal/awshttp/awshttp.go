@@ -37,6 +37,15 @@ type APIError struct {
 	// X-Doze-Not-Built header, which is how the console and the model sweep
 	// recognise it without reading the status. Use NotBuilt to make one.
 	NotBuilt string
+	// Denied names what decided a 403: "iam" when a policy evaluated and said
+	// no. It is the fact the console reads to tell a denial from a refusal; the
+	// status cannot, because S3's BlockPublicPolicy and an object-lock
+	// refusal are 403s that no policy decided. Written as X-Doze-Denied.
+	Denied string
+	// Local marks a refusal that is a limit of doze-aws and not of AWS: the
+	// call would be accepted there. Written as X-Doze-Local-Limit, so the
+	// console can say "AWS would accept this" rather than "AWS refuses this".
+	Local bool
 }
 
 // The two kinds of operation doze-aws does not build. They are the two
@@ -46,8 +55,32 @@ const (
 	Deferred = "deferred"
 )
 
-// NotBuiltHeader names the response header a not-built refusal carries.
-const NotBuiltHeader = "X-Doze-Not-Built"
+// The response headers a refusal's provenance travels in. They are doze-aws's
+// own, outside anything an SDK reads, and the console and the sweep read them
+// in place of guessing from a status or from the spelling of a code.
+const (
+	NotBuiltHeader   = "X-Doze-Not-Built"
+	DeniedHeader     = "X-Doze-Denied"
+	LocalLimitHeader = "X-Doze-Local-Limit"
+)
+
+// StampHeaders writes e's provenance headers. The protocol writers reach it
+// through NoteFault, which every one of them already calls before the status;
+// a writer that does not call NoteFault (Lambda's) calls this.
+func StampHeaders(w http.ResponseWriter, e *APIError) {
+	if e == nil {
+		return
+	}
+	if e.NotBuilt != "" {
+		w.Header().Set(NotBuiltHeader, e.NotBuilt)
+	}
+	if e.Denied != "" {
+		w.Header().Set(DeniedHeader, e.Denied)
+	}
+	if e.Local {
+		w.Header().Set(LocalLimitHeader, "1")
+	}
+}
 
 // NotBuilt is the one answer to an operation that exists on AWS and is not
 // built here: HTTP 501, the code NotImplemented in the protocol's own error
@@ -293,11 +326,8 @@ func NoteFault(w http.ResponseWriter, id string, e *APIError) {
 	// every protocol writer already calls this before it writes the status, and
 	// it must not reach the fault log below, where an "answered 501" line with a
 	// request id would read as a bug worth reporting.
-	if e.NotBuilt != "" {
-		w.Header().Set(NotBuiltHeader, e.NotBuilt)
-		return
-	}
-	if e.Status < 500 {
+	StampHeaders(w, e)
+	if e.NotBuilt != "" || e.Status < 500 {
 		return
 	}
 	for cur := w; cur != nil; {

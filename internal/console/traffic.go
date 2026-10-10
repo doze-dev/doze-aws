@@ -14,6 +14,7 @@ import (
 
 	"github.com/doze-dev/doze-aws/awsident"
 	"github.com/doze-dev/doze-aws/internal/awshost"
+	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/internal/gateway"
 	"github.com/doze-dev/doze-aws/internal/rpcv2cbor"
 	"github.com/doze-dev/doze-aws/trace"
@@ -82,11 +83,17 @@ type TrafficEntry struct {
 	// x-amzn-ErrorType. Without it a refusal from either has a message and no
 	// code, and parseRefusal cannot say what it was.
 	ErrType string
-	Method  string
-	Path    string // path + query, for replay
-	Host    string
-	CT      string // Content-Type
-	Target  string // X-Amz-Target
+	// The provenance of a refusal, read off the response headers a service
+	// stamps (awshttp.StampHeaders): what the console needs to say WHICH kind
+	// of failure this was without guessing from a status or a code's spelling.
+	Denied     string // "iam" when a policy decided a 403
+	NotBuilt   string // "declined" | "deferred" for an operation doze-aws does not build
+	LocalLimit string // "1" when the refusal is a limit of doze-aws, not of AWS
+	Method     string
+	Path       string // path + query, for replay
+	Host       string
+	CT         string // Content-Type
+	Target     string // X-Amz-Target
 	// RequestID is the id this call answered with — the same value the SDK
 	// surfaces in an error and the server logs on a 500. It is what turns "my
 	// call failed with request id 7f3a…" into a row on this page.
@@ -176,7 +183,9 @@ func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ReqBody:  body,
 		RespBody: redact(sw.captured.String()), RespCT: sw.Header().Get("Content-Type"),
 		ErrType: sw.Header().Get("x-amzn-ErrorType"),
-		Method:  r.Method, Path: r.URL.RequestURI(), Host: r.Host,
+		Denied:  sw.Header().Get(awshttp.DeniedHeader), NotBuilt: sw.Header().Get(awshttp.NotBuiltHeader),
+		LocalLimit: sw.Header().Get(awshttp.LocalLimitHeader),
+		Method:     r.Method, Path: r.URL.RequestURI(), Host: r.Host,
 		CT: r.Header.Get("Content-Type"), Target: r.Header.Get("X-Amz-Target"),
 		// Read back off the response rather than plumbed in: the gateway mints
 		// the id and the protocol writer stamps it, and this recorder sits

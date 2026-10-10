@@ -85,7 +85,7 @@ func (s *Server) guardOne(w http.ResponseWriter, r *http.Request, bucket, action
 		// No bucket, no policy: the identity verdict decides, and the
 		// handler reports a missing bucket.
 		if aerr := s.guard.CheckIdentity(w, r, action, resource); aerr != nil {
-			return awshttp.Errf(403, "AccessDenied", "%s", aerr.Message)
+			return accessDenied(aerr)
 		}
 		return nil
 	}
@@ -96,7 +96,17 @@ func (s *Server) guardOne(w http.ResponseWriter, r *http.Request, bucket, action
 	}
 	if aerr := s.guard.Check(w, r, docs, action, resource); aerr != nil {
 		// S3 spells the refusal its own way.
-		return awshttp.Errf(403, "AccessDenied", "%s", aerr.Message)
+		return accessDenied(aerr)
 	}
 	return nil
+}
+
+// accessDenied is the guard's verdict in S3's spelling. It keeps the fact that
+// a policy decided, which the code and the status do not carry: S3 also answers
+// AccessDenied for an expired presigned URL and a legal hold, and neither is a
+// policy.
+func accessDenied(from *awshttp.APIError) *awshttp.APIError {
+	e := awshttp.Errf(403, "AccessDenied", "%s", from.Message)
+	e.Denied = from.Denied
+	return e
 }

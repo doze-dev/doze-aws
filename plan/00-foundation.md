@@ -30,6 +30,8 @@ is met and its test is named; "partly" says what is left.
 | B10 the guard passes every condition key | landed | (next commit) | `iamguard.RequestContext`, one function for both paths; D7 decides `aws:SecureTransport`. Enforce tests for the services that evaluate a resource policy re-run green. |
 | B9 one stored-policy validator | partly | (next commit) | `iampolicy.ValidateResourcePolicy` and its table test are in. S3 and IAM already validate their own; the other five wire it in their stages. |
 | B12 `provision` has two callers | landed | (next commit) | Resolved without a mode: `Force` already carries it. Pinned by `TestApplyAdoptsWhatIsThereAndDeletesNothing`. CFN-1 is a one-line mapper change in the CloudFormation stage. |
+| A2 the "why" line follows the state | landed | (next commit) | A refusal is classified from facts the server stamped (`X-Doze-Not-Built`, `X-Doze-Denied`, `X-Doze-Local-Limit`), never from a status or a code's spelling. Five states, each with its own label and sentence: Refused, Refused here, Denied, Not built, Failed. `TestCallStateClassifiesFromFacts`. **Found on the way:** SQS, SNS and S3 rebuilt the guard's error and dropped the stamp, so a policy denial would have read as a refusal; `TestEveryServicesDenialIsStampedAsOne` was red for those three and is green. |
+| A3 Refused purple, Denied amber | landed | (next commit) | `--refused` replaces `--denied`; Not built is dashed and neutral, Failed stays red. Wire rows, inspector and `fail_inline` read one copy table (`stateCopyFor`). |
 | B8 what the generator drops | open | | Found so far: see the note under B8. |
 
 ## A. Shared console behaviour

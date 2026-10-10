@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/doze-dev/doze-aws/internal/awshttp"
 )
 
 // ---- Traffic ----
@@ -126,7 +128,8 @@ func (c *Console) trafficEntry(w http.ResponseWriter, r *http.Request) {
 		"E": e, "Req": req, "Resp": resp,
 		"Millis": fmtMillis(e.Millis),
 		"Time":   e.At.Local().Format("15:04:05.000"),
-		"State":  callState(e.Status, e.Failure()),
+		"State":  callState(e.Status, e.Failure(), factsOfEntry(e)),
+		"Copy":   stateCopyFor(callState(e.Status, e.Failure(), factsOfEntry(e)), e.NotBuilt),
 	})
 }
 
@@ -246,7 +249,7 @@ func rowOf(e TrafficEntry, depth int) trafficRow {
 		Service: e.Service, Action: e.Action, Resource: e.Resource,
 		Status: e.Status, Millis: fmtMillis(e.Millis),
 		IsErr: e.Status >= 400, Body: e.ReqBody, Curl: e.Curl(), Seq: e.Seq,
-		Refused: ref, State: callState(e.Status, ref),
+		Refused: ref, State: callState(e.Status, ref, factsOfEntry(e)),
 		Depth: depth, Cascade: e.IsCascade(), Via: e.Via,
 		// Every row names a resource and none of them was a link, on the
 		// console's busiest surface. Pure string work, so it costs nothing at
@@ -255,25 +258,102 @@ func rowOf(e TrafficEntry, depth int) trafficRow {
 	}
 }
 
-// callState separates the three ways a call fails to be served. They are
-// genuinely different events and they send you to different places: a REFUSAL
-// means the request was malformed and the constraint that caught it is named on
-// the row; a DENIAL means the request was fine and a policy said no; an ERROR
-// means doze-aws itself broke, which is a bug here rather than in the caller.
-func callState(status int, ref *Refusal) string {
+// wireFacts are the provenance headers a service stamped on a response.
+type wireFacts struct {
+	Denied   string // "iam"
+	NotBuilt string // "declined" | "deferred"
+	Local    string // "1"
+}
+
+func factsOf(h http.Header) wireFacts {
+	return wireFacts{
+		Denied:   h.Get(awshttp.DeniedHeader),
+		NotBuilt: h.Get(awshttp.NotBuiltHeader),
+		Local:    h.Get(awshttp.LocalLimitHeader),
+	}
+}
+
+func factsOfEntry(e TrafficEntry) wireFacts {
+	return wireFacts{Denied: e.Denied, NotBuilt: e.NotBuilt, Local: e.LocalLimit}
+}
+
+// callState separates the ways a call fails to be served. They are different
+// events and they send you to different places, so each is decided from a fact
+// the service stamped and not from a status or the spelling of a code:
+//
+//	notbuilt     the operation is one doze-aws does not build. Nothing is
+//	             wrong with the request, and nothing broke.
+//	denied       a policy evaluated and said no. The request was well formed;
+//	             the fix is the policy. (A 403 alone is not this: S3's
+//	             BlockPublicPolicy and an object-lock refusal are 403s no
+//	             policy decided.)
+//	error        doze-aws itself broke: a 5xx that is not a refusal. A bug here
+//	             rather than in the caller.
+//	refusedhere  a 4xx for a limit that is doze-aws's own: AWS would accept it.
+//	refused      a 4xx: the request breaks a rule of the service.
+//
+// A 501, or a refusal in the legacy UnsupportedOperationException shape doze
+// still answers for operations it has not moved to the agreed refusal, is
+// notbuilt. The legacy half goes when the model sweep's baseline has no
+// legacystub entries.
+func callState(status int, ref *Refusal, f wireFacts) string {
 	switch {
+	case f.NotBuilt != "" || status == http.StatusNotImplemented || legacyNotBuilt(ref):
+		return "notbuilt"
+	case f.Denied != "":
+		return "denied"
 	case status >= 500:
 		return "error"
-	case status == 403:
-		return "denied"
-	case ref != nil && (strings.Contains(ref.Code, "AccessDenied") ||
-		strings.Contains(ref.Code, "NotAuthorized") ||
-		strings.Contains(ref.Code, "AuthorizationError")):
-		return "denied"
+	case f.Local != "" && status >= 400:
+		return "refusedhere"
 	case status >= 400:
 		return "refused"
 	}
 	return "served"
+}
+
+// legacyNotBuilt recognises the refusal doze-aws's older stub tables give:
+// UnsupportedOperationException, with a message that says doze-aws. KMS and
+// others return the same code for real reasons, which is why the message is
+// read too.
+func legacyNotBuilt(ref *Refusal) bool {
+	return ref != nil && ref.Code == "UnsupportedOperationException" && strings.Contains(ref.Message, "doze-aws")
+}
+
+// stateView is the words for a failure state, written once. Label is the word
+// as well as the colour (the state must read without it); Why is the sentence
+// under it; Link, when set, is where the fix lives.
+type stateView struct {
+	Label    string
+	Why      string
+	LinkPath string // prefix-relative
+	LinkText string
+}
+
+func stateCopyFor(state, notBuilt string) stateView {
+	switch state {
+	case "notbuilt":
+		why := "doze-aws does not build this operation, and says so rather than pretending. Nothing is wrong with the request."
+		switch notBuilt {
+		case "declined":
+			why = "doze-aws declines this operation: building it would mean pretending to something that is not here. Nothing is wrong with the request."
+		case "deferred":
+			why = "doze-aws has not built this operation yet. Nothing is wrong with the request."
+		}
+		return stateView{Label: "Not built", Why: why}
+	case "denied":
+		return stateView{Label: "Denied",
+			Why:      "A policy decided this, not the input: the request was well formed. The fix is the policy.",
+			LinkPath: "/iam", LinkText: "Access log"}
+	case "error":
+		return stateView{Label: "Failed",
+			Why: "This is doze-aws failing rather than refusing. A 5xx here is a bug in the emulator, not in the call, and is worth reporting."}
+	case "refusedhere":
+		return stateView{Label: "Refused here",
+			Why: "AWS would accept this. doze-aws refuses it because of a limit of its own."}
+	}
+	return stateView{Label: "Refused",
+		Why: "doze-aws refused the request: it breaks a rule of the service. The input is what to change."}
 }
 
 // ---- The deck ----

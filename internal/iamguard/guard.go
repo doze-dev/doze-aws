@@ -242,8 +242,10 @@ func (g Guard) Check(w http.ResponseWriter, r *http.Request, docs []*iampolicy.D
 		}
 		return nil
 	}
-	return awshttp.Errf(403, "AccessDeniedException",
+	e := awshttp.Errf(403, "AccessDeniedException",
 		"User: %s is not authorized to perform: %s on resource: %s because %s", principal, action, orDash(resource), reason)
+	e.Denied = "iam"
+	return e
 }
 
 // combine applies the same-account rule to a resource verdict and the

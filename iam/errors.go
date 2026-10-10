@@ -46,5 +46,7 @@ func errAccessDenied(principal, action, resource string) *apiError {
 	if resource != "" {
 		msg += " on resource: " + resource
 	}
-	return awshttp.Errf(403, "AccessDenied", "%s", msg)
+	e := awshttp.Errf(403, "AccessDenied", "%s", msg)
+	e.Denied = "iam"
+	return e
 }

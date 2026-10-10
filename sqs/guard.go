@@ -36,7 +36,7 @@ func (s *Server) guardRequest(w http.ResponseWriter, r *http.Request, req *reque
 		}
 	}
 	if aerr := s.guard.Check(w, r, docs, iamguard.Action("sqs", req.action), resource); aerr != nil {
-		return &apiError{Code: aerr.Code, Status: aerr.Status, Message: aerr.Message, SenderFault: true}
+		return &apiError{Code: aerr.Code, Status: aerr.Status, Message: aerr.Message, SenderFault: true, Denied: aerr.Denied}
 	}
 	return nil
 }

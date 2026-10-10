@@ -46,7 +46,7 @@ func (srv *Server) guardRequest(w http.ResponseWriter, r *http.Request, action s
 	}
 	if aerr := srv.guard.Check(w, r, docs, iamguard.Action("sns", action), arn); aerr != nil {
 		// SNS spells a refusal AuthorizationError, as the SDKs expect.
-		return &apiError{Code: "AuthorizationError", Status: aerr.Status, Message: aerr.Message, SenderFault: true}
+		return &apiError{Code: "AuthorizationError", Status: aerr.Status, Message: aerr.Message, SenderFault: true, Denied: aerr.Denied}
 	}
 	return nil
 }
