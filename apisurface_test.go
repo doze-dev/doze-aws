@@ -112,6 +112,10 @@ func publicSurface(t *testing.T) []string {
 			if path != "." && (notPublic[d.Name()] || strings.HasPrefix(d.Name(), ".")) {
 				return filepath.SkipDir
 			}
+			// A nested module (module/, the doze plugin) is not this module's API.
+			if _, serr := os.Stat(filepath.Join(path, "go.mod")); path != "." && serr == nil {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {

@@ -57,6 +57,10 @@ func TestNoIdentityIsWrittenIntoCode(t *testing.T) {
 			if skipDirs[d.Name()] && path != "." {
 				return fs.SkipDir
 			}
+			// A nested module (module/, the doze plugin) is built and checked on its own.
+			if _, serr := os.Stat(filepath.Join(path, "go.mod")); path != "." && serr == nil {
+				return fs.SkipDir
+			}
 			return nil
 		}
 		// The console's templates are code that prints an identity: a literal
