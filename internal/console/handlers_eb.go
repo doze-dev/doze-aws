@@ -47,6 +47,18 @@ func (c *Console) ebBus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	buses, _ := c.be.ListBuses(r.Context())
+	// ListRules answers an empty list for a bus that does not exist (EB-31), so
+	// the page asks the bus list itself rather than draw a bus nobody made.
+	known := false
+	for _, b := range buses {
+		if b.Name == bus {
+			known = true
+		}
+	}
+	if !known && buses != nil {
+		c.fail(w, resourceNotFound("Event bus "+bus+" does not exist."))
+		return
+	}
 	arcs, _ := c.be.ListArchives(r.Context(), busARN(bus))
 	reps, _ := c.be.ListReplays(r.Context())
 	// Tabs, like every other detail page. Everything used to render at once,

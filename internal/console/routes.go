@@ -16,6 +16,7 @@ package console
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -26,7 +27,7 @@ func (c *Console) routes() {
 	// Before routing: refuse a cross-origin write, let a HEAD be answered by
 	// its GET (ServeMux did; chi does not), and note the route for the e2e
 	// suite's route gate.
-	r.Use(c.sameOrigin, middleware.GetHead, c.recordRoute)
+	r.Use(c.sameOrigin, middleware.GetHead, c.recordRoute, c.navigation)
 
 	r.Route(c.prefix, func(r chi.Router) {
 		// An unmatched GET is the console's not-found page, not a blank 404. Set
@@ -100,6 +101,34 @@ func (c *Console) sameOrigin(next http.Handler) http.Handler {
 				http.Error(w, "cross-origin request refused", http.StatusForbidden)
 				return
 			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// pageWriter marks a response as the answer to a browser navigation: a GET for
+// a page, not an htmx request for a fragment. fail reads it to decide whether a
+// failure is a fragment to place or a page to draw.
+type pageWriter struct {
+	http.ResponseWriter
+	r *http.Request
+}
+
+func (p *pageWriter) Unwrap() http.ResponseWriter { return p.ResponseWriter }
+
+func (p *pageWriter) Flush() {
+	if f, ok := p.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// navigation tells the handlers below whether they are answering a page load.
+// htmx marks every request it makes; a fetch() for JSON does not ask for HTML.
+func (c *Console) navigation(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.Header.Get("HX-Request") == "" &&
+			strings.Contains(r.Header.Get("Accept"), "text/html") {
+			w = &pageWriter{ResponseWriter: w, r: r}
 		}
 		next.ServeHTTP(w, r)
 	})

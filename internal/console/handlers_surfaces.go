@@ -46,6 +46,29 @@ func (c *Console) notFound(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// failPage draws a failed page load inside the shell, so the rail is still
+// there and the way back is one click: the bare error fragment it replaces was
+// a document with no chrome. The list pane is not drawn: it is built from the
+// service's own listing, which may be the very call that failed.
+func (c *Console) failPage(w http.ResponseWriter, r *http.Request, err error) {
+	f := failView(err)
+	seg := strings.Trim(strings.TrimPrefix(r.URL.Path, c.prefix), "/")
+	if i := strings.Index(seg, "/"); i > 0 {
+		seg = seg[:i]
+	}
+	back, backName := c.guessSection(seg)
+	status, heading := http.StatusBadRequest, "That could not be opened"
+	if strings.Contains(f.Code, "NotFound") || strings.Contains(f.Code, "NoSuch") ||
+		strings.Contains(f.Code, "NonExistent") || strings.Contains(f.Code, "DoesNotExist") {
+		status, heading = http.StatusNotFound, "Not found"
+	}
+	w.WriteHeader(status)
+	c.render(w, r, "fail_page", map[string]any{
+		"Title": heading, "Heading": heading, "Failure": f, "Back": back, "BackName": backName,
+		"Path": strings.TrimPrefix(r.URL.Path, c.prefix),
+	})
+}
+
 // guessSection turns a missed path segment into a destination. It matches three
 // ways, in order: the section key, a common noun for what the section holds, and
 // a shared prefix — which is what catches an ordinary typo like /lamda.

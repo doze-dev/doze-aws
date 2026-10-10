@@ -151,6 +151,13 @@ type apiErr struct {
 	facts wireFacts
 }
 
+// resourceNotFound is a missing resource the console found for itself, in the
+// shape a service's own answer would have, so the failure is drawn the same way.
+func resourceNotFound(msg string) error {
+	body, _ := json.Marshal(map[string]string{"__type": "ResourceNotFoundException", "message": msg})
+	return &apiErr{status: http.StatusBadRequest, body: string(body), errType: "ResourceNotFoundException"}
+}
+
 func (e *apiErr) Error() string { return fmt.Sprintf("aws %d: %s", e.status, e.body) }
 
 // errText is an error as a result panel shows it: a refused call reduced to

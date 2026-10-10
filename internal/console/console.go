@@ -271,6 +271,12 @@ func toast(w http.ResponseWriter, msg string) {
 // default. htmx 4 swaps every status except 204 and 304, so it now carries the
 // whole guarantee on its own.
 func (c *Console) fail(w http.ResponseWriter, err error) {
+	// A browser navigation has no htmx listener to place a fragment: the bare
+	// fragment would be the whole document, with no chrome and no way back.
+	if pw, ok := w.(*pageWriter); ok {
+		c.failPage(pw.ResponseWriter, pw.r, err)
+		return
+	}
 	w.Header().Set("HX-Doze-Error", "1")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusBadRequest)

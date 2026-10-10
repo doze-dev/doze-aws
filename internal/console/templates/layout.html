@@ -344,6 +344,19 @@ return"= "+p.join(" ");};</script>
 </section>
 {{end}}
 
+{{/* fail_page is a failed page load, drawn in the shell. The same failure
+     block the actions use, with a heading and the way back. */}}
+{{define "fail_page"}}{{template "shell_top" .}}
+<section class="detail">
+  <div class="det-h"><div><h1 class="det-title">{{.Heading}}</h1>
+    <p class="det-sub">Nothing could be shown at <span class="mono">{{.Path}}</span>.</p></div></div>
+  <div class="det-b">
+    {{template "fail_inline" .Failure}}
+    {{if .Back}}<p class="mini-note"><a href="{{.Back}}">Back to {{.BackName}}</a></p>{{end}}
+  </div>
+</section>
+{{template "shell_bottom" .}}{{end}}
+
 {{define "notfound"}}{{template "shell_top" .}}
 <section class="detail">
   <div class="det-h"><div><h1 class="det-title">Not found</h1>
