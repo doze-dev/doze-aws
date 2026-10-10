@@ -1,8 +1,9 @@
 package sqs
 
 // A queue's tags are held to the limits AWS states: a key of 1 to 128
-// characters and a value of 0 to 256, no key beginning "aws:" (reserved), and
-// at most 50 tags on a queue. TagQueue accepted all of it (SQS-9).
+// characters and a value of 0 to 256, and no key beginning "aws:" (reserved).
+// TagQueue accepted all of it (SQS-9). Fifty tags is the model's recommendation,
+// not a limit it states.
 //
 // doc: the SQS developer guide, "Configuring cost allocation tags for Amazon
 // SQS" (the tag restrictions list).
@@ -56,7 +57,8 @@ func TestTagLimits(t *testing.T) {
 		t.Errorf("a key of 128 and a value of 256 were refused: %v", err)
 	}
 
-	// Fifty tags, and not a fifty-first.
+	// Fifty tags, and a fifty-first: the model says only that more than fifty
+	// "isn't recommended", so it is not refused.
 	all := map[string]string{}
 	for i := 0; i < 48; i++ {
 		all["t"+strconv.Itoa(i)] = "v"
@@ -67,8 +69,8 @@ func TestTagLimits(t *testing.T) {
 	if count() != 50 {
 		t.Fatalf("expected 50 tags, have %d", count())
 	}
-	if err := tag(map[string]string{"one-more": "v"}); err == nil {
-		t.Error("a fifty-first tag was accepted")
+	if err := tag(map[string]string{"one-more": "v"}); err != nil {
+		t.Errorf("a fifty-first tag was refused, though the model calls fifty a recommendation: %v", err)
 	}
 	// Overwriting a tag that is there is not a new one.
 	if err := tag(map[string]string{"t1": "changed"}); err != nil {

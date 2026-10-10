@@ -102,7 +102,7 @@ func hAddPermission(s *store, req *request) (any, *apiError) {
 		if a == "*" {
 			acts = append(acts, "SQS:*")
 		} else {
-			acts = append(acts, "SQS:"+a)
+			acts = append(acts, "SQS:"+strings.TrimPrefix(strings.TrimPrefix(a, "SQS:"), "sqs:"))
 		}
 	}
 	doc.Statement = append(doc.Statement, map[string]any{
@@ -116,12 +116,17 @@ func hAddPermission(s *store, req *request) (any, *apiError) {
 	return nil, nil
 }
 
-// permissionActions are the values the AddPermission page lists for Actions
-// (doc: the AddPermission API reference), and "*" for all of them.
+// permissionActions are the values AddPermission takes for Actions: "the name
+// of any action or *" (doc: the model's AddPermission), which is any of SQS's
+// own operations.
 var permissionActions = map[string]bool{
-	"*": true, "ChangeMessageVisibility": true, "DeleteMessage": true, "GetQueueAttributes": true,
-	"GetQueueUrl": true, "ListDeadLetterSourceQueues": true, "ListQueues": true, "PurgeQueue": true,
-	"ReceiveMessage": true, "SendMessage": true,
+	"*": true, "AddPermission": true, "CancelMessageMoveTask": true, "ChangeMessageVisibility": true,
+	"ChangeMessageVisibilityBatch": true, "CreateQueue": true, "DeleteMessage": true,
+	"DeleteMessageBatch": true, "DeleteQueue": true, "GetQueueAttributes": true, "GetQueueUrl": true,
+	"ListDeadLetterSourceQueues": true, "ListMessageMoveTasks": true, "ListQueueTags": true,
+	"ListQueues": true, "PurgeQueue": true, "ReceiveMessage": true, "RemovePermission": true,
+	"SendMessage": true, "SendMessageBatch": true, "SetQueueAttributes": true,
+	"StartMessageMoveTask": true, "TagQueue": true, "UntagQueue": true,
 }
 
 // validPermission applies what the AddPermission page states: a label of at
@@ -151,7 +156,7 @@ func validPermission(label string, accounts, actions []string) *apiError {
 		}
 	}
 	for _, a := range actions {
-		if !permissionActions[a] {
+		if !permissionActions[strings.TrimPrefix(strings.TrimPrefix(a, "SQS:"), "sqs:")] {
 			return bad("Actions", "\""+a+"\" is not an action AddPermission accepts.")
 		}
 	}

@@ -64,7 +64,7 @@
               <input class="input" name="receive_wait" type="number" min="0" max="20" placeholder="0" x-model="v">
               <span class="hint" x-text="v>0 ? (&apos;consumers wait up to &apos;+v+&apos;s for a message instead of returning empty&apos;) : &apos;0 = short polling: a receive returns immediately, empty or not&apos;"></span></div>
             <div class="field"><label>Max message size <span class="dim">bytes</span></label>
-              <input class="input" name="max_bytes" type="number" min="1024" max="262144" placeholder="262144"></div>
+              <input class="input" name="max_bytes" type="number" min="1024" max="1048576" placeholder="1048576"></div>
           </div>
           <div class="fgrid" x-show="fifo" x-cloak>
             <div class="field"><label>Deduplication scope</label>

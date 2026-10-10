@@ -68,6 +68,14 @@ func checkBatch(op string, ids []string) *apiError {
 	return nil
 }
 
+// errReceiptHandle is a handle that is not one: the model lists
+// ReceiptHandleIsInvalid for DeleteMessage and ChangeMessageVisibility. The
+// wording is memory; the code is the model's.
+func errReceiptHandle(handle string) *apiError {
+	return &apiError{Code: "ReceiptHandleIsInvalid", Status: 400, SenderFault: true,
+		Message: "The input receipt handle \"" + handle + "\" is not a valid receipt handle."}
+}
+
 func errInvalid(msg string) *apiError {
 	return &apiError{Code: "InvalidParameterValue", Status: 400, Message: msg, SenderFault: true}
 }

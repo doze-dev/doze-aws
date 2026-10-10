@@ -21,11 +21,11 @@ import (
 
 // Defaults matching AWS SQS.
 const (
-	defVisibilityTimeout = 30     // seconds
-	defRetentionPeriod   = 345600 // 4 days, seconds
-	defMaxMessageSize    = 262144 // 256 KiB
-	maxWaitTimeSeconds   = 20     // long-poll ceiling
-	dedupWindow          = 5 * 60 // seconds, FIFO dedup window
+	defVisibilityTimeout = 30      // seconds
+	defRetentionPeriod   = 345600  // 4 days, seconds
+	defMaxMessageSize    = 1048576 // 1 MiB (doc: the model's MaximumMessageSize and SendMessage)
+	maxWaitTimeSeconds   = 20      // long-poll ceiling
+	dedupWindow          = 5 * 60  // seconds, FIFO dedup window
 	maxReceiveBatch      = 10
 	maxListQueues        = 1000  // MaxResults on ListQueues, and a page's size
 	maxDelaySeconds      = 900   // DelaySeconds on a send, and on a queue
@@ -82,6 +82,9 @@ type message struct {
 	VisibleAt     int64           `json:"visible_at"` // unixnano; <= now => visible
 	ReceiveCount  int             `json:"receive_count"`
 	FirstReceived int64           `json:"first_received"` // unixnano, 0 if never
+	// LastReceived is when the current receipt began. ChangeMessageVisibility
+	// counts the twelve hours from it, and a new receive starts the count again.
+	LastReceived int64 `json:"last_received,omitempty"`
 	// SysAttrs are SQS's own message system attributes — currently just
 	// AWSTraceHeader. They are deliberately NOT part of Attrs: system
 	// attributes are excluded from MD5OfMessageAttributes and are returned
@@ -355,12 +358,14 @@ func (s *store) sendIn(tx *bolt.Tx, q *queue, body string, attrs map[string]attr
 	if size := messageSize(body, attrs); q.MaxMessageSize > 0 && size > q.MaxMessageSize {
 		return nil, false, errInvalid(fmt.Sprintf("One or more parameters are invalid. Reason: Message must be shorter than %d bytes (the body and its attributes were %d).", q.MaxMessageSize, size))
 	}
+	// A group id is held to its format on either kind of queue: on a standard
+	// queue it names a tenant for fair queues (doc: the model's MessageGroupId).
+	if groupID != "" && !validFIFOID(groupID) {
+		return nil, false, errInvalid("Value " + groupID + " for parameter MessageGroupId is invalid. Reason: MessageGroupId can contain up to 128 alphanumeric characters and punctuation (!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~).")
+	}
 	if q.FIFO {
 		if groupID == "" {
 			return nil, false, errInvalid("The request must contain the parameter MessageGroupId.")
-		}
-		if !validFIFOID(groupID) {
-			return nil, false, errInvalid("Value " + groupID + " for parameter MessageGroupId is invalid. Reason: MessageGroupId can contain up to 128 alphanumeric characters and punctuation (!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~).")
 		}
 		if dedupID != "" && !validFIFOID(dedupID) {
 			return nil, false, errInvalid("Value " + dedupID + " for parameter MessageDeduplicationId is invalid. Reason: MessageDeduplicationId can contain up to 128 alphanumeric characters and punctuation (!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~).")
@@ -369,8 +374,10 @@ func (s *store) sendIn(tx *bolt.Tx, q *queue, body string, attrs map[string]attr
 		if delay >= 0 {
 			return nil, false, errInvalid("The request include parameter that is not valid for this queue type: a FIFO queue does not take DelaySeconds on a message.")
 		}
-	} else if groupID != "" || dedupID != "" {
-		return nil, false, errInvalid("The request include parameter that is not valid for this queue type: MessageGroupId and MessageDeduplicationId belong to FIFO queues.")
+	} else if dedupID != "" {
+		// "This parameter applies only to FIFO queues." The code and wording
+		// are memory; the recording queue holds the check.
+		return nil, false, errInvalid("The request include parameter that is not valid for this queue type: MessageDeduplicationId belongs to FIFO queues.")
 	}
 	if delay < 0 {
 		delay = q.DelaySeconds

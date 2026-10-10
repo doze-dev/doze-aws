@@ -230,7 +230,7 @@ func exportQueues(ctx context.Context, c *client, s *Stack) error {
 			if p := a["Policy"]; p != "" {
 				q.Policy = Doc{JSON: p}
 			}
-			if ms := atoiDefault(a["MaximumMessageSize"], 0); ms != 0 && ms != 262144 {
+			if ms := atoiDefault(a["MaximumMessageSize"], 0); ms != 0 && ms != 1048576 {
 				q.MaxSize = ms
 			}
 			if rp := a["RedrivePolicy"]; rp != "" {

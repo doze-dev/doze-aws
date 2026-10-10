@@ -70,6 +70,17 @@ func hListDeadLetterSourceQueues(s *store, req *request) (any, *apiError) {
 	return dlqSourcesResult{QueueURLs: urls, NextToken: next}, nil
 }
 
+// moveTaskError answers a queue that is not there the way the move-task
+// operations do: their modelled error is ResourceNotFoundException, not the
+// QueueDoesNotExist of the queue operations.
+func moveTaskError(err error) *apiError {
+	aerr := asAPIError(err)
+	if aerr != nil && aerr.Code == "AWS.SimpleQueueService.NonExistentQueue" {
+		return &apiError{Code: "ResourceNotFoundException", Status: 400, SenderFault: true, Message: aerr.Message}
+	}
+	return aerr
+}
+
 type startMoveResult struct {
 	TaskHandle string `json:"TaskHandle" xml:"TaskHandle"`
 }
@@ -105,17 +116,24 @@ func hStartMessageMoveTask(s *store, req *request) (any, *apiError) {
 	}
 	task, err := s.StartMessageMoveTask(source, dest, perSecond)
 	if err != nil {
-		return nil, asAPIError(err)
+		return nil, moveTaskError(err)
 	}
 	return startMoveResult{TaskHandle: task.Handle}, nil
 }
 
 func hListMessageMoveTasks(s *store, req *request) (any, *apiError) {
 	source := arnQueueName(req.p.str("SourceArn"))
-	max := req.p.intDefault("MaxResults", 1)
+	// doc: "The default is 1 ... The upper limit is 10."
+	max, present, aerr := req.p.intParam("MaxResults", 1, 10)
+	if aerr != nil {
+		return nil, aerr
+	}
+	if !present {
+		max = 1
+	}
 	tasks, err := s.ListMessageMoveTasks(source, max)
 	if err != nil {
-		return nil, asAPIError(err)
+		return nil, moveTaskError(err)
 	}
 	var res listMoveTasksResult
 	for _, t := range tasks {

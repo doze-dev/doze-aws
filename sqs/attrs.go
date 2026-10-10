@@ -21,8 +21,24 @@ var attrRange = map[string][2]int{
 	"VisibilityTimeout":             {0, 43200},
 	"DelaySeconds":                  {0, 900},
 	"MessageRetentionPeriod":        {60, 1209600},
-	"MaximumMessageSize":            {1024, 262144},
+	"MaximumMessageSize":            {1024, 1048576},
 	"ReceiveMessageWaitTimeSeconds": {0, 20},
+	// doc: "between 60 seconds (1 minute) and 86,400 seconds (24 hours)".
+	"KmsDataKeyReusePeriodSeconds": {60, 86400},
+}
+
+// boolAttr reads one of the attributes whose documented values are "true" and
+// "false". Anything else is refused, not read as false: FifoQueue "yes" used
+// to make a standard queue and answer 200. Case is accepted either way, which
+// is not established (recording queue).
+func boolAttr(attr, v string) (bool, error) {
+	switch strings.ToLower(strings.TrimSpace(v)) {
+	case "true":
+		return true, nil
+	case "false", "":
+		return false, nil
+	}
+	return false, errInvalidAttrValue(attr, "valid values are true and false")
 }
 
 // atoiAttr parses a numeric attribute strictly and range-checks it. The old
@@ -50,9 +66,17 @@ func applyAttrs(q *queue, attrs map[string]string, lookup queueLookup) error {
 	for k, v := range attrs {
 		switch k {
 		case "FifoQueue":
-			q.FIFO = v == "true"
+			b, err := boolAttr(k, v)
+			if err != nil {
+				return err
+			}
+			q.FIFO = b
 		case "ContentBasedDeduplication":
-			q.ContentBasedDedup = v == "true"
+			b, err := boolAttr(k, v)
+			if err != nil {
+				return err
+			}
+			q.ContentBasedDedup = b
 		case "VisibilityTimeout":
 			n, err := atoiAttr(k, v)
 			if err != nil {
@@ -159,6 +183,18 @@ func applyAttrs(q *queue, attrs map[string]string, lookup queueLookup) error {
 			if !storedAttrs[k] {
 				return &apiError{Code: "InvalidAttributeName", Status: 400, SenderFault: true,
 					Message: "Unknown Attribute " + k + "."}
+			}
+			switch k {
+			case "KmsDataKeyReusePeriodSeconds":
+				if v != "" {
+					if _, err := atoiAttr(k, v); err != nil {
+						return err
+					}
+				}
+			case "SqsManagedSseEnabled":
+				if _, err := boolAttr(k, v); err != nil {
+					return err
+				}
 			}
 			if q.Attrs == nil {
 				q.Attrs = map[string]string{}

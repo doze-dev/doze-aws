@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -121,6 +122,27 @@ func (s *Server) janitor() {
 	}
 }
 
+// checkOwner refuses a queue that belongs to another account. A QueueUrl is
+// https://host/<account>/<name>, and GetQueueUrl takes the owner as a
+// parameter: the queue in another account is not the one here with the same
+// name. Resolving by name alone let a hard-coded account id work locally.
+func (s *Server) checkOwner(req *request) *apiError {
+	own := s.store.id.Account()
+	if owner := req.p.str("QueueOwnerAWSAccountId"); owner != "" && owner != own {
+		return errQueueMissing(req.p.str("QueueName"))
+	}
+	if u := req.p.str("QueueUrl"); u != "" {
+		trim := strings.TrimRight(u, "/")
+		parts := strings.Split(trim, "/")
+		if n := len(parts); n >= 2 {
+			if acct := parts[n-2]; len(acct) == 12 && strings.Trim(acct, "0123456789") == "" && acct != own {
+				return errQueueMissing(parts[n-1])
+			}
+		}
+	}
+	return nil
+}
+
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	req, aerr := parseRequest(r)
 	if aerr != nil {
@@ -144,6 +166,11 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		writeError(w, req.json, &apiError{
 			Code: aerr.Code, Status: aerr.Status, Message: aerr.Message, SenderFault: true,
 		})
+		return
+	}
+	if aerr := s.checkOwner(req); aerr != nil {
+		s.logf("sqs: %s -> %s", req.action, aerr.Code)
+		writeError(w, req.json, aerr)
 		return
 	}
 	if err := s.guardRequest(w, r, req); err != nil {

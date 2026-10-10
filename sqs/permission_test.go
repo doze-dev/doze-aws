@@ -4,7 +4,7 @@ package sqs
 //
 // doc: the AddPermission and RemovePermission API reference pages. Label is at
 // most 80 characters of letters, digits, hyphens and underscores; the actions
-// are the ten the page lists; the principals are AWS account numbers. The exact
+// are "the name of any action or *"; the principals are AWS account numbers. The exact
 // message text is `memory` and is not asserted — only that it is a 400.
 
 import (
@@ -54,7 +54,7 @@ func TestAddPermissionRules(t *testing.T) {
 			{"a label with a space", "has space", []string{acct}, []string{"SendMessage"}, false},
 			{"a label with a dot", "has.dot", []string{acct}, []string{"SendMessage"}, false},
 			{"underscore and hyphen", "a_b-c" + protocol, []string{acct}, []string{"SendMessage"}, true},
-			{"every action the page lists", "all-" + protocol, []string{acct},
+			{"a handful of actions", "all-" + protocol, []string{acct},
 				[]string{"ChangeMessageVisibility", "DeleteMessage", "GetQueueAttributes", "GetQueueUrl",
 					"ListDeadLetterSourceQueues", "ListQueues", "PurgeQueue", "ReceiveMessage", "SendMessage"}, true},
 			{"the wildcard", "star-" + protocol, []string{acct}, []string{"*"}, true},

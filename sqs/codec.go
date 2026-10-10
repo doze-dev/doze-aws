@@ -412,6 +412,12 @@ func writeError(w http.ResponseWriter, isJSON bool, err *apiError) {
 		japi.WriteError(w, &e)
 		return
 	}
+	// The model gives these a 404 on the Query protocol (awsQueryError); the
+	// JSON protocol answers 400 for all of them.
+	switch e.Code {
+	case "ReceiptHandleIsInvalid", "ResourceNotFoundException", "InvalidAddress":
+		e.Status = 404
+	}
 	qapi.WriteError(w, &e)
 }
 

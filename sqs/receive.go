@@ -138,6 +138,7 @@ func (s *store) receiveOnce(queue string, max, visibilityOverride int) (out []me
 			if m.FirstReceived == 0 {
 				m.FirstReceived = nowN
 			}
+			m.LastReceived = nowN
 			m.VisibleAt = now.Add(time.Duration(vis) * time.Second).UnixNano()
 			deliver = append(deliver, m)
 			if q.FIFO {
@@ -278,7 +279,7 @@ func (s *store) DeleteBatch(queue string, handles []string) ([]error, error) {
 func (s *store) deleteIn(tx *bolt.Tx, queue, handle string) error {
 	seqKey, id, err := decodeHandle(handle)
 	if err != nil {
-		return errInvalid("invalid receipt handle")
+		return errReceiptHandle(handle)
 	}
 	mb := tx.Bucket(msgBucket(queue))
 	if mb == nil {
@@ -336,7 +337,7 @@ func (s *store) ChangeVisibilityBatch(queue string, items []visibilityItem) ([]e
 func (s *store) changeVisibilityIn(tx *bolt.Tx, queue, handle string, timeout int) error {
 	seqKey, id, err := decodeHandle(handle)
 	if err != nil {
-		return errInvalid("invalid receipt handle")
+		return errReceiptHandle(handle)
 	}
 	// Twelve hours is as long as a message can be held. The model gives this
 	// member no range, so 43201 was accepted — and so was -1.
@@ -366,6 +367,17 @@ func (s *store) changeVisibilityIn(tx *bolt.Tx, queue, handle string, timeout in
 	if m.VisibleAt <= s.now().UnixNano() {
 		return &apiError{Code: "AWS.SimpleQueueService.MessageNotInflight", Status: 400, SenderFault: true,
 			Message: "Value " + handle + " for parameter ReceiptHandle is invalid. Reason: The message referred to is not in flight."}
+	}
+	// "If you attempt to set the VisibilityTimeout to a value greater than the
+	// maximum time left, Amazon SQS returns an error" (doc: the model's
+	// ChangeMessageVisibility). The maximum is 12 hours from the receive; whole
+	// seconds are counted, so a change made in the second of the receive can
+	// still take all of it.
+	if m.LastReceived != 0 {
+		elapsed := int(s.now().Sub(time.Unix(0, m.LastReceived)) / time.Second)
+		if left := 43200 - elapsed; timeout > left {
+			return errInvalid(fmt.Sprintf("Value %d for parameter VisibilityTimeout is invalid. Reason: Total visibility timeout for the message cannot exceed 43200 seconds (12 hours) from the receive; %d are left.", timeout, max(left, 0)))
+		}
 	}
 	m.VisibleAt = s.now().Add(time.Duration(timeout) * time.Second).UnixNano()
 	return putMessage(mb, &m)

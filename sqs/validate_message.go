@@ -19,7 +19,7 @@ const (
 	maxMessageAttributes = 10
 	maxAttrNameLen       = 256
 	maxFIFOIDLen         = 128
-	maxBatchBytes        = 262144 // the sum of a batch's message sizes
+	maxBatchBytes        = 1048576 // the sum of a batch's message sizes (doc: SendMessageBatch)
 )
 
 // validMessageRune is the character set of a body and of a String attribute's
@@ -55,7 +55,9 @@ func validateBody(body string) *apiError {
 		return errInvalid("The request must contain the parameter MessageBody.")
 	}
 	if !validMessageText(body) {
-		return errInvalid("Invalid characters found. Valid unicode characters are #x9 | #xA | #xD | #x20 to #xD7FF | #xE000 to #xFFFD | #x10000 to #x10FFFF")
+		// doc: "rejects the message and returns an InvalidMessageContents error".
+		return &apiError{Code: "InvalidMessageContents", Status: 400, SenderFault: true,
+			Message: "Invalid characters found. Valid unicode characters are #x9 | #xA | #xD | #x20 to #xD7FF | #xE000 to #xFFFD | #x10000 to #x10FFFF"}
 	}
 	return nil
 }

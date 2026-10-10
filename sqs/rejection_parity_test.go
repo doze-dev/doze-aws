@@ -116,9 +116,9 @@ func TestSetQueueAttributesRejectsWhatAWSRejects(t *testing.T) {
 		attrs:    map[string]string{"MessageRetentionPeriod": "59"},
 		wantCode: "InvalidAttributeValue",
 	}, {
-		name:     "MaximumMessageSize above 256 KiB",
+		name:     "MaximumMessageSize above 1 MiB",
 		queue:    "src",
-		attrs:    map[string]string{"MaximumMessageSize": "262145"},
+		attrs:    map[string]string{"MaximumMessageSize": "1048577"},
 		wantCode: "InvalidAttributeValue",
 	}, {
 		name:     "ReceiveMessageWaitTimeSeconds above 20",

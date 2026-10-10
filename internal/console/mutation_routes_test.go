@@ -617,6 +617,11 @@ func overrideFor(route string) (path map[string]string, form url.Values) {
 			"name": {"fixture-made-fn"}, "runtime": {"provided.al2"},
 			"handler": {"bootstrap"}, "code": {discovered["code"]},
 		}
+	case "/sqs/create":
+		// The shared form's "policy" is a policy NAME for the IAM routes. Here it
+		// is the queue's access policy, which SQS now validates when it is
+		// stored, so it has to be a document.
+		return nil, url.Values{"policy": {`{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":"sqs:SendMessage","Resource":"*"}]}`}}
 	case "/lambda/layers/publish":
 		// "path" here is a host directory, not a URL path, and the shared
 		// form's "/" would send PublishLayerVersion to hash the whole disk.

@@ -36,19 +36,18 @@ func (s *store) TagQueue(name string, tags map[string]string) error {
 }
 
 // Tag limits (doc: the SQS developer guide, "Configuring cost allocation tags
-// for Amazon SQS"): a key of 1 to 128 characters, a value of 0 to 256, the
-// reserved aws: prefix in any case, and 50 tags on a queue. The model states
-// none of these.
+// for Amazon SQS"): a key of 1 to 128 characters, a value of 0 to 256, and the
+// reserved aws: prefix in any case. The model's TagQueue says only that
+// "adding more than 50 tags to a queue isn't recommended", which is advice, so
+// the count is not refused.
 const (
 	maxTagKey   = 128
 	maxTagValue = 256
-	maxTags     = 50
 )
 
 // validateTags checks what is about to be added to what a queue already has.
 // A key already there is overwritten, not added, so it does not count again.
 func validateTags(have, add map[string]string) error {
-	total := len(have)
 	for k, v := range add {
 		switch {
 		case k == "" || len([]rune(k)) > maxTagKey:
@@ -58,12 +57,6 @@ func validateTags(have, add map[string]string) error {
 		case strings.HasPrefix(strings.ToLower(k), "aws:"):
 			return errInvalid("Value for parameter Tag key is invalid. Reason: the aws: prefix is reserved.")
 		}
-		if _, there := have[k]; !there {
-			total++
-		}
-	}
-	if total > maxTags {
-		return errInvalid("Value for parameter Tags is invalid. Reason: a queue has at most 50 tags.")
 	}
 	return nil
 }

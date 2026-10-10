@@ -112,8 +112,8 @@ func TestMessageBodyAndAttributeLimits(t *testing.T) {
 	}{
 		{"an empty body", `"MessageBody":""`, false},
 		{"a body of one character", `"MessageBody":"x"`, true},
-		{"a body at the limit", `"MessageBody":"` + strings.Repeat("x", 262144) + `"`, true},
-		{"a body over the limit", `"MessageBody":"` + strings.Repeat("x", 262145) + `"`, false},
+		{"a body at the limit", `"MessageBody":"` + strings.Repeat("x", 1048576) + `"`, true},
+		{"a body over the limit", `"MessageBody":"` + strings.Repeat("x", 1048577) + `"`, false},
 		{"a body with a character SQS does not allow", `"MessageBody":"a\u0000b"`, false},
 		{"a body with tab, newline and a return", `"MessageBody":"a\tb\nc\rd"`, true},
 		{"ten message attributes", `"MessageBody":"x",` + many(10), true},
@@ -128,7 +128,7 @@ func TestMessageBodyAndAttributeLimits(t *testing.T) {
 		{"a Number that is not one", `"MessageBody":"x",` + attr("a", "Number", "twelve"), false},
 		{"a Number that is", `"MessageBody":"x",` + attr("a", "Number", "-12.5e3"), true},
 		{"a String attribute with an empty value", `"MessageBody":"x",` + attr("a", "String", ""), false},
-		{"the body and attributes together over the limit", `"MessageBody":"` + strings.Repeat("x", 262140) + `",` + attr("aaaaaa", "String", "valuevalue"), false},
+		{"the body and attributes together over the limit", `"MessageBody":"` + strings.Repeat("x", 1048572) + `",` + attr("aaaaaa", "String", "valuevalue"), false},
 	} {
 		code, body := send(c.extra)
 		if c.ok && code != 200 || !c.ok && code != 400 {
@@ -173,8 +173,8 @@ func TestBatchRules(t *testing.T) {
 		{"an id of 81 characters", `[{"Id":"` + strings.Repeat("a", 81) + `","MessageBody":"x"}]`, false},
 		{"an id of 80 characters", `[{"Id":"` + strings.Repeat("a", 80) + `","MessageBody":"x"}]`, true},
 		// Each body is under the limit; together they are over it.
-		{"entries whose bodies together exceed the limit", entries(3, strings.Repeat("x", 100000)), false},
-		{"entries whose bodies together are at the limit", entries(2, strings.Repeat("x", 131072)), true},
+		{"entries whose bodies together exceed the limit", entries(3, strings.Repeat("x", 400000)), false},
+		{"entries whose bodies together are at the limit", entries(2, strings.Repeat("x", 524288)), true},
 	} {
 		code, body := jsonBody(t, ts.URL, "SendMessageBatch", `{"QueueUrl":"`+qurl+`","Entries":`+c.entries+`}`)
 		if c.ok && code != 200 || !c.ok && code != 400 {
