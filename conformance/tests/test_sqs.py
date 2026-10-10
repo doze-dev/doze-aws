@@ -237,3 +237,366 @@ def test_tags_visibility_and_purge(client, names, cleanup, snapshot, eventually)
     snapshot.error("unknown-attribute", lambda: sqs.set_queue_attributes(
         QueueUrl=url, Attributes={"NoSuchAttribute": "1"}))
     snapshot.match("purge", sqs.purge_queue(QueueUrl=url))
+
+
+# ---------------------------------------------------------------------------
+# Stage 1: what the plan's section 8 queued, and what reading the service
+# model's own documentation added. Each scenario is written once; recorded
+# against a real account it becomes the oracle for the rule it states.
+# ---------------------------------------------------------------------------
+
+def make_queue(sqs, names, cleanup, label="queue", suffix="", **kw):
+    url = sqs.create_queue(QueueName=names(label, suffix=suffix), **kw)["QueueUrl"]
+    cleanup(sqs.delete_queue, QueueUrl=url)
+    return url
+
+
+def queue_arn(sqs, url):
+    return sqs.get_queue_attributes(QueueUrl=url, AttributeNames=["QueueArn"])["Attributes"]["QueueArn"]
+
+
+def test_attribute_ranges(client, names, cleanup, snapshot):
+    """Every numeric attribute at and past its documented bound, and a value
+    that is not a number. The model states them in prose, not in traits."""
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    for attr, bad in [
+        ("VisibilityTimeout", "43201"), ("VisibilityTimeout", "-1"),
+        ("DelaySeconds", "901"), ("MessageRetentionPeriod", "59"),
+        ("MessageRetentionPeriod", "1209601"), ("MaximumMessageSize", "1023"),
+        ("MaximumMessageSize", "1048577"), ("ReceiveMessageWaitTimeSeconds", "21"),
+        ("KmsDataKeyReusePeriodSeconds", "59"), ("KmsDataKeyReusePeriodSeconds", "86401"),
+        ("VisibilityTimeout", "soon"),
+    ]:
+        snapshot.error(f"{attr}-{bad}", lambda a=attr, b=bad: sqs.set_queue_attributes(
+            QueueUrl=url, Attributes={a: b}))
+    snapshot.match("at-the-bounds", sqs.set_queue_attributes(QueueUrl=url, Attributes={
+        "VisibilityTimeout": "43200", "DelaySeconds": "900", "MessageRetentionPeriod": "60",
+        "MaximumMessageSize": "1048576", "ReceiveMessageWaitTimeSeconds": "20"}))
+    snapshot.error("unknown-attribute", lambda: sqs.set_queue_attributes(
+        QueueUrl=url, Attributes={"NoSuchAttribute": "1"}))
+
+
+def test_receive_out_of_range(client, names, cleanup, snapshot):
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    snapshot.error("max-0", lambda: sqs.receive_message(QueueUrl=url, MaxNumberOfMessages=0))
+    snapshot.error("max-11", lambda: sqs.receive_message(QueueUrl=url, MaxNumberOfMessages=11))
+    snapshot.error("wait-21", lambda: sqs.receive_message(QueueUrl=url, WaitTimeSeconds=21))
+    snapshot.error("visibility-43201", lambda: sqs.receive_message(QueueUrl=url, VisibilityTimeout=43201))
+
+
+def test_recreate_after_delete(client, names, cleanup, snapshot):
+    """doze-aws does not model the 60 seconds (the delete is immediate here);
+    recorded against AWS this is the entry that goes into deviations.py."""
+    sqs = client("sqs")
+    name = names("queue")
+    url = sqs.create_queue(QueueName=name)["QueueUrl"]
+    sqs.delete_queue(QueueUrl=url)
+    again = snapshot.outcome("create-at-once", lambda: sqs.create_queue(QueueName=name))
+    if isinstance(again, dict):
+        cleanup(sqs.delete_queue, QueueUrl=again["QueueUrl"])
+
+
+def test_purge_twice(client, names, cleanup, snapshot):
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    snapshot.match("first", sqs.purge_queue(QueueUrl=url))
+    snapshot.outcome("second", lambda: sqs.purge_queue(QueueUrl=url))
+
+
+def dlq_pair(sqs, names, cleanup, max_receive=1, visibility="1", **dlq_kw):
+    dlq = make_queue(sqs, names, cleanup, "queue-dlq", **dlq_kw)
+    arn = queue_arn(sqs, dlq)
+    src = make_queue(sqs, names, cleanup, "queue", Attributes={
+        "VisibilityTimeout": visibility,
+        "RedrivePolicy": json.dumps({"deadLetterTargetArn": arn, "maxReceiveCount": str(max_receive)})})
+    return src, dlq, arn
+
+
+def dead_letter(sqs, eventually, src, dlq, body):
+    sqs.send_message(QueueUrl=src, MessageBody=body)
+    receive(sqs, eventually, src)
+
+    def moved():
+        sqs.receive_message(QueueUrl=src, WaitTimeSeconds=1)
+        r = sqs.receive_message(QueueUrl=dlq, WaitTimeSeconds=1, VisibilityTimeout=0,
+                                MessageSystemAttributeNames=["All"])
+        assert any(m["Body"] == body for m in r.get("Messages", [])), "not in the DLQ yet"
+        return r["Messages"]
+
+    return eventually(moved, timeout=40)
+
+
+def test_redrive_receive_count(client, names, cleanup, snapshot, eventually):
+    """What a message says about where it came from and how often it was
+    received once it is in the dead-letter queue."""
+    sqs = client("sqs")
+    src, dlq, _ = dlq_pair(sqs, names, cleanup)
+    msgs = dead_letter(sqs, eventually, src, dlq, "poison")
+    snapshot.match("in-the-dlq", [{"Body": m["Body"], "Attributes": {
+        k: v for k, v in m["Attributes"].items()
+        if k in ("ApproximateReceiveCount", "DeadLetterQueueSourceArn")}} for m in msgs])
+
+
+def test_visibility_change_in_flight(client, names, cleanup, snapshot, eventually):
+    """A queue's visibility timeout changed while a message is in flight does
+    not move that message's deadline."""
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup, Attributes={"VisibilityTimeout": "30"})
+    sqs.send_message(QueueUrl=url, MessageBody="x")
+    receive(sqs, eventually, url)
+    sqs.set_queue_attributes(QueueUrl=url, Attributes={"VisibilityTimeout": "1"})
+    import time
+    time.sleep(3)
+    snapshot.match("still-hidden", sqs.receive_message(QueueUrl=url, WaitTimeSeconds=1))
+
+
+def test_twelve_hours_from_the_receive(client, names, cleanup, snapshot, eventually):
+    """"If you attempt to set the VisibilityTimeout to a value greater than the
+    maximum time left, Amazon SQS returns an error"."""
+    import time
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    sqs.send_message(QueueUrl=url, MessageBody="x")
+    msg = receive(sqs, eventually, url, VisibilityTimeout=43200)[0]
+    time.sleep(2)
+    snapshot.outcome("past-the-twelve-hours", lambda: sqs.change_message_visibility(
+        QueueUrl=url, ReceiptHandle=msg["ReceiptHandle"], VisibilityTimeout=43200))
+    snapshot.match("within-it", sqs.change_message_visibility(
+        QueueUrl=url, ReceiptHandle=msg["ReceiptHandle"], VisibilityTimeout=600))
+
+
+def test_visibility_of_a_message_not_in_flight(client, names, cleanup, snapshot, eventually):
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    sqs.send_message(QueueUrl=url, MessageBody="x")
+    msg = receive(sqs, eventually, url, VisibilityTimeout=0)[0]
+    snapshot.error("not-in-flight", lambda: sqs.change_message_visibility(
+        QueueUrl=url, ReceiptHandle=msg["ReceiptHandle"], VisibilityTimeout=30))
+
+
+def test_move_task_default_destination(client, names, cleanup, snapshot, eventually):
+    """No DestinationArn: each message goes back to the queue it came from."""
+    sqs = client("sqs")
+    src, dlq, dlq_arn = dlq_pair(sqs, names, cleanup)
+    dead_letter(sqs, eventually, src, dlq, "poison")
+    snapshot.error("source-is-no-dlq", lambda: sqs.start_message_move_task(SourceArn=queue_arn(sqs, src)))
+    task = sqs.start_message_move_task(SourceArn=dlq_arn)
+    snapshot.match("started", task, opaque=("TaskHandle",))
+
+    def done():
+        r = sqs.list_message_move_tasks(SourceArn=dlq_arn)
+        assert r["Results"] and r["Results"][0]["Status"] in ("COMPLETED", "FAILED"), r
+        return r
+
+    listed = eventually(done, timeout=60)
+    snapshot.match("listed", listed, opaque=("TaskHandle", "StartedTimestamp"))
+    back = receive(sqs, eventually, src, VisibilityTimeout=0)
+    snapshot.match("back-at-the-source", [m["Body"] for m in back])
+    snapshot.error("list-upper-limit", lambda: sqs.list_message_move_tasks(SourceArn=dlq_arn, MaxResults=11))
+
+
+def test_move_task_missing_queue(client, snapshot):
+    sqs = client("sqs")
+    arn = "arn:aws:sqs:us-east-1:000000000000:dzc-no-such-queue"
+    snapshot.error("start", lambda: sqs.start_message_move_task(SourceArn=arn))
+    snapshot.error("list", lambda: sqs.list_message_move_tasks(SourceArn=arn))
+
+
+def test_invalid_policy(client, names, cleanup, snapshot):
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    for label, doc in [
+        ("not-json", "not json"),
+        ("no-effect", json.dumps({"Version": "2012-10-17", "Statement": [{"Principal": "*", "Action": "sqs:*", "Resource": "*"}]})),
+        ("no-principal", json.dumps({"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": "sqs:*", "Resource": "*"}]})),
+        ("no-resource", json.dumps({"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": "*", "Action": "sqs:*"}]})),
+    ]:
+        snapshot.error(label, lambda d=doc: sqs.set_queue_attributes(QueueUrl=url, Attributes={"Policy": d}))
+    snapshot.outcome("empty-statement", lambda: sqs.set_queue_attributes(
+        QueueUrl=url, Attributes={"Policy": json.dumps({"Version": "2012-10-17", "Statement": []})}))
+
+
+def test_tag_limits(client, names, cleanup, snapshot):
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    snapshot.error("key-129", lambda: sqs.tag_queue(QueueUrl=url, Tags={"k" * 129: "v"}))
+    snapshot.error("value-257", lambda: sqs.tag_queue(QueueUrl=url, Tags={"k": "v" * 257}))
+    snapshot.error("aws-prefix", lambda: sqs.tag_queue(QueueUrl=url, Tags={"aws:x": "v"}))
+    # "Adding more than 50 tags to a queue isn't recommended": advice, so the
+    # answer is recorded rather than assumed.
+    snapshot.outcome("fifty-one", lambda: sqs.tag_queue(
+        QueueUrl=url, Tags={f"t{i}": "v" for i in range(51)}))
+
+
+def test_message_limits(client, names, cleanup, snapshot):
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    one_mib = 1048576
+    snapshot.match("one-mebibyte", sqs.send_message(QueueUrl=url, MessageBody="x" * one_mib),
+                   opaque=("MessageId",))
+    snapshot.error("over-one-mebibyte", lambda: sqs.send_message(QueueUrl=url, MessageBody="x" * (one_mib + 1)))
+    snapshot.error("bad-character", lambda: sqs.send_message(QueueUrl=url, MessageBody="a\x01b"))
+    snapshot.error("eleven-attributes", lambda: sqs.send_message(QueueUrl=url, MessageBody="x", MessageAttributes={
+        f"a{i}": {"DataType": "String", "StringValue": "v"} for i in range(11)}))
+    snapshot.error("reserved-prefix", lambda: sqs.send_message(QueueUrl=url, MessageBody="x", MessageAttributes={
+        "AWS.thing": {"DataType": "String", "StringValue": "v"}}))
+    snapshot.error("data-type", lambda: sqs.send_message(QueueUrl=url, MessageBody="x", MessageAttributes={
+        "a": {"DataType": "Integer", "StringValue": "1"}}))
+    snapshot.error("delay-901", lambda: sqs.send_message(QueueUrl=url, MessageBody="x", DelaySeconds=901))
+
+
+def test_batch_total_size(client, names, cleanup, snapshot):
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    q = 262144
+    snapshot.match("four-quarter-mebibytes", sqs.send_message_batch(QueueUrl=url, Entries=[
+        {"Id": f"m{i}", "MessageBody": "x" * q} for i in range(4)]),
+        opaque=("MessageId",))
+    snapshot.error("one-byte-more", lambda: sqs.send_message_batch(QueueUrl=url, Entries=[
+        {"Id": f"m{i}", "MessageBody": "x" * (q + (1 if i == 3 else 0))} for i in range(4)]))
+
+
+def test_message_group_on_a_standard_queue(client, names, cleanup, snapshot, eventually):
+    """The model: "In standard queues, using MessageGroupId enables fair
+    queues"."""
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    snapshot.match("send", sqs.send_message(QueueUrl=url, MessageBody="x", MessageGroupId="tenant-a"),
+                   opaque=("MessageId",))
+    got = receive(sqs, eventually, url, MessageSystemAttributeNames=["MessageGroupId"])
+    snapshot.match("received", [m["Attributes"] for m in got])
+    snapshot.outcome("with-dedup-id", lambda: sqs.send_message(
+        QueueUrl=url, MessageBody="x", MessageDeduplicationId="d"))
+
+
+def test_trace_header_on_a_batch(client, names, cleanup, snapshot, eventually):
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    header = "Root=1-5759e988-bd862e3fe1be46a994272793;Parent=53995c3f42cd8ad8;Sampled=1"
+    res = sqs.send_message_batch(QueueUrl=url, Entries=[{
+        "Id": "a", "MessageBody": "traced",
+        "MessageSystemAttributes": {"AWSTraceHeader": {"DataType": "String", "StringValue": header}}}])
+    snapshot.match("batch", res, opaque=("MessageId",))
+    got = receive(sqs, eventually, url, MessageSystemAttributeNames=["AWSTraceHeader"])
+    snapshot.match("received", [m["Attributes"] for m in got])
+
+
+def test_message_attribute_prefix_selection(client, names, cleanup, snapshot, eventually):
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    sqs.send_message(QueueUrl=url, MessageBody="x", MessageAttributes={
+        "bar.one": {"DataType": "String", "StringValue": "1"},
+        "bar.two": {"DataType": "String", "StringValue": "2"},
+        "baz": {"DataType": "String", "StringValue": "3"}})
+    got = receive(sqs, eventually, url, VisibilityTimeout=0, MessageAttributeNames=["bar.*"])
+    snapshot.match("prefix", sorted(got[0].get("MessageAttributes", {})))
+
+
+def test_list_queues_paging(client, names, cleanup, snapshot):
+    sqs = client("sqs")
+    prefix = names("page")
+    for i in range(3):
+        cleanup(sqs.delete_queue, QueueUrl=sqs.create_queue(QueueName=f"{prefix}-{i}")["QueueUrl"])
+    first = sqs.list_queues(QueueNamePrefix=prefix, MaxResults=2)
+    snapshot.match("first-page", {"count": len(first["QueueUrls"]), "more": "NextToken" in first})
+    second = sqs.list_queues(QueueNamePrefix=prefix, MaxResults=2, NextToken=first["NextToken"])
+    snapshot.match("second-page", {"count": len(second["QueueUrls"]), "more": "NextToken" in second})
+    snapshot.error("max-1001", lambda: sqs.list_queues(MaxResults=1001))
+
+
+def test_add_permission_rules(client, names, cleanup, snapshot):
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    acct = "111122223333"
+    snapshot.match("first", sqs.add_permission(QueueUrl=url, Label="friend", AWSAccountIds=[acct],
+                                               Actions=["SendMessage", "ReceiveMessage"]))
+    snapshot.error("label-in-use", lambda: sqs.add_permission(
+        QueueUrl=url, Label="friend", AWSAccountIds=[acct], Actions=["SendMessage"]))
+    snapshot.error("label-81", lambda: sqs.add_permission(
+        QueueUrl=url, Label="a" * 81, AWSAccountIds=[acct], Actions=["SendMessage"]))
+    snapshot.error("label-chars", lambda: sqs.add_permission(
+        QueueUrl=url, Label="has space", AWSAccountIds=[acct], Actions=["SendMessage"]))
+    snapshot.error("unknown-action", lambda: sqs.add_permission(
+        QueueUrl=url, Label="u", AWSAccountIds=[acct], Actions=["DoEverything"]))
+    snapshot.outcome("any-action", lambda: sqs.add_permission(
+        QueueUrl=url, Label="any", AWSAccountIds=[acct], Actions=["SetQueueAttributes"]))
+    snapshot.outcome("eight-actions", lambda: sqs.add_permission(
+        QueueUrl=url, Label="eight", AWSAccountIds=[acct], Actions=[
+            "SendMessage", "ReceiveMessage", "DeleteMessage", "ChangeMessageVisibility",
+            "GetQueueAttributes", "GetQueueUrl", "PurgeQueue", "ListQueues"]))
+    snapshot.outcome("non-account-principal", lambda: sqs.add_permission(
+        QueueUrl=url, Label="arn", AWSAccountIds=["arn:aws:iam::111122223333:user/alice"], Actions=["SendMessage"]))
+    snapshot.match("policy", {"Statements": len(json.loads(sqs.get_queue_attributes(
+        QueueUrl=url, AttributeNames=["Policy"])["Attributes"]["Policy"])["Statement"])})
+    snapshot.error("remove-missing", lambda: sqs.remove_permission(QueueUrl=url, Label="never-added"))
+    snapshot.match("remove", sqs.remove_permission(QueueUrl=url, Label="friend"))
+
+
+def test_receive_request_attempt_id(client, names, cleanup, snapshot, eventually):
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup, suffix=".fifo", Attributes={
+        "FifoQueue": "true", "ContentBasedDeduplication": "true"})
+    sqs.send_message(QueueUrl=url, MessageBody="x", MessageGroupId="g")
+
+    def first():
+        r = sqs.receive_message(QueueUrl=url, WaitTimeSeconds=1, VisibilityTimeout=300,
+                                ReceiveRequestAttemptId="try-1")
+        assert r.get("Messages"), "not yet"
+        return r["Messages"]
+
+    got = eventually(first)
+    retry = sqs.receive_message(QueueUrl=url, WaitTimeSeconds=1, VisibilityTimeout=300,
+                                ReceiveRequestAttemptId="try-1").get("Messages", [])
+    snapshot.match("retry-same-messages", [m["ReceiptHandle"] == got[0]["ReceiptHandle"] for m in retry])
+    standard = make_queue(sqs, names, cleanup, "standard")
+    snapshot.outcome("on-a-standard-queue", lambda: sqs.receive_message(
+        QueueUrl=standard, ReceiveRequestAttemptId="try-1"))
+
+
+def test_fifo_attribute_rules(client, names, cleanup, snapshot):
+    sqs = client("sqs")
+    standard = make_queue(sqs, names, cleanup, "standard")
+    snapshot.outcome("scope-on-a-standard-queue", lambda: sqs.set_queue_attributes(
+        QueueUrl=standard, Attributes={"DeduplicationScope": "messageGroup"}))
+    fifo = make_queue(sqs, names, cleanup, "fifo", suffix=".fifo", Attributes={"FifoQueue": "true"})
+    snapshot.error("per-group-needs-message-group-scope", lambda: sqs.set_queue_attributes(
+        QueueUrl=fifo, Attributes={"FifoThroughputLimit": "perMessageGroupId", "DeduplicationScope": "queue"}))
+    snapshot.error("scope-value", lambda: sqs.set_queue_attributes(
+        QueueUrl=fifo, Attributes={"DeduplicationScope": "everywhere"}))
+    snapshot.match("high-throughput", sqs.set_queue_attributes(
+        QueueUrl=fifo, Attributes={"FifoThroughputLimit": "perMessageGroupId", "DeduplicationScope": "messageGroup"}))
+    snapshot.error("fifo-flag-value", lambda: sqs.create_queue(
+        QueueName=names("queue", suffix="-bad.fifo"), Attributes={"FifoQueue": "yes"}))
+
+
+def test_redrive_allow_policy(client, names, cleanup, snapshot):
+    sqs = client("sqs")
+    dlq = make_queue(sqs, names, cleanup, "queue-dlq", Attributes={
+        "RedriveAllowPolicy": json.dumps({"redrivePermission": "denyAll"})})
+    arn = queue_arn(sqs, dlq)
+    snapshot.error("denied", lambda: sqs.create_queue(QueueName=names("queue"), Attributes={
+        "RedrivePolicy": json.dumps({"deadLetterTargetArn": arn, "maxReceiveCount": "5"})}))
+    snapshot.error("bad-permission", lambda: sqs.set_queue_attributes(
+        QueueUrl=dlq, Attributes={"RedriveAllowPolicy": json.dumps({"redrivePermission": "maybe"})}))
+    snapshot.error("byqueue-without-arns", lambda: sqs.set_queue_attributes(
+        QueueUrl=dlq, Attributes={"RedriveAllowPolicy": json.dumps({"redrivePermission": "byQueue"})}))
+
+
+def test_queue_in_another_account(client, names, cleanup, snapshot):
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup)
+    other = url.rsplit("/", 2)
+    foreign = f"{other[0]}/999999999999/{other[2]}"
+    snapshot.outcome("send-to-another-accounts-url", lambda: sqs.send_message(QueueUrl=foreign, MessageBody="x"))
+    snapshot.outcome("owner-id", lambda: sqs.get_queue_url(
+        QueueName=names("queue"), QueueOwnerAWSAccountId="999999999999"))
+
+
+def test_setting_an_attribute_back_to_its_default(client, names, cleanup, snapshot):
+    """A value changed and set back reads as the default again."""
+    sqs = client("sqs")
+    url = make_queue(sqs, names, cleanup, Attributes={"DelaySeconds": "30"})
+    sqs.set_queue_attributes(QueueUrl=url, Attributes={"DelaySeconds": "0"})
+    snapshot.match("after", sqs.get_queue_attributes(QueueUrl=url, AttributeNames=["DelaySeconds"]))
