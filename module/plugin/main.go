@@ -4,8 +4,8 @@
 package main
 
 import (
-	"github.com/doze-dev/doze-aws/module/awslocal"
 	aws "github.com/doze-dev/doze-aws/module"
+	"github.com/doze-dev/doze-aws/module/awslocal"
 )
 
 func main() { awslocal.PluginMain(aws.New(), &aws.Config{}) }
