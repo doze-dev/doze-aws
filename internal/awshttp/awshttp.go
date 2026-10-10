@@ -110,7 +110,7 @@ func NotBuilt(kind, op, why string) *APIError {
 
 func (e *APIError) Error() string { return e.Code + ": " + e.Message }
 
-// HTTPStatus is the status the error answers with, for trace.HTTPStatuser.
+// HTTPStatus is the status the error answers with, for the trace package's httpStatuser.
 func (e *APIError) HTTPStatus() int { return e.Status }
 
 // Errf builds a Sender-fault APIError with a formatted message.

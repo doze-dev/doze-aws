@@ -1471,7 +1471,7 @@ the same shard number locally as it does in the cloud.
 | DescribeLimits | C | reports live OpenShardCount against a nominal quota |
 | DescribeAccountSettings / UpdateAccountSettings | C | no account-level quotas locally |
 | UpdateMaxRecordSize | C | accepted; the 1 MiB ceiling on the put path is not raised |
-| PutResourcePolicy / GetResourcePolicy / DeleteResourcePolicy | F | the stream's resource policy, evaluated on every request naming the stream under IAM `soft` and `enforce`; a Logs subscription filter writing to the stream needs a `Service: logs.amazonaws.com` statement under `enforce`, as on AWS. Round-trips only under the default `off` |
+| PutResourcePolicy / GetResourcePolicy / DeleteResourcePolicy | F | the stream's resource policy, evaluated on every request naming the stream under IAM `soft` and `enforce`; a Logs subscription filter writing to the stream needs a `Service: logs.amazonaws.com` statement under `enforce`, as on AWS. Under `off` it round-trips and nothing evaluates it |
 | SubscribeToShard | S | enhanced fan-out delivers over an HTTP/2 event stream; register the consumer and poll GetRecords instead |
 | UpdateStreamWarmThroughput | S | a capacity hint with no local meaning |
 
@@ -1607,7 +1607,7 @@ returns genuine SPKI DER — signatures verify outside KMS.
 | CreateAlias / UpdateAlias / DeleteAlias / ListAliases | F | |
 | TagResource / UntagResource / ListResourceTags | F | |
 | UpdateKeyDescription | F | |
-| GetKeyPolicy / PutKeyPolicy / ListKeyPolicies | F | the key policy, evaluated on every request naming the key under IAM `soft` and `enforce`. As on AWS it gates the identity policies: they count only while the key policy allows the account root (the default policy's one statement), and a policy that names nobody locks everyone out, root and `PutKeyPolicy` included. Stored and returned only under the default `off` |
+| GetKeyPolicy / PutKeyPolicy / ListKeyPolicies | F | the key policy, evaluated on every request naming the key under IAM `soft` and `enforce`. As on AWS it gates the identity policies: they count only while the key policy allows the account root (the default policy's one statement), and a policy that names nobody locks everyone out, root and `PutKeyPolicy` included. Under `off` it is stored and returned and nothing evaluates it |
 | EnableKeyRotation / DisableKeyRotation / GetKeyRotationStatus | F | symmetric keys only; `RotationPeriodInDays` stored and reported (AWS's default when omitted); the scheduled rotation itself is not run by a clock locally — RotateKeyOnDemand is the switch |
 | RotateKeyOnDemand / ListKeyRotations | F | fresh backing material for a symmetric key, kept alongside the old so earlier ciphertexts still decrypt; the rotation list records each |
 | Grants (Create/Retire/Revoke/List) | S | grants are IAM machinery |
@@ -2168,7 +2168,7 @@ page, and it is what the operation counts above are measured against.
 | GetObjectLockConfiguration / PutObjectLockConfiguration | F | |
 | Presigned URLs | F | SigV2 and SigV4 forms accepted, expiry enforced (the signature itself is not verified — this is a local emulator) |
 | GetBucketAcl / PutBucketAcl | C | as for objects |
-| GetBucketPolicy / PutBucketPolicy / DeleteBucketPolicy | F | the bucket policy, evaluated on every bucket and object request under IAM `soft` and `enforce` (a denial is S3's `AccessDenied`); stored and returned only under the default `off`. A policy that grants to everyone is refused with `AccessDenied` while the bucket's public access block has `BlockPublicPolicy` on — the one check S3 makes on the put itself |
+| GetBucketPolicy / PutBucketPolicy / DeleteBucketPolicy | F | the bucket policy, evaluated on every bucket and object request under IAM `soft` and `enforce` (a denial is S3's `AccessDenied`); under `off` it is stored and returned and nothing evaluates it. A policy that grants to everyone is refused with `AccessDenied` while the bucket's public access block has `BlockPublicPolicy` on — the one check S3 makes on the put itself |
 | GetBucketEncryption / PutBucketEncryption / DeleteBucketEncryption | C | SSE headers echoed on objects; bytes live under the data directory either way |
 | GetBucketReplication / PutBucketReplication / DeleteBucketReplication | C | there is one region locally |
 | GetBucketLogging / PutBucketLogging | C | no access-log delivery locally |
@@ -2350,7 +2350,7 @@ cosmetically.
 | UpdateSecretVersionStage | F | a stage names at most one version |
 | TagResource / UntagResource | F | |
 | GetRandomPassword | F | length, ExcludeCharacters, ExcludePunctuation |
-| PutResourcePolicy / GetResourcePolicy / DeleteResourcePolicy | F | the secret's resource policy, evaluated on every request naming the secret under IAM `soft` and `enforce` by AWS's same-account rule (see the IAM ledger, "Resource policies"); stored and returned only under the default `off` |
+| PutResourcePolicy / GetResourcePolicy / DeleteResourcePolicy | F | the secret's resource policy, evaluated on every request naming the secret under IAM `soft` and `enforce` by AWS's same-account rule (see the IAM ledger, "Resource policies"); under `off` it is stored and returned and nothing evaluates it |
 | ValidateResourcePolicy | C | always passes |
 | RotateSecret / CancelRotateSecret | F | RotateSecret invokes the configured rotation Lambda synchronously for the four steps (createSecret, setSecret, testSecret, finishSecret); the function moves the version stages, as on AWS. CancelRotateSecret clears the pending rotation |
 | ReplicateSecretToRegions / RemoveRegionsFromReplication / StopReplicationToReplica | S | exactly one region locally |

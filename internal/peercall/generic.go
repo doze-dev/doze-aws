@@ -36,10 +36,10 @@ type APIError struct {
 
 func (e *APIError) Error() string { return e.Code + ": " + e.Message }
 
-// HTTPStatus is the status the peer answered, for trace.HTTPStatuser.
+// HTTPStatus is the status the peer answered, for the trace package's httpStatuser.
 func (e *APIError) HTTPStatus() int { return e.Status }
 
-// DeniedBy is what decided a refusal, for trace.Denier.
+// DeniedBy is what decided a refusal, for the trace package's denier.
 func (e *APIError) DeniedBy() string { return e.Denied }
 
 // statusError is a peer's non-2xx answer that was not decoded into an

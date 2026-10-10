@@ -69,7 +69,7 @@ type Event struct {
 	Millis   float64
 	Err      string // non-empty when the delivery failed
 	// Status is the HTTP status the target answered when it failed and the
-	// error knows one (see HTTPStatuser), else 0. It is what the wire shows for
+	// error knows one (see httpStatuser), else 0. It is what the wire shows for
 	// a failed hop: a policy denial on an alarm's Publish is a 403, not a 500.
 	Status int
 	// Denied is what decided a refusal, from the target's X-Doze-Denied header
@@ -83,10 +83,10 @@ type Event struct {
 	DetailURL string
 }
 
-// HTTPStatuser is implemented by an error that carries the HTTP status a peer
+// httpStatuser is implemented by an error that carries the HTTP status a peer
 // answered. Step records it, so a failed hop reads as the status it had rather
 // than as a failure of doze-aws itself.
-type HTTPStatuser interface{ HTTPStatus() int }
+type httpStatuser interface{ HTTPStatus() int }
 
 // Denier is implemented by an error that carries the X-Doze-Denied fact.
 type Denier interface{ DeniedBy() string }
@@ -100,7 +100,7 @@ func deniedOf(err error) string {
 }
 
 func statusOf(err error) int {
-	var s HTTPStatuser
+	var s httpStatuser
 	if errors.As(err, &s) {
 		return s.HTTPStatus()
 	}

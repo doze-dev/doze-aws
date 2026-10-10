@@ -350,6 +350,7 @@ sts: type Server struct
 trace: field Event.Action string
 trace: field Event.At time.Time
 trace: field Event.Cause Cause
+trace: field Event.Denied string
 trace: field Event.Detail string
 trace: field Event.DetailURL string
 trace: field Event.Err string
@@ -357,6 +358,7 @@ trace: field Event.Millis float64
 trace: field Event.Resource string
 trace: field Event.Self Cause
 trace: field Event.Service string
+trace: field Event.Status int
 trace: field Event.Via string
 trace: func CauseOf(ctx context.Context) Cause
 trace: func Continue(ctx context.Context, s Sink, header string) context.Context
@@ -365,6 +367,7 @@ trace: func Step(ctx context.Context, e Event, fn func(context.Context) error) e
 trace: func StepDetail(ctx context.Context, e Event, fn func(context.Context) (detail, url string, err error)) error
 trace: func With(ctx context.Context, s Sink, c Cause) context.Context
 trace: type Cause defined
+trace: type Denier interface
 trace: type Event struct
 trace: type Runner interface
 trace: type Sink interface
