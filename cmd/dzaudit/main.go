@@ -310,7 +310,7 @@ func sampleStrings(cs []constraint) []string {
 	}
 	return append(out,
 		"a1", "a-1", "a_1", "a.b", "/a", "/a/b",
-		"00000000-0000-0000-0000-000000000000",
+		"11111111-2222-3333-4444-555555555555",
 		"arn:aws:iam::123456789012:role/a",
 		"https://example.com/a",
 		"2026-01-01T00:00:00Z",
