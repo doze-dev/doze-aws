@@ -233,6 +233,19 @@ tasks:
       # read the LIVED lines: each is a behaviour nothing asserts.
       - go run github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0 unleash --timeout-coefficient 10 --workers 2 ./{{.CLI_ARGS}}
 
+  mutate:record:
+    desc: 'Record the surviving mutants of a package in testdata/mutation.json: task mutate:record -- internal/iampolicy'
+    cmds:
+      # The baseline is per package and per mutant (file:line:type), so the
+      # protocol can ask "did this stage leave the suite weaker" and get an
+      # answer that is not a percentage. Slow: one run is minutes.
+      - bun scripts/mutation-baseline.ts record {{.CLI_ARGS}}
+
+  mutate:check:
+    desc: 'Fail if a package has a surviving mutant its baseline does not: task mutate:check -- internal/iampolicy'
+    cmds:
+      - bun scripts/mutation-baseline.ts check {{.CLI_ARGS}}
+
   clean:
     desc: Remove build output and local service data
     cmds:

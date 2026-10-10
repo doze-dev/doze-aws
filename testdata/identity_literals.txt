@@ -1,0 +1,12 @@
+internal/asl/inspect.go 000000000000 2
+internal/console/client_eb.go 000000000000 1
+internal/console/client_lambda.go 000000000000 1
+internal/console/handlers_eb.go "us-east-1" 1
+internal/console/handlers_eb.go 000000000000 2
+internal/provision/svc_lambda.go 000000000000 1
+kms/actions_keys.go 000000000000 1
+kms/actions_policy.go 000000000000 1
+lambda/extras.go "us-east-1" 1
+lambda/extras.go 000000000000 1
+lambda/functions.go 000000000000 1
+sns/actions.go 000000000000 1

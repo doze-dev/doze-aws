@@ -22,6 +22,8 @@ is met and its test is named; "partly" says what is left.
 | B6 the 501 refusal and its proof | landed | 4241369, 9fa0829 | `awshttp.NotBuilt`; no Go v1/v2, boto3 or JavaScript SDK retries it. |
 | B6 the model sweep | partly | 0223f75 | Harness and a frozen baseline of 653 entries (542 legacy refusals, 111 false "unknown") are in. Each service moves its entries to `notbuilt` in its own stage. |
 | B7 blob lengths in bytes | landed | bed7d64 | KMS, Kinesis, Secrets Manager. SSM and Lambda have a blob member only on operations the service refuses. |
+| B3 mutation per package | landed | (next commit) | `task mutate:record` / `mutate:check`; baselines in `testdata/mutation.json`. |
+| A8 identity written into code | partly | (next commit) | The check and a frozen list of 12 sites are in; each site is fixed in its service's stage. |
 | B11 paging, once | landed | (next commit) | `internal/awspage` and `dozetest.AssertPaginates`. Services adopt in their stages. |
 | B10 the guard passes every condition key | landed | (next commit) | `iamguard.RequestContext`, one function for both paths; D7 decides `aws:SecureTransport`. Enforce tests for the services that evaluate a resource policy re-run green. |
 | B9 one stored-policy validator | partly | (next commit) | `iampolicy.ValidateResourcePolicy` and its table test are in. S3 and IAM already validate their own; the other five wire it in their stages. |
@@ -158,6 +160,16 @@ Each item was reported by more than one service's grounding. "Seen in" names the
   any service package outside `awsident`. A build-time check greps for both
   literals. The browser suite runs once under a non-default identity.
 
+  **The check landed** as `identityliterals_test.go`, which reads the source
+  and freezes today's sites in `testdata/identity_literals.txt`, both ways, so
+  a new literal fails and a fixed one has to leave the list. Twelve sites in ten
+  files, each fixed in the stage that owns it (KMS `defaultKeyPolicy` and
+  `AWSAccountId`, SNS `subscriptionList`, Lambda `mappingView`, `functions.go`
+  and the event's `awsRegion`, EventBridge's console ARNs and test event,
+  `client_lambda.go`'s role, `provision`'s role, `asl/inspect.go`). Four files
+  hold the digits for another reason (a shard id, an all-zero UUID, a flag's
+  help text) and are in the test's `notIdentity` map with the reason.
+
 ### A9. The fidelity dialog cannot find two ledgers — P2
 
 - **What.** `internal/console/info.go` (about 23 to 30) has no `cw` to
@@ -273,7 +285,16 @@ the conformance summary prints how many claims per service are `recorded`.
 package with a recorded baseline.
 
 **Done when.** `task mutate -- ./sqs/...` (or the equivalent) runs in reasonable
-time, and the baseline survivors per package are written down. Packages that
+time, and the baseline survivors per package are written down.
+
+**Landed as `task mutate:record` and `task mutate:check`**
+(`scripts/mutation-baseline.ts`, state in `testdata/mutation.json`). `record`
+runs gremlins on one package and keeps its counts and its lived mutants as
+`file:line:type`; `check` runs it again and fails on a survivor the baseline
+does not have, so "did this stage leave the suite weaker" has an answer that is
+not a percentage. A mutant that now dies is reported, not an error. A package
+takes minutes; the baselines for the packages below were recorded in one
+unattended run. Packages that
 hold a service's logic outside its own directory get their own baseline:
 `internal/asl`, `internal/ddb`, `internal/s3store`, `internal/lambdaruntime`,
 `internal/iampolicy`, `internal/iamguard`, `internal/cfn`, `internal/provision`.
