@@ -77,11 +77,16 @@ type TrafficEntry struct {
 	ReqBody  string // captured for JSON/query bodies (bounded); redacted
 	RespBody string // first 8KB of a text response; redacted
 	RespCT   string // response Content-Type
-	Method   string
-	Path     string // path + query, for replay
-	Host     string
-	CT       string // Content-Type
-	Target   string // X-Amz-Target
+	// ErrType is the error code a service carries in a header rather than the
+	// body: Lambda and API Gateway answer {"message": …} and put the code in
+	// x-amzn-ErrorType. Without it a refusal from either has a message and no
+	// code, and parseRefusal cannot say what it was.
+	ErrType string
+	Method  string
+	Path    string // path + query, for replay
+	Host    string
+	CT      string // Content-Type
+	Target  string // X-Amz-Target
 	// RequestID is the id this call answered with — the same value the SDK
 	// surfaces in an error and the server logs on a 500. It is what turns "my
 	// call failed with request id 7f3a…" into a row on this page.
@@ -170,7 +175,8 @@ func (rec *Recorder) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Status: sw.code, Millis: float64(time.Since(start).Microseconds()) / 1000.0,
 		ReqBody:  body,
 		RespBody: redact(sw.captured.String()), RespCT: sw.Header().Get("Content-Type"),
-		Method: r.Method, Path: r.URL.RequestURI(), Host: r.Host,
+		ErrType: sw.Header().Get("x-amzn-ErrorType"),
+		Method:  r.Method, Path: r.URL.RequestURI(), Host: r.Host,
 		CT: r.Header.Get("Content-Type"), Target: r.Header.Get("X-Amz-Target"),
 		// Read back off the response rather than plumbed in: the gateway mints
 		// the id and the protocol writer stamps it, and this recorder sits
@@ -991,14 +997,30 @@ type Refusal struct {
 // awsJson services answer with {"__type":..,"message":..} and the query/XML
 // ones with an <ErrorResponse><Error>. Anything else returns ok=false and the
 // drawer just shows the raw body, which is the honest fallback.
-func (e TrafficEntry) Failure() *Refusal { return parseRefusal(e.Status, e.RespBody) }
+func (e TrafficEntry) Failure() *Refusal { return parseRefusal(e.Status, e.RespBody, e.ErrType) }
 
 // parseRefusal pulls the refusal out of an AWS error body, in either wire
 // protocol. Split out of Failure so the console's OWN failed calls can be
 // rendered the same way the wire renders a client's — the reason a request was
 // refused reads identically whichever side made it, and there is no sense
 // having two decoders that can disagree.
-func parseRefusal(status int, respBody string) *Refusal {
+//
+// errType is the x-amzn-ErrorType header, "" when the response had none. It is
+// the code for the services that do not put one in the body, and it is cleaned
+// the same way as a body's: "ResourceNotFoundException:http://internal…" and
+// "aws.protocoltests#Name" both reduce to the name.
+//
+// Three wire shapes carry a refusal, and this reads all three:
+//
+//	JSON            {"__type": code, "message": …}              dynamodb, kms, …
+//	JSON + header   {"message": …} and x-amzn-ErrorType: code    lambda, apigateway
+//	XML             <ErrorResponse><Error><Code>…</Error>        sqs, sns, iam, …
+//	XML, bare root  <Error><Code>…</Code></Error>                s3
+//
+// The last was missing: Error>Code asks for an Error child of the root, and S3
+// has Error AS the root, so every S3 refusal rendered as raw XML under a bare
+// "Refused".
+func parseRefusal(status int, respBody, errType string) *Refusal {
 	if status < 400 || respBody == "" {
 		return nil
 	}
@@ -1014,11 +1036,7 @@ func parseRefusal(status int, respBody string) *Refusal {
 		if err := json.Unmarshal([]byte(body), &j); err != nil {
 			return nil
 		}
-		code := firstNonEmpty(j.Type, j.Code)
-		// awsJson types arrive fully qualified: com.amazon.coral#Validation...
-		if i := strings.LastIndexAny(code, "#/"); i >= 0 {
-			code = code[i+1:]
-		}
+		code := cleanErrCode(firstNonEmpty(j.Type, j.Code, errType))
 		message := firstNonEmpty(j.Message, j.Msg)
 		if code == "" && message == "" {
 			return nil
@@ -1028,18 +1046,38 @@ func parseRefusal(status int, respBody string) *Refusal {
 
 	if strings.HasPrefix(body, "<") {
 		var x struct {
+			// Wrapped, as the Query protocol sends it.
 			Code    string `xml:"Error>Code"`
 			Message string `xml:"Error>Message"`
+			// Bare, as S3 sends it: the root element is Error itself.
+			BareCode    string `xml:"Code"`
+			BareMessage string `xml:"Message"`
 		}
 		if err := xml.Unmarshal([]byte(body), &x); err != nil {
 			return nil
 		}
-		if x.Code == "" && x.Message == "" {
+		code := firstNonEmpty(x.Code, x.BareCode, cleanErrCode(errType))
+		message := firstNonEmpty(x.Message, x.BareMessage)
+		if code == "" && message == "" {
 			return nil
 		}
-		return &Refusal{Code: x.Code, Message: x.Message}
+		return &Refusal{Code: code, Message: message}
 	}
 	return nil
+}
+
+// cleanErrCode reduces an error type as the wire spells it to the code a
+// caller matches on. awsJson types arrive namespaced (com.amazon.coral#Name)
+// and the header form can carry a documentation URL after a colon
+// (ResourceNotFoundException:http://internal.amazon.com/coral/…).
+func cleanErrCode(code string) string {
+	if i := strings.Index(code, ":"); i >= 0 {
+		code = code[:i]
+	}
+	if i := strings.LastIndexAny(code, "#/"); i >= 0 {
+		code = code[i+1:]
+	}
+	return code
 }
 
 func firstNonEmpty(vals ...string) string {

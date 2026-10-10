@@ -60,6 +60,7 @@ import (
 
 	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/internal/awshttp"
+	"github.com/doze-dev/doze-aws/internal/console"
 	"github.com/doze-dev/doze-aws/internal/dozetest"
 )
 
@@ -445,4 +446,65 @@ func printSweep(t *testing.T, got map[string]map[string]sweepResult) {
 		fmt.Fprintf(&b, "  %-10s %3d  %-40s %d\n", k.class, k.status, k.code, freq[k])
 	}
 	t.Log(b.String())
+}
+
+// The console renders a refusal by reading its code out of the response, and
+// there are four places a service can put it. This asks each of the services
+// for a real refusal and holds the console's reader to getting a code and a
+// message out of it. S3 failed: its error document has Error as the root and
+// the reader asked for an Error child, so every S3 refusal in the console was
+// raw XML under a bare "Refused". Lambda and API Gateway put the code in a
+// header and had a message and no code.
+func TestTheConsoleCanReadEveryServicesRefusal(t *testing.T) {
+	if testing.Short() {
+		t.Skip("stands up a full stack and sends one operation per service")
+	}
+	stack, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: t.TempDir(), Logf: dozetest.Quiet(t)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stack.Close()
+	ts := httptest.NewServer(stack.Handler())
+	defer ts.Close()
+	client := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+
+	for _, s := range sweepServices {
+		t.Run(s.name, func(t *testing.T) {
+			var routes map[string]restRoute
+			if s.routes != "" {
+				b, err := os.ReadFile(s.routes)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := json.Unmarshal(b, &routes); err != nil {
+					t.Fatal(err)
+				}
+			}
+			// The first operation (by name) whose empty request is refused for
+			// its input: that is a refusal every service can produce.
+			for _, op := range dozetest.ModelOps(t, s.ops) {
+				req, err := s.request(ts.URL, op, routes)
+				if err != nil {
+					continue
+				}
+				resp, err := client.Do(req)
+				if err != nil {
+					t.Fatal(err)
+				}
+				body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<16))
+				resp.Body.Close()
+				a := readAnswer(&http.Response{StatusCode: resp.StatusCode, Header: resp.Header, Body: io.NopCloser(strings.NewReader(string(body)))})
+				if classify(a) != "handled" || resp.StatusCode < 400 || resp.StatusCode >= 500 {
+					continue
+				}
+				got := console.TrafficEntry{Status: resp.StatusCode, RespBody: string(body), ErrType: resp.Header.Get("x-amzn-ErrorType")}.Failure()
+				if got == nil || got.Code == "" || got.Message == "" {
+					t.Fatalf("%s %s answered %d %q and the console reads %+v: a refusal it cannot name",
+						s.name, op, resp.StatusCode, string(body), got)
+				}
+				return
+			}
+			t.Fatalf("no operation of %s was refused for its input", s.name)
+		})
+	}
 }

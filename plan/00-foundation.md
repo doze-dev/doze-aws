@@ -22,6 +22,7 @@ is met and its test is named; "partly" says what is left.
 | B6 the 501 refusal and its proof | landed | 4241369, 9fa0829 | `awshttp.NotBuilt`; no Go v1/v2, boto3 or JavaScript SDK retries it. |
 | B6 the model sweep | partly | 0223f75 | Harness and a frozen baseline of 653 entries (542 legacy refusals, 111 false "unknown") are in. Each service moves its entries to `notbuilt` in its own stage. |
 | B7 blob lengths in bytes | landed | bed7d64 | KMS, Kinesis, Secrets Manager. SSM and Lambda have a blob member only on operations the service refuses. |
+| A1 a refusal's code, from every wire shape | landed | (next commit) | S3's bare `<Error>` root and the code-in-a-header shape of Lambda and API Gateway. `TestParseRefusalReadsEveryShape`, and `TestTheConsoleCanReadEveryServicesRefusal` drives a real refusal from each of 18 services. Red for the header shape; the S3 shape is pinned by the table. |
 | B3 mutation per package | landed | (next commit) | `task mutate:record` / `mutate:check`; baselines in `testdata/mutation.json`. |
 | A8 identity written into code | partly | (next commit) | The check and a frozen list of 12 sites are in; each site is fixed in its service's stage. |
 | B11 paging, once | landed | (next commit) | `internal/awspage` and `dozetest.AssertPaginates`. Services adopt in their stages. |

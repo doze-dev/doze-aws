@@ -292,7 +292,7 @@ type failReason struct {
 func failView(err error) failReason {
 	var ae *apiErr
 	if errors.As(err, &ae) {
-		if r := parseRefusal(ae.status, ae.body); r != nil {
+		if r := parseRefusal(ae.status, ae.body, ae.errType); r != nil {
 			return failReason{Code: r.Code, Message: r.Message, State: callState(ae.status, r)}
 		}
 		return failReason{Message: strings.TrimSpace(ae.body), State: callState(ae.status, nil)}

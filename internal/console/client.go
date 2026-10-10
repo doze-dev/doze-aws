@@ -144,6 +144,9 @@ func (t fanoutTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 type apiErr struct {
 	status int
 	body   string
+	// errType is the response's x-amzn-ErrorType, for the services that carry
+	// the code there and not in the body.
+	errType string
 }
 
 func (e *apiErr) Error() string { return fmt.Sprintf("aws %d: %s", e.status, e.body) }
@@ -154,7 +157,7 @@ func (e *apiErr) Error() string { return fmt.Sprintf("aws %d: %s", e.status, e.b
 func errText(err error) string {
 	var ae *apiErr
 	if errors.As(err, &ae) {
-		if ref := parseRefusal(ae.status, ae.body); ref != nil && ref.Message != "" {
+		if ref := parseRefusal(ae.status, ae.body, ae.errType); ref != nil && ref.Message != "" {
 			if ref.Code != "" {
 				return ref.Code + ": " + ref.Message
 			}
@@ -186,7 +189,7 @@ func (b *backend) do(req *http.Request) ([]byte, error) {
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode/100 != 2 {
-		return nil, &apiErr{status: resp.StatusCode, body: string(body)}
+		return nil, &apiErr{status: resp.StatusCode, body: string(body), errType: resp.Header.Get("x-amzn-ErrorType")}
 	}
 	if graphMutation(req) {
 		b.bustGraph()

@@ -13,6 +13,13 @@ const PORT = Number(process.env.E2E_PORT ?? 14566);
 // Every console route a request lands on is written here; route-gate.ts
 // reads it after the run.
 export const ROUTES_FILE = `.tmp/routes-${PORT}.txt`;
+// E2E_ACCOUNT_ID and E2E_REGION boot the instance under another identity, so a
+// page that writes the default into an ARN, a URL or a test event shows up as a
+// failure here rather than in somebody else's account (plan item B2, A8). Unset
+// is the default identity, which is what every ordinary run uses.
+const IDENTITY_FLAGS =
+  (process.env.E2E_ACCOUNT_ID ? ` --account-id ${process.env.E2E_ACCOUNT_ID}` : '') +
+  (process.env.E2E_REGION ? ` --region ${process.env.E2E_REGION}` : '');
 export const ORIGIN = `http://127.0.0.1:${PORT}`;
 export const BASE_URL = `${ORIGIN}/_console/`;
 
@@ -48,7 +55,7 @@ export default defineConfig({
       // from accumulated state. A suite whose result depends on how many times
       // it has been run before cannot tell you anything.
       `cd e2e/.tmp && rm -rf data-${PORT} routes-${PORT}.txt && mkdir -p data-${PORT} && ` +
-      `DOZE_E2E_ROUTES=routes-${PORT}.txt ./bin/doze-aws-${PORT} --listen 127.0.0.1:${PORT} --data-dir data-${PORT} --console"`,
+      `DOZE_E2E_ROUTES=routes-${PORT}.txt ./bin/doze-aws-${PORT} --listen 127.0.0.1:${PORT} --data-dir data-${PORT} --console${IDENTITY_FLAGS}"`,
     url: BASE_URL,
     // Never reuse. The data dir is wiped in the boot command, so a reused
     // server KEEPS its state and the wipe never runs — resources accumulated
