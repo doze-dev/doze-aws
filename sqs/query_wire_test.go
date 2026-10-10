@@ -66,12 +66,12 @@ func TestEveryOperationIsAcceptedOnTheQueryWire(t *testing.T) {
 		"MessageSystemAttribute.1.Value.StringValue": {traceA}})
 	step("SendMessageBatch", url.Values{"Action": {"SendMessageBatch"}, "QueueUrl": {q},
 		"SendMessageBatchRequestEntry.1.Id": {"a"}, "SendMessageBatchRequestEntry.1.MessageBody": {"two"},
-		"SendMessageBatchRequestEntry.1.MessageAttribute.1.Name":                    {"k"},
-		"SendMessageBatchRequestEntry.1.MessageAttribute.1.Value.DataType":          {"String"},
-		"SendMessageBatchRequestEntry.1.MessageAttribute.1.Value.StringValue":       {"v"},
-		"SendMessageBatchRequestEntry.2.Id":                                         {"b"},
-		"SendMessageBatchRequestEntry.2.MessageBody":                                {"three"},
-		"SendMessageBatchRequestEntry.2.DelaySeconds":                               {"0"}})
+		"SendMessageBatchRequestEntry.1.MessageAttribute.1.Name":              {"k"},
+		"SendMessageBatchRequestEntry.1.MessageAttribute.1.Value.DataType":    {"String"},
+		"SendMessageBatchRequestEntry.1.MessageAttribute.1.Value.StringValue": {"v"},
+		"SendMessageBatchRequestEntry.2.Id":                                   {"b"},
+		"SendMessageBatchRequestEntry.2.MessageBody":                          {"three"},
+		"SendMessageBatchRequestEntry.2.DelaySeconds":                         {"0"}})
 
 	recv := step("ReceiveMessage", url.Values{"Action": {"ReceiveMessage"}, "QueueUrl": {q}, "MaxNumberOfMessages": {"3"},
 		"AttributeName.1": {"All"}, "MessageAttributeName.1": {"All"}, "VisibilityTimeout": {"120"}})
