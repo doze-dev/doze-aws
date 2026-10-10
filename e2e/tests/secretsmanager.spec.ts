@@ -163,6 +163,68 @@ test.describe('new version', () => {
   });
 });
 
+test.describe('key/value editor', () => {
+  // A flat JSON secret is edited as rows, and the rows must give back what they
+  // were given. The editor used to hold every value as a string, so changing one
+  // field of {"retries": 5, "jitter": true} saved {"retries": "6", "jitter":
+  // "true"} and the application reading it broke on the next deploy.
+  const original =
+    '{"retries": 5, "jitter": true, "ratio": 1.0, "big": 12345678901234567890, "name": "caf\\u00e9", "none": null}';
+  const stored = async (page: Page, name: string) => {
+    await page.goto(`sm/secret?name=${name}&tab=edit`);
+    return page.locator('textarea[name="value"][data-editor]').inputValue();
+  };
+
+  test('editing one number keeps every other value as it was written', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const name = uniqueName('e2e-sm-kv');
+    await postForm(request, 'sm/create', { name, value: original });
+
+    await page.goto(`sm/secret?name=${name}&tab=edit`);
+    const rows = page.locator('.kv-row');
+    await expect(rows).toHaveCount(6);
+    await expect(rows.nth(0).locator('.kv-t')).toHaveValue('number');
+    await expect(rows.nth(1).locator('.kv-t')).toHaveValue('boolean');
+    await expect(rows.nth(5).locator('.kv-t')).toHaveValue('null');
+
+    await rows.nth(0).locator('.kv-v').fill('6');
+    await page.getByRole('button', { name: 'Save as new version' }).click();
+    await waitForToast();
+
+    // Byte for byte, bar the one value that was edited: 1.0 is not 1, the long
+    // integer is not rounded, and the escape is not rewritten.
+    expect(await stored(page, name)).toBe(
+      '{\n  "retries": 6,\n  "jitter": true,\n  "ratio": 1.0,\n  "big": 12345678901234567890,\n  "name": "caf\\u00e9",\n  "none": null\n}'
+    );
+  });
+
+  test('a type changes only when the user changes it, and a mismatch says so', async ({
+    page,
+    request,
+    uniqueName,
+    waitForToast,
+  }) => {
+    const name = uniqueName('e2e-sm-kvt');
+    await postForm(request, 'sm/create', { name, value: '{"retries": 5, "jitter": true}' });
+
+    await page.goto(`sm/secret?name=${name}&tab=edit`);
+    const rows = page.locator('.kv-row');
+    // On purpose: jitter becomes the text "true".
+    await rows.nth(1).locator('.kv-t').selectOption('string');
+    // By typing: a number row given words is saved as words, and the row says so.
+    await rows.nth(0).locator('.kv-v').fill('five');
+    await expect(page.locator('.kv-mismatch').first()).toContainText('saved as text');
+    await page.getByRole('button', { name: 'Save as new version' }).click();
+    await waitForToast();
+
+    expect(await stored(page, name)).toBe('{\n  "retries": "five",\n  "jitter": "true"\n}');
+  });
+});
+
 test.describe('rotation', () => {
   test.setTimeout(60_000);
 

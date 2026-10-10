@@ -44,13 +44,19 @@
 
     <div x-show="mode==='kv'" x-cloak class="kv-rows">
       <template x-for="(row, i) in rows" :key="i">
+        <div class="kv-item">
         <div class="kv-row">
           <input class="input kv-k" placeholder="key" x-model="row.k" @input="sync()" spellcheck="false">
-          <input class="input kv-v" placeholder="value" x-model="row.v" @input="sync()" spellcheck="false">
-          <button type="button" class="icon-btn" title="Remove" @click="rows.splice(i,1); if(!rows.length)rows.push({k:'',v:''}); sync()">{{icon "x"}}</button>
+          <input class="input kv-v" :placeholder="row.t==='null' ? 'null' : 'value'" :disabled="row.t==='null'" x-model="row.v" @input="sync()" spellcheck="false">
+          <select class="input kv-t" x-model="row.t" @change="retype(row)" aria-label="Value type" title="The JSON type this value is saved as">
+            <option value="string">text</option><option value="number">number</option><option value="boolean">true/false</option><option value="null">null</option>
+          </select>
+          <button type="button" class="icon-btn" title="Remove" @click="rows.splice(i,1); if(!rows.length)rows.push(blank()); sync()">{{icon "x"}}</button>
+        </div>
+        <div class="dim kv-note kv-mismatch" x-show="mismatch(row)" x-cloak>That is not a <span x-text="row.t==='number' ? 'number' : 'true or false'"></span>, so it is saved as text.</div>
         </div>
       </template>
-      <button type="button" class="btn btn-outline btn-sm" @click="rows.push({k:'',v:''}); sync()">{{icon "plus"}} Add pair</button>
+      <button type="button" class="btn btn-outline btn-sm" @click="rows.push(blank()); sync()">{{icon "plus"}} Add pair</button>
     </div>
 
     <textarea x-ref="ta" x-show="mode==='text'" x-cloak
