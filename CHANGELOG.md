@@ -150,6 +150,35 @@ seventeen and freezes the Go API, the CLI, the data directory layout and the
 
 ### Changed
 
+- **An operation doze-aws does not build answers HTTP 501 `NotImplemented`**,
+  with `X-Doze-Not-Built: declined|deferred` saying whether it is a decision or
+  a todo. It was a 400 spelled differently by each service. No SDK retries a
+  501 (proved for the Go v1 and v2 SDKs, boto3 in both retry modes and the
+  JavaScript v3 SDK, with a 500 as the control), so a caller does not wait
+  through a backoff for an answer that cannot change. A test sends every
+  operation in every service's model through the full stack and holds what
+  each answers.
+- **A refusal says what kind it is.** The console tells Refused, Refused here,
+  Denied, Not built and Failed apart from headers the server stamped
+  (`X-Doze-Denied`, `X-Doze-Local-Limit`, `X-Doze-Not-Built`), not from the
+  spelling of a status or a code: a 403 is also a bad signature. SQS, SNS and S3
+  rebuilt the guard's error and dropped the stamp, so a policy denial would
+  have read as a refusal; they keep it now. A cascaded call that fails shows
+  the status its target answered, not 500.
+- **Blob lengths are in bytes.** KMS `Plaintext`, Kinesis `Data` and Secrets
+  Manager `SecretBinary` were measured in base64 characters, so each refused a
+  value AWS accepts and accepted one AWS refuses.
+- **Console fixes found by the same pass:** editing one field of a JSON secret
+  no longer turns its numbers and booleans into strings; saving tags is one
+  write and says what was applied when it is refused; a refusal from a header
+  button (Delete) is shown under the header, in full; a 5xx no longer blanks
+  the pane it was aimed at; links built from a name survive `+`, `=` and
+  `#`; every displayed time is local and consistent (Kinesis and API Gateway
+  wrote UTC beside local ones); a failed page load is a page in the shell; the
+  fidelity panel finds CloudWatch's ledger and shows HTTP APIs theirs; the
+  wiring strip no longer claims nothing feeds a resource it cannot see the
+  producers of; each form's CLI preview is the call the form makes.
+- The ledger no longer says IAM defaults to `off`. It is `soft`.
 - Found by deploying with the real tools (`e2e/deploy/`, run on every push):
   - **Terraform's AWS provider** applies a 22-resource stack and plans no drift.
     DescribeTable now carries `ProvisionedThroughput` and `WarmThroughput` (its
