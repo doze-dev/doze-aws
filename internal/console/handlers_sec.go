@@ -1,6 +1,7 @@
 package console
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/url"
@@ -231,9 +232,30 @@ func (c *Console) ssmParam(w http.ResponseWriter, r *http.Request) {
 		c.fail(w, err)
 		return
 	}
-	hist, _ := c.be.ParameterHistory(r.Context(), name)
+	v := c.paramDetailView(r.Context(), p, tabOf(r, "view"))
 	all, _ := c.be.ListParameters(r.Context())
-	c.render(w, r, "ssm_param", map[string]any{"P": p, "History": hist, "List": all, "Sel": name, "Mode": tabOf(r, "view"), "Secure": p.Type == "SecureString", "Title": p.Name + " · Parameter Store"})
+	v["List"], v["Sel"] = all, name
+	v["Title"] = p.Name + " · Parameter Store"
+	c.render(w, r, "ssm_param", v)
+}
+
+// paramDetailView is what ssm_param_detail renders from, for the page and for
+// every fragment that redraws it. A fragment that passed only the parameter and
+// its history drew a SecureString in clear with its badge gone, because
+// "Secure" was one of the things it left out.
+func (c *Console) paramDetailView(ctx context.Context, p *Parameter, mode string) map[string]any {
+	hist, _ := c.be.ParameterHistory(ctx, p.Name)
+	return map[string]any{"P": p, "History": hist, "Mode": mode, "Secure": p.Type == "SecureString", "Prefix": c.prefix}
+}
+
+// ssmDetailPartial redraws the parameter's detail after an action.
+func (c *Console) ssmDetailPartial(w http.ResponseWriter, r *http.Request, name, mode string) {
+	p, err := c.be.GetParameter(r.Context(), name)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "ssm_param_detail", c.paramDetailView(r.Context(), p, mode))
 }
 
 func (c *Console) ssmPut(w http.ResponseWriter, r *http.Request) {
@@ -248,9 +270,7 @@ func (c *Console) ssmPut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toast(w, "New version saved")
-	np, _ := c.be.GetParameter(r.Context(), name)
-	hist, _ := c.be.ParameterHistory(r.Context(), name)
-	c.partial(w, "ssm_param_detail", map[string]any{"P": np, "History": hist})
+	c.ssmDetailPartial(w, r, name, "view")
 }
 
 // ssmLabel attaches a label to the parameter version the row names (0 = latest).
@@ -262,10 +282,8 @@ func (c *Console) ssmLabel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toast(w, "Label “"+r.FormValue("label")+"” applied")
-	np, _ := c.be.GetParameter(r.Context(), name)
-	hist, _ := c.be.ParameterHistory(r.Context(), name)
 	// Keep the user on the Versions tab where they submitted the label.
-	c.partial(w, "ssm_param_detail", map[string]any{"P": np, "History": hist, "Mode": "versions"})
+	c.ssmDetailPartial(w, r, name, "versions")
 }
 
 // ssmUnlabel detaches one label from one version — the other half of
@@ -278,9 +296,7 @@ func (c *Console) ssmUnlabel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toast(w, "Label “"+r.FormValue("label")+"” removed")
-	np, _ := c.be.GetParameter(r.Context(), name)
-	hist, _ := c.be.ParameterHistory(r.Context(), name)
-	c.partial(w, "ssm_param_detail", map[string]any{"P": np, "History": hist, "Mode": "versions"})
+	c.ssmDetailPartial(w, r, name, "versions")
 }
 
 func (c *Console) ssmDelete(w http.ResponseWriter, r *http.Request) {
@@ -322,36 +338,54 @@ func (c *Console) smRestore(w http.ResponseWriter, r *http.Request) {
 	c.redirect(w, r, c.prefix+"/sm/secret?name="+url.QueryEscape(name), "Secret “"+name+"” restored")
 }
 
+// secretDetailView is what sm_secret_detail renders from. The page and every
+// fragment that redraws it call this, and only this: a fragment that built its
+// own subset of the data drew a secret with its version count wrong and its
+// resource policy reading "Not set", because the subset left them out.
+func (c *Console) secretDetailView(ctx context.Context, name, mode string) (map[string]any, error) {
+	s, err := c.be.GetSecret(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	// The full version list, deprecated ones included. DescribeSecret only
+	// reports versions that still hold a stage label, so a secret rotated
+	// twenty times showed a history two entries deep — the deprecated versions
+	// ARE the history.
+	if stages, err := c.be.SecretVersionIDs(ctx, name); err == nil && len(stages) > 0 {
+		s.Stages = stages
+	}
+	fns, _ := c.be.ListFunctions(ctx)
+	policy, _ := c.be.SecretPolicy(ctx, name)
+	return map[string]any{"S": s, "Functions": fns, "Policy": policy, "Mode": mode, "Prefix": c.prefix}, nil
+}
+
+// smDetailPartial redraws the secret's detail after an action, from the same
+// view the page is built from.
+func (c *Console) smDetailPartial(w http.ResponseWriter, r *http.Request, name, mode string) {
+	v, err := c.secretDetailView(r.Context(), name, mode)
+	if err != nil {
+		c.fail(w, err)
+		return
+	}
+	c.partial(w, "sm_secret_detail", v)
+}
+
 func (c *Console) smSecret(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
-	s, err := c.be.GetSecret(r.Context(), name)
+	v, err := c.secretDetailView(r.Context(), name, tabOf(r, "view"))
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
 	all, _ := c.be.ListSecrets(r.Context())
-	fns, _ := c.be.ListFunctions(r.Context())
-	// The full version list, deprecated ones included. DescribeSecret only
-	// reports versions that still hold a stage label, so a secret rotated
-	// twenty times showed a history two entries deep — the deprecated versions
-	// ARE the history.
-	if stages, err := c.be.SecretVersionIDs(r.Context(), name); err == nil && len(stages) > 0 {
-		s.Stages = stages
-	}
-	policy, _ := c.be.SecretPolicy(r.Context(), name)
-	c.render(w, r, "sm_secret", map[string]any{"S": s, "List": all, "Functions": fns, "Sel": name, "Mode": tabOf(r, "view"), "Title": s.Name + " · Secrets Manager", "Policy": policy})
+	v["List"], v["Sel"] = all, name
+	v["Title"] = name + " · Secrets Manager"
+	c.render(w, r, "sm_secret", v)
 }
 
 // smRotationPartial re-renders the secret detail (rotation strip lives there).
 func (c *Console) smRotationRefresh(w http.ResponseWriter, r *http.Request, name string) {
-	s, err := c.be.GetSecret(r.Context(), name)
-	if err != nil {
-		c.fail(w, err)
-		return
-	}
-	fns, _ := c.be.ListFunctions(r.Context())
-	policy, _ := c.be.SecretPolicy(r.Context(), name)
-	c.partial(w, "sm_secret_detail", map[string]any{"S": s, "Functions": fns, "Policy": policy})
+	c.smDetailPartial(w, r, name, "view")
 }
 
 // smConfigureRotation sets or clears the rotation lambda + schedule.
@@ -398,14 +432,7 @@ func (c *Console) smPut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	toast(w, "New secret version stored")
-	s, err := c.be.GetSecret(r.Context(), name)
-	if err != nil {
-		c.fail(w, err)
-		return
-	}
-	fns, _ := c.be.ListFunctions(r.Context())
-	policy, _ := c.be.SecretPolicy(r.Context(), name)
-	c.partial(w, "sm_secret_detail", map[string]any{"S": s, "Functions": fns, "Policy": policy})
+	c.smDetailPartial(w, r, name, "view")
 }
 
 func (c *Console) smDelete(w http.ResponseWriter, r *http.Request) {
@@ -484,16 +511,7 @@ func (c *Console) smPromote(w http.ResponseWriter, r *http.Request) {
 	// the mutation sweep honest: no fixture can invent a real version id, so a
 	// route classified as redirect-capable here would fail the sweep forever.
 	toast(w, "Rolled back — that version is current again")
-	ns, err := c.be.GetSecret(r.Context(), name)
-	if err != nil {
-		c.fail(w, err)
-		return
-	}
-	if stages, e := c.be.SecretVersionIDs(r.Context(), name); e == nil && len(stages) > 0 {
-		ns.Stages = stages
-	}
-	fns, _ := c.be.ListFunctions(r.Context())
-	c.partial(w, "sm_secret_detail", map[string]any{"S": ns, "Functions": fns, "Mode": "versions", "Prefix": c.prefix})
+	c.smDetailPartial(w, r, name, "versions")
 }
 
 // smUpdateMeta changes description and KMS key without writing a new version.
