@@ -140,22 +140,27 @@
      it was written for.
 
      Safe to drop only because every service that renders this strip is now a
-     node in the graph — DynamoDB and Kinesis included. On a service the graph
-     does not model, "nothing feeds this" would be a confident lie rather than a
-     fact. */}}
+     node in the graph — DynamoDB and Kinesis included.
+
+     What the graph holds is CONFIGURATION: a subscription, a target, a trigger,
+     a notification, a redrive policy. It cannot see an SDK client that sends or
+     reads, so the upstream side never says "nothing feeds this": for every node
+     kind this strip is drawn for, a producer the graph does not model exists
+     (a queue is written by application code, a bucket is uploaded to, a rule
+     matches events a client put, a stream is put to). It shows the feeds it
+     knows and says no more, and the empty side collapses. The downstream hints
+     are about configuration the user can add, and say so in those words. */}}
 <div class="conn">
   {{if .Conn.Upstream}}
     <span class="conn-lbl">Fed by</span>
     {{range .Conn.Upstream}}<a class="conn-chip" href="{{$.Prefix}}{{.URL}}"><span class="cc-bar" style="background:var(--svc-{{.Svc}})"></span><span class="cc-nm">{{.Name}}</span><span class="cc-k">{{.Kind}}</span></a>{{end}}
-  {{else}}
-    <span class="conn-hint">nothing feeds this yet</span>
   {{end}}
   <span class="conn-self">{{icon "arrow-right"}}<b>{{.Self}}</b>{{icon "arrow-right"}}</span>
   {{if .Conn.Downstream}}
     <span class="conn-lbl">Drains to</span>
     {{range .Conn.Downstream}}<a class="conn-chip" href="{{$.Prefix}}{{.URL}}"><span class="cc-bar" style="background:var(--svc-{{.Svc}})"></span><span class="cc-nm">{{.Name}}</span><span class="cc-k">{{.Kind}}</span></a>{{end}}
   {{else}}
-    <span class="conn-hint">{{if eq .Svc "sqs"}}nothing reads this queue — wire a Lambda trigger to close the loop{{else if eq .Svc "sns"}}no subscriptions yet — add one below{{else if eq .Svc "s3"}}no event notifications — add one under Properties{{else if eq .Svc "eb"}}no targets yet — add one below{{else}}drains nowhere yet{{end}}</span>
+    <span class="conn-hint">{{if eq .Svc "sqs"}}no Lambda trigger reads this queue — wire one to close the loop{{else if eq .Svc "sns"}}no subscriptions yet — add one below{{else if eq .Svc "s3"}}no event notifications — add one under Properties{{else if eq .Svc "eb"}}no targets yet — add one below{{else}}drains nowhere yet{{end}}</span>
   {{end}}
 </div>
 {{end}}
