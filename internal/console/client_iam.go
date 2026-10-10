@@ -1059,25 +1059,31 @@ func (b *backend) IAMTags(ctx context.Context, kind, id string) ([]KV, error) {
 	return tags, nil
 }
 
-func (b *backend) SetIAMTag(ctx context.Context, kind, id, key, value string) error {
+// SetIAMTags is one TagUser/TagRole/... for the whole batch; keys is the
+// order to send them in.
+func (b *backend) SetIAMTags(ctx context.Context, kind, id string, keys []string, tags map[string]string) error {
 	p, ok := iamTagOps[kind]
 	if !ok {
 		return fmt.Errorf("unknown iam tag kind %q", kind)
 	}
 	v := url.Values{p.field: {id}}
-	v.Set("Tags.member.1.Key", key)
-	v.Set("Tags.member.1.Value", value)
+	for i, k := range keys {
+		v.Set(fmt.Sprintf("Tags.member.%d.Key", i+1), k)
+		v.Set(fmt.Sprintf("Tags.member.%d.Value", i+1), tags[k])
+	}
 	_, err := b.iam(ctx, p.tag, v)
 	return err
 }
 
-func (b *backend) RemoveIAMTag(ctx context.Context, kind, id, key string) error {
+func (b *backend) RemoveIAMTags(ctx context.Context, kind, id string, keys []string) error {
 	p, ok := iamTagOps[kind]
 	if !ok {
 		return fmt.Errorf("unknown iam tag kind %q", kind)
 	}
 	v := url.Values{p.field: {id}}
-	v.Set("TagKeys.member.1", key)
+	for i, k := range keys {
+		v.Set(fmt.Sprintf("TagKeys.member.%d", i+1), k)
+	}
 	_, err := b.iam(ctx, p.untag, v)
 	return err
 }

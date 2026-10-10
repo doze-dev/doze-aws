@@ -93,6 +93,9 @@
      unchanged form and Cancel is not offered when there is nothing to undo. */}}
 {{define "tag_editor"}}
 <div id="tag-editor" x-data="dozeTags({{tagsJSON .Tags}})">
+  {{/* A refused save redraws the editor from the resource, so the refusal is
+       part of this fragment rather than a header-placed error. */}}
+  {{with .Refused}}{{template "fail_inline" .Err}}<p class="mini-note">{{.Note}}</p>{{end}}
   {{/* Rows, not a table.
 
        These were <td>s in a .tbl, which is styled for READ-ONLY key/value

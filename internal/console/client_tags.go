@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"net/http"
 	"net/url"
 	"sort"
@@ -210,134 +211,147 @@ func (b *backend) ResourceTags(ctx context.Context, svc, id string) ([]KV, error
 	return kvs, nil
 }
 
-// SetResourceTag sets (or overwrites) one tag.
-func (b *backend) SetResourceTag(ctx context.Context, svc, id, key, value string) error {
+// SetResourceTags sets (or overwrites) a batch of tags in one call. Every
+// service's tag API takes a set, so one Save is one TagResource: the service
+// accepts the whole set or refuses the whole set, and the editor never has to
+// say which half of its own draft it managed to write. Kinesis is the one
+// exception, which takes at most ten per call, so it is chunked here and says
+// so in the doc rather than leaking into the handler.
+func (b *backend) SetResourceTags(ctx context.Context, svc, id string, tags map[string]string) error {
+	if len(tags) == 0 {
+		return nil
+	}
+	// A stable order, so a chunked save writes the same keys first every time.
+	keys := make([]string, 0, len(tags))
+	for k := range tags {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	list := func(keyName, valName string) []map[string]string {
+		out := make([]map[string]string, 0, len(keys))
+		for _, k := range keys {
+			out = append(out, map[string]string{keyName: k, valName: tags[k]})
+		}
+		return out
+	}
+
 	if kind, ok := strings.CutPrefix(svc, "iam-"); ok {
-		return b.SetIAMTag(ctx, kind, id, key, value)
+		return b.SetIAMTags(ctx, kind, id, keys, tags)
 	}
 	switch svc {
 	case "kinesis":
-		_, err := b.kinesis(ctx, "AddTagsToStream", map[string]any{
-			"StreamName": id, "Tags": map[string]string{key: value},
-		})
-		return err
+		const perCall = 10 // AddTagsToStream's limit
+		for len(keys) > 0 {
+			n := min(perCall, len(keys))
+			chunk := make(map[string]string, n)
+			for _, k := range keys[:n] {
+				chunk[k] = tags[k]
+			}
+			if _, err := b.kinesis(ctx, "AddTagsToStream", map[string]any{"StreamName": id, "Tags": chunk}); err != nil {
+				return err
+			}
+			keys = keys[n:]
+		}
+		return nil
 	case "sqs":
-		_, err := b.sqs(ctx, "TagQueue", map[string]any{"QueueUrl": b.queueURL(id), "Tags": map[string]string{key: value}})
+		_, err := b.sqs(ctx, "TagQueue", map[string]any{"QueueUrl": b.queueURL(id), "Tags": tags})
 		return err
 	case "ddb":
-		_, err := b.ddbCall(ctx, "TagResource", map[string]any{
-			"ResourceArn": b.tagARN(svc, id), "Tags": []map[string]string{{"Key": key, "Value": value}},
-		})
+		_, err := b.ddbCall(ctx, "TagResource", map[string]any{"ResourceArn": b.tagARN(svc, id), "Tags": list("Key", "Value")})
 		return err
 	case "kms":
-		_, err := b.json11(ctx, "TrentService", "TagResource", map[string]any{
-			"KeyId": id, "Tags": []map[string]string{{"TagKey": key, "TagValue": value}},
-		})
+		_, err := b.json11(ctx, "TrentService", "TagResource", map[string]any{"KeyId": id, "Tags": list("TagKey", "TagValue")})
 		return err
 	case "sm":
-		_, err := b.json11(ctx, "secretsmanager", "TagResource", map[string]any{
-			"SecretId": id, "Tags": []map[string]string{{"Key": key, "Value": value}},
-		})
+		_, err := b.json11(ctx, "secretsmanager", "TagResource", map[string]any{"SecretId": id, "Tags": list("Key", "Value")})
 		return err
 	case "ssm":
 		_, err := b.json11(ctx, "AmazonSSM", "AddTagsToResource", map[string]any{
-			"ResourceType": "Parameter", "ResourceId": id,
-			"Tags": []map[string]string{{"Key": key, "Value": value}},
+			"ResourceType": "Parameter", "ResourceId": id, "Tags": list("Key", "Value"),
 		})
 		return err
 	case "lambda":
-		return b.lambdaTagsSet(ctx, b.tagARN(svc, id), map[string]string{key: value})
+		return b.lambdaTagsSet(ctx, b.tagARN(svc, id), tags)
 	case "apigw", "apigw-http":
-		_, err := b.apigwJSON(ctx, "PUT", "/tags/"+url.PathEscape(b.tagARN(svc, id)),
-			map[string]any{"tags": map[string]string{key: value}})
+		_, err := b.apigwJSON(ctx, "PUT", "/tags/"+url.PathEscape(b.tagARN(svc, id)), map[string]any{"tags": tags})
 		return err
 	case "eb":
-		_, err := b.json11(ctx, "AWSEvents", "TagResource", map[string]any{
-			"ResourceARN": b.tagARN(svc, id), "Tags": []map[string]string{{"Key": key, "Value": value}},
-		})
+		_, err := b.json11(ctx, "AWSEvents", "TagResource", map[string]any{"ResourceARN": b.tagARN(svc, id), "Tags": list("Key", "Value")})
 		return err
 	case "sfn":
-		_, err := b.sfnCall(ctx, "TagResource", map[string]any{
-			"resourceArn": b.tagARN(svc, id), "tags": []map[string]string{{"key": key, "value": value}},
-		})
+		_, err := b.sfnCall(ctx, "TagResource", map[string]any{"resourceArn": b.tagARN(svc, id), "tags": list("key", "value")})
 		return err
 	case "logs":
-		_, err := b.json11(ctx, "Logs_20140328", "TagResource", map[string]any{
-			"resourceArn": b.tagARN(svc, id), "tags": map[string]string{key: value},
-		})
+		_, err := b.json11(ctx, "Logs_20140328", "TagResource", map[string]any{"resourceArn": b.tagARN(svc, id), "tags": tags})
 		return err
 	case "cw":
-		_, err := b.cw(ctx, "TagResource", map[string]any{
-			"ResourceARN": b.tagARN(svc, id),
-			"Tags":        []map[string]string{{"Key": key, "Value": value}},
-		})
+		_, err := b.cw(ctx, "TagResource", map[string]any{"ResourceARN": b.tagARN(svc, id), "Tags": list("Key", "Value")})
 		return err
 	default: // sns
 		v := url.Values{"Action": {"TagResource"}, "ResourceArn": {b.tagARN(svc, id)}}
-		v.Set("Tags.member.1.Key", key)
-		v.Set("Tags.member.1.Value", value)
+		for i, k := range keys {
+			v.Set(fmt.Sprintf("Tags.member.%d.Key", i+1), k)
+			v.Set(fmt.Sprintf("Tags.member.%d.Value", i+1), tags[k])
+		}
 		_, err := b.queryXML(ctx, v)
 		return err
 	}
 }
 
-// RemoveResourceTag deletes one tag by key.
-func (b *backend) RemoveResourceTag(ctx context.Context, svc, id, key string) error {
+// RemoveResourceTags deletes a batch of tags by key in one call.
+func (b *backend) RemoveResourceTags(ctx context.Context, svc, id string, keys []string) error {
+	if len(keys) == 0 {
+		return nil
+	}
+	keys = append([]string(nil), keys...)
+	sort.Strings(keys)
 	if kind, ok := strings.CutPrefix(svc, "iam-"); ok {
-		return b.RemoveIAMTag(ctx, kind, id, key)
+		return b.RemoveIAMTags(ctx, kind, id, keys)
 	}
 	switch svc {
 	case "kinesis":
-		_, err := b.kinesis(ctx, "RemoveTagsFromStream", map[string]any{
-			"StreamName": id, "TagKeys": []string{key},
-		})
+		_, err := b.kinesis(ctx, "RemoveTagsFromStream", map[string]any{"StreamName": id, "TagKeys": keys})
 		return err
 	case "sqs":
-		_, err := b.sqs(ctx, "UntagQueue", map[string]any{"QueueUrl": b.queueURL(id), "TagKeys": []string{key}})
+		_, err := b.sqs(ctx, "UntagQueue", map[string]any{"QueueUrl": b.queueURL(id), "TagKeys": keys})
 		return err
 	case "ddb":
-		_, err := b.ddbCall(ctx, "UntagResource", map[string]any{"ResourceArn": b.tagARN(svc, id), "TagKeys": []string{key}})
+		_, err := b.ddbCall(ctx, "UntagResource", map[string]any{"ResourceArn": b.tagARN(svc, id), "TagKeys": keys})
 		return err
 	case "kms":
-		_, err := b.json11(ctx, "TrentService", "UntagResource", map[string]any{"KeyId": id, "TagKeys": []string{key}})
+		_, err := b.json11(ctx, "TrentService", "UntagResource", map[string]any{"KeyId": id, "TagKeys": keys})
 		return err
 	case "sm":
-		_, err := b.json11(ctx, "secretsmanager", "UntagResource", map[string]any{"SecretId": id, "TagKeys": []string{key}})
+		_, err := b.json11(ctx, "secretsmanager", "UntagResource", map[string]any{"SecretId": id, "TagKeys": keys})
 		return err
 	case "ssm":
 		_, err := b.json11(ctx, "AmazonSSM", "RemoveTagsFromResource", map[string]any{
-			"ResourceType": "Parameter", "ResourceId": id, "TagKeys": []string{key},
+			"ResourceType": "Parameter", "ResourceId": id, "TagKeys": keys,
 		})
 		return err
 	case "lambda":
-		return b.lambdaTagsRemove(ctx, b.tagARN(svc, id), key)
+		return b.lambdaTagsRemove(ctx, b.tagARN(svc, id), keys)
 	case "apigw", "apigw-http":
-		_, err := b.apigwJSON(ctx, "DELETE",
-			"/tags/"+url.PathEscape(b.tagARN(svc, id))+"?tagKeys="+url.QueryEscape(key), nil)
+		q := url.Values{"tagKeys": keys}.Encode()
+		_, err := b.apigwJSON(ctx, "DELETE", "/tags/"+url.PathEscape(b.tagARN(svc, id))+"?"+q, nil)
 		return err
 	case "eb":
-		_, err := b.json11(ctx, "AWSEvents", "UntagResource", map[string]any{
-			"ResourceARN": b.tagARN(svc, id), "TagKeys": []string{key},
-		})
+		_, err := b.json11(ctx, "AWSEvents", "UntagResource", map[string]any{"ResourceARN": b.tagARN(svc, id), "TagKeys": keys})
 		return err
 	case "sfn":
-		_, err := b.sfnCall(ctx, "UntagResource", map[string]any{
-			"resourceArn": b.tagARN(svc, id), "tagKeys": []string{key},
-		})
+		_, err := b.sfnCall(ctx, "UntagResource", map[string]any{"resourceArn": b.tagARN(svc, id), "tagKeys": keys})
 		return err
 	case "logs":
-		_, err := b.json11(ctx, "Logs_20140328", "UntagResource", map[string]any{
-			"resourceArn": b.tagARN(svc, id), "tagKeys": []string{key},
-		})
+		_, err := b.json11(ctx, "Logs_20140328", "UntagResource", map[string]any{"resourceArn": b.tagARN(svc, id), "tagKeys": keys})
 		return err
 	case "cw":
-		_, err := b.cw(ctx, "UntagResource", map[string]any{
-			"ResourceARN": b.tagARN(svc, id), "TagKeys": []string{key},
-		})
+		_, err := b.cw(ctx, "UntagResource", map[string]any{"ResourceARN": b.tagARN(svc, id), "TagKeys": keys})
 		return err
 	default: // sns
 		v := url.Values{"Action": {"UntagResource"}, "ResourceArn": {b.tagARN(svc, id)}}
-		v.Set("TagKeys.member.1", key)
+		for i, k := range keys {
+			v.Set(fmt.Sprintf("TagKeys.member.%d", i+1), k)
+		}
 		_, err := b.queryXML(ctx, v)
 		return err
 	}
@@ -380,9 +394,9 @@ func (b *backend) lambdaTagsSet(ctx context.Context, arn string, tags map[string
 	return err
 }
 
-func (b *backend) lambdaTagsRemove(ctx context.Context, arn, key string) error {
+func (b *backend) lambdaTagsRemove(ctx context.Context, arn string, keys []string) error {
 	req, _ := http.NewRequestWithContext(ctx, "DELETE",
-		b.base+"/2017-03-31/tags/"+url.PathEscape(arn)+"?tagKeys="+url.QueryEscape(key), nil)
+		b.base+"/2017-03-31/tags/"+url.PathEscape(arn)+"?"+url.Values{"tagKeys": keys}.Encode(), nil)
 	_, err := b.do(req)
 	return err
 }

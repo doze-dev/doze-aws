@@ -2,6 +2,7 @@ package console
 
 import (
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -15,12 +16,31 @@ func (c *Console) tagsView(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Console) renderTagEditor(w http.ResponseWriter, r *http.Request, svc, id string) {
+	c.renderTagEditorWith(w, r, svc, id, nil)
+}
+
+// tagRefusal is what a refused save tells the editor: the service's own words,
+// and what became of the rest of the draft.
+type tagRefusal struct {
+	Err  failReason
+	Note string
+}
+
+// renderTagEditorWith draws the editor from what the service holds NOW. After a
+// refused save that is the point: the draft in the page is a guess about the
+// resource, the service's answer is the fact, and showing the guess again would
+// let a half-written set look like the one the user submitted.
+func (c *Console) renderTagEditorWith(w http.ResponseWriter, r *http.Request, svc, id string, refused *tagRefusal) {
 	tags, err := c.be.ResourceTags(r.Context(), svc, id)
 	if err != nil {
 		c.fail(w, err)
 		return
 	}
-	c.partial(w, "tag_editor", map[string]any{"Svc": svc, "ID": id, "Tags": tags, "Prefix": c.prefix})
+	data := map[string]any{"Svc": svc, "ID": id, "Tags": tags, "Prefix": c.prefix}
+	if refused != nil {
+		data["Refused"] = refused
+	}
+	c.partial(w, "tag_editor", data)
 }
 
 // tagsSave replaces the whole tag set in one submit, which is what an explicit
@@ -63,13 +83,11 @@ func (c *Console) tagsSave(w http.ResponseWriter, r *http.Request) {
 		current[kv.K] = kv.V
 	}
 
-	var added, changed, removed int
+	var added, changed int
+	set := map[string]string{}
 	for k, v := range want {
 		if cur, ok := current[k]; !ok || cur != v {
-			if err := c.be.SetResourceTag(r.Context(), svc, id, k, v); err != nil {
-				c.fail(w, err)
-				return
-			}
+			set[k] = v
 			if ok {
 				changed++
 			} else {
@@ -77,18 +95,61 @@ func (c *Console) tagsSave(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+	var remove []string
 	for k := range current {
 		if _, keep := want[k]; !keep {
-			if err := c.be.RemoveResourceTag(r.Context(), svc, id, k); err != nil {
-				c.fail(w, err)
-				return
+			remove = append(remove, k)
+		}
+	}
+	sort.Strings(remove)
+
+	// One call each way. Removals go first, because a set that would pass the
+	// resource's tag limit only does so once the keys leaving it have gone. If
+	// the second call is refused the first has already happened, so the editor
+	// is redrawn from the resource and says which half was applied: it is never
+	// left holding a draft that looks like what the service now has.
+	if len(remove) > 0 {
+		if err := c.be.RemoveResourceTags(r.Context(), svc, id, remove); err != nil {
+			c.renderTagEditorWith(w, r, svc, id, &tagRefusal{
+				Err:  failView(err),
+				Note: "Nothing was changed. Refused: removing " + quoteKeys(remove) + ".",
+			})
+			return
+		}
+	}
+	if len(set) > 0 {
+		if err := c.be.SetResourceTags(r.Context(), svc, id, set); err != nil {
+			keys := make([]string, 0, len(set))
+			for k := range set {
+				keys = append(keys, k)
 			}
-			removed++
+			sort.Strings(keys)
+			note := "Nothing was changed. Refused: writing " + quoteKeys(keys) + "."
+			if len(remove) > 0 {
+				note = "The removal of " + quoteKeys(remove) + " was applied. Refused: writing " + quoteKeys(keys) + "."
+			}
+			c.renderTagEditorWith(w, r, svc, id, &tagRefusal{Err: failView(err), Note: note})
+			return
 		}
 	}
 
-	toast(w, tagSaveNote(added, changed, removed))
+	toast(w, tagSaveNote(added, changed, len(remove)))
 	c.renderTagEditor(w, r, svc, id)
+}
+
+// quoteKeys names tag keys for a sentence: "a", "b" and "c".
+func quoteKeys(keys []string) string {
+	q := make([]string, len(keys))
+	for i, k := range keys {
+		q[i] = strconv.Quote(k)
+	}
+	switch len(q) {
+	case 0:
+		return ""
+	case 1:
+		return q[0]
+	}
+	return strings.Join(q[:len(q)-1], ", ") + " and " + q[len(q)-1]
 }
 
 // tagSaveNote says what the save actually did. "Tags saved" after a submit that
