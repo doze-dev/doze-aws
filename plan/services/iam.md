@@ -495,6 +495,7 @@ Every claim here is `doc` or `memory` today.
 |---|---|---|
 | Credentials from `AssumeRole` are judged as the role session; `GetCallerIdentity` returns the assumed-role ARN | doc | `test_sts::assumed_role_identity` |
 | `AssumeRole` on a missing role, and on a role that does not trust the caller: code and message | doc | `assume_role_refusals` |
+| Whether `aws:SourceIp` and `aws:UserAgent` are in the request context when a service principal makes the call (SNS delivering to a queue): doze-aws supplies loopback values on a peer hop | memory | `service_principal_condition_keys` |
 | `DurationSeconds` above the role's `MaxSessionDuration` | doc | `assume_role_duration_over_max` |
 | A call signed with an Inactive key: code | memory (`InvalidClientTokenId`) | `test_iam::inactive_key` |
 | `UpdateUser` and `UpdateGroup` to a taken name | doc | `rename_conflict` |
