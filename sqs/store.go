@@ -109,6 +109,9 @@ type store struct {
 	// back to the Server that owns it.
 	id     awsident.Identity
 	notify *notifier
+	// attempts is what ReceiveRequestAttemptId matches a retry against. Empty
+	// until a FIFO receive carries one.
+	attempts receiveAttempts
 }
 
 func newStore(db *lazybolt.DB) *store {

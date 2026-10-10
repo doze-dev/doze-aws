@@ -23,6 +23,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
 func TestMessageSizeIsOneMebibyte(t *testing.T) {
@@ -311,5 +314,55 @@ func TestAQueueInAnotherAccountIsNotThisQueue(t *testing.T) {
 	code, _ = jsonBody(t, ts.URL, "GetQueueUrl", `{"QueueName":"mine","QueueOwnerAWSAccountId":"000000000000"}`)
 	if code != 200 {
 		t.Errorf("GetQueueUrl for this owner answered %d", code)
+	}
+}
+
+// ListMessageMoveTasksResultEntry: the TaskHandle "is only populated for tasks
+// that are in RUNNING status" and the DestinationArn is absent when the task
+// named none.
+func TestAFinishedTasksEntryHasNoHandleAndNoInventedDestination(t *testing.T) {
+	f := newRedriveFixture(t, "dlq")
+	f.create("orders", redrivePolicyTo(f, "dlq"))
+	f.deadLetter("orders", "one")
+	if _, err := f.c.StartMessageMoveTask(f.ctx, &awssqs.StartMessageMoveTaskInput{SourceArn: aws.String(f.arns["dlq"])}); err != nil {
+		t.Fatal(err)
+	}
+	list, err := f.c.ListMessageMoveTasks(f.ctx, &awssqs.ListMessageMoveTasksInput{SourceArn: aws.String(f.arns["dlq"])})
+	if err != nil || len(list.Results) != 1 {
+		t.Fatalf("ListMessageMoveTasks: %v %v", list, err)
+	}
+	r := list.Results[0]
+	if aws.ToString(r.Status) != "COMPLETED" {
+		t.Fatalf("status %q", aws.ToString(r.Status))
+	}
+	if r.TaskHandle != nil {
+		t.Errorf("a COMPLETED task lists TaskHandle %q; only a RUNNING one does", aws.ToString(r.TaskHandle))
+	}
+	if r.DestinationArn != nil {
+		t.Errorf("a task started with no DestinationArn lists %q", aws.ToString(r.DestinationArn))
+	}
+}
+
+// AddPermission: "can have a maximum of seven actions per statement" and "does
+// not support adding a non-account principal".
+func TestAddPermissionTakesAccountsAndAtMostSevenActions(t *testing.T) {
+	ts := testServer(t)
+	jsonBody(t, ts.URL, "CreateQueue", `{"QueueName":"seven"}`)
+	qurl := ts.URL + "/000000000000/seven"
+	add := func(label, accounts, actions string) int {
+		code, _ := jsonBody(t, ts.URL, "AddPermission", `{"QueueUrl":"`+qurl+`","Label":"`+label+
+			`","AWSAccountIds":`+accounts+`,"Actions":`+actions+`}`)
+		return code
+	}
+	seven := `["SendMessage","ReceiveMessage","DeleteMessage","ChangeMessageVisibility","GetQueueAttributes","GetQueueUrl","PurgeQueue"]`
+	eight := `["SendMessage","ReceiveMessage","DeleteMessage","ChangeMessageVisibility","GetQueueAttributes","GetQueueUrl","PurgeQueue","ListQueues"]`
+	if got := add("seven", `["111122223333"]`, seven); got != 200 {
+		t.Errorf("seven actions answered %d, want 200", got)
+	}
+	if got := add("eight", `["111122223333"]`, eight); got < 400 {
+		t.Errorf("eight actions answered %d, want a refusal", got)
+	}
+	if got := add("arn", `["arn:aws:iam::111122223333:user/alice"]`, `["SendMessage"]`); got != 400 {
+		t.Errorf("a user ARN as the principal answered %d, want 400", got)
 	}
 }

@@ -190,12 +190,13 @@ func (p params) stringList(name string) []string {
 
 // sendEntry is one SendMessageBatch entry. Delay is nil when unset (use default).
 type sendEntry struct {
-	ID      string
-	Body    string
-	Delay   *int
-	GroupID string
-	DedupID string
-	Attrs   map[string]attr
+	ID       string
+	Body     string
+	Delay    *int
+	GroupID  string
+	DedupID  string
+	Attrs    map[string]attr
+	SysAttrs map[string]string
 }
 
 // delEntry is one DeleteMessageBatch entry.
@@ -214,11 +215,12 @@ func (p params) sendBatchEntries() []sendEntry {
 				break
 			}
 			e := sendEntry{
-				ID:      id,
-				Body:    p.form.Get(base + "MessageBody"),
-				GroupID: p.form.Get(base + "MessageGroupId"),
-				DedupID: p.form.Get(base + "MessageDeduplicationId"),
-				Attrs:   fromQueryAttrs(awsquery.MessageAttrs(p.form, base+"MessageAttribute")),
+				ID:       id,
+				Body:     p.form.Get(base + "MessageBody"),
+				GroupID:  p.form.Get(base + "MessageGroupId"),
+				DedupID:  p.form.Get(base + "MessageDeduplicationId"),
+				Attrs:    fromQueryAttrs(awsquery.MessageAttrs(p.form, base+"MessageAttribute")),
+				SysAttrs: querySystemAttrs(p.form, base+"MessageSystemAttribute"),
 			}
 			if d := p.form.Get(base + "DelaySeconds"); d != "" {
 				if n, err := strconv.Atoi(d); err == nil {
@@ -236,6 +238,7 @@ func (p params) sendBatchEntries() []sendEntry {
 		GroupID      string          `json:"MessageGroupId"`
 		DedupID      string          `json:"MessageDeduplicationId"`
 		MessageAttrs json.RawMessage `json:"MessageAttributes"`
+		SysAttrs     json.RawMessage `json:"MessageSystemAttributes"`
 	}
 	if raw, ok := p.obj["Entries"]; ok {
 		_ = json.Unmarshal(raw, &entries)
@@ -243,7 +246,7 @@ func (p params) sendBatchEntries() []sendEntry {
 	for _, e := range entries {
 		out = append(out, sendEntry{
 			ID: e.ID, Body: e.Body, Delay: e.Delay, GroupID: e.GroupID, DedupID: e.DedupID,
-			Attrs: jsonMessageAttrs(e.MessageAttrs),
+			Attrs: jsonMessageAttrs(e.MessageAttrs), SysAttrs: jsonSystemAttrs(e.SysAttrs),
 		})
 	}
 	return out
@@ -341,9 +344,15 @@ func (p params) messageAttributeNames() []string {
 	return p.stringList("MessageAttributeNames")
 }
 
+// wants reports whether a ReceiveMessage name selection takes an attribute:
+// the name itself, "All" or ".*" for everything, or "prefix.*" for every name
+// that starts with the prefix (doc: the model's MessageAttributeNames).
 func wants(names []string, name string) bool {
 	for _, n := range names {
 		if n == "All" || n == ".*" || n == name {
+			return true
+		}
+		if prefix, ok := strings.CutSuffix(n, ".*"); ok && prefix != "" && strings.HasPrefix(name, prefix+".") {
 			return true
 		}
 	}
@@ -482,15 +491,12 @@ func (p params) tagKeys() []string {
 // MD5OfMessageAttributes and returns them with SentTimestamp and friends.
 func (p params) systemAttrs() map[string]string {
 	out := map[string]string{}
-	// Query protocol: MessageSystemAttribute.entry.N.Name / .Value.StringValue
-	for i := 1; ; i++ {
-		name := p.str(fmt.Sprintf("MessageSystemAttribute.entry.%d.Name", i))
-		if name == "" {
-			break
-		}
-		v := p.str(fmt.Sprintf("MessageSystemAttribute.entry.%d.Value.StringValue", i))
-		if name == sysAttrTraceHeader && v != "" {
-			out[name] = v
+	// Query protocol, in either spelling of a map: MessageSystemAttribute.N.Name
+	// (flattened, which the model's xmlFlattened asks for) and
+	// MessageSystemAttribute.entry.N.Name.
+	if p.form != nil {
+		for k, v := range querySystemAttrs(p.form, "MessageSystemAttribute") {
+			out[k] = v
 		}
 	}
 	// JSON protocol: {"MessageSystemAttributes":{"AWSTraceHeader":{"StringValue":..}}}
@@ -508,6 +514,46 @@ func (p params) systemAttrs() map[string]string {
 	}
 	if len(out) == 0 {
 		return nil
+	}
+	return out
+}
+
+// querySystemAttrs reads the AWSTraceHeader out of a Query request's system
+// attribute list under prefix, in either spelling of a map.
+func querySystemAttrs(form url.Values, prefix string) map[string]string {
+	out := map[string]string{}
+	for _, spelling := range []string{prefix + ".%d.", prefix + ".entry.%d."} {
+		for i := 1; ; i++ {
+			base := fmt.Sprintf(spelling, i)
+			name := form.Get(base + "Name")
+			if name == "" {
+				break
+			}
+			if v := form.Get(base + "Value.StringValue"); name == sysAttrTraceHeader && v != "" {
+				out[name] = v
+			}
+		}
+	}
+	return out
+}
+
+// jsonSystemAttrs reads the AWSTraceHeader out of a JSON MessageSystemAttributes
+// member.
+func jsonSystemAttrs(raw json.RawMessage) map[string]string {
+	if len(raw) == 0 {
+		return nil
+	}
+	var m map[string]struct {
+		StringValue string `json:"StringValue"`
+	}
+	if json.Unmarshal(raw, &m) != nil {
+		return nil
+	}
+	out := map[string]string{}
+	for k, v := range m {
+		if k == sysAttrTraceHeader && v.StringValue != "" {
+			out[k] = v.StringValue
+		}
 	}
 	return out
 }

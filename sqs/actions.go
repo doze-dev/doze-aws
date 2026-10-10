@@ -164,7 +164,8 @@ func hSendMessage(s *store, req *request) (any, *apiError) {
 	if err != nil {
 		return nil, asAPIError(err)
 	}
-	return sendResult{MessageID: m.ID, MD5OfBody: m.MD5Body, MD5OfAttrs: m.MD5Attrs, SequenceNumber: sequenceNumber(m)}, nil
+	return sendResult{MessageID: m.ID, MD5OfBody: m.MD5Body, MD5OfAttrs: m.MD5Attrs,
+		MD5OfSysAttrs: md5SystemAttributes(m.SysAttrs), SequenceNumber: sequenceNumber(m)}, nil
 }
 
 func hSendMessageBatch(s *store, req *request) (any, *apiError) {
@@ -190,7 +191,7 @@ func hSendMessageBatch(s *store, req *request) (any, *apiError) {
 	items := make([]sendItem, len(entries))
 	for i, e := range entries {
 		delay := -1
-		items[i] = sendItem{Body: e.Body, Attrs: e.Attrs, Delay: delay, GroupID: e.GroupID, DedupID: e.DedupID}
+		items[i] = sendItem{Body: e.Body, Attrs: e.Attrs, Delay: delay, GroupID: e.GroupID, DedupID: e.DedupID, SysAttrs: e.SysAttrs}
 		if e.Delay != nil {
 			// An entry's own number is judged as its own failure.
 			if *e.Delay < 0 || *e.Delay > maxDelaySeconds {
@@ -218,7 +219,7 @@ func hSendMessageBatch(s *store, req *request) (any, *apiError) {
 		}
 		res.Successful = append(res.Successful, sendBatchOK{
 			ID: e.ID, MessageID: r.Msg.ID, MD5OfBody: r.Msg.MD5Body, MD5OfAttrs: r.Msg.MD5Attrs,
-			SequenceNumber: sequenceNumber(r.Msg),
+			MD5OfSysAttrs: md5SystemAttributes(r.Msg.SysAttrs), SequenceNumber: sequenceNumber(r.Msg),
 		})
 	}
 	return res, nil
@@ -247,7 +248,26 @@ func hReceiveMessage(s *store, req *request) (any, *apiError) {
 	attrNames := req.p.attributeNames()
 	maNames := req.p.messageAttributeNames()
 
-	msgs, err := s.Receive(queue, max, wait, vis)
+	var (
+		msgs []message
+		err  error
+	)
+	if attempt := req.p.str("ReceiveRequestAttemptId"); attempt != "" {
+		// doc: "This parameter applies only to FIFO queues."
+		if !validFIFOID(attempt) {
+			return nil, errInvalid("Value " + attempt + " for parameter ReceiveRequestAttemptId is invalid. Reason: it can contain up to 128 alphanumeric characters and punctuation.")
+		}
+		attrs, aerr := s.Attributes(queue)
+		if aerr != nil {
+			return nil, asAPIError(aerr)
+		}
+		if attrs["FifoQueue"] != "true" {
+			return nil, errInvalid("The request include parameter that is not valid for this queue type: ReceiveRequestAttemptId belongs to FIFO queues.")
+		}
+		msgs, err = s.ReceiveAttempt(queue, attempt, max, wait, vis)
+	} else {
+		msgs, err = s.Receive(queue, max, wait, vis)
+	}
 	if err != nil {
 		return nil, asAPIError(err)
 	}

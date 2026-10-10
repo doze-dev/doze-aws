@@ -141,6 +141,8 @@ type sendResult struct {
 	MessageID  string `json:"MessageId" xml:"MessageId"`
 	MD5OfBody  string `json:"MD5OfMessageBody" xml:"MD5OfMessageBody"`
 	MD5OfAttrs string `json:"MD5OfMessageAttributes,omitempty" xml:"MD5OfMessageAttributes,omitempty"`
+	// MD5OfSysAttrs is present when a system attribute (the trace header) was sent.
+	MD5OfSysAttrs string `json:"MD5OfMessageSystemAttributes,omitempty" xml:"MD5OfMessageSystemAttributes,omitempty"`
 	// SequenceNumber is a FIFO queue's alone: where the message sits in its group.
 	SequenceNumber string `json:"SequenceNumber,omitempty" xml:"SequenceNumber,omitempty"`
 }
@@ -155,6 +157,7 @@ type sendBatchOK struct {
 	MessageID      string `json:"MessageId" xml:"MessageId"`
 	MD5OfBody      string `json:"MD5OfMessageBody" xml:"MD5OfMessageBody"`
 	MD5OfAttrs     string `json:"MD5OfMessageAttributes,omitempty" xml:"MD5OfMessageAttributes,omitempty"`
+	MD5OfSysAttrs  string `json:"MD5OfMessageSystemAttributes,omitempty" xml:"MD5OfMessageSystemAttributes,omitempty"`
 	SequenceNumber string `json:"SequenceNumber,omitempty" xml:"SequenceNumber,omitempty"`
 }
 

@@ -137,17 +137,25 @@ func hListMessageMoveTasks(s *store, req *request) (any, *apiError) {
 	}
 	var res listMoveTasksResult
 	for _, t := range tasks {
-		res.Results = append(res.Results, moveTaskView{
-			TaskHandle:                        t.Handle,
+		view := moveTaskView{
 			Status:                            t.Status,
 			SourceArn:                         s.queueARN(t.Source),
-			DestinationArn:                    s.queueARN(t.Destination),
 			ApproximateNumberOfMessagesMoved:  int64(t.Moved),
 			ApproximateNumberOfMessagesToMove: int64(t.ToMove),
 			MaxNumberOfMessagesPerSecond:      t.MaxPerSecond,
 			StartedTimestamp:                  t.StartedAt * 1000, // epoch millis
 			FailureReason:                     t.FailureReason,
-		})
+		}
+		// doc: the handle "is only populated for tasks that are in RUNNING
+		// status", and the destination is absent when none was named. A move
+		// here finishes inside the call, so nothing is ever RUNNING.
+		if t.Status == "RUNNING" {
+			view.TaskHandle = t.Handle
+		}
+		if t.Destination != "" {
+			view.DestinationArn = s.queueARN(t.Destination)
+		}
+		res.Results = append(res.Results, view)
 	}
 	return res, nil
 }

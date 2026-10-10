@@ -131,9 +131,8 @@ var permissionActions = map[string]bool{
 
 // validPermission applies what the AddPermission page states: a label of at
 // most 80 characters of letters, digits, hyphens and underscores; actions from
-// the list above; principals that are twelve-digit account numbers (an ARN is
-// still accepted, which the page does not rule out). The model states none of
-// it.
+// the list above; principals that are twelve-digit account numbers; and at most seven
+// actions. The model states none of it as a constraint.
 func validPermission(label string, accounts, actions []string) *apiError {
 	bad := func(param, why string) *apiError {
 		return &apiError{Code: "InvalidParameterValue", Status: 400, SenderFault: true,
@@ -148,12 +147,16 @@ func validPermission(label string, accounts, actions []string) *apiError {
 		}
 	}
 	for _, a := range accounts {
-		if strings.HasPrefix(a, "arn:") {
-			continue
-		}
+		// doc: "AddPermission does not support adding a non-account principal".
 		if len(a) != 12 || strings.Trim(a, "0123456789") != "" {
 			return bad("AWSAccountIds", "an account number is twelve digits.")
 		}
+	}
+	// doc: "can have a maximum of seven actions per statement". The one
+	// modelled error that is a limit on AddPermission is OverLimit.
+	if len(actions) > 7 {
+		return &apiError{Code: "OverLimit", Status: 403, SenderFault: true,
+			Message: "A policy statement can have at most seven actions."}
 	}
 	for _, a := range actions {
 		if !permissionActions[strings.TrimPrefix(strings.TrimPrefix(a, "SQS:"), "sqs:")] {

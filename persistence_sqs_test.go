@@ -28,7 +28,6 @@ func TestSQSStateSurvivesARestart(t *testing.T) {
 		flightURL, receipt string // a message in flight for an hour
 		fifoURL, dedupID   string // a FIFO send whose window is open
 		srcURL, dlqARN     string
-		taskHandle         string
 	}
 	persistsAcrossRestart(t,
 		func(ctx context.Context, url string) written {
@@ -93,7 +92,9 @@ func TestSQSStateSurvivesARestart(t *testing.T) {
 			must(err)
 			task, err := c.StartMessageMoveTask(ctx, &awssqs.StartMessageMoveTaskInput{SourceArn: aws.String(w.dlqARN)})
 			must(err)
-			w.taskHandle = aws.ToString(task.TaskHandle)
+			if task.TaskHandle == nil {
+				t.Fatal("StartMessageMoveTask returned no handle")
+			}
 			return w
 		},
 		func(ctx context.Context, url string, w written) {
@@ -148,7 +149,8 @@ func TestSQSStateSurvivesARestart(t *testing.T) {
 			if len(tasks.Results) != 1 {
 				t.Fatalf("%d move tasks on record after a restart, want 1", len(tasks.Results))
 			}
-			if r := tasks.Results[0]; aws.ToString(r.TaskHandle) != w.taskHandle ||
+			// A finished task lists no handle (doc: only a RUNNING one does).
+			if r := tasks.Results[0]; r.TaskHandle != nil ||
 				aws.ToString(r.Status) != "COMPLETED" || r.ApproximateNumberOfMessagesMoved != 1 {
 				t.Errorf("the move task reads %+v after a restart", r)
 			}

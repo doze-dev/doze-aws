@@ -67,3 +67,18 @@ func md5Attributes(attrs map[string]attr) string {
 	}
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
+
+// md5SystemAttributes is the digest of the system attributes a send carried
+// (MD5OfMessageSystemAttributes), computed the way the user attributes' is:
+// each is a String, which is the only type AWSTraceHeader has (doc: the
+// model's SendMessageBatchRequestEntry).
+func md5SystemAttributes(sys map[string]string) string {
+	if len(sys) == 0 {
+		return ""
+	}
+	as := make(map[string]attr, len(sys))
+	for k, v := range sys {
+		as[k] = attr{DataType: "String", StringValue: v}
+	}
+	return md5Attributes(as)
+}
