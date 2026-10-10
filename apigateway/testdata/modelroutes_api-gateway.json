@@ -1,0 +1,1179 @@
+{
+  "CreateApiKey": {
+    "method": "POST",
+    "uri": "/apikeys",
+    "xml_lists": {
+      "stageKeys": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateAuthorizer": {
+    "method": "POST",
+    "uri": "/restapis/{restApiId}/authorizers",
+    "bind": {
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "providerARNs": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateBasePathMapping": {
+    "method": "POST",
+    "uri": "/domainnames/{domainName}/basepathmappings",
+    "bind": {
+      "domainName": "label",
+      "domainNameId": "query:domainNameId"
+    }
+  },
+  "CreateDeployment": {
+    "method": "POST",
+    "uri": "/restapis/{restApiId}/deployments",
+    "bind": {
+      "restApiId": "label"
+    }
+  },
+  "CreateDocumentationPart": {
+    "method": "POST",
+    "uri": "/restapis/{restApiId}/documentation/parts",
+    "bind": {
+      "restApiId": "label"
+    }
+  },
+  "CreateDocumentationVersion": {
+    "method": "POST",
+    "uri": "/restapis/{restApiId}/documentation/versions",
+    "bind": {
+      "restApiId": "label"
+    }
+  },
+  "CreateDomainName": {
+    "method": "POST",
+    "uri": "/domainnames",
+    "xml_lists": {
+      "endpointConfiguration.types": {
+        "element": "member"
+      },
+      "endpointConfiguration.vpcEndpointIds": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateDomainNameAccessAssociation": {
+    "method": "POST",
+    "uri": "/domainnameaccessassociations"
+  },
+  "CreateModel": {
+    "method": "POST",
+    "uri": "/restapis/{restApiId}/models",
+    "bind": {
+      "restApiId": "label"
+    }
+  },
+  "CreateRequestValidator": {
+    "method": "POST",
+    "uri": "/restapis/{restApiId}/requestvalidators",
+    "bind": {
+      "restApiId": "label"
+    }
+  },
+  "CreateResource": {
+    "method": "POST",
+    "uri": "/restapis/{restApiId}/resources/{parentId}",
+    "bind": {
+      "parentId": "label",
+      "restApiId": "label"
+    }
+  },
+  "CreateRestApi": {
+    "method": "POST",
+    "uri": "/restapis",
+    "xml_lists": {
+      "binaryMediaTypes": {
+        "element": "member"
+      },
+      "endpointConfiguration.types": {
+        "element": "member"
+      },
+      "endpointConfiguration.vpcEndpointIds": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateStage": {
+    "method": "POST",
+    "uri": "/restapis/{restApiId}/stages",
+    "bind": {
+      "restApiId": "label"
+    }
+  },
+  "CreateUsagePlan": {
+    "method": "POST",
+    "uri": "/usageplans",
+    "xml_lists": {
+      "apiStages": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateUsagePlanKey": {
+    "method": "POST",
+    "uri": "/usageplans/{usagePlanId}/keys",
+    "bind": {
+      "usagePlanId": "label"
+    }
+  },
+  "CreateVpcLink": {
+    "method": "POST",
+    "uri": "/vpclinks",
+    "xml_lists": {
+      "targetArns": {
+        "element": "member"
+      }
+    }
+  },
+  "DeleteApiKey": {
+    "method": "DELETE",
+    "uri": "/apikeys/{apiKey}",
+    "bind": {
+      "apiKey": "label"
+    }
+  },
+  "DeleteAuthorizer": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/authorizers/{authorizerId}",
+    "bind": {
+      "authorizerId": "label",
+      "restApiId": "label"
+    }
+  },
+  "DeleteBasePathMapping": {
+    "method": "DELETE",
+    "uri": "/domainnames/{domainName}/basepathmappings/{basePath}",
+    "bind": {
+      "basePath": "label",
+      "domainName": "label",
+      "domainNameId": "query:domainNameId"
+    }
+  },
+  "DeleteClientCertificate": {
+    "method": "DELETE",
+    "uri": "/clientcertificates/{clientCertificateId}",
+    "bind": {
+      "clientCertificateId": "label"
+    }
+  },
+  "DeleteDeployment": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/deployments/{deploymentId}",
+    "bind": {
+      "deploymentId": "label",
+      "restApiId": "label"
+    }
+  },
+  "DeleteDocumentationPart": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/documentation/parts/{documentationPartId}",
+    "bind": {
+      "documentationPartId": "label",
+      "restApiId": "label"
+    }
+  },
+  "DeleteDocumentationVersion": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/documentation/versions/{documentationVersion}",
+    "bind": {
+      "documentationVersion": "label",
+      "restApiId": "label"
+    }
+  },
+  "DeleteDomainName": {
+    "method": "DELETE",
+    "uri": "/domainnames/{domainName}",
+    "bind": {
+      "domainName": "label",
+      "domainNameId": "query:domainNameId"
+    }
+  },
+  "DeleteDomainNameAccessAssociation": {
+    "method": "DELETE",
+    "uri": "/domainnameaccessassociations/{domainNameAccessAssociationArn}",
+    "bind": {
+      "domainNameAccessAssociationArn": "label"
+    }
+  },
+  "DeleteGatewayResponse": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/gatewayresponses/{responseType}",
+    "bind": {
+      "responseType": "label",
+      "restApiId": "label"
+    }
+  },
+  "DeleteIntegration": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label"
+    }
+  },
+  "DeleteIntegrationResponse": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label",
+      "statusCode": "label"
+    }
+  },
+  "DeleteMethod": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label"
+    }
+  },
+  "DeleteMethodResponse": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label",
+      "statusCode": "label"
+    }
+  },
+  "DeleteModel": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/models/{modelName}",
+    "bind": {
+      "modelName": "label",
+      "restApiId": "label"
+    }
+  },
+  "DeleteRequestValidator": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/requestvalidators/{requestValidatorId}",
+    "bind": {
+      "requestValidatorId": "label",
+      "restApiId": "label"
+    }
+  },
+  "DeleteResource": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}",
+    "bind": {
+      "resourceId": "label",
+      "restApiId": "label"
+    }
+  },
+  "DeleteRestApi": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}",
+    "bind": {
+      "restApiId": "label"
+    }
+  },
+  "DeleteStage": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/stages/{stageName}",
+    "bind": {
+      "restApiId": "label",
+      "stageName": "label"
+    }
+  },
+  "DeleteUsagePlan": {
+    "method": "DELETE",
+    "uri": "/usageplans/{usagePlanId}",
+    "bind": {
+      "usagePlanId": "label"
+    }
+  },
+  "DeleteUsagePlanKey": {
+    "method": "DELETE",
+    "uri": "/usageplans/{usagePlanId}/keys/{keyId}",
+    "bind": {
+      "keyId": "label",
+      "usagePlanId": "label"
+    }
+  },
+  "DeleteVpcLink": {
+    "method": "DELETE",
+    "uri": "/vpclinks/{vpcLinkId}",
+    "bind": {
+      "vpcLinkId": "label"
+    }
+  },
+  "FlushStageAuthorizersCache": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/stages/{stageName}/cache/authorizers",
+    "bind": {
+      "restApiId": "label",
+      "stageName": "label"
+    }
+  },
+  "FlushStageCache": {
+    "method": "DELETE",
+    "uri": "/restapis/{restApiId}/stages/{stageName}/cache/data",
+    "bind": {
+      "restApiId": "label",
+      "stageName": "label"
+    }
+  },
+  "GenerateClientCertificate": {
+    "method": "POST",
+    "uri": "/clientcertificates"
+  },
+  "GetAccount": {
+    "method": "GET",
+    "uri": "/account"
+  },
+  "GetApiKey": {
+    "method": "GET",
+    "uri": "/apikeys/{apiKey}",
+    "bind": {
+      "apiKey": "label",
+      "includeValue": "query:includeValue"
+    }
+  },
+  "GetApiKeys": {
+    "method": "GET",
+    "uri": "/apikeys",
+    "bind": {
+      "customerId": "query:customerId",
+      "includeValues": "query:includeValues",
+      "limit": "query:limit",
+      "nameQuery": "query:name",
+      "position": "query:position"
+    }
+  },
+  "GetAuthorizer": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/authorizers/{authorizerId}",
+    "bind": {
+      "authorizerId": "label",
+      "restApiId": "label"
+    }
+  },
+  "GetAuthorizers": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/authorizers",
+    "bind": {
+      "limit": "query:limit",
+      "position": "query:position",
+      "restApiId": "label"
+    }
+  },
+  "GetBasePathMapping": {
+    "method": "GET",
+    "uri": "/domainnames/{domainName}/basepathmappings/{basePath}",
+    "bind": {
+      "basePath": "label",
+      "domainName": "label",
+      "domainNameId": "query:domainNameId"
+    }
+  },
+  "GetBasePathMappings": {
+    "method": "GET",
+    "uri": "/domainnames/{domainName}/basepathmappings",
+    "bind": {
+      "domainName": "label",
+      "domainNameId": "query:domainNameId",
+      "limit": "query:limit",
+      "position": "query:position"
+    }
+  },
+  "GetClientCertificate": {
+    "method": "GET",
+    "uri": "/clientcertificates/{clientCertificateId}",
+    "bind": {
+      "clientCertificateId": "label"
+    }
+  },
+  "GetClientCertificates": {
+    "method": "GET",
+    "uri": "/clientcertificates",
+    "bind": {
+      "limit": "query:limit",
+      "position": "query:position"
+    }
+  },
+  "GetDeployment": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/deployments/{deploymentId}",
+    "bind": {
+      "deploymentId": "label",
+      "embed": "query:embed",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "embed": {
+        "element": "member"
+      }
+    }
+  },
+  "GetDeployments": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/deployments",
+    "bind": {
+      "limit": "query:limit",
+      "position": "query:position",
+      "restApiId": "label"
+    }
+  },
+  "GetDocumentationPart": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/documentation/parts/{documentationPartId}",
+    "bind": {
+      "documentationPartId": "label",
+      "restApiId": "label"
+    }
+  },
+  "GetDocumentationParts": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/documentation/parts",
+    "bind": {
+      "limit": "query:limit",
+      "locationStatus": "query:locationStatus",
+      "nameQuery": "query:name",
+      "path": "query:path",
+      "position": "query:position",
+      "restApiId": "label",
+      "type": "query:type"
+    }
+  },
+  "GetDocumentationVersion": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/documentation/versions/{documentationVersion}",
+    "bind": {
+      "documentationVersion": "label",
+      "restApiId": "label"
+    }
+  },
+  "GetDocumentationVersions": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/documentation/versions",
+    "bind": {
+      "limit": "query:limit",
+      "position": "query:position",
+      "restApiId": "label"
+    }
+  },
+  "GetDomainName": {
+    "method": "GET",
+    "uri": "/domainnames/{domainName}",
+    "bind": {
+      "domainName": "label",
+      "domainNameId": "query:domainNameId"
+    }
+  },
+  "GetDomainNameAccessAssociations": {
+    "method": "GET",
+    "uri": "/domainnameaccessassociations",
+    "bind": {
+      "limit": "query:limit",
+      "position": "query:position",
+      "resourceOwner": "query:resourceOwner"
+    }
+  },
+  "GetDomainNames": {
+    "method": "GET",
+    "uri": "/domainnames",
+    "bind": {
+      "limit": "query:limit",
+      "position": "query:position",
+      "resourceOwner": "query:resourceOwner"
+    }
+  },
+  "GetExport": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/stages/{stageName}/exports/{exportType}",
+    "bind": {
+      "accepts": "header:Accept",
+      "exportType": "label",
+      "restApiId": "label",
+      "stageName": "label"
+    }
+  },
+  "GetGatewayResponse": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/gatewayresponses/{responseType}",
+    "bind": {
+      "responseType": "label",
+      "restApiId": "label"
+    }
+  },
+  "GetGatewayResponses": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/gatewayresponses",
+    "bind": {
+      "limit": "query:limit",
+      "position": "query:position",
+      "restApiId": "label"
+    }
+  },
+  "GetIntegration": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label"
+    }
+  },
+  "GetIntegrationResponse": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label",
+      "statusCode": "label"
+    }
+  },
+  "GetMethod": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label"
+    }
+  },
+  "GetMethodResponse": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label",
+      "statusCode": "label"
+    }
+  },
+  "GetModel": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/models/{modelName}",
+    "bind": {
+      "flatten": "query:flatten",
+      "modelName": "label",
+      "restApiId": "label"
+    }
+  },
+  "GetModelTemplate": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/models/{modelName}/default_template",
+    "bind": {
+      "modelName": "label",
+      "restApiId": "label"
+    }
+  },
+  "GetModels": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/models",
+    "bind": {
+      "limit": "query:limit",
+      "position": "query:position",
+      "restApiId": "label"
+    }
+  },
+  "GetRequestValidator": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/requestvalidators/{requestValidatorId}",
+    "bind": {
+      "requestValidatorId": "label",
+      "restApiId": "label"
+    }
+  },
+  "GetRequestValidators": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/requestvalidators",
+    "bind": {
+      "limit": "query:limit",
+      "position": "query:position",
+      "restApiId": "label"
+    }
+  },
+  "GetResource": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}",
+    "bind": {
+      "embed": "query:embed",
+      "resourceId": "label",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "embed": {
+        "element": "member"
+      }
+    }
+  },
+  "GetResources": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/resources",
+    "bind": {
+      "embed": "query:embed",
+      "limit": "query:limit",
+      "position": "query:position",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "embed": {
+        "element": "member"
+      }
+    }
+  },
+  "GetRestApi": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}",
+    "bind": {
+      "restApiId": "label"
+    }
+  },
+  "GetRestApis": {
+    "method": "GET",
+    "uri": "/restapis",
+    "bind": {
+      "limit": "query:limit",
+      "position": "query:position"
+    }
+  },
+  "GetSdk": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/stages/{stageName}/sdks/{sdkType}",
+    "bind": {
+      "restApiId": "label",
+      "sdkType": "label",
+      "stageName": "label"
+    }
+  },
+  "GetSdkType": {
+    "method": "GET",
+    "uri": "/sdktypes/{id}",
+    "bind": {
+      "id": "label"
+    }
+  },
+  "GetSdkTypes": {
+    "method": "GET",
+    "uri": "/sdktypes",
+    "bind": {
+      "limit": "query:limit",
+      "position": "query:position"
+    }
+  },
+  "GetStage": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/stages/{stageName}",
+    "bind": {
+      "restApiId": "label",
+      "stageName": "label"
+    }
+  },
+  "GetStages": {
+    "method": "GET",
+    "uri": "/restapis/{restApiId}/stages",
+    "bind": {
+      "deploymentId": "query:deploymentId",
+      "restApiId": "label"
+    }
+  },
+  "GetTags": {
+    "method": "GET",
+    "uri": "/tags/{resourceArn}",
+    "bind": {
+      "limit": "query:limit",
+      "position": "query:position",
+      "resourceArn": "label"
+    }
+  },
+  "GetUsage": {
+    "method": "GET",
+    "uri": "/usageplans/{usagePlanId}/usage",
+    "bind": {
+      "endDate": "query:endDate",
+      "keyId": "query:keyId",
+      "limit": "query:limit",
+      "position": "query:position",
+      "startDate": "query:startDate",
+      "usagePlanId": "label"
+    }
+  },
+  "GetUsagePlan": {
+    "method": "GET",
+    "uri": "/usageplans/{usagePlanId}",
+    "bind": {
+      "usagePlanId": "label"
+    }
+  },
+  "GetUsagePlanKey": {
+    "method": "GET",
+    "uri": "/usageplans/{usagePlanId}/keys/{keyId}",
+    "bind": {
+      "keyId": "label",
+      "usagePlanId": "label"
+    }
+  },
+  "GetUsagePlanKeys": {
+    "method": "GET",
+    "uri": "/usageplans/{usagePlanId}/keys",
+    "bind": {
+      "limit": "query:limit",
+      "nameQuery": "query:name",
+      "position": "query:position",
+      "usagePlanId": "label"
+    }
+  },
+  "GetUsagePlans": {
+    "method": "GET",
+    "uri": "/usageplans",
+    "bind": {
+      "keyId": "query:keyId",
+      "limit": "query:limit",
+      "position": "query:position"
+    }
+  },
+  "GetVpcLink": {
+    "method": "GET",
+    "uri": "/vpclinks/{vpcLinkId}",
+    "bind": {
+      "vpcLinkId": "label"
+    }
+  },
+  "GetVpcLinks": {
+    "method": "GET",
+    "uri": "/vpclinks",
+    "bind": {
+      "limit": "query:limit",
+      "position": "query:position"
+    }
+  },
+  "ImportApiKeys": {
+    "method": "POST",
+    "uri": "/apikeys?mode=import",
+    "bind": {
+      "body": "payload",
+      "failOnWarnings": "query:failonwarnings",
+      "format": "query:format"
+    }
+  },
+  "ImportDocumentationParts": {
+    "method": "PUT",
+    "uri": "/restapis/{restApiId}/documentation/parts",
+    "bind": {
+      "body": "payload",
+      "failOnWarnings": "query:failonwarnings",
+      "mode": "query:mode",
+      "restApiId": "label"
+    }
+  },
+  "ImportRestApi": {
+    "method": "POST",
+    "uri": "/restapis?mode=import",
+    "bind": {
+      "body": "payload",
+      "failOnWarnings": "query:failonwarnings"
+    }
+  },
+  "PutGatewayResponse": {
+    "method": "PUT",
+    "uri": "/restapis/{restApiId}/gatewayresponses/{responseType}",
+    "bind": {
+      "responseType": "label",
+      "restApiId": "label"
+    }
+  },
+  "PutIntegration": {
+    "method": "PUT",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "cacheKeyParameters": {
+        "element": "member"
+      }
+    }
+  },
+  "PutIntegrationResponse": {
+    "method": "PUT",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label",
+      "statusCode": "label"
+    }
+  },
+  "PutMethod": {
+    "method": "PUT",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "authorizationScopes": {
+        "element": "member"
+      }
+    }
+  },
+  "PutMethodResponse": {
+    "method": "PUT",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label",
+      "statusCode": "label"
+    }
+  },
+  "PutRestApi": {
+    "method": "PUT",
+    "uri": "/restapis/{restApiId}",
+    "bind": {
+      "body": "payload",
+      "failOnWarnings": "query:failonwarnings",
+      "mode": "query:mode",
+      "restApiId": "label"
+    }
+  },
+  "RejectDomainNameAccessAssociation": {
+    "method": "POST",
+    "uri": "/rejectdomainnameaccessassociations",
+    "bind": {
+      "domainNameAccessAssociationArn": "query:domainNameAccessAssociationArn",
+      "domainNameArn": "query:domainNameArn"
+    }
+  },
+  "TagResource": {
+    "method": "PUT",
+    "uri": "/tags/{resourceArn}",
+    "bind": {
+      "resourceArn": "label"
+    }
+  },
+  "TestInvokeAuthorizer": {
+    "method": "POST",
+    "uri": "/restapis/{restApiId}/authorizers/{authorizerId}",
+    "bind": {
+      "authorizerId": "label",
+      "restApiId": "label"
+    }
+  },
+  "TestInvokeMethod": {
+    "method": "POST",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label"
+    }
+  },
+  "UntagResource": {
+    "method": "DELETE",
+    "uri": "/tags/{resourceArn}",
+    "bind": {
+      "resourceArn": "label",
+      "tagKeys": "query:tagKeys"
+    },
+    "xml_lists": {
+      "tagKeys": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateAccount": {
+    "method": "PATCH",
+    "uri": "/account",
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateApiKey": {
+    "method": "PATCH",
+    "uri": "/apikeys/{apiKey}",
+    "bind": {
+      "apiKey": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateAuthorizer": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}/authorizers/{authorizerId}",
+    "bind": {
+      "authorizerId": "label",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateBasePathMapping": {
+    "method": "PATCH",
+    "uri": "/domainnames/{domainName}/basepathmappings/{basePath}",
+    "bind": {
+      "basePath": "label",
+      "domainName": "label",
+      "domainNameId": "query:domainNameId"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateClientCertificate": {
+    "method": "PATCH",
+    "uri": "/clientcertificates/{clientCertificateId}",
+    "bind": {
+      "clientCertificateId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateDeployment": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}/deployments/{deploymentId}",
+    "bind": {
+      "deploymentId": "label",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateDocumentationPart": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}/documentation/parts/{documentationPartId}",
+    "bind": {
+      "documentationPartId": "label",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateDocumentationVersion": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}/documentation/versions/{documentationVersion}",
+    "bind": {
+      "documentationVersion": "label",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateDomainName": {
+    "method": "PATCH",
+    "uri": "/domainnames/{domainName}",
+    "bind": {
+      "domainName": "label",
+      "domainNameId": "query:domainNameId"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateGatewayResponse": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}/gatewayresponses/{responseType}",
+    "bind": {
+      "responseType": "label",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateIntegration": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateIntegrationResponse": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/integration/responses/{statusCode}",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label",
+      "statusCode": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateMethod": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateMethodResponse": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}/methods/{httpMethod}/responses/{statusCode}",
+    "bind": {
+      "httpMethod": "label",
+      "resourceId": "label",
+      "restApiId": "label",
+      "statusCode": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateModel": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}/models/{modelName}",
+    "bind": {
+      "modelName": "label",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateRequestValidator": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}/requestvalidators/{requestValidatorId}",
+    "bind": {
+      "requestValidatorId": "label",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateResource": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}/resources/{resourceId}",
+    "bind": {
+      "resourceId": "label",
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateRestApi": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}",
+    "bind": {
+      "restApiId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateStage": {
+    "method": "PATCH",
+    "uri": "/restapis/{restApiId}/stages/{stageName}",
+    "bind": {
+      "restApiId": "label",
+      "stageName": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateUsage": {
+    "method": "PATCH",
+    "uri": "/usageplans/{usagePlanId}/keys/{keyId}/usage",
+    "bind": {
+      "keyId": "label",
+      "usagePlanId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateUsagePlan": {
+    "method": "PATCH",
+    "uri": "/usageplans/{usagePlanId}",
+    "bind": {
+      "usagePlanId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateVpcLink": {
+    "method": "PATCH",
+    "uri": "/vpclinks/{vpcLinkId}",
+    "bind": {
+      "vpcLinkId": "label"
+    },
+    "xml_lists": {
+      "patchOperations": {
+        "element": "member"
+      }
+    }
+  }
+}

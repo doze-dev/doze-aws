@@ -1,0 +1,1679 @@
+{
+  "AbortMultipartUpload": {
+    "method": "DELETE",
+    "uri": "/{Bucket}/{Key+}?x-id=AbortMultipartUpload",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "IfMatchInitiatedTime": "header:x-amz-if-match-initiated-time",
+      "Key": "label",
+      "RequestPayer": "header:x-amz-request-payer",
+      "UploadId": "query:uploadId"
+    }
+  },
+  "CompleteMultipartUpload": {
+    "method": "POST",
+    "uri": "/{Bucket}/{Key+}",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumCRC32": "header:x-amz-checksum-crc32",
+      "ChecksumCRC32C": "header:x-amz-checksum-crc32c",
+      "ChecksumCRC64NVME": "header:x-amz-checksum-crc64nvme",
+      "ChecksumMD5": "header:x-amz-checksum-md5",
+      "ChecksumSHA1": "header:x-amz-checksum-sha1",
+      "ChecksumSHA256": "header:x-amz-checksum-sha256",
+      "ChecksumSHA512": "header:x-amz-checksum-sha512",
+      "ChecksumType": "header:x-amz-checksum-type",
+      "ChecksumXXHASH128": "header:x-amz-checksum-xxhash128",
+      "ChecksumXXHASH3": "header:x-amz-checksum-xxhash3",
+      "ChecksumXXHASH64": "header:x-amz-checksum-xxhash64",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "IfMatch": "header:If-Match",
+      "IfNoneMatch": "header:If-None-Match",
+      "Key": "label",
+      "MpuObjectSize": "header:x-amz-mp-object-size",
+      "MultipartUpload": "payload",
+      "RequestPayer": "header:x-amz-request-payer",
+      "SSECustomerAlgorithm": "header:x-amz-server-side-encryption-customer-algorithm",
+      "SSECustomerKey": "header:x-amz-server-side-encryption-customer-key",
+      "SSECustomerKeyMD5": "header:x-amz-server-side-encryption-customer-key-MD5",
+      "UploadId": "query:uploadId"
+    },
+    "xml_lists": {
+      "MultipartUpload.Parts": {
+        "element": "member",
+        "flattened": true
+      }
+    },
+    "xml_names": {
+      "MultipartUpload": "CompleteMultipartUpload",
+      "MultipartUpload.Parts": "Part"
+    }
+  },
+  "CopyObject": {
+    "method": "PUT",
+    "uri": "/{Bucket}/{Key+}?x-id=CopyObject",
+    "bind": {
+      "ACL": "header:x-amz-acl",
+      "AnnotationDirective": "header:x-amz-object-annotation-directive",
+      "Bucket": "label",
+      "BucketKeyEnabled": "header:x-amz-server-side-encryption-bucket-key-enabled",
+      "CacheControl": "header:Cache-Control",
+      "ChecksumAlgorithm": "header:x-amz-checksum-algorithm",
+      "ContentDisposition": "header:Content-Disposition",
+      "ContentEncoding": "header:Content-Encoding",
+      "ContentLanguage": "header:Content-Language",
+      "ContentType": "header:Content-Type",
+      "CopySource": "header:x-amz-copy-source",
+      "CopySourceIfMatch": "header:x-amz-copy-source-if-match",
+      "CopySourceIfModifiedSince": "header:x-amz-copy-source-if-modified-since",
+      "CopySourceIfNoneMatch": "header:x-amz-copy-source-if-none-match",
+      "CopySourceIfUnmodifiedSince": "header:x-amz-copy-source-if-unmodified-since",
+      "CopySourceSSECustomerAlgorithm": "header:x-amz-copy-source-server-side-encryption-customer-algorithm",
+      "CopySourceSSECustomerKey": "header:x-amz-copy-source-server-side-encryption-customer-key",
+      "CopySourceSSECustomerKeyMD5": "header:x-amz-copy-source-server-side-encryption-customer-key-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "ExpectedSourceBucketOwner": "header:x-amz-source-expected-bucket-owner",
+      "Expires": "header:Expires",
+      "GrantFullControl": "header:x-amz-grant-full-control",
+      "GrantRead": "header:x-amz-grant-read",
+      "GrantReadACP": "header:x-amz-grant-read-acp",
+      "GrantWriteACP": "header:x-amz-grant-write-acp",
+      "IfMatch": "header:If-Match",
+      "IfNoneMatch": "header:If-None-Match",
+      "Key": "label",
+      "MetadataDirective": "header:x-amz-metadata-directive",
+      "ObjectLockEventHold": "header:x-amz-object-lock-event-hold",
+      "ObjectLockEventHoldDurationDays": "header:x-amz-object-lock-event-hold-duration-days",
+      "ObjectLockEventHoldDurationYears": "header:x-amz-object-lock-event-hold-duration-years",
+      "ObjectLockLegalHoldStatus": "header:x-amz-object-lock-legal-hold",
+      "ObjectLockMode": "header:x-amz-object-lock-mode",
+      "ObjectLockRetainUntilDate": "header:x-amz-object-lock-retain-until-date",
+      "RequestPayer": "header:x-amz-request-payer",
+      "SSECustomerAlgorithm": "header:x-amz-server-side-encryption-customer-algorithm",
+      "SSECustomerKey": "header:x-amz-server-side-encryption-customer-key",
+      "SSECustomerKeyMD5": "header:x-amz-server-side-encryption-customer-key-MD5",
+      "SSEKMSEncryptionContext": "header:x-amz-server-side-encryption-context",
+      "SSEKMSKeyId": "header:x-amz-server-side-encryption-aws-kms-key-id",
+      "ServerSideEncryption": "header:x-amz-server-side-encryption",
+      "StorageClass": "header:x-amz-storage-class",
+      "Tagging": "header:x-amz-tagging",
+      "TaggingDirective": "header:x-amz-tagging-directive",
+      "WebsiteRedirectLocation": "header:x-amz-website-redirect-location"
+    }
+  },
+  "CreateBucket": {
+    "method": "PUT",
+    "uri": "/{Bucket}",
+    "bind": {
+      "ACL": "header:x-amz-acl",
+      "Bucket": "label",
+      "BucketNamespace": "header:x-amz-bucket-namespace",
+      "CreateBucketConfiguration": "payload",
+      "GrantFullControl": "header:x-amz-grant-full-control",
+      "GrantRead": "header:x-amz-grant-read",
+      "GrantReadACP": "header:x-amz-grant-read-acp",
+      "GrantWrite": "header:x-amz-grant-write",
+      "GrantWriteACP": "header:x-amz-grant-write-acp",
+      "ObjectLockEnabledForBucket": "header:x-amz-bucket-object-lock-enabled",
+      "ObjectOwnership": "header:x-amz-object-ownership"
+    },
+    "xml_lists": {
+      "CreateBucketConfiguration.Tags": {
+        "element": "Tag"
+      }
+    }
+  },
+  "CreateBucketMetadataConfiguration": {
+    "method": "POST",
+    "uri": "/{Bucket}?metadataConfiguration",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "MetadataConfiguration": "payload"
+    }
+  },
+  "CreateBucketMetadataTableConfiguration": {
+    "method": "POST",
+    "uri": "/{Bucket}?metadataTable",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "MetadataTableConfiguration": "payload"
+    }
+  },
+  "CreateMultipartUpload": {
+    "method": "POST",
+    "uri": "/{Bucket}/{Key+}?uploads",
+    "bind": {
+      "ACL": "header:x-amz-acl",
+      "Bucket": "label",
+      "BucketKeyEnabled": "header:x-amz-server-side-encryption-bucket-key-enabled",
+      "CacheControl": "header:Cache-Control",
+      "ChecksumAlgorithm": "header:x-amz-checksum-algorithm",
+      "ChecksumType": "header:x-amz-checksum-type",
+      "ContentDisposition": "header:Content-Disposition",
+      "ContentEncoding": "header:Content-Encoding",
+      "ContentLanguage": "header:Content-Language",
+      "ContentType": "header:Content-Type",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Expires": "header:Expires",
+      "GrantFullControl": "header:x-amz-grant-full-control",
+      "GrantRead": "header:x-amz-grant-read",
+      "GrantReadACP": "header:x-amz-grant-read-acp",
+      "GrantWriteACP": "header:x-amz-grant-write-acp",
+      "Key": "label",
+      "ObjectLockEventHold": "header:x-amz-object-lock-event-hold",
+      "ObjectLockEventHoldDurationDays": "header:x-amz-object-lock-event-hold-duration-days",
+      "ObjectLockEventHoldDurationYears": "header:x-amz-object-lock-event-hold-duration-years",
+      "ObjectLockLegalHoldStatus": "header:x-amz-object-lock-legal-hold",
+      "ObjectLockMode": "header:x-amz-object-lock-mode",
+      "ObjectLockRetainUntilDate": "header:x-amz-object-lock-retain-until-date",
+      "RequestPayer": "header:x-amz-request-payer",
+      "SSECustomerAlgorithm": "header:x-amz-server-side-encryption-customer-algorithm",
+      "SSECustomerKey": "header:x-amz-server-side-encryption-customer-key",
+      "SSECustomerKeyMD5": "header:x-amz-server-side-encryption-customer-key-MD5",
+      "SSEKMSEncryptionContext": "header:x-amz-server-side-encryption-context",
+      "SSEKMSKeyId": "header:x-amz-server-side-encryption-aws-kms-key-id",
+      "ServerSideEncryption": "header:x-amz-server-side-encryption",
+      "StorageClass": "header:x-amz-storage-class",
+      "Tagging": "header:x-amz-tagging",
+      "WebsiteRedirectLocation": "header:x-amz-website-redirect-location"
+    }
+  },
+  "CreateSession": {
+    "method": "GET",
+    "uri": "/{Bucket}?session",
+    "bind": {
+      "Bucket": "label",
+      "BucketKeyEnabled": "header:x-amz-server-side-encryption-bucket-key-enabled",
+      "SSEKMSEncryptionContext": "header:x-amz-server-side-encryption-context",
+      "SSEKMSKeyId": "header:x-amz-server-side-encryption-aws-kms-key-id",
+      "ServerSideEncryption": "header:x-amz-server-side-encryption",
+      "SessionMode": "header:x-amz-create-session-mode"
+    }
+  },
+  "DeleteBucket": {
+    "method": "DELETE",
+    "uri": "/{Bucket}",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "DeleteBucketAnalyticsConfiguration": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?analytics",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Id": "query:id"
+    }
+  },
+  "DeleteBucketCors": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?cors",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "DeleteBucketEncryption": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?encryption",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "DeleteBucketIntelligentTieringConfiguration": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?intelligent-tiering",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Id": "query:id"
+    }
+  },
+  "DeleteBucketInventoryConfiguration": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?inventory",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Id": "query:id"
+    }
+  },
+  "DeleteBucketLifecycle": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?lifecycle",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "DeleteBucketMetadataConfiguration": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?metadataConfiguration",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "DeleteBucketMetadataTableConfiguration": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?metadataTable",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "DeleteBucketMetricsConfiguration": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?metrics",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Id": "query:id"
+    }
+  },
+  "DeleteBucketOwnershipControls": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?ownershipControls",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "DeleteBucketPolicy": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?policy",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "DeleteBucketReplication": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?replication",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "DeleteBucketTagging": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?tagging",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "DeleteBucketWebsite": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?website",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "DeleteObject": {
+    "method": "DELETE",
+    "uri": "/{Bucket}/{Key+}?x-id=DeleteObject",
+    "bind": {
+      "Bucket": "label",
+      "BypassGovernanceRetention": "header:x-amz-bypass-governance-retention",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "IfMatch": "header:If-Match",
+      "IfMatchLastModifiedTime": "header:x-amz-if-match-last-modified-time",
+      "IfMatchSize": "header:x-amz-if-match-size",
+      "Key": "label",
+      "MFA": "header:x-amz-mfa",
+      "RequestPayer": "header:x-amz-request-payer",
+      "VersionId": "query:versionId"
+    }
+  },
+  "DeleteObjectAnnotation": {
+    "method": "DELETE",
+    "uri": "/{Bucket}/{Key+}?annotation",
+    "bind": {
+      "AnnotationName": "query:annotationName",
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "ObjectIfMatch": "header:x-amz-object-if-match",
+      "RequestPayer": "header:x-amz-request-payer",
+      "VersionId": "query:versionId"
+    }
+  },
+  "DeleteObjectTagging": {
+    "method": "DELETE",
+    "uri": "/{Bucket}/{Key+}?tagging",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "VersionId": "query:versionId"
+    }
+  },
+  "DeleteObjects": {
+    "method": "POST",
+    "uri": "/{Bucket}?delete",
+    "bind": {
+      "Bucket": "label",
+      "BypassGovernanceRetention": "header:x-amz-bypass-governance-retention",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "Delete": "payload",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "MFA": "header:x-amz-mfa",
+      "RequestPayer": "header:x-amz-request-payer"
+    },
+    "xml_lists": {
+      "Delete.Objects": {
+        "element": "member",
+        "flattened": true
+      }
+    },
+    "xml_names": {
+      "Delete.Objects": "Object"
+    }
+  },
+  "DeletePublicAccessBlock": {
+    "method": "DELETE",
+    "uri": "/{Bucket}?publicAccessBlock",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketAbac": {
+    "method": "GET",
+    "uri": "/{Bucket}?abac",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketAccelerateConfiguration": {
+    "method": "GET",
+    "uri": "/{Bucket}?accelerate",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "RequestPayer": "header:x-amz-request-payer"
+    }
+  },
+  "GetBucketAcl": {
+    "method": "GET",
+    "uri": "/{Bucket}?acl",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketAnalyticsConfiguration": {
+    "method": "GET",
+    "uri": "/{Bucket}?analytics\u0026x-id=GetBucketAnalyticsConfiguration",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Id": "query:id"
+    }
+  },
+  "GetBucketCors": {
+    "method": "GET",
+    "uri": "/{Bucket}?cors",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketEncryption": {
+    "method": "GET",
+    "uri": "/{Bucket}?encryption",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketIntelligentTieringConfiguration": {
+    "method": "GET",
+    "uri": "/{Bucket}?intelligent-tiering\u0026x-id=GetBucketIntelligentTieringConfiguration",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Id": "query:id"
+    }
+  },
+  "GetBucketInventoryConfiguration": {
+    "method": "GET",
+    "uri": "/{Bucket}?inventory\u0026x-id=GetBucketInventoryConfiguration",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Id": "query:id"
+    }
+  },
+  "GetBucketLifecycleConfiguration": {
+    "method": "GET",
+    "uri": "/{Bucket}?lifecycle",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketLocation": {
+    "method": "GET",
+    "uri": "/{Bucket}?location",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketLogging": {
+    "method": "GET",
+    "uri": "/{Bucket}?logging",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketMetadataConfiguration": {
+    "method": "GET",
+    "uri": "/{Bucket}?metadataConfiguration",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketMetadataTableConfiguration": {
+    "method": "GET",
+    "uri": "/{Bucket}?metadataTable",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketMetricsConfiguration": {
+    "method": "GET",
+    "uri": "/{Bucket}?metrics\u0026x-id=GetBucketMetricsConfiguration",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Id": "query:id"
+    }
+  },
+  "GetBucketNotificationConfiguration": {
+    "method": "GET",
+    "uri": "/{Bucket}?notification",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketOwnershipControls": {
+    "method": "GET",
+    "uri": "/{Bucket}?ownershipControls",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketPolicy": {
+    "method": "GET",
+    "uri": "/{Bucket}?policy",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketPolicyStatus": {
+    "method": "GET",
+    "uri": "/{Bucket}?policyStatus",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketReplication": {
+    "method": "GET",
+    "uri": "/{Bucket}?replication",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketRequestPayment": {
+    "method": "GET",
+    "uri": "/{Bucket}?requestPayment",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketTagging": {
+    "method": "GET",
+    "uri": "/{Bucket}?tagging",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketVersioning": {
+    "method": "GET",
+    "uri": "/{Bucket}?versioning",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetBucketWebsite": {
+    "method": "GET",
+    "uri": "/{Bucket}?website",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetObject": {
+    "method": "GET",
+    "uri": "/{Bucket}/{Key+}?x-id=GetObject",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumMode": "header:x-amz-checksum-mode",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "IfMatch": "header:If-Match",
+      "IfModifiedSince": "header:If-Modified-Since",
+      "IfNoneMatch": "header:If-None-Match",
+      "IfUnmodifiedSince": "header:If-Unmodified-Since",
+      "Key": "label",
+      "PartNumber": "query:partNumber",
+      "Range": "header:Range",
+      "RequestPayer": "header:x-amz-request-payer",
+      "ResponseCacheControl": "query:response-cache-control",
+      "ResponseContentDisposition": "query:response-content-disposition",
+      "ResponseContentEncoding": "query:response-content-encoding",
+      "ResponseContentLanguage": "query:response-content-language",
+      "ResponseContentType": "query:response-content-type",
+      "ResponseExpires": "query:response-expires",
+      "SSECustomerAlgorithm": "header:x-amz-server-side-encryption-customer-algorithm",
+      "SSECustomerKey": "header:x-amz-server-side-encryption-customer-key",
+      "SSECustomerKeyMD5": "header:x-amz-server-side-encryption-customer-key-MD5",
+      "VersionId": "query:versionId"
+    }
+  },
+  "GetObjectAcl": {
+    "method": "GET",
+    "uri": "/{Bucket}/{Key+}?acl",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "RequestPayer": "header:x-amz-request-payer",
+      "VersionId": "query:versionId"
+    }
+  },
+  "GetObjectAnnotation": {
+    "method": "GET",
+    "uri": "/{Bucket}/{Key+}?annotation\u0026x-id=GetObjectAnnotation",
+    "bind": {
+      "AnnotationName": "query:annotationName",
+      "Bucket": "label",
+      "ChecksumMode": "header:x-amz-checksum-mode",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "RequestPayer": "header:x-amz-request-payer",
+      "VersionId": "query:versionId"
+    }
+  },
+  "GetObjectAttributes": {
+    "method": "GET",
+    "uri": "/{Bucket}/{Key+}?attributes",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "MaxParts": "header:x-amz-max-parts",
+      "ObjectAttributes": "header:x-amz-object-attributes",
+      "PartNumberMarker": "header:x-amz-part-number-marker",
+      "RequestPayer": "header:x-amz-request-payer",
+      "SSECustomerAlgorithm": "header:x-amz-server-side-encryption-customer-algorithm",
+      "SSECustomerKey": "header:x-amz-server-side-encryption-customer-key",
+      "SSECustomerKeyMD5": "header:x-amz-server-side-encryption-customer-key-MD5",
+      "VersionId": "query:versionId"
+    },
+    "xml_lists": {
+      "ObjectAttributes": {
+        "element": "member"
+      }
+    }
+  },
+  "GetObjectLegalHold": {
+    "method": "GET",
+    "uri": "/{Bucket}/{Key+}?legal-hold",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "RequestPayer": "header:x-amz-request-payer",
+      "VersionId": "query:versionId"
+    }
+  },
+  "GetObjectLockConfiguration": {
+    "method": "GET",
+    "uri": "/{Bucket}?object-lock",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "GetObjectRetention": {
+    "method": "GET",
+    "uri": "/{Bucket}/{Key+}?retention",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "RequestPayer": "header:x-amz-request-payer",
+      "VersionId": "query:versionId"
+    }
+  },
+  "GetObjectTagging": {
+    "method": "GET",
+    "uri": "/{Bucket}/{Key+}?tagging",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "RequestPayer": "header:x-amz-request-payer",
+      "VersionId": "query:versionId"
+    }
+  },
+  "GetObjectTorrent": {
+    "method": "GET",
+    "uri": "/{Bucket}/{Key+}?torrent",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "RequestPayer": "header:x-amz-request-payer"
+    }
+  },
+  "GetPublicAccessBlock": {
+    "method": "GET",
+    "uri": "/{Bucket}?publicAccessBlock",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "HeadBucket": {
+    "method": "HEAD",
+    "uri": "/{Bucket}",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "HeadObject": {
+    "method": "HEAD",
+    "uri": "/{Bucket}/{Key+}",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumMode": "header:x-amz-checksum-mode",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "IfMatch": "header:If-Match",
+      "IfModifiedSince": "header:If-Modified-Since",
+      "IfNoneMatch": "header:If-None-Match",
+      "IfUnmodifiedSince": "header:If-Unmodified-Since",
+      "Key": "label",
+      "PartNumber": "query:partNumber",
+      "Range": "header:Range",
+      "RequestPayer": "header:x-amz-request-payer",
+      "ResponseCacheControl": "query:response-cache-control",
+      "ResponseContentDisposition": "query:response-content-disposition",
+      "ResponseContentEncoding": "query:response-content-encoding",
+      "ResponseContentLanguage": "query:response-content-language",
+      "ResponseContentType": "query:response-content-type",
+      "ResponseExpires": "query:response-expires",
+      "SSECustomerAlgorithm": "header:x-amz-server-side-encryption-customer-algorithm",
+      "SSECustomerKey": "header:x-amz-server-side-encryption-customer-key",
+      "SSECustomerKeyMD5": "header:x-amz-server-side-encryption-customer-key-MD5",
+      "VersionId": "query:versionId"
+    }
+  },
+  "ListBucketAnalyticsConfigurations": {
+    "method": "GET",
+    "uri": "/{Bucket}?analytics\u0026x-id=ListBucketAnalyticsConfigurations",
+    "bind": {
+      "Bucket": "label",
+      "ContinuationToken": "query:continuation-token",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "ListBucketIntelligentTieringConfigurations": {
+    "method": "GET",
+    "uri": "/{Bucket}?intelligent-tiering\u0026x-id=ListBucketIntelligentTieringConfigurations",
+    "bind": {
+      "Bucket": "label",
+      "ContinuationToken": "query:continuation-token",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "ListBucketInventoryConfigurations": {
+    "method": "GET",
+    "uri": "/{Bucket}?inventory\u0026x-id=ListBucketInventoryConfigurations",
+    "bind": {
+      "Bucket": "label",
+      "ContinuationToken": "query:continuation-token",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "ListBucketMetricsConfigurations": {
+    "method": "GET",
+    "uri": "/{Bucket}?metrics\u0026x-id=ListBucketMetricsConfigurations",
+    "bind": {
+      "Bucket": "label",
+      "ContinuationToken": "query:continuation-token",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "ListBuckets": {
+    "method": "GET",
+    "uri": "/?x-id=ListBuckets",
+    "bind": {
+      "BucketRegion": "query:bucket-region",
+      "ContinuationToken": "query:continuation-token",
+      "MaxBuckets": "query:max-buckets",
+      "Prefix": "query:prefix"
+    }
+  },
+  "ListDirectoryBuckets": {
+    "method": "GET",
+    "uri": "/?x-id=ListDirectoryBuckets",
+    "bind": {
+      "ContinuationToken": "query:continuation-token",
+      "MaxDirectoryBuckets": "query:max-directory-buckets"
+    }
+  },
+  "ListMultipartUploads": {
+    "method": "GET",
+    "uri": "/{Bucket}?uploads",
+    "bind": {
+      "Bucket": "label",
+      "Delimiter": "query:delimiter",
+      "EncodingType": "query:encoding-type",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "KeyMarker": "query:key-marker",
+      "MaxUploads": "query:max-uploads",
+      "Prefix": "query:prefix",
+      "RequestPayer": "header:x-amz-request-payer",
+      "UploadIdMarker": "query:upload-id-marker"
+    }
+  },
+  "ListObjectAnnotations": {
+    "method": "GET",
+    "uri": "/{Bucket}/{Key+}?annotation\u0026x-id=ListObjectAnnotations",
+    "bind": {
+      "AnnotationPrefix": "query:annotation-prefix",
+      "Bucket": "label",
+      "ContinuationToken": "query:continuation-token",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "MaxAnnotationResults": "query:max-annotation-results",
+      "RequestPayer": "header:x-amz-request-payer",
+      "VersionId": "query:versionId"
+    }
+  },
+  "ListObjectVersions": {
+    "method": "GET",
+    "uri": "/{Bucket}?versions",
+    "bind": {
+      "Bucket": "label",
+      "Delimiter": "query:delimiter",
+      "EncodingType": "query:encoding-type",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "KeyMarker": "query:key-marker",
+      "MaxKeys": "query:max-keys",
+      "OptionalObjectAttributes": "header:x-amz-optional-object-attributes",
+      "Prefix": "query:prefix",
+      "RequestPayer": "header:x-amz-request-payer",
+      "VersionIdMarker": "query:version-id-marker"
+    },
+    "xml_lists": {
+      "OptionalObjectAttributes": {
+        "element": "member"
+      }
+    }
+  },
+  "ListObjects": {
+    "method": "GET",
+    "uri": "/{Bucket}",
+    "bind": {
+      "Bucket": "label",
+      "Delimiter": "query:delimiter",
+      "EncodingType": "query:encoding-type",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Marker": "query:marker",
+      "MaxKeys": "query:max-keys",
+      "OptionalObjectAttributes": "header:x-amz-optional-object-attributes",
+      "Prefix": "query:prefix",
+      "RequestPayer": "header:x-amz-request-payer"
+    },
+    "xml_lists": {
+      "OptionalObjectAttributes": {
+        "element": "member"
+      }
+    }
+  },
+  "ListObjectsV2": {
+    "method": "GET",
+    "uri": "/{Bucket}?list-type=2",
+    "bind": {
+      "Bucket": "label",
+      "ContinuationToken": "query:continuation-token",
+      "Delimiter": "query:delimiter",
+      "EncodingType": "query:encoding-type",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "FetchOwner": "query:fetch-owner",
+      "MaxKeys": "query:max-keys",
+      "OptionalObjectAttributes": "header:x-amz-optional-object-attributes",
+      "Prefix": "query:prefix",
+      "RequestPayer": "header:x-amz-request-payer",
+      "StartAfter": "query:start-after"
+    },
+    "xml_lists": {
+      "OptionalObjectAttributes": {
+        "element": "member"
+      }
+    }
+  },
+  "ListParts": {
+    "method": "GET",
+    "uri": "/{Bucket}/{Key+}?x-id=ListParts",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "MaxParts": "query:max-parts",
+      "PartNumberMarker": "query:part-number-marker",
+      "RequestPayer": "header:x-amz-request-payer",
+      "SSECustomerAlgorithm": "header:x-amz-server-side-encryption-customer-algorithm",
+      "SSECustomerKey": "header:x-amz-server-side-encryption-customer-key",
+      "SSECustomerKeyMD5": "header:x-amz-server-side-encryption-customer-key-MD5",
+      "UploadId": "query:uploadId"
+    }
+  },
+  "PutBucketAbac": {
+    "method": "PUT",
+    "uri": "/{Bucket}?abac",
+    "bind": {
+      "AbacStatus": "payload",
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "PutBucketAccelerateConfiguration": {
+    "method": "PUT",
+    "uri": "/{Bucket}?accelerate",
+    "bind": {
+      "AccelerateConfiguration": "payload",
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "PutBucketAcl": {
+    "method": "PUT",
+    "uri": "/{Bucket}?acl",
+    "bind": {
+      "ACL": "header:x-amz-acl",
+      "AccessControlPolicy": "payload",
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "GrantFullControl": "header:x-amz-grant-full-control",
+      "GrantRead": "header:x-amz-grant-read",
+      "GrantReadACP": "header:x-amz-grant-read-acp",
+      "GrantWrite": "header:x-amz-grant-write",
+      "GrantWriteACP": "header:x-amz-grant-write-acp"
+    },
+    "xml_lists": {
+      "AccessControlPolicy.Grants": {
+        "element": "Grant"
+      }
+    },
+    "xml_names": {
+      "AccessControlPolicy.Grants": "AccessControlList",
+      "AccessControlPolicy.Grants[].Grantee.Type": "xsi:type"
+    }
+  },
+  "PutBucketAnalyticsConfiguration": {
+    "method": "PUT",
+    "uri": "/{Bucket}?analytics",
+    "bind": {
+      "AnalyticsConfiguration": "payload",
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Id": "query:id"
+    }
+  },
+  "PutBucketCors": {
+    "method": "PUT",
+    "uri": "/{Bucket}?cors",
+    "bind": {
+      "Bucket": "label",
+      "CORSConfiguration": "payload",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    },
+    "xml_lists": {
+      "CORSConfiguration.CORSRules": {
+        "element": "member",
+        "flattened": true
+      },
+      "CORSConfiguration.CORSRules[].AllowedHeaders": {
+        "element": "member",
+        "flattened": true
+      },
+      "CORSConfiguration.CORSRules[].AllowedMethods": {
+        "element": "member",
+        "flattened": true
+      },
+      "CORSConfiguration.CORSRules[].AllowedOrigins": {
+        "element": "member",
+        "flattened": true
+      },
+      "CORSConfiguration.CORSRules[].ExposeHeaders": {
+        "element": "member",
+        "flattened": true
+      }
+    },
+    "xml_names": {
+      "CORSConfiguration.CORSRules": "CORSRule",
+      "CORSConfiguration.CORSRules[].AllowedHeaders": "AllowedHeader",
+      "CORSConfiguration.CORSRules[].AllowedMethods": "AllowedMethod",
+      "CORSConfiguration.CORSRules[].AllowedOrigins": "AllowedOrigin",
+      "CORSConfiguration.CORSRules[].ExposeHeaders": "ExposeHeader"
+    }
+  },
+  "PutBucketEncryption": {
+    "method": "PUT",
+    "uri": "/{Bucket}?encryption",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "ServerSideEncryptionConfiguration": "payload"
+    },
+    "xml_lists": {
+      "ServerSideEncryptionConfiguration.Rules": {
+        "element": "member",
+        "flattened": true
+      },
+      "ServerSideEncryptionConfiguration.Rules[].BlockedEncryptionTypes.EncryptionType": {
+        "element": "EncryptionType",
+        "flattened": true
+      }
+    },
+    "xml_names": {
+      "ServerSideEncryptionConfiguration.Rules": "Rule"
+    }
+  },
+  "PutBucketIntelligentTieringConfiguration": {
+    "method": "PUT",
+    "uri": "/{Bucket}?intelligent-tiering",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Id": "query:id",
+      "IntelligentTieringConfiguration": "payload"
+    },
+    "xml_lists": {
+      "IntelligentTieringConfiguration.Filter.And.Tags": {
+        "element": "Tag",
+        "flattened": true
+      },
+      "IntelligentTieringConfiguration.Tierings": {
+        "element": "member",
+        "flattened": true
+      }
+    },
+    "xml_names": {
+      "IntelligentTieringConfiguration.Filter.And.Tags": "Tag",
+      "IntelligentTieringConfiguration.Tierings": "Tiering"
+    }
+  },
+  "PutBucketInventoryConfiguration": {
+    "method": "PUT",
+    "uri": "/{Bucket}?inventory",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Id": "query:id",
+      "InventoryConfiguration": "payload"
+    },
+    "xml_lists": {
+      "InventoryConfiguration.OptionalFields": {
+        "element": "Field"
+      }
+    },
+    "xml_names": {
+      "InventoryConfiguration.Destination.S3BucketDestination.Encryption.SSEKMS": "SSE-KMS",
+      "InventoryConfiguration.Destination.S3BucketDestination.Encryption.SSES3": "SSE-S3"
+    }
+  },
+  "PutBucketLifecycleConfiguration": {
+    "method": "PUT",
+    "uri": "/{Bucket}?lifecycle",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "LifecycleConfiguration": "payload",
+      "TransitionDefaultMinimumObjectSize": "header:x-amz-transition-default-minimum-object-size"
+    },
+    "xml_lists": {
+      "LifecycleConfiguration.Rules": {
+        "element": "member",
+        "flattened": true
+      },
+      "LifecycleConfiguration.Rules[].NoncurrentVersionTransitions": {
+        "element": "member",
+        "flattened": true
+      },
+      "LifecycleConfiguration.Rules[].Transitions": {
+        "element": "member",
+        "flattened": true
+      }
+    },
+    "xml_names": {
+      "LifecycleConfiguration.Rules": "Rule",
+      "LifecycleConfiguration.Rules[].NoncurrentVersionTransitions": "NoncurrentVersionTransition",
+      "LifecycleConfiguration.Rules[].Transitions": "Transition"
+    }
+  },
+  "PutBucketLogging": {
+    "method": "PUT",
+    "uri": "/{Bucket}?logging",
+    "bind": {
+      "Bucket": "label",
+      "BucketLoggingStatus": "payload",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    },
+    "xml_lists": {
+      "BucketLoggingStatus.LoggingEnabled.TargetGrants": {
+        "element": "Grant"
+      }
+    }
+  },
+  "PutBucketMetricsConfiguration": {
+    "method": "PUT",
+    "uri": "/{Bucket}?metrics",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Id": "query:id",
+      "MetricsConfiguration": "payload"
+    }
+  },
+  "PutBucketNotificationConfiguration": {
+    "method": "PUT",
+    "uri": "/{Bucket}?notification",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "NotificationConfiguration": "payload",
+      "SkipDestinationValidation": "header:x-amz-skip-destination-validation"
+    },
+    "xml_lists": {
+      "NotificationConfiguration.LambdaFunctionConfigurations": {
+        "element": "member",
+        "flattened": true
+      },
+      "NotificationConfiguration.LambdaFunctionConfigurations[].Events": {
+        "element": "member",
+        "flattened": true
+      },
+      "NotificationConfiguration.QueueConfigurations": {
+        "element": "member",
+        "flattened": true
+      },
+      "NotificationConfiguration.QueueConfigurations[].Events": {
+        "element": "member",
+        "flattened": true
+      },
+      "NotificationConfiguration.TopicConfigurations": {
+        "element": "member",
+        "flattened": true
+      },
+      "NotificationConfiguration.TopicConfigurations[].Events": {
+        "element": "member",
+        "flattened": true
+      }
+    },
+    "xml_names": {
+      "NotificationConfiguration.LambdaFunctionConfigurations": "CloudFunctionConfiguration",
+      "NotificationConfiguration.LambdaFunctionConfigurations[].Events": "Event",
+      "NotificationConfiguration.LambdaFunctionConfigurations[].Filter.Key": "S3Key",
+      "NotificationConfiguration.LambdaFunctionConfigurations[].LambdaFunctionArn": "CloudFunction",
+      "NotificationConfiguration.QueueConfigurations": "QueueConfiguration",
+      "NotificationConfiguration.QueueConfigurations[].Events": "Event",
+      "NotificationConfiguration.QueueConfigurations[].Filter.Key": "S3Key",
+      "NotificationConfiguration.QueueConfigurations[].QueueArn": "Queue",
+      "NotificationConfiguration.TopicConfigurations": "TopicConfiguration",
+      "NotificationConfiguration.TopicConfigurations[].Events": "Event",
+      "NotificationConfiguration.TopicConfigurations[].Filter.Key": "S3Key",
+      "NotificationConfiguration.TopicConfigurations[].TopicArn": "Topic"
+    }
+  },
+  "PutBucketOwnershipControls": {
+    "method": "PUT",
+    "uri": "/{Bucket}?ownershipControls",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "OwnershipControls": "payload"
+    },
+    "xml_lists": {
+      "OwnershipControls.Rules": {
+        "element": "member",
+        "flattened": true
+      }
+    },
+    "xml_names": {
+      "OwnershipControls.Rules": "Rule"
+    }
+  },
+  "PutBucketPolicy": {
+    "method": "PUT",
+    "uri": "/{Bucket}?policy",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ConfirmRemoveSelfBucketAccess": "header:x-amz-confirm-remove-self-bucket-access",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Policy": "payload"
+    }
+  },
+  "PutBucketReplication": {
+    "method": "PUT",
+    "uri": "/{Bucket}?replication",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "ReplicationConfiguration": "payload",
+      "Token": "header:x-amz-bucket-object-lock-token"
+    },
+    "xml_lists": {
+      "ReplicationConfiguration.Rules": {
+        "element": "member",
+        "flattened": true
+      }
+    },
+    "xml_names": {
+      "ReplicationConfiguration.Rules": "Rule"
+    }
+  },
+  "PutBucketRequestPayment": {
+    "method": "PUT",
+    "uri": "/{Bucket}?requestPayment",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "RequestPaymentConfiguration": "payload"
+    }
+  },
+  "PutBucketTagging": {
+    "method": "PUT",
+    "uri": "/{Bucket}?tagging",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Tagging": "payload"
+    },
+    "xml_lists": {
+      "Tagging.TagSet": {
+        "element": "Tag"
+      }
+    }
+  },
+  "PutBucketVersioning": {
+    "method": "PUT",
+    "uri": "/{Bucket}?versioning",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "MFA": "header:x-amz-mfa",
+      "VersioningConfiguration": "payload"
+    },
+    "xml_names": {
+      "VersioningConfiguration.MFADelete": "MfaDelete"
+    }
+  },
+  "PutBucketWebsite": {
+    "method": "PUT",
+    "uri": "/{Bucket}?website",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "WebsiteConfiguration": "payload"
+    },
+    "xml_lists": {
+      "WebsiteConfiguration.RoutingRules": {
+        "element": "RoutingRule"
+      }
+    }
+  },
+  "PutObject": {
+    "method": "PUT",
+    "uri": "/{Bucket}/{Key+}?x-id=PutObject",
+    "bind": {
+      "ACL": "header:x-amz-acl",
+      "Body": "payload",
+      "Bucket": "label",
+      "BucketKeyEnabled": "header:x-amz-server-side-encryption-bucket-key-enabled",
+      "CacheControl": "header:Cache-Control",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ChecksumCRC32": "header:x-amz-checksum-crc32",
+      "ChecksumCRC32C": "header:x-amz-checksum-crc32c",
+      "ChecksumCRC64NVME": "header:x-amz-checksum-crc64nvme",
+      "ChecksumMD5": "header:x-amz-checksum-md5",
+      "ChecksumSHA1": "header:x-amz-checksum-sha1",
+      "ChecksumSHA256": "header:x-amz-checksum-sha256",
+      "ChecksumSHA512": "header:x-amz-checksum-sha512",
+      "ChecksumXXHASH128": "header:x-amz-checksum-xxhash128",
+      "ChecksumXXHASH3": "header:x-amz-checksum-xxhash3",
+      "ChecksumXXHASH64": "header:x-amz-checksum-xxhash64",
+      "ContentDisposition": "header:Content-Disposition",
+      "ContentEncoding": "header:Content-Encoding",
+      "ContentLanguage": "header:Content-Language",
+      "ContentLength": "header:Content-Length",
+      "ContentMD5": "header:Content-MD5",
+      "ContentType": "header:Content-Type",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Expires": "header:Expires",
+      "GrantFullControl": "header:x-amz-grant-full-control",
+      "GrantRead": "header:x-amz-grant-read",
+      "GrantReadACP": "header:x-amz-grant-read-acp",
+      "GrantWriteACP": "header:x-amz-grant-write-acp",
+      "IfMatch": "header:If-Match",
+      "IfNoneMatch": "header:If-None-Match",
+      "Key": "label",
+      "ObjectLockEventHold": "header:x-amz-object-lock-event-hold",
+      "ObjectLockEventHoldDurationDays": "header:x-amz-object-lock-event-hold-duration-days",
+      "ObjectLockEventHoldDurationYears": "header:x-amz-object-lock-event-hold-duration-years",
+      "ObjectLockLegalHoldStatus": "header:x-amz-object-lock-legal-hold",
+      "ObjectLockMode": "header:x-amz-object-lock-mode",
+      "ObjectLockRetainUntilDate": "header:x-amz-object-lock-retain-until-date",
+      "RequestPayer": "header:x-amz-request-payer",
+      "SSECustomerAlgorithm": "header:x-amz-server-side-encryption-customer-algorithm",
+      "SSECustomerKey": "header:x-amz-server-side-encryption-customer-key",
+      "SSECustomerKeyMD5": "header:x-amz-server-side-encryption-customer-key-MD5",
+      "SSEKMSEncryptionContext": "header:x-amz-server-side-encryption-context",
+      "SSEKMSKeyId": "header:x-amz-server-side-encryption-aws-kms-key-id",
+      "ServerSideEncryption": "header:x-amz-server-side-encryption",
+      "StorageClass": "header:x-amz-storage-class",
+      "Tagging": "header:x-amz-tagging",
+      "WebsiteRedirectLocation": "header:x-amz-website-redirect-location",
+      "WriteOffsetBytes": "header:x-amz-write-offset-bytes"
+    }
+  },
+  "PutObjectAcl": {
+    "method": "PUT",
+    "uri": "/{Bucket}/{Key+}?acl",
+    "bind": {
+      "ACL": "header:x-amz-acl",
+      "AccessControlPolicy": "payload",
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "GrantFullControl": "header:x-amz-grant-full-control",
+      "GrantRead": "header:x-amz-grant-read",
+      "GrantReadACP": "header:x-amz-grant-read-acp",
+      "GrantWrite": "header:x-amz-grant-write",
+      "GrantWriteACP": "header:x-amz-grant-write-acp",
+      "Key": "label",
+      "RequestPayer": "header:x-amz-request-payer",
+      "VersionId": "query:versionId"
+    },
+    "xml_lists": {
+      "AccessControlPolicy.Grants": {
+        "element": "Grant"
+      }
+    },
+    "xml_names": {
+      "AccessControlPolicy.Grants": "AccessControlList",
+      "AccessControlPolicy.Grants[].Grantee.Type": "xsi:type"
+    }
+  },
+  "PutObjectAnnotation": {
+    "method": "PUT",
+    "uri": "/{Bucket}/{Key+}?annotation",
+    "bind": {
+      "AnnotationName": "query:annotationName",
+      "AnnotationPayload": "payload",
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ChecksumCRC32": "header:x-amz-checksum-crc32",
+      "ChecksumCRC32C": "header:x-amz-checksum-crc32c",
+      "ChecksumCRC64NVME": "header:x-amz-checksum-crc64nvme",
+      "ChecksumMD5": "header:x-amz-checksum-md5",
+      "ChecksumSHA1": "header:x-amz-checksum-sha1",
+      "ChecksumSHA256": "header:x-amz-checksum-sha256",
+      "ChecksumSHA512": "header:x-amz-checksum-sha512",
+      "ChecksumXXHASH128": "header:x-amz-checksum-xxhash128",
+      "ChecksumXXHASH3": "header:x-amz-checksum-xxhash3",
+      "ChecksumXXHASH64": "header:x-amz-checksum-xxhash64",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "ObjectIfMatch": "header:x-amz-object-if-match",
+      "RequestPayer": "header:x-amz-request-payer",
+      "VersionId": "query:versionId"
+    }
+  },
+  "PutObjectLegalHold": {
+    "method": "PUT",
+    "uri": "/{Bucket}/{Key+}?legal-hold",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "LegalHold": "payload",
+      "RequestPayer": "header:x-amz-request-payer",
+      "VersionId": "query:versionId"
+    }
+  },
+  "PutObjectLockConfiguration": {
+    "method": "PUT",
+    "uri": "/{Bucket}?object-lock",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "ObjectLockConfiguration": "payload",
+      "RequestPayer": "header:x-amz-request-payer",
+      "Token": "header:x-amz-bucket-object-lock-token"
+    }
+  },
+  "PutObjectRetention": {
+    "method": "PUT",
+    "uri": "/{Bucket}/{Key+}?retention",
+    "bind": {
+      "Bucket": "label",
+      "BypassGovernanceRetention": "header:x-amz-bypass-governance-retention",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "RequestPayer": "header:x-amz-request-payer",
+      "Retention": "payload",
+      "VersionId": "query:versionId"
+    }
+  },
+  "PutObjectTagging": {
+    "method": "PUT",
+    "uri": "/{Bucket}/{Key+}?tagging",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "RequestPayer": "header:x-amz-request-payer",
+      "Tagging": "payload",
+      "VersionId": "query:versionId"
+    },
+    "xml_lists": {
+      "Tagging.TagSet": {
+        "element": "Tag"
+      }
+    }
+  },
+  "PutPublicAccessBlock": {
+    "method": "PUT",
+    "uri": "/{Bucket}?publicAccessBlock",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "PublicAccessBlockConfiguration": "payload"
+    }
+  },
+  "RenameObject": {
+    "method": "PUT",
+    "uri": "/{Bucket}/{Key+}?renameObject",
+    "bind": {
+      "Bucket": "label",
+      "ClientToken": "header:x-amz-client-token",
+      "DestinationIfMatch": "header:If-Match",
+      "DestinationIfModifiedSince": "header:If-Modified-Since",
+      "DestinationIfNoneMatch": "header:If-None-Match",
+      "DestinationIfUnmodifiedSince": "header:If-Unmodified-Since",
+      "Key": "label",
+      "RenameSource": "header:x-amz-rename-source",
+      "SourceIfMatch": "header:x-amz-rename-source-if-match",
+      "SourceIfModifiedSince": "header:x-amz-rename-source-if-modified-since",
+      "SourceIfNoneMatch": "header:x-amz-rename-source-if-none-match",
+      "SourceIfUnmodifiedSince": "header:x-amz-rename-source-if-unmodified-since"
+    }
+  },
+  "RestoreObject": {
+    "method": "POST",
+    "uri": "/{Bucket}/{Key+}?restore",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "RequestPayer": "header:x-amz-request-payer",
+      "RestoreRequest": "payload",
+      "VersionId": "query:versionId"
+    },
+    "xml_lists": {
+      "RestoreRequest.OutputLocation.S3.AccessControlList": {
+        "element": "Grant"
+      },
+      "RestoreRequest.OutputLocation.S3.Tagging.TagSet": {
+        "element": "Tag"
+      },
+      "RestoreRequest.OutputLocation.S3.UserMetadata": {
+        "element": "MetadataEntry"
+      }
+    }
+  },
+  "SelectObjectContent": {
+    "method": "POST",
+    "uri": "/{Bucket}/{Key+}?select\u0026select-type=2",
+    "bind": {
+      "Bucket": "label",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "SSECustomerAlgorithm": "header:x-amz-server-side-encryption-customer-algorithm",
+      "SSECustomerKey": "header:x-amz-server-side-encryption-customer-key",
+      "SSECustomerKeyMD5": "header:x-amz-server-side-encryption-customer-key-MD5"
+    }
+  },
+  "UpdateBucketMetadataAnnotationTableConfiguration": {
+    "method": "PUT",
+    "uri": "/{Bucket}?metadataAnnotationTable",
+    "bind": {
+      "AnnotationTableConfiguration": "payload",
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner"
+    }
+  },
+  "UpdateBucketMetadataInventoryTableConfiguration": {
+    "method": "PUT",
+    "uri": "/{Bucket}?metadataInventoryTable",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "InventoryTableConfiguration": "payload"
+    }
+  },
+  "UpdateBucketMetadataJournalTableConfiguration": {
+    "method": "PUT",
+    "uri": "/{Bucket}?metadataJournalTable",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "JournalTableConfiguration": "payload"
+    }
+  },
+  "UpdateObjectEncryption": {
+    "method": "PUT",
+    "uri": "/{Bucket}/{Key+}?encryption",
+    "bind": {
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "ObjectEncryption": "payload",
+      "RequestPayer": "header:x-amz-request-payer",
+      "VersionId": "query:versionId"
+    }
+  },
+  "UploadPart": {
+    "method": "PUT",
+    "uri": "/{Bucket}/{Key+}?x-id=UploadPart",
+    "bind": {
+      "Body": "payload",
+      "Bucket": "label",
+      "ChecksumAlgorithm": "header:x-amz-sdk-checksum-algorithm",
+      "ChecksumCRC32": "header:x-amz-checksum-crc32",
+      "ChecksumCRC32C": "header:x-amz-checksum-crc32c",
+      "ChecksumCRC64NVME": "header:x-amz-checksum-crc64nvme",
+      "ChecksumMD5": "header:x-amz-checksum-md5",
+      "ChecksumSHA1": "header:x-amz-checksum-sha1",
+      "ChecksumSHA256": "header:x-amz-checksum-sha256",
+      "ChecksumSHA512": "header:x-amz-checksum-sha512",
+      "ChecksumXXHASH128": "header:x-amz-checksum-xxhash128",
+      "ChecksumXXHASH3": "header:x-amz-checksum-xxhash3",
+      "ChecksumXXHASH64": "header:x-amz-checksum-xxhash64",
+      "ContentLength": "header:Content-Length",
+      "ContentMD5": "header:Content-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "Key": "label",
+      "PartNumber": "query:partNumber",
+      "RequestPayer": "header:x-amz-request-payer",
+      "SSECustomerAlgorithm": "header:x-amz-server-side-encryption-customer-algorithm",
+      "SSECustomerKey": "header:x-amz-server-side-encryption-customer-key",
+      "SSECustomerKeyMD5": "header:x-amz-server-side-encryption-customer-key-MD5",
+      "UploadId": "query:uploadId"
+    }
+  },
+  "UploadPartCopy": {
+    "method": "PUT",
+    "uri": "/{Bucket}/{Key+}?x-id=UploadPartCopy",
+    "bind": {
+      "Bucket": "label",
+      "CopySource": "header:x-amz-copy-source",
+      "CopySourceIfMatch": "header:x-amz-copy-source-if-match",
+      "CopySourceIfModifiedSince": "header:x-amz-copy-source-if-modified-since",
+      "CopySourceIfNoneMatch": "header:x-amz-copy-source-if-none-match",
+      "CopySourceIfUnmodifiedSince": "header:x-amz-copy-source-if-unmodified-since",
+      "CopySourceRange": "header:x-amz-copy-source-range",
+      "CopySourceSSECustomerAlgorithm": "header:x-amz-copy-source-server-side-encryption-customer-algorithm",
+      "CopySourceSSECustomerKey": "header:x-amz-copy-source-server-side-encryption-customer-key",
+      "CopySourceSSECustomerKeyMD5": "header:x-amz-copy-source-server-side-encryption-customer-key-MD5",
+      "ExpectedBucketOwner": "header:x-amz-expected-bucket-owner",
+      "ExpectedSourceBucketOwner": "header:x-amz-source-expected-bucket-owner",
+      "Key": "label",
+      "PartNumber": "query:partNumber",
+      "RequestPayer": "header:x-amz-request-payer",
+      "SSECustomerAlgorithm": "header:x-amz-server-side-encryption-customer-algorithm",
+      "SSECustomerKey": "header:x-amz-server-side-encryption-customer-key",
+      "SSECustomerKeyMD5": "header:x-amz-server-side-encryption-customer-key-MD5",
+      "UploadId": "query:uploadId"
+    }
+  },
+  "WriteGetObjectResponse": {
+    "method": "POST",
+    "uri": "/WriteGetObjectResponse",
+    "bind": {
+      "AcceptRanges": "header:x-amz-fwd-header-accept-ranges",
+      "Body": "payload",
+      "BucketKeyEnabled": "header:x-amz-fwd-header-x-amz-server-side-encryption-bucket-key-enabled",
+      "CacheControl": "header:x-amz-fwd-header-Cache-Control",
+      "ChecksumCRC32": "header:x-amz-fwd-header-x-amz-checksum-crc32",
+      "ChecksumCRC32C": "header:x-amz-fwd-header-x-amz-checksum-crc32c",
+      "ChecksumCRC64NVME": "header:x-amz-fwd-header-x-amz-checksum-crc64nvme",
+      "ChecksumMD5": "header:x-amz-fwd-header-x-amz-checksum-md5",
+      "ChecksumSHA1": "header:x-amz-fwd-header-x-amz-checksum-sha1",
+      "ChecksumSHA256": "header:x-amz-fwd-header-x-amz-checksum-sha256",
+      "ChecksumSHA512": "header:x-amz-fwd-header-x-amz-checksum-sha512",
+      "ChecksumXXHASH128": "header:x-amz-fwd-header-x-amz-checksum-xxhash128",
+      "ChecksumXXHASH3": "header:x-amz-fwd-header-x-amz-checksum-xxhash3",
+      "ChecksumXXHASH64": "header:x-amz-fwd-header-x-amz-checksum-xxhash64",
+      "ContentDisposition": "header:x-amz-fwd-header-Content-Disposition",
+      "ContentEncoding": "header:x-amz-fwd-header-Content-Encoding",
+      "ContentLanguage": "header:x-amz-fwd-header-Content-Language",
+      "ContentLength": "header:Content-Length",
+      "ContentRange": "header:x-amz-fwd-header-Content-Range",
+      "ContentType": "header:x-amz-fwd-header-Content-Type",
+      "DeleteMarker": "header:x-amz-fwd-header-x-amz-delete-marker",
+      "ETag": "header:x-amz-fwd-header-ETag",
+      "ErrorCode": "header:x-amz-fwd-error-code",
+      "ErrorMessage": "header:x-amz-fwd-error-message",
+      "Expiration": "header:x-amz-fwd-header-x-amz-expiration",
+      "Expires": "header:x-amz-fwd-header-Expires",
+      "LastModified": "header:x-amz-fwd-header-Last-Modified",
+      "MissingMeta": "header:x-amz-fwd-header-x-amz-missing-meta",
+      "ObjectLockLegalHoldStatus": "header:x-amz-fwd-header-x-amz-object-lock-legal-hold",
+      "ObjectLockMode": "header:x-amz-fwd-header-x-amz-object-lock-mode",
+      "ObjectLockRetainUntilDate": "header:x-amz-fwd-header-x-amz-object-lock-retain-until-date",
+      "PartsCount": "header:x-amz-fwd-header-x-amz-mp-parts-count",
+      "ReplicationStatus": "header:x-amz-fwd-header-x-amz-replication-status",
+      "RequestCharged": "header:x-amz-fwd-header-x-amz-request-charged",
+      "RequestRoute": "header:x-amz-request-route",
+      "RequestToken": "header:x-amz-request-token",
+      "Restore": "header:x-amz-fwd-header-x-amz-restore",
+      "SSECustomerAlgorithm": "header:x-amz-fwd-header-x-amz-server-side-encryption-customer-algorithm",
+      "SSECustomerKeyMD5": "header:x-amz-fwd-header-x-amz-server-side-encryption-customer-key-MD5",
+      "SSEKMSKeyId": "header:x-amz-fwd-header-x-amz-server-side-encryption-aws-kms-key-id",
+      "ServerSideEncryption": "header:x-amz-fwd-header-x-amz-server-side-encryption",
+      "StatusCode": "header:x-amz-fwd-status",
+      "StorageClass": "header:x-amz-fwd-header-x-amz-storage-class",
+      "TagCount": "header:x-amz-fwd-header-x-amz-tagging-count",
+      "VersionId": "header:x-amz-fwd-header-x-amz-version-id"
+    }
+  }
+}

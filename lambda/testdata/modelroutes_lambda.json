@@ -1,0 +1,908 @@
+{
+  "AddLayerVersionPermission": {
+    "method": "POST",
+    "uri": "/2018-10-31/layers/{LayerName}/versions/{VersionNumber}/policy",
+    "bind": {
+      "LayerName": "label",
+      "RevisionId": "query:RevisionId",
+      "VersionNumber": "label"
+    }
+  },
+  "AddPermission": {
+    "method": "POST",
+    "uri": "/2015-03-31/functions/{FunctionName}/policy",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "CheckpointDurableExecution": {
+    "method": "POST",
+    "uri": "/2025-12-01/durable-executions/{DurableExecutionArn}/checkpoint",
+    "bind": {
+      "DurableExecutionArn": "label"
+    },
+    "xml_lists": {
+      "Updates": {
+        "element": "member"
+      },
+      "Updates[].Error.StackTrace": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateAlias": {
+    "method": "POST",
+    "uri": "/2015-03-31/functions/{FunctionName}/aliases",
+    "bind": {
+      "FunctionName": "label"
+    }
+  },
+  "CreateCapacityProvider": {
+    "method": "POST",
+    "uri": "/2025-11-30/capacity-providers",
+    "xml_lists": {
+      "CapacityProviderScalingConfig.ScalingPolicies": {
+        "element": "member"
+      },
+      "InstanceRequirements.AllowedInstanceTypes": {
+        "element": "member"
+      },
+      "InstanceRequirements.Architectures": {
+        "element": "member"
+      },
+      "InstanceRequirements.ExcludedInstanceTypes": {
+        "element": "member"
+      },
+      "VpcConfig.SecurityGroupIds": {
+        "element": "member"
+      },
+      "VpcConfig.SubnetIds": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateCodeSigningConfig": {
+    "method": "POST",
+    "uri": "/2020-04-22/code-signing-configs",
+    "xml_lists": {
+      "AllowedPublishers.SigningProfileVersionArns": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateEventSourceMapping": {
+    "method": "POST",
+    "uri": "/2015-03-31/event-source-mappings",
+    "xml_lists": {
+      "AmazonManagedKafkaEventSourceConfig.SchemaRegistryConfig.AccessConfigs": {
+        "element": "member"
+      },
+      "AmazonManagedKafkaEventSourceConfig.SchemaRegistryConfig.SchemaValidationConfigs": {
+        "element": "member"
+      },
+      "FilterCriteria.Filters": {
+        "element": "member"
+      },
+      "FunctionResponseTypes": {
+        "element": "member"
+      },
+      "MetricsConfig.Metrics": {
+        "element": "member"
+      },
+      "Queues": {
+        "element": "member"
+      },
+      "SelfManagedKafkaEventSourceConfig.SchemaRegistryConfig.AccessConfigs": {
+        "element": "member"
+      },
+      "SelfManagedKafkaEventSourceConfig.SchemaRegistryConfig.SchemaValidationConfigs": {
+        "element": "member"
+      },
+      "SourceAccessConfigurations": {
+        "element": "member"
+      },
+      "Topics": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateFunction": {
+    "method": "POST",
+    "uri": "/2015-03-31/functions",
+    "xml_lists": {
+      "Architectures": {
+        "element": "member"
+      },
+      "FileSystemConfigs": {
+        "element": "member"
+      },
+      "ImageConfig.Command": {
+        "element": "member"
+      },
+      "ImageConfig.EntryPoint": {
+        "element": "member"
+      },
+      "Layers": {
+        "element": "member"
+      },
+      "VpcConfig.SecurityGroupIds": {
+        "element": "member"
+      },
+      "VpcConfig.SubnetIds": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateFunctionUrlConfig": {
+    "method": "POST",
+    "uri": "/2021-10-31/functions/{FunctionName}/url",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    },
+    "xml_lists": {
+      "Cors.AllowHeaders": {
+        "element": "member"
+      },
+      "Cors.AllowMethods": {
+        "element": "member"
+      },
+      "Cors.AllowOrigins": {
+        "element": "member"
+      },
+      "Cors.ExposeHeaders": {
+        "element": "member"
+      }
+    }
+  },
+  "DeleteAlias": {
+    "method": "DELETE",
+    "uri": "/2015-03-31/functions/{FunctionName}/aliases/{Name}",
+    "bind": {
+      "FunctionName": "label",
+      "Name": "label"
+    }
+  },
+  "DeleteCapacityProvider": {
+    "method": "DELETE",
+    "uri": "/2025-11-30/capacity-providers/{CapacityProviderName}",
+    "bind": {
+      "CapacityProviderName": "label"
+    }
+  },
+  "DeleteCodeSigningConfig": {
+    "method": "DELETE",
+    "uri": "/2020-04-22/code-signing-configs/{CodeSigningConfigArn}",
+    "bind": {
+      "CodeSigningConfigArn": "label"
+    }
+  },
+  "DeleteEventSourceMapping": {
+    "method": "DELETE",
+    "uri": "/2015-03-31/event-source-mappings/{UUID}",
+    "bind": {
+      "UUID": "label"
+    }
+  },
+  "DeleteFunction": {
+    "method": "DELETE",
+    "uri": "/2015-03-31/functions/{FunctionName}",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "DeleteFunctionCodeSigningConfig": {
+    "method": "DELETE",
+    "uri": "/2020-06-30/functions/{FunctionName}/code-signing-config",
+    "bind": {
+      "FunctionName": "label"
+    }
+  },
+  "DeleteFunctionConcurrency": {
+    "method": "DELETE",
+    "uri": "/2017-10-31/functions/{FunctionName}/concurrency",
+    "bind": {
+      "FunctionName": "label"
+    }
+  },
+  "DeleteFunctionEventInvokeConfig": {
+    "method": "DELETE",
+    "uri": "/2019-09-25/functions/{FunctionName}/event-invoke-config",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "DeleteFunctionUrlConfig": {
+    "method": "DELETE",
+    "uri": "/2021-10-31/functions/{FunctionName}/url",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "DeleteLayerVersion": {
+    "method": "DELETE",
+    "uri": "/2018-10-31/layers/{LayerName}/versions/{VersionNumber}",
+    "bind": {
+      "LayerName": "label",
+      "VersionNumber": "label"
+    }
+  },
+  "DeleteProvisionedConcurrencyConfig": {
+    "method": "DELETE",
+    "uri": "/2019-09-30/functions/{FunctionName}/provisioned-concurrency",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "DeleteResourcePolicy": {
+    "method": "DELETE",
+    "uri": "/2026-07-09/resource-policy/{ResourceArn}",
+    "bind": {
+      "ResourceArn": "label",
+      "RevisionId": "query:RevisionId"
+    }
+  },
+  "GetAccountSettings": {
+    "method": "GET",
+    "uri": "/2016-08-19/account-settings"
+  },
+  "GetAlias": {
+    "method": "GET",
+    "uri": "/2015-03-31/functions/{FunctionName}/aliases/{Name}",
+    "bind": {
+      "FunctionName": "label",
+      "Name": "label"
+    }
+  },
+  "GetCapacityProvider": {
+    "method": "GET",
+    "uri": "/2025-11-30/capacity-providers/{CapacityProviderName}",
+    "bind": {
+      "CapacityProviderName": "label"
+    }
+  },
+  "GetCodeSigningConfig": {
+    "method": "GET",
+    "uri": "/2020-04-22/code-signing-configs/{CodeSigningConfigArn}",
+    "bind": {
+      "CodeSigningConfigArn": "label"
+    }
+  },
+  "GetDurableExecution": {
+    "method": "GET",
+    "uri": "/2025-12-01/durable-executions/{DurableExecutionArn}",
+    "bind": {
+      "DurableExecutionArn": "label",
+      "IncludeExecutionData": "query:IncludeExecutionData"
+    }
+  },
+  "GetDurableExecutionHistory": {
+    "method": "GET",
+    "uri": "/2025-12-01/durable-executions/{DurableExecutionArn}/history",
+    "bind": {
+      "DurableExecutionArn": "label",
+      "IncludeExecutionData": "query:IncludeExecutionData",
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems",
+      "ReverseOrder": "query:ReverseOrder"
+    }
+  },
+  "GetDurableExecutionState": {
+    "method": "GET",
+    "uri": "/2025-12-01/durable-executions/{DurableExecutionArn}/state",
+    "bind": {
+      "CheckpointToken": "query:CheckpointToken",
+      "DurableExecutionArn": "label",
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems"
+    }
+  },
+  "GetEventSourceMapping": {
+    "method": "GET",
+    "uri": "/2015-03-31/event-source-mappings/{UUID}",
+    "bind": {
+      "UUID": "label"
+    }
+  },
+  "GetFunction": {
+    "method": "GET",
+    "uri": "/2015-03-31/functions/{FunctionName}",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "GetFunctionCodeSigningConfig": {
+    "method": "GET",
+    "uri": "/2020-06-30/functions/{FunctionName}/code-signing-config",
+    "bind": {
+      "FunctionName": "label"
+    }
+  },
+  "GetFunctionConcurrency": {
+    "method": "GET",
+    "uri": "/2019-09-30/functions/{FunctionName}/concurrency",
+    "bind": {
+      "FunctionName": "label"
+    }
+  },
+  "GetFunctionConfiguration": {
+    "method": "GET",
+    "uri": "/2015-03-31/functions/{FunctionName}/configuration",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "GetFunctionEventInvokeConfig": {
+    "method": "GET",
+    "uri": "/2019-09-25/functions/{FunctionName}/event-invoke-config",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "GetFunctionRecursionConfig": {
+    "method": "GET",
+    "uri": "/2024-08-31/functions/{FunctionName}/recursion-config",
+    "bind": {
+      "FunctionName": "label"
+    }
+  },
+  "GetFunctionScalingConfig": {
+    "method": "GET",
+    "uri": "/2025-11-30/functions/{FunctionName}/function-scaling-config",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "GetFunctionUrlConfig": {
+    "method": "GET",
+    "uri": "/2021-10-31/functions/{FunctionName}/url",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "GetLayerVersion": {
+    "method": "GET",
+    "uri": "/2018-10-31/layers/{LayerName}/versions/{VersionNumber}",
+    "bind": {
+      "LayerName": "label",
+      "VersionNumber": "label"
+    }
+  },
+  "GetLayerVersionByArn": {
+    "method": "GET",
+    "uri": "/2018-10-31/layers?find=LayerVersion",
+    "bind": {
+      "Arn": "query:Arn"
+    }
+  },
+  "GetLayerVersionPolicy": {
+    "method": "GET",
+    "uri": "/2018-10-31/layers/{LayerName}/versions/{VersionNumber}/policy",
+    "bind": {
+      "LayerName": "label",
+      "VersionNumber": "label"
+    }
+  },
+  "GetPolicy": {
+    "method": "GET",
+    "uri": "/2015-03-31/functions/{FunctionName}/policy",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "GetProvisionedConcurrencyConfig": {
+    "method": "GET",
+    "uri": "/2019-09-30/functions/{FunctionName}/provisioned-concurrency",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "GetResourcePolicy": {
+    "method": "GET",
+    "uri": "/2026-07-09/resource-policy/{ResourceArn}",
+    "bind": {
+      "ResourceArn": "label"
+    }
+  },
+  "GetRuntimeManagementConfig": {
+    "method": "GET",
+    "uri": "/2021-07-20/functions/{FunctionName}/runtime-management-config",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "Invoke": {
+    "method": "POST",
+    "uri": "/2015-03-31/functions/{FunctionName}/invocations",
+    "bind": {
+      "ClientContext": "header:X-Amz-Client-Context",
+      "DurableExecutionName": "header:X-Amz-Durable-Execution-Name",
+      "FunctionName": "label",
+      "InvocationType": "header:X-Amz-Invocation-Type",
+      "LogType": "header:X-Amz-Log-Type",
+      "Payload": "payload",
+      "Qualifier": "query:Qualifier",
+      "TenantId": "header:X-Amz-Tenant-Id"
+    }
+  },
+  "InvokeAsync": {
+    "method": "POST",
+    "uri": "/2014-11-13/functions/{FunctionName}/invoke-async",
+    "bind": {
+      "FunctionName": "label",
+      "InvokeArgs": "payload"
+    }
+  },
+  "InvokeWithResponseStream": {
+    "method": "POST",
+    "uri": "/2021-11-15/functions/{FunctionName}/response-streaming-invocations",
+    "bind": {
+      "ClientContext": "header:X-Amz-Client-Context",
+      "FunctionName": "label",
+      "InvocationType": "header:X-Amz-Invocation-Type",
+      "LogType": "header:X-Amz-Log-Type",
+      "Payload": "payload",
+      "Qualifier": "query:Qualifier",
+      "TenantId": "header:X-Amz-Tenant-Id"
+    }
+  },
+  "ListAliases": {
+    "method": "GET",
+    "uri": "/2015-03-31/functions/{FunctionName}/aliases",
+    "bind": {
+      "FunctionName": "label",
+      "FunctionVersion": "query:FunctionVersion",
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems"
+    }
+  },
+  "ListCapacityProviders": {
+    "method": "GET",
+    "uri": "/2025-11-30/capacity-providers",
+    "bind": {
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems",
+      "State": "query:State"
+    }
+  },
+  "ListCodeSigningConfigs": {
+    "method": "GET",
+    "uri": "/2020-04-22/code-signing-configs",
+    "bind": {
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems"
+    }
+  },
+  "ListDurableExecutionsByFunction": {
+    "method": "GET",
+    "uri": "/2025-12-01/functions/{FunctionName}/durable-executions",
+    "bind": {
+      "DurableExecutionName": "query:DurableExecutionName",
+      "FunctionName": "label",
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems",
+      "Qualifier": "query:Qualifier",
+      "ReverseOrder": "query:ReverseOrder",
+      "StartedAfter": "query:StartedAfter",
+      "StartedBefore": "query:StartedBefore",
+      "Statuses": "query:Statuses"
+    },
+    "xml_lists": {
+      "Statuses": {
+        "element": "member"
+      }
+    }
+  },
+  "ListEventSourceMappings": {
+    "method": "GET",
+    "uri": "/2015-03-31/event-source-mappings",
+    "bind": {
+      "EventSourceArn": "query:EventSourceArn",
+      "FunctionName": "query:FunctionName",
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems"
+    }
+  },
+  "ListFunctionEventInvokeConfigs": {
+    "method": "GET",
+    "uri": "/2019-09-25/functions/{FunctionName}/event-invoke-config/list",
+    "bind": {
+      "FunctionName": "label",
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems"
+    }
+  },
+  "ListFunctionUrlConfigs": {
+    "method": "GET",
+    "uri": "/2021-10-31/functions/{FunctionName}/urls",
+    "bind": {
+      "FunctionName": "label",
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems"
+    }
+  },
+  "ListFunctionVersionsByCapacityProvider": {
+    "method": "GET",
+    "uri": "/2025-11-30/capacity-providers/{CapacityProviderName}/function-versions",
+    "bind": {
+      "CapacityProviderName": "label",
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems"
+    }
+  },
+  "ListFunctions": {
+    "method": "GET",
+    "uri": "/2015-03-31/functions",
+    "bind": {
+      "FunctionVersion": "query:FunctionVersion",
+      "Marker": "query:Marker",
+      "MasterRegion": "query:MasterRegion",
+      "MaxItems": "query:MaxItems"
+    }
+  },
+  "ListFunctionsByCodeSigningConfig": {
+    "method": "GET",
+    "uri": "/2020-04-22/code-signing-configs/{CodeSigningConfigArn}/functions",
+    "bind": {
+      "CodeSigningConfigArn": "label",
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems"
+    }
+  },
+  "ListLayerVersions": {
+    "method": "GET",
+    "uri": "/2018-10-31/layers/{LayerName}/versions",
+    "bind": {
+      "CompatibleArchitecture": "query:CompatibleArchitecture",
+      "CompatibleRuntime": "query:CompatibleRuntime",
+      "LayerName": "label",
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems"
+    }
+  },
+  "ListLayers": {
+    "method": "GET",
+    "uri": "/2018-10-31/layers",
+    "bind": {
+      "CompatibleArchitecture": "query:CompatibleArchitecture",
+      "CompatibleRuntime": "query:CompatibleRuntime",
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems"
+    }
+  },
+  "ListProvisionedConcurrencyConfigs": {
+    "method": "GET",
+    "uri": "/2019-09-30/functions/{FunctionName}/provisioned-concurrency?List=ALL",
+    "bind": {
+      "FunctionName": "label",
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems"
+    }
+  },
+  "ListTags": {
+    "method": "GET",
+    "uri": "/2017-03-31/tags/{Resource}",
+    "bind": {
+      "Resource": "label"
+    }
+  },
+  "ListVersionsByFunction": {
+    "method": "GET",
+    "uri": "/2015-03-31/functions/{FunctionName}/versions",
+    "bind": {
+      "FunctionName": "label",
+      "Marker": "query:Marker",
+      "MaxItems": "query:MaxItems"
+    }
+  },
+  "PublishLayerVersion": {
+    "method": "POST",
+    "uri": "/2018-10-31/layers/{LayerName}/versions",
+    "bind": {
+      "LayerName": "label"
+    },
+    "xml_lists": {
+      "CompatibleArchitectures": {
+        "element": "member"
+      },
+      "CompatibleRuntimes": {
+        "element": "member"
+      }
+    }
+  },
+  "PublishVersion": {
+    "method": "POST",
+    "uri": "/2015-03-31/functions/{FunctionName}/versions",
+    "bind": {
+      "FunctionName": "label"
+    }
+  },
+  "PutFunctionCodeSigningConfig": {
+    "method": "PUT",
+    "uri": "/2020-06-30/functions/{FunctionName}/code-signing-config",
+    "bind": {
+      "FunctionName": "label"
+    }
+  },
+  "PutFunctionConcurrency": {
+    "method": "PUT",
+    "uri": "/2017-10-31/functions/{FunctionName}/concurrency",
+    "bind": {
+      "FunctionName": "label"
+    }
+  },
+  "PutFunctionEventInvokeConfig": {
+    "method": "PUT",
+    "uri": "/2019-09-25/functions/{FunctionName}/event-invoke-config",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "PutFunctionRecursionConfig": {
+    "method": "PUT",
+    "uri": "/2024-08-31/functions/{FunctionName}/recursion-config",
+    "bind": {
+      "FunctionName": "label"
+    }
+  },
+  "PutFunctionScalingConfig": {
+    "method": "PUT",
+    "uri": "/2025-11-30/functions/{FunctionName}/function-scaling-config",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "PutProvisionedConcurrencyConfig": {
+    "method": "PUT",
+    "uri": "/2019-09-30/functions/{FunctionName}/provisioned-concurrency",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "PutResourcePolicy": {
+    "method": "PUT",
+    "uri": "/2026-07-09/resource-policy/{ResourceArn}",
+    "bind": {
+      "ResourceArn": "label"
+    }
+  },
+  "PutRuntimeManagementConfig": {
+    "method": "PUT",
+    "uri": "/2021-07-20/functions/{FunctionName}/runtime-management-config",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "RemoveLayerVersionPermission": {
+    "method": "DELETE",
+    "uri": "/2018-10-31/layers/{LayerName}/versions/{VersionNumber}/policy/{StatementId}",
+    "bind": {
+      "LayerName": "label",
+      "RevisionId": "query:RevisionId",
+      "StatementId": "label",
+      "VersionNumber": "label"
+    }
+  },
+  "RemovePermission": {
+    "method": "DELETE",
+    "uri": "/2015-03-31/functions/{FunctionName}/policy/{StatementId}",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier",
+      "RevisionId": "query:RevisionId",
+      "StatementId": "label"
+    }
+  },
+  "SendDurableExecutionCallbackFailure": {
+    "method": "POST",
+    "uri": "/2025-12-01/durable-execution-callbacks/{CallbackId}/fail",
+    "bind": {
+      "CallbackId": "label",
+      "Error": "payload"
+    },
+    "xml_lists": {
+      "Error.StackTrace": {
+        "element": "member"
+      }
+    }
+  },
+  "SendDurableExecutionCallbackHeartbeat": {
+    "method": "POST",
+    "uri": "/2025-12-01/durable-execution-callbacks/{CallbackId}/heartbeat",
+    "bind": {
+      "CallbackId": "label"
+    }
+  },
+  "SendDurableExecutionCallbackSuccess": {
+    "method": "POST",
+    "uri": "/2025-12-01/durable-execution-callbacks/{CallbackId}/succeed",
+    "bind": {
+      "CallbackId": "label",
+      "Result": "payload"
+    }
+  },
+  "StopDurableExecution": {
+    "method": "POST",
+    "uri": "/2025-12-01/durable-executions/{DurableExecutionArn}/stop",
+    "bind": {
+      "DurableExecutionArn": "label",
+      "Error": "payload"
+    },
+    "xml_lists": {
+      "Error.StackTrace": {
+        "element": "member"
+      }
+    }
+  },
+  "TagResource": {
+    "method": "POST",
+    "uri": "/2017-03-31/tags/{Resource}",
+    "bind": {
+      "Resource": "label"
+    }
+  },
+  "UntagResource": {
+    "method": "DELETE",
+    "uri": "/2017-03-31/tags/{Resource}",
+    "bind": {
+      "Resource": "label",
+      "TagKeys": "query:tagKeys"
+    },
+    "xml_lists": {
+      "TagKeys": {
+        "element": "Key"
+      }
+    }
+  },
+  "UpdateAlias": {
+    "method": "PUT",
+    "uri": "/2015-03-31/functions/{FunctionName}/aliases/{Name}",
+    "bind": {
+      "FunctionName": "label",
+      "Name": "label"
+    }
+  },
+  "UpdateCapacityProvider": {
+    "method": "PUT",
+    "uri": "/2025-11-30/capacity-providers/{CapacityProviderName}",
+    "bind": {
+      "CapacityProviderName": "label"
+    },
+    "xml_lists": {
+      "CapacityProviderScalingConfig.ScalingPolicies": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateCodeSigningConfig": {
+    "method": "PUT",
+    "uri": "/2020-04-22/code-signing-configs/{CodeSigningConfigArn}",
+    "bind": {
+      "CodeSigningConfigArn": "label"
+    },
+    "xml_lists": {
+      "AllowedPublishers.SigningProfileVersionArns": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateEventSourceMapping": {
+    "method": "PUT",
+    "uri": "/2015-03-31/event-source-mappings/{UUID}",
+    "bind": {
+      "UUID": "label"
+    },
+    "xml_lists": {
+      "AmazonManagedKafkaEventSourceConfig.SchemaRegistryConfig.AccessConfigs": {
+        "element": "member"
+      },
+      "AmazonManagedKafkaEventSourceConfig.SchemaRegistryConfig.SchemaValidationConfigs": {
+        "element": "member"
+      },
+      "FilterCriteria.Filters": {
+        "element": "member"
+      },
+      "FunctionResponseTypes": {
+        "element": "member"
+      },
+      "MetricsConfig.Metrics": {
+        "element": "member"
+      },
+      "SelfManagedKafkaEventSourceConfig.SchemaRegistryConfig.AccessConfigs": {
+        "element": "member"
+      },
+      "SelfManagedKafkaEventSourceConfig.SchemaRegistryConfig.SchemaValidationConfigs": {
+        "element": "member"
+      },
+      "SourceAccessConfigurations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateFunctionCode": {
+    "method": "PUT",
+    "uri": "/2015-03-31/functions/{FunctionName}/code",
+    "bind": {
+      "FunctionName": "label"
+    },
+    "xml_lists": {
+      "Architectures": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateFunctionConfiguration": {
+    "method": "PUT",
+    "uri": "/2015-03-31/functions/{FunctionName}/configuration",
+    "bind": {
+      "FunctionName": "label"
+    },
+    "xml_lists": {
+      "FileSystemConfigs": {
+        "element": "member"
+      },
+      "ImageConfig.Command": {
+        "element": "member"
+      },
+      "ImageConfig.EntryPoint": {
+        "element": "member"
+      },
+      "Layers": {
+        "element": "member"
+      },
+      "VpcConfig.SecurityGroupIds": {
+        "element": "member"
+      },
+      "VpcConfig.SubnetIds": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateFunctionEventInvokeConfig": {
+    "method": "POST",
+    "uri": "/2019-09-25/functions/{FunctionName}/event-invoke-config",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    }
+  },
+  "UpdateFunctionUrlConfig": {
+    "method": "PUT",
+    "uri": "/2021-10-31/functions/{FunctionName}/url",
+    "bind": {
+      "FunctionName": "label",
+      "Qualifier": "query:Qualifier"
+    },
+    "xml_lists": {
+      "Cors.AllowHeaders": {
+        "element": "member"
+      },
+      "Cors.AllowMethods": {
+        "element": "member"
+      },
+      "Cors.AllowOrigins": {
+        "element": "member"
+      },
+      "Cors.ExposeHeaders": {
+        "element": "member"
+      }
+    }
+  }
+}

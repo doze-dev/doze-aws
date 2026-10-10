@@ -1,0 +1,937 @@
+{
+  "CreateApi": {
+    "method": "POST",
+    "uri": "/v2/apis",
+    "xml_lists": {
+      "CorsConfiguration.AllowHeaders": {
+        "element": "member"
+      },
+      "CorsConfiguration.AllowMethods": {
+        "element": "member"
+      },
+      "CorsConfiguration.AllowOrigins": {
+        "element": "member"
+      },
+      "CorsConfiguration.ExposeHeaders": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateApiMapping": {
+    "method": "POST",
+    "uri": "/v2/domainnames/{DomainName}/apimappings",
+    "bind": {
+      "DomainName": "label"
+    }
+  },
+  "CreateAuthorizer": {
+    "method": "POST",
+    "uri": "/v2/apis/{ApiId}/authorizers",
+    "bind": {
+      "ApiId": "label"
+    },
+    "xml_lists": {
+      "IdentitySource": {
+        "element": "member"
+      },
+      "JwtConfiguration.Audience": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateDeployment": {
+    "method": "POST",
+    "uri": "/v2/apis/{ApiId}/deployments",
+    "bind": {
+      "ApiId": "label"
+    }
+  },
+  "CreateDomainName": {
+    "method": "POST",
+    "uri": "/v2/domainnames",
+    "xml_lists": {
+      "DomainNameConfigurations": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateIntegration": {
+    "method": "POST",
+    "uri": "/v2/apis/{ApiId}/integrations",
+    "bind": {
+      "ApiId": "label"
+    }
+  },
+  "CreateIntegrationResponse": {
+    "method": "POST",
+    "uri": "/v2/apis/{ApiId}/integrations/{IntegrationId}/integrationresponses",
+    "bind": {
+      "ApiId": "label",
+      "IntegrationId": "label"
+    }
+  },
+  "CreateModel": {
+    "method": "POST",
+    "uri": "/v2/apis/{ApiId}/models",
+    "bind": {
+      "ApiId": "label"
+    }
+  },
+  "CreatePortal": {
+    "method": "POST",
+    "uri": "/v2/portals",
+    "xml_lists": {
+      "IncludedPortalProductArns": {
+        "element": "member"
+      }
+    }
+  },
+  "CreatePortalProduct": {
+    "method": "POST",
+    "uri": "/v2/portalproducts"
+  },
+  "CreateProductPage": {
+    "method": "POST",
+    "uri": "/v2/portalproducts/{PortalProductId}/productpages",
+    "bind": {
+      "PortalProductId": "label"
+    }
+  },
+  "CreateProductRestEndpointPage": {
+    "method": "POST",
+    "uri": "/v2/portalproducts/{PortalProductId}/productrestendpointpages",
+    "bind": {
+      "PortalProductId": "label"
+    }
+  },
+  "CreateRoute": {
+    "method": "POST",
+    "uri": "/v2/apis/{ApiId}/routes",
+    "bind": {
+      "ApiId": "label"
+    },
+    "xml_lists": {
+      "AuthorizationScopes": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateRouteResponse": {
+    "method": "POST",
+    "uri": "/v2/apis/{ApiId}/routes/{RouteId}/routeresponses",
+    "bind": {
+      "ApiId": "label",
+      "RouteId": "label"
+    }
+  },
+  "CreateRoutingRule": {
+    "method": "POST",
+    "uri": "/v2/domainnames/{DomainName}/routingrules",
+    "bind": {
+      "DomainName": "label",
+      "DomainNameId": "query:domainNameId"
+    },
+    "xml_lists": {
+      "Actions": {
+        "element": "member"
+      },
+      "Conditions": {
+        "element": "member"
+      },
+      "Conditions[].MatchBasePaths.AnyOf": {
+        "element": "member"
+      },
+      "Conditions[].MatchHeaders.AnyOf": {
+        "element": "member"
+      }
+    }
+  },
+  "CreateStage": {
+    "method": "POST",
+    "uri": "/v2/apis/{ApiId}/stages",
+    "bind": {
+      "ApiId": "label"
+    }
+  },
+  "CreateVpcLink": {
+    "method": "POST",
+    "uri": "/v2/vpclinks",
+    "xml_lists": {
+      "SecurityGroupIds": {
+        "element": "member"
+      },
+      "SubnetIds": {
+        "element": "member"
+      }
+    }
+  },
+  "DeleteAccessLogSettings": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}/stages/{StageName}/accesslogsettings",
+    "bind": {
+      "ApiId": "label",
+      "StageName": "label"
+    }
+  },
+  "DeleteApi": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}",
+    "bind": {
+      "ApiId": "label"
+    }
+  },
+  "DeleteApiMapping": {
+    "method": "DELETE",
+    "uri": "/v2/domainnames/{DomainName}/apimappings/{ApiMappingId}",
+    "bind": {
+      "ApiMappingId": "label",
+      "DomainName": "label"
+    }
+  },
+  "DeleteAuthorizer": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}/authorizers/{AuthorizerId}",
+    "bind": {
+      "ApiId": "label",
+      "AuthorizerId": "label"
+    }
+  },
+  "DeleteCorsConfiguration": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}/cors",
+    "bind": {
+      "ApiId": "label"
+    }
+  },
+  "DeleteDeployment": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}/deployments/{DeploymentId}",
+    "bind": {
+      "ApiId": "label",
+      "DeploymentId": "label"
+    }
+  },
+  "DeleteDomainName": {
+    "method": "DELETE",
+    "uri": "/v2/domainnames/{DomainName}",
+    "bind": {
+      "DomainName": "label"
+    }
+  },
+  "DeleteIntegration": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}/integrations/{IntegrationId}",
+    "bind": {
+      "ApiId": "label",
+      "IntegrationId": "label"
+    }
+  },
+  "DeleteIntegrationResponse": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}/integrations/{IntegrationId}/integrationresponses/{IntegrationResponseId}",
+    "bind": {
+      "ApiId": "label",
+      "IntegrationId": "label",
+      "IntegrationResponseId": "label"
+    }
+  },
+  "DeleteModel": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}/models/{ModelId}",
+    "bind": {
+      "ApiId": "label",
+      "ModelId": "label"
+    }
+  },
+  "DeletePortal": {
+    "method": "DELETE",
+    "uri": "/v2/portals/{PortalId}",
+    "bind": {
+      "PortalId": "label"
+    }
+  },
+  "DeletePortalProduct": {
+    "method": "DELETE",
+    "uri": "/v2/portalproducts/{PortalProductId}",
+    "bind": {
+      "PortalProductId": "label"
+    }
+  },
+  "DeletePortalProductSharingPolicy": {
+    "method": "DELETE",
+    "uri": "/v2/portalproducts/{PortalProductId}/sharingpolicy",
+    "bind": {
+      "PortalProductId": "label"
+    }
+  },
+  "DeleteProductPage": {
+    "method": "DELETE",
+    "uri": "/v2/portalproducts/{PortalProductId}/productpages/{ProductPageId}",
+    "bind": {
+      "PortalProductId": "label",
+      "ProductPageId": "label"
+    }
+  },
+  "DeleteProductRestEndpointPage": {
+    "method": "DELETE",
+    "uri": "/v2/portalproducts/{PortalProductId}/productrestendpointpages/{ProductRestEndpointPageId}",
+    "bind": {
+      "PortalProductId": "label",
+      "ProductRestEndpointPageId": "label"
+    }
+  },
+  "DeleteRoute": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}/routes/{RouteId}",
+    "bind": {
+      "ApiId": "label",
+      "RouteId": "label"
+    }
+  },
+  "DeleteRouteRequestParameter": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}/routes/{RouteId}/requestparameters/{RequestParameterKey}",
+    "bind": {
+      "ApiId": "label",
+      "RequestParameterKey": "label",
+      "RouteId": "label"
+    }
+  },
+  "DeleteRouteResponse": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}/routes/{RouteId}/routeresponses/{RouteResponseId}",
+    "bind": {
+      "ApiId": "label",
+      "RouteId": "label",
+      "RouteResponseId": "label"
+    }
+  },
+  "DeleteRouteSettings": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}/stages/{StageName}/routesettings/{RouteKey}",
+    "bind": {
+      "ApiId": "label",
+      "RouteKey": "label",
+      "StageName": "label"
+    }
+  },
+  "DeleteRoutingRule": {
+    "method": "DELETE",
+    "uri": "/v2/domainnames/{DomainName}/routingrules/{RoutingRuleId}",
+    "bind": {
+      "DomainName": "label",
+      "DomainNameId": "query:domainNameId",
+      "RoutingRuleId": "label"
+    }
+  },
+  "DeleteStage": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}/stages/{StageName}",
+    "bind": {
+      "ApiId": "label",
+      "StageName": "label"
+    }
+  },
+  "DeleteVpcLink": {
+    "method": "DELETE",
+    "uri": "/v2/vpclinks/{VpcLinkId}",
+    "bind": {
+      "VpcLinkId": "label"
+    }
+  },
+  "DisablePortal": {
+    "method": "DELETE",
+    "uri": "/v2/portals/{PortalId}/publish",
+    "bind": {
+      "PortalId": "label"
+    }
+  },
+  "ExportApi": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/exports/{Specification}",
+    "bind": {
+      "ApiId": "label",
+      "ExportVersion": "query:exportVersion",
+      "IncludeExtensions": "query:includeExtensions",
+      "OutputType": "query:outputType",
+      "Specification": "label",
+      "StageName": "query:stageName"
+    }
+  },
+  "GetApi": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}",
+    "bind": {
+      "ApiId": "label"
+    }
+  },
+  "GetApiMapping": {
+    "method": "GET",
+    "uri": "/v2/domainnames/{DomainName}/apimappings/{ApiMappingId}",
+    "bind": {
+      "ApiMappingId": "label",
+      "DomainName": "label"
+    }
+  },
+  "GetApiMappings": {
+    "method": "GET",
+    "uri": "/v2/domainnames/{DomainName}/apimappings",
+    "bind": {
+      "DomainName": "label",
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken"
+    }
+  },
+  "GetApis": {
+    "method": "GET",
+    "uri": "/v2/apis",
+    "bind": {
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken"
+    }
+  },
+  "GetAuthorizer": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/authorizers/{AuthorizerId}",
+    "bind": {
+      "ApiId": "label",
+      "AuthorizerId": "label"
+    }
+  },
+  "GetAuthorizers": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/authorizers",
+    "bind": {
+      "ApiId": "label",
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken"
+    }
+  },
+  "GetDeployment": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/deployments/{DeploymentId}",
+    "bind": {
+      "ApiId": "label",
+      "DeploymentId": "label"
+    }
+  },
+  "GetDeployments": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/deployments",
+    "bind": {
+      "ApiId": "label",
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken"
+    }
+  },
+  "GetDomainName": {
+    "method": "GET",
+    "uri": "/v2/domainnames/{DomainName}",
+    "bind": {
+      "DomainName": "label"
+    }
+  },
+  "GetDomainNames": {
+    "method": "GET",
+    "uri": "/v2/domainnames",
+    "bind": {
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken"
+    }
+  },
+  "GetIntegration": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/integrations/{IntegrationId}",
+    "bind": {
+      "ApiId": "label",
+      "IntegrationId": "label"
+    }
+  },
+  "GetIntegrationResponse": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/integrations/{IntegrationId}/integrationresponses/{IntegrationResponseId}",
+    "bind": {
+      "ApiId": "label",
+      "IntegrationId": "label",
+      "IntegrationResponseId": "label"
+    }
+  },
+  "GetIntegrationResponses": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/integrations/{IntegrationId}/integrationresponses",
+    "bind": {
+      "ApiId": "label",
+      "IntegrationId": "label",
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken"
+    }
+  },
+  "GetIntegrations": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/integrations",
+    "bind": {
+      "ApiId": "label",
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken"
+    }
+  },
+  "GetModel": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/models/{ModelId}",
+    "bind": {
+      "ApiId": "label",
+      "ModelId": "label"
+    }
+  },
+  "GetModelTemplate": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/models/{ModelId}/template",
+    "bind": {
+      "ApiId": "label",
+      "ModelId": "label"
+    }
+  },
+  "GetModels": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/models",
+    "bind": {
+      "ApiId": "label",
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken"
+    }
+  },
+  "GetPortal": {
+    "method": "GET",
+    "uri": "/v2/portals/{PortalId}",
+    "bind": {
+      "PortalId": "label"
+    }
+  },
+  "GetPortalProduct": {
+    "method": "GET",
+    "uri": "/v2/portalproducts/{PortalProductId}",
+    "bind": {
+      "PortalProductId": "label",
+      "ResourceOwnerAccountId": "query:resourceOwnerAccountId"
+    }
+  },
+  "GetPortalProductSharingPolicy": {
+    "method": "GET",
+    "uri": "/v2/portalproducts/{PortalProductId}/sharingpolicy",
+    "bind": {
+      "PortalProductId": "label"
+    }
+  },
+  "GetProductPage": {
+    "method": "GET",
+    "uri": "/v2/portalproducts/{PortalProductId}/productpages/{ProductPageId}",
+    "bind": {
+      "PortalProductId": "label",
+      "ProductPageId": "label",
+      "ResourceOwnerAccountId": "query:resourceOwnerAccountId"
+    }
+  },
+  "GetProductRestEndpointPage": {
+    "method": "GET",
+    "uri": "/v2/portalproducts/{PortalProductId}/productrestendpointpages/{ProductRestEndpointPageId}",
+    "bind": {
+      "IncludeRawDisplayContent": "query:includeRawDisplayContent",
+      "PortalProductId": "label",
+      "ProductRestEndpointPageId": "label",
+      "ResourceOwnerAccountId": "query:resourceOwnerAccountId"
+    }
+  },
+  "GetRoute": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/routes/{RouteId}",
+    "bind": {
+      "ApiId": "label",
+      "RouteId": "label"
+    }
+  },
+  "GetRouteResponse": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/routes/{RouteId}/routeresponses/{RouteResponseId}",
+    "bind": {
+      "ApiId": "label",
+      "RouteId": "label",
+      "RouteResponseId": "label"
+    }
+  },
+  "GetRouteResponses": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/routes/{RouteId}/routeresponses",
+    "bind": {
+      "ApiId": "label",
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken",
+      "RouteId": "label"
+    }
+  },
+  "GetRoutes": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/routes",
+    "bind": {
+      "ApiId": "label",
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken"
+    }
+  },
+  "GetRoutingRule": {
+    "method": "GET",
+    "uri": "/v2/domainnames/{DomainName}/routingrules/{RoutingRuleId}",
+    "bind": {
+      "DomainName": "label",
+      "DomainNameId": "query:domainNameId",
+      "RoutingRuleId": "label"
+    }
+  },
+  "GetStage": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/stages/{StageName}",
+    "bind": {
+      "ApiId": "label",
+      "StageName": "label"
+    }
+  },
+  "GetStages": {
+    "method": "GET",
+    "uri": "/v2/apis/{ApiId}/stages",
+    "bind": {
+      "ApiId": "label",
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken"
+    }
+  },
+  "GetTags": {
+    "method": "GET",
+    "uri": "/v2/tags/{ResourceArn}",
+    "bind": {
+      "ResourceArn": "label"
+    }
+  },
+  "GetVpcLink": {
+    "method": "GET",
+    "uri": "/v2/vpclinks/{VpcLinkId}",
+    "bind": {
+      "VpcLinkId": "label"
+    }
+  },
+  "GetVpcLinks": {
+    "method": "GET",
+    "uri": "/v2/vpclinks",
+    "bind": {
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken"
+    }
+  },
+  "ImportApi": {
+    "method": "PUT",
+    "uri": "/v2/apis",
+    "bind": {
+      "Basepath": "query:basepath",
+      "FailOnWarnings": "query:failOnWarnings"
+    }
+  },
+  "ListPortalProducts": {
+    "method": "GET",
+    "uri": "/v2/portalproducts",
+    "bind": {
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken",
+      "ResourceOwner": "query:resourceOwner"
+    }
+  },
+  "ListPortals": {
+    "method": "GET",
+    "uri": "/v2/portals",
+    "bind": {
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken"
+    }
+  },
+  "ListProductPages": {
+    "method": "GET",
+    "uri": "/v2/portalproducts/{PortalProductId}/productpages",
+    "bind": {
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken",
+      "PortalProductId": "label",
+      "ResourceOwnerAccountId": "query:resourceOwnerAccountId"
+    }
+  },
+  "ListProductRestEndpointPages": {
+    "method": "GET",
+    "uri": "/v2/portalproducts/{PortalProductId}/productrestendpointpages",
+    "bind": {
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken",
+      "PortalProductId": "label",
+      "ResourceOwnerAccountId": "query:resourceOwnerAccountId"
+    }
+  },
+  "ListRoutingRules": {
+    "method": "GET",
+    "uri": "/v2/domainnames/{DomainName}/routingrules",
+    "bind": {
+      "DomainName": "label",
+      "DomainNameId": "query:domainNameId",
+      "MaxResults": "query:maxResults",
+      "NextToken": "query:nextToken"
+    }
+  },
+  "PreviewPortal": {
+    "method": "POST",
+    "uri": "/v2/portals/{PortalId}/preview",
+    "bind": {
+      "PortalId": "label"
+    }
+  },
+  "PublishPortal": {
+    "method": "POST",
+    "uri": "/v2/portals/{PortalId}/publish",
+    "bind": {
+      "PortalId": "label"
+    }
+  },
+  "PutPortalProductSharingPolicy": {
+    "method": "PUT",
+    "uri": "/v2/portalproducts/{PortalProductId}/sharingpolicy",
+    "bind": {
+      "PortalProductId": "label"
+    }
+  },
+  "PutRoutingRule": {
+    "method": "PUT",
+    "uri": "/v2/domainnames/{DomainName}/routingrules/{RoutingRuleId}",
+    "bind": {
+      "DomainName": "label",
+      "DomainNameId": "query:domainNameId",
+      "RoutingRuleId": "label"
+    },
+    "xml_lists": {
+      "Actions": {
+        "element": "member"
+      },
+      "Conditions": {
+        "element": "member"
+      },
+      "Conditions[].MatchBasePaths.AnyOf": {
+        "element": "member"
+      },
+      "Conditions[].MatchHeaders.AnyOf": {
+        "element": "member"
+      }
+    }
+  },
+  "ReimportApi": {
+    "method": "PUT",
+    "uri": "/v2/apis/{ApiId}",
+    "bind": {
+      "ApiId": "label",
+      "Basepath": "query:basepath",
+      "FailOnWarnings": "query:failOnWarnings"
+    }
+  },
+  "ResetAuthorizersCache": {
+    "method": "DELETE",
+    "uri": "/v2/apis/{ApiId}/stages/{StageName}/cache/authorizers",
+    "bind": {
+      "ApiId": "label",
+      "StageName": "label"
+    }
+  },
+  "TagResource": {
+    "method": "POST",
+    "uri": "/v2/tags/{ResourceArn}",
+    "bind": {
+      "ResourceArn": "label"
+    }
+  },
+  "UntagResource": {
+    "method": "DELETE",
+    "uri": "/v2/tags/{ResourceArn}",
+    "bind": {
+      "ResourceArn": "label",
+      "TagKeys": "query:tagKeys"
+    },
+    "xml_lists": {
+      "TagKeys": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateApi": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{ApiId}",
+    "bind": {
+      "ApiId": "label"
+    },
+    "xml_lists": {
+      "CorsConfiguration.AllowHeaders": {
+        "element": "member"
+      },
+      "CorsConfiguration.AllowMethods": {
+        "element": "member"
+      },
+      "CorsConfiguration.AllowOrigins": {
+        "element": "member"
+      },
+      "CorsConfiguration.ExposeHeaders": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateApiMapping": {
+    "method": "PATCH",
+    "uri": "/v2/domainnames/{DomainName}/apimappings/{ApiMappingId}",
+    "bind": {
+      "ApiMappingId": "label",
+      "DomainName": "label"
+    }
+  },
+  "UpdateAuthorizer": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{ApiId}/authorizers/{AuthorizerId}",
+    "bind": {
+      "ApiId": "label",
+      "AuthorizerId": "label"
+    },
+    "xml_lists": {
+      "IdentitySource": {
+        "element": "member"
+      },
+      "JwtConfiguration.Audience": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateDeployment": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{ApiId}/deployments/{DeploymentId}",
+    "bind": {
+      "ApiId": "label",
+      "DeploymentId": "label"
+    }
+  },
+  "UpdateDomainName": {
+    "method": "PATCH",
+    "uri": "/v2/domainnames/{DomainName}",
+    "bind": {
+      "DomainName": "label"
+    },
+    "xml_lists": {
+      "DomainNameConfigurations": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateIntegration": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{ApiId}/integrations/{IntegrationId}",
+    "bind": {
+      "ApiId": "label",
+      "IntegrationId": "label"
+    }
+  },
+  "UpdateIntegrationResponse": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{ApiId}/integrations/{IntegrationId}/integrationresponses/{IntegrationResponseId}",
+    "bind": {
+      "ApiId": "label",
+      "IntegrationId": "label",
+      "IntegrationResponseId": "label"
+    }
+  },
+  "UpdateModel": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{ApiId}/models/{ModelId}",
+    "bind": {
+      "ApiId": "label",
+      "ModelId": "label"
+    }
+  },
+  "UpdatePortal": {
+    "method": "PATCH",
+    "uri": "/v2/portals/{PortalId}",
+    "bind": {
+      "PortalId": "label"
+    },
+    "xml_lists": {
+      "IncludedPortalProductArns": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdatePortalProduct": {
+    "method": "PATCH",
+    "uri": "/v2/portalproducts/{PortalProductId}",
+    "bind": {
+      "PortalProductId": "label"
+    },
+    "xml_lists": {
+      "DisplayOrder.Contents": {
+        "element": "member"
+      },
+      "DisplayOrder.Contents[].ProductRestEndpointPageArns": {
+        "element": "member"
+      },
+      "DisplayOrder.ProductPageArns": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateProductPage": {
+    "method": "PATCH",
+    "uri": "/v2/portalproducts/{PortalProductId}/productpages/{ProductPageId}",
+    "bind": {
+      "PortalProductId": "label",
+      "ProductPageId": "label"
+    }
+  },
+  "UpdateProductRestEndpointPage": {
+    "method": "PATCH",
+    "uri": "/v2/portalproducts/{PortalProductId}/productrestendpointpages/{ProductRestEndpointPageId}",
+    "bind": {
+      "PortalProductId": "label",
+      "ProductRestEndpointPageId": "label"
+    }
+  },
+  "UpdateRoute": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{ApiId}/routes/{RouteId}",
+    "bind": {
+      "ApiId": "label",
+      "RouteId": "label"
+    },
+    "xml_lists": {
+      "AuthorizationScopes": {
+        "element": "member"
+      }
+    }
+  },
+  "UpdateRouteResponse": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{ApiId}/routes/{RouteId}/routeresponses/{RouteResponseId}",
+    "bind": {
+      "ApiId": "label",
+      "RouteId": "label",
+      "RouteResponseId": "label"
+    }
+  },
+  "UpdateStage": {
+    "method": "PATCH",
+    "uri": "/v2/apis/{ApiId}/stages/{StageName}",
+    "bind": {
+      "ApiId": "label",
+      "StageName": "label"
+    }
+  },
+  "UpdateVpcLink": {
+    "method": "PATCH",
+    "uri": "/v2/vpclinks/{VpcLinkId}",
+    "bind": {
+      "VpcLinkId": "label"
+    }
+  }
+}

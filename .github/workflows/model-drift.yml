@@ -70,13 +70,20 @@ jobs:
           # Service Authorization Reference where it does not (S3).
           go run ./cmd/dzaudit iam lambda > lambda/testdata/iam_lambda.json
           go run ./cmd/dzaudit iam s3 > s3/testdata/iam_s3.json
+          # Every operation's REST binding, for the model sweep (modelsweep_test.go).
+          # NOT routes_*.json: those are the routed subset each parity test treats
+          # as "implemented", and regenerating them would change what they mean.
+          for pair in lambda:lambda s3:s3 apigateway:api-gateway apigateway:apigatewayv2; do
+            dir="${pair%%:*}"; model="${pair##*:}"
+            go run ./cmd/dzaudit routes "$model" > "$dir/testdata/modelroutes_$model.json"
+          done
 
       - name: Fail if anything derived has moved
         run: |
-          if ! git diff --quiet -- '*/testdata/shapes_*.json' '*/testdata/ops_*.json' '*/testdata/iam_*.json'; then
+          if ! git diff --quiet -- '*/testdata/shapes_*.json' '*/testdata/ops_*.json' '*/testdata/iam_*.json' '*/testdata/modelroutes_*.json'; then
             echo 'AWS has changed a service model since these fixtures were generated.'
             echo
-            git --no-pager diff --stat -- '*/testdata/shapes_*.json' '*/testdata/ops_*.json' '*/testdata/iam_*.json'
+            git --no-pager diff --stat -- '*/testdata/shapes_*.json' '*/testdata/ops_*.json' '*/testdata/iam_*.json' '*/testdata/modelroutes_*.json'
             echo
             echo 'Regenerate locally and review the diff:'
             echo '  go run ./cmd/dzaudit shapes <model> > <service>/testdata/shapes_<model>.json'
