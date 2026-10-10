@@ -218,6 +218,13 @@ tasks:
     desc: "boto3 scenarios against a real binary, compared with what real AWS answered (see conformance/README.md; not part of check)"
     cmds:
       - cd conformance && uv run --frozen pytest {{.CLI_ARGS}}
+      # Beliefs, not responses: how many claims per service are recorded.
+      - bun scripts/claims.ts
+
+  claims:
+    desc: 'How many claims per service are recorded, and what the rest rest on (conformance/claims)'
+    cmds:
+      - bun scripts/claims.ts
 
   test:deploy:
     desc: 'Deploy with Terraform, SAM, CDK and Serverless against a live doze-aws (needs those tools; CI has them)'
