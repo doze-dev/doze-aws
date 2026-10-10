@@ -199,3 +199,55 @@ func TestAMoveWithADestinationSendsEverythingThere(t *testing.T) {
 		t.Errorf("inbox holds %v, want both", got)
 	}
 }
+
+// A task reports how many messages it was to move, counted when it started
+// (doc: ListMessageMoveTasks, ApproximateNumberOfMessagesToMove), and the rate
+// it was asked for. Nothing is throttled here — a move completes at once — so
+// the rate is a record, not a behaviour.
+func TestATaskRecordsWhatItWasToMoveAndTheRateAsked(t *testing.T) {
+	f := newRedriveFixture(t, "dlq")
+	f.create("orders", redrivePolicyTo(f, "dlq"))
+	f.deadLetter("orders", "one")
+	f.deadLetter("orders", "two")
+	if _, err := f.c.StartMessageMoveTask(f.ctx, &awssqs.StartMessageMoveTaskInput{
+		SourceArn: aws.String(f.arns["dlq"]), MaxNumberOfMessagesPerSecond: aws.Int32(7)}); err != nil {
+		t.Fatal(err)
+	}
+	list, err := f.c.ListMessageMoveTasks(f.ctx, &awssqs.ListMessageMoveTasksInput{SourceArn: aws.String(f.arns["dlq"])})
+	if err != nil || len(list.Results) != 1 {
+		t.Fatalf("ListMessageMoveTasks: %v %v", list, err)
+	}
+	r := list.Results[0]
+	if r.ApproximateNumberOfMessagesToMove == nil || *r.ApproximateNumberOfMessagesToMove != 2 {
+		t.Errorf("ApproximateNumberOfMessagesToMove = %v, want 2", r.ApproximateNumberOfMessagesToMove)
+	}
+	if r.MaxNumberOfMessagesPerSecond == nil || *r.MaxNumberOfMessagesPerSecond != 7 {
+		t.Errorf("MaxNumberOfMessagesPerSecond = %v, want 7", r.MaxNumberOfMessagesPerSecond)
+	}
+	if r.ApproximateNumberOfMessagesMoved != 2 {
+		t.Errorf("moved %d, want 2", r.ApproximateNumberOfMessagesMoved)
+	}
+
+	// A task started without a rate reports none.
+	f.deadLetter("orders", "three")
+	if _, err := f.c.StartMessageMoveTask(f.ctx, &awssqs.StartMessageMoveTaskInput{SourceArn: aws.String(f.arns["dlq"])}); err != nil {
+		t.Fatal(err)
+	}
+	list, _ = f.c.ListMessageMoveTasks(f.ctx, &awssqs.ListMessageMoveTasksInput{SourceArn: aws.String(f.arns["dlq"])})
+	if len(list.Results) != 1 || list.Results[0].MaxNumberOfMessagesPerSecond != nil {
+		t.Errorf("a task with no rate reports one: %+v", list.Results)
+	}
+}
+
+// doc: "The maximum value for messages per second is 500."
+func TestTheRateAskedForIsHeldToItsRange(t *testing.T) {
+	f := newRedriveFixture(t, "dlq")
+	f.create("orders", redrivePolicyTo(f, "dlq"))
+	for rate, ok := range map[int32]bool{0: false, -1: false, 1: true, 500: true, 501: false} {
+		_, err := f.c.StartMessageMoveTask(f.ctx, &awssqs.StartMessageMoveTaskInput{
+			SourceArn: aws.String(f.arns["dlq"]), MaxNumberOfMessagesPerSecond: aws.Int32(rate)})
+		if ok && err != nil || !ok && err == nil {
+			t.Errorf("rate %d: err = %v, want ok=%v", rate, err, ok)
+		}
+	}
+}

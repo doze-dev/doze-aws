@@ -75,13 +75,15 @@ type startMoveResult struct {
 }
 
 type moveTaskView struct {
-	TaskHandle                       string `json:"TaskHandle,omitempty" xml:"TaskHandle,omitempty"`
-	Status                           string `json:"Status" xml:"Status"`
-	SourceArn                        string `json:"SourceArn" xml:"SourceArn"`
-	DestinationArn                   string `json:"DestinationArn,omitempty" xml:"DestinationArn,omitempty"`
-	ApproximateNumberOfMessagesMoved int64  `json:"ApproximateNumberOfMessagesMoved" xml:"ApproximateNumberOfMessagesMoved"`
-	StartedTimestamp                 int64  `json:"StartedTimestamp,omitempty" xml:"StartedTimestamp,omitempty"`
-	FailureReason                    string `json:"FailureReason,omitempty" xml:"FailureReason,omitempty"`
+	TaskHandle                        string `json:"TaskHandle,omitempty" xml:"TaskHandle,omitempty"`
+	Status                            string `json:"Status" xml:"Status"`
+	SourceArn                         string `json:"SourceArn" xml:"SourceArn"`
+	DestinationArn                    string `json:"DestinationArn,omitempty" xml:"DestinationArn,omitempty"`
+	ApproximateNumberOfMessagesToMove int64  `json:"ApproximateNumberOfMessagesToMove" xml:"ApproximateNumberOfMessagesToMove"`
+	MaxNumberOfMessagesPerSecond      int    `json:"MaxNumberOfMessagesPerSecond,omitempty" xml:"MaxNumberOfMessagesPerSecond,omitempty"`
+	ApproximateNumberOfMessagesMoved  int64  `json:"ApproximateNumberOfMessagesMoved" xml:"ApproximateNumberOfMessagesMoved"`
+	StartedTimestamp                  int64  `json:"StartedTimestamp,omitempty" xml:"StartedTimestamp,omitempty"`
+	FailureReason                     string `json:"FailureReason,omitempty" xml:"FailureReason,omitempty"`
 }
 
 type listMoveTasksResult struct {
@@ -96,7 +98,12 @@ func hStartMessageMoveTask(s *store, req *request) (any, *apiError) {
 	// Optional: without one each message returns to the queue it was
 	// dead-lettered from (doc: the StartMessageMoveTask API reference).
 	dest := arnQueueName(req.p.str("DestinationArn"))
-	task, err := s.StartMessageMoveTask(source, dest)
+	// doc: "The maximum value for messages per second is 500".
+	perSecond, _, aerr := req.p.intParam("MaxNumberOfMessagesPerSecond", 1, 500)
+	if aerr != nil {
+		return nil, aerr
+	}
+	task, err := s.StartMessageMoveTask(source, dest, perSecond)
 	if err != nil {
 		return nil, asAPIError(err)
 	}
@@ -113,13 +120,15 @@ func hListMessageMoveTasks(s *store, req *request) (any, *apiError) {
 	var res listMoveTasksResult
 	for _, t := range tasks {
 		res.Results = append(res.Results, moveTaskView{
-			TaskHandle:                       t.Handle,
-			Status:                           t.Status,
-			SourceArn:                        s.queueARN(t.Source),
-			DestinationArn:                   s.queueARN(t.Destination),
-			ApproximateNumberOfMessagesMoved: int64(t.Moved),
-			StartedTimestamp:                 t.StartedAt * 1000, // epoch millis
-			FailureReason:                    t.FailureReason,
+			TaskHandle:                        t.Handle,
+			Status:                            t.Status,
+			SourceArn:                         s.queueARN(t.Source),
+			DestinationArn:                    s.queueARN(t.Destination),
+			ApproximateNumberOfMessagesMoved:  int64(t.Moved),
+			ApproximateNumberOfMessagesToMove: int64(t.ToMove),
+			MaxNumberOfMessagesPerSecond:      t.MaxPerSecond,
+			StartedTimestamp:                  t.StartedAt * 1000, // epoch millis
+			FailureReason:                     t.FailureReason,
 		})
 	}
 	return res, nil

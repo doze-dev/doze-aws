@@ -132,6 +132,8 @@ type moveTask struct {
 	Source        string `json:"source"` // queue name
 	Destination   string `json:"destination,omitempty"`
 	Moved         int    `json:"moved"`
+	ToMove        int    `json:"to_move"`                  // what the source held when the task started
+	MaxPerSecond  int    `json:"max_per_second,omitempty"` // the rate asked for; a record, nothing is throttled
 	FailureReason string `json:"failure_reason,omitempty"`
 	StartedAt     int64  `json:"started_at"` // unix seconds
 }
@@ -146,13 +148,14 @@ type moveTask struct {
 // is and fails the task. The source has to be some queue's dead-letter queue.
 //
 // doc: the StartMessageMoveTask API reference.
-func (s *store) StartMessageMoveTask(source, dest string) (*moveTask, error) {
+func (s *store) StartMessageMoveTask(source, dest string, perSecond int) (*moveTask, error) {
 	task := &moveTask{
-		Handle:      newID(),
-		Status:      "COMPLETED",
-		Source:      source,
-		Destination: dest,
-		StartedAt:   s.now().Unix(),
+		Handle:       newID(),
+		Status:       "COMPLETED",
+		Source:       source,
+		Destination:  dest,
+		MaxPerSecond: perSecond,
+		StartedAt:    s.now().Unix(),
 	}
 	signalled := map[string]bool{}
 	err := s.db.Update(func(tx *bolt.Tx) error {
@@ -183,6 +186,7 @@ func (s *store) StartMessageMoveTask(source, dest string) (*moveTask, error) {
 			if json.Unmarshal(raw, &m) != nil {
 				return nil
 			}
+			task.ToMove++
 			target := dest
 			if target == "" {
 				target = arnQueueName(m.SourceArn)
@@ -255,7 +259,10 @@ func (s *store) recordMoveTask(tx *bolt.Tx, task *moveTask) error {
 		return err
 	}
 	raw, _ := json.Marshal(task)
-	return b.Put([]byte(fmt.Sprintf("%020d:%s", task.StartedAt, task.Handle)), raw)
+	// Keyed by the moment it is recorded, in nanoseconds, so "newest first" holds
+	// for two tasks started inside one second. A record from before this keyed
+	// by seconds sorts before any of these.
+	return b.Put([]byte(fmt.Sprintf("%020d:%s", s.now().UnixNano(), task.Handle)), raw)
 }
 
 // ListMessageMoveTasks returns the recorded tasks for a source queue, newest
