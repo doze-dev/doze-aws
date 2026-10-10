@@ -300,7 +300,7 @@
     <div class="panel"><div class="form-b">
       {{if .URL}}
       <div class="copy-row"><span class="mono" style="font-size:11px" title="{{.URL}}">{{.URL}}</span><button class="icon-btn sm" title="Copy" data-copy="{{.URL}}">{{icon "copy"}}</button></div>
-      <p class="mini-note">Served by this endpoint: a plain HTTP request becomes the payload-format-2.0 event, no trigger needed. The {id}.lambda-url.us-east-1.on.aws host form routes here too.</p>
+      <p class="mini-note">Served by this endpoint: a plain HTTP request becomes the payload-format-2.0 event, no trigger needed. The {id}.lambda-url.{{region}}.on.aws host form routes here too.</p>
       <form hx-post="{{.Prefix}}/lambda/{{.Fn.Name}}/update-url" hx-target="#lambda-config" hx-select="" hx-swap="outerHTML">
         <div class="field"><label>Auth type <span class="dim">AWS_IAM is served without a signature check locally</span></label><select class="input" name="auth_type">
           <option value="NONE" {{if ne .URLAuth "AWS_IAM"}}selected{{end}}>NONE</option>

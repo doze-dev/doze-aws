@@ -59,7 +59,12 @@ func TestNoIdentityIsWrittenIntoCode(t *testing.T) {
 			}
 			return nil
 		}
-		if !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+		// The console's templates are code that prints an identity: a literal
+		// there shows the default in a stack that was started with another, which
+		// is the failure this exists for. Go source and templates; not tests.
+		isGo := strings.HasSuffix(path, ".go") && !strings.HasSuffix(path, "_test.go")
+		isTemplate := strings.HasSuffix(path, ".html") && strings.Contains(filepath.ToSlash(path), "/templates/")
+		if !isGo && !isTemplate {
 			return nil
 		}
 		f, err := os.Open(path)
