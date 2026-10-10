@@ -141,9 +141,16 @@
      from the form's current values. The microformat:
        $field        - the field's value, shell-quoted (empty stays empty)
        $field>text   - the literal text when the field is truthy (checkboxes)
+       $field@attr   - the named attribute of the selected <option>, for a menu
+                       whose value is a key and whose parts the command needs
+                       separately (a metric: namespace, name, dimensions)
        [ ... ]       - dropped whole when any $field inside resolves empty
        ENDPOINT      - the host the browser reached the console on, which is
                        the same listener the CLI would target
+       newline       - starts a FURTHER command, for a form that makes more than
+                       one call. It is shown only when every $field outside a
+                       [ ... ] group has a value: the second call is made when its
+                       field is set, so the preview stops showing it when it is not
      Groups are lifted out to markers before any values go in, so a value
      containing '$' or ']' cannot re-trigger parsing. */
   window.cliPreview = function (tmpl) {
@@ -152,23 +159,38 @@
       q: function (v) {
         return /^[A-Za-z0-9_.:\/@=,*+-]+$/.test(v) ? v : "'" + v.replace(/'/g, "'\\''") + "'";
       },
-      fieldVal: function (form, name) {
+      fieldVal: function (form, name, attr) {
         var el = form && form.elements[name];
-        if (!el) return "";
+        /* A control the form includes from elsewhere (hx-include) is part of
+           what it submits, so it is part of what the preview shows. */
+        if (!el && form && form.getAttribute("hx-include")) {
+          try {
+            document.querySelectorAll(form.getAttribute("hx-include")).forEach(function (n) {
+              if (el) return;
+              el = n.name === name ? n : (n.querySelector && n.querySelector('[name="' + name + '"]'));
+            });
+          } catch (e) { /* a selector hx-include accepts that querySelectorAll does not */ }
+        }
+        if (!el || el.disabled) return ""; // a disabled control is not submitted
+        if (attr) {
+          var opt = el.options && el.options[el.selectedIndex];
+          return (opt && opt.getAttribute(attr)) || "";
+        }
         if (el.type === "checkbox") return el.checked ? (el.value || "true") : "";
         return el.__cm ? el.__cm.getValue() : el.value;
       },
       subst: function (str, form, state) {
         var self = this;
-        return str.replace(/\$([A-Za-z_][\w-]*)(>[^\s\]]+)?/g, function (m, name, lit) {
-          var v = self.fieldVal(form, name);
+        return str.replace(/\$([A-Za-z_][\w-]*)(@[\w-]+)?(>[^\s\]]+)?/g, function (m, name, attr, lit) {
+          var v = self.fieldVal(form, name, attr ? attr.slice(1) : "");
           if (!v) { state.empty = true; return ""; }
           return lit ? lit.slice(1) : self.q(v);
         });
       },
-      refresh: function () {
-        var form = this.$el.closest("form");
-        var s = tmpl.replace(/ENDPOINT/g, location.host);
+      /* render one command. empty reports whether a $field outside a group had
+         no value, which is what drops a FURTHER command and not the first. */
+      render: function (src, form) {
+        var s = src.replace(/ENDPOINT/g, location.host);
         var groups = [];
         s = s.replace(/\[([^\]]*)\]/g, function (m, body) {
           groups.push(body);
@@ -182,7 +204,16 @@
           var sub = self.subst(groups[+i], form, st);
           return st.empty ? "" : sub;
         });
-        this.cmd = ("aws --endpoint-url http://" + location.host + " " + s).replace(/\s+/g, " ").trim();
+        return { text: s.replace(/\s+/g, " ").trim(), empty: outer.empty };
+      },
+      refresh: function () {
+        var form = this.$el.closest("form"), self = this, lines = [];
+        tmpl.split("\n").forEach(function (src, i) {
+          var r = self.render(src, form);
+          if (i > 0 && r.empty) return;
+          lines.push("aws --endpoint-url http://" + location.host + " " + r.text);
+        });
+        this.cmd = lines.join("\n");
       },
       copyCmd: function () {
         if (navigator.clipboard) navigator.clipboard.writeText(this.cmd);

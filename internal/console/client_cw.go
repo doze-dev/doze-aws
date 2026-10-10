@@ -129,6 +129,26 @@ func metricKey(m Metric) string {
 	return strings.Join(parts, "|")
 }
 
+// CLIDimensions is the dimension set as the CLI's --dimensions JSON, which is
+// what a command preview needs where the form carries only the metric's key.
+func (m Metric) CLIDimensions() string {
+	if len(m.Dimensions) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(m.Dimensions))
+	for k := range m.Dimensions {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	type dim struct{ Name, Value string }
+	out := make([]dim, 0, len(keys))
+	for _, k := range keys {
+		out = append(out, dim{k, m.Dimensions[k]})
+	}
+	b, _ := json.Marshal(out)
+	return string(b)
+}
+
 func parseMetricKey(key string) Metric {
 	parts := strings.Split(key, "|")
 	if len(parts) < 2 {

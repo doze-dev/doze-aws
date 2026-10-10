@@ -180,3 +180,24 @@ test('the list pane offers New, like every other service', async ({ page }) => {
   await page.locator('.listpane .new-link').click();
   await page.waitForURL(/\/logs\/create$/);
 });
+
+test.describe('create form command preview', () => {
+  // The create form makes two calls when a retention is chosen, and the
+  // preview used to show only the first, so running what it showed made a
+  // different group.
+  test('shows the retention call only when a retention is chosen', async ({ page, uniqueName }) => {
+    await page.goto('logs/create');
+    await page.locator('input[name=name]').fill(uniqueName('/e2e/preview'));
+    await page.locator('.cli-btn').click();
+    const pre = page.locator('.cli-out pre');
+    await expect(pre).toContainText('logs create-log-group --log-group-name');
+    await expect(pre).not.toContainText('put-retention-policy');
+
+    await page.locator('select[name=days]').selectOption('30');
+    await expect(pre).toContainText('logs put-retention-policy');
+    await expect(pre).toContainText('--retention-in-days 30');
+
+    await page.locator('select[name=days]').selectOption('');
+    await expect(pre).not.toContainText('put-retention-policy');
+  });
+});

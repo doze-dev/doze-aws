@@ -66,7 +66,7 @@
         <button type="button" class="btn btn-outline btn-sm" @click="two=!two" x-text="two?'One version':'Split across two'"></button>
       </div>
     </div>
-    {{template "cli" (printf "stepfunctions create-state-machine-alias --name $name --routing-configuration stateMachineVersionArn=%s:$v1,weight=$w1 [--description $description]" .ARN)}}
+    {{template "cli" (printf "stepfunctions create-state-machine-alias --name $name --routing-configuration stateMachineVersionArn=%s:$v1,weight=$w1 [stateMachineVersionArn=%s:$v2,weight=$w2] [--description $description]" .ARN .ARN)}}
     <div class="send-foot">
       <span id="alias-spin" class="dim htmx-indicator">Working…</span>
       <button class="btn btn-sm" type="submit"{{if not .Versions}} disabled{{end}}>Create alias</button>

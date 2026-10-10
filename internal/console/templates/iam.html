@@ -750,8 +750,25 @@
               <input class="input" name="duration" type="number" min="900" :max="m==='root' ? 900 : 43200" :value="m==='root' ? 900 : 3600"></div>
             <button class="btn" type="submit">{{icon "key"}} Mint credentials</button>
           </div>
+          {{/* One preview per mode: each is a different call, and a preview
+               for the first alone showed Assume role's command under Root. */}}
           <div x-show="m==='assume-role'">
             {{template "cli" (printf "sts assume-role --role-arn arn:aws:iam::%s:role/$role --role-session-name $session [--duration-seconds $duration]" account)}}
+          </div>
+          <div x-show="m==='session'" x-cloak>
+            {{template "cli" "sts get-session-token [--duration-seconds $duration]"}}
+          </div>
+          <div x-show="m==='federation'" x-cloak>
+            {{template "cli" "sts get-federation-token --name $name [--duration-seconds $duration]"}}
+          </div>
+          <div x-show="m==='root'" x-cloak>
+            {{template "cli" "sts assume-root --target-principal $target --task-policy-arn $task [--duration-seconds $duration]"}}
+          </div>
+          <div x-show="m==='web-identity'" x-cloak>
+            {{template "cli" (printf "sts assume-role-with-web-identity --role-arn arn:aws:iam::%s:role/$role --role-session-name $session --web-identity-token $token [--duration-seconds $duration]" account)}}
+          </div>
+          <div x-show="m==='saml'" x-cloak>
+            {{template "cli" (printf "sts assume-role-with-saml --role-arn arn:aws:iam::%s:role/$role --principal-arn $provider --saml-assertion $assertion [--duration-seconds $duration]" account)}}
           </div>
         </form>
         <div id="sts-out"></div>
