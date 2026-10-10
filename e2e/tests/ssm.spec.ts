@@ -155,7 +155,7 @@ test.describe('delete', () => {
 
     await page.goto('ssm/param?name=' + encodeURIComponent(name));
     await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText(name);
+    await expect(page.locator('#confirm-title')).toContainText(name);
     await confirmDialog('accept');
 
     await page.waitForURL(/\/ssm$/);
@@ -250,7 +250,7 @@ test.describe('path tools', () => {
     await page.locator('input[name="path"]').fill(dir);
     await page.getByRole('button', { name: 'List everything under it' }).click();
     await page.getByRole('button', { name: `Delete everything under ${dir}` }).click();
-    await expect(page.locator('#confirm-msg')).toContainText(`Delete all 2 parameters under ${dir}`);
+    await expect(page.locator('#confirm-title')).toContainText(`Delete all 2 parameters under ${dir}`);
     await confirmDialog('accept');
 
     expect(await waitForToast()).toContain('2 parameters deleted');

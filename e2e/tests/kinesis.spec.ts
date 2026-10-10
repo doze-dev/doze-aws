@@ -115,7 +115,7 @@ test.describe('Kinesis streams', () => {
     // window.confirm with its own #confirm overlay — so this goes through the
     // confirmDialog fixture, not page.on('dialog').
     await page.getByRole('button', { name: 'Delete' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText(stream);
+    await expect(page.locator('#confirm-title')).toContainText(stream);
     await confirmDialog('accept');
 
     await page.waitForURL(/\/kinesis$/);
@@ -249,7 +249,7 @@ test.describe('Kinesis resharding', () => {
     await expect(shardRows(page)).toHaveCount(1);
 
     await shardRows(page).first().getByRole('button', { name: 'Split' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText('Split shardId-000000000000 in two');
+    await expect(page.locator('#confirm-title')).toContainText('Split shardId-000000000000 in two');
     await confirmDialog('accept');
     expect(await waitForToast()).toContain('Split shardId-000000000000');
 
@@ -274,7 +274,7 @@ test.describe('Kinesis resharding', () => {
     await expect(page.locator('select[name="pair"] option')).toHaveCount(1);
 
     await page.getByRole('button', { name: 'Merge' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText('Merge these two shards');
+    await expect(page.locator('#confirm-title')).toContainText('Merge these two shards');
     await confirmDialog('accept');
     expect(await waitForToast()).toContain('Merged shardId-000000000000 + shardId-000000000001');
 
@@ -302,7 +302,7 @@ test.describe('Kinesis resharding', () => {
     await page.goto(`kinesis/${stream}/details`);
     await page.locator('input[name="shards"]').fill('2');
     await page.locator('form:has(input[name="shards"])').getByRole('button', { name: 'Apply' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText('Rescale');
+    await expect(page.locator('#confirm-title')).toContainText('Rescale');
     await confirmDialog('accept');
     expect(await waitForToast()).toContain('Scaled to 2 shards');
 
@@ -447,7 +447,7 @@ test.describe('Kinesis stream configuration', () => {
     await expect(row).toContainText(`${stream}/consumer/${consumer}`);
 
     await row.getByRole('button', { name: 'Deregister' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText(consumer);
+    await expect(page.locator('#confirm-title')).toContainText(consumer);
     await confirmDialog('accept');
     expect(await waitForToast()).toContain('Consumer deregistered');
     await expect(page.locator('.tbl tbody tr', { hasText: consumer })).toHaveCount(0);

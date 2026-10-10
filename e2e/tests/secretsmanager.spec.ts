@@ -289,7 +289,7 @@ test.describe('delete with recovery window', () => {
 
     await page.goto(`sm/secret?name=${name}`);
     await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText(name);
+    await expect(page.locator('#confirm-title')).toContainText(name);
     await confirmDialog('accept');
 
     // smDelete sends HX-Redirect (a full client-side navigation) without a
@@ -375,7 +375,7 @@ test.describe('rollback', () => {
     const prevId = ((await prevRow.locator('td.ver-id').getAttribute('title')) ?? '').trim();
     expect(prevId).toBeTruthy();
     await prevRow.getByRole('button', { name: 'Make current' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText('Make this version current');
+    await expect(page.locator('#confirm-title')).toContainText('Make this version current');
     await confirmDialog('accept');
     expect(await waitForToast()).toContain('Rolled back');
 
@@ -457,7 +457,7 @@ test.describe('resource policy', () => {
 
     await policyPanel(page).locator('.panel-h').getByRole('button', { name: 'Edit' }).click();
     await policyPanel(page).getByRole('button', { name: 'Remove', exact: true }).click();
-    await expect(page.locator('#confirm-msg')).toContainText('Remove the resource policy');
+    await expect(page.locator('#confirm-title')).toContainText('Remove the resource policy');
     await confirmDialog('accept');
     expect(await waitForToast()).toContain('Resource policy removed');
     await expect(policyPanel(page).locator('.panel-h .badge')).toHaveText('Not set');
