@@ -71,10 +71,20 @@ func TestResourcePolicySeesEveryGlobalKey(t *testing.T) {
 		if err := send(t, cond, alice, "", "127.0.0.1:1"); err != nil {
 			t.Errorf("a deny-when-not-TLS policy locked out the local endpoint: %v", err)
 		}
-		// And the key is present, so a policy that REQUIRES it admits.
-		allow := `{"Effect":"Allow","Principal":"*","Action":"sqs:SendMessage","Resource":"*","Condition":{"Bool":{"aws:SecureTransport":"true"}}}`
-		if err := g.Check(nil, request("enforce", alice, IdentityRoot, ""), docs(t, allow), "sqs:SendMessage", resource); err != nil {
-			t.Errorf("an allow that requires TLS did not match: %v", err)
+		// And the key is PRESENT, so a policy that requires it admits. The
+		// caller's identity policies grant nothing here (an implicit deny), so
+		// the conditional Allow is the only thing that can let the request
+		// through: with the key absent the condition is false and this is
+		// refused. (With a root identity it passed whether the key was there or
+		// not, and proved nothing.)
+		allow := func(want string) string {
+			return `{"Effect":"Allow","Principal":"*","Action":"sqs:SendMessage","Resource":"*","Condition":{"Bool":{"aws:SecureTransport":"` + want + `"}}}`
+		}
+		if err := g.Check(nil, request("enforce", alice, IdentityImplicitDeny, ""), docs(t, allow("true")), "sqs:SendMessage", resource); err != nil {
+			t.Errorf("an allow that requires TLS did not admit: the key is not supplied as true: %v", err)
+		}
+		if err := g.Check(nil, request("enforce", alice, IdentityImplicitDeny, ""), docs(t, allow("false")), "sqs:SendMessage", resource); err == nil {
+			t.Error("an allow that requires NO TLS admitted: the key is not true")
 		}
 	})
 }

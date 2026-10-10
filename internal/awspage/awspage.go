@@ -30,8 +30,9 @@ import (
 	"strings"
 )
 
-// ErrBadToken is returned for a token this package did not mint, or one that
-// was minted for another listing. A service maps it to its own code
+// ErrBadToken is returned for a token this package did not mint. A token minted
+// for ANOTHER listing is not detected: it decodes to a key, and the page starts
+// after wherever that key would sort. A service maps the error to its own code
 // (InvalidNextToken, InvalidToken, ValidationException).
 var ErrBadToken = errors.New("awspage: invalid pagination token")
 

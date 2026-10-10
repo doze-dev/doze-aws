@@ -88,7 +88,9 @@ jobs:
         env:
           GOWORK: off
         run: |
-          set -euo pipefail
+          # No -e: this step reports and must never be what fails the job. A
+          # model that will not generate prints '?' and the next step decides.
+          set -uo pipefail
           # dir:model:the name the committed file carries (they do not all match).
           triples="
           apigateway:api-gateway:apigateway
@@ -118,11 +120,11 @@ jobs:
             for t in $triples; do
               dir="${t%%:*}"; rest="${t#*:}"; model="${rest%%:*}"; name="${rest##*:}"
               file="$dir/testdata/cases_$name.json"
-              fresh=$(go run ./cmd/dzaudit cases "$model" 2>/dev/null | grep -v '^//' | jq 'length')
-              if [ -f "$file" ]; then have=$(jq 'length' "$file"); else have='none'; fi
+              fresh=$(go run ./cmd/dzaudit cases "$model" 2>/dev/null | grep -v '^//' | jq 'length' 2>/dev/null) || fresh='?'
+              if [ -f "$file" ]; then have=$(jq 'length' "$file" 2>/dev/null) || have='?'; else have='none'; fi
               echo "| $model | $have | $fresh |"
             done
-          } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}" || true
 
       - name: Fail if anything derived has moved
         run: |

@@ -76,12 +76,35 @@ if (!was) {
   console.error(`no baseline for ${pkg}; run: bun scripts/mutation-baseline.ts record ${pkg}`);
   process.exit(1);
 }
-const had = new Set(was.lived ?? []);
-const fresh = lived.filter((m) => !had.has(m));
-const gone = [...had].filter((m) => !lived.includes(m));
-console.log(`${pkg}: killed ${counts.killed}, lived ${counts.lived} (baseline ${had.size}), efficacy ${efficacy}%`);
+// Survivors are compared as a MULTISET. A key is file:line:type, and one line
+// can hold two mutants of one type (a condition with two comparisons), so a set
+// would let a second survivor on a line that already had one pass unnoticed.
+const tally = (xs: string[]) => {
+  const m = new Map<string, number>();
+  for (const x of xs) m.set(x, (m.get(x) ?? 0) + 1);
+  return m;
+};
+const had = tally(was.lived ?? []);
+const now = tally(lived);
+const fresh: string[] = [];
+for (const [k, n] of now) {
+  const extra = n - (had.get(k) ?? 0);
+  if (extra > 0) fresh.push(extra > 1 ? `${k} (x${extra})` : k);
+}
+const gone: string[] = [];
+for (const [k, n] of had) if ((now.get(k) ?? 0) < n) gone.push(k);
+const base = was as { notCovered?: number; lived?: string[] };
+console.log(`${pkg}: killed ${counts.killed}, lived ${counts.lived} (baseline ${(was.lived ?? []).length}), not covered ${counts.notCovered} (baseline ${base.notCovered ?? "?"}), efficacy ${efficacy}%`);
 if (gone.length) console.log(`  no longer live (record again): ${gone.join(", ")}`);
+let failed = false;
 if (fresh.length) {
   console.error(`  NEW survivors, each a behaviour nothing asserts:\n    ${fresh.join("\n    ")}`);
-  process.exit(1);
+  failed = true;
 }
+// A mutant no test even reaches is not a survivor, so new code with no test at
+// all would add none. The count of unreached mutants is held too.
+if (typeof base.notCovered === "number" && counts.notCovered > base.notCovered) {
+  console.error(`  ${counts.notCovered - base.notCovered} more mutants are in code no test reaches (${counts.notCovered}, was ${base.notCovered}): test what was added.`);
+  failed = true;
+}
+if (failed) process.exit(1);

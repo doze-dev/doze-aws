@@ -466,3 +466,49 @@ func TestContainerCasesKeepWhatCanBeBuilt(t *testing.T) {
 		t.Error("a size case was built for a map whose keys are constrained")
 	}
 }
+
+// An empty list has no spelling on the query wire (no parameter is the same
+// request as no member), so a "fewer than the minimum" case that is empty is
+// emitted only for a protocol that can send one.
+func TestAnEmptyListCaseIsOnlyEmittedWhereTheWireCanSayIt(t *testing.T) {
+	const tmpl = `{"shapes": {
+	  "x#Svc": {"type": "service", "traits": {"PROTO": {}}, "operations": [{"target": "x#Op"}]},
+	  "x#Op": {"type": "operation", "input": {"target": "x#In"}},
+	  "x#In": {"type": "structure", "members": {"Names": {"target": "x#Names"}}},
+	  "x#Names": {"type": "list", "member": {"target": "smithy.api#String"},
+	    "traits": {"smithy.api#length": {"min": 1, "max": 2}}}
+	}}`
+	for proto, wantEmpty := range map[string]bool{"aws.protocols#awsJson1_1": true, "aws.protocols#awsQuery": false} {
+		m := modelFrom(t, strings.ReplaceAll(tmpl, "PROTO", proto))
+		var out strings.Builder
+		if err := emitCases(&out, m, m.audit(""), ""); err != nil {
+			t.Fatal(err)
+		}
+		// Drop the comment preamble a non-JSON protocol gets.
+		body := out.String()
+		if i := strings.Index(body, "["); i >= 0 {
+			body = body[i:]
+		}
+		var cases []Case
+		if err := json.Unmarshal([]byte(body), &cases); err != nil {
+			t.Fatalf("%s: %v\n%s", proto, err, out.String())
+		}
+		empty, over := false, false
+		for _, c := range cases {
+			if l, ok := c.Value.([]any); ok {
+				if len(l) == 0 {
+					empty = true
+				}
+				if len(l) == 3 {
+					over = true
+				}
+			}
+		}
+		if empty != wantEmpty {
+			t.Errorf("%s: empty-list case emitted=%v, want %v", proto, empty, wantEmpty)
+		}
+		if !over {
+			t.Errorf("%s: the over-the-maximum case is missing", proto)
+		}
+	}
+}

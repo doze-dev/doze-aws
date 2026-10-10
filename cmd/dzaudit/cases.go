@@ -138,6 +138,22 @@ func violations(c constraint) []struct {
 	return nil
 }
 
+// jsonBodied reports whether a protocol carries its input as a JSON document,
+// where an empty list is a thing that can be sent.
+func jsonBodied(proto string) bool {
+	return strings.HasPrefix(proto, "awsJson") || proto == "restJson1"
+}
+
+func isEmptyContainer(v any) bool {
+	switch x := v.(type) {
+	case []any:
+		return len(x) == 0
+	case map[string]any:
+		return len(x) == 0
+	}
+	return false
+}
+
 // maxContainerCase bounds a generated list or map. A rule over this is real and
 // is listed; a fixture holding a thousand-element array is not a useful one.
 const maxContainerCase = 200
@@ -197,11 +213,10 @@ func containerViolations(c constraint) ([]struct {
 		var out []v
 		for _, viol := range violations(inner) {
 			key, ok := viol.Value.(string)
-			if !ok {
+			// A key too long to be worth writing out loses its own case; the
+			// others (the empty key, the pattern) stand.
+			if !ok || len(key) > 512 {
 				continue
-			}
-			if len(key) > 512 {
-				return nil, false
 			}
 			out = append(out, v{"a map key " + strings.TrimPrefix(viol.Why, "the value "), map[string]any{key: c.Sample}})
 		}
@@ -242,6 +257,15 @@ func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 				continue
 			}
 			for _, v := range vs {
+				// An EMPTY list or map has no spelling on the query and XML
+				// wires: no parameter, no element, which is the same request as
+				// leaving the member out. A "fewer than the minimum" case that
+				// is empty would replay as the baseline and read as a gap that
+				// is not one, so it is emitted only where the wire can say it.
+				if isEmptyContainer(v.Value) && !jsonBodied(proto) {
+					skipped++
+					continue
+				}
 				cases = append(cases, Case{
 					Operation: f.Op, Target: targetFor(id, proto, f.Op), Path: f.Path,
 					Why: v.Why, Value: v.Value, Constraint: f.Constraint.Full(),

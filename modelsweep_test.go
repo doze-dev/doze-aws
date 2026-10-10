@@ -211,8 +211,7 @@ func classify(a answer) string {
 		return "fault"
 	}
 	switch a.code {
-	case "InvalidAction", "UnknownOperation", "UnknownOperationException", "UnrecognizedClientException_",
-		"MethodNotAllowed", "InvalidRequest_":
+	case "InvalidAction", "UnknownOperation", "UnknownOperationException", "MethodNotAllowed":
 		return "unknown"
 	case "UnsupportedOperationException", "UnsupportedOperation", "NotImplemented":
 		return "legacystub"
@@ -329,6 +328,14 @@ func TestEveryModelOperationIsAnsweredTruthfully(t *testing.T) {
 	}
 	if err := json.Unmarshal(b, &frozen); err != nil {
 		t.Fatalf("%s: %v", path, err)
+	}
+
+	// A service dropped from the sweep must take its entries with it: otherwise
+	// they sit in the baseline unchecked and read as a burn-down still to do.
+	for svc := range frozen {
+		if _, ok := got[svc]; !ok {
+			t.Errorf("%s is in the baseline and is no longer swept", svc)
+		}
 	}
 
 	// Frozen in BOTH directions, the shape of the Unreached lists this replaces.
