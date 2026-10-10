@@ -175,6 +175,7 @@ func (m *model) walk(op, shapeID, path string, depth int, seen map[string]bool, 
 		}
 	default: // string, integer, long, float, blob …
 		for _, c := range constraintsOf(s.Traits) {
+			c.Blob = s.Type == "blob"
 			*out = append(*out, finding{op, path, shortName(shapeID), c})
 		}
 	}

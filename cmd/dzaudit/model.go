@@ -159,6 +159,11 @@ func (m *model) collectOps(s shape, seen map[string]bool, out *[]string) {
 // constraint is one rule AWS states about an input, in the form the case
 // generator needs: what it is, and what a violating value looks like.
 type constraint struct {
+	// Blob is set when the constrained shape is a blob. On the JSON protocols a
+	// blob travels as base64 text, and the model's length is of the BYTES, so a
+	// value that breaks it has to be that many bytes encoded, not that many
+	// characters. See violations.
+	Blob    bool
 	Kind    string   // range | length | pattern | enum | required
 	Min     *float64 // range, length
 	Max     *float64 // range, length

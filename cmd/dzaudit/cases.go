@@ -53,6 +53,10 @@ type Case struct {
 	// case only needs its value to be that long, so writing the run out put
 	// megabytes of "aaa…" in the fixtures; the harness rebuilds it.
 	ValueRepeat *auditkit.Repeat `json:"value_repeat,omitempty"`
+	// Blob says the member is a blob: base64 text on the wire, with its length
+	// measured in the decoded bytes. A replay that builds its own value for the
+	// member has to know.
+	Blob bool `json:"blob,omitempty"`
 	// Constraint is the rule being tested, for the report.
 	Constraint string `json:"constraint"`
 	// RequiredMembers are the operation's top-level required inputs — what a
@@ -90,8 +94,20 @@ func violations(c constraint) []struct {
 			out = append(out, v{fmt.Sprintf("shorter than the minimum length of %s", trimNum(*c.Min)), ""})
 		}
 		if c.Max != nil {
-			out = append(out, v{fmt.Sprintf("longer than the maximum length of %s", trimNum(*c.Max)),
-				strings.Repeat("a", int(*c.Max)+1)})
+			long := strings.Repeat("a", int(*c.Max)+1)
+			if c.Blob {
+				// A blob is base64 on the wire and its length is in bytes.
+				// "a" repeated Max+1 times is only three quarters that many
+				// bytes, so a service that decodes first would correctly
+				// accept it and the runner would report a gap that is not
+				// there. Four "A"s are three zero bytes, so repeating "A"
+				// for the next whole multiple of three bytes is valid
+				// base64, one repeated character (it still folds into a
+				// Repeat), and strictly longer than Max.
+				groups := (int(*c.Max) + 1 + 2) / 3
+				long = strings.Repeat("A", 4*groups)
+			}
+			out = append(out, v{fmt.Sprintf("longer than the maximum length of %s", trimNum(*c.Max)), long})
 		}
 		return out
 	case "pattern":
@@ -152,6 +168,7 @@ func emitCases(w io.Writer, m *model, found []finding, opFilter string) error {
 				Why:             v.Why,
 				Value:           value,
 				ValueRepeat:     repeat,
+				Blob:            f.Constraint.Blob,
 				Constraint:      f.Constraint.Full(),
 				RequiredMembers: required[f.Op],
 				HTTP:            bindings[f.Op],

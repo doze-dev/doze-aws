@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"regexp"
 	"strings"
@@ -36,6 +37,29 @@ func TestViolationsBreakTheConstraintTheyName(t *testing.T) {
 		}
 		if len(long) != 256 {
 			t.Errorf("long value is %d chars, want 256", len(long))
+		}
+	})
+
+	t.Run("a blob over the max is more BYTES, not more characters", func(t *testing.T) {
+		// 4096 is the model's length of KMS Plaintext: bytes, base64 on the
+		// wire. 4097 "a"s decode to 3072 bytes, which a service that decodes
+		// first would rightly accept, so the runner would report a gap that
+		// is not one.
+		var long string
+		for _, c := range violations(constraint{Kind: "length", Min: f(1), Max: f(4096), Blob: true}) {
+			if s, ok := c.Value.(string); ok && len(s) > 0 {
+				long = s
+			}
+		}
+		dec, err := base64.StdEncoding.DecodeString(long)
+		if err != nil {
+			t.Fatalf("not valid base64: %v", err)
+		}
+		if len(dec) <= 4096 {
+			t.Errorf("decodes to %d bytes, want more than 4096", len(dec))
+		}
+		if strings.Trim(long, "A") != "" {
+			t.Error("not one repeated character, so it would not fold into a Repeat")
 		}
 	})
 

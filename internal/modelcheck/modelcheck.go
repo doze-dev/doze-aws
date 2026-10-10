@@ -71,6 +71,12 @@ type Constraint struct {
 	Min  float64
 	Max  float64
 	Pat  *Pat
+	// Blob marks a KindLength on a blob member. On the JSON protocols a blob
+	// arrives as base64 text, and the model's length is of the decoded BYTES:
+	// KMS's Plaintext may be 4096 bytes, which is 5464 characters. Without
+	// this the check measured the text, and refused a 3,073 to 4,096 byte
+	// plaintext that AWS accepts.
+	Blob bool
 }
 
 // Pat is a constraint's regular expression, compiled the first time something
@@ -309,6 +315,11 @@ func (c Constraint) check(s site, code string) *awshttp.APIError {
 		if !ok {
 			return nil
 		}
+		if c.Blob {
+			if str, isStr := s.val.(string); isStr {
+				n = decodedLen(str)
+			}
+		}
 		if float64(n) < c.Min {
 			return validationErr(code, "Value at '%s' failed to satisfy constraint: "+
 				"Member must have length greater than or equal to %d", s.disp, int(c.Min))
@@ -347,6 +358,18 @@ func (c Constraint) check(s site, code string) *awshttp.APIError {
 
 // lengthOf measures whatever the model bounds the length of: a string, a list
 // or a map. @length on a map member bounds the collection, not its values.
+// decodedLen is the number of bytes a base64 string stands for, worked out
+// from its length and padding without decoding it. A string that is not valid
+// base64 is the caller's decode error to report; what is returned for one is
+// only a number that will not wrongly refuse a valid blob.
+func decodedLen(s string) int {
+	n := len(s)
+	for pad := 0; pad < 2 && n > 0 && s[n-1] == '='; pad++ {
+		n--
+	}
+	return n * 6 / 8
+}
+
 func lengthOf(v any) (int, bool) {
 	switch t := v.(type) {
 	case string:

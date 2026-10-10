@@ -221,7 +221,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 		{Path: "StreamName", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^[a-zA-Z0-9_.-]+$`)},
 	},
 	"PutRecord": {
-		{Path: "Data", Kind: modelcheck.KindLength, Min: 0, Max: 10485760},
+		{Path: "Data", Kind: modelcheck.KindLength, Blob: true, Min: 0, Max: 10485760},
 		{Path: "Data", Kind: modelcheck.KindRequired},
 		{Path: "ExplicitHashKey", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^0|([1-9]\d{0,38})$`)},
 		{Path: "PartitionKey", Kind: modelcheck.KindLength, Min: 1, Max: 256},
@@ -236,7 +236,7 @@ var constraintTables = map[string][]modelcheck.Constraint{
 	},
 	"PutRecords": {
 		{Path: "Records", Kind: modelcheck.KindRequired},
-		{Path: "Records[].Data", Kind: modelcheck.KindLength, Min: 0, Max: 10485760},
+		{Path: "Records[].Data", Kind: modelcheck.KindLength, Blob: true, Min: 0, Max: 10485760},
 		{Path: "Records[].Data", Kind: modelcheck.KindRequired},
 		{Path: "Records[].ExplicitHashKey", Kind: modelcheck.KindPattern, Pat: modelcheck.Pattern(`^0|([1-9]\d{0,38})$`)},
 		{Path: "Records[].PartitionKey", Kind: modelcheck.KindLength, Min: 1, Max: 256},

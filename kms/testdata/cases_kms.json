@@ -275,9 +275,10 @@
     "why": "longer than the maximum length of 6144",
     "value": null,
     "value_repeat": {
-      "of": "a",
-      "times": 6145
+      "of": "A",
+      "times": 8196
     },
+    "blob": true,
     "constraint": "length 1..6144"
   },
   {
@@ -286,6 +287,7 @@
     "path": "CiphertextBlob",
     "why": "shorter than the minimum length of 1",
     "value": "",
+    "blob": true,
     "constraint": "length 1..6144"
   },
   {
@@ -351,9 +353,10 @@
     "why": "longer than the maximum length of 262144",
     "value": null,
     "value_repeat": {
-      "of": "a",
-      "times": 262145
+      "of": "A",
+      "times": 349528
     },
+    "blob": true,
     "constraint": "length 1..262144"
   },
   {
@@ -362,6 +365,7 @@
     "path": "Recipient.AttestationDocument",
     "why": "shorter than the minimum length of 1",
     "value": "",
+    "blob": true,
     "constraint": "length 1..262144"
   },
   {
@@ -736,9 +740,10 @@
     "why": "longer than the maximum length of 4096",
     "value": null,
     "value_repeat": {
-      "of": "a",
-      "times": 4097
+      "of": "A",
+      "times": 5464
     },
+    "blob": true,
     "constraint": "length 1..4096",
     "required_members": [
       "KeyId",
@@ -751,6 +756,7 @@
     "path": "Plaintext",
     "why": "required member omitted",
     "value": null,
+    "blob": true,
     "constraint": "required",
     "required_members": [
       "KeyId",
@@ -763,6 +769,7 @@
     "path": "Plaintext",
     "why": "shorter than the minimum length of 1",
     "value": "",
+    "blob": true,
     "constraint": "length 1..4096",
     "required_members": [
       "KeyId",
@@ -872,9 +879,10 @@
     "why": "longer than the maximum length of 262144",
     "value": null,
     "value_repeat": {
-      "of": "a",
-      "times": 262145
+      "of": "A",
+      "times": 349528
     },
+    "blob": true,
     "constraint": "length 1..262144",
     "required_members": [
       "KeyId"
@@ -886,6 +894,7 @@
     "path": "Recipient.AttestationDocument",
     "why": "shorter than the minimum length of 1",
     "value": "",
+    "blob": true,
     "constraint": "length 1..262144",
     "required_members": [
       "KeyId"
@@ -1001,9 +1010,10 @@
     "why": "longer than the maximum length of 262144",
     "value": null,
     "value_repeat": {
-      "of": "a",
-      "times": 262145
+      "of": "A",
+      "times": 349528
     },
+    "blob": true,
     "constraint": "length 1..262144",
     "required_members": [
       "KeyId",
@@ -1016,6 +1026,7 @@
     "path": "Recipient.AttestationDocument",
     "why": "shorter than the minimum length of 1",
     "value": "",
+    "blob": true,
     "constraint": "length 1..262144",
     "required_members": [
       "KeyId",
@@ -1328,9 +1339,10 @@
     "why": "longer than the maximum length of 4096",
     "value": null,
     "value_repeat": {
-      "of": "a",
-      "times": 4097
+      "of": "A",
+      "times": 5464
     },
+    "blob": true,
     "constraint": "length 1..4096",
     "required_members": [
       "KeyId",
@@ -1344,6 +1356,7 @@
     "path": "Message",
     "why": "required member omitted",
     "value": null,
+    "blob": true,
     "constraint": "required",
     "required_members": [
       "KeyId",
@@ -1357,6 +1370,7 @@
     "path": "Message",
     "why": "shorter than the minimum length of 1",
     "value": "",
+    "blob": true,
     "constraint": "length 1..4096",
     "required_members": [
       "KeyId",
@@ -1403,9 +1417,10 @@
     "why": "longer than the maximum length of 262144",
     "value": null,
     "value_repeat": {
-      "of": "a",
-      "times": 262145
+      "of": "A",
+      "times": 349528
     },
+    "blob": true,
     "constraint": "length 1..262144"
   },
   {
@@ -1414,6 +1429,7 @@
     "path": "Recipient.AttestationDocument",
     "why": "shorter than the minimum length of 1",
     "value": "",
+    "blob": true,
     "constraint": "length 1..262144"
   },
   {
@@ -2075,9 +2091,10 @@
     "why": "longer than the maximum length of 6144",
     "value": null,
     "value_repeat": {
-      "of": "a",
-      "times": 6145
+      "of": "A",
+      "times": 8196
     },
+    "blob": true,
     "constraint": "length 1..6144",
     "required_members": [
       "DestinationKeyId"
@@ -2089,6 +2106,7 @@
     "path": "CiphertextBlob",
     "why": "shorter than the minimum length of 1",
     "value": "",
+    "blob": true,
     "constraint": "length 1..6144",
     "required_members": [
       "DestinationKeyId"
@@ -2392,9 +2410,10 @@
     "why": "longer than the maximum length of 4096",
     "value": null,
     "value_repeat": {
-      "of": "a",
-      "times": 4097
+      "of": "A",
+      "times": 5464
     },
+    "blob": true,
     "constraint": "length 1..4096",
     "required_members": [
       "KeyId",
@@ -2408,6 +2427,7 @@
     "path": "Message",
     "why": "required member omitted",
     "value": null,
+    "blob": true,
     "constraint": "required",
     "required_members": [
       "KeyId",
@@ -2421,6 +2441,7 @@
     "path": "Message",
     "why": "shorter than the minimum length of 1",
     "value": "",
+    "blob": true,
     "constraint": "length 1..4096",
     "required_members": [
       "KeyId",
@@ -2896,9 +2917,10 @@
     "why": "longer than the maximum length of 4096",
     "value": null,
     "value_repeat": {
-      "of": "a",
-      "times": 4097
+      "of": "A",
+      "times": 5464
     },
+    "blob": true,
     "constraint": "length 1..4096",
     "required_members": [
       "KeyId",
@@ -2913,6 +2935,7 @@
     "path": "Message",
     "why": "required member omitted",
     "value": null,
+    "blob": true,
     "constraint": "required",
     "required_members": [
       "KeyId",
@@ -2927,6 +2950,7 @@
     "path": "Message",
     "why": "shorter than the minimum length of 1",
     "value": "",
+    "blob": true,
     "constraint": "length 1..4096",
     "required_members": [
       "KeyId",
@@ -2956,9 +2980,10 @@
     "why": "longer than the maximum length of 6144",
     "value": null,
     "value_repeat": {
-      "of": "a",
-      "times": 6145
+      "of": "A",
+      "times": 8196
     },
+    "blob": true,
     "constraint": "length 1..6144",
     "required_members": [
       "KeyId",
@@ -2973,6 +2998,7 @@
     "path": "Signature",
     "why": "required member omitted",
     "value": null,
+    "blob": true,
     "constraint": "required",
     "required_members": [
       "KeyId",
@@ -2987,6 +3013,7 @@
     "path": "Signature",
     "why": "shorter than the minimum length of 1",
     "value": "",
+    "blob": true,
     "constraint": "length 1..6144",
     "required_members": [
       "KeyId",
@@ -3108,9 +3135,10 @@
     "why": "longer than the maximum length of 6144",
     "value": null,
     "value_repeat": {
-      "of": "a",
-      "times": 6145
+      "of": "A",
+      "times": 8196
     },
+    "blob": true,
     "constraint": "length 1..6144",
     "required_members": [
       "KeyId",
@@ -3125,6 +3153,7 @@
     "path": "Mac",
     "why": "required member omitted",
     "value": null,
+    "blob": true,
     "constraint": "required",
     "required_members": [
       "KeyId",
@@ -3139,6 +3168,7 @@
     "path": "Mac",
     "why": "shorter than the minimum length of 1",
     "value": "",
+    "blob": true,
     "constraint": "length 1..6144",
     "required_members": [
       "KeyId",
@@ -3182,9 +3212,10 @@
     "why": "longer than the maximum length of 4096",
     "value": null,
     "value_repeat": {
-      "of": "a",
-      "times": 4097
+      "of": "A",
+      "times": 5464
     },
+    "blob": true,
     "constraint": "length 1..4096",
     "required_members": [
       "KeyId",
@@ -3199,6 +3230,7 @@
     "path": "Message",
     "why": "required member omitted",
     "value": null,
+    "blob": true,
     "constraint": "required",
     "required_members": [
       "KeyId",
@@ -3213,6 +3245,7 @@
     "path": "Message",
     "why": "shorter than the minimum length of 1",
     "value": "",
+    "blob": true,
     "constraint": "length 1..4096",
     "required_members": [
       "KeyId",
