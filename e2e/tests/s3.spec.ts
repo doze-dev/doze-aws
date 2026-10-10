@@ -34,6 +34,35 @@ async function clickInDrawer(locator: Locator) {
   await locator.click();
 }
 
+test.describe('a refused header action', () => {
+  // Delete sits in the detail header, which has no form around it. A refusal
+  // from there used to fall through to a toast, stripped of its markup and cut
+  // at 140 characters. It is drawn under the header, whole.
+  test('Delete on a bucket with objects says why, in full, under the header', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+  }) => {
+    const bucket = await createBucket(request, uniqueName('e2e-s3-notempty'));
+    await page.goto(`s3/${bucket}`);
+    await uploadViaUI(page, 'x', 'keep.txt');
+    await expect(page.locator('.cell-name.link', { hasText: 'keep.txt' })).toBeVisible();
+
+    await page.locator('.det-h .acts').getByRole('button', { name: 'Delete' }).click();
+    await confirmDialog('accept');
+
+    const refusal = page.locator('.det-h + .err[data-doze-err]');
+    await expect(refusal).toBeVisible();
+    await expect(refusal).toContainText('BucketNotEmpty');
+    // The whole sentence, not a prefix of it with an ellipsis.
+    await expect(refusal).toContainText(bucket + ' is not empty');
+    await expect(refusal).not.toContainText('…');
+    // And it is still the bucket's page: nothing was deleted or swapped away.
+    await expect(page.locator('.det-title')).toContainText(bucket);
+  });
+});
+
 test.describe('create bucket', () => {
   test('with versioning + object-lock creates and shows identity chips', async ({
     page,

@@ -180,6 +180,17 @@
   function clearErr(root) {
     (root || document).querySelectorAll(".err[data-doze-err]").forEach(function (el) { el.remove(); });
   }
+  // clearSlot clears what a slot's previous refusal left. An "after" slot's
+  // refusal is the host's sibling, outside it, so clearing inside the host would
+  // leave the last one standing and stack a new one beneath it.
+  function clearSlot(slot) {
+    if (slot.how === "after") {
+      var n = slot.host.nextElementSibling;
+      if (n && n.matches(".err[data-doze-err]")) n.remove();
+      return;
+    }
+    clearErr(slot.host);
+  }
   // The ladder, most specific first. A surface opts in with data-err-slot;
   // otherwise a form takes it at the end, and failing that the nearest
   // meaningful block gets it.
@@ -210,6 +221,12 @@
       }
       return { host: form, how: "append" };
     }
+    // A button in a resource's header (Delete, Stop, Disable) has no form and
+    // sits above every block below, so a refusal used to fall through to a
+    // toast that stripped the message and cut it at 140 characters. It lands
+    // directly under the header instead, where the thing that was refused is.
+    var head = elt.closest(".det-h");
+    if (head) return { host: head, how: "after" };
     var block = elt.closest(".panel, .det-b, .sub-item, .form-page");
     if (block) return { host: block, how: "prepend" };
     return null;
@@ -217,13 +234,14 @@
   function placeError(elt, html) {
     var slot = errSlot(elt);
     if (!slot) return false;
-    clearErr(slot.host);
+    clearSlot(slot);
     var box = document.createElement("div");
     box.innerHTML = html;
     var node = box.firstElementChild;
     if (!node) return false;
     node.setAttribute("data-doze-err", "1");
     if (slot.how === "prepend") slot.host.insertBefore(node, slot.host.firstChild);
+    else if (slot.how === "after") slot.host.parentNode.insertBefore(node, slot.host.nextSibling);
     else slot.host.appendChild(node);
     node.scrollIntoView({ block: "nearest" });
     try { node.focus(); } catch (e) {}
@@ -232,7 +250,7 @@
   document.addEventListener("htmx:before:request", function (e) {
     var ctx = e.detail.ctx;
     var slot = errSlot(ctx && ctx.sourceElement);
-    if (slot) clearErr(slot.host);
+    if (slot) clearSlot(slot);
   });
   // c.fail's response is recognised by its header, and handled in two events
   // because htmx 4 fires them in this order:
