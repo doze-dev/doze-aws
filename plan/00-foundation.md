@@ -22,6 +22,7 @@ is met and its test is named; "partly" says what is left.
 | B6 the 501 refusal and its proof | landed | 4241369, 9fa0829 | `awshttp.NotBuilt`; no Go v1/v2, boto3 or JavaScript SDK retries it. |
 | B6 the model sweep | partly | 0223f75 | Harness and a frozen baseline of 653 entries (542 legacy refusals, 111 false "unknown") are in. Each service moves its entries to `notbuilt` in its own stage. |
 | B7 blob lengths in bytes | landed | bed7d64 | KMS, Kinesis, Secrets Manager. SSM and Lambda have a blob member only on operations the service refuses. |
+| B12 `provision` has two callers | landed | (next commit) | Resolved without a mode: `Force` already carries it. Pinned by `TestApplyAdoptsWhatIsThereAndDeletesNothing`. CFN-1 is a one-line mapper change in the CloudFormation stage. |
 | B8 what the generator drops | open | | Found so far: see the note under B8. |
 
 ## A. Shared console behaviour
@@ -394,9 +395,21 @@ and converges on purpose. Two stack fixes land there early: ordering a queue
 after its dead-letter target (SQS-1) and overwriting a value on update (CFN-1,
 which also affects secrets).
 
-**Done when.** `Apply` takes an explicit mode (adopt, or own-and-overwrite)
-and an ordering by reference rather than by name, with a test for each caller,
-before stage 1 touches the file.
+**Resolved: no mode is needed.** Reading the code found the difference is
+already carried, per resource, by the `Force` field on `Parameter` and
+`Secret` (an adopting apply leaves a live value alone unless the file says
+force) and, for creates, by `refuseTaken` in `cloudformation/adopt.go`.
+CFN-1 is not a missing mode; it is that the transpiler's mapper never sets
+`Force`, because "Force is a field only a hand-written Stack sets" (the comment
+in `internal/provision/destroy_test.go` says so). So the fix is a line in
+`internal/cfn/mapper.go`, in the CloudFormation stage. SQS-1 is a pure
+improvement for both callers: order a queue after the queue its redrive policy
+names. Neither needs `Apply` to know who is calling.
+
+**Done when.** The behaviour both callers rely on is pinned by a test, so the
+next change to the file has to pass through it: `TestApplyAdoptsWhatIsThereAndDeletesNothing`
+(an existing queue is converged in place, a live value stands without force
+and is overwritten with it, a resource the file does not mention is untouched).
 
 ## C. The console shell
 

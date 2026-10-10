@@ -86,8 +86,9 @@ README says why for each).
 | CFN-4 (the queue part) | P0 | `AWS::SQS::QueuePolicy` is accepted and dropped. A template's grant never reaches the queue, and the policy is evaluated under soft and enforce. | `internal/cfn/` resource mapping | run |
 
 SQS-1 touches `internal/provision`, which `doze-aws apply` also uses and which
-must keep adopting existing resources. The ordering fix is made through the
-mode that foundation B12 adds to `Apply`, not by changing what `apply` does.
+must keep adopting existing resources. The ordering is a pure improvement for
+both callers, so it needs no mode (foundation B12 resolved that), and
+`TestApplyAdoptsWhatIsThereAndDeletesNothing` pins what `apply` must keep doing.
 
 Owned elsewhere, listed so they are not lost: the queue-visibility versus
 function-timeout check (Lambda, LAM-5), a FIFO queue accepted as an S3
@@ -253,7 +254,7 @@ On top of every box in the protocol.
 - [ ] The queue part of CFN-4 closed: a stack with a queue and an
       `AWS::SQS::QueuePolicy` leaves that policy on the queue, and a policy
       naming a queue that does not exist fails the stack.
-- [ ] `doze-aws apply` over an existing queue still adopts it (foundation B12).
+- [ ] `doze-aws apply` over an existing queue still adopts it: `TestApplyAdoptsWhatIsThereAndDeletesNothing` (foundation B12) stays green.
 - [ ] Decided and written into `SUPPORT.md`: `DestinationArn` (SQS-7), the
       60-second delete and purge rules, `RedriveAllowPolicy`, `DeduplicationScope`,
       `FifoThroughputLimit`.
@@ -279,7 +280,7 @@ On top of every box in the protocol.
 |---|---|---|
 | 1 | Contract: attribute tiers, decisions | `docs/SUPPORT.md`, `docs/not-built.md` |
 | 2 | Red tests for SQS-1 to SQS-8 | `internal/provision/*_test.go`, `sqs/*_test.go`, `cloudformation/*_test.go` |
-| 3 | DLQ ordering, through the `Apply` mode from foundation B12 | `internal/provision/svc_sqs.go` |
+| 3 | DLQ ordering: apply a queue after the queue its redrive policy names (no mode; foundation B12) | `internal/provision/svc_sqs.go` |
 | 3a | Queue policy as a resource | `internal/cfn/resources.go` and the SQS mapper beside it |
 | 3b | Poller cap, with SQS-5 | `lambda/extras.go` |
 | 4 | Receive range, paging, policy validation, move task | `sqs/receive.go`, `sqs/actions.go`, `sqs/attrs.go`, `sqs/guard.go`, `sqs/actions_ext.go`, `sqs/store_ext.go`, `sqs/validate_overrides.go` |
