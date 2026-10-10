@@ -27,8 +27,6 @@ package dozeaws_test
 
 import (
 	"context"
-	"github.com/doze-dev/doze-aws/internal/dozetest"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -43,7 +41,6 @@ import (
 	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 
-	dozeaws "github.com/doze-dev/doze-aws"
 	"github.com/doze-dev/doze-aws/awsident"
 )
 
@@ -86,32 +83,13 @@ const authorizerURIForPersistence = "arn:aws:apigateway:us-east-1:lambda:path/20
 	"arn:aws:lambda:us-east-1:000000000000:function:gate/invocations"
 
 func TestPersistenceOfRecentSurfaces(t *testing.T) {
-	if testing.Short() {
-		t.Skip("boots two Stacks over a shared data dir")
-	}
-	ctx := context.Background()
-	dir := t.TempDir()
-
-	stack1, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: dir, Logf: dozetest.Logf(t)})
-	if err != nil {
-		t.Fatal(err)
-	}
-	ts1 := httptest.NewServer(stack1.Handler())
-	ids := writeSurfaces(ctx, t, surfaceClientsFor(ts1.URL))
-
-	ts1.Close()
-	if err := stack1.Close(); err != nil {
-		t.Fatalf("stack1 close: %v", err)
-	}
-
-	stack2, err := dozeaws.NewStack(dozeaws.StackConfig{DataDir: dir, Logf: dozetest.Logf(t)})
-	if err != nil {
-		t.Fatalf("reopen stack: %v", err)
-	}
-	defer stack2.Close()
-	ts2 := httptest.NewServer(stack2.Handler())
-	defer ts2.Close()
-	readSurfaces(ctx, t, surfaceClientsFor(ts2.URL), ids)
+	persistsAcrossRestart(t,
+		func(ctx context.Context, url string) surfaceIDs {
+			return writeSurfaces(ctx, t, surfaceClientsFor(url))
+		},
+		func(ctx context.Context, url string, ids surfaceIDs) {
+			readSurfaces(ctx, t, surfaceClientsFor(url), ids)
+		})
 }
 
 func writeSurfaces(ctx context.Context, t *testing.T, c surfaceClients) surfaceIDs {
