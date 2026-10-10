@@ -77,7 +77,7 @@
       <div class="pub-receipt" style="margin-bottom:12px"><div class="pr-h">✓ Rotating with <b>{{.S.RotationLambda}}</b> every {{.S.RotationDays}} days{{if .S.LastRotated}} · last rotated {{.S.LastRotated}}{{end}}</div><div class="pr-row dim">doze-aws runs the real 4-step rotation protocol against your local function.</div></div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button class="btn btn-outline btn-sm" hx-post="{{.Prefix}}/sm/rotate-now" hx-vals='{"name":"{{.S.Name}}"}' hx-target="#sm-detail" hx-select="" hx-swap="outerHTML">{{icon "rotate"}} Rotate now</button>
-        <button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/sm/rotation" hx-vals='{"name":"{{.S.Name}}","lambda":""}' hx-target="#sm-detail" hx-select="" hx-swap="outerHTML" hx-confirm="Turn off automatic rotation?">Disable rotation</button>
+        <button class="btn btn-outline btn-sm danger" hx-post="{{.Prefix}}/sm/rotation" hx-vals='{"name":"{{.S.Name}}","lambda":""}' hx-target="#sm-detail" hx-select="" hx-swap="outerHTML" data-confirm-verb="Turn off" data-confirm-destructive="true" hx-confirm="Turn off automatic rotation?">Disable rotation</button>
       </div>
       {{else}}
       <form hx-post="{{.Prefix}}/sm/rotation" hx-target="#sm-detail" hx-select="" hx-swap="outerHTML">

@@ -842,3 +842,27 @@ test.describe('multipart uploads', () => {
     await expect(page.locator('#s3-props .cs-acts')).toHaveCount(0);
   });
 });
+
+test.describe('a failure that is not a refusal', () => {
+  // A 5xx from the console itself (or a dropped connection) has no AWS error to
+  // show. It used to be a toast, cut at 140 characters and gone in ten seconds.
+  // It is drawn where the action was, whole, like a refusal.
+  test('is shown under the header, and is not only a toast', async ({ page, request, uniqueName, confirmDialog }) => {
+    const bucket = await createBucket(request, uniqueName('e2e-s3-boom'));
+    await page.route('**/delete-bucket', (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: 'text/plain',
+        body: 'the data directory is not writable: ' + 'x'.repeat(200) + ' end-of-message',
+      })
+    );
+    await page.goto(`s3/${bucket}`);
+    await page.locator('.det-h .acts').getByRole('button', { name: 'Delete' }).click();
+    await confirmDialog('accept');
+
+    const failure = page.locator('.det-h + .err[data-doze-err]');
+    await expect(failure).toBeVisible();
+    await expect(failure).toContainText('end-of-message'); // past 140 characters
+    await expect(page.locator('.toast.err')).toHaveCount(0);
+  });
+});

@@ -357,7 +357,7 @@ test.describe('IAM role page', () => {
 
     // --- Delete the role ---
     await page.locator('.det-title .acts').getByRole('button', { name: 'Delete' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText(role);
+    await expect(page.locator('#confirm-title')).toContainText(role);
     await confirmDialog('accept');
     await page.waitForURL(/\/iam(\?.*)?$/);
     await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Deleted ${role}`);
@@ -397,7 +397,7 @@ test.describe('IAM user page', () => {
     await expect(keyRow).toHaveCount(1);
     const keyId = ((await keyRow.locator('td').first().textContent()) ?? '').trim();
     await keyRow.getByRole('button', { name: 'Delete key' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText(keyId);
+    await expect(page.locator('#confirm-title')).toContainText(keyId);
     await confirmDialog('accept');
     await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Key deleted');
     await expect(page.locator('.tbl tbody', { hasText: 'No access keys' })).toBeVisible();
@@ -412,7 +412,7 @@ test.describe('IAM user page', () => {
 
     await page.goto(`iam/user/${user}`);
     await page.locator('.det-title .acts').getByRole('button', { name: 'Delete' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText(user);
+    await expect(page.locator('#confirm-title')).toContainText(user);
     await confirmDialog('accept');
     await page.waitForURL(/\/iam(\?.*)?$/);
     await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Deleted ${user}`);
@@ -450,14 +450,14 @@ test.describe('IAM managed policy page', () => {
     const v1 = page.locator('.tbl tbody tr', { has: page.locator('td.mono', { hasText: /^v1$/ }) });
     await expect(v1).toHaveCount(1);
     await v1.getByRole('button', { name: 'Delete version v1' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText('v1');
+    await expect(page.locator('#confirm-title')).toContainText('v1');
     await confirmDialog('accept');
     await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Version deleted');
     await expect(v1).toHaveCount(0);
     await expect(page.locator('.tbl tbody tr', { hasText: 'v2' }).locator('.badge')).toHaveText('default');
 
     await page.locator('.det-h .acts').getByRole('button', { name: 'Delete' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText(policy);
+    await expect(page.locator('#confirm-title')).toContainText(policy);
     await confirmDialog('accept');
     await page.waitForURL(/\/iam(\?.*)?$/);
     await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Policy deleted');
@@ -492,7 +492,7 @@ test.describe('IAM instance profile page', () => {
     await expect(page.getByText('Empty — an instance with this profile has no permissions.')).toBeVisible();
 
     await page.locator('.det-title .acts').getByRole('button', { name: 'Delete' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText(profile);
+    await expect(page.locator('#confirm-title')).toContainText(profile);
     await confirmDialog('accept');
     await page.waitForURL(/\/iam(\?.*)?$/);
     await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText(`Instance profile ${profile} deleted`);

@@ -229,6 +229,11 @@
     if (head) return { host: head, how: "after" };
     var block = elt.closest(".panel, .det-b, .sub-item, .form-page");
     if (block) return { host: block, how: "prepend" };
+    // Last rung: the page's own body. A control outside every block above (a
+    // list-pane action, a top-strip button) still has a page to say it on, and
+    // an error that is only ever a toast is gone in ten seconds.
+    var page = document.querySelector(".detail .det-b, .detail, .form-page");
+    if (page) return { host: page, how: "prepend" };
     return null;
   }
   function placeError(elt, html) {
@@ -274,6 +279,13 @@
     if (placeError(ctx.sourceElement, ctx.text)) ctx._dozeHandled = true;
   });
   document.addEventListener("htmx:before:swap", function (e) {
+    var ctx = e.detail.ctx;
+    // htmx 4 swaps every status but 204 and 304, so a 5xx that is not ours (a
+    // plain-text body, a proxy's page) would be written into the pane the
+    // action was aimed at and leave it blank. Nothing here is meant to render
+    // an error response into a success target: errors are drawn by the
+    // response:error listener below, where the action was.
+    if (ctx && ctx.response && ctx.response.status >= 400) { e.preventDefault(); return; }
     if (!dozeError(e.detail.ctx)) return;
     // Never let an error reach the success target. htmx 2 took shouldSwap=false
     // for this; htmx 4 cancels a swap by cancelling the event, and that cancels
@@ -299,6 +311,25 @@
     raw = ta.value;
     var m = raw.match(/<Message>([^<]+)|"message"\s*:\s*"([^"]+)"/i);
     var msg = (m && (m[1] || m[2])) || raw.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    // A failure that is not an HX-Doze-Error (a 5xx, a dropped connection, a
+    // body that is not ours) is drawn where the action was, in full, like any
+    // other. The toast is the fallback for a page with nowhere to put it, and
+    // is cut for its width; the inline copy is not.
+    var holder = document.createElement("div");
+    var box = document.createElement("div");
+    box.className = "err err-error";
+    box.setAttribute("role", "alert");
+    box.tabIndex = -1;
+    var head = document.createElement("div");
+    head.className = "err-h";
+    head.textContent = "Failed";
+    var body = document.createElement("p");
+    body.className = "err-msg";
+    body.textContent = msg || "The request failed";
+    box.appendChild(head);
+    box.appendChild(body);
+    holder.appendChild(box);
+    if (placeError(ctx.sourceElement, holder.innerHTML)) return;
     if (msg.length > 140) msg = msg.slice(0, 140) + "…";
     toast(msg, "err");
   });
@@ -311,6 +342,28 @@
   });
 
   // ---------- styled confirm (intercepts hx-confirm) ----------
+  // Verbs a confirm's button can be, and which of them lose something. A verb
+  // not listed here reads as "Confirm" until the site names one.
+  var CONFIRM_VERBS = {
+    Delete: 1, Remove: 1, Revoke: 1, Detach: 1, Stop: 1, Disable: 1, Unsubscribe: 1, Reset: 1,
+    Purge: 1, Deregister: 1, Clear: 1, Abort: 1, Schedule: 1, Discard: 1, Empty: 1,
+    Execute: 0, Rename: 0, Rescale: 0, Repoint: 0, Redrive: 0, Move: 0, Split: 0, Merge: 0, Enable: 0
+  };
+  function dozeConfirmParts(q, trigger) {
+    var m = /^([\s\S]*?\?)(?:\s+([\s\S]*))?$/.exec(q.trim());
+    var title = m ? m[1] : q.trim(), detail = m && m[2] ? m[2].trim() : "";
+    var explicit = trigger && trigger.closest && trigger.closest("[data-confirm-verb]");
+    var verb = explicit ? explicit.getAttribute("data-confirm-verb") : "";
+    if (!verb) {
+      var words = title.split(/\s+/);
+      // "Permanently delete ..." is a delete.
+      var w = /ly$/.test(words[0]) && words[1] ? words[1].charAt(0).toUpperCase() + words[1].slice(1) : words[0];
+      if (Object.prototype.hasOwnProperty.call(CONFIRM_VERBS, w)) verb = w;
+    }
+    var destructive = verb !== "" && CONFIRM_VERBS[verb] === 1;
+    if (explicit && explicit.hasAttribute("data-confirm-destructive")) destructive = explicit.getAttribute("data-confirm-destructive") !== "false";
+    return { title: title, detail: detail, verb: verb || "Confirm", destructive: destructive || verb === "" };
+  }
   document.addEventListener("htmx:confirm", function (e) {
     var confirmBox = document.getElementById("confirm");
     var q = e.detail.ctx && e.detail.ctx.confirm;
@@ -338,21 +391,25 @@
         src.querySelectorAll("select").forEach(function (s) { s.dispatchEvent(new Event("ds:sync")); });
       }
     }
-    // The QUESTION goes in the message, and the title stays the static "Are you
-    // sure?" the markup ships with. Making the question the title instead left
-    // #confirm-msg fed only by a data-confirm-detail attribute that no template
-    // sets — so every confirm dialog rendered with an empty, hidden message and
-    // the question as its heading.
+    // The dialog says three things: what is being acted on (the title, the
+    // question), what that costs (the sentence after it, when the call site
+    // wrote one), and the button is the verb. "Confirm" on a delete asks the
+    // reader to work out what they are confirming; "Delete" does not.
     //
-    // That has been true since the keyboard-accessibility pass and nothing
-    // caught it, because the e2e suite that asserts it was not being run.
-    // aria-labelledby still points at the title, which is now a stable label
-    // rather than a sentence that changes per button.
+    // The pieces come from the hx-confirm text itself, so a call site is
+    // written once, as a question and what follows it, and no site had to be
+    // reshaped. data-confirm-verb on the trigger overrides the first-word
+    // reading where the sentence does not begin with the action.
+    var parts = dozeConfirmParts(q, e.target);
+    var titleEl = document.getElementById("confirm-title");
     var msgEl = document.getElementById("confirm-msg");
-    msgEl.textContent = q;
-    msgEl.hidden = false;
+    titleEl.textContent = parts.title;
+    msgEl.textContent = parts.detail;
+    msgEl.hidden = parts.detail === "";
     confirmBox.hidden = false;
     var yes = document.getElementById("confirm-yes"), no = document.getElementById("confirm-no");
+    yes.textContent = parts.verb;
+    yes.className = "btn " + (parts.destructive ? "btn-destructive" : "");
     function close() { if (window.dozeTrap) dozeTrap(confirmBox, false); confirmBox.hidden = true; yes.onclick = no.onclick = confirmBox.onclick = null; document.removeEventListener("keydown", onKey); }
     function dismiss() { close(); settle(false); }
     function onKey(ev) { if (ev.key === "Escape") dismiss(); }

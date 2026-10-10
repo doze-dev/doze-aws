@@ -99,7 +99,7 @@ test.describe('styled confirm + toasts', () => {
 
     // Cancel: dialog closes, bucket still exists (no navigation away).
     await deleteBtn.click();
-    await expect(page.locator('#confirm-msg')).toContainText(bucket);
+    await expect(page.locator('#confirm-title')).toContainText(bucket);
     await confirmDialog('cancel');
     await expect(page).toHaveURL(new RegExp(`/s3/${bucket}$`));
 
@@ -112,12 +112,12 @@ test.describe('styled confirm + toasts', () => {
     const uploadToast = await waitForToast();
     expect(uploadToast).toMatch(/Uploaded hello\.txt/);
 
-    // Confirm on a NON-empty bucket: the server rejects it (BucketNotEmpty),
-    // htmx:responseError fires client-side, and an error toast appears.
+    // Confirm on a NON-empty bucket: the server rejects it (BucketNotEmpty). A
+    // refusal from a header button is drawn under the header, whole; it is not
+    // only a toast.
     await deleteBtn.click();
     await confirmDialog('accept');
-    const errToast = await waitForToast({ kind: 'err' });
-    expect(errToast.length).toBeGreaterThan(0);
+    await expect(page.locator('.det-h + .err[data-doze-err]')).toContainText('BucketNotEmpty');
 
     // Now delete the object first, then the (now-empty) bucket succeeds and
     // redirects to the list with a flash banner (not a toast). The row's
@@ -337,5 +337,28 @@ test.describe('palette resolves a pasted ARN', () => {
     await page.keyboard.press('Enter');
     await page.waitForURL(new RegExp(`/sqs/${queue}$`));
     await expect(page.locator('.det-title')).toContainText(queue);
+  });
+});
+
+test.describe('the confirm component', () => {
+  // It names the thing (the title), says what follows (the sentence after the
+  // question) and its button is the verb. A "Confirm" on a delete makes the
+  // reader work out what they are confirming.
+  test('names the bucket, says what the call site said, and the button is Delete', async ({
+    page,
+    request,
+    uniqueName,
+    confirmDialog,
+  }) => {
+    const bucket = uniqueName('e2e-confirm');
+    await createBucket(request, bucket);
+    await page.goto(`s3/${bucket}`);
+
+    await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
+    await expect(page.locator('#confirm-title')).toContainText(`Delete bucket “${bucket}”?`);
+    await expect(page.locator('#confirm-msg')).toHaveText('It must be empty.');
+    await expect(page.locator('#confirm-yes')).toHaveText('Delete');
+    await expect(page.locator('#confirm-yes')).toHaveClass(/btn-destructive/);
+    await confirmDialog('cancel');
   });
 });

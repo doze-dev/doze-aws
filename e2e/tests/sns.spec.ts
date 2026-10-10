@@ -233,7 +233,7 @@ test.describe('SNS console', () => {
     await expect(subItem).toBeVisible();
 
     await subItem.locator(`button[title="Unsubscribe ${queue}"]`).click();
-    await expect(page.locator('#confirm-msg')).toContainText(queue);
+    await expect(page.locator('#confirm-title')).toContainText(queue);
     await confirmDialog('accept');
     const unsubToast = await waitForToast();
     expect(unsubToast).toMatch(/Subscription removed/);
@@ -242,7 +242,7 @@ test.describe('SNS console', () => {
     await expect(page.locator('.sub-item', { hasText: queue })).toHaveCount(0);
 
     await page.locator('.acts').getByRole('button', { name: 'Delete' }).click();
-    await expect(page.locator('#confirm-msg')).toContainText(topic);
+    await expect(page.locator('#confirm-title')).toContainText(topic);
     await confirmDialog('accept');
     await page.waitForURL(/\/sns(\?|$)/);
     await expect(page.locator('#toasts .toast:not(.err)').last()).toContainText('Topic deleted');

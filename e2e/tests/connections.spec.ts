@@ -265,7 +265,7 @@ test.describe('API destination management', () => {
       const panel = page.locator('#eb-connection-detail');
       const before = (await panel.locator('.panel-h .badge').textContent())?.trim();
       await panel.getByRole('button', { name: 'Deauthorize' }).click();
-      await expect(page.locator('#confirm-msg')).toContainText(connA);
+      await expect(page.locator('#confirm-title')).toContainText(connA);
       await confirmDialog('accept');
       expect(await waitForToast()).toMatch(/Credential removed/);
       await expect(panel.locator('.panel-h .badge')).not.toHaveText(before ?? '');
@@ -276,7 +276,7 @@ test.describe('API destination management', () => {
       await page.reload();
       const row = page.locator('#eb-http-tables tr', { hasText: dest });
       await row.getByRole('button', { name: 'Delete destination' }).click();
-      await expect(page.locator('#confirm-msg')).toContainText(dest);
+      await expect(page.locator('#confirm-title')).toContainText(dest);
       await confirmDialog('accept');
       expect(await waitForToast()).toMatch(/API destination deleted/);
       await expect(page.locator('#eb-http-tables')).not.toContainText(dest);
@@ -285,7 +285,7 @@ test.describe('API destination management', () => {
     await test.step('delete a connection: its remaining destination goes INACTIVE', async () => {
       const row = page.locator('#eb-http-tables tr', { hasText: connB });
       await row.getByRole('button', { name: 'Delete connection' }).click();
-      await expect(page.locator('#confirm-msg')).toContainText(connB);
+      await expect(page.locator('#confirm-title')).toContainText(connB);
       await confirmDialog('accept');
       expect(await waitForToast()).toMatch(/Connection deleted/);
       const t = page.locator('#eb-http-tables');

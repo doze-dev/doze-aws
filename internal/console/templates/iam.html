@@ -481,7 +481,7 @@
             <td class="dim sub">{{.Created}}</td>
             <td><div class="cs-acts">
               {{if not .Default}}
-              <form hx-post="{{$.Prefix}}/iam/policy/set-default" hx-confirm="Make {{.ID}} the default? Every attachment evaluates it from the next request on.">
+              <form hx-post="{{$.Prefix}}/iam/policy/set-default" data-confirm-verb="Make default" data-confirm-destructive="false" hx-confirm="Make {{.ID}} the default? Every attachment evaluates it from the next request on.">
                 <input type="hidden" name="arn" value="{{$.ARN}}"><input type="hidden" name="version" value="{{.ID}}">
                 <button class="btn btn-outline btn-sm" type="submit">Make default</button>
               </form>
