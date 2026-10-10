@@ -12,6 +12,18 @@ about all of them at once.
 Paths are relative to the repo root. Line numbers are as found on 2026-10-10
 and will drift; the symbol named beside each one will not.
 
+## Progress
+
+Updated in the same commit as the work. "Landed" means the item's "done when"
+is met and its test is named; "partly" says what is left.
+
+| Item | State | Commit | Note |
+|---|---|---|---|
+| B6 the 501 refusal and its proof | landed | 4241369, 9fa0829 | `awshttp.NotBuilt`; no Go v1/v2, boto3 or JavaScript SDK retries it. |
+| B6 the model sweep | partly | 0223f75 | Harness and a frozen baseline of 653 entries (542 legacy refusals, 111 false "unknown") are in. Each service moves its entries to `notbuilt` in its own stage. |
+| B7 blob lengths in bytes | landed | bed7d64 | KMS, Kinesis, Secrets Manager. SSM and Lambda have a blob member only on operations the service refuses. |
+| B8 what the generator drops | open | | Found so far: see the note under B8. |
+
 ## A. Shared console behaviour
 
 Each item was reported by more than one service's grounding. "Seen in" names them.
@@ -329,6 +341,19 @@ the model and dropped.
 **Done when.** `cmd/dzaudit` is checked for map-key constraints and list-length
 constraints, and each service's table is regenerated; any new constraint
 becomes a failing parity case in the owning service's stage.
+
+**Found while doing B6 and B7.** The weekly drift job regenerates
+`shapes_*.json`, `ops_*.json` and `iam_*.json`, and nothing else. The
+committed `cases_*.json` and `routes_*.json` have never been regenerated
+against the current models, and have drifted: a fresh `dzaudit cases kms` has
+472 cases against 263 committed, and a fresh `routes` for Lambda has 88
+operations against 48. The routes files are also, by their parity tests'
+reading, "the routed subset", so they cannot simply be regenerated; B6 added
+`modelroutes_*.json` for the complete bindings and put those under the drift
+job. Each service's stage regenerates its own `cases_*.json` and fixes what the
+new cases find, which is where the "routed and has no baseline" failures in
+API Gateway v2 come from. Until then the drift job should also diff the cases,
+so the staleness is visible rather than silent.
 
 ### B9. One validator for a stored resource policy — P1
 
