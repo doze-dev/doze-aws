@@ -534,20 +534,40 @@ no service-specific chrome, and the accessibility sweep is clean on them.
 
 ## Acceptance criteria for stage 0
 
-- [ ] A1 to A18 each meet their "done when", with the test named.
-- [ ] B1 to B12 each meet their "done when".
-- [ ] The shell pieces in C exist and SQS's list and one detail tab render in them.
-- [ ] `docs/SUPPORT.md` no longer says the IAM default is `off` (it is `soft`;
-      the Kinesis, KMS, S3 and Secrets Manager sections say `off`),
-      and the other stale statements in [findings-overview.md](findings-overview.md)
-      section B that are not owned by a service are corrected.
-- [ ] `check:full`, `lightness`, `api`, `coverage`, `test:e2e` (route gate on),
-      `test:conformance` all green. Idle heap and binary size unchanged, or the
-      change is explained in the commit.
-- [ ] The existing console still works for the sixteen services not yet
-      rebuilt: the browser suite passes without edits to their specs beyond
-      what A1 to A13 change on purpose.
-- [ ] `CHANGELOG.md` lists each user-visible change.
+Status at the end of the first pass (2026-10-10). A box is ticked only when the
+criterion is met as written; the rest say what is left and why.
+
+- [~] A1 to A18 each meet their "done when", with the test named. **Met:** A1,
+      A2, A3, A4, A5, A6, A7, A9, A10, A11, A12, A13, A14, A16, A18. **Partly:**
+      A8 (the check and the frozen list are in; each site is fixed in its
+      service's stage), A15 (Secrets Manager and Parameter Store are on one view
+      model; the others adopt in their stages), A17 (one local zone and one
+      formatter; the zone on hover and a UTC toggle are not built).
+- [~] B1 to B12 each meet their "done when". **Met:** B1, B3, B5, B6 (the sweep
+      and its frozen baseline; each service moves its entries in its stage), B7,
+      B8, B10, B11, B12. **Partly:** B2 (the e2e suite boots under a second
+      identity; its CI pass waits on the EventBridge archive ARN and the S3 share
+      link region, both product bugs for their stages), B4 (the record, the lazy
+      registry and SQS as the worked example; each service adds its own), B9 (the
+      validator; each of five services wires it in).
+- [~] The shell pieces in C exist and SQS's list and one detail tab render in
+      them. The header, the taught field and the narrow notice are in the kit
+      and SQS's header and number fields use them; the rest of the anatomy
+      already existed. Not built: a per-resource wire dock.
+- [x] `docs/SUPPORT.md` no longer says the IAM default is `off`. The other stale
+      statements in [findings-overview.md](findings-overview.md) section B are
+      either fixed (the refusal copy, the colours, the unreachable `copy.go`
+      lines, the create-form claim for API Gateway and CloudFormation) or
+      belong to a service's stage and are in its doc.
+- [~] `check:full`, `lightness`, `api`, `coverage`, `test:e2e` (route gate
+      on), `test:conformance`: see the results recorded in the last commit of
+      the stage. Idle heap and binary size are explained in the commit that
+      re-recorded the budgets.
+- [x] The existing console still works for the sixteen services not yet
+      rebuilt: the browser suite passes with the edits to its specs that A6, A12
+      and A13 change on purpose (a refusal from a header button is inline; the
+      confirm's question is its title).
+- [x] `CHANGELOG.md` lists each user-visible change.
 
 ## Files
 
