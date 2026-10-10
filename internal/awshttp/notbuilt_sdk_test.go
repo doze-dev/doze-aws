@@ -225,3 +225,19 @@ func contains(s, sub string) bool {
 	}
 	return false
 }
+
+func TestAnAPIErrorKnowsItsStatusAndStampsWhatDecidedIt(t *testing.T) {
+	e := awshttp.Errf(403, "AccessDenied", "no")
+	e.Denied = "iam"
+	if e.HTTPStatus() != 403 {
+		t.Errorf("HTTPStatus = %d", e.HTTPStatus())
+	}
+	w := httptest.NewRecorder()
+	awshttp.StampHeaders(w, e)
+	if got := w.Header().Get(awshttp.DeniedHeader); got != "iam" {
+		t.Errorf("%s = %q", awshttp.DeniedHeader, got)
+	}
+	if got := w.Header().Get(awshttp.NotBuiltHeader); got != "" {
+		t.Errorf("a denial stamped %s = %q", awshttp.NotBuiltHeader, got)
+	}
+}

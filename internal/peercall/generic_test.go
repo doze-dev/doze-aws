@@ -9,7 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/doze-dev/doze-aws/internal/awshttp"
 	"github.com/doze-dev/doze-aws/peers"
+	"github.com/doze-dev/doze-aws/trace"
 )
 
 // The untyped clients keep an API error apart from a transport failure, and
@@ -116,5 +118,60 @@ func TestS3CallPathsAndErrors(t *testing.T) {
 	_, err = S3Call(ctx, dir, "HeadObject", "HEAD", "b", "k", nil, nil, nil)
 	if !errors.As(err, &apiErr) || apiErr.Code != "NotFound" {
 		t.Errorf("HEAD 404 = %v, want NotFound", err)
+	}
+}
+
+// A failed hop carries what its target answered: the status, and the
+// X-Doze-Denied fact when a policy decided. Without them the wire showed every
+// failed fan-out as a 500, so an alarm whose Publish was denied read as
+// doze-aws breaking.
+type recordingSink struct{ events []trace.Event }
+
+func (r *recordingSink) ReserveCascade() trace.Cause { return trace.Cause(len(r.events) + 1) }
+func (r *recordingSink) EmitCascade(e trace.Event)   { r.events = append(r.events, e) }
+
+func TestAFailedPeerCallReachesTheTraceWithItsStatusAndWhoDeniedIt(t *testing.T) {
+	var status int
+	var denied string
+	dir := genericPeer(t, func(w http.ResponseWriter, r *http.Request) {
+		if denied != "" {
+			w.Header().Set(awshttp.DeniedHeader, denied)
+		}
+		w.WriteHeader(status)
+		w.Write([]byte(`{"__type":"AccessDenied","message":"no"}`))
+	})
+	for _, c := range []struct {
+		name         string
+		status       int
+		denied       string
+		wantDeniedBy string
+	}{
+		{"a policy denied it", 403, "iam", "iam"},
+		{"the target broke", 503, "", ""},
+		{"refused for its input", 400, "", ""},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			status, denied = c.status, c.denied
+			sink := &recordingSink{}
+			ctx := trace.With(context.Background(), sink, trace.Cause(1))
+			// The three shapes of non-2xx answer a peer call turns into an error.
+			_, _ = JSONCall(ctx, dir, "dynamodb", "DynamoDB_20120810.GetItem", "application/x-amz-json-1.0", "t", []byte(`{}`))
+			_ = SNSPublish(ctx, dir, "arn:aws:sns:us-east-1:000000000000:t", "m")
+
+			if len(sink.events) < 2 {
+				t.Fatalf("recorded %d events", len(sink.events))
+			}
+			for _, e := range sink.events {
+				if e.Err == "" {
+					t.Errorf("%s/%s: no error recorded", e.Service, e.Action)
+				}
+				if e.Status != c.status {
+					t.Errorf("%s/%s: status %d, want %d", e.Service, e.Action, e.Status, c.status)
+				}
+				if e.Denied != c.wantDeniedBy {
+					t.Errorf("%s/%s: denied %q, want %q", e.Service, e.Action, e.Denied, c.wantDeniedBy)
+				}
+			}
+		})
 	}
 }

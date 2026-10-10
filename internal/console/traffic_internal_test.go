@@ -200,3 +200,16 @@ func TestCascadeStatusIsWhatTheTargetAnswered(t *testing.T) {
 		}
 	}
 }
+
+// The CLI's --dimensions is a JSON list of Name/Value, in a stable order, and
+// nothing when the metric has none: a preview must not invent a flag.
+func TestMetricDimensionsRenderForTheCLI(t *testing.T) {
+	if got := (Metric{}).CLIDimensions(); got != "" {
+		t.Errorf("no dimensions rendered %q", got)
+	}
+	m := Metric{Dimensions: map[string]string{"QueueName": "q", "Account": "1"}}
+	want := `[{"Name":"Account","Value":"1"},{"Name":"QueueName","Value":"q"}]`
+	if got := m.CLIDimensions(); got != want {
+		t.Errorf("got %s, want %s", got, want)
+	}
+}

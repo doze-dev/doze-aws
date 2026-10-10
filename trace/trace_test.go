@@ -150,3 +150,24 @@ func TestAFailedStepRecordsWhoDeniedIt(t *testing.T) {
 		t.Errorf("recorded %+v, want status 403 denied by iam", e)
 	}
 }
+
+// StepDetail is Step for work that leaves something to read; a failure in it is
+// recorded with the same status and denial, and the detail still rides along.
+func TestAFailedStepDetailRecordsStatusDenialAndWhatItLeftBehind(t *testing.T) {
+	sink := &fakeSink{run: "r"}
+	ctx := With(context.Background(), sink, Cause(1))
+	err := StepDetail(ctx, Event{Service: "lambda", Action: "Invoke"}, func(context.Context) (string, string, error) {
+		return "tail of the log", "/lambda/fn?tab=logs", fmt.Errorf("invoke: %w", denied{})
+	})
+	if err == nil {
+		t.Fatal("the error was swallowed")
+	}
+	e := sink.events[0]
+	if e.Status != 403 || e.Denied != "iam" || e.Detail != "tail of the log" || e.DetailURL != "/lambda/fn?tab=logs" || e.Err == "" {
+		t.Errorf("recorded %+v", e)
+	}
+	// Untraced: the function runs and its error is returned as is.
+	if got := StepDetail(context.Background(), Event{}, func(context.Context) (string, string, error) { return "", "", errors.New("x") }); got == nil {
+		t.Error("an untraced StepDetail dropped its error")
+	}
+}
