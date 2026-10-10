@@ -271,6 +271,15 @@ func (r *Runner) InvokeInput(ctx context.Context, in Input) (Result, error) {
 	case <-inv.dispatched:
 		// The function has the work. Now its clock is the one that matters.
 	case <-time.After(initBudget):
+		// Nothing in the Result says why, and the cause is the process's own: it
+		// never reached the Runtime API. Say what the runner can see — whether it
+		// is alive, and the last thing it printed — so a slow start and a hang
+		// stop looking the same.
+		r.mu.Lock()
+		started := r.started
+		r.mu.Unlock()
+		r.logf("lambda %s: the function did not fetch work within %s (process running: %v); recent output: %q",
+			r.spec.Name, initBudget, started, r.logTail.snapshot())
 		return Result{FunctionErr: "Unhandled", RequestID: inv.id,
 			Payload: []byte(`{"errorMessage":"Task timed out during init"}`)}, nil
 	case <-ctx.Done():

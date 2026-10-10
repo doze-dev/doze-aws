@@ -13,7 +13,9 @@ cd "$(dirname "$0")"
 export AWS_ENDPOINT_URL="$ENDPOINT" AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test
 export AWS_DEFAULT_REGION=us-east-1 AWS_REGION=us-east-1 SLS_TELEMETRY_DISABLED=1 SLS_NOTIFICATIONS_MODE=off
 
-npm install --no-audit --no-fund --silent
+# The registry now and then answers "no version matching" for a package that exists
+# (a mirror not yet caught up); a retry is the whole fix.
+for attempt in 1 2 3; do npm install --no-audit --no-fund --silent && break; [ "$attempt" = 3 ] && exit 1; sleep 10; done
 npx serverless package
 
 caps="CAPABILITY_IAM CAPABILITY_NAMED_IAM"
