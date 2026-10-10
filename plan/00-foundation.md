@@ -22,6 +22,7 @@ is met and its test is named; "partly" says what is left.
 | B6 the 501 refusal and its proof | landed | 4241369, 9fa0829 | `awshttp.NotBuilt`; no Go v1/v2, boto3 or JavaScript SDK retries it. |
 | B6 the model sweep | partly | 0223f75 | Harness and a frozen baseline of 653 entries (542 legacy refusals, 111 false "unknown") are in. Each service moves its entries to `notbuilt` in its own stage. |
 | B7 blob lengths in bytes | landed | bed7d64 | KMS, Kinesis, Secrets Manager. SSM and Lambda have a blob member only on operations the service refuses. |
+| B11 paging, once | landed | (next commit) | `internal/awspage` and `dozetest.AssertPaginates`. Services adopt in their stages. |
 | B10 the guard passes every condition key | landed | (next commit) | `iamguard.RequestContext`, one function for both paths; D7 decides `aws:SecureTransport`. Enforce tests for the services that evaluate a resource policy re-run green. |
 | B9 one stored-policy validator | partly | (next commit) | `iampolicy.ValidateResourcePolicy` and its table test are in. S3 and IAM already validate their own; the other five wire it in their stages. |
 | B12 `provision` has two callers | landed | (next commit) | Resolved without a mode: `Force` already carries it. Pinned by `TestApplyAdoptsWhatIsThereAndDeletesNothing`. CFN-1 is a one-line mapper change in the CloudFormation stage. |
@@ -421,6 +422,19 @@ Gateway plane. Most ignore the limit and return everything with no token.
 **Done when.** One helper implements limit and opaque token over a sorted
 listing, and a shared test drives any list operation through it with a limit
 of one. Each service adopts it in its own stage.
+
+**Landed.** `internal/awspage`: `Slice(items, key, token, limit)` returns the
+page after the token and the next token, `Limit` resolves requested, default
+and maximum, and a token this package did not mint is `ErrBadToken` for the
+service to map to its own code. The cursor is the last key, not an offset, so a
+deletion or an insertion between two pages moves nothing; Step Functions'
+existing offset `page()` was one such and is replaced in its stage. The shared
+test is `dozetest.AssertPaginates(t, fetch, want, opts)`: it walks the
+operation with limits of one and two and one above the count, and fails unless
+every item comes back exactly once, no page exceeds the limit, the last carries
+no token, and (optionally) a token it did not issue is refused. It is itself
+held to catching the four ways a list fails today (ignores the limit, repeats a
+page, never ends, drops the last page).
 
 ### B12. `provision` has two callers
 
