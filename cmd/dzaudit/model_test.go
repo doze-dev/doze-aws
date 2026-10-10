@@ -390,3 +390,44 @@ func mustViolations(t *testing.T, c constraint) []struct {
 	}
 	return vs
 }
+
+const cappedModel = `{"shapes": {
+  "com.example#Svc": {"type": "service", "traits": {"aws.protocols#awsJson1_1": {}},
+    "operations": [{"target": "com.example#Put"}]},
+  "com.example#Put": {"type": "operation", "input": {"target": "com.example#PutInput"}},
+  "com.example#PutInput": {"type": "structure", "members": {
+    "Events":  {"target": "com.example#EventList"},
+    "ByKey":   {"target": "com.example#KeyedMap"}
+  }},
+  "com.example#EventList": {"type": "list", "member": {"target": "smithy.api#String"},
+    "traits": {"smithy.api#length": {"min": 1, "max": 10000}}},
+  "com.example#Key": {"type": "string", "traits": {"smithy.api#pattern": "^[a-z]+$"}},
+  "com.example#KeyedMap": {"type": "map", "key": {"target": "com.example#Key"}, "value": {"target": "smithy.api#String"},
+    "traits": {"smithy.api#length": {"max": 3}}}
+}}`
+
+// A bound too large to write out loses its maximum case and keeps its minimum
+// one; and a map whose keys are constrained has no SIZE case, because the keys
+// a size case invents would break the key's rule and report the wrong thing.
+func TestContainerCasesKeepWhatCanBeBuilt(t *testing.T) {
+	m := modelFrom(t, cappedModel)
+	var events, sized []finding
+	for _, f := range m.audit("") {
+		switch {
+		case f.Path == "Events" && f.Constraint.Container == "list":
+			events = append(events, f)
+		case f.Path == "ByKey" && f.Constraint.Container == "map":
+			sized = append(sized, f)
+		}
+	}
+	if len(events) != 1 || len(sized) != 1 {
+		t.Fatalf("findings: events=%d sized=%d", len(events), len(sized))
+	}
+	vs, ok := containerViolations(events[0].Constraint)
+	if !ok || len(vs) != 1 || !strings.Contains(vs[0].Why, "fewer than") {
+		t.Errorf("want only the minimum case for 1..10000, got ok=%v %+v", ok, vs)
+	}
+	if _, ok := containerViolations(sized[0].Constraint); ok {
+		t.Error("a size case was built for a map whose keys are constrained")
+	}
+}

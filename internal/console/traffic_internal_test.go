@@ -1,6 +1,7 @@
 package console
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -211,5 +212,27 @@ func TestMetricDimensionsRenderForTheCLI(t *testing.T) {
 	want := `[{"Name":"Account","Value":"1"},{"Name":"QueueName","Value":"q"}]`
 	if got := m.CLIDimensions(); got != want {
 		t.Errorf("got %s, want %s", got, want)
+	}
+}
+
+// A batch written in pieces and refused part-way is still the service's own
+// refusal to the failure view, and still says which keys landed. (No local
+// service refuses a second chunk yet: Kinesis does not enforce its tag limits,
+// which is why this is a unit test and not a save.)
+func TestAPartialTagWriteIsStillTheServicesRefusal(t *testing.T) {
+	refusal := &apiErr{status: 400, errType: "LimitExceededException",
+		body: `{"__type":"LimitExceededException","message":"too many tags"}`}
+	err := error(&tagWritePartial{Applied: []string{"a", "b"}, Err: refusal})
+
+	var part *tagWritePartial
+	if !errors.As(err, &part) || len(part.Applied) != 2 {
+		t.Fatalf("errors.As lost the applied keys: %v", err)
+	}
+	f := failView(err)
+	if f.Code != "LimitExceededException" || f.Message != "too many tags" {
+		t.Errorf("failView read %+v, want the service's code and message", f)
+	}
+	if got := quoteKeys(part.Applied); got != `"a" and "b"` {
+		t.Errorf("quoteKeys = %s", got)
 	}
 }

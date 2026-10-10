@@ -211,6 +211,18 @@ func (b *backend) ResourceTags(ctx context.Context, svc, id string) ([]KV, error
 	return kvs, nil
 }
 
+// tagWritePartial is a batch that was written in pieces and refused part-way:
+// the keys before the refusal are on the resource. Only a service that takes
+// fewer tags per call than a save can hold (Kinesis, ten) can produce it, and
+// the handler says so rather than claiming the save changed nothing.
+type tagWritePartial struct {
+	Applied []string
+	Err     error
+}
+
+func (e *tagWritePartial) Error() string { return e.Err.Error() }
+func (e *tagWritePartial) Unwrap() error { return e.Err }
+
 // SetResourceTags sets (or overwrites) a batch of tags in one call. Every
 // service's tag API takes a set, so one Save is one TagResource: the service
 // accepts the whole set or refuses the whole set, and the editor never has to
@@ -248,6 +260,14 @@ func (b *backend) SetResourceTags(ctx context.Context, svc, id string, tags map[
 				chunk[k] = tags[k]
 			}
 			if _, err := b.kinesis(ctx, "AddTagsToStream", map[string]any{"StreamName": id, "Tags": chunk}); err != nil {
+				if done := len(tags) - len(keys); done > 0 {
+					all := make([]string, 0, len(tags))
+					for k := range tags {
+						all = append(all, k)
+					}
+					sort.Strings(all)
+					return &tagWritePartial{Applied: all[:done], Err: err}
+				}
 				return err
 			}
 			keys = keys[n:]

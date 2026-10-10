@@ -181,6 +181,14 @@ func (m *model) walk(op, shapeID, path string, depth int, seen map[string]bool, 
 		if s.Value != nil {
 			valueSample, haveValue = m.sample(s.Value.Target)
 		}
+		// A size case fills the map with keys of its own making, so it is only a
+		// case about the size when nothing constrains the key.
+		keyFree := true
+		if s.Key != nil {
+			if ks, ok := m.Shapes[s.Key.Target]; ok && (ks.Type == "enum" || len(constraintsOf(ks.Traits)) > 0) {
+				keyFree = false
+			}
+		}
 		// How many entries, and the rule on every KEY. A key is not a value of
 		// the map, so it has no path of its own in the grammar; its cases are
 		// the map itself, holding one entry with a key that breaks the rule.
@@ -188,7 +196,7 @@ func (m *model) walk(op, shapeID, path string, depth int, seen map[string]bool, 
 			if c.Kind != "length" {
 				continue
 			}
-			c.Container, c.Sample, c.HasSample = "map", valueSample, haveValue
+			c.Container, c.Sample, c.HasSample = "map", valueSample, haveValue && keyFree
 			*out = append(*out, finding{op, path, shortName(shapeID), c})
 		}
 		if s.Key != nil {

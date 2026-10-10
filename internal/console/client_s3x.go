@@ -660,7 +660,7 @@ func (b *backend) GetObjectVersion(ctx context.Context, bucket, key, versionID s
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode/100 != 2 {
-		return nil, "", &apiErr{status: resp.StatusCode, body: string(body)}
+		return nil, "", &apiErr{status: resp.StatusCode, body: string(body), errType: resp.Header.Get("x-amzn-ErrorType"), facts: factsOf(resp.Header)}
 	}
 	return body, resp.Header.Get("Content-Type"), nil
 }

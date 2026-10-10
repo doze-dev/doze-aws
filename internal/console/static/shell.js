@@ -189,6 +189,11 @@
       if (n && n.matches(".err[data-doze-err]")) n.remove();
       return;
     }
+    if (slot.how === "top") {
+      var f = slot.host.firstElementChild;
+      if (f && f.matches(".err[data-doze-err]")) f.remove();
+      return;
+    }
     clearErr(slot.host);
   }
   // The ladder, most specific first. A surface opts in with data-err-slot;
@@ -232,8 +237,10 @@
     // Last rung: the page's own body. A control outside every block above (a
     // list-pane action, a top-strip button) still has a page to say it on, and
     // an error that is only ever a toast is gone in ten seconds.
-    var page = document.querySelector(".detail .det-b, .detail, .form-page");
-    if (page) return { host: page, how: "prepend" };
+    // "top" puts it first in the pane's body and clears only what an earlier
+    // one put there: the pane may hold errors that belong to a form below.
+    var page = document.querySelector(".detail > .det-b, .form-page");
+    if (page) return { host: page, how: "top" };
     return null;
   }
   function placeError(elt, html) {
@@ -245,7 +252,7 @@
     var node = box.firstElementChild;
     if (!node) return false;
     node.setAttribute("data-doze-err", "1");
-    if (slot.how === "prepend") slot.host.insertBefore(node, slot.host.firstChild);
+    if (slot.how === "prepend" || slot.how === "top") slot.host.insertBefore(node, slot.host.firstChild);
     else if (slot.how === "after") slot.host.parentNode.insertBefore(node, slot.host.nextSibling);
     else slot.host.appendChild(node);
     node.scrollIntoView({ block: "nearest" });
@@ -267,6 +274,11 @@
   // failure shows up twice. htmx 2 ordered these the other way round and the
   // placement rode on beforeSwap; moving it to after:request is the whole
   // reason this is two listeners rather than one.
+  // isConsolePage: the response is a whole console document, which the server
+  // sends for its own not-found and failed-load pages.
+  function isConsolePage(ctx) {
+    return !dozeError(ctx) && typeof ctx.text === "string" && /^\s*<!DOCTYPE html>/i.test(ctx.text);
+  }
   function dozeError(ctx) {
     return ctx && ctx.response && ctx.response.headers.get("HX-Doze-Error") === "1";
   }
@@ -285,7 +297,9 @@
     // action was aimed at and leave it blank. Nothing here is meant to render
     // an error response into a success target: errors are drawn by the
     // response:error listener below, where the action was.
-    if (ctx && ctx.response && ctx.response.status >= 400) { e.preventDefault(); return; }
+    // One exception: the console's own page (a 404 for a boosted navigation to a
+    // deleted resource) is a document meant to be swapped, not an error body.
+    if (ctx && ctx.response && ctx.response.status >= 400 && !isConsolePage(ctx)) { e.preventDefault(); return; }
     if (!dozeError(e.detail.ctx)) return;
     // Never let an error reach the success target. htmx 2 took shouldSwap=false
     // for this; htmx 4 cancels a swap by cancelling the event, and that cancels
@@ -303,6 +317,8 @@
     // a home in — so it is strictly never worse than before.
     var ctx = e.detail.ctx;
     if (!ctx || ctx._dozeHandled) return;
+    // A whole console page is swapped in, not described.
+    if (isConsolePage(ctx)) return;
     var raw = (ctx.text || "Request failed");
     // The server HTML-escapes error bodies; decode entities first so the message
     // regex matches and the toast shows real quotes/brackets, not "&#34;".

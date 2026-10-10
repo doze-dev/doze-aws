@@ -201,3 +201,22 @@ test.describe('create form command preview', () => {
     await expect(pre).not.toContainText('put-retention-policy');
   });
 });
+
+test.describe('a stale link', () => {
+  // The console's own 404 is a whole page. A boosted click on a link to a group
+  // that has since been deleted swaps that page in; it is not an error body to
+  // be cancelled and described.
+  test('to a deleted log group shows the not-found page, not an inline failure', async ({ page, request, uniqueName }) => {
+    const name = uniqueName('/e2e/stale');
+    await postForm(request, 'logs/create', { name });
+    await page.goto('logs');
+    const link = page.locator(`a.li[data-name="${name}"]`);
+    await expect(link).toBeVisible();
+
+    await postForm(request, 'logs/delete', { name }).catch(() => undefined);
+    await request.post(ORIGIN + '_console/logs/delete', { form: { name } }).catch(() => undefined);
+    await link.click();
+    await expect(page.locator('.det-title')).toContainText(/not found|could not be opened/i);
+    await expect(page.locator('.err-error')).toHaveCount(0);
+  });
+});

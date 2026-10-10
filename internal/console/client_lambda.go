@@ -284,7 +284,7 @@ func (b *backend) Invoke(ctx context.Context, name, payload string, async bool) 
 		}
 	}
 	if resp.StatusCode/100 != 2 {
-		return nil, &apiErr{status: resp.StatusCode, body: string(body)}
+		return nil, &apiErr{status: resp.StatusCode, body: string(body), errType: resp.Header.Get("x-amzn-ErrorType"), facts: factsOf(resp.Header)}
 	}
 	if async {
 		res.Async = true

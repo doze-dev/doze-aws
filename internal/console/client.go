@@ -415,7 +415,7 @@ func (b *backend) GetObject(ctx context.Context, bucket, key string) ([]byte, st
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode/100 != 2 {
-		return nil, "", &apiErr{status: resp.StatusCode, body: string(body)}
+		return nil, "", &apiErr{status: resp.StatusCode, body: string(body), errType: resp.Header.Get("x-amzn-ErrorType"), facts: factsOf(resp.Header)}
 	}
 	return body, resp.Header.Get("Content-Type"), nil
 }
@@ -442,7 +442,7 @@ func (b *backend) HeadObject(ctx context.Context, bucket, key string) (*ObjectMe
 	}
 	resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
-		return nil, &apiErr{status: resp.StatusCode, body: "object not found"}
+		return nil, &apiErr{status: resp.StatusCode, body: "object not found", facts: factsOf(resp.Header)}
 	}
 	ct := resp.Header.Get("Content-Type")
 	size, _ := strconv.ParseInt(resp.Header.Get("Content-Length"), 10, 64)

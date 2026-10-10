@@ -185,10 +185,10 @@ func containerViolations(c constraint) ([]struct {
 			out = append(out, v{fmt.Sprintf("fewer than the minimum of %s %s", trimNum(*c.Min), what), build(n)})
 		}
 		if c.Max != nil {
-			if *c.Max+1 > maxContainerCase {
-				return nil, false
+			// A bound above the cap has no case, but the minimum's case stands.
+			if *c.Max+1 <= maxContainerCase {
+				out = append(out, v{fmt.Sprintf("more than the maximum of %s %s", trimNum(*c.Max), what), build(int(*c.Max) + 1)})
 			}
-			out = append(out, v{fmt.Sprintf("more than the maximum of %s %s", trimNum(*c.Max), what), build(int(*c.Max) + 1)})
 		}
 		return out, len(out) > 0
 	case "mapKey":

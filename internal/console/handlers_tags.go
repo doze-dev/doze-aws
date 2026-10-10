@@ -1,6 +1,7 @@
 package console
 
 import (
+	"errors"
 	"net/http"
 	"sort"
 	"strconv"
@@ -127,6 +128,14 @@ func (c *Console) tagsSave(w http.ResponseWriter, r *http.Request) {
 			note := "Nothing was changed. Refused: writing " + quoteKeys(keys) + "."
 			if len(remove) > 0 {
 				note = "The removal of " + quoteKeys(remove) + " was applied. Refused: writing " + quoteKeys(keys) + "."
+			}
+			var part *tagWritePartial
+			if errors.As(err, &part) {
+				// The service takes a few tags per call: some were written.
+				note = "Written before the refusal: " + quoteKeys(part.Applied) + "."
+				if len(remove) > 0 {
+					note = "The removal of " + quoteKeys(remove) + " was applied. " + note
+				}
 			}
 			c.renderTagEditorWith(w, r, svc, id, &tagRefusal{Err: failView(err), Note: note})
 			return
