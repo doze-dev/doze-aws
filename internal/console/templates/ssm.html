@@ -78,11 +78,11 @@
     <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .P.ARN}}</div>
   </div>
   <div class="det-b">
-    {{template "value_workspace" (dict "Prefix" .Prefix "Mode" .Mode "Value" .P.Value "Secure" .Secure "Diff" (printf "%s/ssm/diff?name=%s" .Prefix .P.Name)
-        "ViewURL" (printf "%s/ssm/param?name=%s" .Prefix .P.Name)
-        "EditURL" (printf "%s/ssm/param?name=%s&tab=edit" .Prefix .P.Name)
-        "VersURL" (printf "%s/ssm/param?name=%s&tab=versions" .Prefix .P.Name)
-        "TagsURL" (printf "%s/ssm/param?name=%s&tab=tags" .Prefix .P.Name) "TagsSvc" "ssm" "SaveURL" (printf "%s/ssm/put" .Prefix) "SaveField" "name" "SaveVal" .P.Name "SaveLabel" (printf "Save as v%d" (addOne .P.Version))
+    {{template "value_workspace" (dict "Prefix" .Prefix "Mode" .Mode "Value" .P.Value "Secure" .Secure "Diff" (printf "%s/ssm/diff?name=%s" .Prefix (urlquery .P.Name))
+        "ViewURL" (printf "%s/ssm/param?name=%s" .Prefix (urlquery .P.Name))
+        "EditURL" (printf "%s/ssm/param?name=%s&tab=edit" .Prefix (urlquery .P.Name))
+        "VersURL" (printf "%s/ssm/param?name=%s&tab=versions" .Prefix (urlquery .P.Name))
+        "TagsURL" (printf "%s/ssm/param?name=%s&tab=tags" .Prefix (urlquery .P.Name)) "TagsSvc" "ssm" "SaveURL" (printf "%s/ssm/put" .Prefix) "SaveField" "name" "SaveVal" .P.Name "SaveLabel" (printf "Save as v%d" (addOne .P.Version))
         "LabelURL" (printf "%s/ssm/label" .Prefix) "UnlabelURL" (printf "%s/ssm/unlabel" .Prefix)
         "Target" "#ssm-detail" "History" .History)}}
     <div class="meta-grid">

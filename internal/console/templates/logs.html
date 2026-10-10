@@ -71,12 +71,12 @@
       </div>
       <div class="chips">{{template "copychip" dict "Label" "arn" "Value" .G.ARN}}{{template "copychip" dict "Label" "tail" "Value" (printf "aws logs tail %s --follow" .G.Name)}}</div>
       {{template "dtabs" dict "Cur" .Tab "Tabs" (list
-        (dict "Key" "tail" "Label" "Tail" "Icon" "list" "URL" (printf "%s/logs/group?name=%s" .Prefix .Sel))
-        (dict "Key" "streams" "Label" "Streams" "Icon" "layers" "URL" (printf "%s/logs/group?name=%s&tab=streams" .Prefix .Sel))
-        (dict "Key" "subscriptions" "Label" "Subscriptions" "Icon" "send" "URL" (printf "%s/logs/group?name=%s&tab=subscriptions" .Prefix .Sel))
-        (dict "Key" "metrics" "Label" "Metric filters" "Icon" "sliders" "URL" (printf "%s/logs/group?name=%s&tab=metrics" .Prefix .Sel))
-        (dict "Key" "settings" "Label" "Settings" "Icon" "settings" "URL" (printf "%s/logs/group?name=%s&tab=settings" .Prefix .Sel))
-        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/logs/group?name=%s&tab=tags" .Prefix .Sel)))}}
+        (dict "Key" "tail" "Label" "Tail" "Icon" "list" "URL" (printf "%s/logs/group?name=%s" .Prefix (urlquery .Sel)))
+        (dict "Key" "streams" "Label" "Streams" "Icon" "layers" "URL" (printf "%s/logs/group?name=%s&tab=streams" .Prefix (urlquery .Sel)))
+        (dict "Key" "subscriptions" "Label" "Subscriptions" "Icon" "send" "URL" (printf "%s/logs/group?name=%s&tab=subscriptions" .Prefix (urlquery .Sel)))
+        (dict "Key" "metrics" "Label" "Metric filters" "Icon" "sliders" "URL" (printf "%s/logs/group?name=%s&tab=metrics" .Prefix (urlquery .Sel)))
+        (dict "Key" "settings" "Label" "Settings" "Icon" "settings" "URL" (printf "%s/logs/group?name=%s&tab=settings" .Prefix (urlquery .Sel)))
+        (dict "Key" "tags" "Label" "Tags" "Icon" "tag" "URL" (printf "%s/logs/group?name=%s&tab=tags" .Prefix (urlquery .Sel))))}}
     </div>
     <div class="det-b">
       {{if eq .Tab "streams"}}
